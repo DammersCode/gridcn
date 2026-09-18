@@ -33,7 +33,8 @@ export function InstallCommand({ item, manual = false, manualSlot }: InstallComm
   const [manager, setManager] = usePackageManager();
   const [copied, setCopied] = useState(false);
   const command = [
-    `${RUNNERS[manager]} shadcn@latest registry add ${GRIDCN_REGISTRY}=${GRIDCN_REGISTRY_URL}`,
+    // quoted: PowerShell mangles the unquoted `@gridcn=…` token (splat parse) before the CLI sees it
+    `${RUNNERS[manager]} shadcn@latest registry add "${GRIDCN_REGISTRY}=${GRIDCN_REGISTRY_URL}"`,
     `${RUNNERS[manager]} shadcn@latest add ${GRIDCN_REGISTRY}/${item}`,
   ].join("\n");
 
