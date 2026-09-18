@@ -16,7 +16,7 @@ Range selection, clipboard paste, and a fill handle are in the core, under the
 ## Install
 
 ```bash
-npx shadcn@latest add DammersCode/gridcn/data-grid
+npx shadcn add DammersCode/gridcn/data-grid
 ```
 
 Install add-ons the same way, for example `npx shadcn add DammersCode/gridcn/data-grid-toolbar`.
