@@ -1,0 +1,30 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "data-grid-pagination-demo",
+  "title": "Data Grid Pagination Demo",
+  "author": "gridcn",
+  "description": "Client-mode pagination: useDataGridPagination slices a generated dataset and <DataGridPaginationBar /> renders the default footer (first/prev/pages/next/last, page-size select, range label).",
+  "registryDependencies": [
+    "DammersCode/gridcn/data-grid",
+    "DammersCode/gridcn/data-grid-history",
+    "DammersCode/gridcn/data-grid-pagination"
+  ],
+  "files": [
+    {
+      "path": "registry/default/examples/data-grid-pagination-demo.tsx",
+      "content": "\"use client\";\r\n\r\nimport { useCallback, useState, type ReactNode } from \"react\";\r\nimport {\r\n  DataGridProvider,\r\n  DataGridRoot,\r\n  DataGridHeader,\r\n  DataGridBody,\r\n  defineColumns,\r\n  type DataChange,\r\n} from \"@/registry/default/components/data-grid/data-grid\";\r\nimport { useDataGridPagination, DataGridPaginationBar } from \"@/registry/default/components/data-grid-pagination/data-grid-pagination\";\r\nimport { generateDemoRows, type DemoRow } from \"./demo-data\";\r\n\r\nconst columns = defineColumns<DemoRow>()([\r\n  { id: \"name\", header: \"Name\", accessorKey: \"name\", type: \"text\", width: 100, flex: 1 },\r\n  { id: \"email\", header: \"Email\", accessorKey: \"email\", type: \"text\", width: 130, flex: 2 },\r\n  { id: \"role\", header: \"Role\", accessorKey: \"role\", type: \"text\", width: 90, flex: 1 },\r\n  { id: \"score\", header: \"Score\", accessorKey: \"score\", type: \"number\", width: 70, flex: 1 },\r\n] as const);\r\n\r\n/**\r\n * Client mode: `useDataGridPagination` slices the full 240-row dataset into pages itself, no\r\n * server round trip. The footer sits outside `DataGridProvider` (it has no store to read from —\r\n * `pager.controls` already carries everything it needs).\r\n *\r\n * `DataGrid`'s `onDataChange` only ever sees the current page's slice, so an edit is merged back\r\n * into the full dataset by row id here rather than replacing it outright (unlike the unpaginated\r\n * `useDataGridState` quick start, which can swap `data` wholesale because it always sees every row).\r\n */\r\nexport default function DataGridPaginationDemo(): ReactNode {\r\n  const [rows, setRows] = useState(() => generateDemoRows(240));\r\n  const pager = useDataGridPagination({ data: rows, pageSize: 25 });\r\n\r\n  const onDataChange = useCallback((next: readonly DemoRow[], _change: DataChange<DemoRow>) => {\r\n    setRows((prev) => {\r\n      const edited = new Map(next.map((row) => [row.id, row]));\r\n      return prev.map((row) => edited.get(row.id) ?? row);\r\n    });\r\n  }, []);\r\n\r\n  return (\r\n    <div className=\"w-full flex h-[420px] flex-col overflow-hidden rounded-md border border-border\">\r\n      <DataGridProvider data={pager.pageData!} columns={columns} getRowId={(row) => row.id} onDataChange={onDataChange}>\r\n        <DataGridRoot className=\"min-h-0 flex-1 rounded-none border-none\">\r\n          <DataGridHeader />\r\n          <DataGridBody />\r\n        </DataGridRoot>\r\n      </DataGridProvider>\r\n      <DataGridPaginationBar {...pager.controls} />\r\n    </div>\r\n  );\r\n}\r\n",
+      "type": "registry:example",
+      "target": "components/data-grid-pagination-demo.tsx"
+    },
+    {
+      "path": "registry/default/examples/demo-data.ts",
+      "content": "/** Deterministic LCG so SSR/CSR markup match without Math.random(); shared across example rows. */\nfunction createSeededLcg(seed: number) {\n  let state = seed;\n  return () => {\n    state = (state * 1103515245 + 12345) & 0x7fffffff;\n    return state / 0x7fffffff;\n  };\n}\n\nexport type DemoRow = {\n  id: string;\n  name: string;\n  email: string;\n  age: number;\n  active: boolean;\n  role: string;\n  joined: string;\n  score: number;\n};\n\nconst ROLES = [\"Admin\", \"User\", \"Editor\", \"Viewer\", \"Manager\"] as const;\nconst ADJECTIVES = [\"Eager\", \"Quick\", \"Silent\", \"Bold\", \"Swift\"] as const;\nconst NOUNS = [\"Eagle\", \"Lion\", \"Tiger\", \"Bear\", \"Wolf\"] as const;\n\n/** Generates `count` deterministic demo rows for example previews (seed 42, stable across renders). */\nexport function generateDemoRows(count: number, seed = 42): DemoRow[] {\n  const next = createSeededLcg(seed);\n  const rows: DemoRow[] = [];\n  for (let i = 0; i < count; i++) {\n    rows.push({\n      id: `row-${i}`,\n      name: `${ADJECTIVES[Math.floor(next() * ADJECTIVES.length)]} ${NOUNS[Math.floor(next() * NOUNS.length)]}`,\n      email: `user${i}@example.com`,\n      age: Math.floor(next() * 50) + 18,\n      active: next() > 0.5,\n      role: ROLES[Math.floor(next() * ROLES.length)]!, // ROLES is a fixed non-empty literal array\n      joined: `${2020 + Math.floor(next() * 5)}-${String(Math.floor(next() * 12) + 1).padStart(2, \"0\")}-${String(Math.floor(next() * 28) + 1).padStart(2, \"0\")}`,\n      score: Math.floor(next() * 100),\n    });\n  }\n  return rows;\n}\n",
+      "type": "registry:example",
+      "target": "components/demo-data.ts"
+    }
+  ],
+  "categories": [
+    "data"
+  ],
+  "type": "registry:example"
+}

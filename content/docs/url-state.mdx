@@ -1,0 +1,135 @@
+---
+title: URL state
+description: Sync sort, filter, search, and pagination to the URL via nuqs.
+icon: Link2
+---
+
+`data-grid-url-state` syncs the sort, filter, search, and pagination state of the grid with the
+URL using [nuqs](https://nuqs.dev).
+
+<ComponentPreview name="data-grid-url-state-demo" />
+
+<InstallCommand item="data-grid-url-state" manual manualSlot={<ManualInstall item="data-grid-url-state" />} />
+
+## Usage
+
+Mount `<DataGridUrlState>` once inside `<DataGridProvider>`, under a `NuqsAdapter` for your
+framework somewhere above it in the tree:
+
+```tsx
+"use client";
+
+import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { DataGridUrlState } from "@/components/data-grid-url-state/data-grid-url-state";
+import { DataGridToolbar, DataGridSearch, DataGridFilterMenu } from "@/components/data-grid-toolbar/data-grid-toolbar";
+
+function OrdersGrid() {
+  return (
+    <NuqsAdapter>
+      <DataGridProvider {...grid} columns={columns}>
+        <DataGridUrlState prefix="orders" />
+        <DataGridToolbar>
+          <DataGridSearch />
+          <DataGridFilterMenu />
+        </DataGridToolbar>
+        <DataGridRoot>
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>
+    </NuqsAdapter>
+  );
+}
+```
+
+`nuqs/adapters/next/app` is the Next.js App Router adapter shown above. Swap it for your
+framework's own adapter, per the [nuqs docs](https://nuqs.dev/docs/adapters) (Pages Router, Remix,
+React Router, or plain React).
+
+<Callout type="warn" title="NuqsAdapter must not be nested">
+  If your app already renders a `NuqsAdapter` once near the root, the common case, drop the inner
+  one shown above. `DataGridUrlState` only needs one `NuqsAdapter` somewhere above it in the tree.
+</Callout>
+
+<Callout type="warn" title="Suspense required when statically prerendering">
+  Because the adapter reads `useSearchParams()`, wrap the grid in `<Suspense>` if you statically
+  prerender the page. Next.js requires this.
+</Callout>
+
+## `prefix`
+
+This namespaces the `sort`, `filter`, `join`, and `q` URL keys, so multiple grids can coexist on
+one page without colliding:
+
+```tsx
+<DataGridUrlState prefix="orders" />
+// -> ?orders_sort=...&orders_filter=...&orders_join=...&orders_q=...
+```
+
+The filter menu's And/Or toggle writes the `join` param (omitted while the operator is the
+default). It has its own key instead of folding into `filter`, so a URL generated before the
+toggle existed still parses identically.
+
+## Behavior
+
+- Reload the page or share a link, and the view comes back exactly as it was.
+- URL params apply to the store exactly once, on mount. After that, the store is the source of
+  truth and drives the URL, not the other way around.
+- Sort, filter, and join writes are immediate, since they are menu-driven, not keystroke-driven.
+  Search writes are debounced (300ms), so typing does not spam `history.replaceState`.
+- Every URL write uses `history: "replace"`, never `push`, so typing in search or changing a
+  filter does not pollute the browser's back and forward history.
+- The core stays router-agnostic. `data-grid-url-state` is the only piece that knows about a
+  router, and it is entirely optional.
+
+<Callout type="warn" title="A URL-applied sort is invisible in the default config">
+  `?sort=name:asc` reorders the rows, but the built-in sort indicator only renders in
+  `headerClickBehavior="sort"` mode, which is not the default. So in the default config a
+  deep-linked sort changes the row order with no visible arrow and no built-in UI to clear it
+  (the sort-list toolbar is a separate opt-in add-on). The sync works; the affordance is just
+  missing. Make it visible and clearable:
+
+  ```tsx
+  <DataGridProvider headerClickBehavior="sort" {...grid} columns={columns}>
+  ```
+
+  or install `data-grid-sort-list` for a toolbar sort list.
+</Callout>
+
+<Callout type="warn" title="Column layout is not synced to the URL">
+  Column widths, order, pins, and hidden state are not part of this add-on. Use
+  `defaultColumnLayout` and `onColumnLayoutChange` instead. See
+  [Columns: persisting a user's layout](/docs/columns#persisting-a-users-layout).
+</Callout>
+
+## Pagination
+
+`useDataGridUrlPagination` syncs `page` and `pageSize` with the URL, separately from
+`<DataGridUrlState>` — pagination has no store slot, so this is a standalone hook rather than
+something `<DataGridUrlState>` mounts for you:
+
+```tsx
+"use client";
+
+import { useDataGridUrlPagination } from "@/components/data-grid-url-state/data-grid-url-state";
+import { useDataGridPagination, DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
+
+function OrdersGrid({ rows, total }: { rows: Order[]; total: number }) {
+  const url = useDataGridUrlPagination();
+  const pager = useDataGridPagination({ total, ...url });
+
+  return (
+    <>
+      <DataGrid data={rows} columns={columns} getRowId={(row) => row.id} />
+      <DataGridPaginationBar {...pager.controls} />
+    </>
+  );
+}
+```
+
+`page` (1-based) is omitted from the URL at 1; `pageSize` is omitted when it equals the configured
+default. Both writes use `history: "replace"`, same as this add-on's other params. Options:
+`prefix` (namespaces `page`/`pageSize` the same way as `sort`/`filter`/`q`), `defaultPageSize`
+(default 25), and `pageSizeOptions` (an out-of-range URL `pageSize` falls back to the default
+instead of being trusted). See [Pagination](/docs/pagination#composing-with-data-grid-url-state)
+for the full composition, including why server mode (not client mode) is the fit.

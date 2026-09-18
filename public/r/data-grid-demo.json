@@ -1,0 +1,29 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "data-grid-demo",
+  "title": "Data Grid Demo",
+  "author": "gridcn",
+  "description": "The hero demo: an editable grid with every built-in cell type, range selection, the free data-grid-fill add-on, and native clipboard, via defaultData with zero state wiring.",
+  "registryDependencies": [
+    "DammersCode/gridcn/data-grid",
+    "DammersCode/gridcn/data-grid-fill"
+  ],
+  "files": [
+    {
+      "path": "registry/default/examples/data-grid-demo.tsx",
+      "content": "\"use client\";\r\n\r\nimport { useMemo, type ReactNode } from \"react\";\r\nimport { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot, defineColumns } from \"@/registry/default/components/data-grid/data-grid\";\r\nimport { useDataGridFill } from \"@/registry/default/components/data-grid-fill/data-grid-fill\";\r\nimport { generateDemoRows, type DemoRow } from \"./demo-data\";\r\n\r\nconst columns = defineColumns<DemoRow>()([\r\n  { id: \"name\", header: \"Name\", accessorKey: \"name\", type: \"text\", width: 60, flex: 1 },\r\n  { id: \"email\", header: \"Email\", accessorKey: \"email\", type: \"text\", width: 75, flex: 2 },\r\n  {\r\n    id: \"age\",\r\n    header: \"Age\",\r\n    accessorKey: \"age\",\r\n    type: \"number\",\r\n    options: { min: 18, max: 100 },\r\n    width: 45,\r\n    flex: 1,\r\n  },\r\n  { id: \"active\", header: \"Active\", accessorKey: \"active\", type: \"checkbox\", width: 45, flex: 1 },\r\n  {\r\n    id: \"role\",\r\n    header: \"Role\",\r\n    accessorKey: \"role\",\r\n    type: \"select\",\r\n    options: {\r\n      choices: [\r\n        { value: \"Admin\", label: \"Admin\" },\r\n        { value: \"User\", label: \"User\" },\r\n        { value: \"Editor\", label: \"Editor\" },\r\n        { value: \"Viewer\", label: \"Viewer\" },\r\n        { value: \"Manager\", label: \"Manager\" },\r\n      ],\r\n    },\r\n    width: 55,\r\n    flex: 1,\r\n  },\r\n  {\r\n    id: \"joined\",\r\n    header: \"Joined\",\r\n    accessorKey: \"joined\",\r\n    type: \"date\",\r\n    options: { displayFormat: { year: \"numeric\", month: \"short\", day: \"numeric\" } },\r\n    width: 60,\r\n    flex: 1,\r\n  },\r\n  {\r\n    id: \"score\",\r\n    header: \"Score\",\r\n    accessorKey: \"score\",\r\n    type: \"number\",\r\n    options: { min: 0, max: 100 },\r\n    width: 45,\r\n    flex: 1,\r\n  },\r\n] as const);\r\n\r\n/**\r\n * The hero demo: an editable grid with every built-in cell type, range selection, the free\r\n * `data-grid-fill` add-on, and native copy/paste — via `defaultData`, no state wiring required\r\n * beyond the fill add-on's own hook (workplan #48: fill is no longer bundled into core's `DataGrid`\r\n * wrapper, so this demo composes the parts directly instead of using it). Try: click-drag to\r\n * select a range, drag the fill handle, Ctrl+C / Ctrl+V.\r\n */\r\nexport default function DataGridDemo(): ReactNode {\r\n  const rows = useMemo(() => generateDemoRows(12), []);\r\n  const { plugin, FillHandleTracker } = useDataGridFill({});\r\n  const overlayPlugins = useMemo(() => [plugin], [plugin]);\r\n\r\n  return (\n    <div className=\"w-full h-[420px] overflow-hidden rounded-md border border-border\">\n      <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} overlayPlugins={overlayPlugins}>\n        <DataGridRoot className=\"h-full rounded-none border-none\">\n          <DataGridHeader />\n          <DataGridBody />\n          <FillHandleTracker />\n        </DataGridRoot>\n      </DataGridProvider>\n    </div>\n  );\n}\n",
+      "type": "registry:example",
+      "target": "components/data-grid-demo.tsx"
+    },
+    {
+      "path": "registry/default/examples/demo-data.ts",
+      "content": "/** Deterministic LCG so SSR/CSR markup match without Math.random(); shared across example rows. */\nfunction createSeededLcg(seed: number) {\n  let state = seed;\n  return () => {\n    state = (state * 1103515245 + 12345) & 0x7fffffff;\n    return state / 0x7fffffff;\n  };\n}\n\nexport type DemoRow = {\n  id: string;\n  name: string;\n  email: string;\n  age: number;\n  active: boolean;\n  role: string;\n  joined: string;\n  score: number;\n};\n\nconst ROLES = [\"Admin\", \"User\", \"Editor\", \"Viewer\", \"Manager\"] as const;\nconst ADJECTIVES = [\"Eager\", \"Quick\", \"Silent\", \"Bold\", \"Swift\"] as const;\nconst NOUNS = [\"Eagle\", \"Lion\", \"Tiger\", \"Bear\", \"Wolf\"] as const;\n\n/** Generates `count` deterministic demo rows for example previews (seed 42, stable across renders). */\nexport function generateDemoRows(count: number, seed = 42): DemoRow[] {\n  const next = createSeededLcg(seed);\n  const rows: DemoRow[] = [];\n  for (let i = 0; i < count; i++) {\n    rows.push({\n      id: `row-${i}`,\n      name: `${ADJECTIVES[Math.floor(next() * ADJECTIVES.length)]} ${NOUNS[Math.floor(next() * NOUNS.length)]}`,\n      email: `user${i}@example.com`,\n      age: Math.floor(next() * 50) + 18,\n      active: next() > 0.5,\n      role: ROLES[Math.floor(next() * ROLES.length)]!, // ROLES is a fixed non-empty literal array\n      joined: `${2020 + Math.floor(next() * 5)}-${String(Math.floor(next() * 12) + 1).padStart(2, \"0\")}-${String(Math.floor(next() * 28) + 1).padStart(2, \"0\")}`,\n      score: Math.floor(next() * 100),\n    });\n  }\n  return rows;\n}\n",
+      "type": "registry:example",
+      "target": "components/demo-data.ts"
+    }
+  ],
+  "categories": [
+    "data"
+  ],
+  "type": "registry:example"
+}

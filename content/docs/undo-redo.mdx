@@ -1,0 +1,88 @@
+---
+title: Undo & redo
+description: Op-based, id-keyed history that survives sort and filter.
+icon: Undo2
+---
+
+Undo and redo live in the separate `data-grid-history` add-on.
+
+<ComponentPreview name="data-grid-history-demo" />
+
+<InstallCommand item="data-grid-history" manual manualSlot={<ManualInstall item="data-grid-history" />} />
+
+## How it works
+
+History is **op-based and id-keyed**, not a snapshot stack. Each entry is the ops batch from one
+`onDataChange` call (an edit, paste, fill, or delete-range), addressed by row id rather than
+array index. So undo and redo keep working correctly across sorts and filters. Undoing an edit
+made before a sort still finds and reverts the right row, wherever it now sits in the view.
+
+<Callout title="A vanished row id is skipped, not an error">
+  If a row's id has since disappeared, for example because an external data refresh removed it,
+  history skips that op on undo and redo rather than raising an error. This is documented
+  behavior, not a silent surprise.
+</Callout>
+
+## Quick start: `useDataGridState`
+
+<Callout title="How this differs from defaultData">
+  `useDataGridState` owns the array in your component and passes it as the CONTROLLED `data` prop,
+  re-feeding the grid every render — undo and redo work precisely because of that echo. It is NOT
+  the core's `defaultData` semantics (set once, then grid-owned with later props ignored). Reach
+  for it only when you actually want history. Otherwise, `defaultData` alone means one less add-on
+  to install. See the three-shapes table in
+  [Events & state](/docs/events-state#the-three-shapes-an-event-follows) for the
+  controlled/uncontrolled/events distinction.
+</Callout>
+
+The fastest path wires `useState`, history, and `onDataChange` into one spreadable object:
+
+```tsx
+import { useDataGridState } from "@/components/data-grid-history/data-grid-history";
+
+const grid = useDataGridState(initialRows, { getRowId: (row) => row.id });
+
+<DataGridProvider {...grid} columns={columns}>
+  <DataGridRoot>
+    <DataGridHeader />
+    <DataGridBody />
+  </DataGridRoot>
+</DataGridProvider>;
+```
+
+`grid.history` exposes `{ canUndo, canRedo, undo, redo, clear }` for wiring your own toolbar
+buttons; `clear` empties both stacks (e.g. after regenerating the dataset).
+<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Y</kbd>, and
+<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> work automatically.
+
+## Composable: `useDataGridHistory`
+
+When you already own the data array through your own state, not the internal `useState` of
+`useDataGridState`, wire the history hook directly. It takes `data` and `setData`, mirroring the
+tuple of `useState`, so it composes with any state source:
+
+```tsx
+import { useDataGridHistory } from "@/components/data-grid-history/data-grid-history";
+
+const [data, setData] = useState(initialRows);
+const { onDataChange, undo, redo, canUndo, canRedo } = useDataGridHistory({
+  data,
+  setData,
+  getRowId: (row) => row.id,
+  capacity: 100, // optional; caps the undo stack, default is generous
+});
+
+<DataGridProvider
+  data={data}
+  columns={columns}
+  getRowId={(row) => row.id}
+  onDataChange={onDataChange}
+  onUndo={undo}
+  onRedo={redo}
+>
+```
+
+## Capped stack
+
+Pass `capacity` to either hook to bound memory on long editing sessions. The oldest entries drop
+once the stack exceeds it. Omit `capacity` for a generous default.

@@ -1,0 +1,352 @@
+---
+title: Build your own cell type
+description: The CellType contract, a keypoint checklist distilled from every lesson the built-in types learned the hard way, and a full worked currency example.
+icon: Blocks
+---
+
+## The mental model
+
+A cell type is **one object**: `{ Cell, Editor, toText, fromText, clearValue, isEmpty, compare?,
+align? }`. `Cell` and `Editor` are the two React components; the four value-pipeline methods
+drive clipboard copy, paste, the fill handle, quick-clear delete, search, sort, and import/export,
+each with one generic implementation against this contract instead of one per type. Get
+`fromText` wrong, and every one of them inherits the bug.
+
+## The contract, member by member
+
+```ts title="registry/default/blocks/data-grid/types.ts"
+export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
+  Cell: FC<CellRenderProps<TData, TValue>>;
+  Editor: FC<CellEditorProps<TData, TValue>>;
+  toText(value: TValue, options?: TOptions): string;
+  toDisplayText?(value: TValue, options?: TOptions): string;
+  fromText(text: string, options?: TOptions): TValue;
+  clearValue(options?: TOptions): TValue;
+  isEmpty(value: TValue): boolean;
+  compare?(a: TValue, b: TValue): number;
+  align?: "left" | "right" | "center";
+};
+```
+
+- **`Cell`** — read-mode rendering. It receives `{ value, row, rowIndex, column, isActive }`. It
+  runs for every visible cell on every window mount. This is a hot path (code that runs very
+  often, so its per-call cost matters), covered more below.
+- **`Editor`** — edit-mode rendering. It receives `{ value, initialText?, row, column, onChange,
+  commit, cancel, pending?, rejectionCount? }`. `commit(movement?)` writes the value back through
+  `onChange`, and tells the grid where the active cell goes next. `cancel()` discards the edit
+  entirely. `pending` and `rejectionCount` matter only if the `validate` of the column can be an
+  async Standard Schema. See [Editing & cell types](/docs/editing-cell-types#async-schemas) and
+  the checklist below.
+- **`toText`** — the *canonical* serialization. Clipboard copy and export use it unconditionally.
+  It must round-trip through `fromText` for every value that the type can hold. Search and filter
+  do NOT use it — see the value-pipeline note below.
+- **`toDisplayText`** (optional) — a *display-only* formatted view, for example locale-formatted
+  dates or currency symbols. It is never round-tripped, and only the cell's display rendering
+  reads it: clipboard and export call `toText` directly, and search/filter run on the raw
+  `String(value)` (see the value-pipeline note below). When you omit it, the type falls back to
+  `toText` (see the `displayText()` helper in `cell-types/display-text.ts`).
+- **`fromText`** — parses pasted, imported, or typed text into `TValue`. **It must never throw.**
+  Paste and import feed it arbitrary, untrusted text: a stray clipboard fragment, a spreadsheet
+  export from a different tool, or a typo made by a user. For anything it cannot parse, return
+  the result of `clearValue()`, not `undefined` and not a thrown error. So a bad paste degrades to
+  "this cell is now cleared" instead of stopping the whole operation.
+- **`clearValue`** — the empty value of the type (`""`, `null`, `false`, and so on). Quick-clear
+  delete, the garbage fallback of `fromText`, and fill-clear all use it.
+- **`isEmpty`** — whether a value counts as empty. This is a semantic choice, not a technicality.
+  See the checklist below. It decides what a Ctrl+A "select all data" region treats as non-blank,
+  and what the fill handle treats as a fillable gap.
+- **`compare`** — the sort comparator, used when the column declares this `type`. When you omit
+  it, the default is a numeric-aware locale collation of the RAW `String(value)` — not of
+  `toText` output. Empty values (per `isEmpty`) sort last in both directions; `compare` only ever
+  sees two non-empty values.
+- **`align`** — text alignment for the default `Cell` rendering. `"right"` reads better with
+  `tabular-nums` for numeric-like types.
+
+<ComponentPreview name="data-grid-cell-types-demo" />
+
+## Keypoint checklist
+
+The built-in types (`text`, `number`, `checkbox`, `select`, `date`) reflect the points below.
+Each point states the lesson plus the reason for it.
+
+### Value pipeline
+
+The pipeline contract, one surface per feature: **display** = `toDisplayText ?? toText` ·
+**clipboard/export** = `toText` · **sort** = `compare` (default: numeric-aware collation of the
+raw `String(value)`) · **search/filter** = `String(rawValue)` (the view pipeline is built without
+cellTypes) · **fill** = raw value.
+
+- **Search and filter match the raw `String(value)`, not `toText`.** The view pipeline (filter,
+  then search, then sort) never sees a cell type's `toText`, so a custom `toText` changes what
+  copy and export produce but NOT what search or filter match. Consequences: a `select` column
+  searches the stored VALUE, not the displayed label; a `number` column with `decimals` searches
+  the unrounded value; a `date` column with a `displayFormat` matches the ISO string.
+- **`fromText` must never throw.** Paste and import feed it arbitrary text. A thrown error breaks
+  the whole paste, not only one cell. Garbage in produces the result of `clearValue()` out.
+- **Store values as serializable primitives**, not class instances: an ISO `yyyy-mm-dd` string,
+  not a `Date`, and a plain number, not a `Decimal` or `Money` object. This makes `compare` a
+  plain comparison, makes clipboard and JSON round-trips trivial, and avoids timezone drift
+  entirely (a
+  `Date` object carries a timezone, a string does not). The local-midnight parsing of the date
+  type, using `getFullYear()`, `getMonth()`, and `getDate()`, never `toISOString()`, exists
+  specifically to avoid a UTC day-shift when it converts a locally-parsed date back to text.
+- **`isEmpty` semantics are deliberately per-type. Choose them consciously.** For `text`, `""` IS
+  empty. For `number`, `0` is NOT empty (only `null` is). For `checkbox`, `false` is NOT empty
+  (only `null` is). Getting this wrong changes what a Ctrl+A region treats as blank, and what the
+  fill handle treats as a gap to fill. If a number column treats `0` as empty, the fill handle
+  skips real zero values.
+- **The `toDisplayText` fallback chain** (`toDisplayText ?? toText`, see `displayText()` in
+  `cell-types/display-text.ts`) keeps read-view formatting separate from the canonical text.
+  Format for humans in `toDisplayText`, and keep `toText` a plain, parseable, round-trippable
+  string. Clipboard and export call `toText` directly and never see `toDisplayText` at all. So a
+  decorative display format can never leak into a CSV export or break a later paste.
+- **The value and label duality (see `select`): store the value, display the label, and accept
+  both on paste.** The `toText` of `select` renders the option's *label*, what a spreadsheet user
+  expects to copy. But `fromText` resolves pasted text against option *values* first, then falls
+  back to case-insensitive label matching. So both a raw value and a previously-copied label paste
+  back correctly.
+- **Empty placement is handled outside `compare`.** Values your `isEmpty` marks as empty sort
+  last in both directions, for every type. `compare` never receives an empty value, so it does
+  not need a null branch.
+
+### Rendering & performance
+
+- **Hoist and cache expensive per-render objects. Do not construct them inside `Cell`.** `Cell`
+  renders once per visible cell on every window mount, and mounts happen continuously during
+  scroll. So a fling multiplies whatever is inside by however many rows cross the viewport in
+  that frame. The `dateFormatterCache` of the `date` type exists because constructing an
+  `Intl.DateTimeFormat` measured **~38us**, against **~0.7us** to reuse a cached instance, a ~54x
+  difference. Uncached, this dominated fling-scroll frame cost in the 100k-row benchmark of this
+  repository (long tasks per frame: 224 down to 1, once cached).
+- **Key caches on serialized option *values*, not on object identity.** A column's `options`
+  object literal is commonly re-created on every render. Writing `options: { displayFormat: {...} }`
+  inline in a column definition is the normal case, not the exception. An identity-keyed cache
+  (`Map<object, ...>` keyed by reference) never hits, and this defeats the cache entirely.
+  Key on `` `${locale}|${JSON.stringify(format)}` `` (or an equivalent) instead, exactly like
+  `dateFormatterCache` and the `currencyFormatterCache` of the worked example below.
+- **Avoid allocations in the `Cell` render path beyond what is unavoidable.** Every object
+  literal, array, or closure created inside `Cell` is created again on every scroll-driven
+  remount. Treat `Cell` like a `shouldComponentUpdate`-sensitive component in any virtualized
+  list.
+- **Keep formatting SSR-deterministic. Pin locales explicitly.** `Intl.DateTimeFormat` and
+  `Intl.NumberFormat` fall back to the *runtime's* default locale when you pass none. The
+  default locale of a Node SSR process commonly differs from that of the browser (`Jul 5, 2026`
+  against `5 Jul 2026`). This produces different rendered text on the server and the client for
+  identical column configuration, and React throws a hydration mismatch. The `options.locale` of
+  the `date` type defaults to `"en-US"` specifically so that the server and the client always
+  agree, independent of the OS or browser locale of either machine. An explicit `locale` option
+  still overrides it.
+
+### Editor UX
+
+- **Use the commit guard (`useCommitGuard` or an equivalent one-shot latch) in every editor that
+  can commit from more than one code path.** An editor typically has at least two ways to end an
+  edit: Enter, then a blur that follows it, or React StrictMode's mount-cleanup-mount
+  double-invoke in dev. Without a guard, the second path fires `commit` or `onChange` again on an
+  edit that already committed. The guard is one `useRef` flag: `tryCommit()` returns `true` once,
+  and `false` after that.
+- **Honor `pending` and `rejectionCount` if your column type can carry an async Standard Schema
+  `validate`.** `CellEditorProps.pending` is true while an async schema is resolving. Set your
+  input `readOnly`, never `disabled` (a disabled input cannot receive Escape or blur, which
+   silently blocks cancellation). `rejectionCount` increments on every rejected commit attempt
+   (sync or async) and resets when a new edit session starts, not on every transition where
+   `pending` clears for any reason (this also fires on Escape right before unmount). Re-arm your
+   commit guard off `rejectionCount`, or a stray blur during teardown can fire a second, stale
+   commit through the now-unguarded path. See the editors of `text`, `number`, `select`, and
+   `date` for the pattern.
+- **Escape cancels, and Enter commits and moves. The movement direction is part of the contract.**
+  `commit({ dx: 0, dy: 1 })` for Enter moves down. `commit({ dx: 1, dy: 0 })` for Tab moves right.
+  `commit({ dx: 0, dy: 0 })` for blur, click-away, or picking an option, stays in place. Escape
+  calls `cancel()` and must NOT call `onChange` at all. The edit is discarded, not committed with
+  the old value.
+- **Focus discipline: focus and move the caret to the end on mount, seeded from `initialText` for
+  type-to-replace.** Grid activation deliberately never starts an edit on a plain click.
+  Double-click, Enter, F2, and typing all start an edit. Typing a printable character on the
+  active cell opens the editor pre-seeded with only that character (`initialText`), which
+  replaces the old value. The caret goes to the end, never select-all, so continued typing
+  appends rather than replacing the seed. See `useSeedFocus` and the date editor's own effect for
+  the pattern.
+- **Popover and portal editors need `data-grid-cell-editor` on their portaled content, or an
+  outside-click ends the edit instantly.** `Popover` and `Select` content portals to
+  `document.body`, entirely outside the DOM subtree of the cell. But React re-dispatches the
+  events of a portaled element through its *logical* (component-tree) parent, not its DOM parent.
+  So a click inside the floating content still reaches the outside-click handler of the grid.
+  That handler checks `event.target.closest("[data-grid-cell-editor]")` and stops when it
+  matches. Every popover editor (`select`, `date`) marks its `PopoverContent` or `SelectContent`
+  with `data-grid-cell-editor=""` for exactly this reason. Skip the attribute, and picking a date
+  or opening the select's dropdown looks like a click-away. It commits or cancels the edit before
+  the user can interact with it.
+- **Popover editors: only an explicit pick commits; closing without one cancels.** `date` and
+  `select` commit on an explicit pick (a calendar day, an option). Closing the popover any other
+  way (outside click, focus loss, Tab away) calls `onOpenChange(false)`, which runs `cancel()`
+  when no pick has committed yet, so the edit is discarded, including text typed into the date
+  input. Escape is the same hard cancel. Both gestures close the popover; only a pick commits.
+- **Display-only cells, with no text-editable value, route interaction through the grid's own
+  commit path, never through DOM events on the control itself.** The `Cell` of `checkbox` renders
+  shadcn's `Checkbox` with `pointer-events-none` and `tabIndex={-1}`, so it never receives a
+  click. The interaction layer of the grid detects the click on the *cell*, calls
+  `commitCellValue` directly, and the control only reflects the resulting `value` prop. The
+  `Editor` of `checkbox` exists only to guard a stray `startEditing` call (there is no separate
+  edit mode to enter). It bails out through `cancel()` in an effect and renders nothing.
+- **Build editor UI from the shadcn primitives of the project, not from raw HTML controls.** Reach
+  for `Input`, `Select`, `Popover`, `Calendar`, and similar components from `@/components/ui/*`,
+  the same way the built-in types do, so your cell type matches the rest of the design system.
+
+### Typing
+
+- **Type your options through `GridCellTypes` augmentation**, so that `defineColumns` narrows
+  `options`, and the inferred value type of the column, the same way it does for the five
+  built-in types:
+
+  ```ts
+  declare module "@/components/data-grid/types" {
+    interface GridCellTypes {
+      currency: { value: number | null; options: { currency: string } };
+    }
+  }
+  ```
+
+  Adjust the module specifier to wherever your `components.json` aliases actually placed
+  `types.ts`. Without this, `type: "currency"` on a column definition still works at runtime, but
+  `options` and the value type of the column fall back to `unknown` at the type level. You lose
+  the compile-time catches that `defineColumns` gives every built-in type, for a typo in an
+  option key and for a typo in a type key.
+
+  The installed `cell-types.ts` checks its built-in registry of five types against a literal
+  `BuiltinCellTypeKey` union, decoupled from `GridCellTypes`. So augmenting `GridCellTypes` with a
+  new key, like `currency` above, never breaks the compile of that file, in your app or anywhere
+  else. The worked example below still types its own columns locally, rather than repeating the
+  augmentation inline, only to keep the code block of this document self-contained.
+
+## Worked example: a `currency` cell type
+
+<ComponentPreview name="data-grid-custom-cell-demo" />
+
+Storage is a plain `number | null`, never a formatted string and never a `Money` class (see
+"store values as serializable primitives" above). Display is a cached, locale-formatted currency
+string. `fromText` strips currency symbols and thousands separators, so a pasted `"$1,234.56"`
+round-trips into `1234.56`.
+
+```tsx title="registry/default/examples/data-grid-custom-cell-demo.tsx"
+type CurrencyOptions = { currency: string; locale?: string };
+
+// Keyed on serialized options, not object identity — a column's `options` literal is re-created
+// every render; the built-in date type's dateFormatterCache measured ~38us to construct an
+// Intl formatter vs ~0.7us to reuse one, which dominates fling-scroll frame cost uncached.
+const currencyFormatterCache = new Map<string, Intl.NumberFormat>();
+
+function getCurrencyFormatter(locale: string, currency: string): Intl.NumberFormat {
+  const key = `${locale}|${currency}`;
+  let formatter = currencyFormatterCache.get(key);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, { style: "currency", currency });
+    currencyFormatterCache.set(key, formatter);
+  }
+  return formatter;
+}
+
+// commas are thousands separators when "." also appears (US grouping) and dropped; a lone comma
+// is treated as the decimal separator (EU style) and normalized to "."
+function stripCurrencySymbols(text: string): string {
+  const kept = text.replace(/[^0-9.,-]/g, "");
+  return kept.includes(".") ? kept.replace(/,/g, "") : kept.replace(",", ".");
+}
+
+function formatCurrencyDisplay(value: number | null, options?: CurrencyOptions): string {
+  if (value == null) return "";
+  // pinned default (not the runtime's locale): server/browser Intl defaults can differ -> SSR hydration mismatch
+  return getCurrencyFormatter(options?.locale ?? "en-US", options?.currency ?? "USD").format(value);
+}
+
+function CurrencyCell({ value, column }: CellRenderProps<unknown, number | null>) {
+  const options = column.options as CurrencyOptions | undefined;
+  return (
+    <span className="block w-full truncate tabular-nums">
+      {formatCurrencyDisplay(value, options)}
+    </span>
+  );
+}
+
+function CurrencyEditor({ value, initialText, onChange, commit, cancel, column }: CellEditorProps<unknown, number | null>) {
+  const options = column.options as CurrencyOptions | undefined;
+  // ... plain <Input>, commit guard, Enter/Escape/blur — same shape as the built-in `number` editor
+}
+
+export const currencyCellType: CellType<unknown, number | null, CurrencyOptions> = {
+  Cell: CurrencyCell,
+  Editor: CurrencyEditor,
+  toText: (value) => (value == null ? "" : String(value)), // canonical, unformatted
+  toDisplayText: (value, options) => formatCurrencyDisplay(value, options), // display-only
+  fromText: (text) => {
+    const stripped = stripCurrencySymbols(text.trim());
+    if (stripped === "") return null;
+    const parsed = Number(stripped);
+    return Number.isNaN(parsed) ? null : parsed; // never throws — garbage -> null (clearValue's result)
+  },
+  clearValue: () => null,
+  isEmpty: (value) => value == null, // 0 is a real amount, not "empty"
+  compare: (a, b) => (a == null && b == null ? 0 : a == null ? -1 : b == null ? 1 : a - b),
+  align: "right",
+};
+```
+
+Register it through the `cellTypes` prop:
+
+```tsx
+import { cellTypes } from "@/components/data-grid/data-grid";
+
+<DataGridProvider
+  {...grid}
+  columns={columns}
+  cellTypes={{ ...cellTypes, currency: currencyCellType }}
+>
+```
+
+<Callout type="warn" title="cellTypes replaces the registry, it does not merge">
+  Passing `cellTypes` fully replaces the built-in registry. It does not merge automatically with
+  `text`, `number`, `checkbox`, `select`, and `date`. Spread the built-ins back in
+  (`{ ...cellTypes, currency: currencyCellType }`). Otherwise every column that uses a built-in
+  type breaks silently: its cell type becomes `undefined`, and the grid cannot render or edit it.
+  The worked example above does this through the `cellTypes` import from the public barrel.
+</Callout>
+
+## Testing your cell type
+
+Mirror the shape of `cell-types.test.tsx`. Unit-test the value pipeline directly, with no
+rendering needed for `toText`, `fromText`, `isEmpty`, and `compare`. Then add a small
+render-based suite for the commit and cancel lifecycle of the editor.
+
+```tsx
+import { describe, expect, it } from "vitest";
+import { currencyCellType } from "./data-grid-custom-cell-demo";
+
+describe("currencyCellType value pipeline", () => {
+  it("fromText strips currency symbols and thousands separators", () => {
+    expect(currencyCellType.fromText("$1,234.56")).toBeCloseTo(1234.56);
+  });
+
+  it("fromText never throws on garbage; returns clearValue()'s result (null)", () => {
+    expect(currencyCellType.fromText("not a price")).toBeNull();
+    expect(currencyCellType.fromText("")).toBeNull();
+  });
+
+  it("toText is the canonical unformatted number, not the display format", () => {
+    expect(currencyCellType.toText(1234.5)).toBe("1234.5");
+  });
+
+  it("isEmpty is null-only (0 is a real amount)", () => {
+    expect(currencyCellType.isEmpty(null)).toBe(true);
+    expect(currencyCellType.isEmpty(0)).toBe(false);
+  });
+
+  it("compare sorts nulls first", () => {
+    expect(currencyCellType.compare!(null, 1)).toBeLessThan(0);
+    expect(currencyCellType.compare!(1, 2)).toBeLessThan(0);
+  });
+});
+```
+
+See [Editing & cell types](/docs/editing-cell-types) for how editing activation and commit work
+across the grid. See [Recipes](/docs/recipes#custom-cell-type) for the minimal version of this
+same example, and [API reference](/docs/api-reference#celltypetdata-tvalue-toptions) for the
+exact contract types.

@@ -1,0 +1,128 @@
+---
+title: Fill handle
+description: Drag to tile a selection, with series inference for numeric and text runs.
+icon: PaintBucket
+---
+
+The fill handle is the small square at the bottom-right corner of a selection. Drag it up, down,
+left, or right to extend the selection and fill the new cells from the source range. The drag
+snaps to whichever axis you move further on.
+
+<ComponentPreview name="data-grid-demo" />
+
+<InstallCommand item="data-grid-fill" manual manualSlot={<ManualInstall item="data-grid-fill" />} />
+
+<Callout type="warn" title="Mouse-only, hidden from assistive tech">
+  The fill handle itself has no keyboard equivalent and is hidden from screen readers. Keyboard
+  users get the same results with <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>D</kbd> or
+  <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>R</kbd>, covered below.
+</Callout>
+
+## Wiring it up
+
+The fill handle lives in the separate `data-grid-fill` add-on. It registers into the
+**overlay-plugin seam** of the core, the same seam that `data-grid-presence` uses, for its preview
+and handle painting. It also adds three optional keymap callbacks on `DataGridRoot` for the
+keyboard fill shortcuts. See [Overlay plugins](/docs/overlay-plugins) for the full seam this
+add-on builds on, including how `FillHandleTracker` gets real pointer interaction that a
+paint-only plugin cannot have on its own.
+
+`useDataGridFill()` is a single hook. Call it in your own component above where you render
+`<DataGridProvider>`. The `overlayPlugins` prop lives on the provider, so the plugin must exist
+before it. The hook returns the plugin plus a `FillHandleTracker` component. Render
+`FillHandleTracker` as a child anywhere inside `<DataGridRoot>`. That component needs the root's
+own scroll and column layout to track the drag, and this layout exists only inside that subtree:
+
+```tsx
+"use client";
+
+import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody } from "@/components/data-grid/data-grid";
+import { useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";
+
+function MyGrid() {
+  const { plugin, FillHandleTracker } = useDataGridFill({});
+
+  return (
+    <DataGridProvider data={data} columns={columns} getRowId={getRowId} overlayPlugins={[plugin]}>
+      <DataGridRoot>
+        <DataGridHeader />
+        <DataGridBody />
+        <FillHandleTracker />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+<Callout title="Composing with core's DataGrid convenience wrapper">
+  `<DataGrid>` does not wire fill in automatically. Pass `overlayPlugins={[plugin]}` and render
+  `<FillHandleTracker />` as a `children` element alongside your own header and body composition
+  (see the hero demo above for the full pattern). This is the same way you compose any other
+  add-on.
+</Callout>
+
+## Tiling vs. series inference
+
+By default, dragging tiles the source selection modulo its size into the target. A single cell
+repeats, a 2-row pattern repeats every 2 rows, and so on.
+
+<ComponentPreview name="data-grid-fill-patterns-demo" />
+
+If the source cells form a detectable series, the fill extrapolates it instead of tiling:
+
+- **Arithmetic runs** — `1, 2, 3` becomes `4, 5, 6`. `10, 20, 30` becomes `40, 50, 60`. This also
+  works with a single-column decimal step.
+- **Zero-padded numbers** — `001, 002` becomes `003, 004`, with width preserved.
+- **Text plus trailing number** — `Item 1` becomes `Item 2`, `Item 3`, and so on.
+
+<Callout title="Series detection needs two source cells">
+  A single source cell always tiles, that is, copies, rather than extrapolating. There is no
+  delta to detect from one value.
+</Callout>
+
+## Forcing a plain copy
+
+Hold <kbd>Alt</kbd> (<kbd>Option</kbd> on Mac) while you drag the fill handle. This forces plain
+tiling, even over a detected series. Excel uses the same convention.
+
+## Keyboard fill
+
+- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>D</kbd> — fill down. This copies the top row of the current
+  selection into every row below it.
+- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>R</kbd> — fill right. This copies the left column into
+  every column to its right.
+
+Both go through the same tiling and series pipeline as a drag. The `fillDown` and `fillRight`
+entries of `GridAction`, and their `DEFAULT_KEYMAP` bindings, stay in the core. Without the add-on
+installed, both keys do nothing, because no handler is registered for them.
+
+## Turning fill off
+
+`useDataGridFill({ disabled: true })` turns the whole feature off (handle hidden,
+`fillDown`/`fillRight` no-op). A read-only grid (`readOnly` on `DataGrid`) also disables fill,
+with or without the option. Within a partially writable grid, a fill over `readOnly` columns
+(per-column `readOnly`, function or boolean) fills the writable columns and silently skips the
+`readOnly` ones, the same skip-no-error discipline as a paste over a non-writable cell.
+
+## `onFill`
+
+Intercept or veto a fill before it applies. This fires on drag release and on the keyboard fill
+actions, and passes straight through the options of `useDataGridFill`:
+
+```tsx
+import { useDataGridFill, type FillArgs } from "@/components/data-grid-fill/data-grid-fill";
+
+// Module scope (or useCallback) so identity stays stable across renders.
+function onFill({ source, target, values, preventDefault }: FillArgs) {
+  // values is the source range serialized to text (same shape a copy would produce)
+  if (someCondition) preventDefault(); // nothing is applied, selection doesn't expand
+}
+
+function MyGrid() {
+  const { plugin, FillHandleTracker } = useDataGridFill({ onFill });
+  // ...
+}
+```
+
+A fill, like a paste, is exactly one `onDataChange` call with a single ops batch, regardless of
+how many cells it touched.

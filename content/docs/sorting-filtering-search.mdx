@@ -1,0 +1,194 @@
+---
+title: Sorting, filtering & search
+description: Client-side multi-column sort, per-column filters, and quick search with match navigation.
+icon: ArrowUpDown
+---
+
+<ComponentPreview name="data-grid-sorting-filtering-demo" />
+
+## Sorting
+
+Sorting is multi-column. Columns with a declared `type` sort with that cell type's `compare`
+(numbers numerically, dates chronologically); untyped columns use a numeric-aware
+`localeCompare`. Empty cells sort last in both directions. Click a header to sort by that column.
+Shift-click adds another column to the sort without clearing the first.
+
+`headerClickBehavior="sort"` on `DataGridProvider` makes a plain header click cycle through
+ascending, descending, and clear. The default, `"select"`, instead selects the whole column. See
+[Selection & keyboard](/docs/selection-keyboard):
+
+```tsx
+<DataGridProvider headerClickBehavior="sort" {...grid} columns={columns}>
+```
+
+Per-column `sortable: false` removes a column from the click-to-sort gesture, though you can
+still sort it programmatically. Read sort state through `useDataGridSortState()` and drive it
+through `useDataGridActions().setSorts()` or `.toggleSort()`.
+
+## Filtering
+
+Per-column operators include `contains`, `notContains`, `equals`, `notEquals`, `startsWith`,
+`endsWith`, `empty`, and `notEmpty`, plus `gt`, `gte`, `lt`, `lte`, and `isBetween` for numeric and
+date columns, and `isAnyOf` for select columns. `isBetween` renders two typed inputs (from and to)
+side by side instead of one. `isAnyOf` renders a checkbox list of the select column's own
+`choices` and keeps a row when its value equals any checked one; its `value` is a `string[]`, and
+an empty list matches no rows.
+`DataGridFilterMenu` is a popover that lists active filters as aligned rows (join cell, column,
+operator, value, trash, drag handle) with add and reset controls. Per-column `filterable: false`
+excludes a column from the menu's column picker. Row order is array order in `FilterSpec[]`. Drag
+the grip, or reorder through the keyboard (see below), to change it.
+
+`DataGridFilterMenu`, along with the search input and columns menu below, comes from the
+`data-grid-toolbar` add-on.
+
+<InstallCommand item="data-grid-toolbar" manual manualSlot={<ManualInstall item="data-grid-toolbar" />} />
+
+```tsx
+import {
+  DataGridToolbar,
+  DataGridSearch,
+  DataGridFilterMenu,
+  DataGridColumnsMenu,
+} from "@/components/data-grid-toolbar/data-grid-toolbar";
+
+<DataGridProvider {...grid} columns={columns}>
+  <DataGridToolbar>
+    <DataGridSearch />
+    <DataGridFilterMenu />
+    <DataGridColumnsMenu />
+  </DataGridToolbar>
+  <DataGridRoot>
+    <DataGridHeader />
+    <DataGridBody />
+  </DataGridRoot>
+</DataGridProvider>;
+```
+
+<Callout type="idea" title="Each toolbar piece is independent">
+  Drop `DataGridFilterMenu` if you only want search, and add your own buttons alongside them.
+</Callout>
+
+### Keyboard & accessibility
+
+| Key | Action |
+|---|---|
+| <kbd>Tab</kbd> | Moves through a row's controls, in order: column select, operator select, value, remove, drag handle |
+| <kbd>ArrowUp</kbd> / <kbd>ArrowDown</kbd> (grip focused) | Moves that filter row one position up/down |
+| <kbd>Space</kbd> / <kbd>Enter</kbd> (grip focused) | Picks up/drops the row for pointer-equivalent keyboard dragging (`@dnd-kit/react`'s keyboard sensor) |
+| <kbd>Backspace</kbd> / <kbd>Delete</kbd> | Removes the focused filter row |
+
+Plain `ArrowUp` or `ArrowDown` on a focused grip always moves the row by exactly one position.
+The keyboard sensor of `@dnd-kit/react` also offers its own gesture for that key, but gridcn
+checks the plain arrow press first, and it wins. Every reorder announces the change through a polite
+`aria-live` region (`labels.toolbar.filterReorderAnnouncement`, for example "Name filter moved to
+position 2 of 3"). Focus never gets lost. After a reorder, focus stays on the moved row's grip.
+After deleting a row, focus moves to the next row's grip, or to the "Add filter" button once the
+list is empty.
+
+## Search
+
+`DataGridSearch` is a quick-search input across visible columns, with match highlighting and
+next and previous navigation that shows a `current/total` counter. Navigating to a match moves
+the active cell there and scrolls it into view, so results are never left off-screen.
+
+It never narrows the row set. Search highlights and navigates matches over the rows already in
+`data`; `viewIndex` is untouched, so everything that walks `viewIndex` — export with
+`scope: "view"`, select-all, pinned-row aggregates — sees the same rows with or without a search
+term. To actually remove rows, use a filter.
+
+<Callout title="Search is capped at 1000 matches">
+  Beyond the cap, the counter shows a distinct label instead of a total. See
+  `labels.toolbar.searchMatchesCapped`.
+</Callout>
+
+<Callout type="idea" title="Why not the browser's own Ctrl+F?">
+  Native find-in-page can only see what is in the DOM, and a virtualized grid only ever renders
+  the rows in view. Everything outside the window does not exist as a node, so the browser's find
+  bar cannot locate it, no matter how large the dataset really is. `DataGridSearch` does not have
+  that problem. It searches the full dataset and scrolls to whatever it finds.
+</Callout>
+
+<Callout title="captureFindShortcut is on by default — and strictly grid-scoped">
+  When `DataGridSearch` is mounted, pressing <kbd>Mod</kbd>+<kbd>F</kbd> is only ever intercepted
+  while focus is somewhere **inside the grid or its toolbar**. Move focus anywhere else on the
+  page, such as your own page-level search box, a different widget, or the body, and mod+F is
+  left completely alone. The browser's native find opens exactly as if this prop did not exist.
+  If you have your own search UI elsewhere on the page, you do not need to do anything to keep
+  it safe.
+</Callout>
+
+`DataGridSearch` makes itself the "feels native" stand-in for browser find automatically.
+Pressing <kbd>Mod</kbd>+<kbd>F</kbd> while focus is anywhere inside the grid or its toolbar
+focuses this input instead of opening the browser's find bar (`preventDefault`, so native find
+never opens). Pressing it again while the input is already focused selects its text, matching how
+browser find-bars behave when re-triggered.
+
+To opt out and always defer to the browser's native find:
+
+```tsx
+<DataGridSearch captureFindShortcut={false} />
+```
+
+## Sort list (toolbar add-on)
+
+Click-to-sort headers work without any add-on, but `data-grid-sort-list` gives users a toolbar
+button and popover to add, remove, and reorder sorts without touching the headers. This is
+useful when columns are hidden or narrow, or when you prefer not to rely on shift-click for
+multi-column sort:
+
+<ComponentPreview name="data-grid-sort-list-demo" />
+
+<InstallCommand item="data-grid-sort-list" manual manualSlot={<ManualInstall item="data-grid-sort-list" />} />
+
+```tsx
+import { DataGridSortList } from "@/components/data-grid-sort-list/data-grid-sort-list";
+
+<DataGridProvider {...grid} columns={columns}>
+  <DataGridToolbar>
+    <DataGridSortList />
+  </DataGridToolbar>
+  <DataGridRoot>
+    <DataGridHeader />
+    <DataGridBody />
+  </DataGridRoot>
+</DataGridProvider>;
+```
+
+Each row has a column select, an ascending/descending select, a remove button, and a drag handle.
+Precedence is array order in `SortSpec[]`, changed by dragging the grip (`@dnd-kit/react`) or
+through the keyboard (see below). It reads and writes the same `useDataGridSortState()` and
+`useDataGridActions().setSorts()` as click-to-sort headers, so the two UIs stay in sync
+automatically. The button shows a count badge once one or more sorts are applied, matching the
+badge of `DataGridFilterMenu`.
+
+### Keyboard & accessibility
+
+| Key | Action |
+|---|---|
+| <kbd>Tab</kbd> | Moves through a row's controls, in order: column select, direction select, remove, drag handle |
+| <kbd>ArrowUp</kbd> / <kbd>ArrowDown</kbd> (grip focused) | Moves that sort row one position up/down, which changes precedence |
+| <kbd>Space</kbd> / <kbd>Enter</kbd> (grip focused) | Picks up/drops the row for pointer-equivalent keyboard dragging (`@dnd-kit/react`'s keyboard sensor) |
+| <kbd>Backspace</kbd> / <kbd>Delete</kbd> | Removes the focused sort row |
+
+Plain `ArrowUp` or `ArrowDown` on a focused grip always moves the row by exactly one position.
+The keyboard sensor of `@dnd-kit/react` also offers its own gesture for that key, but gridcn
+checks the plain arrow press first, and it wins. Every reorder announces the change through a polite
+`aria-live` region (`labels.sort.sortReorderAnnouncement`, for example "Age sort moved to
+position 1 of 2"). Focus never gets lost. After a reorder, focus stays on the moved row's grip.
+After deleting a row, focus moves to the next row's grip, or to the "Add sort" button once the
+list is empty.
+
+## Controlled mode (server-side sort/filter)
+
+By default, `sortState`, `filterState`, and `searchText` are **internal, uncontrolled store
+state**. Read them through `useDataGridSortState()`, `useDataGridFilterState()`, and
+`useDataGridSearchText()`, and write them through `useDataGridActions()`. The grid sorts,
+filters, and searches against the `data` you passed, in-process. Each has a controlled prop pair
+on `DataGridProvider` or `DataGrid`: `sortState`/`onSortChange`, `filterState`/`onFilterChange`,
+and `searchText`/`onSearchTextChange`, for a "send the spec to the server, render whatever comes
+back as the view" mode. This follows the same controlled-input convention as a plain
+`<input value onChange>`, where the prop, once you pass it, is the source of truth, and
+`onXChange` fires on every user-driven change regardless. See the "controlled pair" row of the
+[Events & state](/docs/events-state#the-three-shapes-an-event-follows) three-shapes table for
+the canonical definition, and [Recipes](/docs/recipes#server-side-sortfilter) for the full
+server-side pattern.

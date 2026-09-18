@@ -1,0 +1,91 @@
+---
+title: Row operations
+description: Insert, duplicate, and delete rows through props, keyboard shortcuts, and the context menu.
+icon: Rows3
+---
+
+Inserting, duplicating, and deleting whole rows. All three act on **view-space** indices (the
+sorted/filtered positions the user sees), emit one `onDataChange` with `source: "row-op"` each,
+and work in both controlled and uncontrolled grids.
+
+## Enable props
+
+| Prop | Enables | Without it |
+|---|---|---|
+| `createRow: (index: number) => TData` | Insert row above/below | `insertRow` is a silent no-op with a dev-only warning; the context menu hides the two Insert items |
+| `duplicateRow: (row: TData) => TData` | Duplicate row(s) | `duplicateRows` is a silent no-op with a dev-only warning; the context menu hides Duplicate |
+| (none) | Delete row(s) | Always available |
+
+`duplicateRow` must give every copy a distinct id (a spread copy with a fresh `id`), so a
+duplicate never collides with its source row's React key. `createRow` receives the data-space
+insertion index.
+
+## Default shortcuts
+
+| Action | Default | Keymap action |
+|---|---|---|
+| Insert row below | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> | `insertRowBelow` |
+| Duplicate row(s) | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd> | `duplicateRow` |
+| Delete row(s) | (no default binding) | (none) |
+
+Both bindings live in `DEFAULT_KEYMAP`, so they can be remapped or dropped through the `keymap`
+prop like every other binding (see [Selection & keyboard](/docs/selection-keyboard#remapping)).
+
+## Context menu
+
+The row-operation items ship with the [`data-grid-context-menu`](/docs/columns#pin-leftright)
+add-on, which installs a right-click menu on the grid's cell and header surfaces. Right-clicking
+a cell makes it the active cell with a single-cell selection before the menu opens, so the items
+always act on a known target.
+
+The cell-surface items, in order:
+
+1. **Cut** / **Copy** / **Paste** — the native clipboard pipeline (see [Clipboard](/docs/clipboard)).
+2. **Clear contents** — empties the selection to each type's `clearValue()` (the `deleteContents`
+   action, <kbd>Delete</kbd>/<kbd>Backspace</kbd>).
+3. **Insert row above** / **Insert row below** — anchored at the right-clicked row; hidden without
+   `createRow`.
+4. **Duplicate row(s)** — <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>; hidden
+   without `duplicateRow`.
+5. **Delete row(s)** — destructive item, no default keyboard binding.
+
+The row-operation items act on **every view row covered by the current selection**, falling back
+to the right-clicked row when nothing is selected, so a range selection duplicates or deletes all
+of its rows at once. Every mutating item (everything but Copy) is disabled on a `readOnly` grid.
+
+Surfaces with no menu: row markers, the empty grid space below the last row, and the scrollbar
+gutter right-click to nothing at all, no menu and no browser context menu either, matching the
+quiet no-op of a plain click on empty space. The header surface gets its own menu (sort, pin,
+autosize, hide), documented on [Columns](/docs/columns).
+
+## Programmatic actions
+
+```tsx
+import { useDataGridActions } from "@/components/data-grid/data-grid";
+
+function MyToolbar() {
+  const actions = useDataGridActions();
+
+  return (
+    <button
+      onClick={() => {
+        // view-space indices: [0] is the top visible row
+        actions.insertRow(2, "below");
+        actions.duplicateRows([1, 2]);
+        actions.deleteRows([4]);
+      }}
+    >
+      ...
+    </button>
+  );
+}
+```
+
+- `insertRow(viewRowIndex, "above" | "below")` inserts one row built by `createRow`.
+- `duplicateRows(viewRowIndexes)` inserts each copy directly after its source row (a duplicate of
+  a range lands interleaved, each after its own source).
+- `deleteRows(viewRowIndexes)` deletes the named rows in one batch.
+
+Selection behavior: insert and duplicate keep the selection, offsetting it around the inserted
+rows. Delete clears the entire selection and the active cell. All three fire `onDataChange` with
+`source: "row-op"` and id-keyed `insert`/`delete` ops, which is what undo/redo and export consume.

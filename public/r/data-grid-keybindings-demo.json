@@ -1,0 +1,30 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "data-grid-keybindings-demo",
+  "title": "Data Grid Keybindings Demo",
+  "author": "gridcn",
+  "description": "A shortcuts dialog generated at runtime from the grid's effective keymap, opened via a toolbar button or the '?' shortcut.",
+  "registryDependencies": [
+    "DammersCode/gridcn/data-grid",
+    "DammersCode/gridcn/data-grid-history",
+    "DammersCode/gridcn/data-grid-keybindings"
+  ],
+  "files": [
+    {
+      "path": "registry/default/examples/data-grid-keybindings-demo.tsx",
+      "content": "\"use client\";\r\n\r\nimport { useMemo, useState, type ReactNode } from \"react\";\r\nimport {\r\n  DataGridProvider,\r\n  DataGridRoot,\r\n  DataGridHeader,\r\n  DataGridBody,\r\n  defineColumns,\r\n} from \"@/registry/default/components/data-grid/data-grid\";\r\nimport {\r\n  DataGridKeybindingsDialog,\r\n  DataGridKeybindingsShortcut,\r\n} from \"@/registry/default/components/data-grid-keybindings/data-grid-keybindings\";\r\nimport { Button } from \"@/components/ui/button\";\r\nimport { generateDemoRows, type DemoRow } from \"./demo-data\";\r\n\r\nconst columns = defineColumns<DemoRow>()([\r\n  { id: \"name\", header: \"Name\", accessorKey: \"name\", type: \"text\", width: 150, flex: 2 },\r\n  {\r\n    id: \"role\",\r\n    header: \"Role\",\r\n    accessorKey: \"role\",\r\n    type: \"select\",\r\n    options: {\r\n      choices: [\r\n        { value: \"Admin\", label: \"Admin\" },\r\n        { value: \"User\", label: \"User\" },\r\n        { value: \"Editor\", label: \"Editor\" },\r\n        { value: \"Viewer\", label: \"Viewer\" },\r\n        { value: \"Manager\", label: \"Manager\" },\r\n      ],\r\n    },\r\n    width: 120,\r\n    flex: 1,\r\n  },\r\n  { id: \"score\", header: \"Score\", accessorKey: \"score\", type: \"number\", width: 90, flex: 1 },\r\n] as const);\r\n\r\n/**\r\n * A shortcuts dialog generated at runtime from the grid's effective keymap. Opens via the toolbar\r\n * button below or the `?` (shift+/) shortcut once focused in the grid.\r\n */\r\nexport default function DataGridKeybindingsDemo(): ReactNode {\r\n  const rows = useMemo(() => generateDemoRows(6), []);\r\n  const [open, setOpen] = useState(false);\r\n\r\n  return (\r\n    <div className=\"w-full flex h-[300px] flex-col gap-2\">\r\n      <p className=\"text-sm text-muted-foreground\">\r\n        Click a cell to focus the grid, then press ? (shift+/) to open the shortcuts dialog — or use\r\n        the button below.\r\n      </p>\r\n      <Button variant=\"outline\" size=\"sm\" className=\"w-fit\" onClick={() => setOpen(true)}>\r\n        Keyboard shortcuts\r\n      </Button>\r\n      <div className=\"min-h-0 flex-1 overflow-hidden rounded-md border border-border\">\r\n        <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id}>\r\n          <DataGridKeybindingsDialog open={open} onOpenChange={setOpen} />\r\n          <DataGridRoot className=\"h-full rounded-none border-none\">\r\n            <DataGridKeybindingsShortcut onOpen={() => setOpen(true)} />\r\n            <DataGridHeader />\r\n            <DataGridBody />\r\n          </DataGridRoot>\r\n        </DataGridProvider>\r\n      </div>\r\n    </div>\r\n  );\r\n}\r\n",
+      "type": "registry:example",
+      "target": "components/data-grid-keybindings-demo.tsx"
+    },
+    {
+      "path": "registry/default/examples/demo-data.ts",
+      "content": "/** Deterministic LCG so SSR/CSR markup match without Math.random(); shared across example rows. */\nfunction createSeededLcg(seed: number) {\n  let state = seed;\n  return () => {\n    state = (state * 1103515245 + 12345) & 0x7fffffff;\n    return state / 0x7fffffff;\n  };\n}\n\nexport type DemoRow = {\n  id: string;\n  name: string;\n  email: string;\n  age: number;\n  active: boolean;\n  role: string;\n  joined: string;\n  score: number;\n};\n\nconst ROLES = [\"Admin\", \"User\", \"Editor\", \"Viewer\", \"Manager\"] as const;\nconst ADJECTIVES = [\"Eager\", \"Quick\", \"Silent\", \"Bold\", \"Swift\"] as const;\nconst NOUNS = [\"Eagle\", \"Lion\", \"Tiger\", \"Bear\", \"Wolf\"] as const;\n\n/** Generates `count` deterministic demo rows for example previews (seed 42, stable across renders). */\nexport function generateDemoRows(count: number, seed = 42): DemoRow[] {\n  const next = createSeededLcg(seed);\n  const rows: DemoRow[] = [];\n  for (let i = 0; i < count; i++) {\n    rows.push({\n      id: `row-${i}`,\n      name: `${ADJECTIVES[Math.floor(next() * ADJECTIVES.length)]} ${NOUNS[Math.floor(next() * NOUNS.length)]}`,\n      email: `user${i}@example.com`,\n      age: Math.floor(next() * 50) + 18,\n      active: next() > 0.5,\n      role: ROLES[Math.floor(next() * ROLES.length)]!, // ROLES is a fixed non-empty literal array\n      joined: `${2020 + Math.floor(next() * 5)}-${String(Math.floor(next() * 12) + 1).padStart(2, \"0\")}-${String(Math.floor(next() * 28) + 1).padStart(2, \"0\")}`,\n      score: Math.floor(next() * 100),\n    });\n  }\n  return rows;\n}\n",
+      "type": "registry:example",
+      "target": "components/demo-data.ts"
+    }
+  ],
+  "categories": [
+    "data"
+  ],
+  "type": "registry:example"
+}

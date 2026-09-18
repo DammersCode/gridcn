@@ -1,0 +1,363 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+html {
+  scrollbar-gutter: stable;
+}
+
+/* Unified docs scrollbars: 14px, thumbs hidden until the scroller is hovered. Chromium only
+   honors ::-webkit-scrollbar styling while scrollbar-width is auto (thin/none suppress it),
+   so the explicit auto both re-enables the Radix sidebar viewport (which ships none) and
+   keeps the 14px webkit sizing active. */
+html,
+.fd-scroll-container,
+#nd-sidebar [data-radix-scroll-area-viewport] {
+  scrollbar-width: auto;
+}
+
+/* Radix also renders its own scrollbar element (viewport sibling, no radix data attribute —
+   only data-orientation) next to the re-enabled native one; hide it so the sidebar shows
+   exactly one (the unified square) bar. */
+#nd-sidebar [data-radix-scroll-area-viewport] ~ [data-orientation] {
+  display: none;
+}
+
+html::-webkit-scrollbar,
+.fd-scroll-container::-webkit-scrollbar,
+#nd-sidebar [data-radix-scroll-area-viewport]::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  display: block;
+}
+
+html::-webkit-scrollbar-thumb,
+#nd-sidebar [data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb {
+  border-radius: 0;
+  background: transparent;
+}
+
+/* codeblock viewports show their thumbs permanently — hover-reveal hid the horizontal bar. */
+.fd-scroll-container::-webkit-scrollbar-thumb {
+  border-radius: 0;
+  background: color-mix(in oklab, var(--foreground) 45%, transparent);
+}
+
+html:hover::-webkit-scrollbar-thumb,
+#nd-sidebar:hover [data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb {
+  /* border token is 10%-alpha in dark - too faint for a thumb; mix from foreground instead.
+     45% (not 30%) so the horizontal bar reads against busy code content, not just a flat page bg. */
+  background: color-mix(in oklab, var(--foreground) 45%, transparent);
+}
+
+html::-webkit-scrollbar-track,
+.fd-scroll-container::-webkit-scrollbar-track,
+#nd-sidebar [data-radix-scroll-area-viewport]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* codeblock viewport scrolls both axes; without this the corner square (bottom-right, where
+   the two bars meet) paints as an opaque UA-default square instead of the transparent track. */
+.fd-scroll-container::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox has no ::-webkit-scrollbar (and no px sizing); color swap approximates the reveal. */
+@supports not selector(::-webkit-scrollbar) {
+  html,
+  #nd-sidebar [data-radix-scroll-area-viewport] {
+    scrollbar-color: transparent transparent;
+  }
+
+  .fd-scroll-container,
+  html:hover,
+  #nd-sidebar:hover [data-radix-scroll-area-viewport] {
+    scrollbar-color: color-mix(in oklab, var(--foreground) 45%, transparent) transparent;
+  }
+}
+
+html > body[data-scroll-locked] {
+  margin-right: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}
+
+/* grid schema: square fumadocs chrome.
+   Most fumadocs classes (rounded-lg/md/xl/2xl/sm) already resolve through Tailwind's
+   --radius-* vars, which we derive from --radius below — so they went to 0 for free.
+   The two exceptions fumadocs ships with NO override hook at all:
+     1. Typography plugin hardcodes inline <code>/<kbd> radii in px, ignoring --radius entirely.
+     2. `rounded-full` is `calc(infinity * 1px)` by design — themeable radius never applies to it.
+   Fumadocs' theming surface is color vars + --fd-layout-width only (confirmed against
+   https://fumadocs.dev/docs/ui/theme) — there is no upstream radius token to bridge instead,
+   so this block is load-bearing: it must be re-checked on every fumadocs-ui upgrade. */
+.prose code,
+.prose kbd {
+  border-radius: 0;
+}
+
+/* fumadocs' own chrome that hardcodes rounded-full, with no prop/slot to restyle it from
+   React: home/docs-layout search trigger pill, TOC active-position dot, Radix ScrollArea
+   thumb (hidden in the sidebar above; still visible in other Radix scroll areas). */
+button[data-search-full],
+button[data-search],
+.size-1.bg-fd-primary,
+[data-radix-scroll-area-thumb] {
+  border-radius: 0;
+}
+
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+  --expo-out: linear(0 0%, 0.1684 2.66%, 0.3165 5.49%, 0.446 8.52%, 0.5581 11.78%, 0.6535 15.29%, 0.7341 19.11%, 0.8011 23.3%, 0.8557 27.93%, 0.8962 32.68%, 0.9283 38.01%, 0.9529 44.08%, 0.9711 51.14%, 0.9833 59.06%, 0.9915 68.74%, 1 100%);
+}
+
+:root {
+  /* paper theme: warm off-white surfaces (oklch hue ~70 = paper/cream warmth, kept low-chroma so it reads as tone, not color) */
+  --background: oklch(0.98 0.006 70);
+  --foreground: oklch(0.24 0.012 55);
+  --card: oklch(0.995 0.004 70);
+  --card-foreground: oklch(0.24 0.012 55);
+  --popover: oklch(0.995 0.004 70);
+  --popover-foreground: oklch(0.24 0.012 55);
+  --primary: oklch(0.32 0.02 50);
+  --primary-foreground: oklch(0.99 0.004 70);
+  --secondary: oklch(0.955 0.008 65);
+  --secondary-foreground: oklch(0.32 0.02 50);
+  --muted: oklch(0.955 0.008 65);
+  --muted-foreground: oklch(0.52 0.014 55);
+  --accent: oklch(0.94 0.012 60);
+  --accent-foreground: oklch(0.28 0.02 50);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.9 0.01 60);
+  --input: oklch(0.9 0.01 60);
+  --ring: oklch(0.7 0.015 55);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  /* grid schema: sharp corners throughout — a data grid is a lattice of cells, not a stack of soft cards */
+  --radius: 0rem;
+  --sidebar: oklch(0.97 0.008 65);
+  --sidebar-foreground: oklch(0.24 0.012 55);
+  --sidebar-primary: oklch(0.32 0.02 50);
+  --sidebar-primary-foreground: oklch(0.99 0.004 70);
+  --sidebar-accent: oklch(0.94 0.012 60);
+  --sidebar-accent-foreground: oklch(0.28 0.02 50);
+  --sidebar-border: oklch(0.9 0.01 60);
+  --sidebar-ring: oklch(0.7 0.015 55);
+  /* gridcn pinned-column boundary shadow (PLAN §6) — subtle in light, needs more contrast in dark. */
+  --grid-pin-shadow: oklch(0 0 0 / 10%);
+  /* grid schema: flat elevation — tight 1px offset, near-zero blur, no material-design pop */
+  --shadow-paper-color: 45 20% 30%;
+  --shadow-paper-sm: 0 1px 0 hsl(var(--shadow-paper-color) / 0.08);
+  --shadow-paper-md: 0 1px 0 hsl(var(--shadow-paper-color) / 0.12), 1px 0 0 hsl(var(--shadow-paper-color) / 0.06);
+}
+
+.dark {
+  /* paper theme dark: warm charcoal (not blue-black, not muddy brown) */
+  --background: oklch(0.19 0.008 55);
+  --foreground: oklch(0.94 0.006 65);
+  --card: oklch(0.23 0.009 55);
+  --card-foreground: oklch(0.94 0.006 65);
+  --popover: oklch(0.23 0.009 55);
+  --popover-foreground: oklch(0.94 0.006 65);
+  --primary: oklch(0.89 0.01 65);
+  --primary-foreground: oklch(0.22 0.01 55);
+  --secondary: oklch(0.28 0.01 55);
+  --secondary-foreground: oklch(0.94 0.006 65);
+  --muted: oklch(0.28 0.01 55);
+  --muted-foreground: oklch(0.68 0.012 60);
+  --accent: oklch(0.32 0.012 55);
+  --accent-foreground: oklch(0.94 0.006 65);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0.006 65 / 10%);
+  --input: oklch(1 0.006 65 / 15%);
+  --ring: oklch(0.58 0.012 60);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.21 0.009 55);
+  --sidebar-foreground: oklch(0.94 0.006 65);
+  --sidebar-primary: oklch(0.6 0.09 55);
+  --sidebar-primary-foreground: oklch(0.99 0.004 70);
+  --sidebar-accent: oklch(0.28 0.01 55);
+  --sidebar-accent-foreground: oklch(0.94 0.006 65);
+  --sidebar-border: oklch(1 0.006 65 / 10%);
+  --sidebar-ring: oklch(0.58 0.012 60);
+  --grid-pin-shadow: oklch(0 0 0 / 40%);
+  /* dark needs more contrast to read at the same tight offset (no blur to fall back on) */
+  --shadow-paper-color: 30 30% 4%;
+  --shadow-paper-sm: 0 1px 0 hsl(var(--shadow-paper-color) / 0.5);
+  --shadow-paper-md: 0 1px 0 hsl(var(--shadow-paper-color) / 0.65), 1px 0 0 hsl(var(--shadow-paper-color) / 0.4);
+}
+
+/* bridge fumadocs' own --color-fd-* tokens (unset by css/neutral.css) onto the shadcn paper tokens above */
+:root,
+.dark {
+  --color-fd-background: var(--background);
+  --color-fd-foreground: var(--foreground);
+  --color-fd-muted: var(--muted);
+  --color-fd-muted-foreground: var(--muted-foreground);
+  --color-fd-popover: var(--popover);
+  --color-fd-popover-foreground: var(--popover-foreground);
+  --color-fd-card: var(--card);
+  --color-fd-card-foreground: var(--card-foreground);
+  --color-fd-border: var(--border);
+  --color-fd-primary: var(--primary);
+  --color-fd-primary-foreground: var(--primary-foreground);
+  --color-fd-secondary: var(--secondary);
+  --color-fd-secondary-foreground: var(--secondary-foreground);
+  --color-fd-accent: var(--accent);
+  --color-fd-accent-foreground: var(--accent-foreground);
+  --color-fd-ring: var(--ring);
+}
+
+#nd-sidebar {
+  background-color: var(--sidebar);
+  color: var(--sidebar-foreground);
+  border-color: var(--sidebar-border);
+  --color-fd-accent: var(--sidebar-accent);
+  --color-fd-accent-foreground: var(--sidebar-accent-foreground);
+  --color-fd-ring: var(--sidebar-ring);
+  --color-fd-primary-foreground: var(--sidebar-primary-foreground);
+}
+
+/* paper card/callout/code-block shadows: retint Tailwind's shadow-sm/md/lg so docs chrome gets soft warm elevation */
+:root {
+  --tw-shadow-color: hsl(var(--shadow-paper-color) / 0.1);
+}
+.dark {
+  --tw-shadow-color: hsl(var(--shadow-paper-color) / 0.35);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+
+  /* ncdai theme-toggle-effect-polygon: user found the 0.7s stock speed "too fast" —
+     tune the reveal pace here (~2x stock) without touching the keyframes below. */
+  :root {
+    --theme-toggle-polygon-duration: 1.4s;
+  }
+
+  ::view-transition-group(root) {
+    animation-duration: var(--theme-toggle-polygon-duration);
+    animation-timing-function: var(--expo-out);
+  }
+  ::view-transition-new(root) {
+    animation-name: reveal-light;
+    animation-fill-mode: both;
+  }
+  ::view-transition-old(root),
+  .dark::view-transition-old(root) {
+    animation: none;
+    animation-fill-mode: both;
+    z-index: -1;
+  }
+  .dark::view-transition-new(root) {
+    animation-name: reveal-dark;
+    animation-fill-mode: both;
+  }
+
+  @keyframes reveal-dark {
+    from {
+      clip-path: polygon(50% -71%, -50% 71%, -50% 71%, 50% -71%);
+    }
+    to {
+      clip-path: polygon(50% -71%, -50% 71%, 50% 171%, 171% 50%);
+    }
+  }
+
+  @keyframes reveal-light {
+    from {
+      clip-path: polygon(171% 50%, 50% 171%, 50% 171%, 171% 50%);
+    }
+    to {
+      clip-path: polygon(171% 50%, 50% 171%, -50% 71%, 50% -71%);
+    }
+  }
+}
+
+/* callouts: the colored icon carries the type — hide fumadocs' left stripe and rebalance its ps-1 */
+div[style*="--callout-color"] > div[role="none"]:first-child {
+  display: none;
+}
+
+div[style*="--callout-color"] {
+  padding-inline-start: calc(var(--spacing) * 3);
+}
+
+/* fumadocs Card hover is accent/80 — translucent hover lets the animated hero grid bleed through */
+.hover\:bg-fd-accent\/80:hover {
+  background-color: var(--color-fd-accent);
+}
+
+/* P2 frosted-glass text panels over the hero grid — real container, not a fade mask */
+.glass-panel,
+.glass-panel-pill {
+  position: relative;
+  background: color-mix(in oklab, var(--card) 55%, transparent);
+  /* Tailwind utility instead of a raw backdrop-filter declaration: Turbopack's lightningcss drops the raw property */
+  @apply backdrop-blur-[9px] backdrop-saturate-[1.1];
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  box-shadow: var(--shadow-paper-md);
+}
+.glass-panel {
+  border-radius: var(--radius-2xl);
+}
+.glass-panel-pill {
+  border-radius: var(--radius-4xl);
+}

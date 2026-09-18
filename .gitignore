@@ -1,0 +1,24 @@
+node_modules/
+dist/
+.next/
+out/
+coverage/
+*.log
+.env*
+!.env.example
+.source/
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+.DS_Store
+
+# untracked reference clones for research
+references/
+.vitest/
+.vitest-attachments/
+
+# vitest browser failure screenshots
+**/__screenshots__/
+
+# pnpm probe artifact - must never be committed
+.pnpm-store/

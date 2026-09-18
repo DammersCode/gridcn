@@ -1,0 +1,510 @@
+---
+title: Recipes
+description: Server round-trips, TanStack Query, react-hook-form dialogs, and more.
+icon: ChefHat
+---
+
+## Server round-trip
+
+Builds on [Events & state's `onDataChange` section](/docs/events-state#1-ondatachange--the-flagship-shape),
+which shows the exact `DataOp`/`DataChange` shape referenced below.
+
+### Initial fetch
+
+Go controlled (see [Quick start](/docs/quick-start#going-controlled)). Fetch once, then hold
+`data` in state:
+
+```tsx
+"use client";
+
+function OrdersGrid() {
+  const [data, setData] = useState<Order[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.orders.list().then((rows) => {
+      if (!cancelled) setData(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <DataGrid
+      data={data}
+      columns={columns}
+      getRowId={(row) => row.id}
+      onDataChange={(next, change) => handleDataChange(next, change, setData)}
+    />
+  );
+}
+```
+
+### Translate ops into API calls
+
+`change.ops` is an array of `DataOp<Order>`. Each op names its own shape, so a `switch` on
+`op.type` maps directly to one API call per op:
+
+```ts
+function opsToRequests(ops: DataOp<Order>[]) {
+  return ops.map((op) => {
+    switch (op.type) {
+      case "update":
+        // op.cells is present for a cell edit/paste/fill; absent for a whole-row update.
+        // Send a patch keyed by rowId, not an index — indices don't survive sort or filter.
+        return api.orders.patch(op.rowId, op.cells ? cellsToPatch(op.cells) : op.row);
+      case "insert":
+        return api.orders.create(op.row);
+      case "delete":
+        return api.orders.remove(op.rowId);
+    }
+  });
+}
+
+type UpdateOp<TData> = Extract<DataOp<TData>, { type: "update" }>;
+
+function cellsToPatch(cells: NonNullable<UpdateOp<Order>["cells"]>) {
+  return Object.fromEntries(cells.map((cell) => [cell.columnId, cell.value]));
+}
+```
+
+### Strategy A: optimistic, roll back on failure
+
+Apply the edit locally right away (the grid is controlled, so `setData(next)` is what makes it
+visible), fire the API calls, and revert to the previous array if any of them reject:
+
+```ts
+function handleDataChange(
+  next: readonly Order[],
+  change: DataChange<Order>,
+  setData: (rows: Order[]) => void,
+) {
+  const prev = dataRef.current; // keep a ref in sync with `data` for the rollback snapshot
+  setData(next as Order[]);
+
+  Promise.all(opsToRequests(change.ops)).catch((error) => {
+    setData(prev);
+    toast.error("Could not save your change. It has been reverted.");
+    reportError(error);
+  });
+}
+```
+
+<Callout type="warn" title="Keep a ref, not just the state variable">
+  The rollback needs the array from BEFORE this change, not the latest one. A plain closure over
+  `data` in a `useCallback` captures a stale snapshot across renders. Mirror `data` into a `ref`
+  on every render, and roll back to `ref.current` as it stood at the start of this handler.
+</Callout>
+
+### Strategy B: refetch-on-settle
+
+Do not apply `next` at all. Send the request first, then replace `data` with a fresh fetch once
+the server confirms the write. The grid shows the old value until the round-trip completes:
+
+```ts
+function handleDataChange(_next: readonly Order[], change: DataChange<Order>, setData: (rows: Order[]) => void) {
+  Promise.all(opsToRequests(change.ops))
+    .then(() => api.orders.list())
+    .then(setData)
+    .catch((error) => {
+      toast.error("Could not save your change.");
+      reportError(error);
+    });
+}
+```
+
+<Callout type="idea" title="Optimistic vs refetch-on-settle">
+  Optimistic feels instant but needs a correct rollback path. Refetch-on-settle is simpler and
+  always shows server-confirmed data, at the cost of a visible delay per edit. Pick optimistic for
+  frequent, low-risk edits (a status toggle); pick refetch-on-settle for edits a server can
+  reject or recompute (a price that triggers server-side discounts).
+</Callout>
+
+### The failure path
+
+A rejected write is common: a 422 with field-level errors is the typical shape from a REST or
+GraphQL backend. `actions.setCellErrors` paints the rejection on the exact cell it names, so the
+user sees which value is wrong and can fix it in place:
+
+```ts
+function handleDataChange(next: readonly Order[], change: DataChange<Order>, setData: (rows: Order[]) => void) {
+  setData(next as Order[]);
+
+  Promise.all(opsToRequests(change.ops)).catch((error) => {
+    actions.setCellErrors(parseFieldErrors(error, change.ops)); // [{ rowId, columnId, message }]
+  });
+}
+```
+
+`parseFieldErrors` is your own mapping from the server's error shape to `{ rowId, columnId,
+message }` entries, matched against `change.ops` to recover each op's `rowId`. The cell gets the
+same ring, tint, and `aria-invalid` treatment as a rejected `validate` call, and the message shows
+when the user opens the cell to edit it. The error clears the moment the user commits a fixed
+value, through any write path. See
+[Editing & cell types: Server errors](/docs/editing-cell-types#server-errors) for the full
+contract, including `clearCellErrors` and the read hook.
+
+<Callout type="idea" title="Toast and revert, or history undo, still apply">
+  `setCellErrors` marks the cell. It does not roll back the value on its own. Pair it with
+  [Strategy A](#strategy-a-optimistic-roll-back-on-failure)'s rollback, or with
+  [`data-grid-history`](/docs/undo-redo)'s `undo()`, when the wrong choice is to leave the
+  rejected value showing in the grid at all.
+</Callout>
+
+## TanStack Query wiring
+
+<Callout type="idea" title="Grid-side parts are the contract; TanStack Query parts are illustrative">
+  gridcn does not install `@tanstack/react-query` — it stays a zero-added-dependency library.
+  The snippet below is written against TanStack Query's stable public API
+  (`useQuery`/`useMutation`/`onMutate`/`onError`), the same illustrative-snippet convention as the
+  Standard Schema example in
+  [Editing & cell types](/docs/editing-cell-types#validation). Add `@tanstack/react-query` to your
+  own app first if you want this pattern. See also
+  [Lazy loading's React Query aside](/docs/lazy-loading#wiring-a-fetchcache-library-react-query)
+  for the same rule applied to `data-grid-lazy`.
+</Callout>
+
+`useQuery` fetches the rows, and one `useMutation` handles every op from `onDataChange`, keyed
+off the same `queryKey` so its cache and the grid stay in sync:
+
+```tsx
+"use client";
+
+function OrdersGrid() {
+  const queryClient = useQueryClient();
+  const ordersQuery = useQuery({ queryKey: ["orders"], queryFn: api.orders.list });
+
+  const mutation = useMutation({
+    mutationFn: (change: DataChange<Order>) => Promise.all(opsToRequests(change.ops)),
+    onMutate: async (change) => {
+      await queryClient.cancelQueries({ queryKey: ["orders"] });
+      const previous = queryClient.getQueryData<Order[]>(["orders"]);
+      queryClient.setQueryData<Order[]>(["orders"], (rows) => applyOpsLocally(rows ?? [], change.ops));
+      return { previous };
+    },
+    onError: (_error, _change, context) => {
+      if (context?.previous) queryClient.setQueryData(["orders"], context.previous);
+      toast.error("Could not save your change. It has been reverted.");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
+
+  return (
+    <DataGrid
+      data={ordersQuery.data ?? []}
+      columns={columns}
+      getRowId={(row) => row.id}
+      onDataChange={(_next, change) => mutation.mutate(change)}
+    />
+  );
+}
+```
+
+`applyOpsLocally` is your own small reducer over `DataOp[]` (update by `rowId`, splice an insert
+at `index`, filter out a delete). `onMutate`'s optimistic cache write is what makes the edit look
+instant; `onError`'s `context.previous` rollback is what undoes it if the mutation rejects. This
+is the same optimistic-vs-rollback shape as [Strategy A](#strategy-a-optimistic-roll-back-on-failure)
+above, expressed through TanStack Query's cache instead of a plain `useState`/ref pair.
+
+For a socket or poll that pushes new values many times per second, write them with `updateCells`
+instead of a new `data` array. See [Streaming updates](/docs/streaming-updates).
+
+## react-hook-form dialog editing
+
+<Callout type="idea" title="The escape hatch for multi-field edits">
+  Inline cell editors are single-value, single-column. Reach for a dialog form when an edit needs
+  MULTIPLE fields at once or a layout the grid's inline editors cannot express. For a single
+  value in one column, the built-in cell types (see
+  [Editing & cell types](/docs/editing-cell-types)) are simpler and stay in place — do not reach
+  for a dialog by default. For cross-field RULES on inline paths (paste, fill, bulk update), use
+  [`validateRow`](/docs/editing-cell-types#cross-field-rules-validaterow) — those paths never
+  open a dialog.
+</Callout>
+
+<Callout type="idea" title="Illustrative — react-hook-form is not installed">
+  gridcn does not install `react-hook-form`. The snippet is written against its stable public
+  API (`useForm`/`register`/`handleSubmit`), the same illustrative-snippet convention as the
+  TanStack Query recipe above. Add `react-hook-form` to your own app first if you want this
+  pattern.
+</Callout>
+
+A row action (for example, a context menu item or a button column) opens a shadcn `Dialog`. The
+form seeds from the clicked row, and submit builds one `update` op through the grid's normal
+controlled `onDataChange` path, so undo, history, and the server round-trip above all see it the
+same way as an inline edit:
+
+```tsx
+"use client";
+
+function EditOrderDialog({
+  row,
+  open,
+  onOpenChange,
+  onSave,
+}: {
+  row: Order;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (row: Order) => void;
+}) {
+  const form = useForm<Order>({ defaultValues: row });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <form
+          onSubmit={form.handleSubmit((values) => {
+            onSave(values);
+            onOpenChange(false);
+          })}
+        >
+          <Input {...form.register("customerName")} />
+          <Input type="number" {...form.register("price", { valueAsNumber: true })} />
+          <Input type="number" {...form.register("discount", { valueAsNumber: true })} />
+          <DialogFooter>
+            <Button type="submit">Save</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+```
+
+`onSave` writes the edited row back through the grid's own controlled state, the same
+`setData`/`onDataChange` path as any other edit:
+
+```ts
+function saveOrder(edited: Order) {
+  setData((rows) => rows.map((row) => (row.id === edited.id ? edited : row)));
+}
+```
+
+<Callout type="warn" title="This bypasses per-column validate">
+  A dialog form's own validation (RHF resolvers, or plain field checks) runs instead of each
+  column's `validate`, not alongside it. Re-run the same rules in the form if a column has a
+  `validate` you still need enforced here.
+</Callout>
+
+## Auth-gated cells
+
+Derive `readOnly` and column visibility from your own session or auth hook, per column, per row,
+or both. `readOnly` accepts a function of the row (see
+[Editing & cell types](/docs/editing-cell-types#read-only)), so a role check reads naturally:
+
+```tsx
+function useOrderColumns(): ColumnDef<Order>[] {
+  const { role } = useSession();
+
+  return defineColumns<Order>()([
+    { id: "customerName", header: "Customer", accessorKey: "customerName", type: "text" },
+    {
+      id: "price",
+      header: "Price",
+      accessorKey: "price",
+      type: "number",
+      readOnly: (row) => role !== "admin" || row.locked,
+    },
+    {
+      id: "internalNote",
+      header: "Internal note",
+      accessorKey: "internalNote",
+      type: "text",
+      hidden: role === "guest",
+    },
+  ] as const);
+}
+```
+
+`price` composes two conditions: a role gate (only `admin` can edit it) and a per-row gate
+(a `locked` order is read-only for everyone). `internalNote` is hidden outright for `guest`,
+computed once per render from the same session hook, not per row.
+
+## Server-side sort/filter
+
+`sortState`, `filterState`, and `searchText` each have a controlled prop pair on
+`DataGridProvider` (and `DataGrid`): `sortState`/`onSortChange`, `filterState`/`onFilterChange`,
+and `searchText`/`onSearchTextChange` (see [the three shapes](/docs/events-state#the-three-shapes-an-event-follows)
+for how the prop, the callback, and the uncontrolled fallback interact). The callback fires on every
+user gesture, and the prop you feed back in is what the grid displays:
+
+```tsx
+"use client";
+
+function ServerSyncedGrid() {
+  const [data, setData] = useState<Row[]>([]);
+  const [sortState, setSortState] = useState<SortSpec[]>([]);
+  const [filterState, setFilterState] = useState<FilterSpec[]>([]);
+  const grid = useDataGridState(data, { getRowId: (r) => r.id });
+
+  useEffect(() => {
+    fetchRows({ sortState, filterState }).then(setData);
+  }, [sortState, filterState]);
+
+  return (
+    <DataGridProvider
+      {...grid}
+      columns={columns}
+      sortState={sortState}
+      onSortChange={setSortState}
+      filterState={filterState}
+      onFilterChange={setFilterState}
+    >
+      <DataGridRoot>
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+<Callout type="warn" title="Add request cancellation for production use">
+  A fast second sort click before the first fetch resolves can land results out of order. The
+  grid's contract ends at "the prop you feed back in is what is displayed", not at
+  de-duplicating your own fetches.
+</Callout>
+
+<Callout type="warn" title="A non-empty `sortState` is still applied to `data`">
+  The grid sorts `data` by whatever `sortState` holds. That is harmless above, because the server
+  returns the whole result set and re-applying the same order changes nothing. It is *not* harmless
+  when `data` holds only part of the result set, as under
+  [lazy loading](/docs/lazy-loading#sorting-a-lazy-grid): sorting a partial array re-orders the
+  fetched rows among themselves and hides the true server order. `sortable: false` does not change
+  this — it only removes the header's click and indicator, never the comparator.
+</Callout>
+
+<Callout type="idea" title="Client-side sort/filter needs none of this">
+  This is the common case, which works well up to the 100k-row comfort target. Omit `sortState`,
+  `filterState`, `onSortChange`, and `onFilterChange`, and let the grid own the state
+  uncontrolled, as the quick-start of `useDataGridState` already does.
+</Callout>
+
+## Custom cell type
+
+<Callout type="idea" title="Looking for the full guide?">
+  This is a short, minimal sketch. [Build your own cell type](/docs/custom-cell-types) has the
+  complete contract walk-through, a keypoint checklist (performance caching, SSR-safe formatting,
+  editor commit semantics, the cellTypes-replaces-not-merges gotcha, popover outside-click
+  handling), a runnable worked `currency` example, and a testing pattern.
+</Callout>
+
+A cell type is `{ Cell, Editor, toText, fromText, clearValue, isEmpty, compare?, align? }`. Here
+is a minimal `currency` type modeled on the built-in `number` type:
+
+```tsx
+import type { CellEditorProps, CellRenderProps, CellType } from "@/components/data-grid/types";
+import { useCommitGuard } from "@/components/data-grid/data-grid";
+import { Input } from "@/components/ui/input";
+
+type CurrencyOptions = { currency: string; locale?: string };
+
+// Keyed on serialized options, not object identity — a column's `options` literal is re-created
+// every render. The locale is pinned (not the runtime's), so server and client agree.
+const currencyFormatterCache = new Map<string, Intl.NumberFormat>();
+function getCurrencyFormatter(locale: string, currency: string): Intl.NumberFormat {
+  const key = `${locale}|${currency}`;
+  let formatter = currencyFormatterCache.get(key);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, { style: "currency", currency });
+    currencyFormatterCache.set(key, formatter);
+  }
+  return formatter;
+}
+
+function CurrencyCell({ value, column }: CellRenderProps<unknown, number | null>) {
+  const options = column.options as CurrencyOptions | undefined;
+  if (value == null) return null;
+  return (
+    <span className="tabular-nums">
+      {getCurrencyFormatter(options?.locale ?? "en-US", options?.currency ?? "USD").format(value)}
+    </span>
+  );
+}
+
+function CurrencyEditor({ value, initialText, onChange, commit, cancel }: CellEditorProps<unknown, number | null>) {
+  const [text, setText] = useState(initialText ?? String(value ?? ""));
+  // One-shot latch: Enter commits, then the blur that follows must not commit a second time.
+  const committed = useCommitGuard();
+  const commitText = (movement?: { dx: number; dy: number }) => {
+    if (!committed.tryCommit()) return;
+    onChange(Number(text) || null);
+    commit(movement);
+  };
+  return (
+    <Input
+      autoFocus
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") commitText({ dx: 0, dy: 1 });
+        if (e.key === "Escape") cancel();
+      }}
+      onBlur={() => commitText({ dx: 0, dy: 0 })}
+    />
+  );
+}
+
+export const currencyCellType: CellType<unknown, number | null, CurrencyOptions> = {
+  Cell: CurrencyCell,
+  Editor: CurrencyEditor,
+  toText: (value) => (value == null ? "" : String(value)),
+  fromText: (text) => (text.trim() === "" ? null : Number(text) || null),
+  clearValue: () => null,
+  isEmpty: (value) => value == null,
+  compare: (a, b) => (a ?? 0) - (b ?? 0),
+  align: "right",
+};
+```
+
+Register it, and optionally give it compile-time inference through `defineColumns`:
+
+```tsx
+declare module "@/components/data-grid/types" {
+  interface GridCellTypes {
+    currency: { value: number | null; options: CurrencyOptions };
+  }
+}
+
+import { cellTypes } from "@/components/data-grid/data-grid";
+
+// spread the built-ins in — `cellTypes` REPLACES the registry, it does not merge
+<DataGridProvider cellTypes={{ ...cellTypes, currency: currencyCellType }} {...grid} columns={columns}>
+```
+
+```tsx
+const columns = defineColumns<Product>()([
+  { id: "price", header: "Price", accessorKey: "price", type: "currency", options: { currency: "EUR" } },
+] as const);
+```
+
+See [Build your own cell type](/docs/custom-cell-types) for the full contract walk-through, the
+keypoint checklist, and a complete runnable example. See
+[Editing & cell types](/docs/editing-cell-types) for how editing activation and commit work
+across the grid, and [API reference](/docs/api-reference#celltypetdata-tvalue-toptions) for
+every field's exact type.
+
+## Multiple grids on one page
+
+Each `<DataGridProvider>` mounts its own Zustand store instance (`createStore` in a `useState`
+factory). There is no module-level singleton, so multiple grids on one page just work with no
+configuration:
+
+```tsx
+<div className="grid grid-cols-2 gap-4">
+  <DataGridProvider {...gridA} columns={columnsA}>
+    <DataGridRoot><DataGridHeader /><DataGridBody /></DataGridRoot>
+  </DataGridProvider>
+  <DataGridProvider {...gridB} columns={columnsB}>
+    <DataGridRoot><DataGridHeader /><DataGridBody /></DataGridRoot>
+  </DataGridProvider>
+</div>
+```
+
+<Callout type="warn" title="data-grid-url-state needs a distinct prefix per grid">
+  Without a distinct prefix, two grids syncing to the URL collide on the same `sort`, `filter`,
+  `join`, and `q` keys. See [URL state](/docs/url-state#prefix).
+</Callout>

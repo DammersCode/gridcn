@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "data-grid-minimal-demo",
+  "title": "Data Grid Minimal Demo",
+  "author": "gridcn",
+  "description": "The quick-start minimum: the core item alone, `defaultData`, zero app-side state.",
+  "registryDependencies": [
+    "DammersCode/gridcn/data-grid"
+  ],
+  "files": [
+    {
+      "path": "registry/default/examples/data-grid-minimal-demo.tsx",
+      "content": "\"use client\";\r\n\r\nimport type { ReactNode } from \"react\";\r\nimport { DataGrid, defineColumns } from \"@/registry/default/components/data-grid/data-grid\";\r\n\r\ntype Person = { id: string; name: string; age: number; active: boolean };\r\n\r\nconst columns = defineColumns<Person>()([\r\n  { id: \"name\", header: \"Name\", accessorKey: \"name\", type: \"text\", width: 180 },\r\n  { id: \"age\", header: \"Age\", accessorKey: \"age\", type: \"number\", width: 100 },\r\n  { id: \"active\", header: \"Active\", accessorKey: \"active\", type: \"checkbox\", width: 100 },\r\n] as const);\r\n\r\nconst initialRows: Person[] = [\r\n  { id: \"1\", name: \"Ada Lovelace\", age: 28, active: true },\r\n  { id: \"2\", name: \"Grace Hopper\", age: 34, active: true },\r\n  { id: \"3\", name: \"Margaret Hamilton\", age: 31, active: false },\r\n];\r\n\r\nconst getRowId = (row: Person) => row.id;\r\n\r\n/** The quick-start minimum: the core item alone, `defaultData`, zero app-side state. */\r\nexport default function DataGridMinimalDemo(): ReactNode {\r\n  return (\r\n    <DataGrid\r\n      defaultData={initialRows}\r\n      columns={columns}\r\n      getRowId={getRowId}\r\n      className=\"w-full h-[240px]\"\r\n    />\r\n  );\r\n}\r\n",
+      "type": "registry:example",
+      "target": "components/data-grid-minimal-demo.tsx"
+    }
+  ],
+  "categories": [
+    "data"
+  ],
+  "type": "registry:example"
+}

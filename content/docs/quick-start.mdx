@@ -1,0 +1,158 @@
+---
+title: Quick start
+description: An editable grid in a few lines, with zero state wiring.
+icon: Rocket
+---
+
+<Steps>
+  <Step>
+    ### Install
+
+    ```bash
+    npx shadcn add DammersCode/gridcn/data-grid
+    ```
+  </Step>
+  <Step>
+    ### Define columns
+
+    `defineColumns<TData>()` infers the value type of each column from `accessorKey` (or
+    `accessorFn`). It narrows `options` and `validate` through the cell type named in `type`.
+    The column `id` is a stable identity, never derived from the header label.
+
+    <Callout title="Two calls, and as const, both matter">
+      `defineColumns<TData>()([...])` is two calls: the first fixes `TData`, the second infers
+      each column from it. Add `as const` to the array literal too. Without both, TypeScript
+      widens `type` to `string`, and column-specific inference for `options` and `validate` breaks.
+    </Callout>
+
+    ```tsx title="columns.ts"
+    import { defineColumns } from "@/components/data-grid/data-grid";
+
+    type Person = { id: string; name: string; age: number; active: boolean };
+
+    const columns = defineColumns<Person>()([
+      { id: "name", header: "Name", accessorKey: "name", type: "text", width: 160 },
+      { id: "age", header: "Age", accessorKey: "age", type: "number", width: 90 },
+      { id: "active", header: "Active", accessorKey: "active", type: "checkbox", width: 90 },
+    ] as const);
+    ```
+  </Step>
+  <Step>
+    ### Render the grid
+
+    `defaultData` seeds the grid once. After that, the grid owns the array: editing, pasting,
+    filling, and deleting all apply internally, and you do not need state of your own.
+
+    ```tsx title="people-grid.tsx"
+    "use client";
+
+    import { DataGrid } from "@/components/data-grid/data-grid";
+    import { columns } from "./columns";
+
+    const initialRows = [
+      { id: "1", name: "Ada Lovelace", age: 28, active: true },
+      { id: "2", name: "Grace Hopper", age: 34, active: true },
+    ];
+
+    export function PeopleGrid() {
+      return (
+        <DataGrid
+          defaultData={initialRows}
+          columns={columns}
+          getRowId={(row) => row.id}
+          className="h-[400px]"
+        />
+      );
+    }
+    ```
+
+    <Callout title="getRowId is mandatory">
+      `getRowId` must return a stable, unique id for each row. Two rows that share an id corrupt
+      selection, editing, and undo and redo, because every internal lookup is id-keyed.
+    </Callout>
+
+    <ComponentPreview name="data-grid-minimal-demo" />
+
+    Try it: click a cell and type to replace its value, double-click or press <kbd>F2</kbd> to
+    edit in place, <kbd>Enter</kbd> to commit and move down (or <kbd>Tab</kbd> to commit in
+    place), drag to select a range.
+  </Step>
+</Steps>
+
+`defaultData` is the uncontrolled option, the same pattern as `<input defaultValue>`. When you
+need your own source of truth, for example a server round-trip, an undo stack, or derived data,
+pass `data` and `onDataChange` instead. See [Going controlled](#going-controlled) below, or the
+full picture in the three shapes table of
+[Events & state](/docs/events-state#the-three-shapes-an-event-follows) and the
+[API reference](/docs/api-reference).
+
+## Going controlled
+
+Pass `data` instead of `defaultData` when you need your own state, for example a server
+round-trip, a store, or derived data. `data` and `defaultData` are mutually exclusive. If you
+give both, `data` wins.
+
+```tsx
+const [data, setData] = useState(initialRows);
+
+<DataGrid
+  data={data}
+  columns={columns}
+  getRowId={(row) => row.id}
+  onDataChange={(next) => setData(next)}
+/>;
+```
+
+`onDataChange` fires once per user gesture (one edit, one paste, one fill, or one delete-range).
+It passes the next array and an id-keyed ops batch. See [Recipes](/docs/recipes) for how to use
+the ops batch directly, for example to sync to a server. `onDataChange` also fires in
+uncontrolled (`defaultData`) mode, as an optional notification. The grid applies the change
+internally either way.
+
+## Undo & redo
+
+For undo and redo, install the `data-grid-history` add-on and swap `defaultData` for its
+`useDataGridState` hook. This adds one line, and still needs no manual state wiring.
+
+```bash
+npx shadcn add DammersCode/gridcn/data-grid-history
+```
+
+```tsx
+import { useDataGridState } from "@/components/data-grid-history/data-grid-history";
+
+const grid = useDataGridState(initialRows, { getRowId: (row) => row.id });
+
+<DataGrid {...grid} columns={columns} />;
+```
+
+Press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd> to undo, and <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Y</kbd>
+to redo. See [Undo & redo](/docs/undo-redo) for the full add-on: a composable history hook,
+capped stacks, and toolbar wiring.
+
+## `<DataGrid>` is shorthand
+
+`<DataGrid>` is a convenience wrapper around four pieces: `DataGridProvider`, `DataGridRoot`,
+`DataGridHeader`, and `DataGridBody`. Every add-on on this site composes those four pieces
+directly, because a toolbar, a context menu, or an overlay plugin needs to sit between them. See
+the [API reference](/docs/api-reference#datagrid) for the expanded form and what each piece owns.
+
+## What's next
+
+<Cards>
+  <Card
+    title="Editing & cell types"
+    description="The built-in cell types and how to add your own."
+    href="/docs/editing-cell-types"
+  />
+  <Card
+    title="Selection & keyboard"
+    description="The full interaction model."
+    href="/docs/selection-keyboard"
+  />
+  <Card
+    title="Columns"
+    description="Resize, reorder, pin, visibility."
+    href="/docs/columns"
+  />
+</Cards>

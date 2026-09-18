@@ -1,0 +1,30 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "data-grid-sorting-filtering-demo",
+  "title": "Data Grid Sorting & Filtering Demo",
+  "author": "gridcn",
+  "description": "Toolbar quick-search with match navigation, a per-column filter menu, and click-to-sort headers with multi-column sort.",
+  "registryDependencies": [
+    "DammersCode/gridcn/data-grid",
+    "DammersCode/gridcn/data-grid-history",
+    "DammersCode/gridcn/data-grid-toolbar"
+  ],
+  "files": [
+    {
+      "path": "registry/default/examples/data-grid-sorting-filtering-demo.tsx",
+      "content": "\"use client\";\r\n\r\nimport { useMemo, type ReactNode } from \"react\";\r\nimport {\r\n  DataGridProvider,\r\n  DataGridRoot,\r\n  DataGridHeader,\r\n  DataGridBody,\r\n  defineColumns,\r\n} from \"@/registry/default/components/data-grid/data-grid\";\r\nimport {\r\n  DataGridToolbar,\r\n  DataGridSearch,\r\n  DataGridFilterMenu,\r\n} from \"@/registry/default/components/data-grid-toolbar/data-grid-toolbar\";\r\nimport { generateDemoRows, type DemoRow } from \"./demo-data\";\r\n\r\nconst columns = defineColumns<DemoRow>()([\r\n  { id: \"name\", header: \"Name\", accessorKey: \"name\", type: \"text\", width: 90, flex: 1 },\r\n  { id: \"email\", header: \"Email\", accessorKey: \"email\", type: \"text\", width: 100, flex: 2 },\r\n  { id: \"age\", header: \"Age\", accessorKey: \"age\", type: \"number\", width: 55, flex: 1, filterable: true },\r\n  {\r\n    id: \"role\",\r\n    header: \"Role\",\r\n    accessorKey: \"role\",\r\n    type: \"select\",\r\n    options: {\r\n      choices: [\r\n        { value: \"Admin\", label: \"Admin\" },\r\n        { value: \"User\", label: \"User\" },\r\n        { value: \"Editor\", label: \"Editor\" },\r\n        { value: \"Viewer\", label: \"Viewer\" },\r\n        { value: \"Manager\", label: \"Manager\" },\r\n      ],\r\n    },\r\n    width: 80,\r\n    flex: 1,\r\n    filterable: true,\r\n  },\r\n  { id: \"score\", header: \"Score\", accessorKey: \"score\", type: \"number\", width: 55, flex: 1 },\r\n] as const);\r\n\r\n/**\r\n * Quick-search (with match navigation) plus a per-column filter menu and click-to-sort headers\r\n * (click cycles asc -> desc -> clear; shift-click appends to a multi-column sort).\r\n */\r\nexport default function DataGridSortingFilteringDemo(): ReactNode {\r\n  const rows = useMemo(() => generateDemoRows(60), []);\r\n\r\n  return (\r\n    <div className=\"w-full flex flex-col gap-3\">\r\n      <p className=\"text-sm text-muted-foreground\">\r\n        Click a header to sort (click again to reverse, a third click clears it); shift-click another\r\n        header to add it as a secondary sort. Use Filter in the toolbar for per-column filters.\r\n      </p>\r\n      <div className=\"flex h-[420px] flex-col overflow-hidden rounded-md border border-border\">\r\n        <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} headerClickBehavior=\"sort\">\r\n          <DataGridToolbar>\r\n            <DataGridSearch />\r\n            <DataGridFilterMenu />\r\n          </DataGridToolbar>\r\n          <DataGridRoot className=\"min-h-0 flex-1 rounded-none border-none\">\r\n            <DataGridHeader />\r\n            <DataGridBody />\r\n          </DataGridRoot>\r\n        </DataGridProvider>\r\n      </div>\r\n    </div>\r\n  );\r\n}\r\n",
+      "type": "registry:example",
+      "target": "components/data-grid-sorting-filtering-demo.tsx"
+    },
+    {
+      "path": "registry/default/examples/demo-data.ts",
+      "content": "/** Deterministic LCG so SSR/CSR markup match without Math.random(); shared across example rows. */\nfunction createSeededLcg(seed: number) {\n  let state = seed;\n  return () => {\n    state = (state * 1103515245 + 12345) & 0x7fffffff;\n    return state / 0x7fffffff;\n  };\n}\n\nexport type DemoRow = {\n  id: string;\n  name: string;\n  email: string;\n  age: number;\n  active: boolean;\n  role: string;\n  joined: string;\n  score: number;\n};\n\nconst ROLES = [\"Admin\", \"User\", \"Editor\", \"Viewer\", \"Manager\"] as const;\nconst ADJECTIVES = [\"Eager\", \"Quick\", \"Silent\", \"Bold\", \"Swift\"] as const;\nconst NOUNS = [\"Eagle\", \"Lion\", \"Tiger\", \"Bear\", \"Wolf\"] as const;\n\n/** Generates `count` deterministic demo rows for example previews (seed 42, stable across renders). */\nexport function generateDemoRows(count: number, seed = 42): DemoRow[] {\n  const next = createSeededLcg(seed);\n  const rows: DemoRow[] = [];\n  for (let i = 0; i < count; i++) {\n    rows.push({\n      id: `row-${i}`,\n      name: `${ADJECTIVES[Math.floor(next() * ADJECTIVES.length)]} ${NOUNS[Math.floor(next() * NOUNS.length)]}`,\n      email: `user${i}@example.com`,\n      age: Math.floor(next() * 50) + 18,\n      active: next() > 0.5,\n      role: ROLES[Math.floor(next() * ROLES.length)]!, // ROLES is a fixed non-empty literal array\n      joined: `${2020 + Math.floor(next() * 5)}-${String(Math.floor(next() * 12) + 1).padStart(2, \"0\")}-${String(Math.floor(next() * 28) + 1).padStart(2, \"0\")}`,\n      score: Math.floor(next() * 100),\n    });\n  }\n  return rows;\n}\n",
+      "type": "registry:example",
+      "target": "components/demo-data.ts"
+    }
+  ],
+  "categories": [
+    "data"
+  ],
+  "type": "registry:example"
+}

@@ -1,0 +1,107 @@
+---
+title: Clipboard
+description: Native copy/cut/paste with spreadsheet-compatible TSV and HTML formats.
+icon: Clipboard
+---
+
+Clipboard support uses native browser copy, cut, and paste events.
+
+<ComponentPreview name="data-grid-demo" />
+
+## Copy
+
+Copy, cut, and paste use the native browser clipboard events, so no `clipboard-write` permission
+prompt appears for copy or cut. Selecting a range and pressing <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+C
+writes two formats to the system clipboard:
+
+- **`text/plain`** — tab-separated values (TSV), one row per line. A cell that contains a tab,
+  newline, or quote is quoted, with the quote doubled internally, matching the TSV quoting of
+  Excel and Sheets.
+- **`text/html`** — an HTML `<table>` with the raw value of each cell stashed in `data-*`
+  attributes. So a paste back into gridcn recovers the exact typed values, not only their display
+  text, while a paste into a real spreadsheet app still gets a normal table.
+
+<Callout title="toText, not toDisplayText">
+  The copied text of each cell comes from the `toText` of its cell type. Display formatting, such
+  as a locale date string, never leaks into the clipboard.
+</Callout>
+
+## Paste
+
+Pasting parses HTML first, when the clipboard has a `text/html` payload, for example when you
+paste from another gridcn instance, Excel, Sheets, or Numbers. It falls back to a quoted-TSV
+parser for plain-text sources. The quoted-TSV parser is a small state machine, not a naive
+`split("\t")`, and it correctly handles quoted cells that contain tabs, newlines, and embedded
+quotes.
+
+Paste semantics:
+
+- **Anchored expand** — pasting an N×M block starting at the active cell overwrites that N×M
+  region.
+- **Single-row tiling down a selection** — pasting one row into a taller selected range repeats
+  it down every row.
+- Pasted text runs through the `fromText` of each target cell type, then through `validate` if
+  present. An invalid cell in the pasted block is rejected the same way as a manual edit.
+- One paste produces one `onDataChange` call with a single ops batch, regardless of how many
+  cells it touched.
+
+## Escape hatches
+
+Three `DataGridProvider` props let you intercept the pipeline without forking it.
+
+```tsx
+import type { ColumnDef } from "@/components/data-grid/data-grid";
+
+// Module scope (or useCallback) so identity stays stable across renders.
+function processCellForClipboard(value: unknown, { row, column }: { row: Row; column: ColumnDef<Row, unknown> }) {
+  // override what gets copied for this cell; falls back to the cell type's toText
+  return String(value);
+}
+
+function processCellFromClipboard(text: string, { row, column }: { row: Row; column: ColumnDef<Row, unknown> }) {
+  // override how pasted text becomes a value; falls back to the cell type's fromText
+  return text.trim();
+}
+
+function processPaste(cells: string[][]) {
+  // runs on the whole parsed paste grid before it's applied; return false to veto entirely
+  return cells;
+}
+
+<DataGridProvider
+  processCellForClipboard={processCellForClipboard}
+  processCellFromClipboard={processCellFromClipboard}
+  processPaste={processPaste}
+  {...grid}
+  columns={columns}
+/>
+```
+
+## Context menu paste
+
+<ComponentPreview name="data-grid-context-menu-demo" />
+
+<Callout type="warn" title="Requires the clipboard-read permission">
+  The Paste item of the `data-grid-context-menu` add-on needs `clipboard-read`. Browsers can
+  refuse this without a user gesture inside the menu item itself. When permission is not
+  available, the item degrades to a disabled state with a "press Ctrl+V" hint, instead of failing
+  silently.
+</Callout>
+
+## Known limitations
+
+<Callout type="warn" title="Real-world clipboard HTML is messy">
+  Clipboard HTML from Excel, Google Sheets, and Apple Numbers is often inconsistent, with
+  merged-cell artifacts and inline styles that masquerade as structure. The parser is defensive
+  but not exhaustive. If a paste does not round-trip correctly from a specific app, use
+  `processPaste` or `processCellFromClipboard` to patch it for your use case.
+</Callout>
+
+<Callout type="idea" title="An async schema holds the paste">
+  A paste against a column with an async Standard Schema `validate` waits for the schema. The
+  grid validates a maximum of 32 cells at the same time, then commits the accepted cells as one
+  batch. A rejected cell drops silently. A second paste before the first resolves supersedes it.
+  See [Editing & cell types: async schemas](/docs/editing-cell-types#on-bulk-paths) for the full
+  contract, which fill and import share. For a large paste against a remote check, `processPaste`
+  above lets you validate the whole block in one request instead.
+</Callout>

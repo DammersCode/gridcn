@@ -1,0 +1,317 @@
+---
+title: Lazy loading
+description: Fetch row windows on demand for datasets too large (or too expensive) to load up front.
+icon: CloudDownload
+---
+
+`data-grid-lazy` gives the grid a `total` and a `fetchRows(start, end)` function, and
+`useDataGridLazyRows` fetches whatever window the grid actually scrolls into.
+
+<ComponentPreview name="data-grid-lazy-demo" />
+
+<InstallCommand item="data-grid-lazy" manual manualSlot={<ManualInstall item="data-grid-lazy" />} />
+
+## Lazy loading vs. pagination
+
+Both exist because they solve different problems:
+
+- **Lazy loading** (this add-on) gives an infinite-feel single scrollable surface. The user never
+  sees a page boundary, only a grid that fills in as they scroll. This works best when the grid
+  needs to feel like one continuous dataset.
+- **Pagination** (`data-grid-pagination`) gives explicit, bookmarkable pages with a bounded
+  per-request payload. This works best when users need to reference "page 3" specifically, or
+  your backend is happier with fixed-size requests.
+
+Virtualization already handles rendering huge datasets cheaply either way. Neither add-on exists
+for rendering performance. Using both together is not supported.
+
+<Callout type="idea" title="loading vs. this add-on">
+  The `loading` prop of the core (see [Styling & theming](/docs/styling-theming#loading-state))
+  is a whole-grid flag with one skeleton look, for an ordinary fully-controlled fetch, with no
+  per-row granularity and no partial data. Reach for `data-grid-lazy` instead when individual row
+  *windows* load independently as the user scrolls. Its skeleton cells are per-row, not
+  grid-wide, and the two are not meant to be combined.
+</Callout>
+
+## Usage
+
+```tsx
+"use client";
+
+import {
+  DataGridProvider,
+  DataGridRoot,
+  DataGridHeader,
+  DataGridBody,
+} from "@/components/data-grid/data-grid";
+import { useDataGridLazyRows, DataGridLazyGuard } from "@/components/data-grid-lazy/data-grid-lazy";
+
+function OrdersGrid() {
+  const lazy = useDataGridLazyRows<Order>({
+    total: 100_000,
+    fetchRows: (start, end, signal) => api.orders({ start, end, signal }), // inclusive-exclusive
+    getRowId: (row) => row.id,
+  });
+
+  return (
+    <DataGridProvider
+      data={lazy.gridProps.data}
+      columns={columns}
+      getRowId={lazy.gridProps.getRowId}
+      onDataChange={lazy.onDataChange}
+    >
+      <DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />
+      <DataGridRoot onRowWindowChange={lazy.gridProps.onRowWindowChange}>
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+`onRowWindowChange` is a core `DataGridRoot` or `DataGrid` prop (see
+[Virtualization](/docs/virtualization)). This add-on is the first consumer of it, but the prop is
+generic and available even without this add-on, for example for analytics or prefetch.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-lazy/use-data-grid-lazy-rows.ts" name="UseDataGridLazyRowsOptions" />
+
+## How it fetches
+
+- **`data` is a sparse array**, with length `total`. Loaded indices hold real rows.
+  Unloaded indices are holes (`undefined`), which the core renders as skeleton cells.
+- **Placeholder row ids are index-derived** for unloaded rows (`getRowId` only runs on rows that
+  exist). This id is unstable. It does not survive a range being unloaded and reloaded with
+  different content at the same index, but this is fine. An unloaded row carries no selection,
+  edit, or scroll-anchor state worth preserving across that transition.
+- **Fetch ranges are expanded and rounded**, not requested pixel-for-pixel. `overscan` pads the
+  visible range on both sides (about 1 viewport by default). Then both edges round outward to
+  the nearest `batchSize` boundary. So a small scroll reuses the same in-flight or already-loaded
+  batch, instead of firing a new request on every tick.
+- **Already-loaded and in-flight ranges are never re-requested.** A window that partially
+  overlaps what is already loaded only fetches the remaining gap. Adjacent loaded ranges are
+  merged, so later gap calculations see one covered span, not several.
+- **Fetches are aborted on unmount**, through the `AbortSignal` passed to `fetchRows`. Any fetch
+  still in flight for an old dataset is also aborted if `total` changes out from under it.
+- **A failed fetch reverts its range to unloaded** (never marked loaded) and calls
+  `onError(error, range)`. The next time that range comes back into view, `onRowWindowChange`
+  naturally re-requests it. There is no separate retry mechanism to wire up.
+
+## Editing loaded rows
+
+`useDataGridLazyRows` does not own a `data` and `setData` pair the way `useDataGridState` does.
+Pass its `onDataChange` straight to `DataGridProvider` or `DataGrid`, and it merges the edited
+array back into the sparse rows it already had loaded. What you do with the edit beyond that,
+whether you persist it to your backend or run it through your own cache, is up to you. Editing an
+unloaded row is not reachable in the first place. The skeleton-cell handling of the core blocks
+entering edit mode on a row that does not exist yet.
+
+## Sorting a lazy grid
+
+The sort must run on the server. Hold the spec in your own state, keep the grid's `sortState`
+permanently empty, and send the spec to `fetchRows`:
+
+```tsx
+const [sorts, setSorts] = useState<SortSpec[]>([]);
+
+const lazy = useDataGridLazyRows<Order>({
+  total: 100_000,
+  getRowId: (row) => row.id,
+  fetchRows: (start, end, signal) => api.orders({ start, end, sorts, signal }),
+});
+
+// key: a sort change invalidates every fetched window, which a remount discards
+<DataGridProvider
+  key={sorts.map((s) => `${s.columnId}:${s.direction}`).join(",")}
+  data={lazy.gridProps.data}
+  getRowId={lazy.gridProps.getRowId}
+  onDataChange={lazy.onDataChange}
+  sortState={EMPTY_SORT}
+  onSortChange={setSorts}
+>
+```
+
+Two details make this work:
+
+- **`sortState` stays `[]`.** Passing it at all is what puts sorting in controlled mode, so a
+  header click reports through `onSortChange` instead of sorting locally. Echoing the spec back
+  into the prop would make the grid sort `data` by it, re-ordering the fetched window among itself
+  instead of showing the server's order.
+- **A sort change discards loaded rows.** Already-fetched windows hold the *old* order, and
+  `useDataGridLazyRows` only drops loaded ranges when `total` changes. Remounting on a key
+  derived from the spec is the way to clear them.
+
+Because the store's `sortState` is empty, the header's sort indicator and `aria-sort` stay blank
+and `DataGridSortList` shows no active sorts. Render the active sort from your own state instead.
+`toggleSort` also derives its next direction from the store, so re-derive the
+asc → desc → none cycle against your own spec, as `data-grid-playground-demo` does.
+
+Filtering follows the same rule for the same reason: `filterState` narrows `data` locally when
+set. `searchText` never narrows anything — it only highlights and navigates matches over the
+rows already in `data`, so a search over a partial array highlights matches in the loaded part
+and nothing more.
+
+<Callout type="warn" title="Client-side sort/filter/search cannot see rows it hasn't fetched">
+  Sorting or filtering only reorders or removes rows already in `data`. It has no way to reason
+  about the rest of a 100k-row dataset it never loaded. Hand your backend the sort or filter spec,
+  and let it decide which rows to serve, rather than letting the grid sort or filter client-side
+  over a partial array.
+
+  Mount `<DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />` inside `<DataGridProvider>` (see
+  the usage example above) to get a dev-only console warning if an uncontrolled sort, filter, or
+  search gesture fires while rows are still unloaded. It cannot stop the gesture, but it flags the
+  incompatible combination the moment it happens, instead of leaving you to notice wrong-looking
+  results later. Clipboard and fill across unloaded ranges are blocked the same way as a
+  non-writable column: a plain skip, not an error.
+</Callout>
+
+<Callout type="warn" title="Select-all includes the unloaded rows">
+  The view is `total` rows long, loaded or not, so the two-stage select-all (
+  <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> twice) selects the full view, holes included.
+  `getRowIds` for an unloaded row in that selection returns its index-derived placeholder id
+  (`__lazy-unloaded-<index>`), not a real row id. If a selection must mean "only loaded rows",
+  filter the selected rows through the sparse `data` array yourself — a hole is `undefined`
+  there — or track the loaded ranges in your own state.
+</Callout>
+
+## Errors
+
+```tsx
+useDataGridLazyRows({
+  total,
+  fetchRows,
+  getRowId,
+  onError: (error, range) => toast.error(`Failed to load rows ${range.start}–${range.end}`),
+});
+```
+
+`onError` is the only signal that a fetch failed. There is no thrown-error boundary, because a
+failed range simply stays a hole, rendered as a skeleton row, and is retried automatically the
+next time it is scrolled into view.
+
+## Wiring a fetch/cache library (React Query)
+
+`fetchRows` is a plain `(start, end, signal) => Promise<TData[]>`. Nothing about
+`useDataGridLazyRows` knows or cares whether that promise came from `fetch`, a cache, or a data
+library. Range coalescing already keeps requests infrequent (overscan and `batchSize` rounding,
+in-flight dedup), so most apps do not need one. If you already use
+[React Query](https://tanstack.com/query) elsewhere and want its cache, retry, and dedup behavior
+for these ranges too, wire it through `fetchRows` with a per-range query key:
+
+<Callout type="idea" title="Consumer wiring, not an add-on dependency">
+  This is a snippet for your own app, not part of `data-grid-lazy`. The add-on has no React Query
+  dependency, and installing it through `shadcn add` never pulls React Query in. Add
+  `@tanstack/react-query` to your own app first if you want this pattern. For a NON-lazy grid
+  (a plain fetched array, no windowed loading), see
+  [Recipes: TanStack Query wiring](/docs/recipes#tanstack-query-wiring) for the `useQuery` +
+  `useMutation` shape instead.
+</Callout>
+
+```tsx
+"use client";
+
+import { useMemo } from "react";
+import { QueryClient } from "@tanstack/react-query";
+import { useDataGridLazyRows } from "@/components/data-grid-lazy/data-grid-lazy";
+
+const queryClient = new QueryClient();
+
+/** One query key per fetched range — same-range requests dedupe/cache instead of re-fetching. */
+function orderRangeKey(start: number, end: number) {
+  return ["orders", "range", start, end] as const;
+}
+
+function OrdersGrid() {
+  const lazy = useDataGridLazyRows<Order>({
+    total: 100_000,
+    getRowId: (row) => row.id,
+    fetchRows: (start, end, signal) =>
+      queryClient.fetchQuery({
+        queryKey: orderRangeKey(start, end),
+        queryFn: () => api.orders({ start, end, signal }),
+        staleTime: 60_000,
+      }),
+  });
+
+  // ...
+}
+```
+
+`useDataGridLazyRows` already merges adjacent loaded ranges and never re-requests a covered
+range itself. So the cache of React Query mostly pays off for ranges that get *unloaded* and
+scrolled back into later. Examples are a failed fetch's range, or a range evicted by your own
+eviction policy. Those ranges come back from cache instead of hitting the network again, as
+long as they are within `staleTime`.
+
+## When a range fails permanently
+
+The base case (see [Errors](#errors) above) is a transient failure. `onError` fires, the range
+stays a hole, and scrolling back over it retries automatically. But the underlying cause can be
+permanent instead, for example an expired auth token or a route the backend removed. If so, that
+automatic retry only fails again in the same way every time the range comes back into view.
+
+`useDataGridLazyRows` does not distinguish transient failures from permanent ones. It has no way
+to, because `fetchRows` is opaque to it. What you get for a permanent failure is exactly what you
+get for a transient one:
+
+- The range's rows revert to holes and render as skeleton cells again. They never left the
+  "unloaded" state, because a failed range is simply never marked loaded.
+- `onError(error, range)` fires once per failed attempt.
+- The next time `onRowWindowChange` reports a window that covers that range, gridcn requests it
+  again. This happens whether you scroll away and back, or the very first fetch failed and the
+  window covers the initial mount range. If the cause is still there, the request fails again.
+
+The consumer-side pattern for this is a retry UI driven by `onError`, so a permanently-failing
+range does not just retry silently forever every time it is scrolled past. Surface it, and let
+the user force a retry once whatever was wrong is fixed:
+
+```tsx
+"use client";
+
+import { useState } from "react";
+import { useDataGridLazyRows, type Range } from "@/components/data-grid-lazy/data-grid-lazy";
+
+function OrdersGrid() {
+  const [failedRange, setFailedRange] = useState<Range | null>(null);
+
+  const lazy = useDataGridLazyRows<Order>({
+    total: 100_000,
+    getRowId: (row) => row.id,
+    fetchRows: (start, end, signal) => api.orders({ start, end, signal }),
+    onError: (error, range) => setFailedRange(range),
+  });
+
+  return (
+    <>
+      {failedRange && (
+        <div role="alert" className="flex items-center justify-between gap-2 border-b border-destructive/30 bg-destructive/10 px-3 py-2 text-sm">
+          <span>Couldn't load rows {failedRange.start}–{failedRange.end}.</span>
+          <button
+            type="button"
+            onClick={() => {
+              // re-fires onRowWindowChange for the same range so useDataGridLazyRows retries it —
+              // there's no separate imperative "retry" call, scrolling into it again is the retry.
+              lazy.gridProps.onRowWindowChange(failedRange);
+              setFailedRange(null);
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+      {/* ...DataGridProvider / DataGridRoot as usual */}
+    </>
+  );
+}
+```
+
+Calling `lazy.gridProps.onRowWindowChange(failedRange)` directly, rather than waiting for a real
+scroll, is the whole retry. The hook has no separate retry method, because re-requesting an
+uncovered range is already its normal, automatic behavior. A manual retry button only triggers
+that same path on demand, instead of waiting for the user to scroll there again.
+
+The `data-grid-lazy-demo` above has both buttons live. "Simulate a failed fetch" is the transient
+case: it fails once, then the very next attempt, whether automatic on scroll or through the
+banner's Retry button, succeeds. "Simulate a permanent failure" fails every attempt until you
+click "Fix backend". So mashing Retry keeps failing in exactly the same way until the underlying
+cause is actually fixed. A real expired-token or removed-route scenario behaves the same way.

@@ -1,0 +1,179 @@
+---
+title: Streaming updates
+description: Push live values into cells by row id, without a full data replacement.
+icon: Radio
+---
+
+`updateCells` writes values straight into the grid by row id, for live feeds that update many cells per second.
+
+<ComponentPreview name="data-grid-streaming-demo" />
+
+## Usage
+
+Address each write by the row's `getRowId` value and the column id:
+
+```tsx
+import { useDataGridActions, type CellPatch } from "@/components/data-grid/data-grid";
+
+function TickerFeed() {
+  const actions = useDataGridActions();
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const patches: CellPatch[] = quotes.map((q) => ({
+        rowId: q.symbol,
+        columnId: "price",
+        value: q.price,
+      }));
+      actions.updateCells(patches);
+    }, 250);
+    return () => clearInterval(id);
+  }, [actions]);
+
+  return null;
+}
+```
+
+One call is one batch. The grid applies all patches together and fires `onDataChange` once, with
+one `update` op per touched row. Rows you do not patch keep their identity and do not render again.
+
+A patch with an unknown `rowId` or `columnId` is skipped. A patch to a read-only column, or a
+patch whose value equals the current value, is also skipped. A hidden column can be patched.
+
+<Callout title="Row ids, not coordinates">
+  A view coordinate changes when the user sorts or filters. A row id does not, so a feed can write
+  correctly while the user changes the view.
+</Callout>
+
+## Sorted and filtered views
+
+If a patch changes a value that the active sort or filter reads, the row would have to move. By
+default the row keeps its position and the grid sets a stale flag. Read the flag with
+`useDataGridViewStale` and give the user a control to re-sort:
+
+```tsx
+function ReSortBar() {
+  const actions = useDataGridActions();
+  const viewStale = useDataGridViewStale();
+  if (!viewStale) return null;
+
+  return (
+    <button onClick={() => actions.reconcileView()}>Re-sort</button>
+  );
+}
+```
+
+A direct write raises the same flag: an edit, paste, fill, or cleared selection that touches a
+column the active sort or filter reads leaves the row where it is and marks the view stale.
+
+`reconcileView()` rebuilds the order and clears the flag. A sort, filter, or search change does
+the same thing.
+
+The `reorder` option sets this behavior per call:
+
+```tsx
+actions.updateCells(patches, { reorder: "immediate" });
+```
+
+| Value | Behavior |
+| --- | --- |
+| `"defer"` (default) | The value changes, the row holds its position, and `viewStale` becomes true. |
+| `"immediate"` | The grid moves the patched rows to their new positions in the same call. |
+| `"never"` | The value changes and `viewStale` stays false. |
+
+If no patched column feeds the active sort or filter, `"defer"` becomes `"never"` automatically, so
+`viewStale` stays false for a feed that writes only non-sorted columns.
+
+`"immediate"` does not re-sort all rows. It removes each patched row from the order, tests it
+against the active filter again, and puts it back at the position a full sort would give it. The
+cost is set by the number of patched rows, not by the number of rows in the grid.
+
+At 100,000 rows with one sort column, a production build measures:
+
+| Rows in the batch | Cost per call |
+| --- | --- |
+| 1 | 0.3-0.5 ms |
+| 20 | 0.9 ms |
+| 256 | 7.6 ms |
+
+Above 256 rows in one batch, the grid rebuilds the full order instead. It also rebuilds when the
+sort or filter changed in the same tick, or when a column supplies its own comparator.
+
+The demo above has an auto-sort switch that toggles `reorder` between the two modes on every tick.
+Turn it on and rows on the sorted column stay in the correct order without a re-sort click. Turn it
+off and rows hold their position until you reconcile the view.
+
+Choose `"immediate"` (auto-sort) when the displayed order must always match the sort. Choose
+`"defer"` when a row that jumps position mid-read is worse for the user than a stale order they
+clear on demand.
+
+## Controlled mode
+
+`updateCells` works with `data` and with `defaultData`. In controlled mode, store the array that
+`onDataChange` gives you and pass it back unchanged:
+
+```tsx
+const [data, setData] = useState(rows);
+
+<DataGridProvider
+  data={data}
+  columns={columns}
+  getRowId={(row) => row.id}
+  onDataChange={(next) => setData(next as Row[])}
+/>
+```
+
+The grid recognizes its own array and keeps the sort, filter, and search results it already has.
+If you map, filter, or rebuild the array before you store it, the grid cannot recognize it and
+computes those results again on every update.
+
+<Callout title="Keep the sort and filter props stable">
+  A new `sortState` or `filterState` array on each render is a change of input, and the grid
+  computes the view again. Pass a stable reference.
+</Callout>
+
+## Undo history
+
+A `updateCells` batch is tagged `source: "stream"`. `useDataGridHistory` does not record that
+source, because a feed at 100 updates per second would remove all user entries from the undo stack.
+
+To make one batch undoable, tag it as an edit:
+
+```tsx
+actions.updateCells(patches, { source: "edit" });
+```
+
+To record streams as well, list the sources you want:
+
+```tsx
+useDataGridHistory({
+  data,
+  setData,
+  getRowId,
+  recordSources: ["edit", "paste", "fill", "delete", "row-op", "import", "stream"],
+});
+```
+
+See [Undo & redo](/docs/undo-redo).
+
+## What does not change
+
+`updateCells` does not move the selection, the active cell, or an open editor. A feed cannot pull
+the grid away from a user who is editing a cell.
+
+Values are checked with each column's `validate` function. A value that fails is skipped, and the
+rest of the batch is applied. Set `skipValidation: true` when the producer already checked the
+values.
+
+## Whole rows
+
+`updateRows` takes a partial row instead of one cell:
+
+```tsx
+actions.updateRows([{ rowId: "AAPL", changes: { price: 214.5, change: 1.2 } }]);
+```
+
+Each entry in `changes` becomes one patch. The options are the same.
+
+See [Events & state](/docs/events-state) for the `onDataChange` payload shape and
+[Performance](/docs/performance) for the row and cell render contracts.

@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm types:check
+
+      - name: Lint (oxlint + import boundaries)
+        run: pnpm lint
+
+      - name: Typed lint (type-checked no-unsafe on registry source)
+        run: pnpm lint:typed
+
+      - name: Unit + coverage (pure-lib branch thresholds enforced)
+        run: npx vitest run registry --exclude "**/*.browser.test.*" --project unit --coverage
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Browser tests
+        run: npx vitest run --project browser
+
+      # Same suites again with the React Compiler wired in; the guard tests fail if it is not.
+      - name: React Compiler tests
+        run: pnpm test:compiler
+
+      - name: Build
+        run: pnpm build
+
+      # Before the rebuild — a rebuild would mask a committed payload that was never regenerated.
+      - name: Verify payload content matches source
+        run: node scripts/verify-payload-content.mjs
+
+      - name: Registry build
+        run: pnpm registry:build
+
+      - name: Verify registry (no drift between registry.json and disk)
+        run: node scripts/verify-registry.mjs
+
+      # Validates the GitHub registry (registry.json at repo root) exactly as the shadcn CLI
+      # resolves it. GITHUB_TOKEN can read the repo that owns the workflow (per-shadcn-docs
+      # limitation for other repos); the full commit SHA skips ref resolution via git.
+      - name: Validate GitHub registry (shadcn CLI)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx shadcn@latest registry validate DammersCode/gridcn#${{ github.sha }}

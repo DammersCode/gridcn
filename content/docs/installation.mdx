@@ -1,0 +1,157 @@
+---
+title: Installation
+description: Install the core grid from the gridcn GitHub registry. No namespace setup, no npm package.
+icon: Download
+---
+
+The [shadcn CLI](https://ui.shadcn.com/docs/cli) distributes gridcn entirely, straight from the
+[GitHub registry](https://ui.shadcn.com/docs/registry/github) of this repository. There is no
+npm package: the source files are copied into your project.
+
+<Steps>
+  <Step>
+    ### Install the core grid
+
+    <InstallCommand item="data-grid" manual manualSlot={<ManualInstall item="data-grid" tree />} />
+
+    This command installs the engine: range selection, keyboard, editing, built-in cell types,
+    and spreadsheet clipboard. No registry namespace or server setup is needed. The repository itself
+    is the registry. The Manual tab links every file and folder to its source in the
+    repository, for an install without the CLI.
+  </Step>
+  <Step>
+    ### Add optional pieces
+
+    Each add-on is independently installable and depends only on the core:
+
+    ```bash
+    npx shadcn add DammersCode/gridcn/data-grid-fill
+    npx shadcn add DammersCode/gridcn/data-grid-presence
+    npx shadcn add DammersCode/gridcn/data-grid-pinned-rows
+    npx shadcn add DammersCode/gridcn/data-grid-history
+    npx shadcn add DammersCode/gridcn/data-grid-toolbar
+    npx shadcn add DammersCode/gridcn/data-grid-sort-list
+    npx shadcn add DammersCode/gridcn/data-grid-context-menu
+    npx shadcn add DammersCode/gridcn/data-grid-keybindings
+    npx shadcn add DammersCode/gridcn/data-grid-io
+    npx shadcn add DammersCode/gridcn/data-grid-url-state
+    npx shadcn add DammersCode/gridcn/data-grid-lazy
+    npx shadcn add DammersCode/gridcn/data-grid-pagination
+    ```
+
+    See each feature's docs page for what it adds and its own install command.
+  </Step>
+</Steps>
+
+## Pinned installs
+
+Append `#<ref>` to install from a specific branch, tag, or commit. The ref goes after the item
+name:
+
+```bash
+npx shadcn add DammersCode/gridcn/data-grid#v1.0.0
+```
+
+Without a ref, the CLI uses the repository's default branch.
+
+## Hosted registry (optional)
+
+The repository also ships pre-built registry payloads in `public/r/`, which the documentation
+site serves. The site is hosted for free on Vercel (the free plan gives you a
+`<project>.vercel.app` subdomain), so you can register the `@gridcn` namespace to install by
+short name instead:
+
+```bash
+npx shadcn@latest registry add @gridcn=https://<project>.vercel.app/r/{name}.json
+npx shadcn add @gridcn/data-grid
+```
+
+Both paths install the same files from the same source.
+
+## Prerequisites
+
+Your project needs shadcn/ui already initialized (`npx shadcn init`), Tailwind v4, and React 19.
+See [shadcn's own installation guide](https://ui.shadcn.com/docs/installation) if you have not
+run `npx shadcn init` yet. This command creates `components.json` at the root of your project.
+gridcn's CLI commands read that file to find your aliases and styling. See
+[Project status & compatibility](/docs/project-status#framework-floors) for why React 19 is a
+hard floor, plus the Node and TypeScript floors.
+
+The core item of gridcn has exactly one npm dependency: `zustand`. The table below lists the
+dependency of each add-on.
+
+| Add-on | Runtime dependency | Dev dependency |
+|---|---|---|
+| Core (`data-grid`) | `zustand` | none |
+| `data-grid-toolbar` | `@dnd-kit/react` | none |
+| `data-grid-sort-list` | `@dnd-kit/react` | none |
+| `data-grid-io` | `xlsx`, `papaparse` (lazy-loaded) | `@types/papaparse` |
+| `data-grid-url-state` | `nuqs` | none |
+| All other add-ons | none beyond the core | none |
+
+## Where files land
+
+`registry:component` and `registry:block` files install under the `aliases.components` path in
+your `components.json` (`@/components` by default). So the `data-grid` item lands at
+`components/data-grid/*`, with one file per exported symbol, and a single public barrel at
+`components/data-grid/data-grid.tsx`. Import from that barrel, not from individual files.
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+```
+
+Add-ons follow the same pattern (`components/data-grid-history/data-grid-history.ts`, etc.).
+
+## Framework notes
+
+### Next.js
+
+gridcn works by default in the App Router. Every grid component is a client component, with
+`"use client"` at the top of each file, so no extra configuration is necessary.
+
+### Vite
+
+gridcn works the same way in Vite. The CLI detects your Vite and shadcn setup from
+`components.json`. If you use React 19 with Vite, make sure that your `vite.config.ts` alias
+resolution matches the `aliases` in `components.json`. The CLI reads the same file to decide
+where to write files.
+
+## Non-default aliases
+
+Your `components.json` can use non-default aliases. An example is `components` pointed at
+`src/components` instead of `@/components`, or no `@/*` path prefix at all. If so, the shadcn
+CLI rewrites the internal `@/registry/...`-style imports of gridcn to your aliases automatically
+on install.
+
+<Callout type="warn" title="Known problem: missing alias">
+  If an install leaves an import unresolved, make sure that:
+
+  - `aliases.components`, `aliases.ui`, `aliases.lib`, and `aliases.hooks` are all set in
+    `components.json`. When an alias is missing, some CLI versions leave the import unresolved,
+    and other CLI versions rewrite it to a wrong path. The exact result depends on the CLI
+    version.
+  - Your `tsconfig.json` or `vite.config.ts` path mapping matches those aliases. The CLI writes
+    files assuming that the mapping exists. It does not create the mapping for you.
+
+  If imports are still wrong after install, fix the handful of import lines by hand instead of
+  fighting the alias resolver. The files belong to you now.
+
+  ```tsx
+  // Before (unresolved after install, missing aliases.hooks)
+  import { useDataGridActions } from "hooks/use-data-grid-actions";
+
+  // After (matches your tsconfig.json / vite.config.ts path mapping)
+  import { useDataGridActions } from "@/hooks/use-data-grid-actions";
+  ```
+</Callout>
+
+## Verify
+
+Add the columns and data shape of the hero demo from the [quick start](/docs/quick-start) to any
+page. Click a cell, type a value, and press Enter to make sure that editing works. If the grid
+displays without styles, make sure that your `global.css` imports Tailwind and that shadcn's base
+tokens are present. gridcn uses only existing shadcn tokens, with no new CSS variables beyond
+`--grid-row-height` and `--grid-pin-shadow` (the pinned-column boundary shadow color). Theme
+`--grid-pin-shadow` in your `global.css`, like the docs site does: the grid uses the variable
+without a fallback, so an undefined value renders an invisible shadow. See
+[Styling & theming](/docs/styling-theming#css-variables).

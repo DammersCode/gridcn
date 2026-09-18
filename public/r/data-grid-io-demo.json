@@ -1,0 +1,30 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "data-grid-io-demo",
+  "title": "Data Grid IO Demo",
+  "author": "gridcn",
+  "description": "Import/export toolbar buttons: export downloads the current view as xlsx or csv; import parses a file and replaces the grid's data through onDataChange.",
+  "registryDependencies": [
+    "DammersCode/gridcn/data-grid",
+    "DammersCode/gridcn/data-grid-history",
+    "DammersCode/gridcn/data-grid-io"
+  ],
+  "files": [
+    {
+      "path": "registry/default/examples/data-grid-io-demo.tsx",
+      "content": "\"use client\";\n\nimport { useCallback, type ReactNode } from \"react\";\nimport {\n  DataGridProvider,\n  DataGridRoot,\n  DataGridHeader,\n  DataGridBody,\n  defineColumns,\n} from \"@/registry/default/components/data-grid/data-grid\";\nimport { useDataGridState } from \"@/registry/default/components/data-grid-history/data-grid-history\";\nimport { DataGridToolbar } from \"@/registry/default/components/data-grid-toolbar/data-grid-toolbar\";\nimport {\n  DataGridExportButton,\n  DataGridImportButton,\n} from \"@/registry/default/components/data-grid-io/data-grid-io\";\nimport { generateDemoRows, type DemoRow } from \"./demo-data\";\n\nconst columns = defineColumns<DemoRow>()([\n  { id: \"name\", header: \"Name\", accessorKey: \"name\", type: \"text\", width: 100, flex: 1 },\n  { id: \"email\", header: \"Email\", accessorKey: \"email\", type: \"text\", width: 130, flex: 2 },\n  {\n    id: \"role\",\n    header: \"Role\",\n    accessorKey: \"role\",\n    type: \"select\",\n    options: {\n      choices: [\n        { value: \"Admin\", label: \"Admin\" },\n        { value: \"User\", label: \"User\" },\n        { value: \"Editor\", label: \"Editor\" },\n        { value: \"Viewer\", label: \"Viewer\" },\n        { value: \"Manager\", label: \"Manager\" },\n      ],\n    },\n    width: 90,\n    flex: 1,\n  },\n  { id: \"score\", header: \"Score\", accessorKey: \"score\", type: \"number\", width: 70, flex: 1 },\n] as const);\n\nlet nextImportedRowId = 0;\n\n// Module-scope so the identity stays stable across renders (same rule as columns/data).\nfunction createImportedRow(index: number): DemoRow {\n  return { id: `imported-${nextImportedRowId++}`, name: \"\", email: \"\", age: 18, active: false, role: \"User\", joined: \"\", score: index };\n}\n\n/** Import/export toolbar buttons: export downloads the current view as xlsx or csv; import parses a file and replaces the grid's data through the normal `onDataChange` path. */\nexport default function DataGridIODemo(): ReactNode {\n  const grid = useDataGridState(generateDemoRows(10), { getRowId: (row) => row.id });\n\n  const { data, onDataChange } = grid;\n  const onImport = useCallback(\n    (importedRows: DemoRow[]) => {\n      onDataChange(importedRows, {\n        source: \"import\",\n        ops: [\n          ...data.map((row, index) => ({ type: \"delete\" as const, rowId: row.id, row, index })),\n          ...importedRows.map((row, index) => ({ type: \"insert\" as const, rowId: row.id, row, index })),\n        ],\n      });\n    },\n    [data, onDataChange],\n  );\n\n  return (\n    <div className=\"w-full flex flex-col gap-3\">\n      <p className=\"text-sm text-muted-foreground\">\n        Export downloads the current view as a csv or xlsx file. Import accepts a csv or xlsx file,\n        lets you map its columns, and replaces the grid's rows with the result.\n      </p>\n      <div className=\"flex h-[360px] flex-col overflow-hidden rounded-md border border-border\">\n        <DataGridProvider {...grid} columns={columns}>\n          <DataGridToolbar>\n            <DataGridImportButton createRow={createImportedRow} onImport={onImport} />\n            <DataGridExportButton />\n          </DataGridToolbar>\n          <DataGridRoot className=\"min-h-0 flex-1 rounded-none border-none\">\n            <DataGridHeader />\n            <DataGridBody />\n          </DataGridRoot>\n        </DataGridProvider>\n      </div>\n    </div>\n  );\n}\n",
+      "type": "registry:example",
+      "target": "components/data-grid-io-demo.tsx"
+    },
+    {
+      "path": "registry/default/examples/demo-data.ts",
+      "content": "/** Deterministic LCG so SSR/CSR markup match without Math.random(); shared across example rows. */\nfunction createSeededLcg(seed: number) {\n  let state = seed;\n  return () => {\n    state = (state * 1103515245 + 12345) & 0x7fffffff;\n    return state / 0x7fffffff;\n  };\n}\n\nexport type DemoRow = {\n  id: string;\n  name: string;\n  email: string;\n  age: number;\n  active: boolean;\n  role: string;\n  joined: string;\n  score: number;\n};\n\nconst ROLES = [\"Admin\", \"User\", \"Editor\", \"Viewer\", \"Manager\"] as const;\nconst ADJECTIVES = [\"Eager\", \"Quick\", \"Silent\", \"Bold\", \"Swift\"] as const;\nconst NOUNS = [\"Eagle\", \"Lion\", \"Tiger\", \"Bear\", \"Wolf\"] as const;\n\n/** Generates `count` deterministic demo rows for example previews (seed 42, stable across renders). */\nexport function generateDemoRows(count: number, seed = 42): DemoRow[] {\n  const next = createSeededLcg(seed);\n  const rows: DemoRow[] = [];\n  for (let i = 0; i < count; i++) {\n    rows.push({\n      id: `row-${i}`,\n      name: `${ADJECTIVES[Math.floor(next() * ADJECTIVES.length)]} ${NOUNS[Math.floor(next() * NOUNS.length)]}`,\n      email: `user${i}@example.com`,\n      age: Math.floor(next() * 50) + 18,\n      active: next() > 0.5,\n      role: ROLES[Math.floor(next() * ROLES.length)]!, // ROLES is a fixed non-empty literal array\n      joined: `${2020 + Math.floor(next() * 5)}-${String(Math.floor(next() * 12) + 1).padStart(2, \"0\")}-${String(Math.floor(next() * 28) + 1).padStart(2, \"0\")}`,\n      score: Math.floor(next() * 100),\n    });\n  }\n  return rows;\n}\n",
+      "type": "registry:example",
+      "target": "components/demo-data.ts"
+    }
+  ],
+  "categories": [
+    "data"
+  ],
+  "type": "registry:example"
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "data-grid-context-menu-demo",
+  "title": "Data Grid Context Menu Demo",
+  "author": "gridcn",
+  "description": "Right-click cell menu (cut/copy/paste/clear, row operations) and header menu (sort/pin/hide/autosize) via the header dropdown.",
+  "registryDependencies": [
+    "DammersCode/gridcn/data-grid",
+    "DammersCode/gridcn/data-grid-history",
+    "DammersCode/gridcn/data-grid-context-menu"
+  ],
+  "files": [
+    {
+      "path": "registry/default/examples/data-grid-context-menu-demo.tsx",
+      "content": "\"use client\";\r\n\r\nimport { useMemo, type ReactNode } from \"react\";\r\nimport {\r\n  DataGridProvider,\r\n  DataGridRoot,\r\n  DataGridHeader,\r\n  DataGridBody,\r\n  defineColumns,\r\n} from \"@/registry/default/components/data-grid/data-grid\";\r\nimport {\r\n  DataGridContextMenu,\r\n  DataGridHeaderDropdown,\r\n} from \"@/registry/default/components/data-grid-context-menu/data-grid-context-menu\";\r\nimport { generateDemoRows, type DemoRow } from \"./demo-data\";\r\n\r\nconst columns = defineColumns<DemoRow>()([\r\n  { id: \"name\", header: \"Name\", accessorKey: \"name\", type: \"text\", width: 100, flex: 1 },\r\n  { id: \"email\", header: \"Email\", accessorKey: \"email\", type: \"text\", width: 130, flex: 2 },\r\n  {\r\n    id: \"role\",\r\n    header: \"Role\",\r\n    accessorKey: \"role\",\r\n    type: \"select\",\r\n    options: {\r\n      choices: [\r\n        { value: \"Admin\", label: \"Admin\" },\r\n        { value: \"User\", label: \"User\" },\r\n        { value: \"Editor\", label: \"Editor\" },\r\n        { value: \"Viewer\", label: \"Viewer\" },\r\n        { value: \"Manager\", label: \"Manager\" },\r\n      ],\r\n    },\r\n    width: 90,\r\n    flex: 1,\r\n  },\r\n  { id: \"score\", header: \"Score\", accessorKey: \"score\", type: \"number\", width: 70, flex: 1 },\r\n] as const);\r\n\r\n// Module-scope so the identity stays stable across renders (same rule as columns/data).\r\nfunction createRow(): DemoRow {\r\n  return { id: `new-${Date.now()}`, name: \"New row\", email: \"\", age: 18, active: false, role: \"User\", joined: \"\", score: 0 };\r\n}\r\n\r\nfunction duplicateRow(row: DemoRow): DemoRow {\r\n  return { ...row, id: `${row.id}-copy-${Date.now()}` };\r\n}\r\n\r\n/**\r\n * Right-click a cell for cut/copy/paste/clear + row operations; right-click a header (or hover it\r\n * for the ghost chevron) for sort/pin/hide/autosize.\r\n */\r\nexport default function DataGridContextMenuDemo(): ReactNode {\r\n  const rows = useMemo(() => generateDemoRows(10), []);\r\n\r\n  return (\r\n    <div className=\"w-full flex flex-col gap-3\">\r\n      <p className=\"text-sm text-muted-foreground\">\r\n        Right-click a cell for cut/copy/paste/clear and row operations; right-click a header (or hover\r\n        it for the ghost chevron) for sort/pin/hide/autosize.\r\n      </p>\r\n      <div className=\"h-[360px] overflow-hidden rounded-md border border-border\">\r\n        <DataGridProvider\r\n          defaultData={rows}\r\n          columns={columns}\r\n          getRowId={(row) => row.id}\r\n          createRow={createRow}\r\n          duplicateRow={duplicateRow}\r\n        >\r\n          <DataGridContextMenu className=\"flex h-full flex-col\">\r\n            <DataGridRoot\r\n              className=\"h-full rounded-none border-none\"\r\n              renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}\r\n            >\r\n              <DataGridHeader />\r\n              <DataGridBody />\r\n            </DataGridRoot>\r\n          </DataGridContextMenu>\r\n        </DataGridProvider>\r\n      </div>\r\n    </div>\r\n  );\r\n}\r\n",
+      "type": "registry:example",
+      "target": "components/data-grid-context-menu-demo.tsx"
+    },
+    {
+      "path": "registry/default/examples/demo-data.ts",
+      "content": "/** Deterministic LCG so SSR/CSR markup match without Math.random(); shared across example rows. */\nfunction createSeededLcg(seed: number) {\n  let state = seed;\n  return () => {\n    state = (state * 1103515245 + 12345) & 0x7fffffff;\n    return state / 0x7fffffff;\n  };\n}\n\nexport type DemoRow = {\n  id: string;\n  name: string;\n  email: string;\n  age: number;\n  active: boolean;\n  role: string;\n  joined: string;\n  score: number;\n};\n\nconst ROLES = [\"Admin\", \"User\", \"Editor\", \"Viewer\", \"Manager\"] as const;\nconst ADJECTIVES = [\"Eager\", \"Quick\", \"Silent\", \"Bold\", \"Swift\"] as const;\nconst NOUNS = [\"Eagle\", \"Lion\", \"Tiger\", \"Bear\", \"Wolf\"] as const;\n\n/** Generates `count` deterministic demo rows for example previews (seed 42, stable across renders). */\nexport function generateDemoRows(count: number, seed = 42): DemoRow[] {\n  const next = createSeededLcg(seed);\n  const rows: DemoRow[] = [];\n  for (let i = 0; i < count; i++) {\n    rows.push({\n      id: `row-${i}`,\n      name: `${ADJECTIVES[Math.floor(next() * ADJECTIVES.length)]} ${NOUNS[Math.floor(next() * NOUNS.length)]}`,\n      email: `user${i}@example.com`,\n      age: Math.floor(next() * 50) + 18,\n      active: next() > 0.5,\n      role: ROLES[Math.floor(next() * ROLES.length)]!, // ROLES is a fixed non-empty literal array\n      joined: `${2020 + Math.floor(next() * 5)}-${String(Math.floor(next() * 12) + 1).padStart(2, \"0\")}-${String(Math.floor(next() * 28) + 1).padStart(2, \"0\")}`,\n      score: Math.floor(next() * 100),\n    });\n  }\n  return rows;\n}\n",
+      "type": "registry:example",
+      "target": "components/demo-data.ts"
+    }
+  ],
+  "categories": [
+    "data"
+  ],
+  "type": "registry:example"
+}

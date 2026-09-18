@@ -1,0 +1,277 @@
+---
+title: API reference
+description: DataGrid, DataGridProvider, ColumnDef, and the CellType contract.
+icon: FileCode
+---
+
+This page is generated from the real TypeScript source at build time through
+[AutoTypeTable](https://fumadocs.dev/docs/ui/components/auto-type-table). Every exported symbol
+also carries a JSDoc comment in source, reproduced in the tables below.
+
+## `<DataGrid>`
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/data-grid.tsx" name="DataGridProps" />
+
+This is a convenience wrapper: provider, scroll root, header, and body in one component. Compose
+`DataGridProvider`, `DataGridRoot`, `DataGridHeader`, and `DataGridBody` directly instead when you
+need a toolbar, overlays, or a context menu (see the [Quick start](/docs/quick-start)).
+
+<Callout type="idea" title="Looking for every event/callback?">
+  This page's prop tables are a curated subset. [Events & state](/docs/events-state) walks
+  through every event source (including `onSelectionChange` and `onColumnLayoutChange`) with
+  payload shapes and firing semantics. `DataGridSyncProps` in `store/types.ts` remains the full source of truth.
+</Callout>
+
+<Callout title="data vs defaultData">
+  These are mutually exclusive (React `value`/`defaultValue` semantics). Passing both makes `data`
+  win, and dev mode warns once. See
+  [Events & state: the three shapes](/docs/events-state#the-three-shapes-an-event-follows) for
+  what each shape means, and [Quick start](/docs/quick-start) for a worked example.
+</Callout>
+
+## `<DataGridProvider>`
+
+This is the composable entry point. It has the same sync props as `DataGrid` above, including
+`cellTypes`, `labels`, and `duplicateRow`:
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/store/types.ts" name="DataGridProviderProps" />
+
+<Callout title="Doesn't take every DataGrid prop">
+  `rowHeight`, `density`, `className`, `emptyState`, `loading`, `keymap`, `getRowClassName`,
+  `getCellClassName`, `onCellClick`, and `onRowClick` live on `DataGridRoot` when composing
+  directly. `DataGrid` passes its own copies of these straight through to the `DataGridRoot` that
+  it renders. `onFill` is not a prop on either. It is an option to the `useDataGridFill()`
+  hook of the `data-grid-fill` add-on (see [Fill handle](/docs/fill-handle)), since fill itself
+  lives outside the core.
+</Callout>
+
+### `overlayPlugins`
+
+`readonly OverlayPlugin[]`, optional, on both `DataGridProvider` and `DataGrid`. Each registered
+plugin paints into the same overlay layer the core's own selection and active-cell rendering use.
+See [Overlay plugins](/docs/overlay-plugins) for the full contract, and
+[Multiplayer presence](/docs/multiplayer-presence) and [Fill handle](/docs/fill-handle) for two
+first-party consumers.
+
+<Callout type="warn" title="Pass a stable array reference">
+  A dev-mode guardrail warns when the `overlayPlugins` array's identity changes across renders:
+  `"overlayPlugins array identity changed since the last render; pass a stable reference (module
+  scope or useMemo) or DataGridOverlays re-renders every tick"`. Memoize the array itself, not
+  only the plugin functions inside it: `useMemo(() => [plugin], [plugin])`, not a fresh `[plugin]`
+  literal written inline on every render of your own component.
+</Callout>
+
+### Hooks
+
+The state of `DataGridProvider` is Zustand internally, but the store itself is never exported,
+only atomic selector hooks and one actions hook. You must call all of them under
+`DataGridProvider`. The full list lives in `store/hooks.ts`. These are the ones you will reach for
+most:
+
+- `useDataGridActions()` — the single stable actions object (`setSorts`, `setFilters`,
+  `setSearch`, `setColumnWidth`, `setColumnOrder`, `setColumnPin`, `setColumnHidden`,
+  `selectCell`, `extendTo`, `startEditing`, `commitCellEdit`, `deleteSelection`, `updateCells`,
+  `updateRows`, `reconcileView`, `setCellErrors`, `clearCellErrors`, plus the row operations
+  `insertRow`, `duplicateRows`, `deleteRows` — see [Row operations](/docs/row-operations)). The
+  complete list is the `DataGridActions` type.
+- `useDataGridViewStale()` — true when a write left the sorted order stale: a deferred
+  `updateCells` batch, or an edit, paste, fill, or cleared selection that touched a column the
+  active sort or filter reads. See [Streaming updates](/docs/streaming-updates).
+- `useDataGridCellTypes()` — the resolved cell-type registry (built-ins or consumer-provided),
+  for tooling that needs to inspect or resolve a column's renderer/editor.
+- `useDataGridActiveColumn()` — the active cell's column index (or `null`), for tooling that only
+  cares about the active column.
+- `useDataGridActiveCell()`, `useDataGridSelection()`, `useDataGridGetSelectionValues()`, `useDataGridEditing()`
+- `useDataGridSortState()`, `useDataGridFilterState()`, `useDataGridSearchText()`
+- `useDataGridVisibleColumns()`, `useDataGridAllColumns()`, `useDataGridColumnWidth(id)`,
+  `useDataGridIsColumnHidden(id)`
+- `useDataGridLabels()`, `useDataGridKeymap()`, `useDataGridReadOnly()`
+- `useDataGridScrollToCell()` — imperative scroll.
+- `useDataGridCellErrors()` — the full post-commit server-error map. See
+  [Editing & cell types: Server errors](/docs/editing-cell-types#server-errors).
+
+`onSelectionChange`, `onColumnLayoutChange`, and every other event source are covered in full on
+[Events & state](/docs/events-state).
+
+## `ColumnDef<TData, TValue>`
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/types.ts" name="ColumnDef" />
+
+<Callout title="Prefer defineColumns over typing ColumnDef[] by hand">
+  `defineColumns<TData>()([...])` infers `TValue` per column from `accessorKey` or `accessorFn`,
+  and narrows `options` and `validate` through the cell type's key in `GridCellTypes`, catching
+  column-id typos and type-key typos at compile time. See
+  [Quick start](/docs/quick-start#define-columns).
+</Callout>
+
+`AnyColumnDef` (`ColumnDef<unknown, unknown, any>`) is the row-agnostic shape that the store and
+its hooks (`useDataGridVisibleColumns()`, `useDataGridAllColumns()`, and similar hooks) actually
+traffic in. Reach for it when you write custom column UI that does not know its `TData` generic.
+
+<Callout title="validate's type: a union, and a 3rd type parameter">
+  `validate` is `((value: TValue, row: TData) => string | null) | StandardSchemaV1<TValue>`: the
+  function form, or any [Standard Schema](https://standardschema.dev). `ColumnDef` has a 3rd type
+  parameter, `TValidate` (defaults to `TValue`), for one narrow reason.
+
+  "Erasure" means TypeScript replaces a specific type with a generic one (usually `unknown` or
+  `any`) at a shared boundary. This lets code that does not know the specific type still compile.
+  `AnyColumnDef`, the row-agnostic type that hooks like `useDataGridVisibleColumns()` return, must
+  erase every type parameter this way. `TValue` erases safely to `unknown` everywhere:
+  `accessorFn`, `setValue`, `renderCell`, `cellClassName`. `validate` cannot follow that same safe
+  path, because its function-or-schema union does not stay assignable under `unknown` erasure. So
+  `AnyColumnDef` erases `TValidate` to `any` instead, kept separate from `TValue`.
+
+  This erasure detail never affects how you author `validate` on a concretely-typed column
+  through `defineColumns`. Only the shared, erased type needed the extra parameter.
+  `StandardSchemaV1.InferInput<S>` and `InferOutput<S>` are exported from `types.ts` for
+  inspecting a schema's own input and output types.
+</Callout>
+
+## `CellType<TData, TValue, TOptions>`
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/types.ts" name="CellType" />
+
+Register custom types through the `cellTypes` prop of `DataGridProvider`. A provided registry
+REPLACES the built-ins (`text`, `number`, `checkbox`, `select`, `date`) rather than merging over
+them: to extend the built-ins, spread the exported `cellTypes` in
+(`cellTypes={{ ...cellTypes, myType }}`). See
+[Recipes](/docs/recipes#custom-cell-type) for a worked example.
+
+### `GridCellTypes`
+
+This interface map gives `defineColumns` its per-type inference. Augment it through declaration
+merging in your own module to give a custom cell type the same compile-time `options` and value
+narrowing as the built-ins:
+
+```ts
+declare module "@/components/data-grid/types" {
+  interface GridCellTypes {
+    currency: { value: number | null; options: { currency: string } };
+  }
+}
+```
+
+Adjust the module path to wherever your `components.json` aliases actually placed `types.ts`.
+
+## `DataGridLabels`
+
+This groups every user-facing string, across the core and every add-on, by owning surface. Pass
+a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
+[i18n](/docs/i18n).
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/labels.ts" name="DataGridLabels" />
+
+## Other exported types
+
+- `CellCoord` (`{ col, row }`, data-space) and `GridRect` (`{ x, y, width, height }`, half-open).
+- `GridSelection` (`{ current: {cell, range, rangeStack} | null, rows, columns }`).
+- `DataOp<TData>` (`update`, `insert`, or `delete`, id-keyed) and `DataChange<TData>`
+  (`{ ops, source }`).
+- `SortSpec` (`{ columnId, direction }`), `FilterSpec`, and `FilterOperator`.
+- `GridAction` (every named keyboard action) and `Keymap`
+  (`Partial<Record<GridAction, string[]>>`).
+- `RowMarkersMode`, `HeaderClickBehavior`, and `DensityMode`.
+- `ColumnLayout` (`{ widths, order, pins, hidden }`), the `defaultColumnLayout` and
+  `onColumnLayoutChange` snapshot. See
+  [Events & state](/docs/events-state#8-oncolumnlayoutchange--defaultcolumnlayout--oncolumnresizing).
+- `OverlayPlugin` (`(ctx: OverlayPluginCtx) => ReactNode`) and `OverlayPluginCtx`, the
+  overlay-plugin seam that add-ons like `data-grid-presence` and `data-grid-fill` register into.
+  See [Overlay plugins](/docs/overlay-plugins) for the full contract and a worked example, and
+  [Multiplayer presence](/docs/multiplayer-presence) and [Fill handle](/docs/fill-handle) for two
+  first-party consumers.
+
+  <AutoTypeTable path="./registry/default/blocks/data-grid/overlays.tsx" name="OverlayPluginCtx" />
+
+- `RowBandsSpec` and `RowBandRenderCtx`, the provider-level row-bands seam that
+  `data-grid-pinned-rows` registers into. See [Pinned rows](/docs/pinned-rows).
+- `CellErrorEntry` (`{ rowId, columnId, message }`) and `CellErrorTarget` (`{ rowId, columnId }`),
+  the input shapes for `actions.setCellErrors`/`actions.clearCellErrors`. See
+  [Editing & cell types: Server errors](/docs/editing-cell-types#server-errors).
+
+`createFilterMatcher(filter)` (from `sort-filter`) pre-parses the bounds of a `FilterSpec` once
+and returns a reusable `(text: string) => boolean` matcher. This has the same semantics as
+`matchesFilter`, but without re-parsing the filter's value on every row. `buildViewIndex` uses
+this internally for per-row matching over a whole dataset.
+
+## Add-on option types
+
+Each add-on's public props follow the same source-of-truth convention. These are the ones you
+will reach for most:
+
+### `DataGridUrlStateProps`
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-url-state/data-grid-url-state.tsx" name="DataGridUrlStateProps" />
+
+### `UseDataGridStateOptions`
+
+This is the options object for `useDataGridState`, the uncontrolled quick-start hook from
+`data-grid-history`. See [Quick start](/docs/quick-start).
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-history/use-data-grid-state.ts" name="UseDataGridStateOptions" />
+
+### `UseDataGridHistoryOptions`
+
+This is the options object for `useDataGridHistory`, the composable history hook of
+`data-grid-history` (it takes `data` and `setData`, mirroring the `useState` tuple). See
+[Undo & redo](/docs/undo-redo).
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-history/use-data-grid-history.ts" name="UseDataGridHistoryOptions" />
+
+### `DataGridToolbarProps`
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/toolbar.tsx" name="DataGridToolbarProps" />
+
+### `DataGridSearchProps`
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/search.tsx" name="DataGridSearchProps" />
+
+### `DataGridFilterMenuProps`
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/filter-menu.tsx" name="DataGridFilterMenuProps" />
+
+### `DataGridColumnsMenuProps`
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/columns-menu.tsx" name="DataGridColumnsMenuProps" />
+
+### `DataGridSortListProps`
+
+See [Sorting, filtering & search](/docs/sorting-filtering-search#sort-list-toolbar-add-on).
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-sort-list/sort-list.tsx" name="DataGridSortListProps" />
+
+### `DataGridContextMenuProps`
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-context-menu/context-menu.tsx" name="DataGridContextMenuProps" />
+
+### `DataGridExportButtonProps`
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/export-button.tsx" name="DataGridExportButtonProps" />
+
+### `UseDataGridLazyRowsOptions`
+
+This is the options object for `useDataGridLazyRows` from `data-grid-lazy`. See
+[Lazy loading](/docs/lazy-loading).
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-lazy/use-data-grid-lazy-rows.ts" name="UseDataGridLazyRowsOptions" />
+
+### `DataGridPaginationControls` / `DataGridPaginationBarProps`
+
+This is the return shape of `useDataGridPagination` (client and server mode alike) and the props
+of the composable footer bar. See [Pagination](/docs/pagination).
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="DataGridPaginationControls" />
+<AutoTypeTable path="./registry/default/blocks/data-grid-pagination/pagination-footer.tsx" name="DataGridPaginationBarProps" />
+
+### `UseDataGridFillOptions`
+
+This is the options object for `useDataGridFill` from `data-grid-fill`. See
+[Fill handle](/docs/fill-handle).
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-fill/use-data-grid-fill.tsx" name="UseDataGridFillOptions" />
+
+### `UseDataGridPinnedRowsOptions`
+
+This is the options object for `useDataGridPinnedRows` from `data-grid-pinned-rows`. See
+[Pinned rows](/docs/pinned-rows).
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-pinned-rows/use-data-grid-pinned-rows.tsx" name="UseDataGridPinnedRowsOptions" />

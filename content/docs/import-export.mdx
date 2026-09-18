@@ -1,0 +1,158 @@
+---
+title: Import & export
+description: xlsx and CSV, in and out, mapped through your cell types.
+icon: FileSpreadsheet
+---
+
+Import and export live in the `data-grid-io` add-on, kept separate so the core stays free of the
+`xlsx` and `papaparse` dependencies. gridcn lazily imports SheetJS (`xlsx`) only when an xlsx
+export or import actually happens.
+
+<ComponentPreview name="data-grid-io-demo" />
+
+<InstallCommand item="data-grid-io" manual manualSlot={<ManualInstall item="data-grid-io" />} />
+
+```tsx
+import { DataGridToolbar } from "@/components/data-grid-toolbar/data-grid-toolbar";
+import {
+  DataGridExportButton,
+  DataGridImportButton,
+} from "@/components/data-grid-io/data-grid-io";
+
+// Module scope (or useCallback) so identity stays stable across renders.
+function createImportedRow(index: number): Row {
+  return { id: `imported-${index}` /* ...defaults */ };
+}
+
+function onImport(rows: Row[]) {
+  // decide how to merge — replace, append, or run through onDataChange yourself
+}
+
+<DataGridToolbar>
+  <DataGridImportButton createRow={createImportedRow} onImport={onImport} />
+  <DataGridExportButton />
+</DataGridToolbar>;
+```
+
+## Export
+
+`DataGridExportButton` opens a dropdown for xlsx or CSV. Internally, `exportGrid(state, options)`
+takes:
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/export-grid.ts" name="ExportGridOptions" />
+
+<Callout title="Serialized the same way copy is">
+  Every cell is serialized through the `toText` of its cell type, the same pipeline that
+  clipboard copy uses. So exported values match what a manual copy produces, not a raw
+  `JSON.stringify`.
+</Callout>
+
+<Callout title="Encodings and Excel">
+  CSV exports are UTF-8 and carry a UTF-8 BOM by default — Excel only detects UTF-8 when the file
+  starts with a BOM, so without it umlauts and other non-ASCII characters open as mojibake. Pass
+  `csvBom: false` to `exportGrid` when a downstream consumer chokes on a leading BOM character.
+  XLSX exports write every cell as text (SheetJS's `aoa_to_sheet` from `toText` strings): a
+  `number` column opens in Excel as text, not as a number, so it must be re-converted there if
+  Excel arithmetic on it matters.
+</Callout>
+
+```tsx
+// export exactly what's on screen (default)
+exportGrid(state, { format: "csv" });
+
+// export every row regardless of the current sort/filter
+exportGrid(state, { format: "csv", scope: "all" });
+
+// export only the selected rows, in view order
+exportGrid(state, { format: "csv", scope: "selection" });
+```
+
+`scope` controls which rows get exported. The default, `'view'`, follows whatever the user
+currently sees, the active sort and filter, by walking `viewIndex`. Quick search never narrows
+`viewIndex` — it only highlights and navigates — so it does not change what `'view'` exports.
+`'all'` ignores view order entirely and exports every row of the raw `data` array as-is.
+`'selection'` walks only the selected rows, counting both the marker checkboxes and any cell range.
+
+Every scope emits all visible columns, so an exported row always lines up with its header row. A
+cell range that covers part of a row still exports that row in full.
+
+`DataGridExportButton` forwards its `options` prop to `exportGrid`, so
+`<DataGridExportButton options={{ scope: "selection" }} />` makes its menu export the selection.
+
+## Import
+
+`DataGridImportButton` opens a dialog that walks through the same pipeline that a paste uses
+(`fromText` per cell type of the target column):
+
+<Steps>
+  <Step>Choose a file: CSV/TSV or xlsx/xls. A workbook with more than one sheet imports the first, and the dialog names it.</Step>
+  <Step>If the file has a header row, toggle "first row is a header".</Step>
+  <Step>Pick a CSV delimiter (auto-detected by default).</Step>
+  <Step>Map each source column to a grid column, or skip it.</Step>
+  <Step>Preview the first rows.</Step>
+  <Step>Confirm, to run every mapped cell through the `fromText` of its column's cell type.</Step>
+</Steps>
+
+<Callout type="warn" title="createRow is required">
+  It builds the base row, with defaults for any grid column absent from the imported file, and
+  the dialog writes mapped values onto this base row.
+</Callout>
+
+Each grid column can be mapped from at most one source column at a time. Once a source column
+claims a grid column, that grid column disappears from every other source column's select, so a
+duplicate mapping cannot be created. If the file's headers auto-match to the same grid column
+more than once, `matchImportColumns` keeps the first match and leaves the rest on "— Skip —".
+
+The dialog never writes to the grid directly. `onImport(rows)` hands you the fully-built row
+array, and you decide how to apply it: replace all data, append it, or run it through your own
+`onDataChange` for history or audit purposes. See the demo above, which routes imported rows
+through `grid.onDataChange` with an explicit `delete` and `insert` ops batch.
+
+## Import options
+
+Pass `importDefaults` to set defaults for the dialog's preselection step:
+
+```tsx
+<DataGridImportButton
+  createRow={createImportedRow}
+  onImport={onImport}
+  importDefaults={{
+    autoDetectDelimiter: false,
+    defaultDelimiter: ";",
+    defaultSkipColumns: ["internal_id", 0],
+    mapColumn: (header) => (header === "e-mail" ? "email" : undefined),
+  }}
+/>
+```
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/match-import-column.ts" name="ImportDefaults" />
+
+Every option only sets the dialog's starting point. The user can still change any mapping,
+delimiter, or the header-row toggle by hand once the dialog is open.
+
+`defaultSkipColumns` names a source column by its header text (case-insensitive) or its 0-based
+index. `mapColumn` runs after the built-in header matcher and wins over `defaultSkipColumns`.
+Return a grid column id from `mapColumn` to map the column. Return `null` to skip it. Return
+`undefined` to keep the matcher's answer.
+
+Each mapping row also has a quick-skip button next to its Select. Click it to skip that column in
+one step. The button hides once the column is already skipped.
+
+## Lower-level pieces
+
+`useDataGridExport()` and `useDataGridImportPreview()` expose the same logic as hooks, if you want to
+build custom UI instead of using the provided buttons and dialog. `parseImportFile`,
+`matchImportColumns`, `applyImportOptions`, and `buildImportedRows` are the pure functions
+underneath, for when you need to parse or map outside a React component entirely.
+
+```tsx
+const rows = await buildImportedRows({ dataRows, mapping, columns, cellTypes, createRow, signal });
+```
+
+`buildImportedRows` returns the rows directly for a synchronous import of 5,000 rows or fewer.
+Above 5,000 rows, or when a mapped column has an async Standard Schema `validate`, it returns a
+Promise instead. Await the result to cover both cases.
+
+Above 5,000 rows the work runs in chunks that yield to the event loop, so the page stays
+responsive. Pass an `AbortSignal` as `signal` to cancel between chunks; the Promise then rejects
+with `"import-cancelled"`. `signal` is ignored on the synchronous path.

@@ -1,0 +1,57 @@
+---
+title: Performance
+description: 100,000 rows, instant rendering, zero blank cells while scrolling.
+icon: Gauge
+---
+
+The demo below renders **100,000 rows × 5 columns** instantly — scroll it, fling the scrollbar, or
+hold <kbd>Shift</kbd>+<kbd>ArrowDown</kbd>.
+
+<ComponentPreview name="data-grid-performance-demo" />
+
+## Limits
+
+<Callout title="Comfort target vs. hard ceiling">
+  The comfort target is 100k rows. The hard ceiling is ~1M, a Chromium CSS Grid track limit, not
+  a gridcn limit.
+</Callout>
+
+## Keeping it fast
+
+gridcn windows rows by scroll velocity. The scroll surface uses CSS transforms, so the browser
+never reveals an unrendered area. A one-row scroll step re-renders only the cells of the entering
+row. See [Virtualization](/docs/virtualization) for the row and column windowing model.
+
+<Callout type="warn" title="Keep data/columns references stable">
+  A dev-mode guardrail shows a warning when a reference is not stable. Also keep scroll-visible
+  custom cells simple. Editors mount only for the single editing cell, so complex edit-mode
+  logic has no cost while you scroll.
+</Callout>
+
+<Callout type="warn" title="Keep getRowClassName/getCellClassName identity stable too">
+  A new function literal on every render breaks row and cell memoization for the whole grid.
+  A dev build shows this warning:
+
+  ```
+  [data-grid] getRowClassName identity changed since the last render; pass a stable reference (e.g. useCallback) or every row re-renders
+  [data-grid] getCellClassName identity changed since the last render; pass a stable reference (e.g. useCallback) or every cell re-renders
+  ```
+
+  To fix this, move the function to module scope, or wrap it in `useCallback` with a stable
+  dependency list.
+</Callout>
+
+## Verified by a regression suite
+
+A real-Chromium regression suite enforces every guarantee above. The suite checks for blank areas
+under randomized scrollbar-drag deltas, an FPS regression gate, and a wasted-render probe.
+
+<Callout type="idea" title="Run the benchmarks yourself">
+  See the **Benchmarking** section in the repository's DEVELOPMENT.md.
+</Callout>
+
+<Callout title="Is your dataset too large to load, not just too large to render?">
+  Virtualization solves rendering. Everything above is about scroll performance once the data
+  exists on the client. If you cannot fetch the whole dataset up front, see
+  [Lazy loading](/docs/lazy-loading) to fetch row windows on demand instead.
+</Callout>

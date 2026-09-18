@@ -1,0 +1,158 @@
+---
+title: Selection & keyboard
+description: Range selection, mouse gestures, and the full keyboard shortcut reference.
+icon: MousePointer2
+---
+
+## Selection model
+
+A selection has an **anchor cell** (the active cell, Excel's white cell) and a rectangular
+**range** around it. With multi-range enabled, it also has a **stack** of additional
+ctrl-clicked ranges. Rows and columns also have their own whole-row and whole-column selection
+channels, through marker-column checkbox clicks and header clicks, independent of the range.
+
+Selection overlays are placed on grid lines and render with zero cell re-renders. Dragging a
+selection never re-renders a single cell.
+
+## Mouse gestures
+
+- **Plain left-button press and drag** from any cell, active or not, live-paints a rectangular
+  range from the press origin to the hovered cell, in any direction.
+- **Shift+click** extends the range from the current anchor to the clicked cell.
+- **Header press and drag** selects a contiguous multi-column range. A plain header click
+  selects the whole column, or sorts it if `headerClickBehavior="sort"`.
+- **Marker press and drag**, with `rowMarkers` enabled, selects multiple rows.
+- **Ctrl/Cmd-click** adds a new range to the stack (`enableMultiRange`, on by default).
+
+The grid body suppresses native browser text selection during these gestures. Editors remain
+normally text-selectable.
+
+<ComponentPreview name="data-grid-demo" />
+
+## Configurability
+
+You can disable each selection channel independently through `DataGridProvider` props. All
+default to `true`:
+
+```tsx
+<DataGridProvider
+  enableRowSelection={true}
+  enableColumnSelection={true}
+  enableRangeSelection={true}
+  enableMultiRange={true}
+  {...grid}
+  columns={columns}
+>
+```
+
+<Callout title="Disabling a channel removes its state, not just its gestures">
+  `enableColumnSelection={false}` makes header clicks do nothing, rather than only hiding a
+  highlight. The column selection channel itself is gone.
+</Callout>
+
+## Header click behavior
+
+`headerClickBehavior` on `DataGridProvider` picks what a **plain** header click does. Header
+press and drag always multi-selects columns, regardless of this setting.
+
+| Value | A plain header click... |
+|---|---|
+| `"select"` (default) | Selects the whole column, through the column selection channel. |
+| `"sort"` | Cycles that column's sort between ascending, descending, and clear, instead of selecting. See [Sorting, filtering & search](/docs/sorting-filtering-search#sorting). |
+| `"none"` | Does nothing. Use this when you drive sort exclusively through [`data-grid-sort-list`](/docs/sorting-filtering-search#sort-list-toolbar-add-on) or your own UI, and you do not want header clicks to also select or sort. |
+
+```tsx
+<DataGridProvider headerClickBehavior="none" {...grid} columns={columns}>
+```
+
+Try all three values live in the [playground](/docs/playground).
+
+Per-column `sortable: false` still removes that one column from the click-to-sort gesture, even
+under `headerClickBehavior="sort"`. You can still sort it programmatically through
+`useDataGridActions().setSorts()`.
+
+## Keyboard map
+
+The keymap is a plain data table, the `keymap` prop, merged over `DEFAULT_KEYMAP`. You can remap
+or extend any binding without touching the engine. The table below is generated from the shipped
+defaults.
+
+<InstallCommand item="data-grid-keybindings" manual manualSlot={<ManualInstall item="data-grid-keybindings" />} />
+
+### Show this table at runtime
+
+`data-grid-keybindings` displays this same table as an in-app dialog, always reflecting the actual
+effective keymap of your grid, including overrides. The dialog reads the grid's keymap and labels
+through the store, so it mounts inside `DataGridProvider`. The `?` shortcut reads the root's
+container element, so it mounts inside `DataGridRoot`:
+
+```tsx
+import { useState } from "react";
+import {
+  DataGridKeybindingsDialog,
+  DataGridKeybindingsShortcut,
+} from "@/components/data-grid-keybindings/data-grid-keybindings";
+
+function OrdersGrid() {
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  return (
+    <DataGridProvider {...grid} columns={columns}>
+      <DataGridKeybindingsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <DataGridRoot>
+        <DataGridHeader />
+        <DataGridBody />
+        <DataGridKeybindingsShortcut onOpen={() => setShortcutsOpen(true)} />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+<Callout type="warn" title="The ? shortcut is a contested key">
+  While `DataGridKeybindingsShortcut` is mounted and the grid has focus, it claims <kbd>?</kbd>
+  (and only outside an open cell editor): type-to-edit and any `keymap` binding on <kbd>?</kbd>
+  are shadowed, because the shortcut stops the native event before the grid sees it. Without the
+  shortcut component, <kbd>?</kbd> type-to-edits into the active cell like any other printable
+  character.
+</Callout>
+
+<KeymapTable />
+
+`mod` resolves to <kbd>Cmd</kbd> on macOS and <kbd>Ctrl</kbd> elsewhere. Copy, Cut, and Paste
+(<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+C/X/V) are native browser clipboard events, not part of the
+keymap, but the list above includes them because the shortcuts dialog shows them together.
+
+<Callout type="warn" title="Escape outside edit mode clears the whole selection">
+  The <kbd>Esc</kbd> row is labeled "Cancel edit", but with no editor open the `cancel` action
+  clears the entire selection: the cell range and its stack, plus any whole-row and whole-column
+  selection. To keep a selection across an Escape, remap or drop the `cancel` binding through the
+  `keymap` prop.
+</Callout>
+
+### Remapping
+
+```tsx
+<DataGridProvider {...grid} columns={columns}>
+  <DataGridRoot keymap={{ selectAll: ["mod+shift+a"] }} />
+</DataGridProvider>
+```
+
+`keymap` lives on `DataGridRoot` (or the `DataGrid` wrapper), not on `DataGridProvider`. This
+overrides only the actions you specify. Everything else falls back to `DEFAULT_KEYMAP`.
+
+## Two-stage Ctrl+A
+
+<Callout title="Two-stage select-all">
+  The first <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+A selects the current data region. Press it again to
+  select the whole grid.
+</Callout>
+
+## Accessibility
+
+The grid renders `role="grid"`, with `aria-rowindex`, `aria-colindex`, `aria-rowcount`, and
+`aria-colcount` on cells, and a single roving-tabindex active cell backed by real DOM focus.
+Focus never gets lost when the active cell scrolls out of the rendered window.
+
+See [Accessibility](/docs/accessibility) for the full aria model, the conformance target, and the
+honest test status matrix.

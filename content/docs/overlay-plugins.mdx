@@ -1,0 +1,236 @@
+---
+title: Overlay plugins
+description: The overlay-plugin seam. Paint your own state into the grid's overlay layer, with zero core knowledge of what you're painting.
+icon: Layers
+---
+
+## The plugin contract
+
+An **overlay plugin** is a function that renders one more `pointer-events-none` layer into the
+grid's overlay stack, with no store changes and no core code aware of what it paints.
+
+```ts
+export type OverlayPlugin = (ctx: OverlayPluginCtx) => ReactNode;
+```
+
+A plugin is a plain function, not a component and not a hook by name, though it may call hooks
+internally (see [Identity stability](#identity-stability) below for why that is safe). `DataGridOverlays`
+calls every registered plugin once per render, in array order, and renders whatever each one
+returns.
+
+The overlay layer is a stack of `pointer-events-none` elements painted above the cell grid, inside
+the same scrolling canvas as the cells. Selection range fills, the row/column selection bands, and
+the active-cell focus ring are the core's own built-in overlay layers. `data-grid-presence` and
+`data-grid-fill` both register into this same seam. Presence paints remote users' selections. Fill
+paints its drag preview and the small drag handle. Neither the core nor the other add-on knows the
+other exists. Both reuse the same window-clamp and pin-zone-splitting math the core's own overlays
+use, supplied through a `ctx` argument, so a plugin never re-implements geometry the core already
+solved.
+
+### Layer order
+
+`DataGridOverlays` renders, in this exact order, top-most last:
+
+1. Selection-range fills (`current.range`, then `rangeStack`).
+2. Row-channel and column-channel selection bands.
+3. Every registered `overlayPlugins` entry, in array order.
+4. The local active-cell ring.
+
+<Callout title="Local focus always wins">
+  Registered plugins render before the active-cell ring, never after. A plugin painting remote or
+  transient state, a presence highlight, a fill-drag preview, always loses visually to your own
+  active cell on the same square.
+</Callout>
+
+### When it re-renders
+
+`DataGridOverlays` subscribes to selection and the active cell through atomic Zustand selectors. A
+plugin that calls its own hooks inside the returned function (see `useDataGridPresence`'s pattern
+below) attributes those subscriptions to `DataGridOverlays`'s own fiber, because a plain function
+call still runs its hooks against the calling component. So a plugin's state change re-renders
+`DataGridOverlays`, and only `DataGridOverlays`. It never reaches rows or cells, which subscribe
+through a separate, row-scoped path. This is what makes a presence highlight or a fill-drag frame
+cost zero row or cell renders, verified by a render-count probe in each add-on's own test suite.
+
+### What `ctx` provides
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/overlays.tsx" name="OverlayPluginCtx" />
+
+Each field exists because a built-in overlay layer already needed it, and a plugin needs the exact
+same pipeline to paint correctly instead of drifting from it:
+
+- **`windowStart`** — the first rendered (data-space) row index. Overlays place content
+  window-relative, the same way the rows canvas does, so a plugin's `gridRowStart` must subtract
+  this, not the true row index, or its content paints in the wrong place the moment the grid
+  scrolls.
+- **`clampRowStart` / `clampRowEnd`** — the true contiguous `[start, end)` rendered row span. This
+  differs from `windowStart` plus the row count whenever an off-window active row is appended past
+  the contiguous window (moving the active cell can pull in one disjoint row). Clamp any rect you
+  paint to this range, not to `windowStart`, or it can overshoot or undershoot the real rendered
+  bottom.
+- **`colCount`** — the total number of visible columns, in real column-index space. This is not the
+  rendered column window's size. A pinned-right zone can sit far outside the currently scrolled
+  column window, so pin-zone splitting needs the true column count to reach it.
+- **`colOffset`** — the 1-based grid-column offset to add to every rect's `x`. It is `2` when a row
+  marker column occupies track 1, else `1`. Add it once, at the point you set `gridColumnStart`/
+  `gridColumnEnd`.
+- **`pinTrack`** (optional) — per-column pin and track data, present only when the grid actually has
+  a pinned column. `undefined` means "nothing pinned, skip segmentation entirely."
+- **`splitRectByPinZones(rect, pinTrack)`** — splits a data-space rect into up to three contiguous
+  segments: pinned-left, unpinned, pinned-right. Pinned columns sit at a fixed screen position
+  regardless of scroll, counter-offset from the scrolling canvas. A rect that spans a pinned column,
+  without this split, paints at that column's scrolled-away track position instead of its actual,
+  fixed, on-screen position. Call it whenever `pinTrack` is defined and your rect might span a
+  pinned column.
+- **`clampRectToWindow(rect, rowStart, rowEnd, colCount)`** — clamps a data-space rect to the given
+  row window and `[0, colCount)`, or returns `null` when the rect falls fully outside it. Call this
+  before `splitRectByPinZones`, exactly as the built-in layers do, so a plugin never paints a rect
+  that only partially exists in the current window.
+
+## Identity stability
+
+`overlayPlugins` on `DataGridProvider` is `readonly OverlayPlugin[]`. A dev-mode guardrail warns
+when this array's identity changes across renders:
+
+```
+overlayPlugins array identity changed since the last render; pass a stable reference (module scope
+or useMemo) or DataGridOverlays re-renders every tick
+```
+
+The array must be stable, not only the functions inside it. `useDataGridPresence()` and
+`useDataGridFill()` both satisfy this the same way: the plugin itself comes from a one-time
+`useState` initializer or a `useMemo` keyed on something that never changes for the hook's
+lifetime, so its identity never changes across renders:
+
+```ts
+export function useDataGridPresence(): UseDataGridPresenceResult {
+  const [store] = useState(() => createPresenceStore());
+  const plugin = useMemo<OverlayPlugin>(() => makePresencePlugin(store), [store]);
+  return { plugin, setPresenceHighlights: store.getState().setPresenceHighlights, storeApi: store };
+}
+```
+
+Pass the array itself through a stable reference too. `overlayPlugins={[plugin]}` written inline in
+JSX allocates a fresh array on every render of your own component. Wrap it in `useMemo`, or build
+the array once outside the render path, so the array reference, not only its single element, stays
+stable:
+
+```tsx
+const { plugin } = useDataGridPresence();
+const overlayPlugins = useMemo(() => [plugin], [plugin]);
+
+<DataGridProvider {...grid} columns={columns} overlayPlugins={overlayPlugins}>
+```
+
+Combining more than one plugin follows the same rule: memoize the combined array on the identities
+of its members, not the array literal.
+
+## Coordinate space: view-space, not rowId
+
+Every rect a plugin paints (`highlight.range`, a fill-drag preview, and so on) is in **view-space**:
+row indices into the current sorted or filtered display order, the same coordinate system as
+`GridSelection.current.range`. It is not an index into your raw `data` array, and it is not a
+`rowId`.
+
+This matters the moment two independent grids, or a grid and a remote peer, disagree about sort or
+filter state. A view-row index computed on one side goes stale the instant the other side's view
+changes. The fix, worked through in full with a `rowId`-to-view-row lookup helper, lives on
+[Multiplayer presence](/docs/multiplayer-presence#coordinates-rowid-native-or-view-space).
+Any plugin that receives coordinates from outside the grid, a network peer, a URL parameter,
+anywhere but the grid's own current selection, needs the same rowId-to-view-row mapping step before
+it paints.
+
+## Worked example: highlight a column
+
+A plugin does not need selection or presence state to be useful. This one highlights a single
+column with a tinted band, driven entirely by a prop your own component controls, for example the
+column currently under a filter, or one flagged by a validation pass elsewhere in your app.
+
+```tsx title="use-column-highlight.tsx"
+"use client";
+
+import { useMemo } from "react";
+import type { OverlayPlugin, OverlayPluginCtx, GridRect } from "@/components/data-grid/data-grid";
+
+function ColumnHighlightOverlay({ col, ctx }: { col: number; ctx: OverlayPluginCtx }) {
+  const { windowStart, clampRowStart, clampRowEnd, colCount, colOffset, pinTrack, splitRectByPinZones, clampRectToWindow } = ctx;
+  if (col < 0 || col >= colCount) return null;
+
+  const rect: GridRect = { x: col, y: clampRowStart, width: 1, height: clampRowEnd - clampRowStart };
+  const clamped = clampRectToWindow(rect, clampRowStart, clampRowEnd, colCount);
+  if (!clamped) return null;
+
+  const pinned = pinTrack && pinTrack.pins.some((p) => p === "left" || p === "right") ? pinTrack : undefined;
+  const segments = pinned ? splitRectByPinZones(clamped, pinned) : [{ rect: clamped, pinStyle: undefined }];
+
+  return (
+    <>
+      {segments.map((seg, i) => (
+        <div
+          key={i}
+          aria-hidden="true"
+          className="pointer-events-none bg-amber-300/20"
+          style={{
+            gridColumnStart: seg.rect.x + colOffset,
+            gridColumnEnd: seg.rect.x + seg.rect.width + colOffset,
+            gridRowStart: seg.rect.y - windowStart + 1,
+            gridRowEnd: seg.rect.y + seg.rect.height - windowStart + 1,
+            ...seg.pinStyle,
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
+// re-run useMemo only when highlightColumn itself changes, so the plugin's identity stays stable
+// across unrelated re-renders of the calling component (see Identity stability above).
+export function useColumnHighlight(highlightColumn: number | null): OverlayPlugin {
+  return useMemo<OverlayPlugin>(
+    () => (ctx) => (highlightColumn === null ? null : <ColumnHighlightOverlay col={highlightColumn} ctx={ctx} />),
+    [highlightColumn],
+  );
+}
+```
+
+Wire it in the same shape as `useDataGridPresence`:
+
+```tsx
+function MyGrid() {
+  const [highlightColumn, setHighlightColumn] = useState<number | null>(null);
+  const plugin = useColumnHighlight(highlightColumn);
+  const overlayPlugins = useMemo(() => [plugin], [plugin]);
+
+  return (
+    <DataGrid data={data} columns={columns} getRowId={getRowId} overlayPlugins={overlayPlugins} />
+  );
+}
+```
+
+Every rect this plugin paints comes from `ctx`, `clampRowStart`/`clampRowEnd`/`colCount`, so it
+never has to know the current scroll position or the rendered row window itself. The plugin stays
+correct through scrolling, resizing, and pinning changes for free.
+
+## What plugins cannot do
+
+The overlay-plugin seam is paint-only. A plugin has no pointer-event handlers of its own: every
+element it renders is `pointer-events-none`, and the seam has no hook for pointer-down, drag, or
+click on plugin content.
+
+`data-grid-fill` needs real drag interaction for its handle, and solves this with a second,
+separate piece: `FillHandleTracker`, a component you render as a child inside `DataGridRoot`
+itself, one level below where `overlayPlugins` is wired (on `DataGridProvider`, above `DataGridRoot`).
+It reads `scrollRef` and the live column layout from `DataGridRoot`'s own context, runs the pointer
+math, and registers its handlers into a small store that the paint-only plugin reads back out of to
+wire onto the handle square it renders. See [Fill handle](/docs/fill-handle) and
+`fill-tracker.tsx` for the full pattern if your own plugin needs pointer interaction, not only
+paint.
+
+## SSR
+
+`DataGridOverlays` is a client component (`"use client"`), rendered inside `DataGridProvider`'s own
+subtree. It server-renders like any other client component, no different from the core's own
+overlay layers, as long as a plugin's own rendering stays deterministic between server and client
+(see the SSR note on [custom cell types](/docs/custom-cell-types#rendering--performance) for the
+general pattern: pin any locale-dependent formatting explicitly, and avoid reading browser-only
+globals during render).

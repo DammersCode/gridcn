@@ -1,0 +1,317 @@
+---
+title: Styling & theming
+description: shadcn tokens, the data-attribute contract, density, and i18n via labels.
+icon: Palette
+---
+
+gridcn uses only existing shadcn tokens: `bg-background`, `text-foreground`, `border-border`,
+`bg-muted`, `bg-primary`, `ring`, and `bg-destructive`.
+
+<ComponentPreview name="data-grid-demo" />
+
+## Data-attribute contract
+
+The grid exposes state through data attributes on cells and headers, styleable with the Tailwind
+`data-[attr]:` variant. This is the way to restyle the grid without forking components:
+
+| Attribute | Where | Meaning |
+|---|---|---|
+| `data-active` | cell | The active (focused) cell. |
+| `data-editing` | cell | Currently in edit mode. |
+| `data-pinned="left" \| "right"` | cell, header | Which pin zone the column belongs to. |
+| `data-readonly` | cell | Not editable (column or grid-wide `readOnly`). |
+| `data-type` | cell | The cell's type key (`text`, `number`, and so on), useful for type-specific overrides. |
+| `data-row-selected` | marker cell | Row is in the rows selection channel (checkbox marker mode). |
+| `aria-sort` | header | `ascending`, `descending`, or `none`, when `headerClickBehavior="sort"`. |
+
+```css
+[data-active] { /* ring styling already applied; extend here if needed */ }
+[data-type="number"] { @apply tabular-nums text-right; }
+```
+
+Range, row, and column selection render as separate overlay elements, not cell attributes: a
+`bg-primary/10` fill with a `border-primary` active-cell ring. So selecting never re-renders a
+cell.
+
+## CSS variables
+
+- `--grid-row-height` — the one grid-specific variable. Set it per instance through the
+  `rowHeight` prop or the `density` preset (`compact` at 28px, `default` at 36px, `comfortable`
+  at 44px). An explicit `rowHeight` always wins over `density`.
+- `--grid-pin-shadow` — the color used for the pinned-column boundary shadow. The grid uses this
+  variable without a fallback, so you must define it (the docs site's `global.css` themes it per
+  light and dark mode). Leave it undefined and the pinned boundary shadow renders invisible.
+
+```tsx
+<DataGridProvider {...grid} columns={columns}>
+  <DataGridRoot density="compact" />
+</DataGridProvider>
+```
+
+or an explicit height, which always wins over `density`:
+
+```tsx
+<DataGridProvider {...grid} columns={columns}>
+  <DataGridRoot rowHeight={32} />
+</DataGridProvider>
+```
+
+Both `density` and `rowHeight` live on `DataGridRoot` (or the `DataGrid` wrapper), not on
+`DataGridProvider`.
+
+## Custom classes
+
+`DataGridRoot` accepts `className` and merges it through `cn()`:
+
+```tsx
+<DataGridRoot className="rounded-lg border-2">
+```
+
+## Programmatic per-row/per-cell styling
+
+Grid-level `getRowClassName` and `getCellClassName` props, on `DataGrid` or `DataGridRoot`, plus
+per-column `cellClassName` and `headerClassName` on `ColumnDef`, give value-driven styling
+without a new cell type or a `renderCell` override. All of them merge through `cn()` **after**
+the built-in classes. So a conflicting Tailwind utility (for example `justify-end` over the
+default `justify-start` of the text type) wins over the built-in class. The grid applies
+grid-level classes first, then the column-level override last. A per-column class always wins
+over a grid-wide default on the same utility:
+
+```tsx
+// Module scope (or useCallback) — see the stable-identity callout below.
+const getRowClassName: GetRowClassName<Row> = (row) => (row.status === "archived" ? "opacity-50" : undefined);
+const getCellClassName: GetCellClassName<Row> = ({ value, column }) =>
+  column.id === "balance" && typeof value === "number" && value < 0 ? "text-destructive" : undefined;
+
+<DataGrid
+  data={rows}
+  columns={columns}
+  getRowId={(r) => r.id}
+  getRowClassName={getRowClassName}
+  getCellClassName={getCellClassName}
+/>
+```
+
+```tsx
+const columns = defineColumns<Row>()([
+  {
+    id: "balance",
+    header: "Balance",
+    accessorKey: "balance",
+    type: "number",
+    // string form applies to every cell in the column; the function form gets the same
+    // { value, row, column, viewRowIndex } context as the grid-level getCellClassName.
+    cellClassName: (ctx) => (ctx.value < 0 ? "text-destructive" : undefined),
+    headerClassName: "text-right",
+  },
+] as const);
+```
+
+This complements, and does not replace, the attribute contract above (`data-active`,
+`data-row-selected`, `data-pinned`, `data-type`, and more) for state-based styling. It also
+complements `renderCell` for display overrides that need more than a class (see
+[Editing & cell types](/docs/editing-cell-types#display-override-without-a-new-type)).
+
+<ComponentPreview name="data-grid-conditional-styling-demo" />
+
+An HR dataset shows all four styling surfaces at once, each suited to a different scope:
+
+- **`getCellClassName` (per value)** — colors the cells of the Performance column against a
+  threshold. Below 50 tints `text-destructive` and `bg-destructive/10`. 90 and above tints
+  `text-primary` and `bg-primary/10`. Reach for this when the styling decision depends on a
+  cell's own value, independent of its row or column.
+- **`getRowClassName` (per row)** — mutes and strikes through `terminated` rows as a whole. Reach
+  for this when a single field on the row needs to visually demote the *entire* row, not only one
+  cell.
+- **`cellClassName` (per column, string form)** — every Salary cell gets `font-medium
+  tabular-nums` for right-aligned emphasis. Reach for this for a look that stays constant across
+  a column, with no per-row logic needed.
+- **`headerClassName` (per column)** — the Performance header is tinted `text-primary` to match
+  the semantics of the cells beneath it. Reach for this to visually tag a column's purpose at a
+  glance.
+
+<Callout type="warn" title="Pass a stable function identity">
+  The grid calls `getRowClassName` and `getCellClassName` per rendered cell. This is windowed, so
+  it is cheap. But their function *identity* becomes a prop that the row and cell memoization of
+  the engine depends on (the same rule as `columns` and `data`). Pass a stable reference, from
+  module scope or `useCallback`. A fresh arrow function on every render makes every row and cell
+  re-render on every parent render. A dev-mode console warning fires if the identity changes
+  across renders.
+</Callout>
+
+### Styling a whole column
+
+Keying `getCellClassName` on `column.id`, and ignoring `value` and `row`, styles every cell in
+one column uniformly, for example tinting a currency column to stand out from the rest of the
+row:
+
+```tsx
+const getCellClassName: GetCellClassName<Order> = ({ column }) =>
+  column.id === "total" ? "bg-primary/5 text-right font-medium tabular-nums" : undefined;
+
+<DataGrid {...grid} columns={columns} getCellClassName={getCellClassName} />;
+```
+
+<Callout type="idea" title="Prefer cellClassName for a column-only rule">
+  When the rule never depends on `value` or `row`, as above, the per-column `cellClassName`
+  string form on that one `ColumnDef` (see
+  [Programmatic per-row/per-cell styling](#programmatic-per-rowper-cell-styling) above) says
+  the same thing with less code, with no grid-level function to keep stable. Reach for
+  `getCellClassName` when the same column-targeting rule also needs to fold in `value` or `row`,
+  for example tinting the currency column *and* flagging negative amounts within it.
+</Callout>
+
+### Styling whole rows
+
+`getRowClassName` reading a single row field dims every cell in that row at once. Inactive
+employees render visually demoted, and active ones stay untouched:
+
+```tsx
+const getRowClassName: GetRowClassName<Employee> = (row) =>
+  row.active ? undefined : "opacity-50";
+
+<DataGrid {...grid} columns={columns} getRowClassName={getRowClassName} />;
+```
+
+The demo above exercises both patterns together, alongside `cellClassName` and
+`headerClassName`. Its `getRowClassName` dims `terminated` rows the same way.
+
+### Fully styling a column or row
+
+The demos above tint or dim. A "fully styled" column or row goes further, with background,
+border, *and* text treatment together, still with no separate CSS file and no forked component:
+
+```tsx
+const columns = defineColumns<Deal>()([
+  // ...
+  {
+    id: "region",
+    header: "Region",
+    accessorKey: "region",
+    type: "text",
+    // Constant across every cell/header in the column — background tint, a separating border,
+    // and a bold/tinted header treat the whole column as a distinct "brand" band.
+    cellClassName: "bg-primary/5 border-r border-r-primary/30 font-medium",
+    headerClassName: "bg-primary/10 border-r border-r-primary/30 font-semibold text-primary",
+  },
+] as const);
+
+const getRowClassName: GetRowClassName<Deal> = (row) =>
+  row.stage === "at-risk"
+    ? "border-l-2 border-l-destructive bg-destructive/5 text-destructive"
+    : undefined;
+
+<DataGrid {...grid} columns={columns} getRowClassName={getRowClassName} />;
+```
+
+<ComponentPreview name="data-grid-styling-patterns-demo" />
+
+The Region column is fully styled through the per-column `cellClassName` and `headerClassName`
+string form: background, header treatment, and border together, with no per-row logic needed and
+no grid-level function to keep stable. At-risk deals get a full-row treatment through
+`getRowClassName` that goes beyond a background tint: border, background, *and* text color on
+every cell in the row at once. The density selector of the same demo is covered in
+[Density and row height](#density-and-row-height) below.
+
+## Styling by state with CSS only
+
+The [data-attribute contract](#data-attribute-contract) above needs no `getCellClassName` or
+`getRowClassName` at all: pure CSS, keyed off attributes that the grid already sets on every
+render. This is the right tool when the styling is driven by *interaction* state (active,
+pinned, selected), not by row or column data:
+
+```css
+/* global.css, or any stylesheet loaded after the grid's base styles */
+[data-active] {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+[data-pinned="left"] {
+  border-inline-end: 1px solid var(--color-border);
+}
+[data-row-selected] {
+  background-color: color-mix(in oklch, var(--color-primary) 10%, var(--color-background));
+}
+```
+
+Or use the Tailwind `data-[attr]:` variant form inline on a wrapper, if you prefer not to add
+a stylesheet rule:
+
+```tsx
+<DataGridRoot className="**:data-[pinned='right']:border-l-2 **:data-[pinned='right']:border-l-primary/40">
+```
+
+This needs no JS, no `getCellClassName` callback, and no re-render on selection change. The grid
+already toggles these attributes as part of its normal DOM updates, and CSS only reacts to them.
+
+## Density and row height
+
+`density` (`compact`, `default`, or `comfortable`) and the `rowHeight` override are themselves a
+styling surface. They resize every data row through the single `--grid-row-height` CSS variable
+(see [CSS variables](#css-variables) above), with no `getRowClassName` needed:
+
+```tsx
+const [density, setDensity] = useState<DensityMode>("default");
+
+<DataGridRoot density={density}>
+```
+
+The demo above wires this to a `Select`. Switching it live re-measures `--grid-row-height` for
+every mounted row, with no re-render of cell content, only the row track size. Pass an explicit
+`rowHeight={32}` instead of `density` when you need a value that the three presets do not cover.
+It always wins over `density` when both are set.
+
+## Loading state
+
+<ComponentPreview name="data-grid-loading-demo" />
+
+`loading` (on `DataGrid` or `DataGridRoot`) is a presentational flag for an ordinary
+"fetch then render" consumer that has no other built-in way to show the grid as busy. Without
+it, a grid with zero rows renders the empty state, which reads as "your query matched nothing"
+while the request is still in flight:
+
+```tsx
+const [loading, setLoading] = useState(true);
+
+<DataGrid data={rows} columns={columns} getRowId={(r) => r.id} loading={loading} />
+```
+
+- **Zero rows** — a viewport-filling skeleton (muted `animate-pulse` bars, one per column)
+  replaces the empty state entirely. The `emptyState` prop or label never shows while `loading`
+  is true.
+- **Rows already present** (a background refresh) — the rows stay visible, and a slim
+  indeterminate bar appears pinned under the header instead, so the grid does not blank out
+  mid-session.
+- `aria-busy="true"` is set on the grid root either way. The skeleton region and the progress bar
+  both use `labels.grid.loading` ("Loading…" default) as their aria-label. See
+  [i18n](/docs/i18n).
+- The sweep of the progress bar respects `prefers-reduced-motion`. Reduced motion renders a
+  static full-width bar instead of an animated one, with no JS or rAF involved either way.
+
+The default is `false`, so existing consumers who never pass it see no change in behavior.
+
+<Callout type="idea" title="data-grid-lazy has its own per-window skeletons">
+  `loading` is a whole-grid flag with one look. It is unrelated to the per-row skeleton cells of
+  `data-grid-lazy` for individually unloaded rows (see [Lazy loading](/docs/lazy-loading)). Use
+  `loading` for an ordinary fully-controlled fetch, and the lazy add-on when you stream in row
+  windows on scroll.
+</Callout>
+
+## i18n via `labels`
+
+Every user-facing string, in the core and in every add-on, lives in one typed `DataGridLabels`
+object with English defaults. gridcn deep-merges it when you pass a partial override. See the
+dedicated [i18n](/docs/i18n) page for the merge model, per-group coverage, and a full translation
+example.
+
+## Visual defaults
+
+Selected rows and columns highlight across their full extent, not only the range rectangle.
+Pinned-edge shadows appear only when content is actually scrolled beneath them. Hover, focus
+rings, and border rhythm follow the shadcn base style that you initialized with (the `style` in
+`components.json`). There is no gridcn-specific design layer on top to override it.
+
+The grid's editors and menus are built from your project's own `ui/*` primitives (`Input`,
+`Select`, `Popover`, `Calendar`, and more), so re-theming those primitives restyles the grid too.
+If your shadcn theme supports dark mode, the grid does too, with no separate dark-mode
+configuration.

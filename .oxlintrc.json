@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "typescript/no-explicit-any": "warn",
+    "unicorn/no-new-array": "off",
+    "typescript/no-useless-empty-export": "off"
+  },
+  "ignorePatterns": [
+    "**/worktrees/**",
+    ".next/**",
+    "out/**",
+    "dist/**",
+    "coverage/**",
+    "public/**",
+    ".source/**",
+    "references/**",
+    "*.tsbuildinfo"
+  ]
+}

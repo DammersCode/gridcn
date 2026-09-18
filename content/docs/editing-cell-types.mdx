@@ -1,0 +1,332 @@
+---
+title: Editing & cell types
+description: How editing works, the built-in cell types, and how to add your own.
+icon: Pencil
+---
+
+## Edit activation
+
+A single click **never** starts editing. It only moves the active cell. Editing starts only
+through one of these actions:
+
+- **Double-click** a cell.
+- Press **Enter** or **F2** on the active cell. This opens the editor seeded with the current
+  value.
+- **Type** a printable character on the active cell. This is type-to-replace: the editor opens
+  seeded with only what you typed, and replaces the old value.
+
+This removes any ambiguity between a plain drag-to-select gesture and the start of an edit.
+
+To commit a value, the built-in editors follow one keyboard contract. While an editor is open,
+the grid's keymap is **ignored** and the editor owns every key, so the keymap's
+`commitRight`/`commitLeft` (Tab / Shift+Tab) and `commitUp` (Shift+Enter) bindings never fire
+during an edit. The actual per-editor behavior:
+
+| Key | `text` / `number` | `select` | `date` |
+|---|---|---|---|
+| <kbd>Enter</kbd> (any, including <kbd>Shift</kbd>+<kbd>Enter</kbd>) | Commits and moves **down** (Shift is ignored) | Commits the picked choice, stays in place | Commits the typed ISO date and moves down |
+| <kbd>Tab</kbd> / <kbd>Shift+Tab</kbd> | Blur-commits **in place**; native focus moves on | Closes the dropdown; cancels the edit when nothing was picked | Closes the popover; cancels the edit when nothing was picked |
+| <kbd>Escape</kbd> | Cancels and discards | Cancels and discards | Cancels and discards |
+| Click away / focus loss | Commits in place | Cancels and discards | Cancels and discards |
+
+So: any Enter moves down, never up; Tab never moves the active cell (it commits and lets the
+browser move focus); and a popover editor without an explicit pick cancels rather than commits.
+
+<Callout title="Checkboxes have no edit mode">
+  A click, or Enter, or Space, toggles a checkbox cell directly. There is no intermediate editor
+  state to commit or cancel.
+</Callout>
+
+<ComponentPreview name="data-grid-cell-types-demo" />
+
+## Built-in cell types
+
+Every cell type implements the same small pipeline. `toText` and `fromText` drive clipboard,
+import/export, and typing in the same way, so only one thing needs an override to change how a
+type converts text to and from a value. One feature to remember: search and filter do NOT use
+`toText` — they match the raw `String(value)`, so a `select` column searches the stored value,
+not the displayed label, and a `number` column with `decimals` searches the unrounded value. The
+full per-feature contract (display = `toDisplayText ?? toText`, clipboard/export = `toText`,
+sort = `compare`, search/filter = raw `String(value)`, fill = raw value) is on
+[custom cell types](/docs/custom-cell-types#value-pipeline).
+
+| Type | Value | Notes |
+|---|---|---|
+| `text` | `string` | Default when `type` is omitted. `options.placeholder`. |
+| `number` | `number \| null` | `options.min`/`max`/`decimals`; `options.step` is `@reserved` (accepted, no-op for now). |
+| `checkbox` | `boolean` | No edit mode — direct toggle. |
+| `select` | `string \| null` | `options.choices: { value, label }[]`. |
+| `date` | `string \| null` (ISO `yyyy-mm-dd`) | See below. |
+
+```tsx
+const columns = defineColumns<Person>()([
+  { id: "name", header: "Name", accessorKey: "name", type: "text" },
+  { id: "age", header: "Age", accessorKey: "age", type: "number", options: { min: 0, max: 120 } },
+  { id: "active", header: "Active", accessorKey: "active", type: "checkbox" },
+  {
+    id: "role",
+    header: "Role",
+    accessorKey: "role",
+    type: "select",
+    options: { choices: [{ value: "admin", label: "Admin" }, { value: "user", label: "User" }] },
+  },
+  { id: "joined", header: "Joined", accessorKey: "joined", type: "date" },
+] as const);
+```
+
+### Date specifics
+
+The value and clipboard representation are always ISO `yyyy-mm-dd`, regardless of display.
+Formatting is for presentation only, and never affects what the grid copies, pastes, or stores.
+`options.displayFormat` (an `Intl.DateTimeFormatOptions` object) and `options.locale` control
+`toDisplayText`. The editor is a popover date-picker built from shadcn's `calendar` and `popover`,
+with typed-input passthrough. Enter commits the value, and Escape cancels it.
+
+```tsx
+{
+  id: "joined",
+  header: "Joined",
+  accessorKey: "joined",
+  type: "date",
+  options: { displayFormat: { year: "numeric", month: "short", day: "numeric" }, locale: "en-US" },
+}
+```
+
+## Read-only
+
+Per-column, static or row-dependent:
+
+```tsx
+{ id: "email", header: "Email", accessorKey: "email", type: "text", readOnly: true }
+// or
+{ id: "email", header: "Email", accessorKey: "email", type: "text", readOnly: (row) => row.locked }
+```
+
+<Callout title="Grid-wide read-only wins">
+  `<DataGridProvider readOnly>` disables editing and delete everywhere, independent of any
+  per-column `readOnly`.
+</Callout>
+
+## Validation
+
+<ComponentPreview name="data-grid-validation-demo" />
+
+`validate` accepts either of two forms:
+
+- **A function** that returns an error message to reject a value, or `null` to accept it. The
+  function is your code, so side effects work — the demo's Age rule fires a toast from inside it.
+- **Any [Standard Schema](https://standardschema.dev)** for the value of the column: Zod,
+  Valibot, ArkType, or any other library that implements the spec. gridcn detects the schema
+  structurally (`"~standard" in validate`), so no adapter is necessary for a conforming library.
+
+<Callout type="warn" title="Invalid edits cannot commit">
+  The editor stays open on a rejected value. This is Excel semantics, not a toast-and-revert
+  pattern.
+</Callout>
+
+```tsx
+// Function form
+{
+  id: "age",
+  header: "Age",
+  accessorKey: "age",
+  type: "number",
+  validate: (value) => (typeof value === "number" && value < 18 ? "Must be 18 or older" : null),
+}
+
+// Standard Schema form — illustrative, schema-agnostic (works with Zod, Valibot, ArkType, ...)
+{
+  id: "age",
+  header: "Age",
+  accessorKey: "age",
+  type: "number",
+  validate: z.number().min(18, "Must be 18 or older"),
+}
+```
+
+### Transforms are committed
+
+A schema can transform the value, for example to trim, coerce, or round it. On success, the grid
+commits the schema's OUTPUT (`result.value`), not the raw input. So a transforming schema changes
+what data your grid stores, not only what value it allows:
+
+```tsx
+validate: z.coerce.number().int() // "42.9" committed as 42, not "42.9"
+```
+
+### Async schemas
+
+The `validate` function of a Standard Schema can return a Promise, for an async uniqueness check
+for example. The same column definition then applies to a single edit and to every bulk path:
+
+```tsx
+{
+  id: "sku",
+  header: "SKU",
+  accessorKey: "sku",
+  validate: z.string().refine(async (sku) => await isSkuFree(sku), "Already in use"),
+}
+```
+
+On a single-cell edit, when you type a value and press Enter or Tab, or move away:
+
+- The editor stays open while the schema resolves. The built-in text and number editors mark
+  their input `readOnly`, as the pending treatment. They never mark it `disabled`, so Escape
+  still cancels. See [Build your own cell type](/docs/custom-cell-types#editor-ux) for the same
+  `pending` and `rejectionCount` contract in a custom editor.
+- If the schema resolves with issues, the rejection message appears exactly like a sync
+  rejection, and editing continues.
+- If the schema resolves successfully, the committed value is the schema's `result.value`. The
+  grid then applies the pending cell-to-cell movement, the delta from Enter or Tab.
+- Escape, the start of a newer commit, or the unmount of the cell invalidates an in-flight
+  validation. Its resolution is dropped silently, and never applied late.
+
+#### On bulk paths
+
+Paste, fill, CSV/XLSX import, and `updateCells` hold the batch while the schema resolves:
+
+- The grid validates a maximum of 32 cells at the same time. A paste of 10,000 cells therefore
+  makes 32 concurrent calls, not 10,000.
+- Nothing changes until every verdict is in. The accepted cells then commit together, as one
+  `onDataChange` with one ops batch, the same as a sync bulk write. An import above 5,000 rows
+  validates in chunks internally, and still hands the whole row array to `onImport` at once.
+- A rejected cell drops silently, and the other cells of the batch still commit. One bad value
+  never fails the batch.
+- The committed value is the schema's `result.value`, so a transform applies on bulk paths too.
+- A newer operation supersedes a held batch. A second paste over the same area, a change of the
+  data, a sort or filter change, or the unmount of the grid drops the older batch silently. Cells
+  are keyed by row id, so a pure reorder of the rows keeps the batch valid.
+- The import dialog keeps its Import button disabled while it validates. Cancel, or closing the
+  dialog, aborts the build and drops the batch.
+
+<Callout type="warn" title="A slow schema makes a slow batch">
+  A held batch is only as fast as your schema. A network call of 200 ms across 10,000 cells takes
+  about 60 s at 32 concurrent calls. The grid gives no per-cell progress. For a large paste
+  against a remote check, validate the block yourself with the `processPaste` escape hatch of
+  [Clipboard](/docs/clipboard#escape-hatches), which lets you make one request for the whole
+  block.
+</Callout>
+
+<Callout type="idea" title="Trusted feeds can skip validation">
+  `actions.updateCells(patches, { skipValidation: true })` bypasses `validate` completely. Use it
+  when the producer already validated the values, to keep a high-rate feed synchronous.
+</Callout>
+
+<Callout type="idea" title="What about a server-side rejection, after commit?">
+  `validate` only rejects BEFORE commit. For a rejection your backend sends AFTER commit, for
+  example a 422 response, see [Server errors](#server-errors) below.
+</Callout>
+
+### Cross-field rules: validateRow
+
+```tsx
+<DataGrid
+  {...grid}
+  validateRow={(row) => (row.discount > row.price ? { discount: "Discount above price" } : null)}
+/>
+```
+
+`validateRow` runs once per touched row after a write gesture commits — a single edit, a paste,
+a fill, or a bulk update. The row it receives already has ALL of the gesture's cells applied, so
+the verdict never depends on column order inside a pasted block. A per-column `validate` cannot
+give that guarantee: it runs mid-gesture, against whatever the row looked like at that moment.
+
+Return `columnId -> message` to mark cells, or `null` when the row is fine. Messages land in the
+same per-cell error display as [Server errors](#server-errors) (ring, tint, `title` tooltip,
+`aria-invalid`), and the values still commit — the same stance as server errors, no rollback. A
+later write that makes the row consistent clears the verdict, even when it writes a different
+column than the marked one.
+
+`validateRow` does not run on row insert or duplicate (a fresh default row is expected to be
+incomplete), on row deletion, or on a `data` array you replace yourself. It must be synchronous.
+
+## Server errors
+
+`validate` runs before commit. A server can still reject an already-committed value later, for
+example with a 422 response that names the field. `actions.setCellErrors` paints that rejection
+on the cell, in the same round trip as `onDataChange`. The marked cell carries the message in
+its `title`, so hovering it shows the error:
+
+<ComponentPreview name="data-grid-cell-errors-demo" />
+
+```tsx
+function OrdersGrid() {
+  const actions = useDataGridActions();
+  const [data, setData] = useState<Order[]>(initialOrders);
+
+  function handleDataChange(next: readonly Order[], change: DataChange<Order>) {
+    setData(next);
+    saveOrders(change.ops).catch((error) => {
+      actions.setCellErrors(parseFieldErrors(error)); // [{ rowId, columnId, message }]
+    });
+  }
+
+  return <DataGrid data={data} columns={columns} getRowId={(row) => row.id} onDataChange={handleDataChange} />;
+}
+```
+
+The cell gets the same ring, tint, and `aria-invalid` treatment as a rejected `validate` call.
+Open the cell for editing, and the message shows the same way a live rejection does.
+
+The moment the user commits a new value to that cell, through any write path (a single edit,
+paste, fill, `updateCells`, or a cleared selection), the error clears on its own. The server can
+set it again if the new value is still wrong.
+
+```tsx
+type CellErrorEntry = { rowId: string; columnId: string; message: string };
+
+actions.setCellErrors(errors: readonly CellErrorEntry[]): void; // merges in, per cell
+actions.clearCellErrors(targets?: readonly { rowId: string; columnId: string }[]): void; // omit targets to clear every cell
+```
+
+`useDataGridCellErrors()` reads the full map (`ReadonlyMap<string, string>`) for a summary view,
+for example an error count badge. Build a lookup key with the exported `cellErrorKey`:
+
+```tsx
+import { cellErrorKey, useDataGridCellErrors } from "@/components/data-grid/data-grid";
+
+const errors = useDataGridCellErrors();
+const message = errors.get(cellErrorKey(row.id, "email"));
+```
+
+<Callout type="warn" title="Not a data change">
+  `setCellErrors` and `clearCellErrors` never touch `data`. They fire no `onDataChange`, and
+  [`data-grid-history`](/docs/undo-redo) never records them. A server error is metadata about a
+  cell, not an edit the user made — undo must not need to walk past it.
+</Callout>
+
+## Display override without a new type
+
+`renderCell` swaps only the display, and keeps the type pipeline of the column unchanged: edit,
+sort, clipboard, and paste.
+
+```tsx
+{
+  id: "score",
+  header: "Score",
+  accessorKey: "score",
+  type: "number",
+  renderCell: ({ value }) => <ProgressBar value={value} />,
+}
+```
+
+## Custom cell types
+
+A cell type is `{ Cell, Editor, toText, fromText, clearValue, isEmpty, compare?, align? }`.
+Register custom types through the `cellTypes` prop on `DataGridProvider`. To get the same
+`options` and value inference through `defineColumns` that built-in types get, augment
+`GridCellTypes` through declaration merging.
+
+<Callout type="warn" title="cellTypes replaces the registry, it does not merge">
+  Passing `cellTypes` to `DataGridProvider` replaces the whole registry. Spread the built-ins
+  back in (`cellTypes={{ ...cellTypes, myType: myCellType }}`), or every built-in-typed column
+  breaks silently. See
+  [Build your own cell type](/docs/custom-cell-types#worked-example-a-currency-cell-type).
+</Callout>
+
+See [Build your own cell type](/docs/custom-cell-types) for the full contract walk-through. It
+has a keypoint checklist distilled from lessons learned from the built-in types, on performance
+caching, SSR-safe formatting, editor commit semantics, and popover outside-click handling, plus a
+complete worked `currency` example. [Recipes](/docs/recipes#custom-cell-type) has a shorter
+minimal version, and [API reference](/docs/api-reference#celltypetdata-tvalue-toptions) has the
+exact contract types.
