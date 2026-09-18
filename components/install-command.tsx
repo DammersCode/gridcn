@@ -11,11 +11,7 @@ const GRIDCN_REGISTRY = "@gridcn";
 const GRIDCN_REGISTRY_URL = "https://gridcn.vercel.app/r/{name}.json";
 
 type InstallCommandProps = {
-  /**
-   * Registry item name, e.g. "data-grid" — rendered as two lines: the one-time
-   * `registry add @gridcn=<url>` (idempotent, so copying both lines always works) and
-   * `<runner> shadcn@latest add @gridcn/<item>`.
-   */
+  /** Registry item name, e.g. "data-grid" — rendered as `<runner> shadcn@latest add @gridcn/<item>` plus the one-time namespace-registration note. */
   item: string;
   /** Render a Command | Manual tab pair; `manualSlot` fills the Manual panel. */
   manual?: boolean;
@@ -32,10 +28,7 @@ const MANUAL_TABS: readonly DocsTabItem[] = [
 export function InstallCommand({ item, manual = false, manualSlot }: InstallCommandProps): ReactNode {
   const [manager, setManager] = usePackageManager();
   const [copied, setCopied] = useState(false);
-  const command = [
-    `${RUNNERS[manager]} shadcn@latest registry add ${GRIDCN_REGISTRY}=${GRIDCN_REGISTRY_URL}`,
-    `${RUNNERS[manager]} shadcn@latest add ${GRIDCN_REGISTRY}/${item}`,
-  ].join("\n");
+  const command = `${RUNNERS[manager]} shadcn@latest add ${GRIDCN_REGISTRY}/${item}`;
 
   const copy = () => {
     void navigator.clipboard.writeText(command).then(() => {
@@ -65,7 +58,15 @@ export function InstallCommand({ item, manual = false, manualSlot }: InstallComm
       tabClassName="px-2.5"
       headerEnd={copyButton}
     >
-      <pre className="overflow-x-auto px-4 py-3 font-mono text-sm text-foreground">{command}</pre>
+      <div>
+        <pre className="overflow-x-auto px-4 py-3 font-mono text-sm text-foreground">{command}</pre>
+        <p className="px-4 pb-3 text-xs text-muted-foreground">
+          First time in this project, register the namespace once (harmless to re-run):{" "}
+          <code className="font-mono">
+            npx shadcn registry add {GRIDCN_REGISTRY}={GRIDCN_REGISTRY_URL}
+          </code>
+        </p>
+      </div>
     </DocsTabs>
   );
 
