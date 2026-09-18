@@ -9,7 +9,7 @@
       "title": "Data Grid",
       "description": "An editable data grid: range selection, spreadsheet clipboard, editing engine, validation, sorting, filtering, pinning, streaming updates. Real DOM cells, shadcn styling.",
       "author": "gridcn",
-      "docs": "Docs & quick start: https://github.com/DammersCode/gridcn/blob/main/content/docs/quick-start.mdx",
+      "docs": "Docs & quick start: https://gridcn.vercel.app/docs/quick-start",
       "dependencies": ["zustand"],
       "registryDependencies": [
         "button",
