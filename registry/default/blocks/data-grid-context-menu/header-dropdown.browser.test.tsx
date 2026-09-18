@@ -65,9 +65,10 @@ describe("DataGridHeaderDropdown (PLAN §3 Pinning UX)", () => {
     await vi.waitFor(() => expect(document.querySelector('[data-column-id="name"]')).toBeTruthy());
     const trigger = document.querySelector<HTMLElement>(`[data-column-id="name"] ${gridAttrSelector("headerMenuTrigger")}`)!;
     expect(trigger).not.toBeNull();
-    // poll: a bare read can land before the stylesheet is applied under parallel-suite load
-    // (computed opacity 1 instead of the settled 0); the pre-hover state is a stable 0.
-    await expect.poll(() => Number(getComputedStyle(trigger).opacity)).toBe(0);
+    // 5s window: a bare read can land before the stylesheet is applied under parallel-suite load
+    // (computed opacity 1 instead of the settled 0); the default 1s poll failed 3/3 with retries
+    // on a loaded shared CI runner.
+    await expect.poll(() => Number(getComputedStyle(trigger).opacity), { timeout: 5000 }).toBe(0);
 
     await userEvent.hover(trigger);
     await new Promise((r) => requestAnimationFrame(r));

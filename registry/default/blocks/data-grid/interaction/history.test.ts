@@ -415,6 +415,10 @@ describe("createHistory", () => {
   });
 });
 
+// Shared CI runners are several × slower than a dev machine; the ceiling guards the
+// order of magnitude, not machine jitter.
+const CI_FACTOR = process.env["CI"] ? 2 : 1;
+
 describe("applyChange scale guard (100k rows)", () => {
   it("applies a 500-op batch scattered through the end of the data without an O(n^2) freeze", () => {
     const n = 100_000;
@@ -442,7 +446,7 @@ describe("applyChange scale guard (100k rows)", () => {
     for (let i = 0; i < 3; i++) applyChange(data, change, getRowId);
     const ms = (performance.now() - startTimed) / 3;
     console.log(`applyChange 100k rows / 500-op batch: warmup=${warmupMs.toFixed(2)}ms mean=${ms.toFixed(2)}ms`);
-    // ~5x the measured ~15ms local mean; catches an accidental O(n^2) without machine jitter.
-    expect(ms).toBeLessThan(80);
+    // ~5x the measured ~15ms local mean (×CI_FACTOR on CI); catches an accidental O(n^2).
+    expect(ms).toBeLessThan(80 * CI_FACTOR);
   });
 });
