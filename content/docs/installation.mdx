@@ -1,12 +1,13 @@
 ---
 title: Installation
-description: Install the core grid from the gridcn GitHub registry. No namespace setup, no npm package.
+description: Install the core grid from the @gridcn registry. No npm package.
 icon: Download
 ---
 
-The [shadcn CLI](https://ui.shadcn.com/docs/cli) distributes gridcn entirely, straight from the
-[GitHub registry](https://ui.shadcn.com/docs/registry/github) of this repository. There is no
-npm package: the source files are copied into your project.
+The [shadcn CLI](https://ui.shadcn.com/docs/cli) distributes gridcn entirely from the hosted
+`@gridcn` registry ([gridcn.vercel.app](https://gridcn.vercel.app)), built from this
+repository's [GitHub registry](https://ui.shadcn.com/docs/registry/github). There is no npm
+package: the source files are copied into your project.
 
 <Steps>
   <Step>
@@ -14,9 +15,13 @@ npm package: the source files are copied into your project.
 
     <InstallCommand item="data-grid" manual manualSlot={<ManualInstall item="data-grid" tree />} />
 
-    This command installs the engine: range selection, keyboard, editing, built-in cell types,
-    and spreadsheet clipboard. No registry namespace or server setup is needed. The repository itself
-    is the registry. The Manual tab links every file and folder to its source in the
+    The first line registers the `@gridcn` namespace in your project's `components.json` once;
+    re-running it is harmless. Prefer zero setup? Use the
+    [GitHub registry path](#alternative-github-registry-no-setup) instead:
+    `npx shadcn add DammersCode/gridcn/data-grid`.
+
+    The command installs the engine: range selection, keyboard, editing, built-in cell types,
+    and spreadsheet clipboard. The Manual tab links every file and folder to its source in the
     repository, for an install without the CLI.
   </Step>
   <Step>
@@ -25,18 +30,18 @@ npm package: the source files are copied into your project.
     Each add-on is independently installable and depends only on the core:
 
     ```bash
-    npx shadcn add DammersCode/gridcn/data-grid-fill
-    npx shadcn add DammersCode/gridcn/data-grid-presence
-    npx shadcn add DammersCode/gridcn/data-grid-pinned-rows
-    npx shadcn add DammersCode/gridcn/data-grid-history
-    npx shadcn add DammersCode/gridcn/data-grid-toolbar
-    npx shadcn add DammersCode/gridcn/data-grid-sort-list
-    npx shadcn add DammersCode/gridcn/data-grid-context-menu
-    npx shadcn add DammersCode/gridcn/data-grid-keybindings
-    npx shadcn add DammersCode/gridcn/data-grid-io
-    npx shadcn add DammersCode/gridcn/data-grid-url-state
-    npx shadcn add DammersCode/gridcn/data-grid-lazy
-    npx shadcn add DammersCode/gridcn/data-grid-pagination
+    npx shadcn add @gridcn/data-grid-fill
+    npx shadcn add @gridcn/data-grid-presence
+    npx shadcn add @gridcn/data-grid-pinned-rows
+    npx shadcn add @gridcn/data-grid-history
+    npx shadcn add @gridcn/data-grid-toolbar
+    npx shadcn add @gridcn/data-grid-sort-list
+    npx shadcn add @gridcn/data-grid-context-menu
+    npx shadcn add @gridcn/data-grid-keybindings
+    npx shadcn add @gridcn/data-grid-io
+    npx shadcn add @gridcn/data-grid-url-state
+    npx shadcn add @gridcn/data-grid-lazy
+    npx shadcn add @gridcn/data-grid-pagination
     ```
 
     See each feature's docs page for what it adds and its own install command.
@@ -45,8 +50,8 @@ npm package: the source files are copied into your project.
 
 ## Pinned installs
 
-Append `#<ref>` to install from a specific branch, tag, or commit. The ref goes after the item
-name:
+The hosted `@gridcn` registry always serves the current deploy of `main`. To pin a specific tag,
+branch, or commit, use the GitHub registry path and append `#<ref>` after the item name:
 
 ```bash
 npx shadcn add DammersCode/gridcn/data-grid#v1.0.0
@@ -54,15 +59,13 @@ npx shadcn add DammersCode/gridcn/data-grid#v1.0.0
 
 Without a ref, the CLI uses the repository's default branch.
 
-## Hosted registry (optional)
+## Alternative: GitHub registry (no setup)
 
-The repository also ships pre-built registry payloads in `public/r/`, which the documentation
-site serves at [gridcn.vercel.app](https://gridcn.vercel.app). Register the `@gridcn` namespace
-to install by short name instead:
+The same items are available directly from this repository's GitHub registry — no namespace
+registration, and the only path that supports ref pinning:
 
 ```bash
-npx shadcn@latest registry add @gridcn=https://gridcn.vercel.app/r/{name}.json
-npx shadcn add @gridcn/data-grid
+npx shadcn add DammersCode/gridcn/data-grid
 ```
 
 Both paths install the same files from the same source.
