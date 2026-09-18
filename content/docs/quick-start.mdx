@@ -28,9 +28,9 @@ icon: Rocket
     ```tsx title="columns.ts"
     import { defineColumns } from "@/components/data-grid/data-grid";
 
-    type Person = { id: string; name: string; age: number; active: boolean };
+    export type Person = { id: string; name: string; age: number; active: boolean };
 
-    const columns = defineColumns<Person>()([
+    export const columns = defineColumns<Person>()([
       { id: "name", header: "Name", accessorKey: "name", type: "text", width: 160 },
       { id: "age", header: "Age", accessorKey: "age", type: "number", width: 90 },
       { id: "active", header: "Active", accessorKey: "active", type: "checkbox", width: 90 },
