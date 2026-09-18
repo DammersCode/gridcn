@@ -6,11 +6,16 @@ import { Check, Copy } from "lucide-react";
 import { PACKAGE_MANAGERS, RUNNERS, usePackageManager, type PackageManager } from "@/lib/package-manager";
 import { DocsTabs, type DocsTabItem } from "@/components/docs-tabs";
 
-// Client component — keep the address literal here (lib/read-registry-item uses node:fs).
-const GRIDCN_REGISTRY = "DammersCode/gridcn";
+// Client component — keep the addresses literal here (lib/read-registry-item uses node:fs).
+const GRIDCN_REGISTRY = "@gridcn";
+const GRIDCN_REGISTRY_URL = "https://gridcn.vercel.app/r/{name}.json";
 
 type InstallCommandProps = {
-  /** Registry item name, e.g. "data-grid" — rendered as `<runner> shadcn@latest add <owner>/<repo>/<item>`. */
+  /**
+   * Registry item name, e.g. "data-grid" — rendered as two lines: the one-time
+   * `registry add @gridcn=<url>` (idempotent, so copying both lines always works) and
+   * `<runner> shadcn@latest add @gridcn/<item>`.
+   */
   item: string;
   /** Render a Command | Manual tab pair; `manualSlot` fills the Manual panel. */
   manual?: boolean;
@@ -27,7 +32,10 @@ const MANUAL_TABS: readonly DocsTabItem[] = [
 export function InstallCommand({ item, manual = false, manualSlot }: InstallCommandProps): ReactNode {
   const [manager, setManager] = usePackageManager();
   const [copied, setCopied] = useState(false);
-  const command = `${RUNNERS[manager]} shadcn@latest add ${GRIDCN_REGISTRY}/${item}`;
+  const command = [
+    `${RUNNERS[manager]} shadcn@latest registry add ${GRIDCN_REGISTRY}=${GRIDCN_REGISTRY_URL}`,
+    `${RUNNERS[manager]} shadcn@latest add ${GRIDCN_REGISTRY}/${item}`,
+  ].join("\n");
 
   const copy = () => {
     void navigator.clipboard.writeText(command).then(() => {
