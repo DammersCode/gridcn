@@ -15,20 +15,14 @@ Range selection, clipboard paste, and a fill handle are in the core, under the
 
 ## Install
 
-This repository doubles as a [shadcn GitHub registry](https://ui.shadcn.com/docs/registry/github)
-— no npm package, no namespace setup:
-
 ```bash
 npx shadcn@latest add DammersCode/gridcn/data-grid
 ```
 
 Install add-ons the same way, for example `npx shadcn add DammersCode/gridcn/data-grid-toolbar`.
-Append `#<branch|tag|sha>` to the item name to pin a ref. The [installation docs](https://github.com/DammersCode/gridcn/blob/main/content/docs/installation.mdx)
-cover the full setup, framework notes, and known problems.
-
-Alternative: the repository also ships pre-built registry payloads in `public/r/`. When the
-documentation site is hosted (for example on Vercel), you can register the `@gridcn` namespace
-pointing at that host and install with `npx shadcn add @gridcn/data-grid`.
+The [installation docs](https://github.com/DammersCode/gridcn/blob/main/content/docs/installation.mdx)
+cover pinned refs, the optional hosted `@gridcn` namespace, prerequisites, framework notes, and
+known problems.
 
 ## What it can do
 
@@ -81,15 +75,8 @@ clipboard, validation. Everything else is a separate registry item that depends 
 ## Docs
 
 Full documentation — quick start, editing and cell types, selection and keyboard reference,
-recipes, and the API reference — is this repository's [Fumadocs](https://fumadocs.dev) site
-(`content/docs/`). It can be hosted for free on Vercel:
-
-1. Push the repository to GitHub.
-2. Import the repository at [vercel.com/new](https://vercel.com/new) — the Next.js framework
-   preset is auto-detected; no environment variables are needed.
-3. Deploy. The free Hobby plan serves the site at `https://<project>.vercel.app`, which also
-   serves the hosted registry payloads at `/r/{name}.json` (the optional `@gridcn` namespace
-   points there).
+recipes, and the API reference — lives in [`content/docs/`](./content/docs/), the Fumadocs site
+of this repository.
 
 ## Updating
 
