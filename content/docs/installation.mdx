@@ -57,12 +57,11 @@ Without a ref, the CLI uses the repository's default branch.
 ## Hosted registry (optional)
 
 The repository also ships pre-built registry payloads in `public/r/`, which the documentation
-site serves. The site is hosted for free on Vercel (the free plan gives you a
-`<project>.vercel.app` subdomain), so you can register the `@gridcn` namespace to install by
-short name instead:
+site serves at [gridcn.vercel.app](https://gridcn.vercel.app). Register the `@gridcn` namespace
+to install by short name instead:
 
 ```bash
-npx shadcn@latest registry add @gridcn=https://<project>.vercel.app/r/{name}.json
+npx shadcn@latest registry add @gridcn=https://gridcn.vercel.app/r/{name}.json
 npx shadcn add @gridcn/data-grid
 ```
 
