@@ -16,7 +16,7 @@ Range selection, clipboard paste, and a fill handle are in the core, under the
 ## Install
 
 ```bash
-npx shadcn registry add @gridcn=https://gridcn.vercel.app/r/{name}.json
+npx shadcn registry add "@gridcn=https://gridcn.vercel.app/r/{name}.json"
 npx shadcn add @gridcn/data-grid
 ```
 
