@@ -9,8 +9,12 @@ icon: Rocket
     ### Install
 
     ```bash
-    npx shadcn add DammersCode/gridcn/data-grid
+    npx shadcn registry add @gridcn=https://gridcn.vercel.app/r/{name}.json
+    npx shadcn add @gridcn/data-grid
     ```
+
+    The first line registers the `@gridcn` namespace in your project's `components.json` once
+    (re-running it is harmless). No-setup alternative: `npx shadcn add DammersCode/gridcn/data-grid`.
   </Step>
   <Step>
     ### Define columns
@@ -115,7 +119,7 @@ For undo and redo, install the `data-grid-history` add-on and swap `defaultData`
 `useDataGridState` hook. This adds one line, and still needs no manual state wiring.
 
 ```bash
-npx shadcn add DammersCode/gridcn/data-grid-history
+npx shadcn add @gridcn/data-grid-history
 ```
 
 ```tsx

@@ -16,13 +16,15 @@ Range selection, clipboard paste, and a fill handle are in the core, under the
 ## Install
 
 ```bash
-npx shadcn@latest add DammersCode/gridcn/data-grid
+npx shadcn registry add @gridcn=https://gridcn.vercel.app/r/{name}.json
+npx shadcn add @gridcn/data-grid
 ```
 
-Install add-ons the same way, for example `npx shadcn add DammersCode/gridcn/data-grid-toolbar`.
-The [installation docs](https://github.com/DammersCode/gridcn/blob/main/content/docs/installation.mdx)
-cover pinned refs, the optional hosted `@gridcn` namespace, prerequisites, framework notes, and
-known problems.
+The first line registers the `@gridcn` namespace once per project. No-setup alternative:
+`npx shadcn add DammersCode/gridcn/data-grid` (also the only path with ref pinning). Install
+add-ons the same way, for example `npx shadcn add @gridcn/data-grid-toolbar`. The [installation
+docs](https://github.com/DammersCode/gridcn/blob/main/content/docs/installation.mdx) cover
+prerequisites, framework notes, and known problems.
 
 ## What it can do
 
@@ -80,8 +82,8 @@ of this repository.
 
 ## Updating
 
-Re-run `npx shadcn add DammersCode/gridcn/<item>`. The CLI shows a diff and asks before it
-overwrites files that you edited.
+Re-run the install command, e.g. `npx shadcn add @gridcn/data-grid` (or the GitHub path for
+pinned refs). The CLI shows a diff and asks before it overwrites files that you edited.
 
 ## Contributing and development
 

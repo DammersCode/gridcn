@@ -121,7 +121,7 @@ For production there are two equivalent paths (what `/docs/installation` tells r
 
 - GitHub registry: `npx shadcn add DammersCode/gridcn/data-grid` — reads the pushed
   repository directly; no host needed. This is the primary documented path.
-- Hosted namespace: `@gridcn=https://<project>.vercel.app/r/{name}.json` pointing at the
+- Hosted namespace: `@gridcn=https://gridcn.vercel.app/r/{name}.json` pointing at the
   deployed documentation site (Vercel free plan), which serves the committed `public/r/` payloads.
 
 This flow is the honest end-to-end test of the registry: it exercises the payloads, the

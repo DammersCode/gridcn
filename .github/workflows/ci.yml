@@ -68,3 +68,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx shadcn@latest registry validate DammersCode/gridcn#${{ github.sha }}
+
+      # The Vercel production deploy serves the committed public/r/ payloads (hosted @gridcn
+      # registry, see content/docs/installation.mdx). Main only: the URL always points at the
+      # production deploy, so a PR run would only test a stale deploy.
+      - name: Verify hosted Vercel registry (main only)
+        if: github.ref == 'refs/heads/main'
+        run: node scripts/verify-hosted-registry.mjs
