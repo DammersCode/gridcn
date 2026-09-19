@@ -1,17 +1,28 @@
 import Link from "next/link";
 import type { ComponentProps } from "react";
 import {
+  ArrowDownUp,
   ArrowUpDown,
   Blocks,
   Clipboard,
   FileSpreadsheet,
   Keyboard,
+  Languages,
   Layers,
   Link2,
+  List,
+  ListOrdered,
+  Loader2,
+  MousePointerClick,
   MousePointer2,
   PaintBucket,
   Palette,
+  Pin,
+  Repeat,
+  SlidersHorizontal,
   Undo2,
+  Users,
+  Zap,
 } from "lucide-react";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Badge } from "@/components/ui/badge";
@@ -73,13 +84,49 @@ const coreTraits = [
       "No bespoke palette, no extra CSS files — dark mode works the moment your theme does.",
     href: "/docs/styling-theming",
   },
+  {
+    icon: Zap,
+    title: "Streaming updates",
+    description:
+      "updateCells / updateRows push live rows into the view — incremental sort stays single-digit ms at 100k rows.",
+    href: "/docs/streaming-updates",
+  },
+  {
+    icon: Languages,
+    title: "i18n & RTL ready",
+    description:
+      "Typed label objects for every UI string, full RTL with mirrored pinning and pointer math.",
+    href: "/docs/i18n",
+  },
+];
+
+const perfStats = [
+  {
+    value: "~33 MB",
+    title: "working set @ 100k rows",
+    description:
+      "Mount footprint of a production build — comparators measure 170–300 MB in the same harness.",
+  },
+  {
+    value: "0 renders",
+    title: "React re-renders on scroll",
+    description:
+      "Row and column windowing moves one CSS transform per tick; the store never invalidates during a scroll.",
+  },
+  {
+    value: "0.3–7.6 ms",
+    title: "incremental sort @ 100k",
+    description:
+      "Re-sorts the visible index in place for k = 1 → 256 changed rows instead of rebuilding the whole view.",
+  },
 ];
 
 const addOns = [
+  { icon: Repeat, title: "Fill handle", href: "/docs/fill-handle" },
   { icon: Undo2, title: "Undo & redo", href: "/docs/undo-redo" },
   {
     icon: ArrowUpDown,
-    title: "Sorting, filtering & search",
+    title: "Sorting & filtering",
     href: "/docs/sorting-filtering-search",
   },
   {
@@ -88,14 +135,64 @@ const addOns = [
     href: "/docs/import-export",
   },
   { icon: Link2, title: "URL state", href: "/docs/url-state" },
-  { icon: Blocks, title: "Context menu & keybindings", href: "/docs/columns" },
+  {
+    icon: Blocks,
+    title: "Context menu",
+    href: "/docs/columns",
+  },
+  {
+    icon: MousePointerClick,
+    title: "Keybindings dialog",
+    href: "/docs/selection-keyboard",
+  },
+  {
+    icon: SlidersHorizontal,
+    title: "Toolbar & search",
+    href: "/docs/sorting-filtering-search",
+  },
+  {
+    icon: ListOrdered,
+    title: "Sort list",
+    href: "/docs/sorting-filtering-search",
+  },
+  { icon: Pin, title: "Pinned rows", href: "/docs/pinned-rows" },
+  { icon: Users, title: "Multiplayer presence", href: "/docs/multiplayer-presence" },
+  { icon: Loader2, title: "Lazy loading", href: "/docs/lazy-loading" },
+  { icon: List, title: "Pagination", href: "/docs/pagination" },
+  { icon: ArrowDownUp, title: "Cell editing types", href: "/docs/editing-cell-types" },
 ];
+
+const comparison = {
+  columns: ["gridcn", "AG Grid", "MUI X", "TanStack Table"],
+  rows: [
+    {
+      feature: "Range selection",
+      values: ["Free", "Enterprise", "Premium", "Headless"],
+    },
+    {
+      feature: "Excel / Sheets clipboard round-trip",
+      values: ["Free", "Enterprise", "Premium", "Headless"],
+    },
+    {
+      feature: "Fill handle",
+      values: ["Add-on", "Enterprise", "Premium (v9)", "—"],
+    },
+    {
+      feature: "Undo & redo",
+      values: ["Add-on", "Community (v36)", "Premium", "Headless"],
+    },
+    {
+      feature: "npx shadcn add",
+      values: ["One line", "—", "—", "Examples only"],
+    },
+  ],
+};
 
 export default function HomePage() {
   return (
     <div className="relative flex flex-1 flex-col items-center">
       <HeroShader />
-      <div className="glass-panel z-10 mx-6 mt-20 mb-16 flex max-w-2xl flex-col items-center gap-6 px-10 py-10 text-center">
+      <div className="border bg-card z-10 mx-6 mt-20 mb-16 flex max-w-2xl flex-col items-center gap-6 px-10 py-10 text-center">
         <Badge variant="outline" className="gap-1.5 py-1">
           MIT licensed · shadcn registry
         </Badge>
@@ -132,26 +229,26 @@ export default function HomePage() {
       </div>
 
       <div className="relative z-10 w-full max-w-5xl px-6">
-        <div className="overflow-hidden rounded-xl border border-border shadow-sm">
-          <DataGridDemo />
-        </div>
-        <div className="glass-panel-pill z-10 mx-auto mt-4 w-fit px-5 py-2">
-          <p className=" text-center text-sm text-muted-foreground">
+        <div className="border bg-card z-10 mx-auto mb-4 w-fit px-5 py-2">
+          <p className="text-center text-sm text-foreground">
             Click-drag to select a range, drag the fill handle to extend a
             series, Ctrl+C / Ctrl+V for native clipboard round-trips.
           </p>
         </div>
+        <div className="overflow-hidden border border-border bg-background shadow-sm">
+          <DataGridDemo />
+        </div>
       </div>
 
       <div className="relative z-10 mt-24 w-full max-w-5xl px-6">
-        <div className="glass-panel-pill z-10 mx-auto mb-8 flex w-fit flex-col items-center gap-2 px-8 py-5 text-center">
+        <div className="border bg-card z-10 mx-auto mb-8 flex w-fit flex-col items-center gap-2 px-8 py-5 text-center">
           <h2 className="text-2xl font-semibold tracking-tight text-foreground">
             The gap gridcn fills
           </h2>
           <p className="max-w-xl text-sm text-muted-foreground">
-            Range selection, spreadsheet clipboard paste, and a fill handle are
-            Enterprise-only features in AG Grid and MUI X. gridcn ships them
-            free — core plus one-line add-ons.
+            Range selection, spreadsheet clipboard paste, and a fill handle
+            are paid-tier features — Enterprise in AG Grid, Premium in MUI X.
+            gridcn ships them open source (MIT): core plus one-line add-ons.
           </p>
         </div>
         <Cards>
@@ -167,7 +264,7 @@ export default function HomePage() {
       </div>
 
       <div className="relative z-10 mt-16 w-full max-w-5xl px-6">
-        <div className="glass-panel-pill z-10 mx-auto mb-8 w-fit px-8 py-4">
+        <div className="border bg-card z-10 mx-auto mb-8 w-fit px-8 py-4">
           <h2 className="text-center text-2xl font-semibold tracking-tight text-foreground">
             Built the shadcn way
           </h2>
@@ -185,16 +282,140 @@ export default function HomePage() {
         </Cards>
       </div>
 
+      <div className="relative z-10 mt-16 w-full max-w-5xl px-6">
+        <div className="border bg-card z-10 mx-auto mb-8 flex w-fit flex-col items-center gap-2 px-8 py-5 text-center">
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+            Performance you can measure
+          </h2>
+          <p className="max-w-xl text-sm text-muted-foreground">
+            100k-row production benchmark against MUI X DataGrid,
+            react-data-grid, and a TanStack assembly — same seed, same
+            harness, same machine.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {perfStats.map(({ value, title, description }) => (
+            <Link
+              key={title}
+              href="/docs/performance"
+              className="border bg-card flex flex-col items-center gap-2 p-6 text-center transition-colors hover:border-primary/40"
+            >
+              <span className="text-3xl font-bold tracking-tight text-foreground">
+                {value}
+              </span>
+              <span className="text-sm font-medium text-foreground">
+                {title}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {description}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      <div className="relative z-10 mt-16 w-full max-w-5xl px-6">
+        <div className="border bg-card z-10 mx-auto mb-8 flex w-fit flex-col items-center gap-2 px-8 py-5 text-center">
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+            The gap, quantified
+          </h2>
+          <p className="max-w-xl text-sm text-muted-foreground">
+            Where the same features sit in the grids you are probably comparing
+            — free tier, paid tier, or your own code.
+          </p>
+        </div>
+        <div className="overflow-x-auto rounded-xl border border-border bg-background">
+          <table className="w-full min-w-[560px] text-sm">
+            <thead className="border-b border-border bg-muted">
+              <tr>
+                <th scope="col" className="px-4 py-3 text-left font-medium">
+                  Capability
+                </th>
+                {comparison.columns.map((column) => (
+                  <th
+                    key={column}
+                    scope="col"
+                    className={
+                      column === "gridcn"
+                        ? "px-4 py-3 text-center font-semibold text-primary"
+                        : "px-4 py-3 text-center font-medium"
+                    }
+                  >
+                    {column}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {comparison.rows.map(({ feature, values }) => (
+                <tr key={feature} className="border-b border-border last:border-0">
+                  <th scope="row" className="px-4 py-3 text-left font-medium">
+                    {feature}
+                  </th>
+                  {values.map((value, index) => (
+                    <td
+                      key={index}
+                      className={
+                        value === "—"
+                          ? "px-4 py-3 text-center text-muted-foreground/50"
+                          : index === 0
+                            ? "px-4 py-3 text-center font-medium text-foreground"
+                            : "px-4 py-3 text-center text-muted-foreground"
+                      }
+                    >
+                      {value}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="border bg-card z-10 mx-auto mt-4 w-fit max-w-full px-5 py-2">
+          <p className="text-center text-xs text-muted-foreground">
+          Tiers as of 09/2026 (AG Grid v36, MUI X v9, TanStack Table v9).
+          Vendors change tiers — verify before relying on this:{" "}
+          <a
+            className="underline decoration-muted-foreground/50 underline-offset-2 hover:text-foreground"
+            href="https://www.ag-grid.com/license-pricing/"
+            rel="noreferrer"
+            target="_blank"
+          >
+            AG Grid pricing
+          </a>
+          ,{" "}
+          <a
+            className="underline decoration-muted-foreground/50 underline-offset-2 hover:text-foreground"
+            href="https://mui.com/x/introduction/licensing/"
+            rel="noreferrer"
+            target="_blank"
+          >
+            MUI X licensing
+          </a>
+          ,{" "}
+          <a
+            className="underline decoration-muted-foreground/50 underline-offset-2 hover:text-foreground"
+            href="https://tanstack.com/table/latest"
+            rel="noreferrer"
+            target="_blank"
+          >
+            TanStack Table
+          </a>
+          .
+          </p>
+        </div>
+      </div>
+
       <div className="relative z-10 mt-16 w-full max-w-5xl px-6 pb-24">
-        <div className="glass-panel-pill z-10 mx-auto mb-8 flex w-fit flex-col items-center gap-2 px-8 py-5 text-center">
+        <div className="border bg-card z-10 mx-auto mb-8 flex w-fit flex-col items-center gap-2 px-8 py-5 text-center">
           <h2 className="text-2xl font-semibold tracking-tight text-foreground">
             Modular by design
           </h2>
           <p className="max-w-xl text-sm text-muted-foreground">
             The core engine is selection, keyboard, editing, cell types,
-            clipboard, and validation. Everything else — including the fill
-            handle — is a separate registry item you install only if you want
-            it.
+            clipboard, and validation. The twelve add-ons — fill handle,
+            undo/redo, presence, pinned rows, and more — are separate registry
+            items you install only if you want them.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
@@ -202,7 +423,7 @@ export default function HomePage() {
             <Link
               key={title}
               href={href}
-              className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card p-4 text-center text-sm text-card-foreground transition-colors hover:border-primary/50 hover:bg-muted"
+              className="flex flex-col items-center gap-2 border border-border bg-card p-4 text-center text-sm text-card-foreground transition-colors hover:border-primary/50 hover:bg-muted"
             >
               <Icon
                 className="size-5 text-muted-foreground"
