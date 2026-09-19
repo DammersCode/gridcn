@@ -344,20 +344,3 @@ div[style*="--callout-color"] {
 .hover\:bg-fd-accent\/80:hover {
   background-color: var(--color-fd-accent);
 }
-
-/* P2 frosted-glass text panels over the hero grid — real container, not a fade mask */
-.glass-panel,
-.glass-panel-pill {
-  position: relative;
-  background: color-mix(in oklab, var(--card) 55%, transparent);
-  /* Tailwind utility instead of a raw backdrop-filter declaration: Turbopack's lightningcss drops the raw property */
-  @apply backdrop-blur-[9px] backdrop-saturate-[1.1];
-  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
-  box-shadow: var(--shadow-paper-md);
-}
-.glass-panel {
-  border-radius: var(--radius-2xl);
-}
-.glass-panel-pill {
-  border-radius: var(--radius-4xl);
-}
