@@ -25,5 +25,12 @@ export default function proxy(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  if (request.nextUrl.pathname.startsWith(`${docsRoute}/`)) {
+    response.headers.append(
+      'Link',
+      `<${request.nextUrl.pathname}.md>; rel="alternate"; type="text/markdown", </llms.txt>; rel="describedby"`,
+    );
+  }
+  return response;
 }
