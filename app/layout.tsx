@@ -3,6 +3,7 @@ import './global.css';
 import { Inter, Geist } from 'next/font/google';
 import { cn } from "@/lib/utils";
 import { ReactGrabDev } from "@/components/react-grab-dev";
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -22,6 +23,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
       <body className="flex flex-col min-h-screen">
         <ReactGrabDev />
         <RootProvider>{children}</RootProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
