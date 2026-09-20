@@ -67,10 +67,8 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   const confirmTokenRef = useRef(0);
   /** Aborts the in-flight chunked build (large sync imports and async-schema imports alike) when Cancel is clicked or the dialog closes. */
   const abortControllerRef = useRef<AbortController | null>(null);
-  const { preview, error, isParsing, loadFile, setHasHeaderRow, setDelimiter, setMapping, reset, previewRows, importRows } =
+  const { preview, error, isParsing, loadFile, setHasHeaderRow, setDelimiter, setSheetName, setMapping, reset, previewRows, importRows } =
     useDataGridImportPreview(labels.io.columnFallback, importDefaults);
-  // Only sheet 1 is read, so a multi-sheet workbook needs saying so — silence imports the wrong sheet.
-  const usedSheet = preview?.sheetNames && preview.sheetNames.length > 1 ? preview.sheetNames[0] : undefined;
 
   useEffect(() => {
     if (open) return;
@@ -194,13 +192,24 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
                     </Select>
                   </label>
                 )}
+                {preview.sheetNames !== undefined && preview.sheetNames.length > 1 && (
+                  <label className="flex items-center gap-2 text-sm text-foreground">
+                    {labels.io.sheet}
+                    <Select value={preview.sheetName ?? preview.sheetNames[0]} onValueChange={(value) => void setSheetName(value as string)}>
+                      <SelectTrigger className="w-40" size="sm" aria-label={labels.io.sheet}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {preview.sheetNames.map((name) => (
+                          <SelectItem key={name} value={name} title={name}>
+                            {name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </label>
+                )}
               </div>
-
-              {usedSheet !== undefined && (
-                <p className="text-sm text-muted-foreground">
-                  {labels.io.multiSheetNotice(usedSheet, preview.sheetNames?.length ?? 0)}
-                </p>
-              )}
 
               <div className="flex min-w-0 flex-col gap-1">
                 <span className="text-sm font-medium text-foreground">{labels.io.mapColumns}</span>
@@ -295,9 +304,9 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
           <Button type="button" variant="outline" onClick={onCancel}>
             {labels.io.cancel}
           </Button>
-          <Button type="button" onClick={onConfirm} disabled={!preview || isParsing || isValidating}>
-            {labels.io.import}
-          </Button>
+            <Button type="button" onClick={onConfirm} disabled={!preview || importRows.length === 0 || isParsing || isValidating}>
+              {labels.io.import}
+            </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
