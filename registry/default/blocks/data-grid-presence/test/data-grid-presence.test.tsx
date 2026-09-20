@@ -13,6 +13,7 @@ import {
   gridAttrSelector,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPresence, useDataGridPresenceHighlights, type PresenceHighlightEntry, type PresenceStoreApi } from "../data-grid-presence";
+import { MAX_RESOLVED_RECTS, resolveHighlights } from "../presence-overlay";
 import type { GridRect } from "@/registry/default/blocks/data-grid/data-grid";
 
 type Row = { id: string; name: string; qty: number };
@@ -319,6 +320,260 @@ describe("multiplayer presence: rowId-native highlight resolution", () => {
     });
 
     expect(document.querySelectorAll(gridAttrSelector("presenceOverlay")).length).toBe(2);
+  });
+});
+
+/**
+ * rowId-native RANGE entries (G5): a multi-cell selection keyed by stable rowIds × columnIds.
+ * The plugin resolves each id at paint time and drops filtered-out / unknown ids, painting one
+ * rect per contiguous run of resolved rows × runs of resolved columns.
+ */
+describe("multiplayer presence: rowId-native range highlight resolution (G5)", () => {
+  it("paints a rowId-native range at the rows' current view positions", () => {
+    let setPresenceHighlights: ReturnType<typeof useDataGridPresence>["setPresenceHighlights"] | null = null;
+    function Harness() {
+      const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
+      setPresenceHighlights = setHighlights;
+      return (
+        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+          <DataGridRoot>
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+
+    render(<Harness />);
+    act(() => {
+      setPresenceHighlights!([{ id: "user-1", color: "rgb(1,2,3)", rowIds: ["1", "2"], columnIds: ["name", "qty"], label: "Ada" }]);
+    });
+
+    const overlays = document.querySelectorAll<HTMLElement>(gridAttrSelector("presenceOverlay"));
+    expect(overlays.length).toBe(1);
+    // rows "1".."2" -> view rows 1..2 (grid lines 2..4), both columns (grid lines 1..3 incl. colOffset)
+    expect(overlays[0]!.style.gridRowStart).toBe("2");
+    expect(overlays[0]!.style.gridRowEnd).toBe("4");
+    expect(overlays[0]!.style.gridColumnStart).toBe("1");
+    expect(overlays[0]!.style.gridColumnEnd).toBe("3");
+  });
+
+  it("fragments a rowId-native range into one rect per contiguous run when rows are not adjacent in the view", () => {
+    let setPresenceHighlights: ReturnType<typeof useDataGridPresence>["setPresenceHighlights"] | null = null;
+    function Harness() {
+      const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
+      setPresenceHighlights = setHighlights;
+      return (
+        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+          <DataGridRoot>
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+
+    render(<Harness />);
+    act(() => {
+      setPresenceHighlights!([{ id: "user-1", color: "rgb(1,2,3)", rowIds: ["0", "3"], columnIds: ["name"] }]);
+    });
+
+    const overlays = document.querySelectorAll<HTMLElement>(gridAttrSelector("presenceOverlay"));
+    expect(overlays.length).toBe(2);
+    expect(overlays[0]!.style.gridRowStart).toBe("1"); // view row 0
+    expect(overlays[1]!.style.gridRowStart).toBe("4"); // view row 3
+  });
+
+  it("drops a rowId-native range entry silently when every row is filtered out of the view", () => {
+    let setPresenceHighlights: ReturnType<typeof useDataGridPresence>["setPresenceHighlights"] | null = null;
+    let actionsRef: ReturnType<typeof useDataGridActions> | null = null;
+    function Harness() {
+      const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
+      setPresenceHighlights = setHighlights;
+      return (
+        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+          <ActionsCapture onReady={(actions) => (actionsRef = actions)} />
+          <DataGridRoot>
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+
+    render(<Harness />);
+    act(() => {
+      // every row except "Row 0" is filtered out; the range's rows "1" and "2" are both gone
+      actionsRef!.setFilters([{ columnId: "name", operator: "equals", value: "Row 0" }]);
+    });
+    act(() => {
+      setPresenceHighlights!([{ id: "user-1", color: "rgb(1,2,3)", rowIds: ["1", "2"], columnIds: ["name"] }]);
+    });
+
+    expect(document.querySelector(gridAttrSelector("presenceOverlay"))).toBeNull();
+  });
+
+  it("drops unknown columnIds and dev-warns once (range form), shrinking the range to the visible columns", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let setPresenceHighlights: ReturnType<typeof useDataGridPresence>["setPresenceHighlights"] | null = null;
+    function Harness() {
+      const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
+      setPresenceHighlights = setHighlights;
+      return (
+        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+          <DataGridRoot>
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+
+    render(<Harness />);
+    act(() => {
+      setPresenceHighlights!([{ id: "user-1", color: "rgb(1,2,3)", rowIds: ["0"], columnIds: ["name", "missing"] }]);
+    });
+
+    const overlays = document.querySelectorAll<HTMLElement>(gridAttrSelector("presenceOverlay"));
+    expect(overlays.length).toBe(1);
+    // "missing" dropped -> width 1: grid lines 1..2 (colOffset 1)
+    expect(overlays[0]!.style.gridColumnStart).toBe("1");
+    expect(overlays[0]!.style.gridColumnEnd).toBe("2");
+    // the plugin's once-wrapped callback dev-warns the unresolved column count (unlike the single-cell form's per-column warn)
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("user-1")).length).toBe(1);
+    warn.mockRestore();
+  });
+
+  it("deduplicates repeated rowIds and columnIds before painting", () => {
+    let setPresenceHighlights: ReturnType<typeof useDataGridPresence>["setPresenceHighlights"] | null = null;
+    function Harness() {
+      const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
+      setPresenceHighlights = setHighlights;
+      return (
+        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+          <DataGridRoot>
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+
+    render(<Harness />);
+    act(() => {
+      setPresenceHighlights!([{ id: "user-1", color: "rgb(1,2,3)", rowIds: ["1", "1", "2"], columnIds: ["name", "name"] }]);
+    });
+
+    const overlays = document.querySelectorAll<HTMLElement>(gridAttrSelector("presenceOverlay"));
+    expect(overlays.length).toBe(1);
+    expect(overlays[0]!.style.gridRowEnd).toBe("4"); // rows 1..2, not 1..4
+  });
+
+  it("drops a range entry with an empty rowIds or columnIds array and dev-warns (store-level validation)", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let setPresenceHighlights: ReturnType<typeof useDataGridPresence>["setPresenceHighlights"] | null = null;
+    let storeApi: PresenceStoreApi | null = null;
+    function Harness() {
+      const presence = useDataGridPresence();
+      setPresenceHighlights = presence.setPresenceHighlights;
+      storeApi = presence.storeApi;
+      return null;
+    }
+
+    render(<Harness />);
+    act(() => {
+      setPresenceHighlights!([
+        { id: "u1", color: "#f00", rowIds: [], columnIds: ["name"] },
+        { id: "u2", color: "#f00", rowIds: ["0"], columnIds: [] },
+      ]);
+    });
+
+    expect(storeApi!.getState().highlights).toHaveLength(0);
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("paint nothing")).length).toBe(2);
+    warn.mockRestore();
+  });
+
+  it("drops a range entry whose columnIds is not a string array and dev-warns (store-level validation)", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let setPresenceHighlights: ReturnType<typeof useDataGridPresence>["setPresenceHighlights"] | null = null;
+    let storeApi: PresenceStoreApi | null = null;
+    function Harness() {
+      const presence = useDataGridPresence();
+      setPresenceHighlights = presence.setPresenceHighlights;
+      storeApi = presence.storeApi;
+      return null;
+    }
+
+    render(<Harness />);
+    act(() => {
+      setPresenceHighlights!([{ id: "u1", color: "#f00", rowIds: ["0"], columnIds: "name" } as unknown as PresenceHighlightEntry]);
+    });
+
+    expect(storeApi!.getState().highlights).toHaveLength(0);
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("columnIds")).length).toBe(1);
+    warn.mockRestore();
+  });
+
+  it("caps one range entry at MAX_RESOLVED_RECTS fragments and reports the excess", () => {
+    // 1200 non-contiguous rows (evens only) x 1 column = 1200 fragments, above the budget
+    const rowIds = Array.from({ length: 1200 }, (_, i) => String(i * 2));
+    const rowIdToViewRow = new Map<string, number>(rowIds.map((id) => [id, Number(id)]));
+    const excess: [string, number, number][] = [];
+    const resolved = resolveHighlights(
+      [{ id: "u1", color: "#f00", rowIds, columnIds: ["name"] }],
+      rowIdToViewRow,
+      [{ id: "name" }],
+      undefined,
+      undefined,
+      (entry, kept, total) => excess.push([entry.id, kept, total]),
+    );
+    expect(resolved).toHaveLength(MAX_RESOLVED_RECTS);
+    expect(excess).toEqual([["u1", MAX_RESOLVED_RECTS, 1200]]);
+  });
+
+  it("reports unresolved columnIds of a range entry to the plugin's callback (the plugin dev-warns once)", () => {
+    const unresolved: [string, number][] = [];
+    const resolved = resolveHighlights(
+      [{ id: "u1", color: "#f00", rowIds: ["0"], columnIds: ["name", "missing"] }],
+      new Map([["0", 0]]),
+      [{ id: "name" }],
+      undefined,
+      (entry, count) => unresolved.push([entry.id, count]),
+    );
+    expect(resolved).toHaveLength(1);
+    expect(unresolved).toEqual([["u1", 1]]);
+  });
+
+  it("does not re-render a per-cell subscription when a rowId-native range highlight is set", () => {
+    let cellRenderCount = 0;
+    function CountingCell({ col, row: rowIndex }: { col: number; row: number }) {
+      useDataGridCellState({ col, row: rowIndex });
+      cellRenderCount += 1;
+      return null;
+    }
+    const MemoCountingCell = memo(CountingCell);
+
+    let setPresenceHighlights: ReturnType<typeof useDataGridPresence>["setPresenceHighlights"] | null = null;
+    function Harness() {
+      const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
+      setPresenceHighlights = setHighlights;
+      return (
+        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+          <DataGridRoot>
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+          <MemoCountingCell col={0} row={0} />
+        </DataGridProvider>
+      );
+    }
+
+    render(<Harness />);
+    const before = cellRenderCount;
+    act(() => {
+      setPresenceHighlights!([{ id: "user-1", color: "#f00", rowIds: ["0", "1"], columnIds: ["name", "qty"] }]);
+    });
+    expect(cellRenderCount).toBe(before);
   });
 });
 

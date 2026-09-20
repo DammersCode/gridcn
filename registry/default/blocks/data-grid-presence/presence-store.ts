@@ -14,9 +14,9 @@ import { isDev, type GridRect } from "@/registry/default/blocks/data-grid/data-g
 export type PresenceHighlight = {
   /**
    * Unique id PER ENTRY — the `id` must be unique per entry: a user with a multi-range selection
-   * sends one entry per range, each with its own id (used for chip dedupe). Entries are keyed by
-   * position, not id, so duplicate ids no longer break rendering — but they do break any
-   * per-user bookkeeping (e.g. clear-on-leave filtering).
+   * sends one entry per range, each with its own id. Entries are keyed by position, not id, so
+   * duplicate ids no longer break rendering — but they do break any per-user bookkeeping (e.g.
+   * clear-on-leave filtering).
    */
   id: string;
   /** Any CSS color; painted at fixed alpha for the fill, full opacity for the border/chip. */
@@ -44,8 +44,29 @@ export type RowIdPresenceHighlight = {
   label?: string;
 };
 
-/** Either coordinate form a highlight entry can take — {@link PresenceHighlight} (view-space rect) or {@link RowIdPresenceHighlight} (rowId-native single cell), distinguished by the presence of `rowId`. */
-export type PresenceHighlightEntry = PresenceHighlight | RowIdPresenceHighlight;
+/**
+ * rowId-native range alternative to {@link PresenceHighlight} (G5): a multi-cell selection keyed
+ * by stable rowIds × columnIds instead of a view-space rect. The plugin resolves every `rowId` ->
+ * view row and every `columnIds` -> view column itself at paint time, so a locally-active
+ * sort/filter never mispaints it; ids that fell out of the current view (filtered rows, hidden or
+ * unknown columns) are dropped, and the surviving cells paint as one rect per contiguous run of
+ * resolved rows × runs of resolved columns.
+ */
+export type RowIdRangePresenceHighlight = {
+  /** Unique id PER ENTRY — must be unique per entry (a multi-range selection sends one entry per range, each with its own id). */
+  id: string;
+  /** Any CSS color; painted at fixed alpha for the fill, full opacity for the border/chip. */
+  color: string;
+  /** Stable row ids of the selected rows; any order, duplicates allowed. */
+  rowIds: string[];
+  /** Stable column ids of the selected columns; any order, duplicates allowed. */
+  columnIds: string[];
+  /** Optional name chip anchored at each resolved fragment's top-left corner, only rendered while that corner is on-window. */
+  label?: string;
+};
+
+/** Any coordinate form a highlight entry can take — {@link PresenceHighlight} (view-space rect), {@link RowIdPresenceHighlight} (rowId-native single cell), or {@link RowIdRangePresenceHighlight} (rowId-native range), distinguished by `rowId` / `rowIds`. When an entry carries BOTH `rowId` and `rowIds`, the single-cell form wins. */
+export type PresenceHighlightEntry = PresenceHighlight | RowIdPresenceHighlight | RowIdRangePresenceHighlight;
 
 /**
  * True when `entry` is the rowId-native form — the discriminant used by the plugin to route to the
@@ -56,6 +77,17 @@ export type PresenceHighlightEntry = PresenceHighlight | RowIdPresenceHighlight;
 export function isRowIdPresenceHighlight(entry: PresenceHighlightEntry): entry is RowIdPresenceHighlight {
   const rowId = (entry as Partial<RowIdPresenceHighlight>).rowId;
   return typeof rowId === "string" && rowId.length > 0;
+}
+
+/**
+ * True when `entry` is the rowId-native RANGE form — the discriminant that routes it away from the
+ * single-cell and view-space paths. `rowIds` must be an ARRAY of strings: a missing/foreign
+ * `rowIds` is NOT the range form and falls through to the `rowId`/`range` checks instead of being
+ * misrouted.
+ */
+export function isRowIdRangePresenceHighlight(entry: PresenceHighlightEntry): entry is RowIdRangePresenceHighlight {
+  const rowIds = (entry as Partial<RowIdRangePresenceHighlight>).rowIds;
+  return Array.isArray(rowIds) && rowIds.every((id) => typeof id === "string");
 }
 
 /** A well-formed view-space `range`: all four coordinates finite (catches missing, null, and NaN). */
@@ -85,9 +117,11 @@ export type PresenceStoreApi = StoreApi<PresenceStoreState>;
  * One store instance per `useDataGridPresence()` call, mirroring core's one-store-per-grid pattern
  * (store.tsx's `createDataGridStore`). `setPresenceHighlights` REPLACES the whole list (snapshot
  * semantics) and validates/coerces foreign entries on the way in: malformed entries (non-object,
- * missing/malformed `range`) and rowId-native entries without a usable `columnId` are DROPPED with
- * a per-instance dev warning instead of painting garbage or failing silently. View-dependent drops
- * (rowId filtered out of view, hidden/unknown column) happen at resolve time in the plugin.
+ * missing/malformed `range`) and rowId-native entries without a usable `columnId` (single cell) or
+ * `columnIds` string array (range) are DROPPED with a per-instance dev warning instead of painting
+ * garbage or failing silently (same for range entries with empty `rowIds`/`columnIds` arrays).
+ * View-dependent drops (rowId filtered out of view, hidden/unknown column) happen at resolve
+ * time in the plugin.
  */
 export function createPresenceStore(): PresenceStoreApi {
   const warned = new Set<string>();
@@ -108,6 +142,18 @@ export function createPresenceStore(): PresenceStoreApi {
         if (isRowIdPresenceHighlight(entry)) {
           if (typeof entry.columnId !== "string" || entry.columnId.length === 0) {
             warnOnce(`columnId:${JSON.stringify(entry)}`, `setPresenceHighlights: dropped rowId-native entry "${entry.id}" — rowId-native entries need a non-empty columnId`);
+            continue;
+          }
+          cleaned.push(entry);
+          continue;
+        }
+        if (isRowIdRangePresenceHighlight(entry)) {
+          if (!Array.isArray(entry.columnIds) || !entry.columnIds.every((id) => typeof id === "string")) {
+            warnOnce(`rowRange:${JSON.stringify(entry)}`, `setPresenceHighlights: dropped rowId-native range entry "${entry.id}" — rowId-native range entries need a string array columnIds`);
+            continue;
+          }
+          if (entry.rowIds.length === 0 || entry.columnIds.length === 0) {
+            warnOnce(`emptyRowRange:${entry.id}`, `setPresenceHighlights: dropped rowId-native range entry "${entry.id}" — empty rowIds/columnIds paint nothing`);
             continue;
           }
           cleaned.push(entry);
