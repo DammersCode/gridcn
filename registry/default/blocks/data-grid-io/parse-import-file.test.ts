@@ -124,6 +124,7 @@ describe("parseImportFile — xlsx sheetNames (B6)", () => {
     const result = await freshParse(xlsxFile);
     expect(result.rows).toEqual([["summary-row"]]);
     expect(result.sheetNames).toEqual(["Summary", "Q3 Data"]);
+    expect(result.sheetName).toBe("Summary");
 
     vi.doUnmock("xlsx");
     vi.restoreAllMocks();
@@ -150,6 +151,67 @@ describe("parseImportFile — xlsx sheetNames (B6)", () => {
   it("csv results carry no sheetNames", async () => {
     const result = await parseImportFile(makeCsvFile("name\nAlice"));
     expect(result.sheetNames).toBeUndefined();
+  });
+});
+
+/** G4: a multi-sheet workbook can select its sheet instead of silently importing the first. */
+describe("parseImportFile — xlsx sheet selection (G4)", () => {
+  function mockWorkbook(sheetNames: string[], rowsBySheet: Record<string, string[][]>): void {
+    vi.resetModules();
+    const sheets: Record<string, { tag: string }> = {};
+    for (const name of sheetNames) sheets[name] = { tag: name };
+    vi.doMock("xlsx", () => ({
+      read: vi.fn(() => ({ SheetNames: sheetNames, Sheets: sheets })),
+      utils: { sheet_to_json: vi.fn((sheet: { tag: string }) => rowsBySheet[sheet.tag]) },
+    }));
+  }
+
+  function xlsxFile(): File {
+    return new File([new ArrayBuffer(8)], "workbook.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+  }
+
+  it("reports the first sheet's name as sheetName by default", async () => {
+    mockWorkbook(["Summary", "Q3 Data"], { Summary: [["summary-row"]], "Q3 Data": [["q3-row"]] });
+    const { parseImportFile: freshParse } = await import("./parse-import-file");
+    const result = await freshParse(xlsxFile());
+    expect(result.rows).toEqual([["summary-row"]]);
+    expect(result.sheetName).toBe("Summary");
+    expect(result.sheetNames).toEqual(["Summary", "Q3 Data"]);
+
+    vi.doUnmock("xlsx");
+    vi.restoreAllMocks();
+  });
+
+  it("parses the sheet named by the sheetName option", async () => {
+    mockWorkbook(["Summary", "Q3 Data"], { Summary: [["summary-row"]], "Q3 Data": [["q3-row"]] });
+    const { parseImportFile: freshParse } = await import("./parse-import-file");
+    const result = await freshParse(xlsxFile(), { sheetName: "Q3 Data" });
+    expect(result.rows).toEqual([["q3-row"]]);
+    expect(result.sheetName).toBe("Q3 Data");
+    expect(result.sheetNames).toEqual(["Summary", "Q3 Data"]);
+
+    vi.doUnmock("xlsx");
+    vi.restoreAllMocks();
+  });
+
+  it("rejects when the sheetName option names a sheet the workbook doesn't have", async () => {
+    mockWorkbook(["Summary"], { Summary: [["summary-row"]] });
+    const { parseImportFile: freshParse } = await import("./parse-import-file");
+    await expect(freshParse(xlsxFile(), { sheetName: "Missing" })).rejects.toThrow('unknown sheet "Missing"');
+
+    vi.doUnmock("xlsx");
+    vi.restoreAllMocks();
+  });
+
+  it("ignores the sheetName option for csv files", async () => {
+    const result = await parseImportFile(makeCsvFile("name\nAlice"), { sheetName: "Whatever" });
+    expect(result.sheetName).toBeUndefined();
+    expect(result.rows).toEqual([
+      ["name"],
+      ["Alice"],
+    ]);
   });
 });
 

@@ -67,8 +67,9 @@ export default function DataGridIODemo(): ReactNode {
   return (
     <div className="w-full flex flex-col gap-3">
       <p className="text-sm text-muted-foreground">
-        Export downloads the current view as a csv or xlsx file. Import accepts a csv or xlsx file,
-        lets you map its columns, and replaces the grid's rows with the result.
+        Export downloads the current view as a csv or xlsx file. Import accepts a csv or xlsx file
+        (a sheet picker appears for multi-sheet workbooks), lets you map its columns, and replaces
+        the grid's rows with the result.
       </p>
       <div className="flex h-[360px] flex-col overflow-hidden rounded-md border border-border">
         <DataGridProvider {...grid} columns={columns}>
