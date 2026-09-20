@@ -435,9 +435,10 @@ export type FilterSpec = { filterId?: string; columnId: string; operator: Filter
 
 /**
  * Named keyboard actions; bindings map keys to these (see `DEFAULT_KEYMAP` in
- * `keyboard/default-keymap.ts`). `editReplace` is structural only — the type-to-edit fallback's
- * marker in the key-matching layer — and has NO dispatch handler, so a `keymap` binding on it
- * never does anything; it cannot be remapped or used.
+ * `keyboard/default-keymap.ts`). `editReplace` (type-to-replace) has no `DEFAULT_KEYMAP` binding:
+ * by default any unbound printable key on an active cell dispatches it (Excel behavior, starting
+ * an edit seeded with the typed char). Defining `keymap.editReplace` takes the action over
+ * exclusively — `["F3"]` remaps the trigger (plain edit start, no char seed); `[]` disables it.
  */
 export type GridAction =
   | "moveUp" | "moveDown" | "moveLeft" | "moveRight"

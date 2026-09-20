@@ -11,7 +11,7 @@
   "files": [
     {
       "path": "registry/default/blocks/data-grid-history/data-grid-history.ts",
-      "content": "/** Public entry point — the only module consumers/docs should import from. */\n\nexport { useDataGridHistory, type UseDataGridHistoryOptions, type UseDataGridHistoryResult } from \"./use-data-grid-history\";\nexport { useDataGridState, type UseDataGridStateOptions, type UseDataGridStateResult } from \"./use-data-grid-state\";\n",
+      "content": "/** Public entry point — the only module consumers/docs should import from. */\r\n\r\nexport { useDataGridHistory, type UseDataGridHistoryOptions, type UseDataGridHistoryResult } from \"./use-data-grid-history\";\r\nexport { useDataGridState, type UseDataGridStateOptions, type UseDataGridStateResult } from \"./use-data-grid-state\";\r\n",
       "type": "registry:component",
       "target": "components/data-grid-history/data-grid-history.ts"
     },

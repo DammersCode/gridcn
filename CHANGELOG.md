@@ -55,6 +55,12 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   or edit resets the progression back to stage one.
 - The grid's empty-state text is now wired to `labels.grid.emptyState` (translatable), with the
   `emptyState` prop still taking precedence when provided.
+- Type-to-replace (Excel parity): typing a printable key on an active cell now starts an edit
+  seeded with the typed character (replace mode — the first character replaces the value, like
+  Excel). Behavior change: printable keys without a keymap binding used to be no-ops; define
+  `keymap.editReplace` (even `[]`) to take the action over and suppress the implicit fallback.
+  `editReplace` is a first-class remappable keymap action — a printable binding (e.g. a letter)
+  seeds the typed char, a non-printable binding (e.g. F3) starts a plain edit.
 
 ### Changed
 

@@ -141,6 +141,14 @@ keymap, but the list above includes them because the shortcuts dialog shows them
 `keymap` lives on `DataGridRoot` (or the `DataGrid` wrapper), not on `DataGridProvider`. This
 overrides only the actions you specify. Everything else falls back to `DEFAULT_KEYMAP`.
 
+The type-to-replace trigger (`editReplace`) is remapped the same way. By default it has no
+binding: any unbound printable key on the active cell dispatches it and opens the editor seeded
+with the typed character (Excel behavior). Defining it in `keymap` takes the action over
+exclusively — ANY `editReplace` binding suppresses the implicit printable-key fallback entirely,
+there is no additive mode: `keymap={{ editReplace: ["F3"] }}` means type-to-replace only happens
+on F3 (a plain edit start), and `keymap={{ editReplace: [] }}` disables it entirely. A printable
+key bound to `editReplace` (e.g. `"a"`) starts the edit seeded with that character, Excel-style.
+
 ## Two-stage Ctrl+A
 
 <Callout title="Two-stage select-all">
