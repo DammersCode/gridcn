@@ -26,8 +26,10 @@ export type ImportFileState = {
   importHeaders: string[];
   mapping: ImportColumnMapping[];
   delimiter?: CsvDelimiter;
-  /** Every sheet name in the workbook; `rows` came from the first. Undefined for CSV. Lets a consumer warn when a workbook has more than one sheet — first-sheet-only is silent otherwise. */
+  /** Every sheet name in the workbook. Undefined for CSV. Lets a consumer offer a sheet picker when a workbook has more than one sheet. */
   sheetNames?: string[];
+  /** The sheet `rows` came from (first by default, or the one selected via {@link UseDataGridImportPreviewResult.setSheetName}). Undefined for CSV. */
+  sheetName?: string;
 };
 
 /** Return value of {@link useDataGridImportPreview}. */
@@ -41,6 +43,12 @@ export type UseDataGridImportPreviewResult = {
   setHasHeaderRow: (hasHeaderRow: boolean) => void;
   /** Re-parses the current CSV file with the given delimiter override; no-op for xlsx/xls files or before a file is loaded. */
   setDelimiter: (delimiter: CsvDelimiter) => Promise<void>;
+  /**
+   * Re-parses the current xlsx/xls workbook with the given sheet; no-op for CSV or before a file
+   * is loaded. Switching sheets recomputes the column mapping from scratch (different headers), so
+   * any manual mapping the user set on the previous sheet is discarded.
+   */
+  setSheetName: (sheetName: string) => Promise<void>;
   setMapping: (importColumnIndex: number, gridColumnId: string | null) => void;
   reset: () => void;
   /** Data rows only (header row excluded when `hasHeaderRow`), capped to `IMPORT_PREVIEW_ROW_COUNT` for the preview table. */
@@ -80,6 +88,8 @@ export function useDataGridImportPreview(
   // kept for delimiter-override re-parses, which need the original file + target columns again.
   const currentFileRef = useRef<File | null>(null);
   const gridColumnsRef = useRef<readonly ImportTargetColumn[]>([]);
+  // generation guard for async sheet re-parses: a newer switch must win over a slower older one.
+  const sheetGenerationRef = useRef(0);
   const { defaultHeaderRow = true, defaultSkipColumns, mapColumn } = options;
 
   const reset = useCallback(() => {
@@ -113,6 +123,7 @@ export function useDataGridImportPreview(
         mapping: matched.map((gridColumnId, importColumnIndex) => ({ importColumnIndex, gridColumnId })),
         delimiter: parsed.delimiter,
         sheetNames: parsed.sheetNames,
+        sheetName: parsed.sheetName,
       });
     } catch (err) {
       const isUnsupportedType = err instanceof Error && err.message === UNSUPPORTED_FILE_TYPE_MESSAGE;
@@ -157,6 +168,45 @@ export function useDataGridImportPreview(
     [columnFallback, defaultSkipColumns, mapColumn],
   );
 
+  const setSheetName = useCallback(
+    async (sheetName: string) => {
+      const file = currentFileRef.current;
+      if (!file) return;
+      const generation = ++sheetGenerationRef.current;
+      setError(null);
+      setIsParsing(true);
+      try {
+        const parsed = await parseImportFile(file, { sheetName });
+        if (generation !== sheetGenerationRef.current) return; // superseded by a newer sheet switch
+        if (parsed.rows.length === 0) {
+          // empty sheet: the picker keeps the chosen name honest, the preview clears, Import stays disabled
+          setPreview((prev) =>
+            prev ? { ...prev, rows: [], importHeaders: [], mapping: [], sheetName: parsed.sheetName ?? sheetName } : prev,
+          );
+          setError("errorNoRows");
+          return;
+        }
+        setPreview((prev) => {
+          if (!prev) return prev;
+          const importHeaders = computeImportHeaders(parsed.rows, prev.hasHeaderRow, columnFallback);
+          const matched = applyImportOptions(importHeaders, gridColumnsRef.current, { defaultSkipColumns, mapColumn });
+          return {
+            ...prev,
+            rows: parsed.rows,
+            importHeaders,
+            sheetName: parsed.sheetName,
+            mapping: matched.map((gridColumnId, importColumnIndex) => ({ importColumnIndex, gridColumnId })),
+          };
+        });
+      } catch {
+        if (generation === sheetGenerationRef.current) setError("errorParseFailed");
+      } finally {
+        if (generation === sheetGenerationRef.current) setIsParsing(false);
+      }
+    },
+    [columnFallback, defaultSkipColumns, mapColumn],
+  );
+
   const setMapping = useCallback((importColumnIndex: number, gridColumnId: string | null) => {
     setPreview((prev) => {
       if (!prev) return prev;
@@ -172,5 +222,5 @@ export function useDataGridImportPreview(
 
   const previewRows = useMemo(() => importRows.slice(0, IMPORT_PREVIEW_ROW_COUNT), [importRows]);
 
-  return { preview, error, isParsing, loadFile, setHasHeaderRow, setDelimiter, setMapping, reset, previewRows, importRows };
+  return { preview, error, isParsing, loadFile, setHasHeaderRow, setDelimiter, setSheetName, setMapping, reset, previewRows, importRows };
 }

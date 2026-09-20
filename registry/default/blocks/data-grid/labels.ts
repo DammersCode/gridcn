@@ -175,8 +175,8 @@ export type DataGridIOLabels = {
   skipColumnQuick: string;
   preview: string;
   previewTruncated: (shown: number, total: number) => string;
-  /** Shown when an imported workbook had more than one sheet — only the first is read. */
-  multiSheetNotice: (usedSheet: string, total: number) => string;
+  /** Label of the sheet picker shown when an imported workbook has more than one sheet. */
+  sheet: string;
   import: string;
   cancel: string;
   errorParseFailed: string;
@@ -397,7 +397,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     skipColumnQuick: "Skip column",
     preview: "Preview",
     previewTruncated: (shown, total) => `Showing ${shown} of ${total} rows`,
-    multiSheetNotice: (usedSheet, total) => `This file has ${total} sheets. Importing "${usedSheet}" only.`,
+    sheet: "Sheet",
     import: "Import",
     cancel: "Cancel",
     errorParseFailed: "Could not read this file.",

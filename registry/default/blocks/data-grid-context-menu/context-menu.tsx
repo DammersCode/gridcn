@@ -46,6 +46,10 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
   selectionRef.current = selection;
   const [target, setTarget] = useState<ContextMenuTarget | null>(null);
   const targetRef = useRef<ContextMenuTarget | null>(null);
+  // Lives here (not in the menu content) because the content portals and unmounts on close —
+  // a permission-denied paste result must survive the close/reopen cycle to keep showing the
+  // "use Ctrl+V" hint on the next open.
+  const [pasteBlocked, setPasteBlocked] = useState(false);
 
   // Captured at contextmenu time (not via useDataGridContainer): ContextMenuContent portals to
   // document.body, outside DataGridRoot's subtree, so its children can't reach the root context.
@@ -75,7 +79,13 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
       </ContextMenuTrigger>
       <ContextMenuContent data-grid-context-menu="">
         {target?.kind === "cell" && (
-          <DataGridCellMenuContent row={target.row} canInsertRow={canInsertRow} canDuplicateRow={canDuplicateRow} />
+          <DataGridCellMenuContent
+            row={target.row}
+            canInsertRow={canInsertRow}
+            canDuplicateRow={canDuplicateRow}
+            pasteBlocked={pasteBlocked}
+            onPasteBlocked={() => setPasteBlocked(true)}
+          />
         )}
         {target?.kind === "header" && (
           <DataGridHeaderMenuContent columnId={target.columnId} scrollRoot={scrollRootRef.current} />

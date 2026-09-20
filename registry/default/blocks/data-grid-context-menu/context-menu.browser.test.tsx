@@ -1,5 +1,5 @@
 import { page } from "vitest/browser";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import {
   DataGridProvider,
@@ -310,5 +310,38 @@ describe("DataGridContextMenu — pinned-top rows (workplan #84)", () => {
     rightClick(pinnedCell);
     await new Promise((r) => setTimeout(r, 100));
     expect(document.querySelectorAll('[role="menu"]').length).toBe(0);
+  });
+});
+
+// G9 (non-secure context, e.g. plain http on a customer LAN): `navigator.clipboard` is undefined,
+// so `pasteFromClipboard()` rejects with `permission-denied`. The blocked state must survive the
+// menu close/reopen cycle — the menu content portals and unmounts, so per-mount state would leave
+// the user with a silently no-op Paste item and no hint.
+describe("DataGridContextMenu — paste permission-denied survives menu reopen (G9)", () => {
+  afterEach(() => {
+    delete (navigator as unknown as { clipboard?: unknown }).clipboard;
+  });
+
+  it("Paste stays aria-disabled with the Ctrl+V hint after a permission-denied result, across a reopen", async () => {
+    Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true });
+    renderGrid();
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    rightClick(gridCell("Alice", "name"));
+    await vi.waitFor(() => expect(menuItem("Paste")).toBeTruthy());
+    menuItem("Paste")!.click();
+    await vi.waitFor(() => expect(document.querySelectorAll('[role="menu"]').length).toBe(0));
+    // nothing may have been applied (no silent partial paste)
+    expect(gridCell("Alice", "name").textContent).toContain("Alice");
+
+    rightClick(gridCell("Alice", "name"));
+    await vi.waitFor(() => expect(menuItem("Paste")).toBeTruthy());
+    const paste = menuItem("Paste")!;
+    expect(paste.getAttribute("aria-disabled")).toBe("true");
+
+    // the tooltip also opens on keyboard focus (base-ui focus interaction) — the only hover the
+    // synthetic-event test setup can drive reliably (floating-ui's hover needs a live pointer)
+    paste.focus();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("requires clipboard permission — use Ctrl+V"));
   });
 });

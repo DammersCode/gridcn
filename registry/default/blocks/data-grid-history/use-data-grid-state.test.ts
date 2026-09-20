@@ -82,6 +82,29 @@ describe("useDataGridState", () => {
     expect(result.current.data).toBe(dataAfterMount);
   });
 
+  it("history.record applies a programmatic change to the hook-owned data as one undo step", () => {
+    const { result, rerender } = renderHook(() => useDataGridState(defaultRows, { getRowId: (r) => r.id }));
+    const prev = defaultRows[0]!;
+    const next = { ...prev, name: "Zoe" };
+    act(() =>
+      result.current.history.record({
+        source: "app",
+        ops: [{ type: "update", rowId: "a", row: next, prev, cells: [{ columnId: "name", value: "Zoe", prev: "Alice" }] }],
+      }),
+    );
+    rerender();
+    expect(result.current.data[0]!.name).toBe("Zoe");
+    expect(result.current.history.canUndo).toBe(true);
+
+    act(() => result.current.onUndo());
+    rerender();
+    expect(result.current.data[0]!.name).toBe("Alice");
+
+    act(() => result.current.onRedo());
+    rerender();
+    expect(result.current.data[0]!.name).toBe("Zoe");
+  });
+
   // B9 regression: an unstable getRowId defeats useDataGridRowIdToViewRow's memoization (O(n) Map
   // rebuild on every render) — see #92. getRowId must keep the same identity across re-renders as
   // long as the consumer's own getRowId does (here held stable across renders, as any memoizing

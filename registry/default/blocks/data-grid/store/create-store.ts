@@ -48,7 +48,7 @@ import {
   computeCommit,
   computeDeleteBatch,
   computeDuplicateBatch,
-  computeInsertBatch,
+  computeInsertRowsBatch,
   computeRowEditsBatch,
   patchesNeedAsyncCheck,
   prevalidatePatches,
@@ -753,31 +753,39 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         });
       },
       insertRow(viewRowIndex, position) {
+        // single implementation path: the 1-row case of the batch action (same one undo step).
+        get().actions.insertRows(viewRowIndex, 1, position);
+      },
+      insertRows(viewRowIndex, count, position = "below") {
         const s = get();
         if (s.readOnly) return;
         if (!s.createRow) {
-          warnDev("insertRow is a no-op because no `createRow` prop was provided");
+          warnDev("row insertion is a no-op because no `createRow` prop was provided");
           return;
         }
-        // an out-of-range viewRowIndex (e.g. empty view) inserts at the start/end of the data array.
+        if (count <= 0 || !Number.isInteger(count)) {
+          if (count > 0) warnDev(`insertRows: count must be an integer (got ${count})`);
+          return;
+        }
         const dataRowIndex = clampIndex(
           position === "above" ? (s.viewIndex[viewRowIndex] ?? s.data.length) : (s.viewIndex[viewRowIndex] ?? s.data.length - 1) + 1,
           s.data.length,
         );
-        const row = s.createRow(dataRowIndex);
-        const batch = computeInsertBatch(s, dataRowIndex, row);
+        const rows: unknown[] = [];
+        for (let i = 0; i < count; i++) rows.push(s.createRow(dataRowIndex + i));
+        const batch = computeInsertRowsBatch(s, dataRowIndex, rows);
         rowIndexCache.invalidate();
         forgetDeferredRows();
         lastEmittedData = batch.nextData;
         s.onDataChange?.(batch.nextData, { source: "row-op", ops: batch.ops });
-        // the new row lands at this view index (absent a resort); shift selection/activeCell to follow it.
+        // the new rows land at this view index (absent a resort); shift selection/activeCell to follow them.
         const viewInsertAt = position === "above" ? viewRowIndex : viewRowIndex + 1;
         set({
           data: batch.nextData,
           cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
-          selection: offsetSelectionForRows(s.selection, viewInsertAt, 1),
+          selection: offsetSelectionForRows(s.selection, viewInsertAt, count),
           activeCell: s.activeCell && s.activeCell.row >= viewInsertAt
-            ? { ...s.activeCell, row: s.activeCell.row + 1 }
+            ? { ...s.activeCell, row: s.activeCell.row + count }
             : s.activeCell,
         });
       },

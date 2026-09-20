@@ -38,7 +38,7 @@ describe("DEFAULT_LABELS", () => {
     expect(DEFAULT_LABELS.io.columnFallback(3)).toBe("Column 3");
     expect(DEFAULT_LABELS.io.mapColumnAriaLabel("Email")).toBe('Map "Email" to grid column');
     expect(DEFAULT_LABELS.io.previewTruncated(50, 1000)).toBe("Showing 50 of 1000 rows");
-    expect(DEFAULT_LABELS.io.multiSheetNotice("Sheet1", 2)).toBe('This file has 2 sheets. Importing "Sheet1" only.');
+    expect(DEFAULT_LABELS.io.sheet).toBe("Sheet");
   });
 });
 

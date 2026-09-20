@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { DataChange } from "@/registry/default/blocks/data-grid/data-grid";
+import { applyChange, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridHistory } from "./use-data-grid-history";
 
 /** Options for {@link useDataGridState}. */
@@ -24,7 +24,19 @@ export type UseDataGridStateResult<TData> = {
    * spreadable top level, to avoid a future prop-name collision on the `<DataGrid {...grid} />`
    * spread.
    */
-  history: { canUndo: boolean; canRedo: boolean; undo: () => void; redo: () => void; clear: () => void };
+  history: {
+    canUndo: boolean;
+    canRedo: boolean;
+    undo: () => void;
+    redo: () => void;
+    clear: () => void;
+    /**
+     * Applies a programmatic change (the consumer-built op batch) to the hook-owned data AND
+     * registers it as one undo entry - unlike the bare `useDataGridHistory` `record`, which only
+     * registers, because here the hook owns the array and the consumer has no other write path.
+     */
+    record: (change: DataChange<TData>, label?: string) => void;
+  };
 };
 
 /**
@@ -47,7 +59,7 @@ export function useDataGridState<TData>(
 ): UseDataGridStateResult<TData> {
   const { getRowId, capacity } = opts;
   const [data, setData] = useState<readonly TData[]>(defaultRows);
-  const { onDataChange, undo, redo, canUndo, canRedo, clear } = useDataGridHistory({
+  const { onDataChange, undo, redo, canUndo, canRedo, clear, record: historyRecord } = useDataGridHistory({
     data,
     setData,
     getRowId,
@@ -56,12 +68,21 @@ export function useDataGridState<TData>(
   // stable identity: useDataGridRowIdToViewRow keys its O(n) Map build on getRowId identity.
   const gridGetRowId = useCallback((row: TData, index: number) => getRowId(row, index), [getRowId]);
 
+  const record = useCallback(
+    (change: DataChange<TData>, label?: string) => {
+      const tagged = label ? { ...change, label } : change;
+      setData((current) => applyChange(current, tagged, gridGetRowId));
+      historyRecord(tagged);
+    },
+    [historyRecord, gridGetRowId],
+  );
+
   return {
     data,
     getRowId: gridGetRowId,
     onDataChange,
     onUndo: undo,
     onRedo: redo,
-    history: { canUndo, canRedo, undo, redo, clear },
+    history: { canUndo, canRedo, undo, redo, clear, record },
   };
 }

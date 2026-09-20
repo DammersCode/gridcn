@@ -82,7 +82,42 @@ const { onDataChange, undo, redo, canUndo, canRedo } = useDataGridHistory({
 >
 ```
 
+## Programmatic changes: `record`
+
+Changes your own app makes — setting the row count, adding a column, rolling back a batch save —
+are not gestures, so they never reach `onDataChange`. Register them as a single undo entry with
+`record`, passing the id-keyed op batch for the change:
+
+```tsx
+const { onDataChange, undo, redo, canUndo, canRedo, record } = useDataGridHistory({
+  data,
+  setData,
+  getRowId: (row) => row.id,
+});
+
+// the app applies its own change, then registers it as ONE undo step:
+setData((rows) => [...rows, extraRow]);
+record(
+  {
+    source: "app",
+    ops: [{ type: "insert", rowId: extraRow.id, row: extraRow, index: data.length }],
+  },
+  "Add row", // optional entry label
+);
+```
+
+<Callout type="warn" title="Two `record`s, one caveat">
+  The same name behaves differently per hook: `useDataGridHistory.record` is register-only (you
+  applied the change to your own array), while `useDataGridState.history.record` applies the batch
+  to the hook-owned data AND registers it. If you let the hook own the data, the plain
+  `onDataChange(next, { source: "app", ops })` call already records the change — `record()` is
+  only needed when the consumer wrote the array itself first. The `label` is write-only for now:
+  it survives undo/redo with the entry, but there is no API to read stack entries back yet.
+</Callout>
+
 ## Capped stack
 
 Pass `capacity` to either hook to bound memory on long editing sessions. The oldest entries drop
-once the stack exceeds it. Omit `capacity` for a generous default.
+once the stack exceeds it. Omit `capacity` for a generous default. `capacity` counts ENTRIES, not
+ops: a `record()`/`insertRows` batch of 10,000 ops is one entry, but it does hold 10,000 op
+wrappers for the life of the stack.

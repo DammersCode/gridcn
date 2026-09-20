@@ -563,11 +563,19 @@ export type DataGridActions = {
   /** Rebuilds the view index that a deferred `updateCells` postponed, and clears `viewStale`. No-op when the view is not stale. */
   reconcileView(): void;
   /**
-   * Inserts one row built by the `createRow` sync prop above/below `viewRowIndex` (view-space),
-   * emitting one `{source: 'row-op'}` DataChange with an id-keyed `insert` op. Dev-warning no-op
-   * when `createRow` is absent (PLAN §8 extension point a).
+   * Inserts one row built by the `createRow` sync prop above/below `viewRowIndex` (view-space).
+   * External name that maps to the single internal batch path - it runs
+   * {@link insertRows} with count 1, so both share one implementation, one `onDataChange`,
+   * and one undo step.
    */
   insertRow(viewRowIndex: number, position: "above" | "below"): void;
+  /**
+   * Inserts `count` rows built by the `createRow` sync prop (called with `dataRowIndex + i`)
+   * above/below `viewRowIndex` (view-space) as ONE `{source: 'row-op'}` DataChange with one
+   * id-keyed `insert` op per row - a single undo entry. Dev-warning no-op when `createRow` is
+   * absent; silent no-op for `count <= 0`.
+   */
+  insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): void;
   /** Deletes the rows at `viewRowIndexes` (view-space) as one `{source: 'row-op'}` DataChange with id-keyed `delete` ops. */
   deleteRows(viewRowIndexes: number[]): void;
   /**

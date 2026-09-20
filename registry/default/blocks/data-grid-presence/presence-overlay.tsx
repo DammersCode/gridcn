@@ -1,11 +1,21 @@
 "use client";
 
-import { Fragment, type CSSProperties, type ReactNode } from "react";
+import { Fragment, memo, type CSSProperties, type ReactNode } from "react";
 import { GRID_LAYER, type GridRect, type OverlayPluginCtx } from "@/registry/default/blocks/data-grid/data-grid";
-import { isRowIdPresenceHighlight, type PresenceHighlight, type PresenceHighlightEntry, type RowIdPresenceHighlight } from "./presence-store";
+import {
+  isRowIdPresenceHighlight,
+  isRowIdRangePresenceHighlight,
+  type PresenceHighlight,
+  type PresenceHighlightEntry,
+  type RowIdPresenceHighlight,
+  type RowIdRangePresenceHighlight,
+} from "./presence-store";
 
-/** One remote user's selection-range fill + border, grid-line placed like core's own RangeOverlay; color comes from the highlight itself via `--presence-color`, not a shadcn token. */
-function PresenceHighlightOverlay({
+/** Hard cap on the rects ONE range entry may paint (per contiguous fragment): a remote selection of scattered rows must not turn the overlay layer into thousands of divs. Excess fragments are dropped with a dev warning via `onExcessRects`. */
+export const MAX_RESOLVED_RECTS = 1024;
+
+/** One remote user's selection-range fill + border, grid-line placed like core's own RangeOverlay; color comes from the highlight itself via `--presence-color`, not a shadcn token. Memoized: the resolved rects keep identity across overlay renders (see `makePresencePlugin`'s memo), so an unchanged highlight never re-renders its divs on a local keystroke. */
+const PresenceHighlightOverlay = memo(function PresenceHighlightOverlay({
   rect,
   color,
   windowStart,
@@ -37,10 +47,10 @@ function PresenceHighlightOverlay({
       } as CSSProperties}
     />
   );
-}
+});
 
-/** The remote user's name chip, anchored at a highlight range's top-left VISIBLE corner — only rendered by the caller when that corner survives the window clamp. */
-function PresenceLabelChip({
+/** The remote user's name chip, anchored at a highlight range's top-left VISIBLE corner — only rendered by the caller when that corner survives the window clamp. Memoized like the overlay node. */
+const PresenceLabelChip = memo(function PresenceLabelChip({
   rect,
   color,
   label,
@@ -77,51 +87,107 @@ function PresenceLabelChip({
       </span>
     </div>
   );
-}
+});
 
 /**
- * Resolves every rowId-native entry to a view-space {@link PresenceHighlight}
- * (2026-08-02 optimization audit, "rowId-native presence adapter") using a `rowId -> view row` map
- * the caller already built via `useDataGridRowIdToViewRow()` — the same O(1)-after-build map core's
- * own presence docs now point consumers at instead of the DIY `useShallow`-over-`useDataGridRowIds`
- * pattern. An entry whose `rowId` isn't in the current view (filtered out) is dropped silently,
- * matching the manual mapping's documented contract. Column resolution is a plain linear scan over
+ * Resolves every rowId-native entry to view-space {@link PresenceHighlight}s using a
+ * `rowId -> view row` map the caller already built via `useDataGridRowIdToViewRow()` — the same
+ * O(1)-after-build map core's own presence docs now point consumers at instead of the DIY
+ * `useShallow`-over-`useDataGridRowIds` pattern. A single-cell entry resolves to a 1×1 rect; a
+ * range entry (G5) resolves every rowId/columnId and paints one rect per contiguous run of
+ * resolved rows × runs of resolved columns. Column resolution is a plain linear scan over
  * `visibleColumns` — presence highlight counts are small (a handful of remote cursors, not a
  * per-row structure), so this never needs a Map. Pure (no hooks) so it can be called from either
  * the plugin closure or a test, independent of React's rules-of-hooks call-site constraints.
  *
  * Drops: a rowId that fell out of the current view (filtered out) is dropped SILENTLY — that's the
- * documented rowId-native contract. A `columnId` that resolves to no visible column (hidden or
- * unknown) is dropped with a dev warning via `onDroppedColumn` (the plugin passes a per-instance
- * once-wrapped callback, so a persistently hidden column doesn't re-warn on every overlay render).
+ * documented rowId-native contract. A `columnId` (single-cell form) or `columnIds` element (range
+ * form) that resolves to no visible column is dev-warned via `onDroppedColumn` /
+ * `onUnresolvedColumns` (the plugin passes per-instance once-wrapped callbacks, so a persistently
+ * hidden column doesn't re-warn on every overlay render).
+ *
+ * Bounds: one range entry paints at most {@link MAX_RESOLVED_RECTS} fragments; the excess is
+ * dropped with a dev warning via `onExcessRects` (the resolved array is memoized per
+ * (entries, view) pair by the plugin, so this math runs once per actual change, not per render).
  */
 export function resolveHighlights(
   entries: readonly PresenceHighlightEntry[],
   rowIdToViewRow: ReadonlyMap<string, number>,
   visibleColumns: readonly { id: string }[],
   onDroppedColumn?: (entry: RowIdPresenceHighlight) => void,
+  onUnresolvedColumns?: (entry: RowIdRangePresenceHighlight, unresolvedCount: number) => void,
+  onExcessRects?: (entry: RowIdRangePresenceHighlight, kept: number, total: number) => void,
 ): PresenceHighlight[] {
   const resolved: PresenceHighlight[] = [];
   for (const entry of entries) {
-    if (!isRowIdPresenceHighlight(entry)) {
-      resolved.push(entry);
+    if (isRowIdPresenceHighlight(entry)) {
+      const viewRow = rowIdToViewRow.get(entry.rowId);
+      if (viewRow === undefined) continue;
+      const col = visibleColumns.findIndex((c) => c.id === entry.columnId);
+      if (col === -1) {
+        onDroppedColumn?.(entry);
+        continue;
+      }
+      resolved.push({
+        id: entry.id,
+        color: entry.color,
+        range: { x: col, y: viewRow, width: 1, height: 1 },
+        label: entry.label,
+      });
       continue;
     }
-    const viewRow = rowIdToViewRow.get(entry.rowId);
-    if (viewRow === undefined) continue;
-    const col = visibleColumns.findIndex((c) => c.id === entry.columnId);
-    if (col === -1) {
-      onDroppedColumn?.(entry);
+    if (isRowIdRangePresenceHighlight(entry)) {
+      const viewRows = entry.rowIds.map((rowId) => rowIdToViewRow.get(rowId)).filter((v): v is number => v !== undefined);
+      const colIndexes = entry.columnIds.map((columnId) => visibleColumns.findIndex((c) => c.id === columnId));
+      const viewCols = colIndexes.filter((col) => col !== -1);
+      if (viewRows.length === 0 || viewCols.length === 0) continue;
+      if (colIndexes.some((col) => col === -1)) {
+        onUnresolvedColumns?.(entry, colIndexes.filter((col) => col === -1).length);
+      }
+      const rowRuns = contiguousRuns(viewRows);
+      const colRuns = contiguousRuns(viewCols);
+      const total = rowRuns.length * colRuns.length;
+      let painted = 0;
+      let capped = false;
+      for (const rowRun of rowRuns) {
+        for (const colRun of colRuns) {
+          if (painted === MAX_RESOLVED_RECTS) {
+            capped = true;
+            break;
+          }
+          resolved.push({
+            id: entry.id,
+            color: entry.color,
+            range: { x: colRun.min, y: rowRun.min, width: colRun.length, height: rowRun.length },
+            label: entry.label,
+          });
+          painted += 1;
+        }
+        if (capped) break;
+      }
+      if (capped) onExcessRects?.(entry, MAX_RESOLVED_RECTS, total);
       continue;
     }
-    resolved.push({
-      id: entry.id,
-      color: entry.color,
-      range: { x: col, y: viewRow, width: 1, height: 1 },
-      label: entry.label,
-    });
+    resolved.push(entry);
   }
   return resolved;
+}
+
+/** Ascending runs of contiguity in a number list: [0, 1, 3] -> [{ min: 0, length: 2 }, { min: 3, length: 1 }]; duplicates collapse. */
+function contiguousRuns(values: number[]): { min: number; length: number }[] {
+  const runs: { min: number; length: number }[] = [];
+  let start = Number.POSITIVE_INFINITY;
+  let prev = Number.NEGATIVE_INFINITY;
+  for (const v of [...values].sort((a, b) => a - b)) {
+    if (v === prev) continue;
+    if (v !== prev + 1) {
+      if (start !== Number.POSITIVE_INFINITY) runs.push({ min: start, length: prev - start + 1 });
+      start = v;
+    }
+    prev = v;
+  }
+  if (start !== Number.POSITIVE_INFINITY) runs.push({ min: start, length: prev - start + 1 });
+  return runs;
 }
 
 /**

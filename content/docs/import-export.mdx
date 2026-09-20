@@ -85,7 +85,7 @@ cell range that covers part of a row still exports that row in full.
 (`fromText` per cell type of the target column):
 
 <Steps>
-  <Step>Choose a file: CSV/TSV or xlsx/xls. A workbook with more than one sheet imports the first, and the dialog names it.</Step>
+  <Step>Choose a file: CSV/TSV or xlsx/xls. A multi-sheet workbook opens on its first sheet, and a sheet picker in the dialog switches it before you confirm.</Step>
   <Step>If the file has a header row, toggle "first row is a header".</Step>
   <Step>Pick a CSV delimiter (auto-detected by default).</Step>
   <Step>Map each source column to a grid column, or skip it.</Step>
@@ -144,6 +144,23 @@ one step. The button hides once the column is already skipped.
 build custom UI instead of using the provided buttons and dialog. `parseImportFile`,
 `matchImportColumns`, `applyImportOptions`, and `buildImportedRows` are the pure functions
 underneath, for when you need to parse or map outside a React component entirely.
+
+`parseImportFile` takes a `sheetName` option for workbooks with more than one sheet; without it,
+the first sheet is used and an unknown `sheetName` rejects. The result's `sheetNames`/`sheetName`
+tell you what was in the workbook and which one you got. Switching sheets (the dialog's picker or
+`setSheetName`) re-parses the workbook and recomputes the column mapping from scratch — any manual
+mapping set on the previous sheet is discarded. Picking an empty sheet clears the preview, shows
+the "no rows" error, and disables the Import button:
+
+```tsx
+// import a specific sheet of a multi-sheet workbook
+const { rows, sheetNames } = await parseImportFile(file, { sheetName: "Q3 Data" });
+
+// loop over every sheet, e.g. to import each one into its own grid
+for (const name of sheetNames ?? []) {
+  const parsed = await parseImportFile(file, { sheetName: name });
+}
+```
 
 ```tsx
 const rows = await buildImportedRows({ dataRows, mapping, columns, cellTypes, createRow, signal });
