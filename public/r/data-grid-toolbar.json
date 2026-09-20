@@ -20,13 +20,13 @@
   "files": [
     {
       "path": "registry/default/blocks/data-grid-toolbar/data-grid-toolbar.ts",
-      "content": "/** Public entry point — the only module consumers/docs should import from. */\n\nexport { DataGridToolbar, type DataGridToolbarProps } from \"./toolbar\";\nexport { DataGridSearch, type DataGridSearchProps } from \"./search\";\nexport { DataGridFilterMenu, type DataGridFilterMenuProps } from \"./filter-menu\";\nexport { DataGridColumnsMenu, type DataGridColumnsMenuProps } from \"./columns-menu\";\nexport { operatorsForColumnType, operatorLabel, operatorHasValue } from \"./operators-for-column-type\";\n",
+      "content": "/** Public entry point — the only module consumers/docs should import from. */\r\n\r\nexport { DataGridToolbar, type DataGridToolbarProps } from \"./toolbar\";\r\nexport { DataGridSearch, type DataGridSearchProps } from \"./search\";\r\nexport { DataGridFilterMenu, type DataGridFilterMenuProps } from \"./filter-menu\";\r\nexport { DataGridColumnsMenu, type DataGridColumnsMenuProps } from \"./columns-menu\";\r\nexport { operatorsForColumnType, operatorLabel, operatorHasValue } from \"./operators-for-column-type\";\r\n",
       "type": "registry:component",
       "target": "components/data-grid-toolbar/data-grid-toolbar.ts"
     },
     {
       "path": "registry/default/blocks/data-grid-toolbar/toolbar.tsx",
-      "content": "import type { ReactNode } from \"react\";\nimport { cn } from \"@/lib/utils\";\n\n/** Props for {@link DataGridToolbar}. */\nexport type DataGridToolbarProps = {\n  className?: string;\n  children?: ReactNode;\n};\n\n/**\n * Flex frame for the grid's toolbar slots (search, filter menu, columns menu, custom buttons).\n * Consumers place it above `<DataGridRoot>`, inside the same `<DataGridProvider>`, so its children\n * share the grid's store.\n */\nexport function DataGridToolbar(props: DataGridToolbarProps): ReactNode {\n  const { className, children } = props;\n  return (\n    <div\n      data-grid-toolbar=\"\"\n      className={cn(\"flex items-center gap-2 border-b border-border bg-background px-2 py-1.5\", className)}\n    >\n      {children}\n    </div>\n  );\n}\n",
+      "content": "import type { ReactNode } from \"react\";\r\nimport { cn } from \"@/lib/utils\";\r\n\r\n/** Props for {@link DataGridToolbar}. */\r\nexport type DataGridToolbarProps = {\r\n  className?: string;\r\n  children?: ReactNode;\r\n};\r\n\r\n/**\r\n * Flex frame for the grid's toolbar slots (search, filter menu, columns menu, custom buttons).\r\n * Consumers place it above `<DataGridRoot>`, inside the same `<DataGridProvider>`, so its children\r\n * share the grid's store.\r\n */\r\nexport function DataGridToolbar(props: DataGridToolbarProps): ReactNode {\r\n  const { className, children } = props;\r\n  return (\r\n    <div\r\n      data-grid-toolbar=\"\"\r\n      className={cn(\"flex items-center gap-2 border-b border-border bg-background px-2 py-1.5\", className)}\r\n    >\r\n      {children}\r\n    </div>\r\n  );\r\n}\r\n",
       "type": "registry:component",
       "target": "components/data-grid-toolbar/toolbar.tsx"
     },
