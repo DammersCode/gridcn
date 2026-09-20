@@ -1,28 +1,24 @@
 import Link from "next/link";
 import type { ComponentProps } from "react";
 import {
-  ArrowDownUp,
   ArrowUpDown,
   Blocks,
   Clipboard,
+  CloudDownload,
   FileSpreadsheet,
   Keyboard,
   Languages,
-  Layers,
+  LayoutGrid,
   Link2,
-  List,
   ListOrdered,
-  Loader2,
-  MousePointerClick,
   MousePointer2,
   PaintBucket,
   Palette,
+  Pencil,
   Pin,
-  Repeat,
-  SlidersHorizontal,
+  Radio,
   Undo2,
   Users,
-  Zap,
 } from "lucide-react";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Badge } from "@/components/ui/badge";
@@ -64,7 +60,7 @@ const headlineFeatures = [
 
 const coreTraits = [
   {
-    icon: Layers,
+    icon: LayoutGrid,
     title: "Real DOM, real virtualization",
     description:
       "CSS Grid + subgrid, windowed row rendering, smooth at 100k rows.",
@@ -85,7 +81,7 @@ const coreTraits = [
     href: "/docs/styling-theming",
   },
   {
-    icon: Zap,
+    icon: Radio,
     title: "Streaming updates",
     description:
       "updateCells / updateRows push live rows into the view — incremental sort stays single-digit ms at 100k rows.",
@@ -122,7 +118,7 @@ const perfStats = [
 ];
 
 const addOns = [
-  { icon: Repeat, title: "Fill handle", href: "/docs/fill-handle" },
+  { icon: PaintBucket, title: "Fill handle", href: "/docs/fill-handle" },
   { icon: Undo2, title: "Undo & redo", href: "/docs/undo-redo" },
   {
     icon: ArrowUpDown,
@@ -141,25 +137,25 @@ const addOns = [
     href: "/docs/columns",
   },
   {
-    icon: MousePointerClick,
+    icon: MousePointer2,
     title: "Keybindings dialog",
     href: "/docs/selection-keyboard",
   },
   {
-    icon: SlidersHorizontal,
+    icon: ArrowUpDown,
     title: "Toolbar & search",
     href: "/docs/sorting-filtering-search",
   },
   {
-    icon: ListOrdered,
+    icon: ArrowUpDown,
     title: "Sort list",
     href: "/docs/sorting-filtering-search",
   },
   { icon: Pin, title: "Pinned rows", href: "/docs/pinned-rows" },
   { icon: Users, title: "Multiplayer presence", href: "/docs/multiplayer-presence" },
-  { icon: Loader2, title: "Lazy loading", href: "/docs/lazy-loading" },
-  { icon: List, title: "Pagination", href: "/docs/pagination" },
-  { icon: ArrowDownUp, title: "Cell editing types", href: "/docs/editing-cell-types" },
+  { icon: CloudDownload, title: "Lazy loading", href: "/docs/lazy-loading" },
+  { icon: ListOrdered, title: "Pagination", href: "/docs/pagination" },
+  { icon: Pencil, title: "Cell editing types", href: "/docs/editing-cell-types" },
 ];
 
 const comparison = {
