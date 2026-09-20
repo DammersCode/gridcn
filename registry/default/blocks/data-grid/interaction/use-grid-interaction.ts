@@ -567,15 +567,12 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         altKey: event.altKey,
       };
 
-      const action = matchKeymap(keymapEvent, keymap, isMacRef.current);
+      // unbound printable key = implicit editReplace trigger (Excel behavior); a consumer keymap that DEFINES editReplace (even []) takes it over and disables the fallback
+      const action =
+        matchKeymap(keymapEvent, keymap, isMacRef.current) ??
+        (isPrintableKey(keymapEvent) && keymap.editReplace === undefined ? "editReplace" : null);
 
-      if (!action) {
-        if (!readOnly && isPrintableKey(keymapEvent) && state.activeCell) {
-          event.preventDefault();
-          actions.startEditing(state.activeCell, event.key);
-        }
-        return;
-      }
+      if (!action) return;
 
       const rowCount = state.viewIndex.length;
       const colCount = state.visibleColumns.length;
@@ -712,6 +709,14 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
           if (readOnly || !state.activeCell) break;
           if (isCheckboxCell(state, state.activeCell)) toggleCheckboxCell(state, actions, state.activeCell);
           else actions.startEditing(state.activeCell);
+          break;
+        }
+        case "editReplace": {
+          if (readOnly || !state.activeCell) break;
+          event.preventDefault();
+          if (isCheckboxCell(state, state.activeCell)) break; // checkbox cells have no edit mode; the edit action toggles them, type-to-replace ignores them
+          // printable trigger seeds the typed char (Excel replace mode); a non-printable binding (e.g. F3) starts a plain edit
+          actions.startEditing(state.activeCell, isPrintableKey(keymapEvent) ? keymapEvent.key : undefined);
           break;
         }
         case "cancel": {

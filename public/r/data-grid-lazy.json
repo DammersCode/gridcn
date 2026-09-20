@@ -11,7 +11,7 @@
   "files": [
     {
       "path": "registry/default/blocks/data-grid-lazy/data-grid-lazy.ts",
-      "content": "/** Public entry point — the only module consumers/docs should import from. */\n\nexport {\n  useDataGridLazyRows,\n  type UseDataGridLazyRowsOptions,\n  type UseDataGridLazyRowsResult,\n} from \"./use-data-grid-lazy-rows\";\nexport { DataGridLazyGuard, type DataGridLazyGuardProps } from \"./lazy-guard\";\nexport { type Range } from \"./range-math\";\n",
+      "content": "/** Public entry point — the only module consumers/docs should import from. */\r\n\r\nexport {\r\n  useDataGridLazyRows,\r\n  type UseDataGridLazyRowsOptions,\r\n  type UseDataGridLazyRowsResult,\r\n} from \"./use-data-grid-lazy-rows\";\r\nexport { DataGridLazyGuard, type DataGridLazyGuardProps } from \"./lazy-guard\";\r\nexport { type Range } from \"./range-math\";\r\n",
       "type": "registry:component",
       "target": "components/data-grid-lazy/data-grid-lazy.ts"
     },
