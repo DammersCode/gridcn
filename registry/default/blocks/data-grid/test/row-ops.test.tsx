@@ -91,6 +91,110 @@ describe("insertRow", () => {
   });
 });
 
+describe("insertRows", () => {
+  const indexedCreateRow = (index: number): Row => ({ id: `new-${index}`, name: "New", age: 0 });
+
+  it("is a no-op with a dev warning when createRow is absent", () => {
+    const onDataChange = vi.fn();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+
+    act(() => result.current.insertRows(0, 3));
+
+    expect(onDataChange).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("createRow"));
+    warn.mockRestore();
+  });
+
+  it("is a silent no-op for a non-positive count", () => {
+    const onDataChange = vi.fn();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const wrapper = makeWrapper(onDataChange, { createRow: indexedCreateRow });
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+
+    act(() => result.current.insertRows(0, 0));
+    act(() => result.current.insertRows(0, -2));
+
+    expect(onDataChange).not.toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("rejects a non-integer count with a dev warning (a fractional row would corrupt selection math)", () => {
+    const onDataChange = vi.fn();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const wrapper = makeWrapper(onDataChange, { createRow: indexedCreateRow });
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+
+    act(() => result.current.insertRows(0, 1.5));
+
+    expect(onDataChange).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("integer"));
+    warn.mockRestore();
+  });
+
+  it("inserts count rows below the target as ONE row-op DataChange with one op per row", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange, { createRow: indexedCreateRow });
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+
+    act(() => result.current.insertRows(1, 3));
+
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["1", "2", "new-2", "new-3", "new-4", "3"]);
+    expect(change.source).toBe("row-op");
+    expect(change.ops).toEqual([
+      { type: "insert", rowId: "new-2", row: { id: "new-2", name: "New", age: 0 }, index: 2 },
+      { type: "insert", rowId: "new-3", row: { id: "new-3", name: "New", age: 0 }, index: 3 },
+      { type: "insert", rowId: "new-4", row: { id: "new-4", name: "New", age: 0 }, index: 4 },
+    ]);
+  });
+
+  it("inserts above the target view row when position is 'above'", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange, { createRow: indexedCreateRow });
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+
+    act(() => result.current.insertRows(1, 2, "above"));
+
+    const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["1", "new-1", "new-2", "2", "3"]);
+    expect(change.ops).toEqual([
+      { type: "insert", rowId: "new-1", row: { id: "new-1", name: "New", age: 0 }, index: 1 },
+      { type: "insert", rowId: "new-2", row: { id: "new-2", name: "New", age: 0 }, index: 2 },
+    ]);
+  });
+
+  it("creates each row at its landing data index (createRow sees dataRowIndex + i)", () => {
+    const created: number[] = [];
+    const wrapper = makeWrapper(
+      vi.fn(),
+      { createRow: (index: number) => { created.push(index); return { id: `new-${index}`, name: "New", age: 0 }; } },
+    );
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+
+    act(() => result.current.insertRows(1, 3));
+
+    expect(created).toEqual([2, 3, 4]);
+  });
+
+  it("round-trips through the history apply/invert path (undo removes exactly the batch)", async () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange, { createRow: indexedCreateRow });
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+
+    act(() => result.current.insertRows(1, 3));
+    const [, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+
+    // simulate the history add-on's undo: apply the inverted change back to the pre-batch data.
+    const { applyChange, invertChange } = await import("../interaction/history");
+    const undone = applyChange(rows(), invertChange(change), (r: Row) => r.id);
+    expect(undone.map((r) => r.id)).toEqual(["1", "2", "3"]);
+  });
+});
+
 describe("deleteRows", () => {
   it("deletes the given view rows as one row-op DataChange with id-keyed delete ops", () => {
     const onDataChange = vi.fn();

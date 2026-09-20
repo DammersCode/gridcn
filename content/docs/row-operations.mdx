@@ -71,6 +71,7 @@ function MyToolbar() {
       onClick={() => {
         // view-space indices: [0] is the top visible row
         actions.insertRow(2, "below");
+        actions.insertRows(0, 5, "above"); // a row-count dialog is one gesture, one undo step
         actions.duplicateRows([1, 2]);
         actions.deleteRows([4]);
       }}
@@ -82,6 +83,10 @@ function MyToolbar() {
 ```
 
 - `insertRow(viewRowIndex, "above" | "below")` inserts one row built by `createRow`.
+- `insertRows(viewRowIndex, count, "above" | "below")` inserts `count` rows as ONE batch (one
+  `onDataChange`, one history entry) instead of `count` consecutive gestures. `createRow` is
+  called once per row with its landing data index. A no-op for `count <= 0`. `deleteRows`
+  already takes a range, so this is the batch counterpart of a range delete.
 - `duplicateRows(viewRowIndexes)` inserts each copy directly after its source row (a duplicate of
   a range lands interleaved, each after its own source).
 - `deleteRows(viewRowIndexes)` deletes the named rows in one batch.
