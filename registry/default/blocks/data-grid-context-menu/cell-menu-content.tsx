@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, type ReactNode } from "react";
 import { Clipboard, Copy, CopyPlus, Eraser, Plus, Scissors, Trash2 } from "lucide-react";
 import {
   ContextMenuItem,
@@ -27,6 +27,10 @@ export type DataGridCellMenuContentProps = {
   canInsertRow: boolean;
   /** Whether the installing app passed a `duplicateRow` prop; hides Duplicate row(s) when false (store's `duplicateRows` would otherwise be a dev-warning no-op). */
   canDuplicateRow: boolean;
+  /** True after a `pasteFromClipboard()` call resolved `permission-denied` (non-secure context / no `clipboard-read`) — disables Paste and shows the `pasteBlocked` hint tooltip. Owned by the persistent wrapper, not this content, so it survives the menu's unmount-on-close. */
+  pasteBlocked: boolean;
+  /** Reports a `permission-denied` paste outcome upward so the hint persists across menu close/reopen. */
+  onPasteBlocked: () => void;
 };
 
 /**
@@ -37,22 +41,23 @@ export type DataGridCellMenuContentProps = {
  * keyboard/native-clipboard gating in `useGridInteraction`/`useGridClipboard`.
  */
 export function DataGridCellMenuContent(props: DataGridCellMenuContentProps): ReactNode {
-  const { row, canInsertRow, canDuplicateRow } = props;
+  const { row, canInsertRow, canDuplicateRow, pasteBlocked, onPasteBlocked } = props;
   const actions = useDataGridActions();
   const selection = useDataGridSelection();
   const clipboard = useDataGridClipboard();
   const readOnly = useDataGridReadOnly();
   const labels = useDataGridLabels();
   const keymap = useDataGridKeymap();
-  const [pasteBlocked, setPasteBlocked] = useState(false);
 
   const targetRows = selectedViewRows(selection);
   const rows = targetRows.length > 0 ? targetRows : [row];
 
   const onPaste = useCallback(() => {
     if (pasteBlocked || readOnly) return;
-    clipboard.pasteFromClipboard().then((result) => setPasteBlocked(result === "permission-denied"));
-  }, [clipboard, pasteBlocked, readOnly]);
+    clipboard.pasteFromClipboard().then((result) => {
+      if (result === "permission-denied") onPasteBlocked();
+    });
+  }, [clipboard, onPasteBlocked, pasteBlocked, readOnly]);
 
   // Not the `disabled` prop: that sets `pointer-events-none`, which would also block the tooltip's
   // own hover detection. Visually disabled + click-guarded instead, so hover still reaches the trigger.
