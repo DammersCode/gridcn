@@ -30,6 +30,7 @@ export function invertChange<TData>(change: DataChange<TData>): DataChange<TData
   return {
     ops: [...change.ops].reverse().map(invertOp),
     source: "history",
+    label: change.label,
   };
 }
 
