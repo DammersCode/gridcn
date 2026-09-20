@@ -18,7 +18,7 @@
   "files": [
     {
       "path": "registry/default/blocks/data-grid-sort-list/data-grid-sort-list.ts",
-      "content": "/** Public entry point — the only module consumers/docs should import from. */\n\nexport { DataGridSortList, type DataGridSortListProps } from \"./sort-list\";\n",
+      "content": "/** Public entry point — the only module consumers/docs should import from. */\r\n\r\nexport { DataGridSortList, type DataGridSortListProps } from \"./sort-list\";\r\n",
       "type": "registry:component",
       "target": "components/data-grid-sort-list/data-grid-sort-list.ts"
     },
