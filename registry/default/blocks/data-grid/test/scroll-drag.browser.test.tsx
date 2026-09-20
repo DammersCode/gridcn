@@ -75,7 +75,7 @@ function randomDragDelta(): number {
   return 200 + Math.random() * 1300;
 }
 
-describe("scroll-drag: realistic thumb-drag blank detector (Phase 0 baseline)", () => {
+describe("scroll-drag: realistic thumb-drag blank detector (baseline)", () => {
   // Setting `scrollTop` fires the browser's OWN scroll event asynchronously (a queued task) — unlike
   // the existing perf test's manual `dispatchEvent`, which runs the row-window's flushSync commit
   // synchronously and so can never observe a gap. Sampling immediately after the write (before that
@@ -106,17 +106,17 @@ describe("scroll-drag: realistic thumb-drag blank detector (Phase 0 baseline)", 
     expect(missingRows(settledStart, settledEnd)).toEqual([]);
   });
 
-  // GUARANTEE (Phase 4): every `scrollTop` write leaves a real, measurable window — the interval
+  // GUARANTEE: every `scrollTop` write leaves a real, measurable window — the interval
   // between the write and the browser's own (async) scroll event — where the transform already
   // reflects the new position but the row window may not have recomputed yet. Velocity-aware
   // overscan (use-row-window.ts computeWindow, use-column-window.ts computeIndices) sizes the
   // PREVIOUS tick's leading-edge overscan from a decaying max of recent |delta| observations, so by
   // the time this tick's scrollTop write lands, the already-rendered window already covers it. The
-   // first WARMUP_TICKS are exempt: the estimator has no history yet on the very first tick(s), so the
-   // spec explicitly concedes a first-tick hard fling (design doc, "Guarantees") — the bar is zero
-   // blanking once velocity history exists. But the sample reads the DOM before React's commit has
-   // flushed, so the measured gap tracks machine/timing, not just the algorithm — logged as a
-   // baseline (like the FPS probe below), not asserted.
+    // first WARMUP_TICKS are exempt: the estimator has no history yet on the very first tick(s), so
+    // a first-tick hard fling is conceded — the bar is zero blanking once velocity history exists.
+    // But the sample reads the DOM before React's commit has flushed, so the measured gap tracks
+    // machine/timing, not just the algorithm — logged as a baseline (like the FPS probe below),
+    // not asserted.
   it("blank-row baseline at the instant scrollTop moves, after velocity warm-up (logged, not asserted — machine-dependent)", { timeout: 60_000 }, async () => {
     const WARMUP_TICKS = 3;
     renderGrid360(100_000);
@@ -202,9 +202,9 @@ describe("scroll-drag: keyboard repro — rapid Shift+ArrowDown past the window 
     await new Promise((r) => setTimeout(r, 100));
   }
 
-  // Phase 1 guarantee: moveAndScroll now derives its scroll target from getFocusCell (store.tsx),
-  // which reads the selection range's far edge during an extend gesture instead of the anchor-pinned
-  // activeCell — so the row window keeps following the growing selection edge.
+  // moveAndScroll derives its scroll target from getFocusCell (store.tsx), which reads the
+  // selection range's far edge during an extend gesture instead of the anchor-pinned activeCell —
+  // so the row window keeps following the growing selection edge.
   it("scrollTop advances to follow the extending selection edge", { timeout: 30_000 }, async () => {
     renderGrid360(1_000); // ~10 visible rows at 36px/row
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
@@ -221,9 +221,9 @@ describe("scroll-drag: keyboard repro — rapid Shift+ArrowDown past the window 
     expect(grid.scrollTop).toBeGreaterThan(scrollTopBefore);
   });
 
-  // Phase 1 guarantee: same fix as above — the row window now follows the selection edge, so the
-  // rendered window scrolls down to the growing edge (proving the ~35-row logical selection isn't
-  // stuck behind a frozen window) and the range overlay's DOM rect saturates the full viewport.
+  // Same fix as above: the row window follows the selection edge, so the rendered window scrolls
+  // down to the growing edge (proving the ~35-row logical selection isn't stuck behind a frozen
+  // window) and the range overlay's DOM rect saturates the full viewport.
   // The overlay rect is grid-placed against RENDERED row tracks only (an off-screen row has no
   // track to span), so it's always clamped to the rendered window's height even once the logical
   // selection is 30+ rows tall — pre-fix, that clamped rect was stuck at ~5 rows (anchor row 5
@@ -370,7 +370,7 @@ describe("scroll-drag: multiple-box probe (no assertion unless caught)", () => {
 
   // Angle (c): scroll the anchor off-window BEFORE extending, so body.tsx's disjoint-window append
   // (effectiveStart pulled down to the off-window active row) is active for the whole gesture —
-  // exactly the geometry the Phase 1 overlay-clamp fix targets. Still 1 range => 1 box expected.
+  // exactly the geometry the overlay-clamp fix targets. Still 1 range => 1 box expected.
   it("extension with the anchor scrolled off-window stays at one box", { timeout: 30_000 }, async () => {
     renderGrid360(1_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
@@ -401,12 +401,11 @@ describe("scroll-drag: multiple-box probe (no assertion unless caught)", () => {
   });
 });
 
-describe("scroll-drag: single-commit-per-tick (Phase 2)", () => {
+describe("scroll-drag: single-commit-per-tick", () => {
   // Probe via `renderCell`: a cell whose row AND column both fall inside the new window after a
-  // diagonal scroll only needs to paint once per tick. Before Phase 2, useRowWindow's and
-  // useColumnWindow's independent flushSyncs each committed the body separately, so this cell's
-  // renderCell would fire twice for one scroll event; after the fix, the store drains both
-  // windows' updates into a single flushSync, so it fires exactly once.
+  // diagonal scroll only needs to paint once per tick. useRowWindow's and useColumnWindow's
+  // updates drain into a single flushSync, so this cell's renderCell fires exactly once per
+  // scroll event — a separate commit per window would fire it twice.
   it("a diagonal scroll tick (scrollTop and scrollLeft both change) renders each cell once, not twice", async () => {
     let renderCount = 0;
     const probeColumns = columns.map((c, i) =>
@@ -437,11 +436,11 @@ describe("scroll-drag: single-commit-per-tick (Phase 2)", () => {
     const rendersForThisTick = renderCount - rendersBeforeScroll;
     // one commit -> renderCell fires once per currently-rendered instance of the probe column
     // (there's exactly one row rendering it at any given rowIndex slot count === visible rows);
-    // two independent commits would double every one of those calls. Phase 4: this diagonal jump
-    // (500 rows in one tick) is itself a large single-tick delta, so velocity-aware overscan widens
-    // the rendered window well past the pre-Phase-4 baseline — the bound below tracks that formula
-    // (same cap as computeWindow's VELOCITY_OVERSCAN_CAP_PX / rowHeight) instead of the fixed-overscan
-    // figure; a DOUBLE commit would still show up as ~2x this, which is what the test exists to catch.
+    // two independent commits would double every one of those calls. This diagonal jump (500 rows
+    // in one tick) is a large single-tick delta, so velocity-aware overscan widens the rendered
+    // window past the fixed-overscan figure — the bound below uses the same cap as computeWindow's
+    // VELOCITY_OVERSCAN_CAP_PX / rowHeight; a DOUBLE commit would still show up as ~2x this, which
+    // is what the test exists to catch.
     const maxVelocityRows = Math.ceil(VELOCITY_OVERSCAN_CAP_PX / ROW_HEIGHT);
     const visibleRows = Math.ceil(360 / ROW_HEIGHT) + 2 + maxVelocityRows; // + overscan on both edges + leading-edge velocity buffer
     expect(rendersForThisTick).toBeGreaterThan(0);
@@ -449,13 +448,11 @@ describe("scroll-drag: single-commit-per-tick (Phase 2)", () => {
   });
 });
 
-describe("scroll-drag: wasted-render regression (Phase 3)", () => {
-  // Probe via `renderCell` on EVERY column: before Phase 3, DataGridRow's memo took `windowStart`
-  // as a prop (changes on every window shift) and DataGridCell was unmemoized, so a 1-row window
-  // shift re-rendered all ~10 mounted rows x 5 cols. After the fix, gridRowStart is written
-  // imperatively by body.tsx outside of DataGridRow's props, and DataGridCell is memoized on stable
-  // inputs, so only the row(s) that actually entered the window (a new viewRowIndex, new getRowId
-  // key, genuinely new content) re-render their cells.
+describe("scroll-drag: wasted-render regression", () => {
+  // Probe via `renderCell` on EVERY column: a 1-row window shift must not re-render the whole
+  // window. gridRowStart is written imperatively by body.tsx outside of DataGridRow's props, and
+  // DataGridCell is memoized on stable inputs, so only the row(s) that actually entered the window
+  // (a new viewRowIndex, new getRowId key, genuinely new content) re-render their cells.
   it("scrolling exactly one row-height renders only the entering row's cells, not the full window", async () => {
     let renderCount = 0;
     const probeColumns = columns.map((c) => ({
@@ -479,7 +476,7 @@ describe("scroll-drag: wasted-render regression (Phase 3)", () => {
     grid.dispatchEvent(new Event("scroll"));
     await new Promise((r) => requestAnimationFrame(r));
 
-    // Phase 4: that jump was itself a big single-tick delta, so velocity-aware overscan ramped the
+    // that jump was itself a big single-tick delta, so velocity-aware overscan ramped the
     // window's leading-edge buffer up — decay it back toward the 1-row floor with a few sub-trigger
     // deltas (each < VELOCITY_TRIGGER_PX in use-row-window.ts) before measuring, so the coming 1-row
     // step below is actually testing "small shift -> small render", not still riding a leftover
@@ -501,14 +498,14 @@ describe("scroll-drag: wasted-render regression (Phase 3)", () => {
     const cols = probeColumns.length;
     console.log(`[wasted-render probe] rendersForThisStep=${rendersForThisStep} (cols=${cols})`);
 
-    // acceptance bar (spec phase 3): proportional to the rows that entered, not the full window —
-    // at most ~2 rows' worth of cells (the entering row, plus slack for the off-window active-row
-    // append / overscan edge), never the ~10-row visible window this would have been pre-fix.
+    // acceptance bar: proportional to the rows that entered, not the full window — at most ~2
+    // rows' worth of cells (the entering row, plus slack for the off-window active-row append /
+    // overscan edge).
     expect(rendersForThisStep).toBeGreaterThan(0);
     expect(rendersForThisStep).toBeLessThanOrEqual(cols * 2);
   });
 
-  // PLAN §6 "Programmatic style API": getRowClassName/getCellClassName reach row.tsx/cell.tsx
+  // getRowClassName/getCellClassName reach row.tsx/cell.tsx
   // through DataGridRoot's context value (root.tsx), not a fresh per-row prop — this is the same
   // probe as above, with both hooks added at stable (module-scope) identity, to prove that routing
   // doesn't reintroduce the wasted full-window re-render this suite exists to guard against.

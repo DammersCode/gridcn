@@ -66,11 +66,11 @@ export {
 } from "./windowing/direction";
 /** The shared root layout context (scrollRef, column layout, row/header heights) — `data-grid-fill`'s tracker component reads this to reconstruct an `InteractionLayout` from inside `DataGridRoot`'s own subtree, the only place these values exist. */
 export { useDataGridRootContext, type DataGridRootContextValue } from "./layout-context";
-/** The provider-level row-bands seam (workplan #48 cut #3) — `data-grid-pinned-rows`'s `useDataGridPinnedRows()` returns a `RowBandsSpec` to pass into `rowBands`. */
+/** The provider-level row-bands seam — `data-grid-pinned-rows`'s `useDataGridPinnedRows()` returns a `RowBandsSpec` to pass into `rowBands`. */
 export { type RowBandsSpec, type RowBandRenderCtx, type WindowedColumn } from "./layout-context";
 /** The custom row-marker render slots (`DataGridRootProps.renderMarker`/`renderMarkerHeader`) and their ctx types. */
 export { type MarkerCellRenderCtx, type MarkerHeaderRenderCtx, type MarkerCellRenderer, type MarkerHeaderRenderer } from "./layout-context";
-/** `layout-context.ts`'s per-column layout (widths/template/track offsets), aliased on export to avoid colliding with `types.ts`'s same-named `ColumnLayout` (the `defaultColumnLayout`/`onColumnLayoutChange` persisted-snapshot shape) below — `data-grid-pinned-rows`'s moved components need this one, for the live render-time layout `RowBandRenderCtx.layout` carries. */
+/** `layout-context.ts`'s per-column layout (widths/template/track offsets), aliased on export to avoid colliding with `types.ts`'s same-named `ColumnLayout` (the `defaultColumnLayout`/`onColumnLayoutChange` persisted-snapshot shape) below — `data-grid-pinned-rows` needs this one, for the live render-time layout `RowBandRenderCtx.layout` carries. */
 export { type ColumnLayout as GridColumnLayout } from "./layout-context";
 
 export {
@@ -344,9 +344,9 @@ export type DataGridProps<TData> = {
   searchText?: string;
   /** Fires whenever the search text would change, controlled or not. */
   onSearchTextChange?: (next: string) => void;
-  /** Overlay-plugin registration (workplan #48 seam) — see `DataGridSyncProps.overlayPlugins` for the full contract; `data-grid-presence` is the motivating consumer. Pass a stable array reference. */
+  /** Overlay-plugin registration — see `DataGridSyncProps.overlayPlugins` for the full contract; `data-grid-presence` is the motivating consumer. Pass a stable array reference. */
   overlayPlugins?: readonly OverlayPlugin[];
-  /** Row-bands registration (workplan #48 cut #3) — see `DataGridSyncProps.rowBands` for the full contract; `data-grid-pinned-rows`'s `useDataGridPinnedRows()` is the motivating (and so far only) producer. Pass a stable reference. */
+  /** Row-bands registration — see `DataGridSyncProps.rowBands` for the full contract; `data-grid-pinned-rows`'s `useDataGridPinnedRows()` is the motivating (and so far only) producer. Pass a stable reference. */
   rowBands?: RowBandsSpec;
   /** Seeds column widths/order/pins/hidden once at mount, over the `columns` prop's own defaults; NOT controlled — later changes are ignored. Pair with `onColumnLayoutChange` to persist a user's layout. */
   defaultColumnLayout?: ColumnLayout;
@@ -360,7 +360,7 @@ export type DataGridProps<TData> = {
   onSelectionCleared?: () => void;
   /** Row-height preset: compact 28 / default 36 / comfortable 44. Ignored when `rowHeight` is set. */
   density?: DensityMode;
-  /** Row class hook (PLAN §6 "Programmatic style API"), merged via `cn()` after the built-in row classes. Pass a stable identity. */
+  /** Row class hook, merged via `cn()` after the built-in row classes. Pass a stable identity. */
   getRowClassName?: GetRowClassName<TData>;
   /** Cell class hook, merged via `cn()` after the built-in cell classes. Pass a stable identity. */
   getCellClassName?: GetCellClassName<TData>;

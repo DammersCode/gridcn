@@ -417,7 +417,7 @@ describe("empty state", () => {
   });
 });
 
-describe("resize handle position + hover affordance (spec 3)", () => {
+describe("resize handle position + hover affordance", () => {
   it("the handle's right edge sits within 2px of the header cell's right edge", async () => {
     render(
       <div style={{ height: 400 }}>
@@ -492,7 +492,7 @@ describe("resize handle position + hover affordance (spec 3)", () => {
   });
 });
 
-describe("single drop indicator (spec 4)", () => {
+describe("single drop indicator", () => {
   it("exactly one [data-grid-drop-indicator] exists during a reorder drag, at the boundary track edge", async () => {
     render(
       <div style={{ height: 400 }}>
@@ -617,7 +617,7 @@ describe("column flex fill", () => {
   });
 });
 
-describe("cell alignment (spec 5)", () => {
+describe("cell alignment", () => {
   type BoolRow = { id: string; active: boolean };
   const checkboxColumns = [
     { id: "active", header: "Active", accessorKey: "active", type: "checkbox" },

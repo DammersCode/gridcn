@@ -45,12 +45,11 @@ export type FillHandleTrackerProps = Pick<UseFillHandleOptions, "disabled" | "on
  * Runs the actual fill-handle pointer/keymap engine — rendered as a child ANYWHERE inside
  * `<DataGridRoot>` (alongside `DataGridHeader`/`DataGridBody`), because `scrollRef` and the column
  * layout `useFillHandle` needs for pointer math only exist inside `DataGridRoot`'s own subtree,
- * one level below where `DataGridRoot` itself calls `useGridInteraction` (workplan #48: this is
- * why `DataGridRoot` can't just take `fillDown`/`fillRight`/`cancelFillDrag` as ordinary props from
- * a consumer composing above the provider — this component closes that ordering gap by
- * registering its handlers into the store instead, the same way `scrollToCellImpl` does for
- * `useDataGridScrollToCell`). Renders nothing itself — `useDataGridFill()`'s `plugin` paints the
- * actual preview/handle DOM via the overlay-plugin seam.
+ * one level below where `DataGridRoot` itself calls `useGridInteraction`. `DataGridRoot` can't
+ * take `fillDown`/`fillRight`/`cancelFillDrag` as ordinary props from above the provider; this
+ * component closes that ordering gap by registering its handlers into the store instead, the same
+ * way `scrollToCellImpl` does for `useDataGridScrollToCell`. Renders nothing itself —
+ * `useDataGridFill()`'s `plugin` paints the actual preview/handle DOM via the overlay-plugin seam.
  */
 export function FillHandleTracker(props: FillHandleTrackerProps): ReactNode {
   const layout = useInteractionLayoutFromContext();

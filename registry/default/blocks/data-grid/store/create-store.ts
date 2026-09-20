@@ -502,7 +502,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const s = get();
         s.onSearchTextChange?.(text);
         if (s.searchControlled) return;
-        // viewIndex is untouched: quick-search highlights + navigates, it never filters (PLAN §3, perf spec 6).
+        // viewIndex is untouched: quick-search highlights + navigates, it never filters.
         set((s2) => ({ searchText: text, ...computeSearchMatches(s2.data, s2.columns, s2.viewIndex, s2.visibleColumns, text) }));
       },
       startEditing(coord, initialText) {

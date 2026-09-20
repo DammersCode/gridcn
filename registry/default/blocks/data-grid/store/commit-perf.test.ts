@@ -122,7 +122,7 @@ describe("computeRowEditsBatch perf (100k rows)", () => {
     );
     // One Map hit per write: cost scales with write count, not column count. A per-write `.find`
     // across 200 columns is ~10× the 20-column cost; comparing both on the same machine is
-    // machine-independent, so a slow CI runner can't trip it (the Plan 001 regression guard).
+    // machine-independent, so a slow CI runner can't trip it.
     expect(wideMs).toBeLessThan(narrowMs * 3);
   }, 30_000);
 });

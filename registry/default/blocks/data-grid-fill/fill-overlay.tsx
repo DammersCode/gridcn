@@ -13,7 +13,7 @@ function FillPreviewOverlay({ rect, windowStart, colOffset, pinStyle }: { rect: 
       aria-hidden="true"
       className="pointer-events-none border border-dashed border-primary bg-primary/5"
       style={{
-        // positioned: cells are position:relative since #80, so a static overlay paints BELOW them
+        // positioned: cells are position:relative, so a static overlay would paint below them
         position: "relative",
         gridColumnStart: rect.x + colOffset,
         gridColumnEnd: rect.x + rect.width + colOffset,
@@ -72,20 +72,20 @@ export type FillOverlayState = {
   fillPreview: GridRect | null;
   /** Primary selection range (view-space), or `null` when there's no current range (row/column-channel-only selection, or a clear). */
   primaryRange: GridRect | null;
-  /** True while a cell is being edited — hides the handle, matching pre-extraction behavior. */
+  /** True while a cell is being edited — hides the handle. */
   editing: boolean;
   /** Fill is disabled (grid readOnly or the add-on's `disabled: true` option), so the handle would be dead UI — hidden. */
   disabled: boolean;
-  /** `null` before `FillHandleTracker` mounts (or if it's never rendered) — hides the handle, same as core's pre-extraction `fillHandleHandlers` guard. */
+  /** `null` before `FillHandleTracker` mounts (or if it's never rendered) — hides the handle. */
   onPointerDown: FillHandleHandlers["onPointerDown"] | null;
 };
 
 /**
  * Renders the fill-preview strip and the fill handle into the overlay layer using the SAME
- * window-clamp + pin-zone segmentation pipeline core's own built-in overlays use (via `ctx`). This
- * is the function registered as `OverlayPlugin`; DOM order matches pre-extraction exactly (preview
- * before the plugin slot, handle after the active-cell ring is core's own concern — see the ctx's
- * doc comment on plugin placement) so the moved browser tests' DOM-order assertions stay valid.
+ * window-clamp + pin-zone segmentation pipeline core's own built-in overlays use (via `ctx`).
+ * This is the function registered as `OverlayPlugin`: preview before the plugin slot, handle
+ * after the active-cell ring (the ring is core's own concern — see the ctx's doc comment on
+ * plugin placement), so DOM order matches the built-in layers.
  */
 export function renderFillOverlay(state: FillOverlayState, ctx: OverlayPluginCtx): ReactNode {
   const { windowStart, clampRowStart, clampRowEnd, colCount, colOffset, pinTrack, splitRectByPinZones, clampRectToWindow } = ctx;
@@ -96,7 +96,7 @@ export function renderFillOverlay(state: FillOverlayState, ctx: OverlayPluginCtx
 
   // hidden while editing, when disabled (the fill would be dead UI), when selection is
   // rows/columns-channel only (no `current` range), or before FillHandleTracker has registered a
-  // handler — same guard core's built-in layer used pre-extraction.
+  // handler — the same guard the built-in layer uses.
   const onPointerDown = state.onPointerDown;
   const showFillHandle = onPointerDown && !state.editing && state.primaryRange && !state.disabled;
   const clampedPrimary = state.primaryRange ? clampRectToWindow(state.primaryRange, clampRowStart, clampRowEnd, colCount) : null;

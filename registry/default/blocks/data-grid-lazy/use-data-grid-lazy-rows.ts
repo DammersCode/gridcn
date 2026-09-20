@@ -55,13 +55,13 @@ export type UseDataGridLazyRowsResult<TData> = {
   isLoading: boolean;
 };
 
-/** Index-derived placeholder id for an unloaded row — unstable across loads, but unloaded rows carry no state (spec: "documented: unstable identity for unloaded rows is fine"). */
+/** Index-derived placeholder id for an unloaded row — unstable across loads, but unloaded rows carry no state (documented: unstable identity for unloaded rows is fine). */
 function placeholderId(index: number): string {
   return `__lazy-unloaded-${index}`;
 }
 
 /**
- * Virtual data fetching for `DataGrid` (lazy-loading design doc, add-on 1): maintains a sparse
+ * Virtual data fetching for `DataGrid`: maintains a sparse
  * `data` array (length `total`, holes = unloaded rows) and fetches windows on demand as
  * `onRowWindowChange` reports the rendered range. Loaded rows are addressed by `getRowId`, so an
  * edit/sort of a loaded row behaves exactly like a normal controlled grid; unloaded rows use an

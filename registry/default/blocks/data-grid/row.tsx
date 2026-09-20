@@ -21,9 +21,9 @@ export type DataGridRowProps = {
   onMarkerCheckboxPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
   /** Forwarded to the row's own root div — body.tsx uses it to write `gridRowStart` imperatively (see below). */
   rowRef: Ref<HTMLDivElement>;
-  /** Pinned-top row count (PLAN §3 a11y index layout: header=1, pinned-top next, then data, pinned-bottom last) — shifts `aria-rowindex` past the pinned-top band; 0 when there is none. */
+  /** Pinned-top row count (a11y index layout: header=1, pinned-top next, then data, pinned-bottom last) — shifts `aria-rowindex` past the pinned-top band; 0 when there is none. */
   ariaRowIndexOffset: number;
-  /** PLAN §6 "Programmatic style API"; stable identity (root's dev guardrail) so this memoized row's props stay shallow-equal across ticks. */
+  /** Row class hook; stable identity (root's dev guardrail) so this memoized row's props stay shallow-equal across ticks. */
   getRowClassName?: GetRowClassName<unknown>;
   /** Forwarded to each cell; see {@link DataGridRowProps.getRowClassName}. */
   getCellClassName?: GetCellClassName<unknown>;
@@ -37,10 +37,9 @@ export type DataGridRowProps = {
  * A window shift moves EVERY surviving row's canvas slot by the shift amount — gridRowStart
  * (viewRowIndex - windowStart + 1) changes for all mounted rows, not just the ones that
  * entered/left — so `windowStart` was never a prop this component could shallow-compare away no
- * matter what body.tsx precomputed; it's a genuine per-tick input to every row's position (spec
- * phase 3 task 1's called-out subtlety). Subgrid (`gridTemplateColumns: "subgrid"`, rows as direct
- * grid children) also rules out option (a)'s absolute-positioning escape — a positioning wrapper
- * around the row breaks the subgrid column tracks.
+ * matter what body.tsx precomputed; it's a genuine per-tick input to every row's position.
+ * Subgrid (`gridTemplateColumns: "subgrid"`, rows as direct grid children) also rules out
+ * absolute-positioning — a positioning wrapper around the row breaks the subgrid column tracks.
  *
  * Fix: `windowStart` doesn't reach this component at all anymore. It never renders `gridRowStart`
  * itself — body.tsx (which already re-renders every window tick regardless) collects each row's DOM
@@ -65,16 +64,14 @@ export const DataGridRow = memo(function DataGridRow({
   onRowClick,
 }: DataGridRowProps) {
   const row = useDataGridRow(viewRowIndex);
-  // ONE subscription for the whole row's interactive cell state (spec 4b) — replaces the ~5-15 (one
-  // per cell) subscriptions this row's cells used to register individually. Referentially stable
-  // across ticks that don't touch this row (see useDataGridRowCellState's comparator), so this
-  // memoized row itself only re-renders when its OWN active/editing/search/selection state changed.
+  // ONE subscription for the whole row's interactive cell state (not one per cell). Referentially
+  // stable across ticks that don't touch this row (see useDataGridRowCellState's comparator), so
+  // this memoized row only re-renders when its own active/editing/search/selection state changed.
   const cellState = useDataGridRowCellState(viewRowIndex);
   // marker column occupies grid track 1 when present, so every data column shifts one track right
-  // (see header.tsx's doc comment for the full aria-colindex rationale — unaffected by this).
   const markerColOffset = layout.markerWidth > 0 ? 2 : 1;
-  // A hole in `data` (lazy-loading design doc, phase 1): row.tsx renders skeleton cells instead of
-  // empty ones. `row` flipping undefined->defined is an ordinary content change under the row's
+  // A hole in `data` (lazy loading): row.tsx renders skeleton cells instead of empty ones.
+  // `row` flipping undefined->defined is an ordinary content change under the row's
   // existing memo/subscription contract (useDataGridRow re-renders on that identity change like
   // any other row edit) — no extra state or subscription needed for the transition itself.
   const isSkeleton = row === undefined;
@@ -85,7 +82,7 @@ export const DataGridRow = memo(function DataGridRow({
       aria-rowindex={viewRowIndex + 2 + ariaRowIndexOffset}
       data-grid-row-index={viewRowIndex}
       aria-busy={isSkeleton || undefined}
-      // named group so row hover reveals a bg tint on its cells via CSS only (PLAN §6 "Polish") — never React state.
+      // named group so row hover reveals a bg tint on its cells via CSS only — never React state.
       className={cn("group/row", getRowClassName?.(row, viewRowIndex))}
       style={{
         display: "grid",

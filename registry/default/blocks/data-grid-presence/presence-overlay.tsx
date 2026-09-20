@@ -35,7 +35,7 @@ const PresenceHighlightOverlay = memo(function PresenceHighlightOverlay({
       aria-hidden="true"
       className="pointer-events-none border border-[color-mix(in_oklch,var(--presence-color)_100%,transparent)] bg-[color-mix(in_oklch,var(--presence-color)_12%,transparent)]"
       style={{
-        // positioned: cells are position:relative since #80, so a static overlay paints BELOW them
+        // positioned: cells are position:relative, so a static overlay would paint below them
         position: "relative",
         "--presence-color": color,
         gridColumnStart: rect.x + colOffset,
@@ -90,25 +90,15 @@ const PresenceLabelChip = memo(function PresenceLabelChip({
 });
 
 /**
- * Resolves every rowId-native entry to view-space {@link PresenceHighlight}s using a
- * `rowId -> view row` map the caller already built via `useDataGridRowIdToViewRow()` — the same
- * O(1)-after-build map core's own presence docs now point consumers at instead of the DIY
- * `useShallow`-over-`useDataGridRowIds` pattern. A single-cell entry resolves to a 1×1 rect; a
- * range entry (G5) resolves every rowId/columnId and paints one rect per contiguous run of
- * resolved rows × runs of resolved columns. Column resolution is a plain linear scan over
- * `visibleColumns` — presence highlight counts are small (a handful of remote cursors, not a
- * per-row structure), so this never needs a Map. Pure (no hooks) so it can be called from either
- * the plugin closure or a test, independent of React's rules-of-hooks call-site constraints.
+ * Resolves rowId-native entries to view-space {@link PresenceHighlight}s via the caller's
+ * `rowId -> view row` map. A single-cell entry resolves to a 1×1 rect; a range entry paints one
+ * rect per contiguous run of resolved rows × resolved columns.
  *
- * Drops: a rowId that fell out of the current view (filtered out) is dropped SILENTLY — that's the
- * documented rowId-native contract. A `columnId` (single-cell form) or `columnIds` element (range
- * form) that resolves to no visible column is dev-warned via `onDroppedColumn` /
- * `onUnresolvedColumns` (the plugin passes per-instance once-wrapped callbacks, so a persistently
- * hidden column doesn't re-warn on every overlay render).
- *
- * Bounds: one range entry paints at most {@link MAX_RESOLVED_RECTS} fragments; the excess is
- * dropped with a dev warning via `onExcessRects` (the resolved array is memoized per
- * (entries, view) pair by the plugin, so this math runs once per actual change, not per render).
+ * A rowId outside the current view is dropped silently (the rowId-native contract). An unresolved
+ * column dev-warns once per instance. Column lookup is a linear scan over `visibleColumns`:
+ * entry counts are small. A range entry paints at most {@link MAX_RESOLVED_RECTS} fragments; the
+ * excess is dropped with a dev warning.
+ * Pure (no hooks), so tests can call it without React.
  */
 export function resolveHighlights(
   entries: readonly PresenceHighlightEntry[],

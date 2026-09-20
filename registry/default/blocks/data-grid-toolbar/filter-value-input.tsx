@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { operatorIsAnyOf, operatorIsBetween } from "./operators-for-column-type";
 
-/** Debounce (ms) between typing and committing a filter value, matching {@link DataGridSearch} (PLAN §4.6). */
+/** Debounce (ms) between typing and committing a filter value, matching {@link DataGridSearch}. */
 const FILTER_VALUE_DEBOUNCE_MS = 200;
 
 /** Props for {@link DataGridFilterValueInput}. */
@@ -30,7 +30,7 @@ export type DataGridFilterValueInputProps = {
   onValueChange: (value: string | [string, string] | string[]) => void;
 };
 
-/** Debounces a single text/number/date input's keystrokes into one commit, matching {@link DataGridSearch} (PLAN §4.6). */
+/** Debounces a single text/number/date input's keystrokes into one commit, matching {@link DataGridSearch}. */
 function useDebouncedInput(value: string, onValueChange: (value: string) => void) {
   const [inputValue, setInputValue] = useState(value);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -163,7 +163,7 @@ function AnyOfValueInput(props: {
  * Filter-row value input: renders a typed input per the filtered column's cell type — number columns
  * get `<Input type="number">`, date columns a date input, checkbox columns a true/false select, select
  * columns a select of their own choices, everything else plain text — and debounces text/number/date
- * keystrokes so typing never triggers a `setFilters` view-index rebuild per character (PLAN §4.6).
+ * keystrokes so typing never triggers a `setFilters` view-index rebuild per character.
  * `isBetween` renders two of the column's typed input side by side instead of one.
  */
 export function DataGridFilterValueInput(props: DataGridFilterValueInputProps): ReactNode {

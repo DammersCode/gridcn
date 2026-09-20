@@ -14,9 +14,9 @@ import { DataGridRow } from "./row";
 import { DataGridOverlays } from "./overlays";
 import { isDev } from "./is-dev";
 
-/** Real-index `[min, max+1)` bounds of the currently rendered UNPINNED columns — pin-zone overlay
- * segmentation (spec 6c-2) clamps its unpinned segment to this so it doesn't reach off-screen
- * track positions the virtualized window never rendered. Empty window (no unpinned cols in view) collapses to a zero-width range. */
+/** Real-index `[min, max+1)` bounds of the currently rendered UNPINNED columns.
+ * Overlay segmentation clamps its unpinned segment to this, so it never reaches off-screen track
+ * positions the virtualized window did not render. An empty window collapses to a zero-width range. */
 function unpinnedWindowRange(
   windowedColumns: readonly WindowedColumn[],
   pins: readonly (AnyColumnDef["pin"] | undefined)[],
@@ -56,8 +56,8 @@ export function DataGridBody(): ReactNode {
   const rowMarkers = useDataGridRowMarkers();
   const rowCount = useDataGridRowCount();
   const activeCell = useDataGridActiveCell();
-  // Data row 0 starts below the header AND any pinned-top band (PLAN §3 "shrunken effective
-  // viewport"); the pinned-bottom band shrinks the window's bottom edge the same way.
+  // Data row 0 starts below the header AND any pinned-top band (shrunken effective viewport);
+  // the pinned-bottom band shrinks the window's bottom edge the same way.
   const effectiveHeaderHeight = headerHeight + pinnedTopHeight;
   const { start, end, windowTop, measured } = useRowWindow(scrollRef, {
     rowCount,
@@ -87,22 +87,20 @@ export function DataGridBody(): ReactNode {
     onRowWindowChange?.({ start, end });
   }, [start, end, measured, onRowWindowChange]);
 
-  // Stale-over-blank (spec Phase 4): a naive "clear then repopulate" would blank for a frame on every
-  // window shift, but rows are keyed by getRowId (PLAN 4.2) and mapped straight from viewRowIndices —
-  // React's keyed reconciliation only unmounts rows that left the range and mounts ones that entered
-  // it, so rows common to both windows are never removed-then-re-added. Combined with Phase 2's single
-  // flushSync commit per tick, there's no intermediate render with fewer rows than either window has.
-  // Moot post-Phase-2: no separate "keep stale rows mounted" mechanism is needed or added here.
+  // A naive "clear then repopulate" would blank the body for a frame on every window shift.
+  // Rows are keyed by getRowId and mapped straight from viewRowIndices, so keyed reconciliation
+  // unmounts only the rows that left the range and mounts only the rows that entered it; the
+  // rows common to both windows never unmount.
   const viewRowIndices = useMemo(() => {
     const indices: number[] = [];
     for (let i = start; i < end; i++) indices.push(i);
-    // PLAN 4.1: the active row always renders, even off-window, so focus survives scroll.
+    // the active row always renders, even off-window, so focus survives scroll
     const activeRowOffWindow = activeCell !== null && (activeCell.row < start || activeCell.row >= end) && activeCell.row < rowCount;
     if (activeRowOffWindow) indices.push(activeCell.row);
 
-    // Dev-only invariant (Phase 4 task 3): the rendered set must be exactly computeWindow's
-    // [start,end) plus the off-window active row, never more/fewer — catches a future regression
-    // that silently drops or duplicates rows without needing a new subscription to check it.
+    // Dev-only invariant: the rendered set must be exactly computeWindow's [start,end) plus the
+    // off-window active row, never more/fewer — catches a regression that silently drops or
+    // duplicates rows.
     if (isDev()) {
       const expected = end - start + (activeRowOffWindow ? 1 : 0);
       if (indices.length !== expected && !warnedRowCountMismatch) {
@@ -115,7 +113,7 @@ export function DataGridBody(): ReactNode {
     return indices;
   }, [start, end, activeCell, rowCount]);
 
-  // PLAN 4.2: rows are memoized by getRowId, not viewRowIndex, so sort/filter/insert/delete reuses the right DOM row.
+  // Rows are memoized by getRowId, not viewRowIndex, so sort/filter/insert/delete reuses the right DOM row.
   const rowIds = useDataGridRowIds(viewRowIndices);
 
   // Keyed by getRowId (matches the row's own React key) so a row kept across a shift is found by
@@ -163,13 +161,12 @@ export function DataGridBody(): ReactNode {
   const effectiveStart = activeCell ? Math.min(start, activeCell.row) : start;
   const effectiveWindowTop = windowTop - (start - effectiveStart) * rowHeight;
 
-  // Writes gridRowStart straight into each row's DOM node, bypassing React entirely for this value
-  // — DataGridBody already re-renders every window tick regardless (it calls useRowWindow directly),
-  // so doing the write here costs nothing extra, and it's what lets DataGridRow itself stay memoized
-  // without windowStart ever appearing in its props (see row.tsx's doc comment, spec phase 3 task 1).
+  // Writes gridRowStart straight into each row's DOM node, bypassing React for this value.
+  // The body re-renders every window tick anyway, so the write costs nothing extra, and
+  // DataGridRow stays memoized without windowStart in its props.
   useLayoutEffect(() => {
     for (let i = 0; i < viewRowIndices.length; i++) {
-      // hot loop (fires every window tick): i < viewRowIndices.length by loop condition
+      // i < viewRowIndices.length by loop condition
       const viewRowIndex = viewRowIndices[i]!;
       const key = rowIds[i] ?? viewRowIndex;
       const el = rowElements.current.get(key);
@@ -219,14 +216,12 @@ export function DataGridBody(): ReactNode {
       <DataGridOverlays
         windowStart={effectiveStart}
         rowCount={viewRowIndices.length}
-        // true contiguous rendered span for range/band-overlay clamping — [effectiveStart, effectiveStart
-        // + viewRowIndices.length) is disjoint (and under-covers the real bottom) whenever the active row
-        // was appended off-window, since it's a single extra index, not a contiguous extension of [start, end).
+        // contiguous rendered span for clamping: [effectiveStart, effectiveStart + length) is
+        // disjoint whenever the active row was appended off-window
         clampRowStart={start}
         clampRowEnd={end}
-        // total visible columns (real index space), not the rendered window size — row/column
-        // channel bands and pin-zone segmentation (spec 6c-2) must span the FULL grid width,
-        // reaching a pinned-right zone far outside the currently windowed column set.
+        // total visible columns (real index space), not the rendered window size — bands and
+        // pin-zone segmentation must span the FULL grid width
         colCount={layout.pins.length}
         colOffset={layout.markerWidth > 0 ? 2 : 1}
         pinTrack={{

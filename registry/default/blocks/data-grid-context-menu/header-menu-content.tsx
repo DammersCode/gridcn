@@ -25,7 +25,7 @@ export type DataGridHeaderMenuContentProps = {
 };
 
 /**
- * Header-surface context menu items (PLAN §8 add-on item 1): Sort asc/desc/Clear sort, Pin
+ * Header-surface context menu items: Sort asc/desc/Clear sort, Pin
  * left/right/Unpin (respecting `pinnable`/`enableColumnPinning`), Hide column, Autosize column.
  */
 export function DataGridHeaderMenuContent(props: DataGridHeaderMenuContentProps): ReactNode {

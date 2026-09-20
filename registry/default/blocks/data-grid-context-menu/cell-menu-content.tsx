@@ -34,7 +34,7 @@ export type DataGridCellMenuContentProps = {
 };
 
 /**
- * Cell-surface context menu items (PLAN §8 add-on item 1): Cut/Copy/Paste, Clear contents,
+ * Cell-surface context menu items: Cut/Copy/Paste, Clear contents,
  * Insert row above/below (hidden without `createRow`), Duplicate/Delete row(s). Row-op items act
  * on every view row covered by the current selection (falling back to the right-clicked `row`).
  * Every mutating item (everything but Copy) is disabled on a `readOnly` grid, mirroring the

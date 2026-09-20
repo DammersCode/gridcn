@@ -15,7 +15,7 @@ export type DataGridLoadingSkeletonProps = {
 };
 
 /**
- * Grid-wide loading state, empty-data case (design doc: `loading && rowCount === 0`). Reuses the
+ * Grid-wide loading state, empty-data case (`loading && rowCount === 0`). Reuses the
  * `data-grid-lazy` add-on's skeleton-cell visual language (muted `animate-pulse` bar per cell) but
  * lives in core as one small component — core cannot import from an add-on, and this needs no real
  * column layout (there's no data yet), just enough rows/bars to fill the viewport.
@@ -59,7 +59,7 @@ export type DataGridLoadingBarProps = {
 const SWEEP_KEYFRAMES = "@keyframes grid-loading-sweep{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}";
 
 /**
- * Grid-wide loading state, data-present case (design doc: `loading && rowCount > 0` — a background
+ * Grid-wide loading state, data-present case (`loading && rowCount > 0` — a background
  * refresh keeps rows visible). A slim indeterminate bar pinned directly under the header; the
  * indeterminate sweep is a `prefers-reduced-motion`-gated CSS animation (`motion-safe:` variant) —
  * `motion-reduce` falls back to a static full-width bar, no JS/rAF involved either way.

@@ -60,7 +60,7 @@ function computeAggregate(state: DataGridStoreState, specs: AggregateSpecs, scop
 }
 
 /**
- * Filter-aware aggregation for pinned totals/summary rows (workplan #91): reduces `specs` over the
+ * Filter-aware aggregation for pinned totals/summary rows: reduces `specs` over the
  * grid's own state and returns a plain `{ [columnId]: value }` object — the same shape
  * `useDataGridPinnedRows`'s `topRows`/`bottomRows` expect, since pinned cells resolve values through
  * each column's `accessorKey`/`accessorFn` exactly like data rows. Values are resolved through

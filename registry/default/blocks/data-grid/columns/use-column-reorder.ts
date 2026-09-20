@@ -22,7 +22,7 @@ export type ColumnReorderHandlers = {
 };
 
 /**
- * Drag-to-reorder columns (PLAN §3 item 2). MUST coexist with the header multi-column select-drag
+ * Drag-to-reorder columns. MUST coexist with the header multi-column select-drag
  * from the interaction layer: both start from a press on the header. The disambiguation rule
  * (documented here as the single source of truth, tested by both the reorder and the select-drag
  * suites): **a horizontal drag that leaves the origin header becomes a reorder drag** whenever

@@ -43,9 +43,9 @@ beforeAll(() => {
 });
 
 /**
- * Zero-cell-render presence probe, moved from core's own data-grid.test.tsx (workplan #48): presence
- * now lives entirely in this add-on's own store, so `setPresenceHighlights` must not touch core's
- * row/cell subscriptions at all — it's not even the same store instance any more.
+ * Zero-cell-render presence probe: presence lives entirely in this add-on's own store, so
+ * `setPresenceHighlights` must not touch core's row/cell subscriptions at all — it's not even the
+ * same store instance any more.
  */
 describe("multiplayer presence: setPresenceHighlights renders ONLY the highlights subscriber, never rows/cells", () => {
   it("does not re-render the row-level (per-getRowId) subscription", () => {
@@ -323,12 +323,7 @@ describe("multiplayer presence: rowId-native highlight resolution", () => {
   });
 });
 
-/**
- * rowId-native RANGE entries (G5): a multi-cell selection keyed by stable rowIds × columnIds.
- * The plugin resolves each id at paint time and drops filtered-out / unknown ids, painting one
- * rect per contiguous run of resolved rows × runs of resolved columns.
- */
-describe("multiplayer presence: rowId-native range highlight resolution (G5)", () => {
+describe("multiplayer presence: rowId-native range highlight resolution", () => {
   it("paints a rowId-native range at the rows' current view positions", () => {
     let setPresenceHighlights: ReturnType<typeof useDataGridPresence>["setPresenceHighlights"] | null = null;
     function Harness() {
@@ -577,11 +572,6 @@ describe("multiplayer presence: rowId-native range highlight resolution (G5)", (
   });
 });
 
-/**
- * Entry hardening (plan 012 P7 a-c): duplicate `id`s must not break reconciliation (entries are
- * keyed by entry position, not id), and malformed / misrouted / hidden-column foreign entries are
- * dropped with a dev warning instead of failing silently.
- */
 describe("multiplayer presence: entry hardening", () => {
   it("renders two entries that share one id (keyed by entry position, not id)", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});

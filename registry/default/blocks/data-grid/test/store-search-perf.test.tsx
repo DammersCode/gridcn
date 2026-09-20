@@ -12,9 +12,9 @@ import {
 } from "../store";
 
 /**
- * Acceptance tests for research/6c-fix-specs.md spec 6 (search performance): `setSearch` computes
- * `findSearchMatches` exactly once, stepping through matches never calls it again, `viewIndex`
- * identity is untouched by search, and the 1000-match cap is honored with an early exit.
+ * Search-performance acceptance tests: `setSearch` computes `findSearchMatches` exactly once,
+ * stepping through matches never calls it again, `viewIndex` identity is untouched by search,
+ * and the 1000-match cap is honored with an early exit.
  */
 
 type Row = { id: string; name: string };
@@ -42,7 +42,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("search performance (spec 6)", () => {
+describe("search performance", () => {
   it("setSearch calls findSearchMatches exactly once", () => {
     const spy = vi.spyOn(sortFilterModule, "findSearchMatches");
     const wrapper = makeWrapper(manyRows(50));

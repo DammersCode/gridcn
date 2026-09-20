@@ -12,7 +12,7 @@ export type DataGridSortIndicatorProps = {
 
 /**
  * Sort direction arrow (muted, size-3.5) for a header, plus its multi-sort priority number when
- * more than one sort is active (PLAN §3 item 4). Renders nothing when the column isn't sorted.
+ * more than one sort is active. Renders nothing when the column isn't sorted.
  */
 export function DataGridSortIndicator(props: DataGridSortIndicatorProps): ReactNode {
   const { columnId, sortState } = props;

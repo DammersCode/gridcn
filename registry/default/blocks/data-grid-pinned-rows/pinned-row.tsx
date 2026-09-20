@@ -18,7 +18,7 @@ export type DataGridPinnedRowProps = {
 };
 
 /**
- * A pinned top/bottom band row (workplan #48 cut #3, moved verbatim out of core): reuses
+ * A pinned top/bottom band row: reuses
   * `DataGridCell` in its `pinnedRow` mode for identical cell-type rendering/alignment/column tracks as
  * data rows, but bypasses `DataGridRow`'s `useDataGridRow(viewRowIndex)` store lookup entirely —
  * pinned rows are a separate array the consumer supplies to `useDataGridPinnedRows`, not indices

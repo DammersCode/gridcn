@@ -267,7 +267,7 @@ describe("buildPasteWrites", () => {
     expect(writes[0]).toEqual({ viewRow: 0, columnId: "name", value: "HI" });
   });
 
-  it("a passing sync Standard Schema commits its transformed value (workplan #53)", () => {
+  it("a passing sync Standard Schema commits its transformed value", () => {
     const schema = { "~standard": { version: 1, vendor: "mock", validate: (v: unknown) => ({ value: Math.round(v as number) }) } };
     const schemaColumns: readonly ColumnDef<Row, unknown>[] = [
       { id: "name", header: "Name", accessorKey: "name" },
@@ -281,7 +281,7 @@ describe("buildPasteWrites", () => {
     ]);
   });
 
-  it("an async Standard Schema holds the batch: a Promise of the writes, with the transformed value (workplan #79)", async () => {
+  it("an async Standard Schema holds the batch: a Promise of the writes, with the transformed value", async () => {
     const schema = { "~standard": { version: 1, vendor: "mock", validate: async (v: unknown) => ({ value: (v as number) * 10 }) } };
     const schemaColumns: readonly ColumnDef<Row, unknown>[] = [
       { id: "name", header: "Name", accessorKey: "name" },

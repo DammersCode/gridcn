@@ -27,7 +27,7 @@ export function measureTextWidths(texts: readonly string[], font: string): numbe
 }
 
 /**
- * Autosize measurement for a column's double-click-to-fit gesture (PLAN §3 item 1): measures the
+ * Autosize measurement for a column's double-click-to-fit gesture: measures the
  * header text plus every CURRENTLY RENDERED cell's text in that column (not the whole dataset —
  * only what's actually mounted), using the grid's own computed font so the measurement matches
  * what's on screen, then clamps to `[minWidth, maxWidth]` and adds cell padding.

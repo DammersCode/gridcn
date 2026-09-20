@@ -9,7 +9,7 @@ import { pasteText, resolveCopyScope, serializeCopyScope } from "./use-grid-clip
 /** Result of {@link useDataGridClipboard.prototype.pasteFromClipboard}'s permission/content outcome. */
 export type PasteFromClipboardResult = "ok" | "permission-denied" | "empty";
 
-/** Public clipboard triggers, usable outside native browser clipboard events (PLAN §8 extension point b). */
+/** Public clipboard triggers, usable outside native browser clipboard events. */
 export type UseDataGridClipboardResult = {
   /** Serializes the current copy scope and writes it to the OS clipboard (`navigator.clipboard.write`, falling back to `document.execCommand("copy")`). */
   copy: () => void;

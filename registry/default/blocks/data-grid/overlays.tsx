@@ -13,7 +13,7 @@ import {
   type AnyColumnDef,
 } from "./store";
 
-/** Per-real-column-index pin/track data an overlay segment needs to reproduce a pinned cell's own offset (spec 6c-2). */
+/** Per-real-column-index pin/track data an overlay segment needs to reproduce a pinned cell's own offset. */
 export type PinTrackData = {
   pins: readonly (AnyColumnDef["pin"] | undefined)[];
   trackLefts: readonly number[];
@@ -63,9 +63,9 @@ export type RectSegment = {
 };
 
 /**
- * Splits a data-space rect into up to 3 contiguous sub-rects — pinned-left / unpinned / pinned-right —
- * so each zone can be rendered at its own screen position (spec 6c-2): overlays live in the rows
- * canvas, which translates by -scrollLeft, so a segment spanning a pinned column would otherwise
+  * Splits a data-space rect into up to 3 contiguous sub-rects — pinned-left / unpinned / pinned-right —
+  * so each zone can be rendered at its own screen position: overlays live in the rows canvas, which
+  * translates by -scrollLeft, so a segment spanning a pinned column would otherwise
  * paint at that column's TRACK position instead of its counter-offset pinned position. Pinned
  * columns are contiguous within their zone (store guarantee, `computeVisibleColumns`), so the
  * whole segment reuses the single offset of its first column.
@@ -105,7 +105,7 @@ export function splitRectByPinZones(rect: GridRect, track: PinTrackData): RectSe
   return segments;
 }
 
-/** One selection-range fill overlay, grid-line placed, window-relative; pinned segments add their zone's counter-offset + z-index 2 (above pinned cells' z1, spec 6c-2). */
+/** One selection-range fill overlay, grid-line placed, window-relative; pinned segments add their zone's counter-offset + elevated z-index (above pinned cells). */
 function RangeOverlay({ rect, windowStart, colOffset, pinStyle }: { rect: GridRect; windowStart: number; colOffset: number; pinStyle?: CSSProperties }) {
   return (
     <div
@@ -114,7 +114,7 @@ function RangeOverlay({ rect, windowStart, colOffset, pinStyle }: { rect: GridRe
       aria-hidden="true"
       className="pointer-events-none border border-primary/40 bg-primary/10"
       style={{
-        // positioned: cells are position:relative since #80, so a static overlay paints BELOW them
+        // positioned: cells are position:relative, so a static overlay would paint below them
         position: "relative",
         gridColumnStart: rect.x + colOffset,
         gridColumnEnd: rect.x + rect.width + colOffset,
@@ -142,20 +142,18 @@ export type DataGridOverlaysProps = {
    */
   clampRowStart?: number;
   clampRowEnd?: number;
-  /** Total number of visible columns (real index space) — NOT the rendered column-window size, so pin-zone segmentation (spec 6c-2) can reach a pinned-right zone far outside the current window. */
+  /** Total number of visible columns (real index space) — NOT the rendered column-window size, so pin-zone segmentation can reach a pinned-right zone far outside the current window. */
   colCount: number;
   /** 1-based grid-column offset added to every data-space rect.x; 2 when a marker column occupies track 1, else 1 (default). */
   colOffset?: number;
-  /** Per-column pin + track data (real column-index space) for pin-aware overlay segmentation (spec 6c-2); omitted (e.g. no pinned columns) skips segmentation entirely. */
+  /** Per-column pin + track data (real column-index space) for pin-aware overlay segmentation; omitted (e.g. no pinned columns) skips segmentation entirely. */
   pinTrack?: PinTrackData;
 };
 
 /**
- * Context passed to every registered {@link OverlayPlugin} — exactly the window-clamp + pin-zone
- * segmentation helpers and layout vars `PresenceHighlightOverlay` (the extraction that motivated
- * this seam, now living in the `data-grid-presence` add-on) already needed, so a plugin reproduces
- * the same "clamp to rendered window, split by pin zone, place by grid line" pipeline core's own
- * built-in layers use rather than reimplementing it.
+ * Context passed to every registered {@link OverlayPlugin}: the window-clamp + pin-zone
+ * segmentation helpers and layout vars a plugin needs to reproduce the built-in layers'
+ * "clamp to rendered window, split by pin zone, place by grid line" pipeline.
  */
 export type OverlayPluginCtx = {
   windowStart: number;
@@ -169,12 +167,11 @@ export type OverlayPluginCtx = {
 };
 
 /**
- * One overlay-plugin slot (workplan #48): registered via `overlayPlugins` on `DataGridProvider`,
- * rendered by {@link DataGridOverlays} after the range/band layers but BEFORE the local active-cell
- * ring — so a plugin painting remote or transient state (e.g. `data-grid-fill`'s drag preview/
- * handle, multiplayer presence) still loses visually to local focus, matching the pre-extraction
- * behavior. The ONLY new core surface for add-ons that paint into the overlay layer without core
- * knowing anything about their state — core supplies geometry, the plugin supplies content.
+ * One overlay-plugin slot: registered via `overlayPlugins` on `DataGridProvider`, rendered by
+ * {@link DataGridOverlays} after the range/band layers but BEFORE the local active-cell ring —
+ * plugin content (e.g. a fill drag preview, multiplayer presence) loses visually to local focus.
+ * The only new core surface for add-ons that paint into the overlay layer: core supplies
+ * geometry, the plugin supplies content.
  */
 export type OverlayPlugin = (ctx: OverlayPluginCtx) => ReactNode;
 
@@ -186,13 +183,11 @@ function hasAnyPin(pinTrack: PinTrackData | undefined): pinTrack is PinTrackData
 /**
  * Selection-range fill + active-cell ring, rendered inside the rows canvas so they translate with
  * scroll content. Placed purely by grid lines (no pixel math), `pointer-events: none` throughout.
- * Subscribes to selection/active-cell via atomic selectors: a change to either re-renders only
- * this component (never rows) — see the render-count probe in data-grid.test.tsx. When any column
- * is pinned, every rect (range/channel-band/active-ring) is split into pinned-left/unpinned/
- * pinned-right segments (spec 6c-2) so pinned segments paint at their cell's actual screen
- * position, above pinned cells' own z-index. Registered `overlayPlugins` (e.g. `data-grid-fill`'s
- * fill-preview/handle, `data-grid-presence`) render after the built-in layers but BEFORE the
- * active-cell ring, so local focus always wins visually over plugin content.
+ * Subscribes to selection/active-cell via atomic selectors: a change re-renders only this
+ * component (never rows). When any column is pinned, every rect splits into pinned-left/unpinned/
+ * pinned-right segments so pinned segments paint at their cell's actual screen position, above
+ * pinned cells' own z-index. Registered `overlayPlugins` render after the built-in layers but
+ * BEFORE the active-cell ring, so local focus always wins visually over plugin content.
  */
 export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
   const { windowStart, rowCount, clampRowStart = windowStart, clampRowEnd = windowStart + rowCount, colCount, colOffset = 1, pinTrack } = props;

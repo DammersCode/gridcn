@@ -67,7 +67,7 @@ function dispatchPaste(text: string): void {
   grid.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: dataTransfer }));
 }
 
-describe("async Standard Schema on paste (workplan #79)", () => {
+describe("async Standard Schema on paste", () => {
   it("commits after the schema resolves, with the transformed value, in ONE onDataChange", async () => {
     const onDataChange = mockDataChangeFn();
     render(
@@ -129,7 +129,7 @@ describe("async Standard Schema on paste (workplan #79)", () => {
   });
 });
 
-describe("async Standard Schema on streaming updateCells (workplan #79)", () => {
+describe("async Standard Schema on streaming updateCells", () => {
   function renderStreamingGrid(onDataChange: ReturnType<typeof mockDataChangeFn>) {
     let storeApi: StoreApi<DataGridStoreState> | null = null;
     render(

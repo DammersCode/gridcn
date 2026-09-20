@@ -373,7 +373,7 @@ const asyncColumns = defineColumns<Row>()([
   { id: "age", header: "Age", accessorKey: "age", type: "number", width: 80, validate: asyncAgeSchema as never },
 ] as const);
 
-describe("DataGridImportButton with an async schema (workplan #79)", () => {
+describe("DataGridImportButton with an async schema", () => {
   function renderImportGrid(onImport: (rows: Row[]) => void) {
     let nextId = 0;
     render(
@@ -418,8 +418,8 @@ describe("DataGridImportButton with an async schema (workplan #79)", () => {
   });
 });
 
-/** B6/G4: a multi-sheet workbook opens on its first sheet with a picker to switch, rather than a silent single choice. */
-describe("multi-sheet workbook sheet picker (B6/G4)", () => {
+// A multi-sheet workbook opens on its first sheet rather than silently.
+describe("multi-sheet workbook sheet picker", () => {
   async function makeWorkbookFile(sheets: Record<string, string[][]>): Promise<File> {
     const XLSX = await import("xlsx");
     const book = XLSX.utils.book_new();

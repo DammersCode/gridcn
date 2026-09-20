@@ -259,7 +259,7 @@ export function buildPasteWrites(
 
 /**
  * The paste application core (parse -> tile -> processPaste -> writes -> applyCellUpdates),
- * shared by the native `paste` event handler and {@link pasteText} (PLAN §8 extension point b) so
+ * shared by the native `paste` event handler and {@link pasteText} so
  * both funnel through one pipeline. `cells` is already parsed (HTML-table or TSV); returns `false`
  * when there was nothing to paste (empty parse, no target, or `processPaste` vetoed it) so callers
  * can distinguish "nothing happened" from a successful write.

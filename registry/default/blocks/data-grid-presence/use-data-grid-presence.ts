@@ -24,10 +24,9 @@ export type UseDataGridPresenceResult = {
 };
 
 /**
- * Multiplayer presence, as a single hook (workplan #48 cut #1: presence extracted out of core into
- * this add-on). Owns its own store — a plain Zustand vanilla store local to this hook instance, NOT
- * part of the grid's own store, so core stays entirely unaware of presence past the generic
- * `overlayPlugins` seam it renders through.
+ * Multiplayer presence, as a single hook. Owns its own store — a plain Zustand vanilla store local
+ * to this hook instance, NOT part of the grid's own store, so core stays entirely unaware of
+ * presence past the generic `overlayPlugins` seam it renders through.
  *
  * Zero-cell-render contract preserved: `plugin`'s identity never changes across renders (returned
  * from a one-time `useState` initializer), and its internal `usePresenceHighlights` subscription
@@ -83,8 +82,8 @@ function makePresencePlugin(store: PresenceStoreApi): OverlayPlugin {
   };
   return (ctx) => {
     // all three run once per DataGridOverlays render, same call order every time (see doc comment
-    // above) — rowId resolution (workplan #92) piggybacks on the same call site rather than adding
-    // a second hook-calling layer, since this closure is already the one place that's safe to do so.
+    // above) — rowId resolution piggybacks on the same call site rather than adding a second
+    // hook-calling layer, since this closure is already the one place that's safe to do so.
     const highlights = usePresenceHighlights(store);
     const rowIdToViewRow = useDataGridRowIdToViewRow();
     const visibleColumns = useDataGridVisibleColumns();

@@ -434,7 +434,7 @@ function renderAsyncFillGrid(data: NumRow[], onDataChange: ReturnType<typeof moc
   );
 }
 
-describe("data-grid-fill with an async schema (workplan #79)", () => {
+describe("data-grid-fill with an async schema", () => {
   it("mod+D holds the batch, then commits the transformed values in ONE onDataChange", async () => {
     const onDataChange = mockDataChangeFn();
     const data = makeFillRows(4);

@@ -17,7 +17,7 @@ export type ColumnResizeHandlers = {
 };
 
 /**
- * Pointer-capture column resize (PLAN §3 item 1): drag the handle to live-update the column's
+ * Pointer-capture column resize: drag the handle to live-update the column's
  * width via `setColumnWidth`, clamped to `[minWidth ?? 32, maxWidth ?? Infinity]`; ends on
  * `lostpointercapture` (not `pointerup` — pointerup can be missed on alt-tab, per the adazzle
  * study). Double-click autosizes: measures the header text + every rendered cell's text in that
@@ -31,7 +31,7 @@ export function useColumnResize(args: {
   setColumnWidth: (id: string, width: number) => void;
   /** Fires once at drag-release/autosize — the `onColumnLayoutChange` commit point (not per drag frame). */
   commitColumnWidth: (id: string, width: number) => void;
-  /** Reads the currently-rendered cell text for this column from the DOM (windowed rows only, per PLAN §3). */
+  /** Reads the currently-rendered cell text for this column from the DOM (windowed rows only). */
   getRenderedCellTexts: (columnId: string) => string[];
   /** Element whose computed font is used for autosize measurement — must be inside the grid root, not document.body. */
   fontSourceRef: RefObject<Element | null>;
