@@ -146,9 +146,12 @@ export type DataChange<TData> = {
   /**
    * Origin of the change, for history labeling and consumer filtering. `"stream"` tags a
    * `updateCells`/`updateRows` batch; `useDataGridHistory` drops it by default, because a
-   * 100-updates/s feed would evict the user's whole undo stack in seconds.
+   * 100-updates/s feed would evict the user's whole undo stack in seconds. `"app"` tags an
+   * imperative `record()` entry (a programmatic change the consumer applied itself).
    */
-  source: "edit" | "paste" | "fill" | "delete" | "row-op" | "import" | "history" | "stream";
+  source: "edit" | "paste" | "fill" | "delete" | "row-op" | "import" | "history" | "stream" | "app";
+  /** Optional human-readable label for this entry (e.g. "Batch save rollback"); carried through the undo/redo stack as-is. */
+  label?: string;
 };
 
 export type CellRenderProps<TData, TValue> = {

@@ -27,6 +27,10 @@ function setupHarness(capacity?: number) {
   return {
     getData: () => data,
     hook: rerenderable,
+    // a consumer-side write that bypasses the hook's onDataChange (programmatic change).
+    consumerSet: (next: readonly Row[]) => {
+      data = next;
+    },
     // re-renders the hook with the latest `data` snapshot, as a real consumer's re-render would.
     sync: () => rerenderable.rerender({ data }),
   };
@@ -261,5 +265,61 @@ describe("useDataGridHistory", () => {
     act(() => h.hook.result.current.clear());
     expect(h.hook.result.current.canUndo).toBe(false);
     expect(h.hook.result.current.canRedo).toBe(false);
+  });
+
+  it("record() registers a consumer-applied programmatic change as one undo step", () => {
+    const h = setupHarness();
+    const prev = initialRows[0]!;
+    const next = { ...prev, name: "Zoe" };
+    const change: DataChange<Row> = {
+      source: "app",
+      ops: [{ type: "update", rowId: "a", row: next, prev, cells: [{ columnId: "name", value: next.name, prev: prev.name }] }],
+    };
+    // the consumer applies the change to its own state; record() only registers it with the stack
+    h.consumerSet([next, initialRows[1]!, initialRows[2]!]);
+    act(() => h.hook.result.current.record(change));
+    h.sync();
+    expect(h.hook.result.current.canUndo).toBe(true);
+
+    act(() => h.hook.result.current.undo());
+    h.sync();
+    expect(h.getData()[0]!.name).toBe("Alice");
+    expect(h.hook.result.current.canRedo).toBe(true);
+
+    act(() => h.hook.result.current.redo());
+    h.sync();
+    expect(h.getData()[0]!.name).toBe("Zoe");
+  });
+
+  it("record() accepts a labeled change and still round-trips through undo", () => {
+    const h = setupHarness();
+    const prev = initialRows[0]!;
+    const next = { ...prev, name: "Zoe" };
+    const change: DataChange<Row> = {
+      source: "app",
+      label: "Batch save rollback",
+      ops: [{ type: "update", rowId: "a", row: next, prev, cells: [{ columnId: "name", value: next.name, prev: prev.name }] }],
+    };
+    h.consumerSet([next, initialRows[1]!, initialRows[2]!]);
+    act(() => h.hook.result.current.record(change));
+    h.sync();
+    expect(h.hook.result.current.canUndo).toBe(true);
+    act(() => h.hook.result.current.undo());
+    h.sync();
+    expect(h.getData()[0]!.name).toBe("Alice");
+  });
+
+  it("records source 'app' through onDataChange by default", () => {
+    const h = setupHarness();
+    const prev = initialRows[0]!;
+    const next = { ...prev, name: "App" };
+    act(() =>
+      h.hook.result.current.onDataChange([next, initialRows[1]!, initialRows[2]!], {
+        source: "app",
+        ops: [{ type: "update", rowId: "a", row: next, prev, cells: [{ columnId: "name", value: next.name, prev: prev.name }] }],
+      }),
+    );
+    h.sync();
+    expect(h.hook.result.current.canUndo).toBe(true);
   });
 });
