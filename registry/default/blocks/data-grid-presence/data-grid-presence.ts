@@ -3,6 +3,7 @@ export { useDataGridPresence, useDataGridPresenceHighlights, type UseDataGridPre
 export {
   type PresenceHighlight,
   type RowIdPresenceHighlight,
+  type RowIdRangePresenceHighlight,
   type PresenceHighlightEntry,
   type PresenceStoreApi,
 } from "./presence-store";

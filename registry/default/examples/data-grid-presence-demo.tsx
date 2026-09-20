@@ -41,18 +41,20 @@ function nextWalkStep(current: number, max: number, seed: number): number {
 /**
  * Drives the 3 simulated users' selections on a timer, calling the real (imperative) mechanism
  * `setPresenceHighlights` directly — exactly what a websocket/CRDT handler would do on each remote
- * update. Ada and Grace use the view-space `range` form; Linus uses the rowId-native `{ rowId,
- * columnId }` form (a real peer would send this after a local sort or filter), so its highlight
- * keeps tracking the same row even as `headerClickBehavior="sort"` reorders the view underneath
- * it. Renders nothing itself.
+ * update. Ada and Grace use the view-space `range` form; Linus uses the rowId-native RANGE form
+ * `{ rowIds, columnIds }` (a real peer would send this after a local sort or filter), so his
+ * highlight keeps tracking the same rows even as `headerClickBehavior="sort"` reorders the view
+ * underneath it. If a local filter or hidden column splits his range, it paints one rect — and
+ * one chip — per surviving contiguous fragment instead of one wrong rect. Renders nothing itself.
  */
 function useSimulatedPresenceDriver(rows: readonly DemoRow[], setPresenceHighlights: (highlights: PresenceHighlightEntry[]) => void): void {
   const tickRef = useRef(0);
 
   useEffect(() => {
     const positions = SIMULATED_USERS.slice(0, 2).map((_, i) => ({ row: (i * 7) % ROW_COUNT, col: i % COL_COUNT }));
-    const linusRowId = rows[Math.floor(ROW_COUNT / 2)]?.id ?? rows[0]?.id ?? "";
-    const linusColumnId = columns[COL_COUNT - 1]!.id;
+    const linusAnchor = Math.floor(ROW_COUNT / 2);
+    const linusRowIds = [rows[linusAnchor]?.id, rows[linusAnchor + 1]?.id].filter((id): id is string => id !== undefined);
+    const linusColumnIds = [columns[COL_COUNT - 1]!.id, columns[COL_COUNT - 2]!.id];
 
     const interval = setInterval(() => {
       tickRef.current += 1;
@@ -81,8 +83,8 @@ function useSimulatedPresenceDriver(rows: readonly DemoRow[], setPresenceHighlig
       const linusHighlight: PresenceHighlightEntry = {
         id: linus.id,
         color: linus.color,
-        rowId: linusRowId,
-        columnId: linusColumnId,
+        rowIds: linusRowIds,
+        columnIds: linusColumnIds,
         label: linus.name,
       };
 
@@ -98,8 +100,9 @@ function useSimulatedPresenceDriver(rows: readonly DemoRow[], setPresenceHighlig
  * cell/range selections on a timer via `setPresenceHighlights` — the same imperative mechanism a
  * real websocket/CRDT handler would call. Zero core re-renders: only the plugin's own overlay
  * subscribes to this state (see the render-count probe in data-grid-presence.test.tsx). Click a
- * header to sort (`headerClickBehavior="sort"`) and watch Linus's highlight — sent as a `{ rowId,
- * columnId }` entry — keep following the same row instead of a fixed view position.
+ * header to sort (`headerClickBehavior="sort"`) and watch Linus's highlight — sent as a
+ * rowId-native `{ rowIds, columnIds }` range entry — keep following the same rows instead of a
+ * fixed view position.
  */
 export default function DataGridPresenceDemo(): ReactNode {
   const rows = useMemo(() => generateDemoRows(ROW_COUNT), []);
@@ -111,7 +114,8 @@ export default function DataGridPresenceDemo(): ReactNode {
     <div className="w-full flex h-[420px] flex-col gap-2">
       <p className="text-sm text-muted-foreground">
         Click a header to sort: Ada's and Grace's highlights are fixed to view positions and jump
-        around, but Linus's highlight is tied to his row id and keeps following the same row.
+        around, but Linus's 2×2 range is tied to its row ids and keeps following the same rows —
+        a local filter that splits the range paints one labeled rect per fragment.
       </p>
       <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-border">
         <DataGridProvider
