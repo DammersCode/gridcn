@@ -192,7 +192,7 @@ const SECTIONS: { title: string; description: string; demo: ReactNode }[] = [
 /** Renders every registry example item in one page. */
 export default function ExamplesPage(): ReactNode {
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-12 p-6">
+    <div className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-12 p-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">gridcn examples</h1>
         <p className="mt-1 text-sm text-muted-foreground">
