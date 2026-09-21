@@ -9,12 +9,13 @@ icon: Rocket
     ### Install
 
     ```bash
-    npx shadcn registry add "@gridcn=https://gridcn.vercel.app/r/{name}.json"
     npx shadcn add @gridcn/data-grid
     ```
 
-    The first line registers the `@gridcn` namespace in your project's `components.json` once
-    (re-running it is harmless). No-setup alternative: `npx shadcn add DammersCode/gridcn/data-grid`.
+    The CLI resolves the `@gridcn` registry from the hosted site
+    ([gridcn.vercel.app](https://gridcn.vercel.app)) — no setup step. To pin a specific tag,
+    branch, or commit, use the GitHub registry path:
+    `npx shadcn add DammersCode/gridcn/data-grid#v1.0.0`.
   </Step>
   <Step>
     ### Define columns

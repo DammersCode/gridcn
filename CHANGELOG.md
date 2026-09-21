@@ -17,6 +17,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Simplified install:** `npx shadcn add @gridcn/<item>` now resolves the hosted `@gridcn`
+  registry directly — the separate `npx shadcn registry add "@gridcn=…"` step is no longer needed.
+  The GitHub registry path (`npx shadcn add DammersCode/gridcn/<item>#<ref>`) remains the way to
+  pin a tag, branch, or commit.
 - **Byte-level output change:** CSV exports now start with a UTF-8 BOM by default, so Excel detects
   UTF-8 (without it, umlauts and other non-ASCII characters opened as mojibake). Opt out with
   `csvBom: false` on `exportGrid`. Related additions: `.tsv` files are now accepted on import
