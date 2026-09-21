@@ -80,7 +80,7 @@ Data collected 2026-07-03 via library docs, GitHub API, and npm API. Downloads =
 - Multi-file: each file has own type (`registry:component`, `registry:hook`, `registry:lib`…); `target` placeholders `@components/`, `@ui/`, `@lib/`, `@hooks/`, `~/`.
 - Authoring: source imports must use `@/registry/...` paths (rewritten on install); cross-item deps in `registryDependencies`.
 - Build: `npx shadcn@latest build` → static `public/r/*.json`; or dynamic via `shadcn/registry` `loadRegistry`/`loadRegistryItem`.
-- Install: `npx shadcn@latest add https://gridcn.dev/r/data-grid.json`, or namespace: `npx shadcn@latest registry add @gridcn=https://gridcn.dev/r/{name}.json` then `npx shadcn@latest add @gridcn/data-grid`. CLI supports `list`/`search`/`view`.
+- Install: `npx shadcn@latest add @gridcn/data-grid` — the CLI resolves the `@gridcn` scope from the hosted registry directly (the explicit `registry add @gridcn=https://gridcn.dev/r/{name}.json` alias form still works). CLI supports `list`/`search`/`view`.
 
 ## 5. Fumadocs for the docs site
 

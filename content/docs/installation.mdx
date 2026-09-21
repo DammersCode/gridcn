@@ -15,10 +15,11 @@ package: the source files are copied into your project.
 
     <InstallCommand item="data-grid" manual manualSlot={<ManualInstall item="data-grid" tree />} />
 
-    The first line registers the `@gridcn` namespace in your project's `components.json` once;
-    re-running it is harmless. Prefer zero setup? Use the
+    The CLI resolves the `@gridcn` registry from the hosted site
+    ([gridcn.vercel.app](https://gridcn.vercel.app)) — no namespace registration needed. To pin
+    a tag, branch, or commit, use the
     [GitHub registry path](#alternative-github-registry-no-setup) instead:
-    `npx shadcn add DammersCode/gridcn/data-grid`.
+    `npx shadcn add DammersCode/gridcn/data-grid#v1.0.0`.
 
     The command installs the engine: range selection, keyboard, editing, built-in cell types,
     and spreadsheet clipboard. The Manual tab links every file and folder to its source in the
