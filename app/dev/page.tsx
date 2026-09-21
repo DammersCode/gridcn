@@ -361,7 +361,7 @@ export default function DevPage(): ReactNode {
         <div>
           <h1 className="text-2xl font-bold text-foreground">gridcn dev</h1>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
             rows
             <select
