@@ -105,8 +105,8 @@ describe("parseImportFile — xlsx edge cases", () => {
   });
 });
 
-/** Regression for B6: a multi-sheet workbook's rows come from sheet 1 only; `sheetNames` is what lets a caller stop that being silent. */
-describe("parseImportFile — xlsx sheetNames (B6)", () => {
+// `sheetNames` exposes every sheet so a caller avoids the first-sheet-only default.
+describe("parseImportFile — xlsx sheetNames", () => {
   it("returns every sheet name alongside the first sheet's rows, for a multi-sheet workbook", async () => {
     vi.resetModules();
     vi.doMock("xlsx", () => ({
@@ -154,8 +154,8 @@ describe("parseImportFile — xlsx sheetNames (B6)", () => {
   });
 });
 
-/** G4: a multi-sheet workbook can select its sheet instead of silently importing the first. */
-describe("parseImportFile — xlsx sheet selection (G4)", () => {
+// A multi-sheet workbook selects its sheet instead of importing the first.
+describe("parseImportFile — xlsx sheet selection", () => {
   function mockWorkbook(sheetNames: string[], rowsBySheet: Record<string, string[][]>): void {
     vi.resetModules();
     const sheets: Record<string, { tag: string }> = {};

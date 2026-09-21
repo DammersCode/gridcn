@@ -58,7 +58,7 @@ export type UseDataGridHistoryResult<TData> = {
 
 /**
  * Op-based undo/redo wired to a consumer-owned data array. Plugs into core's
- * `onDataChange`/`onUndo`/`onRedo` extension points (PLAN §8) with no core edits.
+ * `onDataChange`/`onUndo`/`onRedo` extension points with no core edits.
  *
  * Design: takes `data` + `setData` (mirroring `useState`'s tuple) rather than owning
  * the array itself, so it composes with any state source (useState, a store, a server

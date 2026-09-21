@@ -31,7 +31,7 @@ function resolveViewRow(rowEl: Element): number | null {
 
 /**
  * Resolves the logical grid surface under `eventTarget`. Marker cells (`data-grid-marker-cell`)
- * carry no `aria-colindex` by design (PLAN §3: outside the data column index space) and pinned
+ * carry no `aria-colindex` by design (outside the data column index space) and pinned
  * top/bottom row cells (`data-grid-pinned-row`, from the `data-grid-pinned-rows` add-on) aren't
  * part of `data`/the selection model — both are excluded and resolve to `null` (no cell/header
  * menu; add a marker- or pinned-row-specific menu separately if ever needed).

@@ -40,7 +40,7 @@ export type UseDataGridStateResult<TData> = {
 };
 
 /**
- * Quick-start grid state with undo/redo (PLAN §2/§5): wires `useState` + {@link useDataGridHistory}
+ * Quick-start grid state with undo/redo: wires `useState` + {@link useDataGridHistory}
  * into one spreadable object.
  *
  * "Uncontrolled" here means the consumer does not own the array between renders — the hook does —

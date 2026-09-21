@@ -54,7 +54,7 @@ function renderGridWithStoreAccess(rowCount: number, onStore: (store: StoreApi<D
   );
 }
 
-describe("cell-errors: display (workplan #80)", () => {
+describe("cell-errors: display", () => {
   it("a cellErrors entry paints the ring/tint, aria-invalid, and the message on title", async () => {
     let store: StoreApi<DataGridStoreState> | undefined;
     renderGridWithStoreAccess(5, (s) => (store = s));
@@ -144,7 +144,7 @@ describe("cell-errors: display (workplan #80)", () => {
   });
 });
 
-describe("cell-errors: zero-render probe (workplan #80)", () => {
+describe("cell-errors: zero-render probe", () => {
   it("setCellErrors re-renders only the affected row's cells, not the whole visible window", async () => {
     let store: StoreApi<DataGridStoreState> | undefined;
     let renderCount = 0;
@@ -225,7 +225,7 @@ describe("cell-errors: zero-render probe (workplan #80)", () => {
   });
 });
 
-describe("cell-errors: pruning (workplan #80)", () => {
+describe("cell-errors: pruning", () => {
   it("deleting a row prunes its cellErrors entries end-to-end", async () => {
     let store: StoreApi<DataGridStoreState> | undefined;
     renderGridWithStoreAccess(5, (s) => (store = s));

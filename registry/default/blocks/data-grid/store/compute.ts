@@ -65,10 +65,10 @@ function cellErrorKeyIsLive(key: string, liveRowIds: ReadonlySet<string>): boole
 export const EMPTY_CELL_ERRORS: ReadonlyMap<string, string> = new Map();
 
 /**
- * Auto-clear (workplan #80 spec: "the user fixed it, the stale error must not linger"): every
- * `update` op's `cells` names the exact rowId+columnId pairs a write path just committed a new
- * value to, so this drops exactly those keys from `cellErrors` and returns the SAME map identity
- * when none of them were present — the common case (no server errors active) never allocates.
+ * Auto-clear (a stale error must not linger after the user fixed the cell): every `update` op's
+ * `cells` names the exact rowId+columnId pairs a write path just committed a new value to, so this
+ * drops exactly those keys from `cellErrors` and returns the SAME map identity when none of them
+ * were present — the common case (no server errors active) never allocates.
  */
 export function clearErrorsForOps(cellErrors: ReadonlyMap<string, string>, ops: readonly DataOp<unknown>[]): ReadonlyMap<string, string> {
   if (cellErrors.size === 0) return cellErrors;
@@ -312,7 +312,7 @@ export function computeViewIndex(
   cellTypes?: Record<string, CellType>,
 ): number[] {
   const accessor = textAccessorFor(allColumns, data, cellTypes);
-  // Quick-search never narrows viewIndex — it only highlights/navigates (PLAN §3, perf spec 6).
+  // Quick-search never narrows viewIndex — it only highlights/navigates.
   const next = buildViewIndex(data.length, accessor, { sorts: sortState, filters: filterState, joinOperator });
   if (prevViewIndex && sameElements(next, prevViewIndex)) return prevViewIndex as number[];
   return next;
@@ -367,7 +367,7 @@ export function incrementalViewIndex(
   return result.viewIndex;
 }
 
-/** Max search hits collected before {@link findSearchMatches} early-exits (perf spec 6: bounds worst-case work at 100k+ rows). */
+/** Max search hits collected before {@link findSearchMatches} early-exits; bounds worst-case work at 100k+ rows. */
 export const MAX_SEARCH_MATCHES = 1000;
 
 /** Groups `matches` by view row into column-index Sets — see {@link DataGridStoreState.searchMatchRows}. */
@@ -474,7 +474,7 @@ export function columnFlag(column: AnyColumnDef | undefined, key: "resizable" | 
   return column?.[key] ?? true;
 }
 
-/** Which pin zone a column belongs to, for reorder zone-containment (PLAN §3: "pinned columns reorder only within their pin zone"). */
+/** Which pin zone a column belongs to, for reorder zone-containment (pinned columns reorder only within their pin zone). */
 export function pinZone(column: AnyColumnDef | undefined): "left" | "right" | "middle" {
   return column?.pin === "left" ? "left" : column?.pin === "right" ? "right" : "middle";
 }

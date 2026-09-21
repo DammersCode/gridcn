@@ -366,8 +366,8 @@ describe("selectRow / selectColumn", () => {
   });
 
   it("shift-click ranges from an explicit `from` (insertion-order last-highlighted), not the channel's max member", () => {
-    // ctrl-click row 8, ctrl-click row 5, shift-click row 9: spec ranges from 5 (last highlighted),
-    // not from 8 (the channel's max index)
+    // ctrl-click row 8, ctrl-click row 5, shift-click row 9: the range spans from 5 (last
+    // highlighted), not from 8 (the channel's max index)
     let sel = selectRow(emptySelection(), 8, {});
     sel = selectRow(sel, 5, { additive: true });
     sel = selectRow(sel, 9, { extendFromLast: true, from: 5 });

@@ -35,14 +35,12 @@ const columns = defineColumns<Row>()([
 const totals: Row = { id: "totals", name: "Total", email: "", age: 145 };
 
 /**
- * Representative fixture per PLAN §10 a11y audit: toolbar (search/filter/columns) + row markers
- * (checkbox mode, exercises the select-all header + per-row checkboxes) + a pinned-top row (via the
- * `data-grid-pinned-rows` add-on, workplan #48 cut #3) + a sorted column, matching the
- * runtime-audit surface the task calls for. Wrapped in a `<main>` landmark: axe's `region` rule
- * expects all page content to sit inside a landmark, which is the CONSUMER page's job (a registry
- * component can't unilaterally own the page shell) — the wrapper here stands in for that so the
- * rule checks what it's meant to (see the audit's documented limitation for why this isn't the
- * grid's own responsibility).
+ * Representative fixture: toolbar (search/filter/columns) + row markers (checkbox mode,
+ * exercises the select-all header + per-row checkboxes) + a pinned-top row (via the
+ * `data-grid-pinned-rows` add-on) + a sorted column. Wrapped in a `<main>` landmark: axe's
+ * `region` rule expects all page content to sit inside a landmark, which is the CONSUMER page's
+ * job (a registry component can't unilaterally own the page shell) — the wrapper here stands in
+ * for that so the rule checks what it's meant to.
  */
 function Fixture() {
   const { rowBands } = useDataGridPinnedRows({ topRows: [totals] });

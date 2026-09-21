@@ -189,7 +189,7 @@ const SECTIONS: { title: string; description: string; demo: ReactNode }[] = [
   },
 ];
 
-/** Renders every registry example item in one page — the advisor's live-check surface until the docs site exists. */
+/** Renders every registry example item in one page. */
 export default function ExamplesPage(): ReactNode {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-12 p-6">

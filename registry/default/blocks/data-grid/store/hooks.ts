@@ -38,8 +38,8 @@ export function useDataGridCellTypes(): Record<string, CellType> {
 
 /**
  * Imperative scroll-into-view for a view-space cell coord, honoring pinned bands — the same
- * mechanism keyboard nav uses internally, exposed as a public extension point (PLAN §8) for add-ons
- * that move the active cell from outside `DataGridRoot`'s subtree (e.g. `data-grid-toolbar`'s
+ * mechanism keyboard nav uses internally, exposed as a public extension point for add-ons that
+ * move the active cell from outside `DataGridRoot`'s subtree (e.g. `data-grid-toolbar`'s
  * search next/prev). No-op before `DataGridRoot` mounts or after it unmounts.
  */
 export function useDataGridScrollToCell(): (coord: CellCoord) => void {
@@ -52,16 +52,15 @@ export function useDataGridScrollToCell(): (coord: CellCoord) => void {
  * `fillHandlers`'s doc comment) — read by `DataGridRoot` itself on every render and forwarded to
  * `useGridInteraction`'s optional `fillDown`/`fillRight`/`cancelFillDrag` params. `null` before the
  * add-on's tracker mounts (or when it's absent entirely), matching every other registration slot's
- * no-op-by-default contract. Provider seam from the workplan #48 extractions — not part of the
- * public API; consumers should not import it.
- * @internal
- */
+  * no-op-by-default contract. Not part of the public API; consumers should not import it.
+  * @internal
+  */
 export function useDataGridFillHandlers(): DataGridStoreState["fillHandlers"] {
   return useDataGridStore((s) => s.fillHandlers);
 }
 
 /**
- * Mirrors the mounted `DataGridRoot`'s `readOnly` prop (PLAN §8 extension point c) — for add-on
+ * Mirrors the mounted `DataGridRoot`'s `readOnly` prop — for add-on
  * mutation surfaces outside the root's subtree (e.g. the context-menu add-on) that need to hide or
  * disable their own actions on a read-only grid. `false` before mount/after unmount.
  */
@@ -71,8 +70,8 @@ export function useDataGridReadOnly(): boolean {
 
 /**
  * The mounted `DataGridRoot`'s effective keymap — `DEFAULT_KEYMAP` merged over with its `keymap`
- * prop — the single source of truth for every bound action (PLAN §8 extension point, backs the
- * `data-grid-keybindings` add-on's dialog so it never hardcodes a shortcut list). `DEFAULT_KEYMAP`
+ * prop — the single source of truth for every bound action (backs the `data-grid-keybindings`
+ * add-on's dialog so it never hardcodes a shortcut list). `DEFAULT_KEYMAP`
  * before mount/after unmount.
  */
 export function useDataGridKeymap(): Keymap {
@@ -81,7 +80,7 @@ export function useDataGridKeymap(): Keymap {
 
 /**
  * The current grid's effective i18n labels — {@link DEFAULT_LABELS} deep-merged with the
- * `DataGridProvider`'s `labels` prop (PLAN §3 i18n labels object) — the single source of truth
+ * `DataGridProvider`'s `labels` prop — the single source of truth
  * every core + add-on component reads its user-facing strings from. Stable identity across renders
  * that don't change the `labels` prop's reference (see `memoizedMergeLabels`).
  */
@@ -161,7 +160,8 @@ export function useDataGridGetSelectionValues(): () => unknown[][] {
 }
 
 /**
- * Registered overlay plugins (workplan #48 seam); consumed ONLY by {@link DataGridOverlays} — never by row/cell subscriptions. Provider seam from the workplan #48 extractions — not part of the public API; consumers should not import it.
+ * Registered overlay plugins; consumed ONLY by {@link DataGridOverlays} — never by row/cell
+ * subscriptions. Not part of the public API; consumers should not import it.
  * @internal
  */
 export function useDataGridOverlayPlugins(): readonly OverlayPlugin[] {
@@ -169,7 +169,9 @@ export function useDataGridOverlayPlugins(): readonly OverlayPlugin[] {
 }
 
 /**
- * Registered row-bands spec (workplan #48 cut #3); consumed ONLY by {@link DataGridRoot} — reads `topRows`/`bottomRows.length` for its own height/aria-rowcount math and calls `render` where it used to render `DataGridPinnedRowBand` directly. Provider seam from the workplan #48 extractions — not part of the public API; consumers should not import it.
+ * Registered row-bands spec; consumed ONLY by {@link DataGridRoot} — reads `topRows`/`bottomRows.length`
+ * for its own height/aria-rowcount math and calls `renderBand`. Not part of the public API;
+ * consumers should not import it.
  * @internal
  */
 export function useDataGridRowBands(): RowBandsSpec {
@@ -187,7 +189,7 @@ export function useDataGridEditingError(): string | null {
 }
 
 /**
- * Post-commit server-error map (workplan #80), keyed `"rowId:columnId"` — see `cellErrors`' doc
+ * Post-commit server-error map, keyed `"rowId:columnId"` — see `cellErrors`' doc
  * comment for the full auto-clear/history/zero-render contract. Reach for this to build a
  * consumer-side summary (an error count badge, a "N cells need attention" banner); a rendering
  * cell itself should use {@link useDataGridCellState}/{@link useDataGridRowCellState} instead,
@@ -309,10 +311,9 @@ export function useDataGridSearchText(): string {
 }
 
 /**
- * Every cell matching the current `searchText`, in view-space row-major order (PLAN §3 quick-search
- * "match highlighting + next/prev navigation"), capped at 1000 hits. Reads the store's precomputed
- * slice directly — `setSearch`/`setSorts`/`setFilters`/`_syncProps` are the only places that (re)run
- * `findSearchMatches`, exactly once each, never per-subscriber (perf spec 6).
+ * Every cell matching the current `searchText`, in view-space row-major order, capped at 1000 hits.
+ * Reads the store's precomputed slice — `setSearch`/`setSorts`/`setFilters`/`_syncProps` are the
+ * only places that (re)run `findSearchMatches`, exactly once each, never per-subscriber.
  */
 export function useDataGridSearchMatches(): SearchMatch[] {
   return useDataGridStore(useShallow((s) => s.searchMatches));
@@ -468,11 +469,9 @@ export function useDataGridCellRejectionCount(coord: CellCoord): number {
 
 /**
  * Consolidated per-cell state: one `useShallow` subscription instead of the ~6 separate store reads
- * {@link useDataGridIsCellActive}/{@link useDataGridIsCellEditing}/{@link useDataGridCellInitialText}/
- * {@link useDataGridIsSearchMatch} cost together (the latter alone is 2 reads) — confirmed 7.4→2.7
- * store.subscribe registrations per mounted cell (perf spec 6c-8, H1). The 5-tuple object is
- * genuinely fresh per relevant state change, so `useShallow` is the correct (not superfluous) tool
- * here: it still bails when none of the 5 values changed.
+ * the individual cell hooks cost together — 7.4→2.7 store.subscribe registrations per mounted cell.
+ * The 5-tuple object is genuinely fresh per relevant state change, so `useShallow` is the correct
+ * tool here: it still bails when none of the 5 values changed.
  */
 export function useDataGridCellState(coord: CellCoord): DataGridCellState {
   return useDataGridStore(
@@ -586,16 +585,13 @@ function rowCellStateEqual(a: DataGridRowCellState, b: DataGridRowCellState): bo
 }
 
 /**
- * One subscription per ROW instead of one per CELL (spec 4b: a max-velocity full-window swap mounts
- * ~544 cells, each with its own `useDataGridCellState` subscription — 544 subscribe/unsubscribe
- * cycles per tick; this cuts that to ~68/swap, one per row). Mirrors `useShallow`'s ref-memo pattern
- * (zustand/react/shallow) but with {@link rowCellStateEqual} instead of `shallow`, since the shape
- * needs custom comparison (a `Set` compared by reference, a tuple array compared by content) that
- * `shallow`'s one-level-deep check can't express. A selection change in row 5 recomputes every row's
- * selector (one store subscription fires per relevant change), but only row 5's comparator sees new
- * content — every other row's previous object reference is returned, so only row 5 re-renders.
- * Selection membership flips are the one sanctioned cell re-render (aria-selected — PLAN.md §4.6,
- * 2026-09-03 audit P4).
+ * One subscription per ROW instead of one per CELL: a max-velocity full-window swap mounts ~544
+ * cells, and per-cell subscriptions are 544 subscribe/unsubscribe cycles per tick; this is one
+ * per row. Mirrors `useShallow`'s ref-memo pattern with {@link rowCellStateEqual} — the shape
+ * needs custom comparison (a `Set` by reference, a tuple array by content) that `shallow` cannot
+ * express. A selection change recomputes every row's selector, but only the affected row's
+ * comparator sees new content — only that row re-renders. Selection membership flips are the one
+ * sanctioned cell re-render (aria-selected).
  */
 export function useDataGridRowCellState(viewRow: number): DataGridRowCellState {
   const prev = useRef<DataGridRowCellState | undefined>(undefined);

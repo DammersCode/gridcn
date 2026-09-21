@@ -31,7 +31,7 @@ function trackRights(widths: number[], lefts: number[]): number[] {
  * column and before any pinned-left data column — data columns render at
  * `gridColumnStart: index + (markerWidth > 0 ? 2 : 1)`. `trackLefts`/`trackRights`/`leftOffsets`
  * are already shifted by `markerWidth` so callers never add it themselves; `CellCoord.col` and
- * this array's own `index` stay pure data-column indices throughout (PLAN §3: marker lives
+ * this array's own `index` stay pure data-column indices throughout (the marker lives
  * outside the data index space).
  */
 export type ColumnLayout = {
@@ -87,10 +87,10 @@ export function useColumnLayout(columns: readonly AnyColumnDef[], availableWidth
 export type WindowedColumn = { column: AnyColumnDef; index: number };
 
 /**
- * Context passed to {@link RowBandsSpec.renderBand} for one band — exactly what root.tsx already
- * computed to render `DataGridPinnedRowBand` pre-extraction (workplan #48 cut #3). `ariaRowIndexBase`
- * is root's own aria index-layout math (header=1, top band next, then data rows, bottom band last),
- * so the add-on never has to know rowCount or the other band's length.
+ * Context passed to {@link RowBandsSpec.renderBand} for one band — exactly what root.tsx computes
+ * for the band's render. `ariaRowIndexBase` is root's own aria index-layout math (header=1, top
+ * band next, then data rows, bottom band last), so the add-on never has to know rowCount or the
+ * other band's length.
  */
 export type RowBandRenderCtx = {
   position: "top" | "bottom";
@@ -105,13 +105,12 @@ export type RowBandRenderCtx = {
 };
 
 /**
- * Provider-level row-bands seam (workplan #48 cut #3): unlike `overlayPlugins` (pure paint, no
- * layout impact), bands affect band heights and `aria-rowcount`, which root.tsx must know
- * SYNCHRONOUSLY at first render (SSR + no one-frame layout shift) — so this is a spec object, not a
- * mount-effect registration like `fillHandlers`. Core only reads `topRows.length`/`bottomRows.length`
- * for its own arithmetic and calls `render` where it used to render `DataGridPinnedRowBand` directly;
- * it never inspects the row contents. `data-grid-pinned-rows`'s `useDataGridPinnedRows` is the
- * motivating (and so far only) producer.
+ * Provider-level row-bands seam: unlike `overlayPlugins` (pure paint, no layout impact), bands
+ * affect band heights and `aria-rowcount`, which root.tsx must know SYNCHRONOUSLY at first render
+ * (SSR + no one-frame layout shift) — so this is a spec object, not a mount-effect registration
+ * like `fillHandlers`. Core only reads `topRows.length`/`bottomRows.length` for its own arithmetic
+ * and calls `renderBand`; it never inspects the row contents. `data-grid-pinned-rows`'s
+ * `useDataGridPinnedRows` is the motivating (and so far only) producer.
  */
 export type RowBandsSpec = {
   topRows: readonly unknown[];
@@ -120,10 +119,10 @@ export type RowBandsSpec = {
 };
 
 /**
- * Render-prop for the per-column header menu slot (PLAN §3 "Pinning UX", diceui-style primary
- * pin/sort surface). `trigger` is the core's own ghost-chevron button element — the renderer wraps
- * it as its dropdown's trigger (e.g. `<DropdownMenuTrigger render={trigger} />`) so core keeps sole
- * ownership of the trigger's visuals/aria-label while the add-on owns the popover + menu items.
+ * Render-prop for the per-column header menu slot: the primary pin/sort surface. `trigger` is the
+ * core's own ghost-chevron button element — the renderer wraps it as its dropdown's trigger
+ * (e.g. `<DropdownMenuTrigger render={trigger} />`) so core keeps sole ownership of the trigger's
+ * visuals/aria-label while the add-on owns the popover + menu items.
  * A concrete `ReactElement` (not the broader `ReactNode`): Base UI's `render` prop requires one.
  */
 export type HeaderMenuRenderer = (ctx: { column: AnyColumnDef; index: number; trigger: ReactElement }) => ReactNode;
@@ -163,13 +162,13 @@ export type DataGridRootContextValue = {
   windowedColumns: readonly WindowedColumn[];
   layout: ColumnLayout;
   rowHeight: number;
-  /** The sticky header track's own height — header.tsx's literal row height, NOT including any pinned band. Consumers computing "where data row 0 starts" need `headerHeight + pinnedTopHeight` (PLAN §3 "shrunken effective viewport"); body.tsx does this itself for `useRowWindow`/the canvas transform. */
+  /** The sticky header track's own height — header.tsx's literal row height, NOT including any pinned band. Consumers computing "where data row 0 starts" need `headerHeight + pinnedTopHeight`; body.tsx does this itself for `useRowWindow`/the canvas transform. */
   headerHeight: number;
   /** Pinned-top row band height (px); 0 when `rowBands` is unset or its `topRows` is empty. */
   pinnedTopHeight: number;
   /** Pinned-bottom row band height (px); 0 when `rowBands` is unset or its `bottomRows` is empty. */
   pinnedBottomHeight: number;
-  /** `rowBands.topRows.length` (workplan #48 cut #3) — body.tsx's `ariaRowIndexOffset` needs only the count, never the row contents (core doesn't own pinned-row semantics anymore). */
+  /** `rowBands.topRows.length` — body.tsx's `ariaRowIndexOffset` needs only the count, never the row contents (core doesn't own pinned-row semantics). */
   pinnedTopCount: number;
   /** Full RLE grid-template-columns string — the alignment source of truth for both layers. */
   template: string;
@@ -184,7 +183,7 @@ export type DataGridRootContextValue = {
   /** Optional custom marker-header renderer; undefined renders the built-in select-all checkbox. */
   renderMarkerHeader?: MarkerHeaderRenderer;
   /**
-   * Programmatic row/cell class hooks (PLAN §6), routed through this context rather than a
+   * Programmatic row/cell class hooks, routed through this context rather than a
    * per-row/per-cell prop. `DataGridRoot` DOES re-render on active-cell moves (the activeColumn
    * subscription, root.tsx) as well as scroll/window-shift ticks, but its context value is
    * `useMemo`'d on real deps (root.tsx) — a render that doesn't change any field here (e.g. an

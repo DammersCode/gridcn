@@ -46,7 +46,7 @@ function menuItem(name: string): HTMLElement | undefined {
   return [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((el) => el.textContent?.includes(name));
 }
 
-describe("DataGridHeaderDropdown (PLAN §3 Pinning UX)", () => {
+describe("DataGridHeaderDropdown", () => {
   it("renders no chevron trigger when the root has no renderHeaderMenu prop", async () => {
     render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>

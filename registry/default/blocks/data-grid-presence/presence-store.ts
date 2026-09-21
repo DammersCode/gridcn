@@ -45,12 +45,10 @@ export type RowIdPresenceHighlight = {
 };
 
 /**
- * rowId-native range alternative to {@link PresenceHighlight} (G5): a multi-cell selection keyed
- * by stable rowIds × columnIds instead of a view-space rect. The plugin resolves every `rowId` ->
- * view row and every `columnIds` -> view column itself at paint time, so a locally-active
- * sort/filter never mispaints it; ids that fell out of the current view (filtered rows, hidden or
- * unknown columns) are dropped, and the surviving cells paint as one rect per contiguous run of
- * resolved rows × runs of resolved columns.
+ * rowId-native alternative to {@link PresenceHighlight}: a multi-cell selection keyed by stable
+ * rowIds × columnIds instead of a view-space rect. The plugin resolves every id against the
+ * receiver's current view at paint time, so a local sort or filter never mispaints it. Ids that
+ * fell out of the view are dropped; the surviving cells paint one rect per contiguous run.
  */
 export type RowIdRangePresenceHighlight = {
   /** Unique id PER ENTRY — must be unique per entry (a multi-range selection sends one entry per range, each with its own id). */

@@ -12,7 +12,7 @@ const TEXT_OPERATORS: FilterOperator[] = [
   "notEmpty",
 ];
 
-/** Comparison operators added only for orderable types (PLAN §4 "gt/lt only for number/date"). */
+/** Comparison operators added only for orderable types (gt/lt only for number/date). */
 const COMPARISON_OPERATORS: FilterOperator[] = ["gt", "gte", "lt", "lte", "isBetween"];
 
 /**

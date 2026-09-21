@@ -50,7 +50,7 @@ export type DataGridImportDialogProps<TData> = {
 };
 
 /**
- * File-picker -> preview -> column-mapping -> confirm dialog (PLAN §8 item 5). Parses via
+ * File-picker -> preview -> column-mapping -> confirm dialog. Parses via
  * {@link useDataGridImportPreview}, builds `TData` rows via {@link buildImportedRows} through each mapped
  * column's cell-type `fromText` + `validate`, then hands the result to `onImport` — it never writes
  * to the grid store directly, so replace/append semantics stay the consumer's call.

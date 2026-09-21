@@ -150,7 +150,7 @@ describe("buildFillWrites", () => {
   });
 });
 
-describe("buildFillWrites with an async schema (workplan #79)", () => {
+describe("buildFillWrites with an async schema", () => {
   const asyncQty = {
     "~standard": {
       version: 1,
@@ -199,7 +199,7 @@ describe("buildFillWrites with an async schema (workplan #79)", () => {
   });
 });
 
-describe("useFillHandle staleness guard — async fill held against a real store (workplan #87)", () => {
+describe("useFillHandle staleness guard — async fill held against a real store", () => {
   /** A `qty` schema validator whose resolution the test controls, so a mutation can land while the batch is genuinely still in flight. */
   function heldSchema() {
     let resolveFn!: (result: { value: unknown }) => void;

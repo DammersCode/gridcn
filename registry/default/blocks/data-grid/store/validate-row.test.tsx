@@ -26,7 +26,7 @@ function makeStore(overrides: Partial<InternalSyncProps> = {}) {
   } as InternalSyncProps);
 }
 
-describe("validateRow (workplan #101)", () => {
+describe("validateRow", () => {
   it("verdict is independent of column order inside a paste — the defining case", () => {
     for (const patches of [
       [

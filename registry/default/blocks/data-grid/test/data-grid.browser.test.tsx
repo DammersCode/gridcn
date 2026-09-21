@@ -110,7 +110,7 @@ describe("DataGrid in a real browser", () => {
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     expect(performance.now() - start).toBeLessThan(5_000);
     expect(renderedDataRowCount()).toBeLessThan(80);
-    // column virtualization (phase 3b): only a windowed subset of the 100 columns render per row
+    // column virtualization: only a windowed subset of the 100 columns render per row
     expect(document.querySelectorAll('[role="columnheader"]').length).toBeLessThan(40);
   });
 
@@ -311,7 +311,7 @@ describe("DataGrid in a real browser", () => {
       void grid;
     });
 
-    // Excel model (user decision): clicks NEVER edit — only dblclick/Enter/F2/typing do.
+    // Excel model: clicks NEVER edit — only dblclick/Enter/F2/typing do.
     it("a second click on the already-active cell does NOT start editing", async () => {
       renderGrid(20);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
@@ -650,7 +650,7 @@ describe("DataGrid in a real browser", () => {
       expect(cell).toHaveAttribute(GRID_ATTR.editing, "true");
     });
 
-    describe("async Standard Schema validate (workplan #53)", () => {
+    describe("async Standard Schema validate", () => {
       type AgeResult = { value: number } | { issues: { message: string }[] };
 
       /**
@@ -873,7 +873,7 @@ describe("DataGrid in a real browser", () => {
 
         // Re-open and pick a different option — must commit (before the fix the guard latched on
         // the rejection, so this pick was silently dropped and the edit session was stranded).
-        // The re-picked value re-validates (same as the workplan #53 number-editor flow), so the
+        // The re-picked value re-validates (same as the number-editor flow), so the
         // test resolves the second verdict with success.
         await document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("editing", "true")} [aria-label="Role"]`)!.click();
         await page.getByRole("option", { name: "Owner" }).click();

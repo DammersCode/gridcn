@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import type { AnyColumnDef } from "../store";
 
-/** Pinned-cell inset style: position:relative works under a transformed ancestor, `position:sticky` doesn't (checklist step 5). */
+/** Pinned-cell inset style: position:relative works under a transformed ancestor, `position:sticky` doesn't. */
 export function pinnedInsetStyle(
   pinned: AnyColumnDef["pin"] | undefined,
   index: number,

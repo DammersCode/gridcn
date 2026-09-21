@@ -1,6 +1,6 @@
 import type { DensityMode } from "../types";
 
-/** Row height (px) per density preset (PLAN §6 "Polish"); the header track height never changes with density. */
+/** Row height (px) per density preset; the header track height never changes with density. */
 const DENSITY_ROW_HEIGHT: Record<DensityMode, number> = {
   compact: 28,
   default: 36,

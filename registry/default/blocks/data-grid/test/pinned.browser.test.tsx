@@ -62,7 +62,7 @@ function gridCells(): HTMLElement[] {
   return [...document.querySelectorAll<HTMLElement>('[role="gridcell"]')];
 }
 
-describe("spec 1 — pin-right min(viewport, content) anchor", () => {
+describe("pin-right min(viewport, content) anchor", () => {
   it("floats the pinned-right cell flush against the previous column when content is narrower than the viewport", async () => {
     // 8 columns * 100px = 800px content, inside a 1400px-wide container — content underflows.
     renderEngine({ columns: makeColumns(8, { lastPinnedRight: true }), width: 1400, rowCount: 20 });
@@ -112,7 +112,7 @@ describe("spec 1 — pin-right min(viewport, content) anchor", () => {
   });
 });
 
-describe("spec 2 — pin-aware overlay segmentation", () => {
+describe("pin-aware overlay segmentation", () => {
   it("paints a range spanning a pinned-left column + unpinned columns as 2 highlighted, correctly positioned parts that stay put while scrolling", async () => {
     const { actions } = renderEngine({ columns: makeColumns(100, { firstPinnedLeft: true }), width: 1000, rowCount: 200 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();

@@ -462,7 +462,7 @@ describe("useGridInteraction onKeyDown", () => {
   });
 });
 
-describe("useGridInteraction: insertRowBelow/duplicateRow dispatch (workplan #88)", () => {
+describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
   it("insertRowBelow inserts a new row below the active cell when createRow is provided", () => {
     const createRow = (index: number): Row => ({ id: `new-${index}`, name: "new", qty: 0 });
     const { hook } = renderInteraction(3, { createRow });

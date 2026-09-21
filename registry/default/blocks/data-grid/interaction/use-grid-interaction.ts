@@ -38,9 +38,9 @@ export type InteractionLayout = {
   /** Cumulative right edge (px) of each visible column's track, data-space index. */
   trackRights: readonly number[];
   rowHeight: number;
-  /** Offset (px) from the scroll element's top to where data row 0 starts: the sticky header track PLUS any pinned-top row band (PLAN §3). NOT the header track alone (that's the root context's `headerHeight`). */
+  /** Offset (px) from the scroll element's top to where data row 0 starts: the sticky header track PLUS any pinned-top row band. NOT the header track alone (that's the root context's `headerHeight`). */
   dataRowTop: number;
-  /** Pinned-bottom row band height (px, PLAN §3) — the effective viewport bottom is `clientHeight - pinnedBottomHeight`. 0 when there's no pinned-bottom band. */
+  /** Pinned-bottom row band height (px) — the effective viewport bottom is `clientHeight - pinnedBottomHeight`. 0 when there's no pinned-bottom band. */
   pinnedBottomHeight: number;
   /** Total pinned-left band width in px (cells must stay clear of this on the left). */
   pinnedLeftWidth: number;
@@ -329,7 +329,7 @@ const JUMP_DIRECTION: Record<JumpAction, JumpDirection> = {
   extendJumpRight: "right",
 };
 
-/** Handlers + drag state wiring for keyboard nav, mouse selection, and editing lifecycle (see research/glide-behavior-spec.md §2-3, PLAN §4.5). */
+/** Handlers + drag state wiring for keyboard nav, mouse selection, and editing lifecycle (see research/glide-behavior-spec.md §2-3). */
 export type GridInteractionHandlers = {
   onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void;
   /** Attach to each rendered cell's pointerdown. */
@@ -371,8 +371,8 @@ export type GridInteractionHandlers = {
   cancelColumnSelectDrag: () => void;
   /**
    * Imperatively scrolls the container so `coord` (view-space) is visible, honoring the
-   * pinned-left/right bands. Public extension point (PLAN §8) for add-ons that move the active
-   * cell programmatically, e.g. `data-grid-toolbar`'s search next/prev — never `scrollIntoView`
+   * pinned-left/right bands. Public extension point for add-ons that move the active cell
+   * programmatically, e.g. `data-grid-toolbar`'s search next/prev — never `scrollIntoView`
    * (see {@link scrollCellIntoView}'s own doc for why).
    */
   scrollCellIntoView: (coord: CellCoord) => void;
@@ -393,7 +393,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   layoutRef.current = layout;
 
   // drag state lives in a ref, never React state — a drag never re-renders anything but the
-  // overlay/active-cell subscribers that selection changes already touch (PLAN 4.6/perf rule).
+  // overlay/active-cell subscribers that selection changes already touch.
   const dragRef = useRef<{ pointerId: number; mode: "range" | "row" | "column" } | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
@@ -444,9 +444,9 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
     rafRef.current = requestAnimationFrame(runDragFrame);
   }, [actions, scrollRef, storeApi]);
 
-  // pointermove/pointerup are attached to `document` only for the lifetime of an active drag
-  // (PLAN 4.6: no document-level listeners except during an active drag) — beginDrag attaches
-  // them, endDrag tears them down immediately, instead of a permanent always-on subscription.
+  // pointermove/pointerup are attached to `document` only for the lifetime of an active drag —
+  // beginDrag attaches them, endDrag tears them down immediately, instead of a permanent
+  // always-on subscription.
   const documentListenersRef = useRef<(() => void) | null>(null);
 
   // The element that took setPointerCapture for the active drag; released explicitly on end
@@ -778,7 +778,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       const state = storeApi.getState();
       const isMultiKey = isMacRef.current ? event.metaKey : event.ctrlKey;
 
-      // Excel activation model (user decision): a click NEVER starts editing — it only
+      // Excel activation model: a click NEVER starts editing — it only
       // selects; dblclick/Enter/F2/typing edit. Only checkbox cells resolve a stationary
       // click on the already-active cell into a direct toggle (a control, not an editor).
       const wasActive =

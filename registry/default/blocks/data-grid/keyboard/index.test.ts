@@ -176,7 +176,7 @@ describe("matchKeymap - space key bindings", () => {
     expect(matchKeymap(event, DEFAULT_KEYMAP, true)).not.toBe("selectColumn");
   });
 
-  it("plain space opens the editor (edit action), per spec Enter/Shift+Enter/Space", () => {
+  it("plain space opens the editor (edit action)", () => {
     const event = makeEvent({ key: " " });
     expect(matchKeymap(event, DEFAULT_KEYMAP, false)).toBe("edit");
   });

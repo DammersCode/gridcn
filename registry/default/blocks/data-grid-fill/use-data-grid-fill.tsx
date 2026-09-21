@@ -26,12 +26,11 @@ export type UseDataGridFillResult = {
 };
 
 /**
- * The fill handle, as a single hook (workplan #48 cut #2: fill extracted out of core into this
- * add-on, reusing the overlay-plugin seam the presence extraction built). Owns its own store — a
- * plain Zustand vanilla store local to this hook instance, NOT part of the grid's own store, for
- * the in-progress drag-preview rect and the live pointerdown handler: core stays entirely unaware
- * of fill past the generic `overlayPlugins` seam it renders through and the `fillHandlers`
- * registration slot `FillHandleTracker` writes into (mirroring `scrollToCellImpl`).
+ * The fill handle, as a single hook. Owns its own store — a plain Zustand vanilla store local to
+ * this hook instance, NOT part of the grid's own store, for the in-progress drag-preview rect and
+ * the live pointerdown handler: core stays entirely unaware of fill past the generic
+ * `overlayPlugins` seam it renders through and the `fillHandlers` registration slot
+ * `FillHandleTracker` writes into (mirroring `scrollToCellImpl`).
  *
  * Two pieces, not one, because fill (unlike `data-grid-presence`) needs real pointer/scroll
  * coordinates: `plugin` is pure rendering (paints from the store, works from anywhere `overlayPlugins`
@@ -53,7 +52,7 @@ export function useDataGridFill(options: UseDataGridFillOptions): UseDataGridFil
   // `useDataGridEditing` ITSELF when invoked (inside DataGridOverlays's own render, see
   // overlays.tsx) — a plain function call still runs its hooks against the calling component's
   // fiber, so this is what subscribes DataGridOverlays (and ONLY DataGridOverlays) to fill state —
-  // exactly the same atomic selectors the built-in overlay layer read pre-extraction. This hook's
+   // exactly the same atomic selectors the built-in overlay layer reads. This hook's
   // OWN component never subscribes to any of them, preserving the zero-cell-render contract:
   // re-rendering here would re-render everything under it, including DataGridProvider, on every drag frame.
   const plugin = useMemo<OverlayPlugin>(() => makeFillPlugin(fillStore, optionsRef), [fillStore]);

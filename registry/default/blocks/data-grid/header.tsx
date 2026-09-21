@@ -19,14 +19,13 @@ import { isInlineStartHalf } from "./windowing/direction";
 /**
  * Header layer: absolutely positioned inside the sticky Viewport, counter-translated
  * horizontally by the live scroll var so it tracks the canvas 1:1 without ever moving via native
- * scroll (checklist step 2a). Renders only the windowed column set (same window the body consumes).
+ * scroll. Renders only the windowed column set (same window the body consumes).
  *
  * Data-column grid placement is `index + markerColOffset` (1-based `gridColumnStart`): the marker
  * column (when present) occupies track 1, so every data column shifts one track right. `index`
  * itself, `aria-colindex`, and `aria-colcount` (set on the grid root) are all untouched by this —
  * the marker carries no `aria-colindex` at all and sits outside the data header's a11y column
- * count entirely (PLAN §3 "must not break aria-colindex"; the simpler of the two documented
- * schemes, chosen over shifting every data cell's aria-colindex by one).
+ * count (chosen over shifting every data cell's aria-colindex by one).
  */
 export function DataGridHeader(): ReactNode {
   const { scrollRef, windowedColumns, template, layout, headerHeight, interaction, direction, renderHeaderMenu } = useDataGridRootContext();
@@ -67,11 +66,10 @@ export function DataGridHeader(): ReactNode {
   });
 
   /**
-   * Single drop-indicator line at the reorder drag's current boundary — replaces the old per-cell
-   * inset shadows (spec 4), whose before/after edges duplicated the same boundary as two lines.
-   * Grid-placed on the boundary column's own track so an unpinned column gets raw track coords
-   * (header layer already translates by -scrollLeft) while a pinned boundary column reuses the
-   * exact pinned-cell offset (spec 2), landing the line at that cell's rendered edge either way.
+   * Single drop-indicator line at the reorder drag's current boundary. Grid-placed on the boundary
+   * column's own track: an unpinned column gets raw track coords (the header layer already
+   * translates by -scrollLeft), a pinned boundary column reuses the exact pinned-cell offset,
+   * so the line lands at the cell's rendered edge either way.
    */
   const dropIndicator = useMemo<{ index: number; style: CSSProperties } | null>(() => {
     if (!dragState?.overId) return null;

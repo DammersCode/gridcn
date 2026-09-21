@@ -251,7 +251,7 @@ describe("updateCells — validation", () => {
   });
 });
 
-describe("updateCells — async validation (workplan #79)", () => {
+describe("updateCells — async validation", () => {
   /** Async schema over `price`: negatives reject, everything else rounds. */
   const asyncPrice = {
     "~standard": {
@@ -359,7 +359,7 @@ describe("updateCells — async validation (workplan #79)", () => {
     },
   };
 
-  it("a sync-Standard-Schema batch on another row does not discard a held async batch (workplan #83)", async () => {
+  it("a sync-Standard-Schema batch on another row does not discard a held async batch", async () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({
       onDataChange,
@@ -456,7 +456,7 @@ describe("updateCells — sort/filter reconciliation", () => {
   });
 });
 
-// --- Incremental view maintenance (workplan #78) -------------------------------------------------
+// --- Incremental view maintenance ----------------------------------------------------------------
 // The store-level half of the equivalence bar: `"immediate"` and `reconcileView` take the
 // incremental path, and each case asserts the SAME viewIndex a full rebuild produces.
 
@@ -691,9 +691,8 @@ describe("updateCells — uncontrolled mode", () => {
 });
 
 // --- The id-index cache: the invalidation audit -------------------------------------------------
-// Design spec risk 2: a missed invalidation lands patches on the WRONG rows, silently. Each case
-// below drives a real mutation path, then patches by id and asserts the write landed on the row
-// that id names — which is only true if the map was invalidated or rebased correctly.
+// A missed invalidation lands patches on the WRONG rows, silently. Each case below drives a real
+// mutation path, then patches by id and asserts the write landed on the row that id names.
 
 describe("rowId index maintenance — one case per mutation path", () => {
   /** Warms the cache with one patch, so every case below tests a cache that was already built. */

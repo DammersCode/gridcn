@@ -7,7 +7,7 @@ export type SearchMatch = { row: number; columnId: string };
  * Finds every cell matching `search` (case-insensitive substring) across
  * `columnIds`, in row-major order — the order next/prev navigation and
  * highlight rendering expect. `maxMatches`, when given, early-exits the scan
- * the moment that many hits are collected (perf spec: bounds worst-case work
+ * the moment that many hits are collected (bounds worst-case work
  * at 100k+ rows for a common search term; omitted keeps the full scan).
  */
 export function findSearchMatches(

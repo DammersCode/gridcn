@@ -88,19 +88,19 @@ export type DataGridSyncProps<TData = unknown> = {
   enableColumnPinning?: boolean;
   /** How a plain header click behaves; default 'select'. See {@link HeaderClickBehavior}. */
   headerClickBehavior?: HeaderClickBehavior;
-  /** Partial i18n override, deep-merged over {@link DEFAULT_LABELS} (PLAN §3 i18n labels object); see {@link useDataGridLabels}. */
+  /** Partial i18n override, deep-merged over {@link DEFAULT_LABELS}; see {@link useDataGridLabels}. */
   labels?: DeepPartialLabels;
   /** Builds a new row for `insertRow`; absent makes `insertRow` a dev-warning no-op (duplicateRows/deleteRows don't need it). */
   createRow?: (index: number) => TData;
   /**
-   * Builds a duplicated row's identity for `duplicateRows` (PLAN §8 extension point a): given the
+   * Builds a duplicated row's identity for `duplicateRows`: given the
    * source row and its new data index, returns the row to insert (with a distinct id, e.g. a fresh
    * UUID, so the copy's `getRowId()` never collides with its source's React key). Absent makes
    * `duplicateRows` a dev-warning no-op — mirrors `createRow`/`insertRow`.
    */
   duplicateRow?: (row: TData, index: number) => TData;
   /**
-   * Controlled multi-sort spec (PLAN §3/§5 server escape hatch). Standard controlled-input
+   * Controlled multi-sort spec. Standard controlled-input
    * semantics: omitted (undefined) keeps today's uncontrolled behavior — the store owns
    * `sortState`. Provided (even `[]`) makes this prop the source of truth every `_syncProps` sync
    * writes into the store; `onSortChange` still fires on every user-driven change (header click,
@@ -123,7 +123,7 @@ export type DataGridSyncProps<TData = unknown> = {
   /** Fires whenever the user (or `actions.setSearch`) would change the search text, controlled or not; see `searchText`. */
   onSearchTextChange?: (next: string) => void;
   /**
-   * Overlay-plugin registration (workplan #48 seam): each plugin renders into the overlay layer
+   * Overlay-plugin registration: each plugin renders into the overlay layer
    * after the fill preview but before the local active-cell ring, receiving `OverlayPluginCtx`
    * (window-clamp + pin-zone helpers, layout vars). The `data-grid-presence` add-on is the
    * motivating consumer. Pass a stable array reference (e.g. module scope or `useMemo`) — same
@@ -132,12 +132,11 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   overlayPlugins?: readonly OverlayPlugin[];
   /**
-   * Row-bands registration (workplan #48 cut #3): pinned top/bottom row bands used to be
-   * `pinnedTopRows`/`pinnedBottomRows` props on `DataGridRoot` directly; they're now a spec object
-   * so root.tsx can compute band heights/`aria-rowcount` SYNCHRONOUSLY at first render (no SSR/
-   * first-paint layout shift) while the actual pinned-row semantics live in the `data-grid-pinned-rows`
-   * add-on's `useDataGridPinnedRows()`. Same dev-mode identity guardrail as `overlayPlugins` — pass a
-   * stable reference (the hook already returns one).
+   * Row-bands registration: a spec object so root.tsx can compute band heights/`aria-rowcount`
+   * SYNCHRONOUSLY at first render (no SSR/first-paint layout shift) while the actual pinned-row
+   * semantics live in the `data-grid-pinned-rows` add-on's `useDataGridPinnedRows()`. Same
+   * dev-mode identity guardrail as `overlayPlugins` — pass a stable reference (the hook already
+   * returns one).
    */
   rowBands?: RowBandsSpec;
   /**
@@ -361,7 +360,7 @@ export type DataGridStoreState = Omit<
    */
   editingRejectionCount: number;
   /**
-   * Post-commit server-rejection messages (workplan #80), keyed `"rowId:columnId"` — set via
+   * Post-commit server-rejection messages, keyed `"rowId:columnId"` — set via
    * `actions.setCellErrors` after an async `onDataChange` round-trip rejects (e.g. a 422), painted
    * with the SAME visual language as a sync `validate` rejection (ring/tint + message,
    * `aria-invalid`). Deliberately NOT part of the edit lifecycle: `setCellErrors`/`clearCellErrors`
@@ -389,12 +388,12 @@ export type DataGridStoreState = Omit<
   filterState: FilterSpec[];
   /** How `filterState`'s rows combine; default `"and"`. See `FilterJoinOperator`. */
   joinOperator: FilterJoinOperator;
-  /** Quick-search text; never affects `viewIndex` (PLAN §3 perf: search highlights + navigates, it doesn't filter). */
+  /** Quick-search text; never affects `viewIndex` (search highlights + navigates, it doesn't filter). */
   searchText: string;
   /**
    * Whether `sortState`/`filterState`/`joinOperator`/`searchText` are controlled (their sync prop
    * was defined on the last `_syncProps`), set once per sync and read by `toggleSort`/`setSorts`/
-   * `setFilters`/`setJoinOperator`/`setSearch` (PLAN §3/§5 server escape hatch). Controlled mode:
+   * `setFilters`/`setJoinOperator`/`setSearch` (server escape hatch). Controlled mode:
    * the action still fires its `onXChange` callback but does NOT write the corresponding state
    * field itself — `_syncProps` is the only writer once the consumer's prop (and thus the store)
    * actually changes, standard controlled-input semantics (a callback-ignoring consumer's grid
@@ -432,12 +431,12 @@ export type DataGridStoreState = Omit<
   /**
    * Imperative scroll-into-view, registered by the mounted `DataGridRoot` (null before mount/after
    * unmount). Lets add-ons outside the root's subtree (e.g. `data-grid-toolbar`'s search, which sits
-   * as a `DataGridRoot` sibling per PLAN §5's composition) move the viewport without reaching into
+   * as a `DataGridRoot` sibling) move the viewport without reaching into
    * root-internal refs. See {@link useDataGridScrollToCell}.
    */
   scrollToCellImpl: ((coord: CellCoord) => void) | null;
   /**
-   * Fill-handle keymap handlers (workplan #48), registered by the `data-grid-fill` add-on's tracker
+   * Fill-handle keymap handlers, registered by the `data-grid-fill` add-on's tracker
    * component — which must render somewhere inside `DataGridRoot`'s subtree to reach `scrollRef`/
    * layout via `useDataGridRootContext()`, a level `DataGridRoot`'s OWN `useGridInteraction` call
    * (which needs these three callbacks) sits above. Registering through the store the same way
@@ -447,7 +446,7 @@ export type DataGridStoreState = Omit<
    */
   fillHandlers: { fillDown: () => void; fillRight: () => void; cancelFillDrag: () => void } | null;
   /**
-   * Mirrors `DataGridRoot`'s `readOnly` prop, registered on mount (PLAN §8 extension point c) so
+   * Mirrors `DataGridRoot`'s `readOnly` prop, registered on mount, so
    * mutation surfaces outside the root's subtree (context menu, `useDataGridClipboard`) can see it
    * too — the root prop alone only reached its own local `useGridInteraction`/`useGridClipboard`.
    * `false` before mount/after unmount.
@@ -455,7 +454,7 @@ export type DataGridStoreState = Omit<
   readOnly: boolean;
   /**
    * Mirrors `DataGridRoot`'s effective keymap — `DEFAULT_KEYMAP` merged with its `keymap` prop —
-   * registered on mount (PLAN §8 extension point, `data-grid-keybindings` add-on) so surfaces outside
+   * registered on mount (backing the `data-grid-keybindings` add-on) so surfaces outside
    * the root's subtree (e.g. the keybindings dialog) can read the single source of truth for
    * bindings instead of re-deriving it. `DEFAULT_KEYMAP` before mount/after unmount.
    */
@@ -509,7 +508,7 @@ export type DataGridActions = {
   setFilters(filters: FilterSpec[]): void;
   /** Sets how `filterState`'s rows combine ("and" every filter must match, "or" any one does). */
   setJoinOperator(joinOperator: FilterJoinOperator): void;
-  /** Sets quick-search text and recomputes `searchMatches`/`searchMatchSet`/`searchMatchesCapped` once; never touches `viewIndex` (PLAN §3, perf spec 6). */
+  /** Sets quick-search text and recomputes `searchMatches`/`searchMatchSet`/`searchMatchesCapped` once; never touches `viewIndex`. */
   setSearch(text: string): void;
   /** Enters edit mode at `coord` (view-space); no-op when the column is readOnly or its type is unregistered. */
   startEditing(coord: CellCoord, initialText?: string): void;
@@ -581,7 +580,7 @@ export type DataGridActions = {
   /**
    * Duplicates the rows at `viewRowIndexes` (view-space), inserting each copy directly after its
    * source row, as one `{source: 'row-op'}` DataChange with id-keyed `insert` ops. Dev-warning
-   * no-op when the `duplicateRow` sync prop is absent (PLAN §8 extension point a) — required so
+   * no-op when the `duplicateRow` sync prop is absent — required so
    * every duplicated row gets a distinct id, never colliding with its source's React key.
    */
   duplicateRows(viewRowIndexes: number[]): void;
@@ -658,10 +657,10 @@ export type DataGridCellState = {
 };
 
 /**
- * {@link useDataGridRowCellState}'s return shape — one row's worth of interactive cell state, derived
- * ONCE per row instead of once per cell (spec 4b). `selectedColRanges` is a rectangle-based summary
- * (a row's selected columns are always a small union of `[start,end)` runs, never a per-column
- * boolean/Set) so it stays cheap both to compute and to compare by content.
+ * {@link useDataGridRowCellState}'s return shape — one row's worth of interactive cell state,
+ * derived ONCE per row instead of once per cell. `selectedColRanges` is a rectangle-based summary
+ * (a row's selected columns are a small union of `[start,end)` runs), so it stays cheap to compute
+ * and to compare by content.
  */
 export type DataGridRowCellState = {
   /** The active cell's column in this row, or null if the active cell isn't in this row. */

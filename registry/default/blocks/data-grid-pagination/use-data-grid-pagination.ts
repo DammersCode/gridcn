@@ -50,7 +50,7 @@ function isServerOptions<TData>(
 }
 
 /**
- * Pagination math + controls for `DataGrid` (pagination design doc, add-on 2): purely additive,
+ * Pagination math + controls for `DataGrid`: purely additive,
  * zero core changes — pagination slices/labels a dataset the grid already renders in full via
  * virtualization, it doesn't change how the grid renders.
  *

@@ -44,7 +44,7 @@ async function bestFullSwapFps(grid: HTMLElement): Promise<number> {
 }
 
 describe("custom marker renderers: full-window-swap FPS guardrail vs the built-in marker", () => {
-  // Same method and dataset as perf.browser.test.tsx spec 6c-8 (100k rows, 800px/frame forced-layout
+  // Same method and dataset as perf.browser.test.tsx (100k rows, 800px/frame forced-layout
   // steps). This test adds the CUSTOM-marker side of that comparison: a module-scope renderMarker +
   // renderMarkerHeader on the same grid. The ratio assertion is the machine-relative guard (a custom
   // renderer should not cost more than ~30% of the built-in path on the same machine); the absolute

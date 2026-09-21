@@ -1,11 +1,10 @@
 import type { Keymap } from "../types";
 
 /**
- * Default keyboard bindings (see research/glide-behavior-spec.md §2 and
- * PLAN.md §3 Excel-fidelity upgrades). `mod` resolves to Cmd on macOS,
- * Ctrl elsewhere; `ctrl` is the literal physical Ctrl key on every platform
- * (used where Cmd is reserved by the OS, e.g. Ctrl+Space vs. macOS Spotlight).
- * Consumers may override/extend via the `keymap` prop.
+ * Default keyboard bindings (see research/glide-behavior-spec.md §2). `mod` resolves to Cmd on
+ * macOS, Ctrl elsewhere; `ctrl` is the literal physical Ctrl key on every platform (used where
+ * Cmd is reserved by the OS, e.g. Ctrl+Space vs. macOS Spotlight). Consumers may
+ * override/extend via the `keymap` prop.
  */
 export const DEFAULT_KEYMAP: Keymap = {
   moveUp: ["ArrowUp"],

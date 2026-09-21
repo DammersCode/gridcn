@@ -46,7 +46,7 @@ export function warnBothDataPropsOnce(): void {
   warnDev("both `data` and `defaultData` were provided; `data` wins (controlled) and `defaultData` is ignored");
 }
 
-/** Dev-only guardrails from PLAN §4.2: duplicate column ids, missing getRowId, unstable columns/data/overlayPlugins/rowBands identity across renders. */
+/** Dev-only guardrails: duplicate column ids, missing getRowId, unstable columns/data/overlayPlugins/rowBands identity across renders. */
 export function checkDevGuardrails(
   props: InternalSyncProps,
   prevColumns: readonly AnyColumnDef[] | undefined,
@@ -381,8 +381,8 @@ export function computeDeleteBatch(
  * the required `s.duplicateRow` and spliced immediately after its source row. Processed descending
  * so earlier splices don't shift the still-pending source indexes; ops are returned in ascending
  * source order for a stable, predictable id-keyed batch. Caller (`duplicateRows`) guarantees
- * `duplicateRow` is present — a shallow-spread fallback would keep the source's `getRowId()`,
- * colliding two sibling rows' React key (PLAN §8 extension point a).
+  * `duplicateRow` is present — a shallow-spread fallback would keep the source's `getRowId()`,
+  * colliding two sibling rows' React key.
  */
 export function computeDuplicateBatch(
   s: DataGridStoreState,

@@ -50,7 +50,7 @@ export type DataGridRootProps<TData = unknown> = {
   className?: string;
   /** Explicit row height (px); overrides `density` when set. */
   rowHeight?: number;
-  /** Row-height preset: compact 28 / default 36 / comfortable 44 (PLAN §6 "Polish"). Ignored when `rowHeight` is set. */
+  /** Row-height preset: compact 28 / default 36 / comfortable 44. Ignored when `rowHeight` is set. */
   density?: DensityMode;
   /** Merged over `DEFAULT_KEYMAP`; per-action bindings here take precedence. */
   keymap?: Keymap;
@@ -70,16 +70,16 @@ export type DataGridRootProps<TData = unknown> = {
   /** Rendered centered in place of the body when there are zero rows in view. Never shown while `loading` is true. */
   emptyState?: ReactNode;
   /**
-   * Presentational loading flag (design doc 2026-07-18): zero rows renders viewport-filling
+   * Presentational loading flag: zero rows renders viewport-filling
    * skeleton rows instead of the empty state; rows present keeps them visible and adds a slim
    * indeterminate bar under the header. Purely presentational — no data-fetch orchestration of its
    * own (that's `data-grid-lazy`'s job for per-window skeletons). Default `false`.
    */
   loading?: boolean;
   /**
-   * Per-column header menu slot (PLAN §3 "Pinning UX", user decision 2026-07-03): rendered inline-end
-   * in each header cell as a ghost chevron trigger, only when provided. The context-menu add-on's
-   * `DataGridHeaderDropdown` is the intended renderer, reusing the same items as the header right-click menu.
+   * Per-column header menu slot: rendered inline-end in each header cell as a ghost chevron
+   * trigger, only when provided. The context-menu add-on's `DataGridHeaderDropdown` is the
+   * intended renderer, reusing the same items as the header right-click menu.
    */
   renderHeaderMenu?: HeaderMenuRenderer;
   /**
@@ -91,7 +91,7 @@ export type DataGridRootProps<TData = unknown> = {
   renderMarker?: MarkerCellRenderer;
   /** Custom marker-header renderer: replaces the built-in select-all checkbox; same track and width. See {@link MarkerHeaderRenderer}. Pass a stable identity. */
   renderMarkerHeader?: MarkerHeaderRenderer;
-  /** Row class hook (PLAN §6 "Programmatic style API"), merged via `cn()` after the built-in row classes. Pass a stable identity — see {@link GetRowClassName}. */
+  /** Row class hook, merged via `cn()` after the built-in row classes. Pass a stable identity — see {@link GetRowClassName}. */
   getRowClassName?: GetRowClassName<TData>;
   /** Cell class hook, merged via `cn()` after the built-in cell classes. Pass a stable identity — see {@link GetCellClassName}. */
   getCellClassName?: GetCellClassName<TData>;
@@ -163,9 +163,9 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // labels.grid.emptyState is the translatable default; the emptyState prop (ReactNode) still wins when provided.
   const gridLabels = useDataGridLabels().grid;
   const emptyStateLabel = gridLabels.emptyState;
-  // Provider-level seam (workplan #48 cut #3): defaults to EMPTY_ROW_BANDS (store.tsx) when no
-  // add-on registered one — same identity-guardrailed sync-prop pattern as overlayPlugins, read
-  // here (not via a DataGridRootProps prop) so it's available before DataGridRoot even mounts.
+  // Provider-level seam: defaults to EMPTY_ROW_BANDS (store.tsx) when no add-on registered one —
+  // same identity-guardrailed sync-prop pattern as overlayPlugins, read here (not via a
+  // DataGridRootProps prop) so it's available before DataGridRoot even mounts.
   const rowBands = useDataGridRowBands();
   const pinnedTopRows = rowBands.topRows;
   const pinnedBottomRows = rowBands.bottomRows;
@@ -174,7 +174,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // Effective header height: the sticky header track PLUS any pinned-top band — every "data row 0
   // starts here" computation (row window, scroll-into-view, canvas transform) uses this, not
   // HEADER_HEIGHT alone, so the pinned-top band is treated as part of the fixed chrome above the
-  // scrollable data rows (PLAN §3 "shrunken effective viewport").
+   // scrollable data rows.
   const effectiveHeaderHeight = HEADER_HEIGHT + pinnedTopHeight;
   // column-only primitive subscription: the root re-renders when the active COLUMN changes
   // (force-render-active-column below), never on row-only moves — vertical arrows stay cheap.
@@ -220,11 +220,11 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   }, [lefts, rights, rowHeight, pins, widths, layout.markerWidth, effectiveHeaderHeight, pinnedBottomHeight, direction]);
   const hasPinnedLeft = interactionLayout.pinnedLeftWidth > 0;
   const hasPinnedRight = interactionLayout.pinnedRightWidth > 0;
-  // Registered by the `data-grid-fill` add-on's tracker component (workplan #48) — it must render
+  // Registered by the `data-grid-fill` add-on's tracker component — it must render
   // somewhere inside THIS subtree to reach scrollRef/layout via useDataGridRootContext, a level
   // below this very hook call, so it reaches back up through the store rather than a prop (see
   // `fillHandlers`'s doc comment in store.tsx). `null` (add-on absent, or not yet mounted) makes
-  // mod+D/mod+R/Escape-mid-drag the documented no-ops — useGridInteraction already treats each as optional.
+  // mod+D/mod+R/Escape-mid-drag no-ops — useGridInteraction already treats each as optional.
   const fillHandlers = useDataGridFillHandlers();
   const interaction = useGridInteraction({
     scrollRef,
@@ -238,7 +238,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   useGridClipboard({ rootRef: scrollRef, readOnly });
 
   // Registers this mount's scroll-into-view on the store so add-ons outside this subtree (e.g.
-  // data-grid-toolbar's search, a DataGridRoot sibling per PLAN §5) can reach it; cleared on unmount.
+  // data-grid-toolbar's search, a DataGridRoot sibling) can reach it; cleared on unmount.
   const actions = useDataGridActions();
   useEffect(() => {
     actions._registerScrollToCell(interaction.scrollCellIntoView);
@@ -260,7 +260,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   }, [actions, effectiveKeymap]);
 
   useViewportElement(scrollRef, viewportRef);
-  // Imperative data-scrolled-left/right writer (PLAN §6 pinned-edge shadows) — no React re-render per tick.
+  // Imperative data-scrolled-left/right writer (for the pinned-edge shadows) — no React re-render per tick.
   useScrolledEdges(scrollRef, viewportRef);
   // Measures the pin-shadow's real anchor from the boundary header cell's own rendered edge,
   // instead of a JS-summed width total that can drift a subpixel from CSS Grid's own track
@@ -269,7 +269,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // without resizing it or the viewport, so the ResizeObserver never fires for it.
   usePinShadowEdges(viewportRef, hasPinnedLeft, hasPinnedRight, direction, `${pins.join(",")}|${layout.markerWidth}|${widths.join(",")}`);
 
-  // Dev-only guardrail (PLAN §6 memoization guidance): getRowClassName/getCellClassName reach
+  // Dev-only guardrail: getRowClassName/getCellClassName reach
   // row.tsx/cell.tsx through this root's context value rather than a per-row prop specifically so a
   // DataGridRoot re-render (rare — structural only, see the useScrollSnapshot comment above) doesn't
   // reach the memoized row/cell hot path; an unstable identity here would still bust the CONTEXT
@@ -307,7 +307,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   });
   const columnIndices = useMemo(() => {
     const indices = columnWindowIndices;
-    // PLAN 4.1: the active cell's column always renders, even off-window, so focus survives scroll.
+    // the active cell's column always renders, even off-window, so focus survives scroll
     if (activeColumn !== null && !indices.includes(activeColumn) && activeColumn < visibleColumns.length) {
       return [...indices, activeColumn].sort((a, b) => a - b);
     }
@@ -319,7 +319,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // last data row so the native scrollbar's range still covers exactly the data rows plus both bands.
   const contentHeight = effectiveHeaderHeight + rowCount * rowHeight + pinnedBottomHeight;
 
-  // loading+empty (design doc): enough skeleton rows to fill the viewport below the header, plus
+  // loading+empty: enough skeleton rows to fill the viewport below the header, plus
   // one so a partial row is visible at the bottom edge like the real windowed body would show.
   const showLoadingSkeleton = loading && rowCount === 0;
   const skeletonRowCount = showLoadingSkeleton
@@ -360,7 +360,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     "--grid-dir": directionSign(direction),
   };
   visibleColumns.forEach((_, i) => {
-    // Recomputed meaning (checklist step 5): static parts only — the live scroll term is added in
+    // Recomputed meaning: static parts only — the live scroll term is added in
     // the cell's own inset calc(), not baked in here, so one scroll-var write moves every pinned cell.
     viewportStyle[`--grid-pin-left-${i}`] = `${leftOffsets[i]}px`;
     viewportStyle[`--grid-pin-right-${i}`] = `${rightOffsets[i]}px`;
@@ -497,7 +497,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 headerHeight: HEADER_HEIGHT,
                 ariaRowIndexBase: 2 + pinnedTopRows.length + rowCount,
               })}
-            {/* the empty state never shows while loading (design doc) — a zero-row loading grid renders the skeleton below instead */}
+            {/* the empty state never shows while loading — a zero-row loading grid renders the skeleton below instead */}
             {rowCount === 0 && !loading && (
               <div
                 data-grid-empty-state=""

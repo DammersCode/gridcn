@@ -22,13 +22,13 @@ export type DataGridContextMenuProps = {
 
 /**
  * Wraps `children` (the grid) with the shadcn `ContextMenu`. On `contextmenu`, inspects the event
- * target to decide the surface (cell vs. header — PLAN §8 add-on item 1) and, for a cell outside
+ * target to decide the surface (cell vs. header) and, for a cell outside
  * the current selection, selects that cell first (Excel behavior) before the menu opens.
  *
  * A surface that resolves to neither (row markers, empty grid space below the last row, the
  * scrollbar gutter, ...) has no menu content to show — `resolveContextMenuTarget` already returns
  * `null` there. Left alone, Base UI's `ContextMenuRoot` still opens the (then childless) popup on
- * that right-click, rendering a visibly empty rounded-card sliver (user report, screenshot-confirmed).
+ * that right-click, rendering a visibly empty rounded-card sliver.
  * `onOpenChange` here cancels that open via `eventDetails.cancel()` — checked against `targetRef`
  * (synchronous, unlike `target` state) since the "should this open" decision has to be made in the
  * same tick as the triggering event, before React re-renders. The native browser context menu is

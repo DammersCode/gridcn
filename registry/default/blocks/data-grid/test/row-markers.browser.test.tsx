@@ -526,7 +526,7 @@ describe("mouse-selection hardening matrix (regression: drag-select must never e
     expect(document.querySelector(gridAttrSelector("editing", "true"))).toBeNull();
   });
 
-  // Excel model (user decision): clicks never edit — this guards that pointer jitter neither
+  // Excel model: clicks never edit — this guards that pointer jitter neither
   // misreads as a range drag nor (per the model) opens the editor.
   it("a slow click (press, tiny sub-3px jitter, release) on the active cell neither edits nor paints a range", async () => {
     render(

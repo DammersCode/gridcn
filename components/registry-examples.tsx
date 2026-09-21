@@ -3,11 +3,10 @@ import type { ComponentType } from "react";
 
 /**
  * Static import map for every `registry:example` item — dynamic() needs statically analyzable
- * paths (a computed `import(name)` isn't bundleable), so each entry is spelled out. Mirrors
- * app/dev/examples/page.tsx, which renders the same items eagerly for the advisor's live-check.
- * No "use client" here: next/dynamic is called from the server component ComponentPreview, which
- * is fine — each target module is itself already "use client", and dynamic() just returns a
- * component reference, not a function ComponentPreview calls into.
+ * paths (a computed `import(name)` isn't bundleable), so each entry is spelled out.
+ * No "use client" here: next/dynamic is called from the server component ComponentPreview,
+ * which is fine — each target module is already "use client", and dynamic() returns a component
+ * reference, not a function ComponentPreview calls.
  */
 const EXAMPLES = {
   "data-grid-minimal-demo": dynamic(() => import("@/registry/default/examples/data-grid-minimal-demo")),

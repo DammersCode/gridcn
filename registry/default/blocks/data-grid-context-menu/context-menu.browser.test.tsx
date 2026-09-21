@@ -90,7 +90,7 @@ function renderGrid(
 const totals: Row = { id: "totals", name: "Total", email: "" };
 
 /** Same shape as `renderGrid`, plus a `data-grid-pinned-rows` top band — exercises the resolver's
- * pinned-top offset and pinned-cell exclusion (workplan #84) end to end through the real
+ * pinned-top offset and pinned-cell exclusion end to end through the real
  * hook -> rowBands -> root.tsx pipeline, not a hand-built DOM fixture. */
 function PinnedGridWithMenu(props: {
   top: readonly Row[];
@@ -287,8 +287,8 @@ describe("DataGridContextMenu — non-cell surfaces never show an empty popover"
   });
 });
 
-// workplan #84 regression: resolveContextMenuTarget used to miscompute the row with a pinned-top band installed.
-describe("DataGridContextMenu — pinned-top rows (workplan #84)", () => {
+// Regression: resolveContextMenuTarget miscomputed the row with a pinned-top band installed.
+describe("DataGridContextMenu — pinned-top rows", () => {
   it("Duplicate row targets the right-clicked data row, not the row below it, with a pinned-top band installed", async () => {
     const onDataChange = vi.fn();
     render(<PinnedGridWithMenu top={[totals]} onDataChange={onDataChange} />);
@@ -313,11 +313,10 @@ describe("DataGridContextMenu — pinned-top rows (workplan #84)", () => {
   });
 });
 
-// G9 (non-secure context, e.g. plain http on a customer LAN): `navigator.clipboard` is undefined,
-// so `pasteFromClipboard()` rejects with `permission-denied`. The blocked state must survive the
-// menu close/reopen cycle — the menu content portals and unmounts, so per-mount state would leave
-// the user with a silently no-op Paste item and no hint.
-describe("DataGridContextMenu — paste permission-denied survives menu reopen (G9)", () => {
+// Non-secure context (plain http): `navigator.clipboard` is undefined, so paste rejects with
+// `permission-denied`. The menu content unmounts on close, so the blocked flag must live in the
+// persistent wrapper to keep the Ctrl+V hint across reopens.
+describe("DataGridContextMenu — paste permission-denied survives menu reopen", () => {
   afterEach(() => {
     delete (navigator as unknown as { clipboard?: unknown }).clipboard;
   });

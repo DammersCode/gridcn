@@ -45,8 +45,8 @@ function ColumnRow(props: { column: AnyColumnDef }): ReactNode {
 }
 
 /**
- * Show/hide-only column visibility dropdown (PLAN §3 "Columns menu redesign", user 2026-07-04):
- * pin controls live in the header dropdown / context menu instead. Each row is a
+ * Show/hide-only column visibility dropdown — pin controls live in the header dropdown /
+ * context menu instead. Each row is a
  * `DropdownMenuCheckboxItem` with the standard trailing check-mark indicator, not a square Checkbox.
  */
 export function DataGridColumnsMenu(props: DataGridColumnsMenuProps): ReactNode {

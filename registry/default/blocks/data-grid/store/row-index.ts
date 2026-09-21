@@ -52,8 +52,8 @@ export function createRowIndexCache(): RowIndexCache {
 
 /**
  * Rebuilds the map from scratch and compares it against `cached`, returning the mismatching row ids.
- * Dev-only assertion surface for the invalidation invariant (the design spec's risk 2: a missed
- * invalidation lands patches on the wrong rows, a silent data-corruption class of bug).
+ * Dev-only assertion surface for the invalidation invariant: a missed invalidation lands patches
+ * on the wrong rows, a silent data-corruption class of bug.
  */
 export function diffRowIndex(
   cached: ReadonlyMap<string, number>,

@@ -1,11 +1,11 @@
 /**
  * Compile-time-only assertions for the public barrel's surface: GridCellTypes consumer
- * augmentation, controlled-props shapes (sort/filter/search/joinOperator), DeepPartialLabels, the
- * useDataGridVisibleColumns/useDataGridAllColumns consumer-callability fix (workplan #24-A), and a
- * spot-check that the barrel exports no accidental `any`. No runtime assertions live here; the tsc
- * gate typechecks this file (named so vitest's *.test.ts glob does not pick it up, matching
- * columns/column-helpers.type-test.ts). `PresenceHighlight`'s own type-test moved to the
- * `data-grid-presence` add-on with the rest of presence (workplan #48).
+ * augmentation, controlled-props shapes (sort/filter/search/joinOperator), DeepPartialLabels,
+ * useDataGridVisibleColumns/useDataGridAllColumns consumer callability, and a spot-check that the
+ * barrel exports no accidental `any`. No runtime assertions live here; the tsc gate typechecks this
+ * file (named so vitest's *.test.ts glob does not pick it up, matching
+ * columns/column-helpers.type-test.ts). `PresenceHighlight`'s own type-test lives in the
+ * `data-grid-presence` add-on with the rest of presence.
  */
 import type {
   DataGrid,
@@ -46,7 +46,7 @@ type Row = { id: string; name: string; age: number };
 
 // --- GridCellTypes consumer augmentation --------------------------------------
 // A REAL `declare module "./cell-types/../types" { interface GridCellTypes { ... } }` augmentation
-// is exercised end-to-end in cell-types/builtin-augmentation.type-test.ts (workplan #61): it proves
+// is exercised end-to-end in cell-types/builtin-augmentation.type-test.ts: it proves
 // the shipped cell-types.ts's `satisfies { [K in BuiltinCellTypeKey]: CellTypeFor<K> }` — keyed on
 // a literal union decoupled from GridCellTypes — still compiles once a consumer-style key is added,
 // AND that built-in drift (missing/mistyped entry) still errors. This file instead asserts the
@@ -98,12 +98,10 @@ void badSortState;
 const badJoinOperator: Pick<DataGridProps<Row>, "joinOperator"> = { joinOperator: "xor" };
 void badJoinOperator;
 
-// --- DataGrid wrapper prop-surface drift guard (workplan #88) -----------------------------------
-// DataGridProps is meant to forward every DataGridSyncProps sync prop into DataGridProvider
-// (cellTypes/labels/duplicateRow used to be silently missing — LOW finding in the 2026-08-02
-// optimization audit). Pin the "intentionally absent from the wrapper" set explicitly (currently
-// empty) so a future sync prop added to the provider without a matching DataGridProps field fails
-// this file's compile instead of silently downgrading the wrapper again.
+// --- DataGrid wrapper prop-surface drift guard ------------------------------------------------
+// DataGridProps must forward every DataGridSyncProps sync prop into DataGridProvider.
+// Pin the "intentionally absent from the wrapper" set explicitly (currently empty) so a sync prop
+// added to the provider without a matching DataGridProps field fails this file's compile.
 type IntentionallyAbsentFromWrapper = never;
 assertEqual<IntentionallyAbsentFromWrapper, Exclude<keyof DataGridSyncProps<Row>, keyof DataGridProps<Row>>>(true);
 
@@ -195,7 +193,7 @@ assertEqual<false, IsAny<ReturnType<typeof defineColumns<Row>>>>(true);
 assertEqual<false, IsAny<ReturnType<typeof useDataGridVisibleColumns>>>(true);
 assertEqual<false, IsAny<ReturnType<typeof useDataGridAllColumns<Row>>>>(true);
 
-// --- StandardSchemaV1: vendored-type conformance + validate union (workplan #53) -------------
+// --- StandardSchemaV1: vendored-type conformance + validate union ----------------------------
 // types.ts vendors `StandardSchemaV1` (no runtime/type import from @standard-schema/spec, see its
 // doc comment) so shipped code has zero new deps. This asserts the vendored copy stays assignable
 // to/from the OFFICIAL package's type in both directions — any future drift in either fails tsc
@@ -247,7 +245,7 @@ void badSchemaValidate;
 const withFnValidate: NumberColumnValidate = (value) => (value !== null && value < 0 ? "must be >= 0" : null);
 void withFnValidate;
 
-// --- DataGridRoot<TData>: typed callbacks in split composition (workplan #50) -----------------
+// --- DataGridRoot<TData>: typed callbacks in split composition -------------------------------
 // DataGridRoot has no `data` prop of its own to infer TData from (split composition puts `data` on
 // the sibling DataGridProvider) — the generic must be explicitly annotated by the consumer, e.g.
 // `<DataGridRoot<Person>>` in JSX (verified separately in data-grid-events-demo.tsx, a .tsx file;
@@ -264,8 +262,8 @@ type TypedRootProps = DataGridRootProps<Row>;
 assertEqual<GetRowClassName<Row> | undefined, TypedRootProps["getRowClassName"]>(true);
 
 // (c) the marker renderers are non-generic (their ctx carries view state, never a row), so they
-// stay identical on the default and typed root and on the DataGrid wrapper (workplan-style drift
-// guard: a TData-annotated variant here would fail this compile).
+// stay identical on the default and typed root and on the DataGrid wrapper (a TData-annotated
+// variant here would fail this compile).
 assertEqual<MarkerCellRenderer | undefined, DataGridRootProps["renderMarker"]>(true);
 assertEqual<MarkerHeaderRenderer | undefined, DataGridRootProps["renderMarkerHeader"]>(true);
 assertEqual<MarkerCellRenderer | undefined, TypedRootProps["renderMarker"]>(true);
@@ -291,7 +289,7 @@ const onCellClickWrongShape: TypedRootProps["onCellClick"] = (ctx: CellClickCtx<
 };
 void onCellClickWrongShape;
 
-// --- updateCells: patch shape + options (workplan #72) ----------------------------------------
+// --- updateCells: patch shape + options -------------------------------------------------------
 // The patch is id-keyed by construction: `rowId` is the only row address, so a coordinate cannot be
 // passed by mistake, and the value stays `unknown` (a stream carries any cell type's value).
 assertEqual<string, CellPatch["rowId"]>(true);

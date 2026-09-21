@@ -1,21 +1,20 @@
 /**
- * Compile-time-only proof for workplan #61's `BuiltinCellTypeKey` decoupling. No runtime
- * assertions live here; the tsc gate typechecks this file (named so vitest's *.test.ts glob does
- * not pick it up, matching columns/column-helpers.type-test.ts).
+ * Compile-time-only proof of the `BuiltinCellTypeKey` decoupling. No runtime assertions live here;
+ * the tsc gate typechecks this file (named so vitest's *.test.ts glob does not pick it up,
+ * matching columns/column-helpers.type-test.ts).
  *
- * Two directions, both required by the fix:
+ * Two directions:
  *
- * (a) A REAL consumer-style `declare module` augmentation of `GridCellTypes` compiles alongside
- *     the shipped `cellTypes` object's `satisfies { [K in BuiltinCellTypeKey]: CellTypeFor<K> }`.
- *     Before the fix, this satisfies was keyed on `CellTypeKey` (= `keyof GridCellTypes`), so any
- *     augmentation anywhere in this whole-program tsc run forced `cellTypes` to also provide the
- *     new key — which the shipped file can't. This file's `declare module` below is exactly that
- *     augmentation, proving `cell-types.ts` still compiles with it present.
+ * (a) A consumer-style `declare module` augmentation of `GridCellTypes` compiles alongside the
+ *     shipped `cellTypes` object's `satisfies { [K in BuiltinCellTypeKey]: CellTypeFor<K> }` —
+ *     the augmentation must NOT force `cellTypes` to provide the new key, which the shipped file
+ *     can't know. This file's `declare module` below is exactly that augmentation, proving
+ *     `cell-types.ts` still compiles with it present.
  *
- * (b) Built-in drift (a missing or mistyped entry for one of the five REAL built-ins) must still
- *     fail. `cellTypes` itself can't be mutated to prove this without breaking the shipped
- *     registry, so a structurally identical mock registry is checked the same way, with
- *     `@ts-expect-error` proving the mistake is still caught.
+ * (b) Built-in drift (a missing or mistyped entry for one of the five REAL built-ins) still fails.
+ *     `cellTypes` itself can't be mutated to prove this without breaking the shipped registry, so
+ *     a structurally identical mock registry is checked the same way, with `@ts-expect-error`
+ *     proving the mistake is still caught.
  */
 import type { CellOptionsOf, CellType, CellValueOf } from "../types";
 import { textCellType } from "./text";
