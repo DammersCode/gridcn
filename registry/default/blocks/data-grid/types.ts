@@ -146,9 +146,12 @@ export type DataChange<TData> = {
   /**
    * Origin of the change, for history labeling and consumer filtering. `"stream"` tags a
    * `updateCells`/`updateRows` batch; `useDataGridHistory` drops it by default, because a
-   * 100-updates/s feed would evict the user's whole undo stack in seconds.
+   * 100-updates/s feed would evict the user's whole undo stack in seconds. `"app"` tags an
+   * imperative `record()` entry (a programmatic change the consumer applied itself).
    */
-  source: "edit" | "paste" | "fill" | "delete" | "row-op" | "import" | "history" | "stream";
+  source: "edit" | "paste" | "fill" | "delete" | "row-op" | "import" | "history" | "stream" | "app";
+  /** Optional human-readable label for this entry (e.g. "Batch save rollback"); carried through the undo/redo stack as-is. */
+  label?: string;
 };
 
 export type CellRenderProps<TData, TValue> = {
@@ -435,9 +438,10 @@ export type FilterSpec = { filterId?: string; columnId: string; operator: Filter
 
 /**
  * Named keyboard actions; bindings map keys to these (see `DEFAULT_KEYMAP` in
- * `keyboard/default-keymap.ts`). `editReplace` is structural only — the type-to-edit fallback's
- * marker in the key-matching layer — and has NO dispatch handler, so a `keymap` binding on it
- * never does anything; it cannot be remapped or used.
+ * `keyboard/default-keymap.ts`). `editReplace` (type-to-replace) has no `DEFAULT_KEYMAP` binding:
+ * by default any unbound printable key on an active cell dispatches it (Excel behavior, starting
+ * an edit seeded with the typed char). Defining `keymap.editReplace` takes the action over
+ * exclusively — `["F3"]` remaps the trigger (plain edit start, no char seed); `[]` disables it.
  */
 export type GridAction =
   | "moveUp" | "moveDown" | "moveLeft" | "moveRight"

@@ -64,7 +64,7 @@ Namespace config (consumer `components.json`):
 ```jsonc
 { "registries": { "@gridcn": "https://gridcn.dev/r/{name}.json" } }
 ```
-Set up via: `npx shadcn@latest registry add @gridcn=https://gridcn.dev/r/{name}.json`. Keys must start with `@`. Template expands `{name}`, `{style}`; supports `${ENV_VAR}`, query `params`, auth `headers`. Catalog served at `.../r/registry.json` (powers `list`/`search`/`view`).
+Set up via: `npx shadcn@latest registry add @gridcn=https://gridcn.dev/r/{name}.json` (or skip: the CLI resolves `@gridcn` from the hosted registry directly). Keys must start with `@`. Template expands `{name}`, `{style}`; supports `${ENV_VAR}`, query `params`, auth `headers`. Catalog served at `.../r/registry.json` (powers `list`/`search`/`view`).
 
 ### Top-level registry.json
 ```jsonc
@@ -90,7 +90,7 @@ Set up via: `npx shadcn@latest registry add @gridcn=https://gridcn.dev/r/{name}.
 2. Author the grid as `registry:block`-style items: files with `path`+`type` (no content); npm deps in `dependencies`; shadcn primitives (`button`, `dropdown-menu`, `popover`, `dialog`, `input`, `select`, `checkbox`, ...) in `registryDependencies`; `@/registry/...` imports in source.
 3. `npx shadcn build registry.json --output public/r` → per-item JSON + catalog.
 4. Serve from the docs site (static `public/r/`).
-5. Install: URL form or `registry add @gridcn=...` + `add @gridcn/data-grid`.
+5. Install: `add @gridcn/data-grid` (the CLI resolves the hosted registry directly; the explicit `registry add @gridcn=...` alias form still works).
 6. Split heavy deps: keep the core grid item dependency-free; ship xlsx/papaparse in a separate `data-grid-io` item.
 7. **Test installs** into fresh Next and Vite apps, including non-default aliases (the known CLI friction point).
 

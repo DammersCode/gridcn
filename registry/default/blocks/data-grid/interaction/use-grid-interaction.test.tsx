@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { ReactNode } from "react";
 import type { ColumnDef } from "../types";
 import { DEFAULT_KEYMAP } from "../keyboard";
+import type { Keymap } from "../types";
 import { cellTypes } from "../cell-types/cell-types";
 import { DataGridProvider, useDataGridActions, useDataGridActiveCell, useDataGridSelection, useDataGridStoreApi } from "../store";
 import { jumpToDataBoundary, pointerToCoord, useGridInteraction, type InteractionLayout } from "./use-grid-interaction";
@@ -109,9 +110,9 @@ function makeRows(count: number): Row[] {
 
 function renderInteraction(
   rowCount = 20,
-  options: { readOnly?: boolean; createRow?: (index: number) => Row; duplicateRow?: (row: Row, index: number) => Row } = {},
+  options: { readOnly?: boolean; createRow?: (index: number) => Row; duplicateRow?: (row: Row, index: number) => Row; keymap?: Keymap; columns?: readonly ColumnDef<Row, unknown>[] } = {},
 ) {
-  const { readOnly = false, createRow, duplicateRow } = options;
+  const { readOnly = false, createRow, duplicateRow, keymap = DEFAULT_KEYMAP, columns: testColumns = columns } = options;
   const scrollRef = { current: makeScrollElement() };
   const data = makeRows(rowCount);
   // row-op tests (createRow/duplicateRow provided) mutate the store's own row count — uncontrolled
@@ -123,7 +124,7 @@ function renderInteraction(
       <DataGridProvider
         data={uncontrolled ? undefined : data}
         defaultData={uncontrolled ? data : undefined}
-        columns={columns}
+        columns={testColumns}
         getRowId={(r) => r.id}
         createRow={createRow}
         duplicateRow={duplicateRow}
@@ -134,7 +135,7 @@ function renderInteraction(
   }
   const hook = renderHook(
     () => ({
-      interaction: useGridInteraction({ scrollRef, layout: LAYOUT, keymap: DEFAULT_KEYMAP, readOnly }),
+      interaction: useGridInteraction({ scrollRef, layout: LAYOUT, keymap, readOnly }),
       actions: useDataGridActions(),
       activeCell: useDataGridActiveCell(),
       selection: useDataGridSelection(),
@@ -157,6 +158,7 @@ function pressKey(
   hook: ReturnType<typeof renderInteraction>["hook"],
   key: string,
   modifiers: { ctrlKey?: boolean; shiftKey?: boolean } = {},
+  preventDefault?: () => void,
 ) {
   act(() => {
     hook.result.current.interaction.onKeyDown({
@@ -166,7 +168,7 @@ function pressKey(
       shiftKey: modifiers.shiftKey ?? false,
       altKey: false,
       nativeEvent: { isComposing: false } as unknown as KeyboardEvent,
-      preventDefault: () => {},
+      preventDefault: preventDefault ?? (() => {}),
     } as unknown as React.KeyboardEvent<HTMLElement>);
   });
   hook.rerender();
@@ -307,6 +309,68 @@ describe("useGridInteraction onKeyDown", () => {
     expect(prevented).toBe(true);
   });
 
+  it("seeds the editor with the typed char (replace mode) on implicit type-to-replace", () => {
+    const { hook } = renderInteraction();
+    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    hook.rerender();
+    pressKey(hook, "x");
+    const editing = hook.result.current.storeApi.getState().editing;
+    expect(editing).toEqual({ coord: { col: 0, row: 0 }, initialText: "x" });
+  });
+
+  it("dispatches editReplace when a keymap binding matches (remappable)", () => {
+    const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, editReplace: ["F3"] } });
+    act(() => hook.result.current.actions.selectCell({ col: 0, row: 2 }));
+    hook.rerender();
+    pressKey(hook, "F3");
+    const state = hook.result.current.storeApi.getState();
+    expect(state.editing).toEqual({ coord: { col: 0, row: 2 }, initialText: undefined });
+  });
+
+  it("a printable key bound to nothing else still type-to-replaces while editReplace is unbound", () => {
+    const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, edit: ["F2"] } });
+    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    hook.rerender();
+    pressKey(hook, "k");
+    const editing = hook.result.current.storeApi.getState().editing;
+    expect(editing?.initialText).toBe("k");
+  });
+
+  it("disables implicit type-to-replace when the keymap defines editReplace (even empty)", () => {
+    const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, editReplace: [] } });
+    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    hook.rerender();
+    let prevented = false;
+    pressKey(hook, "x", {}, () => {
+      prevented = true;
+    });
+    expect(hook.result.current.storeApi.getState().editing).toBeNull();
+    expect(prevented).toBe(false);
+  });
+
+  it("a keymap remap of editReplace suppresses the implicit printable-key fallback", () => {
+    const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, editReplace: ["F3"] } });
+    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    hook.rerender();
+    pressKey(hook, "x");
+    expect(hook.result.current.storeApi.getState().editing).toBeNull();
+  });
+
+  it("ignores type-to-replace on a checkbox cell (no editor, no toggle — same as the edit action's guard)", () => {
+    const checkboxColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      { id: "qty", header: "Qty", accessorKey: "qty", type: "checkbox" },
+    ];
+    const { hook } = renderInteraction(3, { columns: checkboxColumns });
+    act(() => hook.result.current.actions.selectCell({ col: 1, row: 0 }));
+    hook.rerender();
+    const before = hook.result.current.storeApi.getState().data[0];
+    pressKey(hook, "x");
+    const state = hook.result.current.storeApi.getState();
+    expect(state.editing).toBeNull();
+    expect(state.data[0]).toEqual(before);
+  });
+
   it("cancel (Escape) clears the selection", () => {
     const { hook } = renderInteraction();
     act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
@@ -398,7 +462,7 @@ describe("useGridInteraction onKeyDown", () => {
   });
 });
 
-describe("useGridInteraction: insertRowBelow/duplicateRow dispatch (workplan #88)", () => {
+describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
   it("insertRowBelow inserts a new row below the active cell when createRow is provided", () => {
     const createRow = (index: number): Row => ({ id: `new-${index}`, name: "new", qty: 0 });
     const { hook } = renderInteraction(3, { createRow });

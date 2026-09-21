@@ -16,13 +16,13 @@ Range selection, clipboard paste, and a fill handle are in the core, under the
 ## Install
 
 ```bash
-npx shadcn registry add "@gridcn=https://gridcn.vercel.app/r/{name}.json"
 npx shadcn add @gridcn/data-grid
 ```
 
-The first line registers the `@gridcn` namespace once per project. No-setup alternative:
-`npx shadcn add DammersCode/gridcn/data-grid` (also the only path with ref pinning). Install
-add-ons the same way, for example `npx shadcn add @gridcn/data-grid-toolbar`. The [installation
+The CLI resolves the `@gridcn` registry from the hosted site
+([gridcn.vercel.app](https://gridcn.vercel.app)) — no setup step. Install add-ons the same way,
+for example `npx shadcn add @gridcn/data-grid-toolbar`. To pin a tag, branch, or commit, use the
+GitHub registry path: `npx shadcn add DammersCode/gridcn/data-grid#v1.0.0`. The [installation
 docs](https://github.com/DammersCode/gridcn/blob/main/content/docs/installation.mdx) cover
 prerequisites, framework notes, and known problems.
 

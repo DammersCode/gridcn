@@ -7,6 +7,8 @@ export type CsvDelimiter = "," | ";" | "\t";
 export type ParseImportFileOptions = {
   /** Overrides CSV delimiter auto-detection; ignored for xlsx/xls. */
   csvDelimiter?: CsvDelimiter;
+  /** For xlsx/xls: import this sheet by name instead of the first; rejects when the workbook has no sheet by that name. Ignored for CSV. */
+  sheetName?: string;
 };
 
 /** Normalized parse result: a plain 2D grid of strings, header row (if any) included at `rows[0]`. */
@@ -14,8 +16,10 @@ export type ParsedImportFile = {
   rows: string[][];
   /** Delimiter actually used (auto-detected or overridden); undefined for xlsx/xls. */
   delimiter?: CsvDelimiter;
-  /** Every sheet name in the workbook; `rows` came from `sheetNames[0]`. Undefined for CSV, or for a workbook with no sheets. */
+  /** Every sheet name in the workbook. Undefined for CSV, or for a workbook with no sheets. */
   sheetNames?: string[];
+  /** The sheet `rows` came from — the `sheetName` option, or the first sheet. Undefined for CSV. */
+  sheetName?: string;
 };
 
 function isCsvFile(file: File): boolean {
@@ -36,25 +40,28 @@ function parseCsvText(text: string, csvDelimiter?: CsvDelimiter): ParsedImportFi
   return { rows, delimiter };
 }
 
-/** Parses the first sheet of an xlsx/xls workbook into a 2D string grid via lazily-imported SheetJS; `sheetNames` lets the caller tell the user when a sheet besides the first was silently skipped. */
-async function parseExcelFile(file: File): Promise<ParsedImportFile> {
+/** Parses one sheet of an xlsx/xls workbook into a 2D string grid via lazily-imported SheetJS; `sheetName` selects the sheet (first by default), and `sheetNames`/`sheetName` let the caller switch sheets later. */
+async function parseExcelFile(file: File, sheetName?: string): Promise<ParsedImportFile> {
   const XLSX = await import("xlsx");
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: "array" });
-  const firstSheetName = workbook.SheetNames[0];
-  const sheet = firstSheetName !== undefined ? workbook.Sheets[firstSheetName] : undefined;
+  const selected = sheetName !== undefined ? workbook.SheetNames.indexOf(sheetName) : 0;
+  if (selected === -1) throw new Error(`unknown sheet "${sheetName}"`);
+  const name = workbook.SheetNames[selected];
+  const sheet = name !== undefined ? workbook.Sheets[name] : undefined;
   if (!sheet) return { rows: [] };
   const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, raw: false, defval: "" });
-  return { rows: rows.map((row) => row.map((cell) => String(cell ?? ""))), sheetNames: workbook.SheetNames };
+  return { rows: rows.map((row) => row.map((cell) => String(cell ?? ""))), sheetNames: workbook.SheetNames, sheetName: name };
 }
 
 /**
  * Parses a `.csv`, `.tsv`, `.xlsx`, or `.xls` file into a normalized 2D string grid. CSV/TSV goes
  * through papaparse (delimiter auto-detect + override); Excel formats go through a
- * dynamically-imported SheetJS (`xlsx` never loads for CSV-only consumers), first sheet only.
+ * dynamically-imported SheetJS (`xlsx` never loads for CSV-only consumers), the `sheetName` sheet
+ * or the first one.
  */
 export async function parseImportFile(file: File, options: ParseImportFileOptions = {}): Promise<ParsedImportFile> {
-  if (isExcelFile(file)) return parseExcelFile(file);
+  if (isExcelFile(file)) return parseExcelFile(file, options.sheetName);
   if (isCsvFile(file)) return parseCsvText(await file.text(), options.csvDelimiter);
   throw new Error("unsupported-file-type");
 }

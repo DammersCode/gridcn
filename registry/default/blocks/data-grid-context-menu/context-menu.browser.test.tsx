@@ -1,5 +1,5 @@
 import { page } from "vitest/browser";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import {
   DataGridProvider,
@@ -90,7 +90,7 @@ function renderGrid(
 const totals: Row = { id: "totals", name: "Total", email: "" };
 
 /** Same shape as `renderGrid`, plus a `data-grid-pinned-rows` top band — exercises the resolver's
- * pinned-top offset and pinned-cell exclusion (workplan #84) end to end through the real
+ * pinned-top offset and pinned-cell exclusion end to end through the real
  * hook -> rowBands -> root.tsx pipeline, not a hand-built DOM fixture. */
 function PinnedGridWithMenu(props: {
   top: readonly Row[];
@@ -287,8 +287,8 @@ describe("DataGridContextMenu — non-cell surfaces never show an empty popover"
   });
 });
 
-// workplan #84 regression: resolveContextMenuTarget used to miscompute the row with a pinned-top band installed.
-describe("DataGridContextMenu — pinned-top rows (workplan #84)", () => {
+// Regression: resolveContextMenuTarget miscomputed the row with a pinned-top band installed.
+describe("DataGridContextMenu — pinned-top rows", () => {
   it("Duplicate row targets the right-clicked data row, not the row below it, with a pinned-top band installed", async () => {
     const onDataChange = vi.fn();
     render(<PinnedGridWithMenu top={[totals]} onDataChange={onDataChange} />);
@@ -310,5 +310,37 @@ describe("DataGridContextMenu — pinned-top rows (workplan #84)", () => {
     rightClick(pinnedCell);
     await new Promise((r) => setTimeout(r, 100));
     expect(document.querySelectorAll('[role="menu"]').length).toBe(0);
+  });
+});
+
+// Non-secure context (plain http): `navigator.clipboard` is undefined, so paste rejects with
+// `permission-denied`. The menu content unmounts on close, so the blocked flag must live in the
+// persistent wrapper to keep the Ctrl+V hint across reopens.
+describe("DataGridContextMenu — paste permission-denied survives menu reopen", () => {
+  afterEach(() => {
+    delete (navigator as unknown as { clipboard?: unknown }).clipboard;
+  });
+
+  it("Paste stays aria-disabled with the Ctrl+V hint after a permission-denied result, across a reopen", async () => {
+    Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true });
+    renderGrid();
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    rightClick(gridCell("Alice", "name"));
+    await vi.waitFor(() => expect(menuItem("Paste")).toBeTruthy());
+    menuItem("Paste")!.click();
+    await vi.waitFor(() => expect(document.querySelectorAll('[role="menu"]').length).toBe(0));
+    // nothing may have been applied (no silent partial paste)
+    expect(gridCell("Alice", "name").textContent).toContain("Alice");
+
+    rightClick(gridCell("Alice", "name"));
+    await vi.waitFor(() => expect(menuItem("Paste")).toBeTruthy());
+    const paste = menuItem("Paste")!;
+    expect(paste.getAttribute("aria-disabled")).toBe("true");
+
+    // the tooltip also opens on keyboard focus (base-ui focus interaction) — the only hover the
+    // synthetic-event test setup can drive reliably (floating-ui's hover needs a live pointer)
+    paste.focus();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("requires clipboard permission — use Ctrl+V"));
   });
 });

@@ -32,33 +32,29 @@ export type DataGridCellProps = {
   row: unknown;
   rowIndex: number;
   column: AnyColumnDef;
-  /** Pure data-column index — drives `CellCoord.col`, `aria-colindex`, and pin-var lookup. Never touched by the marker column (PLAN §3: marker lives outside the data index space). */
+  /** Pure data-column index — drives `CellCoord.col`, `aria-colindex`, and pin-var lookup. Never touched by the marker column (it lives outside the data index space). */
   columnIndex: number;
   /** Grid-level readOnly (from `DataGridRoot`), independent of the column's own `readOnly`. */
   gridReadOnly?: boolean;
   /** 1-based `gridColumnStart` offset added to `columnIndex`; 2 when a marker column occupies track 1, else 1. Presentation-only — never affects `coord`/`aria-colindex`. */
   gridColOffset?: number;
-  /** PLAN §6 "Programmatic style API"; forwarded from row.tsx (stable identity, root's dev guardrail) rather than read from context here, so this memoized cell's props stay shallow-equal across ticks. */
+  /** Forwarded from row.tsx (stable identity, root's dev guardrail) rather than read from context here, so this memoized cell's props stay shallow-equal across ticks. */
   getCellClassName?: GetCellClassName<unknown>;
   /** Forwarded from row.tsx, same stable-identity guidance as `getCellClassName`. Fired from this cell's own existing click handler — see {@link OnCellClick}. */
   onCellClick?: OnCellClick<unknown>;
   /** Forwarded alongside `onCellClick`, fired from the same click — see {@link OnRowClick}. */
   onRowClick?: OnRowClick<unknown>;
   /**
-   * True for a pinned top/bottom row cell (the `data-grid-pinned-rows` add-on's row-bands, workplan
-   * #48 cut #3): display-only, so this skips every pointer/focus handler — pinned rows aren't part
-   * of `data`/`viewIndex` and aren't navigable in v1 (documented). Kept as a prop on the same
-   * component (not a fork) so cell rendering — cell-type resolution, alignment, class merging,
-   * data-attributes — stays single-sourced. The add-on's `DataGridPinnedRow` doesn't pass any of the
-   * state props below (they default false/undefined), so a pinned cell never pays for
-   * interactive-state props at all, cheaper than the pre-4b unconditional subscribe.
+   * True for a pinned top/bottom row cell (the `data-grid-pinned-rows` add-on's row-bands):
+   * display-only, so this skips every pointer/focus handler — pinned rows aren't part of
+   * `data`/`viewIndex` and aren't navigable in v1 (documented). A prop on the same component
+   * (not a fork) keeps cell rendering single-sourced.
    */
    pinnedRow?: boolean;
   /**
-   * Interactive cell state (spec 4b): derived by the row (`useDataGridRowCellState`) from ONE
-   * per-row store subscription instead of each cell subscribing individually — these are primitives
-   * (not the row's whole derived object) so `memo`'s default shallow compare stays effective: a cell
-   * only re-renders when ITS OWN flags change, not when a sibling cell in the same row changes.
+   * Interactive cell state, derived by the row (`useDataGridRowCellState`) from ONE per-row store
+   * subscription. Primitives (not the row's whole derived object) keep `memo`'s shallow compare
+   * effective: a cell re-renders only when its own flags change.
    */
   isActive?: boolean;
   isSelected?: boolean;
@@ -66,10 +62,10 @@ export type DataGridCellProps = {
   /** Only meaningful when `isEditing` is true. */
   initialText?: string;
   isSearchMatch?: boolean;
-  /** True when `row` is a hole in `data` (lazy-loading design doc, phase 1) — renders a static shimmer block instead of cell content and skips every pointer/focus handler, same as a pinned-row cell. */
+  /** True when `row` is a hole in `data` (lazy loading) — renders a static shimmer block instead of cell content and skips every pointer/focus handler, same as a pinned-row cell. */
   isSkeleton?: boolean;
   /**
-   * This cell's post-commit server-error message (workplan #80's `cellErrors`), or null/undefined
+   * This cell's post-commit server-error message (`cellErrors`), or null/undefined
    * when it has none. Painted with the SAME ring/tint/`aria-invalid` treatment as a live `editingError`
    * rejection below — one visual language for "this value is wrong", regardless of who said so.
    */
@@ -117,7 +113,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   const columnReadOnly =
     (!column.setValue && !column.accessorKey) ||
     (typeof column.readOnly === "function" ? column.readOnly(row) : column.readOnly);
-  // Pinned top/bottom rows (PLAN §3) are readOnly by default — they're usually derived aggregates,
+  // Pinned top/bottom rows are readOnly by default — they're usually derived aggregates,
   // not editable data — unless the column's own readOnly explicitly says otherwise.
   const readOnly = isPinnedRow ? (columnReadOnly ?? true) : Boolean(gridReadOnly || columnReadOnly);
   const isNumberOrDate = column.type === "number" || column.type === "date";
@@ -136,7 +132,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   }, [isActive, isEditing]);
 
   // Pinned rows are not navigable in v1 (documented) — no selection/edit gestures, so no handlers.
-  // Skeleton cells (row is a hole, PLAN lazy-loading phase 1) are click/dblclick-inert too: the
+  // Skeleton cells (row is a hole, lazy loading) are click/dblclick-inert too: the
   // store's own edit/commit entry points (startEditing, applyCellUpdates, commitCellValue) already
   // no-op on an unresolvable row (resolveEditTarget/computeRowEditsBatch both bail on `row ===
   // undefined`), so pointerdown-driven selection is harmless to leave wired — only click/dblclick
@@ -171,7 +167,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   const align = cellType.align ?? "left";
 
   // Grid-level hook first, then the column's own override — later cn() args win on conflicting
-  // utilities, so a per-column override can still beat a grid-wide default (PLAN §6).
+  // utilities, so a per-column override can still beat a grid-wide default.
   const classNameCtx = { value, row, column, viewRowIndex: rowIndex };
   const gridCellClassName = getCellClassName?.(classNameCtx);
   const columnCellClassName =
@@ -321,11 +317,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   );
 }
 
-// Default shallow compare: `row` is the store's own array element (stable unless the data changed,
-// including undefined -> defined on a lazy-load fill), `column` comes from root.tsx's memoized
-// windowedColumns (stable across renders that don't touch the column window), and
-// isActive/isSelected/isEditing/initialText/isSearchMatch/isSkeleton/cellError are primitives the
-// row derives from ITS OWN per-row store subscription (spec 4b, workplan #80) — this memo only
-// re-renders a cell whose own flags actually changed, even though the whole row re-rendered to
-// recompute them.
+// Default shallow compare suffices: `row` and `column` keep stable identity, and the state flags
+// are primitives the row derives from its own per-row subscription — so only a cell whose own
+// flags changed re-renders, even though the whole row re-rendered to recompute them.
 export const DataGridCell = memo(DataGridCellImpl);

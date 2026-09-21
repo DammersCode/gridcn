@@ -2,7 +2,7 @@ import { measureColumnAutosizeWidth, type AnyColumnDef } from "@/registry/defaul
 
 const ABSOLUTE_MIN_WIDTH = 32;
 
-/** Reads the rendered text of every currently-mounted gridcell for `columnId`, scoped to `root` — same DOM contract `use-column-resize.ts`'s double-click autosize reads (`role="gridcell"` + `data-column-id`, PLAN §6). */
+/** Reads the rendered text of every currently-mounted gridcell for `columnId`, scoped to `root` — same DOM contract `use-column-resize.ts`'s double-click autosize reads (`role="gridcell"` + `data-column-id`). */
 function readRenderedCellTexts(root: Element | null, columnId: string): string[] {
   if (!root) return [];
   const cells = root.querySelectorAll(`[role="gridcell"][data-column-id="${CSS.escape(columnId)}"]`);
@@ -11,8 +11,7 @@ function readRenderedCellTexts(root: Element | null, columnId: string): string[]
 
 /**
  * Autosizes `column` to fit its header text plus every currently-rendered cell's text (the core's
- * measure+setColumnWidth path, PLAN §8 add-on item 1's header-menu "Autosize column"), using
- * `root`'s computed font so measurement matches what's on screen.
+ * measure+setColumnWidth path), using `root`'s computed font so measurement matches what's on screen.
  */
 export function autosizeColumn(
   root: Element | null,

@@ -24,14 +24,13 @@ export type DataGridPinnedRowBandProps = {
 };
 
 /**
- * A pinned-row sticky band (workplan #48 cut #3, moved verbatim out of core): same layering as
- * core's header layer — absolutely positioned inside the sticky Viewport, counter-translated
- * horizontally by the live scroll var so its cells track the column canvas 1:1, but never moves
- * vertically (rows canvas is the only vertically-scrolling layer). The top band sits directly under
- * the header; the bottom band sits flush with the viewport's bottom edge (`insetBlockEnd: 0`) —
- * both stay "in place" while data rows scroll underneath, which is what core's frozen-edge shadow
- * (root.tsx) keys off of. `useDataGridPinnedRows`'s `rowBands.renderBand` calls this once per non-empty
- * band, with the exact props root.tsx used to pass it directly pre-extraction.
+ * A pinned-row sticky band: same layering as core's header layer — absolutely positioned inside
+ * the sticky Viewport, counter-translated horizontally by the live scroll var so its cells track
+ * the column canvas 1:1, but never moves vertically (rows canvas is the only vertically-scrolling
+ * layer). The top band sits directly under the header; the bottom band sits flush with the
+ * viewport's bottom edge (`insetBlockEnd: 0`) — both stay "in place" while data rows scroll
+ * underneath, which is what core's frozen-edge shadow (root.tsx) keys off of.
+ * `useDataGridPinnedRows`'s `rowBands.renderBand` calls this once per non-empty band.
  */
 export function DataGridPinnedRowBand(props: DataGridPinnedRowBandProps): ReactNode {
   const { position, rows, windowedColumns, layout, rowHeight, template, headerHeight, ariaRowIndexBase } = props;

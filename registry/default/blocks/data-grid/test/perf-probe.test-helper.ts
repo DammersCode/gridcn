@@ -35,7 +35,7 @@ export const columns = [
  * window. A plain `requestAnimationFrame`-per-step variant was tried first and rejected: in headless
  * Chromium both scroll speeds comfortably fit inside one vsync period at this dataset size, so the
  * loop just measures the display's refresh rate for both — it can't see the JS-side cost gap this
- * test exists to catch (spec 6c-8 acceptance b).
+ * test exists to catch.
  */
 export async function measureScrollFps(grid: HTMLElement, deltaPerFrame: number, frames: number): Promise<number> {
   const maxScrollTop = grid.scrollHeight - grid.clientHeight;

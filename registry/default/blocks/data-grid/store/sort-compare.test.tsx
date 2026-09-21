@@ -6,9 +6,9 @@ import { DataGridProvider, useDataGridActions, useDataGridViewIndex } from "../s
 import { cellTypes as builtinCellTypes } from "../cell-types/cell-types";
 
 /**
- * Workplan #85: a cell type's `compare` is resolved into the sort path. Before this, every column
- * fell through to the collator over `String(value)`, which segments digit runs — so 1.5 sorted
- * before 1.25 and negatives sorted backwards.
+ * A cell type's `compare` is resolved into the sort path: the collator over `String(value)`
+ * segments digit runs — 1.5 would sort before 1.25 and negatives would sort backwards — so
+ * `compare` must win over the collator for typed columns.
  */
 
 type Row = { id: string; price: number | null; when: string | null; untyped: number };

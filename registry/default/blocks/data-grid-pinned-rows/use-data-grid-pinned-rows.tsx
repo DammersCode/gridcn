@@ -21,15 +21,13 @@ export type UseDataGridPinnedRowsResult = {
 const EMPTY_ROWS: readonly never[] = [];
 
 /**
- * Pinned top/bottom row bands, as a single hook (workplan #48 cut #3: pinned rows extracted out of
- * core into this add-on, reusing the provider-level `rowBands` seam). Unlike `data-grid-presence`/
- * `data-grid-fill` (which register into the generic `overlayPlugins` paint seam), row bands affect
- * layout height and `aria-rowcount`, so core needs `topRows`/`bottomRows.length` SYNCHRONOUSLY at
- * first render — root.tsx keeps all of that arithmetic and calls this spec's `renderBand` where it used
- * to render `DataGridPinnedRowBand` directly (see `RowBandsSpec`'s doc comment in
- * `layout-context.ts`). Cells render via the same `DataGridCell`/cell-type pipeline as data rows
- * (same columns, alignment, formatting) but are readOnly by default unless a column's own
- * `readOnly` says otherwise, and aren't keyboard-navigable in v1 (documented, unchanged from core).
+ * Pinned top/bottom row bands, as a single hook. Unlike `data-grid-presence`/`data-grid-fill`
+ * (which register into the generic `overlayPlugins` paint seam), row bands affect layout height
+ * and `aria-rowcount`, so core needs `topRows`/`bottomRows.length` SYNCHRONOUSLY at first render —
+ * root.tsx keeps all of that arithmetic and calls this spec's `renderBand` (see `RowBandsSpec`'s
+ * doc comment in `layout-context.ts`). Cells render via the same `DataGridCell`/cell-type pipeline
+ * as data rows (same columns, alignment, formatting) but are readOnly by default unless a column's
+ * own `readOnly` says otherwise, and aren't keyboard-navigable in v1 (documented).
  */
 export function useDataGridPinnedRows(options: UseDataGridPinnedRowsOptions = {}): UseDataGridPinnedRowsResult {
   const { topRows = EMPTY_ROWS, bottomRows = EMPTY_ROWS } = options;

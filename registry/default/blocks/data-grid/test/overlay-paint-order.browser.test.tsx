@@ -11,7 +11,7 @@ function cellAt(row: number, col: number): HTMLElement {
 }
 
 describe("overlay paint order", () => {
-  // Cells are position:relative since #80, which puts them in the positioned paint phase. An
+  // Cells are position:relative, which puts them in the positioned paint phase. An
   // unpositioned overlay paints below their opaque backgrounds — invisible despite correct
   // computed color (found via pixel screenshots, 2026-08-02). Every overlay rect must therefore
   // be positioned itself; DOM order (overlays render after rows) then puts it above plain cells

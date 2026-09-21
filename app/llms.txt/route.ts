@@ -10,7 +10,6 @@ const TAIL = [
   'Install via the shadcn CLI:',
   '',
   '```bash',
-  `npx shadcn registry add "@gridcn=${BASE}/r/{name}.json"`,
   'npx shadcn add @gridcn/data-grid',
   '```',
   '',

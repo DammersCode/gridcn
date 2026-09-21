@@ -119,10 +119,11 @@ The dev server serves the payloads at `http://localhost:3000/r/<item>.json`. To 
 
 For production there are two equivalent paths (what `/docs/installation` tells real users):
 
+- Hosted registry: `npx shadcn add @gridcn/data-grid` — the CLI resolves the `@gridcn` scope
+  from the deployed documentation site (Vercel free plan), which serves the committed `public/r/`
+  payloads. This is the primary documented path.
 - GitHub registry: `npx shadcn add DammersCode/gridcn/data-grid` — reads the pushed
-  repository directly; no host needed. This is the primary documented path.
-- Hosted namespace: `@gridcn=https://gridcn.vercel.app/r/{name}.json` pointing at the
-  deployed documentation site (Vercel free plan), which serves the committed `public/r/` payloads.
+  repository directly; the only path with ref pinning (`#<ref>`).
 
 This flow is the honest end-to-end test of the registry: it exercises the payloads, the
 cross-item import rewriting, and the declared dependencies exactly as a consumer would.

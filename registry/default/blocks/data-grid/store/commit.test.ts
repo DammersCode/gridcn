@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ColumnDef } from "../types";
 import { cellTypes } from "../cell-types/cell-types";
-import { computeRowEditsBatch } from "./commit";
+import { computeInsertRowsBatch, computeRowEditsBatch } from "./commit";
 import type { DataGridStoreState } from "./types";
 
 type Row = { id: string; name: string; age: number; locked: string };
@@ -32,6 +32,31 @@ function fakeState(overrides: Partial<DataGridStoreState> = {}): DataGridStoreSt
     ...overrides,
   } as unknown as DataGridStoreState;
 }
+
+describe("computeInsertRowsBatch", () => {
+  it("splices every row at dataRowIndex and emits one id-keyed insert op per row at snapshot indices", () => {
+    const s = fakeState();
+    const rowsToInsert = [
+      { id: "n1", name: "N1", age: 0, locked: "" },
+      { id: "n2", name: "N2", age: 0, locked: "" },
+    ];
+
+    const batch = computeInsertRowsBatch(s, 1, rowsToInsert);
+
+    expect(batch.nextData.map((r) => (r as Row).id)).toEqual(["1", "n1", "n2", "2", "3"]);
+    expect(batch.ops).toEqual([
+      { type: "insert", rowId: "n1", row: rowsToInsert[0], index: 1 },
+      { type: "insert", rowId: "n2", row: rowsToInsert[1], index: 2 },
+    ]);
+  });
+
+  it("returns an empty batch (original data, no ops) for zero rows", () => {
+    const s = fakeState();
+    const batch = computeInsertRowsBatch(s, 1, []);
+    expect(batch.nextData).toEqual(s.data);
+    expect(batch.ops).toEqual([]);
+  });
+});
 
 describe("computeRowEditsBatch", () => {
   it("preserves batch semantics while resolving columns by id", () => {

@@ -43,7 +43,7 @@ export type UseFillHandleOptions = {
   /** Turns the whole fill feature off (handle hidden, `fillDown`/`fillRight` no-op). Default `false`; a read-only grid disables fill regardless of this option. */
   disabled?: boolean;
   onFill?: (args: FillArgs) => void;
-  /** This add-on's local fill-preview store — owns the in-progress drag rect (workplan #48: kept out of core). */
+  /** This add-on's local fill-preview store — owns the in-progress drag rect (kept out of core). */
   fillStore: FillStoreApi;
 };
 

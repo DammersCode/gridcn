@@ -24,7 +24,7 @@ import {
   gridAttrSelector,
 } from "@/registry/default/blocks/data-grid/data-grid";
 
-/** Debounce (ms) between typing and updating the store's `searchText` (PLAN §3). */
+/** Debounce (ms) between typing and updating the store's `searchText`. */
 const SEARCH_DEBOUNCE_MS = 200;
 
 /** Props for {@link DataGridSearch}. */
@@ -32,7 +32,7 @@ export type DataGridSearchProps = {
   className?: string;
   placeholder?: string;
   /**
-   * "Feels native" bridge (workplan #54): mod+F (Ctrl+F / Cmd+F) with focus inside the grid or its
+   * "Feels native" bridge: mod+F (Ctrl+F / Cmd+F) with focus inside the grid or its
    * toolbar focuses/selects this input instead of opening the browser's find bar. Native
    * find-in-page can't work over virtualized rows (only the window's rendered rows exist in the
    * DOM), and our search already scrolls to matches — this makes mod+F reach for it directly.

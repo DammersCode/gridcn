@@ -22,13 +22,13 @@ export type DataGridContextMenuProps = {
 
 /**
  * Wraps `children` (the grid) with the shadcn `ContextMenu`. On `contextmenu`, inspects the event
- * target to decide the surface (cell vs. header — PLAN §8 add-on item 1) and, for a cell outside
+ * target to decide the surface (cell vs. header) and, for a cell outside
  * the current selection, selects that cell first (Excel behavior) before the menu opens.
  *
  * A surface that resolves to neither (row markers, empty grid space below the last row, the
  * scrollbar gutter, ...) has no menu content to show — `resolveContextMenuTarget` already returns
  * `null` there. Left alone, Base UI's `ContextMenuRoot` still opens the (then childless) popup on
- * that right-click, rendering a visibly empty rounded-card sliver (user report, screenshot-confirmed).
+ * that right-click, rendering a visibly empty rounded-card sliver.
  * `onOpenChange` here cancels that open via `eventDetails.cancel()` — checked against `targetRef`
  * (synchronous, unlike `target` state) since the "should this open" decision has to be made in the
  * same tick as the triggering event, before React re-renders. The native browser context menu is
@@ -46,6 +46,10 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
   selectionRef.current = selection;
   const [target, setTarget] = useState<ContextMenuTarget | null>(null);
   const targetRef = useRef<ContextMenuTarget | null>(null);
+  // Lives here (not in the menu content) because the content portals and unmounts on close —
+  // a permission-denied paste result must survive the close/reopen cycle to keep showing the
+  // "use Ctrl+V" hint on the next open.
+  const [pasteBlocked, setPasteBlocked] = useState(false);
 
   // Captured at contextmenu time (not via useDataGridContainer): ContextMenuContent portals to
   // document.body, outside DataGridRoot's subtree, so its children can't reach the root context.
@@ -75,7 +79,13 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
       </ContextMenuTrigger>
       <ContextMenuContent data-grid-context-menu="">
         {target?.kind === "cell" && (
-          <DataGridCellMenuContent row={target.row} canInsertRow={canInsertRow} canDuplicateRow={canDuplicateRow} />
+          <DataGridCellMenuContent
+            row={target.row}
+            canInsertRow={canInsertRow}
+            canDuplicateRow={canDuplicateRow}
+            pasteBlocked={pasteBlocked}
+            onPasteBlocked={() => setPasteBlocked(true)}
+          />
         )}
         {target?.kind === "header" && (
           <DataGridHeaderMenuContent columnId={target.columnId} scrollRoot={scrollRootRef.current} />

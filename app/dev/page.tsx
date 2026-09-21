@@ -150,7 +150,7 @@ function makeExtraColumns(count: number): ColumnDef<Row, unknown>[] {
   }));
 }
 
-/** A handful of German overrides (PLAN §3 i18n labels object) demonstrating `labels` deep-merge; every key left out falls back to the English default. */
+/** A handful of German overrides demonstrating `labels` deep-merge; every key left out falls back to the English default. */
 const GERMAN_LABELS: DeepPartialLabels = {
   toolbar: {
     searchPlaceholder: "Suchen…",

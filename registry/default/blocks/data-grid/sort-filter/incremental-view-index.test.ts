@@ -4,9 +4,9 @@ import { buildViewIndex, type CellAccessor } from "./build-view-index";
 import { INCREMENTAL_PATCH_LIMIT, lowerBound, makeViewComparator, updateViewIndex } from "./incremental-view-index";
 
 /**
- * The acceptance bar for workplan #78: the incremental path must produce an ELEMENT-IDENTICAL
- * viewIndex to a from-scratch `buildViewIndex`, not merely an order-equivalent one. Every case here
- * — targeted and randomized — asserts against a fresh rebuild of the same state.
+ * The incremental path must produce an ELEMENT-IDENTICAL viewIndex to a from-scratch
+ * `buildViewIndex`, not merely an order-equivalent one. Every case here — targeted and
+ * randomized — asserts against a fresh rebuild of the same state.
  */
 
 type Row = { name: string; city: string; score: number; note: string };
@@ -347,7 +347,7 @@ describe.each(ACCESSOR_KINDS)("updateViewIndex — equivalence fuzz (%s)", (_lab
         });
         expect(result.bail, `seed ${seed} step ${s}`).toBeNull();
         const reference = rebuildWith(nextRows, state);
-        // toEqual on number arrays IS the element-identical assertion the spec requires.
+        // toEqual compares element-identical, not reference-identical.
         expect(result.viewIndex, `seed ${seed} step ${s} state ${JSON.stringify(state)}`).toEqual(reference);
         rows = nextRows;
         view = result.viewIndex!;

@@ -373,7 +373,7 @@ const asyncColumns = defineColumns<Row>()([
   { id: "age", header: "Age", accessorKey: "age", type: "number", width: 80, validate: asyncAgeSchema as never },
 ] as const);
 
-describe("DataGridImportButton with an async schema (workplan #79)", () => {
+describe("DataGridImportButton with an async schema", () => {
   function renderImportGrid(onImport: (rows: Row[]) => void) {
     let nextId = 0;
     render(
@@ -418,8 +418,8 @@ describe("DataGridImportButton with an async schema (workplan #79)", () => {
   });
 });
 
-/** B6: only sheet 1 is imported, so a multi-sheet workbook has to say so rather than silently pick one. */
-describe("multi-sheet workbook notice (B6)", () => {
+// A multi-sheet workbook opens on its first sheet rather than silently.
+describe("multi-sheet workbook sheet picker", () => {
   async function makeWorkbookFile(sheets: Record<string, string[][]>): Promise<File> {
     const XLSX = await import("xlsx");
     const book = XLSX.utils.book_new();
@@ -450,7 +450,7 @@ describe("multi-sheet workbook notice (B6)", () => {
     await userEvent.upload(fileInput!, file);
   }
 
-  it("names the sheet it imported when the workbook has more than one", async () => {
+  it("opens a multi-sheet workbook on its first sheet with a picker naming that sheet", async () => {
     await openWith(
       await makeWorkbookFile({
         Summary: [["Name", "Age"], ["Alice", "30"]],
@@ -458,15 +458,49 @@ describe("multi-sheet workbook notice (B6)", () => {
       }),
     );
 
-    await expect.element(page.getByText('This file has 2 sheets. Importing "Summary" only.')).toBeInTheDocument();
+    const sheetTrigger = page.getByRole("combobox", { name: "Sheet" });
+    await expect.element(sheetTrigger).toHaveTextContent("Summary");
     // the rows really did come from sheet 1
     await expect.element(page.getByText("Alice")).toBeInTheDocument();
+  });
+
+  it("re-parses the workbook when another sheet is picked", async () => {
+    await openWith(
+      await makeWorkbookFile({
+        Summary: [["Name", "Age"], ["Alice", "30"]],
+        "Q3 Data": [["Name", "Age"], ["Bob", "40"]],
+      }),
+    );
+
+    const sheetTrigger = page.getByRole("combobox", { name: "Sheet" });
+    await userEvent.click(sheetTrigger);
+    await userEvent.click(page.getByRole("option", { name: "Q3 Data" }));
+    await expect.element(sheetTrigger).toHaveTextContent("Q3 Data");
+    await expect.element(page.getByText("Bob")).toBeInTheDocument();
+    await expect.element(page.getByText("Alice")).not.toBeInTheDocument();
   });
 
   it("stays silent for a single-sheet workbook", async () => {
     await openWith(await makeWorkbookFile({ Only: [["Name", "Age"], ["Alice", "30"]] }));
 
     await expect.element(page.getByText("Alice")).toBeInTheDocument();
-    expect(document.body.textContent).not.toContain("Importing");
+    expect(document.body.textContent).not.toContain("Sheet");
+  });
+
+  it("keeps the picker on the chosen sheet and disables Import when the sheet is empty", async () => {
+    await openWith(
+      await makeWorkbookFile({
+        Summary: [["Name", "Age"], ["Alice", "30"]],
+        "Q3 Data": [["Name", "Age"], ["Bob", "40"]],
+        Empty: [],
+      }),
+    );
+
+    const sheetTrigger = page.getByRole("combobox", { name: "Sheet" });
+    await userEvent.click(sheetTrigger);
+    await userEvent.click(page.getByRole("option", { name: "Empty" }));
+    await expect.element(sheetTrigger).toHaveTextContent("Empty");
+    await expect.element(page.getByText("No rows found in this file.")).toBeInTheDocument();
+    await expect.element(page.getByRole("button", { name: "Import", exact: true })).toBeDisabled();
   });
 });

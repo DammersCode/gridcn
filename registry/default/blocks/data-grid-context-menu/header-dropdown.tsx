@@ -18,9 +18,9 @@ export type DataGridHeaderDropdownProps = {
 };
 
 /**
- * The primary per-column pin/sort surface (PLAN §3 "Pinning UX", user decision 2026-07-03,
- * diceui-style): a `DropdownMenu` wrapping the core's chevron trigger, whose content reuses the
- * exact same items as the header right-click context menu (`DataGridHeaderMenuContent`). Wire via
+ * The primary per-column pin/sort surface: a `DropdownMenu` wrapping the core's chevron trigger,
+ * whose content reuses the exact same items as the header right-click context menu
+ * (`DataGridHeaderMenuContent`). Wire via
  * `<DataGridRoot renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}>`.
  */
 export function DataGridHeaderDropdown(props: DataGridHeaderDropdownProps): ReactNode {

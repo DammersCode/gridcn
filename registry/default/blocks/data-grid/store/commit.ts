@@ -46,7 +46,7 @@ export function warnBothDataPropsOnce(): void {
   warnDev("both `data` and `defaultData` were provided; `data` wins (controlled) and `defaultData` is ignored");
 }
 
-/** Dev-only guardrails from PLAN §4.2: duplicate column ids, missing getRowId, unstable columns/data/overlayPlugins/rowBands identity across renders. */
+/** Dev-only guardrails: duplicate column ids, missing getRowId, unstable columns/data/overlayPlugins/rowBands identity across renders. */
 export function checkDevGuardrails(
   props: InternalSyncProps,
   prevColumns: readonly AnyColumnDef[] | undefined,
@@ -336,16 +336,20 @@ function keepAccepted(patches: readonly CellPatch[], results: readonly ValidateR
   return accepted;
 }
 
-/** Builds a single-row insert batch: `row` spliced into `s.data` at `dataRowIndex`, plus its id-keyed insert op. */
-export function computeInsertBatch(
+/** Builds a multi-row insert batch: `rows` spliced into `s.data` at `dataRowIndex`, plus one id-keyed insert op per row (snapshot indices `dataRowIndex + i`, ascending). */
+export function computeInsertRowsBatch(
   s: DataGridStoreState,
   dataRowIndex: number,
-  row: unknown,
+  rows: readonly unknown[],
 ): { nextData: readonly unknown[]; ops: DataOp<unknown>[] } {
   const nextData = s.data.slice();
-  nextData.splice(dataRowIndex, 0, row);
-  const rowId = s.getRowId(row, dataRowIndex);
-  return { nextData, ops: [{ type: "insert", rowId, row, index: dataRowIndex }] };
+  nextData.splice(dataRowIndex, 0, ...rows);
+  const ops: DataOp<unknown>[] = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i]!;
+    ops.push({ type: "insert", rowId: s.getRowId(row, dataRowIndex + i), row, index: dataRowIndex + i });
+  }
+  return { nextData, ops };
 }
 
 /**
@@ -377,8 +381,8 @@ export function computeDeleteBatch(
  * the required `s.duplicateRow` and spliced immediately after its source row. Processed descending
  * so earlier splices don't shift the still-pending source indexes; ops are returned in ascending
  * source order for a stable, predictable id-keyed batch. Caller (`duplicateRows`) guarantees
- * `duplicateRow` is present — a shallow-spread fallback would keep the source's `getRowId()`,
- * colliding two sibling rows' React key (PLAN §8 extension point a).
+  * `duplicateRow` is present — a shallow-spread fallback would keep the source's `getRowId()`,
+  * colliding two sibling rows' React key.
  */
 export function computeDuplicateBatch(
   s: DataGridStoreState,

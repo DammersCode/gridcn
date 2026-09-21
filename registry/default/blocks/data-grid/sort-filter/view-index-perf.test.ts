@@ -3,11 +3,11 @@ import type { FilterSpec, SortSpec } from "../types";
 import { buildViewIndex, type CellAccessor } from "./build-view-index";
 
 /**
- * Dedicated unit perf test for the view-index pipeline (workplan #32 half B): proves
- * matches-filter + buildViewIndex stay fast at 100k rows across the filter/sort combinations the
- * #29 popover rework added (join operator, isBetween, multi-column sort), independent of any
- * rendering — same discipline as store-search-perf.test.tsx (warm up, N iterations, generous
- * ceiling documented per-case) so a regression here is a real algorithmic one, not UI noise.
+ * Dedicated unit perf test for the view-index pipeline: proves matches-filter + buildViewIndex
+ * stay fast at 100k rows across the filter/sort combinations (join operator, isBetween,
+ * multi-column sort), independent of any rendering — same discipline as
+ * store-search-perf.test.tsx (warm up, N iterations, generous ceiling documented per-case) so a
+ * regression here is a real algorithmic one, not UI noise.
  */
 
 const ROW_COUNT = 100_000;

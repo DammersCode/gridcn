@@ -31,6 +31,7 @@ const DEFAULT_RECORD_SOURCES: readonly DataChange<unknown>["source"][] = [
   "row-op",
   "import",
   "history",
+  "app",
 ];
 
 /** Return value of {@link useDataGridHistory}. */
@@ -45,11 +46,19 @@ export type UseDataGridHistoryResult<TData> = {
   canRedo: boolean;
   /** Clears both stacks (e.g. after regenerating/resetting the dataset). */
   clear: () => void;
+  /**
+   * Imperatively registers a programmatic change the consumer has ALREADY applied to `data`
+   * (e.g. a set-row-count batch, a batch-save rollback) as one undo entry on the same stack -
+   * this hook does not write data here, the consumer owns the array. Deliberately recorded
+   * regardless of `recordSources`: an explicit call is intent, not a gesture stream. `label`
+   * is an optional human-readable entry label (it also works as a field on `change` itself).
+   */
+  record: (change: DataChange<TData>, label?: string) => void;
 };
 
 /**
  * Op-based undo/redo wired to a consumer-owned data array. Plugs into core's
- * `onDataChange`/`onUndo`/`onRedo` extension points (PLAN §8) with no core edits.
+ * `onDataChange`/`onUndo`/`onRedo` extension points with no core edits.
  *
  * Design: takes `data` + `setData` (mirroring `useState`'s tuple) rather than owning
  * the array itself, so it composes with any state source (useState, a store, a server
@@ -102,6 +111,14 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
     forceUpdate((n) => n + 1);
   }, [history]);
 
+  const record = useCallback(
+    (change: DataChange<TData>, label?: string) => {
+      history.push(label ? { ...change, label } : change);
+      forceUpdate((n) => n + 1);
+    },
+    [history],
+  );
+
   return {
     onDataChange,
     undo,
@@ -109,5 +126,6 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
     canUndo: history.canUndo,
     canRedo: history.canRedo,
     clear,
+    record,
   };
 }

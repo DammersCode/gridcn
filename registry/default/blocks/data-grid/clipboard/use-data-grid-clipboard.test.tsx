@@ -91,7 +91,7 @@ describe("useDataGridClipboard.pasteFromClipboard", () => {
   });
 });
 
-describe("useDataGridClipboard.pasteFromClipboard with an async schema (workplan #79)", () => {
+describe("useDataGridClipboard.pasteFromClipboard with an async schema", () => {
   const asyncName = {
     "~standard": {
       version: 1,

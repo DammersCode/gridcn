@@ -414,7 +414,7 @@ describe("atomic hook re-render counts", () => {
   });
 });
 
-describe("useDataGridRowCellState (spec 4b: one subscription per row)", () => {
+describe("useDataGridRowCellState (one subscription per row)", () => {
   it("an active-cell move only re-renders the two affected rows, never an untouched row", () => {
     const renders = [0, 0, 0];
     let actionsRef: ReturnType<typeof useDataGridActions> | null = null;
@@ -609,7 +609,7 @@ describe("hidden columns", () => {
 });
 
 describe("search never filters viewIndex", () => {
-  it("setSearch leaves viewIndex unchanged (highlight + navigate only, per PLAN §3)", () => {
+  it("setSearch leaves viewIndex unchanged (highlight + navigate only)", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
       () => ({
@@ -1203,7 +1203,7 @@ describe("commitCellEdit", () => {
   });
 });
 
-describe("Standard Schema validate (workplan #53)", () => {
+describe("Standard Schema validate", () => {
   /** Minimal mock StandardSchemaV1 — no library import anywhere in repo code (per spec). */
   function mockSchema<TValue>(validate: (value: unknown) => { value: TValue } | { issues: { message: string }[] }) {
     return { "~standard": { version: 1 as const, vendor: "mock", validate } };
@@ -2333,7 +2333,7 @@ describe("useDataGridGetSelectionValues", () => {
   });
 });
 
-describe("controlled sortState/filterState/searchText (PLAN §3/§5 server escape hatch)", () => {
+describe("controlled sortState/filterState/searchText (server escape hatch)", () => {
   function useSortProbe() {
     return { actions: useDataGridActions(), sortState: useDataGridSortState(), viewIndex: useDataGridViewIndex() };
   }
@@ -2559,7 +2559,7 @@ describe("controlled sortState/filterState/searchText (PLAN §3/§5 server escap
     });
   });
 
-  describe("joinOperator (PLAN §3/§5 server escape hatch, same pattern as sort/filter)", () => {
+  describe("joinOperator (same pattern as sort/filter)", () => {
     function useJoinProbe() {
       return { actions: useDataGridActions(), joinOperator: useDataGridJoinOperator(), viewIndex: useDataGridViewIndex() };
     }

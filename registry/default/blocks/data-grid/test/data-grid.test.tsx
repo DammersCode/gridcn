@@ -85,7 +85,7 @@ describe("DataGrid ARIA structure", () => {
   });
 });
 
-describe("DataGrid without the data-grid-pinned-rows add-on (workplan #48 cut #3)", () => {
+describe("DataGrid without the data-grid-pinned-rows add-on", () => {
   it("renders no pinned-row-band DOM when rowBands is never supplied", () => {
     render(<DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} />);
     expect(document.querySelector(gridAttrSelector("pinnedRowBand"))).toBeNull();
@@ -207,7 +207,7 @@ describe("DataGrid cell content", () => {
   });
 });
 
-describe("DataGrid programmatic styling API (PLAN §6)", () => {
+describe("DataGrid programmatic styling API", () => {
   it("applies getRowClassName, merged after the built-in row classes", () => {
     render(
       <DataGrid
@@ -745,7 +745,7 @@ describe("onSelectionChange / onColumnLayoutChange fire from store actions witho
   });
 });
 
-describe("spec 6c-8 (H1 fix): useDataGridCellState consolidates 6 store reads into 1 subscription", () => {
+describe("useDataGridCellState consolidates 6 store reads into 1 subscription", () => {
   it("re-renders a cell exactly once per relevant state change, not once per underlying primitive", () => {
     let renderCount = 0;
     function CountingCell({ col, row: rowIndex }: { col: number; row: number }) {
@@ -817,7 +817,7 @@ describe("spec 6c-8 (H1 fix): useDataGridCellState consolidates 6 store reads in
   });
 });
 
-describe("spec 6c-8 (H2 audit): row prop identity survives a scroll that keeps the same rows in view", () => {
+describe("row prop identity survives a scroll that keeps the same rows in view", () => {
   it("re-scrolling to the same scrollTop (identical row window) reuses every row DOM node", () => {
     render(<DataGrid data={makeRows(10000)} columns={columns} getRowId={(r) => r.id} />);
     const grid = screen.getByRole("grid");
@@ -854,7 +854,7 @@ describe("spec 6c-8 (H2 audit): row prop identity survives a scroll that keeps t
   });
 });
 
-describe("spec phase 3 (task 2): DataGridCell memo prop-stability audit", () => {
+describe("DataGridCell memo prop-stability audit", () => {
   // Each sub-test flips exactly one DataGridCell input in isolation via the real engine and checks
   // renderCell fire count, so the memo comparator can't silently go stale on any one prop.
   async function renderCountingGrid(rowCount: number) {

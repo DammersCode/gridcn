@@ -1,8 +1,8 @@
 /**
- * i18n via a typed labels object (PLAN §3 "i18n via a labels object", user decision 2026-07-03):
- * every user-facing string across core + add-ons lives here with English defaults. Consumers pass
- * a `labels` prop (deep-merged over {@link DEFAULT_LABELS}) to `DataGridProvider`; no i18n library
- * dependency — wiring translated strings into `DEFAULT_LABELS`'s shape is the consumer's job.
+ * i18n via a typed labels object: every user-facing string across core + add-ons lives here with
+ * English defaults. Consumers pass a `labels` prop (deep-merged over {@link DEFAULT_LABELS}) to
+ * `DataGridProvider`; no i18n library dependency — wiring translated strings into
+ * `DEFAULT_LABELS`'s shape is the consumer's job.
  */
 
 import type { GridAction } from "./types";
@@ -175,8 +175,8 @@ export type DataGridIOLabels = {
   skipColumnQuick: string;
   preview: string;
   previewTruncated: (shown: number, total: number) => string;
-  /** Shown when an imported workbook had more than one sheet — only the first is read. */
-  multiSheetNotice: (usedSheet: string, total: number) => string;
+  /** Label of the sheet picker shown when an imported workbook has more than one sheet. */
+  sheet: string;
   import: string;
   cancel: string;
   errorParseFailed: string;
@@ -397,7 +397,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     skipColumnQuick: "Skip column",
     preview: "Preview",
     previewTruncated: (shown, total) => `Showing ${shown} of ${total} rows`,
-    multiSheetNotice: (usedSheet, total) => `This file has ${total} sheets. Importing "${usedSheet}" only.`,
+    sheet: "Sheet",
     import: "Import",
     cancel: "Cancel",
     errorParseFailed: "Could not read this file.",

@@ -281,7 +281,7 @@ describe("DataGridOverlays pin-aware segmentation", () => {
   });
 });
 
-describe("overlayPlugins seam (workplan #48)", () => {
+describe("overlayPlugins seam", () => {
   it("renders a registered plugin into the overlay layer, passing it the expected ctx shape", () => {
     let receivedCtx: Parameters<OverlayPlugin>[0] | undefined;
     const dummyPlugin: OverlayPlugin = (ctx) => {

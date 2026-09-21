@@ -21,7 +21,7 @@ export type DataGridMarkerCellProps = {
 /**
  * The marker column's per-row cell: row number ('number'/'both'), a row-select checkbox
  * ('checkbox'/'both'), or both with the number hidden on hover/selected via group-hover
- * ('both' — PLAN §3). Always pinned-left at grid track 1 with a fixed zero offset (nothing pins
+ * ('both'). Always pinned-left at grid track 1 with a fixed zero offset (nothing pins
  * before it) — outside the data column's aria-colindex space (see {@link DataGridMarkerHeader}
  * for why it carries no `aria-colindex`).
  */

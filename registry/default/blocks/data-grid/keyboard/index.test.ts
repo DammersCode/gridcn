@@ -176,7 +176,7 @@ describe("matchKeymap - space key bindings", () => {
     expect(matchKeymap(event, DEFAULT_KEYMAP, true)).not.toBe("selectColumn");
   });
 
-  it("plain space opens the editor (edit action), per spec Enter/Shift+Enter/Space", () => {
+  it("plain space opens the editor (edit action)", () => {
     const event = makeEvent({ key: " " });
     expect(matchKeymap(event, DEFAULT_KEYMAP, false)).toBe("edit");
   });
@@ -343,9 +343,13 @@ describe("isPrintableKey", () => {
 describe("GridAction coverage", () => {
   // GridAction members that are intentionally never bound/dispatched via the keymap — an explicit
   // allowlist so a genuinely un-wired action (like insertRowBelow/duplicateRow used to be) can't
-  // hide behind this exemption. "editReplace" is the type-to-edit fallback matched structurally in
-  // isPrintableKey, not through DEFAULT_KEYMAP (see is-printable-key.ts's doc comment).
-  const CONSUMER_ONLY_ACTIONS: readonly GridAction[] = ["editReplace"];
+  // hide behind this exemption.
+  const CONSUMER_ONLY_ACTIONS: readonly GridAction[] = [];
+
+  // Actions with a dispatch handler but no DEFAULT_KEYMAP binding: triggered through the implicit
+  // printable-key fallback in use-grid-interaction unless the consumer's keymap defines the action
+  // (even `[]`, which disables the fallback).
+  const IMPLICIT_FALLBACK_ACTIONS: readonly GridAction[] = ["editReplace"];
 
   // Record<GridAction, true> makes this exhaustive at compile time: adding a new GridAction member
   // without adding it here is a tsc error, not a silently-passing test.
@@ -368,11 +372,15 @@ describe("GridAction coverage", () => {
     insertRowBelow: true, duplicateRow: true,
   };
 
-  it("every GridAction is either bound in DEFAULT_KEYMAP or explicitly allowlisted", () => {
+  it("every GridAction is either bound in DEFAULT_KEYMAP, implicit-fallback, or explicitly allowlisted", () => {
     for (const action of Object.keys(ALL_ACTIONS) as GridAction[]) {
       const isBound = Boolean(DEFAULT_KEYMAP[action]?.length);
       const isAllowlisted = CONSUMER_ONLY_ACTIONS.includes(action);
-      expect(isBound || isAllowlisted, `"${action}" is neither bound in DEFAULT_KEYMAP nor in CONSUMER_ONLY_ACTIONS`).toBe(true);
+      const isImplicitFallback = IMPLICIT_FALLBACK_ACTIONS.includes(action);
+      expect(
+        isBound || isAllowlisted || isImplicitFallback,
+        `"${action}" is neither bound in DEFAULT_KEYMAP, an implicit fallback, nor in CONSUMER_ONLY_ACTIONS`,
+      ).toBe(true);
     }
   });
 });
