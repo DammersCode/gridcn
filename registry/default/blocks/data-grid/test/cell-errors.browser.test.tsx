@@ -54,22 +54,67 @@ function renderGridWithStoreAccess(rowCount: number, onStore: (store: StoreApi<D
   );
 }
 
+/** The error tooltip portals to document.body (outside `page`'s scope), so read it from the live document. */
+function tooltipText(): string | null {
+  return document.querySelector<HTMLElement>('[data-slot="tooltip-content"]')?.textContent ?? null;
+}
+
 describe("cell-errors: display", () => {
-  it("a cellErrors entry paints the ring/tint, aria-invalid, and the message on title", async () => {
+  it("a cellErrors entry paints the ring/tint, aria-invalid, and a tooltip with the message on hover", async () => {
     let store: StoreApi<DataGridStoreState> | undefined;
     renderGridWithStoreAccess(5, (s) => (store = s));
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     store!.getState().actions.setCellErrors([{ rowId: "row-1", columnId: "name", message: "Name already taken" }]);
 
-    const nameCell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="name"]')[1]!; // row-1
-    await vi.waitFor(() => expect(nameCell).toHaveAttribute("aria-invalid", "true"));
+    // the tooltip mount remounts the cell's div, so re-query the live node inside the wait
+    let nameCell!: HTMLElement;
+    await vi.waitFor(() => {
+      nameCell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="name"]')[1]!; // row-1
+      expect(nameCell).toHaveAttribute("aria-invalid", "true");
+    });
     expect(nameCell).toHaveAttribute("data-invalid", "true");
-    expect(nameCell).toHaveAttribute("title", "Name already taken");
+
+    await userEvent.hover(nameCell);
+    await vi.waitFor(() => expect(tooltipText()).toBe("Name already taken"), { timeout: 2000 });
 
     // an untouched cell in the same row/column space never gets the treatment.
     const otherNameCell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="name"]')[0]!;
     expect(otherNameCell).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("hovering an errored cell then clearing the error dismisses the tooltip", async () => {
+    let store: StoreApi<DataGridStoreState> | undefined;
+    renderGridWithStoreAccess(5, (s) => (store = s));
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    store!.getState().actions.setCellErrors([{ rowId: "row-0", columnId: "name", message: "boom" }]);
+    let nameCell!: HTMLElement;
+    await vi.waitFor(() => {
+      nameCell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="name"]')[0]!;
+      expect(nameCell).toHaveAttribute("aria-invalid", "true");
+    });
+
+    await userEvent.hover(nameCell);
+    await vi.waitFor(() => expect(tooltipText()).toBe("boom"), { timeout: 2000 });
+
+    store!.getState().actions.clearCellErrors();
+    await vi.waitFor(() => {
+      const cell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="name"]')[0]!;
+      expect(cell).not.toHaveAttribute("aria-invalid");
+    });
+    await vi.waitFor(() => expect(tooltipText()).toBeNull(), { timeout: 2000 });
+  });
+
+  it("hovering a cell without an error shows no tooltip", async () => {
+    renderGridWithStoreAccess(5, () => undefined);
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    const nameCell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="name"]')[0]!;
+    await userEvent.hover(nameCell);
+    await new Promise((r) => setTimeout(r, 800)); // past the tooltip's open delay
+    expect(tooltipText()).toBeNull();
+    expect(nameCell).not.toHaveAttribute("aria-invalid");
   });
 
   it("editing an errored cell shows the message immediately, and a successful commit clears the error", async () => {
@@ -79,8 +124,11 @@ describe("cell-errors: display", () => {
 
     store!.getState().actions.setCellErrors([{ rowId: "row-0", columnId: "name", message: "Server rejected this value" }]);
 
-    const nameCell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="name"]')[0]!;
-    await vi.waitFor(() => expect(nameCell).toHaveAttribute("aria-invalid", "true"));
+    let nameCell!: HTMLElement;
+    await vi.waitFor(() => {
+      nameCell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="name"]')[0]!;
+      expect(nameCell).toHaveAttribute("aria-invalid", "true");
+    });
 
     await userEvent.dblClick(nameCell);
     await expect.element(page.getByRole("alert")).toBeInTheDocument();
@@ -91,7 +139,11 @@ describe("cell-errors: display", () => {
     await userEvent.type(input, "Fixed Name");
     await userEvent.keyboard("{Enter}");
 
-    await vi.waitFor(() => expect(nameCell).not.toHaveAttribute("aria-invalid"));
+    // the cleared error unmounts the tooltip (another remount) — re-query the live node
+    await vi.waitFor(() => {
+      const cell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="name"]')[0]!;
+      expect(cell).not.toHaveAttribute("aria-invalid");
+    });
     expect(store!.getState().cellErrors.size).toBe(0);
   });
 
@@ -101,13 +153,18 @@ describe("cell-errors: display", () => {
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     store!.getState().actions.setCellErrors([{ rowId: "row-0", columnId: "name", message: "Server rejected this value" }]);
-    const nameCell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="name"]')[0]!;
-    await vi.waitFor(() => expect(nameCell).toHaveAttribute("aria-invalid", "true"));
+    let nameCell!: HTMLElement;
+    await vi.waitFor(() => {
+      nameCell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="name"]')[0]!;
+      expect(nameCell).toHaveAttribute("aria-invalid", "true");
+    });
 
     await userEvent.dblClick(nameCell);
     await userEvent.keyboard("{Escape}"); // discard, no commit at all
 
-    expect(nameCell).toHaveAttribute("aria-invalid", "true");
+    // the open/close of the editor remounts the cell's div twice — re-query the live node
+    const liveCell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="name"]')[0]!;
+    expect(liveCell).toHaveAttribute("aria-invalid", "true");
     expect(store!.getState().cellErrors.size).toBe(1);
   });
 
@@ -139,7 +196,9 @@ describe("cell-errors: display", () => {
     await userEvent.keyboard("{Enter}");
 
     await vi.waitFor(() => expect(ageCell).toHaveAttribute("aria-invalid", "true"));
-    expect(ageCell).toHaveAttribute("title", "must be >= 0");
+    // the editor is still open on rejection: the message shows inline (role="alert"), not in the
+    // hover tooltip (which only mounts on non-editing cells)
+    expect(tooltipText()).toBeNull();
     await expect.element(page.getByRole("alert")).toBeInTheDocument();
   });
 });
@@ -219,6 +278,95 @@ describe("cell-errors: zero-render probe", () => {
       expect(cell).not.toHaveAttribute("aria-invalid");
     });
 
+    const rendersForThisChange = renderCount - before;
+    expect(rendersForThisChange).toBeGreaterThan(0);
+    expect(rendersForThisChange).toBeLessThanOrEqual(probeColumns.length);
+  });
+});
+
+describe("cell-errors: tooltip performance", () => {
+  it("opening and closing the error tooltip re-renders no cell content", async () => {
+    let store: StoreApi<DataGridStoreState> | undefined;
+    let renderCount = 0;
+    const probeColumns = columns.map((c) => ({
+      ...c,
+      renderCell: ({ value }: { value: unknown }) => {
+        renderCount++;
+        return String(value);
+      },
+    }));
+    render(
+      <div style={{ height: 300 }}>
+        <DataGridProvider data={makeRows(20)} columns={probeColumns} getRowId={(r) => r.id}>
+          <StoreCapture onReady={(s) => (store = s)} />
+          <DataGridRoot className="h-[300px]">
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    store!.getState().actions.setCellErrors([{ rowId: "row-2", columnId: "name", message: "boom" }]);
+    let nameCell!: HTMLElement;
+    await vi.waitFor(() => {
+      nameCell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="name"]')[2]!;
+      expect(nameCell).toHaveAttribute("aria-invalid", "true");
+    });
+    const settled = renderCount; // the error painted exactly one cell; the snapshot excludes that render
+
+    await userEvent.hover(nameCell);
+    await vi.waitFor(() => expect(tooltipText()).toBe("boom"), { timeout: 2000 });
+    await userEvent.unhover(nameCell);
+    await vi.waitFor(() => expect(tooltipText()).toBeNull(), { timeout: 2000 });
+
+    // the tooltip's open/close is Base UI-internal state; it must never force a cell-content render
+    expect(renderCount).toBe(settled);
+  });
+
+  it("a second setCellErrors paints only the new cell while a tooltip is already mounted", async () => {
+    let store: StoreApi<DataGridStoreState> | undefined;
+    let renderCount = 0;
+    const probeColumns = columns.map((c) => ({
+      ...c,
+      renderCell: ({ value }: { value: unknown }) => {
+        renderCount++;
+        return String(value);
+      },
+    }));
+    render(
+      <div style={{ height: 300 }}>
+        <DataGridProvider data={makeRows(20)} columns={probeColumns} getRowId={(r) => r.id}>
+          <StoreCapture onReady={(s) => (store = s)} />
+          <DataGridRoot className="h-[300px]">
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    store!.getState().actions.setCellErrors([{ rowId: "row-2", columnId: "name", message: "boom" }]);
+    let firstCell!: HTMLElement;
+    await vi.waitFor(() => {
+      firstCell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="name"]')[2]!;
+      expect(firstCell).toHaveAttribute("aria-invalid", "true");
+    });
+
+    await userEvent.hover(firstCell);
+    await vi.waitFor(() => expect(tooltipText()).toBe("boom"), { timeout: 2000 });
+
+    const before = renderCount;
+    store!.getState().actions.setCellErrors([{ rowId: "row-5", columnId: "name", message: "boom again" }]);
+
+    await vi.waitFor(() => {
+      const cell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="name"]')[5]!;
+      expect(cell).toHaveAttribute("aria-invalid", "true");
+    });
+
+    // at most row-5's cells re-render — the already-errored row-2 (tooltip open) must not re-render
     const rendersForThisChange = renderCount - before;
     expect(rendersForThisChange).toBeGreaterThan(0);
     expect(rendersForThisChange).toBeLessThanOrEqual(probeColumns.length);

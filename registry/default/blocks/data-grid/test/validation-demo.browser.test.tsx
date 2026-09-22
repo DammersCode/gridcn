@@ -24,7 +24,9 @@ describe("data-grid-validation-demo", () => {
     await userEvent.keyboard("{Enter}");
 
     await vi.waitFor(() => expect(ageCell).toHaveAttribute("aria-invalid", "true"));
-    expect(ageCell).toHaveAttribute("title", "Must be 18 or older");
+    // editor stays open on rejection: the message shows inline (role="alert"), the hover tooltip
+    // only mounts on non-editing cells
+    expect(document.querySelector('[data-slot="tooltip-content"]')).toBeNull();
     await expect.element(page.getByRole("alert")).toBeInTheDocument();
     expect(page.getByRole("alert").element().textContent).toBe("Must be 18 or older");
     // editor stays open on rejection, not committed
@@ -48,8 +50,21 @@ describe("data-grid-cell-errors-demo", () => {
     await vi.waitFor(() => expect(quantityCell.textContent).toContain("150"));
     expect(quantityCell).not.toHaveAttribute("aria-invalid");
 
-    await vi.waitFor(() => expect(quantityCell).toHaveAttribute("aria-invalid", "true"), { timeout: 2000 });
-    expect(quantityCell).toHaveAttribute("title", "Quantity cannot exceed 100");
+    // the error paints the tooltip mount, which remounts the cell's div — re-query the live node
+    let erroredCell!: HTMLElement;
+    await vi.waitFor(() => {
+      erroredCell = gridCells().find((c) => c.getAttribute("data-column-id") === "quantity")!;
+      expect(erroredCell).toHaveAttribute("aria-invalid", "true");
+    }, { timeout: 2000 });
+
+    await userEvent.hover(erroredCell);
+    await vi.waitFor(
+      () =>
+        expect(document.querySelector<HTMLElement>('[data-slot="tooltip-content"]')?.textContent).toBe(
+          "Quantity cannot exceed 100",
+        ),
+      { timeout: 2000 },
+    );
     // the summary bar is a sibling of the grid (outside `page`'s scope); read the live document and
     // assert the rejected cell is actually counted, not just that the static label exists.
     await vi.waitFor(() => expect(document.body.textContent).toContain("Server errors: 1"));
