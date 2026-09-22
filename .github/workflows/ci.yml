@@ -13,6 +13,10 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    # PR runs gate on author (fork PRs skip, 0 min); to check an outside PR, Actions -> Run workflow on its branch.
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains('["DammersCode"]', github.event.pull_request.user.login)
     steps:
       - uses: actions/checkout@v5
 
