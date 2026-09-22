@@ -19,7 +19,7 @@ const columns: readonly ColumnDef<Row, unknown>[] = [
 // same widening every other internal-hook test in this suite performs at its own call boundary.
 const internalColumns = columns as unknown as readonly ColumnDef<unknown, unknown>[];
 
-function wrapperWithMarkers(rowMarkers: "none" | "number" | "checkbox" | "both") {
+function wrapperWithMarkers(rowMarkers: "none" | "number" | "checkbox" | "both" | "reorder") {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <DataGridProvider data={rows()} columns={columns} getRowId={(r) => r.id} rowMarkers={rowMarkers}>
@@ -48,12 +48,15 @@ describe("useColumnLayout marker column integration", () => {
     expect(result.current.totalWidth).toBe(264);
   });
 
-  it("uses a 36px track for 'checkbox' and 56px for 'both'", () => {
+  it("uses a 36px track for 'checkbox', 56px for 'both', and 32px for 'reorder'", () => {
     const checkbox = renderHook(() => useColumnLayout(internalColumns), { wrapper: wrapperWithMarkers("checkbox") });
     expect(checkbox.result.current.markerWidth).toBe(36);
 
     const both = renderHook(() => useColumnLayout(internalColumns), { wrapper: wrapperWithMarkers("both") });
     expect(both.result.current.markerWidth).toBe(56);
+
+    const reorder = renderHook(() => useColumnLayout(internalColumns), { wrapper: wrapperWithMarkers("reorder") });
+    expect(reorder.result.current.markerWidth).toBe(32);
   });
 
   it("shifts pinned-left static offsets by the marker width so the marker always renders before pinned data columns", () => {
