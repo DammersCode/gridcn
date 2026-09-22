@@ -1,0 +1,81 @@
+---
+title: Toolbar
+description: The data-grid-toolbar add-on — a flex frame for search, filter menu, sort list, columns menu, and your own buttons.
+icon: PanelTop
+---
+
+`data-grid-toolbar` is a flex frame for the grid's toolbar slots: quick search, the filter menu,
+the sort list, the columns menu, and your own buttons. It renders children left to right in the
+order you write them, and each piece is independent — drop one and the rest keep their relative
+order.
+
+<InstallCommand item="data-grid-toolbar" manual manualSlot={<ManualInstall item="data-grid-toolbar" />} />
+
+<ComponentPreview name="data-grid-sorting-filtering-demo" />
+
+## Wiring
+
+```tsx
+import {
+  DataGridToolbar,
+  DataGridSearch,
+  DataGridFilterMenu,
+  DataGridColumnsMenu,
+} from "@/components/data-grid-toolbar/data-grid-toolbar";
+
+<DataGridProvider {...grid} columns={columns}>
+  <DataGridToolbar>
+    <DataGridSearch />
+    <DataGridFilterMenu />
+    <DataGridColumnsMenu />
+  </DataGridToolbar>
+  <DataGridRoot>
+    <DataGridHeader />
+    <DataGridBody />
+  </DataGridRoot>
+</DataGridProvider>;
+```
+
+<Callout type="info" title="Standard toolbar order">
+  The gridcn convention is: `DataGridSearch` first (leftmost — finding data comes before
+  anything else), then the row-view modifiers `DataGridFilterMenu` and `DataGridSortList`, then
+  the column configuration `DataGridColumnsMenu`, then data movement `DataGridImportButton`
+  before `DataGridExportButton` (data flows in, then out), and your own utility buttons
+  (shortcuts, density, and the like) last.
+</Callout>
+
+## The pieces
+
+- **`DataGridSearch`** — quick search with match navigation; the behavior (capping, `mod+F`
+  capture) is documented on
+  [Sorting, filtering & search: search](/docs/sorting-filtering-search#search).
+- **`DataGridFilterMenu`** — the per-column filter popover; the operator set and filter
+  semantics are on
+  [Sorting, filtering & search: filtering](/docs/sorting-filtering-search#filtering).
+- **`DataGridSortList`** — the sort management popover,
+  [its own page](/docs/examples/addons/sort-list).
+- **`DataGridColumnsMenu`** — show and hide only; pin controls live in the header menu, not
+  here (see [Columns: visibility](/docs/columns#visibility)).
+
+## Filter menu keyboard & accessibility
+
+| Key | Action |
+|---|---|
+| <kbd>Tab</kbd> | Moves through a row's controls, in order: column select, operator select, value, remove, drag handle |
+| <kbd>ArrowUp</kbd> / <kbd>ArrowDown</kbd> (grip focused) | Moves that filter row one position up/down |
+| <kbd>Space</kbd> / <kbd>Enter</kbd> (grip focused) | Picks up/drops the row for pointer-equivalent keyboard dragging (`@dnd-kit/react`'s keyboard sensor) |
+| <kbd>Backspace</kbd> / <kbd>Delete</kbd> | Removes the focused filter row |
+
+Plain `ArrowUp` or `ArrowDown` on a focused grip always moves the row by exactly one position.
+The keyboard sensor of `@dnd-kit/react` also offers its own gesture for that key, but gridcn
+checks the plain arrow press first, and it wins. Every reorder announces the change through a polite
+`aria-live` region (`labels.toolbar.filterReorderAnnouncement`, for example "Name filter moved to
+position 2 of 3"). Focus never gets lost. After a reorder, focus stays on the moved row's grip.
+After deleting a row, focus moves to the next row's grip, or to the "Add filter" button once the
+list is empty.
+
+## Related
+
+- [Sorting, filtering & search](/docs/sorting-filtering-search) — the core behavior the
+  toolbar controls
+- [Context menu](/docs/examples/addons/context-menu) — the other per-column surface

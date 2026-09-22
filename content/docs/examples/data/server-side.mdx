@@ -115,7 +115,7 @@ ref, or the local-state pattern from the [pagination SWR page](/docs/examples/da
 
 ## Shareable state
 
-Wrap the same fetch in [DataGridUrlState](/docs/url-state) and the view state — sort,
+Wrap the same fetch in [DataGridUrlState](/docs/examples/addons/url-state) and the view state — sort,
 filters, search, page, page size — moves to the URL: reload or share the link and the grid
 rebuilds the exact same request. The bridge's query key then reads the URL-synced state
 instead of the store, and the URL becomes the request itself.
@@ -125,7 +125,7 @@ instead of the store, and the URL becomes the request itself.
 - [Sorting, filtering, search](/docs/sorting-filtering-search) — the store state the
   bridge reads
 - [Pagination](/docs/pagination) — the server-mode contract
-- [URL state](/docs/url-state) — making the view state shareable
+- [URL state](/docs/examples/addons/url-state) — making the view state shareable
 
 ## Related
 

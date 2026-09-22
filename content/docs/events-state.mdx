@@ -204,7 +204,7 @@ This fires on a fill-handle drag release or the `fillDown` and `fillRight` keyma
 the fill is applied. Call `args.preventDefault()` to veto it entirely: nothing is written, and the
 selection does not expand. Fill itself lives in the separate `data-grid-fill` add-on. This is
 an option to that add-on's `useDataGridFill()` hook, not a `DataGrid` or
-`DataGridRoot` prop. See [Fill handle](/docs/fill-handle).
+`DataGridRoot` prop. See [Fill handle](/docs/examples/addons/fill).
 
 ## 6. `onCellClick` + `onRowClick`
 
@@ -315,7 +315,7 @@ it back (outbound), with zero grid-owned network code in between. Presence itsel
 separate `data-grid-presence` add-on, registered into the core through the
 generic `overlayPlugins` seam. It is not a core event source, but this page includes it for the
 contrast. The demo's "Simulate presence highlight" button round-trips a fake highlight through
-exactly this path. See [Multiplayer presence](/docs/multiplayer-presence) for the full write-up,
+exactly this path. See [Multiplayer presence](/docs/examples/addons/presence) for the full write-up,
 including how to broadcast your own selection with `onSelectionChange`.
 
 ## Zero re-render guarantee

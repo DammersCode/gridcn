@@ -39,60 +39,8 @@ excludes a column from the menu's column picker. Row order is array order in `Fi
 the grip, or reorder through the keyboard (see below), to change it.
 
 `DataGridFilterMenu`, along with the search input and columns menu below, comes from the
-`data-grid-toolbar` add-on.
-
-<InstallCommand item="data-grid-toolbar" manual manualSlot={<ManualInstall item="data-grid-toolbar" />} />
-
-```tsx
-import {
-  DataGridToolbar,
-  DataGridSearch,
-  DataGridFilterMenu,
-  DataGridColumnsMenu,
-} from "@/components/data-grid-toolbar/data-grid-toolbar";
-
-<DataGridProvider {...grid} columns={columns}>
-  <DataGridToolbar>
-    <DataGridSearch />
-    <DataGridFilterMenu />
-    <DataGridColumnsMenu />
-  </DataGridToolbar>
-  <DataGridRoot>
-    <DataGridHeader />
-    <DataGridBody />
-  </DataGridRoot>
-</DataGridProvider>;
-```
-
-<Callout type="idea" title="Each toolbar piece is independent">
-  Drop `DataGridFilterMenu` if you only want search, and add your own buttons alongside them.
-</Callout>
-
-<Callout type="info" title="Standard toolbar order">
-  The toolbar renders its children left to right in the order you write them. The gridcn
-  convention is: `DataGridSearch` first (leftmost — finding data comes before anything else),
-  then the row-view modifiers `DataGridFilterMenu` and `DataGridSortList`, then the column
-  configuration `DataGridColumnsMenu`, then data movement `DataGridImportButton` before
-  `DataGridExportButton` (data flows in, then out), and your own utility buttons (shortcuts,
-  density, and the like) last. Drop a piece and the remaining ones keep their relative order.
-</Callout>
-
-### Keyboard & accessibility
-
-| Key | Action |
-|---|---|
-| <kbd>Tab</kbd> | Moves through a row's controls, in order: column select, operator select, value, remove, drag handle |
-| <kbd>ArrowUp</kbd> / <kbd>ArrowDown</kbd> (grip focused) | Moves that filter row one position up/down |
-| <kbd>Space</kbd> / <kbd>Enter</kbd> (grip focused) | Picks up/drops the row for pointer-equivalent keyboard dragging (`@dnd-kit/react`'s keyboard sensor) |
-| <kbd>Backspace</kbd> / <kbd>Delete</kbd> | Removes the focused filter row |
-
-Plain `ArrowUp` or `ArrowDown` on a focused grip always moves the row by exactly one position.
-The keyboard sensor of `@dnd-kit/react` also offers its own gesture for that key, but gridcn
-checks the plain arrow press first, and it wins. Every reorder announces the change through a polite
-`aria-live` region (`labels.toolbar.filterReorderAnnouncement`, for example "Name filter moved to
-position 2 of 3"). Focus never gets lost. After a reorder, focus stays on the moved row's grip.
-After deleting a row, focus moves to the next row's grip, or to the "Add filter" button once the
-list is empty.
+[toolbar add-on](/docs/examples/addons/toolbar), which owns the install, wiring, toolbar order,
+and the filter menu's keyboard & accessibility table.
 
 ## Search
 
@@ -140,52 +88,9 @@ To opt out and always defer to the browser's native find:
 
 ## Sort list (toolbar add-on)
 
-Click-to-sort headers work without any add-on, but `data-grid-sort-list` gives users a toolbar
-button and popover to add, remove, and reorder sorts without touching the headers. This is
-useful when columns are hidden or narrow, or when you prefer not to rely on shift-click for
-multi-column sort:
-
-<ComponentPreview name="data-grid-sort-list-demo" />
-
-<InstallCommand item="data-grid-sort-list" manual manualSlot={<ManualInstall item="data-grid-sort-list" />} />
-
-```tsx
-import { DataGridSortList } from "@/components/data-grid-sort-list/data-grid-sort-list";
-
-<DataGridProvider {...grid} columns={columns}>
-  <DataGridToolbar>
-    <DataGridSortList />
-  </DataGridToolbar>
-  <DataGridRoot>
-    <DataGridHeader />
-    <DataGridBody />
-  </DataGridRoot>
-</DataGridProvider>;
-```
-
-Each row has a column select, an ascending/descending select, a remove button, and a drag handle.
-Precedence is array order in `SortSpec[]`, changed by dragging the grip (`@dnd-kit/react`) or
-through the keyboard (see below). It reads and writes the same `useDataGridSortState()` and
-`useDataGridActions().setSorts()` as click-to-sort headers, so the two UIs stay in sync
-automatically. The button shows a count badge once one or more sorts are applied, matching the
-badge of `DataGridFilterMenu`.
-
-### Keyboard & accessibility
-
-| Key | Action |
-|---|---|
-| <kbd>Tab</kbd> | Moves through a row's controls, in order: column select, direction select, remove, drag handle |
-| <kbd>ArrowUp</kbd> / <kbd>ArrowDown</kbd> (grip focused) | Moves that sort row one position up/down, which changes precedence |
-| <kbd>Space</kbd> / <kbd>Enter</kbd> (grip focused) | Picks up/drops the row for pointer-equivalent keyboard dragging (`@dnd-kit/react`'s keyboard sensor) |
-| <kbd>Backspace</kbd> / <kbd>Delete</kbd> | Removes the focused sort row |
-
-Plain `ArrowUp` or `ArrowDown` on a focused grip always moves the row by exactly one position.
-The keyboard sensor of `@dnd-kit/react` also offers its own gesture for that key, but gridcn
-checks the plain arrow press first, and it wins. Every reorder announces the change through a polite
-`aria-live` region (`labels.sort.sortReorderAnnouncement`, for example "Age sort moved to
-position 1 of 2"). Focus never gets lost. After a reorder, focus stays on the moved row's grip.
-After deleting a row, focus moves to the next row's grip, or to the "Add sort" button once the
-list is empty.
+Click-to-sort headers work without any add-on. For a toolbar button and popover to add, remove,
+and reorder sorts without touching the headers, see the
+[sort list add-on](/docs/examples/addons/sort-list).
 
 ## Controlled mode (server-side sort/filter)
 

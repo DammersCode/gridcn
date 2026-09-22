@@ -126,10 +126,10 @@ What the automated Chromium suite verifies, area by area.
 - **The fill handle is mouse-only and hidden from assistive tech.** Dragging it has no keyboard
   equivalent. Keyboard users get the same result with <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>D</kbd>
   (fill down) or <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>R</kbd> (fill right). See
-  [Fill handle](/docs/fill-handle#keyboard-fill).
+  [Fill handle](/docs/examples/addons/fill#keyboard-fill).
 - **Pinned rows are not keyboard-navigable and not in the selection model.** Arrow keys, Tab, and
   Ctrl+Arrow jumps move only within data rows. A pinned row is never the active cell, carries no
-  `tabindex`, and carries no `aria-selected`. See [Pinned rows](/docs/pinned-rows#a11y).
+  `tabindex`, and carries no `aria-selected`. See [Pinned rows](/docs/examples/addons/pinned-rows#a11y).
 - **The grid renders no page landmark of its own.** Place it inside `<main>` or a labeled
   `<section>` yourself. Without a surrounding landmark, screen-reader region navigation, and axe's
   own `region` rule, cannot see the grid as part of a labeled page region. The automated suite's
