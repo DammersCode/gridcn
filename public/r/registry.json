@@ -576,6 +576,32 @@
       "categories": ["data"]
     },
     {
+      "name": "data-grid-actions-demo",
+      "type": "registry:example",
+      "title": "Data Grid Actions Demo",
+      "description": "Action-buttons column pattern: a pinned-right readOnly column whose renderCell composes shadcn Buttons over store actions (startEditing on the row's first editable cell, deleteRows/duplicateRows by view index) plus a more dropdown (Edit, Duplicate, Delete).",
+      "author": "gridcn",
+      "registryDependencies": ["DammersCode/gridcn/data-grid"],
+      "files": [
+        { "path": "registry/default/examples/data-grid-actions-demo.tsx", "type": "registry:example", "target": "components/data-grid-actions-demo.tsx" },
+        { "path": "registry/default/examples/demo-data.ts", "type": "registry:example", "target": "components/demo-data.ts" }
+      ],
+      "categories": ["data"]
+    },
+    {
+      "name": "data-grid-row-ops-demo",
+      "type": "registry:example",
+      "title": "Data Grid Row Ops Demo",
+      "description": "Row operations from two surfaces: toolbar buttons (insert above/below, duplicate, delete on the current selection) and the right-click context menu, with a side panel showing the last onDataChange payload (source + id-keyed ops) and a read-only toggle.",
+      "author": "gridcn",
+      "registryDependencies": ["DammersCode/gridcn/data-grid", "DammersCode/gridcn/data-grid-context-menu", "DammersCode/gridcn/data-grid-toolbar", "switch"],
+      "files": [
+        { "path": "registry/default/examples/data-grid-row-ops-demo.tsx", "type": "registry:example", "target": "components/data-grid-row-ops-demo.tsx" },
+        { "path": "registry/default/examples/demo-data.ts", "type": "registry:example", "target": "components/demo-data.ts" }
+      ],
+      "categories": ["data"]
+    },
+    {
       "name": "data-grid-large-data-demo",
       "type": "registry:example",
       "title": "Data Grid Large Data Demo",
