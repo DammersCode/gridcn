@@ -77,11 +77,10 @@ and active cell after the deletion. `insertRow` and `duplicateRows` keep the sel
 it around the inserted rows. Selection-dependent UI (a row-action toolbar, multiplayer presence)
 should expect to go blank after a delete.
 
-`onDataChange` fires the same way whether you passed `data` (controlled: your app owns the array
-and must feed it back in) or `defaultData` (uncontrolled: the grid already applied the change
-internally, and the callback is only a notification). See the [Quick start](/docs/quick-start)
-for the `defaultData` opt-in and the [API reference](/docs/api-reference) for the exclusivity
-rule.
+`onDataChange` fires the same way whether you passed `data` (controlled: you own the array and
+feed it back in) or `defaultData` (uncontrolled: the grid already applied the change; the
+callback is only a notification). See the [Quick start](/docs/quick-start) for the `defaultData`
+opt-in and the [API reference](/docs/api-reference) for the exclusivity rule.
 
 ## 2. `onSelectionChange`
 
@@ -91,9 +90,7 @@ onSelectionChange?: (next: GridSelection, details: SelectionChangeDetails) => vo
 ```
 
 This fires on every **committed** selection change: a click, a range extend, a row, column, or
-all selection, or a clear. It fires from the store actions layer, not a React effect, so it has
-no render dependency. It adds no extra subscription in row or cell components (the perf suite's
-zero-render probes cover this, see below).
+all selection, or a clear.
 
 <Callout type="warn" title="Drag-extend fires once per step">
   Dragging out a range calls this once per cell the pointer crosses, not once on release. This is
@@ -106,13 +103,10 @@ There is no separate `onActiveCellChange`. The active cell is already part of `G
 
 ### Reading the selected values
 
-Extracting the actual cell values under a selection used to mean hand-rolling a walk over
-`selection.current.range` plus `useDataGridVisibleColumns()` and `getCellValue()` yourself. The
-`getValues()` of the second argument does this for you. It is deliberately a **function, not a
-materialized array**. A drag-extend fires this callback once per cell the pointer crosses.
-Building a full value matrix eagerly on every step costs time even on drags that never read it.
-Call `getValues()` only when you need the values, for example inside an `if` that fires on drag
-end, or in a debounced handler. It reads the current range fresh off the store at call time:
+The `getValues()` of the second argument extracts the actual cell values under the selection. It
+is deliberately a **function, not a materialized array** — a drag-extend fires this callback once
+per cell the pointer crosses, so call `getValues()` only when you need the values (for example
+in a debounced handler); it reads the current range fresh off the store at call time:
 
 ```ts
 onSelectionChange={(selection, { getValues }) => {
@@ -276,13 +270,10 @@ onColumnLayoutChange?: (next: ColumnLayout) => void;
 onColumnResizing?: (columnId: string, width: number) => void;
 ```
 
-"Persist my users' column layout" is a top data-grid request. Without these props, the only path
-was the undocumented `storeApi.subscribe()` escape hatch. Width, order, pin, and hidden were
-mutable only through imperative actions, with no change notification and no restore path. These
-two props close that gap as **uncontrolled-with-events**, deliberately not a fully-controlled
-overlay. A controlled `columnLayout` prop fights the `ColumnDef` seeds that it is layered over.
-It also roughly triples the surface for a save-and-restore need that does not require
-per-render ownership:
+These props expose width, order, pin, and hidden as **uncontrolled-with-events** for
+save-and-restore. They are deliberately not a fully-controlled overlay: a controlled
+`columnLayout` prop would fight the `ColumnDef` seeds it is layered over, and per-render
+ownership is not what this need requires:
 
 - `onColumnLayoutChange` fires once per **committed** change: a resize drag release or
   double-click autosize (not per drag frame), a reorder drop, a pin or unpin, or a show or hide.
@@ -308,23 +299,19 @@ const { setPresenceHighlights, storeApi } = useDataGridPresence();
 useDataGridPresenceHighlights(storeApi): readonly PresenceHighlight[];
 ```
 
-Every event above is outbound-only, from the grid to the consumer. Presence is the odd one out.
-It is a **setter plus read hook** pair, not a callback. Your transport handler calls
-`setPresenceHighlights` directly (inbound), and `useDataGridPresenceHighlights(storeApi)` reads
-it back (outbound), with zero grid-owned network code in between. Presence itself lives in the
-separate `data-grid-presence` add-on, registered into the core through the
-generic `overlayPlugins` seam. It is not a core event source, but this page includes it for the
-contrast. The demo's "Simulate presence highlight" button round-trips a fake highlight through
-exactly this path. See [Multiplayer presence](/docs/examples/addons/presence) for the full write-up,
-including how to broadcast your own selection with `onSelectionChange`.
+Presence is the odd one out: it is a **setter plus read hook** pair, not a callback. Your
+transport handler calls `setPresenceHighlights` (inbound) and `useDataGridPresenceHighlights(storeApi)`
+reads it back (outbound), with zero grid-owned network code in between. It lives in the separate
+`data-grid-presence` add-on, registered through the generic `overlayPlugins` seam, and is not a
+core event source. See [Multiplayer presence](/docs/examples/addons/presence) for the full
+write-up, including how to broadcast your own selection with `onSelectionChange`.
 
 ## Zero re-render guarantee
 
-Every callback above fires from one of three places: the store's actions layer, a plain DOM
-handler already attached to the cell or row for other reasons (`onCellClick`, `onRowClick`), or,
-for `onSelectionChange`, one `storeApi.subscribe` registered once outside React. None of them
-fire from a new per-cell or per-row subscription, so firing them does not re-render a memoized
-`useDataGridRow` or `useDataGridCellState` subscriber. `setPresenceHighlights` of
+Every callback above fires from the store's actions layer, a plain DOM handler already attached
+to the cell or row, or one `storeApi.subscribe` registered once outside React — never from a new
+per-cell or per-row subscription, so firing them does not re-render a memoized
+`useDataGridRow` or `useDataGridCellState` subscriber; `setPresenceHighlights` of
 `data-grid-presence` gives the same guarantee.
 
 ## Not every event is documented here

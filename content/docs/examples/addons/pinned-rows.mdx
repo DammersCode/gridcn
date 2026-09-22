@@ -22,157 +22,156 @@ const { rowBands } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows:
 </DataGridProvider>;
 ```
 
-## Wiring it up
+<Tabs items={["Basics", "Totals"]}>
+  <Tab value="Basics">
+    ## Wiring it up
 
-`useDataGridPinnedRows()` is a single hook. Call it in your own component ABOVE where you render
-`<DataGridProvider>`. The `rowBands` prop lives on the provider, so the spec has to exist before
-it. This mirrors the shape of `useDataGridPresence` and `useDataGridFill`:
+    `useDataGridPinnedRows()` is a single hook. Call it in your own component ABOVE where you
+    render `<DataGridProvider>`. The `rowBands` prop lives on the provider, so the spec has to
+    exist before it. The same composition works with the core's `DataGrid` convenience wrapper —
+    see the note on [Fill handle](/docs/examples/addons/fill#composing-with-cores-datagrid-convenience-wrapper).
 
-```tsx
-"use client";
+    ```tsx
+    "use client";
 
-import { DataGrid } from "@/components/data-grid/data-grid";
-import { useDataGridPinnedRows } from "@/components/data-grid-pinned-rows/data-grid-pinned-rows";
+    import { DataGrid } from "@/components/data-grid/data-grid";
+    import { useDataGridPinnedRows } from "@/components/data-grid-pinned-rows/data-grid-pinned-rows";
 
-function MyGrid() {
-  const { rowBands } = useDataGridPinnedRows({ topRows: [totalsRow] });
+    function MyGrid() {
+      const { rowBands } = useDataGridPinnedRows({ topRows: [totalsRow] });
 
-  return <DataGrid data={data} columns={columns} getRowId={getRowId} rowBands={rowBands} />;
-}
-```
+      return <DataGrid data={data} columns={columns} getRowId={getRowId} rowBands={rowBands} />;
+    }
+    ```
 
-<Callout title="Composing with core's DataGrid convenience wrapper">
-  `<DataGrid rowBands={rowBands}>` works the same way as `<DataGridProvider>`. Both accept the
-  prop and forward it straight through to the same seam.
-</Callout>
+    ## API
 
-## API
+    `useDataGridPinnedRows({ topRows?, bottomRows? })` accepts a **separate array from `data`**,
+    not indices into it, for each band. Each band renders every row in the array, in order, so a
+    band can stack more than one row. The demo above pins an averages row on top and a totals row
+    on the bottom. Pinned rows keep the `viewIndex`, sort, filter, and selection machinery
+    untouched.
 
-`useDataGridPinnedRows({ topRows?, bottomRows? })` accepts a **separate array from `data`**, not indices
-into it, for each band. Each band renders every row in the array, in order, so a band can stack
-more than one row. The demo above pins an averages row on top and a totals row on the bottom.
-Pinned rows keep the `viewIndex`, sort, filter, and selection machinery untouched.
+    <Callout type="warn" title="Pinned rows are display-only">
+      - **Never sort or filter.** They render exactly in the order you pass them, independent of
+        the `sortState` and `filterState` of the grid.
+      - **Do not participate in range selection or the rows-channel.** They are excluded from
+        `selection`, the marker checkbox column, and Ctrl+A / Shift+Space. A range drawn across
+        the whole view stops at the last real data row.
+      - **Are readOnly by default.** Editing a pinned cell does nothing unless the column's own
+        `readOnly` explicitly overrides it (`readOnly: false` or a predicate). See the demo's
+        `Score` and `Age` columns for a read-only totals band.
+      - **Are not keyboard-navigable.** Arrow keys, Tab, and Ctrl+Arrow jumps move only within
+        data rows. A pinned row is never the active cell. Click-to-select also does nothing on a
+        pinned cell.
+    </Callout>
 
-<Callout type="warn" title="Pinned rows are display-only">
-  - **Never sort or filter.** They render exactly in the order you pass them, independent of the
-    `sortState` and `filterState` of the grid.
-  - **Do not participate in range selection or the rows-channel.** They are excluded from
-    `selection`, the marker checkbox column, and Ctrl+A / Shift+Space. A range drawn across the
-    whole view stops at the last real data row.
-  - **Are readOnly by default.** Editing a pinned cell does nothing unless the column's own
-    `readOnly` explicitly overrides it (`readOnly: false` or a predicate). See the demo's
-    `Score` and `Age` columns for a read-only totals band.
-  - **Are not keyboard-navigable.** Arrow keys, Tab, and Ctrl+Arrow jumps move only within
-    data rows. A pinned row is never the active cell. Click-to-select also does nothing on a
-    pinned cell.
-</Callout>
+    Cells render through the same `DataGridCell` and cell-type pipeline as data rows: the same
+    column alignment, the same `text`, `number`, `date`, and other formatting, and the same
+    subgrid column tracks. So a pinned row lines up with its columns pixel-for-pixel, including
+    pinned-left and pinned-right columns and column resize.
+  </Tab>
+  <Tab value="Totals">
+    ## Computing a totals row
 
-Cells render through the same `DataGridCell` and cell-type pipeline as data rows: the same
-column alignment, the same `text`, `number`, `date`, and other formatting, and the same subgrid
-column tracks. So a pinned row lines up with its columns pixel-for-pixel, including pinned-left
-and pinned-right columns and column resize.
+    ```tsx
+    const TOTALS_SPECS = { score: "sum", age: "avg" };
 
-## Computing a totals row
+    function MyGrid() {
+      const grid = useDataGridState(initialRows, { getRowId: (r) => r.id });
+      const [totals, setTotals] = useState({ id: "__totals__" });
 
-```tsx
-const TOTALS_SPECS = { score: "sum", age: "avg" };
+      // Stable identity: keep `onChange` out of the inline-closure pattern, and keep the band
+      // arrays memoized so `rowBands` only changes when the totals actually do.
+      const onTotalsChange = useCallback((row: Record<string, unknown>) => {
+        setTotals((prev) => ({ ...prev, ...row }));
+      }, []);
 
-function MyGrid() {
-  const grid = useDataGridState(initialRows, { getRowId: (r) => r.id });
-  const [totals, setTotals] = useState({ id: "__totals__" });
+      const bottomRows = useMemo(() => [totals], [totals]);
+      const { rowBands } = useDataGridPinnedRows({ bottomRows });
 
-  // Stable identity: keep `onChange` out of the inline-closure pattern, and keep the band
-  // arrays memoized so `rowBands` only changes when the totals actually do.
-  const onTotalsChange = useCallback((row: Record<string, unknown>) => {
-    setTotals((prev) => ({ ...prev, ...row }));
-  }, []);
+      return (
+        <DataGridProvider {...grid} columns={columns} rowBands={rowBands}>
+          <DataGridAggregateReporter specs={TOTALS_SPECS} onChange={onTotalsChange} />
+          <DataGridRoot>
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    ```
 
-  const bottomRows = useMemo(() => [totals], [totals]);
-  const { rowBands } = useDataGridPinnedRows({ bottomRows });
+    `useDataGridAggregate(specs)` reduces each `columnId` in `specs` over the grid's filtered/sorted/
+    searched `viewIndex`. It returns a `{ [columnId]: value }` object — the row shape
+    `useDataGridPinnedRows`'s `topRows`/`bottomRows` expect, since pinned cells resolve values
+    through each column's `accessorKey`/`accessorFn` like data rows do. A reducer is `"sum"`,
+    `"avg"`, `"min"`, `"max"`, `"count"`, or a custom `(values, rows) => unknown` function.
+    Numeric reducers skip `null`/`undefined` values instead of producing `NaN`. `count` counts
+    non-empty values. Pass `scope: "all"` to reduce over the raw `data` array instead, ignoring
+    the active filter.
 
-  return (
-    <DataGridProvider {...grid} columns={columns} rowBands={rowBands}>
-      <DataGridAggregateReporter specs={TOTALS_SPECS} onChange={onTotalsChange} />
-      <DataGridRoot>
-        <DataGridHeader />
-        <DataGridBody />
-      </DataGridRoot>
-    </DataGridProvider>
-  );
-}
-```
+    Because the hook reads the store and `rowBands` is a provider prop, `DataGridAggregateReporter`
+    bridges the two: it renders as a plain child under the provider and reports the result through
+    `onChange` into parent state, which is what feeds `topRows`/`bottomRows`.
 
-`useDataGridAggregate(specs)` reduces each `columnId` in `specs` over the grid's filtered/sorted/
-searched `viewIndex`. It returns a `{ [columnId]: value }` object — the row shape
-`useDataGridPinnedRows`'s `topRows`/`bottomRows` expect, since pinned cells resolve values through each
-column's `accessorKey`/`accessorFn` like data rows do. A reducer is `"sum"`, `"avg"`, `"min"`,
-`"max"`, `"count"`, or a custom `(values, rows) => unknown` function. Numeric reducers skip
-`null`/`undefined` values instead of producing `NaN`. `count` counts non-empty values. Pass
-`scope: "all"` to reduce over the raw `data` array instead, ignoring the active filter.
+    <Callout type="warn" title="Keep the band arrays referentially stable">
+      `useDataGridPinnedRows` returns a stable `rowBands` reference only while the `topRows` and
+      `bottomRows` arrays you pass keep the same identity. A fresh array on every render (like the
+      inline `bottomRows: [totals]`) makes `rowBands` churn every render, and the grid dev-warns
+      on that. Memoize the arrays, as in the example above, so they only change when the band
+      contents change. The band rows themselves still need no `getRowId`: pinned cells resolve
+      through each column's `accessorKey`/`accessorFn` exactly like data rows.
+    </Callout>
 
-`useDataGridAggregate` reads the store, so it only works inside `<DataGridProvider>`. `rowBands` is
-a prop of the provider, evaluated in the parent. `DataGridAggregateReporter` bridges the two: it renders
-as a plain child under the provider, calls the hook, and reports the result through `onChange` into
-a `useState` in the parent — that state is what feeds `topRows`/`bottomRows`.
+    ### Custom reducers
 
-<Callout type="warn" title="Keep the band arrays referentially stable">
-  `useDataGridPinnedRows` returns a stable `rowBands` reference only while the `topRows` and
-  `bottomRows` arrays you pass keep the same identity. A fresh array on every render (like the
-  inline `bottomRows: [totals]`) makes `rowBands` churn every render, and the grid dev-warns on
-  that. Memoize the arrays, as in the example above, so they only change when the band contents
-  change. The band rows themselves still need no `getRowId`: pinned cells resolve through each
-  column's `accessorKey`/`accessorFn` exactly like data rows.
-</Callout>
+    A reducer function receives every resolved value and its source row, unfiltered — write your
+    own empty-handling if the built-ins don't fit:
 
-### Custom reducers
+    ```tsx
+    const specs = {
+      name: (_values, rows) => `${rows.length} rows`,
+      score: (values) => Math.max(...(values as number[]), 0),
+    };
+    ```
 
-A reducer function receives every resolved value and its source row, unfiltered — write your own
-empty-handling if the built-ins don't fit:
+    ### Manual computation
 
-```tsx
-const specs = {
-  name: (_values, rows) => `${rows.length} rows`,
-  score: (values) => Math.max(...(values as number[]), 0),
-};
-```
+    For anything `useDataGridAggregate` doesn't cover, compute the band's rows yourself from
+    `grid.data` in a `useMemo` — this is the same pattern as before the hook existed. Reducing
+    over `grid.data` ignores the active filter; reduce over `useDataGridViewIndex()` instead if
+    the band must match what the filtered view shows.
 
-### Manual computation
+    ```tsx
+    function computeTotalsRow(rows: readonly Row[]): Row {
+      return {
+        id: "__totals__",
+        name: `${rows.length} rows`,
+        score: rows.reduce((sum, r) => sum + r.score, 0),
+        // ...
+      };
+    }
 
-For anything `useDataGridAggregate` doesn't cover, compute the band's rows yourself from `grid.data`
-in a `useMemo` — this is the same pattern as before the hook existed. Reducing over `grid.data`
-ignores the active filter; reduce over `useDataGridViewIndex()` instead if the band must match what
-the filtered view shows.
-
-```tsx
-function computeTotalsRow(rows: readonly Row[]): Row {
-  return {
-    id: "__totals__",
-    name: `${rows.length} rows`,
-    score: rows.reduce((sum, r) => sum + r.score, 0),
-    // ...
-  };
-}
-
-const top = useMemo(() => [computeTotalsRow(grid.data)], [grid.data]);
-```
+    const top = useMemo(() => [computeTotalsRow(grid.data)], [grid.data]);
+    ```
+  </Tab>
+</Tabs>
 
 ## Geometry
 
 The height of the pinned-top band shrinks the effective space above the scrollable data rows,
-like the header. The height of the pinned-bottom band shrinks the effective viewport bottom.
-Both compose with everything else that shares that viewport:
+like the header. The height of the pinned-bottom band shrinks the effective viewport bottom. Both
+compose with everything else that shares that viewport:
 
 - Row virtualization.
 - `useDataGridScrollToCell`, so keyboard navigation never scrolls a data row under a band.
 - Column resize and reorder.
 - Pinned-left and pinned-right columns. A pinned column's cell stays fixed horizontally inside
-  a pinned row band, exactly like it does in a data row.
-
-## Frozen-edge shadow
-
-Each band casts a soft shadow on its scroll-facing edge, shown only once a data row has actually
-scrolled beneath it. This uses the same `--grid-pin-shadow` token and the same "real content
-scrolled under it" gate used by [pinned columns](/docs/columns#pin-leftright).
+  a pinned row band, exactly like it does in a data row. Each band casts a soft shadow on its
+  scroll-facing edge, shown only once a data row has actually scrolled beneath it — the same
+  `--grid-pin-shadow` token and the same "real content scrolled under it" gate used by
+  [pinned columns](/docs/columns#pin-leftright).
 
 ## a11y
 

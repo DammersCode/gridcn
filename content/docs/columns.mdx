@@ -55,10 +55,9 @@ The `renderHeaderMenu` slot of `DataGridRoot` renders at the inline-end of each 
 chevron button on hover, and opens the same menu that a right-click gives you. Per-column
 `pinnable: false`, or grid-wide `enableColumnPinning={false}`, disables pin and unpin.
 
-A soft directional shadow marks the pinned boundary. The last left-pinned column casts a shadow
+A soft directional shadow marks the pinned boundary: the last left-pinned column casts a shadow
 to the right, and the first right-pinned column casts one to the left, whenever content is
-actually scrolled beneath it. The grid computes this from the pinned group as a whole, not per
-column.
+actually scrolled beneath it.
 
 ### Persistent pin indicator
 
@@ -257,8 +256,8 @@ function SelectAllMarker({ allSelected }: { allSelected: "checked" | "indetermin
 const renderMarkerHeader: MarkerHeaderRenderer = (ctx) => <SelectAllMarker {...ctx} />;
 ```
 
-Define both renderers at module scope (stable identity, the same rule as `getRowClassName`): a
-function defined in the component body would change identity on every render and re-render every
+Define both renderers at module scope (stable identity, the same rule as `getRowClassName`, see
+[Performance](/docs/performance#keeping-it-fast)) — a component-body function re-renders every
 marker cell on every root update.
 
 The built-in checkboxes carry the translatable `labels.markers.*` aria-labels. A custom renderer
@@ -280,11 +279,10 @@ const columns = defineColumns<Row>()([
 ] as const);
 ```
 
-Here `email` grows twice as fast as `name` as the container widens, and `age` stays fixed. Growth
-is clamped by `maxWidth`, and a flex column never shrinks below its base `width`. When the sum of
-widths already meets or exceeds the container, columns render at their base size, and the grid
-scrolls horizontally as usual. A manual resize, by dragging the handle, fixes that column at its
-new width and drops it out of flex distribution, the same as a column with no `flex`.
+Here `email` grows twice as fast as `name` as the container widens, and `age` stays fixed; growth
+is clamped by `maxWidth` and a flex column never shrinks below its base `width`. A manual resize
+fixes that column at its new width and drops it out of flex distribution, the same as a column
+with no `flex`.
 
 ## Reading column state
 
@@ -319,13 +317,12 @@ const [layout, setLayout] = useState(() => {
 >
 ```
 
-`onColumnLayoutChange` fires once per resize commit (a drag release or an autosize, never per
-drag frame), per reorder drop, per pin or unpin, and per show or hide. See
+`onColumnLayoutChange` fires once per committed change: a resize commit (a drag release or an
+autosize, never per drag frame), a reorder drop, a pin or unpin, or a show or hide. See
 [Events & state](/docs/events-state#8-oncolumnlayoutchange--defaultcolumnlayout--oncolumnresizing)
-for the full payload shape and firing semantics (that section also covers the live, per-drag-frame
-`onColumnResizing`). `defaultColumnLayout` is NOT a controlled prop. The grid reads it once at
-mount, so a later change to the value you pass does nothing. Always pair it with
-`onColumnLayoutChange`, and never expect it to react on its own.
+for the full payload shape and the live, per-drag-frame `onColumnResizing`. `defaultColumnLayout`
+is not a controlled prop: the grid reads it once at mount and ignores later changes, so always
+pair it with `onColumnLayoutChange`.
 
 `useDataGridVisibleColumns()` and `useDataGridAllColumns()` return the full `ColumnDef` of each
 column. So a custom column UI can call `accessorFn`, `setValue`, or a function-form `readOnly`
@@ -341,9 +338,8 @@ function CustomColumnLabel({ row }: { row: unknown }) {
 }
 ```
 
-Pass your own row type as the generic of the hook (`useDataGridVisibleColumns<Employee>()`) to
-get back `ColumnDef<Employee, unknown>[]` instead, so `accessorFn` and `setValue` are typed
-against `Employee` rather than `unknown`.
+Pass your own row type as the hook's generic (`useDataGridVisibleColumns<Employee>()`) to get
+`accessorFn` and `setValue` typed against that type.
 
 Pinning *rows*, for a sticky totals band at the top or bottom, uses the same sticky, frozen-edge
 machinery. See [Pinned rows](/docs/examples/addons/pinned-rows).

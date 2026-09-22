@@ -41,14 +41,10 @@ browser move focus); and a popover editor without an explicit pick cancels rathe
 
 ## Built-in cell types
 
-Every cell type implements the same small pipeline. `toText` and `fromText` drive clipboard,
-import/export, and typing in the same way, so only one thing needs an override to change how a
-type converts text to and from a value. One feature to remember: search and filter do NOT use
-`toText` — they match the raw `String(value)`, so a `select` column searches the stored value,
-not the displayed label, and a `number` column with `decimals` searches the unrounded value. The
-full per-feature contract (display = `toDisplayText ?? toText`, clipboard/export = `toText`,
-sort = `compare`, search/filter = raw `String(value)`, fill = raw value) is on
-[custom cell types](/docs/custom-cell-types#value-pipeline).
+Every cell type implements the same small pipeline — display = `toDisplayText ?? toText`,
+clipboard/export = `toText`, sort = `compare`, fill = raw value — so one override changes how a
+type converts text to and from a value. The full per-feature contract, including how search and
+filter match values, is on [custom cell types](/docs/custom-cell-types#value-pipeline).
 
 | Type | Value | Notes |
 |---|---|---|
@@ -221,9 +217,8 @@ Paste, fill, CSV/XLSX import, and `updateCells` hold the batch while the schema 
 - A rejected cell drops silently, and the other cells of the batch still commit. One bad value
   never fails the batch.
 - The committed value is the schema's `result.value`, so a transform applies on bulk paths too.
-- A newer operation supersedes a held batch. A second paste over the same area, a change of the
-  data, a sort or filter change, or the unmount of the grid drops the older batch silently. Cells
-  are keyed by row id, so a pure reorder of the rows keeps the batch valid.
+- A newer operation supersedes a held batch: a second paste over the same area, a data change, a
+  sort or filter change, or the unmount of the grid drops the older batch silently.
 - The import dialog keeps its Import button disabled while it validates. Cancel, or closing the
   dialog, aborts the build and drops the batch.
 
@@ -255,9 +250,9 @@ Paste, fill, CSV/XLSX import, and `updateCells` hold the batch while the schema 
 ```
 
 `validateRow` runs once per touched row after a write gesture commits — a single edit, a paste,
-a fill, or a bulk update. The row it receives already has ALL of the gesture's cells applied, so
-the verdict never depends on column order inside a pasted block. A per-column `validate` cannot
-give that guarantee: it runs mid-gesture, against whatever the row looked like at that moment.
+a fill, or a bulk update — against the row with ALL of the gesture's cells applied, so the verdict
+never depends on column order (a per-column `validate` runs mid-gesture and cannot guarantee
+that).
 
 Return `columnId -> message` to mark cells, or `null` when the row is fine. Messages land in the
 same per-cell error display as [Server errors](#server-errors) (ring, tint, hover tooltip,

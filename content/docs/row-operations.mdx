@@ -57,12 +57,13 @@ Row-channel selection remaps by row id (the moved row keeps its selection state)
 cell follows its row. Each completed move is announced through the grid's `aria-live` region
 (`labels.markers.reorderAnnouncement`).
 
-`reorderRows` is a no-op — returning `false`, dev-warning where the cause is a
-misconfiguration — when: `enableRowReorder` is off, the grid is `readOnly`, an edit session is
-open (the editor pins a view coordinate the move would invalidate), a sort or filter is active
-(the view order belongs to the sort/filter, not the data), a lazy grid has unloaded holes (a
-reorder would shift the lazy add-on's index bookkeeping), or the drop leaves the row where it
-already is. There is no keyboard reorder yet.
+<Callout type="warn" title="reorderRows is a no-op in these situations">
+  It returns `false` (dev-warning where the cause is a misconfiguration) when: `enableRowReorder`
+  is off, the grid is `readOnly`, an edit session is open (the editor pins a view coordinate the
+  move would invalidate), a sort or filter is active (the view order belongs to the sort/filter,
+  not the data), a lazy grid has unloaded holes (a reorder would shift the lazy add-on's index
+  bookkeeping), or the drop leaves the row where it already is. There is no keyboard reorder yet.
+</Callout>
 
 <Callout type="warn" title="Position-based data goes stale">
   Search match counts and presence highlights in the original view-space `range` form reference
@@ -93,10 +94,8 @@ The row-operation items act on **every view row covered by the current selection
 to the right-clicked row when nothing is selected, so a range selection duplicates or deletes all
 of its rows at once. Every mutating item (everything but Copy) is disabled on a `readOnly` grid.
 
-Surfaces with no menu: row markers, the empty grid space below the last row, and the scrollbar
-gutter right-click to nothing at all, no menu and no browser context menu either, matching the
-quiet no-op of a plain click on empty space. The header surface gets its own menu (sort, pin,
-autosize, hide), documented on [Columns](/docs/columns).
+Row markers, the empty space below the last row, and the scrollbar gutter have no menu (and
+suppress the browser's). The header surface gets its own menu, documented on [Columns](/docs/columns).
 
 ## Programmatic actions
 

@@ -10,88 +10,95 @@ The target is **WCAG 2.1 AA**. No conformance audit has been performed against g
 
 ## What the grid implements
 
-### Grid semantics
+<Tabs items={["Semantics", "Selection & editor", "Live regions"]}>
+  <Tab value="Semantics">
+    ### Grid semantics
 
-The scroll root carries `role="grid"`. Each rendered row carries `role="row"`. Each data cell
-carries `role="gridcell"`. Each header cell carries `role="columnheader"`.
+    The scroll root carries `role="grid"`. Each rendered row carries `role="row"`. Each data cell
+    carries `role="gridcell"`. Each header cell carries `role="columnheader"`.
 
-### The aria index and count model
+    ### The aria index and count model
 
-`aria-rowcount` and `aria-colcount` sit on the grid root. `aria-rowindex` sits on each row.
-`aria-colindex` sits on each cell and header cell. Counts and indices are all 1-based, per the
-WAI-ARIA grid pattern.
+    `aria-rowcount` and `aria-colcount` sit on the grid root. `aria-rowindex` sits on each row.
+    `aria-colindex` sits on each cell and header cell. Counts and indices are all 1-based, per the
+    WAI-ARIA grid pattern.
 
-The row index layout accounts for the header and both pinned-row bands, in this order:
+    The row index layout accounts for the header and both pinned-row bands, in this order:
 
-| Position | `aria-rowindex` |
-|---|---|
-| Header row | 1 |
-| Pinned-top rows (`data-grid-pinned-rows`, if installed) | 2, 3, ... |
-| Data rows | continue after the pinned-top band |
-| Pinned-bottom rows | last, after every data row |
+    | Position | `aria-rowindex` |
+    |---|---|
+    | Header row | 1 |
+    | Pinned-top rows (`data-grid-pinned-rows`, if installed) | 2, 3, ... |
+    | Data rows | continue after the pinned-top band |
+    | Pinned-bottom rows | last, after every data row |
 
-`aria-rowcount` on the grid root always includes both pinned bands, so a screen reader announces
-the true total row count, not just the data row count.
+    `aria-rowcount` on the grid root always includes both pinned bands, so a screen reader
+    announces the true total row count, not just the data row count.
 
-The marker column (row numbers or checkboxes) sits outside this index space entirely. It carries
-no `aria-colindex`, and no data column's `aria-colindex` shifts to make room for it. `aria-colcount`
-counts only real data columns.
+    The marker column (row numbers or checkboxes) sits outside this index space entirely. It
+    carries no `aria-colindex`, and no data column's `aria-colindex` shifts to make room for it.
+    `aria-colcount` counts only real data columns.
 
-### Roving tabindex
+    ### Roving tabindex
 
-The grid follows the WAI-ARIA APG roving-tabindex pattern for a single active cell. Before any
-cell becomes active, the grid root itself is the one tabbable entry point (`tabIndex={0}`). Once a
-cell becomes active, that cell alone carries `tabIndex={0}`, every other cell carries
-`tabIndex={-1}`, and the root reverts to `tabIndex={-1}`. Real DOM focus follows the active cell,
-including when it scrolls out of the rendered window and back in. Focus never gets lost.
+    The grid follows the WAI-ARIA APG roving-tabindex pattern for a single active cell. Before any
+    cell becomes active, the grid root itself is the one tabbable entry point (`tabIndex={0}`).
+    Once a cell becomes active, that cell alone carries `tabIndex={0}`, every other cell carries
+    `tabIndex={-1}`, and the root reverts to `tabIndex={-1}`. Real DOM focus follows the active
+    cell, including when it scrolls out of the rendered window and back in. Focus never gets lost.
 
-Pinned rows and skeleton (not-yet-loaded) cells carry no `tabindex` at all. They sit outside
-roving-tabindex navigation, since neither is ever the active cell.
+    Pinned rows and skeleton (not-yet-loaded) cells carry no `tabindex` at all. They sit outside
+    roving-tabindex navigation, since neither is ever the active cell.
+  </Tab>
+  <Tab value="Selection & editor">
+    ### Selection announcement model
 
-### Selection announcement model
+    Every selected cell carries `aria-selected="true"`, for a single cell, a range, a row-channel,
+    or a column-channel selection alike. `aria-multiselectable` on the grid root reflects whether
+    more than one cell can be selected at once, true whenever any multi-cell selection channel
+    (range, row, column, or multi-range) is enabled.
 
-Every selected cell carries `aria-selected="true"`, for a single cell, a range, a row-channel, or
-a column-channel selection alike. `aria-multiselectable` on the grid root reflects whether more
-than one cell can be selected at once, true whenever any multi-cell selection channel
-(range, row, column, or multi-range) is enabled.
+    Selection paint goes through an overlay layer. Membership changes update `aria-selected` on the
+    affected cells (a bounded, guarded re-render — see [Performance](/docs/performance) for the
+    invariant wording). The `aria-selected` attribute is the accessibility-tree signal a screen
+    reader reads; the overlay is the sighted-user visual signal. The two agree on the same state.
 
-Selection paint goes through an overlay layer. Membership changes update `aria-selected` on the
-affected cells (a bounded, guarded re-render — see Performance `/docs/performance` for the
-invariant wording). The `aria-selected` attribute is the accessibility-tree signal a screen
-reader reads; the overlay is the sighted-user visual signal. The two agree on the same state.
+    ### Editor focus behavior
 
-### Editor focus behavior
+    Opening a cell editor renders a real `<input>` (or other native control) inside the `gridcell`,
+    so assistive tech reads it as an ordinary form field. Closing the editor (commit or cancel)
+    returns DOM focus to the cell itself. Focus never lands on `document.body` or gets dropped.
 
-Opening a cell editor renders a real `<input>` (or other native control) inside the `gridcell`, so
-assistive tech reads it as an ordinary form field. Closing the editor (commit or cancel) returns
-DOM focus to the cell itself. Focus never lands on `document.body` or gets dropped.
+    ### `aria-busy` and loading
 
-### `aria-busy` and loading
+    Three separate elements carry `aria-busy` or an equivalent progress role:
 
-Three separate elements carry `aria-busy` or an equivalent progress role:
+    - The grid root carries `aria-busy="true"` while the `loading` prop is true.
+    - A skeleton row, rendered when `loading` is true and there are zero rows yet, carries
+      `aria-busy="true"` per row, plus `role="presentation"` and an `aria-label` (from
+      `labels.grid.loading`) on the skeleton block as a whole.
+    - A background refresh (`loading` true with rows already present) shows a slim progress bar
+      instead, `role="progressbar"` with an `aria-label` and matching `aria-valuetext`.
+  </Tab>
+  <Tab value="Live regions">
+    ### Toolbar and sort-list live regions
 
-- The grid root carries `aria-busy="true"` while the `loading` prop is true.
-- A skeleton row, rendered when `loading` is true and there are zero rows yet, carries
-  `aria-busy="true"` per row, plus `role="presentation"` and an `aria-label` (from
-  `labels.grid.loading`) on the skeleton block as a whole.
-- A background refresh (`loading` true with rows already present) shows a slim progress bar
-  instead, `role="progressbar"` with an `aria-label` and matching `aria-valuetext`.
+    The `data-grid-toolbar` search box announces its match count through `role="status"` with
+    `aria-live="polite"`. The `data-grid-toolbar` filter popover and the `data-grid-sort-list`
+    popover each carry a `role="status"` `aria-live="polite"` region that announces every reorder,
+    for example "Name filter moved to position 2 of 3" or "Age sort moved to position 1 of 2"
+    (`labels.toolbar.filterReorderAnnouncement` / `labels.sort.sortReorderAnnouncement`).
 
-### Toolbar and sort-list live regions
-
-The `data-grid-toolbar` search box announces its match count through `role="status"` with
-`aria-live="polite"`. The `data-grid-toolbar` filter popover and the `data-grid-sort-list` popover
-each carry a `role="status"` `aria-live="polite"` region that announces every reorder, for example
-"Name filter moved to position 2 of 3" or "Age sort moved to position 1 of 2"
-(`labels.toolbar.filterReorderAnnouncement` / `labels.sort.sortReorderAnnouncement`).
-
-Reordering itself is fully keyboard-operable. Each row's drag grip is focusable. A plain
-<kbd>ArrowUp</kbd> or <kbd>ArrowDown</kbd> on a focused grip moves that row exactly one position,
-and always wins over `@dnd-kit/react`'s own keyboard-drag gesture on the same key. Focus stays on
-the moved row's grip after a reorder, and moves to the next row's grip (or the "Add filter"/"Add
-sort" button once the list is empty) after a delete. See
-[Sorting, filtering & search](/docs/sorting-filtering-search#keyboard--accessibility) for the full
-per-key table for both popovers.
+    Reordering itself is fully keyboard-operable. Each row's drag grip is focusable. A plain
+    <kbd>ArrowUp</kbd> or <kbd>ArrowDown</kbd> on a focused grip moves that row exactly one position,
+    and always wins over `@dnd-kit/react`'s own keyboard-drag gesture on the same key. Focus stays
+    on the moved row's grip after a reorder, and moves to the next row's grip (or the "Add
+    filter"/"Add sort" button once the list is empty) after a delete. See the per-key tables for
+    both popovers: [Toolbar add-on: filter menu keyboard &
+    accessibility](/docs/examples/addons/toolbar#filter-menu-keyboard--accessibility) and
+    [Sort list: keyboard & accessibility](/docs/examples/addons/sort-list#keyboard--accessibility).
+  </Tab>
+</Tabs>
 
 ## Keyboard coverage
 
@@ -100,25 +107,23 @@ for cell navigation, selection, and editing. This page does not repeat that tabl
 
 ## Test status matrix
 
-What the automated Chromium suite verifies, area by area.
+What the automated Chromium suite verifies, area by area:
 
 | Area | Automated Chromium suite |
 |---|---|
-| Grid semantics (role, aria-rowcount/colcount/rowindex/colindex) | Verified — `a11y.browser.test.tsx`, "has zero violations on the base fixture (toolbar + markers + pinned row + sorted column)" |
-| Keyboard navigation & roving tabindex | Verified — `data-grid.browser.test.tsx`: "arrow keys move the active cell and scroll the container when moving past the viewport edge", "a real Tab key press reaches the grid, then a second Tab leaves it (roving tabindex takes over)"; axe finds zero violations on the same base fixture |
-| Editor open/close focus flow | Verified — `a11y.browser.test.tsx`, "has zero violations with a cell editor open"; `data-grid.browser.test.tsx`, "Enter on a focused text cell edits with the caret at the end of the existing content (never select-all)" |
-| Multi-cell selection (`aria-selected`, `aria-multiselectable`) | Verified — `a11y.browser.test.tsx`, "has zero violations with a multi-cell range selected (aria-selected on every member)" |
-| Toolbar popovers (filter, sort-list, columns) + keyboard reorder | Verified — the base fixture mounts `DataGridToolbar` with search, filter menu, and columns menu, and axe finds zero violations against it; `toolbar.browser.test.tsx` and `sort-list.browser.test.tsx` each test "ArrowUp on the grip keeps focus on the moved row's grip and announces the new position", plus the full remove/refocus paths |
-| Live regions (search match count, filter/sort reorder announcements) | Verified structurally — the fixture mounts the toolbar and axe checks the full accessibility tree, including the `aria-live` regions; the reorder tests above assert the announcement text itself, not just the DOM structure. axe does not confirm a screen reader speaks it aloud at the right moment |
+| Grid semantics (roles, aria counts/indices) | Verified — `a11y.browser.test.tsx`, zero axe violations on the base fixture (toolbar + markers + pinned row + sorted column) |
+| Keyboard navigation & roving tabindex | Verified — `data-grid.browser.test.tsx`: arrow keys move the active cell and scroll at the viewport edge; a real Tab enters, a second Tab leaves |
+| Editor open/close focus flow | Verified — `a11y.browser.test.tsx` (zero violations with an editor open); `data-grid.browser.test.tsx` (caret lands at the end of existing content, never select-all) |
+| Multi-cell selection (`aria-selected`, `aria-multiselectable`) | Verified — `a11y.browser.test.tsx` (aria-selected on every range member) |
+| Toolbar popovers + keyboard reorder | Verified — `toolbar.browser.test.tsx`, `sort-list.browser.test.tsx`: grip keeps focus on the moved row, announces the new position, full remove/refocus paths |
+| Live regions (search count, reorder announcements) | Verified structurally — the `aria-live` regions are in the fixture's axe tree and the reorder tests assert the announcement text; whether a screen reader speaks it aloud is out of scope |
 
 <Callout type="warn" title="What axe-core does and does not prove">
-  The suite runs [axe-core](https://github.com/dequelabs/axe-core) against a real rendered DOM in a
-  headless Chromium browser (Vitest Browser Mode), against a fixture with a toolbar, row markers,
-  a pinned-top row, and a sorted column. It finds **zero violations** across all three tests, three
-  files, three assertions, run 2026-08-01. axe-core is a static and structural checker: it catches
-  missing roles, invalid `aria-*` usage, contrast issues (disabled here — deferred to a real font
-  metrics pass, see the test file), and similar rule violations. It is a structural checker: it
-  does not confirm that a screen reader announces the right thing at the right moment.
+  The suite runs [axe-core](https://github.com/dequelabs/axe-core) against the real rendered DOM in
+  headless Chromium (Vitest Browser Mode) with a fixture carrying a toolbar, row markers, a
+  pinned-top row, and a sorted column — zero violations (run 2026-08-01). axe-core is a static,
+  structural checker: it does not confirm that a screen reader announces the right thing at the
+  right moment.
 </Callout>
 
 ## Known gaps

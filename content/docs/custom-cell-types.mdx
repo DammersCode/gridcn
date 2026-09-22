@@ -6,11 +6,10 @@ icon: Blocks
 
 ## The mental model
 
-A cell type is **one object**: `{ Cell, Editor, toText, fromText, clearValue, isEmpty, compare?,
-align? }`. `Cell` and `Editor` are the two React components; the four value-pipeline methods
-drive clipboard copy, paste, the fill handle, quick-clear delete, search, sort, and import/export,
-each with one generic implementation against this contract instead of one per type. Get
-`fromText` wrong, and every one of them inherits the bug.
+A cell type is **one object** — `{ Cell, Editor, toText, fromText, clearValue, isEmpty,
+compare?, align? }` — whose four value-pipeline methods drive clipboard, the fill handle,
+quick-clear delete, search, sort, and import/export with one generic implementation against this
+contract instead of one per type; get `fromText` wrong and every one of them inherits the bug.
 
 ## The contract, member by member
 
@@ -159,13 +158,9 @@ cellTypes) · **fill** = raw value.
   `commit({ dx: 0, dy: 0 })` for blur, click-away, or picking an option, stays in place. Escape
   calls `cancel()` and must NOT call `onChange` at all. The edit is discarded, not committed with
   the old value.
-- **Focus discipline: focus and move the caret to the end on mount, seeded from `initialText` for
-  type-to-replace.** Grid activation deliberately never starts an edit on a plain click.
-  Double-click, Enter, F2, and typing all start an edit. Typing a printable character on the
-  active cell opens the editor pre-seeded with only that character (`initialText`), which
-  replaces the old value. The caret goes to the end, never select-all, so continued typing
-  appends rather than replacing the seed. See `useSeedFocus` and the date editor's own effect for
-  the pattern.
+- **Focus discipline: focus and move the caret to the end on mount, seeded from `initialText`
+  for type-to-replace** (grid activation and its defaults are on
+  [Edit activation](/docs/editing-cell-types#edit-activation)); `useSeedFocus` has the pattern.
 - **Popover and portal editors need `data-grid-cell-editor` on their portaled content, or an
   outside-click ends the edit instantly.** `Popover` and `Select` content portals to
   `document.body`, entirely outside the DOM subtree of the cell. But React re-dispatches the
@@ -212,12 +207,6 @@ cellTypes) · **fill** = raw value.
   the compile-time catches that `defineColumns` gives every built-in type, for a typo in an
   option key and for a typo in a type key.
 
-  The installed `cell-types.ts` checks its built-in registry of five types against a literal
-  `BuiltinCellTypeKey` union, decoupled from `GridCellTypes`. So augmenting `GridCellTypes` with a
-  new key, like `currency` above, never breaks the compile of that file, in your app or anywhere
-  else. The worked example below still types its own columns locally, rather than repeating the
-  augmentation inline, only to keep the code block of this document self-contained.
-
 ## Worked example: a `currency` cell type
 
 <ComponentPreview name="data-grid-custom-cell-demo" />
@@ -230,9 +219,7 @@ round-trips into `1234.56`.
 ```tsx title="registry/default/examples/data-grid-custom-cell-demo.tsx"
 type CurrencyOptions = { currency: string; locale?: string };
 
-// Keyed on serialized options, not object identity — a column's `options` literal is re-created
-// every render; the built-in date type's dateFormatterCache measured ~38us to construct an
-// Intl formatter vs ~0.7us to reuse one, which dominates fling-scroll frame cost uncached.
+// Keyed on serialized options, not object identity — the `options` literal is re-created every render.
 const currencyFormatterCache = new Map<string, Intl.NumberFormat>();
 
 function getCurrencyFormatter(locale: string, currency: string): Intl.NumberFormat {
@@ -303,11 +290,9 @@ import { cellTypes } from "@/components/data-grid/data-grid";
 ```
 
 <Callout type="warn" title="cellTypes replaces the registry, it does not merge">
-  Passing `cellTypes` fully replaces the built-in registry. It does not merge automatically with
-  `text`, `number`, `checkbox`, `select`, and `date`. Spread the built-ins back in
-  (`{ ...cellTypes, currency: currencyCellType }`). Otherwise every column that uses a built-in
-  type breaks silently: its cell type becomes `undefined`, and the grid cannot render or edit it.
-  The worked example above does this through the `cellTypes` import from the public barrel.
+  The built-ins do not merge in automatically — spread them back in (as the example above does),
+  or every built-in-typed column breaks silently. Full semantics on
+  [Editing & cell types: Custom cell types](/docs/editing-cell-types#custom-cell-types).
 </Callout>
 
 ## Testing your cell type

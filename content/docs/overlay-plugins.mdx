@@ -19,13 +19,10 @@ calls every registered plugin once per render, in array order, and renders whate
 returns.
 
 The overlay layer is a stack of `pointer-events-none` elements painted above the cell grid, inside
-the same scrolling canvas as the cells. Selection range fills, the row/column selection bands, and
-the active-cell focus ring are the core's own built-in overlay layers. `data-grid-presence` and
-`data-grid-fill` both register into this same seam. Presence paints remote users' selections. Fill
-paints its drag preview and the small drag handle. Neither the core nor the other add-on knows the
-other exists. Both reuse the same window-clamp and pin-zone-splitting math the core's own overlays
-use, supplied through a `ctx` argument, so a plugin never re-implements geometry the core already
-solved.
+the same scrolling canvas as the cells. Selection fills, row/column bands, and the active-cell ring
+are the core's built-in layers; `data-grid-presence` and `data-grid-fill` register into this same
+seam, reusing the core's window-clamp and pin-zone-splitting math through the `ctx` argument, so a
+plugin never re-implements geometry the core already solved.
 
 ### Layer order
 
@@ -44,48 +41,30 @@ solved.
 
 ### When it re-renders
 
-`DataGridOverlays` subscribes to selection and the active cell through atomic Zustand selectors. A
-plugin that calls its own hooks inside the returned function (see `useDataGridPresence`'s pattern
-below) attributes those subscriptions to `DataGridOverlays`'s own fiber, because a plain function
-call still runs its hooks against the calling component. So a plugin's state change re-renders
-`DataGridOverlays`, and only `DataGridOverlays`. It never reaches rows or cells, which subscribe
-through a separate, row-scoped path. This is what makes a presence highlight or a fill-drag frame
-cost zero row or cell renders, verified by a render-count probe in each add-on's own test suite.
+A plugin's hooks run against the component that calls it — `DataGridOverlays` — so a plugin's own
+state change re-renders only the overlay layer, never rows or cells. That is what makes a presence
+highlight or a fill-drag frame cost zero row or cell renders.
 
 ### What `ctx` provides
 
 <AutoTypeTable path="./registry/default/blocks/data-grid/overlays.tsx" name="OverlayPluginCtx" />
 
-Each field exists because a built-in overlay layer already needed it, and a plugin needs the exact
-same pipeline to paint correctly instead of drifting from it:
-
 - **`windowStart`** — the first rendered (data-space) row index. Overlays place content
-  window-relative, the same way the rows canvas does, so a plugin's `gridRowStart` must subtract
-  this, not the true row index, or its content paints in the wrong place the moment the grid
-  scrolls.
-- **`clampRowStart` / `clampRowEnd`** — the true contiguous `[start, end)` rendered row span. This
-  differs from `windowStart` plus the row count whenever an off-window active row is appended past
-  the contiguous window (moving the active cell can pull in one disjoint row). Clamp any rect you
-  paint to this range, not to `windowStart`, or it can overshoot or undershoot the real rendered
-  bottom.
-- **`colCount`** — the total number of visible columns, in real column-index space. This is not the
-  rendered column window's size. A pinned-right zone can sit far outside the currently scrolled
-  column window, so pin-zone splitting needs the true column count to reach it.
-- **`colOffset`** — the 1-based grid-column offset to add to every rect's `x`. It is `2` when a row
-  marker column occupies track 1, else `1`. Add it once, at the point you set `gridColumnStart`/
-  `gridColumnEnd`.
-- **`pinTrack`** (optional) — per-column pin and track data, present only when the grid actually has
-  a pinned column. `undefined` means "nothing pinned, skip segmentation entirely."
+  window-relative, so a plugin's `gridRowStart` must subtract this, not the true row index.
+- **`clampRowStart` / `clampRowEnd`** — the true contiguous `[start, end)` rendered row span.
+  Clamp any painted rect to this range (it can differ from `windowStart` plus the row count).
+- **`colCount`** — the total number of visible columns, in real column-index space, not the
+  scrolled column window's size — pin-zone splitting needs it to reach a pinned-right zone.
+- **`colOffset`** — the 1-based grid-column offset to add to every rect's `x`: `2` when a row
+  marker column occupies track 1, else `1`.
+- **`pinTrack`** (optional) — per-column pin and track data, present only when the grid has a
+  pinned column. `undefined` means skip segmentation entirely.
 - **`splitRectByPinZones(rect, pinTrack)`** — splits a data-space rect into up to three contiguous
-  segments: pinned-left, unpinned, pinned-right. Pinned columns sit at a fixed screen position
-  regardless of scroll, counter-offset from the scrolling canvas. A rect that spans a pinned column,
-  without this split, paints at that column's scrolled-away track position instead of its actual,
-  fixed, on-screen position. Call it whenever `pinTrack` is defined and your rect might span a
-  pinned column.
+  segments: pinned-left, unpinned, pinned-right. Call it whenever `pinTrack` is defined and your
+  rect might span a pinned column.
 - **`clampRectToWindow(rect, rowStart, rowEnd, colCount)`** — clamps a data-space rect to the given
-  row window and `[0, colCount)`, or returns `null` when the rect falls fully outside it. Call this
-  before `splitRectByPinZones`, exactly as the built-in layers do, so a plugin never paints a rect
-  that only partially exists in the current window.
+  row window and `[0, colCount)`, or returns `null` when it falls fully outside. Call this before
+  `splitRectByPinZones`.
 
 ## Identity stability
 

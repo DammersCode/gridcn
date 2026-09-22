@@ -1,0 +1,75 @@
+---
+title: Broadcasting your selection
+description: Send your own selection to peers over a real websocket, and choose the divergence-proof payload form.
+icon: Radio
+---
+
+Follow-up to [Multiplayer presence](/docs/examples/addons/presence): the receiving side is the
+`useDataGridPresence` add-on; this page is the other direction — broadcasting your own selection
+over a real websocket.
+
+## Wiring a real websocket
+
+The demo on the [Multiplayer presence](/docs/examples/addons/presence) page simulates 3 users
+with `setInterval`. A real integration looks like this:
+
+```tsx
+"use client";
+
+import { useDataGridPresence } from "@/components/data-grid-presence/data-grid-presence";
+
+function usePresenceSync(roomId: string) {
+  const { plugin, setPresenceHighlights } = useDataGridPresence();
+
+  useEffect(() => {
+    const socket = new WebSocket(`wss://your-server/rooms/${roomId}`);
+    socket.onmessage = (event) => {
+      const highlights = JSON.parse(event.data);
+      setPresenceHighlights(highlights);
+    };
+    return () => socket.close();
+  }, [setPresenceHighlights, roomId]);
+
+  return plugin;
+}
+```
+
+## Sending your selection
+
+Your own selection still needs to be broadcast in the other direction. Wire `onSelectionChange`
+on `DataGridProvider` rather than hand-rolling a `useDataGridSelection()` plus `useEffect`
+subscription. It already fires on every committed change (click, extend step, row, column, or
+all selection, and clear) from the actions layer of the store. It also fires once per step of a
+drag-extend gesture, exactly the granularity that a live broadcast wants.
+
+The multi-cell stopgap is the view-space `range` form: the payload already carries the
+selection's `range` (view space), so the send side needs NO hooks at all — no `useDataGridRowIds`
+called outside the provider (core hooks throw when called outside it), and no column-indexing by
+hand (`cell.col` is a view-space index into the VISIBLE columns; indexing the raw `columns`
+array is wrong as soon as a column is hidden):
+
+```tsx
+<DataGridProvider
+  data={data}
+  columns={columns}
+  getRowId={getRowId}
+  overlayPlugins={[plugin]}
+  onSelectionChange={(selection) => {
+    const range = selection.current?.range;
+    if (!range) return; // cleared — send the leave message instead
+    socket.send(JSON.stringify({ id: userId, color, range }));
+  }}
+>
+```
+
+<Callout type="warn" title="range is in the sender's view space">
+  A receiver with a different local sort or filter paints a `range` payload on the wrong cells
+  (the full trade-off is on [Coordinates](/docs/examples/addons/presence#coordinates-rowid-native-or-view-space)).
+  For divergence-proof multi-cell broadcasts, send the rowId-native range form
+  `{ rowIds, columnIds }` instead: map the selection's view rows to rowIds with
+  `useDataGridRowId` / `useDataGridRowIds` and the visible view columns to column ids, called
+  INSIDE the provider. The receiver's plugin resolves every id against its own view — filtered
+  rows are dropped silently, hidden/unknown columns dev-warn once — no mapping code on the
+  receive side. See [Events & state](/docs/events-state#2-onselectionchange) for the full payload
+  shape.
+</Callout>

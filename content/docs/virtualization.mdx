@@ -28,27 +28,25 @@ the regression suite that enforces them.
   `className="h-150"` or `h-full` inside a container with its own bounded height.
 </Callout>
 
-## The model, in consumer terms
+## How it works
+
+### The model, in consumer terms
 
 The scrollable area is a sticky viewport. The rows and columns you see are absolutely positioned
-inside a full-size canvas, sized to the *total* row and column extent. So the scrollbar's length
+inside a full-size canvas, sized to the *total* row and column extent, so the scrollbar's length
 and thumb position are always correct. A single CSS transform slides the rendered window to track
-scroll position. The transform moves with the scroll position on every tick, not on the next
-React commit. So the browser can never reveal a strip of unrendered area between a scroll event
-and the window catching up. This holds even during a hard scrollbar-drag fling.
+scroll position — on every tick, not on the next React commit — so the browser can never reveal a
+strip of unrendered area between a scroll event and the window catching up, even during a hard
+scrollbar-drag fling.
 
-## Overscan, including velocity-aware overscan
+### Overscan
 
 A small fixed overscan, rows and columns rendered just past the visible edge, absorbs the normal
-gap between one scroll tick and the next window recompute. During a fast scroll or scrollbar-drag
-fling, that fixed buffer alone is not enough, because a single tick can jump hundreds of pixels.
-So the grid also tracks recent scroll velocity. It grows the overscan on the *leading* edge, the
-direction you are scrolling toward, and keeps the trailing edge at its normal minimum. This
-keeps a fast fling from ever exposing blank space. The window that lands after each tick already
-covers where the next tick is likely to land, with no permanent over-rendering while scrolling
-slowly or sitting still.
+gap between one scroll tick and the next window recompute. During a fast fling the grid also
+tracks recent scroll velocity and grows the overscan on the leading edge only, so a fast fling
+never exposes blank space without permanent over-rendering while scrolling slowly or sitting still.
 
-## What's virtualized
+### What's virtualized
 
 - **Rows** — only data rows that intersect the viewport, plus overscan, mount. Row height is
   uniform (`rowHeight` or `density`), so the window is a cheap range computation, not a per-row
@@ -56,17 +54,17 @@ slowly or sitting still.
 - **Columns** — only columns that intersect the horizontal viewport, plus overscan, mount,
   independent of row windowing. A diagonal scroll recomputes both in the same tick.
 
-## Interaction with pinned rows and columns
+## Guarantees
+
+### Interaction with pinned rows and columns
 
 Pinned-left and pinned-right columns, and pinned-top and pinned-bottom row bands (see
 [Columns](/docs/columns#pin-leftright) and [Pinned rows](/docs/examples/addons/pinned-rows)), always render,
 regardless of scroll position. They sit outside the windowed range by construction, not merely
-overscanned, so they never blank, flicker, or lose focus while scrolling. The viewport bounds of
-the unpinned window shrink to account for however much space the pinned bands and columns
-currently occupy, so windowing and pinning compose correctly. Scrolling never renders an unpinned
-cell underneath a pinned one.
+overscanned, so they never blank, flicker, or lose focus while scrolling; the unpinned window's
+viewport bounds shrink by the space the pinned bands and columns occupy.
 
-## What you get for free
+### What you get for free
 
 - There is no row or column count threshold to cross, and no "virtualize past N rows" toggle.
   Small and huge datasets go through the identical code path.
@@ -76,19 +74,11 @@ cell underneath a pinned one.
 - Resize, reorder, and pin or unpin recompute the window correctly with no manual invalidation.
 
 <Callout type="warn" title="Keep data/columns/callback references stable">
-  Virtualization does not change the standard identity-stability rule. `data`, `columns`,
+  Virtualization does not change the standard identity-stability rule: `data`, `columns`,
   `getRowId`, `getRowClassName` and `getCellClassName`, and pinned-row arrays must be module-scope
-  constants or memoized, not fresh literals on every render. See
-  [Performance](/docs/performance#keeping-it-fast). A dev-mode guardrail warns when an identity
-  changes across renders.
+  constants or memoized. See [Performance](/docs/performance#keeping-it-fast). A dev-mode
+  guardrail warns when an identity changes across renders.
 </Callout>
-
-## Verified by a regression suite
-
-Blank-cell detection under randomized scrollbar-drag deltas, an FPS regression gate, and a
-wasted-render probe all run against a real Chromium instance. See
-[Performance](/docs/performance#verified-by-a-regression-suite) and the **Benchmarking** section
-in the repository's DEVELOPMENT.md to run them yourself.
 
 ## Beyond rendering: fetching data on demand
 

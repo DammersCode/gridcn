@@ -1,5 +1,5 @@
 {
   "title": "Add-ons",
   "icon": "Puzzle",
-  "pages": ["fill", "pinned-rows", "presence", "undo-redo", "toolbar", "context-menu", "keybindings", "sort-list", "url-state", "import-export"]
+  "pages": ["fill", "pinned-rows", "presence", "broadcasting-presence", "undo-redo", "toolbar", "context-menu", "keybindings", "sort-list", "url-state", "import-export"]
 }

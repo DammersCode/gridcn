@@ -68,9 +68,9 @@ exportGrid(state, { format: "csv", scope: "selection" });
 ```
 
 `scope` controls which rows get exported. The default, `'view'`, follows whatever the user
-currently sees, the active sort and filter, by walking `viewIndex`. Quick search never narrows
-`viewIndex` — it only highlights and navigates — so it does not change what `'view'` exports.
-`'all'` ignores view order entirely and exports every row of the raw `data` array as-is.
+currently sees, the active sort and filter, by walking `viewIndex` (quick search never narrows
+`viewIndex` — see [Sorting, filtering & search](/docs/sorting-filtering-search#search)). `'all'`
+ignores view order entirely and exports every row of the raw `data` array as-is.
 `'selection'` walks only the selected rows, counting both the marker checkboxes and any cell range.
 
 Every scope emits all visible columns, so an exported row always lines up with its header row. A
@@ -145,12 +145,10 @@ build custom UI instead of using the provided buttons and dialog. `parseImportFi
 `matchImportColumns`, `applyImportOptions`, and `buildImportedRows` are the pure functions
 underneath, for when you need to parse or map outside a React component entirely.
 
-`parseImportFile` takes a `sheetName` option for workbooks with more than one sheet; without it,
-the first sheet is used and an unknown `sheetName` rejects. The result's `sheetNames`/`sheetName`
-tell you what was in the workbook and which one you got. Switching sheets (the dialog's picker or
-`setSheetName`) re-parses the workbook and recomputes the column mapping from scratch — any manual
-mapping set on the previous sheet is discarded. Picking an empty sheet clears the preview, shows
-the "no rows" error, and disables the Import button:
+`parseImportFile` takes a `sheetName` option for multi-sheet workbooks (first sheet by default; an
+unknown `sheetName` rejects), and the result's `sheetNames`/`sheetName` report what was in the
+workbook and which one you got. Switching sheets re-parses and recomputes the column mapping from
+scratch, discarding any manual mapping from the previous sheet:
 
 ```tsx
 // import a specific sheet of a multi-sheet workbook
@@ -166,10 +164,7 @@ for (const name of sheetNames ?? []) {
 const rows = await buildImportedRows({ dataRows, mapping, columns, cellTypes, createRow, signal });
 ```
 
-`buildImportedRows` returns the rows directly for a synchronous import of 5,000 rows or fewer.
-Above 5,000 rows, or when a mapped column has an async Standard Schema `validate`, it returns a
-Promise instead. Await the result to cover both cases.
-
-Above 5,000 rows the work runs in chunks that yield to the event loop, so the page stays
-responsive. Pass an `AbortSignal` as `signal` to cancel between chunks; the Promise then rejects
-with `"import-cancelled"`. `signal` is ignored on the synchronous path.
+`buildImportedRows` returns the rows directly for a synchronous import of 5,000 rows or fewer;
+above that (or with an async Standard Schema `validate` on a mapped column) it returns a Promise
+— await the result either way. Large imports run in chunks that yield to the event loop, and an
+`AbortSignal` passed as `signal` cancels between chunks, rejecting with `"import-cancelled"`.

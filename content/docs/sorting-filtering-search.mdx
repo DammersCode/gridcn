@@ -36,7 +36,9 @@ an empty list matches no rows.
 `DataGridFilterMenu` is a popover that lists active filters as aligned rows (join cell, column,
 operator, value, trash, drag handle) with add and reset controls. Per-column `filterable: false`
 excludes a column from the menu's column picker. Row order is array order in `FilterSpec[]`. Drag
-the grip, or reorder through the keyboard (see below), to change it.
+the grip, or reorder through the keyboard
+([toolbar add-on: filter menu keyboard & accessibility](/docs/examples/addons/toolbar#filter-menu-keyboard--accessibility)),
+to change it.
 
 `DataGridFilterMenu`, along with the search input and columns menu below, comes from the
 [toolbar add-on](/docs/examples/addons/toolbar), which owns the install, wiring, toolbar order,
@@ -59,10 +61,8 @@ term. To actually remove rows, use a filter.
 </Callout>
 
 <Callout type="idea" title="Why not the browser's own Ctrl+F?">
-  Native find-in-page can only see what is in the DOM, and a virtualized grid only ever renders
-  the rows in view. Everything outside the window does not exist as a node, so the browser's find
-  bar cannot locate it, no matter how large the dataset really is. `DataGridSearch` does not have
-  that problem. It searches the full dataset and scrolls to whatever it finds.
+  Native find-in-page only sees what is in the DOM, and a virtualized grid renders only the rows
+  in view. `DataGridSearch` searches the full dataset and scrolls to whatever it finds.
 </Callout>
 
 <Callout title="captureFindShortcut is on by default — and strictly grid-scoped">
@@ -74,11 +74,8 @@ term. To actually remove rows, use a filter.
   it safe.
 </Callout>
 
-`DataGridSearch` makes itself the "feels native" stand-in for browser find automatically.
-Pressing <kbd>Mod</kbd>+<kbd>F</kbd> while focus is anywhere inside the grid or its toolbar
-focuses this input instead of opening the browser's find bar (`preventDefault`, so native find
-never opens). Pressing it again while the input is already focused selects its text, matching how
-browser find-bars behave when re-triggered.
+Pressing <kbd>Mod</kbd>+<kbd>F</kbd> again while the input is already focused selects its text,
+matching how browser find-bars behave when re-triggered.
 
 To opt out and always defer to the browser's native find:
 

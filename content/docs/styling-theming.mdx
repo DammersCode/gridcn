@@ -42,7 +42,7 @@ cell.
 
 - `--grid-row-height` — the one grid-specific variable. Set it per instance through the
   `rowHeight` prop or the `density` preset (`compact` at 28px, `default` at 36px, `comfortable`
-  at 44px). An explicit `rowHeight` always wins over `density`.
+  at 44px).
 - `--grid-pin-shadow` — the color used for the pinned-column boundary shadow. The grid uses this
   variable without a fallback, so you must define it (the docs site's `global.css` themes it per
   light and dark mode). Leave it undefined and the pinned boundary shadow renders invisible.
@@ -53,7 +53,7 @@ cell.
 </DataGridProvider>
 ```
 
-or an explicit height, which always wins over `density`:
+or an explicit height:
 
 ```tsx
 <DataGridProvider {...grid} columns={columns}>
@@ -77,10 +77,8 @@ Both `density` and `rowHeight` live on `DataGridRoot` (or the `DataGrid` wrapper
 Grid-level `getRowClassName` and `getCellClassName` props, on `DataGrid` or `DataGridRoot`, plus
 per-column `cellClassName` and `headerClassName` on `ColumnDef`, give value-driven styling
 without a new cell type or a `renderCell` override. All of them merge through `cn()` **after**
-the built-in classes. So a conflicting Tailwind utility (for example `justify-end` over the
-default `justify-start` of the text type) wins over the built-in class. The grid applies
-grid-level classes first, then the column-level override last. A per-column class always wins
-over a grid-wide default on the same utility:
+the built-in classes, so a conflicting utility wins over the built-in one; column-level classes
+apply last, so a per-column class always wins over a grid-wide default on the same utility:
 
 ```tsx
 // Module scope (or useCallback) — see the stable-identity callout below.
@@ -122,26 +120,20 @@ complements `renderCell` for display overrides that need more than a class (see
 An HR dataset shows all four styling surfaces at once, each suited to a different scope:
 
 - **`getCellClassName` (per value)** — colors the cells of the Performance column against a
-  threshold. Below 50 tints `text-destructive` and `bg-destructive/10`. 90 and above tints
-  `text-primary` and `bg-primary/10`. Reach for this when the styling decision depends on a
-  cell's own value, independent of its row or column.
-- **`getRowClassName` (per row)** — mutes and strikes through `terminated` rows as a whole. Reach
-  for this when a single field on the row needs to visually demote the *entire* row, not only one
-  cell.
+  threshold: below 50 tints `text-destructive` and `bg-destructive/10`, 90 and above tints
+  `text-primary` and `bg-primary/10`.
+- **`getRowClassName` (per row)** — mutes and strikes through `terminated` rows as a whole.
 - **`cellClassName` (per column, string form)** — every Salary cell gets `font-medium
-  tabular-nums` for right-aligned emphasis. Reach for this for a look that stays constant across
-  a column, with no per-row logic needed.
+  tabular-nums` for right-aligned emphasis.
 - **`headerClassName` (per column)** — the Performance header is tinted `text-primary` to match
-  the semantics of the cells beneath it. Reach for this to visually tag a column's purpose at a
-  glance.
+  the semantics of the cells beneath it.
 
 <Callout type="warn" title="Pass a stable function identity">
-  The grid calls `getRowClassName` and `getCellClassName` per rendered cell. This is windowed, so
-  it is cheap. But their function *identity* becomes a prop that the row and cell memoization of
-  the engine depends on (the same rule as `columns` and `data`). Pass a stable reference, from
-  module scope or `useCallback`. A fresh arrow function on every render makes every row and cell
-  re-render on every parent render. A dev-mode console warning fires if the identity changes
-  across renders.
+  Pass `getRowClassName` and `getCellClassName` as stable references (module scope or
+  `useCallback` — the same rule as `columns` and `data`, see
+  [Performance](/docs/performance#keeping-it-fast)): a fresh arrow function on every render makes
+  every row and cell re-render on every parent render, and a dev-mode console warning fires if
+  the identity changes across renders.
 </Callout>
 
 ### Styling a whole column
@@ -165,21 +157,6 @@ const getCellClassName: GetCellClassName<Order> = ({ column }) =>
   `getCellClassName` when the same column-targeting rule also needs to fold in `value` or `row`,
   for example tinting the currency column *and* flagging negative amounts within it.
 </Callout>
-
-### Styling whole rows
-
-`getRowClassName` reading a single row field dims every cell in that row at once. Inactive
-employees render visually demoted, and active ones stay untouched:
-
-```tsx
-const getRowClassName: GetRowClassName<Employee> = (row) =>
-  row.active ? undefined : "opacity-50";
-
-<DataGrid {...grid} columns={columns} getRowClassName={getRowClassName} />;
-```
-
-The demo above exercises both patterns together, alongside `cellClassName` and
-`headerClassName`. Its `getRowClassName` dims `terminated` rows the same way.
 
 ### Fully styling a column or row
 
@@ -245,9 +222,6 @@ a stylesheet rule:
 ```tsx
 <DataGridRoot className="**:data-[pinned='right']:border-l-2 **:data-[pinned='right']:border-l-primary/40">
 ```
-
-This needs no JS, no `getCellClassName` callback, and no re-render on selection change. The grid
-already toggles these attributes as part of its normal DOM updates, and CSS only reacts to them.
 
 ## Density and row height
 

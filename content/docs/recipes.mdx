@@ -146,22 +146,20 @@ value, through any write path. See
 contract, including `clearCellErrors` and the read hook.
 
 <Callout type="idea" title="Toast and revert, or history undo, still apply">
-  `setCellErrors` marks the cell. It does not roll back the value on its own. Pair it with
-  [Strategy A](#strategy-a-optimistic-roll-back-on-failure)'s rollback, or with
-  [`data-grid-history`](/docs/examples/addons/undo-redo)'s `undo()`, when the wrong choice is to leave the
-  rejected value showing in the grid at all.
+  `setCellErrors` does not roll back the value on its own — pair it with
+  [Strategy A](#strategy-a-optimistic-roll-back-on-failure)'s rollback, or
+  [`data-grid-history`](/docs/examples/addons/undo-redo)'s `undo()`, when leaving the rejected
+  value showing is the wrong choice.
 </Callout>
 
 ## TanStack Query wiring
 
 <Callout type="idea" title="Grid-side parts are the contract; TanStack Query parts are illustrative">
-  gridcn does not install `@tanstack/react-query` — it stays a zero-added-dependency library.
-  The snippet below is written against TanStack Query's stable public API
-  (`useQuery`/`useMutation`/`onMutate`/`onError`), the same illustrative-snippet convention as the
-  Standard Schema example in
-  [Editing & cell types](/docs/editing-cell-types#validation). Add `@tanstack/react-query` to your
-  own app first if you want this pattern. See also
-  [Lazy loading's React Query aside](/docs/lazy-loading#wiring-a-fetchcache-library-react-query)
+  gridcn does not install `@tanstack/react-query` — the snippet is written against its stable
+  public API (`useQuery`/`useMutation`/`onMutate`/`onError`), the same illustrative-snippet
+  convention as the Standard Schema example in
+  [Editing & cell types](/docs/editing-cell-types#validation); see also
+  [Lazy loading: data fetching & failure recovery](/docs/lazy-loading-advanced#wiring-a-fetchcache-library-react-query)
   for the same rule applied to `data-grid-lazy`.
 </Callout>
 
@@ -204,10 +202,9 @@ function OrdersGrid() {
 ```
 
 `applyOpsLocally` is your own small reducer over `DataOp[]` (update by `rowId`, splice an insert
-at `index`, filter out a delete). `onMutate`'s optimistic cache write is what makes the edit look
-instant; `onError`'s `context.previous` rollback is what undoes it if the mutation rejects. This
-is the same optimistic-vs-rollback shape as [Strategy A](#strategy-a-optimistic-roll-back-on-failure)
-above, expressed through TanStack Query's cache instead of a plain `useState`/ref pair.
+at `index`, filter out a delete); the `onMutate`/`onError` pair is the same optimistic-vs-rollback
+shape as [Strategy A](#strategy-a-optimistic-roll-back-on-failure), expressed through TanStack
+Query's cache.
 
 For a socket or poll that pushes new values many times per second, write them with `updateCells`
 instead of a new `data` array. See [Streaming updates](/docs/streaming-updates).
@@ -225,10 +222,9 @@ instead of a new `data` array. See [Streaming updates](/docs/streaming-updates).
 </Callout>
 
 <Callout type="idea" title="Illustrative — react-hook-form is not installed">
-  gridcn does not install `react-hook-form`. The snippet is written against its stable public
+  gridcn does not install `react-hook-form` — the snippet is written against its stable public
   API (`useForm`/`register`/`handleSubmit`), the same illustrative-snippet convention as the
-  TanStack Query recipe above. Add `react-hook-form` to your own app first if you want this
-  pattern.
+  TanStack Query recipe above.
 </Callout>
 
 A row action (for example, a context menu item or a button column) opens a shadcn `Dialog`. The
@@ -481,9 +477,7 @@ const columns = defineColumns<Product>()([
 ] as const);
 ```
 
-See [Build your own cell type](/docs/custom-cell-types) for the full contract walk-through, the
-keypoint checklist, and a complete runnable example. See
-[Editing & cell types](/docs/editing-cell-types) for how editing activation and commit work
+See [Editing & cell types](/docs/editing-cell-types) for how editing activation and commit work
 across the grid, and [API reference](/docs/api-reference#celltypetdata-tvalue-toptions) for
 every field's exact type.
 

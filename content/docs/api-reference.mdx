@@ -63,10 +63,9 @@ first-party consumers.
 
 ### Hooks
 
-The state of `DataGridProvider` is Zustand internally, but the store itself is never exported,
-only atomic selector hooks and one actions hook. You must call all of them under
-`DataGridProvider`. The full list lives in `store/hooks.ts`. These are the ones you will reach for
-most:
+State access is hooks only — the Zustand store itself is never exported. Call them under
+`DataGridProvider`; the full list lives in `store/hooks.ts`. These are the ones you will reach
+for most:
 
 - `useDataGridActions()` — the single stable actions object (`setSorts`, `setFilters`,
   `setSearch`, `setColumnWidth`, `setColumnOrder`, `setColumnPin`, `setColumnHidden`,
@@ -111,20 +110,12 @@ traffic in. Reach for it when you write custom column UI that does not know its 
 <Callout title="validate's type: a union, and a 3rd type parameter">
   `validate` is `((value: TValue, row: TData) => string | null) | StandardSchemaV1<TValue>`: the
   function form, or any [Standard Schema](https://standardschema.dev). `ColumnDef` has a 3rd type
-  parameter, `TValidate` (defaults to `TValue`), for one narrow reason.
-
-  "Erasure" means TypeScript replaces a specific type with a generic one (usually `unknown` or
-  `any`) at a shared boundary. This lets code that does not know the specific type still compile.
-  `AnyColumnDef`, the row-agnostic type that hooks like `useDataGridVisibleColumns()` return, must
-  erase every type parameter this way. `TValue` erases safely to `unknown` everywhere:
-  `accessorFn`, `setValue`, `renderCell`, `cellClassName`. `validate` cannot follow that same safe
-  path, because its function-or-schema union does not stay assignable under `unknown` erasure. So
-  `AnyColumnDef` erases `TValidate` to `any` instead, kept separate from `TValue`.
-
-  This erasure detail never affects how you author `validate` on a concretely-typed column
-  through `defineColumns`. Only the shared, erased type needed the extra parameter.
-  `StandardSchemaV1.InferInput<S>` and `InferOutput<S>` are exported from `types.ts` for
-  inspecting a schema's own input and output types.
+  parameter, `TValidate` (defaults to `TValue`), because the function-or-schema union does not
+  stay assignable when the row-agnostic `AnyColumnDef` erases its type parameters to `unknown` —
+  so `AnyColumnDef` erases `TValidate` to `any` instead. This never affects how you author
+  `validate` on a concretely-typed column through `defineColumns`. `StandardSchemaV1.InferInput<S>`
+  and `InferOutput<S>` are exported from `types.ts` for inspecting a schema's own input and output
+  types.
 </Callout>
 
 ## `CellType<TData, TValue, TOptions>`
@@ -190,88 +181,102 @@ a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
 
 `createFilterMatcher(filter)` (from `sort-filter`) pre-parses the bounds of a `FilterSpec` once
 and returns a reusable `(text: string) => boolean` matcher. This has the same semantics as
-`matchesFilter`, but without re-parsing the filter's value on every row. `buildViewIndex` uses
-this internally for per-row matching over a whole dataset.
+`matchesFilter`, but without re-parsing the filter's value on every row.
 
 ## Add-on option types
 
 Each add-on's public props follow the same source-of-truth convention. These are the ones you
 will reach for most:
 
-### `DataGridUrlStateProps`
+<Tabs items={["State & history", "Toolbar & menus", "Editing & lazy", "Pagination, fill & pinned"]}>
+  <Tab value="State & history">
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-url-state/data-grid-url-state.tsx" name="DataGridUrlStateProps" />
+    ### `DataGridUrlStateProps`
 
-### `UseDataGridStateOptions`
+    <AutoTypeTable path="./registry/default/blocks/data-grid-url-state/data-grid-url-state.tsx" name="DataGridUrlStateProps" />
 
-This is the options object for `useDataGridState`, the uncontrolled quick-start hook from
-`data-grid-history`. See [Quick start](/docs/quick-start).
+    ### `UseDataGridStateOptions`
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-history/use-data-grid-state.ts" name="UseDataGridStateOptions" />
+    This is the options object for `useDataGridState`, the uncontrolled quick-start hook from
+    `data-grid-history`. See [Quick start](/docs/quick-start).
 
-### `UseDataGridHistoryOptions`
+    <AutoTypeTable path="./registry/default/blocks/data-grid-history/use-data-grid-state.ts" name="UseDataGridStateOptions" />
 
-This is the options object for `useDataGridHistory`, the composable history hook of
-`data-grid-history` (it takes `data` and `setData`, mirroring the `useState` tuple). See
-[Undo & redo](/docs/examples/addons/undo-redo).
+    ### `UseDataGridHistoryOptions`
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-history/use-data-grid-history.ts" name="UseDataGridHistoryOptions" />
+    This is the options object for `useDataGridHistory`, the composable history hook of
+    `data-grid-history` (it takes `data` and `setData`, mirroring the `useState` tuple). See
+    [Undo & redo](/docs/examples/addons/undo-redo).
 
-### `DataGridToolbarProps`
+    <AutoTypeTable path="./registry/default/blocks/data-grid-history/use-data-grid-history.ts" name="UseDataGridHistoryOptions" />
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/toolbar.tsx" name="DataGridToolbarProps" />
+  </Tab>
+  <Tab value="Toolbar & menus">
 
-### `DataGridSearchProps`
+    ### `DataGridToolbarProps`
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/search.tsx" name="DataGridSearchProps" />
+    <AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/toolbar.tsx" name="DataGridToolbarProps" />
 
-### `DataGridFilterMenuProps`
+    ### `DataGridSearchProps`
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/filter-menu.tsx" name="DataGridFilterMenuProps" />
+    <AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/search.tsx" name="DataGridSearchProps" />
 
-### `DataGridColumnsMenuProps`
+    ### `DataGridFilterMenuProps`
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/columns-menu.tsx" name="DataGridColumnsMenuProps" />
+    <AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/filter-menu.tsx" name="DataGridFilterMenuProps" />
 
-### `DataGridSortListProps`
+    ### `DataGridColumnsMenuProps`
 
-See [Sorting, filtering & search](/docs/sorting-filtering-search#sort-list-toolbar-add-on).
+    <AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/columns-menu.tsx" name="DataGridColumnsMenuProps" />
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-sort-list/sort-list.tsx" name="DataGridSortListProps" />
+    ### `DataGridSortListProps`
 
-### `DataGridContextMenuProps`
+    See [Sorting, filtering & search](/docs/sorting-filtering-search#sort-list-toolbar-add-on).
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-context-menu/context-menu.tsx" name="DataGridContextMenuProps" />
+    <AutoTypeTable path="./registry/default/blocks/data-grid-sort-list/sort-list.tsx" name="DataGridSortListProps" />
 
-### `DataGridExportButtonProps`
+  </Tab>
+  <Tab value="Editing & lazy">
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-io/export-button.tsx" name="DataGridExportButtonProps" />
+    ### `DataGridContextMenuProps`
 
-### `UseDataGridLazyRowsOptions`
+    <AutoTypeTable path="./registry/default/blocks/data-grid-context-menu/context-menu.tsx" name="DataGridContextMenuProps" />
 
-This is the options object for `useDataGridLazyRows` from `data-grid-lazy`. See
-[Lazy loading](/docs/lazy-loading).
+    ### `DataGridExportButtonProps`
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-lazy/use-data-grid-lazy-rows.ts" name="UseDataGridLazyRowsOptions" />
+    <AutoTypeTable path="./registry/default/blocks/data-grid-io/export-button.tsx" name="DataGridExportButtonProps" />
 
-### `DataGridPaginationControls` / `DataGridPaginationBarProps`
+    ### `UseDataGridLazyRowsOptions`
 
-This is the return shape of `useDataGridPagination` (client and server mode alike) and the props
-of the composable footer bar. See [Pagination](/docs/pagination).
+    This is the options object for `useDataGridLazyRows` from `data-grid-lazy`. See
+    [Lazy loading](/docs/lazy-loading).
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="DataGridPaginationControls" />
-<AutoTypeTable path="./registry/default/blocks/data-grid-pagination/pagination-footer.tsx" name="DataGridPaginationBarProps" />
+    <AutoTypeTable path="./registry/default/blocks/data-grid-lazy/use-data-grid-lazy-rows.ts" name="UseDataGridLazyRowsOptions" />
 
-### `UseDataGridFillOptions`
+  </Tab>
+  <Tab value="Pagination, fill & pinned">
 
-This is the options object for `useDataGridFill` from `data-grid-fill`. See
-[Fill handle](/docs/examples/addons/fill).
+    ### `DataGridPaginationControls` / `DataGridPaginationBarProps`
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-fill/use-data-grid-fill.tsx" name="UseDataGridFillOptions" />
+    This is the return shape of `useDataGridPagination` (client and server mode alike) and the props
+    of the composable footer bar. See [Pagination](/docs/pagination).
 
-### `UseDataGridPinnedRowsOptions`
+    <AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="DataGridPaginationControls" />
+    <AutoTypeTable path="./registry/default/blocks/data-grid-pagination/pagination-footer.tsx" name="DataGridPaginationBarProps" />
 
-This is the options object for `useDataGridPinnedRows` from `data-grid-pinned-rows`. See
-[Pinned rows](/docs/examples/addons/pinned-rows).
+    ### `UseDataGridFillOptions`
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-pinned-rows/use-data-grid-pinned-rows.tsx" name="UseDataGridPinnedRowsOptions" />
+    This is the options object for `useDataGridFill` from `data-grid-fill`. See
+    [Fill handle](/docs/examples/addons/fill).
+
+    <AutoTypeTable path="./registry/default/blocks/data-grid-fill/use-data-grid-fill.tsx" name="UseDataGridFillOptions" />
+
+    ### `UseDataGridPinnedRowsOptions`
+
+    This is the options object for `useDataGridPinnedRows` from `data-grid-pinned-rows`. See
+    [Pinned rows](/docs/examples/addons/pinned-rows).
+
+    <AutoTypeTable path="./registry/default/blocks/data-grid-pinned-rows/use-data-grid-pinned-rows.tsx" name="UseDataGridPinnedRowsOptions" />
+
+  </Tab>
+</Tabs>
