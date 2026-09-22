@@ -1,0 +1,45 @@
+---
+title: Styling
+description: Value-driven styling on all four surfaces — grid-level and per-column class hooks, on shadcn tokens.
+icon: Palette
+---
+
+Styling never needs a fork: four class hooks cover every value-driven case, and everything
+resolves through existing shadcn tokens.
+
+## Patterns
+
+<ComponentPreview name="data-grid-styling-patterns-demo" />
+
+<InstallCommand item="data-grid-styling-patterns-demo" />
+
+- A **brand column** styled end to end with per-column `cellClassName`/`headerClassName`.
+- An **at-risk row** styled beyond a background tint via the grid-level `getRowClassName`.
+- A **live density toggle** — `density="compact" | "default" | "comfortable"`, or an explicit
+  `rowHeight`, which always wins.
+
+## Every surface, one dataset
+
+<ComponentPreview name="data-grid-conditional-styling-demo" />
+
+<InstallCommand item="data-grid-conditional-styling-demo" />
+
+The same HR dataset with all four value-driven surfaces active at once: grid-level
+`getRowClassName`/`getCellClassName` plus per-column `cellClassName`/`headerClassName`. The
+hooks receive the row value, so the class can depend on the data (at-risk, overdue, top score)
+instead of on a fixed state.
+
+## The contract
+
+- gridcn uses only existing shadcn tokens — `bg-background`, `text-foreground`, `border-border`,
+  `bg-muted`, `bg-primary`, `ring`, `bg-destructive` — so theme switches carry over for free.
+- Static state (active cell, editing, pinned, read-only, cell type) is styled through the
+  data-attribute contract:
+  [Styling & theming: data-attribute contract](/docs/styling-theming#data-attribute-contract).
+- The two grid-specific CSS variables (`--grid-row-height`, `--grid-pin-shadow`) are on
+  [Styling & theming: CSS variables](/docs/styling-theming#css-variables).
+
+## Related
+
+- [Styling & theming](/docs/styling-theming) — the full token and attribute reference
+- [I18n & RTL](/docs/examples/appearance/i18n-rtl) — appearance when the language changes too

@@ -1,0 +1,31 @@
+---
+title: Loading states
+description: The three states of the loading prop — skeleton viewport, slim indeterminate bar, and the ordinary empty state.
+icon: Loader
+---
+
+One prop, `loading`, plus whether rows exist, covers all three states. The demo's two switches
+(loading, rows present) reach each one live.
+
+<ComponentPreview name="data-grid-loading-demo" />
+
+<InstallCommand item="data-grid-loading-demo" />
+
+| Rows | `loading` | What renders |
+|---|---|---|
+| none | `true` | A viewport-filling skeleton — pulsing rows in place of the empty grid. |
+| present | `true` | A slim indeterminate bar under the header while the existing rows stay on screen. |
+| none | `false` | The ordinary empty state (the `labels.grid.emptyState` string). |
+
+<Callout type="info" title="Where the data comes from">
+`loading` is a rendering concern, not a fetch hook — pass it from whatever owns your request
+state (`isPending` from React Query, `isLoading` from SWR, your own flag). The data-fetching
+patterns it pairs with are on the
+[Data & Integrations](/docs/examples/data) pages.
+</Callout>
+
+## Related
+
+- [Lazy loading](/docs/examples/data/lazy) — skeleton rows for per-window fetching instead of
+  the grid-level `loading` prop
+- [Styling](/docs/examples/appearance/styling) — theming the skeleton via shadcn tokens
