@@ -20,6 +20,7 @@ import { pinnedInsetStyle } from "./columns/pinned-inset-style";
 import { cellLayer } from "./layers";
 import { cellTypes as defaultCellTypes } from "./cell-types/cell-types";
 import { useAsyncValidate } from "./interaction/use-async-validate";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 // This component is generic-erased (row: unknown, column: AnyColumnDef) since it renders arbitrary
 // consumer row shapes through one shared runtime — see store.tsx's InternalSyncProps comment for why
@@ -126,10 +127,11 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   style.zIndex = cellLayer(Boolean(pinned), isActive);
 
   // Focus the active cell imperatively (never scrollIntoView — cells live in the transformed
-  // canvas layer) once it becomes active, unless the editor owns focus.
+  // canvas layer) once it becomes active, unless the editor owns focus. errorMessage re-triggers
+  // because the tooltip mount remounts this div, dropping DOM focus.
   useLayoutEffect(() => {
     if (isActive && !isEditing) cellRef.current?.focus({ preventScroll: true });
-  }, [isActive, isEditing]);
+  }, [isActive, isEditing, errorMessage]);
 
   // Pinned rows are not navigable in v1 (documented) — no selection/edit gestures, so no handlers.
   // Skeleton cells (row is a hole, lazy loading) are click/dblclick-inert too: the
@@ -236,7 +238,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     content = <Cell value={value} row={row} rowIndex={rowIndex} column={column} isActive={isActive} />;
   }
 
-  return (
+  const cell = (
     <div
       ref={cellRef}
       role="gridcell"
@@ -244,7 +246,6 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       aria-selected={isSelected || undefined}
       aria-busy={isSkeleton || undefined}
       aria-invalid={Boolean(errorMessage) || undefined}
-      title={errorMessage ?? undefined}
       tabIndex={isPinnedRow || isSkeleton ? undefined : isActive ? 0 : -1}
       data-column-id={column.id}
       data-pinned={pinned || undefined}
@@ -305,7 +306,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       )}
       {errorMessage && isEditing && (
         // Visible without a hover (editing needs the message evident immediately, not just on
-        // `title`'s hover-tooltip) — positioned below the cell so it never clips the editor input.
+        // the error tooltip) — positioned below the cell so it never clips the editor input.
         <span
           role="alert"
           className="absolute inset-x-0 top-full z-10 mt-0.5 truncate rounded-sm border border-destructive/20 bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive dark:bg-destructive/20"
@@ -315,6 +316,18 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       )}
     </div>
   );
+
+  // While editing the message is already visible without a hover (the inline role="alert" below),
+  // and wrapping mid-edit would remount the editor when a live rejection lands.
+  if (errorMessage && !isEditing) {
+    return (
+      <Tooltip>
+        <TooltipTrigger render={cell} />
+        <TooltipContent>{errorMessage}</TooltipContent>
+      </Tooltip>
+    );
+  }
+  return cell;
 }
 
 // Default shallow compare suffices: `row` and `column` keep stable identity, and the state flags

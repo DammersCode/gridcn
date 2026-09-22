@@ -232,7 +232,7 @@ the verdict never depends on column order inside a pasted block. A per-column `v
 give that guarantee: it runs mid-gesture, against whatever the row looked like at that moment.
 
 Return `columnId -> message` to mark cells, or `null` when the row is fine. Messages land in the
-same per-cell error display as [Server errors](#server-errors) (ring, tint, `title` tooltip,
+same per-cell error display as [Server errors](#server-errors) (ring, tint, hover tooltip,
 `aria-invalid`), and the values still commit — the same stance as server errors, no rollback. A
 later write that makes the row consistent clears the verdict, even when it writes a different
 column than the marked one.
@@ -244,8 +244,8 @@ incomplete), on row deletion, or on a `data` array you replace yourself. It must
 
 `validate` runs before commit. A server can still reject an already-committed value later, for
 example with a 422 response that names the field. `actions.setCellErrors` paints that rejection
-on the cell, in the same round trip as `onDataChange`. The marked cell carries the message in
-its `title`, so hovering it shows the error:
+on the cell, in the same round trip as `onDataChange`. Hovering the marked cell shows the
+message in a tooltip:
 
 <ComponentPreview name="data-grid-cell-errors-demo" />
 
