@@ -935,6 +935,24 @@
         { "path": "registry/default/examples/demo-data.ts", "type": "registry:example", "target": "components/demo-data.ts" }
       ],
       "categories": ["data"]
+    },
+    {
+      "name": "data-grid-row-reorder-demo",
+      "type": "registry:example",
+      "title": "Data Grid Row Reorder Demo",
+      "description": "Drag rows by the reorder grip or move the active row with reorderRows - both emit one id-keyed move op (a single undo step), and row selection remaps by row id.",
+      "author": "gridcn",
+      "dependencies": [],
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/data-grid-toolbar",
+        "DammersCode/gridcn/data-grid-history"
+      ],
+      "files": [
+        { "path": "registry/default/examples/data-grid-row-reorder-demo.tsx", "type": "registry:example", "target": "components/data-grid-row-reorder-demo.tsx" },
+        { "path": "registry/default/examples/demo-data.ts", "type": "registry:example", "target": "components/demo-data.ts" }
+      ],
+      "categories": ["data"]
     }
   ]
 }
