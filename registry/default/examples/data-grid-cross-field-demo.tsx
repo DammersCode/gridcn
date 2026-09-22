@@ -7,7 +7,7 @@ import { generateDemoRows, type DemoRow } from "./demo-data";
 type TaskRow = { id: string; task: string; start: number; end: number };
 
 function initialRows(): TaskRow[] {
-  return generateDemoRows(8).map((row: DemoRow, i) => ({ id: row.id, task: row.name, start: 9, end: 17 }));
+  return generateDemoRows(8).map((row: DemoRow) => ({ id: row.id, task: row.name, start: 9, end: 17 }));
 }
 
 const columns = defineColumns<TaskRow>()([

@@ -72,7 +72,7 @@ const joiCodeSchema = Joi.string().pattern(/^[A-Z0-9-]+$/).empty("").messages({ 
 const valibotTagSchema = v.pipe(v.string(), v.minLength(3));
 
 const columns = defineColumns<ValidationRow>()([
-  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 60, flex: 1 },
+  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 56, flex: 1 },
   {
     id: "age",
     header: "Age",
@@ -87,7 +87,7 @@ const columns = defineColumns<ValidationRow>()([
       }
       return null;
     },
-    width: 52,
+    width: 40,
     flex: 1,
   },
   {
@@ -96,7 +96,7 @@ const columns = defineColumns<ValidationRow>()([
     accessorKey: "email",
     type: "text",
     validate: emailSchema as never,
-    width: 72,
+    width: 52,
     flex: 1,
   },
   {
@@ -105,7 +105,7 @@ const columns = defineColumns<ValidationRow>()([
     accessorKey: "sku",
     type: "text",
     validate: skuSchema as never,
-    width: 60,
+    width: 44,
     flex: 1,
   },
   {
@@ -114,7 +114,7 @@ const columns = defineColumns<ValidationRow>()([
     accessorKey: "price",
     type: "text",
     validate: roundedPriceSchema as never,
-    width: 52,
+    width: 40,
     flex: 1,
   },
   {
@@ -126,7 +126,7 @@ const columns = defineColumns<ValidationRow>()([
     // re-commit clears it — the editor CLOSES on commit, unlike a blocking rejection
     validate: (value: unknown) => (typeof value === "string" && value.length > 12 ? "Max 12 characters" : null),
     onInvalid: "warn",
-    width: 64,
+    width: 44,
     flex: 1,
   },
   {
@@ -135,7 +135,7 @@ const columns = defineColumns<ValidationRow>()([
     accessorKey: "score",
     type: "number",
     validate: zodScoreSchema,
-    width: 76,
+    width: 46,
     flex: 1,
   },
   {
@@ -144,7 +144,7 @@ const columns = defineColumns<ValidationRow>()([
     accessorKey: "code",
     type: "text",
     validate: joiCodeSchema,
-    width: 66,
+    width: 44,
     flex: 1,
   },
   {
@@ -153,7 +153,7 @@ const columns = defineColumns<ValidationRow>()([
     accessorKey: "tag",
     type: "text",
     validate: valibotTagSchema,
-    width: 76,
+    width: 42,
     flex: 1,
   },
 ] as const);
