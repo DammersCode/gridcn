@@ -1,0 +1,26 @@
+---
+title: Minimal grid
+description: The quick-start minimum — the core item alone, defaultData, zero app-side state.
+icon: Square
+---
+
+The smallest working grid: one registry item, `defaultData`, and no app-side state. The grid
+owns its rows internally — you only reach for `data` + `onDataChange` when you need to persist,
+fetch, or react to edits.
+
+<ComponentPreview name="data-grid-minimal-demo" />
+
+<InstallCommand item="data-grid-minimal-demo" />
+
+## What's in the demo
+
+- `<DataGrid>` convenience wrapper — header, body, and viewport composed for you
+- `defineColumns` with three built-in types: `text`, `number`, `checkbox`
+- `defaultData` — seed rows with no `data`/`onDataChange` wiring
+- `getRowId` — stable row identity from the data itself
+- `className` — the grid takes a CSS box; here `w-full h-[240px]`
+
+## Related
+
+- [Quick start](/docs/quick-start) — the same minimum, step by step
+- [Editable hero grid](/docs/examples/foundations/editable-grid) — the full composition
