@@ -2,7 +2,14 @@ import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { ColumnDef, DataChange } from "../types";
-import { DataGridProvider, useDataGridActions, type DataGridProviderProps } from "../store";
+import {
+  DataGridProvider,
+  useDataGridActiveCell,
+  useDataGridActions,
+  useDataGridSelection,
+  useDataGridViewIndex,
+  type DataGridProviderProps,
+} from "../store";
 
 type Row = { id: string; name: string; age: number };
 
@@ -317,5 +324,219 @@ describe("duplicateRows", () => {
     act(() => result.current.duplicateRows([]));
 
     expect(onDataChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("reorderRows", () => {
+  it("moves a row down (final-position semantics) as one id-keyed move op", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+
+    // view [1 Charlie, 2 Alice, 3 Bob]: Charlie (view 0) lands at final view index 2.
+    act(() => result.current.reorderRows(0, 2));
+
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["2", "3", "1"]);
+    expect(change.source).toBe("row-op");
+    expect(change.ops).toEqual([{ type: "move", rowId: "1", row: rows()[0], from: 0, to: 2 }]);
+  });
+
+  it("moves a row up", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+
+    act(() => result.current.reorderRows(2, 0));
+
+    const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["3", "1", "2"]);
+    expect(change.ops).toEqual([{ type: "move", rowId: "3", row: rows()[2], from: 2, to: 0 }]);
+  });
+
+  it("one slot down is a real move, not a no-op", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+
+    act(() => result.current.reorderRows(0, 1));
+
+    const [next] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["2", "1", "3"]);
+  });
+
+  it("keeps viewIndex the identity permutation (no resort)", () => {
+    const wrapper = makeWrapper(vi.fn());
+    const { result } = renderHook(() => ({ actions: useDataGridActions(), viewIndex: useDataGridViewIndex() }), {
+      wrapper,
+    });
+
+    act(() => result.current.actions.reorderRows(0, 2));
+
+    expect(result.current.viewIndex).toEqual([0, 1, 2]);
+  });
+
+  it("is a no-op when from === to", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+
+    act(() => result.current.reorderRows(1, 1));
+
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("is a silent no-op for out-of-range indices", () => {
+    const onDataChange = vi.fn();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+
+    act(() => result.current.reorderRows(0, 3));
+    act(() => result.current.reorderRows(-1, 1));
+
+    expect(onDataChange).not.toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("is a no-op when enableRowReorder is false", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange, { enableRowReorder: false });
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+
+    act(() => result.current.reorderRows(0, 2));
+
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("is a no-op while readOnly", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+
+    act(() => result.current._registerReadOnly(true));
+    act(() => result.current.reorderRows(0, 2));
+
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("is a no-op while an edit session is open (the editor pins a view coordinate)", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+
+    act(() => result.current.startEditing({ col: 0, row: 0 }));
+    act(() => result.current.reorderRows(0, 2));
+
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("is a no-op with a dev warning while a sort is active", () => {
+    const onDataChange = vi.fn();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+
+    act(() => result.current.setSorts([{ columnId: "name", direction: "asc" }]));
+    act(() => result.current.reorderRows(0, 2));
+
+    expect(onDataChange).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("sort or filter"));
+    warn.mockRestore();
+  });
+
+  it("is a no-op with a dev warning while a filter is active", () => {
+    const onDataChange = vi.fn();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+
+    act(() => result.current.setFilters([{ columnId: "name", operator: "contains", value: "li" }]));
+    act(() => result.current.reorderRows(0, 2));
+
+    expect(onDataChange).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("sort or filter"));
+    warn.mockRestore();
+  });
+
+  it("is a no-op with a dev warning while rows are still unloaded (lazy holes)", () => {
+    const onDataChange = vi.fn();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    // same sparse convention useDataGridLazyRows ships: undefined holes in a dense-length array
+    const sparse = [rows()[0], undefined, rows()[2]] as Row[];
+    const wrapper = function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider data={sparse} columns={columns} getRowId={(r) => (r ? r.id : "hole")} onDataChange={onDataChange}>
+          {children}
+        </DataGridProvider>
+      );
+    };
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+
+    act(() => result.current.reorderRows(0, 2));
+
+    expect(onDataChange).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("unloaded"));
+    warn.mockRestore();
+  });
+
+  it("remaps the row-selection channel by row identity", () => {
+    const wrapper = makeWrapper(vi.fn());
+    const { result } = renderHook(() => ({ actions: useDataGridActions(), selection: useDataGridSelection() }), {
+      wrapper,
+    });
+
+    // select Charlie (view 0) and Alice (view 1) in the row channel
+    act(() => result.current.actions.setRowSelected(0, true));
+    act(() => result.current.actions.setRowSelected(1, true));
+
+    // move Charlie to final view 2: [Alice, Bob, Charlie] — Charlie→2, Alice→0
+    act(() => result.current.actions.reorderRows(0, 2));
+
+    expect([...result.current.selection.rows.toArray()].sort((a, b) => a - b)).toEqual([0, 2]);
+  });
+
+  it("remaps the active cell by row identity", () => {
+    const wrapper = makeWrapper(vi.fn());
+    const { result } = renderHook(() => ({ actions: useDataGridActions(), activeCell: useDataGridActiveCell() }), {
+      wrapper,
+    });
+
+    act(() => result.current.actions.selectCell({ col: 0, row: 0 })); // Charlie at view 0
+    act(() => result.current.actions.reorderRows(0, 2)); // Charlie lands at view 2
+
+    expect(result.current.activeCell).toEqual({ col: 0, row: 2 });
+  });
+
+  it("remaps a cell range that does not contain the moved row", () => {
+    const wrapper = makeWrapper(vi.fn());
+    const { result } = renderHook(() => ({ actions: useDataGridActions(), selection: useDataGridSelection() }), {
+      wrapper,
+    });
+
+    // range over rows 1..2 (Alice, Bob), cols 0..1
+    act(() => result.current.actions.selectCell({ col: 0, row: 1 }));
+    act(() => result.current.actions.extendTo({ col: 1, row: 2 }));
+
+    // move Charlie (row 0) to final view 2: rows 1,2 shift to 0,1
+    act(() => result.current.actions.reorderRows(0, 2));
+
+    expect(result.current.selection.current?.cell).toEqual({ col: 0, row: 0 });
+    expect(result.current.selection.current?.range).toEqual({ x: 0, y: 0, width: 2, height: 2 });
+  });
+
+  it("round-trips through the history apply/invert path (undo restores the original order)", async () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+
+    act(() => result.current.reorderRows(0, 2));
+    const [, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+
+    const { applyChange, invertChange } = await import("../interaction/history");
+    const undone = applyChange(rows(), invertChange(change), (r: Row) => r.id);
+    expect(undone.map((r) => r.id)).toEqual(["1", "2", "3"]);
   });
 });

@@ -138,6 +138,14 @@ describe("invertChange", () => {
     expect(invertChange(del).ops).toEqual([{ type: "insert", rowId: "b", row: rows[1], index: 1 }]);
   });
 
+  it("swaps from/to for move ops (the row sits at `to` after the batch)", () => {
+    const move: DataChange<Row> = {
+      source: "row-op",
+      ops: [{ type: "move", rowId: "a", row: rows[0]!, from: 0, to: 2 }],
+    };
+    expect(invertChange(move).ops).toEqual([{ type: "move", rowId: "a", row: rows[0], from: 2, to: 0 }]);
+  });
+
   it("reverses op order for multi-op batches", () => {
     const change: DataChange<Row> = {
       source: "delete",
@@ -187,6 +195,26 @@ describe("applyChange", () => {
     };
     const result = applyChange(rows, change, getRowId);
     expect(result.map((r) => r.id)).toEqual(["a", "b", "c", "d"]);
+  });
+
+  it("applies move ops as a delete-by-id + insert at the post-move slot", () => {
+    const change: DataChange<Row> = {
+      source: "row-op",
+      ops: [{ type: "move", rowId: "a", row: rows[0]!, from: 0, to: 2 }],
+    };
+    const result = applyChange(rows, change, getRowId);
+    expect(result.map((r) => r.id)).toEqual(["b", "c", "a"]);
+  });
+
+  it("round-trips a move batch through applyChange/invertChange", () => {
+    const change: DataChange<Row> = {
+      source: "row-op",
+      ops: [{ type: "move", rowId: "c", row: rows[2]!, from: 2, to: 0 }],
+    };
+    const moved = applyChange(rows, change, getRowId);
+    expect(moved.map((r) => r.id)).toEqual(["c", "a", "b"]);
+    const restored = applyChange(moved, invertChange(change), getRowId);
+    expect(restored.map((r) => r.id)).toEqual(["a", "b", "c"]);
   });
 
   it("skips unknown ids silently for update/delete", () => {

@@ -19,6 +19,10 @@ export type DataGridRowProps = {
   onMarkerPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
   /** Attach to the marker's checkbox pointerdown ('checkbox'/'both' modes) — see use-grid-interaction.ts' onMarkerCheckboxPointerDown. */
   onMarkerCheckboxPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
+  /** Attach to the marker cell's reorder-drag pointerdown — see rows/use-row-reorder.ts. Stable identity (body's hook instance). */
+  onMarkerReorderPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
+  /** True while this row is the reorder-drag source (dims the marker cell). Flips at most twice per gesture. */
+  isRowReorderDragging: boolean;
   /** Forwarded to the row's own root div — body.tsx uses it to write `gridRowStart` imperatively (see below). */
   rowRef: Ref<HTMLDivElement>;
   /** Pinned-top row count (a11y index layout: header=1, pinned-top next, then data, pinned-bottom last) — shifts `aria-rowindex` past the pinned-top band; 0 when there is none. */
@@ -56,6 +60,8 @@ export const DataGridRow = memo(function DataGridRow({
   rowMarkers,
   onMarkerPointerDown,
   onMarkerCheckboxPointerDown,
+  onMarkerReorderPointerDown,
+  isRowReorderDragging,
   rowRef,
   ariaRowIndexOffset,
   getRowClassName,
@@ -99,6 +105,8 @@ export const DataGridRow = memo(function DataGridRow({
           viewRowIndex={viewRowIndex}
           onPointerDown={onMarkerPointerDown}
           onCheckboxPointerDown={onMarkerCheckboxPointerDown}
+          onReorderPointerDown={onMarkerReorderPointerDown}
+          isReorderDragging={isRowReorderDragging}
         />
       )}
       {windowedColumns.map(({ column, index }) => {
@@ -122,6 +130,7 @@ export const DataGridRow = memo(function DataGridRow({
             isSearchMatch={cellState.searchMatchCols?.has(index) ?? false}
             isSelected={isActive || colRangesContain(cellState.selectedColRanges, index)}
             isSkeleton={isSkeleton}
+            isFlashing={cellState.flashingCols?.has(index) ?? false}
             cellError={cellState.errorCols?.get(index) ?? null}
           />
         );

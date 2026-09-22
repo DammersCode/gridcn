@@ -86,7 +86,12 @@ export type CellCoord = { col: number; row: number };
  * `'number'` shows the 1-based view row index; `'checkbox'` drives the rows selection channel;
  * `'both'` shows the number, replaced by the checkbox on hover/selected (group-hover pattern).
  */
-export type RowMarkersMode = "none" | "number" | "checkbox" | "both";
+/**
+ * The row-marker column's mode. `"reorder"` renders a grip handle that drags the row to a new
+ * position (row reordering); every other mode except `"none"` also drags from the marker cell
+ * (the checkbox glyph keeps the row-select gesture).
+ */
+export type RowMarkersMode = "none" | "number" | "checkbox" | "both" | "reorder";
 
 /** Rectangular cell region, half-open on the far edge (a cell c is inside if x <= c < x + width). */
 export type GridRect = { x: number; y: number; width: number; height: number };
@@ -138,7 +143,16 @@ export type DataOp<TData> =
       cells?: { columnId: string; value: unknown; prev: unknown }[];
     }
   | { type: "insert"; rowId: string; row: TData; index: number }
-  | { type: "delete"; rowId: string; row: TData; index: number };
+  | { type: "delete"; rowId: string; row: TData; index: number }
+  | {
+      type: "move";
+      rowId: string;
+      row: TData;
+      /** The row's position before the move. */
+      from: number;
+      /** The row's position after the move (final index; `applyChange` deletes by id and places the row at output slot `to`, `invertChange` swaps `from`/`to`). */
+      to: number;
+    };
 
 /** One user gesture = one batch (a paste, a fill, a delete-range is a single entry). */
 export type DataChange<TData> = {

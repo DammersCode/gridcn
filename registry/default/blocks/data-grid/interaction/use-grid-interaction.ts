@@ -21,6 +21,8 @@ import {
   type DataGridStoreState,
 } from "../store";
 import {
+  AUTO_SCROLL_STEP,
+  AUTO_SCROLL_ZONE,
   applyInlineScrollDelta,
   inlineAutoScrollStep,
   inlineStartX,
@@ -69,11 +71,6 @@ export type UseGridInteractionOptions = {
   /** Escape — wired to the `data-grid-fill` add-on's cancelDrag, so it aborts an in-progress fill drag too; absent it's a no-op. */
   cancelFillDrag?: () => void;
 };
-
-/** rAF-throttled auto-scroll step (px) applied per frame while a drag pointer sits beyond the viewport edge. */
-const AUTO_SCROLL_STEP = 16;
-/** Distance (px) from a viewport edge at which drag auto-scroll kicks in. */
-const AUTO_SCROLL_ZONE = 24;
 
 function isMacPlatform(): boolean {
   if (typeof navigator === "undefined") return false;
@@ -370,6 +367,12 @@ export type GridInteractionHandlers = {
    */
   cancelColumnSelectDrag: () => void;
   /**
+   * Ends an in-progress marker row-select drag (mode "row") without affecting a cell/column
+   * drag. Row reorder (use-row-reorder.ts) calls this the moment it arms — mirror of
+   * {@link cancelColumnSelectDrag}; see that hook's JSDoc for the full disambiguation rule.
+   */
+  cancelRowSelectDrag: () => void;
+  /**
    * Imperatively scrolls the container so `coord` (view-space) is visible, honoring the
    * pinned-left/right bands. Public extension point for add-ons that move the active cell
    * programmatically, e.g. `data-grid-toolbar`'s search next/prev — never `scrollIntoView`
@@ -393,8 +396,10 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   layoutRef.current = layout;
 
   // drag state lives in a ref, never React state — a drag never re-renders anything but the
-  // overlay/active-cell subscribers that selection changes already touch.
-  const dragRef = useRef<{ pointerId: number; mode: "range" | "row" | "column" } | null>(null);
+  // overlay/active-cell subscribers that selection changes already touch. `anchor` is the
+  // press-row for the row-marker drag: the pointer is the moving edge, so the range is always
+  // exactly anchor..current (it can grow AND shrink as the pointer moves).
+  const dragRef = useRef<{ pointerId: number; mode: "range" | "row" | "column"; anchor?: number } | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
 
@@ -438,8 +443,12 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
     };
 
     if (drag.mode === "range") actions.extendTo(clamped);
-    else if (drag.mode === "row") actions.selectRow(clamped.row, { extendFromLast: true });
-    else actions.selectColumn(clamped.col, { extendFromLast: true });
+    else if (drag.mode === "row") {
+      // A plain marker drag (anchor set) replaces the row channel with exactly anchor..current, so
+      // dragging back over selected rows shrinks the range; a shift/ctrl press (anchor undefined)
+      // keeps the old union-extend, so an additive multi-selection is never clobbered.
+      actions.selectRow(clamped.row, drag.anchor !== undefined ? { replaceFromLast: true, from: drag.anchor } : { extendFromLast: true });
+    } else actions.selectColumn(clamped.col, { extendFromLast: true });
 
     rafRef.current = requestAnimationFrame(runDragFrame);
   }, [actions, scrollRef, storeApi]);
@@ -471,8 +480,8 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   }, [stopAutoScrollLoop]);
 
   const beginDrag = useCallback(
-    (mode: "range" | "row" | "column", pointerId: number, captureElement?: Element) => {
-      dragRef.current = { pointerId, mode };
+    (mode: "range" | "row" | "column", pointerId: number, captureElement?: Element, anchor?: number) => {
+      dragRef.current = { pointerId, mode, anchor };
       captureElementRef.current = captureElement ?? null;
       if (rafRef.current === null) rafRef.current = requestAnimationFrame(runDragFrame);
 
@@ -869,6 +878,11 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       if (event.button !== 0) return;
       if (!storeApi.getState().enableRowSelection) return;
       const isMultiKey = isMacRef.current ? event.metaKey : event.ctrlKey;
+      // Moving-edge drag (replaceFromLast): a plain press anchors at the press row; a shift press
+      // anchors at the PREVIOUS last-highlighted row (read before selectRow below overwrites it)
+      // so its extension keeps tracking the pointer. A ctrl press holds an additive multi-selection
+      // the replace would clobber, so it keeps the old union-extend drag.
+      const anchor = isMultiKey ? undefined : event.shiftKey ? (storeApi.getState().lastHighlightedRow ?? viewRowIndex) : viewRowIndex;
       if (event.shiftKey) {
         actions.selectRow(viewRowIndex, { extendFromLast: true });
       } else if (isMultiKey) {
@@ -877,7 +891,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         actions.selectRow(viewRowIndex);
       }
       event.currentTarget.setPointerCapture?.(event.pointerId);
-      beginDrag("row", event.pointerId, event.currentTarget);
+      beginDrag("row", event.pointerId, event.currentTarget, anchor);
     },
     [actions, beginDrag, storeApi],
   );
@@ -892,7 +906,9 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       // other drag starts; only a real pointermove commits to extending from this anchor.
       actions.armRowDragAnchor(viewRowIndex);
       event.currentTarget.setPointerCapture?.(event.pointerId);
-      beginDrag("row", event.pointerId, event.currentTarget);
+      // the checkbox press is the range gesture's anchor: dragging makes the row channel exactly
+      // pressRow..current (grow AND shrink), matching the plain marker drag.
+      beginDrag("row", event.pointerId, event.currentTarget, viewRowIndex);
     },
     [actions, beginDrag, storeApi],
   );
@@ -912,6 +928,12 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
 
   const cancelColumnSelectDrag = useCallback(() => {
     if (dragRef.current?.mode === "column") endDrag();
+  }, [endDrag]);
+
+  // the row-reorder gesture arms from the same marker press that started a row-select drag — the
+  // instant it commits to reorder, the select drag is cancelled (mirror of cancelColumnSelectDrag)
+  const cancelRowSelectDrag = useCallback(() => {
+    if (dragRef.current?.mode === "row") endDrag();
   }, [endDrag]);
 
   useEffect(() => stopAutoScrollLoop, [stopAutoScrollLoop]);
@@ -956,6 +978,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       onMarkerCheckboxPointerDown,
       onRootPointerDown,
       cancelColumnSelectDrag,
+      cancelRowSelectDrag,
       scrollCellIntoView: scrollActiveCellIntoView,
     }),
     [
@@ -968,6 +991,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       onMarkerCheckboxPointerDown,
       onRootPointerDown,
       cancelColumnSelectDrag,
+      cancelRowSelectDrag,
       scrollActiveCellIntoView,
     ],
   );

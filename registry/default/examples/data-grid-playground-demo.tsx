@@ -192,7 +192,7 @@ const customMarkerRenderMarkerHeader = ({ allSelected }: MarkerHeaderRenderCtx):
 const AGGREGATE_SPECS: AggregateSpecs = { name: (_values, rows) => `${rows.length} rows`, age: "avg", score: "sum" };
 const EMPTY_TOTALS_ROW: DemoRow = { id: "__totals__", name: "0 rows", email: "", age: 0, active: false, role: "Total", joined: "", score: 0 };
 
-const ROW_MARKERS_OPTIONS: readonly RowMarkersMode[] = ["none", "number", "checkbox", "both"];
+const ROW_MARKERS_OPTIONS: readonly RowMarkersMode[] = ["none", "number", "checkbox", "both", "reorder"];
 const DENSITY_OPTIONS: readonly DensityMode[] = ["compact", "default", "comfortable"];
 const HEADER_CLICK_OPTIONS: readonly HeaderClickBehavior[] = ["select", "sort", "none"];
 const MODE_OPTIONS: readonly RowSupplyMode[] = ["virtualized", "paginated", "lazy"];
@@ -212,6 +212,7 @@ type PlaygroundControls = {
   density: DensityMode;
   direction: GridDirection;
   readOnly: boolean;
+  enableRowReorder: boolean;
   loading: boolean;
   pinnedTotals: boolean;
   presence: boolean;
@@ -337,7 +338,8 @@ function VirtualizedGrid({ controls }: { controls: PlaygroundControls }): ReactN
       overlayPlugins={overlayPlugins}
       rowMarkers={controls.rowMarkers}
       headerClickBehavior={controls.headerClickBehavior}
-      rowBands={rowBands}
+       rowBands={rowBands}
+       enableRowReorder={controls.enableRowReorder}
     >
       {controls.pinnedTotals && <DataGridAggregateReporter specs={AGGREGATE_SPECS} onChange={onTotalsChange} />}
       <StreamingFeed enabled={controls.streaming} reorder={controls.streamingReorder} rowIds={rowIds} />
@@ -394,6 +396,7 @@ function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNod
         rowMarkers={controls.rowMarkers}
         headerClickBehavior={controls.headerClickBehavior}
         rowBands={rowBands}
+        enableRowReorder={controls.enableRowReorder}
       >
         {controls.pinnedTotals && <DataGridAggregateReporter specs={AGGREGATE_SPECS} onChange={onTotalsChange} />}
         <StreamingFeed enabled={controls.streaming} reorder={controls.streamingReorder} rowIds={rowIds} />
@@ -546,6 +549,7 @@ function LazySortedGrid({
       headerClickBehavior={controls.headerClickBehavior}
       sortState={NO_CLIENT_SORT}
       onSortChange={onSortsChange}
+      enableRowReorder={controls.enableRowReorder}
     >
       <DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />
       <div data-testid="lazy-server-sort" className="px-2 text-xs text-muted-foreground">
@@ -599,6 +603,7 @@ export default function DataGridPlaygroundDemo(): ReactNode {
   const [customHeaders, setCustomHeaders] = useState(false);
   const [customMarker, setCustomMarker] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
+  const [enableRowReorder, setEnableRowReorder] = useState(true);
   const [loading, setLoading] = useState(false);
   const [pinnedTotals, setPinnedTotals] = useState(false);
   const [presence, setPresence] = useState(false);
@@ -616,6 +621,7 @@ export default function DataGridPlaygroundDemo(): ReactNode {
     density,
     direction: rtl ? "rtl" : "ltr",
     readOnly,
+    enableRowReorder,
     loading,
     pinnedTotals: pinnedTotals && !isLazy,
     presence,
@@ -704,6 +710,10 @@ export default function DataGridPlaygroundDemo(): ReactNode {
           <Switch checked={readOnly} onCheckedChange={setReadOnly} />
           Read-only
         </label>
+        <ToggleLabel disabled={rowMarkers === "none"}>
+          <Switch checked={enableRowReorder} onCheckedChange={setEnableRowReorder} disabled={rowMarkers === "none"} />
+          Row reorder{rowMarkers === "none" ? " (needs a row-markers mode)" : ""}
+        </ToggleLabel>
         <label className="flex items-center gap-2">
           <Switch checked={loading} onCheckedChange={setLoading} />
           Loading

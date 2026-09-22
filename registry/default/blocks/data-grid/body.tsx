@@ -1,17 +1,25 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import {
+  useDataGridActions,
   useDataGridActiveCell,
+  useDataGridLabels,
   useDataGridRowCount,
   useDataGridRowIds,
   useDataGridRowMarkers,
+  useDataGridRowReorderEnabled,
   type AnyColumnDef,
 } from "./store";
 import { useRowWindow } from "./windowing/use-row-window";
 import { useDataGridRootContext, type WindowedColumn } from "./layout-context";
 import { DataGridRow } from "./row";
 import { DataGridOverlays } from "./overlays";
+import { predictReorderTarget, useRowReorder } from "./rows/use-row-reorder";
+import { FLASH_KEYFRAMES } from "./cell";
+import { GRID_LAYER } from "./layers";
+import { gridAttrSelector } from "./data-attributes";
 import { isDev } from "./is-dev";
 
 /** Real-index `[min, max+1)` bounds of the currently rendered UNPINNED columns.
@@ -161,6 +169,66 @@ export function DataGridBody(): ReactNode {
   const effectiveStart = activeCell ? Math.min(start, activeCell.row) : start;
   const effectiveWindowTop = windowTop - (start - effectiveStart) * rowHeight;
 
+  // Drag-to-reorder rows: one shared instance for the whole body (one indicator, one gesture),
+  // mirroring how DataGridHeader owns useColumnReorder for its headers.
+  const actions = useDataGridActions();
+  const labels = useDataGridLabels();
+  const rowReorderEnabled = useDataGridRowReorderEnabled();
+  const [reorderAnnouncement, setReorderAnnouncement] = useState("");
+  // A `role="status"` region may not live inside role="grid" (only row/rowgroup are allowed
+  // children — axe's aria-required-children), so the announcement portals to <body> after mount;
+  // the gate keeps SSR output free of the portal node.
+  const [announcementTarget, setAnnouncementTarget] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setAnnouncementTarget(document.body);
+  }, []);
+
+  /** Resolves the data row (and its above/below half) under a client point, for the reorder drag's live drop target. */
+  const hitTestRow = useCallback((clientX: number, clientY: number) => {
+    const el = document.elementFromPoint(clientX, clientY)?.closest<HTMLElement>(`[role="row"]${gridAttrSelector("rowIndex")}`);
+    if (!el) return null;
+    const row = Number(el.dataset["gridRowIndex"]);
+    if (!Number.isFinite(row)) return null;
+    const rect = el.getBoundingClientRect();
+    const position: "before" | "after" = clientY < rect.top + rect.height / 2 ? "before" : "after";
+    return { row, position };
+  }, []);
+
+  const onRowReorder = useCallback(
+    (from: number, over: number, position: "before" | "after") => {
+      const to = predictReorderTarget(from, over, position);
+      if (!actions.reorderRows(from, to)) return;
+      setReorderAnnouncement(labels.markers.reorderAnnouncement(from + 1, to + 1, rowCount));
+    },
+    [actions, labels, rowCount],
+  );
+
+  const rowReorder = useRowReorder({
+    enabled: rowReorderEnabled,
+    hitTestRow,
+    onReorder: onRowReorder,
+    getScrollElement: () => scrollRef.current,
+    onArm: interaction.cancelRowSelectDrag,
+  });
+
+  // The single row-reorder drop-indicator line, grid-placed on the boundary row's track in the
+  // canvas (same coordinate math as the rows' own imperative gridRowStart writes).
+  const rowDropIndicator = useMemo<CSSProperties | null>(() => {
+    const drag = rowReorder.dragState;
+    if (!drag || drag.overRow === null) return null;
+    const boundary = drag.position === "before" ? drag.overRow : drag.overRow + 1;
+    return {
+      gridRowStart: boundary - effectiveStart + 1,
+      gridColumn: "1 / -1",
+      position: "relative",
+      alignSelf: "start",
+      height: 2,
+      zIndex: GRID_LAYER.overlay,
+      pointerEvents: "none",
+      backgroundColor: "var(--color-primary)",
+    };
+  }, [rowReorder.dragState, effectiveStart]);
+
   // Writes gridRowStart straight into each row's DOM node, bypassing React for this value.
   // The body re-renders every window tick anyway, so the write costs nothing extra, and
   // DataGridRow stays memoized without windowStart in its props.
@@ -173,6 +241,13 @@ export function DataGridBody(): ReactNode {
       if (el) el.style.gridRowStart = String(viewRowIndex - effectiveStart + 1);
     }
   });
+
+  // Drop flash keys whose rows left the rendered window — a remounted cell would otherwise replay
+  // its one-shot pulse on scroll-back while the key is still live (the pulse is viewport-scoped by design).
+  useEffect(() => {
+    if (!measured) return;
+    actions._pruneFlashingCells(viewRowIndices);
+  }, [measured, viewRowIndices, actions]);
 
   const canvasStyle: CSSProperties & Record<string, string | number> = {
     position: "absolute",
@@ -191,46 +266,60 @@ export function DataGridBody(): ReactNode {
   };
 
   return (
-    <div style={canvasStyle} data-grid-rows-canvas="">
-      {viewRowIndices.map((viewRowIndex, i) => {
-        const key = rowIds[i] ?? viewRowIndex;
-        return (
-          <DataGridRow
-            key={key}
-            viewRowIndex={viewRowIndex}
-            windowedColumns={windowedColumns}
-            layout={layout}
-            readOnly={readOnly}
-            rowMarkers={rowMarkers}
-            onMarkerPointerDown={interaction.onMarkerPointerDown}
-            onMarkerCheckboxPointerDown={interaction.onMarkerCheckboxPointerDown}
-            rowRef={getRowRefCallback(key)}
-            ariaRowIndexOffset={pinnedTopCount}
-            getRowClassName={getRowClassName}
-            getCellClassName={getCellClassName}
-            onCellClick={onCellClick}
-            onRowClick={onRowClick}
-          />
-        );
-      })}
-      <DataGridOverlays
-        windowStart={effectiveStart}
-        rowCount={viewRowIndices.length}
-        // contiguous rendered span for clamping: [effectiveStart, effectiveStart + length) is
-        // disjoint whenever the active row was appended off-window
-        clampRowStart={start}
-        clampRowEnd={end}
-        // total visible columns (real index space), not the rendered window size — bands and
-        // pin-zone segmentation must span the FULL grid width
-        colCount={layout.pins.length}
-        colOffset={layout.markerWidth > 0 ? 2 : 1}
-        pinTrack={{
-          pins: layout.pins,
-          trackLefts: layout.trackLefts,
-          trackRights: layout.trackRights,
-          renderedUnpinnedRange: unpinnedWindowRange(windowedColumns, layout.pins),
-        }}
-      />
-    </div>
+    <>
+      <div style={canvasStyle} data-grid-rows-canvas="">
+        {/* self-scoped keyframes for the flashCells write-pulse (loading-skeleton's own <style> pattern — registry item, no global.css edit) */}
+        <style>{FLASH_KEYFRAMES}</style>
+        {viewRowIndices.map((viewRowIndex, i) => {
+          const key = rowIds[i] ?? viewRowIndex;
+          return (
+            <DataGridRow
+              key={key}
+              viewRowIndex={viewRowIndex}
+              windowedColumns={windowedColumns}
+              layout={layout}
+              readOnly={readOnly}
+              rowMarkers={rowMarkers}
+              onMarkerPointerDown={interaction.onMarkerPointerDown}
+              onMarkerCheckboxPointerDown={interaction.onMarkerCheckboxPointerDown}
+              onMarkerReorderPointerDown={rowReorder.onMarkerDragPointerDown}
+              isRowReorderDragging={rowReorder.dragState?.draggingRow === viewRowIndex}
+              rowRef={getRowRefCallback(key)}
+              ariaRowIndexOffset={pinnedTopCount}
+              getRowClassName={getRowClassName}
+              getCellClassName={getCellClassName}
+              onCellClick={onCellClick}
+              onRowClick={onRowClick}
+            />
+          );
+        })}
+        <DataGridOverlays
+          windowStart={effectiveStart}
+          rowCount={viewRowIndices.length}
+          // contiguous rendered span for clamping: [effectiveStart, effectiveStart + length) is
+          // disjoint whenever the active row was appended off-window
+          clampRowStart={start}
+          clampRowEnd={end}
+          // total visible columns (real index space), not the rendered window size — bands and
+          // pin-zone segmentation must span the FULL grid width
+          colCount={layout.pins.length}
+          colOffset={layout.markerWidth > 0 ? 2 : 1}
+          pinTrack={{
+            pins: layout.pins,
+            trackLefts: layout.trackLefts,
+            trackRights: layout.trackRights,
+            renderedUnpinnedRange: unpinnedWindowRange(windowedColumns, layout.pins),
+          }}
+        />
+        {rowDropIndicator && <div data-grid-drop-indicator="" aria-hidden="true" style={rowDropIndicator} />}
+      </div>
+      {announcementTarget &&
+        createPortal(
+          <div aria-live="polite" role="status" className="sr-only">
+            {reorderAnnouncement}
+          </div>,
+          announcementTarget,
+        )}
+    </>
   );
 }

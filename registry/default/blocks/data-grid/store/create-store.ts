@@ -11,6 +11,8 @@ import {
   offsetSelectionForRows,
   pushRange,
   rectFromCorners,
+  reorderSelectionForRow,
+  rowReorderMap,
   selectAllProgression,
   selectCell as selectCellPure,
   selectColumn as selectColumnPure,
@@ -41,6 +43,7 @@ import {
   toggleSortAdditive,
   withFilterIds,
   EMPTY_CELL_ERRORS,
+  EMPTY_FLASHING_CELLS,
   EMPTY_OVERLAY_PLUGINS,
   EMPTY_ROW_BANDS,
 } from "./compute";
@@ -107,7 +110,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
    * is what keeps `computeViewIndex` off the controlled streaming path (design spec §3.3 — without
    * this the 56 ms cliff returns for every controlled consumer).
    */
-  let lastEmittedData: readonly unknown[] | null = null;
+   let lastEmittedData: readonly unknown[] | null = null;
+   /** Per-key auto-clear timers for `flashCells`; a re-flash of a live key clears its old timer so the pulse restarts. */
+   const flashTimers = new Map<string, ReturnType<typeof setTimeout>>();
   /**
    * Data indices whose values changed since `viewIndex` was last rebuilt, so `reconcileView` and the
    * next `"immediate"` batch can take the same incremental path instead of a full re-sort. `null`
@@ -246,6 +251,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     editingError: null,
     editingRejectionCount: 0,
     cellErrors: EMPTY_CELL_ERRORS,
+    flashingCells: EMPTY_FLASHING_CELLS,
     overlayPlugins: init.overlayPlugins ?? EMPTY_OVERLAY_PLUGINS,
     rowBands: init.rowBands ?? EMPTY_ROW_BANDS,
     lastHighlightedRow: null,
@@ -315,8 +321,14 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         // enableRangeSelection: false demotes shift-click to a plain toggle-select too (no row range).
         const additive = opts.additive && enableMultiRange;
         const extendFromLast = opts.extendFromLast && enableRangeSelection;
+        const replaceFromLast = opts.replaceFromLast && enableRangeSelection;
         set({
-          selection: selectRowPure(selection, index, { additive, extendFromLast, from: lastHighlightedRow ?? undefined }),
+          selection: selectRowPure(selection, index, {
+            additive,
+            extendFromLast,
+            replaceFromLast,
+            from: opts.from ?? lastHighlightedRow ?? undefined,
+          }),
           lastHighlightedRow: index,
         });
       },
@@ -608,6 +620,41 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         }
         if (changed) set({ cellErrors: next });
       },
+      flashCells(keys, durationMs = 1400) {
+        if (keys.length === 0) return;
+        const next = new Set(get().flashingCells);
+        for (const key of keys) {
+          next.add(key);
+          const existing = flashTimers.get(key);
+          if (existing !== undefined) clearTimeout(existing);
+          flashTimers.set(
+            key,
+            setTimeout(() => {
+              flashTimers.delete(key);
+              const current = get();
+              if (!current.flashingCells.has(key)) return;
+              const lifted = new Set(current.flashingCells);
+              lifted.delete(key);
+              set({ flashingCells: lifted });
+            }, durationMs),
+          );
+        }
+        set({ flashingCells: next });
+      },
+      _pruneFlashingCells(keptViewRows) {
+        const s = get();
+        if (s.flashingCells.size === 0) return;
+        const kept = new Set(keptViewRows);
+        const next = new Set(s.flashingCells);
+        for (const key of next) {
+          // flashCellKey is `${viewRow}:${columnId}` — the view row is always a plain integer up to the first colon.
+          const viewRow = Number(key.slice(0, key.indexOf(":")));
+          if (kept.has(viewRow)) continue;
+          next.delete(key);
+        }
+        if (next.size === s.flashingCells.size) return;
+        set({ flashingCells: next });
+      },
       deleteSelection() {
         const s = get();
         if (s.readOnly) return;
@@ -843,6 +890,49 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           if (activeCell && activeCell.row >= insertAt) activeCell = { ...activeCell, row: activeCell.row + 1 };
         });
         set({ data: batch.nextData, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), selection, activeCell });
+      },
+      reorderRows(from, to) {
+        const s = get();
+        if (!s.enableRowReorder) return false;
+        if (s.readOnly) return false;
+        // an open editor pins a view coordinate the move would silently invalidate (the commit
+        // path re-reads the shifted viewIndex for the same coord)
+        if (s.editing) return false;
+        if (s.sortState.length > 0 || s.filterState.length > 0) {
+          warnDev("reorderRows is a no-op while a sort or filter is active (the view order is owned by the sort/filter)");
+          return false;
+        }
+        const n = s.data.length;
+        if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || from >= n || to < 0 || to >= n || from === to) return false;
+        // viewIndex is the identity permutation here (sort/filter gated above), so view == data indices
+        const fromData = s.viewIndex[from]!;
+        const toData = s.viewIndex[to]!;
+        if (toData === fromData) return false;
+        for (let i = 0; i < n; i++) {
+          // indexed access (not .some/forEach, which skip sparse holes): a reorder would shift
+          // the lazy add-on's index-keyed loaded-range bookkeeping out from under in-flight fetches
+          if (s.data[i] === undefined) {
+            warnDev("reorderRows is a no-op while rows are still unloaded (useDataGridLazyRows): load the range first");
+            return false;
+          }
+        }
+        const moved = s.data[fromData]!;
+        const nextData = s.data.slice();
+        nextData.splice(fromData, 1);
+        nextData.splice(toData, 0, moved);
+        const ops: DataOp<unknown>[] = [{ type: "move", rowId: s.getRowId(moved, fromData), row: moved, from: fromData, to: toData }];
+        rowIndexCache.invalidate();
+        forgetDeferredRows();
+        lastEmittedData = nextData;
+        s.onDataChange?.(nextData, { source: "row-op", ops });
+        const f = rowReorderMap(from, to);
+        set({
+          data: nextData,
+          selection: reorderSelectionForRow(s.selection, from, to),
+          activeCell: s.activeCell ? { ...s.activeCell, row: f(s.activeCell.row) } : null,
+          lastHighlightedRow: s.lastHighlightedRow === null ? null : f(s.lastHighlightedRow),
+        });
+        return true;
       },
       _moveActiveCell(d, opts) {
         const s = get();

@@ -22,6 +22,12 @@ import { cellTypes as defaultCellTypes } from "./cell-types/cell-types";
 import { useAsyncValidate } from "./interaction/use-async-validate";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
+/** The "highlight-what-changed" fade pulse `flashCells` plays on the cells it just wrote; the keyframes `DataGridBody` injects once per grid (self-contained, no app global.css step). */
+export const FLASH_ANIMATION = "grid-cell-flash 1.2s ease-out";
+/** One-shot pulse: a primary-tinted background fading to transparent, the exact visual the `flashCells` consumers (fill, paste, move) promise. */
+export const FLASH_KEYFRAMES =
+  "@keyframes grid-cell-flash{0%{background-color:color-mix(in oklab, var(--color-primary) 24%, transparent)}100%{background-color:transparent}}";
+
 // This component is generic-erased (row: unknown, column: AnyColumnDef) since it renders arbitrary
 // consumer row shapes through one shared runtime — see store.tsx's InternalSyncProps comment for why
 // TData=unknown makes every ColumnDef-API call below directly callable with no cast. The two
@@ -66,6 +72,12 @@ export type DataGridCellProps = {
   /** True when `row` is a hole in `data` (lazy loading) — renders a static shimmer block instead of cell content and skips every pointer/focus handler, same as a pinned-row cell. */
   isSkeleton?: boolean;
   /**
+   * True while this cell is inside the transient `flashCells` write-pulse (a fill/paste/move just
+   * committed a new value here) — plays the one-shot fade pulse {@link FLASH_ANIMATION} (keyframes
+   * injected once per grid by `DataGridBody`).
+   */
+  isFlashing?: boolean;
+  /**
    * This cell's post-commit server-error message (`cellErrors`), or null/undefined
    * when it has none. Painted with the SAME ring/tint/`aria-invalid` treatment as a live `editingError`
    * rejection below — one visual language for "this value is wrong", regardless of who said so.
@@ -92,6 +104,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     initialText,
     isSearchMatch = false,
     isSkeleton = false,
+    isFlashing = false,
     cellError = null,
   } = props;
   const { interaction } = useDataGridRootContext();
@@ -125,6 +138,9 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   };
   // pinned outranks active-unpinned: pinning is a spatial guarantee, active is a focus state.
   style.zIndex = cellLayer(Boolean(pinned), isActive);
+  // One-shot pulse on a freshly written cell; the animation overrides `background-color` only while
+  // running, so the cell's own bg/hover classes take over again the moment the key lifts.
+  if (isFlashing) style.animation = FLASH_ANIMATION;
 
   // Focus the active cell imperatively (never scrollIntoView — cells live in the transformed
   // canvas layer) once it becomes active, unless the editor owns focus. errorMessage re-triggers
@@ -256,9 +272,10 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       data-active={isActive || undefined}
       data-editing={isEditing || undefined}
       data-search-match={isSearchMatch || undefined}
+      data-flash={isFlashing || undefined}
       data-invalid={Boolean(errorMessage) || undefined}
       className={cn(
-        "relative flex items-center overflow-hidden border-b border-border bg-background px-2 outline-none group-hover/row:bg-muted/50",
+        "relative flex items-center overflow-hidden border-b border-border bg-background px-2 outline-none group-hover/row:bg-muted/50 transition-colors group-hover/row:transition-none",
         // Pinned-column cells and pinned-row cells both sit opaque above the scrolled canvas
         // (z-index 1 / 3) — a translucent bg-muted/50 hover tint would let the scrolled content
         // underneath show through. color-mix() pre-composites the same tint as an OPAQUE color (same

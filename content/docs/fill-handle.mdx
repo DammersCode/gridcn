@@ -6,7 +6,9 @@ icon: PaintBucket
 
 The fill handle is the small square at the bottom-right corner of a selection. Drag it up, down,
 left, or right to extend the selection and fill the new cells from the source range. The drag
-snaps to whichever axis you move further on.
+snaps to whichever axis you move further on. Once a fill commits, the cells it wrote play a brief
+fade pulse so the changed values stand out — the pulse only plays for cells in the viewport and
+never replays when a cell scrolls back into view.
 
 <ComponentPreview name="data-grid-demo" />
 

@@ -106,7 +106,9 @@ describe("DataGridSearch debounce", () => {
     act(() => {
       vi.advanceTimersByTime(200);
     });
-    const status = screen.getByRole("status");
+    // text-scoped: the grid body carries its own (empty) row-reorder live region, and
+    // role=status gets no accessible name from content, so match on textContent instead
+    const status = screen.getAllByRole("status").find((el) => el.textContent === "1/1")!;
     expect(status).toHaveTextContent("1/1");
     expect(status).toHaveAttribute("aria-live", "polite");
     vi.useRealTimers();

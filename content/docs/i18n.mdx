@@ -72,7 +72,7 @@ group entirely, and it stays fully English.
 | `filterOperators` | Per-operator display names (`contains`, `equals`, `gt`, and more) shown in the operator select of the filter menu | `data-grid-toolbar` |
 | `contextMenu` | Cut, copy, paste, row insert, duplicate, delete, sort, pin, hide, autosize, shared verbatim between the right-click menu and the header dropdown | `data-grid-context-menu` |
 | `keybindings` | Shortcuts dialog title and description, category headings, native-clipboard rows, and a per-`GridAction` label map | `data-grid-keybindings` |
-| `markers` | Select-all header checkbox and per-row checkbox aria-labels | core (`rowMarkers`) |
+| `markers` | Select-all header checkbox and per-row checkbox aria-labels, the reorder-handle aria-label, and the reorder announcement | core (`rowMarkers`) |
 | `grid` | Core strings not owned by an add-on: the empty-state message and the loading-skeleton and progress-bar aria-label | core |
 | `io` | Export dropdown, import dialog (file picker, delimiter, column mapping, preview, errors) | `data-grid-io` |
 | `pagination` | Footer first, prev, next, last, page-number aria-labels, page-size select, "x-y of z" range label | `data-grid-pagination` |
@@ -198,6 +198,9 @@ const de: DeepPartialLabels = {
   markers: {
     selectAll: "Alle Zeilen auswählen",
     selectRow: (rowNumber) => `Zeile ${rowNumber} auswählen`,
+    reorderRow: (rowNumber) => `Zeile ${rowNumber} verschieben`,
+    reorderAnnouncement: (rowNumber, position, total) =>
+      `Zeile ${rowNumber} an Position ${position} von ${total} verschoben`,
   },
   grid: {
     emptyState: "Keine Zeilen",

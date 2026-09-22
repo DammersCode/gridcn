@@ -19,6 +19,9 @@ function invertOp<TData>(op: DataOp<TData>): DataOp<TData> {
       return { type: "delete", rowId: op.rowId, row: op.row, index: op.index };
     case "delete":
       return { type: "insert", rowId: op.rowId, row: op.row, index: op.index };
+    // the row sits at `op.to` after the move, so undoing swaps the two snapshot positions
+    case "move":
+      return { type: "move", rowId: op.rowId, row: op.row, from: op.to, to: op.from };
   }
 }
 
@@ -79,7 +82,12 @@ export function applyChange<TData>(
       const idx = indexById.get(op.rowId);
       if (idx === undefined) continue;
       if (op.type === "update") updateById.set(op.rowId, op.row);
-      else deleteIndices.add(idx);
+      else if (op.type === "delete") deleteIndices.add(idx);
+      // a move is a delete + insert of the same row: the insert lands at the row's post-move slot
+      else {
+        deleteIndices.add(idx);
+        inserts.push({ type: "insert", rowId: op.rowId, row: op.row, index: op.to });
+      }
     }
 
     postDelete = [];
@@ -122,6 +130,7 @@ export function applyChange<TData>(
           updateByIndex.set(target, op.row);
         } else {
           deleteIndices.add(target);
+          if (op.type === "move") inserts.push({ type: "insert", rowId: op.rowId, row: op.row, index: op.to });
           next++;
         }
       }

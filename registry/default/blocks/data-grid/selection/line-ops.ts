@@ -5,25 +5,25 @@ import { selectLine, type SelectLineOptions } from "./select-line-options";
 
 /**
  * Whole-row selection channel op (row-marker click). Always clears the primary range/rangeStack;
- * clears the column channel too unless `additive` or `extendFromLast` (which preserve it).
+ * clears the column channel too unless `additive`, `extendFromLast`, or `replaceFromLast` (which preserve it).
  */
 export function selectRow(selection: GridSelection, index: number, opts: SelectLineOptions = {}): GridSelection {
   return {
     current: null,
     rows: selectLine(selection.rows, index, opts),
-    columns: opts.additive || opts.extendFromLast ? selection.columns : CompactSelection.empty(),
+    columns: opts.additive || opts.extendFromLast || opts.replaceFromLast ? selection.columns : CompactSelection.empty(),
   };
 }
 
 /**
  * Whole-column selection channel op (header click). Always clears the primary range/rangeStack;
- * clears the row channel too unless `additive` or `extendFromLast` (which preserve it).
+ * clears the row channel too unless `additive`, `extendFromLast`, or `replaceFromLast` (which preserve it).
  */
 export function selectColumn(selection: GridSelection, index: number, opts: SelectLineOptions = {}): GridSelection {
   return {
     current: null,
     columns: selectLine(selection.columns, index, opts),
-    rows: opts.additive || opts.extendFromLast ? selection.rows : CompactSelection.empty(),
+    rows: opts.additive || opts.extendFromLast || opts.replaceFromLast ? selection.rows : CompactSelection.empty(),
   };
 }
 
