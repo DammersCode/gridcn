@@ -17,6 +17,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Toolbar on narrow screens:** `DataGridToolbar` now scrolls horizontally when its controls
+  outgrow the container (mobile viewports) instead of clipping the last controls.
 - **Simplified install:** `npx shadcn add @gridcn/<item>` now resolves the hosted `@gridcn`
   registry directly — the separate `npx shadcn registry add "@gridcn=…"` step is no longer needed.
   The GitHub registry path (`npx shadcn add DammersCode/gridcn/<item>#<ref>`) remains the way to

@@ -514,8 +514,13 @@ export type DataGridActions = {
   startEditing(coord: CellCoord, initialText?: string): void;
   /** Discards the in-progress edit without emitting a change. */
   cancelEditing(): void;
-  /** Validates and commits the in-progress edit; rejects (keeps editing, sets editingError) or emits one DataChange and moves activeCell by `movement`. */
-  commitCellEdit(value: unknown, movement?: { dx: number; dy: number }): void;
+  /**
+   * Validates and commits the in-progress edit; rejects (keeps editing, sets editingError) or emits
+   * one DataChange and moves activeCell by `movement`. `rejection` is the async validation layer's
+   * awaited schema rejection for an `onInvalid: "warn"` column: the commit's sync re-run cannot see
+   * a schema Promise's issues, so the layer forwards the message to flag the cell.
+   */
+  commitCellEdit(value: unknown, movement?: { dx: number; dy: number }, rejection?: string): void;
   /** Direct-write path for types with no edit mode (checkbox): validates and commits `value` at `coord` without requiring `startEditing` first, and never moves the active cell. */
   commitCellValue(coord: CellCoord, value: unknown): void;
   /**
@@ -636,7 +641,15 @@ export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
 }
 
 /** Result of a successful direct-write commit; `null` state fields mean "leave editing/editingError untouched". */
-export type CommitResult = { data: readonly unknown[]; change: DataChange<unknown> } | { error: string } | { noop: true };
+/**
+ * `warnings` (only on the success/noop arms) carries `onInvalid: "warn"` rejections that committed
+ * anyway — the store merges them into `cellErrors` AFTER the gesture's auto-clear and `validateRow`
+ * verdict, so the freshest per-cell signal wins.
+ */
+export type CommitResult =
+  | { data: readonly unknown[]; change: DataChange<unknown>; warnings?: readonly CellErrorEntry[] }
+  | { error: string }
+  | { noop: true; warnings?: readonly CellErrorEntry[] };
 
 /** Per-row accumulator: the row as edited so far, plus its per-column cell deltas (columnId -> entry). */
 export type RowEdit = { row: unknown; cells: Map<string, { columnId: string; value: unknown; prev: unknown }> };

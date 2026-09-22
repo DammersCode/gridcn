@@ -359,6 +359,18 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    * narrow, single-field cast (see `AnyColumnDef`), not a project-wide `any`.
    */
   validate?: ((value: TValidate, row: TData) => string | null) | StandardSchemaV1<TValidate>;
+  /**
+   * What a `validate` rejection does in a single-cell commit. `"block"` (default): the commit is
+   * refused — the editor stays open with the message and the value never enters `data`. `"warn"`:
+   * the value commits and the cell is flagged in `cellErrors` (same ring/tint/tooltip as server
+   * errors, auto-cleared by the next valid commit of that cell). A rejection carries no
+   * transformed value, so `"warn"` commits the RAW value; per-row softness is expressed inside the
+   * function form via its `row` argument (return `null` to skip the rule for that row). Bulk paths
+   * (paste/fill/updateCells) still drop rejected cells even for `"warn"` columns.
+   * ponytail: soft bulk commits would need `onInvalid` threaded through resolveBulkWrites/
+   * computeCellPatchBatch/prevalidatePatches — add when a soft paste/fill is actually wanted.
+   */
+  onInvalid?: "block" | "warn";
   width?: number;
   minWidth?: number;
   maxWidth?: number;

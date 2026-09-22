@@ -21,6 +21,7 @@ import type { OverlayPlugin } from "../overlays";
 import type { RowBandsSpec } from "../layout-context";
 import type {
   AnyColumnDef,
+  CellErrorEntry,
   DataGridStoreState,
   InternalSyncProps,
   SelectionChangeDetails,
@@ -83,6 +84,14 @@ export function clearErrorsForOps(cellErrors: ReadonlyMap<string, string>, ops: 
     }
   }
   return next ?? cellErrors;
+}
+
+/** Merges `entries` into `cellErrors` per-key (a later entry for the same cell wins); returns the SAME map identity when there is nothing to merge. */
+export function mergeCellErrors(cellErrors: ReadonlyMap<string, string>, entries: readonly CellErrorEntry[]): ReadonlyMap<string, string> {
+  if (entries.length === 0) return cellErrors;
+  const next = new Map(cellErrors);
+  for (const entry of entries) next.set(cellErrorKey(entry.rowId, entry.columnId), entry.message);
+  return next;
 }
 
 /**

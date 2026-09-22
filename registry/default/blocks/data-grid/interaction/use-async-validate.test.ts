@@ -95,6 +95,29 @@ describe("useAsyncValidate", () => {
     expect(actions.setEditingError).toHaveBeenCalledWith("server says no");
   });
 
+  it("async schema with onInvalid: 'warn': issues commit the RAW value with the rejection forwarded, no editingError", async () => {
+    const actions = mockActions();
+    let resolveFn: (r: { issues: { message: string }[] }) => void = () => {};
+    const schema = mockAsyncSchema<number>(
+      () => new Promise((resolve) => (resolveFn = resolve as (r: { issues: { message: string }[] }) => void)),
+    );
+    const column = { id: "c", header: "C", validate: schema, onInvalid: "warn" } as unknown as AnyColumnDef;
+    const { result } = renderHook(() => useAsyncValidate(actions, column));
+
+    act(() => result.current.commit(5, { dx: 0, dy: 1 }));
+    expect(result.current.pending).toBe(true);
+
+    await act(async () => {
+      resolveFn({ issues: [{ message: "soft fail" }] });
+      await Promise.resolve();
+    });
+
+    // the raw value (NOT a schema-transformed one — a rejection carries none) commits, flagged
+    expect(result.current.pending).toBe(false);
+    expect(actions.commitCellEdit).toHaveBeenCalledWith(5, { dx: 0, dy: 1 }, "soft fail");
+    expect(actions.setEditingError).not.toHaveBeenCalled();
+  });
+
   it("race guard: a stale resolution (superseded by cancelPending) is dropped silently", async () => {
     const actions = mockActions();
     let resolveFn: (r: { value: number }) => void = () => {};

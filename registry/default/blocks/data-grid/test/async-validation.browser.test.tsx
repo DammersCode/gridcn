@@ -129,6 +129,36 @@ describe("async Standard Schema on paste", () => {
   });
 });
 
+describe("async Standard Schema on a click-away edit commit", () => {
+  it("commits the value after resolution and keeps the selection on the clicked cell", async () => {
+    const onDataChange = mockDataChangeFn();
+    render(
+      <div style={{ height: 600 }}>
+        <DataGrid data={makeRows(4)} columns={asyncColumns} getRowId={(r) => r.id} className="h-[600px]" onDataChange={onDataChange} />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    // edit row 0's name, then click row 1's name while the schema (~30ms) is still pending —
+    // the blur fires the commit, the click moves the selection
+    await userEvent.dblClick(gridCells()[1]!);
+    const input = document.querySelector<HTMLInputElement>('[role="gridcell"][data-editing="true"] input')!;
+    await userEvent.clear(input);
+    await userEvent.type(input, "alpha");
+    await userEvent.click(gridCells()[4]!);
+
+    await vi.waitFor(() => expect(onDataChange).toHaveBeenCalledTimes(1));
+    const [nextData] = onDataChange.mock.calls[0]!;
+    expect(nextData[0]!.name).toBe("ALPHA"); // the late commit still lands on the row actually edited
+
+    // the cursor stays on row 1: a late commit must not drag the selection back to row 0
+    const cells = gridCells();
+    const active = cells.find((c) => c.hasAttribute("data-active"));
+    expect(active?.getAttribute("data-column-id")).toBe("name");
+    expect(cells.indexOf(active!)).toBe(4);
+  });
+});
+
 describe("async Standard Schema on streaming updateCells", () => {
   function renderStreamingGrid(onDataChange: ReturnType<typeof mockDataChangeFn>) {
     let storeApi: StoreApi<DataGridStoreState> | null = null;

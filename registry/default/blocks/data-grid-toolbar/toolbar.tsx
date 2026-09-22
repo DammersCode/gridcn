@@ -17,7 +17,7 @@ export function DataGridToolbar(props: DataGridToolbarProps): ReactNode {
   return (
     <div
       data-grid-toolbar=""
-      className={cn("flex items-center gap-2 border-b border-border bg-background px-2 py-1.5", className)}
+      className={cn("flex items-center gap-2 overflow-x-auto border-b border-border bg-background px-2 py-1.5", className)}
     >
       {children}
     </div>

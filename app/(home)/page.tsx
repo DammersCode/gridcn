@@ -196,8 +196,9 @@ export default function HomePage() {
           gridcn
         </h1>
         <p className="text-lg text-muted-foreground">
-          An editable data grid for the shadcn ecosystem — range selection,
-          spreadsheet clipboard, and a fill handle, done right.
+          A composable, high-performance data grid for the shadcn ecosystem —
+          range selection, spreadsheet clipboard, typed cell editors,
+          validation, and windowed rendering at 100k+ rows.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Button render={<Link href="/docs" />} nativeButton={false} size="lg">
