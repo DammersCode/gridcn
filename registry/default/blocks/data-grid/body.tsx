@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import {
   useDataGridActions,
   useDataGridActiveCell,
@@ -173,6 +174,13 @@ export function DataGridBody(): ReactNode {
   const labels = useDataGridLabels();
   const rowReorderEnabled = useDataGridRowReorderEnabled();
   const [reorderAnnouncement, setReorderAnnouncement] = useState("");
+  // A `role="status"` region may not live inside role="grid" (only row/rowgroup are allowed
+  // children — axe's aria-required-children), so the announcement portals to <body> after mount;
+  // the gate keeps SSR output free of the portal node.
+  const [announcementTarget, setAnnouncementTarget] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setAnnouncementTarget(document.body);
+  }, []);
 
   /** Resolves the data row (and its above/below half) under a client point, for the reorder drag's live drop target. */
   const hitTestRow = useCallback((clientX: number, clientY: number) => {
@@ -296,9 +304,13 @@ export function DataGridBody(): ReactNode {
         />
         {rowDropIndicator && <div data-grid-drop-indicator="" aria-hidden="true" style={rowDropIndicator} />}
       </div>
-      <div aria-live="polite" role="status" className="sr-only">
-        {reorderAnnouncement}
-      </div>
+      {announcementTarget &&
+        createPortal(
+          <div aria-live="polite" role="status" className="sr-only">
+            {reorderAnnouncement}
+          </div>,
+          announcementTarget,
+        )}
     </>
   );
 }

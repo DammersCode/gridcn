@@ -68,7 +68,7 @@ describe("row reorder (marker drag)", () => {
     expect(visualOrder()).toEqual(["Person 0", "Person 1", "Person 2", "Person 3", "Person 4", "Person 5", "Person 6", "Person 7"]);
 
     // the same DOM node must survive the move (rows are keyed by getRowId)
-    const draggedNode = document.querySelector('[data-grid-row-index="0"]')!;
+    const draggedNode = document.querySelector<HTMLElement>('[data-grid-row-index="0"]')!;
 
     const target = rows().find((r) => dataCell(r).textContent === "Person 3")!;
     const targetRect = target.getBoundingClientRect();

@@ -151,9 +151,10 @@ describe("row markers", () => {
   });
 
   it("press+drag on markers extends a contiguous row-range selection", async () => {
+    // reorder is off: a plain vertical marker drag is the row-reorder gesture when enabled
     render(
       <div style={{ height: 400 }}>
-        <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" />
+        <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" enableRowReorder={false} />
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
@@ -204,9 +205,10 @@ describe("row markers", () => {
   });
 
   it("press+drag on 'both' mode markers (checkbox hidden, number visible) extends a row-range selection", async () => {
+    // reorder is off: a plain vertical marker drag is the row-reorder gesture when enabled
     render(
       <div style={{ height: 400 }}>
-        <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="both" />
+        <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="both" enableRowReorder={false} />
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
@@ -249,9 +251,10 @@ describe("row markers", () => {
   });
 
   it("dragging to the viewport bottom edge auto-scrolls and keeps extending the row-range selection", { timeout: 20_000 }, async () => {
+    // reorder is off: a plain vertical marker drag is the row-reorder gesture when enabled
     render(
       <div style={{ height: 200 }}>
-        <DataGrid data={makeRows(200)} columns={columns} getRowId={(r) => r.id} className="h-50" rowMarkers="number" />
+        <DataGrid data={makeRows(200)} columns={columns} getRowId={(r) => r.id} className="h-50" rowMarkers="number" enableRowReorder={false} />
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
