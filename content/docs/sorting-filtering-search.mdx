@@ -68,6 +68,15 @@ import {
   Drop `DataGridFilterMenu` if you only want search, and add your own buttons alongside them.
 </Callout>
 
+<Callout type="info" title="Standard toolbar order">
+  The toolbar renders its children left to right in the order you write them. The gridcn
+  convention is: `DataGridSearch` first (leftmost — finding data comes before anything else),
+  then the row-view modifiers `DataGridFilterMenu` and `DataGridSortList`, then the column
+  configuration `DataGridColumnsMenu`, then data movement `DataGridImportButton` before
+  `DataGridExportButton` (data flows in, then out), and your own utility buttons (shortcuts,
+  density, and the like) last. Drop a piece and the remaining ones keep their relative order.
+</Callout>
+
 ### Keyboard & accessibility
 
 | Key | Action |
