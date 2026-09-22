@@ -66,6 +66,11 @@ export function isInlineStartHalf(clientX: number, rect: { left: number; right: 
   return inlineStartX(clientX, rect, direction) < rect.width / 2;
 }
 
+/** rAF-throttled auto-scroll step (px) applied per frame while a drag pointer sits beyond a viewport edge. */
+export const AUTO_SCROLL_STEP = 16;
+/** Distance (px) from a viewport edge at which drag auto-scroll kicks in. */
+export const AUTO_SCROLL_ZONE = 24;
+
 /**
  * Drag auto-scroll intent at the viewport's inline edges, in inline-axis terms: `-1` scrolls toward
  * the inline start, `1` toward the inline end, `0` when the pointer is not in either edge zone.
