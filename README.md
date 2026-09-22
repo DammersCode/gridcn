@@ -6,9 +6,9 @@
 [![React](https://img.shields.io/badge/React-19%2B-blue?logo=react)](https://react.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4%2B-blue?logo=tailwindcss)](https://tailwindcss.com/)
 
-An editable, composable data grid for the [shadcn/ui](https://ui.shadcn.com) ecosystem. Real DOM
-cells, styled with your shadcn tokens. Distributed through the
-[shadcn registry](https://ui.shadcn.com/docs/registry).
+A composable, high-performance data grid: range selection, spreadsheet clipboard, typed cell
+editors, validation, and windowed rendering at 100k+ rows. Styled with your shadcn tokens,
+distributed through the [shadcn registry](https://ui.shadcn.com/docs/registry).
 
 Range selection, clipboard paste, and a fill handle are in the core. The
 source is free to use, including commercially in your own products, under the
