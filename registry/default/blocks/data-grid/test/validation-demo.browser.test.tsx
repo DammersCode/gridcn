@@ -70,3 +70,45 @@ describe("data-grid-cell-errors-demo", () => {
     await vi.waitFor(() => expect(document.body.textContent).toContain("Server errors: 1"));
   });
 });
+
+describe("data-grid-validation-demo: onInvalid 'warn'", () => {
+  function notesCells(): HTMLElement[] {
+    return Array.from(document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="notes"]'));
+  }
+
+  it("a soft rejection commits the value, closes the editor, and flags the cell with a tooltip", async () => {
+    render(<DataGridValidationDemo />);
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    const notesCell = notesCells()[0]!;
+    await userEvent.dblClick(notesCell);
+    const input = document.querySelector<HTMLInputElement>(`[role="gridcell"]${gridAttrSelector("editing", "true")} input`)!;
+    await userEvent.clear(input);
+    await userEvent.type(input, "Way too long note");
+    await userEvent.keyboard("{Enter}");
+
+    // committed (unlike a blocking rejection): the value shows and the editor closed
+    await vi.waitFor(() => expect(notesCells()[0]!.textContent).toContain("Way too long note"));
+    expect(document.querySelector(`[role="gridcell"]${gridAttrSelector("editing", "true")}`)).toBeNull();
+
+    let flagged!: HTMLElement;
+    await vi.waitFor(() => {
+      flagged = notesCells()[0]!;
+      expect(flagged).toHaveAttribute("aria-invalid", "true");
+    });
+
+    await userEvent.hover(flagged);
+    await vi.waitFor(
+      () => expect(document.querySelector<HTMLElement>('[data-slot="tooltip-content"]')?.textContent).toBe("Max 12 characters"),
+      { timeout: 2000 },
+    );
+
+    // a valid re-commit clears the flag
+    await userEvent.dblClick(flagged);
+    const reinput = document.querySelector<HTMLInputElement>(`[role="gridcell"]${gridAttrSelector("editing", "true")} input`)!;
+    await userEvent.clear(reinput);
+    await userEvent.type(reinput, "Short note");
+    await userEvent.keyboard("{Enter}");
+    await vi.waitFor(() => expect(notesCells()[0]!).not.toHaveAttribute("aria-invalid"));
+  });
+});
