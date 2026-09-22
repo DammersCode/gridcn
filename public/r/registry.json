@@ -77,12 +77,14 @@
         { "path": "registry/default/blocks/data-grid/rows/marker-cell.tsx", "type": "registry:component", "target": "components/data-grid/rows/marker-cell.tsx" },
         { "path": "registry/default/blocks/data-grid/rows/marker-header.tsx", "type": "registry:component", "target": "components/data-grid/rows/marker-header.tsx" },
         { "path": "registry/default/blocks/data-grid/rows/marker-width.ts", "type": "registry:component", "target": "components/data-grid/rows/marker-width.ts" },
+        { "path": "registry/default/blocks/data-grid/rows/use-row-reorder.ts", "type": "registry:component", "target": "components/data-grid/rows/use-row-reorder.ts" },
         { "path": "registry/default/blocks/data-grid/selection/compact-selection.ts", "type": "registry:component", "target": "components/data-grid/selection/compact-selection.ts" },
         { "path": "registry/default/blocks/data-grid/selection/extend-selection.ts", "type": "registry:component", "target": "components/data-grid/selection/extend-selection.ts" },
         { "path": "registry/default/blocks/data-grid/selection/index.ts", "type": "registry:component", "target": "components/data-grid/selection/index.ts" },
         { "path": "registry/default/blocks/data-grid/selection/line-ops.ts", "type": "registry:component", "target": "components/data-grid/selection/line-ops.ts" },
         { "path": "registry/default/blocks/data-grid/selection/offset-selection-for-rows.ts", "type": "registry:component", "target": "components/data-grid/selection/offset-selection-for-rows.ts" },
         { "path": "registry/default/blocks/data-grid/selection/rects.ts", "type": "registry:component", "target": "components/data-grid/selection/rects.ts" },
+        { "path": "registry/default/blocks/data-grid/selection/reorder-selection-for-row.ts", "type": "registry:component", "target": "components/data-grid/selection/reorder-selection-for-row.ts" },
         { "path": "registry/default/blocks/data-grid/selection/select-all-progression.ts", "type": "registry:component", "target": "components/data-grid/selection/select-all-progression.ts" },
         { "path": "registry/default/blocks/data-grid/selection/select-line-options.ts", "type": "registry:component", "target": "components/data-grid/selection/select-line-options.ts" },
         { "path": "registry/default/blocks/data-grid/selection/selected-col-ranges-for-row.ts", "type": "registry:component", "target": "components/data-grid/selection/selected-col-ranges-for-row.ts" },
@@ -543,6 +545,32 @@
       "registryDependencies": ["DammersCode/gridcn/data-grid", "DammersCode/gridcn/data-grid-history", "DammersCode/gridcn/data-grid-context-menu", "DammersCode/gridcn/data-grid-toolbar"],
       "files": [
         { "path": "registry/default/examples/data-grid-pinning-demo.tsx", "type": "registry:example", "target": "components/data-grid-pinning-demo.tsx" },
+        { "path": "registry/default/examples/demo-data.ts", "type": "registry:example", "target": "components/demo-data.ts" }
+      ],
+      "categories": ["data"]
+    },
+    {
+      "name": "data-grid-column-drag-demo",
+      "type": "registry:example",
+      "title": "Data Grid Column Drag Demo",
+      "description": "Drag a header to reorder columns within its pin zone (enableColumnReorder, per-column reorderable opt-out, pinned-right column), plus a column picker wired to the programmatic setColumnOrder(id, targetId, position) path.",
+      "author": "gridcn",
+      "registryDependencies": ["DammersCode/gridcn/data-grid"],
+      "files": [
+        { "path": "registry/default/examples/data-grid-column-drag-demo.tsx", "type": "registry:example", "target": "components/data-grid-column-drag-demo.tsx" },
+        { "path": "registry/default/examples/demo-data.ts", "type": "registry:example", "target": "components/demo-data.ts" }
+      ],
+      "categories": ["data"]
+    },
+    {
+      "name": "data-grid-column-layout-demo",
+      "type": "registry:example",
+      "title": "Data Grid Column Layout Demo",
+      "description": "Column layout persistence: defaultColumnLayout seeds widths/order/pins/hidden from a localStorage snapshot at mount, onColumnLayoutChange writes every resize commit, reorder, pin, and hide back; a Reset button clears the snapshot and re-seeds.",
+      "author": "gridcn",
+      "registryDependencies": ["DammersCode/gridcn/data-grid", "DammersCode/gridcn/data-grid-context-menu", "DammersCode/gridcn/data-grid-toolbar"],
+      "files": [
+        { "path": "registry/default/examples/data-grid-column-layout-demo.tsx", "type": "registry:example", "target": "components/data-grid-column-layout-demo.tsx" },
         { "path": "registry/default/examples/demo-data.ts", "type": "registry:example", "target": "components/demo-data.ts" }
       ],
       "categories": ["data"]

@@ -550,6 +550,32 @@
       "categories": ["data"]
     },
     {
+      "name": "data-grid-column-drag-demo",
+      "type": "registry:example",
+      "title": "Data Grid Column Drag Demo",
+      "description": "Drag a header to reorder columns within its pin zone (enableColumnReorder, per-column reorderable opt-out, pinned-right column), plus a column picker wired to the programmatic setColumnOrder(id, targetId, position) path.",
+      "author": "gridcn",
+      "registryDependencies": ["DammersCode/gridcn/data-grid"],
+      "files": [
+        { "path": "registry/default/examples/data-grid-column-drag-demo.tsx", "type": "registry:example", "target": "components/data-grid-column-drag-demo.tsx" },
+        { "path": "registry/default/examples/demo-data.ts", "type": "registry:example", "target": "components/demo-data.ts" }
+      ],
+      "categories": ["data"]
+    },
+    {
+      "name": "data-grid-column-layout-demo",
+      "type": "registry:example",
+      "title": "Data Grid Column Layout Demo",
+      "description": "Column layout persistence: defaultColumnLayout seeds widths/order/pins/hidden from a localStorage snapshot at mount, onColumnLayoutChange writes every resize commit, reorder, pin, and hide back; a Reset button clears the snapshot and re-seeds.",
+      "author": "gridcn",
+      "registryDependencies": ["DammersCode/gridcn/data-grid", "DammersCode/gridcn/data-grid-context-menu", "DammersCode/gridcn/data-grid-toolbar"],
+      "files": [
+        { "path": "registry/default/examples/data-grid-column-layout-demo.tsx", "type": "registry:example", "target": "components/data-grid-column-layout-demo.tsx" },
+        { "path": "registry/default/examples/demo-data.ts", "type": "registry:example", "target": "components/demo-data.ts" }
+      ],
+      "categories": ["data"]
+    },
+    {
       "name": "data-grid-large-data-demo",
       "type": "registry:example",
       "title": "Data Grid Large Data Demo",
