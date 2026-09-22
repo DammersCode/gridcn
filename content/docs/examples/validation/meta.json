@@ -1,4 +1,5 @@
 {
   "title": "Editing & Validation",
-  "icon": "ShieldCheck"
+  "icon": "ShieldCheck",
+  "pages": ["validation", "async-validation", "server-errors", "cross-field"]
 }

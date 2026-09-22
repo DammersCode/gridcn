@@ -1,0 +1,34 @@
+---
+title: Editing & Validation
+description: Cell validation with plain functions or Standard Schema libraries, async checks, server errors, and cross-field rules.
+icon: ShieldCheck
+---
+
+Validation in four forms: synchronous rules as a plain function or a Standard Schema library
+column (Zod, Joi, Valibot), async checks with a visible pending state, server-side rejections
+painted after commit, and cross-field rules via `validateRow`. Each page embeds the live
+registry example; the [editing guide](/docs/editing-cell-types#validation) has the full
+reference.
+
+<Cards>
+  <Card
+    title="Validation"
+    href="/docs/examples/validation/validation"
+    description="One rule per column: function form plus a column per Standard Schema library."
+  />
+  <Card
+    title="Async validation"
+    href="/docs/examples/validation/async-validation"
+    description="Pending state while a schema resolves, supersede on newer commits, bulk paths."
+  />
+  <Card
+    title="Server errors"
+    href="/docs/examples/validation/server-errors"
+    description="Painting post-commit rejections with setCellErrors / clearCellErrors."
+  />
+  <Card
+    title="Cross-field"
+    href="/docs/examples/validation/cross-field"
+    description="Row-level rules with validateRow — End must stay at or after Start."
+  />
+</Cards>

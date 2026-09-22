@@ -1,0 +1,60 @@
+---
+title: Async validation
+description: Schemas that resolve asynchronously — pending editor state, supersede on newer commits, and the batched bulk paths.
+icon: Clock4
+---
+
+The demo's **SKU** column runs a fake uniqueness check with ~800 ms latency (a hand-rolled
+Standard Schema whose `validate` returns a Promise — the same seam as an async Zod `refine`).
+SKU-001 and SKU-002 are already taken.
+
+<ComponentPreview name="data-grid-validation-demo" />
+
+<InstallCommand item="data-grid-validation-demo" />
+
+## Single-cell edit
+
+Type a SKU and press Enter:
+
+- The editor **stays open while the schema resolves**. The built-in text/number editors mark
+  their input `readOnly` as the pending treatment — never `disabled`, so Escape still cancels.
+- Resolving with issues shows the rejection message exactly like a sync rejection; editing
+  continues.
+- Resolving successfully commits the schema's `result.value`, then applies the pending
+  cell-to-cell movement.
+- **Escape, a newer commit, or unmounting the cell invalidates the in-flight validation** — its
+  resolution is dropped silently and never applied late. That is the supersede rule: a stale
+  verdict can never land on a cell the user has already moved on from.
+
+## Bulk paths
+
+Paste, fill, CSV/XLSX import, and `updateCells` hold the batch while the schema resolves:
+
+- The grid validates a **maximum of 32 cells at the same time** — a paste of 10,000 cells makes
+  32 concurrent calls, not 10,000.
+- Nothing changes until every verdict is in; the accepted cells then commit together as one
+  `onDataChange` ops batch.
+- A rejected cell **drops silently** — one bad value never fails the batch.
+- A newer operation supersedes a held batch: a second paste over the same area, a data change,
+  a sort/filter change, or unmounting the grid drops the older batch silently.
+- The import dialog keeps its Import button disabled while it validates; cancel or closing
+  aborts the build.
+
+<Callout type="warn" title="A slow schema makes a slow batch">
+  A held batch is only as fast as your schema: 200 ms per cell across 10,000 cells takes about
+  60 s at 32 concurrent calls, and the grid gives no per-cell progress. For a large paste
+  against a remote check, validate the block yourself with the `processPaste` escape hatch
+  ([Clipboard](/docs/clipboard#escape-hatches)) — one request for the whole block.
+</Callout>
+
+<Callout type="idea" title="Trusted feeds can skip validation">
+  `actions.updateCells(patches, { skipValidation: true })` bypasses `validate` completely — use
+  it when the producer already validated the values.
+</Callout>
+
+## Behavior reference
+
+- [Async schemas](/docs/editing-cell-types#async-schemas) — the full contract, including the
+  32-way batching
+- [Server errors](/docs/examples/validation/server-errors) — the other kind of rejection:
+  after commit

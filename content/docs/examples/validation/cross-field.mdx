@@ -1,0 +1,40 @@
+---
+title: Cross-field
+description: Row-level rules with validateRow — judged on the row after a whole write gesture commits.
+icon: Link2
+---
+
+A rule that spans two columns: **End must stay at or after Start**. A per-column `validate`
+cannot express that reliably — it runs mid-gesture, against whatever the row looked like at
+that moment. `validateRow` runs **once per touched row, after the whole write gesture
+commits**, so a pasted block of Start+End pairs is judged as one state.
+
+<ComponentPreview name="data-grid-cross-field-demo" />
+
+<InstallCommand item="data-grid-cross-field-demo" />
+
+## The contract
+
+```tsx
+<DataGrid
+  {...grid}
+  validateRow={(row) => (row.end < row.start ? { end: "End must be at or after Start" } : null)}
+/>
+```
+
+- Return `columnId -> message` to mark cells, or `null` when the row is fine.
+- The row the callback receives already has **all** of the gesture's cells applied.
+- Messages land in the same per-cell error display as [server errors](/docs/examples/validation/server-errors)
+  (ring, tint, hover tooltip, `aria-invalid`) — and **the values still commit**: the same
+  stance as server errors, no rollback.
+- A later write that makes the row consistent clears the verdict, even when it writes a
+  different column than the marked one.
+- It does **not** run on row insert/duplicate (a fresh row is expected to be incomplete), on
+  row deletion, or on a `data` array you replace yourself. It must be **synchronous**.
+
+## Behavior reference
+
+- [Cross-field rules: validateRow](/docs/editing-cell-types#cross-field-rules-validaterow) — the
+  full contract
+- [Server errors](/docs/examples/validation/server-errors) — the display treatment
+  `validateRow` reuses

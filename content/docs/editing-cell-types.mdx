@@ -111,13 +111,19 @@ Per-column, static or row-dependent:
 
 <ComponentPreview name="data-grid-validation-demo" />
 
+**See the live examples:** [Validation](/docs/examples/validation/validation) ·
+[Async validation](/docs/examples/validation/async-validation) ·
+[Server errors](/docs/examples/validation/server-errors) ·
+[Cross-field](/docs/examples/validation/cross-field)
+
 `validate` accepts either of two forms:
 
 - **A function** that returns an error message to reject a value, or `null` to accept it. The
   function is your code, so side effects work — the demo's Age rule fires a toast from inside it.
 - **Any [Standard Schema](https://standardschema.dev)** for the value of the column: Zod,
-  Valibot, ArkType, or any other library that implements the spec. gridcn detects the schema
-  structurally (`"~standard" in validate`), so no adapter is necessary for a conforming library.
+  Joi, Valibot, Yup, ArkType, or any other library that implements the spec. gridcn detects
+  the schema structurally (`"~standard" in validate`), so no adapter is necessary for a
+  conforming library.
 
 <Callout type="warn" title="Invalid edits cannot commit">
   The editor stays open on a rejected value. This is Excel semantics, not a toast-and-revert
@@ -134,7 +140,7 @@ Per-column, static or row-dependent:
   validate: (value) => (typeof value === "number" && value < 18 ? "Must be 18 or older" : null),
 }
 
-// Standard Schema form — illustrative, schema-agnostic (works with Zod, Valibot, ArkType, ...)
+// Standard Schema form — illustrative, schema-agnostic (works with Zod, Joi, Valibot, ...)
 {
   id: "age",
   header: "Age",

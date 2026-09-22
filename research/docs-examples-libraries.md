@@ -17,15 +17,15 @@ The cell value (not a row object) is validated — schemas must match the column
 
 | Library | Fit | Recommendation |
 |---|---|---|
-| **Zod** (v4) | Standard Schema native; de-facto default in the React ecosystem; most common answer to "which validation lib" | **Flagship example** — `z.number().min(0)`, `z.string().email()` per column |
-| **Valibot** (v1) | Standard Schema native; tree-shakeable, tiny; the main Zod alternative in 2025+ | **Second example** — `v.pipe(v.number(), v.minValue(0))` style |
-| **ArkType** (v2) | Standard Schema native; type-first ("types as schemas") | Third example (small section) — `a.$("number").check(...)` |
-| Yup / Joi | No Standard Schema conformance | Adapter snippet only (wrap `schema.validate` in a fn) — docs text, no demo |
+| **Zod** (v4) | Standard Schema native; de-facto default in the React ecosystem; ~212M npm downloads/week (2026-09) | **Flagship example** — `z.number().int().min(0).max(100)` per column |
+| **Joi** (18.2+) | Standard Schema native (verified 2026-09, joi 18.2.9); ~19M downloads/week, the #2 most-downloaded validator | **Second example** — `Joi.string().pattern(...)`, built-in validators |
+| **Valibot** (v1) | Standard Schema native; tree-shakeable, tiny; ~13M downloads/week | **Third example** — `v.pipe(v.string(), v.minLength(3))` style |
+| Yup (1.7+) | Standard Schema native (verified 2026-09, yup 1.7.1) | Works natively too — named in the docs, no demo column |
+| ArkType (v2) | Standard Schema native; type-first ("types as schemas") | Named in the docs, no demo column |
 
-Why this split: the core already detects Standard Schema structurally, so Zod/Valibot/ArkType
-need zero adapter code in the examples — the examples can show "drop your schema onto the
-column". That is the strongest possible demo of the seam. Non-SS libs get one short adapter
-paragraph instead of a demo (they are the minority choice in new React projects).
+Why this split: the core detects Standard Schema structurally, so the demo columns need zero
+adapter code — the example shows "drop your schema onto the column". The three columns follow
+npm download popularity (zod ≫ joi > valibot, 2026-09-22).
 
 Existing demo `data-grid-validation-demo` already covers: sync fn (Age), Standard Schema (Email),
 async schema with pending state (SKU), `onInvalid: "warn"` (Notes, branch-only). Plan 013 W4
@@ -78,7 +78,7 @@ only bloat the demo surface).
 
 | Example page | Library | Live demo? | New repo dep |
 |---|---|---|---|
-| Validation (sync) | none, Zod, Valibot, ArkType | yes (one demo, per-lib columns) | zod, valibot, arktype (devDeps + demo `dependencies`) |
+| Validation (sync) | none, Zod, Joi, Valibot | yes (one demo, per-lib columns) | zod, joi, valibot (devDeps + demo `dependencies`) |
 | Async validation | Zod (async) | yes (existing SKU column) | — |
 | Server cell errors | — | yes (existing demo) | — |
 | Cross-field validation | — | yes (new demo) | — |
