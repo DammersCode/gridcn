@@ -9,7 +9,8 @@ import { Analytics } from '@vercel/analytics/next';
 
 export const metadata: Metadata = {
   title: { default: "gridcn", template: "%s - gridcn" },
-  description: "An editable, composable data grid for the shadcn/ui ecosystem.",
+  description:
+    "A composable, high-performance data grid: range selection, spreadsheet clipboard, typed cell editors, validation, and windowed rendering at 100k+ rows.",
 };
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});

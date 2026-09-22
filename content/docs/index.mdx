@@ -1,12 +1,13 @@
 ---
 title: Introduction
-description: An editable, composable data grid for the shadcn ecosystem.
+description: A composable, high-performance data grid for the shadcn ecosystem.
 icon: Sparkles
 ---
 
-gridcn is an editable data grid for the shadcn/ui ecosystem: range selection, clipboard paste
-to and from spreadsheet apps, and a typed column model, using real DOM cells styled entirely
-with shadcn tokens.
+gridcn is an editable, high-performance data grid for the shadcn/ui ecosystem: range selection,
+clipboard paste to and from spreadsheet apps, and a typed column model, using real DOM cells
+styled entirely with shadcn tokens. Windowed row rendering keeps it smooth at 100k+ rows — see
+the [performance benchmarks](/docs/performance).
 
 <ComponentPreview name="data-grid-demo" />
 
@@ -21,7 +22,8 @@ upgrade and no hidden code to work around.
 
 The core `data-grid` item is the engine: range selection, keyboard, editing, cell types, and
 the spreadsheet clipboard. Every other feature is a separate registry item (see the
-navigation), installed with one `npx shadcn add`. Each item is free, MIT-licensed, and depends
+navigation), installed with one `npx shadcn add`. Each item is free and
+source-available under the [GridCN Source Available License](/docs/license), and depends
 only on the core.
 
 ## Project status
