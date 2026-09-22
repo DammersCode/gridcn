@@ -529,6 +529,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           : editing.coord;
 
         const result = computeCommit(s, editing.coord, value, rejection);
+        // Stale session: while a (possibly async) validation was pending the user moved
+        // activeCell off the editing cell (a click-away). The data commit is still the user's own
+        // value — but restoring `activeCell`/`selection` from the stale editing coord would drag
+        // their cursor back, so it is skipped.
+        const stale =
+          s.activeCell !== null && (s.activeCell.row !== editing.coord.row || s.activeCell.col !== editing.coord.col);
+        const restoreSelection = stale ? {} : { activeCell: nextActiveCell, selection: selectCellPure(nextActiveCell) };
         if ("error" in result) {
           set({ editingError: result.error, editingRejectionCount: s.editingRejectionCount + 1 });
           return;
@@ -537,8 +544,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           set({
             editing: null,
             editingError: null,
-            activeCell: nextActiveCell,
-            selection: selectCellPure(nextActiveCell),
+            ...restoreSelection,
             // an `onInvalid: "warn"` re-commit of the same value still lands its flag
             ...(result.warnings ? { cellErrors: mergeCellErrors(s.cellErrors, result.warnings) } : {}),
           });
@@ -555,8 +561,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           editingError: null,
           // warn rejections commit AND flag — merged after the auto-clear + validateRow verdict so the freshest signal wins
           cellErrors: result.warnings ? mergeCellErrors(cellErrors, result.warnings) : cellErrors,
-          activeCell: nextActiveCell,
-          selection: selectCellPure(nextActiveCell),
+          ...restoreSelection,
           ...reconcileAfterWrite(s, result.data, result.change.ops),
         });
       },
