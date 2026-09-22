@@ -32,6 +32,7 @@ import {
   incrementalViewIndex,
   isColumnReadOnly,
   memoizedMergeLabels,
+  mergeCellErrors,
   nextDirection,
   pruneCellErrors,
   reorderColumnIds,
@@ -514,7 +515,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       cancelEditing() {
         set({ editing: null, editingError: null });
       },
-      commitCellEdit(value, movement) {
+      commitCellEdit(value, movement, rejection) {
         const s = get();
         const editing = s.editing;
         if (!editing) return;
@@ -527,7 +528,14 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             }
           : editing.coord;
 
-        const result = computeCommit(s, editing.coord, value);
+        const result = computeCommit(s, editing.coord, value, rejection);
+        // Stale session: while a (possibly async) validation was pending the user moved
+        // activeCell off the editing cell (a click-away). The data commit is still the user's own
+        // value — but restoring `activeCell`/`selection` from the stale editing coord would drag
+        // their cursor back, so it is skipped.
+        const stale =
+          s.activeCell !== null && (s.activeCell.row !== editing.coord.row || s.activeCell.col !== editing.coord.col);
+        const restoreSelection = stale ? {} : { activeCell: nextActiveCell, selection: selectCellPure(nextActiveCell) };
         if ("error" in result) {
           set({ editingError: result.error, editingRejectionCount: s.editingRejectionCount + 1 });
           return;
@@ -536,8 +544,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           set({
             editing: null,
             editingError: null,
-            activeCell: nextActiveCell,
-            selection: selectCellPure(nextActiveCell),
+            ...restoreSelection,
+            // an `onInvalid: "warn"` re-commit of the same value still lands its flag
+            ...(result.warnings ? { cellErrors: mergeCellErrors(s.cellErrors, result.warnings) } : {}),
           });
           return;
         }
@@ -545,27 +554,33 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         forgetDeferredRows();
         lastEmittedData = result.data;
         s.onDataChange?.(result.data, result.change);
+        const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, result.change.ops), result.data, result.change.ops);
         set({
           data: result.data,
           editing: null,
           editingError: null,
-          cellErrors: applyRowValidation(s, clearErrorsForOps(s.cellErrors, result.change.ops), result.data, result.change.ops),
-          activeCell: nextActiveCell,
-          selection: selectCellPure(nextActiveCell),
+          // warn rejections commit AND flag — merged after the auto-clear + validateRow verdict so the freshest signal wins
+          cellErrors: result.warnings ? mergeCellErrors(cellErrors, result.warnings) : cellErrors,
+          ...restoreSelection,
           ...reconcileAfterWrite(s, result.data, result.change.ops),
         });
       },
       commitCellValue(coord, value) {
         const s = get();
         const result = computeCommit(s, coord, value);
-        if ("error" in result || "noop" in result) return;
+        if ("error" in result) return;
+        if ("noop" in result) {
+          if (result.warnings) set({ cellErrors: mergeCellErrors(s.cellErrors, result.warnings) });
+          return;
+        }
         rowIndexCache.rebase(result.data);
         forgetDeferredRows();
         lastEmittedData = result.data;
         s.onDataChange?.(result.data, result.change);
+        const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, result.change.ops), result.data, result.change.ops);
         set({
           data: result.data,
-          cellErrors: applyRowValidation(s, clearErrorsForOps(s.cellErrors, result.change.ops), result.data, result.change.ops),
+          cellErrors: result.warnings ? mergeCellErrors(cellErrors, result.warnings) : cellErrors,
           ...reconcileAfterWrite(s, result.data, result.change.ops),
         });
       },
@@ -576,10 +591,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       setCellErrors(errors) {
         if (errors.length === 0) return;
-        const s = get();
-        const next = new Map(s.cellErrors);
-        for (const entry of errors) next.set(cellErrorKey(entry.rowId, entry.columnId), entry.message);
-        set({ cellErrors: next });
+        set({ cellErrors: mergeCellErrors(get().cellErrors, errors) });
       },
       clearCellErrors(targets) {
         const s = get();
