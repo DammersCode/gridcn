@@ -94,8 +94,9 @@ html > body[data-scroll-locked] {
    Fumadocs' theming surface is color vars + --fd-layout-width only (confirmed against
    https://fumadocs.dev/docs/ui/theme) — there is no upstream radius token to bridge instead,
    so this block is load-bearing: it must be re-checked on every fumadocs-ui upgrade. */
+/* Component-owned keys (components/ui/kbd.tsx, marked not-prose) style themselves and are excluded. */
 .prose code,
-.prose kbd {
+.prose kbd:not([data-slot="kbd"]) {
   border-radius: 0;
 }
 
