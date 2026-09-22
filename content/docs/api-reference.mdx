@@ -45,6 +45,36 @@ This is the composable entry point. It has the same sync props as `DataGrid` abo
   lives outside the core.
 </Callout>
 
+### `store`: external store ownership
+
+By default `DataGridProvider` creates and owns its store. When logic OUTSIDE the provider's
+subtree needs the grid imperatively — an `onDataChange` handler talking to a server, a WebSocket
+push of validation errors, a page-level control — create the store yourself with
+`useDataGridStoreProps(props)` and feed it in through the `store` prop (on both
+`DataGridProvider` and `DataGrid`):
+
+```tsx
+const { store, actions } = useDataGridStoreProps({ data, columns, getRowId, onDataChange: handleDataChange });
+
+function handleDataChange(next: readonly Order[], change: DataChange<Order>) {
+  setData(next);
+  saveOrders(change.ops).catch((error) => {
+    actions.setCellErrors(parseFieldErrors(error)); // stable object — no ref, no null check
+  });
+}
+
+return <DataGrid store={store} data={data} columns={columns} getRowId={getRowId} onDataChange={handleDataChange} />;
+```
+
+- `useDataGridStoreProps` takes the same sync props as the provider and keeps the store in sync
+  with them on every render — pass it the same live props the grid renders from.
+- `actions` is stable for the store's lifetime and available on the first render, so a closure
+  can capture it directly.
+- With `store` set, the provider is a pure context shell: it creates nothing, syncs nothing, and
+  subscribes to nothing — your `useDataGridStoreProps` call owns the store.
+- `store.getState()` and `store.subscribe()` are reachable from outside React for anything the
+  selector hooks can't reach, e.g. a page-level error badge that renders outside the provider.
+
 ### `overlayPlugins`
 
 `readonly OverlayPlugin[]`, optional, on both `DataGridProvider` and `DataGrid`. Each registered
@@ -63,10 +93,10 @@ first-party consumers.
 
 ### Hooks
 
-The state of `DataGridProvider` is Zustand internally, but the store itself is never exported,
-only atomic selector hooks and one actions hook. You must call all of them under
-`DataGridProvider`. The full list lives in `store/hooks.ts`. These are the ones you will reach for
-most:
+The state of `DataGridProvider` is Zustand internally. The hooks below must all be called under
+`DataGridProvider`; the one way out is `useDataGridStoreProps` (above), which hands you the store
+itself for code outside the provider's subtree. The full list lives in `store/hooks.ts`. These
+are the ones you will reach for most:
 
 - `useDataGridActions()` — the single stable actions object (`setSorts`, `setFilters`,
   `setSearch`, `setColumnWidth`, `setColumnOrder`, `setColumnPin`, `setColumnHidden`,

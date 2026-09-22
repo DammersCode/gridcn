@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { StoreApi } from "zustand/vanilla";
 import type {
   CellCoord,
   CellType,
@@ -699,7 +700,16 @@ export type CommitResult =
 export type RowEdit = { row: unknown; cells: Map<string, { columnId: string; value: unknown; prev: unknown }> };
 
 /** Props for {@link DataGridProvider}. */
-export type DataGridProviderProps<TData = unknown> = DataGridSyncProps<TData> & { children: ReactNode };
+export type DataGridProviderProps<TData = unknown> = DataGridSyncProps<TData> & {
+  children: ReactNode;
+  /**
+   * A consumer-created store (from `useDataGridStoreProps`) to serve to the subtree instead
+   * of self-creating one. When set, the provider becomes a pure context shell: no store
+   * creation, no prop sync, no subscription wiring — the owner's `useDataGridStoreProps` call
+   * drives the store and must pass the same live props.
+   */
+  store?: StoreApi<DataGridStoreState>;
+};
 
 /** {@link useDataGridCellState}'s return shape — the 5 primitives `DataGridCell` reads every render. */
 export type DataGridCellState = {
