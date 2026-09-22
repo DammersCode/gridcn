@@ -1,0 +1,88 @@
+---
+title: Context menu
+description: The data-grid-context-menu add-on — header dropdown and right-click menus for sort, pin, autosize, hide, and row operations.
+icon: Ellipsis
+---
+
+`data-grid-context-menu` installs two menus: a header dropdown (and a right-click header menu)
+for column controls, and a right-click cell menu carrying the row-operation items. It reads
+grid state through the store hooks, so it mounts inside `DataGridProvider`.
+
+<InstallCommand item="data-grid-context-menu" manual manualSlot={<ManualInstall item="data-grid-context-menu" />} />
+
+<ComponentPreview name="data-grid-context-menu-demo" />
+
+## Header surface
+
+Both the header dropdown and the right-click header menu show the same items:
+**Sort asc/desc/clear**, **Pin left/right/unpin**, **Autosize**, **Hide**. Pin is set with
+`pin: 'left' | 'right'` per column as an initial value and changed at runtime through these
+menus (the pin behavior itself is documented on [Columns](/docs/columns#pin-leftright)).
+
+```tsx
+import {
+  DataGridContextMenu,
+  DataGridHeaderDropdown,
+} from "@/components/data-grid-context-menu/data-grid-context-menu";
+
+<DataGridProvider {...grid} columns={columns}>
+  <DataGridContextMenu>
+    <DataGridRoot renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}>
+      <DataGridHeader />
+      <DataGridBody />
+    </DataGridRoot>
+  </DataGridContextMenu>
+</DataGridProvider>;
+```
+
+<Callout type="warn" title="DataGridContextMenu must be inside DataGridProvider">
+  It reads grid state through the same selector hooks that your own components use. Mounting
+  it outside `DataGridProvider` throws immediately.
+</Callout>
+
+## Cell surface: row-operation items
+
+The row-operation items act on **every view row covered by the current selection**, falling
+back to the right-clicked row when nothing is selected, so a range selection duplicates or
+deletes all of its rows at once. Every mutating item (everything but Copy) is disabled on a
+`readOnly` grid. Right-clicking a cell makes it the active cell with a single-cell selection
+before the menu opens, so the items always act on a known target.
+
+The cell-surface items, in order:
+
+1. **Cut** / **Copy** / **Paste** — the native clipboard pipeline (see [Clipboard](/docs/clipboard)).
+2. **Clear contents** — empties the selection to each type's `clearValue()` (the `deleteContents`
+   action, <kbd>Delete</kbd>/<kbd>Backspace</kbd>).
+3. **Insert row above** / **Insert row below** — anchored at the right-clicked row; hidden without
+   `createRow`.
+4. **Duplicate row(s)** — <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>; hidden
+   without `duplicateRow`.
+5. **Delete row(s)** — destructive item, no default keyboard binding.
+
+Surfaces with no menu: row markers, the empty grid space below the last row, and the scrollbar
+gutter right-click to nothing at all — no menu and no browser context menu either, matching the
+quiet no-op of a plain click on empty space. The full operation contract (when items appear
+under which props) lives on [Row operations](/docs/row-operations#context-menu).
+
+## Paste permission
+
+<Callout type="warn" title="Requires the clipboard-read permission">
+  The Paste item needs `clipboard-read`. Browsers can refuse this without a user gesture inside
+  the menu item itself. When permission is not available, the item degrades to a disabled state
+  with a "press Ctrl+V" hint, instead of failing silently.
+</Callout>
+
+The paste semantics themselves (TSV/HTML formats, anchored expand, tiling) are documented on
+[Clipboard](/docs/clipboard).
+
+## Internationalization
+
+All menu item labels come from the `labels` prop — `labels.contextMenu` carries the header
+items and the row-operation items, shared verbatim between the right-click menu and the header
+dropdown. See [Internationalization: coverage by group](/docs/i18n#coverage-by-group).
+
+## Related
+
+- [Columns: pin left/right](/docs/columns#pin-leftright) — the pin behavior the menus control
+- [Row operations](/docs/row-operations) — the operations behind the cell-surface items
+- [Clipboard](/docs/clipboard) — the Cut/Copy/Paste pipeline

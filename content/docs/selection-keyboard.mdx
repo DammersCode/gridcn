@@ -75,48 +75,9 @@ under `headerClickBehavior="sort"`. You can still sort it programmatically throu
 ## Keyboard map
 
 The keymap is a plain data table, the `keymap` prop, merged over `DEFAULT_KEYMAP`. You can remap
-or extend any binding without touching the engine. The table below is generated from the shipped
-defaults.
-
-<InstallCommand item="data-grid-keybindings" manual manualSlot={<ManualInstall item="data-grid-keybindings" />} />
-
-### Show this table at runtime
-
-`data-grid-keybindings` displays this same table as an in-app dialog, always reflecting the actual
-effective keymap of your grid, including overrides. The dialog reads the grid's keymap and labels
-through the store, so it mounts inside `DataGridProvider`. The `?` shortcut reads the root's
-container element, so it mounts inside `DataGridRoot`:
-
-```tsx
-import { useState } from "react";
-import {
-  DataGridKeybindingsDialog,
-  DataGridKeybindingsShortcut,
-} from "@/components/data-grid-keybindings/data-grid-keybindings";
-
-function OrdersGrid() {
-  const [shortcutsOpen, setShortcutsOpen] = useState(false);
-
-  return (
-    <DataGridProvider {...grid} columns={columns}>
-      <DataGridKeybindingsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
-      <DataGridRoot>
-        <DataGridHeader />
-        <DataGridBody />
-        <DataGridKeybindingsShortcut onOpen={() => setShortcutsOpen(true)} />
-      </DataGridRoot>
-    </DataGridProvider>
-  );
-}
-```
-
-<Callout type="warn" title="The ? shortcut is a contested key">
-  While `DataGridKeybindingsShortcut` is mounted and the grid has focus, it claims <kbd>?</kbd>
-  (and only outside an open cell editor): type-to-edit and any `keymap` binding on <kbd>?</kbd>
-  are shadowed, because the shortcut stops the native event before the grid sees it. Without the
-  shortcut component, <kbd>?</kbd> type-to-edits into the active cell like any other printable
-  character.
-</Callout>
+or extend any binding without touching the engine — the remapping surface and the in-app
+shortcuts dialog are on the [Keybindings](/docs/keybindings) page. The table below is generated
+from the shipped defaults.
 
 <KeymapTable />
 
@@ -130,25 +91,6 @@ keymap, but the list above includes them because the shortcuts dialog shows them
   selection. To keep a selection across an Escape, remap or drop the `cancel` binding through the
   `keymap` prop.
 </Callout>
-
-### Remapping
-
-```tsx
-<DataGridProvider {...grid} columns={columns}>
-  <DataGridRoot keymap={{ selectAll: ["mod+shift+a"] }} />
-</DataGridProvider>
-```
-
-`keymap` lives on `DataGridRoot` (or the `DataGrid` wrapper), not on `DataGridProvider`. This
-overrides only the actions you specify. Everything else falls back to `DEFAULT_KEYMAP`.
-
-The type-to-replace trigger (`editReplace`) is remapped the same way. By default it has no
-binding: any unbound printable key on the active cell dispatches it and opens the editor seeded
-with the typed character (Excel behavior). Defining it in `keymap` takes the action over
-exclusively — ANY `editReplace` binding suppresses the implicit printable-key fallback entirely,
-there is no additive mode: `keymap={{ editReplace: ["F3"] }}` means type-to-replace only happens
-on F3 (a plain edit start), and `keymap={{ editReplace: [] }}` disables it entirely. A printable
-key bound to `editReplace` (e.g. `"a"`) starts the edit seeded with that character, Excel-style.
 
 ## Two-stage Ctrl+A
 

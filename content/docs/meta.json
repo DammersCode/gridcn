@@ -27,6 +27,8 @@
     "pinned-rows",
     "multiplayer-presence",
     "undo-redo",
+    "context-menu",
+    "keybindings",
     "sorting-filtering-search",
     "import-export",
     "url-state",

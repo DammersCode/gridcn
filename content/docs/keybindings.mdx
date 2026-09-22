@@ -1,0 +1,100 @@
+---
+title: Keybindings
+description: The data-grid-keybindings add-on — an in-app shortcuts dialog that always reflects the effective keymap, plus binding chips for your own UI.
+icon: Keyboard
+---
+
+`data-grid-keybindings` displays the grid's effective keymap as an in-app dialog — always
+reflecting the actual bindings of your grid, including `keymap` overrides. The core keyboard
+model and the default binding table live on [Selection & keyboard](/docs/selection-keyboard#keyboard-map);
+this page covers the add-on's display surface.
+
+<InstallCommand item="data-grid-keybindings" manual manualSlot={<ManualInstall item="data-grid-keybindings" />} />
+
+<ComponentPreview name="data-grid-keybindings-demo" />
+
+## The dialog
+
+The dialog reads the grid's keymap and labels through the store, so it mounts inside
+`DataGridProvider`. The `?` shortcut reads the root's container element, so it mounts inside
+`DataGridRoot`:
+
+```tsx
+import { useState } from "react";
+import {
+  DataGridKeybindingsDialog,
+  DataGridKeybindingsShortcut,
+} from "@/components/data-grid-keybindings/data-grid-keybindings";
+
+function OrdersGrid() {
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  return (
+    <DataGridProvider {...grid} columns={columns}>
+      <DataGridKeybindingsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <DataGridRoot>
+        <DataGridHeader />
+        <DataGridBody />
+        <DataGridKeybindingsShortcut onOpen={() => setShortcutsOpen(true)} />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+<Callout type="warn" title="The ? shortcut is a contested key">
+  While `DataGridKeybindingsShortcut` is mounted and the grid has focus, it claims <kbd>?</kbd>
+  (and only outside an open cell editor): type-to-edit and any `keymap` binding on <kbd>?</kbd>
+  are shadowed, because the shortcut stops the native event before the grid sees it. Without the
+  shortcut component, <kbd>?</kbd> type-to-edits into the active cell like any other printable
+  character.
+</Callout>
+
+`mod` resolves to <kbd>Cmd</kbd> on macOS and <kbd>Ctrl</kbd> elsewhere. Copy, Cut, and Paste
+(<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+C/X/V) are native browser clipboard events, not part of the
+keymap, but the dialog lists them together for completeness.
+
+## Binding chips
+
+`BindingChips` renders one binding string ("mod+c") as a row of `Kbd` chips ("⌘" "C") — the
+same tokens the dialog uses, for your own tooltips or legend rows:
+
+```tsx
+import { BindingChips } from "@/components/data-grid-keybindings/binding-label";
+
+<BindingChips binding="mod+shift+ArrowUp" />
+```
+
+Tokens are platform-aware (`mod` → ⌘ on macOS, Ctrl elsewhere), and a binding renders as one
+keycap per token.
+
+## Remapping
+
+The keymap is a plain data table, the `keymap` prop, merged over `DEFAULT_KEYMAP`. You can
+remap or extend any binding without touching the engine:
+
+```tsx
+<DataGridProvider {...grid} columns={columns}>
+  <DataGridRoot keymap={{ selectAll: ["mod+shift+a"] }} />
+</DataGridProvider>
+```
+
+`keymap` lives on `DataGridRoot` (or the `DataGrid` wrapper), not on `DataGridProvider`. This
+overrides only the actions you specify. Everything else falls back to `DEFAULT_KEYMAP`.
+
+The type-to-replace trigger (`editReplace`) is remapped the same way. By default it has no
+binding: any unbound printable key on the active cell dispatches it and opens the editor seeded
+with the typed character (Excel behavior). Defining it in `keymap` takes the action over
+exclusively — ANY `editReplace` binding suppresses the implicit printable-key fallback entirely,
+there is no additive mode: `keymap={{ editReplace: ["F3"] }}` means type-to-replace only happens
+on F3 (a plain edit start), and `keymap={{ editReplace: [] }}` disables it entirely. A printable
+key bound to `editReplace` (e.g. `"a"`) starts the edit seeded with that character, Excel-style.
+
+Action labels in the dialog (and the per-`GridAction` label map) come from
+`labels.keybindings` — see [Internationalization: coverage by group](/docs/i18n#coverage-by-group).
+
+## Related
+
+- [Selection & keyboard](/docs/selection-keyboard) — the selection model and the default
+  keymap table
+- [Two-stage Ctrl+A](/docs/selection-keyboard#two-stage-ctrla) — the select-all nuance

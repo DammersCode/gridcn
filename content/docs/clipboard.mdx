@@ -79,14 +79,9 @@ function processPaste(cells: string[][]) {
 
 ## Context menu paste
 
-<ComponentPreview name="data-grid-context-menu-demo" />
-
-<Callout type="warn" title="Requires the clipboard-read permission">
-  The Paste item of the `data-grid-context-menu` add-on needs `clipboard-read`. Browsers can
-  refuse this without a user gesture inside the menu item itself. When permission is not
-  available, the item degrades to a disabled state with a "press Ctrl+V" hint, instead of failing
-  silently.
-</Callout>
+The [context menu add-on](/docs/context-menu#paste-permission) adds a Paste item to the
+cell-surface menu. It needs the `clipboard-read` permission and degrades to a disabled state
+with a "press Ctrl+V" hint when the browser withholds it.
 
 ## Known limitations
 

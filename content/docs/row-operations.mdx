@@ -32,7 +32,7 @@ insertion index.
 | Delete row(s) | (no default binding) | (none) |
 
 Both bindings live in `DEFAULT_KEYMAP`, so they can be remapped or dropped through the `keymap`
-prop like every other binding (see [Selection & keyboard](/docs/selection-keyboard#remapping)).
+prop like every other binding (see [Keybindings](/docs/keybindings#remapping)).
 
 ## Reorder
 
@@ -70,10 +70,10 @@ already is. There is no keyboard reorder yet.
 
 ## Context menu
 
-The row-operation items ship with the [`data-grid-context-menu`](/docs/columns#pin-leftright)
-add-on, which installs a right-click menu on the grid's cell and header surfaces. Right-clicking
-a cell makes it the active cell with a single-cell selection before the menu opens, so the items
-always act on a known target.
+The row-operation items ship with the [context menu add-on](/docs/context-menu), which installs
+a right-click menu on the grid's cell and header surfaces. Right-clicking a cell makes it the
+active cell with a single-cell selection before the menu opens, so the items always act on a
+known target.
 
 The cell-surface items, in order:
 
