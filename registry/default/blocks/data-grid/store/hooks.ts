@@ -17,7 +17,7 @@ import type { DataGridLabels } from "../labels";
 import type { SearchMatch } from "../sort-filter";
 import { isSelectionEmpty, selectionContainsCell } from "../selection";
 import { colRangesEqual, selectedColRangesForRow, type ColRange } from "../selection/selected-col-ranges-for-row";
-import { cellErrorKey, getRangeValues, searchMatchKey } from "./compute";
+import { cellErrorKey, flashCellKey, getRangeValues, searchMatchKey } from "./compute";
 import { useDataGridStore, useDataGridStoreApi } from "./provider";
 import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridRowCellState, DataGridStoreState } from "./types";
 
@@ -534,6 +534,20 @@ function rowErrorCols(s: DataGridStoreState, viewRow: number): ReadonlyMap<numbe
   return errorCols;
 }
 
+/** This row's currently-flashing columns (view-col index set), or null when no flash key covers the row — same null-not-empty-Set convention as `searchMatchRows`. */
+function flashingColsForRow(s: DataGridStoreState, viewRow: number): ReadonlySet<number> | null {
+  if (s.flashingCells.size === 0) return null;
+  let cols: Set<number> | null = null;
+  for (let col = 0; col < s.visibleColumns.length; col++) {
+    const column = s.visibleColumns[col];
+    if (!column) continue;
+    if (!s.flashingCells.has(flashCellKey(viewRow, column.id))) continue;
+    if (!cols) cols = new Set();
+    cols.add(col);
+  }
+  return cols;
+}
+
 function computeRowCellState(s: DataGridStoreState, viewRow: number): DataGridRowCellState {
   const activeCol = s.activeCell !== null && s.activeCell.row === viewRow ? s.activeCell.col : null;
   const editing = s.editing;
@@ -547,12 +561,14 @@ function computeRowCellState(s: DataGridStoreState, viewRow: number): DataGridRo
 
   const errorCols = rowErrorCols(s, viewRow);
 
+  const flashingCols = flashingColsForRow(s, viewRow);
+
   const selectionEmpty = isSelectionEmpty(s.selection);
   const selectedColRanges = selectionEmpty
     ? EMPTY_COL_RANGES
     : selectedColRangesForRow(s.selection, viewRow, s.visibleColumns.length);
 
-  return { activeCol, editingCol, editingInitialText, searchMatchCols, errorCols, selectedColRanges };
+  return { activeCol, editingCol, editingInitialText, searchMatchCols, errorCols, flashingCols, selectedColRanges };
 }
 
 /** Content equality for two nullable `Set<number>`s — {@link computeRowCellState} allocates a fresh Set per call, so `searchMatchCols` needs content (not reference) comparison to stay referentially stable across unrelated store updates. */
@@ -580,6 +596,7 @@ function rowCellStateEqual(a: DataGridRowCellState, b: DataGridRowCellState): bo
     a.editingInitialText === b.editingInitialText &&
     searchMatchColsEqual(a.searchMatchCols, b.searchMatchCols) &&
     errorColsEqual(a.errorCols, b.errorCols) &&
+    searchMatchColsEqual(a.flashingCols, b.flashingCols) &&
     colRangesEqual(a.selectedColRanges, b.selectedColRanges)
   );
 }

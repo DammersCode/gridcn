@@ -47,4 +47,24 @@ describe("selectLine", () => {
     const result = selectLine(CompactSelection.fromSingleSelection(5), 2, { extendFromLast: true, from: 5 });
     expect(result.toArray()).toEqual([2, 3, 4, 5]);
   });
+
+  it("replaceFromLast replaces the channel with exactly the anchor..index span (the moving edge)", () => {
+    const result = selectLine(CompactSelection.fromArray([0, 1, 2, 3, 4]), 1, { replaceFromLast: true, from: 0 });
+    expect(result.toArray()).toEqual([0, 1]);
+  });
+
+  it("replaceFromLast grows the span as the index moves away from the anchor", () => {
+    const result = selectLine(CompactSelection.fromSingleSelection(0), 4, { replaceFromLast: true, from: 0 });
+    expect(result.toArray()).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it("replaceFromLast is symmetric: the span before the anchor shrinks the same way", () => {
+    const result = selectLine(CompactSelection.fromArray([2, 3, 4, 5]), 3, { replaceFromLast: true, from: 5 });
+    expect(result.toArray()).toEqual([3, 4, 5]);
+  });
+
+  it("replaceFromLast falls back to the channel's last member when `from` is omitted", () => {
+    const result = selectLine(CompactSelection.fromArray([2, 3]), 5, { replaceFromLast: true });
+    expect(result.toArray()).toEqual([3, 4, 5]);
+  });
 });

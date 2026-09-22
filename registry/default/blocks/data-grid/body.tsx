@@ -16,7 +16,8 @@ import { useRowWindow } from "./windowing/use-row-window";
 import { useDataGridRootContext, type WindowedColumn } from "./layout-context";
 import { DataGridRow } from "./row";
 import { DataGridOverlays } from "./overlays";
-import { useRowReorder } from "./rows/use-row-reorder";
+import { predictReorderTarget, useRowReorder } from "./rows/use-row-reorder";
+import { FLASH_KEYFRAMES } from "./cell";
 import { GRID_LAYER } from "./layers";
 import { gridAttrSelector } from "./data-attributes";
 import { isDev } from "./is-dev";
@@ -195,9 +196,7 @@ export function DataGridBody(): ReactNode {
 
   const onRowReorder = useCallback(
     (from: number, over: number, position: "before" | "after") => {
-      // boundary → final position (arrayMove frame): moving down, "before over" lands on over-1;
-      // moving up, "after over" lands on over+1
-      const to = position === "before" ? (from < over ? over - 1 : over) : (from < over ? over : over + 1);
+      const to = predictReorderTarget(from, over, position);
       if (!actions.reorderRows(from, to)) return;
       setReorderAnnouncement(labels.markers.reorderAnnouncement(from + 1, to + 1, rowCount));
     },
@@ -208,6 +207,7 @@ export function DataGridBody(): ReactNode {
     enabled: rowReorderEnabled,
     hitTestRow,
     onReorder: onRowReorder,
+    getScrollElement: () => scrollRef.current,
     onArm: interaction.cancelRowSelectDrag,
   });
 
@@ -242,6 +242,13 @@ export function DataGridBody(): ReactNode {
     }
   });
 
+  // Drop flash keys whose rows left the rendered window — a remounted cell would otherwise replay
+  // its one-shot pulse on scroll-back while the key is still live (the pulse is viewport-scoped by design).
+  useEffect(() => {
+    if (!measured) return;
+    actions._pruneFlashingCells(viewRowIndices);
+  }, [measured, viewRowIndices, actions]);
+
   const canvasStyle: CSSProperties & Record<string, string | number> = {
     position: "absolute",
     insetBlockStart: 0,
@@ -261,6 +268,8 @@ export function DataGridBody(): ReactNode {
   return (
     <>
       <div style={canvasStyle} data-grid-rows-canvas="">
+        {/* self-scoped keyframes for the flashCells write-pulse (loading-skeleton's own <style> pattern — registry item, no global.css edit) */}
+        <style>{FLASH_KEYFRAMES}</style>
         {viewRowIndices.map((viewRowIndex, i) => {
           const key = rowIds[i] ?? viewRowIndex;
           return (

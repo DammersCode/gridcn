@@ -75,6 +75,7 @@ export { type ColumnLayout as GridColumnLayout } from "./layout-context";
 
 export {
   cellErrorKey,
+  flashCellKey,
   DataGridProvider,
   useDataGridStoreApi,
   useDataGridActions,

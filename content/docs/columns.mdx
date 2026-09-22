@@ -209,7 +209,8 @@ from the `columns` array, and reorder and resize do not affect it. Set `rowMarke
 | `"both"` | The row number, replaced by the checkbox on hover or when the row is selected (a group-hover pattern). The number is never gone. The checkbox only sits in front of it at the moment the checkbox is actionable. |
 
 Marker press and drag, in `"checkbox"` and `"both"` modes, selects a contiguous multi-row range
-the same way that header press and drag selects columns. See
+that follows the pointer from the press row — dragging back over selected rows de-selects them
+(contrast the header gesture, whose column range only grows). See
 [Selection & keyboard](/docs/selection-keyboard#mouse-gestures). The aria-labels of the marker
 column (`markers.selectAll` and `markers.selectRow`) are translatable through `labels`. See
 [i18n](/docs/i18n#coverage-by-group).

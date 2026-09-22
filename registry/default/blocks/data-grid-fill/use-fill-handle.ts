@@ -8,6 +8,7 @@ import {
   inlineAutoScrollStep,
   candidateRowIds,
   pointerToCoord,
+  flashCellKey,
   resolveBulkWrites,
   snapshotBulkBatch,
   useBulkGeneration,
@@ -229,10 +230,14 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
         void writes.then((resolved) => {
           const current = storeApi.getState();
           if (!guard.isCurrent(token, current, snapshot)) return;
-          actions.applyCellUpdates(guard.reresolve(current, resolved), "fill");
+          const applied = guard.reresolve(current, resolved);
+          actions.applyCellUpdates(applied, "fill");
+          // Pulse the cells that actually landed — the re-resolved batch, not the held one.
+          actions.flashCells(applied.map((w) => flashCellKey(w.viewRow, w.columnId)));
         });
       } else {
         actions.applyCellUpdates(writes, "fill");
+        actions.flashCells(writes.map((w) => flashCellKey(w.viewRow, w.columnId)));
       }
 
       // expand selection to combineRects(source, strip): re-derive via the plain selectCell/extendTo

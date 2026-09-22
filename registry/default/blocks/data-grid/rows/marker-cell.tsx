@@ -70,7 +70,7 @@ export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
       data-dragging={isReorderDragging || undefined}
       aria-label={mode === "reorder" ? labels.markers.reorderRow(viewRowIndex + 1) : undefined}
       className={cn(
-        "group flex items-center justify-center border-b border-border bg-background",
+        "group flex items-center justify-center border-b border-border bg-background transition-colors group-hover/row:transition-none",
         // Same rule as a pinned-column cell (see cell.tsx): this sits opaque above the scrolled
         // canvas, so a translucent tint would let the scrolled content show through it.
         // color-mix() pre-composites the identical tint as an OPAQUE color, in both themes.

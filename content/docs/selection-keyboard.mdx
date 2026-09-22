@@ -21,7 +21,8 @@ selection never re-renders a single cell.
 - **Shift+click** extends the range from the current anchor to the clicked cell.
 - **Header press and drag** selects a contiguous multi-column range. A plain header click
   selects the whole column, or sorts it if `headerClickBehavior="sort"`.
-- **Marker press and drag**, with `rowMarkers` enabled, selects multiple rows.
+- **Marker press and drag**, with `rowMarkers` enabled, selects multiple rows. The range follows
+  the pointer from the press row, so dragging back over selected rows de-selects them again.
 - **Ctrl/Cmd-click** adds a new range to the stack (`enableMultiRange`, on by default).
 
 The grid body suppresses native browser text selection during these gestures. Editors remain

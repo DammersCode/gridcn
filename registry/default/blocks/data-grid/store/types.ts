@@ -246,8 +246,12 @@ export function toInternalSyncProps<TData>(props: DataGridSyncProps<TData>): Int
   return props as unknown as InternalSyncProps;
 }
 
-/** Options passed to selectRow/selectColumn actions; mirrors lib/selection's SelectLineOptions. */
-export type SelectLineActionOptions = Omit<SelectLineOptions, "from">;
+/**
+ * Options passed to selectRow/selectColumn actions; mirrors lib/selection's SelectLineOptions
+ * (including `from` — the row-marker drag passes its press-row anchor so `replaceFromLast` can
+ * replace the channel with exactly the anchor..current span).
+ */
+export type SelectLineActionOptions = SelectLineOptions;
 
 /**
  * One targeted cell write for {@link DataGridActions.updateCells}, addressed by STABLE ROW ID —
@@ -381,8 +385,15 @@ export type DataGridStoreState = Omit<
    * same maintenance discipline as `RowIndexCache`. Always {@link EMPTY_CELL_ERRORS} when empty, so
    * `useDataGridCellErrors`-style reads never allocate on the common no-error path.
    */
-  cellErrors: ReadonlyMap<string, string>;
-  /** Always defined: defaults to {@link EMPTY_OVERLAY_PLUGINS} so `useDataGridOverlayPlugins` never returns undefined. See `overlayPlugins`'s doc comment (DataGridSyncProps). */
+   cellErrors: ReadonlyMap<string, string>;
+   /**
+    * Transient "highlight-what-changed" keys ({@link flashCellKey}, view-space) currently flashing,
+    * auto-cleared per key after `flashCells`'s duration (default 1400 ms — the 1.2 s fade pulse
+    * finishes before the key lifts, so the cell never visibly snaps back). NOT a data change: no
+    * `DataChange`, no history entry. Always {@link EMPTY_FLASHING_CELLS} identity when empty.
+    */
+   flashingCells: ReadonlySet<string>;
+   /** Always defined: defaults to {@link EMPTY_OVERLAY_PLUGINS} so `useDataGridOverlayPlugins` never returns undefined. See `overlayPlugins`'s doc comment (DataGridSyncProps). */
   overlayPlugins: readonly OverlayPlugin[];
   /** Always defined: defaults to {@link EMPTY_ROW_BANDS} (zero-length top/bottom, `render` never called) so `useDataGridRowBands` never returns undefined. See `rowBands`'s doc comment (DataGridSyncProps). */
   rowBands: RowBandsSpec;
@@ -549,6 +560,13 @@ export type DataGridActions = {
   setCellErrors(errors: readonly CellErrorEntry[]): void;
   /** Clears `cellErrors` for `targets`, or every entry when `targets` is omitted. Same non-data-change contract as `setCellErrors`. */
   clearCellErrors(targets?: readonly CellErrorTarget[]): void;
+  /**
+   * Puts the given {@link flashCellKey} keys into a transient ~1.2 s fade pulse (the
+   * "highlight-what-changed" effect a fill/paste/move gesture plays on the cells it just wrote).
+   * A key already flashing gets its timer RESET, so overlapping gestures each get the full pulse.
+   * NOT a data change — no `DataChange`, no history, no selection movement.
+   */
+  flashCells(keys: readonly string[], durationMs?: number): void;
   /** Clears every non-readOnly cell in the current selection to its type's clearValue(), as one batch DataChange. */
   deleteSelection(): void;
   /**
@@ -621,6 +639,12 @@ export type DataGridActions = {
   _registerKeymap(keymap: Keymap): void;
   /** @internal the `data-grid-fill` add-on's tracker component registers/clears its keymap handlers on mount/unmount; not part of the public hook surface. */
   _registerFillHandlers(handlers: { fillDown: () => void; fillRight: () => void; cancelFillDrag: () => void } | null): void;
+  /**
+   * @internal Drops the flash keys whose view row left `keptViewRows` (the body's rendered window),
+   * so a cell that scrolls out and back in never replays its one-shot pulse. Not part of the
+   * public hook surface.
+   */
+  _pruneFlashingCells(keptViewRows: readonly number[]): void;
 };
 
 /** Full store shape: interaction state + the stable actions object. */
@@ -706,5 +730,7 @@ export type DataGridRowCellState = {
   searchMatchCols: ReadonlySet<number> | null;
   /** This row's errored columns (column index -> message), or null when this row has none — same zero-render contract as `searchMatchCols`. */
   errorCols: ReadonlyMap<number, string> | null;
+  /** This row's currently-flashing columns (transient write-pulse keys), or null when none — same zero-render contract as `searchMatchCols`. */
+  flashingCols: ReadonlySet<number> | null;
   selectedColRanges: readonly ColRange[];
 };

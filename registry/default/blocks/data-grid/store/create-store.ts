@@ -43,6 +43,7 @@ import {
   toggleSortAdditive,
   withFilterIds,
   EMPTY_CELL_ERRORS,
+  EMPTY_FLASHING_CELLS,
   EMPTY_OVERLAY_PLUGINS,
   EMPTY_ROW_BANDS,
 } from "./compute";
@@ -109,7 +110,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
    * is what keeps `computeViewIndex` off the controlled streaming path (design spec §3.3 — without
    * this the 56 ms cliff returns for every controlled consumer).
    */
-  let lastEmittedData: readonly unknown[] | null = null;
+   let lastEmittedData: readonly unknown[] | null = null;
+   /** Per-key auto-clear timers for `flashCells`; a re-flash of a live key clears its old timer so the pulse restarts. */
+   const flashTimers = new Map<string, ReturnType<typeof setTimeout>>();
   /**
    * Data indices whose values changed since `viewIndex` was last rebuilt, so `reconcileView` and the
    * next `"immediate"` batch can take the same incremental path instead of a full re-sort. `null`
@@ -248,6 +251,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     editingError: null,
     editingRejectionCount: 0,
     cellErrors: EMPTY_CELL_ERRORS,
+    flashingCells: EMPTY_FLASHING_CELLS,
     overlayPlugins: init.overlayPlugins ?? EMPTY_OVERLAY_PLUGINS,
     rowBands: init.rowBands ?? EMPTY_ROW_BANDS,
     lastHighlightedRow: null,
@@ -317,8 +321,14 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         // enableRangeSelection: false demotes shift-click to a plain toggle-select too (no row range).
         const additive = opts.additive && enableMultiRange;
         const extendFromLast = opts.extendFromLast && enableRangeSelection;
+        const replaceFromLast = opts.replaceFromLast && enableRangeSelection;
         set({
-          selection: selectRowPure(selection, index, { additive, extendFromLast, from: lastHighlightedRow ?? undefined }),
+          selection: selectRowPure(selection, index, {
+            additive,
+            extendFromLast,
+            replaceFromLast,
+            from: opts.from ?? lastHighlightedRow ?? undefined,
+          }),
           lastHighlightedRow: index,
         });
       },
@@ -609,6 +619,41 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           if (next.delete(cellErrorKey(target.rowId, target.columnId))) changed = true;
         }
         if (changed) set({ cellErrors: next });
+      },
+      flashCells(keys, durationMs = 1400) {
+        if (keys.length === 0) return;
+        const next = new Set(get().flashingCells);
+        for (const key of keys) {
+          next.add(key);
+          const existing = flashTimers.get(key);
+          if (existing !== undefined) clearTimeout(existing);
+          flashTimers.set(
+            key,
+            setTimeout(() => {
+              flashTimers.delete(key);
+              const current = get();
+              if (!current.flashingCells.has(key)) return;
+              const lifted = new Set(current.flashingCells);
+              lifted.delete(key);
+              set({ flashingCells: lifted });
+            }, durationMs),
+          );
+        }
+        set({ flashingCells: next });
+      },
+      _pruneFlashingCells(keptViewRows) {
+        const s = get();
+        if (s.flashingCells.size === 0) return;
+        const kept = new Set(keptViewRows);
+        const next = new Set(s.flashingCells);
+        for (const key of next) {
+          // flashCellKey is `${viewRow}:${columnId}` — the view row is always a plain integer up to the first colon.
+          const viewRow = Number(key.slice(0, key.indexOf(":")));
+          if (kept.has(viewRow)) continue;
+          next.delete(key);
+        }
+        if (next.size === s.flashingCells.size) return;
+        set({ flashingCells: next });
       },
       deleteSelection() {
         const s = get();

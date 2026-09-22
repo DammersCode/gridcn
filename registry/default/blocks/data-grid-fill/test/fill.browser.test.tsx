@@ -238,6 +238,57 @@ describe("data-grid-fill add-on", () => {
     expect(onDataChange).not.toHaveBeenCalled();
   });
 
+  it("pulses exactly the written cells after a committed fill, and lifts the pulse on its own", async () => {
+    const data = makeFillRows(6);
+    data[0]!.value = 2;
+    data[1]!.value = 4;
+    renderFillGrid(data);
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    await selectValueColumn(2);
+    await dragHandleToRow(4); // fills the "value" column's rows 2-4 (6, 8, 10)
+
+    const flashed = () => [...document.querySelectorAll<HTMLElement>('[role="gridcell"][data-flash]')];
+    await expect.poll(() => flashed().length, { timeout: 2000 }).toBe(3);
+
+    // exactly the written destination cells: "value" column (index 1), rows 2-4 — nothing else.
+    const stride = fillColumns.length;
+    const cells = fillCells();
+    const expected = [cells[1 + 2 * stride]!, cells[1 + 3 * stride]!, cells[1 + 4 * stride]!];
+    expect(flashed().every((c) => expected.includes(c))).toBe(true);
+    // the pulse plays the body-injected fade keyframe, not a static class.
+    expect(flashed()[0]!.style.animation).toContain("grid-cell-flash");
+    const styleTags = [...document.querySelectorAll("style")].map((s) => s.textContent ?? "");
+    expect(styleTags.some((t) => t.includes("@keyframes grid-cell-flash"))).toBe(true);
+
+    await expect.poll(() => flashed().length, { timeout: 5000 }).toBe(0);
+  });
+
+  it("a flashed cell that scrolls out of the viewport never replays its pulse on scroll-back", async () => {
+    const data = makeFillRows(30);
+    data[0]!.value = 2;
+    data[1]!.value = 4;
+    renderFillGrid(data);
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    await selectValueColumn(2);
+    await dragHandleToRow(4); // fills rows 2-4, inside the pulse window below
+
+    const flashed = () => [...document.querySelectorAll<HTMLElement>('[role="gridcell"][data-flash]')];
+    await expect.poll(() => flashed().length, { timeout: 2000 }).toBe(3);
+
+    const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+    const scroller = (grid.closest('[class*="overflow"]') ?? grid.parentElement) as HTMLElement;
+    // scroll the flashed rows out of the rendered window, then back in — still inside the 1400 ms
+    // pulse window, so without the viewport prune the remounted cells would replay the animation.
+    scroller.scrollTop = scroller.scrollHeight;
+    await expect.poll(() => document.querySelector('[data-grid-row-index="3"]'), { timeout: 2000 }).toBeNull();
+    scroller.scrollTop = 0;
+    await expect.poll(() => document.querySelector('[data-grid-row-index="3"]'), { timeout: 2000 }).not.toBeNull();
+
+    expect(flashed().length).toBe(0);
+  });
+
   it("mod+D fills the selection's top row downward across the range", async () => {
     const onDataChange = mockDataChangeFn();
     const data = makeFillRows(4);
@@ -465,5 +516,22 @@ describe("data-grid-fill with an async schema", () => {
 
     await delay(80);
     expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("the held batch only pulses the cells that actually landed", async () => {
+    const onDataChange = mockDataChangeFn();
+    const data = makeFillRows(4);
+    data[0]!.value = 7;
+    renderAsyncFillGrid(data, onDataChange);
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    await selectValueColumn(4);
+    await userEvent.keyboard("{Control>}d{/Control}");
+
+    await vi.waitFor(() => expect(onDataChange).toHaveBeenCalledTimes(1));
+    const flashed = () => [...document.querySelectorAll<HTMLElement>('[role="gridcell"][data-flash]')];
+    // the pulse starts at the LATE commit (after the schema resolved), covering the 3 landed cells.
+    await expect.poll(() => flashed().length, { timeout: 2000 }).toBe(3);
+    await expect.poll(() => flashed().length, { timeout: 5000 }).toBe(0);
   });
 });

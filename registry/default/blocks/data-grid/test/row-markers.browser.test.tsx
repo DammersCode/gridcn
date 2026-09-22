@@ -529,6 +529,59 @@ describe("mouse-selection hardening matrix (regression: drag-select must never e
     expect(document.querySelector(gridAttrSelector("editing", "true"))).toBeNull();
   });
 
+  it("a plain marker drag (reorder off) grows AND shrinks the row range as the pointer moves", async () => {
+    render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(10)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" enableRowReorder={false} />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const markers = markerCells();
+
+    const moveTo = async (el: HTMLElement) => {
+      const rect = el.getBoundingClientRect();
+      document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: rect.left + 5, clientY: rect.top + 5 }));
+      await new Promise((r) => requestAnimationFrame(r));
+      await new Promise((r) => requestAnimationFrame(r));
+    };
+    const selectedCount = () => markerCells().filter((m) => m.hasAttribute("data-row-selected")).length;
+
+    await markers[0]!.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1 }));
+    await moveTo(markers[4]!); // drag down: rows 0-4
+    await expect.poll(() => selectedCount(), { timeout: 2000 }).toBe(5);
+    await moveTo(markers[1]!); // drag back up: rows 2-4 must de-select
+    await expect.poll(() => selectedCount(), { timeout: 2000 }).toBe(2);
+    document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 1 }));
+    expect(selectedCount()).toBe(2);
+  });
+
+  it("a checkbox press+drag grows AND shrinks the row range (the pointer is the moving edge)", async () => {
+    render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(10)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="checkbox" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const checkbox = (row: number) =>
+      [...document.querySelectorAll<HTMLElement>(gridAttrSelector("markerCheckbox"))][row]!;
+
+    const moveTo = async (el: HTMLElement) => {
+      const rect = el.getBoundingClientRect();
+      document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: rect.left + 5, clientY: rect.top + 5 }));
+      await new Promise((r) => requestAnimationFrame(r));
+      await new Promise((r) => requestAnimationFrame(r));
+    };
+    const selectedCount = () => markerCells().filter((m) => m.hasAttribute("data-row-selected")).length;
+
+    await checkbox(0).dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1 }));
+    await moveTo(checkbox(4)!); // drag down: rows 0-4
+    await expect.poll(() => selectedCount(), { timeout: 2000 }).toBe(5);
+    await moveTo(checkbox(2)!); // drag back up: rows 3-4 must de-select
+    await expect.poll(() => selectedCount(), { timeout: 2000 }).toBe(3);
+    document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 1 }));
+    expect(selectedCount()).toBe(3);
+  });
+
   // Excel model: clicks never edit — this guards that pointer jitter neither
   // misreads as a range drag nor (per the model) opens the editor.
   it("a slow click (press, tiny sub-3px jitter, release) on the active cell neither edits nor paints a range", async () => {

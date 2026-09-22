@@ -35,6 +35,14 @@ export function searchMatchKey(viewRow: number, columnId: string): string {
 /** Shared empty-Set identity for the no-search-active state, so `useDataGridIsSearchMatch` never allocates on the hot path. */
 export const EMPTY_SEARCH_MATCH_SET: ReadonlySet<string> = new Set();
 
+/** Stable key for {@link DataGridStoreState.flashingCells}: `"${viewRow}:${columnId}"` — view-space like `searchMatchKey` (a flash is a transient pulse on the cell currently on screen, never row identity). */
+export function flashCellKey(viewRow: number, columnId: string): string {
+  return `${viewRow}:${columnId}`;
+}
+
+/** Shared empty-Set identity for the no-flash-active state, so per-row flash derivation never allocates on the common path. */
+export const EMPTY_FLASHING_CELLS: ReadonlySet<string> = new Set();
+
 /** Shared empty-Map identity for the no-search-active state; mirrors {@link EMPTY_SEARCH_MATCH_SET}. */
 export const EMPTY_SEARCH_MATCH_ROWS: ReadonlyMap<number, ReadonlySet<number>> = new Map();
 

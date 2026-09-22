@@ -130,6 +130,7 @@ export const DataGridRow = memo(function DataGridRow({
             isSearchMatch={cellState.searchMatchCols?.has(index) ?? false}
             isSelected={isActive || colRangesContain(cellState.selectedColRanges, index)}
             isSkeleton={isSkeleton}
+            isFlashing={cellState.flashingCols?.has(index) ?? false}
             cellError={cellState.errorCols?.get(index) ?? null}
           />
         );

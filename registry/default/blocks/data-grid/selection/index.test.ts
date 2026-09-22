@@ -381,6 +381,23 @@ describe("selectRow / selectColumn", () => {
     expect(sel.rows.toArray()).toEqual([5, 8, 9]);
   });
 
+  it("replaceFromLast makes the row channel exactly the anchor..index span (the drag's moving edge)", () => {
+    let sel = selectRow(emptySelection(), 0, {});
+    sel = selectRow(sel, 4, { replaceFromLast: true, from: 0 });
+    expect(sel.rows.toArray()).toEqual([0, 1, 2, 3, 4]);
+    // dragging back UP shrinks the span again — the union-extend semantics never could
+    sel = selectRow(sel, 1, { replaceFromLast: true, from: 0 });
+    expect(sel.rows.toArray()).toEqual([0, 1]);
+  });
+
+  it("replaceFromLast preserves the column channel, like extendFromLast", () => {
+    let sel = selectColumn(emptySelection(), 1, {});
+    sel = selectRow(sel, 3, { replaceFromLast: true, from: 1 });
+    expect(sel.columns.toArray()).toEqual([1]);
+    expect(sel.rows.toArray()).toEqual([1, 2, 3]);
+    expect(sel.current).toBeNull();
+  });
+
   it("selecting a row clears the column channel and current range", () => {
     let sel = selectColumn(emptySelection(), 1, {});
     sel = selectRow(sel, 2, {});
