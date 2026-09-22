@@ -44,7 +44,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   selection math, `CompactSelection`, clipboard parse/serialize, fill/series inference, sort/filter
   matching, keymap matching, history, url-state serializers, CSV/XLSX import/export helpers, and
   context-menu target resolution.
-- `LICENSE` (MIT).
+- `LICENSE` (GridCN Source Available License).
 - `data-grid-lazy` add-on: `useDataGridLazyRows` + `DataGridLazyGuard` for fetching rows on demand
   as the viewport scrolls, instead of loading the full dataset up front.
 - `data-grid-sort-list` add-on: toolbar sort button + popover for adding/removing/reordering
@@ -85,7 +85,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Breaking:** The fill handle extracted out of core into a new `data-grid-fill` add-on (workplan
   #48 cut #2), reusing the overlay-plugin seam the presence extraction built. README/docs
   positioning updated: core is now range selection + Excel clipboard + editing engine; the fill
-  handle is its own free MIT add-on, one `npx shadcn add @gridcn/data-grid-fill` away. Removed from
+     handle is its own free add-on, one `npx shadcn add @gridcn/data-grid-fill` away. Removed from
   core: `useFillHandle`, `FillHandleHandlers`, `FillPatternArgs`, the `fillPreview`/`setFillPreview`
   store state, `DataGridRoot`'s `onFillPattern` prop, and `DataGridOverlays`'s `fillHandleHandlers`
   prop — install the add-on and call its `useDataGridFill()` hook instead (`onFillPattern` is now

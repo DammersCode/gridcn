@@ -1,6 +1,6 @@
 {
   "title": "gridcn",
-  "description": "gridcn is an editable, composable data grid for the shadcn/ui ecosystem (React + TypeScript). Real DOM cells, shadcn styling, windowed row and column rendering, virtualized to ~1M rows. MIT licensed.",
+  "description": "gridcn is an editable, composable data grid for the shadcn/ui ecosystem (React + TypeScript). Real DOM cells, shadcn styling, windowed row and column rendering, virtualized to ~1M rows. Source-available under the GridCN Source Available License.",
   "pages": [
     "---[Sparkles]Getting Started---",
     "index",
@@ -35,6 +35,7 @@
     "events-state",
     "api-reference",
     "recipes",
-    "project-status"
+    "project-status",
+    "license"
   ]
 }

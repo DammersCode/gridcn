@@ -2,6 +2,7 @@
   "name": "gridcn",
   "version": "0.1.0",
   "private": true,
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "build": "next build",
     "dev": "next dev",

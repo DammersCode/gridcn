@@ -2,6 +2,8 @@
 
 ## Development
 
+Contributions are licensed under the GridCN Source Available License — see LICENSE §8.
+
 ```bash
 pnpm install        # deps (pnpm 10+)
 pnpm dev            # docs site + demos at http://localhost:3000
