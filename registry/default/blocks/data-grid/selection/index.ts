@@ -12,4 +12,5 @@ export { extendSelection, type ExtendDirection, type ExtendSelectionOptions } fr
 export { selectionContainsCell, selectionRects, selectRow, selectColumn } from "./line-ops";
 export { selectLine, type SelectLineOptions } from "./select-line-options";
 export { offsetSelectionForRows } from "./offset-selection-for-rows";
+export { rowReorderMap, reorderSelectionForRow } from "./reorder-selection-for-row";
 export { selectAllProgression, computeDataRegion, type SelectAllStage, type IsEmptyAt } from "./select-all-progression";

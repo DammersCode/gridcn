@@ -138,7 +138,16 @@ export type DataOp<TData> =
       cells?: { columnId: string; value: unknown; prev: unknown }[];
     }
   | { type: "insert"; rowId: string; row: TData; index: number }
-  | { type: "delete"; rowId: string; row: TData; index: number };
+  | { type: "delete"; rowId: string; row: TData; index: number }
+  | {
+      type: "move";
+      rowId: string;
+      row: TData;
+      /** The row's position before the move. */
+      from: number;
+      /** The row's position after the move (final index; `applyChange` deletes by id and places the row at output slot `to`, `invertChange` swaps `from`/`to`). */
+      to: number;
+    };
 
 /** One user gesture = one batch (a paste, a fill, a delete-range is a single entry). */
 export type DataChange<TData> = {

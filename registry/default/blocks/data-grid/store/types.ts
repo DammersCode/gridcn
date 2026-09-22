@@ -84,6 +84,12 @@ export type DataGridSyncProps<TData = unknown> = {
   enableColumnResize?: boolean;
   /** Enables drag-to-reorder columns grid-wide; default true. Per-column `reorderable: false` still wins. */
   enableColumnReorder?: boolean;
+  /**
+   * Enables drag-to-reorder rows grid-wide; default true. The gesture lives on the row marker
+   * (every mode except `'none'`), with the same disambiguation as column reorder: a plain drag
+   * that leaves the origin row reorders, Shift+drag always stays the row-select gesture.
+   */
+  enableRowReorder?: boolean;
   /** Enables pin/unpin actions grid-wide; default true. Per-column `pinnable: false` still wins. */
   enableColumnPinning?: boolean;
   /** How a plain header click behaves; default 'select'. See {@link HeaderClickBehavior}. */
@@ -313,6 +319,7 @@ export type DataGridStoreState = Omit<
   | "enableMultiRange"
   | "enableColumnResize"
   | "enableColumnReorder"
+  | "enableRowReorder"
   | "enableColumnPinning"
   | "headerClickBehavior"
   | "labels"
@@ -334,6 +341,7 @@ export type DataGridStoreState = Omit<
   enableMultiRange: boolean;
   enableColumnResize: boolean;
   enableColumnReorder: boolean;
+  enableRowReorder: boolean;
   enableColumnPinning: boolean;
   headerClickBehavior: HeaderClickBehavior;
   activeCell: CellCoord | null;
@@ -589,6 +597,17 @@ export type DataGridActions = {
    * every duplicated row gets a distinct id, never colliding with its source's React key.
    */
   duplicateRows(viewRowIndexes: number[]): void;
+  /**
+   * Moves the row at view index `from` so it lands at view index `to` (final position — arrayMove
+   * semantics: `from < to` shifts rows `from+1..to` up one, `from > to` shifts rows `to..from-1`
+   * down one). One `{source: 'row-op'}` DataChange with a single id-keyed `move` op (one undo
+   * entry). No-ops (silent, dev-warned where the cause is a misconfiguration): `enableRowReorder`
+   * off, readOnly, an open edit session (the editor pins a view coordinate the move would
+   * invalidate), an active sort/filter (the view order is owned by the sort/filter, not the data),
+   * unloaded (lazy) rows (a reorder would shift the lazy add-on's index bookkeeping), and a drop
+   * that leaves the row where it already is.
+   */
+  reorderRows(from: number, to: number): void;
   /** @internal keyboard nav helper: moves/extends the active cell by a view-space delta, clamped to view bounds. */
   _moveActiveCell(d: { dx: number; dy: number }, opts?: { extend?: boolean; retain?: boolean }): void;
   /** @internal syncs live consumer props and recomputes derived state; not part of the public hook surface. */

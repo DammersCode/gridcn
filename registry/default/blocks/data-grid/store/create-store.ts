@@ -11,6 +11,8 @@ import {
   offsetSelectionForRows,
   pushRange,
   rectFromCorners,
+  reorderSelectionForRow,
+  rowReorderMap,
   selectAllProgression,
   selectCell as selectCellPure,
   selectColumn as selectColumnPure,
@@ -843,6 +845,50 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           if (activeCell && activeCell.row >= insertAt) activeCell = { ...activeCell, row: activeCell.row + 1 };
         });
         set({ data: batch.nextData, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), selection, activeCell });
+      },
+      reorderRows(from, to) {
+        const s = get();
+        if (!s.enableRowReorder) return;
+        if (s.readOnly) return;
+        // an open editor pins a view coordinate the move would silently invalidate (the commit
+        // path re-reads the shifted viewIndex for the same coord)
+        if (s.editing) return;
+        if (s.sortState.length > 0 || s.filterState.length > 0) {
+          warnDev("reorderRows is a no-op while a sort or filter is active (the view order is owned by the sort/filter)");
+          return;
+        }
+        const n = s.data.length;
+        if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || from >= n || to < 0 || to >= n || from === to) return;
+        // viewIndex is the identity permutation here (sort/filter gated above), so view == data indices
+        // final-position semantics: `to === from` (dropping onto the row's own slot) is the only
+        // no-op shape; `to` one past `from` is a genuine one-slot move down
+        const fromData = s.viewIndex[from]!;
+        const toData = s.viewIndex[to]!;
+        if (toData === fromData) return;
+        for (let i = 0; i < n; i++) {
+          // indexed access (not .some/forEach, which skip sparse holes): a reorder would shift
+          // the lazy add-on's index-keyed loaded-range bookkeeping out from under in-flight fetches
+          if (s.data[i] === undefined) {
+            warnDev("reorderRows is a no-op while rows are still unloaded (useDataGridLazyRows): load the range first");
+            return;
+          }
+        }
+        const moved = s.data[fromData]!;
+        const nextData = s.data.slice();
+        nextData.splice(fromData, 1);
+        nextData.splice(toData, 0, moved);
+        const ops: DataOp<unknown>[] = [{ type: "move", rowId: s.getRowId(moved, fromData), row: moved, from: fromData, to: toData }];
+        rowIndexCache.invalidate();
+        forgetDeferredRows();
+        lastEmittedData = nextData;
+        s.onDataChange?.(nextData, { source: "row-op", ops });
+        const f = rowReorderMap(from, to);
+        set({
+          data: nextData,
+          selection: reorderSelectionForRow(s.selection, from, to),
+          activeCell: s.activeCell ? { ...s.activeCell, row: f(s.activeCell.row) } : null,
+          lastHighlightedRow: s.lastHighlightedRow === null ? null : f(s.lastHighlightedRow),
+        });
       },
       _moveActiveCell(d, opts) {
         const s = get();

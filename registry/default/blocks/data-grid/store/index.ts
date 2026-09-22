@@ -74,6 +74,7 @@ export {
   useDataGridCellState,
   useDataGridRowCellState,
   useDataGridRowMarkers,
+  useDataGridRowReorderEnabled,
   useDataGridSelectionConfig,
   useDataGridAllRowsSelected,
 } from "./hooks";

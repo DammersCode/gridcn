@@ -607,6 +607,11 @@ export function useDataGridRowMarkers(): RowMarkersMode {
   return useDataGridStore((s) => s.rowMarkers);
 }
 
+/** Whether drag-to-reorder rows is enabled grid-wide (see `enableRowReorder`). */
+export function useDataGridRowReorderEnabled(): boolean {
+  return useDataGridStore((s) => s.enableRowReorder);
+}
+
 /** The resolved (defaulted) selection-gesture config; see {@link SelectionConfig}. */
 export function useDataGridSelectionConfig(): {
   enableRowSelection: boolean;

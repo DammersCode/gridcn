@@ -314,6 +314,8 @@ export type DataGridProps<TData> = {
   enableColumnResize?: boolean;
   /** Enables drag-to-reorder columns grid-wide; default true. Per-column `reorderable: false` still wins. */
   enableColumnReorder?: boolean;
+  /** Enables drag-to-reorder rows grid-wide (marker gesture); default true. See the `enableRowReorder` doc in the store's sync props. */
+  enableRowReorder?: boolean;
   /** Enables pin/unpin actions grid-wide; default true. Per-column `pinnable: false` still wins. */
   enableColumnPinning?: boolean;
   /** How a plain header click behaves; default 'select'. See {@link HeaderClickBehavior}. */
@@ -411,6 +413,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
     enableMultiRange,
     enableColumnResize,
     enableColumnReorder,
+    enableRowReorder,
     enableColumnPinning,
     headerClickBehavior,
     labels,
@@ -471,6 +474,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
       enableMultiRange={enableMultiRange}
       enableColumnResize={enableColumnResize}
       enableColumnReorder={enableColumnReorder}
+      enableRowReorder={enableRowReorder}
       enableColumnPinning={enableColumnPinning}
       headerClickBehavior={headerClickBehavior}
       labels={labels}
