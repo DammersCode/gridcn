@@ -1,0 +1,44 @@
+---
+title: Column layout
+description: Persist widths, order, pins, and hidden columns — defaultColumnLayout in, onColumnLayoutChange out.
+icon: Save
+---
+
+The layout-persistence pair: `defaultColumnLayout` **seeds** widths/order/pins/hidden once at
+mount (it is NOT controlled — later prop changes are ignored), and `onColumnLayoutChange`
+fires from the store actions layer on every resize commit, reorder, pin, and hide. The demo
+round-trips that snapshot to `localStorage`, so a manual page reload restores the user's
+layout — resize a header, drag a column, hide one from the columns menu, then reload.
+
+<ComponentPreview name="data-grid-column-layout-demo" />
+
+<InstallCommand item="data-grid-column-layout-demo" />
+
+## What's in the demo
+
+- `defaultColumnLayout={layout}` — seeded from `localStorage` at mount
+- `onColumnLayoutChange={persist}` — writes the `ColumnLayout` snapshot back after each gesture
+- `DataGridColumnsMenu` — hide/restore columns (the `hidden` part of the snapshot)
+- Reset button — clears the snapshot and re-seeds the grid with the column defaults
+- Live "current order" readout — the `order` part of the snapshot as it changes
+
+## The snapshot shape
+
+```ts
+type ColumnLayout = {
+  widths: Record<string, number>; // only columns the user actually resized
+  order: string[]; // always the full current column-id order
+  pins: Record<string, "left" | "right">;
+  hidden: string[];
+};
+```
+
+## Behavior reference
+
+- [Reading column state](/docs/columns#reading-column-state) — live access to the same state
+- [Persisting a user's layout](/docs/columns#persisting-a-users-layout) — the canonical pattern
+
+## Related
+
+- [Pinning](/docs/examples/columns/pinning) — the per-column gestures this snapshot records
+- [URL state](/docs/url-state) — alternative persistence as shareable URLs

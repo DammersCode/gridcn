@@ -1,0 +1,29 @@
+---
+title: Custom headers
+description: ReactNode headers with live sort-state icons — the header is a component, not a string.
+icon: Heading
+---
+
+`ColumnDef.header` accepts a component, not just a string — the header subscribes to live grid
+state and re-renders when it changes. In `sort` header-click mode a custom header owns its own
+display: the built-in sort arrow is only appended to string headers.
+
+<ComponentPreview name="data-grid-custom-headers-demo" />
+
+<InstallCommand item="data-grid-custom-headers-demo" />
+
+## What's in the demo
+
+- `header: <span>…</span>` — ReactNode headers on Name and Score
+- `useDataGridSortState()` — the live sort spec list; the icon follows unsorted → asc → desc
+- `headerText: "Name"` — the accessible/aria text when `header` is not a plain string
+- Email stays a string header and gets the built-in sort arrow appended
+
+## Behavior reference
+
+- [Custom headers](/docs/columns#custom-headers) — when to use a component header and the
+  `headerText` contract
+
+## Related
+
+- [Pinning](/docs/examples/columns/pinning) — the built-in header menu on string headers

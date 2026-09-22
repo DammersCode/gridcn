@@ -1,0 +1,31 @@
+---
+title: Column drag & drop
+description: Drag a header within its pin zone, or move columns programmatically with setColumnOrder.
+icon: GripVertical
+---
+
+Two paths to the same `columnOrder` state: drag a header (the move is scoped to the header's
+pin zone), or call `actions.setColumnOrder(id, targetId, position)` programmatically. The demo
+shows both — Name opts out with `reorderable: false`, and Score is pinned right, so it only
+moves with the pinned zone.
+
+<ComponentPreview name="data-grid-column-drag-demo" />
+
+<InstallCommand item="data-grid-column-drag-demo" />
+
+## What's in the demo
+
+- `enableColumnReorder` — header drag with a drop indicator, grid-wide default `true`
+- `reorderable: false` on Name — the per-column opt-out that beats the grid flag
+- `pin: "right"` on Score — a drag crossing pin zones is a no-op
+- Picker + Left/Right buttons — `setColumnOrder(selectedId, neighborId, "before" | "after")`
+  from `useDataGridActions()`, disabled at the order's edges
+
+## Behavior reference
+
+- [Reorder](/docs/columns#reorder) — the drag gesture, gating, and the layout-change payload
+- [Row drag & drop](/docs/examples/rows/drag-reorder) — the same two-path shape for rows
+
+## Related
+
+- [Column layout](/docs/examples/columns/column-layout) — the reorder persists into the layout snapshot
