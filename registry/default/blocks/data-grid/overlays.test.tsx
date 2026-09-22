@@ -248,23 +248,25 @@ describe("DataGridOverlays pin-aware segmentation", () => {
     expect(overlays[0]!.dataset["pinned"]).toBeUndefined();
   });
 
-  it("applies the active-cell ring's pin offset when the active column is pinned, keeping z-index 10", () => {
+  it("ranks the active-cell ring with its pinned cell when the active column is pinned", () => {
     const { container, actions } = renderHarness({ windowStart: 0, rowCount: 10, colCount: 3, pinTrack });
     act(() => actions().selectCell({ col: 2, row: 1 }));
 
     const ring = container.querySelector<HTMLElement>(gridAttrSelector("activeCellOverlay"))!;
     expect(ring.dataset["pinned"]).toBe("");
     expect(ring.style.insetInlineStart).toContain("--grid-pin-right-2");
-    expect(ring.className).toContain("z-10");
+    expect(ring.style.zIndex).toBe(String(GRID_LAYER.activePinnedCell));
   });
 
-  it("leaves the active-cell ring unpinned when the active column isn't pinned", () => {
+  it("leaves the active-cell ring unpinned when the active column isn't pinned, ranking it below any pinned cell", () => {
     const { container, actions } = renderHarness({ windowStart: 0, rowCount: 10, colCount: 3, pinTrack });
     act(() => actions().selectCell({ col: 1, row: 1 }));
 
     const ring = container.querySelector<HTMLElement>(gridAttrSelector("activeCellOverlay"))!;
     expect(ring.dataset["pinned"]).toBeUndefined();
     expect(ring.style.insetInlineStart).toBe("");
+    expect(ring.style.zIndex).toBe(String(GRID_LAYER.activeCell));
+    expect(GRID_LAYER.activeCell).toBeLessThan(GRID_LAYER.pinnedCell);
   });
 
   it("splits a row-channel band across pinned-left + unpinned + pinned-right with no gaps", () => {

@@ -7,7 +7,7 @@
       "name": "data-grid",
       "type": "registry:block",
       "title": "Data Grid",
-      "description": "An editable data grid: range selection, spreadsheet clipboard, editing engine, validation, sorting, filtering, pinning, streaming updates. Real DOM cells, shadcn styling.",
+      "description": "A composable, high-performance data grid: range selection, spreadsheet clipboard, typed cell editors, validation, and windowed rendering at 100k+ rows.",
       "author": "gridcn",
       "docs": "Docs & quick start: https://gridcn.vercel.app/docs/quick-start",
       "dependencies": ["zustand"],
