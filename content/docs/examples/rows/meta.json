@@ -1,4 +1,5 @@
 {
   "title": "Rows & Selection",
-  "icon": "Rows3"
+  "icon": "Rows3",
+  "pages": ["row-operations", "actions", "streaming"]
 }
