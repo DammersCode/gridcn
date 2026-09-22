@@ -296,9 +296,8 @@ function PlaygroundToolbar({
       <DataGridToolbar>
         <DataGridSearch />
         <DataGridFilterMenu />
-        <DataGridColumnsMenu />
         <DataGridSortList />
-        <DataGridExportButton />
+        <DataGridColumnsMenu />
         {importDisabled ? (
           <Button type="button" variant="ghost" size="icon" disabled aria-label="Import (disabled in lazy mode)">
             <Upload />
@@ -309,6 +308,7 @@ function PlaygroundToolbar({
             onImport={() => {}}
           />
         )}
+        <DataGridExportButton />
         <Button variant="outline" size="sm" onClick={() => setKeybindingsOpen(true)}>
           Shortcuts
         </Button>
