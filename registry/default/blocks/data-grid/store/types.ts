@@ -605,9 +605,10 @@ export type DataGridActions = {
    * off, readOnly, an open edit session (the editor pins a view coordinate the move would
    * invalidate), an active sort/filter (the view order is owned by the sort/filter, not the data),
    * unloaded (lazy) rows (a reorder would shift the lazy add-on's index bookkeeping), and a drop
-   * that leaves the row where it already is.
+   * that leaves the row where it already is. Returns `true` when the row moved, `false` for any
+   * no-op — the drag gesture uses the verdict for its a11y announcement.
    */
-  reorderRows(from: number, to: number): void;
+  reorderRows(from: number, to: number): boolean;
   /** @internal keyboard nav helper: moves/extends the active cell by a view-space delta, clamped to view bounds. */
   _moveActiveCell(d: { dx: number; dy: number }, opts?: { extend?: boolean; retain?: boolean }): void;
   /** @internal syncs live consumer props and recomputes derived state; not part of the public hook surface. */

@@ -86,7 +86,12 @@ export type CellCoord = { col: number; row: number };
  * `'number'` shows the 1-based view row index; `'checkbox'` drives the rows selection channel;
  * `'both'` shows the number, replaced by the checkbox on hover/selected (group-hover pattern).
  */
-export type RowMarkersMode = "none" | "number" | "checkbox" | "both";
+/**
+ * The row-marker column's mode. `"reorder"` renders a grip handle that drags the row to a new
+ * position (row reordering); every other mode except `"none"` also drags from the marker cell
+ * (the checkbox glyph keeps the row-select gesture).
+ */
+export type RowMarkersMode = "none" | "number" | "checkbox" | "both" | "reorder";
 
 /** Rectangular cell region, half-open on the far edge (a cell c is inside if x <= c < x + width). */
 export type GridRect = { x: number; y: number; width: number; height: number };

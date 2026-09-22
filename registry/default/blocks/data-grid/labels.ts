@@ -134,11 +134,15 @@ export type DataGridKeybindingsLabels = {
   actions: Partial<Record<GridAction, string>>;
 };
 
-/** Row-marker column strings (select-all header checkbox, per-row checkbox). */
+/** Row-marker column strings (select-all header checkbox, per-row checkbox, reorder handle). */
 export type DataGridMarkerLabels = {
   selectAll: string;
   /** `rowNumber` is 1-based (matches the visible row-number marker). */
   selectRow: (rowNumber: number) => string;
+  /** aria-label for the reorder-mode marker handle; `rowNumber` is 1-based. */
+  reorderRow: (rowNumber: number) => string;
+  /** Polite live-region announcement after a row move; `rowNumber` is the dragged row's 1-based number BEFORE the move, `position`/`total` are 1-based. */
+  reorderAnnouncement: (rowNumber: number, position: number, total: number) => string;
 };
 
 /** Core grid strings not owned by a specific add-on. */
@@ -370,6 +374,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
   markers: {
     selectAll: "Select all rows",
     selectRow: (rowNumber) => `Select row ${rowNumber}`,
+    reorderRow: (rowNumber) => `Reorder row ${rowNumber}`,
+    reorderAnnouncement: (rowNumber, position, total) => `Row ${rowNumber} moved to position ${position} of ${total}`,
   },
   grid: {
     emptyState: "No rows",

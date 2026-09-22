@@ -370,6 +370,12 @@ export type GridInteractionHandlers = {
    */
   cancelColumnSelectDrag: () => void;
   /**
+   * Ends an in-progress marker row-select drag (mode "row") without affecting a cell/column
+   * drag. Row reorder (use-row-reorder.ts) calls this the moment it arms — mirror of
+   * {@link cancelColumnSelectDrag}; see that hook's JSDoc for the full disambiguation rule.
+   */
+  cancelRowSelectDrag: () => void;
+  /**
    * Imperatively scrolls the container so `coord` (view-space) is visible, honoring the
    * pinned-left/right bands. Public extension point for add-ons that move the active cell
    * programmatically, e.g. `data-grid-toolbar`'s search next/prev — never `scrollIntoView`
@@ -914,6 +920,12 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
     if (dragRef.current?.mode === "column") endDrag();
   }, [endDrag]);
 
+  // the row-reorder gesture arms from the same marker press that started a row-select drag — the
+  // instant it commits to reorder, the select drag is cancelled (mirror of cancelColumnSelectDrag)
+  const cancelRowSelectDrag = useCallback(() => {
+    if (dragRef.current?.mode === "row") endDrag();
+  }, [endDrag]);
+
   useEffect(() => stopAutoScrollLoop, [stopAutoScrollLoop]);
 
   // Page-area click-outside clear (2026-09-03 audit N4): the listener is attached only while a
@@ -956,6 +968,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       onMarkerCheckboxPointerDown,
       onRootPointerDown,
       cancelColumnSelectDrag,
+      cancelRowSelectDrag,
       scrollCellIntoView: scrollActiveCellIntoView,
     }),
     [
@@ -968,6 +981,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       onMarkerCheckboxPointerDown,
       onRootPointerDown,
       cancelColumnSelectDrag,
+      cancelRowSelectDrag,
       scrollActiveCellIntoView,
     ],
   );

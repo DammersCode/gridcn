@@ -35,8 +35,12 @@ export const GRID_ATTR = {
   rowsCanvas: "data-grid-rows-canvas",
   /** header.tsx: the sticky header row layer. */
   headerLayer: "data-grid-header-layer",
-  /** header.tsx: the column-reorder drop-position indicator. */
+  /** header.tsx (columns) / body.tsx (rows): the reorder drop-position indicator. */
   dropIndicator: "data-grid-drop-indicator",
+  /** rows/marker-cell.tsx: the checkbox glyph inside a marker cell (`'checkbox'`/`'both'` modes) — its press keeps the row-select gesture and never arms a reorder. */
+  markerCheckbox: "data-grid-marker-checkbox",
+  /** rows/marker-cell.tsx: the grip handle inside a marker cell (`'reorder'` mode). */
+  reorderHandle: "data-grid-reorder-handle",
   /** header-cell.tsx: the column-menu trigger button. */
   headerMenuTrigger: "data-grid-header-menu-trigger",
   /** header-cell.tsx: the column resize handle. */

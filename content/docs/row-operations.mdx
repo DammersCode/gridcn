@@ -1,12 +1,12 @@
 ---
 title: Row operations
-description: Insert, duplicate, and delete rows through props, keyboard shortcuts, and the context menu.
+description: Insert, duplicate, delete, and reorder rows through props, keyboard shortcuts, the context menu, and a marker drag.
 icon: Rows3
 ---
 
-Inserting, duplicating, and deleting whole rows. All three act on **view-space** indices (the
-sorted/filtered positions the user sees), emit one `onDataChange` with `source: "row-op"` each,
-and work in both controlled and uncontrolled grids.
+Inserting, duplicating, deleting, and reordering whole rows. All four act on **view-space**
+indices (the sorted/filtered positions the user sees), emit one `onDataChange` with
+`source: "row-op"` each, and work in both controlled and uncontrolled grids.
 
 ## Enable props
 
@@ -30,6 +30,40 @@ insertion index.
 
 Both bindings live in `DEFAULT_KEYMAP`, so they can be remapped or dropped through the `keymap`
 prop like every other binding (see [Selection & keyboard](/docs/selection-keyboard#remapping)).
+
+## Reorder
+
+Drag a row marker vertically to reorder rows; a thin line marks the drop target, and the row
+moves on release. The marker is the handle in every `rowMarkers` mode, so reorder works with
+`number`, `checkbox`, and `both` out of the box, and `rowMarkers="reorder"` adds a dedicated
+mode with a grip handle and no numbers or checkboxes. <kbd>Shift</kbd>+drag still selects a row
+range as usual, and dragging the checkbox glyph itself selects only.
+
+| Prop | Role | Default |
+|---|---|---|
+| `rowMarkers` (any mode but `none`) | supplies the drag handle | required — `none` has nothing to grab |
+| `enableRowReorder` | grid-wide switch | `true` |
+
+The programmatic form is `reorderRows(from, to)` from `useDataGridActions`, where `to` is the
+**final** landing position (arrayMove semantics: moving row 0 to index 3 shifts rows 1–3 up).
+It emits one id-keyed `move` op, so undo/redo restores the previous order in a single step.
+Row-channel selection remaps by row id (the moved row keeps its selection state) and the active
+cell follows its row. Each completed move is announced through the grid's `aria-live` region
+(`labels.markers.reorderAnnouncement`).
+
+`reorderRows` is a no-op — returning `false`, dev-warning where the cause is a
+misconfiguration — when: `enableRowReorder` is off, the grid is `readOnly`, an edit session is
+open (the editor pins a view coordinate the move would invalidate), a sort or filter is active
+(the view order belongs to the sort/filter, not the data), a lazy grid has unloaded holes (a
+reorder would shift the lazy add-on's index bookkeeping), or the drop leaves the row where it
+already is. There is no keyboard reorder yet.
+
+<Callout type="warn" title="Position-based data goes stale">
+  Search match counts and presence highlights in the original view-space `range` form reference
+  positions, not row ids, so they go stale after a move — the same parity as `insertRows`.
+  Presence's rowId-native range form ([Multiplayer presence](/docs/multiplayer-presence)) tracks
+  its rows through the move.
+</Callout>
 
 ## Context menu
 

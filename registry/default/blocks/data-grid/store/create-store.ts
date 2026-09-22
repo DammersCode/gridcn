@@ -848,29 +848,27 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       reorderRows(from, to) {
         const s = get();
-        if (!s.enableRowReorder) return;
-        if (s.readOnly) return;
+        if (!s.enableRowReorder) return false;
+        if (s.readOnly) return false;
         // an open editor pins a view coordinate the move would silently invalidate (the commit
         // path re-reads the shifted viewIndex for the same coord)
-        if (s.editing) return;
+        if (s.editing) return false;
         if (s.sortState.length > 0 || s.filterState.length > 0) {
           warnDev("reorderRows is a no-op while a sort or filter is active (the view order is owned by the sort/filter)");
-          return;
+          return false;
         }
         const n = s.data.length;
-        if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || from >= n || to < 0 || to >= n || from === to) return;
+        if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || from >= n || to < 0 || to >= n || from === to) return false;
         // viewIndex is the identity permutation here (sort/filter gated above), so view == data indices
-        // final-position semantics: `to === from` (dropping onto the row's own slot) is the only
-        // no-op shape; `to` one past `from` is a genuine one-slot move down
         const fromData = s.viewIndex[from]!;
         const toData = s.viewIndex[to]!;
-        if (toData === fromData) return;
+        if (toData === fromData) return false;
         for (let i = 0; i < n; i++) {
           // indexed access (not .some/forEach, which skip sparse holes): a reorder would shift
           // the lazy add-on's index-keyed loaded-range bookkeeping out from under in-flight fetches
           if (s.data[i] === undefined) {
             warnDev("reorderRows is a no-op while rows are still unloaded (useDataGridLazyRows): load the range first");
-            return;
+            return false;
           }
         }
         const moved = s.data[fromData]!;
@@ -889,6 +887,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           activeCell: s.activeCell ? { ...s.activeCell, row: f(s.activeCell.row) } : null,
           lastHighlightedRow: s.lastHighlightedRow === null ? null : f(s.lastHighlightedRow),
         });
+        return true;
       },
       _moveActiveCell(d, opts) {
         const s = get();
