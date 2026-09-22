@@ -121,7 +121,7 @@ Per-column, static or row-dependent:
 
 <Callout type="warn" title="Invalid edits cannot commit">
   The editor stays open on a rejected value. This is Excel semantics, not a toast-and-revert
-  pattern.
+  pattern. The exception is `onInvalid: "warn"` — see [Soft rules](#soft-rules-oninvalid) below.
 </Callout>
 
 ```tsx
@@ -143,6 +143,28 @@ Per-column, static or row-dependent:
   validate: z.number().min(18, "Must be 18 or older"),
 }
 ```
+
+### Soft rules: onInvalid
+
+By default a rejection is blocking: the value never commits. `onInvalid: "warn"` commits the
+value and flags the cell instead — the same ring, tint, and hover tooltip as a
+[server error](#server-errors), auto-cleared by the next valid commit of that cell. The editor
+closes, because from the grid's point of view the commit succeeded:
+
+```tsx
+{
+  id: "notes",
+  header: "Notes",
+  accessorKey: "notes",
+  validate: (value) => (typeof value === "string" && value.length > 12 ? "Max 12 characters" : null),
+  onInvalid: "warn",
+}
+```
+
+`"warn"` works with every `validate` form — function and sync/async Standard Schema. A rejection
+carries no transformed value, so a soft commit stores the raw input. Per-row softness is the
+function form's `row` argument (return `null` to skip the rule for that row). Bulk paths (paste,
+fill, `updateCells`) still drop rejected cells, even in soft columns.
 
 ### Transforms are committed
 

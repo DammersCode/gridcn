@@ -32,6 +32,7 @@ import {
   incrementalViewIndex,
   isColumnReadOnly,
   memoizedMergeLabels,
+  mergeCellErrors,
   nextDirection,
   pruneCellErrors,
   reorderColumnIds,
@@ -514,7 +515,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       cancelEditing() {
         set({ editing: null, editingError: null });
       },
-      commitCellEdit(value, movement) {
+      commitCellEdit(value, movement, rejection) {
         const s = get();
         const editing = s.editing;
         if (!editing) return;
@@ -527,7 +528,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             }
           : editing.coord;
 
-        const result = computeCommit(s, editing.coord, value);
+        const result = computeCommit(s, editing.coord, value, rejection);
         if ("error" in result) {
           set({ editingError: result.error, editingRejectionCount: s.editingRejectionCount + 1 });
           return;
@@ -538,6 +539,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             editingError: null,
             activeCell: nextActiveCell,
             selection: selectCellPure(nextActiveCell),
+            // an `onInvalid: "warn"` re-commit of the same value still lands its flag
+            ...(result.warnings ? { cellErrors: mergeCellErrors(s.cellErrors, result.warnings) } : {}),
           });
           return;
         }
@@ -545,11 +548,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         forgetDeferredRows();
         lastEmittedData = result.data;
         s.onDataChange?.(result.data, result.change);
+        const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, result.change.ops), result.data, result.change.ops);
         set({
           data: result.data,
           editing: null,
           editingError: null,
-          cellErrors: applyRowValidation(s, clearErrorsForOps(s.cellErrors, result.change.ops), result.data, result.change.ops),
+          // warn rejections commit AND flag — merged after the auto-clear + validateRow verdict so the freshest signal wins
+          cellErrors: result.warnings ? mergeCellErrors(cellErrors, result.warnings) : cellErrors,
           activeCell: nextActiveCell,
           selection: selectCellPure(nextActiveCell),
           ...reconcileAfterWrite(s, result.data, result.change.ops),
@@ -558,14 +563,19 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       commitCellValue(coord, value) {
         const s = get();
         const result = computeCommit(s, coord, value);
-        if ("error" in result || "noop" in result) return;
+        if ("error" in result) return;
+        if ("noop" in result) {
+          if (result.warnings) set({ cellErrors: mergeCellErrors(s.cellErrors, result.warnings) });
+          return;
+        }
         rowIndexCache.rebase(result.data);
         forgetDeferredRows();
         lastEmittedData = result.data;
         s.onDataChange?.(result.data, result.change);
+        const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, result.change.ops), result.data, result.change.ops);
         set({
           data: result.data,
-          cellErrors: applyRowValidation(s, clearErrorsForOps(s.cellErrors, result.change.ops), result.data, result.change.ops),
+          cellErrors: result.warnings ? mergeCellErrors(cellErrors, result.warnings) : cellErrors,
           ...reconcileAfterWrite(s, result.data, result.change.ops),
         });
       },
@@ -576,10 +586,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       setCellErrors(errors) {
         if (errors.length === 0) return;
-        const s = get();
-        const next = new Map(s.cellErrors);
-        for (const entry of errors) next.set(cellErrorKey(entry.rowId, entry.columnId), entry.message);
-        set({ cellErrors: next });
+        set({ cellErrors: mergeCellErrors(get().cellErrors, errors) });
       },
       clearCellErrors(targets) {
         const s = get();

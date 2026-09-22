@@ -110,16 +110,34 @@ export function checkDevGuardrails(
  * editor-commit layer passes `result.value`, having awaited the schema itself) — this still
  * re-runs `validate` (cheap, idempotent for a well-behaved schema) so the sync/function-form path
  * is unchanged and a direct `commitCellValue` call always gets checked.
+ *
+ * `onInvalid: "warn"` columns commit a rejected value (raw — a rejection carries no transformed
+ * value) and report it in `warnings` so the store can flag the cell in `cellErrors`; `rejection`
+ * is the async layer's awaited schema rejection, which the sync re-run here cannot see (a schema
+ * Promise passes `runValidateSync` untouched).
  */
-export function computeCommit(s: DataGridStoreState, coord: CellCoord, value: unknown): CommitResult {
+export function computeCommit(s: DataGridStoreState, coord: CellCoord, value: unknown, rejection?: string): CommitResult {
   const target = resolveEditTarget(s, coord);
   if (!target) return { noop: true };
   const { column, dataRowIndex, row } = target;
   const validated = runValidateSync(column.validate, value, row);
-  if ("error" in validated) return { error: validated.error };
-  const nextValue = validated.value;
+  let nextValue: unknown;
+  let warning: string | undefined;
+  if ("error" in validated) {
+    if (column.onInvalid !== "warn") return { error: validated.error };
+    nextValue = value;
+    warning = validated.error;
+  } else {
+    nextValue = validated.value;
+    if (rejection !== undefined && column.onInvalid === "warn") warning = rejection;
+  }
   const prevValue = getCellValue(row, column);
-  if (Object.is(prevValue, nextValue)) return { noop: true };
+  if (Object.is(prevValue, nextValue)) {
+    // re-committing the SAME invalid value is a deliberate keep: the flag (re)lands
+    return warning === undefined
+      ? { noop: true }
+      : { noop: true, warnings: [{ rowId: s.getRowId(row, dataRowIndex), columnId: column.id, message: warning }] };
+  }
 
   const nextRow = setCellValue(row, column, nextValue);
   const nextData = s.data.slice();
@@ -137,7 +155,9 @@ export function computeCommit(s: DataGridStoreState, coord: CellCoord, value: un
       },
     ],
   };
-  return { data: nextData, change };
+  return warning === undefined
+    ? { data: nextData, change }
+    : { data: nextData, change, warnings: [{ rowId, columnId: column.id, message: warning }] };
 }
 
 /** Looks up the column, data row, and cell type at a view coord; null when any part is unresolvable. */

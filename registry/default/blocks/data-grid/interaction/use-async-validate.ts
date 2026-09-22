@@ -13,10 +13,12 @@ import { formatIssues, isStandardSchema } from "../validation/validate-cell";
  * input `readOnly` — minimal, reduced-motion-safe treatment that still allows Escape to cancel),
  * and only on resolution does this either call
  * `commitCellEdit(result.value, movement)` (success — the schema's own transformed value, per spec)
- * or `actions.setEditingError(message)` (issues — editing continues, same as the sync rejection
- * UX, and the store bumps `editingRejectionCount` — the editors' commit-guard re-arm nonce, single
- * source of truth for sync AND async rejections; the editors re-arm off it, never off "pending
- * cleared", which also happens on Escape/cancel right before unmount).
+ * or, on issues, `actions.setEditingError(message)` (blocking default — editing continues, same as
+ * the sync rejection UX, and the store bumps `editingRejectionCount` — the editors' commit-guard
+ * re-arm nonce, single source of truth for sync AND async rejections; the editors re-arm off it,
+ * never off "pending cleared", which also happens on Escape/cancel right before unmount) or
+ * `commitCellEdit(value, movement, message)` (`onInvalid: "warn"` — the raw value commits and the
+ * cell is flagged in `cellErrors`).
  *
  * Race guard: a generation counter bumped on every `commit()` call AND on unmount/cancel. A
  * resolution whose captured generation no longer matches current is dropped silently — covers
@@ -53,7 +55,14 @@ export function useAsyncValidate(actions: DataGridActions, column: AnyColumnDef)
       if (generationRef.current !== generation) return; // stale: cancelled/superseded/unmounted
       setPending(false);
       if (result.issues) {
-        actions.setEditingError(formatIssues(result.issues));
+        const message = formatIssues(result.issues);
+        // `onInvalid: "warn"`: commit the raw value and flag the cell — the awaited rejection is
+        // forwarded because computeCommit's sync re-run cannot see a schema Promise's issues
+        if (column.onInvalid === "warn") {
+          actions.commitCellEdit(value, movement, message);
+          return;
+        }
+        actions.setEditingError(message);
         return;
       }
       actions.commitCellEdit(result.value, movement);
