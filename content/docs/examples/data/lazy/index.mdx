@@ -1,0 +1,28 @@
+---
+title: Lazy Loading
+description: Fetch rows only as they scroll into view — a plain fetcher, TanStack Query, and SWR.
+icon: Loader
+---
+
+`useDataGridLazyRows` keeps a sparse row array and asks for `[start, end)` windows as the
+viewport scrolls; skeleton rows hold the space until each window lands. What fills a window
+is your choice — a plain fetch, a TanStack Query cache, or SWR's global cache. Each page
+embeds the live registry example.
+
+<Cards>
+  <Card
+    title="Plain"
+    href="/docs/examples/data/lazy/plain"
+    description="A simulated-latency fetcher with failure/retry buttons — the baseline."
+  />
+  <Card
+    title="TanStack Query"
+    href="/docs/examples/data/lazy/react-query"
+    description="Each window is a fetchQuery — deduped, cached for the session, no refetch on scroll-back."
+  />
+  <Card
+    title="SWR"
+    href="/docs/examples/data/lazy/swr"
+    description="Each window through preload into the global cache, shared with any useSWR consumer."
+  />
+</Cards>

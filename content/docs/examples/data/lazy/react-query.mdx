@@ -1,0 +1,51 @@
+---
+title: TanStack Query
+description: Lazy windows through queryClient.fetchQuery — deduped, cached for the session, scrolling back never refetches.
+icon: Zap
+---
+
+Each scrolled window becomes a `fetchQuery`: TanStack Query dedupes concurrent windows,
+keeps every fetched window in the cache (`staleTime: Infinity`), and the hook's abort signal
+still cancels the network call when a window leaves view. Scrolling back never refetches —
+the "windows in the query cache" counter in the demo bar makes that visible.
+
+<ComponentPreview name="data-grid-lazy-react-query-demo" />
+
+<InstallCommand item="data-grid-lazy-react-query-demo" />
+
+## The seam
+
+```tsx
+const queryClient = useQueryClient();
+
+const lazy = useDataGridLazyRows<Row>({
+  total: 10_000,
+  getRowId: (row) => row.id,
+  fetchRows: (start, end, signal) =>
+    queryClient.fetchQuery({
+      queryKey: ["rows", start, end],
+      staleTime: Infinity,
+      queryFn: () => api.fetchRows(start, end, signal),
+    }),
+});
+```
+
+The flow in words: viewport → window (`[start, end)`) → query key → sparse rows. The query
+key **is** the window, so two overlapping scrolls to the same range share one fetch, and
+the cache entry survives for the session — `staleTime: Infinity` is what keeps a revisited
+window from refetching, because the default (`0`) marks data stale immediately.
+
+<Callout type="info" title="Why not useInfiniteQuery">
+`useInfiniteQuery` fetches pages sequentially from page 0. A virtualized grid asks for
+arbitrary windows — row 9,000 before row 50 exists — so the imperative `fetchQuery` is the
+fitting seam: same cache, same dedupe, no page-ordering constraint.
+</Callout>
+
+## Behavior reference
+
+- [Lazy loading](/docs/lazy-loading) — the `useDataGridLazyRows` contract
+
+## Related
+
+- [Plain fetcher](/docs/examples/data/lazy/plain) — the baseline without a cache
+- [SWR](/docs/examples/data/lazy/swr) — the same pattern through SWR's global cache

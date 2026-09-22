@@ -1,0 +1,112 @@
+---
+title: Drizzle
+description: The grid's server fetch contract with Drizzle — a route handler that maps sorts, filters, and page onto a query.
+icon: Database
+---
+
+<Callout type="info" title="Recipe">
+Recipe — not a shadcn registry example; requires a server.
+</Callout>
+
+The grid sends the whole view state; the handler maps it onto the ORM. For a `users`
+table:
+
+```ts
+// db/schema.ts
+import { pgTable, serial, text, integer } from "drizzle-orm/pg-core";
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  role: text("role").notNull(),
+  score: integer("score").notNull(),
+});
+```
+
+```ts
+// app/api/grid/route.ts
+import { and, asc, desc, inArray, like, or, sql } from "drizzle-orm/pg-core";
+import { db, users } from "~/db";
+
+const COLUMN = { name: users.name, email: users.email, role: users.role, score: users.score } as const;
+
+export async function POST(req: Request) {
+  const { page, pageSize, sorts, filters, join, search } = await req.json();
+
+  const predicates = filters.map((f) => {
+    const col = COLUMN[f.columnId];
+    switch (f.operator) {
+      case "contains": return like(col, `%${f.value}%`);
+      case "notContains": return sql`not (${like(col, `%${f.value}%`)})`;
+      case "equals": return sql`${col} = ${f.value}`;
+      case "notEquals": return sql`${col} != ${f.value}`;
+      case "gt": return sql`${col} > ${f.value}`;
+      case "gte": return sql`${col} >= ${f.value}`;
+      case "lt": return sql`${col} < ${f.value}`;
+      case "lte": return sql`${col} <= ${f.value}`;
+      case "isAnyOf": return inArray(col, f.value);
+      // map the remaining operators the same way
+      default: return undefined;
+    }
+  });
+
+  const where = and(
+    search
+      ? or(like(users.name, `%${search}%`), like(users.email, `%${search}%`))
+      : undefined,
+    predicates.length ? (join === "or" ? or(...predicates) : and(...predicates)) : undefined,
+  );
+
+  const orderBy = sorts.length
+    ? sorts.map((s) => (s.direction === "asc" ? asc(COLUMN[s.columnId]) : desc(COLUMN[s.columnId])))
+    : [asc(users.id)];
+
+  const [total, rows] = await Promise.all([
+    db.select({ count: sql`count(*)` }).from(users).where(where),
+    db
+      .select()
+      .from(users)
+      .where(where)
+      .orderBy(...orderBy)
+      .limit(pageSize)
+      .offset((page - 1) * pageSize),
+  ]);
+
+  return Response.json({ rows, total: Number(total[0].count) });
+}
+```
+
+The client is the [server-side example](/docs/examples/data/server-side) unchanged — the
+`queryFn` points at this route, and the demo's fake `applyOps` becomes your `UPDATE`/
+`INSERT`/`DELETE` handler.
+
+<Callout type="warn" title="Validate the column ids">
+`f.columnId` comes from the client. The `COLUMN` lookup map is the guard: an unknown id
+resolves to `undefined` and should throw a 400, never reach the query builder. Same for the
+`sorts` entries.
+</Callout>
+
+## Shareable state
+
+Wrap the client in [DataGridUrlState](/docs/url-state) and the view state — sort, filters,
+search, page, page size — moves to the URL. The route above then reads the same values from
+the query string instead of a JSON body, and a shared link rebuilds the exact request.
+
+## Kysely
+
+The same shape one-liner-style:
+
+```ts
+const rows = await db
+  .selectFrom("users")
+  .selectAll()
+  .$dynamic((db) => {
+    for (const f of filters) db = /* map operator to .where(...), same as above */ db;
+    for (const s of sorts) db = db.orderBy(s.columnId, s.direction);
+    return db.limit(pageSize).offset((page - 1) * pageSize);
+  })
+  .execute();
+```
+
+Count the unfiltered query for `total`; everything else carries over unchanged.

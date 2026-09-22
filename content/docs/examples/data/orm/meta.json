@@ -1,4 +1,5 @@
 {
   "title": "ORM & Data Sources",
-  "icon": "HardDrive"
+  "icon": "HardDrive",
+  "pages": ["drizzle", "prisma", "supabase"]
 }

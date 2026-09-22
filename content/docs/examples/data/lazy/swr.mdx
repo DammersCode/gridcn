@@ -1,0 +1,50 @@
+---
+title: SWR
+description: Lazy windows through SWR's preload — one fetch per window key, shared with any useSWR consumer.
+icon: RefreshCw
+---
+
+SWR has no `queryClient.fetchQuery`; `preload(key, fetcher)` is its imperative entry point.
+It runs the fetcher once per key, hands back its promise, and stores the result in the
+global cache — so a second grid or a detail panel on the same page that calls `useSWR` with
+the same key gets the window for free.
+
+<ComponentPreview name="data-grid-lazy-swr-demo" />
+
+<InstallCommand item="data-grid-lazy-swr-demo" />
+
+## The seam
+
+```tsx
+const lazy = useDataGridLazyRows<Row>({
+  total: 10_000,
+  getRowId: (row) => row.id,
+  fetchRows: (start, end, signal) =>
+    preload(["rows", start, end] as [string, number, number], (key) =>
+      api.fetchRows(key[1], key[2], signal),
+    ),
+});
+```
+
+The fetcher receives the key itself as its argument (the SWR 2.x convention — `useSWR`
+works the same way), hence the tuple cast rather than destructured parameters. Concurrent
+requests for the same window share one fetch, and the cached window survives for the
+session — scrolling back never refetches.
+
+<Callout type="info" title="Revalidate on focus">
+`useSWR` components revalidate on window focus and reconnect by default. The lazy windows
+here are plain cache entries consumed through the hook, so they stay put for the session —
+no focus-time churn while you scroll. If you also mount `useSWR` consumers on the same keys,
+decide once whether you want that focus revalidation (`revalidateOnFocus: false`) or rely on
+it as a cheap freshness check.
+</Callout>
+
+## Behavior reference
+
+- [Lazy loading](/docs/lazy-loading) — the `useDataGridLazyRows` contract
+
+## Related
+
+- [Plain fetcher](/docs/examples/data/lazy/plain) — the baseline without a cache
+- [TanStack Query](/docs/examples/data/lazy/react-query) — the same pattern through a
+  `fetchQuery`

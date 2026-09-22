@@ -1,4 +1,5 @@
 {
   "title": "Lazy Loading",
-  "icon": "Loader"
+  "icon": "Loader",
+  "pages": ["plain", "react-query", "swr"]
 }

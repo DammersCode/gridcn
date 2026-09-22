@@ -1,4 +1,5 @@
 {
   "title": "Server Pagination",
-  "icon": "Files"
+  "icon": "Files",
+  "pages": ["client", "react-query", "swr"]
 }

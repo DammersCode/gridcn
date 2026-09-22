@@ -1,0 +1,28 @@
+---
+title: ORM & Data Sources
+description: The grid's server fetch contract in real stack code — Drizzle, Prisma, Supabase.
+icon: HardDrive
+---
+
+The grid's server contract is small: take `page`, `pageSize`, `sorts`, `filters`, `search`,
+return `{ rows, total }`. These recipes show that contract in three real stacks — the same
+shape the [server-side example](/docs/examples/data/server-side) consumes. They are
+documentation only; each one needs a server.
+
+<Cards>
+  <Card
+    title="Drizzle"
+    href="/docs/examples/data/orm/drizzle"
+    description="Schema to route handler: sort, filter, and page mapped onto a query."
+  />
+  <Card
+    title="Prisma"
+    href="/docs/examples/data/orm/prisma"
+    description="The same shape as a Prisma query — operator mapping included."
+  />
+  <Card
+    title="Supabase"
+    href="/docs/examples/data/orm/supabase"
+    description="supabase.from().select() plus range — the shortest path."
+  />
+</Cards>
