@@ -1,0 +1,59 @@
+---
+title: Drag & drop reorder
+description: Reorder rows with the drag grip or reorderRows - one move op, selection follows the row, one undo step.
+icon: GripVertical
+---
+
+Row reorder from two paths: drag a row by its grip (the dedicated `rowMarkers="reorder"` mode)
+or call `reorderRows(from, to)` programmatically. Both emit **one id-keyed `move` op**, so
+undo/redo restores the previous order in a single step. Selection and the active cell remap by
+row id, so the row you drag ends up selected at its new position, and a multi-row selection
+stays anchored to its rows through the move.
+
+<ComponentPreview name="data-grid-row-reorder-demo" />
+
+<InstallCommand item="data-grid-row-reorder-demo" />
+
+## What's in the demo
+
+- `rowMarkers="reorder"`: a grip handle in the marker column, no numbers or checkboxes
+- `enableRowReorder` on the provider (on by default): the grid-wide switch for the drag gesture
+- A thin line marks the drop target while dragging; the row moves on release
+- **Move selection down** toolbar button: `reorderRows(activeCell.row, activeCell.row + 1)` -
+  the programmatic path
+- **Undo** button (the `data-grid-history` add-on): one click restores the pre-move order
+- The panel prints the last `move` op: `rowId`, from/to indices, and the change `source`
+  (`"row-op"`)
+
+## Marker drag vs programmatic
+
+| | Marker drag | `reorderRows(from, to)` |
+|---|---|---|
+| Input | grip handle, mouse/touch | view-space indices (`to` is the **final** landing position, arrayMove semantics) |
+| Guard checks | same as programmatic | same - see the no-op guards below |
+| Emitted op | one `move` op | one `move` op |
+
+`to` is the final position, not an offset: moving row 0 to index 3 shifts rows 1-3 up. Both
+paths are equivalent - use the drag for the interactive UX and `reorderRows` for keyboard
+shortcuts, buttons, or an external "sort by drag" API.
+
+## No-op guards
+
+`reorderRows` returns `false` (and dev-warns where the cause is a misconfiguration) when:
+
+- `enableRowReorder` is off, or the grid is `readOnly`
+- an edit session is open (the editor pins a view coordinate the move would invalidate)
+- a sort or filter is active (the view order belongs to the sort/filter, not the data)
+- a lazy grid has unloaded holes (a reorder would shift the lazy add-on's index bookkeeping)
+- the drop leaves the row where it already is
+
+See [Row operations - Reorder](/docs/row-operations#reorder) for the full reference, including
+the stale-position warning for position-based data (search match counts, presence highlights in
+view-space form).
+
+## Related
+
+- [Row operations](/docs/examples/rows/row-operations) - insert/duplicate/delete
+- [Action buttons](/docs/examples/rows/actions) - per-row buttons
+- [Undo & redo](/docs/examples/addons/undo-redo) - the history add-on behind the Undo button
+- [Lazy loading](/docs/examples/data/lazy-loading) - why a lazy grid blocks reorder

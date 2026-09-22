@@ -8,8 +8,9 @@ Inserting, duplicating, deleting, and reordering whole rows. All four act on **v
 indices (the sorted/filtered positions the user sees), emit one `onDataChange` with
 `source: "row-op"` each, and work in both controlled and uncontrolled grids.
 
-**See the live examples:** [Row operations](/docs/examples/rows/row-operations) ·
-[Action buttons](/docs/examples/rows/actions) · [Streaming](/docs/examples/rows/streaming)
+**See the live examples:** [Row operations](/docs/examples/rows/row-operations) · [Drag &
+drop](/docs/examples/rows/drag-reorder) · [Action buttons](/docs/examples/rows/actions) ·
+[Streaming](/docs/examples/rows/streaming)
 
 ## Enable props
 
@@ -35,6 +36,8 @@ Both bindings live in `DEFAULT_KEYMAP`, so they can be remapped or dropped throu
 prop like every other binding (see [Keybindings](/docs/examples/addons/keybindings#remapping)).
 
 ## Reorder
+
+**See the live example:** [Drag & drop reorder](/docs/examples/rows/drag-reorder)
 
 Drag a row marker vertically to reorder rows; a thin line marks the drop target, and the row
 moves on release. The marker is the handle in every `rowMarkers` mode, so reorder works with
