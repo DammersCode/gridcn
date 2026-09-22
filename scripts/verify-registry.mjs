@@ -79,7 +79,13 @@ for (const item of registry.items) {
     .map((f) => ({ path: f.path, target: f.target, expected: deriveTarget(f.path) }))
     .filter((f) => f.target !== f.expected);
 
+  // The core block ships the license text with the code; every other block depends on the core,
+  // so installs of any item receive it.
+  const shipsLicense =
+    item.name !== "data-grid" || listedShippable.includes(`${ownFolder}/LICENSE.md`);
+
   const ok =
+    shipsLicense &&
     missingFromRegistry.length === 0 &&
     missingFromDisk.length === 0 &&
     listedTestFiles.length === 0 &&
@@ -90,6 +96,7 @@ for (const item of registry.items) {
     name: item.name,
     folder: ownFolder,
     ok,
+    shipsLicense,
     testFilesListed: listedTestFiles,
     missingFromRegistry,
     missingFromDisk,
@@ -111,6 +118,9 @@ for (const s of summary) {
   if (s.missingFromDisk.length) {
     console.log(`  listed in registry.json but missing on disk:`);
     for (const p of s.missingFromDisk) console.log(`    - ${p}`);
+  }
+  if (!s.shipsLicense) {
+    console.log(`  missing LICENSE.md (registry:block items must ship the license text):`);
   }
   if (s.badTargets.length) {
     console.log(`  missing/incorrect target (run node scripts/add-registry-targets.mjs):`);

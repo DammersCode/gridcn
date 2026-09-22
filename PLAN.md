@@ -255,4 +255,4 @@ covers everything else.
 - Commits: conventional (`feat:`, `fix:`, `docs:`, `chore:`), small and phase-scoped.
 - The grid never mutates consumer data; all updates immutable + op-described.
 - Marker columns (row numbers/checkboxes) live outside the data column index space.
-- License: MIT. Behavior specs from AG/Handsontable are inspiration only — no code derivation.
+- License: GridCN Source Available License 1.0 (source-available, not OSI). Behavior specs from AG/Handsontable are inspiration only — no code derivation.
