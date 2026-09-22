@@ -738,11 +738,25 @@
       "name": "data-grid-validation-demo",
       "type": "registry:example",
       "title": "Data Grid Validation Demo",
-      "description": "Five rejection paths in one grid: a sync function (Age), a sync Standard Schema (Email), an async Standard Schema with a visible pending state (SKU), and a coercing schema (Price). A button pastes a mixed valid/invalid block onto Age to show the bulk-rejection path.",
+      "description": "Nine rejection paths in one grid: a sync function (Age), hand-rolled sync/async/coercing Standard Schemas (Email, SKU, Price), a soft onInvalid rule (Notes), and one column per major library that implements Standard Schema natively — Zod (Score), Joi (Code), Valibot (Tag). Pasting mixed valid/invalid values shows the bulk-rejection path.",
       "author": "gridcn",
+      "dependencies": ["joi", "valibot", "zod"],
       "registryDependencies": ["DammersCode/gridcn/data-grid", "DammersCode/gridcn/data-grid-history", "sonner"],
       "files": [
         { "path": "registry/default/examples/data-grid-validation-demo.tsx", "type": "registry:example", "target": "components/data-grid-validation-demo.tsx" }
+      ],
+      "categories": ["data"]
+    },
+    {
+      "name": "data-grid-cross-field-demo",
+      "type": "registry:example",
+      "title": "Data Grid Cross Field Demo",
+      "description": "Cross-field validation with validateRow: an End time must stay at or after its Start. The row is judged after a whole write gesture commits; a rejected row flags the named cell like a server error (the value still commits, no rollback) and the flag clears once the row is consistent again.",
+      "author": "gridcn",
+      "registryDependencies": ["DammersCode/gridcn/data-grid"],
+      "files": [
+        { "path": "registry/default/examples/data-grid-cross-field-demo.tsx", "type": "registry:example", "target": "components/data-grid-cross-field-demo.tsx" },
+        { "path": "registry/default/examples/demo-data.ts", "type": "registry:example", "target": "components/demo-data.ts" }
       ],
       "categories": ["data"]
     },
