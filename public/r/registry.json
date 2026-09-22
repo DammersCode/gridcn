@@ -838,6 +838,103 @@
         { "path": "registry/default/examples/demo-data.ts", "type": "registry:example", "target": "components/demo-data.ts" }
       ],
       "categories": ["data"]
+    },
+    {
+      "name": "data-grid-lazy-react-query-demo",
+      "type": "registry:example",
+      "title": "Data Grid Lazy React Query Demo",
+      "description": "10k rows fetched through a TanStack Query cache: each scrolled window becomes a fetchQuery (deduped, cached for the session, scrolling back never refetches).",
+      "author": "gridcn",
+      "dependencies": [
+        "@tanstack/react-query"
+      ],
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/data-grid-lazy"
+      ],
+      "files": [
+        { "path": "registry/default/examples/data-grid-lazy-react-query-demo.tsx", "type": "registry:example", "target": "components/data-grid-lazy-react-query-demo.tsx" }
+      ],
+      "categories": ["data"]
+    },
+    {
+      "name": "data-grid-lazy-swr-demo",
+      "type": "registry:example",
+      "title": "Data Grid Lazy SWR Demo",
+      "description": "10k rows fetched through SWR's global cache via preload: each scrolled window is fetched once per key and shared with any useSWR consumer.",
+      "author": "gridcn",
+      "dependencies": [
+        "swr"
+      ],
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/data-grid-lazy"
+      ],
+      "files": [
+        { "path": "registry/default/examples/data-grid-lazy-swr-demo.tsx", "type": "registry:example", "target": "components/data-grid-lazy-swr-demo.tsx" }
+      ],
+      "categories": ["data"]
+    },
+    {
+      "name": "data-grid-pagination-react-query-demo",
+      "type": "registry:example",
+      "title": "Data Grid Pagination React Query Demo",
+      "description": "Server-mode pagination backed by useQuery: the current page/pageSize is the query key, edits write through to the fake server then invalidate the cached pages.",
+      "author": "gridcn",
+      "dependencies": [
+        "@tanstack/react-query"
+      ],
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/data-grid-pagination"
+      ],
+      "files": [
+        { "path": "registry/default/examples/data-grid-pagination-react-query-demo.tsx", "type": "registry:example", "target": "components/data-grid-pagination-react-query-demo.tsx" },
+        { "path": "registry/default/examples/fake-remote-server.ts", "type": "registry:example", "target": "components/fake-remote-server.ts" },
+        { "path": "registry/default/examples/demo-data.ts", "type": "registry:example", "target": "components/demo-data.ts" }
+      ],
+      "categories": ["data"]
+    },
+    {
+      "name": "data-grid-pagination-swr-demo",
+      "type": "registry:example",
+      "title": "Data Grid Pagination SWR Demo",
+      "description": "Server-mode pagination backed by useSWR: the page is cached by key so paging back is instant, and edits revalidate the current key after writing through.",
+      "author": "gridcn",
+      "dependencies": [
+        "swr"
+      ],
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/data-grid-pagination"
+      ],
+      "files": [
+        { "path": "registry/default/examples/data-grid-pagination-swr-demo.tsx", "type": "registry:example", "target": "components/data-grid-pagination-swr-demo.tsx" },
+        { "path": "registry/default/examples/fake-remote-server.ts", "type": "registry:example", "target": "components/fake-remote-server.ts" },
+        { "path": "registry/default/examples/demo-data.ts", "type": "registry:example", "target": "components/demo-data.ts" }
+      ],
+      "categories": ["data"]
+    },
+    {
+      "name": "data-grid-server-side-demo",
+      "type": "registry:example",
+      "title": "Data Grid Server Side Demo",
+      "description": "The full remote contract: header-click sort, filter menu, quick search and pagination are all sent to the fake server in one useQuery per view state; edits write through and refetch.",
+      "author": "gridcn",
+      "dependencies": [
+        "@tanstack/react-query"
+      ],
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/data-grid-pagination",
+        "DammersCode/gridcn/data-grid-toolbar"
+      ],
+      "files": [
+        { "path": "registry/default/examples/data-grid-server-side-demo.tsx", "type": "registry:example", "target": "components/data-grid-server-side-demo.tsx" },
+        { "path": "registry/default/examples/fake-remote-server.ts", "type": "registry:example", "target": "components/fake-remote-server.ts" },
+        { "path": "registry/default/examples/demo-data.ts", "type": "registry:example", "target": "components/demo-data.ts" }
+      ],
+      "categories": ["data"]
     }
   ]
 }

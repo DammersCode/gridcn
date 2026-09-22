@@ -45,6 +45,11 @@ const EXAMPLES = {
   "data-grid-fill-patterns-demo": dynamic(() => import("@/registry/default/examples/data-grid-fill-patterns-demo")),
   "data-grid-loading-demo": dynamic(() => import("@/registry/default/examples/data-grid-loading-demo")),
   "data-grid-playground-demo": dynamic(() => import("@/registry/default/examples/data-grid-playground-demo")),
+  "data-grid-lazy-react-query-demo": dynamic(() => import("@/registry/default/examples/data-grid-lazy-react-query-demo")),
+  "data-grid-lazy-swr-demo": dynamic(() => import("@/registry/default/examples/data-grid-lazy-swr-demo")),
+  "data-grid-pagination-react-query-demo": dynamic(() => import("@/registry/default/examples/data-grid-pagination-react-query-demo")),
+  "data-grid-pagination-swr-demo": dynamic(() => import("@/registry/default/examples/data-grid-pagination-swr-demo")),
+  "data-grid-server-side-demo": dynamic(() => import("@/registry/default/examples/data-grid-server-side-demo")),
 } satisfies Record<string, ComponentType>;
 
 export type RegistryExampleName = keyof typeof EXAMPLES;
