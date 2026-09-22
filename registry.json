@@ -114,7 +114,8 @@
         { "path": "registry/default/blocks/data-grid/windowing/use-row-window.ts", "type": "registry:component", "target": "components/data-grid/windowing/use-row-window.ts" },
         { "path": "registry/default/blocks/data-grid/windowing/use-scroll-snapshot.ts", "type": "registry:component", "target": "components/data-grid/windowing/use-scroll-snapshot.ts" },
         { "path": "registry/default/blocks/data-grid/windowing/use-scrolled-edges.ts", "type": "registry:component", "target": "components/data-grid/windowing/use-scrolled-edges.ts" },
-        { "path": "registry/default/blocks/data-grid/windowing/velocity-estimator.ts", "type": "registry:component", "target": "components/data-grid/windowing/velocity-estimator.ts" }
+        { "path": "registry/default/blocks/data-grid/windowing/velocity-estimator.ts", "type": "registry:component", "target": "components/data-grid/windowing/velocity-estimator.ts" },
+        { "path": "registry/default/blocks/data-grid/LICENSE.md", "type": "registry:file", "target": "components/data-grid/LICENSE.md" }
       ],
       "categories": ["data"]
     },
