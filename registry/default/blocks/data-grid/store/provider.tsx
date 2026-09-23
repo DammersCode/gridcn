@@ -9,7 +9,7 @@ import { checkDevGuardrails, checkUnresolvableColumnTypes } from "./commit";
 import { makeSelectionChangeDetails } from "./compute";
 import { createDataGridStore } from "./create-store";
 import { toInternalSyncProps } from "./types";
-import type { AnyColumnDef, DataGridProviderProps, DataGridStoreState } from "./types";
+import type { AnyColumnDef, DataGridActions, DataGridProviderProps, DataGridStoreState, DataGridSyncProps } from "./types";
 import { isSelectionEmpty } from "../selection";
 
 /**
@@ -46,10 +46,34 @@ const DataGridStoreContext = createContext<StoreApi<DataGridStoreState> | null>(
  * Mounts one store instance per grid (multiple grids per page each get their
  * own instance) and keeps it in sync with the consumer's live props.
  *
+ * The public escape hatch for code OUTSIDE the provider's subtree: an `onDataChange` closure,
+ * a WebSocket handler, or a sibling control can hold the returned `actions` (stable for the
+ * store's lifetime) and the full zustand `StoreApi` without rendering a capture component inside
+ * the provider. Pass the returned `store` to `DataGridProvider`'s `store` prop to feed the grid;
+ * the sync loop stays here, so pass the same live props to this hook that the grid renders from.
+ *
  * Generic over the consumer's row type `TData` — pass real `ColumnDef<TData, TValue>[]`
  * and a real `getRowId` without an unsafe cast; the internal store stays row-agnostic.
  */
-export function DataGridProvider<TData>(props: DataGridProviderProps<TData>): ReactNode {
+export function useDataGridStoreProps<TData>(props: DataGridSyncProps<TData>): {
+  store: StoreApi<DataGridStoreState>;
+  actions: DataGridActions;
+} {
+  const { store, actions } = useGridStoreCore(props, undefined);
+  return { store, actions };
+}
+
+/**
+ * The store-ownership core shared by {@link useDataGridStoreProps} and `DataGridProvider`'s
+ * default (self-creating) path — one sync loop, guardrail checks, and subscription wiring for
+ * both. When `externalStore` is set the hook owns nothing: no creation, no sync, no
+ * subscriptions; the consumer's own `useDataGridStoreProps` call drives the store, and this
+ * instance only supplies the context value.
+ */
+function useGridStoreCore<TData>(
+  props: DataGridSyncProps<TData>,
+  externalStore: StoreApi<DataGridStoreState> | undefined,
+): { store: StoreApi<DataGridStoreState>; actions: DataGridActions } {
   const {
     data,
     defaultData,
@@ -91,7 +115,6 @@ export function DataGridProvider<TData>(props: DataGridProviderProps<TData>): Re
     onColumnResizing,
     onSelectionChange,
     onSelectionCleared,
-    children,
   } = props;
   const internalInit = toInternalSyncProps({
     data,
@@ -135,7 +158,10 @@ export function DataGridProvider<TData>(props: DataGridProviderProps<TData>): Re
     onSelectionChange,
     onSelectionCleared,
   });
-  const [store] = useState(() => createDataGridStore(internalInit));
+  // Lazy: an external store means this instance owns nothing, and store creation computes the
+  // initial view over the full dataset — it must not run for a shell.
+  const [ownedStore] = useState<StoreApi<DataGridStoreState> | null>(() => (externalStore ? null : createDataGridStore(internalInit)));
+  const store = externalStore ?? (ownedStore as StoreApi<DataGridStoreState>);
   const prevColumns = useRef<readonly AnyColumnDef[] | undefined>(undefined);
   const prevData = useRef<readonly unknown[] | undefined>(undefined);
   const prevOverlayPlugins = useRef<readonly OverlayPlugin[] | undefined>(undefined);
@@ -143,10 +169,19 @@ export function DataGridProvider<TData>(props: DataGridProviderProps<TData>): Re
   const warnedColumnTypes = useRef<Set<string>>(new Set());
 
   // One subscription per store instance, outside React's render path (see subscribeSelectionChange).
-  useEffect(() => subscribeSelectionChange(store), [store]);
-  useEffect(() => subscribeSelectionCleared(store), [store]);
+  // External stores are subscribed by their owner's useDataGridStoreProps call — subscribing here
+  // too would double-fire onSelectionChange.
+  useEffect(() => {
+    if (externalStore) return;
+    return subscribeSelectionChange(store);
+  }, [store, externalStore]);
+  useEffect(() => {
+    if (externalStore) return;
+    return subscribeSelectionCleared(store);
+  }, [store, externalStore]);
 
   useEffect(() => {
+    if (externalStore) return;
     checkDevGuardrails(internalInit, prevColumns.current, prevData.current, prevOverlayPlugins.current, prevRowBands.current);
     checkUnresolvableColumnTypes(internalInit.columns, internalInit.cellTypes, warnedColumnTypes.current);
     prevColumns.current = internalInit.columns;
@@ -158,6 +193,7 @@ export function DataGridProvider<TData>(props: DataGridProviderProps<TData>): Re
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [
     store,
+    externalStore,
     data,
     columns,
     getRowId,
@@ -198,6 +234,18 @@ export function DataGridProvider<TData>(props: DataGridProviderProps<TData>): Re
     onSelectionCleared,
   ]);
 
+  return { store, actions: store.getState().actions };
+}
+
+/**
+ * Provides the grid's store to the component subtree. By default it self-creates the store via
+ * the same ownership core as {@link useDataGridStoreProps}; pass `store` to serve a
+ * consumer-created store instead — then this component is a pure context shell and the sync
+ * loop lives on the consumer's `useDataGridStoreProps` call.
+ */
+export function DataGridProvider<TData>(props: DataGridProviderProps<TData>): ReactNode {
+  const { store: externalStore, children, ...syncProps } = props;
+  const { store } = useGridStoreCore<TData>(syncProps, externalStore);
   return <DataGridStoreContext.Provider value={store}>{children}</DataGridStoreContext.Provider>;
 }
 

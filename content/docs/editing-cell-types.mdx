@@ -271,10 +271,19 @@ message in a tooltip:
 
 <ComponentPreview name="data-grid-cell-errors-demo" />
 
+`handleDataChange` lives outside the provider's subtree, so the grid's actions come from
+`useDataGridStoreProps` — the store-ownership hook, which also keeps the store in sync (see
+[API reference: external store ownership](/docs/api-reference#store-external-store-ownership)):
+
 ```tsx
 function OrdersGrid() {
-  const actions = useDataGridActions();
   const [data, setData] = useState<Order[]>(initialOrders);
+  const { store, actions } = useDataGridStoreProps({
+    data,
+    columns,
+    getRowId: (row) => row.id,
+    onDataChange: handleDataChange,
+  });
 
   function handleDataChange(next: readonly Order[], change: DataChange<Order>) {
     setData(next);
@@ -283,7 +292,9 @@ function OrdersGrid() {
     });
   }
 
-  return <DataGrid data={data} columns={columns} getRowId={(row) => row.id} onDataChange={handleDataChange} />;
+  return (
+    <DataGrid store={store} data={data} columns={columns} getRowId={(row) => row.id} onDataChange={handleDataChange} />
+  );
 }
 ```
 

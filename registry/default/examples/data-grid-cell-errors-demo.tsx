@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import {
   DataGridBody,
   DataGridHeader,
@@ -9,8 +9,8 @@ import {
   defineColumns,
   useDataGridActions,
   useDataGridCellErrors,
+  useDataGridStoreProps,
   type DataChange,
-  type DataGridActions,
   type DataOp,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridState } from "@/registry/default/blocks/data-grid-history/data-grid-history";
@@ -61,17 +61,6 @@ function saveOrders(ops: DataChange<Order>["ops"]): Promise<void> {
   });
 }
 
-/** Publishes the provider's actions to a ref so the parent's onDataChange handler (outside the provider) can call setCellErrors. */
-function ActionsCapture({ onReady }: { onReady: (actions: DataGridActions) => void }): ReactNode {
-  const actions = useDataGridActions();
-  const readyRef = useRef(false);
-  if (!readyRef.current) {
-    readyRef.current = true;
-    onReady(actions);
-  }
-  return null;
-}
-
 /** Reads the live cellErrors map from inside the provider and drives the badge + clear button. */
 function CellErrorsBar(): ReactNode {
   const actions = useDataGridActions();
@@ -97,19 +86,25 @@ function CellErrorsBar(): ReactNode {
  */
 export default function DataGridCellErrorsDemo(): ReactNode {
   const grid = useDataGridState(initialRows(), { getRowId });
-  const actionsRef = useRef<DataGridActions | null>(null);
+  const { store, actions } = useDataGridStoreProps({
+    data: grid.data,
+    getRowId: grid.getRowId,
+    onUndo: grid.onUndo,
+    onRedo: grid.onRedo,
+    columns,
+    onDataChange: handleDataChange,
+  });
 
   function handleDataChange(next: readonly Order[], change: DataChange<Order>): void {
     grid.onDataChange(next, change);
     saveOrders(change.ops).catch((tooMany: RejectedCell[]) => {
-      actionsRef.current?.setCellErrors(tooMany.map((cell) => ({ ...cell, message: "Quantity cannot exceed 100" })));
+      actions.setCellErrors(tooMany.map((cell) => ({ ...cell, message: "Quantity cannot exceed 100" })));
     });
   }
 
   return (
-    <DataGridProvider {...grid} columns={columns} onDataChange={handleDataChange}>
+    <DataGridProvider store={store} columns={columns} getRowId={grid.getRowId}>
       <div className="w-full flex flex-col gap-3">
-        <ActionsCapture onReady={(actions) => (actionsRef.current = actions)} />
         <p className="text-sm text-muted-foreground">
           Set a Quantity above 100 and press Enter: the fake server rejects it after ~600ms and the
           cell is marked with a red ring — hover it to read the message.

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import type { StoreApi } from "zustand/vanilla";
 import type {
   CellCoord,
   ColumnLayout,
@@ -18,7 +19,7 @@ import type {
   RowMarkersMode,
   SortSpec,
 } from "./types";
-import { DataGridProvider, type SelectionChangeDetails } from "./store";
+import { DataGridProvider, type DataGridStoreState, type SelectionChangeDetails } from "./store";
 import type { GridDirection } from "./windowing/direction";
 import { DataGridRoot } from "./root";
 import { DataGridHeader } from "./header";
@@ -78,6 +79,7 @@ export {
   flashCellKey,
   DataGridProvider,
   useDataGridStoreApi,
+  useDataGridStoreProps,
   useDataGridActions,
   useDataGridScrollToCell,
   useDataGridReadOnly,
@@ -263,6 +265,11 @@ export type DataGridProps<TData> = {
   defaultData?: readonly TData[];
   columns: readonly ColumnDefOf<TData>[];
   getRowId: (row: TData, index: number) => string;
+  /**
+   * A consumer-created store (from `useDataGridStoreProps`) to serve the grid instead of
+   * self-creating one — see `DataGridProviderProps.store` for the shell semantics.
+   */
+  store?: StoreApi<DataGridStoreState>;
   className?: string;
   /** Row height in px; also exposed as the `--grid-row-height` CSS var. */
   rowHeight?: number;
@@ -392,6 +399,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
     defaultData,
     columns,
     getRowId,
+    store,
     className,
     rowHeight,
     onDataChange,
@@ -460,6 +468,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
       defaultData={defaultData}
       columns={columns}
       getRowId={getRowId}
+      store={store}
       onDataChange={onDataChange}
       validateRow={validateRow}
       onUndo={onUndo}

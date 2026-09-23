@@ -20,7 +20,7 @@ export type {
   DataGridCellState,
   DataGridRowCellState,
 } from "./types";
-export { DataGridProvider, useDataGridStoreApi } from "./provider";
+export { DataGridProvider, useDataGridStoreApi, useDataGridStoreProps } from "./provider";
 export { cellErrorKey, flashCellKey } from "./compute";
 export { getFocusCell } from "./hooks";
 export {
