@@ -470,7 +470,7 @@
       "title": "Data Grid IO Demo",
       "description": "Import/export toolbar buttons: export downloads the current view as xlsx or csv; import parses a file and replaces the grid's data through onDataChange.",
       "author": "gridcn",
-      "registryDependencies": ["DammersCode/gridcn/data-grid", "DammersCode/gridcn/data-grid-history", "DammersCode/gridcn/data-grid-io"],
+      "registryDependencies": ["DammersCode/gridcn/data-grid", "DammersCode/gridcn/data-grid-history", "DammersCode/gridcn/data-grid-io", "DammersCode/gridcn/data-grid-toolbar"],
       "files": [
         { "path": "registry/default/examples/data-grid-io-demo.tsx", "type": "registry:example", "target": "components/data-grid-io-demo.tsx" },
         { "path": "registry/default/examples/demo-data.ts", "type": "registry:example", "target": "components/demo-data.ts" }
