@@ -5,10 +5,10 @@ icon: Database
 ---
 
 <Callout type="info" title="Recipe">
-Recipe — not a shadcn registry example; requires a server.
+Recipe — not a shadcn registry example. It requires a server.
 </Callout>
 
-The grid sends the whole view state; the handler maps it onto the ORM. For a `users`
+The grid sends the whole view state. The handler maps it onto the ORM. For a `users`
 table:
 
 ```ts
@@ -83,7 +83,7 @@ The client is the [server-side example](/docs/examples/data/server-side) unchang
 
 <Callout type="warn" title="Validate the column ids">
 `f.columnId` comes from the client. The `COLUMN` lookup map is the guard: an unknown id
-resolves to `undefined` and should throw a 400, never reach the query builder. Same for the
+resolves to `undefined`. It must throw a 400, and never reach the query builder. Same for the
 `sorts` entries.
 </Callout>
 
@@ -109,4 +109,4 @@ const rows = await db
   .execute();
 ```
 
-Count the unfiltered query for `total`; everything else carries over unchanged.
+Count the unfiltered query for `total`. Everything else carries over unchanged.

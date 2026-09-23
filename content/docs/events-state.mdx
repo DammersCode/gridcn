@@ -75,11 +75,11 @@ The `"stream"` source tags a batch from `updateCells`. See [Streaming updates](/
 Row deletion is a selection surprise to plan for: `deleteRows` clears the grid's entire selection
 and active cell after the deletion. `insertRow` and `duplicateRows` keep the selection, offsetting
 it around the inserted rows. Selection-dependent UI (a row-action toolbar, multiplayer presence)
-should expect to go blank after a delete.
+goes blank after a delete.
 
-`onDataChange` fires the same way whether you passed `data` (controlled: you own the array and
-feed it back in) or `defaultData` (uncontrolled: the grid already applied the change; the
-callback is only a notification). See the [Quick start](/docs/quick-start) for the `defaultData`
+`onDataChange` fires the same way whether you passed `data` or `defaultData`. With `data`
+(controlled), you own the array and feed it back in. With `defaultData` (uncontrolled), the grid
+already applied the change, and the callback is only a notification. See the [Quick start](/docs/quick-start) for the `defaultData`
 opt-in and the [API reference](/docs/api-reference) for the exclusivity rule.
 
 ## 2. `onSelectionChange`
@@ -104,9 +104,9 @@ There is no separate `onActiveCellChange`. The active cell is already part of `G
 ### Reading the selected values
 
 The `getValues()` of the second argument extracts the actual cell values under the selection. It
-is deliberately a **function, not a materialized array** — a drag-extend fires this callback once
-per cell the pointer crosses, so call `getValues()` only when you need the values (for example
-in a debounced handler); it reads the current range fresh off the store at call time:
+is a **function, not a materialized array**. A drag-extend fires this callback once per cell the
+pointer crosses. Call `getValues()` only when you need the values (for example, in a debounced
+handler). It reads the current range fresh off the store at call time:
 
 ```ts
 onSelectionChange={(selection, { getValues }) => {
@@ -154,8 +154,8 @@ primary-range-only semantics:
 
  `onSelectionCleared?: () => void` fires exactly once when the selection transitions from
  non-empty to empty, from any clear path (outside click, gutter click, `clearSelection()`, a
- cleared range). Use it to reset an "N cells selected" chip; `onSelectionChange` also fires on
- that transition with the empty selection.
+  cleared range). Use it to reset an "N cells selected" chip. `onSelectionChange` also fires on
+  that transition with the empty selection.
 
  ## 3. `onSortChange`
 
@@ -271,9 +271,8 @@ onColumnResizing?: (columnId: string, width: number) => void;
 ```
 
 These props expose width, order, pin, and hidden as **uncontrolled-with-events** for
-save-and-restore. They are deliberately not a fully-controlled overlay: a controlled
-`columnLayout` prop would fight the `ColumnDef` seeds it is layered over, and per-render
-ownership is not what this need requires:
+save-and-restore. A fully-controlled overlay fights the `ColumnDef` seeds it is layered over.
+This need does not require per-render ownership:
 
 - `onColumnLayoutChange` fires once per **committed** change: a resize drag release or
   double-click autosize (not per drag frame), a reorder drop, a pin or unpin, or a show or hide.
@@ -311,7 +310,7 @@ write-up, including how to broadcast your own selection with `onSelectionChange`
 Every callback above fires from the store's actions layer, a plain DOM handler already attached
 to the cell or row, or one `storeApi.subscribe` registered once outside React — never from a new
 per-cell or per-row subscription, so firing them does not re-render a memoized
-`useDataGridRow` or `useDataGridCellState` subscriber; `setPresenceHighlights` of
+`useDataGridRow` or `useDataGridCellState` subscriber. `setPresenceHighlights` of
 `data-grid-presence` gives the same guarantee.
 
 ## Not every event is documented here
@@ -320,7 +319,7 @@ per-cell or per-row subscription, so firing them does not re-render a memoized
 curated subset in [API reference](/docs/api-reference) for the rest, or read the file directly
 for anything deeper.
 
-## Not currently supported
+## Unsupported features
 
 - **Editing lifecycle (`onEditStart`/`onEditStop`)** — the single post-commit `DataChange` batch
   of `onDataChange` already covers "what changed". Use it unless you must intercept mid-edit, for

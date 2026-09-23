@@ -7,9 +7,9 @@ icon: Blocks
 ## The mental model
 
 A cell type is **one object** — `{ Cell, Editor, toText, fromText, clearValue, isEmpty,
-compare?, align? }` — whose four value-pipeline methods drive clipboard, the fill handle,
-quick-clear delete, search, sort, and import/export with one generic implementation against this
-contract instead of one per type; get `fromText` wrong and every one of them inherits the bug.
+compare?, align? }`. Its four value-pipeline methods drive clipboard, the fill handle,
+quick-clear delete, search, sort, and import/export. One generic implementation runs against
+the contract for every type. Get `fromText` wrong, and every consumer inherits the bug.
 
 ## The contract, member by member
 
@@ -47,17 +47,17 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
 - **`fromText`** — parses pasted, imported, or typed text into `TValue`. **It must never throw.**
   Paste and import feed it arbitrary, untrusted text: a stray clipboard fragment, a spreadsheet
   export from a different tool, or a typo made by a user. For anything it cannot parse, return
-  the result of `clearValue()`, not `undefined` and not a thrown error. So a bad paste degrades to
-  "this cell is now cleared" instead of stopping the whole operation.
+   the result of `clearValue()`, not `undefined` and not a thrown error. So a bad paste degrades
+   to the cleared cell, and the rest of the paste keeps going.
 - **`clearValue`** — the empty value of the type (`""`, `null`, `false`, and so on). Quick-clear
   delete, the garbage fallback of `fromText`, and fill-clear all use it.
 - **`isEmpty`** — whether a value counts as empty. This is a semantic choice, not a technicality.
   See the checklist below. It decides what a Ctrl+A "select all data" region treats as non-blank,
   and what the fill handle treats as a fillable gap.
 - **`compare`** — the sort comparator, used when the column declares this `type`. When you omit
-  it, the default is a numeric-aware locale collation of the RAW `String(value)` — not of
-  `toText` output. Empty values (per `isEmpty`) sort last in both directions; `compare` only ever
-  sees two non-empty values.
+   it, the default is a numeric-aware locale collation of the RAW `String(value)` — not of
+   `toText` output. Empty values (per `isEmpty`) sort last in both directions. `compare` only
+   ever sees two non-empty values.
 - **`align`** — text alignment for the default `Cell` rendering. `"right"` reads better with
   `tabular-nums` for numeric-like types.
 
@@ -77,9 +77,10 @@ cellTypes) · **fill** = raw value.
 
 - **Search and filter match the raw `String(value)`, not `toText`.** The view pipeline (filter,
   then search, then sort) never sees a cell type's `toText`, so a custom `toText` changes what
-  copy and export produce but NOT what search or filter match. Consequences: a `select` column
-  searches the stored VALUE, not the displayed label; a `number` column with `decimals` searches
-  the unrounded value; a `date` column with a `displayFormat` matches the ISO string.
+   copy and export produce but NOT what search or filter match. Consequences:
+   - A `select` column searches the stored VALUE, not the displayed label.
+   - A `number` column with `decimals` searches the unrounded value.
+   - A `date` column with a `displayFormat` matches the ISO string.
 - **`fromText` must never throw.** Paste and import feed it arbitrary text. A thrown error breaks
   the whole paste, not only one cell. Garbage in produces the result of `clearValue()` out.
 - **Store values as serializable primitives**, not class instances: an ISO `yyyy-mm-dd` string,
@@ -102,8 +103,8 @@ cellTypes) · **fill** = raw value.
 - **The value and label duality (see `select`): store the value, display the label, and accept
   both on paste.** The `toText` of `select` renders the option's *label*, what a spreadsheet user
   expects to copy. But `fromText` resolves pasted text against option *values* first, then falls
-  back to case-insensitive label matching. So both a raw value and a previously-copied label paste
-  back correctly.
+   back to case-insensitive label matching. So both a raw value and a copied label paste back
+   correctly.
 - **Empty placement is handled outside `compare`.** Values your `isEmpty` marks as empty sort
   last in both directions, for every type. `compare` never receives an empty value, so it does
   not need a null branch.
@@ -151,7 +152,7 @@ cellTypes) · **fill** = raw value.
    (sync or async) and resets when a new edit session starts, not on every transition where
    `pending` clears for any reason (this also fires on Escape right before unmount). Re-arm your
    commit guard off `rejectionCount`, or a stray blur during teardown can fire a second, stale
-   commit through the now-unguarded path. See the editors of `text`, `number`, `select`, and
+    commit through the unguarded path. See the editors of `text`, `number`, `select`, and
    `date` for the pattern.
 - **Escape cancels, and Enter commits and moves. The movement direction is part of the contract.**
   `commit({ dx: 0, dy: 1 })` for Enter moves down. `commit({ dx: 1, dy: 0 })` for Tab moves right.
@@ -159,8 +160,8 @@ cellTypes) · **fill** = raw value.
   calls `cancel()` and must NOT call `onChange` at all. The edit is discarded, not committed with
   the old value.
 - **Focus discipline: focus and move the caret to the end on mount, seeded from `initialText`
-  for type-to-replace** (grid activation and its defaults are on
-  [Edit activation](/docs/editing-cell-types#edit-activation)); `useSeedFocus` has the pattern.
+  for type-to-replace.** Grid activation and its defaults are on
+  [Edit activation](/docs/editing-cell-types#edit-activation). `useSeedFocus` has the pattern.
 - **Popover and portal editors need `data-grid-cell-editor` on their portaled content, or an
   outside-click ends the edit instantly.** `Popover` and `Select` content portals to
   `document.body`, entirely outside the DOM subtree of the cell. But React re-dispatches the
@@ -171,11 +172,11 @@ cellTypes) · **fill** = raw value.
   with `data-grid-cell-editor=""` for exactly this reason. Skip the attribute, and picking a date
   or opening the select's dropdown looks like a click-away. It commits or cancels the edit before
   the user can interact with it.
-- **Popover editors: only an explicit pick commits; closing without one cancels.** `date` and
+- **Popover editors: an explicit pick commits, and closing without one cancels.** `date` and
   `select` commit on an explicit pick (a calendar day, an option). Closing the popover any other
   way (outside click, focus loss, Tab away) calls `onOpenChange(false)`, which runs `cancel()`
   when no pick has committed yet, so the edit is discarded, including text typed into the date
-  input. Escape is the same hard cancel. Both gestures close the popover; only a pick commits.
+   input. Escape is the same hard cancel. Both gestures close the popover. Only a pick commits.
 - **Display-only cells, with no text-editable value, route interaction through the grid's own
   commit path, never through DOM events on the control itself.** The `Cell` of `checkbox` renders
   shadcn's `Checkbox` with `pointer-events-none` and `tabIndex={-1}`, so it never receives a

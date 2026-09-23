@@ -47,8 +47,8 @@ patch whose value equals the current value, is also skipped. A hidden column can
 
 ## Sorted and filtered views
 
-If a patch changes a value that the active sort or filter reads, the row would have to move. By
-default the row keeps its position and the grid sets a stale flag. Read the flag with
+If a patch changes a value that the active sort or filter reads, a full re-sort moves the row.
+By default the row keeps its position, and the grid sets a stale flag. Read the flag with
 `useDataGridViewStale` and give the user a control to re-sort:
 
 ```tsx
@@ -85,7 +85,7 @@ If no patched column feeds the active sort or filter, `"defer"` becomes `"never"
 `viewStale` stays false for a feed that writes only non-sorted columns.
 
 `"immediate"` does not re-sort all rows. It removes each patched row from the order, tests it
-against the active filter again, and puts it back at the position a full sort would give it. The
+against the active filter again, and puts it back at the position a full sort gives it. The
 cost is set by the number of patched rows, not by the number of rows in the grid.
 
 At 100,000 rows with one sort column, a production build measures:
@@ -130,7 +130,7 @@ computes those results again on every update.
 ## Undo history
 
 A `updateCells` batch is tagged `source: "stream"`. `useDataGridHistory` does not record that
-source, because a feed at 100 updates per second would remove all user entries from the undo stack.
+source, because a feed at 100 updates per second removes all user entries from the undo stack.
 
 To make one batch undoable, tag it as an edit:
 

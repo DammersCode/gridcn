@@ -17,8 +17,8 @@ drop](/docs/examples/rows/drag-reorder) · [Action buttons](/docs/examples/rows/
 
 | Prop | Enables | Without it |
 |---|---|---|
-| `createRow: (index: number) => TData` | Insert row above/below | `insertRow` is a silent no-op with a dev-only warning; the context menu hides the two Insert items |
-| `duplicateRow: (row: TData) => TData` | Duplicate row(s) | `duplicateRows` is a silent no-op with a dev-only warning; the context menu hides Duplicate |
+| `createRow: (index: number) => TData` | Insert row above/below | `insertRow` is a silent no-op with a dev-only warning. The context menu hides the two Insert items |
+| `duplicateRow: (row: TData) => TData` | Duplicate row(s) | `duplicateRows` is a silent no-op with a dev-only warning. The context menu hides Duplicate |
 | (none) | Delete row(s) | Always available |
 
 `duplicateRow` must give every copy a distinct id (a spread copy with a fresh `id`), so a
@@ -40,7 +40,7 @@ prop like every other binding (see [Keybindings](/docs/addons/keybindings#remapp
 
 **See the live example:** [Drag & drop reorder](/docs/examples/rows/drag-reorder)
 
-Drag a row marker vertically to reorder rows; a thin line marks the drop target, and the row
+Drag a row marker vertically to reorder rows. A thin line marks the drop target, and the row
 moves on release. The gesture is zone-based — the press location decides the behavior, not later
 movement. In the `reorder`-family marker modes (`reorder`, `reorder-number`, `reorder-checkbox`,
 `reorder-both`), the **grip zone** — the grip handle plus everything in the marker cell except
@@ -64,11 +64,15 @@ cell follows its row. Each completed move is announced through the grid's `aria-
 (`labels.markers.reorderAnnouncement`).
 
 <Callout type="warn" title="reorderRows is a no-op in these situations">
-  It returns `false` (dev-warning where the cause is a misconfiguration) when: `enableRowReorder`
-  is off, the grid is `readOnly`, an edit session is open (the editor pins a view coordinate the
-  move would invalidate), a sort or filter is active (the view order belongs to the sort/filter,
-  not the data), a lazy grid has unloaded holes (a reorder would shift the lazy add-on's index
-  bookkeeping), or the drop leaves the row where it already is. There is no keyboard reorder yet.
+  It returns `false` (dev-warning where the cause is a misconfiguration) in these situations:
+
+  - `enableRowReorder` is off, or the grid is `readOnly`
+  - An edit session is open (the editor pins a view coordinate that the move invalidates)
+  - A sort or filter is active (the view order belongs to the sort/filter, not the data)
+  - A lazy grid has unloaded holes (a reorder shifts the lazy add-on's index bookkeeping)
+  - The drop leaves the row where it already is
+
+  There is no keyboard reorder.
 </Callout>
 
 <Callout type="warn" title="Position-based data goes stale">
@@ -90,9 +94,9 @@ The cell-surface items, in order:
 1. **Cut** / **Copy** / **Paste** — the native clipboard pipeline (see [Clipboard](/docs/clipboard)).
 2. **Clear contents** — empties the selection to each type's `clearValue()` (the `deleteContents`
    action, <kbd>Delete</kbd>/<kbd>Backspace</kbd>).
-3. **Insert row above** / **Insert row below** — anchored at the right-clicked row; hidden without
+3. **Insert row above** / **Insert row below** — anchored at the right-clicked row. Hidden without
    `createRow`.
-4. **Duplicate row(s)** — <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>; hidden
+4. **Duplicate row(s)** — <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>. Hidden
    without `duplicateRow`.
 5. **Delete row(s)** — destructive item, no default keyboard binding.
 
@@ -121,7 +125,7 @@ function MyToolbar() {
         actions.deleteRows([4]);
       }}
     >
-      ...
+      {/* the button label is omitted */}
     </button>
   );
 }
@@ -161,7 +165,7 @@ from the `columns` array, and reorder and resize do not affect it. Set `rowMarke
 | `"reorder"` | A grip handle — the whole cell is the grip zone that drag-reorders the row. No number or checkbox. |
 | `"reorder-number"` / `"reorder-checkbox"` / `"reorder-both"` | The grip zone (grip handle + cell background) plus the number and/or checkbox content, which stay row-select surfaces. |
 
-Only the `reorder` family arms the [drag-to-reorder gesture](#reorder); the plain modes are pure
+Only the `reorder` family arms the [drag-to-reorder gesture](#reorder). The plain modes are pure
 row-select surfaces. Marker press and drag, in the plain modes, selects a contiguous multi-row
 range that follows the pointer from the press row — dragging back over selected rows de-selects
 them (contrast the header gesture, whose column range only grows). See

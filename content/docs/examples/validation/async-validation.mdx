@@ -18,7 +18,7 @@ Type a SKU and press Enter:
 
 - The editor **stays open while the schema resolves**. The built-in text/number editors mark
   their input `readOnly` as the pending treatment — never `disabled`, so Escape still cancels.
-- Resolving with issues shows the rejection message exactly like a sync rejection; editing
+- Resolving with issues shows the rejection message exactly like a sync rejection. Editing
   continues.
 - Resolving successfully commits the schema's `result.value`, then applies the pending
   cell-to-cell movement.
@@ -32,12 +32,12 @@ Paste, fill, CSV/XLSX import, and `updateCells` hold the batch while the schema 
 
 - The grid validates a **maximum of 32 cells at the same time** — a paste of 10,000 cells makes
   32 concurrent calls, not 10,000.
-- Nothing changes until every verdict is in; the accepted cells then commit together as one
+- Nothing changes until every verdict is in. The accepted cells then commit together as one
   `onDataChange` ops batch.
 - A rejected cell **drops silently** — one bad value never fails the batch.
 - A newer operation supersedes a held batch: a second paste over the same area, a data change,
   a sort/filter change, or unmounting the grid drops the older batch silently.
-- The import dialog keeps its Import button disabled while it validates; cancel or closing
+- The import dialog keeps its Import button disabled while it validates. Cancel or closing
   aborts the build.
 
 <Callout type="warn" title="A slow schema makes a slow batch">

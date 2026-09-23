@@ -92,7 +92,7 @@ function handleDataChange(
 ```
 
 <Callout type="warn" title="Keep a ref, not just the state variable">
-  The rollback needs the array from BEFORE this change, not the latest one. A plain closure over
+  The rollback needs the array from BEFORE this change, not the current one. A plain closure over
   `data` in a `useCallback` captures a stale snapshot across renders. Mirror `data` into a `ref`
   on every render, and roll back to `ref.current` as it stood at the start of this handler.
 </Callout>
@@ -117,7 +117,7 @@ function handleDataChange(_next: readonly Order[], change: DataChange<Order>, se
 <Callout type="idea" title="Optimistic vs refetch-on-settle">
   Optimistic feels instant but needs a correct rollback path. Refetch-on-settle is simpler and
   always shows server-confirmed data, at the cost of a visible delay per edit. Pick optimistic for
-  frequent, low-risk edits (a status toggle); pick refetch-on-settle for edits a server can
+  frequent, low-risk edits (a status toggle). Pick refetch-on-settle for edits a server can
   reject or recompute (a price that triggers server-side discounts).
 </Callout>
 
@@ -154,11 +154,11 @@ contract, including `clearCellErrors` and the read hook.
 
 ## TanStack Query wiring
 
-<Callout type="idea" title="Grid-side parts are the contract; TanStack Query parts are illustrative">
+<Callout type="idea" title="Grid-side parts are the contract. TanStack Query parts are illustrative">
   gridcn does not install `@tanstack/react-query` — the snippet is written against its stable
   public API (`useQuery`/`useMutation`/`onMutate`/`onError`), the same illustrative-snippet
   convention as the Standard Schema example in
-  [Editing & cell types](/docs/editing-cell-types#validation); see also
+  [Editing & cell types](/docs/editing-cell-types#validation). See also
   [Lazy loading: data fetching & failure recovery](/docs/lazy-loading-advanced#wiring-a-fetchcache-library-react-query)
   for the same rule applied to `data-grid-lazy`.
 </Callout>
@@ -202,7 +202,7 @@ function OrdersGrid() {
 ```
 
 `applyOpsLocally` is your own small reducer over `DataOp[]` (update by `rowId`, splice an insert
-at `index`, filter out a delete); the `onMutate`/`onError` pair is the same optimistic-vs-rollback
+at `index`, filter out a delete). The `onMutate`/`onError` pair is the same optimistic-vs-rollback
 shape as [Strategy A](#strategy-a-optimistic-roll-back-on-failure), expressed through TanStack
 Query's cache.
 
@@ -484,7 +484,7 @@ every field's exact type.
 ## Multiple grids on one page
 
 Each `<DataGridProvider>` mounts its own Zustand store instance (`createStore` in a `useState`
-factory). There is no module-level singleton, so multiple grids on one page just work with no
+factory). There is no module-level singleton, so multiple grids on one page work with no
 configuration:
 
 ```tsx

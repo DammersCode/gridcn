@@ -6,8 +6,8 @@ icon: Keyboard
 
 `data-grid-keybindings` displays the grid's effective keymap as an in-app dialog — always
 reflecting the actual bindings of your grid, including `keymap` overrides. The core keyboard
-model and the default binding table live on [Selection & keyboard](/docs/selection-keyboard#keyboard-map);
-this page covers the add-on's display surface.
+model and the default binding table live on [Selection & keyboard](/docs/selection-keyboard#keyboard-map).
+This page covers the add-on's display surface.
 
 <InstallCommand item="data-grid-keybindings" manual manualSlot={<ManualInstall item="data-grid-keybindings" />} />
 
@@ -82,6 +82,24 @@ remap or extend any binding without touching the engine:
 `keymap` lives on `DataGridRoot` (or the `DataGrid` wrapper), not on `DataGridProvider`. This
 overrides only the actions you specify. Everything else falls back to `DEFAULT_KEYMAP`.
 
+```tsx
+// extend the default set: keep mod+a, add a second binding on top
+<DataGridRoot keymap={{ selectAll: ["mod+a", "mod+shift+a"] }} />
+
+// disable an action entirely (empty list = unbound, its keys become no-ops)
+<DataGridRoot keymap={{ selectColumn: [] }} />
+```
+
+Binding strings are `mod`/`ctrl`/`alt`/`shift` prefixes plus a key
+(`"mod+shift+ArrowUp"`, `"F2"`, `" "`), with `mod` resolving to <kbd>Cmd</kbd> on macOS and
+<kbd>Ctrl</kbd> elsewhere and `ctrl` matching the literal physical <kbd>Ctrl</kbd> on every
+platform (used where <kbd>Cmd</kbd> is reserved by the OS, e.g. `selectColumn` on <kbd>Ctrl</kbd>+<kbd>Space</kbd>).
+
+The matcher is **event-source-agnostic**: the same `keymap` config drives the in-grid handler,
+the `?` shortcut resolution, and the opt-in [global shortcuts](/docs/global-shortcuts)
+layer.
+When you remap an action, every surface uses the new binding.
+
 The type-to-replace trigger (`editReplace`) is remapped the same way. By default it has no
 binding: any unbound printable key on the active cell dispatches it and opens the editor seeded
 with the typed character (Excel behavior). Defining it in `keymap` takes the action over
@@ -98,3 +116,5 @@ Action labels in the dialog (and the per-`GridAction` label map) come from
 - [Selection & keyboard](/docs/selection-keyboard) — the selection model and the default
   keymap table
 - [Two-stage Ctrl+A](/docs/selection-keyboard#two-stage-ctrla) — the select-all nuance
+- [Global shortcuts](/docs/global-shortcuts) — the opt-in layer that also follows the
+  remapped undo and redo bindings outside the grid

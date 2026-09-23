@@ -11,6 +11,13 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Global keyboard shortcuts (opt-in):** `DataGridGlobalShortcuts` keeps the effective keymap's
+  undo/redo working while DOM focus is OUTSIDE the grid (custom toolbar, side panel, `body`).
+  Mount the component inside `DataGridRoot`; limit the enabled actions with the `undo` and `redo`
+  flags (both enabled by default). Keys come from the effective keymap, so `keymap` remaps apply
+  to the global layer as well. A six-rule gate skips IME composition, already-handled events,
+  editable targets (a field's native undo wins), any in-grid target, and grids that are not the
+  last focused opted-in one (multi-grid tie-break). No new dependencies.
 - Manual install without the CLI: the Manual tab of the installation docs now links every core
   source file (and folder) to its page in the GitHub repository, so the source folder can be
   copied straight from GitHub into `components/` — the same payload the CLI installs.

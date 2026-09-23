@@ -1,0 +1,109 @@
+---
+title: Global shortcuts
+description: Opt-in undo and redo for focus positions outside the grid.
+icon: Command
+---
+
+The keyboard shortcuts of the grid work only while DOM focus is inside the grid.
+When focus is on a custom toolbar, a side panel, or `body`, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd>
+does not touch the grid.
+`DataGridGlobalShortcuts` mounts a window-level listener that keeps undo and redo
+active at every focus position.
+
+<ComponentPreview name="data-grid-global-shortcuts-demo" />
+
+<InstallCommand item="data-grid-global-shortcuts-demo" manual manualSlot={<ManualInstall item="data-grid-global-shortcuts-demo" />} />
+
+## How it works
+
+`DataGridGlobalShortcuts` is a headless component in the core block.
+It renders nothing.
+Mount it inside `DataGridRoot`.
+The component listens for `keydown` on the window.
+A gate of six rules decides whether an event reaches the grid:
+
+1. While IME composition is in progress, the gate skips the event.
+2. When the event is already `defaultPrevented`, the gate skips it. (The page or the grid handled
+   it first.)
+3. When the event target is an editable element (`input`, `textarea`, `select`,
+   `contenteditable`), the gate skips it. The field keeps its native undo and redo.
+4. When the target is inside a grid, the gate skips the event. The handler inside that grid owns
+   the key.
+5. The gate requires this grid to be the last focused grid with the component. This rule breaks
+   ties between grids.
+6. The key must resolve to an enabled action through the effective keymap.
+
+When the gate passes, the component dispatches the `onUndo` or `onRedo` seam of the in-grid keymap.
+With the `data-grid-history` add-on, undo reverses grid edits.
+Without the add-on the layer is a no-op, like in-grid undo.
+
+## Usage
+
+Mount the component inside `DataGridRoot`:
+
+```tsx
+import { DataGridGlobalShortcuts } from "@/components/data-grid/data-grid";
+
+function OrdersGrid() {
+  return (
+    <>
+      {/* your custom toolbar — OUTSIDE the grid */}
+      <MyToolbar />
+      <DataGridProvider {...grid} columns={columns}>
+        <DataGridRoot>
+          <DataGridGlobalShortcuts />
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>
+    </>
+  );
+}
+```
+
+Limit the enabled actions:
+
+```tsx
+<DataGridGlobalShortcuts undo />
+```
+
+Omit the flags to enable every action (undo and redo).
+
+| Prop | Description | Default |
+|---|---|---|
+| `undo` | enables the effective keymap's undo binding on window keydown | enabled when both flags are omitted |
+| `redo` | enables the effective keymap's redo bindings on window keydown | enabled when both flags are omitted |
+
+The listener reads the effective keymap from the store.
+When you remap `undo`, the global binding follows (see [Keybindings — Remapping](/docs/addons/keybindings#remapping)).
+
+## Multiple grids
+
+When several grids with the component share a page, the last focused grid owns the shortcut.
+When focus moves to grid B, undo and redo target the history of B.
+Until focus returns to grid A, they target the history of A.
+A grid without the component never claims the shortcut.
+If you add the component to one of two grids, nothing changes until you focus that grid.
+In a tabbed layout, the last DOM focus decides the active tab.
+When your app switches tabs without a focus change, call undo imperatively for the active tab.
+
+<Callout type="warn" title="Page-wide mod+z">
+If your app registers its own window-level `mod+z` (for example, a global undo), both listeners
+see the same event.
+The handler that calls `preventDefault` first wins.
+When `event.defaultPrevented` is true, your handler skips the event.
+This protects the layer from your listener and your listener from the layer.
+</Callout>
+
+## Out of scope
+
+- **Global copy and paste:** the active cell is unknown while focus is outside the grid. For a
+  programmatic paste, call `useDataGridClipboard().pasteFromClipboard()`.
+- **Global navigation and selection:** without an active cell, the arrow keys have no target. The
+  page owns `mod+a` for its own select-all.
+
+## Related
+
+- [Undo & redo](/docs/addons/undo-redo) — the `onUndo`/`onRedo` seam of this component
+- [Keybindings](/docs/addons/keybindings) — the effective keymap and remapping
+- [Selection & keyboard](/docs/selection-keyboard) — the in-grid keymap table

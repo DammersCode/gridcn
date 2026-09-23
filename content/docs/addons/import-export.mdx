@@ -68,7 +68,7 @@ exportGrid(state, { format: "csv", scope: "selection" });
 ```
 
 `scope` controls which rows get exported. The default, `'view'`, follows whatever the user
-currently sees, the active sort and filter, by walking `viewIndex` (quick search never narrows
+sees, the active sort and filter, by walking `viewIndex` (quick search never narrows
 `viewIndex` — see [Sorting, filtering & search](/docs/sorting-filtering-search#search)). `'all'`
 ignores view order entirely and exports every row of the raw `data` array as-is.
 `'selection'` walks only the selected rows, counting both the marker checkboxes and any cell range.
@@ -170,8 +170,8 @@ build custom UI instead of using the provided buttons and dialog. `parseImportFi
 `matchImportColumns`, `applyImportOptions`, and `buildImportedRows` are the pure functions
 underneath, for when you need to parse or map outside a React component entirely.
 
-`parseImportFile` takes a `sheetName` option for multi-sheet workbooks (first sheet by default; an
-unknown `sheetName` rejects), and the result's `sheetNames`/`sheetName` report what was in the
+`parseImportFile` takes a `sheetName` option for multi-sheet workbooks (first sheet by default.
+An unknown `sheetName` rejects), and the result's `sheetNames`/`sheetName` report what was in the
 workbook and which one you got. Switching sheets re-parses and recomputes the column mapping from
 scratch, discarding any manual mapping from the previous sheet:
 
@@ -189,7 +189,7 @@ for (const name of sheetNames ?? []) {
 const rows = await buildImportedRows({ dataRows, mapping, columns, cellTypes, createRow, signal });
 ```
 
-`buildImportedRows` returns the rows directly for a synchronous import of 5,000 rows or fewer;
-above that (or with an async Standard Schema `validate` on a mapped column) it returns a Promise
+`buildImportedRows` returns the rows directly for a synchronous import of 5,000 rows or fewer.
+Above that (or with an async Standard Schema `validate` on a mapped column) it returns a Promise
 — await the result either way. Large imports run in chunks that yield to the event loop, and an
 `AbortSignal` passed as `signal` cancels between chunks, rejecting with `"import-cancelled"`.

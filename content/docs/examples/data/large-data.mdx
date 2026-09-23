@@ -14,8 +14,8 @@ row count.
 
 <InstallCommand item="data-grid-large-data-demo" />
 
-100k generated rows; the DOM holds only the rows around the viewport at all times, so
-scrolling is a flat line regardless of size.
+100k generated rows. The DOM holds only the rows around the viewport at all times.
+Scrolling is a flat line regardless of size.
 
 ## With an FPS meter
 
@@ -30,10 +30,10 @@ live.
 
 The grid renders rows through a virtualized viewport: it measures row height, computes
 which rows intersect the scroll window, and mounts only those plus overscan. Sorting,
-filtering, and editing all run against the in-memory array; the DOM is a window onto it.
+filtering, and editing all run against the in-memory array. The DOM is a window onto it.
 
 <Callout type="info" title="When to lazy-load instead">
-If the dataset is bigger than a browser should hold, stop loading it all:
+If the dataset is bigger than a browser can hold, stop loading it all:
 [lazy loading](/docs/examples/data/lazy) fetches only the scrolled-into windows, and
 [server pagination](/docs/examples/data/pagination) only the current page.
 </Callout>

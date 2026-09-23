@@ -92,7 +92,7 @@ with a "press Ctrl+V" hint when the browser withholds it.
 
 <Callout type="idea" title="An async schema holds the paste">
   A paste against a column with an async Standard Schema `validate` waits for the schema and
-  commits the accepted cells as one batch; a rejected cell drops silently. The full contract,
+  commits the accepted cells as one batch. A rejected cell drops silently. The full contract,
   shared by fill and import, is on [Editing & cell types: async schemas](/docs/editing-cell-types#on-bulk-paths).
   For a large paste against a remote check, `processPaste` above validates the whole block in one
   request instead.

@@ -5,7 +5,7 @@ icon: Files
 ---
 
 `useDataGridPagination` has two modes. Client mode slices a dataset you already hold in
-memory; server mode only does the page math — you own `page`, `pageSize`, `total`, and
+memory. Server mode only does the page math. You own `page`, `pageSize`, `total`, and
 fetching the page yourself. The same server mode pairs with any fetch layer: the three pages
 below.
 
@@ -18,11 +18,11 @@ below.
   <Card
     title="TanStack Query"
     href="/docs/examples/data/pagination/react-query"
-    description="The page is the query key; edits write through, then invalidate."
+    description="The page is the query key. Edits write through, then invalidate."
   />
   <Card
     title="SWR"
     href="/docs/examples/data/pagination/swr"
-    description="The page is the cache key; a scoped revalidate covers edits."
+    description="The page is the cache key. A scoped revalidate covers edits."
   />
 </Cards>

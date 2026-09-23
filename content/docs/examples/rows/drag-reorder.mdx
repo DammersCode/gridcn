@@ -20,7 +20,7 @@ stays anchored to its rows through the move.
 
 - `rowMarkers="reorder"`: a grip handle in the marker column, no numbers or checkboxes
 - `enableRowReorder` on the provider (on by default): the grid-wide switch for the drag gesture
-- A thin line marks the drop target while dragging; the row moves on release
+- A thin line marks the drop target while dragging. The row moves on release
 - **Move selection down** toolbar button: `reorderRows(activeCell.row, activeCell.row + 1)` -
   the programmatic path
 - **Undo** button (the `data-grid-history` add-on): one click restores the pre-move order
@@ -44,9 +44,9 @@ shortcuts, buttons, or an external "sort by drag" API.
 `reorderRows` returns `false` (and dev-warns where the cause is a misconfiguration) when:
 
 - `enableRowReorder` is off, or the grid is `readOnly`
-- an edit session is open (the editor pins a view coordinate the move would invalidate)
+- an edit session is open (the editor pins a view coordinate that the move invalidates)
 - a sort or filter is active (the view order belongs to the sort/filter, not the data)
-- a lazy grid has unloaded holes (a reorder would shift the lazy add-on's index bookkeeping)
+- a lazy grid has unloaded holes (a reorder shifts the lazy add-on's index bookkeeping)
 - the drop leaves the row where it already is
 
 See [Row operations - Reorder](/docs/row-operations#reorder) for the full reference, including

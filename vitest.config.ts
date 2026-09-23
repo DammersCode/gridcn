@@ -56,6 +56,7 @@ export default defineConfig({
         "registry/default/blocks/data-grid/keyboard/keymap.ts": { branches: 90 },
         "registry/default/blocks/data-grid/labels.ts": { branches: 90 },
         "registry/default/blocks/data-grid/rows/marker-width.ts": { branches: 90 },
+        "registry/default/blocks/data-grid/keyboard/global-shortcuts.ts": { branches: 90 },
         "registry/default/blocks/data-grid/keyboard/match-keymap.ts": { branches: 90 },
         "registry/default/blocks/data-grid/sort-filter/matches-filter.ts": { branches: 90 },
         "registry/default/blocks/data-grid/selection/offset-selection-for-rows.ts": { branches: 90 },

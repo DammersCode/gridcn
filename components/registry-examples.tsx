@@ -17,6 +17,7 @@ const EXAMPLES = {
   "data-grid-history-demo": dynamic(() => import("@/registry/default/examples/data-grid-history-demo")),
   "data-grid-context-menu-demo": dynamic(() => import("@/registry/default/examples/data-grid-context-menu-demo")),
   "data-grid-keybindings-demo": dynamic(() => import("@/registry/default/examples/data-grid-keybindings-demo")),
+  "data-grid-global-shortcuts-demo": dynamic(() => import("@/registry/default/examples/data-grid-global-shortcuts-demo")),
   "data-grid-io-demo": dynamic(() => import("@/registry/default/examples/data-grid-io-demo")),
   "data-grid-url-state-demo": dynamic(() => import("@/registry/default/examples/data-grid-url-state-demo")),
   "data-grid-row-markers-demo": dynamic(() => import("@/registry/default/examples/data-grid-row-markers-demo")),

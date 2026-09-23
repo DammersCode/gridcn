@@ -5,7 +5,7 @@ icon: Loader
 ---
 
 `useDataGridLazyRows` keeps a sparse row array and asks for `[start, end)` windows as the
-viewport scrolls; skeleton rows hold the space until each window lands. What fills a window
+viewport scrolls. Skeleton rows hold the space until each window lands. What fills a window
 is your choice — a plain fetch, a TanStack Query cache, or SWR's global cache. Each page
 embeds the live registry example.
 

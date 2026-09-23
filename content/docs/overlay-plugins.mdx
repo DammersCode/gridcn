@@ -13,16 +13,16 @@ grid's overlay stack, with no store changes and no core code aware of what it pa
 export type OverlayPlugin = (ctx: OverlayPluginCtx) => ReactNode;
 ```
 
-A plugin is a plain function, not a component and not a hook by name, though it may call hooks
+A plugin is a plain function, not a component and not a hook by name, though it can call hooks
 internally (see [Identity stability](#identity-stability) below for why that is safe). `DataGridOverlays`
 calls every registered plugin once per render, in array order, and renders whatever each one
 returns.
 
 The overlay layer is a stack of `pointer-events-none` elements painted above the cell grid, inside
 the same scrolling canvas as the cells. Selection fills, row/column bands, and the active-cell ring
-are the core's built-in layers; `data-grid-presence` and `data-grid-fill` register into this same
-seam, reusing the core's window-clamp and pin-zone-splitting math through the `ctx` argument, so a
-plugin never re-implements geometry the core already solved.
+are the core's built-in layers. `data-grid-presence` and `data-grid-fill` register into this same
+seam. They reuse the core's window-clamp and pin-zone-splitting math through the `ctx` argument.
+A plugin never re-implements geometry the core already solved.
 
 ### Layer order
 
@@ -60,8 +60,8 @@ highlight or a fill-drag frame cost zero row or cell renders.
 - **`pinTrack`** (optional) — per-column pin and track data, present only when the grid has a
   pinned column. `undefined` means skip segmentation entirely.
 - **`splitRectByPinZones(rect, pinTrack)`** — splits a data-space rect into up to three contiguous
-  segments: pinned-left, unpinned, pinned-right. Call it whenever `pinTrack` is defined and your
-  rect might span a pinned column.
+   segments: pinned-left, unpinned, pinned-right. Call it whenever `pinTrack` is defined and your
+   rect can span a pinned column.
 - **`clampRectToWindow(rect, rowStart, rowEnd, colCount)`** — clamps a data-space rect to the given
   row window and `[0, colCount)`, or returns `null` when it falls fully outside. Call this before
   `splitRectByPinZones`.
@@ -123,7 +123,7 @@ it paints.
 
 A plugin does not need selection or presence state to be useful. This one highlights a single
 column with a tinted band, driven entirely by a prop your own component controls, for example the
-column currently under a filter, or one flagged by a validation pass elsewhere in your app.
+column under a filter, or one flagged by a validation pass elsewhere in your app.
 
 ```tsx title="use-column-highlight.tsx"
 "use client";

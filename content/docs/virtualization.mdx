@@ -41,7 +41,7 @@ scrollbar-drag fling.
 
 ### Overscan
 
-A small fixed overscan, rows and columns rendered just past the visible edge, absorbs the normal
+A small fixed overscan, rows and columns rendered past the visible edge, absorbs the normal
 gap between one scroll tick and the next window recompute. During a fast fling the grid also
 tracks recent scroll velocity and grows the overscan on the leading edge only, so a fast fling
 never exposes blank space without permanent over-rendering while scrolling slowly or sitting still.
@@ -61,7 +61,7 @@ never exposes blank space without permanent over-rendering while scrolling slowl
 Pinned-left and pinned-right columns, and pinned-top and pinned-bottom row bands (see
 [Columns](/docs/columns#pin-leftright) and [Pinned rows](/docs/addons/pinned-rows)), always render,
 regardless of scroll position. They sit outside the windowed range by construction, not merely
-overscanned, so they never blank, flicker, or lose focus while scrolling; the unpinned window's
+overscanned, so they never blank, flicker, or lose focus while scrolling. The unpinned window's
 viewport bounds shrink by the space the pinned bands and columns occupy.
 
 ### What you get for free

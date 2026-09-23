@@ -5,7 +5,7 @@ icon: Table
 ---
 
 Client mode: the demo holds all 240 rows and the hook slices the current page out of them.
-No round trip, no `total` to manage — just `pageSize` and, optionally, a controlled page.
+No round trip, and no `total` to manage. You need `pageSize` and, optionally, a controlled page.
 
 <ComponentPreview name="data-grid-pagination-demo" />
 
@@ -35,7 +35,7 @@ doesn't need to know which mode it's in. The footer sits outside the provider in
 — it reads no store.
 
 Use client mode when the dataset already fits in memory (a few hundred to a few thousand
-rows); switch to server mode when a page is a real API call — see
+rows). Switch to server mode when a page is a real API call. See
 [TanStack Query](/docs/examples/data/pagination/react-query) and
 [SWR](/docs/examples/data/pagination/swr).
 

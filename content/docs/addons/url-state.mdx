@@ -85,9 +85,9 @@ toggle existed still parses identically.
 <Callout type="warn" title="A URL-applied sort is invisible in the default config">
   `?sort=name:asc` reorders the rows, but the built-in sort indicator only renders in
   `headerClickBehavior="sort"` mode, which is not the default. So in the default config a
-  deep-linked sort changes the row order with no visible arrow and no built-in UI to clear it
-  (the sort-list toolbar is a separate opt-in add-on). The sync works; the affordance is just
-  missing. Make it visible and clearable:
+   deep-linked sort changes the row order with no visible arrow and no built-in UI to clear it
+   (the sort-list toolbar is a separate opt-in add-on). The sync works. The affordance is
+   missing. Make it visible and clearable:
 
   ```tsx
   <DataGridProvider headerClickBehavior="sort" {...grid} columns={columns}>
@@ -127,7 +127,7 @@ function OrdersGrid({ rows, total }: { rows: Order[]; total: number }) {
 }
 ```
 
-`page` (1-based) is omitted from the URL at 1; `pageSize` is omitted when it equals the configured
+`page` (1-based) is omitted from the URL at 1. `pageSize` is omitted when it equals the configured
 default. Both writes use `history: "replace"`, same as this add-on's other params. Options:
 `prefix` (namespaces `page`/`pageSize` the same way as `sort`/`filter`/`q`), `defaultPageSize`
 (default 25), and `pageSizeOptions` (an out-of-range URL `pageSize` falls back to the default
