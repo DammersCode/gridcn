@@ -118,8 +118,8 @@ const perfStats = [
 ];
 
 const addOns = [
-  { icon: PaintBucket, title: "Fill handle", href: "/docs/examples/addons/fill" },
-  { icon: Undo2, title: "Undo & redo", href: "/docs/examples/addons/undo-redo" },
+  { icon: PaintBucket, title: "Fill handle", href: "/docs/addons/fill" },
+  { icon: Undo2, title: "Undo & redo", href: "/docs/addons/undo-redo" },
   {
     icon: ArrowUpDown,
     title: "Sorting & filtering",
@@ -128,9 +128,9 @@ const addOns = [
   {
     icon: FileSpreadsheet,
     title: "Import & export",
-    href: "/docs/examples/addons/import-export",
+    href: "/docs/addons/import-export",
   },
-  { icon: Link2, title: "URL state", href: "/docs/examples/addons/url-state" },
+  { icon: Link2, title: "URL state", href: "/docs/addons/url-state" },
   {
     icon: Blocks,
     title: "Context menu",
@@ -151,8 +151,8 @@ const addOns = [
     title: "Sort list",
     href: "/docs/sorting-filtering-search",
   },
-  { icon: Pin, title: "Pinned rows", href: "/docs/examples/addons/pinned-rows" },
-  { icon: Users, title: "Multiplayer presence", href: "/docs/examples/addons/presence" },
+  { icon: Pin, title: "Pinned rows", href: "/docs/addons/pinned-rows" },
+  { icon: Users, title: "Multiplayer presence", href: "/docs/addons/presence" },
   { icon: CloudDownload, title: "Lazy loading", href: "/docs/lazy-loading" },
   { icon: ListOrdered, title: "Pagination", href: "/docs/pagination" },
   { icon: Pencil, title: "Cell editing types", href: "/docs/editing-cell-types" },

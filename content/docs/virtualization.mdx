@@ -59,7 +59,7 @@ never exposes blank space without permanent over-rendering while scrolling slowl
 ### Interaction with pinned rows and columns
 
 Pinned-left and pinned-right columns, and pinned-top and pinned-bottom row bands (see
-[Columns](/docs/columns#pin-leftright) and [Pinned rows](/docs/examples/addons/pinned-rows)), always render,
+[Columns](/docs/columns#pin-leftright) and [Pinned rows](/docs/addons/pinned-rows)), always render,
 regardless of scroll position. They sit outside the windowed range by construction, not merely
 overscanned, so they never blank, flicker, or lose focus while scrolling; the unpinned window's
 viewport bounds shrink by the space the pinned bands and columns occupy.

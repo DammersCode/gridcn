@@ -314,7 +314,7 @@ const message = errors.get(cellErrorKey(row.id, "email"));
 
 <Callout type="warn" title="Not a data change">
   `setCellErrors` and `clearCellErrors` never touch `data`. They fire no `onDataChange`, and
-  [`data-grid-history`](/docs/examples/addons/undo-redo) never records them. A server error is metadata about a
+  [`data-grid-history`](/docs/addons/undo-redo) never records them. A server error is metadata about a
   cell, not an edit the user made — undo must not need to walk past it.
 </Callout>
 

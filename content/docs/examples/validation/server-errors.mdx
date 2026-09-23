@@ -45,7 +45,7 @@ actions.clearCellErrors(targets?: readonly { rowId: string; columnId: string }[]
 
 <Callout type="warn" title="Not a data change">
   `setCellErrors`/`clearCellErrors` never touch `data`: they fire no `onDataChange`, and
-  [`data-grid-history`](/docs/examples/addons/undo-redo) never records them. A server error is metadata about a
+  [`data-grid-history`](/docs/addons/undo-redo) never records them. A server error is metadata about a
   cell, not an edit the user made — undo must not walk past it.
 </Callout>
 

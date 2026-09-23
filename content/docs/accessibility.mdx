@@ -95,8 +95,8 @@ The target is **WCAG 2.1 AA**. No conformance audit has been performed against g
     on the moved row's grip after a reorder, and moves to the next row's grip (or the "Add
     filter"/"Add sort" button once the list is empty) after a delete. See the per-key tables for
     both popovers: [Toolbar add-on: filter menu keyboard &
-    accessibility](/docs/examples/addons/toolbar#filter-menu-keyboard--accessibility) and
-    [Sort list: keyboard & accessibility](/docs/examples/addons/sort-list#keyboard--accessibility).
+    accessibility](/docs/addons/toolbar#filter-menu-keyboard--accessibility) and
+    [Sort list: keyboard & accessibility](/docs/addons/sort-list#keyboard--accessibility).
   </Tab>
 </Tabs>
 
@@ -131,10 +131,10 @@ What the automated Chromium suite verifies, area by area:
 - **The fill handle is mouse-only and hidden from assistive tech.** Dragging it has no keyboard
   equivalent. Keyboard users get the same result with <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>D</kbd>
   (fill down) or <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>R</kbd> (fill right). See
-  [Fill handle](/docs/examples/addons/fill#keyboard-fill).
+  [Fill handle](/docs/addons/fill#keyboard-fill).
 - **Pinned rows are not keyboard-navigable and not in the selection model.** Arrow keys, Tab, and
   Ctrl+Arrow jumps move only within data rows. A pinned row is never the active cell, carries no
-  `tabindex`, and carries no `aria-selected`. See [Pinned rows](/docs/examples/addons/pinned-rows#a11y).
+  `tabindex`, and carries no `aria-selected`. See [Pinned rows](/docs/addons/pinned-rows#a11y).
 - **The grid renders no page landmark of its own.** Place it inside `<main>` or a labeled
   `<section>` yourself. Without a surrounding landmark, screen-reader region navigation, and axe's
   own `region` rule, cannot see the grid as part of a labeled page region. The automated suite's

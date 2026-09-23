@@ -114,7 +114,7 @@ row indices into the current sorted or filtered display order, the same coordina
 This matters the moment two independent grids, or a grid and a remote peer, disagree about sort or
 filter state. A view-row index computed on one side goes stale the instant the other side's view
 changes. The fix, worked through in full with a `rowId`-to-view-row lookup helper, lives on
-[Multiplayer presence](/docs/examples/addons/presence#coordinates-rowid-native-or-view-space).
+[Multiplayer presence](/docs/addons/presence#coordinates-rowid-native-or-view-space).
 Any plugin that receives coordinates from outside the grid, a network peer, a URL parameter,
 anywhere but the grid's own current selection, needs the same rowId-to-view-row mapping step before
 it paints.
@@ -201,7 +201,7 @@ separate piece: `FillHandleTracker`, a component you render as a child inside `D
 itself, one level below where `overlayPlugins` is wired (on `DataGridProvider`, above `DataGridRoot`).
 It reads `scrollRef` and the live column layout from `DataGridRoot`'s own context, runs the pointer
 math, and registers its handlers into a small store that the paint-only plugin reads back out of to
-wire onto the handle square it renders. See [Fill handle](/docs/examples/addons/fill) and
+wire onto the handle square it renders. See [Fill handle](/docs/addons/fill) and
 `fill-tracker.tsx` for the full pattern if your own plugin needs pointer interaction, not only
 paint.
 

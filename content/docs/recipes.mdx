@@ -148,7 +148,7 @@ contract, including `clearCellErrors` and the read hook.
 <Callout type="idea" title="Toast and revert, or history undo, still apply">
   `setCellErrors` does not roll back the value on its own — pair it with
   [Strategy A](#strategy-a-optimistic-roll-back-on-failure)'s rollback, or
-  [`data-grid-history`](/docs/examples/addons/undo-redo)'s `undo()`, when leaving the rejected
+  [`data-grid-history`](/docs/addons/undo-redo)'s `undo()`, when leaving the rejected
   value showing is the wrong choice.
 </Callout>
 
@@ -500,5 +500,5 @@ configuration:
 
 <Callout type="warn" title="data-grid-url-state needs a distinct prefix per grid">
   Without a distinct prefix, two grids syncing to the URL collide on the same `sort`, `filter`,
-  `join`, and `q` keys. See [URL state](/docs/examples/addons/url-state#prefix).
+  `join`, and `q` keys. See [URL state](/docs/addons/url-state#prefix).
 </Callout>

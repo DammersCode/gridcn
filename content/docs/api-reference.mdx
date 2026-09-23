@@ -41,7 +41,7 @@ This is the composable entry point. It has the same sync props as `DataGrid` abo
   `getCellClassName`, `onCellClick`, and `onRowClick` live on `DataGridRoot` when composing
   directly. `DataGrid` passes its own copies of these straight through to the `DataGridRoot` that
   it renders. `onFill` is not a prop on either. It is an option to the `useDataGridFill()`
-  hook of the `data-grid-fill` add-on (see [Fill handle](/docs/examples/addons/fill)), since fill itself
+  hook of the `data-grid-fill` add-on (see [Fill handle](/docs/addons/fill)), since fill itself
   lives outside the core.
 </Callout>
 
@@ -50,7 +50,7 @@ This is the composable entry point. It has the same sync props as `DataGrid` abo
 `readonly OverlayPlugin[]`, optional, on both `DataGridProvider` and `DataGrid`. Each registered
 plugin paints into the same overlay layer the core's own selection and active-cell rendering use.
 See [Overlay plugins](/docs/overlay-plugins) for the full contract, and
-[Multiplayer presence](/docs/examples/addons/presence) and [Fill handle](/docs/examples/addons/fill) for two
+[Multiplayer presence](/docs/addons/presence) and [Fill handle](/docs/addons/fill) for two
 first-party consumers.
 
 <Callout type="warn" title="Pass a stable array reference">
@@ -168,13 +168,13 @@ a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
 - `OverlayPlugin` (`(ctx: OverlayPluginCtx) => ReactNode`) and `OverlayPluginCtx`, the
   overlay-plugin seam that add-ons like `data-grid-presence` and `data-grid-fill` register into.
   See [Overlay plugins](/docs/overlay-plugins) for the full contract and a worked example, and
-  [Multiplayer presence](/docs/examples/addons/presence) and [Fill handle](/docs/examples/addons/fill) for two
+  [Multiplayer presence](/docs/addons/presence) and [Fill handle](/docs/addons/fill) for two
   first-party consumers.
 
   <AutoTypeTable path="./registry/default/blocks/data-grid/overlays.tsx" name="OverlayPluginCtx" />
 
 - `RowBandsSpec` and `RowBandRenderCtx`, the provider-level row-bands seam that
-  `data-grid-pinned-rows` registers into. See [Pinned rows](/docs/examples/addons/pinned-rows).
+  `data-grid-pinned-rows` registers into. See [Pinned rows](/docs/addons/pinned-rows).
 - `CellErrorEntry` (`{ rowId, columnId, message }`) and `CellErrorTarget` (`{ rowId, columnId }`),
   the input shapes for `actions.setCellErrors`/`actions.clearCellErrors`. See
   [Editing & cell types: Server errors](/docs/editing-cell-types#server-errors).
@@ -206,7 +206,7 @@ will reach for most:
 
     This is the options object for `useDataGridHistory`, the composable history hook of
     `data-grid-history` (it takes `data` and `setData`, mirroring the `useState` tuple). See
-    [Undo & redo](/docs/examples/addons/undo-redo).
+    [Undo & redo](/docs/addons/undo-redo).
 
     <AutoTypeTable path="./registry/default/blocks/data-grid-history/use-data-grid-history.ts" name="UseDataGridHistoryOptions" />
 
@@ -267,14 +267,14 @@ will reach for most:
     ### `UseDataGridFillOptions`
 
     This is the options object for `useDataGridFill` from `data-grid-fill`. See
-    [Fill handle](/docs/examples/addons/fill).
+    [Fill handle](/docs/addons/fill).
 
     <AutoTypeTable path="./registry/default/blocks/data-grid-fill/use-data-grid-fill.tsx" name="UseDataGridFillOptions" />
 
     ### `UseDataGridPinnedRowsOptions`
 
     This is the options object for `useDataGridPinnedRows` from `data-grid-pinned-rows`. See
-    [Pinned rows](/docs/examples/addons/pinned-rows).
+    [Pinned rows](/docs/addons/pinned-rows).
 
     <AutoTypeTable path="./registry/default/blocks/data-grid-pinned-rows/use-data-grid-pinned-rows.tsx" name="UseDataGridPinnedRowsOptions" />
 

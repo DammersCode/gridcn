@@ -34,7 +34,7 @@ insertion index.
 | Delete row(s) | (no default binding) | (none) |
 
 Both bindings live in `DEFAULT_KEYMAP`, so they can be remapped or dropped through the `keymap`
-prop like every other binding (see [Keybindings](/docs/examples/addons/keybindings#remapping)).
+prop like every other binding (see [Keybindings](/docs/addons/keybindings#remapping)).
 
 ## Reorder
 
@@ -69,13 +69,13 @@ cell follows its row. Each completed move is announced through the grid's `aria-
 <Callout type="warn" title="Position-based data goes stale">
   Search match counts and presence highlights in the original view-space `range` form reference
   positions, not row ids, so they go stale after a move — the same parity as `insertRows`.
-  Presence's rowId-native range form ([Multiplayer presence](/docs/examples/addons/presence)) tracks
+  Presence's rowId-native range form ([Multiplayer presence](/docs/addons/presence)) tracks
   its rows through the move.
 </Callout>
 
 ## Context menu
 
-The row-operation items ship with the [context menu add-on](/docs/examples/addons/context-menu), which installs
+The row-operation items ship with the [context menu add-on](/docs/addons/context-menu), which installs
 a right-click menu on the grid's cell and header surfaces. Right-clicking a cell makes it the
 active cell with a single-cell selection before the menu opens, so the items always act on a
 known target.

@@ -4,13 +4,13 @@ description: Send your own selection to peers over a real websocket, and choose 
 icon: Radio
 ---
 
-Follow-up to [Multiplayer presence](/docs/examples/addons/presence): the receiving side is the
+Follow-up to [Multiplayer presence](/docs/addons/presence): the receiving side is the
 `useDataGridPresence` add-on; this page is the other direction — broadcasting your own selection
 over a real websocket.
 
 ## Wiring a real websocket
 
-The demo on the [Multiplayer presence](/docs/examples/addons/presence) page simulates 3 users
+The demo on the [Multiplayer presence](/docs/addons/presence) page simulates 3 users
 with `setInterval`. A real integration looks like this:
 
 ```tsx
@@ -64,7 +64,7 @@ array is wrong as soon as a column is hidden):
 
 <Callout type="warn" title="range is in the sender's view space">
   A receiver with a different local sort or filter paints a `range` payload on the wrong cells
-  (the full trade-off is on [Coordinates](/docs/examples/addons/presence#coordinates-rowid-native-or-view-space)).
+  (the full trade-off is on [Coordinates](/docs/addons/presence#coordinates-rowid-native-or-view-space)).
   For divergence-proof multi-cell broadcasts, send the rowId-native range form
   `{ rowIds, columnIds }` instead: map the selection's view rows to rowIds with
   `useDataGridRowId` / `useDataGridRowIds` and the visible view columns to column ids, called
