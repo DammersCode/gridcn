@@ -54,8 +54,9 @@ const grid = useDataGridState(initialRows, { getRowId: (row) => row.id });
 buttons; `clear` empties both stacks (e.g. after regenerating the dataset).
 <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Y</kbd>, and
 <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> work automatically while focus is in
-the grid — and with the opt-in [`useDataGridGlobalShortcuts`](/docs/addons/global-shortcuts)
-hook they keep working while focus sits on a custom toolbar or anywhere else on the page.
+the grid.
+With the opt-in [`useDataGridGlobalShortcuts`](/docs/addons/global-shortcuts) hook, undo and redo
+also work while focus is on a custom toolbar or anywhere else on the page.
 
 ## Composable: `useDataGridHistory`
 
