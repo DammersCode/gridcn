@@ -262,12 +262,17 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
           data-grid-active-cell-overlay=""
           data-pinned={activePinStyle ? "" : undefined}
           aria-hidden="true"
-          className={cn("pointer-events-none z-10 ring-2 ring-inset ring-primary")}
+          className={cn("pointer-events-none ring-2 ring-inset ring-primary")}
           style={{
             gridColumnStart: activeInWindow.col + colOffset,
             gridColumnEnd: activeInWindow.col + colOffset + 1,
             gridRowStart: activeInWindow.row - windowStart + 1,
             gridRowEnd: activeInWindow.row - windowStart + 2,
+            // The ring ranks with the cell it decorates (same DOM-later sibling wins ties): an
+            // unpinned ring must lose to any pinned cell that scrolls over it, a pinned ring must
+            // beat its own cell's opaque background. A fixed rank floats the former over the pin
+            // band and buries the latter under its own cell.
+            zIndex: activePinStyle ? GRID_LAYER.activePinnedCell : GRID_LAYER.activeCell,
             ...activePinStyle,
           }}
         />

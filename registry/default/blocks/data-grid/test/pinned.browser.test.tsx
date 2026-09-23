@@ -366,3 +366,65 @@ describe("bug fix - an active cell never floats over the pinned column", () => {
     });
   });
 });
+
+describe("bug fix - the active-cell ring never floats over the pinned column", () => {
+  // The ring overlay is a SEPARATE element from the cell body, so the cell-body fix above does
+  // not cover it: a fixed rank above every pinned cell left the ring painted over the pin band
+  // when the active unpinned cell scrolled under it (reading as "pinned column is selected"),
+  // while burying a pinned cell's own ring under its own opaque background.
+  const columns = defineColumns<Row>()([
+    { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120, pin: "left" },
+    { id: "email", header: "Email", accessorKey: "email", type: "text", width: 260 },
+    { id: "age", header: "Age", accessorKey: "age", type: "number", width: 90 },
+  ] as const);
+
+  async function renderGrid() {
+    render(
+      <div style={{ width: 340, height: 300 }}>
+        <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[260px]" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    return document.querySelector<HTMLElement>('[role="grid"]')!;
+  }
+
+  it("loses to the pinned cell once the active unpinned cell scrolls under it", async () => {
+    const grid = await renderGrid();
+
+    const emailCell = [...document.querySelectorAll<HTMLElement>('[role="gridcell"]')].find((c) =>
+      /example\.com/.test(c.textContent ?? ""),
+    )!;
+    await userEvent.click(emailCell);
+    const ring = document.querySelector<HTMLElement>(gridAttrSelector("activeCellOverlay"))!;
+    const pinned = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "left")}`)!;
+
+    // the reported repro: slide the active email cell partially under the pinned-left column
+    grid.scrollLeft = 200;
+    grid.dispatchEvent(new Event("scroll"));
+    await new Promise((r) => setTimeout(r, 100));
+
+    // the ring must actually sit under the pinned band right now (otherwise this test proves nothing)
+    const ringRect = ring.getBoundingClientRect();
+    const pinnedRect = pinned.getBoundingClientRect();
+    expect(ringRect.left < pinnedRect.right && ringRect.right > pinnedRect.left).toBe(true);
+
+    const ringZ = Number(getComputedStyle(ring).zIndex);
+    const pinnedZ = Number(getComputedStyle(pinned).zIndex);
+    expect(ringZ, `ring ${ringZ} must sit under pinned ${pinnedZ}`).toBeLessThan(pinnedZ);
+  });
+
+  it("ranks with its own pinned cell, so a pinned active cell's ring is not buried under the cell", async () => {
+    await renderGrid();
+
+    const pinned = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "left")}`)!;
+    await userEvent.click(pinned);
+    await vi.waitFor(() => {
+      const ring = document.querySelector<HTMLElement>(gridAttrSelector("activeCellOverlay"));
+      expect(ring, "ring missing for the clicked pinned cell").not.toBeNull();
+      // equal ranks + DOM-later sibling = painted above the cell's opaque background
+      expect(Number(getComputedStyle(ring!).zIndex)).toBeGreaterThanOrEqual(
+        Number(getComputedStyle(pinned).zIndex),
+      );
+    });
+  });
+});
