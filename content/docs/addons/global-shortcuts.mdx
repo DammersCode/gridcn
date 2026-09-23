@@ -34,7 +34,6 @@ A gate of six rules decides whether an event reaches the grid:
 6. The key must resolve to an enabled action through the effective keymap.
 
 When the gate passes, the component dispatches the `onUndo` or `onRedo` seam of the in-grid keymap.
-The `useDataGridGlobalShortcuts` hook runs the same layer for custom wrappers.
 With the `data-grid-history` add-on, undo reverses grid edits.
 Without the add-on the layer is a no-op, like in-grid undo.
 

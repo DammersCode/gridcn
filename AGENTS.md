@@ -49,6 +49,18 @@ Component and addon page structure (match the existing pages):
 6. Warnings as `<Callout type="warn">`: command or condition first, then the risk.
 7. `## Related` links at the end.
 
+## Registry exports (registry/default/blocks/**)
+
+A block's barrel file is the consumer's import surface: what the barrel exports is what a
+consumer can import. Keep the surface to the public API.
+
+- Export only what the docs teach the reader to call (for example `useDataGridClipboard`), or
+  what IS the add-on's API.
+- A hook or utility that only mounts a layer a component already exposes is internal: define it
+  next to the component, keep it off the barrel.
+- Test: grep `content/docs` for the name. If the docs never tell the reader to call it, do not
+  export it. Existing barrel exports are grandfathered; do not add new ones.
+
 ## Workflow
 
 ### Gates
