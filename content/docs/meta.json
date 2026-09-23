@@ -14,7 +14,7 @@
     "clipboard",
     "---[MousePointerClick]Selection & navigation---",
     "selection-keyboard",
-    "addons/global-shortcuts",
+    "global-shortcuts",
     "sorting-filtering-search",
     "---[Rows3]Rows & data---",
     "row-operations",
