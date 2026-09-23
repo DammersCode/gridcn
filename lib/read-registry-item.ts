@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { cache } from "react";
+import type { RegistryItemName } from "./registry-items";
 
 /** The gridcn GitHub registry address — same-repo registry items are addressed as `<owner>/<repo>/<item>`. */
 export const GRIDCN_REGISTRY = "DammersCode/gridcn";
@@ -23,7 +24,7 @@ export type RegistryItem = {
 };
 
 /** Reads a built registry item's payload for the docs Manual tab — same JSON a consumer's CLI fetches from `/r/<item>.json`. */
-export const readRegistryItem = cache((name: string): RegistryItem => {
+export const readRegistryItem = cache((name: RegistryItemName): RegistryItem => {
   const filePath = path.join(process.cwd(), "public/r", `${name}.json`);
   const raw = fs.readFileSync(filePath, "utf-8");
   const parsed = JSON.parse(raw) as Partial<RegistryItem>;

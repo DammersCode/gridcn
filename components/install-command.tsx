@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Tabs } from "@base-ui/react/tabs";
 import { Check, Copy } from "lucide-react";
 import { PACKAGE_MANAGERS, RUNNERS, usePackageManager, type PackageManager } from "@/lib/package-manager";
+import type { RegistryItemName } from "@/lib/registry-items";
 import { DocsTabs, type DocsTabItem } from "@/components/docs-tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -12,7 +13,7 @@ const GRIDCN_REGISTRY = "@gridcn";
 
 export type InstallPickerItem = {
   /** Registry item name, e.g. "data-grid-toolbar" — rendered as `@gridcn/<name>` in the command. */
-  value: string;
+  value: RegistryItemName;
   /** Display label in the picker; defaults to the item name. */
   label?: string;
   /** Checked on mount. Defaults to false. */
@@ -21,7 +22,7 @@ export type InstallPickerItem = {
 
 type InstallCommandProps = {
   /** Registry item name, e.g. "data-grid" — rendered as `<runner> shadcn@latest add @gridcn/<item>`. */
-  item?: string;
+  item?: RegistryItemName;
   /** Picker mode: the command joins the checked items in `items` order. */
   items?: InstallPickerItem[];
   /** A full command after the runner, e.g. "shadcn add DammersCode/gridcn/data-grid#v1.0.0" — wins over `item` and `items`. */

@@ -12,10 +12,11 @@ import { DOCS_LINK } from "@/components/docs-tabs";
 import { cn } from "@/lib/utils";
 import { ManualInstallDeps } from "@/components/manual-install-deps";
 import { gitConfig } from "@/lib/shared";
+import type { RegistryItemName } from "@/lib/registry-items";
 
 type ManualInstallProps = {
   /** Registry item name, e.g. "data-grid-fill". */
-  item: string;
+  item: RegistryItemName;
   /** Render a file tree instead of per-file collapsed code blocks — for items too large to copy-paste (the core). */
   tree?: boolean;
 };
@@ -135,6 +136,7 @@ export async function ManualInstall({ item, tree = false }: ManualInstallProps):
       <Steps>
         {gridcnPrereqs.length > 0 && (
           <Step>
+            <h3 className="text-xl font-semibold leading-relaxed">Prerequisites</h3>
             <p>
               Requires <Link href="/docs/installation" className={DOCS_LINK}>`@gridcn/data-grid`</Link> installed first:
             </p>
@@ -145,6 +147,7 @@ export async function ManualInstall({ item, tree = false }: ManualInstallProps):
         )}
         {(registryItem.dependencies.length > 0 || registryItem.devDependencies.length > 0 || shadcnPrereqs.length > 0) && (
           <Step>
+            <h3 className="text-xl font-semibold leading-relaxed">Dependencies</h3>
             <p>Install the following dependencies:</p>
             {shadcnPrereqs.length > 0 && (
               shadcnPrereqs.map((dep) => <InstallCommand key={dep} command={`shadcn add ${dep}`} />)
@@ -156,6 +159,7 @@ export async function ManualInstall({ item, tree = false }: ManualInstallProps):
         )}
         {tree ? (
           <Step>
+            <h3 className="text-xl font-semibold leading-relaxed">Source files</h3>
             <p>
               Open the{" "}
               <a
@@ -172,6 +176,7 @@ export async function ManualInstall({ item, tree = false }: ManualInstallProps):
           </Step>
         ) : (
           <Step>
+            <h3 className="text-xl font-semibold leading-relaxed">Source files</h3>
             <p>Copy and paste the following code into your project.</p>
             <div className="flex flex-col gap-4">
               {highlightedFiles.map((file) => (
@@ -183,6 +188,7 @@ export async function ManualInstall({ item, tree = false }: ManualInstallProps):
           </Step>
         )}
         <Step>
+          <h3 className="text-xl font-semibold leading-relaxed">Import paths</h3>
           <p>Update the import paths to match your project setup.</p>
         </Step>
       </Steps>
