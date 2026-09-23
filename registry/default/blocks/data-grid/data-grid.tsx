@@ -154,10 +154,6 @@ export { DataGridGlobalShortcuts, type DataGridGlobalShortcutsProps } from "./ke
 export {
   type GlobalShortcutAction,
   type GlobalShortcutsConfig,
-  type GlobalShortcutEvent,
-  type GlobalShortcutContext,
-  enabledGlobalActions,
-  resolveGlobalShortcut,
 } from "./keyboard/global-shortcuts";
 
 export {
