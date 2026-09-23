@@ -31,6 +31,7 @@
     "addons/presence",
     "addons/broadcasting-presence",
     "addons/undo-redo",
+    "addons/global-shortcuts",
     "addons/toolbar",
     "addons/context-menu",
     "addons/keybindings",
