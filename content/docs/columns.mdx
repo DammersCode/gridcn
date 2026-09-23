@@ -13,7 +13,6 @@ and from `data-grid-toolbar` (a columns menu).
 [Drag & drop](/docs/examples/columns/drag-reorder) ·
 [Filtering](/docs/examples/columns/filtering) ·
 [Custom headers](/docs/examples/columns/custom-headers) ·
-[Row markers](/docs/examples/columns/row-markers) ·
 [Column layout](/docs/examples/columns/column-layout)
 
 <ComponentPreview name="data-grid-pinning-demo" />
@@ -172,98 +171,6 @@ import { DataGridToolbar, DataGridColumnsMenu } from "@/components/data-grid-too
 ```
 
 Or set a column's initial state with `hidden: true` in its `ColumnDef`.
-
-## Row markers
-
-A pinned-left marker column sits entirely outside the data column index space. It is separate
-from the `columns` array, and reorder and resize do not affect it. Set `rowMarkers` on
-`DataGridProvider` (or `DataGrid`). The default is `"none"`:
-
-<ComponentPreview name="data-grid-row-markers-demo" />
-
-```tsx
-<DataGridProvider rowMarkers="both" {...grid} columns={columns}>
-```
-
-| Mode | Shows |
-|---|---|
-| `"none"` | No marker column (default). |
-| `"number"` | The 1-based view row index, non-interactive. |
-| `"checkbox"` | A per-row checkbox that drives the rows selection channel, plus a select-all checkbox in the marker header. |
-| `"both"` | The row number, replaced by the checkbox on hover or when the row is selected (a group-hover pattern). The number is never gone. The checkbox only sits in front of it at the moment the checkbox is actionable. |
-
-Marker press and drag, in `"checkbox"` and `"both"` modes, selects a contiguous multi-row range
-that follows the pointer from the press row — dragging back over selected rows de-selects them
-(contrast the header gesture, whose column range only grows). See
-[Selection & keyboard](/docs/selection-keyboard#mouse-gestures). The aria-labels of the marker
-column (`markers.selectAll` and `markers.selectRow`) are translatable through `labels`. See
-[i18n](/docs/i18n#coverage-by-group).
-
-Try all four modes alongside every other toggle in the [playground](/docs/playground).
-
-### Custom markers
-
-`DataGridRoot` and `DataGrid` accept two render slots that replace the marker column's content
-while keeping its chrome and gestures:
-
-- `renderMarker` replaces the built-in row number/checkbox in every marker cell. It receives the
-  0-based `viewRowIndex` plus two independent selection signals: `isRowChannelSelected` (the rows
-  channel only, so a cell click never flips it) and `isCellSelected` (the cell or column channel
-  covers at least one cell of the row). A renderer can therefore tell "this row is selected" apart
-  from "cells in this row are selected" and render them differently.
-- `renderMarkerHeader` replaces the select-all checkbox in the marker header. It receives the
-  `allSelected` state (`"checked"`, `"indeterminate"`, `"unchecked"`). In `"number"` mode there is no
-  select-all checkbox, so the renderer replaces the blank header cell instead.
-
-The `rowMarkers` mode still sets the track width (`"number"` 44px, `"checkbox"` 36px, `"both"`
-56px), and `"none"` renders no marker column at all, so neither renderer is ever called. The
-cell's own press and drag row-selection gesture stays on the wrapper: with a custom renderer,
-clicking or dragging a marker cell still selects rows.
-
-```tsx
-import { Check, Circle, List, ListChecks, Minus } from "lucide-react";
-import { useDataGridActions, type MarkerCellRenderer, type MarkerHeaderRenderer } from "@/components/data-grid/data-grid";
-import { Button } from "@/components/ui/button";
-
-const renderMarker: MarkerCellRenderer = ({ isRowChannelSelected, isCellSelected }) => (
-  <span className="flex size-5 items-center justify-center">
-    {isRowChannelSelected ? (
-      <Check className="size-3.5 text-muted-foreground" aria-hidden="true" />
-    ) : isCellSelected ? (
-      <Minus className="size-3.5 text-muted-foreground" aria-hidden="true" />
-    ) : (
-      <Circle className="size-3.5 text-muted-foreground" aria-hidden="true" />
-    )}
-  </span>
-);
-
-function SelectAllMarker({ allSelected }: { allSelected: "checked" | "indeterminate" | "unchecked" }) {
-  const { setAllRowsSelected } = useDataGridActions();
-  const checked = allSelected === "checked";
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      aria-label={checked ? "Unselect all rows" : "Select all rows"}
-      onClick={() => setAllRowsSelected(!checked)}
-    >
-      {checked ? <ListChecks aria-hidden="true" /> : <List aria-hidden="true" />}
-    </Button>
-  );
-}
-
-const renderMarkerHeader: MarkerHeaderRenderer = (ctx) => <SelectAllMarker {...ctx} />;
-```
-
-Define both renderers at module scope (stable identity, the same rule as `getRowClassName`, see
-[Performance](/docs/performance#keeping-it-fast)) — a component-body function re-renders every
-marker cell on every root update.
-
-The built-in checkboxes carry the translatable `labels.markers.*` aria-labels. A custom renderer
-with interactive content must supply its own accessible name on that content.
-
-<ComponentPreview name="data-grid-custom-markers-demo" />
 
 ## Flex fill
 
