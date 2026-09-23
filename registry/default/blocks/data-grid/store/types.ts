@@ -86,13 +86,14 @@ export type DataGridSyncProps<TData = unknown> = {
   /** Enables drag-to-reorder columns grid-wide; default true. Per-column `reorderable: false` still wins. */
   enableColumnReorder?: boolean;
   /**
-   * Enables drag-to-reorder rows grid-wide; default true. The gesture lives on the marker's
-   * `reorder`-family modes only (`reorder`, `reorder-number`, `reorder-checkbox`,
-   * `reorder-both`) — plain `number`/`checkbox`/`both` markers stay pure row-select surfaces, so
-   * a selection drag never reorders. Within the reorder family, a drag from the checkbox glyph
-   * and Shift+drag always stay the row-select gesture.
+   * Enables drag-to-reorder rows grid-wide; default true. The gesture is zone-based: it lives on
+   * the marker's `reorder`-family modes only (`reorder`, `reorder-number`, `reorder-checkbox`,
+   * `reorder-both`) and only from the grip zone (the grip handle + cell background, or the whole
+   * cell in `reorder` mode) — plain `number`/`checkbox`/`both` markers stay pure row-select
+   * surfaces, and within the reorder family the number/checkbox glyphs and Shift+drag always
+   * stay the row-select gesture, so a selection drag never reorders.
    */
-   enableRowReorder?: boolean;
+  enableRowReorder?: boolean;
   /** Enables pin/unpin actions grid-wide; default true. Per-column `pinnable: false` still wins. */
   enableColumnPinning?: boolean;
   /** How a plain header click behaves; default 'select'. See {@link HeaderClickBehavior}. */

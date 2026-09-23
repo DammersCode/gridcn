@@ -4,9 +4,10 @@ description: Reorder rows with the drag grip or reorderRows - one move op, selec
 icon: GripVertical
 ---
 
-Row reorder from two paths: drag a row by its grip (any `reorder`-family marker mode:
-`reorder`, `reorder-number`, `reorder-checkbox`, `reorder-both`) or call `reorderRows(from, to)`
-programmatically. Both emit **one id-keyed `move` op**, so
+Row reorder from two paths: drag a row by its grip zone (any `reorder`-family marker mode:
+`reorder`, `reorder-number`, `reorder-checkbox`, `reorder-both` — in the content modes the
+number and checkbox glyphs stay row-select surfaces, only the grip zone reorders) or call
+`reorderRows(from, to)` programmatically. Both emit **one id-keyed `move` op**, so
 undo/redo restores the previous order in a single step. Selection and the active cell remap by
 row id, so the row you drag ends up selected at its new position, and a multi-row selection
 stays anchored to its rows through the move.

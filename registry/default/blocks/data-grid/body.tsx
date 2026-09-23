@@ -212,7 +212,6 @@ export function DataGridBody(): ReactNode {
     hitTestRow,
     onReorder: onRowReorder,
     getScrollElement: () => scrollRef.current,
-    onArm: interaction.cancelRowSelectDrag,
   });
 
   // The single row-reorder drop-indicator line, grid-placed on the boundary row's track in the
@@ -285,6 +284,7 @@ export function DataGridBody(): ReactNode {
               readOnly={readOnly}
               rowMarkers={rowMarkers}
               onMarkerPointerDown={interaction.onMarkerPointerDown}
+              onMarkerGripPointerDown={interaction.onMarkerGripPointerDown}
               onMarkerCheckboxPointerDown={interaction.onMarkerCheckboxPointerDown}
               onMarkerReorderPointerDown={rowReorder.onMarkerDragPointerDown}
               isRowReorderDragging={rowReorder.dragState?.draggingRow === viewRowIndex}

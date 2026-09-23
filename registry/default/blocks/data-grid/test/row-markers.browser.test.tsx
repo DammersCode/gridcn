@@ -204,6 +204,24 @@ describe("row markers", () => {
     expect(after[1]).not.toHaveAttribute(GRID_ATTR.selected, "true");
   });
 
+  // Zone model: the checkbox press must never run the marker surface's exclusive selectRow —
+  // a stationary glyph click ADDS its row to an existing multi-row selection.
+  it("a checkbox click keeps an existing multi-row selection (additive, not exclusive)", async () => {
+    render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="checkbox" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const markers = markerCells();
+    await markers[0]!.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, ctrlKey: true, pointerId: 1 }));
+    await userEvent.click(markers[2]!.querySelector<HTMLElement>('[role="checkbox"]')!);
+
+    const after = markerCells();
+    expect(after[0]).toHaveAttribute(GRID_ATTR.selected, "true");
+    expect(after[2]).toHaveAttribute(GRID_ATTR.selected, "true");
+  });
+
   it("press+drag on 'both' mode markers (checkbox hidden, number visible) extends a row-range selection", async () => {
     // reorder is off: a plain vertical marker drag is the row-reorder gesture when enabled
     render(
