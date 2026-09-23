@@ -10,25 +10,7 @@ import { useDataGridKeymap, useDataGridStoreApi } from "../store";
 let lastFocusedGrid: number | null = null;
 let nextGridId = 0;
 
-/**
- * Opt-in: while DOM focus is OUTSIDE the grid, intercept the effective keymap's undo/redo
- * bindings on `window` keydown and dispatch the grid's `onUndo`/`onRedo` seam — the same seam the
- * in-grid keymap runs, so with the `data-grid-history` add-on it undoes grid edits and without it
- * it is a no-op (identical parity to in-grid undo/redo).
- *
- * Keys are NOT configured as strings: the hook reads the effective keymap from the store, so a
- * consumer's `keymap` prop overrides apply — remapping `undo` remaps the global binding too, no
- * second source of truth. The config is an object by design: registering the same action twice
- * is a compile error (see {@link GlobalShortcutsConfig}).
- *
- * Gating (see {@link resolveGlobalShortcut}): skipped while composing, when `defaultPrevented`,
- * when the target is an editable element or inside any grid, and for grids that are not the last
- * focused opted-in one (multi-grid tie-break — last DOM focus wins). Must be mounted inside
- * `DataGridRoot` (reads the root's container element, like `DataGridKeybindingsShortcut`); it
- * renders nothing.
- *
- * Prefer {@link DataGridGlobalShortcuts} — the component that mounts this hook.
- */
+/** While DOM focus is outside the grid, dispatches the effective keymap's undo/redo on window keydown. Mount inside `DataGridRoot`; prefer {@link DataGridGlobalShortcuts}. */
 export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void {
   const containerRef = useDataGridContainer();
   const storeApi = useDataGridStoreApi();
@@ -87,10 +69,7 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
 /** Props for {@link DataGridGlobalShortcuts}: the action flags of {@link GlobalShortcutsConfig}. Omit both to enable every action. */
 export type DataGridGlobalShortcutsProps = GlobalShortcutsConfig;
 
-/**
- * Mounts the opt-in global-shortcut layer; renders nothing. Must sit inside `DataGridRoot`
- * (the hook reads the root's container element).
- */
+/** Mounts the global-shortcut layer; renders nothing. Must sit inside `DataGridRoot`. */
 export function DataGridGlobalShortcuts(props: DataGridGlobalShortcutsProps): ReactNode {
   useDataGridGlobalShortcuts(props);
   return null;
