@@ -85,12 +85,37 @@ cell range that covers part of a row still exports that row in full.
 (`fromText` per cell type of the target column):
 
 <Steps>
-  <Step>Choose a file: CSV/TSV or xlsx/xls. A multi-sheet workbook opens on its first sheet, and a sheet picker in the dialog switches it before you confirm.</Step>
-  <Step>If the file has a header row, toggle "first row is a header".</Step>
-  <Step>Pick a CSV delimiter (auto-detected by default).</Step>
-  <Step>Map each source column to a grid column, or skip it.</Step>
-  <Step>Preview the first rows.</Step>
-  <Step>Confirm, to run every mapped cell through the `fromText` of its column's cell type.</Step>
+  <Step>
+    ### Choose a file
+
+    CSV/TSV or xlsx/xls. A multi-sheet workbook opens on its first sheet, and a sheet picker
+    in the dialog switches it before you confirm.
+  </Step>
+  <Step>
+    ### Header row
+
+    If the file has a header row, toggle "first row is a header".
+  </Step>
+  <Step>
+    ### Delimiter
+
+    Pick a CSV delimiter (auto-detected by default).
+  </Step>
+  <Step>
+    ### Map columns
+
+    Map each source column to a grid column, or skip it.
+  </Step>
+  <Step>
+    ### Preview
+
+    Preview the first rows.
+  </Step>
+  <Step>
+    ### Confirm
+
+    Runs every mapped cell through the `fromText` of its column's cell type.
+  </Step>
 </Steps>
 
 <Callout type="warn" title="createRow is required">
