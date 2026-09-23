@@ -33,8 +33,7 @@ function MoveDownButton({ rowCount }: { rowCount: number }): ReactNode {
   return (
     <Button
       variant="outline"
-      size="sm"
-      className="h-6 text-xs"
+      size="xs"
       disabled={!canMove}
       onClick={() => {
         if (activeCell) actions.reorderRows(activeCell.row, activeCell.row + 1);
@@ -72,7 +71,7 @@ export default function DataGridRowReorderDemo(): ReactNode {
         >
           <DataGridToolbar>
             <MoveDownButton rowCount={grid.data.length} />
-            <Button variant="outline" size="sm" className="h-6 text-xs" disabled={!grid.history.canUndo} onClick={grid.history.undo}>
+            <Button variant="outline" size="xs" disabled={!grid.history.canUndo} onClick={grid.history.undo}>
               Undo
             </Button>
           </DataGridToolbar>

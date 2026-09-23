@@ -25,7 +25,7 @@ function langFromTarget(target: string): string {
 
 const GITHUB_BASE = `https://github.com/${gitConfig.user}/${gitConfig.repo}`;
 // fumadocs-ui's File/Folder rows render plain divs without href support — same row look, as anchors.
-const ITEM_ROW = "flex flex-row items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-fd-accent hover:text-fd-accent-foreground [&_svg]:size-4";
+const ITEM_ROW = "flex flex-row items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground [&_svg]:size-4";
 
 /** One `<Folder>`/`<File>` level of a target-path tree, folders before files, both alphabetical. `path` is the file's GitHub source path from the payload. */
 type TreeNode = { folders: Map<string, TreeNode>; files: { name: string; path: string }[] };

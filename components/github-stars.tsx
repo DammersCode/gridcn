@@ -47,8 +47,10 @@ export function GitHubStars({ repo, stargazersCount, locales = "en-US" }: GitHub
         </span>
       </TooltipTrigger>
 
-      <TooltipContent className="tabular-nums">
-        {new Intl.NumberFormat(locales).format(stargazersCount)} stars
+      <TooltipContent>
+        <span className="tabular-nums">
+          {new Intl.NumberFormat(locales).format(stargazersCount)} stars
+        </span>
       </TooltipContent>
     </Tooltip>
   );

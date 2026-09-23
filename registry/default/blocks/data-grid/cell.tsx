@@ -283,8 +283,8 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         // unpinned, non-banded cells keep the plain translucent utility.
         "data-pinned:group-hover/row:bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
         "data-grid-pinned-row:group-hover/row:bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
-        // deliberate non-token amber: search-highlight is a distinct convention from selection/active tokens.
-        "data-[search-match]:bg-amber-200/60 dark:data-[search-match]:bg-amber-400/25",
+        // own token, not accent/muted: search-highlight is a distinct convention from selection/active colors.
+        "data-[search-match]:bg-search-highlight/60 dark:data-[search-match]:bg-search-highlight/25",
         // Same reasoning as the pinned-cell hover tint above: pinned-row bands sit opaque (z-index 3)
         // above the scrolled rows canvas, so a translucent bg-muted/30 would let scrolled content
         // bleed through — color-mix() pre-composites the same tint as an opaque color instead.

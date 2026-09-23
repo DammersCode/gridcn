@@ -13,7 +13,7 @@ import "@/app/global.css";
 // cell, per row-window commit) against the built-in checkbox path on the same grid.
 const customRenderMarker = ({ isRowChannelSelected }: MarkerCellRenderCtx): ReactNode => (
   <span className="flex size-5 items-center justify-center">
-    {isRowChannelSelected ? <Check className="size-3.5 text-emerald-600" aria-hidden="true" /> : <Circle className="size-3.5 text-muted-foreground" aria-hidden="true" />}
+    {isRowChannelSelected ? <Check className="size-3.5 text-primary" aria-hidden="true" /> : <Circle className="size-3.5 text-muted-foreground" aria-hidden="true" />}
   </span>
 );
 

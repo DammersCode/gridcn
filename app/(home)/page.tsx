@@ -189,7 +189,7 @@ export default function HomePage() {
     <div className="relative flex flex-1 flex-col items-center">
       <HeroShader />
       <div className="border bg-card z-10 mt-20 mb-16 flex w-full max-w-2xl flex-col items-center gap-6 px-6 sm:px-10 py-10 text-center">
-        <Badge variant="outline" className="gap-1.5 py-1">
+        <Badge variant="outline">
           Source-available · shadcn registry
         </Badge>
         <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">

@@ -155,7 +155,7 @@ describe("registry demos smoke: installed demos work immediately", () => {
       expect(
         live.length,
         `${name}: ${controls.length} control(s) above the grid, none visible and enabled: ` +
-          controls.map((c) => `${c.tagName.toLowerCase()}${c.disabled ? "[disabled]" : ""}`).join(", "),
+          controls.map((c) => `${c.tagName.toLowerCase()}${(c as HTMLButtonElement).disabled ? "[disabled]" : ""}`).join(", "),
       ).toBeGreaterThan(0);
     });
   }
