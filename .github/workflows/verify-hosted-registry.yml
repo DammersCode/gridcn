@@ -1,0 +1,21 @@
+name: Verify hosted registry
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verify-hosted-registry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      # Self-consistency check of the production deploy (gridcn.vercel.app serves the
+      # committed public/r/ payloads), so a lagging Vercel deploy cannot fail it.
+      - name: Verify hosted Vercel registry
+        run: node scripts/verify-hosted-registry.mjs
