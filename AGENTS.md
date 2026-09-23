@@ -37,6 +37,7 @@ The reader is external. They never saw our plan, our alternatives, or our IDE:
 - Timeless: no "now", "new", "currently", "latest", "soon", "eventually", "as of this writing". Docs describe the current state; `CHANGELOG.md` is the time-stamped place for "new".
 - Reference descriptions state what the thing does ("`onUndo` dispatches the undo entry"), not what the developer uses it to do.
 - Introduce a code sample with one sentence ending in a colon. Mark omissions with a comment in the sample's language, never `...`.
+- Numbered lists only when item order carries meaning: evaluation order, precedence, display order, or steps the reader runs in sequence. Everything else takes bullets. Never a one-item list — write it as prose.
 
 Component and addon page structure (match the existing pages):
 
