@@ -34,8 +34,10 @@ export type RowReorderHandlers = {
 
 /**
  * Drag-to-reorder rows. MUST coexist with the marker row-select range-drag
- * from the interaction layer: both start from a press on the marker cell. The disambiguation rule
- * (documented here as the single source of truth, mirrors {@link import("../columns/use-column-reorder").useColumnReorder}):
+ * from the interaction layer: both start from a press on the marker cell. The caller passes
+ * `enabled` only for the marker's `reorder` family (see RowMarkersMode) — plain number/checkbox/both
+ * markers never arm this hook, so a selection drag there cannot become a reorder. The
+ * disambiguation rule within the reorder family (mirrors {@link import("../columns/use-column-reorder").useColumnReorder}):
  * **a vertical drag that leaves the origin row becomes a reorder drag** whenever `enabled` is on;
  * **Shift+drag is always the row-select drag**, so shift-extending a row selection never
  * accidentally reorders. A plain press+drag that never leaves the origin row (or moves before

@@ -41,14 +41,16 @@ prop like every other binding (see [Keybindings](/docs/addons/keybindings#remapp
 **See the live example:** [Drag & drop reorder](/docs/examples/rows/drag-reorder)
 
 Drag a row marker vertically to reorder rows; a thin line marks the drop target, and the row
-moves on release. The marker is the handle in every `rowMarkers` mode, so reorder works with
-`number`, `checkbox`, and `both` out of the box, and `rowMarkers="reorder"` adds a dedicated
-mode with a grip handle and no numbers or checkboxes. <kbd>Shift</kbd>+drag still selects a row
-range as usual, and dragging the checkbox glyph itself selects only.
+moves on release. The drag gesture lives on the `reorder`-family marker modes — `reorder` (grip
+only), `reorder-number`, `reorder-checkbox`, and `reorder-both` (grip plus the number and/or
+checkbox content). Plain `number`, `checkbox`, and `both` markers stay pure row-select surfaces:
+a drag on them only ever selects rows, so a selection drag can never accidentally reorder.
+<kbd>Shift</kbd>+drag still selects a row range as usual, and dragging the checkbox glyph itself
+selects only.
 
 | Prop | Role | Default |
 |---|---|---|
-| `rowMarkers` (any mode but `none`) | supplies the drag handle | required — `none` has nothing to grab |
+| `rowMarkers` (`reorder` family) | supplies the drag handle | `none` has nothing to grab |
 | `enableRowReorder` | grid-wide switch | `true` |
 
 The programmatic form is `reorderRows(from, to)` from `useDataGridActions`, where `to` is the
@@ -153,10 +155,13 @@ from the `columns` array, and reorder and resize do not affect it. Set `rowMarke
 | `"number"` | The 1-based view row index, non-interactive. |
 | `"checkbox"` | A per-row checkbox that drives the rows selection channel, plus a select-all checkbox in the marker header. |
 | `"both"` | The row number, replaced by the checkbox on hover or when the row is selected (a group-hover pattern). The number is never gone. The checkbox only sits in front of it at the moment the checkbox is actionable. |
+| `"reorder"` | A grip handle that drag-reorders the row — no number or checkbox. |
+| `"reorder-number"` / `"reorder-checkbox"` / `"reorder-both"` | The grip handle plus the number and/or checkbox content of the suffix mode. |
 
-Marker press and drag, in `"checkbox"` and `"both"` modes, selects a contiguous multi-row range
-that follows the pointer from the press row — dragging back over selected rows de-selects them
-(contrast the header gesture, whose column range only grows). See
+Only the `reorder` family arms the [drag-to-reorder gesture](#reorder); the plain modes are pure
+row-select surfaces. Marker press and drag, in the plain modes, selects a contiguous multi-row
+range that follows the pointer from the press row — dragging back over selected rows de-selects
+them (contrast the header gesture, whose column range only grows). See
 [Selection & keyboard](/docs/selection-keyboard#mouse-gestures). The aria-labels of the marker
 column (`markers.selectAll` and `markers.selectRow`) are translatable through `labels`. See
 [i18n](/docs/i18n#coverage-by-group).
@@ -178,7 +183,8 @@ while keeping its chrome and gestures:
   select-all checkbox, so the renderer replaces the blank header cell instead.
 
 The `rowMarkers` mode still sets the track width (`"number"` 44px, `"checkbox"` 36px, `"both"`
-56px), and `"none"` renders no marker column at all, so neither renderer is ever called. The
+56px, `"reorder"` 32px, the `reorder-` family 48–64px), and `"none"` renders no marker column
+at all, so neither renderer is ever called. The
 cell's own press and drag row-selection gesture stays on the wrapper: with a custom renderer,
 clicking or dragging a marker cell still selects rows.
 

@@ -192,7 +192,7 @@ const customMarkerRenderMarkerHeader = ({ allSelected }: MarkerHeaderRenderCtx):
 const AGGREGATE_SPECS: AggregateSpecs = { name: (_values, rows) => `${rows.length} rows`, age: "avg", score: "sum" };
 const EMPTY_TOTALS_ROW: DemoRow = { id: "__totals__", name: "0 rows", email: "", age: 0, active: false, role: "Total", joined: "", score: 0 };
 
-const ROW_MARKERS_OPTIONS: readonly RowMarkersMode[] = ["none", "number", "checkbox", "both", "reorder"];
+const ROW_MARKERS_OPTIONS: readonly RowMarkersMode[] = ["none", "number", "checkbox", "both", "reorder", "reorder-number", "reorder-checkbox", "reorder-both"];
 const DENSITY_OPTIONS: readonly DensityMode[] = ["compact", "default", "comfortable"];
 const HEADER_CLICK_OPTIONS: readonly HeaderClickBehavior[] = ["select", "sort", "none"];
 const MODE_OPTIONS: readonly RowSupplyMode[] = ["virtualized", "paginated", "lazy"];

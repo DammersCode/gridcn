@@ -106,7 +106,7 @@ describe("row reorder (marker drag)", () => {
   it("shift+drag from the marker always extends the row selection, never reorders", async () => {
     render(
       <div style={{ height: 400 }}>
-        <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" />
+        <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder" />
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
@@ -127,7 +127,7 @@ describe("row reorder (marker drag)", () => {
   it("a drag from the checkbox glyph stays the row-select gesture (no reorder)", async () => {
     render(
       <div style={{ height: 400 }}>
-        <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="checkbox" />
+        <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder-checkbox" />
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
@@ -220,10 +220,51 @@ describe("row reorder (marker drag)", () => {
       .toBe("Row 1 moved to position 3 of 8");
   });
 
+  // Regression: plain selection modes must never arm the reorder gesture — a selection drag in
+  // 'both' mode used to become a reorder the moment it crossed the 5px threshold and left the row.
+  it("a plain marker drag in 'both' mode stays the row-select gesture (no reorder, no indicator)", async () => {
+    render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="both" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const target = rows().find((r) => dataCell(r).textContent === "Person 3")!;
+    const targetRect = target.getBoundingClientRect();
+    const startX = markerCell(0).getBoundingClientRect().left + 2;
+
+    await markerDrag(0, startX, targetRect.top + targetRect.height - 5, { steps: 3 });
+
+    expect(visualOrder()[0]).toBe("Person 0");
+    expect(document.querySelectorAll(gridAttrSelector("dropIndicator"))).toHaveLength(0);
+    await expect
+      .poll(() => rows().filter((r) => r.querySelector<HTMLElement>(gridAttrSelector("markerCell"))!.hasAttribute("data-row-selected")).length, { timeout: 2000 })
+      .toBe(4);
+  });
+
+  it("'reorder-number' renders the grip plus the row number and reorders on a plain drag", async () => {
+    render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder-number" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const marker = markerCell(0);
+    expect(marker.querySelector(gridAttrSelector("reorderHandle"))).not.toBeNull();
+    expect(marker.querySelector(gridAttrSelector("markerNumber"))?.textContent).toBe("1");
+
+    const target = rows().find((r) => dataCell(r).textContent === "Person 2")!;
+    const targetRect = target.getBoundingClientRect();
+    const startX = marker.getBoundingClientRect().left + 2;
+    await markerDrag(0, startX, targetRect.top + targetRect.height - 5, { steps: 3 });
+
+    await expect.poll(() => visualOrder()[0], { timeout: 2000 }).toBe("Person 1");
+  });
+
   it("auto-scrolls the grid while the drag pointer sits in a viewport edge zone", { timeout: 20_000 }, async () => {
     render(
       <div style={{ height: 200 }}>
-        <DataGrid data={makeRows(200)} columns={columns} getRowId={(r) => r.id} className="h-50" rowMarkers="number" />
+        <DataGrid data={makeRows(200)} columns={columns} getRowId={(r) => r.id} className="h-50" rowMarkers="reorder" />
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
@@ -254,7 +295,7 @@ describe("row reorder (marker drag)", () => {
   it("Escape cancels the drag in flight: no reorder, no indicator", async () => {
     render(
       <div style={{ height: 400 }}>
-        <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" />
+        <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder" />
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();

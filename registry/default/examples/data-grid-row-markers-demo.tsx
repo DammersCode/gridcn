@@ -40,12 +40,13 @@ const columns = defineColumns<DemoRow>()([
   { id: "score", header: "Score", accessorKey: "score", type: "number", width: 80, flex: 1 },
 ] as const);
 
-const ROW_MARKERS_OPTIONS: readonly RowMarkersMode[] = ["none", "number", "checkbox", "both"];
+const ROW_MARKERS_OPTIONS: readonly RowMarkersMode[] = ["none", "number", "checkbox", "both", "reorder", "reorder-number", "reorder-checkbox", "reorder-both"];
 
 /**
  * `rowMarkers` modes: a pinned-left marker column outside the data index space. `'checkbox'`
  * drives the rows selection channel + a select-all header checkbox; `'both'` shows the row number,
- * replaced by the checkbox on hover/selection.
+ * replaced by the checkbox on hover/selection. The `reorder-` family adds the grip handle that
+ * drag-reorders the row (plain modes keep the marker a pure row-select surface).
  */
 export default function DataGridRowMarkersDemo(): ReactNode {
   const rows = useMemo(() => generateDemoRows(10), []);
