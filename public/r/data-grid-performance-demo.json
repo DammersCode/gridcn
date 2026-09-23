@@ -5,8 +5,7 @@
   "author": "gridcn",
   "description": "100k generated rows with a top-left FPS meter overlay so the scroll-performance claim is checkable live.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-history"
+    "DammersCode/gridcn/data-grid"
   ],
   "files": [
     {

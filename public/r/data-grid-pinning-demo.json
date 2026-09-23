@@ -6,7 +6,6 @@
   "description": "Column pinning (left/right), resize (incl. a resizable:false column and a flex:1 long-content column for double-click autosize), and drag-to-reorder, with the header dropdown menu for pin/unpin/autosize and a toolbar columns menu for show/hide.",
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-history",
     "DammersCode/gridcn/data-grid-context-menu",
     "DammersCode/gridcn/data-grid-toolbar"
   ],

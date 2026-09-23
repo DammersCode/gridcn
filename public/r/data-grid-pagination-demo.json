@@ -6,7 +6,6 @@
   "description": "Client-mode pagination: useDataGridPagination slices a generated dataset and <DataGridPaginationBar /> renders the default footer (first/prev/pages/next/last, page-size select, range label).",
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-history",
     "DammersCode/gridcn/data-grid-pagination"
   ],
   "files": [

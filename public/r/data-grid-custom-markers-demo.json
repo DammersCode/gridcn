@@ -4,6 +4,9 @@
   "title": "Data Grid Custom Markers Demo",
   "author": "gridcn",
   "description": "Custom row marker renderers (renderMarker/renderMarkerHeader): a lucide icon marker reflecting the row selection state, and a select-all header button, while the marker cell's own press/drag gestures still select rows.",
+  "dependencies": [
+    "lucide-react"
+  ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",
     "button"

@@ -6,7 +6,6 @@
   "description": "Right-click cell menu (cut/copy/paste/clear, row operations) and header menu (sort/pin/hide/autosize) via the header dropdown.",
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-history",
     "DammersCode/gridcn/data-grid-context-menu"
   ],
   "files": [

@@ -4,6 +4,9 @@
   "title": "Data Grid Column Drag Demo",
   "author": "gridcn",
   "description": "Drag a header to reorder columns within its pin zone (enableColumnReorder, per-column reorderable opt-out, pinned-right column), plus a column picker wired to the programmatic setColumnOrder(id, targetId, position) path.",
+  "dependencies": [
+    "lucide-react"
+  ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid"
   ],

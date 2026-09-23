@@ -6,7 +6,6 @@
   "description": "Toolbar sort button + popover: add/remove sorts, toggle ascending/descending, and reorder precedence via drag handle or ArrowUp/ArrowDown keyboard.",
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-history",
     "DammersCode/gridcn/data-grid-toolbar",
     "DammersCode/gridcn/data-grid-sort-list"
   ],

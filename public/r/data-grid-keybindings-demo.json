@@ -6,7 +6,6 @@
   "description": "A shortcuts dialog generated at runtime from the grid's effective keymap, opened via a toolbar button or the '?' shortcut.",
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-history",
     "DammersCode/gridcn/data-grid-keybindings"
   ],
   "files": [

@@ -4,6 +4,9 @@
   "title": "Data Grid Playground Demo",
   "author": "gridcn",
   "description": "Every add-on composed in one grid: toolbar, context menu, fill, undo/redo, keybindings, sort list, import/export, plus independent toggles (row markers, pinned totals, validation, read-only, loading, RTL, presence, streaming, density, header click) and an exclusive virtualized/paginated/lazy mode select.",
+  "dependencies": [
+    "lucide-react"
+  ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",
     "DammersCode/gridcn/data-grid-history",

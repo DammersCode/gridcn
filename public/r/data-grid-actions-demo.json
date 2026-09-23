@@ -4,6 +4,9 @@
   "title": "Data Grid Actions Demo",
   "author": "gridcn",
   "description": "Action-buttons column pattern: a pinned-right readOnly column whose renderCell composes shadcn Buttons over store actions (startEditing on the row's first editable cell, deleteRows/duplicateRows by view index) plus a more dropdown (Edit, Duplicate, Delete).",
+  "dependencies": [
+    "lucide-react"
+  ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid"
   ],

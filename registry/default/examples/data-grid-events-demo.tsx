@@ -114,7 +114,7 @@ function PresenceReadBackButton({
  * pretty-printing the latest payload per event source, most recent first. Wires every event source
  * from the page's numbered sections — onDataChange, onSelectionChange (with details.getValues()),
  * onSortChange, onFilterChange + join, onCellClick/onRowClick, onFill (the `data-grid-fill`
- * add-on's hook option; veto shown via a no-op preventDefault call for odd sums), onRowWindowChange,
+ * add-on's hook option), onRowWindowChange,
  * onColumnLayoutChange + onColumnResizing, and presence read-back as the two-sided contrast.
  */
 export default function DataGridEventsDemo(): ReactNode {

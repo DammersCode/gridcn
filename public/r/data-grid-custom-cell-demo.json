@@ -5,8 +5,7 @@
   "author": "gridcn",
   "description": "A worked custom cell type: currency storage as a plain number, cached locale-formatted display, and a symbol-stripping fromText, registered via the cellTypes prop.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-history"
+    "DammersCode/gridcn/data-grid"
   ],
   "files": [
     {

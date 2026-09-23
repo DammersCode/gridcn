@@ -185,7 +185,7 @@ const RULES = [
 ] as const;
 
 /**
- * Nine rejection paths in one grid: a sync function (Age), three hand-rolled Standard Schemas
+ * Eight rejection paths in one grid: a sync function (Age), three hand-rolled Standard Schemas
  * (Email sync, SKU async with a visible pending state, Price coercing), a soft onInvalid rule
  * (Notes), and one column per major library that implements Standard Schema natively — Zod
  * (Score), Joi (Code), Valibot (Tag). The rules are listed above the grid so the reader breaks

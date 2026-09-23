@@ -6,7 +6,6 @@
   "description": "rowMarkers modes (none/number/checkbox/both): a pinned-left marker column outside the data index space, switchable at runtime.",
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-history",
     "select"
   ],
   "files": [
