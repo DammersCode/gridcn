@@ -7,7 +7,7 @@ icon: Command
 The keyboard shortcuts of the grid work only while DOM focus is inside the grid.
 When focus is on a custom toolbar, a side panel, or `body`, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd>
 does not touch the grid.
-`useDataGridGlobalShortcuts` adds a window-level listener to the grid and keeps undo and redo
+`DataGridGlobalShortcuts` mounts a window-level listener that keeps undo and redo
 active at every focus position.
 
 <ComponentPreview name="data-grid-global-shortcuts-demo" />
@@ -16,10 +16,10 @@ active at every focus position.
 
 ## How it works
 
-`useDataGridGlobalShortcuts` is a headless hook in the core block.
+`DataGridGlobalShortcuts` is a headless component in the core block.
 It renders nothing.
 Mount it inside `DataGridRoot`.
-The hook listens for `keydown` on the window.
+The component listens for `keydown` on the window.
 A gate of six rules decides whether an event reaches the grid:
 
 1. While IME composition is in progress, the gate skips the event.
@@ -29,26 +29,21 @@ A gate of six rules decides whether an event reaches the grid:
    `contenteditable`), the gate skips it. The field keeps its native undo and redo.
 4. When the target is inside a grid, the gate skips the event. The handler inside that grid owns
    the key.
-5. The gate requires this grid to be the last focused grid with the hook. This rule breaks ties
-   between grids.
+5. The gate requires this grid to be the last focused grid with the component. This rule breaks
+   ties between grids.
 6. The key must resolve to an enabled action through the effective keymap.
 
-When the gate passes, the hook dispatches the `onUndo` or `onRedo` seam of the in-grid keymap.
+When the gate passes, the component dispatches the `onUndo` or `onRedo` seam of the in-grid keymap.
+The `useDataGridGlobalShortcuts` hook runs the same layer for custom wrappers.
 With the `data-grid-history` add-on, undo reverses grid edits.
-Without the add-on the hook is a no-op, like in-grid undo.
+Without the add-on the layer is a no-op, like in-grid undo.
 
 ## Usage
 
-Mount the registrar inside `DataGridRoot`:
+Mount the component inside `DataGridRoot`:
 
 ```tsx
-import { useDataGridGlobalShortcuts } from "@/components/data-grid/data-grid";
-
-/** Mounts the layer; renders nothing (must sit inside `DataGridRoot`). */
-function GlobalShortcutsRegistrar() {
-  useDataGridGlobalShortcuts();
-  return null;
-}
+import { DataGridGlobalShortcuts } from "@/components/data-grid/data-grid";
 
 function OrdersGrid() {
   return (
@@ -57,7 +52,7 @@ function OrdersGrid() {
       <MyToolbar />
       <DataGridProvider {...grid} columns={columns}>
         <DataGridRoot>
-          <GlobalShortcutsRegistrar />
+          <DataGridGlobalShortcuts />
           <DataGridHeader />
           <DataGridBody />
         </DataGridRoot>
@@ -70,21 +65,21 @@ function OrdersGrid() {
 Limit the enabled actions:
 
 ```tsx
-useDataGridGlobalShortcuts({ undo: true }); // undo only, no redo
+<DataGridGlobalShortcuts undo />
 ```
 
-Omit the config to enable every action (undo and redo).
+Omit the flags to enable every action (undo and redo).
 
-The hook reads the effective keymap from the store.
+The listener reads the effective keymap from the store.
 When you remap `undo`, the global binding follows (see [Keybindings — Remapping](/docs/addons/keybindings#remapping)).
 
 ## Multiple grids
 
-When several grids with the hook share a page, the last focused grid owns the shortcut.
+When several grids with the component share a page, the last focused grid owns the shortcut.
 When focus moves to grid B, undo and redo target the history of B.
 Until focus returns to grid A, they target the history of A.
-A grid without the hook never claims the shortcut.
-If you add the hook to one of two grids, nothing changes until you focus that grid.
+A grid without the component never claims the shortcut.
+If you add the component to one of two grids, nothing changes until you focus that grid.
 In a tabbed layout, the last DOM focus decides the active tab.
 When your app switches tabs without a focus change, call undo imperatively for the active tab.
 
@@ -93,7 +88,7 @@ If your app registers its own window-level `mod+z` (for example, a global undo),
 see the same event.
 The handler that calls `preventDefault` first wins.
 When `event.defaultPrevented` is true, your handler skips the event.
-This protects the hook from your listener and your listener from the hook.
+This protects the layer from your listener and your listener from the layer.
 </Callout>
 
 ## Out of scope
@@ -105,6 +100,6 @@ This protects the hook from your listener and your listener from the hook.
 
 ## Related
 
-- [Undo & redo](/docs/addons/undo-redo) — the `onUndo`/`onRedo` seam of this hook
+- [Undo & redo](/docs/addons/undo-redo) — the `onUndo`/`onRedo` seam of this component
 - [Keybindings](/docs/addons/keybindings) — the effective keymap and remapping
 - [Selection & keyboard](/docs/selection-keyboard) — the in-grid keymap table

@@ -23,10 +23,10 @@ export interface GlobalShortcutsConfig {
 
 const ALL_ACTIONS: readonly GlobalShortcutAction[] = ["undo", "redo"];
 
-/** The enabled actions of a config (`true` keys); omitting the config enables every action. */
+/** The enabled actions of a config (`true` keys); omitting the config or passing no flag enables every action. */
 export function enabledGlobalActions(config?: GlobalShortcutsConfig): readonly GlobalShortcutAction[] {
-  if (!config) return ALL_ACTIONS;
-  return ALL_ACTIONS.filter((action) => config[action] === true);
+  const enabled = ALL_ACTIONS.filter((action) => config?.[action] === true);
+  return enabled.length ? enabled : ALL_ACTIONS;
 }
 
 /** Minimal event shape for {@link resolveGlobalShortcut} — the matcher's `KeymapEvent` plus the two DOM flags the gate needs. */

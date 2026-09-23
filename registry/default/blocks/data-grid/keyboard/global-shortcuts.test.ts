@@ -37,8 +37,9 @@ describe("enabledGlobalActions", () => {
     expect(enabledGlobalActions()).toEqual(["undo", "redo"]);
   });
 
-  it("an empty config enables nothing", () => {
-    expect(enabledGlobalActions({})).toEqual([]);
+  // the component always passes an object (empty when no flag is set), so an empty config behaves like no config
+  it("an empty config enables every action", () => {
+    expect(enabledGlobalActions({})).toEqual(["undo", "redo"]);
   });
 
   it("only `true` keys enable their action", () => {

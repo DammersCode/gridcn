@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
-import { DataGrid, DataGridBody, DataGridHeader, useDataGridGlobalShortcuts, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
+import { DataGrid, DataGridBody, DataGridGlobalShortcuts, DataGridHeader, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridState } from "@/registry/default/blocks/data-grid-history/data-grid-history";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +11,6 @@ const columns = defineColumns<DemoRow>()([
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 180, flex: 2 },
   { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90, flex: 1 },
 ] as const);
-
-/** Mounts the opt-in global-shortcut layer; renders nothing (must sit inside the grid). */
-function GlobalShortcutsRegistrar(): ReactNode {
-  useDataGridGlobalShortcuts();
-  return null;
-}
 
 /**
  * Global shortcuts: the grid's undo/redo keeps working while DOM focus is on a custom toolbar —
@@ -49,7 +43,7 @@ export default function DataGridGlobalShortcutsDemo(): ReactNode {
       <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-border">
         <DataGrid {...grid} columns={columns} className="h-full rounded-none border-none">
           <>
-            <GlobalShortcutsRegistrar />
+            <DataGridGlobalShortcuts />
             <DataGridHeader />
             <DataGridBody />
           </>

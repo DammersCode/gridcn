@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import type { GlobalShortcutsConfig } from "./global-shortcuts";
 import { enabledGlobalActions, isMacPlatform, resolveGlobalShortcut } from "./global-shortcuts";
 import { useDataGridContainer } from "../interaction/use-data-grid-container";
@@ -26,6 +26,8 @@ let nextGridId = 0;
  * focused opted-in one (multi-grid tie-break — last DOM focus wins). Must be mounted inside
  * `DataGridRoot` (reads the root's container element, like `DataGridKeybindingsShortcut`); it
  * renders nothing.
+ *
+ * Prefer {@link DataGridGlobalShortcuts} — the component that mounts this hook.
  */
 export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void {
   const containerRef = useDataGridContainer();
@@ -80,4 +82,16 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
       if (lastFocusedGrid === gridId) lastFocusedGrid = null;
     };
   }, [containerRef, enabled, storeApi]);
+}
+
+/** Props for {@link DataGridGlobalShortcuts}: the action flags of {@link GlobalShortcutsConfig}. Omit both to enable every action. */
+export type DataGridGlobalShortcutsProps = GlobalShortcutsConfig;
+
+/**
+ * Mounts the opt-in global-shortcut layer; renders nothing. Must sit inside `DataGridRoot`
+ * (the hook reads the root's container element).
+ */
+export function DataGridGlobalShortcuts(props: DataGridGlobalShortcutsProps): ReactNode {
+  useDataGridGlobalShortcuts(props);
+  return null;
 }

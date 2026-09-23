@@ -2,7 +2,7 @@ import { page, userEvent } from "vitest/browser";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { type ReactNode } from "react";
-import { DataGrid, DataGridBody, DataGridHeader, useDataGridGlobalShortcuts, type ColumnDef } from "../data-grid";
+import { DataGrid, DataGridBody, DataGridGlobalShortcuts, DataGridHeader, type ColumnDef } from "../data-grid";
 import { useDataGridState } from "@/registry/default/blocks/data-grid-history/data-grid-history";
 // real stylesheet so Tailwind's ring/tint utilities actually apply
 import "@/app/global.css";
@@ -23,12 +23,6 @@ function gridCells(): HTMLElement[] {
   return [...document.querySelectorAll<HTMLElement>('[role="gridcell"]')];
 }
 
-/** Mounts the opt-in global-shortcut layer; renders nothing (must sit inside the grid root). */
-function GlobalShortcutsRegistrar(): ReactNode {
-  useDataGridGlobalShortcuts();
-  return null;
-}
-
 /** One history-backed grid; the toolbar element (outside the grid) is the focus target the global layer must serve. */
 function HistoryGrid({ withShortcuts, toolbarId }: { withShortcuts: boolean; toolbarId: string }) {
   const grid = useDataGridState(makeRows(5), { getRowId: (r) => r.id });
@@ -45,7 +39,7 @@ function HistoryGrid({ withShortcuts, toolbarId }: { withShortcuts: boolean; too
         >
           {withShortcuts ? (
             <>
-              <GlobalShortcutsRegistrar />
+              <DataGridGlobalShortcuts />
               <DataGridHeader />
               <DataGridBody />
             </>
@@ -102,7 +96,7 @@ describe("global keyboard shortcuts (focus outside the grid)", () => {
     expect(gridCells()[1]!.textContent).toBe("Edited");
   });
 
-  it("without the opt-in hook, Ctrl+Z outside the grid does nothing to the grid", async () => {
+  it("without the opt-in layer, Ctrl+Z outside the grid does nothing to the grid", async () => {
     render(<HistoryGrid withShortcuts={false} toolbarId="toolbar" />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const cell = gridCells()[1]!;
@@ -159,7 +153,7 @@ describe("global keyboard shortcuts (focus outside the grid)", () => {
           <div style={{ height: 300 }}>
             <DataGrid {...grid} columns={columns} keymap={{ undo: ["mod+u"] }} className="h-[300px]">
               <>
-                <GlobalShortcutsRegistrar />
+                <DataGridGlobalShortcuts />
                 <DataGridHeader />
                 <DataGridBody />
               </>
