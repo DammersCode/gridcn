@@ -1,0 +1,53 @@
+---
+title: Plain fetcher
+description: useDataGridLazyRows with a plain simulated-latency fetcher — the baseline pattern.
+icon: Loader
+---
+
+The baseline: `useDataGridLazyRows` owns the sparse row array and the window bookkeeping;
+you own `fetchRows(start, end, signal)`. The demo has 100,000 rows — only the windows that
+actually scroll into view are ever fetched, and skeleton rows hold the space until each
+window lands. The two failure buttons show the transient/permanent error split; the third
+page covers what a real fetcher replaces.
+
+<ComponentPreview name="data-grid-lazy-demo" />
+
+<InstallCommand item="data-grid-lazy-demo" />
+
+## The seam
+
+```tsx
+const lazy = useDataGridLazyRows<Row>({
+  total: 100_000,
+  getRowId: (row) => row.id,
+  fetchRows: (start, end, signal) => api.fetchRows(start, end, signal),
+  onError: (error, range) => {
+    /* transient: auto-retries on next scroll; permanent: surface a retry button */
+  },
+});
+```
+
+- `fetchRows` resolves exactly the `[start, end)` slice, positionally aligned to `start`.
+  The hook writes it into the sparse array; the core renders real rows over the skeletons.
+- `signal` aborts the in-flight fetch when the window leaves view. A rejection after abort
+  is ignored, so an abort is not an error — reject with an `AbortError` and move on.
+- Failed ranges revert to unloaded and the next scroll into them retries automatically
+  ("refetch on next visibility"). `onError` still fires, so a permanent failure (an expired
+  token, for example) can surface a manual retry — re-fire
+  `gridProps.onRowWindowChange(range)` and it takes the same path a real scroll would.
+
+## Bring your own fetcher
+
+The two library pages wire the same seam to a cache so fetched windows survive the rest of
+the session: [TanStack Query](/docs/examples/data/lazy/react-query) and
+[SWR](/docs/examples/data/lazy/swr).
+
+## Behavior reference
+
+- [Lazy loading](/docs/lazy-loading) — overscan, batch size, and the uncontrolled
+  sort/filter/search guard
+
+## Related
+
+- [Large data](/docs/examples/data/large-data) — the opposite pattern: everything loaded,
+  virtualization does the work

@@ -59,7 +59,7 @@ export function CodeCollapsible({ title, code, children, className }: CodeCollap
       <div className={cn("relative overflow-hidden [&>figure]:my-0 [&>figure]:rounded-none [&>figure]:border-0 [&>figure]:shadow-none", !open && COLLAPSED_HEIGHT)}>
         {children}
         {!open && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-linear-to-b from-transparent to-fd-card" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-linear-to-b from-transparent to-card" />
         )}
       </div>
     </div>

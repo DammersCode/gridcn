@@ -75,11 +75,11 @@ The `reorder` option sets this behavior per call:
 actions.updateCells(patches, { reorder: "immediate" });
 ```
 
-| Value | Behavior |
-| --- | --- |
-| `"defer"` (default) | The value changes, the row holds its position, and `viewStale` becomes true. |
-| `"immediate"` | The grid moves the patched rows to their new positions in the same call. |
-| `"never"` | The value changes and `viewStale` stays false. |
+| Value | Behavior | When to use |
+| --- | --- | --- |
+| `"defer"` (default) | The value changes, the row holds its position, and `viewStale` becomes true. | When a row that jumps position mid-read is worse than a stale order the user clears on demand. |
+| `"immediate"` | The grid moves the patched rows to their new positions in the same call. | When the displayed order must always match the sort. |
+| `"never"` | The value changes and `viewStale` stays false. | — |
 
 If no patched column feeds the active sort or filter, `"defer"` becomes `"never"` automatically, so
 `viewStale` stays false for a feed that writes only non-sorted columns.
@@ -99,13 +99,8 @@ At 100,000 rows with one sort column, a production build measures:
 Above 256 rows in one batch, the grid rebuilds the full order instead. It also rebuilds when the
 sort or filter changed in the same tick, or when a column supplies its own comparator.
 
-The demo above has an auto-sort switch that toggles `reorder` between the two modes on every tick.
-Turn it on and rows on the sorted column stay in the correct order without a re-sort click. Turn it
-off and rows hold their position until you reconcile the view.
-
-Choose `"immediate"` (auto-sort) when the displayed order must always match the sort. Choose
-`"defer"` when a row that jumps position mid-read is worse for the user than a stale order they
-clear on demand.
+The demo's auto-sort switch toggles `reorder` between the modes on every tick — on, rows on the
+sorted column stay in the correct order without a re-sort click.
 
 ## Controlled mode
 
@@ -154,7 +149,7 @@ useDataGridHistory({
 });
 ```
 
-See [Undo & redo](/docs/undo-redo).
+See [Undo & redo](/docs/addons/undo-redo).
 
 ## What does not change
 

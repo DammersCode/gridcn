@@ -23,11 +23,12 @@ const ROWS = generateDemoRows(10);
 /**
  * The `loading` flag's three reachable states: zero rows + loading = viewport-filling skeleton,
  * rows present + loading = a slim indeterminate bar under the header (rows stay visible), zero
- * rows + not loading = the ordinary empty state.
+ * rows + not loading = the ordinary empty state. Starts on the rows-present state so the grid
+ * shows real data plus the loading bar; the switches still reach every other state.
  */
 export default function DataGridLoadingDemo(): ReactNode {
   const [loading, setLoading] = useState(true);
-  const [hasRows, setHasRows] = useState(false);
+  const [hasRows, setHasRows] = useState(true);
   const rows = useMemo(() => (hasRows ? ROWS : []), [hasRows]);
 
   return (

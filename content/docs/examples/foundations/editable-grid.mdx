@@ -1,0 +1,29 @@
+---
+title: Editable hero grid
+description: Every built-in cell type, range selection, the fill handle add-on, and native clipboard.
+icon: Table2
+---
+
+The hero grid: an editable table with every built-in cell type in one composition. It uses the
+split composition (`DataGridProvider` + `DataGridRoot` + header/body parts) instead of the
+`DataGrid` wrapper, because the `data-grid-fill` add-on needs to register an overlay plugin and
+a tracker inside the root.
+
+<ComponentPreview name="data-grid-demo" />
+
+<InstallCommand item="data-grid-demo" />
+
+## What's in the demo
+
+- `text`, `number` (with `min`/`max` options), `checkbox`, `select` (choices), `date`
+  (`displayFormat`) — all seven columns, `flex`-sized
+- Range selection — click-drag to select a rectangular range
+- `useDataGridFill` — the fill-handle overlay plugin + `<FillHandleTracker />`
+- Native clipboard — `Ctrl`/`Cmd`+C/V over the selection
+- `defaultData` via `generateDemoRows(12)` — seed rows, zero app-side state
+
+## Related
+
+- [Fill handle](/docs/addons/fill) — the add-on this demo wires
+- [Clipboard](/docs/clipboard) — copy/paste behavior and its escape hatches
+- [Built-in cell types](/docs/examples/foundations/cell-types) — one column per type

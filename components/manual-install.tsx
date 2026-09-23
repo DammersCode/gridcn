@@ -7,14 +7,16 @@ import { Step, Steps } from "fumadocs-ui/components/steps";
 import { Files } from "fumadocs-ui/components/files";
 import { GRIDCN_REGISTRY, readRegistryItem } from "@/lib/read-registry-item";
 import { CodeCollapsible } from "@/components/code-collapsible";
+import { InstallCommand } from "@/components/install-command";
 import { DOCS_LINK } from "@/components/docs-tabs";
 import { cn } from "@/lib/utils";
 import { ManualInstallDeps } from "@/components/manual-install-deps";
 import { gitConfig } from "@/lib/shared";
+import type { RegistryItemName } from "@/lib/registry-items";
 
 type ManualInstallProps = {
   /** Registry item name, e.g. "data-grid-fill". */
-  item: string;
+  item: RegistryItemName;
   /** Render a file tree instead of per-file collapsed code blocks — for items too large to copy-paste (the core). */
   tree?: boolean;
 };
@@ -25,7 +27,7 @@ function langFromTarget(target: string): string {
 
 const GITHUB_BASE = `https://github.com/${gitConfig.user}/${gitConfig.repo}`;
 // fumadocs-ui's File/Folder rows render plain divs without href support — same row look, as anchors.
-const ITEM_ROW = "flex flex-row items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-fd-accent hover:text-fd-accent-foreground [&_svg]:size-4";
+const ITEM_ROW = "flex flex-row items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground [&_svg]:size-4";
 
 /** One `<Folder>`/`<File>` level of a target-path tree, folders before files, both alphabetical. `path` is the file's GitHub source path from the payload. */
 type TreeNode = { folders: Map<string, TreeNode>; files: { name: string; path: string }[] };
@@ -134,21 +136,21 @@ export async function ManualInstall({ item, tree = false }: ManualInstallProps):
       <Steps>
         {gridcnPrereqs.length > 0 && (
           <Step>
+            <h3 className="text-xl font-semibold leading-relaxed">Prerequisites</h3>
             <p>
-              Requires <Link href="/docs/installation" className={DOCS_LINK}>`{GRIDCN_REGISTRY}/data-grid`</Link> installed first:
+              Requires <Link href="/docs/installation" className={DOCS_LINK}>`@gridcn/data-grid`</Link> installed first:
             </p>
-            <pre className="overflow-x-auto rounded-lg border border-border bg-secondary/50 px-4 py-3 font-mono text-sm text-foreground">
-              {gridcnPrereqs.map((dep) => `npx shadcn add ${dep}`).join("\n")}
-            </pre>
+            {gridcnPrereqs.map((dep) => (
+              <InstallCommand key={dep} command={`shadcn add ${dep}`} />
+            ))}
           </Step>
         )}
         {(registryItem.dependencies.length > 0 || registryItem.devDependencies.length > 0 || shadcnPrereqs.length > 0) && (
           <Step>
+            <h3 className="text-xl font-semibold leading-relaxed">Dependencies</h3>
             <p>Install the following dependencies:</p>
             {shadcnPrereqs.length > 0 && (
-              <pre className="overflow-x-auto rounded-lg border border-border bg-secondary/50 px-4 py-3 font-mono text-sm text-foreground">
-                {shadcnPrereqs.map((dep) => `npx shadcn add ${dep}`).join("\n")}
-              </pre>
+              shadcnPrereqs.map((dep) => <InstallCommand key={dep} command={`shadcn add ${dep}`} />)
             )}
             {(registryItem.dependencies.length > 0 || registryItem.devDependencies.length > 0) && (
               <ManualInstallDeps dependencies={registryItem.dependencies} devDependencies={registryItem.devDependencies} />
@@ -157,6 +159,7 @@ export async function ManualInstall({ item, tree = false }: ManualInstallProps):
         )}
         {tree ? (
           <Step>
+            <h3 className="text-xl font-semibold leading-relaxed">Source files</h3>
             <p>
               Open the{" "}
               <a
@@ -173,6 +176,7 @@ export async function ManualInstall({ item, tree = false }: ManualInstallProps):
           </Step>
         ) : (
           <Step>
+            <h3 className="text-xl font-semibold leading-relaxed">Source files</h3>
             <p>Copy and paste the following code into your project.</p>
             <div className="flex flex-col gap-4">
               {highlightedFiles.map((file) => (
@@ -184,6 +188,7 @@ export async function ManualInstall({ item, tree = false }: ManualInstallProps):
           </Step>
         )}
         <Step>
+          <h3 className="text-xl font-semibold leading-relaxed">Import paths</h3>
           <p>Update the import paths to match your project setup.</p>
         </Step>
       </Steps>

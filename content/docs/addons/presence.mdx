@@ -106,24 +106,14 @@ socket.on("leave", (leftId) =>
 
 Because the `id` must be unique per entry, this per-user filter is well-defined.
 
-<Callout title="Composing with core's DataGrid convenience wrapper">
-  `<DataGrid overlayPlugins={[plugin]}>` works the same way as `<DataGridProvider>`. Both accept
-  the prop and forward it straight through to the same seam.
-</Callout>
+The same composition works with the core's `DataGrid` convenience wrapper — see the note on
+[Fill handle](/docs/addons/fill#composing-with-cores-datagrid-convenience-wrapper).
 
 ## Zero re-render guarantee
 
-`DataGridOverlays` invokes the plugin function during its own render. Its internal highlights
-subscription, a small Zustand store local to `useDataGridPresence` and entirely separate from
-the store of the core, attributes to THAT call, not to your own component. Calling
-`setPresenceHighlights` re-renders `DataGridOverlays` and nothing else: no row, no cell, and no
-`aria-selected` change. See the render-count probe in `data-grid-presence.test.tsx`
-(`multiplayer presence: setPresenceHighlights renders ONLY the highlights subscriber, never
-rows/cells`).
-
-If you need a read-back subscription elsewhere, for example an inspector panel, pass `storeApi`
-(also returned by `useDataGridPresence()`) into `useDataGridPresenceHighlights(storeApi)`. That
-hook re-renders ONLY the component that calls it, the same as the plugin's own subscription.
+Calling `setPresenceHighlights` re-renders `DataGridOverlays` and nothing else: no row, no cell,
+and no `aria-selected` change. If you need a read-back subscription elsewhere, pass `storeApi`
+into `useDataGridPresenceHighlights(storeApi)` — it re-renders only the component that calls it.
 
 ## Coordinates: rowId-native, or view-space
 
@@ -158,7 +148,9 @@ setPresenceHighlights([
 `PresenceHighlight`'s original `range` form (view-space, the same coordinate system as
 `GridSelection.current.range`) still works side by side with the rowId entries in the same array —
 it is the send side that needs no hooks at all (the payload already carries the selection's
-`range`), at the cost of the view-space trade-off below:
+`range`), at the cost of one caveat: `range` is in the SENDER's view space, so a receiver with a
+different local sort or filter paints it on the wrong cells. Use the rowId forms whenever
+sender and receiver views can diverge:
 
 ```ts
 type PresenceHighlight = {
@@ -177,38 +169,18 @@ type RowIdPresenceHighlight = {
 };
 ```
 
-Building the map yourself (e.g. to resolve a rowId outside the plugin) uses the same core hook:
-
-```tsx
-import { useDataGridRowIdToViewRow } from "@/components/data-grid/data-grid";
-
-const rowIdToViewRow = useDataGridRowIdToViewRow(); // ReadonlyMap<string, number>
-const viewRow = rowIdToViewRow.get(remote.rowId); // undefined when filtered out of view
-```
-
-`useDataGridRowIdToViewRow` subscribes to `viewIndex`/`data`/`getRowId` identity only and rebuilds
-the map in a `useMemo` keyed on those — the O(n) cost lands once per actual view change (sort,
-filter, insert, delete), never per keystroke, selection step, or streaming tick.
+Building the map yourself (e.g. to resolve a rowId outside the plugin) uses the same core hook,
+`useDataGridRowIdToViewRow`, which returns a `ReadonlyMap<string, number>` of the current view.
 
 ## Rendering
 
-- It reuses the exact overlay pipeline that the core's own `RangeOverlay` has, through the plugin
-  `ctx`: `clampRectToWindow`, then `splitRectByPinZones`, then grid-line placement. A highlight
-  that spans a pinned column splits into pinned and unpinned segments just like a selection
-  range. Pinned segments paint at the actual screen position of the pinned cell, not its
-  scrolled-away track position.
-- The `color` of each highlight becomes the CSS custom property `--presence-color` on its own
-  overlay node. The border paints at full opacity, and the fill paints at
-  `color-mix(in oklch, var(--presence-color) 12%, transparent)`, translucent enough that two
-  overlapping highlights both stay legible.
-- The label chip renders only while the top-left corner of the range survives the window clamp
-  (the same guard that the fill handle's own corner check uses). There is no floating or
-  repositioning at the viewport edge.
-- Presence paints **below** the local active-cell ring. Your own focus always wins visually over
-  a remote highlight on the same cell, because the overlay-plugin seam renders plugins before the
-  ring for exactly this reason.
-- Everything is `aria-hidden` and `pointer-events-none`. Presence never touches `aria-selected`,
-  never subscribes through `useDataGridRowCellState`, and never reaches the row-level path at all.
+- Highlights reuse the core's overlay pipeline through the plugin `ctx`: they clamp to the
+  window, split at pinned columns (pinned segments paint at the pinned cell's fixed screen
+  position), and the `color` becomes the overlay node's `--presence-color` — border at full
+  opacity, fill translucent enough that two overlapping highlights both stay legible.
+- Presence paints **below** the local active-cell ring and is fully `aria-hidden` and
+  `pointer-events-none`: it never touches `aria-selected` and never reaches the row-level path.
+  The label chip renders only while the range's top-left corner survives the window clamp.
 
 ## Scope cuts
 
@@ -217,68 +189,9 @@ filter, insert, delete), never per keystroke, selection step, or streaming tick.
 - No cursors, no per-cell avatars, and no "who is online" chrome: presence is the in-window
   highlight overlay only — any roster/avatar UI is plain app-level code the consumer builds
   themselves, not a grid feature.
-- The rowId-native forms (`RowIdPresenceHighlight`, `RowIdRangePresenceHighlight`) resolve to
-  stable ids, not view positions: the range form paints one rect per contiguous run of the
-  resolved cells, so a local filter that splits a range renders multiple rects, never a wrong one.
-  A `range` entry is in the sender's view space, so a receiver with a different local sort/filter
-  paints it on the wrong cells.
 
-## Demo wiring sketch (real websocket)
+## Broadcasting your selection
 
-The demo above simulates 3 users with `setInterval`. A real integration looks like this:
-
-```tsx
-"use client";
-
-import { useDataGridPresence } from "@/components/data-grid-presence/data-grid-presence";
-
-function usePresenceSync(roomId: string) {
-  const { plugin, setPresenceHighlights } = useDataGridPresence();
-
-  useEffect(() => {
-    const socket = new WebSocket(`wss://your-server/rooms/${roomId}`);
-    socket.onmessage = (event) => {
-      const highlights = JSON.parse(event.data);
-      setPresenceHighlights(highlights);
-    };
-    return () => socket.close();
-  }, [setPresenceHighlights, roomId]);
-
-  return plugin;
-}
-```
-
-Your own selection still needs to be broadcast in the other direction. Wire `onSelectionChange`
-on `DataGridProvider` rather than hand-rolling a `useDataGridSelection()` plus `useEffect`
-subscription. It already fires on every committed change (click, extend step, row, column, or
-all selection, and clear) from the actions layer of the store. It also fires once per step of a
-drag-extend gesture, exactly the granularity that a live broadcast wants.
-
-The multi-cell stopgap is the view-space `range` form: the payload already carries the
-selection's `range` (view space), so the send side needs NO hooks at all — no `useDataGridRowIds`
-called outside the provider (core hooks throw when called outside it), and no column-indexing by
-hand (`cell.col` is a view-space index into the VISIBLE columns; indexing the raw `columns`
-array is wrong as soon as a column is hidden):
-
-```tsx
-<DataGridProvider
-  data={data}
-  columns={columns}
-  getRowId={getRowId}
-  overlayPlugins={[plugin]}
-  onSelectionChange={(selection) => {
-    const range = selection.current?.range;
-    if (!range) return; // cleared — send the leave message instead
-    socket.send(JSON.stringify({ id: userId, color, range }));
-  }}
->
-```
-
-Caveat (the multi-cell mapping limitation): `range` coordinates are in the SENDER's view space,
-so a receiver with a different local sort or filter paints them on the wrong cells. For
-divergence-proof multi-cell broadcasts, send the rowId-native range form `{ rowIds, columnIds }`
-instead: on the send side, map the selection's view rows to rowIds with `useDataGridRowId` /
-`useDataGridRowIds` and the visible view columns to column ids, called INSIDE the provider. The
-receiver's plugin resolves every id against its own view — filtered rows are dropped silently,
-hidden/unknown columns dev-warn once — no mapping code on the receive side. See
-[Events & state](/docs/events-state#2-onselectionchange) for the full payload shape.
+Sending your own selection to peers — a real websocket sketch, the `onSelectionChange` wiring,
+and the view-space-vs-rowId payload trade-off — is on the
+[Broadcasting your selection](/docs/addons/broadcasting-presence) page.

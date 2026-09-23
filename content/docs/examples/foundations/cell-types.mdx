@@ -1,0 +1,28 @@
+---
+title: Built-in cell types
+description: Each built-in type in one grid, plus read-only, a validate rule, and a renderCell override.
+icon: Grid3x3
+---
+
+One column per built-in cell type, plus the three most common column-level overrides: `readOnly`,
+a sync `validate` rule, and a `renderCell` display override that keeps the type's full
+edit/sort/clipboard pipeline.
+
+<ComponentPreview name="data-grid-cell-types-demo" />
+
+<InstallCommand item="data-grid-cell-types-demo" />
+
+## What's in the demo
+
+- `text` — plain strings, the default type
+- `text` + `readOnly: true` — displays, refuses edits
+- `number` + `options: { min, max }` — clamped input
+- `number` + `validate` — rejects values under 18, keeps the editor open with the message
+- `checkbox`, `select` (choices), `date` (`displayFormat`)
+- `number` + `renderCell` — renders a progress bar; editing, pasting, and sorting still run the
+  number type's pipeline
+
+## Related
+
+- [Editing cell types](/docs/editing-cell-types) — the full guide: types, validation, async rules
+- [Custom cell types](/docs/examples/foundations/custom-cells) — when a built-in type doesn't fit

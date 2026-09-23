@@ -1,0 +1,59 @@
+---
+title: Action buttons
+description: The action-buttons column pattern — inline Edit/Delete buttons and a more dropdown, composed over store actions.
+icon: Ellipsis
+---
+
+The action-buttons column: a pinned-right `readOnly` column whose `renderCell` composes plain
+shadcn Buttons over store actions. No new core feature — every button calls an existing action,
+and the column's `readOnly: true` keeps the grid from ever trying to edit it.
+
+<ComponentPreview name="data-grid-actions-demo" />
+
+<InstallCommand item="data-grid-actions-demo" />
+
+## The two patterns
+
+| Pattern | Good for | Trade-off |
+|---|---|---|
+| Inline buttons (Edit, Delete) | 1–2 actions every row always uses | Takes horizontal space per row |
+| "More" dropdown | 3+ actions, or rarely-used ones | One extra click per action |
+
+The demo ships both: two always-visible icon buttons plus a dropdown carrying the same Edit
+and a Duplicate.
+
+## How it's wired
+
+```tsx
+{
+  id: "actions",
+  header: "",
+  pin: "right",
+  readOnly: true,
+  width: 110,
+  renderCell: ({ rowIndex }) => <RowActions rowIndex={rowIndex} />,
+}
+```
+
+Inside `RowActions` (inside the provider):
+
+```tsx
+const actions = useDataGridActions();
+
+// Edit drops the row's first editable cell into edit mode
+actions.startEditing({ row: rowIndex, col: 0 });
+
+// Duplicate/delete work on view-space indices — the same space renderCell's rowIndex is in
+actions.duplicateRows([rowIndex]);
+actions.deleteRows([rowIndex]);
+```
+
+`rowIndex` is the **view-space** position, exactly what the row-op actions expect — no
+index translation needed. Target the row by identity through `row` (the full data row is in
+`renderCell`'s props) whenever the action needs something beyond its position.
+
+## Behavior reference
+
+- [Programmatic actions](/docs/row-operations#programmatic-actions) — signatures for `startEditing`'s siblings
+- [Pinning](/docs/examples/columns/pinning) — the pinned band the column sits in
+- [Selection & keyboard](/docs/selection-keyboard) — what happens to the selection after a delete

@@ -5,8 +5,7 @@
   "author": "gridcn",
   "description": "An HR dataset showing all four value-driven styling surfaces: grid-level getRowClassName/getCellClassName plus per-column cellClassName/headerClassName, all using shadcn theme tokens.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-history"
+    "DammersCode/gridcn/data-grid"
   ],
   "files": [
     {

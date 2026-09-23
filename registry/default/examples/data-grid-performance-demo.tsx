@@ -65,7 +65,7 @@ function FpsMeter(): ReactNode {
     return () => cancelAnimationFrame(rafId);
   }, []);
 
-  const status = fps < 20 ? "text-destructive" : fps < 30 ? "text-orange-500" : "text-primary";
+  const status = fps < 20 ? "text-destructive" : fps < 30 ? "text-warning" : "text-primary";
 
   return (
     <div

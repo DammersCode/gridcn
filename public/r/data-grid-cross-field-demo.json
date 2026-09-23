@@ -1,0 +1,28 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "data-grid-cross-field-demo",
+  "title": "Data Grid Cross Field Demo",
+  "author": "gridcn",
+  "description": "Cross-field validation with validateRow: an End time must stay at or after its Start. The row is judged after a whole write gesture commits; a rejected row flags the named cell like a server error (the value still commits, no rollback) and the flag clears once the row is consistent again.",
+  "registryDependencies": [
+    "DammersCode/gridcn/data-grid"
+  ],
+  "files": [
+    {
+      "path": "registry/default/examples/data-grid-cross-field-demo.tsx",
+      "content": "\"use client\";\n\nimport { type ReactNode } from \"react\";\nimport { DataGrid, defineColumns } from \"@/registry/default/components/data-grid/data-grid\";\nimport { generateDemoRows, type DemoRow } from \"./demo-data\";\n\ntype TaskRow = { id: string; task: string; start: number; end: number };\n\nfunction initialRows(): TaskRow[] {\n  return generateDemoRows(8).map((row: DemoRow) => ({ id: row.id, task: row.name, start: 9, end: 17 }));\n}\n\nconst columns = defineColumns<TaskRow>()([\n  { id: \"task\", header: \"Task\", accessorKey: \"task\", type: \"text\", width: 140, flex: 2 },\n  { id: \"start\", header: \"Start\", accessorKey: \"start\", type: \"number\", width: 70, flex: 1 },\n  { id: \"end\", header: \"End\", accessorKey: \"end\", type: \"number\", width: 70, flex: 1 },\n] as const);\n\n/**\n * Cross-field validation with `validateRow`: End must stay at or after Start. The rule sees the\n * row AFTER a whole write gesture commits (so a pasted block is judged as one state), and a\n * rejected row flags the named cell the same way a server error does — the value still commits,\n * no rollback. Setting the row consistent again clears the flag.\n */\nexport default function DataGridCrossFieldDemo(): ReactNode {\n  return (\n    <div className=\"w-full flex flex-col gap-3\">\n      <p className=\"text-sm text-muted-foreground\">\n        Make an End time earlier than its Start (edit one cell, or paste both): the End cell gets\n        flagged with the row-level message and the value still commits. Set the row consistent\n        again and the flag clears.\n      </p>\n      <div className=\"h-[280px] overflow-hidden rounded-md border border-border\">\n        <DataGrid\n          defaultData={initialRows()}\n          columns={columns}\n          getRowId={(row) => row.id}\n          validateRow={(row) => (row.end < row.start ? { end: \"End must be at or after Start\" } : null)}\n          className=\"h-full rounded-none border-none\"\n        />\n      </div>\n    </div>\n  );\n}\n",
+      "type": "registry:example",
+      "target": "components/data-grid-cross-field-demo.tsx"
+    },
+    {
+      "path": "registry/default/examples/demo-data.ts",
+      "content": "/** Deterministic LCG so SSR/CSR markup match without Math.random(); shared across example rows. */\r\nfunction createSeededLcg(seed: number) {\r\n  let state = seed;\r\n  return () => {\r\n    state = (state * 1103515245 + 12345) & 0x7fffffff;\r\n    return state / 0x7fffffff;\r\n  };\r\n}\r\n\r\nexport type DemoRow = {\r\n  id: string;\r\n  name: string;\r\n  email: string;\r\n  age: number;\r\n  active: boolean;\r\n  role: string;\r\n  joined: string;\r\n  score: number;\r\n};\r\n\r\nconst ROLES = [\"Admin\", \"User\", \"Editor\", \"Viewer\", \"Manager\"] as const;\r\nconst ADJECTIVES = [\"Eager\", \"Quick\", \"Silent\", \"Bold\", \"Swift\"] as const;\r\nconst NOUNS = [\"Eagle\", \"Lion\", \"Tiger\", \"Bear\", \"Wolf\"] as const;\r\n\r\n/** Generates `count` deterministic demo rows for example previews (seed 42, stable across renders). */\r\nexport function generateDemoRows(count: number, seed = 42): DemoRow[] {\r\n  const next = createSeededLcg(seed);\r\n  const rows: DemoRow[] = [];\r\n  for (let i = 0; i < count; i++) {\r\n    rows.push({\r\n      id: `row-${i}`,\r\n      name: `${ADJECTIVES[Math.floor(next() * ADJECTIVES.length)]} ${NOUNS[Math.floor(next() * NOUNS.length)]}`,\r\n      email: `user${i}@example.com`,\r\n      age: Math.floor(next() * 50) + 18,\r\n      active: next() > 0.5,\r\n      role: ROLES[Math.floor(next() * ROLES.length)]!, // ROLES is a fixed non-empty literal array\r\n      joined: `${2020 + Math.floor(next() * 5)}-${String(Math.floor(next() * 12) + 1).padStart(2, \"0\")}-${String(Math.floor(next() * 28) + 1).padStart(2, \"0\")}`,\r\n      score: Math.floor(next() * 100),\r\n    });\r\n  }\r\n  return rows;\r\n}\r\n",
+      "type": "registry:example",
+      "target": "components/demo-data.ts"
+    }
+  ],
+  "categories": [
+    "data"
+  ],
+  "type": "registry:example"
+}

@@ -12,6 +12,11 @@ never replays when a cell scrolls back into view.
 
 <ComponentPreview name="data-grid-demo" />
 
+The hero grid above shows the handle in action; the patterns demo below shows the series
+inference on its own:
+
+<ComponentPreview name="data-grid-fill-patterns-demo" />
+
 <InstallCommand item="data-grid-fill" manual manualSlot={<ManualInstall item="data-grid-fill" />} />
 
 <Callout type="warn" title="Mouse-only, hidden from assistive tech">
@@ -22,12 +27,10 @@ never replays when a cell scrolls back into view.
 
 ## Wiring it up
 
-The fill handle lives in the separate `data-grid-fill` add-on. It registers into the
-**overlay-plugin seam** of the core, the same seam that `data-grid-presence` uses, for its preview
-and handle painting. It also adds three optional keymap callbacks on `DataGridRoot` for the
-keyboard fill shortcuts. See [Overlay plugins](/docs/overlay-plugins) for the full seam this
-add-on builds on, including how `FillHandleTracker` gets real pointer interaction that a
-paint-only plugin cannot have on its own.
+The fill handle lives in the separate `data-grid-fill` add-on: it registers into the core's
+**overlay-plugin seam** for its preview and handle painting (see
+[Overlay plugins](/docs/overlay-plugins) for the full seam) and adds the keymap callbacks for the
+keyboard fill shortcuts.
 
 `useDataGridFill()` is a single hook. Call it in your own component above where you render
 `<DataGridProvider>`. The `overlayPlugins` prop lives on the provider, so the plugin must exist

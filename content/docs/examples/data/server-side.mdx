@@ -1,0 +1,134 @@
+---
+title: Server side
+description: The full remote contract — sort, filter, search, and pagination sent to the server in one query per view state.
+icon: Server
+---
+
+Everything in one place: header-click sort, the filter menu, quick search, and server
+pagination all land in a single request. The view state is the query key, so revisiting a
+state is instant from the cache, and `keepPreviousData` keeps the previous page on screen
+while the next one loads. Nothing is filtered or sorted client-side — the fake server
+applies every operator.
+
+<ComponentPreview name="data-grid-server-side-demo" />
+
+<InstallCommand item="data-grid-server-side-demo" />
+
+## The contract
+
+The grid's store lives inside the provider, but the provider's `data` prop sits outside it.
+So a small bridge component does both jobs: it reads the store (it has to be inside the
+provider) and reports the fetched page up (the provider needs it).
+
+```tsx
+function RemoteStateBridge({ server, page, pageSize, onLoaded }) {
+  const sortState = useDataGridSortState();
+  const filterState = useDataGridFilterState();
+  const joinOperator = useDataGridJoinOperator();
+  const searchText = useDataGridSearchText();
+
+  const query = useQuery({
+    queryKey: ["rows", page, pageSize, sortState, filterState, joinOperator, searchText],
+    queryFn: () =>
+      server.fetchPage({
+        page,
+        pageSize,
+        sorts: sortState,
+        filters: filterState,
+        join: joinOperator,
+        search: searchText,
+      }),
+    placeholderData: keepPreviousData,
+  });
+
+  useEffect(() => {
+    if (query.data) onLoaded(query.data);
+  }, [query.data, onLoaded]);
+
+  return null;
+}
+```
+
+Notes:
+
+- The store hooks return **stable references** while the state is unchanged
+  (`useShallow`), so the key only changes when a user actually sorts, filters, or searches —
+  no render-time refetch loop.
+- Pagination uses the **clamped** page from `pager.controls`: when a filter shrinks the
+  result set, the bridge fetches the clamped page, never one past the end.
+- Edits write through and invalidate, same as the pagination pages:
+
+  ```tsx
+  const onDataChange = (_next: readonly Row[], change: DataChange<Row>) => {
+    api.save(change.ops);
+    void queryClient.invalidateQueries({ queryKey: ["rows"] });
+  };
+  ```
+
+## SWR variant
+
+Same contract, different cache. The delta is the key/queryFn pair — the key becomes the
+whole serialized view state, and the fetcher reads it positionally:
+
+<CodeBlockTabs defaultValue="react-query">
+  <CodeBlockTabsList>
+    <CodeBlockTabsTrigger value="react-query">React Query</CodeBlockTabsTrigger>
+    <CodeBlockTabsTrigger value="swr">SWR</CodeBlockTabsTrigger>
+  </CodeBlockTabsList>
+  <CodeBlockTab value="react-query">
+    ```tsx
+    const query = useQuery({
+      queryKey: ["rows", page, pageSize, sortState, filterState, joinOperator, searchText],
+      queryFn: () =>
+        api.fetchPage({
+          page,
+          pageSize,
+          sorts: sortState,
+          filters: filterState,
+          join: joinOperator,
+          search: searchText,
+        }),
+      placeholderData: keepPreviousData,
+    });
+    ```
+  </CodeBlockTab>
+  <CodeBlockTab value="swr">
+    ```tsx
+    const { data } = useSWR(
+      ["rows", page, pageSize, sortState, filterState, joinOperator, searchText],
+      (key) =>
+        api.fetchPage({
+          page: key[1],
+          pageSize: key[2],
+          sorts: key[3],
+          filters: key[4],
+          join: key[5],
+          search: key[6],
+        }),
+    );
+    ```
+  </CodeBlockTab>
+</CodeBlockTabs>
+
+With SWR the previous-page-while-loading behavior has to be kept by hand (last data in a
+ref, or the local-state pattern from the [pagination SWR page](/docs/examples/data/pagination/swr)).
+
+## Shareable state
+
+Wrap the same fetch in [DataGridUrlState](/docs/addons/url-state) and the view state — sort,
+filters, search, page, page size — moves to the URL: reload or share the link and the grid
+rebuilds the exact same request. The bridge's query key then reads the URL-synced state
+instead of the store, and the URL becomes the request itself.
+
+## Behavior reference
+
+- [Sorting, filtering, search](/docs/sorting-filtering-search) — the store state the
+  bridge reads
+- [Pagination](/docs/pagination) — the server-mode contract
+- [URL state](/docs/addons/url-state) — making the view state shareable
+
+## Related
+
+- [Server pagination](/docs/examples/data/pagination) — pages only, no sort/filter/search
+- [ORM & data sources](/docs/examples/data/orm) — this contract in Drizzle, Prisma,
+  Supabase code

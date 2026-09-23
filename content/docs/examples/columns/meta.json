@@ -1,0 +1,5 @@
+{
+  "title": "Columns & Pinning",
+  "icon": "Columns3",
+  "pages": ["pinning", "drag-reorder", "filtering", "custom-headers", "column-layout"]
+}

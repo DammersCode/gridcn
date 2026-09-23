@@ -1,0 +1,57 @@
+---
+title: Server errors
+description: Painting post-commit rejections with setCellErrors / clearCellErrors — the value committed, the server disagrees.
+icon: ServerCrash
+---
+
+`validate` only runs **before** commit. A server can still reject an already-committed value —
+a 422 that names the field, for example. `actions.setCellErrors` paints that rejection on the
+exact cell. The demo wires a fake `saveOrders` call into `onDataChange` that rejects any
+Quantity above 100 after ~600 ms.
+
+<ComponentPreview name="data-grid-cell-errors-demo" />
+
+<InstallCommand item="data-grid-cell-errors-demo" />
+
+## Wiring
+
+```tsx
+function handleDataChange(next: readonly Order[], change: DataChange<Order>) {
+  setData(next);
+  saveOrders(change.ops).catch((error) => {
+    actions.setCellErrors(parseFieldErrors(error)); // [{ rowId, columnId, message }]
+  });
+}
+```
+
+The marked cell gets the same ring, tint, and `aria-invalid` treatment as a pre-commit
+rejection; hovering it shows the message, and opening the cell for editing shows it the same
+way a live rejection does.
+
+## The API
+
+```tsx
+type CellErrorEntry = { rowId: string; columnId: string; message: string };
+
+actions.setCellErrors(errors: readonly CellErrorEntry[]): void;   // merges in, per cell
+actions.clearCellErrors(targets?: readonly { rowId: string; columnId: string }[]): void; // omit to clear all
+```
+
+- **Auto-clear**: the moment the user commits a new value to that cell, through any write path
+  (edit, paste, fill, `updateCells`), the error clears on its own. The server can set it again
+  if the new value is still wrong.
+- `useDataGridCellErrors()` reads the full map for a summary view — the demo's bar shows the
+  count plus a Clear-all button.
+
+<Callout type="warn" title="Not a data change">
+  `setCellErrors`/`clearCellErrors` never touch `data`: they fire no `onDataChange`, and
+  [`data-grid-history`](/docs/addons/undo-redo) never records them. A server error is metadata about a
+  cell, not an edit the user made — undo must not walk past it.
+</Callout>
+
+## Behavior reference
+
+- [Server errors](/docs/editing-cell-types#server-errors) — the full contract, including
+  `cellErrorKey`
+- [Validation](/docs/examples/validation/validation) — the pre-commit side of the same display
+  treatment

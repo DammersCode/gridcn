@@ -1,0 +1,74 @@
+---
+title: I18n & RTL
+description: Every string through typed labels, with per-locale direction — English, Deutsch, and Arabic in one grid.
+icon: Languages
+---
+
+The demo carries three locales — English, Deutsch, and Arabic. Each locale brings its strings
+and its text direction: labels, column headers, and hint text translate through deep-merged
+`labels` overrides, and the Arabic locale flips the grid to RTL through the `direction` prop.
+Pick a language and the direction follows it.
+
+<ComponentPreview name="data-grid-i18n-demo" />
+
+<InstallCommand item="data-grid-i18n-demo" />
+
+## The labels prop
+
+Every user-facing string lives in one typed `DataGridLabels` object with English defaults.
+Pass a partial override to `DataGridProvider` (or `DataGrid`); it deep-merges over
+`DEFAULT_LABELS`, so only the keys you specify change:
+
+```tsx
+<DataGridProvider
+  labels={{
+    toolbar: { searchPlaceholder: "Rechercher…" },
+    contextMenu: { copy: "Copier", paste: "Coller" },
+  }}
+  {...grid}
+  columns={columns}
+/>
+```
+
+Interpolated strings are **functions, not templates** — they receive real arguments:
+
+```ts
+searchMatches: (current: number, total: number) => `${current}/${total}`,
+```
+
+## RTL
+
+Direction is layout state, not a string: derive it from the locale the way a real app does,
+and pass it to the root:
+
+```tsx
+<DataGridRoot direction={locale.dir} /> // "ltr" | "rtl"
+```
+
+The grid's inline-axis math (scroll normalization, pointer-to-cell translation, arrow-key
+mirroring, pin zones) runs through the direction utilities, so RTL is not a mirrored screenshot
+— pinning, selection, and keyboard navigation all follow the flipped axis. Set `dir` on the
+wrapping element as well, so the surrounding page chrome matches.
+
+## Which i18n library?
+
+gridcn takes plain strings, so it composes with whatever you already run — there is no
+adapter. `next-intl` and `react-i18next` both hand you typed strings per locale; the pattern is
+the same for either: keep one `labels` object per locale (or build it per locale in a hook)
+and pass it:
+
+```tsx
+const { labels } = useTranslations("grid"); // next-intl
+// or: const t = useTranslation().t; build the DeepPartialLabels from t("grid.*")
+
+<DataGridProvider labels={labelsForLocale(locale)} direction={dirForLocale(locale)} />
+```
+
+The full merge model (which keys replace vs merge, function labels, `DeepPartialLabels`) is
+on the [i18n guide](/docs/i18n), and the per-group coverage table is under
+[Coverage by group](/docs/i18n#coverage-by-group).
+
+## Related
+
+- [I18n](/docs/i18n) — the `DataGridLabels` reference and a full German example
+- [Styling](/docs/examples/appearance/styling) — appearance when the theme changes instead

@@ -17,6 +17,7 @@ import { useDataGridRootContext, type WindowedColumn } from "./layout-context";
 import { DataGridRow } from "./row";
 import { DataGridOverlays } from "./overlays";
 import { predictReorderTarget, useRowReorder } from "./rows/use-row-reorder";
+import { isReorderMarkerMode } from "./rows/marker-width";
 import { FLASH_KEYFRAMES } from "./cell";
 import { GRID_LAYER } from "./layers";
 import { gridAttrSelector } from "./data-attributes";
@@ -174,6 +175,9 @@ export function DataGridBody(): ReactNode {
   const actions = useDataGridActions();
   const labels = useDataGridLabels();
   const rowReorderEnabled = useDataGridRowReorderEnabled();
+  // the gesture lives on the marker's reorder family only — plain number/checkbox/both markers
+  // stay pure row-select surfaces (see RowMarkersMode), so a selection drag never reorders.
+  const rowReorderArmed = rowReorderEnabled && isReorderMarkerMode(rowMarkers);
   const [reorderAnnouncement, setReorderAnnouncement] = useState("");
   // A `role="status"` region may not live inside role="grid" (only row/rowgroup are allowed
   // children — axe's aria-required-children), so the announcement portals to <body> after mount;
@@ -204,11 +208,10 @@ export function DataGridBody(): ReactNode {
   );
 
   const rowReorder = useRowReorder({
-    enabled: rowReorderEnabled,
+    enabled: rowReorderArmed,
     hitTestRow,
     onReorder: onRowReorder,
     getScrollElement: () => scrollRef.current,
-    onArm: interaction.cancelRowSelectDrag,
   });
 
   // The single row-reorder drop-indicator line, grid-placed on the boundary row's track in the
@@ -281,6 +284,7 @@ export function DataGridBody(): ReactNode {
               readOnly={readOnly}
               rowMarkers={rowMarkers}
               onMarkerPointerDown={interaction.onMarkerPointerDown}
+              onMarkerGripPointerDown={interaction.onMarkerGripPointerDown}
               onMarkerCheckboxPointerDown={interaction.onMarkerCheckboxPointerDown}
               onMarkerReorderPointerDown={rowReorder.onMarkerDragPointerDown}
               isRowReorderDragging={rowReorder.dragState?.draggingRow === viewRowIndex}

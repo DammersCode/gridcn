@@ -5,8 +5,7 @@
   "author": "gridcn",
   "description": "Every built-in cell type in one grid, plus a read-only column, a validate rule, and a custom renderCell override.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-history"
+    "DammersCode/gridcn/data-grid"
   ],
   "files": [
     {

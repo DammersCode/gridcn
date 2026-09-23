@@ -8,6 +8,13 @@ Resize and drag-to-reorder are built into the core, with no add-on needed. Pin, 
 visibility get their UI from `data-grid-context-menu` (a header dropdown and a right-click menu)
 and from `data-grid-toolbar` (a columns menu).
 
+**See examples:**
+[Pinning](/docs/examples/columns/pinning) ·
+[Drag & drop](/docs/examples/columns/drag-reorder) ·
+[Filtering](/docs/examples/columns/filtering) ·
+[Custom headers](/docs/examples/columns/custom-headers) ·
+[Column layout](/docs/examples/columns/column-layout)
+
 <ComponentPreview name="data-grid-pinning-demo" />
 
 ## Resize
@@ -33,32 +40,9 @@ zone. Dragging a left-pinned column onto the unpinned band does nothing. It neve
 ## Pin left/right
 
 Set `pin: 'left' | 'right'` per column as an initial value, or change it at runtime through the
-header dropdown menu or the right-click header context menu. Both menus, installed by
-`data-grid-context-menu`, show the same items: Sort asc/desc/clear, Pin left/right/unpin,
-Autosize, Hide.
-
-<InstallCommand item="data-grid-context-menu" manual manualSlot={<ManualInstall item="data-grid-context-menu" />} />
-
-```tsx
-import {
-  DataGridContextMenu,
-  DataGridHeaderDropdown,
-} from "@/components/data-grid-context-menu/data-grid-context-menu";
-
-<DataGridProvider {...grid} columns={columns}>
-  <DataGridContextMenu>
-    <DataGridRoot renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}>
-      <DataGridHeader />
-      <DataGridBody />
-    </DataGridRoot>
-  </DataGridContextMenu>
-</DataGridProvider>;
-```
-
-<Callout type="warn" title="DataGridContextMenu must be inside DataGridProvider">
-  It reads grid state through the same selector hooks that your own components use. Mounting
-  it outside `DataGridProvider` throws immediately.
-</Callout>
+header dropdown menu or the right-click header context menu — both installed by the
+[context menu add-on](/docs/addons/context-menu), which owns the menu wiring and its items (sort,
+pin, autosize, hide).
 
 <Callout type="idea" title="Right-click selects the cell first">
   Right-clicking a cell makes it the active cell with a single-cell selection before the menu
@@ -70,10 +54,9 @@ The `renderHeaderMenu` slot of `DataGridRoot` renders at the inline-end of each 
 chevron button on hover, and opens the same menu that a right-click gives you. Per-column
 `pinnable: false`, or grid-wide `enableColumnPinning={false}`, disables pin and unpin.
 
-A soft directional shadow marks the pinned boundary. The last left-pinned column casts a shadow
+A soft directional shadow marks the pinned boundary: the last left-pinned column casts a shadow
 to the right, and the first right-pinned column casts one to the left, whenever content is
-actually scrolled beneath it. The grid computes this from the pinned group as a whole, not per
-column.
+actually scrolled beneath it.
 
 ### Persistent pin indicator
 
@@ -189,98 +172,6 @@ import { DataGridToolbar, DataGridColumnsMenu } from "@/components/data-grid-too
 
 Or set a column's initial state with `hidden: true` in its `ColumnDef`.
 
-## Row markers
-
-A pinned-left marker column sits entirely outside the data column index space. It is separate
-from the `columns` array, and reorder and resize do not affect it. Set `rowMarkers` on
-`DataGridProvider` (or `DataGrid`). The default is `"none"`:
-
-<ComponentPreview name="data-grid-row-markers-demo" />
-
-```tsx
-<DataGridProvider rowMarkers="both" {...grid} columns={columns}>
-```
-
-| Mode | Shows |
-|---|---|
-| `"none"` | No marker column (default). |
-| `"number"` | The 1-based view row index, non-interactive. |
-| `"checkbox"` | A per-row checkbox that drives the rows selection channel, plus a select-all checkbox in the marker header. |
-| `"both"` | The row number, replaced by the checkbox on hover or when the row is selected (a group-hover pattern). The number is never gone. The checkbox only sits in front of it at the moment the checkbox is actionable. |
-
-Marker press and drag, in `"checkbox"` and `"both"` modes, selects a contiguous multi-row range
-that follows the pointer from the press row — dragging back over selected rows de-selects them
-(contrast the header gesture, whose column range only grows). See
-[Selection & keyboard](/docs/selection-keyboard#mouse-gestures). The aria-labels of the marker
-column (`markers.selectAll` and `markers.selectRow`) are translatable through `labels`. See
-[i18n](/docs/i18n#coverage-by-group).
-
-Try all four modes alongside every other toggle in the [playground](/docs/playground).
-
-### Custom markers
-
-`DataGridRoot` and `DataGrid` accept two render slots that replace the marker column's content
-while keeping its chrome and gestures:
-
-- `renderMarker` replaces the built-in row number/checkbox in every marker cell. It receives the
-  0-based `viewRowIndex` plus two independent selection signals: `isRowChannelSelected` (the rows
-  channel only, so a cell click never flips it) and `isCellSelected` (the cell or column channel
-  covers at least one cell of the row). A renderer can therefore tell "this row is selected" apart
-  from "cells in this row are selected" and render them differently.
-- `renderMarkerHeader` replaces the select-all checkbox in the marker header. It receives the
-  `allSelected` state (`"checked"`, `"indeterminate"`, `"unchecked"`). In `"number"` mode there is no
-  select-all checkbox, so the renderer replaces the blank header cell instead.
-
-The `rowMarkers` mode still sets the track width (`"number"` 44px, `"checkbox"` 36px, `"both"`
-56px), and `"none"` renders no marker column at all, so neither renderer is ever called. The
-cell's own press and drag row-selection gesture stays on the wrapper: with a custom renderer,
-clicking or dragging a marker cell still selects rows.
-
-```tsx
-import { Check, Circle, List, ListChecks, Minus } from "lucide-react";
-import { useDataGridActions, type MarkerCellRenderer, type MarkerHeaderRenderer } from "@/components/data-grid/data-grid";
-import { Button } from "@/components/ui/button";
-
-const renderMarker: MarkerCellRenderer = ({ isRowChannelSelected, isCellSelected }) => (
-  <span className="flex size-5 items-center justify-center">
-    {isRowChannelSelected ? (
-      <Check className="size-3.5 text-muted-foreground" aria-hidden="true" />
-    ) : isCellSelected ? (
-      <Minus className="size-3.5 text-muted-foreground" aria-hidden="true" />
-    ) : (
-      <Circle className="size-3.5 text-muted-foreground" aria-hidden="true" />
-    )}
-  </span>
-);
-
-function SelectAllMarker({ allSelected }: { allSelected: "checked" | "indeterminate" | "unchecked" }) {
-  const { setAllRowsSelected } = useDataGridActions();
-  const checked = allSelected === "checked";
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      aria-label={checked ? "Unselect all rows" : "Select all rows"}
-      onClick={() => setAllRowsSelected(!checked)}
-    >
-      {checked ? <ListChecks aria-hidden="true" /> : <List aria-hidden="true" />}
-    </Button>
-  );
-}
-
-const renderMarkerHeader: MarkerHeaderRenderer = (ctx) => <SelectAllMarker {...ctx} />;
-```
-
-Define both renderers at module scope (stable identity, the same rule as `getRowClassName`): a
-function defined in the component body would change identity on every render and re-render every
-marker cell on every root update.
-
-The built-in checkboxes carry the translatable `labels.markers.*` aria-labels. A custom renderer
-with interactive content must supply its own accessible name on that content.
-
-<ComponentPreview name="data-grid-custom-markers-demo" />
-
 ## Flex fill
 
 Per-column `flex: number` grows a column from its base `width` to fill leftover viewport space,
@@ -295,11 +186,10 @@ const columns = defineColumns<Row>()([
 ] as const);
 ```
 
-Here `email` grows twice as fast as `name` as the container widens, and `age` stays fixed. Growth
-is clamped by `maxWidth`, and a flex column never shrinks below its base `width`. When the sum of
-widths already meets or exceeds the container, columns render at their base size, and the grid
-scrolls horizontally as usual. A manual resize, by dragging the handle, fixes that column at its
-new width and drops it out of flex distribution, the same as a column with no `flex`.
+Here `email` grows twice as fast as `name` as the container widens, and `age` stays fixed; growth
+is clamped by `maxWidth` and a flex column never shrinks below its base `width`. A manual resize
+fixes that column at its new width and drops it out of flex distribution, the same as a column
+with no `flex`.
 
 ## Reading column state
 
@@ -334,13 +224,12 @@ const [layout, setLayout] = useState(() => {
 >
 ```
 
-`onColumnLayoutChange` fires once per resize commit (a drag release or an autosize, never per
-drag frame), per reorder drop, per pin or unpin, and per show or hide. See
+`onColumnLayoutChange` fires once per committed change: a resize commit (a drag release or an
+autosize, never per drag frame), a reorder drop, a pin or unpin, or a show or hide. See
 [Events & state](/docs/events-state#8-oncolumnlayoutchange--defaultcolumnlayout--oncolumnresizing)
-for the full payload shape and firing semantics (that section also covers the live, per-drag-frame
-`onColumnResizing`). `defaultColumnLayout` is NOT a controlled prop. The grid reads it once at
-mount, so a later change to the value you pass does nothing. Always pair it with
-`onColumnLayoutChange`, and never expect it to react on its own.
+for the full payload shape and the live, per-drag-frame `onColumnResizing`. `defaultColumnLayout`
+is not a controlled prop: the grid reads it once at mount and ignores later changes, so always
+pair it with `onColumnLayoutChange`.
 
 `useDataGridVisibleColumns()` and `useDataGridAllColumns()` return the full `ColumnDef` of each
 column. So a custom column UI can call `accessorFn`, `setValue`, or a function-form `readOnly`
@@ -356,9 +245,8 @@ function CustomColumnLabel({ row }: { row: unknown }) {
 }
 ```
 
-Pass your own row type as the generic of the hook (`useDataGridVisibleColumns<Employee>()`) to
-get back `ColumnDef<Employee, unknown>[]` instead, so `accessorFn` and `setValue` are typed
-against `Employee` rather than `unknown`.
+Pass your own row type as the hook's generic (`useDataGridVisibleColumns<Employee>()`) to get
+`accessorFn` and `setValue` typed against that type.
 
 Pinning *rows*, for a sticky totals band at the top or bottom, uses the same sticky, frozen-edge
-machinery. See [Pinned rows](/docs/pinned-rows).
+machinery. See [Pinned rows](/docs/addons/pinned-rows).

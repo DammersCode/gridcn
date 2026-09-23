@@ -1,0 +1,54 @@
+---
+title: Filtering
+description: Quick search, per-column filters, faceted isAnyOf on select columns, and isBetween ranges.
+icon: Funnel
+---
+
+The toolbar's search and filter surface: quick-search with match navigation, per-column filter
+menus, and click-to-sort headers (asc → desc → clear; shift-click appends a secondary sort).
+The operator set adapts to the column type — that's where faceted and range filtering live.
+
+<ComponentPreview name="data-grid-sorting-filtering-demo" />
+
+<InstallCommand item="data-grid-sorting-filtering-demo" />
+
+## What's in the demo
+
+- `DataGridSearch` — quick-search; it highlights and navigates matches, never narrows `viewIndex`
+- `DataGridFilterMenu` — one filter per `filterable: true` column, joined with AND/OR
+- `headerClickBehavior="sort"` — click cycles asc → desc → clear
+
+## Faceted (multi-value) filters
+
+On `select` columns the filter menu offers `isAnyOf`: pick any number of `options.choices`
+and a row matches if its value is in the list. That is the faceted-filter shape — one filter
+per column, multiple values each.
+
+## Range filters
+
+`number` and `date` columns get `isBetween` — an inclusive `[min, max]` tuple where either
+bound may be empty for an open-ended range (`["", "10"]` = "≤ 10"). Dates work because the
+`date` type stores ISO strings, which compare lexicographically.
+
+## Per-option counts (DIY)
+
+The filter menu does not render live counts per choice. If you want them, compute them
+app-side from your own data and render them next to your choice UI — the grid only owns the
+match logic:
+
+```tsx
+// app-side facet counts for a select column
+const counts = useMemo(() => {
+  const map = new Map<string, number>();
+  for (const row of data) {
+    const value = row.role;
+    map.set(value, (map.get(value) ?? 0) + 1);
+  }
+  return map;
+}, [data]);
+```
+
+## Related
+
+- [Sorting, filtering & search guide](/docs/sorting-filtering-search) — the full add-on reference
+- [URL state](/docs/addons/url-state) — filters serialize into shareable URLs via `isAnyOf`/`isBetween`

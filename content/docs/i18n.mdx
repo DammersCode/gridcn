@@ -8,6 +8,8 @@ Every user-facing string lives in one typed `DataGridLabels` object with English
 
 <ComponentPreview name="data-grid-i18n-demo" />
 
+**See example:** [I18n & RTL](/docs/examples/appearance/i18n-rtl)
+
 ## The `labels` prop
 
 Pass a partial override to `DataGridProvider` (or `DataGrid`). It deep-merges over
@@ -85,8 +87,8 @@ group entirely, and it stays fully English.
 
 ## Full German example
 
-A complete override translates every group. Omit any group or key that you do not need to
-change. This example is deliberately exhaustive, to show the full shape in one place:
+A representative override — omit any group or key you do not need to change, and see the API
+reference for the full field-by-field shape:
 
 ```tsx
 import type { DeepPartialLabels } from "@/components/data-grid/data-grid";
@@ -94,146 +96,30 @@ import type { DeepPartialLabels } from "@/components/data-grid/data-grid";
 const de: DeepPartialLabels = {
   toolbar: {
     searchPlaceholder: "Suchen…",
-    searchAriaLabel: "Tabelle durchsuchen",
-    searchPreviousMatch: "Vorheriger Treffer",
-    searchNextMatch: "Nächster Treffer",
     searchMatches: (current, total) => `${current}/${total}`,
-    searchMatchesCapped: (current) => `${current}/1000+`,
-    searchNoMatches: "0/0",
     filter: "Filter",
-    filterAriaLabel: "Filter",
-    filterColumnAriaLabel: "Spalte filtern",
-    filterOperatorAriaLabel: "Filteroperator",
-    filterValuePlaceholder: "Wert",
-    filterValueAriaLabel: "Filterwert",
-    filterValueFromAriaLabel: "Filterwert von",
-    filterValueToAriaLabel: "Filterwert bis",
-    filterValueTrue: "wahr",
-    filterValueFalse: "falsch",
-    removeFilterAriaLabel: "Filter entfernen",
-    reorderFilterAriaLabel: "Filter verschieben",
-    filterReorderAnnouncement: (column, position, total) => `${column}-Filter an Position ${position} von ${total} verschoben`,
     addFilter: "Filter hinzufügen",
     clearFilters: "Alle löschen",
     noFiltersApplied: "Keine Filter angewendet.",
-    filterWhere: "Wobei",
-    joinOperatorAriaLabel: "Verknüpfung",
     joinOperatorAnd: "Und",
     joinOperatorOr: "Oder",
     columns: "Spalten",
-    columnsAriaLabel: "Spalten",
-  },
-  sort: {
-    sort: "Sortieren",
-    sortAriaLabel: "Sortierungen",
-    columnAriaLabel: "Sortierspalte",
-    directionAriaLabel: "Sortierrichtung",
-    ascending: "Aufsteigend",
-    descending: "Absteigend",
-    removeSortAriaLabel: "Sortierung entfernen",
-    reorderSortAriaLabel: "Sortierung verschieben",
-    sortReorderAnnouncement: (column, position, total) => `${column}-Sortierung an Position ${position} von ${total} verschoben`,
-    addSort: "Sortierung hinzufügen",
-    clearSorts: "Alle löschen",
-    noSortsApplied: "Keine Sortierung angewendet.",
-  },
-  filterOperators: {
-    contains: "enthält",
-    notContains: "enthält nicht",
-    equals: "ist gleich",
-    notEquals: "ist ungleich",
-    startsWith: "beginnt mit",
-    endsWith: "endet mit",
-    empty: "ist leer",
-    notEmpty: "ist nicht leer",
-    gt: "größer als",
-    gte: "größer oder gleich",
-    lt: "kleiner als",
-    lte: "kleiner oder gleich",
-    isBetween: "liegt zwischen",
   },
   contextMenu: {
     cut: "Ausschneiden",
     copy: "Kopieren",
     paste: "Einfügen",
-    pasteBlocked: "erfordert Zwischenablage-Berechtigung — Strg+V verwenden",
-    clearContents: "Inhalt löschen",
     insertRowAbove: "Zeile oberhalb einfügen",
-    insertRowBelow: "Zeile unterhalb einfügen",
-    duplicateRow: "Zeile duplizieren",
     duplicateRows: (count) => (count > 1 ? "Zeilen duplizieren" : "Zeile duplizieren"),
     deleteRow: "Zeile löschen",
-    deleteRows: (count) => (count > 1 ? "Zeilen löschen" : "Zeile löschen"),
-    sortAsc: "Aufsteigend sortieren",
-    sortDesc: "Absteigend sortieren",
-    clearSort: "Sortierung entfernen",
     pinLeft: "Links anheften",
-    pinRight: "Rechts anheften",
-    unpin: "Lösen",
-    hideColumn: "Spalte ausblenden",
     autosize: "Spaltenbreite anpassen",
-    columnMenuAriaLabel: (column) => `${column} Spaltenmenü`,
-  },
-  keybindings: {
-    title: "Tastaturkürzel",
-    description: "Alle in dieser Tabelle aktiven Tastenkombinationen.",
-    categories: {
-      navigation: "Navigation",
-      selection: "Auswahl",
-      editing: "Bearbeitung",
-      clipboardFill: "Zwischenablage & Ausfüllen",
-      history: "Verlauf",
-      other: "Sonstiges",
-    },
-    nativeCopy: "Kopieren",
-    nativeCut: "Ausschneiden",
-    nativePaste: "Einfügen",
-    actions: {
-      undo: "Rückgängig",
-      redo: "Wiederholen",
-      selectAll: "Alles auswählen",
-      // ...remaining GridAction keys fall back to an auto-humanized name when omitted
-    },
-  },
-  markers: {
-    selectAll: "Alle Zeilen auswählen",
-    selectRow: (rowNumber) => `Zeile ${rowNumber} auswählen`,
-    reorderRow: (rowNumber) => `Zeile ${rowNumber} verschieben`,
-    reorderAnnouncement: (rowNumber, position, total) =>
-      `Zeile ${rowNumber} an Position ${position} von ${total} verschoben`,
   },
   grid: {
     emptyState: "Keine Zeilen",
     loading: "Wird geladen…",
   },
-  io: {
-    exportButtonAriaLabel: "Exportieren",
-    exportXlsx: "Als Excel exportieren (.xlsx)",
-    exportCsv: "Als CSV exportieren",
-    importButton: "Importieren",
-    importDialogTitle: "Datei importieren",
-    importDialogDescription: "CSV- oder Excel-Datei wählen und Spalten der Tabelle zuordnen.",
-    chooseFile: "Datei wählen",
-    noFileChosen: "Keine Datei ausgewählt",
-    columnFallback: (index) => `Spalte ${index}`,
-    delimiter: "Trennzeichen",
-    delimiterComma: "Komma (,)",
-    delimiterSemicolon: "Semikolon (;)",
-    delimiterTab: "Tabulator",
-    hasHeaderRow: "Erste Zeile ist Kopfzeile",
-    mapColumns: "Spalten zuordnen",
-    mapColumnAriaLabel: (importColumn) => `„${importColumn}" einer Spalte zuordnen`,
-    skipColumn: "— Überspringen —",
-    skipColumnQuick: "Spalte überspringen",
-    preview: "Vorschau",
-    previewTruncated: (shown, total) => `${shown} von ${total} Zeilen angezeigt`,
-    sheet: "Blatt",
-    import: "Importieren",
-    cancel: "Abbrechen",
-    errorParseFailed: "Datei konnte nicht gelesen werden.",
-    errorNoRows: "Keine Zeilen in dieser Datei gefunden.",
-    errorUnsupportedFile: "Nicht unterstützter Dateityp — CSV, .xlsx oder .xls wählen.",
-  },
+  // sort, filterOperators, keybindings, markers, and io follow the same pattern.
 };
 
 <DataGridProvider labels={de} {...grid} columns={columns}>
@@ -319,21 +205,16 @@ which is the previous column index. This matches spreadsheet behavior on right-t
 `Tab` and `Shift+Tab` keep their reading order and do not flip. `Home` and `End` stay logical:
 `Home` goes to the first column in both directions.
 
-Cell values render inside `<bdi>`, so an Arabic value in a left-to-right grid still reads
-right-to-left inside its own cell, and a Latin value in a right-to-left grid reads
-left-to-right. Alignment stays the grid's: a start-aligned column hugs the inline start whatever
-script its values are in. Cell editors carry `dir="auto"` instead, so the caret follows the value
-being typed.
+Cell values render inside `<bdi>`, so each value's own script reads in its own direction
+(alignment stays the grid's); cell editors carry `dir="auto"` instead, so the caret follows the
+value being typed.
 
 ### Base UI chrome
 
 `DataGridRoot` sets `dir` on the grid element and wraps its subtree in Base UI's
-`DirectionProvider`. Both are necessary: `dir` drives CSS logical properties and `rtl:` variants,
-`DirectionProvider` drives Base UI's own positioning and keyboard navigation. Menus, popovers,
-and dialogs from the add-ons need no extra setup.
-
-Portaled content that you render yourself, outside the grid subtree, needs `dir` passed to it
-explicitly.
+`DirectionProvider`, which drives Base UI's own positioning and keyboard navigation. Menus,
+popovers, and dialogs from the add-ons need no extra setup — portaled content that you render
+yourself, outside the grid subtree, needs `dir` passed to it explicitly.
 
 <Callout type="warn" title="Set `dir` on the document too">
   The grid element carries its own `dir`, but page chrome around it does not. Set `dir="rtl"` on

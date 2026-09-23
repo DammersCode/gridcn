@@ -6,7 +6,7 @@ import { PARITY_ASPECTS, PARITY_LEVEL_LABEL, PARITY_MATRIX, parityGapsFor, type 
 
 const LEVEL_CLASS: Record<ParityLevel, string> = {
   exact: "text-foreground",
-  approximate: "text-amber-600 dark:text-amber-500",
+  approximate: "text-warning",
   impossible: "text-destructive",
 };
 

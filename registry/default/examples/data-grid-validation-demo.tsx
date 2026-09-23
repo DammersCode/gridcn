@@ -2,11 +2,25 @@
 
 import type { ReactNode } from "react";
 import { toast } from "sonner";
+import Joi from "joi";
+import { z } from "zod";
+import * as v from "valibot";
 import { DataGrid, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridState } from "@/registry/default/blocks/data-grid-history/data-grid-history";
 import { Toaster } from "@/components/ui/sonner";
 
-type ValidationRow = { id: string; name: string; age: number; email: string; sku: string; price: string; notes: string };
+type ValidationRow = {
+  id: string;
+  name: string;
+  age: number;
+  email: string;
+  sku: string;
+  price: string;
+  notes: string;
+  score: number;
+  code: string;
+  tag: string;
+};
 
 const TAKEN_SKUS = new Set(["SKU-001", "SKU-002"]);
 
@@ -52,8 +66,13 @@ const roundedPriceSchema = {
   },
 };
 
+/** One column per major Standard Schema library, so the reader can break each one and see its own error message. */
+const zodScoreSchema = z.number().int().min(0).max(100);
+const joiCodeSchema = Joi.string().pattern(/^[A-Z0-9-]+$/).empty("").messages({ "string.pattern.base": "Use uppercase letters, digits, or dashes" });
+const valibotTagSchema = v.pipe(v.string(), v.minLength(3));
+
 const columns = defineColumns<ValidationRow>()([
-  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 60, flex: 1 },
+  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 56, flex: 1 },
   {
     id: "age",
     header: "Age",
@@ -68,7 +87,7 @@ const columns = defineColumns<ValidationRow>()([
       }
       return null;
     },
-    width: 52,
+    width: 40,
     flex: 1,
   },
   {
@@ -77,7 +96,7 @@ const columns = defineColumns<ValidationRow>()([
     accessorKey: "email",
     type: "text",
     validate: emailSchema as never,
-    width: 72,
+    width: 52,
     flex: 1,
   },
   {
@@ -86,7 +105,7 @@ const columns = defineColumns<ValidationRow>()([
     accessorKey: "sku",
     type: "text",
     validate: skuSchema as never,
-    width: 60,
+    width: 44,
     flex: 1,
   },
   {
@@ -95,7 +114,7 @@ const columns = defineColumns<ValidationRow>()([
     accessorKey: "price",
     type: "text",
     validate: roundedPriceSchema as never,
-    width: 52,
+    width: 40,
     flex: 1,
   },
   {
@@ -107,21 +126,48 @@ const columns = defineColumns<ValidationRow>()([
     // re-commit clears it — the editor CLOSES on commit, unlike a blocking rejection
     validate: (value: unknown) => (typeof value === "string" && value.length > 12 ? "Max 12 characters" : null),
     onInvalid: "warn",
-    width: 64,
+    width: 44,
+    flex: 1,
+  },
+  {
+    id: "score",
+    header: "Zod Score",
+    accessorKey: "score",
+    type: "number",
+    validate: zodScoreSchema,
+    width: 46,
+    flex: 1,
+  },
+  {
+    id: "code",
+    header: "Joi Code",
+    accessorKey: "code",
+    type: "text",
+    validate: joiCodeSchema,
+    width: 44,
+    flex: 1,
+  },
+  {
+    id: "tag",
+    header: "Valibot Tag",
+    accessorKey: "tag",
+    type: "text",
+    validate: valibotTagSchema,
+    width: 42,
     flex: 1,
   },
 ] as const);
 
 function initialRows(): ValidationRow[] {
   return [
-    { id: "row-0", name: "Ada Lovelace", age: 28, email: "ada@example.com", sku: "SKU-101", price: "42", notes: "First algorithm" },
-    { id: "row-1", name: "Grace Hopper", age: 34, email: "grace@example.com", sku: "SKU-102", price: "18", notes: "Compiled it" },
-    { id: "row-2", name: "Alan Turing", age: 41, email: "alan@example.com", sku: "SKU-103", price: "99", notes: "Broke Enigma" },
-    { id: "row-3", name: "Katherine Johnson", age: 25, email: "katherine@example.com", sku: "SKU-104", price: "7", notes: "Trajectory math" },
-    { id: "row-4", name: "Margaret Hamilton", age: 22, email: "margaret@example.com", sku: "SKU-105", price: "56", notes: "Apollo nav" },
-    { id: "row-5", name: "Radia Perlman", age: 30, email: "radia@example.com", sku: "SKU-106", price: "31", notes: "Spanning trees" },
-    { id: "row-6", name: "Tim Berners-Lee", age: 19, email: "tim@example.com", sku: "SKU-107", price: "64", notes: "Invented the web" },
-    { id: "row-7", name: "Barbara Liskov", age: 45, email: "barbara@example.com", sku: "SKU-108", price: "12", notes: "Subtyping" },
+    { id: "row-0", name: "Ada Lovelace", age: 28, email: "ada@example.com", sku: "SKU-101", price: "42", notes: "First algorithm", score: 87, code: "ADA-1843", tag: "math" },
+    { id: "row-1", name: "Grace Hopper", age: 34, email: "grace@example.com", sku: "SKU-102", price: "18", notes: "Compiled it", score: 94, code: "GRACE-1906", tag: "compilers" },
+    { id: "row-2", name: "Alan Turing", age: 41, email: "alan@example.com", sku: "SKU-103", price: "99", notes: "Broke Enigma", score: 99, code: "TURING-1912", tag: "computability" },
+    { id: "row-3", name: "Katherine Johnson", age: 25, email: "katherine@example.com", sku: "SKU-104", price: "7", notes: "Trajectory math", score: 91, code: "KATH-1918", tag: "orbital" },
+    { id: "row-4", name: "Margaret Hamilton", age: 22, email: "margaret@example.com", sku: "SKU-105", price: "56", notes: "Apollo nav", score: 96, code: "MARG-1936", tag: "software" },
+    { id: "row-5", name: "Radia Perlman", age: 30, email: "radia@example.com", sku: "SKU-106", price: "31", notes: "Spanning trees", score: 88, code: "RADIA-1951", tag: "networking" },
+    { id: "row-6", name: "Tim Berners-Lee", age: 19, email: "tim@example.com", sku: "SKU-107", price: "64", notes: "Invented the web", score: 98, code: "TIM-1955", tag: "web" },
+    { id: "row-7", name: "Barbara Liskov", age: 45, email: "barbara@example.com", sku: "SKU-108", price: "12", notes: "Subtyping", score: 93, code: "BARB-1939", tag: "types" },
   ];
 }
 
@@ -133,13 +179,18 @@ const RULES = [
   ["SKU", "must be unique — SKU-001 and SKU-002 are taken; the check takes ~800ms (async Standard Schema)"],
   ["Price", "must be a number — decimals commit as the rounded integer (transforming schema)"],
   ["Notes", "max 12 characters, SOFT (onInvalid: 'warn') — the value commits and the cell stays flagged; a short re-commit clears it"],
+  ["Zod Score", "integer 0–100 — zod: z.number().int().min(0).max(100)"],
+  ["Joi Code", "uppercase letters, digits, or dashes — joi: .pattern(/^[A-Z0-9-]+$/)"],
+  ["Valibot Tag", "at least 3 characters — valibot: v.pipe(v.string(), v.minLength(3))"],
 ] as const;
 
 /**
- * Five rejection paths in one grid: a sync function (Age), a sync Standard Schema (Email), an
- * async Standard Schema with a visible pending state (SKU), and a coercing schema (Price). The
- * rules are listed above the grid so the reader breaks them by typing; pasting a column of
- * mixed valid/invalid ages shows the bulk path (valid cells commit, invalid ones drop).
+ * Eight rejection paths in one grid: a sync function (Age), three hand-rolled Standard Schemas
+ * (Email sync, SKU async with a visible pending state, Price coercing), a soft onInvalid rule
+ * (Notes), and one column per major library that implements Standard Schema natively — Zod
+ * (Score), Joi (Code), Valibot (Tag). The rules are listed above the grid so the reader breaks
+ * them by typing and sees each library's own error message; pasting a column of mixed
+ * valid/invalid ages shows the bulk path (valid cells commit, invalid ones drop).
  */
 export default function DataGridValidationDemo(): ReactNode {
   const grid = useDataGridState(initialRows(), { getRowId });

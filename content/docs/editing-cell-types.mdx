@@ -41,14 +41,10 @@ browser move focus); and a popover editor without an explicit pick cancels rathe
 
 ## Built-in cell types
 
-Every cell type implements the same small pipeline. `toText` and `fromText` drive clipboard,
-import/export, and typing in the same way, so only one thing needs an override to change how a
-type converts text to and from a value. One feature to remember: search and filter do NOT use
-`toText` — they match the raw `String(value)`, so a `select` column searches the stored value,
-not the displayed label, and a `number` column with `decimals` searches the unrounded value. The
-full per-feature contract (display = `toDisplayText ?? toText`, clipboard/export = `toText`,
-sort = `compare`, search/filter = raw `String(value)`, fill = raw value) is on
-[custom cell types](/docs/custom-cell-types#value-pipeline).
+Every cell type implements the same small pipeline — display = `toDisplayText ?? toText`,
+clipboard/export = `toText`, sort = `compare`, fill = raw value — so one override changes how a
+type converts text to and from a value. The full per-feature contract, including how search and
+filter match values, is on [custom cell types](/docs/custom-cell-types#value-pipeline).
 
 | Type | Value | Notes |
 |---|---|---|
@@ -111,13 +107,19 @@ Per-column, static or row-dependent:
 
 <ComponentPreview name="data-grid-validation-demo" />
 
+**See the live examples:** [Validation](/docs/examples/validation/validation) ·
+[Async validation](/docs/examples/validation/async-validation) ·
+[Server errors](/docs/examples/validation/server-errors) ·
+[Cross-field](/docs/examples/validation/cross-field)
+
 `validate` accepts either of two forms:
 
 - **A function** that returns an error message to reject a value, or `null` to accept it. The
   function is your code, so side effects work — the demo's Age rule fires a toast from inside it.
 - **Any [Standard Schema](https://standardschema.dev)** for the value of the column: Zod,
-  Valibot, ArkType, or any other library that implements the spec. gridcn detects the schema
-  structurally (`"~standard" in validate`), so no adapter is necessary for a conforming library.
+  Joi, Valibot, Yup, ArkType, or any other library that implements the spec. gridcn detects
+  the schema structurally (`"~standard" in validate`), so no adapter is necessary for a
+  conforming library.
 
 <Callout type="warn" title="Invalid edits cannot commit">
   The editor stays open on a rejected value. This is Excel semantics, not a toast-and-revert
@@ -134,7 +136,7 @@ Per-column, static or row-dependent:
   validate: (value) => (typeof value === "number" && value < 18 ? "Must be 18 or older" : null),
 }
 
-// Standard Schema form — illustrative, schema-agnostic (works with Zod, Valibot, ArkType, ...)
+// Standard Schema form — illustrative, schema-agnostic (works with Zod, Joi, Valibot, ...)
 {
   id: "age",
   header: "Age",
@@ -215,9 +217,8 @@ Paste, fill, CSV/XLSX import, and `updateCells` hold the batch while the schema 
 - A rejected cell drops silently, and the other cells of the batch still commit. One bad value
   never fails the batch.
 - The committed value is the schema's `result.value`, so a transform applies on bulk paths too.
-- A newer operation supersedes a held batch. A second paste over the same area, a change of the
-  data, a sort or filter change, or the unmount of the grid drops the older batch silently. Cells
-  are keyed by row id, so a pure reorder of the rows keeps the batch valid.
+- A newer operation supersedes a held batch: a second paste over the same area, a data change, a
+  sort or filter change, or the unmount of the grid drops the older batch silently.
 - The import dialog keeps its Import button disabled while it validates. Cancel, or closing the
   dialog, aborts the build and drops the batch.
 
@@ -249,9 +250,9 @@ Paste, fill, CSV/XLSX import, and `updateCells` hold the batch while the schema 
 ```
 
 `validateRow` runs once per touched row after a write gesture commits — a single edit, a paste,
-a fill, or a bulk update. The row it receives already has ALL of the gesture's cells applied, so
-the verdict never depends on column order inside a pasted block. A per-column `validate` cannot
-give that guarantee: it runs mid-gesture, against whatever the row looked like at that moment.
+a fill, or a bulk update — against the row with ALL of the gesture's cells applied, so the verdict
+never depends on column order (a per-column `validate` runs mid-gesture and cannot guarantee
+that).
 
 Return `columnId -> message` to mark cells, or `null` when the row is fine. Messages land in the
 same per-cell error display as [Server errors](#server-errors) (ring, tint, hover tooltip,
@@ -324,7 +325,7 @@ const message = errors.get(cellErrorKey(row.id, "email"));
 
 <Callout type="warn" title="Not a data change">
   `setCellErrors` and `clearCellErrors` never touch `data`. They fire no `onDataChange`, and
-  [`data-grid-history`](/docs/undo-redo) never records them. A server error is metadata about a
+  [`data-grid-history`](/docs/addons/undo-redo) never records them. A server error is metadata about a
   cell, not an edit the user made — undo must not need to walk past it.
 </Callout>
 

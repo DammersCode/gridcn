@@ -1,0 +1,38 @@
+---
+title: Row markers
+description: The built-in marker modes (none, number, checkbox, both) and fully custom renderers.
+icon: ListOrdered
+---
+
+The marker column is pinned left and sits outside the data index space. The built-in modes:
+`none`, `number`, `checkbox` (drives the rows selection channel + a select-all header
+checkbox), and `both` (row number, replaced by the checkbox on hover/selection). Or replace
+the rendering entirely with your own marker/header components.
+
+<ComponentPreview name="data-grid-row-markers-demo" />
+
+<InstallCommand item="data-grid-row-markers-demo" />
+
+## What's in the demo
+
+- `rowMarkers` select — switches `none` / `number` / `checkbox` / `both` and the `reorder` family live
+- `both` mode — hover a row: the number is replaced by the checkbox while hovered or selected
+
+## Custom markers
+
+The same grid with `renderMarker` / `renderMarkerHeader`: a lucide icon marker reflecting the
+row's selection state, and a select-all header button — while the marker cell's own
+press/drag gestures still select rows.
+
+<ComponentPreview name="data-grid-custom-markers-demo" />
+
+<InstallCommand item="data-grid-custom-markers-demo" />
+
+## Behavior reference
+
+- [Row markers](/docs/row-operations#row-markers) — the modes and the selection-channel wiring
+- [Custom markers](/docs/row-operations#custom-markers) — the `renderMarker`/`renderMarkerHeader` contract
+
+## Related
+
+- [Selection & keyboard](/docs/selection-keyboard) — what the checkbox channel drives

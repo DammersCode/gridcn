@@ -94,8 +94,9 @@ html > body[data-scroll-locked] {
    Fumadocs' theming surface is color vars + --fd-layout-width only (confirmed against
    https://fumadocs.dev/docs/ui/theme) — there is no upstream radius token to bridge instead,
    so this block is load-bearing: it must be re-checked on every fumadocs-ui upgrade. */
+/* Component-owned keys (components/ui/kbd.tsx, marked not-prose) style themselves and are excluded. */
 .prose code,
-.prose kbd {
+.prose kbd:not([data-slot="kbd"]) {
   border-radius: 0;
 }
 
@@ -126,6 +127,8 @@ button[data-search],
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-warning: var(--warning);
+  --color-search-highlight: var(--search-highlight);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -179,6 +182,10 @@ button[data-search],
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  /* warning semantics (benchmark parity, FPS status): amber-600 */
+  --warning: oklch(66.6% 0.179 58.318);
+  /* gridcn search highlight: deliberate amber, distinct convention from selection/active tokens — amber-200 */
+  --search-highlight: oklch(92.4% 0.12 95.746);
   /* grid schema: sharp corners throughout — a data grid is a lattice of cells, not a stack of soft cards */
   --radius: 0rem;
   --sidebar: oklch(0.97 0.008 65);
@@ -222,6 +229,10 @@ button[data-search],
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  /* warning semantics in dark: amber-500 (lighter to read on charcoal) */
+  --warning: oklch(76.9% 0.188 70.08);
+  /* gridcn search highlight in dark: amber-400 */
+  --search-highlight: oklch(82.8% 0.189 84.429);
   --sidebar: oklch(0.21 0.009 55);
   --sidebar-foreground: oklch(0.94 0.006 65);
   --sidebar-primary: oklch(0.6 0.09 55);

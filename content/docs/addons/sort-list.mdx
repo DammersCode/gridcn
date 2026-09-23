@@ -1,0 +1,58 @@
+---
+title: Sort list
+description: The data-grid-sort-list add-on — a toolbar button and popover to add, remove, and reorder sorts.
+icon: ListOrdered
+---
+
+Click-to-sort headers work without any add-on, but `data-grid-sort-list` gives users a toolbar
+button and popover to add, remove, and reorder sorts without touching the headers. This is
+useful when columns are hidden or narrow, or when you prefer not to rely on shift-click for
+multi-column sort.
+
+<ComponentPreview name="data-grid-sort-list-demo" />
+
+<InstallCommand item="data-grid-sort-list" manual manualSlot={<ManualInstall item="data-grid-sort-list" />} />
+
+```tsx
+import { DataGridSortList } from "@/components/data-grid-sort-list/data-grid-sort-list";
+
+<DataGridProvider {...grid} columns={columns}>
+  <DataGridToolbar>
+    <DataGridSortList />
+  </DataGridToolbar>
+  <DataGridRoot>
+    <DataGridHeader />
+    <DataGridBody />
+  </DataGridRoot>
+</DataGridProvider>;
+```
+
+Each row has a column select, an ascending/descending select, a remove button, and a drag handle.
+Precedence is array order in `SortSpec[]`, changed by dragging the grip (`@dnd-kit/react`) or
+through the keyboard (see below). It reads and writes the same `useDataGridSortState()` and
+`useDataGridActions().setSorts()` as click-to-sort headers, so the two UIs stay in sync
+automatically. The button shows a count badge once one or more sorts are applied, matching the
+badge of `DataGridFilterMenu`.
+
+## Keyboard & accessibility
+
+| Key | Action |
+|---|---|
+| <kbd>Tab</kbd> | Moves through a row's controls, in order: column select, direction select, remove, drag handle |
+| <kbd>ArrowUp</kbd> / <kbd>ArrowDown</kbd> (grip focused) | Moves that sort row one position up/down, which changes precedence |
+| <kbd>Space</kbd> / <kbd>Enter</kbd> (grip focused) | Picks up/drops the row for pointer-equivalent keyboard dragging (`@dnd-kit/react`'s keyboard sensor) |
+| <kbd>Backspace</kbd> / <kbd>Delete</kbd> | Removes the focused sort row |
+
+Plain `ArrowUp` or `ArrowDown` on a focused grip always moves the row by exactly one position.
+The keyboard sensor of `@dnd-kit/react` also offers its own gesture for that key, but gridcn
+checks the plain arrow press first, and it wins. Every reorder announces the change through a polite
+`aria-live` region (`labels.sort.sortReorderAnnouncement`, for example "Age sort moved to
+position 1 of 2"). Focus never gets lost. After a reorder, focus stays on the moved row's grip.
+After deleting a row, focus moves to the next row's grip, or to the "Add sort" button once the
+list is empty.
+
+## Related
+
+- [Sorting, filtering & search](/docs/sorting-filtering-search) — the core sort behavior and
+  `headerClickBehavior`
+- [Toolbar](/docs/addons/toolbar) — the frame the button lives in

@@ -28,22 +28,25 @@ package: the source files are copied into your project.
   <Step>
     ### Add optional pieces
 
-    Each add-on is independently installable and depends only on the core:
+    Each add-on is independently installable and depends only on the core — check the ones you
+    want and the command joins them in one call:
 
-    ```bash
-    npx shadcn add @gridcn/data-grid-fill
-    npx shadcn add @gridcn/data-grid-presence
-    npx shadcn add @gridcn/data-grid-pinned-rows
-    npx shadcn add @gridcn/data-grid-history
-    npx shadcn add @gridcn/data-grid-toolbar
-    npx shadcn add @gridcn/data-grid-sort-list
-    npx shadcn add @gridcn/data-grid-context-menu
-    npx shadcn add @gridcn/data-grid-keybindings
-    npx shadcn add @gridcn/data-grid-io
-    npx shadcn add @gridcn/data-grid-url-state
-    npx shadcn add @gridcn/data-grid-lazy
-    npx shadcn add @gridcn/data-grid-pagination
-    ```
+    <InstallCommand
+      items={[
+        { value: "data-grid-fill", label: "Fill", defaultChecked: true },
+        { value: "data-grid-presence", label: "Presence", defaultChecked: true },
+        { value: "data-grid-pinned-rows", label: "Pinned rows", defaultChecked: true },
+        { value: "data-grid-history", label: "Undo & redo", defaultChecked: true },
+        { value: "data-grid-toolbar", label: "Toolbar", defaultChecked: true },
+        { value: "data-grid-sort-list", label: "Sort list", defaultChecked: true },
+        { value: "data-grid-context-menu", label: "Context menu", defaultChecked: true },
+        { value: "data-grid-keybindings", label: "Keybindings", defaultChecked: true },
+        { value: "data-grid-io", label: "Import / export", defaultChecked: true },
+        { value: "data-grid-url-state", label: "URL state", defaultChecked: true },
+        { value: "data-grid-lazy", label: "Lazy loading", defaultChecked: true },
+        { value: "data-grid-pagination", label: "Pagination", defaultChecked: true },
+      ]}
+    />
 
     See each feature's docs page for what it adds and its own install command.
   </Step>
@@ -54,9 +57,7 @@ package: the source files are copied into your project.
 The hosted `@gridcn` registry always serves the current deploy of `main`. To pin a specific tag,
 branch, or commit, use the GitHub registry path and append `#<ref>` after the item name:
 
-```bash
-npx shadcn add DammersCode/gridcn/data-grid#v1.0.0
-```
+<InstallCommand command="shadcn add DammersCode/gridcn/data-grid#v1.0.0" />
 
 Without a ref, the CLI uses the repository's default branch.
 
@@ -65,9 +66,7 @@ Without a ref, the CLI uses the repository's default branch.
 The same items are available directly from this repository's GitHub registry — no namespace
 registration, and the only path that supports ref pinning:
 
-```bash
-npx shadcn add DammersCode/gridcn/data-grid
-```
+<InstallCommand command="shadcn add DammersCode/gridcn/data-grid" />
 
 Both paths install the same files from the same source.
 

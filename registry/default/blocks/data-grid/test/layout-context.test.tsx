@@ -1,9 +1,10 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { ReactNode } from "react";
-import type { ColumnDef } from "../types";
+import type { ColumnDef, RowMarkersMode } from "../types";
 import { DataGridProvider, useDataGridActions } from "../store";
 import { useColumnLayout } from "../layout-context";
+import { isReorderMarkerMode, markerContent } from "../rows/marker-width";
 
 type Row = { id: string; a: string; b: string };
 
@@ -19,7 +20,7 @@ const columns: readonly ColumnDef<Row, unknown>[] = [
 // same widening every other internal-hook test in this suite performs at its own call boundary.
 const internalColumns = columns as unknown as readonly ColumnDef<unknown, unknown>[];
 
-function wrapperWithMarkers(rowMarkers: "none" | "number" | "checkbox" | "both" | "reorder") {
+function wrapperWithMarkers(rowMarkers: RowMarkersMode) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <DataGridProvider data={rows()} columns={columns} getRowId={(r) => r.id} rowMarkers={rowMarkers}>
@@ -59,11 +60,44 @@ describe("useColumnLayout marker column integration", () => {
     expect(reorder.result.current.markerWidth).toBe(32);
   });
 
+  it("widens the track for the reorder family (grip plus content)", () => {
+    const reorderNumber = renderHook(() => useColumnLayout(internalColumns), { wrapper: wrapperWithMarkers("reorder-number") });
+    expect(reorderNumber.result.current.markerWidth).toBe(56);
+
+    const reorderCheckbox = renderHook(() => useColumnLayout(internalColumns), { wrapper: wrapperWithMarkers("reorder-checkbox") });
+    expect(reorderCheckbox.result.current.markerWidth).toBe(48);
+
+    const reorderBoth = renderHook(() => useColumnLayout(internalColumns), { wrapper: wrapperWithMarkers("reorder-both") });
+    expect(reorderBoth.result.current.markerWidth).toBe(64);
+  });
+
   it("shifts pinned-left static offsets by the marker width so the marker always renders before pinned data columns", () => {
     const { result } = renderHook(() => useColumnLayout(internalColumns), { wrapper: wrapperWithMarkers("number") });
     // column "b" (index 1) is pin:"left" — its static offset must start right after the marker (44px),
     // not at 0 (which would render it under/before the marker).
     expect(result.current.leftOffsets[1]).toBe(44);
+  });
+});
+
+describe("marker mode helpers", () => {
+  it("only the reorder family arms the drag-to-reorder gesture", () => {
+    for (const mode of ["reorder", "reorder-number", "reorder-checkbox", "reorder-both"] as const) {
+      expect(isReorderMarkerMode(mode)).toBe(true);
+    }
+    for (const mode of ["none", "number", "checkbox", "both"] as const) {
+      expect(isReorderMarkerMode(mode)).toBe(false);
+    }
+  });
+
+  it("the reorder family renders its suffix's content, the plain modes themselves, 'reorder' none", () => {
+    expect(markerContent("none")).toBe("none");
+    expect(markerContent("number")).toBe("number");
+    expect(markerContent("checkbox")).toBe("checkbox");
+    expect(markerContent("both")).toBe("both");
+    expect(markerContent("reorder")).toBe("none");
+    expect(markerContent("reorder-number")).toBe("number");
+    expect(markerContent("reorder-checkbox")).toBe("checkbox");
+    expect(markerContent("reorder-both")).toBe("both");
   });
 });
 

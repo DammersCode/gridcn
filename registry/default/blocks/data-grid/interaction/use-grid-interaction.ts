@@ -347,7 +347,16 @@ export type GridInteractionHandlers = {
    * {@link onHeaderPointerDown}, on the rows channel (glide-behavior-spec.md §3 "Row-marker clicks").
    * No-op when `enableRowSelection` is false.
    */
-  onMarkerPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
+   onMarkerPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
+  /**
+   * Attach to the marker's grip pointerdown (the reorder family's reorder zone). Resolves the
+   * plain/ctrl click-select immediately (a stationary press selects the row) but NEVER starts
+   * the row-range drag — the row-reorder hook owns the pointer movement, so a press that moves
+   * reorders and a stationary release leaves exactly this press's selection. A <kbd>Shift</kbd>
+   * press takes the full {@link onMarkerPointerDown} gesture instead (shift+drag is always the
+   * row-select range). No-op selection-wise when `enableRowSelection` is false.
+   */
+  onMarkerGripPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
   /**
    * Attach to the marker's checkbox pointerdown ('checkbox'/'both' modes). Arms the same row-range
    * drag as {@link onMarkerPointerDown} (anchor + auto-scroll), but never touches the rows channel
@@ -365,13 +374,7 @@ export type GridInteractionHandlers = {
    * gestures started from the same header press never both apply once a reorder commits — see
    * that hook's JSDoc for the full disambiguation rule.
    */
-  cancelColumnSelectDrag: () => void;
-  /**
-   * Ends an in-progress marker row-select drag (mode "row") without affecting a cell/column
-   * drag. Row reorder (use-row-reorder.ts) calls this the moment it arms — mirror of
-   * {@link cancelColumnSelectDrag}; see that hook's JSDoc for the full disambiguation rule.
-   */
-  cancelRowSelectDrag: () => void;
+   cancelColumnSelectDrag: () => void;
   /**
    * Imperatively scrolls the container so `coord` (view-space) is visible, honoring the
    * pinned-left/right bands. Public extension point for add-ons that move the active cell
@@ -896,6 +899,27 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
     [actions, beginDrag, storeApi],
   );
 
+  const onMarkerGripPointerDown = useCallback(
+    (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => {
+      if (event.button !== 0) return;
+      if (event.shiftKey) {
+        // shift+drag from the grip is the row-select range gesture, like any other marker press
+        onMarkerPointerDown(viewRowIndex, event);
+        return;
+      }
+      if (!storeApi.getState().enableRowSelection) return;
+      const isMultiKey = isMacRef.current ? event.metaKey : event.ctrlKey;
+      if (isMultiKey) {
+        actions.selectRow(viewRowIndex, { additive: true });
+      } else {
+        actions.selectRow(viewRowIndex);
+      }
+      // deliberately NO beginDrag: the row-reorder hook owns the pointer from this press (see the
+      // grip zone's JSDoc), so the two gestures can never both apply to one press.
+    },
+    [actions, isMacRef, onMarkerPointerDown, storeApi],
+  );
+
   const onMarkerCheckboxPointerDown = useCallback(
     (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
@@ -928,12 +952,6 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
 
   const cancelColumnSelectDrag = useCallback(() => {
     if (dragRef.current?.mode === "column") endDrag();
-  }, [endDrag]);
-
-  // the row-reorder gesture arms from the same marker press that started a row-select drag — the
-  // instant it commits to reorder, the select drag is cancelled (mirror of cancelColumnSelectDrag)
-  const cancelRowSelectDrag = useCallback(() => {
-    if (dragRef.current?.mode === "row") endDrag();
   }, [endDrag]);
 
   useEffect(() => stopAutoScrollLoop, [stopAutoScrollLoop]);
@@ -975,10 +993,10 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       onCellDoubleClick,
       onHeaderPointerDown,
       onMarkerPointerDown,
+      onMarkerGripPointerDown,
       onMarkerCheckboxPointerDown,
       onRootPointerDown,
       cancelColumnSelectDrag,
-      cancelRowSelectDrag,
       scrollCellIntoView: scrollActiveCellIntoView,
     }),
     [
@@ -988,10 +1006,10 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       onCellDoubleClick,
       onHeaderPointerDown,
       onMarkerPointerDown,
+      onMarkerGripPointerDown,
       onMarkerCheckboxPointerDown,
       onRootPointerDown,
       cancelColumnSelectDrag,
-      cancelRowSelectDrag,
       scrollActiveCellIntoView,
     ],
   );

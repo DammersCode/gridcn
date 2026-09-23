@@ -1,0 +1,5 @@
+{
+  "title": "Appearance & i18n",
+  "icon": "Palette",
+  "pages": ["styling", "loading-states", "i18n-rtl"]
+}

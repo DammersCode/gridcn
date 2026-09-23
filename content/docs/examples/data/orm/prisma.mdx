@@ -1,0 +1,83 @@
+---
+title: Prisma
+description: The grid's server fetch contract with Prisma — the same shape as a Prisma query, operator mapping included.
+icon: Boxes
+---
+
+<Callout type="info" title="Recipe">
+Recipe — not a shadcn registry example; requires a server.
+</Callout>
+
+Prisma's `where` delegates line up almost one-to-one with the grid's filter operators, so
+the mapping is a table, not a switch:
+
+```ts
+// app/api/grid/route.ts
+import { Prisma } from "@prisma/client";
+import { prisma } from "~/lib/prisma";
+
+// grid operator → Prisma delegate; the "" pair is the empty/notEmpty values
+const OPS: Record<string, string> = {
+  contains: "contains",
+  notContains: "notContains",
+  equals: "equals",
+  notEquals: "notEquals",
+  startsWith: "startsWith",
+  endsWith: "endsWith",
+  gt: "gt",
+  gte: "gte",
+  lt: "lt",
+  lte: "lte",
+  empty: "equals",
+  notEmpty: "notEquals",
+};
+
+const ALLOWED = new Set(["name", "email", "role", "score"]);
+
+export async function POST(req: Request) {
+  const { page, pageSize, sorts, filters, search } = await req.json();
+
+  const where: Prisma.UserWhereInput = {
+    ...(search
+      ? { OR: [{ name: { contains: search, mode: "insensitive" } }, { email: { contains: search, mode: "insensitive" } }] }
+      : {}),
+    ...(filters.length
+      ? {
+          AND: filters.map((f) => {
+            if (!ALLOWED.has(f.columnId)) throw new Error("unknown column");
+            const value = f.operator === "empty" ? "" : f.operator === "notEmpty" ? { not: "" } : f.value;
+            return { [f.columnId]: { [OPS[f.operator]]: value } };
+          }),
+        }
+      : {}),
+  };
+
+  const [total, rows] = await Promise.all([
+    prisma.user.count({ where }),
+    prisma.user.findMany({
+      where,
+      orderBy: sorts.length
+        ? sorts.map((s) => ({ [s.columnId]: s.direction }))
+        : [{ id: "asc" }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+  ]);
+
+  return Response.json({ rows, total });
+}
+```
+
+Notes:
+
+- `mode: "insensitive"` gives the case-insensitive `contains` the grid's quick search
+  implies; drop it for exact semantics.
+- `isAnyOf` maps to `in: f.value` — add it to the table above when you need it.
+- The client is the [server-side example](/docs/examples/data/server-side) unchanged;
+  edits become `prisma.user.update` in the same write-through handler.
+
+## Shareable state
+
+Same as the [Drizzle recipe](/docs/examples/data/orm/drizzle#shareable-state):
+[DataGridUrlState](/docs/addons/url-state) moves the view state to the URL, and this route reads
+it from the query string instead of a JSON body.

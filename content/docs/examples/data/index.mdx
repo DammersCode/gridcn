@@ -1,0 +1,38 @@
+---
+title: Data & Integrations
+description: Where the rows come from — lazy loading, server pagination, the full remote contract, and ORM recipes.
+icon: Database
+---
+
+The grid never cares where `data` comes from; this section shows the fetching patterns that
+pair with the add-ons: lazy row windows, server-mode pagination, the full remote contract
+(sort, filter, search, and pagination in one request), and ORM recipes that wire the same
+contract into a real backend.
+
+<Cards>
+  <Card
+    title="Server side"
+    href="/docs/examples/data/server-side"
+    description="Sort, filter, search, and pagination sent to the server in one query per view state."
+  />
+  <Card
+    title="Large data"
+    href="/docs/examples/data/large-data"
+    description="100k rows fully loaded — virtualization keeps only the windowed rows mounted."
+  />
+  <Card
+    title="Lazy loading"
+    href="/docs/examples/data/lazy"
+    description="Fetch only what scrolls into view — plain, TanStack Query, and SWR."
+  />
+  <Card
+    title="Server pagination"
+    href="/docs/examples/data/pagination"
+    description="Client slice vs server mode — plain, TanStack Query, and SWR."
+  />
+  <Card
+    title="ORM & data sources"
+    href="/docs/examples/data/orm"
+    description="Drizzle, Prisma, Supabase — the fetch contract in real stack code."
+  />
+</Cards>

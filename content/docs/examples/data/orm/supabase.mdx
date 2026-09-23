@@ -1,0 +1,57 @@
+---
+title: Supabase
+description: The grid's server fetch contract with Supabase — supabase.from().select() plus range, the shortest path.
+icon: Cloud
+---
+
+<Callout type="info" title="Recipe">
+Recipe — not a shadcn registry example; requires a server.
+</Callout>
+
+Supabase's PostgREST API already does filtering, ordering, and pagination, so the handler
+is mostly translation:
+
+```ts
+// app/api/grid/route.ts
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!, // server-side: bypass row-level security
+);
+
+export async function POST(req: Request) {
+  const { page, pageSize, sorts, search } = await req.json();
+
+  let query = supabase.from("users").select("*", { count: "exact" });
+  if (search) {
+    query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
+  }
+  for (const s of sorts) {
+    query = query.order(s.columnId, { ascending: s.direction === "asc" });
+  }
+
+  const { data: rows, count: total, error } = await query.range(
+    (page - 1) * pageSize,
+    page * pageSize - 1,
+  );
+
+  if (error) throw new Error(error.message);
+  return Response.json({ rows, total });
+}
+```
+
+Notes:
+
+- `range(from, to)` is inclusive on both ends, hence the `- 1`.
+- Column filters map to PostgREST operators one-to-one: `eq`, `neq`, `gt`, `gte`, `lt`,
+  `lte`, `like`, `in.(...)` — e.g. `query = query.eq("score", f.value)` for `equals`.
+- `SUPABASE_SERVICE_ROLE_KEY` keeps the grid's requests server-side; with the anon key you
+  also need a permissive RLS policy on `users` for reads.
+- The client is the [server-side example](/docs/examples/data/server-side) unchanged; edits
+  become `supabase.from("users").update(...)` in the write-through handler.
+
+## Shareable state
+
+Same as the other recipes: [DataGridUrlState](/docs/addons/url-state) moves the view state to the
+URL, and this route reads the same values from the query string.

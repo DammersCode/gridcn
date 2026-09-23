@@ -118,8 +118,8 @@ const perfStats = [
 ];
 
 const addOns = [
-  { icon: PaintBucket, title: "Fill handle", href: "/docs/fill-handle" },
-  { icon: Undo2, title: "Undo & redo", href: "/docs/undo-redo" },
+  { icon: PaintBucket, title: "Fill handle", href: "/docs/addons/fill" },
+  { icon: Undo2, title: "Undo & redo", href: "/docs/addons/undo-redo" },
   {
     icon: ArrowUpDown,
     title: "Sorting & filtering",
@@ -128,9 +128,9 @@ const addOns = [
   {
     icon: FileSpreadsheet,
     title: "Import & export",
-    href: "/docs/import-export",
+    href: "/docs/addons/import-export",
   },
-  { icon: Link2, title: "URL state", href: "/docs/url-state" },
+  { icon: Link2, title: "URL state", href: "/docs/addons/url-state" },
   {
     icon: Blocks,
     title: "Context menu",
@@ -151,8 +151,8 @@ const addOns = [
     title: "Sort list",
     href: "/docs/sorting-filtering-search",
   },
-  { icon: Pin, title: "Pinned rows", href: "/docs/pinned-rows" },
-  { icon: Users, title: "Multiplayer presence", href: "/docs/multiplayer-presence" },
+  { icon: Pin, title: "Pinned rows", href: "/docs/addons/pinned-rows" },
+  { icon: Users, title: "Multiplayer presence", href: "/docs/addons/presence" },
   { icon: CloudDownload, title: "Lazy loading", href: "/docs/lazy-loading" },
   { icon: ListOrdered, title: "Pagination", href: "/docs/pagination" },
   { icon: Pencil, title: "Cell editing types", href: "/docs/editing-cell-types" },
@@ -188,8 +188,8 @@ export default function HomePage() {
   return (
     <div className="relative flex flex-1 flex-col items-center">
       <HeroShader />
-      <div className="border bg-card z-10 mx-6 mt-20 mb-16 flex max-w-2xl flex-col items-center gap-6 px-10 py-10 text-center">
-        <Badge variant="outline" className="gap-1.5 py-1">
+      <div className="border bg-card z-10 mt-20 mb-16 flex w-full max-w-2xl flex-col items-center gap-6 px-6 sm:px-10 py-10 text-center">
+        <Badge variant="outline">
           Source-available · shadcn registry
         </Badge>
         <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">

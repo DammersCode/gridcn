@@ -1,46 +1,74 @@
 ---
 title: Styling & theming
-description: shadcn tokens, the data-attribute contract, density, and i18n via labels.
+description: The shadcn token contract, the built-in class surface, data attributes, and how to restyle the grid.
 icon: Palette
 ---
 
-gridcn uses only existing shadcn tokens: `bg-background`, `text-foreground`, `border-border`,
-`bg-muted`, `bg-primary`, `ring`, and `bg-destructive`.
+gridcn renders only existing shadcn tokens — it ships no design layer of its own, so restyling the
+grid is restyling your theme. Everything below answers three questions: which surfaces use which
+token, which classes the grid renders and can be overridden, and how deep you can go when you
+need something custom.
 
 <ComponentPreview name="data-grid-demo" />
 
-## Data-attribute contract
+**See examples:**
+[Styling](/docs/examples/appearance/styling) ·
+[Loading states](/docs/examples/appearance/loading-states) ·
+[I18n & RTL](/docs/examples/appearance/i18n-rtl)
 
-The grid exposes state through data attributes on cells and headers, styleable with the Tailwind
-`data-[attr]:` variant. This is the way to restyle the grid without forking components:
+## The color scheme: shadcn tokens
 
-| Attribute | Where | Meaning |
-|---|---|---|
-| `data-active` | cell | The active (focused) cell. |
-| `data-editing` | cell | Currently in edit mode. |
-| `data-pinned="left" \| "right"` | cell, header | Which pin zone the column belongs to. |
-| `data-readonly` | cell | Not editable (column or grid-wide `readOnly`). |
-| `data-type` | cell | The cell's type key (`text`, `number`, and so on), useful for type-specific overrides. |
-| `data-row-selected` | marker cell | Row is in the rows selection channel (checkbox marker mode). |
-| `aria-sort` | header | `ascending`, `descending`, or `none`, when `headerClickBehavior="sort"`. |
+Every color in the grid resolves to a shadcn theme token (`--background`, `--primary`, and so on
+in your `:root` / `.dark` blocks). The map below is the complete token-to-surface contract:
+
+| Token | Surfaces it paints |
+|---|---|
+| `background` | The root frame and every data cell's base fill; marker cells. |
+| `border` | The root frame border; the bottom border of every cell, header, and marker cell; the pinned-row band separator; skeleton row separators. |
+| `muted` | Header cells and the marker header; the row hover tint (50% over `background`); the selected marker cell; the pinned-row band tint (30%); the loading skeleton bars. |
+| `muted-foreground` | The empty-state text; marker row numbers; the sort indicator; the row-reorder grip; the column-menu trigger. |
+| `accent` / `accent-foreground` | The column-menu trigger hover. |
+| `primary` | The selection fill (10%) and border (40%); the active-cell ring; the resize-handle indicator line; the column-reorder drop indicator; the fill preview and handle; the loading bar; the post-commit flash pulse (24%). |
+| `destructive` | Invalid cells (tint + inset ring) and the validation error tooltip. |
+| `search-highlight` (optional) | The quick-search match tint (60%, 25% in dark). See [CSS variables](#css-variables). |
+
+**Changing the color scheme** means changing the tokens in your theme — the grid follows, in both
+light and dark, with no grid-specific configuration:
 
 ```css
-[data-active] { /* ring styling already applied; extend here if needed */ }
-[data-type="number"] { @apply tabular-nums text-right; }
+:root {
+  /* selection, active ring, resize handle, fill, and loading bar all re-brand from this one token */
+  --primary: oklch(0.6 0.15 250);
+  --primary-foreground: oklch(0.99 0 0);
+}
+.dark {
+  --primary: oklch(0.7 0.15 250);
+  --primary-foreground: oklch(0.2 0.05 250);
+}
 ```
 
-Range, row, and column selection render as separate overlay elements, not cell attributes: a
-`bg-primary/10` fill with a `border-primary` active-cell ring. So selecting never re-renders a
-cell.
+`--muted` re-tints every header and the hover/selection banding in one move; `--destructive`
+re-tints validation errors; `--background` / `--border` re-skin the grid body. When one surface
+needs to differ from its token, the escape hatches are per-surface: data-attribute CSS
+([below](#data-attribute-contract)), class merges
+([below](#programmatic-per-rowper-cell-styling)), or the root `className`.
 
 ## CSS variables
 
-- `--grid-row-height` — the one grid-specific variable. Set it per instance through the
-  `rowHeight` prop or the `density` preset (`compact` at 28px, `default` at 36px, `comfortable`
-  at 44px). An explicit `rowHeight` always wins over `density`.
-- `--grid-pin-shadow` — the color used for the pinned-column boundary shadow. The grid uses this
-  variable without a fallback, so you must define it (the docs site's `global.css` themes it per
-  light and dark mode). Leave it undefined and the pinned boundary shadow renders invisible.
+- `--grid-row-height` — set per instance by the `rowHeight` prop or the `density` preset
+  (`compact` 28px, `default` 36px, `comfortable` 44px); it sizes every row track.
+- `--grid-pin-shadow` — the color of the pinned-column and pinned-row boundary shadow. The grid
+  uses this variable without a fallback, so define it per theme (the docs site themes it in
+  `global.css`); left undefined, the boundary shadow renders invisible.
+- `--grid-scroll-left` — internal; the grid writes the live horizontal scroll offset so the
+  marker column and header layer can counter-translate. Read-only for consumers.
+- `--color-search-highlight` — an **optional** theme color. The built-in quick-search tint is the
+  utility `bg-search-highlight/60`; Tailwind only generates it when the color exists in your
+  theme. Define it (for example an amber that does not collide with the `primary` selection tint)
+  to get the built-in highlight, or skip it and style `[data-search-match]` yourself — the
+  attribute is stamped either way.
+- `--presence-color` — internal to the `data-grid-presence` add-on: each remote user's highlight
+  overlay and name chip are mixed from that user's color, set through the presence API, not CSS.
 
 ```tsx
 <DataGridProvider {...grid} columns={columns}>
@@ -48,7 +76,7 @@ cell.
 </DataGridProvider>
 ```
 
-or an explicit height, which always wins over `density`:
+or an explicit height, which wins over `density` when both are set:
 
 ```tsx
 <DataGridProvider {...grid} columns={columns}>
@@ -59,12 +87,109 @@ or an explicit height, which always wins over `density`:
 Both `density` and `rowHeight` live on `DataGridRoot` (or the `DataGrid` wrapper), not on
 `DataGridProvider`.
 
-## Custom classes
+## The built-in class surface
 
-`DataGridRoot` accepts `className` and merges it through `cn()`:
+These are the exact classes the grid renders on its own elements, so you know what to expect in
+the DOM and what you can beat. Where a surface lists a merge point, the built-in classes come
+**first** in `cn()`, so a conflicting consumer utility wins.
 
-```tsx
-<DataGridRoot className="rounded-lg border-2">
+| Surface (selector) | Built-in classes | Override point |
+|---|---|---|
+| Grid root (`[role="grid"]`) | `relative select-none overflow-auto rounded-md border border-border bg-background text-sm` | `className` on `DataGridRoot` / `DataGrid`. |
+| Header cell (`[role="columnheader"]`) | `group relative flex items-center border-b border-border bg-muted px-2 font-medium select-none` | Per-column `headerClassName`. |
+| Data cell (`[role="gridcell"]`) | `relative flex items-center overflow-hidden border-b border-border bg-background px-2 outline-none group-hover/row:bg-muted/50 transition-colors` plus conditionals: opaque hover tint on pinned cells, `bg-search-highlight/60` on `[data-search-match]`, `tabular-nums` for number/date, the alignment class, the invalid-cell tint + inset ring | `getRowClassName`/`getCellClassName` (grid level) then `cellClassName` (per column), merged after the built-ins. |
+| Row (`[role="row"]`) | `group/row` | `getRowClassName`. |
+| Marker cell (`[data-grid-marker-cell]`) | `group flex items-center justify-center border-b border-border bg-background transition-colors`, `cursor-grab` when row reorder is on, the selected-row tint | `renderMarker` replaces the content; the cell classes are internal. |
+| Marker header (`[data-grid-marker-header]`) | `flex items-center justify-center border-b border-border bg-muted` | Internal. |
+| Selection overlay (`[data-grid-selection-overlay]`) | `pointer-events-none border border-primary/40 bg-primary/10` | `--primary`; `overlayPlugins` for your own layer. |
+| Active-cell ring (`[data-grid-active-cell-overlay]`) | `pointer-events-none z-10 ring-2 ring-inset ring-primary` | `--primary` or `--ring`. |
+| Pin shadow (`[data-grid-pin-shadow]`) | 8px gradient strip, `opacity-0` to `100` via `data-scrolled-*`; color from `--grid-pin-shadow` | Define `--grid-pin-shadow` per theme. |
+| Empty state (`[data-grid-empty-state]`) | `pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground` | `emptyState` prop or `labels.emptyState`. |
+| Loading skeleton (`[data-grid-loading-skeleton]`) | One `h-4 animate-pulse rounded bg-muted` bar per column per row, rows separated by `border-b border-border` | The `loading` flag; the skeleton renders only while `loading` is true. |
+| Loading bar (`[data-grid-loading-bar]`) | 2px track `bg-primary/20` with a `bg-primary` sweep (static under `prefers-reduced-motion`) | `--primary`. |
+| Cell error tooltip | `rounded-sm border border-destructive/20 bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive`, placed below the cell while editing | `--destructive`. |
+| Resize handle (`[data-grid-resize-handle]`) | 8px column, a 3px `after` line in `bg-primary` revealed on hover and while `[data-resizing]` | `--primary`. |
+| Column drop indicator (`[data-grid-drop-indicator]`) | 2px line in `var(--color-primary)` at the drag boundary | `--primary`. |
+| Sort indicator (`[data-grid-sort-indicator]`) | `text-muted-foreground`, 14px icon, multi-sort rank badge `text-[10px] tabular-nums` | Embed `DataGridSortIndicator` in a custom header; `--muted-foreground`. |
+| Fill preview (`[data-grid-fill-preview]`) | `pointer-events-none border border-dashed border-primary bg-primary/5`; handle: `size-2 border border-background bg-primary cursor-crosshair` | `--primary`. |
+| Presence overlay (`[data-grid-presence-overlay]`) | Border + 12% fill mixed from the user's `--presence-color`; name chip `rounded-sm px-1.5 py-0.5 text-xs text-white shadow-sm` | Per-user color via the presence API; `overlayPlugins` for your own layer. |
+| Pinned-row band (`[data-grid-pinned-row-band]`) | Band separator `border-border`; band cells get an opaque 30% `muted` tint + `font-medium` | `--muted`, `--border`. |
+| Built-in editors | `text`/`number`: a borderless transparent `Input` filling the cell; `select`/`date`: your `ui/*` `Select`/`Popover`/`Calendar` primitives with the cell chrome stripped | Retheme the `ui/*` primitives, or pass a custom cell type. |
+| Write pulse (`[data-flash]`) | One-shot fade from 24% `primary` to transparent; keyframes injected by the grid | `--primary`; nothing to configure. |
+
+**How deep you can go, in order of effort:**
+
+1. **Theme tokens** — re-color a whole semantic group at once; both light and dark follow.
+2. **CSS variables** — `--grid-row-height` (or `density`/`rowHeight`), `--grid-pin-shadow`,
+   optional `--color-search-highlight`.
+3. **Data-attribute CSS** — style interaction state (active, pinned, selected, searching,
+   invalid) globally, with no React involved.
+4. **Class merges** — `className` on the root, `getRowClassName`/`getCellClassName` on the grid,
+   `cellClassName`/`headerClassName` on a column; your utilities win conflicts.
+5. **Content replacement** — per-column `renderCell` and custom `header`, `renderMarker`,
+   `emptyState`; replace what is drawn, not how it is styled.
+6. **Overlay plugins** — `overlayPlugins` on `DataGridProvider` for your own layer in the
+   overlay stack (see [overlay-plugins](/docs/overlay-plugins)).
+
+## Data-attribute contract
+The grid stamps state on the DOM as data attributes, so you can style with the Tailwind
+`data-[attr]:` variant or plain CSS without touching React. This is the stable contract for
+restyling interaction state — the utility classes in the table above may change between versions,
+the attributes do not.
+
+| Attribute | Where | Meaning |
+|---|---|---|
+| `data-active` | cell | The active (focused) cell. |
+| `data-editing` | cell | Currently in edit mode. |
+| `data-pinned="left" \| "right"` | cell, header, overlay | Which pin zone the element belongs to. |
+| `data-readonly` | cell | Not editable (column or grid-wide `readOnly`). |
+| `data-type` | cell | The cell's type key (`text`, `number`, and so on), useful for type-specific overrides. |
+| `data-row-selected` | marker cell | Row is in the rows selection channel (checkbox marker mode). |
+| `data-search-match` | cell | The cell matches the current quick-search text. |
+| `data-flash` | cell | The one-shot write pulse after a committed edit. |
+| `data-invalid` (+ `aria-invalid`) | cell | The cell carries a validation error. |
+| `data-grid-pinned-row` | cell | The cell belongs to a pinned-row band. |
+| `data-dragging` | marker cell, header cell | That element is the reorder-drag source. |
+| `data-skeleton` | cell | The cell is a lazy-hole or loading skeleton. |
+| `data-resizing` | header cell | Its column's resize handle is being dragged. |
+| `aria-sort` | header | `ascending`, `descending`, or `none`, when `headerClickBehavior="sort"`. |
+
+Range, row, and column selection render as separate overlay elements, not cell attributes: a
+`bg-primary/10` fill with a `border-primary` active-cell ring. So selecting never re-renders a
+cell.
+
+### Structural attributes
+
+The grid also stamps one attribute per structural element, as a selector for the element itself
+(useful for targeting an add-on's chrome or debugging the DOM):
+
+| Attribute | Element |
+|---|---|
+| `data-grid-header-layer` | The sticky header row layer. |
+| `data-grid-rows-canvas` | The scrolling row-canvas container. |
+| `data-grid-marker-header` | The row-marker column's header (select-all checkbox). |
+| `data-grid-marker-cell` / `data-grid-marker-number` | The marker column's per-row cell / its row number. |
+| `data-grid-marker-checkbox` / `data-grid-reorder-handle` | The checkbox glyph / grip handle inside a marker cell. |
+| `data-grid-resize-handle` / `data-grid-header-menu-trigger` | A column's resize handle / column-menu trigger. |
+| `data-grid-header-menu-popup` / `data-grid-header-dropdown` / `data-grid-context-menu` | The header-menu portal / dropdown / cell context-menu content. |
+| `data-grid-sort-indicator="asc" \| "desc"` | A header's own sort-direction arrow. |
+| `data-grid-drop-indicator` | The row- and column-reorder drop-position line. |
+| `data-grid-row-index` | Every data row (its view-space index). |
+| `data-grid-pin-shadow="left" \| "right" \| "top" \| "bottom"` | A frozen-edge shadow, visible while scrolled past that edge. |
+| `data-scrolled-left` / `-right` / `-top` / `-bottom` | The viewport, while scrolled away from (or still able to scroll toward) that edge. |
+| `data-grid-selection-overlay` / `data-grid-active-cell-overlay` | The selection-range overlay(s) / the active-cell focus ring. |
+| `data-grid-loading-skeleton` / `data-grid-loading-bar` / `data-grid-empty-state` | The loading skeleton / progress bar / empty-state container. |
+| `data-grid-cell-editor` | A cell-type's own editor popup content (date, select). |
+| `data-grid-pinned-row-band="top" \| "bottom"` / `data-grid-pinned-row-index` | A pinned-row sticky band / a pinned row's position within its band. |
+| `data-grid-fill-preview` / `data-grid-fill-handle` | The dashed fill-drag preview rect / its corner handle. |
+| `data-grid-presence-overlay` / `data-grid-presence-label` | A remote user's highlight range / name chip. |
+| `data-grid-toolbar` / `data-grid-columns-menu` / `data-grid-search` / `data-grid-search-count` / `data-grid-filter-menu` / `data-grid-filter-count` / `data-grid-filter-row` / `data-grid-sort-list` / `data-grid-sort-row` / `data-grid-sort-count` | The toolbar and its sub-widgets: columns menu, quick-search input + match badge, filter menu + active-count badge + its rows, sort list + its rows + active-sort badge. |
+| `data-column-id` | Every cell and header (the column's `id`, your value). |
+
+```css
+[data-active] { /* ring styling already applied; extend here if needed */ }
+[data-type="number"] { @apply tabular-nums text-right; }
+[data-search-match] { background-color: var(--color-search-highlight); }
 ```
 
 ## Programmatic per-row/per-cell styling
@@ -72,10 +197,8 @@ Both `density` and `rowHeight` live on `DataGridRoot` (or the `DataGrid` wrapper
 Grid-level `getRowClassName` and `getCellClassName` props, on `DataGrid` or `DataGridRoot`, plus
 per-column `cellClassName` and `headerClassName` on `ColumnDef`, give value-driven styling
 without a new cell type or a `renderCell` override. All of them merge through `cn()` **after**
-the built-in classes. So a conflicting Tailwind utility (for example `justify-end` over the
-default `justify-start` of the text type) wins over the built-in class. The grid applies
-grid-level classes first, then the column-level override last. A per-column class always wins
-over a grid-wide default on the same utility:
+the built-in classes, so a conflicting utility wins over the built-in one; column-level classes
+apply last, so a per-column class always wins over a grid-wide default on the same utility:
 
 ```tsx
 // Module scope (or useCallback) — see the stable-identity callout below.
@@ -117,26 +240,20 @@ complements `renderCell` for display overrides that need more than a class (see
 An HR dataset shows all four styling surfaces at once, each suited to a different scope:
 
 - **`getCellClassName` (per value)** — colors the cells of the Performance column against a
-  threshold. Below 50 tints `text-destructive` and `bg-destructive/10`. 90 and above tints
-  `text-primary` and `bg-primary/10`. Reach for this when the styling decision depends on a
-  cell's own value, independent of its row or column.
-- **`getRowClassName` (per row)** — mutes and strikes through `terminated` rows as a whole. Reach
-  for this when a single field on the row needs to visually demote the *entire* row, not only one
-  cell.
+  threshold: below 50 tints `text-destructive` and `bg-destructive/10`, 90 and above tints
+  `text-primary` and `bg-primary/10`.
+- **`getRowClassName` (per row)** — mutes and strikes through `terminated` rows as a whole.
 - **`cellClassName` (per column, string form)** — every Salary cell gets `font-medium
-  tabular-nums` for right-aligned emphasis. Reach for this for a look that stays constant across
-  a column, with no per-row logic needed.
+  tabular-nums` for right-aligned emphasis.
 - **`headerClassName` (per column)** — the Performance header is tinted `text-primary` to match
-  the semantics of the cells beneath it. Reach for this to visually tag a column's purpose at a
-  glance.
+  the semantics of the cells beneath it.
 
 <Callout type="warn" title="Pass a stable function identity">
-  The grid calls `getRowClassName` and `getCellClassName` per rendered cell. This is windowed, so
-  it is cheap. But their function *identity* becomes a prop that the row and cell memoization of
-  the engine depends on (the same rule as `columns` and `data`). Pass a stable reference, from
-  module scope or `useCallback`. A fresh arrow function on every render makes every row and cell
-  re-render on every parent render. A dev-mode console warning fires if the identity changes
-  across renders.
+  Pass `getRowClassName` and `getCellClassName` as stable references (module scope or
+  `useCallback` — the same rule as `columns` and `data`, see
+  [Performance](/docs/performance#keeping-it-fast)): a fresh arrow function on every render makes
+  every row and cell re-render on every parent render, and a dev-mode console warning fires if
+  the identity changes across renders.
 </Callout>
 
 ### Styling a whole column
@@ -160,21 +277,6 @@ const getCellClassName: GetCellClassName<Order> = ({ column }) =>
   `getCellClassName` when the same column-targeting rule also needs to fold in `value` or `row`,
   for example tinting the currency column *and* flagging negative amounts within it.
 </Callout>
-
-### Styling whole rows
-
-`getRowClassName` reading a single row field dims every cell in that row at once. Inactive
-employees render visually demoted, and active ones stay untouched:
-
-```tsx
-const getRowClassName: GetRowClassName<Employee> = (row) =>
-  row.active ? undefined : "opacity-50";
-
-<DataGrid {...grid} columns={columns} getRowClassName={getRowClassName} />;
-```
-
-The demo above exercises both patterns together, alongside `cellClassName` and
-`headerClassName`. Its `getRowClassName` dims `terminated` rows the same way.
 
 ### Fully styling a column or row
 
@@ -240,9 +342,6 @@ a stylesheet rule:
 ```tsx
 <DataGridRoot className="**:data-[pinned='right']:border-l-2 **:data-[pinned='right']:border-l-primary/40">
 ```
-
-This needs no JS, no `getCellClassName` callback, and no re-render on selection change. The grid
-already toggles these attributes as part of its normal DOM updates, and CSS only reacts to them.
 
 ## Density and row height
 
@@ -315,3 +414,4 @@ The grid's editors and menus are built from your project's own `ui/*` primitives
 `Select`, `Popover`, `Calendar`, and more), so re-theming those primitives restyles the grid too.
 If your shadcn theme supports dark mode, the grid does too, with no separate dark-mode
 configuration.
+

@@ -1,0 +1,67 @@
+---
+title: SWR
+description: Server-mode pagination with useSWR — the page is the cache key, a scoped revalidate covers edits.
+icon: RefreshCw
+---
+
+Same server mode through `useSWR`: the key `["rows", page, pageSize]` makes paging back
+instant (the page is cached by key), and the scoped `mutate` returned by the hook
+revalidates the current page after an edit.
+
+<ComponentPreview name="data-grid-pagination-swr-demo" />
+
+<InstallCommand item="data-grid-pagination-swr-demo" />
+
+## The wiring
+
+```tsx
+const [page, setPage] = useState(1);
+const [pageSize, setPageSize] = useState(25);
+
+const { data, isLoading, mutate } = useSWR(
+  ["rows", page, pageSize] as [string, number, number],
+  (key) => api.fetchPage({ page: key[1], pageSize: key[2] }),
+);
+
+const pager = useDataGridPagination({
+  page,
+  pageSize,
+  total: data?.total ?? initialTotal,
+  onPageChange: setPage,
+  onPageSizeChange: (next) => {
+    setPageSize(next);
+    setPage(1);
+  },
+});
+```
+
+The fetcher receives the key itself as its argument (the SWR 2.x convention), hence the
+tuple cast. SWR has no built-in keep-previous, so the demo keeps the last fetched rows in
+local state and only swaps them when new data lands — the grid keeps showing the old page
+while the next one is in flight.
+
+## The edit story
+
+```tsx
+const onDataChange = useCallback(
+  (_next: readonly Row[], change: DataChange<Row>) => {
+    api.save(change.ops);
+    void mutate(undefined, { revalidate: true }); // scoped to this hook's key
+  },
+  [mutate],
+);
+```
+
+The scoped `mutate` only touches the current page's key. If the same page is shown by more
+than one `useSWR` consumer (a summary panel, for instance), revalidate the key globally
+instead: `mutate(["rows", page, pageSize], undefined, { revalidate: true })`.
+
+## Behavior reference
+
+- [Pagination](/docs/pagination) — server-mode contract
+
+## Related
+
+- [Client mode](/docs/examples/data/pagination/client) — the other mode of the same hook
+- [TanStack Query](/docs/examples/data/pagination/react-query) — the same pattern with
+  `keepPreviousData` built in

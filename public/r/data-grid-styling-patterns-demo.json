@@ -5,8 +5,7 @@
   "author": "gridcn",
   "description": "A fully-styled brand column (per-column cellClassName/headerClassName), a fully-styled at-risk row (getRowClassName beyond a bg tint), and a live density/rowHeight toggle.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-history"
+    "DammersCode/gridcn/data-grid"
   ],
   "files": [
     {

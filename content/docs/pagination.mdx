@@ -12,184 +12,179 @@ icon: ListOrdered
 
 `useDataGridPagination` computes the current page (client mode slices `data` itself, server mode is
 fully controlled), and `<DataGridPaginationBar />` renders the footer, composed from parts in the
-shadcn-`Pagination` style. Virtualization already handles rendering huge datasets cheaply, so this
-add-on is purely additive: zero core changes.
+shadcn-`Pagination` style. Virtualization already handles rendering huge datasets cheaply either
+way, so this add-on is purely additive: zero core changes. Neither it nor lazy loading exists for
+rendering performance, and using the two together is not supported — when to pick which is on the
+[Lazy loading](/docs/lazy-loading) page.
 
-## Lazy loading vs. pagination
+<Tabs items={["Modes", "Footer"]}>
+  <Tab value="Modes">
+    ## Client mode
 
-- **Lazy loading** (`data-grid-lazy`) gives an infinite-feel single scrollable surface. The user
-  never sees a page boundary, only a grid that fills in as they scroll. This works best when the
-  grid needs to feel like one continuous dataset.
-- **Pagination** (this add-on) gives explicit, bookmarkable pages with a bounded per-request
-  payload. This works best when users need to reference "page 3" specifically, or your backend
-  is happier with fixed-size requests.
+    `useDataGridPagination` slices `data` into pages itself. Page state is uncontrolled unless you
+    pass `page` and `onPageChange` yourself:
 
-Virtualization already handles rendering huge datasets cheaply either way. Neither add-on exists
-for rendering performance. Using both together is not supported.
+    ```tsx
+    "use client";
 
-## Client mode
+    import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+    import { useDataGridPagination, DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
 
-`useDataGridPagination` slices `data` into pages itself. Page state is uncontrolled unless you
-pass `page` and `onPageChange` yourself:
+    function OrdersGrid({ rows }: { rows: Order[] }) {
+      const pager = useDataGridPagination({ data: rows, pageSize: 25 });
 
-```tsx
-"use client";
+      return (
+        <>
+          <DataGrid data={pager.pageData} columns={columns} getRowId={(row) => row.id} />
+          <DataGridPaginationBar {...pager.controls} />
+        </>
+      );
+    }
+    ```
 
-import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
-import { useDataGridPagination, DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
+    <Callout type="warn" title="Edits need a merge step, not a wholesale replace">
+      The `onDataChange` of `DataGrid` only ever sees the current page's slice. If rows are
+      editable, merge the edited slice back into your full dataset by row id. Do not pass the
+      page-sliced array straight into a setter that owns the whole dataset. That silently drops
+      every row outside the current page. See [Recipes: server round-trip](/docs/recipes#server-round-trip) for the same
+      id-keyed merge pattern applied to a real API instead of local state.
+    </Callout>
 
-function OrdersGrid({ rows }: { rows: Order[] }) {
-  const pager = useDataGridPagination({ data: rows, pageSize: 25 });
+    <Callout type="warn" title="In client mode, everything the grid sees is page-local">
+      The grid only ever receives `pager.pageData`, so sort, filter, and search operate on the
+      current page's slice alone — while the pager's `total` and page count still reflect the full
+      dataset. A search that matches rows on other pages finds nothing here. Use server mode for
+      dataset-wide search, sort, or filter (your backend applies the spec over the whole table).
+    </Callout>
 
-  return (
-    <>
-      <DataGrid data={pager.pageData} columns={columns} getRowId={(row) => row.id} />
-      <DataGridPaginationBar {...pager.controls} />
-    </>
-  );
-}
-```
+    <Callout type="warn" title="Selection does not survive a page change">
+      The provider's store outlives a page change, so a selected cell range keeps its indices into
+       the *next* page's slice and points at different rows. Pruning the selection by row id across
+       page changes is a tracked backlog follow-up; until it lands, key the provider by page
+       (`key={pager.page}` remounts it, clearing the selection) or clear the selection in your
+       `onPageChange` handler before the data swap.
+    </Callout>
 
-<Callout type="warn" title="Edits need a merge step, not a wholesale replace">
-  The `onDataChange` of `DataGrid` only ever sees the current page's slice. If rows are editable,
-  merge the edited slice back into your full dataset by row id. Do not pass the page-sliced array
-  straight into a setter that owns the whole dataset. That silently drops every row outside the
-  current page. See [Recipes: server round-trip](/docs/recipes#server-round-trip) for the same
-  id-keyed merge pattern applied to a real API instead of local state.
-</Callout>
+    <Callout type="warn" title="Streaming patches only reach the current page">
+      The grid's store only holds the current page's rows, so a streaming `updateCells` batch
+      silently skips patches for rows that are not on the visible page — no error, no warning.
+      Either apply the feed to your full dataset (client mode) or to the fetched page (server mode)
+      and let the grid's `data` follow, or stream only rows the current page can see.
+    </Callout>
 
-<Callout type="warn" title="In client mode, everything the grid sees is page-local">
-  The grid only ever receives `pager.pageData`, so sort, filter, and search operate on the
-  current page's slice alone — while the pager's `total` and page count still reflect the full
-  dataset. A search that matches rows on other pages finds nothing here. Use server mode for
-  dataset-wide search, sort, or filter (your backend applies the spec over the whole table).
-</Callout>
+    ```tsx
+    const onDataChange = useCallback((next: readonly DemoRow[]) => {
+      setRows((prev) => {
+        const edited = new Map(next.map((row) => [row.id, row]));
+        return prev.map((row) => edited.get(row.id) ?? row);
+      });
+    }, []);
+    ```
 
-<Callout type="warn" title="Selection does not survive a page change">
-  The provider's store outlives a page change, so a selected cell range keeps its indices into
-   the *next* page's slice and points at different rows. Pruning the selection by row id across
-   page changes is a tracked backlog follow-up; until it lands, key the provider by page
-   (`key={pager.page}` remounts it, clearing the selection) or clear the selection in your
-   `onPageChange` handler before the data swap.
-</Callout>
+    ## Server mode
 
-<Callout type="warn" title="Streaming patches only reach the current page">
-  The grid's store only holds the current page's rows, so a streaming `updateCells` batch
-  silently skips patches for rows that are not on the visible page — no error, no warning. Either
-  apply the feed to your full dataset (client mode) or to the fetched page (server mode) and let
-  the grid's `data` follow, or stream only rows the current page can see.
-</Callout>
+    Pass `{ page, pageSize, total, onPageChange }` fully controlled. You own the page index and
+    fetch each page's rows yourself. The hook only computes `pageCount` and page-window math, so
+    `<DataGridPaginationBar />` renders identically either way:
 
-```tsx
-const onDataChange = useCallback((next: readonly DemoRow[]) => {
-  setRows((prev) => {
-    const edited = new Map(next.map((row) => [row.id, row]));
-    return prev.map((row) => edited.get(row.id) ?? row);
-  });
-}, []);
-```
+    ```tsx
+    "use client";
 
-## Server mode
+    import { useEffect, useState } from "react";
+    import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+    import { useDataGridPagination, DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
 
-Pass `{ page, pageSize, total, onPageChange }` fully controlled. You own the page index and fetch
-each page's rows yourself. The hook only computes `pageCount` and page-window math, so
-`<DataGridPaginationBar />` renders identically either way:
+    function OrdersGrid() {
+      const [page, setPage] = useState(1);
+      const [pageSize, setPageSize] = useState(25);
+      const [rows, setRows] = useState<Order[]>([]);
+      const [total, setTotal] = useState(0);
 
-```tsx
-"use client";
+      useEffect(() => {
+        // Guard against stale responses: a page-2 answer arriving after page-3's request
+        // must not overwrite page-3's rows (fast page clicks race the network).
+        let stale = false;
+        api.orders({ page, pageSize }).then((res) => {
+          if (stale) return;
+          setRows(res.rows);
+          setTotal(res.total);
+        });
+        return () => { stale = true; };
+      }, [page, pageSize]);
 
-import { useEffect, useState } from "react";
-import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
-import { useDataGridPagination, DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
+      const pager = useDataGridPagination({
+        page,
+        pageSize,
+        total,
+        onPageChange: setPage,
+        onPageSizeChange: setPageSize,
+      });
 
-function OrdersGrid() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [rows, setRows] = useState<Order[]>([]);
-  const [total, setTotal] = useState(0);
+      return (
+        <>
+          <DataGrid data={rows} columns={columns} getRowId={(row) => row.id} />
+          <DataGridPaginationBar {...pager.controls} />
+        </>
+      );
+    }
+    ```
 
-  useEffect(() => {
-    // Guard against stale responses: a page-2 answer arriving after page-3's request
-    // must not overwrite page-3's rows (fast page clicks race the network).
-    let stale = false;
-    api.orders({ page, pageSize }).then((res) => {
-      if (stale) return;
-      setRows(res.rows);
-      setTotal(res.total);
-    });
-    return () => { stale = true; };
-  }, [page, pageSize]);
+    `pager.pageData` is `undefined` in server mode. You already fetched exactly the rows for the
+    current page, so there is nothing left for the hook to slice.
 
-  const pager = useDataGridPagination({
-    page,
-    pageSize,
-    total,
-    onPageChange: setPage,
-    onPageSizeChange: setPageSize,
-  });
+    <AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationClientOptions" />
+    <AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationServerOptions" />
+  </Tab>
+  <Tab value="Footer">
+    ## `<DataGridPaginationBar />`
 
-  return (
-    <>
-      <DataGrid data={rows} columns={columns} getRowId={(row) => row.id} />
-      <DataGridPaginationBar {...pager.controls} />
-    </>
-  );
-}
-```
+    The default footer has:
 
-`pager.pageData` is `undefined` in server mode. You already fetched exactly the rows for the
-current page, so there is nothing left for the hook to slice.
+    - First and prev buttons.
+    - A windowed set of page-number buttons (5 at a time, sliding to stay centered on the current
+      page).
+    - Next and last buttons.
+    - A page-size `<Select>`.
+    - An "x-y of z" range label.
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationClientOptions" />
-<AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationServerOptions" />
+    It is a standalone component. It does not read from the store of `DataGridProvider`, since
+    client-mode pagination has nothing to do with sort, filter, or selection state, so it works
+    whether you render it inside or outside the provider. All strings route through the
+    `labels.pagination` group (see [i18n](/docs/i18n#coverage-by-group)). Pass a `labels` prop
+    directly on `<DataGridPaginationBar>` to override them.
 
-## `<DataGridPaginationBar />`
+    ## Composition
 
-The default footer has:
+    `DataGridPaginationBar` renders its default layout only when given no `children`. Pass
+    `children` built from the parts below for a custom arrangement, for example a compact bar with
+    only first, prev, next, and last, and no page numbers:
 
-- First and prev buttons.
-- A windowed set of page-number buttons (5 at a time, sliding to stay centered on the current
-  page).
-- Next and last buttons.
-- A page-size `<Select>`.
-- An "x-y of z" range label.
+    ```tsx
+    <DataGridPaginationBar {...pager.controls}>
+      <DataGridPaginationRange />
+      <div className="flex items-center gap-1">
+        <DataGridPaginationFirst />
+        <DataGridPaginationPrev />
+        <DataGridPaginationNext />
+        <DataGridPaginationLast />
+      </div>
+    </DataGridPaginationBar>
+    ```
 
-It is a standalone component. It does not read from the store of `DataGridProvider`, since
-client-mode pagination has nothing to do with sort, filter, or selection state, so it works
-whether you render it inside or outside the provider. All strings route through the
-`labels.pagination` group (see [i18n](/docs/i18n#coverage-by-group)). Pass a `labels` prop
-directly on `<DataGridPaginationBar>` to override them.
+    Every part reads the bar's controls and labels through context, so none of them take the
+    pagination props directly. Only `DataGridPaginationBar` does. Each part throws if rendered
+    outside a `DataGridPaginationBar`.
 
-## Composition
-
-`DataGridPaginationBar` renders its default layout only when given no `children`. Pass
-`children` built from the parts below for a custom arrangement, for example a compact bar with
-only first, prev, next, and last, and no page numbers:
-
-```tsx
-<DataGridPaginationBar {...pager.controls}>
-  <DataGridPaginationRange />
-  <div className="flex items-center gap-1">
-    <DataGridPaginationFirst />
-    <DataGridPaginationPrev />
-    <DataGridPaginationNext />
-    <DataGridPaginationLast />
-  </div>
-</DataGridPaginationBar>
-```
-
-Every part reads the bar's controls and labels through context, so none of them take the
-pagination props directly. Only `DataGridPaginationBar` does. Each part throws if rendered
-outside a `DataGridPaginationBar`.
-
-- `DataGridPaginationRange` — the "x-y of z" label.
-- `DataGridPaginationPageSize` — the rows-per-page `<Select>`.
-- `DataGridPaginationFirst` / `DataGridPaginationLast` — jump to page 1 or the last page.
-  Disabled at their respective edge.
-- `DataGridPaginationPrev` / `DataGridPaginationNext` — moves the page by 1, chevron-only.
-  Disabled at their respective edge.
-- `DataGridPaginationPages` — the windowed numbered page buttons, the only source of page
-  numbers. Takes an optional `windowSize` prop (default 5).
+    - `DataGridPaginationRange` — the "x-y of z" label.
+    - `DataGridPaginationPageSize` — the rows-per-page `<Select>`.
+    - `DataGridPaginationFirst` / `DataGridPaginationLast` — jump to page 1 or the last page.
+      Disabled at their respective edge.
+    - `DataGridPaginationPrev` / `DataGridPaginationNext` — moves the page by 1, chevron-only.
+      Disabled at their respective edge.
+    - `DataGridPaginationPages` — the windowed numbered page buttons, the only source of page
+      numbers. Takes an optional `windowSize` prop (default 5).
+  </Tab>
+</Tabs>
 
 ## Composing with `data-grid-url-state`
 
@@ -216,23 +211,17 @@ function OrdersGrid({ rows, total }: { rows: Order[]; total: number }) {
 }
 ```
 
-Client mode isn't a fit here: `useDataGridPagination`'s client-mode `pageSize` seeds once from
-`useState` and can't be pushed a new value afterward, so a URL-driven `pageSize` change would have
-nothing to land on. Server mode's `page`/`pageSize`/`onPageChange`/`onPageSizeChange` are fully
-controlled, which is exactly what a URL-backed value needs — fetch each page's rows yourself,
-keyed off `url.page` and `url.pageSize`, same as any other server-mode consumer.
+Client mode isn't a fit: its `pageSize` seeds once from `useState` and can't be pushed a new value
+afterward, so a URL-driven `pageSize` change would have nothing to land on. Server mode's
+`page`/`pageSize`/`onPageChange`/`onPageSizeChange` are fully controlled, which is exactly what a
+URL-backed value needs — fetch each page's rows yourself, keyed off `url.page` and `url.pageSize`.
 
-`page` is 1-based and omitted from the URL at page 1; `pageSize` is omitted when it equals
-`useDataGridUrlPagination`'s configured default. Both writes use `history: "replace"`, matching
-this add-on's other URL-synced params. Invalid or out-of-range URL values (a negative or
-fractional page, a `pageSize` outside your `pageSizeOptions`) clamp back to a valid value rather
-than throwing.
+`page` (1-based) is omitted from the URL at page 1, and `pageSize` is omitted when it equals the
+configured default — the full option list is on
+[URL state](/docs/addons/url-state#pagination).
 
 <Callout type="warn" title="Reset to page 1 when filters or search change">
   `useDataGridUrlPagination` doesn't know about your filter/search wiring, so it can't reset the
   page for you. If filtering can shrink the result set out from under the current page, call
   `url.onPageChange(1)` yourself wherever you already handle the filter change.
 </Callout>
-
-See [URL state](/docs/url-state#pagination) for the full option list (`prefix`, `defaultPageSize`,
-`pageSizeOptions`).

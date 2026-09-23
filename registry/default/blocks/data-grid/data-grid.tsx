@@ -232,6 +232,7 @@ export type {
   CellTypeKey,
   CellValueOf,
   CellOptionsOf,
+  RowMarkersContent,
   RowMarkersMode,
   SelectionConfig,
   DensityMode,

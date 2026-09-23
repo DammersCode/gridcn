@@ -80,18 +80,20 @@ export type AccessorKeyOf<TData> = unknown extends TData ? string : keyof TData 
 /** Cell coordinate in data space: col/row are 0-based data indices (marker columns excluded). */
 export type CellCoord = { col: number; row: number };
 
+/** What a marker mode renders: the 1-based view row index, the row-select checkbox, or both (number swapped for the checkbox on hover/selected). */
+export type RowMarkersContent = "number" | "checkbox" | "both";
+
 /**
  * Marker column mode: a pinned-left column rendered BEFORE all data columns, outside the data
  * column index space (CellCoord.col / aria-colindex / aria-colcount are all untouched by it).
- * `'number'` shows the 1-based view row index; `'checkbox'` drives the rows selection channel;
- * `'both'` shows the number, replaced by the checkbox on hover/selected (group-hover pattern).
+ * The plain modes (`number`/`checkbox`/`both`) render the selection chrome only and keep the
+ * marker a pure row-select surface — a drag there is always the row-range select. The
+ * `reorder`-prefixed family renders the grip handle on top of the suffix's content and is the
+ * ONLY family that arms the drag-to-reorder gesture (still gated grid-wide by `enableRowReorder`),
+ * and the press ZONE decides the gesture: the grip reorders on drag (selects on a stationary
+ * press), while the checkbox glyph and the number/rest of the cell stay pure row-select.
  */
-/**
- * The row-marker column's mode. `"reorder"` renders a grip handle that drags the row to a new
- * position (row reordering); every other mode except `"none"` also drags from the marker cell
- * (the checkbox glyph keeps the row-select gesture).
- */
-export type RowMarkersMode = "none" | "number" | "checkbox" | "both" | "reorder";
+export type RowMarkersMode = "none" | RowMarkersContent | "reorder" | `reorder-${RowMarkersContent}`;
 
 /** Rectangular cell region, half-open on the far edge (a cell c is inside if x <= c < x + width). */
 export type GridRect = { x: number; y: number; width: number; height: number };

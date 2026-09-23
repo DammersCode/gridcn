@@ -8,9 +8,26 @@ icon: Rocket
   <Step>
     ### Install
 
-    ```bash
-    npx shadcn add @gridcn/data-grid
-    ```
+    <InstallCommand
+      items={[
+        { value: "data-grid", label: "Core grid", defaultChecked: true },
+        { value: "data-grid-toolbar", label: "Toolbar" },
+        { value: "data-grid-sort-list", label: "Sort list" },
+        { value: "data-grid-context-menu", label: "Context menu" },
+        { value: "data-grid-keybindings", label: "Keybindings" },
+        { value: "data-grid-history", label: "Undo & redo" },
+        { value: "data-grid-fill", label: "Fill" },
+        { value: "data-grid-pinned-rows", label: "Pinned rows" },
+        { value: "data-grid-presence", label: "Presence" },
+        { value: "data-grid-io", label: "Import / export" },
+        { value: "data-grid-url-state", label: "URL state" },
+        { value: "data-grid-lazy", label: "Lazy loading" },
+        { value: "data-grid-pagination", label: "Pagination" },
+      ]}
+    />
+
+    Check the pieces you want — the command joins them in one call. The package-manager tab
+    (pnpm, npm, yarn, bun) is a choice: it is remembered across the whole docs site.
 
     The CLI resolves the `@gridcn` registry from the hosted site
     ([gridcn.vercel.app](https://gridcn.vercel.app)) — no setup step. To pin a specific tag,
@@ -119,9 +136,7 @@ internally either way.
 For undo and redo, install the `data-grid-history` add-on and swap `defaultData` for its
 `useDataGridState` hook. This adds one line, and still needs no manual state wiring.
 
-```bash
-npx shadcn add @gridcn/data-grid-history
-```
+<InstallCommand item="data-grid-history" />
 
 ```tsx
 import { useDataGridState } from "@/components/data-grid-history/data-grid-history";
@@ -132,7 +147,7 @@ const grid = useDataGridState(initialRows, { getRowId: (row) => row.id });
 ```
 
 Press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd> to undo, and <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Y</kbd>
-to redo. See [Undo & redo](/docs/undo-redo) for the full add-on: a composable history hook,
+to redo. See [Undo & redo](/docs/addons/undo-redo) for the full add-on: a composable history hook,
 capped stacks, and toolbar wiring.
 
 ## `<DataGrid>` is shorthand

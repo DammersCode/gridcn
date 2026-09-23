@@ -33,13 +33,15 @@ export type RowReorderHandlers = {
 };
 
 /**
- * Drag-to-reorder rows. MUST coexist with the marker row-select range-drag
- * from the interaction layer: both start from a press on the marker cell. The disambiguation rule
- * (documented here as the single source of truth, mirrors {@link import("../columns/use-column-reorder").useColumnReorder}):
- * **a vertical drag that leaves the origin row becomes a reorder drag** whenever `enabled` is on;
- * **Shift+drag is always the row-select drag**, so shift-extending a row selection never
- * accidentally reorders. A plain press+drag that never leaves the origin row (or moves before
- * `REORDER_THRESHOLD`) resolves as a click (row selection), matching the existing 5px-jitter rule.
+ * Drag-to-reorder rows. The marker cell routes presses to this hook from the grip zone only
+ * (see DataGridMarkerCell's zone routing), so the gesture never shares a press with the
+ * row-select range-drag — no coexistence disambiguation is needed. The caller passes `enabled`
+ * only for the marker's `reorder` family (see RowMarkersMode). Within an armed grip press:
+ * **a vertical drag that leaves the origin row becomes a reorder drag** (mirrors
+ * {@link import("../columns/use-column-reorder").useColumnReorder}); a press+drag that never leaves
+ * the origin row (or moves before `REORDER_THRESHOLD`) resolves as a click — the grip's own
+ * pointerdown handler already resolved it as a row selection. The grip zone is never armed on
+ * <kbd>Shift</kbd> (the caller routes shift presses to the row-select gesture instead).
  *
  * While armed, the hook auto-scrolls the grid's scroll element (same zone/step as the interaction
  * layer's select-drag) when the pointer sits beyond a viewport edge, and re-resolves the drop
@@ -54,8 +56,6 @@ export function useRowReorder(args: {
   onReorder: (from: number, over: number, position: "before" | "after") => void;
   /** The grid's scroll element, for edge auto-scroll; null before the root mounts. */
   getScrollElement: () => HTMLElement | null;
-  /** Called the instant a press arms into a reorder drag — the caller cancels the sibling row-select drag that started from the same press (see the JSDoc rule above). */
-  onArm?: () => void;
 }): RowReorderHandlers {
   const { enabled } = args;
   const argsRef = useRef(args);
@@ -141,7 +141,6 @@ export function useRowReorder(args: {
           if (dy < REORDER_THRESHOLD) return;
           const hit = argsRef.current.hitTestRow(e.clientX, e.clientY);
           if (!hit || hit.row === pending.row) return;
-          argsRef.current.onArm?.();
           setDrag({ draggingRow: pending.row, overRow: hit.row, position: hit.position });
           if (rafRef.current === null) rafRef.current = requestAnimationFrame(runFrame);
           return;

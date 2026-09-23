@@ -1,0 +1,31 @@
+---
+title: Custom cell type
+description: A worked currency type — plain-number storage, cached locale display, symbol-stripping input.
+icon: Wrench
+---
+
+The worked example from the custom-cell-types guide: a `currency` type registered via the
+`cellTypes` prop. Storage is a plain `number | null` (a serializable primitive, the same lesson
+the built-in `date` type follows with ISO strings); display runs through a cached
+`Intl.NumberFormat`; `fromText` strips currency symbols and normalizes decimal separators.
+
+<ComponentPreview name="data-grid-custom-cell-demo" />
+
+<InstallCommand item="data-grid-custom-cell-demo" />
+
+## What's in the demo
+
+- `CellType` contract — `Cell`, `Editor`, `toText`, `toDisplayText`, `fromText` (never throws),
+  `clearValue`, `isEmpty`, `compare`, `align`
+- `useSeedFocus` + `useCommitGuard` — the grid's editor primitives, so the custom editor
+  behaves identically to the built-ins
+- Formatter cache keyed on serialized `options` — `options` literals are re-created every
+  render, so identity keying would miss
+- `cellTypes={{ ...cellTypes, currency }}` — the prop **replaces** the registry; spreading the
+  built-ins in is required
+- Two locale variants (`en-US`/USD, `de-DE`/EUR) from one type via `options`
+
+## Related
+
+- [Custom cell types](/docs/custom-cell-types) — the full contract, member by member
+- [Built-in cell types](/docs/examples/foundations/cell-types) — the types this one extends

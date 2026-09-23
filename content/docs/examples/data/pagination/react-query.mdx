@@ -1,0 +1,71 @@
+---
+title: TanStack Query
+description: Server-mode pagination with useQuery — the page is the cache key, edits invalidate it.
+icon: Zap
+---
+
+`useDataGridPagination` in server mode plus `useQuery`: the current `[page, pageSize]` is
+the query key, `keepPreviousData` keeps the old page on screen while the next one loads,
+and a page you already visited comes back instantly from the cache.
+
+<ComponentPreview name="data-grid-pagination-react-query-demo" />
+
+<InstallCommand item="data-grid-pagination-react-query-demo" />
+
+## The wiring
+
+```tsx
+const [page, setPage] = useState(1);
+const [pageSize, setPageSize] = useState(25);
+
+const query = useQuery({
+  queryKey: ["rows", page, pageSize],
+  queryFn: () => api.fetchPage({ page, pageSize }),
+  placeholderData: keepPreviousData,
+});
+
+const pager = useDataGridPagination({
+  page,
+  pageSize,
+  total: query.data?.total ?? initialTotal,
+  onPageChange: setPage,
+  onPageSizeChange: (next) => {
+    setPageSize(next);
+    setPage(1);
+  },
+});
+```
+
+If the grid's sort/filter/search are also server-side, fold them into the key — one extra
+entry per state, see the
+[server-side example](/docs/examples/data/server-side).
+
+## The edit story
+
+Edits are server-side state, so `onDataChange` writes through and invalidates instead of
+patching optimistically:
+
+```tsx
+const onDataChange = useCallback(
+  (_next: readonly Row[], change: DataChange<Row>) => {
+    api.save(change.ops); // your API route
+    void queryClient.invalidateQueries({ queryKey: ["rows"] }); // refetch shows the truth
+  },
+  [queryClient],
+);
+```
+
+The demo's fake server keeps the edits, so the refetched page shows what the server has.
+If your API is reliable enough to trust locally, patch the cache with `queryClient`'s
+`setQueryData` instead and skip the round trip.
+
+## Behavior reference
+
+- [Pagination](/docs/pagination) — server-mode contract
+- [Server errors](/docs/examples/validation/server-errors) — when `save` rejects, paint the
+  rejection on the cell
+
+## Related
+
+- [Client mode](/docs/examples/data/pagination/client) — the other mode of the same hook
+- [SWR](/docs/examples/data/pagination/swr) — the same pattern through SWR

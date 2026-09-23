@@ -1,0 +1,122 @@
+---
+title: Validation
+description: Cell validation with a plain function or a Standard Schema — one live column per major library (Zod, Joi, Valibot).
+icon: ShieldCheck
+---
+
+Nine rejection paths in one grid: a sync function, three hand-rolled Standard Schemas, a soft
+`onInvalid: "warn"` rule, and one column per major Standard Schema library. Type a value that
+breaks a rule and press Enter: the editor stays open with the library's own error message under
+the cell.
+
+<ComponentPreview name="data-grid-validation-demo" />
+
+<InstallCommand item="data-grid-validation-demo" />
+
+## Function form
+
+The simplest rule is a function that returns an error message, or `null` to accept. The
+function is your code, so side effects work — the demo's Age rule fires a toast from inside it:
+
+```tsx
+{
+  id: "age",
+  header: "Age",
+  accessorKey: "age",
+  type: "number",
+  validate: (value) => (typeof value === "number" && value < 18 ? "Must be 18 or older" : null),
+}
+```
+
+A rejection is **blocking by default**: the editor stays open and the value never commits.
+`onInvalid: "warn"` flips that — the value commits and the cell gets flagged instead (see the
+Notes column in the demo).
+
+## Standard Schema form
+
+Any [Standard Schema](https://standardschema.dev) works for the column's value type — gridcn
+detects the schema structurally (`"~standard" in validate`), so no adapter code is needed:
+
+<CodeBlockTabs defaultValue="zod">
+  <CodeBlockTabsList>
+    <CodeBlockTabsTrigger value="zod">Zod</CodeBlockTabsTrigger>
+    <CodeBlockTabsTrigger value="joi">Joi</CodeBlockTabsTrigger>
+    <CodeBlockTabsTrigger value="valibot">Valibot</CodeBlockTabsTrigger>
+  </CodeBlockTabsList>
+  <CodeBlockTab value="zod">
+    ```tsx
+    import { z } from "zod";
+
+    {
+      id: "score",
+      header: "Zod Score",
+      accessorKey: "score",
+      type: "number",
+      validate: z.number().int().min(0).max(100),
+    }
+    ```
+  </CodeBlockTab>
+  <CodeBlockTab value="joi">
+    ```tsx
+    import Joi from "joi";
+
+    {
+      id: "code",
+      header: "Joi Code",
+      accessorKey: "code",
+      type: "text",
+      validate: Joi.string().pattern(/^[A-Z0-9-]+$/).empty(""),
+    }
+    ```
+  </CodeBlockTab>
+  <CodeBlockTab value="valibot">
+    ```tsx
+    import * as v from "valibot";
+
+    {
+      id: "tag",
+      header: "Valibot Tag",
+      accessorKey: "tag",
+      type: "text",
+      validate: v.pipe(v.string(), v.minLength(3)),
+    }
+    ```
+  </CodeBlockTab>
+</CodeBlockTabs>
+
+<Callout type="info" title="Which library?">
+  The three demo columns follow npm download popularity (2026-09): **Zod** (~212M/week) ≫
+  **Joi** (~19M/week) > **Valibot** (~13M/week). All three implement Standard Schema natively,
+  as do **Yup** and **ArkType** — they work identically, no adapter needed. The schemas
+  validate the **cell value** (not a row object), so match the column's value type: a `number`
+  column takes `z.number()` / `Joi.number()` / `v.number()`.
+</Callout>
+
+## What the demo shows
+
+- **Age** — sync function, with a toast fired from inside `validate`
+- **Email / SKU / Price** — hand-rolled Standard Schemas: sync, async (pending state, ~800 ms),
+  and a coercing one ("42.9" commits as 42 — schemas may transform, and the OUTPUT is what
+  commits)
+- **Notes** — `onInvalid: "warn"`: the value commits and the cell stays flagged until a valid
+  re-commit
+- **Zod Score / Joi Code / Valibot Tag** — the three library columns; break each one and the
+  message shown is the library's own
+- **Bulk path** — copy a column of mixed valid/invalid ages from a spreadsheet and paste it
+  onto Age: valid cells commit, invalid ones drop, and the stable toast id collapses the
+  per-cell rejections into one
+
+## Behavior reference
+
+- [Validation](/docs/editing-cell-types#validation) — the `validate` contract
+- [Soft rules: onInvalid](/docs/editing-cell-types#soft-rules-oninvalid) — `"warn"` semantics
+- [Transforms are committed](/docs/editing-cell-types#transforms-are-committed) — schema output
+  wins
+- [Async schemas](/docs/editing-cell-types#async-schemas) — pending state and bulk behavior
+- [Cross-field rules: validateRow](/docs/editing-cell-types#cross-field-rules-validaterow) — row-level
+
+## Related
+
+- [Async validation](/docs/examples/validation/async-validation) — the pending/supersede/bulk story
+- [Server errors](/docs/examples/validation/server-errors) — rejections after commit
+- [Cross-field](/docs/examples/validation/cross-field) — `validateRow` in action

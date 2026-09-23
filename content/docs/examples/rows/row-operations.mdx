@@ -1,0 +1,48 @@
+---
+title: Row operations
+description: Insert, duplicate, and delete rows from the toolbar or the context menu, with the onDataChange op payload visible.
+icon: ListPlus
+---
+
+Row operations from two surfaces at once: the toolbar acts on the **current row selection**
+(falling back to the active cell's row), and the right-click context menu acts on the clicked
+row. The side panel prints the last `onDataChange` payload — every row op emits one change with
+`source: "row-op"` and id-keyed `insert`/`delete` ops, which is what undo/redo and export
+consume.
+
+<ComponentPreview name="data-grid-row-ops-demo" />
+
+<InstallCommand item="data-grid-row-ops-demo" />
+
+## What's in the demo
+
+- Toolbar: **Insert above / Insert below / Duplicate / Delete** on the selected rows
+  (`insertRows(anchor, 1, position)`, `duplicateRows(indices)`, `deleteRows(indices)`)
+- Right-click a row for the context menu's Insert/Duplicate/Delete items (needs
+  `createRow`/`duplicateRow` on the provider, or those items are hidden)
+- The **Read-only** toggle flips the provider's `readOnly` — every mutating surface disables
+- Side panel: the last change's `source` and one line per op (`type → rowId`)
+
+## The op-shape contract
+
+```tsx
+onDataChange={(next, change) => {
+  // change.source === "row-op" for insert/duplicate/delete
+  // change.ops: id-keyed { type: "insert" | "delete", rowId, row, index }
+}}
+```
+
+Ops are keyed by **row id, not index**, so the same change stays valid across sorts and
+filters — that's what makes undo/redo restore the exact previous state in one step.
+
+## Behavior reference
+
+- [Enable props](/docs/row-operations#enable-props) — `createRow` / `duplicateRow` and what's hidden without them
+- [Default shortcuts](/docs/row-operations#default-shortcuts) — `Ctrl/Cmd+Shift+F` inserts below, `Ctrl/Cmd+Shift+X` duplicates
+- [Context menu](/docs/row-operations#context-menu) — which items act on the whole selection
+- [Programmatic actions](/docs/row-operations#programmatic-actions) — the full action signatures
+
+## Related
+
+- [Action buttons](/docs/examples/rows/actions) — per-row Edit/Delete buttons in a pinned column
+- [Streaming](/docs/examples/rows/streaming) — high-frequency `updateCells` batches
