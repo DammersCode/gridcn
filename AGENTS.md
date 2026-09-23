@@ -16,7 +16,7 @@ Write a comment only when the code cannot say it. The code says *what*; the comm
 - Add a comment only for one of: a non-obvious constraint outside the code (browser quirk, platform limit, an invariant the types cannot express); a workaround for an external bug (name the bug); a deliberate simplification and its ceiling (state the upgrade path); a public API's semantics the signature does not show (JSDoc).
 - Delete instead of writing: restatements of the line below; pointers to other code ("memoized like X" — read that code instead); history ("used to ..."); references to external tracking (plan, spec, workplan, advisor, or finding IDs such as "G5", "plan 012", "spec 4b", "workplan #80"); commented-out code; markers that name the obvious.
 - One idea per comment, at most 25 words, one line. Short plain English: active voice, condition before statement, no "should", "could", "may".
-- JSDoc (`/**`) documents the API for its users; keep it well-formed (tools parse it). `//` comments note implementation details for the file's readers only.
+- JSDoc (`/**`) documents the API for its users; keep it well-formed (tools parse it). The 25-word and one-line caps yield only when the API cannot be stated shorter (complex semantics, an invariant the signature cannot show). `//` comments note implementation details for the file's readers only.
 - Test names carry the spec. Comment a test only for non-obvious setup or the reason an assertion exists.
 - When you edit a comment that no longer earns its place, delete it.
 
