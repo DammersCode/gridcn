@@ -24,3 +24,40 @@ Examples:
 
 - Before: `// Memoized like the overlay node.` → After: (delete)
 - Before: `// Quick-search never narrows viewIndex (PLAN §3, perf spec 6).` → After: `// Quick-search highlights and navigates; it never filters.`
+
+## Workflow
+
+### Gates
+
+All green before committing — a red gate gets fixed, not committed around. Run in order:
+
+1. `pnpm types:check`
+2. `pnpm lint`
+3. `pnpm lint:typed`
+4. `npx vitest run registry --exclude "**/*.browser.test.*" --project unit --coverage`
+5. `npx vitest run --project browser`
+
+A single failed test: rerun that one file once before debugging (the browser project flakes; see Environment). Still red on the rerun = a real failure.
+
+Before pushing, additionally mirror the remaining `.github/workflows/ci.yml` steps locally: `pnpm test:compiler`, `pnpm build` (stop any running dev server first — shared `.next`), `pnpm registry:build`, then `node scripts/normalize-payload-eol.mjs`, `git add public/r`, and `pnpm registry:verify`. The CI-only steps (`shadcn registry validate`, hosted-registry verify — both need the pushed SHA or the deployment) are the final authority: a push is not done until GitHub CI is green on it.
+
+### Push and commits
+
+- Push only when the user explicitly asks for it.
+- Conventional prefixes (`feat:`, `fix:`, `docs:`, `chore:`, `test:`), imperative subject.
+- Never add a `Co-Authored-By` trailer.
+
+### Changelog
+
+A user-facing change to the registry (component behavior, props, API, new item) or to the docs examples gets an entry under `## Unreleased` in `CHANGELOG.md` (Keep a Changelog style, `**Breaking:**` marker where applicable) in the same commit. Docs prose edits and internal/test-only changes: no entry.
+
+### Specs and plans
+
+A non-trivial behavior change (cross-file interaction, new gesture or API semantics) gets a short spec in `research/` before implementation; simple fixes skip it. Keep specs short — they are the decision record, not a novel.
+
+### Environment (local dev machine, Windows)
+
+- nvm-windows can resolve `node` to a stale major; if node misbehaves, prepend the pinned dir:
+  `$env:PATH = "C:\Users\dahe\AppData\Roaming\nvm\v24.15.0;" + $env:PATH`
+- `node_modules/vitest/dist/chunks/constants.-juJ8b_4.js` carries a local port patch (browser project → 45731) because the default port is blocked by the system. Never commit `node_modules`; if `pnpm install` reverts the patch, re-apply it.
+- Registry payloads (`public/r/*.json`) stay on the committed EOL convention: after `pnpm registry:build`, always run `node scripts/normalize-payload-eol.mjs` (discards EOL-only drift, keeps real changes) before staging `public/r` — otherwise the diff bloats to every item.

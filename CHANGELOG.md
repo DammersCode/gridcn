@@ -17,6 +17,16 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Row reorder is now marker-gated and zone-based:** the drag-to-reorder gesture only arms from
+  the `reorder`-family marker modes (`rowMarkers="reorder"`, `"reorder-number"`,
+  `"reorder-checkbox"`, `"reorder-both"`) — plain `number`/`checkbox`/`both` markers are pure
+  row-select surfaces, so a selection drag can never reorder by accident. Within the reorder
+  family the press location decides the behavior: a drag from the grip zone (grip handle plus
+  cell background; the whole cell in `reorder` mode) reorders the row; the number and checkbox
+  glyphs stay row-select surfaces (click selects/toggles, drag selects a range); a stationary
+  grip press selects the row without arming a reorder; Shift+drag from the grip always selects.
+  Custom-rendered markers (a `renderMarker` without the built-in marker attributes) are
+  selection-only and never reorder.
 - **Toolbar on narrow screens:** `DataGridToolbar` now scrolls horizontally when its controls
   outgrow the container (mobile viewports) instead of clipping the last controls.
 - **Simplified install:** `npx shadcn add @gridcn/<item>` now resolves the hosted `@gridcn`
