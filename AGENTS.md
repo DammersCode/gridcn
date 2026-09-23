@@ -25,6 +25,29 @@ Examples:
 - Before: `// Memoized like the overlay node.` → After: (delete)
 - Before: `// Quick-search never narrows viewIndex (PLAN §3, perf spec 6).` → After: `// Quick-search highlights and navigates; it never filters.`
 
+## Docs (content/docs/**)
+
+Write docs prose with the `simple-english` skill (`.agents/skills/simple-english`): short sentences, conditions before commands, one term per concept, no hedges. Run its self-check before delivering.
+
+The reader is external. They never saw our plan, our alternatives, or our IDE:
+
+- State what a prop or feature does, never how its shape was decided. No rejected alternatives or phantom contrasts ("an object, not an array" — the array never existed for them). State properties positively.
+- No toolchain-visible behavior: compiler errors for invalid usage and IntelliSense behavior happen in the reader's editor while they type. Cut them.
+- JSDoc is exempt: type-level guarantees belong in the IDE, where they show.
+- Timeless: no "now", "new", "currently", "latest", "soon", "eventually", "as of this writing". Docs describe the current state; `CHANGELOG.md` is the time-stamped place for "new".
+- Reference descriptions state what the thing does ("`onUndo` dispatches the undo entry"), not what the developer uses it to do.
+- Introduce a code sample with one sentence ending in a colon. Mark omissions with a comment in the sample's language, never `...`.
+
+Component and addon page structure (match the existing pages):
+
+1. One short paragraph: the problem the add-on solves and the API that solves it.
+2. `<ComponentPreview name="data-grid-...-demo" />` — the live demo comes first.
+3. `<InstallCommand ... />`.
+4. Behavior the reader cannot see until the app runs: defaults, gating rules, cross-feature interaction.
+5. Props as a markdown table (`| Prop | ... | Default |`), one table per concern.
+6. Warnings as `<Callout type="warn">`: command or condition first, then the risk.
+7. `## Related` links at the end.
+
 ## Workflow
 
 ### Gates
