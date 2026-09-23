@@ -150,6 +150,17 @@ import type { AnyCellType, ColumnDefOf, ClipboardProcessCtx } from "./store";
 
 export { useDataGridClipboard, type UseDataGridClipboardResult, type PasteFromClipboardResult } from "./clipboard/use-data-grid-clipboard";
 export { useDataGridContainer } from "./interaction/use-data-grid-container";
+export {
+  useDataGridGlobalShortcuts,
+} from "./keyboard/use-data-grid-global-shortcuts";
+export {
+  type GlobalShortcutAction,
+  type GlobalShortcutsConfig,
+  type GlobalShortcutEvent,
+  type GlobalShortcutContext,
+  enabledGlobalActions,
+  resolveGlobalShortcut,
+} from "./keyboard/global-shortcuts";
 
 export {
   cellTypes,

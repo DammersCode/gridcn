@@ -1,0 +1,105 @@
+---
+title: Global shortcuts
+description: Opt-in undo and redo that keep working while focus is on a custom toolbar, not just inside the grid.
+icon: Command
+---
+
+By default the grid's keyboard shortcuts only fire while DOM focus is inside the grid — the
+moment focus lands on a custom toolbar, a side panel, or `body`, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd>
+does nothing to the grid. `useDataGridGlobalShortcuts` opts a grid in to a window-level layer that
+keeps the effective keymap's **undo and redo** working wherever focus sits.
+
+<ComponentPreview name="data-grid-global-shortcuts-demo" />
+
+<InstallCommand item="data-grid" manual manualSlot={<ManualInstall item="data-grid" />} />
+
+## How it works
+
+`useDataGridGlobalShortcuts` is an opt-in headless hook in the core block (same shape as
+`useDataGridClipboard`): it renders nothing, mounts inside `DataGridRoot`, and adds a window
+`keydown` listener scoped by a six-rule gate:
+
+1. skipped while IME composition is in progress,
+2. skipped when the event is already `defaultPrevented` (the grid's own in-grid handler or your
+   page handled it first),
+3. skipped when the event target is an editable element (`input`/`textarea`/`select`/
+   `contenteditable`) — the field's native undo/redo always wins,
+4. skipped when the target is inside ANY grid — that grid's in-grid handler owns the key,
+5. skipped unless this grid is the last focused opted-in grid (the multi-grid tie-break),
+6. and only fires when the key resolves — through the grid's **effective keymap** — to an enabled
+   action.
+
+On a hit it dispatches the same `onUndo`/`onRedo` seam the in-grid keymap uses, so with the
+`data-grid-history` add-on it undoes grid edits; without it the hook is a no-op, exactly like
+in-grid undo.
+
+## Usage
+
+```tsx
+import { useDataGridGlobalShortcuts } from "@/components/data-grid/data-grid";
+
+/** Mounts the layer; renders nothing (must sit inside `DataGridRoot`). */
+function GlobalShortcutsRegistrar() {
+  useDataGridGlobalShortcuts();
+  return null;
+}
+
+function OrdersGrid() {
+  return (
+    <>
+      {/* your custom toolbar — OUTSIDE the grid */}
+      <MyToolbar />
+      <DataGridProvider {...grid} columns={columns}>
+        <DataGridRoot>
+          <GlobalShortcutsRegistrar />
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>
+    </>
+  );
+}
+```
+
+The config is an **object keyed by action name**, not an array:
+
+```tsx
+useDataGridGlobalShortcuts({ shortcuts: { undo: true } }); // undo only, no redo
+```
+
+Registering the same action twice is a compile error, and once a key is typed, IntelliSense
+stops suggesting it — the same action can never be registered twice. Omit the option entirely to
+enable every action (undo and redo).
+
+Keys are never configured as strings: the hook reads the effective keymap from the store, so a
+`keymap` prop override applies to the global layer automatically — remap `undo` and the global
+binding remaps with it (see [Keybindings — Remapping](/docs/addons/keybindings#remapping)).
+
+## Multiple grids
+
+When several opted-in grids share a page, the **last focused** one owns the shortcut: focusing
+grid B's cells transfers undo/redo to B's history until focus returns to A. A grid that never
+mounted the hook never claims, so adding the hook to one of two grids changes nothing until that
+grid is focused. In a tabbed layout the last DOM focus is the proxy — if your notion of the "active"
+tab can diverge from it (programmatic tab switch without focus), wire the active tab's undo
+imperatively instead.
+
+<Callout type="warn" title="Page-wide mod+z elsewhere">
+If your app registers its own window-level `mod+z` (e.g. a global undo), both listeners see the
+same event and whoever calls `preventDefault` first wins — the other observes
+`event.defaultPrevented` and backs off. Check `defaultPrevented` in your own handler to stay out
+of the way of the grid (and vice versa).
+</Callout>
+
+## Deliberately out of scope
+
+- **Global copy/paste:** with focus outside the grid, "paste where?" is ambiguous —
+  `useDataGridClipboard().pasteFromClipboard()` is the deterministic programmatic path.
+- **Global navigation/selection:** arrows and `mod+a` are meaningless with no visible active
+  cell, and `mod+a` is the page's own select-all.
+
+## Related
+
+- [Undo & redo](/docs/addons/undo-redo) — the `onUndo`/`onRedo` seam this hook dispatches
+- [Keybindings](/docs/addons/keybindings) — the effective keymap and remapping
+- [Selection & keyboard](/docs/selection-keyboard) — the in-grid keymap table

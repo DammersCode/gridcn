@@ -28,6 +28,7 @@ export type RegistryItemName =
   | "data-grid-demo"
   | "data-grid-events-demo"
   | "data-grid-fill-patterns-demo"
+  | "data-grid-global-shortcuts-demo"
   | "data-grid-history-demo"
   | "data-grid-i18n-demo"
   | "data-grid-io-demo"

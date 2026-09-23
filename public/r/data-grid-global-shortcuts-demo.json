@@ -1,0 +1,29 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "data-grid-global-shortcuts-demo",
+  "title": "Data Grid Global Shortcuts Demo",
+  "author": "gridcn",
+  "description": "Undo and redo keep working while focus sits on a custom toolbar - the opt-in useDataGridGlobalShortcuts hook, with the editable-target guard shown live.",
+  "registryDependencies": [
+    "DammersCode/gridcn/data-grid",
+    "DammersCode/gridcn/data-grid-history"
+  ],
+  "files": [
+    {
+      "path": "registry/default/examples/data-grid-global-shortcuts-demo.tsx",
+      "content": "\"use client\";\n\nimport { type ReactNode } from \"react\";\nimport { DataGrid, DataGridBody, DataGridHeader, useDataGridGlobalShortcuts, defineColumns } from \"@/registry/default/components/data-grid/data-grid\";\nimport { useDataGridState } from \"@/registry/default/components/data-grid-history/data-grid-history\";\nimport { Button } from \"@/components/ui/button\";\nimport { Input } from \"@/components/ui/input\";\nimport { generateDemoRows, type DemoRow } from \"./demo-data\";\n\nconst columns = defineColumns<DemoRow>()([\n  { id: \"name\", header: \"Name\", accessorKey: \"name\", type: \"text\", width: 180, flex: 2 },\n  { id: \"score\", header: \"Score\", accessorKey: \"score\", type: \"number\", width: 90, flex: 1 },\n] as const);\n\n/** Mounts the opt-in global-shortcut layer; renders nothing (must sit inside the grid). */\nfunction GlobalShortcutsRegistrar(): ReactNode {\n  useDataGridGlobalShortcuts();\n  return null;\n}\n\n/**\n * Global shortcuts: the grid's undo/redo keeps working while DOM focus is on a custom toolbar —\n * the registrar sits inside the grid, the toolbar (buttons + input) sits OUTSIDE it. Edit a cell,\n * click the button or type into the input, and press Ctrl/Cmd+Z on the toolbar.\n */\nexport default function DataGridGlobalShortcutsDemo(): ReactNode {\n  const grid = useDataGridState(generateDemoRows(6), { getRowId: (row) => row.id });\n  const { undo, redo, canUndo, canRedo } = grid.history;\n\n  return (\n    <div className=\"w-full flex h-[300px] flex-col gap-2\">\n      <p className=\"text-sm text-muted-foreground\">\n        Edit a cell, then click the button or the input below (focus leaves the grid) and press\n        Ctrl/Cmd+Z — the undo still lands in the grid. Typing into the input? Ctrl/Cmd+Z undoes the\n        input's text, never the grid.\n      </p>\n      <div className=\"flex items-center gap-2\">\n        <Button variant=\"outline\" size=\"sm\">\n          Focus me, then press Ctrl+Z\n        </Button>\n        <Input className=\"w-56\" placeholder=\"Type here — Ctrl+Z undoes the text, not the grid\" />\n        <Button variant=\"outline\" size=\"sm\" disabled={!canUndo} onClick={undo}>\n          Undo\n        </Button>\n        <Button variant=\"outline\" size=\"sm\" disabled={!canRedo} onClick={redo}>\n          Redo\n        </Button>\n      </div>\n      <div className=\"min-h-0 flex-1 overflow-hidden rounded-md border border-border\">\n        <DataGrid {...grid} columns={columns} className=\"h-full rounded-none border-none\">\n          <>\n            <GlobalShortcutsRegistrar />\n            <DataGridHeader />\n            <DataGridBody />\n          </>\n        </DataGrid>\n      </div>\n    </div>\n  );\n}\n",
+      "type": "registry:example",
+      "target": "components/data-grid-global-shortcuts-demo.tsx"
+    },
+    {
+      "path": "registry/default/examples/demo-data.ts",
+      "content": "/** Deterministic LCG so SSR/CSR markup match without Math.random(); shared across example rows. */\r\nfunction createSeededLcg(seed: number) {\r\n  let state = seed;\r\n  return () => {\r\n    state = (state * 1103515245 + 12345) & 0x7fffffff;\r\n    return state / 0x7fffffff;\r\n  };\r\n}\r\n\r\nexport type DemoRow = {\r\n  id: string;\r\n  name: string;\r\n  email: string;\r\n  age: number;\r\n  active: boolean;\r\n  role: string;\r\n  joined: string;\r\n  score: number;\r\n};\r\n\r\nconst ROLES = [\"Admin\", \"User\", \"Editor\", \"Viewer\", \"Manager\"] as const;\r\nconst ADJECTIVES = [\"Eager\", \"Quick\", \"Silent\", \"Bold\", \"Swift\"] as const;\r\nconst NOUNS = [\"Eagle\", \"Lion\", \"Tiger\", \"Bear\", \"Wolf\"] as const;\r\n\r\n/** Generates `count` deterministic demo rows for example previews (seed 42, stable across renders). */\r\nexport function generateDemoRows(count: number, seed = 42): DemoRow[] {\r\n  const next = createSeededLcg(seed);\r\n  const rows: DemoRow[] = [];\r\n  for (let i = 0; i < count; i++) {\r\n    rows.push({\r\n      id: `row-${i}`,\r\n      name: `${ADJECTIVES[Math.floor(next() * ADJECTIVES.length)]} ${NOUNS[Math.floor(next() * NOUNS.length)]}`,\r\n      email: `user${i}@example.com`,\r\n      age: Math.floor(next() * 50) + 18,\r\n      active: next() > 0.5,\r\n      role: ROLES[Math.floor(next() * ROLES.length)]!, // ROLES is a fixed non-empty literal array\r\n      joined: `${2020 + Math.floor(next() * 5)}-${String(Math.floor(next() * 12) + 1).padStart(2, \"0\")}-${String(Math.floor(next() * 28) + 1).padStart(2, \"0\")}`,\r\n      score: Math.floor(next() * 100),\r\n    });\r\n  }\r\n  return rows;\r\n}\r\n",
+      "type": "registry:example",
+      "target": "components/demo-data.ts"
+    }
+  ],
+  "categories": [
+    "data"
+  ],
+  "type": "registry:example"
+}

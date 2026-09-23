@@ -237,6 +237,21 @@
                "target": "components/data-grid/keyboard/match-keymap.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/keyboard/global-shortcuts.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/keyboard/global-shortcuts.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/keyboard/platform.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/keyboard/platform.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/keyboard/use-data-grid-global-shortcuts.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/keyboard/use-data-grid-global-shortcuts.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/labels.ts",
                "type": "registry:component",
                "target": "components/data-grid/labels.ts"
@@ -2186,6 +2201,32 @@
                "path": "registry/default/examples/fake-remote-server.ts",
                "type": "registry:example",
                "target": "components/fake-remote-server.ts"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-global-shortcuts-demo",
+         "type": "registry:example",
+         "title": "Data Grid Global Shortcuts Demo",
+         "description": "Undo and redo keep working while focus sits on a custom toolbar - the opt-in useDataGridGlobalShortcuts hook, with the editable-target guard shown live.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-history"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-global-shortcuts-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-global-shortcuts-demo.tsx"
             },
             {
                "path": "registry/default/examples/demo-data.ts",

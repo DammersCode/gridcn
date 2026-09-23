@@ -6,7 +6,13 @@ const norm = (s) => s.replace(/\\r\\n/g, "\\n");
 const hasCrlfEscapes = (s) => s.includes("\\r\\n");
 
 for (const f of changed) {
-  const head = execSync(`git show HEAD:${f}`, { encoding: "utf8" });
+  let head;
+  try {
+    head = execSync(`git show HEAD:${f}`, { encoding: "utf8" });
+  } catch {
+    console.log(`new-kept ${f}`);
+    continue;
+  }
   const work = readFileSync(f, "utf8");
   if (norm(head) === norm(work)) {
     execSync(`git checkout HEAD -- ${f}`, { stdio: "ignore" });

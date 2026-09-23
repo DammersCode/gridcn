@@ -82,6 +82,25 @@ remap or extend any binding without touching the engine:
 `keymap` lives on `DataGridRoot` (or the `DataGrid` wrapper), not on `DataGridProvider`. This
 overrides only the actions you specify. Everything else falls back to `DEFAULT_KEYMAP`.
 
+```tsx
+// extend the default set: keep mod+a, add a second binding on top
+<DataGridRoot keymap={{ selectAll: ["mod+a", "mod+shift+a"] }} />
+
+// disable an action entirely (empty list = unbound, its keys become no-ops)
+<DataGridRoot keymap={{ selectColumn: [] }} />
+```
+
+Binding strings are `mod`/`ctrl`/`alt`/`shift` prefixes plus a key
+(`"mod+shift+ArrowUp"`, `"F2"`, `" "`), with `mod` resolving to <kbd>Cmd</kbd> on macOS and
+<kbd>Ctrl</kbd> elsewhere and `ctrl` matching the literal physical <kbd>Ctrl</kbd> on every
+platform (used where <kbd>Cmd</kbd> is reserved by the OS, e.g. `selectColumn` on <kbd>Ctrl</kbd>+<kbd>Space</kbd>).
+
+The keymap is a single table the matcher reads no matter where the key event comes from: the
+matcher is **event-source-agnostic**, so the same `keymap` configuration drives the in-grid
+handler, the `?` shortcut resolution, and the opt-in
+[global shortcuts](/docs/addons/global-shortcuts) layer. Remapping an action remaps it on every
+surface — there is no second table to keep in sync.
+
 The type-to-replace trigger (`editReplace`) is remapped the same way. By default it has no
 binding: any unbound printable key on the active cell dispatches it and opens the editor seeded
 with the typed character (Excel behavior). Defining it in `keymap` takes the action over

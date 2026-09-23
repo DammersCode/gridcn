@@ -11,7 +11,7 @@ import {
   type RefObject,
 } from "react";
 import type { CellCoord } from "../types";
-import { isPrintableKey, matchKeymap, type KeymapEvent } from "../keyboard";
+import { isMacPlatform, isPrintableKey, matchKeymap, type KeymapEvent } from "../keyboard";
 import type { Keymap } from "../types";
 import { getCellValue } from "../columns/column-helpers";
 import {
@@ -71,14 +71,6 @@ export type UseGridInteractionOptions = {
   /** Escape — wired to the `data-grid-fill` add-on's cancelDrag, so it aborts an in-progress fill drag too; absent it's a no-op. */
   cancelFillDrag?: () => void;
 };
-
-function isMacPlatform(): boolean {
-  if (typeof navigator === "undefined") return false;
-  // userAgentData is the modern replacement for the deprecated `platform`; both are checked for jsdom/older browsers.
-  const uaData = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
-  const platform = uaData?.platform ?? navigator.platform ?? "";
-  return /mac/i.test(platform);
-}
 
 /**
  * Resolves the view-space column index under `inlineX` — the pointer's distance from the viewport's
