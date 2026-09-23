@@ -7,6 +7,7 @@ import { Step, Steps } from "fumadocs-ui/components/steps";
 import { Files } from "fumadocs-ui/components/files";
 import { GRIDCN_REGISTRY, readRegistryItem } from "@/lib/read-registry-item";
 import { CodeCollapsible } from "@/components/code-collapsible";
+import { InstallCommand } from "@/components/install-command";
 import { DOCS_LINK } from "@/components/docs-tabs";
 import { cn } from "@/lib/utils";
 import { ManualInstallDeps } from "@/components/manual-install-deps";
@@ -135,20 +136,18 @@ export async function ManualInstall({ item, tree = false }: ManualInstallProps):
         {gridcnPrereqs.length > 0 && (
           <Step>
             <p>
-              Requires <Link href="/docs/installation" className={DOCS_LINK}>`{GRIDCN_REGISTRY}/data-grid`</Link> installed first:
+              Requires <Link href="/docs/installation" className={DOCS_LINK}>`@gridcn/data-grid`</Link> installed first:
             </p>
-            <pre className="overflow-x-auto rounded-lg border border-border bg-secondary/50 px-4 py-3 font-mono text-sm text-foreground">
-              {gridcnPrereqs.map((dep) => `npx shadcn add ${dep}`).join("\n")}
-            </pre>
+            {gridcnPrereqs.map((dep) => (
+              <InstallCommand key={dep} command={`shadcn add ${dep}`} />
+            ))}
           </Step>
         )}
         {(registryItem.dependencies.length > 0 || registryItem.devDependencies.length > 0 || shadcnPrereqs.length > 0) && (
           <Step>
             <p>Install the following dependencies:</p>
             {shadcnPrereqs.length > 0 && (
-              <pre className="overflow-x-auto rounded-lg border border-border bg-secondary/50 px-4 py-3 font-mono text-sm text-foreground">
-                {shadcnPrereqs.map((dep) => `npx shadcn add ${dep}`).join("\n")}
-              </pre>
+              shadcnPrereqs.map((dep) => <InstallCommand key={dep} command={`shadcn add ${dep}`} />)
             )}
             {(registryItem.dependencies.length > 0 || registryItem.devDependencies.length > 0) && (
               <ManualInstallDeps dependencies={registryItem.dependencies} devDependencies={registryItem.devDependencies} />
