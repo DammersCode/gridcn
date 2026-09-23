@@ -16,8 +16,7 @@ active at every focus position.
 
 ## How it works
 
-`useDataGridGlobalShortcuts` is a headless hook in the core block (same shape as
-`useDataGridClipboard`).
+`useDataGridGlobalShortcuts` is a headless hook in the core block.
 It renders nothing.
 Mount it inside `DataGridRoot`.
 The hook listens for `keydown` on the window.
@@ -34,11 +33,13 @@ A gate of six rules decides whether an event reaches the grid:
    between grids.
 6. The key must resolve to an enabled action through the effective keymap.
 
-On a hit the hook dispatches the `onUndo` or `onRedo` seam of the in-grid keymap.
+When the gate passes, the hook dispatches the `onUndo` or `onRedo` seam of the in-grid keymap.
 With the `data-grid-history` add-on, undo reverses grid edits.
 Without the add-on the hook is a no-op, like in-grid undo.
 
 ## Usage
+
+Mount the registrar inside `DataGridRoot`:
 
 ```tsx
 import { useDataGridGlobalShortcuts } from "@/components/data-grid/data-grid";
@@ -66,17 +67,14 @@ function OrdersGrid() {
 }
 ```
 
-The config is an object keyed by action name, not an array:
+Limit the enabled actions:
 
 ```tsx
 useDataGridGlobalShortcuts({ undo: true }); // undo only, no redo
 ```
 
-The compiler rejects an object that lists the same action twice.
-IntelliSense suggests each action only once.
 Omit the config to enable every action (undo and redo).
 
-You never set the keys as strings.
 The hook reads the effective keymap from the store.
 When you remap `undo`, the global binding follows (see [Keybindings — Remapping](/docs/addons/keybindings#remapping)).
 

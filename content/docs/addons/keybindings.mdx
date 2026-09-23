@@ -95,12 +95,10 @@ Binding strings are `mod`/`ctrl`/`alt`/`shift` prefixes plus a key
 <kbd>Ctrl</kbd> elsewhere and `ctrl` matching the literal physical <kbd>Ctrl</kbd> on every
 platform (used where <kbd>Cmd</kbd> is reserved by the OS, e.g. `selectColumn` on <kbd>Ctrl</kbd>+<kbd>Space</kbd>).
 
-The keymap is a single table the matcher reads no matter where the key event comes from.
 The matcher is **event-source-agnostic**: the same `keymap` config drives the in-grid handler,
 the `?` shortcut resolution, and the opt-in [global shortcuts](/docs/addons/global-shortcuts)
 layer.
 When you remap an action, every surface uses the new binding.
-There is no second table to keep in sync.
 
 The type-to-replace trigger (`editReplace`) is remapped the same way. By default it has no
 binding: any unbound printable key on the active cell dispatches it and opens the editor seeded
