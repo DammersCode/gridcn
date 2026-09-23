@@ -25,12 +25,15 @@ during an edit. The actual per-editor behavior:
 | Key | `text` / `number` | `select` | `date` |
 |---|---|---|---|
 | <kbd>Enter</kbd> (any, including <kbd>Shift</kbd>+<kbd>Enter</kbd>) | Commits and moves **down** (Shift is ignored) | Commits the picked choice, stays in place | Commits the typed ISO date and moves down |
-| <kbd>Tab</kbd> / <kbd>Shift+Tab</kbd> | Blur-commits **in place**; native focus moves on | Closes the dropdown; cancels the edit when nothing was picked | Closes the popover; cancels the edit when nothing was picked |
+| <kbd>Tab</kbd> / <kbd>Shift+Tab</kbd> | Blur-commits **in place**. Native focus moves on | Closes the dropdown. Cancels the edit when nothing was picked | Closes the popover. Cancels the edit when nothing was picked |
 | <kbd>Escape</kbd> | Cancels and discards | Cancels and discards | Cancels and discards |
 | Click away / focus loss | Commits in place | Cancels and discards | Cancels and discards |
 
-So: any Enter moves down, never up; Tab never moves the active cell (it commits and lets the
-browser move focus); and a popover editor without an explicit pick cancels rather than commits.
+The table means this:
+
+- Any Enter moves down, never up.
+- Tab never moves the active cell. It commits and lets the browser move focus.
+- A popover editor without an explicit pick cancels rather than commits.
 
 <Callout title="Checkboxes have no edit mode">
   A click, or Enter, or Space, toggles a checkbox cell directly. There is no intermediate editor
@@ -49,7 +52,7 @@ filter match values, is on [custom cell types](/docs/custom-cell-types#value-pip
 | Type | Value | Notes |
 |---|---|---|
 | `text` | `string` | Default when `type` is omitted. `options.placeholder`. |
-| `number` | `number \| null` | `options.min`/`max`/`decimals`; `options.step` is `@reserved` (accepted, no-op for now). |
+| `number` | `number \| null` | `options.min`/`max`/`decimals`. `options.step` is `@reserved` (accepted, no-op). |
 | `checkbox` | `boolean` | No edit mode — direct toggle. |
 | `select` | `string \| null` | `options.choices: { value, label }[]`. |
 | `date` | `string \| null` (ISO `yyyy-mm-dd`) | See below. |

@@ -96,11 +96,11 @@ detects the schema structurally (`"~standard" in validate`), so no adapter code 
 
 - **Age** — sync function, with a toast fired from inside `validate`
 - **Email / SKU / Price** — hand-rolled Standard Schemas: sync, async (pending state, ~800 ms),
-  and a coercing one ("42.9" commits as 42 — schemas may transform, and the OUTPUT is what
+  and a coercing one ("42.9" commits as 42 — schemas can transform, and the OUTPUT is what
   commits)
 - **Notes** — `onInvalid: "warn"`: the value commits and the cell stays flagged until a valid
   re-commit
-- **Zod Score / Joi Code / Valibot Tag** — the three library columns; break each one and the
+- **Zod Score / Joi Code / Valibot Tag** — the three library columns. Break each one, and the
   message shown is the library's own
 - **Bulk path** — copy a column of mixed valid/invalid ages from a spreadsheet and paste it
   onto Age: valid cells commit, invalid ones drop, and the stable toast id collapses the

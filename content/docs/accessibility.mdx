@@ -61,7 +61,7 @@ The target is **WCAG 2.1 AA**. No conformance audit has been performed against g
     Selection paint goes through an overlay layer. Membership changes update `aria-selected` on the
     affected cells (a bounded, guarded re-render — see [Performance](/docs/performance) for the
     invariant wording). The `aria-selected` attribute is the accessibility-tree signal a screen
-    reader reads; the overlay is the sighted-user visual signal. The two agree on the same state.
+     reader reads. The overlay is the visual signal for sighted users. The two agree on the same state.
 
     ### Editor focus behavior
 
@@ -112,11 +112,11 @@ What the automated Chromium suite verifies, area by area:
 | Area | Automated Chromium suite |
 |---|---|
 | Grid semantics (roles, aria counts/indices) | Verified — `a11y.browser.test.tsx`, zero axe violations on the base fixture (toolbar + markers + pinned row + sorted column) |
-| Keyboard navigation & roving tabindex | Verified — `data-grid.browser.test.tsx`: arrow keys move the active cell and scroll at the viewport edge; a real Tab enters, a second Tab leaves |
-| Editor open/close focus flow | Verified — `a11y.browser.test.tsx` (zero violations with an editor open); `data-grid.browser.test.tsx` (caret lands at the end of existing content, never select-all) |
+| Keyboard navigation & roving tabindex | Verified — `data-grid.browser.test.tsx`: arrow keys move the active cell and scroll at the viewport edge. A real Tab enters, and a second Tab leaves |
+| Editor open/close focus flow | Verified — `a11y.browser.test.tsx` (zero violations with an editor open). `data-grid.browser.test.tsx` (caret lands at the end of existing content, never select-all) |
 | Multi-cell selection (`aria-selected`, `aria-multiselectable`) | Verified — `a11y.browser.test.tsx` (aria-selected on every range member) |
 | Toolbar popovers + keyboard reorder | Verified — `toolbar.browser.test.tsx`, `sort-list.browser.test.tsx`: grip keeps focus on the moved row, announces the new position, full remove/refocus paths |
-| Live regions (search count, reorder announcements) | Verified structurally — the `aria-live` regions are in the fixture's axe tree and the reorder tests assert the announcement text; whether a screen reader speaks it aloud is out of scope |
+| Live regions (search count, reorder announcements) | Verified structurally — the `aria-live` regions are in the fixture's axe tree and the reorder tests assert the announcement text. Whether a screen reader speaks it aloud is out of scope |
 
 <Callout type="warn" title="What axe-core does and does not prove">
   The suite runs [axe-core](https://github.com/dequelabs/axe-core) against the real rendered DOM in

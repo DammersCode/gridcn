@@ -74,14 +74,14 @@ to, because `fetchRows` is opaque to it. What you get for a permanent failure is
 get for a transient one:
 
 - The range's rows revert to holes and render as skeleton cells again. They never left the
-  "unloaded" state, because a failed range is simply never marked loaded.
+  "unloaded" state, because a failed range is never marked loaded.
 - `onError(error, range)` fires once per failed attempt.
 - The next time `onRowWindowChange` reports a window that covers that range, gridcn requests it
   again. This happens whether you scroll away and back, or the very first fetch failed and the
   window covers the initial mount range. If the cause is still there, the request fails again.
 
 The consumer-side pattern for this is a retry UI driven by `onError`, so a permanently-failing
-range does not just retry silently forever every time it is scrolled past. Surface it, and let
+range does not retry silently forever every time it is scrolled past. Surface it, and let
 the user force a retry once whatever was wrong is fixed:
 
 ```tsx

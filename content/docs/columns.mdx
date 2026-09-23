@@ -25,8 +25,8 @@ element. Double-click the handle to autosize the column to its content. Per-colu
 resize.
 
 <Callout type="warn" title="Autosize measures the visible window only">
-  Autosize (double-click and the header menu's "Autosize column") measures only the currently
-  rendered, windowed cells. On a virtualized grid that is the visible window, not the whole
+  Autosize (double-click and the header menu's "Autosize column") measures only the rendered,
+  windowed cells. On a virtualized grid that is the visible window, not the whole
   column: a column whose widest value sits off-screen fits the visible rows, and a long dataset
   can make it shrink. It is a viewport fit, not a global-content width.
 </Callout>
@@ -46,8 +46,8 @@ pin, autosize, hide).
 
 <Callout type="idea" title="Right-click selects the cell first">
   Right-clicking a cell makes it the active cell with a single-cell selection before the menu
-  opens. That is deliberate: the menu's copy, paste, and row operations all act on the
-  right-clicked cell, so they work even when the cell was not previously selected.
+  opens. The menu's copy, paste, and row operations act on the right-clicked cell. They work
+  even when the user did not select the cell first.
 </Callout>
 
 The `renderHeaderMenu` slot of `DataGridRoot` renders at the inline-end of each header cell, as a ghost
@@ -113,7 +113,7 @@ const columns = defineColumns<Employee>()([
 `ColumnDef.header` accepts a ReactNode, and the ReactNode can be a component. That is the real
 use: a header that renders live grid state, such as a sort-direction icon that follows the
 current sort, and it composes with resizing, reordering, and the header menu. String headers
-render truncated; a non-string header renders as-is.
+render truncated. A non-string header renders as-is.
 
 <ComponentPreview name="data-grid-custom-headers-demo" />
 
@@ -186,8 +186,8 @@ const columns = defineColumns<Row>()([
 ] as const);
 ```
 
-Here `email` grows twice as fast as `name` as the container widens, and `age` stays fixed; growth
-is clamped by `maxWidth` and a flex column never shrinks below its base `width`. A manual resize
+Here `email` grows twice as fast as `name` as the container widens, and `age` stays fixed. Growth
+is clamped by `maxWidth`, and a flex column never shrinks below its base `width`. A manual resize
 fixes that column at its new width and drops it out of flex distribution, the same as a column
 with no `flex`.
 

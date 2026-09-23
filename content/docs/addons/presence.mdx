@@ -135,8 +135,8 @@ selection: the plugin resolves every `rowId` and `columnId` against this grid's 
 rows that fell out of the current filter silently (and dev-warns once per entry when a
 `columnId` is hidden or unknown), and paints the surviving cells as one rect per contiguous run
 of resolved rows × runs of resolved columns — a local filter that splits the range paints one
-rect per fragment instead of one wrong rect. One entry paints at most 1024 fragments; beyond
-that the excess is dropped with a dev warning:
+rect per fragment instead of one wrong rect. One entry paints at most 1024 fragments. Beyond
+that, the excess is dropped with a dev warning:
 
 ```tsx
 // remote peer sends { userId, color, rowIds, columnIds } — no view-space coordinates involved

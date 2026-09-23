@@ -15,7 +15,7 @@ Undo and redo live in the separate `data-grid-history` add-on.
 History is **op-based and id-keyed**, not a snapshot stack. Each entry is the ops batch from one
 `onDataChange` call (an edit, paste, fill, or delete-range), addressed by row id rather than
 array index. So undo and redo keep working correctly across sorts and filters. Undoing an edit
-made before a sort still finds and reverts the right row, wherever it now sits in the view.
+made before a sort still finds and reverts the right row, wherever it sits in the view.
 
 <Callout title="A vanished row id is skipped, not an error">
   If a row's id has since disappeared, for example because an external data refresh removed it,
@@ -51,7 +51,7 @@ const grid = useDataGridState(initialRows, { getRowId: (row) => row.id });
 ```
 
 `grid.history` exposes `{ canUndo, canRedo, undo, redo, clear }` for wiring your own toolbar
-buttons; `clear` empties both stacks (e.g. after regenerating the dataset).
+buttons. `clear` empties both stacks (for example, after regenerating the dataset).
 <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Y</kbd>, and
 <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> work automatically while focus is in
 the grid.
@@ -114,8 +114,8 @@ record(
   applied the change to your own array), while `useDataGridState.history.record` applies the batch
   to the hook-owned data AND registers it. If you let the hook own the data, the plain
   `onDataChange(next, { source: "app", ops })` call already records the change — `record()` is
-  only needed when the consumer wrote the array itself first. The `label` is write-only for now:
-  it survives undo/redo with the entry, but there is no API to read stack entries back yet.
+   only needed when the consumer wrote the array itself first. The `label` is write-only. It
+   survives undo/redo with the entry, and there is no API to read stack entries back.
 </Callout>
 
 ## Capped stack

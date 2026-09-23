@@ -16,8 +16,8 @@ Pick a language and the direction follows it.
 ## The labels prop
 
 Every user-facing string lives in one typed `DataGridLabels` object with English defaults.
-Pass a partial override to `DataGridProvider` (or `DataGrid`); it deep-merges over
-`DEFAULT_LABELS`, so only the keys you specify change:
+Pass a partial override to `DataGridProvider` (or `DataGrid`). It deep-merges over
+`DEFAULT_LABELS`. Only the keys you specify change:
 
 ```tsx
 <DataGridProvider
@@ -52,8 +52,8 @@ wrapping element as well, so the surrounding page chrome matches.
 
 ## Which i18n library?
 
-gridcn takes plain strings, so it composes with whatever you already run — there is no
-adapter. `next-intl` and `react-i18next` both hand you typed strings per locale; the pattern is
+gridcn takes plain strings, so it composes with whatever you already run. There is no
+adapter. `next-intl` and `react-i18next` both hand you typed strings per locale. The pattern is
 the same for either: keep one `labels` object per locale (or build it per locale in a hook)
 and pass it:
 

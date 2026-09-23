@@ -12,10 +12,10 @@ icon: CloudDownload
 <InstallCommand item="data-grid-lazy" manual manualSlot={<ManualInstall item="data-grid-lazy" />} />
 
 Lazy loading gives an infinite-feel single scrollable surface — no page boundary, a grid that
-fills in as the user scrolls — best when the grid should feel like one continuous dataset.
+fills in as the user scrolls. It fits one continuous dataset best.
 Explicit, bookmarkable pages with a bounded per-request payload are
-[Pagination](/docs/pagination). Virtualization renders huge datasets cheaply either way; neither
-add-on exists for rendering performance, and using both together is not supported.
+[Pagination](/docs/pagination). Virtualization renders huge datasets cheaply either way.
+Neither add-on exists for rendering performance. Using both together is not supported.
 
 <Callout type="idea" title="loading vs. this add-on">
   The `loading` prop of the core (see [Styling & theming](/docs/styling-theming#loading-state))
@@ -114,7 +114,7 @@ add-on exists for rendering performance, and using both together is not supporte
     ```
 
     `onError` is the only signal that a fetch failed. There is no thrown-error boundary, because
-    a failed range simply stays a hole, rendered as a skeleton row, and is retried automatically
+    a failed range stays a hole, rendered as a skeleton row, and is retried automatically
     the next time it is scrolled into view. The demo's "Simulate a failed fetch" and "Simulate a
     permanent failure" buttons show the two cases live — permanent failures and the retry UI for
     them are on the next page.
@@ -153,8 +153,8 @@ Two details make this work:
 
 - **`sortState` stays `[]`.** Passing it at all is what puts sorting in controlled mode, so a
   header click reports through `onSortChange` instead of sorting locally. Echoing the spec back
-  into the prop would make the grid sort `data` by it, re-ordering the fetched window among itself
-  instead of showing the server's order.
+  into the prop makes the grid sort `data` by it. That re-orders the fetched window among itself
+  and hides the server's order.
 - **A sort change discards loaded rows.** Already-fetched windows hold the *old* order, and
   `useDataGridLazyRows` only drops loaded ranges when `total` changes. Remounting on a key
   derived from the spec is the way to clear them.

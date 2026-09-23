@@ -9,7 +9,7 @@ icon: ArrowUpDown
 ## Sorting
 
 Sorting is multi-column. Columns with a declared `type` sort with that cell type's `compare`
-(numbers numerically, dates chronologically); untyped columns use a numeric-aware
+(numbers numerically, dates chronologically). Untyped columns use a numeric-aware
 `localeCompare`. Empty cells sort last in both directions. Click a header to sort by that column.
 Shift-click adds another column to the sort without clearing the first.
 
@@ -31,8 +31,8 @@ Per-column operators include `contains`, `notContains`, `equals`, `notEquals`, `
 `endsWith`, `empty`, and `notEmpty`, plus `gt`, `gte`, `lt`, `lte`, and `isBetween` for numeric and
 date columns, and `isAnyOf` for select columns. `isBetween` renders two typed inputs (from and to)
 side by side instead of one. `isAnyOf` renders a checkbox list of the select column's own
-`choices` and keeps a row when its value equals any checked one; its `value` is a `string[]`, and
-an empty list matches no rows.
+`choices` and keeps a row when its value equals any checked one. Its `value` is a `string[]`,
+and an empty list matches no rows.
 `DataGridFilterMenu` is a popover that lists active filters as aligned rows (join cell, column,
 operator, value, trash, drag handle) with add and reset controls. Per-column `filterable: false`
 excludes a column from the menu's column picker. Row order is array order in `FilterSpec[]`. Drag
@@ -51,7 +51,7 @@ next and previous navigation that shows a `current/total` counter. Navigating to
 the active cell there and scrolls it into view, so results are never left off-screen.
 
 It never narrows the row set. Search highlights and navigates matches over the rows already in
-`data`; `viewIndex` is untouched, so everything that walks `viewIndex` — export with
+`data`. `viewIndex` is untouched, so everything that walks `viewIndex` — export with
 `scope: "view"`, select-all, pinned-row aggregates — sees the same rows with or without a search
 term. To actually remove rows, use a filter.
 

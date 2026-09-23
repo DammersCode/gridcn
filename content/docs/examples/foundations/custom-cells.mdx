@@ -6,8 +6,8 @@ icon: Wrench
 
 The worked example from the custom-cell-types guide: a `currency` type registered via the
 `cellTypes` prop. Storage is a plain `number | null` (a serializable primitive, the same lesson
-the built-in `date` type follows with ISO strings); display runs through a cached
-`Intl.NumberFormat`; `fromText` strips currency symbols and normalizes decimal separators.
+the built-in `date` type follows with ISO strings). Display runs through a cached
+`Intl.NumberFormat`. `fromText` strips currency symbols and normalizes decimal separators.
 
 <ComponentPreview name="data-grid-custom-cell-demo" />
 
@@ -20,8 +20,8 @@ the built-in `date` type follows with ISO strings); display runs through a cache
 - `useSeedFocus` + `useCommitGuard` — the grid's editor primitives, so the custom editor
   behaves identically to the built-ins
 - Formatter cache keyed on serialized `options` — `options` literals are re-created every
-  render, so identity keying would miss
-- `cellTypes={{ ...cellTypes, currency }}` — the prop **replaces** the registry; spreading the
+  render, so identity keying misses
+- `cellTypes={{ ...cellTypes, currency }}` — the prop **replaces** the registry. Spreading the
   built-ins in is required
 - Two locale variants (`en-US`/USD, `de-DE`/EUR) from one type via `options`
 

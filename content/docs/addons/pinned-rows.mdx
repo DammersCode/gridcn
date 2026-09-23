@@ -139,9 +139,8 @@ const { rowBands } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows:
     ### Manual computation
 
     For anything `useDataGridAggregate` doesn't cover, compute the band's rows yourself from
-    `grid.data` in a `useMemo` — this is the same pattern as before the hook existed. Reducing
-    over `grid.data` ignores the active filter; reduce over `useDataGridViewIndex()` instead if
-    the band must match what the filtered view shows.
+    `grid.data` in a `useMemo`. Reducing over `grid.data` ignores the active filter. Reduce over
+    `useDataGridViewIndex()` instead, if the band must match what the filtered view shows.
 
     ```tsx
     function computeTotalsRow(rows: readonly Row[]): Row {

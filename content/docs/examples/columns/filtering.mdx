@@ -5,7 +5,7 @@ icon: Funnel
 ---
 
 The toolbar's search and filter surface: quick-search with match navigation, per-column filter
-menus, and click-to-sort headers (asc → desc → clear; shift-click appends a secondary sort).
+menus, and click-to-sort headers (asc → desc → clear. Shift-click appends a secondary sort).
 The operator set adapts to the column type — that's where faceted and range filtering live.
 
 <ComponentPreview name="data-grid-sorting-filtering-demo" />
@@ -14,7 +14,7 @@ The operator set adapts to the column type — that's where faceted and range fi
 
 ## What's in the demo
 
-- `DataGridSearch` — quick-search; it highlights and navigates matches, never narrows `viewIndex`
+- `DataGridSearch` — quick-search. It highlights and navigates matches, and never narrows `viewIndex`
 - `DataGridFilterMenu` — one filter per `filterable: true` column, joined with AND/OR
 - `headerClickBehavior="sort"` — click cycles asc → desc → clear
 
@@ -27,7 +27,7 @@ per column, multiple values each.
 ## Range filters
 
 `number` and `date` columns get `isBetween` — an inclusive `[min, max]` tuple where either
-bound may be empty for an open-ended range (`["", "10"]` = "≤ 10"). Dates work because the
+bound can be empty for an open-ended range (`["", "10"]` = "≤ 10"). Dates work because the
 `date` type stores ISO strings, which compare lexicographically.
 
 ## Per-option counts (DIY)

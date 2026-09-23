@@ -4,10 +4,10 @@ description: useDataGridLazyRows with a plain simulated-latency fetcher — the 
 icon: Loader
 ---
 
-The baseline: `useDataGridLazyRows` owns the sparse row array and the window bookkeeping;
-you own `fetchRows(start, end, signal)`. The demo has 100,000 rows — only the windows that
+The baseline: `useDataGridLazyRows` owns the sparse row array and the window bookkeeping.
+You own `fetchRows(start, end, signal)`. The demo has 100,000 rows — only the windows that
 actually scroll into view are ever fetched, and skeleton rows hold the space until each
-window lands. The two failure buttons show the transient/permanent error split; the third
+window lands. The two failure buttons show the transient/permanent error split. The third
 page covers what a real fetcher replaces.
 
 <ComponentPreview name="data-grid-lazy-demo" />
@@ -28,13 +28,13 @@ const lazy = useDataGridLazyRows<Row>({
 ```
 
 - `fetchRows` resolves exactly the `[start, end)` slice, positionally aligned to `start`.
-  The hook writes it into the sparse array; the core renders real rows over the skeletons.
+  The hook writes it into the sparse array. The core renders real rows over the skeletons.
 - `signal` aborts the in-flight fetch when the window leaves view. A rejection after abort
   is ignored, so an abort is not an error — reject with an `AbortError` and move on.
 - Failed ranges revert to unloaded and the next scroll into them retries automatically
   ("refetch on next visibility"). `onError` still fires, so a permanent failure (an expired
-  token, for example) can surface a manual retry — re-fire
-  `gridProps.onRowWindowChange(range)` and it takes the same path a real scroll would.
+   token, for example) can surface a manual retry — re-fire
+   `gridProps.onRowWindowChange(range)`, and the range takes the same path as a real scroll.
 
 ## Bring your own fetcher
 

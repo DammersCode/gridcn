@@ -23,12 +23,12 @@ in your `:root` / `.dark` blocks). The map below is the complete token-to-surfac
 
 | Token | Surfaces it paints |
 |---|---|
-| `background` | The root frame and every data cell's base fill; marker cells. |
-| `border` | The root frame border; the bottom border of every cell, header, and marker cell; the pinned-row band separator; skeleton row separators. |
-| `muted` | Header cells and the marker header; the row hover tint (50% over `background`); the selected marker cell; the pinned-row band tint (30%); the loading skeleton bars. |
-| `muted-foreground` | The empty-state text; marker row numbers; the sort indicator; the row-reorder grip; the column-menu trigger. |
+| `background` | The root frame and every data cell's base fill, and the marker cells. |
+| `border` | The root frame border, the bottom border of every cell, header, and marker cell, the pinned-row band separator, and skeleton row separators. |
+| `muted` | Header cells and the marker header, the row hover tint (50% over `background`), the selected marker cell, the pinned-row band tint (30%), and the loading skeleton bars. |
+| `muted-foreground` | The empty-state text, marker row numbers, the sort indicator, the row-reorder grip, and the column-menu trigger. |
 | `accent` / `accent-foreground` | The column-menu trigger hover. |
-| `primary` | The selection fill (10%) and border (40%); the active-cell ring; the resize-handle indicator line; the column-reorder drop indicator; the fill preview and handle; the loading bar; the post-commit flash pulse (24%). |
+| `primary` | The selection fill (10%) and border (40%), the active-cell ring, the resize-handle indicator line, the column-reorder drop indicator, the fill preview and handle, the loading bar, and the post-commit flash pulse (24%). |
 | `destructive` | Invalid cells (tint + inset ring) and the validation error tooltip. |
 | `search-highlight` (optional) | The quick-search match tint (60%, 25% in dark). See [CSS variables](#css-variables). |
 
@@ -47,8 +47,8 @@ light and dark, with no grid-specific configuration:
 }
 ```
 
-`--muted` re-tints every header and the hover/selection banding in one move; `--destructive`
-re-tints validation errors; `--background` / `--border` re-skin the grid body. When one surface
+`--muted` re-tints every header and the hover/selection banding in one move. `--destructive`
+re-tints validation errors. `--background` / `--border` re-skin the grid body. When one surface
 needs to differ from its token, the escape hatches are per-surface: data-attribute CSS
 ([below](#data-attribute-contract)), class merges
 ([below](#programmatic-per-rowper-cell-styling)), or the root `className`.
@@ -56,14 +56,14 @@ needs to differ from its token, the escape hatches are per-surface: data-attribu
 ## CSS variables
 
 - `--grid-row-height` — set per instance by the `rowHeight` prop or the `density` preset
-  (`compact` 28px, `default` 36px, `comfortable` 44px); it sizes every row track.
+  (`compact` 28px, `default` 36px, `comfortable` 44px). It sizes every row track.
 - `--grid-pin-shadow` — the color of the pinned-column and pinned-row boundary shadow. The grid
   uses this variable without a fallback, so define it per theme (the docs site themes it in
-  `global.css`); left undefined, the boundary shadow renders invisible.
-- `--grid-scroll-left` — internal; the grid writes the live horizontal scroll offset so the
+  `global.css`). Left undefined, the boundary shadow renders invisible.
+- `--grid-scroll-left` — internal. The grid writes the live horizontal scroll offset so the
   marker column and header layer can counter-translate. Read-only for consumers.
 - `--color-search-highlight` — an **optional** theme color. The built-in quick-search tint is the
-  utility `bg-search-highlight/60`; Tailwind only generates it when the color exists in your
+  utility `bg-search-highlight/60`. Tailwind only generates it when the color exists in your
   theme. Define it (for example an amber that does not collide with the `primary` selection tint)
   to get the built-in highlight, or skip it and style `[data-search-match]` yourself — the
   attribute is stamped either way.
@@ -99,43 +99,43 @@ the DOM and what you can beat. Where a surface lists a merge point, the built-in
 | Header cell (`[role="columnheader"]`) | `group relative flex items-center border-b border-border bg-muted px-2 font-medium select-none` | Per-column `headerClassName`. |
 | Data cell (`[role="gridcell"]`) | `relative flex items-center overflow-hidden border-b border-border bg-background px-2 outline-none group-hover/row:bg-muted/50 transition-colors` plus conditionals: opaque hover tint on pinned cells, `bg-search-highlight/60` on `[data-search-match]`, `tabular-nums` for number/date, the alignment class, the invalid-cell tint + inset ring | `getRowClassName`/`getCellClassName` (grid level) then `cellClassName` (per column), merged after the built-ins. |
 | Row (`[role="row"]`) | `group/row` | `getRowClassName`. |
-| Marker cell (`[data-grid-marker-cell]`) | `group flex items-center justify-center border-b border-border bg-background transition-colors`, `cursor-grab` when row reorder is on, the selected-row tint | `renderMarker` replaces the content; the cell classes are internal. |
+| Marker cell (`[data-grid-marker-cell]`) | `group flex items-center justify-center border-b border-border bg-background transition-colors`, `cursor-grab` when row reorder is on, the selected-row tint | `renderMarker` replaces the content. The cell classes are internal. |
 | Marker header (`[data-grid-marker-header]`) | `flex items-center justify-center border-b border-border bg-muted` | Internal. |
-| Selection overlay (`[data-grid-selection-overlay]`) | `pointer-events-none border border-primary/40 bg-primary/10` | `--primary`; `overlayPlugins` for your own layer. |
+| Selection overlay (`[data-grid-selection-overlay]`) | `pointer-events-none border border-primary/40 bg-primary/10` | `--primary`. `overlayPlugins` for your own layer. |
 | Active-cell ring (`[data-grid-active-cell-overlay]`) | `pointer-events-none z-10 ring-2 ring-inset ring-primary` | `--primary` or `--ring`. |
-| Pin shadow (`[data-grid-pin-shadow]`) | 8px gradient strip, `opacity-0` to `100` via `data-scrolled-*`; color from `--grid-pin-shadow` | Define `--grid-pin-shadow` per theme. |
+| Pin shadow (`[data-grid-pin-shadow]`) | 8px gradient strip, `opacity-0` to `100` via `data-scrolled-*`. Color from `--grid-pin-shadow` | Define `--grid-pin-shadow` per theme. |
 | Empty state (`[data-grid-empty-state]`) | `pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground` | `emptyState` prop or `labels.emptyState`. |
-| Loading skeleton (`[data-grid-loading-skeleton]`) | One `h-4 animate-pulse rounded bg-muted` bar per column per row, rows separated by `border-b border-border` | The `loading` flag; the skeleton renders only while `loading` is true. |
+| Loading skeleton (`[data-grid-loading-skeleton]`) | One `h-4 animate-pulse rounded bg-muted` bar per column per row, rows separated by `border-b border-border` | The `loading` flag. The skeleton renders only while `loading` is true. |
 | Loading bar (`[data-grid-loading-bar]`) | 2px track `bg-primary/20` with a `bg-primary` sweep (static under `prefers-reduced-motion`) | `--primary`. |
 | Cell error tooltip | `rounded-sm border border-destructive/20 bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive`, placed below the cell while editing | `--destructive`. |
 | Resize handle (`[data-grid-resize-handle]`) | 8px column, a 3px `after` line in `bg-primary` revealed on hover and while `[data-resizing]` | `--primary`. |
 | Column drop indicator (`[data-grid-drop-indicator]`) | 2px line in `var(--color-primary)` at the drag boundary | `--primary`. |
-| Sort indicator (`[data-grid-sort-indicator]`) | `text-muted-foreground`, 14px icon, multi-sort rank badge `text-[10px] tabular-nums` | Embed `DataGridSortIndicator` in a custom header; `--muted-foreground`. |
-| Fill preview (`[data-grid-fill-preview]`) | `pointer-events-none border border-dashed border-primary bg-primary/5`; handle: `size-2 border border-background bg-primary cursor-crosshair` | `--primary`. |
-| Presence overlay (`[data-grid-presence-overlay]`) | Border + 12% fill mixed from the user's `--presence-color`; name chip `rounded-sm px-1.5 py-0.5 text-xs text-white shadow-sm` | Per-user color via the presence API; `overlayPlugins` for your own layer. |
-| Pinned-row band (`[data-grid-pinned-row-band]`) | Band separator `border-border`; band cells get an opaque 30% `muted` tint + `font-medium` | `--muted`, `--border`. |
-| Built-in editors | `text`/`number`: a borderless transparent `Input` filling the cell; `select`/`date`: your `ui/*` `Select`/`Popover`/`Calendar` primitives with the cell chrome stripped | Retheme the `ui/*` primitives, or pass a custom cell type. |
-| Write pulse (`[data-flash]`) | One-shot fade from 24% `primary` to transparent; keyframes injected by the grid | `--primary`; nothing to configure. |
+| Sort indicator (`[data-grid-sort-indicator]`) | `text-muted-foreground`, 14px icon, multi-sort rank badge `text-[10px] tabular-nums` | Embed `DataGridSortIndicator` in a custom header. `--muted-foreground`. |
+| Fill preview (`[data-grid-fill-preview]`) | `pointer-events-none border border-dashed border-primary bg-primary/5`. Handle: `size-2 border border-background bg-primary cursor-crosshair` | `--primary`. |
+| Presence overlay (`[data-grid-presence-overlay]`) | Border + 12% fill mixed from the user's `--presence-color`. Name chip `rounded-sm px-1.5 py-0.5 text-xs text-white shadow-sm` | Per-user color via the presence API. `overlayPlugins` for your own layer. |
+| Pinned-row band (`[data-grid-pinned-row-band]`) | Band separator `border-border`. Band cells get an opaque 30% `muted` tint + `font-medium` | `--muted`, `--border`. |
+| Built-in editors | `text`/`number`: a borderless transparent `Input` filling the cell. `select`/`date`: your `ui/*` `Select`/`Popover`/`Calendar` primitives with the cell chrome stripped | Retheme the `ui/*` primitives, or pass a custom cell type. |
+| Write pulse (`[data-flash]`) | One-shot fade from 24% `primary` to transparent. Keyframes injected by the grid | `--primary`. Nothing to configure. |
 
 **How deep you can go, in order of effort:**
 
-1. **Theme tokens** — re-color a whole semantic group at once; both light and dark follow.
+1. **Theme tokens** — re-color a whole semantic group at once. Both light and dark follow.
 2. **CSS variables** — `--grid-row-height` (or `density`/`rowHeight`), `--grid-pin-shadow`,
    optional `--color-search-highlight`.
 3. **Data-attribute CSS** — style interaction state (active, pinned, selected, searching,
    invalid) globally, with no React involved.
 4. **Class merges** — `className` on the root, `getRowClassName`/`getCellClassName` on the grid,
-   `cellClassName`/`headerClassName` on a column; your utilities win conflicts.
+   `cellClassName`/`headerClassName` on a column. Your utilities win conflicts.
 5. **Content replacement** — per-column `renderCell` and custom `header`, `renderMarker`,
-   `emptyState`; replace what is drawn, not how it is styled.
+   `emptyState`. Replace what is drawn, not how it is styled.
 6. **Overlay plugins** — `overlayPlugins` on `DataGridProvider` for your own layer in the
    overlay stack (see [overlay-plugins](/docs/overlay-plugins)).
 
 ## Data-attribute contract
 The grid stamps state on the DOM as data attributes, so you can style with the Tailwind
 `data-[attr]:` variant or plain CSS without touching React. This is the stable contract for
-restyling interaction state — the utility classes in the table above may change between versions,
-the attributes do not.
+restyling interaction state — the utility classes in the table above can change between versions.
+The attributes do not.
 
 | Attribute | Where | Meaning |
 |---|---|---|
@@ -197,7 +197,7 @@ The grid also stamps one attribute per structural element, as a selector for the
 Grid-level `getRowClassName` and `getCellClassName` props, on `DataGrid` or `DataGridRoot`, plus
 per-column `cellClassName` and `headerClassName` on `ColumnDef`, give value-driven styling
 without a new cell type or a `renderCell` override. All of them merge through `cn()` **after**
-the built-in classes, so a conflicting utility wins over the built-in one; column-level classes
+the built-in classes, so a conflicting utility wins over the built-in one. Column-level classes
 apply last, so a per-column class always wins over a grid-wide default on the same utility:
 
 ```tsx

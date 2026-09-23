@@ -4,9 +4,9 @@ description: Send your own selection to peers over a real websocket, and choose 
 icon: Radio
 ---
 
-Follow-up to [Multiplayer presence](/docs/addons/presence): the receiving side is the
-`useDataGridPresence` add-on; this page is the other direction — broadcasting your own selection
-over a real websocket.
+Follow-up to [Multiplayer presence](/docs/addons/presence). The receiving side is the
+`useDataGridPresence` add-on. This page covers the other direction: broadcasting your own
+selection over a real websocket.
 
 ## Wiring a real websocket
 
@@ -44,9 +44,9 @@ drag-extend gesture, exactly the granularity that a live broadcast wants.
 
 The multi-cell stopgap is the view-space `range` form: the payload already carries the
 selection's `range` (view space), so the send side needs NO hooks at all — no `useDataGridRowIds`
-called outside the provider (core hooks throw when called outside it), and no column-indexing by
-hand (`cell.col` is a view-space index into the VISIBLE columns; indexing the raw `columns`
-array is wrong as soon as a column is hidden):
+ called outside the provider (core hooks throw when called outside it), and no column-indexing by
+hand. `cell.col` is a view-space index into the VISIBLE columns. Indexing the raw `columns`
+array is wrong when a column is hidden:
 
 ```tsx
 <DataGridProvider

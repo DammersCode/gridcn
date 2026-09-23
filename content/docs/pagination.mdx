@@ -58,11 +58,11 @@ rendering performance, and using the two together is not supported — when to p
     </Callout>
 
     <Callout type="warn" title="Selection does not survive a page change">
-      The provider's store outlives a page change, so a selected cell range keeps its indices into
-       the *next* page's slice and points at different rows. Pruning the selection by row id across
-       page changes is a tracked backlog follow-up; until it lands, key the provider by page
-       (`key={pager.page}` remounts it, clearing the selection) or clear the selection in your
-       `onPageChange` handler before the data swap.
+       The provider's store outlives a page change, so a selected cell range keeps its indices into
+        the *next* page's slice and points at different rows. The grid does not prune the
+        selection by row id across page changes. Key the provider by page (`key={pager.page}`
+        remounts it, clearing the selection). Or clear the selection in your `onPageChange`
+        handler before the data swap.
     </Callout>
 
     <Callout type="warn" title="Streaming patches only reach the current page">
@@ -212,7 +212,7 @@ function OrdersGrid({ rows, total }: { rows: Order[]; total: number }) {
 ```
 
 Client mode isn't a fit: its `pageSize` seeds once from `useState` and can't be pushed a new value
-afterward, so a URL-driven `pageSize` change would have nothing to land on. Server mode's
+afterward, so a URL-driven `pageSize` change has nothing to land on. Server mode's
 `page`/`pageSize`/`onPageChange`/`onPageSizeChange` are fully controlled, which is exactly what a
 URL-backed value needs — fetch each page's rows yourself, keyed off `url.page` and `url.pageSize`.
 

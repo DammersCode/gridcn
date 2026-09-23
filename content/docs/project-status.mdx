@@ -6,7 +6,7 @@ icon: BadgeCheck
 
 ## Version
 
-gridcn is at **0.1.0**. Before 1.0, a breaking change can land in a minor step; each one is
+gridcn is at **0.1.0**. Before 1.0, a breaking change can land in a minor step. Each one is
 marked **Breaking** in the [changelog](#changelog) with a migration note. Three add-on
 extractions already happened this way (fill handle, multiplayer presence, pinned rows). After
 1.0, breaking changes wait for the next major.
@@ -31,7 +31,7 @@ Known engine-specific caveats, found in source and tests:
 
 | Area | Caveat |
 |---|---|
-| Clipboard paste | `navigator.clipboard.readText()` needs the `clipboard-read` permission. Chromium grants it after a user gesture; other engines can prompt or deny it. When the read rejects, gridcn falls back to a "press Ctrl+V" hint instead of failing silently. |
+| Clipboard paste | `navigator.clipboard.readText()` needs the `clipboard-read` permission. Chromium grants it after a user gesture. Other engines can prompt or deny it. When the read rejects, gridcn falls back to a "press Ctrl+V" hint instead of failing silently. |
 | Clipboard copy | Copy uses the async Clipboard API (`navigator.clipboard.write` with `ClipboardItem`) when available, and falls back to `document.execCommand("copy")` in environments without it. |
 | Row count ceiling | The hard ceiling of about 1M rows is a Chromium CSS Grid track limit, not a gridcn limit. See [Performance](/docs/performance). |
 | Pointer capture | Column resize, column reorder, and the fill handle use `setPointerCapture`/`releasePointerCapture`, standard in every evergreen engine. No fallback exists for engines without it. |
@@ -59,12 +59,12 @@ change. A dedicated compiled test run guards this compatibility in CI.
 
 The compiler is not what runs continuously during gridcn's own development — day-to-day work
 happens against uncompiled output. A compiler-specific issue can therefore surface later than a
-regular bug would. If you hit one, report it with `reactCompiler` in the title.
+regular bug. If you hit one, report it with `reactCompiler` in the title.
 
 ## Updating installed code
 
 Your installed files are ordinary source, so "updating" means pulling upstream changes into
-files you may have already edited:
+files you can have already edited:
 
 **Full re-install.** Re-run the install command for the item:
 

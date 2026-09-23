@@ -4,7 +4,7 @@ description: Lazy windows through SWR's preload — one fetch per window key, sh
 icon: RefreshCw
 ---
 
-SWR has no `queryClient.fetchQuery`; `preload(key, fetcher)` is its imperative entry point.
+SWR has no `queryClient.fetchQuery`. `preload(key, fetcher)` is its imperative entry point.
 It runs the fetcher once per key, hands back its promise, and stores the result in the
 global cache — so a second grid or a detail panel on the same page that calls `useSWR` with
 the same key gets the window for free.
