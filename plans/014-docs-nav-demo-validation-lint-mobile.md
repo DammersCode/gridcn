@@ -1,151 +1,151 @@
-# Plan 014 — Docs-Nav-Regrouping, Demo-Install-Validation, @shadcn/lint, Hero Mobile
+# Plan 014 — Docs nav regrouping, demo install validation, @shadcn/lint, hero mobile
 
-Branch: `docs/improvements` (Worktree `C:\Users\dahe\AppData\Local\Temp\opencode\gridcn-docs-improvements`).
-Voraussetzung: Plan 013 vollständig grün (Stand: `689a49b`; Gates types:check/build/test/lint/registry:verify alle exit 0).
-Alle vier Tasks laufen parallel, touchen disjunkte Dateibereiche, und werden je mit eigenem Commit abgeschlossen.
-Nichts pushen — lokal bis Nutzeranfrage.
+Branch: `docs/improvements` (worktree `C:\Users\dahe\AppData\Local\Temp\opencode\gridcn-docs-improvements`).
+Precondition: Plan 013 fully green (at `689a49b`; gates types:check/build/test/lint/registry:verify all exit 0).
+All four tasks run in parallel, touch disjoint file areas, and each closes with its own commit.
+Push nothing — local until the user asks.
 
-## Gemeinsame Regeln
+## Shared rules
 
-- Commit-Style wie im Repo (`docs:`, `fix(home):`, `chore(lint):`, `test:`), KEIN `Co-Authored-By`-Trailer.
-- Gates pro Task unten; am Ende jedes Task-Blocks: `pnpm build` grün (MDX-Falle: offene Component-Tags findet nur der Build).
-- PowerShell: git-grep-Patterns in Single-Quotes; `git grep`-Output hat keine `.Line`-Property.
-- Browser-Tests: vitest `browser`-Projekt, include-Pattern `registry/**/*.browser.test.{ts,tsx}` — neue Browser-Tests also UNTER `registry/` legen (oder Include-Muster bewusst erweitern).
-- node_modules-Korruption in diesem Worktree beobachtet (fehlende Chunk-Files): Symptom `Cannot find module './<name>.js'` aus `.pnpm/<pkg>` → Fix: `Remove-Item -Recurse -Force node_modules\.pnpm\<dir>` + `pnpm install`.
+- Commit style as in the repo (`docs:`, `fix(home):`, `chore(lint):`, `test:`), NO `Co-Authored-By` trailer.
+- Gates per task below; at the end of each task block: `pnpm build` green (MDX trap: unclosed component tags are only found by the build).
+- PowerShell: git-grep patterns in single quotes; `git grep` output has no `.Line` property.
+- Browser tests: the vitest `browser` project, include pattern `registry/**/*.browser.test.{ts,tsx}` — so new browser tests go UNDER `registry/` (or deliberately widen the include pattern).
+- node_modules corruption observed in this worktree (missing chunk files): symptom `Cannot find module './<name>.js'` from `.pnpm/<pkg>` → fix: `Remove-Item -Recurse -Force node_modules\.pnpm\<dir>` + `pnpm install`.
 
-## Task 1 — Docs-Nav-Regrouping + Content-Moves
+## Task 1 — Docs nav regrouping + content moves
 
-Scope (Nutzerentscheidung): **Gruppierung + Content-Moves** (kein Voll-Re-Audit aller Seiten).
+Scope (user decision): **grouping + content moves** (no full re-audit of all pages).
 
-1. `content/docs/meta.json`: Features-Flachliste in Subgruppen (fumadocs `---[Icon]Title---`-Sektionen,
-   Icons aus lucide, Bestand prüfen). Zielstruktur (Agent kann innerhalb der Prinzipien variieren):
+1. `content/docs/meta.json`: the flat feature list into subgroups (fumadocs `---[Icon]Title---` sections,
+   icons from lucide, check what exists). Target structure (the agent may vary within the principles):
    - **Editing**: editing-cell-types, custom-cell-types, clipboard
    - **Selection & navigation**: selection-keyboard, sorting-filtering-search
    - **Rows & data**: row-operations, streaming-updates, lazy-loading, lazy-loading-advanced, pagination
    - **Columns & layout**: columns, styling-theming, i18n
    - **Architecture**: overlay-plugins, performance, virtualization, accessibility
-   Prinzip: Gruppe nach Nutzerabsicht; Reihenfolge in Gruppen nach Lernpfad (einfach → fortgeschritten).
-   Slugs/URLs bleiben UNBERÜHRT (nur Nav-Reihenfolge/Gruppen) — außer Task 2-Moves.
-2. **Row-markers-Move**: H2 `Row markers` + H3 `Custom markers` aus `content/docs/columns.mdx` nach
-   `content/docs/row-operations.mdx` verschieben (passende Stelle: nach den Row-Op-Sektionen, vor dem
-   Pinned-rows-Cross-Link). Beispiele-Seite `content/docs/examples/columns/row-markers.mdx` →
-   `content/docs/examples/rows/row-markers.mdx` (Dateimove + Nav-Gruppen in
-   `content/docs/examples/columns/meta.json` bzw. `rows/meta.json` anpassen).
-   INBOUND-URLs `docs/examples/columns/row-markers` und Anker `columns#row-markers` /
-   `columns#custom-markers` über `git grep` finden und umziehen (content + registry + app).
-   Die Demo `data-grid-row-markers-demo` bleibt im Registry.
-3. Cross-Link-Check danach: `git grep -rn "docs/columns#\|docs/row-operations#\|examples/columns/row-markers" content app registry`
-   → jeder Link muss auf eine existierende Heading/URL zeigen (fumadocs-Slugs: `&` → `--`, Em-Dash → `--`,
-   Backticks/Punkte weggelassen, `&`-Slug-Beispiel: `keyboard--accessibility`).
-4. Gates: `pnpm types:check`, `pnpm build`, Link-Check wie (3). Manuell: Nav in `pnpm dev` zeigt die
-   Gruppen in der Sidebar; `/docs/columns` und `/docs/row-operations` rendern; `/docs/examples/rows/row-markers` existiert.
+   Principle: groups by user intent; order within groups by learning path (easy → advanced).
+   Slugs/URLs stay UNTOUCHED (only nav order/groups) — except for the Task-2 moves.
+2. **Row-markers move**: the H2 `Row markers` + H3 `Custom markers` from `content/docs/columns.mdx` to
+   `content/docs/row-operations.mdx` (right spot: after the row-op sections, before the
+   pinned-rows cross-link). Example page `content/docs/examples/columns/row-markers.mdx` →
+   `content/docs/examples/rows/row-markers.mdx` (file move + adjust the nav groups in
+   `content/docs/examples/columns/meta.json` and `rows/meta.json` respectively).
+   Find the inbound URLs `docs/examples/columns/row-markers` and the anchors `columns#row-markers` /
+   `columns#custom-markers` via `git grep` and move them (content + registry + app).
+   The demo `data-grid-row-markers-demo` stays in the registry.
+3. Cross-link check afterwards: `git grep -rn "docs/columns#\|docs/row-operations#\|examples/columns/row-markers" content app registry`
+   → every link must point at an existing heading/URL (fumadocs slugs: `&` → `--`, em-dash → `--`,
+   backticks/dots dropped, `&`-slug example: `keyboard--accessibility`).
+4. Gates: `pnpm types:check`, `pnpm build`, link check as in (3). Manual: the nav in `pnpm dev` shows the
+   groups in the sidebar; `/docs/columns` and `/docs/row-operations` render; `/docs/examples/rows/row-markers` exists.
 5. Commit: `docs: regroup the feature nav and move row markers to the row pages`
 
-## Task 2 — Demo-Install-Validation (Fleet)
+## Task 2 — Demo install validation (fleet)
 
-Ziel: Beweis, dass jeder Registry-Demo (aktuell ~20 Items in `registry/default/examples/*.tsx` +
-`registry.json`) **nach Install sofort funktioniert, ohne Extra-Konfiguration**.
+Goal: proof that every registry demo (currently ~20 items in `registry/default/examples/*.tsx` +
+`registry.json`) **works immediately after install, without extra configuration**.
 
-1. **Statischer Install-Check (Skript, 1× für alle)**: NEU `scripts/verify-demo-install.mjs`:
-   für jedes `registry:example`-Item in `registry.json`: (a) `registryDependencies` +
-   `dependencies`-Referenzen existieren als Items in `registry.json`; (b) alle `files[].content`-Imports
-   (aus `@/registry/...`, `@/components/ui/...`, `@/lib/...` und npm-Paketen) lösen sich auf:
-   Payload-Dateien desselben + abhängiger Items, `components/ui/**` aus dem Repo, `components.json`-Aliases,
-   oder ein in `package.json` (deps/devDeps) deklariertes npm-Paket. Unauflösbar = FAIL mit Item+Import-Name.
-   `package.json`: Script `"demo:verify": "node scripts/verify-demo-install.mjs"`.
-   Ausführen; alle FAILs beheben (Missing-Deps in `package.json` der Demos registrieren = in
-   `registry.json` `dependencies` aufnehmen + `pnpm registry:build`).
-2. **Runtime-Smoke (Browser-Test, 1× für alle)**: NEU
-   `registry/default/examples/demo-smoke.browser.test.tsx` (Pattern: `demo-fit.browser.test.tsx`):
-   mountet JEDES Demo und asserts: `[role="grid"]` existiert, > 0 Datenzeilen, und wo das Demo einen
-   dokumentierten Kernzugriff hat (Button oben im Demo, z.B. Undo/Move-down/Filter-Add), ein generischer
-   Klick-Smoke (Element sichtbar und enabled). Kein Demo-spezifisches Deep-Testing — das gehört in die
-   bestehenden, demo-eigenen Tests. Neue FAILs beheben im Demo (nicht im Test abschwächen).
-3. **API-Cross-Check (Fleet, read-only)**: pro Demo mit Third-Party-API ein Agent:
-   - validation: zod/joi/valibot + Standard Schema (Standard-Schema-Spec)
+1. **Static install check (script, 1× for all)**: NEW `scripts/verify-demo-install.mjs`:
+   for every `registry:example` item in `registry.json`: (a) `registryDependencies` +
+   `dependencies` references exist as items in `registry.json`; (b) every `files[].content` import
+   (from `@/registry/...`, `@/components/ui/...`, `@/lib/...`, and npm packages) resolves:
+   payload files of the same + dependent items, `components/ui/**` from the repo, `components.json` aliases,
+   or an npm package declared in `package.json` (deps/devDeps). Unresolvable = FAIL with item + import name.
+   `package.json`: script `"demo:verify": "node scripts/verify-demo-install.mjs"`.
+   Run it; fix all FAILs (registering missing deps in the demos' `package.json` = adding them to
+   `registry.json` `dependencies` + `pnpm registry:build`).
+2. **Runtime smoke (browser test, 1× for all)**: NEW
+   `registry/default/examples/demo-smoke.browser.test.tsx` (pattern: `demo-fit.browser.test.tsx`):
+   mounts EVERY demo and asserts: `[role="grid"]` exists, > 0 data rows, and where a demo has a
+   documented core access (a button at the top of the demo, e.g. Undo/Move-down/Filter-Add), a generic
+   click smoke (element visible and enabled). No demo-specific deep testing — that belongs in the
+   existing, demo-own tests. Fix new FAILs in the demo (not by weakening the test).
+3. **API cross-check (fleet, read-only)**: per demo with a third-party API, one agent:
+   - validation: zod/joi/valibot + Standard Schema (Standard-Schema spec)
    - lazy/server-side: @tanstack/react-query (useQuery/useMutation/onMutate/onError), nuqs
-   - recipes-Beispiele in Docs: RHF (useForm/register/handleSubmit) — nur Code-Check (keins ist Demo-Item)
-   - fill/pinned/presence/toolbar/sort-list/url-state/keybindings/io: nur gridcn-eigene API (gegen
-     `content/docs/api-reference.mdx` + Quell-JSDoc prüfen, keine externeren Docs)
-   Prüfen: API existiert in der installierten Version (`node_modules/<pkg>/package.json`),
-   Signatur/Nutzung im Demo-Code korrekt, keine veralteten/entfernten Optionen, Demo-Deps in
-   `package.json` mit kompatibler Version. Ergebnis: je Item 1 Block in
-   `research/demo-validation-report.md` (Item, Bibliothek+Version, geprüfte APIs, Status OK/FIXED,
-   was geändert wurde). Fixes direkt im Demo-Code + `pnpm registry:build` + Payload-Commits wie in Task-Windows zuvor.
-4. **E2E-Install-Spotcheck (1×)**: `data-grid`-Item (oder `data-grid-fill`) in ein frisches,
-   minimales Next.js+shadcn-Projekt installieren und Build + Smoke:
-   - Lokales Registry-Hosting: `npx serve` (oder Node-Inline-Server) auf Worktree-Root
-     (registry.json + public/r/), `components.json` im Testprojekt: `"registry": "http://localhost:<port>/registry.json"`
-     (falls die shadcn-CLI das nicht akzeptiert: Fallback = Payload-Dateien 1:1 wie im Payload-JSON kopieren —
-     gleicher Beweiswert für „keine Extra-Konfiguration“).
-   - `npx shadcn@latest add data-grid --cwd <testprojekt>`, `pnpm build`, Screenshot + Grid-Render-Check
-     (node/playwright oder agent-browser). Testprojekt nach `C:\Users\dahe\AppData\Local\Temp\opencode\e2e-install-check\`.
-   - Bericht + Befehlsprotokoll: `research/demo-e2e-install-report.md`.
-   - Wenn die CI-Gate `shadcn registry validate` (ci.yml) auf den Branch-Zustand zeigt: nur lokal prüfen,
-     keine CI-Änderung.
+   - recipe examples in the docs: RHF (useForm/register/handleSubmit) — code check only (none is a demo item)
+   - fill/pinned/presence/toolbar/sort-list/url-state/keybindings/io: gridcn-own API only (checked against
+     `content/docs/api-reference.mdx` + source JSDoc, no external docs)
+   Check: the API exists in the installed version (`node_modules/<pkg>/package.json`),
+   the signature/usage in the demo code is correct, no stale/removed options, demo deps in
+   `package.json` with a compatible version. Result: per item one block in
+   `research/demo-validation-report.md` (item, library+version, APIs checked, status OK/FIXED,
+   what changed). Fixes directly in the demo code + `pnpm registry:build` + payload commits as in the earlier task windows.
+4. **E2E install spot-check (1×)**: install the `data-grid` item (or `data-grid-fill`) into a fresh,
+   minimal Next.js+shadcn project and build + smoke:
+   - Local registry hosting: `npx serve` (or a Node inline server) on the worktree root
+     (registry.json + public/r/), `components.json` in the test project: `"registry": "http://localhost:<port>/registry.json"`
+     (if the shadcn CLI does not accept that: fallback = copy the payload files 1:1 as in the payload JSON —
+     equal proof value for "no extra configuration").
+   - `npx shadcn@latest add data-grid --cwd <test-project>`, `pnpm build`, screenshot + grid render check
+     (node/playwright or agent-browser). Test project under `C:\Users\dahe\AppData\Local\Temp\opencode\e2e-install-check\`.
+   - Report + command protocol: `research/demo-e2e-install-report.md`.
+   - If the CI gate `shadcn registry validate` (ci.yml) points at the branch state: check locally only,
+     no CI change.
 5. Gates: `pnpm demo:verify`, `pnpm test` (unit+browser), `pnpm registry:build && pnpm registry:verify`,
    `pnpm build`.
 6. Commits (max 2): `test: add demo install and runtime smoke verification` +
-   `fix(registry): <gelistete Demo-Fixes>` (falls Fixes nötig).
+   `fix(registry): <listed demo fixes>` (if fixes are needed).
 
-## Task 3 — @shadcn/lint in das Oxlint-Gate
+## Task 3 — @shadcn/lint into the oxlint gate
 
-Fakten: Oxlint 1.83.0 (≥1.80 ✓), Config `.oxlintrc.json`, `pnpm lint` = `oxlint . && verify-import-boundaries`,
-CI-Step „Lint“ ruft `pnpm lint` auf → **keine CI-Änderung nötig**.
+Facts: Oxlint 1.83.0 (≥1.80 ✓), config `.oxlintrc.json`, `pnpm lint` = `oxlint . && verify-import-boundaries`,
+the CI step "Lint" calls `pnpm lint` → **no CI change needed**.
 
 1. `pnpm add -D @shadcn/lint`.
 2. `.oxlintrc.json`:
    - `"jsPlugins": ["@shadcn/lint"]`
-   - settings.shadcn: `ui` auf den shadcn-Alias (`components.json` → `aliases.components`,
-     i.d.R. `@/components/ui`), `componentImports` für `^@/registry(/|$)` (Registry-Komponenten sind
-     eigene, className-forwarding Designs), `mergeFunctions` bleibt Default (cn/cx/clsx/cva/tv/...).
-   - Regeln: `shadcn/no-unknown-classes: error`, `shadcn/no-raw-colors: error`,
+   - settings.shadcn: `ui` to the shadcn alias (`components.json` → `aliases.components`,
+     i.e. `@/components/ui`), `componentImports` for `^@/registry(/|$)` (registry components are
+     own, className-forwarding designs), `mergeFunctions` stays default (cn/cx/clsx/cva/tv/...).
+   - Rules: `shadcn/no-unknown-classes: error`, `shadcn/no-raw-colors: error`,
      `shadcn/no-restyle: ["error", { allow: ["layout"] }]`.
-   - **Gridcn-Komponenten sind bewusst className-override-fähig** (DataGrid & DataGridRoot forwarden
-     `className` per `cn()`, Demos nutzen `rounded-none border-none`): per `overrides` (files
-     `registry/default/blocks/**` + `app/**`) `no-restyle: off` ODER Contracts
-     `{ pattern: "^(DataGrid|DataGridRoot)$", allow: ["all"] }` — Agent wählt, was mit dem wenigsten
-     Rauschen grün wird, und dokumentiert die Wahl in einem Kommentar im Config.
-   - `components/ui/**` bleibt unter no-restyle (layout-only): Button/Card/Dialog & Co. behalten
-     ihr eigenes Padding/Shape.
-3. `pnpm lint` laufen lassen: Violations FIXEN (Theme-Tokens statt raw colors, existierende Sizes statt
-   Restyling). Wenn eine Rule systematisch falsche Positivs liefert (z.B. `no-unknown-classes` kennt
-   Tailwind-v4-Generics nicht): Rule auf `warn` drosseln + Grund in Config-Kommentar, NICHT still
-   ausknipsen.
-4. Gates: `pnpm lint` exit 0, `pnpm build` exit 0, `pnpm lint:typed` exit 0 (ESLint-Config bleibt unberührt).
+   - **Gridcn components are deliberately className-overridable** (DataGrid & DataGridRoot forward
+     `className` via `cn()`, demos use `rounded-none border-none`): per `overrides` (files
+     `registry/default/blocks/**` + `app/**`) `no-restyle: off` OR contracts
+     `{ pattern: "^(DataGrid|DataGridRoot)$", allow: ["all"] }` — the agent picks what goes green with the least
+     noise and documents the choice in a config comment.
+   - `components/ui/**` stays under no-restyle (layout-only): Button/Card/Dialog & co. keep
+     their own padding/shape.
+3. Run `pnpm lint`: FIX the violations (theme tokens instead of raw colors, existing sizes instead of
+   restyling). If a rule systematically yields false positives (e.g. `no-unknown-classes` does not know
+   Tailwind-v4 generics): lower the rule to `warn` + reason in a config comment, do NOT silently
+   switch it off.
+4. Gates: `pnpm lint` exit 0, `pnpm build` exit 0, `pnpm lint:typed` exit 0 (the ESLint config stays untouched).
 5. Commit: `chore(lint): add @shadcn/lint design-system rules to the oxlint gate`
 
-## Task 4 — Hero-Page Mobile (Viewport 375×667)
+## Task 4 — Hero page mobile (viewport 375×667)
 
-Scope (Nutzerentscheidung): komplette Root-Page `/` bei **375×667** (Nutzer: „375x667“).
-Dokumentations-Seiten sind ausdrücklich NICHT im Scope.
+Scope (user decision): the complete root page `/` at **375×667** (user: "375x667").
+Documentation pages are explicitly NOT in scope.
 
-1. Fix `app/(home)/page.tsx:191`: Tagline-Card
-   `mx-6 ... max-w-2xl ... px-10` → `w-full max-w-2xl px-6 sm:px-10` (mx-6 wegfallen; sonst
-   width 100% + Marginen → Overflow). Gleiche Prüfung für alle Sections unter dem Hero auf der
-   Seite (Vergleichstabelle ~L228 ff. u.a.): jedes Element muss bei 375px ohne
-   Dokument-Overflow bleiben (breite Tabellen dürfen horizontal SCROLLBAREN Bereich bekommen:
-   `overflow-x-auto` auf dem Container, nicht auf document).
-2. NEU `registry/default/examples/home-mobile.browser.test.tsx` (Browser-Projekt-Include):
-   - Viewport exakt `375x667` (Playwright-Device „iPhone 8“ oder manuell), `page.goto("/")`
-     (echte Route inkl. Layout) — Pattern aus bestehenden Browser-Tests übernehmen (z.B.
-     `tests/compiler-wiring.test.tsx` bzw. `registry/**/…browser.test.tsx` für `page`-Zugriff).
-   - Asserts: `document.documentElement.scrollWidth <= 375`; Hero-Card
-     (`max-w-2xl`-Box mit H1 „gridcn“) sichtbar (offsetParent != null) und ihre Breite <= 375;
-     Screenshot-Anhang. Falls das Layout-Header-Navigation selbst überläuft: ebenfalls fixen.
-   - Falls `page.goto` im Harness nicht verfügbar ist (nur Component-Rendering): Fallback =
-     `render(<HomePage/>)` + Layout-Header-Component, gleiche Asserts auf document.
+1. Fix `app/(home)/page.tsx:191`: the tagline card
+   `mx-6 ... max-w-2xl ... px-10` → `w-full max-w-2xl px-6 sm:px-10` (drop mx-6; otherwise
+   width 100% + margins → overflow). The same check for all sections below the hero on the
+   page (the comparison table ~L228 ff. among them): every element must stay free of
+   document overflow at 375px (wide tables may get a horizontally SCROLLABLE area:
+   `overflow-x-auto` on the container, not on the document).
+2. NEW `registry/default/examples/home-mobile.browser.test.tsx` (browser project include):
+   - Viewport exactly `375x667` (Playwright device "iPhone 8" or manual), `page.goto("/")`
+     (the real route incl. layout) — take the pattern from existing browser tests (e.g.
+     `tests/compiler-wiring.test.tsx` or `registry/**/…browser.test.tsx` for `page` access).
+   - Asserts: `document.documentElement.scrollWidth <= 375`; the hero card
+     (the `max-w-2xl` box with the H1 "gridcn") visible (offsetParent != null) and its width <= 375;
+     screenshot attachment. If the layout header navigation itself overflows: fix that too.
+   - If `page.goto` is not available in the harness (component rendering only): fallback =
+     `render(<HomePage/>)` + the layout header component, the same asserts on document.
 3. Gates: `pnpm vitest run --project browser registry/default/examples/home-mobile.browser.test.tsx`
-   grün, `pnpm test` (unit+browser) grün, `pnpm build` grün.
+   green, `pnpm test` (unit+browser) green, `pnpm build` green.
 4. Commit: `fix(home): fit the landing page to a 375px viewport and add the mobile test`
 
-## Reihenfolge & Parallelisierung
+## Order & parallelization
 
-- Task 1, 3, 4 sind unabhängig → parallel (je 1 Agent).
-- Task 2: Teil 1+2 (Skript+Smoke-Test) erst SEQUENTIELL vor der Fleet, weil alle Fleet-Agenten
-  dasselbe Repo sehen sollen; Teil 3 (API-Cross-Check) dann als Fleet (1 Agent pro Demo-Cluster,
-  read-only + Fixes in disjunkten Demo-Dateien); Teil 4 (e2e) parallel zu 3.
-- Konflikt-Regel: nur EIN Agent auf `package.json` (Task 3). Task 2-Fleet-Agenten dürfen
-  `package.json` nur über Task-2-Lead ändern (Dependencies-Hinweise sammeln, nicht direkt editieren).
-- Nach ALLEN Tasks: finale Gates `pnpm types:check && pnpm build && pnpm test && pnpm lint && pnpm registry:verify`
-  einmal grün, dann `git log` gegen dieses Plan-File abgleichen (4-6 Commits erwartet).
+- Tasks 1, 3, 4 are independent → parallel (1 agent each).
+- Task 2: parts 1+2 (script+smoke test) FIRST, sequentially, before the fleet, because all fleet agents
+  should see the same repo; part 3 (API cross-check) then as a fleet (1 agent per demo cluster,
+  read-only + fixes in disjoint demo files); part 4 (e2e) parallel to 3.
+- Conflict rule: only ONE agent on `package.json` (Task 3). Task-2 fleet agents may
+  change `package.json` only via the Task-2 lead (collect dependency notes, no direct edits).
+- After ALL tasks: the final gates `pnpm types:check && pnpm build && pnpm test && pnpm lint && pnpm registry:verify`
+   once green, then compare `git log` against this plan file (4–6 commits expected).

@@ -72,9 +72,9 @@ so isolation buys nothing (decision recorded per the "worktrees if needed" instr
 
 | # | Decision | Chosen | Rationale |
 |---|---|---|---|
-| D1 | Scope | review only, zero source edits | explicit user instruction ("noch nicht umsetzen, nur review") |
+| D1 | Scope | review only, zero source edits | explicit user instruction ("do not implement yet, review only") |
 | D2 | Worktrees | not used | read-only audit, clean tree; see Method |
-| D3 | Plan placement | queue/overview in repo workplan convention (`docs/agent-work/plans/`); the full executor-ready handoff plans (written after the user asked for "alles aufschreiben für später") in repo-root `plans/` per the `improve` skill | repo already maintains PLAN.md + workplans + specs there; the expansion the user requested is the skill's `plans/NNN-slug.md` format, so it lives at the root with its own index |
+| D3 | Plan placement | queue/overview in repo workplan convention (`docs/agent-work/plans/`); the full executor-ready handoff plans (written after the user asked to "write everything down for later") in repo-root `plans/` per the `improve` skill | repo already maintains PLAN.md + workplans + specs there; the expansion the user requested is the skill's `plans/NNN-slug.md` format, so it lives at the root with its own index |
 | D4 | Skill discovery | existing skills suffice (`improve`, `brainstorming`, `code-review` later for fix-pass); no external skill installs | `find-skills` sweep: the three dimensions map 1:1 to already-installed skills; installing third-party skills mid-audit adds unreviewed instructions to the flow |
 | D5 | Interactive brainstorming questions | skipped | user instruction: proceed with recommended options, ask only on criticals. Assumptions are logged here instead |
 | D6 | Criticality bar for user questions | only findings that change public API shape or imply data loss in shipped add-ons get surfaced for confirmation before a plan is written | matches PLAN.md §11 escalation rule ("anything touching public API shape → stop, update PLAN.md first") |

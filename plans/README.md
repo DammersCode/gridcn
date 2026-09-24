@@ -20,7 +20,7 @@ in-scope files is unchanged since the audit HEAD `a4a303a` (doc-only commits in 
 | 004 | `applyChange` applies undo/redo ops in O(n + k log k) | P1 | M | MED | — | DONE (693fddd) |
 | 005 | Scope the selection zero-render invariant + guard it (accept the `aria-selected` churn) | P2 | S | LOW | — | DONE (39cd2d6 + ec1464f) |
 | 006 | Implement the three spec'd-but-missing behaviors (Alt+Arrow, mod+Enter, outside-click clear + `onSelectionCleared`) | P2 | M | LOW-MED | — | DONE (67d7688) |
-| 007 | Lazy rows: short `fetchRows` resolution must not mark the range complete | P3 | S | LOW | — | TODO |
+| 007 | Lazy rows: short `fetchRows` resolution must not mark the range complete | P3 | S | LOW | — | DONE (on main since the repo import: short responses mark only the written rows loaded and re-fetch the gap; test `marks only actually written rows loaded` in `use-data-grid-lazy-rows.test.ts`) |
 | 008 | Editor keystroke-to-paint timing test (unenforced §4.6 budget) | P3 | M | LOW | — | TODO |
 | 009 | Glide spec doc fix + store-barrel public-surface decision | P3 | S | LOW | — | DONE (67d7688 + 723d50c) |
 | 010 | Hoist per-cell store subscriptions (actions/cellTypes via root context) | P3 | S/M | LOW | 005 | TODO |
@@ -33,8 +33,8 @@ Status values: TODO | IN PROGRESS | DONE (commit SHA) | BLOCKED (reason) | REJEC
 |------|-------|----------|--------|------|------------|--------|
 | 011 | OSS readiness: GitHub registry, Vercel docs hosting, publish checklist | P2 | M | MED | — | IN PROGRESS (work carried on `dev`; owner-side release steps open) |
 | 012 | API audit ADOPT set (P1-A, P2, P3, P6-code, P7 a-c, P8 b/c/d, P9 a-e + docs batch) | P1 | L | MED | — | DONE (all windows; full unit + browser suites green; two-axis code review applied in d69e7df + 527526b) |
-| 013 | Docs examples: per-feature live examples, collapsible Examples IA, library mappings (Zod/Valibot/ArkType, React Query/SWR, Drizzle/Prisma recipes) | P2 | L | LOW | W8 only: `feat/row-reorder` merge | TODO |
-| 015 | Lazy loading customization: fetch-window tuning (`maxFetchRows`), memory retention (`evict`/`reset`/`getLoadedRanges`), `onLoaded`, docs + validation sweep | P2 | L | MED | — | DONE (T1 `73ddca5`, T3 `b22c525`; two-axis code review applied in `2449b30`; full unit/browser/compiler suites green) |
+| 013 | Docs examples: per-feature live examples, collapsible Examples IA, library mappings (Zod/Valibot/ArkType, React Query/SWR, Drizzle/Prisma recipes) | P2 | L | LOW | W8 only: `feat/row-reorder` merge | IN PROGRESS (most windows landed on main — feature folders under `content/docs/examples/` incl. `data/lazy`, `data/orm`, `data/pagination`; W7 add-ons not landed; the in-file status table is stale) |
+| 015 | Lazy loading customization: fetch-window tuning (`maxFetchRows`), memory retention (`evict`/`reset`/`getLoadedRanges`), `onLoaded`, docs + validation sweep | P2 | L | MED | — | DONE (merged as PR #44, merge `efd4988`; commits `73ddca5` → `eadeac2` incl. review fixes `4ae93f0`; full unit/browser/compiler suites green) |
 
 ## Dependency notes
 

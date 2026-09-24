@@ -1,120 +1,121 @@
-# Demo-Validation A — Validation & Editing-Demos (Cluster-A, Plan 014 Task 2 Teil 3)
+# Demo Validation A — Validation & Editing demos (Cluster A, Plan 014 Task 2 part 3)
 
-Scope: 5 registry-items, Dateien unter `registry/default/examples/`.
-Geprüft: (1) strikte Installierbarkeit (npm-Import → Item-`dependencies` + Repo-`package.json`),
-(2) Third-Party-API-Korrektheit gegen installierte Versionen (d.ts + Runtime-Probe),
-(3) gridcn-API gegen `registry/default/blocks/**` + JSDoc + `content/docs/api-reference.mdx`,
-(4) existierende Demo-Unit-Tests.
+Scope: 5 registry items, files under `registry/default/examples/`.
+Checked: (1) strict installability (npm import → item `dependencies` + repo `package.json`),
+(2) third-party API correctness against installed versions (d.ts + runtime probe),
+(3) gridcn API against `registry/default/blocks/**` + JSDoc + `content/docs/api-reference.mdx`,
+(4) existing demo unit tests.
 
-Getestet:
-- `node scripts/verify-demo-install.mjs` (`pnpm demo:verify`): **exit 0** (alle 42 Items auflösbar).
-  Meiner: `data-grid-validation-demo` zusätzlich Warning `import "sonner" is not declared in any
-  closure item's registry.json dependencies` (detailliert unten); alle übrigen Cluster-Items nur
-  das globale, harmlose `react`-Boilerplate-Warning (trifft alle ~42 Items).
+Tested:
+- `node scripts/verify-demo-install.mjs` (`pnpm demo:verify`): **exit 0** (all 42 items resolve).
+  Mine: `data-grid-validation-demo` additionally warns `import "sonner" is not declared in any
+  closure item's registry.json dependencies` (detailed below); all other cluster items only get
+  the global, harmless `react` boilerplate warning (affects all ~42 items).
 - `pnpm vitest run --project unit registry/default/examples/data-grid-custom-cell-demo.test.tsx`:
-  **10/10 passed** (einziger existierender Demo-Unit-Test des Clusters; die anderen vier Demos
-  haben keine Unit-Tests — Browser-Tests existieren, gehören zu Teil 2).
+  **10/10 passed** (the only existing demo unit test of the cluster; the other four demos
+  have no unit tests — browser tests exist, they belong to part 2).
 
 ## data-grid-validation-demo
 
-- **Externe Deps (installierte Versionen):** `joi` 18.2.9 (Repo: ^18.2.9), `zod` 4.6.5 (^4.6.5),
-  `valibot` 1.5.0 (^1.5.0), `sonner` 2.0.8 (^2.0.8) — alle in Repo-`package.json` ✓.
-  Item-`dependencies`: `["joi","valibot","zod"]` — **`sonner` fehlt** (steht nur in
-  `registryDependencies`; `sonner`-Item existiert NICHT in dieser `registry.json` → Auflösung über
-  das Default-Shadcn-Registry, das dort `sonner` mit npm-Dep `sonner` + `components/ui/sonner.tsx`
-  liefert).
-- **Geprüfte APIs:**
+- **External deps (installed versions):** `joi` 18.2.9 (repo: ^18.2.9), `zod` 4.6.5 (^4.6.5),
+  `valibot` 1.5.0 (^1.5.0), `sonner` 2.0.8 (^2.0.8) — all in repo `package.json` ✓.
+  Item `dependencies`: `["joi","valibot","zod"]` — **`sonner` is missing** (it is only in
+  `registryDependencies`; no `sonner` item exists in this `registry.json` → resolution goes
+  through the default shadcn registry, which provides `sonner` with the npm dep `sonner` +
+  `components/ui/sonner.tsx`).
+- **APIs verified:**
   - `Joi.string().pattern(re).empty("").messages({"string.pattern.base": …})` (joi 18.2.9):
-    Runtime-verifiziert — alle 3 Methoden existieren, Custom-Message greift; `~standard` nativ
-    (version 1, vendor "joi") → `isStandardSchema`-Detection passt. Beobachtung (kein Defekt):
-    `empty("")` liefert für `""` ein leeres Ergebnis-Objekt `{}` (weder `value` noch `issues` —
-    joi-seitige Standard-Schema-Abweichung); das Grid behandelt das als Success mit `value: undefined`
-    → leere Zelle commit, Verhalten korrekt.
-  - `z.number().int().min(0).max(100)` (zod 4.6.5): Runtime-verifiziert — `~standard` nativ,
-    Issue-Shape `{ message, path }` passt zu `formatIssues`.
-  - `v.pipe(v.string(), v.minLength(3))` (valibot 1.5.0): Runtime-verifiziert — `~standard` nativ;
-    Failure-Result trägt `value` UND `issues`; Grid brancht zuerst auf `issues` → korrekt.
-  - `toast.error(msg, { id: "age-rule" })` + `<Toaster />` (sonner 2.0.8): d.ts-verifiziert
-    (`ExternalToast.id?: number | string`, `Toaster` export); `id` dedupliziert Bulk-Paste-Toasts.
-  - Hand-rolled Schemas (email sync, sku async, price coercing): `~standard`-Shape
-    (`version: 1`, `vendor`, `validate` → `{ value } | { issues: [{ message }] }`) konform zur
-    vendierten `StandardSchemaV1` in `types.ts` und zur Standard-Schema-Spec; `as never`-Cast ist
-    das dokumentierte Repo-Pattern (gleiche Casts in eigenen Block-Tests).
-- **gridcn-API:** `DataGrid` (data/columns/getRowId/onDataChange/className), `useDataGridState`,
-  `defineColumns`, Column-Fields (`validate` Funktionsform + Schema, `onInvalid: "warn"`,
-  `type/width/flex`) — alle gegen `data-grid.tsx`/`types.ts`/`store/types.ts` verifiziert ✓.
-- **Status:** DEFECT-OPEN (strikte Installierbarkeit) + Fix in Demo-Datei (siehe Änderungen)
-- **Änderungen:**
-  1. File-JSDoc: "Nine rejection paths" → "Eight rejection paths" (zählt 8: Age, Email, SKU,
-     Price, Notes, Zod, Joi, Valibot — RULES-Array hat 8 Einträge; 1 Wort).
-  2. **registry.json (NICHT editiert, zentral):** `sonner` ins Item-`dependencies` aufnehmen
-     (npm-Import des Demos wird sonst nur über das externe Default-Registry-Item mitgezogen;
-     `demo:verify` warnt entsprechend).
-  3. → **Payload-Drift:** `public/r/data-grid-validation-demo.json` vor dem Commit per
-     `pnpm registry:build` neu bauen (Lead-Gate; registry.json-Referenzen sind path-basiert,
-     Payloads embedden den Content).
+    runtime-verified — all 3 methods exist, the custom message applies; `~standard` is native
+    (version 1, vendor "joi") → `isStandardSchema` detection matches. Observation (not a defect):
+    `empty("")` returns an empty result object `{}` for `""` (neither `value` nor `issues` —
+    a joi-side standard-schema deviation); the grid treats that as success with `value: undefined`
+    → empty cell commits, behavior correct.
+  - `z.number().int().min(0).max(100)` (zod 4.6.5): runtime-verified — `~standard` is native,
+    issue shape `{ message, path }` matches `formatIssues`.
+  - `v.pipe(v.string(), v.minLength(3))` (valibot 1.5.0): runtime-verified — `~standard` is native;
+    the failure result carries `value` AND `issues`; the grid branches on `issues` first → correct.
+  - `toast.error(msg, { id: "age-rule" })` + `<Toaster />` (sonner 2.0.8): d.ts-verified
+    (`ExternalToast.id?: number | string`, `Toaster` export); `id` deduplicates bulk-paste toasts.
+  - Hand-rolled schemas (email sync, sku async, price coercing): the `~standard` shape
+    (`version: 1`, `vendor`, `validate` → `{ value } | { issues: [{ message }] }`) conforms to the
+    vendored `StandardSchemaV1` in `types.ts` and to the standard-schema spec; the `as never` cast
+    is the documented repo pattern (the same casts appear in the block's own tests).
+- **gridcn API:** `DataGrid` (data/columns/getRowId/onDataChange/className), `useDataGridState`,
+  `defineColumns`, column fields (`validate` function form + schema, `onInvalid: "warn"`,
+  `type/width/flex`) — all verified against `data-grid.tsx`/`types.ts`/`store/types.ts` ✓.
+- **Status:** DEFECT-OPEN (strict installability) + fix in the demo file (see changes)
+- **Changes:**
+  1. File JSDoc: "Nine rejection paths" → "Eight rejection paths" (counts 8: Age, Email, SKU,
+     Price, Notes, Zod, Joi, Valibot — the RULES array has 8 entries; 1 word).
+  2. **registry.json (NOT edited, central):** add `sonner` to the item `dependencies`
+     (otherwise the demo's npm import is only pulled in via the external default-registry item;
+     `demo:verify` warns accordingly).
+  3. → **Payload drift:** rebuild `public/r/data-grid-validation-demo.json` via
+     `pnpm registry:build` before the commit (lead gate; registry.json references are path-based,
+     payloads embed the content).
 
 ## data-grid-cross-field-demo
 
-- **Externe Deps (installierte Versionen):** keine (nur `react`; Repo-Boilerplate).
-  Item-`dependencies`: keine — korrekt, kein externer Import.
-- **Geprüfte APIs:** `DataGrid` mit `defaultData`/`columns`/`getRowId`/`validateRow`/`className`
-  — `validateRow?: (row: TData, rowId: string) => Record<string, string> | null` in `DataGridProps`
-  vorhanden, Semantik ("values still commit either way", Fehler landen in `cellErrors`) passt
-  exakt zum Demo-JSDoc; `defineColumns` (text/number), `generateDemoRows(8)` aus
-  `./demo-data` (Datei im Item-Payload enthalten ✓).
+- **External deps (installed versions):** none (only `react`; repo boilerplate).
+  Item `dependencies`: none — correct, no external import.
+- **APIs verified:** `DataGrid` with `defaultData`/`columns`/`getRowId`/`validateRow`/`className`
+  — `validateRow?: (row: TData, rowId: string) => Record<string, string> | null` present in
+  `DataGridProps`, the semantics ("values still commit either way", errors land in `cellErrors`)
+  match the demo JSDoc exactly; `defineColumns` (text/number), `generateDemoRows(8)` from
+  `./demo-data` (file included in the item payload ✓).
 - **Status:** OK
-- **Änderungen:** keine.
+- **Changes:** none.
 
 ## data-grid-cell-errors-demo
 
-- **Externe Deps (installierte Versionen):** keine (nur `react`). `@/components/ui/button` kommt
-  transitiv über das `data-grid`-Item (dessen `registryDependencies` enthalten `button`) ✓ —
-  `demo:verify` bestätigt: Import resolvable.
-- **Geprüfte APIs:** `DataGridProvider {...grid} columns onDataChange` (Spread von
-  `useDataGridState`-Ergebnis; `history`-Key wird vom Provider ignoriert, JSX-Spread macht keinen
-  Excess-Property-Fehler), `DataGridRoot/Header/Body`, `useDataGridActions().setCellErrors(
+- **External deps (installed versions):** none (only `react`). `@/components/ui/button` comes
+  transitively via the `data-grid` item (whose `registryDependencies` include `button`) ✓ —
+  `demo:verify` confirms: import resolvable.
+- **APIs verified:** `DataGridProvider {...grid} columns onDataChange` (spread of the
+  `useDataGridState` result; the `history` key is ignored by the provider, the JSX spread causes
+  no excess-property error), `DataGridRoot/Header/Body`, `useDataGridActions().setCellErrors(
   readonly CellErrorEntry[])` / `.clearCellErrors()`, `useDataGridCellErrors(): ReadonlyMap`
-  (`.size`-Nutzung korrekt), `DataChange.ops` + `DataOp update.cells {columnId, value, prev}[]`
-  (Type-Guard `isUpdateWithCells` exakt der Typ-Form in `types.ts:136-146`), `CellErrorEntry
-  {rowId, columnId, message}` — alles gegen `store/types.ts` + `types.ts` verifiziert ✓.
+  (`.size` usage correct), `DataChange.ops` + `DataOp update.cells {columnId, value, prev}[]`
+  (the type guard `isUpdateWithCells` is exactly the type shape at `types.ts:136-146`),
+  `CellErrorEntry {rowId, columnId, message}` — all verified against `store/types.ts` + `types.ts` ✓.
 - **Status:** OK
-- **Änderungen:** keine.
+- **Changes:** none.
 
 ## data-grid-cell-types-demo
 
-- **Externe Deps (installierte Versionen):** keine (nur `react`).
-  Item-`dependencies`: keine — korrekt, kein externer Import.
-- **Geprüfte APIs:** alle 5 Built-in-Cell-Typen gegen `GridCellTypes` in `types.ts:518-540`:
-  `number {min,max}` (min/max-clamp in `number.tsx` bestätigt), `select {choices: {value,label}[]}`
-  (Choice-Werte decken sich mit `ROLES` in `demo-data.ts` ✓), `date {displayFormat:
-  Intl.DateTimeFormatOptions}` (`displayFormat`-Fallback-Logik in `date.tsx`), `checkbox`,
-  `readOnly: true`, `renderCell` mit `CellRenderProps<DemoRow, number | null>` (`value`-Destructure
-  korrekt). `generateDemoRows(8)` — `age` 18–67 (alle initial valide), `joined` ISO-Daten ✓.
+- **External deps (installed versions):** none (only `react`).
+  Item `dependencies`: none — correct, no external import.
+- **APIs verified:** all 5 built-in cell types against `GridCellTypes` in `types.ts:518-540`:
+  `number {min,max}` (min/max clamp confirmed in `number.tsx`), `select {choices: {value,label}[]}`
+  (choice values overlap with `ROLES` in `demo-data.ts` ✓), `date {displayFormat:
+  Intl.DateTimeFormatOptions}` (`displayFormat` fallback logic in `date.tsx`), `checkbox`,
+  `readOnly: true`, `renderCell` with `CellRenderProps<DemoRow, number | null>` (the `value`
+  destructuring is correct). `generateDemoRows(8)` — `age` 18–67 (all initially valid),
+  `joined` ISO dates ✓.
 - **Status:** OK
-- **Änderungen:** keine.
+- **Changes:** none.
 
 ## data-grid-custom-cell-demo
 
-- **Externe Deps (installierte Versionen):** keine (nur `react`). `@/components/ui/input` kommt
-  transitiv über das `data-grid`-Item (`registryDependencies` enthalten `input`) ✓.
-- **Geprüfte APIs:** Custom-CellType-Vertrag `CellType<TData,TValue,TOptions>` (`types.ts:309-323`):
-  alle 9 Member vorhanden und signatur-korrekt (`Cell`, `Editor`, `toText`, `toDisplayText?`,
+- **External deps (installed versions):** none (only `react`). `@/components/ui/input` comes
+  transitively via the `data-grid` item (`registryDependencies` include `input`) ✓.
+- **APIs verified:** the custom cell-type contract `CellType<TData,TValue,TOptions>` (`types.ts:309-323`):
+  all 9 members present and signature-correct (`Cell`, `Editor`, `toText`, `toDisplayText?`,
   `fromText` — never-throwing, `clearValue`, `isEmpty`, `compare?`, `align?`);
-  `cellTypes`-Prop auf `DataGridProvider` (REPLACE-Semantik — Demo spreadet `...cellTypes` korrekt
-  ein, JSDoc-Callout in `data-grid.tsx:277-282` konsistent); `useSeedFocus(ref, initialText)` +
-  `useCommitGuard().tryCommit()` exakt wie die Built-in-Editoren; `CellEditorProps`
+  the `cellTypes` prop on `DataGridProvider` (REPLACE semantics — the demo spreads `...cellTypes`
+  correctly in, the JSDoc callout at `data-grid.tsx:277-282` is consistent); `useSeedFocus(ref, initialText)` +
+  `useCommitGuard().tryCommit()` exactly like the built-in editors; `CellEditorProps`
   (`value/initialText/onChange/commit/cancel/column`) ✓.
-- **Unit-Tests:** `data-grid-custom-cell-demo.test.tsx` (10 Tests: fromText/toText/toDisplayText/
-  isEmpty/clearValue/compare + Editor-Fokus) — **10/10 grün**.
+- **Unit tests:** `data-grid-custom-cell-demo.test.tsx` (10 tests: fromText/toText/toDisplayText/
+  isEmpty/clearValue/compare + editor focus) — **10/10 green**.
 - **Status:** OK
-- **Änderungen:** keine.
+- **Changes:** none.
 
-## Quervermerke (keine Defekte, nur dokumentiert)
+## Cross-cutting notes (no defects, documented only)
 
-- `react`-Warning aus `demo:verify` ist global (alle ~42 Items) — Consumer-Boilerplate, kein
-  Cluster-Defekt (B-Cluster dokumentiert dasselbe).
-- Joi v18 `empty("")` → `{}`-Ergebnis (Standard-Schema-Abweichung, s.o.) ist joi-intern; Demo-
-  Verhalten bleibt korrekt. Kein Demo-Fix möglich/sinnvoll.
-- Meiner Cluster-Items importieren kein npm-Paket, das in der Repo-`package.json` fehlen würde →
-  Task-2-Konflikt-Regel (nur Lead toucht `package.json`) greift nicht.
+- The `react` warning from `demo:verify` is global (all ~42 items) — consumer boilerplate, not a
+  cluster defect (cluster B documents the same).
+- The Joi v18 `empty("")` → `{}` result (standard-schema deviation, see above) is internal to joi;
+  the demo behavior stays correct. No demo fix possible or sensible.
+- None of my cluster items imports an npm package that would be missing from the repo `package.json`
+  → the Task-2 conflict rule (only the lead touches `package.json`) does not apply.

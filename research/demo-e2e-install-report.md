@@ -1,117 +1,117 @@
-# E2E-Install-Spotcheck: `data-grid` in frischem Next.js+shadcn-Projekt
+# E2E install spot-check: `data-grid` in a fresh Next.js + shadcn project
 
-Datum: 2026-09-23 · Plan 014, Task 2, Teil 4 · Worktree `gridcn-docs-improvements` (Branch `docs/improvements`, Stand `689a49b`)
+Date: 2026-09-23 · Plan 014, Task 2, part 4 · Worktree `gridcn-docs-improvements` (branch `docs/improvements`, at `689a49b`)
 
-**Befund: PASS.** `data-grid` wird per echtem `shadcn add` aus lokalem Registry-Hosting in ein frisches,
-minimales Next.js-16 + Tailwind-v4 + shadcn-Projekt installiert, baut ohne jede manuelle Änderung
-(Exit 0) und rendert ohne Extra-Konfiguration auf `/` (`role=grid`, 3 Datenzeilen sichtbar).
+**Result: PASS.** `data-grid` is installed via a real `shadcn add` from local registry hosting into a
+fresh, minimal Next.js 16 + Tailwind v4 + shadcn project, builds with zero manual changes
+(exit 0), and renders on `/` without extra configuration (`role=grid`, 3 data rows visible).
 
-## Ablauf
+## Walkthrough
 
-1. Testprojekt manuell minimal angelegt (create-next-app übersprungen — Flags reichen nicht gegen
-   alle Prompts der aktuellen Version): `package.json` mit next 16.3.5 / react 19.3.0 / react-dom 19.3.0
-   + Tailwind v4 (4.3.3, `@tailwindcss/postcss`), `tsconfig.json` mit Alias `@/*`, `postcss.config.mjs`,
-   `next.config.ts`, `app/layout.tsx`, `app/globals.css` (`@import "tailwindcss"`), Platzhalter-`app/page.tsx`.
+1. Test project set up manually and minimally (create-next-app skipped — its flags do not cover
+   all prompts of the current version): `package.json` with next 16.3.5 / react 19.3.0 / react-dom 19.3.0
+   + Tailwind v4 (4.3.3, `@tailwindcss/postcss`), `tsconfig.json` with the `@/*` alias, `postcss.config.mjs`,
+   `next.config.ts`, `app/layout.tsx`, `app/globals.css` (`@import "tailwindcss"`), placeholder `app/page.tsx`.
 2. `pnpm install`.
-3. `npx shadcn@latest init -y -b base --preset nova` (CLI 4.21.0). Schrieb `components.json`
-   (Style `base-nova`, Default-Aliase), `lib/utils.ts`, ergänzte `app/globals.css` um Theme-Tokens,
-   installierte `@base-ui/react`, `class-variance-authority`, `cn`, `lucide-react`, `tw-animate-css`.
-   (Hinweis: `-y` allein reicht in 4.21.0 NICHT — ohne `-b`/`--preset` bleibt der Prompt hängen;
-   `--preset base-nova` ist invalid, korrekter Preset-Name ist `nova`.)
-4. Lokales Registry-Hosting: `npx serve` reicht NICHT (CLI 4.x erwartet Item-Payloads unter der
-   URL-Vorlage des Registry-Eintrags, Payloads liegen aber unter `public/r/`). Stattdessen
-   Node-Inline-Server (`e2e-install-check/registry-server.mjs`, Port 8490):
-   - `GET /registry.json` → Worktree-Root `registry.json`
-   - `GET /<name>.json` → Worktree `public/r/<name>.json`
+3. `npx shadcn@latest init -y -b base --preset nova` (CLI 4.21.0). Wrote `components.json`
+   (style `base-nova`, default aliases), `lib/utils.ts`, extended `app/globals.css` with theme tokens,
+   installed `@base-ui/react`, `class-variance-authority`, `cn`, `lucide-react`, `tw-animate-css`.
+   (Note: `-y` alone is NOT enough in 4.21.0 — without `-b`/`--preset` the prompt hangs;
+   `--preset base-nova` is invalid, the correct preset name is `nova`.)
+4. Local registry hosting: `npx serve` is NOT sufficient (CLI 4.x expects item payloads under the
+   registry entry's URL template, but the payloads live under `public/r/`). Instead a
+   Node inline server (`e2e-install-check/registry-server.mjs`, port 8490):
+   - `GET /registry.json` → worktree-root `registry.json`
+   - `GET /<name>.json` → worktree `public/r/<name>.json`
 
-   Verifiziert: `registry.json` 200 (55 Items), `data-grid.json` 200 (768 kB, Inhalte embedded),
-   unbekannter Name 404.
-5. `components.json` des Testprojekts: Eintrag
-   `"registries": { "@gridcn": "http://localhost:8490/{name}.json" }` ergänzt (einzige
-   Harness-Konfiguration — in Produktion löst die CLI `@gridcn` via gridcn.vercel.app, s. Abweichung 2).
-6. Baseline-Commit im Testprojekt (`git init` + Commit vor der Installation).
+   Verified: `registry.json` 200 (55 items), `data-grid.json` 200 (768 kB, content embedded),
+   unknown name 404.
+5. Test project `components.json`: added the entry
+   `"registries": { "@gridcn": "http://localhost:8490/{name}.json" }` (the only
+   harness configuration — in production the CLI resolves `@gridcn` via gridcn.vercel.app, see deviation 2).
+6. Baseline commit in the test project (`git init` + commit before the install).
 7. `npx -y shadcn@latest add @gridcn/data-grid -y`.
-8. `pnpm build` (1× direkt nach Install mit Platzhalter-Page, dann 1× mit Quickstart-Page).
-9. `next start -p 3111` + Browser-Check via agent-browser + Screenshot.
-10. `npx shadcn@latest registry validate --cwd <worktree>`: `√ Registry is valid. (55 items)`, Exit 0.
+8. `pnpm build` (once right after install with the placeholder page, then once with the quick-start page).
+9. `next start -p 3111` + browser check via agent-browser + screenshot.
+10. `npx shadcn@latest registry validate --cwd <worktree>`: `√ Registry is valid. (55 items)`, exit 0.
 
-## CLI-4.21.0-Mechanik (aus dem CLI-Dist-Code verifiziert, relevant für den Install-Vertrag)
+## CLI 4.21.0 mechanics (verified from the CLI dist code, relevant to the install contract)
 
-- Es gibt kein `registry`-Feld und kein `--registry`-Flag mehr (die Plan-Annahme aus der 2.x-Ära).
-  Stattdessen: `registries`-Map in `components.json`, Key `@<name>`, Wert URL-Vorlage mit `{name}`-
-  Platzhalter (genau das Format, das das gridcn-Repo selbst in seiner `components.json` für
-  `@diceui`/`@ncdai` nutzt).
-- Der Add-Befehl ist namespaced: `npx shadcn add @gridcn/data-grid`. Ein nacktes `data-grid`
-  würde gegen das offizielle @shadcn-Registry (ui.shadcn.com) aufgelöst, nicht gegen den lokalen Server.
-- `registryDependencies` des Items (`button`, `input`, `select`, `checkbox`, `popover`, `calendar`,
-  `dropdown-menu`, `context-menu`, `separator`, `tooltip`) wurden von der CLI über das offizielle
-  @shadcn-Registry (Style `base-nova`, Netzwerk) aufgelöst. Der `data-grid`-Payload selbst kam zu
-  100 % vom lokalen Server.
+- The `registry` field and the `--registry` flag no longer exist (the plan's assumption from the 2.x era).
+  Instead: a `registries` map in `components.json`, key `@<name>`, value a URL template with a `{name}`
+  placeholder (exactly the format the gridcn repo itself uses in its `components.json` for
+  `@diceui`/`@ncdai`).
+- The add command is namespaced: `npx shadcn add @gridcn/data-grid`. A bare `data-grid`
+  would resolve against the official @shadcn registry (ui.shadcn.com), not the local server.
+- The item's `registryDependencies` (`button`, `input`, `select`, `checkbox`, `popover`, `calendar`,
+  `dropdown-menu`, `context-menu`, `separator`, `tooltip`) were resolved by the CLI via the official
+  @shadcn registry (style `base-nova`, over the network). The `data-grid` payload itself came
+  100% from the local server.
 
-## Install-Ergebnis
+## Install result
 
-**104 Dateien angelegt** (CLI-Output "Created 104 files"):
+**104 files created** (CLI output "Created 104 files"):
 
-- 94 × `components/data-grid/**` (93 Code-Dateien + `LICENSE.md`) — exakt die `files[]`-Liste des
-  `data-grid`-Items.
+- 94 × `components/data-grid/**` (93 code files + `LICENSE.md`) — exactly the `files[]` list of
+  the `data-grid` item.
 - 10 × `components/ui/{button,input,select,checkbox,popover,dropdown-menu,context-menu,separator,tooltip,calendar}.tsx`
-  (offizielles shadcn-Registry, Style `base-nova`).
+  (official shadcn registry, style `base-nova`).
 
-**`package.json`-Delta** (von der CLI via `pnpm add` geschrieben):
+**`package.json` delta** (written by the CLI via `pnpm add`):
 
-| Dependency | Version | Herkunft |
+| Dependency | Version | Origin |
 |---|---|---|
-| `zustand` | `^5.0.15` | von `data-grid` deklariert (die eine gridcn-eigene Dependency) |
-| `react-day-picker` | `^10.0.1` | eigene Dependency des shadcn-`calendar`-Items |
-| `date-fns` | `^4.4.0` | eigene Dependency des shadcn-`calendar`-Items |
+| `zustand` | `^5.0.15` | declared by `data-grid` (the one gridcn-specific dependency) |
+| `react-day-picker` | `^10.0.1` | own dependency of the shadcn `calendar` item |
+| `date-fns` | `^4.4.0` | own dependency of the shadcn `calendar` item |
 
-`pnpm-lock.yaml`: +67 Zeilen. Keine weiteren Änderungen durch die Installation.
+`pnpm-lock.yaml`: +67 lines. No other changes from the install.
 
-**Integritäts-Check:** 94/94 Payload-Dateien installiert, 0 fehlend. Inhaltlich: 74/94 byte-identisch
-(EOL-normalisiert). Bei 20 Dateien hat die CLI den **führenden File-Header-Kommentar** entfernt
-(nachgewiesen: Diff = exakt Header-Kommentar-Removal, Code-Teile identisch). Das ist CLI-Verhalten
-(kosmetisch, keine Semantik-Änderung), kein Registry-Defekt.
+**Integrity check:** 94/94 payload files installed, 0 missing. Content: 74/94 byte-identical
+(EOL-normalized). For 20 files the CLI removed the **leading file-header comment**
+(proven: diff = exactly the header-comment removal, code parts identical). That is CLI behavior
+(cosmetic, no semantic change), not a registry defect.
 
-## Build-Ergebnis
+## Build result
 
-- **Build 1** (direkt nach Install, Platzhalter-`page.tsx`, **null manuelle Änderungen**):
-  `pnpm build` → **Exit 0** (Next.js 16.3.5 Turbopack, TypeScript-Check über alle installierten
-  Dateien grün). Next hat `tsconfig.json` selbst nachjustiert (`jsx` → `react-jsx`, `.next/dev/types`
-  zu `include`) — das ist Next-Build-Verhalten, keine manuelle Änderung.
-- **Build 2** (nach Quickstart-Page, s. u.): `pnpm build` → **Exit 0**.
+- **Build 1** (right after install, placeholder `page.tsx`, **zero manual changes**):
+  `pnpm build` → **exit 0** (Next.js 16.3.5 Turbopack, TypeScript check over all installed
+  files green). Next adjusted `tsconfig.json` itself (`jsx` → `react-jsx`, `.next/dev/types`
+  into `include`) — that is Next build behavior, not a manual change.
+- **Build 2** (after the quick-start page, see below): `pnpm build` → **exit 0**.
 
-## Render-Ergebnis
+## Render result
 
-`app/page.tsx` + `app/columns.ts` = Quickstart-Snippet aus `content/docs/quick-start.mdx`
-1:1 übernommen (das dokumentierte "Verify"-Verfahren aus `installation.mdx`). Das ist
-Verwendungs-Code, keine Konfiguration — das `data-grid`-Item liefert bewusst keine Page.
+`app/page.tsx` + `app/columns.ts` = the quick-start snippet from `content/docs/quick-start.mdx`
+copied 1:1 (the documented "Verify" procedure from `installation.mdx`). That is
+usage code, not configuration — the `data-grid` item deliberately ships no page.
 
-`next start -p 3111` (Production-Server), agent-browser-Snapshot auf `/`:
+`next start -p 3111` (production server), agent-browser snapshot of `/`:
 
-- `role=grid` vorhanden
+- `role=grid` present
 - 3 × `columnheader`: Name / Age / Active
-- 3 × Datenzeilen: Ada Lovelace (28, checkbox checked), Grace Hopper (34, checked),
+- 3 × data rows: Ada Lovelace (28, checkbox checked), Grace Hopper (34, checked),
   Katherine Johnson (41, unchecked)
 - Screenshot: `C:\Users\dahe\AppData\Local\Temp\opencode\e2e-install-check\data-grid-e2e-screenshot.png`
 
-CLI-Hinweis nach dem Add: `TooltipProvider`-Wrapper (Standard-shadcn-Tooltip-Contract). Die Page
-rendert **ohne** diesen Wrapper stabil — der Provider ist für die Grid-Rendering nicht nötig.
+CLI hint after the add: the `TooltipProvider` wrapper (standard shadcn tooltip contract). The page
+renders **without** that wrapper reliably — the provider is not needed for grid rendering.
 
-## Abweichungen vom Aufgaben-/Plan-Text (CLI-Version, nicht Registry-Defekt)
+## Deviations from the task/plan text (CLI version, not registry defects)
 
-1. `components.json`-Feld `registry` / `--registry`-Flag existieren in CLI 4.21.0 nicht mehr →
-   `registries`-Map mit `{name}`-Vorlage. Der eine Eintrag im Testprojekt ist Test-Harness
-   (zeigt auf localhost statt gridcn.vercel.app), keine App-Konfiguration.
-2. Install-Befehl: `npx shadcn add @gridcn/data-grid` (namespaced) statt `add data-grid` —
-   entspricht exakt dem in `installation.mdx`/`quick-start.mdx` dokumentierten Befehl.
-3. `npx serve` auf Worktree-Root nicht geeignet (Payloads unter `public/r/`) → Node-Inline-Server
-   (Plan-Variante "oder Node-Inline-Server").
-4. CLI streift führende File-Header-Kommentare bei 20/94 installierten Dateien (nur Kommentare).
+1. The `components.json` field `registry` / the `--registry` flag no longer exist in CLI 4.21.0 →
+   the `registries` map with the `{name}` template. The single entry in the test project is test harness
+   (points at localhost instead of gridcn.vercel.app), not app configuration.
+2. Install command: `npx shadcn add @gridcn/data-grid` (namespaced) instead of `add data-grid` —
+   exactly matches the command documented in `installation.mdx`/`quick-start.mdx`.
+3. `npx serve` on the worktree root is not suitable (payloads under `public/r/`) → Node inline server
+   (the plan's "or a Node inline server" variant).
+4. The CLI strips leading file-header comments from 20/94 installed files (comments only).
 
-## Aufräum-Status
+## Cleanup status
 
-- Registry-Server (8490) und Next-Server (3111) gestoppt.
-- Testprojekt bleibt unter `C:\Users\dahe\AppData\Local\Temp\opencode\e2e-install-check\`
+- Registry server (8490) and Next server (3111) stopped.
+- The test project remains at `C:\Users\dahe\AppData\Local\Temp\opencode\e2e-install-check\`
   (`test-app/` + `registry-server.mjs`, `registry-server.log`, `next-server.log`,
   `data-grid-e2e-screenshot.png`).
-- Im Worktree wurde genau eine Datei neu angelegt: dieser Report.
+- Exactly one new file was created in the worktree: this report.
