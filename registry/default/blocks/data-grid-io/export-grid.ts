@@ -1,4 +1,5 @@
-import type { AnyColumnDef, DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid";
+import { getSelectedViewRows, isDev, type AnyColumnDef, type DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid";
+import type { CsvDelimiter } from "./parse-import-file";
 
 /** Options for {@link exportGrid}. */
 export type ExportGridOptions = {
@@ -9,7 +10,7 @@ export type ExportGridOptions = {
   /** Whether to emit a header row; default true. */
   includeHeaders?: boolean;
   /** CSV field delimiter; default ','. Ignored for xlsx. */
-  csvDelimiter?: string;
+  csvDelimiter?: CsvDelimiter;
   /**
    * Prefix the CSV with a UTF-8 BOM (`\uFEFF`); default `true`. Excel only detects UTF-8 when the
    * file starts with a BOM — without it, umlauts and other non-ASCII characters open as mojibake.
@@ -18,6 +19,10 @@ export type ExportGridOptions = {
   csvBom?: boolean;
   /** Download file name, without extension; default 'export'. */
   fileName?: string;
+  /** Name of the single sheet inside the xlsx file; default 'Sheet1'. Ignored for csv. */
+  workbookName?: string;
+  /** Caps the number of data rows exported (the header row is not counted); when the scope exceeds the cap, the export is truncated with a dev-only warning. */
+  maxRows?: number;
 };
 
 const NEEDS_QUOTING_DEFAULT = /["\r\n]/;
@@ -39,21 +44,11 @@ export function rowsToCsv(rows: readonly (readonly string[])[], delimiter: strin
   return rows.map((row) => row.map((field) => quoteCsvField(field, delimiter)).join(delimiter)).join("\r\n");
 }
 
-/** View rows covered by either selection channel — the rows channel (checkbox markers) or any cell range. */
-function selectedViewRows(state: DataGridStoreState): number[] {
-  const current = state.selection.current;
-  const out: number[] = [];
-  for (let viewRow = 0; viewRow < state.viewIndex.length; viewRow++) {
-    const inRange =
-      current !== null &&
-      (isWithin(current.range, viewRow) || current.rangeStack.some((rect) => isWithin(rect, viewRow)));
-    if (state.selection.rows.hasIndex(viewRow) || inRange) out.push(viewRow);
-  }
-  return out;
-}
-
-function isWithin(rect: { y: number; height: number }, viewRow: number): boolean {
-  return viewRow >= rect.y && viewRow < rect.y + rect.height;
+/** Truncates to `maxRows` data rows when the scope exceeds the cap, with a dev-only warning. */
+function capExportRows(rows: string[][], maxRows: number | undefined): string[][] {
+  if (maxRows === undefined || rows.length <= maxRows) return rows;
+  if (isDev()) console.warn(`[data-grid-io] export truncated to ${maxRows} of ${rows.length} rows (maxRows)`);
+  return rows.slice(0, maxRows);
 }
 
 /**
@@ -69,7 +64,7 @@ export function buildExportRows(state: DataGridStoreState, scope: "view" | "all"
     scope === "all"
       ? state.data.map((_, i) => i)
       : scope === "selection"
-         ? selectedViewRows(state).map((viewRow) => state.viewIndex[viewRow]!)
+          ? getSelectedViewRows(state.selection).map((viewRow) => state.viewIndex[viewRow]!)
         : state.viewIndex;
   // lazy grids keep `data` sparse: skip holes before any accessor runs
   return dataIndices.filter((dataRowIndex) => state.data[dataRowIndex] !== undefined).map((dataRowIndex) => {
@@ -105,14 +100,44 @@ export function downloadBlob(blob: Blob, fileName: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
+/** Options for {@link buildXlsx}. */
+export type BuildXlsxOptions = {
+  /** Row scope, same semantics as {@link ExportGridOptions.scope}; default 'view'. */
+  scope?: "view" | "all" | "selection";
+  /** Whether to emit a header row; default true. */
+  includeHeaders?: boolean;
+  /** Name of the single sheet inside the workbook; default 'Sheet1'. */
+  workbookName?: string;
+  /** Same row cap as {@link ExportGridOptions.maxRows}. */
+  maxRows?: number;
+};
+
+/**
+ * Builds an xlsx `Blob` from the grid's state without triggering a download — for server uploads
+ * or inspecting the workbook before it leaves the browser. Values go through each column's cell
+ * type `toText` like `exportGrid`; `xlsx` loads lazily.
+ */
+export async function buildXlsx(state: DataGridStoreState, options: BuildXlsxOptions = {}): Promise<Blob> {
+  const { scope = "view", includeHeaders = true, workbookName = "Sheet1", maxRows } = options;
+  const rows = capExportRows(buildExportRows(state, scope), maxRows);
+  const table = includeHeaders ? [buildExportHeaders(state), ...rows] : rows;
+
+  const XLSX = await import("xlsx");
+  const worksheet = XLSX.utils.aoa_to_sheet(table);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, workbookName);
+  const arrayBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
+  return new Blob([arrayBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
+
 /**
  * Serializes the grid to CSV or XLSX and triggers a download. Values always go through each
  * column's cell type `toText` (never raw values), so clipboard/export fidelity matches. `xlsx` is
  * loaded lazily (dynamic `import("xlsx")`) so the dependency never loads for CSV-only consumers.
  */
 export async function exportGrid(state: DataGridStoreState, options: ExportGridOptions): Promise<void> {
-  const { format, scope = "view", includeHeaders = true, csvDelimiter = ",", csvBom = true, fileName = "export" } = options;
-  const rows = buildExportRows(state, scope);
+  const { format, scope = "view", includeHeaders = true, csvDelimiter = ",", csvBom = true, fileName = "export", workbookName, maxRows } = options;
+  const rows = capExportRows(buildExportRows(state, scope), maxRows);
   const headers = buildExportHeaders(state);
   const table = includeHeaders ? [headers, ...rows] : rows;
 
@@ -122,10 +147,6 @@ export async function exportGrid(state: DataGridStoreState, options: ExportGridO
     return;
   }
 
-  const XLSX = await import("xlsx");
-  const worksheet = XLSX.utils.aoa_to_sheet(table);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-  const arrayBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
-  downloadBlob(new Blob([arrayBuffer], { type: "application/octet-stream" }), `${fileName}.xlsx`);
+  const blob = await buildXlsx(state, { scope, includeHeaders, workbookName, maxRows });
+  downloadBlob(blob, `${fileName}.xlsx`);
 }

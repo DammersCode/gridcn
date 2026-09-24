@@ -1,5 +1,5 @@
 import type { CellType, ColumnDef, ValidateBatchItem, ValidateResult } from "@/registry/default/blocks/data-grid/data-grid";
-import { runValidateBatch, setCellValue } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev, runValidateBatch, setCellValue } from "@/registry/default/blocks/data-grid/data-grid";
 
 /** One import-column -> grid-column mapping entry; `null` skips the import column. */
 export type ImportColumnMapping = { importColumnIndex: number; gridColumnId: string | null };
@@ -9,6 +9,23 @@ export const IMPORT_CHUNK_THRESHOLD_ROWS = 5_000;
 
 /** Rows processed per chunk once {@link IMPORT_CHUNK_THRESHOLD_ROWS} is exceeded. */
 const CHUNK_SIZE = 2_000;
+
+/** One import cell whose value failed `column.validate`: the cell is cleared with its cell type's `clearValue()`, and the row is still imported. */
+export type ImportRejectedCell = {
+  /** 0-based index into `dataRows` (header row excluded). */
+  rowIndex: number;
+  /** 0-based index of the source column in the import file. */
+  importColumnIndex: number;
+  /** The grid column the value was mapped to and cleared in. */
+  gridColumnId: string;
+};
+
+/** Result of {@link buildImportedRows}: the built rows plus every rejected (cleared) cell. */
+export type BuildImportedRowsResult<TData> = {
+  rows: TData[];
+  /** Cells whose value failed `column.validate` and was cleared. Their rows are still built. */
+  rejected: ImportRejectedCell[];
+};
 
 /** Inputs for {@link buildImportedRows}. */
 export type BuildImportedRowsOptions<TData> = {
@@ -28,6 +45,7 @@ export type BuildImportedRowsOptions<TData> = {
 /** One import cell awaiting its validation verdict: where it goes, and what to write if the value is rejected. */
 type ImportCell = {
   rowIndex: number;
+  importColumnIndex: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- same TValidate erasure as BuildImportedRowsOptions.columns.
   column: ColumnDef<any, unknown, any>;
   clearedValue: unknown;
@@ -39,34 +57,48 @@ export const IMPORT_CANCELLED_MESSAGE = "import-cancelled";
 /**
  * Builds `TData` rows from parsed import rows: one `createRow(index)` per row, then each mapped
  * cell is parsed through its column's cell type `fromText` and checked by `column.validate` —
- * invalid values are cleared via `clearValue()` rather than dropping the whole row.
+ * invalid values are cleared via `clearValue()` rather than dropping the whole row, and every
+ * rejected cell is listed in the result's `rejected`.
  *
- * Returns the rows directly when every validator is synchronous AND `dataRows` is at or below
- * {@link IMPORT_CHUNK_THRESHOLD_ROWS}. Above that row count, or when a column has an ASYNC Standard
- * Schema, this returns a Promise instead: large imports are built in chunks that yield to the event
- * loop (so the dialog repaints and `options.signal` can cancel between chunks), and any async
- * validators run with the shared chunked concurrency cap. The import dialog's existing pending
- * affordance covers both waits.
+ * Returns `{ rows, rejected }` directly when every validator is synchronous AND `dataRows` is at
+ * or below {@link IMPORT_CHUNK_THRESHOLD_ROWS}. Above that row count, or when a column has an ASYNC
+ * Standard Schema, this returns a Promise instead: large imports are built in chunks that yield to
+ * the event loop (so the dialog repaints and `options.signal` can cancel between chunks), and any
+ * async validators run with the shared chunked concurrency cap. The import dialog's existing
+ * pending affordance covers both waits.
  *
  * The function form's second argument is the row as `createRow` returned it, not the row with this
  * import row's earlier columns already folded in — validating a whole import row concurrently and
  * validating it left to right cannot both be true, and the fresh row is the predictable one.
  */
-export function buildImportedRows<TData>(options: BuildImportedRowsOptions<TData>): TData[] | Promise<TData[]> {
+export function buildImportedRows<TData>(options: BuildImportedRowsOptions<TData>): BuildImportedRowsResult<TData> | Promise<BuildImportedRowsResult<TData>> {
   const { dataRows, mapping, columns, cellTypes, createRow, signal } = options;
   const columnsById = new Map(columns.map((column) => [column.id, column] as const));
   const activeMappings = mapping.filter((m): m is { importColumnIndex: number; gridColumnId: string } => m.gridColumnId !== null);
+
+  // the dialog UI prevents duplicate mappings, a custom UI's setMapping does not — the later
+  // mapping wins silently, so make it visible in dev (one warn per duplicated column)
+  const seenColumns = new Set<string>();
+  const warnedColumns = new Set<string>();
+  for (const { gridColumnId } of activeMappings) {
+    if (seenColumns.has(gridColumnId) && !warnedColumns.has(gridColumnId)) {
+      warnedColumns.add(gridColumnId);
+      if (isDev()) console.warn(`[data-grid-io] buildImportedRows: grid column "${gridColumnId}" is mapped by more than one import column - the later mapping wins`);
+    }
+    seenColumns.add(gridColumnId);
+  }
 
   if (dataRows.length > IMPORT_CHUNK_THRESHOLD_ROWS) {
     return buildImportedRowsChunked(dataRows, activeMappings, columnsById, cellTypes, createRow, signal);
   }
 
   const rows = dataRows.map((_, index) => createRow(index));
+  const rejected: ImportRejectedCell[] = [];
   const { items, cells } = buildCellsForRange(dataRows, 0, dataRows.length, activeMappings, columnsById, cellTypes, rows);
 
   const results = runValidateBatch(items);
-  if (results instanceof Promise) return results.then((resolved) => writeCells(rows, cells, resolved));
-  return writeCells(rows, cells, results);
+  if (results instanceof Promise) return results.then((resolved) => ({ rows: writeCells(rows, cells, resolved, rejected), rejected }));
+  return { rows: writeCells(rows, cells, results, rejected), rejected };
 }
 
 /** One resolved mapping entry: the source column index paired with its target column definition. */
@@ -95,7 +127,7 @@ function buildCellsForRange<TData>(
       const text = sourceRow[importColumnIndex] ?? "";
       // as never: validate is typed against this column's own TData/TValue, which TS can't unify with the generic TData/unknown here — safe since column and row/value are all this same import's TData.
       items.push({ validate: column.validate as never, value: cellType.fromText(text, column.options), row: rows[rowIndex] });
-      cells.push({ rowIndex, column, clearedValue: cellType.clearValue(column.options) });
+      cells.push({ rowIndex, importColumnIndex, column, clearedValue: cellType.clearValue(column.options) });
     }
   }
   return { items, cells };
@@ -119,25 +151,27 @@ async function buildImportedRowsChunked<TData>(
   cellTypes: Record<string, CellType<TData, unknown, unknown>>,
   createRow: (index: number) => TData,
   signal?: AbortSignal,
-): Promise<TData[]> {
+): Promise<BuildImportedRowsResult<TData>> {
   const rows = dataRows.map((_, index) => createRow(index));
+  const rejected: ImportRejectedCell[] = [];
 
   for (let start = 0; start < dataRows.length; start += CHUNK_SIZE) {
     if (signal?.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
     const end = Math.min(start + CHUNK_SIZE, dataRows.length);
     const { items, cells } = buildCellsForRange(dataRows, start, end, activeMappings, columnsById, cellTypes, rows);
     const results = await runValidateBatch(items);
-    writeCells(rows, cells, results);
+    writeCells(rows, cells, results, rejected);
     await yieldToEventLoop();
   }
   if (signal?.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
 
-  return rows;
+  return { rows, rejected };
 }
 
 /**
  * Folds each verdict into its row: the validator's output on success, the cell type's `clearValue()`
- * on rejection. `cells` is grouped by `rowIndex` (built in mapping order per row), so a run of
+ * on rejection (the rejected cell is appended to `rejected`). `cells` is grouped by `rowIndex`
+ * (built in mapping order per row), so a run of
  * consecutive plain-`accessorKey` cells for the same row is merged into one spread instead of one
  * spread per cell — this was the measured hot spot, one spread + 2 temp objects per cell at scale.
  * The run is flushed (a) before a `setValue` cell in the same row, so `setValue` still sees every
@@ -145,7 +179,7 @@ async function buildImportedRowsChunked<TData>(
  * boundary. A column with a custom `setValue` keeps writing through `setCellValue` per cell, since
  * only `setValue` knows how to fold its own value into the row.
  */
-function writeCells<TData>(rows: TData[], cells: readonly ImportCell[], results: readonly ValidateResult[]): TData[] {
+function writeCells<TData>(rows: TData[], cells: readonly ImportCell[], results: readonly ValidateResult[], rejected: ImportRejectedCell[]): TData[] {
   let pendingRow = -1;
   let pendingPatch: Record<string, unknown> | null = null;
   const flush = () => {
@@ -159,7 +193,9 @@ function writeCells<TData>(rows: TData[], cells: readonly ImportCell[], results:
     const cell = cells[i]!; // i < cells.length by loop condition
     const result = results[i];
     if (!result) continue;
-    const value = "error" in result ? cell.clearedValue : result.value;
+    const isRejected = "error" in result;
+    if (isRejected) rejected.push({ rowIndex: cell.rowIndex, importColumnIndex: cell.importColumnIndex, gridColumnId: cell.column.id });
+    const value = isRejected ? cell.clearedValue : result.value;
 
     if (cell.rowIndex !== pendingRow) flush();
     pendingRow = cell.rowIndex;

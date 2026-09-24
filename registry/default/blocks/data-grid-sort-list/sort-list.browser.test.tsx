@@ -178,6 +178,57 @@ describe("DataGridSortList", () => {
     await expect.poll(() => document.querySelector(gridAttrSelector("sortCount"))?.textContent).toBe("2");
   });
 
+  it("allColumns lists hidden columns so they can be sorted through the menu", async () => {
+    const hiddenAgeColumns = defineColumns<Row>()([
+      { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140 },
+      { id: "age", header: "Age", accessorKey: "age", type: "number", width: 100, hidden: true },
+    ] as const);
+    render(
+      <DataGridProvider data={makeRows()} columns={hiddenAgeColumns} getRowId={(r) => r.id}>
+        <DataGridToolbar>
+          <DataGridSortList allColumns />
+        </DataGridToolbar>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await page.getByRole("button", { name: "Sorts" }).click();
+    await page.getByRole("button", { name: "Add sort" }).click();
+    const columnTriggers = document.querySelectorAll<HTMLElement>('[aria-label="Sort column"]');
+    columnTriggers[0]!.click();
+    await page.getByRole("option", { name: "Age" }).click();
+    await expect.poll(() => document.querySelector('[aria-label="Sort column"]')?.textContent).toContain("Age");
+    // the hidden column's sort is applied: age asc -> Carol (25), Bob (30), Alice (40)
+    await expect.poll(() => nameCellsInOrder()).toEqual(["Carol", "Bob", "Alice"]);
+  });
+
+  it("by default the column select lists only visible columns", async () => {
+    const hiddenAgeColumns = defineColumns<Row>()([
+      { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140 },
+      { id: "age", header: "Age", accessorKey: "age", type: "number", width: 100, hidden: true },
+    ] as const);
+    render(
+      <DataGridProvider data={makeRows()} columns={hiddenAgeColumns} getRowId={(r) => r.id}>
+        <DataGridToolbar>
+          <DataGridSortList />
+        </DataGridToolbar>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await page.getByRole("button", { name: "Sorts" }).click();
+    await page.getByRole("button", { name: "Add sort" }).click();
+    const columnTriggers = document.querySelectorAll<HTMLElement>('[aria-label="Sort column"]');
+    columnTriggers[0]!.click();
+    await expect
+      .poll(() => [...document.querySelectorAll<HTMLElement>('[role="option"]')].map((o) => o.textContent))
+      .toEqual(["Name"]);
+  });
+
   it("hiding a sorted column removes it from the row's own select without landing a null columnId", async () => {
     renderGridWithColumnsMenu();
     await openSortMenu();

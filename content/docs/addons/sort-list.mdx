@@ -6,7 +6,7 @@ icon: ListOrdered
 
 Click-to-sort headers work without any add-on, but `data-grid-sort-list` gives users a toolbar
 button and popover to add, remove, and reorder sorts without touching the headers. This is
-useful when columns are hidden or narrow, or when you prefer not to rely on shift-click for
+useful when columns are narrow, or when you prefer not to rely on shift-click for
 multi-column sort.
 
 <ComponentPreview name="data-grid-sort-list-demo" />
@@ -33,6 +33,10 @@ through the keyboard (see below). It reads and writes the same `useDataGridSortS
 `useDataGridActions().setSorts()` as click-to-sort headers, so the two UIs stay in sync
 automatically. The button shows a count badge once one or more sorts are applied, matching the
 badge of `DataGridFilterMenu`.
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `allColumns` | `boolean` | `false` | Lists every column in the select, including hidden ones, instead of only the visible columns. |
 
 ## Keyboard & accessibility
 

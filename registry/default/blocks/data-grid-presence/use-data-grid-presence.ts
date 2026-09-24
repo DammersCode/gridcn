@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useDataGridRowIdToViewRow, useDataGridVisibleColumns, type OverlayPlugin } from "@/registry/default/blocks/data-grid/data-grid";
+import { useEffect, useMemo, useState } from "react";
+import { useDataGridRowIdToViewRow, useDataGridStoreApi, useDataGridVisibleColumns, type OverlayPlugin } from "@/registry/default/blocks/data-grid/data-grid";
 import {
   createPresenceStore,
+  isRowIdPresenceHighlight,
+  isRowIdRangePresenceHighlight,
   usePresenceHighlights,
   warnDev,
   type PresenceHighlightEntry,
@@ -80,13 +82,25 @@ function makePresencePlugin(store: PresenceStoreApi): OverlayPlugin {
     warnedRangeIssues.add(key);
     warnDev(`presence entry "${entry.id}" resolves to ${total} fragments, above the ${kept}-rect budget; the excess is not painted (downsample the remote selection or filter it)`);
   };
+  const viewSpaceActive = () =>
+    store.getState().highlights.some((entry) => !isRowIdPresenceHighlight(entry) && !isRowIdRangePresenceHighlight(entry));
   return (ctx) => {
-    // all three run once per DataGridOverlays render, same call order every time (see doc comment
+    // all four run once per DataGridOverlays render, same call order every time (see doc comment
     // above) — rowId resolution piggybacks on the same call site rather than adding a second
     // hook-calling layer, since this closure is already the one place that's safe to do so.
     const highlights = usePresenceHighlights(store);
     const rowIdToViewRow = useDataGridRowIdToViewRow();
     const visibleColumns = useDataGridVisibleColumns();
+    const gridStoreApi = useDataGridStoreApi();
+    // core dev-warns once when a row-moving op runs while a view-space entry is active; the
+    // predicate reads the live entry list so registration happens once per plugin mount.
+    useEffect(() => {
+      const actions = gridStoreApi.getState().actions;
+      actions._registerPresenceViewSpaceActive(viewSpaceActive);
+      return () => {
+        actions._registerPresenceViewSpaceActive(null);
+      };
+    }, [gridStoreApi, viewSpaceActive]);
     // memoized on the three inputs' identity: local selection/keystroke re-renders of DataGridOverlays
     // must not re-run the resolve math or re-allocate the rect objects the memoized overlay nodes compare
     const resolved = useMemo(

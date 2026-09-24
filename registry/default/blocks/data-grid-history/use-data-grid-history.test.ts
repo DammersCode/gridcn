@@ -360,4 +360,79 @@ describe("useDataGridHistory", () => {
     expect(warn).toHaveBeenCalledTimes(1);
     warn.mockRestore();
   });
+
+  it("historySize tracks the undo stack across record, undo, redo, and clear", () => {
+    const h = setupHarness();
+    expect(h.hook.result.current.historySize).toBe(0);
+    const prev = initialRows[0]!;
+    const next = { ...prev, name: "Changed" };
+    act(() => h.hook.result.current.onDataChange([next, initialRows[1]!, initialRows[2]!], editChange("a", next, prev)));
+    h.sync();
+    expect(h.hook.result.current.historySize).toBe(1);
+
+    act(() => h.hook.result.current.undo());
+    h.sync();
+    expect(h.hook.result.current.historySize).toBe(0);
+
+    act(() => h.hook.result.current.redo());
+    h.sync();
+    expect(h.hook.result.current.historySize).toBe(1);
+
+    act(() => h.hook.result.current.clear());
+    expect(h.hook.result.current.historySize).toBe(0);
+  });
+
+  it("clears both undo and redo stacks when datasetKey changes", () => {
+    let key = "A";
+    let data: readonly Row[] = initialRows;
+    const setData = (next: readonly Row[]) => {
+      data = next;
+    };
+    const { result, rerender } = renderHook(
+      (props: { key: string }) => useDataGridHistory({ data, setData, getRowId, datasetKey: props.key }),
+      { initialProps: { key } },
+    );
+
+    const prev = initialRows[0]!;
+    const next = { ...prev, name: "Changed" };
+    act(() => result.current.onDataChange([next, initialRows[1]!, initialRows[2]!], editChange("a", next, prev)));
+    rerender({ key });
+    expect(result.current.canUndo).toBe(true);
+
+    act(() => result.current.undo());
+    rerender({ key });
+    expect(result.current.canRedo).toBe(true);
+
+    key = "B";
+    rerender({ key });
+    expect(result.current.canUndo).toBe(false);
+    expect(result.current.canRedo).toBe(false);
+    expect(result.current.historySize).toBe(0);
+    // the data array itself is untouched — only the stacks clear
+    expect(data[0]!.name).toBe("Alice");
+  });
+
+  it("does not clear the stack on the initial mount when datasetKey is set", () => {
+    const { result } = renderHook(() =>
+      useDataGridHistory({ data: initialRows, setData: vi.fn(), getRowId, datasetKey: "A" }),
+    );
+    const prev = initialRows[0]!;
+    const next = { ...prev, name: "Changed" };
+    act(() => result.current.onDataChange([next, initialRows[1]!, initialRows[2]!], editChange("a", next, prev)));
+    expect(result.current.canUndo).toBe(true);
+    expect(result.current.historySize).toBe(1);
+  });
+
+  it("keeps history when datasetKey is stable across renders", () => {
+    const { result, rerender } = renderHook(() =>
+      useDataGridHistory({ data: initialRows, setData: vi.fn(), getRowId, datasetKey: 7 }),
+    );
+    const prev = initialRows[0]!;
+    const next = { ...prev, name: "Changed" };
+    act(() => result.current.onDataChange([next, initialRows[1]!, initialRows[2]!], editChange("a", next, prev)));
+    rerender();
+    rerender();
+    expect(result.current.canUndo).toBe(true);
+    expect(result.current.historySize).toBe(1);
+  });
 });

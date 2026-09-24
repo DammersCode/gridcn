@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { parseImportFile, type CsvDelimiter } from "./parse-import-file";
+import { parseImportFile, type CsvDelimiter, type ParsedImportFile } from "./parse-import-file";
 import { applyImportOptions, type ImportTargetColumn, type ImportDefaults } from "./match-import-column";
 import type { ImportColumnMapping } from "./build-imported-rows";
 
@@ -15,6 +15,11 @@ export type ImportErrorKey = "errorParseFailed" | "errorNoRows" | "errorUnsuppor
 
 /** Error thrown by {@link parseImportFile} for extensions outside csv/xlsx/xls. */
 const UNSUPPORTED_FILE_TYPE_MESSAGE = "unsupported-file-type";
+
+/** True when a parse was aborted (new file chosen, dialog closed) — the caller drops the result instead of surfacing an error. */
+function isAbortError(err: unknown): boolean {
+  return err instanceof Error && err.name === "AbortError";
+}
 
 /** Parsed-and-ready import state, once a file has been chosen and parsed successfully. */
 export type ImportFileState = {
@@ -88,11 +93,15 @@ export function useDataGridImportPreview(
   // kept for delimiter-override re-parses, which need the original file + target columns again.
   const currentFileRef = useRef<File | null>(null);
   const gridColumnsRef = useRef<readonly ImportTargetColumn[]>([]);
-  // generation guard for async sheet re-parses: a newer switch must win over a slower older one.
+  // aborts an in-flight file read when a newer load starts or the dialog resets.
+  const parseControllerRef = useRef<AbortController | null>(null);
+  // generation guard for async sheet re-parses: a newer sheet switch, file load, or reset must win over a slower older one.
   const sheetGenerationRef = useRef(0);
   const { defaultHeaderRow = true, defaultSkipColumns, mapColumn } = options;
 
   const reset = useCallback(() => {
+    sheetGenerationRef.current += 1;
+    parseControllerRef.current?.abort();
     setPreview(null);
     setError(null);
     setIsParsing(false);
@@ -101,10 +110,14 @@ export function useDataGridImportPreview(
   }, []);
 
   const loadFile = useCallback(async (file: File, gridColumns: readonly ImportTargetColumn[]) => {
+    sheetGenerationRef.current += 1;
+    parseControllerRef.current?.abort();
+    const controller = new AbortController();
+    parseControllerRef.current = controller;
     setError(null);
     setIsParsing(true);
     try {
-      const parsed = await parseImportFile(file, { csvDelimiter: resolveDelimiterOverride(options) });
+      const parsed = await parseImportFile(file, { csvDelimiter: resolveDelimiterOverride(options) }, controller.signal);
       if (parsed.rows.length === 0) {
         setError("errorNoRows");
         setPreview(null);
@@ -126,6 +139,7 @@ export function useDataGridImportPreview(
         sheetName: parsed.sheetName,
       });
     } catch (err) {
+      if (isAbortError(err)) return; // superseded by a newer file or a dialog reset
       const isUnsupportedType = err instanceof Error && err.message === UNSUPPORTED_FILE_TYPE_MESSAGE;
       setError(isUnsupportedType ? "errorUnsupportedFile" : "errorParseFailed");
       setPreview(null);
@@ -148,10 +162,16 @@ export function useDataGridImportPreview(
 
   const setDelimiter = useCallback(
     async (delimiter: CsvDelimiter) => {
-      const file = currentFileRef.current;
-      if (!file) return;
-      const parsed = await parseImportFile(file, { csvDelimiter: delimiter });
-      if (parsed.rows.length === 0) return;
+    const file = currentFileRef.current;
+    if (!file) return;
+    let parsed: ParsedImportFile;
+    try {
+      parsed = await parseImportFile(file, { csvDelimiter: delimiter }, parseControllerRef.current?.signal);
+    } catch (err) {
+      if (isAbortError(err)) return;
+      throw err;
+    }
+    if (parsed.rows.length === 0) return;
       setPreview((prev) => {
         if (!prev) return prev;
         const importHeaders = computeImportHeaders(parsed.rows, prev.hasHeaderRow, columnFallback);
@@ -176,8 +196,8 @@ export function useDataGridImportPreview(
       setError(null);
       setIsParsing(true);
       try {
-        const parsed = await parseImportFile(file, { sheetName });
-        if (generation !== sheetGenerationRef.current) return; // superseded by a newer sheet switch
+        const parsed = await parseImportFile(file, { sheetName }, parseControllerRef.current?.signal);
+        if (generation !== sheetGenerationRef.current) return; // superseded by a newer sheet switch, file load, or reset
         if (parsed.rows.length === 0) {
           // empty sheet: the picker keeps the chosen name honest, the preview clears, Import stays disabled
           setPreview((prev) =>
@@ -198,7 +218,8 @@ export function useDataGridImportPreview(
             mapping: matched.map((gridColumnId, importColumnIndex) => ({ importColumnIndex, gridColumnId })),
           };
         });
-      } catch {
+      } catch (err) {
+        if (isAbortError(err)) return;
         if (generation === sheetGenerationRef.current) setError("errorParseFailed");
       } finally {
         if (generation === sheetGenerationRef.current) setIsParsing(false);

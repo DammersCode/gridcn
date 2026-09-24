@@ -362,10 +362,15 @@
                "target": "components/data-grid/selection/select-line-options.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/selection/selected-col-ranges-for-row.ts",
-               "type": "registry:component",
-               "target": "components/data-grid/selection/selected-col-ranges-for-row.ts"
-            },
+                "path": "registry/default/blocks/data-grid/selection/selected-col-ranges-for-row.ts",
+                "type": "registry:component",
+                "target": "components/data-grid/selection/selected-col-ranges-for-row.ts"
+             },
+            {
+                "path": "registry/default/blocks/data-grid/selection/selected-view-rows.ts",
+                "type": "registry:component",
+                "target": "components/data-grid/selection/selected-view-rows.ts"
+             },
             {
                "path": "registry/default/blocks/data-grid/selection/selection-ops.ts",
                "type": "registry:component",

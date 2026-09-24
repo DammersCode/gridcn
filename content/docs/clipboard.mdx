@@ -88,6 +88,12 @@ with a "press Ctrl+V" hint when the browser withholds it.
 
 ## Known limitations
 
+<Callout type="warn" title="Copy and paste are capped at 200,000 cells">
+  A copy above `MAX_COPY_CELLS` (200,000 cells) writes only the rows that fit; a paste above
+  `MAX_PASTE_CELLS` (200,000 cells) applies only the cells that fit. A truncated copy or paste
+  warns once in the browser console in development.
+</Callout>
+
 <Callout type="warn" title="Real-world clipboard HTML is messy">
   Clipboard HTML from Excel, Google Sheets, and Apple Numbers is often inconsistent, with
   merged-cell artifacts and inline styles that masquerade as structure. The parser is defensive

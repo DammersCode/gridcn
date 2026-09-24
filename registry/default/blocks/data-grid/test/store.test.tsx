@@ -2762,3 +2762,43 @@ describe("updateCells while an edit session is open", () => {
     expect(result.current.viewStale).toBe(false);
   });
 });
+
+describe("row-moving ops with an active view-space presence entry", () => {
+  // The warn is module-once (not per op): the first test must not consume it, hence the false
+  // predicate here — it also pins that rowId-native-only presence (false) never warns.
+  it("does not warn while the registered predicate reports no view-space entry", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+
+    act(() => result.current._registerPresenceViewSpaceActive(() => false));
+    act(() => {
+      result.current.reorderRows(0, 2);
+    });
+    act(() => {
+      result.current.updateCells([{ rowId: "1", columnId: "age", value: 31 }], { reorder: "immediate" });
+    });
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("warns exactly once across repeated row-moving ops, not per op", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+
+    act(() => result.current._registerPresenceViewSpaceActive(() => true));
+    act(() => {
+      result.current.reorderRows(0, 2);
+    });
+    act(() => {
+      result.current.reorderRows(2, 0);
+    });
+    act(() => {
+      result.current.updateCells([{ rowId: "1", columnId: "age", value: 31 }], { reorder: "immediate" });
+    });
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]?.[0]).toContain("view-space presence");
+    warn.mockRestore();
+  });
+});

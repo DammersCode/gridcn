@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   useDataGridActions,
+  useDataGridAllColumns,
   useDataGridLabels,
   useDataGridSortState,
   useDataGridVisibleColumns,
@@ -22,6 +23,11 @@ import {
 /** Props for {@link DataGridSortList}. */
 export type DataGridSortListProps = {
   className?: string;
+  /**
+   * Source the column options from every column (including hidden ones) instead of only the visible
+   * columns; default false. Lets the menu add and manage sorts on hidden columns.
+   */
+  allColumns?: boolean;
 };
 
 /** dnd-kit drag payload for a sort row: compiler-checked in place of `Record<string, any>`. */
@@ -53,10 +59,12 @@ function moveItem<T>(list: T[], fromIndex: number, toIndex: number): T[] {
  * id, unlike `FilterSpec`) since a column can appear at most once in the list.
  */
 export function DataGridSortList(props: DataGridSortListProps): ReactNode {
-  const { className } = props;
+  const { className, allColumns = false } = props;
   const actions = useDataGridActions();
   const sorts = useDataGridSortState();
-  const columns = useDataGridVisibleColumns();
+  const visibleColumns = useDataGridVisibleColumns();
+  const gridColumns = useDataGridAllColumns();
+  const columns = allColumns ? gridColumns : visibleColumns;
   const labels = useDataGridLabels();
   const sortableColumns = columns.filter((c) => c.sortable !== false);
   const sortedColumnIds = useMemo(() => new Set(sorts.map((s) => s.columnId)), [sorts]);

@@ -91,6 +91,13 @@ describe("useDataGridPagination: client mode", () => {
     const { result } = renderHook(() => useDataGridPagination({ data: makeData(40), pageSizeOptions: [10, 20] }));
     expect(result.current.controls.pageSize).toBe(10);
   });
+
+  it("calls the optional onPageSizeChange callback with the new size", () => {
+    const onPageSizeChange = vi.fn();
+    const { result } = renderHook(() => useDataGridPagination({ data: makeData(101), pageSize: 25, onPageSizeChange }));
+    act(() => result.current.controls.onPageSizeChange(50));
+    expect(onPageSizeChange).toHaveBeenCalledWith(50);
+  });
 });
 
 describe("useDataGridPagination: server mode", () => {
@@ -126,9 +133,51 @@ describe("useDataGridPagination: server mode", () => {
     expect(onPageSizeChange).toHaveBeenCalledWith(50);
   });
 
-  it("onPageSizeChange is a harmless no-op when the consumer doesn't provide one", () => {
+  it("dev-warns once when a page-size change lands on the missing onPageSizeChange", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const onPageChange = vi.fn();
     const { result } = renderHook(() => useDataGridPagination({ page: 1, pageSize: 20, total: 240, onPageChange }));
-    expect(() => result.current.controls.onPageSizeChange(50)).not.toThrow();
+    act(() => result.current.controls.onPageSizeChange(50));
+    act(() => result.current.controls.onPageSizeChange(100));
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("onPageSizeChange"));
+    warn.mockRestore();
+  });
+});
+
+describe("useDataGridPagination: server mode, reconcilePage", () => {
+  it("fires the consumer's onPageChange with the clamped page when total shrinks below it", () => {
+    const onPageChange = vi.fn();
+    const { rerender } = renderHook(
+      ({ total }: { total: number }) =>
+        useDataGridPagination({ page: 12, pageSize: 20, total, onPageChange, reconcilePage: true }),
+      { initialProps: { total: 240 } },
+    );
+    // page 12 of 12 at mount — in range, nothing fires
+    expect(onPageChange).not.toHaveBeenCalled();
+    rerender({ total: 100 }); // now 5 pages
+    expect(onPageChange).toHaveBeenCalledTimes(1);
+    expect(onPageChange).toHaveBeenCalledWith(5);
+  });
+
+  it("does not fire while the page stays in range", () => {
+    const onPageChange = vi.fn();
+    const { rerender } = renderHook(
+      ({ total }: { total: number }) =>
+        useDataGridPagination({ page: 3, pageSize: 20, total, onPageChange, reconcilePage: true }),
+      { initialProps: { total: 240 } },
+    );
+    rerender({ total: 100 }); // 5 pages, page 3 still in range
+    expect(onPageChange).not.toHaveBeenCalled();
+  });
+
+  it("stays silent for an out-of-range page unless reconcilePage is set", () => {
+    const onPageChange = vi.fn();
+    const { rerender } = renderHook(
+      ({ total }: { total: number }) => useDataGridPagination({ page: 99, pageSize: 20, total, onPageChange }),
+      { initialProps: { total: 240 } },
+    );
+    rerender({ total: 100 });
+    expect(onPageChange).not.toHaveBeenCalled();
   });
 });

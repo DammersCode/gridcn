@@ -38,6 +38,8 @@ export type DataGridPaginationBarProps = DataGridPaginationControls & {
    * and so has no store to read `useDataGridLabels()` from.
    */
   labels?: Partial<DataGridPaginationLabels>;
+  /** How many numbered page buttons the default layout shows at once (forwarded to `DataGridPaginationPages`; ignored with `children`). */
+  windowSize?: number;
   /** Custom composition of parts; omit to render the default layout (range, page-size, first/prev/pages/next/last). */
   children?: ReactNode;
 };
@@ -55,7 +57,7 @@ export type DataGridPaginationBarProps = DataGridPaginationControls & {
  * which mode it's rendering for.
  */
 export function DataGridPaginationBar(props: DataGridPaginationBarProps): ReactNode {
-  const { page, pageCount, pageSize, pageSizeOptions, total, onPageChange, onPageSizeChange, className, labels: labelsOverride, children } = props;
+  const { page, pageCount, pageSize, pageSizeOptions, total, onPageChange, onPageSizeChange, className, labels: labelsOverride, windowSize, children } = props;
   const controls: DataGridPaginationControls = { page, pageCount, pageSize, pageSizeOptions, total, onPageChange, onPageSizeChange };
   const labels = { ...DEFAULT_LABELS.pagination, ...labelsOverride };
 
@@ -70,7 +72,7 @@ export function DataGridPaginationBar(props: DataGridPaginationBarProps): ReactN
               <div className="flex items-center gap-1">
                 <DataGridPaginationFirst />
                 <DataGridPaginationPrev />
-                <DataGridPaginationPages />
+                <DataGridPaginationPages windowSize={windowSize} />
                 <DataGridPaginationNext />
                 <DataGridPaginationLast />
               </div>

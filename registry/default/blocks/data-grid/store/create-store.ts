@@ -61,8 +61,12 @@ import {
 } from "./commit";
 import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
 import { createRowIndexCache, resolveReorder, touchesViewInputs } from "./row-index";
-import type { AnyColumnDef, CellPatch, DataGridStoreState, InternalSyncProps, SyncInputs } from "./types";
+import type { AnyColumnDef, CellPatch, DataGridStoreState, InternalSyncProps, SyncInputs, UpdateCellsVerdict } from "./types";
 import { syncInputsEqual } from "./types";
+
+// Once-per-session flag: view-space presence entries pin to a display position a row move
+// invalidates; the warning fires once, not per row-moving op.
+let warnedPresenceReorder = false;
 
 /**
  * Creates one grid's vanilla store instance. Module-private: never export this
@@ -250,6 +254,14 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     }
     return next ?? cellErrors;
   };
+  // View-space presence entries pin to a display position a row move invalidates (rowId-native
+  // entries track their rows and never trip this): warn once when a row-moving op runs while one
+  // is active. The predicate is registered by the `data-grid-presence` add-on; null when absent.
+  const warnViewSpacePresenceStale = (s: DataGridStoreState) => {
+    if (warnedPresenceReorder || !s.presenceViewSpaceActive?.()) return;
+    warnedPresenceReorder = true;
+    warnDev('rows moved (reorderRows / updateCells reorder: "immediate") while a view-space presence entry is active — its highlight position is now stale; use rowId-native presence entries for a live feed');
+  };
   const initViewIndex = computeViewIndex(initData, seeded.columns, init.sortState ?? [], initFilterState, initJoinOperator, undefined, initCellTypes);
   return createStore<DataGridStoreState>((set, get) => ({
     ...init,
@@ -288,6 +300,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     visibleColumns,
     scrollToCellImpl: null,
     fillHandlers: null,
+    presenceViewSpaceActive: null,
     readOnly: false,
     keymap: DEFAULT_KEYMAP,
     labels: mergeLabels(init.labels),
@@ -740,33 +753,34 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       updateCells(patches, options) {
         const s = get();
-        if (s.readOnly || patches.length === 0) return;
+        if (s.readOnly || patches.length === 0) return { applied: 0, skipped: [], pending: false };
         const skipValidation = options?.skipValidation ?? false;
 
         // Re-enters with skipValidation once accepted, so the incremental view path only ever sees validated values.
         if (!skipValidation && patchesNeedAsyncCheck(s, patches)) {
           const rowIndex = rowIndexCache.resolve(s.data, s.getRowId);
           const validated = prevalidatePatches(s, patches, rowIndex);
-          const apply = (accepted: CellPatch[]) => {
-            if (accepted.length === 0) return;
-            get().actions.updateCells(accepted, { ...options, skipValidation: true });
+          const apply = (accepted: CellPatch[]): UpdateCellsVerdict => {
+            if (accepted.length === 0) return { applied: 0, skipped: [], pending: false };
+            return get().actions.updateCells(accepted, { ...options, skipValidation: true });
           };
           if (validated instanceof Promise) {
             const token = ++streamGeneration;
             void validated.then((accepted) => {
               // A newer updateCells, or any path that moved rows, supersedes this batch silently.
               if (streamGeneration !== token) return;
-              apply(accepted);
+              void apply(accepted);
             });
-          } else {
-            apply(validated);
+            // the held batch's outcome (accepted, dropped, or superseded) is not reportable here
+            return { applied: 0, skipped: [], pending: true };
           }
-          return;
+          return apply(validated);
         }
 
         const rowIndex = rowIndexCache.resolve(s.data, s.getRowId);
         const batch = computeCellPatchBatch(s, patches, rowIndex, skipValidation);
-        if (!batch) return;
+        if (batch.nextData === null) return { applied: 0, skipped: batch.skipped, pending: false };
+        const applied = batch.ops.reduce((n, op) => (op.type === "update" ? n + (op.cells?.length ?? 0) : n), 0);
 
         let reorder = resolveReorder(options?.reorder, patches, s.sortState, s.filterState);
         // an open editor pins a view coordinate an immediate re-sort would silently remount (the
@@ -792,8 +806,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
               ? { data: batch.nextData, viewStale: true, cellErrors }
               : { data: batch.nextData, cellErrors },
           );
-          return;
+          return { applied, skipped: batch.skipped, pending: false };
         }
+        warnViewSpacePresenceStale(s);
         // Incremental maintenance: a full rebuild re-sorts all n rows every tick, and a patch of a
         // few rows can only move those rows. Rows an earlier non-reordering batch left unreconciled
         // move in this pass too, since the rest of the order is what the binary search trusts.
@@ -806,16 +821,17 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           viewStale: false,
           ...computeSearchMatches(batch.nextData, s.columns, viewIndex, s.visibleColumns, s.searchText),
         });
+        return { applied, skipped: batch.skipped, pending: false };
       },
       updateRows(updates, options) {
-        if (updates.length === 0) return;
+        if (updates.length === 0) return { applied: 0, skipped: [], pending: false };
         const patches: CellPatch[] = [];
         for (const update of updates) {
           for (const columnId of Object.keys(update.changes)) {
             patches.push({ rowId: update.rowId, columnId, value: update.changes[columnId] });
           }
         }
-        get().actions.updateCells(patches, options);
+        return get().actions.updateCells(patches, options);
       },
       reconcileView() {
         const s = get();
@@ -965,6 +981,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         nextData.splice(fromData, 1);
         nextData.splice(toData, 0, moved);
         const ops: DataOp<unknown>[] = [{ type: "move", rowId: s.getRowId(moved, fromData), row: moved, from: fromData, to: toData }];
+        warnViewSpacePresenceStale(s);
         rowIndexCache.invalidate();
         forgetDeferredRows();
         lastEmittedData = nextData;
@@ -1128,6 +1145,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       _registerFillHandlers(handlers) {
         set({ fillHandlers: handlers });
+      },
+      _registerPresenceViewSpaceActive(impl) {
+        set({ presenceViewSpaceActive: impl });
       },
     },
   }));

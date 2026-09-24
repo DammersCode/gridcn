@@ -59,6 +59,31 @@ describe("DataGridSearch debounce", () => {
     vi.useRealTimers();
   });
 
+  it("honours a custom debounceMs instead of the 200ms default", () => {
+    vi.useFakeTimers();
+    render(
+      <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
+        <DataGridSearch debounceMs={500} />
+        <DataGridRoot>
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    const input = screen.getByRole("textbox", { name: "Search grid" });
+    fireEvent.change(input, { target: { value: "alice" } });
+    // the 200ms default has long passed, but the 500ms window has not — nothing committed yet.
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(screen.queryByText(/^\d+\/\d+$/)).not.toBeInTheDocument();
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(screen.getByText("1/1")).toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
   it("restarts the debounce on each keystroke instead of firing per-keystroke", () => {
     vi.useFakeTimers();
     renderSearch();

@@ -11,7 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+  isDev,
   useDataGridActions,
+  useDataGridAllColumns,
   useDataGridFilterState,
   useDataGridJoinOperator,
   useDataGridLabels,
@@ -28,6 +30,12 @@ import { DataGridFilterValueInput } from "./filter-value-input";
 /** Props for {@link DataGridFilterMenu}. */
 export type DataGridFilterMenuProps = {
   className?: string;
+  /**
+   * Source the column options from every column (including hidden ones) instead of only the visible
+   * columns; default false. Without it, a filter set on a hidden column (programmatically or via a
+   * restored layout) keeps applying but renders with no column context and logs a dev-time warning.
+   */
+  allColumns?: boolean;
 };
 
 /** dnd-kit drag payload for a filter row: compiler-checked in place of `Record<string, any>`. */
@@ -61,13 +69,29 @@ function moveItem<T>(list: T[], fromIndex: number, toIndex: number): T[] {
  * persisted through `setFilters` on every reorder.
  */
 export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
-  const { className } = props;
+  const { className, allColumns = false } = props;
   const actions = useDataGridActions();
   const filters = useDataGridFilterState();
   const joinOperator = useDataGridJoinOperator();
-  const columns = useDataGridVisibleColumns();
+  const visibleColumns = useDataGridVisibleColumns();
+  const gridColumns = useDataGridAllColumns();
+  const columns = allColumns ? gridColumns : visibleColumns;
   const labels = useDataGridLabels();
   const filterableColumns = columns.filter((c) => c.filterable !== false);
+
+  // A filter on a column outside the menu's option list (a hidden column by default, or one no
+  // longer in the grid) still applies to the view but renders with no column context and no picker
+  // entry to re-target it — warn in dev and point at the fix.
+  useEffect(() => {
+    if (!isDev()) return;
+    const listed = new Set(columns.map((c) => c.id));
+    const orphans = filters.filter((f) => !listed.has(f.columnId));
+    if (orphans.length === 0) return;
+    const ids = Array.from(new Set(orphans.map((f) => f.columnId)));
+    console.warn(
+      `[data-grid-toolbar] DataGridFilterMenu: ${orphans.length} filter row(s) target column(s) missing from the menu's column list (${ids.join(", ")}); pass allColumns to manage hidden-column filters here`,
+    );
+  }, [filters, columns]);
 
   const [announcement, setAnnouncement] = useState("");
   const gripRefs = useRef(new Map<string, HTMLButtonElement | null>());

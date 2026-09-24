@@ -21,6 +21,7 @@ import type {
   RowPatch,
   UpdateCellsOptions,
   UpdateCellsReorder,
+  UpdateCellsVerdict,
   DeepPartialLabels,
   FilterJoinOperator,
   FilterSpec,
@@ -321,10 +322,11 @@ void badSource;
 const rowPatch: RowPatch = { rowId: "r1", changes: { price: 12.5, volume: 900 } };
 void rowPatch;
 
-// The actions surface: both take a readonly patch list and an optional options object.
+// The actions surface: both take a readonly patch list and an optional options object, and return
+// the per-patch verdict (applied / skipped with reason / pending for a held async batch).
 declare const _actions: DataGridActions;
-assertEqual<(patches: readonly CellPatch[], options?: UpdateCellsOptions) => void, typeof _actions.updateCells>(true);
-assertEqual<(updates: readonly RowPatch[], options?: UpdateCellsOptions) => void, typeof _actions.updateRows>(true);
+assertEqual<(patches: readonly CellPatch[], options?: UpdateCellsOptions) => UpdateCellsVerdict, typeof _actions.updateCells>(true);
+assertEqual<(updates: readonly RowPatch[], options?: UpdateCellsOptions) => UpdateCellsVerdict, typeof _actions.updateRows>(true);
 assertEqual<() => void, typeof _actions.reconcileView>(true);
 
 // TValue typing flows through the usual ColumnDef conventions: a consumer builds patches from a

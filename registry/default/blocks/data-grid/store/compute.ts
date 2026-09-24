@@ -175,10 +175,11 @@ function rawCellValue(column: AnyColumnDef, row: unknown): unknown {
 }
 
 /**
- * The `CellAccessor` the view pipeline reads through. `cellTypes` wires each column's cell-type
- * `compare` into sorting, so a `number`/`date`/`select` column sorts by its own semantics instead of
- * collating `String(value)` — the collator segments digit runs, so it orders 1.5 before 1.25 and all
- * negatives backwards. Omitting `cellTypes` keeps the pure-text behaviour (search has no comparator).
+ * The `CellAccessor` the view pipeline reads through. A column's `sortCompare` and (when
+ * `cellTypes` is wired) its cell type's `compare` supply the sort comparators, so a
+ * `number`/`date`/`select` column sorts by its own semantics instead of collating `String(value)` —
+ * the collator segments digit runs, so it orders 1.5 before 1.25 and all negatives backwards.
+ * Omitting `cellTypes` keeps the pure-text behaviour (search has no comparator).
  */
 export function textAccessorFor(
   columns: readonly AnyColumnDef[],
@@ -195,18 +196,38 @@ export function textAccessorFor(
       return value == null ? "" : String(value);
     },
   };
-  if (!cellTypes) return accessor;
 
-  // Only a DECLARED type opts a column into its cell type's comparator. An undeclared column falls
-  // back to "text", whose `localeCompare` is strictly worse than `defaultCompareText` (which is
-  // numeric-aware and case-insensitive) and throws outright on a non-string value — and an untyped
-  // column holding numbers is ordinary.
-  const declaredType = (column: AnyColumnDef) => (column.type ? cellTypes[column.type] : undefined);
+  // A column opts into a custom row comparator through its own `sortCompare`, or through its
+  // declared cell type's `compare` — only a DECLARED type opts in, because an undeclared column
+  // falls back to "text", whose `localeCompare` is strictly worse than `defaultCompareText`
+  // (numeric-aware and case-insensitive) and throws outright on a non-string value. Without either
+  // comparator the whole accessor stays on the default text path (no allocation of `compare`).
+  if (!cellTypes && !columns.some((c) => c.sortCompare)) return accessor;
+
+  const declaredType = (column: AnyColumnDef) => (column.type ? cellTypes?.[column.type] : undefined);
 
   accessor.compare = (columnId) => {
     const column = byId.get(columnId);
     if (!column) return undefined;
-    // Resolution chain: column-level comparator (none exists today) > cell-type compare > default text.
+    // Resolution chain: column-level sortCompare > cell-type compare > default text.
+    const columnCompare = column.sortCompare;
+    if (columnCompare) {
+      return (a, b) => {
+        const rowA = data[a];
+        const rowB = data[b];
+        if (rowA === undefined || rowB === undefined) return 0;
+        // A zero (or NaN/throwing) result defers the pair to the default text compare — `getText`
+        // is the same raw-value read the comparator itself runs through, so the tie-break is
+        // consistent with the pipeline's default ordering.
+        try {
+          const result = columnCompare(rowA, rowB);
+          if (Number.isFinite(result) && result !== 0) return result;
+        } catch {
+          // fall through to the default text compare below
+        }
+        return defaultCompareText(accessor.getText(a, columnId), accessor.getText(b, columnId));
+      };
+    }
     const compare = declaredType(column)?.compare;
     if (!compare) return undefined;
     return (a, b) => {

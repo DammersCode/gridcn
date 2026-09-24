@@ -40,10 +40,16 @@ function parseCsvText(text: string, csvDelimiter?: CsvDelimiter): ParsedImportFi
   return { rows, delimiter };
 }
 
+/** Aborts the file read; rejected parses surface as an AbortError the caller can ignore. */
+function abortError(): DOMException {
+  return new DOMException("Aborted", "AbortError");
+}
+
 /** Parses one sheet of an xlsx/xls workbook into a 2D string grid via lazily-imported SheetJS; `sheetName` selects the sheet (first by default), and `sheetNames`/`sheetName` let the caller switch sheets later. */
-async function parseExcelFile(file: File, sheetName?: string): Promise<ParsedImportFile> {
+async function parseExcelFile(file: File, sheetName?: string, signal?: AbortSignal): Promise<ParsedImportFile> {
   const XLSX = await import("xlsx");
   const buffer = await file.arrayBuffer();
+  if (signal?.aborted) throw abortError();
   const workbook = XLSX.read(buffer, { type: "array" });
   const selected = sheetName !== undefined ? workbook.SheetNames.indexOf(sheetName) : 0;
   if (selected === -1) throw new Error(`unknown sheet "${sheetName}"`);
@@ -58,10 +64,15 @@ async function parseExcelFile(file: File, sheetName?: string): Promise<ParsedImp
  * Parses a `.csv`, `.tsv`, `.xlsx`, or `.xls` file into a normalized 2D string grid. CSV/TSV goes
  * through papaparse (delimiter auto-detect + override); Excel formats go through a
  * dynamically-imported SheetJS (`xlsx` never loads for CSV-only consumers), the `sheetName` sheet
- * or the first one.
+ * or the first one. `signal` aborts the file read when set; an aborted parse rejects with an
+ * AbortError.
  */
-export async function parseImportFile(file: File, options: ParseImportFileOptions = {}): Promise<ParsedImportFile> {
-  if (isExcelFile(file)) return parseExcelFile(file, options.sheetName);
-  if (isCsvFile(file)) return parseCsvText(await file.text(), options.csvDelimiter);
+export async function parseImportFile(file: File, options: ParseImportFileOptions = {}, signal?: AbortSignal): Promise<ParsedImportFile> {
+  if (isExcelFile(file)) return parseExcelFile(file, options.sheetName, signal);
+  if (isCsvFile(file)) {
+    const text = await file.text();
+    if (signal?.aborted) throw abortError();
+    return parseCsvText(text, options.csvDelimiter);
+  }
   throw new Error("unsupported-file-type");
 }

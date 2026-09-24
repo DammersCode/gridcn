@@ -405,6 +405,13 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   sortable?: boolean;
   /** Excludes the column from the filter menu's column picker. Existing filter specs on it keep applying. Default true. */
   filterable?: boolean;
+  /**
+   * Sort comparator over the whole data row (not the cell value), consulted before the column's
+   * cell-type `compare` and the default text compare. A non-zero result orders the pair; a zero,
+   * NaN, or thrown result defers that pair to the default text compare. `SortSpec` direction and
+   * the empty-cell-last rule still apply.
+   */
+  sortCompare?: (a: TData, b: TData) => number;
   /** Initial visibility; toggle at runtime through `setColumnHidden` or the columns menu. */
   hidden?: boolean;
   /** Disables the resize handle for this column; default true. */

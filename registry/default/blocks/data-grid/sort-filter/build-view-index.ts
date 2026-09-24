@@ -4,8 +4,9 @@ import { createFilterMatcher } from "./matches-filter";
 
 /**
  * Read-only accessor the view-index builder uses to reach cell data without
- * knowing the row type. `compare` lets a cell type supply a custom row-index
- * comparator for a column (falls back to `defaultCompareText` on `getText`).
+ * knowing the row type. `compare` supplies a custom row-index comparator for a
+ * column (a column `sortCompare` or its cell type's `compare`; absent comparators
+ * fall back to `defaultCompareText` on `getText`).
  *
  * A `compare` a caller returns MUST be deterministic and depend only on the two
  * rows' current values — {@link updateViewIndex} reuses the untouched rows'

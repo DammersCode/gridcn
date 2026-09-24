@@ -137,6 +137,8 @@ export {
   type RowPatch,
   type UpdateCellsOptions,
   type UpdateCellsReorder,
+  type UpdateCellsSkip,
+  type UpdateCellsVerdict,
   type CellErrorTarget,
   type CellErrorEntry,
   type DataGridStoreState,
@@ -170,6 +172,8 @@ export { CellSpan } from "./cell-types/cell-span";
 export { CompactSelection } from "./selection/compact-selection";
 /** Bounding-box union of two rects — `data-grid-fill`'s drag pipeline uses this to expand a selection over `combineRects(source, strip)`. */
 export { combineRects } from "./selection";
+/** View rows covered by a selection (primary range + rangeStack + rows channel), deduped ascending — `data-grid-context-menu`'s row ops and `data-grid-io`'s selection-scope export derive their row set from this. */
+export { getSelectedViewRows } from "./selection";
 export { defineColumns, getCellValue, setCellValue } from "./columns/column-helpers";
 export type { KeysMatching, TypedColumnDef, TypedTextColumnDef, AnyTypedColumn, AccessorLike, InferredValue } from "./columns/column-helpers";
 /** A column's sort-direction arrow + multi-sort priority number — string headers get it automatically in `sort` mode; embed it inside a custom (ReactNode) header when you want it there. */

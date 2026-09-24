@@ -117,4 +117,51 @@ describe("useDataGridState", () => {
     rerender();
     expect(result.current.getRowId).toBe(first);
   });
+
+  it("history.historySize tracks the undo stack", () => {
+    const { result, rerender } = renderHook(() => useDataGridState(defaultRows, { getRowId: (r) => r.id }));
+    expect(result.current.history.historySize).toBe(0);
+
+    const prev = defaultRows[0]!;
+    const next = { ...prev, name: "Alicia" };
+    act(() =>
+      result.current.onDataChange([next, defaultRows[1]!], {
+        source: "edit",
+        ops: [{ type: "update", rowId: "a", row: next, prev, cells: [{ columnId: "name", value: "Alicia", prev: "Alice" }] }],
+      }),
+    );
+    rerender();
+    expect(result.current.history.historySize).toBe(1);
+
+    act(() => result.current.onUndo());
+    rerender();
+    expect(result.current.history.historySize).toBe(0);
+
+    act(() => result.current.history.clear());
+    rerender();
+    expect(result.current.history.historySize).toBe(0);
+  });
+
+  it("clears the stack when datasetKey changes between renders", () => {
+    const { result, rerender } = renderHook(
+      (props: { key: string }) => useDataGridState(defaultRows, { getRowId: (r) => r.id, datasetKey: props.key }),
+      { initialProps: { key: "A" } },
+    );
+
+    const prev = defaultRows[0]!;
+    const next = { ...prev, name: "Alicia" };
+    act(() =>
+      result.current.onDataChange([next, defaultRows[1]!], {
+        source: "edit",
+        ops: [{ type: "update", rowId: "a", row: next, prev, cells: [{ columnId: "name", value: "Alicia", prev: "Alice" }] }],
+      }),
+    );
+    rerender({ key: "A" });
+    expect(result.current.history.canUndo).toBe(true);
+    expect(result.current.history.historySize).toBe(1);
+
+    rerender({ key: "B" });
+    expect(result.current.history.canUndo).toBe(false);
+    expect(result.current.history.historySize).toBe(0);
+  });
 });

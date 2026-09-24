@@ -130,7 +130,7 @@ describe("buildExportRows / buildExportHeaders", () => {
   it("scope 'selection' exports the rows a cell range covers, in view order", () => {
     const state = makeState({
       selection: {
-        rows: { hasIndex: () => false },
+        rows: { hasIndex: () => false, toArray: () => [] },
         current: { range: { x: 0, y: 1, width: 1, height: 2 }, rangeStack: [] },
       } as never,
     });
@@ -138,9 +138,23 @@ describe("buildExportRows / buildExportHeaders", () => {
     expect(rows.map((r) => r[0])).toEqual(["Bob", "Ünïcödé"]);
   });
 
+  it("scope 'selection' reads ctrl-click stacked ranges too", () => {
+    const state = makeState({
+      selection: {
+        rows: { hasIndex: () => false, toArray: () => [] },
+        current: {
+          range: { x: 0, y: 0, width: 1, height: 1 },
+          rangeStack: [{ x: 0, y: 2, width: 1, height: 1 }],
+        },
+      } as never,
+    });
+    const rows = buildExportRows(state, "selection");
+    expect(rows.map((r) => r[0])).toEqual(["Alice", "Ünïcödé"]);
+  });
+
   it("scope 'selection' reads the rows channel (checkbox markers) too", () => {
     const state = makeState({
-      selection: { rows: { hasIndex: (i: number) => i === 0 }, current: null } as never,
+      selection: { rows: { hasIndex: () => false, toArray: () => [0] }, current: null } as never,
     });
     const rows = buildExportRows(state, "selection");
     expect(rows.map((r) => r[0])).toEqual(["Alice"]);
@@ -150,7 +164,7 @@ describe("buildExportRows / buildExportHeaders", () => {
     const state = makeState({
       viewIndex: [2, 1, 0],
       selection: {
-        rows: { hasIndex: () => false },
+        rows: { hasIndex: () => false, toArray: () => [] },
         current: { range: { x: 0, y: 0, width: 1, height: 2 }, rangeStack: [] },
       } as never,
     });
@@ -159,7 +173,7 @@ describe("buildExportRows / buildExportHeaders", () => {
   });
 
   it("scope 'selection' exports nothing when nothing is selected", () => {
-    const state = makeState({ selection: { rows: { hasIndex: () => false }, current: null } as never });
+    const state = makeState({ selection: { rows: { hasIndex: () => false, toArray: () => [] }, current: null } as never });
     expect(buildExportRows(state, "selection")).toEqual([]);
   });
 
@@ -180,7 +194,7 @@ describe("buildExportRows / buildExportHeaders", () => {
       viewIndex: [0, 1, 2, 3],
       visibleColumns: columns,
       selection: {
-        rows: { hasIndex: () => false },
+        rows: { hasIndex: () => false, toArray: () => [] },
         current: { range: { x: 0, y: 0, width: 2, height: 4 }, rangeStack: [] },
       } as never,
     });
@@ -341,5 +355,60 @@ describe("exportGrid lazy xlsx loading", () => {
     vi.doUnmock("xlsx");
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+});
+
+describe("buildXlsx", () => {
+  it("resolves with a Blob and names the sheet per workbookName, defaulting to 'Sheet1'", async () => {
+    vi.resetModules();
+    const aoa_to_sheet = vi.fn(() => ({}));
+    const book_new = vi.fn(() => ({}));
+    const book_append_sheet = vi.fn();
+    const write = vi.fn(() => new ArrayBuffer(8));
+    vi.doMock("xlsx", () => ({ utils: { aoa_to_sheet, book_new, book_append_sheet }, write }));
+
+    const { buildXlsx: freshBuildXlsx } = await import("./export-grid");
+
+    const blob = await freshBuildXlsx(makeState());
+    expect(blob).toBeInstanceOf(Blob);
+    expect(blob.size).toBe(8);
+    expect(book_append_sheet).toHaveBeenLastCalledWith(expect.anything(), expect.anything(), "Sheet1");
+
+    await freshBuildXlsx(makeState(), { workbookName: "Q3 Data" });
+    expect(book_append_sheet).toHaveBeenLastCalledWith(expect.anything(), expect.anything(), "Q3 Data");
+
+    vi.doUnmock("xlsx");
+    vi.restoreAllMocks();
+  });
+});
+
+describe("exportGrid — maxRows", () => {
+  it("truncates data rows to maxRows and dev-warns when the scope exceeds it", async () => {
+    let capturedCsv = "";
+    const createObjectURL = vi.fn((blob: Blob) => {
+      blob.text().then((text) => {
+        capturedCsv = text;
+      });
+      return "blob:mock-url";
+    });
+    vi.stubGlobal("URL", { ...URL, createObjectURL, revokeObjectURL: vi.fn() });
+    const anchor = document.createElement("a");
+    anchor.click = vi.fn();
+    vi.spyOn(document, "createElement").mockReturnValue(anchor);
+    const warnSpy = vi.spyOn(console, "warn");
+
+    try {
+      await exportGrid(makeState(), { format: "csv", maxRows: 2 });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(capturedCsv).toContain("Alice");
+      expect(capturedCsv).toContain("Bob");
+      expect(capturedCsv).not.toContain("Ünïcödé");
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("export truncated to 2 of 3"));
+    } finally {
+      warnSpy.mockRestore();
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    }
   });
 });

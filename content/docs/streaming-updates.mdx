@@ -170,6 +170,28 @@ values.
   [Editing & cell types: async schemas](/docs/editing-cell-types#on-bulk-paths).
 </Callout>
 
+## What the verdict tells you
+
+`updateCells` and `updateRows` return a verdict for every patch in the batch:
+
+```tsx
+const verdict = actions.updateCells(patches);
+// { applied: 1, skipped: [{ patchIndex: 1, reason: "no-op" }], pending: false }
+```
+
+- `applied` - the number of cells the call wrote.
+- `skipped` - one entry per patch that was not written, with its `patchIndex` in `patches` and a `reason`:
+  - `unknown-row` - the row id is not in `data`.
+  - `unknown-column` - the column id is not a known column.
+  - `hole` - the row is an unloaded lazy hole.
+  - `readonly` - the column, or the row via `readOnly(row)`, is read-only.
+  - `invalid` - the column's `validate` rejected the value.
+  - `no-op` - the value equals the current one.
+- `pending` - `true` when an async schema holds the batch. Its outcome is not reportable on the
+  return value; the accepted cells commit when the schema resolves.
+
+A batch that writes nothing emits no `onDataChange`.
+
 ## Whole rows
 
 `updateRows` takes a partial row instead of one cell:

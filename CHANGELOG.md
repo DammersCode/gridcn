@@ -56,6 +56,33 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   shapes (including the `Range` type used by `evict`/`getLoadedRanges`) and the
   `data-grid-presence` payload contract (entry union shapes, guard narrowing, malformed-payload
   rejection).
+- **Column `sortCompare`:** a per-column option that compares whole data rows (not cell values),
+  consulted before the cell type's `compare` and the default text compare. A non-zero result
+  orders the pair; a zero, `NaN`, or thrown result defers to the default. `SortSpec` direction and
+  the empty-cell-last rule still apply.
+- **Search debounce tuning:** `DataGridSearch` accepts `debounceMs` (default `200`).
+- **Toolbar menus can manage hidden columns:** `DataGridSortList` and `DataGridFilterMenu` accept
+  `allColumns` (default `false`), which lists every column instead of only the visible ones. The
+  default menu logs a development warning when a filter targets a column it cannot list.
+- **Undo history dataset and stack size:** `useDataGridHistory` accepts `datasetKey` — a change
+  clears both stacks (a dataset swap), and its result now exposes `historySize` (undo-stack
+  length).
+- **Pagination reconciliation and window:** `useDataGridPagination` accepts `reconcilePage`
+  (default `false`) — when the current page is out of range, it calls the consumer's
+  `onPageChange` with the clamped page. `DataGridPaginationBar` accepts `onPageSizeChange` (page-
+  size changes from the footer select) and `windowSize` (number of page buttons around the
+  current page; default `5`).
+- **Export failure and scale controls:** `DataGridExportButton` accepts `onError(error, format)`
+  for a failed export (without it, the failure logs a development-only warning). The export
+  options gain `csvDelimiter` (`",""`, `";"`, `"\t"`; CSV only) and `maxRows` (truncates with a
+  development warning). `buildXlsx(state, options)` is exported with `BuildXlsxOptions`
+  (including `workbookName`) for server uploads or workbook inspection without a download.
+- **Shared selected-view-row selector:** the `data-grid` barrel exports `getSelectedViewRows` —
+  the single core derivation of the selected rows' view indices, now shared by the context menu
+  and the IO export.
+- **Typed streaming patches:** `CellPatch` and `RowPatch` accept an optional type argument — the
+  columns' `id` union — so a typo'd column id fails to compile instead of skipping silently at
+  runtime.
 
 ### Changed
 
@@ -144,9 +171,28 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   streaming-updates documents the async-validation hold/supersede contract and the readOnly
   no-op; Space is listed as an edit trigger; the accessibility page documents `aria-sort` and
   `aria-readonly`; events-state documents the `searchText`/`onSearchTextChange` controlled
-  pair; the custom cell-types page states what Tab actually does in built-in editors; and the
+  pair;   the custom cell-types page states what Tab actually does in built-in editors; and the
   url-state page documents the reset-page-to-1 contract on a page-size change and flags
   `DataGridUrlState` as incompatible with lazy grids.
+- **Streaming verdicts:** `updateCells` and `updateRows` now return a verdict —
+  `{ applied, skipped, pending }`. `skipped` names every patch that was not written, with its
+  index in the patch list and a reason (`unknown-row`, `unknown-column`, `hole`, `readonly`,
+  `invalid`, `no-op`); `pending` is `true` while an async schema holds the batch (its outcome is
+  not reportable on the return value).
+- **Import rejects are reported:** `buildImportedRows` now returns `{ rows, rejected }` instead
+  of the row array — `rejected` (`ImportRejectedCell[]`) lists every cell that failed its column's
+  `validate` and was cleared, with the data row, the source column, and the grid column. **Breaking**
+  for code that called `buildImportedRows` directly and read the array. The import dialog shows
+  the rejected-cell count and stays open until you close it.
+- **Import merge lifecycle:** `DataGridImportDialog`'s `onImport` may return a Promise (e.g. a
+  server upsert). The dialog stays pending until the promise settles; a rejection shows an error
+  and the import can be retried. `parseImportFile` accepts an optional `AbortSignal` — the file
+  read aborts when a newer file is chosen or the dialog resets.
+
+### Fixed
+
+- **Stale sheet re-parse:** a slow sheet re-parse can no longer overwrite the preview of a
+  newly chosen file (generation guard on file load and reset).
 
 ### Added
 

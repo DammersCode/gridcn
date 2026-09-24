@@ -24,13 +24,17 @@ import {
   gridAttrSelector,
 } from "@/registry/default/blocks/data-grid/data-grid";
 
-/** Debounce (ms) between typing and updating the store's `searchText`. */
+/** Default debounce (ms) between typing and updating the store's `searchText`. */
 const SEARCH_DEBOUNCE_MS = 200;
 
 /** Props for {@link DataGridSearch}. */
 export type DataGridSearchProps = {
   className?: string;
   placeholder?: string;
+  /**
+   * Debounce (ms) between typing and the store's `searchText` update; default 200.
+   */
+  debounceMs?: number;
   /**
    * "Feels native" bridge: mod+F (Ctrl+F / Cmd+F) with focus inside the grid or its
    * toolbar focuses/selects this input instead of opening the browser's find bar. Native
@@ -58,7 +62,7 @@ function isInsideGridScope(target: EventTarget | null): boolean {
  * Escape clears the field and the store's search text.
  */
 export function DataGridSearch(props: DataGridSearchProps): ReactNode {
-  const { className, placeholder, captureFindShortcut = true } = props;
+  const { className, placeholder, captureFindShortcut = true, debounceMs = SEARCH_DEBOUNCE_MS } = props;
   const labels = useDataGridLabels();
   const actions = useDataGridActions();
   const searchText = useDataGridSearchText();
@@ -114,9 +118,9 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
   const commitSearch = useCallback(
     (value: string) => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => actions.setSearch(value), SEARCH_DEBOUNCE_MS);
+      debounceRef.current = setTimeout(() => actions.setSearch(value), debounceMs);
     },
-    [actions],
+    [actions, debounceMs],
   );
 
   const goToMatch = useCallback(

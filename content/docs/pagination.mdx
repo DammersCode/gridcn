@@ -42,6 +42,9 @@ rendering performance, and using the two together is not supported — when to p
     }
     ```
 
+    `pageSize` seeds the page size once; pass `onPageSizeChange` to observe a change from the bar's
+    select.
+
     <Callout type="warn" title="Edits need a merge step, not a wholesale replace">
       The `onDataChange` of `DataGrid` only ever sees the current page's slice. If rows are
       editable, merge the edited slice back into your full dataset by row id. Do not pass the
@@ -135,6 +138,10 @@ rendering performance, and using the two together is not supported — when to p
     `pager.pageData` is `undefined` in server mode. You already fetched exactly the rows for the
     current page, so there is nothing left for the hook to slice.
 
+    The bar clamps the displayed page when `total` shrinks below it, but your `page` state is
+    yours. If a stale page would fetch the wrong rows, pass `reconcilePage: true` — the hook then
+    fires your `onPageChange` with the clamped page once. The hook never sets your state.
+
     <AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationClientOptions" />
     <AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationServerOptions" />
   </Tab>
@@ -144,8 +151,8 @@ rendering performance, and using the two together is not supported — when to p
     The default footer has:
 
     - First and prev buttons.
-    - A windowed set of page-number buttons (5 at a time, sliding to stay centered on the current
-      page).
+    - A windowed set of page-number buttons (5 at a time by default, sliding to stay centered on
+      the current page; the bar's `windowSize` prop changes the count).
     - Next and last buttons.
     - A page-size `<Select>`.
     - An "x-y of z" range label.

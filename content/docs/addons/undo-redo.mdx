@@ -50,8 +50,10 @@ const grid = useDataGridState(initialRows, { getRowId: (row) => row.id });
 </DataGridProvider>;
 ```
 
-`grid.history` exposes `{ canUndo, canRedo, undo, redo, clear }` for wiring your own toolbar
-buttons. `clear` empties both stacks (for example, after regenerating the dataset).
+`grid.history` exposes `{ canUndo, canRedo, historySize, undo, redo, clear }` for wiring your
+own toolbar buttons. `historySize` counts the entries on the undo stack. `clear` empties both
+stacks; for a dataset change, pass `datasetKey` instead of calling `clear` by hand (see
+[Dataset changes](#dataset-changes)).
 <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Y</kbd>, and
 <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> work automatically while focus is in
 the grid.
@@ -124,6 +126,27 @@ Pass `capacity` to either hook to bound memory on long editing sessions. The old
 once the stack exceeds it. Omit `capacity` for a generous default. `capacity` counts ENTRIES, not
 ops: a `record()`/`insertRows` batch of 10k ops is one entry.
 
+## Dataset changes
+
+Pass the identity of your dataset as `datasetKey` to either hook. When the key changes between
+renders, the hook clears both stacks. That keeps undo from reinserting rows of the old dataset
+after you swap in a new one:
+
+```tsx
+const [datasetKey, setDatasetKey] = useState(0);
+
+const grid = useDataGridState(initialRows, {
+  getRowId: (row) => row.id,
+  datasetKey,
+});
+
+// swap the dataset; the stack clears itself on the next render
+setDatasetKey((key) => key + 1);
+```
+
+A dataset id or a version counter both work. The key only needs to differ between datasets.
+Use `clear()` for a reset with no key, for example a "reset to defaults" button.
+
 ## With data-grid-lazy
 
 `useDataGridLazyRows` owns the `data` array. That array is sparse: loaded indices hold rows, and
@@ -159,9 +182,10 @@ Three rules make the combination safe:
 - **Evicted rows are silent no-ops.** An entry whose rows were evicted or reset out skips those
   ops and keeps the rest, so `canUndo` can stay true on an entry that changes nothing. This is
   the same rule as the vanished row id skip above.
-- **Clear the stack on `lazy.reset()` and on a dataset swap.** Those calls drop the loaded rows
-  the stack references. Call `clear()` in the same handler, so undo does not reach into the old
-  dataset.
+- **Clear the stack when the dataset changes.** `lazy.reset()` and a dataset swap drop the
+  loaded rows the stack references. Pass the dataset's identity as `datasetKey`, so the stack
+  clears itself on the next render. If your dataset has no stable identity, call `clear()` in
+  the same handler.
 
 `undo` also dev-warns once when it runs over a sparse array.
 

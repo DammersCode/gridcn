@@ -1,5 +1,5 @@
 import { page, userEvent } from "vitest/browser";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import {
   DataGridProvider,
@@ -310,6 +310,64 @@ describe("DataGridFilterMenu", () => {
     expect(triggerRect.right).toBeLessThanOrEqual(popoverRect.right + 1);
     // the value input never gets starved down to a sliver by the long operator label.
     expect(valueInput!.clientWidth).toBeGreaterThanOrEqual(80);
+  });
+
+  it("allColumns lists hidden columns and a filter on one narrows the rows", async () => {
+    const hiddenAgeColumns = defineColumns<Row>()([
+      { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140 },
+      { id: "email", header: "Email", accessorKey: "email", type: "text", width: 200 },
+      { id: "age", header: "Age", accessorKey: "age", type: "number", width: 80, hidden: true },
+    ] as const);
+    render(
+      <DataGridProvider data={makeRows()} columns={hiddenAgeColumns} getRowId={(r) => r.id}>
+        <DataGridToolbar>
+          <DataGridFilterMenu allColumns />
+        </DataGridToolbar>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await page.getByRole("button", { name: "Filters" }).click();
+    await page.getByRole("button", { name: "Add filter" }).click();
+    await page.getByRole("combobox", { name: "Filter column" }).click();
+    await page.getByRole("option", { name: "Age" }).click();
+    // a number column's value input is <input type="number"> — role spinbutton, not textbox
+    await page.getByRole("spinbutton", { name: "Filter value" }).fill("40");
+    await page.getByRole("combobox", { name: "Filter operator" }).click();
+    await page.getByRole("option", { name: "equals" }).click();
+    // Bob is the only row with age 40 (Alice 30, Alicia 25, Carol 50).
+    await expect.poll(() => document.querySelectorAll('[role="row"]').length - 1).toBe(1);
+  });
+
+  it("warns in dev when a filter targets a column the default menu cannot list", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const hiddenAgeColumns = defineColumns<Row>()([
+      { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140 },
+      { id: "email", header: "Email", accessorKey: "email", type: "text", width: 200 },
+      { id: "age", header: "Age", accessorKey: "age", type: "number", width: 80, hidden: true },
+    ] as const);
+    render(
+      <DataGridProvider
+        data={makeRows()}
+        columns={hiddenAgeColumns}
+        getRowId={(r) => r.id}
+        filterState={[{ columnId: "age", operator: "equals", value: "40" }]}
+        onFilterChange={() => {}}
+      >
+        <DataGridToolbar>
+          <DataGridFilterMenu />
+        </DataGridToolbar>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await expect.poll(() => warn.mock.calls.length).toBeGreaterThan(0);
+    expect(warn.mock.calls.some((call) => String(call[0]).includes("allColumns"))).toBe(true);
+    warn.mockRestore();
   });
 
   it("long column names truncate inside the select trigger instead of overflowing the popover", async () => {

@@ -10,19 +10,5 @@ export function isCellInSelection(selection: GridSelection, coord: CellCoord): b
   return inRect(selection.current.range) || selection.current.rangeStack.some(inRect);
 }
 
-/**
- * Every view row index covered by `selection` (primary range, range stack, and the whole-row
- * channel), deduped and ascending — the row set the cell menu's row-op items (Delete/Duplicate
- * row(s)) act on. Built from `GridSelection`'s public shape only (no internal selection helpers).
- */
-export function selectedViewRows(selection: GridSelection): number[] {
-  const rows = new Set<number>();
-  if (selection.current) {
-    const rects = [selection.current.range, ...selection.current.rangeStack];
-    for (const rect of rects) {
-      for (let row = rect.y; row < rect.y + rect.height; row++) rows.add(row);
-    }
-  }
-  for (const row of selection.rows.toArray()) rows.add(row);
-  return Array.from(rows).sort((a, b) => a - b);
-}
+/** Row-op target set — the core's own derivation of the selected view rows (see `getSelectedViewRows`), re-exported so the cell menu shares one code path with every other consumer. */
+export { getSelectedViewRows as selectedViewRows } from "@/registry/default/blocks/data-grid/data-grid";

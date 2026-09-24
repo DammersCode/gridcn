@@ -261,20 +261,25 @@ export type SelectLineActionOptions = SelectLineOptions;
  * One targeted cell write for {@link DataGridActions.updateCells}, addressed by STABLE ROW ID —
  * never a view or data index. A streaming producer cannot know view coordinates under an active
  * sort, and row ids are already what {@link DataOp} uses, so history survives sort/filter.
+ *
+ * `TColumnId` defaults to `string` — the store's own untyped shape, which the actions keep (one
+ * runtime engine serves every row type). Instantiate it with the union of your columns' `id`s
+ * (e.g. `(typeof columns)[number]["id"]` from `defineColumns`'s const output) when building a
+ * typed patch list: a typo'd column id then fails to compile instead of skipping at runtime.
  */
-export type CellPatch = {
+export type CellPatch<TColumnId extends string = string> = {
   /** The row's `getRowId()` value. An id not present in `data` is skipped. */
   rowId: string;
   /** Any column id, including a hidden one. An unknown id is skipped. */
-  columnId: string;
+  columnId: TColumnId;
   value: unknown;
 };
 
-/** One whole-row update for {@link DataGridActions.updateRows}: a partial row shallow-merged per column id. */
-export type RowPatch = {
+/** One whole-row update for {@link DataGridActions.updateRows}: a partial row shallow-merged per column id. `TColumnId` follows {@link CellPatch}. */
+export type RowPatch<TColumnId extends string = string> = {
   rowId: string;
   /** Column id -> new value. Each entry is applied exactly as the matching {@link CellPatch} would be. */
-  changes: Readonly<Record<string, unknown>>;
+  changes: Readonly<Partial<Record<TColumnId, unknown>>>;
 };
 
 /** How a `updateCells`/`updateRows` batch reconciles with an active sort or filter. */
@@ -312,6 +317,37 @@ export type UpdateCellsOptions = {
   source?: DataChange<unknown>["source"];
   /** Skips each column's `validate`. Default `false`. */
   skipValidation?: boolean;
+};
+
+/** One entry of {@link UpdateCellsVerdict.skipped}: a patch that was not applied, with the reason. */
+export type UpdateCellsSkip = {
+  /** Index of the patch in the `patches` array the action received. */
+  patchIndex: number;
+  /**
+   * `"unknown-row"` — the row id is not in `data`; `"unknown-column"` — the column id is not a
+   * known column; `"hole"` — the row is an unloaded lazy hole; `"readonly"` — the column (or the
+   * row, via `readOnly(row)`) is read-only; `"invalid"` — the column's `validate` rejected the
+   * value; `"no-op"` — the value is `Object.is`-equal to the current one.
+   */
+  reason: "unknown-row" | "unknown-column" | "hole" | "readonly" | "invalid" | "no-op";
+};
+
+/**
+ * Verdict of {@link DataGridActions.updateCells} / {@link DataGridActions.updateRows}: what the
+ * batch actually did. `applied` counts the cell writes that landed; `skipped` names every patch
+ * that did not land and why, so a streaming producer can observe its feed being silently dropped.
+ *
+ * `pending` is `true` when the batch is HELD for async validation — the verdict then reports
+ * nothing about its outcome, and a held batch that is later superseded (a newer `updateCells`, or
+ * a row-moving op) is dropped silently by design; track supersession on your own feed.
+ */
+export type UpdateCellsVerdict = {
+  /** Cell writes applied (0 when nothing applied or the batch is `pending`). */
+  applied: number;
+  /** Patches that did not apply, with the reason. Empty when `pending`. */
+  skipped: UpdateCellsSkip[];
+  /** True when the batch is held for async validation. */
+  pending: boolean;
 };
 
 /** Full per-grid interaction + derived state; internally typed over `unknown` rows. */
@@ -470,6 +506,15 @@ export type DataGridStoreState = Omit<
    */
   fillHandlers: { fillDown: () => void; fillRight: () => void; cancelFillDrag: () => void } | null;
   /**
+   * The `data-grid-presence` add-on's view-space activeness predicate, registered on mount and
+   * cleared on unmount (same registration pattern as `fillHandlers`): answers "is any VIEW-space
+   * (range-form) presence entry active right now". View-space entries pin to a display position,
+   * so a row-moving op (`reorderRows`, `updateCells` with `reorder: "immediate"`) dev-warns once
+   * when it runs while the predicate reports true; rowId-native entries track their rows through
+   * reorders and never trip it. `null` before mount/after unmount, or when the add-on is absent.
+   */
+  presenceViewSpaceActive: (() => boolean) | null;
+  /**
    * Mirrors `DataGridRoot`'s `readOnly` prop, registered on mount, so
    * mutation surfaces outside the root's subtree (context menu, `useDataGridClipboard`) can see it
    * too — the root prop alone only reached its own local `useGridInteraction`/`useGridClipboard`.
@@ -597,9 +642,9 @@ export type DataGridActions = {
    * `{source: "stream"}` `DataChange` through `onDataChange`, in both controlled and uncontrolled
    * mode. See {@link UpdateCellsOptions} for the sort/filter interaction.
    */
-  updateCells(patches: readonly CellPatch[], options?: UpdateCellsOptions): void;
+  updateCells(patches: readonly CellPatch[], options?: UpdateCellsOptions): UpdateCellsVerdict;
   /** {@link updateCells} keyed by whole row: each {@link RowPatch}'s `changes` expands to one patch per column id. */
-  updateRows(updates: readonly RowPatch[], options?: UpdateCellsOptions): void;
+  updateRows(updates: readonly RowPatch[], options?: UpdateCellsOptions): UpdateCellsVerdict;
   /** Rebuilds the view index that a deferred `updateCells` postponed, and clears `viewStale`. No-op when the view is not stale. */
   reconcileView(): void;
   /**
@@ -649,6 +694,12 @@ export type DataGridActions = {
   _registerKeymap(keymap: Keymap): void;
   /** @internal the `data-grid-fill` add-on's tracker component registers/clears its keymap handlers on mount/unmount; not part of the public hook surface. */
   _registerFillHandlers(handlers: { fillDown: () => void; fillRight: () => void; cancelFillDrag: () => void } | null): void;
+  /**
+   * @internal the `data-grid-presence` add-on registers/clears its view-space-activeness predicate
+   * (see `presenceViewSpaceActive`) on mount/unmount; row-moving ops dev-warn once when they run
+   * while it reports true. Not part of the public hook surface.
+   */
+  _registerPresenceViewSpaceActive(impl: (() => boolean) | null): void;
   /**
    * @internal Drops the flash keys whose view row left `keptViewRows` (the body's rendered window),
    * so a cell that scrolls out and back in never replays its one-shot pulse. Not part of the

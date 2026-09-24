@@ -82,6 +82,15 @@ in every scope. Export after the window you need is loaded.
 `DataGridExportButton` forwards its `options` prop to `exportGrid`, so
 `<DataGridExportButton options={{ scope: "selection" }} />` makes its menu export the selection.
 
+`maxRows` caps the number of data rows in the export. The header row is not counted. When the
+scope holds more rows, the export keeps the first `maxRows` rows and the dev console warns.
+
+XLSX exports name their single sheet `workbookName` (default `'Sheet1'`). `buildXlsx(state, options)`
+builds the workbook as a `Blob` without triggering a download, for uploads to a server.
+
+`DataGridExportButton` takes an `onError` callback for a failed export. Without one, a failure
+logs a dev-only warning.
+
 ## Import
 
 `DataGridImportButton` opens a dialog that walks through the same pipeline that a paste uses
@@ -117,7 +126,9 @@ in every scope. Export after the window you need is loaded.
   <Step>
     ### Confirm
 
-    Runs every mapped cell through the `fromText` of its column's cell type.
+    Runs every mapped cell through the `fromText` of its column's cell type. A cell that fails the
+    column's `validate` is cleared, not dropped: its row is still imported, and `buildImportedRows`
+    lists it in `rejected`. The dialog shows the rejected count and stays open until you close it.
   </Step>
 </Steps>
 
@@ -126,10 +137,12 @@ in every scope. Export after the window you need is loaded.
   the dialog writes mapped values onto this base row.
 </Callout>
 
-Each grid column can be mapped from at most one source column at a time. Once a source column
-claims a grid column, that grid column disappears from every other source column's select, so a
-duplicate mapping cannot be created. If the file's headers auto-match to the same grid column
-more than once, `matchImportColumns` keeps the first match and leaves the rest on "— Skip —".
+In the dialog, each grid column can be mapped from at most one source column at a time. Once a
+source column claims a grid column, that grid column disappears from every other source column's
+select, so a duplicate mapping cannot be created. A custom mapping built with `setMapping` is not
+checked: `buildImportedRows` logs a dev-time warning when two source columns claim one grid
+column, and the later mapping wins. If the file's headers auto-match to the same grid column more
+than once, `matchImportColumns` keeps the first match and leaves the rest on "— Skip —".
 
 The dialog never writes to the grid directly. `onImport(rows)` hands you the fully-built row
 array, and you decide how to apply it: replace all data, append it, or run it through your own
@@ -189,10 +202,12 @@ for (const name of sheetNames ?? []) {
 ```
 
 ```tsx
-const rows = await buildImportedRows({ dataRows, mapping, columns, cellTypes, createRow, signal });
+const { rows, rejected } = await buildImportedRows({ dataRows, mapping, columns, cellTypes, createRow, signal });
 ```
 
-`buildImportedRows` returns the rows directly for a synchronous import of 5,000 rows or fewer.
-Above that (or with an async Standard Schema `validate` on a mapped column) it returns a Promise
-— await the result either way. Large imports run in chunks that yield to the event loop, and an
-`AbortSignal` passed as `signal` cancels between chunks, rejecting with `"import-cancelled"`.
+`buildImportedRows` resolves to `{ rows, rejected }`, where `rejected` lists every cell that failed
+its column's `validate` and was cleared. It returns the object directly for a synchronous import of
+5,000 rows or fewer. Above that (or with an async Standard Schema `validate` on a mapped column) it
+returns a Promise — await the result either way. Large imports run in chunks that yield to the event
+loop, and an `AbortSignal` passed as `signal` cancels between chunks, rejecting with
+`"import-cancelled"`.
