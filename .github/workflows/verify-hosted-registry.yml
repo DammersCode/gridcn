@@ -1,0 +1,20 @@
+name: Verify hosted registry
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verify-hosted-registry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      # Checks the deployed registry's internal consistency, so deployment lag cannot fail verification.
+      - name: Verify hosted Vercel registry
+        run: node scripts/verify-hosted-registry.mjs
