@@ -74,6 +74,9 @@ Neither add-on exists for rendering performance. Using both together is not supp
 
     - **`data` is a sparse array**, with length `total`. Loaded indices hold real rows.
       Unloaded indices are holes (`undefined`), which the core renders as skeleton cells.
+    - **Function-form row and cell callbacks are skipped on holes.** `readOnly(row)`,
+      `getRowClassName`, and the function forms of `getCellClassName` / `column.cellClassName`
+      never receive an `undefined` row — the skeleton row is inert.
     - **Placeholder row ids are index-derived** for unloaded rows (`getRowId` only runs on rows
       that exist). This id is unstable. It does not survive a range being unloaded and reloaded
       with different content at the same index, but this is fine. An unloaded row carries no
@@ -209,6 +212,10 @@ Two behaviors matter when you wire your own policy:
 - Evicted rows lose edits merged through `onDataChange` that you did not persist — this hook
   does not own persistence. See [Editing loaded rows](#editing-loaded-rows).
 
+Undo and redo compose with this hook's `onDataChange`. The wiring, the hole-tolerant `getRowId`,
+and the `clear()`-on-`reset()` rule are on the [Undo & redo](/docs/addons/undo-redo#with-data-grid-lazy)
+page.
+
 ## Sorting a lazy grid
 
 The sort must run on the server. Hold the spec in your own state, keep the grid's `sortState`
@@ -270,7 +277,16 @@ and nothing more.
   search gesture fires while rows are still unloaded. It cannot stop the gesture, but it flags the
   incompatible combination the moment it happens, instead of leaving you to notice wrong-looking
   results later. Clipboard and fill across unloaded ranges are blocked the same way as a
-  non-writable column: a plain skip, not an error.
+  non-writable column: a plain skip, not an error. Aggregates over a lazy grid are unsupported for
+  the same reason. Use server-side totals, or compute totals outside the grid from the full
+  dataset (see [Pinned rows](/docs/addons/pinned-rows)).
+</Callout>
+
+<Callout type="warn" title="DataGridUrlState is incompatible with a lazy grid">
+  `DataGridUrlState` (from [URL state](/docs/addons/url-state)) writes its URL sort, filter, and
+  search spec into the store on mount. That is the client-side view state a lazy grid keeps out of
+  the store, so the add-on re-sorts the partial `data`. Do not mount it on a lazy grid. Hold the
+  spec in your own state, as above.
 </Callout>
 
 <Callout type="warn" title="Select-all includes the unloaded rows">

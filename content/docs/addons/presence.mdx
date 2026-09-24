@@ -149,8 +149,11 @@ setPresenceHighlights([
 `GridSelection.current.range`) still works side by side with the rowId entries in the same array —
 it is the send side that needs no hooks at all (the payload already carries the selection's
 `range`), at the cost of one caveat: `range` is in the SENDER's view space, so a receiver with a
-different local sort or filter paints it on the wrong cells. Use the rowId forms whenever
-sender and receiver views can diverge:
+different local sort or filter paints it on the wrong cells. A receiver-side live feed with
+`reorder: "immediate"` (see [Streaming updates](/docs/streaming-updates)) moves rows in the same
+call. The `range` entry then points at the wrong rows on the receiver itself. Use the rowId-native
+forms whenever sender and receiver views can diverge, or when the receiver's own feed reorders
+rows while entries are active:
 
 ```ts
 type PresenceHighlight = {

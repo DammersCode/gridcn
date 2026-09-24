@@ -195,6 +195,54 @@ describe("DataGridAggregateReporter — effect stability", () => {
   });
 });
 
+describe("useDataGridAggregate — sparse (lazy) data", () => {
+  const warn = vi.spyOn(console, "warn");
+
+  /** 4 rows, indices 1 and 3 are holes (undefined) — the shape of a partially loaded lazy grid. */
+  function sparseRows(): Row[] {
+    const sparse: Row[] = new Array(4);
+    sparse[0] = { id: "0", name: "A", qty: 1, note: "n0" };
+    sparse[2] = { id: "2", name: "C", qty: 3, note: "n2" };
+    return sparse;
+  }
+
+  it("skips holes instead of throwing (scope view) and dev-warns once", () => {
+    const results: Record<string, unknown>[] = [];
+    function Inner() {
+      const row = useDataGridAggregate({ qty: "sum" });
+      results.push(row);
+      return null;
+    }
+    render(
+      <DataGrid data={sparseRows()} columns={columns} getRowId={(r) => r.id}>
+        <Inner />
+      </DataGrid>,
+    );
+    // qty 1 + 3 over the two loaded rows — the holes are skipped, not summed as NaN.
+    expect(results.at(-1)).toEqual({ qty: 4 });
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips holes over the raw sparse array too (scope all), without re-warning", () => {
+    const results: Record<string, unknown>[] = [];
+    function AllInner() {
+      const row = useDataGridAggregate({ qty: "sum" }, { scope: "all" });
+      results.push(row);
+      return null;
+    }
+    render(
+      <DataGrid data={sparseRows()} columns={columns} getRowId={(r) => r.id}>
+        <AllInner />
+      </DataGrid>,
+    );
+    expect(results.at(-1)).toEqual({ qty: 4 });
+    // the warn fires at most once per app, so this second grid stays quiet
+    expect(warn).toHaveBeenCalledTimes(0);
+  });
+
+  afterEach(() => warn.mockClear());
+});
+
 describe("useDataGridAggregate — memoization", () => {
   it("returns the same result reference when viewIndex/data/specs identity is unchanged", () => {
     const compute = vi.fn((values: readonly unknown[], rows: readonly unknown[]) => rows.length);

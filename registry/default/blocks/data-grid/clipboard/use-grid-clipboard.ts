@@ -92,6 +92,10 @@ function serializeDisjointRows(s: DataGridStoreState, rows: readonly number[], c
 
   const maxRows = cols.length === 0 ? rows.length : Math.max(1, Math.floor(MAX_COPY_CELLS / cols.length));
   const rowCount = Math.min(rows.length, maxRows);
+  // parity with the paste cap's dev warn (applyParsedPaste): a truncated copy must be observable
+  if (rowCount < rows.length && isDev()) {
+    console.warn(`gridcn: copy truncated to ${rowCount} of ${rows.length} rows (MAX_COPY_CELLS)`);
+  }
 
   const out: string[][] = [];
   for (let r = 0; r < rowCount; r++) {
@@ -132,6 +136,9 @@ function allViewRows(s: DataGridStoreState): number[] {
 export function serializeCopyScope(s: DataGridStoreState, scope: CopyScope): string[][] {
   if (scope.kind === "rect") {
     const maxRows = Math.max(1, Math.floor(MAX_COPY_CELLS / Math.max(1, scope.rect.width)));
+    if (scope.rect.height > maxRows && isDev()) {
+      console.warn(`gridcn: copy truncated to ${maxRows} of ${scope.rect.height} rows (MAX_COPY_CELLS)`);
+    }
     return serializeRect(s, { ...scope.rect, height: Math.min(scope.rect.height, maxRows) });
   }
   if (scope.kind === "rows") {

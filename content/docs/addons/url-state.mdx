@@ -102,6 +102,13 @@ toggle existed still parses identically.
   [Columns: persisting a user's layout](/docs/columns#persisting-a-users-layout).
 </Callout>
 
+<Callout type="warn" title="Incompatible with data-grid-lazy">
+  `DataGridUrlState` applies the URL's sort, filter, and search into the store on mount. A lazy
+  grid keeps that view state out of the store, because the server applies the spec. Mounting the
+  add-on on a lazy grid re-sorts the partial `data` client-side. Keep the spec in your own state
+  instead. See [Sorting a lazy grid](/docs/lazy-loading#sorting-a-lazy-grid).
+</Callout>
+
 ## Pagination
 
 `useDataGridUrlPagination` syncs `page` and `pageSize` with the URL, separately from
@@ -133,3 +140,8 @@ default. Both writes use `history: "replace"`, same as this add-on's other param
 (default 25), and `pageSizeOptions` (an out-of-range URL `pageSize` falls back to the default
 instead of being trusted). See [Pagination](/docs/pagination#composing-with-data-grid-url-state)
 for the full composition, including why server mode (not client mode) is the fit.
+
+Changing `pageSize` resets the URL's `page` to 1. A page number is only valid for the size it was
+chosen at, so the reset is the contract of this URL composition. Note that client mode of
+`useDataGridPagination` keeps the first visible row on a page-size change instead — the two
+surfaces differ deliberately.

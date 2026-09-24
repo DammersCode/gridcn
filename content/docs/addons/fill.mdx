@@ -109,6 +109,12 @@ with or without the option. Within a partially writable grid, a fill over `readO
 (per-column `readOnly`, function or boolean) fills the writable columns and silently skips the
 `readOnly` ones, the same skip-no-error discipline as a paste over a non-writable cell.
 
+<Callout type="warn" title="On a lazy grid, a fill stops at loaded rows">
+  A fill target that covers unloaded rows fills the loaded rows and skips the unloaded cells. The
+  selection still expands over the whole target. A dev warning names the skipped rows. See
+  [Lazy loading](/docs/lazy-loading).
+</Callout>
+
 ## `onFill`
 
 Intercept or veto a fill before it applies. This fires on drag release and on the keyboard fill

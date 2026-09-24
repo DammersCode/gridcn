@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { StrictMode } from "react";
+import { StrictMode, type ReactNode } from "react";
 import { cleanup, render, screen, fireEvent } from "@testing-library/react";
+import { DataGridProvider } from "../store";
 import userEvent from "@testing-library/user-event";
 import {
   cellTypes,
@@ -392,6 +393,23 @@ describe("textCellType.Editor lifecycle", () => {
 });
 
 describe("numberCellType.Editor lifecycle", () => {
+  it("seeds the draft from toText(value, options), matching what the cell displays", () => {
+    const { onChange, commit, cancel } = editorSpies();
+    const column = { ...noopColumnOf<number | null>(), options: { decimals: 2 } };
+    render(
+      <numberCellType.Editor
+        value={1.2345}
+        row={{}}
+        column={column}
+        onChange={onChange}
+        commit={commit}
+        cancel={cancel}
+      />,
+    );
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    expect(input.value).toBe("1.23");
+  });
+
   it("Enter parses comma decimals, clamps via options, and commits down", async () => {
     const user = userEvent.setup();
     const { onChange, commit, cancel } = editorSpies();
@@ -478,18 +496,33 @@ describe("numberCellType.Editor lifecycle", () => {
   });
 });
 
+/** The date editor reads labels from the grid store, so its lifecycle tests mount a minimal provider. */
+function DateEditorProvider({ children }: { children: ReactNode }) {
+  return (
+    <DataGridProvider
+      data={[{ id: "1", when: null }]}
+      columns={[{ id: "when", header: "When", accessorKey: "when", type: "date" }]}
+      getRowId={(r) => r.id}
+    >
+      {children}
+    </DataGridProvider>
+  );
+}
+
 describe("dateCellType.Editor lifecycle", () => {
   it("opens a popover with a typed-input and a calendar", async () => {
     const { onChange, commit, cancel } = editorSpies();
     render(
-      <dateCellType.Editor
-        value={null}
-        row={{}}
-        column={noopColumnOf<string | null>()}
-        onChange={onChange}
-        commit={commit}
-        cancel={cancel}
-      />,
+      <DateEditorProvider>
+        <dateCellType.Editor
+          value={null}
+          row={{}}
+          column={noopColumnOf<string | null>()}
+          onChange={onChange}
+          commit={commit}
+          cancel={cancel}
+        />
+      </DateEditorProvider>,
     );
     expect(await screen.findByRole("textbox")).toBeInTheDocument();
     expect(await screen.findByRole("grid")).toBeInTheDocument(); // Calendar's month grid
@@ -499,14 +532,16 @@ describe("dateCellType.Editor lifecycle", () => {
     const user = userEvent.setup();
     const { onChange, commit, cancel } = editorSpies();
     render(
-      <dateCellType.Editor
-        value={null}
-        row={{}}
-        column={noopColumnOf<string | null>()}
-        onChange={onChange}
-        commit={commit}
-        cancel={cancel}
-      />,
+      <DateEditorProvider>
+        <dateCellType.Editor
+          value={null}
+          row={{}}
+          column={noopColumnOf<string | null>()}
+          onChange={onChange}
+          commit={commit}
+          cancel={cancel}
+        />
+      </DateEditorProvider>,
     );
     const input = screen.getByRole("textbox");
     await user.type(input, "2026-07-03");
@@ -520,14 +555,16 @@ describe("dateCellType.Editor lifecycle", () => {
     const user = userEvent.setup();
     const { onChange, commit, cancel } = editorSpies();
     render(
-      <dateCellType.Editor
-        value={null}
-        row={{}}
-        column={noopColumnOf<string | null>()}
-        onChange={onChange}
-        commit={commit}
-        cancel={cancel}
-      />,
+      <DateEditorProvider>
+        <dateCellType.Editor
+          value={null}
+          row={{}}
+          column={noopColumnOf<string | null>()}
+          onChange={onChange}
+          commit={commit}
+          cancel={cancel}
+        />
+      </DateEditorProvider>,
     );
     const input = screen.getByRole("textbox");
     await user.type(input, "2026-07-03");
@@ -541,14 +578,16 @@ describe("dateCellType.Editor lifecycle", () => {
     const user = userEvent.setup();
     const { onChange, commit, cancel } = editorSpies();
     render(
-      <dateCellType.Editor
-        value="2026-07-03"
-        row={{}}
-        column={noopColumnOf<string | null>()}
-        onChange={onChange}
-        commit={commit}
-        cancel={cancel}
-      />,
+      <DateEditorProvider>
+        <dateCellType.Editor
+          value="2026-07-03"
+          row={{}}
+          column={noopColumnOf<string | null>()}
+          onChange={onChange}
+          commit={commit}
+          cancel={cancel}
+        />
+      </DateEditorProvider>,
     );
     const day = await screen.findByRole("button", { name: /15/ });
     await user.click(day);

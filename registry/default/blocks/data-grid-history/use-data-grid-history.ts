@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { applyChange, createHistory, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
+import { applyChange, createHistory, isDev, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
 
 /** Options for {@link useDataGridHistory}. */
 export type UseDataGridHistoryOptions<TData> = {
@@ -21,6 +21,16 @@ export type UseDataGridHistoryOptions<TData> = {
    */
   recordSources?: readonly DataChange<TData>["source"][];
 };
+
+// Fires at most once per app, dev-only: undo ran over a sparse (lazy) data array.
+let warnedSparseData = false;
+
+// `Array.prototype.some` skips holes (the callback never runs for missing indices), so hole
+// detection must test indices, not values.
+function hasSparseHoles(data: readonly unknown[]): boolean {
+  for (let i = 0; i < data.length; i++) if (!(i in data)) return true;
+  return false;
+}
 
 /** Sources `useDataGridHistory` records when `recordSources` is omitted — everything a user did on purpose. */
 const DEFAULT_RECORD_SOURCES: readonly DataChange<unknown>["source"][] = [
@@ -95,6 +105,13 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
   const undo = useCallback(() => {
     const change = history.undo();
     if (!change) return;
+    // Sparse (lazy) data needs a hole-tolerant getRowId and skips evicted rows silently — flag once, not per undo.
+    if (!warnedSparseData && isDev() && hasSparseHoles(dataRef.current)) {
+      warnedSparseData = true;
+      console.warn(
+        "[data-grid-history] undo ran over a sparse (lazy) data array: unloaded rows are holes and their ops are skipped. Use a hole-tolerant getRowId and call clear() on lazy.reset() or a dataset swap.",
+      );
+    }
     setData(applyChange(dataRef.current, change, getRowIdRef.current));
     forceUpdate((n) => n + 1);
   }, [history, setData]);

@@ -156,10 +156,13 @@ cellTypes) · **fill** = raw value.
     commit through the unguarded path. See the editors of `text`, `number`, `select`, and
    `date` for the pattern.
 - **Escape cancels, and Enter commits and moves. The movement direction is part of the contract.**
-  `commit({ dx: 0, dy: 1 })` for Enter moves down. `commit({ dx: 1, dy: 0 })` for Tab moves right.
-  `commit({ dx: 0, dy: 0 })` for blur, click-away, or picking an option, stays in place. Escape
-  calls `cancel()` and must NOT call `onChange` at all. The edit is discarded, not committed with
-  the old value.
+  `commit({ dx: 0, dy: 1 })` for Enter moves down. `commit({ dx: 0, dy: 0 })` for blur, click-away,
+  or picking an option, stays in place. The built-in `text` and `number` editors bind only Enter
+  and Escape: Tab is a native blur that commits in place while the browser moves focus, and it
+  never moves the active cell. Leave Tab unbound, or commit it with `{ dx: 0, dy: 0 }`, to match;
+  `commit({ dx: 1, dy: 0 })` on Tab moves the active cell out from under the browser's own focus
+  move. Escape calls `cancel()` and must NOT call `onChange` at all. The edit is discarded, not
+  committed with the old value.
 - **Focus discipline: focus and move the caret to the end on mount, seeded from `initialText`
   for type-to-replace.** Grid activation and its defaults are on
   [Edit activation](/docs/editing-cell-types#edit-activation). `useSeedFocus` has the pattern.

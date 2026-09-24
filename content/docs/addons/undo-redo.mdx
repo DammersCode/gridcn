@@ -124,6 +124,47 @@ Pass `capacity` to either hook to bound memory on long editing sessions. The old
 once the stack exceeds it. Omit `capacity` for a generous default. `capacity` counts ENTRIES, not
 ops: a `record()`/`insertRows` batch of 10k ops is one entry.
 
+## With data-grid-lazy
+
+`useDataGridLazyRows` owns the `data` array. That array is sparse: loaded indices hold rows, and
+unloaded indices hold `undefined` holes. Pass the lazy hook's merge function as history's
+`setData`, and history's `onDataChange` as the grid's `onDataChange`:
+
+```tsx
+const lazy = useDataGridLazyRows<Order>({ total, fetchRows, getRowId });
+
+const { onDataChange, undo, redo, clear } = useDataGridHistory({
+  data: lazy.gridProps.data,
+  setData: lazy.onDataChange,
+  getRowId: (row, index) => (row === undefined ? `__lazy-unloaded-${index}` : row.id),
+});
+
+<DataGridProvider
+  {...lazy.gridProps}
+  columns={columns}
+  onDataChange={onDataChange}
+  onUndo={undo}
+  onRedo={redo}
+>
+```
+
+The grid calls history's `onDataChange` on every change. It records the change, then hands the
+next array to the lazy hook. The lazy hook merges the array back into the sparse rows.
+
+Three rules make the combination safe:
+
+- **`getRowId` must tolerate holes.** History runs `getRowId` on every element of the sparse
+  array, including the `undefined` holes. The plain `(row) => row.id` form throws on a hole. Use
+  the hole-tolerant form from the example.
+- **Evicted rows are silent no-ops.** An entry whose rows were evicted or reset out skips those
+  ops and keeps the rest, so `canUndo` can stay true on an entry that changes nothing. This is
+  the same rule as the vanished row id skip above.
+- **Clear the stack on `lazy.reset()` and on a dataset swap.** Those calls drop the loaded rows
+  the stack references. Call `clear()` in the same handler, so undo does not reach into the old
+  dataset.
+
+`undo` also dev-warns once when it runs over a sparse array.
+
 ## Related
 
 - [Global shortcuts](/docs/global-shortcuts) — undo and redo while focus is outside the

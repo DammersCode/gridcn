@@ -255,7 +255,7 @@ export function useDataGridAllColumns<TData = unknown>(): readonly ColumnDefOf<T
   ) as readonly ColumnDefOf<TData>[];
 }
 
-/** Whether a column id is currently hidden via `setColumnHidden` (independent of its def-level `hidden`, which seeds this set). */
+/** Whether a column id is currently hidden (def-level `hidden: true` seeds this set; `setColumnHidden` wins until the `columns` prop identity changes). */
 export function useDataGridIsColumnHidden(columnId: string): boolean {
   return useDataGridStore((s) => s.hiddenColumns.includes(columnId));
 }

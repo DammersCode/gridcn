@@ -151,6 +151,8 @@ export type DataGridGridLabels = {
   emptyState: string;
   /** aria-label for the loading skeleton region (`loading && rowCount === 0`); also used as the indeterminate progress bar's aria-label when rows are present. */
   loading: string;
+  /** Placeholder for the date editor's typed input (default hints the ISO `yyyy-mm-dd` format). */
+  datePlaceholder: string;
 };
 
 /** Import/export add-on strings (`data-grid-io`): export dropdown + import dialog. */
@@ -380,6 +382,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
   grid: {
     emptyState: "No rows",
     loading: "Loading…",
+    datePlaceholder: "yyyy-mm-dd",
   },
   io: {
     exportButtonAriaLabel: "Export",

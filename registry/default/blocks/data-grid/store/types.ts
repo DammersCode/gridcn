@@ -406,6 +406,7 @@ export type DataGridStoreState = Omit<
   columnWidths: Record<string, number>;
   /** null = follow the `columns` prop order. */
   columnOrder: string[] | null;
+  /** Single source of truth for visibility; seeded with the def-level `hidden` ids at creation and re-seeded when a new `columns` array is passed. */
   hiddenColumns: readonly string[];
   sortState: SortSpec[];
   filterState: FilterSpec[];
@@ -524,7 +525,12 @@ export type DataGridActions = {
   setColumnOrder(id: string, targetId: string, position: "before" | "after"): void;
   /** Pins/unpins a column (`null` = unpinned). No-op when the column's `pinnable: false` or grid-wide `enableColumnPinning` is false. Fires `onColumnLayoutChange` once. */
   setColumnPin(id: string, pin: "left" | "right" | null): void;
-  /** Shows/hides a column via the `hiddenColumns` set. Fires `onColumnLayoutChange` once. */
+  /**
+   * Shows/hides a column via the `hiddenColumns` set; works on a def-level `hidden: true` column
+   * — `setColumnHidden(id, false)` re-shows it, and the def's flag re-applies only when a NEW
+   * `columns` array is passed (a same-reference re-render keeps the user's choice).
+   * Fires `onColumnLayoutChange` once.
+   */
   setColumnHidden(id: string, hidden: boolean): void;
   toggleSort(columnId: string, additive: boolean): void;
   setSorts(sorts: SortSpec[]): void;

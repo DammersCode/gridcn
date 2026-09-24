@@ -5,6 +5,7 @@ import {
   applyInlineScrollDelta,
   combineRects,
   getCellValue,
+  isDev,
   inlineAutoScrollStep,
   candidateRowIds,
   pointerToCoord,
@@ -93,12 +94,17 @@ export function buildFillCandidates(
   const filled = generateFill(sourceValues, relativeStrip, direction, opts);
 
   const candidates: BulkCandidate[] = [];
+  let skippedHoleRows = 0;
   for (let row = 0; row < strip.height; row++) {
     const viewRow = strip.y + row;
     const dataRowIndex = s.viewIndex[viewRow];
     if (dataRowIndex === undefined) continue;
     const dataRow = s.data[dataRowIndex];
-    if (dataRow === undefined) continue;
+    if (dataRow === undefined) {
+      // an unloaded hole of a lazy grid: the row is real (in viewIndex) but has no row object
+      skippedHoleRows++;
+      continue;
+    }
     const rowId = s.getRowId(dataRow, dataRowIndex);
 
     for (let col = 0; col < strip.width; col++) {
@@ -114,6 +120,11 @@ export function buildFillCandidates(
       const value = cellType.fromText(filled[row]![col]!, column.options);
       candidates.push({ viewRow, columnId: column.id, value, validate: column.validate, row: dataRow, rowId });
     }
+  }
+  if (skippedHoleRows > 0 && isDev()) {
+    console.warn(
+      `[data-grid-fill] the fill target skipped ${skippedHoleRows} unloaded row(s) (lazy grid): unloaded cells are never filled and the selection still expands over them. Fill over a lazy grid covers loaded rows only.`,
+    );
   }
   return { candidates, filled };
 }

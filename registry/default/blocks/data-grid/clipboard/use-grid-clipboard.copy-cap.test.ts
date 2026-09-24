@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ColumnDef } from "../types";
 import { cellTypes } from "../cell-types/cell-types";
 import { emptySelection } from "../selection";
@@ -32,6 +32,10 @@ function fakeState(overrides: Partial<DataGridStoreState> = {}): DataGridStoreSt
   } as unknown as DataGridStoreState;
 }
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("serializeCopyScope cell-count cap", () => {
   it("leaves an uncapped rows-scope copy byte-identical to a per-row/per-cell reference build", () => {
     const data = bigRows(4);
@@ -60,6 +64,7 @@ describe("serializeCopyScope cell-count cap", () => {
   });
 
   it("truncates a rows-scope copy that would exceed MAX_COPY_CELLS, keeping full-width rows up to the cap", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     // 2 visible columns -> row cap is floor(MAX_COPY_CELLS / 2); pick a row count just over that.
     const rowCap = Math.floor(MAX_COPY_CELLS / columns.length);
     const totalRows = rowCap + 10;
@@ -76,6 +81,7 @@ describe("serializeCopyScope cell-count cap", () => {
   });
 
   it("truncates a columns-scope copy that would exceed MAX_COPY_CELLS, keeping full-width rows up to the cap", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     const selectedCols = 3;
     const wideColumns: readonly ColumnDef<Row, unknown>[] = Array.from({ length: selectedCols }, (_, i) => ({
       id: `c${i}`,
@@ -111,6 +117,7 @@ describe("serializeCopyScope cell-count cap", () => {
   });
 
   it("truncates a rect-scope copy above MAX_COPY_CELLS, keeping full-width rows top-down", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     const width = 3;
     const wideColumns: readonly ColumnDef<Row, unknown>[] = Array.from({ length: width }, (_, i) => ({
       id: `c${i}`,
@@ -132,6 +139,7 @@ describe("serializeCopyScope cell-count cap", () => {
   });
 
   it("caps a whole-grid rect from two-stage Ctrl+A at MAX_COPY_CELLS", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     const rowCap = Math.max(1, Math.floor(MAX_COPY_CELLS / columns.length));
     const totalRows = rowCap + 1;
     const data = bigRows(totalRows);
@@ -140,5 +148,21 @@ describe("serializeCopyScope cell-count cap", () => {
     expect(result.length).toBe(rowCap);
     expect(result[0]).toEqual(["row-0", "0"]);
     expect(result[rowCap - 1]).toEqual([`row-${rowCap - 1}`, String(rowCap - 1)]);
+  });
+
+  it("dev-warns once when a copy truncates at MAX_COPY_CELLS (parity with the paste cap warn)", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const rowCap = Math.floor(MAX_COPY_CELLS / columns.length);
+    const totalRows = rowCap + 10;
+    const data = bigRows(totalRows);
+    const s = fakeState({
+      data,
+      selection: { ...emptySelection(), rows: CompactSelection.fromArray(Array.from({ length: totalRows }, (_, i) => i)) },
+    });
+    const scope = resolveCopyScope(s)!;
+    const result = serializeCopyScope(s, scope);
+    expect(result.length).toBe(rowCap);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(`gridcn: copy truncated to ${rowCap} of ${totalRows} rows (MAX_COPY_CELLS)`);
   });
 });

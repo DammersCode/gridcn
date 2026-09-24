@@ -201,9 +201,10 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       : column.cellClassName;
 
   // The editor contract calls onChange(nextValue) then commit(movement) synchronously (see
-  // cell-types/index.ts); stash the pending value in a ref so commit can forward it to the store action.
+  // cell-types/index.ts); stash the pending value in a ref for commit, re-seeding only while
+  // not editing so a mid-edit re-render (stream tick, cellError) never resets the typed draft.
   const pendingValueRef = useRef<unknown>(value);
-  pendingValueRef.current = value;
+  if (!isEditing) pendingValueRef.current = value;
   const onChange = useCallback((nextValue: unknown) => {
     pendingValueRef.current = nextValue;
   }, []);
@@ -277,7 +278,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       data-grid-pinned-row={isPinnedRow || undefined}
       data-skeleton={isSkeleton || undefined}
       data-readonly={readOnly || undefined}
-      data-type={column.type}
+      data-type={column.type ?? "text"}
       data-active={isActive || undefined}
       data-editing={isEditing || undefined}
       data-search-match={isSearchMatch || undefined}

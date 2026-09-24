@@ -1046,6 +1046,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const propsColumnsChanged = props.columns !== lastPropsColumns;
           lastPropsColumns = props.columns;
           const nextColumns = propsColumnsChanged ? props.columns : s.columns;
+          // A replaced `columns` array re-asserts its def-level hidden flags into `hiddenColumns`;
+          // a same-reference re-render must not re-hide a column the user re-showed via
+          // `setColumnHidden` (user intent wins over the def until the def itself changes).
+          const reseededHidden = propsColumnsChanged
+            ? defHiddenColumnIds(props.columns).filter((id) => !s.hiddenColumns.includes(id))
+            : [];
+          const nextHiddenColumns = reseededHidden.length > 0 ? [...s.hiddenColumns, ...reseededHidden] : s.hiddenColumns;
           // same registry-widening cast as createDataGridStore's init — see that comment.
           const nextCellTypes =
             (props.cellTypes as unknown as Record<string, CellType> | undefined) ?? (defaultCellTypes as unknown as Record<string, CellType>);
@@ -1058,7 +1065,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             joinOperator: nextJoinOperator,
             searchText: nextSearchText,
             columnOrder: s.columnOrder,
-            hiddenColumns: s.hiddenColumns,
+            hiddenColumns: nextHiddenColumns,
           };
           // An echo only licenses skipping the recompute when `data` is the ONLY input that moved —
           // a sync that also changed sort/filter/search/columns still has to rebuild for those.
@@ -1067,7 +1074,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const unchanged = syncInputsEqual(nextSyncInputs, lastSyncInputs) || echoOnly;
           lastSyncInputs = nextSyncInputs;
 
-          const nextVisibleColumns = unchanged ? s.visibleColumns : computeVisibleColumns(nextColumns, s.columnOrder, s.hiddenColumns);
+          const nextVisibleColumns = unchanged ? s.visibleColumns : computeVisibleColumns(nextColumns, s.columnOrder, nextHiddenColumns);
           const nextViewIndex = unchanged
             ? s.viewIndex
             : computeViewIndex(nextData, nextColumns, nextSortState, nextFilterState, nextJoinOperator, s.viewIndex, nextCellTypes);
@@ -1085,6 +1092,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             data: nextData,
             cellErrors: nextCellErrors,
             columns: nextColumns,
+            hiddenColumns: nextHiddenColumns,
             cellTypes: nextCellTypes,
             labels: mergeLabels(props.labels),
             overlayPlugins: props.overlayPlugins ?? EMPTY_OVERLAY_PLUGINS,

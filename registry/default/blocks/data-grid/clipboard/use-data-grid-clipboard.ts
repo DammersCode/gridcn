@@ -11,10 +11,15 @@ export type PasteFromClipboardResult = "ok" | "permission-denied" | "empty";
 
 /** Public clipboard triggers, usable outside native browser clipboard events. */
 export type UseDataGridClipboardResult = {
-  /** Serializes the current copy scope and writes it to the OS clipboard (`navigator.clipboard.write`, falling back to `document.execCommand("copy")`). */
-  copy: () => void;
+  /**
+   * Serializes the current copy scope and writes it to the OS clipboard (`navigator.clipboard.write`,
+   * falling back to `document.execCommand("copy")`); resolves `'ok'` when the async Clipboard API
+   * accepted the write, `'fallback'` when the legacy text/plain-only path ran instead, and
+   * `'no-selection'` when there was no copy scope.
+   */
+  copy: () => Promise<"ok" | "fallback" | "no-selection">;
   /** Same as {@link copy}, then clears the copied selection via `deleteSelection`. */
-  cut: () => void;
+  cut: () => Promise<"ok" | "fallback" | "no-selection">;
   /**
    * Reads `navigator.clipboard.readText()` and applies it through the same parse -> writes ->
    * applyCellUpdates pipeline as a native paste. Resolves `'permission-denied'` when the read is
@@ -27,17 +32,23 @@ export type UseDataGridClipboardResult = {
 /** Guards {@link execCommandCopyFallback} against re-entrancy — a second copy fired while the async `clipboard.write` rejection from the first is still in flight must not double-run the legacy fallback. */
 let execCommandFallbackInFlight = false;
 
-/** Writes `text`/`html` to the OS clipboard via the async Clipboard API, falling back to the guarded legacy `execCommand("copy")` path in environments without it (or without the `clipboard-write` permission). */
-function writeToClipboard(text: string, html: string): void {
+/** Writes `text`/`html` to the OS clipboard via the async Clipboard API, falling back to the guarded legacy `execCommand("copy")` path in environments without it (or without the `clipboard-write` permission); resolves which path ran. */
+async function writeToClipboard(text: string, html: string): Promise<"ok" | "fallback"> {
   if (navigator.clipboard?.write && typeof ClipboardItem !== "undefined") {
     const item = new ClipboardItem({
       "text/plain": new Blob([text], { type: "text/plain" }),
       "text/html": new Blob([html], { type: "text/html" }),
     });
-    navigator.clipboard.write([item]).catch(() => execCommandCopyFallback(text));
-    return;
+    try {
+      await navigator.clipboard.write([item]);
+      return "ok";
+    } catch {
+      execCommandCopyFallback(text);
+      return "fallback";
+    }
   }
   execCommandCopyFallback(text);
+  return "fallback";
 }
 
 /** Deprecated legacy fallback ONLY (guarded, last resort): a throwaway selected textarea + `document.execCommand("copy")`, used only when the async Clipboard API is unavailable or rejected. */
@@ -68,21 +79,22 @@ export function useDataGridClipboard(): UseDataGridClipboardResult {
   const storeApi = useDataGridStoreApi();
   const guard = useBulkGeneration();
 
-  const copy = useCallback(() => {
+  const copy = useCallback((): Promise<"ok" | "fallback" | "no-selection"> => {
     const s = storeApi.getState();
     const scope = resolveCopyScope(s);
-    if (!scope) return;
+    if (!scope) return Promise.resolve("no-selection");
     const { text, html } = serializeCells(serializeCopyScope(s, scope));
-    writeToClipboard(text, html);
+    return writeToClipboard(text, html);
   }, [storeApi]);
 
-  const cut = useCallback(() => {
+  const cut = useCallback((): Promise<"ok" | "fallback" | "no-selection"> => {
     const s = storeApi.getState();
     const scope = resolveCopyScope(s);
-    if (!scope) return;
+    if (!scope) return Promise.resolve("no-selection");
     const { text, html } = serializeCells(serializeCopyScope(s, scope));
-    writeToClipboard(text, html);
+    const result = writeToClipboard(text, html);
     actions.deleteSelection();
+    return result;
   }, [storeApi, actions]);
 
   const pasteFromClipboard = useCallback(async (): Promise<PasteFromClipboardResult> => {

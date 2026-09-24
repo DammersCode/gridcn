@@ -241,11 +241,17 @@ export function textAccessorFor(
   return accessor;
 }
 
-/** Column ids with `hidden: true` in their def; seeded into `hiddenColumns` state so def-level hidden is respected from creation. */
+/** Column ids with `hidden: true` in their def; seeds `hiddenColumns` at creation and re-seeds it when a new `columns` array is passed. */
 export function defHiddenColumnIds(columns: readonly AnyColumnDef[]): string[] {
   return columns.filter((c) => c.hidden).map((c) => c.id);
 }
 
+/**
+ * Visible columns in display order (pinned-left, unpinned, pinned-right). Visibility reads
+ * `hiddenColumns` alone — a def-level `hidden: true` is honored only through that set's seeding —
+ * so `setColumnHidden(id, false)` re-shows a def-hidden column, and the def's flag re-applies only
+ * when a new `columns` array re-seeds it.
+ */
 export function computeVisibleColumns(
   columns: readonly AnyColumnDef[],
   columnOrder: string[] | null,
@@ -256,7 +262,7 @@ export function computeVisibleColumns(
   const hidden = new Set(hiddenColumns);
   const ordered = orderedIds
     .map((id) => byId.get(id))
-    .filter((c): c is AnyColumnDef => c != null && !c.hidden && !hidden.has(c.id));
+    .filter((c): c is AnyColumnDef => c != null && !hidden.has(c.id));
   const left = ordered.filter((c) => c.pin === "left");
   const right = ordered.filter((c) => c.pin === "right");
   const middle = ordered.filter((c) => c.pin !== "left" && c.pin !== "right");

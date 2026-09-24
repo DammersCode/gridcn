@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { useStore } from "zustand";
 import {
   getCellValue,
+  isDev,
   useDataGridStoreApi,
   type AnyColumnDef,
   type DataGridStoreState,
@@ -47,9 +48,23 @@ function aggregateColumn(reducer: AggregateReducer, column: AnyColumnDef, rows: 
   return undefined;
 }
 
+// Fires at most once per app, dev-only: a sparse (lazy) data array reached the reducer.
+let warnedSparseData = false;
+
+function warnSparseData(scope: "view" | "all", holes: number): void {
+  if (!isDev() || warnedSparseData) return;
+  warnedSparseData = true;
+  console.warn(
+    `[data-grid-pinned-rows] useDataGridAggregate (scope "${scope}") skipped ${holes} unloaded row(s): the data array is sparse (lazy loading), so the result covers loaded rows only. Use server-side totals or compute them outside the grid.`,
+  );
+}
+
 function computeAggregate(state: DataGridStoreState, specs: AggregateSpecs, scope: "view" | "all"): Record<string, unknown> {
   const byId = new Map(state.columns.map((c) => [c.id, c] as const));
-  const rows = scope === "all" ? state.data : state.viewIndex.map((i) => state.data[i]);
+  const scoped = scope === "all" ? state.data : state.viewIndex.map((i) => state.data[i]);
+  // undefined rows are unloaded holes of a lazy grid; reduce over the loaded rows only.
+  const rows = scoped.filter((row) => row !== undefined);
+  if (rows.length !== scoped.length) warnSparseData(scope, scoped.length - rows.length);
   const result: Record<string, unknown> = {};
   for (const [columnId, reducer] of Object.entries(specs)) {
     const column = byId.get(columnId);
@@ -70,6 +85,8 @@ function computeAggregate(state: DataGridStoreState, specs: AggregateSpecs, scop
  * `scope`, or the `specs` object's own identity changes, so scrolling (no store write touches any of
  * those) never recomputes — same identity-guardrailed contract as `rowBands`/`overlayPlugins`; define
  * `specs` at module scope or memoize it, same discipline as any other grid callback prop.
+ * `undefined` rows (unloaded holes of a lazy grid) are skipped and a dev warning fires once — on a
+ * lazy grid the result covers loaded rows only.
  */
 export function useDataGridAggregate(specs: AggregateSpecs, options: UseDataGridAggregateOptions = {}): Record<string, unknown> {
   const { scope = "view" } = options;

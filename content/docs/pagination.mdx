@@ -53,8 +53,11 @@ rendering performance, and using the two together is not supported — when to p
     <Callout type="warn" title="In client mode, everything the grid sees is page-local">
       The grid only ever receives `pager.pageData`, so sort, filter, and search operate on the
       current page's slice alone — while the pager's `total` and page count still reflect the full
-      dataset. A search that matches rows on other pages finds nothing here. Use server mode for
-      dataset-wide search, sort, or filter (your backend applies the spec over the whole table).
+      dataset. A search that matches rows on other pages finds nothing here. A pinned totals band
+      computed from the grid covers the page slice the same way (see [Pinned rows](/docs/addons/pinned-rows)).
+      Use server mode for dataset-wide search, sort, or filter (your backend applies the spec over
+      the whole table). Dataset-wide totals come from your server, or from the full dataset outside
+      the grid.
     </Callout>
 
     <Callout type="warn" title="Selection does not survive a page change">

@@ -40,6 +40,8 @@ Paste semantics:
   it down every row.
 - Pasted text runs through the `fromText` of each target cell type, then through `validate` if
   present. An invalid cell in the pasted block is rejected the same way as a manual edit.
+- readOnly cells are skipped. Both the column's static `readOnly` and its per-row function form
+  apply.
 - One paste produces one `onDataChange` call with a single ops batch, regardless of how many
   cells it touched.
 
@@ -48,7 +50,7 @@ Paste semantics:
 Three `DataGridProvider` props let you intercept the pipeline without forking it.
 
 ```tsx
-import type { ColumnDef } from "@/components/data-grid/data-grid";
+import type { CellCoord, ColumnDef } from "@/components/data-grid/data-grid";
 
 // Module scope (or useCallback) so identity stays stable across renders.
 function processCellForClipboard(value: unknown, { row, column }: { row: Row; column: ColumnDef<Row, unknown> }) {
@@ -61,8 +63,8 @@ function processCellFromClipboard(text: string, { row, column }: { row: Row; col
   return text.trim();
 }
 
-function processPaste(cells: string[][]) {
-  // runs on the whole parsed paste grid before it's applied; return false to veto entirely
+function processPaste(cells: string[][], target: CellCoord) {
+  // runs after tiling and before the paste cap; return false to veto entirely
   return cells;
 }
 
@@ -74,6 +76,9 @@ function processPaste(cells: string[][]) {
   columns={columns}
 />
 ```
+
+`processPaste` runs on the paste grid after single-row tiling and before the paste cap. `target`
+is the top-left cell the paste applies to.
 
 ## Context menu paste
 

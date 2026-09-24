@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, beforeAll, vi } from "vitest";
-import { memo } from "react";
-import type { ColumnDef } from "../types";
+import { memo, useState } from "react";
+import type { CellType, ColumnDef } from "../types";
 import { DataGrid, DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, useDataGridActions, useDataGridCellState, useDataGridRow, GRID_ATTR, gridAttrSelector } from "../data-grid";
 
 type Row = { id: string; name: string; qty: number };
@@ -188,6 +188,11 @@ describe("DataGrid cell content", () => {
     const qtyCell = screen.getAllByRole("gridcell")[1]!;
     expect(qtyCell).toHaveAttribute("data-type", "number");
     expect(qtyCell.className).toContain("tabular-nums");
+  });
+
+  it("stamps data-type=\"text\" on untyped (default) columns so [data-type=\"text\"] selectors match", () => {
+    render(<DataGrid data={makeRows(1)} columns={columns} getRowId={(r) => r.id} />);
+    expect(screen.getAllByRole("gridcell")[0]!).toHaveAttribute("data-type", "text");
   });
 
   it("respects renderCell override", () => {
@@ -639,6 +644,129 @@ describe("DataGrid cell-type-driven rendering and editing lifecycle", () => {
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [nextData] = onDataChange.mock.calls[0]!;
     expect(nextData[0]!.active).toBe(true);
+  });
+});
+
+describe("edit stash is seeded at editor open, not re-seeded on every render", () => {
+  // A custom type whose editor commits WITHOUT a final onChange, so `commit()` reads the cell's
+  // stashed draft directly (CellEditorProps contract: commit applies what onChange last stashed).
+  function StashEditor({ onChange, commit, cancel }: {
+    onChange: (next: string) => void;
+    commit: (movement?: { dx: number; dy: number }) => void;
+    cancel: () => void;
+  }) {
+    const [text, setText] = useState("");
+    return (
+      <input
+        aria-label="stash editor"
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          onChange(e.target.value);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit({ dx: 0, dy: 0 });
+          else if (e.key === "Escape") cancel();
+        }}
+      />
+    );
+  }
+
+  const stashCellType: CellType<unknown, string> = {
+    Cell: ({ value }) => <span>{value}</span>,
+    Editor: StashEditor,
+    toText: (value) => (value == null ? "" : String(value)),
+    fromText: (text) => text,
+    clearValue: () => "",
+    isEmpty: (value) => value == null || value === "",
+  };
+
+  const stashColumns: readonly ColumnDef<Row, unknown>[] = [
+    { id: "name", header: "Name", accessorKey: "name", type: "stash" },
+  ];
+
+  it("keeps the typed draft when the underlying value changes mid-edit, and commits the draft", () => {
+    const onDataChange = vi.fn();
+    const utils = render(
+      <DataGrid
+        data={makeRows(2)}
+        columns={stashColumns}
+        getRowId={(r) => r.id}
+        cellTypes={{ stash: stashCellType }}
+        onDataChange={onDataChange}
+      />,
+    );
+    const grid = screen.getByRole("grid");
+    fireEvent.pointerDown(screen.getAllByRole("gridcell")[0]!, { button: 0 });
+    fireEvent.keyDown(grid, { key: "F2" });
+    const input = screen.getByRole("textbox", { name: "stash editor" });
+    fireEvent.change(input, { target: { value: "draft" } });
+    // a mid-edit re-render with a new underlying value (a stream tick / cellError landing)
+    utils.rerender(
+      <DataGrid
+        data={[{ id: "0", name: "Z", qty: 0 }, { id: "1", name: "Row 1", qty: 1 }]}
+        columns={stashColumns}
+        getRowId={(r) => r.id}
+        cellTypes={{ stash: stashCellType }}
+        onDataChange={onDataChange}
+      />,
+    );
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    const [next] = onDataChange.mock.calls[0]!;
+    expect(next[0]!.name).toBe("draft");
+  });
+
+  it("re-seeds the stash from the current value after cancel, so a fresh open commits the seed, not the discarded draft", () => {
+    const onDataChange = vi.fn();
+    render(
+      <DataGrid
+        data={makeRows(1)}
+        columns={stashColumns}
+        getRowId={(r) => r.id}
+        cellTypes={{ stash: stashCellType }}
+        onDataChange={onDataChange}
+      />,
+    );
+    const grid = screen.getByRole("grid");
+    fireEvent.pointerDown(screen.getAllByRole("gridcell")[0]!, { button: 0 });
+    fireEvent.keyDown(grid, { key: "F2" });
+    fireEvent.change(screen.getByRole("textbox", { name: "stash editor" }), { target: { value: "draft" } });
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "stash editor" }), { key: "Escape" });
+    // reopen and commit with NO typing: a correctly re-seeded stash holds "Row 0" (an equal-value
+    // no-op — no change lands); a stale stash would commit the discarded "draft" instead
+    fireEvent.doubleClick(screen.getAllByRole("gridcell")[0]!);
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "stash editor" }), { key: "Enter" });
+    expect(onDataChange).not.toHaveBeenCalled();
+    expect(screen.getByText("Row 0")).toBeInTheDocument();
+  });
+});
+
+describe("date editor placeholder (labels.grid.datePlaceholder)", () => {
+  type DateRow = { id: string; when: string | null };
+  const dateColumns: readonly ColumnDef<DateRow, unknown>[] = [
+    { id: "when", header: "When", accessorKey: "when", type: "date" },
+  ];
+
+  it("renders the default placeholder in the date editor's typed input", async () => {
+    render(<DataGrid data={[{ id: "1", when: null }]} columns={dateColumns} getRowId={(r) => r.id} />);
+    fireEvent.doubleClick(screen.getAllByRole("gridcell")[0]!);
+    const input = await screen.findByRole("textbox", { name: "When" });
+    expect(input).toHaveAttribute("placeholder", "yyyy-mm-dd");
+  });
+
+  it("a labels override changes the placeholder", async () => {
+    render(
+      <DataGrid
+        data={[{ id: "1", when: null }]}
+        columns={dateColumns}
+        getRowId={(r) => r.id}
+        labels={{ grid: { datePlaceholder: "JJJJ-MM-TT" } }}
+      />,
+    );
+    fireEvent.doubleClick(screen.getAllByRole("gridcell")[0]!);
+    const input = await screen.findByRole("textbox", { name: "When" });
+    expect(input).toHaveAttribute("placeholder", "JJJJ-MM-TT");
   });
 });
 

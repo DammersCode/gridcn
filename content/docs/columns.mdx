@@ -170,7 +170,9 @@ import { DataGridToolbar, DataGridColumnsMenu } from "@/components/data-grid-too
 </DataGridToolbar>;
 ```
 
-Or set a column's initial state with `hidden: true` in its `ColumnDef`.
+Or set a column's initial state with `hidden: true` in its `ColumnDef`. It is an initial value,
+not a fixed state: `setColumnHidden` and the columns menu override it, and the flag re-applies
+only when you pass a new `columns` array.
 
 ## Flex fill
 

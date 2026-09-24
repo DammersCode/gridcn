@@ -39,6 +39,13 @@ The target is **WCAG 2.1 AA**. No conformance audit has been performed against g
     carries no `aria-colindex`, and no data column's `aria-colindex` shifts to make room for it.
     `aria-colcount` counts only real data columns.
 
+    ### Sort and read-only state
+
+    Every sortable header cell carries `aria-sort` — `ascending`, `descending`, or `none` —
+    regardless of `headerClickBehavior`. The visual sort arrow renders only when
+    `headerClickBehavior` is `"sort"`; the attribute renders in every mode. The grid root carries
+    `aria-readonly` when the grid's `readOnly` prop is set.
+
     ### Roving tabindex
 
     The grid follows the WAI-ARIA APG roving-tabindex pattern for a single active cell. Before any

@@ -67,7 +67,7 @@ export function useDataGridUrlPagination(options: UseDataGridUrlPaginationOption
   const onPageSizeChange = useCallback(
     (next: number) => {
       void setPageSizeParam(serializePageSize(next, defaultPageSize) || null);
-      // a page sized for the old pageSize can now be out of range; reset to 1 like the pagination add-on's own page-size clamp.
+      // A page number is only valid for the size it was chosen at: a page-size change resets the page to 1 (the URL composition's contract).
       void setPageParam(null);
     },
     [setPageSizeParam, setPageParam, defaultPageSize],

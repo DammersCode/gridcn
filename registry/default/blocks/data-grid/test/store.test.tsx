@@ -1889,6 +1889,84 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
       act(() => result.current.actions.setColumnHidden("age", false));
       expect(result.current.visibleIds).toEqual(["name", "age", "id"]);
     });
+
+    it("re-shows a def-level hidden: true column, and the layout snapshot reflects it", () => {
+      const hiddenCols: readonly ColumnDef<Row, unknown>[] = [
+        { id: "name", header: "Name", accessorKey: "name" },
+        { id: "age", header: "Age", accessorKey: "age", hidden: true },
+      ];
+      const onColumnLayoutChange = vi.fn();
+      const wrapper = makeConfigWrapper({ columns: hiddenCols, onColumnLayoutChange });
+      const { result } = renderHook(useColumnProbe, { wrapper });
+
+      expect(result.current.visibleIds).toEqual(["name"]);
+
+      act(() => {
+        result.current.actions.setColumnHidden("age", false);
+      });
+
+      expect(result.current.visibleIds).toEqual(["name", "age"]);
+      expect(onColumnLayoutChange).toHaveBeenCalledTimes(1);
+      expect(onColumnLayoutChange).toHaveBeenLastCalledWith({
+        widths: {},
+        order: ["name", "age"],
+        pins: {},
+        hidden: [],
+      });
+
+      act(() => {
+        result.current.actions.setColumnHidden("age", true);
+      });
+
+      expect(result.current.visibleIds).toEqual(["name"]);
+      expect(onColumnLayoutChange).toHaveBeenCalledTimes(2);
+      expect(onColumnLayoutChange).toHaveBeenLastCalledWith({
+        widths: {},
+        order: ["name", "age"],
+        pins: {},
+        hidden: ["age"],
+      });
+    });
+
+    it("re-seeds def-level hidden ids when the columns prop identity changes; a same-reference re-render keeps the user's choice", () => {
+      const defHidden: readonly ColumnDef<Row, unknown>[] = [
+        { id: "name", header: "Name", accessorKey: "name" },
+        { id: "age", header: "Age", accessorKey: "age", hidden: true },
+      ];
+      const replacedDefHidden: readonly ColumnDef<Row, unknown>[] = [
+        { id: "name", header: "Name", accessorKey: "name" },
+        { id: "age", header: "Age", accessorKey: "age", hidden: true },
+      ];
+      let actionsRef: ReturnType<typeof useDataGridActions> | null = null;
+      let probed: string[] = [];
+      function Probe() {
+        actionsRef = useDataGridActions();
+        probed = useDataGridVisibleColumns().map((c) => c.id);
+        return null;
+      }
+      function Harness({ cols }: { cols: readonly ColumnDef<Row, unknown>[] }) {
+        return (
+          <DataGridProvider data={rows()} columns={cols} getRowId={(r) => r.id}>
+            <Probe />
+          </DataGridProvider>
+        );
+      }
+      const { rerender } = render(<Harness cols={defHidden} />);
+      expect(probed).toEqual(["name"]);
+
+      act(() => {
+        actionsRef!.setColumnHidden("age", false);
+      });
+      expect(probed).toEqual(["name", "age"]);
+
+      // same reference: the user's choice survives an unrelated re-render.
+      rerender(<Harness cols={defHidden} />);
+      expect(probed).toEqual(["name", "age"]);
+
+      // a new array whose def still says hidden: true re-asserts the def's flag.
+      rerender(<Harness cols={replacedDefHidden} />);
+      expect(probed).toEqual(["name"]);
+    });
   });
 
   describe("resolved column-feature flags", () => {

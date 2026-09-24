@@ -115,6 +115,20 @@ const { rowBands } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows:
     bridges the two: it renders as a plain child under the provider and reports the result through
     `onChange` into parent state, which is what feeds `topRows`/`bottomRows`.
 
+    <Callout type="warn" title="Under client-mode pagination, a totals band is page-local">
+      The grid's `data` is the current page's slice. So `useDataGridAggregate` sums only that page's
+      rows, and `scope: "all"` does not help — the slice is the grid's whole `data`. Fetch
+      dataset-wide totals from your server. Or compute them from your full dataset outside the grid,
+      and pin the result as a static band row. See [Pagination](/docs/pagination).
+    </Callout>
+
+    <Callout type="warn" title="Not supported on a lazy grid">
+      On a `data-grid-lazy` grid, unloaded rows are `undefined` holes. The aggregate skips them (a
+      dev warning fires once), so the band covers loaded rows only. Use server-side totals, or
+      compute totals outside the grid from the full dataset. See
+      [Lazy loading](/docs/lazy-loading).
+    </Callout>
+
     <Callout type="warn" title="Keep the band arrays referentially stable">
       `useDataGridPinnedRows` returns a stable `rowBands` reference only while the `topRows` and
       `bottomRows` arrays you pass keep the same identity. A fresh array on every render (like the

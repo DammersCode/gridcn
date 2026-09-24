@@ -46,6 +46,16 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   and `bindingTokens` (the binding chips the keybindings page already teaches); the
   `data-grid-presence` barrel exports the `isRowIdPresenceHighlight` /
   `isRowIdRangePresenceHighlight` payload type guards for narrowing untrusted remote payloads.
+- **`grid.datePlaceholder` label key:** the date editor's input placeholder now reads from
+  `labels.grid.datePlaceholder` (default `"yyyy-mm-dd"`), so it participates in
+  `DataGridLabels` localization like every other user-facing string.
+- **Clipboard outcomes for programmatic copy/cut:** `useDataGridClipboard`'s `copy()` and `cut()`
+  now resolve to `"ok"` (the async Clipboard API accepted the write), `"fallback"` (the legacy
+  `execCommand` text-only path ran instead), or `"no-selection"` (nothing was selected).
+- **Compile-time API pins:** new type tests pin `useDataGridLazyRows`' public options/result
+  shapes (including the `Range` type used by `evict`/`getLoadedRanges`) and the
+  `data-grid-presence` payload contract (entry union shapes, guard narrowing, malformed-payload
+  rejection).
 
 ### Changed
 
@@ -105,6 +115,38 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `FillHandleHandlers` (never documented; `useDataGridFill` and `FillArgs` are unchanged).
 - **`data-grid-lazy` JSDoc:** the `overscan` (30) and `batchSize` (50) defaults are now stated
   directly instead of linking to module-private constants.
+- **Def-level `hidden: true` is now initial-only:** a column's def-level `hidden: true` seeds
+  the hidden set, but `setColumnHidden(id, false)` (or the columns menu) can re-show it; the
+  def flag re-applies only when a new `columns` array is passed. The toolbar menu checkbox and
+  the `onColumnLayoutChange` snapshot now report the actual visibility instead of lying about
+  re-shown def-hidden columns.
+- **Edit draft survives mid-edit re-renders:** the pending edit value is re-seeded only while
+  not editing, so a stream tick, search toggle, or cell-error re-render no longer resets an
+  in-progress edit to the last-committed value (the documented "seeded at editor open"
+  contract).
+- **Number editor seeds from the displayed value:** the number editor now seeds its draft with
+  the option-formatted text (`toText(value, options)`), so `decimals: 2` and value `1.2345`
+  open the editor showing `1.23`, matching the cell display.
+- **`data-type` attribute is always present:** cells now carry `data-type` with the column's
+  type, defaulting to `text`, so `[data-type="text"]` selectors match default-typed columns.
+- **Copy truncation warns in development:** copying a selection over the cell cap now warns
+  once in the browser console (parity with the paste cap); the cap and the fallback behavior
+  are unchanged.
+- **Lazy grids and aggregates/fill/history degrade with a dev warning instead of silently or
+  by throwing:** `useDataGridAggregate` over a sparse lazy array reduces the loaded rows only
+  (a dev warning names the skipped holes — dataset-wide totals must come from the server or be
+  computed outside the grid); a fill over unloaded rows warns once when it skips them; and
+  `useDataGridHistory.undo()` warns once if it ran over a sparse data array (use a
+  hole-tolerant `getRowId` and `clear()` on `lazy.reset()` or a dataset swap). The docs gained
+  matching callouts (pinned-rows, fill, undo-redo, lazy-loading).
+- **Docs consistency:** the clipboard page now documents `processPaste`'s real
+  `(cells, target)` signature, the copy/paste cell caps, and the silent readOnly-cell skip;
+  streaming-updates documents the async-validation hold/supersede contract and the readOnly
+  no-op; Space is listed as an edit trigger; the accessibility page documents `aria-sort` and
+  `aria-readonly`; events-state documents the `searchText`/`onSearchTextChange` controlled
+  pair; the custom cell-types page states what Tab actually does in built-in editors; and the
+  url-state page documents the reset-page-to-1 contract on a page-size change and flags
+  `DataGridUrlState` as incompatible with lazy grids.
 
 ### Added
 

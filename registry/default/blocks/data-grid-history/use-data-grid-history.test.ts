@@ -316,10 +316,48 @@ describe("useDataGridHistory", () => {
     act(() =>
       h.hook.result.current.onDataChange([next, initialRows[1]!, initialRows[2]!], {
         source: "app",
-        ops: [{ type: "update", rowId: "a", row: next, prev, cells: [{ columnId: "name", value: next.name, prev: prev.name }] }],
+        ops: [{ type: "update", rowId: "a", row: next, prev, cells: [{ columnId: "name", value: "App", prev: "Alice" }] }],
       }),
     );
     h.sync();
     expect(h.hook.result.current.canUndo).toBe(true);
+  });
+
+  it("dev-warns once when undo runs over a sparse (lazy) data array", () => {
+    const warn = vi.spyOn(console, "warn");
+    // a hole at index 1, the shape of useDataGridLazyRows' data with one unloaded range
+    const sparse: Row[] = new Array(3);
+    sparse[0] = initialRows[0]!;
+    sparse[2] = initialRows[2]!;
+    const holeTolerantGetRowId = (row: Row, index: number) => (row ? row.id : `hole-${index}`);
+    let data: readonly Row[] = sparse;
+    const setData = (next: readonly Row[]) => {
+      data = next;
+    };
+    const { result, rerender } = renderHook(
+      (props: { data: readonly Row[] }) => useDataGridHistory({ data: props.data, setData, getRowId: holeTolerantGetRowId }),
+      { initialProps: { data } },
+    );
+
+    const prev = initialRows[2]!;
+    const next = { ...prev, name: "Changed" };
+    const edited = sparse.slice();
+    edited[2] = next;
+    act(() => result.current.onDataChange(edited, editChange("c", next, prev)));
+    rerender({ data });
+
+    act(() => result.current.undo());
+    rerender({ data });
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(data[2]!.name).toBe("Cara"); // the undo landed across the hole
+
+    const prev2 = data[2]!;
+    const next2 = { ...prev2, name: "Again" };
+    act(() => result.current.onDataChange(data.map((r, i) => (i === 2 ? next2 : r)), editChange("c", next2, prev2)));
+    rerender({ data });
+    act(() => result.current.undo());
+    // the once-per-lifetime flag holds the second warn back
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
   });
 });
