@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import type { Range } from "./range-math";
 import { useDataGridLazyRows } from "./use-data-grid-lazy-rows";
 
 type Row = { id: string; name: string };
@@ -276,4 +277,235 @@ describe("useDataGridLazyRows", () => {
 
     expect(result.current.gridProps.getRowId({ id: "row-3", name: "x" }, 3)).toBe("row-3");
   });
+
+  it("reset() aborts in-flight fetches, drops all loaded rows, and refetches on the next window", async () => {
+    let resolveFetch: ((rows: Row[]) => void) | undefined;
+    const fetchRows = vi.fn((start: number, end: number, signal: AbortSignal) => {
+      return new Promise<Row[]>((resolve, reject) => {
+        resolveFetch = (rows: Row[]) => resolve(rows);
+        signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+      });
+    });
+    const { result } = renderHook(() =>
+      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+    );
+
+    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    expect(result.current.isLoading).toBe(true);
+
+    act(() => result.current.reset());
+    expect(result.current.unloadedCount).toBe(1000);
+    expect(result.current.gridProps.data[5]).toBeUndefined();
+    expect(fetchRows.mock.calls[0]![2]!.aborted).toBe(true);
+
+    // the old fetch rejects via its abort listener after the reset — it must not write stale rows.
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(result.current.gridProps.data[5]).toBeUndefined();
+
+    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    expect(fetchRows).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      resolveFetch?.(makeRows(0, 20));
+      await Promise.resolve();
+    });
+    expect(result.current.gridProps.data[5]).toEqual({ id: "row-5", name: "Person 5" });
+  });
+
+  it("evict() holes the evicted range (keeping the rest of a partially overlapping loaded range) and refetches on the next window covering it", async () => {
+    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const { result } = renderHook(() =>
+      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+    );
+
+    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 50 }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.unloadedCount).toBe(50);
+
+    act(() => result.current.evict({ start: 10, end: 20 }));
+    expect(result.current.gridProps.data[15]).toBeUndefined();
+    expect(result.current.gridProps.data[5]).toEqual({ id: "row-5", name: "Person 5" });
+    expect(result.current.unloadedCount).toBe(60);
+
+    act(() => result.current.gridProps.onRowWindowChange({ start: 12, end: 18 }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(fetchRows).toHaveBeenCalledTimes(2);
+    expect(fetchRows).toHaveBeenNthCalledWith(2, 12, 18, expect.any(AbortSignal));
+    expect(result.current.gridProps.data[15]).toEqual({ id: "row-15", name: "Person 15" });
+  });
+
+  it("evict() does not abort an in-flight fetch: its resolution still marks the range loaded", async () => {
+    let resolveFetch: ((rows: Row[]) => void) | undefined;
+    const fetchRows = vi.fn((_start: number, _end: number) => {
+      return new Promise<Row[]>((resolve) => {
+        resolveFetch = (rows: Row[]) => resolve(rows);
+      });
+    });
+    const { result } = renderHook(() =>
+      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+    );
+
+    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    act(() => result.current.evict({ start: 0, end: 20 }));
+    expect(result.current.gridProps.data[5]).toBeUndefined();
+
+    await act(async () => {
+      resolveFetch?.(makeRows(0, 20));
+      await Promise.resolve();
+    });
+    expect(result.current.gridProps.data[5]).toEqual({ id: "row-5", name: "Person 5" });
+    expect(result.current.unloadedCount).toBe(80);
+  });
+
+  it("evict() is a no-op for unloaded and out-of-range targets, and clamps to [0, total]", async () => {
+    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const { result } = renderHook(() =>
+      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+    );
+
+    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => result.current.evict({ start: 50, end: 60 }));
+    expect(result.current.getLoadedRanges()).toEqual([{ start: 0, end: 20 }]);
+
+    act(() => result.current.evict({ start: 100, end: 200 }));
+    expect(result.current.getLoadedRanges()).toEqual([{ start: 0, end: 20 }]);
+
+    // negative start clamps to 0 and evicts only the loaded intersection [0, 5).
+    act(() => result.current.evict({ start: -10, end: 5 }));
+    expect(result.current.getLoadedRanges()).toEqual([{ start: 5, end: 20 }]);
+    expect(result.current.gridProps.data[3]).toBeUndefined();
+    expect(result.current.gridProps.data[7]).toEqual({ id: "row-7", name: "Person 7" });
+  });
+
+  it("getLoadedRanges() returns a merged snapshot and a copy, and is empty after reset()", async () => {
+    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const { result } = renderHook(() =>
+      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+    );
+
+    expect(result.current.getLoadedRanges()).toEqual([]);
+
+    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 10 }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    act(() => result.current.gridProps.onRowWindowChange({ start: 10, end: 20 }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.getLoadedRanges()).toEqual([{ start: 0, end: 20 }]);
+
+    const snapshot = result.current.getLoadedRanges() as Range[];
+    snapshot.push({ start: 90, end: 95 });
+    expect(result.current.getLoadedRanges()).toEqual([{ start: 0, end: 20 }]);
+
+    act(() => result.current.reset());
+    expect(result.current.getLoadedRanges()).toEqual([]);
+  });
+
+  it("onLoaded fires with the actually written range after a fetch resolves", async () => {
+    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const onLoaded = vi.fn();
+    const { result } = renderHook(() =>
+      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, onLoaded }),
+    );
+
+    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(onLoaded).toHaveBeenCalledTimes(1);
+    expect(onLoaded).toHaveBeenCalledWith({ start: 0, end: 20 });
+  });
+
+  it("onLoaded is clamped for a short response and skipped when nothing was written", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetchRows = vi.fn(async (start: number, end: number) => (start === 30 ? [] : makeRows(start, start + 5)));
+    const onLoaded = vi.fn();
+    const { result } = renderHook(() =>
+      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, onLoaded }),
+    );
+
+    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(onLoaded).toHaveBeenCalledTimes(1);
+    expect(onLoaded).toHaveBeenCalledWith({ start: 0, end: 5 });
+
+    // an empty response writes zero rows -> no second call.
+    act(() => result.current.gridProps.onRowWindowChange({ start: 30, end: 40 }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(onLoaded).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it("onLoaded is not fired for aborted or rejected fetches", async () => {
+    const fetchRows = vi.fn((start: number, end: number, signal: AbortSignal) => {
+      return new Promise<Row[]>((_resolve, reject) => {
+        signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+      });
+    });
+    const onLoaded = vi.fn();
+    const { result, unmount } = renderHook(() =>
+      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, onLoaded }),
+    );
+
+    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    unmount();
+    expect(onLoaded).not.toHaveBeenCalled();
+
+    const failingFetchRows = vi.fn(async () => {
+      throw new Error("down");
+    });
+    const { result: result2 } = renderHook(() =>
+      useDataGridLazyRows({
+        total: 100,
+        fetchRows: failingFetchRows,
+        getRowId: (r: Row) => r.id,
+        overscan: 0,
+        batchSize: 1,
+        onLoaded,
+      }),
+    );
+    act(() => result2.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    await waitFor(() => expect(result2.current.isLoading).toBe(false));
+    expect(onLoaded).not.toHaveBeenCalled();
+  });
+
+  it("maxFetchRows splits a wide gap into consecutive chunked fetches of at most the cap", async () => {
+    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const { result } = renderHook(() =>
+      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, maxFetchRows: 20 }),
+    );
+
+    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 45 }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(fetchRows).toHaveBeenCalledTimes(3);
+    expect(fetchRows).toHaveBeenNthCalledWith(1, 0, 20, expect.any(AbortSignal));
+    expect(fetchRows).toHaveBeenNthCalledWith(2, 20, 40, expect.any(AbortSignal));
+    expect(fetchRows).toHaveBeenNthCalledWith(3, 40, 45, expect.any(AbortSignal));
+    expect(result.current.gridProps.data[44]).toEqual({ id: "row-44", name: "Person 44" });
+    expect(result.current.unloadedCount).toBe(1000 - 45);
+  });
+
+  it("maxFetchRows still dedups: covered chunks are never re-fetched, new gaps fetch only their uncovered part", async () => {
+    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const { result } = renderHook(() =>
+      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, maxFetchRows: 20 }),
+    );
+
+    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 45 }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(fetchRows).toHaveBeenCalledTimes(3);
+
+    // re-reporting a window inside the covered span adds no fetch.
+    act(() => result.current.gridProps.onRowWindowChange({ start: 5, end: 40 }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(fetchRows).toHaveBeenCalledTimes(3);
+
+    // extending past the covered span fetches only the uncovered part [45, 60).
+    act(() => result.current.gridProps.onRowWindowChange({ start: 40, end: 60 }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(fetchRows).toHaveBeenCalledTimes(4);
+    expect(fetchRows).toHaveBeenNthCalledWith(4, 45, 60, expect.any(AbortSignal));
+  });
+
 });

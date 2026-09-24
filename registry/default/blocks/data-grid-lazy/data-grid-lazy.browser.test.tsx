@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { page } from "vitest/browser";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
@@ -8,7 +9,7 @@ import {
   DataGridBody,
   defineColumns,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridLazyRows } from "./use-data-grid-lazy-rows";
+import { useDataGridLazyRows, type UseDataGridLazyRowsResult } from "./use-data-grid-lazy-rows";
 // real stylesheet — layout/scroll must be real for skeleton/scroll assertions to mean anything
 import "@/app/global.css";
 
@@ -27,13 +28,19 @@ const columns = defineColumns<Row>()([
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 180 },
 ] as const);
 
-function LazyGrid(props: { fetchRows: (start: number, end: number, signal: AbortSignal) => Promise<Row[]> }) {
+function LazyGrid(props: {
+  fetchRows: (start: number, end: number, signal: AbortSignal) => Promise<Row[]>;
+  onLazy?: (lazy: UseDataGridLazyRowsResult<Row>) => void;
+}) {
   const lazy = useDataGridLazyRows<Row>({
     total: 10_000,
     fetchRows: props.fetchRows,
     getRowId: (row) => row.id,
     overscan: 5,
     batchSize: 20,
+  });
+  useEffect(() => {
+    props.onLazy?.(lazy);
   });
   return (
     <div style={{ height: 360, width: 400 }}>
@@ -46,6 +53,58 @@ function LazyGrid(props: { fetchRows: (start: number, end: number, signal: Abort
     </div>
   );
 }
+
+describe("data-grid-lazy: evict() reverts a loaded range to skeletons and the next scroll refetches", () => {
+  it("evicted rows render as skeletons until the refetch resolves", async () => {
+    const pending: Array<{ start: number; end: number; resolve: (rows: Row[]) => void }> = [];
+    const fetchRows = vi.fn((start: number, end: number) => {
+      return new Promise<Row[]>((resolve) => {
+        pending.push({ start, end, resolve: (rows: Row[]) => resolve(rows) });
+      });
+    });
+
+    let lazy: UseDataGridLazyRowsResult<Row> | undefined;
+    render(<LazyGrid fetchRows={fetchRows} onLazy={(l) => (lazy = l)} />);
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    pending[0]?.resolve(makeRows(pending[0].start, pending[0].end));
+    await new Promise((r) => setTimeout(r, 0));
+
+    const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+    grid.scrollTop = 500 * ROW_HEIGHT;
+    grid.dispatchEvent(new Event("scroll"));
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => setTimeout(r, 0));
+    pending.at(-1)!.resolve(makeRows(pending.at(-1)!.start, pending.at(-1)!.end));
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => requestAnimationFrame(r));
+    await expect.element(page.getByText(/Person 5\d\d/).first()).toBeInTheDocument();
+
+    // evict a wide band covering the loaded range; the rows must become skeletons again.
+    lazy?.evict({ start: 450, end: 560 });
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => setTimeout(r, 0));
+
+    grid.scrollTop = 0;
+    grid.dispatchEvent(new Event("scroll"));
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => setTimeout(r, 0));
+
+    grid.scrollTop = 500 * ROW_HEIGHT;
+    grid.dispatchEvent(new Event("scroll"));
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => setTimeout(r, 0));
+
+    // the refetch is in flight but unresolved -> skeletons hold the space again.
+    expect(document.querySelectorAll('[role="gridcell"][data-skeleton]').length).toBeGreaterThan(0);
+    expect(fetchRows.mock.calls.length).toBeGreaterThan(2);
+
+    pending.at(-1)!.resolve(makeRows(pending.at(-1)!.start, pending.at(-1)!.end));
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => requestAnimationFrame(r));
+    await expect.element(page.getByText(/Person 5\d\d/).first()).toBeInTheDocument();
+    expect(document.querySelectorAll('[role="gridcell"][data-skeleton]').length).toBe(0);
+  });
+});
 
 describe("data-grid-lazy: scroll into a hole -> skeletons -> data fills in", () => {
   it("renders skeleton rows for a far scroll target, then fills in real content once the fetch resolves", async () => {
