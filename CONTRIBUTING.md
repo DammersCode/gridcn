@@ -1,5 +1,10 @@
 # Contributing to gridcn
 
+## Language
+
+All content in this repository — code, comments, documentation, plans, changelog, commit
+messages, and pull-request text — is written in English.
+
 ## Development
 
 Contributions are licensed under the GridCN Source Available License — see LICENSE §8.
