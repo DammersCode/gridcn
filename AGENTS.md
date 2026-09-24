@@ -8,6 +8,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
+## Language
+
+Everything in this repo is written in English: code, comments, docs, plans, research notes,
+changelog, commit messages, and PR text. Write new content in English; translate content found
+in another language.
+
 ## Code Comments
 
 Write a comment only when the code cannot say it. The code says *what*; the comment says the *why* the code cannot express.

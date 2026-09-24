@@ -130,7 +130,7 @@ const partialArrayLeaf: DeepPartialLabels<SampleLabels> = { pagination: { pageSi
 void partialArrayLeaf;
 
 // --- useDataGridVisibleColumns/useDataGridAllColumns: consumer-callability fix (#24-A) -------
-// Regression test for the documented defect (2026-07-17-type-safety-report.md §5): these hooks
+// Regression test for the consumer-callability defect: these hooks
 // used to return `ColumnDef<never, unknown>[]`, and a function parameter typed `never` rejects
 // every argument, making accessorFn/setValue/function-form readOnly uncallable by consumers
 // building custom column UI. They now default to `unknown` (matching useDataGridRow's existing
