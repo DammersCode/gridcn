@@ -126,6 +126,16 @@ describe("chunkRange", () => {
     expect(chunkRange({ start: 0, end: 3 }, 0)).toEqual(chunkRange({ start: 0, end: 3 }, 1));
   });
 
+  it("floors a fractional cap so every chunk boundary stays an integral row index", () => {
+    expect(chunkRange({ start: 0, end: 10 }, 2.5)).toEqual([
+      { start: 0, end: 2 },
+      { start: 2, end: 4 },
+      { start: 4, end: 6 },
+      { start: 6, end: 8 },
+      { start: 8, end: 10 },
+    ]);
+  });
+
   it("returns the empty range as a single empty chunk", () => {
     expect(chunkRange({ start: 5, end: 5 }, 50)).toEqual([{ start: 5, end: 5 }]);
   });

@@ -29,12 +29,14 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   copied straight from GitHub into `components/` — the same payload the CLI installs.
 - **Lazy loading: window tuning and memory retention (`data-grid-lazy`):** `useDataGridLazyRows`
   accepts a new `maxFetchRows` option that caps the rows of a single `fetchRows` call (a wider
-  gap is fetched as consecutive chunks, each deduped and aborted independently) and an
-  `onLoaded(range)` callback fired with the range actually written. The result gains three stable
-   members: `reset()` (aborts in-flight fetches and drops all loaded rows — the same reset a
-   `total` change performs), `evict(range)` (unloads a range so the next scroll into it
-   refetches), and `getLoadedRanges()` (a non-reactive snapshot of the loaded ranges). The demo
-   gains an "Evict loaded rows" button that shows the eviction path live.
+  gap is fetched as consecutive chunks, each deduped and aborted independently; non-integer
+  values are rounded down) and an `onLoaded(range)` callback fired with the range actually
+  written. The result gains three stable members: `reset()` (aborts in-flight fetches, drops all
+  loaded rows, and re-requests the last reported window so the visible rows refetch — the same
+  reset a `total` change performs), `evict(range)` (unloads a range so the next scroll into it
+  refetches), and `getLoadedRanges()` (a non-reactive snapshot of the loaded ranges). A throwing
+  `onLoaded` or `onError` is logged instead of escaping as an unhandled promise rejection. The
+  demo gains an "Evict loaded rows" button that shows the eviction path live.
 
 ### Changed
 

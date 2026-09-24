@@ -69,11 +69,12 @@ export function sumRangeSizes(ranges: readonly Range[]): number {
 /**
  * Splits `range` into consecutive chunks of at most `max` rows, covering it exactly once; a
  * single chunk when the range already fits. Each chunk obeys the `fetchRows` contract on its
- * own: exactly `chunk.end - chunk.start` rows, positionally aligned to `chunk.start`.
+ * own: exactly `chunk.end - chunk.start` rows, positionally aligned to `chunk.start`. A
+ * fractional `max` is rounded down so every chunk boundary stays an integral row index.
  */
 export function chunkRange(range: Range, max: number): Range[] {
   const size = rangeSize(range);
-  const cap = Math.max(1, max);
+  const cap = Math.max(1, Math.floor(max));
   if (size <= cap) return [range];
   const chunks: Range[] = [];
   for (let start = range.start; start < range.end; start += cap) {

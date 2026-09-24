@@ -94,7 +94,8 @@ Neither add-on exists for rendering performance. Using both together is not supp
     - **A failed fetch reverts its range to unloaded** (never marked loaded) and calls
       `onError(error, range)`. The next time that range comes back into view, `onRowWindowChange`
       naturally re-requests it. There is no separate retry mechanism to wire up. A successful
-      write calls `onLoaded(range)` after the rows are in the sparse array.
+      fetch calls `onLoaded(range)` with the range actually written; the rows commit on the next
+      render, and `getLoadedRanges()` already includes the range.
   </Tab>
   <Tab value="Editing & errors">
     ## Editing loaded rows
@@ -123,8 +124,9 @@ Neither add-on exists for rendering performance. Using both together is not supp
     permanent failure" buttons show the two cases live — permanent failures and the retry UI for
     them are on the next page.
 
-    `onLoaded(range)` is the success counterpart of `onError`. It fires after a range's rows
-    are written, with the range actually written. A short response fires with the smaller
+    `onLoaded(range)` is the success counterpart of `onError`. It fires once a range fetch
+    resolves, with the range actually written. The rows commit on the next render.
+    `getLoadedRanges()` includes the range immediately. A short response fires with the smaller
     range. A zero-row response fires nothing.
 
     For data-fetch libraries (React Query) and permanently failing ranges, see
@@ -167,8 +169,9 @@ Loaded rows stay in the sparse array until a `total` change, a remount, or an ex
 removes them:
 
 - `lazy.reset()` aborts every in-flight fetch and drops all loaded rows. It is the same reset a
-  `total` change performs. Use it when the dataset behind the same `total` is invalidated in
-  place, for example after a server-side refresh.
+  `total` change performs. It also re-requests the last reported window, so the visible rows
+  refetch instead of sitting as skeletons. Use it when the dataset behind the same `total` is
+  invalidated in place, for example after a server-side refresh.
 - `lazy.evict(range)` drops the loaded rows inside `range`. A partial overlap drops the
   intersection only, and the rest stays loaded. Evicted rows refetch on the next scroll into
   them.

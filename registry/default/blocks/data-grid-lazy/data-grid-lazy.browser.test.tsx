@@ -107,6 +107,39 @@ describe("data-grid-lazy: evict() reverts a loaded range to skeletons and the ne
   });
 });
 
+describe("data-grid-lazy: reset() refetches the visible window without a scroll", () => {
+  it("loaded rows return after reset() alone (the core does not re-report an unmoved window)", async () => {
+    const pending: Array<{ start: number; end: number; resolve: (rows: Row[]) => void }> = [];
+    const fetchRows = vi.fn((start: number, end: number) => {
+      return new Promise<Row[]>((resolve) => {
+        pending.push({ start, end, resolve: (rows: Row[]) => resolve(rows) });
+      });
+    });
+
+    let lazy: UseDataGridLazyRowsResult<Row> | undefined;
+    render(<LazyGrid fetchRows={fetchRows} onLazy={(l) => (lazy = l)} />);
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    pending[0]?.resolve(makeRows(pending[0].start, pending[0].end));
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => requestAnimationFrame(r));
+    await expect.element(page.getByText("Person 0")).toBeInTheDocument();
+
+    const callsBefore = fetchRows.mock.calls.length;
+    lazy?.reset();
+    await new Promise((r) => setTimeout(r, 0));
+
+    // no scroll happened — the refetch must come from the hook itself.
+    expect(fetchRows.mock.calls.length).toBeGreaterThan(callsBefore);
+    expect(document.querySelectorAll('[role="gridcell"][data-skeleton]').length).toBeGreaterThan(0);
+
+    pending.at(-1)!.resolve(makeRows(pending.at(-1)!.start, pending.at(-1)!.end));
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => requestAnimationFrame(r));
+    await expect.element(page.getByText("Person 0")).toBeInTheDocument();
+    expect(document.querySelectorAll('[role="gridcell"][data-skeleton]').length).toBe(0);
+  });
+});
+
 describe("data-grid-lazy: scroll into a hole -> skeletons -> data fills in", () => {
   it("renders skeleton rows for a far scroll target, then fills in real content once the fetch resolves", async () => {
     let resolveFetch: (() => void) | undefined;

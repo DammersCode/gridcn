@@ -30,17 +30,18 @@ export type UseDataGridLazyRowsOptions<TData> = {
   /**
    * Caps rows per single `fetchRows` call: a gap wider than this is split into consecutive
    * chunks of at most `maxFetchRows` rows, each fetched independently (own dedup, abort, and
-   * failure). Chunk boundaries follow the gap's start, not `batchSize` boundaries. Values below
-   * 1 are treated as 1. Default: no cap.
-   */
+    * failure). Chunk boundaries follow the gap's start, not `batchSize` boundaries. Non-integer
+    * values are rounded down; values below 1 are treated as 1. Default: no cap.
+    */
   maxFetchRows?: number;
   /** Fired when a range fetch throws/rejects; the range reverts to unloaded and is retried next time it's visible. */
   onError?: (error: unknown, range: Range) => void;
   /**
-   * Fired after a range fetch resolves and its rows were written into the sparse array, with the
-   * range that was actually written — a short response is clamped, so it can be smaller than the
-   * requested range. Not fired for aborted or rejected fetches, nor when the response wrote zero
-   * rows.
+   * Fired once a range fetch resolves and the hook has marked that range loaded, with the range
+   * that was actually written — a short response is clamped, so it can be smaller than the
+   * requested range. The rows commit on the next render, so this hook's `data` is still stale
+   * inside the callback; `getLoadedRanges()` already includes the range. Not fired for aborted
+   * or rejected fetches, nor when the response wrote zero rows.
    */
   onLoaded?: (range: Range) => void;
 };
@@ -68,9 +69,10 @@ export type UseDataGridLazyRowsResult<TData> = {
   /** True while any range fetch is in flight. */
   isLoading: boolean;
   /**
-   * Aborts every in-flight fetch and drops all loaded rows — the same reset a `total` change
-   * performs, callable whenever the dataset behind the same `total` is invalidated in place
-   * (a server-side refresh, a sort spec change). Stable across renders.
+   * Aborts every in-flight fetch, drops all loaded rows, and re-requests the last reported
+   * window, so rows currently in view refetch instead of sitting as skeletons — the same reset
+   * a `total` change performs, callable whenever the dataset behind the same `total` is
+   * invalidated in place (a server-side refresh, a sort spec change). Stable across renders.
    */
   reset: () => void;
   /**
@@ -95,6 +97,15 @@ export type UseDataGridLazyRowsResult<TData> = {
 /** Index-derived placeholder id for an unloaded row — unstable across loads, but unloaded rows carry no state (documented: unstable identity for unloaded rows is fine). */
 function placeholderId(index: number): string {
   return `__lazy-unloaded-${index}`;
+}
+
+/** A consumer callback throwing must not escape the fetch's promise chain as an unhandled rejection. */
+function guardCallback(fn: (() => void) | undefined): void {
+  try {
+    fn?.();
+  } catch (error) {
+    console.error("[data-grid-lazy] a lazy-rows callback threw:", error);
+  }
 }
 
 /**
@@ -136,6 +147,8 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
   const [isLoading, setIsLoading] = useState(false);
   // per-instance once-flag: a persistently broken fetchRows must not re-warn on every fetch
   const lengthMismatchWarnedRef = useRef(false);
+  const lastWindowRef = useRef<Range | null>(null);
+  const pendingWindowRef = useRef(false);
 
   // In-flight fetches are aborted so a slow resolution of the old dataset can't write stale rows.
   const totalRef = useRef(total);
@@ -145,6 +158,8 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
     loadedRangesRef.current = [];
     setRows(new Array(totalRef.current));
     setIsLoading(false);
+    // the core re-reports a window only when it moves — re-fire the last one or visible rows sit as skeletons.
+    pendingWindowRef.current = lastWindowRef.current !== null;
   }, []);
   if (totalRef.current !== total) {
     totalRef.current = total;
@@ -197,6 +212,9 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
     setIsLoading(true);
 
     const handleSettled = () => {
+      // a reset() may have replaced this fetch under the same key — only the current owner clears it.
+      const entry = inFlightRef.current.get(key);
+      if (entry?.controller !== controller) return;
       inFlightRef.current.delete(key);
       if (inFlightRef.current.size === 0) setIsLoading(false);
     };
@@ -220,13 +238,13 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
         }
         return next;
       });
-      if (written > 0) onLoadedRef.current?.({ start: range.start, end: range.start + written });
+      if (written > 0) guardCallback(() => onLoadedRef.current?.({ start: range.start, end: range.start + written }));
     };
     const handleRejected = (error: unknown) => {
       if (controller.signal.aborted) return;
       // failed ranges revert to unloaded (never entered loadedRangesRef) so the next
       // onRowWindowChange covering them naturally retries — "refetch on next visibility".
-      onErrorRef.current?.(error, range);
+      guardCallback(() => onErrorRef.current?.(error, range));
     };
 
     // try/catch guards a `fetchRows` that throws synchronously instead of returning a rejected
@@ -242,6 +260,7 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
 
   const onRowWindowChange = useCallback(
     (range: Range) => {
+      lastWindowRef.current = range;
       const expanded = expandRange(range, { overscan, batchSize, total: totalRef.current });
       if (rangeSize(expanded) === 0) return;
       const covered = [...loadedRangesRef.current, ...Array.from(inFlightRef.current.values(), (v) => v.range)];
@@ -252,6 +271,14 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
     },
     [overscan, batchSize, maxFetchRows, runFetch],
   );
+
+  // No deps: this must observe the flag on every commit, and the flag makes repeat runs a no-op.
+  useEffect(() => {
+    if (!pendingWindowRef.current) return;
+    pendingWindowRef.current = false;
+    const last = lastWindowRef.current;
+    if (last) onRowWindowChange(last);
+  });
 
   const onDataChange = useCallback((next: readonly TData[], _change: DataChange<TData>) => {
     // `next` is DataGrid's own post-edit array, itself sparse at runtime (see gridProps.data's doc).
