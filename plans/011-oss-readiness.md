@@ -1,6 +1,8 @@
 # 011 — OSS readiness: GitHub registry, Vercel docs hosting, publish checklist
 
-Status: IN PROGRESS (work carried on `dev`; `oss/github-registry` is stale)
+Status: DONE (repo public; `oss/github-registry` merged to `main`; docs + hosted registry live
+at gridcn.vercel.app; CI registry-validate step green on main; owner steps from the ordered plan
+executed)
 Date: 2026-09-07
 Scope: make the repository open-source ready — installable from a shadcn **GitHub registry**,
 hostable on Vercel (free tier), with every non-OSS-ready finding written down and planned.

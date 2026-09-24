@@ -203,19 +203,25 @@ instead).
 
 ## Status
 
+**DONE** — all windows landed on main (per-window SHAs were not tracked; the work spanned the
+`content/docs/**` + `registry/default/examples/**` history after 2026-09-22). Two intentional
+deviations from the target tree: add-ons became a top-level `content/docs/addons/` section with
+live demos instead of `examples/addons` (decision recorded in `863bea7`), and W9 landed after the
+`feat/row-reorder` merge (rows/drag-reorder.mdx).
+
 | Window | Scope | Status |
 |---|---|---|
-| 0 | Examples folder tree + meta.jsons + root meta + hubs | TODO |
-| 1 | Foundations (4 pages, existing demos) | TODO |
-| 2 | Columns & Pinning (6 pages + column-layout + column-drag demos) | TODO |
-| 3 | Rows (row-ops + actions demos, 4 pages) | TODO |
-| 4 | Validation (demo extension + 4 pages + cross-field demo) | TODO |
-| 5 | Data & Integrations (5 new demos, 3 recipe pages, 8 pages) | TODO |
-| 6 | Kbd grouping polish + feature-placement audit (context-menu + keybindings pages) | TODO |
-| 7 | Add-ons (10 pages moved into examples/addons) | TODO |
-| 8 | Appearance & i18n (3 pages) | TODO |
-| 9 | Row drag & drop (demo + page under rows/) — after feat/row-reorder merge | BLOCKED (dep) |
-| 10 | Prose & structure audit (tabs + compression + dedup) — after W2–W5 guide links | TODO |
+| 0 | Examples folder tree + meta.jsons + root meta + hubs | DONE |
+| 1 | Foundations (4 pages, existing demos) | DONE |
+| 2 | Columns & Pinning (6 pages + column-layout + column-drag demos) | DONE |
+| 3 | Rows (row-ops + actions demos, 4 pages) | DONE |
+| 4 | Validation (demo extension + 4 pages + cross-field demo) | DONE |
+| 5 | Data & Integrations (5 new demos, 3 recipe pages, 8 pages) | DONE |
+| 6 | Kbd grouping polish + feature-placement audit (context-menu + keybindings pages) | DONE |
+| 7 | Add-ons (10 pages, live demos — landed as `content/docs/addons/` top-level section) | DONE |
+| 8 | Appearance & i18n (3 pages) | DONE |
+| 9 | Row drag & drop (demo + page under rows/) | DONE |
+| 10 | Prose & structure audit (tabs + compression + dedup, `cb8117f`) | DONE |
 
 ## Repo facts (window-specific)
 

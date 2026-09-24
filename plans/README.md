@@ -34,9 +34,9 @@ Status values: TODO | IN PROGRESS | DONE (commit SHA) | BLOCKED (reason) | REJEC
 
 | Plan | Title | Priority | Effort | Risk | Depends on | Status |
 |------|-------|----------|--------|------|------------|--------|
-| 011 | OSS readiness: GitHub registry, Vercel docs hosting, publish checklist | P2 | M | MED | — | IN PROGRESS (work carried on `dev`; owner-side release steps open) |
+| 011 | OSS readiness: GitHub registry, Vercel docs hosting, publish checklist | P2 | M | MED | — | DONE (repo public; GitHub registry + docs live at gridcn.vercel.app; CI registry-validate green) |
 | 012 | API audit ADOPT set (P1-A, P2, P3, P6-code, P7 a-c, P8 b/c/d, P9 a-e + docs batch) | P1 | L | MED | — | DONE (all windows; full unit + browser suites green; two-axis code review applied in d69e7df + 527526b) |
-| 013 | Docs examples: per-feature live examples, collapsible Examples IA, library mappings (Zod/Valibot/ArkType, React Query/SWR, Drizzle/Prisma recipes) | P2 | L | LOW | W8 only: `feat/row-reorder` merge | IN PROGRESS (most windows landed on main — feature folders under `content/docs/examples/` incl. `data/lazy`, `data/orm`, `data/pagination`; W7 add-ons not landed; the in-file status table is stale) |
+| 013 | Docs examples: per-feature live examples, collapsible Examples IA, library mappings (Zod/Valibot/ArkType, React Query/SWR, Drizzle/Prisma recipes) | P2 | L | LOW | W8 only: `feat/row-reorder` merge | DONE (all windows; examples IA + `content/docs/addons/` section in `863bea7`, prose/tab restructure in `cb8117f`) |
 | 015 | Lazy loading customization: fetch-window tuning (`maxFetchRows`), memory retention (`evict`/`reset`/`getLoadedRanges`), `onLoaded`, docs + validation sweep | P2 | L | MED | — | DONE (merged as PR #44, merge `efd4988`; commits `73ddca5` → `eadeac2` incl. review fixes `4ae93f0`; full unit/browser/compiler suites green) |
 
 ## Dependency notes
