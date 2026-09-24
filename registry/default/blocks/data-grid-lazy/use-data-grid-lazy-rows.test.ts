@@ -373,7 +373,6 @@ describe("useDataGridLazyRows", () => {
     act(() => result.current.evict({ start: 100, end: 200 }));
     expect(result.current.getLoadedRanges()).toEqual([{ start: 0, end: 20 }]);
 
-    // negative start clamps to 0 and evicts only the loaded intersection [0, 5).
     act(() => result.current.evict({ start: -10, end: 5 }));
     expect(result.current.getLoadedRanges()).toEqual([{ start: 5, end: 20 }]);
     expect(result.current.gridProps.data[3]).toBeUndefined();
@@ -495,12 +494,10 @@ describe("useDataGridLazyRows", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(fetchRows).toHaveBeenCalledTimes(3);
 
-    // re-reporting a window inside the covered span adds no fetch.
     act(() => result.current.gridProps.onRowWindowChange({ start: 5, end: 40 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(fetchRows).toHaveBeenCalledTimes(3);
 
-    // extending past the covered span fetches only the uncovered part [45, 60).
     act(() => result.current.gridProps.onRowWindowChange({ start: 40, end: 60 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(fetchRows).toHaveBeenCalledTimes(4);

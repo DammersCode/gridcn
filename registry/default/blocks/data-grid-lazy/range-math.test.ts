@@ -122,7 +122,7 @@ describe("chunkRange", () => {
     expect(chunks[1]).toEqual({ start: 1, end: 2 });
   });
 
-  it("treats a cap of 0 like a cap of 1 (house pattern: Math.max(1, max))", () => {
+  it("treats a cap below 1 as 1", () => {
     expect(chunkRange({ start: 0, end: 3 }, 0)).toEqual(chunkRange({ start: 0, end: 3 }, 1));
   });
 

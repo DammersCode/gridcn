@@ -96,6 +96,7 @@ describe("data-grid-lazy: evict() reverts a loaded range to skeletons and the ne
 
     // the refetch is in flight but unresolved -> skeletons hold the space again.
     expect(document.querySelectorAll('[role="gridcell"][data-skeleton]').length).toBeGreaterThan(0);
+    expect(document.querySelectorAll('[role="row"][aria-busy="true"]').length).toBeGreaterThan(0);
     expect(fetchRows.mock.calls.length).toBeGreaterThan(2);
 
     pending.at(-1)!.resolve(makeRows(pending.at(-1)!.start, pending.at(-1)!.end));

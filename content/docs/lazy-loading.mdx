@@ -172,8 +172,8 @@ removes them:
 - `lazy.evict(range)` drops the loaded rows inside `range`. A partial overlap drops the
   intersection only, and the rest stays loaded. Evicted rows refetch on the next scroll into
   them.
-- `lazy.getLoadedRanges()` returns the loaded ranges, merged and sorted. It reads a ref, so the
-  result never triggers a render. Call it in effects or event handlers.
+- `lazy.getLoadedRanges()` returns the loaded ranges, merged and sorted. The result never
+  triggers a render. Call it in effects or event handlers.
 
 An eviction policy is a consumer decision. A distance from the visible window is a starting
 point:
@@ -277,5 +277,6 @@ and nothing more.
   (`__lazy-unloaded-<index>`), not a real row id. If a selection must mean "only loaded rows",
    filter the selected rows through the sparse `data` array yourself — a hole is `undefined`
    there — or read `lazy.getLoadedRanges()` and keep only the rows whose index falls in a
-   loaded range.
+   loaded range. The result is a snapshot that never triggers a render — call it in an effect
+   or handler.
 </Callout>
