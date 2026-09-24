@@ -43,7 +43,7 @@ so isolation buys nothing (decision recorded per the "worktrees if needed" instr
 | 4 | Bugs report → `docs/agent-work/2026-09-03-audit-bugs.md` + trace | `e663850` | done |
 | 5 | PLAN.md feature-goal checklist updated to reality | `5a75068` | done |
 | 6 | Follow-up workplan → `docs/agent-work/plans/2026-09-03-audit-followups.md` | `2bf8d71` | done |
-| 7 | Trace files → `traces/` (one per agent: prompt ref + raw return) | with #2–#4 | done |
+| 7 | Trace files (raw agent output; deleted from the working tree, kept in git history) | with #2–#4 | done |
 | 8 | Full self-contained handoff plans → `plans/README.md` + `plans/001-…-010` (executor-ready: drift check, verified refs, step gates, STOP conditions) | one commit per plan + index | done |
 | 9 | Workplan + this doc: pointer from the condensed queue to `plans/` | with #8 | done |
 
