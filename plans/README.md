@@ -34,6 +34,7 @@ Status values: TODO | IN PROGRESS | DONE (commit SHA) | BLOCKED (reason) | REJEC
 | 011 | OSS readiness: GitHub registry, Vercel docs hosting, publish checklist | P2 | M | MED | — | IN PROGRESS (work carried on `dev`; owner-side release steps open) |
 | 012 | API audit ADOPT set (P1-A, P2, P3, P6-code, P7 a-c, P8 b/c/d, P9 a-e + docs batch) | P1 | L | MED | — | DONE (all windows; full unit + browser suites green; two-axis code review applied in d69e7df + 527526b) |
 | 013 | Docs examples: per-feature live examples, collapsible Examples IA, library mappings (Zod/Valibot/ArkType, React Query/SWR, Drizzle/Prisma recipes) | P2 | L | LOW | W8 only: `feat/row-reorder` merge | TODO |
+| 015 | Lazy loading customization: fetch-window tuning (`maxFetchRows`), memory retention (`evict`/`reset`/`getLoadedRanges`), `onLoaded`, docs + validation sweep | P2 | L | MED | — | IN PROGRESS (T1 `73ddca5` + T2 punch-list in plan; T3 docs + T4 review open) |
 
 ## Dependency notes
 
