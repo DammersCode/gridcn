@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { expandRange, mergeRanges, rangeSize, subtractRanges } from "./range-math";
+import { chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges } from "./range-math";
 
 describe("rangeSize", () => {
   it("returns end - start for a normal range", () => {
@@ -91,6 +91,53 @@ describe("subtractRanges", () => {
 
   it("returns nothing for an empty target", () => {
     expect(subtractRanges({ start: 50, end: 50 }, [])).toEqual([]);
+  });
+});
+
+describe("chunkRange", () => {
+  it("returns the range unchanged as a single chunk when it fits the cap", () => {
+    expect(chunkRange({ start: 10, end: 60 }, 50)).toEqual([{ start: 10, end: 60 }]);
+    expect(chunkRange({ start: 10, end: 60 }, 1000)).toEqual([{ start: 10, end: 60 }]);
+  });
+
+  it("splits into consecutive chunks of at most max covering the range exactly once", () => {
+    expect(chunkRange({ start: 10, end: 160 }, 50)).toEqual([
+      { start: 10, end: 60 },
+      { start: 60, end: 110 },
+      { start: 110, end: 160 },
+    ]);
+  });
+
+  it("keeps the last chunk shorter when the range is not a multiple of the cap", () => {
+    expect(chunkRange({ start: 0, end: 55 }, 20)).toEqual([
+      { start: 0, end: 20 },
+      { start: 20, end: 40 },
+      { start: 40, end: 55 },
+    ]);
+  });
+
+  it("chunks by one row when the cap is 1", () => {
+    const chunks = chunkRange({ start: 0, end: 3 }, 1);
+    expect(chunks).toHaveLength(3);
+    expect(chunks[1]).toEqual({ start: 1, end: 2 });
+  });
+
+  it("treats a cap below 1 as 1", () => {
+    expect(chunkRange({ start: 0, end: 3 }, 0)).toEqual(chunkRange({ start: 0, end: 3 }, 1));
+  });
+
+  it("floors a fractional cap so every chunk boundary stays an integral row index", () => {
+    expect(chunkRange({ start: 0, end: 10 }, 2.5)).toEqual([
+      { start: 0, end: 2 },
+      { start: 2, end: 4 },
+      { start: 4, end: 6 },
+      { start: 6, end: 8 },
+      { start: 8, end: 10 },
+    ]);
+  });
+
+  it("returns the empty range as a single empty chunk", () => {
+    expect(chunkRange({ start: 5, end: 5 }, 50)).toEqual([{ start: 5, end: 5 }]);
   });
 });
 

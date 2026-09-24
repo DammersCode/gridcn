@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isDev, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
-import { expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes, type Range } from "./range-math";
+import { chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes, type Range } from "./range-math";
 
 /** Default extra rows fetched per range beyond the visible window — ~1 viewport (spec: "default ~1 viewport of rows"). */
 const DEFAULT_OVERSCAN = 30;
@@ -27,8 +27,23 @@ export type UseDataGridLazyRowsOptions<TData> = {
   overscan?: number;
   /** Rounds fetch ranges to this boundary so small scrolls reuse the same batch; default {@link DEFAULT_BATCH_SIZE}. */
   batchSize?: number;
+  /**
+   * Caps rows per single `fetchRows` call: a gap wider than this is split into consecutive
+   * chunks of at most `maxFetchRows` rows, each fetched independently (own dedup, abort, and
+   * failure). Chunk boundaries follow the gap's start, not `batchSize` boundaries. Non-integer
+   * values are rounded down; values below 1 are treated as 1. Default: no cap.
+   */
+  maxFetchRows?: number;
   /** Fired when a range fetch throws/rejects; the range reverts to unloaded and is retried next time it's visible. */
   onError?: (error: unknown, range: Range) => void;
+  /**
+   * Fired once a range fetch resolves and the hook has marked that range loaded, with the range
+   * that was actually written — a short response is clamped, so it can be smaller than the
+   * requested range. The rows commit on the next render, so this hook's `data` is still stale
+   * inside the callback; `getLoadedRanges()` already includes the range. Not fired for aborted
+   * or rejected fetches, nor when the response wrote zero rows.
+   */
+  onLoaded?: (range: Range) => void;
 };
 
 /** Return value of {@link useDataGridLazyRows}. */
@@ -53,11 +68,44 @@ export type UseDataGridLazyRowsResult<TData> = {
   unloadedCount: number;
   /** True while any range fetch is in flight. */
   isLoading: boolean;
+  /**
+   * Aborts every in-flight fetch, drops all loaded rows, and re-requests the last reported
+   * window, so rows currently in view refetch instead of sitting as skeletons — the same reset
+   * a `total` change performs, callable whenever the dataset behind the same `total` is
+   * invalidated in place (a server-side refresh, a sort spec change). Stable across renders.
+   */
+  reset: () => void;
+  /**
+   * Unloads the loaded rows inside `range`; a partial overlap evicts the intersection only, the
+   * rest stays loaded. The next `onRowWindowChange` covering the evicted rows re-fetches them.
+   * In-flight fetches are not aborted — one started before the evict still lands and marks its
+   * range loaded. Evicted rows are lost from the sparse array,
+   * including edits merged through `onDataChange` (this hook does not own persistence). Clamped
+   * to `[0, total]`; an empty or out-of-range target is a no-op. Stable across renders.
+   */
+  evict: (range: Range) => void;
+  /**
+   * Snapshot of the currently loaded ranges, merged and sorted ascending. Not reactive: the
+   * ranges are kept in a ref so a fetch completion never triggers an extra render — the returned
+   * array is a copy (mutating it does not affect this hook) and reading it never triggers a
+   * render. Call it in effects or event handlers; treat a stale value during render as
+   * acceptable. Stable across renders.
+   */
+  getLoadedRanges: () => readonly Range[];
 };
 
 /** Index-derived placeholder id for an unloaded row — unstable across loads, but unloaded rows carry no state (documented: unstable identity for unloaded rows is fine). */
 function placeholderId(index: number): string {
   return `__lazy-unloaded-${index}`;
+}
+
+/** A consumer callback throwing must not escape the fetch's promise chain as an unhandled rejection. */
+function guardCallback(fn: (() => void) | undefined): void {
+  try {
+    fn?.();
+  } catch (error) {
+    console.error("[data-grid-lazy] a lazy-rows callback threw:", error);
+  }
 }
 
 /**
@@ -77,7 +125,16 @@ function placeholderId(index: number): string {
  * skeleton-cell handling blocks entering edit mode on an unloaded row.
  */
 export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<TData>): UseDataGridLazyRowsResult<TData> {
-  const { total, fetchRows, getRowId, overscan = DEFAULT_OVERSCAN, batchSize = DEFAULT_BATCH_SIZE, onError } = options;
+  const {
+    total,
+    fetchRows,
+    getRowId,
+    overscan = DEFAULT_OVERSCAN,
+    batchSize = DEFAULT_BATCH_SIZE,
+    maxFetchRows,
+    onLoaded,
+    onError,
+  } = options;
 
   const [rows, setRows] = useState<(TData | undefined)[]>(() => Array<TData | undefined>(total));
 
@@ -90,22 +147,29 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
   const [isLoading, setIsLoading] = useState(false);
   // per-instance once-flag: a persistently broken fetchRows must not re-warn on every fetch
   const lengthMismatchWarnedRef = useRef(false);
+  const lastWindowRef = useRef<Range | null>(null);
+  const pendingWindowRef = useRef(false);
 
-  // Reset everything whenever total changes (a fresh dataset): holes everywhere again, and
-  // any fetch still in flight for the old dataset is aborted so its eventual resolution can't
-  // write stale rows into the new array.
+  // In-flight fetches are aborted so a slow resolution of the old dataset can't write stale rows.
   const totalRef = useRef(total);
-  if (totalRef.current !== total) {
-    totalRef.current = total;
+  const reset = useCallback(() => {
     for (const { controller } of inFlightRef.current.values()) controller.abort();
     inFlightRef.current.clear();
     loadedRangesRef.current = [];
-    setRows(new Array(total));
+    setRows(new Array(totalRef.current));
     setIsLoading(false);
+    // the core re-reports a window only when it moves — re-fire the last one or visible rows sit as skeletons.
+    pendingWindowRef.current = lastWindowRef.current !== null;
+  }, []);
+  if (totalRef.current !== total) {
+    totalRef.current = total;
+    reset();
   }
 
   const fetchRowsRef = useRef(fetchRows);
   fetchRowsRef.current = fetchRows;
+  const onLoadedRef = useRef(onLoaded);
+  onLoadedRef.current = onLoaded;
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
 
@@ -118,6 +182,28 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
     };
   }, []);
 
+  const evict = useCallback(
+    (range: Range) => {
+      const start = Math.max(0, range.start);
+      const end = Math.min(totalRef.current, range.end);
+      if (end <= start) return;
+      const target = { start, end };
+      const kept: Range[] = [];
+      for (const loaded of loadedRangesRef.current) {
+        for (const piece of subtractRanges(loaded, [target])) kept.push(piece);
+      }
+      loadedRangesRef.current = mergeRanges(kept);
+      setRows((prev) => {
+        const next = prev.slice();
+        for (let i = start; i < end; i++) next[i] = undefined;
+        return next;
+      });
+    },
+    [],
+  );
+
+  const getLoadedRanges = useCallback(() => loadedRangesRef.current.slice(), []);
+
   const runFetch = useCallback((range: Range) => {
     const key = `${range.start}:${range.end}`;
     if (inFlightRef.current.has(key)) return;
@@ -126,6 +212,9 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
     setIsLoading(true);
 
     const handleSettled = () => {
+      // a reset() may have replaced this fetch under the same key — only the current owner clears it.
+      const entry = inFlightRef.current.get(key);
+      if (entry?.controller !== controller) return;
       inFlightRef.current.delete(key);
       if (inFlightRef.current.size === 0) setIsLoading(false);
     };
@@ -149,12 +238,13 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
         }
         return next;
       });
+      if (written > 0) guardCallback(() => onLoadedRef.current?.({ start: range.start, end: range.start + written }));
     };
     const handleRejected = (error: unknown) => {
       if (controller.signal.aborted) return;
       // failed ranges revert to unloaded (never entered loadedRangesRef) so the next
       // onRowWindowChange covering them naturally retries — "refetch on next visibility".
-      onErrorRef.current?.(error, range);
+      guardCallback(() => onErrorRef.current?.(error, range));
     };
 
     // try/catch guards a `fetchRows` that throws synchronously instead of returning a rejected
@@ -170,14 +260,25 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
 
   const onRowWindowChange = useCallback(
     (range: Range) => {
+      lastWindowRef.current = range;
       const expanded = expandRange(range, { overscan, batchSize, total: totalRef.current });
       if (rangeSize(expanded) === 0) return;
       const covered = [...loadedRangesRef.current, ...Array.from(inFlightRef.current.values(), (v) => v.range)];
       const gaps = subtractRanges(expanded, covered);
-      for (const gap of gaps) runFetch(gap);
+      for (const gap of gaps) {
+        for (const chunk of chunkRange(gap, maxFetchRows ?? Infinity)) runFetch(chunk);
+      }
     },
-    [overscan, batchSize, runFetch],
+    [overscan, batchSize, maxFetchRows, runFetch],
   );
+
+  // No deps: this must observe the flag on every commit, and the flag makes repeat runs a no-op.
+  useEffect(() => {
+    if (!pendingWindowRef.current) return;
+    pendingWindowRef.current = false;
+    const last = lastWindowRef.current;
+    if (last) onRowWindowChange(last);
+  });
 
   const onDataChange = useCallback((next: readonly TData[], _change: DataChange<TData>) => {
     // `next` is DataGrid's own post-edit array, itself sparse at runtime (see gridProps.data's doc).
@@ -203,5 +304,5 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
   // rather than visiting them as `undefined`, so a scan would undercount every unloaded slot.
   const unloadedCount = totalRef.current - sumRangeSizes(loadedRangesRef.current);
 
-  return { gridProps, onDataChange, unloadedCount, isLoading };
+  return { gridProps, onDataChange, unloadedCount, isLoading, reset, evict, getLoadedRanges };
 }

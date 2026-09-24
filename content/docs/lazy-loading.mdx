@@ -82,6 +82,9 @@ Neither add-on exists for rendering performance. Using both together is not supp
       the visible range on both sides (about 1 viewport by default), then both edges round
       outward to the nearest `batchSize` boundary, so a small scroll reuses the same in-flight or
       already-loaded batch.
+    - **Gaps wider than `maxFetchRows` split into chunks.** Each chunk is a separate request of
+      at most `maxFetchRows` rows, with its own dedup, abort, and failure. The default is no
+      cap.
     - **Already-loaded and in-flight ranges are never re-requested.** A window that partially
       overlaps what is already loaded only fetches the remaining gap. Adjacent loaded ranges are
       merged, so later gap calculations see one covered span, not several.
@@ -90,7 +93,9 @@ Neither add-on exists for rendering performance. Using both together is not supp
       it.
     - **A failed fetch reverts its range to unloaded** (never marked loaded) and calls
       `onError(error, range)`. The next time that range comes back into view, `onRowWindowChange`
-      naturally re-requests it. There is no separate retry mechanism to wire up.
+      naturally re-requests it. There is no separate retry mechanism to wire up. A successful
+      fetch calls `onLoaded(range)` with the range actually written; the rows commit on the next
+      render, and `getLoadedRanges()` already includes the range.
   </Tab>
   <Tab value="Editing & errors">
     ## Editing loaded rows
@@ -119,10 +124,90 @@ Neither add-on exists for rendering performance. Using both together is not supp
     permanent failure" buttons show the two cases live — permanent failures and the retry UI for
     them are on the next page.
 
+    `onLoaded(range)` is the success counterpart of `onError`. It fires once a range fetch
+    resolves, with the range actually written. The rows commit on the next render.
+    `getLoadedRanges()` includes the range immediately. A short response fires with the smaller
+    range. A zero-row response fires nothing.
+
     For data-fetch libraries (React Query) and permanently failing ranges, see
     [Data fetching & failure recovery](/docs/lazy-loading-advanced).
   </Tab>
 </Tabs>
+
+## Tuning the fetch window
+
+`overscan`, `batchSize`, and `maxFetchRows` control the size of the ranges that reach
+`fetchRows`:
+
+- `overscan` pads the visible window on both sides (default about one viewport of rows).
+- `batchSize` rounds both edges of the padded window outward to the nearest multiple, so a
+  small scroll reuses the same batch.
+- `maxFetchRows` caps the rows of one `fetchRows` call. A wider gap splits into consecutive
+  chunks of at most the cap. The default is no cap.
+
+`overscan` and `batchSize` default to values that fit a typical viewport. `maxFetchRows` has no
+default cap. Adjust them when the defaults do not fit:
+
+```tsx
+useDataGridLazyRows({
+  total,
+  fetchRows,
+  getRowId,
+  overscan: 60,
+  batchSize: 100,
+  maxFetchRows: 200,
+});
+```
+
+Set `maxFetchRows` when your backend limits rows per request. Each chunk is an independent
+request with its own dedup, abort, and failure, and chunk boundaries follow the gap's start,
+not `batchSize` boundaries.
+
+## Memory & retention
+
+Loaded rows stay in the sparse array until a `total` change, a remount, or an explicit call
+removes them:
+
+- `lazy.reset()` aborts every in-flight fetch and drops all loaded rows. It is the same reset a
+  `total` change performs. It also re-requests the last reported window, so the visible rows
+  refetch instead of sitting as skeletons. Use it when the dataset behind the same `total` is
+  invalidated in place, for example after a server-side refresh.
+- `lazy.evict(range)` drops the loaded rows inside `range`. A partial overlap drops the
+  intersection only, and the rest stays loaded. Evicted rows refetch on the next scroll into
+  them.
+- `lazy.getLoadedRanges()` returns the loaded ranges, merged and sorted. The result never
+  triggers a render. Call it in effects or event handlers.
+
+An eviction policy is a consumer decision. A distance from the visible window is a starting
+point:
+
+```tsx
+const MIN_DISTANCE = 500;
+
+<DataGridRoot
+  onRowWindowChange={(range) => {
+    lazy.gridProps.onRowWindowChange(range);
+    for (const loaded of lazy.getLoadedRanges()) {
+      if (range.start - loaded.end > MIN_DISTANCE || loaded.start - range.end > MIN_DISTANCE) {
+        lazy.evict(loaded);
+      }
+    }
+  }}
+>
+  <DataGridHeader />
+  <DataGridBody />
+</DataGridRoot>
+```
+
+The demo's "Evict loaded rows" button runs `lazy.evict` over the whole range, so every loaded
+row becomes a skeleton and refetches on scroll.
+
+Two behaviors matter when you wire your own policy:
+
+- An in-flight fetch that started before the evict still lands and marks its range loaded. The
+  evicted rows reappear once that fetch resolves.
+- Evicted rows lose edits merged through `onDataChange` that you did not persist — this hook
+  does not own persistence. See [Editing loaded rows](#editing-loaded-rows).
 
 ## Sorting a lazy grid
 
@@ -138,14 +223,18 @@ const lazy = useDataGridLazyRows<Order>({
   fetchRows: (start, end, signal) => api.orders({ start, end, sorts, signal }),
 });
 
-// key: a sort change invalidates every fetched window, which a remount discards
+const onSortChange = (next: SortSpec[]) => {
+  // a sort change invalidates every fetched window, so drop them before the refetch runs
+  lazy.reset();
+  setSorts(next);
+};
+
 <DataGridProvider
-  key={sorts.map((s) => `${s.columnId}:${s.direction}`).join(",")}
   data={lazy.gridProps.data}
   getRowId={lazy.gridProps.getRowId}
   onDataChange={lazy.onDataChange}
   sortState={EMPTY_SORT}
-  onSortChange={setSorts}
+  onSortChange={onSortChange}
 >
 ```
 
@@ -155,9 +244,10 @@ Two details make this work:
   header click reports through `onSortChange` instead of sorting locally. Echoing the spec back
   into the prop makes the grid sort `data` by it. That re-orders the fetched window among itself
   and hides the server's order.
-- **A sort change discards loaded rows.** Already-fetched windows hold the *old* order, and
-  `useDataGridLazyRows` only drops loaded ranges when `total` changes. Remounting on a key
-  derived from the spec is the way to clear them.
+- **A sort change discards loaded rows.** Already-fetched windows hold the *old* order, so
+  `onSortChange` calls `lazy.reset()` before the refetch runs. Remounting the provider on a key
+  derived from the spec clears them too. It also resets the core store (selection, edit state,
+  scroll position), so it is the heavier alternative.
 
 Because the store's `sortState` is empty, the header's sort indicator and `aria-sort` stay blank
 and `DataGridSortList` shows no active sorts. Render the active sort from your own state instead.
@@ -188,6 +278,8 @@ and nothing more.
   <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> twice) selects the full view, holes included.
   `getRowIds` for an unloaded row in that selection returns its index-derived placeholder id
   (`__lazy-unloaded-<index>`), not a real row id. If a selection must mean "only loaded rows",
-  filter the selected rows through the sparse `data` array yourself — a hole is `undefined`
-  there — or track the loaded ranges in your own state.
+   filter the selected rows through the sparse `data` array yourself — a hole is `undefined`
+   there — or read `lazy.getLoadedRanges()` and keep only the rows whose index falls in a
+   loaded range. The result is a snapshot that never triggers a render — call it in an effect
+   or handler.
 </Callout>

@@ -57,9 +57,10 @@ function OrdersGrid() {
 
 `useDataGridLazyRows` already merges adjacent loaded ranges and never re-requests a covered
 range itself. So the cache of React Query mostly pays off for ranges that get *unloaded* and
-scrolled back into later. Examples are a failed fetch's range, or a range evicted by your own
-eviction policy. Those ranges come back from cache instead of hitting the network again, as
-long as they are within `staleTime`.
+scrolled back into view later. Two cases apply: a failed fetch's range, and a range you unload
+yourself with `lazy.evict(range)`. Use `lazy.getLoadedRanges()` to find the candidates for your
+policy. When the evicted range comes back into view, the refetch runs through `fetchRows`. It
+serves from cache instead of the network, as long as it is within `staleTime`.
 
 ## When a range fails permanently
 
