@@ -14,6 +14,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
+          # No pnpm here (stdlib-only script), so skip the pnpm store cache lookup.
+          package-manager-cache: false
 
       # Checks the deployed registry's internal consistency, so deployment lag cannot fail verification.
       - name: Verify hosted Vercel registry
