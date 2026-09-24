@@ -26,6 +26,7 @@ import {
   useDataGridGetSelectionValues,
   useDataGridSortState,
   useDataGridViewIndex,
+  useDataGridViewStale,
   useDataGridVisibleColumns,
 } from "../store";
 import type { FilterSpec, SortSpec } from "../types";
@@ -2643,5 +2644,43 @@ describe("controlled sortState/filterState/searchText (server escape hatch)", ()
       expect(result.current.searchText).toBe("Alice");
       expect(result.current.searchMatches.length).toBeGreaterThan(0);
     });
+  });
+});
+
+describe("updateCells while an edit session is open", () => {
+  it("reorder immediate defers the re-sort: the value lands, the edited row's slot does not move, viewStale flips", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeUncontrolledWrapper(onDataChange);
+    const { result } = renderHook(
+      () => ({
+        actions: useDataGridActions(),
+        viewIndex: useDataGridViewIndex(),
+        viewStale: useDataGridViewStale(),
+        editing: useDataGridEditing(),
+      }),
+      { wrapper },
+    );
+
+    // sorted by name ascending: view order is Alice(1), Bob(2), Charlie(0).
+    act(() => result.current.actions.setSorts([{ columnId: "name", direction: "asc" }]));
+    expect(result.current.viewIndex).toEqual([1, 2, 0]);
+    act(() => result.current.actions.startEditing({ col: 0, row: 0 }));
+
+    // Charlie (data 0) renamed to "Aaron": an immediate re-sort would move him to the top of the view.
+    act(() => result.current.actions.updateCells([{ rowId: "1", columnId: "name", value: "Aaron" }], { reorder: "immediate" }));
+
+    const [next] = onDataChange.mock.calls[0] as [readonly EditRow[], DataChange<EditRow>];
+    expect(next[0]).toMatchObject({ id: "1", name: "Aaron" }); // the value landed
+    // but the view did not re-sort under the open editor: the edited row (view 0) is untouched and
+    // the patched row keeps its old slot (view 2) until the session ends.
+    expect(result.current.viewIndex).toEqual([1, 2, 0]);
+    expect(result.current.viewStale).toBe(true);
+    expect(result.current.editing).toEqual({ coord: { col: 0, row: 0 }, initialText: undefined });
+
+    // once the session ends, the deferred re-sort lands on the next reconcile.
+    act(() => result.current.actions.cancelEditing());
+    act(() => result.current.actions.reconcileView());
+    expect(result.current.viewIndex).toEqual([0, 1, 2]); // Aaron, Alice, Bob
+    expect(result.current.viewStale).toBe(false);
   });
 });

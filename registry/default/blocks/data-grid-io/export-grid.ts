@@ -61,16 +61,18 @@ function isWithin(rect: { y: number; height: number }, viewRow: number): boolean
  * requested `scope` order: `'view'` walks `viewIndex` (current sort/filter order), `'all'` walks
  * `data` as-is, ignoring any active sort/filter, `'selection'` walks only the selected rows in
  * view order. Every scope emits all visible columns, so a row-shaped export always matches its
- * header row.
+ * header row. Hole rows (unloaded indices of a lazy grid's sparse `data`) are skipped in every
+ * scope.
  */
 export function buildExportRows(state: DataGridStoreState, scope: "view" | "all" | "selection"): string[][] {
   const dataIndices =
     scope === "all"
       ? state.data.map((_, i) => i)
       : scope === "selection"
-        ? selectedViewRows(state).map((viewRow) => state.viewIndex[viewRow]!)
+         ? selectedViewRows(state).map((viewRow) => state.viewIndex[viewRow]!)
         : state.viewIndex;
-  return dataIndices.map((dataRowIndex) => {
+  // lazy grids keep `data` sparse: skip holes before any accessor runs
+  return dataIndices.filter((dataRowIndex) => state.data[dataRowIndex] !== undefined).map((dataRowIndex) => {
     const row = state.data[dataRowIndex];
     return state.visibleColumns.map((column) => {
       const cellType = state.cellTypes[column.type ?? "text"];

@@ -281,5 +281,6 @@ and nothing more.
    filter the selected rows through the sparse `data` array yourself — a hole is `undefined`
    there — or read `lazy.getLoadedRanges()` and keep only the rows whose index falls in a
    loaded range. The result is a snapshot that never triggers a render — call it in an effect
-   or handler.
+   or handler. An export of a lazy grid covers only the loaded rows: `buildExportRows` skips
+   holes in every scope (see [Import & export](/docs/addons/import-export)).
 </Callout>

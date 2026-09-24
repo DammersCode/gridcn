@@ -210,7 +210,7 @@ a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
   the input shapes for `actions.setCellErrors`/`actions.clearCellErrors`. See
   [Editing & cell types: Server errors](/docs/editing-cell-types#server-errors).
 
-`createFilterMatcher(filter)` (from `sort-filter`) pre-parses the bounds of a `FilterSpec` once
+`createFilterMatcher(filter)` pre-parses the bounds of a `FilterSpec` once
 and returns a reusable `(text: string) => boolean` matcher. This has the same semantics as
 `matchesFilter`, but without re-parsing the filter's value on every row.
 

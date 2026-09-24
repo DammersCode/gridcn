@@ -35,8 +35,17 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   loaded rows, and re-requests the last reported window so the visible rows refetch — the same
   reset a `total` change performs), `evict(range)` (unloads a range so the next scroll into it
   refetches), and `getLoadedRanges()` (a non-reactive snapshot of the loaded ranges). A throwing
-  `onLoaded` or `onError` is logged instead of escaping as an unhandled promise rejection. The
-  demo gains an "Evict loaded rows" button that shows the eviction path live.
+   `onLoaded` or `onError` is logged instead of escaping as an unhandled promise rejection. The
+   demo gains an "Evict loaded rows" button that shows the eviction path live.
+- **Hole-safe export (`data-grid-io`):** `buildExportRows`/`exportGrid` now skip unloaded rows
+  (the holes of a `data-grid-lazy` sparse array) in every scope, so exporting a lazy grid no
+  longer throws on `accessorFn` columns or writes blank rows.
+- **Public barrel additions:** the `data-grid` barrel now exports `createFilterMatcher`
+  (previously documented but only importable from the internal `sort-filter` path), `displayText`,
+  and the `CellSpan` display primitive; the `data-grid-keybindings` barrel exports `BindingChips`
+  and `bindingTokens` (the binding chips the keybindings page already teaches); the
+  `data-grid-presence` barrel exports the `isRowIdPresenceHighlight` /
+  `isRowIdRangePresenceHighlight` payload type guards for narrowing untrusted remote payloads.
 
 ### Changed
 
@@ -71,7 +80,31 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `npx shadcn add DammersCode/gridcn/<item>`, no namespace registration or registry server needed.
   Same-repo `registryDependencies` use full GitHub item addresses. The hosted `@gridcn` namespace remains
   available from any host that serves the committed `public/r/` payloads (for example a Vercel deployment of
-  the documentation site). The dead `gridcn.dev` links in the docs are replaced by the GitHub registry.
+   the documentation site). The dead `gridcn.dev` links in the docs are replaced by the GitHub registry.
+- **A11y:** sorted columns now expose `aria-sort` (`ascending`/`descending`/`none`) on the header
+  whenever the column is sortable, independent of `headerClickBehavior` (whose default `select`
+  previously hid the sort state from screen readers). The visual indicator stays gated on the
+  click behavior as before.
+- **Lazy grids:** function-form row/cell callbacks (`readOnly(row)`, `getRowClassName`, and the
+  function forms of `getCellClassName` / `column.cellClassName`) are now skipped for unloaded
+  (hole) rows instead of being called with `row: undefined`, so the documented
+  `readOnly: (row) => row.locked` pattern no longer throws while scrolling into an unloaded
+  window.
+- **Row operations:** `insertRows` / `deleteRows` / `duplicateRows` now rebuild the view
+  (row count, windowing, `aria-rowcount`) immediately and respect the active sort/filter, so a
+  sorted grid no longer shows a stale row set after an insert/delete/duplicate. The three ops
+  are now no-ops with a development warning while an edit session is open (matching
+  `reorderRows`), and the keyboard `duplicateRow` binding duplicates the selected rows — falling
+  back to the active row — instead of only the active one, matching the context-menu item that
+  displays that shortcut.
+- **Streaming:** `updateCells` with `reorder: "immediate"` now defers the view re-sort while an
+  edit session is open, so a live feed can no longer pull the edited row out from under the open
+  editor.
+- **Breaking:** the `data-grid-fill` barrel no longer exports the pipeline internals
+  `readRectAsText`, `buildFillCandidates`, `buildFillWrites`, `UseFillHandleOptions`, and
+  `FillHandleHandlers` (never documented; `useDataGridFill` and `FillArgs` are unchanged).
+- **`data-grid-lazy` JSDoc:** the `overscan` (30) and `batchSize` (50) defaults are now stated
+  directly instead of linking to module-private constants.
 
 ### Added
 

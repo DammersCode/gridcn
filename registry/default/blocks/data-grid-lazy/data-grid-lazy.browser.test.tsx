@@ -231,3 +231,81 @@ describe("data-grid-lazy: scroll into a hole -> skeletons -> data fills in", () 
     await expect.element(page.getByText(/Person 2\d\d/).first()).toBeInTheDocument();
   });
 });
+
+const callbackColumns = defineColumns<Row>()([
+  { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120, readOnly: (row) => row.name.length > 0 },
+  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 180 },
+] as const);
+
+// the callbacks read a row field on purpose: an invocation with an undefined (hole) row crashes loudly
+const callbackRowClassName = (row: Row) => `row-${row.id}`;
+
+function CallbacksLazyGrid(props: {
+  fetchRows: (start: number, end: number, signal: AbortSignal) => Promise<Row[]>;
+}) {
+  const lazy = useDataGridLazyRows<Row>({
+    total: 10_000,
+    fetchRows: props.fetchRows,
+    getRowId: (row) => row.id,
+    overscan: 5,
+    batchSize: 20,
+  });
+  return (
+    <div style={{ height: 360, width: 400 }}>
+      <DataGridProvider
+        data={lazy.gridProps.data}
+        columns={callbackColumns}
+        getRowId={lazy.gridProps.getRowId}
+        onDataChange={lazy.onDataChange}
+      >
+        <DataGridRoot
+          className="h-90 w-100"
+          onRowWindowChange={lazy.gridProps.onRowWindowChange}
+          getRowClassName={callbackRowClassName}
+        >
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>
+    </div>
+  );
+}
+
+describe("data-grid-lazy: function-form callbacks on skeleton rows", () => {
+  it("scrolling into an unloaded window renders skeletons without throwing, and loaded rows keep the callback classes", async () => {
+    let resolveFetch: (() => void) | undefined;
+    const fetchRows = vi.fn(
+      (start: number, end: number) =>
+        new Promise<Row[]>((resolve) => {
+          resolveFetch = () => resolve(makeRows(start, end));
+        }),
+    );
+
+    render(<CallbacksLazyGrid fetchRows={fetchRows} />);
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    // resolve the mount-time fetch so the initial window holds real rows
+    resolveFetch?.();
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => requestAnimationFrame(r));
+    await expect.element(page.getByText("Person 0")).toBeInTheDocument();
+
+    // loaded rows receive the getRowClassName-derived class
+    const loadedRow = document.querySelector<HTMLElement>('[data-grid-row-index="0"]');
+    expect(loadedRow?.className).toContain("row-row-0");
+
+    const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+    grid.scrollTop = 200 * ROW_HEIGHT;
+    grid.dispatchEvent(new Event("scroll"));
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => setTimeout(r, 0));
+
+    // the unloaded window renders skeletons; the row-field-reading callbacks must not have
+    // thrown on the hole rows for this point to be reachable
+    expect(document.querySelectorAll('[role="gridcell"][data-skeleton]').length).toBeGreaterThan(0);
+    const skeletonRows = document.querySelectorAll<HTMLElement>('[role="row"][aria-busy="true"]');
+    expect(skeletonRows.length).toBeGreaterThan(0);
+    for (const skeletonRow of skeletonRows) {
+      expect(skeletonRow.className).not.toContain("row-");
+    }
+  });
+});

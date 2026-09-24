@@ -332,6 +332,95 @@ describe("DataGrid programmatic styling API", () => {
   });
 });
 
+describe("function-form styling callbacks on skeleton rows (lazy holes)", () => {
+  it("does not call function-form readOnly/getRowClassName/getCellClassName/column.cellClassName with an undefined row", () => {
+    const rows = makeRows(3);
+    const sparse = [rows[0]!, undefined, rows[2]!] as Row[];
+    const getRowClassName = vi.fn((row: Row) => `row-${row.id}`);
+    const getCellClassName = vi.fn(({ row }: { row: Row }) => `cell-${row.id}`);
+    // every callback reads a row field, so an invocation with an undefined row throws mid-render
+    const holeColumns: readonly ColumnDef<Row, unknown>[] = [
+      {
+        id: "name",
+        header: "Name",
+        accessorKey: "name",
+        readOnly: (row: Row) => row.qty > 1,
+        cellClassName: (ctx) => `col-${ctx.row.id}`,
+      },
+    ];
+    render(
+      <DataGrid
+        data={sparse}
+        columns={holeColumns}
+        getRowId={(r) => (r ? r.id : "hole")}
+        getRowClassName={getRowClassName}
+        getCellClassName={getCellClassName}
+      />,
+    );
+
+    const dataRows = screen.getAllByRole("row").filter((r) => r.getAttribute("aria-rowindex"));
+    const skeletonRow = dataRows[1]!;
+    expect(skeletonRow.getAttribute("aria-busy")).toBe("true");
+
+    for (const [row] of getRowClassName.mock.calls) expect(row).not.toBeUndefined();
+    for (const [ctx] of getCellClassName.mock.calls) expect(ctx.row).not.toBeUndefined();
+
+    // the hole renders a bare skeleton: no callback-derived classes, no data-readonly from the skipped readOnly
+    expect(skeletonRow.className).not.toContain("row-");
+    const skeletonCells = skeletonRow.querySelectorAll('[role="gridcell"][data-skeleton]');
+    expect(skeletonCells.length).toBe(1);
+    for (const cell of skeletonCells) {
+      expect(cell.className).not.toContain("cell-");
+      expect(cell.className).not.toContain("col-");
+      expect(cell).not.toHaveAttribute("data-readonly");
+    }
+
+    // loaded rows still receive everything the callbacks return
+    expect(dataRows[0]!.className).toContain("row-0");
+    expect(dataRows[2]!.className).toContain("row-2");
+    const firstCell = dataRows[0]!.querySelector('[role="gridcell"]')!;
+    const lastCell = dataRows[2]!.querySelector('[role="gridcell"]')!;
+    expect(firstCell).not.toHaveAttribute("data-readonly"); // qty 0 -> readOnly false
+    expect(lastCell).toHaveAttribute("data-readonly", "true"); // qty 2 -> readOnly true
+    expect(lastCell.className).toContain("cell-2");
+    expect(lastCell.className).toContain("col-2");
+  });
+});
+
+describe("aria-sort under the default headerClickBehavior", () => {
+  it("reports aria-sort on a sorted column even though the default click behavior is select, not sort", () => {
+    render(
+      <DataGrid
+        data={makeRows(5)}
+        columns={columns}
+        getRowId={(r) => r.id}
+        sortState={[{ columnId: "name", direction: "asc" }]}
+      />,
+    );
+    expect(screen.getByRole("columnheader", { name: "Name" })).toHaveAttribute("aria-sort", "ascending");
+    expect(screen.getByRole("columnheader", { name: "Qty" })).toHaveAttribute("aria-sort", "none");
+    // the visual arrow stays gated on the click behavior — the default "select" renders no indicator
+    expect(document.querySelector(gridAttrSelector("sortIndicator"))).toBeNull();
+  });
+
+  it("omits aria-sort entirely when the column is sortable: false", () => {
+    const nonSortableColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name", sortable: false },
+      { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
+    ];
+    render(
+      <DataGrid
+        data={makeRows(5)}
+        columns={nonSortableColumns}
+        getRowId={(r) => r.id}
+        sortState={[{ columnId: "name", direction: "asc" }]}
+      />,
+    );
+    expect(screen.getByRole("columnheader", { name: "Name" })).not.toHaveAttribute("aria-sort");
+    expect(screen.getByRole("columnheader", { name: "Qty" })).toHaveAttribute("aria-sort", "none");
+  });
+});
+
 describe("onCellClick / onRowClick", () => {
   it("onCellClick fires with the clicked cell's value/row/column/indices", () => {
     const onCellClick = vi.fn();

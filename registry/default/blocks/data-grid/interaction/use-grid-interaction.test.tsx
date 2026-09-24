@@ -146,10 +146,10 @@ function renderInteraction(
   return { hook, scrollRef };
 }
 
-// insertRow/duplicateRows commit straight into the store's `data` array; `viewIndex` only
-// reconciles through `_syncProps`/`reconcileView` (see store/update-cells.test.tsx), which is
-// out of scope here — reading `data.length` off the store directly is what the dispatcher itself
-// is responsible for and needs no view reconciliation to observe.
+// insertRow/duplicateRows commit into the store's own `data` array (the row-op actions rebuild
+// `viewIndex` too, so the uncontrolled harness survives a later `_syncProps` sync) — reading
+// `data.length` off the store directly is what the dispatcher itself is responsible for and
+// needs no consumer round-trip to observe.
 function dataLength(hook: ReturnType<typeof renderInteraction>["hook"]): number {
   return hook.result.current.storeApi.getState().data.length;
 }
@@ -525,6 +525,35 @@ describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
     pressKey(hook, "x", { ctrlKey: true, shiftKey: true });
 
     expect(dataLength(hook)).toBe(3);
+  });
+
+  it("duplicateRow duplicates every view row covered by the selection, not just the active row", () => {
+    const duplicateRow = (row: Row, index: number): Row => ({ ...row, id: `dup-${index}` });
+    const { hook } = renderInteraction(3, { duplicateRow });
+    act(() => {
+      hook.result.current.actions.selectCell({ col: 0, row: 0 });
+      hook.result.current.actions.extendTo({ col: 0, row: 2 });
+    });
+    hook.rerender();
+    expect(hook.result.current.selection.current?.range).toEqual({ x: 0, y: 0, width: 1, height: 3 });
+
+    pressKey(hook, "x", { ctrlKey: true, shiftKey: true });
+
+    expect(dataLength(hook)).toBe(6);
+  });
+
+  it("duplicateRow falls back to the active row when the selection was cleared", () => {
+    const duplicateRow = (row: Row, index: number): Row => ({ ...row, id: `dup-${index}` });
+    const { hook } = renderInteraction(3, { duplicateRow });
+    act(() => {
+      hook.result.current.actions.selectCell({ col: 0, row: 1 });
+      hook.result.current.actions.clearSelection();
+    });
+    hook.rerender();
+
+    pressKey(hook, "x", { ctrlKey: true, shiftKey: true });
+
+    expect(dataLength(hook)).toBe(4);
   });
 });
 

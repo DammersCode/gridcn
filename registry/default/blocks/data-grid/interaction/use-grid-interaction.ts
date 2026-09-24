@@ -10,7 +10,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from "react";
-import type { CellCoord } from "../types";
+import type { CellCoord, GridSelection } from "../types";
 import { isMacPlatform, isPrintableKey, matchKeymap, type KeymapEvent } from "../keyboard";
 import type { Keymap } from "../types";
 import { getCellValue } from "../columns/column-helpers";
@@ -218,6 +218,19 @@ function toggleCheckboxCell(state: DataGridStoreState, actions: ReturnType<typeo
   // explicit TData=unknown: row's `undefined`-narrowed type ({} | null) would otherwise drive inference instead of column's own already-unknown TData.
   const value = getCellValue<unknown, typeof column>(row, column);
   actions.commitCellValue(coord, !value);
+}
+
+/** Every view row index covered by `selection` (primary range, range stack, rows channel), deduped ascending — the row set the row-op gestures act on. */
+function selectedViewRows(selection: GridSelection): number[] {
+  const rows = new Set<number>();
+  if (selection.current) {
+    const rects = [selection.current.range, ...selection.current.rangeStack];
+    for (const rect of rects) {
+      for (let row = rect.y; row < rect.y + rect.height; row++) rows.add(row);
+    }
+  }
+  for (const row of selection.rows.toArray()) rows.add(row);
+  return Array.from(rows).sort((a, b) => a - b);
 }
 
 /** Direction for a data-boundary (Ctrl/Cmd+Arrow) jump. */
@@ -763,7 +776,13 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         }
         case "duplicateRow": {
           event.preventDefault();
-          if (!readOnly && state.duplicateRow && state.activeCell) actions.duplicateRows([state.activeCell.row]);
+          if (!readOnly && state.duplicateRow) {
+            // the context-menu item this shortcut labels duplicates the WHOLE selection; no
+            // selection, just the active row
+            const selected = selectedViewRows(state.selection);
+            if (selected.length > 0) actions.duplicateRows(selected);
+            else if (state.activeCell) actions.duplicateRows([state.activeCell.row]);
+          }
           break;
         }
       }

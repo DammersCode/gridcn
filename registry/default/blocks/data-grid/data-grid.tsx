@@ -164,6 +164,8 @@ export {
   selectCellType,
   dateCellType,
 } from "./cell-types/cell-types";
+export { displayText } from "./cell-types/display-text";
+export { CellSpan } from "./cell-types/cell-span";
 
 export { CompactSelection } from "./selection/compact-selection";
 /** Bounding-box union of two rects — `data-grid-fill`'s drag pipeline uses this to expand a selection over `combineRects(source, strip)`. */
@@ -253,7 +255,7 @@ export type {
   RowClickCtx,
 } from "./types";
 export { measureColumnAutosizeWidth, measureTextWidths } from "./columns/measure-column-text";
-export { type SearchMatch } from "./sort-filter";
+export { createFilterMatcher, type SearchMatch } from "./sort-filter";
 
 /** Props for {@link DataGrid}. */
 export type DataGridProps<TData> = {

@@ -76,6 +76,9 @@ ignores view order entirely and exports every row of the raw `data` array as-is.
 Every scope emits all visible columns, so an exported row always lines up with its header row. A
 cell range that covers part of a row still exports that row in full.
 
+Export covers only loaded rows: on a [lazy](/docs/lazy-loading) grid, unloaded rows are skipped
+in every scope. Export after the window you need is loaded.
+
 `DataGridExportButton` forwards its `options` prop to `exportGrid`, so
 `<DataGridExportButton options={{ scope: "selection" }} />` makes its menu export the selection.
 

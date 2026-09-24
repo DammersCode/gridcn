@@ -13,7 +13,7 @@
   "files": [
     {
       "path": "registry/default/blocks/data-grid-presence/data-grid-presence.ts",
-      "content": "/** Public entry point — the only module consumers/docs should import from. */\r\nexport { useDataGridPresence, useDataGridPresenceHighlights, type UseDataGridPresenceResult } from \"./use-data-grid-presence\";\r\nexport {\r\n  type PresenceHighlight,\r\n  type RowIdPresenceHighlight,\r\n  type RowIdRangePresenceHighlight,\r\n  type PresenceHighlightEntry,\r\n  type PresenceStoreApi,\r\n} from \"./presence-store\";\r\n",
+      "content": "/** Public entry point — the only module consumers/docs should import from. */\r\nexport { useDataGridPresence, useDataGridPresenceHighlights, type UseDataGridPresenceResult } from \"./use-data-grid-presence\";\r\nexport { isRowIdPresenceHighlight, isRowIdRangePresenceHighlight } from \"./presence-store\";\r\nexport {\r\n  type PresenceHighlight,\r\n  type RowIdPresenceHighlight,\r\n  type RowIdRangePresenceHighlight,\r\n  type PresenceHighlightEntry,\r\n  type PresenceStoreApi,\r\n} from \"./presence-store\";\r\n",
       "type": "registry:component",
       "target": "components/data-grid-presence/data-grid-presence.ts"
     },

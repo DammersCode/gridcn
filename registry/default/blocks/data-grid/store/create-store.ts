@@ -190,6 +190,21 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText),
     };
   };
+  /**
+   * The view bookkeeping a row-shifting op (`insertRows`/`deleteRows`/`duplicateRows`) owes: the
+   * row count changed, so `computeViewIndex` always returns a fresh array (the content-equality
+   * reuse cannot apply), `searchMatches` is recomputed against it, and `viewStale` is cleared —
+   * the full rebuild reconciles whatever a deferred `updateCells` batch left stale, mirroring
+   * `setColumnHidden`.
+   */
+  const rebuildRowOpView = (s: DataGridStoreState, nextData: readonly unknown[]): Partial<DataGridStoreState> => {
+    const viewIndex = computeViewIndex(nextData, s.columns, s.sortState, s.filterState, s.joinOperator, s.viewIndex, s.cellTypes);
+    return {
+      viewIndex,
+      viewStale: false,
+      ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText),
+    };
+  };
   // cellErrors keys owned by each row's last validateRow verdict, so a re-run clears exactly its
   // own stale messages and never a consumer's setCellErrors entries on other cells of that row.
   // Stale entries for deleted rows are harmless: their keys are already pruned, deleting is a no-op.
@@ -753,7 +768,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const batch = computeCellPatchBatch(s, patches, rowIndex, skipValidation);
         if (!batch) return;
 
-        const reorder = resolveReorder(options?.reorder, patches, s.sortState, s.filterState);
+        let reorder = resolveReorder(options?.reorder, patches, s.sortState, s.filterState);
+        // an open editor pins a view coordinate an immediate re-sort would silently remount (the
+        // commit path re-reads the shifted viewIndex for the same coord), so the batch defers
+        if (reorder === "immediate" && s.editing) reorder = "defer";
         rowIndexCache.rebase(batch.nextData);
         lastEmittedData = batch.nextData;
         s.onDataChange?.(batch.nextData, { source: options?.source ?? "stream", ops: batch.ops });
@@ -818,6 +836,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       insertRows(viewRowIndex, count, position = "below") {
         const s = get();
         if (s.readOnly) return;
+        // an open editor pins a view coordinate the shift would silently invalidate (the commit
+        // path re-reads the shifted viewIndex for the same coord)
+        if (s.editing) {
+          warnDev("insertRows is a no-op while an edit session is open");
+          return;
+        }
         if (!s.createRow) {
           warnDev("row insertion is a no-op because no `createRow` prop was provided");
           return;
@@ -846,11 +870,18 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           activeCell: s.activeCell && s.activeCell.row >= viewInsertAt
             ? { ...s.activeCell, row: s.activeCell.row + count }
             : s.activeCell,
+          ...rebuildRowOpView(s, batch.nextData),
         });
       },
       deleteRows(viewRowIndexes) {
         const s = get();
         if (s.readOnly) return;
+        // an open editor pins a view coordinate the shift would silently invalidate (the commit
+        // path re-reads the shifted viewIndex for the same coord)
+        if (s.editing) {
+          warnDev("deleteRows is a no-op while an edit session is open");
+          return;
+        }
         const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
         const batch = computeDeleteBatch(s, dataRowIndexes);
         if (!batch) return;
@@ -863,11 +894,18 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
           selection: emptySelection(),
           activeCell: null,
+          ...rebuildRowOpView(s, batch.nextData),
         });
       },
       duplicateRows(viewRowIndexes) {
         const s = get();
         if (s.readOnly) return;
+        // an open editor pins a view coordinate the shift would silently invalidate (the commit
+        // path re-reads the shifted viewIndex for the same coord)
+        if (s.editing) {
+          warnDev("duplicateRows is a no-op while an edit session is open");
+          return;
+        }
         if (!s.duplicateRow) {
           warnDev("duplicateRows is a no-op because no `duplicateRow` prop was provided");
           return;
@@ -889,7 +927,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           selection = offsetSelectionForRows(selection, insertAt, 1);
           if (activeCell && activeCell.row >= insertAt) activeCell = { ...activeCell, row: activeCell.row + 1 };
         });
-        set({ data: batch.nextData, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), selection, activeCell });
+        set({
+          data: batch.nextData,
+          cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
+          selection,
+          activeCell,
+          ...rebuildRowOpView(s, batch.nextData),
+        });
       },
       reorderRows(from, to) {
         const s = get();

@@ -21,9 +21,9 @@ function displaySegment(segment: string): string {
 }
 
 /**
- * Renders one binding string ("mod+shift+z") as a display label ("⌘⇧Z" / "Ctrl+Shift+Z"). Exported
- * for native-shortcut labels (Ctrl/Cmd+C/X/V) that live outside `DEFAULT_KEYMAP`, which only covers
- * grid-internal actions.
+ * Renders one binding string ("mod+shift+z") as a display label ("⌘⇧Z" / "Ctrl+Shift+Z"). Used by
+ * the menu's own shortcut hints, including native Ctrl/Cmd+C/X/V labels that live outside
+ * `DEFAULT_KEYMAP`; module-private.
  */
 export function formatBinding(binding: string): string {
   const parts = binding.split("+").map(displaySegment);

@@ -124,9 +124,14 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
 
   const pinned = column.pin;
   // no setValue/accessorKey = no write path (accessorFn-only, display computed) → readOnly by construction, matching the store's write-skip rule.
+  // row === undefined marks a lazy-loading hole (skeleton row): never passed to consumer callbacks, which may read row fields.
   const columnReadOnly =
     (!column.setValue && !column.accessorKey) ||
-    (typeof column.readOnly === "function" ? column.readOnly(row) : column.readOnly);
+    (typeof column.readOnly === "function"
+      ? row === undefined
+        ? undefined
+        : column.readOnly(row)
+      : column.readOnly);
   // Pinned top/bottom rows are readOnly by default — they're usually derived aggregates,
   // not editable data — unless the column's own readOnly explicitly says otherwise.
   const readOnly = isPinnedRow ? (columnReadOnly ?? true) : Boolean(gridReadOnly || columnReadOnly);
@@ -187,9 +192,13 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   // Grid-level hook first, then the column's own override — later cn() args win on conflicting
   // utilities, so a per-column override can still beat a grid-wide default.
   const classNameCtx = { value, row, column, viewRowIndex: rowIndex };
-  const gridCellClassName = getCellClassName?.(classNameCtx);
+  const gridCellClassName = row === undefined ? undefined : getCellClassName?.(classNameCtx);
   const columnCellClassName =
-    typeof column.cellClassName === "function" ? column.cellClassName(classNameCtx) : column.cellClassName;
+    typeof column.cellClassName === "function"
+      ? row === undefined
+        ? undefined
+        : column.cellClassName(classNameCtx)
+      : column.cellClassName;
 
   // The editor contract calls onChange(nextValue) then commit(movement) synchronously (see
   // cell-types/index.ts); stash the pending value in a ref so commit can forward it to the store action.

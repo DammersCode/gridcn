@@ -43,7 +43,7 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   dates or currency symbols. It is never round-tripped, and only the cell's display rendering
   reads it: clipboard and export call `toText` directly, and search/filter run on the raw
   `String(value)` (see the value-pipeline note below). When you omit it, the type falls back to
-  `toText` (see the `displayText()` helper in `cell-types/display-text.ts`).
+   `toText` (see the `displayText()` helper, exported from the `data-grid` entry point).
 - **`fromText`** — parses pasted, imported, or typed text into `TValue`. **It must never throw.**
   Paste and import feed it arbitrary, untrusted text: a stray clipboard fragment, a spreadsheet
   export from a different tool, or a typo made by a user. For anything it cannot parse, return
@@ -95,8 +95,9 @@ cellTypes) · **fill** = raw value.
   (only `null` is). Getting this wrong changes what a Ctrl+A region treats as blank, and what the
   fill handle treats as a gap to fill. If a number column treats `0` as empty, the fill handle
   skips real zero values.
-- **The `toDisplayText` fallback chain** (`toDisplayText ?? toText`, see `displayText()` in
-  `cell-types/display-text.ts`) keeps read-view formatting separate from the canonical text.
+- **The `toDisplayText` fallback chain** (`toDisplayText ?? toText`, see the `displayText()`
+   helper, exported from the `data-grid` entry point) keeps read-view formatting separate from
+   the canonical text.
   Format for humans in `toDisplayText`, and keep `toText` a plain, parseable, round-trippable
   string. Clipboard and export call `toText` directly and never see `toDisplayText` at all. So a
   decorative display format can never leak into a CSV export or break a later paste.

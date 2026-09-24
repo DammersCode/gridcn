@@ -18,12 +18,14 @@ drop](/docs/examples/rows/drag-reorder) · [Action buttons](/docs/examples/rows/
 | Prop | Enables | Without it |
 |---|---|---|
 | `createRow: (index: number) => TData` | Insert row above/below | `insertRow` is a silent no-op with a dev-only warning. The context menu hides the two Insert items |
-| `duplicateRow: (row: TData) => TData` | Duplicate row(s) | `duplicateRows` is a silent no-op with a dev-only warning. The context menu hides Duplicate |
+| `duplicateRow: (row: TData, index: number) => TData` | Duplicate row(s) | `duplicateRows` is a silent no-op with a dev-only warning. The context menu hides Duplicate |
 | (none) | Delete row(s) | Always available |
 
-`duplicateRow` must give every copy a distinct id (a spread copy with a fresh `id`), so a
-duplicate never collides with its source row's React key. `createRow` receives the data-space
-insertion index.
+`duplicateRow` receives the source row and the data index the copy lands at, and must give the
+copy a distinct id (a spread copy with a fresh `id`), so a duplicate never collides with its
+source row's React key. `createRow` receives the data-space insertion index. `insertRows`,
+`deleteRows`, and `duplicateRows` are no-ops with a dev-only warning while an edit session is
+open: the editor pins a view coordinate the row shift would invalidate.
 
 ## Default shortcuts
 

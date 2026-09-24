@@ -162,6 +162,30 @@ describe("buildExportRows / buildExportHeaders", () => {
     const state = makeState({ selection: { rows: { hasIndex: () => false }, current: null } as never });
     expect(buildExportRows(state, "selection")).toEqual([]);
   });
+
+  it("skips lazy holes (undefined rows) in every scope without calling accessors on them", () => {
+    // sparse array: holes at indices 1 and 2, as data-grid-lazy produces.
+    const data = new Array<Row>(4);
+    data[0] = { id: "1", name: "Alice", note: "n1" };
+    data[3] = { id: "4", name: "Dora", note: "n4" };
+    const columns = [
+      { id: "name", header: "Name", accessorKey: "name", type: "text" },
+      { id: "shout", header: "Shout", accessorFn: (row: Row) => `${row.name}!`, type: "text" },
+    ] as never;
+    const state = makeState({ data, viewIndex: [0, 1, 2, 3], visibleColumns: columns });
+    expect(buildExportRows(state, "view")).toEqual([["Alice", "Alice!"], ["Dora", "Dora!"]]);
+    expect(buildExportRows(state, "all")).toEqual([["Alice", "Alice!"], ["Dora", "Dora!"]]);
+    const selectionState = makeState({
+      data,
+      viewIndex: [0, 1, 2, 3],
+      visibleColumns: columns,
+      selection: {
+        rows: { hasIndex: () => false },
+        current: { range: { x: 0, y: 0, width: 2, height: 4 }, rangeStack: [] },
+      } as never,
+    });
+    expect(buildExportRows(selectionState, "selection")).toEqual([["Alice", "Alice!"], ["Dora", "Dora!"]]);
+  });
 });
 
 describe("downloadBlob", () => {

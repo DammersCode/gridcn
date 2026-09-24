@@ -19,7 +19,7 @@
     },
     {
       "path": "registry/default/blocks/data-grid-fill/data-grid-fill.ts",
-      "content": "/** Public entry point — the only module consumers/docs should import from. */\r\nexport { useDataGridFill, type UseDataGridFillOptions, type UseDataGridFillResult } from \"./use-data-grid-fill\";\r\nexport { type FillArgs, type FillHandleHandlers, type UseFillHandleOptions } from \"./use-data-grid-fill\";\r\nexport { computeFillTarget, type AllowedFillDirections, type ComputeFillTargetOptions } from \"./fill\";\r\nexport { detectSeries, type SeriesDescriptor } from \"./fill\";\r\nexport { generateFill, type FillDirection, type GenerateFillOptions } from \"./fill\";\r\nexport { fillDirection, rectRelativeTo } from \"./fill\";\r\nexport { readRectAsText, buildFillCandidates, buildFillWrites } from \"./use-fill-handle\";\r\n",
+      "content": "/** Public entry point — the only module consumers/docs should import from. */\r\nexport { useDataGridFill, type UseDataGridFillOptions, type UseDataGridFillResult, type FillArgs } from \"./use-data-grid-fill\";\r\nexport { computeFillTarget, type AllowedFillDirections, type ComputeFillTargetOptions } from \"./fill\";\r\nexport { detectSeries, type SeriesDescriptor } from \"./fill\";\r\nexport { generateFill, type FillDirection, type GenerateFillOptions } from \"./fill\";\r\nexport { fillDirection, rectRelativeTo } from \"./fill\";\r\n",
       "type": "registry:component",
       "target": "components/data-grid-fill/data-grid-fill.ts"
     },
