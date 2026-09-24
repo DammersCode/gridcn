@@ -12,26 +12,18 @@ type Equal<Expected, Actual> = (<T>() => T extends Expected ? 1 : 2) extends <T>
   ? true
   : false;
 function assertEqual<Expected, Actual>(_check: Equal<Expected, Actual>): void {}
-
-// --- strict sub-unions: typos are compile errors -------------------------------
-
 // @ts-expect-error "ArrowUpp" is not a key token
 const _badKey: KeyPart = "ArrowUpp";
 // @ts-expect-error "mod+ctrl" is an excluded modifier combo (mod is Ctrl off-mac)
 const _badPrefix: ModifierPrefix = "mod+ctrl";
-// --- escape hatch: any string stays assignable ---------------------------------
 
 declare const anyString: string;
 const _escape: KeyBinding = anyString;
-
-// --- canonical modifier prefix shape -------------------------------------------
 
 assertEqual<
   ModifierPrefix,
   "mod" | "ctrl" | "shift" | "alt" | "mod+shift" | "mod+alt" | "ctrl+shift" | "ctrl+alt" | "shift+alt" | "mod+shift+alt" | "ctrl+shift+alt"
 >(true);
-
-// --- KeyBinding literals and Keymap overrides ----------------------------------
 
 const _bindings: KeyBinding[] = ["Enter", "F2", " ", "mod+z", "mod+shift+z", "alt+ArrowUp", "ctrl+ ", "shift+ ", "mod+shift+alt+a", "mod+/"];
 

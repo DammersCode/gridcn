@@ -30,8 +30,19 @@ describe("validateKeyBinding", () => {
     "mod+shift+ArrowUp",
     // mod+ctrl is redundant (the matcher's ctrl path ignores mod) but not malformed
     "mod+ctrl+a",
+    // stable named keys outside the autocomplete vocabulary still match at runtime
+    "mod+Insert",
+    "PrintScreen",
+    "MediaPlayPause",
   ])("accepts %s", (binding) => {
     expect(validateKeyBinding(binding)).toEqual([]);
+  });
+
+  it.each([
+    ["mod+Dead", "is not a known key name"],
+    ["mod+Unidentified", "is not a known key name"],
+  ])("flags the transient IME state %s", (binding, issue) => {
+    expect(validateKeyBinding(binding).join("; ")).toContain(issue);
   });
 
   it.each([
@@ -68,11 +79,13 @@ describe("validateKeymap", () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('binding "mod+Nope" for action "redo"'));
   });
 
-  it("stays silent in production", () => {
+  it("stays silent in production and does not consume the warn-once slot", () => {
     vi.stubEnv("NODE_ENV", "production");
+    validateKeymap({ undo: ["consumedslot+z"] });
+    vi.stubEnv("NODE_ENV", "development");
     const warn = vi.spyOn(console, "warn");
-    validateKeymap({ undo: ["prodonly+z"] });
-    expect(warn).not.toHaveBeenCalled();
+    validateKeymap({ undo: ["consumedslot+z"] });
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it("stays silent for a fully valid keymap", () => {

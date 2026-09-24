@@ -44,11 +44,15 @@ family but change matching behavior; out of scope here (upgrade path below).
     `ctrl` path short-circuits `mod` anyway) | three-modifier prefixes
     (`mod+shift+alt`, `ctrl+shift+alt`) | `(string & {})`.
   - `validateKeyBinding(binding): string[]` — issue messages; accepts single
-    code points (printable or space, any case) and case-sensitive named keys;
-    flags empty parts, unknown/duplicate modifier tokens, unknown multi-char
-    keys.
-  - `validateKeymap(keymap)` — dev-only `warnDev` once per unique
-    `action:binding` (house pattern: `isDev()` + module warn-once).
+    code points (printable or space, any case) and case-sensitive stable named
+    keys (the full W3C key-value set, a superset of the type's autocomplete
+    vocabulary; transient IME states like `Dead`/`Process`/`Unidentified` and
+    modifier key values stay rejected); flags empty parts, unknown/duplicate
+    modifier tokens, unknown multi-char keys.
+  - `validateKeymap(keymap)` — dev-only (`isDev()` early return, so production
+    neither pays the cost nor fills the warn-once set): `warnDev` once per
+    unique `action:binding` (house pattern, same as
+    `checkUnresolvableColumnTypes`).
 - **`types.ts`**: `Keymap = Partial<Record<GridAction, KeyBinding[]>>`;
   re-exports `KeyBinding`. No breaking change (escape hatch).
 - **Wiring**: `validateKeymap` called from the existing `root.tsx` keymap

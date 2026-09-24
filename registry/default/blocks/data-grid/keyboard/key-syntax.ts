@@ -1,4 +1,5 @@
 import type { Keymap } from "../types";
+import { isDev } from "../is-dev";
 import { warnDev } from "../store/commit";
 
 /**
@@ -48,9 +49,28 @@ export type KeyBinding = KeyPart | `${ModifierPrefix}+${KeyPart}` | (string & {}
 
 const MODIFIER_TOKENS: readonly string[] = ["mod", "ctrl", "shift", "alt"];
 
-const NAMED_KEYS: ReadonlySet<string> = new Set([
+// Stable W3C key values the matcher can hit by exact case; IME states (Dead, Process,
+// Unidentified) and modifier key values stay excluded because they cannot be bound reliably.
+const STABLE_NAMED_KEYS: readonly string[] = [
   "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown",
-  "Enter", "Escape", "Tab", "Backspace", "Delete",
+  "Enter", "Escape", "Tab", "Backspace", "Delete", "Insert", "Clear", "Help",
+  "CapsLock", "NumLock", "ScrollLock", "Pause", "PrintScreen", "ContextMenu",
+  "Execute", "Menu", "Suspend", "EraseEOL", "Again", "Accept", "Redo", "Undo", "Props", "Select",
+  "BrowserBack", "BrowserForward", "BrowserHome", "BrowserFavorites", "BrowserSearch",
+  "BrowserRefresh", "BrowserStop",
+  "MediaPlayPause", "MediaStop", "MediaTrackNext", "MediaTrackPrevious",
+  "AudioVolumeUp", "AudioVolumeDown", "AudioVolumeMute",
+  "LaunchMail", "LaunchApplication1", "LaunchApplication2", "LaunchApplication3",
+  "LaunchCalendar", "LaunchCommunications", "LaunchControlPanel", "LaunchFileManager",
+  "LaunchMediaPlayer", "LaunchMusicPlayer", "LaunchPhone", "LaunchScreenSaver",
+  "LaunchWebBrowser", "LaunchWebCam", "LaunchTerminal",
+  "Power", "Sleep", "Eject", "WakeUp",
+  "Convert", "NonConvert", "Hiragana", "Katakana", "HangulMode", "Hangul", "HanjaMode", "Hanja",
+  "KanaMode", "Zenkaku", "Hankaku", "ZenkakuHankaku",
+];
+
+const NAMED_KEYS: ReadonlySet<string> = new Set([
+  ...STABLE_NAMED_KEYS,
   ...Array.from({ length: 24 }, (_, i) => `F${i + 1}`),
 ]);
 
@@ -59,7 +79,8 @@ const SINGLE_CODE_POINT = /[\p{L}\p{N}\p{S}\p{P}]/u;
 
 /**
  * Issues for one binding string; empty means valid. Accepts single code points (printable or
- * space, any case) and exact-case named keys — exactly what the matcher can hit.
+ * space, any case) and exact-case stable named keys — exactly what the matcher can hit; the
+ * named-key set is a superset of `KeyPart`'s autocomplete vocabulary.
  */
 export function validateKeyBinding(binding: string): string[] {
   const issues: string[] = [];
@@ -96,6 +117,7 @@ const warnedBindings = new Set<string>();
  * hatch cannot reject it).
  */
 export function validateKeymap(keymap: Keymap): void {
+  if (!isDev()) return;
   for (const [action, bindings] of Object.entries(keymap)) {
     for (const binding of bindings ?? []) {
       const issues = validateKeyBinding(binding);
