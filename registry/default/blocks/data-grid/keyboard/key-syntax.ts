@@ -34,7 +34,7 @@ export type KeyPart = LetterKey | NumberKey | FunctionKey | NavigationKey | Edit
 /** Modifier tokens of a binding string. `mod` is the platform primary (Cmd on macOS, Ctrl elsewhere); `ctrl` is the literal physical Ctrl key. */
 export type ModifierToken = "mod" | "ctrl" | "shift" | "alt";
 
-/** Modifier prefixes in canonical order (`mod` → `ctrl` → `shift` → `alt`); `mod` + `ctrl` combos are excluded — `mod` is Ctrl off-mac, and the matcher's `ctrl` path ignores `mod`. */
+/** Canonical modifier prefixes (see the union's order); `mod` + `ctrl` is excluded because the matcher's `ctrl` path ignores `mod`. */
 export type ModifierPrefix =
   | "mod" | "ctrl" | "shift" | "alt"
   | "mod+shift" | "mod+alt" | "ctrl+shift" | "ctrl+alt" | "shift+alt"
@@ -49,8 +49,7 @@ export type KeyBinding = KeyPart | `${ModifierPrefix}+${KeyPart}` | (string & {}
 
 const MODIFIER_TOKENS: readonly string[] = ["mod", "ctrl", "shift", "alt"];
 
-// Stable W3C key values the matcher can hit by exact case; IME states (Dead, Process,
-// Unidentified) and modifier key values stay excluded because they cannot be bound reliably.
+// Stable W3C key values, exact case; IME states (Dead/Process/Unidentified) and modifier values stay excluded.
 const STABLE_NAMED_KEYS: readonly string[] = [
   "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown",
   "Enter", "Escape", "Tab", "Backspace", "Delete", "Insert", "Clear", "Help",
