@@ -81,6 +81,9 @@ function createSimulatedApi() {
  * failed fetch" is transient (fails once, the automatic next-scroll retry then succeeds);
  * "simulate a permanent failure" fails every attempt until "fix backend" is clicked, showing why
  * a permanent failure needs a manual retry UI rather than relying on the automatic revert/retry.
+ *
+ * "Evict loaded rows" calls `lazy.evict` over the whole range, so every loaded row becomes a
+ * skeleton again and refetches on scroll — the memory-retention path from the same docs page.
  */
 export default function DataGridLazyDemo(): ReactNode {
   const api = useMemo(() => createSimulatedApi(), []);
@@ -126,6 +129,13 @@ export default function DataGridLazyDemo(): ReactNode {
             }}
           >
             Simulate a permanent failure
+          </button>
+          <button
+            type="button"
+            className="rounded-sm border border-border px-2 py-1 text-xs hover:bg-accent"
+            onClick={() => lazy.evict({ start: 0, end: TOTAL_COUNT })}
+          >
+            Evict loaded rows
           </button>
         </div>
       </div>

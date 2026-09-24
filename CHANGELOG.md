@@ -31,9 +31,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   accepts a new `maxFetchRows` option that caps the rows of a single `fetchRows` call (a wider
   gap is fetched as consecutive chunks, each deduped and aborted independently) and an
   `onLoaded(range)` callback fired with the range actually written. The result gains three stable
-  members: `reset()` (aborts in-flight fetches and drops all loaded rows — the same reset a
-  `total` change performs), `evict(range)` (unloads a range so the next scroll into it
-  refetches), and `getLoadedRanges()` (a non-reactive snapshot of the loaded ranges).
+   members: `reset()` (aborts in-flight fetches and drops all loaded rows — the same reset a
+   `total` change performs), `evict(range)` (unloads a range so the next scroll into it
+   refetches), and `getLoadedRanges()` (a non-reactive snapshot of the loaded ranges). The demo
+   gains an "Evict loaded rows" button that shows the eviction path live.
 
 ### Changed
 

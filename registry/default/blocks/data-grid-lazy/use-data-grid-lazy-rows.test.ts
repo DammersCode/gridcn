@@ -418,7 +418,7 @@ describe("useDataGridLazyRows", () => {
 
   it("onLoaded is clamped for a short response and skipped when nothing was written", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const fetchRows = vi.fn(async (start: number, end: number) => (start === 30 ? [] : makeRows(start, start + 5)));
+    const fetchRows = vi.fn(async (start: number, _end: number) => (start === 30 ? [] : makeRows(start, start + 5)));
     const onLoaded = vi.fn();
     const { result } = renderHook(() =>
       useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, onLoaded }),
@@ -429,7 +429,6 @@ describe("useDataGridLazyRows", () => {
     expect(onLoaded).toHaveBeenCalledTimes(1);
     expect(onLoaded).toHaveBeenCalledWith({ start: 0, end: 5 });
 
-    // an empty response writes zero rows -> no second call.
     act(() => result.current.gridProps.onRowWindowChange({ start: 30, end: 40 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(onLoaded).toHaveBeenCalledTimes(1);
