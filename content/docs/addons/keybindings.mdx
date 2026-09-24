@@ -90,10 +90,31 @@ overrides only the actions you specify. Everything else falls back to `DEFAULT_K
 <DataGridRoot keymap={{ selectColumn: [] }} />
 ```
 
-Binding strings are `mod`/`ctrl`/`alt`/`shift` prefixes plus a key
-(`"mod+shift+ArrowUp"`, `"F2"`, `" "`), with `mod` resolving to <kbd>Cmd</kbd> on macOS and
-<kbd>Ctrl</kbd> elsewhere and `ctrl` matching the literal physical <kbd>Ctrl</kbd> on every
-platform (used where <kbd>Cmd</kbd> is reserved by the OS, e.g. `selectColumn` on <kbd>Ctrl</kbd>+<kbd>Space</kbd>).
+A binding string is a modifier prefix plus a key. Combine the modifiers `mod`, `ctrl`,
+`shift`, and `alt` in that order (`"mod+shift+ArrowUp"`). `mod` resolves to <kbd>Cmd</kbd> on
+macOS and <kbd>Ctrl</kbd> elsewhere. `ctrl` matches the literal physical <kbd>Ctrl</kbd> on
+every platform. Use it where <kbd>Cmd</kbd> is reserved by the OS, for example `selectColumn`
+on <kbd>Ctrl</kbd>+<kbd>Space</kbd>.
+
+The key is one of:
+
+- a letter, lowercase in the binding (matching is case-insensitive),
+- a digit,
+- a function key, `F1` to `F24`,
+- a named key: `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`, `Home`, `End`, `PageUp`,
+  `PageDown`, `Enter`, `Escape`, `Tab`, `Backspace`, `Delete`,
+- any single printable character,
+- the space bar, written as a literal space (`"shift+ "`, `" "`).
+
+For custom binding arrays, the exported `KeyBinding` type names one binding string:
+
+```tsx
+import { type KeyBinding } from "@/components/data-grid/data-grid";
+
+const extraBindings: KeyBinding[] = ["mod+shift+a", "mod+shift+s"];
+```
+
+A binding the matcher cannot match warns in the browser console in development.
 
 The matcher is **event-source-agnostic**: the same `keymap` config drives the in-grid handler,
 the `?` shortcut resolution, and the opt-in [global shortcuts](/docs/global-shortcuts)

@@ -232,6 +232,11 @@
                "target": "components/data-grid/keyboard/is-printable-key.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/keyboard/key-syntax.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/keyboard/key-syntax.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/keyboard/match-keymap.ts",
                "type": "registry:component",
                "target": "components/data-grid/keyboard/match-keymap.ts"

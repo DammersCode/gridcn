@@ -1,4 +1,7 @@
 import type { FC, ReactNode } from "react";
+import type { KeyBinding } from "./keyboard/key-syntax";
+
+export type { KeyBinding };
 
 /**
  * Vendored from `@standard-schema/spec` v1 (https://github.com/standard-schema/standard-schema) so
@@ -493,10 +496,12 @@ export type GridAction =
  * Key binding string: `mod` = Ctrl (win/linux) / Cmd (mac), `ctrl` = the LITERAL physical Ctrl key
  * on every platform (it bypasses `mod` resolution), plus `shift`, `alt`.
  * Format: "mod+shift+ArrowUp", key is `KeyboardEvent.key`. Multiple bindings per action allowed.
+ * `KeyBinding` (keyboard/key-syntax.ts) types the syntax for autocomplete; arbitrary strings stay
+ * assignable (exotic keys), and invalid bindings warn in development.
  * Keep `ctrl` where `DEFAULT_KEYMAP` uses it (`ctrl+ ` for selectColumn): `mod+ ` on macOS is
  * Cmd+Space, which the OS intercepts (Spotlight), so the binding would be dead there.
  */
-export type Keymap = Partial<Record<GridAction, string[]>>;
+export type Keymap = Partial<Record<GridAction, KeyBinding[]>>;
 
 /**
  * Map of built-in cell-type keys to their value/options shapes. Consumers

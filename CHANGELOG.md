@@ -11,6 +11,12 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Typed keymap binding strings:** the `keymap` prop's binding strings now use the exported
+  `KeyBinding` type — a modifier prefix (`mod`, `ctrl`, `shift`, `alt`, in that order when
+  combined) plus a typed key (letters, digits, `F1` to `F24`, named keys, a single printable
+  character, or the literal space). The union still accepts any string, so existing keymaps keep
+  compiling; a binding the matcher cannot match now warns in the browser console in
+  development.
 - **Global keyboard shortcuts (opt-in):** `DataGridGlobalShortcuts` keeps the effective keymap's
   undo/redo working while DOM focus is OUTSIDE the grid (custom toolbar, side panel, `body`).
   Mount the component inside `DataGridRoot`; limit the enabled actions with the `undo` and `redo`

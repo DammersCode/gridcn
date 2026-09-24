@@ -232,6 +232,7 @@ export type {
   FilterSpec,
   FilterJoinOperator,
   GridAction,
+  KeyBinding,
   Keymap,
   GridCellTypes,
   CellTypeKey,
