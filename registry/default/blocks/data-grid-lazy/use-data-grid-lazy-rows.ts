@@ -30,9 +30,9 @@ export type UseDataGridLazyRowsOptions<TData> = {
   /**
    * Caps rows per single `fetchRows` call: a gap wider than this is split into consecutive
    * chunks of at most `maxFetchRows` rows, each fetched independently (own dedup, abort, and
-    * failure). Chunk boundaries follow the gap's start, not `batchSize` boundaries. Non-integer
-    * values are rounded down; values below 1 are treated as 1. Default: no cap.
-    */
+   * failure). Chunk boundaries follow the gap's start, not `batchSize` boundaries. Non-integer
+   * values are rounded down; values below 1 are treated as 1. Default: no cap.
+   */
   maxFetchRows?: number;
   /** Fired when a range fetch throws/rejects; the range reverts to unloaded and is retried next time it's visible. */
   onError?: (error: unknown, range: Range) => void;
