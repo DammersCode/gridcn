@@ -10,6 +10,9 @@ Every plan is self-contained — the executor has not seen the audit session. Al
 were planned at commit `037d895` (2026-09-03, branch `dev`); source state of the
 in-scope files is unchanged since the audit HEAD `a4a303a` (doc-only commits in between).
 
+Completed plan files are deleted from `plans/` — the status tables below are the standing
+record of what landed (commit SHAs point at `main`).
+
 ## Execution order & status
 
 | Plan | Title | Priority | Effort | Risk | Depends on | Status |
