@@ -15,7 +15,6 @@ jobs:
         with:
           node-version: 24
 
-      # Self-consistency check of the production deploy (gridcn.vercel.app serves the
-      # committed public/r/ payloads), so a lagging Vercel deploy cannot fail it.
+      # Checks the deployed registry's internal consistency, so deployment lag cannot fail verification.
       - name: Verify hosted Vercel registry
         run: node scripts/verify-hosted-registry.mjs
