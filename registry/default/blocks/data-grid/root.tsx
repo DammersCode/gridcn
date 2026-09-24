@@ -11,7 +11,7 @@ import {
 import { DirectionProvider } from "@base-ui/react/direction-provider";
 import { cn } from "@/lib/utils";
 import type { DensityMode, GetCellClassName, GetRowClassName, Keymap, OnCellClick, OnRowClick } from "./types";
-import { DEFAULT_KEYMAP } from "./keyboard";
+import { DEFAULT_KEYMAP, validateKeymap } from "./keyboard";
 import {
   useDataGridActions,
   useDataGridActiveColumn,
@@ -256,6 +256,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // data-grid-keybindings add-on's dialog) read the same single source of truth as interaction handling.
   useEffect(() => {
     actions._registerKeymap(effectiveKeymap);
+    validateKeymap(effectiveKeymap);
     return () => actions._registerKeymap(DEFAULT_KEYMAP);
   }, [actions, effectiveKeymap]);
 
