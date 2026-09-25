@@ -73,7 +73,7 @@ consumer can import. Keep the surface to the public API.
 
 All green before committing — a red gate gets fixed, not committed around. Run in order:
 
-1. `pnpm types:check`
+1. `pnpm types:check`, then `pnpm types:check:ts5` (consumers run TypeScript 5.9, which infers some types differently from the repo's TypeScript 7)
 2. `pnpm lint`
 3. `pnpm lint:typed`
 4. `npx vitest run registry --exclude "**/*.browser.test.*" --project unit --coverage`

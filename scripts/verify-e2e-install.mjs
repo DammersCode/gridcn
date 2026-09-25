@@ -8,13 +8,15 @@
 //   node scripts/verify-e2e-install.mjs [items...]   # default: changed-addon demos + data-grid-demo
 //   node scripts/verify-e2e-install.mjs --all        # every registry:example item
 //   node scripts/verify-e2e-install.mjs --reuse ...  # reuse a cached scaffold dir between runs
+//   node scripts/verify-e2e-install.mjs --vite [...] # plain-React (Vite) consumer instead of Next.js
+//   node scripts/verify-e2e-install.mjs --vite --all # every registry:example item, Vite path
 //
 // All long-running commands run under a hard timeout with output redirected to a log file
 // under LOG_DIR; only tails/greps of those logs are ever printed.
 import { spawn, execSync, execFileSync } from "node:child_process";
 import { createServer } from "node:http";
 import { readFileSync, existsSync, mkdirSync, writeFileSync, rmSync, openSync, closeSync } from "node:fs";
-import { join, dirname, extname } from "node:path";
+import { join, dirname, extname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import net from "node:net";
@@ -29,7 +31,20 @@ mkdirSync(LOG_DIR, { recursive: true });
 const args = process.argv.slice(2);
 const reuse = args.includes("--reuse");
 const all = args.includes("--all");
-const itemArgs = args.filter((a) => a !== "--reuse" && a !== "--all");
+const viteMode = args.includes("--vite");
+const itemArgs = args.filter((a) => a !== "--reuse" && a !== "--all" && a !== "--vite");
+
+// data-grid-url-state-demo is excluded: it hardcodes nuqs/adapters/next/app (imports
+// next/navigation), which is the correct choice for the docs site's own Next.js demo but fails to
+// build under Vite by design — see content/docs/addons/url-state.mdx, which tells a Vite consumer
+// to use nuqs/adapters/react instead. Not a gridcn bug; pass it explicitly to still exercise it.
+const VITE_DEFAULT_ITEMS = [
+  "data-grid-demo",
+  "data-grid-io-demo",
+  "data-grid-context-menu-demo",
+  "data-grid-pagination-demo",
+  "data-grid-lazy-demo",
+];
 
 function log(msg) {
   console.log(msg);
@@ -191,6 +206,8 @@ if (all) {
   items = [...exampleNames];
 } else if (itemArgs.length > 0) {
   items = itemArgs;
+} else if (viteMode) {
+  items = VITE_DEFAULT_ITEMS;
 } else {
   items = ["data-grid-demo", ...changedAddonDemos()];
 }
@@ -230,6 +247,17 @@ let appPort = null;
 let nextServerHandle = null;
 
 try {
+  if (viteMode) {
+    await runViteFlow({ items, registryPort, reuse, problems, mark, run, tailFile, log });
+  } else {
+    await runNextFlow();
+  }
+} finally {
+  killTree(nextServerHandle?.pid);
+  registryServer.close();
+}
+
+async function runNextFlow() {
   // --- 3. Scaffold fresh Next.js app ----------------------------------------------------------
   const scaffoldDir = reuse ? join(tmpdir(), "gridcn-e2e-scaffold") : join(tmpdir(), `gridcn-e2e-scaffold-${Date.now()}`);
   const scaffoldExists = existsSync(join(scaffoldDir, "package.json"));
@@ -436,9 +464,194 @@ try {
   } else {
     problems.push("Skipped next start + page fetch because next build failed.");
   }
-} finally {
-  killTree(nextServerHandle?.pid);
-  registryServer.close();
+}
+
+// Plain-React (Vite) consumer path: `shadcn create` (not `init`) so the scaffold's first `ui`
+// item (button) installs its own npm deps (lucide-react, @base-ui/react, class-variance-authority)
+// up front — `shadcn add`ing a gridcn item into a bare scaffold as the very first CLI call has been
+// observed to silently skip those transitive shadcn-registry deps (a shadcn CLI quirk, not gridcn's).
+async function runViteFlow({ items, registryPort, reuse, problems, mark, run, tailFile, log }) {
+  const scaffoldDir = reuse ? join(tmpdir(), "gridcn-e2e-vite-scaffold") : join(tmpdir(), `gridcn-e2e-vite-scaffold-${Date.now()}`);
+  const scaffoldExists = existsSync(join(scaffoldDir, "package.json"));
+
+  if (!reuse || !scaffoldExists) {
+    rmSync(scaffoldDir, { recursive: true, force: true });
+    mkdirSync(dirname(scaffoldDir), { recursive: true });
+    log(`Scaffolding Vite app in ${scaffoldDir}`);
+    const createLog = join(LOG_DIR, "shadcn-create-vite.log");
+    const createResult = await mark("scaffold", () =>
+      run(
+        "npx",
+        ["--yes", "shadcn@latest", "create", "-t", "vite", "-b", "base", "-p", "nova", "-n", basename(scaffoldDir), "-y", "--no-monorepo"],
+        { cwd: dirname(scaffoldDir), logFile: createLog, timeoutMs: 5 * 60_000 },
+      ),
+    );
+    if (createResult.code !== 0) {
+      console.error(`shadcn create (vite) failed (code ${createResult.code}${createResult.timedOut ? ", timed out" : ""}). Tail of ${createLog}:`);
+      console.error(tailFile(createLog));
+      process.exit(1);
+    }
+  } else {
+    log(`Reusing cached Vite scaffold at ${scaffoldDir}`);
+    timings.scaffold = 0;
+  }
+
+  // Same @gridcn -> local server rewrite as the Next path (see serveDir above).
+  const componentsJsonPath = join(scaffoldDir, "components.json");
+  const componentsJson = JSON.parse(readFileSync(componentsJsonPath, "utf8"));
+  componentsJson.registries = { ...componentsJson.registries, "@gridcn": `http://127.0.0.1:${registryPort}/{name}.json` };
+  writeFileSync(componentsJsonPath, JSON.stringify(componentsJson, null, 2));
+
+  // --- shadcn add the requested items ---------------------------------------------------------
+  const addLog = join(LOG_DIR, "shadcn-add-vite.log");
+  const addTargets = items.map((name) => `@gridcn/${name}`);
+  const addResult = await mark("shadcn-add", () =>
+    run("npx", ["--yes", "shadcn@latest", "add", ...addTargets, "--yes", "--overwrite"], {
+      cwd: scaffoldDir,
+      logFile: addLog,
+      timeoutMs: 5 * 60_000,
+    }),
+  );
+  if (addResult.code !== 0) {
+    console.error(`shadcn add (vite) failed (code ${addResult.code}${addResult.timedOut ? ", timed out" : ""}). Tail of ${addLog}:`);
+    console.error(tailFile(addLog));
+    process.exit(1);
+  }
+
+  // --- Generate one src/App.tsx rendering every installed demo -------------------------------
+  const componentsDir = join(scaffoldDir, "src", "components");
+  const renderable = [];
+  for (const name of items) {
+    const componentFile = join(componentsDir, `${name}.tsx`);
+    if (!existsSync(componentFile)) {
+      problems.push(`${name}: expected component file src/components/${name}.tsx was not installed by shadcn add`);
+      continue;
+    }
+    const source = readFileSync(componentFile, "utf8");
+    const hasDefaultExport = /export\s+default\s+/.test(source);
+    let importLine;
+    let renderExpr;
+    if (hasDefaultExport) {
+      importLine = `import Demo_${sanitize(name)} from "@/components/${name}";`;
+      renderExpr = `<Demo_${sanitize(name)} />`;
+    } else {
+      const namedMatch = source.match(/export\s+function\s+([A-Za-z0-9_]+)/);
+      if (!namedMatch) {
+        problems.push(`${name}: src/components/${name}.tsx has no default or named function export to render`);
+        continue;
+      }
+      importLine = `import { ${namedMatch[1]} as Demo_${sanitize(name)} } from "@/components/${name}";`;
+      renderExpr = `<Demo_${sanitize(name)} />`;
+    }
+    renderable.push({ name, importLine, renderExpr });
+  }
+
+  if (renderable.length === 0) {
+    console.error("No demo components could be rendered; aborting before build.");
+    console.error(problems.join("\n"));
+    process.exit(1);
+  }
+
+  function sanitize(name) {
+    return name.replace(/-/g, "_");
+  }
+
+  const appSource = [
+    ...renderable.map((r) => r.importLine),
+    "",
+    "export default function App() {",
+    "  return (",
+    "    <>",
+    ...renderable.map((r) => `      <section data-demo="${r.name}" style={{ marginBottom: 32 }}>${r.renderExpr}</section>`),
+    "    </>",
+    "  );",
+    "}",
+    "",
+  ].join("\n");
+  writeFileSync(join(scaffoldDir, "src", "App.tsx"), appSource);
+
+  // --- Typecheck -------------------------------------------------------------------------------
+  const tscLog = join(LOG_DIR, "vite-tsc.log");
+  const tscResult = await mark("tsc", () => run("npx", ["tsc", "-b"], { cwd: scaffoldDir, logFile: tscLog, timeoutMs: 3 * 60_000 }));
+  if (tscResult.code !== 0) {
+    problems.push(`tsc -b failed (see ${tscLog}):\n` + tailFile(tscLog, 80));
+  }
+
+  // --- vite build ------------------------------------------------------------------------------
+  const buildLog = join(LOG_DIR, "vite-build.log");
+  const buildResult = await mark("vite-build", () => run("npx", ["vite", "build"], { cwd: scaffoldDir, logFile: buildLog, timeoutMs: 5 * 60_000 }));
+  if (buildResult.code !== 0) {
+    problems.push(`vite build failed (see ${buildLog}):\n` + tailFile(buildLog, 100));
+  }
+
+  // --- vite preview + headless Chromium check -------------------------------------------------
+  if (buildResult.code === 0) {
+    const previewPort = await getFreePort();
+    const previewLog = join(LOG_DIR, "vite-preview.log");
+    const previewFd = openSync(previewLog, "w");
+    const previewHandle = spawn(`npx vite preview --port ${previewPort} --strictPort --host 127.0.0.1`, {
+      cwd: scaffoldDir,
+      shell: true,
+      stdio: ["ignore", previewFd, previewFd],
+      detached: process.platform !== "win32",
+    });
+    const previewUrl = `http://127.0.0.1:${previewPort}/`;
+    try {
+      const up = await mark("vite-preview-ready", () => waitForHttp200(previewUrl, 30_000));
+      if (!up) {
+        problems.push(`vite preview did not become ready on port ${previewPort} within 30s (see ${previewLog}):\n` + tailFile(previewLog, 80));
+      } else {
+        await mark("playwright-check", () => checkPageWithPlaywright(previewUrl, renderable, problems));
+      }
+    } finally {
+      killTree(previewHandle.pid);
+      closeSync(previewFd);
+    }
+  } else {
+    problems.push("Skipped vite preview + page check because vite build failed.");
+  }
+}
+
+// Loads the repo's own installed `playwright` (never a fresh install) to drive headless Chromium
+// against the preview server; asserts one populated [role="grid"] per demo and no page errors.
+async function checkPageWithPlaywright(url, renderable, problems) {
+  const { chromium } = await import("playwright");
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    const consoleErrors = [];
+    page.on("console", (msg) => {
+      if (msg.type() === "error") consoleErrors.push(msg.text());
+    });
+    const pageErrors = [];
+    page.on("pageerror", (err) => pageErrors.push(String(err)));
+
+    await page.goto(url, { waitUntil: "networkidle", timeout: 30_000 });
+
+    for (const { name } of renderable) {
+      const section = page.locator(`[data-demo="${name}"]`);
+      const grid = section.locator('[role="grid"]');
+      try {
+        await grid.first().waitFor({ state: "visible", timeout: 10_000 });
+      } catch {
+        problems.push(`${name}: no [role="grid"] rendered on the Vite preview page`);
+        continue;
+      }
+      const rowCount = await grid.locator('[role="row"]').count();
+      if (rowCount === 0) {
+        problems.push(`${name}: [role="grid"] rendered with zero [role="row"] elements`);
+      }
+    }
+
+    if (consoleErrors.length > 0) {
+      problems.push(`Vite preview page logged ${consoleErrors.length} console error(s):\n` + consoleErrors.slice(0, 10).join("\n"));
+    }
+    if (pageErrors.length > 0) {
+      problems.push(`Vite preview page threw ${pageErrors.length} page error(s):\n` + pageErrors.slice(0, 10).join("\n"));
+    }
+  } finally {
+    await browser.close();
+  }
 }
 
 // --- Report -----------------------------------------------------------------------------------
