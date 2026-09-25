@@ -60,6 +60,8 @@ needs to differ from its token, the escape hatches are per-surface: data-attribu
 - `--grid-pin-shadow` — the color of the shadow at pinned column and row bands, and the default
   color of the edge shadows. The CLI install adds it to your CSS for light and dark mode. Without
   the variable, the grid uses a light-mode default.
+- `--grid-column-border` — the color of the vertical lines between columns. Defaults to
+  `--color-border`. `transparent` hides the lines.
 - `--grid-scroll-shadow` and `--grid-shadow-size` — the edge shadow color and strip size. See
   [Scroll shadows](#scroll-shadows).
 - `--grid-scroll-left` — internal. The grid writes the live horizontal scroll offset so the
@@ -106,14 +108,15 @@ the DOM and what you can beat. Where a surface lists a merge point, the built-in
 | Surface (selector) | Built-in classes | Override point |
 |---|---|---|
 | Grid root (`[role="grid"]`) | `relative select-none overflow-auto rounded-md border border-border bg-background text-sm` | `className` on `DataGridRoot` / `DataGrid`. |
-| Header cell (`[role="columnheader"]`) | `group relative flex items-center border-b border-border bg-muted px-2 font-medium select-none` | Per-column `headerClassName`. |
-| Data cell (`[role="gridcell"]`) | `relative flex items-center overflow-hidden border-b border-border bg-background px-2 outline-none group-hover/row:bg-muted/50 transition-colors` plus conditionals: opaque hover tint on pinned cells, `bg-search-highlight/60` on `[data-search-match]`, `tabular-nums` for number/date, the alignment class, the invalid-cell tint + inset ring | `getRowClassName`/`getCellClassName` (grid level) then `cellClassName` (per column), merged after the built-ins. |
+| Header cell (`[role="columnheader"]`) | `group relative flex items-center border-b border-border bg-muted px-2 font-medium select-none` plus the column line | Per-column `headerClassName`. |
+| Data cell (`[role="gridcell"]`) | `relative flex items-center overflow-hidden border-b border-border bg-background px-2 outline-none group-hover/row:bg-muted/50 transition-colors` plus the column line and conditionals: opaque hover tint on pinned cells, `bg-search-highlight/60` on `[data-search-match]`, `tabular-nums` for number/date, the alignment class, the invalid-cell tint + inset ring | `getRowClassName`/`getCellClassName` (grid level) then `cellClassName` (per column), merged after the built-ins. |
 | Row (`[role="row"]`) | `group/row` | `getRowClassName`. |
-| Marker cell (`[data-grid-marker-cell]`) | `group flex items-center justify-center border-b border-border bg-background transition-colors`, `cursor-grab` when row reorder is on, the selected-row tint | `renderMarker` replaces the content. For the cell chrome itself, see [Override recipes](#override-recipes). |
-| Marker header (`[data-grid-marker-header]`) | `flex items-center justify-center border-b border-border bg-muted` | Internal. |
+| Marker cell (`[data-grid-marker-cell]`) | `group flex items-center justify-center border-b border-border bg-background transition-colors`, the column line, `cursor-grab` when row reorder is on, the selected-row tint | `renderMarker` replaces the content. For the cell chrome itself, see [Override recipes](#override-recipes). |
+| Marker header (`[data-grid-marker-header]`) | `flex items-center justify-center border-b border-border bg-muted` plus the column line | Internal. |
 | Selection overlay (`[data-grid-selection-overlay]`) | `pointer-events-none border border-primary/40 bg-primary/10` | `--primary`. `overlayPlugins` for your own layer. |
 | Active-cell ring (`[data-grid-active-cell-overlay]`) | `pointer-events-none z-10 ring-2 ring-inset ring-primary` | `--primary` or `--ring`. |
-| Edge shadow (`[data-grid-pin-shadow]`) | 8px gradient strip on each side, `opacity-0` to `100` via `data-scrolled-*`, at the grid edge or the pinned band boundary. Color from `--grid-pin-shadow` | Override `--grid-pin-shadow` per theme. |
+| Edge shadow (`[data-grid-pin-shadow]`) | 8px gradient strip on each side, `opacity-0` to `100` via `data-scrolled-*`, at the grid edge or the pinned band boundary. Each strip spans only the scrolling area between the pinned bands. Color from `--grid-pin-shadow` | Override `--grid-pin-shadow` per theme. |
+| Column line | 1px line at the end side of each column, and at the start side of a right-pinned column. Color from `--grid-column-border` | `--grid-column-border`. `transparent` hides the lines. |
 | Empty state (`[data-grid-empty-state]`) | `pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground` | `emptyState` prop or `labels.emptyState`. |
 | Loading skeleton (`[data-grid-loading-skeleton]`) | One `h-4 animate-pulse rounded bg-muted` bar per column per row, rows separated by `border-b border-border` | The `loading` flag. The skeleton renders only while `loading` is true. |
 | Loading bar (`[data-grid-loading-bar]`) | 2px track `bg-primary/20` with a `bg-primary` sweep (static under `prefers-reduced-motion`) | `--primary`. `--grid-loading-sweep-duration` for the sweep speed. |

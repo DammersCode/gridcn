@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@/lib/utils";
+import { COLUMN_BORDER } from "./columns/column-border";
 import type { GetCellClassName, OnCellClick, OnRowClick } from "./types";
 import { getCellValue } from "./columns/column-helpers";
 import { useDataGridActions, useDataGridCellTypes, useDataGridCellEditingError, useDataGridCellRejectionCount, type AnyColumnDef } from "./store";
@@ -286,6 +287,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       data-invalid={Boolean(errorMessage) || undefined}
       className={cn(
         "relative flex items-center overflow-hidden border-b border-border bg-background px-2 outline-none group-hover/row:bg-muted/50 transition-colors group-hover/row:transition-none",
+        COLUMN_BORDER,
         // Pinned-column cells and pinned-row cells both sit opaque above the scrolled canvas
         // (z-index 1 / 3) — a translucent bg-muted/50 hover tint would let the scrolled content
         // underneath show through. color-mix() pre-composites the same tint as an OPAQUE color (same

@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import type { RowMarkersMode } from "../types";
 import { markerContent } from "./marker-width";
 import { GRID_LAYER } from "../layers";
+import { COLUMN_BORDER } from "../columns/column-border";
 import { useDataGridRootContext } from "../layout-context";
 import { useDataGridActions, useDataGridAllRowsSelected, useDataGridLabels } from "../store";
 
@@ -46,7 +47,7 @@ export function DataGridMarkerHeader(props: DataGridMarkerHeaderProps): ReactNod
     <div
       role="columnheader"
       data-grid-marker-header=""
-      className="flex items-center justify-center border-b border-border bg-muted"
+      className={`flex items-center justify-center border-b border-border bg-muted ${COLUMN_BORDER}`}
       style={style}
     >
       {renderMarkerHeader ? (

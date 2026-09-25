@@ -311,6 +311,23 @@ describe("pinned-edge shadow", () => {
     expect(getComputedStyle(shadow("left")).backgroundImage).not.toContain("rgb(255, 0, 0)");
   });
 
+  it("draws column dividers from --grid-column-border, on the band side of right-pinned columns", async () => {
+    const pinnedColumns = columns.map((c, i) => (i === columns.length - 1 ? { ...c, pin: "right" as const } : c));
+    await render(
+      <div style={{ height: 400, width: 300, "--grid-column-border": "rgb(0, 128, 0)" } as React.CSSProperties}>
+        <DataGrid data={makeRows(20)} columns={pinnedColumns} getRowId={(r) => r.id} className="h-[400px] w-75" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const unpinned = getComputedStyle(document.querySelector<HTMLElement>(`[role="gridcell"]:not([data-pinned])`)!);
+    const pinnedRight = getComputedStyle(document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "right")}`)!);
+
+    expect(unpinned.borderInlineEndWidth).toBe("1px");
+    expect(unpinned.borderInlineEndColor).toBe("rgb(0, 128, 0)");
+    expect(pinnedRight.borderInlineEndWidth).toBe("0px");
+    expect(pinnedRight.borderInlineStartWidth).toBe("1px");
+  });
+
   it("hints off-screen content at the grid edges even without pinned columns or rows", async () => {
     await render(
       <div style={{ height: 400, width: 300 }}>

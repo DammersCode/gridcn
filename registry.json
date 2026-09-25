@@ -140,6 +140,11 @@
                "target": "components/data-grid/columns/pin-offsets.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/columns/column-border.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/columns/column-border.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/columns/pinned-inset-style.ts",
                "type": "registry:component",
                "target": "components/data-grid/columns/pinned-inset-style.ts"

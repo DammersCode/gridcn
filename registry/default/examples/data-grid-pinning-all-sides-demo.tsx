@@ -16,6 +16,10 @@ import {
 } from "@/registry/default/blocks/data-grid-pinned-rows/data-grid-pinned-rows";
 import { generateDemoRows, type DemoRow } from "./demo-data";
 
+type SummaryRow = Omit<DemoRow, "active"> & { active?: boolean };
+
+const isSummaryRow = (row: DemoRow) => row.id.startsWith("__");
+
 const columns = defineColumns<DemoRow>()([
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140, pin: "left" },
   { id: "email", header: "Email", accessorKey: "email", type: "text", width: 190 },
@@ -41,14 +45,14 @@ const columns = defineColumns<DemoRow>()([
   {
     id: "department",
     header: "Department",
-    accessorFn: (row) => (row.age % 2 === 0 ? "Engineering" : "Sales"),
+    accessorFn: (row) => (isSummaryRow(row) ? "" : row.age % 2 === 0 ? "Engineering" : "Sales"),
     type: "text",
     width: 130,
   },
   {
     id: "location",
     header: "Location",
-    accessorFn: (row) => (row.score % 2 === 0 ? "Remote" : "Onsite"),
+    accessorFn: (row) => (isSummaryRow(row) ? "" : row.score % 2 === 0 ? "Remote" : "Onsite"),
     type: "text",
     width: 110,
   },
@@ -58,8 +62,8 @@ const columns = defineColumns<DemoRow>()([
 const AVERAGES_SPECS: AggregateSpecs = { age: "avg", score: "avg" };
 const TOTALS_SPECS: AggregateSpecs = { name: (_values, rows) => `${rows.length} rows`, age: "sum", score: "sum" };
 
-const EMPTY_AVERAGES_ROW: DemoRow = { id: "__averages__", name: "Average", email: "", age: 0, active: false, role: "", joined: "", score: 0 };
-const EMPTY_TOTALS_ROW: DemoRow = { id: "__totals__", name: "0 rows", email: "", age: 0, active: false, role: "", joined: "", score: 0 };
+const EMPTY_AVERAGES_ROW: SummaryRow = { id: "__averages__", name: "Average", email: "", age: 0, role: "", joined: "", score: 0 };
+const EMPTY_TOTALS_ROW: SummaryRow = { id: "__totals__", name: "0 rows", email: "", age: 0, role: "", joined: "", score: 0 };
 
 /**
  * All four pin zones at once: Name pinned left, Score pinned right, an averages row pinned to
@@ -70,8 +74,8 @@ const EMPTY_TOTALS_ROW: DemoRow = { id: "__totals__", name: "0 rows", email: "",
  */
 export default function DataGridPinningAllSidesDemo(): ReactNode {
   const grid = useDataGridState(generateDemoRows(200), { getRowId: (row) => row.id });
-  const [averagesRow, setAveragesRow] = useState<DemoRow>(EMPTY_AVERAGES_ROW);
-  const [totalsRow, setTotalsRow] = useState<DemoRow>(EMPTY_TOTALS_ROW);
+  const [averagesRow, setAveragesRow] = useState<SummaryRow>(EMPTY_AVERAGES_ROW);
+  const [totalsRow, setTotalsRow] = useState<SummaryRow>(EMPTY_TOTALS_ROW);
 
   const onAveragesChange = useCallback((row: Record<string, unknown>) => {
     setAveragesRow((prev) => ({ ...prev, ...row, name: "Average" }));

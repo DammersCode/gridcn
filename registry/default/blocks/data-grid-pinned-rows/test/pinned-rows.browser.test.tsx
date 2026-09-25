@@ -168,6 +168,31 @@ describe("pinned rows — frozen-edge shadow", () => {
     expect(Math.abs(rect(bottomShadow).bottom - rect(document.querySelector(gridAttrSelector("pinnedRowBand", "bottom"))!).top)).toBeLessThanOrEqual(1);
   });
 
+  it("clips each shadow to its own axis so none crosses a pinned band or corner", async () => {
+    const pinnedColumns = columns.map((c, i) => (i === 0 ? { ...c, pin: "left" as const } : i === columns.length - 1 ? { ...c, pin: "right" as const } : c));
+    await render(
+      <div style={{ height: 360, width: 400 }}>
+        <PinnedGrid data={makeRows(200)} className="h-90 w-100" cols={pinnedColumns} topRows={[totals]} bottomRows={[totals]} />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
+    const shadow = (side: "left" | "right" | "top" | "bottom") => rect(gridAttrSelector("pinShadow", side));
+    const topBand = rect(gridAttrSelector("pinnedRowBand", "top"));
+    const bottomBand = rect(gridAttrSelector("pinnedRowBand", "bottom"));
+    const leftCell = rect(`${gridAttrSelector("pinnedRowBand", "top")} ${gridAttrSelector("pinned", "left")}`);
+    const rightCell = rect(`${gridAttrSelector("pinnedRowBand", "top")} ${gridAttrSelector("pinned", "right")}`);
+
+    for (const side of ["left", "right"] as const) {
+      expect(shadow(side).top).toBeGreaterThanOrEqual(topBand.bottom - 1);
+      expect(shadow(side).bottom).toBeLessThanOrEqual(bottomBand.top + 1);
+    }
+    for (const side of ["top", "bottom"] as const) {
+      expect(shadow(side).left).toBeGreaterThanOrEqual(leftCell.right - 1);
+      expect(shadow(side).right).toBeLessThanOrEqual(rightCell.left + 1);
+    }
+  });
+
   it("anchors the top shadow under the header when no row is pinned", async () => {
     await render(
       <div style={{ height: 360, width: 800 }}>

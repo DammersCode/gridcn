@@ -537,9 +537,11 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
               data-grid-pin-shadow="left"
               data-pinned={hasPinnedLeft ? "" : undefined}
               aria-hidden="true"
-              className="pointer-events-none absolute inset-block-start-0 h-full opacity-0 transition-opacity in-data-scrolled-left:opacity-100"
+              className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-left:opacity-100"
               style={{
                 insetInlineStart: `var(--grid-pin-shadow-left-x, ${interactionLayout.pinnedLeftWidth}px)`,
+                insetBlockStart: effectiveHeaderHeight,
+                insetBlockEnd: pinnedBottomHeight,
                 width: SHADOW_SIZE,
                 // background gradient, not box-shadow: a box-shadow's offset+blur paints its darkest
                 // pixels well outside this element's own box, floating the visible shadow off the
@@ -554,9 +556,11 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
               data-grid-pin-shadow="right"
               data-pinned={hasPinnedRight ? "" : undefined}
               aria-hidden="true"
-              className="pointer-events-none absolute inset-block-start-0 h-full opacity-0 transition-opacity in-data-scrolled-right:opacity-100"
+              className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-right:opacity-100"
               style={{
                 insetInlineEnd: `var(--grid-pin-shadow-right-x, ${interactionLayout.pinnedRightWidth}px)`,
+                insetBlockStart: effectiveHeaderHeight,
+                insetBlockEnd: pinnedBottomHeight,
                 width: SHADOW_SIZE,
                 backgroundImage: `linear-gradient(to ${isRtl ? "right" : "left"}, ${shadowColor(hasPinnedRight)}, transparent)`,
                 zIndex: GRID_LAYER.pinShadow,
@@ -566,9 +570,11 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
               data-grid-pin-shadow="top"
               data-pinned={pinnedTopRows.length > 0 ? "" : undefined}
               aria-hidden="true"
-              className="pointer-events-none absolute inset-inline-start-0 w-full opacity-0 transition-opacity in-data-scrolled-top:opacity-100"
+              className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-top:opacity-100"
               style={{
                 insetBlockStart: effectiveHeaderHeight,
+                insetInlineStart: `var(--grid-pin-shadow-left-x, ${interactionLayout.pinnedLeftWidth}px)`,
+                insetInlineEnd: `var(--grid-pin-shadow-right-x, ${interactionLayout.pinnedRightWidth}px)`,
                 height: SHADOW_SIZE,
                 backgroundImage: `linear-gradient(to bottom, ${shadowColor(pinnedTopRows.length > 0)}, transparent)`,
                 zIndex: GRID_LAYER.pinShadow,
@@ -578,9 +584,11 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
               data-grid-pin-shadow="bottom"
               data-pinned={pinnedBottomRows.length > 0 ? "" : undefined}
               aria-hidden="true"
-              className="pointer-events-none absolute inset-inline-start-0 w-full opacity-0 transition-opacity in-data-scrolled-bottom:opacity-100"
+              className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-bottom:opacity-100"
               style={{
                 insetBlockEnd: pinnedBottomHeight,
+                insetInlineStart: `var(--grid-pin-shadow-left-x, ${interactionLayout.pinnedLeftWidth}px)`,
+                insetInlineEnd: `var(--grid-pin-shadow-right-x, ${interactionLayout.pinnedRightWidth}px)`,
                 height: SHADOW_SIZE,
                 backgroundImage: `linear-gradient(to top, ${shadowColor(pinnedBottomRows.length > 0)}, transparent)`,
                 zIndex: GRID_LAYER.pinShadow,

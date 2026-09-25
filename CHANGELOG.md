@@ -11,6 +11,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Column lines:** a 1px line separates columns in the header, the body, the marker column, and
+  pinned row bands. A right-pinned column draws its line on the start side, so the line marks the
+  pinned band edge. `--grid-column-border` sets the color (default `--color-border`;
+  `transparent` hides the lines).
 - **Row insert-above and delete-rows shortcuts:** `insertRowAbove` (`mod+shift+u`) and
   `deleteRows` (`mod+shift+Backspace`) join `insertRowBelow` and `duplicateRow` in
   `DEFAULT_KEYMAP`; the context menu's Insert row above and Delete row(s) items now show their
@@ -161,7 +165,13 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   the grid edge, or at the pinned band boundary when a band is pinned. Before, it appeared only at
   pinned bands. CSS variables configure them: `--grid-scroll-shadow` (edge shadow color;
   `transparent` hides them and keeps pinned-band shadows) and `--grid-shadow-size` (strip size,
-  default `8px`). A shadow at a pinned band carries `data-pinned`.
+  default `8px`). A shadow at a pinned band carries `data-pinned`. Each shadow spans only the
+  scrolling area between the pinned bands, so shadows never cross the header, a pinned band, or
+  each other.
+- **Empty checkbox cells:** a checkbox cell with a `null` or `undefined` value renders nothing
+  instead of an unchecked box. Pinned summary rows without a checkbox value stay blank.
+- **All-sides pinning example:** the Average and Total rows leave Department, Location, and Active
+  blank.
 - **Context menu shortcut keycaps:** the cell menu shows each shortcut as `Kbd` keycaps (`Ctrl`
   `Shift` `U`, or `⌘` `⇧` `U` on macOS) instead of a `+`-joined string. The add-on ships
   `components/ui/kbd.tsx`.

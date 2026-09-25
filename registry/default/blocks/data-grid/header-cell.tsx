@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { COLUMN_BORDER } from "./columns/column-border";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { HeaderClickBehavior, SortSpec } from "./types";
@@ -124,6 +125,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
       data-dragging={isDragging || undefined}
       className={cn(
         "group relative flex items-center border-b border-border bg-muted px-2 font-medium select-none",
+        COLUMN_BORDER,
         isDragging && "opacity-50",
         column.headerClassName,
       )}
