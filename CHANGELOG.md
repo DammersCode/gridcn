@@ -152,7 +152,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Edge shadows on every scrollable side:** the grid shows its edge shadow on each side where
   content lies beyond the visible area, with or without pinned columns or rows. The shadow sits at
   the grid edge, or at the pinned band boundary when a band is pinned. Before, it appeared only at
-  pinned bands. CSS variables configure them: `--grid-scroll-shadow` (edge shadow color;`n  `transparent` hides them and keeps pinned-band shadows) and `--grid-shadow-size` (strip size,`n  default `8px`). A shadow at a pinned band carries `data-pinned`.
+  pinned bands. CSS variables configure them: `--grid-scroll-shadow` (edge shadow color;
+  `transparent` hides them and keeps pinned-band shadows) and `--grid-shadow-size` (strip size,
+  default `8px`). A shadow at a pinned band carries `data-pinned`.
 - **Context menu shortcut keycaps:** the cell menu shows each shortcut as `Kbd` keycaps (`Ctrl`
   `Shift` `U`, or `⌘` `⇧` `U` on macOS) instead of a `+`-joined string. The add-on ships
   `components/ui/kbd.tsx`.
