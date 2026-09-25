@@ -356,15 +356,33 @@ div[style*="--callout-color"] {
   background-color: var(--color-fd-accent);
 }
 
-/* Docs demos pin no columns, so the grid mounts no edge shadow; hint off-screen columns from data-scrolled-*. */
-[data-component-preview] [role="grid"]:has([data-scrolled-right])::after,
-[data-component-preview] [role="grid"]:has([data-scrolled-left])::before {
+/* Docs demos pin no columns, so the grid mounts no edge shadow; the sticky viewport carries data-scrolled-* and stays in view. */
+[data-component-preview] [data-scrolled-right]:not(:has([data-grid-pin-shadow="right"]))::after,
+[data-component-preview] [data-scrolled-left]:not(:has([data-grid-pin-shadow="left"]))::before {
   content: "";
   position: absolute;
   pointer-events: none;
   inset-block: 0;
   width: 12px;
   z-index: 32;
+}
+
+[data-component-preview] [data-scrolled-right]:not(:has([data-grid-pin-shadow="right"]))::after {
+  inset-inline-end: 0;
+  background-image: linear-gradient(to left, var(--grid-pin-shadow), transparent);
+}
+
+[data-component-preview] [data-scrolled-left]:not(:has([data-grid-pin-shadow="left"]))::before {
+  inset-inline-start: 0;
+  background-image: linear-gradient(to right, var(--grid-pin-shadow), transparent);
+}
+
+[data-component-preview] [data-scrolled-right]:dir(rtl)::after {
+  background-image: linear-gradient(to right, var(--grid-pin-shadow), transparent);
+}
+
+[data-component-preview] [data-scrolled-left]:dir(rtl)::before {
+  background-image: linear-gradient(to left, var(--grid-pin-shadow), transparent);
 }
 
 [data-component-preview] [role="grid"]:has([data-scrolled-right])::after {
