@@ -25,6 +25,7 @@ const EXAMPLES = {
   "data-grid-row-markers-demo": dynamic(() => import("@/registry/default/examples/data-grid-row-markers-demo")),
   "data-grid-custom-headers-demo": dynamic(() => import("@/registry/default/examples/data-grid-custom-headers-demo")),
   "data-grid-custom-markers-demo": dynamic(() => import("@/registry/default/examples/data-grid-custom-markers-demo")),
+  "data-grid-pinning-all-sides-demo": dynamic(() => import("@/registry/default/examples/data-grid-pinning-all-sides-demo")),
   "data-grid-pinning-demo": dynamic(() => import("@/registry/default/examples/data-grid-pinning-demo")),
   "data-grid-column-drag-demo": dynamic(() => import("@/registry/default/examples/data-grid-column-drag-demo")),
   "data-grid-column-layout-demo": dynamic(() => import("@/registry/default/examples/data-grid-column-layout-demo")),

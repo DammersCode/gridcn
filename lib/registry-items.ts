@@ -46,6 +46,7 @@ export type RegistryItemName =
   | "data-grid-pagination-swr-demo"
   | "data-grid-performance-demo"
   | "data-grid-pinned-rows-demo"
+  | "data-grid-pinning-all-sides-demo"
   | "data-grid-pinning-demo"
   | "data-grid-playground-demo"
   | "data-grid-presence-demo"

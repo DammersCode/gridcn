@@ -141,6 +141,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Compile-time URL operator drift guard:** a type test pins the URL-state add-on's filter
   operator set against the core `FilterOperator` union — a new core operator fails the type gate
   instead of silently dropping out of URL round-trips.
+- **Docs example for pinning all four sides:** `data-grid-pinning-all-sides-demo` (Examples → Rows &
+  Selection → Pinning) combines pinned left/right columns with pinned top/bottom row bands.
 - **Docs examples for menu slots and operator lists:** `data-grid-context-menu-slots-demo` shows
   `renderCellMenuItems`/`renderHeaderMenuItems`; `data-grid-filter-operators-demo` shows
   `operatorsForColumn`, `ColumnDef.filterOperators`, and `DataGridSortList`'s `allColumns`.

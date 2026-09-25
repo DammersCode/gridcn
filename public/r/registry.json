@@ -1588,6 +1588,33 @@
          ]
       },
       {
+         "name": "data-grid-pinning-all-sides-demo",
+         "type": "registry:example",
+         "title": "Data Grid Pinning All Sides Demo",
+         "description": "All four pin zones at once: Name pinned left, Score pinned right, plus an averages row pinned to the top band and a totals row pinned to the bottom band via the data-grid-pinned-rows add-on, over 200 rows so both directions scroll.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-history",
+            "DammersCode/gridcn/data-grid-pinned-rows"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-pinning-all-sides-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-pinning-all-sides-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
          "name": "data-grid-pinning-demo",
          "type": "registry:example",
          "title": "Data Grid Pinning Demo",
