@@ -12,9 +12,10 @@
     "lint": "oxlint . && node scripts/verify-import-boundaries.mjs",
     "lint:typed": "eslint .",
     "registry:build": "shadcn build && node scripts/fix-registry-imports.mjs",
-    "registry:verify": "node scripts/verify-payload-content.mjs && node scripts/verify-registry.mjs",
+    "registry:verify": "node scripts/verify-payload-content.mjs && node scripts/verify-registry.mjs && node scripts/verify-demo-install.mjs",
     "types:check": "fumadocs-mdx && next typegen && tsc --noEmit",
-    "perf:heap": "node scripts/heap-profile.mjs"
+    "perf:heap": "node scripts/heap-profile.mjs",
+    "test:e2e-install": "node scripts/verify-e2e-install.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
