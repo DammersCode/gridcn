@@ -996,6 +996,26 @@ describe("DataGrid in a real browser", () => {
         expect(onDataChange).not.toHaveBeenCalled();
       });
 
+      it("a press on the box dragged away and back before release toggles nothing", async () => {
+        const onDataChange = vi.fn<(next: readonly BoolRow[]) => void>();
+        await renderCheckboxGrid(onDataChange, 3);
+        await expect.element(page.getByRole("grid")).toBeInTheDocument();
+        const cells = document.querySelectorAll<HTMLElement>('[role="gridcell"]');
+        const center = (el: HTMLElement) => {
+          const r = el.getBoundingClientRect();
+          return { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+        };
+        const pointer = { bubbles: true, pointerId: 1, button: 0 };
+        cells[0]!.dispatchEvent(new PointerEvent("pointerdown", { ...pointer, ...center(cells[0]!) }));
+        document.dispatchEvent(new PointerEvent("pointermove", { ...pointer, ...center(cells[2]!) }));
+        document.dispatchEvent(new PointerEvent("pointermove", { ...pointer, ...center(cells[0]!) }));
+        document.dispatchEvent(new PointerEvent("pointerup", { ...pointer, ...center(cells[0]!) }));
+        // Synthetic pointer events fire no native click; pointer capture would retarget it here.
+        cells[0]!.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1, ...center(cells[0]!) }));
+
+        expect(onDataChange).not.toHaveBeenCalled();
+      });
+
       it("double-click toggles directly instead of entering edit mode", async () => {
         const onDataChange = vi.fn<(next: readonly BoolRow[]) => void>();
         await renderCheckboxGrid(onDataChange);

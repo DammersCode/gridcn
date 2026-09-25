@@ -457,11 +457,6 @@ function pointerHitsCheckboxBox(event: ReactPointerEvent<HTMLElement>): boolean 
   return box !== undefined && event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
 }
 
-function isSingleCellSelection(state: DataGridStoreState, coord: CellCoord): boolean {
-  const range = state.selection.current?.range;
-  return range === undefined || (range.width === 1 && range.height === 1 && range.x === coord.col && range.y === coord.row);
-}
-
 function isCheckboxCell(state: DataGridStoreState, coord: CellCoord): boolean {
   return state.visibleColumns[coord.col]?.type === "checkbox";
 }
@@ -744,6 +739,13 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         const onMove = (event: PointerEvent) => {
           if (!dragRef.current || dragRef.current.pointerId !== event.pointerId) return;
           lastPointerRef.current = { clientX: event.clientX, clientY: event.clientY };
+          // Pointer capture still fires `click` on the pressed cell after a drag, even one that ends back there.
+          const pending = pendingActiveClickRef.current;
+          const scrollElement = scrollRef.current;
+          if (pending && scrollElement) {
+            const coord = pointerToCoord(event.clientX, event.clientY, scrollElement, layoutRef.current, storeApi.getState().viewIndex.length);
+            if (coord.col !== pending.col || coord.row !== pending.row) pendingActiveClickRef.current = null;
+          }
           // the frame loop kills itself when no move has arrived yet (slow press-then-drag) —
           // restart it here or a drag whose first move lands after frame 1 never paints (user QA).
           if (rafRef.current === null) rafRef.current = requestAnimationFrame(runDragFrame);
@@ -762,7 +764,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         };
       }
     },
-    [runDragFrame, endDrag],
+    [runDragFrame, endDrag, scrollRef, storeApi],
   );
 
   // safety net: tear down a still-active drag's listeners/rAF if the component unmounts mid-drag
@@ -864,7 +866,6 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         actions.selectCell(coord);
       }
 
-      // A press on the box itself toggles on the first click; elsewhere in the cell it takes a second click.
       const plainPress = !event.shiftKey && !isMultiKey && !state.editing;
       if ((wasActive || (plainPress && pointerHitsCheckboxBox(event))) && !readOnly && isCheckboxCell(state, coord)) {
         // Resolved on the cell's native `click` — pointerdown can't yet tell a click from a drag.
@@ -883,8 +884,6 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       const pending = pendingActiveClickRef.current;
       pendingActiveClickRef.current = null;
       if (!pending || pending.col !== coord.col || pending.row !== coord.row) return;
-      // Pointer capture retargets the release to the pressed cell, so a drag still fires `click` here.
-      if (!isSingleCellSelection(storeApi.getState(), coord)) return;
       // detail >= 2 is a dblclick's second click — onCellDoubleClick resolves that case instead.
       if (event.detail >= 2) return;
       const state = storeApi.getState();

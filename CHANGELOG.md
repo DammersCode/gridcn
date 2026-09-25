@@ -297,7 +297,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 ### Fixed
 
 - **Checkbox drag toggled the start cell:** a press on a checkbox cell dragged across other rows
-  selects the range and no longer toggles the cell where the drag started.
+  selects the range and no longer toggles the cell where the drag started, also when the drag
+  ends back on that cell.
 - **Async import merge:** the import dialog waits for a Promise returned by `onImport`. It closes
   after the merge succeeds, and a rejection keeps it open with the retry message.
 - **`updateCells` verdict with schema validation:** a rejected patch shows up in `skipped` with
