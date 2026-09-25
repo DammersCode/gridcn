@@ -10,13 +10,15 @@ function readRenderedCellTexts(root: Element | null, columnId: string): string[]
 }
 
 /**
- * Autosizes `column` to fit its header text plus every currently-rendered cell's text (the core's
- * measure+setColumnWidth path), using `root`'s computed font so measurement matches what's on screen.
+ * Autosizes `column` to fit its header text plus every currently-rendered cell's text, using
+ * `root`'s computed font so measurement matches what's on screen. `commitWidth` must be the commit
+ * point (`commitColumnWidth`), not the per-frame drag write: autosize is one gesture and fires
+ * `onColumnLayoutChange` once.
  */
 export function autosizeColumn(
   root: Element | null,
   column: AnyColumnDef,
-  setColumnWidth: (id: string, width: number) => void,
+  commitWidth: (id: string, width: number) => void,
 ): void {
   const font = root ? getComputedStyle(root).font : "";
   const headerText = column.headerText ?? (typeof column.header === "string" ? column.header : "");
@@ -28,5 +30,5 @@ export function autosizeColumn(
     minWidth: Math.max(ABSOLUTE_MIN_WIDTH, column.minWidth ?? 0),
     maxWidth: column.maxWidth,
   });
-  setColumnWidth(column.id, width);
+  commitWidth(column.id, width);
 }

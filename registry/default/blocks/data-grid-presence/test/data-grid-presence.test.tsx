@@ -684,6 +684,143 @@ describe("multiplayer presence: entry hardening", () => {
   });
 });
 
+describe("multiplayer presence: per-entry lifecycle (remove/clear)", () => {
+  it("removePresenceHighlight removes only the entry with the given id", () => {
+    let api: ReturnType<typeof useDataGridPresence> | null = null;
+    function PresenceCapture() {
+      api = useDataGridPresence();
+      return null;
+    }
+    render(<PresenceCapture />);
+    act(() => {
+      api!.setPresenceHighlights([
+        { id: "a", color: "#f00", range: { x: 0, y: 0, width: 1, height: 1 } },
+        { id: "b", color: "#0f0", range: { x: 1, y: 1, width: 1, height: 1 } },
+      ]);
+    });
+    expect(api!.storeApi.getState().highlights).toHaveLength(2);
+
+    act(() => {
+      api!.removePresenceHighlight("a");
+    });
+    const after = api!.storeApi.getState().highlights;
+    expect(after).toHaveLength(1);
+    expect(after[0]!.id).toBe("b");
+  });
+
+  it("removePresenceHighlight is a no-op (same list identity) when no entry matches", () => {
+    let api: ReturnType<typeof useDataGridPresence> | null = null;
+    function PresenceCapture() {
+      api = useDataGridPresence();
+      return null;
+    }
+    render(<PresenceCapture />);
+    act(() => {
+      api!.setPresenceHighlights([{ id: "a", color: "#f00", range: { x: 0, y: 0, width: 1, height: 1 } }]);
+    });
+    const before = api!.storeApi.getState().highlights;
+    act(() => {
+      api!.removePresenceHighlight("missing");
+    });
+    expect(api!.storeApi.getState().highlights).toBe(before);
+  });
+
+  it("clearPresenceHighlights removes every entry", () => {
+    let api: ReturnType<typeof useDataGridPresence> | null = null;
+    function PresenceCapture() {
+      api = useDataGridPresence();
+      return null;
+    }
+    render(<PresenceCapture />);
+    act(() => {
+      api!.setPresenceHighlights([
+        { id: "a", color: "#f00", range: { x: 0, y: 0, width: 1, height: 1 } },
+        { id: "b", color: "#0f0", range: { x: 1, y: 1, width: 1, height: 1 } },
+      ]);
+    });
+    act(() => {
+      api!.clearPresenceHighlights();
+    });
+    expect(api!.storeApi.getState().highlights).toHaveLength(0);
+  });
+});
+
+describe("multiplayer presence: rect budget (maxRects / onExcessRects)", () => {
+  it("resolveHighlights honors a custom maxRects and reports the excess", () => {
+    // scattered view rows (gaps between them) → one run per row: 4 rows × 1 column = 4 fragments
+    const rowIdToViewRow = new Map<string, number>([
+      ["0", 0],
+      ["1", 2],
+      ["2", 4],
+      ["3", 6],
+    ]);
+    const visibleColumns = [{ id: "name" }];
+    const onExcess = vi.fn();
+    const resolved = resolveHighlights(
+      [{ id: "big", color: "#f00", rowIds: ["0", "1", "2", "3"], columnIds: ["name"] }],
+      rowIdToViewRow,
+      visibleColumns,
+      undefined,
+      undefined,
+      onExcess,
+      2,
+    );
+    expect(resolved).toHaveLength(2);
+    expect(onExcess).toHaveBeenCalledTimes(1);
+    expect(onExcess.mock.calls[0]?.[1]).toBe(2); // kept
+    expect(onExcess.mock.calls[0]?.[2]).toBe(4); // total
+  });
+
+  it("defaults to MAX_RESOLVED_RECTS when maxRects is omitted", () => {
+    // scattered view rows (a gap between each) → one run per row: exactly the cap, no excess
+    const rowIdToViewRow = new Map<string, number>();
+    const visibleColumns = [{ id: "name" }];
+    const rowIds: string[] = [];
+    for (let i = 0; i < MAX_RESOLVED_RECTS; i += 1) {
+      rowIdToViewRow.set(String(i), i * 2);
+      rowIds.push(String(i));
+    }
+    const onExcess = vi.fn();
+    const resolved = resolveHighlights(
+      [{ id: "big", color: "#f00", rowIds, columnIds: ["name"] }],
+      rowIdToViewRow,
+      visibleColumns,
+      undefined,
+      undefined,
+      onExcess,
+    );
+    expect(resolved).toHaveLength(MAX_RESOLVED_RECTS);
+    expect(onExcess).not.toHaveBeenCalled();
+  });
+
+  it("the hook's onExcessRects option is called when a range entry exceeds the budget", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const onExcess = vi.fn();
+    let setPresenceHighlights: ReturnType<typeof useDataGridPresence>["setPresenceHighlights"] | null = null;
+    function Harness() {
+      const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence({ maxRects: 1, onExcessRects: onExcess });
+      setPresenceHighlights = setHighlights;
+      return (
+        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+          <DataGridRoot>
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    render(<Harness />);
+    act(() => {
+      // 2 non-contiguous row runs × 1 column run = 2 fragments, budget 1
+      setPresenceHighlights!([{ id: "big", color: "#f00", rowIds: ["0", "2"], columnIds: ["name", "qty"] }]);
+    });
+    expect(onExcess).toHaveBeenCalled();
+    expect(onExcess.mock.calls[0]?.[1]).toBe(1); // kept
+    expect(onExcess.mock.calls[0]?.[2]).toBe(2); // total
+    warn.mockRestore();
+  });
+});
+
 /** Captures `actions` from inside the provider tree — used to drive filter changes for the rowId-filtered-out test. */
 function ActionsCapture({ onReady }: { onReady: (actions: ReturnType<typeof useDataGridActions>) => void }) {
   onReady(useDataGridActions());

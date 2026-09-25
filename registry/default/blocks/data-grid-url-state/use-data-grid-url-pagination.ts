@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useQueryState } from "nuqs";
+import { clampPage, DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { parsePage, parsePageSize, serializePage, serializePageSize, DEFAULT_URL_PAGE_SIZE } from "./page-param";
 import { prefixedKey } from "./prefixed-key";
 
@@ -13,12 +14,16 @@ export type UseDataGridUrlPaginationOptions = {
   defaultPageSize?: number;
   /** When given, a `pageSize` URL value outside this list falls back to `defaultPageSize` instead of being trusted. */
   pageSizeOptions?: readonly number[];
+  /** The dataset's row count; when given, an out-of-range deep-linked `page` is clamped to the last page and the clamped value is written back to the URL on mount. */
+  total?: number;
 };
 
 /** Controlled pair spread straight into `useDataGridPagination`'s server mode. */
 export type UseDataGridUrlPaginationResult = {
   page: number;
   pageSize: number;
+  /** The `pageSizeOptions` the URL parsing enforces (`pageSizeOptions` or the pager default) — include it so the bar's select and the URL allow-list never diverge. */
+  pageSizeOptions: readonly number[];
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
 };
@@ -30,7 +35,10 @@ export type UseDataGridUrlPaginationResult = {
  *
  * @example
  * const url = useDataGridUrlPagination();
- * const pager = useDataGridPagination({ total: rows.length, ...url });
+ * const pager = useDataGridPagination({ total: rows.length, pageSizeOptions: url.pageSizeOptions, ...url });
+ *
+ * Pass `total` so an out-of-range deep-linked `page` clamps to the last page on mount and the
+ * clamped value replaces the raw one in the URL.
  *
  * `page` is 1-based and omitted from the URL at 1; `pageSize` is omitted when it equals
  * `defaultPageSize`. Both writes use `history: "replace"`, matching this add-on's sort/filter/
@@ -39,7 +47,7 @@ export type UseDataGridUrlPaginationResult = {
  * the default rather than throwing, the same posture as this add-on's other parsers.
  */
 export function useDataGridUrlPagination(options: UseDataGridUrlPaginationOptions = {}): UseDataGridUrlPaginationResult {
-  const { prefix, defaultPageSize = DEFAULT_URL_PAGE_SIZE, pageSizeOptions } = options;
+  const { prefix, defaultPageSize = DEFAULT_URL_PAGE_SIZE, pageSizeOptions, total } = options;
 
   const [pageParam, setPageParam] = useQueryState(prefixedKey(prefix, "page"), {
     defaultValue: "",
@@ -54,8 +62,23 @@ export function useDataGridUrlPagination(options: UseDataGridUrlPaginationOption
     history: "replace",
   });
 
-  const page = parsePage(pageParam);
+  const rawPage = parsePage(pageParam);
   const pageSize = parsePageSize(pageSizeParam, defaultPageSize, pageSizeOptions);
+  const page = total !== undefined ? clampPage(rawPage, total, pageSize) : rawPage;
+  const resolvedPageSizeOptions: readonly number[] = pageSizeOptions ?? DEFAULT_PAGE_SIZES;
+
+  // normalize on mount only: a deep-linked ?page=999 stays raw in the URL (shared link disagrees
+  // with the rendered view, and "revives" if the dataset grows) unless the clamped value is written back
+  const normalizedRef = useRef(false);
+  useEffect(() => {
+    if (normalizedRef.current) return;
+    normalizedRef.current = true;
+    if (total === undefined) return;
+    const clamped = clampPage(parsePage(pageParam), total, parsePageSize(pageSizeParam, defaultPageSize, pageSizeOptions));
+    const serialized = serializePage(clamped) || "";
+    if (pageParam !== serialized) void setPageParam(serialized || null);
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onPageChange = useCallback(
     (next: number) => {
@@ -74,7 +97,7 @@ export function useDataGridUrlPagination(options: UseDataGridUrlPaginationOption
   );
 
   return useMemo(
-    () => ({ page, pageSize, onPageChange, onPageSizeChange }),
-    [page, pageSize, onPageChange, onPageSizeChange],
+    () => ({ page, pageSize, pageSizeOptions: resolvedPageSizeOptions, onPageChange, onPageSizeChange }),
+    [page, pageSize, resolvedPageSizeOptions, onPageChange, onPageSizeChange],
   );
 }

@@ -109,7 +109,8 @@ const { rowBands } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows:
     `"avg"`, `"min"`, `"max"`, `"count"`, or a custom `(values, rows) => unknown` function.
     Numeric reducers skip `null`/`undefined` values instead of producing `NaN`. `count` counts
     non-empty values. Pass `scope: "all"` to reduce over the raw `data` array instead, ignoring
-    the active filter.
+    the active filter. If a `specs` key matches no column id, the aggregate ignores it and a dev
+    warning fires once.
 
     Because the hook reads the store and `rowBands` is a provider prop, `DataGridAggregateReporter`
     bridges the two: it renders as a plain child under the provider and reports the result through
@@ -141,12 +142,14 @@ const { rowBands } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows:
     ### Custom reducers
 
     A reducer function receives every resolved value and its source row, unfiltered — write your
-    own empty-handling if the built-ins don't fit:
+    own empty-handling if the built-ins don't fit. The hook is generic over the row type: when
+    `specs` carries it (as `AggregateSpecs<Row>` here, or as the generic at the hook call),
+    `rows` is typed:
 
     ```tsx
-    const specs = {
+    const specs: AggregateSpecs<Row> = {
       name: (_values, rows) => `${rows.length} rows`,
-      score: (values) => Math.max(...(values as number[]), 0),
+      score: (_values, rows) => Math.max(...rows.map((r) => r.score), 0),
     };
     ```
 

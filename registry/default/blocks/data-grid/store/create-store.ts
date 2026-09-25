@@ -3,6 +3,7 @@ import type { CellCoord, CellType, DataOp } from "../types";
 import { DEFAULT_KEYMAP } from "../keyboard";
 import { CompactSelection } from "../selection/compact-selection";
 import { getCellValue } from "../columns/column-helpers";
+import { clampColumnWidth } from "../columns/resolve-column-width";
 import { cellTypes as defaultCellTypes } from "../cell-types/cell-types";
 import {
   emptySelection,
@@ -418,12 +419,23 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         set({ selection: emptySelection() });
       },
       setColumnWidth(id, width) {
-        set((s) => ({ columnWidths: { ...s.columnWidths, [id]: width } }));
-        get().onColumnResizing?.(id, width);
+        const column = get().columns.find((c) => c.id === id);
+        const next = column ? clampColumnWidth(column, width) : width;
+        set((s) => ({ columnWidths: { ...s.columnWidths, [id]: next } }));
+        get().onColumnResizing?.(id, next);
       },
       commitColumnWidth(id, width) {
         const s = get();
-        const columnWidths = { ...s.columnWidths, [id]: width };
+        const column = s.columns.find((c) => c.id === id);
+        const next = column ? clampColumnWidth(column, width) : width;
+        const columnWidths = { ...s.columnWidths, [id]: next };
+        set({ columnWidths });
+        s.onColumnLayoutChange?.(computeColumnLayout(s.columns, s.columnOrder, columnWidths, s.hiddenColumns));
+      },
+      resetColumnWidth(id) {
+        const s = get();
+        if (s.columnWidths[id] === undefined) return;
+        const { [id]: _dropped, ...columnWidths } = s.columnWidths;
         set({ columnWidths });
         s.onColumnLayoutChange?.(computeColumnLayout(s.columns, s.columnOrder, columnWidths, s.hiddenColumns));
       },

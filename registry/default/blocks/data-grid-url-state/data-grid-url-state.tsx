@@ -4,7 +4,11 @@ import type { ReactNode } from "react";
 import { useDataGridUrlState, type UseDataGridUrlStateOptions } from "./use-data-grid-url-state";
 
 /** Public entry point — the only module consumers/docs should import from. */
-export { useDataGridUrlState, type UseDataGridUrlStateOptions } from "./use-data-grid-url-state";
+export {
+  useDataGridUrlState,
+  type UseDataGridUrlStateOptions,
+  type UseDataGridUrlStateResult,
+} from "./use-data-grid-url-state";
 export {
   useDataGridUrlPagination,
   type UseDataGridUrlPaginationOptions,

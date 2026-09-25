@@ -195,6 +195,15 @@ export function textAccessorFor(
       const value = rawCellValue(column, row);
       return value == null ? "" : String(value);
     },
+    getValue(rowIndex, columnId) {
+      const column = byId.get(columnId);
+      const row = data[rowIndex];
+      if (!column || row === undefined) return undefined;
+      return rawCellValue(column, row);
+    },
+    filterMatch(columnId) {
+      return byId.get(columnId)?.filterMatch;
+    },
   };
 
   // A column opts into a custom row comparator through its own `sortCompare`, or through its
@@ -442,7 +451,11 @@ export function computeSearchMatches(
   }
   const dataAccessor = textAccessorFor(columns, data);
   // viewRow is always < viewIndex.length (findSearchMatches iterates 0..viewIndex.length)
-  const viewAccessor: CellAccessor = { getText: (viewRow, columnId) => dataAccessor.getText(viewIndex[viewRow]!, columnId) };
+  const viewAccessor: CellAccessor = {
+    getText: (viewRow, columnId) => dataAccessor.getText(viewIndex[viewRow]!, columnId),
+    getValue: (viewRow, columnId) => dataAccessor.getValue?.(viewIndex[viewRow]!, columnId),
+    filterMatch: (columnId) => dataAccessor.filterMatch?.(columnId),
+  };
   const searchMatches = findSearchMatches(
     viewIndex.length,
     viewAccessor,

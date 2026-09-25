@@ -186,6 +186,32 @@ describe("DataGrid in a real browser", () => {
       await new Promise((r) => setTimeout(r, 200));
       expect(renderedColIndicesPerRow()).toContain(1);
     });
+
+    it("columnOverscan=0 trims the window by exactly the static overscan (one column at rest)", { timeout: 15_000 }, async () => {
+      const cols = makeWideColumns(50);
+      const renderWith = (overscan?: number) =>
+        render(
+          <div style={{ height: 600, width: 1000 }}>
+            <DataGrid data={makeRows(100)} columns={cols} getRowId={(r) => r.id} columnOverscan={overscan} className="h-150 w-250" />
+          </div>,
+        );
+
+      const { unmount } = await renderWith(0);
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      await new Promise((r) => setTimeout(r, 100)); // let the post-mount heal pass settle the window
+      const noOverscan = renderedColIndicesPerRow();
+      await unmount();
+
+      await renderWith(undefined);
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      await new Promise((r) => setTimeout(r, 100));
+      const defaultOverscan = renderedColIndicesPerRow();
+
+      // at rest (scrollLeft=0, no velocity) the start edge is already clamped at 0, so the
+      // default 1-column overscan shows up exactly once, on the trailing edge
+      expect(defaultOverscan.length).toBe(noOverscan.length + 1);
+      expect(Math.max(...defaultOverscan)).toBe(Math.max(...noOverscan) + 1);
+    });
   });
 
   it("updates the rendered window on scroll", { timeout: 15_000 }, async () => {

@@ -1,7 +1,6 @@
 import type { FilterJoinOperator, FilterSpec, SortSpec } from "../types";
-import { isEmptyCell, type CellAccessor, type ViewIndexOptions } from "./build-view-index";
+import { isEmptyCell, makeFilterTest, type CellAccessor, type ViewIndexOptions } from "./build-view-index";
 import { defaultCompareText } from "./default-compare-text";
-import { createFilterMatcher } from "./matches-filter";
 
 /**
  * Above this many touched rows, {@link updateViewIndex} refuses the incremental path and the caller
@@ -90,9 +89,9 @@ export function makeFilterPredicate(
   joinOperator: FilterJoinOperator | undefined,
 ): (row: number) => boolean {
   if (filters.length === 0) return () => true;
-  const matchers = filters.map((filter) => ({ columnId: filter.columnId, test: createFilterMatcher(filter) }));
-  if (joinOperator === "or") return (row) => matchers.some((m) => m.test(accessor.getText(row, m.columnId)));
-  return (row) => matchers.every((m) => m.test(accessor.getText(row, m.columnId)));
+  const matchers = filters.map((filter) => makeFilterTest(accessor, filter));
+  if (joinOperator === "or") return (row) => matchers.some((test) => test(row));
+  return (row) => matchers.every((test) => test(row));
 }
 
 /** Index in `view` where `row` belongs under `compare`; `view` must already be sorted by it. */

@@ -211,6 +211,20 @@ cellTypes) · **fill** = raw value.
   `options` and the value type of the column fall back to `unknown` at the type level. You lose
   the compile-time catches that `defineColumns` gives every built-in type, for a typo in an
   option key and for a typo in a type key.
+- **The `cellTypes` registry is untyped.** Its type is `Record<string, AnyCellType>`: the keys
+  are not checked against your `GridCellTypes` declarations, and an entry's shape is not checked
+  against its key's declared type. Per-key safety comes from `defineColumns` plus the
+  augmentation above, not from the registry. When a `column.type` string resolves to no registry
+  entry (for example, a mistyped registry key), the cell renders with the built-in `text` type
+  and editing that cell does nothing — there is no warning for this case.
+- **A plain `ColumnDef<TData, TValue>` never cross-checks `accessorKey` against `TValue`.**
+  Accessor/value cross-checking exists only on `defineColumns`' `TypedColumnDef`. A hand-written
+  `ColumnDef<Product, number | null>` with `accessorKey: "name"` compiles; the value type is
+  whatever you declare. Use `defineColumns` when your row type is known.
+- **Cast `column.options` to your declared options type in cell components.** The cell prop
+  types carry the column's options type erased, so the convention is a direct cast to the type
+  you declared in the `GridCellTypes` entry — the worked example below applies it to
+  `CurrencyOptions`.
 
 ## Worked example: a `currency` cell type
 

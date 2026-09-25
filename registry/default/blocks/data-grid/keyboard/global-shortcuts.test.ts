@@ -47,6 +47,20 @@ describe("enabledGlobalActions", () => {
     expect(enabledGlobalActions({ redo: true })).toEqual(["redo"]);
     expect(enabledGlobalActions({ undo: true, redo: true })).toEqual(["undo", "redo"]);
   });
+
+  it("a consumer-added action extends the default undo/redo set", () => {
+    expect(enabledGlobalActions({ actions: ["selectAll"] })).toEqual(["undo", "redo", "selectAll"]);
+    expect(enabledGlobalActions({ actions: ["selectAll", "duplicateRow"] })).toEqual(["undo", "redo", "selectAll", "duplicateRow"]);
+  });
+
+  it("flag-narrowed configs keep the narrowing; actions extend the narrowed set", () => {
+    expect(enabledGlobalActions({ undo: true, actions: ["selectAll"] })).toEqual(["undo", "selectAll"]);
+    expect(enabledGlobalActions({ redo: true, actions: ["selectAll"] })).toEqual(["redo", "selectAll"]);
+  });
+
+  it("dedupes actions already covered by the flag-derived set", () => {
+    expect(enabledGlobalActions({ actions: ["undo", "undo", "selectAll"] })).toEqual(["undo", "redo", "selectAll"]);
+  });
 });
 
 describe("resolveGlobalShortcut - gate rules", () => {
@@ -112,5 +126,15 @@ describe("resolveGlobalShortcut - action enablement", () => {
     const keymap = { ...DEFAULT_KEYMAP, undo: ["mod+u"] };
     expect(resolveGlobalShortcut(makeEvent({ key: "u", ctrlKey: true }), makeCtx({ keymap }))).toBe("undo");
     expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true }), makeCtx({ keymap }))).toBe(null); // old binding gone
+  });
+
+  it("a consumer-added action resolves on its binding once enabled", () => {
+    expect(
+      resolveGlobalShortcut(makeEvent({ key: "a", ctrlKey: true }), makeCtx({ actions: ["undo", "redo", "selectAll"] })),
+    ).toBe("selectAll");
+  });
+
+  it("a consumer-added action NOT in the enabled set still resolves to nothing (default set stays undo/redo)", () => {
+    expect(resolveGlobalShortcut(makeEvent({ key: "a", ctrlKey: true }), makeCtx())).toBe(null);
   });
 });

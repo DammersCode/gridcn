@@ -36,6 +36,12 @@ export type DataGridFilterMenuProps = {
    * restored layout) keeps applying but renders with no column context and logs a dev-time warning.
    */
   allColumns?: boolean;
+  /**
+   * Replaces the operator list the menu offers per column. Resolution order: this prop (a returned
+   * `undefined` falls through), then the column's own `filterOperators`, then the built-in
+   * `operatorsForColumnType` for its `type`.
+   */
+  operatorsForColumn?: (column: AnyColumnDef) => readonly FilterOperator[] | undefined;
 };
 
 /** dnd-kit drag payload for a filter row: compiler-checked in place of `Record<string, any>`. */
@@ -69,7 +75,7 @@ function moveItem<T>(list: T[], fromIndex: number, toIndex: number): T[] {
  * persisted through `setFilters` on every reorder.
  */
 export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
-  const { className, allColumns = false } = props;
+  const { className, allColumns = false, operatorsForColumn } = props;
   const actions = useDataGridActions();
   const filters = useDataGridFilterState();
   const joinOperator = useDataGridJoinOperator();
@@ -78,6 +84,13 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   const columns = allColumns ? gridColumns : visibleColumns;
   const labels = useDataGridLabels();
   const filterableColumns = columns.filter((c) => c.filterable !== false);
+
+  // per-column operator list: this prop > the column's filterOperators > the built-in type default
+  const operatorsFor = useCallback(
+    (column: AnyColumnDef | undefined): readonly FilterOperator[] =>
+      (column && operatorsForColumn ? operatorsForColumn(column) : undefined) ?? column?.filterOperators ?? operatorsForColumnType(column?.type),
+    [operatorsForColumn],
+  );
 
   // A filter on a column outside the menu's option list (a hidden column by default, or one no
   // longer in the grid) still applies to the view but renders with no column context and no picker
@@ -144,9 +157,9 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   const addFilter = useCallback(() => {
     const first = filterableColumns[0];
     if (!first) return;
-    const operator = operatorsForColumnType(first.type)[0]!; // always non-empty (TEXT_OPERATORS is the floor)
+    const operator = operatorsFor(first)[0]!; // always non-empty (TEXT_OPERATORS is the floor)
     actions.setFilters([...filters, { columnId: first.id, operator, value: "" }]);
-  }, [actions, filterableColumns, filters]);
+  }, [actions, filterableColumns, filters, operatorsFor]);
 
   const resetFilters = useCallback(() => {
     actions.setFilters([]);
@@ -228,6 +241,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
                       joinOperator={joinOperator}
                       columns={columns}
                       filterableColumns={filterableColumns}
+                      operatorsFor={operatorsFor}
                       labels={labels}
                       onJoinOperatorChange={actions.setJoinOperator}
                       onUpdate={updateFilter}
@@ -266,6 +280,7 @@ type FilterRowProps = {
   joinOperator: FilterJoinOperator;
   columns: readonly AnyColumnDef[];
   filterableColumns: readonly AnyColumnDef[];
+  operatorsFor: (column: AnyColumnDef | undefined) => readonly FilterOperator[];
   labels: DataGridLabels;
   onJoinOperatorChange: (value: FilterJoinOperator) => void;
   onUpdate: (filterId: string | undefined, next: Partial<FilterSpec>) => void;
@@ -276,8 +291,8 @@ type FilterRowProps = {
 
 /** One filter row: `useSortable` wires pointer-drag reorder via `@dnd-kit/react`; the grip's `onKeyDown` implements the ArrowUp/ArrowDown fallback, which always takes precedence over dnd-kit's own keyboard sensor (checked first, `stopPropagation`'d). */
 function FilterRow(props: FilterRowProps): ReactNode {
-  const { filter, index, total, column, joinOperator, columns, filterableColumns, labels, onJoinOperatorChange, onUpdate, onRemove, onArrowReorder, gripRef } = props;
-  const operators = operatorsForColumnType(column?.type);
+  const { filter, index, total, column, joinOperator, columns, filterableColumns, operatorsFor, labels, onJoinOperatorChange, onUpdate, onRemove, onArrowReorder, gripRef } = props;
+  const operators = operatorsFor(column);
   // dnd-kit's default plugins include OptimisticSortingPlugin, which physically moves DOM nodes
   // mid-drag — that fights React's own re-render once `onDragEnd` commits the new `filters` order
   // via setFilters, leaving rows with the wrong join-cell content after a drop. Passing an empty
@@ -344,7 +359,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
         onValueChange={(value) => {
           if (value === null) return;
           const nextColumn = columns.find((c) => c.id === value);
-          const nextOperators = operatorsForColumnType(nextColumn?.type);
+          const nextOperators = operatorsFor(nextColumn);
           const nextOperator = nextOperators.includes(filter.operator) ? filter.operator : nextOperators[0];
           onUpdate(filter.filterId, { columnId: value, operator: nextOperator, value: "" });
         }}

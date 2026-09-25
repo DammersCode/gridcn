@@ -5,7 +5,8 @@ import { isDev } from "@/registry/default/blocks/data-grid/data-grid";
 import { clampPage, pageCount, pageRange } from "./pagination-math";
 
 /** Default page-size choices offered by `<DataGridPaginationBar />`'s select, and the initial `pageSize` when none is given. */
-const DEFAULT_PAGE_SIZES = [10, 25, 50, 100] as const;
+/** Page sizes the footer select offers when `pageSizeOptions` is not given. */
+export const DEFAULT_PAGE_SIZES = [10, 25, 50, 100] as const;
 
 /** Controls shared by client and server mode — what `<DataGridPaginationBar {...pager.controls} />` spreads. */
 export type DataGridPaginationControls = {

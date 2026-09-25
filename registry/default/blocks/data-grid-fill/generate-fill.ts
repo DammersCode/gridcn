@@ -8,6 +8,12 @@ export type FillDirection = "up" | "down" | "left" | "right";
 export type GenerateFillOptions = {
   /** Modifier held (Excel's Ctrl-drag) — forces modulo tiling even when a series is detected. */
   forceCopy?: boolean;
+  /**
+   * Series detector replacing the built-in `detectSeries` (arithmetic, zero-padded,
+   * prefix+number). Called per source row/column along the fill axis; `null` falls back to
+   * tiling.
+   */
+  detect?: (values: readonly string[]) => SeriesDescriptor | null;
 };
 
 function directionAxis(direction: FillDirection): "vertical" | "horizontal" {
@@ -56,14 +62,15 @@ export function generateFill(
   const srcW = source[0]?.length ?? 0;
   const axis = directionAxis(direction);
   const forceCopy = opts.forceCopy === true;
+  const detect = opts.detect ?? detectSeries;
 
   // source is rectangular (srcH x srcW) by contract, so row/col indices below are always in-bounds
   const series: (SeriesDescriptor | null)[] =
     axis === "vertical"
       ? Array.from({ length: srcW }, (_, col) =>
-          forceCopy ? null : detectSeries(Array.from({ length: srcH }, (_, row) => source[row]![col]!))
+          forceCopy ? null : detect(Array.from({ length: srcH }, (_, row) => source[row]![col]!))
         )
-      : Array.from({ length: srcH }, (_, row) => (forceCopy ? null : detectSeries(source[row]!)));
+      : Array.from({ length: srcH }, (_, row) => (forceCopy ? null : detect(source[row]!)));
 
   const result: string[][] = [];
   for (let row = 0; row < target.height; row++) {

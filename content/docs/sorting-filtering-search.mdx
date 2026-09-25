@@ -48,6 +48,26 @@ to change it.
 `allColumns` to include hidden columns. A filter on a hidden column keeps applying. Without
 `allColumns`, the menu shows that row as a raw column id and logs a dev-time warning.
 
+Two column-level fields replace the built-in behavior. `filterMatch(value, filter)` is a
+per-column predicate over the cell's RAW value — not its stringified form — that decides whether
+the row passes; it replaces the built-in matcher for that column, and a thrown predicate fails the
+row. `filterOperators` replaces the operator list the filter menu offers for that column — for
+example, the comparison operators for a consumer-registered numeric cell type whose `type` key is
+not `number` or `date`:
+
+```tsx
+const columns = defineColumns<Invoice>()([
+  {
+    id: "total",
+    header: "Total",
+    accessorKey: "total",
+    type: "currency",
+    filterOperators: ["contains", "gt", "gte", "lt", "lte", "isBetween"],
+    filterMatch: (value, filter) => typeof value === "number" && value > 100,
+  },
+]);
+```
+
 `DataGridFilterMenu`, along with the search input and columns menu below, comes from the
 [toolbar add-on](/docs/addons/toolbar), which owns the install, wiring, toolbar order,
 and the filter menu's keyboard & accessibility table.

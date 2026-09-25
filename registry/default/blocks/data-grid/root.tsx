@@ -42,7 +42,7 @@ import { GRID_LAYER } from "./layers";
 import { DataGridLoadingSkeleton, DataGridLoadingBar } from "./rows/loading-skeleton";
 import { isDev } from "./is-dev";
 
-/** The sticky header track height (px); density/rowHeight only affect data rows, never the header. */
+/** Default sticky header track height (px); density/rowHeight only affect data rows, never the header. */
 const HEADER_HEIGHT = 36;
 
 /** Props for {@link DataGridRoot}. `TData` (default `unknown`) types the callback props below — annotate explicitly (e.g. `DataGridRoot<Person>`), there's no `data` prop here to infer it from. */
@@ -52,6 +52,10 @@ export type DataGridRootProps<TData = unknown> = {
   rowHeight?: number;
   /** Row-height preset: compact 28 / default 36 / comfortable 44. Ignored when `rowHeight` is set. */
   density?: DensityMode;
+  /** Sticky header track height (px); `density` and `rowHeight` affect data rows only. Default 36. */
+  headerHeight?: number;
+  /** Extra unpinned columns rendered beyond the visible viewport on each side. Default 1. */
+  columnOverscan?: number;
   /** Merged over `DEFAULT_KEYMAP`; per-action bindings here take precedence. */
   keymap?: Keymap;
   /**
@@ -124,6 +128,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     className,
     rowHeight: rowHeightProp,
     density,
+    headerHeight: headerHeightProp,
+    columnOverscan,
     keymap,
     direction: directionProp,
     readOnly,
@@ -140,6 +146,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     children,
   } = props;
   const rowHeight = resolveRowHeight(density, rowHeightProp);
+  const headerHeight = headerHeightProp ?? HEADER_HEIGHT;
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   // Roving-tabindex bootstrap (see the root's onFocus below) must only fire for a genuine
@@ -175,7 +182,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // starts here" computation (row window, scroll-into-view, canvas transform) uses this, not
   // HEADER_HEIGHT alone, so the pinned-top band is treated as part of the fixed chrome above the
    // scrollable data rows.
-  const effectiveHeaderHeight = HEADER_HEIGHT + pinnedTopHeight;
+  const effectiveHeaderHeight = headerHeight + pinnedTopHeight;
   // column-only primitive subscription: the root re-renders when the active COLUMN changes
   // (force-render-active-column below), never on row-only moves — vertical arrows stay cheap.
   const activeColumn = useDataGridActiveColumn();
@@ -305,6 +312,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     pins,
     markerWidth: layout.markerWidth,
     contentWidth: totalWidth,
+    overscan: columnOverscan,
   });
   const columnIndices = useMemo(() => {
     const indices = columnWindowIndices;
@@ -388,7 +396,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       windowedColumns,
       layout,
       rowHeight,
-      headerHeight: HEADER_HEIGHT,
+      headerHeight,
       pinnedTopHeight,
       pinnedBottomHeight,
       pinnedTopCount: pinnedTopRows.length,
@@ -415,6 +423,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       windowedColumns,
       layout,
       rowHeight,
+      headerHeight,
       pinnedTopHeight,
       pinnedBottomHeight,
       pinnedTopRows.length,
@@ -484,7 +493,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 layout,
                 rowHeight,
                 template,
-                headerHeight: HEADER_HEIGHT,
+                headerHeight,
                 ariaRowIndexBase: 2,
               })}
             {pinnedBottomRows.length > 0 &&
@@ -495,7 +504,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 layout,
                 rowHeight,
                 template,
-                headerHeight: HEADER_HEIGHT,
+                headerHeight,
                 ariaRowIndexBase: 2 + pinnedTopRows.length + rowCount,
               })}
             {/* the empty state never shows while loading — a zero-row loading grid renders the skeleton below instead */}

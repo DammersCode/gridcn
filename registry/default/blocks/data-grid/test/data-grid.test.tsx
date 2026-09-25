@@ -124,6 +124,22 @@ describe("DataGrid row placement", () => {
   });
 });
 
+describe("DataGrid headerHeight", () => {
+  it("defaults the sticky header track to 36px", () => {
+    render(<DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} />);
+    const headerLayer = document.querySelector(gridAttrSelector("headerLayer")) as HTMLElement;
+    expect(headerLayer.style.gridAutoRows).toBe("36px");
+  });
+
+  it("applies a custom headerHeight to the header track and to the content extent math", () => {
+    render(<DataGrid data={makeRows(10000)} columns={columns} getRowId={(r) => r.id} headerHeight={48} />);
+    const headerLayer = document.querySelector(gridAttrSelector("headerLayer")) as HTMLElement;
+    expect(headerLayer.style.gridAutoRows).toBe("48px");
+    const content = (screen.getByRole("grid").firstElementChild as HTMLElement);
+    expect(content.style.height).toBe("360048px"); // 48 header + 10000*36 (rowHeight default)
+  });
+});
+
 describe("DataGrid pinned columns", () => {
   const pinnedColumns: readonly ColumnDef<Row, unknown>[] = [
     { id: "name", header: "Name", accessorKey: "name", pin: "left" },

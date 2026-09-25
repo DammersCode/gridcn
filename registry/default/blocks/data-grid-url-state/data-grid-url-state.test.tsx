@@ -9,7 +9,7 @@ import {
   useDataGridSearchText,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { DataGridUrlState } from "./data-grid-url-state";
+import { DataGridUrlState, useDataGridUrlState, type UseDataGridUrlStateResult } from "./data-grid-url-state";
 
 afterEach(cleanup);
 
@@ -41,13 +41,29 @@ function ActionsProbe(props: { onActions: (actions: ReturnType<typeof useDataGri
   return null;
 }
 
-function renderGrid(options: { searchParams?: string; prefix?: string; onUrlUpdate?: (event: UrlUpdateEvent) => void }) {
+/** Calls the hook directly so the test can reach its result (the component discards it). */
+function UrlStateProbe(props: { prefix?: string; onResult: (result: UseDataGridUrlStateResult) => void }) {
+  const result = useDataGridUrlState({ prefix: props.prefix });
+  props.onResult(result);
+  return null;
+}
+
+function renderGrid(options: {
+  searchParams?: string;
+  prefix?: string;
+  onUrlUpdate?: (event: UrlUpdateEvent) => void;
+  exposeUrlState?: (result: UseDataGridUrlStateResult) => void;
+}) {
   let latestState: { sort: unknown; filter: unknown; search: string } | undefined;
   let actions: ReturnType<typeof useDataGridActions> | undefined;
   const utils = render(
     <NuqsTestingAdapter searchParams={options.searchParams} onUrlUpdate={options.onUrlUpdate}>
       <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
-        <DataGridUrlState prefix={options.prefix} />
+        {options.exposeUrlState ? (
+          <UrlStateProbe prefix={options.prefix} onResult={options.exposeUrlState} />
+        ) : (
+          <DataGridUrlState prefix={options.prefix} />
+        )}
         <StateProbe onState={(s) => (latestState = s)} />
         <ActionsProbe onActions={(a) => (actions = a)} />
       </DataGridProvider>
@@ -163,5 +179,55 @@ describe("DataGridUrlState state -> URL write", () => {
       expect(last?.searchParams.get("orders_sort")).toBe("name:asc");
       expect(last?.searchParams.get("sort")).toBeNull();
     });
+  });
+});
+
+describe("DataGridUrlState applyFromUrl (URL→store after mount)", () => {
+  it("re-applies externally changed URL params to the store", async () => {
+    let urlState: UseDataGridUrlStateResult | undefined;
+    const probe: { sort: unknown; filter: unknown; search: string }[] = [];
+    const tree = (searchParams: string) => (
+      // hasMemory: the testing adapter only syncs a new searchParams prop into its state with it
+      <NuqsTestingAdapter searchParams={searchParams} hasMemory>
+        <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
+          <UrlStateProbe onResult={(r) => (urlState = r)} />
+          <StateProbe onState={(s) => probe.push(s)} />
+        </DataGridProvider>
+      </NuqsTestingAdapter>
+    );
+    const utils = render(tree("?sort=name%3Aasc"));
+    const latest = () => probe.at(-1)!;
+
+    // mount-apply: the deep-linked sort is in the store
+    await act(async () => {});
+    expect(latest().sort).toEqual([{ columnId: "name", direction: "asc" }]);
+
+    // let nuqs's throttle queue flush the mount write so no stale entry stomps the external change below
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 700));
+    });
+
+    // an external URL change (back/forward, a framework setSearchParams) arrives as new params —
+    // after mount the store does NOT re-read the URL on its own
+    await act(async () => {
+      utils.rerender(tree("?filter=age%3Agt%3A30"));
+      await new Promise((r) => setTimeout(r, 700));
+    });
+    expect(latest().filter).toEqual([]);
+
+    await act(async () => {
+      urlState!.applyFromUrl();
+    });
+    expect(latest().filter).toEqual([{ filterId: expect.any(String), columnId: "age", operator: "gt", value: "30" }]);
+    // params absent from the new URL are not applied (and do not clear the store state either)
+    expect(latest().sort).toEqual([{ columnId: "name", direction: "asc" }]);
+  });
+
+  it("does not re-apply on its own — only an explicit call re-reads the URL", async () => {
+    let urlState: UseDataGridUrlStateResult | undefined;
+    const { getState } = renderGrid({ searchParams: "?sort=name%3Aasc", exposeUrlState: (r) => (urlState = r) });
+    expect(typeof urlState!.applyFromUrl).toBe("function");
+    // the mount-apply is the only re-read until called: the store keeps its applied state
+    expect(getState().sort).toEqual([{ columnId: "name", direction: "asc" }]);
   });
 });

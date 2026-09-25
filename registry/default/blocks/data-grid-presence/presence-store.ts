@@ -107,6 +107,10 @@ const EMPTY_HIGHLIGHTS: readonly PresenceHighlightEntry[] = [];
 export type PresenceStoreState = {
   highlights: readonly PresenceHighlightEntry[];
   setPresenceHighlights(highlights: readonly PresenceHighlightEntry[]): void;
+  /** Removes the entry with this `id`; no-op (and the same list identity) when no entry matches. */
+  removePresenceHighlight(id: string): void;
+  /** Removes every entry — a peer disconnect or session end. */
+  clearPresenceHighlights(): void;
 };
 
 export type PresenceStoreApi = StoreApi<PresenceStoreState>;
@@ -164,6 +168,12 @@ export function createPresenceStore(): PresenceStoreApi {
         cleaned.push(entry);
       }
       set({ highlights: cleaned });
+    },
+    removePresenceHighlight(id) {
+      set((s) => (s.highlights.some((h) => h.id === id) ? { highlights: s.highlights.filter((h) => h.id !== id) } : s));
+    },
+    clearPresenceHighlights() {
+      set({ highlights: EMPTY_HIGHLIGHTS });
     },
   }));
 }

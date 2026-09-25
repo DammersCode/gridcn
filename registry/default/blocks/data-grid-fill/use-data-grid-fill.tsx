@@ -8,7 +8,7 @@ import { FillHandleTracker as FillHandleTrackerImpl } from "./fill-tracker";
 import type { FillArgs, UseFillHandleOptions } from "./use-fill-handle";
 
 /** Options for {@link useDataGridFill} — the parts of `useFillHandle`'s options that don't need `scrollRef`/`layout` (only available inside `DataGridRoot`'s own subtree, see fill-tracker.tsx). */
-export type UseDataGridFillOptions = Pick<UseFillHandleOptions, "disabled" | "onFill">;
+export type UseDataGridFillOptions = Pick<UseFillHandleOptions, "disabled" | "onFill" | "detectSeries">;
 
 /** Return value of {@link useDataGridFill}. */
 export type UseDataGridFillResult = {
@@ -61,8 +61,8 @@ export function useDataGridFill(options: UseDataGridFillOptions): UseDataGridFil
   // a fresh component type per render is a bug (React remounts on type-reference change).
   const trackerComponent = useMemo<() => ReactNode>(() => {
     return function BoundFillHandleTracker() {
-      const { disabled, onFill } = optionsRef.current;
-      return <FillHandleTrackerImpl fillStore={fillStore} disabled={disabled} onFill={onFill} />;
+      const { disabled, onFill, detectSeries } = optionsRef.current;
+      return <FillHandleTrackerImpl fillStore={fillStore} disabled={disabled} onFill={onFill} detectSeries={detectSeries} />;
     };
   }, [fillStore]);
 

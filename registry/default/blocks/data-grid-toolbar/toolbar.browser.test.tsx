@@ -432,11 +432,15 @@ const richColumns = defineColumns<RichRow>()([
   },
 ] as const);
 
-function renderRichGrid(rows: RichRow[] = makeRichRows()) {
+function renderRichGrid(
+  rows: RichRow[] = makeRichRows(),
+  filterMenuProps: React.ComponentProps<typeof DataGridFilterMenu> = {},
+  cols: readonly ColumnDef<RichRow, unknown>[] = richColumns,
+) {
   return render(
-    <DataGridProvider data={rows} columns={richColumns} getRowId={(r) => r.id}>
+    <DataGridProvider data={rows} columns={cols} getRowId={(r) => r.id}>
       <DataGridToolbar>
-        <DataGridFilterMenu />
+        <DataGridFilterMenu {...filterMenuProps} />
       </DataGridToolbar>
       <DataGridRoot className="h-[300px]">
         <DataGridHeader />
@@ -551,6 +555,40 @@ describe("DataGridFilterMenu typed value inputs", () => {
     await page.getByRole("combobox", { name: "Filter operator" }).click();
     await expect.element(page.getByRole("option", { name: "is between" })).toBeInTheDocument();
     expect(document.querySelector('[role="option"][data-value="isAnyOf"]')).toBeNull();
+  });
+});
+
+describe("DataGridFilterMenu operator list overrides", () => {
+  it("operatorsForColumn replaces the per-column operator list", async () => {
+    renderRichGrid(undefined, {
+      operatorsForColumn: (column) => (column.id === "name" ? ["equals", "gt", "lt"] : undefined),
+    });
+    await openFilterMenu();
+    await switchFilterColumn("Name");
+    await page.getByRole("combobox", { name: "Filter operator" }).click();
+    await expect.element(page.getByRole("option", { name: "greater than" })).toBeInTheDocument();
+    expect(document.querySelector('[role="option"][data-value="isBetween"]')).toBeNull();
+  });
+
+  it("column.filterOperators replaces the built-in list for that column", async () => {
+    const cols = richColumns.map((c) => (c.id === "age" ? { ...c, filterOperators: ["contains"] as const } : c));
+    renderRichGrid(undefined, {}, cols);
+    await openFilterMenu();
+    await switchFilterColumn("Age");
+    await page.getByRole("combobox", { name: "Filter operator" }).click();
+    await expect.element(page.getByRole("option", { name: "contains" })).toBeInTheDocument();
+    expect(document.querySelector('[role="option"][data-value="isBetween"]')).toBeNull();
+  });
+
+  it("a filterOperators column filters with its custom operators", async () => {
+    // age is number-typed; a custom list offering only gt still filters with the built-in gt matcher
+    const cols = richColumns.map((c) => (c.id === "age" ? { ...c, filterOperators: ["gt"] as const } : c));
+    renderRichGrid(undefined, {}, cols);
+    await openFilterMenu();
+    await switchFilterColumn("Age"); // the row's operator defaults to the custom list's first entry
+    await page.getByRole("spinbutton", { name: "Filter value" }).fill("30");
+    // only Bob (40) is > 30
+    await expect.poll(() => document.querySelectorAll('[role="row"]').length - 1).toBe(1);
   });
 });
 

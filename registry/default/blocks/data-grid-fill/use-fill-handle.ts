@@ -21,7 +21,7 @@ import {
   type GridRect,
   type InteractionLayout,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { computeFillTarget, fillDirection, generateFill, rectRelativeTo } from "./fill";
+import { computeFillTarget, fillDirection, generateFill, rectRelativeTo, type SeriesDescriptor } from "./fill";
 import type { FillStoreApi } from "./fill-store";
 
 /** rAF-throttled auto-scroll step (px), matching `useGridInteraction`'s drag auto-scroll. */
@@ -45,6 +45,8 @@ export type UseFillHandleOptions = {
   /** Turns the whole fill feature off (handle hidden, `fillDown`/`fillRight` no-op). Default `false`; a read-only grid disables fill regardless of this option. */
   disabled?: boolean;
   onFill?: (args: FillArgs) => void;
+  /** Replaces the built-in series detector (`detectSeries`) — the add-on's default remains the built-in one. Keep the callback stable across renders (module scope or `useCallback`); it is part of the fill pipeline's dependency list. */
+  detectSeries?: (values: readonly string[]) => SeriesDescriptor | null;
   /** This add-on's local fill-preview store — owns the in-progress drag rect (kept out of core). */
   fillStore: FillStoreApi;
 };
@@ -86,7 +88,7 @@ export function buildFillCandidates(
   s: DataGridStoreState,
   source: GridRect,
   strip: GridRect,
-  opts: { forceCopy?: boolean } = {},
+  opts: { forceCopy?: boolean; detect?: (values: readonly string[]) => SeriesDescriptor | null } = {},
 ): { candidates: BulkCandidate[]; filled: string[][] } {
   const sourceValues = readRectAsText(s, source);
   const direction = fillDirection(source, strip);
@@ -138,7 +140,7 @@ export function buildFillWrites(
   s: DataGridStoreState,
   source: GridRect,
   strip: GridRect,
-  opts: { forceCopy?: boolean } = {},
+  opts: { forceCopy?: boolean; detect?: (values: readonly string[]) => SeriesDescriptor | null } = {},
 ): { writes: BulkWrite[] | Promise<BulkWrite[]>; filled: string[][] } {
   const { candidates, filled } = buildFillCandidates(s, source, strip, opts);
   return { writes: resolveBulkWrites(candidates), filled };
@@ -164,7 +166,7 @@ export type FillHandleHandlers = {
  * series inference.
  */
 export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers {
-  const { scrollRef, layout, onFill, fillStore } = options;
+  const { scrollRef, layout, onFill, detectSeries, fillStore } = options;
   const disabled = options.disabled === true;
   const actions = useDataGridActions();
   const storeApi = useDataGridStoreApi();
@@ -228,7 +230,7 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
   const runFill = useCallback(
     (source: GridRect, strip: GridRect, opts: { forceCopy?: boolean } = {}) => {
       const s = storeApi.getState();
-      const { candidates, filled } = buildFillCandidates(s, source, strip, opts);
+      const { candidates, filled } = buildFillCandidates(s, source, strip, { ...opts, detect: detectSeries });
 
       let prevented = false;
       onFill?.({ source, target: strip, values: filled, preventDefault: () => (prevented = true) });
@@ -257,7 +259,7 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
       actions.selectCell({ col: combined.x, row: combined.y });
       actions.extendTo({ col: combined.x + combined.width - 1, row: combined.y + combined.height - 1 });
     },
-    [actions, guard, onFill, storeApi],
+    [actions, guard, onFill, detectSeries, storeApi],
   );
 
   /** Releases pointer capture and clears all drag refs/listeners/rAF loop; returns the drag that was active, if any. */

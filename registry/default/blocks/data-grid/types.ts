@@ -224,10 +224,10 @@ export type CellClickCtx<TData, TValue> = {
 };
 
 /**
- * Fired on a plain click on any non-skeleton, non-pinned-row cell — attached to the cell's own
- * existing DOM click handler (no new subscription; see events-state.mdx). Fires alongside
- * whatever the click already does (select the cell, toggle a checkbox) — it's a pure
- * notification, never a veto point (contrast `onFillPattern`'s `preventDefault()`).
+  * Fired on a plain click on any non-skeleton, non-pinned-row cell — attached to the cell's own
+  * existing DOM click handler (no new subscription; see events-state.mdx). Fires alongside
+  * whatever the click already does (select the cell, toggle a checkbox) — it's a pure
+  * notification, never a veto point (contrast the `data-grid-fill` add-on's `onFill` veto).
  */
 export type OnCellClick<TData> = (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
 
@@ -405,6 +405,19 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   sortable?: boolean;
   /** Excludes the column from the filter menu's column picker. Existing filter specs on it keep applying. Default true. */
   filterable?: boolean;
+  /**
+   * Per-column filter predicate that REPLACES the built-in text matcher (`matchesFilter`/
+   * `createFilterMatcher`) for this column: it receives the cell's RAW value — not
+   * `String(value)` — and the spec, and returns whether the row passes. The built-in matcher runs
+   * when this is absent. A thrown result fails the row for that filter.
+   */
+  filterMatch?: (value: unknown, filter: FilterSpec) => boolean;
+  /**
+   * The operator list the filter menu offers for this column, replacing the
+   * `operatorsForColumnType` default derived from its `type` — e.g. numeric comparison operators
+   * for a consumer-registered numeric cell type (`type: "currency"`).
+   */
+  filterOperators?: readonly FilterOperator[];
   /**
    * Sort comparator over the whole data row (not the cell value), consulted before the column's
    * cell-type `compare` and the default text compare. A non-zero result orders the pair; a zero,

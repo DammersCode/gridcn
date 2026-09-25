@@ -290,6 +290,39 @@ describe("generateFill", () => {
     const target: GridRect = { x: 0, y: 0, width: 0, height: 0 };
     expect(generateFill([], target, "down")).toEqual([]);
   });
+
+  it("uses a custom detect over the built-in one", () => {
+    // the built-in detectSeries does not detect dates; a custom detector (e.g. ISO dates) can.
+    // the year rollover keeps the built-in prefix+number detector honest (prefixes differ, day
+    // delta is not arithmetic), so the no-detect assertion below really is a tiling fallback.
+    const detect = (values: readonly string[]) => {
+      if (values.length < 2) return null;
+      const d0 = Date.parse(values[0]!);
+      const d1 = Date.parse(values[1]!);
+      if (Number.isNaN(d0) || Number.isNaN(d1)) return null;
+      const step = d1 - d0;
+      if (values.some((v) => Number.isNaN(Date.parse(v)))) return null;
+      for (let i = 2; i < values.length; i++) {
+        if (Date.parse(values[i]!) - Date.parse(values[i - 1]!) !== step) return null;
+      }
+      return {
+        extrapolate: (index: number) =>
+          new Date(d0 + step * index).toISOString().slice(0, 10),
+      };
+    };
+    const source = [["2026-12-31"], ["2027-01-01"]];
+    const target: GridRect = { x: 0, y: 2, width: 1, height: 2 };
+    expect(generateFill(source, target, "down", { detect })).toEqual([["2027-01-02"], ["2027-01-03"]]);
+    // without the custom detector the same input tiles (built-in finds no series)
+    expect(generateFill(source, target, "down")).toEqual([["2026-12-31"], ["2027-01-01"]]);
+  });
+
+  it("forceCopy tiles even when a custom detect would extrapolate", () => {
+    const detect = () => ({ extrapolate: (i: number) => `x${i}` });
+    const source = [["a"], ["b"]];
+    const target: GridRect = { x: 0, y: 2, width: 1, height: 2 };
+    expect(generateFill(source, target, "down", { detect, forceCopy: true })).toEqual([["a"], ["b"]]);
+  });
 });
 
 describe("fillDirection", () => {

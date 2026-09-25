@@ -15,6 +15,7 @@ import {
   useDataGridFilterState,
   useDataGridIsRowSelected,
   useDataGridJoinOperator,
+  useDataGridColumnWidth,
   useDataGridRow,
   useDataGridRowCellState,
   useDataGridRowIdToViewRow,
@@ -2031,6 +2032,37 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
       expect(onColumnResizing).toHaveBeenCalledTimes(2);
       expect(onColumnResizing).toHaveBeenLastCalledWith("name", 260);
     });
+
+    it("clamps the written width to the column's [max(32, minWidth), maxWidth] bounds, like the resize gesture", () => {
+      const cols: readonly ColumnDef<Row, unknown>[] = [
+        { id: "name", header: "Name", accessorKey: "name", minWidth: 80, maxWidth: 200 },
+        { id: "age", header: "Age", accessorKey: "age" },
+        { id: "id", header: "ID", accessorKey: "id" },
+      ];
+      const onColumnResizing = vi.fn();
+      const wrapper = makeConfigWrapper({ columns: cols, onColumnResizing });
+      const { result } = renderHook(
+        () => ({
+          actions: useDataGridActions(),
+          nameWidth: useDataGridColumnWidth("name"),
+          ageWidth: useDataGridColumnWidth("age"),
+        }),
+        { wrapper },
+      );
+
+      act(() => result.current.actions.setColumnWidth("name", 10)); // below minWidth
+      expect(result.current.nameWidth).toBe(80);
+      expect(onColumnResizing).toHaveBeenLastCalledWith("name", 80);
+
+      act(() => result.current.actions.setColumnWidth("name", 500)); // above maxWidth
+      expect(result.current.nameWidth).toBe(200);
+
+      act(() => result.current.actions.setColumnWidth("name", 120)); // in range, passes through
+      expect(result.current.nameWidth).toBe(120);
+
+      act(() => result.current.actions.setColumnWidth("age", 10)); // no minWidth: the 32px floor holds
+      expect(result.current.ageWidth).toBe(32);
+    });
   });
 
   describe("commitColumnWidth", () => {
@@ -2057,6 +2089,61 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
 
       act(() => result.current.actions.commitColumnWidth("name", 240));
       expect(onColumnResizing).not.toHaveBeenCalled();
+    });
+
+    it("clamps the committed width, and the snapshot carries the clamped value", () => {
+      const cols: readonly ColumnDef<Row, unknown>[] = [
+        { id: "name", header: "Name", accessorKey: "name", minWidth: 80, maxWidth: 200 },
+        { id: "age", header: "Age", accessorKey: "age" },
+        { id: "id", header: "ID", accessorKey: "id" },
+      ];
+      const onColumnLayoutChange = vi.fn();
+      const wrapper = makeConfigWrapper({ columns: cols, onColumnLayoutChange });
+      const { result } = renderHook(() => ({ actions: useDataGridActions() }), { wrapper });
+
+      act(() => result.current.actions.commitColumnWidth("name", 10));
+
+      expect(onColumnLayoutChange).toHaveBeenCalledTimes(1);
+      expect(onColumnLayoutChange).toHaveBeenLastCalledWith({
+        widths: { name: 80 },
+        order: ["name", "age", "id"],
+        pins: {},
+        hidden: [],
+      });
+    });
+  });
+
+  describe("resetColumnWidth", () => {
+    it("drops the width override and fires onColumnLayoutChange once, without it", () => {
+      const onColumnLayoutChange = vi.fn();
+      const wrapper = makeConfigWrapper({ columns: threeColumns, onColumnLayoutChange });
+      const { result } = renderHook(
+        () => ({ actions: useDataGridActions(), nameWidth: useDataGridColumnWidth("name") }),
+        { wrapper },
+      );
+
+      act(() => result.current.actions.commitColumnWidth("name", 240));
+      expect(result.current.nameWidth).toBe(240);
+
+      act(() => result.current.actions.resetColumnWidth("name"));
+      expect(result.current.nameWidth).toBeUndefined();
+      expect(onColumnLayoutChange).toHaveBeenCalledTimes(2);
+      expect(onColumnLayoutChange).toHaveBeenLastCalledWith({
+        widths: {},
+        order: ["name", "age", "id"],
+        pins: {},
+        hidden: [],
+      });
+    });
+
+    it("is a no-op (no callback) when the column has no override", () => {
+      const onColumnLayoutChange = vi.fn();
+      const wrapper = makeConfigWrapper({ columns: threeColumns, onColumnLayoutChange });
+      const { result } = renderHook(() => ({ actions: useDataGridActions() }), { wrapper });
+
+      act(() => result.current.actions.resetColumnWidth("name"));
+
+      expect(onColumnLayoutChange).not.toHaveBeenCalled();
     });
   });
 

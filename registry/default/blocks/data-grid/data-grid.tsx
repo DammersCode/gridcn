@@ -383,6 +383,10 @@ export type DataGridProps<TData> = {
   onSelectionCleared?: () => void;
   /** Row-height preset: compact 28 / default 36 / comfortable 44. Ignored when `rowHeight` is set. */
   density?: DensityMode;
+  /** Sticky header track height (px); `density` and `rowHeight` affect data rows only. Default 36. */
+  headerHeight?: number;
+  /** Extra unpinned columns rendered beyond the visible viewport on each side. Default 1. */
+  columnOverscan?: number;
   /** Row class hook, merged via `cn()` after the built-in row classes. Pass a stable identity. */
   getRowClassName?: GetRowClassName<TData>;
   /** Cell class hook, merged via `cn()` after the built-in cell classes. Pass a stable identity. */
@@ -457,6 +461,8 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
     onSelectionChange,
     onSelectionCleared,
     density,
+    headerHeight,
+    columnOverscan,
     getRowClassName,
     getCellClassName,
     onCellClick,
@@ -523,6 +529,8 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
         className={className}
         rowHeight={rowHeight}
         density={density}
+        headerHeight={headerHeight}
+        columnOverscan={columnOverscan}
         keymap={keymap}
         direction={direction}
         readOnly={readOnly}

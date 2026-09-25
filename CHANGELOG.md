@@ -83,6 +83,54 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Typed streaming patches:** `CellPatch` and `RowPatch` accept an optional type argument — the
   columns' `id` union — so a typo'd column id fails to compile instead of skipping silently at
   runtime.
+- **Context menu item slots:** `DataGridContextMenuProps` accepts `renderCellMenuItems` and
+  `renderHeaderMenuItems` render props — receive the built-in items array plus the context
+  (`row`, `column`) and return the list to render, so consumers can add, remove, reorder, or
+  conditionally gate items without replacing the whole menu.
+- **Column layout reset and clamped width writes:** the store gains `resetColumnWidth(id)` —
+  drops the width override, restores the column to flex distribution, and fires
+  `onColumnLayoutChange` once. `setColumnWidth`/`commitColumnWidth` now clamp to the column's
+  `minWidth`/`maxWidth` (and the 32px floor) at write time, so a persisted width is always a
+  renderable one.
+- **Layout tuning props:** `DataGridProvider` accepts `headerHeight` (default `36`) and
+  `columnOverscan` (column-window overscan, default `1`). The 150px default column width and the
+  32px resize floor are now documented.
+- **Global shortcuts beyond undo/redo:** `GlobalShortcutsConfig` accepts `actions` (a `GridAction`
+  list, default `["undo", "redo"]`); each action runs through the grid's own keymap-dispatch path,
+  so it behaves exactly like its in-grid binding.
+- **Typed aggregate reducers:** `useDataGridAggregate` and its `AggregateReducer`/`AggregateSpecs`
+  types accept a `TData` type parameter, so a typed reducer no longer needs a cast. An aggregate
+  spec key that matches no column now logs a development warning instead of silently reducing
+  nothing.
+- **Presence entry lifecycle:** `useDataGridPresence` gains `removePresenceHighlight(id)` (removes
+  one entry; no-op when nothing matches) and `clearPresenceHighlights()` (peer disconnect / room
+  empty) beside the snapshot `setPresenceHighlights`.
+- **Presence rect budget is configurable:** `useDataGridPresence` accepts `maxRects` (default
+  `MAX_RESOLVED_RECTS`, now exported from the barrel) and `onExcessRects(entry, kept, total)`,
+  fired once per entry when a range's fragments exceed the budget (the development warning still
+  fires in dev).
+- **Re-applying URL state:** `useDataGridUrlState` now returns `{ applyFromUrl }` (the
+  `UseDataGridUrlStateResult` type is exported). The mount apply still runs once; call
+  `applyFromUrl()` when the URL changed outside the grid's own writes — back/forward, a framework
+  `setSearchParams`, or a query-only route change.
+- **URL pagination gains `total` and resolved `pageSizeOptions`:** passing `total` clamps an
+  out-of-range deep-linked `page` to the last page on mount and writes the clamped value back to
+  the URL. The hook's result carries the resolved `pageSizeOptions` (so the bar's page-size select
+  and the URL allow-list stay the same list), and the pagination barrel exports
+  `DEFAULT_PAGE_SIZES`.
+- **Custom fill series detection:** `useDataGridFill` accepts `detectSeries` (a
+  `SeriesDescriptor`-returning detector replacing the built-in one; `null` falls back to
+  tiling), and `generateFill` accepts the same detector through `GenerateFillOptions.detect`.
+  Date series remain undetected by the built-in detector — that is what the option is for.
+- **Raw-value filter predicates and per-column operator lists:** `ColumnDef` gains
+  `filterMatch(value, filter)` — a per-column predicate over the cell's RAW value (not its
+  stringified form) that replaces the built-in matcher for that column — and `filterOperators`
+  (the operator list the filter menu offers for the column). `DataGridFilterMenu` accepts
+  `operatorsForColumn(column)`; resolution order is that prop, then the column's
+  `filterOperators`, then the built-in default for the cell type.
+- **Compile-time URL operator drift guard:** a type test pins the URL-state add-on's filter
+  operator set against the core `FilterOperator` union — a new core operator fails the type gate
+  instead of silently dropping out of URL round-trips.
 
 ### Changed
 
@@ -188,11 +236,27 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   server upsert). The dialog stays pending until the promise settles; a rejection shows an error
   and the import can be retried. `parseImportFile` accepts an optional `AbortSignal` — the file
   read aborts when a newer file is chosen or the dialog resets.
+- **Header-menu autosize commits:** the column menu's autosize now writes through
+  `commitColumnWidth`, so it fires `onColumnLayoutChange` like the core double-click autosize,
+  and the item is gated on the same `resizable`/resize-enable flags as the gesture.
+- **Global shortcut dispatch:** the window layer now dispatches every enabled action through the
+  grid's own keymap path (`dispatchGridAction`) instead of a hardcoded undo/redo branch — same
+  guards, same scrolling, and `fillDown`/`fillRight` work globally when enabled.
+- **Docs consistency:** the custom-cell-types page states the `cellTypes` registry's type
+  erasure (per-key safety comes from `defineColumns` + `GridCellTypes` augmentation) and what a
+  plain `ColumnDef` does or does not cross-check; the columns and events-state pages agree on
+  what fires `onColumnLayoutChange` (drag release, double-click autosize, and menu autosize); the
+  fill page documents `onFill.values` as the computed target-strip pattern (not a copy of the
+  source range) and the `detectSeries` option; the sorting/filtering page documents
+  `filterMatch`/`filterOperators`.
 
 ### Fixed
 
 - **Stale sheet re-parse:** a slow sheet re-parse can no longer overwrite the preview of a
   newly chosen file (generation guard on file load and reset).
+- **Global shortcut ownership on config change:** flipping the `undo`/`redo` flags (or passing a
+  new inline config) no longer drops the grid's multi-grid focus ownership — the grid id is now
+  minted once per mount, so the global binding stays live with focus already inside the grid.
 
 ### Added
 

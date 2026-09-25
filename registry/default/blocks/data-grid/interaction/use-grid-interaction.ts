@@ -10,7 +10,8 @@ import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from "react";
-import type { CellCoord, GridSelection } from "../types";
+import type { StoreApi } from "zustand/vanilla";
+import type { CellCoord, GridAction } from "../types";
 import { isMacPlatform, isPrintableKey, matchKeymap, type KeymapEvent } from "../keyboard";
 import type { Keymap } from "../types";
 import { getCellValue } from "../columns/column-helpers";
@@ -18,6 +19,7 @@ import {
   getFocusCell,
   useDataGridActions,
   useDataGridStoreApi,
+  type DataGridActions,
   type DataGridStoreState,
 } from "../store";
 import {
@@ -31,7 +33,7 @@ import {
   type GridDirection,
 } from "../windowing/direction";
 import { gridAttrSelector } from "../data-attributes";
-import { isSelectionEmpty } from "../selection";
+import { getSelectedViewRows, isSelectionEmpty } from "../selection";
 
 /** Column/row layout the interaction hook needs to translate pointer px <-> view coords and to scroll a cell into view. */
 export type InteractionLayout = {
@@ -201,7 +203,241 @@ function scrollCellIntoView(scrollElement: HTMLElement, coord: CellCoord, layout
   }
 }
 
-/** True when `coord`'s column is the `checkbox` type — those cells have no edit mode; interactions toggle the value directly instead of calling `startEditing` (diceui-editing-spec.md item 6). */
+/**
+ * Executes one already-resolved keymap action against the store — the dispatch shared by the
+ * in-grid keydown handler and the global-shortcut window layer, so a globally registered action
+ * behaves EXACTLY like its in-grid binding (same scrolling, same store-side guards: `insertRowBelow`
+ * without `createRow` no-ops, `fillDown` without the fill add-on no-ops, ...). `preventDefault` is
+ * the caller's event handler, invoked only for the actions that would preventDefault in-grid.
+ * Not part of the public hook surface.
+ */
+export function dispatchGridAction(args: {
+  action: GridAction;
+  actions: DataGridActions;
+  storeApi: StoreApi<DataGridStoreState>;
+  scrollRef: RefObject<HTMLElement | null>;
+  scrollCellIntoView: (coord: CellCoord) => void;
+  /** The grid's resolved data-row height (px) — `pageUp`/`pageDown`'s visible-row math. */
+  rowHeight: number;
+  readOnly?: boolean;
+  /** The printable seed char for `editReplace`, when the trigger was a printable key; undefined otherwise. */
+  triggerKey?: string;
+  preventDefault: () => void;
+  fillDown?: () => void;
+  fillRight?: () => void;
+  cancelFillDrag?: () => void;
+}): void {
+  const { action, actions, storeApi, scrollRef, scrollCellIntoView, rowHeight, readOnly, triggerKey, preventDefault, fillDown, fillRight, cancelFillDrag } = args;
+  const state = storeApi.getState();
+  const rowCount = state.viewIndex.length;
+  const colCount = state.visibleColumns.length;
+
+  const moveAndScroll = (d: { dx: number; dy: number }, opts?: { extend?: boolean; retain?: boolean }) => {
+    actions._moveActiveCell(d, opts);
+    // extend keeps activeCell pinned at the anchor — scroll the growing selection's edge instead.
+    const next = getFocusCell(storeApi.getState());
+    if (next) scrollCellIntoView(next);
+  };
+
+  const jumpAndScroll = (direction: JumpDirection, opts?: { extend?: boolean }) => {
+    const active = state.activeCell ?? { col: 0, row: 0 };
+    const target = jumpToDataBoundary(state, active, direction);
+    if (opts?.extend) actions.extendTo(target);
+    else actions.selectCell(target);
+    scrollCellIntoView(target);
+  };
+
+  switch (action) {
+    case "moveUp":
+    case "moveDown":
+    case "moveLeft":
+    case "moveRight": {
+      preventDefault();
+      moveAndScroll(MOVE_DELTA[action]);
+      break;
+    }
+    case "retainMoveUp":
+    case "retainMoveDown":
+    case "retainMoveLeft":
+    case "retainMoveRight": {
+      preventDefault();
+      moveAndScroll(MOVE_DELTA[action], { retain: true });
+      break;
+    }
+    case "scrollActiveIntoView": {
+      preventDefault();
+      const active = storeApi.getState().activeCell;
+      if (active) scrollCellIntoView(active);
+      break;
+    }
+    // Outside an active edit (the caller guards that), Tab/Shift+Tab behave as plain
+    // right/left navigation (glide-behavior-spec.md §2); only the editor's own
+    // onKeyDown gives them their commit-and-move contract while editing.
+    case "commitRight":
+    case "commitLeft": {
+      preventDefault();
+      moveAndScroll({ dx: action === "commitRight" ? 1 : -1, dy: 0 });
+      break;
+    }
+    case "extendUp":
+    case "extendDown":
+    case "extendLeft":
+    case "extendRight": {
+      preventDefault();
+      moveAndScroll(MOVE_DELTA[action], { extend: true });
+      break;
+    }
+    case "jumpUp":
+    case "jumpDown":
+    case "jumpLeft":
+    case "jumpRight": {
+      preventDefault();
+      jumpAndScroll(JUMP_DIRECTION[action]);
+      break;
+    }
+    case "extendJumpUp":
+    case "extendJumpDown":
+    case "extendJumpLeft":
+    case "extendJumpRight": {
+      preventDefault();
+      jumpAndScroll(JUMP_DIRECTION[action], { extend: true });
+      break;
+    }
+    case "moveRowStart": {
+      preventDefault();
+      const active = state.activeCell ?? { col: 0, row: 0 };
+      const target = { col: 0, row: active.row };
+      actions.selectCell(target);
+      scrollCellIntoView(target);
+      break;
+    }
+    case "moveRowEnd": {
+      preventDefault();
+      const active = state.activeCell ?? { col: 0, row: 0 };
+      const target = { col: Math.max(0, colCount - 1), row: active.row };
+      actions.selectCell(target);
+      scrollCellIntoView(target);
+      break;
+    }
+    case "moveFirstCell": {
+      preventDefault();
+      const target = { col: 0, row: 0 };
+      actions.selectCell(target);
+      scrollCellIntoView(target);
+      break;
+    }
+    case "moveLastCell": {
+      preventDefault();
+      const target = { col: Math.max(0, colCount - 1), row: Math.max(0, rowCount - 1) };
+      actions.selectCell(target);
+      scrollCellIntoView(target);
+      break;
+    }
+    case "extendFirstCell": {
+      preventDefault();
+      actions.extendTo({ col: 0, row: 0 });
+      const focus = getFocusCell(storeApi.getState());
+      if (focus) scrollCellIntoView(focus);
+      break;
+    }
+    case "extendLastCell": {
+      preventDefault();
+      actions.extendTo({ col: Math.max(0, colCount - 1), row: Math.max(0, rowCount - 1) });
+      const focus = getFocusCell(storeApi.getState());
+      if (focus) scrollCellIntoView(focus);
+      break;
+    }
+    case "pageUp":
+    case "pageDown": {
+      preventDefault();
+      const scrollElement = scrollRef.current;
+      const visibleRows = scrollElement ? Math.max(1, Math.floor(scrollElement.clientHeight / rowHeight) - 4) : 10;
+      moveAndScroll({ dx: 0, dy: action === "pageUp" ? -visibleRows : visibleRows });
+      break;
+    }
+    case "selectRow": {
+      preventDefault();
+      const active = state.activeCell;
+      if (active) actions.selectRow(active.row, { additive: false });
+      break;
+    }
+    case "selectColumn": {
+      preventDefault();
+      const active = state.activeCell;
+      if (active) actions.selectColumn(active.col, { additive: false });
+      break;
+    }
+    case "selectAll": {
+      preventDefault();
+      actions.selectAll();
+      break;
+    }
+    case "edit": {
+      preventDefault();
+      if (readOnly || !state.activeCell) break;
+      if (isCheckboxCell(state, state.activeCell)) toggleCheckboxCell(state, actions, state.activeCell);
+      else actions.startEditing(state.activeCell);
+      break;
+    }
+    case "editReplace": {
+      if (readOnly || !state.activeCell) break;
+      preventDefault();
+      if (isCheckboxCell(state, state.activeCell)) break; // checkbox cells have no edit mode; the edit action toggles them, type-to-replace ignores them
+      // printable trigger seeds the typed char (Excel replace mode); a non-printable binding (e.g. F3) starts a plain edit
+      actions.startEditing(state.activeCell, triggerKey);
+      break;
+    }
+    case "cancel": {
+      preventDefault();
+      cancelFillDrag?.();
+      actions.clearSelection();
+      break;
+    }
+    case "deleteContents": {
+      preventDefault();
+      if (!readOnly) actions.deleteSelection();
+      break;
+    }
+    case "fillDown": {
+      preventDefault();
+      if (!readOnly) fillDown?.();
+      break;
+    }
+    case "fillRight": {
+      preventDefault();
+      if (!readOnly) fillRight?.();
+      break;
+    }
+    case "undo": {
+      preventDefault();
+      state.onUndo?.();
+      break;
+    }
+    case "redo": {
+      preventDefault();
+      state.onRedo?.();
+      break;
+    }
+    case "insertRowBelow": {
+      preventDefault();
+      // mirrors cell-menu-content.tsx's canInsertRow guard: without createRow, insertRow is a
+      // dev-warning no-op — skip the call so the shortcut doesn't spam that warning on every press.
+      if (!readOnly && state.createRow && state.activeCell) actions.insertRow(state.activeCell.row, "below");
+      break;
+    }
+    case "duplicateRow": {
+      preventDefault();
+      if (!readOnly && state.duplicateRow) {
+        // the context-menu item this shortcut labels duplicates the WHOLE selection; no
+        // selection, just the active row
+        const selected = getSelectedViewRows(state.selection);
+        if (selected.length > 0) actions.duplicateRows(selected);
+        else if (state.activeCell) actions.duplicateRows([state.activeCell.row]);
+      }
+      break;
+    }
+  }
+}
 function isCheckboxCell(state: DataGridStoreState, coord: CellCoord): boolean {
   return state.visibleColumns[coord.col]?.type === "checkbox";
 }
@@ -218,19 +454,6 @@ function toggleCheckboxCell(state: DataGridStoreState, actions: ReturnType<typeo
   // explicit TData=unknown: row's `undefined`-narrowed type ({} | null) would otherwise drive inference instead of column's own already-unknown TData.
   const value = getCellValue<unknown, typeof column>(row, column);
   actions.commitCellValue(coord, !value);
-}
-
-/** Every view row index covered by `selection` (primary range, range stack, rows channel), deduped ascending — the row set the row-op gestures act on. */
-function selectedViewRows(selection: GridSelection): number[] {
-  const rows = new Set<number>();
-  if (selection.current) {
-    const rects = [selection.current.range, ...selection.current.rangeStack];
-    for (const rect of rects) {
-      for (let row = rect.y; row < rect.y + rect.height; row++) rows.add(row);
-    }
-  }
-  for (const row of selection.rows.toArray()) rows.add(row);
-  return Array.from(rows).sort((a, b) => a - b);
 }
 
 /** Direction for a data-boundary (Ctrl/Cmd+Arrow) jump. */
@@ -530,28 +753,6 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
     [scrollRef],
   );
 
-  const moveAndScroll = useCallback(
-    (d: { dx: number; dy: number }, opts?: { extend?: boolean; retain?: boolean }) => {
-      actions._moveActiveCell(d, opts);
-      // extend keeps activeCell pinned at the anchor — scroll the growing selection's edge instead.
-      const next = getFocusCell(storeApi.getState());
-      if (next) scrollActiveCellIntoView(next);
-    },
-    [actions, scrollActiveCellIntoView, storeApi],
-  );
-
-  const jumpAndScroll = useCallback(
-    (direction: JumpDirection, opts?: { extend?: boolean }) => {
-      const state = storeApi.getState();
-      const active = state.activeCell ?? { col: 0, row: 0 };
-      const target = jumpToDataBoundary(state, active, direction);
-      if (opts?.extend) actions.extendTo(target);
-      else actions.selectCell(target);
-      scrollActiveCellIntoView(target);
-    },
-    [actions, scrollActiveCellIntoView, storeApi],
-  );
-
   const onKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLElement>) => {
       if (event.nativeEvent.isComposing) return;
@@ -591,203 +792,22 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
 
       if (!action) return;
 
-      const rowCount = state.viewIndex.length;
-      const colCount = state.visibleColumns.length;
-
-      switch (action) {
-        case "moveUp":
-        case "moveDown":
-        case "moveLeft":
-        case "moveRight": {
-          event.preventDefault();
-          moveAndScroll(MOVE_DELTA[action]);
-          break;
-        }
-        case "retainMoveUp":
-        case "retainMoveDown":
-        case "retainMoveLeft":
-        case "retainMoveRight": {
-          event.preventDefault();
-          moveAndScroll(MOVE_DELTA[action], { retain: true });
-          break;
-        }
-        case "scrollActiveIntoView": {
-          event.preventDefault();
-          const active = storeApi.getState().activeCell;
-          if (active) scrollActiveCellIntoView(active);
-          break;
-        }
-        // Outside an active edit (guarded above), Tab/Shift+Tab behave as plain
-        // right/left navigation (glide-behavior-spec.md §2); only the editor's own
-        // onKeyDown gives them their commit-and-move contract while editing.
-        case "commitRight":
-        case "commitLeft": {
-          event.preventDefault();
-          moveAndScroll({ dx: action === "commitRight" ? 1 : -1, dy: 0 });
-          break;
-        }
-        case "extendUp":
-        case "extendDown":
-        case "extendLeft":
-        case "extendRight": {
-          event.preventDefault();
-          moveAndScroll(MOVE_DELTA[action], { extend: true });
-          break;
-        }
-        case "jumpUp":
-        case "jumpDown":
-        case "jumpLeft":
-        case "jumpRight": {
-          event.preventDefault();
-          jumpAndScroll(JUMP_DIRECTION[action]);
-          break;
-        }
-        case "extendJumpUp":
-        case "extendJumpDown":
-        case "extendJumpLeft":
-        case "extendJumpRight": {
-          event.preventDefault();
-          jumpAndScroll(JUMP_DIRECTION[action], { extend: true });
-          break;
-        }
-        case "moveRowStart": {
-          event.preventDefault();
-          const active = state.activeCell ?? { col: 0, row: 0 };
-          const target = { col: 0, row: active.row };
-          actions.selectCell(target);
-          scrollActiveCellIntoView(target);
-          break;
-        }
-        case "moveRowEnd": {
-          event.preventDefault();
-          const active = state.activeCell ?? { col: 0, row: 0 };
-          const target = { col: Math.max(0, colCount - 1), row: active.row };
-          actions.selectCell(target);
-          scrollActiveCellIntoView(target);
-          break;
-        }
-        case "moveFirstCell": {
-          event.preventDefault();
-          const target = { col: 0, row: 0 };
-          actions.selectCell(target);
-          scrollActiveCellIntoView(target);
-          break;
-        }
-        case "moveLastCell": {
-          event.preventDefault();
-          const target = { col: Math.max(0, colCount - 1), row: Math.max(0, rowCount - 1) };
-          actions.selectCell(target);
-          scrollActiveCellIntoView(target);
-          break;
-        }
-        case "extendFirstCell": {
-          event.preventDefault();
-          actions.extendTo({ col: 0, row: 0 });
-          const focus = getFocusCell(storeApi.getState());
-          if (focus) scrollActiveCellIntoView(focus);
-          break;
-        }
-        case "extendLastCell": {
-          event.preventDefault();
-          actions.extendTo({ col: Math.max(0, colCount - 1), row: Math.max(0, rowCount - 1) });
-          const focus = getFocusCell(storeApi.getState());
-          if (focus) scrollActiveCellIntoView(focus);
-          break;
-        }
-        case "pageUp":
-        case "pageDown": {
-          event.preventDefault();
-          const scrollElement = scrollRef.current;
-          const visibleRows = scrollElement
-            ? Math.max(1, Math.floor(scrollElement.clientHeight / layoutRef.current.rowHeight) - 4)
-            : 10;
-          moveAndScroll({ dx: 0, dy: action === "pageUp" ? -visibleRows : visibleRows });
-          break;
-        }
-        case "selectRow": {
-          event.preventDefault();
-          const active = state.activeCell;
-          if (active) actions.selectRow(active.row, { additive: false });
-          break;
-        }
-        case "selectColumn": {
-          event.preventDefault();
-          const active = state.activeCell;
-          if (active) actions.selectColumn(active.col, { additive: false });
-          break;
-        }
-        case "selectAll": {
-          event.preventDefault();
-          actions.selectAll();
-          break;
-        }
-        case "edit": {
-          event.preventDefault();
-          if (readOnly || !state.activeCell) break;
-          if (isCheckboxCell(state, state.activeCell)) toggleCheckboxCell(state, actions, state.activeCell);
-          else actions.startEditing(state.activeCell);
-          break;
-        }
-        case "editReplace": {
-          if (readOnly || !state.activeCell) break;
-          event.preventDefault();
-          if (isCheckboxCell(state, state.activeCell)) break; // checkbox cells have no edit mode; the edit action toggles them, type-to-replace ignores them
-          // printable trigger seeds the typed char (Excel replace mode); a non-printable binding (e.g. F3) starts a plain edit
-          actions.startEditing(state.activeCell, isPrintableKey(keymapEvent) ? keymapEvent.key : undefined);
-          break;
-        }
-        case "cancel": {
-          event.preventDefault();
-          cancelFillDrag?.();
-          actions.clearSelection();
-          break;
-        }
-        case "deleteContents": {
-          event.preventDefault();
-          if (!readOnly) actions.deleteSelection();
-          break;
-        }
-        case "fillDown": {
-          event.preventDefault();
-          if (!readOnly) fillDown?.();
-          break;
-        }
-        case "fillRight": {
-          event.preventDefault();
-          if (!readOnly) fillRight?.();
-          break;
-        }
-        case "undo": {
-          event.preventDefault();
-          state.onUndo?.();
-          break;
-        }
-        case "redo": {
-          event.preventDefault();
-          state.onRedo?.();
-          break;
-        }
-        case "insertRowBelow": {
-          event.preventDefault();
-          // mirrors cell-menu-content.tsx's canInsertRow guard: without createRow, insertRow is a
-          // dev-warning no-op — skip the call so the shortcut doesn't spam that warning on every press.
-          if (!readOnly && state.createRow && state.activeCell) actions.insertRow(state.activeCell.row, "below");
-          break;
-        }
-        case "duplicateRow": {
-          event.preventDefault();
-          if (!readOnly && state.duplicateRow) {
-            // the context-menu item this shortcut labels duplicates the WHOLE selection; no
-            // selection, just the active row
-            const selected = selectedViewRows(state.selection);
-            if (selected.length > 0) actions.duplicateRows(selected);
-            else if (state.activeCell) actions.duplicateRows([state.activeCell.row]);
-          }
-          break;
-        }
-      }
+      dispatchGridAction({
+        action,
+        actions,
+        storeApi,
+        scrollRef,
+        scrollCellIntoView: scrollActiveCellIntoView,
+        rowHeight: layoutRef.current.rowHeight,
+        readOnly,
+        triggerKey: isPrintableKey(keymapEvent) ? keymapEvent.key : undefined,
+        preventDefault: () => event.preventDefault(),
+        fillDown,
+        fillRight,
+        cancelFillDrag,
+      });
     },
-    [actions, cancelFillDrag, fillDown, fillRight, jumpAndScroll, keymap, moveAndScroll, readOnly, scrollActiveCellIntoView, scrollRef, storeApi],
+    [actions, cancelFillDrag, fillDown, fillRight, keymap, readOnly, scrollActiveCellIntoView, scrollRef, storeApi],
   );
 
   const onCellPointerDown = useCallback(

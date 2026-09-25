@@ -105,6 +105,8 @@ The cell-surface items, in order:
 The row-operation items act on **every view row covered by the current selection**, falling back
 to the right-clicked row when nothing is selected, so a range selection duplicates or deletes all
 of its rows at once. Every mutating item (everything but Copy) is disabled on a `readOnly` grid.
+The add-on's wrapper accepts `renderCellMenuItems` and `renderHeaderMenuItems` slots that replace
+each surface's item set. See [Context menu: custom menu items](/docs/addons/context-menu#custom-menu-items).
 
 Row markers, the empty space below the last row, and the scrollbar gutter have no menu (and
 suppress the browser's). The header surface gets its own menu, documented on [Columns](/docs/columns).

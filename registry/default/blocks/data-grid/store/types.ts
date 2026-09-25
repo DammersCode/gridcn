@@ -556,10 +556,25 @@ export type DataGridActions = {
   /** Header marker select-all checkbox: sets every view row's membership in the rows channel at once. No-op when `enableRowSelection` is false. */
   setAllRowsSelected(checked: boolean): void;
   clearSelection(): void;
-  /** Live per-frame width write during a resize drag; fires `onColumnResizing` (not `onColumnLayoutChange` — see `commitColumnWidth` for the commit point). */
+  /**
+   * Live per-frame width write during a resize drag; fires `onColumnResizing` (not
+   * `onColumnLayoutChange` — see `commitColumnWidth` for the commit point). The width is clamped
+   * to the column's legal range (`[max(32, minWidth), maxWidth]`, the same bounds the resize
+   * gesture enforces); a callback-observed width is the clamped one.
+   */
   setColumnWidth(id: string, width: number): void;
-  /** Sets the column's width AND fires `onColumnLayoutChange` once — the resize-drag-release/autosize commit point. */
+  /**
+   * Sets the column's width AND fires `onColumnLayoutChange` once — the resize-drag-release/autosize
+   * commit point. The width is clamped exactly as {@link setColumnWidth} clamps, and the fired
+   * snapshot carries the clamped value.
+   */
   commitColumnWidth(id: string, width: number): void;
+  /**
+   * Drops a column's width override, restoring its def `width` (and re-joining `flex` distribution
+   * — a manually resized flex column leaves it while an override is set). No-op without an
+   * override. Fires `onColumnLayoutChange` once, with the override gone from `widths`.
+   */
+  resetColumnWidth(id: string): void;
   /**
    * Reorders visible columns. `id` moves to sit immediately before/after `targetId` (per `position`).
    * Pinned columns only reorder within their own pin zone (left/right/unpinned) — a cross-zone

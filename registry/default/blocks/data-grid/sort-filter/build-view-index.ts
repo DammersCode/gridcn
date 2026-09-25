@@ -17,7 +17,33 @@ export type CellAccessor = {
   compare?(columnId: string): ((a: number, b: number) => number) | undefined;
   /** Whether a row's cell in `columnId` is empty for sort placement; defaults to `getText() === ""`. */
   isEmpty?(rowIndex: number, columnId: string): boolean;
+  /** The column's raw (un-stringified) cell value; only needed by a column's `filterMatch`. */
+  getValue?(rowIndex: number, columnId: string): unknown;
+  /** The column's `filterMatch` predicate, if the column declares one. */
+  filterMatch?(columnId: string): ((value: unknown, filter: FilterSpec) => boolean) | undefined;
 };
+
+/**
+ * One filter's per-row test: the column's `filterMatch` (raw value) when the accessor provides
+ * both the predicate and raw values, else the built-in text matcher. Both the rebuild and the
+ * incremental path build through this so a custom predicate can never desync between them.
+ */
+export function makeFilterTest(accessor: CellAccessor, filter: FilterSpec): (row: number) => boolean {
+  const custom = accessor.filterMatch?.(filter.columnId);
+  const getValue = accessor.getValue;
+  if (custom && getValue) {
+    // a thrown predicate fails the row rather than the view build
+    return (row: number) => {
+      try {
+        return custom(getValue(row, filter.columnId), filter);
+      } catch {
+        return false;
+      }
+    };
+  }
+  const test = createFilterMatcher(filter);
+  return (row: number) => test(accessor.getText(row, filter.columnId));
+}
 
 /** Whether `row`'s cell in `columnId` counts as empty for sort placement — empty sorts last in BOTH directions. */
 export function isEmptyCell(accessor: CellAccessor, rowIndex: number, columnId: string): boolean {
@@ -56,16 +82,16 @@ export function buildViewIndex(
     // One matcher per filter, built once outside the per-row loop: any numeric bound in
     // gt/gte/lt/lte/isBetween is the same string for every row, so parsing it here instead of on
     // every `matchesFilter` call turns an O(n) redundant re-parse into O(1) setup per filter.
-    const matchers = opts.filters.map((filter) => ({ columnId: filter.columnId, test: createFilterMatcher(filter) }));
+    const matchers = opts.filters.map((filter) => makeFilterTest(accessor, filter));
 
     if (opts.joinOperator === "or") {
       // OR: a row survives if ANY filter matches — one pass, no per-filter re-scan of `indices`.
-      indices = indices.filter((row) => matchers.some((m) => m.test(accessor.getText(row, m.columnId))));
+      indices = indices.filter((row) => matchers.some((test) => test(row)));
     } else {
       // AND (default): short-circuits per row via the existing filter-per-filter narrowing, same
       // hot path as before this feature — untouched perf for the common (and only, pre-OR) case.
-      for (const m of matchers) {
-        indices = indices.filter((row) => m.test(accessor.getText(row, m.columnId)));
+      for (const test of matchers) {
+        indices = indices.filter((row) => test(row));
       }
     }
   }
