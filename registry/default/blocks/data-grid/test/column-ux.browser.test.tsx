@@ -61,7 +61,7 @@ async function copyText(): Promise<string> {
 
 describe("column resize", () => {
   it("dragging the resize handle changes the column's width", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
       </div>,
@@ -89,7 +89,7 @@ describe("column resize", () => {
   it("double-clicking the resize handle autosizes the column to fit its widest rendered content", async () => {
     const wideRows = makeRows(5);
     wideRows[0]!.name = "A Very Very Long Name That Needs Room";
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={wideRows} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
       </div>,
@@ -107,7 +107,7 @@ describe("column resize", () => {
 
   it("resizable: false on a column omits its resize handle", async () => {
     const noResizeColumns = columns.map((c) => (c.id === "id" ? { ...c, resizable: false } : c));
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(5)} columns={noResizeColumns} getRowId={(r) => r.id} className="h-[400px]" />
       </div>,
@@ -120,7 +120,7 @@ describe("column resize", () => {
 
 describe("column reorder", () => {
   it("dragging a header horizontally past another header reorders the columns", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" enableColumnReorder />
       </div>,
@@ -137,7 +137,7 @@ describe("column reorder", () => {
   });
 
   it("a plain click on a header still selects the column (no drag = no reorder)", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" enableColumnReorder />
       </div>,
@@ -157,7 +157,7 @@ describe("column reorder", () => {
   });
 
   it("shift+drag across headers always extends the selection range, never reorders", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" enableColumnReorder />
       </div>,
@@ -188,7 +188,7 @@ describe("column reorder", () => {
   });
 
   it("enableColumnReorder=false disables the reorder gesture", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" enableColumnReorder={false} />
       </div>,
@@ -207,7 +207,7 @@ describe("column reorder", () => {
 
 describe("sort mode (headerClickBehavior)", () => {
   it("cycles asc -> desc -> none on repeated plain clicks and renders an indicator + aria-sort", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" headerClickBehavior="sort" />
       </div>,
@@ -229,7 +229,7 @@ describe("sort mode (headerClickBehavior)", () => {
 
   it("a custom (ReactNode) header owns its display: no built-in indicator is appended in sort mode", async () => {
     const customColumns = columns.map((c) => (c.id === "name" ? { ...c, header: <span>Custom Name</span> } : c));
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(20)} columns={customColumns} getRowId={(r) => r.id} className="h-[400px]" headerClickBehavior="sort" />
       </div>,
@@ -249,7 +249,7 @@ describe("sort mode (headerClickBehavior)", () => {
   });
 
   it("'select' mode (default) leaves a plain click selecting the column instead of sorting", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
       </div>,
@@ -266,7 +266,7 @@ describe("sort mode (headerClickBehavior)", () => {
 describe("pinned-edge shadow", () => {
   it("appears only after horizontal scroll reveals content beneath the pinned-left group", async () => {
     const pinnedColumns = columns.map((c) => (c.id === "id" ? { ...c, pin: "left" as const } : c));
-    render(
+    await render(
       <div style={{ height: 400, width: 300 }}>
         <DataGrid data={makeRows(20)} columns={pinnedColumns} getRowId={(r) => r.id} className="h-[400px] w-75" />
       </div>,
@@ -296,7 +296,7 @@ describe("pinned-edge shadow", () => {
   });
 
   it("renders no shadow element when there are no pinned columns", async () => {
-    render(
+    await render(
       <div style={{ height: 400, width: 300 }}>
         <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px] w-75" />
       </div>,
@@ -308,7 +308,7 @@ describe("pinned-edge shadow", () => {
 
 describe("density", () => {
   it("'compact' maps to a 28px row height", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" density="compact" />
       </div>,
@@ -318,7 +318,7 @@ describe("density", () => {
   });
 
   it("'default' maps to a 36px row height", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" density="default" />
       </div>,
@@ -328,7 +328,7 @@ describe("density", () => {
   });
 
   it("'comfortable' maps to a 44px row height", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" density="comfortable" />
       </div>,
@@ -338,7 +338,7 @@ describe("density", () => {
   });
 
   it("an explicit rowHeight prop overrides density", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" density="compact" rowHeight={60} />
       </div>,
@@ -350,7 +350,7 @@ describe("density", () => {
 
 describe("empty state", () => {
   it("renders labels.grid.emptyState's default ('No rows') when rowCount is 0", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(0)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
       </div>,
@@ -360,7 +360,7 @@ describe("empty state", () => {
   });
 
   it("renders the same label text when filtered down to zero rows (data is non-empty)", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid
           data={makeRows(5)}
@@ -376,7 +376,7 @@ describe("empty state", () => {
   });
 
   it("a labels override renders the translated empty-state text", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGridProvider data={makeRows(0)} columns={columns} getRowId={(r) => r.id} labels={{ grid: { emptyState: "Keine Zeilen" } }}>
           <DataGridRoot className="h-[400px]">
@@ -391,7 +391,7 @@ describe("empty state", () => {
   });
 
   it("renders a custom emptyState node instead of the default", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(0)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" emptyState={<span>Nothing here yet</span>} />
       </div>,
@@ -401,7 +401,7 @@ describe("empty state", () => {
   });
 
   it("the emptyState prop still wins even when a labels override is also present", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGridProvider data={makeRows(0)} columns={columns} getRowId={(r) => r.id} labels={{ grid: { emptyState: "Keine Zeilen" } }}>
           <DataGridRoot className="h-[400px]" emptyState={<span>Nothing here yet</span>}>
@@ -419,7 +419,7 @@ describe("empty state", () => {
 
 describe("resize handle position + hover affordance", () => {
   it("the handle's right edge sits within 2px of the header cell's right edge", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
       </div>,
@@ -433,7 +433,7 @@ describe("resize handle position + hover affordance", () => {
   });
 
   it("shows the hover affordance only on hover, and marks data-resizing during an active drag", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
       </div>,
@@ -466,7 +466,7 @@ describe("resize handle position + hover affordance", () => {
   });
 
   it("resize drag and dblclick autosize still work with the fixed handle position", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
       </div>,
@@ -494,7 +494,7 @@ describe("resize handle position + hover affordance", () => {
 
 describe("single drop indicator", () => {
   it("exactly one [data-grid-drop-indicator] exists during a reorder drag, at the boundary track edge", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" enableColumnReorder />
       </div>,
@@ -534,7 +534,7 @@ describe("single drop indicator", () => {
   });
 
   it("renders no drop indicator while not dragging", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" enableColumnReorder />
       </div>,
@@ -553,7 +553,7 @@ describe("column flex fill", () => {
   ] as const);
 
   it("grows flex columns so the last column's right edge fills the viewport", async () => {
-    render(
+    await render(
       <div style={{ height: 400, width: 976 }}>
         <DataGrid data={makeRows(20)} columns={flexColumns} getRowId={(r) => r.id} className="h-[400px] w-full" />
       </div>,
@@ -570,7 +570,7 @@ describe("column flex fill", () => {
   });
 
   it("keeps a resized flex column fixed and excluded from further redistribution", async () => {
-    render(
+    await render(
       <div style={{ height: 400, width: 976 }}>
         <DataGrid data={makeRows(20)} columns={flexColumns} getRowId={(r) => r.id} className="h-[400px] w-full" />
       </div>,
@@ -596,7 +596,7 @@ describe("column flex fill", () => {
   });
 
   it("pixel-math consistency: the active-cell ring aligns with a flexed column cell's bounding rect", async () => {
-    render(
+    await render(
       <div style={{ height: 400, width: 976 }}>
         <DataGrid data={makeRows(20)} columns={flexColumns} getRowId={(r) => r.id} className="h-[400px] w-full" />
       </div>,
@@ -624,7 +624,7 @@ describe("cell alignment", () => {
   ] as const;
 
   it("centers the checkbox input within the cell at default density", async () => {
-    render(
+    await render(
       <div style={{ height: 300 }}>
         <DataGrid
           data={[{ id: "1", active: true } as BoolRow]}
@@ -646,7 +646,7 @@ describe("cell alignment", () => {
   });
 
   it("centers the checkbox input within the cell at comfortable density", async () => {
-    render(
+    await render(
       <div style={{ height: 300 }}>
         <DataGrid
           data={[{ id: "1", active: true } as BoolRow]}
@@ -668,7 +668,7 @@ describe("cell alignment", () => {
   });
 
   it("right-aligns number cell text near the cell's right edge", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
       </div>,
@@ -683,7 +683,7 @@ describe("cell alignment", () => {
   });
 
   it("leaves text cells left-aligned (unchanged)", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
       </div>,

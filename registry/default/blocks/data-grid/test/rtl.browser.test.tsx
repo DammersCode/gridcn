@@ -41,7 +41,7 @@ function ActionsCapture({ onActions }: { onActions: (actions: ReturnType<typeof 
   return null;
 }
 
-function renderGrid(opts: {
+async function renderGrid(opts: {
   direction: GridDirection;
   columns: readonly Record<string, unknown>[];
   rowCount?: number;
@@ -51,7 +51,7 @@ function renderGrid(opts: {
   let actions!: ReturnType<typeof useDataGridActions>;
   const width = opts.width ?? 800;
   const height = opts.height ?? 500;
-  const utils = render(
+  const utils = await render(
     <div style={{ height, width }}>
       <DataGridProvider data={makeRows(opts.rowCount ?? 100)} columns={opts.columns as ReturnType<typeof makeColumns>} getRowId={(r) => r.id}>
         <ActionsCapture onActions={(a) => (actions = a)} />
@@ -99,7 +99,7 @@ function inlineStartOf(el: HTMLElement, direction: GridDirection): number {
 
 describe("RTL — direction plumbing", () => {
   it("sets dir on the scroll root and the --grid-dir transform sign, per direction", async () => {
-    renderGrid({ direction: "rtl", columns: makeColumns(10), rowCount: 20 });
+    await renderGrid({ direction: "rtl", columns: makeColumns(10), rowCount: 20 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     expect(grid().getAttribute("dir")).toBe("rtl");
@@ -108,7 +108,7 @@ describe("RTL — direction plumbing", () => {
   });
 
   it("keeps LTR on the unchanged default path (--grid-dir is -1)", async () => {
-    renderGrid({ direction: "ltr", columns: makeColumns(10), rowCount: 20 });
+    await renderGrid({ direction: "ltr", columns: makeColumns(10), rowCount: 20 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     expect(grid().getAttribute("dir")).toBe("ltr");
@@ -117,14 +117,14 @@ describe("RTL — direction plumbing", () => {
   });
 
   it("mirrors column order: column 0 renders at the inline start in LTR", async () => {
-    renderGrid({ direction: "ltr", columns: makeColumns(10), rowCount: 20 });
+    await renderGrid({ direction: "ltr", columns: makeColumns(10), rowCount: 20 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     expect(Math.abs(inlineStartOf(cellAt(0)!, "ltr"))).toBeLessThan(2);
   });
 
   it("mirrors column order: column 0 renders at the inline start (physically right) in RTL", async () => {
-    renderGrid({ direction: "rtl", columns: makeColumns(10), rowCount: 20 });
+    await renderGrid({ direction: "rtl", columns: makeColumns(10), rowCount: 20 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const first = cellAt(0)!;
@@ -148,7 +148,7 @@ describe("RTL — scroll geometry (the probe scenario)", () => {
   }
 
   it("anchors a pinned-inline-start column at the viewport's inline start at every scroll offset, in LTR", async () => {
-    renderGrid({ direction: "ltr", columns: makeColumns(40, { firstPinnedLeft: true }), rowCount: 50, width: 800 });
+    await renderGrid({ direction: "ltr", columns: makeColumns(40, { firstPinnedLeft: true }), rowCount: 50, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const offsets = await pinnedInlineOffsets("ltr");
@@ -156,7 +156,7 @@ describe("RTL — scroll geometry (the probe scenario)", () => {
   });
 
   it("anchors it identically in RTL — same inline geometry, measured in inline-start space", async () => {
-    renderGrid({ direction: "rtl", columns: makeColumns(40, { firstPinnedLeft: true }), rowCount: 50, width: 800 });
+    await renderGrid({ direction: "rtl", columns: makeColumns(40, { firstPinnedLeft: true }), rowCount: 50, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const offsets = await pinnedInlineOffsets("rtl");
@@ -164,7 +164,7 @@ describe("RTL — scroll geometry (the probe scenario)", () => {
   });
 
   it("keeps a pinned-inline-end column flush with the viewport's inline end while scrolling under RTL", async () => {
-    renderGrid({ direction: "rtl", columns: makeColumns(40, { lastPinnedRight: true }), rowCount: 50, width: 800 });
+    await renderGrid({ direction: "rtl", columns: makeColumns(40, { lastPinnedRight: true }), rowCount: 50, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     for (const offset of [0, 400, 1200]) {
@@ -179,7 +179,7 @@ describe("RTL — scroll geometry (the probe scenario)", () => {
   it("scrolls content: an unpinned column moves toward the inline start as scrollLeft grows (columns narrower than the viewport)", async () => {
     // MUI X shipped a regression test for exactly this class after an RTL clamping bug skipped
     // columns; our min(viewportWidth, contentWidth) pin anchor makes us susceptible to the same.
-    renderGrid({ direction: "rtl", columns: makeColumns(5), rowCount: 20, width: 800 });
+    await renderGrid({ direction: "rtl", columns: makeColumns(5), rowCount: 20, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     // 5 * 100px = 500px of content in an 800px viewport: no overflow, nothing should shift
@@ -193,7 +193,7 @@ describe("RTL — scroll geometry (the probe scenario)", () => {
 
 describe("RTL — pointer hit-testing", () => {
   it("clicking a visible cell selects THAT cell, across the viewport", async () => {
-    renderGrid({ direction: "rtl", columns: makeColumns(12), rowCount: 30, width: 800 });
+    await renderGrid({ direction: "rtl", columns: makeColumns(12), rowCount: 30, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     // The highest-value RTL test: it catches the whole hit-test class in one assertion per column.
@@ -207,7 +207,7 @@ describe("RTL — pointer hit-testing", () => {
   });
 
   it("resolves a point exactly on a shared cell edge deterministically (half-open intervals)", async () => {
-    renderGrid({ direction: "rtl", columns: makeColumns(12), rowCount: 30, width: 800 });
+    await renderGrid({ direction: "rtl", columns: makeColumns(12), rowCount: 30, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const first = cellAt(0)!;
@@ -241,7 +241,7 @@ describe("RTL — pointer hit-testing", () => {
   });
 
   it("hit-tests inside the pinned band correctly under RTL", async () => {
-    renderGrid({ direction: "rtl", columns: makeColumns(40, { firstPinnedLeft: true }), rowCount: 50, width: 800 });
+    await renderGrid({ direction: "rtl", columns: makeColumns(40, { firstPinnedLeft: true }), rowCount: 50, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     await scrollInlineTo(600, "rtl");
 
@@ -257,7 +257,7 @@ describe("RTL — pointer hit-testing", () => {
 
 describe("RTL — keyboard semantics (visual movement)", () => {
   it("ArrowRight moves to the next VISUAL column, which is the previous index", async () => {
-    renderGrid({ direction: "rtl", columns: makeColumns(10), rowCount: 20, width: 800 });
+    await renderGrid({ direction: "rtl", columns: makeColumns(10), rowCount: 20, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await userEvent.click(cellAt(3)!);
@@ -268,7 +268,7 @@ describe("RTL — keyboard semantics (visual movement)", () => {
   });
 
   it("ArrowLeft moves to the previous VISUAL column, which is the next index", async () => {
-    renderGrid({ direction: "rtl", columns: makeColumns(10), rowCount: 20, width: 800 });
+    await renderGrid({ direction: "rtl", columns: makeColumns(10), rowCount: 20, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await userEvent.click(cellAt(3)!);
@@ -279,7 +279,7 @@ describe("RTL — keyboard semantics (visual movement)", () => {
   });
 
   it("keeps LTR arrows unflipped", async () => {
-    renderGrid({ direction: "ltr", columns: makeColumns(10), rowCount: 20, width: 800 });
+    await renderGrid({ direction: "ltr", columns: makeColumns(10), rowCount: 20, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await userEvent.click(cellAt(3)!);
@@ -290,7 +290,7 @@ describe("RTL — keyboard semantics (visual movement)", () => {
   });
 
   it("does NOT flip Tab — it stays reading-order logical under RTL", async () => {
-    renderGrid({ direction: "rtl", columns: makeColumns(10), rowCount: 20, width: 800 });
+    await renderGrid({ direction: "rtl", columns: makeColumns(10), rowCount: 20, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await userEvent.click(cellAt(3)!);
@@ -301,7 +301,7 @@ describe("RTL — keyboard semantics (visual movement)", () => {
   });
 
   it("keeps Home logical under RTL: it lands on column 0, not the visually-first column", async () => {
-    renderGrid({ direction: "rtl", columns: makeColumns(10), rowCount: 20, width: 800 });
+    await renderGrid({ direction: "rtl", columns: makeColumns(10), rowCount: 20, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await userEvent.click(cellAt(3)!);
@@ -314,7 +314,7 @@ describe("RTL — keyboard semantics (visual movement)", () => {
 
 describe("RTL — selection overlay alignment", () => {
   it("aligns a selection rectangle with the cells it covers", async () => {
-    const { actions } = renderGrid({ direction: "rtl", columns: makeColumns(10), rowCount: 20, width: 800 });
+    const { actions } = await renderGrid({ direction: "rtl", columns: makeColumns(10), rowCount: 20, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     actions().selectCell({ col: 2, row: 1 });
@@ -366,7 +366,7 @@ describe("RTL — rendered cell content position", () => {
 
   for (const direction of ["ltr", "rtl"] as const) {
     it(`start-aligned cell text begins at the same inline offset as its header, in ${direction}`, async () => {
-      renderGrid({ direction, columns: textColumns(), rowCount: 10, width: 700 });
+      await renderGrid({ direction, columns: textColumns(), rowCount: 10, width: 700 });
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
       // Latin values ("Person 0") inside an Arabic-headed RTL grid: the exact mixed-script case
@@ -380,7 +380,7 @@ describe("RTL — rendered cell content position", () => {
   }
 
   it("end-aligned (number) cell text hugs the inline END under RTL, not the physical right", async () => {
-    renderGrid({ direction: "rtl", columns: textColumns(), rowCount: 10, width: 700 });
+    await renderGrid({ direction: "rtl", columns: textColumns(), rowCount: 10, width: 700 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const cell = cellAt(1)!;
@@ -394,7 +394,7 @@ describe("RTL — rendered cell content position", () => {
   });
 
   it("isolates cell content bidi without letting it re-align the box", async () => {
-    renderGrid({ direction: "rtl", columns: textColumns(), rowCount: 10, width: 700 });
+    await renderGrid({ direction: "rtl", columns: textColumns(), rowCount: 10, width: 700 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const cell = cellAt(0)!;
@@ -416,7 +416,7 @@ describe("RTL — editor input direction", () => {
   }
 
   it("gives the editor the value's own direction so the caret sits where edits land", async () => {
-    renderGrid({ direction: "rtl", columns: editableColumns(), rowCount: 10, width: 700 });
+    await renderGrid({ direction: "rtl", columns: editableColumns(), rowCount: 10, width: 700 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await userEvent.dblClick(cellAt(0)!);
@@ -428,7 +428,7 @@ describe("RTL — editor input direction", () => {
   });
 
   it("edits land at the caret: deleting then typing appends at the end under RTL", async () => {
-    renderGrid({ direction: "rtl", columns: editableColumns(), rowCount: 10, width: 700 });
+    await renderGrid({ direction: "rtl", columns: editableColumns(), rowCount: 10, width: 700 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await userEvent.dblClick(cellAt(0)!);
@@ -447,7 +447,7 @@ describe("RTL — editor input direction", () => {
 
 describe("RTL — column resize", () => {
   it("grows the column when the handle is dragged toward the inline end (physically left under RTL)", async () => {
-    renderGrid({ direction: "rtl", columns: makeColumns(8), rowCount: 20, width: 800 });
+    await renderGrid({ direction: "rtl", columns: makeColumns(8), rowCount: 20, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const header = document.querySelector<HTMLElement>('[role="columnheader"][data-column-id="c1"]')!;

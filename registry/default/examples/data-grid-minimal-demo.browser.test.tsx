@@ -11,7 +11,7 @@ function gridCells(): HTMLElement[] {
 
 describe("data-grid-minimal-demo (defaultData, zero app state)", () => {
   it("editing a cell sticks — the grid owns the array with no data/onDataChange prop", async () => {
-    render(<DataGridMinimalDemo />);
+    await render(<DataGridMinimalDemo />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const cell = gridCells()[0]!; // "name" column, first row

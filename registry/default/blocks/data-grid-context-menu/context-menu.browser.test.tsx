@@ -131,7 +131,7 @@ function PinnedGridWithMenu(props: {
 
 describe("DataGridContextMenu — cell surface", () => {
   it("right-click on a cell opens the menu with Copy and Delete row", async () => {
-    renderGrid();
+    await renderGrid();
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     rightClick(gridCell("Alice", "name"));
     await vi.waitFor(() => expect(menuItem("Copy")).toBeTruthy());
@@ -139,7 +139,7 @@ describe("DataGridContextMenu — cell surface", () => {
   });
 
   it("Clear contents clears the right-clicked cell's value", async () => {
-    renderGrid();
+    await renderGrid();
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     rightClick(gridCell("Alice", "name"));
     await vi.waitFor(() => expect(menuItem("Clear contents")).toBeTruthy());
@@ -150,7 +150,7 @@ describe("DataGridContextMenu — cell surface", () => {
   it("Insert row below adds a row and fires onDataChange exactly once", async () => {
     const onDataChange = vi.fn();
     let counter = 0;
-    renderGrid({ onDataChange, createRow: () => ({ id: `new-${counter++}`, name: "New", email: "" }) });
+    await renderGrid({ onDataChange, createRow: () => ({ id: `new-${counter++}`, name: "New", email: "" }) });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     rightClick(gridCell("Bob", "name"));
@@ -164,7 +164,7 @@ describe("DataGridContextMenu — cell surface", () => {
   });
 
   it("hides Insert row above/below when no createRow prop is given", async () => {
-    renderGrid();
+    await renderGrid();
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     rightClick(gridCell("Alice", "name"));
     await vi.waitFor(() => expect(menuItem("Copy")).toBeTruthy());
@@ -172,7 +172,7 @@ describe("DataGridContextMenu — cell surface", () => {
   });
 
   it("hides Duplicate row when no duplicateRow prop is given", async () => {
-    renderGrid();
+    await renderGrid();
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     rightClick(gridCell("Alice", "name"));
     await vi.waitFor(() => expect(menuItem("Copy")).toBeTruthy());
@@ -182,7 +182,7 @@ describe("DataGridContextMenu — cell surface", () => {
   it("Duplicate row inserts duplicateRow's copy and fires onDataChange exactly once", async () => {
     const onDataChange = vi.fn();
     let counter = 0;
-    renderGrid({ onDataChange, duplicateRow: (row) => ({ ...row, id: `copy-${counter++}` }) });
+    await renderGrid({ onDataChange, duplicateRow: (row) => ({ ...row, id: `copy-${counter++}` }) });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     rightClick(gridCell("Bob", "name"));
@@ -197,7 +197,7 @@ describe("DataGridContextMenu — cell surface", () => {
 
   it("disables every mutating item and Insert row/Duplicate row items on a readOnly grid", async () => {
     const onDataChange = vi.fn();
-    renderGrid({
+    await renderGrid({
       onDataChange,
       readOnly: true,
       createRow: () => ({ id: "new", name: "New", email: "" }),
@@ -220,7 +220,7 @@ describe("DataGridContextMenu — cell surface", () => {
 // (DEFAULT_KEYMAP merged with the `keymap` prop), not a hardcoded DEFAULT_KEYMAP read.
 describe("DataGridContextMenu — shortcut hints follow the consumer's keymap", () => {
   it("shows the remapped binding for Clear contents, not the default", async () => {
-    renderGrid({ keymap: { deleteContents: ["mod+shift+k"] } });
+    await renderGrid({ keymap: { deleteContents: ["mod+shift+k"] } });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     rightClick(gridCell("Alice", "name"));
     await vi.waitFor(() => expect(menuItem("Clear contents")).toBeTruthy());
@@ -232,7 +232,7 @@ describe("DataGridContextMenu — shortcut hints follow the consumer's keymap", 
 
 describe("DataGridContextMenu — header surface", () => {
   it("right-click on a header shows Sort/Pin/Hide items", async () => {
-    renderGrid();
+    await renderGrid();
     await expect.element(page.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
     rightClick(document.querySelector('[role="columnheader"][data-column-id="name"]')!);
     await expect.element(page.getByRole("menuitem", { name: "Sort ascending" })).toBeInTheDocument();
@@ -241,7 +241,7 @@ describe("DataGridContextMenu — header surface", () => {
   });
 
   it("Hide column removes the column from the grid", async () => {
-    renderGrid();
+    await renderGrid();
     await expect.element(page.getByRole("columnheader", { name: "Email" })).toBeInTheDocument();
     rightClick(document.querySelector('[role="columnheader"][data-column-id="email"]')!);
     await page.getByRole("menuitem", { name: "Hide column" }).click();
@@ -256,7 +256,7 @@ describe("DataGridContextMenu — header surface", () => {
 // just markers, since the same childless-popup bug reproduces on any of them.
 describe("DataGridContextMenu — non-cell surfaces never show an empty popover", () => {
   it("right-click on a row marker opens no popover at all", async () => {
-    renderGrid({ rowMarkers: "number" });
+    await renderGrid({ rowMarkers: "number" });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const marker = document.querySelector<HTMLElement>(gridAttrSelector("markerCell"))!;
     rightClick(marker);
@@ -267,7 +267,7 @@ describe("DataGridContextMenu — non-cell surfaces never show an empty popover"
   });
 
   it("right-click on a checkbox row marker opens no popover at all", async () => {
-    renderGrid({ rowMarkers: "checkbox" });
+    await renderGrid({ rowMarkers: "checkbox" });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const marker = document.querySelector<HTMLElement>(gridAttrSelector("markerCell"))!;
     rightClick(marker);
@@ -276,7 +276,7 @@ describe("DataGridContextMenu — non-cell surfaces never show an empty popover"
   });
 
   it("right-click on empty grid space below the last row opens no popover", async () => {
-    renderGrid();
+    await renderGrid();
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
     const rect = grid.getBoundingClientRect();
@@ -288,7 +288,7 @@ describe("DataGridContextMenu — non-cell surfaces never show an empty popover"
   });
 
   it("a subsequent right-click on a real cell still opens the menu normally (suppression doesn't stick)", async () => {
-    renderGrid({ rowMarkers: "number" });
+    await renderGrid({ rowMarkers: "number" });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const marker = document.querySelector<HTMLElement>(gridAttrSelector("markerCell"))!;
     rightClick(marker);
@@ -304,7 +304,7 @@ describe("DataGridContextMenu — non-cell surfaces never show an empty popover"
 describe("DataGridContextMenu — pinned-top rows", () => {
   it("Duplicate row targets the right-clicked data row, not the row below it, with a pinned-top band installed", async () => {
     const onDataChange = vi.fn();
-    render(<PinnedGridWithMenu top={[totals]} onDataChange={onDataChange} />);
+    await render(<PinnedGridWithMenu top={[totals]} onDataChange={onDataChange} />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     rightClick(gridCell("Bob", "name"));
@@ -317,7 +317,7 @@ describe("DataGridContextMenu — pinned-top rows", () => {
   });
 
   it("right-click on a pinned-top row cell opens no popover at all", async () => {
-    render(<PinnedGridWithMenu top={[totals]} />);
+    await render(<PinnedGridWithMenu top={[totals]} />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const pinnedCell = document.querySelector<HTMLElement>(gridAttrSelector("pinnedRow"))!;
     rightClick(pinnedCell);
@@ -336,7 +336,7 @@ describe("DataGridContextMenu — paste permission-denied survives menu reopen",
 
   it("Paste stays aria-disabled with the Ctrl+V hint after a permission-denied result, across a reopen", async () => {
     Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true });
-    renderGrid();
+    await renderGrid();
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     rightClick(gridCell("Alice", "name"));
@@ -358,15 +358,11 @@ describe("DataGridContextMenu — paste permission-denied survives menu reopen",
   });
 });
 
-// COL-G3 regression: the menu's autosize used to write through `setColumnWidth` (a per-frame drag
-// write that only fires `onColumnResizing`) instead of committing through `commitColumnWidth`
-// (the `onColumnLayoutChange` commit point the core double-click autosize uses), and ignored the
-// resize gating the core applies to its own resize handle.
 describe("DataGridContextMenu — header menu autosize commits through onColumnLayoutChange", () => {
   it("Autosize through the menu fires onColumnLayoutChange once and never onColumnResizing", async () => {
     const onColumnLayoutChange = vi.fn();
     const onColumnResizing = vi.fn();
-    renderGrid({ onColumnLayoutChange, onColumnResizing });
+    await renderGrid({ onColumnLayoutChange, onColumnResizing });
     await expect.element(page.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
     rightClick(document.querySelector('[role="columnheader"][data-column-id="name"]')!);
     await expect.element(page.getByRole("menuitem", { name: "Autosize column" })).toBeInTheDocument();
@@ -383,7 +379,7 @@ describe("DataGridContextMenu — header menu autosize commits through onColumnL
       { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140, resizable: false },
       { id: "email", header: "Email", accessorKey: "email", type: "text", width: 200 },
     ] as const);
-    renderGrid({ columns: nonResizableName });
+    await renderGrid({ columns: nonResizableName });
     await expect.element(page.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
     rightClick(document.querySelector('[role="columnheader"][data-column-id="name"]')!);
     await expect.element(page.getByRole("menuitem", { name: "Hide column" })).toBeInTheDocument();
@@ -395,7 +391,7 @@ describe("DataGridContextMenu — header menu autosize commits through onColumnL
       { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140, resizable: false },
       { id: "email", header: "Email", accessorKey: "email", type: "text", width: 200 },
     ] as const);
-    renderGrid({ columns: nonResizableName });
+    await renderGrid({ columns: nonResizableName });
     await expect.element(page.getByRole("columnheader", { name: "Email" })).toBeInTheDocument();
     rightClick(document.querySelector('[role="columnheader"][data-column-id="email"]')!);
     await expect.element(page.getByRole("menuitem", { name: "Hide column" })).toBeInTheDocument();
@@ -403,7 +399,7 @@ describe("DataGridContextMenu — header menu autosize commits through onColumnL
   });
 
   it("hides the Autosize item when the root disables column resizing", async () => {
-    renderGrid({ enableColumnResize: false });
+    await renderGrid({ enableColumnResize: false });
     await expect.element(page.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
     rightClick(document.querySelector('[role="columnheader"][data-column-id="name"]')!);
     await expect.element(page.getByRole("menuitem", { name: "Hide column" })).toBeInTheDocument();
@@ -413,7 +409,7 @@ describe("DataGridContextMenu — header menu autosize commits through onColumnL
 
 describe("DataGridContextMenu — custom item-set slots", () => {
   it("renderCellMenuItems replaces the built-in cell items and receives the cell ctx", async () => {
-    renderGrid({
+    await renderGrid({
       createRow: () => ({ id: "new", name: "New", email: "" }),
       duplicateRow: (row) => ({ ...row, id: "copy" }),
       renderCellMenuItems: ({ row, columnId, canInsertRow, canDuplicateRow }) => (
@@ -441,7 +437,7 @@ describe("DataGridContextMenu — custom item-set slots", () => {
   });
 
   it("renderCellMenuItems receives false flags when no createRow/duplicateRow prop is given", async () => {
-    renderGrid({
+    await renderGrid({
       renderCellMenuItems: ({ canInsertRow, canDuplicateRow }) => (
         <span data-testid="custom-cell-items" data-insert={String(canInsertRow)} data-duplicate={String(canDuplicateRow)} />
       ),
@@ -456,7 +452,7 @@ describe("DataGridContextMenu — custom item-set slots", () => {
   });
 
   it("renderHeaderMenuItems replaces the built-in header items and receives the header ctx", async () => {
-    renderGrid({
+    await renderGrid({
       renderHeaderMenuItems: ({ columnId, scrollRoot }) => (
         <span data-testid="custom-header-items" data-column-id={columnId} data-scroll-root={scrollRoot?.getAttribute("role") ?? "none"} />
       ),

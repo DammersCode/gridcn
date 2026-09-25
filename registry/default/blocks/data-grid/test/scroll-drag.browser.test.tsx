@@ -81,7 +81,7 @@ describe("scroll-drag: realistic thumb-drag blank detector (baseline)", () => {
   // synchronously and so can never observe a gap. Sampling immediately after the write (before that
   // task runs) is what actually exposes the transform-vs-rendered-rows gap during a fast drag.
   it("rows catch up within a couple of frames after the drag settles (must hold even today)", { timeout: 60_000 }, async () => {
-    renderGrid360(100_000);
+    await renderGrid360(100_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
     const maxScrollTop = grid.scrollHeight - grid.clientHeight;
@@ -119,7 +119,7 @@ describe("scroll-drag: realistic thumb-drag blank detector (baseline)", () => {
     // not asserted.
   it("blank-row baseline at the instant scrollTop moves, after velocity warm-up (logged, not asserted — machine-dependent)", { timeout: 60_000 }, async () => {
     const WARMUP_TICKS = 3;
-    renderGrid360(100_000);
+    await renderGrid360(100_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
     const maxScrollTop = grid.scrollHeight - grid.clientHeight;
@@ -160,7 +160,7 @@ describe("scroll-drag: realistic thumb-drag blank detector (baseline)", () => {
 
 describe("scroll-drag: FPS under drag (logged, not asserted — machine-dependent)", () => {
   it("measures real rAF throughput during a thumb-drag sequence", { timeout: 30_000 }, async () => {
-    renderGrid360(100_000);
+    await renderGrid360(100_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
     const maxScrollTop = grid.scrollHeight - grid.clientHeight;
@@ -206,7 +206,7 @@ describe("scroll-drag: keyboard repro — rapid Shift+ArrowDown past the window 
   // selection range's far edge during an extend gesture instead of the anchor-pinned activeCell —
   // so the row window keeps following the growing selection edge.
   it("scrollTop advances to follow the extending selection edge", { timeout: 30_000 }, async () => {
-    renderGrid360(1_000); // ~10 visible rows at 36px/row
+    await renderGrid360(1_000); // ~10 visible rows at 36px/row
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
     const stride = columns.length;
@@ -230,7 +230,7 @@ describe("scroll-drag: keyboard repro — rapid Shift+ArrowDown past the window 
   // down to the frozen window's row 9) because the window never moved; post-fix it saturates the
   // viewport because the window keeps pace with the edge.
   it("row window scrolls to the ~35-row selection edge and the overlay saturates the viewport", { timeout: 30_000 }, async () => {
-    renderGrid360(1_000);
+    await renderGrid360(1_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
     const stride = columns.length;
@@ -270,7 +270,7 @@ describe("scroll-drag: multiple-box probe (no assertion unless caught)", () => {
   }
 
   it("counts rendered range-overlay boxes during and after a rapid Shift+ArrowDown gesture", { timeout: 30_000 }, async () => {
-    renderGrid360(1_000);
+    await renderGrid360(1_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const stride = columns.length;
     const cells = [...document.querySelectorAll<HTMLElement>('[role="gridcell"]')];
@@ -311,7 +311,7 @@ describe("scroll-drag: multiple-box probe (no assertion unless caught)", () => {
   // Shift+ArrowDown extends the primary range on top of that. "Multiple box" is only a bug if MORE
   // than 2 boxes appear, or a box appears outside [primary range, pushed range].
   it("ctrl+click rangeStack push, then rapid Shift+ArrowDown, never exceeds one box per range", { timeout: 30_000 }, async () => {
-    renderGrid360(1_000);
+    await renderGrid360(1_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const stride = columns.length;
     const cells = [...document.querySelectorAll<HTMLElement>('[role="gridcell"]')];
@@ -338,7 +338,7 @@ describe("scroll-drag: multiple-box probe (no assertion unless caught)", () => {
   // Angle (b): shift+click extension (mouse) mixed with keyboard shift+arrow extension on the same
   // gesture — both drive the same `current` range, so still exactly 1 box expected throughout.
   it("shift+click extension mixed with arrow extension stays at one box", { timeout: 30_000 }, async () => {
-    renderGrid360(1_000);
+    await renderGrid360(1_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const stride = columns.length;
     const cells = [...document.querySelectorAll<HTMLElement>('[role="gridcell"]')];
@@ -372,7 +372,7 @@ describe("scroll-drag: multiple-box probe (no assertion unless caught)", () => {
   // (effectiveStart pulled down to the off-window active row) is active for the whole gesture —
   // exactly the geometry the overlay-clamp fix targets. Still 1 range => 1 box expected.
   it("extension with the anchor scrolled off-window stays at one box", { timeout: 30_000 }, async () => {
-    renderGrid360(1_000);
+    await renderGrid360(1_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
     const stride = columns.length;
@@ -413,7 +413,7 @@ describe("scroll-drag: single-commit-per-tick", () => {
         ? { ...c, renderCell: ({ value }: { value: unknown }) => { renderCount++; return String(value); } }
         : c,
     );
-    render(
+    await render(
       <div style={{ height: 360, width: 1200 }}>
         <DataGrid data={makeRows(100_000)} columns={probeColumns} getRowId={(r: Row) => r.id} className="h-90 w-300" />
       </div>,
@@ -462,7 +462,7 @@ describe("scroll-drag: wasted-render regression", () => {
         return String(value);
       },
     }));
-    render(
+    await render(
       <div style={{ height: 360, width: 1200 }}>
         <DataGrid data={makeRows(100_000)} columns={probeColumns} getRowId={(r: Row) => r.id} className="h-90 w-300" />
       </div>,
@@ -520,7 +520,7 @@ describe("scroll-drag: wasted-render regression", () => {
     }));
     const getRowClassName = () => undefined;
     const getCellClassName = () => undefined;
-    render(
+    await render(
       <div style={{ height: 360, width: 1200 }}>
         <DataGrid
           data={makeRows(100_000)}
@@ -571,7 +571,7 @@ describe("scroll-drag: idle DOM row count returns to baseline after settle (tabl
   // 60s wall timeout: the poll budget below is bounded in tab time, and a starved tab can stretch
   // it far past its wall-clock equivalent on a contended runner.
   it("mounted row count balloons during a fast scroll burst, then shrinks back near baseline once settled", { timeout: 60_000 }, async () => {
-    renderGrid360(100_000);
+    await renderGrid360(100_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
     const maxScrollTop = grid.scrollHeight - grid.clientHeight;
@@ -634,7 +634,7 @@ describe("click-cell: active-column change must not re-render the whole visible 
   // bypassing DataGridRow's memo boundary) and every DataGridHeaderCell re-rendered as a result.
   // Fix: root.tsx's context value is `useMemo`'d on real deps, so a click that doesn't change
   // windowedColumns/layout/interaction/etc hands out the identical reference and these bail.
-  function renderCountingGrid360(rowCount: number) {
+  async function renderCountingGrid360(rowCount: number) {
     const perCellCounts = new Map<string, number>();
     const bump = (rowIndex: number, colId: string) => {
       const key = `${rowIndex}:${colId}`;
@@ -647,7 +647,7 @@ describe("click-cell: active-column change must not re-render the whole visible 
         return String(value);
       },
     }));
-    const utils = render(
+    const utils = await render(
       <div style={{ height: 360, width: 1200 }}>
         <DataGrid data={makeRows(rowCount)} columns={probeColumns} getRowId={(r) => r.id} className="h-90 w-300" />
       </div>,
@@ -669,7 +669,7 @@ describe("click-cell: active-column change must not re-render the whole visible 
   }
 
   it("clicking a different cell (different row AND column) re-renders only the old and new active rows, not the other visible rows", async () => {
-    const grid360 = renderCountingGrid360(100_000);
+    const grid360 = await renderCountingGrid360(100_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const gridEl = document.querySelector<HTMLElement>('[role="grid"]')!;
 
@@ -695,7 +695,7 @@ describe("click-cell: active-column change must not re-render the whole visible 
   });
 
   it("clicking another cell in the SAME row re-renders only that row's cells, not the other visible rows", async () => {
-    const grid360 = renderCountingGrid360(100_000);
+    const grid360 = await renderCountingGrid360(100_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const gridEl = document.querySelector<HTMLElement>('[role="grid"]')!;
 

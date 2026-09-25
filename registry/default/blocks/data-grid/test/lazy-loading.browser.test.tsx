@@ -33,7 +33,7 @@ const columns = [
 describe("skeleton rows for undefined data holes", () => {
   it("renders skeleton cells (aria-busy, shimmer block) for an undefined row, marker column still shows the row number", async () => {
     const data = makeSparseRows(100, new Set([0, 1, 2]));
-    render(
+    await render(
       <div style={{ height: 360, width: 600 }}>
         <DataGrid
           data={data}
@@ -101,7 +101,7 @@ describe("skeleton rows for undefined data holes", () => {
 
   it("double-click on a skeleton cell does not open an editor", async () => {
     const data = makeSparseRows(50, new Set());
-    render(
+    await render(
       <div style={{ height: 360, width: 600 }}>
         <DataGrid data={data} columns={columns} getRowId={(r) => r.id} className="h-90 w-150" />
       </div>,
@@ -135,7 +135,7 @@ describe("onRowWindowChange", () => {
 
   it("fires exactly once on mount, with the real measured range (not the pre-measurement fallback)", async () => {
     const onRowWindowChange = vi.fn();
-    renderGrid(10_000, onRowWindowChange);
+    await renderGrid(10_000, onRowWindowChange);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     await new Promise((r) => requestAnimationFrame(r));
     await new Promise((r) => setTimeout(r, 0));
@@ -154,7 +154,7 @@ describe("onRowWindowChange", () => {
 
   it("fires again after a scroll that shifts the window, with the new range", async () => {
     const onRowWindowChange = vi.fn();
-    renderGrid(10_000, onRowWindowChange);
+    await renderGrid(10_000, onRowWindowChange);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     await new Promise((r) => requestAnimationFrame(r));
     await new Promise((r) => setTimeout(r, 0));
@@ -177,7 +177,7 @@ describe("onRowWindowChange", () => {
 
   it("does NOT fire again on a same-window scroll tick within an ongoing drag", async () => {
     const onRowWindowChange = vi.fn();
-    renderGrid(10_000, onRowWindowChange);
+    await renderGrid(10_000, onRowWindowChange);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     await new Promise((r) => requestAnimationFrame(r));
     await new Promise((r) => setTimeout(r, 0));

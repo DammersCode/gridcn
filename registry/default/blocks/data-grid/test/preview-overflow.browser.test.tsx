@@ -14,7 +14,7 @@ it("an overflowing preview is not clipped on its left edge", async () => {
   const host = document.createElement("div");
   host.style.width = "700px";
   document.body.appendChild(host);
-  render(<PreviewTabs preview={<DataGridDemo />} code={<pre>code</pre>} align="center" />, { container: host });
+  await render(<PreviewTabs preview={<DataGridDemo />} code={<pre>code</pre>} align="center" />, { container: host });
   await new Promise((r) => setTimeout(r, 600));
 
   const panel = document.querySelector('[class*="overflow-x-auto"]') as HTMLElement;

@@ -52,4 +52,21 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-argument": "error",
     },
   },
+  {
+    // An un-awaited render/unmount in a browser test overlaps React act() scopes and breaks every later test in the file.
+    files: ["registry/**/*.browser.test.tsx"],
+    plugins: {
+      "@typescript-eslint": tseslint.plugin,
+    },
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        project: "./tsconfig.json",
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-floating-promises": "error",
+    },
+  },
 );

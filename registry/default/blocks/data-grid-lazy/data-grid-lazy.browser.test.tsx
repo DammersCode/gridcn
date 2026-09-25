@@ -64,7 +64,7 @@ describe("data-grid-lazy: evict() reverts a loaded range to skeletons and the ne
     });
 
     let lazy: UseDataGridLazyRowsResult<Row> | undefined;
-    render(<LazyGrid fetchRows={fetchRows} onLazy={(l) => (lazy = l)} />);
+    await render(<LazyGrid fetchRows={fetchRows} onLazy={(l) => (lazy = l)} />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     pending[0]?.resolve(makeRows(pending[0].start, pending[0].end));
     await new Promise((r) => setTimeout(r, 0));
@@ -117,7 +117,7 @@ describe("data-grid-lazy: reset() refetches the visible window without a scroll"
     });
 
     let lazy: UseDataGridLazyRowsResult<Row> | undefined;
-    render(<LazyGrid fetchRows={fetchRows} onLazy={(l) => (lazy = l)} />);
+    await render(<LazyGrid fetchRows={fetchRows} onLazy={(l) => (lazy = l)} />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     pending[0]?.resolve(makeRows(pending[0].start, pending[0].end));
     await new Promise((r) => setTimeout(r, 0));
@@ -127,6 +127,7 @@ describe("data-grid-lazy: reset() refetches the visible window without a scroll"
     const callsBefore = fetchRows.mock.calls.length;
     lazy?.reset();
     await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => requestAnimationFrame(r));
 
     // no scroll happened — the refetch must come from the hook itself.
     expect(fetchRows.mock.calls.length).toBeGreaterThan(callsBefore);
@@ -150,7 +151,7 @@ describe("data-grid-lazy: scroll into a hole -> skeletons -> data fills in", () 
         }),
     );
 
-    render(<LazyGrid fetchRows={fetchRows} />);
+    await render(<LazyGrid fetchRows={fetchRows} />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     // let the mount-time fetch for the initial window resolve so it doesn't interfere below.
     resolveFetch?.();
@@ -189,7 +190,7 @@ describe("data-grid-lazy: scroll into a hole -> skeletons -> data fills in", () 
         }),
     );
 
-    render(<LazyGrid fetchRows={fetchRows} />);
+    await render(<LazyGrid fetchRows={fetchRows} />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     // resolve the mount-time fetch successfully so only the deliberate failure below is under test.
@@ -281,7 +282,7 @@ describe("data-grid-lazy: function-form callbacks on skeleton rows", () => {
         }),
     );
 
-    render(<CallbacksLazyGrid fetchRows={fetchRows} />);
+    await render(<CallbacksLazyGrid fetchRows={fetchRows} />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     // resolve the mount-time fetch so the initial window holds real rows
     resolveFetch?.();

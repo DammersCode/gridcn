@@ -13,7 +13,7 @@ function gridCells(): HTMLElement[] {
 
 describe("data-grid-validation-demo", () => {
   it("typing an invalid Age and committing paints the aria-invalid ring + message", async () => {
-    render(<DataGridValidationDemo />);
+    await render(<DataGridValidationDemo />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const ageCell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="age"]')[0]!;
@@ -36,7 +36,7 @@ describe("data-grid-validation-demo", () => {
 
 describe("data-grid-cell-errors-demo", () => {
   it("a committed Quantity over 100 paints the SAME ring/aria-invalid after the fake 422", async () => {
-    render(<DataGridCellErrorsDemo />);
+    await render(<DataGridCellErrorsDemo />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const quantityCell = gridCells().find((c) => c.getAttribute("data-column-id") === "quantity")!;
@@ -77,7 +77,7 @@ describe("data-grid-validation-demo: onInvalid 'warn'", () => {
   }
 
   it("a soft rejection commits the value, closes the editor, and flags the cell with a tooltip", async () => {
-    render(<DataGridValidationDemo />);
+    await render(<DataGridValidationDemo />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const notesCell = notesCells()[0]!;

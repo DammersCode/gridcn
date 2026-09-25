@@ -54,7 +54,7 @@ const SORT_BY_NAME: SortSpec[] = [{ columnId: "name", direction: "asc" }];
 async function mountGrid(options: { sorted: boolean; data?: Row[] }): Promise<StoreApi<DataGridStoreState>> {
   let api: StoreApi<DataGridStoreState> | null = null;
   const rows = options.data ?? makeRows(ROWS);
-  render(
+  await render(
     <div style={{ height: 600, width: 1200 }}>
       <DataGridProvider
         defaultData={rows}
@@ -342,7 +342,7 @@ describe("updateCells: controlled echo path", () => {
       );
     }
 
-    render(<ControlledHarness />);
+    await render(<ControlledHarness />);
     for (let i = 0; i < 200 && !api; i++) await new Promise((r) => setTimeout(r, 10));
     if (!api) throw new Error("store api never published");
     const store = api as StoreApi<DataGridStoreState>;

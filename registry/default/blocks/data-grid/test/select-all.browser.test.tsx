@@ -38,7 +38,7 @@ function selectedCount(): number {
 
 describe("two-stage Ctrl+A (sparse dataset)", () => {
   it("first Ctrl+A selects the data region, second selects the whole grid, then a move resets the progression", async () => {
-    renderGrid();
+    await renderGrid();
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const nameCells = [...document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="name"]')];

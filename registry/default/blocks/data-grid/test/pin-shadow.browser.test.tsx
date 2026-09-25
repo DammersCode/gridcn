@@ -93,7 +93,7 @@ describe("bug fix — pin-shadow paints flush against the pinned edge, not offse
       { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120, pin: "left" },
       { id: "email", header: "Email", accessorKey: "email", type: "text", width: 200 },
     ] as const);
-    render(
+    await render(
       <div style={{ height: 300, width: 300 }}>
         <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-75 w-75" />
       </div>,
@@ -123,7 +123,7 @@ describe("bug fix — pin-shadow paints flush against the pinned edge, not offse
       { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120 },
       { id: "email", header: "Email", accessorKey: "email", type: "text", width: 200, pin: "right" },
     ] as const);
-    render(
+    await render(
       <div style={{ height: 300, width: 300 }}>
         <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-75 w-75" />
       </div>,
@@ -165,7 +165,7 @@ describe("bug fix - unpinning the last pinned column does not strand the shadow 
       );
     }
 
-    render(<Harness />);
+    await render(<Harness />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     // measured while pinned, so the stale value the bug left behind is a real one
     await vi.waitFor(() => expect(document.querySelector(`[role="columnheader"]${gridAttrSelector("pinned", "left")}`)).not.toBeNull());
@@ -214,7 +214,7 @@ describe("bug fix - the shadow re-anchors when the marker column appears or chan
       });
     };
 
-    render(<Harness />);
+    await render(<Harness />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     await flushAgainstPinnedEdge();
 

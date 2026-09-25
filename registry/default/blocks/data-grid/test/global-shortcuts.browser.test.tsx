@@ -52,7 +52,7 @@ function HistoryGrid({ withShortcuts, toolbarId }: { withShortcuts: boolean; too
 
 describe("global keyboard shortcuts (focus outside the grid)", () => {
   it("Ctrl+Z on a toolbar button outside the grid undoes the grid's last edit, Ctrl+Y re-applies it", async () => {
-    render(<HistoryGrid withShortcuts toolbarId="toolbar" />);
+    await render(<HistoryGrid withShortcuts toolbarId="toolbar" />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const cell = gridCells()[1]!; // "name" column, row 0
     const originalText = cell.textContent;
@@ -72,7 +72,7 @@ describe("global keyboard shortcuts (focus outside the grid)", () => {
   });
 
   it("a stationary Ctrl+Z inside the toolbar input does not touch the grid (editable-target guard)", async () => {
-    render(
+    await render(
       <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
         <input id="toolbar-input" />
         <div style={{ height: 300 }}>
@@ -97,7 +97,7 @@ describe("global keyboard shortcuts (focus outside the grid)", () => {
   });
 
   it("without the opt-in layer, Ctrl+Z outside the grid does nothing to the grid", async () => {
-    render(<HistoryGrid withShortcuts={false} toolbarId="toolbar" />);
+    await render(<HistoryGrid withShortcuts={false} toolbarId="toolbar" />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const cell = gridCells()[1]!;
 
@@ -112,7 +112,7 @@ describe("global keyboard shortcuts (focus outside the grid)", () => {
   });
 
   it("with two opted-in grids, the last focused one owns the shortcut", async () => {
-    render(
+    await render(
       <div style={{ display: "flex", gap: 16 }}>
         <HistoryGrid withShortcuts toolbarId="toolbar-a" />
         <HistoryGrid withShortcuts toolbarId="toolbar-b" />
@@ -162,7 +162,7 @@ describe("global keyboard shortcuts (focus outside the grid)", () => {
         </div>
       );
     }
-    render(<RemappedHistoryGrid />);
+    await render(<RemappedHistoryGrid />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const cell = gridCells()[1]!;
     const originalText = cell.textContent;
@@ -202,7 +202,7 @@ describe("global keyboard shortcuts (focus outside the grid)", () => {
         </div>
       );
     }
-    render(<SelectAllGrid />);
+    await render(<SelectAllGrid />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const cells = gridCells();
     expect(cells.some((c) => c.getAttribute("aria-selected") === "true")).toBe(false);
@@ -247,7 +247,7 @@ describe("global keyboard shortcuts (focus outside the grid)", () => {
         </div>
       );
     }
-    render(<FlipGrid />);
+    await render(<FlipGrid />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const cell = gridCells()[1]!;
     const originalText = cell.textContent;

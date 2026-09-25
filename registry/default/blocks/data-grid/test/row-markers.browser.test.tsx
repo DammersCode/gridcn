@@ -46,7 +46,7 @@ function dispatchPointerDrag(from: HTMLElement, to: HTMLElement, opts?: { shiftK
 
 describe("row markers", () => {
   it("'none' (default) renders no marker cells", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
       </div>,
@@ -56,7 +56,7 @@ describe("row markers", () => {
   });
 
   it("'number' mode shows the 1-based view row index and never appears in aria-colindex", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" />
       </div>,
@@ -72,7 +72,7 @@ describe("row markers", () => {
   });
 
   it("'checkbox' mode renders a checkbox per row wired to the rows selection channel", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="checkbox" />
       </div>,
@@ -87,7 +87,7 @@ describe("row markers", () => {
   });
 
   it("clicking a marker (not the checkbox) selects the whole row", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" />
       </div>,
@@ -103,7 +103,7 @@ describe("row markers", () => {
   // the root's roving-tabindex bootstrap (see root.tsx onFocus) must recognize this as a pointer
   // gesture and NOT clobber the row selection back to a (0,0) single-cell selection.
   it("a marker click's resulting root focus does not clobber the row selection with a (0,0) cell selection", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" />
       </div>,
@@ -117,7 +117,7 @@ describe("row markers", () => {
   });
 
   it("shift+click on a marker selects the row range from the last-highlighted row", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" />
       </div>,
@@ -134,7 +134,7 @@ describe("row markers", () => {
   });
 
   it("ctrl/meta+click on a marker additively toggles that row", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" />
       </div>,
@@ -152,7 +152,7 @@ describe("row markers", () => {
 
   it("press+drag on markers extends a contiguous row-range selection", async () => {
     // reorder is off: a plain vertical marker drag is the row-reorder gesture when enabled
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" enableRowReorder={false} />
       </div>,
@@ -168,7 +168,7 @@ describe("row markers", () => {
   });
 
   it("press+drag starting on the checkbox glyph itself extends a contiguous row-range selection", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="checkbox" />
       </div>,
@@ -189,7 +189,7 @@ describe("row markers", () => {
   });
 
   it("a stationary press+release on the checkbox glyph still toggles it (no drag)", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="checkbox" />
       </div>,
@@ -207,7 +207,7 @@ describe("row markers", () => {
   // Zone model: the checkbox press must never run the marker surface's exclusive selectRow —
   // a stationary glyph click ADDS its row to an existing multi-row selection.
   it("a checkbox click keeps an existing multi-row selection (additive, not exclusive)", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="checkbox" />
       </div>,
@@ -224,7 +224,7 @@ describe("row markers", () => {
 
   it("press+drag on 'both' mode markers (checkbox hidden, number visible) extends a row-range selection", async () => {
     // reorder is off: a plain vertical marker drag is the row-reorder gesture when enabled
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="both" enableRowReorder={false} />
       </div>,
@@ -240,7 +240,7 @@ describe("row markers", () => {
   });
 
   it("press+drag starting on 'both' mode's checkbox glyph extends a row-range selection", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="both" />
       </div>,
@@ -256,7 +256,7 @@ describe("row markers", () => {
   });
 
   it("'both' mode selects row without editing anything (mouse-selection hardening parity)", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="both" />
       </div>,
@@ -270,7 +270,7 @@ describe("row markers", () => {
 
   it("dragging to the viewport bottom edge auto-scrolls and keeps extending the row-range selection", { timeout: 20_000 }, async () => {
     // reorder is off: a plain vertical marker drag is the row-reorder gesture when enabled
-    render(
+    await render(
       <div style={{ height: 200 }}>
         <DataGrid data={makeRows(200)} columns={columns} getRowId={(r) => r.id} className="h-50" rowMarkers="number" enableRowReorder={false} />
       </div>,
@@ -298,7 +298,7 @@ describe("row markers", () => {
   });
 
   it("'both' mode hides the number and shows the checkbox on hover/selected (group-hover pattern)", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(3)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="both" />
       </div>,
@@ -316,7 +316,7 @@ describe("row markers", () => {
   });
 
   it("the marker header renders a select-all checkbox reflecting checked/indeterminate/unchecked", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(4)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="checkbox" />
       </div>,
@@ -343,7 +343,7 @@ describe("header multi-column drag select", () => {
   }
 
   it("plain click selects a single column", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
       </div>,
@@ -365,7 +365,7 @@ describe("header multi-column drag select", () => {
   });
 
   it("press+drag across headers selects the contiguous column range", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
       </div>,
@@ -384,7 +384,7 @@ describe("header multi-column drag select", () => {
   });
 
   it("shift+click extends a contiguous column range from the last-selected header", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
       </div>,
@@ -401,7 +401,7 @@ describe("header multi-column drag select", () => {
 
 describe("selection configurability", () => {
   it("enableColumnSelection: false makes header clicks a no-op", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid
           data={makeRows(5)}
@@ -422,7 +422,7 @@ describe("selection configurability", () => {
   });
 
   it("enableRowSelection: false makes marker clicks a no-op", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid
           data={makeRows(5)}
@@ -441,7 +441,7 @@ describe("selection configurability", () => {
   });
 
   it("enableRangeSelection: false collapses a cell drag to single-cell active only", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid
           data={makeRows(5)}
@@ -467,7 +467,7 @@ describe("selection configurability", () => {
   });
 
   it("enableMultiRange: false makes ctrl-click behave as a plain click (no range stack)", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid
           data={makeRows(5)}
@@ -492,7 +492,7 @@ describe("selection configurability", () => {
 
 describe("mouse-selection hardening matrix (regression: drag-select must never enter edit mode)", () => {
   it("press on the ACTIVE cell + drag to another cell extends selection and never edits", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(10)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
       </div>,
@@ -508,7 +508,7 @@ describe("mouse-selection hardening matrix (regression: drag-select must never e
   });
 
   it("press on an INACTIVE cell + drag never edits", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(10)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
       </div>,
@@ -522,7 +522,7 @@ describe("mouse-selection hardening matrix (regression: drag-select must never e
   });
 
   it("header press+drag selects multi-column without editing anything", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(10)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
       </div>,
@@ -535,7 +535,7 @@ describe("mouse-selection hardening matrix (regression: drag-select must never e
   });
 
   it("marker press+drag selects multi-row without editing anything", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(10)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" />
       </div>,
@@ -548,7 +548,7 @@ describe("mouse-selection hardening matrix (regression: drag-select must never e
   });
 
   it("a plain marker drag (reorder off) grows AND shrinks the row range as the pointer moves", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(10)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" enableRowReorder={false} />
       </div>,
@@ -574,7 +574,7 @@ describe("mouse-selection hardening matrix (regression: drag-select must never e
   });
 
   it("a checkbox press+drag grows AND shrinks the row range (the pointer is the moving edge)", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(10)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="checkbox" />
       </div>,
@@ -603,7 +603,7 @@ describe("mouse-selection hardening matrix (regression: drag-select must never e
   // Excel model: clicks never edit — this guards that pointer jitter neither
   // misreads as a range drag nor (per the model) opens the editor.
   it("a slow click (press, tiny sub-3px jitter, release) on the active cell neither edits nor paints a range", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(10)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
       </div>,
@@ -627,7 +627,7 @@ describe("mouse-selection hardening matrix (regression: drag-select must never e
   });
 
   it("dblclick during/after a completed drag does not edit the drag's destination cell", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(10)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
       </div>,
@@ -660,7 +660,7 @@ describe("marker column stays painted above scrolled cells", () => {
   // horizontal scroll - the pin shadow still showed, but the numbers/checkboxes vanished.
   for (const mode of ["number", "checkbox", "both"] as const) {
     it(`rowMarkers="${mode}" - the marker, not a data cell, is hit-tested after scrolling right`, async () => {
-      render(
+      await render(
         <div style={{ width: 360, height: 300 }}>
           <DataGrid
             data={makeRows(10)}
@@ -692,7 +692,7 @@ describe("marker column stays painted above scrolled cells", () => {
   // Second half of the same class of bug: painting on top is useless if the paint is see-through.
   // A translucent hover tint let the scrolled cells underneath read straight through the marker.
   it("the hover tint is opaque, so scrolled content cannot show through it", async () => {
-    render(
+    await render(
       <div style={{ width: 360, height: 300 }}>
         <DataGrid data={makeRows(10)} columns={wideColumns} getRowId={(r) => r.id} rowMarkers="number" className="h-[300px]" />
       </div>,

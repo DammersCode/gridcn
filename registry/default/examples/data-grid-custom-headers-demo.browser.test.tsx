@@ -29,7 +29,7 @@ function nameOrder(grid: HTMLElement): string[] {
 
 describe("data-grid-custom-headers-demo", () => {
   it("clicking a header sorts, and the custom header icons cycle minus -> asc -> desc", { timeout: 30_000 }, async () => {
-    render(<DataGridCustomHeadersDemo />);
+    await render(<DataGridCustomHeadersDemo />);
     await new Promise((r) => setTimeout(r, 400));
 
     const grid = demoGrid();

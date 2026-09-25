@@ -19,7 +19,7 @@ function latestPayloadFor(source: string): unknown {
 
 describe("data-grid-events-demo", () => {
   it("clicking a cell logs an onSelectionChange entry with the clicked coord", async () => {
-    render(<DataGridEventsDemo />);
+    await render(<DataGridEventsDemo />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const cell = gridCells()[0]!;
@@ -37,7 +37,7 @@ describe("data-grid-events-demo", () => {
   });
 
   it("editing a cell logs an onDataChange entry with the edit's DataChange shape", async () => {
-    render(<DataGridEventsDemo />);
+    await render(<DataGridEventsDemo />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const cell = gridCells()[0]!;
@@ -52,7 +52,7 @@ describe("data-grid-events-demo", () => {
   });
 
   it("the presence read-back button logs a setPresenceHighlights (read-back) entry", async () => {
-    render(<DataGridEventsDemo />);
+    await render(<DataGridEventsDemo />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await page.getByRole("button", { name: "Simulate presence highlight" }).click();

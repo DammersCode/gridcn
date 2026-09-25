@@ -130,7 +130,7 @@ function isLive(el: HTMLElement): boolean {
 describe("registry demos smoke: installed demos work immediately", () => {
   for (const [name, el] of DEMOS) {
     it(`${name} renders a grid with data rows and live controls`, async () => {
-      render(el);
+      await render(el);
       // A demo that renders no grid at all is a bug, not a skip — every example ships a grid.
       await vi.waitFor(() => expect(document.querySelector('[role="grid"]')).not.toBeNull(), { timeout: 5000 });
       const grid = document.querySelector('[role="grid"]')!;

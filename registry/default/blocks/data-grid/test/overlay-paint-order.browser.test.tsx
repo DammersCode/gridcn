@@ -17,7 +17,7 @@ describe("overlay paint order", () => {
   // be positioned itself; DOM order (overlays render after rows) then puts it above plain cells
   // while pinned cells (z-1) and the active ring (z-10) keep their documented layering.
   it("selection overlay is positioned and spans the keyboard-extended range", async () => {
-    render(<DataGridDemo />);
+    await render(<DataGridDemo />);
     await new Promise((r) => setTimeout(r, 300));
 
     await userEvent.click(cellAt(1, 0));

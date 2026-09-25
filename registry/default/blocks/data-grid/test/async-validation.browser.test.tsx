@@ -70,7 +70,7 @@ function dispatchPaste(text: string): void {
 describe("async Standard Schema on paste", () => {
   it("commits after the schema resolves, with the transformed value, in ONE onDataChange", async () => {
     const onDataChange = mockDataChangeFn();
-    render(
+    await render(
       <div style={{ height: 600 }}>
         <DataGrid data={makeRows(4)} columns={asyncColumns} getRowId={(r) => r.id} className="h-[600px]" onDataChange={onDataChange} />
       </div>,
@@ -92,7 +92,7 @@ describe("async Standard Schema on paste", () => {
 
   it("a second paste before the first resolves supersedes it — one commit, the newer values", async () => {
     const onDataChange = mockDataChangeFn();
-    render(
+    await render(
       <div style={{ height: 600 }}>
         <DataGrid data={makeRows(4)} columns={asyncColumns} getRowId={(r) => r.id} className="h-[600px]" onDataChange={onDataChange} />
       </div>,
@@ -112,7 +112,7 @@ describe("async Standard Schema on paste", () => {
 
   it("a rejected cell drops silently and the passing cells still commit", async () => {
     const onDataChange = mockDataChangeFn();
-    render(
+    await render(
       <div style={{ height: 600 }}>
         <DataGrid data={makeRows(4)} columns={asyncColumns} getRowId={(r) => r.id} className="h-[600px]" onDataChange={onDataChange} />
       </div>,
@@ -132,7 +132,7 @@ describe("async Standard Schema on paste", () => {
 describe("async Standard Schema on a click-away edit commit", () => {
   it("commits the value after resolution and keeps the selection on the clicked cell", async () => {
     const onDataChange = mockDataChangeFn();
-    render(
+    await render(
       <div style={{ height: 600 }}>
         <DataGrid data={makeRows(4)} columns={asyncColumns} getRowId={(r) => r.id} className="h-[600px]" onDataChange={onDataChange} />
       </div>,
@@ -160,9 +160,9 @@ describe("async Standard Schema on a click-away edit commit", () => {
 });
 
 describe("async Standard Schema on streaming updateCells", () => {
-  function renderStreamingGrid(onDataChange: ReturnType<typeof mockDataChangeFn>) {
+  async function renderStreamingGrid(onDataChange: ReturnType<typeof mockDataChangeFn>) {
     let storeApi: StoreApi<DataGridStoreState> | null = null;
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGridProvider data={makeRows(4)} columns={asyncColumns} getRowId={(r) => r.id} onDataChange={onDataChange}>
           <StoreProbe onReady={(api) => (storeApi = api)} />
@@ -178,7 +178,7 @@ describe("async Standard Schema on streaming updateCells", () => {
 
   it("resolves validation BEFORE the patches apply, then commits once", async () => {
     const onDataChange = mockDataChangeFn();
-    const getStore = renderStreamingGrid(onDataChange);
+    const getStore = await renderStreamingGrid(onDataChange);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     getStore().getState().actions.updateCells([
@@ -198,7 +198,7 @@ describe("async Standard Schema on streaming updateCells", () => {
 
   it("skipValidation stays the synchronous trusted-feed fast path", async () => {
     const onDataChange = mockDataChangeFn();
-    const getStore = renderStreamingGrid(onDataChange);
+    const getStore = await renderStreamingGrid(onDataChange);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     getStore().getState().actions.updateCells([{ rowId: "row-0", columnId: "name", value: "raw" }], { skipValidation: true });

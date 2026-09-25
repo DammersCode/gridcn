@@ -62,7 +62,7 @@ function tooltipText(): string | null {
 describe("cell-errors: display", () => {
   it("a cellErrors entry paints the ring/tint, aria-invalid, and a tooltip with the message on hover", async () => {
     let store: StoreApi<DataGridStoreState> | undefined;
-    renderGridWithStoreAccess(5, (s) => (store = s));
+    await renderGridWithStoreAccess(5, (s) => (store = s));
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     store!.getState().actions.setCellErrors([{ rowId: "row-1", columnId: "name", message: "Name already taken" }]);
@@ -85,7 +85,7 @@ describe("cell-errors: display", () => {
 
   it("hovering an errored cell then clearing the error dismisses the tooltip", async () => {
     let store: StoreApi<DataGridStoreState> | undefined;
-    renderGridWithStoreAccess(5, (s) => (store = s));
+    await renderGridWithStoreAccess(5, (s) => (store = s));
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     store!.getState().actions.setCellErrors([{ rowId: "row-0", columnId: "name", message: "boom" }]);
@@ -107,7 +107,7 @@ describe("cell-errors: display", () => {
   });
 
   it("hovering a cell without an error shows no tooltip", async () => {
-    renderGridWithStoreAccess(5, () => undefined);
+    await renderGridWithStoreAccess(5, () => undefined);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const nameCell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="name"]')[0]!;
@@ -119,7 +119,7 @@ describe("cell-errors: display", () => {
 
   it("editing an errored cell shows the message immediately, and a successful commit clears the error", async () => {
     let store: StoreApi<DataGridStoreState> | undefined;
-    renderGridWithStoreAccess(5, (s) => (store = s));
+    await renderGridWithStoreAccess(5, (s) => (store = s));
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     store!.getState().actions.setCellErrors([{ rowId: "row-0", columnId: "name", message: "Server rejected this value" }]);
@@ -149,7 +149,7 @@ describe("cell-errors: display", () => {
 
   it("a no-op commit (retyping the exact same value) leaves the error in place", async () => {
     let store: StoreApi<DataGridStoreState> | undefined;
-    renderGridWithStoreAccess(5, (s) => (store = s));
+    await renderGridWithStoreAccess(5, (s) => (store = s));
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     store!.getState().actions.setCellErrors([{ rowId: "row-0", columnId: "name", message: "Server rejected this value" }]);
@@ -181,7 +181,7 @@ describe("cell-errors: display", () => {
         validate: (v) => (typeof v === "number" && v < 0 ? "must be >= 0" : null),
       },
     ];
-    render(
+    await render(
       <div style={{ height: 300 }}>
         <DataGrid data={makeRows(5)} columns={validatedColumns} getRowId={(r) => r.id} className="h-[300px]" />
       </div>,
@@ -214,7 +214,7 @@ describe("cell-errors: zero-render probe", () => {
         return String(value);
       },
     }));
-    render(
+    await render(
       <div style={{ height: 300 }}>
         <DataGridProvider data={makeRows(20)} columns={probeColumns} getRowId={(r) => r.id}>
           <StoreCapture onReady={(s) => (store = s)} />
@@ -252,7 +252,7 @@ describe("cell-errors: zero-render probe", () => {
         return String(value);
       },
     }));
-    render(
+    await render(
       <div style={{ height: 300 }}>
         <DataGridProvider data={makeRows(20)} columns={probeColumns} getRowId={(r) => r.id}>
           <StoreCapture onReady={(s) => (store = s)} />
@@ -295,7 +295,7 @@ describe("cell-errors: tooltip performance", () => {
         return String(value);
       },
     }));
-    render(
+    await render(
       <div style={{ height: 300 }}>
         <DataGridProvider data={makeRows(20)} columns={probeColumns} getRowId={(r) => r.id}>
           <StoreCapture onReady={(s) => (store = s)} />
@@ -335,7 +335,7 @@ describe("cell-errors: tooltip performance", () => {
         return String(value);
       },
     }));
-    render(
+    await render(
       <div style={{ height: 300 }}>
         <DataGridProvider data={makeRows(20)} columns={probeColumns} getRowId={(r) => r.id}>
           <StoreCapture onReady={(s) => (store = s)} />
@@ -376,7 +376,7 @@ describe("cell-errors: tooltip performance", () => {
 describe("cell-errors: pruning", () => {
   it("deleting a row prunes its cellErrors entries end-to-end", async () => {
     let store: StoreApi<DataGridStoreState> | undefined;
-    renderGridWithStoreAccess(5, (s) => (store = s));
+    await renderGridWithStoreAccess(5, (s) => (store = s));
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     store!.getState().actions.setCellErrors([{ rowId: "row-1", columnId: "name", message: "boom" }]);

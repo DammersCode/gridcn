@@ -57,13 +57,13 @@ function renderedDataRowCount(): number {
 
 describe("DataGrid in a real browser", () => {
   it("renders 1k rows quickly and windowed", async () => {
-    renderGrid(1_000);
+    await renderGrid(1_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     expect(renderedDataRowCount()).toBeLessThan(80);
   });
 
   it("renders 10k rows quickly and windowed", async () => {
-    renderGrid(10_000);
+    await renderGrid(10_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     expect(renderedDataRowCount()).toBeLessThan(80);
   });
@@ -71,7 +71,7 @@ describe("DataGrid in a real browser", () => {
   // regression: this froze the browser tab on first ship (100k-track grid layout hang)
   it("renders 100k rows without freezing the main thread", { timeout: 15_000 }, async () => {
     const start = performance.now();
-    renderGrid(100_000);
+    await renderGrid(100_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     // a frozen main thread never reaches here; also assert it's not just slow
     expect(performance.now() - start).toBeLessThan(10_000);
@@ -81,7 +81,7 @@ describe("DataGrid in a real browser", () => {
   // regression: the first shipped demo gave the grid no height — clientHeight covered
   // all 100k rows, the window became the whole dataset, and the tab froze
   it("caps rendering when the grid has no bounded height", { timeout: 15_000 }, async () => {
-    render(
+    await render(
       <div>
         <DataGrid data={makeRows(100_000)} columns={columns} getRowId={(r) => r.id} />
       </div>,
@@ -102,7 +102,7 @@ describe("DataGrid in a real browser", () => {
       })),
     ];
     const start = performance.now();
-    render(
+    await render(
       <div style={{ height: 600 }}>
         <DataGrid data={makeRows(10_000)} columns={wide} getRowId={(r) => r.id} className="h-[600px]" />
       </div>,
@@ -148,7 +148,7 @@ describe("DataGrid in a real browser", () => {
     }
 
     it("renders a bounded gridcell count per row with 100 columns", { timeout: 15_000 }, async () => {
-      renderWideGrid(10_000, 100);
+      await renderWideGrid(10_000, 100);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const firstDataRow = document.querySelectorAll('[role="row"]')[1]!;
       const cellCount = firstDataRow.querySelectorAll('[role="gridcell"]').length;
@@ -156,7 +156,7 @@ describe("DataGrid in a real browser", () => {
     });
 
     it("changes rendered aria-colindex values on horizontal scroll", { timeout: 15_000 }, async () => {
-      renderWideGrid(10_000, 100);
+      await renderWideGrid(10_000, 100);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
 
@@ -172,7 +172,7 @@ describe("DataGrid in a real browser", () => {
     });
 
     it("keeps a pinned-left column rendered at any scrollLeft", { timeout: 15_000 }, async () => {
-      renderWideGrid(10_000, 100, { firstPinnedLeft: true });
+      await renderWideGrid(10_000, 100, { firstPinnedLeft: true });
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
 
@@ -215,7 +215,7 @@ describe("DataGrid in a real browser", () => {
   });
 
   it("updates the rendered window on scroll", { timeout: 15_000 }, async () => {
-    renderGrid(10_000);
+    await renderGrid(10_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
 
@@ -250,7 +250,7 @@ describe("DataGrid in a real browser", () => {
     }
 
     it("never exposes a blank viewport region after a violent multi-jump scroll over 100k rows", async () => {
-      renderGrid(100_000);
+      await renderGrid(100_000);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
       const maxScrollTop = grid.scrollHeight - grid.clientHeight;
@@ -271,7 +271,7 @@ describe("DataGrid in a real browser", () => {
     });
 
     it("keeps the header layer visually pinned to the grid's top edge after scrolling", async () => {
-      renderGrid(10_000);
+      await renderGrid(10_000);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
       const header = document.querySelector<HTMLElement>(gridAttrSelector("headerLayer"))!;
@@ -297,7 +297,7 @@ describe("DataGrid in a real browser", () => {
           width: 100,
         })),
       ];
-      render(
+      await render(
         <div style={{ height: 600, width: 1000 }}>
           <DataGrid data={makeRows(1_000)} columns={pinnedColumns} getRowId={(r) => r.id} className="h-150 w-250" />
         </div>,
@@ -323,7 +323,7 @@ describe("DataGrid in a real browser", () => {
     }
 
     it("click on an unfocused cell only activates it (never edits)", async () => {
-      renderGrid(20);
+      await renderGrid(20);
       const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const cell = gridCells()[0]!;
@@ -339,7 +339,7 @@ describe("DataGrid in a real browser", () => {
 
     // Excel model: clicks NEVER edit — only dblclick/Enter/F2/typing do.
     it("a second click on the already-active cell does NOT start editing", async () => {
-      renderGrid(20);
+      await renderGrid(20);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const cell = gridCells()[0]!;
 
@@ -352,7 +352,7 @@ describe("DataGrid in a real browser", () => {
     });
 
     it("pressing down on the active cell and dragging to another cell extends the selection instead of editing", async () => {
-      renderGrid(20);
+      await renderGrid(20);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const cells = gridCells();
       const colCount = columns.length;
@@ -386,7 +386,7 @@ describe("DataGrid in a real browser", () => {
 
     // Excel model: plain left-drag from ANY cell (no prior activation) paints a range.
     it("plain press+drag from an inactive cell paints a range from the press origin", async () => {
-      renderGrid(20);
+      await renderGrid(20);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       // select by aria coords — immune to DOM ordering (windowing, force-rendered rows)
       const cellAt = (rowIndex: number, colIndex: number) =>
@@ -416,7 +416,7 @@ describe("DataGrid in a real browser", () => {
     // regression (user QA): the drag frame-loop died when the first pointermove arrived after
     // frame 1 — fast drags worked, slow press-then-move drags never painted.
     it("a slow drag (press, pause, then small moves) still paints the range", async () => {
-      renderGrid(20);
+      await renderGrid(20);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const cellAt = (rowIndex: number, colIndex: number) =>
         document.querySelector<HTMLElement>(`[aria-rowindex="${rowIndex}"] [aria-colindex="${colIndex}"]`)!;
@@ -447,14 +447,14 @@ describe("DataGrid in a real browser", () => {
     });
 
     it("range drag never triggers native browser text selection (select-none)", async () => {
-      renderGrid(20);
+      await renderGrid(20);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
       expect(getComputedStyle(grid).userSelect).toBe("none");
     });
 
     it("shift-click creates a range overlay with geometry matching the spanned cells", async () => {
-      renderGrid(20);
+      await renderGrid(20);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const cells = gridCells();
       const colCount = columns.length;
@@ -482,7 +482,7 @@ describe("DataGrid in a real browser", () => {
     });
 
     it("arrow keys move the active cell and scroll the container when moving past the viewport edge", async () => {
-      renderGrid(200);
+      await renderGrid(200);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
       const firstCell = gridCells()[0]!;
@@ -505,7 +505,7 @@ describe("DataGrid in a real browser", () => {
     });
 
     it("mod+Enter scrolls the active cell into view without moving it", async () => {
-      renderGrid(200);
+      await renderGrid(200);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
       await userEvent.click(gridCells()[0]!);
@@ -530,7 +530,7 @@ describe("DataGrid in a real browser", () => {
       const removeSpy = vi.spyOn(document, "removeEventListener");
       const adds = () => addSpy.mock.calls.filter((args) => args[0] === "pointerdown" && args[2] === true).length;
       const removes = () => removeSpy.mock.calls.filter((args) => args[0] === "pointerdown" && args[2] === true).length;
-      render(
+      await render(
         <>
           <button type="button" data-testid="outside-target" />
           <div style={{ height: 600 }}>
@@ -572,7 +572,7 @@ describe("DataGrid in a real browser", () => {
 
     it("typing a printable character opens the editor seeded with it; Enter commits, updates the cell, fires onDataChange once, and moves down", async () => {
       const onDataChange = mockDataChangeFn<Row>();
-      render(
+      await render(
         <div style={{ height: 600 }}>
           <DataGrid
             data={makeRows(20)}
@@ -607,7 +607,7 @@ describe("DataGrid in a real browser", () => {
     });
 
     it("Enter on a focused text cell edits with the caret at the end of the existing content (never select-all)", async () => {
-      renderGrid(5);
+      await renderGrid(5);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const cell = gridCells()[1]!; // "name" column, has content ("Person 0")
       await userEvent.click(cell);
@@ -621,7 +621,7 @@ describe("DataGrid in a real browser", () => {
 
     it("Escape cancels the edit with no change", async () => {
       const onDataChange = mockDataChangeFn<Row>();
-      render(
+      await render(
         <div style={{ height: 600 }}>
           <DataGrid
             data={makeRows(5)}
@@ -646,7 +646,7 @@ describe("DataGrid in a real browser", () => {
 
     it("Delete clears the selected range", async () => {
       const onDataChange = mockDataChangeFn<Row>();
-      render(
+      await render(
         <div style={{ height: 600 }}>
           <DataGrid
             data={makeRows(5)}
@@ -669,7 +669,7 @@ describe("DataGrid in a real browser", () => {
     });
 
     it("double-click opens the editor", async () => {
-      renderGrid(5);
+      await renderGrid(5);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const cell = gridCells()[0]!;
       await userEvent.dblClick(cell);
@@ -727,7 +727,7 @@ describe("DataGrid in a real browser", () => {
       it("commit shows pending (readOnly input), then error on rejection; a fixed value then commits", async () => {
         const onDataChange = mockDataChangeFn<Row>();
         const { schema, resolvers } = makeControlledAsyncSchema();
-        renderAsyncSchemaGrid(onDataChange, schema);
+        await renderAsyncSchemaGrid(onDataChange, schema);
         await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
         const cell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-type="number"]')[0]!;
@@ -764,7 +764,7 @@ describe("DataGrid in a real browser", () => {
       it("Escape while pending cancels the edit with no commit, even after the schema later resolves", async () => {
         const onDataChange = mockDataChangeFn<Row>();
         const { schema, resolvers } = makeControlledAsyncSchema();
-        renderAsyncSchemaGrid(onDataChange, schema);
+        await renderAsyncSchemaGrid(onDataChange, schema);
         await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
         const cell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-type="number"]')[0]!;
@@ -799,7 +799,7 @@ describe("DataGrid in a real browser", () => {
             validate: (value: string) => (value.length < 2 ? "at least 2 characters" : null),
           },
         ] as const);
-        render(
+        await render(
           <div style={{ height: 300 }}>
             <DataGrid
               data={makeRows(2)}
@@ -870,7 +870,7 @@ describe("DataGrid in a real browser", () => {
             validate: schema as never,
           },
         ] as const);
-        render(
+        await render(
           <div style={{ height: 300 }}>
             <DataGrid
               data={[
@@ -934,7 +934,7 @@ describe("DataGrid in a real browser", () => {
 
       it("Enter toggles and writes immediately, never entering edit mode", async () => {
         const onDataChange = vi.fn<(next: readonly BoolRow[]) => void>();
-        renderCheckboxGrid(onDataChange);
+        await renderCheckboxGrid(onDataChange);
         await expect.element(page.getByRole("grid")).toBeInTheDocument();
         const cell = document.querySelector<HTMLElement>('[role="gridcell"]')!;
         await userEvent.click(cell);
@@ -948,7 +948,7 @@ describe("DataGrid in a real browser", () => {
 
       it("a second click on the already-active cell toggles directly instead of entering edit mode", async () => {
         const onDataChange = vi.fn<(next: readonly BoolRow[]) => void>();
-        renderCheckboxGrid(onDataChange);
+        await renderCheckboxGrid(onDataChange);
         await expect.element(page.getByRole("grid")).toBeInTheDocument();
         const cell = document.querySelector<HTMLElement>('[role="gridcell"]')!;
         await userEvent.click(cell); // activates only
@@ -962,7 +962,7 @@ describe("DataGrid in a real browser", () => {
 
       it("double-click toggles directly instead of entering edit mode", async () => {
         const onDataChange = vi.fn<(next: readonly BoolRow[]) => void>();
-        renderCheckboxGrid(onDataChange);
+        await renderCheckboxGrid(onDataChange);
         await expect.element(page.getByRole("grid")).toBeInTheDocument();
         const cell = document.querySelector<HTMLElement>('[role="gridcell"]')!;
         await userEvent.dblClick(cell);
@@ -975,7 +975,7 @@ describe("DataGrid in a real browser", () => {
 
       it("a dblclick on a cell that was already active before the gesture toggles exactly once", async () => {
         const onDataChange = vi.fn<(next: readonly BoolRow[]) => void>();
-        renderCheckboxGrid(onDataChange);
+        await renderCheckboxGrid(onDataChange);
         await expect.element(page.getByRole("grid")).toBeInTheDocument();
         const cell = document.querySelector<HTMLElement>('[role="gridcell"]')!;
         await userEvent.click(cell); // activates only
@@ -1007,7 +1007,7 @@ describe("DataGrid in a real browser", () => {
 
       it("picking an option commits and stays on the cell (no move), and Escape reverts", async () => {
         const onDataChange = mockDataChangeFn<RoleRow>();
-        render(
+        await render(
           <div style={{ height: 300 }}>
             <DataGrid
               data={[{ id: "1", role: null }]}
@@ -1034,7 +1034,7 @@ describe("DataGrid in a real browser", () => {
       });
 
       it("opening the editor renders a data-grid-cell-editor popup with the listbox open", async () => {
-        render(
+        await render(
           <div style={{ height: 300 }}>
             <DataGrid data={[{ id: "1", role: "admin" }]} columns={roleColumns} getRowId={(r) => r.id} className="h-[300px]" />
           </div>,
@@ -1052,7 +1052,7 @@ describe("DataGrid in a real browser", () => {
       });
 
       it("clicking inside the popover editor is not treated as a click-away", async () => {
-        render(
+        await render(
           <div style={{ height: 300 }}>
             <DataGrid data={[{ id: "1", role: "admin" }]} columns={roleColumns} getRowId={(r) => r.id} className="h-[300px]" />
           </div>,
@@ -1072,7 +1072,7 @@ describe("DataGrid in a real browser", () => {
 
       it("a pointerdown inside the portaled select editor does not clear the selection", async () => {
         const onSelectionCleared = vi.fn();
-        render(
+        await render(
           <div style={{ height: 300 }}>
             <DataGrid data={[{ id: "1", role: "admin" }]} columns={roleColumns} getRowId={(r) => r.id} className="h-[300px]" onSelectionCleared={onSelectionCleared} />
           </div>,
@@ -1091,7 +1091,7 @@ describe("DataGrid in a real browser", () => {
 
       it("a genuine outside press (document-level pointerdown, per base-ui's modal dismiss) closes the editor", async () => {
         const onDataChange = mockDataChangeFn<RoleRow>();
-        render(
+        await render(
           <div style={{ height: 300 }}>
             <DataGrid data={[{ id: "1", role: "admin" }]} columns={roleColumns} getRowId={(r) => r.id} className="h-[300px]" onDataChange={onDataChange} />
           </div>,
@@ -1117,7 +1117,7 @@ describe("DataGrid in a real browser", () => {
       });
 
       it("typing a printable character on a select cell opens the editor (no text is seeded — select has no text field)", async () => {
-        render(
+        await render(
           <div style={{ height: 300 }}>
             <DataGrid data={[{ id: "1", role: "admin" }]} columns={roleColumns} getRowId={(r) => r.id} className="h-[300px]" />
           </div>,
@@ -1141,7 +1141,7 @@ describe("DataGrid in a real browser", () => {
       ];
 
       it("opening the editor renders a data-grid-cell-editor popover with a calendar", async () => {
-        render(
+        await render(
           <div style={{ height: 300 }}>
             <DataGrid
               data={[{ id: "1", joined: "2026-07-03" }]}
@@ -1163,7 +1163,7 @@ describe("DataGrid in a real browser", () => {
 
       it("picking a day commits the ISO date and stays on the cell (no move)", async () => {
         const onDataChange = mockDataChangeFn<JoinedRow>();
-        render(
+        await render(
           <div style={{ height: 300 }}>
             <DataGrid
               data={[{ id: "1", joined: "2026-07-03" }]}
@@ -1192,7 +1192,7 @@ describe("DataGrid in a real browser", () => {
       });
 
       it("clicking inside the popover editor is not treated as a click-away", async () => {
-        render(
+        await render(
           <div style={{ height: 300 }}>
             <DataGrid
               data={[{ id: "1", joined: "2026-07-03" }]}
@@ -1244,7 +1244,7 @@ describe("DataGrid in a real browser", () => {
     }
 
     it("copy writes both a TSV text/plain and an html table to the clipboard", async () => {
-      renderGrid(5);
+      await renderGrid(5);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const cell = gridCells()[1]!; // "name" column
       await userEvent.click(cell);
@@ -1257,7 +1257,7 @@ describe("DataGrid in a real browser", () => {
     });
 
     it("copy scope for a selected row copies the full row width", async () => {
-      renderGrid(5);
+      await renderGrid(5);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const cell = gridCells()[0]!;
       await userEvent.click(cell);
@@ -1270,7 +1270,7 @@ describe("DataGrid in a real browser", () => {
 
     it("paste of a 2x2 TSV block updates 4 cells and fires onDataChange once", async () => {
       const onDataChange = mockDataChangeFn<Row>();
-      render(
+      await render(
         <div style={{ height: 600 }}>
           <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[600px]" onDataChange={onDataChange} />
         </div>,
@@ -1293,7 +1293,7 @@ describe("DataGrid in a real browser", () => {
 
     it("paste of one row into a taller selection tiles it down every row", async () => {
       const onDataChange = mockDataChangeFn<Row>();
-      render(
+      await render(
         <div style={{ height: 600 }}>
           <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[600px]" onDataChange={onDataChange} />
         </div>,
@@ -1323,7 +1323,7 @@ describe("DataGrid in a real browser", () => {
         { id: "label", header: "Label", accessorKey: "label" },
       ];
       const onDataChange = mockDataChangeFn<Row>();
-      render(
+      await render(
         <div style={{ height: 300 }}>
           <DataGrid
             data={[{ id: "1", label: "x" }]}
@@ -1348,7 +1348,7 @@ describe("DataGrid in a real browser", () => {
 
     it("cut copies then clears the selection", async () => {
       const onDataChange = mockDataChangeFn<Row>();
-      render(
+      await render(
         <div style={{ height: 600 }}>
           <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[600px]" onDataChange={onDataChange} />
         </div>,
@@ -1380,7 +1380,7 @@ describe("DataGrid in a real browser", () => {
     }
 
     it("Ctrl+Z restores the old value after a cell edit, Ctrl+Y re-applies it", async () => {
-      render(<HistoryGrid />);
+      await render(<HistoryGrid />);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const cell = gridCells()[1]!; // "name" column
       const originalText = cell.textContent;
@@ -1398,7 +1398,7 @@ describe("DataGrid in a real browser", () => {
     });
 
     it("undoing a deleted range restores every cell in one step", async () => {
-      render(<HistoryGrid />);
+      await render(<HistoryGrid />);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const stride = columns.length;
       const cells = gridCells();
@@ -1433,7 +1433,7 @@ describe("DataGrid a11y — roving tabindex bootstrap (real keyboard Tab)", () =
   // grid root itself is that element (tabIndex 0) so a keyboard-only user can Tab in at all; once
   // focus lands, the root seeds (0,0) as the active cell and its own tabIndex drops back to -1.
   it("a real Tab key press reaches the grid, then a second Tab leaves it (roving tabindex takes over)", async () => {
-    render(
+    await render(
       <div>
         <button type="button">before</button>
         <DataGrid data={makeRows(3)} columns={columns} getRowId={(r) => r.id} className="h-[300px]" />

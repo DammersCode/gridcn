@@ -104,7 +104,7 @@ describe("data-grid-fill add-on", () => {
     const data = makeFillRows(6);
     data[0]!.value = 2;
     data[1]!.value = 4;
-    renderFillGrid(data, onDataChange);
+    await renderFillGrid(data, onDataChange);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await selectValueColumn(2); // selects rows 0-1: values 2, 4
@@ -122,7 +122,7 @@ describe("data-grid-fill add-on", () => {
     const data = makeFillRows(6);
     data[0]!.value = 2;
     data[1]!.value = 4;
-    renderFillGrid(data, onDataChange, onFill);
+    await renderFillGrid(data, onDataChange, onFill);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await selectValueColumn(2); // selects rows 0-1: values 2, 4
@@ -139,7 +139,7 @@ describe("data-grid-fill add-on", () => {
     const data = makeFillRows(6);
     data[0]!.value = 2;
     data[1]!.value = 4;
-    renderFillGrid(data, onDataChange);
+    await renderFillGrid(data, onDataChange);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await selectValueColumn(2);
@@ -156,7 +156,7 @@ describe("data-grid-fill add-on", () => {
     const data = makeFillRows(6);
     data[0]!.value = 2;
     data[1]!.value = 4;
-    renderFillGrid(data, onDataChange);
+    await renderFillGrid(data, onDataChange);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await selectValueColumn(2);
@@ -185,7 +185,7 @@ describe("data-grid-fill add-on", () => {
     const data = makeFillRows(6);
     data[0]!.value = 2;
     data[1]!.value = 4;
-    renderFillGrid(data);
+    await renderFillGrid(data);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await selectValueColumn(2);
@@ -213,7 +213,7 @@ describe("data-grid-fill add-on", () => {
     const data = makeFillRows(6);
     data[0]!.value = 2;
     data[1]!.value = 4;
-    renderFillGrid(data, onDataChange);
+    await renderFillGrid(data, onDataChange);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await selectValueColumn(2);
@@ -242,7 +242,7 @@ describe("data-grid-fill add-on", () => {
     const data = makeFillRows(6);
     data[0]!.value = 2;
     data[1]!.value = 4;
-    renderFillGrid(data);
+    await renderFillGrid(data);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await selectValueColumn(2);
@@ -268,7 +268,7 @@ describe("data-grid-fill add-on", () => {
     const data = makeFillRows(30);
     data[0]!.value = 2;
     data[1]!.value = 4;
-    renderFillGrid(data);
+    await renderFillGrid(data);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await selectValueColumn(2);
@@ -293,7 +293,7 @@ describe("data-grid-fill add-on", () => {
     const onDataChange = mockDataChangeFn();
     const data = makeFillRows(4);
     data[0]!.value = 7;
-    renderFillGrid(data, onDataChange);
+    await renderFillGrid(data, onDataChange);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await selectValueColumn(4); // rows 0-3, top row value = 7
@@ -309,7 +309,7 @@ describe("data-grid-fill add-on", () => {
     const onDataChange = mockDataChangeFn();
     const data = makeFillRows(3);
     data[0]!.value = 10;
-    renderFillGrid(data, onDataChange);
+    await renderFillGrid(data, onDataChange);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     // select row 0 across both columns so "label" is the left column to fill rightward from
@@ -345,7 +345,7 @@ describe("data-grid-fill add-on", () => {
         </DataGridProvider>
       );
     }
-    render(
+    await render(
       <div style={{ height: 600, width: 400 }}>
         <Harness />
       </div>,
@@ -385,7 +385,7 @@ describe("data-grid-fill add-on", () => {
         </DataGridProvider>
       );
     }
-    render(
+    await render(
       <div style={{ height: 600 }}>
         <Harness />
       </div>,
@@ -411,7 +411,7 @@ describe("without the data-grid-fill add-on installed", () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     const data = makeFillRows(4);
     const onDataChange = mockDataChangeFn();
-    render(
+    await render(
       <div style={{ height: 600 }}>
         <DataGridProvider data={data} columns={fillColumns} getRowId={(r) => r.id} onDataChange={onDataChange}>
           <DataGridRoot className="h-[600px]">
@@ -490,7 +490,7 @@ describe("data-grid-fill with an async schema", () => {
     const onDataChange = mockDataChangeFn();
     const data = makeFillRows(4);
     data[0]!.value = 7;
-    renderAsyncFillGrid(data, onDataChange);
+    await renderAsyncFillGrid(data, onDataChange);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await selectValueColumn(4);
@@ -508,7 +508,7 @@ describe("data-grid-fill with an async schema", () => {
     const onDataChange = mockDataChangeFn();
     const data = makeFillRows(3);
     data[0]!.value = 500; // above the schema's limit
-    renderAsyncFillGrid(data, onDataChange);
+    await renderAsyncFillGrid(data, onDataChange);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await selectValueColumn(3);
@@ -522,7 +522,7 @@ describe("data-grid-fill with an async schema", () => {
     const onDataChange = mockDataChangeFn();
     const data = makeFillRows(4);
     data[0]!.value = 7;
-    renderAsyncFillGrid(data, onDataChange);
+    await renderAsyncFillGrid(data, onDataChange);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await selectValueColumn(4);

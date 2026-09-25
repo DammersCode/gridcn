@@ -21,7 +21,7 @@ function symbolOrder(): string[] {
 
 describe("data-grid-streaming-demo", () => {
   it("streams new values into cells while the feed runs", { timeout: 30_000 }, async () => {
-    render(<DataGridStreamingDemo />);
+    await render(<DataGridStreamingDemo />);
     await new Promise((r) => setTimeout(r, 400));
     const before = demoGrid().textContent;
     await new Promise((r) => setTimeout(r, 900));
@@ -29,7 +29,7 @@ describe("data-grid-streaming-demo", () => {
   });
 
   it("holds row position and offers a re-sort once sorted on the streaming column", { timeout: 30_000 }, async () => {
-    render(<DataGridStreamingDemo />);
+    await render(<DataGridStreamingDemo />);
     await new Promise((r) => setTimeout(r, 400));
 
     const header = Array.from(demoGrid().querySelectorAll<HTMLElement>("[role='columnheader']")).find((h) =>
@@ -50,7 +50,7 @@ describe("data-grid-streaming-demo", () => {
   });
 
   it("re-sorts automatically on each tick once auto-sort is on, and hides the re-sort button", { timeout: 30_000 }, async () => {
-    render(<DataGridStreamingDemo />);
+    await render(<DataGridStreamingDemo />);
     await new Promise((r) => setTimeout(r, 400));
 
     const header = Array.from(demoGrid().querySelectorAll<HTMLElement>("[role='columnheader']")).find((h) =>

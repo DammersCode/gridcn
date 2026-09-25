@@ -61,7 +61,7 @@ describe("DataGridExportButton (browser)", () => {
         return el;
       });
 
-    renderGrid();
+    await renderGrid();
     await expect.element(page.getByRole("button", { name: "Export" })).toBeInTheDocument();
     await userEvent.click(page.getByRole("button", { name: "Export" }));
     await expect.element(page.getByText("Export as CSV")).toBeInTheDocument();
@@ -119,7 +119,7 @@ describe("DataGridExportButton export failures (browser)", () => {
     }));
     const freshDataGrid = await import("@/registry/default/blocks/data-grid/data-grid");
     const freshIo = await import("./data-grid-io");
-    render(
+    await render(
       <freshDataGrid.DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
         <freshIo.DataGridExportButton onError={onError} />
         <freshDataGrid.DataGridRoot className="h-[200px]">
@@ -163,7 +163,7 @@ describe("DataGridExportButton export failures (browser)", () => {
 
   it("calls onError with the error and 'csv' when a cell type's toText throws", async () => {
     const onError = vi.fn();
-    render(
+    await render(
       <DataGridProvider data={makeRows()} columns={boomColumns} cellTypes={{ ...cellTypes, boom: boomCellType }} getRowId={(r) => r.id}>
         <DataGridExportButton onError={onError} />
         <DataGridRoot className="h-[200px]">
