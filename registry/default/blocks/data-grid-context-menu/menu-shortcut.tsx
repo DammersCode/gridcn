@@ -1,4 +1,5 @@
-import type { GridAction, Keymap } from "@/registry/default/blocks/data-grid/data-grid";
+import type { ReactNode } from "react";
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
 
 /** True when running on macOS (Cmd-labeled shortcuts); false everywhere else (Ctrl-labeled). SSR-safe (false when no `navigator`). */
 function isMac(): boolean {
@@ -10,7 +11,7 @@ function isMac(): boolean {
   return /mac|iphone|ipad/i.test(platform);
 }
 
-/** One binding segment ("mod", "shift", "z") to its display token, platform-aware for "mod". */
+/** One binding segment ("mod", "shift", "z") to its display token, platform-aware for the modifiers. */
 function displaySegment(segment: string): string {
   if (segment === "mod") return isMac() ? "⌘" : "Ctrl";
   if (segment === "ctrl") return "Ctrl";
@@ -20,18 +21,20 @@ function displaySegment(segment: string): string {
   return segment.length === 1 ? segment.toUpperCase() : segment;
 }
 
-/**
- * Renders one binding string ("mod+shift+z") as a display label ("⌘⇧Z" / "Ctrl+Shift+Z"). Used by
- * the menu's own shortcut hints, including native Ctrl/Cmd+C/X/V labels that live outside
- * `DEFAULT_KEYMAP`; module-private.
- */
-export function formatBinding(binding: string): string {
-  const parts = binding.split("+").map(displaySegment);
-  return isMac() ? parts.join("") : parts.join("+");
+/** One binding string ("mod+shift+z") as its display tokens, one per keycap ("Ctrl" "Shift" "Z" / "⌘" "⇧" "Z"). */
+export function bindingTokens(binding: string): string[] {
+  return binding.split("+").map(displaySegment);
 }
 
-/** The first (primary) binding for `action` in `keymap`, formatted for display, or undefined when unbound — for a {@link import("@/components/ui/context-menu").ContextMenuShortcut} label. */
-export function formatKeymapShortcut(keymap: Keymap, action: GridAction): string | undefined {
-  const binding = keymap[action]?.[0];
-  return binding ? formatBinding(binding) : undefined;
+/** A menu item's shortcut hint as keycaps, pushed to the item's end; renders nothing for an unbound action. */
+export function MenuShortcut({ binding }: { binding: string | undefined }): ReactNode {
+  if (!binding) return null;
+  return (
+    <KbdGroup className="ml-auto">
+      {bindingTokens(binding).map((token, i) => (
+        // tokens within one binding have no other stable identity; index is fine, this list never reorders
+        <Kbd key={i}>{token}</Kbd>
+      ))}
+    </KbdGroup>
+  );
 }

@@ -224,9 +224,8 @@ describe("DataGridContextMenu — shortcut hints follow the consumer's keymap", 
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     rightClick(gridCell("Alice", "name"));
     await vi.waitFor(() => expect(menuItem("Clear contents")).toBeTruthy());
-    const clearItem = menuItem("Clear contents")!;
-    expect(clearItem.textContent).toContain("Ctrl+Shift+K");
-    expect(clearItem.textContent).not.toContain("Delete");
+    const keycaps = [...menuItem("Clear contents")!.querySelectorAll("kbd")].map((kbd) => kbd.textContent);
+    expect(keycaps).toEqual(["Ctrl", "Shift", "K"]);
   });
 });
 

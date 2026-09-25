@@ -141,6 +141,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Context menu shortcut keycaps:** the cell menu shows each shortcut as `Kbd` keycaps (`Ctrl`
+  `Shift` `U`, or `⌘` `⇧` `U` on macOS) instead of a `+`-joined string. The add-on ships
+  `components/ui/kbd.tsx`.
 - **Row reorder is now marker-gated and zone-based:** the drag-to-reorder gesture only arms from
   the `reorder`-family marker modes (`rowMarkers="reorder"`, `"reorder-number"`,
   `"reorder-checkbox"`, `"reorder-both"`) — plain `number`/`checkbox`/`both` markers are pure

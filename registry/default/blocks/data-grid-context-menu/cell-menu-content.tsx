@@ -2,11 +2,7 @@
 
 import { useCallback, type ReactNode } from "react";
 import { Clipboard, Copy, CopyPlus, Eraser, Plus, Scissors, Trash2 } from "lucide-react";
-import {
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuShortcut,
-} from "@/components/ui/context-menu";
+import { ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   useDataGridActions,
@@ -16,7 +12,7 @@ import {
   useDataGridReadOnly,
   useDataGridSelection,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { formatBinding, formatKeymapShortcut } from "./format-keymap-shortcut";
+import { MenuShortcut } from "./menu-shortcut";
 import { selectedViewRows } from "./selection-queries";
 
 /** Props for {@link DataGridCellMenuContent}. */
@@ -69,7 +65,7 @@ export function DataGridCellMenuContent(props: DataGridCellMenuContentProps): Re
     >
       <Clipboard className="size-4 text-muted-foreground" />
       {labels.contextMenu.paste}
-      <ContextMenuShortcut>{formatBinding("mod+v")}</ContextMenuShortcut>
+      <MenuShortcut binding="mod+v" />
     </ContextMenuItem>
   );
 
@@ -78,12 +74,12 @@ export function DataGridCellMenuContent(props: DataGridCellMenuContentProps): Re
       <ContextMenuItem disabled={readOnly} onClick={clipboard.cut}>
         <Scissors className="size-4 text-muted-foreground" />
         {labels.contextMenu.cut}
-        <ContextMenuShortcut>{formatBinding("mod+x")}</ContextMenuShortcut>
+        <MenuShortcut binding="mod+x" />
       </ContextMenuItem>
       <ContextMenuItem onClick={clipboard.copy}>
         <Copy className="size-4 text-muted-foreground" />
         {labels.contextMenu.copy}
-        <ContextMenuShortcut>{formatBinding("mod+c")}</ContextMenuShortcut>
+        <MenuShortcut binding="mod+c" />
       </ContextMenuItem>
       {pasteBlocked && !readOnly ? (
         <Tooltip>
@@ -97,7 +93,7 @@ export function DataGridCellMenuContent(props: DataGridCellMenuContentProps): Re
       <ContextMenuItem disabled={readOnly} onClick={() => actions.deleteSelection()}>
         <Eraser className="size-4 text-muted-foreground" />
         {labels.contextMenu.clearContents}
-        <ContextMenuShortcut>{formatKeymapShortcut(keymap, "deleteContents")}</ContextMenuShortcut>
+        <MenuShortcut binding={keymap.deleteContents?.[0]} />
       </ContextMenuItem>
       <ContextMenuSeparator />
       {canInsertRow && (
@@ -105,12 +101,12 @@ export function DataGridCellMenuContent(props: DataGridCellMenuContentProps): Re
           <ContextMenuItem disabled={readOnly} onClick={() => actions.insertRow(row, "above")}>
             <Plus className="size-4 text-muted-foreground" />
             {labels.contextMenu.insertRowAbove}
-            <ContextMenuShortcut>{formatKeymapShortcut(keymap, "insertRowAbove")}</ContextMenuShortcut>
+            <MenuShortcut binding={keymap.insertRowAbove?.[0]} />
           </ContextMenuItem>
           <ContextMenuItem disabled={readOnly} onClick={() => actions.insertRow(row, "below")}>
             <Plus className="size-4 text-muted-foreground" />
             {labels.contextMenu.insertRowBelow}
-            <ContextMenuShortcut>{formatKeymapShortcut(keymap, "insertRowBelow")}</ContextMenuShortcut>
+            <MenuShortcut binding={keymap.insertRowBelow?.[0]} />
           </ContextMenuItem>
         </>
       )}
@@ -118,13 +114,13 @@ export function DataGridCellMenuContent(props: DataGridCellMenuContentProps): Re
         <ContextMenuItem disabled={readOnly} onClick={() => actions.duplicateRows(rows)}>
           <CopyPlus className="size-4 text-muted-foreground" />
           {labels.contextMenu.duplicateRows(rows.length)}
-          <ContextMenuShortcut>{formatKeymapShortcut(keymap, "duplicateRow")}</ContextMenuShortcut>
+          <MenuShortcut binding={keymap.duplicateRow?.[0]} />
         </ContextMenuItem>
       )}
       <ContextMenuItem disabled={readOnly} variant="destructive" onClick={() => actions.deleteRows(rows)}>
         <Trash2 className="size-4" />
         {labels.contextMenu.deleteRows(rows.length)}
-        <ContextMenuShortcut>{formatKeymapShortcut(keymap, "deleteRows")}</ContextMenuShortcut>
+        <MenuShortcut binding={keymap.deleteRows?.[0]} />
       </ContextMenuItem>
     </>
   );

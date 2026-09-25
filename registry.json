@@ -816,9 +816,14 @@
                "target": "components/data-grid-context-menu/autosize-column.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid-context-menu/format-keymap-shortcut.ts",
+               "path": "registry/default/blocks/data-grid-context-menu/menu-shortcut.tsx",
                "type": "registry:component",
-               "target": "components/data-grid-context-menu/format-keymap-shortcut.ts"
+               "target": "components/data-grid-context-menu/menu-shortcut.tsx"
+            },
+            {
+               "path": "components/ui/kbd.tsx",
+               "type": "registry:component",
+               "target": "components/ui/kbd.tsx"
             },
             {
                "path": "registry/default/blocks/data-grid-context-menu/has-row-op.ts",
