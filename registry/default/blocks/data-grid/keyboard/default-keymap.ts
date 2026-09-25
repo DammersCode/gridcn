@@ -57,4 +57,7 @@ export const DEFAULT_KEYMAP: Keymap = {
   // can't reliably preventDefault against; f/x are unreserved in Chrome/Edge/Firefox/Safari.
   insertRowBelow: ["mod+shift+f"],
   duplicateRow: ["mod+shift+x"],
+  // Sheets/Excel chords (Ctrl+Alt+=/-, Ctrl+Shift+=, Ctrl+-) hit AltGr or non-preventable browser zoom; u/Backspace don't.
+  insertRowAbove: ["mod+shift+u"],
+  deleteRows: ["mod+shift+Backspace"],
 };

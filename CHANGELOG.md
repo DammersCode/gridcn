@@ -11,6 +11,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Row insert-above and delete-rows shortcuts:** `insertRowAbove` (`mod+shift+u`) and
+  `deleteRows` (`mod+shift+Backspace`) join `insertRowBelow` and `duplicateRow` in
+  `DEFAULT_KEYMAP`; the context menu's Insert row above and Delete row(s) items now show their
+  shortcuts too.
 - **Typed keymap binding strings:** the `keymap` prop's binding strings now use the exported
   `KeyBinding` type — a modifier prefix (`mod`, `ctrl`, `shift`, `alt`, in that order when
   combined) plus a typed key (letters, digits, `F1` to `F24`, named keys, a single printable

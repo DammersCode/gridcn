@@ -238,6 +238,15 @@ describe("matchKeymap - other actions", () => {
     ).toBe("duplicateRow");
   });
 
+  it("matches insertRowAbove and deleteRows", () => {
+    expect(
+      matchKeymap(makeEvent({ key: "u", ctrlKey: true, shiftKey: true }), DEFAULT_KEYMAP, false),
+    ).toBe("insertRowAbove");
+    expect(
+      matchKeymap(makeEvent({ key: "Backspace", ctrlKey: true, shiftKey: true }), DEFAULT_KEYMAP, false),
+    ).toBe("deleteRows");
+  });
+
   it("matches retain-move and scroll-active-into-view bindings", () => {
     expect(matchKeymap(makeEvent({ key: "ArrowUp", altKey: true }), DEFAULT_KEYMAP, false)).toBe("retainMoveUp");
     expect(matchKeymap(makeEvent({ key: "ArrowDown", altKey: true }), DEFAULT_KEYMAP, false)).toBe("retainMoveDown");
@@ -369,7 +378,7 @@ describe("GridAction coverage", () => {
     cancel: true, deleteContents: true,
     undo: true, redo: true,
     fillDown: true, fillRight: true,
-    insertRowBelow: true, duplicateRow: true,
+    insertRowBelow: true, insertRowAbove: true, duplicateRow: true, deleteRows: true,
   };
 
   it("every GridAction is either bound in DEFAULT_KEYMAP, implicit-fallback, or explicitly allowlisted", () => {

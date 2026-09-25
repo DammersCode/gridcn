@@ -510,7 +510,7 @@ export type GridAction =
   | "cancel" | "deleteContents"
   | "undo" | "redo"
   | "fillDown" | "fillRight"
-  | "insertRowBelow" | "duplicateRow";
+  | "insertRowBelow" | "insertRowAbove" | "duplicateRow" | "deleteRows";
 
 /**
  * Key binding string: `mod` = Ctrl (win/linux) / Cmd (mac), `ctrl` = the LITERAL physical Ctrl key

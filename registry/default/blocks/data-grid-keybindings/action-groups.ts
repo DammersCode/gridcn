@@ -55,7 +55,9 @@ export const ACTION_CATEGORY: Partial<Record<GridAction, KeybindingCategory>> = 
   cancel: "editing",
   deleteContents: "editing",
   insertRowBelow: "editing",
+  insertRowAbove: "editing",
   duplicateRow: "editing",
+  deleteRows: "editing",
 
   fillDown: "clipboardFill",
   fillRight: "clipboardFill",

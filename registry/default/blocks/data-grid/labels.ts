@@ -368,7 +368,9 @@ export const DEFAULT_LABELS: DataGridLabels = {
       cancel: "Cancel edit",
       deleteContents: "Delete contents",
       insertRowBelow: "Insert row below",
+      insertRowAbove: "Insert row above",
       duplicateRow: "Duplicate row",
+      deleteRows: "Delete row(s)",
 
       fillDown: "Fill down",
       fillRight: "Fill right",

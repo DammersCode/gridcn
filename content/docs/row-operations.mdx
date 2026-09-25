@@ -31,11 +31,12 @@ open: the editor pins a view coordinate the row shift would invalidate.
 
 | Action | Default | Keymap action |
 |---|---|---|
+| Insert row above | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd> | `insertRowAbove` |
 | Insert row below | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> | `insertRowBelow` |
 | Duplicate row(s) | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd> | `duplicateRow` |
-| Delete row(s) | (no default binding) | (none) |
+| Delete row(s) | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Backspace</kbd> | `deleteRows` |
 
-Both bindings live in `DEFAULT_KEYMAP`, so they can be remapped or dropped through the `keymap`
+Every binding lives in `DEFAULT_KEYMAP`, so it can be remapped or dropped through the `keymap`
 prop like every other binding (see [Keybindings](/docs/addons/keybindings#remapping)).
 
 ## Reorder
@@ -96,11 +97,13 @@ The cell-surface items, in order:
 1. **Cut** / **Copy** / **Paste** — the native clipboard pipeline (see [Clipboard](/docs/clipboard)).
 2. **Clear contents** — empties the selection to each type's `clearValue()` (the `deleteContents`
    action, <kbd>Delete</kbd>/<kbd>Backspace</kbd>).
-3. **Insert row above** / **Insert row below** — anchored at the right-clicked row. Hidden without
-   `createRow`.
+3. **Insert row above** (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd>) / **Insert
+   row below** (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>) — anchored at the
+   right-clicked row. Hidden without `createRow`.
 4. **Duplicate row(s)** — <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>. Hidden
    without `duplicateRow`.
-5. **Delete row(s)** — destructive item, no default keyboard binding.
+5. **Delete row(s)** — <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Backspace</kbd>,
+   destructive item.
 
 The row-operation items act on **every view row covered by the current selection**, falling back
 to the right-clicked row when nothing is selected, so a range selection duplicates or deletes all

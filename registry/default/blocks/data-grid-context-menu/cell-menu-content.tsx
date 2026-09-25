@@ -105,6 +105,7 @@ export function DataGridCellMenuContent(props: DataGridCellMenuContentProps): Re
           <ContextMenuItem disabled={readOnly} onClick={() => actions.insertRow(row, "above")}>
             <Plus className="size-4 text-muted-foreground" />
             {labels.contextMenu.insertRowAbove}
+            <ContextMenuShortcut>{formatKeymapShortcut(keymap, "insertRowAbove")}</ContextMenuShortcut>
           </ContextMenuItem>
           <ContextMenuItem disabled={readOnly} onClick={() => actions.insertRow(row, "below")}>
             <Plus className="size-4 text-muted-foreground" />
@@ -123,6 +124,7 @@ export function DataGridCellMenuContent(props: DataGridCellMenuContentProps): Re
       <ContextMenuItem disabled={readOnly} variant="destructive" onClick={() => actions.deleteRows(rows)}>
         <Trash2 className="size-4" />
         {labels.contextMenu.deleteRows(rows.length)}
+        <ContextMenuShortcut>{formatKeymapShortcut(keymap, "deleteRows")}</ContextMenuShortcut>
       </ContextMenuItem>
     </>
   );

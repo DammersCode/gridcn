@@ -436,6 +436,20 @@ export function dispatchGridAction(args: {
       }
       break;
     }
+    case "insertRowAbove": {
+      preventDefault();
+      if (!readOnly && state.createRow && state.activeCell) actions.insertRow(state.activeCell.row, "above");
+      break;
+    }
+    case "deleteRows": {
+      preventDefault();
+      if (!readOnly) {
+        const selected = getSelectedViewRows(state.selection);
+        if (selected.length > 0) actions.deleteRows(selected);
+        else if (state.activeCell) actions.deleteRows([state.activeCell.row]);
+      }
+      break;
+    }
   }
 }
 function isCheckboxCell(state: DataGridStoreState, coord: CellCoord): boolean {

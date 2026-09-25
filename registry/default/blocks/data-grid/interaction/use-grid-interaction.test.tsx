@@ -110,15 +110,16 @@ function makeRows(count: number): Row[] {
 
 function renderInteraction(
   rowCount = 20,
-  options: { readOnly?: boolean; createRow?: (index: number) => Row; duplicateRow?: (row: Row, index: number) => Row; keymap?: Keymap; columns?: readonly ColumnDef<Row, unknown>[] } = {},
+  options: { readOnly?: boolean; createRow?: (index: number) => Row; duplicateRow?: (row: Row, index: number) => Row; keymap?: Keymap; columns?: readonly ColumnDef<Row, unknown>[]; uncontrolled?: boolean } = {},
 ) {
   const { readOnly = false, createRow, duplicateRow, keymap = DEFAULT_KEYMAP, columns: testColumns = columns } = options;
   const scrollRef = { current: makeScrollElement() };
   const data = makeRows(rowCount);
-  // row-op tests (createRow/duplicateRow provided) mutate the store's own row count — uncontrolled
-  // (defaultData) so the mutation persists instead of being overwritten by the next _syncProps
-  // sync of an unchanging `data` prop, matching store/update-cells.test.tsx's own row-op harness.
-  const uncontrolled = Boolean(createRow || duplicateRow);
+  // row-op tests (createRow/duplicateRow provided, or deleteRows explicitly) mutate the store's own
+  // row count — uncontrolled (defaultData) so the mutation persists instead of being overwritten by
+  // the next _syncProps sync of an unchanging `data` prop, matching store/update-cells.test.tsx's own
+  // row-op harness.
+  const uncontrolled = options.uncontrolled ?? Boolean(createRow || duplicateRow);
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <DataGridProvider
@@ -554,6 +555,74 @@ describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
     pressKey(hook, "x", { ctrlKey: true, shiftKey: true });
 
     expect(dataLength(hook)).toBe(4);
+  });
+});
+
+describe("useGridInteraction: insertRowAbove/deleteRows dispatch", () => {
+  it("insertRowAbove inserts a new row above the active cell when createRow is provided", () => {
+    const createRow = (index: number): Row => ({ id: `new-${index}`, name: "new", qty: 0 });
+    const { hook } = renderInteraction(3, { createRow });
+    act(() => hook.result.current.actions.selectCell({ col: 0, row: 1 }));
+    hook.rerender();
+
+    pressKey(hook, "u", { ctrlKey: true, shiftKey: true });
+
+    expect(dataLength(hook)).toBe(4);
+    expect(hook.result.current.storeApi.getState().data[1]).toEqual(expect.objectContaining({ id: "new-1" }));
+  });
+
+  it("insertRowAbove is a no-op when createRow is absent", () => {
+    const { hook } = renderInteraction(3);
+    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    hook.rerender();
+
+    pressKey(hook, "u", { ctrlKey: true, shiftKey: true });
+
+    expect(dataLength(hook)).toBe(3);
+  });
+
+  it("insertRowAbove is a no-op on a readOnly grid even with createRow provided", () => {
+    const createRow = (index: number): Row => ({ id: `new-${index}`, name: "new", qty: 0 });
+    const { hook } = renderInteraction(3, { readOnly: true, createRow });
+    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    hook.rerender();
+
+    pressKey(hook, "u", { ctrlKey: true, shiftKey: true });
+
+    expect(dataLength(hook)).toBe(3);
+  });
+
+  it("deleteRows deletes every view row covered by the selection", () => {
+    const { hook } = renderInteraction(3, { uncontrolled: true });
+    act(() => {
+      hook.result.current.actions.selectCell({ col: 0, row: 0 });
+      hook.result.current.actions.extendTo({ col: 0, row: 1 });
+    });
+    hook.rerender();
+
+    pressKey(hook, "Backspace", { ctrlKey: true, shiftKey: true });
+
+    expect(dataLength(hook)).toBe(1);
+  });
+
+  it("deleteRows falls back to the active row when nothing is selected", () => {
+    const { hook } = renderInteraction(3, { uncontrolled: true });
+    act(() => hook.result.current.actions.selectCell({ col: 0, row: 1 }));
+    hook.rerender();
+
+    pressKey(hook, "Backspace", { ctrlKey: true, shiftKey: true });
+
+    expect(dataLength(hook)).toBe(2);
+  });
+
+  it("deleteRows is a no-op on a readOnly grid", () => {
+    const { hook } = renderInteraction(3, { readOnly: true });
+    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    hook.rerender();
+
+    pressKey(hook, "Backspace", { ctrlKey: true, shiftKey: true });
+
+    expect(dataLength(hook)).toBe(3);
   });
 });
 
