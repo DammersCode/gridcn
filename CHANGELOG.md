@@ -262,6 +262,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   minted once per mount, so the global binding stays live with focus already inside the grid.
 - **Stale view-space presence warning:** the dev warning fires once per grid instead of once per
   page, and `insertRows`, `deleteRows`, and `duplicateRows` trigger it too.
+- **`defineColumns` on TypeScript 5.x:** callback parameters such as `renderCell`'s `{ value,
+  rowIndex }` are typed again instead of implicit `any` (a `strict` build failed). An unknown
+  column key still fails to compile, as "Expected 2 arguments" naming the key.
+- **Vite type-check:** the core grid no longer reads `process.env` directly, so `tsc -b` passes in a
+  Vite project whose `tsconfig.app.json` lacks `@types/node`.
 - **Demo npm dependencies:** `data-grid-context-menu-slots-demo` declares `lucide-react` and
   `data-grid-validation-demo` declares `sonner`, so a fresh install gets both packages.
 - **Inline fill callbacks:** `useDataGridFill`'s `onFill` and `detectSeries` may be inline

@@ -17,6 +17,7 @@ import {
   type SearchMatch,
 } from "../sort-filter";
 import { getCellValue } from "../columns/column-helpers";
+import { isDev } from "../is-dev";
 import type { OverlayPlugin } from "../overlays";
 import type { RowBandsSpec } from "../layout-context";
 import type {
@@ -408,7 +409,7 @@ export function incrementalViewIndex(
   const opts = { sorts: sortState, filters: filterState, joinOperator };
   const result = updateViewIndex(prevViewIndex, touchedRows, accessor, opts);
   if (result.viewIndex === null) return null;
-  if (process.env.NODE_ENV !== "production" && Math.random() < incrementalAssertRate) {
+  if (isDev() && Math.random() < incrementalAssertRate) {
     const reference = buildViewIndex(data.length, accessor, opts);
     if (!sameElements(result.viewIndex, reference)) {
       console.error(

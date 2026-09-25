@@ -48,7 +48,7 @@ Known engine-specific caveats, found in source and tests:
 |---|---|---|
 | React | **19** | Hard dependency, not a tested baseline. gridcn's store reads context through React's `use()` API (`use(DataGridStoreContext)`, `use(DataGridRootContext)`), which does not exist in React 18. |
 | Tailwind | **v4** | gridcn's tokens and utility classes assume the v4 engine and its `@theme` syntax. |
-| TypeScript | **5.9 stable, or the repo's own 6.0.3 pin** | The repository pins a newer TypeScript internally, but every shipped example is proven to compile on stable TypeScript 5.9.3 through a dedicated consumer-install test harness. A consumer on stable TypeScript is a supported, verified target, not an afterthought. |
+| TypeScript | **5.9** | Every shipped example installs, type-checks, and builds in a fresh Next.js app on TypeScript 5.9. TypeScript 6 and 7 work too. |
 | Node.js | **20.9 or later** | This is Next.js 16's floor, inherited by the docs site and by any project running the `shadcn` CLI through `npx`. gridcn itself has no separate Node requirement. |
 
 ## React Compiler
