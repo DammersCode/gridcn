@@ -44,13 +44,17 @@ function accessorFor(rows: readonly Row[]): CellAccessor {
   };
 }
 
-/** Warms up `fn` then times `iterations` runs, returning the mean ms/iteration. */
+/** Warms up `fn` then times `iterations` runs, returning the fastest run in ms. */
 function measure(fn: () => void, iterations: number, warmup = 3): number {
   for (let i = 0; i < warmup; i++) fn();
-  const start = performance.now();
-  for (let i = 0; i < iterations; i++) fn();
-  const elapsed = performance.now() - start;
-  return elapsed / iterations;
+  // Best-of-N, not the mean: parallel test workers stall single runs, an algorithmic regression slows every run.
+  let fastest = Infinity;
+  for (let i = 0; i < iterations; i++) {
+    const start = performance.now();
+    fn();
+    fastest = Math.min(fastest, performance.now() - start);
+  }
+  return fastest;
 }
 
 describe("view-index pipeline perf (100k rows)", () => {
