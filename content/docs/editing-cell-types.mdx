@@ -36,8 +36,10 @@ The table means this:
 - A popover editor without an explicit pick cancels rather than commits.
 
 <Callout title="Checkboxes have no edit mode">
-  A click, or Enter, or Space, toggles a checkbox cell directly. There is no intermediate editor
-  state to commit or cancel.
+  A click on the box toggles a checkbox cell directly. A click elsewhere in the cell selects it,
+  and a second click toggles it. Enter and Space toggle the active cell. A drag that starts on a
+  checkbox cell selects a range and toggles nothing. There is no intermediate editor state to
+  commit or cancel.
 </Callout>
 
 <ComponentPreview name="data-grid-cell-types-demo" />

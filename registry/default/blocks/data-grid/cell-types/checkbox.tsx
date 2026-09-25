@@ -2,13 +2,14 @@ import { useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "../types";
 import { useCommitGuard } from "../interaction/use-commit-guard";
+import { GRID_ATTR } from "../data-attributes";
 
 function CheckboxCell({ value }: CellRenderProps<unknown, boolean>) {
   if (value == null) return null;
   // display-only: the interaction layer toggles via commitCellValue, so the control never receives events
   return (
     <span className="flex size-full items-center justify-center">
-      <Checkbox checked={value} tabIndex={-1} className="pointer-events-none" />
+      <Checkbox checked={value} tabIndex={-1} className="pointer-events-none" {...{ [GRID_ATTR.checkboxBox]: "" }} />
     </span>
   );
 }

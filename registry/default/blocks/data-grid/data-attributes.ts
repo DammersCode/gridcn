@@ -20,6 +20,8 @@ export const GRID_ATTR = {
   rowIndex: "data-grid-row-index",
   /** header-cell.tsx: present (`""`) while that column's resize handle is being dragged. */
   resizing: "data-resizing",
+  /** cell-types/checkbox.tsx: present (`""`) on a checkbox cell's box; a press inside it toggles on the first click. */
+  checkboxBox: "data-grid-checkbox",
   /** rows/marker-cell.tsx: present (`""`) on a rows-channel selected row's marker cell. */
   selected: "data-row-selected",
   /** windowing/use-scrolled-edges.ts: present (`""`) on the viewport while scrolled away from its inline-start edge. */

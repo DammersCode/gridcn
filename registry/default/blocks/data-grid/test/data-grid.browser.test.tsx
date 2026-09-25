@@ -918,11 +918,14 @@ describe("DataGrid in a real browser", () => {
         { id: "active", header: "Active", accessorKey: "active", type: "checkbox" },
       ];
 
-      function renderCheckboxGrid(onDataChange: (next: readonly BoolRow[]) => void) {
+      // The box sits centered; a press at the cell's corner lands beside it.
+      const BESIDE_BOX = { position: { x: 4, y: 4 } };
+
+      function renderCheckboxGrid(onDataChange: (next: readonly BoolRow[]) => void, rowCount = 1) {
         return render(
           <div style={{ height: 300 }}>
             <DataGrid
-              data={[{ id: "1", active: false }]}
+              data={Array.from({ length: rowCount }, (_, i) => ({ id: String(i + 1), active: false }))}
               columns={boolColumns}
               getRowId={(r) => r.id}
               className="h-[300px]"
@@ -937,7 +940,7 @@ describe("DataGrid in a real browser", () => {
         await renderCheckboxGrid(onDataChange);
         await expect.element(page.getByRole("grid")).toBeInTheDocument();
         const cell = document.querySelector<HTMLElement>('[role="gridcell"]')!;
-        await userEvent.click(cell);
+        await userEvent.click(cell, BESIDE_BOX);
         await userEvent.keyboard("{Enter}");
 
         expect(cell).not.toHaveAttribute(GRID_ATTR.editing, "true");
@@ -951,13 +954,46 @@ describe("DataGrid in a real browser", () => {
         await renderCheckboxGrid(onDataChange);
         await expect.element(page.getByRole("grid")).toBeInTheDocument();
         const cell = document.querySelector<HTMLElement>('[role="gridcell"]')!;
-        await userEvent.click(cell); // activates only
-        await userEvent.click(cell); // would edit for other types; toggles for checkbox
+        await userEvent.click(cell, BESIDE_BOX); // activates only
+        await userEvent.click(cell, BESIDE_BOX); // would edit for other types; toggles for checkbox
 
         expect(cell).not.toHaveAttribute(GRID_ATTR.editing, "true");
         expect(onDataChange).toHaveBeenCalledTimes(1);
         const [nextData] = onDataChange.mock.calls[0]!;
         expect(nextData[0]!.active).toBe(true);
+      });
+
+      it("a first click on the box toggles an inactive cell directly", async () => {
+        const onDataChange = vi.fn<(next: readonly BoolRow[]) => void>();
+        await renderCheckboxGrid(onDataChange);
+        await expect.element(page.getByRole("grid")).toBeInTheDocument();
+        await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"]')!); // the centered box takes the default center click
+
+        expect(onDataChange).toHaveBeenCalledTimes(1);
+        expect(onDataChange.mock.calls[0]![0][0]!.active).toBe(true);
+      });
+
+      it("a first click beside the box only activates the cell", async () => {
+        const onDataChange = vi.fn<(next: readonly BoolRow[]) => void>();
+        await renderCheckboxGrid(onDataChange);
+        await expect.element(page.getByRole("grid")).toBeInTheDocument();
+        const cell = document.querySelector<HTMLElement>('[role="gridcell"]')!;
+        await userEvent.click(cell, BESIDE_BOX);
+
+        expect(cell).toHaveAttribute(GRID_ATTR.active);
+        expect(onDataChange).not.toHaveBeenCalled();
+      });
+
+      it("a press on the box dragged across rows selects the range and toggles nothing", async () => {
+        const onDataChange = vi.fn<(next: readonly BoolRow[]) => void>();
+        await renderCheckboxGrid(onDataChange, 3);
+        await expect.element(page.getByRole("grid")).toBeInTheDocument();
+        const cells = document.querySelectorAll<HTMLElement>('[role="gridcell"]');
+        await userEvent.click(cells[0]!, BESIDE_BOX); // an active cell arms the second-click toggle too
+        await userEvent.dragAndDrop(cells[0]!, cells[2]!); // starts on the centered box
+
+        await expect.poll(() => document.querySelectorAll('[aria-selected="true"]').length).toBe(3);
+        expect(onDataChange).not.toHaveBeenCalled();
       });
 
       it("double-click toggles directly instead of entering edit mode", async () => {
@@ -978,7 +1014,7 @@ describe("DataGrid in a real browser", () => {
         await renderCheckboxGrid(onDataChange);
         await expect.element(page.getByRole("grid")).toBeInTheDocument();
         const cell = document.querySelector<HTMLElement>('[role="gridcell"]')!;
-        await userEvent.click(cell); // activates only
+        await userEvent.click(cell, BESIDE_BOX); // activates only
         await userEvent.dblClick(cell); // both constituent clicks land on an already-active cell
 
         expect(cell).not.toHaveAttribute(GRID_ATTR.editing, "true");

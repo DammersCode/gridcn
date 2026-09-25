@@ -452,6 +452,16 @@ export function dispatchGridAction(args: {
     }
   }
 }
+function pointerHitsCheckboxBox(event: ReactPointerEvent<HTMLElement>): boolean {
+  const box = event.currentTarget.querySelector(gridAttrSelector("checkboxBox"))?.getBoundingClientRect();
+  return box !== undefined && event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
+}
+
+function isSingleCellSelection(state: DataGridStoreState, coord: CellCoord): boolean {
+  const range = state.selection.current?.range;
+  return range === undefined || (range.width === 1 && range.height === 1 && range.x === coord.col && range.y === coord.row);
+}
+
 function isCheckboxCell(state: DataGridStoreState, coord: CellCoord): boolean {
   return state.visibleColumns[coord.col]?.type === "checkbox";
 }
@@ -837,7 +847,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
 
       // Excel activation model: a click NEVER starts editing — it only
       // selects; dblclick/Enter/F2/typing edit. Only checkbox cells resolve a stationary
-      // click on the already-active cell into a direct toggle (a control, not an editor).
+      // click into a direct toggle (a control, not an editor).
       const wasActive =
         !event.shiftKey &&
         !isMultiKey &&
@@ -854,7 +864,9 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         actions.selectCell(coord);
       }
 
-      if (wasActive && !readOnly && isCheckboxCell(state, coord)) {
+      // A press on the box itself toggles on the first click; elsewhere in the cell it takes a second click.
+      const plainPress = !event.shiftKey && !isMultiKey && !state.editing;
+      if ((wasActive || (plainPress && pointerHitsCheckboxBox(event))) && !readOnly && isCheckboxCell(state, coord)) {
         // Resolved on the cell's native `click` — pointerdown can't yet tell a click from a drag.
         pendingActiveClickRef.current = coord;
       }
@@ -870,8 +882,9 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
     (coord: CellCoord, event: ReactMouseEvent<HTMLElement>) => {
       const pending = pendingActiveClickRef.current;
       pendingActiveClickRef.current = null;
-      // native `click` only fires for a stationary press+release on the same element, never a drag.
       if (!pending || pending.col !== coord.col || pending.row !== coord.row) return;
+      // Pointer capture retargets the release to the pressed cell, so a drag still fires `click` here.
+      if (!isSingleCellSelection(storeApi.getState(), coord)) return;
       // detail >= 2 is a dblclick's second click — onCellDoubleClick resolves that case instead.
       if (event.detail >= 2) return;
       const state = storeApi.getState();
