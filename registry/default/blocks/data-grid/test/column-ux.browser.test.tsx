@@ -295,14 +295,46 @@ describe("pinned-edge shadow", () => {
     expect(getComputedStyle(shadow).opacity).toBe("0");
   });
 
-  it("renders no shadow element when there are no pinned columns", async () => {
+  it("colors edge shadows from --grid-scroll-shadow and marks pinned-band shadows with data-pinned", async () => {
+    const pinnedColumns = columns.map((c) => (c.id === "id" ? { ...c, pin: "left" as const } : c));
+    await render(
+      <div style={{ height: 400, width: 300, "--grid-scroll-shadow": "rgb(255, 0, 0)" } as React.CSSProperties}>
+        <DataGrid data={makeRows(20)} columns={pinnedColumns} getRowId={(r) => r.id} className="h-[400px] w-75" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const shadow = (side: "left" | "right") => document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", side))!;
+
+    expect(shadow("left")).toHaveAttribute("data-pinned");
+    expect(shadow("right")).not.toHaveAttribute("data-pinned");
+    expect(getComputedStyle(shadow("right")).backgroundImage).toContain("rgb(255, 0, 0)");
+    expect(getComputedStyle(shadow("left")).backgroundImage).not.toContain("rgb(255, 0, 0)");
+  });
+
+  it("hints off-screen content at the grid edges even without pinned columns or rows", async () => {
     await render(
       <div style={{ height: 400, width: 300 }}>
         <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px] w-75" />
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
-    expect(document.querySelector(gridAttrSelector("pinShadow"))).toBeNull();
+    const opacity = (side: "left" | "right" | "top" | "bottom") => getComputedStyle(document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", side))!).opacity;
+
+    await new Promise((r) => setTimeout(r, 250));
+    expect(opacity("right")).toBe("1");
+    expect(opacity("bottom")).toBe("1");
+    expect(opacity("left")).toBe("0");
+    expect(opacity("top")).toBe("0");
+
+    const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+    grid.scrollLeft = grid.scrollWidth;
+    grid.scrollTop = grid.scrollHeight;
+    grid.dispatchEvent(new Event("scroll"));
+    await new Promise((r) => setTimeout(r, 250));
+    expect(opacity("left")).toBe("1");
+    expect(opacity("top")).toBe("1");
+    expect(opacity("right")).toBe("0");
+    expect(opacity("bottom")).toBe("0");
   });
 });
 

@@ -150,6 +150,39 @@ describe("pinned rows — frozen-edge shadow", () => {
     expect(viewport.hasAttribute(GRID_ATTR.scrolledTop)).toBe(false);
   });
 
+  it("anchors the top and bottom shadows to the pinned band edges, not the grid edges", async () => {
+    await render(
+      <div style={{ height: 360, width: 800 }}>
+        <PinnedGrid data={makeRows(200)} className="h-90 w-200" topRows={[totals]} bottomRows={[totals]} />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    await scrollAndSettle(document.querySelector<HTMLElement>('[role="grid"]')!, 200);
+    const rect = (el: Element) => el.getBoundingClientRect();
+    const topShadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "top"))!;
+    const bottomShadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "bottom"))!;
+
+    expect(topShadow).toHaveAttribute("data-pinned");
+    expect(bottomShadow).toHaveAttribute("data-pinned");
+    expect(Math.abs(rect(topShadow).top - rect(document.querySelector(gridAttrSelector("pinnedRowBand", "top"))!).bottom)).toBeLessThanOrEqual(1);
+    expect(Math.abs(rect(bottomShadow).bottom - rect(document.querySelector(gridAttrSelector("pinnedRowBand", "bottom"))!).top)).toBeLessThanOrEqual(1);
+  });
+
+  it("anchors the top shadow under the header when no row is pinned", async () => {
+    await render(
+      <div style={{ height: 360, width: 800 }}>
+        <PinnedGrid data={makeRows(200)} className="h-90 w-200" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    await scrollAndSettle(document.querySelector<HTMLElement>('[role="grid"]')!, 200);
+    const topShadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "top"))!;
+    const header = document.querySelector<HTMLElement>('[role="columnheader"]')!;
+
+    expect(topShadow).not.toHaveAttribute("data-pinned");
+    expect(Math.abs(topShadow.getBoundingClientRect().top - header.getBoundingClientRect().bottom)).toBeLessThanOrEqual(1);
+  });
+
   it("shows the bottom-band shadow until scrolled to the very end", async () => {
     await render(
       <div style={{ height: 360, width: 800 }}>

@@ -176,7 +176,6 @@ Add the columns and data shape of the hero demo from the [quick start](/docs/qui
 page. Click a cell, type a value, and press Enter to make sure that editing works. If the grid
 displays without styles, make sure that your `global.css` imports Tailwind and that shadcn's base
 tokens are present. gridcn uses only existing shadcn tokens, with no new CSS variables beyond
-`--grid-row-height` and `--grid-pin-shadow` (the pinned-column boundary shadow color). Theme
-`--grid-pin-shadow` in your `global.css`, like the docs site does: the grid uses the variable
-without a fallback, so an undefined value renders an invisible shadow. See
+`--grid-row-height` and `--grid-pin-shadow` (the edge shadow color). The CLI adds
+`--grid-pin-shadow` to your CSS for light and dark mode. See
 [Styling & theming](/docs/styling-theming#css-variables).
