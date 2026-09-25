@@ -2851,8 +2851,6 @@ describe("updateCells while an edit session is open", () => {
 });
 
 describe("row-moving ops with an active view-space presence entry", () => {
-  // The warn is module-once (not per op): the first test must not consume it, hence the false
-  // predicate here — it also pins that rowId-native-only presence (false) never warns.
   it("does not warn while the registered predicate reports no view-space entry", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
@@ -2886,6 +2884,20 @@ describe("row-moving ops with an active view-space presence entry", () => {
 
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn.mock.calls[0]?.[0]).toContain("view-space presence");
+    warn.mockRestore();
+  });
+
+  it("warns once per grid instance, including on deleteRows", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const first = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    const second = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+
+    for (const { result } of [first, second]) {
+      act(() => result.current._registerPresenceViewSpaceActive(() => true));
+      act(() => result.current.deleteRows([0]));
+    }
+
+    expect(warn).toHaveBeenCalledTimes(2);
     warn.mockRestore();
   });
 });

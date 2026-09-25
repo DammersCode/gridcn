@@ -224,10 +224,10 @@ export type CellClickCtx<TData, TValue> = {
 };
 
 /**
-  * Fired on a plain click on any non-skeleton, non-pinned-row cell — attached to the cell's own
-  * existing DOM click handler (no new subscription; see events-state.mdx). Fires alongside
-  * whatever the click already does (select the cell, toggle a checkbox) — it's a pure
-  * notification, never a veto point (contrast the `data-grid-fill` add-on's `onFill` veto).
+ * Fired on a plain click on any non-skeleton, non-pinned-row cell — attached to the cell's own
+ * existing DOM click handler (no new subscription; see events-state.mdx). Fires alongside
+ * whatever the click already does (select the cell, toggle a checkbox) — it's a pure
+ * notification, never a veto point (contrast the `data-grid-fill` add-on's `onFill` veto).
  */
 export type OnCellClick<TData> = (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
 

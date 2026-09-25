@@ -1278,6 +1278,33 @@
          ]
       },
       {
+         "name": "data-grid-filter-operators-demo",
+         "type": "registry:example",
+         "title": "Data Grid Filter Operators Demo",
+         "description": "Per-column filter operator overrides via operatorsForColumn and ColumnDef.filterOperators, plus a full column list (including hidden columns) in the sort popover via allColumns.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-toolbar",
+            "DammersCode/gridcn/data-grid-sort-list"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-filter-operators-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-filter-operators-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
          "name": "data-grid-history-demo",
          "type": "registry:example",
          "title": "Data Grid History Demo",
@@ -1318,6 +1345,32 @@
                "path": "registry/default/examples/data-grid-context-menu-demo.tsx",
                "type": "registry:example",
                "target": "components/data-grid-context-menu-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-context-menu-slots-demo",
+         "type": "registry:example",
+         "title": "Data Grid Context Menu Slots Demo",
+         "description": "Custom context menu items via renderCellMenuItems and renderHeaderMenuItems, replacing the built-in item sets.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-context-menu"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-context-menu-slots-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-context-menu-slots-demo.tsx"
             },
             {
                "path": "registry/default/examples/demo-data.ts",

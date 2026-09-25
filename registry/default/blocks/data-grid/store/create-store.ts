@@ -65,10 +65,6 @@ import { createRowIndexCache, resolveReorder, touchesViewInputs } from "./row-in
 import type { AnyColumnDef, CellPatch, DataGridStoreState, InternalSyncProps, SyncInputs, UpdateCellsVerdict } from "./types";
 import { syncInputsEqual } from "./types";
 
-// Once-per-session flag: view-space presence entries pin to a display position a row move
-// invalidates; the warning fires once, not per row-moving op.
-let warnedPresenceReorder = false;
-
 /**
  * Creates one grid's vanilla store instance. Module-private: never export this
  * factory's result or a bound hook from this module — only the hooks below.
@@ -258,10 +254,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // View-space presence entries pin to a display position a row move invalidates (rowId-native
   // entries track their rows and never trip this): warn once when a row-moving op runs while one
   // is active. The predicate is registered by the `data-grid-presence` add-on; null when absent.
+  let warnedPresenceReorder = false;
   const warnViewSpacePresenceStale = (s: DataGridStoreState) => {
     if (warnedPresenceReorder || !s.presenceViewSpaceActive?.()) return;
     warnedPresenceReorder = true;
-    warnDev('rows moved (reorderRows / updateCells reorder: "immediate") while a view-space presence entry is active — its highlight position is now stale; use rowId-native presence entries for a live feed');
+    warnDev("rows moved while a view-space presence entry is active — its highlight position is now stale; use rowId-native presence entries for a live feed");
   };
   const initViewIndex = computeViewIndex(initData, seeded.columns, init.sortState ?? [], initFilterState, initJoinOperator, undefined, initCellTypes);
   return createStore<DataGridStoreState>((set, get) => ({
@@ -885,6 +882,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const rows: unknown[] = [];
         for (let i = 0; i < count; i++) rows.push(s.createRow(dataRowIndex + i));
         const batch = computeInsertRowsBatch(s, dataRowIndex, rows);
+        warnViewSpacePresenceStale(s);
         rowIndexCache.invalidate();
         forgetDeferredRows();
         lastEmittedData = batch.nextData;
@@ -913,6 +911,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
         const batch = computeDeleteBatch(s, dataRowIndexes);
         if (!batch) return;
+        warnViewSpacePresenceStale(s);
         rowIndexCache.invalidate();
         forgetDeferredRows();
         lastEmittedData = batch.nextData;
@@ -941,6 +940,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
         const batch = computeDuplicateBatch(s, dataRowIndexes);
         if (!batch) return;
+        warnViewSpacePresenceStale(s);
         rowIndexCache.invalidate();
         forgetDeferredRows();
         lastEmittedData = batch.nextData;

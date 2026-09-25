@@ -103,7 +103,6 @@ index:
 ```tsx
 import { useDataGridFill, type SeriesDescriptor } from "@/components/data-grid-fill/data-grid-fill";
 
-// Module scope (or useCallback) so identity stays stable across renders.
 const detectDates = (values: readonly string[]): SeriesDescriptor | null => {
   if (values.length < 2) return null;
   const first = Date.parse(values[0]!);
@@ -157,7 +156,6 @@ actions, and passes straight through the options of `useDataGridFill`:
 ```tsx
 import { useDataGridFill, type FillArgs } from "@/components/data-grid-fill/data-grid-fill";
 
-// Module scope (or useCallback) so identity stays stable across renders.
 function onFill({ source, target, values, preventDefault }: FillArgs) {
   // values is the pattern being written into the target strip (target.height x target.width),
   // extrapolated or tiled, before validation runs

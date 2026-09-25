@@ -76,8 +76,11 @@ header dropdown (`DataGridHeaderDropdown`) keeps its built-in items.
 | `renderHeaderMenuItems` | the header-surface items | `{ columnId, scrollRoot }` — the right-clicked column's id and the grid's scroll-container element (`null` when the right-clicked element has no grid ancestor) |
 
 The slot's output is the complete item set — it owns the items, their order, and their gating.
-Compose items from `ContextMenuItem` in `@/components/ui/context-menu`. A custom cell menu with a
-single hook-using item:
+Compose items from `ContextMenuItem` in `@/components/ui/context-menu`.
+
+<ComponentPreview name="data-grid-context-menu-slots-demo" />
+
+A custom cell menu with a single hook-using item:
 
 ```tsx
 import { Plus } from "lucide-react";

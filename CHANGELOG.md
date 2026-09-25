@@ -84,9 +84,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   columns' `id` union — so a typo'd column id fails to compile instead of skipping silently at
   runtime.
 - **Context menu item slots:** `DataGridContextMenuProps` accepts `renderCellMenuItems` and
-  `renderHeaderMenuItems` render props — receive the built-in items array plus the context
-  (`row`, `column`) and return the list to render, so consumers can add, remove, reorder, or
-  conditionally gate items without replacing the whole menu.
+  `renderHeaderMenuItems` render props. The cell slot receives `{ row, columnId, canInsertRow,
+  canDuplicateRow }`, the header slot `{ columnId, scrollRoot }`; the returned items replace the
+  built-in set, so consumers own which items show, their order, and their gating.
 - **Column layout reset and clamped width writes:** the store gains `resetColumnWidth(id)` —
   drops the width override, restores the column to flex distribution, and fires
   `onColumnLayoutChange` once. `setColumnWidth`/`commitColumnWidth` now clamp to the column's
@@ -131,6 +131,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Compile-time URL operator drift guard:** a type test pins the URL-state add-on's filter
   operator set against the core `FilterOperator` union — a new core operator fails the type gate
   instead of silently dropping out of URL round-trips.
+- **Docs examples for menu slots and operator lists:** `data-grid-context-menu-slots-demo` shows
+  `renderCellMenuItems`/`renderHeaderMenuItems`; `data-grid-filter-operators-demo` shows
+  `operatorsForColumn`, `ColumnDef.filterOperators`, and `DataGridSortList`'s `allColumns`.
 
 ### Changed
 
@@ -219,7 +222,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   streaming-updates documents the async-validation hold/supersede contract and the readOnly
   no-op; Space is listed as an edit trigger; the accessibility page documents `aria-sort` and
   `aria-readonly`; events-state documents the `searchText`/`onSearchTextChange` controlled
-  pair;   the custom cell-types page states what Tab actually does in built-in editors; and the
+  pair; the custom cell-types page states what Tab actually does in built-in editors; and the
   url-state page documents the reset-page-to-1 contract on a page-size change and flags
   `DataGridUrlState` as incompatible with lazy grids.
 - **Streaming verdicts:** `updateCells` and `updateRows` now return a verdict —
@@ -257,6 +260,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Global shortcut ownership on config change:** flipping the `undo`/`redo` flags (or passing a
   new inline config) no longer drops the grid's multi-grid focus ownership — the grid id is now
   minted once per mount, so the global binding stays live with focus already inside the grid.
+- **Stale view-space presence warning:** the dev warning fires once per grid instead of once per
+  page, and `insertRows`, `deleteRows`, and `duplicateRows` trigger it too.
+- **Inline fill callbacks:** `useDataGridFill`'s `onFill` and `detectSeries` may be inline
+  functions; a new identity no longer re-creates the fill handlers on every render.
 
 ### Added
 

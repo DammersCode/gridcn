@@ -336,3 +336,44 @@ describe("useFillHandle staleness guard — async fill held against a real store
     expect(next.find((r) => r.id === "1")!.qty).toBe(2); // the row that moved into view row 1 is untouched
   });
 });
+
+describe("useFillHandle callback identity", () => {
+  it("keeps fillDown stable across inline callbacks and calls the latest detectSeries", () => {
+    const data = rows();
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <DataGridProvider data={data} columns={columns} getRowId={(r) => r.id}>
+        {children}
+      </DataGridProvider>
+    );
+    const detectCalls: string[] = [];
+    const { result, rerender } = renderHook(
+      ({ tag }: { tag: string }) => {
+        const actions = useDataGridActions();
+        const scrollRef = useRef<HTMLElement | null>(null);
+        const fill = useFillHandle({
+          scrollRef,
+          layout: {} as InteractionLayout,
+          fillStore: createFillStore(),
+          onFill: () => {},
+          detectSeries: () => {
+            detectCalls.push(tag);
+            return null;
+          },
+        });
+        return { actions, fill };
+      },
+      { wrapper, initialProps: { tag: "first" } },
+    );
+    const firstFillDown = result.current.fill.fillDown;
+
+    rerender({ tag: "second" });
+    act(() => {
+      result.current.actions.selectCell({ col: 1, row: 0 });
+      result.current.actions.extendTo({ col: 1, row: 1 });
+    });
+    act(() => result.current.fill.fillDown());
+
+    expect(result.current.fill.fillDown).toBe(firstFillDown);
+    expect(detectCalls).toEqual(["second"]);
+  });
+});

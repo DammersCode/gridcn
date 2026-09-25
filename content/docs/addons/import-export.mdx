@@ -140,7 +140,7 @@ logs a dev-only warning.
 In the dialog, each grid column can be mapped from at most one source column at a time. Once a
 source column claims a grid column, that grid column disappears from every other source column's
 select, so a duplicate mapping cannot be created. A custom mapping built with `setMapping` is not
-checked: `buildImportedRows` logs a dev-time warning when two source columns claim one grid
+checked. `buildImportedRows` logs a dev-time warning when two source columns claim one grid
 column, and the later mapping wins. If the file's headers auto-match to the same grid column more
 than once, `matchImportColumns` keeps the first match and leaves the rest on "— Skip —".
 
@@ -211,3 +211,11 @@ its column's `validate` and was cleared. It returns the object directly for a sy
 returns a Promise — await the result either way. Large imports run in chunks that yield to the event
 loop, and an `AbortSignal` passed as `signal` cancels between chunks, rejecting with
 `"import-cancelled"`.
+
+Each `rejected` entry is one cleared cell:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `rowIndex` | `number` | Index into `dataRows`, header row excluded. |
+| `importColumnIndex` | `number` | Index of the source column in the import file. |
+| `gridColumnId` | `string` | The grid column the value was mapped to and cleared in. |

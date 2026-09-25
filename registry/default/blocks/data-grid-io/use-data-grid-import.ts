@@ -162,16 +162,16 @@ export function useDataGridImportPreview(
 
   const setDelimiter = useCallback(
     async (delimiter: CsvDelimiter) => {
-    const file = currentFileRef.current;
-    if (!file) return;
-    let parsed: ParsedImportFile;
-    try {
-      parsed = await parseImportFile(file, { csvDelimiter: delimiter }, parseControllerRef.current?.signal);
-    } catch (err) {
-      if (isAbortError(err)) return;
-      throw err;
-    }
-    if (parsed.rows.length === 0) return;
+      const file = currentFileRef.current;
+      if (!file) return;
+      let parsed: ParsedImportFile;
+      try {
+        parsed = await parseImportFile(file, { csvDelimiter: delimiter }, parseControllerRef.current?.signal);
+      } catch (err) {
+        if (isAbortError(err)) return;
+        throw err;
+      }
+      if (parsed.rows.length === 0) return;
       setPreview((prev) => {
         if (!prev) return prev;
         const importHeaders = computeImportHeaders(parsed.rows, prev.hasHeaderRow, columnFallback);

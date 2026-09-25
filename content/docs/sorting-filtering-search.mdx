@@ -51,8 +51,8 @@ to change it.
 Two column-level fields replace the built-in behavior. `filterMatch(value, filter)` is a
 per-column predicate over the cell's RAW value — not its stringified form — that decides whether
 the row passes; it replaces the built-in matcher for that column, and a thrown predicate fails the
-row. `filterOperators` replaces the operator list the filter menu offers for that column — for
-example, the comparison operators for a consumer-registered numeric cell type whose `type` key is
+row. `filterOperators` replaces the operator list the filter menu offers for that column, for
+example the comparison operators for a consumer-registered numeric cell type whose `type` key is
 not `number` or `date`:
 
 ```tsx
@@ -67,6 +67,9 @@ const columns = defineColumns<Invoice>()([
   },
 ]);
 ```
+
+`DataGridFilterMenu`'s `operatorsForColumn` prop overrides the operator list per render, ahead of
+`filterOperators`. See [Toolbar: the pieces](/docs/addons/toolbar#the-pieces).
 
 `DataGridFilterMenu`, along with the search input and columns menu below, comes from the
 [toolbar add-on](/docs/addons/toolbar), which owns the install, wiring, toolbar order,

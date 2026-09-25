@@ -105,7 +105,7 @@ socket.on("room-closed", clearPresenceHighlights);              // the room empt
 
 `removePresenceHighlight(id)` removes the one entry whose `id` matches and leaves every other
 entry untouched; it is a no-op when no entry matches. A peer with a multi-range selection holds
-one entry per range — for that peer, either key every range entry by the same peer id and remove
+one entry per range. For that peer, either key every range entry by the same peer id and remove
 each, or resend the filtered snapshot as before. `clearPresenceHighlights()` removes every entry.
 Both re-render `DataGridOverlays` and nothing else, the same as a snapshot call.
 
@@ -146,6 +146,10 @@ setPresenceHighlights([
   { id: remote.userId, color: remote.color, rowIds: remote.rowIds, columnIds: remote.columnIds },
 ]);
 ```
+
+To branch on the form of a received entry, `isRowIdPresenceHighlight(entry)` and
+`isRowIdRangePresenceHighlight(entry)` narrow a `PresenceHighlightEntry`. Both come from the
+`data-grid-presence` entry point.
 
 One entry paints at most 1024 fragments (`MAX_RESOLVED_RECTS`, the default of the `maxRects`
 option). Beyond the budget, the excess fragments are dropped and `onExcessRects(entry, kept,
