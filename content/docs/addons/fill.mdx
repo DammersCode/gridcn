@@ -120,8 +120,19 @@ function MyGrid() {
 }
 ```
 
-The built-in `detectSeries` (exported from the add-on) composes freely with such a callback, for
-example to fall back to it for non-date input.
+To extend the built-in detector instead of replacing it, check your own series first and return
+the built-in `detectSeries` result for everything else:
+
+```tsx
+import { detectSeries, useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";
+
+const detectDatesOrBuiltIn = (values: readonly string[]) => detectDates(values) ?? detectSeries(values);
+
+function MyGrid() {
+  const { plugin, FillHandleTracker } = useDataGridFill({ detectSeries: detectDatesOrBuiltIn });
+  // ...
+}
+```
 
 ## Keyboard fill
 

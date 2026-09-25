@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeFillTarget, detectSeries, fillDirection, generateFill, rectRelativeTo } from "./fill";
+import { computeFillTarget, detectSeries, fillDirection, generateFill, rectRelativeTo, type SeriesDescriptor } from "./fill";
 import type { GridRect } from "@/registry/default/blocks/data-grid/data-grid";
 
 const bounds = { rowCount: 100, colCount: 100 };
@@ -87,6 +87,20 @@ describe("computeFillTarget", () => {
 });
 
 describe("detectSeries", () => {
+  it("composes with a custom detector that falls back to the built-in one", () => {
+    const detectWeekdays = (values: readonly string[]): SeriesDescriptor | null => {
+      const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      const start = days.indexOf(values[0] ?? "");
+      if (start === -1 || values.some((v, i) => v !== days[(start + i) % 7])) return null;
+      return { extrapolate: (index) => days[(((start + index) % 7) + 7) % 7]! };
+    };
+    const detect = (values: readonly string[]) => detectWeekdays(values) ?? detectSeries(values);
+
+    expect(detect(["Mon", "Tue"])!.extrapolate(2)).toBe("Wed");
+    expect(detect(["2", "4"])!.extrapolate(2)).toBe("6");
+    expect(detect(["a", "b"])).toBeNull();
+  });
+
   it("detects an arithmetic progression and extrapolates forward", () => {
     const series = detectSeries(["2", "4", "6"]);
     expect(series).not.toBeNull();

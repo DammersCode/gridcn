@@ -13,7 +13,7 @@ function decimalPlaces(value: string): number {
   return dotIndex === -1 ? 0 : value.length - dotIndex - 1;
 }
 
-function detectArithmetic(values: string[]): SeriesDescriptor | null {
+function detectArithmetic(values: readonly string[]): SeriesDescriptor | null {
   // callers only reach here via detectSeries, which requires values.length >= 2
   if (values.length < 2) return null;
   const trimmed = values.map((v) => v.trim());
@@ -31,7 +31,7 @@ function detectArithmetic(values: string[]): SeriesDescriptor | null {
   };
 }
 
-function detectPaddedNumeric(values: string[]): SeriesDescriptor | null {
+function detectPaddedNumeric(values: readonly string[]): SeriesDescriptor | null {
   if (values.length < 2) return null;
   const trimmed = values.map((v) => v.trim());
   if (!trimmed.every((v) => PADDED_INT_RE.test(v))) return null;
@@ -54,7 +54,7 @@ function detectPaddedNumeric(values: string[]): SeriesDescriptor | null {
   };
 }
 
-function detectPrefixNumber(values: string[]): SeriesDescriptor | null {
+function detectPrefixNumber(values: readonly string[]): SeriesDescriptor | null {
   if (values.length < 2) return null;
   const matches = values.map((v) => v.trim().match(PREFIX_NUMBER_RE));
   if (matches.some((m) => m === null)) return null;
@@ -89,7 +89,7 @@ function detectPrefixNumber(values: string[]): SeriesDescriptor | null {
  * ("Item 1", "Item 2"). Requires at least 2 values with a consistent delta;
  * returns `null` when no pattern applies (caller falls back to tiling).
  */
-export function detectSeries(values: string[]): SeriesDescriptor | null {
+export function detectSeries(values: readonly string[]): SeriesDescriptor | null {
   if (values.length < 2) return null;
   // padded numerics ("001") also match plain arithmetic, so check padding first or the leading zero is lost
   return detectPaddedNumeric(values) ?? detectArithmetic(values) ?? detectPrefixNumber(values);
