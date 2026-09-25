@@ -1,6 +1,6 @@
 ---
 title: Global shortcuts
-description: Opt-in undo and redo for focus positions outside the grid.
+description: Opt-in undo, redo, and other grid actions for focus positions outside the grid.
 icon: Command
 ---
 
@@ -33,7 +33,8 @@ A gate of six rules decides whether an event reaches the grid:
    ties between grids.
 6. The key must resolve to an enabled action through the effective keymap.
 
-When the gate passes, the component dispatches the `onUndo` or `onRedo` seam of the in-grid keymap.
+When the gate passes, the component dispatches the action through the in-grid keymap. For undo
+and redo, that is the `onUndo` or `onRedo` seam.
 With the `data-grid-history` add-on, undo reverses grid edits.
 Without the add-on the layer is a no-op, like in-grid undo.
 
@@ -73,9 +74,26 @@ Omit the flags to enable every action (undo and redo).
 |---|---|---|
 | `undo` | enables the effective keymap's undo binding on window keydown | enabled when both flags are omitted |
 | `redo` | enables the effective keymap's redo bindings on window keydown | enabled when both flags are omitted |
+| `actions` | adds more grid actions to the window layer, for example `["selectAll"]` | none |
 
 The listener reads the effective keymap from the store.
 When you remap `undo`, the global binding follows (see [Keybindings — Remapping](/docs/addons/keybindings#remapping)).
+
+## Add more actions
+
+Pass `actions` to enable other grid actions outside the grid:
+
+```tsx
+<DataGridGlobalShortcuts actions={["selectAll"]} />
+```
+
+`actions` adds to undo and redo. The `undo` and `redo` flags still limit those two.
+An added action runs the same dispatch as its in-grid binding, with the same guards.
+For example, `insertRowBelow` does nothing without `createRow`.
+
+Add only actions whose every binding includes <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> (`mod`).
+A key without it types into the page, and a `ctrl`-only or `alt`-only chord collides with the
+operating system (<kbd>Ctrl</kbd>+<kbd>Space</kbd> switches the input language on Windows).
 
 ## Multiple grids
 
@@ -99,8 +117,8 @@ This protects the layer from your listener and your listener from the layer.
 
 - **Global copy and paste:** the active cell is unknown while focus is outside the grid. For a
   programmatic paste, call `useDataGridClipboard().pasteFromClipboard()`.
-- **Global navigation and selection:** without an active cell, the arrow keys have no target. The
-  page owns `mod+a` for its own select-all.
+- **Global navigation:** the arrow keys have no `mod` prefix, so they stay with the page.
+- **Global select-all by default:** the page owns `mod+a` until you add `"selectAll"` to `actions`.
 
 ## Related
 
