@@ -118,8 +118,8 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
       setMergeFailed(false);
       setIsValidating(true);
       void Promise.resolve()
+        .then(() => onImport(rows))
         .then(() => {
-          onImport(rows);
           actions.clearSelection();
         })
         .then(

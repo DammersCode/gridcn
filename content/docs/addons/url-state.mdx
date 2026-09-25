@@ -88,8 +88,9 @@ toggle existed still parses identically.
 - URL params apply to the store exactly once, on mount. After that, the store is the source of
   truth and drives the URL, not the other way around. Call `applyFromUrl()` from
   `useDataGridUrlState()` when the URL changed outside the grid's own writes — back/forward
-  navigation, a framework `setSearchParams`, or a query-only route change — and the same mount
-  apply (including the dropped-column warning) runs again.
+  navigation, a framework `setSearchParams`, or a query-only route change. The grid then mirrors
+  the URL: a param the URL no longer has clears its sort, filter, join, or search. On mount, a
+  missing param keeps the grid's initial state.
 - Sort, filter, and join writes are immediate, since they are menu-driven, not keystroke-driven.
   Search writes are debounced (300ms), so typing does not spam `history.replaceState`.
 - Every URL write uses `history: "replace"`, never `push`, so typing in search or changing a

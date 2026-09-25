@@ -1190,6 +1190,34 @@ describe("updateCells — verdict", () => {
     await act(async () => {});
   });
 
+  it("reports schema rejections as invalid skips indexed into the caller's patches", () => {
+    const schema = {
+      "~standard": {
+        version: 1,
+        vendor: "mock",
+        validate: (value: unknown) => (typeof value === "number" && value < 0 ? { issues: [{ message: "must be >= 0" }] } : { value }),
+      },
+    };
+    const schemaColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      { id: "price", header: "Price", accessorKey: "price", validate: schema as never },
+    ];
+    const { result } = renderHarness({ columnsOverride: schemaColumns });
+    const verdict = result.current.actions.updateCells([
+      { rowId: "a", columnId: "price", value: -1 },
+      { rowId: "b", columnId: "price", value: 26 },
+      { rowId: "missing", columnId: "price", value: 1 },
+    ]);
+    expect(verdict).toEqual({
+      applied: 1,
+      pending: false,
+      skipped: [
+        { patchIndex: 0, reason: "invalid" },
+        { patchIndex: 2, reason: "unknown-row" },
+      ],
+    });
+  });
+
   it("updateRows passes the verdict through with per-cell reasons", () => {
     const { result } = renderHarness();
     const verdict = result.current.actions.updateRows([

@@ -578,6 +578,28 @@ describe("row ops rebuild the view index", () => {
     expect(result.current.viewIndex).toEqual([0, 1, 2, 3, 4]);
   });
 
+  it("insertRows under an active sort keeps the active cell on the same row object (follows by identity)", () => {
+    const wrapper = makeWrapper(vi.fn(), { createRow: indexedCreateRow });
+    const { result } = renderHook(
+      () => ({ actions: useDataGridActions(), activeCell: useDataGridActiveCell(), viewIndex: useDataGridViewIndex() }),
+      { wrapper },
+    );
+
+    // name ascending: view is Alice(1), Bob(2), Charlie(0); active cell on Bob at view row 1.
+    act(() => result.current.actions.setSorts([{ columnId: "name", direction: "asc" }]));
+    act(() => result.current.actions.selectCell({ col: 0, row: 1 }));
+    expect(result.current.viewIndex).toEqual([1, 2, 0]);
+
+    // insert above view row 0 (Alice): the new row lands at data index 1, ahead of Bob in the data array.
+    act(() => result.current.actions.insertRows(0, 1, "above"));
+
+    // Bob's data object hasn't moved; the active cell must still point at Bob's view row, wherever it lands.
+    const newDataOrder = ["1", "new-1", "2", "3"]; // Charlie, New, Alice, Bob
+    // Alice(2), Bob(3), Charlie(0), New(1) -> Bob is view row 1
+    expect(result.current.viewIndex).toEqual([2, 3, 0, 1]);
+    expect(newDataOrder[result.current.viewIndex[result.current.activeCell!.row]!]).toBe("3");
+  });
+
   it("a row inserted under an active sort lands in its sorted position in the rebuilt view", () => {
     const wrapper = makeWrapper(vi.fn(), { createRow: indexedCreateRow });
     const { result } = renderHook(() => ({ actions: useDataGridActions(), viewIndex: useDataGridViewIndex() }), {

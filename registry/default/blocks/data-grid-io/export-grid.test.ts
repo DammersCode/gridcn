@@ -358,6 +358,36 @@ describe("exportGrid lazy xlsx loading", () => {
   });
 });
 
+describe("exportGrid — xlsx builds the table once", () => {
+  it("calls toText exactly once per cell for an xlsx export", async () => {
+    vi.resetModules();
+    const aoa_to_sheet = vi.fn(() => ({}));
+    const book_new = vi.fn(() => ({}));
+    const book_append_sheet = vi.fn();
+    const write = vi.fn(() => new ArrayBuffer(0));
+    vi.doMock("xlsx", () => ({ utils: { aoa_to_sheet, book_new, book_append_sheet }, write }));
+
+    const { exportGrid: freshExportGrid } = await import("./export-grid");
+    const createObjectURL = vi.fn(() => "blob:mock-url");
+    vi.stubGlobal("URL", { ...URL, createObjectURL, revokeObjectURL: vi.fn() });
+    const anchor = document.createElement("a");
+    anchor.click = vi.fn();
+    vi.spyOn(document, "createElement").mockReturnValue(anchor);
+
+    const toTextSpy = vi.fn((value: string) => value ?? "");
+    const state = makeState({ cellTypes: { text: { ...textCellType, toText: toTextSpy } as never } });
+
+    await freshExportGrid(state, { format: "xlsx" });
+
+    // 3 rows x 2 columns: a double table build would call toText 12 times instead of 6.
+    expect(toTextSpy).toHaveBeenCalledTimes(6);
+
+    vi.doUnmock("xlsx");
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+});
+
 describe("buildXlsx", () => {
   it("resolves with a Blob and names the sheet per workbookName, defaulting to 'Sheet1'", async () => {
     vi.resetModules();

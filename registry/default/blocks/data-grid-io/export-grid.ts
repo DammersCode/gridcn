@@ -137,11 +137,9 @@ export async function buildXlsx(state: DataGridStoreState, options: BuildXlsxOpt
  */
 export async function exportGrid(state: DataGridStoreState, options: ExportGridOptions): Promise<void> {
   const { format, scope = "view", includeHeaders = true, csvDelimiter = ",", csvBom = true, fileName = "export", workbookName, maxRows } = options;
-  const rows = capExportRows(buildExportRows(state, scope), maxRows);
-  const headers = buildExportHeaders(state);
-  const table = includeHeaders ? [headers, ...rows] : rows;
-
   if (format === "csv") {
+    const rows = capExportRows(buildExportRows(state, scope), maxRows);
+    const table = includeHeaders ? [buildExportHeaders(state), ...rows] : rows;
     const csv = (csvBom ? "\uFEFF" : "") + rowsToCsv(table, csvDelimiter);
     downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8;" }), `${fileName}.csv`);
     return;

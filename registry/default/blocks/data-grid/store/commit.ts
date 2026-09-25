@@ -344,14 +344,14 @@ export function patchesNeedAsyncCheck(s: DataGridStoreState, patches: readonly C
  * validation off. There is still exactly ONE apply path — this only decides what enters it, and it
  * runs at all only when {@link patchesNeedAsyncCheck} says a schema is in play.
  *
- * Failing cells are dropped from the result, matching the silent skip-on-reject a stream has always
- * had (it has no UI to report a rejection to, and must never lose a whole batch for one bad value).
+ * Failing cells are dropped from the apply and reported by index, so one bad value never loses the
+ * whole batch and the caller still learns which of its patches were rejected.
  */
 export function prevalidatePatches(
   s: DataGridStoreState,
   patches: readonly CellPatch[],
   rowIndex: ReadonlyMap<string, number>,
-): CellPatch[] | Promise<CellPatch[]> {
+): PrevalidatedPatches | Promise<PrevalidatedPatches> {
   const columnsById = new Map(s.columns.map((c) => [c.id, c] as const));
   const items: ValidateBatchItem[] = patches.map((patch) => {
     const dataRowIndex = rowIndex.get(patch.rowId);
@@ -367,14 +367,21 @@ export function prevalidatePatches(
   return keepAccepted(patches, results);
 }
 
-function keepAccepted(patches: readonly CellPatch[], results: readonly ValidateResult[]): CellPatch[] {
-  const accepted: CellPatch[] = [];
+/** Accepted patches with their index in the caller's array, and the caller's indexes of rejected ones. */
+export type PrevalidatedPatches = { accepted: CellPatch[]; acceptedIndexes: number[]; rejectedIndexes: number[] };
+
+function keepAccepted(patches: readonly CellPatch[], results: readonly ValidateResult[]): PrevalidatedPatches {
+  const out: PrevalidatedPatches = { accepted: [], acceptedIndexes: [], rejectedIndexes: [] };
   for (let i = 0; i < patches.length; i++) {
     const result = results[i];
-    if (!result || "error" in result) continue;
-    accepted.push({ ...patches[i]!, value: result.value }); // i < patches.length by loop condition
+    if (!result || "error" in result) {
+      out.rejectedIndexes.push(i);
+      continue;
+    }
+    out.accepted.push({ ...patches[i]!, value: result.value }); // i < patches.length by loop condition
+    out.acceptedIndexes.push(i);
   }
-  return accepted;
+  return out;
 }
 
 /** Builds a multi-row insert batch: `rows` spliced into `s.data` at `dataRowIndex`, plus one id-keyed insert op per row (snapshot indices `dataRowIndex + i`, ascending). */

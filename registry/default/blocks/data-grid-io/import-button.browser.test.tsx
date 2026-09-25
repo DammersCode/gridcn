@@ -487,6 +487,34 @@ describe("DataGridImportButton with an async schema", () => {
   });
 });
 
+describe("DataGridImportButton with a rejecting onImport", () => {
+  it("awaits onImport and shows the merge-failed state instead of closing when it rejects", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton
+          createRow={(): Row => ({ id: "imported-0", name: "", age: null })}
+          onImport={() => Promise.reject(new Error("merge failed"))}
+        />
+        <DataGridRoot className="h-[200px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
+    await userEvent.upload(fileInput!, makeCsvFile("Name,Age\nAlice,30"));
+    await expect.element(page.getByText("Alice")).toBeInTheDocument();
+
+    await userEvent.click(page.getByRole("button", { name: "Import", exact: true }));
+
+    // the rejected onImport keeps the dialog open with the merge-failed message, instead of closing.
+    await expect.element(page.getByText("The import could not be completed. Try again.")).toBeInTheDocument();
+    await expect.element(page.getByText("Import file")).toBeInTheDocument();
+  });
+});
+
 // A multi-sheet workbook opens on its first sheet rather than silently.
 describe("multi-sheet workbook sheet picker", () => {
   async function makeWorkbookFile(sheets: Record<string, string[][]>): Promise<File> {

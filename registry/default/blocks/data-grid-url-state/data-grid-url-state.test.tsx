@@ -219,8 +219,36 @@ describe("DataGridUrlState applyFromUrl (URL→store after mount)", () => {
       urlState!.applyFromUrl();
     });
     expect(latest().filter).toEqual([{ filterId: expect.any(String), columnId: "age", operator: "gt", value: "30" }]);
-    // params absent from the new URL are not applied (and do not clear the store state either)
+    // a re-apply mirrors the URL: sort's param is gone from the new URL, so it clears
+    expect(latest().sort).toEqual([]);
+  });
+
+  it("applyFromUrl clears sort/filter/join/search whose param is gone from the URL", async () => {
+    let urlState: UseDataGridUrlStateResult | undefined;
+    const probe: { sort: unknown; filter: unknown; search: string }[] = [];
+    const tree = (searchParams: string) => (
+      <NuqsTestingAdapter searchParams={searchParams} hasMemory>
+        <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
+          <UrlStateProbe onResult={(r) => (urlState = r)} />
+          <StateProbe onState={(s) => probe.push(s)} />
+        </DataGridProvider>
+      </NuqsTestingAdapter>
+    );
+    const utils = render(tree("?sort=name%3Aasc"));
+    const latest = () => probe.at(-1)!;
+
+    await act(async () => {});
     expect(latest().sort).toEqual([{ columnId: "name", direction: "asc" }]);
+
+    await act(async () => {
+      utils.rerender(tree(""));
+      await new Promise((r) => setTimeout(r, 700));
+    });
+
+    await act(async () => {
+      urlState!.applyFromUrl();
+    });
+    expect(latest().sort).toEqual([]);
   });
 
   it("does not re-apply on its own — only an explicit call re-reads the URL", async () => {

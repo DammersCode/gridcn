@@ -771,6 +771,30 @@ describe("multiplayer presence: rect budget (maxRects / onExcessRects)", () => {
     expect(onExcess.mock.calls[0]?.[2]).toBe(4); // total
   });
 
+  it("paints at most 2 rects for a fractional maxRects of 1.5 (>= cap check, not ===)", () => {
+    // scattered view rows (gaps between them) → one run per row: 4 rows × 1 column = 4 fragments
+    const rowIdToViewRow = new Map<string, number>([
+      ["0", 0],
+      ["1", 2],
+      ["2", 4],
+      ["3", 6],
+    ]);
+    const visibleColumns = [{ id: "name" }];
+    const onExcess = vi.fn();
+    const resolved = resolveHighlights(
+      [{ id: "big", color: "#f00", rowIds: ["0", "1", "2", "3"], columnIds: ["name"] }],
+      rowIdToViewRow,
+      visibleColumns,
+      undefined,
+      undefined,
+      onExcess,
+      1.5,
+    );
+    expect(resolved).toHaveLength(2);
+    expect(onExcess).toHaveBeenCalledTimes(1);
+    expect(onExcess.mock.calls[0]?.[2]).toBe(4); // total
+  });
+
   it("defaults to MAX_RESOLVED_RECTS when maxRects is omitted", () => {
     // scattered view rows (a gap between each) → one run per row: exactly the cap, no excess
     const rowIdToViewRow = new Map<string, number>();

@@ -142,7 +142,7 @@ export function resolveHighlights(
       let capped = false;
       for (const rowRun of rowRuns) {
         for (const colRun of colRuns) {
-          if (painted === maxRects) {
+          if (painted >= maxRects) {
             capped = true;
             break;
           }

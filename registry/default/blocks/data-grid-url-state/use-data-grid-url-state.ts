@@ -33,8 +33,9 @@ export type UseDataGridUrlStateOptions = {
 /** Result of {@link useDataGridUrlState}. */
 export type UseDataGridUrlStateResult = {
   /**
-   * Re-applies the current URL params to the store (the same logic as the mount apply, including
-   * the dropped-column warning). Call it when the URL changed outside the grid's own writes —
+   * Re-applies the current URL params to the store, including the dropped-column warning. Unlike
+   * the mount apply, a param missing from the URL clears its sort, filter, join, or search. Call
+   * it when the URL changed outside the grid's own writes —
    * back/forward, a framework `setSearchParams`, or a query-only route change — since mount
    * applies exactly once and the store is the source of truth afterwards.
    */
@@ -105,7 +106,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   // Reads the current URL params and applies them to the store. Runs once on mount (via the
   // appliedRef guard below) and is exposed as applyFromUrl so a consumer can re-apply after an
   // external URL change (back/forward, setSearchParams, query-only route change).
-  const applyFromUrl = useCallback(() => {
+  const applyUrl = useCallback((keepMountDefaults: boolean) => {
     // Drop specs referencing a column no longer in the grid (a shared link outlived a removal) and dev-warn each one.
     const liveColumnIds = new Set(allColumns.map((c) => c.id));
     const parsedSorts = parseSortState(sortParam);
@@ -121,11 +122,13 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
       return false;
     });
     const join = parseJoinOperator(joinParam);
-    if (sorts.length > 0) actions.setSorts(sorts);
-    if (filters.length > 0) actions.setFilters(filters);
-    if (join !== "and") actions.setJoinOperator(join);
-    if (searchParam) actions.setSearch(searchParam);
+    // On mount an absent param keeps the grid's initial state; a re-apply mirrors the URL, so a removed param clears its state.
+    if (sorts.length > 0 || !keepMountDefaults) actions.setSorts(sorts);
+    if (filters.length > 0 || !keepMountDefaults) actions.setFilters(filters);
+    if (join !== "and" || !keepMountDefaults) actions.setJoinOperator(join);
+    if (searchParam || !keepMountDefaults) actions.setSearch(searchParam);
   }, [actions, allColumns, sortParam, filterParam, joinParam, searchParam]);
+  const applyFromUrl = useCallback(() => applyUrl(false), [applyUrl]);
 
   // apply URL -> store exactly once on mount; afterwards the store is the source of truth and
   // this effect's own writes below must not be re-read back as if they were external URL edits.
@@ -133,7 +136,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   useEffect(() => {
     if (appliedRef.current) return;
     appliedRef.current = true;
-    applyFromUrl();
+    applyUrl(true);
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

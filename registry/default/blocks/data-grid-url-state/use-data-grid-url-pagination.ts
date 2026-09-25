@@ -67,18 +67,17 @@ export function useDataGridUrlPagination(options: UseDataGridUrlPaginationOption
   const page = total !== undefined ? clampPage(rawPage, total, pageSize) : rawPage;
   const resolvedPageSizeOptions: readonly number[] = pageSizeOptions ?? DEFAULT_PAGE_SIZES;
 
-  // normalize on mount only: a deep-linked ?page=999 stays raw in the URL (shared link disagrees
-  // with the rendered view, and "revives" if the dataset grows) unless the clamped value is written back
+  // normalize once, when the first total is known: a deep-linked ?page=999 stays raw in the URL (shared
+  // link disagrees with the rendered view, and "revives" if the dataset grows) unless the clamped value is written back
   const normalizedRef = useRef(false);
   useEffect(() => {
-    if (normalizedRef.current) return;
+    if (normalizedRef.current || total === undefined) return;
     normalizedRef.current = true;
-    if (total === undefined) return;
     const clamped = clampPage(parsePage(pageParam), total, parsePageSize(pageSizeParam, defaultPageSize, pageSizeOptions));
     const serialized = serializePage(clamped) || "";
     if (pageParam !== serialized) void setPageParam(serialized || null);
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [total]);
 
   const onPageChange = useCallback(
     (next: number) => {

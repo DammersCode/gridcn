@@ -293,6 +293,18 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Async import merge:** the import dialog waits for a Promise returned by `onImport`. It closes
+  after the merge succeeds, and a rejection keeps it open with the retry message.
+- **`updateCells` verdict with schema validation:** a rejected patch shows up in `skipped` with
+  reason `invalid`, and every `patchIndex` points into the array passed to `updateCells`.
+- **URL pagination with a late `total`:** an out-of-range `?page=` is clamped in the URL once
+  `total` arrives, not only when it is known on mount.
+- **`applyFromUrl()` and removed params:** a sort, filter, join, or search param that is gone
+  from the URL clears its state on re-apply. On mount, a missing param keeps the initial state.
+- **XLSX export:** `exportGrid` builds the table once per XLSX export instead of twice.
+- **Presence `maxRects`:** a fractional or negative value still caps the painted rects.
+- **Row insert and duplicate under sort or filter:** the active cell stays on its row, and the
+  selection collapses onto it, instead of pointing at an unrelated row.
 - **Stale sheet re-parse:** a slow sheet re-parse can no longer overwrite the preview of a
   newly chosen file (generation guard on file load and reset).
 - **Global shortcut ownership on config change:** flipping the `undo`/`redo` flags (or passing a

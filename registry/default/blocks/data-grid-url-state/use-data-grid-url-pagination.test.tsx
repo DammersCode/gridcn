@@ -92,6 +92,32 @@ describe("useDataGridUrlPagination: reading from the URL", () => {
     });
   });
 
+  it("rewrites the URL page once total becomes available after mounting without it", async () => {
+    const onUrlUpdate = vi.fn();
+    let latest: UseDataGridUrlPaginationResult | undefined;
+    const { rerender } = render(
+      <NuqsTestingAdapter searchParams="?page=999" onUrlUpdate={onUrlUpdate}>
+        <HookProbe onResult={(r) => (latest = r)} />
+      </NuqsTestingAdapter>,
+    );
+
+    // total still undefined: nothing normalized yet, and the raw out-of-range page passes through.
+    await act(async () => {});
+    expect(latest!.page).toBe(999);
+    expect(onUrlUpdate.mock.calls.filter((c) => (c[0] as UrlUpdateEvent).searchParams.has("page"))).toEqual([]);
+
+    rerender(
+      <NuqsTestingAdapter searchParams="?page=999" onUrlUpdate={onUrlUpdate}>
+        <HookProbe options={{ total: 100 }} onResult={(r) => (latest = r)} />
+      </NuqsTestingAdapter>,
+    );
+
+    await vi.waitFor(() => {
+      const last = onUrlUpdate.mock.calls.at(-1)?.[0] as UrlUpdateEvent | undefined;
+      expect(last?.searchParams.get("page")).toBe("4");
+    });
+  });
+
   it("does not touch the URL on mount when the deep-linked page is already in range", async () => {
     const onUrlUpdate = vi.fn();
     renderHook({ searchParams: "?page=2", hookOptions: { total: 100 }, onUrlUpdate });
