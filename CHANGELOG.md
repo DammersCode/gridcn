@@ -280,6 +280,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   column key still fails to compile, as "Expected 2 arguments" naming the key.
 - **Composable fill detection:** the built-in `detectSeries` accepts the `readonly string[]` a custom
   `detectSeries` callback receives, so a custom detector can fall back to it without a cast.
+- **Visible pin shadow after install:** the `data-grid` item ships `--grid-pin-shadow` as `cssVars`
+  for light and dark mode, and the grid falls back to a light-mode value when the variable is
+  missing. Before, a fresh install rendered the pinned-column and pinned-row shadow invisible.
 - **Vite type-check:** the core grid no longer reads `process.env` directly, so `tsc -b` passes in a
   Vite project whose `tsconfig.app.json` lacks `@types/node`.
 - **Demo npm dependencies:** `data-grid-context-menu-slots-demo` declares `lucide-react` and

@@ -44,6 +44,8 @@ import { isDev } from "./is-dev";
 
 /** Default sticky header track height (px); density/rowHeight only affect data rows, never the header. */
 const HEADER_HEIGHT = 36;
+// The item's cssVars theme this token on CLI install; the fallback covers a manual copy without them.
+const PIN_SHADOW = "var(--grid-pin-shadow, oklch(0 0 0 / 10%))";
 
 /** Props for {@link DataGridRoot}. `TData` (default `unknown`) types the callback props below — annotate explicitly (e.g. `DataGridRoot<Person>`), there's no `data` prop here to infer it from. */
 export type DataGridRootProps<TData = unknown> = {
@@ -539,7 +541,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                   // pinned cell's edge — a gradient anchored at inset-inline-start:0 (the edge itself)
                   // guarantees the darkest pixel sits exactly on the boundary this element is measured to.
                   // Gradient direction keywords are physical, so the fade is mirrored explicitly here.
-                  backgroundImage: `linear-gradient(to ${isRtl ? "left" : "right"}, var(--grid-pin-shadow), transparent)`,
+                  backgroundImage: `linear-gradient(to ${isRtl ? "left" : "right"}, ${PIN_SHADOW}, transparent)`,
                   zIndex: GRID_LAYER.pinShadow,
                 }}
               />
@@ -551,7 +553,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 className="pointer-events-none absolute inset-block-start-0 h-full w-2 opacity-0 transition-opacity in-data-scrolled-right:opacity-100"
                 style={{
                   insetInlineEnd: `var(--grid-pin-shadow-right-x, ${interactionLayout.pinnedRightWidth}px)`,
-                  backgroundImage: `linear-gradient(to ${isRtl ? "right" : "left"}, var(--grid-pin-shadow), transparent)`,
+                  backgroundImage: `linear-gradient(to ${isRtl ? "right" : "left"}, ${PIN_SHADOW}, transparent)`,
                   zIndex: GRID_LAYER.pinShadow,
                 }}
               />
@@ -563,7 +565,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 className="pointer-events-none absolute inset-inline-start-0 h-2 w-full opacity-0 transition-opacity in-data-scrolled-top:opacity-100"
                 style={{
                   insetBlockStart: effectiveHeaderHeight,
-                  backgroundImage: "linear-gradient(to bottom, var(--grid-pin-shadow), transparent)",
+                  backgroundImage: `linear-gradient(to bottom, ${PIN_SHADOW}, transparent)`,
                   zIndex: GRID_LAYER.pinShadow,
                 }}
               />
@@ -575,7 +577,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 className="pointer-events-none absolute inset-inline-start-0 h-2 w-full opacity-0 transition-opacity in-data-scrolled-bottom:opacity-100"
                 style={{
                   insetBlockEnd: pinnedBottomHeight,
-                  backgroundImage: "linear-gradient(to top, var(--grid-pin-shadow), transparent)",
+                  backgroundImage: `linear-gradient(to top, ${PIN_SHADOW}, transparent)`,
                   zIndex: GRID_LAYER.pinShadow,
                 }}
               />

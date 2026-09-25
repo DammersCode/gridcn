@@ -57,9 +57,9 @@ needs to differ from its token, the escape hatches are per-surface: data-attribu
 
 - `--grid-row-height` — set per instance by the `rowHeight` prop or the `density` preset
   (`compact` 28px, `default` 36px, `comfortable` 44px). It sizes every row track.
-- `--grid-pin-shadow` — the color of the pinned-column and pinned-row boundary shadow. The grid
-  uses this variable without a fallback, so define it per theme (the docs site themes it in
-  `global.css`). Left undefined, the boundary shadow renders invisible.
+- `--grid-pin-shadow` — the color of the pinned-column and pinned-row boundary shadow. The CLI
+  install adds it to your CSS for light and dark mode. Override it there to change the shadow.
+  Without the variable, the grid uses a light-mode default.
 - `--grid-scroll-left` — internal. The grid writes the live horizontal scroll offset so the
   marker column and header layer can counter-translate. Read-only for consumers.
 - `--color-search-highlight` — an **optional** theme color. The built-in quick-search tint is the

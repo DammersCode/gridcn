@@ -10,6 +10,14 @@
          "description": "An editable data grid: range selection, spreadsheet clipboard, editing engine, validation, sorting, filtering, pinning, streaming updates. Real DOM cells, shadcn styling.",
          "author": "gridcn",
          "docs": "Docs & quick start: https://gridcn.vercel.app/docs/quick-start",
+         "cssVars": {
+            "light": {
+               "grid-pin-shadow": "oklch(0 0 0 / 10%)"
+            },
+            "dark": {
+               "grid-pin-shadow": "oklch(0 0 0 / 40%)"
+            }
+         },
          "dependencies": [
             "zustand"
          ],

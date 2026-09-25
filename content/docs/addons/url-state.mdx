@@ -42,9 +42,21 @@ function OrdersGrid() {
 }
 ```
 
-`nuqs/adapters/next/app` is the Next.js App Router adapter shown above. Swap it for your
-framework's own adapter, per the [nuqs docs](https://nuqs.dev/docs/adapters) (Pages Router, Remix,
-React Router, or plain React).
+`nuqs/adapters/next/app` is the Next.js App Router adapter shown above. Outside the App Router,
+import `NuqsAdapter` from your framework's adapter instead:
+
+```tsx
+// Next.js Pages Router
+import { NuqsAdapter } from "nuqs/adapters/next/pages";
+// React Router v7 (Vite)
+import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
+// TanStack Router
+import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
+// Plain React without a router (Vite)
+import { NuqsAdapter } from "nuqs/adapters/react";
+```
+
+The [nuqs adapter docs](https://nuqs.dev/docs/adapters) list every adapter and its setup.
 
 <Callout type="warn" title="NuqsAdapter must not be nested">
   If your app already renders a `NuqsAdapter` once near the root, the common case, drop the inner

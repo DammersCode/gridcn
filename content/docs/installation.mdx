@@ -79,6 +79,11 @@ gridcn's CLI commands read that file to find your aliases and styling. See
 [Project status & compatibility](/docs/project-status#framework-floors) for why React 19 is a
 hard floor, plus the Node and TypeScript floors.
 
+<Callout type="warn" title="React 19 and Tailwind v4 only">
+  On React 18, the grid does not run: it reads context through the React 19 `use()` API. On
+  Tailwind v3, the grid renders without its styles.
+</Callout>
+
 The core item of gridcn has exactly one npm dependency: `zustand`. The table below lists the
 dependency of each add-on.
 
@@ -116,9 +121,25 @@ gridcn works by default in the App Router. Every grid component is a client comp
 ### Vite
 
 gridcn works the same way in Vite. The CLI detects your Vite and shadcn setup from
-`components.json`. If you use React 19 with Vite, make sure that your `vite.config.ts` alias
-resolution matches the `aliases` in `components.json`. The CLI reads the same file to decide
-where to write files.
+`components.json`, and it writes files to the `aliases` in that file. The `@` alias in
+`vite.config.ts` must point to the same folder, as in shadcn's Vite setup:
+
+```ts
+import path from "node:path";
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: { "@": path.resolve(__dirname, "./src") },
+  },
+});
+```
+
+Add the same alias to `compilerOptions.paths` in `tsconfig.app.json`, so TypeScript resolves
+`@/components/...` imports too.
 
 ## Non-default aliases
 
