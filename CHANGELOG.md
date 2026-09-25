@@ -262,6 +262,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   minted once per mount, so the global binding stays live with focus already inside the grid.
 - **Stale view-space presence warning:** the dev warning fires once per grid instead of once per
   page, and `insertRows`, `deleteRows`, and `duplicateRows` trigger it too.
+- **Demo npm dependencies:** `data-grid-context-menu-slots-demo` declares `lucide-react` and
+  `data-grid-validation-demo` declares `sonner`, so a fresh install gets both packages.
 - **Inline fill callbacks:** `useDataGridFill`'s `onFill` and `detectSeries` may be inline
   functions; a new identity no longer re-creates the fill handlers on every render.
 

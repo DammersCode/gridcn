@@ -21,6 +21,8 @@ const tsconfig = JSON.parse(readFileSync(join(root, "tsconfig.json"), "utf8"));
 
 const npmPackages = new Set([...Object.keys(pkg.dependencies ?? {}), ...Object.keys(pkg.devDependencies ?? {})]);
 const itemsByName = new Map(registry.items.map((item) => [item.name, item]));
+// Every React consumer already has these; warning on them buries the warnings that matter.
+const CONSUMER_BASELINE = new Set(["react", "react-dom"]);
 const EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".json", ".css"];
 
 // tsconfig paths: longest prefix wins ("@/*" -> "./*" in this repo).
@@ -303,7 +305,7 @@ for (const item of examples) {
         errors.push(`${item.name}: import "${spec}" (${file.path}) is not an npm package declared in package.json`);
         continue;
       }
-      if (!declaredNpm.has(name)) {
+      if (!declaredNpm.has(name) && !CONSUMER_BASELINE.has(name)) {
         warnings.push(`${item.name}: import "${spec}" is not declared in any closure item's registry.json dependencies (a fresh consumer relies on its own boilerplate for it)`);
       }
     }

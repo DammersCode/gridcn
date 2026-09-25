@@ -66,7 +66,8 @@ function grepFile(path, pattern) {
 function run(cmd, cmdArgs, { cwd, logFile, timeoutMs, env }) {
   return new Promise((resolve) => {
     const fd = openSync(logFile, "w");
-    const child = spawn(cmd, cmdArgs, {
+    // One command string: shell mode (needed for npx.cmd on Windows) never escapes an args array anyway.
+    const child = spawn([cmd, ...cmdArgs].join(" "), {
       cwd,
       shell: true,
       stdio: ["ignore", fd, fd],
@@ -400,7 +401,7 @@ try {
     appPort = await getFreePort();
     const startLog = join(LOG_DIR, "next-start.log");
     const startFd = openSync(startLog, "w");
-    nextServerHandle = spawn("npx", ["next", "start", "-p", String(appPort)], {
+    nextServerHandle = spawn(`npx next start -p ${appPort}`, {
       cwd: scaffoldDir,
       shell: true,
       stdio: ["ignore", startFd, startFd],

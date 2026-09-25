@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import type { ReactNode } from "react";
 import ActionsDemo from "./data-grid-actions-demo";
@@ -112,7 +112,9 @@ const DEMOS: readonly [string, ReactNode][] = [
 async function commitFirstCell(grid: Element): Promise<void> {
   const cell = grid.querySelector<HTMLElement>('[role="row"][data-grid-row-index] [role="gridcell"][data-column-id]');
   if (!cell) return;
-  await userEvent.click(cell);
+  // A test id, not the element: demo data repeats names, so the element's accessible-name locator is ambiguous.
+  cell.dataset["testid"] = "smoke-first-cell";
+  await userEvent.click(page.getByTestId("smoke-first-cell"));
   await userEvent.keyboard("a");
   await userEvent.keyboard("{Enter}");
   await new Promise((r) => setTimeout(r, 50));
