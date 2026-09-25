@@ -160,6 +160,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Checkbox cells toggle on the first click:** a click on a checkbox cell's box toggles it, even
+  when the cell was not active. A click elsewhere in the cell still selects it first. The box
+  carries `data-grid-checkbox`.
 - **Edge shadows on every scrollable side:** the grid shows its edge shadow on each side where
   content lies beyond the visible area, with or without pinned columns or rows. The shadow sits at
   the grid edge, or at the pinned band boundary when a band is pinned. Before, it appeared only at
@@ -293,6 +296,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Checkbox drag toggled the start cell:** a press on a checkbox cell dragged across other rows
+  selects the range and no longer toggles the cell where the drag started, also when the drag
+  ends back on that cell.
 - **Async import merge:** the import dialog waits for a Promise returned by `onImport`. It closes
   after the merge succeeds, and a rejection keeps it open with the retry message.
 - **`updateCells` verdict with schema validation:** a rejected patch shows up in `skipped` with
