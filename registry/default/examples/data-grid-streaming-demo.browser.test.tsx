@@ -43,6 +43,8 @@ describe("data-grid-streaming-demo", () => {
     const reSort = Array.from(document.querySelectorAll("button")).find((b) => b.textContent?.trim() === "Re-sort");
     expect(reSort).toBeDefined();
 
+    // Paused, so no deferred batch can raise the flag again before the assertion.
+    Array.from(document.querySelectorAll("button")).find((b) => b.textContent?.trim() === "Pause feed")!.click();
     reSort!.click();
     await new Promise((r) => setTimeout(r, 100));
     // reconcileView cleared the flag; it reappears only after the next deferred batch.

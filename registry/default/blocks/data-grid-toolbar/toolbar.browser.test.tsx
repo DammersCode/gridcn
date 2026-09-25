@@ -333,10 +333,11 @@ describe("DataGridFilterMenu", () => {
     await page.getByRole("button", { name: "Add filter" }).click();
     await page.getByRole("combobox", { name: "Filter column" }).click();
     await page.getByRole("option", { name: "Age" }).click();
-    // a number column's value input is <input type="number"> — role spinbutton, not textbox
-    await page.getByRole("spinbutton", { name: "Filter value" }).fill("40");
+    // Operator before value: an operator change resets the value.
     await page.getByRole("combobox", { name: "Filter operator" }).click();
     await page.getByRole("option", { name: "equals" }).click();
+    // a number column's value input is <input type="number"> — role spinbutton, not textbox
+    await page.getByRole("spinbutton", { name: "Filter value" }).fill("40");
     // Bob is the only row with age 40 (Alice 30, Alicia 25, Carol 50).
     await expect.poll(() => document.querySelectorAll('[role="row"]').length - 1).toBe(1);
   });
