@@ -60,7 +60,7 @@ async function markerDrag(viewRowIndex: number, toX: number, toY: number, opts?:
 
 describe("row reorder (marker drag)", () => {
   it("dragging a marker vertically past other rows reorders the rows (DOM identity preserved)", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder" />
       </div>,
@@ -86,7 +86,7 @@ describe("row reorder (marker drag)", () => {
   });
 
   it("a plain click on the marker still selects the row and never reorders", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" />
       </div>,
@@ -105,7 +105,7 @@ describe("row reorder (marker drag)", () => {
   });
 
   it("shift+drag from the marker always extends the row selection, never reorders", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder" />
       </div>,
@@ -126,7 +126,7 @@ describe("row reorder (marker drag)", () => {
   });
 
   it("a drag from the checkbox glyph stays the row-select gesture (no reorder)", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder-checkbox" />
       </div>,
@@ -154,7 +154,7 @@ describe("row reorder (marker drag)", () => {
   });
 
   it("shows exactly one drop indicator at the boundary row's edge during the drag", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder" />
       </div>,
@@ -181,7 +181,7 @@ describe("row reorder (marker drag)", () => {
   });
 
   it("enableRowReorder=false leaves a marker drag as pure row selection", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" enableRowReorder={false} />
       </div>,
@@ -198,7 +198,7 @@ describe("row reorder (marker drag)", () => {
   });
 
   it("renders a grip handle with an a11y label in reorder mode and announces the move", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder" />
       </div>,
@@ -224,7 +224,7 @@ describe("row reorder (marker drag)", () => {
   // Regression: plain selection modes must never arm the reorder gesture — a selection drag in
   // 'both' mode used to become a reorder the moment it crossed the 5px threshold and left the row.
   it("a plain marker drag in 'both' mode stays the row-select gesture (no reorder, no indicator)", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="both" />
       </div>,
@@ -244,7 +244,7 @@ describe("row reorder (marker drag)", () => {
   });
 
   it("'reorder-number' renders the grip plus the row number and reorders on a plain drag", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder-number" />
       </div>,
@@ -265,7 +265,7 @@ describe("row reorder (marker drag)", () => {
   // Zone model: the press location decides the gesture. In the reorder family the number is a
   // pure row-select surface — a vertical drag across several rows must never reorder.
   it("a drag from the number zone of 'reorder-both' stays the row-select gesture (no reorder, no indicator)", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder-both" />
       </div>,
@@ -294,7 +294,7 @@ describe("row reorder (marker drag)", () => {
   // Zone model: the grip is the reorder entry — a grip drag in 'reorder-checkbox' reorders, and
   // the grip press's row selection follows the row to its new position.
   it("a grip drag in 'reorder-checkbox' reorders and the dragged row ends up the only selected row", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder-checkbox" />
       </div>,
@@ -320,7 +320,7 @@ describe("row reorder (marker drag)", () => {
   });
 
   it("a stationary press on the grip selects the row without reordering", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder-checkbox" />
       </div>,
@@ -340,7 +340,7 @@ describe("row reorder (marker drag)", () => {
   });
 
   it("auto-scrolls the grid while the drag pointer sits in a viewport edge zone", { timeout: 20_000 }, async () => {
-    render(
+    await render(
       <div style={{ height: 200 }}>
         <DataGrid data={makeRows(200)} columns={columns} getRowId={(r) => r.id} className="h-50" rowMarkers="reorder" />
       </div>,
@@ -371,7 +371,7 @@ describe("row reorder (marker drag)", () => {
   });
 
   it("Escape cancels the drag in flight: no reorder, no indicator", async () => {
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder" />
       </div>,

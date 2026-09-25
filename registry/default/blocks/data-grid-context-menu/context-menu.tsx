@@ -18,6 +18,35 @@ import { useHasCreateRow, useHasDuplicateRow } from "./has-row-op";
 export type DataGridContextMenuProps = {
   className?: string;
   children?: ReactNode;
+  /**
+   * Replaces the cell-surface item set (Cut/Copy/Paste, Clear contents, Insert row above/below,
+   * Duplicate row(s), Delete row(s)) with the returned node. The output is the complete item set —
+   * it owns the items, their order, and their gating. Runs during the wrapper's render (a plain
+   * function call, not a component), so it must not call hooks; wrap hook-using items in a
+   * component. Omit for the built-in set.
+   */
+  renderCellMenuItems?: (ctx: {
+    /** The right-clicked cell's view row index (the same index the built-in set anchors Insert row at). */
+    row: number;
+    /** The right-clicked cell's column id. */
+    columnId: string;
+    /** Whether the grid was given a `createRow` prop — the flag the built-in set gates its Insert items on. */
+    canInsertRow: boolean;
+    /** Whether the grid was given a `duplicateRow` prop — the flag the built-in set gates its Duplicate item on. */
+    canDuplicateRow: boolean;
+  }) => ReactNode;
+  /**
+   * Replaces the header-surface item set (Sort asc/desc/clear, Pin left/right/unpin, Hide column,
+   * Autosize column) with the returned node. Applies to the right-click header menu only; the
+   * `DataGridHeaderDropdown` keeps its built-in items. Runs during the wrapper's render, so it must
+   * not call hooks. Omit for the built-in set.
+   */
+  renderHeaderMenuItems?: (ctx: {
+    /** The right-clicked column's id. */
+    columnId: string;
+    /** The grid's scroll-container element (for autosize measurement), or null when the event target has no grid ancestor. */
+    scrollRoot: HTMLElement | null;
+  }) => ReactNode;
 };
 
 /**
@@ -37,7 +66,7 @@ export type DataGridContextMenuProps = {
  * less surprising than a browser chrome menu popping up only sometimes depending on grid surface.
  */
 export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode {
-  const { className, children } = props;
+  const { className, children, renderCellMenuItems, renderHeaderMenuItems } = props;
   const actions = useDataGridActions();
   const selection = useDataGridSelection();
   const canInsertRow = useHasCreateRow();
@@ -78,18 +107,24 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
         {children}
       </ContextMenuTrigger>
       <ContextMenuContent data-grid-context-menu="">
-        {target?.kind === "cell" && (
-          <DataGridCellMenuContent
-            row={target.row}
-            canInsertRow={canInsertRow}
-            canDuplicateRow={canDuplicateRow}
-            pasteBlocked={pasteBlocked}
-            onPasteBlocked={() => setPasteBlocked(true)}
-          />
-        )}
-        {target?.kind === "header" && (
-          <DataGridHeaderMenuContent columnId={target.columnId} scrollRoot={scrollRootRef.current} />
-        )}
+        {target?.kind === "cell" &&
+          (renderCellMenuItems ? (
+            renderCellMenuItems({ row: target.row, columnId: target.columnId, canInsertRow, canDuplicateRow })
+          ) : (
+            <DataGridCellMenuContent
+              row={target.row}
+              canInsertRow={canInsertRow}
+              canDuplicateRow={canDuplicateRow}
+              pasteBlocked={pasteBlocked}
+              onPasteBlocked={() => setPasteBlocked(true)}
+            />
+          ))}
+        {target?.kind === "header" &&
+          (renderHeaderMenuItems ? (
+            renderHeaderMenuItems({ columnId: target.columnId, scrollRoot: scrollRootRef.current })
+          ) : (
+            <DataGridHeaderMenuContent columnId={target.columnId} scrollRoot={scrollRootRef.current} />
+          ))}
       </ContextMenuContent>
     </ContextMenu>
   );

@@ -45,7 +45,7 @@ async function settle(ms = 900): Promise<void> {
 
 describe("playground: lazy + sort is server-side", () => {
   it("sorting in lazy mode reorders from the server, not by re-sorting the loaded window", async () => {
-    render(<DataGridPlaygroundDemo />);
+    await render(<DataGridPlaygroundDemo />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await chooseInSelect(0, "lazy");

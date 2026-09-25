@@ -93,18 +93,21 @@ identity-stability dev guardrail of the core.
 
 `setPresenceHighlights` REPLACES the whole list (snapshot semantics): each call must carry the
 full current set of remote entries, not a diff — the natural shape of a websocket "presence state"
-message or a CRDT awareness snapshot. When a peer leaves, drop their entries and set the
-remainder (clear-on-leave), or `setPresenceHighlights([])` when the room empties:
+message or a CRDT awareness snapshot. For a transport that sends diffs instead, the per-entry
+lifecycle hooks cover the common cases:
 
 ```ts
-const { plugin, setPresenceHighlights, storeApi } = useDataGridPresence();
+const { plugin, setPresenceHighlights, removePresenceHighlight, clearPresenceHighlights } = useDataGridPresence();
 
-socket.on("leave", (leftId) =>
-  setPresenceHighlights(storeApi.getState().highlights.filter((h) => h.id !== leftId)),
-);
+socket.on("leave", (leftId) => removePresenceHighlight(leftId)); // entry ids ARE the peer ids
+socket.on("room-closed", clearPresenceHighlights);              // the room empties
 ```
 
-Because the `id` must be unique per entry, this per-user filter is well-defined.
+`removePresenceHighlight(id)` removes the one entry whose `id` matches and leaves every other
+entry untouched; it is a no-op when no entry matches. A peer with a multi-range selection holds
+one entry per range. For that peer, either key every range entry by the same peer id and remove
+each, or resend the filtered snapshot as before. `clearPresenceHighlights()` removes every entry.
+Both re-render `DataGridOverlays` and nothing else, the same as a snapshot call.
 
 The same composition works with the core's `DataGrid` convenience wrapper — see the note on
 [Fill handle](/docs/addons/fill#composing-with-cores-datagrid-convenience-wrapper).
@@ -135,8 +138,7 @@ selection: the plugin resolves every `rowId` and `columnId` against this grid's 
 rows that fell out of the current filter silently (and dev-warns once per entry when a
 `columnId` is hidden or unknown), and paints the surviving cells as one rect per contiguous run
 of resolved rows × runs of resolved columns — a local filter that splits the range paints one
-rect per fragment instead of one wrong rect. One entry paints at most 1024 fragments. Beyond
-that, the excess is dropped with a dev warning:
+rect per fragment instead of one wrong rect:
 
 ```tsx
 // remote peer sends { userId, color, rowIds, columnIds } — no view-space coordinates involved
@@ -145,12 +147,30 @@ setPresenceHighlights([
 ]);
 ```
 
+To branch on the form of a received entry, `isRowIdPresenceHighlight(entry)` and
+`isRowIdRangePresenceHighlight(entry)` narrow a `PresenceHighlightEntry`. Both come from the
+`data-grid-presence` entry point.
+
+One entry paints at most 1024 fragments (`MAX_RESOLVED_RECTS`, the default of the `maxRects`
+option). Beyond the budget, the excess fragments are dropped and `onExcessRects(entry, kept,
+total)` fires once per entry, with a dev warning in dev:
+
+```ts
+const { plugin, ...rest } = useDataGridPresence({
+  maxRects: 256,
+  onExcessRects: (entry, kept, total) => console.info(`presence "${entry.id}": ${kept}/${total} fragments painted`),
+});
+```
+
 `PresenceHighlight`'s original `range` form (view-space, the same coordinate system as
 `GridSelection.current.range`) still works side by side with the rowId entries in the same array —
 it is the send side that needs no hooks at all (the payload already carries the selection's
 `range`), at the cost of one caveat: `range` is in the SENDER's view space, so a receiver with a
-different local sort or filter paints it on the wrong cells. Use the rowId forms whenever
-sender and receiver views can diverge:
+different local sort or filter paints it on the wrong cells. A receiver-side live feed with
+`reorder: "immediate"` (see [Streaming updates](/docs/streaming-updates)) moves rows in the same
+call. The `range` entry then points at the wrong rows on the receiver itself. Use the rowId-native
+forms whenever sender and receiver views can diverge, or when the receiver's own feed reorders
+rows while entries are active:
 
 ```ts
 type PresenceHighlight = {

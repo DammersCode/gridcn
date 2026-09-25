@@ -39,6 +39,8 @@ describe("DEFAULT_LABELS", () => {
     expect(DEFAULT_LABELS.io.mapColumnAriaLabel("Email")).toBe('Map "Email" to grid column');
     expect(DEFAULT_LABELS.io.previewTruncated(50, 1000)).toBe("Showing 50 of 1000 rows");
     expect(DEFAULT_LABELS.io.sheet).toBe("Sheet");
+    expect(DEFAULT_LABELS.io.importRejectedCells(1)).toBe("1 cell failed validation and was left empty.");
+    expect(DEFAULT_LABELS.io.importRejectedCells(3)).toBe("3 cells failed validation and were left empty.");
   });
 });
 

@@ -31,6 +31,11 @@ export function useDataGridActions(): DataGridActions {
  * registry `cell.tsx` and the store's own edit/clipboard/fill resolution read, so tooling that
  * needs to resolve a column's `Cell`/`Editor` never has to guess whether a custom registry is in
  * play. Reference is stable after init, so subscribing costs no re-renders.
+ *
+ * The registry key is NOT checked against `ColumnDef.type` at the registry's type level
+ * (`Record<string, AnyCellType>` is erased) — per-key type safety comes from `defineColumns` plus
+ * a `GridCellTypes` interface extension. A `column.type` string that resolves to nothing renders
+ * with the built-in `text` cell type and editing it no-ops.
  */
 export function useDataGridCellTypes(): Record<string, CellType> {
   return useDataGridStore((s) => s.cellTypes);
@@ -255,7 +260,7 @@ export function useDataGridAllColumns<TData = unknown>(): readonly ColumnDefOf<T
   ) as readonly ColumnDefOf<TData>[];
 }
 
-/** Whether a column id is currently hidden via `setColumnHidden` (independent of its def-level `hidden`, which seeds this set). */
+/** Whether a column id is currently hidden (def-level `hidden: true` seeds this set; `setColumnHidden` wins until the `columns` prop identity changes). */
 export function useDataGridIsColumnHidden(columnId: string): boolean {
   return useDataGridStore((s) => s.hiddenColumns.includes(columnId));
 }

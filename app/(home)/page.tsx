@@ -200,6 +200,13 @@ export default function HomePage() {
           range selection, spreadsheet clipboard, typed cell editors,
           validation, and windowed rendering at 100k+ rows.
         </p>
+        <p className="text-sm text-muted-foreground">
+          Works in Next.js, Vite, and any React 19 app with Tailwind v4 —{" "}
+          <Link href="/docs/project-status#framework-floors" className="underline underline-offset-4 hover:text-foreground">
+            see compatibility
+          </Link>
+          .
+        </p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Button render={<Link href="/docs" />} nativeButton={false} size="lg">
             Get started

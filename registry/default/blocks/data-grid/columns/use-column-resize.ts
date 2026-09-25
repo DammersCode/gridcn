@@ -4,9 +4,7 @@ import { useCallback, useRef, useState, type MouseEvent as ReactMouseEvent, type
 import type { AnyColumnDef } from "../store";
 import { inlineDelta, type GridDirection } from "../windowing/direction";
 import { measureColumnAutosizeWidth } from "./measure-column-text";
-
-/** Absolute floor so a runaway drag (or a zero/negative minWidth) never collapses a column to unusable. */
-const ABSOLUTE_MIN_WIDTH = 32;
+import { MIN_COLUMN_WIDTH, clampColumnWidth } from "./resolve-column-width";
 
 /** Handlers returned by {@link useColumnResize}, wired onto each header cell's resize handle. */
 export type ColumnResizeHandlers = {
@@ -48,11 +46,7 @@ export function useColumnResize(args: {
   argsRef.current = args;
   const [isResizing, setIsResizing] = useState(false);
 
-  const clamp = useCallback((width: number) => {
-    const min = Math.max(ABSOLUTE_MIN_WIDTH, column.minWidth ?? 0);
-    const max = column.maxWidth ?? Number.POSITIVE_INFINITY;
-    return Math.min(Math.max(width, min), max);
-  }, [column.minWidth, column.maxWidth]);
+  const clamp = useCallback((width: number) => clampColumnWidth(column, width), [column]);
 
   const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
@@ -111,7 +105,7 @@ export function useColumnResize(args: {
       headerText,
       cellTexts,
       font,
-      minWidth: Math.max(ABSOLUTE_MIN_WIDTH, column.minWidth ?? 0),
+      minWidth: Math.max(MIN_COLUMN_WIDTH, column.minWidth ?? 0),
       maxWidth: column.maxWidth,
     });
     argsRef.current.commitColumnWidth(column.id, width);

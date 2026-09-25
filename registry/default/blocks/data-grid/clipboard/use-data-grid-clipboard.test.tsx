@@ -224,15 +224,69 @@ describe("useDataGridClipboard.pasteFromClipboard with an async schema", () => {
 });
 
 describe("useDataGridClipboard.cut on a readOnly grid", () => {
-  it("still writes to the clipboard but never calls deleteSelection's onDataChange", () => {
+  it("still writes to the clipboard but never calls deleteSelection's onDataChange", async () => {
     vi.stubGlobal("navigator", { clipboard: { write: vi.fn().mockResolvedValue(undefined) } });
     vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
     const onDataChange = vi.fn();
     const wrapper = makeWrapper({ onDataChange });
     const result = setUpGrid(wrapper, { readOnly: true });
 
-    act(() => result.current.clipboard.cut());
+    const outcome = await act(async () => result.current.clipboard.cut());
 
+    expect(outcome).toBe("ok");
     expect(onDataChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("useDataGridClipboard.copy/cut outcomes", () => {
+  // jsdom has no document.execCommand; the legacy fallback test installs a stand-in and removes it
+  afterEach(() => {
+    delete (document as unknown as Record<string, unknown>)["execCommand"];
+  });
+
+  it("resolves 'ok' when the async Clipboard API accepts the write", async () => {
+    vi.stubGlobal("navigator", { clipboard: { write: vi.fn().mockResolvedValue(undefined) } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const wrapper = makeWrapper();
+    const result = setUpGrid(wrapper);
+
+    const outcome = await act(async () => result.current.clipboard.copy());
+    expect(outcome).toBe("ok");
+  });
+
+  it("resolves 'fallback' and runs the legacy execCommand path when the async write rejects", async () => {
+    const execCommand = vi.fn(() => true);
+    document.execCommand = execCommand;
+    vi.stubGlobal("navigator", { clipboard: { write: vi.fn().mockRejectedValue(new Error("denied")) } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const wrapper = makeWrapper();
+    const result = setUpGrid(wrapper);
+
+    const outcome = await act(async () => result.current.clipboard.copy());
+    expect(outcome).toBe("fallback");
+    expect(execCommand).toHaveBeenCalledWith("copy");
+  });
+
+  it("cut still clears the selection and resolves 'ok' with a selection present", async () => {
+    vi.stubGlobal("navigator", { clipboard: { write: vi.fn().mockResolvedValue(undefined) } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper({ onDataChange });
+    const result = setUpGrid(wrapper);
+
+    const outcome = await act(async () => result.current.clipboard.cut());
+    expect(outcome).toBe("ok");
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    expect((onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>])[1].source).toBe("delete");
+  });
+
+  it("resolves 'no-selection' for copy and cut when nothing is selected", async () => {
+    vi.stubGlobal("navigator", { clipboard: { write: vi.fn().mockResolvedValue(undefined) } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const wrapper = makeWrapper();
+    const { result } = renderHook(() => ({ clipboard: useDataGridClipboard() }), { wrapper });
+
+    expect(await act(async () => result.current.clipboard.copy())).toBe("no-selection");
+    expect(await act(async () => result.current.clipboard.cut())).toBe("no-selection");
   });
 });

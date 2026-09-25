@@ -2,6 +2,7 @@
 
 export {
   useDataGridPagination,
+  DEFAULT_PAGE_SIZES,
   type UseDataGridPaginationClientOptions,
   type UseDataGridPaginationServerOptions,
   type UseDataGridPaginationResult,

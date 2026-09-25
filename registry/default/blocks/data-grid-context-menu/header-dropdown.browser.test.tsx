@@ -48,7 +48,7 @@ function menuItem(name: string): HTMLElement | undefined {
 
 describe("DataGridHeaderDropdown", () => {
   it("renders no chevron trigger when the root has no renderHeaderMenu prop", async () => {
-    render(
+    await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
         <DataGridRoot className="h-75">
           <DataGridHeader />
@@ -61,7 +61,7 @@ describe("DataGridHeaderDropdown", () => {
   });
 
   it("shows the chevron trigger on header hover (opacity transitions from 0)", async () => {
-    renderGrid();
+    await renderGrid();
     await vi.waitFor(() => expect(document.querySelector('[data-column-id="name"]')).toBeTruthy());
     const trigger = document.querySelector<HTMLElement>(`[data-column-id="name"] ${gridAttrSelector("headerMenuTrigger")}`)!;
     expect(trigger).not.toBeNull();
@@ -76,7 +76,7 @@ describe("DataGridHeaderDropdown", () => {
   });
 
   it("opening the menu and clicking Hide column hides the column", async () => {
-    renderGrid();
+    await renderGrid();
     await vi.waitFor(() => expect(document.querySelector('[data-column-id="email"]')).toBeTruthy());
     const trigger = document.querySelector<HTMLElement>(`[data-column-id="email"] ${gridAttrSelector("headerMenuTrigger")}`)!;
 
@@ -88,7 +88,7 @@ describe("DataGridHeaderDropdown", () => {
   });
 
   it("reuses the same items as the header context menu (Sort/Pin/Hide/Autosize)", async () => {
-    renderGrid();
+    await renderGrid();
     await vi.waitFor(() => expect(document.querySelector('[data-column-id="name"]')).toBeTruthy());
     const trigger = document.querySelector<HTMLElement>(`[data-column-id="name"] ${gridAttrSelector("headerMenuTrigger")}`)!;
 
@@ -99,7 +99,7 @@ describe("DataGridHeaderDropdown", () => {
   });
 
   it("a menu-item click never also fires the header's own click-select/sort gesture (portal bubbles through the React tree, not the DOM tree)", async () => {
-    render(
+    await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id} headerClickBehavior="sort">
         <DataGridRoot className="h-75" renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}>
           <DataGridHeader />

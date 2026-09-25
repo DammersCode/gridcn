@@ -11,6 +11,8 @@ export type {
   RowPatch,
   UpdateCellsOptions,
   UpdateCellsReorder,
+  UpdateCellsSkip,
+  UpdateCellsVerdict,
   CellErrorTarget,
   CellErrorEntry,
   DataGridStoreState,

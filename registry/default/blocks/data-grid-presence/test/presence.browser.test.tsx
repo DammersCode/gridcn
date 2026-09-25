@@ -31,7 +31,7 @@ function makeColumns(count: number, opts?: { lastPinnedRight?: boolean; firstPin
   return cols;
 }
 
-function renderEngine(opts: {
+async function renderEngine(opts: {
   columns: ReturnType<typeof makeColumns>;
   rowCount?: number;
   width?: number;
@@ -52,7 +52,7 @@ function renderEngine(opts: {
     );
   }
 
-  const utils = render(
+  const utils = await render(
     <div style={{ height: opts.height ?? 300, width: opts.width ?? 400 }}>
       <Harness />
     </div>,
@@ -62,7 +62,7 @@ function renderEngine(opts: {
 
 describe("multiplayer presence — paint placement", () => {
   it("paints a fill+border overlay at the highlight's cell, colored via --presence-color", async () => {
-    const { setPresenceHighlights } = renderEngine({ columns: makeColumns(3), rowCount: 20 });
+    const { setPresenceHighlights } = await renderEngine({ columns: makeColumns(3), rowCount: 20 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     setPresenceHighlights([
@@ -84,7 +84,7 @@ describe("multiplayer presence — paint placement", () => {
   });
 
   it("splits a highlight spanning a pinned-left column + unpinned columns into 2 segments, pinned segment staying flush with the pinned cell", async () => {
-    const { setPresenceHighlights } = renderEngine({ columns: makeColumns(6, { firstPinnedLeft: true }), rowCount: 20 });
+    const { setPresenceHighlights } = await renderEngine({ columns: makeColumns(6, { firstPinnedLeft: true }), rowCount: 20 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
 
@@ -113,7 +113,7 @@ describe("multiplayer presence — paint placement", () => {
   });
 
   it("paints below the local active-cell ring (local focus wins) — ring renders after presence in DOM order", async () => {
-    const { setPresenceHighlights } = renderEngine({ columns: makeColumns(3), rowCount: 20 });
+    const { setPresenceHighlights } = await renderEngine({ columns: makeColumns(3), rowCount: 20 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
@@ -132,7 +132,7 @@ describe("multiplayer presence — paint placement", () => {
 
 describe("multiplayer presence — window-edge clamping", () => {
   it("clamps a highlight range to the currently rendered row window instead of overflowing it", async () => {
-    const { setPresenceHighlights } = renderEngine({ columns: makeColumns(2), rowCount: 200, height: 300 });
+    const { setPresenceHighlights } = await renderEngine({ columns: makeColumns(2), rowCount: 200, height: 300 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     // a range far larger than the rendered window (rows 0..198 of 200) — virtualization only
@@ -153,7 +153,7 @@ describe("multiplayer presence — window-edge clamping", () => {
   });
 
   it("renders nothing when the highlight range falls entirely outside the rendered window", async () => {
-    const { setPresenceHighlights } = renderEngine({ columns: makeColumns(2), rowCount: 200, height: 200 });
+    const { setPresenceHighlights } = await renderEngine({ columns: makeColumns(2), rowCount: 200, height: 200 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     setPresenceHighlights([{ id: "u1", color: "rgb(0,0,255)", range: { x: 0, y: 150, width: 1, height: 1 } }]);
@@ -165,7 +165,7 @@ describe("multiplayer presence — window-edge clamping", () => {
 
 describe("multiplayer presence — label chip visibility", () => {
   it("shows the label chip when the range's top-left corner is on-window", async () => {
-    const { setPresenceHighlights } = renderEngine({ columns: makeColumns(2), rowCount: 20 });
+    const { setPresenceHighlights } = await renderEngine({ columns: makeColumns(2), rowCount: 20 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     setPresenceHighlights([{ id: "u1", color: "rgb(255,0,0)", range: { x: 0, y: 1, width: 1, height: 1 }, label: "Ada" }]);
@@ -177,7 +177,7 @@ describe("multiplayer presence — label chip visibility", () => {
   });
 
   it("hides the label chip once the top-left corner scrolls out of the rendered window", async () => {
-    const { setPresenceHighlights } = renderEngine({ columns: makeColumns(2), rowCount: 200, height: 200 });
+    const { setPresenceHighlights } = await renderEngine({ columns: makeColumns(2), rowCount: 200, height: 200 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
 
@@ -195,7 +195,7 @@ describe("multiplayer presence — label chip visibility", () => {
   });
 
   it("omits the chip entirely when the highlight has no label", async () => {
-    const { setPresenceHighlights } = renderEngine({ columns: makeColumns(2), rowCount: 20 });
+    const { setPresenceHighlights } = await renderEngine({ columns: makeColumns(2), rowCount: 20 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     setPresenceHighlights([{ id: "u1", color: "rgb(255,0,0)", range: { x: 0, y: 1, width: 1, height: 1 } }]);
@@ -208,7 +208,7 @@ describe("multiplayer presence — label chip visibility", () => {
 
 describe("multiplayer presence — overlapping highlights", () => {
   it("renders both highlights when two users' ranges overlap, each with its own color", async () => {
-    const { setPresenceHighlights } = renderEngine({ columns: makeColumns(3), rowCount: 20 });
+    const { setPresenceHighlights } = await renderEngine({ columns: makeColumns(3), rowCount: 20 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     setPresenceHighlights([
@@ -228,7 +228,7 @@ describe("multiplayer presence — overlapping highlights", () => {
   });
 
   it("all presence overlays and chips are aria-hidden and pointer-events-none", async () => {
-    const { setPresenceHighlights } = renderEngine({ columns: makeColumns(3), rowCount: 20 });
+    const { setPresenceHighlights } = await renderEngine({ columns: makeColumns(3), rowCount: 20 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     setPresenceHighlights([{ id: "u1", color: "rgb(255,0,0)", range: { x: 0, y: 1, width: 1, height: 1 }, label: "Ada" }]);

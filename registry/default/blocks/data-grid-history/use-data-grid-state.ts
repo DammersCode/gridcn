@@ -9,6 +9,11 @@ export type UseDataGridStateOptions<TData> = {
   getRowId: (row: TData, index: number) => string;
   /** Maximum number of entries kept on the undo stack; oldest entries are dropped past this. */
   capacity?: number;
+  /**
+   * Identity of the dataset; a change between renders clears both history stacks.
+   * See `useDataGridHistory`'s `datasetKey`.
+   */
+  datasetKey?: string | number;
 };
 
 /** Return value of {@link useDataGridState}, spreadable straight onto `<DataGrid {...grid} />`. */
@@ -20,13 +25,15 @@ export type UseDataGridStateResult<TData> = {
   onRedo: () => void;
   /**
    * For a toolbar's undo/redo buttons, outside the spreadable `DataGrid` props. `clear` empties
-   * both stacks (e.g. after regenerating the dataset) — it lives on this sub-object, not the
+   * both stacks for an imperative reset — it lives on this sub-object, not the
    * spreadable top level, to avoid a future prop-name collision on the `<DataGrid {...grid} />`
    * spread.
    */
   history: {
     canUndo: boolean;
     canRedo: boolean;
+    /** Number of entries on the undo stack; 0 when there is nothing to undo. */
+    historySize: number;
     undo: () => void;
     redo: () => void;
     clear: () => void;
@@ -57,13 +64,14 @@ export function useDataGridState<TData>(
   defaultRows: readonly TData[],
   opts: UseDataGridStateOptions<TData>,
 ): UseDataGridStateResult<TData> {
-  const { getRowId, capacity } = opts;
+  const { getRowId, capacity, datasetKey } = opts;
   const [data, setData] = useState<readonly TData[]>(defaultRows);
-  const { onDataChange, undo, redo, canUndo, canRedo, clear, record: historyRecord } = useDataGridHistory({
+  const { onDataChange, undo, redo, canUndo, canRedo, clear, historySize, record: historyRecord } = useDataGridHistory({
     data,
     setData,
     getRowId,
     capacity,
+    datasetKey,
   });
   // stable identity: useDataGridRowIdToViewRow keys its O(n) Map build on getRowId identity.
   const gridGetRowId = useCallback((row: TData, index: number) => getRowId(row, index), [getRowId]);
@@ -83,6 +91,6 @@ export function useDataGridState<TData>(
     onDataChange,
     onUndo: undo,
     onRedo: redo,
-    history: { canUndo, canRedo, undo, redo, clear, record },
+    history: { canUndo, canRedo, historySize, undo, redo, clear, record },
   };
 }

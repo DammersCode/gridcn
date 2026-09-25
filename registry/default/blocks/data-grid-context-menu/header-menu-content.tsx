@@ -26,14 +26,15 @@ export type DataGridHeaderMenuContentProps = {
 
 /**
  * Header-surface context menu items: Sort asc/desc/Clear sort, Pin
- * left/right/Unpin (respecting `pinnable`/`enableColumnPinning`), Hide column, Autosize column.
+ * left/right/Unpin (respecting `pinnable`/`enableColumnPinning`), Hide column, Autosize column
+ * (respecting `resizable`/`enableColumnResize`).
  */
 export function DataGridHeaderMenuContent(props: DataGridHeaderMenuContentProps): ReactNode {
   const { columnId, scrollRoot } = props;
   const actions = useDataGridActions();
   const sortState = useDataGridSortState();
   const columns = useDataGridAllColumns();
-  const { enableColumnPinning } = useDataGridColumnFeatureFlags();
+  const { enableColumnPinning, enableColumnResize } = useDataGridColumnFeatureFlags();
   const labels = useDataGridLabels();
 
   const column = columns.find((c) => c.id === columnId);
@@ -41,6 +42,9 @@ export function DataGridHeaderMenuContent(props: DataGridHeaderMenuContentProps)
 
   const sortable = column.sortable !== false;
   const pinnable = enableColumnPinning && column.pinnable !== false;
+  // Mirrors the core double-click autosize's gate: with either flag off the action does not
+  // exist, so the item is hidden (not disabled) to match the absent resize handle.
+  const resizable = enableColumnResize && (column.resizable ?? true);
   const currentSort = sortState.find((s) => s.columnId === columnId)?.direction;
 
   return (
@@ -82,11 +86,15 @@ export function DataGridHeaderMenuContent(props: DataGridHeaderMenuContentProps)
         <EyeOff className="size-4 text-muted-foreground" />
         {labels.contextMenu.hideColumn}
       </ContextMenuItem>
-      <ContextMenuSeparator />
-      <ContextMenuItem onClick={() => autosizeColumn(scrollRoot, column, actions.setColumnWidth)}>
-        <MoveHorizontal className="size-4 text-muted-foreground" />
-        {labels.contextMenu.autosize}
-      </ContextMenuItem>
+      {resizable && (
+        <>
+          <ContextMenuSeparator />
+          <ContextMenuItem onClick={() => autosizeColumn(scrollRoot, column, actions.commitColumnWidth)}>
+            <MoveHorizontal className="size-4 text-muted-foreground" />
+            {labels.contextMenu.autosize}
+          </ContextMenuItem>
+        </>
+      )}
     </>
   );
 }

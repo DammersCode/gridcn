@@ -57,9 +57,13 @@ needs to differ from its token, the escape hatches are per-surface: data-attribu
 
 - `--grid-row-height` — set per instance by the `rowHeight` prop or the `density` preset
   (`compact` 28px, `default` 36px, `comfortable` 44px). It sizes every row track.
-- `--grid-pin-shadow` — the color of the pinned-column and pinned-row boundary shadow. The grid
-  uses this variable without a fallback, so define it per theme (the docs site themes it in
-  `global.css`). Left undefined, the boundary shadow renders invisible.
+- `--grid-pin-shadow` — the color of the shadow at pinned column and row bands, and the default
+  color of the edge shadows. The CLI install adds it to your CSS for light and dark mode. Without
+  the variable, the grid uses a light-mode default.
+- `--grid-column-border` — the color of the vertical lines between columns. Defaults to
+  `--color-border`. `transparent` hides the lines.
+- `--grid-scroll-shadow` and `--grid-shadow-size` — the edge shadow color and strip size. See
+  [Scroll shadows](#scroll-shadows).
 - `--grid-scroll-left` — internal. The grid writes the live horizontal scroll offset so the
   marker column and header layer can counter-translate. Read-only for consumers.
 - `--color-search-highlight` — an **optional** theme color. The built-in quick-search tint is the
@@ -69,6 +73,14 @@ needs to differ from its token, the escape hatches are per-surface: data-attribu
   attribute is stamped either way.
 - `--presence-color` — internal to the `data-grid-presence` add-on: each remote user's highlight
   overlay and name chip are mixed from that user's color, set through the presence API, not CSS.
+
+| Variable | Effect | Default |
+|---|---|---|
+| `--presence-label-foreground` | text color of a presence name chip | `white` |
+| `--grid-flash-duration` | duration of the post-commit write pulse. `0s` disables the pulse | `1.2s` |
+| `--grid-flash-intensity` | `color-mix()` percentage of `--grid-flash-color` at the pulse's start | `24%` |
+| `--grid-flash-color` | the pulse's tint color | `var(--color-primary)` |
+| `--grid-loading-sweep-duration` | duration of the loading bar's sweep animation | `1.2s` |
 
 ```tsx
 <DataGridProvider {...grid} columns={columns}>
@@ -96,26 +108,27 @@ the DOM and what you can beat. Where a surface lists a merge point, the built-in
 | Surface (selector) | Built-in classes | Override point |
 |---|---|---|
 | Grid root (`[role="grid"]`) | `relative select-none overflow-auto rounded-md border border-border bg-background text-sm` | `className` on `DataGridRoot` / `DataGrid`. |
-| Header cell (`[role="columnheader"]`) | `group relative flex items-center border-b border-border bg-muted px-2 font-medium select-none` | Per-column `headerClassName`. |
-| Data cell (`[role="gridcell"]`) | `relative flex items-center overflow-hidden border-b border-border bg-background px-2 outline-none group-hover/row:bg-muted/50 transition-colors` plus conditionals: opaque hover tint on pinned cells, `bg-search-highlight/60` on `[data-search-match]`, `tabular-nums` for number/date, the alignment class, the invalid-cell tint + inset ring | `getRowClassName`/`getCellClassName` (grid level) then `cellClassName` (per column), merged after the built-ins. |
+| Header cell (`[role="columnheader"]`) | `group relative flex items-center border-b border-border bg-muted px-2 font-medium select-none` plus the column line | Per-column `headerClassName`. |
+| Data cell (`[role="gridcell"]`) | `relative flex items-center overflow-hidden border-b border-border bg-background px-2 outline-none group-hover/row:bg-muted/50 transition-colors` plus the column line and conditionals: opaque hover tint on pinned cells, `bg-search-highlight/60` on `[data-search-match]`, `tabular-nums` for number/date, the alignment class, the invalid-cell tint + inset ring | `getRowClassName`/`getCellClassName` (grid level) then `cellClassName` (per column), merged after the built-ins. |
 | Row (`[role="row"]`) | `group/row` | `getRowClassName`. |
-| Marker cell (`[data-grid-marker-cell]`) | `group flex items-center justify-center border-b border-border bg-background transition-colors`, `cursor-grab` when row reorder is on, the selected-row tint | `renderMarker` replaces the content. The cell classes are internal. |
-| Marker header (`[data-grid-marker-header]`) | `flex items-center justify-center border-b border-border bg-muted` | Internal. |
+| Marker cell (`[data-grid-marker-cell]`) | `group flex items-center justify-center border-b border-border bg-background transition-colors`, the column line, `cursor-grab` when row reorder is on, the selected-row tint | `renderMarker` replaces the content. For the cell chrome itself, see [Override recipes](#override-recipes). |
+| Marker header (`[data-grid-marker-header]`) | `flex items-center justify-center border-b border-border bg-muted` plus the column line | Internal. |
 | Selection overlay (`[data-grid-selection-overlay]`) | `pointer-events-none border border-primary/40 bg-primary/10` | `--primary`. `overlayPlugins` for your own layer. |
 | Active-cell ring (`[data-grid-active-cell-overlay]`) | `pointer-events-none z-10 ring-2 ring-inset ring-primary` | `--primary` or `--ring`. |
-| Pin shadow (`[data-grid-pin-shadow]`) | 8px gradient strip, `opacity-0` to `100` via `data-scrolled-*`. Color from `--grid-pin-shadow` | Define `--grid-pin-shadow` per theme. |
+| Edge shadow (`[data-grid-pin-shadow]`) | 8px gradient strip on each side, `opacity-0` to `100` via `data-scrolled-*`, at the grid edge or the pinned band boundary. Each strip spans only the scrolling area between the pinned bands. Color from `--grid-pin-shadow` | Override `--grid-pin-shadow` per theme. |
+| Column line | 1px line at the end side of each column, and at the start side of a right-pinned column. Color from `--grid-column-border` | `--grid-column-border`. `transparent` hides the lines. |
 | Empty state (`[data-grid-empty-state]`) | `pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground` | `emptyState` prop or `labels.emptyState`. |
 | Loading skeleton (`[data-grid-loading-skeleton]`) | One `h-4 animate-pulse rounded bg-muted` bar per column per row, rows separated by `border-b border-border` | The `loading` flag. The skeleton renders only while `loading` is true. |
-| Loading bar (`[data-grid-loading-bar]`) | 2px track `bg-primary/20` with a `bg-primary` sweep (static under `prefers-reduced-motion`) | `--primary`. |
+| Loading bar (`[data-grid-loading-bar]`) | 2px track `bg-primary/20` with a `bg-primary` sweep (static under `prefers-reduced-motion`) | `--primary`. `--grid-loading-sweep-duration` for the sweep speed. |
 | Cell error tooltip | `rounded-sm border border-destructive/20 bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive`, placed below the cell while editing | `--destructive`. |
 | Resize handle (`[data-grid-resize-handle]`) | 8px column, a 3px `after` line in `bg-primary` revealed on hover and while `[data-resizing]` | `--primary`. |
 | Column drop indicator (`[data-grid-drop-indicator]`) | 2px line in `var(--color-primary)` at the drag boundary | `--primary`. |
 | Sort indicator (`[data-grid-sort-indicator]`) | `text-muted-foreground`, 14px icon, multi-sort rank badge `text-[10px] tabular-nums` | Embed `DataGridSortIndicator` in a custom header. `--muted-foreground`. |
 | Fill preview (`[data-grid-fill-preview]`) | `pointer-events-none border border-dashed border-primary bg-primary/5`. Handle: `size-2 border border-background bg-primary cursor-crosshair` | `--primary`. |
-| Presence overlay (`[data-grid-presence-overlay]`) | Border + 12% fill mixed from the user's `--presence-color`. Name chip `rounded-sm px-1.5 py-0.5 text-xs text-white shadow-sm` | Per-user color via the presence API. `overlayPlugins` for your own layer. |
+| Presence overlay (`[data-grid-presence-overlay]`) | Border + 12% fill mixed from the user's `--presence-color`. Name chip `rounded-sm px-1.5 py-0.5 text-xs shadow-sm` | Per-user color via the presence API. `--presence-label-foreground` for the chip text. `overlayPlugins` for your own layer. |
 | Pinned-row band (`[data-grid-pinned-row-band]`) | Band separator `border-border`. Band cells get an opaque 30% `muted` tint + `font-medium` | `--muted`, `--border`. |
 | Built-in editors | `text`/`number`: a borderless transparent `Input` filling the cell. `select`/`date`: your `ui/*` `Select`/`Popover`/`Calendar` primitives with the cell chrome stripped | Retheme the `ui/*` primitives, or pass a custom cell type. |
-| Write pulse (`[data-flash]`) | One-shot fade from 24% `primary` to transparent. Keyframes injected by the grid | `--primary`. Nothing to configure. |
+| Write pulse (`[data-flash]`) | One-shot fade from `--grid-flash-intensity` of `--grid-flash-color` to transparent. Keyframes injected by the grid | `--grid-flash-duration`, `--grid-flash-intensity`, `--grid-flash-color`. |
 
 **How deep you can go, in order of effort:**
 
@@ -175,7 +188,7 @@ The grid also stamps one attribute per structural element, as a selector for the
 | `data-grid-sort-indicator="asc" \| "desc"` | A header's own sort-direction arrow. |
 | `data-grid-drop-indicator` | The row- and column-reorder drop-position line. |
 | `data-grid-row-index` | Every data row (its view-space index). |
-| `data-grid-pin-shadow="left" \| "right" \| "top" \| "bottom"` | A frozen-edge shadow, visible while scrolled past that edge. |
+| `data-grid-pin-shadow="left" \| "right" \| "top" \| "bottom"` | The edge shadow of that side, visible while more content lies beyond it. See [Scroll shadows](#scroll-shadows). |
 | `data-scrolled-left` / `-right` / `-top` / `-bottom` | The viewport, while scrolled away from (or still able to scroll toward) that edge. |
 | `data-grid-selection-overlay` / `data-grid-active-cell-overlay` | The selection-range overlay(s) / the active-cell focus ring. |
 | `data-grid-loading-skeleton` / `data-grid-loading-bar` / `data-grid-empty-state` | The loading skeleton / progress bar / empty-state container. |
@@ -184,12 +197,58 @@ The grid also stamps one attribute per structural element, as a selector for the
 | `data-grid-fill-preview` / `data-grid-fill-handle` | The dashed fill-drag preview rect / its corner handle. |
 | `data-grid-presence-overlay` / `data-grid-presence-label` | A remote user's highlight range / name chip. |
 | `data-grid-toolbar` / `data-grid-columns-menu` / `data-grid-search` / `data-grid-search-count` / `data-grid-filter-menu` / `data-grid-filter-count` / `data-grid-filter-row` / `data-grid-sort-list` / `data-grid-sort-row` / `data-grid-sort-count` | The toolbar and its sub-widgets: columns menu, quick-search input + match badge, filter menu + active-count badge + its rows, sort list + its rows + active-sort badge. |
+| `data-grid-pagination` | The `data-grid-pagination` add-on's footer bar container. See [Pagination](/docs/pagination). |
 | `data-column-id` | Every cell and header (the column's `id`, your value). |
 
 ```css
 [data-active] { /* ring styling already applied; extend here if needed */ }
 [data-type="number"] { @apply tabular-nums text-right; }
 [data-search-match] { background-color: var(--color-search-highlight); }
+```
+
+## Override recipes
+
+Every built-in class in the [class surface](#the-built-in-class-surface) above is a Tailwind
+utility, generated into the `utilities` cascade layer (`@import "tailwindcss"` in `app/global.css`
+declares `@layer theme, base, components, utilities;`, and Tailwind's generated utilities live in
+that last layer). A plain CSS rule you write, with no `@layer` around it, is unlayered — and an
+unlayered rule always wins over any layered rule, regardless of selector specificity or source
+order. So a stylesheet rule targeting one of the selectors below overrides the grid's built-in
+utility with no `!important` and no specificity fight:
+
+```css
+/* selection range: swap the fill and border */
+[data-grid-selection-overlay] {
+  background-color: color-mix(in oklch, var(--color-accent) 20%, transparent);
+  border-color: var(--color-accent);
+}
+
+/* active-cell ring: thicker, dashed */
+[data-grid-active-cell-overlay] {
+  outline: 2px dashed var(--color-ring);
+  outline-offset: -2px;
+}
+
+/* marker cell: a colored left rail instead of the default background */
+[data-grid-marker-cell] {
+  background-color: transparent;
+  border-inline-start: 2px solid var(--color-border);
+}
+[data-grid-marker-cell][data-row-selected] {
+  border-inline-start-color: var(--color-primary);
+}
+
+/* invalid cell: a left rail instead of the inset ring */
+[data-invalid] {
+  box-shadow: none;
+  border-inline-start: 2px solid var(--color-destructive);
+}
+
+/* search match: a solid underline instead of a background tint */
+[data-search-match] {
+  background-color: transparent;
+  text-decoration: underline solid var(--color-search-highlight, currentColor) 2px;
+}
 ```
 
 ## Programmatic per-row/per-cell styling
@@ -360,6 +419,41 @@ every mounted row, with no re-render of cell content, only the row track size. P
 `rowHeight={32}` instead of `density` when you need a value that the three presets do not cover.
 It always wins over `density` when both are set.
 
+The header row does not follow `density` — set its height with the `headerHeight` prop (default
+36).
+
+## Scroll shadows
+
+The grid shows a soft shadow on each side where more content lies beyond the visible area: at
+the right edge while more columns follow, and at the bottom edge while more rows follow. After
+you scroll, the left and top shadows appear too. The top shadow sits under the header. When a
+column or row band is pinned, the shadow on that side sits at the band boundary instead.
+
+Configure the shadows with CSS variables. Set them on the grid or on any ancestor:
+
+| Variable | Effect | Default |
+|---|---|---|
+| `--grid-scroll-shadow` | color of the edge shadows. `transparent` hides them, and keeps the shadows at pinned bands | `--grid-pin-shadow` |
+| `--grid-pin-shadow` | color of the shadows at pinned bands | set by the CLI for light and dark mode |
+| `--grid-shadow-size` | width of the left and right shadows, and height of the top and bottom shadows | `8px` |
+
+To hide the edge shadows and keep the pinned-band shadows:
+
+```css
+.my-grid {
+  --grid-scroll-shadow: transparent;
+}
+```
+
+For a full redesign, select the shadow elements. Each one has `data-grid-pin-shadow` with its
+side, and a shadow at a pinned band also has `data-pinned`:
+
+```css
+/* edge shadows only, right side */
+[data-grid-pin-shadow="right"]:not([data-pinned]) {
+  background-image: linear-gradient(to left, var(--primary), transparent);
+}
+```
 ## Loading state
 
 <ComponentPreview name="data-grid-loading-demo" />
@@ -406,7 +500,7 @@ example.
 ## Visual defaults
 
 Selected rows and columns highlight across their full extent, not only the range rectangle.
-Pinned-edge shadows appear only when content is actually scrolled beneath them. Hover, focus
+An edge shadow appears on each side where more content lies beyond the visible area: at the grid edge, or at the boundary of a pinned column or row band. Hover, focus
 rings, and border rhythm follow the shadcn base style that you initialized with (the `style` in
 `components.json`). There is no gridcn-specific design layer on top to override it.
 

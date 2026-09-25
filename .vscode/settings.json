@@ -1,0 +1,4 @@
+{
+  // TypeScript 7 in the editor: hands JS/TS language features to the TypeScript (Native Preview) extension.
+  "js/ts.experimental.useTsgo": true
+}

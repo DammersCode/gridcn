@@ -1,11 +1,23 @@
 import type { AnyColumnDef } from "../store";
 
-/** Resolves a column's rendered width in px: live override, else def width, clamped by min/max. */
+/** Absolute floor for any column width: a runaway drag or a zero/negative `minWidth` can never collapse a column to unusable. */
+export const MIN_COLUMN_WIDTH = 32;
+
+/**
+ * Resolves a column's rendered width in px: live override, else def `width`, else the 150px
+ * default, clamped by min/max. The clamp here covers the RENDERED width; programmatic writes go
+ * through {@link clampColumnWidth}, which adds the 32px floor on top of `minWidth`.
+ */
 export function resolveColumnWidth(column: AnyColumnDef, override: number | undefined): number {
   const base = override ?? column.width ?? 150;
   const min = column.minWidth ?? 0;
   const max = column.maxWidth ?? Number.POSITIVE_INFINITY;
   return Math.min(Math.max(base, min), max);
+}
+
+/** Clamps `width` into the column's legal range `[max(MIN_COLUMN_WIDTH, minWidth), maxWidth]` — the one clamp the resize gesture and the store actions share. */
+export function clampColumnWidth(column: AnyColumnDef, width: number): number {
+  return resolveColumnWidth(column, Math.max(width, MIN_COLUMN_WIDTH));
 }
 
 /**

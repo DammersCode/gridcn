@@ -37,14 +37,14 @@ function ActionsCapture({ onActions }: { onActions: (actions: ReturnType<typeof 
   return null;
 }
 
-function renderEngine(opts: {
+async function renderEngine(opts: {
   columns: ReturnType<typeof makeColumns>;
   rowCount?: number;
   width?: number;
   height?: number;
 }) {
   let actions!: ReturnType<typeof useDataGridActions>;
-  const utils = render(
+  const utils = await render(
     <div style={{ height: opts.height ?? 600, width: opts.width ?? 1400 }}>
       <DataGridProvider data={makeRows(opts.rowCount ?? 200)} columns={opts.columns} getRowId={(r) => r.id}>
         <ActionsCapture onActions={(a) => (actions = a)} />
@@ -65,7 +65,7 @@ function gridCells(): HTMLElement[] {
 describe("pin-right min(viewport, content) anchor", () => {
   it("floats the pinned-right cell flush against the previous column when content is narrower than the viewport", async () => {
     // 8 columns * 100px = 800px content, inside a 1400px-wide container — content underflows.
-    renderEngine({ columns: makeColumns(8, { lastPinnedRight: true }), width: 1400, rowCount: 20 });
+    await renderEngine({ columns: makeColumns(8, { lastPinnedRight: true }), width: 1400, rowCount: 20 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const cells = gridCells().filter((c) => c.getAttribute("aria-colindex") !== null);
@@ -80,7 +80,7 @@ describe("pin-right min(viewport, content) anchor", () => {
   });
 
   it("floats the pinned-right cell flush against the grid's right edge when content overflows, at any scrollLeft", async () => {
-    renderEngine({ columns: makeColumns(100, { lastPinnedRight: true }), width: 1000, rowCount: 200 });
+    await renderEngine({ columns: makeColumns(100, { lastPinnedRight: true }), width: 1000, rowCount: 200 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
 
@@ -97,7 +97,7 @@ describe("pin-right min(viewport, content) anchor", () => {
   });
 
   it("leaves pinned-left behavior untouched (existing anchor still flush with the grid's left edge)", async () => {
-    renderEngine({ columns: makeColumns(60, { firstPinnedLeft: true }), width: 1000, rowCount: 200 });
+    await renderEngine({ columns: makeColumns(60, { firstPinnedLeft: true }), width: 1000, rowCount: 200 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
 
@@ -114,7 +114,7 @@ describe("pin-right min(viewport, content) anchor", () => {
 
 describe("pin-aware overlay segmentation", () => {
   it("paints a range spanning a pinned-left column + unpinned columns as 2 highlighted, correctly positioned parts that stay put while scrolling", async () => {
-    const { actions } = renderEngine({ columns: makeColumns(100, { firstPinnedLeft: true }), width: 1000, rowCount: 200 });
+    const { actions } = await renderEngine({ columns: makeColumns(100, { firstPinnedLeft: true }), width: 1000, rowCount: 200 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
 
@@ -148,7 +148,7 @@ describe("pin-aware overlay segmentation", () => {
   });
 
   it("paints a highlight over pinned-right cells at the viewport edge, not at their track position", async () => {
-    const { actions } = renderEngine({ columns: makeColumns(100, { lastPinnedRight: true }), width: 1000, rowCount: 200 });
+    const { actions } = await renderEngine({ columns: makeColumns(100, { lastPinnedRight: true }), width: 1000, rowCount: 200 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
 
@@ -175,7 +175,7 @@ describe("pin-aware overlay segmentation", () => {
   });
 
   it("paints a row-channel band (marker-click equivalent) across pinned-left + unpinned + pinned-right with no gaps", async () => {
-    const { actions } = renderEngine({
+    const { actions } = await renderEngine({
       columns: makeColumns(60, { firstPinnedLeft: true, lastPinnedRight: true }),
       width: 1000,
       rowCount: 200,
@@ -203,7 +203,7 @@ describe("pin-aware overlay segmentation", () => {
   });
 
   it("changing selection re-renders only overlays, never row DOM identity, even with pinned columns", async () => {
-    const { actions } = renderEngine({ columns: makeColumns(30, { firstPinnedLeft: true, lastPinnedRight: true }), width: 1000, rowCount: 200 });
+    const { actions } = await renderEngine({ columns: makeColumns(30, { firstPinnedLeft: true, lastPinnedRight: true }), width: 1000, rowCount: 200 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const rowsBefore = [...document.querySelectorAll('[role="row"]')].filter((r) => r.getAttribute("aria-rowindex"));
@@ -228,7 +228,7 @@ describe("bug fix — pinned cell hover opacity", () => {
   ] as const);
 
   it("stays fully opaque (alpha 1) on row hover, unlike the translucent unpinned tint", async () => {
-    render(
+    await render(
       <div style={{ height: 300, width: 300 }}>
         <DataGrid data={makeRows(10)} columns={hoverColumns} getRowId={(r) => r.id} className="h-75 w-75" />
       </div>,
@@ -251,7 +251,7 @@ describe("bug fix — pinned cell hover opacity", () => {
   it("resolves to the same opaque tint in dark mode", async () => {
     document.documentElement.classList.add("dark");
     try {
-      render(
+      await render(
         <div style={{ height: 300, width: 300 }}>
           <DataGrid data={makeRows(10)} columns={hoverColumns} getRowId={(r) => r.id} className="h-75 w-75" />
         </div>,
@@ -281,7 +281,7 @@ describe("bug fix — pinned-edge shadow alignment", () => {
   }
 
   it("keeps the left pin-shadow flush with the last pinned-left cell's right edge under fractional (post-resize) widths", async () => {
-    renderEngine({ columns: fractionalColumns(), width: 300, height: 300, rowCount: 20 });
+    await renderEngine({ columns: fractionalColumns(), width: 300, height: 300, rowCount: 20 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
     grid.scrollLeft = 50;
@@ -301,7 +301,7 @@ describe("bug fix — pinned-edge shadow alignment", () => {
   });
 
   it("keeps the right pin-shadow flush with the first pinned-right cell's left edge under fractional widths", async () => {
-    renderEngine({ columns: fractionalColumns(), width: 300, height: 300, rowCount: 20 });
+    await renderEngine({ columns: fractionalColumns(), width: 300, height: 300, rowCount: 20 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
     grid.scrollLeft = 50;
@@ -317,7 +317,7 @@ describe("bug fix — pinned-edge shadow alignment", () => {
 
   it("stays aligned after a live column-width change (simulating a resize drag) lands on a fractional width", async () => {
     const cols = makeColumns(3, { firstPinnedLeft: true });
-    const { actions } = renderEngine({ columns: cols, width: 400, height: 300, rowCount: 20 });
+    const { actions } = await renderEngine({ columns: cols, width: 400, height: 300, rowCount: 20 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     // setColumnWidth is exactly what the resize-drag handler calls per pointermove (see
@@ -344,7 +344,7 @@ describe("bug fix - an active cell never floats over the pinned column", () => {
       { id: "age", header: "Age", accessorKey: "age", type: "number", width: 90 },
     ] as const);
 
-    render(
+    await render(
       <div style={{ width: 340, height: 300 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[260px]" />
       </div>,
@@ -379,7 +379,7 @@ describe("bug fix - the active-cell ring never floats over the pinned column", (
   ] as const);
 
   async function renderGrid() {
-    render(
+    await render(
       <div style={{ width: 340, height: 300 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[260px]" />
       </div>,

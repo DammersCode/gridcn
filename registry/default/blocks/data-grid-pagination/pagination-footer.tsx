@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-r
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DEFAULT_LABELS, type DataGridPaginationLabels } from "@/registry/default/blocks/data-grid/data-grid";
+import { DEFAULT_LABELS, GRID_ATTR, type DataGridPaginationLabels } from "@/registry/default/blocks/data-grid/data-grid";
 import type { DataGridPaginationControls } from "./use-data-grid-pagination";
 import { pageWindow } from "./pagination-math";
 
@@ -38,6 +38,8 @@ export type DataGridPaginationBarProps = DataGridPaginationControls & {
    * and so has no store to read `useDataGridLabels()` from.
    */
   labels?: Partial<DataGridPaginationLabels>;
+  /** How many numbered page buttons the default layout shows at once (forwarded to `DataGridPaginationPages`; ignored with `children`). */
+  windowSize?: number;
   /** Custom composition of parts; omit to render the default layout (range, page-size, first/prev/pages/next/last). */
   children?: ReactNode;
 };
@@ -55,13 +57,13 @@ export type DataGridPaginationBarProps = DataGridPaginationControls & {
  * which mode it's rendering for.
  */
 export function DataGridPaginationBar(props: DataGridPaginationBarProps): ReactNode {
-  const { page, pageCount, pageSize, pageSizeOptions, total, onPageChange, onPageSizeChange, className, labels: labelsOverride, children } = props;
+  const { page, pageCount, pageSize, pageSizeOptions, total, onPageChange, onPageSizeChange, className, labels: labelsOverride, windowSize, children } = props;
   const controls: DataGridPaginationControls = { page, pageCount, pageSize, pageSizeOptions, total, onPageChange, onPageSizeChange };
   const labels = { ...DEFAULT_LABELS.pagination, ...labelsOverride };
 
   return (
     <PaginationBarContext value={{ controls, labels }}>
-      <div data-grid-pagination="" className={cn("flex flex-wrap items-center justify-between gap-2 border-t border-border bg-background px-2 py-1.5", className)}>
+      <div {...{ [GRID_ATTR.pagination]: "" }} className={cn("flex flex-wrap items-center justify-between gap-2 border-t border-border bg-background px-2 py-1.5", className)}>
         {children ?? (
           <>
             <DataGridPaginationRange />
@@ -70,7 +72,7 @@ export function DataGridPaginationBar(props: DataGridPaginationBarProps): ReactN
               <div className="flex items-center gap-1">
                 <DataGridPaginationFirst />
                 <DataGridPaginationPrev />
-                <DataGridPaginationPages />
+                <DataGridPaginationPages windowSize={windowSize} />
                 <DataGridPaginationNext />
                 <DataGridPaginationLast />
               </div>

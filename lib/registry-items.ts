@@ -21,6 +21,7 @@ export type RegistryItemName =
   | "data-grid-column-drag-demo"
   | "data-grid-column-layout-demo"
   | "data-grid-context-menu-demo"
+  | "data-grid-context-menu-slots-demo"
   | "data-grid-cross-field-demo"
   | "data-grid-custom-cell-demo"
   | "data-grid-custom-headers-demo"
@@ -28,6 +29,7 @@ export type RegistryItemName =
   | "data-grid-demo"
   | "data-grid-events-demo"
   | "data-grid-fill-patterns-demo"
+  | "data-grid-filter-operators-demo"
   | "data-grid-global-shortcuts-demo"
   | "data-grid-history-demo"
   | "data-grid-i18n-demo"
@@ -44,6 +46,7 @@ export type RegistryItemName =
   | "data-grid-pagination-swr-demo"
   | "data-grid-performance-demo"
   | "data-grid-pinned-rows-demo"
+  | "data-grid-pinning-all-sides-demo"
   | "data-grid-pinning-demo"
   | "data-grid-playground-demo"
   | "data-grid-presence-demo"
@@ -56,4 +59,5 @@ export type RegistryItemName =
   | "data-grid-streaming-demo"
   | "data-grid-styling-patterns-demo"
   | "data-grid-url-state-demo"
-  | "data-grid-validation-demo";
+  | "data-grid-validation-demo"
+  | "dropzone";

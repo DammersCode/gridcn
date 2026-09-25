@@ -150,6 +150,25 @@ describe("buildFillWrites", () => {
   });
 });
 
+describe("buildFillWrites over a lazy (sparse) grid", () => {
+  it("skips unloaded rows and dev-warns once per fill", () => {
+    const warn = vi.spyOn(console, "warn");
+    // 4-row sparse data: rows 0-1 loaded, rows 2-3 are holes (undefined)
+    const sparse: Row[] = new Array(4);
+    sparse[0] = { id: "1", name: "a", qty: 2 };
+    sparse[1] = { id: "2", name: "b", qty: 4 };
+    // viewIndex spans the full length (holes included), as the lazy hook's store does
+    const s = fakeState({ data: sparse, viewIndex: [0, 1, 2, 3] });
+    const source: GridRect = { x: 1, y: 0, width: 1, height: 2 }; // qty column, "2","4"
+    const strip: GridRect = { x: 1, y: 2, width: 1, height: 2 }; // both rows are holes
+    const { writes } = buildFillWrites(s, source, strip);
+    expect(writes).toEqual([]);
+    // one warn per fill gesture, not one per skipped cell
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+});
+
 describe("buildFillWrites with an async schema", () => {
   const asyncQty = {
     "~standard": {
@@ -315,5 +334,46 @@ describe("useFillHandle staleness guard — async fill held against a real store
     expect(change.source).toBe("fill");
     expect(next.find((r) => r.id === "2")!.qty).toBe(99);
     expect(next.find((r) => r.id === "1")!.qty).toBe(2); // the row that moved into view row 1 is untouched
+  });
+});
+
+describe("useFillHandle callback identity", () => {
+  it("keeps fillDown stable across inline callbacks and calls the latest detectSeries", () => {
+    const data = rows();
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <DataGridProvider data={data} columns={columns} getRowId={(r) => r.id}>
+        {children}
+      </DataGridProvider>
+    );
+    const detectCalls: string[] = [];
+    const { result, rerender } = renderHook(
+      ({ tag }: { tag: string }) => {
+        const actions = useDataGridActions();
+        const scrollRef = useRef<HTMLElement | null>(null);
+        const fill = useFillHandle({
+          scrollRef,
+          layout: {} as InteractionLayout,
+          fillStore: createFillStore(),
+          onFill: () => {},
+          detectSeries: () => {
+            detectCalls.push(tag);
+            return null;
+          },
+        });
+        return { actions, fill };
+      },
+      { wrapper, initialProps: { tag: "first" } },
+    );
+    const firstFillDown = result.current.fill.fillDown;
+
+    rerender({ tag: "second" });
+    act(() => {
+      result.current.actions.selectCell({ col: 1, row: 0 });
+      result.current.actions.extendTo({ col: 1, row: 1 });
+    });
+    act(() => result.current.fill.fillDown());
+
+    expect(result.current.fill.fillDown).toBe(firstFillDown);
+    expect(detectCalls).toEqual(["second"]);
   });
 });

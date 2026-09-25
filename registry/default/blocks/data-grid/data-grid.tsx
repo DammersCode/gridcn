@@ -137,6 +137,8 @@ export {
   type RowPatch,
   type UpdateCellsOptions,
   type UpdateCellsReorder,
+  type UpdateCellsSkip,
+  type UpdateCellsVerdict,
   type CellErrorTarget,
   type CellErrorEntry,
   type DataGridStoreState,
@@ -154,6 +156,7 @@ export { DataGridGlobalShortcuts, type DataGridGlobalShortcutsProps } from "./ke
 export {
   type GlobalShortcutAction,
   type GlobalShortcutsConfig,
+  type DataGridGlobalShortcutActions,
 } from "./keyboard/global-shortcuts";
 
 export {
@@ -164,10 +167,14 @@ export {
   selectCellType,
   dateCellType,
 } from "./cell-types/cell-types";
+export { displayText } from "./cell-types/display-text";
+export { CellSpan } from "./cell-types/cell-span";
 
 export { CompactSelection } from "./selection/compact-selection";
 /** Bounding-box union of two rects — `data-grid-fill`'s drag pipeline uses this to expand a selection over `combineRects(source, strip)`. */
 export { combineRects } from "./selection";
+/** View rows covered by a selection (primary range + rangeStack + rows channel), deduped ascending — `data-grid-context-menu`'s row ops and `data-grid-io`'s selection-scope export derive their row set from this. */
+export { getSelectedViewRows } from "./selection";
 export { defineColumns, getCellValue, setCellValue } from "./columns/column-helpers";
 export type { KeysMatching, TypedColumnDef, TypedTextColumnDef, AnyTypedColumn, AccessorLike, InferredValue } from "./columns/column-helpers";
 /** A column's sort-direction arrow + multi-sort priority number — string headers get it automatically in `sort` mode; embed it inside a custom (ReactNode) header when you want it there. */
@@ -253,7 +260,7 @@ export type {
   RowClickCtx,
 } from "./types";
 export { measureColumnAutosizeWidth, measureTextWidths } from "./columns/measure-column-text";
-export { type SearchMatch } from "./sort-filter";
+export { createFilterMatcher, type SearchMatch } from "./sort-filter";
 
 /** Props for {@link DataGrid}. */
 export type DataGridProps<TData> = {
@@ -377,6 +384,10 @@ export type DataGridProps<TData> = {
   onSelectionCleared?: () => void;
   /** Row-height preset: compact 28 / default 36 / comfortable 44. Ignored when `rowHeight` is set. */
   density?: DensityMode;
+  /** Sticky header track height (px); `density` and `rowHeight` affect data rows only. Default 36. */
+  headerHeight?: number;
+  /** Extra unpinned columns rendered beyond the visible viewport on each side. Default 1. */
+  columnOverscan?: number;
   /** Row class hook, merged via `cn()` after the built-in row classes. Pass a stable identity. */
   getRowClassName?: GetRowClassName<TData>;
   /** Cell class hook, merged via `cn()` after the built-in cell classes. Pass a stable identity. */
@@ -451,6 +462,8 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
     onSelectionChange,
     onSelectionCleared,
     density,
+    headerHeight,
+    columnOverscan,
     getRowClassName,
     getCellClassName,
     onCellClick,
@@ -517,6 +530,8 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
         className={className}
         rowHeight={rowHeight}
         density={density}
+        headerHeight={headerHeight}
+        columnOverscan={columnOverscan}
         keymap={keymap}
         direction={direction}
         readOnly={readOnly}

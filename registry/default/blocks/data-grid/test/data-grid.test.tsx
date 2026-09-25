@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, beforeAll, vi } from "vitest";
-import { memo } from "react";
-import type { ColumnDef } from "../types";
+import { memo, useState } from "react";
+import type { CellType, ColumnDef } from "../types";
 import { DataGrid, DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, useDataGridActions, useDataGridCellState, useDataGridRow, GRID_ATTR, gridAttrSelector } from "../data-grid";
 
 type Row = { id: string; name: string; qty: number };
@@ -124,6 +124,22 @@ describe("DataGrid row placement", () => {
   });
 });
 
+describe("DataGrid headerHeight", () => {
+  it("defaults the sticky header track to 36px", () => {
+    render(<DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} />);
+    const headerLayer = document.querySelector(gridAttrSelector("headerLayer")) as HTMLElement;
+    expect(headerLayer.style.gridAutoRows).toBe("36px");
+  });
+
+  it("applies a custom headerHeight to the header track and to the content extent math", () => {
+    render(<DataGrid data={makeRows(10000)} columns={columns} getRowId={(r) => r.id} headerHeight={48} />);
+    const headerLayer = document.querySelector(gridAttrSelector("headerLayer")) as HTMLElement;
+    expect(headerLayer.style.gridAutoRows).toBe("48px");
+    const content = (screen.getByRole("grid").firstElementChild as HTMLElement);
+    expect(content.style.height).toBe("360048px"); // 48 header + 10000*36 (rowHeight default)
+  });
+});
+
 describe("DataGrid pinned columns", () => {
   const pinnedColumns: readonly ColumnDef<Row, unknown>[] = [
     { id: "name", header: "Name", accessorKey: "name", pin: "left" },
@@ -188,6 +204,11 @@ describe("DataGrid cell content", () => {
     const qtyCell = screen.getAllByRole("gridcell")[1]!;
     expect(qtyCell).toHaveAttribute("data-type", "number");
     expect(qtyCell.className).toContain("tabular-nums");
+  });
+
+  it("stamps data-type=\"text\" on untyped (default) columns so [data-type=\"text\"] selectors match", () => {
+    render(<DataGrid data={makeRows(1)} columns={columns} getRowId={(r) => r.id} />);
+    expect(screen.getAllByRole("gridcell")[0]!).toHaveAttribute("data-type", "text");
   });
 
   it("respects renderCell override", () => {
@@ -329,6 +350,95 @@ describe("DataGrid programmatic styling API", () => {
     const nameCell = screen.getAllByRole("gridcell")[0]!;
     expect(nameCell.className).toContain("justify-end");
     expect(nameCell.className).not.toContain("justify-center");
+  });
+});
+
+describe("function-form styling callbacks on skeleton rows (lazy holes)", () => {
+  it("does not call function-form readOnly/getRowClassName/getCellClassName/column.cellClassName with an undefined row", () => {
+    const rows = makeRows(3);
+    const sparse = [rows[0]!, undefined, rows[2]!] as Row[];
+    const getRowClassName = vi.fn((row: Row) => `row-${row.id}`);
+    const getCellClassName = vi.fn(({ row }: { row: Row }) => `cell-${row.id}`);
+    // every callback reads a row field, so an invocation with an undefined row throws mid-render
+    const holeColumns: readonly ColumnDef<Row, unknown>[] = [
+      {
+        id: "name",
+        header: "Name",
+        accessorKey: "name",
+        readOnly: (row: Row) => row.qty > 1,
+        cellClassName: (ctx) => `col-${ctx.row.id}`,
+      },
+    ];
+    render(
+      <DataGrid
+        data={sparse}
+        columns={holeColumns}
+        getRowId={(r) => (r ? r.id : "hole")}
+        getRowClassName={getRowClassName}
+        getCellClassName={getCellClassName}
+      />,
+    );
+
+    const dataRows = screen.getAllByRole("row").filter((r) => r.getAttribute("aria-rowindex"));
+    const skeletonRow = dataRows[1]!;
+    expect(skeletonRow.getAttribute("aria-busy")).toBe("true");
+
+    for (const [row] of getRowClassName.mock.calls) expect(row).not.toBeUndefined();
+    for (const [ctx] of getCellClassName.mock.calls) expect(ctx.row).not.toBeUndefined();
+
+    // the hole renders a bare skeleton: no callback-derived classes, no data-readonly from the skipped readOnly
+    expect(skeletonRow.className).not.toContain("row-");
+    const skeletonCells = skeletonRow.querySelectorAll('[role="gridcell"][data-skeleton]');
+    expect(skeletonCells.length).toBe(1);
+    for (const cell of skeletonCells) {
+      expect(cell.className).not.toContain("cell-");
+      expect(cell.className).not.toContain("col-");
+      expect(cell).not.toHaveAttribute("data-readonly");
+    }
+
+    // loaded rows still receive everything the callbacks return
+    expect(dataRows[0]!.className).toContain("row-0");
+    expect(dataRows[2]!.className).toContain("row-2");
+    const firstCell = dataRows[0]!.querySelector('[role="gridcell"]')!;
+    const lastCell = dataRows[2]!.querySelector('[role="gridcell"]')!;
+    expect(firstCell).not.toHaveAttribute("data-readonly"); // qty 0 -> readOnly false
+    expect(lastCell).toHaveAttribute("data-readonly", "true"); // qty 2 -> readOnly true
+    expect(lastCell.className).toContain("cell-2");
+    expect(lastCell.className).toContain("col-2");
+  });
+});
+
+describe("aria-sort under the default headerClickBehavior", () => {
+  it("reports aria-sort on a sorted column even though the default click behavior is select, not sort", () => {
+    render(
+      <DataGrid
+        data={makeRows(5)}
+        columns={columns}
+        getRowId={(r) => r.id}
+        sortState={[{ columnId: "name", direction: "asc" }]}
+      />,
+    );
+    expect(screen.getByRole("columnheader", { name: "Name" })).toHaveAttribute("aria-sort", "ascending");
+    expect(screen.getByRole("columnheader", { name: "Qty" })).toHaveAttribute("aria-sort", "none");
+    // the visual arrow stays gated on the click behavior — the default "select" renders no indicator
+    expect(document.querySelector(gridAttrSelector("sortIndicator"))).toBeNull();
+  });
+
+  it("omits aria-sort entirely when the column is sortable: false", () => {
+    const nonSortableColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name", sortable: false },
+      { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
+    ];
+    render(
+      <DataGrid
+        data={makeRows(5)}
+        columns={nonSortableColumns}
+        getRowId={(r) => r.id}
+        sortState={[{ columnId: "name", direction: "asc" }]}
+      />,
+    );
+    expect(screen.getByRole("columnheader", { name: "Name" })).not.toHaveAttribute("aria-sort");
+    expect(screen.getByRole("columnheader", { name: "Qty" })).toHaveAttribute("aria-sort", "none");
   });
 });
 
@@ -550,6 +660,129 @@ describe("DataGrid cell-type-driven rendering and editing lifecycle", () => {
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [nextData] = onDataChange.mock.calls[0]!;
     expect(nextData[0]!.active).toBe(true);
+  });
+});
+
+describe("edit stash is seeded at editor open, not re-seeded on every render", () => {
+  // A custom type whose editor commits WITHOUT a final onChange, so `commit()` reads the cell's
+  // stashed draft directly (CellEditorProps contract: commit applies what onChange last stashed).
+  function StashEditor({ onChange, commit, cancel }: {
+    onChange: (next: string) => void;
+    commit: (movement?: { dx: number; dy: number }) => void;
+    cancel: () => void;
+  }) {
+    const [text, setText] = useState("");
+    return (
+      <input
+        aria-label="stash editor"
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          onChange(e.target.value);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit({ dx: 0, dy: 0 });
+          else if (e.key === "Escape") cancel();
+        }}
+      />
+    );
+  }
+
+  const stashCellType: CellType<unknown, string> = {
+    Cell: ({ value }) => <span>{value}</span>,
+    Editor: StashEditor,
+    toText: (value) => (value == null ? "" : String(value)),
+    fromText: (text) => text,
+    clearValue: () => "",
+    isEmpty: (value) => value == null || value === "",
+  };
+
+  const stashColumns: readonly ColumnDef<Row, unknown>[] = [
+    { id: "name", header: "Name", accessorKey: "name", type: "stash" },
+  ];
+
+  it("keeps the typed draft when the underlying value changes mid-edit, and commits the draft", () => {
+    const onDataChange = vi.fn();
+    const utils = render(
+      <DataGrid
+        data={makeRows(2)}
+        columns={stashColumns}
+        getRowId={(r) => r.id}
+        cellTypes={{ stash: stashCellType }}
+        onDataChange={onDataChange}
+      />,
+    );
+    const grid = screen.getByRole("grid");
+    fireEvent.pointerDown(screen.getAllByRole("gridcell")[0]!, { button: 0 });
+    fireEvent.keyDown(grid, { key: "F2" });
+    const input = screen.getByRole("textbox", { name: "stash editor" });
+    fireEvent.change(input, { target: { value: "draft" } });
+    // a mid-edit re-render with a new underlying value (a stream tick / cellError landing)
+    utils.rerender(
+      <DataGrid
+        data={[{ id: "0", name: "Z", qty: 0 }, { id: "1", name: "Row 1", qty: 1 }]}
+        columns={stashColumns}
+        getRowId={(r) => r.id}
+        cellTypes={{ stash: stashCellType }}
+        onDataChange={onDataChange}
+      />,
+    );
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    const [next] = onDataChange.mock.calls[0]!;
+    expect(next[0]!.name).toBe("draft");
+  });
+
+  it("re-seeds the stash from the current value after cancel, so a fresh open commits the seed, not the discarded draft", () => {
+    const onDataChange = vi.fn();
+    render(
+      <DataGrid
+        data={makeRows(1)}
+        columns={stashColumns}
+        getRowId={(r) => r.id}
+        cellTypes={{ stash: stashCellType }}
+        onDataChange={onDataChange}
+      />,
+    );
+    const grid = screen.getByRole("grid");
+    fireEvent.pointerDown(screen.getAllByRole("gridcell")[0]!, { button: 0 });
+    fireEvent.keyDown(grid, { key: "F2" });
+    fireEvent.change(screen.getByRole("textbox", { name: "stash editor" }), { target: { value: "draft" } });
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "stash editor" }), { key: "Escape" });
+    // reopen and commit with NO typing: a correctly re-seeded stash holds "Row 0" (an equal-value
+    // no-op — no change lands); a stale stash would commit the discarded "draft" instead
+    fireEvent.doubleClick(screen.getAllByRole("gridcell")[0]!);
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "stash editor" }), { key: "Enter" });
+    expect(onDataChange).not.toHaveBeenCalled();
+    expect(screen.getByText("Row 0")).toBeInTheDocument();
+  });
+});
+
+describe("date editor placeholder (labels.grid.datePlaceholder)", () => {
+  type DateRow = { id: string; when: string | null };
+  const dateColumns: readonly ColumnDef<DateRow, unknown>[] = [
+    { id: "when", header: "When", accessorKey: "when", type: "date" },
+  ];
+
+  it("renders the default placeholder in the date editor's typed input", async () => {
+    render(<DataGrid data={[{ id: "1", when: null }]} columns={dateColumns} getRowId={(r) => r.id} />);
+    fireEvent.doubleClick(screen.getAllByRole("gridcell")[0]!);
+    const input = await screen.findByRole("textbox", { name: "When" });
+    expect(input).toHaveAttribute("placeholder", "yyyy-mm-dd");
+  });
+
+  it("a labels override changes the placeholder", async () => {
+    render(
+      <DataGrid
+        data={[{ id: "1", when: null }]}
+        columns={dateColumns}
+        getRowId={(r) => r.id}
+        labels={{ grid: { datePlaceholder: "JJJJ-MM-TT" } }}
+      />,
+    );
+    fireEvent.doubleClick(screen.getAllByRole("gridcell")[0]!);
+    const input = await screen.findByRole("textbox", { name: "When" });
+    expect(input).toHaveAttribute("placeholder", "JJJJ-MM-TT");
   });
 });
 

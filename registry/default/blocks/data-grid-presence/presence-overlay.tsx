@@ -11,7 +11,7 @@ import {
   type RowIdRangePresenceHighlight,
 } from "./presence-store";
 
-/** Hard cap on the rects ONE range entry may paint (per contiguous fragment): a remote selection of scattered rows must not turn the overlay layer into thousands of divs. Excess fragments are dropped with a dev warning via `onExcessRects`. */
+/** Default cap on the rects ONE range entry may paint (per contiguous fragment): a remote selection of scattered rows must not turn the overlay layer into thousands of divs. Override it with `useDataGridPresence({ maxRects })`; excess fragments are dropped and reported via the `onExcessRects` option. */
 export const MAX_RESOLVED_RECTS = 1024;
 
 /** One remote user's selection-range fill + border, grid-line placed like core's own RangeOverlay; color comes from the highlight itself via `--presence-color`, not a shadcn token. Memoized: the resolved rects keep identity across overlay renders (see `makePresencePlugin`'s memo), so an unchanged highlight never re-renders its divs on a local keystroke. */
@@ -80,8 +80,8 @@ const PresenceLabelChip = memo(function PresenceLabelChip({
       }}
     >
       <span
-        className="-translate-y-1/2 rounded-sm px-1.5 py-0.5 text-xs font-medium whitespace-nowrap text-white shadow-sm"
-        style={{ backgroundColor: color }}
+        className="-translate-y-1/2 rounded-sm px-1.5 py-0.5 text-xs font-medium whitespace-nowrap shadow-sm"
+        style={{ backgroundColor: color, color: "var(--presence-label-foreground, white)" }}
       >
         {label}
       </span>
@@ -96,8 +96,8 @@ const PresenceLabelChip = memo(function PresenceLabelChip({
  *
  * A rowId outside the current view is dropped silently (the rowId-native contract). An unresolved
  * column dev-warns once per instance. Column lookup is a linear scan over `visibleColumns`:
- * entry counts are small. A range entry paints at most {@link MAX_RESOLVED_RECTS} fragments; the
- * excess is dropped with a dev warning.
+ * entry counts are small. A range entry paints at most `maxRects` fragments; the excess is
+ * dropped and reported via `onExcessRects`.
  * Pure (no hooks), so tests can call it without React.
  */
 export function resolveHighlights(
@@ -107,6 +107,7 @@ export function resolveHighlights(
   onDroppedColumn?: (entry: RowIdPresenceHighlight) => void,
   onUnresolvedColumns?: (entry: RowIdRangePresenceHighlight, unresolvedCount: number) => void,
   onExcessRects?: (entry: RowIdRangePresenceHighlight, kept: number, total: number) => void,
+  maxRects: number = MAX_RESOLVED_RECTS,
 ): PresenceHighlight[] {
   const resolved: PresenceHighlight[] = [];
   for (const entry of entries) {
@@ -141,7 +142,7 @@ export function resolveHighlights(
       let capped = false;
       for (const rowRun of rowRuns) {
         for (const colRun of colRuns) {
-          if (painted === MAX_RESOLVED_RECTS) {
+          if (painted >= maxRects) {
             capped = true;
             break;
           }
@@ -155,7 +156,7 @@ export function resolveHighlights(
         }
         if (capped) break;
       }
-      if (capped) onExcessRects?.(entry, MAX_RESOLVED_RECTS, total);
+      if (capped) onExcessRects?.(entry, maxRects, total);
       continue;
     }
     resolved.push(entry);

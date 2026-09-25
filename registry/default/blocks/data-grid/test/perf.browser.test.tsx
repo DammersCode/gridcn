@@ -22,7 +22,7 @@ describe("full-window-swap vs near-idle scroll FPS ratio", () => {
   // browser-compiled runner — the body runs at the runner's real speed, so give it a generous
   // wall budget to complete; the FPS assertions are what guard, not the timeout.
   it("keeps full-swap (800px/frame) FPS competitive with near-idle (8px/frame)", { timeout: 180_000 }, async () => {
-    render(
+    await render(
       <div style={{ height: 600, width: 1200 }}>
         <DataGrid data={makeRows(100_000)} columns={columns} getRowId={(r) => r.id} className="h-150 w-300" />
       </div>,

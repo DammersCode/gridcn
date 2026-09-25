@@ -170,7 +170,9 @@ import { DataGridToolbar, DataGridColumnsMenu } from "@/components/data-grid-too
 </DataGridToolbar>;
 ```
 
-Or set a column's initial state with `hidden: true` in its `ColumnDef`.
+Or set a column's initial state with `hidden: true` in its `ColumnDef`. It is an initial value,
+not a fixed state: `setColumnHidden` and the columns menu override it, and the flag re-applies
+only when you pass a new `columns` array.
 
 ## Flex fill
 
@@ -196,13 +198,13 @@ with no `flex`.
 State hooks let you build your own UI around any of the features above:
 `useDataGridColumnWidth(id)`, `useDataGridColumnWidths(ids)`, `useDataGridIsColumnHidden(id)`,
 `useDataGridVisibleColumns()`, and `useDataGridAllColumns()`. Actions live on
-`useDataGridActions()`: `setColumnWidth`, `setColumnOrder`, `setColumnPin`, and
-`setColumnHidden`.
+`useDataGridActions()`: `setColumnWidth`, `resetColumnWidth`, `setColumnOrder`,
+`setColumnPin`, and `setColumnHidden`.
 
 ### Persisting a user's layout
 
-`setColumnWidth`, `setColumnOrder`, `setColumnPin`, and `setColumnHidden` are the imperative
-actions, but none of them notify you on their own. To save a user's column layout and restore it
+`setColumnWidth`, `resetColumnWidth`, `setColumnOrder`, `setColumnPin`, and
+`setColumnHidden` are the imperative actions, but none of them notify you on their own. To save a user's column layout and restore it
 on the next visit, use the dedicated pair below instead of subscribing to the actions:
 
 ```ts
@@ -224,8 +226,9 @@ const [layout, setLayout] = useState(() => {
 >
 ```
 
-`onColumnLayoutChange` fires once per committed change: a resize commit (a drag release or an
-autosize, never per drag frame), a reorder drop, a pin or unpin, or a show or hide. See
+`onColumnLayoutChange` fires once per committed change: a resize commit (a drag release, or an
+autosize from a double-click or the header menu — never per drag frame), a width reset, a
+reorder drop, a pin or unpin, or a show or hide. See
 [Events & state](/docs/events-state#8-oncolumnlayoutchange--defaultcolumnlayout--oncolumnresizing)
 for the full payload shape and the live, per-drag-frame `onColumnResizing`. `defaultColumnLayout`
 is not a controlled prop: the grid reads it once at mount and ignores later changes, so always

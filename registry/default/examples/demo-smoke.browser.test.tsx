@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import type { ReactNode } from "react";
 import ActionsDemo from "./data-grid-actions-demo";
@@ -112,7 +112,9 @@ const DEMOS: readonly [string, ReactNode][] = [
 async function commitFirstCell(grid: Element): Promise<void> {
   const cell = grid.querySelector<HTMLElement>('[role="row"][data-grid-row-index] [role="gridcell"][data-column-id]');
   if (!cell) return;
-  await userEvent.click(cell);
+  // A test id, not the element: demo data repeats names, so the element's accessible-name locator is ambiguous.
+  cell.dataset["testid"] = "smoke-first-cell";
+  await userEvent.click(page.getByTestId("smoke-first-cell"));
   await userEvent.keyboard("a");
   await userEvent.keyboard("{Enter}");
   await new Promise((r) => setTimeout(r, 50));
@@ -130,7 +132,7 @@ function isLive(el: HTMLElement): boolean {
 describe("registry demos smoke: installed demos work immediately", () => {
   for (const [name, el] of DEMOS) {
     it(`${name} renders a grid with data rows and live controls`, async () => {
-      render(el);
+      await render(el);
       // A demo that renders no grid at all is a bug, not a skip — every example ships a grid.
       await vi.waitFor(() => expect(document.querySelector('[role="grid"]')).not.toBeNull(), { timeout: 5000 });
       const grid = document.querySelector('[role="grid"]')!;

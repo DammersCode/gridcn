@@ -63,13 +63,13 @@ async function openSortMenu() {
 
 describe("DataGridSortList", () => {
   it("adding a sort orders the visible rows ascending by default", async () => {
-    renderGrid();
+    await renderGrid();
     await openSortMenu();
     await expect.poll(() => nameCellsInOrder()).toEqual(["Alice", "Bob", "Carol"]);
   });
 
   it("toggling direction to descending reverses the view order", async () => {
-    renderGrid();
+    await renderGrid();
     await openSortMenu();
     await expect.poll(() => nameCellsInOrder()).toEqual(["Alice", "Bob", "Carol"]);
 
@@ -79,7 +79,7 @@ describe("DataGridSortList", () => {
   });
 
   it("reordering two sorts via ArrowUp on the grip changes precedence and the view order", async () => {
-    renderGrid();
+    await renderGrid();
     await openSortMenu();
     // second row: age descending
     await page.getByRole("button", { name: "Add sort" }).click();
@@ -108,7 +108,7 @@ describe("DataGridSortList", () => {
   });
 
   it("ArrowUp on the grip keeps focus on the moved row's grip and announces the new position", async () => {
-    renderGrid();
+    await renderGrid();
     await openSortMenu();
     await page.getByRole("button", { name: "Add sort" }).click();
     const columnTriggers = document.querySelectorAll<HTMLElement>('[aria-label="Sort column"]');
@@ -130,7 +130,7 @@ describe("DataGridSortList", () => {
   });
 
   it("removing the focused row's sort moves focus to the next row's grip", async () => {
-    renderGrid();
+    await renderGrid();
     await openSortMenu();
     await page.getByRole("button", { name: "Add sort" }).click();
     await expect.poll(() => document.querySelectorAll('[aria-label="Sort column"]').length).toBe(2);
@@ -143,7 +143,7 @@ describe("DataGridSortList", () => {
   });
 
   it("removing a sort drops it from the list and its ordering effect", async () => {
-    renderGrid();
+    await renderGrid();
     await openSortMenu();
     await expect.poll(() => nameCellsInOrder()).toEqual(["Alice", "Bob", "Carol"]);
     await page.getByRole("button", { name: "Remove sort" }).click();
@@ -153,14 +153,14 @@ describe("DataGridSortList", () => {
   });
 
   it("removing the only sort moves focus to the Add sort button", async () => {
-    renderGrid();
+    await renderGrid();
     await openSortMenu();
     await page.getByRole("button", { name: "Remove sort" }).click();
     await expect.poll(() => document.activeElement?.textContent).toContain("Add sort");
   });
 
   it("clear all removes every sort row at once", async () => {
-    renderGrid();
+    await renderGrid();
     await openSortMenu();
     await page.getByRole("button", { name: "Add sort" }).click();
     await expect.poll(() => document.querySelectorAll('[aria-label="Sort column"]').length).toBe(2);
@@ -170,7 +170,7 @@ describe("DataGridSortList", () => {
   });
 
   it("shows a count badge matching the number of applied sorts", async () => {
-    renderGrid();
+    await renderGrid();
     expect(document.querySelector(gridAttrSelector("sortCount"))).toBeNull();
     await openSortMenu();
     await expect.poll(() => document.querySelector(gridAttrSelector("sortCount"))?.textContent).toBe("1");
@@ -178,8 +178,59 @@ describe("DataGridSortList", () => {
     await expect.poll(() => document.querySelector(gridAttrSelector("sortCount"))?.textContent).toBe("2");
   });
 
+  it("allColumns lists hidden columns so they can be sorted through the menu", async () => {
+    const hiddenAgeColumns = defineColumns<Row>()([
+      { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140 },
+      { id: "age", header: "Age", accessorKey: "age", type: "number", width: 100, hidden: true },
+    ] as const);
+    await render(
+      <DataGridProvider data={makeRows()} columns={hiddenAgeColumns} getRowId={(r) => r.id}>
+        <DataGridToolbar>
+          <DataGridSortList allColumns />
+        </DataGridToolbar>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await page.getByRole("button", { name: "Sorts" }).click();
+    await page.getByRole("button", { name: "Add sort" }).click();
+    const columnTriggers = document.querySelectorAll<HTMLElement>('[aria-label="Sort column"]');
+    columnTriggers[0]!.click();
+    await page.getByRole("option", { name: "Age" }).click();
+    await expect.poll(() => document.querySelector('[aria-label="Sort column"]')?.textContent).toContain("Age");
+    // the hidden column's sort is applied: age asc -> Carol (25), Bob (30), Alice (40)
+    await expect.poll(() => nameCellsInOrder()).toEqual(["Carol", "Bob", "Alice"]);
+  });
+
+  it("by default the column select lists only visible columns", async () => {
+    const hiddenAgeColumns = defineColumns<Row>()([
+      { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140 },
+      { id: "age", header: "Age", accessorKey: "age", type: "number", width: 100, hidden: true },
+    ] as const);
+    await render(
+      <DataGridProvider data={makeRows()} columns={hiddenAgeColumns} getRowId={(r) => r.id}>
+        <DataGridToolbar>
+          <DataGridSortList />
+        </DataGridToolbar>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await page.getByRole("button", { name: "Sorts" }).click();
+    await page.getByRole("button", { name: "Add sort" }).click();
+    const columnTriggers = document.querySelectorAll<HTMLElement>('[aria-label="Sort column"]');
+    columnTriggers[0]!.click();
+    await expect
+      .poll(() => [...document.querySelectorAll<HTMLElement>('[role="option"]')].map((o) => o.textContent))
+      .toEqual(["Name"]);
+  });
+
   it("hiding a sorted column removes it from the row's own select without landing a null columnId", async () => {
-    renderGridWithColumnsMenu();
+    await renderGridWithColumnsMenu();
     await openSortMenu();
     const columnTriggers = document.querySelectorAll<HTMLElement>('[aria-label="Sort column"]');
     columnTriggers[0]!.click();
@@ -208,7 +259,7 @@ describe("DataGridSortList", () => {
 
 describe("DataGridSortList i18n labels", () => {
   it("a partial labels override replaces the sort button label", async () => {
-    render(
+    await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id} labels={{ sort: { sort: "Sortieren" } }}>
         <DataGridToolbar>
           <DataGridSortList />

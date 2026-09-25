@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@/lib/utils";
+import { COLUMN_BORDER } from "./columns/column-border";
 import type { GetCellClassName, OnCellClick, OnRowClick } from "./types";
 import { getCellValue } from "./columns/column-helpers";
 import { useDataGridActions, useDataGridCellTypes, useDataGridCellEditingError, useDataGridCellRejectionCount, type AnyColumnDef } from "./store";
@@ -22,11 +23,11 @@ import { cellTypes as defaultCellTypes } from "./cell-types/cell-types";
 import { useAsyncValidate } from "./interaction/use-async-validate";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-/** The "highlight-what-changed" fade pulse `flashCells` plays on the cells it just wrote; the keyframes `DataGridBody` injects once per grid (self-contained, no app global.css step). */
-export const FLASH_ANIMATION = "grid-cell-flash 1.2s ease-out";
-/** One-shot pulse: a primary-tinted background fading to transparent, the exact visual the `flashCells` consumers (fill, paste, move) promise. */
+/** The "highlight-what-changed" fade pulse `flashCells` plays on the cells it just wrote; the keyframes `DataGridBody` injects once per grid (self-contained, no app global.css step). Duration reads `--grid-flash-duration` (default 1.2s; `0s` disables the pulse). */
+export const FLASH_ANIMATION = "grid-cell-flash var(--grid-flash-duration, 1.2s) ease-out";
+/** One-shot pulse: a background fading to transparent, tinted by `--grid-flash-color` (default `--color-primary`) at `--grid-flash-intensity` (default 24%) — the exact visual the `flashCells` consumers (fill, paste, move) promise. */
 export const FLASH_KEYFRAMES =
-  "@keyframes grid-cell-flash{0%{background-color:color-mix(in oklab, var(--color-primary) 24%, transparent)}100%{background-color:transparent}}";
+  "@keyframes grid-cell-flash{0%{background-color:color-mix(in oklab, var(--grid-flash-color, var(--color-primary)) var(--grid-flash-intensity, 24%), transparent)}100%{background-color:transparent}}";
 
 // This component is generic-erased (row: unknown, column: AnyColumnDef) since it renders arbitrary
 // consumer row shapes through one shared runtime — see store.tsx's InternalSyncProps comment for why
@@ -124,9 +125,14 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
 
   const pinned = column.pin;
   // no setValue/accessorKey = no write path (accessorFn-only, display computed) → readOnly by construction, matching the store's write-skip rule.
+  // row === undefined marks a lazy-loading hole (skeleton row): never passed to consumer callbacks, which may read row fields.
   const columnReadOnly =
     (!column.setValue && !column.accessorKey) ||
-    (typeof column.readOnly === "function" ? column.readOnly(row) : column.readOnly);
+    (typeof column.readOnly === "function"
+      ? row === undefined
+        ? undefined
+        : column.readOnly(row)
+      : column.readOnly);
   // Pinned top/bottom rows are readOnly by default — they're usually derived aggregates,
   // not editable data — unless the column's own readOnly explicitly says otherwise.
   const readOnly = isPinnedRow ? (columnReadOnly ?? true) : Boolean(gridReadOnly || columnReadOnly);
@@ -187,14 +193,19 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   // Grid-level hook first, then the column's own override — later cn() args win on conflicting
   // utilities, so a per-column override can still beat a grid-wide default.
   const classNameCtx = { value, row, column, viewRowIndex: rowIndex };
-  const gridCellClassName = getCellClassName?.(classNameCtx);
+  const gridCellClassName = row === undefined ? undefined : getCellClassName?.(classNameCtx);
   const columnCellClassName =
-    typeof column.cellClassName === "function" ? column.cellClassName(classNameCtx) : column.cellClassName;
+    typeof column.cellClassName === "function"
+      ? row === undefined
+        ? undefined
+        : column.cellClassName(classNameCtx)
+      : column.cellClassName;
 
   // The editor contract calls onChange(nextValue) then commit(movement) synchronously (see
-  // cell-types/index.ts); stash the pending value in a ref so commit can forward it to the store action.
+  // cell-types/index.ts); stash the pending value in a ref for commit, re-seeding only while
+  // not editing so a mid-edit re-render (stream tick, cellError) never resets the typed draft.
   const pendingValueRef = useRef<unknown>(value);
-  pendingValueRef.current = value;
+  if (!isEditing) pendingValueRef.current = value;
   const onChange = useCallback((nextValue: unknown) => {
     pendingValueRef.current = nextValue;
   }, []);
@@ -215,7 +226,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     // Static shimmer block (CSS animate-pulse only, no per-frame JS) sized to roughly a text line;
     // never rendered for checkbox/select cells specially — one shape covers every column type since
     // there's no real value to shape it around yet.
-    content = <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />;
+    content = <div className="h-4 w-3/4 motion-safe:animate-pulse rounded bg-muted" />;
   } else if (isEditing) {
     const Editor = cellType.Editor as unknown as (p: {
       value: unknown;
@@ -268,7 +279,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       data-grid-pinned-row={isPinnedRow || undefined}
       data-skeleton={isSkeleton || undefined}
       data-readonly={readOnly || undefined}
-      data-type={column.type}
+      data-type={column.type ?? "text"}
       data-active={isActive || undefined}
       data-editing={isEditing || undefined}
       data-search-match={isSearchMatch || undefined}
@@ -276,6 +287,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       data-invalid={Boolean(errorMessage) || undefined}
       className={cn(
         "relative flex items-center overflow-hidden border-b border-border bg-background px-2 outline-none group-hover/row:bg-muted/50 transition-colors group-hover/row:transition-none",
+        COLUMN_BORDER,
         // Pinned-column cells and pinned-row cells both sit opaque above the scrolled canvas
         // (z-index 1 / 3) — a translucent bg-muted/50 hover tint would let the scrolled content
         // underneath show through. color-mix() pre-composites the same tint as an OPAQUE color (same

@@ -1091,3 +1091,147 @@ describe("direct write paths — viewStale and searchMatches", () => {
     expect(result.current.searchMatches).toBe(before);
   });
 });
+
+describe("updateCells — verdict", () => {
+  const validated: readonly ColumnDef<Row, unknown>[] = [
+    { id: "name", header: "Name", accessorKey: "name" },
+    {
+      id: "price",
+      header: "Price",
+      accessorKey: "price",
+      validate: (value: unknown) => (typeof value === "number" && value < 0 ? "must be >= 0" : null),
+    },
+    { id: "note", header: "Note", accessorKey: "note", readOnly: true },
+  ];
+
+  it("counts the applied cells and names every skipped patch with its reason", () => {
+    const { result } = renderHarness({ columnsOverride: validated });
+    const verdict = result.current.actions.updateCells([
+      { rowId: "a", columnId: "price", value: 31 },
+      { rowId: "missing", columnId: "price", value: 1 },
+      { rowId: "b", columnId: "nope", value: 1 },
+      { rowId: "b", columnId: "price", value: -5 },
+      { rowId: "c", columnId: "note", value: "x" },
+      { rowId: "c", columnId: "price", value: 40 },
+    ]);
+    expect(verdict).toEqual({
+      applied: 1,
+      pending: false,
+      skipped: [
+        { patchIndex: 1, reason: "unknown-row" },
+        { patchIndex: 2, reason: "unknown-column" },
+        { patchIndex: 3, reason: "invalid" },
+        { patchIndex: 4, reason: "readonly" },
+        { patchIndex: 5, reason: "no-op" },
+      ],
+    });
+  });
+
+  it("emits no DataChange when every patch is skipped", () => {
+    const onDataChange = vi.fn();
+    const { result } = renderHarness({ onDataChange });
+    const verdict = result.current.actions.updateCells([{ rowId: "missing", columnId: "price", value: 1 }]);
+    expect(verdict).toEqual({ applied: 0, pending: false, skipped: [{ patchIndex: 0, reason: "unknown-row" }] });
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("reports a grid-level readOnly as an empty verdict", () => {
+    // the store's grid-level flag is what DataGridRoot syncs via _registerReadOnly; the provider prop alone does not set it
+    const { result } = renderHarness();
+    act(() => result.current.actions._registerReadOnly(true));
+    expect(result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 1 }])).toEqual({
+      applied: 0,
+      skipped: [],
+      pending: false,
+    });
+  });
+
+  it("skips patches aimed at an unloaded lazy hole", () => {
+    const all = rows();
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider
+          data={[all[0]!, undefined, all[2]!] as unknown as Row[]}
+          columns={columns}
+          getRowId={(row: unknown, index: number) => (row === undefined ? `__lazy-unloaded-${index}` : (row as Row).id)}
+        >
+          {children}
+        </DataGridProvider>
+      );
+    }
+    const { result } = renderHook(() => useHarness(), { wrapper: Wrapper });
+    const verdict = result.current.actions.updateCells([
+      { rowId: "__lazy-unloaded-1", columnId: "price", value: 1 },
+      { rowId: "a", columnId: "price", value: 31 },
+    ]);
+    expect(verdict).toEqual({
+      applied: 1,
+      pending: false,
+      skipped: [{ patchIndex: 0, reason: "hole" }],
+    });
+  });
+
+  it("reports pending while an async schema validates", async () => {
+    const schema = {
+      "~standard": {
+        version: 1,
+        vendor: "mock",
+        validate: async (value: unknown) =>
+          typeof value === "number" && value < 0 ? { issues: [{ message: "must be >= 0" }] } : { value: value },
+      },
+    };
+    const asyncColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      { id: "price", header: "Price", accessorKey: "price", validate: schema as never },
+    ];
+    const { result } = renderHarness({ columnsOverride: asyncColumns });
+    const verdict = result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 12.4 }]);
+    expect(verdict).toEqual({ applied: 0, skipped: [], pending: true });
+    await act(async () => {});
+  });
+
+  it("reports schema rejections as invalid skips indexed into the caller's patches", () => {
+    const schema = {
+      "~standard": {
+        version: 1,
+        vendor: "mock",
+        validate: (value: unknown) => (typeof value === "number" && value < 0 ? { issues: [{ message: "must be >= 0" }] } : { value }),
+      },
+    };
+    const schemaColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      { id: "price", header: "Price", accessorKey: "price", validate: schema as never },
+    ];
+    const { result } = renderHarness({ columnsOverride: schemaColumns });
+    const verdict = result.current.actions.updateCells([
+      { rowId: "a", columnId: "price", value: -1 },
+      { rowId: "b", columnId: "price", value: 26 },
+      { rowId: "missing", columnId: "price", value: 1 },
+    ]);
+    expect(verdict).toEqual({
+      applied: 1,
+      pending: false,
+      skipped: [
+        { patchIndex: 0, reason: "invalid" },
+        { patchIndex: 2, reason: "unknown-row" },
+      ],
+    });
+  });
+
+  it("updateRows passes the verdict through with per-cell reasons", () => {
+    const { result } = renderHarness();
+    const verdict = result.current.actions.updateRows([
+      { rowId: "a", changes: { price: 31 } },
+      { rowId: "missing", changes: { price: 1 } },
+      { rowId: "c", changes: { price: 40 } },
+    ]);
+    expect(verdict).toEqual({
+      applied: 1,
+      pending: false,
+      skipped: [
+        { patchIndex: 1, reason: "unknown-row" },
+        { patchIndex: 2, reason: "no-op" },
+      ],
+    });
+  });
+});

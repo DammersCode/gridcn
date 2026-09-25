@@ -23,9 +23,9 @@ export type UseDataGridLazyRowsOptions<TData> = {
    */
   fetchRows: (start: number, end: number, signal: AbortSignal) => Promise<TData[]>;
   getRowId: (row: TData, index: number) => string;
-  /** Extra rows fetched per range beyond the visible window; default {@link DEFAULT_OVERSCAN}. */
+  /** Extra rows fetched per range beyond the visible window; default 30. */
   overscan?: number;
-  /** Rounds fetch ranges to this boundary so small scrolls reuse the same batch; default {@link DEFAULT_BATCH_SIZE}. */
+  /** Rounds fetch ranges to this boundary so small scrolls reuse the same batch; default 50. */
   batchSize?: number;
   /**
    * Caps rows per single `fetchRows` call: a gap wider than this is split into consecutive

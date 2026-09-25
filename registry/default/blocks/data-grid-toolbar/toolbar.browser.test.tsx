@@ -1,5 +1,5 @@
 import { page, userEvent } from "vitest/browser";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import {
   DataGridProvider,
@@ -77,7 +77,7 @@ function gridCells(): HTMLElement[] {
 
 describe("DataGridSearch", () => {
   it("typing highlights matches and shows a match count without filtering rows", async () => {
-    renderGrid();
+    await renderGrid();
     const input = page.getByRole("textbox", { name: "Search grid" });
     await input.fill("alic");
     await expect.element(page.getByText("1/2")).toBeInTheDocument();
@@ -89,7 +89,7 @@ describe("DataGridSearch", () => {
   });
 
   it("Enter steps to the next match and moves the active cell", async () => {
-    renderGrid();
+    await renderGrid();
     const input = page.getByRole("textbox", { name: "Search grid" });
     await input.fill("alic");
     await expect.element(page.getByText("1/2")).toBeInTheDocument();
@@ -103,7 +103,7 @@ describe("DataGridSearch", () => {
   });
 
   it("Escape clears the search", async () => {
-    renderGrid();
+    await renderGrid();
     const input = page.getByRole("textbox", { name: "Search grid" });
     await input.fill("alic");
     await expect.element(page.getByText(/\d\/\d/)).toBeInTheDocument();
@@ -112,7 +112,7 @@ describe("DataGridSearch", () => {
   });
 
   it("does not remount the row window while typing (same cell DOM node before/after)", async () => {
-    renderGrid();
+    await renderGrid();
     await expect.element(page.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
     const cellBefore = document.querySelector('[role="gridcell"][data-column-id="name"]');
     expect(cellBefore).not.toBeNull();
@@ -130,7 +130,7 @@ describe("DataGridSearch", () => {
       email: `user${i}@example.com`,
       age: 20,
     }));
-    renderGrid(bigRows);
+    await renderGrid(bigRows);
     const input = page.getByRole("textbox", { name: "Search grid" });
     await input.fill("needle");
     await expect.element(page.getByText("1/1000+")).toBeInTheDocument();
@@ -143,7 +143,7 @@ describe("DataGridSearch", () => {
       email: `u${i}@example.com`,
       age: 20 + (i % 50),
     }));
-    renderGrid(hugeRows);
+    await renderGrid(hugeRows);
     await expect.element(page.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
     const cellsBefore = gridCells();
     expect(cellsBefore.length).toBeGreaterThan(0);
@@ -185,7 +185,7 @@ describe("DataGridSearch captureFindShortcut", () => {
   }
 
   it("defaults to on: mod+F with focus inside the grid focuses the search input and is defaultPrevented", async () => {
-    renderGridDefault();
+    await renderGridDefault();
     await expect.element(page.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
     const cell = document.querySelector<HTMLElement>('[role="gridcell"]');
     expect(cell).not.toBeNull();
@@ -197,7 +197,7 @@ describe("DataGridSearch captureFindShortcut", () => {
   });
 
   it("defaults to on: mod+F while the search input is already focused selects its text", async () => {
-    renderGridDefault();
+    await renderGridDefault();
     const input = page.getByRole("textbox", { name: "Search grid" });
     await input.fill("alic");
     const inputEl = document.querySelector<HTMLInputElement>('[aria-label="Search grid"]')!;
@@ -211,7 +211,7 @@ describe("DataGridSearch captureFindShortcut", () => {
   // the critical safety guarantee: default-on must never leak past the grid's own subtree, so a
   // page's own search box (or the browser's native find) keeps working untouched right next to it.
   it("defaults to on, but focus OUTSIDE the grid (a sibling button) is never intercepted", async () => {
-    renderGridDefault();
+    await renderGridDefault();
     const outsideButton = page.getByRole("button", { name: "outside button" });
     await outsideButton.click();
     const event = dispatchModF(document.activeElement ?? document.body);
@@ -219,7 +219,7 @@ describe("DataGridSearch captureFindShortcut", () => {
   });
 
   it("captureFindShortcut={false} opts out: mod+F is never intercepted regardless of focus", async () => {
-    render(
+    await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
         <DataGridToolbar>
           <DataGridSearch captureFindShortcut={false} />
@@ -240,14 +240,14 @@ describe("DataGridSearch captureFindShortcut", () => {
 
 describe("DataGridSearch i18n labels", () => {
   it("a partial labels override replaces the search placeholder", async () => {
-    renderGridWithLabels({ toolbar: { searchPlaceholder: "Suchen…" } });
+    await renderGridWithLabels({ toolbar: { searchPlaceholder: "Suchen…" } });
     await expect.element(page.getByPlaceholder("Suchen…")).toBeInTheDocument();
   });
 });
 
 describe("DataGridFilterMenu", () => {
   it("adding a filter narrows the visible rows", async () => {
-    renderGrid();
+    await renderGrid();
     await page.getByRole("button", { name: "Filters" }).click();
     await page.getByRole("button", { name: "Add filter" }).click();
     // default filterable column is "name"; type "contains" value "Alic" to narrow to Alice + Alicia
@@ -257,7 +257,7 @@ describe("DataGridFilterMenu", () => {
   });
 
   it("the filter value input stays usable-width, not squeezed to a sliver", async () => {
-    renderGrid();
+    await renderGrid();
     await page.getByRole("button", { name: "Filters" }).click();
     await page.getByRole("button", { name: "Add filter" }).click();
     const valueInput = document.querySelector<HTMLElement>('input[aria-label="Filter value"]');
@@ -266,7 +266,7 @@ describe("DataGridFilterMenu", () => {
   });
 
   it("long German operator labels don't collapse the value input or overflow the popover", async () => {
-    render(
+    await render(
       <DataGridProvider
         data={makeRows()}
         columns={columns}
@@ -312,6 +312,65 @@ describe("DataGridFilterMenu", () => {
     expect(valueInput!.clientWidth).toBeGreaterThanOrEqual(80);
   });
 
+  it("allColumns lists hidden columns and a filter on one narrows the rows", async () => {
+    const hiddenAgeColumns = defineColumns<Row>()([
+      { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140 },
+      { id: "email", header: "Email", accessorKey: "email", type: "text", width: 200 },
+      { id: "age", header: "Age", accessorKey: "age", type: "number", width: 80, hidden: true },
+    ] as const);
+    await render(
+      <DataGridProvider data={makeRows()} columns={hiddenAgeColumns} getRowId={(r) => r.id}>
+        <DataGridToolbar>
+          <DataGridFilterMenu allColumns />
+        </DataGridToolbar>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await page.getByRole("button", { name: "Filters" }).click();
+    await page.getByRole("button", { name: "Add filter" }).click();
+    await page.getByRole("combobox", { name: "Filter column" }).click();
+    await page.getByRole("option", { name: "Age" }).click();
+    // Operator before value: an operator change resets the value.
+    await page.getByRole("combobox", { name: "Filter operator" }).click();
+    await page.getByRole("option", { name: "equals" }).click();
+    // a number column's value input is <input type="number"> — role spinbutton, not textbox
+    await page.getByRole("spinbutton", { name: "Filter value" }).fill("40");
+    // Bob is the only row with age 40 (Alice 30, Alicia 25, Carol 50).
+    await expect.poll(() => document.querySelectorAll('[role="row"]').length - 1).toBe(1);
+  });
+
+  it("warns in dev when a filter targets a column the default menu cannot list", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const hiddenAgeColumns = defineColumns<Row>()([
+      { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140 },
+      { id: "email", header: "Email", accessorKey: "email", type: "text", width: 200 },
+      { id: "age", header: "Age", accessorKey: "age", type: "number", width: 80, hidden: true },
+    ] as const);
+    await render(
+      <DataGridProvider
+        data={makeRows()}
+        columns={hiddenAgeColumns}
+        getRowId={(r) => r.id}
+        filterState={[{ columnId: "age", operator: "equals", value: "40" }]}
+        onFilterChange={() => {}}
+      >
+        <DataGridToolbar>
+          <DataGridFilterMenu />
+        </DataGridToolbar>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await expect.poll(() => warn.mock.calls.length).toBeGreaterThan(0);
+    expect(warn.mock.calls.some((call) => String(call[0]).includes("allColumns"))).toBe(true);
+    warn.mockRestore();
+  });
+
   it("long column names truncate inside the select trigger instead of overflowing the popover", async () => {
     const longNameColumns = defineColumns<Row>()([
       {
@@ -323,7 +382,7 @@ describe("DataGridFilterMenu", () => {
       },
       { id: "email", header: "Email", accessorKey: "email", type: "text", width: 200 },
     ] as const);
-    render(
+    await render(
       <DataGridProvider data={makeRows()} columns={longNameColumns} getRowId={(r) => r.id}>
         <DataGridToolbar>
           <DataGridFilterMenu />
@@ -374,11 +433,15 @@ const richColumns = defineColumns<RichRow>()([
   },
 ] as const);
 
-function renderRichGrid(rows: RichRow[] = makeRichRows()) {
+function renderRichGrid(
+  rows: RichRow[] = makeRichRows(),
+  filterMenuProps: React.ComponentProps<typeof DataGridFilterMenu> = {},
+  cols: readonly ColumnDef<RichRow, unknown>[] = richColumns,
+) {
   return render(
-    <DataGridProvider data={rows} columns={richColumns} getRowId={(r) => r.id}>
+    <DataGridProvider data={rows} columns={cols} getRowId={(r) => r.id}>
       <DataGridToolbar>
-        <DataGridFilterMenu />
+        <DataGridFilterMenu {...filterMenuProps} />
       </DataGridToolbar>
       <DataGridRoot className="h-[300px]">
         <DataGridHeader />
@@ -400,7 +463,7 @@ async function switchFilterColumn(name: string) {
 
 describe("DataGridFilterMenu typed value inputs", () => {
   it("a number column gets a numeric input", async () => {
-    renderRichGrid();
+    await renderRichGrid();
     await openFilterMenu();
     await switchFilterColumn("Age");
     const input = document.querySelector<HTMLInputElement>('input[aria-label="Filter value"]');
@@ -409,7 +472,7 @@ describe("DataGridFilterMenu typed value inputs", () => {
   });
 
   it("a date column gets a date input", async () => {
-    renderRichGrid();
+    await renderRichGrid();
     await openFilterMenu();
     await switchFilterColumn("Start Date");
     const input = document.querySelector<HTMLInputElement>('input[aria-label="Filter value"]');
@@ -418,7 +481,7 @@ describe("DataGridFilterMenu typed value inputs", () => {
   });
 
   it("a checkbox column gets a true/false select", async () => {
-    renderRichGrid();
+    await renderRichGrid();
     await openFilterMenu();
     await switchFilterColumn("Active");
     await expect.element(page.getByRole("combobox", { name: "Filter value" })).toBeInTheDocument();
@@ -428,7 +491,7 @@ describe("DataGridFilterMenu typed value inputs", () => {
   });
 
   it("a select column gets a select of its own choices", async () => {
-    renderRichGrid();
+    await renderRichGrid();
     await openFilterMenu();
     await switchFilterColumn("Role");
     await page.getByRole("combobox", { name: "Filter value" }).click();
@@ -437,7 +500,7 @@ describe("DataGridFilterMenu typed value inputs", () => {
   });
 
   it("choosing a select-column value narrows the grid", async () => {
-    renderRichGrid();
+    await renderRichGrid();
     await openFilterMenu();
     await switchFilterColumn("Role");
     await page.getByRole("combobox", { name: "Filter value" }).click();
@@ -446,7 +509,7 @@ describe("DataGridFilterMenu typed value inputs", () => {
   });
 
   it("isBetween on a number column renders two numeric inputs and narrows inclusively", async () => {
-    renderRichGrid();
+    await renderRichGrid();
     await openFilterMenu();
     await switchFilterColumn("Age");
     await page.getByRole("combobox", { name: "Filter operator" }).click();
@@ -467,7 +530,7 @@ describe("DataGridFilterMenu typed value inputs", () => {
   });
 
   it("isAnyOf on a select column checks its own choices and keeps rows matching any of them", async () => {
-    renderRichGrid();
+    await renderRichGrid();
     await openFilterMenu();
     await switchFilterColumn("Role");
     await page.getByRole("combobox", { name: "Filter operator" }).click();
@@ -487,7 +550,7 @@ describe("DataGridFilterMenu typed value inputs", () => {
   });
 
   it("isAnyOf is offered only for select columns", async () => {
-    renderRichGrid();
+    await renderRichGrid();
     await openFilterMenu();
     await switchFilterColumn("Age");
     await page.getByRole("combobox", { name: "Filter operator" }).click();
@@ -496,9 +559,43 @@ describe("DataGridFilterMenu typed value inputs", () => {
   });
 });
 
+describe("DataGridFilterMenu operator list overrides", () => {
+  it("operatorsForColumn replaces the per-column operator list", async () => {
+    await renderRichGrid(undefined, {
+      operatorsForColumn: (column) => (column.id === "name" ? ["equals", "gt", "lt"] : undefined),
+    });
+    await openFilterMenu();
+    await switchFilterColumn("Name");
+    await page.getByRole("combobox", { name: "Filter operator" }).click();
+    await expect.element(page.getByRole("option", { name: "greater than" })).toBeInTheDocument();
+    expect(document.querySelector('[role="option"][data-value="isBetween"]')).toBeNull();
+  });
+
+  it("column.filterOperators replaces the built-in list for that column", async () => {
+    const cols = richColumns.map((c) => (c.id === "age" ? { ...c, filterOperators: ["contains"] as const } : c));
+    await renderRichGrid(undefined, {}, cols);
+    await openFilterMenu();
+    await switchFilterColumn("Age");
+    await page.getByRole("combobox", { name: "Filter operator" }).click();
+    await expect.element(page.getByRole("option", { name: "contains" })).toBeInTheDocument();
+    expect(document.querySelector('[role="option"][data-value="isBetween"]')).toBeNull();
+  });
+
+  it("a filterOperators column filters with its custom operators", async () => {
+    // age is number-typed; a custom list offering only gt still filters with the built-in gt matcher
+    const cols = richColumns.map((c) => (c.id === "age" ? { ...c, filterOperators: ["gt"] as const } : c));
+    await renderRichGrid(undefined, {}, cols);
+    await openFilterMenu();
+    await switchFilterColumn("Age"); // the row's operator defaults to the custom list's first entry
+    await page.getByRole("spinbutton", { name: "Filter value" }).fill("30");
+    // only Bob (40) is > 30
+    await expect.poll(() => document.querySelectorAll('[role="row"]').length - 1).toBe(1);
+  });
+});
+
 describe("DataGridFilterMenu multiple filters on one column", () => {
   it("two filter rows on the same column both apply (AND intersects to a narrower range)", async () => {
-    renderRichGrid();
+    await renderRichGrid();
     await openFilterMenu();
     await switchFilterColumn("Age");
     await page.getByRole("combobox", { name: "Filter operator" }).click();
@@ -530,7 +627,7 @@ describe("DataGridFilterMenu multiple filters on one column", () => {
 
 describe("DataGridFilterMenu join operator", () => {
   it("the join control is hidden with 0 or 1 filters", async () => {
-    renderRichGrid();
+    await renderRichGrid();
     await page.getByRole("button", { name: "Filters" }).click();
     expect(page.getByRole("combobox", { name: "Match" }).query()).toBeNull();
     await page.getByRole("button", { name: "Add filter" }).click();
@@ -538,14 +635,14 @@ describe("DataGridFilterMenu join operator", () => {
   });
 
   it("appears once 2+ filters exist and defaults to And", async () => {
-    renderRichGrid();
+    await renderRichGrid();
     await openFilterMenu();
     await page.getByRole("button", { name: "Add filter" }).click();
     await expect.element(page.getByRole("combobox", { name: "Match" })).toHaveTextContent("And");
   });
 
   it("switching to Or widens the result to the union of both filters", async () => {
-    renderRichGrid();
+    await renderRichGrid();
     await openFilterMenu();
     // first row: name contains "Alice"
     await page.getByRole("textbox", { name: "Filter value" }).fill("Alice");
@@ -579,7 +676,7 @@ describe("DataGridFilterMenu join operator", () => {
 
 describe("DataGridFilterMenu reorder", () => {
   it("ArrowUp on the grip moves that filter row earlier in the array order", async () => {
-    renderRichGrid();
+    await renderRichGrid();
     await openFilterMenu();
     await switchFilterColumn("Age");
     await page.getByRole("button", { name: "Add filter" }).click();
@@ -601,7 +698,7 @@ describe("DataGridFilterMenu reorder", () => {
   });
 
   it("ArrowUp on the grip keeps focus on the moved row's grip and announces the new position", async () => {
-    renderRichGrid();
+    await renderRichGrid();
     await openFilterMenu();
     await switchFilterColumn("Age");
     await page.getByRole("button", { name: "Add filter" }).click();
@@ -622,7 +719,7 @@ describe("DataGridFilterMenu reorder", () => {
   });
 
   it("removing the focused row's filter moves focus to the next row's grip", async () => {
-    renderRichGrid();
+    await renderRichGrid();
     await openFilterMenu();
     await page.getByRole("button", { name: "Add filter" }).click();
     await expect.poll(() => document.querySelectorAll('[aria-label="Filter column"]').length).toBe(2);
@@ -635,7 +732,7 @@ describe("DataGridFilterMenu reorder", () => {
   });
 
   it("removing the only filter moves focus to the Add filter button", async () => {
-    renderRichGrid();
+    await renderRichGrid();
     await openFilterMenu();
     const removeButton = document.querySelector<HTMLElement>('[aria-label="Remove filter"]');
     removeButton!.click();
@@ -645,7 +742,7 @@ describe("DataGridFilterMenu reorder", () => {
 
 describe("DataGridColumnsMenu", () => {
   it("hiding a column removes it from the grid", async () => {
-    renderGrid();
+    await renderGrid();
     await expect.element(page.getByRole("columnheader", { name: "Email" })).toBeInTheDocument();
     await page.getByRole("button", { name: "Columns" }).click();
     await page.getByRole("menuitemcheckbox", { name: "Email" }).click();
@@ -653,7 +750,7 @@ describe("DataGridColumnsMenu", () => {
   });
 
   it("renders show/hide rows only — no pin controls", async () => {
-    renderGrid();
+    await renderGrid();
     await page.getByRole("button", { name: "Columns" }).click();
     await expect.element(page.getByRole("menuitemcheckbox", { name: "Age" })).toBeInTheDocument();
     expect(document.querySelector(gridAttrSelector("columnsMenu"))?.textContent).not.toContain("Pin");

@@ -79,7 +79,7 @@ function PinnedRootGrid(
 
 describe("pinned rows — bands stay put while scrolling", () => {
   it("keeps the pinned-top band's screen position fixed across a long scroll (10k rows)", async () => {
-    render(
+    await render(
       <div style={{ height: 360, width: 800 }}>
         <PinnedGrid data={makeRows(10_000)} className="h-90 w-200" topRows={[totals]} />
       </div>,
@@ -97,7 +97,7 @@ describe("pinned rows — bands stay put while scrolling", () => {
   });
 
   it("keeps the pinned-bottom band flush with the viewport's bottom edge across scroll", async () => {
-    render(
+    await render(
       <div style={{ height: 360, width: 800 }}>
         <PinnedGrid data={makeRows(10_000)} className="h-90 w-200" bottomRows={[totals]} />
       </div>,
@@ -114,7 +114,7 @@ describe("pinned rows — bands stay put while scrolling", () => {
   });
 
   it("never renders a data row underneath the pinned-bottom band (row window respects the bottom inset)", async () => {
-    render(
+    await render(
       <div style={{ height: 360, width: 800 }}>
         <PinnedGrid data={makeRows(200)} className="h-90 w-200" bottomRows={[totals]} />
       </div>,
@@ -134,7 +134,7 @@ describe("pinned rows — bands stay put while scrolling", () => {
 
 describe("pinned rows — frozen-edge shadow", () => {
   it("shows the top-band shadow only once data rows are scrolled beneath it", async () => {
-    render(
+    await render(
       <div style={{ height: 360, width: 800 }}>
         <PinnedGrid data={makeRows(200)} className="h-90 w-200" topRows={[totals]} />
       </div>,
@@ -150,8 +150,66 @@ describe("pinned rows — frozen-edge shadow", () => {
     expect(viewport.hasAttribute(GRID_ATTR.scrolledTop)).toBe(false);
   });
 
+  it("anchors the top and bottom shadows to the pinned band edges, not the grid edges", async () => {
+    await render(
+      <div style={{ height: 360, width: 800 }}>
+        <PinnedGrid data={makeRows(200)} className="h-90 w-200" topRows={[totals]} bottomRows={[totals]} />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    await scrollAndSettle(document.querySelector<HTMLElement>('[role="grid"]')!, 200);
+    const rect = (el: Element) => el.getBoundingClientRect();
+    const topShadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "top"))!;
+    const bottomShadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "bottom"))!;
+
+    expect(topShadow).toHaveAttribute("data-pinned");
+    expect(bottomShadow).toHaveAttribute("data-pinned");
+    expect(Math.abs(rect(topShadow).top - rect(document.querySelector(gridAttrSelector("pinnedRowBand", "top"))!).bottom)).toBeLessThanOrEqual(1);
+    expect(Math.abs(rect(bottomShadow).bottom - rect(document.querySelector(gridAttrSelector("pinnedRowBand", "bottom"))!).top)).toBeLessThanOrEqual(1);
+  });
+
+  it("clips each shadow to its own axis so none crosses a pinned band or corner", async () => {
+    const pinnedColumns = columns.map((c, i) => (i === 0 ? { ...c, pin: "left" as const } : i === columns.length - 1 ? { ...c, pin: "right" as const } : c));
+    await render(
+      <div style={{ height: 360, width: 400 }}>
+        <PinnedGrid data={makeRows(200)} className="h-90 w-100" cols={pinnedColumns} topRows={[totals]} bottomRows={[totals]} />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
+    const shadow = (side: "left" | "right" | "top" | "bottom") => rect(gridAttrSelector("pinShadow", side));
+    const topBand = rect(gridAttrSelector("pinnedRowBand", "top"));
+    const bottomBand = rect(gridAttrSelector("pinnedRowBand", "bottom"));
+    const leftCell = rect(`${gridAttrSelector("pinnedRowBand", "top")} ${gridAttrSelector("pinned", "left")}`);
+    const rightCell = rect(`${gridAttrSelector("pinnedRowBand", "top")} ${gridAttrSelector("pinned", "right")}`);
+
+    for (const side of ["left", "right"] as const) {
+      expect(shadow(side).top).toBeGreaterThanOrEqual(topBand.bottom - 1);
+      expect(shadow(side).bottom).toBeLessThanOrEqual(bottomBand.top + 1);
+    }
+    for (const side of ["top", "bottom"] as const) {
+      expect(shadow(side).left).toBeGreaterThanOrEqual(leftCell.right - 1);
+      expect(shadow(side).right).toBeLessThanOrEqual(rightCell.left + 1);
+    }
+  });
+
+  it("anchors the top shadow under the header when no row is pinned", async () => {
+    await render(
+      <div style={{ height: 360, width: 800 }}>
+        <PinnedGrid data={makeRows(200)} className="h-90 w-200" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    await scrollAndSettle(document.querySelector<HTMLElement>('[role="grid"]')!, 200);
+    const topShadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "top"))!;
+    const header = document.querySelector<HTMLElement>('[role="columnheader"]')!;
+
+    expect(topShadow).not.toHaveAttribute("data-pinned");
+    expect(Math.abs(topShadow.getBoundingClientRect().top - header.getBoundingClientRect().bottom)).toBeLessThanOrEqual(1);
+  });
+
   it("shows the bottom-band shadow until scrolled to the very end", async () => {
-    render(
+    await render(
       <div style={{ height: 360, width: 800 }}>
         <PinnedGrid data={makeRows(200)} className="h-90 w-200" bottomRows={[totals]} />
       </div>,
@@ -169,7 +227,7 @@ describe("pinned rows — frozen-edge shadow", () => {
 describe("pinned rows — selection overlay never bleeds into bands", () => {
   it("an active-cell ring on the last data row never overlaps the pinned-bottom band", async () => {
     let actions!: ReturnType<typeof useDataGridActions>;
-    render(
+    await render(
       <div style={{ height: 360, width: 800 }}>
         <PinnedRootGrid data={makeRows(10)} className="h-90 w-200" bottomRows={[totals]} onActions={(a) => (actions = a)} />
       </div>,
@@ -189,7 +247,7 @@ describe("pinned rows — selection overlay never bleeds into bands", () => {
 
   it("range selection covering the whole view stays clamped above the pinned-bottom band", async () => {
     let actions!: ReturnType<typeof useDataGridActions>;
-    render(
+    await render(
       <div style={{ height: 360, width: 800 }}>
         <PinnedRootGrid data={makeRows(10)} className="h-90 w-200" bottomRows={[totals]} onActions={(a) => (actions = a)} />
       </div>,
@@ -212,7 +270,7 @@ describe("pinned rows — selection overlay never bleeds into bands", () => {
 
   it("pinned-row cells never receive aria-selected or an overlay of their own (not part of the selection model)", async () => {
     let actions!: ReturnType<typeof useDataGridActions>;
-    render(
+    await render(
       <div style={{ height: 360, width: 800 }}>
         <PinnedRootGrid data={makeRows(10)} className="h-90 w-200" topRows={[totals]} bottomRows={[totals]} onActions={(a) => (actions = a)} />
       </div>,
@@ -231,7 +289,7 @@ describe("pinned rows — selection overlay never bleeds into bands", () => {
 
 describe("pinned rows — compose with resize and pinned columns", () => {
   it("resizing a column updates both the data canvas and the pinned band's grid-template-columns identically", async () => {
-    render(
+    await render(
       <div style={{ height: 360, width: 800 }}>
         <PinnedGrid data={makeRows(20)} className="h-90 w-200" topRows={[totals]} />
       </div>,
@@ -254,7 +312,7 @@ describe("pinned rows — compose with resize and pinned columns", () => {
 
   it("a pinned-left data column keeps its pinned cell fixed in a pinned-row band while scrolling horizontally", async () => {
     const pinnedColumns = columns.map((c, i) => (i === 0 ? { ...c, pin: "left" as const } : c));
-    render(
+    await render(
       <div style={{ height: 360, width: 400 }}>
         <PinnedGrid data={makeRows(20)} className="h-90 w-100" cols={pinnedColumns} topRows={[totals]} />
       </div>,
@@ -275,7 +333,7 @@ describe("pinned rows — compose with resize and pinned columns", () => {
 
   it("keyboard navigation on data rows scrolls around the pinned-bottom band without landing under it", async () => {
     let actions!: ReturnType<typeof useDataGridActions>;
-    render(
+    await render(
       <div style={{ height: 360, width: 800 }}>
         <PinnedRootGrid data={makeRows(50)} className="h-90 w-200" bottomRows={[totals]} onActions={(a) => (actions = a)} />
       </div>,
@@ -299,7 +357,7 @@ describe("pinned rows — compose with resize and pinned columns", () => {
 
 describe("pinned rows — geometry sanity", () => {
   it("the data canvas starts below both the header and the pinned-top band", async () => {
-    render(
+    await render(
       <div style={{ height: 360, width: 800 }}>
         <PinnedGrid data={makeRows(20)} className="h-90 w-200" topRows={[totals]} />
       </div>,
@@ -327,7 +385,7 @@ describe("bug fix — pinned-row band opacity", () => {
   }
 
   it("a pinned-top-row cell's background has no alpha while data scrolls beneath it, unlike the translucent unpinned tint", async () => {
-    render(
+    await render(
       <div style={{ height: 300, width: 300 }}>
         <PinnedGrid data={makeRows(500)} cols={pinnedRowColumns} className="h-75 w-75" topRows={[totals]} />
       </div>,
@@ -346,7 +404,7 @@ describe("bug fix — pinned-row band opacity", () => {
   });
 
   it("stays fully opaque on row hover too (group-hover tint doesn't reintroduce translucency)", async () => {
-    render(
+    await render(
       <div style={{ height: 300, width: 300 }}>
         <PinnedGrid data={makeRows(10)} cols={pinnedRowColumns} className="h-75 w-75" topRows={[totals]} />
       </div>,

@@ -29,19 +29,19 @@ function renderGrid(options: { searchParams?: string; onUrlUpdate?: (event: UrlU
 
 describe("useDataGridUrlPagination + useDataGridPagination: composition", () => {
   it("deep-links to the page given by the URL", async () => {
-    renderGrid({ searchParams: "?page=3" });
+    await renderGrid({ searchParams: "?page=3" });
     await expect.element(page.getByText("51–75 of 101")).toBeInTheDocument();
   });
 
   it("an out-of-range page in the URL clamps to the last page", async () => {
-    renderGrid({ searchParams: "?page=999" });
+    await renderGrid({ searchParams: "?page=999" });
     await expect.element(page.getByText("101–101 of 101")).toBeInTheDocument();
     await expect.element(page.getByRole("button", { name: "Next page" })).toBeDisabled();
   });
 
   it("clicking a page number updates the URL via replace", async () => {
     const onUrlUpdate = vi.fn();
-    renderGrid({ onUrlUpdate });
+    await renderGrid({ onUrlUpdate });
     await page.getByRole("button", { name: "Go to page 3" }).click();
     await expect.element(page.getByText("51–75 of 101")).toBeInTheDocument();
     await vi.waitFor(() => {
@@ -53,7 +53,7 @@ describe("useDataGridUrlPagination + useDataGridPagination: composition", () => 
 
   it("changing the page-size select updates the URL and omits the page param", async () => {
     const onUrlUpdate = vi.fn();
-    renderGrid({ searchParams: "?page=3", onUrlUpdate });
+    await renderGrid({ searchParams: "?page=3", onUrlUpdate });
     await page.getByRole("combobox", { name: "Rows per page" }).click();
     await page.getByRole("option", { name: "50 / page" }).click();
     await expect.element(page.getByText("1–50 of 101")).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe("useDataGridUrlPagination + useDataGridPagination: composition", () => 
 
   it("omits page and pageSize from the URL when both are at their defaults", async () => {
     const onUrlUpdate = vi.fn();
-    renderGrid({ searchParams: "?page=2", onUrlUpdate });
+    await renderGrid({ searchParams: "?page=2", onUrlUpdate });
     await page.getByRole("button", { name: "First page" }).click();
     await expect.element(page.getByText("1–25 of 101")).toBeInTheDocument();
     await vi.waitFor(() => {

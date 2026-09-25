@@ -109,11 +109,26 @@ const { rowBands } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows:
     `"avg"`, `"min"`, `"max"`, `"count"`, or a custom `(values, rows) => unknown` function.
     Numeric reducers skip `null`/`undefined` values instead of producing `NaN`. `count` counts
     non-empty values. Pass `scope: "all"` to reduce over the raw `data` array instead, ignoring
-    the active filter.
+    the active filter. If a `specs` key matches no column id, the aggregate ignores it and a dev
+    warning fires once.
 
     Because the hook reads the store and `rowBands` is a provider prop, `DataGridAggregateReporter`
     bridges the two: it renders as a plain child under the provider and reports the result through
     `onChange` into parent state, which is what feeds `topRows`/`bottomRows`.
+
+    <Callout type="warn" title="Under client-mode pagination, a totals band is page-local">
+      The grid's `data` is the current page's slice. So `useDataGridAggregate` sums only that page's
+      rows, and `scope: "all"` does not help — the slice is the grid's whole `data`. Fetch
+      dataset-wide totals from your server. Or compute them from your full dataset outside the grid,
+      and pin the result as a static band row. See [Pagination](/docs/pagination).
+    </Callout>
+
+    <Callout type="warn" title="Not supported on a lazy grid">
+      On a `data-grid-lazy` grid, unloaded rows are `undefined` holes. The aggregate skips them (a
+      dev warning fires once), so the band covers loaded rows only. Use server-side totals, or
+      compute totals outside the grid from the full dataset. See
+      [Lazy loading](/docs/lazy-loading).
+    </Callout>
 
     <Callout type="warn" title="Keep the band arrays referentially stable">
       `useDataGridPinnedRows` returns a stable `rowBands` reference only while the `topRows` and
@@ -127,12 +142,14 @@ const { rowBands } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows:
     ### Custom reducers
 
     A reducer function receives every resolved value and its source row, unfiltered — write your
-    own empty-handling if the built-ins don't fit:
+    own empty-handling if the built-ins don't fit. The hook is generic over the row type: when
+    `specs` carries it (as `AggregateSpecs<Row>` here, or as the generic at the hook call),
+    `rows` is typed:
 
     ```tsx
-    const specs = {
+    const specs: AggregateSpecs<Row> = {
       name: (_values, rows) => `${rows.length} rows`,
-      score: (values) => Math.max(...(values as number[]), 0),
+      score: (_values, rows) => Math.max(...rows.map((r) => r.score), 0),
     };
     ```
 

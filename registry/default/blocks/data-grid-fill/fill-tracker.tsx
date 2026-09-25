@@ -37,7 +37,7 @@ function useInteractionLayoutFromContext(): InteractionLayout {
 }
 
 /** Props for {@link FillHandleTracker} — everything `useFillHandle` needs except `scrollRef`/`layout` (read from context here, only available inside `DataGridRoot`'s own subtree). */
-export type FillHandleTrackerProps = Pick<UseFillHandleOptions, "disabled" | "onFill"> & {
+export type FillHandleTrackerProps = Pick<UseFillHandleOptions, "disabled" | "onFill" | "detectSeries"> & {
   fillStore: FillStoreApi;
 };
 

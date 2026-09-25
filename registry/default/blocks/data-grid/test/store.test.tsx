@@ -15,6 +15,7 @@ import {
   useDataGridFilterState,
   useDataGridIsRowSelected,
   useDataGridJoinOperator,
+  useDataGridColumnWidth,
   useDataGridRow,
   useDataGridRowCellState,
   useDataGridRowIdToViewRow,
@@ -26,6 +27,7 @@ import {
   useDataGridGetSelectionValues,
   useDataGridSortState,
   useDataGridViewIndex,
+  useDataGridViewStale,
   useDataGridVisibleColumns,
 } from "../store";
 import type { FilterSpec, SortSpec } from "../types";
@@ -1888,6 +1890,84 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
       act(() => result.current.actions.setColumnHidden("age", false));
       expect(result.current.visibleIds).toEqual(["name", "age", "id"]);
     });
+
+    it("re-shows a def-level hidden: true column, and the layout snapshot reflects it", () => {
+      const hiddenCols: readonly ColumnDef<Row, unknown>[] = [
+        { id: "name", header: "Name", accessorKey: "name" },
+        { id: "age", header: "Age", accessorKey: "age", hidden: true },
+      ];
+      const onColumnLayoutChange = vi.fn();
+      const wrapper = makeConfigWrapper({ columns: hiddenCols, onColumnLayoutChange });
+      const { result } = renderHook(useColumnProbe, { wrapper });
+
+      expect(result.current.visibleIds).toEqual(["name"]);
+
+      act(() => {
+        result.current.actions.setColumnHidden("age", false);
+      });
+
+      expect(result.current.visibleIds).toEqual(["name", "age"]);
+      expect(onColumnLayoutChange).toHaveBeenCalledTimes(1);
+      expect(onColumnLayoutChange).toHaveBeenLastCalledWith({
+        widths: {},
+        order: ["name", "age"],
+        pins: {},
+        hidden: [],
+      });
+
+      act(() => {
+        result.current.actions.setColumnHidden("age", true);
+      });
+
+      expect(result.current.visibleIds).toEqual(["name"]);
+      expect(onColumnLayoutChange).toHaveBeenCalledTimes(2);
+      expect(onColumnLayoutChange).toHaveBeenLastCalledWith({
+        widths: {},
+        order: ["name", "age"],
+        pins: {},
+        hidden: ["age"],
+      });
+    });
+
+    it("re-seeds def-level hidden ids when the columns prop identity changes; a same-reference re-render keeps the user's choice", () => {
+      const defHidden: readonly ColumnDef<Row, unknown>[] = [
+        { id: "name", header: "Name", accessorKey: "name" },
+        { id: "age", header: "Age", accessorKey: "age", hidden: true },
+      ];
+      const replacedDefHidden: readonly ColumnDef<Row, unknown>[] = [
+        { id: "name", header: "Name", accessorKey: "name" },
+        { id: "age", header: "Age", accessorKey: "age", hidden: true },
+      ];
+      let actionsRef: ReturnType<typeof useDataGridActions> | null = null;
+      let probed: string[] = [];
+      function Probe() {
+        actionsRef = useDataGridActions();
+        probed = useDataGridVisibleColumns().map((c) => c.id);
+        return null;
+      }
+      function Harness({ cols }: { cols: readonly ColumnDef<Row, unknown>[] }) {
+        return (
+          <DataGridProvider data={rows()} columns={cols} getRowId={(r) => r.id}>
+            <Probe />
+          </DataGridProvider>
+        );
+      }
+      const { rerender } = render(<Harness cols={defHidden} />);
+      expect(probed).toEqual(["name"]);
+
+      act(() => {
+        actionsRef!.setColumnHidden("age", false);
+      });
+      expect(probed).toEqual(["name", "age"]);
+
+      // same reference: the user's choice survives an unrelated re-render.
+      rerender(<Harness cols={defHidden} />);
+      expect(probed).toEqual(["name", "age"]);
+
+      // a new array whose def still says hidden: true re-asserts the def's flag.
+      rerender(<Harness cols={replacedDefHidden} />);
+      expect(probed).toEqual(["name"]);
+    });
   });
 
   describe("resolved column-feature flags", () => {
@@ -1952,6 +2032,37 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
       expect(onColumnResizing).toHaveBeenCalledTimes(2);
       expect(onColumnResizing).toHaveBeenLastCalledWith("name", 260);
     });
+
+    it("clamps the written width to the column's [max(32, minWidth), maxWidth] bounds, like the resize gesture", () => {
+      const cols: readonly ColumnDef<Row, unknown>[] = [
+        { id: "name", header: "Name", accessorKey: "name", minWidth: 80, maxWidth: 200 },
+        { id: "age", header: "Age", accessorKey: "age" },
+        { id: "id", header: "ID", accessorKey: "id" },
+      ];
+      const onColumnResizing = vi.fn();
+      const wrapper = makeConfigWrapper({ columns: cols, onColumnResizing });
+      const { result } = renderHook(
+        () => ({
+          actions: useDataGridActions(),
+          nameWidth: useDataGridColumnWidth("name"),
+          ageWidth: useDataGridColumnWidth("age"),
+        }),
+        { wrapper },
+      );
+
+      act(() => result.current.actions.setColumnWidth("name", 10)); // below minWidth
+      expect(result.current.nameWidth).toBe(80);
+      expect(onColumnResizing).toHaveBeenLastCalledWith("name", 80);
+
+      act(() => result.current.actions.setColumnWidth("name", 500)); // above maxWidth
+      expect(result.current.nameWidth).toBe(200);
+
+      act(() => result.current.actions.setColumnWidth("name", 120)); // in range, passes through
+      expect(result.current.nameWidth).toBe(120);
+
+      act(() => result.current.actions.setColumnWidth("age", 10)); // no minWidth: the 32px floor holds
+      expect(result.current.ageWidth).toBe(32);
+    });
   });
 
   describe("commitColumnWidth", () => {
@@ -1978,6 +2089,61 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
 
       act(() => result.current.actions.commitColumnWidth("name", 240));
       expect(onColumnResizing).not.toHaveBeenCalled();
+    });
+
+    it("clamps the committed width, and the snapshot carries the clamped value", () => {
+      const cols: readonly ColumnDef<Row, unknown>[] = [
+        { id: "name", header: "Name", accessorKey: "name", minWidth: 80, maxWidth: 200 },
+        { id: "age", header: "Age", accessorKey: "age" },
+        { id: "id", header: "ID", accessorKey: "id" },
+      ];
+      const onColumnLayoutChange = vi.fn();
+      const wrapper = makeConfigWrapper({ columns: cols, onColumnLayoutChange });
+      const { result } = renderHook(() => ({ actions: useDataGridActions() }), { wrapper });
+
+      act(() => result.current.actions.commitColumnWidth("name", 10));
+
+      expect(onColumnLayoutChange).toHaveBeenCalledTimes(1);
+      expect(onColumnLayoutChange).toHaveBeenLastCalledWith({
+        widths: { name: 80 },
+        order: ["name", "age", "id"],
+        pins: {},
+        hidden: [],
+      });
+    });
+  });
+
+  describe("resetColumnWidth", () => {
+    it("drops the width override and fires onColumnLayoutChange once, without it", () => {
+      const onColumnLayoutChange = vi.fn();
+      const wrapper = makeConfigWrapper({ columns: threeColumns, onColumnLayoutChange });
+      const { result } = renderHook(
+        () => ({ actions: useDataGridActions(), nameWidth: useDataGridColumnWidth("name") }),
+        { wrapper },
+      );
+
+      act(() => result.current.actions.commitColumnWidth("name", 240));
+      expect(result.current.nameWidth).toBe(240);
+
+      act(() => result.current.actions.resetColumnWidth("name"));
+      expect(result.current.nameWidth).toBeUndefined();
+      expect(onColumnLayoutChange).toHaveBeenCalledTimes(2);
+      expect(onColumnLayoutChange).toHaveBeenLastCalledWith({
+        widths: {},
+        order: ["name", "age", "id"],
+        pins: {},
+        hidden: [],
+      });
+    });
+
+    it("is a no-op (no callback) when the column has no override", () => {
+      const onColumnLayoutChange = vi.fn();
+      const wrapper = makeConfigWrapper({ columns: threeColumns, onColumnLayoutChange });
+      const { result } = renderHook(() => ({ actions: useDataGridActions() }), { wrapper });
+
+      act(() => result.current.actions.resetColumnWidth("name"));
+
+      expect(onColumnLayoutChange).not.toHaveBeenCalled();
     });
   });
 
@@ -2643,5 +2809,95 @@ describe("controlled sortState/filterState/searchText (server escape hatch)", ()
       expect(result.current.searchText).toBe("Alice");
       expect(result.current.searchMatches.length).toBeGreaterThan(0);
     });
+  });
+});
+
+describe("updateCells while an edit session is open", () => {
+  it("reorder immediate defers the re-sort: the value lands, the edited row's slot does not move, viewStale flips", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeUncontrolledWrapper(onDataChange);
+    const { result } = renderHook(
+      () => ({
+        actions: useDataGridActions(),
+        viewIndex: useDataGridViewIndex(),
+        viewStale: useDataGridViewStale(),
+        editing: useDataGridEditing(),
+      }),
+      { wrapper },
+    );
+
+    // sorted by name ascending: view order is Alice(1), Bob(2), Charlie(0).
+    act(() => result.current.actions.setSorts([{ columnId: "name", direction: "asc" }]));
+    expect(result.current.viewIndex).toEqual([1, 2, 0]);
+    act(() => result.current.actions.startEditing({ col: 0, row: 0 }));
+
+    // Charlie (data 0) renamed to "Aaron": an immediate re-sort would move him to the top of the view.
+    act(() => result.current.actions.updateCells([{ rowId: "1", columnId: "name", value: "Aaron" }], { reorder: "immediate" }));
+
+    const [next] = onDataChange.mock.calls[0] as [readonly EditRow[], DataChange<EditRow>];
+    expect(next[0]).toMatchObject({ id: "1", name: "Aaron" }); // the value landed
+    // but the view did not re-sort under the open editor: the edited row (view 0) is untouched and
+    // the patched row keeps its old slot (view 2) until the session ends.
+    expect(result.current.viewIndex).toEqual([1, 2, 0]);
+    expect(result.current.viewStale).toBe(true);
+    expect(result.current.editing).toEqual({ coord: { col: 0, row: 0 }, initialText: undefined });
+
+    // once the session ends, the deferred re-sort lands on the next reconcile.
+    act(() => result.current.actions.cancelEditing());
+    act(() => result.current.actions.reconcileView());
+    expect(result.current.viewIndex).toEqual([0, 1, 2]); // Aaron, Alice, Bob
+    expect(result.current.viewStale).toBe(false);
+  });
+});
+
+describe("row-moving ops with an active view-space presence entry", () => {
+  it("does not warn while the registered predicate reports no view-space entry", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+
+    act(() => result.current._registerPresenceViewSpaceActive(() => false));
+    act(() => {
+      result.current.reorderRows(0, 2);
+    });
+    act(() => {
+      result.current.updateCells([{ rowId: "1", columnId: "age", value: 31 }], { reorder: "immediate" });
+    });
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("warns exactly once across repeated row-moving ops, not per op", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+
+    act(() => result.current._registerPresenceViewSpaceActive(() => true));
+    act(() => {
+      result.current.reorderRows(0, 2);
+    });
+    act(() => {
+      result.current.reorderRows(2, 0);
+    });
+    act(() => {
+      result.current.updateCells([{ rowId: "1", columnId: "age", value: 31 }], { reorder: "immediate" });
+    });
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]?.[0]).toContain("view-space presence");
+    warn.mockRestore();
+  });
+
+  it("warns once per grid instance, including on deleteRows", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const first = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    const second = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+
+    for (const { result } of [first, second]) {
+      act(() => result.current._registerPresenceViewSpaceActive(() => true));
+      act(() => result.current.deleteRows([0]));
+    }
+
+    expect(warn).toHaveBeenCalledTimes(2);
+    warn.mockRestore();
   });
 });

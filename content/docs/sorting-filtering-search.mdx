@@ -13,6 +13,10 @@ Sorting is multi-column. Columns with a declared `type` sort with that cell type
 `localeCompare`. Empty cells sort last in both directions. Click a header to sort by that column.
 Shift-click adds another column to the sort without clearing the first.
 
+A column's `sortCompare` compares two data rows to order that column. It runs before the cell
+type's `compare` and the default compare. A zero return defers the pair to the default compare.
+The sort direction still applies.
+
 `headerClickBehavior="sort"` on `DataGridProvider` makes a plain header click cycle through
 ascending, descending, and clear. The default, `"select"`, instead selects the whole column. See
 [Selection & keyboard](/docs/selection-keyboard):
@@ -40,6 +44,33 @@ the grip, or reorder through the keyboard
 ([toolbar add-on: filter menu keyboard & accessibility](/docs/addons/toolbar#filter-menu-keyboard--accessibility)),
 to change it.
 
+`DataGridFilterMenu` and `DataGridSortList` offer the grid's visible columns by default. Pass
+`allColumns` to include hidden columns. A filter on a hidden column keeps applying. Without
+`allColumns`, the menu shows that row as a raw column id and logs a dev-time warning.
+
+Two column-level fields replace the built-in behavior. `filterMatch(value, filter)` is a
+per-column predicate over the cell's RAW value — not its stringified form — that decides whether
+the row passes; it replaces the built-in matcher for that column, and a thrown predicate fails the
+row. `filterOperators` replaces the operator list the filter menu offers for that column, for
+example the comparison operators for a consumer-registered numeric cell type whose `type` key is
+not `number` or `date`:
+
+```tsx
+const columns = defineColumns<Invoice>()([
+  {
+    id: "total",
+    header: "Total",
+    accessorKey: "total",
+    type: "currency",
+    filterOperators: ["contains", "gt", "gte", "lt", "lte", "isBetween"],
+    filterMatch: (value, filter) => typeof value === "number" && value > 100,
+  },
+]);
+```
+
+`DataGridFilterMenu`'s `operatorsForColumn` prop overrides the operator list per render, ahead of
+`filterOperators`. See [Toolbar: the pieces](/docs/addons/toolbar#the-pieces).
+
 `DataGridFilterMenu`, along with the search input and columns menu below, comes from the
 [toolbar add-on](/docs/addons/toolbar), which owns the install, wiring, toolbar order,
 and the filter menu's keyboard & accessibility table.
@@ -49,6 +80,9 @@ and the filter menu's keyboard & accessibility table.
 `DataGridSearch` is a quick-search input across visible columns, with match highlighting and
 next and previous navigation that shows a `current/total` counter. Navigating to a match moves
 the active cell there and scrolls it into view, so results are never left off-screen.
+
+It debounces typing before it writes the store's search text. Pass `debounceMs` to change the
+200 ms default.
 
 It never narrows the row set. Search highlights and navigates matches over the rows already in
 `data`. `viewIndex` is untouched, so everything that walks `viewIndex` — export with

@@ -6,6 +6,7 @@ import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "
 import { CellSpan } from "./cell-span";
 import { displayText } from "./display-text";
 import { useCommitGuard } from "../interaction/use-commit-guard";
+import { useDataGridLabels } from "../store";
 import { columnLabelText } from "../columns/column-format-helpers";
 
 /** Normalizes any Date-parseable input to its ISO `yyyy-mm-dd` date part; null when unparseable or out of range. */
@@ -87,6 +88,7 @@ function DateEditor({
   rejectionCount,
 }: CellEditorProps<unknown, string | null>) {
   const options = column.options as GridCellTypes["date"]["options"] | undefined;
+  const labels = useDataGridLabels();
   const inputRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState(dateCellType.toText(value));
   const [open, setOpen] = useState(true);
@@ -148,7 +150,7 @@ function DateEditor({
             // ISO date text is direction-neutral; see the number editor for why `auto` beats the
             // grid's inherited layout direction on a value-carrying input.
             dir="auto"
-            placeholder="yyyy-mm-dd"
+            placeholder={labels.grid.datePlaceholder}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
               if (e.key === "Enter") {

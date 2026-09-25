@@ -5,6 +5,7 @@ import {
   applyInlineScrollDelta,
   combineRects,
   getCellValue,
+  isDev,
   inlineAutoScrollStep,
   candidateRowIds,
   pointerToCoord,
@@ -20,7 +21,7 @@ import {
   type GridRect,
   type InteractionLayout,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { computeFillTarget, fillDirection, generateFill, rectRelativeTo } from "./fill";
+import { computeFillTarget, fillDirection, generateFill, rectRelativeTo, type SeriesDescriptor } from "./fill";
 import type { FillStoreApi } from "./fill-store";
 
 /** rAF-throttled auto-scroll step (px), matching `useGridInteraction`'s drag auto-scroll. */
@@ -44,6 +45,8 @@ export type UseFillHandleOptions = {
   /** Turns the whole fill feature off (handle hidden, `fillDown`/`fillRight` no-op). Default `false`; a read-only grid disables fill regardless of this option. */
   disabled?: boolean;
   onFill?: (args: FillArgs) => void;
+  /** Replaces the built-in series detector (`detectSeries`) — the add-on's default remains the built-in one. */
+  detectSeries?: (values: readonly string[]) => SeriesDescriptor | null;
   /** This add-on's local fill-preview store — owns the in-progress drag rect (kept out of core). */
   fillStore: FillStoreApi;
 };
@@ -85,7 +88,7 @@ export function buildFillCandidates(
   s: DataGridStoreState,
   source: GridRect,
   strip: GridRect,
-  opts: { forceCopy?: boolean } = {},
+  opts: { forceCopy?: boolean; detect?: (values: readonly string[]) => SeriesDescriptor | null } = {},
 ): { candidates: BulkCandidate[]; filled: string[][] } {
   const sourceValues = readRectAsText(s, source);
   const direction = fillDirection(source, strip);
@@ -93,12 +96,17 @@ export function buildFillCandidates(
   const filled = generateFill(sourceValues, relativeStrip, direction, opts);
 
   const candidates: BulkCandidate[] = [];
+  let skippedHoleRows = 0;
   for (let row = 0; row < strip.height; row++) {
     const viewRow = strip.y + row;
     const dataRowIndex = s.viewIndex[viewRow];
     if (dataRowIndex === undefined) continue;
     const dataRow = s.data[dataRowIndex];
-    if (dataRow === undefined) continue;
+    if (dataRow === undefined) {
+      // an unloaded hole of a lazy grid: the row is real (in viewIndex) but has no row object
+      skippedHoleRows++;
+      continue;
+    }
     const rowId = s.getRowId(dataRow, dataRowIndex);
 
     for (let col = 0; col < strip.width; col++) {
@@ -115,6 +123,11 @@ export function buildFillCandidates(
       candidates.push({ viewRow, columnId: column.id, value, validate: column.validate, row: dataRow, rowId });
     }
   }
+  if (skippedHoleRows > 0 && isDev()) {
+    console.warn(
+      `[data-grid-fill] the fill target skipped ${skippedHoleRows} unloaded row(s) (lazy grid): unloaded cells are never filled and the selection still expands over them. Fill over a lazy grid covers loaded rows only.`,
+    );
+  }
   return { candidates, filled };
 }
 
@@ -127,7 +140,7 @@ export function buildFillWrites(
   s: DataGridStoreState,
   source: GridRect,
   strip: GridRect,
-  opts: { forceCopy?: boolean } = {},
+  opts: { forceCopy?: boolean; detect?: (values: readonly string[]) => SeriesDescriptor | null } = {},
 ): { writes: BulkWrite[] | Promise<BulkWrite[]>; filled: string[][] } {
   const { candidates, filled } = buildFillCandidates(s, source, strip, opts);
   return { writes: resolveBulkWrites(candidates), filled };
@@ -153,7 +166,7 @@ export type FillHandleHandlers = {
  * series inference.
  */
 export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers {
-  const { scrollRef, layout, onFill, fillStore } = options;
+  const { scrollRef, layout, onFill, detectSeries, fillStore } = options;
   const disabled = options.disabled === true;
   const actions = useDataGridActions();
   const storeApi = useDataGridStoreApi();
@@ -162,6 +175,8 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
 
   const layoutRef = useRef(layout);
   layoutRef.current = layout;
+  const callbacksRef = useRef({ onFill, detectSeries });
+  callbacksRef.current = { onFill, detectSeries };
 
   const dragRef = useRef<{ pointerId: number; source: GridRect } | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -217,7 +232,8 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
   const runFill = useCallback(
     (source: GridRect, strip: GridRect, opts: { forceCopy?: boolean } = {}) => {
       const s = storeApi.getState();
-      const { candidates, filled } = buildFillCandidates(s, source, strip, opts);
+      const { onFill, detectSeries } = callbacksRef.current;
+      const { candidates, filled } = buildFillCandidates(s, source, strip, { ...opts, detect: detectSeries });
 
       let prevented = false;
       onFill?.({ source, target: strip, values: filled, preventDefault: () => (prevented = true) });
@@ -246,7 +262,7 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
       actions.selectCell({ col: combined.x, row: combined.y });
       actions.extendTo({ col: combined.x + combined.width - 1, row: combined.y + combined.height - 1 });
     },
-    [actions, guard, onFill, storeApi],
+    [actions, guard, storeApi],
   );
 
   /** Releases pointer capture and clears all drag refs/listeners/rAF loop; returns the drag that was active, if any. */

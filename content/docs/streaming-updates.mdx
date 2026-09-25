@@ -38,7 +38,8 @@ One call is one batch. The grid applies all patches together and fires `onDataCh
 one `update` op per touched row. Rows you do not patch keep their identity and do not render again.
 
 A patch with an unknown `rowId` or `columnId` is skipped. A patch to a read-only column, or a
-patch whose value equals the current value, is also skipped. A hidden column can be patched.
+patch whose value equals the current value, is also skipped. A hidden column can be patched. On a
+`readOnly` grid, every batch is a silent no-op.
 
 <Callout title="Row ids, not coordinates">
   A view coordinate changes when the user sorts or filters. A row id does not, so a feed can write
@@ -159,6 +160,37 @@ the grid away from a user who is editing a cell.
 Values are checked with each column's `validate` function. A value that fails is skipped, and the
 rest of the batch is applied. Set `skipValidation: true` when the producer already checked the
 values.
+
+<Callout type="idea" title="An async schema holds the batch">
+  A batch into a column with an async `validate` changes nothing until the schema resolves. The
+  accepted cells then commit together as one `onDataChange`. A cell that fails drops silently, and
+  a batch in which every cell fails commits nothing. A newer `updateCells` call, or any row-moving
+  operation, supersedes the held batch; its late verdict is dropped. The full bulk-path contract,
+  shared by paste, fill, and import, is on
+  [Editing & cell types: async schemas](/docs/editing-cell-types#on-bulk-paths).
+</Callout>
+
+## What the verdict tells you
+
+`updateCells` and `updateRows` return a verdict for every patch in the batch:
+
+```tsx
+const verdict = actions.updateCells(patches);
+// { applied: 1, skipped: [{ patchIndex: 1, reason: "no-op" }], pending: false }
+```
+
+- `applied` - the number of cells the call wrote.
+- `skipped` - one entry per patch that was not written, with its `patchIndex` in `patches` and a `reason`:
+  - `unknown-row` - the row id is not in `data`.
+  - `unknown-column` - the column id is not a known column.
+  - `hole` - the row is an unloaded lazy hole.
+  - `readonly` - the column, or the row via `readOnly(row)`, is read-only.
+  - `invalid` - the column's `validate` rejected the value.
+  - `no-op` - the value equals the current one.
+- `pending` - `true` when an async schema holds the batch. Its outcome is not reportable on the
+  return value; the accepted cells commit when the schema resolves.
+
+A batch that writes nothing emits no `onDataChange`.
 
 ## Whole rows
 

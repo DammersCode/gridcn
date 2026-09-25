@@ -15,7 +15,7 @@ function demoGrid(): HTMLElement {
 
 describe("data-grid-custom-markers-demo", () => {
   it("marker states follow the channels, and the custom select-all toggles the rows channel", { timeout: 30_000 }, async () => {
-    render(<DataGridCustomMarkersDemo />);
+    await render(<DataGridCustomMarkersDemo />);
     await new Promise((r) => setTimeout(r, 400));
 
     const grid = demoGrid();

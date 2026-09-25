@@ -26,7 +26,7 @@ describe("DataGridImportButton (browser)", () => {
     let imported: Row[] | null = null;
     let nextId = 0;
 
-    render(
+    await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
         <DataGridImportButton
           createRow={(): Row => ({ id: `imported-${nextId++}`, name: "", age: null })}
@@ -63,11 +63,80 @@ describe("DataGridImportButton (browser)", () => {
     ]);
   });
 
+  it("dropping a CSV file onto the dropzone opens the same preview/mapping step as choosing it via the button", async () => {
+    let imported: Row[] | null = null;
+    let nextId = 0;
+
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton
+          createRow={(): Row => ({ id: `imported-${nextId++}`, name: "", age: null })}
+          onImport={(rows: Row[]) => {
+            imported = rows;
+          }}
+        />
+        <DataGridRoot className="h-[200px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    const dropzone = document.querySelector<HTMLElement>('[role="button"][aria-label="Choose file"]');
+    expect(dropzone).not.toBeNull();
+
+    const file = makeCsvFile("Name,Age\nAlice,30");
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+    dropzone!.dispatchEvent(new DragEvent("dragenter", { bubbles: true, cancelable: true, dataTransfer }));
+    dropzone!.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer }));
+    dropzone!.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer }));
+
+    // same preview step a file-input pick reaches: parsed rows shown, mapping grid ready.
+    await expect.element(page.getByText("Alice")).toBeInTheDocument();
+    await expect.element(page.getByText("Showing 1 of 1 rows")).toBeInTheDocument();
+
+    await userEvent.click(page.getByRole("button", { name: "Import", exact: true }));
+    expect(imported).toEqual([{ id: "imported-0", name: "Alice", age: 30 }]);
+  });
+
+  it("dropping a second CSV in the mapping step replaces the preview with the new file's headers", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton createRow={(): Row => ({ id: "imported-0", name: "", age: null })} onImport={() => {}} />
+        <DataGridRoot className="h-[200px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    const firstDropzone = document.querySelector<HTMLElement>('[role="button"][aria-label="Choose file"]')!;
+    const firstFile = makeCsvFile("Name,Age\nAlice,30");
+    const firstTransfer = new DataTransfer();
+    firstTransfer.items.add(firstFile);
+    firstDropzone.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: firstTransfer }));
+    await expect.element(page.getByText("Alice")).toBeInTheDocument();
+
+    // the compact drop zone in the mapping step replaces this same file — reuses the initial load/preview path.
+    const compactDropzone = document.querySelector<HTMLElement>('[role="button"][aria-label="Choose file"]')!;
+    const secondFile = new File(["Full Name,City\nBob,Berlin"], "contacts.csv", { type: "text/csv" });
+    const secondTransfer = new DataTransfer();
+    secondTransfer.items.add(secondFile);
+    compactDropzone.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: secondTransfer }));
+
+    await expect.element(page.getByText("Bob")).toBeInTheDocument();
+    await expect.element(page.getByText("Alice")).not.toBeInTheDocument();
+    await expect.element(page.getByText("Full Name")).toBeInTheDocument();
+  });
+
   it("skips a column mapped to '—' and clears an invalid number instead of dropping the row", async () => {
     let imported: Row[] | null = null;
     let nextId = 0;
 
-    render(
+    await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
         <DataGridImportButton
           createRow={(): Row => ({ id: `imported-${nextId++}`, name: "", age: null })}
@@ -104,7 +173,7 @@ describe("DataGridImportButton (browser)", () => {
     const csv = [headerNames.join(","), headerNames.map((_, i) => `value-${i}`).join(",")].join("\n");
     const file = makeCsvFile(csv);
 
-    render(
+    await render(
       <DataGridProvider data={makeRows()} columns={wideColumns} getRowId={(r) => r.id}>
         <DataGridImportButton createRow={(): Row => ({ id: "imported-0", name: "", age: null })} onImport={() => {}} />
         <DataGridRoot className="h-[200px]">
@@ -168,7 +237,7 @@ describe("DataGridImportButton (browser)", () => {
   });
 
   it("disables a grid column in other selects once it's mapped from one source column", async () => {
-    render(
+    await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
         <DataGridImportButton createRow={(): Row => ({ id: "imported-0", name: "", age: null })} onImport={() => {}} />
         <DataGridRoot className="h-[200px]">
@@ -200,7 +269,7 @@ describe("DataGridImportButton (browser)", () => {
   });
 
   it("quick-skip X button sets a mapped column back to Skip, and hides once already skipped", async () => {
-    render(
+    await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
         <DataGridImportButton createRow={(): Row => ({ id: "imported-0", name: "", age: null })} onImport={() => {}} />
         <DataGridRoot className="h-[200px]">
@@ -231,7 +300,7 @@ describe("DataGridImportButton (browser)", () => {
   });
 
   it("defaultDelimiter preselects the delimiter without waiting for auto-detect", async () => {
-    render(
+    await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
         <DataGridImportButton
           createRow={(): Row => ({ id: "imported-0", name: "", age: null })}
@@ -256,7 +325,7 @@ describe("DataGridImportButton (browser)", () => {
   });
 
   it("autoDetectDelimiter: false suppresses detection and uses defaultDelimiter (or comma)", async () => {
-    render(
+    await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
         <DataGridImportButton
           createRow={(): Row => ({ id: "imported-0", name: "", age: null })}
@@ -283,7 +352,7 @@ describe("DataGridImportButton (browser)", () => {
   });
 
   it("defaultSkipColumns preselects Skip by header name (case-insensitive) and by index", async () => {
-    render(
+    await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
         <DataGridImportButton
           createRow={(): Row => ({ id: "imported-0", name: "", age: null })}
@@ -318,7 +387,7 @@ describe("DataGridImportButton (browser)", () => {
 
   it("mapColumn override wins over both the built-in matcher and defaultSkipColumns", async () => {
     let imported: Row[] | null = null;
-    render(
+    await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
         <DataGridImportButton
           createRow={(): Row => ({ id: "imported-0", name: "", age: null })}
@@ -374,9 +443,9 @@ const asyncColumns = defineColumns<Row>()([
 ] as const);
 
 describe("DataGridImportButton with an async schema", () => {
-  function renderImportGrid(onImport: (rows: Row[]) => void) {
+  async function renderImportGrid(onImport: (rows: Row[]) => void) {
     let nextId = 0;
-    render(
+    await render(
       <DataGridProvider data={makeRows()} columns={asyncColumns} getRowId={(r) => r.id}>
         <DataGridImportButton
           createRow={(): Row => ({ id: `imported-${nextId++}`, name: "", age: null })}
@@ -392,7 +461,7 @@ describe("DataGridImportButton with an async schema", () => {
 
   it("keeps the dialog open with Import disabled while validating, then imports the transformed rows", async () => {
     let imported: Row[] | null = null;
-    renderImportGrid((rows) => {
+    await renderImportGrid((rows) => {
       imported = rows;
     });
 
@@ -418,6 +487,34 @@ describe("DataGridImportButton with an async schema", () => {
   });
 });
 
+describe("DataGridImportButton with a rejecting onImport", () => {
+  it("awaits onImport and shows the merge-failed state instead of closing when it rejects", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton
+          createRow={(): Row => ({ id: "imported-0", name: "", age: null })}
+          onImport={() => Promise.reject(new Error("merge failed"))}
+        />
+        <DataGridRoot className="h-[200px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
+    await userEvent.upload(fileInput!, makeCsvFile("Name,Age\nAlice,30"));
+    await expect.element(page.getByText("Alice")).toBeInTheDocument();
+
+    await userEvent.click(page.getByRole("button", { name: "Import", exact: true }));
+
+    // the rejected onImport keeps the dialog open with the merge-failed message, instead of closing.
+    await expect.element(page.getByText("The import could not be completed. Try again.")).toBeInTheDocument();
+    await expect.element(page.getByText("Import file")).toBeInTheDocument();
+  });
+});
+
 // A multi-sheet workbook opens on its first sheet rather than silently.
 describe("multi-sheet workbook sheet picker", () => {
   async function makeWorkbookFile(sheets: Record<string, string[][]>): Promise<File> {
@@ -433,7 +530,7 @@ describe("multi-sheet workbook sheet picker", () => {
   }
 
   async function openWith(file: File): Promise<void> {
-    render(
+    await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
         <DataGridImportButton
           createRow={(): Row => ({ id: "imported", name: "", age: null })}

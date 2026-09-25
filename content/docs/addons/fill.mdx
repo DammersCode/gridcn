@@ -90,6 +90,50 @@ If the source cells form a detectable series, the fill extrapolates it instead o
 Hold <kbd>Alt</kbd> (<kbd>Option</kbd> on Mac) while you drag the fill handle. This forces plain
 tiling, even over a detected series. Excel uses the same convention.
 
+## Custom series detection
+
+The built-in detector covers arithmetic runs, zero-padded numbers, and text plus a trailing
+number. Date series (`2026-01-01, 2026-01-02 → 2026-01-03`) are not detected. Pass `detectSeries`
+to `useDataGridFill` to replace the built-in detector; `null` returns fall back to tiling, the
+same as an undetected series. The callback receives the source cells along the fill axis (per
+source column for vertical fills, per source row for horizontal fills) in source order, and
+returns a `SeriesDescriptor` whose `extrapolate(index)` computes the value at any source-relative
+index:
+
+```tsx
+import { useDataGridFill, type SeriesDescriptor } from "@/components/data-grid-fill/data-grid-fill";
+
+const detectDates = (values: readonly string[]): SeriesDescriptor | null => {
+  if (values.length < 2) return null;
+  const first = Date.parse(values[0]!);
+  const step = Date.parse(values[1]!) - first;
+  if (values.some((v) => Number.isNaN(Date.parse(v)))) return null;
+  for (let i = 2; i < values.length; i += 1) {
+    if (Date.parse(values[i]!) - Date.parse(values[i - 1]!) !== step) return null;
+  }
+  return { extrapolate: (index) => new Date(first + step * index).toISOString().slice(0, 10) };
+};
+
+function MyGrid() {
+  const { plugin, FillHandleTracker } = useDataGridFill({ detectSeries: detectDates });
+  // ...
+}
+```
+
+To extend the built-in detector instead of replacing it, check your own series first and return
+the built-in `detectSeries` result for everything else:
+
+```tsx
+import { detectSeries, useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";
+
+const detectDatesOrBuiltIn = (values: readonly string[]) => detectDates(values) ?? detectSeries(values);
+
+function MyGrid() {
+  const { plugin, FillHandleTracker } = useDataGridFill({ detectSeries: detectDatesOrBuiltIn });
+  // ...
+}
+```
+
 ## Keyboard fill
 
 - <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>D</kbd> — fill down. This copies the top row of the current
@@ -109,6 +153,12 @@ with or without the option. Within a partially writable grid, a fill over `readO
 (per-column `readOnly`, function or boolean) fills the writable columns and silently skips the
 `readOnly` ones, the same skip-no-error discipline as a paste over a non-writable cell.
 
+<Callout type="warn" title="On a lazy grid, a fill stops at loaded rows">
+  A fill target that covers unloaded rows fills the loaded rows and skips the unloaded cells. The
+  selection still expands over the whole target. A dev warning names the skipped rows. See
+  [Lazy loading](/docs/lazy-loading).
+</Callout>
+
 ## `onFill`
 
 Intercept or veto a fill before it applies. This fires on drag release and on the keyboard fill
@@ -117,9 +167,9 @@ actions, and passes straight through the options of `useDataGridFill`:
 ```tsx
 import { useDataGridFill, type FillArgs } from "@/components/data-grid-fill/data-grid-fill";
 
-// Module scope (or useCallback) so identity stays stable across renders.
 function onFill({ source, target, values, preventDefault }: FillArgs) {
-  // values is the source range serialized to text (same shape a copy would produce)
+  // values is the pattern being written into the target strip (target.height x target.width),
+  // extrapolated or tiled, before validation runs
   if (someCondition) preventDefault(); // nothing is applied, selection doesn't expand
 }
 

@@ -1,7 +1,7 @@
 import { page, userEvent } from "vitest/browser";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
-import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
+import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, cellTypes, defineColumns, type CellType, type ColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridExportButton } from "./data-grid-io";
 // real stylesheet so Tailwind's `grid`/dropdown utilities actually apply
 import "@/app/global.css";
@@ -61,7 +61,7 @@ describe("DataGridExportButton (browser)", () => {
         return el;
       });
 
-    renderGrid();
+    await renderGrid();
     await expect.element(page.getByRole("button", { name: "Export" })).toBeInTheDocument();
     await userEvent.click(page.getByRole("button", { name: "Export" }));
     await expect.element(page.getByText("Export as CSV")).toBeInTheDocument();
@@ -83,5 +83,100 @@ describe("DataGridExportButton (browser)", () => {
     createElementSpy.mockRestore();
     URL.createObjectURL = originalCreateObjectURL;
     URL.revokeObjectURL = originalRevokeObjectURL;
+  });
+});
+
+// toText throws on export while the cell renders inert, isolating the failure to the export path.
+const boomColumns: ColumnDef<Row, unknown>[] = [
+  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140 },
+  { id: "note", header: "Note", accessorKey: "note", type: "boom", width: 200 },
+];
+
+const boomCellType: CellType<unknown, string> = {
+  Cell: () => null,
+  Editor: () => null,
+  toText: () => {
+    throw new Error("toText exploded");
+  },
+  fromText: (text) => text,
+  clearValue: () => "",
+  isEmpty: (value) => value === "",
+};
+
+describe("DataGridExportButton export failures (browser)", () => {
+  /** Renders the button with the lazily-imported `xlsx` module mocked to fail on first use. */
+  async function renderWithFailingXlsx(onError?: (error: unknown, format: "xlsx" | "csv") => void): Promise<Error> {
+    vi.resetModules();
+    const loadError = new Error("xlsx failed to load");
+    // the browser mocker rejects mock factories that throw, so the failure is placed on first use
+    // (aoa_to_sheet runs right after the import) — the rejection reaches the same exportGrid catch
+    vi.doMock("xlsx", () => ({
+      utils: {
+        aoa_to_sheet: () => {
+          throw loadError;
+        },
+      },
+    }));
+    const freshDataGrid = await import("@/registry/default/blocks/data-grid/data-grid");
+    const freshIo = await import("./data-grid-io");
+    await render(
+      <freshDataGrid.DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <freshIo.DataGridExportButton onError={onError} />
+        <freshDataGrid.DataGridRoot className="h-[200px]">
+          <freshDataGrid.DataGridHeader />
+          <freshDataGrid.DataGridBody />
+        </freshDataGrid.DataGridRoot>
+      </freshDataGrid.DataGridProvider>,
+    );
+    return loadError;
+  }
+
+  it("calls onError with the rejection and the format when the xlsx module fails to load", async () => {
+    const onError = vi.fn();
+    const loadError = await renderWithFailingXlsx(onError);
+
+    await userEvent.click(page.getByRole("button", { name: "Export" }));
+    await userEvent.click(page.getByText("Export as Excel (.xlsx)"));
+
+    await vi.waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
+    expect(onError).toHaveBeenCalledWith(loadError, "xlsx");
+
+    vi.doUnmock("xlsx");
+  });
+
+  it("logs a dev warning instead of invoking onError when none is provided", async () => {
+    const warnSpy = vi.spyOn(console, "warn");
+    try {
+      await renderWithFailingXlsx();
+
+      await userEvent.click(page.getByRole("button", { name: "Export" }));
+      await userEvent.click(page.getByText("Export as Excel (.xlsx)"));
+
+      await vi.waitFor(() =>
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("xlsx export failed"), expect.any(Error)),
+      );
+    } finally {
+      warnSpy.mockRestore();
+      vi.doUnmock("xlsx");
+    }
+  });
+
+  it("calls onError with the error and 'csv' when a cell type's toText throws", async () => {
+    const onError = vi.fn();
+    await render(
+      <DataGridProvider data={makeRows()} columns={boomColumns} cellTypes={{ ...cellTypes, boom: boomCellType }} getRowId={(r) => r.id}>
+        <DataGridExportButton onError={onError} />
+        <DataGridRoot className="h-[200px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+
+    await userEvent.click(page.getByRole("button", { name: "Export" }));
+    await userEvent.click(page.getByText("Export as CSV"));
+
+    await vi.waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
+    expect(onError).toHaveBeenCalledWith(expect.any(Error), "csv");
   });
 });

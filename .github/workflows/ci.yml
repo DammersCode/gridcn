@@ -63,6 +63,9 @@ jobs:
       - name: Verify registry (no drift between registry.json and disk)
         run: node scripts/verify-registry.mjs
 
+      - name: Verify demo install closure (dependencies and payload imports resolve)
+        run: node scripts/verify-demo-install.mjs
+
       # Validates the GitHub registry (registry.json at repo root) exactly as the shadcn CLI
       # resolves it. GITHUB_TOKEN can read the repo that owns the workflow (per-shadcn-docs
       # limitation for other repos); the full commit SHA skips ref resolution via git.

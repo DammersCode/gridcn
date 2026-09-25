@@ -90,7 +90,7 @@ function formatViolations(violations: axe.Result[]): string {
 
 describe("DataGrid a11y — axe-core", () => {
   it("has zero violations on the base fixture (toolbar + markers + pinned row + sorted column)", async () => {
-    renderFixture();
+    await renderFixture();
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const violations = await runAxe();
@@ -98,7 +98,7 @@ describe("DataGrid a11y — axe-core", () => {
   });
 
   it("has zero violations with a cell editor open", async () => {
-    renderFixture();
+    await renderFixture();
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const cell = [...document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="name"]')].find((c) =>
@@ -112,7 +112,7 @@ describe("DataGrid a11y — axe-core", () => {
   });
 
   it("has zero violations with a multi-cell range selected (aria-selected on every member)", async () => {
-    renderFixture();
+    await renderFixture();
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const nameCells = [...document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="name"]')];

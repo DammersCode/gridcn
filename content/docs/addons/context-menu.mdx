@@ -53,16 +53,69 @@ The cell-surface items, in order:
 1. **Cut** / **Copy** / **Paste** — the native clipboard pipeline (see [Clipboard](/docs/clipboard)).
 2. **Clear contents** — empties the selection to each type's `clearValue()` (the `deleteContents`
    action, <kbd>Delete</kbd>/<kbd>Backspace</kbd>).
-3. **Insert row above** / **Insert row below** — anchored at the right-clicked row. Hidden without
-   `createRow`.
+3. **Insert row above** (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd>) / **Insert
+   row below** (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>) — anchored at the
+   right-clicked row. Hidden without `createRow`.
 4. **Duplicate row(s)** — <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>. Hidden
    without `duplicateRow`.
-5. **Delete row(s)** — destructive item, no default keyboard binding.
+5. **Delete row(s)** — <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Backspace</kbd>,
+   destructive item.
 
 Surfaces with no menu: row markers, the empty grid space below the last row, and the scrollbar
 gutter right-click to nothing at all — no menu and no browser context menu either, matching the
 quiet no-op of a plain click on empty space. The full operation contract (when items appear
 under which props) lives on [Row operations](/docs/row-operations#context-menu).
+
+## Custom menu items
+
+`DataGridContextMenu` accepts two render slots that replace the built-in item set — one per
+surface. Without a slot, the built-in items show. The slots apply to the right-click menus; the
+header dropdown (`DataGridHeaderDropdown`) keeps its built-in items.
+
+| Prop | Replaces | Called with |
+|---|---|---|
+| `renderCellMenuItems` | the cell-surface items | `{ row, columnId, canInsertRow, canDuplicateRow }` — the right-clicked cell's view row, its column id, and the `createRow`/`duplicateRow` availability flags the built-in set gates its Insert/Duplicate items on |
+| `renderHeaderMenuItems` | the header-surface items | `{ columnId, scrollRoot }` — the right-clicked column's id and the grid's scroll-container element (`null` when the right-clicked element has no grid ancestor) |
+
+The slot's output is the complete item set — it owns the items, their order, and their gating.
+Compose items from `ContextMenuItem` in `@/components/ui/context-menu`.
+
+<ComponentPreview name="data-grid-context-menu-slots-demo" />
+
+A custom cell menu with a single hook-using item:
+
+```tsx
+import { Plus } from "lucide-react";
+import { ContextMenuItem } from "@/components/ui/context-menu";
+import { useDataGridActions } from "@/components/data-grid/data-grid";
+import { DataGridContextMenu } from "@/components/data-grid-context-menu/data-grid-context-menu";
+
+function InsertRowItem({ row }: { row: number }) {
+  const actions = useDataGridActions();
+  return (
+    <ContextMenuItem onClick={() => actions.insertRow(row, "below")}>
+      <Plus className="size-4 text-muted-foreground" />
+      Insert row below
+    </ContextMenuItem>
+  );
+}
+
+<DataGridContextMenu
+  renderCellMenuItems={({ row, canInsertRow }) => (
+    <>{canInsertRow && <InsertRowItem row={row} />}</>
+  )}
+>
+  <DataGridRoot>
+    <DataGridHeader />
+    <DataGridBody />
+  </DataGridRoot>
+</DataGridContextMenu>
+```
+
+<Callout type="warn" title="The slot body runs during the wrapper's render">
+  The slot is a plain function call, not a component. Do not call hooks in the slot body — wrap
+  hook-using items in a component of their own, as `InsertRowItem` above.
+</Callout>
 
 ## Paste permission
 

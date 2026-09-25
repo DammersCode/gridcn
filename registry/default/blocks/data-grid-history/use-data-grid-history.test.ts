@@ -316,10 +316,123 @@ describe("useDataGridHistory", () => {
     act(() =>
       h.hook.result.current.onDataChange([next, initialRows[1]!, initialRows[2]!], {
         source: "app",
-        ops: [{ type: "update", rowId: "a", row: next, prev, cells: [{ columnId: "name", value: next.name, prev: prev.name }] }],
+        ops: [{ type: "update", rowId: "a", row: next, prev, cells: [{ columnId: "name", value: "App", prev: "Alice" }] }],
       }),
     );
     h.sync();
     expect(h.hook.result.current.canUndo).toBe(true);
+  });
+
+  it("dev-warns once when undo runs over a sparse (lazy) data array", () => {
+    const warn = vi.spyOn(console, "warn");
+    // a hole at index 1, the shape of useDataGridLazyRows' data with one unloaded range
+    const sparse: Row[] = new Array(3);
+    sparse[0] = initialRows[0]!;
+    sparse[2] = initialRows[2]!;
+    const holeTolerantGetRowId = (row: Row, index: number) => (row ? row.id : `hole-${index}`);
+    let data: readonly Row[] = sparse;
+    const setData = (next: readonly Row[]) => {
+      data = next;
+    };
+    const { result, rerender } = renderHook(
+      (props: { data: readonly Row[] }) => useDataGridHistory({ data: props.data, setData, getRowId: holeTolerantGetRowId }),
+      { initialProps: { data } },
+    );
+
+    const prev = initialRows[2]!;
+    const next = { ...prev, name: "Changed" };
+    const edited = sparse.slice();
+    edited[2] = next;
+    act(() => result.current.onDataChange(edited, editChange("c", next, prev)));
+    rerender({ data });
+
+    act(() => result.current.undo());
+    rerender({ data });
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(data[2]!.name).toBe("Cara"); // the undo landed across the hole
+
+    const prev2 = data[2]!;
+    const next2 = { ...prev2, name: "Again" };
+    act(() => result.current.onDataChange(data.map((r, i) => (i === 2 ? next2 : r)), editChange("c", next2, prev2)));
+    rerender({ data });
+    act(() => result.current.undo());
+    // the once-per-lifetime flag holds the second warn back
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it("historySize tracks the undo stack across record, undo, redo, and clear", () => {
+    const h = setupHarness();
+    expect(h.hook.result.current.historySize).toBe(0);
+    const prev = initialRows[0]!;
+    const next = { ...prev, name: "Changed" };
+    act(() => h.hook.result.current.onDataChange([next, initialRows[1]!, initialRows[2]!], editChange("a", next, prev)));
+    h.sync();
+    expect(h.hook.result.current.historySize).toBe(1);
+
+    act(() => h.hook.result.current.undo());
+    h.sync();
+    expect(h.hook.result.current.historySize).toBe(0);
+
+    act(() => h.hook.result.current.redo());
+    h.sync();
+    expect(h.hook.result.current.historySize).toBe(1);
+
+    act(() => h.hook.result.current.clear());
+    expect(h.hook.result.current.historySize).toBe(0);
+  });
+
+  it("clears both undo and redo stacks when datasetKey changes", () => {
+    let key = "A";
+    let data: readonly Row[] = initialRows;
+    const setData = (next: readonly Row[]) => {
+      data = next;
+    };
+    const { result, rerender } = renderHook(
+      (props: { key: string }) => useDataGridHistory({ data, setData, getRowId, datasetKey: props.key }),
+      { initialProps: { key } },
+    );
+
+    const prev = initialRows[0]!;
+    const next = { ...prev, name: "Changed" };
+    act(() => result.current.onDataChange([next, initialRows[1]!, initialRows[2]!], editChange("a", next, prev)));
+    rerender({ key });
+    expect(result.current.canUndo).toBe(true);
+
+    act(() => result.current.undo());
+    rerender({ key });
+    expect(result.current.canRedo).toBe(true);
+
+    key = "B";
+    rerender({ key });
+    expect(result.current.canUndo).toBe(false);
+    expect(result.current.canRedo).toBe(false);
+    expect(result.current.historySize).toBe(0);
+    // the data array itself is untouched — only the stacks clear
+    expect(data[0]!.name).toBe("Alice");
+  });
+
+  it("does not clear the stack on the initial mount when datasetKey is set", () => {
+    const { result } = renderHook(() =>
+      useDataGridHistory({ data: initialRows, setData: vi.fn(), getRowId, datasetKey: "A" }),
+    );
+    const prev = initialRows[0]!;
+    const next = { ...prev, name: "Changed" };
+    act(() => result.current.onDataChange([next, initialRows[1]!, initialRows[2]!], editChange("a", next, prev)));
+    expect(result.current.canUndo).toBe(true);
+    expect(result.current.historySize).toBe(1);
+  });
+
+  it("keeps history when datasetKey is stable across renders", () => {
+    const { result, rerender } = renderHook(() =>
+      useDataGridHistory({ data: initialRows, setData: vi.fn(), getRowId, datasetKey: 7 }),
+    );
+    const prev = initialRows[0]!;
+    const next = { ...prev, name: "Changed" };
+    act(() => result.current.onDataChange([next, initialRows[1]!, initialRows[2]!], editChange("a", next, prev)));
+    rerender();
+    rerender();
+    expect(result.current.canUndo).toBe(true);
+    expect(result.current.historySize).toBe(1);
   });
 });

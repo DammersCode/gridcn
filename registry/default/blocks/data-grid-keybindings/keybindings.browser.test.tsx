@@ -43,7 +43,7 @@ function gridCell(rowText: string): HTMLElement {
 
 describe("DataGridKeybindingsShortcut + DataGridKeybindingsDialog", () => {
   it("'?' opens the dialog while the grid container has focus", async () => {
-    render(<Harness />);
+    await render(<Harness />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await userEvent.click(gridCell("Alice"));
@@ -54,7 +54,7 @@ describe("DataGridKeybindingsShortcut + DataGridKeybindingsDialog", () => {
   });
 
   it("'?' does not leak into the grid's type-to-edit fallback and overwrite the active cell", async () => {
-    render(<Harness />);
+    await render(<Harness />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await userEvent.click(gridCell("Alice"));
@@ -66,7 +66,7 @@ describe("DataGridKeybindingsShortcut + DataGridKeybindingsDialog", () => {
   });
 
   it("lists a known keymap binding (Undo: mod Z) and the native Copy shortcut", async () => {
-    render(<Harness />);
+    await render(<Harness />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await userEvent.click(gridCell("Alice"));
@@ -83,7 +83,7 @@ describe("DataGridKeybindingsShortcut + DataGridKeybindingsDialog", () => {
   });
 
   it("Escape closes the dialog", async () => {
-    render(<Harness />);
+    await render(<Harness />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await userEvent.click(gridCell("Alice"));

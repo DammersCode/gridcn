@@ -49,7 +49,7 @@ describe("home page at a 375x667 viewport (iPhone 8)", () => {
   });
 
   it("has no horizontal overflow at document level and the hero card fits the width", async () => {
-    render(<HomeRoute />);
+    await render(<HomeRoute />);
     await expect.element(page.getByRole("heading", { name: "gridcn", level: 1 })).toBeInTheDocument();
     // let layout settle: fonts, the shader canvas resize, and the demo grid's re-fit after resize
     await new Promise((r) => setTimeout(r, 400));

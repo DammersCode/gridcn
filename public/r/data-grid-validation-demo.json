@@ -6,6 +6,7 @@
   "description": "Nine rejection paths in one grid: a sync function (Age), hand-rolled sync/async/coercing Standard Schemas (Email, SKU, Price), a soft onInvalid rule (Notes), and one column per major library that implements Standard Schema natively — Zod (Score), Joi (Code), Valibot (Tag). Pasting mixed valid/invalid values shows the bulk-rejection path.",
   "dependencies": [
     "joi",
+    "sonner",
     "valibot",
     "zod"
   ],

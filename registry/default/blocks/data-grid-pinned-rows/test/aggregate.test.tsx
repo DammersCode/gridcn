@@ -101,6 +101,54 @@ describe("useDataGridAggregate — custom reducer", () => {
     );
     expect(results.at(-1)).toEqual({ name: "3 rows" });
   });
+
+  it("types `rows` as the grid's row type with an explicit generic (no cast needed)", () => {
+    const results: Record<string, unknown>[] = [];
+    function TypedInner() {
+      const specs: AggregateSpecs<Row> = { qty: (_values, rows) => Math.max(...rows.map((r) => r.qty), 0) };
+      const row = useDataGridAggregate<Row>(specs);
+      results.push(row);
+      return null;
+    }
+    render(
+      <DataGrid data={makeRows([1, 9, 3])} columns={columns} getRowId={(r) => r.id}>
+        <TypedInner />
+      </DataGrid>,
+    );
+    expect(results.at(-1)).toEqual({ qty: 9 });
+  });
+});
+
+describe("useDataGridAggregate — unknown spec key", () => {
+  const warn = vi.spyOn(console, "warn");
+  afterEach(() => warn.mockClear());
+
+  it("omits the key from the result and dev-warns once", () => {
+    const results: Record<string, unknown>[] = [];
+    render(
+      <Capture
+        data={makeRows([1, 2, 3])}
+        specs={{ qty: "sum", quants: "sum" }}
+        onResult={(r) => results.push(r)}
+      />,
+    );
+    expect(results.at(-1)).toEqual({ qty: 6 });
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain("quants");
+  });
+
+  it("does not re-warn for a different unknown key (warn-once per app)", () => {
+    const results: Record<string, unknown>[] = [];
+    render(
+      <Capture
+        data={makeRows([1, 2, 3])}
+        specs={{ weight: "sum" }}
+        onResult={(r) => results.push(r)}
+      />,
+    );
+    expect(results.at(-1)).toEqual({});
+    expect(warn).toHaveBeenCalledTimes(0);
+  });
 });
 
 describe("useDataGridAggregate — empty-value skipping", () => {
@@ -193,6 +241,54 @@ describe("DataGridAggregateReporter — effect stability", () => {
     expect(getByTestId("totals").textContent).toBe("6");
     expect(onTotalsChange).toHaveBeenCalledTimes(1);
   });
+});
+
+describe("useDataGridAggregate — sparse (lazy) data", () => {
+  const warn = vi.spyOn(console, "warn");
+
+  /** 4 rows, indices 1 and 3 are holes (undefined) — the shape of a partially loaded lazy grid. */
+  function sparseRows(): Row[] {
+    const sparse: Row[] = new Array(4);
+    sparse[0] = { id: "0", name: "A", qty: 1, note: "n0" };
+    sparse[2] = { id: "2", name: "C", qty: 3, note: "n2" };
+    return sparse;
+  }
+
+  it("skips holes instead of throwing (scope view) and dev-warns once", () => {
+    const results: Record<string, unknown>[] = [];
+    function Inner() {
+      const row = useDataGridAggregate({ qty: "sum" });
+      results.push(row);
+      return null;
+    }
+    render(
+      <DataGrid data={sparseRows()} columns={columns} getRowId={(r) => r.id}>
+        <Inner />
+      </DataGrid>,
+    );
+    // qty 1 + 3 over the two loaded rows — the holes are skipped, not summed as NaN.
+    expect(results.at(-1)).toEqual({ qty: 4 });
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips holes over the raw sparse array too (scope all), without re-warning", () => {
+    const results: Record<string, unknown>[] = [];
+    function AllInner() {
+      const row = useDataGridAggregate({ qty: "sum" }, { scope: "all" });
+      results.push(row);
+      return null;
+    }
+    render(
+      <DataGrid data={sparseRows()} columns={columns} getRowId={(r) => r.id}>
+        <AllInner />
+      </DataGrid>,
+    );
+    expect(results.at(-1)).toEqual({ qty: 4 });
+    // the warn fires at most once per app, so this second grid stays quiet
+    expect(warn).toHaveBeenCalledTimes(0);
+  });
+
+  afterEach(() => warn.mockClear());
 });
 
 describe("useDataGridAggregate — memoization", () => {

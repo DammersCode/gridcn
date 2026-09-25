@@ -4,16 +4,17 @@ import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { useStore } from "zustand";
 import {
   getCellValue,
+  isDev,
   useDataGridStoreApi,
   type AnyColumnDef,
   type DataGridStoreState,
 } from "@/registry/default/blocks/data-grid/data-grid";
 
-/** Built-in reducers; a function receives every resolved value plus its source rows (empty values included — unlike the built-ins, a custom reducer owns its own empty handling). */
-export type AggregateReducer = "sum" | "avg" | "min" | "max" | "count" | ((values: readonly unknown[], rows: readonly unknown[]) => unknown);
+/** Built-in reducers; a function receives every resolved value plus its source rows (empty values included — unlike the built-ins, a custom reducer owns its own empty handling). `TData` is the grid's row type: pass it at the hook call (or annotate `specs` as `AggregateSpecs<Row>`) so `rows` is typed. */
+export type AggregateReducer<TData = unknown> = "sum" | "avg" | "min" | "max" | "count" | ((values: readonly unknown[], rows: readonly TData[]) => unknown);
 
 /** One reducer per column id to aggregate. */
-export type AggregateSpecs = Record<string, AggregateReducer>;
+export type AggregateSpecs<TData = unknown> = Record<string, AggregateReducer<TData>>;
 
 /** Options for {@link useDataGridAggregate}. */
 export type UseDataGridAggregateOptions = {
@@ -37,9 +38,10 @@ function reduceNumeric(reducer: "sum" | "avg" | "min" | "max", values: readonly 
   }
 }
 
-function aggregateColumn(reducer: AggregateReducer, column: AnyColumnDef, rows: readonly unknown[]): unknown {
+function aggregateColumn<TData>(reducer: AggregateReducer<TData>, column: AnyColumnDef, rows: readonly unknown[]): unknown {
   const values = rows.map((row) => getCellValue(row, column));
-  if (typeof reducer === "function") return reducer(values, rows);
+  // Boundary cast: the store keeps rows as unknown[], the user's reducer gets them typed.
+  if (typeof reducer === "function") return reducer(values, rows as readonly TData[]);
 
   const nonEmpty = values.filter((v) => v !== null && v !== undefined);
   if (reducer === "count") return nonEmpty.length;
@@ -47,13 +49,41 @@ function aggregateColumn(reducer: AggregateReducer, column: AnyColumnDef, rows: 
   return undefined;
 }
 
-function computeAggregate(state: DataGridStoreState, specs: AggregateSpecs, scope: "view" | "all"): Record<string, unknown> {
+// Fires at most once per app, dev-only: a sparse (lazy) data array reached the reducer.
+let warnedSparseData = false;
+
+function warnSparseData(scope: "view" | "all", holes: number): void {
+  if (!isDev() || warnedSparseData) return;
+  warnedSparseData = true;
+  console.warn(
+    `[data-grid-pinned-rows] useDataGridAggregate (scope "${scope}") skipped ${holes} unloaded row(s): the data array is sparse (lazy loading), so the result covers loaded rows only. Use server-side totals or compute them outside the grid.`,
+  );
+}
+
+// Fires at most once per app, dev-only: a spec key that matches no column id.
+let warnedUnknownSpecKey = false;
+
+function warnUnknownSpecKey(columnId: string): void {
+  if (!isDev() || warnedUnknownSpecKey) return;
+  warnedUnknownSpecKey = true;
+  console.warn(
+    `[data-grid-pinned-rows] useDataGridAggregate: spec key "${columnId}" matches no column id and is ignored (check for a typo)`,
+  );
+}
+
+function computeAggregate<TData>(state: DataGridStoreState, specs: AggregateSpecs<TData>, scope: "view" | "all"): Record<string, unknown> {
   const byId = new Map(state.columns.map((c) => [c.id, c] as const));
-  const rows = scope === "all" ? state.data : state.viewIndex.map((i) => state.data[i]);
+  const scoped = scope === "all" ? state.data : state.viewIndex.map((i) => state.data[i]);
+  // undefined rows are unloaded holes of a lazy grid; reduce over the loaded rows only.
+  const rows = scoped.filter((row) => row !== undefined);
+  if (rows.length !== scoped.length) warnSparseData(scope, scoped.length - rows.length);
   const result: Record<string, unknown> = {};
   for (const [columnId, reducer] of Object.entries(specs)) {
     const column = byId.get(columnId);
-    if (!column) continue;
+    if (!column) {
+      warnUnknownSpecKey(columnId);
+      continue;
+    }
     result[columnId] = aggregateColumn(reducer, column, rows);
   }
   return result;
@@ -70,11 +100,14 @@ function computeAggregate(state: DataGridStoreState, specs: AggregateSpecs, scop
  * `scope`, or the `specs` object's own identity changes, so scrolling (no store write touches any of
  * those) never recomputes — same identity-guardrailed contract as `rowBands`/`overlayPlugins`; define
  * `specs` at module scope or memoize it, same discipline as any other grid callback prop.
+ * `undefined` rows (unloaded holes of a lazy grid) are skipped and a dev warning fires once — on a
+ * lazy grid the result covers loaded rows only. A spec key that matches no column id is ignored
+ * and a dev warning fires once. `TData` types `rows` in custom reducers (see {@link AggregateReducer}).
  */
-export function useDataGridAggregate(specs: AggregateSpecs, options: UseDataGridAggregateOptions = {}): Record<string, unknown> {
+export function useDataGridAggregate<TData = unknown>(specs: AggregateSpecs<TData>, options: UseDataGridAggregateOptions = {}): Record<string, unknown> {
   const { scope = "view" } = options;
   const storeApi = useDataGridStoreApi();
-  const cache = useRef<{ viewIndex: number[]; data: readonly unknown[]; scope: string; specs: AggregateSpecs; result: Record<string, unknown> } | null>(null);
+  const cache = useRef<{ viewIndex: number[]; data: readonly unknown[]; scope: string; specs: AggregateSpecs<TData>; result: Record<string, unknown> } | null>(null);
 
   return useStore(storeApi, (state) => {
     const c = cache.current;
@@ -88,8 +121,8 @@ export function useDataGridAggregate(specs: AggregateSpecs, options: UseDataGrid
 }
 
 /** Props for {@link DataGridAggregateReporter}. */
-export type DataGridAggregateReporterProps = {
-  specs: AggregateSpecs;
+export type DataGridAggregateReporterProps<TData = unknown> = {
+  specs: AggregateSpecs<TData>;
   options?: UseDataGridAggregateOptions;
   /** Called with the aggregated row whenever it changes — feed it into a `useState` that becomes a pinned band's `topRows`/`bottomRows` entry. */
   onChange: (row: Record<string, unknown>) => void;
@@ -105,7 +138,7 @@ export type DataGridAggregateReporterProps = {
  * so the parent's second render lands in the same frame as the first — no flash of an empty band.
  * Renders nothing.
  */
-export function DataGridAggregateReporter(props: DataGridAggregateReporterProps): ReactNode {
+export function DataGridAggregateReporter<TData = unknown>(props: DataGridAggregateReporterProps<TData>): ReactNode {
   const { specs, options, onChange } = props;
   const row = useDataGridAggregate(specs, options);
   // Hold the latest callback in a ref and key the effect on `row` alone: an inline `onChange`

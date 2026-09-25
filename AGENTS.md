@@ -73,15 +73,15 @@ consumer can import. Keep the surface to the public API.
 
 All green before committing — a red gate gets fixed, not committed around. Run in order:
 
-1. `pnpm types:check`
+1. `pnpm types:check`, then `pnpm types:check:ts5` (consumers run TypeScript 5.9, which infers some types differently from the repo's TypeScript 7)
 2. `pnpm lint`
 3. `pnpm lint:typed`
 4. `npx vitest run registry --exclude "**/*.browser.test.*" --project unit --coverage`
-5. `npx vitest run --project browser`
+5. `npx vitest run --project browser --bail=1` (about 2 minutes; `--bail=1` stops a failure cascade early)
 
-A single failed test: rerun that one file once before debugging (the browser project flakes; see Environment). Still red on the rerun = a real failure.
+A single failed test: rerun that one file once before debugging (timing-budget perf tests flake under machine load; the browser config's `retry: 2` absorbs them). Still red on the rerun = a real failure. Many failures in one file = shared-state pollution, not flake: look for an un-awaited `render()`/`unmount()` (both return Promises; `pnpm lint:typed` enforces `no-floating-promises` on browser tests).
 
-Before pushing, additionally mirror the remaining `.github/workflows/ci.yml` steps locally: `pnpm test:compiler`, `pnpm build` (stop any running dev server first — shared `.next`), `pnpm registry:build`, then `node scripts/normalize-payload-eol.mjs`, `git add public/r`, and `pnpm registry:verify`. The CI-only steps (`shadcn registry validate`, hosted-registry verify — both need the pushed SHA or the deployment) are the final authority: a push is not done until GitHub CI is green on it.
+Before pushing, additionally mirror the remaining `.github/workflows/ci.yml` steps locally: `pnpm test:compiler`, `pnpm build` (stop any running dev server first — shared `.next`), `pnpm registry:build`, then `node scripts/normalize-payload-eol.mjs`, `git add public/r`, and `pnpm registry:verify`. When a registry payload changed, also run `pnpm test:e2e-install` (installs the affected demos into a fresh Next.js app, then type-checks, builds, and renders them; about 5–10 minutes). The CI-only steps (`shadcn registry validate`, hosted-registry verify — both need the pushed SHA or the deployment) are the final authority: a push is not done until GitHub CI is green on it.
 
 ### Push and commits
 

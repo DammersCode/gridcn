@@ -4,6 +4,8 @@ import {
   createFilterMatcher,
   defaultCompareText,
   findSearchMatches,
+  makeFilterPredicate,
+  makeFilterTest,
   matchesFilter,
   type CellAccessor,
 } from ".";
@@ -573,5 +575,59 @@ describe("findSearchMatches", () => {
     const rows = Array.from({ length: 1000 }, () => ({ a: "needle" }));
     const matches = findSearchMatches(rows.length, tableAccessor(rows), "needle", ["a"], 5);
     expect(matches).toHaveLength(5);
+  });
+});
+
+describe("custom filterMatch (raw-value predicate)", () => {
+  // raw values are numbers, but getText stringifies them — the built-in matcher can't see the type
+  const values = [10, 25, 300];
+  const rawAccessor: CellAccessor = {
+    getText: (rowIndex) => String(values[rowIndex]!),
+    getValue: (rowIndex) => values[rowIndex],
+    filterMatch: (columnId) => (columnId === "n" ? (value: unknown, _filter: FilterSpec) => typeof value === "number" && value >= 100 : undefined),
+  };
+
+  it("makeFilterTest prefers the column's filterMatch over the built-in text matcher", () => {
+    const filter: FilterSpec = { columnId: "n", operator: "gte", value: "100" };
+    const test = makeFilterTest(rawAccessor, filter);
+    // built-in matcher on "10"/"25"/"300" with gte 100: "10"<, "25"<, "300">= → only row 2
+    expect(test(0)).toBe(false);
+    expect(test(1)).toBe(false);
+    expect(test(2)).toBe(true);
+  });
+
+  it("falls back to the built-in text matcher when the accessor has no getValue", () => {
+    const textOnly: CellAccessor = {
+      getText: (rowIndex) => String(values[rowIndex]!),
+      filterMatch: rawAccessor.filterMatch,
+    };
+    const filter: FilterSpec = { columnId: "n", operator: "gte", value: "100" };
+    const test = makeFilterTest(textOnly, filter);
+    expect([test(0), test(1), test(2)]).toEqual([false, false, true]);
+  });
+
+  it("buildViewIndex filters by the raw value through filterMatch", () => {
+    const filter: FilterSpec = { columnId: "n", operator: "gte", value: "100" };
+    const result = buildViewIndex(values.length, rawAccessor, { sorts: [], filters: [filter] });
+    expect(result).toEqual([2]);
+  });
+
+  it("makeFilterPredicate (incremental path) agrees with buildViewIndex on filterMatch", () => {
+    const filter: FilterSpec = { columnId: "n", operator: "gte", value: "100" };
+    const predicate = makeFilterPredicate(rawAccessor, [filter], "and");
+    const surviving = values.map((_, row) => row).filter(predicate);
+    expect(surviving).toEqual([2]);
+  });
+
+  it("a thrown filterMatch fails the row for that filter", () => {
+    const throwing: CellAccessor = {
+      getText: (rowIndex) => String(values[rowIndex]!),
+      getValue: (rowIndex) => values[rowIndex],
+      filterMatch: () => () => {
+        throw new Error("boom");
+      },
+    };
+    const filter: FilterSpec = { columnId: "n", operator: "contains", value: "1" };
+    expect(buildViewIndex(values.length, throwing, { sorts: [], filters: [filter] })).toEqual([]);
   });
 });

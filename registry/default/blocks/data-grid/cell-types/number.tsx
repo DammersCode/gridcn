@@ -42,7 +42,8 @@ function NumberEditor({
   rejectionCount,
 }: CellEditorProps<unknown, number | null>) {
   const ref = useRef<HTMLInputElement>(null);
-  const [text, setText] = useState(initialText ?? numberCellType.toText(value));
+  // seed with the same options the cell display formats with, so the draft matches what the cell showed
+  const [text, setText] = useState(initialText ?? numberCellType.toText(value, column.options as GridCellTypes["number"]["options"]));
   useSeedFocus(ref, initialText);
   const committed = useCommitGuard();
 

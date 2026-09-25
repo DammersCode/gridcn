@@ -1,0 +1,33 @@
+---
+title: Pinning
+description: Pin columns left and right together with pinned top and bottom row bands.
+icon: Pin
+---
+
+All four pin zones in one grid: Name is pinned left, Score is pinned right, an averages row is
+pinned to the top band, and a totals row is pinned to the bottom band via the
+`data-grid-pinned-rows` add-on.
+
+<ComponentPreview name="data-grid-pinning-all-sides-demo" />
+
+<InstallCommand item="data-grid-pinning-all-sides-demo" />
+
+## What's in the demo
+
+- `pin: "left"` on Name and `pin: "right"` on Score — pinned column bands
+- `useDataGridPinnedRows({ topRows, bottomRows })` — an averages row on top, a totals row on the bottom
+- `useDataGridAggregate` via `DataGridAggregateReporter` — both bands recompute from the grid's data
+- 200 rows and enough columns to overflow the viewport in both directions
+
+## Behavior reference
+
+- The pinned Name and Score columns stay in place while you scroll the grid horizontally.
+- The pinned Average and Total rows stay in place while you scroll the grid vertically.
+- Where a pinned column meets a pinned row, that cell stays fixed on both axes at once.
+- Each pinned band casts a soft edge shadow once real content has scrolled under it — see
+  [scroll shadows](/docs/styling-theming#scroll-shadows).
+
+## Related
+
+- [Column pinning](/docs/examples/columns/pinning) — pinning columns on their own
+- [Pinned rows](/docs/addons/pinned-rows) — the `data-grid-pinned-rows` add-on reference

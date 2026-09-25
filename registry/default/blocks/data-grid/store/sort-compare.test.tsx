@@ -149,3 +149,78 @@ describe("cell-type compare wired into sorting (#85)", () => {
     expect(result.current.viewIndex.map((row) => numbersInText[row]!.label)).toEqual([2, 10]);
   });
 });
+
+type DerivedRow = { id: string; label: string; rank: number };
+
+function derivedHarness(data: DerivedRow[], columns: readonly ColumnDef<DerivedRow, unknown>[]) {
+  function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <DataGridProvider data={data} columns={columns} getRowId={(r) => r.id} onDataChange={() => {}}>
+        {children}
+      </DataGridProvider>
+    );
+  }
+  return renderHook(() => ({ actions: useDataGridActions(), viewIndex: useDataGridViewIndex() }), { wrapper: Wrapper });
+}
+
+describe("column-level sortCompare", () => {
+  const rows: DerivedRow[] = [
+    { id: "a", label: "mid", rank: 2 },
+    { id: "b", label: "zeta", rank: 1 },
+    { id: "c", label: "alpha", rank: 3 },
+  ];
+
+  const rankColumns: readonly ColumnDef<DerivedRow, unknown>[] = [
+    { id: "label", header: "Label", accessorKey: "label", sortCompare: (a, b) => a.rank - b.rank },
+  ];
+
+  it("sorts by the derived row field, not the column's cell value", () => {
+    const { result } = derivedHarness(rows, rankColumns);
+    act(() => result.current.actions.setSorts([{ columnId: "label", direction: "asc" }]));
+    // rank order 1, 2, 3 -> zeta, mid, alpha (the cell text would order them alpha, mid, zeta)
+    expect(result.current.viewIndex.map((row) => rows[row]!.label)).toEqual(["zeta", "mid", "alpha"]);
+  });
+
+  it("applies the SortSpec direction to the comparator", () => {
+    const { result } = derivedHarness(rows, rankColumns);
+    act(() => result.current.actions.setSorts([{ columnId: "label", direction: "desc" }]));
+    expect(result.current.viewIndex.map((row) => rows[row]!.label)).toEqual(["alpha", "mid", "zeta"]);
+  });
+
+  it("defers a zero-returning pair to the default text compare", () => {
+    const tieRows: DerivedRow[] = [
+      { id: "a", label: "b", rank: 1 },
+      { id: "b", label: "a", rank: 1 },
+      { id: "c", label: "c", rank: 0 },
+    ];
+    const tieColumns: readonly ColumnDef<DerivedRow, unknown>[] = [
+      {
+        id: "label",
+        header: "Label",
+        accessorKey: "label",
+        sortCompare: (x, y) => (x.rank === y.rank ? 0 : x.rank - y.rank),
+      },
+    ];
+    const { result } = derivedHarness(tieRows, tieColumns);
+    act(() => result.current.actions.setSorts([{ columnId: "label", direction: "asc" }]));
+    // rank 0 goes first; the rank-1 tie falls back to the default compare over the cell text.
+    expect(result.current.viewIndex.map((row) => tieRows[row]!.label)).toEqual(["c", "a", "b"]);
+  });
+
+  it("wins over the column's cell-type compare when both are present", () => {
+    // without sortCompare these string labels in a `type: "number"` column NaN out to the text
+    // fallback (alpha, mid, zeta); the column-level comparator must win and order by rank.
+    const typedColumns: readonly ColumnDef<DerivedRow, unknown>[] = [
+      {
+        id: "label",
+        header: "Label",
+        accessorKey: "label",
+        type: "number",
+        sortCompare: (a, b) => a.rank - b.rank,
+      },
+    ];
+    const { result } = derivedHarness(rows, typedColumns);
+    act(() => result.current.actions.setSorts([{ columnId: "label", direction: "asc" }]));
+    expect(result.current.viewIndex.map((row) => rows[row]!.label)).toEqual(["zeta", "mid", "alpha"]);
+  });
+});

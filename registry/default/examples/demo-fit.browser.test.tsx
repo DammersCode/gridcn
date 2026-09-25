@@ -75,7 +75,7 @@ const ALLOWED_OVERFLOW = [
 describe("demo columns fit their preview container", () => {
   for (const [name, el] of DEMOS) {
     it(`${name} demo has no horizontal overflow`, async () => {
-      render(el);
+      await render(el);
       await new Promise((r) => setTimeout(r, 400));
       const grid = document.querySelector('[role="grid"]') as HTMLElement | null;
       expect(grid).not.toBeNull();

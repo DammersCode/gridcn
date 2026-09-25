@@ -33,7 +33,7 @@ describe("stacking contract with shadcn overlays", () => {
   });
 
   it("the grid root isolates its stacking context", async () => {
-    render(
+    await render(
       <div style={{ width: 420, height: 300 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} rowMarkers="number" className="h-[260px]" />
       </div>,
@@ -44,7 +44,7 @@ describe("stacking contract with shadcn overlays", () => {
   });
 
   it("an open dialog hit-tests above the grid's highest chrome (markers, pinned column, skeleton)", async () => {
-    render(
+    await render(
       <div style={{ width: 420, height: 300 }}>
         <DataGrid
           data={makeRows(8)}

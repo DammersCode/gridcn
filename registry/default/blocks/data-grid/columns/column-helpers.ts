@@ -42,16 +42,20 @@ export type AnyTypedColumn<TData> =
 /** All keys any `AnyTypedColumn<TData>` branch may carry (for excess-property rejection). */
 type KnownColumnKey<TData> = keyof AnyTypedColumn<TData>;
 
+/** Every key of a column literal in `T` that lies outside the known column shape. */
+type ExcessColumnKeys<TData, T extends readonly unknown[]> = {
+  [I in keyof T]: Exclude<keyof T[I], KnownColumnKey<TData>>;
+}[number];
+
 /**
- * Rejects excess properties per-element. Generic inference against a union
- * constraint (as `defineColumns` does against `AnyTypedColumn`) skips
- * TypeScript's normal excess-property check on object literals, so this maps
- * each column back onto its own type plus a `never` catch-all for any key
- * outside the known column shape, forcing the check back on.
+ * Rejects excess properties: generic inference against a union constraint (as `defineColumns`
+ * does against `AnyTypedColumn`) skips TypeScript's normal excess-property check on object
+ * literals. An unknown key turns this into a required argument, so the call fails to compile and
+ * the missing argument's type names the key.
  */
-type RejectExcessColumnKeys<TData, T> = {
-  [I in keyof T]: T[I] & { [K in Exclude<keyof T[I], KnownColumnKey<TData>>]: never };
-};
+type RejectExcessColumnKeys<TData, T extends readonly unknown[]> = [ExcessColumnKeys<TData, T>] extends [never]
+  ? []
+  : [unknownColumnKey: `unknown column key: ${ExcessColumnKeys<TData, T> & string}`];
 
 /**
  * Identity helper that gives each column literal in the array its own
@@ -60,9 +64,11 @@ type RejectExcessColumnKeys<TData, T> = {
  * columns missing both `accessorKey` and `accessorFn`.
  */
 export function defineColumns<TData>(): <const T extends readonly AnyTypedColumn<TData>[]>(
-  columns: T & RejectExcessColumnKeys<TData, T>,
+  columns: T,
+  // A check on `columns` itself (`T & ...`) drops callback contextual typing on TypeScript 5.x.
+  ...excessKeyCheck: RejectExcessColumnKeys<TData, T>
 ) => T {
-  return (columns) => {
+  return (columns, ..._excessKeyCheck) => {
     if (isDev()) {
       const seen = new Set<string>();
       for (const column of columns) {

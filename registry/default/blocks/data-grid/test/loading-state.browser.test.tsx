@@ -18,7 +18,7 @@ const columns = [
 
 describe("loading + zero rows: skeleton body", () => {
   it("renders viewport-filling skeleton rows instead of the empty state, and sets aria-busy", async () => {
-    render(
+    await render(
       <div style={{ height: 360, width: 600 }}>
         <DataGrid data={[]} columns={columns} getRowId={(r: Row) => r.id} className="h-90 w-150" loading />
       </div>,
@@ -37,7 +37,7 @@ describe("loading + zero rows: skeleton body", () => {
 
   it("labels.grid.loading overrides the skeleton's aria-label", async () => {
     const labels: DeepPartialLabels = { grid: { loading: "Wird geladen…" } };
-    render(
+    await render(
       <div style={{ height: 360, width: 600 }}>
         <DataGridProvider data={[]} columns={columns} getRowId={(r: Row) => r.id} labels={labels}>
           <DataGridRoot className="h-90 w-150" loading>
@@ -55,7 +55,7 @@ describe("loading + zero rows: skeleton body", () => {
 
 describe("loading + rows present: indeterminate bar", () => {
   it("keeps rows visible and shows the progress bar instead of a skeleton", async () => {
-    render(
+    await render(
       <div style={{ height: 360, width: 600 }}>
         <DataGrid data={makeRows(20)} columns={columns} getRowId={(r: Row) => r.id} className="h-90 w-150" loading />
       </div>,
@@ -79,7 +79,7 @@ describe("loading + rows present: indeterminate bar", () => {
 
 describe("loading=false: unchanged default behavior", () => {
   it("zero rows still shows the empty state, no aria-busy, no skeleton/bar", async () => {
-    render(
+    await render(
       <div style={{ height: 360, width: 600 }}>
         <DataGrid data={[]} columns={columns} getRowId={(r: Row) => r.id} className="h-90 w-150" />
       </div>,
@@ -94,7 +94,7 @@ describe("loading=false: unchanged default behavior", () => {
   });
 
   it("rows present, loading omitted: no progress bar", async () => {
-    render(
+    await render(
       <div style={{ height: 360, width: 600 }}>
         <DataGrid data={makeRows(5)} columns={columns} getRowId={(r: Row) => r.id} className="h-90 w-150" />
       </div>,

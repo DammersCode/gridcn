@@ -7,7 +7,7 @@ import { isStandardSchema, runValidateSync, type ValidateResult } from "../valid
 import { runValidateBatch, type ValidateBatchItem } from "../validation/validate-batch";
 import { isColumnReadOnly } from "./compute";
 import { cellTypes as defaultCellTypes } from "../cell-types/cell-types";
-import type { AnyColumnDef, CellPatch, CommitResult, DataGridStoreState, InternalSyncProps, RowEdit } from "./types";
+import type { AnyColumnDef, CellPatch, CommitResult, DataGridStoreState, InternalSyncProps, RowEdit, UpdateCellsSkip } from "./types";
 
 export function warnDev(message: string): void {
   if (isDev()) console.warn(`[data-grid] ${message}`);
@@ -241,39 +241,60 @@ export function computeRowEditsBatch(
  * dedupe last-write-wins with `prev` held at the pre-batch value.
  *
  * `skipValidation` bypasses the per-column `validate` a 200-cell tick would otherwise re-run for a
- * producer that already validated; otherwise a cell whose value fails validation is silently
- * skipped, matching {@link computeRowEditsBatch}'s bulk contract (a stream has no UI surface to
- * report a rejection to and must never drop a whole batch for one bad value).
+ * producer that already validated; otherwise a cell whose value fails validation is skipped,
+ * matching {@link computeRowEditsBatch}'s bulk contract (a stream has no UI surface to reject a
+ * batch on and must never drop a whole batch for one bad value). Every skipped patch is named in
+ * the returned `skipped` list for the action's verdict.
  */
 export function computeCellPatchBatch(
   s: DataGridStoreState,
   patches: readonly CellPatch[],
   rowIndex: ReadonlyMap<string, number>,
   skipValidation: boolean,
-): { nextData: readonly unknown[]; ops: DataOp<unknown>[]; touchedRows: number[] } | null {
+): { nextData: readonly unknown[] | null; ops: DataOp<unknown>[]; touchedRows: number[]; skipped: UpdateCellsSkip[] } {
   const columnsById = new Map(s.columns.map((c) => [c.id, c] as const));
   const rowEdits = new Map<number, RowEdit>();
+  const skipped: UpdateCellsSkip[] = [];
 
-  for (const patch of patches) {
+  for (let patchIndex = 0; patchIndex < patches.length; patchIndex++) {
+    const patch = patches[patchIndex]!;
     const dataRowIndex = rowIndex.get(patch.rowId);
-    if (dataRowIndex === undefined) continue;
+    if (dataRowIndex === undefined) {
+      skipped.push({ patchIndex, reason: "unknown-row" });
+      continue;
+    }
     const column = columnsById.get(patch.columnId);
-    if (!column) continue;
+    if (!column) {
+      skipped.push({ patchIndex, reason: "unknown-column" });
+      continue;
+    }
 
     const entry = rowEdits.get(dataRowIndex);
     const baseRow = entry?.row ?? s.data[dataRowIndex];
-    if (baseRow === undefined) continue;
-    if (isColumnReadOnly(column, baseRow)) continue;
+    if (baseRow === undefined) {
+      skipped.push({ patchIndex, reason: "hole" });
+      continue;
+    }
+    if (isColumnReadOnly(column, baseRow)) {
+      skipped.push({ patchIndex, reason: "readonly" });
+      continue;
+    }
 
     let value = patch.value;
     if (!skipValidation) {
       const validated = runValidateSync(column.validate, value, baseRow);
-      if ("error" in validated) continue;
+      if ("error" in validated) {
+        skipped.push({ patchIndex, reason: "invalid" });
+        continue;
+      }
       value = validated.value;
     }
 
     const prevValue = getCellValue<unknown, typeof column>(baseRow, column);
-    if (Object.is(prevValue, value)) continue;
+    if (Object.is(prevValue, value)) {
+      skipped.push({ patchIndex, reason: "no-op" });
+      continue;
+    }
 
     const row = setCellValue<unknown, typeof column>(baseRow, column, value);
     const cells = entry?.cells ?? new Map<string, { columnId: string; value: unknown; prev: unknown }>();
@@ -282,7 +303,7 @@ export function computeCellPatchBatch(
     rowEdits.set(dataRowIndex, { row, cells });
   }
 
-  if (rowEdits.size === 0) return null;
+  if (rowEdits.size === 0) return { nextData: null, ops: [], touchedRows: [], skipped };
 
   const nextData = s.data.slice();
   const ops: DataOp<unknown>[] = [];
@@ -300,7 +321,7 @@ export function computeCellPatchBatch(
       cells: Array.from(cells.values()),
     });
   }
-  return { nextData, ops, touchedRows };
+  return { nextData, ops, touchedRows, skipped };
 }
 
 /**
@@ -323,14 +344,14 @@ export function patchesNeedAsyncCheck(s: DataGridStoreState, patches: readonly C
  * validation off. There is still exactly ONE apply path — this only decides what enters it, and it
  * runs at all only when {@link patchesNeedAsyncCheck} says a schema is in play.
  *
- * Failing cells are dropped from the result, matching the silent skip-on-reject a stream has always
- * had (it has no UI to report a rejection to, and must never lose a whole batch for one bad value).
+ * Failing cells are dropped from the apply and reported by index, so one bad value never loses the
+ * whole batch and the caller still learns which of its patches were rejected.
  */
 export function prevalidatePatches(
   s: DataGridStoreState,
   patches: readonly CellPatch[],
   rowIndex: ReadonlyMap<string, number>,
-): CellPatch[] | Promise<CellPatch[]> {
+): PrevalidatedPatches | Promise<PrevalidatedPatches> {
   const columnsById = new Map(s.columns.map((c) => [c.id, c] as const));
   const items: ValidateBatchItem[] = patches.map((patch) => {
     const dataRowIndex = rowIndex.get(patch.rowId);
@@ -346,14 +367,21 @@ export function prevalidatePatches(
   return keepAccepted(patches, results);
 }
 
-function keepAccepted(patches: readonly CellPatch[], results: readonly ValidateResult[]): CellPatch[] {
-  const accepted: CellPatch[] = [];
+/** Accepted patches with their index in the caller's array, and the caller's indexes of rejected ones. */
+export type PrevalidatedPatches = { accepted: CellPatch[]; acceptedIndexes: number[]; rejectedIndexes: number[] };
+
+function keepAccepted(patches: readonly CellPatch[], results: readonly ValidateResult[]): PrevalidatedPatches {
+  const out: PrevalidatedPatches = { accepted: [], acceptedIndexes: [], rejectedIndexes: [] };
   for (let i = 0; i < patches.length; i++) {
     const result = results[i];
-    if (!result || "error" in result) continue;
-    accepted.push({ ...patches[i]!, value: result.value }); // i < patches.length by loop condition
+    if (!result || "error" in result) {
+      out.rejectedIndexes.push(i);
+      continue;
+    }
+    out.accepted.push({ ...patches[i]!, value: result.value }); // i < patches.length by loop condition
+    out.acceptedIndexes.push(i);
   }
-  return accepted;
+  return out;
 }
 
 /** Builds a multi-row insert batch: `rows` spliced into `s.data` at `dataRowIndex`, plus one id-keyed insert op per row (snapshot indices `dataRowIndex + i`, ascending). */

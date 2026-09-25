@@ -154,15 +154,21 @@ void badAccessorKeyForText;
 
 // --- excess-property checking survives defineColumns' generic inference ---
 
+// @ts-expect-error - `typeOption` is a typo of `options`
 defineColumns<Row>()([
   {
     id: "n",
     header: "N",
     accessorKey: "name",
-    // @ts-expect-error - `typeOption` is a typo of `options`
     typeOption: { placeholder: "x" },
   },
 ]);
+
+// Callback params stay contextually typed inside defineColumns (TypeScript 5.x lost them).
+defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name", renderCell: ({ value, rowIndex }) => `${value}:${rowIndex.toFixed(0)}` },
+  { id: "age", header: "Age", type: "number", accessorKey: "age", renderCell: ({ value }) => (value ?? 0).toFixed(0) },
+] as const);
 
 // --- flex: number accepted, string rejected (ColumnDef-level, not gated by cell type) ---
 

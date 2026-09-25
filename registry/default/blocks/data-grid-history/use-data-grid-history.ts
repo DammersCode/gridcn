@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
-import { applyChange, createHistory, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { applyChange, createHistory, isDev, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
 
 /** Options for {@link useDataGridHistory}. */
 export type UseDataGridHistoryOptions<TData> = {
@@ -13,6 +13,12 @@ export type UseDataGridHistoryOptions<TData> = {
   /** Maximum number of entries kept on the undo stack; oldest entries are dropped past this. */
   capacity?: number;
   /**
+   * Identity of the dataset that `data` belongs to (a dataset id, a version counter). When the
+   * key changes between renders, both stacks clear, so undo after a dataset swap cannot
+   * reinsert rows from the old dataset. Omit it and reset with `clear()` instead.
+   */
+  datasetKey?: string | number;
+  /**
    * Which `DataChange.source` values go on the undo stack. Defaults to every source except
    * `"stream"` — a 100-updates/s `updateCells` feed would otherwise evict the user's whole undo
    * stack within seconds. Pass a list to change the set, for example
@@ -21,6 +27,16 @@ export type UseDataGridHistoryOptions<TData> = {
    */
   recordSources?: readonly DataChange<TData>["source"][];
 };
+
+// Fires at most once per app, dev-only: undo ran over a sparse (lazy) data array.
+let warnedSparseData = false;
+
+// `Array.prototype.some` skips holes (the callback never runs for missing indices), so hole
+// detection must test indices, not values.
+function hasSparseHoles(data: readonly unknown[]): boolean {
+  for (let i = 0; i < data.length; i++) if (!(i in data)) return true;
+  return false;
+}
 
 /** Sources `useDataGridHistory` records when `recordSources` is omitted — everything a user did on purpose. */
 const DEFAULT_RECORD_SOURCES: readonly DataChange<unknown>["source"][] = [
@@ -44,7 +60,9 @@ export type UseDataGridHistoryResult<TData> = {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
-  /** Clears both stacks (e.g. after regenerating/resetting the dataset). */
+  /** Number of entries on the undo stack; 0 when there is nothing to undo. */
+  historySize: number;
+  /** Clears both stacks. A dataset change clears them itself when `datasetKey` changes; use `clear` for an imperative reset. */
   clear: () => void;
   /**
    * Imperatively registers a programmatic change the consumer has ALREADY applied to `data`
@@ -65,12 +83,21 @@ export type UseDataGridHistoryResult<TData> = {
  * mutation) — the consumer wires one setter, not a whole controlled-component contract.
  */
 export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>): UseDataGridHistoryResult<TData> {
-  const { data, setData, getRowId, capacity, recordSources } = opts;
+  const { data, setData, getRowId, capacity, recordSources, datasetKey } = opts;
   const history = useMemo(() => createHistory<TData>({ capacity }), [capacity]);
   // history's canUndo/canRedo are getters on a mutable object; this forces a re-render
   // after every mutating call so callers see them update even when `setData` alone wouldn't
   // re-render this hook (e.g. `clear()`, or a consumer setter that dedupes identical arrays).
   const [, forceUpdate] = useState(0);
+
+  // stale entries reference the old dataset: undo after a swap would resurrect dead rows
+  const prevDatasetKey = useRef(datasetKey);
+  useEffect(() => {
+    if (prevDatasetKey.current === datasetKey) return;
+    prevDatasetKey.current = datasetKey;
+    history.clear();
+    forceUpdate((n) => n + 1);
+  }, [datasetKey, history]);
 
   // mirrors the latest data/getRowId for undo/redo, which run outside the triggering render.
   const dataRef = useRef(data);
@@ -95,6 +122,13 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
   const undo = useCallback(() => {
     const change = history.undo();
     if (!change) return;
+    // Sparse (lazy) data needs a hole-tolerant getRowId and skips evicted rows silently — flag once, not per undo.
+    if (!warnedSparseData && isDev() && hasSparseHoles(dataRef.current)) {
+      warnedSparseData = true;
+      console.warn(
+        "[data-grid-history] undo ran over a sparse (lazy) data array: unloaded rows are holes and their ops are skipped. Use a hole-tolerant getRowId and pass a datasetKey (or call clear()) on lazy.reset() or a dataset swap.",
+      );
+    }
     setData(applyChange(dataRef.current, change, getRowIdRef.current));
     forceUpdate((n) => n + 1);
   }, [history, setData]);
@@ -125,6 +159,7 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
     redo,
     canUndo: history.canUndo,
     canRedo: history.canRedo,
+    historySize: history.size,
     clear,
     record,
   };

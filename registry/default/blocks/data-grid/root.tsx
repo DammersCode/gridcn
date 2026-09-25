@@ -42,8 +42,14 @@ import { GRID_LAYER } from "./layers";
 import { DataGridLoadingSkeleton, DataGridLoadingBar } from "./rows/loading-skeleton";
 import { isDev } from "./is-dev";
 
-/** The sticky header track height (px); density/rowHeight only affect data rows, never the header. */
+/** Default sticky header track height (px); density/rowHeight only affect data rows, never the header. */
 const HEADER_HEIGHT = 36;
+// The item's cssVars theme this token on CLI install; the fallback covers a manual copy without them.
+const PIN_SHADOW = "var(--grid-pin-shadow, oklch(0 0 0 / 10%))";
+// Edge shadows default to the pin color; `--grid-scroll-shadow: transparent` hides them and keeps pinned-band shadows.
+const SCROLL_SHADOW = `var(--grid-scroll-shadow, ${PIN_SHADOW})`;
+const SHADOW_SIZE = "var(--grid-shadow-size, 8px)";
+const shadowColor = (pinned: boolean) => (pinned ? PIN_SHADOW : SCROLL_SHADOW);
 
 /** Props for {@link DataGridRoot}. `TData` (default `unknown`) types the callback props below — annotate explicitly (e.g. `DataGridRoot<Person>`), there's no `data` prop here to infer it from. */
 export type DataGridRootProps<TData = unknown> = {
@@ -52,6 +58,10 @@ export type DataGridRootProps<TData = unknown> = {
   rowHeight?: number;
   /** Row-height preset: compact 28 / default 36 / comfortable 44. Ignored when `rowHeight` is set. */
   density?: DensityMode;
+  /** Sticky header track height (px); `density` and `rowHeight` affect data rows only. Default 36. */
+  headerHeight?: number;
+  /** Extra unpinned columns rendered beyond the visible viewport on each side. Default 1. */
+  columnOverscan?: number;
   /** Merged over `DEFAULT_KEYMAP`; per-action bindings here take precedence. */
   keymap?: Keymap;
   /**
@@ -124,6 +134,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     className,
     rowHeight: rowHeightProp,
     density,
+    headerHeight: headerHeightProp,
+    columnOverscan,
     keymap,
     direction: directionProp,
     readOnly,
@@ -140,6 +152,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     children,
   } = props;
   const rowHeight = resolveRowHeight(density, rowHeightProp);
+  const headerHeight = headerHeightProp ?? HEADER_HEIGHT;
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   // Roving-tabindex bootstrap (see the root's onFocus below) must only fire for a genuine
@@ -175,7 +188,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // starts here" computation (row window, scroll-into-view, canvas transform) uses this, not
   // HEADER_HEIGHT alone, so the pinned-top band is treated as part of the fixed chrome above the
    // scrollable data rows.
-  const effectiveHeaderHeight = HEADER_HEIGHT + pinnedTopHeight;
+  const effectiveHeaderHeight = headerHeight + pinnedTopHeight;
   // column-only primitive subscription: the root re-renders when the active COLUMN changes
   // (force-render-active-column below), never on row-only moves — vertical arrows stay cheap.
   const activeColumn = useDataGridActiveColumn();
@@ -305,6 +318,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     pins,
     markerWidth: layout.markerWidth,
     contentWidth: totalWidth,
+    overscan: columnOverscan,
   });
   const columnIndices = useMemo(() => {
     const indices = columnWindowIndices;
@@ -388,7 +402,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       windowedColumns,
       layout,
       rowHeight,
-      headerHeight: HEADER_HEIGHT,
+      headerHeight,
       pinnedTopHeight,
       pinnedBottomHeight,
       pinnedTopCount: pinnedTopRows.length,
@@ -415,6 +429,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       windowedColumns,
       layout,
       rowHeight,
+      headerHeight,
       pinnedTopHeight,
       pinnedBottomHeight,
       pinnedTopRows.length,
@@ -484,7 +499,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 layout,
                 rowHeight,
                 template,
-                headerHeight: HEADER_HEIGHT,
+                headerHeight,
                 ariaRowIndexBase: 2,
               })}
             {pinnedBottomRows.length > 0 &&
@@ -495,7 +510,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 layout,
                 rowHeight,
                 template,
-                headerHeight: HEADER_HEIGHT,
+                headerHeight,
                 ariaRowIndexBase: 2 + pinnedTopRows.length + rowCount,
               })}
             {/* the empty state never shows while loading — a zero-row loading grid renders the skeleton below instead */}
@@ -518,59 +533,67 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
               />
             )}
             {showLoadingBar && <DataGridLoadingBar headerHeight={effectiveHeaderHeight} ariaLabel={gridLabels.loading} />}
-            {hasPinnedLeft && (
-              <div
-                data-grid-pin-shadow="left"
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-block-start-0 h-full w-2 opacity-0 transition-opacity in-data-scrolled-left:opacity-100"
-                style={{
-                  insetInlineStart: `var(--grid-pin-shadow-left-x, ${interactionLayout.pinnedLeftWidth}px)`,
-                  // background gradient, not box-shadow: a box-shadow's offset+blur paints its darkest
-                  // pixels well outside this element's own box, floating the visible shadow off the
-                  // pinned cell's edge — a gradient anchored at inset-inline-start:0 (the edge itself)
-                  // guarantees the darkest pixel sits exactly on the boundary this element is measured to.
-                  // Gradient direction keywords are physical, so the fade is mirrored explicitly here.
-                  backgroundImage: `linear-gradient(to ${isRtl ? "left" : "right"}, var(--grid-pin-shadow), transparent)`,
-                  zIndex: GRID_LAYER.pinShadow,
-                }}
-              />
-            )}
-            {hasPinnedRight && (
-              <div
-                data-grid-pin-shadow="right"
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-block-start-0 h-full w-2 opacity-0 transition-opacity in-data-scrolled-right:opacity-100"
-                style={{
-                  insetInlineEnd: `var(--grid-pin-shadow-right-x, ${interactionLayout.pinnedRightWidth}px)`,
-                  backgroundImage: `linear-gradient(to ${isRtl ? "right" : "left"}, var(--grid-pin-shadow), transparent)`,
-                  zIndex: GRID_LAYER.pinShadow,
-                }}
-              />
-            )}
-            {pinnedTopRows.length > 0 && (
-              <div
-                data-grid-pin-shadow="top"
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-inline-start-0 h-2 w-full opacity-0 transition-opacity in-data-scrolled-top:opacity-100"
-                style={{
-                  insetBlockStart: effectiveHeaderHeight,
-                  backgroundImage: "linear-gradient(to bottom, var(--grid-pin-shadow), transparent)",
-                  zIndex: GRID_LAYER.pinShadow,
-                }}
-              />
-            )}
-            {pinnedBottomRows.length > 0 && (
-              <div
-                data-grid-pin-shadow="bottom"
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-inline-start-0 h-2 w-full opacity-0 transition-opacity in-data-scrolled-bottom:opacity-100"
-                style={{
-                  insetBlockEnd: pinnedBottomHeight,
-                  backgroundImage: "linear-gradient(to top, var(--grid-pin-shadow), transparent)",
-                  zIndex: GRID_LAYER.pinShadow,
-                }}
-              />
-            )}
+            <div
+              data-grid-pin-shadow="left"
+              data-pinned={hasPinnedLeft ? "" : undefined}
+              aria-hidden="true"
+              className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-left:opacity-100"
+              style={{
+                insetInlineStart: `var(--grid-pin-shadow-left-x, ${interactionLayout.pinnedLeftWidth}px)`,
+                insetBlockStart: effectiveHeaderHeight,
+                insetBlockEnd: pinnedBottomHeight,
+                width: SHADOW_SIZE,
+                // background gradient, not box-shadow: a box-shadow's offset+blur paints its darkest
+                // pixels well outside this element's own box, floating the visible shadow off the
+                // pinned cell's edge — a gradient anchored at inset-inline-start:0 (the edge itself)
+                // guarantees the darkest pixel sits exactly on the boundary this element is measured to.
+                // Gradient direction keywords are physical, so the fade is mirrored explicitly here.
+                backgroundImage: `linear-gradient(to ${isRtl ? "left" : "right"}, ${shadowColor(hasPinnedLeft)}, transparent)`,
+                zIndex: GRID_LAYER.pinShadow,
+              }}
+            />
+            <div
+              data-grid-pin-shadow="right"
+              data-pinned={hasPinnedRight ? "" : undefined}
+              aria-hidden="true"
+              className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-right:opacity-100"
+              style={{
+                insetInlineEnd: `var(--grid-pin-shadow-right-x, ${interactionLayout.pinnedRightWidth}px)`,
+                insetBlockStart: effectiveHeaderHeight,
+                insetBlockEnd: pinnedBottomHeight,
+                width: SHADOW_SIZE,
+                backgroundImage: `linear-gradient(to ${isRtl ? "right" : "left"}, ${shadowColor(hasPinnedRight)}, transparent)`,
+                zIndex: GRID_LAYER.pinShadow,
+              }}
+            />
+            <div
+              data-grid-pin-shadow="top"
+              data-pinned={pinnedTopRows.length > 0 ? "" : undefined}
+              aria-hidden="true"
+              className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-top:opacity-100"
+              style={{
+                insetBlockStart: effectiveHeaderHeight,
+                insetInlineStart: `var(--grid-pin-shadow-left-x, ${interactionLayout.pinnedLeftWidth}px)`,
+                insetInlineEnd: `var(--grid-pin-shadow-right-x, ${interactionLayout.pinnedRightWidth}px)`,
+                height: SHADOW_SIZE,
+                backgroundImage: `linear-gradient(to bottom, ${shadowColor(pinnedTopRows.length > 0)}, transparent)`,
+                zIndex: GRID_LAYER.pinShadow,
+              }}
+            />
+            <div
+              data-grid-pin-shadow="bottom"
+              data-pinned={pinnedBottomRows.length > 0 ? "" : undefined}
+              aria-hidden="true"
+              className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-bottom:opacity-100"
+              style={{
+                insetBlockEnd: pinnedBottomHeight,
+                insetInlineStart: `var(--grid-pin-shadow-left-x, ${interactionLayout.pinnedLeftWidth}px)`,
+                insetInlineEnd: `var(--grid-pin-shadow-right-x, ${interactionLayout.pinnedRightWidth}px)`,
+                height: SHADOW_SIZE,
+                backgroundImage: `linear-gradient(to top, ${shadowColor(pinnedBottomRows.length > 0)}, transparent)`,
+                zIndex: GRID_LAYER.pinShadow,
+              }}
+            />
           </div>
         </div>
       </div>

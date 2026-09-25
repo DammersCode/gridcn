@@ -92,7 +92,7 @@ export const DataGridRow = memo(function DataGridRow({
       data-grid-row-index={viewRowIndex}
       aria-busy={isSkeleton || undefined}
       // named group so row hover reveals a bg tint on its cells via CSS only — never React state.
-      className={cn("group/row", getRowClassName?.(row, viewRowIndex))}
+      className={cn("group/row", row === undefined ? undefined : getRowClassName?.(row, viewRowIndex))}
       style={{
         display: "grid",
         gridTemplateColumns: "subgrid",

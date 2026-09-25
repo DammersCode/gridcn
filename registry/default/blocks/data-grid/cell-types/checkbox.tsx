@@ -4,6 +4,7 @@ import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "
 import { useCommitGuard } from "../interaction/use-commit-guard";
 
 function CheckboxCell({ value }: CellRenderProps<unknown, boolean>) {
+  if (value == null) return null;
   // display-only: the interaction layer toggles via commitCellValue, so the control never receives events
   return (
     <span className="flex size-full items-center justify-center">

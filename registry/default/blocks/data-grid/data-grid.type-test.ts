@@ -12,15 +12,19 @@ import type {
   DataGridRootProps,
   defineColumns,
   ColumnDef,
+  AnyCellType,
   AnyColumnDef,
   CellClickCtx,
+  CellType,
   CellPatch,
   DataGridActions,
   DataGridProps,
   DataGridSyncProps,
+  GlobalShortcutsConfig,
   RowPatch,
   UpdateCellsOptions,
   UpdateCellsReorder,
+  UpdateCellsVerdict,
   DeepPartialLabels,
   FilterJoinOperator,
   FilterSpec,
@@ -31,7 +35,7 @@ import type {
   RowClickCtx,
   SortSpec,
 } from "./data-grid";
-import { useDataGridVisibleColumns, useDataGridAllColumns, type GRID_ATTR } from "./data-grid";
+import { useDataGridCellTypes, useDataGridVisibleColumns, useDataGridAllColumns, type GRID_ATTR } from "./data-grid";
 
 /** Compile-only check: `Actual` must be identical to `Expected` (both directions assignable). */
 type Equal<Expected, Actual> = (<T>() => T extends Expected ? 1 : 2) extends <T>() => T extends Actual ? 1 : 2
@@ -193,6 +197,24 @@ assertEqual<false, IsAny<ReturnType<typeof defineColumns<Row>>>>(true);
 assertEqual<false, IsAny<ReturnType<typeof useDataGridVisibleColumns>>>(true);
 assertEqual<false, IsAny<ReturnType<typeof useDataGridAllColumns<Row>>>>(true);
 
+// --- cellTypes registry erasure contract ------------------------------------------
+// The registry prop is deliberately untyped (a spread of built-ins plus a consumer's typed
+// entry must compile cast-free — see AnyCellType's doc). Per-key safety comes from
+// defineColumns + GridCellTypes augmentation, never from the registry; pin the erased shapes
+// so a future change to either the prop or the tooling hook's return fails this file.
+assertEqual<CellType<any, any, any>, AnyCellType>(true); // eslint-disable-line @typescript-eslint/no-explicit-any
+assertEqual<Record<string, AnyCellType> | undefined, DataGridProps<Row>["cellTypes"]>(true);
+assertEqual<Record<string, CellType>, ReturnType<typeof useDataGridCellTypes>>(true);
+
+// --- GlobalShortcutsConfig: flags ---------------------------------------------------
+// See keyboard/global-shortcuts.type-test.ts for the full accept/reject matrix (undo/redo/fill
+// flags require their add-on's `declare module` augmentation, which is why they live there,
+// next to files that import data-grid-history/data-grid-fill). This repo type-checks as one
+// `tsc` program (see tsconfig.json's `include`), so that augmentation applies here too — pin
+// the shape everywhere GlobalShortcutsConfig is referenced.
+assertEqual<true | undefined, GlobalShortcutsConfig["selectAll"]>(true);
+assertEqual<true | undefined, GlobalShortcutsConfig["deleteRows"]>(true);
+
 // --- StandardSchemaV1: vendored-type conformance + validate union ----------------------------
 // types.ts vendors `StandardSchemaV1` (no runtime/type import from @standard-schema/spec, see its
 // doc comment) so shipped code has zero new deps. This asserts the vendored copy stays assignable
@@ -321,10 +343,11 @@ void badSource;
 const rowPatch: RowPatch = { rowId: "r1", changes: { price: 12.5, volume: 900 } };
 void rowPatch;
 
-// The actions surface: both take a readonly patch list and an optional options object.
+// The actions surface: both take a readonly patch list and an optional options object, and return
+// the per-patch verdict (applied / skipped with reason / pending for a held async batch).
 declare const _actions: DataGridActions;
-assertEqual<(patches: readonly CellPatch[], options?: UpdateCellsOptions) => void, typeof _actions.updateCells>(true);
-assertEqual<(updates: readonly RowPatch[], options?: UpdateCellsOptions) => void, typeof _actions.updateRows>(true);
+assertEqual<(patches: readonly CellPatch[], options?: UpdateCellsOptions) => UpdateCellsVerdict, typeof _actions.updateCells>(true);
+assertEqual<(updates: readonly RowPatch[], options?: UpdateCellsOptions) => UpdateCellsVerdict, typeof _actions.updateRows>(true);
 assertEqual<() => void, typeof _actions.reconcileView>(true);
 
 // TValue typing flows through the usual ColumnDef conventions: a consumer builds patches from a

@@ -76,8 +76,20 @@ ignores view order entirely and exports every row of the raw `data` array as-is.
 Every scope emits all visible columns, so an exported row always lines up with its header row. A
 cell range that covers part of a row still exports that row in full.
 
+Export covers only loaded rows: on a [lazy](/docs/lazy-loading) grid, unloaded rows are skipped
+in every scope. Export after the window you need is loaded.
+
 `DataGridExportButton` forwards its `options` prop to `exportGrid`, so
 `<DataGridExportButton options={{ scope: "selection" }} />` makes its menu export the selection.
+
+`maxRows` caps the number of data rows in the export. The header row is not counted. When the
+scope holds more rows, the export keeps the first `maxRows` rows and the dev console warns.
+
+XLSX exports name their single sheet `workbookName` (default `'Sheet1'`). `buildXlsx(state, options)`
+builds the workbook as a `Blob` without triggering a download, for uploads to a server.
+
+`DataGridExportButton` takes an `onError` callback for a failed export. Without one, a failure
+logs a dev-only warning.
 
 ## Import
 
@@ -88,8 +100,12 @@ cell range that covers part of a row still exports that row in full.
   <Step>
     ### Choose a file
 
-    CSV/TSV or xlsx/xls. A multi-sheet workbook opens on its first sheet, and a sheet picker
-    in the dialog switches it before you confirm.
+    CSV/TSV or xlsx/xls. Drag a file onto the drop zone, or click it to open the file picker. A
+    file of another type is rejected. The drop zone stays ready for another file. A multi-sheet
+    workbook opens on its first sheet, and a sheet picker in the dialog switches it before you
+    confirm. After a file loads, a compact drop zone shows its name. Drop or click there to replace
+    the file without closing the dialog. The drop zone is its own `dropzone` item, and installing
+    `data-grid-io` installs it too.
   </Step>
   <Step>
     ### Header row
@@ -114,7 +130,9 @@ cell range that covers part of a row still exports that row in full.
   <Step>
     ### Confirm
 
-    Runs every mapped cell through the `fromText` of its column's cell type.
+    Runs every mapped cell through the `fromText` of its column's cell type. A cell that fails the
+    column's `validate` is cleared, not dropped: its row is still imported, and `buildImportedRows`
+    lists it in `rejected`. The dialog shows the rejected count and stays open until you close it.
   </Step>
 </Steps>
 
@@ -123,10 +141,12 @@ cell range that covers part of a row still exports that row in full.
   the dialog writes mapped values onto this base row.
 </Callout>
 
-Each grid column can be mapped from at most one source column at a time. Once a source column
-claims a grid column, that grid column disappears from every other source column's select, so a
-duplicate mapping cannot be created. If the file's headers auto-match to the same grid column
-more than once, `matchImportColumns` keeps the first match and leaves the rest on "— Skip —".
+In the dialog, each grid column can be mapped from at most one source column at a time. Once a
+source column claims a grid column, that grid column disappears from every other source column's
+select, so a duplicate mapping cannot be created. A custom mapping built with `setMapping` is not
+checked. `buildImportedRows` logs a dev-time warning when two source columns claim one grid
+column, and the later mapping wins. If the file's headers auto-match to the same grid column more
+than once, `matchImportColumns` keeps the first match and leaves the rest on "— Skip —".
 
 The dialog never writes to the grid directly. `onImport(rows)` hands you the fully-built row
 array, and you decide how to apply it: replace all data, append it, or run it through your own
@@ -163,6 +183,51 @@ Return a grid column id from `mapColumn` to map the column. Return `null` to ski
 Each mapping row also has a quick-skip button next to its Select. Click it to skip that column in
 one step. The button hides once the column is already skipped.
 
+## Dropzone
+
+The import dialog's drop target is its own registry item, `dropzone` — installing `data-grid-io`
+installs it too. Use it standalone for any file-drop surface:
+
+```tsx
+import { Dropzone, DropzoneEmptyState, DropzoneContent } from "@/components/dropzone/dropzone";
+
+<Dropzone accept={{ "text/csv": [".csv"] }} maxSize={5_000_000} onDrop={(files, rejections) => {}}>
+  <DropzoneEmptyState />
+  <DropzoneContent />
+</Dropzone>;
+```
+
+| Prop | Type | Default | Meaning |
+|---|---|---|---|
+| `accept` | `Record<string, string[]>` | accepts every file | MIME-to-extensions map, e.g. `{ "text/csv": [".csv"] }`. |
+| `maxFiles` | `number` | unlimited | Maximum files per drop or pick. Also sets the file input's `multiple` (off when this is 1). |
+| `maxSize` | `number` | none | Maximum file size in bytes. |
+| `minSize` | `number` | none | Minimum file size in bytes. |
+| `disabled` | `boolean` | `false` | Ignores drop, click, and keyboard activation. |
+| `compact` | `boolean` | `false` | Single-row layout (icon + content inline) instead of the tall centered box. |
+| `onDrop` | `(accepted: File[], rejections: DropzoneRejection[]) => void` | — | Called after a drop or file-picker selection, win or lose. |
+| `onError` | `(error: Error) => void` | — | Called when the native file read itself fails. |
+| `src` | `File[]` | — | Currently held files, read by the default `DropzoneContent`. |
+| `className` | `string` | — | Merged onto the drop-surface root after the built-in classes. |
+
+### Styling hooks
+
+| Attribute / prop | Meaning |
+|---|---|
+| `data-drag-active` | Present on the zone root while a file is dragged over it. |
+| `data-disabled` | Present on the zone root while `disabled` is true. |
+| `className` | Merges after the built-in classes — a conflicting utility wins. |
+
+```css
+[data-drag-active] {
+  border-color: var(--color-primary);
+  background-color: color-mix(in oklch, var(--color-primary) 8%, transparent);
+}
+[data-disabled] {
+  cursor: not-allowed;
+}
+```
+
 ## Lower-level pieces
 
 `useDataGridExport()` and `useDataGridImportPreview()` expose the same logic as hooks, if you want to
@@ -186,10 +251,20 @@ for (const name of sheetNames ?? []) {
 ```
 
 ```tsx
-const rows = await buildImportedRows({ dataRows, mapping, columns, cellTypes, createRow, signal });
+const { rows, rejected } = await buildImportedRows({ dataRows, mapping, columns, cellTypes, createRow, signal });
 ```
 
-`buildImportedRows` returns the rows directly for a synchronous import of 5,000 rows or fewer.
-Above that (or with an async Standard Schema `validate` on a mapped column) it returns a Promise
-— await the result either way. Large imports run in chunks that yield to the event loop, and an
-`AbortSignal` passed as `signal` cancels between chunks, rejecting with `"import-cancelled"`.
+`buildImportedRows` resolves to `{ rows, rejected }`, where `rejected` lists every cell that failed
+its column's `validate` and was cleared. It returns the object directly for a synchronous import of
+5,000 rows or fewer. Above that (or with an async Standard Schema `validate` on a mapped column) it
+returns a Promise — await the result either way. Large imports run in chunks that yield to the event
+loop, and an `AbortSignal` passed as `signal` cancels between chunks, rejecting with
+`"import-cancelled"`.
+
+Each `rejected` entry is one cleared cell:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `rowIndex` | `number` | Index into `dataRows`, header row excluded. |
+| `importColumnIndex` | `number` | Index of the source column in the import file. |
+| `gridColumnId` | `string` | The grid column the value was mapped to and cleared in. |

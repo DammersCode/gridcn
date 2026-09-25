@@ -68,7 +68,7 @@ describe("useDataGridFill: FillHandleTracker identity across parent re-renders",
       );
     }
 
-    render(
+    await render(
       <div style={{ height: 400 }}>
         <Harness />
       </div>,

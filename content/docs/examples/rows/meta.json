@@ -1,5 +1,5 @@
 {
   "title": "Rows & Selection",
   "icon": "Rows3",
-  "pages": ["row-operations", "row-markers", "drag-reorder", "actions", "streaming"]
+  "pages": ["pinning", "row-operations", "row-markers", "drag-reorder", "actions", "streaming"]
 }

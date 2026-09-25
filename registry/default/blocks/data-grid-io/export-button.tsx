@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Download } from "lucide-react";
-import { useDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev, useDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,6 +18,8 @@ export type DataGridExportButtonProps = {
   className?: string;
   /** Export options applied to both formats besides `format` itself; default `{ scope: 'view', includeHeaders: true }`. */
   options?: Omit<ExportGridOptions, "format">;
+  /** Receives the rejection when an export fails; without it, the failure logs a dev-only warning. */
+  onError?: (error: unknown, format: "xlsx" | "csv") => void;
 };
 
 /**
@@ -25,9 +27,19 @@ export type DataGridExportButtonProps = {
  * {@link useDataGridExport}. `size-8` + ghost variant matches the toolbar's other icon buttons.
  */
 export function DataGridExportButton(props: DataGridExportButtonProps): ReactNode {
-  const { className, options } = props;
+  const { className, options, onError } = props;
   const labels = useDataGridLabels();
   const { exportGrid } = useDataGridExport();
+
+  const runExport = (format: "xlsx" | "csv") => {
+    exportGrid({ ...options, format }).catch((error: unknown) => {
+      if (onError) {
+        onError(error, format);
+        return;
+      }
+      if (isDev()) console.warn(`[data-grid-io] ${format} export failed`, error);
+    });
+  };
 
   return (
     <DropdownMenu>
@@ -39,10 +51,10 @@ export function DataGridExportButton(props: DataGridExportButtonProps): ReactNod
         }
       />
       <DropdownMenuContent align="start">
-        <DropdownMenuItem onClick={() => void exportGrid({ ...options, format: "xlsx" })}>
+        <DropdownMenuItem onClick={() => runExport("xlsx")}>
           {labels.io.exportXlsx}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => void exportGrid({ ...options, format: "csv" })}>
+        <DropdownMenuItem onClick={() => runExport("csv")}>
           {labels.io.exportCsv}
         </DropdownMenuItem>
       </DropdownMenuContent>

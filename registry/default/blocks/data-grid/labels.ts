@@ -151,6 +151,8 @@ export type DataGridGridLabels = {
   emptyState: string;
   /** aria-label for the loading skeleton region (`loading && rowCount === 0`); also used as the indeterminate progress bar's aria-label when rows are present. */
   loading: string;
+  /** Placeholder for the date editor's typed input (default hints the ISO `yyyy-mm-dd` format). */
+  datePlaceholder: string;
 };
 
 /** Import/export add-on strings (`data-grid-io`): export dropdown + import dialog. */
@@ -163,6 +165,8 @@ export type DataGridIOLabels = {
   importDialogDescription: string;
   chooseFile: string;
   noFileChosen: string;
+  /** Caption on the compact drop zone shown once a file is already chosen, in the column-mapping step. */
+  replaceFile: string;
   /** Fallback column header in the mapping table when "First row is a header" is unchecked; `index` is 1-based. */
   columnFallback: (index: number) => string;
   delimiter: string;
@@ -186,6 +190,10 @@ export type DataGridIOLabels = {
   errorParseFailed: string;
   errorNoRows: string;
   errorUnsupportedFile: string;
+  /** Shown under the mapping grid when the import build rejected cells; `count` is the rejected-cell count. */
+  importRejectedCells: (count: number) => string;
+  /** Shown when the `onImport` callback rejected; the dialog stays open and the import can be retried. */
+  importMergeFailed: string;
 };
 
 /** Pagination add-on strings (`data-grid-pagination`): footer prev/next, page numbers, page-size select, range label. */
@@ -362,7 +370,9 @@ export const DEFAULT_LABELS: DataGridLabels = {
       cancel: "Cancel edit",
       deleteContents: "Delete contents",
       insertRowBelow: "Insert row below",
+      insertRowAbove: "Insert row above",
       duplicateRow: "Duplicate row",
+      deleteRows: "Delete row(s)",
 
       fillDown: "Fill down",
       fillRight: "Fill right",
@@ -380,6 +390,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
   grid: {
     emptyState: "No rows",
     loading: "Loading…",
+    datePlaceholder: "yyyy-mm-dd",
   },
   io: {
     exportButtonAriaLabel: "Export",
@@ -390,6 +401,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     importDialogDescription: "Choose a CSV or Excel file, then map its columns to the grid.",
     chooseFile: "Choose file",
     noFileChosen: "No file chosen",
+    replaceFile: "Drop or click to replace",
     columnFallback: (index) => `Column ${index}`,
     delimiter: "Delimiter",
     delimiterComma: "Comma (,)",
@@ -409,6 +421,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
     errorParseFailed: "Could not read this file.",
     errorNoRows: "No rows found in this file.",
     errorUnsupportedFile: "Unsupported file type — choose a .csv, .xlsx, or .xls file.",
+    importRejectedCells: (count) => `${count} cell${count === 1 ? "" : "s"} failed validation and ${count === 1 ? "was" : "were"} left empty.`,
+    importMergeFailed: "The import could not be completed. Try again.",
   },
   pagination: {
     firstPage: "First page",

@@ -60,10 +60,13 @@ keymap, but the dialog lists them together for completeness.
 same tokens the dialog uses, for your own tooltips or legend rows:
 
 ```tsx
-import { BindingChips } from "@/components/data-grid-keybindings/binding-label";
+import { BindingChips } from "@/components/data-grid-keybindings/data-grid-keybindings";
 
 <BindingChips binding="mod+shift+ArrowUp" />
 ```
+
+For plain text, `bindingTokens(binding)` from the same entry point returns the tokens as an array
+(`["⌘", "C"]`).
 
 Tokens are platform-aware (`mod` → ⌘ on macOS, Ctrl elsewhere), and a binding renders as one
 keycap per token.

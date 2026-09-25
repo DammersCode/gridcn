@@ -3,6 +3,7 @@
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { COLUMN_BORDER } from "../columns/column-border";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { RowMarkersMode } from "../types";
 import { GRID_LAYER } from "../layers";
@@ -85,6 +86,7 @@ export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
       aria-label={showGrip ? labels.markers.reorderRow(viewRowIndex + 1) : undefined}
       className={cn(
         "group flex items-center justify-center border-b border-border bg-background transition-colors group-hover/row:transition-none",
+        COLUMN_BORDER,
         // Same rule as a pinned-column cell (see cell.tsx): this sits opaque above the scrolled
         // canvas, so a translucent tint would let the scrolled content show through it.
         // color-mix() pre-composites the identical tint as an OPAQUE color, in both themes.

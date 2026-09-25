@@ -1,7 +1,7 @@
 import { page, userEvent } from "vitest/browser";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
-import { type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { DataGrid, DataGridBody, DataGridGlobalShortcuts, DataGridHeader, type ColumnDef } from "../data-grid";
 import { useDataGridState } from "@/registry/default/blocks/data-grid-history/data-grid-history";
 // real stylesheet so Tailwind's ring/tint utilities actually apply
@@ -52,7 +52,7 @@ function HistoryGrid({ withShortcuts, toolbarId }: { withShortcuts: boolean; too
 
 describe("global keyboard shortcuts (focus outside the grid)", () => {
   it("Ctrl+Z on a toolbar button outside the grid undoes the grid's last edit, Ctrl+Y re-applies it", async () => {
-    render(<HistoryGrid withShortcuts toolbarId="toolbar" />);
+    await render(<HistoryGrid withShortcuts toolbarId="toolbar" />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const cell = gridCells()[1]!; // "name" column, row 0
     const originalText = cell.textContent;
@@ -72,7 +72,7 @@ describe("global keyboard shortcuts (focus outside the grid)", () => {
   });
 
   it("a stationary Ctrl+Z inside the toolbar input does not touch the grid (editable-target guard)", async () => {
-    render(
+    await render(
       <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
         <input id="toolbar-input" />
         <div style={{ height: 300 }}>
@@ -97,7 +97,7 @@ describe("global keyboard shortcuts (focus outside the grid)", () => {
   });
 
   it("without the opt-in layer, Ctrl+Z outside the grid does nothing to the grid", async () => {
-    render(<HistoryGrid withShortcuts={false} toolbarId="toolbar" />);
+    await render(<HistoryGrid withShortcuts={false} toolbarId="toolbar" />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const cell = gridCells()[1]!;
 
@@ -112,7 +112,7 @@ describe("global keyboard shortcuts (focus outside the grid)", () => {
   });
 
   it("with two opted-in grids, the last focused one owns the shortcut", async () => {
-    render(
+    await render(
       <div style={{ display: "flex", gap: 16 }}>
         <HistoryGrid withShortcuts toolbarId="toolbar-a" />
         <HistoryGrid withShortcuts toolbarId="toolbar-b" />
@@ -162,7 +162,7 @@ describe("global keyboard shortcuts (focus outside the grid)", () => {
         </div>
       );
     }
-    render(<RemappedHistoryGrid />);
+    await render(<RemappedHistoryGrid />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const cell = gridCells()[1]!;
     const originalText = cell.textContent;
@@ -181,6 +181,88 @@ describe("global keyboard shortcuts (focus outside the grid)", () => {
     await userEvent.keyboard("{Control>}y{/Control}"); // redo brings "Edited" back first
     expect(gridCells()[1]!.textContent).toBe("Edited");
     await userEvent.keyboard("{Control>}u{/Control}");
+    expect(gridCells()[1]!.textContent).toBe(originalText);
+  });
+
+  it("a flagged action (selectAll) fires outside the grid, exactly like its in-grid binding", async () => {
+    function SelectAllGrid(): ReactNode {
+      const grid = useDataGridState(makeRows(5), { getRowId: (r) => r.id });
+      return (
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <button id="toolbar">toolbar</button>
+          <div style={{ height: 300 }}>
+            <DataGrid {...grid} columns={columns} className="h-[300px]">
+              <>
+                <DataGridGlobalShortcuts selectAll />
+                <DataGridHeader />
+                <DataGridBody />
+              </>
+            </DataGrid>
+          </div>
+        </div>
+      );
+    }
+    await render(<SelectAllGrid />);
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const cells = gridCells();
+    expect(cells.some((c) => c.getAttribute("aria-selected") === "true")).toBe(false);
+
+    // focus lands in the grid (the ownership claim), then leaves it
+    await userEvent.click(cells[1]!);
+    await userEvent.click(document.getElementById("toolbar")!);
+    await userEvent.keyboard("{Control>}a{/Control}");
+
+    // the window layer dispatched the grid's own selectAll: every cell selected
+    expect(cells.every((c) => c.getAttribute("aria-selected") === "true")).toBe(true);
+  });
+
+  it("flipping the undo/redo flags while focus is inside the grid keeps multi-grid ownership", async () => {
+    // regression: the effect used to re-run on an enabled-set change, take a fresh gridId, and
+    // null lastFocusedGrid in cleanup — with focus already inside the grid, ownsFocus stayed false
+    // until a new focusin and the global binding died silently until re-focus.
+    function FlipGrid() {
+      const [narrow, setNarrow] = useState(false);
+      const grid = useDataGridState(makeRows(5), { getRowId: (r) => r.id });
+      return (
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <button id="flip" onClick={() => setNarrow(true)}>flip</button>
+          <button id="toolbar">toolbar</button>
+          <div style={{ height: 300 }}>
+            <DataGrid {...grid} columns={columns} className="h-[300px]">
+              {narrow ? (
+                <>
+                  <DataGridGlobalShortcuts undo />
+                  <DataGridHeader />
+                  <DataGridBody />
+                </>
+              ) : (
+                <>
+                  <DataGridGlobalShortcuts />
+                  <DataGridHeader />
+                  <DataGridBody />
+                </>
+              )}
+            </DataGrid>
+          </div>
+        </div>
+      );
+    }
+    await render(<FlipGrid />);
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const cell = gridCells()[1]!;
+    const originalText = cell.textContent;
+
+    await userEvent.click(cell);
+    await userEvent.keyboard("Edited");
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByText("Edited")).toBeInTheDocument();
+
+    // flip the layer's config after the grid claimed ownership; the re-render must not drop it
+    await userEvent.click(document.getElementById("flip")!);
+
+    // focus leaves the grid; the layer must still own the shortcut the grid claimed
+    await userEvent.click(document.getElementById("toolbar")!);
+    await userEvent.keyboard("{Control>}z{/Control}");
     expect(gridCells()[1]!.textContent).toBe(originalText);
   });
 });
