@@ -355,3 +355,24 @@ div[style*="--callout-color"] {
 .hover\:bg-fd-accent\/80:hover {
   background-color: var(--color-fd-accent);
 }
+
+/* Docs demos pin no columns, so the grid mounts no edge shadow; hint off-screen columns from data-scrolled-*. */
+[data-component-preview] [role="grid"]:has([data-scrolled-right])::after,
+[data-component-preview] [role="grid"]:has([data-scrolled-left])::before {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  inset-block: 0;
+  width: 12px;
+  z-index: 32;
+}
+
+[data-component-preview] [role="grid"]:has([data-scrolled-right])::after {
+  inset-inline-end: 0;
+  background-image: linear-gradient(to left, var(--grid-pin-shadow), transparent);
+}
+
+[data-component-preview] [role="grid"]:has([data-scrolled-left])::before {
+  inset-inline-start: 0;
+  background-image: linear-gradient(to right, var(--grid-pin-shadow), transparent);
+}

@@ -26,6 +26,7 @@ export function PreviewTabs({ preview, code, align = "start" }: PreviewTabsProps
     <DocsTabs tabs={TABS} defaultValue="preview" className="my-6">
       <Tabs.Panel value="preview" tabIndex={-1}>
         <div
+          data-component-preview=""
           className={cn(
             // justify-center on an overflowing child pushes it out BOTH sides and the left overhang
             // is unreachable by scrolling; safe-center only centers while the child actually fits.
