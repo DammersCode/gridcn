@@ -113,6 +113,34 @@ describe("Dropzone (browser)", () => {
     await screen.unmount();
   });
 
+  it("stamps data-drag-active while dragging and drops it on dragleave/drop", async () => {
+    const screen = await render(<Dropzone aria-label="Upload" />);
+    const zone = screen.getByRole("button", { name: "Upload" }).element();
+    const dataTransfer = dataTransferWith([makeFile("a.csv", "text/csv")]);
+
+    expect(zone).not.toHaveAttribute("data-drag-active");
+
+    zone.dispatchEvent(new DragEvent("dragenter", { bubbles: true, cancelable: true, dataTransfer }));
+    await expect.element(zone).toHaveAttribute("data-drag-active", "true");
+
+    zone.dispatchEvent(new DragEvent("dragleave", { bubbles: true, cancelable: true, dataTransfer }));
+    await expect.element(zone).not.toHaveAttribute("data-drag-active");
+
+    zone.dispatchEvent(new DragEvent("dragenter", { bubbles: true, cancelable: true, dataTransfer }));
+    await expect.element(zone).toHaveAttribute("data-drag-active", "true");
+    await drop(zone, [makeFile("b.csv", "text/csv")]);
+    await expect.element(zone).not.toHaveAttribute("data-drag-active");
+    await screen.unmount();
+  });
+
+  it("stamps data-disabled on a disabled zone", async () => {
+    const screen = await render(<Dropzone disabled aria-label="Upload" />);
+    const zone = screen.getByRole("button", { name: "Upload" }).element();
+
+    expect(zone).toHaveAttribute("data-disabled", "true");
+    await screen.unmount();
+  });
+
   it("DropzoneContent renders held files from src and hides the empty state", async () => {
     const file = makeFile("data.csv", "text/csv");
     const screen = await render(

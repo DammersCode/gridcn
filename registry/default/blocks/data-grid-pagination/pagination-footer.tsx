@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-r
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DEFAULT_LABELS, type DataGridPaginationLabels } from "@/registry/default/blocks/data-grid/data-grid";
+import { DEFAULT_LABELS, GRID_ATTR, type DataGridPaginationLabels } from "@/registry/default/blocks/data-grid/data-grid";
 import type { DataGridPaginationControls } from "./use-data-grid-pagination";
 import { pageWindow } from "./pagination-math";
 
@@ -63,7 +63,7 @@ export function DataGridPaginationBar(props: DataGridPaginationBarProps): ReactN
 
   return (
     <PaginationBarContext value={{ controls, labels }}>
-      <div data-grid-pagination="" className={cn("flex flex-wrap items-center justify-between gap-2 border-t border-border bg-background px-2 py-1.5", className)}>
+      <div {...{ [GRID_ATTR.pagination]: "" }} className={cn("flex flex-wrap items-center justify-between gap-2 border-t border-border bg-background px-2 py-1.5", className)}>
         {children ?? (
           <>
             <DataGridPaginationRange />

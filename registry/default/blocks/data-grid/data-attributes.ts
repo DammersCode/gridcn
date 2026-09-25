@@ -106,6 +106,8 @@ export const GRID_ATTR = {
   search: "data-grid-search",
   /** data-grid-toolbar/search.tsx: the search match-count badge ("3/17"). */
   searchCount: "data-grid-search-count",
+  /** data-grid-pagination/pagination-footer.tsx: the pagination footer bar container. */
+  pagination: "data-grid-pagination",
 } as const;
 
 /** A key of {@link GRID_ATTR}. */

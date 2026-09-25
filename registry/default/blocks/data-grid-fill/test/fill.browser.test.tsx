@@ -256,10 +256,13 @@ describe("data-grid-fill add-on", () => {
     const cells = fillCells();
     const expected = [cells[1 + 2 * stride]!, cells[1 + 3 * stride]!, cells[1 + 4 * stride]!];
     expect(flashed().every((c) => expected.includes(c))).toBe(true);
-    // the pulse plays the body-injected fade keyframe, not a static class.
+    // the pulse plays the body-injected fade keyframe, not a static class, and its duration is
+    // consumer-configurable via --grid-flash-duration (styling-theming.mdx).
     expect(flashed()[0]!.style.animation).toContain("grid-cell-flash");
+    expect(flashed()[0]!.style.animation).toContain("var(--grid-flash-duration");
     const styleTags = [...document.querySelectorAll("style")].map((s) => s.textContent ?? "");
     expect(styleTags.some((t) => t.includes("@keyframes grid-cell-flash"))).toBe(true);
+    expect(styleTags.some((t) => t.includes("--grid-flash-color") && t.includes("--grid-flash-intensity"))).toBe(true);
 
     await expect.poll(() => flashed().length, { timeout: 5000 }).toBe(0);
   });

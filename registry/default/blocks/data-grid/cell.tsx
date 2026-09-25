@@ -22,11 +22,11 @@ import { cellTypes as defaultCellTypes } from "./cell-types/cell-types";
 import { useAsyncValidate } from "./interaction/use-async-validate";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-/** The "highlight-what-changed" fade pulse `flashCells` plays on the cells it just wrote; the keyframes `DataGridBody` injects once per grid (self-contained, no app global.css step). */
-export const FLASH_ANIMATION = "grid-cell-flash 1.2s ease-out";
-/** One-shot pulse: a primary-tinted background fading to transparent, the exact visual the `flashCells` consumers (fill, paste, move) promise. */
+/** The "highlight-what-changed" fade pulse `flashCells` plays on the cells it just wrote; the keyframes `DataGridBody` injects once per grid (self-contained, no app global.css step). Duration reads `--grid-flash-duration` (default 1.2s; `0s` disables the pulse). */
+export const FLASH_ANIMATION = "grid-cell-flash var(--grid-flash-duration, 1.2s) ease-out";
+/** One-shot pulse: a background fading to transparent, tinted by `--grid-flash-color` (default `--color-primary`) at `--grid-flash-intensity` (default 24%) — the exact visual the `flashCells` consumers (fill, paste, move) promise. */
 export const FLASH_KEYFRAMES =
-  "@keyframes grid-cell-flash{0%{background-color:color-mix(in oklab, var(--color-primary) 24%, transparent)}100%{background-color:transparent}}";
+  "@keyframes grid-cell-flash{0%{background-color:color-mix(in oklab, var(--grid-flash-color, var(--color-primary)) var(--grid-flash-intensity, 24%), transparent)}100%{background-color:transparent}}";
 
 // This component is generic-erased (row: unknown, column: AnyColumnDef) since it renders arbitrary
 // consumer row shapes through one shared runtime — see store.tsx's InternalSyncProps comment for why
@@ -225,7 +225,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     // Static shimmer block (CSS animate-pulse only, no per-frame JS) sized to roughly a text line;
     // never rendered for checkbox/select cells specially — one shape covers every column type since
     // there's no real value to shape it around yet.
-    content = <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />;
+    content = <div className="h-4 w-3/4 motion-safe:animate-pulse rounded bg-muted" />;
   } else if (isEditing) {
     const Editor = cellType.Editor as unknown as (p: {
       value: unknown;

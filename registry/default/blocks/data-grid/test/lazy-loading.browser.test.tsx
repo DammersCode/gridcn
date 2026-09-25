@@ -57,7 +57,7 @@ describe("skeleton rows for undefined data holes", () => {
     const skeletonCells = skeletonRow.querySelectorAll('[role="gridcell"][data-skeleton]');
     expect(skeletonCells.length).toBe(columns.length);
     for (const cell of skeletonCells) {
-      expect(cell.querySelector(".animate-pulse")).not.toBeNull();
+      expect(cell.querySelector(".motion-safe\\:animate-pulse")).not.toBeNull();
       expect(cell.getAttribute("aria-busy")).toBe("true");
     }
 
@@ -68,7 +68,7 @@ describe("skeleton rows for undefined data holes", () => {
     // a loaded row renders real text content, no shimmer. `[data-column-id]` excludes the marker cell (also role=gridcell).
     const loadedCells = loadedRow.querySelectorAll('[role="gridcell"][data-column-id]');
     expect(loadedCells[0]!.textContent).toBe("row-0");
-    expect(loadedRow.querySelector(".animate-pulse")).toBeNull();
+    expect(loadedRow.querySelector(".motion-safe\\:animate-pulse")).toBeNull();
   });
 
   it("an undefined row flipping to defined replaces the skeleton with real content (same DOM row, keyed by index fallback)", async () => {
@@ -83,7 +83,7 @@ describe("skeleton rows for undefined data holes", () => {
     const rowsBefore = [...document.querySelectorAll<HTMLElement>('[role="row"][aria-rowindex]')];
     const firstDataRow = rowsBefore.find((r) => r.getAttribute("aria-rowindex") === "2")!;
     expect(firstDataRow.getAttribute("aria-busy")).toBe("true");
-    expect(firstDataRow.querySelector(".animate-pulse")).not.toBeNull();
+    expect(firstDataRow.querySelector(".motion-safe\\:animate-pulse")).not.toBeNull();
 
     const filledData = makeSparseRows(50, new Set([0]));
     await screen.rerender(
@@ -95,7 +95,7 @@ describe("skeleton rows for undefined data holes", () => {
     const rowsAfter = [...document.querySelectorAll<HTMLElement>('[role="row"][aria-rowindex]')];
     const filledRow = rowsAfter.find((r) => r.getAttribute("aria-rowindex") === "2")!;
     expect(filledRow.getAttribute("aria-busy")).toBeNull();
-    expect(filledRow.querySelector(".animate-pulse")).toBeNull();
+    expect(filledRow.querySelector(".motion-safe\\:animate-pulse")).toBeNull();
     expect(filledRow.querySelectorAll('[role="gridcell"]')[0]!.textContent).toBe("row-0");
   });
 

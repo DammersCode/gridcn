@@ -83,7 +83,7 @@ export function DataGridLoadingBar(props: DataGridLoadingBarProps): ReactNode {
     >
       {/* plain <style> tag (not styled-jsx) scopes the sweep keyframes here without a global.css edit */}
       <style>{SWEEP_KEYFRAMES}</style>
-      <div className="h-full w-1/3 bg-primary motion-safe:animate-[grid-loading-sweep_1.2s_ease-in-out_infinite] motion-reduce:w-full" />
+      <div className="h-full w-1/3 bg-primary motion-safe:animate-[grid-loading-sweep_var(--grid-loading-sweep-duration,1.2s)_ease-in-out_infinite] motion-reduce:w-full" />
     </div>
   );
 }

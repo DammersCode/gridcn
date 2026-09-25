@@ -163,6 +163,15 @@ rendering performance, and using the two together is not supported — when to p
     `labels.pagination` group (see [i18n](/docs/i18n#coverage-by-group)). Pass a `labels` prop
     directly on `<DataGridPaginationBar>` to override them.
 
+    | Prop | Type | Meaning |
+    |---|---|---|
+    | `className` | `string` | Merged onto the footer's root `<div>` after the built-in classes — a conflicting utility wins. |
+    | `labels` | `Partial<DataGridPaginationLabels>` | Deep-merged override of the `labels.pagination` group, same merge semantics as core's `labels` prop. |
+    | `windowSize` | `number` | How many numbered page buttons the default layout shows at once (default 5). Ignored with `children`. |
+
+    The root `<div>` also carries `[data-grid-pagination]`, for CSS that targets the footer without
+    a `className` (see [Data-attribute contract](/docs/styling-theming#data-attribute-contract)).
+
     ## Composition
 
     `DataGridPaginationBar` renders its default layout only when given no `children`. Pass

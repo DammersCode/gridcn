@@ -199,6 +199,8 @@ export function Dropzone(props: DropzoneProps): ReactNode {
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDropHandler}
+        data-drag-active={isDragActive || undefined}
+        data-disabled={disabled || undefined}
         className={cn(
           "flex w-full cursor-pointer rounded-md border border-dashed border-input outline-none transition-colors",
           compact

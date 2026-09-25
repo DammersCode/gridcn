@@ -141,6 +141,13 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Compile-time URL operator drift guard:** a type test pins the URL-state add-on's filter
   operator set against the core `FilterOperator` union — a new core operator fails the type gate
   instead of silently dropping out of URL round-trips.
+- **CSS hooks for the remaining hard-coded visuals:** `--grid-flash-duration` (default `1.2s`,
+  `0s` turns the pulse off), `--grid-flash-intensity` (`24%`), and `--grid-flash-color` (primary)
+  tune the write pulse after paste, fill, and replace; `--grid-loading-sweep-duration` (`1.2s`) the
+  loading bar; `--presence-label-foreground` (white) the presence name chip. The dropzone root
+  carries `data-drag-active` and `data-disabled`, and `GRID_ATTR.pagination` names the pagination
+  footer's `data-grid-pagination` attribute. The styling guide gains "Override recipes" for the
+  selection, active cell, marker cell, invalid cell, and search match. Defaults are unchanged.
 - **Docs example for pinning all four sides:** `data-grid-pinning-all-sides-demo` (Examples → Rows &
   Selection → Pinning) combines pinned left/right columns with pinned top/bottom row bands.
 - **Docs examples for menu slots and operator lists:** `data-grid-context-menu-slots-demo` shows
@@ -291,6 +298,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Visible pin shadow after install:** the `data-grid` item ships `--grid-pin-shadow` as `cssVars`
   for light and dark mode, and the grid falls back to a light-mode value when the variable is
   missing. Before, a fresh install rendered the pinned-column and pinned-row shadow invisible.
+- **Reduced motion in lazy skeleton cells:** the per-cell loading shimmer of `data-grid-lazy` holes
+  respects `prefers-reduced-motion`, like the whole-grid loading skeleton.
 - **Vite type-check:** the core grid no longer reads `process.env` directly, so `tsc -b` passes in a
   Vite project whose `tsconfig.app.json` lacks `@types/node`.
 - **Demo npm dependencies:** `data-grid-context-menu-slots-demo` declares `lucide-react` and

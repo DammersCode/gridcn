@@ -25,6 +25,10 @@ Neither add-on exists for rendering performance. Using both together is not supp
   grid-wide, and the two are not meant to be combined.
 </Callout>
 
+Every unloaded-row skeleton cell carries `data-skeleton` (see
+[Data-attribute contract](/docs/styling-theming#data-attribute-contract)), for restyling the
+shimmer with plain CSS instead of a class override.
+
 <Tabs items={["Basics", "Editing & errors"]}>
   <Tab value="Basics">
     ## Usage

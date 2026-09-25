@@ -80,8 +80,8 @@ const PresenceLabelChip = memo(function PresenceLabelChip({
       }}
     >
       <span
-        className="-translate-y-1/2 rounded-sm px-1.5 py-0.5 text-xs font-medium whitespace-nowrap text-white shadow-sm"
-        style={{ backgroundColor: color }}
+        className="-translate-y-1/2 rounded-sm px-1.5 py-0.5 text-xs font-medium whitespace-nowrap shadow-sm"
+        style={{ backgroundColor: color, color: "var(--presence-label-foreground, white)" }}
       >
         {label}
       </span>

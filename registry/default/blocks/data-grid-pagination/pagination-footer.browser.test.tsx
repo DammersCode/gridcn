@@ -2,7 +2,7 @@ import { page } from "vitest/browser";
 import { Component, type ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { DataGrid, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
+import { DataGrid, defineColumns, GRID_ATTR } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPagination } from "./use-data-grid-pagination";
 import { DataGridPaginationBar, DataGridPaginationPrev, DataGridPaginationNext } from "./pagination-footer";
 // real stylesheet so Select/Button layout is real, matching other block browser tests
@@ -70,6 +70,12 @@ describe("DataGridPaginationBar: default layout", () => {
     await render(<PaginatedGrid />);
     await expect.element(page.getByText("1–25 of 101")).toBeInTheDocument();
     await expect.element(page.getByText("Person 0")).toBeInTheDocument();
+  });
+
+  it("stamps GRID_ATTR.pagination on the footer root, for CSS-only targeting", async () => {
+    await render(<PaginatedGrid />);
+    const footer = document.querySelector(`[${GRID_ATTR.pagination}]`);
+    expect(footer).not.toBeNull();
   });
 
   it("next page updates the rendered rows and the range label", async () => {

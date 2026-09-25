@@ -72,6 +72,14 @@ needs to differ from its token, the escape hatches are per-surface: data-attribu
 - `--presence-color` — internal to the `data-grid-presence` add-on: each remote user's highlight
   overlay and name chip are mixed from that user's color, set through the presence API, not CSS.
 
+| Variable | Effect | Default |
+|---|---|---|
+| `--presence-label-foreground` | text color of a presence name chip | `white` |
+| `--grid-flash-duration` | duration of the post-commit write pulse. `0s` disables the pulse | `1.2s` |
+| `--grid-flash-intensity` | `color-mix()` percentage of `--grid-flash-color` at the pulse's start | `24%` |
+| `--grid-flash-color` | the pulse's tint color | `var(--color-primary)` |
+| `--grid-loading-sweep-duration` | duration of the loading bar's sweep animation | `1.2s` |
+
 ```tsx
 <DataGridProvider {...grid} columns={columns}>
   <DataGridRoot density="compact" />
@@ -101,23 +109,23 @@ the DOM and what you can beat. Where a surface lists a merge point, the built-in
 | Header cell (`[role="columnheader"]`) | `group relative flex items-center border-b border-border bg-muted px-2 font-medium select-none` | Per-column `headerClassName`. |
 | Data cell (`[role="gridcell"]`) | `relative flex items-center overflow-hidden border-b border-border bg-background px-2 outline-none group-hover/row:bg-muted/50 transition-colors` plus conditionals: opaque hover tint on pinned cells, `bg-search-highlight/60` on `[data-search-match]`, `tabular-nums` for number/date, the alignment class, the invalid-cell tint + inset ring | `getRowClassName`/`getCellClassName` (grid level) then `cellClassName` (per column), merged after the built-ins. |
 | Row (`[role="row"]`) | `group/row` | `getRowClassName`. |
-| Marker cell (`[data-grid-marker-cell]`) | `group flex items-center justify-center border-b border-border bg-background transition-colors`, `cursor-grab` when row reorder is on, the selected-row tint | `renderMarker` replaces the content. The cell classes are internal. |
+| Marker cell (`[data-grid-marker-cell]`) | `group flex items-center justify-center border-b border-border bg-background transition-colors`, `cursor-grab` when row reorder is on, the selected-row tint | `renderMarker` replaces the content. For the cell chrome itself, see [Override recipes](#override-recipes). |
 | Marker header (`[data-grid-marker-header]`) | `flex items-center justify-center border-b border-border bg-muted` | Internal. |
 | Selection overlay (`[data-grid-selection-overlay]`) | `pointer-events-none border border-primary/40 bg-primary/10` | `--primary`. `overlayPlugins` for your own layer. |
 | Active-cell ring (`[data-grid-active-cell-overlay]`) | `pointer-events-none z-10 ring-2 ring-inset ring-primary` | `--primary` or `--ring`. |
 | Edge shadow (`[data-grid-pin-shadow]`) | 8px gradient strip on each side, `opacity-0` to `100` via `data-scrolled-*`, at the grid edge or the pinned band boundary. Color from `--grid-pin-shadow` | Override `--grid-pin-shadow` per theme. |
 | Empty state (`[data-grid-empty-state]`) | `pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground` | `emptyState` prop or `labels.emptyState`. |
 | Loading skeleton (`[data-grid-loading-skeleton]`) | One `h-4 animate-pulse rounded bg-muted` bar per column per row, rows separated by `border-b border-border` | The `loading` flag. The skeleton renders only while `loading` is true. |
-| Loading bar (`[data-grid-loading-bar]`) | 2px track `bg-primary/20` with a `bg-primary` sweep (static under `prefers-reduced-motion`) | `--primary`. |
+| Loading bar (`[data-grid-loading-bar]`) | 2px track `bg-primary/20` with a `bg-primary` sweep (static under `prefers-reduced-motion`) | `--primary`. `--grid-loading-sweep-duration` for the sweep speed. |
 | Cell error tooltip | `rounded-sm border border-destructive/20 bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive`, placed below the cell while editing | `--destructive`. |
 | Resize handle (`[data-grid-resize-handle]`) | 8px column, a 3px `after` line in `bg-primary` revealed on hover and while `[data-resizing]` | `--primary`. |
 | Column drop indicator (`[data-grid-drop-indicator]`) | 2px line in `var(--color-primary)` at the drag boundary | `--primary`. |
 | Sort indicator (`[data-grid-sort-indicator]`) | `text-muted-foreground`, 14px icon, multi-sort rank badge `text-[10px] tabular-nums` | Embed `DataGridSortIndicator` in a custom header. `--muted-foreground`. |
 | Fill preview (`[data-grid-fill-preview]`) | `pointer-events-none border border-dashed border-primary bg-primary/5`. Handle: `size-2 border border-background bg-primary cursor-crosshair` | `--primary`. |
-| Presence overlay (`[data-grid-presence-overlay]`) | Border + 12% fill mixed from the user's `--presence-color`. Name chip `rounded-sm px-1.5 py-0.5 text-xs text-white shadow-sm` | Per-user color via the presence API. `overlayPlugins` for your own layer. |
+| Presence overlay (`[data-grid-presence-overlay]`) | Border + 12% fill mixed from the user's `--presence-color`. Name chip `rounded-sm px-1.5 py-0.5 text-xs shadow-sm` | Per-user color via the presence API. `--presence-label-foreground` for the chip text. `overlayPlugins` for your own layer. |
 | Pinned-row band (`[data-grid-pinned-row-band]`) | Band separator `border-border`. Band cells get an opaque 30% `muted` tint + `font-medium` | `--muted`, `--border`. |
 | Built-in editors | `text`/`number`: a borderless transparent `Input` filling the cell. `select`/`date`: your `ui/*` `Select`/`Popover`/`Calendar` primitives with the cell chrome stripped | Retheme the `ui/*` primitives, or pass a custom cell type. |
-| Write pulse (`[data-flash]`) | One-shot fade from 24% `primary` to transparent. Keyframes injected by the grid | `--primary`. Nothing to configure. |
+| Write pulse (`[data-flash]`) | One-shot fade from `--grid-flash-intensity` of `--grid-flash-color` to transparent. Keyframes injected by the grid | `--grid-flash-duration`, `--grid-flash-intensity`, `--grid-flash-color`. |
 
 **How deep you can go, in order of effort:**
 
@@ -186,12 +194,58 @@ The grid also stamps one attribute per structural element, as a selector for the
 | `data-grid-fill-preview` / `data-grid-fill-handle` | The dashed fill-drag preview rect / its corner handle. |
 | `data-grid-presence-overlay` / `data-grid-presence-label` | A remote user's highlight range / name chip. |
 | `data-grid-toolbar` / `data-grid-columns-menu` / `data-grid-search` / `data-grid-search-count` / `data-grid-filter-menu` / `data-grid-filter-count` / `data-grid-filter-row` / `data-grid-sort-list` / `data-grid-sort-row` / `data-grid-sort-count` | The toolbar and its sub-widgets: columns menu, quick-search input + match badge, filter menu + active-count badge + its rows, sort list + its rows + active-sort badge. |
+| `data-grid-pagination` | The `data-grid-pagination` add-on's footer bar container. See [Pagination](/docs/pagination). |
 | `data-column-id` | Every cell and header (the column's `id`, your value). |
 
 ```css
 [data-active] { /* ring styling already applied; extend here if needed */ }
 [data-type="number"] { @apply tabular-nums text-right; }
 [data-search-match] { background-color: var(--color-search-highlight); }
+```
+
+## Override recipes
+
+Every built-in class in the [class surface](#the-built-in-class-surface) above is a Tailwind
+utility, generated into the `utilities` cascade layer (`@import "tailwindcss"` in `app/global.css`
+declares `@layer theme, base, components, utilities;`, and Tailwind's generated utilities live in
+that last layer). A plain CSS rule you write, with no `@layer` around it, is unlayered — and an
+unlayered rule always wins over any layered rule, regardless of selector specificity or source
+order. So a stylesheet rule targeting one of the selectors below overrides the grid's built-in
+utility with no `!important` and no specificity fight:
+
+```css
+/* selection range: swap the fill and border */
+[data-grid-selection-overlay] {
+  background-color: color-mix(in oklch, var(--color-accent) 20%, transparent);
+  border-color: var(--color-accent);
+}
+
+/* active-cell ring: thicker, dashed */
+[data-grid-active-cell-overlay] {
+  outline: 2px dashed var(--color-ring);
+  outline-offset: -2px;
+}
+
+/* marker cell: a colored left rail instead of the default background */
+[data-grid-marker-cell] {
+  background-color: transparent;
+  border-inline-start: 2px solid var(--color-border);
+}
+[data-grid-marker-cell][data-row-selected] {
+  border-inline-start-color: var(--color-primary);
+}
+
+/* invalid cell: a left rail instead of the inset ring */
+[data-invalid] {
+  box-shadow: none;
+  border-inline-start: 2px solid var(--color-destructive);
+}
+
+/* search match: a solid underline instead of a background tint */
+[data-search-match] {
+  background-color: transparent;
+  text-decoration: underline solid var(--color-search-highlight, currentColor) 2px;
+}
 ```
 
 ## Programmatic per-row/per-cell styling
@@ -361,6 +415,9 @@ The demo above wires this to a `Select`. Switching it live re-measures `--grid-r
 every mounted row, with no re-render of cell content, only the row track size. Pass an explicit
 `rowHeight={32}` instead of `density` when you need a value that the three presets do not cover.
 It always wins over `density` when both are set.
+
+The header row does not follow `density` — set its height with the `headerHeight` prop (default
+36).
 
 ## Scroll shadows
 
