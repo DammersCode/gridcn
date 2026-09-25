@@ -1,17 +1,11 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import userEvent from "@testing-library/user-event";
-import type { ComponentType } from "react";
+import DataGridPlaygroundDemo from "./data-grid-playground-demo";
 
-afterEach(cleanup);
-
-// jsdom performs no layout; drive useRowWindow's viewport math by stubbing clientHeight (same
-// stub as data-grid/test/data-grid.test.tsx). Also stub ResizeObserver — jsdom has none, and
-// data-grid-toolbar's filter-menu touches it at module load (via @dnd-kit/dom, sort-list's drag
-// reorder) — so the demo module is dynamically imported below, after both stubs land.
-let DataGridPlaygroundDemo: ComponentType;
-
-beforeAll(async () => {
+// Hoisted above the imports: @dnd-kit/dom (via the toolbar) touches ResizeObserver at module load,
+// and jsdom has none. jsdom also performs no layout, so clientHeight drives useRowWindow's math.
+vi.hoisted(() => {
   Object.defineProperty(HTMLElement.prototype, "clientHeight", {
     configurable: true,
     get() {
@@ -24,9 +18,9 @@ beforeAll(async () => {
     disconnect(): void {}
   }
   (globalThis as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver ??= StubResizeObserver as unknown as typeof ResizeObserver;
+});
 
-  DataGridPlaygroundDemo = (await import("./data-grid-playground-demo")).default;
-}, 60_000);
+afterEach(cleanup);
 
 describe("data-grid-playground-demo: XOR mode switch", () => {
   it("renders in the default virtualized mode", () => {
