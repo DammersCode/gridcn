@@ -28,6 +28,7 @@ const REGISTRY_BLOCK_ITEMS = [
   "data-grid-lazy",
   "data-grid-pagination",
   "data-grid-sort-list",
+  "dropzone",
 ];
 const ALLOWED_BARRELS = new Set(REGISTRY_BLOCK_ITEMS.map((item) => `${item}/${item}`));
 

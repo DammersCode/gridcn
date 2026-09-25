@@ -33,33 +33,21 @@ function makeCtx(overrides: Partial<GlobalShortcutContext> = {}): GlobalShortcut
 }
 
 describe("enabledGlobalActions", () => {
-  it("no config enables every action", () => {
+  it("no config enables the default set (undo, redo)", () => {
     expect(enabledGlobalActions()).toEqual(["undo", "redo"]);
   });
 
   // the component always passes an object (empty when no flag is set), so an empty config behaves like no config
-  it("an empty config enables every action", () => {
+  it("an empty config enables the default set", () => {
     expect(enabledGlobalActions({})).toEqual(["undo", "redo"]);
   });
 
-  it("only `true` keys enable their action", () => {
-    expect(enabledGlobalActions({ undo: true })).toEqual(["undo"]);
-    expect(enabledGlobalActions({ redo: true })).toEqual(["redo"]);
-    expect(enabledGlobalActions({ undo: true, redo: true })).toEqual(["undo", "redo"]);
+  it("a single flag enables exactly that action", () => {
+    expect(enabledGlobalActions({ selectAll: true })).toEqual(["selectAll"]);
   });
 
-  it("a consumer-added action extends the default undo/redo set", () => {
-    expect(enabledGlobalActions({ actions: ["selectAll"] })).toEqual(["undo", "redo", "selectAll"]);
-    expect(enabledGlobalActions({ actions: ["selectAll", "duplicateRow"] })).toEqual(["undo", "redo", "selectAll", "duplicateRow"]);
-  });
-
-  it("flag-narrowed configs keep the narrowing; actions extend the narrowed set", () => {
-    expect(enabledGlobalActions({ undo: true, actions: ["selectAll"] })).toEqual(["undo", "selectAll"]);
-    expect(enabledGlobalActions({ redo: true, actions: ["selectAll"] })).toEqual(["redo", "selectAll"]);
-  });
-
-  it("dedupes actions already covered by the flag-derived set", () => {
-    expect(enabledGlobalActions({ actions: ["undo", "undo", "selectAll"] })).toEqual(["undo", "redo", "selectAll"]);
+  it("multiple flags enable exactly the flagged actions", () => {
+    expect(enabledGlobalActions({ undo: true, deleteRows: true })).toEqual(["undo", "deleteRows"]);
   });
 });
 

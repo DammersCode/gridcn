@@ -4,3 +4,12 @@ export { computeFillTarget, type AllowedFillDirections, type ComputeFillTargetOp
 export { detectSeries, type SeriesDescriptor } from "./fill";
 export { generateFill, type FillDirection, type GenerateFillOptions } from "./fill";
 export { fillDirection, rectRelativeTo } from "./fill";
+
+/** Offers the `fillDown`/`fillRight` global-shortcut flags — this add-on is what makes them do anything. */
+// Relative on purpose: the shadcn CLI rewrites import paths, never augmentation module names.
+declare module "../data-grid/keyboard/global-shortcuts" {
+  interface DataGridGlobalShortcutActions {
+    fillDown: true;
+    fillRight: true;
+  }
+}

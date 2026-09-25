@@ -21,7 +21,6 @@ import type {
   DataGridProps,
   DataGridSyncProps,
   GlobalShortcutsConfig,
-  GridAction,
   RowPatch,
   UpdateCellsOptions,
   UpdateCellsReorder,
@@ -207,12 +206,14 @@ assertEqual<CellType<any, any, any>, AnyCellType>(true); // eslint-disable-line 
 assertEqual<Record<string, AnyCellType> | undefined, DataGridProps<Row>["cellTypes"]>(true);
 assertEqual<Record<string, CellType>, ReturnType<typeof useDataGridCellTypes>>(true);
 
-// --- GlobalShortcutsConfig: consumer-added actions --------------------------------
-// `undo`/`redo` stay the opt-in flags (grandfathered); `actions` extends the enabled set with
-// any GridAction (the gate and dispatch are action-generic). Pin both fields.
-assertEqual<true | undefined, GlobalShortcutsConfig["undo"]>(true);
-assertEqual<true | undefined, GlobalShortcutsConfig["redo"]>(true);
-assertEqual<readonly GridAction[] | undefined, GlobalShortcutsConfig["actions"]>(true);
+// --- GlobalShortcutsConfig: flags ---------------------------------------------------
+// See keyboard/global-shortcuts.type-test.ts for the full accept/reject matrix (undo/redo/fill
+// flags require their add-on's `declare module` augmentation, which is why they live there,
+// next to files that import data-grid-history/data-grid-fill). This repo type-checks as one
+// `tsc` program (see tsconfig.json's `include`), so that augmentation applies here too — pin
+// the shape everywhere GlobalShortcutsConfig is referenced.
+assertEqual<true | undefined, GlobalShortcutsConfig["selectAll"]>(true);
+assertEqual<true | undefined, GlobalShortcutsConfig["deleteRows"]>(true);
 
 // --- StandardSchemaV1: vendored-type conformance + validate union ----------------------------
 // types.ts vendors `StandardSchemaV1` (no runtime/type import from @standard-schema/spec, see its

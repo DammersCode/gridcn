@@ -58,4 +58,5 @@ export type RegistryItemName =
   | "data-grid-streaming-demo"
   | "data-grid-styling-patterns-demo"
   | "data-grid-url-state-demo"
-  | "data-grid-validation-demo";
+  | "data-grid-validation-demo"
+  | "dropzone";

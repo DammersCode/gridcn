@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
-import { X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Paperclip, X } from "lucide-react";
 import {
   isDev,
   useDataGridActions,
@@ -24,6 +24,15 @@ import { cn } from "@/lib/utils";
 import { buildImportedRows, type ImportRejectedCell } from "./build-imported-rows";
 import { useDataGridImportPreview, type ImportTargetColumn, type ImportDefaults } from "./use-data-grid-import";
 import type { CsvDelimiter } from "./parse-import-file";
+import { Dropzone, DropzoneEmptyState, type DropzoneAccept } from "@/registry/default/blocks/dropzone/dropzone";
+
+/** Accepted import file types, shared by the file input and the {@link Dropzone}. */
+const IMPORT_ACCEPT: DropzoneAccept = {
+  "text/csv": [".csv"],
+  "text/tab-separated-values": [".tsv"],
+  "application/vnd.ms-excel": [".xls"],
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+};
 
 export type { ImportDefaults };
 
@@ -64,7 +73,6 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   const actions = useDataGridActions();
   const storeApi = useDataGridStoreApi();
   const allColumns = useDataGridAllColumns<TData>();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isValidating, setIsValidating] = useState(false);
   /** Generation guard for a held async import: a newer confirm, or closing the dialog, drops the older batch. */
   const confirmTokenRef = useRef(0);
@@ -83,14 +91,22 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     reset();
   }, [open, reset]);
 
-  const onFileChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
+  const onFile = useCallback(
+    (file: File) => {
       const targets: ImportTargetColumn[] = allColumns.map((c) => ({ id: c.id, headerText: c.headerText, header: c.header }));
+      setRejectedCount(0);
+      setMergeFailed(false);
       void loadFile(file, targets);
     },
     [allColumns, loadFile],
+  );
+
+  const onDropFiles = useCallback(
+    (acceptedFiles: File[]) => {
+      const file = acceptedFiles[0];
+      if (file) onFile(file);
+    },
+    [onFile],
   );
 
   /** Rejected-cell count from the last confirmed build; non-zero keeps the dialog open so the warning is visible. */
@@ -176,19 +192,17 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
         </DialogHeader>
 
         <div className="flex min-w-0 flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv,.tsv,.xlsx,.xls,text/csv,text/tab-separated-values,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-              className="hidden"
-              onChange={onFileChange}
-            />
-            <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-              {labels.io.chooseFile}
-            </Button>
-            <span className="truncate text-sm text-muted-foreground">{preview?.fileName ?? labels.io.noFileChosen}</span>
-          </div>
+          {preview ? (
+            <Dropzone compact accept={IMPORT_ACCEPT} maxFiles={1} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
+              <Paperclip className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <span className="min-w-0 flex-1 truncate text-sm text-foreground">{preview.fileName}</span>
+              <span className="shrink-0 text-xs text-muted-foreground">{labels.io.replaceFile}</span>
+            </Dropzone>
+          ) : (
+            <Dropzone accept={IMPORT_ACCEPT} maxFiles={1} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
+              <DropzoneEmptyState title={labels.io.chooseFile} description={labels.io.noFileChosen} />
+            </Dropzone>
+          )}
 
           {error && <p className="text-sm text-destructive">{labels.io[error]}</p>}
 

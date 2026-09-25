@@ -63,6 +63,75 @@ describe("DataGridImportButton (browser)", () => {
     ]);
   });
 
+  it("dropping a CSV file onto the dropzone opens the same preview/mapping step as choosing it via the button", async () => {
+    let imported: Row[] | null = null;
+    let nextId = 0;
+
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton
+          createRow={(): Row => ({ id: `imported-${nextId++}`, name: "", age: null })}
+          onImport={(rows: Row[]) => {
+            imported = rows;
+          }}
+        />
+        <DataGridRoot className="h-[200px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    const dropzone = document.querySelector<HTMLElement>('[role="button"][aria-label="Choose file"]');
+    expect(dropzone).not.toBeNull();
+
+    const file = makeCsvFile("Name,Age\nAlice,30");
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+    dropzone!.dispatchEvent(new DragEvent("dragenter", { bubbles: true, cancelable: true, dataTransfer }));
+    dropzone!.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer }));
+    dropzone!.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer }));
+
+    // same preview step a file-input pick reaches: parsed rows shown, mapping grid ready.
+    await expect.element(page.getByText("Alice")).toBeInTheDocument();
+    await expect.element(page.getByText("Showing 1 of 1 rows")).toBeInTheDocument();
+
+    await userEvent.click(page.getByRole("button", { name: "Import", exact: true }));
+    expect(imported).toEqual([{ id: "imported-0", name: "Alice", age: 30 }]);
+  });
+
+  it("dropping a second CSV in the mapping step replaces the preview with the new file's headers", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton createRow={(): Row => ({ id: "imported-0", name: "", age: null })} onImport={() => {}} />
+        <DataGridRoot className="h-[200px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    const firstDropzone = document.querySelector<HTMLElement>('[role="button"][aria-label="Choose file"]')!;
+    const firstFile = makeCsvFile("Name,Age\nAlice,30");
+    const firstTransfer = new DataTransfer();
+    firstTransfer.items.add(firstFile);
+    firstDropzone.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: firstTransfer }));
+    await expect.element(page.getByText("Alice")).toBeInTheDocument();
+
+    // the compact drop zone in the mapping step replaces this same file — reuses the initial load/preview path.
+    const compactDropzone = document.querySelector<HTMLElement>('[role="button"][aria-label="Choose file"]')!;
+    const secondFile = new File(["Full Name,City\nBob,Berlin"], "contacts.csv", { type: "text/csv" });
+    const secondTransfer = new DataTransfer();
+    secondTransfer.items.add(secondFile);
+    compactDropzone.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: secondTransfer }));
+
+    await expect.element(page.getByText("Bob")).toBeInTheDocument();
+    await expect.element(page.getByText("Alice")).not.toBeInTheDocument();
+    await expect.element(page.getByText("Full Name")).toBeInTheDocument();
+  });
+
   it("skips a column mapped to '—' and clears an invalid number instead of dropping the row", async () => {
     let imported: Row[] | null = null;
     let nextId = 0;

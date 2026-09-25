@@ -184,7 +184,7 @@ describe("global keyboard shortcuts (focus outside the grid)", () => {
     expect(gridCells()[1]!.textContent).toBe(originalText);
   });
 
-  it("a consumer-added action (selectAll) fires outside the grid, exactly like its in-grid binding", async () => {
+  it("a flagged action (selectAll) fires outside the grid, exactly like its in-grid binding", async () => {
     function SelectAllGrid(): ReactNode {
       const grid = useDataGridState(makeRows(5), { getRowId: (r) => r.id });
       return (
@@ -193,7 +193,7 @@ describe("global keyboard shortcuts (focus outside the grid)", () => {
           <div style={{ height: 300 }}>
             <DataGrid {...grid} columns={columns} className="h-[300px]">
               <>
-                <DataGridGlobalShortcuts actions={["selectAll"]} />
+                <DataGridGlobalShortcuts selectAll />
                 <DataGridHeader />
                 <DataGridBody />
               </>

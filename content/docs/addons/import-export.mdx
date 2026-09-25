@@ -100,8 +100,12 @@ logs a dev-only warning.
   <Step>
     ### Choose a file
 
-    CSV/TSV or xlsx/xls. A multi-sheet workbook opens on its first sheet, and a sheet picker
-    in the dialog switches it before you confirm.
+    CSV/TSV or xlsx/xls. Drag a file onto the drop zone, or click it to open the file picker. A
+    file of another type is rejected. The drop zone stays ready for another file. A multi-sheet
+    workbook opens on its first sheet, and a sheet picker in the dialog switches it before you
+    confirm. After a file loads, a compact drop zone shows its name. Drop or click there to replace
+    the file without closing the dialog. The drop zone is its own `dropzone` item, and installing
+    `data-grid-io` installs it too.
   </Step>
   <Step>
     ### Header row

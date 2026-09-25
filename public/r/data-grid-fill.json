@@ -19,7 +19,7 @@
     },
     {
       "path": "registry/default/blocks/data-grid-fill/data-grid-fill.ts",
-      "content": "/** Public entry point — the only module consumers/docs should import from. */\r\nexport { useDataGridFill, type UseDataGridFillOptions, type UseDataGridFillResult, type FillArgs } from \"./use-data-grid-fill\";\r\nexport { computeFillTarget, type AllowedFillDirections, type ComputeFillTargetOptions } from \"./fill\";\r\nexport { detectSeries, type SeriesDescriptor } from \"./fill\";\r\nexport { generateFill, type FillDirection, type GenerateFillOptions } from \"./fill\";\r\nexport { fillDirection, rectRelativeTo } from \"./fill\";\r\n",
+      "content": "/** Public entry point — the only module consumers/docs should import from. */\r\nexport { useDataGridFill, type UseDataGridFillOptions, type UseDataGridFillResult, type FillArgs } from \"./use-data-grid-fill\";\r\nexport { computeFillTarget, type AllowedFillDirections, type ComputeFillTargetOptions } from \"./fill\";\r\nexport { detectSeries, type SeriesDescriptor } from \"./fill\";\r\nexport { generateFill, type FillDirection, type GenerateFillOptions } from \"./fill\";\r\nexport { fillDirection, rectRelativeTo } from \"./fill\";\r\n\r\n/** Offers the `fillDown`/`fillRight` global-shortcut flags — this add-on is what makes them do anything. */\r\n// Relative on purpose: the shadcn CLI rewrites import paths, never augmentation module names.\r\ndeclare module \"../data-grid/keyboard/global-shortcuts\" {\r\n  interface DataGridGlobalShortcutActions {\r\n    fillDown: true;\r\n    fillRight: true;\r\n  }\r\n}\r\n",
       "type": "registry:component",
       "target": "components/data-grid-fill/data-grid-fill.ts"
     },

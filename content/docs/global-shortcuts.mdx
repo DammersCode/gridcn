@@ -62,38 +62,36 @@ function OrdersGrid() {
 }
 ```
 
-Limit the enabled actions:
+Enable one or more actions with a `true` flag:
 
 ```tsx
-<DataGridGlobalShortcuts undo />
+<DataGridGlobalShortcuts selectAll deleteRows />
 ```
 
-Omit the flags to enable every action (undo and redo).
+Omit every flag to enable the default set (undo and redo). Setting any flag replaces the
+default set with exactly the flags you pass.
 
 | Prop | Description | Default |
 |---|---|---|
-| `undo` | enables the effective keymap's undo binding on window keydown | enabled when both flags are omitted |
-| `redo` | enables the effective keymap's redo bindings on window keydown | enabled when both flags are omitted |
-| `actions` | adds more grid actions to the window layer, for example `["selectAll"]` | none |
+| `undo` | enables the effective keymap's undo binding on window keydown — requires the [Undo & redo](/docs/addons/undo-redo) add-on | enabled when no flag is set |
+| `redo` | enables the effective keymap's redo bindings on window keydown — requires the [Undo & redo](/docs/addons/undo-redo) add-on | enabled when no flag is set |
+| `fillDown` | enables the fill-down binding on window keydown — requires the [Fill](/docs/addons/fill) add-on | off |
+| `fillRight` | enables the fill-right binding on window keydown — requires the [Fill](/docs/addons/fill) add-on | off |
+| `selectAll` | enables the select-all binding on window keydown | off |
+| `insertRowAbove` | enables the insert-row-above binding on window keydown | off |
+| `insertRowBelow` | enables the insert-row-below binding on window keydown | off |
+| `duplicateRow` | enables the duplicate-row binding on window keydown | off |
+| `deleteRows` | enables the delete-rows binding on window keydown | off |
+
+Each flagged action runs the same dispatch as its in-grid binding, with the same guards. For
+example, `insertRowBelow` does nothing without `createRow`.
 
 The listener reads the effective keymap from the store.
 When you remap `undo`, the global binding follows (see [Keybindings — Remapping](/docs/addons/keybindings#remapping)).
 
-## Add more actions
-
-Pass `actions` to enable other grid actions outside the grid:
-
-```tsx
-<DataGridGlobalShortcuts actions={["selectAll"]} />
-```
-
-`actions` adds to undo and redo. The `undo` and `redo` flags still limit those two.
-An added action runs the same dispatch as its in-grid binding, with the same guards.
-For example, `insertRowBelow` does nothing without `createRow`.
-
-Add only actions whose every binding includes <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> (`mod`).
-A key without it types into the page, and a `ctrl`-only or `alt`-only chord collides with the
-operating system (<kbd>Ctrl</kbd>+<kbd>Space</kbd> switches the input language on Windows).
+Only actions whose every binding includes <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> (`mod`) are available as
+flags. A key without it types into the page, and a `ctrl`-only or `alt`-only chord collides with
+the operating system (<kbd>Ctrl</kbd>+<kbd>Space</kbd> switches the input language on Windows).
 
 ## Multiple grids
 
@@ -118,7 +116,7 @@ This protects the layer from your listener and your listener from the layer.
 - **Global copy and paste:** the active cell is unknown while focus is outside the grid. For a
   programmatic paste, call `useDataGridClipboard().pasteFromClipboard()`.
 - **Global navigation:** the arrow keys have no `mod` prefix, so they stay with the page.
-- **Global select-all by default:** the page owns `mod+a` until you add `"selectAll"` to `actions`.
+- **Global select-all by default:** the page owns `mod+a` until you set the `selectAll` flag.
 
 ## Related
 

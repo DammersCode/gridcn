@@ -34,11 +34,13 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
   const fillHandlers = useDataGridFillHandlers();
   const { rowHeight, interaction } = useDataGridRootContext();
 
-  // per-flag content deps (not the `config` object) so an inline config doesn't recompute per render
+  // content-based dep (not the `config` object) so an inline config doesn't recompute per render;
+  // sorted keys since the flag set is open (add-ons augment it) so no fixed list of deps works
+  const configKey = config ? Object.keys(config).filter((k) => config[k as keyof GlobalShortcutsConfig]).sort().join("|") : "";
   const enabled = useMemo(
     () => enabledGlobalActions(config),
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- deliberate content-based deps
-    [config?.undo, config?.redo, config?.actions?.join("|")],
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- deliberate content-based dep (configKey)
+    [configKey],
   );
 
   // the window handler reads fresh values per event without re-attaching on every config change

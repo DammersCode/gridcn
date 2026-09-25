@@ -99,9 +99,15 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Layout tuning props:** `DataGridProvider` accepts `headerHeight` (default `36`) and
   `columnOverscan` (column-window overscan, default `1`). The 150px default column width and the
   32px resize floor are now documented.
-- **Global shortcuts beyond undo/redo:** `GlobalShortcutsConfig` accepts `actions` (a `GridAction`
-  list, default `["undo", "redo"]`); each action runs through the grid's own keymap-dispatch path,
-  so it behaves exactly like its in-grid binding.
+- **Global shortcuts beyond undo/redo:** `DataGridGlobalShortcuts` takes one `true` flag per action
+  (`<DataGridGlobalShortcuts selectAll deleteRows />`); no flag keeps undo and redo, any flag enables
+  exactly the flagged actions. The flags come from the new `DataGridGlobalShortcutActions`
+  interface: the core offers `selectAll` and the row actions, `data-grid-history` adds `undo`/`redo`,
+  and `data-grid-fill` adds `fillDown`/`fillRight`, so an add-on's flags exist only once it is
+  installed. Each flag runs the grid's own keymap dispatch, like its in-grid binding.
+- **Dropzone:** a dependency-free `dropzone` item (drag and drop or click, accept/size/count checks,
+  a compact variant). The `data-grid-io` import dialog uses it to choose a file, and its compact
+  variant replaces the file during column mapping.
 - **Typed aggregate reducers:** `useDataGridAggregate` and its `AggregateReducer`/`AggregateSpecs`
   types accept a `TData` type parameter, so a typed reducer no longer needs a cast. An aggregate
   spec key that matches no column now logs a development warning instead of silently reducing

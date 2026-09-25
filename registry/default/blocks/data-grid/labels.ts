@@ -165,6 +165,8 @@ export type DataGridIOLabels = {
   importDialogDescription: string;
   chooseFile: string;
   noFileChosen: string;
+  /** Caption on the compact drop zone shown once a file is already chosen, in the column-mapping step. */
+  replaceFile: string;
   /** Fallback column header in the mapping table when "First row is a header" is unchecked; `index` is 1-based. */
   columnFallback: (index: number) => string;
   delimiter: string;
@@ -399,6 +401,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     importDialogDescription: "Choose a CSV or Excel file, then map its columns to the grid.",
     chooseFile: "Choose file",
     noFileChosen: "No file chosen",
+    replaceFile: "Drop or click to replace",
     columnFallback: (index) => `Column ${index}`,
     delimiter: "Delimiter",
     delimiterComma: "Comma (,)",

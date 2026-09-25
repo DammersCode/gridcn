@@ -5,49 +5,48 @@ import { isMacPlatform } from "./platform";
 /**
  * An action the global-shortcut layer may resolve and dispatch while DOM focus is OUTSIDE the
  * grid. The layer is action-generic (the gate + `matchKeymap` + the grid's own dispatch path);
- * the SAFE DEFAULT is `undo`/`redo` only. Extension rule for anything added through
- * `GlobalShortcutsConfig.actions`: every binding of the added action must be mod-prefixed (no
- * ctrl-only/alt-only combos — Ctrl+Space is the Windows IME toggle, Ctrl+Q the browser quit,
+ * the SAFE DEFAULT is `undo`/`redo` only. Extension rule for anything added to
+ * {@link DataGridGlobalShortcutActions}: every binding of the added action must be mod-prefixed
+ * (no ctrl-only/alt-only combos — Ctrl+Space is the Windows IME toggle, Ctrl+Q the browser quit,
  * etc.), and the action must make sense without grid focus (a navigation move scrolls the grid's
  * own container, never the page).
  */
 export type GlobalShortcutAction = GridAction;
 
 /**
- * Opt-in global-shortcut config. An object rather than an array: a duplicate key is a compile
- * error, and IntelliSense stops suggesting a key once it is typed, so the same action can never
- * be registered twice. Omit the whole option (or pass no flag) to enable the safe default —
- * `undo` and `redo` only.
+ * Actions the global-shortcut window layer may enable, each keyed `true`. Core lists the
+ * actions it ships; an add-on that owns a `GridAction` (undo/redo, fill) augments this
+ * interface via `declare module` to offer its own flag — see `data-grid-history`'s and
+ * `data-grid-fill`'s barrels for the augmentation.
  */
-export interface GlobalShortcutsConfig {
-  /** Intercept the effective keymap's `undo` binding (default `mod+z`) on window keydown. */
-  undo?: true;
-  /** Intercept the effective keymap's `redo` bindings (default `mod+y`, `mod+shift+z`) on window keydown. */
-  redo?: true;
-  /**
-   * Additional actions the window layer resolves and dispatches, beyond `undo`/`redo` (e.g.
-   * `"selectAll"`). The flags above still narrow the flag-derived set; `actions` only EXTENDS it
-   * (deduped). Each added action runs the grid's own keymap-dispatch path, so it behaves exactly
-   * like its in-grid binding — including that binding's store-side guards (`insertRowBelow`
-   * without `createRow` is a no-op, `fillDown` without the fill add-on is a no-op, ...). Extension
-   * rule: every binding of an added action must be mod-prefixed (see {@link GlobalShortcutAction}).
-   */
-  actions?: readonly GridAction[];
+export interface DataGridGlobalShortcutActions {
+  selectAll: true;
+  insertRowAbove: true;
+  insertRowBelow: true;
+  duplicateRow: true;
+  deleteRows: true;
 }
+
+/**
+ * Opt-in global-shortcut config: one `true` flag per enabled action. Keys are constrained to
+ * `GridAction` so an add-on's augmentation of {@link DataGridGlobalShortcutActions} can never
+ * compile in a key `dispatchGridAction` cannot resolve. No flag set (or the config omitted)
+ * enables the safe default — `undo` and `redo` only; any flag set enables exactly the flagged
+ * actions.
+ */
+export type GlobalShortcutsConfig = {
+  [K in keyof DataGridGlobalShortcutActions & GridAction]?: true;
+};
 
 /** The actions enabled by default: undo/redo only (the safe set — see {@link GlobalShortcutAction}). */
 const DEFAULT_GLOBAL_ACTIONS: readonly GridAction[] = ["undo", "redo"];
 
-/** The enabled actions of a config: the `true` flags narrow the default set, `actions` extends it. Omitting the config or passing no flag enables every default action. */
+/** The enabled actions of a config: any `true` flag selects exactly the flagged actions. No flag (or no config) enables the default set. */
 export function enabledGlobalActions(config?: GlobalShortcutsConfig): readonly GlobalShortcutAction[] {
-  const flagEnabled: GridAction[] = [];
-  if (config?.undo === true) flagEnabled.push("undo");
-  if (config?.redo === true) flagEnabled.push("redo");
-  const enabled: GridAction[] = flagEnabled.length > 0 ? flagEnabled : [...DEFAULT_GLOBAL_ACTIONS];
-  for (const action of config?.actions ?? []) {
-    if (!enabled.includes(action)) enabled.push(action);
-  }
-  return enabled;
+  const flagEnabled = Object.keys(config ?? {}).filter(
+    (key) => config?.[key as keyof GlobalShortcutsConfig] === true,
+  ) as GlobalShortcutAction[];
+  return flagEnabled.length > 0 ? flagEnabled : [...DEFAULT_GLOBAL_ACTIONS];
 }
 
 /** Minimal event shape for {@link resolveGlobalShortcut} — the matcher's `KeymapEvent` plus the two DOM flags the gate needs. */

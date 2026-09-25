@@ -961,6 +961,26 @@
          ]
       },
       {
+         "name": "dropzone",
+         "type": "registry:block",
+         "title": "Dropzone",
+         "description": "Dependency-free file dropzone: drag and drop or click to choose, with accept, size, and count checks and a compact variant. Used by the data-grid-io import dialog.",
+         "author": "gridcn",
+         "dependencies": [
+            "lucide-react"
+         ],
+         "files": [
+            {
+               "path": "registry/default/blocks/dropzone/dropzone.tsx",
+               "type": "registry:component",
+               "target": "components/dropzone/dropzone.tsx"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
          "name": "data-grid-io",
          "type": "registry:block",
          "title": "Data Grid IO",
@@ -975,6 +995,7 @@
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/dropzone",
             "dialog",
             "select",
             "dropdown-menu",
