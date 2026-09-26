@@ -25,7 +25,7 @@ export type UseDataGridPresenceOptions = {
 
 /** Return value of {@link useDataGridPresence}. */
 export type UseDataGridPresenceResult = {
-  /** Pass this into `<DataGridProvider overlayPlugins={[plugin]}>` (or append to an existing array) — stable identity for the component's lifetime. */
+  /** Stable for the component's lifetime. Put it in a memoized `overlayPlugins` array, e.g. `useMemo(() => [plugin], [plugin])`; an inline `[plugin]` literal trips the identity dev warning. */
   plugin: OverlayPlugin;
   /** The real (imperative) mechanism: call directly from your websocket/CRDT handler. */
   setPresenceHighlights(highlights: readonly PresenceHighlightEntry[]): void;
