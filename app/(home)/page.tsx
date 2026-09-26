@@ -451,7 +451,7 @@ export default function HomePage() {
       </div>
 
       <div className="relative z-10 mt-16 w-full max-w-5xl px-6">
-        <div className="border bg-card z-10 mx-auto mb-8 flex w-fit flex-col items-center gap-2 px-8 py-5 text-center">
+        <div className="border bg-card z-10 mx-auto mb-8 flex w-full max-w-2xl flex-col items-center gap-2 px-6 py-5 text-center sm:px-8">
           <Badge variant="outline">
             <Bot aria-hidden="true" />
             Agent skills
