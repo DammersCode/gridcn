@@ -16,6 +16,7 @@ with `setInterval`. A real integration looks like this:
 ```tsx
 "use client";
 
+import { useEffect } from "react";
 import { useDataGridPresence } from "@/components/data-grid-presence/data-grid-presence";
 
 function usePresenceSync(roomId: string) {
