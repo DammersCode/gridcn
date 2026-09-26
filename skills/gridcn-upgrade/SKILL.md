@@ -7,6 +7,22 @@ gridcn ships no npm package and no semver: `npm update` touches nothing, and a b
 land in any 0.x minor (see the changelog's `**Breaking:**` entries). "Updating" means re-running the
 install command and reconciling upstream's copy against your local one, file by file.
 
+Scope: updating installed gridcn source. Adding an add-on for the first time → `gridcn-addons`.
+
+## 0. Ask where the upgrade happens
+
+Run `git rev-parse --abbrev-ref HEAD`.
+
+- **Command fails (no Git repository):** work in place. Before step 3 overwrites anything, list the
+  files it will overwrite and wait for the user's consent: without Git, an overwrite cannot be undone.
+- **Command prints a branch name:** ask the user one question before any other step, and wait for
+  the answer: "Upgrade gridcn on the current branch `<branch>`, or on a new branch
+  `chore/gridcn-upgrade`?" Then switch to the branch the user picks
+  (`git switch -c chore/gridcn-upgrade` for a new branch).
+- **Command prints `HEAD` (detached):** ask only for the new branch name, then create it.
+
+Done when the user answered and the working branch is the one they picked, or the project has no Git.
+
 ## 1. Find what changed
 
 Read gridcn's changelog
@@ -26,8 +42,8 @@ For each installed item (check `components.json` for your aliases, then look und
 npx shadcn add @gridcn/<item> --dry-run
 ```
 
-This prints a per-file status (identical, changed, new) without writing anything. Commit or stash
-any uncommitted work first — the next steps overwrite files. Sort the output into two piles:
+This prints a per-file status (identical, changed, new) without writing anything. In a Git
+project, commit or stash uncommitted work first: the next steps overwrite files. Sort the output into two piles:
 
 - **Identical or upstream-only-changed** (you never touched it): safe to overwrite outright.
 - **Locally edited** (status shows a diff against your copy): needs reconciliation, not a blind

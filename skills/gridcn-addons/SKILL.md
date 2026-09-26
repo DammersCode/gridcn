@@ -8,6 +8,8 @@ Each gridcn add-on is a separate registry item that installs into your own proje
 rules the docs don't spell out as a procedure: which hook output goes where, and the gotchas that
 fail silently instead of erroring.
 
+Scope: installing add-ons and wiring their outputs. Choosing between lazy loading and pagination, or server-side sort and filter → `gridcn-data-source`.
+
 ## 1. Install
 
 Run one command per add-on (or join several in one call):

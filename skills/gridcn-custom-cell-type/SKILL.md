@@ -5,6 +5,8 @@ description: "gridcn custom cell types: the CellType contract, registration, and
 
 A cell type is one object: `{ Cell, Editor, toText, fromText, clearValue, isEmpty, compare?, align? }`. Clipboard, fill, quick-clear, search, sort, and import/export all run through this contract, so getting one method wrong breaks every consumer of the type, not just the visible cell.
 
+Scope: one cell type, from value pipeline to registration. Auditing a slow grid → `gridcn-performance`.
+
 ## 1. Symptom check first, if you were sent here by a bug
 
 - **Column renders as plain text, editing does nothing** → the `type` key does not match a key in the registry you passed to `cellTypes`. The lookup falls back to the built-in `text` type silently, with no warning (installed `components/data-grid/cell.tsx`: `cellTypesRegistry[column.type ?? "text"] ?? cellTypesRegistry["text"] ?? defaultCellTypes.text`). Fix the key, or check step 4.

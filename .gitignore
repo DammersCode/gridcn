@@ -15,6 +15,7 @@ next-env.d.ts
 # untracked reference clones for research
 references/
 !.agents/skills/*/references/
+!skills/*/references/
 .vitest/
 .vitest-attachments/
 

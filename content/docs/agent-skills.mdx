@@ -4,53 +4,21 @@ description: Five installable skills that teach Claude Code, Cursor, Codex, and 
 icon: Bot
 ---
 
-A coding agent can read the gridcn docs through [`llms.txt`](/llms.txt), but the docs describe
-features one page at a time. Some tasks cross many pages: a performance audit, a custom cell type,
-a server-backed data source. gridcn ships five agent skills for these tasks. Each skill gives the
-agent an ordered procedure, the failures that stay silent, and a check that tells the agent when
-the work is done.
+gridcn ships five agent skills for tasks that cross many docs pages. Each skill gives the agent
+an ordered procedure, the failures that stay silent, and a check that tells it when the work is
+done.
 
 <InstallCommand command="skills add DammersCode/gridcn" />
 
-The [`skills` CLI](https://skills.sh) copies the skills into your project. Claude Code, Cursor,
-Codex, OpenCode, Gemini CLI, and other agents that read the
-[Agent Skills](https://agentskills.io) format load them.
+## Skills
 
-## Install
-
-The command above prompts for the skills and the agents to install them for. To install all
-skills without the prompt, add `--all`:
-
-```bash
-npx skills add DammersCode/gridcn --all
-```
-
-To install one skill, name it with `--skill`:
-
-```bash
-npx skills add DammersCode/gridcn --skill gridcn-performance
-```
-
-To list the skills in the repository without installing them, add `--list`. To pull the latest
-version of installed skills, run `npx skills update`.
-
-## How the agent uses a skill
-
-Each skill has a description that stays in the agent's context. When your request matches the
-description, the agent loads the full skill. You can also call a skill by name, for example
-`/gridcn-performance` in Claude Code.
-
-A skill holds the procedure and the traps. For prop tables and full examples, it links to the
-Markdown version of the docs page, for example `https://gridcn.vercel.app/docs/performance.md`.
-The agent reads the page that the current step needs.
-
-| Skill | Reach for it when |
-| --- | --- |
-| [`gridcn-performance`](#gridcn-performance) | The grid is slow to scroll, type, or edit, or a code review touches grid props. |
-| [`gridcn-custom-cell-type`](#gridcn-custom-cell-type) | You build a cell type, or a custom type renders as plain text. |
-| [`gridcn-data-source`](#gridcn-data-source) | You connect the grid to a backend or to a dataset too large for one payload. |
-| [`gridcn-addons`](#gridcn-addons) | You add one or more add-ons, or an add-on has no effect. |
-| [`gridcn-upgrade`](#gridcn-upgrade) | You pull a newer gridcn release into source that you already installed. |
+| Skill | What it does | Reach for it when |
+| --- | --- | --- |
+| [`gridcn-performance`](#gridcn-performance) | Audits the grid integration against the memoization and virtualization traps. | The grid is slow to scroll, type, or edit, or a code review touches grid props. |
+| [`gridcn-custom-cell-type`](#gridcn-custom-cell-type) | Builds a cell type that pastes, sorts, and edits like the built-in types. | You build a cell type, or a custom type renders as plain text. |
+| [`gridcn-data-source`](#gridcn-data-source) | Selects plain data, pagination, lazy loading, or streaming, and moves sort and filter to the server. | You connect the grid to a backend or to a dataset too large for one payload. |
+| [`gridcn-addons`](#gridcn-addons) | Installs add-ons and wires each output to the correct place. | You add one or more add-ons, or an add-on has no effect. |
+| [`gridcn-upgrade`](#gridcn-upgrade) | Merges a newer gridcn release into your installed source and keeps your edits. | You pull a newer gridcn release into source that you already installed. |
 
 ## gridcn-performance
 
@@ -126,7 +94,8 @@ development warning.
 ## gridcn-upgrade
 
 **What it does.** gridcn is source that you own, not an npm dependency. An update re-runs the
-install and merges the upstream files with your copy. The skill reads the
+install and merges the upstream files with your copy. In a Git project, the skill first asks you
+whether to upgrade on the current branch or on a new branch. Then it reads the
 [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) for breaking entries.
 It sorts every installed file with `--dry-run`, overwrites only the files that you did not edit,
 and merges your edits into the others. Then it checks the aliases and the imports.
@@ -138,8 +107,8 @@ installed files and want to keep the changes.
 the smoke test from [Installation](/docs/installation) passes.
 
 <Callout type="warn">
-  Commit or stash your changes before you run `gridcn-upgrade`. A reinstall that overwrites an
-  edited file discards the edits.
+  Commit or stash your changes before you run `gridcn-upgrade`. If the project has no Git, back up
+  your edited files first: a reinstall that overwrites an edited file discards the edits.
 </Callout>
 
 ## Related

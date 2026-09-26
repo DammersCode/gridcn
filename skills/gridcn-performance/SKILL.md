@@ -5,6 +5,8 @@ description: "gridcn performance audit: finds and fixes what makes a gridcn grid
 
 Almost every gridcn slowdown traces to one cause: an unstable prop or callback identity defeats row or cell memoization grid-wide, or the grid lacks a bounded height so virtualization never activates. Both fail silently in production — dev-mode console warnings are the only signal. Work the whole checklist top to bottom, cheapest check first; fix every hit, then remeasure.
 
+Scope: render and scroll cost of an existing grid. Building a cell type → `gridcn-custom-cell-type`; choosing a data source → `gridcn-data-source`.
+
 ## 0. Measure first
 
 Before changing anything, capture a baseline so the fix is verifiable:

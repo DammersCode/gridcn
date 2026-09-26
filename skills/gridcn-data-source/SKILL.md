@@ -5,6 +5,8 @@ description: "gridcn data sources: pick plain data, pagination, lazy loading, or
 
 Pick exactly one loading strategy for the dataset, then make every sort/filter/search path see the full dataset, not just what happened to load.
 
+Scope: where rows come from and where sort, filter, and search run. Wiring other add-ons → `gridcn-addons`.
+
 ## 1. Pick the strategy
 
 Answer in order, stop at the first match:
