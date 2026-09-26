@@ -300,6 +300,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Docs: stable `overlayPlugins` in the fill and presence examples:** the examples memoize the
+  `overlayPlugins` array. The inline `[plugin]` literal they showed trips the core's
+  identity-stability dev warning on every re-render.
 - **Checkbox drag toggled the start cell:** a press on a checkbox cell dragged across other rows
   selects the range and no longer toggles the cell where the drag started, also when the drag
   ends back on that cell.

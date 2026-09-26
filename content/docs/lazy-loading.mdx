@@ -246,15 +246,18 @@ const onSortChange = (next: SortSpec[]) => {
   onDataChange={lazy.onDataChange}
   sortState={EMPTY_SORT}
   onSortChange={onSortChange}
+  headerClickBehavior="sort"
 >
 ```
 
-Two details make this work:
+Three details make this work:
 
 - **`sortState` stays `[]`.** Passing it at all is what puts sorting in controlled mode, so a
   header click reports through `onSortChange` instead of sorting locally. Echoing the spec back
   into the prop makes the grid sort `data` by it. That re-orders the fetched window among itself
   and hides the server's order.
+- **A header click sorts only with `headerClickBehavior="sort"`.** The default, `"select"`, selects
+  the column and never calls `onSortChange`.
 - **A sort change discards loaded rows.** Already-fetched windows hold the *old* order, so
   `onSortChange` calls `lazy.reset()` before the refetch runs. Remounting the provider on a key
   derived from the spec clears them too. It also resets the core store (selection, edit state,

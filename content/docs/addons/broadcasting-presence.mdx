@@ -53,7 +53,7 @@ array is wrong when a column is hidden:
   data={data}
   columns={columns}
   getRowId={getRowId}
-  overlayPlugins={[plugin]}
+  overlayPlugins={overlayPlugins}
   onSelectionChange={(selection) => {
     const range = selection.current?.range;
     if (!range) return; // cleared — send the leave message instead
