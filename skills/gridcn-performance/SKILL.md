@@ -14,7 +14,9 @@ Before changing anything, capture a baseline so the fix is verifiable:
 1. Open the browser console in a dev build (`NODE_ENV !== "production"`) and reproduce the slow interaction (scroll, type, edit). Note every `[data-grid]`-prefixed warning and the `gridcn: the grid viewport shows more than...` warning verbatim.
 2. Open React DevTools Profiler, record the same interaction, and note which row/cell components re-render on a single scroll tick or keystroke. A one-row scroll step should re-render only the entering row's cells — anything more is the symptom this checklist explains.
 
-Done when: you have a warning list (possibly empty) and a profiler recording to compare against after the fix.
+Without a browser, skip the recording: for each fix, name the checklist symptom (warning text) it removes.
+
+Done when: you have a warning list (possibly empty) and a profiler recording to compare against after the fix, or the no-browser list.
 
 ## 1. Bounded height (cheapest check)
 
@@ -36,6 +38,7 @@ Grep the `data`/`onDataChange` (controlled mode) call sites. If `data` is rebuil
 
 - Symptom: `[data-grid] data array identity changed with no row changes; pass a stable reference (rebuilding it every render defeats row memoization)`
 - Fix: keep row references stable across renders that don't touch them; update immutably (swap only the changed row's reference), don't rebuild the whole array. This warning does not fire in uncontrolled mode (no `data` prop) — the store's own array legitimately gets a new reference on every mutation there.
+- In controlled mode, store the array `onDataChange` hands over unchanged: `onDataChange={(next) => setData(next as Row[])}`. A copy (`[...next]`), `map`, or `filter` defeats the store's echo check, so every edit or `updateCells` tick rebuilds the row-id map and the view index.
 
 ## 4. Unstable `getRowClassName` / `getCellClassName` / `onCellClick` / `onRowClick`
 
@@ -69,7 +72,7 @@ Grep any custom cell type or `renderCell` for `new Intl.DateTimeFormat(...)`, `n
 
 Grep for a feed/interval/subscription that calls `setData(wholeArrayRebuilt)` or the controlled `onDataChange` path on every tick, rather than patching. Full replacement re-triggers checks 3 and 6 on every tick and puts selection and open-editor state at risk.
 
-- Fix: use `actions.updateCells(patches)` / `actions.updateRows(...)` (writes by row id, doesn't move selection/active cell/open editor) instead of replacing `data`. Add `{ skipValidation: true }` only when the producer already validated the values, to keep a high-rate feed synchronous.
+- Fix: use `actions.updateCells(patches)` / `actions.updateRows(...)` (writes by row id, doesn't move selection/active cell/open editor) instead of replacing `data`. `useDataGridActions()` works only inside `DataGridProvider`, so render the feed as a child component. To read current values inside the feed, call `useDataGridStoreApi().getState().data` in the interval callback; never assign a ref during render. Keep the data mode consistent: pass `defaultData` (uncontrolled) when only the feed writes, or keep `data` plus `onDataChange` (controlled); never `data` without `onDataChange`. Add `{ skipValidation: true }` only when the producer already validated the values, to keep a high-rate feed synchronous.
 
 ## Done when
 

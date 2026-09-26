@@ -13,8 +13,7 @@ Scope: updating installed gridcn source. Adding an add-on for the first time →
 
 Run `git rev-parse --abbrev-ref HEAD`.
 
-- **Command fails (no Git repository):** work in place. Before step 3 overwrites anything, list the
-  files it will overwrite and wait for the user's consent: without Git, an overwrite cannot be undone.
+- **Command fails (no Git repository):** work in place. Step 3 then starts with a consent gate.
 - **Command prints a branch name:** ask the user one question before any other step, and wait for
   the answer: "Upgrade gridcn on the current branch `<branch>`, or on a new branch
   `chore/gridcn-upgrade`?" Then switch to the branch the user picks
@@ -52,6 +51,16 @@ project, commit or stash uncommitted work first: the next steps overwrite files.
 Done when every file the dry-run lists has a pile.
 
 ## 3. Apply the update per pile
+
+**Consent gate, projects without Git only.** Before the first write, list every file the reinstall
+will overwrite (including `components/ui/*`), end your turn with the question "Overwrite these
+files?", and wait for the user's yes. The gate holds even when the files look re-derivable from the
+registry, when you made a backup, or when you plan to re-add local edits afterwards: without Git,
+the user decides.
+
+A reinstall with `--overwrite` rewrites every file of the item, edited ones included, and the shadcn/ui
+primitives it depends on (`components/ui/*`). Save the locally edited files first, and review every
+`components/ui/*` change afterwards: restore any primitive the user customized.
 
 - **Unmodified files**: re-run the real install command for the item to pick up upstream:
   ```

@@ -14,12 +14,17 @@ Scope: one cell type, from value pipeline to registration. Auditing a slow grid 
 - **Paste throws or aborts the whole paste** → `fromText` threw. Go to step 2.
 - **A popover/portal editor (date-picker, combobox, color picker) closes the instant you click into it** → go to step 6, `data-grid-cell-editor`.
 - **Values look right on screen but sort/search/fill act on the wrong thing** → you conflated `toText`/`toDisplayText` with the raw value. Search and filter always match raw `String(value)`, never `toText`; sort's default (no `compare`) is a numeric-aware collation of that same raw string. See `custom-cell-types.md#value-pipeline`.
+- **A column declares `type: "x" as never` (or `as any`)** → remove the cast and augment `GridCellTypes` (step 5).
+
+Put the type in your own folder (for example `src/components/grid-cells/currency.tsx`), with its `declare module` block in the same file. Add no files to and edit no files under `components/data-grid*`: an upgrade overwrites them. Import only from the `@/components/data-grid/data-grid` barrel; it exports `useCommitGuard`, `useSeedFocus`, `CellSpan`, and `displayText` for editors and cells.
 
 ## 2. Design the value pipeline before writing any component
 
 - Storage type is a serializable primitive (a plain string/number/boolean, or `null`) — never a class instance (`Date`, `Decimal`, a custom `Money`). This keeps `compare` a plain comparison and clipboard/JSON round-trips trivial.
 - `toText` is the canonical, unformatted serialization. It must round-trip: `fromText(toText(v))` reproduces `v` for every value the type can hold. Clipboard copy and export call `toText` unconditionally.
+- If `fromText` also accepts locale input (`1.234,56`), test the round-trip with a value that has three decimals (`0.125`): a de-DE heuristic reads `"0.125"` as 125.
 - `fromText` must never throw. Paste and import feed it arbitrary text (a stray clipboard fragment, another tool's export, a typo). Anything unparseable returns `clearValue()`'s result, not `undefined` and not a thrown error — one bad cell degrades, the rest of the paste keeps going.
+- Check for an empty trimmed string first and return `clearValue()`: `Number("")` and `Number(" ")` are `0`, so an empty pasted cell otherwise becomes a real zero.
 - `clearValue()` is the type's empty value (`""`, `null`, `false`, …). Quick-clear delete, `fromText`'s garbage fallback, and fill-clear all call it.
 - `isEmpty` is a semantic choice, not a technicality — decide it deliberately, it is not implied by `clearValue`. It gates what a Ctrl+A region treats as blank and what the fill handle treats as a fillable gap. Precedent: for `number`, `0` is not empty (only `null` is); for `checkbox`, `false` is not empty (only `null` is). A column that treats a real `0` as empty makes the fill handle skip it.
 - `toDisplayText` is optional and display-only: locale-formatted dates, currency symbols, and similar. It is never round-tripped and never read by clipboard, export, search, or filter — only the on-screen render uses it (fallback: `toDisplayText ?? toText`, via the `displayText()` helper from the barrel). Keep `toText` plain and parseable so a decorative display format can never leak into an export or break a later paste.
@@ -36,6 +41,7 @@ Completion for this step: you can state, in one sentence per method, what `toTex
 - Guard against a double commit: an editor typically has at least two paths that can end it (Enter, then the blur that follows it; React StrictMode's dev double-invoke). Use `useCommitGuard` (from the barrel) — a one-shot latch, `true` once, `false` after — in every editor with more than one commit path.
 - Seed focus and the caret from `initialText` (type-to-replace) with `useSeedFocus` (from the barrel).
 - If the column's `validate` can be an async Standard Schema, honor `pending` (mark the input `readOnly`, never `disabled` — a disabled input swallows Escape and blocks cancellation) and re-arm your commit guard off `rejectionCount`, not off `pending` clearing (it also clears on Escape, right before unmount).
+- Clamp or reject out-of-range editor input before `onChange`: `Cell` must render every value the editor can produce (`"★".repeat(-1)` throws).
 - Build editor UI from the project's shadcn primitives (`Input`, `Select`, `Popover`, `Calendar`, …) under `@/components/ui/*` — check the consumer's actual alias in `components.json` if unsure — to match the built-in types' look.
 
 Completion for this step: Enter commits and moves down, Escape cancels without calling `onChange`, and a rapid Enter-then-blur or a StrictMode double-mount commits exactly once.

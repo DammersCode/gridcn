@@ -36,7 +36,7 @@ A lazy or paged grid's uncontrolled sort/filter/search only ever sees the rows c
 
 Decide per gesture, for the chosen strategy:
 
-- **Full dataset must be searchable/sortable/filterable** → move that gesture server-side: hold the spec in your own state, send it to your fetch call, and pass the grid's `sortState`/`filterState` as controlled (lazy) or leave sort/filter to your own UI (paged server mode). Full wiring, including the exact controlled-prop rules and reset-on-spec-change requirement, is in `references/server-mode.md` — read it before writing this code.
+- **Full dataset must be searchable/sortable/filterable** → move that gesture server-side: hold the spec in your own state, send it to your fetch call, pass `sortState={EMPTY_SORT}` (a stable empty array) plus `onSortChange`, in lazy and paged server mode alike, and set `headerClickBehavior="sort"` so header clicks reach `onSortChange`. Never echo the spec back into `sortState`. Full wiring, including the exact controlled-prop rules and reset-on-spec-change requirement, is in `references/server-mode.md` — read it before writing this code.
 - **Page/window-local result is acceptable and disclosed to the user** → leave it uncontrolled, but say so in the completion record (step 5) rather than leaving it undecided.
 
 For `data-grid-lazy` specifically, mount `<DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />` inside `<DataGridProvider>` regardless of which path is chosen. It only dev-warns (`[data-grid-lazy] sort/filter/search changed while rows are still unloaded...`) when an uncontrolled gesture fires over holes — it does not block the gesture or fix production behavior, so step 3's server-side decision still has to be made by hand for the paths that need full coverage.
@@ -51,7 +51,7 @@ Applies to `data-grid-lazy`:
 
 Applies to `data-grid-pagination`:
 
-- A filter or search change that can shrink the result set must call `onPageChange(1)` yourself (client or server mode) — the pager does not do this for you, uncontrolled or via `useDataGridUrlPagination`.
+- A sort, filter, or search change must call `onPageChange(1)` yourself (client or server mode) — the pager does not do this for you, uncontrolled or via `useDataGridUrlPagination`.
 - Server mode: guard against stale responses (a slower page-2 fetch resolving after a faster page-3 one must not overwrite page-3's rows) and pass `reconcilePage: true` if a shrunk `total` should clamp `page` back for you (it fires your `onPageChange` once; it never sets your state itself).
 - Selection survives a page change by index, not by row identity — it will point at different rows on the new page unless you key the provider by page or clear the selection in `onPageChange`.
 - Merge a page's edited slice back into the full dataset by row id in `onDataChange` — replacing the whole dataset with just the page's slice silently drops every other row.

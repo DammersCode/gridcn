@@ -2,7 +2,7 @@
 
 Contents: [`data-grid-lazy`](#data-grid-lazy) · [`data-grid-pagination` (server mode)](#data-grid-pagination-server-mode)
 
-Both variants share the same shape: hold the spec outside the grid's store, send it to the fetch, and keep the grid's own sort/filter props either empty or absent so it never re-sorts/re-filters the loaded slice client-side.
+Both variants share the same shape: hold the spec outside the grid's store, send it to the fetch, and pass the grid's own `sortState`/`filterState` as a stable empty array so it never re-sorts/re-filters the loaded slice client-side. Omitting them means the grid sorts locally.
 
 ## `data-grid-lazy`
 
@@ -10,7 +10,7 @@ Both variants share the same shape: hold the spec outside the grid's store, send
 "use client";
 
 import { useState } from "react";
-import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody } from "@/components/data-grid/data-grid";
+import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, type SortSpec } from "@/components/data-grid/data-grid";
 import { useDataGridLazyRows, DataGridLazyGuard } from "@/components/data-grid-lazy/data-grid-lazy";
 
 const EMPTY_SORT: SortSpec[] = [];
@@ -36,6 +36,7 @@ function OrdersGrid() {
       onDataChange={lazy.onDataChange}
       sortState={EMPTY_SORT}
       onSortChange={onSortChange}
+      headerClickBehavior="sort"
     >
       <DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />
       <DataGridRoot onRowWindowChange={lazy.gridProps.onRowWindowChange}>
@@ -49,6 +50,7 @@ function OrdersGrid() {
 
 Rules that make this work, and break silently if skipped:
 
+- **Header clicks sort only with `headerClickBehavior="sort"`.** The default `"select"` selects the column, and `onSortChange` never fires.
 - **`sortState` must stay a stable empty array reference (`[]`), never omitted.** Passing it at all is what puts sorting into controlled mode, so a header click reports through `onSortChange` instead of sorting locally. Echoing the spec back into `sortState` re-sorts the fetched window among itself and hides the server's actual order.
 - **`filterState` follows the same rule** for filtering — pass it controlled-empty and hold the real filter spec yourself.
 - **`searchText` cannot be moved server-side at all.** It only highlights and navigates matches already in `data`; a search over a partial lazy array highlights only the loaded part, full stop. There is no controlled escape hatch for it — build a separate server search UI if full-dataset search is required.
@@ -62,8 +64,10 @@ Rules that make this work, and break silently if skipped:
 "use client";
 
 import { useEffect, useState } from "react";
-import { DataGrid } from "@/components/data-grid/data-grid";
+import { DataGrid, type SortSpec } from "@/components/data-grid/data-grid";
 import { useDataGridPagination, DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
+
+const EMPTY_SORT: SortSpec[] = [];
 
 function OrdersGrid() {
   const [page, setPage] = useState(1);
@@ -91,13 +95,25 @@ function OrdersGrid() {
     reconcilePage: true, // clamps page and fires onPageChange once if total shrinks under it
   });
 
+  const onSortChange = (next: SortSpec[]) => {
+    setSorts(next);
+    setPage(1);
+  };
+
   const onFilterOrSearchChange = () => {
     pager.controls.onPageChange(1); // useDataGridUrlPagination needs the same manual reset
   };
 
   return (
     <>
-      <DataGrid data={rows} columns={columns} getRowId={(row) => row.id} />
+      <DataGrid
+        data={rows}
+        columns={columns}
+        getRowId={(row) => row.id}
+        sortState={EMPTY_SORT}
+        onSortChange={onSortChange}
+        headerClickBehavior="sort"
+      />
       <DataGridPaginationBar {...pager.controls} />
     </>
   );
@@ -106,9 +122,9 @@ function OrdersGrid() {
 
 Rules:
 
-- The grid only ever receives the fetched page (`rows`), so sort/filter/search on it are inherently page-local unless the spec (`sorts` here) is sent to the fetch and rendered from your own state, the same as lazy loading's rule above.
+- The grid only ever receives the fetched page (`rows`), so sort/filter/search on it are inherently page-local unless the spec (`sorts` here) is sent to the fetch and rendered from your own state. The lazy-loading rules above apply unchanged: `sortState={EMPTY_SORT}`, never the echoed spec (echoing it re-sorts the page on the client and flashes a page-local order before the server page lands), and `headerClickBehavior="sort"`.
 - The `useEffect`'s `stale` flag is required in server mode: a page-2 response arriving after a page-3 request has already fired must not clobber page 3's rows.
 - `reconcilePage: true` only fires your `onPageChange` once when `total` shrinks below the current page; it never sets state itself. Without it, the bar visually clamps but your `page` state can still request an out-of-range page.
-- Any change that can shrink the result set (a filter or search edit) must call `onPageChange(1)` by hand — the pagination hook has no visibility into filter/search wiring, uncontrolled or through `useDataGridUrlPagination`.
+- A sort, filter, or search change must call `onPageChange(1)` by hand — the pagination hook has no visibility into filter/search wiring, uncontrolled or through `useDataGridUrlPagination`.
 - Merge edits back into the full dataset by row id in `onDataChange`; do not replace the whole dataset with the page-sliced array.
 - `useDataGridUrlPagination` (from `data-grid-url-state`) composes only with this server mode, spreading `{ page, pageSize, onPageChange, onPageSizeChange }` from `url` in place of local state above — client mode's `pageSize` seeds once and cannot take a pushed URL value.

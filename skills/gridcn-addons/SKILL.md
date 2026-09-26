@@ -39,20 +39,20 @@ table (check `package.json`).
 
 ## 2. Wire the output at the right seam
 
-Two add-ons return a value a **provider prop** needs, so their hook must run in a component ABOVE
-`<DataGridProvider>`, not inside it:
+Four add-ons return a value a **provider prop** needs, so their hook must run in the component that
+renders `<DataGridProvider>`, above it, not inside it:
 
 | Add-on | Hook | Returns | Goes on |
 |---|---|---|---|
 | Fill | `useDataGridFill({})` | `{ plugin, FillHandleTracker }` | `plugin` → `overlayPlugins` on the provider; `FillHandleTracker` renders as a child inside `DataGridRoot` |
 | Presence | `useDataGridPresence()` | `{ plugin, setPresenceHighlights, ... }` | `plugin` → `overlayPlugins` on the provider |
 | Pinned rows | `useDataGridPinnedRows({ topRows?, bottomRows? })` | `{ rowBands }` | `rowBands` prop on the provider |
+| Undo & redo | `useDataGridState(rows, { getRowId })`, or `useDataGridHistory` to compose with your own `data`/`setData` | provider props | spread onto the provider (`data`, `onDataChange`, `onUndo`, `onRedo`) |
 
 Everything else mounts as a plain child component, inside the provider:
 
 | Add-on | Component(s) | Mounts |
 |---|---|---|
-| Undo & redo | `useDataGridState` (quick start) or `useDataGridHistory` (compose with your own `data`/`setData`) | spread into the provider's props (`data`, `onDataChange`, `onUndo`, `onRedo`) |
 | Toolbar | `DataGridToolbar` + children | sibling of `DataGridRoot`, inside the provider |
 | Context menu | `DataGridContextMenu` (wraps `DataGridRoot`), `DataGridHeaderDropdown` (passed to `DataGridRoot`'s `renderHeaderMenu`) | inside the provider; `DataGridContextMenu` throws if mounted outside it |
 | Keybindings | `DataGridKeybindingsDialog` (inside provider), `DataGridKeybindingsShortcut` (inside `DataGridRoot`) | see split — the `?` shortcut needs the root's container |
@@ -72,7 +72,8 @@ Everything else mounts as a plain child component, inside the provider:
   ```tsx
   const overlayPlugins = useMemo(() => [fill.plugin, presence.plugin], [fill.plugin, presence.plugin]);
   ```
-  A fresh array literal on every render trips a dev-mode guardrail (see step 4).
+  A fresh array literal on every render trips a dev-mode guardrail (see step 4). The guardrail
+  compares identity, so a shallow-equal new array still warns.
 - **Toolbar child order** (the gridcn convention — matters for consistency, not correctness):
   `DataGridSearch` → `DataGridFilterMenu` → `DataGridSortList` → `DataGridColumnsMenu` →
   `DataGridImportButton` → `DataGridExportButton` → your own utility buttons, in that order.
@@ -90,6 +91,9 @@ Everything else mounts as a plain child component, inside the provider:
 - **Pinned rows**: keep `topRows`/`bottomRows` referentially stable (`useMemo`/`useState`, not a
   fresh `[value]` literal per render) — an unstable array makes the returned `rowBands` churn every
   render and the grid dev-warns on it.
+- **Totals row**: `rowBands` is needed above the provider, but the aggregate is read inside it. Hold
+  the totals in `useState`, render `<DataGridAggregateReporter specs={...} onChange={setTotals} />`
+  inside the provider, and pass `useMemo(() => [totals], [totals])` as `bottomRows`.
 - **Undo/redo choice**: reach for `useDataGridState` only when you actually want history — it
   replaces the core's uncontrolled `defaultData` with a controlled echo loop. If nothing needs undo,
   skip the add-on. Already own the array via your own state? Use `useDataGridHistory` instead — it
@@ -100,9 +104,8 @@ Everything else mounts as a plain child component, inside the provider:
 - Check the browser console first. Two dev-only warnings name most silent failures:
   - `overlayPlugins array identity changed since the last render; pass a stable reference...` — an
     inline `[plugin]` array literal in JSX; wrap it in `useMemo`.
-  - A hook (`useDataGridPinnedRows`, aggregate specs matching no column, etc.) warns once when its
-    input is malformed rather than throwing — re-read the console before assuming the add-on is
-    broken.
+  - `useDataGridAggregate` (and the reporter) warns once for a spec key that matches no column or for
+    a sparse (lazy) `data` array, rather than throwing.
 - **Fill/keyboard fill does nothing**: without the add-on installed, `Ctrl/Cmd+D`/`+R` are genuine
   no-ops (the actions exist in core's keymap, but nothing handles them). A `readOnly` grid also
   disables fill entirely, regardless of `disabled`.
