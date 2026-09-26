@@ -12,7 +12,7 @@ export type UseDataGridFillOptions = Pick<UseFillHandleOptions, "disabled" | "on
 
 /** Return value of {@link useDataGridFill}. */
 export type UseDataGridFillResult = {
-  /** Pass this into `<DataGridProvider overlayPlugins={[plugin]}>` (or append to an existing array) — stable identity for the component's lifetime. */
+  /** Stable for the component's lifetime. Put it in a memoized `overlayPlugins` array, e.g. `useMemo(() => [plugin], [plugin])`; an inline `[plugin]` literal trips the identity dev warning. */
   plugin: OverlayPlugin;
   /**
    * Render this as a child ANYWHERE inside `<DataGridRoot>`, alongside `DataGridHeader`/

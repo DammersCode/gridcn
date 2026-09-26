@@ -55,8 +55,8 @@ describe("home page at a 375x667 viewport (iPhone 8)", () => {
     await new Promise((r) => setTimeout(r, 400));
     const h1 = page.getByRole("heading", { name: "gridcn", level: 1 }).element() as HTMLElement;
 
-    // all five content sections rendered — without them the scrollWidth check below is vacuous
-    expect(document.querySelectorAll("h2").length).toBe(5);
+    // all six content sections rendered — without them the scrollWidth check below is vacuous
+    expect(document.querySelectorAll("h2").length).toBe(6);
 
     // the h1's parent is the tagline card (border bg-card max-w-2xl flex-col)
     const heroCard = h1.parentElement as HTMLElement;

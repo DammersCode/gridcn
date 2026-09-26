@@ -1,0 +1,121 @@
+---
+title: Agent Skills
+description: Five installable skills that teach Claude Code, Cursor, Codex, and other coding agents how to build with gridcn.
+icon: Bot
+---
+
+gridcn ships five agent skills for tasks that cross many docs pages. Each skill gives the agent
+an ordered procedure, the failures that stay silent, and a check that tells it when the work is
+done.
+
+<InstallCommand command="skills add DammersCode/gridcn" />
+
+## Skills
+
+| Skill | What it does | Reach for it when |
+| --- | --- | --- |
+| [`gridcn-performance`](#gridcn-performance) | Audits the grid integration against the memoization and virtualization traps. | The grid is slow to scroll, type, or edit, or a code review touches grid props. |
+| [`gridcn-custom-cell-type`](#gridcn-custom-cell-type) | Builds a cell type that pastes, sorts, and edits like the built-in types. | You build a cell type, or a custom type renders as plain text. |
+| [`gridcn-data-source`](#gridcn-data-source) | Selects plain data, pagination, lazy loading, or streaming, and moves sort and filter to the server. | You connect the grid to a backend or to a dataset too large for one payload. |
+| [`gridcn-addons`](#gridcn-addons) | Installs add-ons and wires each output to the correct place. | You add one or more add-ons, or an add-on has no effect. |
+| [`gridcn-upgrade`](#gridcn-upgrade) | Merges a newer gridcn release into your installed source and keeps your edits. | You pull a newer gridcn release into source that you already installed. |
+
+## gridcn-performance
+
+**What it does.** The skill audits a grid integration against a checklist. The cheapest checks
+come first:
+
+- bounded grid height, so virtualization can start
+- stable `columns` and `data` references
+- stable class-name functions and click handlers
+- stable `overlayPlugins` and `rowBands`
+- no formatter allocation inside a custom `Cell`
+- `updateCells` for high-rate feeds
+
+Most of these traps show only as a warning in the development console. The skill gives the agent
+the exact warning text to search for.
+
+**When to reach for it.** Scrolling stutters, typing lags, or an edit is slow. Also use it when
+you review code that passes props or callbacks into the grid.
+
+**It is working if** the development console shows no `[data-grid]` warning while you scroll and
+edit, and the React DevTools Profiler shows only the rows that enter the viewport rendering.
+
+## gridcn-custom-cell-type
+
+**What it does.** The skill builds a cell type in order. First the value pipeline: `toText`,
+`fromText`, `clearValue`, `isEmpty`, and `compare`. Then `Cell` and `Editor`. Then the
+registration and the `GridCellTypes` type augmentation. It also covers the failures that show no
+error:
+
+- A `cellTypes` object without the built-in types replaces them all.
+- An unknown `type` key renders the column as plain text.
+- A `fromText` that throws stops the paste.
+- A portaled editor without `data-grid-cell-editor` closes on the first click.
+
+**When to reach for it.** You add a currency, rating, tag, or color column. Also use it when a
+custom type renders as plain text, does not open an editor, or breaks on paste, fill, or sort.
+
+**It is working if** `fromText(toText(value))` returns the value, pasted garbage clears the cell,
+Enter commits and moves down, and Escape keeps the original value.
+
+## gridcn-data-source
+
+**What it does.** The skill selects one base for the rows: plain `data`, pagination, or lazy
+loading. It adds streaming on top when values change live. For a lazy or paged grid, it moves
+sort, filter, and search to the server. Otherwise these gestures see only the loaded rows. The
+skill also handles stale page responses, `lazy.reset()` on a sort change, and the combinations
+that the add-ons do not support.
+
+**When to reach for it.** You connect the grid to an API, the dataset is too large for one
+request, or sort and filter must cover rows that are not loaded.
+
+**It is working if** every sort, filter, and search path covers the full dataset, or the page
+states that it covers only the loaded rows.
+
+## gridcn-addons
+
+**What it does.** The skill installs each add-on and puts each output where it belongs:
+
+- `overlayPlugins` and `rowBands` on the provider, from a hook above it
+- `keymap` on the root
+- toolbar pieces inside `DataGridToolbar`
+
+It merges all overlay plugins into one stable array. It also checks the rules that apply when you
+combine add-ons: one `NuqsAdapter`, one `useDataGridPresence()` call, and no URL state on a lazy
+grid.
+
+**When to reach for it.** You add an add-on, you combine several add-ons in one grid, or an
+installed add-on renders nothing.
+
+**It is working if** each add-on shows its documented behavior and the console shows no
+development warning.
+
+## gridcn-upgrade
+
+**What it does.** gridcn is source that you own, not an npm dependency. An update re-runs the
+install and merges the upstream files with your copy. In a Git project, the skill first asks you
+whether to upgrade on the current branch or on a new branch. Then it reads the
+[changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) for breaking entries.
+It sorts every installed file with `--dry-run`, overwrites only the files that you did not edit,
+and merges your edits into the others. Then it checks the aliases and the imports.
+
+**When to reach for it.** You update to a newer release, you pull one upstream fix, or you changed
+installed files and want to keep the changes.
+
+**It is working if** your type check and build pass, every breaking entry has its replacement, and
+the smoke test from [Installation](/docs/installation) passes.
+
+<Callout type="warn">
+  Commit or stash your changes before you run `gridcn-upgrade`. If the project has no Git, back up
+  your edited files first: a reinstall that overwrites an edited file discards the edits.
+</Callout>
+
+## Related
+
+- [Installation](/docs/installation)
+- [Performance](/docs/performance)
+- [Custom cell types](/docs/custom-cell-types)
+- [Lazy loading](/docs/lazy-loading)
+- [Add-ons](/docs/addons)
+- [Project status](/docs/project-status)

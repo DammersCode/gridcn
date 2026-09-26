@@ -27,6 +27,16 @@ GitHub registry path: `npx shadcn add DammersCode/gridcn/data-grid#v1.0.0`. The 
 docs](https://github.com/DammersCode/gridcn/blob/main/content/docs/installation.mdx) cover
 prerequisites, framework notes, and known problems.
 
+## Agent skills
+
+```bash
+npx skills add DammersCode/gridcn
+```
+
+Five skills teach Claude Code, Cursor, Codex, and other coding agents the procedures and silent
+traps of gridcn: performance audits, custom cell types, data sources, add-on wiring, and upgrades.
+The [Agent Skills](https://gridcn.vercel.app/docs/agent-skills) page describes each one.
+
 ## What it can do
 
 - **Range selection** — anchor plus rectangular range, ctrl-click multi-range, row and column

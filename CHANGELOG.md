@@ -11,6 +11,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Agent skills:** `npx skills add DammersCode/gridcn` installs five skills for Claude Code,
+  Cursor, Codex, and other agents: `gridcn-performance`, `gridcn-custom-cell-type`,
+  `gridcn-data-source`, `gridcn-addons`, and `gridcn-upgrade`. The
+  [Agent Skills](https://gridcn.vercel.app/docs/agent-skills) page describes each one.
 - **Column lines:** a 1px line separates columns in the header, the body, the marker column, and
   pinned row bands. A right-pinned column draws its line on the start side, so the line marks the
   pinned band edge. `--grid-column-border` sets the color (default `--color-border`;
@@ -160,6 +164,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **`overlayPlugins` identity warning names the real cost:** the dev warning ends with "or every
+  render re-syncs the provider props into the store". `DataGridOverlays` does not re-render for a
+  shallow-equal array.
+
 - **Checkbox cells toggle on the first click:** a click on a checkbox cell's box toggles it, even
   when the cell was not active. A click elsewhere in the cell still selects it first. The box
   carries `data-grid-checkbox`.
@@ -296,6 +304,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Docs: stable `overlayPlugins` in the fill and presence examples:** the examples and the `plugin`
+  JSDoc of `useDataGridFill` and `useDataGridPresence` memoize the `overlayPlugins` array. The inline `[plugin]` literal they showed trips the core's
+  identity-stability dev warning on every re-render.
 - **Checkbox drag toggled the start cell:** a press on a checkbox cell dragged across other rows
   selects the range and no longer toggles the cell where the drag started, also when the drag
   ends back on that cell.

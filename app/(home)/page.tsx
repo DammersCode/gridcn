@@ -3,9 +3,12 @@ import type { ComponentProps } from "react";
 import {
   ArrowUpDown,
   Blocks,
+  Bot,
   Clipboard,
   CloudDownload,
+  Database,
   FileSpreadsheet,
+  Gauge,
   Keyboard,
   Languages,
   LayoutGrid,
@@ -17,6 +20,8 @@ import {
   Pencil,
   Pin,
   Radio,
+  RefreshCw,
+  Shapes,
   Undo2,
   Users,
 } from "lucide-react";
@@ -158,6 +163,34 @@ const addOns = [
   { icon: Pencil, title: "Cell editing types", href: "/docs/editing-cell-types" },
 ];
 
+const agentSkills = [
+  {
+    icon: Gauge,
+    title: "gridcn-performance",
+    description: "Audits a slow grid against the memoization and virtualization traps, in order.",
+  },
+  {
+    icon: Shapes,
+    title: "gridcn-custom-cell-type",
+    description: "Builds a cell type that pastes, sorts, and edits like the built-ins.",
+  },
+  {
+    icon: Database,
+    title: "gridcn-data-source",
+    description: "Picks client, streaming, lazy, or paged data and wires server sort and filter.",
+  },
+  {
+    icon: Blocks,
+    title: "gridcn-addons",
+    description: "Wires several add-ons into one grid, each output in the right place.",
+  },
+  {
+    icon: RefreshCw,
+    title: "gridcn-upgrade",
+    description: "Pulls upstream fixes into copied source and keeps your local edits.",
+  },
+];
+
 const comparison = {
   columns: ["gridcn", "AG Grid", "MUI X", "TanStack Table"],
   rows: [
@@ -230,6 +263,13 @@ export default function HomePage() {
         <div className="w-full max-w-md text-start">
           <InstallCommand item="data-grid" />
         </div>
+        <Link
+          href="/docs/agent-skills"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          <Bot className="size-4" aria-hidden="true" />
+          Building with an AI agent? Install the gridcn agent skills
+        </Link>
       </div>
 
       <div className="relative z-10 w-full max-w-5xl px-6">
@@ -408,6 +448,36 @@ export default function HomePage() {
           .
           </p>
         </div>
+      </div>
+
+      <div className="relative z-10 mt-16 w-full max-w-5xl px-6">
+        <div className="border bg-card z-10 mx-auto mb-8 flex w-full max-w-2xl flex-col items-center gap-2 px-6 py-5 text-center sm:px-8">
+          <Badge variant="outline">
+            <Bot aria-hidden="true" />
+            Agent skills
+          </Badge>
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+            Your coding agent knows gridcn
+          </h2>
+          <p className="max-w-xl text-sm text-muted-foreground">
+            Five skills for Claude Code, Cursor, Codex, and other agents: the
+            procedures and silent traps the docs alone cannot enforce.
+          </p>
+          <div className="w-full max-w-md text-start">
+            <InstallCommand command="skills add DammersCode/gridcn" />
+          </div>
+        </div>
+        <Cards>
+          {agentSkills.map(({ icon: Icon, title, description }) => (
+            <Card
+              key={title}
+              icon={<Icon />}
+              title={title}
+              description={description}
+              href={`/docs/agent-skills#${title}`}
+            />
+          ))}
+        </Cards>
       </div>
 
       <div className="relative z-10 mt-16 w-full max-w-5xl px-6 pb-24">

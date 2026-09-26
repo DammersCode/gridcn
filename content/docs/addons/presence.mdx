@@ -70,11 +70,13 @@ as props from the single call:
 ```tsx
 "use client";
 
+import { useEffect, useMemo } from "react";
 import { DataGrid } from "@/components/data-grid/data-grid";
 import { useDataGridPresence } from "@/components/data-grid-presence/data-grid-presence";
 
 function MyGrid() {
   const { plugin, setPresenceHighlights } = useDataGridPresence();
+  const overlayPlugins = useMemo(() => [plugin], [plugin]);
 
   useEffect(() => {
     const socket = connectToRoom(roomId);
@@ -82,14 +84,15 @@ function MyGrid() {
     return () => socket.close();
   }, [setPresenceHighlights, roomId]);
 
-  return <DataGrid data={data} columns={columns} getRowId={getRowId} overlayPlugins={[plugin]} />;
+  return <DataGrid data={data} columns={columns} getRowId={getRowId} overlayPlugins={overlayPlugins} />;
 }
 ```
 
 `setPresenceHighlights(highlights)` is the real, imperative mechanism. Call it directly from your
 transport handler: a websocket message, a CRDT awareness update, or a polling tick. The identity
-of `plugin` never changes across renders, so passing `overlayPlugins={[plugin]}` never trips the
-identity-stability dev guardrail of the core.
+of `plugin` never changes across renders. Memoize the `overlayPlugins` array on it: an inline
+`[plugin]` literal is a new array on every render and trips the identity-stability dev guardrail of
+the core.
 
 `setPresenceHighlights` REPLACES the whole list (snapshot semantics): each call must carry the
 full current set of remote entries, not a diff — the natural shape of a websocket "presence state"

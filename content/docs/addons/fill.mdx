@@ -42,13 +42,15 @@ own scroll and column layout to track the drag, and this layout exists only insi
 "use client";
 
 import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody } from "@/components/data-grid/data-grid";
+import { useMemo } from "react";
 import { useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";
 
 function MyGrid() {
   const { plugin, FillHandleTracker } = useDataGridFill({});
+  const overlayPlugins = useMemo(() => [plugin], [plugin]);
 
   return (
-    <DataGridProvider data={data} columns={columns} getRowId={getRowId} overlayPlugins={[plugin]}>
+    <DataGridProvider data={data} columns={columns} getRowId={getRowId} overlayPlugins={overlayPlugins}>
       <DataGridRoot>
         <DataGridHeader />
         <DataGridBody />
@@ -60,7 +62,7 @@ function MyGrid() {
 ```
 
 <Callout title="Composing with core's DataGrid convenience wrapper">
-  `<DataGrid>` does not wire fill in automatically. Pass `overlayPlugins={[plugin]}` and render
+  `<DataGrid>` does not wire fill in automatically. Pass the plugin in a memoized `overlayPlugins` array and render
   `<FillHandleTracker />` as a `children` element alongside your own header and body composition
   (see the hero demo above for the full pattern). This is the same way you compose any other
   add-on.

@@ -16,6 +16,7 @@ with `setInterval`. A real integration looks like this:
 ```tsx
 "use client";
 
+import { useEffect } from "react";
 import { useDataGridPresence } from "@/components/data-grid-presence/data-grid-presence";
 
 function usePresenceSync(roomId: string) {
@@ -49,11 +50,13 @@ hand. `cell.col` is a view-space index into the VISIBLE columns. Indexing the ra
 array is wrong when a column is hidden:
 
 ```tsx
+const overlayPlugins = useMemo(() => [plugin], [plugin]);
+
 <DataGridProvider
   data={data}
   columns={columns}
   getRowId={getRowId}
-  overlayPlugins={[plugin]}
+  overlayPlugins={overlayPlugins}
   onSelectionChange={(selection) => {
     const range = selection.current?.range;
     if (!range) return; // cleared — send the leave message instead

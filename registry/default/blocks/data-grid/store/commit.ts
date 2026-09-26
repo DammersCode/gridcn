@@ -77,7 +77,7 @@ export function checkDevGuardrails(
   }
   if (prevOverlayPlugins !== undefined && prevOverlayPlugins !== props.overlayPlugins) {
     warnDev(
-      "overlayPlugins array identity changed since the last render; pass a stable reference (module scope or useMemo) or DataGridOverlays re-renders every tick",
+      "overlayPlugins array identity changed since the last render; pass a stable reference (module scope or useMemo) or every render re-syncs the provider props into the store",
     );
   }
   if (prevRowBands !== undefined && prevRowBands !== props.rowBands) {
