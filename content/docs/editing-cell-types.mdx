@@ -359,7 +359,7 @@ Register custom types through the `cellTypes` prop on `DataGridProvider`. To get
 <Callout type="warn" title="cellTypes replaces the registry, it does not merge">
   Passing `cellTypes` to `DataGridProvider` replaces the whole registry. Spread the built-ins
   back in (`cellTypes={{ ...cellTypes, myType: myCellType }}`), or every built-in-typed column
-  breaks silently. See
+  renders as plain text with a dead editor. See
   [Build your own cell type](/docs/custom-cell-types#worked-example-a-currency-cell-type).
 </Callout>
 

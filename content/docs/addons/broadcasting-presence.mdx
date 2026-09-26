@@ -49,6 +49,8 @@ hand. `cell.col` is a view-space index into the VISIBLE columns. Indexing the ra
 array is wrong when a column is hidden:
 
 ```tsx
+const overlayPlugins = useMemo(() => [plugin], [plugin]);
+
 <DataGridProvider
   data={data}
   columns={columns}

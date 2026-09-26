@@ -15,6 +15,16 @@ import { useDataGridLazyRows, DataGridLazyGuard } from "@/components/data-grid-l
 
 const EMPTY_SORT: SortSpec[] = [];
 
+// The store's sort state stays empty, so the clicked column always arrives as "asc"; cycle against your own spec.
+function cycleSort(prev: SortSpec[], next: SortSpec[]): SortSpec[] {
+  const columnId = next[0]?.columnId;
+  if (!columnId) return [];
+  const current = prev.find((s) => s.columnId === columnId)?.direction;
+  if (current === "asc") return [{ columnId, direction: "desc" }];
+  if (current === "desc") return [];
+  return [{ columnId, direction: "asc" }];
+}
+
 function OrdersGrid() {
   const [sorts, setSorts] = useState<SortSpec[]>([]);
 
@@ -26,12 +36,13 @@ function OrdersGrid() {
 
   const onSortChange = (next: SortSpec[]) => {
     lazy.reset(); // already-fetched windows hold the old order; drop them before refetching
-    setSorts(next);
+    setSorts((prev) => cycleSort(prev, next));
   };
 
   return (
     <DataGridProvider
       data={lazy.gridProps.data}
+      columns={columns}
       getRowId={lazy.gridProps.getRowId}
       onDataChange={lazy.onDataChange}
       sortState={EMPTY_SORT}
@@ -55,7 +66,7 @@ Rules that make this work, and break silently if skipped:
 - **`filterState` follows the same rule** for filtering — pass it controlled-empty and hold the real filter spec yourself.
 - **`searchText` cannot be moved server-side at all.** It only highlights and navigates matches already in `data`; a search over a partial lazy array highlights only the loaded part, full stop. There is no controlled escape hatch for it — build a separate server search UI if full-dataset search is required.
 - **A sort or filter change must call `lazy.reset()` before (or as part of) updating the spec.** Already-fetched windows hold rows in the old order/set; without the reset they keep serving stale data until evicted some other way. Remounting the provider on a key derived from the spec also clears them, but also resets selection/edit/scroll state — heavier.
-- **The header's sort indicator, `aria-sort`, and `DataGridSortList` go blank** once `sortState` is controlled-empty. Render the active sort from your own `sorts` state. `toggleSort` still derives its next direction from the (empty) store, so re-derive the asc → desc → none cycle against your own spec instead of relying on it.
+- **The header's sort indicator, `aria-sort`, and `DataGridSortList` go blank** once `sortState` is controlled-empty. Render the active sort from your own `sorts` state. `toggleSort` still derives its next direction from the (empty) store, so every click reports `"asc"`: `cycleSort` above re-derives asc → desc → none against your own spec.
 - `DataGridUrlState` cannot be mounted on this grid — it writes URL sort/filter/search into the store on mount, which conflicts with keeping the spec outside the store.
 
 ## `data-grid-pagination` (server mode)
@@ -96,7 +107,7 @@ function OrdersGrid() {
   });
 
   const onSortChange = (next: SortSpec[]) => {
-    setSorts(next);
+    setSorts((prev) => cycleSort(prev, next)); // cycleSort from the lazy example above
     setPage(1);
   };
 

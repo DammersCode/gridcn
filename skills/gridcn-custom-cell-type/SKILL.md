@@ -9,7 +9,7 @@ Scope: one cell type, from value pipeline to registration. Auditing a slow grid 
 
 ## 1. Symptom check first, if you were sent here by a bug
 
-- **Column renders as plain text, editing does nothing** → the `type` key does not match a key in the registry you passed to `cellTypes`. The lookup falls back to the built-in `text` type silently, with no warning (installed `components/data-grid/cell.tsx`: `cellTypesRegistry[column.type ?? "text"] ?? cellTypesRegistry["text"] ?? defaultCellTypes.text`). Fix the key, or check step 4.
+- **Column renders as plain text, editing does nothing** → the `type` key does not match a key in the registry you passed to `cellTypes`. The lookup falls back to the built-in `text` type, and edits, pastes, and deletes on it are dropped. The only signal is a dev-console warning: `[data-grid] column "<id>" has type "<type>" which resolves to nothing in the cellTypes registry`. Fix the key, or check step 4.
 - **Every built-in-typed column (number, date, select, checkbox) broke after adding a custom type** → the `cellTypes` prop replaced the registry instead of extending it. Go to step 4.
 - **Paste throws or aborts the whole paste** → `fromText` threw. Go to step 2.
 - **A popover/portal editor (date-picker, combobox, color picker) closes the instant you click into it** → go to step 6, `data-grid-cell-editor`.
@@ -56,7 +56,7 @@ import { cellTypes } from "@/components/data-grid/data-grid"; // barrel path —
 <DataGridProvider {...grid} columns={columns} cellTypes={{ ...cellTypes, currency: currencyCellType }} />
 ```
 
-Omit the spread and every built-in-typed column (`text`, `number`, `checkbox`, `select`, `date`) silently falls back to plain text — no warning. The registry itself is untyped (`Record<string, AnyCellType>`): a mistyped key compiles and renders as `text` with a dead editor, also with no warning. If a column renders as text and you already spread the built-ins in, the `type` string does not match a key in the object you built — recheck the key, not the component.
+Omit the spread and every built-in-typed column (`number`, `checkbox`, `select`, `date`) falls back to plain text with a dead editor. The registry itself is untyped (`Record<string, AnyCellType>`): a mistyped key compiles and does the same. Both fail at runtime only, with one dev-console warning per column: `[data-grid] column "<id>" has type "<type>" which resolves to nothing in the cellTypes registry`. If a column renders as text and you already spread the built-ins in, the `type` string does not match a key in the object you built — recheck the key, not the component.
 
 Completion for this step: every pre-existing built-in-typed column on the grid still edits correctly after adding the custom type.
 

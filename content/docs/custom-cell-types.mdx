@@ -218,7 +218,8 @@ cellTypes) · **fill** = raw value.
   against its key's declared type. Per-key safety comes from `defineColumns` plus the
   augmentation above, not from the registry. Consider a `column.type` string that resolves to no
   registry entry, for example a mistyped registry key. The cell then renders with the built-in
-  `text` type, and editing that cell does nothing. There is no warning for this case.
+  `text` type, and editing that cell does nothing. In development, the grid logs one warning per
+  column that names the column and the missing type.
 - **A plain `ColumnDef<TData, TValue>` never cross-checks `accessorKey` against `TValue`.**
   Accessor/value cross-checking exists only on `defineColumns`' `TypedColumnDef`. A hand-written
   `ColumnDef<Product, number | null>` with `accessorKey: "name"` compiles; the value type is
@@ -312,7 +313,7 @@ import { cellTypes } from "@/components/data-grid/data-grid";
 
 <Callout type="warn" title="cellTypes replaces the registry, it does not merge">
   The built-ins do not merge in automatically — spread them back in (as the example above does),
-  or every built-in-typed column breaks silently. Full semantics on
+  or every built-in-typed column renders as plain text with a dead editor. Full semantics on
   [Editing & cell types: Custom cell types](/docs/editing-cell-types#custom-cell-types).
 </Callout>
 
