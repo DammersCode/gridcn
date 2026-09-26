@@ -44,14 +44,13 @@ export function InstallCommand({ item, items, command, manual = false, manualSlo
   const [copied, setCopied] = useState(false);
   const [selected, setSelected] = useState(() => new Set((items ?? []).filter((i) => i.defaultChecked).map((i) => i.value)));
 
-  const target =
-    command ??
-    (item
-      ? `${GRIDCN_REGISTRY}/${item}`
-      : (items ?? [])
-          .filter((i) => selected.has(i.value))
-          .map((i) => `${GRIDCN_REGISTRY}/${i.value}`)
-          .join(" "));
+  const addresses = item
+    ? `${GRIDCN_REGISTRY}/${item}`
+    : (items ?? [])
+        .filter((i) => selected.has(i.value))
+        .map((i) => `${GRIDCN_REGISTRY}/${i.value}`)
+        .join(" ");
+  const target = command ?? (addresses && `shadcn@latest add ${addresses}`);
   const full = target ? `${RUNNERS[manager]} ${target}` : "";
 
   const copy = () => {
