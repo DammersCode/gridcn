@@ -72,7 +72,13 @@ Grep any custom cell type or `renderCell` for `new Intl.DateTimeFormat(...)`, `n
 
 Grep for a feed/interval/subscription that calls `setData(wholeArrayRebuilt)` or the controlled `onDataChange` path on every tick, rather than patching. Full replacement re-triggers checks 3 and 6 on every tick and puts selection and open-editor state at risk.
 
-- Fix: use `actions.updateCells(patches)` / `actions.updateRows(...)` (writes by row id, doesn't move selection/active cell/open editor) instead of replacing `data`. `useDataGridActions()` works only inside `DataGridProvider`, so render the feed as a child component. To read current values inside the feed, call `useDataGridStoreApi().getState().data` in the interval callback; never assign a ref during render. Keep the data mode consistent: pass `defaultData` (uncontrolled) when only the feed writes, or keep `data` plus `onDataChange` (controlled); never `data` without `onDataChange`. Add `{ skipValidation: true }` only when the producer already validated the values, to keep a high-rate feed synchronous.
+- Fix: use `actions.updateCells(patches)` / `actions.updateRows(...)` (writes by row id, doesn't move selection/active cell/open editor) instead of replacing `data`. Add `{ skipValidation: true }` only when the producer already validated the values, to keep a high-rate feed synchronous.
+- Get `actions` one of two ways: `useDataGridActions()` in a child component inside `DataGridProvider`, or `const { store, actions } = useDataGridStoreProps({ ...sameProps })` with `<DataGridProvider store={store} {...sameProps}>` when code outside the provider needs the grid. A feed that needs current values reads `store.getState().data` from the second form; never assign a ref during render.
+- Keep one data mode, chosen by who reads the rows:
+  - No code outside the grid reads them: `defaultData` (uncontrolled). Edits, fill, and `updateCells` all land in the store.
+  - App state must hold them: `data` plus `onDataChange` that stores `next` unchanged. Each tick re-renders the owning component, so keep that component small.
+  - Code outside the provider reads them on demand (a Save button, a socket): `useDataGridStoreProps` with `defaultData`, and read `store.getState().data` at that moment.
+  - Never `data` without `onDataChange`.
 
 ## Done when
 

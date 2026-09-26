@@ -38,7 +38,19 @@ Decision record for the five skills under `skills/`. Rerun this before a larger 
 - upgrade: consent gate moved into step 3, next to the write, naming the excuses agents used
   ("re-derivable", "backed up", "re-add afterwards"). Two reruns: both stopped and asked.
 
+## Data-mode rule (second round)
+
+New scenario perf-3: a live price feed, user edits, and a Save button that must send the current rows.
+
+- First rule ("`defaultData` when only the feed writes") asked the wrong question and pointed feeds at
+  the `@internal` `useDataGridStoreApi`. Runs were correct but used the internal hook.
+- Rule now picks the mode by who reads the rows: `defaultData`; `data` plus unchanged `onDataChange`;
+  or `useDataGridStoreProps` with `store.getState().data` for readers outside the provider.
+- Validation: perf-3 twice and perf-2 once, all correct, all on the documented `useDataGridStoreProps`
+  route, no internal API, lint clean.
+
 ## Docs bugs the evals exposed
 
 - fill, presence, and broadcasting-presence examples passed an inline `overlayPlugins={[plugin]}`.
 - The lazy-loading sort example lacked `headerClickBehavior="sort"`.
+- The `plugin` JSDoc of `useDataGridFill` and `useDataGridPresence` suggested an inline `[plugin]`.
