@@ -86,7 +86,7 @@ first-party consumers.
 <Callout type="warn" title="Pass a stable array reference">
   A dev-mode guardrail warns when the `overlayPlugins` array's identity changes across renders:
   `"overlayPlugins array identity changed since the last render; pass a stable reference (module
-  scope or useMemo) or DataGridOverlays re-renders every tick"`. Memoize the array itself, not
+  scope or useMemo) or every render re-syncs the provider props into the store"`. Memoize the array itself, not
   only the plugin functions inside it: `useMemo(() => [plugin], [plugin])`, not a fresh `[plugin]`
   literal written inline on every render of your own component.
 </Callout>

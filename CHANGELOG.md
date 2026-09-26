@@ -164,6 +164,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **`overlayPlugins` identity warning names the real cost:** the dev warning ends with "or every
+  render re-syncs the provider props into the store". `DataGridOverlays` does not re-render for a
+  shallow-equal array.
+
 - **Checkbox cells toggle on the first click:** a click on a checkbox cell's box toggles it, even
   when the cell was not active. A click elsewhere in the cell still selects it first. The box
   carries `data-grid-checkbox`.

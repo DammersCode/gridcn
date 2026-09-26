@@ -73,7 +73,7 @@ when this array's identity changes across renders:
 
 ```
 overlayPlugins array identity changed since the last render; pass a stable reference (module scope
-or useMemo) or DataGridOverlays re-renders every tick
+or useMemo) or every render re-syncs the provider props into the store
 ```
 
 The array must be stable, not only the functions inside it. `useDataGridPresence()` and

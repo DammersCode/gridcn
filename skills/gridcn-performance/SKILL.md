@@ -56,7 +56,7 @@ Grep for these four props on `DataGridRoot`/`DataGrid`. An inline arrow function
 Grep any add-on hook output (`useDataGridFill`, `useDataGridPresence`, `useDataGridPinnedRows`) and how its result reaches the provider. Passing `overlayPlugins={[plugin]}` or a `topRows`/`bottomRows` literal inline in JSX allocates a fresh array every render, even though the individual `plugin` or row array inside it is stable.
 
 - Symptoms:
-  - `[data-grid] overlayPlugins array identity changed since the last render; pass a stable reference (module scope or useMemo) or DataGridOverlays re-renders every tick`
+  - `[data-grid] overlayPlugins array identity changed since the last render; pass a stable reference (module scope or useMemo) or every render re-syncs the provider props into the store`
   - `[data-grid] rowBands identity changed since the last render; pass a stable reference (the add-on's hook already returns one) or every render recomputes band heights/aria-rowcount`
 - Fix: wrap the array in `useMemo`, e.g. `useMemo(() => [fill.plugin, presence.plugin], [fill.plugin, presence.plugin])`. `rowBands` from `useDataGridPinnedRows` is already stable — only re-wrapping it in a new literal breaks it.
 
