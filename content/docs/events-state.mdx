@@ -47,11 +47,12 @@ entirely in the store, so it is read-only-outbound, closer in spirit to `onRowWi
 onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
 ```
 
-This fires once per user gesture: a single edit, a paste, a fill, a delete-range, or a row
-insert, delete, or duplicate. It passes the next full data array and an id-keyed delta batch,
-`change.ops`. Each op is an `update`, `insert`, or `delete` with the row id, never an index,
-because ids survive sort and filter, and indices do not. Every mutation path normalizes to this
-one shape, which is what makes undo and redo (`data-grid-history`) and CSV/xlsx export work
+This fires once per user gesture: a single edit, a paste, a fill, a delete-range, a row move,
+or a row insert, delete, or duplicate. It passes the next full data array and an id-keyed delta
+batch, `change.ops`. Each op is an `update`, `insert`, `delete`, or `move` addressed by row id,
+because ids survive sort and filter, and indices do not. A `move` op carries `from`/`to`, the
+row's snapshot positions before and after the move. Every mutation path normalizes to this one
+shape, which is what makes undo and redo (`data-grid-history`) and CSV/xlsx export work
 generically over any consumer's row type.
 
 This is the real shape of one op, from `types.ts`:
@@ -60,11 +61,12 @@ This is the real shape of one op, from `types.ts`:
 type DataOp<TData> =
   | { type: "update"; rowId: string; row: TData; prev: TData; cells?: { columnId: string; value: unknown; prev: unknown }[] }
   | { type: "insert"; rowId: string; row: TData; index: number }
-  | { type: "delete"; rowId: string; row: TData; index: number };
+  | { type: "delete"; rowId: string; row: TData; index: number }
+  | { type: "move"; rowId: string; row: TData; from: number; to: number };
 
 type DataChange<TData> = {
   ops: DataOp<TData>[];
-  source: "edit" | "paste" | "fill" | "delete" | "row-op" | "import" | "history" | "stream";
+  source: "edit" | "paste" | "fill" | "delete" | "row-op" | "import" | "history" | "stream" | "app";
 };
 ```
 
@@ -72,6 +74,9 @@ An `update` op carries `cells` only when the change is cell-level, for example a
 or a fill. A whole-row update has no `cells` field.
 
 The `"stream"` source tags a batch from `updateCells`. See [Streaming updates](/docs/streaming-updates).
+The `"app"` source tags a programmatic change the consumer applied to its own array and
+registered with the `data-grid-history` add-on's `record()`. See
+[Undo & redo](/docs/addons/undo-redo#programmatic-changes-record).
 
 Row deletion is a selection surprise to plan for: `deleteRows` clears the grid's entire selection
 and active cell after the deletion. `insertRow` and `duplicateRows` keep the selection, offsetting

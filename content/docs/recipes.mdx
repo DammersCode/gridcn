@@ -58,6 +58,9 @@ function opsToRequests(ops: DataOp<Order>[]) {
         return api.orders.create(op.row);
       case "delete":
         return api.orders.remove(op.rowId);
+      case "move":
+        // op.from/op.to are snapshot positions: the row's index before and after the move.
+        return api.orders.move(op.rowId, op.from, op.to);
     }
   });
 }
@@ -178,7 +181,7 @@ function OrdersGrid() {
     onMutate: async (change) => {
       await queryClient.cancelQueries({ queryKey: ["orders"] });
       const previous = queryClient.getQueryData<Order[]>(["orders"]);
-      queryClient.setQueryData<Order[]>(["orders"], (rows) => applyOpsLocally(rows ?? [], change.ops));
+      queryClient.setQueryData<Order[]>(["orders"], (rows) => applyChange(rows ?? [], change, (row) => row.id));
       return { previous };
     },
     onError: (_error, _change, context) => {
@@ -201,10 +204,11 @@ function OrdersGrid() {
 }
 ```
 
-`applyOpsLocally` is your own small reducer over `DataOp[]` (update by `rowId`, splice an insert
-at `index`, filter out a delete). The `onMutate`/`onError` pair is the same optimistic-vs-rollback
-shape as [Strategy A](#strategy-a-optimistic-roll-back-on-failure), expressed through TanStack
-Query's cache.
+`applyChange` is the core's op engine, exported from the `data-grid` barrel. It applies the
+whole batch in one pass: id-keyed updates and deletes, inserts at their snapshot positions,
+missing row ids skipped. The `onMutate`/`onError` pair is the same optimistic-vs-rollback shape
+as [Strategy A](#strategy-a-optimistic-roll-back-on-failure), expressed through TanStack Query's
+cache.
 
 For a socket or poll that pushes new values many times per second, write them with `updateCells`
 instead of a new `data` array. See [Streaming updates](/docs/streaming-updates).

@@ -214,6 +214,26 @@ a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
 and returns a reusable `(text: string) => boolean` matcher. This has the same semantics as
 `matchesFilter`, but without re-parsing the filter's value on every row.
 
+## Op engine
+
+The core applies every `DataChange` batch through one engine, and exports it from the
+`data-grid` barrel for consumers who apply ops to their own copy of the data:
+
+- **`applyChange(data, change, getRowId)`** — applies a batch to a row array and returns a new
+  array, in O(n + k log(n + k)) for `n` rows and `k` ops. A `move` op applies as a delete plus
+  an insert at `to`.
+- **Id-keyed, missing-id skip.** `update` and `delete` ops locate the row by `rowId`, never by
+  the op's stored index. If the row id is no longer present, that op is skipped, not an error.
+- **Snapshot indices.** Each op's `index` is the row's position in the array as it stood before
+  the whole batch, not a running position updated op-by-op. `insert` ops apply in ascending
+  index order, so a multi-row batch round-trips through `invertChange`.
+- **`invertChange(change)`** — returns the change that undoes a batch. Each op is inverted
+  (`update` swaps `row`/`prev`, `insert` becomes `delete` and back, `move` swaps `from`/`to`)
+  and the op order is reversed, so a batch unwinds in the correct dependency order.
+
+The grid's `onDataChange` and the `data-grid-history` add-on run this same engine, so a consumer
+cache that applies ops with `applyChange` stays in step with the grid and with undo.
+
 ## Add-on option types
 
 Each add-on's public props follow the same source-of-truth convention. These are the ones you
