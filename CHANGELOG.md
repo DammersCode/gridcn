@@ -104,9 +104,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `onColumnLayoutChange` once. `setColumnWidth`/`commitColumnWidth` now clamp to the column's
   `minWidth`/`maxWidth` (and the 32px floor) at write time, so a persisted width is always a
   renderable one.
-- **Layout tuning props:** `DataGridProvider` accepts `headerHeight` (default `36`) and
-  `columnOverscan` (column-window overscan, default `1`). The 150px default column width and the
-  32px resize floor are now documented.
+- **Layout tuning props:** `DataGridRoot` and `DataGrid` accept `headerHeight` (default `36`)
+  and `columnOverscan` (column-window overscan, default `1`). The 150px default column width and
+  the 32px resize floor are now documented.
 - **Global shortcuts beyond undo/redo:** `DataGridGlobalShortcuts` takes one `true` flag per action
   (`<DataGridGlobalShortcuts selectAll deleteRows />`); no flag keeps undo and redo, any flag enables
   exactly the flagged actions. The flags come from the new `DataGridGlobalShortcutActions`

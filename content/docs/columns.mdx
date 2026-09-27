@@ -24,6 +24,9 @@ element. Double-click the handle to autosize the column to its content. Per-colu
 `resizable: false`, or grid-wide `enableColumnResize={false}` on `DataGridProvider`, disables
 resize.
 
+A column without `width` renders at the 150px default. A resize clamps to the column's
+`minWidth`, with a 32px absolute floor that no `minWidth` can lower.
+
 <Callout type="warn" title="Autosize measures the visible window only">
   Autosize (double-click and the header menu's "Autosize column") measures only the rendered,
   windowed cells. On a virtualized grid that is the visible window, not the whole

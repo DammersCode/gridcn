@@ -390,6 +390,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    * computeCellPatchBatch/prevalidatePatches — add when a soft paste/fill is actually wanted.
    */
   onInvalid?: "block" | "warn";
+  /** Rendered width in px; default 150. A resize clamps to `minWidth` and the 32px absolute floor. */
   width?: number;
   minWidth?: number;
   maxWidth?: number;
