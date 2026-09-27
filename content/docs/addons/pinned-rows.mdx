@@ -75,7 +75,7 @@ const { rowBands } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows:
     ## Computing a totals row
 
     ```tsx
-    const TOTALS_SPECS = { score: "sum", age: "avg" };
+    const TOTALS_SPECS: AggregateSpecs = { score: "sum", age: "avg" };
 
     function MyGrid() {
       const grid = useDataGridState(initialRows, { getRowId: (r) => r.id });
