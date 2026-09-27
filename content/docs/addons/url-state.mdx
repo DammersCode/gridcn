@@ -176,13 +176,14 @@ function OrdersGrid({ rows, total }: { rows: Order[]; total: number }) {
 }
 ```
 
-`page` (1-based) is omitted from the URL at 1. `pageSize` is omitted when it equals the configured
-default. Both writes use `history: "replace"`, same as this add-on's other params. Options:
-`prefix` (namespaces `page`/`pageSize` the same way as `sort`/`filter`/`q`), `defaultPageSize`
-(default 25), `pageSizeOptions` (an out-of-range URL `pageSize` falls back to the default
-instead of being trusted), and `total` (the row count; see below). The result carries the resolved
-`pageSizeOptions` — pass them to `useDataGridPagination` so the bar's page-size select and the
-URL's allow-list stay the same list.
+`page` (1-based) is omitted from the URL at 1, and a `page` beyond 1,000,000 falls back to 1
+like any other invalid value. `pageSize` is omitted when it equals the configured default. Both
+writes use `history: "replace"`, same as this add-on's other params. Options: `prefix` (namespaces
+`page`/`pageSize` the same way as `sort`/`filter`/`q`), `defaultPageSize` (default 25),
+`pageSizeOptions` (an out-of-range URL `pageSize` falls back to the default instead of being
+trusted; omitted, the pager's default list 10/25/50/100 is the gate), and `total` (the row count;
+see below). The result carries the resolved `pageSizeOptions` — pass them to `useDataGridPagination`
+so the bar's page-size select and the URL's allow-list stay the same list.
 
 Pass `total` and an out-of-range deep-linked `page` clamps to the last page on mount, with the
 clamped value written back to the URL, so a shared link never disagrees with the rendered view:

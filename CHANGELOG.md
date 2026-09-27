@@ -309,6 +309,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **URL pagination hardening:** a URL `pageSize` is now gated by the pager's default size list
+  (10/25/50/100) even when `pageSizeOptions` is omitted, and a URL `page` beyond 1,000,000
+  falls back to 1 — an unbounded `?pageSize=` or `?page=` can no longer force a huge fetch.
 - **Drag listener leaks:** a second pointer pressing a reorder grip, row-reorder marker, or resize
   handle while a gesture is in flight no longer arms a second document listener set, and an
   unmounted column-resize drag drops its document listeners.

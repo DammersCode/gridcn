@@ -98,6 +98,12 @@ describe("useDataGridUrlPagination + useDataGridPagination: composition", () => 
     await expect.element(page.getByText("101–101 of 101")).toBeInTheDocument();
   });
 
+  it("falls back to the default page size for an unbounded ?pageSize= (SEC-05)", async () => {
+    // no pageSizeOptions passed to the hook: the default list must still gate the URL value
+    await renderGrid({ searchParams: "?pageSize=100000000" });
+    await expect.element(page.getByText("1–25 of 101")).toBeInTheDocument();
+  });
+
   it("omits page and pageSize from the URL when both are at their defaults", async () => {
     const onUrlUpdate = vi.fn();
     await renderGrid({ searchParams: "?page=2", onUrlUpdate });

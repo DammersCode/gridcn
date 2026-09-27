@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { serializePage, parsePage, serializePageSize, parsePageSize, DEFAULT_URL_PAGE_SIZE } from "./page-param";
+import { serializePage, parsePage, serializePageSize, parsePageSize, DEFAULT_URL_PAGE_SIZE, MAX_URL_PAGE } from "./page-param";
 
 describe("serializePage / parsePage", () => {
   it("round-trips a page beyond the default", () => {
@@ -30,6 +30,13 @@ describe("serializePage / parsePage", () => {
 
   it("clamps page 0 to 1", () => {
     expect(parsePage("0")).toBe(1);
+  });
+
+  it("caps the page at MAX_URL_PAGE and falls back to 1 beyond it", () => {
+    expect(parsePage(String(MAX_URL_PAGE))).toBe(MAX_URL_PAGE);
+    expect(parsePage(String(MAX_URL_PAGE + 1))).toBe(1);
+    // the SEC-05 attack input: an unbounded page number must not reach the consumer's fetch
+    expect(parsePage("100000000")).toBe(1);
   });
 });
 

@@ -62,11 +62,13 @@ export function useDataGridUrlPagination(options: UseDataGridUrlPaginationOption
     history: "replace",
   });
 
+  // the URL value is always gated by a size list — the consumer's, or the pager default when omitted —
+  // so ?pageSize=100000000 can never force an unbounded fetch size
+  const resolvedPageSizeOptions: readonly number[] = pageSizeOptions ?? DEFAULT_PAGE_SIZES;
   const rawPage = parsePage(pageParam);
-  const pageSize = parsePageSize(pageSizeParam, defaultPageSize, pageSizeOptions);
+  const pageSize = parsePageSize(pageSizeParam, defaultPageSize, resolvedPageSizeOptions);
   // a 0 total (data loading) must not clamp or write back, or a deep-linked ?page= is wiped before the real total arrives
   const page = total !== undefined && total > 0 ? clampPage(rawPage, total, pageSize) : rawPage;
-  const resolvedPageSizeOptions: readonly number[] = pageSizeOptions ?? DEFAULT_PAGE_SIZES;
 
   // normalize once, when the first positive total is known: a deep-linked ?page=999 stays raw in the URL (shared
   // link disagrees with the rendered view, and "revives" if the dataset grows) unless the clamped value is written back
@@ -74,7 +76,7 @@ export function useDataGridUrlPagination(options: UseDataGridUrlPaginationOption
   useEffect(() => {
     if (normalizedRef.current || total === undefined || total <= 0) return;
     normalizedRef.current = true;
-    const clamped = clampPage(parsePage(pageParam), total, parsePageSize(pageSizeParam, defaultPageSize, pageSizeOptions));
+    const clamped = clampPage(parsePage(pageParam), total, parsePageSize(pageSizeParam, defaultPageSize, resolvedPageSizeOptions));
     const serialized = serializePage(clamped) || "";
     if (pageParam !== serialized) void setPageParam(serialized || null);
     // oxlint-disable-next-line react-hooks/exhaustive-deps
