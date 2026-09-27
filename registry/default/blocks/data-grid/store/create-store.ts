@@ -103,6 +103,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // change of the consumer's own prop should reset `s.columns`; re-syncing with the SAME prop
   // reference (e.g. an unrelated parent re-render) must not silently discard those pin mutations.
   let lastPropsColumns: readonly AnyColumnDef[] = init.columns;
+  // The raw `filterState` prop reference last seen by _syncProps — a same-reference re-sync reuses the
+  // store's already-backfilled array instead of re-running withFilterIds (which would mint fresh ids
+  // for id-less filters and churn the sync input every render). Mirrors lastPropsColumns.
+  let lastPropsFilterState: FilterSpec[] | undefined = init.filterState;
   // `rowId -> dataIndex` for updateCells. Every path that inserts, deletes, duplicates, or replaces
   // rows invalidates it; a pure value patch never moves a row, so a streaming tick keeps it warm.
   const rowIndexCache = createRowIndexCache();
@@ -1063,8 +1067,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           // controlled sort/filter/join/search: the prop (when defined) is the source of truth this
           // sync writes into the store; uncontrolled: keep whatever the store's own actions last set.
           const nextSortState = props.sortState ?? s.sortState;
-          // backfill: a controlled filterState prop may omit filterId (backward-compat input boundary).
-          const nextFilterState = props.filterState ? withFilterIds(props.filterState) : s.filterState;
+          // backfill: a controlled filterState prop may omit filterId (backward-compat input boundary);
+          // a same-reference re-sync reuses s.filterState (see lastPropsFilterState).
+          const propsFilterStateChanged = props.filterState !== lastPropsFilterState;
+          lastPropsFilterState = props.filterState;
+          const nextFilterState =
+            props.filterState === undefined || !propsFilterStateChanged ? s.filterState : withFilterIds(props.filterState);
           const nextJoinOperator = props.joinOperator ?? s.joinOperator;
           const nextSearchText = props.searchText ?? s.searchText;
           // data: controlled (props.data defined) mirrors the prop every sync, byte-identical to

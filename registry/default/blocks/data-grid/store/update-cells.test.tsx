@@ -15,6 +15,7 @@ import {
 } from "../store";
 import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
 import { INCREMENTAL_VIEW_ASSERT_RATE, setIncrementalAssertRate } from "./compute";
+import * as compute from "./compute";
 import { createRowIndexCache, diffRowIndex, resolveReorder, touchesViewInputs } from "./row-index";
 import * as sortFilter from "../sort-filter";
 
@@ -879,6 +880,39 @@ describe("controlled echo detection", () => {
     act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
     rerender();
     expect(result.current.viewIndex).toEqual([0, 1, 2]);
+  });
+
+  it("a stable controlled filterState with ids keeps viewIndex identity across an echo rerender", () => {
+    let data = rows();
+    const onDataChange = vi.fn((next: readonly Row[]) => {
+      data = next as Row[];
+    });
+    // every filter already carries an id: withFilterIds must keep the array identity, so the
+    // reference-equal prop leaves the sync inputs unchanged and the echo skip applies.
+    const stableFilters: FilterSpec[] = [{ filterId: "f1", columnId: "price", operator: "gt", value: "0" }];
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider
+          data={data}
+          columns={columns}
+          getRowId={getRowId}
+          onDataChange={onDataChange}
+          filterState={stableFilters}
+        >
+          {children}
+        </DataGridProvider>
+      );
+    }
+    const { result, rerender } = renderHook(() => useHarness(), { wrapper: Wrapper });
+    const viewSpy = vi.spyOn(compute, "computeViewIndex");
+    const before = result.current.viewIndex;
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "note", value: "x" }]));
+    const rebuildsAfterEdit = viewSpy.mock.calls.length;
+    rerender();
+    // the reference-equal filterState prop must not force a view rebuild on the echo sync
+    expect(result.current.viewIndex).toBe(before);
+    expect(viewSpy.mock.calls.length).toBe(rebuildsAfterEdit);
+    viewSpy.mockRestore();
   });
 
   it("an echo sync that also changes the sort still recomputes", () => {

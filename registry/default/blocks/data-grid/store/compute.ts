@@ -158,10 +158,15 @@ export function genFilterId(): string {
  * may still pass plain `{columnId, operator, value}` via the controlled `filterState` prop) while
  * preserving the id of every filter that already has one — so identity stays stable across recomputes
  * for filters the consumer/store already assigned one to, and list rendering keyed on `filterId` never
- * jitters just because `_syncProps` ran again with the same logical filters.
+ * jitters just because `_syncProps` ran again with the same logical filters. Returns the input array
+ * itself when every filter already has an id, so a stable prop reference stays a stable sync input.
  */
 export function withFilterIds(filters: readonly FilterSpec[]): FilterSpec[] {
-  return filters.map((f) => (f.filterId ? f : { ...f, filterId: genFilterId() }));
+  for (const f of filters) {
+    if (!f.filterId) return filters.map((f) => (f.filterId ? f : { ...f, filterId: genFilterId() }));
+  }
+  // the input is never mutated in place by the store (every update builds a new array)
+  return filters as FilterSpec[];
 }
 
 /**
