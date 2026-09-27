@@ -50,6 +50,13 @@ describe("serializeSortState / parseSortState", () => {
     ]);
   });
 
+  it("dedupes repeated column ids, keeping the first segment (SEC-06)", () => {
+    expect(parseSortState("name:desc,name:asc,age:asc")).toEqual([
+      { columnId: "name", direction: "desc" },
+      { columnId: "age", direction: "asc" },
+    ]);
+  });
+
   it("never throws on malformed percent-encoding", () => {
     expect(() => parseSortState("%E0%A4%A:asc")).not.toThrow();
     expect(parseSortState("%E0%A4%A:asc")).toEqual([]);

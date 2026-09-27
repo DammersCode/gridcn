@@ -309,6 +309,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **URL state hardening:** the `filter` URL param parses at most 64 filters (each `isAnyOf` list
+  at most 64 choices), and the `sort` URL param keeps one direction per column (first segment
+  wins) — a hand-edited URL can no longer express an unbounded view state.
 - **URL pagination hardening:** a URL `pageSize` is now gated by the pager's default size list
   (10/25/50/100) even when `pageSizeOptions` is omitted, and a URL `page` beyond 1,000,000
   falls back to 1 — an unbounded `?pageSize=` or `?page=` can no longer force a huge fetch.

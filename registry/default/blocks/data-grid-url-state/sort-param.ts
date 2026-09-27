@@ -23,7 +23,8 @@ function safeDecode(value: string): string | null {
 /**
  * Inverse of {@link serializeSortState}. Malformed segments (missing direction, bad direction
  * value, empty/undecodable column id) are dropped silently rather than throwing — a corrupt/hand-edited
- * URL degrades to fewer sorts, never an error.
+ * URL degrades to fewer sorts, never an error. A column id repeated in the URL yields one sort entry
+ * (the first segment wins), matching the grid's one-direction-per-column sort model.
  *
  * @example parseSortState("name:asc,age:desc") // => [{ columnId: "name", direction: "asc" }, { columnId: "age", direction: "desc" }]
  * @example parseSortState("garbage") // => []
@@ -31,11 +32,15 @@ function safeDecode(value: string): string | null {
 export function parseSortState(raw: string): SortSpec[] {
   if (!raw) return [];
   const sorts: SortSpec[] = [];
+  // one sort entry per column (the grid's sort model) — a repeated column id keeps its first segment
+  const seenColumns = new Set<string>();
   for (const segment of raw.split(",")) {
     const [columnId, direction] = segment.split(":");
     if (!columnId || (direction !== "asc" && direction !== "desc")) continue;
     const decoded = safeDecode(columnId);
     if (decoded === null || decoded === "") continue;
+    if (seenColumns.has(decoded)) continue;
+    seenColumns.add(decoded);
     sorts.push({ columnId: decoded, direction });
   }
   return sorts;

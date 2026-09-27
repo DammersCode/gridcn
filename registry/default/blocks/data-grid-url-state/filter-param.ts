@@ -7,6 +7,12 @@ const RANGE_SEPARATOR = "~";
 /** In-value separator for `isAnyOf`'s choice list. `encodeURIComponent` escapes a literal `|` inside a choice to `%7C`, so the raw separator can never collide with a choice's own characters. */
 const ANYOF_SEPARATOR = "|";
 
+/** SEC-06: a URL cannot express more filters than this — segments beyond the cap are dropped. */
+const MAX_URL_FILTERS = 64;
+
+/** SEC-06: cap for one `isAnyOf` choice list — entries beyond the cap are dropped. */
+const MAX_ANYOF_CHOICES = 64;
+
 /** `encodeURIComponent` plus escaping the one character it doesn't (`~`), so a literal tilde in a bound never collides with {@link RANGE_SEPARATOR}. */
 function encodeRangePart(part: string): string {
   return encodeURIComponent(part).replace(/~/g, "%7E");
@@ -59,6 +65,7 @@ function decodeFilterValue(operator: string, raw: string): FilterSpec["value"] |
     if (raw === "") return [];
     const parts: string[] = [];
     for (const rawPart of raw.split(ANYOF_SEPARATOR)) {
+      if (parts.length >= MAX_ANYOF_CHOICES) break;
       const decoded = safeDecode(rawPart);
       if (decoded === null) return DECODE_FAILED;
       parts.push(decoded);
@@ -80,6 +87,8 @@ function decodeFilterValue(operator: string, raw: string): FilterSpec["value"] |
  * Inverse of {@link serializeFilterState}. Malformed segments (unknown operator, empty/undecodable
  * column id, wrong field count, malformed `isBetween` range or `isAnyOf` list) are dropped silently
  * rather than throwing — a corrupt/hand-edited URL degrades to fewer filters, never an error.
+ * The parsed list is capped at 64 filters and each `isAnyOf` list at 64 choices (the first segments
+ * win), so a hand-edited URL cannot express an unbounded filter set.
  * Every filter parses without a `filterId`; the store backfills a fresh stable one on the next sync.
  *
  * @example parseFilterState("age:gt:30") // => [{ columnId: "age", operator: "gt", value: "30" }]
@@ -92,6 +101,7 @@ export function parseFilterState(raw: string): FilterSpec[] {
   if (!raw) return [];
   const filters: FilterSpec[] = [];
   for (const segment of raw.split(",")) {
+    if (filters.length >= MAX_URL_FILTERS) break;
     const parts = segment.split(":");
     if (parts.length !== 3) continue;
     const [columnId, operator, rawValue] = parts;

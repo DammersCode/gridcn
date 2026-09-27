@@ -97,6 +97,9 @@ toggle existed still parses identically.
   filter does not pollute the browser's back and forward history.
 - The core stays router-agnostic. `data-grid-url-state` is the only piece that knows about a
   router, and it is entirely optional.
+- A URL cannot express an unbounded view state. The `filter` param parses at most 64 filters,
+  each `isAnyOf` list at most 64 choices. The `sort` param keeps one direction per column (the
+  first segment wins). A hand-edited URL beyond these limits degrades to fewer filters and sorts.
 
 The hook reads the store, so a small child component inside the provider owns the wiring:
 

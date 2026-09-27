@@ -55,6 +55,21 @@ describe("serializeFilterState / parseFilterState", () => {
     ]);
   });
 
+  it("caps the parsed filter count at 64 (SEC-06)", () => {
+    const raw = Array.from({ length: 70 }, (_, i) => `c${i}:contains:x`).join(",");
+    const filters = parseFilterState(raw);
+    expect(filters).toHaveLength(64);
+    expect(filters[0]).toEqual({ columnId: "c0", operator: "contains", value: "x" });
+  });
+
+  it("caps an isAnyOf choice list at 64 entries (SEC-06)", () => {
+    const raw = "status:isAnyOf:" + Array.from({ length: 100 }, (_, i) => `v${i}`).join("|");
+    const filters = parseFilterState(raw);
+    expect(filters).toHaveLength(1);
+    expect(filters[0]!.value).toHaveLength(64);
+    expect((filters[0]!.value as string[])[0]).toBe("v0");
+  });
+
   it("never throws on malformed percent-encoding", () => {
     expect(() => parseFilterState("age:gt:%E0%A4%A")).not.toThrow();
     expect(parseFilterState("age:gt:%E0%A4%A")).toEqual([]);
