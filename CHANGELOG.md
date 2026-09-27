@@ -304,6 +304,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Import dialog race conditions:** an aborted or superseded file load no longer clears the
+  parsing state of a newer load, and `setDelimiter` re-parses with the parsing state, a generation
+  guard against stale results, and a surfaced error instead of an unhandled rejection.
 - **Missing documented keybindings:** `Backspace` and `Delete` on a focused `DataGridSortList` /
   `DataGridFilterMenu` row grip now remove that row, as the docs already stated.
 - **Sort list row remounted on a column change:** `DataGridSortList` rows are keyed by their

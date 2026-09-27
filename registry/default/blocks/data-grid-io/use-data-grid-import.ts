@@ -46,7 +46,7 @@ export type UseDataGridImportPreviewResult = {
   /** Parses `file`; on success populates `preview` with column mapping prefilled by header-text match. */
   loadFile: (file: File, gridColumns: readonly ImportTargetColumn[]) => Promise<void>;
   setHasHeaderRow: (hasHeaderRow: boolean) => void;
-  /** Re-parses the current CSV file with the given delimiter override; no-op for xlsx/xls files or before a file is loaded. */
+  /** Re-parses the current CSV file with the given delimiter override; no-op for xlsx/xls files or before a file is loaded. A failed re-parse sets `error` instead of throwing. */
   setDelimiter: (delimiter: CsvDelimiter) => Promise<void>;
   /**
    * Re-parses the current xlsx/xls workbook with the given sheet; no-op for CSV or before a file
@@ -95,7 +95,7 @@ export function useDataGridImportPreview(
   const gridColumnsRef = useRef<readonly ImportTargetColumn[]>([]);
   // aborts an in-flight file read when a newer load starts or the dialog resets.
   const parseControllerRef = useRef<AbortController | null>(null);
-  // generation guard for async sheet re-parses: a newer sheet switch, file load, or reset must win over a slower older one.
+  // generation guard for async re-parses (sheet switch, delimiter override): a newer switch, file load, or reset must win over a slower older one.
   const sheetGenerationRef = useRef(0);
   const { defaultHeaderRow = true, defaultSkipColumns, mapColumn } = options;
 
@@ -144,7 +144,8 @@ export function useDataGridImportPreview(
       setError(isUnsupportedType ? "errorUnsupportedFile" : "errorParseFailed");
       setPreview(null);
     } finally {
-      setIsParsing(false);
+      // a superseded (aborted) load must not clear the newer load's parsing state
+      if (parseControllerRef.current === controller) setIsParsing(false);
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- destructured option fields are the real deps; `options` itself may be a fresh object each render.
   }, [columnFallback, defaultHeaderRow, defaultSkipColumns, mapColumn]);
@@ -164,26 +165,31 @@ export function useDataGridImportPreview(
     async (delimiter: CsvDelimiter) => {
       const file = currentFileRef.current;
       if (!file) return;
-      let parsed: ParsedImportFile;
+      const generation = ++sheetGenerationRef.current;
+      setError(null);
+      setIsParsing(true);
       try {
-        parsed = await parseImportFile(file, { csvDelimiter: delimiter }, parseControllerRef.current?.signal);
+        const parsed = await parseImportFile(file, { csvDelimiter: delimiter }, parseControllerRef.current?.signal);
+        if (generation !== sheetGenerationRef.current) return; // superseded by a newer file load, sheet switch, or reset
+        if (parsed.rows.length === 0) return;
+        setPreview((prev) => {
+          if (!prev) return prev;
+          const importHeaders = computeImportHeaders(parsed.rows, prev.hasHeaderRow, columnFallback);
+          const matched = applyImportOptions(importHeaders, gridColumnsRef.current, { defaultSkipColumns, mapColumn });
+          return {
+            ...prev,
+            rows: parsed.rows,
+            importHeaders,
+            delimiter,
+            mapping: matched.map((gridColumnId, importColumnIndex) => ({ importColumnIndex, gridColumnId })),
+          };
+        });
       } catch (err) {
         if (isAbortError(err)) return;
-        throw err;
+        if (generation === sheetGenerationRef.current) setError("errorParseFailed");
+      } finally {
+        if (generation === sheetGenerationRef.current) setIsParsing(false);
       }
-      if (parsed.rows.length === 0) return;
-      setPreview((prev) => {
-        if (!prev) return prev;
-        const importHeaders = computeImportHeaders(parsed.rows, prev.hasHeaderRow, columnFallback);
-        const matched = applyImportOptions(importHeaders, gridColumnsRef.current, { defaultSkipColumns, mapColumn });
-        return {
-          ...prev,
-          rows: parsed.rows,
-          importHeaders,
-          delimiter,
-          mapping: matched.map((gridColumnId, importColumnIndex) => ({ importColumnIndex, gridColumnId })),
-        };
-      });
     },
     [columnFallback, defaultSkipColumns, mapColumn],
   );
