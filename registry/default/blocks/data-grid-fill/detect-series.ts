@@ -5,8 +5,25 @@ export type SeriesDescriptor = {
 
 const NUMERIC_RE = /^-?\d+(\.\d+)?$/;
 const PADDED_INT_RE = /^\d+$/;
-const PREFIX_NUMBER_RE = /^(.*?)(\d+)(\D*)$/;
 const EPSILON = 1e-9;
+
+/**
+ * Splits `value` into the maximal digit run that ends the digit/suffix boundary plus everything
+ * before/after it — the linear equivalent of `/^(.*?)(\d+)(\D*)$/` (that regex backtracks
+ * quadratically on a long digit run before a trailing digit). `null` when value has no digit run.
+ */
+function splitPrefixNumber(value: string): { prefix: string; digits: string; suffix: string } | null {
+  let suffixStart = value.length;
+  while (suffixStart > 0 && !/\d/.test(value[suffixStart - 1]!)) suffixStart--;
+  let digitsStart = suffixStart;
+  while (digitsStart > 0 && /\d/.test(value[digitsStart - 1]!)) digitsStart--;
+  if (digitsStart === suffixStart) return null;
+  return {
+    prefix: value.slice(0, digitsStart),
+    digits: value.slice(digitsStart, suffixStart),
+    suffix: value.slice(suffixStart),
+  };
+}
 
 function decimalPlaces(value: string): number {
   const dotIndex = value.indexOf(".");
@@ -56,14 +73,14 @@ function detectPaddedNumeric(values: readonly string[]): SeriesDescriptor | null
 
 function detectPrefixNumber(values: readonly string[]): SeriesDescriptor | null {
   if (values.length < 2) return null;
-  const matches = values.map((v) => v.trim().match(PREFIX_NUMBER_RE));
-  if (matches.some((m) => m === null)) return null;
-  const parsed = matches as RegExpMatchArray[];
-  const prefix = parsed[0]![1];
-  const suffix = parsed[0]![3];
-  if (!parsed.every((m) => m[1] === prefix && m[3] === suffix)) return null;
+  const splits = values.map((v) => splitPrefixNumber(v.trim()));
+  if (splits.some((s) => s === null)) return null;
+  const parsed = splits as { prefix: string; digits: string; suffix: string }[];
+  const prefix = parsed[0]!.prefix;
+  const suffix = parsed[0]!.suffix;
+  if (!parsed.every((p) => p.prefix === prefix && p.suffix === suffix)) return null;
 
-  const numStrings = parsed.map((m) => m[2]!);
+  const numStrings = parsed.map((p) => p.digits);
   const numbers = numStrings.map((n) => Number(n));
   const width = numStrings[0]!.length;
   const uniformWidth = numStrings.every((n) => n.length === width) && numStrings.some((n) => n.startsWith("0"));

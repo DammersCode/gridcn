@@ -205,6 +205,18 @@ describe("detectSeries", () => {
     expect(series).not.toBeNull();
     expect(series!.extrapolate(2)).toBe("Item 10");
   });
+
+  it("detects a prefix series on a 20k-char value in linear time (SEC-03)", () => {
+    // the attack input: a long digit run, a non-digit, then a trailing digit — quadratic for the old
+    // /^(.*?)(\d+)(\D*)$/ split, ~318 ms per value; a linear scan finishes in under a millisecond.
+    const prefix = "1".repeat(20_000);
+    const start = performance.now();
+    const series = detectSeries([prefix + "a1", prefix + "a2"]);
+    const elapsed = performance.now() - start;
+    expect(series).not.toBeNull();
+    expect(series!.extrapolate(2)).toBe(prefix + "a3");
+    expect(elapsed).toBeLessThan(100);
+  });
 });
 
 describe("generateFill", () => {
