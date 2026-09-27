@@ -6,8 +6,8 @@ function quoteTsvField(cell: string): string {
   return `"${cell.replace(/"/g, '""')}"`;
 }
 
-/** Escapes text and preserves whitespace fidelity for Excel/Sheets: tabs -> 4 spaces, runs of >=2 spaces wrapped in a span. */
-function escapeHtmlText(value: string): string {
+/** Escapes text and preserves whitespace fidelity for Excel/Sheets: tabs -> 4 spaces, runs of >=2 spaces wrapped in a span. Also the round-trip check `parse-clipboard.ts` applies to `data-gridcn-raw`. */
+export function escapeHtmlText(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

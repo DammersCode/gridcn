@@ -75,10 +75,25 @@ describe("parseClipboardHtml", () => {
     expect(parseClipboardHtml("<div>no table here</div>")).toBeNull();
   });
 
-  it("prefers data-gridcn-raw over textContent", () => {
+  it("ignores a data-gridcn-raw that disagrees with the node text (SEC-04)", () => {
     const html =
       '<table><tbody><tr><td data-gridcn-raw="raw-value">Display Value</td></tr></tbody></table>';
-    expect(parseClipboardHtml(html)).toEqual([["raw-value"]]);
+    expect(parseClipboardHtml(html)).toEqual([["Display Value"]]);
+  });
+
+  it("ignores a data-gridcn-raw hiding a formula-looking value behind plain text (SEC-04)", () => {
+    const html = '<table><tr><td data-gridcn-raw="=HYPERLINK(&quot;http://x&quot;)">1</td></tr></table>';
+    expect(parseClipboardHtml(html)).toEqual([["1"]]);
+  });
+
+  it("trusts a data-gridcn-raw that is the grid's own serialization (round-trip)", () => {
+    const { html } = serializeCells([["a\nb"], ["a\tb"], ["c  d"], ["plain"]]);
+    expect(parseClipboardHtml(html)).toEqual([
+      ["a\nb"],
+      ["a\tb"],
+      ["c  d"],
+      ["plain"],
+    ]);
   });
 
   it("falls back to textContent with <br> as newline when no data attrs (real Excel paste)", () => {
@@ -181,7 +196,7 @@ describe("parseClipboardText", () => {
 
 describe("parseClipboard", () => {
   it("prefers html when it yields a table", () => {
-    const html = '<table><tr><td data-gridcn-raw="from-html">x</td></tr></table>';
+    const { html } = serializeCells([["from-html"]]);
     const text = "from-text";
     expect(parseClipboard({ html, text })).toEqual([["from-html"]]);
   });

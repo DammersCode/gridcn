@@ -1,9 +1,21 @@
+import { escapeHtmlText } from "./serialize-cells";
+
 const BLOCK_TAGS = new Set(["P", "DIV", "LI"]);
+
+/**
+ * The grid's own `data-gridcn-raw` trust check: the attribute holds a value the DOM never sees
+ * (raw "\t"/spaces/newlines the display renders as spans/`<br>`), so it is trusted only when it is
+ * the serializer's own rendering of this exact cell — a hand-crafted payload cannot set it to a
+ * different value without the cell's visible text contradicting it (SEC-04).
+ */
+function rawMatchesCell(raw: string, cell: Element): boolean {
+  return cell.innerHTML === escapeHtmlText(raw);
+}
 
 /** Converts a table cell's DOM content to text, treating `<br>` as a newline and separating block-level children (e.g. Apple Numbers' `<p>` per line) with one. */
 function cellNodeToText(cell: Element): string {
   const raw = cell.getAttribute("data-gridcn-raw");
-  if (raw !== null) return raw;
+  if (raw !== null && rawMatchesCell(raw, cell)) return raw;
 
   let out = "";
   for (const node of Array.from(cell.childNodes)) {
@@ -25,8 +37,9 @@ function cellNodeToText(cell: Element): string {
 
 /**
  * Parses a clipboard `text/html` payload into a 2D string grid using the first `<table>` found.
- * Prefers each cell's `data-gridcn-raw` attribute, falling back to text content with `<br>`
- * treated as a newline. Returns null when no table is present.
+ * Prefers each cell's `data-gridcn-raw` attribute — trusted only when it is the grid's own
+ * serialization of the cell (it renders back to the cell's exact innerHTML) — falling back to
+ * text content with `<br>` treated as a newline. Returns null when no table is present.
  */
 export function parseClipboardHtml(html: string): string[][] | null {
   const doc = new DOMParser().parseFromString(html, "text/html");

@@ -309,6 +309,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Pasted HTML:** the `data-gridcn-raw` cell attribute is now trusted only when it is the grid's
+  own serialization of that cell (it renders back to the cell's exact innerHTML) — a crafted
+  clipboard payload can no longer smuggle a value the user did not see into a paste.
 - **URL state hardening:** the `filter` URL param parses at most 64 filters (each `isAnyOf` list
   at most 64 choices), and the `sort` URL param keeps one direction per column (first segment
   wins) — a hand-edited URL can no longer express an unbounded view state.
