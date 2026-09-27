@@ -20,6 +20,7 @@ Useful pages while developing: `/dev` (configurable 100k-row grid), `/docs` (eve
 pnpm test -- --project=unit      # jsdom suite
 pnpm test -- --project=browser   # real-Chromium suite (Playwright provider)
 pnpm types:check
+pnpm types:check:ts5             # consumer TypeScript 5.9 baseline
 pnpm lint
 ```
 
