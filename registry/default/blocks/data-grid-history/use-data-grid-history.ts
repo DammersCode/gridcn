@@ -21,8 +21,9 @@ export type UseDataGridHistoryOptions<TData> = {
   /**
    * Which `DataChange.source` values go on the undo stack. Defaults to every source except
    * `"stream"` — a 100-updates/s `updateCells` feed would otherwise evict the user's whole undo
-   * stack within seconds. Pass a list to change the set, for example
-   * `["edit", "paste", "fill", "delete", "row-op", "import", "stream"]` to record streams too.
+    * stack within seconds. Pass a list to change the set, for example
+    * `["edit", "paste", "fill", "delete", "row-op", "import", "stream", "app"]` to record
+    * streams too.
    * `setData` still runs for every change, recorded or not.
    */
   recordSources?: readonly DataChange<TData>["source"][];
