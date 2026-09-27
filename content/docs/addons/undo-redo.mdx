@@ -158,7 +158,7 @@ const lazy = useDataGridLazyRows<Order>({ total, fetchRows, getRowId });
 
 const { onDataChange, undo, redo, clear } = useDataGridHistory({
   data: lazy.gridProps.data,
-  setData: lazy.onDataChange,
+  setData: (next) => lazy.onDataChange(next, { ops: [], source: "history" }),
   getRowId: (row, index) => (row === undefined ? `__lazy-unloaded-${index}` : row.id),
 });
 
