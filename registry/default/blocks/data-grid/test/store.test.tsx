@@ -751,20 +751,31 @@ describe("toggleSort additive preserves column priority", () => {
 });
 
 describe("dev-mode guardrails", () => {
-  it("warns on duplicate column ids", () => {
+  it("warns once per instance on duplicate column ids, not per render", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const dupCols: readonly ColumnDef<Row, unknown>[] = [
       { id: "name", header: "Name", accessorKey: "name" },
       { id: "name", header: "Name Again", accessorKey: "name" },
     ];
 
-    render(
+    const { rerender } = render(
+      <DataGridProvider data={rows()} columns={dupCols} getRowId={(r) => r.id}>
+        <div />
+      </DataGridProvider>,
+    );
+    rerender(
+      <DataGridProvider data={rows()} columns={dupCols} getRowId={(r) => r.id}>
+        <div />
+      </DataGridProvider>,
+    );
+    rerender(
       <DataGridProvider data={rows()} columns={dupCols} getRowId={(r) => r.id}>
         <div />
       </DataGridProvider>,
     );
 
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('duplicate column id "name"'));
+    // once per instance (per duplicated id), not per render
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes('duplicate column id "name"')).length).toBe(1);
     warn.mockRestore();
   });
 

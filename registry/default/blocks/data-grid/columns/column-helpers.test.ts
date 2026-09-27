@@ -62,14 +62,14 @@ describe("defineColumns dev-mode warnings", () => {
     vi.unstubAllEnvs();
   });
 
-  it("warns on duplicate column ids", () => {
+  it("does not warn on duplicate column ids (the provider warns once per instance instead)", () => {
     vi.stubEnv("NODE_ENV", "development");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const columns = defineColumns<Row>()([
       { id: "name", header: "Name", accessorKey: "name" },
       { id: "name", header: "Name Again", accessorKey: "name" },
     ]);
-    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/duplicate column id "name"/));
+    expect(warn).not.toHaveBeenCalled();
     expect(columns).toHaveLength(2);
     warn.mockRestore();
   });

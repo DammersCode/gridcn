@@ -5,7 +5,7 @@ import type { StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
 import type { OverlayPlugin } from "../overlays";
 import type { RowBandsSpec } from "../layout-context";
-import { checkDevGuardrails, checkUnresolvableColumnTypes } from "./commit";
+import { checkDevGuardrails, checkDuplicateColumnIds, checkUnresolvableColumnTypes } from "./commit";
 import { makeSelectionChangeDetails } from "./compute";
 import { createDataGridStore } from "./create-store";
 import { toInternalSyncProps } from "./types";
@@ -167,6 +167,7 @@ function useGridStoreCore<TData>(
   const prevOverlayPlugins = useRef<readonly OverlayPlugin[] | undefined>(undefined);
   const prevRowBands = useRef<RowBandsSpec | undefined>(undefined);
   const warnedColumnTypes = useRef<Set<string>>(new Set());
+  const warnedDuplicateColumnIds = useRef<Set<string>>(new Set());
 
   // One subscription per store instance, outside React's render path (see subscribeSelectionChange).
   // External stores are subscribed by their owner's useDataGridStoreProps call — subscribing here
@@ -183,6 +184,7 @@ function useGridStoreCore<TData>(
   useEffect(() => {
     if (externalStore) return;
     checkDevGuardrails(internalInit, prevColumns.current, prevData.current, prevOverlayPlugins.current, prevRowBands.current);
+    checkDuplicateColumnIds(internalInit.columns, warnedDuplicateColumnIds.current);
     checkUnresolvableColumnTypes(internalInit.columns, internalInit.cellTypes, warnedColumnTypes.current);
     prevColumns.current = internalInit.columns;
     prevData.current = internalInit.data;

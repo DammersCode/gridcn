@@ -46,7 +46,24 @@ export function warnBothDataPropsOnce(): void {
   warnDev("both `data` and `defaultData` were provided; `data` wins (controlled) and `defaultData` is ignored");
 }
 
-/** Dev-only guardrails: duplicate column ids, missing getRowId, unstable columns/data/overlayPlugins/rowBands identity across renders. */
+/**
+ * Warns once per instance (per passed Set) for every duplicated column id — the dev guardrails
+ * run on every render, so without dedup a static duplicate id would warn on every render.
+ */
+export function checkDuplicateColumnIds(columns: readonly AnyColumnDef[], warned: Set<string>): void {
+  if (!isDev()) return;
+  const seen = new Set<string>();
+  for (const column of columns) {
+    if (seen.has(column.id)) {
+      if (warned.has(column.id)) continue;
+      warned.add(column.id);
+      warnDev(`duplicate column id "${column.id}"`);
+    }
+    seen.add(column.id);
+  }
+}
+
+/** Dev-only guardrails: missing getRowId, unstable columns/data/overlayPlugins/rowBands identity across renders. */
 export function checkDevGuardrails(
   props: InternalSyncProps,
   prevColumns: readonly AnyColumnDef[] | undefined,
@@ -55,12 +72,6 @@ export function checkDevGuardrails(
   prevRowBands: RowBandsSpec | undefined,
 ): void {
   if (!isDev()) return;
-
-  const seen = new Set<string>();
-  for (const column of props.columns) {
-    if (seen.has(column.id)) warnDev(`duplicate column id "${column.id}"`);
-    seen.add(column.id);
-  }
 
   if (typeof props.getRowId !== "function") {
     warnDev("getRowId is required and must be a function");
