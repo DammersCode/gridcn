@@ -304,6 +304,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Calendar-invalid ISO dates committed:** `date` cell input now rejects ISO-shaped but
+  calendar-invalid values like `2026-02-30`, `2026-13-45`, and `2026-02-29` (a UTC round-trip
+  probe, not `Date.parse`), so they can no longer commit; real leap days like `2024-02-29` still
+  pass.
 - **Deep-linked page lost while data loads:** `useDataGridUrlPagination({ total })` no longer
   clamps or rewrites `?page=` while `total` is 0, so a deep link survives until the real total
   arrives; `useDataGridPagination` client mode keeps a controlled page the same way on an empty

@@ -9,12 +9,22 @@ import { useCommitGuard } from "../interaction/use-commit-guard";
 import { useDataGridLabels } from "../store";
 import { columnLabelText } from "../columns/column-format-helpers";
 
-/** Normalizes any Date-parseable input to its ISO `yyyy-mm-dd` date part; null when unparseable or out of range. */
+/** Calendar-validity probe for an ISO-shaped `yyyy-mm-dd`: UTC so no time-zone can shift a day; `setUTCFullYear` (unlike the `Date.UTC` constructor) maps 0-99 to themselves, so `0026-01-01` stays 0026. */
+function isRealIsoDate(iso: string): boolean {
+  const [year, month, day] = iso.split("-").map(Number) as [number, number, number];
+  const probe = new Date(0);
+  probe.setUTCFullYear(year, month - 1, day);
+  return probe.getUTCFullYear() === year && probe.getUTCMonth() === month - 1 && probe.getUTCDate() === day;
+}
+
+/** Normalizes any Date-parseable input to its ISO `yyyy-mm-dd` date part; null when unparseable, calendar-invalid, or out of range. */
 function toIsoDatePart(input: string, options?: GridCellTypes["date"]["options"]): string | null {
   const trimmed = input.trim();
   if (trimmed === "") return null;
   let isoDate: string;
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    // the shape check is not a calendar check — 2026-02-30 matches it and must not commit
+    if (!isRealIsoDate(trimmed)) return null;
     isoDate = trimmed;
   } else {
     const parsed = new Date(trimmed);

@@ -223,6 +223,15 @@ describe("dateCellType value pipeline", () => {
     expect(dateCellType.fromText("2026-07-03")).toBe("2026-07-03");
   });
 
+  it("fromText rejects ISO-shaped but calendar-invalid dates, and keeps a real leap day", () => {
+    expect(dateCellType.fromText("2026-02-30")).toBeNull();
+    expect(dateCellType.fromText("2026-13-45")).toBeNull();
+    expect(dateCellType.fromText("2026-02-29")).toBeNull(); // 2026 is not a leap year
+    expect(dateCellType.fromText("2026-00-10")).toBeNull();
+    expect(dateCellType.fromText("2026-01-00")).toBeNull();
+    expect(dateCellType.fromText("2024-02-29")).toBe("2024-02-29"); // 2024 is a leap year
+  });
+
   it("fromText normalizes Date.parse-able input to the ISO date part", () => {
     expect(dateCellType.fromText("2026-07-03T10:00:00Z")).toBe("2026-07-03");
     expect(dateCellType.fromText("July 3, 2026")).toBe("2026-07-03");
