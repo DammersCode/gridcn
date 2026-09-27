@@ -352,7 +352,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   selection math, `CompactSelection`, clipboard parse/serialize, fill/series inference, sort/filter
   matching, keymap matching, history, url-state serializers, CSV/XLSX import/export helpers, and
   context-menu target resolution.
-- `LICENSE` (GridCN Source Available License).
+- `LICENSE` (Apache License 2.0).
 - `data-grid-lazy` add-on: `useDataGridLazyRows` + `DataGridLazyGuard` for fetching rows on demand
   as the viewport scrolls, instead of loading the full dataset up front.
 - `data-grid-sort-list` add-on: toolbar sort button + popover for adding/removing/reordering

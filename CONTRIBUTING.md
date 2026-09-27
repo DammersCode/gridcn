@@ -7,7 +7,7 @@ messages, and pull-request text — is written in English.
 
 ## Development
 
-Contributions are licensed under the GridCN Source Available License — see LICENSE §8.
+Contributions are licensed under the Apache License 2.0 — see LICENSE §5.
 
 ```bash
 pnpm install        # deps (pnpm 10+)
