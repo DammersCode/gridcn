@@ -102,7 +102,8 @@ export function DataGridPaginationPageSize(): ReactNode {
   return (
     <Select value={String(pageSize)} onValueChange={(value) => onPageSizeChange(Number(value))}>
       <SelectTrigger className="h-8 w-fit" aria-label={labels.pageSizeAriaLabel}>
-        <SelectValue />
+        {/* explicit label lookup: SelectValue only resolves a mounted SelectItem's label, which the popup content isn't until first opened. */}
+        <SelectValue>{(value: string) => labels.pageSizeOption(Number(value))}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {pageSizeOptions.map((size) => (

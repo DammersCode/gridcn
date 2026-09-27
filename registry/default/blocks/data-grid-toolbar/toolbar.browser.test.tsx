@@ -549,6 +549,51 @@ describe("DataGridFilterMenu typed value inputs", () => {
     await expect.poll(() => document.querySelectorAll('[role="row"]').length - 1).toBe(3);
   });
 
+  it("a checkbox filter trigger shows the label for a stored value, not the raw value", async () => {
+    await render(
+      <DataGridProvider
+        data={makeRichRows()}
+        columns={richColumns}
+        getRowId={(r) => r.id}
+        filterState={[{ columnId: "active", operator: "equals", value: "true" }]}
+        onFilterChange={() => {}}
+        labels={{ toolbar: { filterValueTrue: "Yes", filterValueFalse: "No" } }}
+      >
+        <DataGridToolbar>
+          <DataGridFilterMenu />
+        </DataGridToolbar>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await page.getByRole("button", { name: "Filters" }).click();
+    await expect.element(page.getByRole("combobox", { name: "Filter value" })).toHaveTextContent("Yes");
+  });
+
+  it("a select filter trigger shows the choice label for a stored value, not the raw value", async () => {
+    await render(
+      <DataGridProvider
+        data={makeRichRows()}
+        columns={richColumns}
+        getRowId={(r) => r.id}
+        filterState={[{ columnId: "role", operator: "equals", value: "admin" }]}
+        onFilterChange={() => {}}
+      >
+        <DataGridToolbar>
+          <DataGridFilterMenu />
+        </DataGridToolbar>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await page.getByRole("button", { name: "Filters" }).click();
+    await expect.element(page.getByRole("combobox", { name: "Filter value" })).toHaveTextContent("Admin");
+  });
+
   it("isAnyOf is offered only for select columns", async () => {
     await renderRichGrid();
     await openFilterMenu();

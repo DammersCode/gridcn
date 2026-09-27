@@ -206,7 +206,8 @@ export function DataGridFilterValueInput(props: DataGridFilterValueInputProps): 
     return (
       <Select value={textValue} onValueChange={(next) => onValueChange(next ?? "")}>
         <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.filterValueAriaLabel}>
-          <SelectValue placeholder={labels.toolbar.filterValuePlaceholder} />
+          {/* explicit label lookup: SelectValue only resolves a mounted SelectItem's label, which the popup content isn't until first opened. */}
+          <SelectValue placeholder={labels.toolbar.filterValuePlaceholder}>{(value: string) => (value === "true" ? labels.toolbar.filterValueTrue : value === "false" ? labels.toolbar.filterValueFalse : value)}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="true">{labels.toolbar.filterValueTrue}</SelectItem>
@@ -221,7 +222,8 @@ export function DataGridFilterValueInput(props: DataGridFilterValueInputProps): 
     return (
       <Select value={textValue} onValueChange={(next) => onValueChange(next ?? "")}>
         <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.filterValueAriaLabel}>
-          <SelectValue placeholder={labels.toolbar.filterValuePlaceholder} />
+          {/* explicit label lookup: SelectValue only resolves a mounted SelectItem's label, which the popup content isn't until first opened. */}
+          <SelectValue placeholder={labels.toolbar.filterValuePlaceholder}>{(value: string) => choices.find((choice) => choice.value === value)?.label ?? value}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           {choices.map((choice) => (

@@ -101,6 +101,11 @@ describe("DataGridPaginationBar: default layout", () => {
     await expect.element(page.getByRole("button", { name: "Next page" })).toBeDisabled();
   });
 
+  it("the page-size trigger shows the label without opening, not the raw value", async () => {
+    await render(<PaginatedGrid />);
+    await expect.element(page.getByRole("combobox", { name: "Rows per page" })).toHaveTextContent("25 / page");
+  });
+
   it("changing the page-size select re-slices the grid and resets the visible range", async () => {
     await render(<PaginatedGrid />);
     await page.getByRole("combobox", { name: "Rows per page" }).click();
