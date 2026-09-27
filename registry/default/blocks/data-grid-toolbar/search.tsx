@@ -82,10 +82,13 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
     setInputValue(searchText);
   }, [searchText]);
 
-  // the match list changes shape (new search, data change) — restart navigation at the first hit.
-  useEffect(() => {
+  // the match list changes shape (new search, data change) — restart navigation at the first hit,
+  // during render (not in an effect) so a shrinking list never paints an out-of-range index ("2/1").
+  const lastMatchesRef = useRef(matches);
+  if (lastMatchesRef.current !== matches) {
+    lastMatchesRef.current = matches;
     setMatchIndex(0);
-  }, [matches]);
+  }
 
   useEffect(() => () => {
     if (debounceRef.current) clearTimeout(debounceRef.current);

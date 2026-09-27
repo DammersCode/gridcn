@@ -304,6 +304,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Search badge showed an out-of-range index for a frame:** when the match list shrinks (new
+  search term, data change), `DataGridSearch` resets the match index during render instead of in a
+  post-commit effect, so the badge never paints a stale count like "2/1".
 - **Calendar-invalid ISO dates committed:** `date` cell input now rejects ISO-shaped but
   calendar-invalid values like `2026-02-30`, `2026-13-45`, and `2026-02-29` (a UTC round-trip
   probe, not `Date.parse`), so they can no longer commit; real leap days like `2024-02-29` still

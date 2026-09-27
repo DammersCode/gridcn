@@ -159,6 +159,35 @@ describe("DataGridSearch", () => {
     cellsAfter.forEach((cell, i) => expect(cell).toBe(cellsBefore[i]));
     expect(cellsAfter.some((c) => c.hasAttribute(GRID_ATTR.searchMatch))).toBe(true);
   });
+  it("a shrinking match list never shows an out-of-range index (e.g. 2/1) in the badge", async () => {
+    const shrinkingRows = [
+      { id: "r0", name: "alpha", email: "x1@example.com", age: 30 },
+      { id: "r1", name: "alphabet", email: "x2@example.com", age: 40 },
+      { id: "r2", name: "beta", email: "x3@example.com", age: 50 },
+    ];
+    await renderGrid(shrinkingRows);
+    await expect.element(page.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
+    const input = page.getByRole("textbox", { name: "Search grid" });
+
+    await input.fill("alp");
+    await expect.element(page.getByText("1/2")).toBeInTheDocument();
+
+    // record every badge text from here on — an out-of-range index (2/1) must never paint
+    const badge = document.querySelector<HTMLElement>("[data-grid-search-count]")!;
+    const observed: string[] = [];
+    const mo = new MutationObserver(() => observed.push(badge.textContent ?? ""));
+    mo.observe(badge, { childList: true, characterData: true, subtree: true });
+
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByText("2/2")).toBeInTheDocument();
+
+    // one match left: the badge must go straight to 1/1
+    await input.fill("alphab");
+    await expect.element(page.getByText("1/1")).toBeInTheDocument();
+
+    mo.disconnect();
+    expect(observed).not.toContain("2/1");
+  });
 });
 
 describe("DataGridSearch captureFindShortcut", () => {
