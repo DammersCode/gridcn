@@ -11,6 +11,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Shortcut label API:** `data-grid` exports `isMacPlatform()`, `formatShortcut(binding)`, and
+  `formatShortcutToken(segment)` so consumer UI can render shortcut labels that match the grid's
+  own keycaps (glyphs on macOS and iOS, word names elsewhere). The keybindings and context-menu
+  add-ons now use this shared API; on macOS the keybindings chips render `⇧` for Shift.
+
 - **Agent skills:** `npx skills add DammersCode/gridcn` installs five skills for Claude Code,
   Cursor, Codex, and other agents: `gridcn-performance`, `gridcn-custom-cell-type`,
   `gridcn-data-source`, `gridcn-addons`, and `gridcn-upgrade`. The

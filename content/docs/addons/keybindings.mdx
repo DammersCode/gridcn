@@ -71,6 +71,21 @@ For plain text, `bindingTokens(binding)` from the same entry point returns the t
 Tokens are platform-aware (`mod` → ⌘ on macOS, Ctrl elsewhere), and a binding renders as one
 keycap per token.
 
+## Shortcut labels for your own UI
+
+The core exports the same token logic for labels outside the add-on, so your own UI renders
+identical shortcut labels: `formatShortcut(binding)` returns the display tokens for a binding
+string — `formatShortcut("mod+shift+z")` is `["⌘", "⇧", "Z"]` on macOS and `["Ctrl", "Shift", "Z"]`
+elsewhere — and `isMacPlatform()` reports the platform check it uses. Both come from the
+`data-grid` entry point:
+
+```tsx
+import { formatShortcut, isMacPlatform } from "@/components/data-grid/data-grid";
+```
+
+Modifier tokens render as glyphs (⌘ ⇧ ⌥) on macOS and iOS, and as word names (Ctrl, Shift, Alt)
+everywhere else. `ctrl` always renders as `Ctrl`, including on macOS.
+
 ## Remapping
 
 The keymap is a plain data table, the `keymap` prop, merged over `DEFAULT_KEYMAP`. You can
