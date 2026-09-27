@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Kbd, KbdGroup } from "@/components/ui/kbd";
 // Leaf-module imports (not the data-grid barrel): the barrel re-exports client-only cell
 // components (text.tsx etc., no "use client" of their own — they rely on being pulled in through an
 // already-client-directived entry like store.tsx), which poisons this server component's tree.
@@ -8,7 +7,7 @@ import { DEFAULT_LABELS } from "@/registry/default/blocks/data-grid/labels";
 import type { GridAction } from "@/registry/default/blocks/data-grid/types";
 import { KEYBINDING_CATEGORIES, categoryForAction, categoryLabel } from "@/registry/default/blocks/data-grid-keybindings/action-groups";
 import { labelForAction } from "@/registry/default/blocks/data-grid-keybindings/action-labels";
-import { bindingTokens } from "@/registry/default/blocks/data-grid-keybindings/binding-label";
+import { BindingChips } from "@/registry/default/blocks/data-grid-keybindings/binding-label";
 
 /** Native browser clipboard shortcuts — not GridActions/keymap entries (see use-grid-clipboard.ts); listed here to match the runtime keybindings dialog exactly. */
 const NATIVE_CLIPBOARD_ROWS: { label: string; binding: string }[] = [
@@ -64,12 +63,7 @@ export function KeymapTable(): ReactNode {
                   <td className="py-1.5 text-right">
                     <div className="flex flex-wrap justify-end gap-2">
                       {row.bindings.map((binding) => (
-                        <KbdGroup key={binding}>
-                          {bindingTokens(binding).map((token, i) => (
-                            // tokens within one binding have no other stable identity; this list never reorders
-                            <Kbd key={i}>{token}</Kbd>
-                          ))}
-                        </KbdGroup>
+                        <BindingChips key={binding} binding={binding} />
                       ))}
                     </div>
                   </td>

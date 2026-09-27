@@ -6,6 +6,29 @@ function quoteTsvField(cell: string): string {
   return `"${cell.replace(/"/g, '""')}"`;
 }
 
+/** A leading one of these makes a CSV/TSV cell a formula in Excel, LibreOffice, and Sheets. */
+const FORMULA_LEAD_CHARS = new Set(["=", "-", "@", "\t", "\r"]);
+
+/** The values a leading `-` sign can still be a plain number for. */
+const PLAIN_NUMBER_RE = /^[+-]?\d+(\.\d+)?$/;
+
+/**
+ * Prefixes a formula-like cell (leading `=`, `-`, `@`, TAB, or CR — plain numbers exempt) with a
+ * single quote, which external spreadsheets treat as a hidden text marker (SEC-01: a CSV export or
+ * clipboard paste must not smuggle `=HYPERLINK(...)`-style formulas into another sheet).
+ */
+export function sanitizeFormulaCell(value: string): string {
+  const lead = value[0];
+  if (lead === undefined || !FORMULA_LEAD_CHARS.has(lead) || PLAIN_NUMBER_RE.test(value)) return value;
+  return `'${value}`;
+}
+
+/** Options for {@link serializeCells}. */
+export type SerializeCellsOptions = {
+  /** Prefix formula-like cells with `'` in the text/plain payload so external spreadsheets read them as text; default `false` — the grid's own copy/paste round-trip must stay byte-identical. */
+  sanitizeFormulas?: boolean;
+};
+
 /** Escapes text and preserves whitespace fidelity for Excel/Sheets: tabs -> 4 spaces, runs of >=2 spaces wrapped in a span. Also the round-trip check `parse-clipboard.ts` applies to `data-gridcn-raw`. */
 export function escapeHtmlText(value: string): string {
   return value
@@ -29,8 +52,11 @@ function escapeHtmlAttr(value: string): string {
  * Serializes a rectangular block of display strings into clipboard `text/plain` (quoted TSV)
  * and `text/html` (a `<table>` carrying the raw value in `data-gridcn-raw` per cell).
  */
-export function serializeCells(cells: string[][]): { text: string; html: string } {
-  const text = cells.map((row) => row.map(quoteTsvField).join("\t")).join("\n");
+export function serializeCells(cells: string[][], options: SerializeCellsOptions = {}): { text: string; html: string } {
+  const { sanitizeFormulas = false } = options;
+  const text = cells
+    .map((row) => row.map((cell) => quoteTsvField(sanitizeFormulas ? sanitizeFormulaCell(cell) : cell)).join("\t"))
+    .join("\n");
 
   const rowsHtml = cells
     .map((row) => {

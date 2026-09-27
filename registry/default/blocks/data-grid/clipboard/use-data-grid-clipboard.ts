@@ -9,6 +9,12 @@ import { pasteText, resolveCopyScope, serializeCopyScope } from "./use-grid-clip
 /** Result of {@link useDataGridClipboard.prototype.pasteFromClipboard}'s permission/content outcome. */
 export type PasteFromClipboardResult = "ok" | "permission-denied" | "empty";
 
+/** Options for {@link useDataGridClipboard}. */
+export type UseDataGridClipboardOptions = {
+  /** Prefix formula-like cells with `'` in the copied text/plain payload (same opt-in as {@link serializeCells}); default `false` so the grid's own paste round-trip stays byte-identical. */
+  sanitizeFormulas?: boolean;
+};
+
 /** Public clipboard triggers, usable outside native browser clipboard events. */
 export type UseDataGridClipboardResult = {
   /**
@@ -74,7 +80,8 @@ function execCommandCopyFallback(text: string): void {
  * Copy/Cut/Paste items). Mirrors {@link useGridClipboard}'s native-event pipeline exactly, so
  * behavior stays identical whether the user presses Ctrl+C or clicks a menu item.
  */
-export function useDataGridClipboard(): UseDataGridClipboardResult {
+export function useDataGridClipboard(options: UseDataGridClipboardOptions = {}): UseDataGridClipboardResult {
+  const { sanitizeFormulas } = options;
   const actions = useDataGridActions();
   const storeApi = useDataGridStoreApi();
   const guard = useBulkGeneration();
@@ -83,19 +90,19 @@ export function useDataGridClipboard(): UseDataGridClipboardResult {
     const s = storeApi.getState();
     const scope = resolveCopyScope(s);
     if (!scope) return Promise.resolve("no-selection");
-    const { text, html } = serializeCells(serializeCopyScope(s, scope));
+    const { text, html } = serializeCells(serializeCopyScope(s, scope), { sanitizeFormulas });
     return writeToClipboard(text, html);
-  }, [storeApi]);
+  }, [storeApi, sanitizeFormulas]);
 
   const cut = useCallback((): Promise<"ok" | "fallback" | "no-selection"> => {
     const s = storeApi.getState();
     const scope = resolveCopyScope(s);
     if (!scope) return Promise.resolve("no-selection");
-    const { text, html } = serializeCells(serializeCopyScope(s, scope));
+    const { text, html } = serializeCells(serializeCopyScope(s, scope), { sanitizeFormulas });
     const result = writeToClipboard(text, html);
     actions.deleteSelection();
     return result;
-  }, [storeApi, actions]);
+  }, [storeApi, actions, sanitizeFormulas]);
 
   const pasteFromClipboard = useCallback(async (): Promise<PasteFromClipboardResult> => {
     let text: string;

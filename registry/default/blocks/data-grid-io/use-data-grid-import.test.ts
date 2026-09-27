@@ -67,7 +67,7 @@ describe("useDataGridImportPreview — stale sheet parse after the file changed"
     const a = makeDeferredParse();
     const b = makeDeferredParse();
     let call = 0;
-    mockedParse.mockImplementation((file) => {
+    mockedParse.mockImplementation(() => {
       call += 1;
       return call === 1 ? a.promise : b.promise;
     });
@@ -102,7 +102,7 @@ describe("useDataGridImportPreview — stale sheet parse after the file changed"
     mockedParse.mockImplementation((file) => {
       if (file.name !== "b.csv") return deferred.promise;
       csvCalls += 1;
-      return csvCalls === 1 ? { rows: [["Name"], ["B-row"]], delimiter: "," } : deferred.promise;
+      return csvCalls === 1 ? Promise.resolve({ rows: [["Name"], ["B-row"]], delimiter: "," }) : deferred.promise;
     });
 
     const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));
@@ -129,8 +129,8 @@ describe("useDataGridImportPreview — stale sheet parse after the file changed"
     let csvCalls = 0;
     mockedParse.mockImplementation((file) => {
       if (file.name === "b.csv") {
-        csvCalls += 1;
-        return csvCalls === 1 ? { rows: [["Name"], ["B1"]], delimiter: "," } : deferred.promise;
+          csvCalls += 1;
+          return csvCalls === 1 ? Promise.resolve({ rows: [["Name"], ["B1"]], delimiter: "," }) : deferred.promise;
       }
       return Promise.resolve({ rows: [["Name"], ["C-row"]], delimiter: ";" });
     });
@@ -162,7 +162,7 @@ describe("useDataGridImportPreview — stale sheet parse after the file changed"
     mockedParse.mockImplementation((file) => {
       if (file.name !== "b.csv") throw new Error("boom");
       csvCalls += 1;
-      return csvCalls === 1 ? { rows: [["Name"], ["B-row"]], delimiter: "," } : Promise.reject(new Error("boom"));
+      return csvCalls === 1 ? Promise.resolve({ rows: [["Name"], ["B-row"]], delimiter: "," }) : Promise.reject(new Error("boom"));
     });
 
     const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));

@@ -299,6 +299,51 @@ describe("exportGrid — CSV BOM", () => {
   });
 });
 
+describe("exportGrid — formula sanitizing (SEC-01)", () => {
+  async function captureCsv(options: ExportGridOptions): Promise<string> {
+    let text = "";
+    const createObjectURL = vi.fn((blob: Blob) => {
+      void blob.text().then((value) => {
+        text = value;
+      });
+      return "blob:mock-url";
+    });
+    vi.stubGlobal("URL", { ...URL, createObjectURL, revokeObjectURL: vi.fn() });
+    const anchor = document.createElement("a");
+    anchor.click = vi.fn();
+    vi.spyOn(document, "createElement").mockReturnValue(anchor);
+    try {
+      const attackState = makeState({
+        data: [
+          { id: "1", name: "-5", note: '=HYPERLINK("http://x")' },
+          { id: "2", name: "-5abc", note: "@SUM(A1)" },
+          { id: "3", name: "ok", note: "normal" },
+        ],
+      });
+      await exportGrid(attackState, { csvBom: false, ...options });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      return text;
+    } finally {
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    }
+  }
+
+  it("neutralizes formula-like cells by default while -5 stays a number", async () => {
+    const csv = await captureCsv({ format: "csv" });
+    expect(csv).toContain('-5,"\'=HYPERLINK(""http://x"")"');
+    expect(csv).toContain("'@SUM(A1)");
+    expect(csv).toContain("'-5abc");
+    expect(csv).toContain("ok,normal");
+  });
+
+  it("emits the raw formula string when sanitizeFormulas is false", async () => {
+    const csv = await captureCsv({ format: "csv", sanitizeFormulas: false });
+    expect(csv).toContain('"=HYPERLINK(""http://x"")"');
+    expect(csv).not.toContain("'@SUM");
+  });
+});
+
 describe("exportGrid lazy xlsx loading", () => {
   it("does not import xlsx for a csv export", async () => {
     vi.resetModules();

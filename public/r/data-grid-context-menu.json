@@ -52,7 +52,7 @@
     },
     {
       "path": "registry/default/blocks/data-grid-context-menu/menu-shortcut.tsx",
-      "content": "import type { ReactNode } from \"react\";\nimport { formatShortcut } from \"@/registry/default/components/data-grid/data-grid\";\nimport { Kbd, KbdGroup } from \"@/components/ui/kbd\";\n\n/** A menu item's shortcut hint as keycaps, pushed to the item's end; renders nothing for an unbound action. */\nexport function MenuShortcut({ binding }: { binding: string | undefined }): ReactNode {\n  if (!binding) return null;\n  return (\n    <KbdGroup className=\"ml-auto\">\n      {formatShortcut(binding).map((token, i) => (\n        // tokens within one binding have no other stable identity; index is fine, this list never reorders\n        <Kbd key={i}>{token}</Kbd>\n      ))}\n    </KbdGroup>\n  );\n}\n",
+      "content": "\"use client\";\n\nimport type { ReactNode } from \"react\";\nimport { formatShortcut } from \"@/registry/default/components/data-grid/data-grid\";\nimport { Kbd, KbdGroup } from \"@/components/ui/kbd\";\n\n/** A menu item's shortcut hint as keycaps, pushed to the item's end; renders nothing for an unbound action. */\nexport function MenuShortcut({ binding }: { binding: string | undefined }): ReactNode {\n  if (!binding) return null;\n  return (\n    <KbdGroup className=\"ml-auto\">\n      {formatShortcut(binding).map((token, i) => (\n        // tokens within one binding have no other stable identity; index is fine, this list never reorders\n        <Kbd key={i}>{token}</Kbd>\n      ))}\n    </KbdGroup>\n  );\n}\n",
       "type": "registry:component",
       "target": "components/data-grid-context-menu/menu-shortcut.tsx"
     },

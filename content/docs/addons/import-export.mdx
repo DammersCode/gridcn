@@ -47,6 +47,18 @@ takes:
   `JSON.stringify`.
 </Callout>
 
+<Callout title="Formula sanitizing">
+  CSV exports prefix formula-like cells — leading `=`, `-`, `@`, TAB, or CR; plain numbers are
+  exempt — with a single quote, which external spreadsheets treat as a hidden text marker. So a
+  cell holding `=HYPERLINK("http://x")` opens as literal text in Excel, LibreOffice, and Sheets,
+  not as a running formula. Pass `sanitizeFormulas: false` to `exportGrid` when a downstream
+  consumer expects the raw string. The helper behind this, `sanitizeFormulaCell(value)`, is
+  exported from `data-grid` for your own CSV or TSV writers. Clipboard copy and cut stay raw by
+  default so the grid's own paste round-trip is byte-identical; pass `sanitizeFormulas: true` to
+  `useDataGridClipboard` to neutralize formula-like cells there too. XLSX exports are unaffected:
+  string cells never run as formulas there.
+</Callout>
+
 <Callout title="Encodings and Excel">
   CSV exports are UTF-8 and carry a UTF-8 BOM by default — Excel only detects UTF-8 when the file
   starts with a BOM, so without it umlauts and other non-ASCII characters open as mojibake. Pass

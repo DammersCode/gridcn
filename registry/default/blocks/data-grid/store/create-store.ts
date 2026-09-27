@@ -1,5 +1,5 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
-import type { CellCoord, CellType, DataOp } from "../types";
+import type { CellCoord, CellType, DataOp, FilterSpec } from "../types";
 import { DEFAULT_KEYMAP } from "../keyboard";
 import { CompactSelection } from "../selection/compact-selection";
 import { getCellValue } from "../columns/column-helpers";

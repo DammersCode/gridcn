@@ -266,6 +266,11 @@
                "target": "components/data-grid/keyboard/platform.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/keyboard/shortcut-label.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/keyboard/shortcut-label.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/keyboard/use-data-grid-global-shortcuts.ts",
                "type": "registry:component",
                "target": "components/data-grid/keyboard/use-data-grid-global-shortcuts.ts"

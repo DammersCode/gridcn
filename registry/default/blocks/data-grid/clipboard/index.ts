@@ -1,5 +1,5 @@
 /** Domain barrel — clipboard parse/serialize + the grid/data-grid clipboard hooks. */
-export { serializeCells } from "./serialize-cells";
+export { serializeCells, sanitizeFormulaCell, type SerializeCellsOptions } from "./serialize-cells";
 export { parseClipboardHtml, parseClipboardText, parseClipboard } from "./parse-clipboard";
 export {
   useGridClipboard,

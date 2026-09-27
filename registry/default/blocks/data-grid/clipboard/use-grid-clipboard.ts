@@ -14,6 +14,8 @@ import { candidateRowIds, reresolveBulkWrites, snapshotBulkBatch, useBulkGenerat
 export type UseGridClipboardOptions = {
   rootRef: RefObject<HTMLElement | null>;
   readOnly?: boolean;
+  /** Prefix formula-like cells with `'` in the copied text/plain payload (same opt-in as {@link serializeCells}); default `false` so the grid's own paste round-trip stays byte-identical. */
+  sanitizeFormulas?: boolean;
 };
 
 /**
@@ -152,8 +154,8 @@ export function serializeCopyScope(s: DataGridStoreState, scope: CopyScope): str
 }
 
 /** Writes both `text/plain` (TSV) and `text/html` (table) to a clipboard event's DataTransfer. */
-function writeClipboardEvent(event: ClipboardEvent, cells: string[][]): void {
-  const { text, html } = serializeCells(cells);
+function writeClipboardEvent(event: ClipboardEvent, cells: string[][], sanitizeFormulas?: boolean): void {
+  const { text, html } = serializeCells(cells, { sanitizeFormulas });
   event.clipboardData?.setData("text/plain", text);
   event.clipboardData?.setData("text/html", html);
 }
@@ -342,7 +344,7 @@ export function pasteText(
  * clipboard then).
  */
 export function useGridClipboard(options: UseGridClipboardOptions): void {
-  const { rootRef, readOnly } = options;
+  const { rootRef, readOnly, sanitizeFormulas } = options;
   const actions = useDataGridActions();
   const storeApi = useDataGridStoreApi();
   // One counter for this grid's paste surface: a second paste supersedes a still-validating first.
@@ -355,9 +357,9 @@ export function useGridClipboard(options: UseGridClipboardOptions): void {
       const scope = resolveCopyScope(s);
       if (!scope) return;
       event.preventDefault();
-      writeClipboardEvent(event, serializeCopyScope(s, scope));
+      writeClipboardEvent(event, serializeCopyScope(s, scope), sanitizeFormulas);
     },
-    [storeApi],
+    [storeApi, sanitizeFormulas],
   );
 
   const onCut = useCallback(
@@ -367,10 +369,10 @@ export function useGridClipboard(options: UseGridClipboardOptions): void {
       const scope = resolveCopyScope(s);
       if (!scope) return;
       event.preventDefault();
-      writeClipboardEvent(event, serializeCopyScope(s, scope));
+      writeClipboardEvent(event, serializeCopyScope(s, scope), sanitizeFormulas);
       if (!readOnly) actions.deleteSelection();
     },
-    [storeApi, actions, readOnly],
+    [storeApi, actions, readOnly, sanitizeFormulas],
   );
 
   const onPaste = useCallback(

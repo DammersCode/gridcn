@@ -1,3 +1,5 @@
+"use client";
+
 import type { ReactNode } from "react";
 import { formatShortcut } from "@/registry/default/blocks/data-grid/data-grid";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";

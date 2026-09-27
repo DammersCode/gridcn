@@ -169,6 +169,16 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **CSV export neutralizes formula-like cells (`data-grid-io`):** `**Breaking:**` `exportGrid` now
+  prefixes formula-like cells — leading `=`, `-`, `@`, TAB, or CR, plain numbers exempt — with a
+  single quote, so Excel, LibreOffice, and Sheets open them as text instead of running them (a CSV
+  carrying `=HYPERLINK("http://x")` no longer opens as a live formula). Pass
+  `sanitizeFormulas: false` to `exportGrid` for the previous raw output. XLSX exports are
+  unaffected: string cells never run as formulas. `data-grid` exports the
+  `sanitizeFormulaCell(value)` helper, and `useDataGridClipboard({ sanitizeFormulas: true })`
+  applies the same neutralization to the context menu's copy and cut. Clipboard copy and cut stay
+  raw by default so the grid's own paste round-trip is byte-identical.
+
 - **`overlayPlugins` identity warning names the real cost:** the dev warning ends with "or every
   render re-syncs the provider props into the store". `DataGridOverlays` does not re-render for a
   shallow-equal array.

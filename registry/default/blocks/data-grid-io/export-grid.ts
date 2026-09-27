@@ -1,4 +1,4 @@
-import { getSelectedViewRows, isDev, type AnyColumnDef, type DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid";
+import { getSelectedViewRows, isDev, sanitizeFormulaCell, type AnyColumnDef, type DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid";
 import type { CsvDelimiter } from "./parse-import-file";
 
 /** Options for {@link exportGrid}. */
@@ -17,6 +17,13 @@ export type ExportGridOptions = {
    * Set `false` when a downstream consumer chokes on a leading BOM character.
    */
   csvBom?: boolean;
+  /**
+   * Prefix formula-like CSV cells (leading `=`, `-`, `@`, TAB, or CR — plain numbers exempt) with
+   * a single quote so Excel/LibreOffice/Sheets read them as text instead of executing them
+   * (SEC-01); default `true`. Set `false` when a downstream consumer expects the raw string.
+   * XLSX exports are unaffected (string cells never run as formulas).
+   */
+  sanitizeFormulas?: boolean;
   /** Download file name, without extension; default 'export'. */
   fileName?: string;
   /** Name of the single sheet inside the xlsx file; default 'Sheet1'. Ignored for csv. */
@@ -136,11 +143,13 @@ export async function buildXlsx(state: DataGridStoreState, options: BuildXlsxOpt
  * loaded lazily (dynamic `import("xlsx")`) so the dependency never loads for CSV-only consumers.
  */
 export async function exportGrid(state: DataGridStoreState, options: ExportGridOptions): Promise<void> {
-  const { format, scope = "view", includeHeaders = true, csvDelimiter = ",", csvBom = true, fileName = "export", workbookName, maxRows } = options;
+  const { format, scope = "view", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true, fileName = "export", workbookName, maxRows } = options;
   if (format === "csv") {
     const rows = capExportRows(buildExportRows(state, scope), maxRows);
     const table = includeHeaders ? [buildExportHeaders(state), ...rows] : rows;
-    const csv = (csvBom ? "\uFEFF" : "") + rowsToCsv(table, csvDelimiter);
+    // sanitize before quoting: the apostrophe prefix itself never needs quoting
+    const safeTable = sanitizeFormulas ? table.map((row) => row.map(sanitizeFormulaCell)) : table;
+    const csv = (csvBom ? "\uFEFF" : "") + rowsToCsv(safeTable, csvDelimiter);
     downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8;" }), `${fileName}.csv`);
     return;
   }

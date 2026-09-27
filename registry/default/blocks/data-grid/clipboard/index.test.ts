@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   serializeCells,
+  sanitizeFormulaCell,
   parseClipboardHtml,
   parseClipboardText,
   parseClipboard,
@@ -67,6 +68,34 @@ describe("serializeCells", () => {
   it("does not wrap a single space", () => {
     const { html } = serializeCells([["c d"]]);
     expect(html).toContain("<td data-gridcn-raw=\"c d\">c d</td>");
+  });
+
+  it("keeps the text payload byte-identical by default (the grid's own copy/paste round-trip)", () => {
+    expect(serializeCells([["=HYPERLINK()", "-5"]]).text).toBe('=HYPERLINK()\t-5');
+  });
+
+  it("prefixes formula-like cells with a single quote when sanitizeFormulas is on (SEC-01)", () => {
+    const { text } = serializeCells([["=HYPERLINK()", "-5", "-5abc", "\tx"]], { sanitizeFormulas: true });
+    // the tab field is TSV-quoted by quoteTsvField
+    expect(text).toBe("'=HYPERLINK()\t-5\t'-5abc\t\"'\tx\"");
+  });
+});
+
+describe("sanitizeFormulaCell", () => {
+  it("prefixes a leading formula character with a single quote", () => {
+    expect(sanitizeFormulaCell('=HYPERLINK("http://x")')).toBe("'=HYPERLINK(\"http://x\")");
+    expect(sanitizeFormulaCell("@SUM(A1)")).toBe("'@SUM(A1)");
+    expect(sanitizeFormulaCell("-5abc")).toBe("'-5abc");
+    expect(sanitizeFormulaCell("\tx")).toBe("'" + "\tx");
+    expect(sanitizeFormulaCell("\rx")).toBe("'" + "\rx");
+  });
+
+  it("leaves plain numbers and other text untouched", () => {
+    expect(sanitizeFormulaCell("-5")).toBe("-5");
+    expect(sanitizeFormulaCell("+5")).toBe("+5");
+    expect(sanitizeFormulaCell("1.5")).toBe("1.5");
+    expect(sanitizeFormulaCell("text")).toBe("text");
+    expect(sanitizeFormulaCell("")).toBe("");
   });
 });
 

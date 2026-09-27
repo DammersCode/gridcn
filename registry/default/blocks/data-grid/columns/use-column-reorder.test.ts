@@ -26,11 +26,11 @@ function makeArgs() {
 const GESTURE_EVENTS = new Set(["pointermove", "pointerup", "pointercancel"]);
 
 function gestureAdds(addSpy: ReturnType<typeof vi.spyOn>): number {
-  return addSpy.mock.calls.filter((call) => GESTURE_EVENTS.has(String(call[0]))).length;
+  return addSpy.mock.calls.filter((call: readonly unknown[]) => GESTURE_EVENTS.has(String(call[0]))).length;
 }
 
 function gestureRemoves(removeSpy: ReturnType<typeof vi.spyOn>): number {
-  return removeSpy.mock.calls.filter((call) => GESTURE_EVENTS.has(String(call[0]))).length;
+  return removeSpy.mock.calls.filter((call: readonly unknown[]) => GESTURE_EVENTS.has(String(call[0]))).length;
 }
 
 describe("useColumnReorder document listener lifecycle", () => {
