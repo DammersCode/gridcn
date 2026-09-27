@@ -304,6 +304,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Drag listener leaks:** a second pointer pressing a reorder grip, row-reorder marker, or resize
+  handle while a gesture is in flight no longer arms a second document listener set, and an
+  unmounted column-resize drag drops its document listeners.
 - **Import dialog race conditions:** an aborted or superseded file load no longer clears the
   parsing state of a newer load, and `setDelimiter` re-parses with the parsing state, a generation
   guard against stale results, and a surfaced error instead of an unhandled rejection.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import type { AnyColumnDef } from "../store";
 import { inlineDelta, type GridDirection } from "../windowing/direction";
 import { measureColumnAutosizeWidth } from "./measure-column-text";
@@ -49,10 +49,14 @@ export function useColumnResize(args: {
   const clamp = useCallback((width: number) => clampColumnWidth(column, width), [column]);
 
   const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
   const onPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
+      // a second pointer while a resize is in flight must not arm a second listener set (the
+      // first would outlive its release event and leak)
+      if (dragRef.current) return;
       event.stopPropagation();
       event.preventDefault();
       // React pools synthetic events — event.currentTarget is nulled once this handler returns, so
@@ -75,14 +79,18 @@ export function useColumnResize(args: {
         lastWidth = clamp(drag.startWidth + inlineDelta(e.clientX - drag.startX, argsRef.current.direction ?? "ltr"));
         argsRef.current.setColumnWidth(column.id, lastWidth);
       };
-      const handleEnd = (e: PointerEvent) => {
-        if (e.pointerId !== pointerId) return;
-        dragRef.current = null;
-        setIsResizing(false);
+      const cleanup = () => {
         document.removeEventListener("pointermove", handleMove);
         document.removeEventListener("pointerup", handleEnd);
         document.removeEventListener("pointercancel", handleEnd);
         target.removeEventListener("lostpointercapture", handleEnd);
+        cleanupRef.current = null;
+      };
+      const handleEnd = (e: PointerEvent) => {
+        if (e.pointerId !== pointerId) return;
+        dragRef.current = null;
+        setIsResizing(false);
+        cleanup();
         // drag-release commit point for onColumnLayoutChange — fires once here, not per handleMove frame.
         argsRef.current.commitColumnWidth(column.id, lastWidth);
       };
@@ -92,8 +100,19 @@ export function useColumnResize(args: {
       document.addEventListener("pointerup", handleEnd);
       document.addEventListener("pointercancel", handleEnd);
       target.addEventListener("lostpointercapture", handleEnd);
+      cleanupRef.current = cleanup;
     },
     [clamp, column.id],
+  );
+
+  // an unmount mid-drag (handle gone, capture lost with it) must drop the document listeners
+  useEffect(
+    () => () => {
+      cleanupRef.current?.();
+      cleanupRef.current = null;
+      dragRef.current = null;
+    },
+    [],
   );
 
   const onDoubleClick = useCallback(() => {

@@ -125,6 +125,9 @@ export function useRowReorder(args: {
       // Shift+drag is always row-select (disambiguation rule above) — never arm the reorder path.
       if (event.shiftKey) return;
       if (!enabled) return;
+      // a second pointer while a gesture is in flight must not arm a second listener set (the
+      // first cleanup would be overwritten and its listeners would leak)
+      if (pendingRef.current) return;
 
       pendingRef.current = { row: viewRowIndex, startX: event.clientX, startY: event.clientY, pointerId: event.pointerId };
       pointerPointRef.current = { x: event.clientX, y: event.clientY };
