@@ -61,7 +61,9 @@ and pass it:
 const { labels } = useTranslations("grid"); // next-intl
 // or: const t = useTranslation().t; build the DeepPartialLabels from t("grid.*")
 
-<DataGridProvider labels={labelsForLocale(locale)} direction={dirForLocale(locale)} />
+<DataGridProvider labels={labelsForLocale(locale)}>
+  <DataGridRoot direction={dirForLocale(locale)} />
+</DataGridProvider>;
 ```
 
 The full merge model (which keys replace vs merge, function labels, `DeepPartialLabels`) is
