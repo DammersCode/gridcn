@@ -185,7 +185,8 @@ a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
 
 ## Other exported types
 
-- `CellCoord` (`{ col, row }`, data-space) and `GridRect` (`{ x, y, width, height }`, half-open).
+- `CellCoord` (`{ col, row }`, view space — the sorted/filtered row position, not a `data` index)
+  and `GridRect` (`{ x, y, width, height }`, half-open).
 - `GridSelection` (`{ current: {cell, range, rangeStack} | null, rows, columns }`).
 - `DataOp<TData>` (`update`, `insert`, or `delete`, id-keyed) and `DataChange<TData>`
   (`{ ops, source }`).

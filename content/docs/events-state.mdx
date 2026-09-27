@@ -104,8 +104,9 @@ all selection, or a clear.
   not only the final drop. Debounce in your own handler if you only want the settled value.
 </Callout>
 
-There is no separate `onActiveCellChange`. The active cell is already part of `GridSelection`
-(`selection.current.cell`), so one callback covers both.
+The active cell is a separate store field from the selection. `actions.setActiveCell` and the
+Alt+Arrow movement keys change only the active cell, so `onSelectionChange` does not fire for
+them. There is no callback that observes active-cell-only changes.
 
 ### Reading the selected values
 

@@ -76,8 +76,8 @@ Per-feature shipped detail (incl. user decisions): `docs/agent-work/2026-09-18-p
   diceui-style), row ops (add/delete/duplicate) + row markers (`number`/`checkbox`/`both`),
   selection configurability flags, mouse-selection hardening (plain drag always selects,
   never edits), context menus (Base UI), sticky header + pinned rows
-  (`data-grid-pinned-rows` add-on), validation (per-cell-type, per-column, Standard Schema
-  async, cross-field `validateRow`)
+   (`data-grid-pinned-rows` add-on), validation (per-column, Standard Schema
+   async, cross-field `validateRow`)
 - Data IO (`data-grid-io` add-on): xlsx/csv export + import with preview, selection-aware
 
 ### v2 roadmap (documented, not built)
@@ -167,7 +167,7 @@ Escape hatches: `processCellForClipboard`, `processCellFromClipboard`, `processP
 - State via data attributes, styled in Tailwind: `data-active`, `data-selected`, `data-editing`, `data-pinned="left|right"`, `data-invalid`, `data-readonly`, `data-sorted="asc|desc"`.
 - Selection overlay: `bg-primary/10` fill, `border-primary` active ring; invalid: `data-invalid:ring-destructive`.
 - Density: default row height 36px (`--grid-row-height`); `tabular-nums` on numeric columns.
-- Every part accepts `className`; `cn()` merges. No CSS files — Tailwind utilities only (grid-template values are inline styles).
+- Most parts accept `className`; `cn()` merges. `DataGridHeader` and `DataGridBody` take no props yet. No CSS files — Tailwind utilities only (grid-template values are inline styles).
 - Chrome (toolbar, menus, dialogs) uses existing shadcn components via `registryDependencies` — never re-implemented.
 - Programmatic styling: `getRowClassName` / `getCellClassName` grid props + per-column `cellClassName` / `headerClassName`, merged via `cn()` after the built-in classes so consumer styles win; complements the data-attribute contract.
 - Pinned-edge shadows: boundary-only (whole pinned group casts one shadow), hidden when no content is scrolled beneath, token-driven (`--grid-pin-shadow`), must read correctly in light and dark.

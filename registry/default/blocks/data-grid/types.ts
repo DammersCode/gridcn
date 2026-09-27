@@ -80,7 +80,7 @@ export namespace StandardSchemaV1 {
 // case, else `accessorKey` collapses to an uninhabited `undefined` field.
 export type AccessorKeyOf<TData> = unknown extends TData ? string : keyof TData & string;
 
-/** Cell coordinate in data space: col/row are 0-based data indices (marker columns excluded). */
+/** Cell coordinate in view space: 0-based view row (sorted/filtered, not a data index) and 0-based column index (marker columns excluded). */
 export type CellCoord = { col: number; row: number };
 
 /** What a marker mode renders: the 1-based view row index, the row-select checkbox, or both (number swapped for the checkbox on hover/selected). */
