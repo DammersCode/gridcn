@@ -195,7 +195,7 @@ export function DataGridSortList(props: DataGridSortListProps): ReactNode {
                   const availableColumns = sortableColumns.filter((c) => c.id === sort.columnId || !sortedColumnIds.has(c.id));
                   return (
                     <SortRow
-                      key={sort.columnId}
+                      key={index}
                       sort={sort}
                       index={index}
                       total={sorts.length}

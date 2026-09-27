@@ -78,6 +78,20 @@ describe("DataGridSortList", () => {
     await expect.poll(() => nameCellsInOrder()).toEqual(["Carol", "Bob", "Alice"]);
   });
 
+  it("switching a row's column is a prop update, not a remount: the trigger keeps its DOM node and focus", async () => {
+    await renderGrid();
+    await openSortMenu();
+    const trigger = document.querySelector<HTMLElement>('[aria-label="Sort column"]')!;
+    await userEvent.click(trigger);
+    await page.getByRole("option", { name: "Age" }).click();
+
+    const after = document.querySelector<HTMLElement>('[aria-label="Sort column"]')!;
+    // a key that changes with the column (e.g. columnId) remounts the row and drops the select's focus
+    expect(after).toBe(trigger);
+    await expect.poll(() => after.textContent).toContain("Age");
+    await expect.poll(() => document.activeElement === after).toBe(true);
+  });
+
   it("reordering two sorts via ArrowUp on the grip changes precedence and the view order", async () => {
     await renderGrid();
     await openSortMenu();

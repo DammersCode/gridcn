@@ -304,6 +304,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Sort list row remounted on a column change:** `DataGridSortList` rows are keyed by their
+  index, so changing a row's column updates it in place instead of remounting it and dropping the
+  select's focus.
 - **Search badge showed an out-of-range index for a frame:** when the match list shrinks (new
   search term, data change), `DataGridSearch` resets the match index during render instead of in a
   post-commit effect, so the badge never paints a stale count like "2/1".
