@@ -109,8 +109,11 @@ const DEMOS: readonly [string, ReactNode][] = [
 // One generic commit gesture, same for every demo: activate the first real data cell, seed the
 // editor with a character, commit. Best-effort (readOnly cells simply stay put) — its value is
 // unlocking state-gated controls such as history's undo/redo, which start out disabled on purpose.
+// Skeleton cells are excluded: loaded data replaces them, which detaches the element mid-click.
+const DATA_CELL = '[role="row"][data-grid-row-index] [role="gridcell"][data-column-id]:not([data-skeleton])';
+
 async function commitFirstCell(grid: Element): Promise<void> {
-  const cell = grid.querySelector<HTMLElement>('[role="row"][data-grid-row-index] [role="gridcell"][data-column-id]');
+  const cell = grid.querySelector<HTMLElement>(DATA_CELL);
   if (!cell) return;
   // A test id, not the element: demo data repeats names, so the element's accessible-name locator is ambiguous.
   cell.dataset["testid"] = "smoke-first-cell";
@@ -140,7 +143,7 @@ describe("registry demos smoke: installed demos work immediately", () => {
       // rows after a simulated network round trip; poll until they land.
       await vi.waitFor(
         () => {
-          expect(grid.querySelectorAll('[role="row"][data-grid-row-index]').length).toBeGreaterThan(0);
+          expect(grid.querySelector(DATA_CELL)).not.toBeNull();
         },
         { timeout: 5000 },
       );
