@@ -10,8 +10,8 @@ A composable, high-performance data grid: range selection, spreadsheet clipboard
 editors, validation, and windowed rendering at 100k+ rows. Styled with your shadcn tokens,
 distributed through the [shadcn registry](https://ui.shadcn.com/docs/registry).
 
-Range selection, clipboard paste, and a fill handle are in the core. gridcn is
-open source under the [Apache License 2.0](./LICENSE).
+Range selection and clipboard paste are in the core; the fill handle is the
+`data-grid-fill` add-on. gridcn is open source under the [Apache License 2.0](./LICENSE).
 
 ## Install
 
@@ -54,8 +54,10 @@ The [Agent Skills](https://gridcn.vercel.app/docs/agent-skills) page describes e
   no-blank-rows guarantee that a real-browser test suite enforces.
 - **Typed columns** — `defineColumns<TData>()` infers value types and per-cell-type `options`
   from your data shape. A typo in a column id is a compile error.
-- **Controlled and uncontrolled** — selection, sort, filter, and column state work uncontrolled
-  by default. Pass the matching value plus `on*Change` props to control them.
+- **Controlled and uncontrolled** — data, sort, and filter work uncontrolled by default. Pass
+  the value prop (`data`, `sortState`, `filterState`) plus the matching `on*Change` callback to
+  control them. Selection and column layout stay store-owned; `onSelectionChange` and
+  `onColumnLayoutChange` observe them.
 - **RTL** — a `direction` prop (or `dir="rtl"` on the page) mirrors layout, pinning, pointer
   math, and keyboard semantics.
 - **i18n** — every user-facing string lives in one typed `labels` object with English defaults.
