@@ -78,6 +78,26 @@ describe("DataGridSortList", () => {
     await expect.poll(() => nameCellsInOrder()).toEqual(["Carol", "Bob", "Alice"]);
   });
 
+  it("Backspace and Delete on the focused grip remove that sort row", async () => {
+    await renderGrid();
+    await openSortMenu(); // row 0: name
+    await page.getByRole("button", { name: "Add sort" }).click(); // row 1: age
+    let grips = document.querySelectorAll<HTMLElement>('[aria-label="Reorder sort"]');
+    expect(grips.length).toBe(2);
+
+    grips[0]!.focus();
+    await userEvent.keyboard("{Backspace}");
+    await expect.poll(() => document.querySelectorAll('[aria-label="Reorder sort"]').length).toBe(1);
+    await expect
+      .poll(() => document.querySelector<HTMLElement>('[aria-label="Sort column"]')?.textContent)
+      .toContain("Age"); // the name row is gone, age remains
+
+    grips = document.querySelectorAll<HTMLElement>('[aria-label="Reorder sort"]');
+    grips[0]!.focus();
+    await userEvent.keyboard("{Delete}");
+    await expect.poll(() => document.querySelectorAll('[aria-label="Reorder sort"]').length).toBe(0);
+  });
+
   it("switching a row's column is a prop update, not a remount: the trigger keeps its DOM node and focus", async () => {
     await renderGrid();
     await openSortMenu();

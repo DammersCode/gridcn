@@ -805,6 +805,31 @@ describe("DataGridFilterMenu reorder", () => {
     await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Reorder filter");
   });
 
+  it("Backspace and Delete on the focused grip remove that filter row", async () => {
+    await renderRichGrid();
+    await openFilterMenu(); // row 0: name
+    await page.getByRole("button", { name: "Add filter" }).click();
+    // second row targets "age" so the rows are distinguishable
+    const columnTriggers = document.querySelectorAll<HTMLElement>('[aria-label="Filter column"]');
+    columnTriggers[1]!.click();
+    await page.getByRole("option", { name: "Age" }).click();
+
+    let grips = document.querySelectorAll<HTMLElement>('[aria-label="Reorder filter"]');
+    expect(grips.length).toBe(2);
+
+    grips[0]!.focus();
+    await userEvent.keyboard("{Backspace}");
+    await expect.poll(() => document.querySelectorAll('[aria-label="Reorder filter"]').length).toBe(1);
+    await expect
+      .poll(() => document.querySelector<HTMLElement>('[aria-label="Filter column"]')?.textContent)
+      .toContain("Age"); // the name row is gone, age remains
+
+    grips = document.querySelectorAll<HTMLElement>('[aria-label="Reorder filter"]');
+    grips[0]!.focus();
+    await userEvent.keyboard("{Delete}");
+    await expect.poll(() => document.querySelectorAll('[aria-label="Reorder filter"]').length).toBe(0);
+  });
+
   it("removing the only filter moves focus to the Add filter button", async () => {
     await renderRichGrid();
     await openFilterMenu();

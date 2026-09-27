@@ -308,6 +308,12 @@ function FilterRow(props: FilterRowProps): ReactNode {
 
   const onGripKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLButtonElement>) => {
+      if (event.key === "Backspace" || event.key === "Delete") {
+        event.preventDefault();
+        event.stopPropagation(); // wins over dnd-kit's keyboard sensor regardless of library support
+        onRemove(filter.filterId, index);
+        return;
+      }
       if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
       event.preventDefault();
       event.stopPropagation(); // wins over dnd-kit's keyboard sensor regardless of library support
@@ -315,7 +321,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
       if (target < 0 || target >= total) return;
       onArrowReorder(target);
     },
-    [index, total, onArrowReorder],
+    [filter.filterId, index, total, onArrowReorder, onRemove],
   );
 
   return (

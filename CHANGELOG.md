@@ -304,6 +304,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Missing documented keybindings:** `Backspace` and `Delete` on a focused `DataGridSortList` /
+  `DataGridFilterMenu` row grip now remove that row, as the docs already stated.
 - **Sort list row remounted on a column change:** `DataGridSortList` rows are keyed by their
   index, so changing a row's column updates it in place instead of remounting it and dropping the
   select's focus.
