@@ -188,7 +188,7 @@ a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
 - `CellCoord` (`{ col, row }`, view space — the sorted/filtered row position, not a `data` index)
   and `GridRect` (`{ x, y, width, height }`, half-open).
 - `GridSelection` (`{ current: {cell, range, rangeStack} | null, rows, columns }`).
-- `DataOp<TData>` (`update`, `insert`, or `delete`, id-keyed) and `DataChange<TData>`
+- `DataOp<TData>` (`update`, `insert`, `delete`, or `move`, id-keyed) and `DataChange<TData>`
   (`{ ops, source }`).
 - `SortSpec` (`{ columnId, direction }`), `FilterSpec`, and `FilterOperator`.
 - `GridAction` (every named keyboard action) and `Keymap`

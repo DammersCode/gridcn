@@ -76,8 +76,8 @@ Per-feature shipped detail (incl. user decisions): `docs/agent-work/2026-09-18-p
   diceui-style), row ops (add/delete/duplicate) + row markers (`number`/`checkbox`/`both`),
   selection configurability flags, mouse-selection hardening (plain drag always selects,
   never edits), context menus (Base UI), sticky header + pinned rows
-   (`data-grid-pinned-rows` add-on), validation (per-column, Standard Schema
-   async, cross-field `validateRow`)
+  (`data-grid-pinned-rows` add-on), validation (per-column, Standard Schema
+  async, cross-field `validateRow`)
 - Data IO (`data-grid-io` add-on): xlsx/csv export + import with preview, selection-aware
 
 ### v2 roadmap (documented, not built)

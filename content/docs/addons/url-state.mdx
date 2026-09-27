@@ -103,9 +103,10 @@ The hook reads the store, so a small child component inside the provider owns th
 ```tsx
 "use client";
 
+import { useEffect } from "react";
 import { useDataGridUrlState } from "@/components/data-grid-url-state/data-grid-url-state";
 
-function ApplyUrlOnPopstate({ prefix }: { prefix?: string }) {
+function UrlStateWithPopstate({ prefix }: { prefix?: string }) {
   const { applyFromUrl } = useDataGridUrlState({ prefix });
 
   useEffect(() => {
@@ -118,8 +119,9 @@ function ApplyUrlOnPopstate({ prefix }: { prefix?: string }) {
 }
 ```
 
-Mount `<ApplyUrlOnPopstate prefix="orders" />` as a child of `<DataGridProvider>`, next to
-`<DataGridUrlState>`. A framework router that exposes its own navigation event (for example
+Mount `<UrlStateWithPopstate prefix="orders" />` as a child of `<DataGridProvider>` in place
+of `<DataGridUrlState>`. The hook already syncs the URL, so a second sync instance is not
+needed. A framework router that exposes its own navigation event (for example
 `useSearchParams` changes) can call `applyFromUrl()` from that event instead of `popstate`.
 
 <Callout type="warn" title="A URL-applied sort is invisible in the default config">

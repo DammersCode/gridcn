@@ -31,8 +31,7 @@ jobs:
       - name: Typecheck
         run: pnpm types:check
 
-      # Consumers run TypeScript 5.9, which infers some types differently from the repo's
-      # TypeScript 7; a change that only breaks the older compiler would otherwise ship.
+      # Consumers run TypeScript 5.9, which infers some types differently from TypeScript 7.
       - name: Typecheck (TypeScript 5.9 consumer baseline)
         run: pnpm types:check:ts5
 
