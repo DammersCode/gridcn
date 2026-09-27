@@ -304,6 +304,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Async validator crash on edit commit:** a cell `validate` that throws, or whose promise
+  rejects, now rejects the edit with the error message and clears the pending state, instead of
+  leaving the editor stuck read-only with no message.
 - **Docs: stable `overlayPlugins` in the fill and presence examples:** the examples and the `plugin`
   JSDoc of `useDataGridFill` and `useDataGridPresence` memoize the `overlayPlugins` array. The inline `[plugin]` literal they showed trips the core's
   identity-stability dev warning on every re-render.

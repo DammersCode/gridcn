@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { AnyColumnDef, DataGridActions } from "../store";
+import type { StandardSchemaV1Result } from "../types";
 import { formatIssues, isStandardSchema } from "../validation/validate-cell";
 
 /**
@@ -43,7 +44,14 @@ export function useAsyncValidate(actions: DataGridActions, column: AnyColumnDef)
 
     // Peek: a sync-resolving schema (including one that never returns a Promise at all) takes the
     // exact same path as today — computeCommit re-runs it, cheap and correct, see validate-cell.ts.
-    const probe = validate["~standard"].validate(value);
+    let probe: StandardSchemaV1Result<unknown> | Promise<StandardSchemaV1Result<unknown>>;
+    try {
+      probe = validate["~standard"].validate(value) as StandardSchemaV1Result<unknown> | Promise<StandardSchemaV1Result<unknown>>;
+    } catch (error) {
+      // a validator that throws is a rejection for this edit, like the batch paths (validate-batch.ts)
+      actions.setEditingError(errorMessage(error));
+      return;
+    }
     if (!(probe instanceof Promise)) {
       actions.commitCellEdit(value, movement);
       return;
@@ -51,22 +59,30 @@ export function useAsyncValidate(actions: DataGridActions, column: AnyColumnDef)
 
     const generation = ++generationRef.current;
     setPending(true);
-    probe.then((result) => {
-      if (generationRef.current !== generation) return; // stale: cancelled/superseded/unmounted
-      setPending(false);
-      if (result.issues) {
-        const message = formatIssues(result.issues);
-        // `onInvalid: "warn"`: commit the raw value and flag the cell — the awaited rejection is
-        // forwarded because computeCommit's sync re-run cannot see a schema Promise's issues
-        if (column.onInvalid === "warn") {
-          actions.commitCellEdit(value, movement, message);
+    probe.then(
+      (result) => {
+        if (generationRef.current !== generation) return; // stale: cancelled/superseded/unmounted
+        setPending(false);
+        if (result.issues) {
+          const message = formatIssues(result.issues);
+          // `onInvalid: "warn"`: commit the raw value and flag the cell — the awaited rejection is
+          // forwarded because computeCommit's sync re-run cannot see a schema Promise's issues
+          if (column.onInvalid === "warn") {
+            actions.commitCellEdit(value, movement, message);
+            return;
+          }
+          actions.setEditingError(message);
           return;
         }
-        actions.setEditingError(message);
-        return;
-      }
-      actions.commitCellEdit(result.value, movement);
-    });
+        actions.commitCellEdit(result.value, movement);
+      },
+      (error: unknown) => {
+        if (generationRef.current !== generation) return; // stale: cancelled/superseded/unmounted
+        // a rejecting promise is a rejection for this edit — unblock the editor the same way a thrown validator does
+        setPending(false);
+        actions.setEditingError(errorMessage(error));
+      },
+    );
   }
 
   /** Escape/cancel while a validation is pending: invalidates it (its resolution is dropped) and clears `pending`. */
@@ -76,4 +92,8 @@ export function useAsyncValidate(actions: DataGridActions, column: AnyColumnDef)
   }
 
   return { commit, cancelPending, pending };
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
