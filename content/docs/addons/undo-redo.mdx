@@ -69,7 +69,7 @@ tuple of `useState`, so it composes with any state source:
 ```tsx
 import { useDataGridHistory } from "@/components/data-grid-history/data-grid-history";
 
-const [data, setData] = useState(initialRows);
+const [data, setData] = useState<readonly Order[]>(initialRows);
 const { onDataChange, undo, redo, canUndo, canRedo } = useDataGridHistory({
   data,
   setData,

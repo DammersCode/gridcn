@@ -16,6 +16,8 @@ Quantity above 100 after ~600 ms.
 ## Wiring
 
 ```tsx
+const [data, setData] = useState<readonly Order[]>(initialOrders);
+
 function handleDataChange(next: readonly Order[], change: DataChange<Order>) {
   setData(next);
   saveOrders(change.ops).catch((error) => {

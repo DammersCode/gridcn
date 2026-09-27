@@ -283,7 +283,7 @@ message in a tooltip:
 
 ```tsx
 function OrdersGrid() {
-  const [data, setData] = useState<Order[]>(initialOrders);
+  const [data, setData] = useState<readonly Order[]>(initialOrders);
   const { store, actions } = useDataGridStoreProps({
     data,
     columns,

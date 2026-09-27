@@ -115,7 +115,7 @@ round-trip, a store, or derived data. `data` and `defaultData` are mutually excl
 give both, `data` wins.
 
 ```tsx
-const [data, setData] = useState(initialRows);
+const [data, setData] = useState<readonly Person[]>(initialRows);
 
 <DataGrid
   data={data}
