@@ -19,7 +19,8 @@
             }
          },
          "dependencies": [
-            "zustand"
+            "zustand",
+            "lucide-react"
          ],
          "registryDependencies": [
             "button",
@@ -732,7 +733,8 @@
          "author": "gridcn",
          "dependencies": [
             "@dnd-kit/dom",
-            "@dnd-kit/react"
+            "@dnd-kit/react",
+            "lucide-react"
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
@@ -790,7 +792,9 @@
          "title": "Data Grid Context Menu",
          "description": "Right-click context menus for the gridcn data grid: cut/copy/paste/clear/row operations on cells, sort/pin/hide/autosize on headers.",
          "author": "gridcn",
-         "dependencies": [],
+         "dependencies": [
+            "lucide-react"
+         ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
             "context-menu",
@@ -1112,7 +1116,9 @@
          "title": "Data Grid Pagination",
          "description": "Pagination add-on for the gridcn data grid: useDataGridPagination (client mode slices data; server mode is fully controlled) plus a composable <DataGridPaginationBar /> footer (range, page-size select, first/prev/pages/next/last parts) — shadcn-Pagination style, renders a default layout with no children or a custom composition of parts. New user-facing strings live under labels.pagination (see data-grid/labels.ts DataGridPaginationLabels). Zero core changes — purely additive.",
          "author": "gridcn",
-         "dependencies": [],
+         "dependencies": [
+            "lucide-react"
+         ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
             "button",
@@ -1152,7 +1158,8 @@
          "author": "gridcn",
          "dependencies": [
             "@dnd-kit/dom",
-            "@dnd-kit/react"
+            "@dnd-kit/react",
+            "lucide-react"
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",

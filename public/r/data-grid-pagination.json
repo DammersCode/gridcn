@@ -4,7 +4,9 @@
   "title": "Data Grid Pagination",
   "author": "gridcn",
   "description": "Pagination add-on for the gridcn data grid: useDataGridPagination (client mode slices data; server mode is fully controlled) plus a composable <DataGridPaginationBar /> footer (range, page-size select, first/prev/pages/next/last parts) — shadcn-Pagination style, renders a default layout with no children or a custom composition of parts. New user-facing strings live under labels.pagination (see data-grid/labels.ts DataGridPaginationLabels). Zero core changes — purely additive.",
-  "dependencies": [],
+  "dependencies": [
+    "lucide-react"
+  ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",
     "button",

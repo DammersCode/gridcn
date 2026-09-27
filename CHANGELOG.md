@@ -343,6 +343,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   Vite project whose `tsconfig.app.json` lacks `@types/node`.
 - **Demo npm dependencies:** `data-grid-context-menu-slots-demo` declares `lucide-react` and
   `data-grid-validation-demo` declares `sonner`, so a fresh install gets both packages.
+- **Registry npm dependencies:** `data-grid`, `data-grid-toolbar`, `data-grid-sort-list`,
+  `data-grid-context-menu`, and `data-grid-pagination` declare `lucide-react`, so a fresh install
+  gets the icon package the components import.
 - **Inline fill callbacks:** `useDataGridFill`'s `onFill` and `detectSeries` may be inline
   functions; a new identity no longer re-creates the fill handlers on every render.
 

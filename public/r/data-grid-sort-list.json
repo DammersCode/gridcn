@@ -6,7 +6,8 @@
   "description": "Toolbar sort add-on for the gridcn data grid: a sort button + popover listing applied sorts as editable, aligned rows (column / direction / remove / drag handle), with add/clear-all and precedence reordering via @dnd-kit/react drag or ArrowUp/ArrowDown on the grip (array order in SortSpec[]). New user-facing strings live under labels.sort (see data-grid/labels.ts DataGridSortLabels). Zero core changes — purely additive.",
   "dependencies": [
     "@dnd-kit/dom",
-    "@dnd-kit/react"
+    "@dnd-kit/react",
+    "lucide-react"
   ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",

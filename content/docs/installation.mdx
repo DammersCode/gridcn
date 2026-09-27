@@ -84,16 +84,19 @@ hard floor, plus the Node and TypeScript floors.
   Tailwind v3, the grid renders without its styles.
 </Callout>
 
-The core item of gridcn has exactly one npm dependency: `zustand`. The table below lists the
-dependency of each add-on.
+The core item of gridcn has two npm dependencies: `zustand` and `lucide-react`. The table
+below lists the dependency of each add-on.
 
 | Add-on | Runtime dependency | Dev dependency |
 |---|---|---|
-| Core (`data-grid`) | `zustand` | none |
-| `data-grid-toolbar` | `@dnd-kit/react` | none |
-| `data-grid-sort-list` | `@dnd-kit/react` | none |
+| Core (`data-grid`) | `zustand`, `lucide-react` | none |
+| `data-grid-toolbar` | `@dnd-kit/react`, `lucide-react` | none |
+| `data-grid-sort-list` | `@dnd-kit/react`, `lucide-react` | none |
+| `data-grid-context-menu` | `lucide-react` | none |
+| `data-grid-pagination` | `lucide-react` | none |
 | `data-grid-io` | `xlsx`, `papaparse` (lazy-loaded) | `@types/papaparse` |
 | `data-grid-url-state` | `nuqs` | none |
+| `dropzone` | `lucide-react` | none |
 | All other add-ons | none beyond the core | none |
 
 ## Where files land
