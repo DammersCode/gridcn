@@ -14,7 +14,7 @@ export type UseDataGridUrlPaginationOptions = {
   defaultPageSize?: number;
   /** When given, a `pageSize` URL value outside this list falls back to `defaultPageSize` instead of being trusted. */
   pageSizeOptions?: readonly number[];
-  /** The dataset's row count; when given, an out-of-range deep-linked `page` is clamped to the last page and the clamped value is written back to the URL on mount. */
+  /** The dataset's row count; when given, an out-of-range deep-linked `page` is clamped to the last page and the clamped value is written back to the URL. A 0 total (data loading) suspends both until a positive total arrives. */
   total?: number;
 };
 
@@ -64,14 +64,15 @@ export function useDataGridUrlPagination(options: UseDataGridUrlPaginationOption
 
   const rawPage = parsePage(pageParam);
   const pageSize = parsePageSize(pageSizeParam, defaultPageSize, pageSizeOptions);
-  const page = total !== undefined ? clampPage(rawPage, total, pageSize) : rawPage;
+  // a 0 total (data loading) must not clamp or write back, or a deep-linked ?page= is wiped before the real total arrives
+  const page = total !== undefined && total > 0 ? clampPage(rawPage, total, pageSize) : rawPage;
   const resolvedPageSizeOptions: readonly number[] = pageSizeOptions ?? DEFAULT_PAGE_SIZES;
 
-  // normalize once, when the first total is known: a deep-linked ?page=999 stays raw in the URL (shared
+  // normalize once, when the first positive total is known: a deep-linked ?page=999 stays raw in the URL (shared
   // link disagrees with the rendered view, and "revives" if the dataset grows) unless the clamped value is written back
   const normalizedRef = useRef(false);
   useEffect(() => {
-    if (normalizedRef.current || total === undefined) return;
+    if (normalizedRef.current || total === undefined || total <= 0) return;
     normalizedRef.current = true;
     const clamped = clampPage(parsePage(pageParam), total, parsePageSize(pageSizeParam, defaultPageSize, pageSizeOptions));
     const serialized = serializePage(clamped) || "";

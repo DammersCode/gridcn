@@ -145,7 +145,8 @@ function useClientPagination<TData>(options: UseDataGridPaginationClientOptions<
   const controlledPage = options.page;
   const controlled = controlledPage !== undefined;
   const rawPage = controlled ? controlledPage : internalPage;
-  const page = clampPage(rawPage, data.length, pageSize);
+  // an empty dataset (data loading) must not clamp the controlled page away, or a deep link is lost until data arrives
+  const page = data.length > 0 ? clampPage(rawPage, data.length, pageSize) : rawPage;
 
   const setPage = (next: number, sizeForClamp: number = pageSize) => {
     const clamped = clampPage(next, data.length, sizeForClamp);

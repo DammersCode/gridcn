@@ -73,6 +73,21 @@ describe("useDataGridPagination: client mode", () => {
     expect(onPageChange).toHaveBeenCalledWith(5);
   });
 
+  it("keeps a controlled page while data is empty (loading), and re-slices once data arrives", () => {
+    const onPageChange = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ data }: { data: { id: number }[] }) => useDataGridPagination({ data, pageSize: 25, page: 3, onPageChange }),
+      { initialProps: { data: [] } },
+    );
+    // empty data (a fetch in flight): the controlled page must not be clamped to 1, or a deep link is lost
+    expect(result.current.controls.page).toBe(3);
+    expect(result.current.pageData).toEqual([]);
+
+    rerender({ data: makeData(101) });
+    expect(result.current.controls.page).toBe(3);
+    expect(result.current.pageData?.[0]).toEqual({ id: 50 });
+  });
+
   it("supports a fully controlled page prop", () => {
     const onPageChange = vi.fn();
     const { result, rerender } = renderHook(

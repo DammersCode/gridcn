@@ -304,6 +304,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Deep-linked page lost while data loads:** `useDataGridUrlPagination({ total })` no longer
+  clamps or rewrites `?page=` while `total` is 0, so a deep link survives until the real total
+  arrives; `useDataGridPagination` client mode keeps a controlled page the same way on an empty
+  dataset.
 - **Async validator crash on edit commit:** a cell `validate` that throws, or whose promise
   rejects, now rejects the edit with the error message and clears the pending state, instead of
   leaving the editor stuck read-only with no message.
