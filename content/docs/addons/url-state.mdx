@@ -98,6 +98,30 @@ toggle existed still parses identically.
 - The core stays router-agnostic. `data-grid-url-state` is the only piece that knows about a
   router, and it is entirely optional.
 
+The hook reads the store, so a small child component inside the provider owns the wiring:
+
+```tsx
+"use client";
+
+import { useDataGridUrlState } from "@/components/data-grid-url-state/data-grid-url-state";
+
+function ApplyUrlOnPopstate({ prefix }: { prefix?: string }) {
+  const { applyFromUrl } = useDataGridUrlState({ prefix });
+
+  useEffect(() => {
+    const onPopstate = () => applyFromUrl();
+    window.addEventListener("popstate", onPopstate);
+    return () => window.removeEventListener("popstate", onPopstate);
+  }, [applyFromUrl]);
+
+  return null;
+}
+```
+
+Mount `<ApplyUrlOnPopstate prefix="orders" />` as a child of `<DataGridProvider>`, next to
+`<DataGridUrlState>`. A framework router that exposes its own navigation event (for example
+`useSearchParams` changes) can call `applyFromUrl()` from that event instead of `popstate`.
+
 <Callout type="warn" title="A URL-applied sort is invisible in the default config">
   `?sort=name:asc` reorders the rows, but the built-in sort indicator only renders in
   `headerClickBehavior="sort"` mode, which is not the default. So in the default config a
