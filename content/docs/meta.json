@@ -1,6 +1,6 @@
 {
   "title": "gridcn",
-  "description": "gridcn is a composable, high-performance data grid (React + TypeScript): range selection, spreadsheet clipboard, typed cell editors, validation, and windowed rendering at 100k+ rows. shadcn styling. Source-available under the GridCN Source Available License.",
+  "description": "gridcn is a composable, high-performance data grid (React + TypeScript): range selection, spreadsheet clipboard, typed cell editors, validation, and windowed rendering at 100k+ rows. shadcn styling. Open source under the Apache License 2.0.",
   "pages": [
     "---[Sparkles]Getting Started---",
     "index",

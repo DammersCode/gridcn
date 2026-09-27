@@ -1,6 +1,6 @@
 # gridcn
 
-[![License: GridCN Source Available](https://img.shields.io/badge/License-GridCN%20Source%20Available-lightgrey.svg)](./LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/DammersCode/gridcn?style=flat-square)](https://github.com/DammersCode/gridcn)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19%2B-blue?logo=react)](https://react.dev/)
@@ -10,9 +10,8 @@ A composable, high-performance data grid: range selection, spreadsheet clipboard
 editors, validation, and windowed rendering at 100k+ rows. Styled with your shadcn tokens,
 distributed through the [shadcn registry](https://ui.shadcn.com/docs/registry).
 
-Range selection, clipboard paste, and a fill handle are in the core. The
-source is free to use, including commercially in your own products, under the
-[GridCN Source Available License](./LICENSE).
+Range selection, clipboard paste, and a fill handle are in the core. gridcn is
+open source under the [Apache License 2.0](./LICENSE).
 
 ## Install
 
@@ -132,8 +131,5 @@ gridcn builds on and learns from several open-source projects. Thank you.
 
 ## License
 
-[GridCN Source Available License](./LICENSE) — source-available, not open
-source (OSI). Free to use and modify, including commercially in your own
-products; commercial redistribution of gridcn itself (registry, rebranded
-library, resale) is not permitted without written permission. Behavior specs
-from other data grids are inspiration only — no code derivation.
+[Apache License 2.0](./LICENSE). Behavior specs from other data grids are
+inspiration only — no code derivation.

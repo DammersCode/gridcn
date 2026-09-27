@@ -27,7 +27,7 @@ const TAIL = [
   '## Optional',
   '',
   `- [Project status](${BASE}/docs/project-status.md): Scope, decisions, open questions.`,
-  `- [License](${BASE}/docs/license.md): GridCN Source Available License 1.0 (2026) — source-available, not OSI open source. Legal text: [LICENSE](https://github.com/DammersCode/gridcn/blob/main/LICENSE).`,
+  `- [License](${BASE}/docs/license.md): Apache License 2.0. Legal text: [LICENSE](https://github.com/DammersCode/gridcn/blob/main/LICENSE).`,
   '- [GitHub](https://github.com/DammersCode/gridcn): Source code, issues.',
   '',
 ].join('\n');

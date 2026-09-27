@@ -223,7 +223,7 @@ export default function HomePage() {
       <HeroShader />
       <div className="border bg-card z-10 mt-20 mb-16 flex w-full max-w-2xl flex-col items-center gap-6 px-6 sm:px-10 py-10 text-center">
         <Badge variant="outline">
-          Source-available · shadcn registry
+          Open source · shadcn registry
         </Badge>
         <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
           gridcn
@@ -292,7 +292,7 @@ export default function HomePage() {
           <p className="max-w-xl text-sm text-muted-foreground">
             Range selection, spreadsheet clipboard paste, and a fill handle
             are paid-tier features — Enterprise in AG Grid, Premium in MUI X.
-             gridcn ships them source-available: core plus one-line add-ons.
+             gridcn ships them open source: core plus one-line add-ons.
           </p>
         </div>
         <Cards>
