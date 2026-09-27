@@ -30,17 +30,17 @@ export function selectLine(
   index: number,
   opts: SelectLineOptions,
 ): CompactSelection {
-  const channel = CompactSelection.fromArray(channelLike.toArray());
+  // an already-compact channel is used in place; only a structural CompactSelectionLike needs the
+  // fromArray materialization fallback.
+  const channel = channelLike instanceof CompactSelection ? channelLike : CompactSelection.fromArray(channelLike.toArray());
   if (opts.replaceFromLast) {
-    const indices = channel.toArray();
-    const last = opts.from ?? indices[indices.length - 1] ?? index;
+    const last = opts.from ?? channel.last() ?? index;
     const start = Math.min(last, index);
     const end = Math.max(last, index) + 1;
     return CompactSelection.fromSingleSelection([start, end]);
   }
   if (opts.extendFromLast) {
-    const indices = channel.toArray();
-    const last = opts.from ?? indices[indices.length - 1] ?? index;
+    const last = opts.from ?? channel.last() ?? index;
     const start = Math.min(last, index);
     const end = Math.max(last, index) + 1;
     return channel.add([start, end]);
