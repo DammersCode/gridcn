@@ -189,7 +189,7 @@ compiler mirror 4m44, build 1m02, rest < 1 min.
 | Wave | Status |
 |------|--------|
 | W1 | DONE (13 items, commits `4d274fb`…`0114b28`, all gates green) |
-| W2 | TODO (includes six security fixes W2-14…W2-19) |
+| W2 | DONE (19 items, commits `7d12104`…`0776df0`, all gates green) |
 | W3 | TODO (all decisions made) |
 | W4 | TODO |
 | W5 | TODO (API foundation; specs for W5-05, W5-06, W5-08…W5-13) |
