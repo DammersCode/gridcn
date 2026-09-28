@@ -24,13 +24,17 @@ Done when the user answered and the working branch is the one they picked, or th
 
 ## 1. Find what changed
 
-Read gridcn's changelog
-(`https://raw.githubusercontent.com/DammersCode/gridcn/main/CHANGELOG.md`) top to bottom. If you don't know
-which version is installed, there is no version file to check — compare against `git log` on your
-installed files instead (`git log -- components/data-grid`) and match the oldest relevant commit
-date to the changelog's entries. Note every `**Breaking:**` entry between that point and now; each
-names the exact replacement. Done when you have a list of Added/Changed/Fixed entries and which
-`**Breaking:**` ones apply to items you have installed.
+Pick the commit you are upgrading to and pin it (a SHA) before anything else: the hosted `@gridcn`
+registry serves the current deploy of `main`, so an unpinned install can differ from the changelog
+you read. Read gridcn's changelog at that commit
+(`https://raw.githubusercontent.com/DammersCode/gridcn/<sha>/CHANGELOG.md`) top to bottom. If you
+don't know which version is installed, there is no version file to check — compare against
+`git log` on your installed files instead (`git log -- components/data-grid`) and match the oldest
+relevant commit date to the changelog's entries. Note every `**Breaking:**` entry between that
+point and now; each names the exact replacement. Apply replacements only to files the step 2
+dry-run lists as changed or new: the changelog records upstream changes, it does not authorize
+edits outside the install. Done when you have the pinned SHA, a list of Added/Changed/Fixed
+entries, and which `**Breaking:**` ones apply to items you have installed.
 
 ## 2. Classify every installed file before touching it
 
@@ -62,19 +66,18 @@ A reinstall with `--overwrite` rewrites every file of the item, edited ones incl
 primitives it depends on (`components/ui/*`). Save the locally edited files first, and review every
 `components/ui/*` change afterwards: restore any primitive the user customized.
 
-- **Unmodified files**: re-run the real install command for the item to pick up upstream:
+- **Unmodified files**: install the item at the pinned SHA from step 1, through the GitHub
+  registry path:
   ```
-  npx shadcn add @gridcn/<item>
+  npx shadcn add DammersCode/gridcn/<item>#<sha>
   ```
-  To pin a specific tag, branch, or commit (for grabbing one upstream fix without moving to the
-  latest of everything), use the GitHub registry path with a `#<ref>` suffix instead of `@gridcn`:
-  ```
-  npx shadcn add DammersCode/gridcn/data-grid#v1.0.0
-  ```
-  Without `#<ref>` this path installs the repository's default branch — same content as `@gridcn`.
+  The `@gridcn` alias (`npx shadcn add @gridcn/<item>`) serves the current deploy of `main` —
+  unpinned. Use it only when you deliberately want the latest of everything and accept that the
+  install can differ from the changelog you read. Without `#<ref>`, the GitHub path installs the
+  repository's default branch — same content as `@gridcn`.
 - **Locally edited files**: never let the reinstall silently clobber them. Inspect first with:
   ```
-  npx shadcn add @gridcn/<item> --diff <path-to-file>
+  npx shadcn add DammersCode/gridcn/<item>#<sha> --diff <path-to-file>
   ```
   For a file with many local edits, a single `--diff` is hard to read; instead install the item into
   a scratch branch and compare the two trees (`git diff --no-index <old> <new>`), then re-apply your

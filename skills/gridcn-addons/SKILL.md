@@ -33,9 +33,13 @@ npx shadcn add @gridcn/<item>
 | Lazy loading | `data-grid-lazy` | none |
 | Pagination | `data-grid-pagination` | none |
 
-The core `data-grid` item must already be installed; every add-on depends only on it. Done when the
-CLI reports the new files under `components/data-grid-<name>/` and installs the npm dep from the
-table (check `package.json`).
+The `@gridcn` registry serves the current deploy of the public repository `DammersCode/gridcn`;
+the same items install from its GitHub registry path (`DammersCode/gridcn/<item>`), the source
+of record for the files. The core `data-grid` item must already be installed; every add-on
+depends only on it. Done when the CLI reports the new files under `components/data-grid-<name>/`
+and installs the npm dep from the table (check `package.json`), and in a Git project you have
+reviewed the written files before the first run (`git status`, then read the new files): the
+install copies remote source into your code.
 
 ## 2. Wire the output at the right seam
 
