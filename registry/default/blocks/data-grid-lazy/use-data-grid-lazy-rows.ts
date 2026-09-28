@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { isDev, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
+import { applyChange, isDev, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
 import { chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes, type Range } from "./range-math";
 
 /** Default extra rows fetched per range beyond the visible window — ~1 viewport (spec: "default ~1 viewport of rows"). */
@@ -280,14 +280,24 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
     if (last) onRowWindowChange(last);
   });
 
-  const onDataChange = useCallback((next: readonly TData[], _change: DataChange<TData>) => {
-    // `next` is DataGrid's own post-edit array, itself sparse at runtime (see gridProps.data's doc).
-    setRows(next.slice() as (TData | undefined)[]);
-  }, []);
-
   const gridGetRowId = useCallback(
     (row: TData, index: number) => (row === undefined ? placeholderId(index) : getRowId(row, index)),
     [getRowId],
+  );
+
+  const onDataChange = useCallback(
+    (next: readonly TData[], change: DataChange<TData>) => {
+      // `next` is DataGrid's own post-op snapshot, itself sparse at runtime (see gridProps.data's
+      // doc) — and it can predate rows a just-resolved fetch already wrote into state, so replacing
+      // the array with it would drop those rows. With ops, re-apply them to the latest state instead
+      // (ids-keyed, so the fetch's extra rows survive untouched); without ops, `next` is authoritative.
+      setRows((prev) =>
+        change.ops.length > 0
+          ? (applyChange(prev as TData[], change, gridGetRowId) as (TData | undefined)[])
+          : (next.slice() as (TData | undefined)[]),
+      );
+    },
+    [gridGetRowId],
   );
 
   const gridProps = useMemo(

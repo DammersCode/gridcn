@@ -257,6 +257,66 @@ describe("useDataGridLazyRows", () => {
     expect(result.current.gridProps.data[0]).toEqual({ id: "row-0", name: "Person 0" });
   });
 
+  it("onDataChange keeps rows a fetch wrote after the store's snapshot was taken", async () => {
+    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const { result } = renderHook(() =>
+      useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+    );
+
+    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 10 }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.gridProps.data[7]).toEqual({ id: "row-7", name: "Person 7" });
+
+    // The store's snapshot predates the rows just landed in [5,10): its `next` still has holes
+    // there, but the ops apply to the same row ids, so the merge must keep the landed rows.
+    const staleNext: (Row | undefined)[] = result.current.gridProps.data.slice();
+    for (let i = 5; i < 10; i++) staleNext[i] = undefined;
+    staleNext[2] = { id: "row-2", name: "Edited Name" };
+    act(() =>
+      result.current.onDataChange(staleNext as Row[], {
+        source: "edit",
+        ops: [{ type: "update", rowId: "row-2", row: { id: "row-2", name: "Edited Name" }, prev: { id: "row-2", name: "Person 2" } }],
+      }),
+    );
+
+    expect(result.current.gridProps.data[2]).toEqual({ id: "row-2", name: "Edited Name" });
+    expect(result.current.gridProps.data[7]).toEqual({ id: "row-7", name: "Person 7" });
+    expect(result.current.gridProps.data.length).toBe(10);
+  });
+
+  it("onDataChange applies a length-changing row op (delete) to the latest state, keeping alignment", async () => {
+    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const { result } = renderHook(() =>
+      useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+    );
+
+    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 10 }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const next = [
+      { id: "row-0", name: "Person 0" },
+      { id: "row-1", name: "Person 1" },
+      { id: "row-3", name: "Person 3" },
+      { id: "row-4", name: "Person 4" },
+      { id: "row-5", name: "Person 5" },
+      { id: "row-6", name: "Person 6" },
+      { id: "row-7", name: "Person 7" },
+      { id: "row-8", name: "Person 8" },
+      { id: "row-9", name: "Person 9" },
+    ];
+    act(() =>
+      result.current.onDataChange(next, {
+        source: "row-op",
+        ops: [{ type: "delete", rowId: "row-2", row: { id: "row-2", name: "Person 2" }, index: 2 }],
+      }),
+    );
+
+    const data = result.current.gridProps.data;
+    expect(data.length).toBe(9);
+    expect(data[2]).toEqual({ id: "row-3", name: "Person 3" });
+    expect(data[8]).toEqual({ id: "row-9", name: "Person 9" });
+  });
+
   it("uses an index-derived placeholder id for unloaded rows via gridProps.getRowId", () => {
     const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
     const { result } = renderHook(() =>

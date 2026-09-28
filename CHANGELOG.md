@@ -335,6 +335,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Lazy rows no longer drop a just-landed fetch (`data-grid-lazy`):** `useDataGridLazyRows`'
+  `onDataChange` now re-applies the change's ops to the latest sparse state instead of replacing
+  the array with the grid's post-op snapshot — a snapshot taken before an in-flight fetch resolved
+  no longer evicts the rows that fetch just wrote (row ops that change length apply cleanly too).
 - **`mod+F` with several grids on one page:** `DataGridSearch`'s find-shortcut capture now scopes
   to the grid that holds focus (each provider stamps its root and toolbar with a `useId`-derived
   `data-grid-instance` marker) — pressing `mod+F` in grid A no longer moves focus into grid B's
