@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, use, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, use, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
 import type { OverlayPlugin } from "../overlays";
@@ -41,6 +41,21 @@ function subscribeSelectionCleared(store: StoreApi<DataGridStoreState>): () => v
 }
 
 const DataGridStoreContext = createContext<StoreApi<DataGridStoreState> | null>(null);
+
+const GridInstanceIdContext = createContext<string>("");
+
+/**
+ * This provider instance's id (a React `useId` value, stamped on the grid's root and toolbar
+ * as `data-grid-instance`). Two grids on one page each get a distinct id, so DOM scoping checks
+ * (the toolbar's mod+F capture) match this grid only.
+ */
+export function useDataGridInstanceId(): string {
+  const instanceId = use(GridInstanceIdContext);
+  if (instanceId === "") {
+    throw new Error("gridcn: this hook must be used inside a <DataGridProvider>.");
+  }
+  return instanceId;
+}
 
 /**
  * Mounts one store instance per grid (multiple grids per page each get their
@@ -248,7 +263,13 @@ function useGridStoreCore<TData>(
 export function DataGridProvider<TData>(props: DataGridProviderProps<TData>): ReactNode {
   const { store: externalStore, children, ...syncProps } = props;
   const { store } = useGridStoreCore<TData>(syncProps, externalStore);
-  return <DataGridStoreContext.Provider value={store}>{children}</DataGridStoreContext.Provider>;
+  // useId is hydration-safe and distinct per provider instance — two grids on one page each get their own id.
+  const instanceId = useId();
+  return (
+    <DataGridStoreContext.Provider value={store}>
+      <GridInstanceIdContext.Provider value={instanceId}>{children}</GridInstanceIdContext.Provider>
+    </DataGridStoreContext.Provider>
+  );
 }
 
 /** Resolves the current grid's store, throwing with a clear message outside the provider. */

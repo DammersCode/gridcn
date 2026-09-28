@@ -247,6 +247,46 @@ describe("DataGridSearch captureFindShortcut", () => {
     expect(event.defaultPrevented).toBe(false);
   });
 
+  it("two grids on one page: mod+F focuses the search input of the grid that holds focus", async () => {
+    await render(
+      <>
+        <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id} labels={{ toolbar: { searchAriaLabel: "Search grid A" } }}>
+          <DataGridToolbar>
+            <DataGridSearch />
+          </DataGridToolbar>
+          <DataGridRoot className="h-[200px]">
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+        <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id} labels={{ toolbar: { searchAriaLabel: "Search grid B" } }}>
+          <DataGridToolbar>
+            <DataGridSearch />
+          </DataGridToolbar>
+          <DataGridRoot className="h-[200px]">
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      </>,
+    );
+    const [gridA, gridB] = document.querySelectorAll<HTMLElement>('[role="grid"]');
+    expect(gridA).not.toBeNull();
+    expect(gridB).not.toBeNull();
+    const inputA = page.getByRole("textbox", { name: "Search grid A" });
+    const inputB = page.getByRole("textbox", { name: "Search grid B" });
+    gridA!.querySelector<HTMLElement>('[role="gridcell"]')!.focus();
+    const eventA = dispatchModF(document.activeElement ?? document.body);
+    expect(eventA.defaultPrevented).toBe(true);
+    await expect.element(inputA).toHaveFocus();
+    await expect.element(inputB).not.toHaveFocus();
+    gridB!.querySelector<HTMLElement>('[role="gridcell"]')!.focus();
+    const eventB = dispatchModF(document.activeElement ?? document.body);
+    expect(eventB.defaultPrevented).toBe(true);
+    await expect.element(inputB).toHaveFocus();
+    await expect.element(inputA).not.toHaveFocus();
+  });
+
   it("captureFindShortcut={false} opts out: mod+F is never intercepted regardless of focus", async () => {
     await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>

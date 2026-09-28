@@ -78,6 +78,7 @@ export {
   cellErrorKey,
   flashCellKey,
   DataGridProvider,
+  useDataGridInstanceId,
   useDataGridStoreApi,
   useDataGridStoreProps,
   useDataGridActions,

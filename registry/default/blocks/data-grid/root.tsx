@@ -17,6 +17,7 @@ import {
   useDataGridActiveColumn,
   useDataGridFillHandlers,
   useDataGridHasActiveCell,
+  useDataGridInstanceId,
   useDataGridLabels,
   useDataGridRowBands,
   useDataGridRowCount,
@@ -41,6 +42,7 @@ import { usePinShadowEdges } from "./windowing/use-pin-shadow-edges";
 import { GRID_LAYER } from "./layers";
 import { DataGridLoadingSkeleton, DataGridLoadingBar } from "./rows/loading-skeleton";
 import { isDev } from "./is-dev";
+import { GRID_ATTR } from "./data-attributes";
 
 /** Default sticky header track height (px); density/rowHeight only affect data rows, never the header. */
 const HEADER_HEIGHT = 36;
@@ -153,6 +155,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   } = props;
   const rowHeight = resolveRowHeight(density, rowHeightProp);
   const headerHeight = headerHeightProp ?? HEADER_HEIGHT;
+  const instanceId = useDataGridInstanceId();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   // Roving-tabindex bootstrap (see the root's onFocus below) must only fire for a genuine
@@ -459,6 +462,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
         ref={scrollRef}
         role="grid"
         dir={direction}
+        {...{ [GRID_ATTR.instance]: instanceId }}
         // Roving-tabindex bootstrap (WAI-ARIA APG grid pattern): before any cell has been made
         // active, every cell renders tabIndex=-1, so the root itself must be the one tabbable
         // entry point or a keyboard user can never reach the grid at all. Once a cell becomes

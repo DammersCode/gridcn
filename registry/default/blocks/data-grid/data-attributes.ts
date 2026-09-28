@@ -96,6 +96,8 @@ export const GRID_ATTR = {
   sortRow: "data-grid-sort-row",
   /** data-grid-toolbar/toolbar.tsx: the toolbar container; also used by `data-grid-toolbar/search.tsx` to test whether an event target sits inside the grid's own scope. */
   toolbar: "data-grid-toolbar",
+  /** root.tsx and data-grid-toolbar/toolbar.tsx: this provider instance's id (a React `useId` value); scopes `data-grid-toolbar/search.tsx`'s mod+F capture to this grid, never a sibling grid. */
+  instance: "data-grid-instance",
   /** data-grid-toolbar/columns-menu.tsx: the show/hide-columns dropdown menu content. */
   columnsMenu: "data-grid-columns-menu",
   /** data-grid-toolbar/filter-menu.tsx: the active-filter-count badge on the filter trigger button. */

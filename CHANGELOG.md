@@ -335,6 +335,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **`mod+F` with several grids on one page:** `DataGridSearch`'s find-shortcut capture now scopes
+  to the grid that holds focus (each provider stamps its root and toolbar with a `useId`-derived
+  `data-grid-instance` marker) — pressing `mod+F` in grid A no longer moves focus into grid B's
+  search input.
 - **Import limits (`data-grid-io`):** `parseImportFile` now bounds every import against a memory/CPU
   DoS — a 16 KB xlsx with a forged `<dimension>` element used to build 100M cells. Files above
   50 MB are rejected before they are read, the SheetJS read is clamped to at most 1,000,000 rows
