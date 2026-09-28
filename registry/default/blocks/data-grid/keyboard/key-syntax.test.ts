@@ -55,6 +55,8 @@ describe("validateKeyBinding", () => {
     ["mod+mod+a", "repeats modifier \"mod\""],
     ["mod+ArrowUpp", "is not a known key name"],
     ["mod+space", "is not a known key name"],
+    // a single code point that is not a letter/number/symbol/punct (U+00A0 is a separator)
+    ["\u00a0", "is not a printable character"],
   ])("flags %s with %s", (binding, issue) => {
     const issues = validateKeyBinding(binding);
     expect(issues.length).toBeGreaterThan(0);
@@ -92,6 +94,13 @@ describe("validateKeymap", () => {
     vi.stubEnv("NODE_ENV", "development");
     const warn = vi.spyOn(console, "warn");
     validateKeymap({ undo: ["mod+z"], moveUp: ["ArrowUp"] });
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("skips keymap entries with no bindings", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const warn = vi.spyOn(console, "warn");
+    validateKeymap({ undo: ["mod+z"], moveUp: undefined });
     expect(warn).not.toHaveBeenCalled();
   });
 });

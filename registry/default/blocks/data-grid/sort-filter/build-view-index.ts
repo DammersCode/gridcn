@@ -122,8 +122,8 @@ export function buildViewIndex(
       // Same empty-last-in-both-directions rule as the default path, so a typed column's blanks
       // don't flip sides on a direction change while a text column's stay put.
       return (a: number, b: number) => {
-        const emptyA = empties.get(a) ?? false;
-        const emptyB = empties.get(b) ?? false;
+        const emptyA = empties.get(a)!;
+        const emptyB = empties.get(b)!;
         if (emptyA && emptyB) return 0;
         if (emptyA) return 1;
         if (emptyB) return -1;
@@ -138,8 +138,8 @@ export function buildViewIndex(
 
     // Empty must sort last for both directions, so only the non-empty ordering flips.
     return (a: number, b: number) => {
-      const textA = keys.get(a) ?? "";
-      const textB = keys.get(b) ?? "";
+      const textA = keys.get(a)!;
+      const textB = keys.get(b)!;
       if (textA === "" || textB === "") return defaultCompareText(textA, textB, collator);
       return dir * defaultCompareText(textA, textB, collator);
     };

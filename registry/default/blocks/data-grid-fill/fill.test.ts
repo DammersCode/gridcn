@@ -121,10 +121,22 @@ describe("detectSeries", () => {
     expect(series!.extrapolate(2)).toBe("003");
   });
 
+  it("keeps a consistent three-plus value padded-numeric series (every step checked, not just the first)", () => {
+    const series = detectSeries(["001", "002", "003"]);
+    expect(series).not.toBeNull();
+    expect(series!.extrapolate(3)).toBe("004");
+  });
+
   it("detects prefix+number sequences", () => {
     const series = detectSeries(["Item 9", "Item 10"]);
     expect(series).not.toBeNull();
     expect(series!.extrapolate(2)).toBe("Item 11");
+  });
+
+  it("keeps a consistent three-plus value prefix/suffix series (every step checked, not just the first)", () => {
+    const series = detectSeries(["Item 1", "Item 2", "Item 3"]);
+    expect(series).not.toBeNull();
+    expect(series!.extrapolate(3)).toBe("Item 4");
   });
 
   it("returns null for a single value (copy, not a series)", () => {
