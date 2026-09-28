@@ -230,7 +230,7 @@ describe("useDataGridHistory", () => {
     expect(result.current.canUndo).toBe(false);
   });
 
-  // B11 regression: getRowId must accept core's 2-arg (row, index) shape, not just (row), so a
+  // getRowId must accept core's 2-arg (row, index) shape, not just (row), so a
   // consumer using an index-derived fallback id compiles and works through this hook too.
   it("round-trips undo with an index-derived getRowId", () => {
     const indexedGetRowId = (row: Row, index: number) => row.id ?? `row-${index}`;

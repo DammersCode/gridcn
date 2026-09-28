@@ -126,7 +126,7 @@ export type CompactSelectionLike = {
 };
 
 /**
- * Selection-gesture configuration (PLAN §3 "Selection configurability"). All default `true`.
+ * Selection-gesture configuration. All default `true`.
  * Disabling a channel removes both its gestures (header/marker click, drag) AND its selection
  * channel: e.g. `enableColumnSelection: false` makes header clicks a no-op, not just un-rendered.
  */
@@ -202,7 +202,7 @@ export type CellClassNameCtx<TData, TValue> = {
 };
 
 /**
- * Grid-level row class callback (PLAN §6 "Programmatic style API"); merged via `cn()` after the
+ * Grid-level row class callback; merged via `cn()` after the
  * built-in row classes. `viewRowIndex` is the display (sorted/filtered) position. Pass a stable
  * function identity (module scope, or memoized) — like `columns`/`data`, its identity is a dev-mode
  * guardrail (unstable identity defeats row memoization) rather than a fresh per-render prop.
@@ -437,8 +437,8 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   /** Display-only override that keeps the column's type pipeline; method-shorthand for the same bivariance reason as `validate`. */
   renderCell?(props: CellRenderProps<TData, TValue>): ReactNode;
   /**
-   * Per-column cell class, merged via `cn()` after the built-in cell classes (PLAN §6 "Programmatic
-   * style API") so it wins on conflicting utilities. A plain string applies to every cell in the
+   * Per-column cell class, merged via `cn()` after the built-in cell classes so it wins on
+   * conflicting utilities. A plain string applies to every cell in the
    * column; the function form gets the same per-cell context as the grid-level `getCellClassName`
    * prop (see `CellClassNameFnHolder` for why it's spelled via indexed access, not inline).
    */
@@ -451,7 +451,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
 export type DensityMode = "compact" | "default" | "comfortable";
 
 /**
- * How a plain header click behaves (PLAN §3 item 4). `'select'` (default) selects the whole
+ * How a plain header click behaves. `'select'` (default) selects the whole
  * column, matching the marker/row-selection model. `'sort'` cycles asc->desc->none on the
  * clicked column instead (shift+click adds it to a multi-sort); `'none'` disables both.
  */
@@ -569,7 +569,7 @@ export interface GridCellTypes {
 
 /**
  * Plain JSON-serializable snapshot of a grid's column layout (widths/order/pins/hidden) — the save
- * payload for `onColumnLayoutChange`/`defaultColumnLayout` (PLAN events-state gap fix 1). `widths`
+ * payload for `onColumnLayoutChange`/`defaultColumnLayout`. `widths`
  * holds only columns the user has actually resized (a def's own `width` isn't duplicated in here);
  * `order` is always the full current column-id order, not just the moved one.
  */

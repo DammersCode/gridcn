@@ -11,10 +11,10 @@ const EDGE_EPSILON = 1;
 /**
  * Writes `data-scrolled-left`/`data-scrolled-right`/`data-scrolled-top`/`data-scrolled-bottom`
  * directly onto `viewportRef`'s element on every scroll tick — imperative DOM writes, no React
- * state, no per-tick re-render (PLAN §6 pinned-edge shadow spec: "no React per tick", matching the
- * existing `--grid-scroll-*` var writer in use-row-window.ts). CSS reads these attributes to
- * show/hide a pinned boundary's shadow only when there's actually content scrolled beneath it on
- * that side — `data-scrolled-top`/`-bottom` back the pinned ROW band shadow (PLAN §3), the "content
+ * state, no per-tick re-render, matching the existing `--grid-scroll-*` var writer in
+ * use-row-window.ts. CSS reads these attributes to show/hide a pinned boundary's shadow only when
+ * there's actually content scrolled beneath it on that side — `data-scrolled-top`/`-bottom` back
+ * the pinned ROW band shadow, the "content
  * actually scrolled beneath" gate this hook already established for pinned columns, reused verbatim
  * on the vertical axis.
  */

@@ -105,10 +105,10 @@ describe("useDataGridState", () => {
     expect(result.current.data[0]!.name).toBe("Zoe");
   });
 
-  // B9 regression: an unstable getRowId defeats useDataGridRowIdToViewRow's memoization (O(n) Map
-  // rebuild on every render) — see #92. getRowId must keep the same identity across re-renders as
-  // long as the consumer's own getRowId does (here held stable across renders, as any memoizing
-  // consumer would — e.g. a top-level function or a useCallback-wrapped one).
+  // An unstable getRowId defeats useDataGridRowIdToViewRow's memoization (O(n) Map rebuild on
+  // every render). getRowId must keep the same identity across re-renders as long as the
+  // consumer's own getRowId does (here held stable across renders, as a top-level function or a
+  // useCallback-wrapped one would).
   it("returns a stable getRowId identity across re-renders", () => {
     const stableGetRowId = (r: Row) => r.id;
     const { result, rerender } = renderHook(() => useDataGridState(defaultRows, { getRowId: stableGetRowId }));

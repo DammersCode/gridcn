@@ -268,7 +268,7 @@ describe("useDataGridLazyRows", () => {
     expect(result.current.gridProps.getRowId({ id: "row-7", name: "x" }, 7)).toBe("row-7");
   });
 
-  // B11 regression: options.getRowId must accept core's 2-arg (row, index) shape, matching
+  // options.getRowId must accept core's 2-arg (row, index) shape, matching
   // DataGrid's own getRowId, so an index-derived fallback id compiles and resolves correctly.
   it("passes the loaded row's real index through to a 2-arg consumer getRowId", () => {
     const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));

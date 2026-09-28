@@ -51,9 +51,9 @@ This fires once per user gesture: a single edit, a paste, a fill, a delete-range
 or a row insert, delete, or duplicate. It passes the next full data array and an id-keyed delta
 batch, `change.ops`. Each op is an `update`, `insert`, `delete`, or `move` addressed by row id,
 because ids survive sort and filter, and indices do not. A `move` op carries `from`/`to`, the
-row's snapshot positions before and after the move. Every mutation path normalizes to this one
-shape, which is what makes undo and redo (`data-grid-history`) and CSV/xlsx export work
-generically over any consumer's row type.
+row's snapshot positions before and after the move. Undo and redo (`data-grid-history`) and
+CSV/xlsx export work over any consumer's row type because every mutation path normalizes to
+this one shape.
 
 This is the real shape of one op, from `types.ts`:
 

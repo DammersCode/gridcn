@@ -152,8 +152,8 @@ export type DataGridSyncProps<TData = unknown> = {
   /**
    * Seeds `columnWidths`/`columnOrder`/`hiddenColumns`/per-column `pin` ONCE at store creation,
    * over the `columns` prop's own def defaults (`resolveColumnWidth` precedence: layout beats def).
-   * Deliberately NOT a controlled prop — later changes to this value are ignored (uncontrolled-
-   * with-events, PLAN events-state gap fix 1); pair it with `onColumnLayoutChange` to save/restore
+   * Deliberately NOT a controlled prop — later changes to this value are ignored (uncontrolled
+   * with events); pair it with `onColumnLayoutChange` to save/restore
    * a user's layout (e.g. to localStorage) without a fully-controlled overlay fighting the defs.
    */
   defaultColumnLayout?: ColumnLayout;
@@ -189,7 +189,7 @@ export type DataGridSyncProps<TData = unknown> = {
 };
 
 /**
- * Second argument to `onSelectionChange` (PLAN events-state gap fix 2). `getValues()` reads the
+ * Second argument to `onSelectionChange`. `getValues()` reads the
  * CURRENT `selection.current.range` only — a multi-range selection (ctrl-click stack) is not
  * flattened or concatenated, matching clipboard copy's own "primary range only" scope
  * (`resolveCopyScope`) — call it once per range in `selection.current.rangeStack` yourself if you

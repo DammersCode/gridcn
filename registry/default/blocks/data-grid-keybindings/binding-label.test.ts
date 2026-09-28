@@ -43,7 +43,7 @@ describe("bindingTokens", () => {
     expect(bindingTokens("ctrl+ ")).toEqual(["Ctrl", "Space"]);
   });
 
-  // B10 regression: on a browser that has dropped navigator.platform, detection must still probe
+  // On a browser that has dropped navigator.platform, detection must still probe
   // userAgentData (matching core's use-grid-interaction.ts isMacPlatform) rather than falling
   // through to navigator.userAgent and misreading the platform.
   it("prefers userAgentData.platform over navigator.platform when both are present", () => {

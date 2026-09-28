@@ -216,7 +216,7 @@ describe("DataGridContextMenu — cell surface", () => {
   });
 });
 
-// B7 regression: the menu's shortcut hints must track the consumer's effective keymap
+// The menu's shortcut hints must track the consumer's effective keymap
 // (DEFAULT_KEYMAP merged with the `keymap` prop), not a hardcoded DEFAULT_KEYMAP read.
 describe("DataGridContextMenu — shortcut hints follow the consumer's keymap", () => {
   it("shows the remapped binding for Clear contents, not the default", async () => {

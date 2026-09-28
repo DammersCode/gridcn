@@ -25,7 +25,7 @@ export type RowWindow = {
 export type UseRowWindowOptions = {
   rowCount: number;
   rowHeight: number;
-  /** Height of the sticky header track PLUS any pinned-top band (PLAN §3); data row `i` starts at `dataRowTop + i * rowHeight`. */
+  /** Height of the sticky header track plus any pinned-top band; data row `i` starts at `dataRowTop + i * rowHeight`. */
   dataRowTop: number;
   /** Pinned-bottom band height (px) — shrinks the effective viewport bottom so the row window never renders rows the band would cover. 0 when there's no pinned-bottom band. */
   bottomInset?: number;
