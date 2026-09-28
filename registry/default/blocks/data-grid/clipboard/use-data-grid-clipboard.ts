@@ -20,12 +20,16 @@ export type UseDataGridClipboardResult = {
   /**
    * Serializes the current copy scope and writes it to the OS clipboard (`navigator.clipboard.write`,
    * falling back to `document.execCommand("copy")`); resolves `'ok'` when the async Clipboard API
-   * accepted the write, `'fallback'` when the legacy text/plain-only path ran instead, and
-   * `'no-selection'` when there was no copy scope.
+   * accepted the write, `'fallback'` when the legacy text/plain-only path reported success,
+   * `'failed'` when both paths failed, and `'no-selection'` when there was no copy scope.
    */
-  copy: () => Promise<"ok" | "fallback" | "no-selection">;
-  /** Same as {@link copy}, then clears the copied selection via `deleteSelection`. */
-  cut: () => Promise<"ok" | "fallback" | "no-selection">;
+  copy: () => Promise<"ok" | "fallback" | "failed" | "no-selection">;
+  /**
+   * Same as {@link copy}, then clears the copied selection via `deleteSelection` — only when the
+   * write succeeded (`'ok'`/`'fallback'`) and the selection is the same reference it was when the
+   * write started. A failed write keeps the selection intact.
+   */
+  cut: () => Promise<"ok" | "fallback" | "failed" | "no-selection">;
   /**
    * Reads `navigator.clipboard.readText()` and applies it through the same parse -> writes ->
    * applyCellUpdates pipeline as a native paste. Resolves `'permission-denied'` when the read is
@@ -38,8 +42,8 @@ export type UseDataGridClipboardResult = {
 /** Guards {@link execCommandCopyFallback} against re-entrancy — a second copy fired while the async `clipboard.write` rejection from the first is still in flight must not double-run the legacy fallback. */
 let execCommandFallbackInFlight = false;
 
-/** Writes `text`/`html` to the OS clipboard via the async Clipboard API, falling back to the guarded legacy `execCommand("copy")` path in environments without it (or without the `clipboard-write` permission); resolves which path ran. */
-async function writeToClipboard(text: string, html: string): Promise<"ok" | "fallback"> {
+/** Writes `text`/`html` to the OS clipboard via the async Clipboard API, falling back to the guarded legacy `execCommand("copy")` path in environments without it (or without the `clipboard-write` permission); resolves which path ran, or `'failed'` when both paths report failure. */
+async function writeToClipboard(text: string, html: string): Promise<"ok" | "fallback" | "failed"> {
   if (navigator.clipboard?.write && typeof ClipboardItem !== "undefined") {
     const item = new ClipboardItem({
       "text/plain": new Blob([text], { type: "text/plain" }),
@@ -49,17 +53,15 @@ async function writeToClipboard(text: string, html: string): Promise<"ok" | "fal
       await navigator.clipboard.write([item]);
       return "ok";
     } catch {
-      execCommandCopyFallback(text);
-      return "fallback";
+      return execCommandCopyFallback(text) ? "fallback" : "failed";
     }
   }
-  execCommandCopyFallback(text);
-  return "fallback";
+  return execCommandCopyFallback(text) ? "fallback" : "failed";
 }
 
-/** Deprecated legacy fallback ONLY (guarded, last resort): a throwaway selected textarea + `document.execCommand("copy")`, used only when the async Clipboard API is unavailable or rejected. */
-function execCommandCopyFallback(text: string): void {
-  if (execCommandFallbackInFlight) return;
+/** Deprecated legacy fallback ONLY (guarded, last resort): a throwaway selected textarea + `document.execCommand("copy")`, used only when the async Clipboard API is unavailable or rejected; returns whether `execCommand` reported success. */
+function execCommandCopyFallback(text: string): boolean {
+  if (execCommandFallbackInFlight) return false;
   execCommandFallbackInFlight = true;
   const textarea = document.createElement("textarea");
   textarea.value = text;
@@ -68,7 +70,7 @@ function execCommandCopyFallback(text: string): void {
   document.body.appendChild(textarea);
   textarea.select();
   try {
-    document.execCommand("copy");
+    return document.execCommand("copy");
   } finally {
     document.body.removeChild(textarea);
     execCommandFallbackInFlight = false;
@@ -86,7 +88,7 @@ export function useDataGridClipboard(options: UseDataGridClipboardOptions = {}):
   const storeApi = useDataGridStoreApi();
   const guard = useBulkGeneration();
 
-  const copy = useCallback((): Promise<"ok" | "fallback" | "no-selection"> => {
+  const copy = useCallback((): Promise<"ok" | "fallback" | "failed" | "no-selection"> => {
     const s = storeApi.getState();
     const scope = resolveCopyScope(s);
     if (!scope) return Promise.resolve("no-selection");
@@ -94,13 +96,13 @@ export function useDataGridClipboard(options: UseDataGridClipboardOptions = {}):
     return writeToClipboard(text, html);
   }, [storeApi, sanitizeFormulas]);
 
-  const cut = useCallback((): Promise<"ok" | "fallback" | "no-selection"> => {
+  const cut = useCallback(async (): Promise<"ok" | "fallback" | "failed" | "no-selection"> => {
     const s = storeApi.getState();
     const scope = resolveCopyScope(s);
-    if (!scope) return Promise.resolve("no-selection");
+    if (!scope) return "no-selection";
     const { text, html } = serializeCells(serializeCopyScope(s, scope), { sanitizeFormulas });
-    const result = writeToClipboard(text, html);
-    actions.deleteSelection();
+    const result = await writeToClipboard(text, html);
+    if (result !== "failed" && storeApi.getState().selection === s.selection) actions.deleteSelection();
     return result;
   }, [storeApi, actions, sanitizeFormulas]);
 

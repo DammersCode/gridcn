@@ -68,7 +68,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `DataGridLabels` localization like every other user-facing string.
 - **Clipboard outcomes for programmatic copy/cut:** `useDataGridClipboard`'s `copy()` and `cut()`
   now resolve to `"ok"` (the async Clipboard API accepted the write), `"fallback"` (the legacy
-  `execCommand` text-only path ran instead), or `"no-selection"` (nothing was selected).
+  `execCommand` text-only path reported success), `"failed"` (both paths failed), or
+  `"no-selection"` (nothing was selected). `**Breaking:**` `cut()` now awaits the write and only
+  clears the selection when it succeeded and the selection is unchanged — a failed cut keeps the
+  selection and writes no `onDataChange`.
 - **Compile-time API pins:** new type tests pin `useDataGridLazyRows`' public options/result
   shapes (including the `Range` type used by `evict`/`getLoadedRanges`) and the
   `data-grid-presence` payload contract (entry union shapes, guard narrowing, malformed-payload
