@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { parseImportFile, type CsvDelimiter } from "./parse-import-file";
+import { FILE_TOO_LARGE_MESSAGE, IMPORT_TOO_MANY_CELLS_MESSAGE, parseImportFile, type CsvDelimiter } from "./parse-import-file";
 import { applyImportOptions, type ImportTargetColumn, type ImportDefaults } from "./match-import-column";
 import type { ImportColumnMapping } from "./build-imported-rows";
 
@@ -11,7 +11,7 @@ export type { ImportTargetColumn, ImportDefaults };
 export const IMPORT_PREVIEW_ROW_COUNT = 10;
 
 /** Keys into `labels.io` for the parse-failure messages {@link useDataGridImportPreview} can surface. */
-export type ImportErrorKey = "errorParseFailed" | "errorNoRows" | "errorUnsupportedFile";
+export type ImportErrorKey = "errorParseFailed" | "errorNoRows" | "errorUnsupportedFile" | "errorFileTooLarge" | "errorTooManyCells";
 
 /** Error thrown by {@link parseImportFile} for extensions outside csv/xlsx/xls. */
 const UNSUPPORTED_FILE_TYPE_MESSAGE = "unsupported-file-type";
@@ -19,6 +19,22 @@ const UNSUPPORTED_FILE_TYPE_MESSAGE = "unsupported-file-type";
 /** True when a parse was aborted (new file chosen, dialog closed) — the caller drops the result instead of surfacing an error. */
 function isAbortError(err: unknown): boolean {
   return err instanceof Error && err.name === "AbortError";
+}
+
+/** Maps a parse failure to its dialog error key; null for aborts the caller drops silently. */
+function importErrorKey(err: unknown): ImportErrorKey | null {
+  if (isAbortError(err)) return null;
+  if (err instanceof Error) {
+    switch (err.message) {
+      case UNSUPPORTED_FILE_TYPE_MESSAGE:
+        return "errorUnsupportedFile";
+      case FILE_TOO_LARGE_MESSAGE:
+        return "errorFileTooLarge";
+      case IMPORT_TOO_MANY_CELLS_MESSAGE:
+        return "errorTooManyCells";
+    }
+  }
+  return "errorParseFailed";
 }
 
 /** Parsed-and-ready import state, once a file has been chosen and parsed successfully. */
@@ -139,9 +155,9 @@ export function useDataGridImportPreview(
         sheetName: parsed.sheetName,
       });
     } catch (err) {
-      if (isAbortError(err)) return; // superseded by a newer file or a dialog reset
-      const isUnsupportedType = err instanceof Error && err.message === UNSUPPORTED_FILE_TYPE_MESSAGE;
-      setError(isUnsupportedType ? "errorUnsupportedFile" : "errorParseFailed");
+      const key = importErrorKey(err);
+      if (key === null) return; // aborted: superseded by a newer file or a dialog reset
+      setError(key);
       setPreview(null);
     } finally {
       // a superseded (aborted) load must not clear the newer load's parsing state
@@ -185,8 +201,9 @@ export function useDataGridImportPreview(
           };
         });
       } catch (err) {
-        if (isAbortError(err)) return;
-        if (generation === sheetGenerationRef.current) setError("errorParseFailed");
+        const key = importErrorKey(err);
+        if (key === null) return;
+        if (generation === sheetGenerationRef.current) setError(key);
       } finally {
         if (generation === sheetGenerationRef.current) setIsParsing(false);
       }
@@ -225,8 +242,9 @@ export function useDataGridImportPreview(
           };
         });
       } catch (err) {
-        if (isAbortError(err)) return;
-        if (generation === sheetGenerationRef.current) setError("errorParseFailed");
+        const key = importErrorKey(err);
+        if (key === null) return;
+        if (generation === sheetGenerationRef.current) setError(key);
       } finally {
         if (generation === sheetGenerationRef.current) setIsParsing(false);
       }

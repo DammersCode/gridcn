@@ -23,8 +23,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { buildImportedRows, type ImportRejectedCell } from "./build-imported-rows";
 import { useDataGridImportPreview, type ImportTargetColumn, type ImportDefaults } from "./use-data-grid-import";
-import type { CsvDelimiter } from "./parse-import-file";
-import { Dropzone, DropzoneEmptyState, type DropzoneAccept } from "@/registry/default/blocks/dropzone/dropzone";
+import { DEFAULT_IMPORT_LIMITS, type CsvDelimiter } from "./parse-import-file";
+import { Dropzone, DropzoneEmptyState, type DropzoneAccept, type DropzoneRejection } from "@/registry/default/blocks/dropzone/dropzone";
 
 /** Accepted import file types, shared by the file input and the {@link Dropzone}. */
 const IMPORT_ACCEPT: DropzoneAccept = {
@@ -102,8 +102,9 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   );
 
   const onDropFiles = useCallback(
-    (acceptedFiles: File[]) => {
-      const file = acceptedFiles[0];
+    (acceptedFiles: File[], rejections: DropzoneRejection[]) => {
+      // a maxSize rejection is re-routed through loadFile so the parse's own size check surfaces the dialog's too-large error
+      const file = acceptedFiles[0] ?? (rejections.some((r) => r.reasons.includes("maxSize")) ? rejections[0]?.file : undefined);
       if (file) onFile(file);
     },
     [onFile],
@@ -193,13 +194,13 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
 
         <div className="flex min-w-0 flex-col gap-3">
           {preview ? (
-            <Dropzone compact accept={IMPORT_ACCEPT} maxFiles={1} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
+            <Dropzone compact accept={IMPORT_ACCEPT} maxFiles={1} maxSize={DEFAULT_IMPORT_LIMITS.maxFileBytes} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
               <Paperclip className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               <span className="min-w-0 flex-1 truncate text-sm text-foreground">{preview.fileName}</span>
               <span className="shrink-0 text-xs text-muted-foreground">{labels.io.replaceFile}</span>
             </Dropzone>
           ) : (
-            <Dropzone accept={IMPORT_ACCEPT} maxFiles={1} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
+            <Dropzone accept={IMPORT_ACCEPT} maxFiles={1} maxSize={DEFAULT_IMPORT_LIMITS.maxFileBytes} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
               <DropzoneEmptyState title={labels.io.chooseFile} description={labels.io.noFileChosen} />
             </Dropzone>
           )}

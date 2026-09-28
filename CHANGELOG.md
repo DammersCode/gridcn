@@ -319,6 +319,15 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Import limits (`data-grid-io`):** `parseImportFile` now bounds every import against a memory/CPU
+  DoS — a 16 KB xlsx with a forged `<dimension>` element used to build 100M cells. Files above
+  50 MB are rejected before they are read, the SheetJS read is clamped to at most 1,000,000 rows
+  and 1,000 columns, and CSV is checked against the same row/column caps after the parse. The
+  dialog's drop zone advertises the size limit and rejects oversize files up front, and both
+  failure kinds surface with their own error messages (`errorFileTooLarge`, `errorTooManyCells`).
+  `parseImportFile` accepts `maxFileBytes`, `maxRows`, and `maxColumns` to change the defaults
+  (`DEFAULT_IMPORT_LIMITS` exports them).
+
 - **Pasted HTML:** the `data-gridcn-raw` cell attribute is now trusted only when it is the grid's
   own serialization of that cell (it renders back to the cell's exact innerHTML) — a crafted
   clipboard payload can no longer smuggle a value the user did not see into a paste.

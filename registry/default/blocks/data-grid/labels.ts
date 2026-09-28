@@ -190,6 +190,10 @@ export type DataGridIOLabels = {
   errorParseFailed: string;
   errorNoRows: string;
   errorUnsupportedFile: string;
+  /** Shown when a chosen file exceeds the import size limit. */
+  errorFileTooLarge: string;
+  /** Shown when a file exceeds the import row or column limit. */
+  errorTooManyCells: string;
   /** Shown under the mapping grid when the import build rejected cells; `count` is the rejected-cell count. */
   importRejectedCells: (count: number) => string;
   /** Shown when the `onImport` callback rejected; the dialog stays open and the import can be retried. */
@@ -421,6 +425,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
     errorParseFailed: "Could not read this file.",
     errorNoRows: "No rows found in this file.",
     errorUnsupportedFile: "Unsupported file type — choose a .csv, .xlsx, or .xls file.",
+    errorFileTooLarge: "This file is too large to import.",
+    errorTooManyCells: "This file has too many rows or columns to import.",
     importRejectedCells: (count) => `${count} cell${count === 1 ? "" : "s"} failed validation and ${count === 1 ? "was" : "were"} left empty.`,
     importMergeFailed: "The import could not be completed. Try again.",
   },

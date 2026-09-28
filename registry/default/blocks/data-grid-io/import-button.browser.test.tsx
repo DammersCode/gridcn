@@ -17,6 +17,23 @@ const columns = defineColumns<Row>()([
   { id: "age", header: "Age", accessorKey: "age", type: "number", width: 80 },
 ] as const);
 
+// the import size limit is shrunk (above every other test file's size, incl. the ~17 KB workbooks)
+// so the over-limit test needs no 50 MB file — the browser tab would hold it for the whole suite.
+// parseImportFile is wrapped because the real function's default reads the module-internal constant,
+// which re-exporting DEFAULT_IMPORT_LIMITS cannot change.
+vi.mock("./parse-import-file", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./parse-import-file")>();
+  const limit = 100_000;
+  return {
+    ...actual,
+    DEFAULT_IMPORT_LIMITS: { ...actual.DEFAULT_IMPORT_LIMITS, maxFileBytes: limit },
+    parseImportFile: (file: File, options?: Parameters<typeof actual.parseImportFile>[1], signal?: AbortSignal) =>
+      file.size > limit
+        ? Promise.reject(new Error("file-too-large"))
+        : actual.parseImportFile(file, options, signal),
+  };
+});
+
 function makeCsvFile(content: string): File {
   return new File([content], "people.csv", { type: "text/csv" });
 }
@@ -99,6 +116,29 @@ describe("DataGridImportButton (browser)", () => {
 
     await userEvent.click(page.getByRole("button", { name: "Import", exact: true }));
     expect(imported).toEqual([{ id: "imported-0", name: "Alice", age: 30 }]);
+  });
+
+  it("dropping a file over the import size limit shows the too-large error instead of parsing (SEC-02)", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton createRow={(): Row => ({ id: "imported-0", name: "", age: null })} onImport={() => {}} />
+        <DataGridRoot className="h-[200px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    const dropzone = document.querySelector<HTMLElement>('[role="button"][aria-label="Choose file"]')!;
+    // this file is over the mocked 100 KB limit; the content is never read (the size check runs first)
+    const hugeFile = new File(["x".repeat(150_000)], "huge.csv", { type: "text/csv" });
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(hugeFile);
+    dropzone.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer }));
+
+    await expect.element(page.getByText("This file is too large to import.")).toBeInTheDocument();
+    await expect.element(page.getByText("Import", { exact: true })).toBeDisabled();
   });
 
   it("dropping a second CSV in the mapping step replaces the preview with the new file's headers", async () => {

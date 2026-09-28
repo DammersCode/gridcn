@@ -165,6 +165,14 @@ array, and you decide how to apply it: replace all data, append it, or run it th
 `onDataChange` for history or audit purposes. See the demo above, which routes imported rows
 through `grid.onDataChange` with an explicit `delete` and `insert` ops batch.
 
+<Callout title="Import limits">
+  Every import is bounded so an oversized or corrupt file cannot stall the tab. Files above
+  50 MB are rejected before they are read, and a file with more than 1,000,000 rows or
+  1,000 columns is rejected with its own error message. The dialog's drop zone advertises the
+  size limit and rejects oversize files up front. `parseImportFile` takes `maxFileBytes`,
+  `maxRows`, and `maxColumns` to change the defaults.
+</Callout>
+
 ## Import options
 
 Pass `importDefaults` to set defaults for the dialog's preselection step:

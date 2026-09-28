@@ -3,9 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 import { useDataGridImportPreview, type ImportTargetColumn } from "./use-data-grid-import";
 import { parseImportFile, type ParsedImportFile } from "./parse-import-file";
 
-vi.mock("./parse-import-file", () => ({
-  parseImportFile: vi.fn(),
-}));
+vi.mock("./parse-import-file", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./parse-import-file")>();
+  return { ...actual, parseImportFile: vi.fn() };
+});
 
 const mockedParse = vi.mocked(parseImportFile);
 
@@ -183,5 +184,28 @@ describe("useDataGridImportPreview — stale sheet parse after the file changed"
     expect(result.current.error).toBe("errorParseFailed");
     expect(result.current.isParsing).toBe(false);
     expect(result.current.preview?.fileName).toBe("b.csv");
+  });
+});
+
+describe("useDataGridImportPreview — SEC-02 limit errors map to their own keys", () => {
+  it("surfaces errorFileTooLarge for a file-too-large parse", async () => {
+    mockedParse.mockRejectedValue(new Error("file-too-large"));
+    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));
+    await act(async () => {
+      await result.current.loadFile(FILE_B, TARGETS);
+    });
+    expect(result.current.error).toBe("errorFileTooLarge");
+    expect(result.current.preview).toBeNull();
+    vi.restoreAllMocks();
+  });
+
+  it("surfaces errorTooManyCells for an over-dimension parse", async () => {
+    mockedParse.mockRejectedValue(new Error("import-too-many-cells"));
+    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));
+    await act(async () => {
+      await result.current.loadFile(FILE_B, TARGETS);
+    });
+    expect(result.current.error).toBe("errorTooManyCells");
+    vi.restoreAllMocks();
   });
 });
