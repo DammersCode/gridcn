@@ -169,6 +169,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **`data-grid-io` swaps `xlsx` for `@e965/xlsx`:** the add-on's SheetJS dependency moves from
+  `xlsx@0.18.5` to the community mirror `@e965/xlsx@0.20.3` (byte-identical sources, SLSA v1
+  provenance, zero npm-audit vulnerabilities). The npm `xlsx` line stopped at 0.18.5 with two
+  unpatched high-severity advisories. The API is unchanged; installers now add `@e965/xlsx`
+  instead of `xlsx`.
 - **CSV export neutralizes formula-like cells (`data-grid-io`):** `**Breaking:**` `exportGrid` now
   prefixes formula-like cells — leading `=`, `-`, `@`, TAB, or CR, plain numbers exempt — with a
   single quote, so Excel, LibreOffice, and Sheets open them as text instead of running them (a CSV

@@ -348,7 +348,7 @@ describe("exportGrid lazy xlsx loading", () => {
   it("does not import xlsx for a csv export", async () => {
     vi.resetModules();
     const xlsxModuleSpy = vi.fn();
-    vi.doMock("xlsx", () => {
+    vi.doMock("@e965/xlsx", () => {
       xlsxModuleSpy();
       return { utils: {}, write: vi.fn() };
     });
@@ -365,7 +365,7 @@ describe("exportGrid lazy xlsx loading", () => {
 
     expect(xlsxModuleSpy).not.toHaveBeenCalled();
 
-    vi.doUnmock("xlsx");
+    vi.doUnmock("@e965/xlsx");
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -377,7 +377,7 @@ describe("exportGrid lazy xlsx loading", () => {
     const book_new = vi.fn(() => ({}));
     const book_append_sheet = vi.fn();
     const write = vi.fn(() => new ArrayBuffer(0));
-    vi.doMock("xlsx", () => {
+    vi.doMock("@e965/xlsx", () => {
       xlsxModuleSpy();
       return { utils: { aoa_to_sheet, book_new, book_append_sheet }, write };
     });
@@ -397,7 +397,7 @@ describe("exportGrid lazy xlsx loading", () => {
     expect(xlsxModuleSpy).toHaveBeenCalledTimes(1);
     expect(write).toHaveBeenCalled();
 
-    vi.doUnmock("xlsx");
+    vi.doUnmock("@e965/xlsx");
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -410,7 +410,7 @@ describe("exportGrid — xlsx builds the table once", () => {
     const book_new = vi.fn(() => ({}));
     const book_append_sheet = vi.fn();
     const write = vi.fn(() => new ArrayBuffer(0));
-    vi.doMock("xlsx", () => ({ utils: { aoa_to_sheet, book_new, book_append_sheet }, write }));
+    vi.doMock("@e965/xlsx", () => ({ utils: { aoa_to_sheet, book_new, book_append_sheet }, write }));
 
     const { exportGrid: freshExportGrid } = await import("./export-grid");
     const createObjectURL = vi.fn(() => "blob:mock-url");
@@ -427,7 +427,7 @@ describe("exportGrid — xlsx builds the table once", () => {
     // 3 rows x 2 columns: a double table build would call toText 12 times instead of 6.
     expect(toTextSpy).toHaveBeenCalledTimes(6);
 
-    vi.doUnmock("xlsx");
+    vi.doUnmock("@e965/xlsx");
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -440,7 +440,7 @@ describe("buildXlsx", () => {
     const book_new = vi.fn(() => ({}));
     const book_append_sheet = vi.fn();
     const write = vi.fn(() => new ArrayBuffer(8));
-    vi.doMock("xlsx", () => ({ utils: { aoa_to_sheet, book_new, book_append_sheet }, write }));
+    vi.doMock("@e965/xlsx", () => ({ utils: { aoa_to_sheet, book_new, book_append_sheet }, write }));
 
     const { buildXlsx: freshBuildXlsx } = await import("./export-grid");
 
@@ -452,7 +452,7 @@ describe("buildXlsx", () => {
     await freshBuildXlsx(makeState(), { workbookName: "Q3 Data" });
     expect(book_append_sheet).toHaveBeenLastCalledWith(expect.anything(), expect.anything(), "Q3 Data");
 
-    vi.doUnmock("xlsx");
+    vi.doUnmock("@e965/xlsx");
     vi.restoreAllMocks();
   });
 });

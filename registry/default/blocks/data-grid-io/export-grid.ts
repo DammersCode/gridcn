@@ -129,7 +129,7 @@ export async function buildXlsx(state: DataGridStoreState, options: BuildXlsxOpt
   const rows = capExportRows(buildExportRows(state, scope), maxRows);
   const table = includeHeaders ? [buildExportHeaders(state), ...rows] : rows;
 
-  const XLSX = await import("xlsx");
+  const XLSX = await import("@e965/xlsx");
   const worksheet = XLSX.utils.aoa_to_sheet(table);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, workbookName);
@@ -140,7 +140,7 @@ export async function buildXlsx(state: DataGridStoreState, options: BuildXlsxOpt
 /**
  * Serializes the grid to CSV or XLSX and triggers a download. Values always go through each
  * column's cell type `toText` (never raw values), so clipboard/export fidelity matches. `xlsx` is
- * loaded lazily (dynamic `import("xlsx")`) so the dependency never loads for CSV-only consumers.
+ * loaded lazily (dynamic `import("@e965/xlsx")`) so the dependency never loads for CSV-only consumers.
  */
 export async function exportGrid(state: DataGridStoreState, options: ExportGridOptions): Promise<void> {
   const { format, scope = "view", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true, fileName = "export", workbookName, maxRows } = options;

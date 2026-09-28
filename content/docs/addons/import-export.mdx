@@ -5,8 +5,9 @@ icon: FileSpreadsheet
 ---
 
 Import and export live in the `data-grid-io` add-on, kept separate so the core stays free of the
-`xlsx` and `papaparse` dependencies. gridcn lazily imports SheetJS (`xlsx`) only when an xlsx
-export or import actually happens.
+spreadsheet and CSV dependencies. The add-on depends on `@e965/xlsx` and `papaparse`.
+`@e965/xlsx` is the community-published mirror of SheetJS `xlsx` 0.20.x. gridcn imports both
+lazily. They load only when an xlsx or CSV operation actually happens.
 
 <ComponentPreview name="data-grid-io-demo" />
 

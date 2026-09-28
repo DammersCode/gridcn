@@ -558,7 +558,7 @@ describe("DataGridImportButton with a rejecting onImport", () => {
 // A multi-sheet workbook opens on its first sheet rather than silently.
 describe("multi-sheet workbook sheet picker", () => {
   async function makeWorkbookFile(sheets: Record<string, string[][]>): Promise<File> {
-    const XLSX = await import("xlsx");
+    const XLSX = await import("@e965/xlsx");
     const book = XLSX.utils.book_new();
     for (const [name, rows] of Object.entries(sheets)) {
       XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(rows), name);

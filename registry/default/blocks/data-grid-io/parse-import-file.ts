@@ -117,7 +117,7 @@ function clampedSheetRange(sheet: Record<string, unknown>, maxRows: number, maxC
 
 /** Parses one sheet of an xlsx/xls workbook into a 2D string grid via lazily-imported SheetJS; `sheetName` selects the sheet (first by default), and `sheetNames`/`sheetName` let the caller switch sheets later. `sheetRows` caps the read and the conversion `range` caps the columns, against a forged `<dimension>`. */
 async function parseExcelFile(file: File, sheetName: string | undefined, limits: Required<Pick<ParseImportFileOptions, "maxRows" | "maxColumns">>, signal?: AbortSignal): Promise<ParsedImportFile> {
-  const XLSX = await import("xlsx");
+  const XLSX = await import("@e965/xlsx");
   const buffer = await file.arrayBuffer();
   if (signal?.aborted) throw abortError();
   const workbook = XLSX.read(buffer, { type: "array", sheetRows: limits.maxRows });

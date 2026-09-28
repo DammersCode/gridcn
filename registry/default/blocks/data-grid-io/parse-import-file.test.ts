@@ -67,7 +67,7 @@ describe("parseImportFile — csv", () => {
 describe("parseImportFile — xlsx edge cases", () => {
   it("returns an empty grid for a workbook with no sheets", async () => {
     vi.resetModules();
-    vi.doMock("xlsx", () => ({
+    vi.doMock("@e965/xlsx", () => ({
       read: vi.fn(() => ({ SheetNames: [], Sheets: {} })),
       utils: { sheet_to_json: vi.fn() },
     }));
@@ -79,13 +79,13 @@ describe("parseImportFile — xlsx edge cases", () => {
     const result = await freshParse(xlsxFile);
     expect(result.rows).toEqual([]);
 
-    vi.doUnmock("xlsx");
+    vi.doUnmock("@e965/xlsx");
     vi.restoreAllMocks();
   });
 
   it("stringifies null/undefined xlsx cells as empty strings", async () => {
     vi.resetModules();
-    vi.doMock("xlsx", () => ({
+    vi.doMock("@e965/xlsx", () => ({
       read: vi.fn(() => ({ SheetNames: ["Sheet1"], Sheets: { Sheet1: { A1: { t: "s", v: "Alice" }, A2: { t: "s", v: "Bob" } } } })),
       utils: { sheet_to_json: vi.fn(() => [["Alice", null], ["Bob", undefined]]) },
     }));
@@ -100,7 +100,7 @@ describe("parseImportFile — xlsx edge cases", () => {
       ["Bob", ""],
     ]);
 
-    vi.doUnmock("xlsx");
+    vi.doUnmock("@e965/xlsx");
     vi.restoreAllMocks();
   });
 });
@@ -109,7 +109,7 @@ describe("parseImportFile — xlsx edge cases", () => {
 describe("parseImportFile — xlsx sheetNames", () => {
   it("returns every sheet name alongside the first sheet's rows, for a multi-sheet workbook", async () => {
     vi.resetModules();
-    vi.doMock("xlsx", () => ({
+    vi.doMock("@e965/xlsx", () => ({
       read: vi.fn(() => ({
         SheetNames: ["Summary", "Q3 Data"],
         Sheets: { Summary: { A1: { t: "s", v: "summary-row" } }, "Q3 Data": { A1: { t: "s", v: "q3-row" } } },
@@ -126,13 +126,13 @@ describe("parseImportFile — xlsx sheetNames", () => {
     expect(result.sheetNames).toEqual(["Summary", "Q3 Data"]);
     expect(result.sheetName).toBe("Summary");
 
-    vi.doUnmock("xlsx");
+    vi.doUnmock("@e965/xlsx");
     vi.restoreAllMocks();
   });
 
   it("returns a single-entry sheetNames for a single-sheet workbook", async () => {
     vi.resetModules();
-    vi.doMock("xlsx", () => ({
+    vi.doMock("@e965/xlsx", () => ({
       read: vi.fn(() => ({ SheetNames: ["Sheet1"], Sheets: { Sheet1: { A1: { t: "s", v: "Alice" } } } })),
       utils: { sheet_to_json: vi.fn(() => [["Alice"]]) },
     }));
@@ -144,7 +144,7 @@ describe("parseImportFile — xlsx sheetNames", () => {
     const result = await freshParse(xlsxFile);
     expect(result.sheetNames).toEqual(["Sheet1"]);
 
-    vi.doUnmock("xlsx");
+    vi.doUnmock("@e965/xlsx");
     vi.restoreAllMocks();
   });
 
@@ -160,7 +160,7 @@ describe("parseImportFile — xlsx sheet selection", () => {
     vi.resetModules();
     const sheets: Record<string, { tag: string; A1: { t: string; v: string } }> = {};
     for (const name of sheetNames) sheets[name] = { tag: name, A1: { t: "s", v: name } };
-    vi.doMock("xlsx", () => ({
+    vi.doMock("@e965/xlsx", () => ({
       read: vi.fn(() => ({ SheetNames: sheetNames, Sheets: sheets })),
       utils: { sheet_to_json: vi.fn((sheet: { tag: string }) => rowsBySheet[sheet.tag]) },
     }));
@@ -180,7 +180,7 @@ describe("parseImportFile — xlsx sheet selection", () => {
     expect(result.sheetName).toBe("Summary");
     expect(result.sheetNames).toEqual(["Summary", "Q3 Data"]);
 
-    vi.doUnmock("xlsx");
+    vi.doUnmock("@e965/xlsx");
     vi.restoreAllMocks();
   });
 
@@ -192,7 +192,7 @@ describe("parseImportFile — xlsx sheet selection", () => {
     expect(result.sheetName).toBe("Q3 Data");
     expect(result.sheetNames).toEqual(["Summary", "Q3 Data"]);
 
-    vi.doUnmock("xlsx");
+    vi.doUnmock("@e965/xlsx");
     vi.restoreAllMocks();
   });
 
@@ -201,7 +201,7 @@ describe("parseImportFile — xlsx sheet selection", () => {
     const { parseImportFile: freshParse } = await import("./parse-import-file");
     await expect(freshParse(xlsxFile(), { sheetName: "Missing" })).rejects.toThrow('unknown sheet "Missing"');
 
-    vi.doUnmock("xlsx");
+    vi.doUnmock("@e965/xlsx");
     vi.restoreAllMocks();
   });
 
@@ -282,7 +282,7 @@ describe("parseImportFile — size and dimension limits", () => {
     vi.resetModules();
     const read = vi.fn(() => ({ SheetNames: ["Sheet1"], Sheets: { Sheet1: sheet } }));
     const sheetToJSON = vi.fn(() => [["a", ""], [], ["", "1"]]);
-    vi.doMock("xlsx", () => ({ read, utils: { sheet_to_json: sheetToJSON } }));
+    vi.doMock("@e965/xlsx", () => ({ read, utils: { sheet_to_json: sheetToJSON } }));
     const { parseImportFile: freshParse } = await import("./parse-import-file");
     const file = new File([new ArrayBuffer(8)], "forged.xlsx", {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -291,7 +291,7 @@ describe("parseImportFile — size and dimension limits", () => {
     expect(read).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ sheetRows: 1000 }));
     expect(sheetToJSON).toHaveBeenCalledWith(sheet, expect.objectContaining({ range: "A1:B3" }));
 
-    vi.doUnmock("xlsx");
+    vi.doUnmock("@e965/xlsx");
     vi.restoreAllMocks();
   });
 
@@ -300,7 +300,7 @@ describe("parseImportFile — size and dimension limits", () => {
     vi.resetModules();
     const read = vi.fn(() => ({ SheetNames: ["Sheet1"], Sheets: { Sheet1: sheet } }));
     const sheetToJSON = vi.fn(() => []);
-    vi.doMock("xlsx", () => ({ read, utils: { sheet_to_json: sheetToJSON } }));
+    vi.doMock("@e965/xlsx", () => ({ read, utils: { sheet_to_json: sheetToJSON } }));
     const { parseImportFile: freshParse } = await import("./parse-import-file");
     const file = new File([new ArrayBuffer(8)], "wide.xlsx", {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -308,7 +308,7 @@ describe("parseImportFile — size and dimension limits", () => {
     await freshParse(file, { maxRows: 1000, maxColumns: 50 });
     expect(sheetToJSON).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ range: "A1:AX1000" }));
 
-    vi.doUnmock("xlsx");
+    vi.doUnmock("@e965/xlsx");
     vi.restoreAllMocks();
   });
 
@@ -317,7 +317,7 @@ describe("parseImportFile — size and dimension limits", () => {
     const sheetToJSON = vi.fn(() => {
       throw new Error("sheet_to_json must not run for a cell-less sheet");
     });
-    vi.doMock("xlsx", () => ({
+    vi.doMock("@e965/xlsx", () => ({
       read: vi.fn(() => ({ SheetNames: ["Sheet1"], Sheets: { Sheet1: { "!ref": "A1:ZZ1000000" } } })),
       utils: { sheet_to_json: sheetToJSON },
     }));
@@ -329,7 +329,7 @@ describe("parseImportFile — size and dimension limits", () => {
     expect(result.rows).toEqual([]);
     expect(sheetToJSON).not.toHaveBeenCalled();
 
-    vi.doUnmock("xlsx");
+    vi.doUnmock("@e965/xlsx");
     vi.restoreAllMocks();
   });
 
@@ -355,7 +355,7 @@ describe("parseImportFile — xlsx lazy loading", () => {
   it("loads xlsx only for an .xlsx file, not for .csv files", async () => {
     vi.resetModules();
     const xlsxModuleSpy = vi.fn();
-    vi.doMock("xlsx", () => {
+    vi.doMock("@e965/xlsx", () => {
       xlsxModuleSpy();
       return {
         read: vi.fn(() => ({ SheetNames: ["Sheet1"], Sheets: { Sheet1: { A1: { t: "s", v: "name" } } } })),
@@ -375,7 +375,7 @@ describe("parseImportFile — xlsx lazy loading", () => {
     expect(xlsxModuleSpy).toHaveBeenCalledTimes(1);
     expect(result.rows).toEqual([["name"], ["Alice"]]);
 
-    vi.doUnmock("xlsx");
+    vi.doUnmock("@e965/xlsx");
     vi.restoreAllMocks();
   });
 });

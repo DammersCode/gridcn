@@ -110,7 +110,7 @@ describe("DataGridExportButton export failures (browser)", () => {
     const loadError = new Error("xlsx failed to load");
     // the browser mocker rejects mock factories that throw, so the failure is placed on first use
     // (aoa_to_sheet runs right after the import) — the rejection reaches the same exportGrid catch
-    vi.doMock("xlsx", () => ({
+    vi.doMock("@e965/xlsx", () => ({
       utils: {
         aoa_to_sheet: () => {
           throw loadError;
@@ -141,7 +141,7 @@ describe("DataGridExportButton export failures (browser)", () => {
     await vi.waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
     expect(onError).toHaveBeenCalledWith(loadError, "xlsx");
 
-    vi.doUnmock("xlsx");
+    vi.doUnmock("@e965/xlsx");
   });
 
   it("logs a dev warning instead of invoking onError when none is provided", async () => {
@@ -157,7 +157,7 @@ describe("DataGridExportButton export failures (browser)", () => {
       );
     } finally {
       warnSpy.mockRestore();
-      vi.doUnmock("xlsx");
+      vi.doUnmock("@e965/xlsx");
     }
   });
 
