@@ -48,8 +48,9 @@ The [Agent Skills](https://gridcn.vercel.app/docs/agent-skills) page describes e
   Excel, Google Sheets, Apple Numbers, LibreOffice, and other spreadsheets.
 - **Editing** — typed cell editors (text, number, checkbox, date, select), custom cell types,
   autocomplete-style series fill through the fill-handle add-on.
-- **Row operations** — insert above or below, duplicate, and delete rows; each has a default
-  keymap binding and a context-menu entry.
+- **Row operations** — insert above or below, duplicate, and delete rows, each with a default
+  keymap binding. Insert and duplicate take effect when the `createRow` / `duplicateRow` props
+  are supplied; the `data-grid-context-menu` add-on adds the matching menu entries.
 - **Validation** — pass a function or any [Standard Schema](https://standardschema.dev) library
   (Zod, Valibot, ArkType). Sync and async, on single edits and on bulk paste, fill, and import.
 - **Server errors** — paint an API rejection on the exact cell with `setCellErrors`. The error
