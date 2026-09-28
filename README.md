@@ -5,13 +5,14 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19%2B-blue?logo=react)](https://react.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4%2B-blue?logo=tailwindcss)](https://tailwindcss.com/)
+[![Agent skill](https://skills.sh/b/DammersCode/gridcn)](https://skills.sh)
 
 A composable, high-performance data grid: range selection, spreadsheet clipboard, typed cell
 editors, validation, and windowed rendering at 100k+ rows. Styled with your shadcn tokens,
 distributed through the [shadcn registry](https://ui.shadcn.com/docs/registry).
 
-Range selection, clipboard paste, and a fill handle are in the core. gridcn is
-open source under the [Apache License 2.0](./LICENSE).
+Range selection and clipboard paste are in the core; the fill handle is the
+`data-grid-fill` add-on. gridcn is open source under the [Apache License 2.0](./LICENSE).
 
 ## Install
 
@@ -40,10 +41,15 @@ The [Agent Skills](https://gridcn.vercel.app/docs/agent-skills) page describes e
 
 - **Range selection** — anchor plus rectangular range, ctrl-click multi-range, row and column
   selection, keyboard extension (Shift+Arrow, Shift+Ctrl+Arrow, Ctrl+A).
+- **Global shortcuts** — opt-in `DataGridGlobalShortcuts` layer (mounted inside `DataGridRoot`)
+  keeps keymap bindings working while DOM focus is outside the grid; undo and redo by default,
+  per-action flags enable more (for example, row operations).
 - **Clipboard** — native copy, cut, and paste in TSV and HTML table formats. Pastes to and from
   Excel, Google Sheets, Apple Numbers, LibreOffice, and other spreadsheets.
 - **Editing** — typed cell editors (text, number, checkbox, date, select), custom cell types,
   autocomplete-style series fill through the fill-handle add-on.
+- **Row operations** — insert above or below, duplicate, and delete rows; each has a default
+  keymap binding and a context-menu entry.
 - **Validation** — pass a function or any [Standard Schema](https://standardschema.dev) library
   (Zod, Valibot, ArkType). Sync and async, on single edits and on bulk paste, fill, and import.
 - **Server errors** — paint an API rejection on the exact cell with `setCellErrors`. The error
@@ -54,15 +60,17 @@ The [Agent Skills](https://gridcn.vercel.app/docs/agent-skills) page describes e
   no-blank-rows guarantee that a real-browser test suite enforces.
 - **Typed columns** — `defineColumns<TData>()` infers value types and per-cell-type `options`
   from your data shape. A typo in a column id is a compile error.
-- **Controlled and uncontrolled** — selection, sort, filter, and column state work uncontrolled
-  by default. Pass the matching value plus `on*Change` props to control them.
+- **Controlled and uncontrolled** — data, sort, and filter work uncontrolled by default. Pass
+  the value prop (`data`, `sortState`, `filterState`) plus the matching `on*Change` callback to
+  control them. Selection and column layout stay store-owned; `onSelectionChange` and
+  `onColumnLayoutChange` observe them.
 - **RTL** — a `direction` prop (or `dir="rtl"` on the page) mirrors layout, pinning, pointer
   math, and keyboard semantics.
 - **i18n** — every user-facing string lives in one typed `labels` object with English defaults.
   Deep-merge your own.
-- **Styling** — themed through your existing shadcn CSS tokens plus a few `--grid-*` variables.
-  See the [styling guide](https://github.com/DammersCode/gridcn/blob/main/content/docs/styling-theming.mdx)
-  (or the hosted docs site once it is deployed).
+- **Styling** — themed through your existing shadcn CSS tokens plus a few `--grid-*` variables
+  (for example, `--grid-column-border` for the column lines). See the
+  [styling guide](https://gridcn.vercel.app/docs/styling-theming).
 
 ## Add-ons
 
