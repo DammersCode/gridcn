@@ -1273,6 +1273,100 @@ describe("DataGrid in a real browser", () => {
     });
   });
 
+  describe("number editor stepping (options.step)", () => {
+    type StepRow = { id: string; qty: number | null };
+
+    function stepColumns(min?: number, max?: number, step?: number, decimals?: number) {
+      return defineColumns<StepRow>()([
+        { id: "qty", header: "Qty", accessorKey: "qty", type: "number", options: { min, max, step, decimals }, width: 100 },
+      ] as const);
+    }
+
+    function renderStepGrid(
+      onDataChange: (next: readonly StepRow[], change: DataChange<StepRow>) => void,
+      cols: ReturnType<typeof stepColumns>,
+      qty: number | null,
+    ) {
+      return render(
+        <div style={{ height: 300 }}>
+          <DataGrid data={[{ id: "1", qty }]} columns={cols} getRowId={(r) => r.id} className="h-[300px]" onDataChange={onDataChange} />
+        </div>,
+      );
+    }
+
+    async function openNumberEditor(): Promise<HTMLInputElement> {
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      const cell = document.querySelector<HTMLElement>('[role="gridcell"][data-type="number"]')!;
+      await userEvent.dblClick(cell);
+      expect(cell).toHaveAttribute(GRID_ATTR.editing, "true");
+      // the number editor is inline (no data-grid-cell-editor popup like date/select)
+      return document.querySelector<HTMLInputElement>(`[role="gridcell"]${gridAttrSelector("editing", "true")} input`)!;
+    }
+
+    it("ArrowUp/ArrowDown step the draft by options.step and commit the stepped value", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(undefined, undefined, 0.5, 1), 2);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowUp}");
+      expect(input.value).toBe("2.5");
+      await userEvent.keyboard("{ArrowDown}{ArrowDown}");
+      expect(input.value).toBe("1.5");
+
+      await userEvent.keyboard("{Enter}");
+      expect(onDataChange).toHaveBeenCalledTimes(1);
+      expect(onDataChange.mock.calls[0]![0][0]!.qty).toBe(1.5);
+    });
+
+    it("clamps the stepped value at max", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(0, 10, 1, undefined), 10);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowUp}");
+      expect(input.value).toBe("10");
+      await userEvent.keyboard("{ArrowDown}");
+      expect(input.value).toBe("9");
+    });
+
+    it("clamps the stepped value at min", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(0, 10, 1, undefined), 0);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowDown}");
+      expect(input.value).toBe("0");
+    });
+
+    it("rounds repeated fractional steps to the configured decimals", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(0, undefined, 0.1, 2), 2);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowUp}{ArrowUp}{ArrowUp}");
+      expect(input.value).toBe("2.3");
+    });
+
+    it("steps from the committed value when the draft was cleared", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(0, undefined, 1, undefined), 3);
+      const input = await openNumberEditor();
+
+      await userEvent.clear(input);
+      await userEvent.keyboard("{ArrowUp}");
+      expect(input.value).toBe("4");
+    });
+
+    it("does not step when the draft and the committed value are both empty", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(undefined, undefined, 1, undefined), null);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowUp}");
+      expect(input.value).toBe("");
+    });
+  });
+
   describe("Excel clipboard (copy/cut/paste)", () => {
     function gridCells(): HTMLElement[] {
       return [...document.querySelectorAll<HTMLElement>('[role="gridcell"]')];

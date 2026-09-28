@@ -550,7 +550,7 @@ export interface GridCellTypes {
     options: {
       min?: number;
       max?: number;
-      /** @reserved — accepted but a no-op for now: stepping is editor-keyboard behavior and gets decided after P4 lands; do not rely on it. */
+      /** Step applied by ArrowUp/ArrowDown in the editor; default 1. */
       step?: number;
       decimals?: number;
     };

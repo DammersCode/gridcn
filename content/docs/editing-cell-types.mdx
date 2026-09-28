@@ -54,7 +54,7 @@ filter match values, is on [custom cell types](/docs/custom-cell-types#value-pip
 | Type | Value | Notes |
 |---|---|---|
 | `text` | `string` | Default when `type` is omitted. `options.placeholder`. |
-| `number` | `number \| null` | `options.min`/`max`/`decimals`. `options.step` is `@reserved` (accepted, no-op). |
+| `number` | `number \| null` | `options.min`/`max`/`decimals`. In the editor, ArrowUp/ArrowDown step by `options.step` (default 1) and clamp to `min`/`max`. |
 | `checkbox` | `boolean` | No edit mode — direct toggle. |
 | `select` | `string \| null` | `options.choices: { value, label }[]`. |
 | `date` | `string \| null` (ISO `yyyy-mm-dd`) | See below. |

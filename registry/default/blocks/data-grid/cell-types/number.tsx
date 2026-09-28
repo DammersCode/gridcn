@@ -81,6 +81,16 @@ function NumberEditor({
           commitText({ dx: 0, dy: 1 });
         } else if (e.key === "Escape") {
           cancel();
+        } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+          const options = column.options as GridCellTypes["number"]["options"];
+          // step the draft; a cleared draft falls back to the committed value, so an empty
+          // cell with a null value has no step base and stays untouched
+          const base = numberCellType.fromText(text, options) ?? value;
+          if (base === null) return;
+          e.preventDefault();
+          const step = options?.step ?? 1;
+          const next = roundToDecimals(clampNumber(base + (e.key === "ArrowUp" ? step : -step), options), options);
+          setText(String(next));
         }
       }}
       onBlur={() => commitText({ dx: 0, dy: 0 })}

@@ -66,6 +66,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **`grid.datePlaceholder` label key:** the date editor's input placeholder now reads from
   `labels.grid.datePlaceholder` (default `"yyyy-mm-dd"`), so it participates in
   `DataGridLabels` localization like every other user-facing string.
+- **Number stepping:** `number` columns step with ArrowUp/ArrowDown in the editor — by
+  `options.step` (default 1), clamped to `min`/`max` and rounded to `decimals`. A cleared draft
+  steps from the committed value.
 - **Clipboard outcomes for programmatic copy/cut:** `useDataGridClipboard`'s `copy()` and `cut()`
   now resolve to `"ok"` (the async Clipboard API accepted the write), `"fallback"` (the legacy
   `execCommand` text-only path reported success), `"failed"` (both paths failed), or
