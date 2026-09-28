@@ -6,7 +6,9 @@ import { CompactSelection } from "../selection/compact-selection";
 import {
   DataGridProvider,
   type DataGridProviderProps,
+  cellErrorKey,
   useDataGridActions,
+  useDataGridCellErrors,
   useDataGridActiveCell,
   useDataGridAllRowsSelected,
   useDataGridColumnFeatureFlags,
@@ -1300,6 +1302,34 @@ describe("Standard Schema validate", () => {
     expect(onDataChange).not.toHaveBeenCalled();
     expect(result.current.editing).toEqual({ coord: { col: 1, row: 0 }, initialText: undefined });
     expect(result.current.editingError).toBe("async rejection message");
+  });
+});
+
+describe("validateRow verdict ownership across row deletion", () => {
+  it("a reused rowId keeps a consumer setCellErrors entry after the deleted row's verdict is pruned", () => {
+    const wrapper = makeConfigWrapper({
+      validateRow: (row: Row) => (row.name === "Charlie" ? { name: "Charlie is banned" } : null),
+      createRow: () => ({ id: "1", name: "Reused", age: 50 }),
+    });
+    const { result } = renderHook(() => ({ actions: useDataGridActions(), errors: useDataGridCellErrors() }), { wrapper });
+
+    act(() => {
+      result.current.actions.updateCells([{ rowId: "1", columnId: "age", value: 31 }]);
+    });
+    expect(result.current.errors.get(cellErrorKey("1", "name"))).toBe("Charlie is banned");
+
+    act(() => {
+      result.current.actions.deleteRows([0]);
+      result.current.actions.insertRow(0, "above");
+    });
+    act(() => {
+      result.current.actions.setCellErrors([{ rowId: "1", columnId: "name", message: "consumer error" }]);
+    });
+    act(() => {
+      result.current.actions.updateCells([{ rowId: "1", columnId: "age", value: 51 }]);
+    });
+
+    expect(result.current.errors.get(cellErrorKey("1", "name"))).toBe("consumer error");
   });
 });
 

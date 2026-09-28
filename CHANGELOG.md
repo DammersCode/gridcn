@@ -339,6 +339,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **`validateRow` no longer wipes a reused rowId's consumer errors:** the store's per-row record of
+  which `cellErrors` entries its own `validateRow` verdicts own is now pruned whenever a row leaves
+  `data` — a new row reusing a deleted row's id keeps its consumer `setCellErrors` entries across
+  the next `validateRow` run instead of having them cleared.
 - **Lazy rows no longer drop a just-landed fetch (`data-grid-lazy`):** `useDataGridLazyRows`'
   `onDataChange` now re-applies the change's ops to the latest sparse state instead of replacing
   the array with the grid's post-op snapshot — a snapshot taken before an in-flight fetch resolved

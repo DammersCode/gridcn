@@ -223,6 +223,14 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // own stale messages and never a consumer's setCellErrors entries on other cells of that row.
   // Stale entries for deleted rows are harmless: their keys are already pruned, deleting is a no-op.
   const rowValidationKeys = new Map<string, string[]>();
+  // Pruned wherever cellErrors is pruned: an unpruned entry for a deleted rowId would let the next
+  // validateRow wipe a reused row's consumer setCellErrors entries.
+  const pruneRowValidationKeys = (data: readonly unknown[], getRowId: (row: unknown, index: number) => string): void => {
+    if (rowValidationKeys.size === 0) return;
+    const live = new Set<string>();
+    for (let i = 0; i < data.length; i++) live.add(getRowId(data[i], i));
+    for (const rowId of rowValidationKeys.keys()) if (!live.has(rowId)) rowValidationKeys.delete(rowId);
+  };
   /**
    * Runs `validateRow` once per touched row of a committed write gesture, AFTER `clearErrorsForOps`
    * — the row in `nextData` already has every cell of the gesture applied, which is the whole
@@ -919,11 +927,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         s.onDataChange?.(batch.nextData, { source: "row-op", ops: batch.ops });
         const view = rebuildRowOpView(s, batch.nextData);
         if (s.sortState.length > 0 || s.filterState.length > 0) {
+          pruneRowValidationKeys(batch.nextData, s.getRowId);
           set({ data: batch.nextData, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view });
           return;
         }
         // unsorted and unfiltered, the new rows land at this view index; shift selection/activeCell to follow them.
         const viewInsertAt = position === "above" ? viewRowIndex : viewRowIndex + 1;
+        pruneRowValidationKeys(batch.nextData, s.getRowId);
         set({
           data: batch.nextData,
           cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
@@ -951,6 +961,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         forgetDeferredRows();
         lastEmittedData = batch.nextData;
         s.onDataChange?.(batch.nextData, { source: "row-op", ops: batch.ops });
+        pruneRowValidationKeys(batch.nextData, s.getRowId);
         set({
           data: batch.nextData,
           cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
@@ -982,6 +993,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         s.onDataChange?.(batch.nextData, { source: "row-op", ops: batch.ops });
         const view = rebuildRowOpView(s, batch.nextData);
         if (s.sortState.length > 0 || s.filterState.length > 0) {
+          pruneRowValidationKeys(batch.nextData, s.getRowId);
           set({ data: batch.nextData, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view });
           return;
         }
@@ -995,6 +1007,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           selection = offsetSelectionForRows(selection, insertAt, 1);
           if (activeCell && activeCell.row >= insertAt) activeCell = { ...activeCell, row: activeCell.row + 1 };
         });
+        pruneRowValidationKeys(batch.nextData, s.getRowId);
         set({
           data: batch.nextData,
           cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
@@ -1112,6 +1125,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           if (nextData !== s.data && !isEcho) {
             rowIndexCache.invalidate();
             forgetDeferredRows();
+            pruneRowValidationKeys(nextData, s.getRowId);
           }
           // A genuine consumer-driven `columns` prop change replaces `s.columns` outright; syncing
           // again with the SAME prop reference (any unrelated re-render) keeps `s.columns` as-is so
