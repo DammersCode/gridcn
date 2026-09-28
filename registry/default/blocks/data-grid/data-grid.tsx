@@ -25,7 +25,7 @@ import { DataGridRoot } from "./root";
 import { DataGridHeader } from "./header";
 import { DataGridBody } from "./body";
 import type { OverlayPlugin } from "./overlays";
-import type { MarkerCellRenderer, MarkerHeaderRenderer, RowBandsSpec } from "./layout-context";
+import type { HeaderMenuRenderer, MarkerCellRenderer, MarkerHeaderRenderer, RowBandsSpec } from "./layout-context";
 import type { DeepPartialLabels } from "./labels";
 
 /** Public entry point — the only module consumers/docs should import from. */
@@ -70,7 +70,7 @@ export { useDataGridRootContext, type DataGridRootContextValue } from "./layout-
 /** The provider-level row-bands seam — `data-grid-pinned-rows`'s `useDataGridPinnedRows()` returns a `RowBandsSpec` to pass into `rowBands`. */
 export { type RowBandsSpec, type RowBandRenderCtx, type WindowedColumn } from "./layout-context";
 /** The custom row-marker render slots (`DataGridRootProps.renderMarker`/`renderMarkerHeader`) and their ctx types. */
-export { type MarkerCellRenderCtx, type MarkerHeaderRenderCtx, type MarkerCellRenderer, type MarkerHeaderRenderer } from "./layout-context";
+export { type HeaderMenuRenderer, type MarkerCellRenderCtx, type MarkerHeaderRenderCtx, type MarkerCellRenderer, type MarkerHeaderRenderer } from "./layout-context";
 /** `layout-context.ts`'s per-column layout (widths/template/track offsets), aliased on export to avoid colliding with `types.ts`'s same-named `ColumnLayout` (the `defaultColumnLayout`/`onColumnLayoutChange` persisted-snapshot shape) below — `data-grid-pinned-rows` needs this one, for the live render-time layout `RowBandRenderCtx.layout` carries. */
 export { type ColumnLayout as GridColumnLayout } from "./layout-context";
 
@@ -319,6 +319,12 @@ export type DataGridProps<TData> = {
   /** Marker column mode: a pinned-left column rendered before all data columns; default 'none'. */
   rowMarkers?: RowMarkersMode;
   /**
+   * Per-column header menu slot, forwarded to `DataGridRoot`: rendered inline-end in each header
+   * cell as a ghost chevron trigger, only when provided. The context-menu add-on's
+   * `DataGridHeaderDropdown` is the intended renderer. See {@link DataGridRootProps.renderHeaderMenu}.
+   */
+  renderHeaderMenu?: HeaderMenuRenderer;
+  /**
    * Custom row-marker cell renderer: replaces the built-in row number/checkbox content inside the
    * marker column. Requires a non-`'none'` `rowMarkers` mode (the mode still drives the track width,
    * and the cell's own press/drag row-selection gesture stays on the wrapper); an interactive element
@@ -435,6 +441,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
     direction,
     readOnly,
     rowMarkers,
+    renderHeaderMenu,
     renderMarker,
     renderMarkerHeader,
     enableRowSelection,
@@ -538,6 +545,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
         keymap={keymap}
         direction={direction}
         readOnly={readOnly}
+        renderHeaderMenu={renderHeaderMenu}
         renderMarker={renderMarker}
         renderMarkerHeader={renderMarkerHeader}
         emptyState={emptyState}

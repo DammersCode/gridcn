@@ -69,6 +69,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Number stepping:** `number` columns step with ArrowUp/ArrowDown in the editor — by
   `options.step` (default 1), clamped to `min`/`max` and rounded to `decimals`. A cleared draft
   steps from the committed value.
+- **`DataGrid` wrapper `renderHeaderMenu` prop:** the batteries-included `DataGrid` now forwards
+  `DataGridRoot`'s `renderHeaderMenu` header-menu slot (the barrel also exports the
+  `HeaderMenuRenderer` type). A compile-time guard pins the wrapper's prop surface against
+  `DataGridRootProps`, so a future root prop the wrapper fails to forward is a build error.
 - **Clipboard outcomes for programmatic copy/cut:** `useDataGridClipboard`'s `copy()` and `cut()`
   now resolve to `"ok"` (the async Clipboard API accepted the write), `"fallback"` (the legacy
   `execCommand` text-only path reported success), `"failed"` (both paths failed), or

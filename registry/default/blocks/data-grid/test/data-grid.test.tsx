@@ -1375,3 +1375,29 @@ describe("selection membership flips re-render only the affected cells (2026-09-
   });
 });
 
+describe("DataGrid wrapper render slots", () => {
+  it("forwards renderHeaderMenu to the root, one trigger per column", () => {
+    render(
+      <DataGrid
+        data={makeRows(3)}
+        columns={columns}
+        getRowId={(r) => r.id}
+        renderHeaderMenu={(ctx) => (
+          <span>
+            {ctx.trigger}
+            <span>menu-slot</span>
+          </span>
+        )}
+      />,
+    );
+    const triggers = document.querySelectorAll(gridAttrSelector("headerMenuTrigger"));
+    expect(triggers.length).toBe(2);
+    expect(document.body.textContent).toContain("menu-slot");
+  });
+
+  it("renders no header-menu trigger when renderHeaderMenu is omitted", () => {
+    render(<DataGrid data={makeRows(3)} columns={columns} getRowId={(r) => r.id} />);
+    expect(document.querySelector(gridAttrSelector("headerMenuTrigger"))).toBeNull();
+  });
+});
+

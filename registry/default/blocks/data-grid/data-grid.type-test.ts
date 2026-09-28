@@ -30,6 +30,7 @@ import type {
   FilterSpec,
   GetRowClassName,
   GridCellTypes,
+  HeaderMenuRenderer,
   MarkerCellRenderer,
   MarkerHeaderRenderer,
   RowClickCtx,
@@ -108,6 +109,11 @@ void badJoinOperator;
 // added to the provider without a matching DataGridProps field fails this file's compile.
 type IntentionallyAbsentFromWrapper = never;
 assertEqual<IntentionallyAbsentFromWrapper, Exclude<keyof DataGridSyncProps<Row>, keyof DataGridProps<Row>>>(true);
+
+// Same guard for the root's own props: a DataGridRootProps field the wrapper does not forward is a
+// compile error here until it is added to DataGridProps (or named in the intentionally-absent set).
+type IntentionallyAbsentFromRootForwarding = never;
+assertEqual<IntentionallyAbsentFromRootForwarding, Exclude<keyof DataGridRootProps, keyof DataGridProps<Row>>>(true);
 
 // --- DeepPartialLabels: nested plain objects become deep-partial; arrays/functions stay whole ---
 
@@ -292,6 +298,8 @@ assertEqual<MarkerCellRenderer | undefined, TypedRootProps["renderMarker"]>(true
 assertEqual<MarkerHeaderRenderer | undefined, TypedRootProps["renderMarkerHeader"]>(true);
 assertEqual<MarkerCellRenderer | undefined, DataGridProps<Row>["renderMarker"]>(true);
 assertEqual<MarkerHeaderRenderer | undefined, DataGridProps<Row>["renderMarkerHeader"]>(true);
+assertEqual<HeaderMenuRenderer | undefined, DataGridRootProps["renderHeaderMenu"]>(true);
+assertEqual<HeaderMenuRenderer | undefined, DataGridProps<Row>["renderHeaderMenu"]>(true);
 
 const onCellClick: TypedRootProps["onCellClick"] = (ctx: CellClickCtx<Row, unknown>) => {
   const name: string = ctx.row.name; // Row, no cast
