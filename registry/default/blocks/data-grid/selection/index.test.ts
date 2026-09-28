@@ -116,10 +116,24 @@ describe("extendTo", () => {
     const extended = extendTo(emptySelection(), { col: 2, row: 2 });
     expect(extended.current?.cell).toEqual({ col: 2, row: 2 });
   });
+
+  it("returns its input unchanged when the resulting range equals the current one", () => {
+    const start = selectCell({ col: 2, row: 2 });
+    const extended = extendTo(start, { col: 5, row: 4 });
+    // a stationary drag re-fires extendTo at the same far corner: same content, same identity
+    expect(extendTo(extended, { col: 5, row: 4 })).toBe(extended);
+  });
 });
 
 describe("extendSelection", () => {
   const opts = { rowCount: 20, colCount: 20 };
+
+  it("returns its input unchanged when the range cannot grow (anchor on the edge)", () => {
+    const atBottom = selectCell({ col: 2, row: 19 });
+    expect(extendSelection(atBottom, "down", opts)).toBe(atBottom);
+    const atRight = selectCell({ col: 19, row: 2 });
+    expect(extendSelection(atRight, "right", opts)).toBe(atRight);
+  });
 
   it("grows the far edge downward when anchor is at the top", () => {
     let sel = selectCell({ col: 2, row: 5 });

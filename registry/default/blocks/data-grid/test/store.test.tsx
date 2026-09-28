@@ -2375,6 +2375,58 @@ describe("onSelectionChange", () => {
 
     expect(onSelectionChange).not.toHaveBeenCalled();
   });
+
+  it("a stationary drag (repeated extendTo at the same coord) fires nothing", () => {
+    const onSelectionChange = vi.fn();
+    const wrapper = makeConfigWrapper({ onSelectionChange });
+    const { result } = renderHook(useSelectionProbe, { wrapper });
+
+    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => result.current.actions.extendTo({ col: 0, row: 1 }));
+    onSelectionChange.mockClear();
+    act(() => result.current.actions.extendTo({ col: 0, row: 1 }));
+    act(() => result.current.actions.extendTo({ col: 0, row: 1 }));
+
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+
+  it("an extendSelection that cannot grow at the grid edge fires nothing", () => {
+    const onSelectionChange = vi.fn();
+    const wrapper = makeConfigWrapper({ onSelectionChange });
+    const { result } = renderHook(useSelectionProbe, { wrapper });
+
+    act(() => result.current.actions.selectCell({ col: 1, row: 2 })); // last of 2 columns and 3 rows
+    onSelectionChange.mockClear();
+    act(() => result.current.actions.extendSelection("down"));
+    act(() => result.current.actions.extendSelection("right"));
+
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+
+  it("a selectRow re-fire with the same replaceFromLast span fires nothing", () => {
+    const onSelectionChange = vi.fn();
+    const wrapper = makeConfigWrapper({ onSelectionChange, rowMarkers: "checkbox" });
+    const { result } = renderHook(useSelectionProbe, { wrapper });
+
+    act(() => result.current.actions.selectRow(0));
+    act(() => result.current.actions.selectRow(2, { extendFromLast: true })); // rows 0-2
+    onSelectionChange.mockClear();
+    act(() => result.current.actions.selectRow(2, { replaceFromLast: true, from: 0 })); // same span
+
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+
+  it("a selectColumn re-fire with the same span fires nothing", () => {
+    const onSelectionChange = vi.fn();
+    const wrapper = makeConfigWrapper({ onSelectionChange });
+    const { result } = renderHook(useSelectionProbe, { wrapper });
+
+    act(() => result.current.actions.selectColumn(1));
+    onSelectionChange.mockClear();
+    act(() => result.current.actions.selectColumn(1, { extendFromLast: true })); // span(1,1) = {1}
+
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
 });
 
 describe("onSelectionCleared", () => {

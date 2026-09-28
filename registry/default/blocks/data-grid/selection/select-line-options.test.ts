@@ -85,6 +85,7 @@ describe("selectLine", () => {
       hasIndex: (i: number) => i === 1 || i === 2,
       hasAll: () => false,
       toArray: () => [1, 2],
+      equals: () => false,
     };
     const result = selectLine(like, 5, { extendFromLast: true });
     expect(result.toArray()).toEqual([1, 2, 3, 4, 5]);

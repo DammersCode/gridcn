@@ -25,6 +25,11 @@ export function pointInRect(coord: CellCoord, rect: GridRect): boolean {
   return rectContains(rect, coord);
 }
 
+/** Whether two rects span the same cells. */
+export function rectsEqual(a: GridRect, b: GridRect): boolean {
+  return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+}
+
 /** Normalizes two corner cells into a half-open GridRect. */
 export function rectFromCorners(a: CellCoord, b: CellCoord): GridRect {
   const x = Math.min(a.col, b.col);

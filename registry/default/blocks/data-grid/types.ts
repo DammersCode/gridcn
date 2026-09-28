@@ -121,6 +121,8 @@ export type GridSelection = {
 export type CompactSelectionLike = {
   readonly length: number;
   hasIndex(index: number): boolean;
+  /** Content equality over both members' runs, independent of internal slice layout. */
+  equals(other: CompactSelectionLike): boolean;
   hasAll(range: [number, number]): boolean;
   toArray(): number[];
 };

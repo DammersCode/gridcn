@@ -1,6 +1,6 @@
 import type { CellCoord, GridSelection } from "../types";
 import { CompactSelection } from "./compact-selection";
-import { rectFromCorners } from "./rects";
+import { rectFromCorners, rectsEqual } from "./rects";
 
 /** The selection with nothing selected. */
 export function emptySelection(): GridSelection {
@@ -21,12 +21,14 @@ export function selectCell(coord: CellCoord): GridSelection {
   };
 }
 
-/** Shift-click/shift-arrow: extends the primary range from the existing anchor to `coord`; anchor is unchanged. */
+/** Shift-click/shift-arrow: extends the primary range from the existing anchor to `coord`; anchor is unchanged. Returns the input itself when the result equals the current range (a stationary drag re-fires the same coord; stable identity keeps selection observers quiet). */
 export function extendTo(selection: GridSelection, coord: CellCoord): GridSelection {
   if (!selection.current) return selectCell(coord);
   const { cell, rangeStack } = selection.current;
+  const range = rectFromCorners(cell, coord);
+  if (rectsEqual(range, selection.current.range)) return selection;
   return {
-    current: { cell, range: rectFromCorners(cell, coord), rangeStack },
+    current: { cell, range, rangeStack },
     rows: selection.rows,
     columns: selection.columns,
   };

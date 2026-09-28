@@ -175,6 +175,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Selection changes fire only on real changes:** repeated `extendTo` at the same coord (a
+  stationary drag), a clamped `extendSelection` at a grid edge, and a `selectRow`/`selectColumn`
+  re-fire that leaves both channels and `lastHighlighted*` unchanged no longer replace the
+  selection object. `onSelectionChange` and selection-keyed re-renders now fire only when the
+  selection content actually changed.
 - **`data-grid-io` swaps `xlsx` for `@e965/xlsx`:** the add-on's SheetJS dependency moves from
   `xlsx@0.18.5` to the community mirror `@e965/xlsx@0.20.3` (byte-identical sources, SLSA v1
   provenance, zero npm-audit vulnerabilities). The npm `xlsx` line stopped at 0.18.5 with two

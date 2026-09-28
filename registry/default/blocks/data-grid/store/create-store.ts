@@ -361,25 +361,38 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const additive = opts.additive && enableMultiRange;
         const extendFromLast = opts.extendFromLast && enableRangeSelection;
         const replaceFromLast = opts.replaceFromLast && enableRangeSelection;
-        set({
-          selection: selectRowPure(selection, index, {
-            additive,
-            extendFromLast,
-            replaceFromLast,
-            from: opts.from ?? lastHighlightedRow ?? undefined,
-          }),
-          lastHighlightedRow: index,
+        const next = selectRowPure(selection, index, {
+          additive,
+          extendFromLast,
+          replaceFromLast,
+          from: opts.from ?? lastHighlightedRow ?? undefined,
         });
+        // a stationary marker drag re-fires the same span: skip the set so selection identity
+        // (and onSelectionChange) stays quiet — line-ops always build new channel objects, so
+        // content equality is the check, not identity.
+        if (
+          next.rows.equals(selection.rows) &&
+          next.columns.equals(selection.columns) &&
+          next.current === selection.current &&
+          lastHighlightedRow === index
+        )
+          return;
+        set({ selection: next, lastHighlightedRow: index });
       },
       selectColumn(index, opts = {}) {
         const { lastHighlightedCol, selection, enableColumnSelection, enableMultiRange, enableRangeSelection } = get();
         if (!enableColumnSelection) return;
         const additive = opts.additive && enableMultiRange;
         const extendFromLast = opts.extendFromLast && enableRangeSelection;
-        set({
-          selection: selectColumnPure(selection, index, { additive, extendFromLast, from: lastHighlightedCol ?? undefined }),
-          lastHighlightedCol: index,
-        });
+        const next = selectColumnPure(selection, index, { additive, extendFromLast, from: lastHighlightedCol ?? undefined });
+        if (
+          next.columns.equals(selection.columns) &&
+          next.rows.equals(selection.rows) &&
+          next.current === selection.current &&
+          lastHighlightedCol === index
+        )
+          return;
+        set({ selection: next, lastHighlightedCol: index });
       },
       selectAll() {
         const s = get();
