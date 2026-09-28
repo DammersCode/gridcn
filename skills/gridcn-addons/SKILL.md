@@ -38,8 +38,8 @@ the same items install from its GitHub registry path (`DammersCode/gridcn/<item>
 of record for the files. The core `data-grid` item must already be installed; every add-on
 depends only on it. Done when the CLI reports the new files under `components/data-grid-<name>/`
 and installs the npm dep from the table (check `package.json`), and in a Git project you have
-reviewed the written files before the first run (`git status`, then read the new files): the
-install copies remote source into your code.
+reviewed every file `git status` lists as new or modified before the first run: the install
+copies remote source into your code and rewrites existing files.
 
 ## 2. Wire the output at the right seam
 
