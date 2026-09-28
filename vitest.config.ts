@@ -9,7 +9,7 @@ import { defineConfig } from "vitest/config";
 const root = dirname(fileURLToPath(import.meta.url));
 
 // per-file branch bars for the pure-lib modules. Keys are file paths relative to the repo root;
-// a key that matches no file would silently enforce nothing, so the set is validated at load.
+// a key that matches no file silently enforces nothing, so the set is validated at load.
 const perFileBranchThresholds: Record<string, { branches: number }> = {
   "registry/default/blocks/data-grid/cell-types/cell-types.ts": { branches: 90 },
   "registry/default/blocks/data-grid/columns/column-helpers.ts": { branches: 90 },

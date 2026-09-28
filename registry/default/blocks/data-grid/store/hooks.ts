@@ -207,7 +207,7 @@ export function useDataGridCellErrors(): ReadonlyMap<string, string> {
 /**
  * Whether `rowId` has ANY cell error, for a row-level indicator (e.g. a row-marker badge) that
  * doesn't need atomic per-cell scoping. Probes one exact key per column rather than prefix-matching
- * the map: both ids may contain colons, so `"a"` prefix-matches row `"a:b"`'s keys.
+ * the map: both ids can contain colons, so `"a"` prefix-matches row `"a:b"`'s keys.
  */
 export function useDataGridRowHasError(rowId: string | undefined): boolean {
   return useDataGridStore((s) => {

@@ -107,8 +107,8 @@ describe("useDataGridState", () => {
 
   // An unstable getRowId defeats useDataGridRowIdToViewRow's memoization (O(n) Map rebuild on
   // every render). getRowId must keep the same identity across re-renders as long as the
-  // consumer's own getRowId does (here held stable across renders, as a top-level function or a
-  // useCallback-wrapped one would).
+  // consumer's own getRowId does (here held stable across renders by a top-level function or a
+  // useCallback-wrapped one).
   it("returns a stable getRowId identity across re-renders", () => {
     const stableGetRowId = (r: Row) => r.id;
     const { result, rerender } = renderHook(() => useDataGridState(defaultRows, { getRowId: stableGetRowId }));

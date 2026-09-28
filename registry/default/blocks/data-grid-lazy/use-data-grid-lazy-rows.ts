@@ -289,7 +289,7 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
     (next: readonly TData[], change: DataChange<TData>) => {
       // `next` is DataGrid's own post-op snapshot, itself sparse at runtime (see gridProps.data's
       // doc) — and it can predate rows a just-resolved fetch already wrote into state, so replacing
-      // the array with it would drop those rows. With ops, re-apply them to the latest state instead
+      // the array with it drops those rows. With ops, re-apply them to the latest state instead
       // (ids-keyed, so the fetch's extra rows survive untouched); without ops, `next` is authoritative.
       setRows((prev) =>
         change.ops.length > 0

@@ -223,7 +223,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // own stale messages and never a consumer's setCellErrors entries on other cells of that row.
   // Stale entries for deleted rows are harmless: their keys are already pruned, deleting is a no-op.
   const rowValidationKeys = new Map<string, string[]>();
-  // Pruned wherever cellErrors is pruned: an unpruned entry for a deleted rowId would let the next
+  // Pruned wherever cellErrors is pruned: an unpruned entry for a deleted rowId lets the next
   // validateRow wipe a reused row's consumer setCellErrors entries.
   const pruneRowValidationKeys = (data: readonly unknown[], getRowId: (row: unknown, index: number) => string): void => {
     if (rowValidationKeys.size === 0) return;
