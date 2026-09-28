@@ -9,7 +9,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ci:
+  checks:
+    name: Checks (typecheck, lint)
     runs-on: ubuntu-latest
     # PR runs gate on author (fork PRs skip, 0 min); to check an outside PR, Actions -> Run workflow on its branch.
     if: >-
@@ -41,8 +42,46 @@ jobs:
       - name: Typed lint (type-checked no-unsafe on registry source)
         run: pnpm lint:typed
 
+  unit:
+    name: Unit + coverage
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains('["DammersCode"]', github.event.pull_request.user.login)
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Unit + coverage (pure-lib branch thresholds enforced)
         run: npx vitest run registry --exclude "**/*.browser.test.*" --project unit --coverage
+
+  browser:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains('["DammersCode"]', github.event.pull_request.user.login)
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
@@ -50,9 +89,73 @@ jobs:
       - name: Browser tests
         run: npx vitest run --project browser
 
-      # Same suites again with the React Compiler wired in; the guard tests fail if it is not.
-      - name: React Compiler tests
-        run: pnpm test:compiler
+  unit-compiled:
+    name: Unit + React Compiler
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains('["DammersCode"]', github.event.pull_request.user.login)
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Same suite with the React Compiler wired in; the guard tests fail if it is not.
+      - name: Unit tests with the React Compiler
+        run: npx vitest run --project unit-compiled
+
+  browser-compiled:
+    name: Browser + React Compiler
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains('["DammersCode"]', github.event.pull_request.user.login)
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      # Same suite with the React Compiler wired in; the guard tests fail if it is not.
+      - name: Browser tests with the React Compiler
+        run: npx vitest run --project browser-compiled
+
+  build:
+    name: Build + registry
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains('["DammersCode"]', github.event.pull_request.user.login)
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Build
         run: pnpm build
@@ -78,3 +181,22 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx shadcn@latest registry validate DammersCode/gridcn#${{ github.sha }}
 
+  # Aggregator the branch-protection ruleset requires under the name `ci`. Fails on ANY
+  # non-success of a required job — a skipped job counts, so a manually-skipped step can never
+  # smuggle a green check through. (The author gate above also skips this job itself on fork PRs.)
+  # Job id (not a `name:` key) on purpose: the branch-protection ruleset requires a status check
+  # named exactly `ci`, and a job's display name would become the check context instead.
+  ci:
+    runs-on: ubuntu-latest
+    needs: [checks, unit, browser, unit-compiled, browser-compiled, build]
+    if: >-
+      always() &&
+      (github.event_name != 'pull_request' ||
+      contains('["DammersCode"]', github.event.pull_request.user.login))
+    steps:
+      - name: Fail unless every required job succeeded
+        if: |
+          contains(needs.*.result, 'failure') ||
+          contains(needs.*.result, 'cancelled') ||
+          contains(needs.*.result, 'skipped')
+        run: exit 1
