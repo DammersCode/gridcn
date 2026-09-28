@@ -299,7 +299,7 @@ describe("exportGrid — CSV BOM", () => {
   });
 });
 
-describe("exportGrid — formula sanitizing (SEC-01)", () => {
+describe("exportGrid — formula sanitizing", () => {
   async function captureCsv(options: ExportGridOptions): Promise<string> {
     let text = "";
     const createObjectURL = vi.fn((blob: Blob) => {

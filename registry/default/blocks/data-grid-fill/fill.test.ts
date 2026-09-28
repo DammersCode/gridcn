@@ -206,7 +206,7 @@ describe("detectSeries", () => {
     expect(series!.extrapolate(2)).toBe("Item 10");
   });
 
-  it("detects a prefix series on a 20k-char value in linear time (SEC-03)", () => {
+  it("detects a prefix series on a 20k-char value in linear time", () => {
     // the attack input: a long digit run, a non-digit, then a trailing digit — quadratic for the old
     // /^(.*?)(\d+)(\D*)$/ split, ~318 ms per value; a linear scan finishes in under a millisecond.
     const prefix = "1".repeat(20_000);

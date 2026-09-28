@@ -55,14 +55,14 @@ describe("serializeFilterState / parseFilterState", () => {
     ]);
   });
 
-  it("caps the parsed filter count at 64 (SEC-06)", () => {
+  it("caps the parsed filter count at 64", () => {
     const raw = Array.from({ length: 70 }, (_, i) => `c${i}:contains:x`).join(",");
     const filters = parseFilterState(raw);
     expect(filters).toHaveLength(64);
     expect(filters[0]).toEqual({ columnId: "c0", operator: "contains", value: "x" });
   });
 
-  it("caps an isAnyOf choice list at 64 entries (SEC-06)", () => {
+  it("caps an isAnyOf choice list at 64 entries", () => {
     const raw = "status:isAnyOf:" + Array.from({ length: 100 }, (_, i) => `v${i}`).join("|");
     const filters = parseFilterState(raw);
     expect(filters).toHaveLength(1);

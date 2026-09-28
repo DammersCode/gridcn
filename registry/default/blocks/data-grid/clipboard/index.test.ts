@@ -74,7 +74,7 @@ describe("serializeCells", () => {
     expect(serializeCells([["=HYPERLINK()", "-5"]]).text).toBe('=HYPERLINK()\t-5');
   });
 
-  it("prefixes formula-like cells with a single quote when sanitizeFormulas is on (SEC-01)", () => {
+  it("prefixes formula-like cells with a single quote when sanitizeFormulas is on", () => {
     const { text } = serializeCells([["=HYPERLINK()", "-5", "-5abc", "\tx"]], { sanitizeFormulas: true });
     // the tab field is TSV-quoted by quoteTsvField
     expect(text).toBe("'=HYPERLINK()\t-5\t'-5abc\t\"'\tx\"");
@@ -104,13 +104,13 @@ describe("parseClipboardHtml", () => {
     expect(parseClipboardHtml("<div>no table here</div>")).toBeNull();
   });
 
-  it("ignores a data-gridcn-raw that disagrees with the node text (SEC-04)", () => {
+  it("ignores a data-gridcn-raw that disagrees with the node text", () => {
     const html =
       '<table><tbody><tr><td data-gridcn-raw="raw-value">Display Value</td></tr></tbody></table>';
     expect(parseClipboardHtml(html)).toEqual([["Display Value"]]);
   });
 
-  it("ignores a data-gridcn-raw hiding a formula-looking value behind plain text (SEC-04)", () => {
+  it("ignores a data-gridcn-raw hiding a formula-looking value behind plain text", () => {
     const html = '<table><tr><td data-gridcn-raw="=HYPERLINK(&quot;http://x&quot;)">1</td></tr></table>';
     expect(parseClipboardHtml(html)).toEqual([["1"]]);
   });

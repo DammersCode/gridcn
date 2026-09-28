@@ -48,15 +48,15 @@ takes:
 </Callout>
 
 <Callout title="Formula sanitizing">
-  CSV exports prefix formula-like cells — leading `=`, `-`, `@`, TAB, or CR; plain numbers are
-  exempt — with a single quote, which external spreadsheets treat as a hidden text marker. So a
-  cell holding `=HYPERLINK("http://x")` opens as literal text in Excel, LibreOffice, and Sheets,
-  not as a running formula. Pass `sanitizeFormulas: false` to `exportGrid` when a downstream
-  consumer expects the raw string. The helper behind this, `sanitizeFormulaCell(value)`, is
-  exported from `data-grid` for your own CSV or TSV writers. Clipboard copy and cut stay raw by
-  default so the grid's own paste round-trip is byte-identical; pass `sanitizeFormulas: true` to
-  `useDataGridClipboard` to neutralize formula-like cells there too. XLSX exports are unaffected:
-  string cells never run as formulas there.
+  CSV exports prefix formula-like cells with a single quote. The affected cells start with `=`,
+  `-`, `@`, TAB, or CR. Plain numbers stay untouched. External spreadsheets treat that quote as a
+  hidden text marker. A cell holding `=HYPERLINK("http://x")` opens as literal text in Excel,
+  LibreOffice, and Sheets, not as a running formula. If a downstream consumer expects the raw
+  string, pass `sanitizeFormulas: false` to `exportGrid`. `data-grid` also exports
+  `sanitizeFormulaCell(value)` for your own CSV or TSV writers. Clipboard copy and cut stay raw
+  by default, so the grid's own paste round-trip is byte-identical. If you build your own copy
+  UI on `useDataGridClipboard`, pass `sanitizeFormulas: true` to neutralize formula-like cells
+  there. XLSX exports are unaffected: string cells never run as formulas there.
 </Callout>
 
 <Callout title="Encodings and Excel">
@@ -167,10 +167,10 @@ through `grid.onDataChange` with an explicit `delete` and `insert` ops batch.
 
 <Callout title="Import limits">
   Every import is bounded so an oversized or corrupt file cannot stall the tab. Files above
-  50 MB are rejected before they are read, and a file with more than 1,000,000 rows or
-  1,000 columns is rejected with its own error message. The dialog's drop zone advertises the
-  size limit and rejects oversize files up front. `parseImportFile` takes `maxFileBytes`,
-  `maxRows`, and `maxColumns` to change the defaults.
+  50 MB are rejected before they are read. A file with more than 1,000,000 rows or 1,000 columns
+  is rejected with its own error message. The dialog's drop zone shows the size limit and
+  rejects oversized files before they reach the parse step. `parseImportFile` takes
+  `maxFileBytes`, `maxRows`, and `maxColumns` to change the defaults.
 </Callout>
 
 ## Import options

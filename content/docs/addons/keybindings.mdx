@@ -73,10 +73,10 @@ keycap per token.
 
 ## Shortcut labels for your own UI
 
-The core exports the same token logic for labels outside the add-on, so your own UI renders
-identical shortcut labels: `formatShortcut(binding)` returns the display tokens for a binding
-string — `formatShortcut("mod+shift+z")` is `["⌘", "⇧", "Z"]` on macOS and `["Ctrl", "Shift", "Z"]`
-elsewhere — and `isMacPlatform()` reports the platform check it uses. Both come from the
+The core exports the same token logic for labels outside the add-on.
+`formatShortcut(binding)` returns the display tokens for a binding string.
+`formatShortcut("mod+shift+z")` is `["⌘", "⇧", "Z"]` on macOS and `["Ctrl", "Shift", "Z"]`
+elsewhere. `isMacPlatform()` reports the platform check the labels use. Both come from the
 `data-grid` entry point:
 
 ```tsx

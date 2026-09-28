@@ -262,7 +262,7 @@ describe("parseImportFile — unsupported types", () => {
   });
 });
 
-describe("parseImportFile — size and dimension limits (SEC-02)", () => {
+describe("parseImportFile — size and dimension limits", () => {
   it("rejects a file over maxFileBytes before touching the file contents", async () => {
     const arrayBufferSpy = vi.spyOn(File.prototype, "arrayBuffer");
     const textSpy = vi.spyOn(File.prototype, "text");
@@ -277,8 +277,7 @@ describe("parseImportFile — size and dimension limits (SEC-02)", () => {
   });
 
   it("clamps the SheetJS read with sheetRows and converts only the real cell extent, never a forged !ref", async () => {
-    // the sheet carries a forged !ref (A1:ZZ1000000) but only two real cells; the conversion range
-    // must track the real extent (A1:B3) or sheet_to_json would materialize the forged rectangle
+    // forged !ref plus two real cells: the range follows the real cells, or sheet_to_json materializes the forged rectangle
     const sheet = { A1: { t: "s", v: "a" }, B3: { t: "n", v: 1 }, "!ref": "A1:ZZ1000000" };
     vi.resetModules();
     const read = vi.fn(() => ({ SheetNames: ["Sheet1"], Sheets: { Sheet1: sheet } }));

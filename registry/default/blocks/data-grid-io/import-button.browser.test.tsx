@@ -18,7 +18,7 @@ const columns = defineColumns<Row>()([
 ] as const);
 
 // the import size limit is shrunk (above every other test file's size, incl. the ~17 KB workbooks)
-// so the over-limit test needs no 50 MB file — the browser tab would hold it for the whole suite.
+// so the over-limit test needs no 50 MB file — the browser tab keeps it for the whole suite.
 // parseImportFile is wrapped because the real function's default reads the module-internal constant,
 // which re-exporting DEFAULT_IMPORT_LIMITS cannot change.
 vi.mock("./parse-import-file", async (importOriginal) => {
@@ -118,7 +118,7 @@ describe("DataGridImportButton (browser)", () => {
     expect(imported).toEqual([{ id: "imported-0", name: "Alice", age: 30 }]);
   });
 
-  it("dropping a file over the import size limit shows the too-large error instead of parsing (SEC-02)", async () => {
+  it("dropping a file over the import size limit shows the too-large error instead of parsing", async () => {
     await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
         <DataGridImportButton createRow={(): Row => ({ id: "imported-0", name: "", age: null })} onImport={() => {}} />

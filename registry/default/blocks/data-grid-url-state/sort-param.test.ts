@@ -50,7 +50,7 @@ describe("serializeSortState / parseSortState", () => {
     ]);
   });
 
-  it("dedupes repeated column ids, keeping the first segment (SEC-06)", () => {
+  it("dedupes repeated column ids, keeping the first segment", () => {
     expect(parseSortState("name:desc,name:asc,age:asc")).toEqual([
       { columnId: "name", direction: "desc" },
       { columnId: "age", direction: "asc" },

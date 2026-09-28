@@ -444,25 +444,25 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `DataGridPaginationFirst`, `DataGridPaginationPrev`, `DataGridPaginationPages`,
   `DataGridPaginationNext`, `DataGridPaginationLast`), so consumers can rearrange or restyle the
   footer instead of accepting one fixed layout.
-- **Breaking:** Multiplayer presence extracted out of core into a new `data-grid-presence` add-on
-  (workplan #48). Core's `presenceHighlights` state/prop, `setPresenceHighlights` action,
+- **Breaking:** Multiplayer presence extracted out of core into a new `data-grid-presence` add-on.
+  Core's `presenceHighlights` state/prop, `setPresenceHighlights` action,
   `useDataGridHighlights` hook, and the `PresenceHighlight` type are all removed — install
   `@gridcn/data-grid-presence` and call its `useDataGridPresence()` hook instead. Core gains one new
   seam in exchange: `overlayPlugins` on `DataGridProvider`/`DataGrid`, a generic overlay-plugin slot
   `DataGridOverlays` renders after its built-in range/band layers (but before the local active-cell
   ring) — `data-grid-presence` is the first consumer, `data-grid-fill` (below) the second.
-- **Breaking:** The fill handle extracted out of core into a new `data-grid-fill` add-on (workplan
-  #48 cut #2), reusing the overlay-plugin seam the presence extraction built. README/docs
-  positioning updated: core is now range selection + Excel clipboard + editing engine; the fill
-     handle is its own free add-on, one `npx shadcn add @gridcn/data-grid-fill` away. Removed from
+- **Breaking:** The fill handle extracted out of core into a new `data-grid-fill` add-on, reusing
+  the overlay-plugin seam the presence extraction built. README/docs positioning updated: core is
+  now range selection + Excel clipboard + editing engine; the fill handle is its own free add-on,
+  one `npx shadcn add @gridcn/data-grid-fill` away. Removed from
   core: `useFillHandle`, `FillHandleHandlers`, `FillPatternArgs`, the `fillPreview`/`setFillPreview`
   store state, `DataGridRoot`'s `onFillPattern` prop, and `DataGridOverlays`'s `fillHandleHandlers`
   prop — install the add-on and call its `useDataGridFill()` hook instead (`onFillPattern` is now
   an option to that hook). `GridAction`'s `fillDown`/`fillRight` and their `DEFAULT_KEYMAP` bindings
   stay in core (two string literals are cheaper surface than a fully extensible-action mechanism);
   without the add-on both keys are silent no-ops, matching every other optional-callback seam.
-- **Breaking:** Pinned rows extracted out of core into a new `data-grid-pinned-rows` add-on
-  (workplan #48 cut #3). Unlike presence/fill (which register into the `overlayPlugins` paint
+- **Breaking:** Pinned rows extracted out of core into a new `data-grid-pinned-rows` add-on.
+  Unlike presence/fill (which register into the `overlayPlugins` paint
   seam), pinned rows affect band heights and `aria-rowcount`, so core needed a seam available
   SYNCHRONOUSLY at first render instead of a mount-effect registration: `DataGridProvider`/`DataGrid`
   gain `rowBands` (a `RowBandsSpec`), and `DataGridRoot`/`DataGridProvider`'s `pinnedTopRows`/

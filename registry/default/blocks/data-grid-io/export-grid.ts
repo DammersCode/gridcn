@@ -18,9 +18,9 @@ export type ExportGridOptions = {
    */
   csvBom?: boolean;
   /**
-   * Prefix formula-like CSV cells (leading `=`, `-`, `@`, TAB, or CR — plain numbers exempt) with
-   * a single quote so Excel/LibreOffice/Sheets read them as text instead of executing them
-   * (SEC-01); default `true`. Set `false` when a downstream consumer expects the raw string.
+   * Prefix formula-like CSV cells (leading `=`, `-`, `@`, TAB, or CR; plain numbers exempt) with
+   * a single quote so Excel/LibreOffice/Sheets read them as text instead of executing them;
+   * default `true`. Set `false` when a downstream consumer expects the raw string.
    * XLSX exports are unaffected (string cells never run as formulas).
    */
   sanitizeFormulas?: boolean;

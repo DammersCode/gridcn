@@ -35,7 +35,7 @@ describe("serializePage / parsePage", () => {
   it("caps the page at MAX_URL_PAGE and falls back to 1 beyond it", () => {
     expect(parsePage(String(MAX_URL_PAGE))).toBe(MAX_URL_PAGE);
     expect(parsePage(String(MAX_URL_PAGE + 1))).toBe(1);
-    // the SEC-05 attack input: an unbounded page number must not reach the consumer's fetch
+    // an unbounded URL page number must not reach the consumer's fetch
     expect(parsePage("100000000")).toBe(1);
   });
 });

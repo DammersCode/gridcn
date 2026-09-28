@@ -56,11 +56,11 @@ const columns = defineColumns<DemoRow>()([
 ] as const);
 
 /**
- * The hero demo: an editable grid with every built-in cell type, range selection, the free
+ * The hero demo: an editable grid with every built-in cell type, range selection, the
  * `data-grid-fill` add-on, and native copy/paste — via `defaultData`, no state wiring required
- * beyond the fill add-on's own hook (workplan #48: fill is no longer bundled into core's `DataGrid`
- * wrapper, so this demo composes the parts directly instead of using it). Try: click-drag to
- * select a range, drag the fill handle, Ctrl+C / Ctrl+V.
+ * beyond the fill add-on's own hook. Fill is not bundled into core's `DataGrid` wrapper, so this
+ * demo composes the parts directly instead of using it. Try: click-drag to select a range, drag
+ * the fill handle, Ctrl+C / Ctrl+V.
  */
 export default function DataGridDemo(): ReactNode {
   const rows = useMemo(() => generateDemoRows(12), []);

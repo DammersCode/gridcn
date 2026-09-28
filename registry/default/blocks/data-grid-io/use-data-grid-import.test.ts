@@ -187,7 +187,7 @@ describe("useDataGridImportPreview — stale sheet parse after the file changed"
   });
 });
 
-describe("useDataGridImportPreview — SEC-02 limit errors map to their own keys", () => {
+describe("useDataGridImportPreview — limit errors map to their own keys", () => {
   it("surfaces errorFileTooLarge for a file-too-large parse", async () => {
     mockedParse.mockRejectedValue(new Error("file-too-large"));
     const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));

@@ -6,7 +6,7 @@ const BLOCK_TAGS = new Set(["P", "DIV", "LI"]);
  * The grid's own `data-gridcn-raw` trust check: the attribute holds a value the DOM never sees
  * (raw "\t"/spaces/newlines the display renders as spans/`<br>`), so it is trusted only when it is
  * the serializer's own rendering of this exact cell — a hand-crafted payload cannot set it to a
- * different value without the cell's visible text contradicting it (SEC-04).
+ * different value without the cell's visible text contradicting it.
  */
 function rawMatchesCell(raw: string, cell: Element): boolean {
   return cell.innerHTML === escapeHtmlText(raw);

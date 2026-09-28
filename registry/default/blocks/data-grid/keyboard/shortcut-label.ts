@@ -7,7 +7,7 @@ const ARROW_GLYPHS: Record<string, string> = {
   ArrowRight: "→",
 };
 
-/** One binding segment ("mod", "shift", "z", "ArrowUp", " ") to its display token — Apple platforms render the modifier glyphs, everything else the word names. */
+/** Formats one binding segment (`mod`, `shift`, `z`, `ArrowUp`, space) as a display token — glyphs on Apple platforms, word names elsewhere. */
 export function formatShortcutToken(segment: string): string {
   if (segment === "mod") return isMacPlatform() ? "⌘" : "Ctrl";
   if (segment === "ctrl") return "Ctrl";
@@ -19,7 +19,7 @@ export function formatShortcutToken(segment: string): string {
   return segment.length === 1 ? segment.toUpperCase() : segment;
 }
 
-/** One binding string ("mod+shift+z") to its ordered display tokens — `["⌘", "⇧", "Z"]` on Apple platforms, `["Ctrl", "Shift", "Z"]` elsewhere. */
+/** Formats a binding string (`mod+shift+z`) to ordered display tokens — `["⌘", "⇧", "Z"]` on Apple, `["Ctrl", "Shift", "Z"]` elsewhere. */
 export function formatShortcut(binding: string): string[] {
   return binding.split("+").map(formatShortcutToken);
 }

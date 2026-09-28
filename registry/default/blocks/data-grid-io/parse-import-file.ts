@@ -4,10 +4,10 @@ import Papa from "papaparse";
 export type CsvDelimiter = "," | ";" | "\t";
 
 /**
- * SEC-02: unbounded parsing is a memory/CPU DoS — a 16 KB xlsx with a forged `<dimension>`
- * element used to build 100M cells. Every import is bounded by file size (checked before the
- * file is read) and by rows/columns (the SheetJS read is physically clamped; CSV is checked
- * after the parse).
+ * Default bounds for every import. Unbounded parsing is a memory/CPU DoS vector: an xlsx with a
+ * forged `<dimension>` element claims millions of cells from a tiny file. File size is checked
+ * before the file is read; the SheetJS read is clamped to `maxRows`/`maxColumns`, and a CSV is
+ * checked against the same row and column caps after the parse.
  */
 export const DEFAULT_IMPORT_LIMITS = {
   /** Maximum file size in bytes; default 50 MB. */

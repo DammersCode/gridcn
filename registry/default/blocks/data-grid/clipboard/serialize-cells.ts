@@ -9,13 +9,13 @@ function quoteTsvField(cell: string): string {
 /** A leading one of these makes a CSV/TSV cell a formula in Excel, LibreOffice, and Sheets. */
 const FORMULA_LEAD_CHARS = new Set(["=", "-", "@", "\t", "\r"]);
 
-/** The values a leading `-` sign can still be a plain number for. */
+/** Values where a leading `-` is still a plain number. */
 const PLAIN_NUMBER_RE = /^[+-]?\d+(\.\d+)?$/;
 
 /**
- * Prefixes a formula-like cell (leading `=`, `-`, `@`, TAB, or CR — plain numbers exempt) with a
- * single quote, which external spreadsheets treat as a hidden text marker (SEC-01: a CSV export or
- * clipboard paste must not smuggle `=HYPERLINK(...)`-style formulas into another sheet).
+ * Prefixes a formula-like cell (leading `=`, `-`, `@`, TAB, or CR; plain numbers exempt) with a
+ * single quote. External spreadsheets treat that quote as a hidden text marker, so a CSV export or
+ * clipboard paste cannot run `=HYPERLINK(...)`-style formulas in another sheet.
  */
 export function sanitizeFormulaCell(value: string): string {
   const lead = value[0];
@@ -25,7 +25,7 @@ export function sanitizeFormulaCell(value: string): string {
 
 /** Options for {@link serializeCells}. */
 export type SerializeCellsOptions = {
-  /** Prefix formula-like cells with `'` in the text/plain payload so external spreadsheets read them as text; default `false` — the grid's own copy/paste round-trip must stay byte-identical. */
+  /** Prefix formula-like cells with `'` in the text/plain payload so external spreadsheets read them as text; default `false`, which keeps the grid's own copy/paste round-trip byte-identical. */
   sanitizeFormulas?: boolean;
 };
 
