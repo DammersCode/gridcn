@@ -76,8 +76,8 @@ describe("pasteText cap", () => {
       getRowId: (row: WideRow) => row.id,
     } as InternalSyncProps);
     const actions = store.getState().actions;
-    actions.selectCell({ col: 0, row: 0 });
-    actions.extendTo({ col: columnCount - 1, row: rowCount - 1 });
+    actions.selectCellAt({ col: 0, row: 0 });
+    actions.extendToAt({ col: columnCount - 1, row: rowCount - 1 });
 
     const text = Array.from({ length: columnCount }, (_, column) => `p${column}`).join("\t");
     const applied = pasteText(store.getState(), actions, text, undefined, store);

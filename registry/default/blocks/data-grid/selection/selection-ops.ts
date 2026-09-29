@@ -1,4 +1,4 @@
-import type { CellCoord, GridSelection } from "../types";
+import type { ViewCoord, GridSelection } from "../types";
 import { CompactSelection } from "./compact-selection";
 import { rectFromCorners, rectsEqual } from "./rects";
 
@@ -13,7 +13,7 @@ export function isSelectionEmpty(selection: GridSelection): boolean {
 }
 
 /** A fresh 1x1 selection anchored at `coord`, clearing row/column channels. */
-export function selectCell(coord: CellCoord): GridSelection {
+export function selectCell(coord: ViewCoord): GridSelection {
   return {
     current: { cell: coord, range: { x: coord.col, y: coord.row, width: 1, height: 1 }, rangeStack: [] },
     rows: CompactSelection.empty(),
@@ -22,7 +22,7 @@ export function selectCell(coord: CellCoord): GridSelection {
 }
 
 /** Shift-click/shift-arrow: extends the primary range from the existing anchor to `coord`; anchor is unchanged. Returns the input itself when the result equals the current range (a stationary drag re-fires the same coord; stable identity keeps selection observers quiet). */
-export function extendTo(selection: GridSelection, coord: CellCoord): GridSelection {
+export function extendTo(selection: GridSelection, coord: ViewCoord): GridSelection {
   if (!selection.current) return selectCell(coord);
   const { cell, rangeStack } = selection.current;
   const range = rectFromCorners(cell, coord);
@@ -35,7 +35,7 @@ export function extendTo(selection: GridSelection, coord: CellCoord): GridSelect
 }
 
 /** Ctrl-click: pushes the current primary range onto the stack and starts a new 1x1 range at `coord`. */
-export function pushRange(selection: GridSelection, coord: CellCoord): GridSelection {
+export function pushRange(selection: GridSelection, coord: ViewCoord): GridSelection {
   if (!selection.current) return selectCell(coord);
   const { range, rangeStack } = selection.current;
   return {

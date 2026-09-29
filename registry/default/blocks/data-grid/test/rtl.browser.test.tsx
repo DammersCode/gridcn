@@ -317,8 +317,8 @@ describe("RTL — selection overlay alignment", () => {
     const { actions } = await renderGrid({ direction: "rtl", columns: makeColumns(10), rowCount: 20, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
-    actions().selectCell({ col: 2, row: 1 });
-    actions().extendTo({ col: 4, row: 3 });
+    actions().selectCellAt({ col: 2, row: 1 });
+    actions().extendToAt({ col: 4, row: 3 });
 
     const c2 = cellAt(2)!.getBoundingClientRect();
     const c4 = cellAt(4)!.getBoundingClientRect();

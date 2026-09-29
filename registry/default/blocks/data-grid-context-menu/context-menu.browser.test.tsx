@@ -434,7 +434,7 @@ describe("DataGridContextMenu — menu resolvers", () => {
     rightClick(gridCell("Bob", "name"));
 
     await vi.waitFor(() => expect(menuItem("Duplicate row")).toBeTruthy());
-    expect(seen.ctx).toEqual({ row: 1, columnId: "name", canInsertRow: true, canDuplicateRow: true });
+    expect(seen.ctx).toEqual({ rowId: "r1", viewRowIndex: 1, columnId: "name", canInsertRow: true, canDuplicateRow: true });
     expect(seen.defaultIds).toEqual([
       "cut", "copy", "paste", "sep-clipboard", "clear-contents", "sep-rows",
       "insert-row-above", "insert-row-below", "duplicate-rows", "delete-rows",

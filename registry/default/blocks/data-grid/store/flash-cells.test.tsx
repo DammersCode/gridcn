@@ -137,7 +137,7 @@ describe("flashCells (transient write-pulse)", () => {
     const rowBefore = result.current.rowCellState;
 
     act(() => {
-      result.current.actions.selectCell({ col: 0, row: 1 });
+      result.current.actions.selectCellAt({ col: 0, row: 1 });
     });
 
     expect(result.current.api.getState().flashingCells).toBe(before);

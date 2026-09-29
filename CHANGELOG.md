@@ -32,7 +32,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   fires with `{ coord, result: "commit" | "cancel" | "rejected" }` — `rejected` fires per refused
   commit attempt while the session stays open. `onValidationError(event)` fires after a bulk paste
   or fill settles, only when at least one cell was rejected by validation:
-  `{ source: "paste" | "fill", rejected: [{ viewRow, columnId, value, message }] }`.
+  `{ source: "paste" | "fill", rejected: [{ rowId, columnId, viewRowIndex, value, message }] }`.
   `onCellDoubleClick` and `onCellContextMenu` fire on the matching cell gesture with the
   `CellClickCtx` shape plus the native `MouseEvent`; both are pure notifications, not veto points.
   Payload types `GridEditEndEvent`, `GridValidationErrorEvent`, and `GridBulkValidationError` are
@@ -244,6 +244,24 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **`CellRef` is the public cell coordinate (Breaking):** `CellCoord` is renamed to
+  `ViewCoord` (same `{ col, row }` shape — view space, not a `data` index). The cell actions
+  `selectCell`, `setActiveCell`, `extendTo`, `pushRange`, `startEditing`, and `commitCellValue`
+  now take a `CellRef` (`{ rowId, columnId }`) — the stable identity that survives sorting,
+  filtering, and pagination — and each gains an `*At` variant that takes a `ViewCoord`
+  (`selectCellAt`, `setActiveCellAt`, `extendToAt`, `pushRangeAt`, `startEditingAt`,
+  `commitCellValueAt`). `useDataGridScrollToCell` now takes a `CellRef`; a new
+  `useDataGridScrollToCellAt` takes a `ViewCoord`. A `CellRef` that no longer resolves (row
+  removed from `data`, column hidden) is a no-op with one console warning per grid in
+  development.
+- **Cell contexts carry row and column identity (Breaking):** `renderCell` (and `Cell`
+  components) rename `rowIndex` to `viewRowIndex` and add `rowId` and `columnId`. The
+  `getCellClassName` ctx gains `rowId` and `columnId`. `CellClickCtx` (used by `onCellClick`,
+  `onCellDoubleClick`, and `onCellContextMenu`) renames `rowIndex`/`columnIndex` to
+  `viewRowIndex`/`viewColumnIndex` and adds `rowId`/`columnId`; `RowClickCtx` (used by
+  `onRowClick`) adds `rowId`. The context menu's `getCellMenuItems` ctx renames `row` to
+  `viewRowIndex` and adds `rowId`. `GridBulkValidationError` rejected entries add `rowId` and
+  rename `viewRow` to `viewRowIndex`, as do `applyCellUpdates` entries.
 - **Select quick search matches the choice label, not the stored value:** a `select` column's
   stored values are opaque choice ids; quick search now uses the option's `label` (its
   `toSearchText`). Custom types can declare their own `toSearchText` for the same control.

@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type {
-  CellCoord,
+  CellRef,
+  ViewCoord,
   CellType,
   FilterJoinOperator,
   FilterSpec,
@@ -18,6 +19,7 @@ import type { SearchMatch } from "../sort-filter";
 import { isSelectionEmpty, selectionContainsCell } from "../selection";
 import { colRangesEqual, selectedColRangesForRow, type ColRange } from "../selection/selected-col-ranges-for-row";
 import { cellErrorKey, flashCellKey, getRangeValues, searchMatchKey } from "./compute";
+import { resolveRefOrWarn } from "./data-write";
 import { useDataGridStore, useDataGridStoreApi } from "./provider";
 import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridRowCellState, DataGridStoreState } from "./types";
 
@@ -42,14 +44,28 @@ export function useDataGridCellTypes(): Record<string, CellType> {
 }
 
 /**
- * Imperative scroll-into-view for a view-space cell coord, honoring pinned bands — the same
- * mechanism keyboard nav uses internally, exposed as a public extension point for add-ons that
- * move the active cell from outside `DataGridRoot`'s subtree (e.g. `data-grid-toolbar`'s
- * search next/prev). No-op before `DataGridRoot` mounts or after it unmounts.
+ * Imperative scroll-into-view for the cell named by a stable {@link CellRef}, honoring pinned
+ * bands — the same mechanism keyboard nav uses internally, exposed as a public extension point for
+ * add-ons that move the active cell from outside `DataGridRoot`'s subtree. No-op before
+ * `DataGridRoot` mounts or after it unmounts, and a no-op (dev-warned) when the ref no longer
+ * resolves.
  */
-export function useDataGridScrollToCell(): (coord: CellCoord) => void {
+export function useDataGridScrollToCell(): (ref: CellRef) => void {
   const storeApi = useDataGridStoreApi();
-  return useCallback((coord: CellCoord) => storeApi.getState().scrollToCellImpl?.(coord), [storeApi]);
+  return useCallback(
+    (ref: CellRef) => {
+      const s = storeApi.getState();
+      const coord = resolveRefOrWarn(s.dataWrite, s, ref);
+      if (coord) s.scrollToCellImpl?.(coord);
+    },
+    [storeApi],
+  );
+}
+
+/** View-space variant of {@link useDataGridScrollToCell} for callers that hold a {@link ViewCoord}. */
+export function useDataGridScrollToCellAt(): (coord: ViewCoord) => void {
+  const storeApi = useDataGridStoreApi();
+  return useCallback((coord: ViewCoord) => storeApi.getState().scrollToCellImpl?.(coord), [storeApi]);
 }
 
 /**
@@ -94,13 +110,13 @@ export function useDataGridLabels(): DataGridLabels {
 }
 
 /** The currently active (focused) cell, or null when nothing is active. */
-export function useDataGridActiveCell(): CellCoord | null {
+export function useDataGridActiveCell(): ViewCoord | null {
   return useDataGridStore((s) => s.activeCell);
 }
 
 /**
  * Whether ANY cell is currently active — a primitive boolean, unlike {@link useDataGridActiveCell}'s
- * `CellCoord | null`, so it only re-renders its subscriber on the null <-> non-null transition (once,
+ * `ViewCoord | null`, so it only re-renders its subscriber on the null <-> non-null transition (once,
  * on first activation), never on every subsequent row/column move. `DataGridRoot` uses this for its
  * roving-tabindex bootstrap (tabIndex 0 before any cell is active, -1 after): subscribing to the full
  * `activeCell` there instead would re-render the root (and thus every context consumer, since its
@@ -122,7 +138,7 @@ export function useDataGridHasActiveCell(): boolean {
  * not part of the public API; consumers should not import it.
  * @internal
  */
-export function getFocusCell(state: DataGridStoreState): CellCoord | null {
+export function getFocusCell(state: DataGridStoreState): ViewCoord | null {
   const current = state.selection.current;
   if (!current) return state.activeCell;
   const { cell, range } = current;
@@ -184,7 +200,7 @@ export function useDataGridRowBands(): RowBandsSpec {
 }
 
 /** The in-progress cell edit, or null when no cell is being edited. */
-export function useDataGridEditing(): { coord: CellCoord; initialText?: string } | null {
+export function useDataGridEditing(): { coord: ViewCoord; initialText?: string } | null {
   return useDataGridStore((s) => s.editing);
 }
 
@@ -330,7 +346,7 @@ export function useDataGridSearchCapped(): boolean {
 }
 
 /** Whether `coord` (view-space) is a search-match highlight target — an O(1) Set lookup, never a per-cell scan ({@link DataGridCell}'s `data-search-match`). */
-export function useDataGridIsSearchMatch(coord: CellCoord): boolean {
+export function useDataGridIsSearchMatch(coord: ViewCoord): boolean {
   const column = useDataGridStore((s) => s.visibleColumns[coord.col]);
   return useDataGridStore((s) => (column ? s.searchMatchSet.has(searchMatchKey(coord.row, column.id)) : false));
 }
@@ -428,17 +444,17 @@ export function useDataGridIsRowCellSelected(viewRowIndex: number): boolean {
 }
 
 /** Whether `coord` is the active (focused) cell — an atomic per-cell subscription so an active-cell move re-renders only the two affected cells, never every cell or any row. */
-export function useDataGridIsCellActive(coord: CellCoord): boolean {
+export function useDataGridIsCellActive(coord: ViewCoord): boolean {
   return useDataGridStore((s) => s.activeCell !== null && s.activeCell.col === coord.col && s.activeCell.row === coord.row);
 }
 
 /** Whether `coord` is the cell currently being edited — same atomic-subscription rationale as {@link useDataGridIsCellActive}. */
-export function useDataGridIsCellEditing(coord: CellCoord): boolean {
+export function useDataGridIsCellEditing(coord: ViewCoord): boolean {
   return useDataGridStore((s) => s.editing !== null && s.editing.coord.col === coord.col && s.editing.coord.row === coord.row);
 }
 
 /** The initial-text seed for `coord`'s edit session (type-to-replace), or undefined; null when `coord` isn't the editing cell. Atomic per-cell, like {@link useDataGridIsCellEditing}. */
-export function useDataGridCellInitialText(coord: CellCoord): string | undefined {
+export function useDataGridCellInitialText(coord: ViewCoord): string | undefined {
   return useDataGridStore((s) =>
     s.editing !== null && s.editing.coord.col === coord.col && s.editing.coord.row === coord.row
       ? s.editing.initialText
@@ -453,7 +469,7 @@ export function useDataGridCellInitialText(coord: CellCoord): string | undefined
  * visible window instead of only the editing cell — same atomic-subscription rationale as
  * {@link useDataGridIsCellEditing}/{@link useDataGridCellInitialText}.
  */
-export function useDataGridCellEditingError(coord: CellCoord): string | null {
+export function useDataGridCellEditingError(coord: ViewCoord): string | null {
   return useDataGridStore((s) =>
     s.editing !== null && s.editing.coord.col === coord.col && s.editing.coord.row === coord.row ? s.editingError : null,
   );
@@ -465,7 +481,7 @@ export function useDataGridCellEditingError(coord: CellCoord): string | null {
  * atomic-subscription rationale as {@link useDataGridCellEditingError}: a rejection re-renders the
  * editing cell only, never the whole visible window.
  */
-export function useDataGridCellRejectionCount(coord: CellCoord): number {
+export function useDataGridCellRejectionCount(coord: ViewCoord): number {
   return useDataGridStore((s) =>
     s.editing !== null && s.editing.coord.col === coord.col && s.editing.coord.row === coord.row
       ? s.editingRejectionCount
@@ -479,7 +495,7 @@ export function useDataGridCellRejectionCount(coord: CellCoord): number {
  * The 5-tuple object is genuinely fresh per relevant state change, so `useShallow` is the correct
  * tool here: it still bails when none of the 5 values changed.
  */
-export function useDataGridCellState(coord: CellCoord): DataGridCellState {
+export function useDataGridCellState(coord: ViewCoord): DataGridCellState {
   return useDataGridStore(
     useShallow((s) => {
       const isActive = s.activeCell !== null && s.activeCell.col === coord.col && s.activeCell.row === coord.row;

@@ -1,4 +1,4 @@
-import type { CellCoord, GridRect, GridSelection } from "../types";
+import type { ViewCoord, GridRect, GridSelection } from "../types";
 import { CompactSelection } from "./compact-selection";
 import { rectContains } from "./rects";
 import { selectLine, type SelectLineOptions } from "./select-line-options";
@@ -54,7 +54,7 @@ export function selectionRects(selection: GridSelection, rowCount: number, colCo
  */
 export function selectionContainsCell(
   selection: GridSelection,
-  coord: CellCoord,
+  coord: ViewCoord,
   _rowCount: number,
   _colCount: number,
 ): boolean {

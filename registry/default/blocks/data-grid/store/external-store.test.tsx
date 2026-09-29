@@ -69,7 +69,7 @@ describe("useDataGridStoreProps (external store ownership)", () => {
 
     expect(consumer.result.current.api).toBe(external);
     act(() => {
-      consumer.result.current.actions.selectCell({ col: 0, row: 1 });
+      consumer.result.current.actions.selectCellAt({ col: 0, row: 1 });
     });
     // The owner's hook owns the selection subscription; the provider shell must not subscribe again.
     expect(spy).toHaveBeenCalledTimes(1);
@@ -87,7 +87,7 @@ describe("useDataGridStoreProps (external store ownership)", () => {
       },
     });
     act(() => {
-      result.current.selectCell({ col: 1, row: 0 });
+      result.current.selectCellAt({ col: 1, row: 0 });
     });
     expect(spy).toHaveBeenCalledTimes(1);
     expect(result.current.setCellErrors).toBeDefined();

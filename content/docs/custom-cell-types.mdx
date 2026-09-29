@@ -40,8 +40,8 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
 };
 ```
 
-- **`Cell`** — read-mode rendering. It receives `{ value, row, rowIndex, column, options,
-  isActive }`. The `options` prop carries the column's `options`, typed as `TOptions` when you
+- **`Cell`** — read-mode rendering. It receives `{ value, row, rowId, columnId, viewRowIndex,
+  column, options, isActive }`. The `options` prop carries the column's `options`, typed as `TOptions` when you
   parameterize the type with it. It runs for every visible cell on every window mount. This is a
   hot path (code that runs very often, so its per-call cost matters), covered more below.
 - **`Editor`** — edit-mode rendering. It receives `{ value, initialText?, row, column, options,

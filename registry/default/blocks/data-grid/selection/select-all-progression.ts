@@ -1,11 +1,11 @@
 import { CompactSelection } from "./compact-selection";
-import type { CellCoord, GridRect, GridSelection } from "../types";
+import type { ViewCoord, GridRect, GridSelection } from "../types";
 
 /** Two-stage progression tracked by the caller (interaction layer): which stage the last `selectAllProgression` call produced. */
 export type SelectAllStage = "region" | "all" | null;
 
 /** Probes whether the cell at `coord` is empty, via the cell type's `isEmpty` — same contract as `jumpToDataBoundary`'s local helper. */
-export type IsEmptyAt = (coord: CellCoord) => boolean;
+export type IsEmptyAt = (coord: ViewCoord) => boolean;
 
 function wholeGridRect(rowCount: number, colCount: number): GridRect {
   return { x: 0, y: 0, width: colCount, height: rowCount };
@@ -17,7 +17,7 @@ function wholeGridRect(rowCount: number, colCount: number): GridRect {
  * just outside the rect is entirely empty. An empty `active` cell's region is itself (Excel parity).
  * O(perimeter × rows/cols touched) — only called on an explicit Ctrl+A, never a hot path.
  */
-export function computeDataRegion(active: CellCoord, rowCount: number, colCount: number, isEmptyAt: IsEmptyAt): GridRect {
+export function computeDataRegion(active: ViewCoord, rowCount: number, colCount: number, isEmptyAt: IsEmptyAt): GridRect {
   if (isEmptyAt(active)) return { x: active.col, y: active.row, width: 1, height: 1 };
 
   let left = active.col;
@@ -64,7 +64,7 @@ function isRect(rect: GridRect, other: GridRect): boolean {
   return rect.x === other.x && rect.y === other.y && rect.width === other.width && rect.height === other.height;
 }
 
-function selectionForRect(rect: GridRect, anchor: CellCoord): GridSelection {
+function selectionForRect(rect: GridRect, anchor: ViewCoord): GridSelection {
   return {
     current: { cell: anchor, range: rect, rangeStack: [] },
     rows: CompactSelection.empty(),
@@ -84,7 +84,7 @@ export function selectAllProgression(
   selection: GridSelection,
   rowCount: number,
   colCount: number,
-  active: CellCoord,
+  active: ViewCoord,
   isEmptyAt: IsEmptyAt,
   stage: SelectAllStage,
 ): { selection: GridSelection; stage: "region" | "all" } {

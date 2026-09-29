@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type {
-  CellCoord,
+  ViewCoord,
   ColumnLayout,
   DataChange,
   DensityMode,
@@ -66,6 +66,7 @@ export {
   useDataGridStoreProps,
   useDataGridActions,
   useDataGridScrollToCell,
+  useDataGridScrollToCellAt,
   useDataGridReadOnly,
   useDataGridKeymap,
   useDataGridLabels,
@@ -187,7 +188,8 @@ export {
 export { GRID_ATTR, gridAttrSelector, type GridAttrName, type GridAttr, type GridAttrValue } from "./data-attributes";
 
 export type {
-  CellCoord,
+  CellRef,
+  ViewCoord,
   GridRect,
   GridSelection,
   CompactSelectionLike,
@@ -276,7 +278,7 @@ export type DataGridProps<TData> = {
   /** Overrides parsing pasted text into a cell value; falls back to the cell type's `fromText`. */
   processCellFromClipboard?: (text: string, ctx: ClipboardProcessCtx<TData>) => unknown;
   /** Runs on the parsed paste grid before it's applied; returning `false` vetoes the paste entirely. */
-  processPaste?: (cells: string[][], target: CellCoord) => string[][] | false;
+  processPaste?: (cells: string[][], target: ViewCoord) => string[][] | false;
   /** Merged over `DEFAULT_KEYMAP`; per-action bindings here take precedence. */
   keymap?: Keymap;
   /** Layout direction; omitted, it follows the page's own direction. See {@link DataGridRootProps.direction}. */
@@ -359,9 +361,9 @@ export type DataGridProps<TData> = {
    /** Fires exactly once when the selection transitions from non-empty to empty, from any clear path. */
    onSelectionCleared?: () => void;
    /** Fires when the active cell changes to a different cell (or is cleared, `null`) — see {@link DataGridSyncProps.onActiveCellChange}. */
-   onActiveCellChange?: (next: CellCoord | null) => void;
+   onActiveCellChange?: (next: ViewCoord | null) => void;
    /** Fired when an edit session is about to start; return `false` to veto the edit. See {@link DataGridSyncProps.onEditStart}. */
-   onEditStart?: (coord: CellCoord) => boolean | void;
+   onEditStart?: (coord: ViewCoord) => boolean | void;
    /** Fired when an edit session ends or a commit attempt is refused (`commit`/`cancel`/`rejected`). See {@link GridEditEndEvent}. */
    onEditEnd?: (event: GridEditEndEvent) => void;
    /** Fires after a bulk paste or fill settles, only when at least one cell was rejected by validation. See {@link GridValidationErrorEvent}. */

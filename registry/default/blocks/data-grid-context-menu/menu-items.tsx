@@ -72,8 +72,10 @@ export type GridMenuItemSpec =
 
 /** The right-clicked cell's context, handed to a cell-menu resolver. */
 export type CellMenuItemsCtx = {
+  /** The right-clicked row's stable `getRowId()` value. */
+  rowId: string;
   /** The right-clicked cell's view row index (the same index the built-in set anchors Insert row at). */
-  row: number;
+  viewRowIndex: number;
   /** The right-clicked cell's column id. */
   columnId: string;
   /** Whether the grid was given a `createRow` prop — the flag the built-in set gates its Insert items on. */

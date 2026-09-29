@@ -50,7 +50,7 @@ Paste semantics:
 Three `DataGridProvider` props let you intercept the pipeline without forking it.
 
 ```tsx
-import type { CellCoord, ColumnDef } from "@/components/data-grid/data-grid";
+import type { ViewCoord, ColumnDef } from "@/components/data-grid/data-grid";
 
 // Module scope (or useCallback) so identity stays stable across renders.
 function processCellForClipboard(value: unknown, { row, column }: { row: Row; column: ColumnDef<Row, unknown> }) {
@@ -63,7 +63,7 @@ function processCellFromClipboard(text: string, { row, column }: { row: Row; col
   return text.trim();
 }
 
-function processPaste(cells: string[][], target: CellCoord) {
+function processPaste(cells: string[][], target: ViewCoord) {
   // runs after tiling and before the paste cap; return false to veto entirely
   return cells;
 }

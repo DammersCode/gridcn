@@ -11,7 +11,7 @@ import {
   type RefObject,
 } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { CellCoord, CellType, GridAction } from "../types";
+import type { ViewCoord, CellType, GridAction } from "../types";
 import { isMacPlatform, isPrintableKey, matchKeymap, type KeymapEvent } from "../keyboard";
 import type { Keymap } from "../types";
 import { getCellValue } from "../columns/column-helpers";
@@ -143,7 +143,7 @@ export function pointerToCoord(
   scrollElement: HTMLElement,
   layout: InteractionLayout,
   rowCount: number,
-): CellCoord {
+): ViewCoord {
   const rect = scrollElement.getBoundingClientRect();
   // The direction seam for all pointer input: past these two lines every x is inline-start-relative
   // and matches the space trackLefts/trackRights/pin widths are already expressed in, so no
@@ -170,7 +170,7 @@ export function pointerToCoord(
  * pinned-left/right bands. Never uses `scrollIntoView` — cells live in the transformed
  * sticky-viewport layer, so only direct `scrollTop`/`scrollLeft` writes are architecturally safe.
  */
-function scrollCellIntoView(scrollElement: HTMLElement, coord: CellCoord, layout: InteractionLayout): void {
+function scrollCellIntoView(scrollElement: HTMLElement, coord: ViewCoord, layout: InteractionLayout): void {
   const { trackLefts, trackRights, rowHeight, dataRowTop, pinnedBottomHeight, pinnedLeftWidth, pinnedRightWidth } = layout;
   const cellTop = coord.row * rowHeight;
   const cellBottom = cellTop + rowHeight;
@@ -216,7 +216,7 @@ export function dispatchGridAction(args: {
   actions: DataGridActions;
   storeApi: StoreApi<DataGridStoreState>;
   scrollRef: RefObject<HTMLElement | null>;
-  scrollCellIntoView: (coord: CellCoord) => void;
+  scrollCellIntoView: (coord: ViewCoord) => void;
   /** The grid's resolved data-row height (px) — `pageUp`/`pageDown`'s visible-row math. */
   rowHeight: number;
   readOnly?: boolean;
@@ -242,8 +242,8 @@ export function dispatchGridAction(args: {
   const jumpAndScroll = (direction: JumpDirection, opts?: { extend?: boolean }) => {
     const active = state.activeCell ?? { col: 0, row: 0 };
     const target = jumpToDataBoundary(state, active, direction);
-    if (opts?.extend) actions.extendTo(target);
-    else actions.selectCell(target);
+    if (opts?.extend) actions.extendToAt(target);
+    else actions.selectCellAt(target);
     scrollCellIntoView(target);
   };
 
@@ -307,7 +307,7 @@ export function dispatchGridAction(args: {
       preventDefault();
       const active = state.activeCell ?? { col: 0, row: 0 };
       const target = { col: 0, row: active.row };
-      actions.selectCell(target);
+      actions.selectCellAt(target);
       scrollCellIntoView(target);
       break;
     }
@@ -315,34 +315,34 @@ export function dispatchGridAction(args: {
       preventDefault();
       const active = state.activeCell ?? { col: 0, row: 0 };
       const target = { col: Math.max(0, colCount - 1), row: active.row };
-      actions.selectCell(target);
+      actions.selectCellAt(target);
       scrollCellIntoView(target);
       break;
     }
     case "moveFirstCell": {
       preventDefault();
       const target = { col: 0, row: 0 };
-      actions.selectCell(target);
+      actions.selectCellAt(target);
       scrollCellIntoView(target);
       break;
     }
     case "moveLastCell": {
       preventDefault();
       const target = { col: Math.max(0, colCount - 1), row: Math.max(0, rowCount - 1) };
-      actions.selectCell(target);
+      actions.selectCellAt(target);
       scrollCellIntoView(target);
       break;
     }
     case "extendFirstCell": {
       preventDefault();
-      actions.extendTo({ col: 0, row: 0 });
+      actions.extendToAt({ col: 0, row: 0 });
       const focus = getFocusCell(storeApi.getState());
       if (focus) scrollCellIntoView(focus);
       break;
     }
     case "extendLastCell": {
       preventDefault();
-      actions.extendTo({ col: Math.max(0, colCount - 1), row: Math.max(0, rowCount - 1) });
+      actions.extendToAt({ col: Math.max(0, colCount - 1), row: Math.max(0, rowCount - 1) });
       const focus = getFocusCell(storeApi.getState());
       if (focus) scrollCellIntoView(focus);
       break;
@@ -376,7 +376,7 @@ export function dispatchGridAction(args: {
       preventDefault();
       if (readOnly || !state.activeCell) break;
       if (hasActivateCell(state, state.activeCell)) activateCell(state, actions, state.activeCell);
-      else actions.startEditing(state.activeCell);
+      else actions.startEditingAt(state.activeCell);
       break;
     }
     case "editReplace": {
@@ -384,7 +384,7 @@ export function dispatchGridAction(args: {
       preventDefault();
       if (hasActivateCell(state, state.activeCell)) break; // checkbox cells have no edit mode; the edit action toggles them, type-to-replace ignores them
       // printable trigger seeds the typed char (Excel replace mode); a non-printable binding (e.g. F3) starts a plain edit
-      actions.startEditing(state.activeCell, triggerKey);
+      actions.startEditingAt(state.activeCell, triggerKey);
       break;
     }
     case "cancel": {
@@ -457,17 +457,17 @@ function pointerHitsCheckboxBox(event: ReactPointerEvent<HTMLElement>): boolean 
   return box !== undefined && event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
 }
 
-function cellTypeAt(state: DataGridStoreState, coord: CellCoord): CellType | undefined {
+function cellTypeAt(state: DataGridStoreState, coord: ViewCoord): CellType | undefined {
   return state.cellTypes[state.visibleColumns[coord.col]?.type ?? "text"];
 }
 
 /** Whether the cell's type declares `activate` — the gesture semantics come from the type, not the name. */
-function hasActivateCell(state: DataGridStoreState, coord: CellCoord): boolean {
+function hasActivateCell(state: DataGridStoreState, coord: ViewCoord): boolean {
   return cellTypeAt(state, coord)?.activate != null;
 }
 
 /** Runs the cell type's `activate` in place via the direct-write commit path (no edit session, no move). No-op for a readOnly column, an unresolvable row, or a type without `activate`. */
-function activateCell(state: DataGridStoreState, actions: ReturnType<typeof useDataGridActions>, coord: CellCoord): void {
+function activateCell(state: DataGridStoreState, actions: ReturnType<typeof useDataGridActions>, coord: ViewCoord): void {
   const column = state.visibleColumns[coord.col];
   const cellType = cellTypeAt(state, coord);
   if (!column || !cellType?.activate) return;
@@ -478,7 +478,7 @@ function activateCell(state: DataGridStoreState, actions: ReturnType<typeof useD
   if (readOnly) return;
   // explicit TData=unknown: row's `undefined`-narrowed type ({} | null) would otherwise drive inference instead of column's own already-unknown TData.
   const value = getCellValue<unknown, typeof column>(row, column);
-  actions.commitCellValue(coord, cellType.activate(value, column.options));
+  actions.commitCellValueAt(coord, cellType.activate(value, column.options));
 }
 
 /** Direction for a data-boundary (Ctrl/Cmd+Arrow) jump. */
@@ -491,13 +491,13 @@ export type JumpDirection = "up" | "down" | "left" | "right";
  * cell found (or the grid edge if none). Clamped at the grid edges either way.
  * Exported for direct unit testing of the boundary-scan math; not part of the public hook surface.
  */
-export function jumpToDataBoundary(state: DataGridStoreState, active: CellCoord, direction: JumpDirection): CellCoord {
+export function jumpToDataBoundary(state: DataGridStoreState, active: ViewCoord, direction: JumpDirection): ViewCoord {
   const rowCount = state.viewIndex.length;
   const colCount = state.visibleColumns.length;
   const dx = direction === "left" ? -1 : direction === "right" ? 1 : 0;
   const dy = direction === "up" ? -1 : direction === "down" ? 1 : 0;
 
-  const isEmptyAt = (coord: CellCoord): boolean => {
+  const isEmptyAt = (coord: ViewCoord): boolean => {
     const column = state.visibleColumns[coord.col];
     if (!column) return true;
     const dataRowIndex = state.viewIndex[coord.row];
@@ -510,10 +510,10 @@ export function jumpToDataBoundary(state: DataGridStoreState, active: CellCoord,
     return cellType.isEmpty(value);
   };
 
-  const inBounds = (coord: CellCoord): boolean =>
+  const inBounds = (coord: ViewCoord): boolean =>
     coord.col >= 0 && coord.col < colCount && coord.row >= 0 && coord.row < rowCount;
 
-  const clampToEdge = (): CellCoord => {
+  const clampToEdge = (): ViewCoord => {
     // no data at all beyond `active` in this direction: land on the grid edge
     let coord = active;
     while (inBounds({ col: coord.col + dx, row: coord.row + dy })) {
@@ -583,11 +583,11 @@ const JUMP_DIRECTION: Record<JumpAction, JumpDirection> = {
 export type GridInteractionHandlers = {
   onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void;
   /** Attach to each rendered cell's pointerdown. */
-  onCellPointerDown: (coord: CellCoord, event: ReactPointerEvent<HTMLElement>) => void;
+  onCellPointerDown: (coord: ViewCoord, event: ReactPointerEvent<HTMLElement>) => void;
   /** Attach to each rendered cell's click — resolves the deferred active-cell click action. */
-  onCellClick: (coord: CellCoord, event: ReactMouseEvent<HTMLElement>) => void;
+  onCellClick: (coord: ViewCoord, event: ReactMouseEvent<HTMLElement>) => void;
   /** Attach to each rendered cell's dblclick. */
-  onCellDoubleClick: (coord: CellCoord, event: ReactMouseEvent<HTMLElement>) => void;
+  onCellDoubleClick: (coord: ViewCoord, event: ReactMouseEvent<HTMLElement>) => void;
   /**
    * Attach to a header cell's pointerdown: resolves the plain/shift/ctrl click-select gesture
    * immediately (glide-behavior-spec.md §3 "Header clicks") and starts a column-range drag so a
@@ -634,7 +634,7 @@ export type GridInteractionHandlers = {
    * programmatically, e.g. `data-grid-toolbar`'s search next/prev — never `scrollIntoView`
    * (see {@link scrollCellIntoView}'s own doc for why).
    */
-  scrollCellIntoView: (coord: CellCoord) => void;
+  scrollCellIntoView: (coord: ViewCoord) => void;
 };
 
 /**
@@ -660,9 +660,9 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   const lastPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
 
   // Active-cell click deferred to native `click` — pointerdown alone can't distinguish it from a drag.
-  const pendingActiveClickRef = useRef<CellCoord | null>(null);
+  const pendingActiveClickRef = useRef<ViewCoord | null>(null);
   // Coord a single click just resolved, so the following dblclick (same gesture) doesn't re-resolve it.
-  const resolvedByClickRef = useRef<CellCoord | null>(null);
+  const resolvedByClickRef = useRef<ViewCoord | null>(null);
 
   const stopAutoScrollLoop = useCallback(() => {
     if (rafRef.current !== null) {
@@ -698,7 +698,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       row: Math.max(0, Math.min(coord.row, Math.max(0, rowCount - 1))),
     };
 
-    if (drag.mode === "range") actions.extendTo(clamped);
+    if (drag.mode === "range") actions.extendToAt(clamped);
     else if (drag.mode === "row") {
       // A plain marker drag (anchor set) replaces the row channel with exactly anchor..current, so
       // dragging back over selected rows shrinks the range; a shift/ctrl press (anchor undefined)
@@ -777,7 +777,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   useEffect(() => () => documentListenersRef.current?.(), []);
 
   const scrollActiveCellIntoView = useCallback(
-    (coord: CellCoord) => {
+    (coord: ViewCoord) => {
       const scrollElement = scrollRef.current;
       if (!scrollElement) return;
       scrollCellIntoView(scrollElement, coord, layoutRef.current);
@@ -843,7 +843,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   );
 
   const onCellPointerDown = useCallback(
-    (coord: CellCoord, event: ReactPointerEvent<HTMLElement>) => {
+    (coord: ViewCoord, event: ReactPointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
       // React re-dispatches portaled content's events through the React tree of its logical
       // parent, not the DOM tree — so a press inside a cell's own popup editor (Select/Date,
@@ -865,11 +865,11 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         !state.editing;
 
       if (event.shiftKey) {
-        actions.extendTo(coord);
+        actions.extendToAt(coord);
       } else if (isMultiKey) {
-        actions.pushRange(coord);
+        actions.pushRangeAt(coord);
       } else {
-        actions.selectCell(coord);
+        actions.selectCellAt(coord);
       }
 
       const plainPress = !event.shiftKey && !isMultiKey && !state.editing;
@@ -886,7 +886,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   );
 
   const onCellClick = useCallback(
-    (coord: CellCoord, event: ReactMouseEvent<HTMLElement>) => {
+    (coord: ViewCoord, event: ReactMouseEvent<HTMLElement>) => {
       const pending = pendingActiveClickRef.current;
       pendingActiveClickRef.current = null;
       if (!pending || pending.col !== coord.col || pending.row !== coord.row) return;
@@ -903,20 +903,20 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   );
 
   const onCellDoubleClick = useCallback(
-    (coord: CellCoord, event: ReactMouseEvent<HTMLElement>) => {
+    (coord: ViewCoord, event: ReactMouseEvent<HTMLElement>) => {
       if (readOnly) return;
       // same portal-bubbling concern as onCellPointerDown above.
       if ((event.target as HTMLElement | null)?.closest(gridAttrSelector("cellEditor"))) return;
       pendingActiveClickRef.current = null;
       const state = storeApi.getState();
-      actions.selectCell(coord);
+      actions.selectCellAt(coord);
       // this gesture's first click may have already resolved the action via onCellClick.
       const alreadyResolved = resolvedByClickRef.current?.col === coord.col && resolvedByClickRef.current?.row === coord.row;
       resolvedByClickRef.current = null;
       if (alreadyResolved) return;
       // checkbox has no edit mode; direct-toggle instead of entering edit mode.
       if (hasActivateCell(state, coord)) activateCell(state, actions, coord);
-      else actions.startEditing(coord);
+      else actions.startEditingAt(coord);
     },
     [actions, readOnly, storeApi],
   );

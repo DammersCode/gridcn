@@ -3,7 +3,7 @@
 import { Fragment, type CSSProperties, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { GRID_LAYER } from "./layers";
-import type { CellCoord, CompactSelectionLike, GridRect } from "./types";
+import type { ViewCoord, CompactSelectionLike, GridRect } from "./types";
 import { intersectRect } from "./selection";
 import { pinnedInsetStyle } from "./columns/pinned-inset-style";
 import {
@@ -222,7 +222,7 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
     height: run.length,
   }));
 
-  const activeInWindow: CellCoord | null =
+  const activeInWindow: ViewCoord | null =
     activeCell && activeCell.row >= windowStart && activeCell.row < windowStart + rowCount ? activeCell : null;
   const activePinStyle = activeInWindow && pinned ? pinned.pins[activeInWindow.col] && pinnedInsetStyle(
     pinned.pins[activeInWindow.col],

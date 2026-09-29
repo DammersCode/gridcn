@@ -25,10 +25,10 @@ export function snapshotBulkBatch(s: DataGridStoreState, rowIds: readonly string
 }
 
 /** The distinct row ids a view-space bulk batch targets — resolved NOW, so a later reorder can still find them. */
-export function candidateRowIds(s: DataGridStoreState, candidates: readonly { viewRow: number }[]): string[] {
+export function candidateRowIds(s: DataGridStoreState, candidates: readonly { viewRowIndex: number }[]): string[] {
   const rowIds = new Set<string>();
   for (const candidate of candidates) {
-    const dataRowIndex = s.viewIndex[candidate.viewRow];
+    const dataRowIndex = s.viewIndex[candidate.viewRowIndex];
     if (dataRowIndex === undefined) continue;
     const row = s.data[dataRowIndex];
     if (row === undefined) continue;
@@ -63,7 +63,7 @@ export function isBulkBatchCurrent(s: DataGridStoreState, snapshot: BulkBatchSna
  * `rowId` is no longer in the view is dropped, never remapped — the guard's drop decisions must not
  * be undone here. Writes with no `rowId` (a caller that never resolved one) pass through untouched.
  */
-export function reresolveBulkWrites<T extends { viewRow: number; rowId?: string }>(
+export function reresolveBulkWrites<T extends { viewRowIndex: number; rowId?: string }>(
   s: DataGridStoreState,
   writes: readonly T[],
 ): T[] {
@@ -82,7 +82,7 @@ export function reresolveBulkWrites<T extends { viewRow: number; rowId?: string 
     }
     const viewRow = viewRowById.get(write.rowId);
     if (viewRow === undefined) continue;
-    resolved.push(viewRow === write.viewRow ? write : { ...write, viewRow });
+      resolved.push(viewRow === write.viewRowIndex ? write : { ...write, viewRowIndex: viewRow });
   }
   return resolved;
 }
@@ -94,7 +94,7 @@ export type BulkGeneration = {
   /** Whether `token` is still the newest batch AND the store still matches `snapshot`. */
   isCurrent(token: number, s: DataGridStoreState, snapshot: BulkBatchSnapshot): boolean;
   /** {@link reresolveBulkWrites} — the apply-time half of the guard, reached without a second import. */
-  reresolve<T extends { viewRow: number; rowId?: string }>(s: DataGridStoreState, writes: readonly T[]): T[];
+  reresolve<T extends { viewRowIndex: number; rowId?: string }>(s: DataGridStoreState, writes: readonly T[]): T[];
 };
 
 /**

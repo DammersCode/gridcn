@@ -30,7 +30,7 @@ function trackRights(widths: number[], lefts: number[]): number[] {
  * The marker column (when `markerWidth > 0`) is grid-template-column 1, BEFORE every data
  * column and before any pinned-left data column — data columns render at
  * `gridColumnStart: index + (markerWidth > 0 ? 2 : 1)`. `trackLefts`/`trackRights`/`leftOffsets`
- * are already shifted by `markerWidth` so callers never add it themselves; `CellCoord.col` and
+ * are already shifted by `markerWidth` so callers never add it themselves; `ViewCoord.col` and
  * this array's own `index` stay pure data-column indices throughout (the marker lives
  * outside the data index space).
  */
@@ -129,6 +129,8 @@ export type HeaderMenuRenderer = (ctx: { column: AnyColumnDef; index: number; tr
 
 /** Context passed to {@link MarkerCellRenderer} for one row's marker cell. */
 export type MarkerCellRenderCtx = {
+  /** The row's `getRowId()` value — stable row identity. The marker column is not a data column, so there is no `columnId` here. */
+  rowId: string;
   /** 0-based view row index (the marker column's own numbering space, minus one). */
   viewRowIndex: number;
   /** The ROWS channel only: this row is selected as a whole (marker press/drag, Shift+Space). Cell or column selection never flips it — mirrors `useDataGridIsRowChannelSelected`. */

@@ -16,6 +16,7 @@ import {
   useDataGridIsRowChannelSelected,
   useDataGridIsRowSelected,
   useDataGridLabels,
+  useDataGridRowId,
   useDataGridRowReorderEnabled,
 } from "../store";
 
@@ -57,6 +58,7 @@ export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
   const isRowChannelSelected = useDataGridIsRowChannelSelected(viewRowIndex);
   const isCellSelected = useDataGridIsRowCellSelected(viewRowIndex);
   const labels = useDataGridLabels();
+  const rowId = useDataGridRowId(viewRowIndex);
   const reorderEnabled = useDataGridRowReorderEnabled();
   const { renderMarker } = useDataGridRootContext();
 
@@ -121,7 +123,7 @@ export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
       }}
     >
       {renderMarker ? (
-        renderMarker({ viewRowIndex, isRowChannelSelected, isCellSelected })
+        renderMarker({ rowId: rowId!, viewRowIndex, isRowChannelSelected, isCellSelected })
       ) : (
         <>
           {showGrip && (

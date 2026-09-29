@@ -13,7 +13,7 @@ const CI_FACTOR = process.env["CI"] ? 2 : 1;
 
 type WideRow = { [key: string]: number | string | undefined } & { id: string };
 
-type Write = { viewRow: number; columnId: string; value: unknown };
+type Write = { viewRowIndex: number; columnId: string; value: unknown };
 
 function makeState(columns: readonly ColumnDef<WideRow, unknown>[], rows: WideRow[]): DataGridStoreState {
   return {
@@ -43,7 +43,7 @@ function makeMutatingWrites(columnCount: number): Write[] {
   const writes: Write[] = [];
   for (let write = 0; write < WRITE_COUNT; write++) {
     writes.push({
-      viewRow: write % ROW_COUNT,
+      viewRowIndex: write % ROW_COUNT,
       columnId: `c${write % columnCount}`,
       value: write + 1,
     });
@@ -95,7 +95,7 @@ describe("computeRowEditsBatch perf (100k rows)", () => {
       }));
       const rows = makeWideRows(ROW_COUNT);
       const writes: Write[] = Array.from({ length: WRITE_COUNT }, (_, write) => ({
-        viewRow: write % ROW_COUNT,
+        viewRowIndex: write % ROW_COUNT,
         columnId: `l${columnCount - 1}`,
         value: undefined,
       }));

@@ -80,15 +80,18 @@ export namespace StandardSchemaV1 {
 // case, else `accessorKey` collapses to an uninhabited `undefined` field.
 export type AccessorKeyOf<TData> = unknown extends TData ? string : keyof TData & string;
 
-/** Cell coordinate in view space: 0-based view row (sorted/filtered, not a data index) and 0-based visible-column index (marker columns excluded). */
-export type CellCoord = { col: number; row: number };
+/** Cell coordinate in view space: 0-based view row (sorted/filtered, not a data index) and 0-based visible-column index (marker columns excluded). It reshuffles under sort and filter — never persist it or compare it across a reorder; address cells by {@link CellRef} instead. */
+export type ViewCoord = { col: number; row: number };
+
+/** Stable cell identity: the row's `getRowId()` value plus the column's id. Survives sort, filter, and reorder — the coordinate for actions and the identity the cell ctx hands out. */
+export type CellRef = { rowId: string; columnId: string };
 
 /** What a marker mode renders: the 1-based view row index, the row-select checkbox, or both (number swapped for the checkbox on hover/selected). */
 export type RowMarkersContent = "number" | "checkbox" | "both";
 
 /**
  * Marker column mode: a pinned-left column rendered BEFORE all data columns, outside the data
- * column index space (CellCoord.col / aria-colindex / aria-colcount are all untouched by it).
+ * column index space (ViewCoord.col / aria-colindex / aria-colcount are all untouched by it).
  * The plain modes (`number`/`checkbox`/`both`) render the selection chrome only and keep the
  * marker a pure row-select surface — a drag there is always the row-range select. The
  * `reorder`-prefixed family renders the grip handle on top of the suffix's content and is the
@@ -109,7 +112,7 @@ export type GridRect = { x: number; y: number; width: number; height: number };
  */
 export type GridSelection = {
   current: {
-    cell: CellCoord;
+    cell: ViewCoord;
     range: GridRect;
     rangeStack: GridRect[];
   } | null;
@@ -180,8 +183,12 @@ export type CellRenderProps<TData, TValue, TOptions = unknown> = {
   value: TValue;
   /** The full data row this cell belongs to. */
   row: TData;
-  /** Display (view-space) row index: the sorted/filtered position, matching what the user sees. NOT a stable index into `data` — it reshuffles under sort and filter. Use `getRowId` for stable row identity. */
-  rowIndex: number;
+  /** The row's `getRowId()` value — stable row identity (see {@link CellRef}). */
+  rowId: string;
+  /** The column's id. With `rowId`, addresses this cell stably. */
+  columnId: string;
+  /** Display (view-space) row index: the sorted/filtered position, matching what the user sees. NOT a stable index into `data` — it reshuffles under sort and filter. */
+  viewRowIndex: number;
   /** The column's `options`, typed through `TOptions` (your declared options type) when the cell type is parameterized with it. */
   options?: TOptions;
   // `column`'s own validate erases independently (3rd param `any`) — same reasoning as
@@ -196,6 +203,10 @@ export type CellRenderProps<TData, TValue, TOptions = unknown> = {
 export type CellClassNameCtx<TData, TValue> = {
   value: TValue;
   row: TData;
+  /** The row's `getRowId()` value — stable row identity (see {@link CellRef}). */
+  rowId: string;
+  /** The column's id. With `rowId`, addresses this cell stably. */
+  columnId: string;
   // `column`'s own validate erases independently (3rd param `any`) so THIS type's bivariance
   // (recovered via CellClassNameFnHolder below) doesn't get re-poisoned by validate's union when
   // TValue itself is erased to `unknown` at the array-common-type boundary — see types.ts's
@@ -221,10 +232,14 @@ export type CellClickCtx<TData, TValue> = {
   value: TValue;
   row: TData;
   column: ColumnDef<TData, TValue>;
+  /** The row's `getRowId()` value — stable row identity (see {@link CellRef}). */
+  rowId: string;
+  /** The column's id. With `rowId`, addresses this cell stably. */
+  columnId: string;
   /** Display (view-space) row index — matches {@link CellClassNameCtx.viewRowIndex}. */
-  rowIndex: number;
-  /** Data-column index (not the marker column) — matches `CellCoord.col`. */
-  columnIndex: number;
+  viewRowIndex: number;
+  /** Data-column index (not the marker column) — matches `ViewCoord.col`. */
+  viewColumnIndex: number;
 };
 
 /**
@@ -235,11 +250,13 @@ export type CellClickCtx<TData, TValue> = {
  */
 export type OnCellClick<TData> = (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
 
-/** Context passed to `onRowClick` — the row is display-index only; map to a stable id via `getRowId` yourself if you need one. */
+/** Context passed to `onRowClick`. */
 export type RowClickCtx<TData> = {
   row: TData;
+  /** The row's `getRowId()` value — stable row identity. */
+  rowId: string;
   /** Display (view-space) row index — matches {@link CellClassNameCtx.viewRowIndex}. */
-  rowIndex: number;
+  viewRowIndex: number;
 };
 
 /** Same firing site as {@link OnCellClick}, once per click regardless of which column was clicked. */
@@ -251,10 +268,10 @@ export type OnRowClick<TData> = (ctx: RowClickCtx<TData>, event: MouseEvent) => 
  * commit attempt failed validation and the session STAYS OPEN (fired per attempt, alongside the
  * `editingRejectionCount` bump). The committed value is not included — `onDataChange` carries it.
  */
-export type GridEditEndEvent = { coord: CellCoord; result: "commit" | "cancel" | "rejected" };
+export type GridEditEndEvent = { coord: ViewCoord; result: "commit" | "cancel" | "rejected" };
 
-/** One cell a bulk gesture (paste/fill) refused after validation: the view-space target plus the value that failed and the validator's message. */
-export type GridBulkValidationError = { viewRow: number; columnId: string; value: unknown; message: string };
+/** One cell a bulk gesture (paste/fill) refused after validation: the target (stable id plus view position) plus the value that failed and the validator's message. */
+export type GridBulkValidationError = { rowId: string; columnId: string; viewRowIndex: number; value: unknown; message: string };
 
 /**
  * Fired by `onValidationError` after a bulk paste or fill settles, ONLY when at least one cell was

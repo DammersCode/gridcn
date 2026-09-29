@@ -21,7 +21,7 @@ import {
   warnDev,
 } from "./commit";
 import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
-import { resolveReorder, touchesViewInputs, type RowIndexCache } from "./row-index";
+import { resolveCellRef, resolveReorder, touchesViewInputs, type RowIndexCache } from "./row-index";
 import {
   emptySelection,
   offsetSelectionForRows,
@@ -31,7 +31,7 @@ import {
   selectCell as selectCellPure,
   selectionRects,
 } from "../selection";
-import type { DataOp } from "../types";
+import type { CellRef, DataOp, ViewCoord } from "../types";
 import type { AnyColumnDef, CellPatch, DataGridActions, DataGridStoreState, UpdateCellsVerdict } from "./types";
 
 /**
@@ -65,10 +65,22 @@ export type DataWriteContext = {
    * this the 56 ms cliff returns for every controlled consumer).
    */
   lastEmittedData: readonly unknown[] | null;
+  /** Dev-warns at most once per grid that a {@link CellRef} failed to resolve (stale row or hidden column). */
+  warnedStaleCellRef: boolean;
 };
 
 export function createDataWriteContext(rowIndexCache: RowIndexCache): DataWriteContext {
-  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null };
+  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false };
+}
+
+/** {@link resolveCellRef} plus the once-per-grid dev-warn for a ref that no longer resolves. */
+export function resolveRefOrWarn(ctx: DataWriteContext, s: DataGridStoreState, ref: CellRef): ViewCoord | null {
+  const coord = resolveCellRef(s, ctx.rowIndexCache, ref);
+  if (!coord && !ctx.warnedStaleCellRef) {
+    ctx.warnedStaleCellRef = true;
+    warnDev(`CellRef { rowId: ${ref.rowId}, columnId: ${ref.columnId} } does not resolve in the current view (row no longer in data, or column hidden); the action is a no-op`);
+  }
+  return coord;
 }
 
 /** Any path that writes values or moves rows outside a held batch: give up tracking and drop the token. */
@@ -180,6 +192,7 @@ export type DataWriteActions = Pick<
   DataGridActions,
   | "commitCellEdit"
   | "commitCellValue"
+  | "commitCellValueAt"
   | "deleteSelection"
   | "applyCellUpdates"
   | "updateCells"
@@ -261,7 +274,11 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       });
       s.onEditEnd?.({ coord: editing.coord, result: "commit" });
     },
-    commitCellValue(coord, value) {
+    commitCellValue(ref, value) {
+      const coord = resolveRefOrWarn(ctx, get(), ref);
+      if (coord) get().actions.commitCellValueAt(coord, value);
+    },
+    commitCellValueAt(coord, value) {
       const s = get();
       const result = computeCommit(s, coord, value);
       if ("error" in result) return;
@@ -290,13 +307,13 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         const cellType = s.cellTypes[column.type ?? "text"];
         return cellType ? { columnId: column.id, value: cellType.clearValue(column.options) } : null;
       });
-      const writes: { viewRow: number; columnId: string; value: unknown }[] = [];
+      const writes: { viewRowIndex: number; columnId: string; value: unknown }[] = [];
       for (const rect of rects) {
         for (let viewRow = rect.y; viewRow < rect.y + rect.height; viewRow++) {
           for (let col = rect.x; col < rect.x + rect.width; col++) {
             const resolved = resolvedCols[col];
             if (!resolved) continue;
-            writes.push({ viewRow, columnId: resolved.columnId, value: resolved.value });
+            writes.push({ viewRowIndex: viewRow, columnId: resolved.columnId, value: resolved.value });
           }
         }
       }
@@ -330,8 +347,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       for (const u of updates) {
         const col = idByCol.get(u.columnId);
         if (col === undefined) continue;
-        minRow = Math.min(minRow, u.viewRow);
-        maxRow = Math.max(maxRow, u.viewRow);
+        minRow = Math.min(minRow, u.viewRowIndex);
+        maxRow = Math.max(maxRow, u.viewRowIndex);
         minCol = Math.min(minCol, col);
         maxCol = Math.max(maxCol, col);
       }

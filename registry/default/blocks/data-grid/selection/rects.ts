@@ -1,4 +1,4 @@
-import type { CellCoord, GridRect } from "../types";
+import type { ViewCoord, GridRect } from "../types";
 
 /** Intersection of two rects, or null when disjoint. */
 export function intersectRect(a: GridRect, b: GridRect): GridRect | null {
@@ -11,7 +11,7 @@ export function intersectRect(a: GridRect, b: GridRect): GridRect | null {
 }
 
 /** Whether `coord` lies inside `rect`. */
-export function rectContains(rect: GridRect, coord: CellCoord): boolean {
+export function rectContains(rect: GridRect, coord: ViewCoord): boolean {
   return (
     coord.col >= rect.x &&
     coord.col < rect.x + rect.width &&
@@ -21,7 +21,7 @@ export function rectContains(rect: GridRect, coord: CellCoord): boolean {
 }
 
 /** Alias of rectContains with (rect, coord) argument order reversed for call-site readability. */
-export function pointInRect(coord: CellCoord, rect: GridRect): boolean {
+export function pointInRect(coord: ViewCoord, rect: GridRect): boolean {
   return rectContains(rect, coord);
 }
 
@@ -31,7 +31,7 @@ export function rectsEqual(a: GridRect, b: GridRect): boolean {
 }
 
 /** Normalizes two corner cells into a half-open GridRect. */
-export function rectFromCorners(a: CellCoord, b: CellCoord): GridRect {
+export function rectFromCorners(a: ViewCoord, b: ViewCoord): GridRect {
   const x = Math.min(a.col, b.col);
   const y = Math.min(a.row, b.row);
   const width = Math.abs(a.col - b.col) + 1;

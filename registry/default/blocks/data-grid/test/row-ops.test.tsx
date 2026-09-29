@@ -428,7 +428,7 @@ describe("reorderRows", () => {
     const wrapper = makeWrapper(onDataChange);
     const { result } = renderHook(() => useDataGridActions(), { wrapper });
 
-    act(() => result.current.startEditing({ col: 0, row: 0 }));
+    act(() => result.current.startEditingAt({ col: 0, row: 0 }));
     act(() => result.current.reorderRows(0, 2));
 
     expect(onDataChange).not.toHaveBeenCalled();
@@ -505,7 +505,7 @@ describe("reorderRows", () => {
       wrapper,
     });
 
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 })); // Charlie at view 0
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 })); // Charlie at view 0
     act(() => result.current.actions.reorderRows(0, 2)); // Charlie lands at view 2
 
     expect(result.current.activeCell).toEqual({ col: 0, row: 2 });
@@ -518,8 +518,8 @@ describe("reorderRows", () => {
     });
 
     // range over rows 1..2 (Alice, Bob), cols 0..1
-    act(() => result.current.actions.selectCell({ col: 0, row: 1 }));
-    act(() => result.current.actions.extendTo({ col: 1, row: 2 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 1 }));
+    act(() => result.current.actions.extendToAt({ col: 1, row: 2 }));
 
     // move Charlie (row 0) to final view 2: rows 1,2 shift to 0,1
     act(() => result.current.actions.reorderRows(0, 2));
@@ -587,7 +587,7 @@ describe("row ops rebuild the view index", () => {
 
     // name ascending: view is Alice(1), Bob(2), Charlie(0); active cell on Bob at view row 1.
     act(() => result.current.actions.setSorts([{ columnId: "name", direction: "asc" }]));
-    act(() => result.current.actions.selectCell({ col: 0, row: 1 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 1 }));
     expect(result.current.viewIndex).toEqual([1, 2, 0]);
 
     // insert above view row 0 (Alice): the new row lands at data index 1, ahead of Bob in the data array.
@@ -692,7 +692,7 @@ describe("row ops with an open edit session", () => {
       wrapper,
     });
 
-    act(() => result.current.actions.startEditing({ col: 0, row: 0 }));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
     act(() => result.current.actions.insertRows(0, 1));
 
     expect(onDataChange).not.toHaveBeenCalled();
@@ -709,7 +709,7 @@ describe("row ops with an open edit session", () => {
       wrapper,
     });
 
-    act(() => result.current.actions.startEditing({ col: 0, row: 0 }));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
     act(() => result.current.actions.deleteRows([0]));
 
     expect(onDataChange).not.toHaveBeenCalled();
@@ -726,7 +726,7 @@ describe("row ops with an open edit session", () => {
       wrapper,
     });
 
-    act(() => result.current.actions.startEditing({ col: 0, row: 0 }));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
     act(() => result.current.actions.duplicateRows([0]));
 
     expect(onDataChange).not.toHaveBeenCalled();

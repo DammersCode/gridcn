@@ -118,7 +118,7 @@ export function buildFillCandidates(
 
       // filled is generateFill's strip.height x strip.width output; row/col loop bounds match exactly
       const value = cellType.fromText(filled[row]![col]!, column.options);
-      candidates.push({ viewRow, columnId: column.id, value, validate: resolveColumnValidate(column, cellType), row: dataRow, rowId });
+      candidates.push({ viewRowIndex: viewRow, columnId: column.id, value, validate: resolveColumnValidate(column, cellType), row: dataRow, rowId });
     }
   }
   if (skippedHoleRows > 0 && isDev()) {
@@ -250,20 +250,20 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
           const applied = guard.reresolve(current, resolved.writes);
           actions.applyCellUpdates(applied, "fill");
           // Pulse the cells that actually landed — the re-resolved batch, not the held one.
-          actions.flashCells(applied.map((w) => flashCellKey(w.viewRow, w.columnId)));
+          actions.flashCells(applied.map((w) => flashCellKey(w.viewRowIndex, w.columnId)));
           fireRejected(resolved.rejected);
         });
       } else {
         actions.applyCellUpdates(resolution.writes, "fill");
-        actions.flashCells(resolution.writes.map((w) => flashCellKey(w.viewRow, w.columnId)));
+        actions.flashCells(resolution.writes.map((w) => flashCellKey(w.viewRowIndex, w.columnId)));
         fireRejected(resolution.rejected);
       }
 
       // expand selection to combineRects(source, strip): re-derive via the plain selectCell/extendTo
       // primitives (anchor at source's top-left corner, extend to the combined rect's far corner).
       const combined = combineRects(source, strip);
-      actions.selectCell({ col: combined.x, row: combined.y });
-      actions.extendTo({ col: combined.x + combined.width - 1, row: combined.y + combined.height - 1 });
+      actions.selectCellAt({ col: combined.x, row: combined.y });
+      actions.extendToAt({ col: combined.x + combined.width - 1, row: combined.y + combined.height - 1 });
     },
     [actions, guard, storeApi],
   );

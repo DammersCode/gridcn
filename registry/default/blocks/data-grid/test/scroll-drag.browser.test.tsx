@@ -642,8 +642,8 @@ describe("click-cell: active-column change must not re-render the whole visible 
     };
     const probeColumns: readonly ColumnDef<Row, unknown>[] = columns.map((c) => ({
       ...c,
-      renderCell: ({ value, rowIndex }: { value: unknown; rowIndex: number }) => {
-        bump(rowIndex, c.id);
+    renderCell: ({ value, viewRowIndex }: { value: unknown; viewRowIndex: number }) => {
+      bump(viewRowIndex, c.id);
         return String(value);
       },
     }));

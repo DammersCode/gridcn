@@ -38,7 +38,7 @@ function setUpGrid(wrapper: ReturnType<typeof makeWrapper>, opts: { readOnly?: b
     () => ({ actions: useDataGridActions(), storeApi: useDataGridStoreApi(), clipboard: useDataGridClipboard() }),
     { wrapper },
   );
-  act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
+  act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
   if (opts.readOnly) act(() => result.current.storeApi.getState().actions._registerReadOnly(true));
   return result;
 }
@@ -340,7 +340,7 @@ describe("useDataGridClipboard.copy/cut outcomes", () => {
     let outcome!: string;
     await act(async () => {
       const p = result.current.clipboard.cut();
-      act(() => result.current.actions.selectCell({ col: 0, row: 1 }));
+      act(() => result.current.actions.selectCellAt({ col: 0, row: 1 }));
       resolveWrite();
       outcome = await p;
     });

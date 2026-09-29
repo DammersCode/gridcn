@@ -1,4 +1,4 @@
-import type { CellCoord, GridRect } from "@/registry/default/blocks/data-grid/data-grid";
+import type { ViewCoord, GridRect } from "@/registry/default/blocks/data-grid/data-grid";
 
 /** Which axes a fill-handle drag is permitted to snap to (see glide-behavior-spec.md §3). */
 export type AllowedFillDirections = "orthogonal" | "horizontal" | "vertical" | "any";
@@ -33,7 +33,7 @@ function clampRect(rect: GridRect, colCount: number, rowCount: number): GridRect
  */
 export function computeFillTarget(
   source: GridRect,
-  cursor: CellCoord,
+  cursor: ViewCoord,
   opts: ComputeFillTargetOptions
 ): GridRect | null {
   let px = cursor.col;

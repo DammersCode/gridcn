@@ -18,7 +18,7 @@ import {
   useDataGridActions,
   useDataGridInstanceId,
   useDataGridLabels,
-  useDataGridScrollToCell,
+  useDataGridScrollToCellAt,
   useDataGridSearchCapped,
   useDataGridSearchMatches,
   useDataGridSearchText,
@@ -71,7 +71,7 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
   const matches = useDataGridSearchMatches();
   const capped = useDataGridSearchCapped();
   const visibleColumns = useDataGridVisibleColumns();
-  const scrollToCell = useDataGridScrollToCell();
+  const scrollToCell = useDataGridScrollToCellAt();
   const instanceId = useDataGridInstanceId();
 
   // local input value decoupled from the store's debounced searchText, so typing never stalls.
@@ -138,7 +138,7 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
       const col = visibleColumns.findIndex((c) => c.id === match.columnId);
       if (col === -1) return;
       const coord = { col, row: match.row };
-      actions.setActiveCell(coord);
+      actions.setActiveCellAt(coord);
       scrollToCell(coord);
     },
     [actions, scrollToCell, matches, visibleColumns],

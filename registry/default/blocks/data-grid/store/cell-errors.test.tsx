@@ -225,7 +225,7 @@ describe("auto-clear on successful commit", () => {
     expect(result.current.cellErrors.has("1:name")).toBe(true);
 
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
       result.current.actions.commitCellEdit("Charlotte");
     });
 
@@ -242,7 +242,7 @@ describe("auto-clear on successful commit", () => {
     });
 
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
       result.current.actions.commitCellEdit("Charlotte");
     });
 
@@ -257,7 +257,7 @@ describe("auto-clear on successful commit", () => {
     });
 
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
       result.current.actions.commitCellEdit("Charlie"); // same as the existing value
     });
 
@@ -278,7 +278,7 @@ describe("auto-clear on successful commit", () => {
     });
 
     act(() => {
-      result.current.actions.startEditing({ col: 1, row: 0 });
+      result.current.actions.startEditingAt({ col: 1, row: 0 });
       result.current.actions.commitCellEdit(-5);
     });
 
@@ -292,7 +292,7 @@ describe("auto-clear on successful commit", () => {
     });
 
     act(() => {
-      result.current.actions.commitCellValue({ col: 2, row: 0 }, true);
+      result.current.actions.commitCellValueAt({ col: 2, row: 0 }, true);
     });
 
     expect(result.current.cellErrors.has("1:active")).toBe(false);
@@ -308,8 +308,8 @@ describe("auto-clear on successful commit", () => {
     });
 
     act(() => {
-      result.current.actions.selectCell({ col: 0, row: 0 });
-      result.current.actions.extendTo({ col: 1, row: 0 });
+      result.current.actions.selectCellAt({ col: 0, row: 0 });
+      result.current.actions.extendToAt({ col: 1, row: 0 });
     });
     act(() => {
       result.current.actions.deleteSelection();
@@ -325,7 +325,7 @@ describe("auto-clear on successful commit", () => {
     });
 
     act(() => {
-      result.current.actions.applyCellUpdates([{ viewRow: 1, columnId: "name", value: "Allison" }], "paste");
+      result.current.actions.applyCellUpdates([{ viewRowIndex: 1, columnId: "name", value: "Allison" }], "paste");
     });
 
     expect(result.current.cellErrors.has("2:name")).toBe(false);
@@ -338,7 +338,7 @@ describe("auto-clear on successful commit", () => {
     });
 
     act(() => {
-      result.current.actions.applyCellUpdates([{ viewRow: 1, columnId: "name", value: "Allison" }], "paste");
+      result.current.actions.applyCellUpdates([{ viewRowIndex: 1, columnId: "name", value: "Allison" }], "paste");
     });
 
     expect(result.current.cellErrors.get("3:name")).toBe("stale");

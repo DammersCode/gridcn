@@ -143,24 +143,24 @@ describe("runValidateBatch — concurrency cap", () => {
 
 describe("resolveBulkWrites", () => {
   const candidates: BulkCandidate[] = [
-    { viewRow: 0, columnId: "a", value: 1, validate: asyncDouble, row: {} },
-    { viewRow: 0, columnId: "b", value: 2, validate: asyncReject, row: {} },
-    { viewRow: 1, columnId: "a", value: 3, validate: undefined, row: {} },
+    { viewRowIndex: 0, columnId: "a", value: 1, validate: asyncDouble, row: {}, rowId: "1" },
+    { viewRowIndex: 0, columnId: "b", value: 2, validate: asyncReject, row: {}, rowId: "1" },
+    { viewRowIndex: 1, columnId: "a", value: 3, validate: undefined, row: {}, rowId: "2" },
   ];
 
   it("keeps only the passing cells and commits the transformed value", async () => {
     await expect(resolveBulkWrites(candidates)).resolves.toEqual({
       writes: [
-        { viewRow: 0, columnId: "a", value: 2 },
-        { viewRow: 1, columnId: "a", value: 3 },
+        { viewRowIndex: 0, columnId: "a", value: 2, rowId: "1" },
+        { viewRowIndex: 1, columnId: "a", value: 3, rowId: "2" },
       ],
-      rejected: [{ viewRow: 0, columnId: "b", value: 2, message: "nope" }],
+      rejected: [{ rowId: "1", viewRowIndex: 0, columnId: "b", value: 2, message: "nope" }],
     });
   });
 
   it("stays synchronous when no candidate is async", () => {
-    const resolution = resolveBulkWrites([{ viewRow: 0, columnId: "a", value: 4, validate: syncDouble, row: {} }]);
+    const resolution = resolveBulkWrites([{ viewRowIndex: 0, columnId: "a", value: 4, validate: syncDouble, row: {}, rowId: "1" }]);
     expect(resolution).not.toBeInstanceOf(Promise);
-    expect(resolution).toEqual({ writes: [{ viewRow: 0, columnId: "a", value: 8 }], rejected: [] });
+    expect(resolution).toEqual({ writes: [{ viewRowIndex: 0, columnId: "a", value: 8 }], rejected: [] });
   });
 });

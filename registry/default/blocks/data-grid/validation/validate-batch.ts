@@ -99,18 +99,18 @@ async function settle(pending: Promise<StandardSchemaV1Result<unknown>>): Promis
 
 /** One view-space cell a bulk path wants to write, before validation: the parsed value plus what validates it. */
 export type BulkCandidate = {
-  viewRow: number;
+  viewRowIndex: number;
   columnId: string;
   value: unknown;
   validate: CellValidate;
   /** The row the value is validated against — the function form's second argument. */
   row: unknown;
   /** The target row's stable id, so a held batch can re-resolve its position after a reorder. */
-  rowId?: string;
+  rowId: string;
 };
 
 /** One accepted cell, in `applyCellUpdates`' write shape. `value` is the validator's OUTPUT, so a transforming schema's result is what commits. */
-export type BulkWrite = { viewRow: number; columnId: string; value: unknown; rowId?: string };
+export type BulkWrite = { viewRowIndex: number; columnId: string; value: unknown; rowId?: string };
 
 /** The settled answer of {@link resolveBulkWrites}: the accepted writes plus every rejected cell (the `onValidationError` payload). */
 export type BulkResolution = { writes: BulkWrite[]; rejected: GridBulkValidationError[] };
@@ -133,7 +133,7 @@ export function resolveBulkWrites(candidates: readonly BulkCandidate[]): BulkRes
 
 /**
  * `carryRowId` only on the async branch: a sync batch applies in the caller's own tick, where no
- * reorder can intervene, so its writes stay the exact `{ viewRow, columnId, value }` shape they
+ * reorder can intervene, so its writes stay the exact `{ viewRowIndex, columnId, value }` shape they
  * have always had — the apply-time re-resolution is a held batch's concern alone.
  */
 function toResolution(candidates: readonly BulkCandidate[], results: readonly ValidateResult[], carryRowId: boolean): BulkResolution {
@@ -143,11 +143,11 @@ function toResolution(candidates: readonly BulkCandidate[], results: readonly Va
     const result = results[i];
     const candidate = candidates[i]!; // i < candidates.length by loop condition
     if (!result || "error" in result) {
-      if (result && "error" in result) rejected.push({ viewRow: candidate.viewRow, columnId: candidate.columnId, value: candidate.value, message: result.error });
+      if (result && "error" in result) rejected.push({ rowId: candidate.rowId, viewRowIndex: candidate.viewRowIndex, columnId: candidate.columnId, value: candidate.value, message: result.error });
       continue;
     }
-    const write: BulkWrite = { viewRow: candidate.viewRow, columnId: candidate.columnId, value: result.value };
-    if (carryRowId && candidate.rowId !== undefined) write.rowId = candidate.rowId;
+    const write: BulkWrite = { viewRowIndex: candidate.viewRowIndex, columnId: candidate.columnId, value: result.value };
+    if (carryRowId) write.rowId = candidate.rowId;
     writes.push(write);
   }
   return { writes, rejected };

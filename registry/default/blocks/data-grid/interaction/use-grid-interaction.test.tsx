@@ -180,7 +180,7 @@ function pressKey(
 describe("useGridInteraction onKeyDown", () => {
   it("moves the active cell on ArrowDown", () => {
     const { hook } = renderInteraction();
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     act(() => {
       hook.result.current.interaction.onKeyDown({
@@ -200,7 +200,7 @@ describe("useGridInteraction onKeyDown", () => {
 
   it("extends the selection on Shift+ArrowDown instead of moving the anchor", () => {
     const { hook } = renderInteraction();
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     act(() => {
       hook.result.current.interaction.onKeyDown({
@@ -220,7 +220,7 @@ describe("useGridInteraction onKeyDown", () => {
 
   it("ignores the key entirely when event.isComposing (IME)", () => {
     const { hook } = renderInteraction();
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     act(() => {
       hook.result.current.interaction.onKeyDown({
@@ -241,8 +241,8 @@ describe("useGridInteraction onKeyDown", () => {
 
   it("does not dispatch grid-level actions while editing (the editor owns the key)", () => {
     const { hook } = renderInteraction();
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
-    act(() => hook.result.current.actions.startEditing({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.startEditingAt({ col: 0, row: 0 }));
     hook.rerender();
     act(() => {
       hook.result.current.interaction.onKeyDown({
@@ -266,7 +266,7 @@ describe("useGridInteraction onKeyDown", () => {
   // sparse-data region/whole-grid staging itself).
   it("selectAll (dense data) selects the whole grid on the first press", () => {
     const { hook } = renderInteraction(5);
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     const ctrlA = () =>
       act(() => {
@@ -291,7 +291,7 @@ describe("useGridInteraction onKeyDown", () => {
 
   it("a printable key with no bound action starts editing seeded with the typed char", () => {
     const { hook } = renderInteraction();
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     let prevented = false;
     act(() => {
@@ -312,7 +312,7 @@ describe("useGridInteraction onKeyDown", () => {
 
   it("seeds the editor with the typed char (replace mode) on implicit type-to-replace", () => {
     const { hook } = renderInteraction();
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     pressKey(hook, "x");
     const editing = hook.result.current.storeApi.getState().editing;
@@ -321,7 +321,7 @@ describe("useGridInteraction onKeyDown", () => {
 
   it("dispatches editReplace when a keymap binding matches (remappable)", () => {
     const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, editReplace: ["F3"] } });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 2 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 2 }));
     hook.rerender();
     pressKey(hook, "F3");
     const state = hook.result.current.storeApi.getState();
@@ -330,7 +330,7 @@ describe("useGridInteraction onKeyDown", () => {
 
   it("a printable key bound to nothing else still type-to-replaces while editReplace is unbound", () => {
     const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, edit: ["F2"] } });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     pressKey(hook, "k");
     const editing = hook.result.current.storeApi.getState().editing;
@@ -339,7 +339,7 @@ describe("useGridInteraction onKeyDown", () => {
 
   it("disables implicit type-to-replace when the keymap defines editReplace (even empty)", () => {
     const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, editReplace: [] } });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     let prevented = false;
     pressKey(hook, "x", {}, () => {
@@ -351,7 +351,7 @@ describe("useGridInteraction onKeyDown", () => {
 
   it("a keymap remap of editReplace suppresses the implicit printable-key fallback", () => {
     const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, editReplace: ["F3"] } });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     pressKey(hook, "x");
     expect(hook.result.current.storeApi.getState().editing).toBeNull();
@@ -363,7 +363,7 @@ describe("useGridInteraction onKeyDown", () => {
       { id: "qty", header: "Qty", accessorKey: "qty", type: "checkbox" },
     ];
     const { hook } = renderInteraction(3, { columns: checkboxColumns });
-    act(() => hook.result.current.actions.selectCell({ col: 1, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 1, row: 0 }));
     hook.rerender();
     const before = hook.result.current.storeApi.getState().data[0];
     pressKey(hook, "x");
@@ -374,7 +374,7 @@ describe("useGridInteraction onKeyDown", () => {
 
   it("cancel (Escape) clears the selection", () => {
     const { hook } = renderInteraction();
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     act(() => {
       hook.result.current.interaction.onKeyDown({
@@ -408,7 +408,7 @@ describe("useGridInteraction onKeyDown", () => {
 
   it("grows the range from the anchor's far edge on repeated Shift+ArrowDown, instead of resetting to height 2", () => {
     const { hook } = renderInteraction();
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
 
     pressShiftArrowDown(hook);
@@ -425,7 +425,7 @@ describe("useGridInteraction onKeyDown", () => {
 
   it("Tab/Shift+Tab move the active cell right/left outside of editing", () => {
     const { hook } = renderInteraction();
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
 
     let prevented = false;
@@ -467,7 +467,7 @@ describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
   it("insertRowBelow inserts a new row below the active cell when createRow is provided", () => {
     const createRow = (index: number): Row => ({ id: `new-${index}`, name: "new", qty: 0 });
     const { hook } = renderInteraction(3, { createRow });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
 
     pressKey(hook, "f", { ctrlKey: true, shiftKey: true });
@@ -477,7 +477,7 @@ describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
 
   it("insertRowBelow is a no-op when createRow is absent", () => {
     const { hook } = renderInteraction(3);
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
 
     pressKey(hook, "f", { ctrlKey: true, shiftKey: true });
@@ -488,7 +488,7 @@ describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
   it("insertRowBelow is a no-op on a readOnly grid even with createRow provided", () => {
     const createRow = (index: number): Row => ({ id: `new-${index}`, name: "new", qty: 0 });
     const { hook } = renderInteraction(3, { readOnly: true, createRow });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
 
     pressKey(hook, "f", { ctrlKey: true, shiftKey: true });
@@ -499,7 +499,7 @@ describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
   it("duplicateRow duplicates the active row when duplicateRow is provided", () => {
     const duplicateRow = (row: Row, index: number): Row => ({ ...row, id: `dup-${index}` });
     const { hook } = renderInteraction(3, { duplicateRow });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 1 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 1 }));
     hook.rerender();
 
     pressKey(hook, "x", { ctrlKey: true, shiftKey: true });
@@ -509,7 +509,7 @@ describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
 
   it("duplicateRow is a no-op when the duplicateRow prop is absent", () => {
     const { hook } = renderInteraction(3);
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 1 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 1 }));
     hook.rerender();
 
     pressKey(hook, "x", { ctrlKey: true, shiftKey: true });
@@ -520,7 +520,7 @@ describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
   it("duplicateRow is a no-op on a readOnly grid even with the duplicateRow prop provided", () => {
     const duplicateRow = (row: Row, index: number): Row => ({ ...row, id: `dup-${index}` });
     const { hook } = renderInteraction(3, { readOnly: true, duplicateRow });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 1 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 1 }));
     hook.rerender();
 
     pressKey(hook, "x", { ctrlKey: true, shiftKey: true });
@@ -532,8 +532,8 @@ describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
     const duplicateRow = (row: Row, index: number): Row => ({ ...row, id: `dup-${index}` });
     const { hook } = renderInteraction(3, { duplicateRow });
     act(() => {
-      hook.result.current.actions.selectCell({ col: 0, row: 0 });
-      hook.result.current.actions.extendTo({ col: 0, row: 2 });
+      hook.result.current.actions.selectCellAt({ col: 0, row: 0 });
+      hook.result.current.actions.extendToAt({ col: 0, row: 2 });
     });
     hook.rerender();
     expect(hook.result.current.selection.current?.range).toEqual({ x: 0, y: 0, width: 1, height: 3 });
@@ -547,7 +547,7 @@ describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
     const duplicateRow = (row: Row, index: number): Row => ({ ...row, id: `dup-${index}` });
     const { hook } = renderInteraction(3, { duplicateRow });
     act(() => {
-      hook.result.current.actions.selectCell({ col: 0, row: 1 });
+      hook.result.current.actions.selectCellAt({ col: 0, row: 1 });
       hook.result.current.actions.clearSelection();
     });
     hook.rerender();
@@ -562,7 +562,7 @@ describe("useGridInteraction: insertRowAbove/deleteRows dispatch", () => {
   it("insertRowAbove inserts a new row above the active cell when createRow is provided", () => {
     const createRow = (index: number): Row => ({ id: `new-${index}`, name: "new", qty: 0 });
     const { hook } = renderInteraction(3, { createRow });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 1 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 1 }));
     hook.rerender();
 
     pressKey(hook, "u", { ctrlKey: true, shiftKey: true });
@@ -573,7 +573,7 @@ describe("useGridInteraction: insertRowAbove/deleteRows dispatch", () => {
 
   it("insertRowAbove is a no-op when createRow is absent", () => {
     const { hook } = renderInteraction(3);
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
 
     pressKey(hook, "u", { ctrlKey: true, shiftKey: true });
@@ -584,7 +584,7 @@ describe("useGridInteraction: insertRowAbove/deleteRows dispatch", () => {
   it("insertRowAbove is a no-op on a readOnly grid even with createRow provided", () => {
     const createRow = (index: number): Row => ({ id: `new-${index}`, name: "new", qty: 0 });
     const { hook } = renderInteraction(3, { readOnly: true, createRow });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
 
     pressKey(hook, "u", { ctrlKey: true, shiftKey: true });
@@ -595,8 +595,8 @@ describe("useGridInteraction: insertRowAbove/deleteRows dispatch", () => {
   it("deleteRows deletes every view row covered by the selection", () => {
     const { hook } = renderInteraction(3, { uncontrolled: true });
     act(() => {
-      hook.result.current.actions.selectCell({ col: 0, row: 0 });
-      hook.result.current.actions.extendTo({ col: 0, row: 1 });
+      hook.result.current.actions.selectCellAt({ col: 0, row: 0 });
+      hook.result.current.actions.extendToAt({ col: 0, row: 1 });
     });
     hook.rerender();
 
@@ -607,7 +607,7 @@ describe("useGridInteraction: insertRowAbove/deleteRows dispatch", () => {
 
   it("deleteRows falls back to the active row when nothing is selected", () => {
     const { hook } = renderInteraction(3, { uncontrolled: true });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 1 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 1 }));
     hook.rerender();
 
     pressKey(hook, "Backspace", { ctrlKey: true, shiftKey: true });
@@ -617,7 +617,7 @@ describe("useGridInteraction: insertRowAbove/deleteRows dispatch", () => {
 
   it("deleteRows is a no-op on a readOnly grid", () => {
     const { hook } = renderInteraction(3, { readOnly: true });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
 
     pressKey(hook, "Backspace", { ctrlKey: true, shiftKey: true });

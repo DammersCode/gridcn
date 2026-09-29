@@ -1,7 +1,7 @@
-import type { CellCoord, GridSelection } from "@/registry/default/blocks/data-grid/data-grid";
+import type { ViewCoord, GridSelection } from "@/registry/default/blocks/data-grid/data-grid";
 
 /** Whether `coord` falls inside `selection`'s primary range, any stacked range, or the row/column channels — used to decide the Excel "right-click outside selection selects that cell first" gesture. */
-export function isCellInSelection(selection: GridSelection, coord: CellCoord): boolean {
+export function isCellInSelection(selection: GridSelection, coord: ViewCoord): boolean {
   if (selection.rows.hasIndex(coord.row)) return true;
   if (selection.columns.hasIndex(coord.col)) return true;
   if (!selection.current) return false;

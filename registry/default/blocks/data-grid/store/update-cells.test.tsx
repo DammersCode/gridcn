@@ -535,7 +535,7 @@ describe("updateCells — incremental view maintenance", () => {
     act(() => result.current.actions.setSorts(sortByName));
     act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Yankee" }]));
     // commitCellValue writes a value outside updateCells, so the pending set can no longer be trusted.
-    act(() => result.current.actions.commitCellValue({ col: 0, row: 0 }, "Xray"));
+    act(() => result.current.actions.commitCellValueAt({ col: 0, row: 0 }, "Xray"));
     act(() => result.current.actions.reconcileView());
     // b is now Xray: Bob(c), Xray(b), Yankee(a)
     expect(result.current.viewIndex).toEqual([2, 1, 0]);
@@ -644,8 +644,8 @@ describe("updateCells — interaction state is never moved", () => {
 
   it("leaves selection, activeCell, and editing untouched", () => {
     const { result } = renderInteraction();
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
-    act(() => result.current.actions.startEditing({ col: 0, row: 0 }, "typed"));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }, "typed"));
     const selection = result.current.selection;
     const activeCell = result.current.activeCell;
     const editing = result.current.editing;
@@ -659,8 +659,8 @@ describe("updateCells — interaction state is never moved", () => {
 
   it("contrasts with applyCellUpdates, which moves the selection to the touched rect by design", () => {
     const { result } = renderInteraction();
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
-    act(() => result.current.actions.applyCellUpdates([{ viewRow: 2, columnId: "price", value: 2 }], "paste"));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    act(() => result.current.actions.applyCellUpdates([{ viewRowIndex: 2, columnId: "price", value: 2 }], "paste"));
     expect(result.current.activeCell).toEqual({ col: 1, row: 2 });
   });
 });
@@ -754,7 +754,7 @@ describe("rowId index maintenance — one case per mutation path", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange, defaultData: rows() });
     warm(result);
-    act(() => result.current.actions.commitCellValue({ col: 0, row: 1 }, "Renamed"));
+    act(() => result.current.actions.commitCellValueAt({ col: 0, row: 1 }, "Renamed"));
     act(() => result.current.actions.updateCells([{ rowId: "b", columnId: "price", value: 100 }]));
     const next = lastData(onDataChange);
     expect(next.find((r) => r.id === "b")).toMatchObject({ name: "Renamed", price: 100 });
@@ -764,7 +764,7 @@ describe("rowId index maintenance — one case per mutation path", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange, defaultData: rows() });
     warm(result);
-    act(() => result.current.actions.applyCellUpdates([{ viewRow: 2, columnId: "name", value: "Pasted" }], "paste"));
+    act(() => result.current.actions.applyCellUpdates([{ viewRowIndex: 2, columnId: "name", value: "Pasted" }], "paste"));
     act(() => result.current.actions.updateCells([{ rowId: "c", columnId: "price", value: 100 }]));
     const next = lastData(onDataChange);
     expect(next.find((r) => r.id === "c")).toMatchObject({ name: "Pasted", price: 100 });
@@ -774,7 +774,7 @@ describe("rowId index maintenance — one case per mutation path", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange, defaultData: rows() });
     warm(result);
-    act(() => result.current.actions.selectCell({ col: 0, row: 1 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 1 }));
     act(() => result.current.actions.deleteSelection());
     act(() => result.current.actions.updateCells([{ rowId: "b", columnId: "price", value: 100 }]));
     expect(lastData(onDataChange).find((r) => r.id === "b")!.price).toBe(100);
@@ -1033,14 +1033,14 @@ describe("direct write paths — viewStale and searchMatches", () => {
     const { result } = renderHarness({ sortState: sortByName });
     expect(result.current.viewStale).toBe(false);
     // view order under name-asc is [Alice(b), Bob(c), Charlie(a)]; viewRow 0 is row "b".
-    act(() => result.current.actions.applyCellUpdates([{ viewRow: 0, columnId: "name", value: "Zulu" }], "paste"));
+    act(() => result.current.actions.applyCellUpdates([{ viewRowIndex: 0, columnId: "name", value: "Zulu" }], "paste"));
     expect(result.current.viewStale).toBe(true);
     expect(result.current.viewIndex).toEqual([1, 2, 0]);
   });
 
   it("reconcileView recovers the order applyCellUpdates deferred", () => {
     const { result } = renderHarness({ sortState: sortByName });
-    act(() => result.current.actions.applyCellUpdates([{ viewRow: 0, columnId: "name", value: "Zulu" }], "paste"));
+    act(() => result.current.actions.applyCellUpdates([{ viewRowIndex: 0, columnId: "name", value: "Zulu" }], "paste"));
     act(() => result.current.actions.reconcileView());
     expect(result.current.viewIndex).toEqual([2, 0, 1]);
     expect(result.current.viewStale).toBe(false);
@@ -1050,27 +1050,27 @@ describe("direct write paths — viewStale and searchMatches", () => {
     const { result } = renderHarness({
       filterState: [{ columnId: "name", operator: "contains", value: "a" }],
     });
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
     act(() => result.current.actions.deleteSelection());
     expect(result.current.viewStale).toBe(true);
   });
 
   it("commitCellValue flips viewStale when it writes a sort column", () => {
     const { result } = renderHarness({ sortState: sortByName });
-    act(() => result.current.actions.commitCellValue({ col: 0, row: 0 }, "Zulu"));
+    act(() => result.current.actions.commitCellValueAt({ col: 0, row: 0 }, "Zulu"));
     expect(result.current.viewStale).toBe(true);
   });
 
   it("commitCellEdit flips viewStale when it writes a sort column", () => {
     const { result } = renderHarness({ sortState: sortByName });
-    act(() => result.current.actions.startEditing({ col: 0, row: 0 }));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
     act(() => result.current.actions.commitCellEdit("Zulu"));
     expect(result.current.viewStale).toBe(true);
   });
 
   it("leaves viewStale false when the written column feeds neither sort nor filter", () => {
     const { result } = renderHarness({ sortState: sortByName });
-    act(() => result.current.actions.applyCellUpdates([{ viewRow: 0, columnId: "price", value: 999 }], "paste"));
+    act(() => result.current.actions.applyCellUpdates([{ viewRowIndex: 0, columnId: "price", value: 999 }], "paste"));
     expect(result.current.viewStale).toBe(false);
   });
 
@@ -1079,7 +1079,7 @@ describe("direct write paths — viewStale and searchMatches", () => {
     act(() => result.current.actions.setSearch("Zulu"));
     expect(result.current.searchMatches).toHaveLength(0);
 
-    act(() => result.current.actions.applyCellUpdates([{ viewRow: 0, columnId: "name", value: "Zulu" }], "paste"));
+    act(() => result.current.actions.applyCellUpdates([{ viewRowIndex: 0, columnId: "name", value: "Zulu" }], "paste"));
 
     expect(result.current.searchMatches).toHaveLength(1);
     expect(result.current.searchMatches[0]).toMatchObject({ row: 0, columnId: "name" });
@@ -1090,7 +1090,7 @@ describe("direct write paths — viewStale and searchMatches", () => {
     act(() => result.current.actions.setSearch("Charlie"));
     expect(result.current.searchMatches).toHaveLength(1);
 
-    act(() => result.current.actions.applyCellUpdates([{ viewRow: 0, columnId: "name", value: "Zulu" }], "paste"));
+    act(() => result.current.actions.applyCellUpdates([{ viewRowIndex: 0, columnId: "name", value: "Zulu" }], "paste"));
 
     expect(result.current.searchMatches).toHaveLength(0);
   });
@@ -1098,7 +1098,7 @@ describe("direct write paths — viewStale and searchMatches", () => {
   it("deleteSelection drops the searchMatch on the cleared cell", () => {
     const { result } = renderHarness();
     act(() => result.current.actions.setSearch("Charlie"));
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
     act(() => result.current.actions.deleteSelection());
     expect(result.current.searchMatches).toHaveLength(0);
   });
@@ -1106,14 +1106,14 @@ describe("direct write paths — viewStale and searchMatches", () => {
   it("commitCellValue recomputes searchMatches", () => {
     const { result } = renderHarness();
     act(() => result.current.actions.setSearch("Zulu"));
-    act(() => result.current.actions.commitCellValue({ col: 0, row: 0 }, "Zulu"));
+    act(() => result.current.actions.commitCellValueAt({ col: 0, row: 0 }, "Zulu"));
     expect(result.current.searchMatches).toHaveLength(1);
   });
 
   it("commitCellEdit recomputes searchMatches", () => {
     const { result } = renderHarness();
     act(() => result.current.actions.setSearch("Zulu"));
-    act(() => result.current.actions.startEditing({ col: 0, row: 0 }));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
     act(() => result.current.actions.commitCellEdit("Zulu"));
     expect(result.current.searchMatches).toHaveLength(1);
   });
@@ -1121,7 +1121,7 @@ describe("direct write paths — viewStale and searchMatches", () => {
   it("allocates no new search state when no search is active", () => {
     const { result } = renderHarness();
     const before = result.current.searchMatches;
-    act(() => result.current.actions.applyCellUpdates([{ viewRow: 0, columnId: "name", value: "Zulu" }], "paste"));
+    act(() => result.current.actions.applyCellUpdates([{ viewRowIndex: 0, columnId: "name", value: "Zulu" }], "paste"));
     expect(result.current.searchMatches).toBe(before);
   });
 });

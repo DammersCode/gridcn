@@ -55,7 +55,7 @@ describe("onEditStart", () => {
     const onEditStart = vi.fn(() => false);
     const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditStart }) });
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
     });
     expect(onEditStart).toHaveBeenCalledWith({ col: 0, row: 0 });
     expect(result.current.editing).toBeNull();
@@ -65,7 +65,7 @@ describe("onEditStart", () => {
     const onEditStart = vi.fn();
     const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditStart }) });
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
     });
     expect(onEditStart).toHaveBeenCalledWith({ col: 0, row: 0 });
     expect(result.current.editing).not.toBeNull();
@@ -79,7 +79,7 @@ describe("onEditStart", () => {
     ];
     const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditStart, columns: readOnlyColumns }) });
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
     });
     expect(onEditStart).not.toHaveBeenCalled();
     expect(result.current.editing).toBeNull();
@@ -91,7 +91,7 @@ describe("onEditEnd", () => {
     const onEditEnd = vi.fn();
     const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditEnd }) });
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
     });
     act(() => {
       result.current.actions.commitCellEdit("x");
@@ -104,7 +104,7 @@ describe("onEditEnd", () => {
     const onEditEnd = vi.fn();
     const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditEnd, columns: validatingColumns }) });
     act(() => {
-      result.current.actions.startEditing({ col: 1, row: 0 });
+      result.current.actions.startEditingAt({ col: 1, row: 0 });
     });
     act(() => {
       result.current.actions.commitCellEdit(-1);
@@ -117,7 +117,7 @@ describe("onEditEnd", () => {
     const onEditEnd = vi.fn();
     const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditEnd }) });
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
     });
     act(() => {
       result.current.actions.commitCellEdit("Row 0");
@@ -129,7 +129,7 @@ describe("onEditEnd", () => {
     const onEditEnd = vi.fn();
     const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditEnd }) });
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
     });
     act(() => {
       result.current.actions.cancelEditing();
@@ -147,7 +147,7 @@ describe("onEditEnd", () => {
     });
     const { result } = renderHook(useActionsAndEditing, { wrapper });
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
     });
     order.length = 0; // startEditing's own cursor move is a separate gesture
     act(() => {
@@ -163,16 +163,16 @@ describe("onActiveCellChange", () => {
     const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper({ onActiveCellChange }) });
     expect(onActiveCellChange).not.toHaveBeenCalled();
     act(() => {
-      result.current.selectCell({ col: 1, row: 0 });
+      result.current.selectCellAt({ col: 1, row: 0 });
     });
     expect(onActiveCellChange).toHaveBeenCalledTimes(1);
     expect(onActiveCellChange).toHaveBeenLastCalledWith({ col: 1, row: 0 });
     act(() => {
-      result.current.selectCell({ col: 1, row: 0 });
+      result.current.selectCellAt({ col: 1, row: 0 });
     });
     expect(onActiveCellChange).toHaveBeenCalledTimes(1);
     act(() => {
-      result.current.selectCell({ col: 0, row: 1 });
+      result.current.selectCellAt({ col: 0, row: 1 });
     });
     expect(onActiveCellChange).toHaveBeenCalledTimes(2);
     expect(onActiveCellChange).toHaveBeenLastCalledWith({ col: 0, row: 1 });
@@ -186,10 +186,12 @@ describe("DOM cell events", () => {
     render(<DataGrid data={data} columns={columns} getRowId={(r) => r.id} onCellDoubleClick={onCellDoubleClick} />);
     fireEvent.doubleClick(screen.getByRole("gridcell", { name: "Row 1" }));
     expect(onCellDoubleClick).toHaveBeenCalledTimes(1);
-    const [ctx, event] = onCellDoubleClick.mock.calls[0]! as [{ row: unknown; rowIndex: number; columnIndex: number }, MouseEvent];
+    const [ctx, event] = onCellDoubleClick.mock.calls[0]! as [{ row: unknown; rowId: string; columnId: string; viewRowIndex: number; viewColumnIndex: number }, MouseEvent];
     expect(ctx.row).toBe(data[1]);
-    expect(ctx.rowIndex).toBe(1);
-    expect(ctx.columnIndex).toBe(0);
+    expect(ctx.rowId).toBe("2");
+    expect(ctx.columnId).toBe("name");
+    expect(ctx.viewRowIndex).toBe(1);
+    expect(ctx.viewColumnIndex).toBe(0);
     expect(event).toBeInstanceOf(MouseEvent);
   });
 
@@ -205,8 +207,9 @@ describe("DOM cell events", () => {
     render(<DataGrid data={rows()} columns={columns} getRowId={(r) => r.id} onCellContextMenu={onCellContextMenu} />);
     fireEvent.contextMenu(screen.getByRole("gridcell", { name: "Row 1" }));
     expect(onCellContextMenu).toHaveBeenCalledTimes(1);
-    const [ctx, event] = onCellContextMenu.mock.calls[0]! as [{ row: unknown; rowIndex: number }, MouseEvent];
-    expect(ctx.rowIndex).toBe(1);
+    const [ctx, event] = onCellContextMenu.mock.calls[0]! as [{ row: unknown; rowId: string; viewRowIndex: number }, MouseEvent];
+    expect(ctx.rowId).toBe("2");
+    expect(ctx.viewRowIndex).toBe(1);
     expect(event).toBeInstanceOf(MouseEvent);
   });
 });

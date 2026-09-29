@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type {
-  CellCoord,
+  CellRef,
+  ViewCoord,
   CellType,
   ColumnDef,
   ColumnLayout,
@@ -24,6 +25,7 @@ import type { DataGridLabels, DeepPartialLabels } from "../labels";
 import type { SearchMatch } from "../sort-filter";
 import type { ExtendDirection, SelectLineOptions } from "../selection";
 import type { ColRange } from "../selection/selected-col-ranges-for-row";
+import type { DataWriteContext } from "./data-write";
 
 /** Live props synced from the consumer's render into the store on every change, typed over the consumer's row shape. */
 export type DataGridSyncProps<TData = unknown> = {
@@ -75,7 +77,7 @@ export type DataGridSyncProps<TData = unknown> = {
   /** Overrides parsing pasted text into a cell value; falls back to the cell type's `fromText`. */
   processCellFromClipboard?: (text: string, ctx: ClipboardProcessCtx<TData>) => unknown;
   /** Runs on the parsed paste grid before it's applied; returning `false` vetoes the paste entirely. */
-  processPaste?: (cells: string[][], target: CellCoord) => string[][] | false;
+  processPaste?: (cells: string[][], target: ViewCoord) => string[][] | false;
   /** Marker column mode; default 'none'. See {@link RowMarkersMode}. */
   rowMarkers?: RowMarkersMode;
   /** Whole-row selection channel gestures (marker click, Shift+Space); default true. */
@@ -190,14 +192,14 @@ export type DataGridSyncProps<TData = unknown> = {
     * `_syncProps`. Re-selecting the same cell does not fire. Fired by a single store subscription,
     * so every write path to `activeCell` is covered.
     */
-   onActiveCellChange?: (next: CellCoord | null) => void;
+   onActiveCellChange?: (next: ViewCoord | null) => void;
    /**
     * Fired when an edit session is about to start (Enter/F2, type-to-replace, double-click) with
     * the target coord. Return `false` to VETO the edit — `startEditing` then makes no state change
     * at all (no session, no cursor move). Checkbox cells never start an edit session, so the veto
     * never applies to them.
     */
-   onEditStart?: (coord: CellCoord) => boolean | void;
+   onEditStart?: (coord: ViewCoord) => boolean | void;
    /**
     * Fired when an edit session ends or a commit attempt is refused — `commit` after the session
     * closes, `cancel` when the draft is discarded, `rejected` when validation refused a commit and
@@ -422,7 +424,7 @@ export type DataGridStoreState = Omit<
   enableRowReorder: boolean;
   enableColumnPinning: boolean;
   headerClickBehavior: HeaderClickBehavior;
-  activeCell: CellCoord | null;
+  activeCell: ViewCoord | null;
   selection: GridSelection;
   /**
    * Two-stage Ctrl+A progression (select-all-progression.ts): which stage the last `selectAll`
@@ -431,14 +433,14 @@ export type DataGridStoreState = Omit<
    * selectRow/selectColumn/_moveActiveCell/edits/row ops) changes that identity, so `selectAll`
    * detects the mismatch and restarts from stage 1 — no need to instrument every reset site.
    */
-  selectAllStage: { stage: "region" | "all"; selection: GridSelection; activeCell: CellCoord | null } | null;
+  selectAllStage: { stage: "region" | "all"; selection: GridSelection; activeCell: ViewCoord | null } | null;
   /**
    * `coord` is the view anchor, remapped by every viewIndex/visibleColumns rebuild so the editor
    * follows its row; `rowId`/`columnId` are the identity anchor the commit resolves against, so a
    * missed remap can never write the draft into a different row. When the row (or column) leaves
    * the view the session is cancelled and the draft dropped.
    */
-  editing: { coord: CellCoord; rowId: string; columnId: string; initialText?: string } | null;
+  editing: { coord: ViewCoord; rowId: string; columnId: string; initialText?: string } | null;
   /** Transient rejection message from the last failed commitCellEdit; cleared on the next startEditing/commit/cancel. */
   editingError: string | null;
   /**
@@ -542,7 +544,9 @@ export type DataGridStoreState = Omit<
    * as a `DataGridRoot` sibling) move the viewport without reaching into
    * root-internal refs. See {@link useDataGridScrollToCell}.
    */
-  scrollToCellImpl: ((coord: CellCoord) => void) | null;
+  scrollToCellImpl: ((coord: ViewCoord) => void) | null;
+  /** @internal The data-write cluster's mutable context box (see `data-write.ts`); exposed here so the `useDataGridScrollToCell` ref resolution shares its row-index cache and stale-ref warn flag. */
+  dataWrite: DataWriteContext;
   /**
    * Fill-handle keymap handlers, registered by the `data-grid-fill` add-on's tracker
    * component — which must render somewhere inside `DataGridRoot`'s subtree to reach `scrollRef`/
@@ -592,11 +596,23 @@ export type DataGridActions = {
    * and fires it). After Escape/`clearSelection`, `selection.current` is `null` while `activeCell`
    * still exists — read the active cell from `activeCell`, not from `selection.current.cell`.
    */
-  setActiveCell(coord: CellCoord | null): void;
-  selectCell(coord: CellCoord): void;
-  extendTo(coord: CellCoord): void;
-  extendSelection(direction: ExtendDirection, opts?: { toEdge?: boolean }): void;
-  pushRange(coord: CellCoord): void;
+   /** Moves the active cell to the cell named by the stable {@link CellRef}; `null` clears it. */
+   setActiveCell(ref: CellRef | null): void;
+   /** View-space variant of {@link DataGridActions.setActiveCell} for callers that hold a {@link ViewCoord}. */
+   setActiveCellAt(coord: ViewCoord | null): void;
+   /** Selects the cell named by the stable {@link CellRef} as a single-cell selection. */
+   selectCell(ref: CellRef): void;
+   /** View-space variant of {@link DataGridActions.selectCell} for callers that hold a {@link ViewCoord}. */
+   selectCellAt(coord: ViewCoord): void;
+   /** Extends the selection to the cell named by the stable {@link CellRef}. */
+   extendTo(ref: CellRef): void;
+   /** View-space variant of {@link DataGridActions.extendTo} for callers that hold a {@link ViewCoord}. */
+   extendToAt(coord: ViewCoord): void;
+   extendSelection(direction: ExtendDirection, opts?: { toEdge?: boolean }): void;
+   /** Pushes a ctrl-click range to the cell named by the stable {@link CellRef}. */
+   pushRange(ref: CellRef): void;
+   /** View-space variant of {@link DataGridActions.pushRange} for callers that hold a {@link ViewCoord}. */
+   pushRangeAt(coord: ViewCoord): void;
   selectRow(index: number, opts?: SelectLineActionOptions): void;
   selectColumn(index: number, opts?: SelectLineActionOptions): void;
   selectAll(): void;
@@ -650,8 +666,10 @@ export type DataGridActions = {
   setJoinOperator(joinOperator: FilterJoinOperator): void;
   /** Sets quick-search text and recomputes `searchMatches`/`searchMatchSet`/`searchMatchesCapped` once; never touches `viewIndex`. */
   setSearch(text: string): void;
-  /** Enters edit mode at `coord` (view-space); no-op when the column is readOnly or its type is unregistered. */
-  startEditing(coord: CellCoord, initialText?: string): void;
+  /** Enters edit mode at the cell named by the stable {@link CellRef}; no-op when the column is readOnly or its type is unregistered. */
+  startEditing(ref: CellRef, initialText?: string): void;
+  /** View-space variant of {@link DataGridActions.startEditing} for callers that hold a {@link ViewCoord}. */
+  startEditingAt(coord: ViewCoord, initialText?: string): void;
   /** Discards the in-progress edit without emitting a change. */
   cancelEditing(): void;
   /**
@@ -661,8 +679,10 @@ export type DataGridActions = {
    * a schema Promise's issues, so the layer forwards the message to flag the cell.
    */
   commitCellEdit(value: unknown, movement?: { dx: number; dy: number }, rejection?: string): void;
-  /** Direct-write path for types with no edit mode (checkbox): validates and commits `value` at `coord` without requiring `startEditing` first, and never moves the active cell. */
-  commitCellValue(coord: CellCoord, value: unknown): void;
+  /** Direct-write path for types with no edit mode (checkbox): validates and commits `value` at the cell named by the stable {@link CellRef} without requiring `startEditing` first, and never moves the active cell. */
+  commitCellValue(ref: CellRef, value: unknown): void;
+  /** View-space variant of {@link DataGridActions.commitCellValue} for callers that hold a {@link ViewCoord}. */
+  commitCellValueAt(coord: ViewCoord, value: unknown): void;
   /**
    * Sets `editingError` and bumps `editingRejectionCount` (the editors' commit-guard re-arm
    * nonce) without touching `editing`/`data` — used by the async Standard Schema commit path (see
@@ -696,7 +716,7 @@ export type DataGridActions = {
    * (last write wins), skips readOnly cells and no-op writes, preserves identity of untouched rows,
    * suppresses an empty batch entirely, and moves the selection to cover the touched view rect.
    */
-  applyCellUpdates(updates: { viewRow: number; columnId: string; value: unknown }[], source: DataChange<unknown>["source"]): void;
+  applyCellUpdates(updates: { viewRowIndex: number; columnId: string; value: unknown }[], source: DataChange<unknown>["source"]): void;
   /**
    * The streaming write path: applies id-keyed {@link CellPatch}es in ONE `set()` and skips the
    * `computeViewIndex`/`computeSearchMatches` rebuild that a `data` prop replacement forces. This is
@@ -753,7 +773,7 @@ export type DataGridActions = {
   /** @internal syncs live consumer props and recomputes derived state; not part of the public hook surface. */
   _syncProps(props: InternalSyncProps): void;
   /** @internal `DataGridRoot` registers/clears its scroll-into-view on mount/unmount; not part of the public hook surface. */
-  _registerScrollToCell(impl: ((coord: CellCoord) => void) | null): void;
+  _registerScrollToCell(impl: ((coord: ViewCoord) => void) | null): void;
   /** @internal `DataGridRoot` syncs its `readOnly` prop into the store on every render/unmount; not part of the public hook surface. */
   _registerReadOnly(readOnly: boolean): void;
   /** @internal `DataGridRoot` syncs its effective (merged) keymap into the store on every render/unmount; not part of the public hook surface. */

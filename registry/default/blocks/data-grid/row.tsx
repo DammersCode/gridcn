@@ -2,7 +2,7 @@
 
 import { memo, type PointerEvent as ReactPointerEvent, type Ref } from "react";
 import { cn } from "@/lib/utils";
-import { useDataGridRow, useDataGridRowCellState } from "./store";
+import { useDataGridRow, useDataGridRowCellState, useDataGridRowId } from "./store";
 import { colRangesContain } from "./selection/selected-col-ranges-for-row";
 import { DataGridCell } from "./cell";
 import { DataGridMarkerCell } from "./rows/marker-cell";
@@ -73,6 +73,8 @@ export const DataGridRow = memo(function DataGridRow({
   onRowClick,
 }: DataGridRowProps) {
   const row = useDataGridRow(viewRowIndex);
+  // stable row identity handed to the cells' ctx builders; undefined on a lazy hole.
+  const rowId = useDataGridRowId(viewRowIndex);
   // ONE subscription for the whole row's interactive cell state (not one per cell). Referentially
   // stable across ticks that don't touch this row (see useDataGridRowCellState's comparator), so
   // this memoized row only re-renders when its own active/editing/search/selection state changed.
@@ -120,6 +122,7 @@ export const DataGridRow = memo(function DataGridRow({
           <DataGridCell
             key={column.id}
             row={row}
+            rowId={rowId}
             rowIndex={viewRowIndex}
             column={column}
             columnIndex={index}

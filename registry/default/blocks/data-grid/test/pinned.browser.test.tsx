@@ -120,8 +120,8 @@ describe("pin-aware overlay segmentation", () => {
 
     // select while both columns are actually in view (col 1 is unpinned and adjacent to col 0 —
     // no scroll needed for it to render); scrolling happens AFTER, to verify the pinned part alone persists.
-    actions().selectCell({ col: 0, row: 0 });
-    actions().extendTo({ col: 1, row: 0 });
+    actions().selectCellAt({ col: 0, row: 0 });
+    actions().extendToAt({ col: 1, row: 0 });
     await new Promise((r) => setTimeout(r, 50));
 
     const overlays = [...document.querySelectorAll<HTMLElement>(gridAttrSelector("selectionOverlay"))];
@@ -156,7 +156,7 @@ describe("pin-aware overlay segmentation", () => {
     grid.dispatchEvent(new Event("scroll"));
     await new Promise((r) => setTimeout(r, 100));
 
-    actions().selectCell({ col: 99, row: 2 });
+    actions().selectCellAt({ col: 99, row: 2 });
     await new Promise((r) => setTimeout(r, 50));
 
     const ring = document.querySelector<HTMLElement>(gridAttrSelector("activeCellOverlay"))!;
@@ -208,11 +208,11 @@ describe("pin-aware overlay segmentation", () => {
 
     const rowsBefore = [...document.querySelectorAll('[role="row"]')].filter((r) => r.getAttribute("aria-rowindex"));
 
-    actions().selectCell({ col: 0, row: 0 });
+    actions().selectCellAt({ col: 0, row: 0 });
     await new Promise((r) => setTimeout(r, 20));
-    actions().selectCell({ col: 1, row: 1 });
+    actions().selectCellAt({ col: 1, row: 1 });
     await new Promise((r) => setTimeout(r, 20));
-    actions().extendTo({ col: 29, row: 2 });
+    actions().extendToAt({ col: 29, row: 2 });
     await new Promise((r) => setTimeout(r, 20));
 
     const rowsAfter = [...document.querySelectorAll('[role="row"]')].filter((r) => r.getAttribute("aria-rowindex"));

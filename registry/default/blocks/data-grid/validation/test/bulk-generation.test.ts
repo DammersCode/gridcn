@@ -24,24 +24,24 @@ function state(overrides: Partial<DataGridStoreState> = {}): DataGridStoreState 
 describe("candidateRowIds", () => {
   it("resolves view rows to row ids, deduped", () => {
     const s = state();
-    expect(candidateRowIds(s, [{ viewRow: 0 }, { viewRow: 0 }, { viewRow: 2 }])).toEqual(["a", "c"]);
+    expect(candidateRowIds(s, [{ viewRowIndex: 0 }, { viewRowIndex: 0 }, { viewRowIndex: 2 }])).toEqual(["a", "c"]);
   });
 
   it("skips a view row outside the current view", () => {
-    expect(candidateRowIds(state(), [{ viewRow: 99 }])).toEqual([]);
+    expect(candidateRowIds(state(), [{ viewRowIndex: 99 }])).toEqual([]);
   });
 });
 
 describe("isBulkBatchCurrent", () => {
   it("survives a re-render that changes nothing relevant", () => {
     const s = state();
-    const snapshot = snapshotBulkBatch(s, candidateRowIds(s, [{ viewRow: 0 }]));
+    const snapshot = snapshotBulkBatch(s, candidateRowIds(s, [{ viewRowIndex: 0 }]));
     expect(isBulkBatchCurrent(state({ sortState: s.sortState, filterState: s.filterState }), snapshot)).toBe(true);
   });
 
   it("survives a PURE REORDER — targets are row-id keyed, so a moved row is still found", () => {
     const s = state();
-    const snapshot = snapshotBulkBatch(s, candidateRowIds(s, [{ viewRow: 0 }, { viewRow: 2 }]));
+    const snapshot = snapshotBulkBatch(s, candidateRowIds(s, [{ viewRowIndex: 0 }, { viewRowIndex: 2 }]));
     const reordered = state({
       sortState: s.sortState,
       filterState: s.filterState,
@@ -56,7 +56,7 @@ describe("isBulkBatchCurrent", () => {
 
   it("drops when a target row is gone (data replacement or delete)", () => {
     const s = state();
-    const snapshot = snapshotBulkBatch(s, candidateRowIds(s, [{ viewRow: 0 }]));
+    const snapshot = snapshotBulkBatch(s, candidateRowIds(s, [{ viewRowIndex: 0 }]));
     const replaced = state({
       sortState: s.sortState,
       filterState: s.filterState,
@@ -68,13 +68,13 @@ describe("isBulkBatchCurrent", () => {
 
   it("drops on a sort change — the view the targets were picked in is gone", () => {
     const s = state();
-    const snapshot = snapshotBulkBatch(s, candidateRowIds(s, [{ viewRow: 0 }]));
+    const snapshot = snapshotBulkBatch(s, candidateRowIds(s, [{ viewRowIndex: 0 }]));
     expect(isBulkBatchCurrent(state({ filterState: s.filterState, sortState: [{ columnId: "qty", direction: "asc" }] as never }), snapshot)).toBe(false);
   });
 
   it("drops on a filter change", () => {
     const s = state();
-    const snapshot = snapshotBulkBatch(s, candidateRowIds(s, [{ viewRow: 0 }]));
+    const snapshot = snapshotBulkBatch(s, candidateRowIds(s, [{ viewRowIndex: 0 }]));
     expect(isBulkBatchCurrent(state({ sortState: s.sortState, filterState: [{ id: "f1", columnId: "qty" }] as never }), snapshot)).toBe(false);
   });
 

@@ -30,6 +30,7 @@ export {
   useDataGridActions,
   useDataGridCellTypes,
   useDataGridScrollToCell,
+  useDataGridScrollToCellAt,
   useDataGridFillHandlers,
   useDataGridReadOnly,
   useDataGridKeymap,

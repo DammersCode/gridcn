@@ -40,8 +40,10 @@ export const FLASH_KEYFRAMES =
 export type DataGridCellProps = {
   row: unknown;
   rowIndex: number;
+  /** The row's stable `getRowId()` value; undefined on pinned band rows (not members of `data`). */
+  rowId?: string;
   column: AnyColumnDef;
-  /** Pure data-column index — drives `CellCoord.col`, `aria-colindex`, and pin-var lookup. Never touched by the marker column (it lives outside the data index space). */
+  /** Pure data-column index — drives `ViewCoord.col`, `aria-colindex`, and pin-var lookup. Never touched by the marker column (it lives outside the data index space). */
   columnIndex: number;
   /** Grid-level readOnly (from `DataGridRoot`), independent of the column's own `readOnly`. */
   gridReadOnly?: boolean;
@@ -92,6 +94,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   const {
     row,
     rowIndex,
+    rowId,
     column,
     columnIndex,
     gridReadOnly,
@@ -176,25 +179,25 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       // never gated on it. Skeleton/pinned-row cells don't reach here (this handler isn't attached
       // for them below), so `row`/`value` are always real by construction.
       if (onCellClick || onRowClick) {
-        onCellClick?.({ value, row, column, rowIndex, columnIndex }, event.nativeEvent);
-        onRowClick?.({ row, rowIndex }, event.nativeEvent);
+        onCellClick?.({ value, row, column, rowId: rowId!, columnId: column.id, viewRowIndex: rowIndex, viewColumnIndex: columnIndex }, event.nativeEvent);
+        onRowClick?.({ row, rowId: rowId!, viewRowIndex: rowIndex }, event.nativeEvent);
       }
     },
-    [interaction, coord, onCellClick, onRowClick, value, row, column, rowIndex, columnIndex],
+    [interaction, coord, onCellClick, onRowClick, value, row, column, rowId, rowIndex, columnIndex],
   );
   // Pure notifications, read off the store at event time (no prop threading, no re-render
   // sensitivity) — fired regardless of readOnly and of whatever the gesture also does.
   const onDoubleClick = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
       interaction.onCellDoubleClick(coord, event);
-      storeApi.getState().onCellDoubleClick?.({ value, row, column, rowIndex, columnIndex }, event.nativeEvent);
+      storeApi.getState().onCellDoubleClick?.({ value, row, column, rowId: rowId!, columnId: column.id, viewRowIndex: rowIndex, viewColumnIndex: columnIndex }, event.nativeEvent);
     },
-    [interaction, coord, storeApi, value, row, column, rowIndex, columnIndex],
+    [interaction, coord, storeApi, value, row, column, rowId, rowIndex, columnIndex],
   );
   const onContextMenu = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) =>
-      storeApi.getState().onCellContextMenu?.({ value, row, column, rowIndex, columnIndex }, event.nativeEvent),
-    [storeApi, value, row, column, rowIndex, columnIndex],
+      storeApi.getState().onCellContextMenu?.({ value, row, column, rowId: rowId!, columnId: column.id, viewRowIndex: rowIndex, viewColumnIndex: columnIndex }, event.nativeEvent),
+    [storeApi, value, row, column, rowId, rowIndex, columnIndex],
   );
 
   const cellTypesRegistry = useDataGridCellTypes();
@@ -204,7 +207,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
 
   // Grid-level hook first, then the column's own override — later cn() args win on conflicting
   // utilities, so a per-column override can still beat a grid-wide default.
-  const classNameCtx = { value, row, column, viewRowIndex: rowIndex };
+  const classNameCtx = { value, row, column, rowId: rowId!, columnId: column.id, viewRowIndex: rowIndex };
   const gridCellClassName = row === undefined ? undefined : getCellClassName?.(classNameCtx);
   const columnCellClassName =
     typeof column.cellClassName === "function"
@@ -268,17 +271,19 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       />
     );
   } else if (column.renderCell) {
-    content = column.renderCell({ value, row, rowIndex, column, isActive });
+    content = column.renderCell({ value, row, rowId: rowId!, columnId: column.id, viewRowIndex: rowIndex, column, isActive });
   } else {
     const Cell = cellType.Cell as unknown as (p: {
       value: unknown;
       row: unknown;
-      rowIndex: number;
+      rowId: string;
+      columnId: string;
+      viewRowIndex: number;
       column: AnyColumnDef;
       options: unknown;
       isActive: boolean;
     }) => ReactNode;
-    content = <Cell value={value} row={row} rowIndex={rowIndex} column={column} options={column.options} isActive={isActive} />;
+    content = <Cell value={value} row={row} rowId={rowId!} columnId={column.id} viewRowIndex={rowIndex} column={column} options={column.options} isActive={isActive} />;
   }
 
   const cell = (
@@ -331,7 +336,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       )}
       style={style}
       onPointerDown={isPinnedRow ? undefined : onPointerDown}
-      onClick={isPinnedRow ? undefined : onClick}
+      onClick={isPinnedRow || isSkeleton ? undefined : onClick}
       // dblclick opens the editor (startEditing) — pointless on a row with nothing to edit yet,
       // and skipping it avoids the guaranteed no-op round-trip through resolveEditTarget.
       onDoubleClick={isPinnedRow || isSkeleton ? undefined : onDoubleClick}

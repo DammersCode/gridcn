@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, type RefObject } from "react";
-import type { CellCoord, GridBulkValidationError, GridRect } from "../types";
+import type { ViewCoord, GridBulkValidationError, GridRect } from "../types";
 import { getCellValue } from "../columns/column-helpers";
 import { isDev } from "../is-dev";
 import { serializeCells } from "./serialize-cells";
@@ -196,7 +196,7 @@ export function truncatePasteGrid(cells: string[][], maxCells: number): string[]
  * enough — selectRow/selectColumn (row-marker/header click) never set it, so a column- or
  * row-only selection needs its own fallback here rather than silently no-op'ing the paste.
  */
-export function resolvePasteTarget(s: DataGridStoreState): CellCoord | null {
+export function resolvePasteTarget(s: DataGridStoreState): ViewCoord | null {
   if (s.selection.current) return { col: s.selection.current.range.x, row: s.selection.current.range.y };
   const cols = s.selection.columns.toArray();
   if (cols.length > 0) return { col: Math.min(...cols), row: 0 };
@@ -218,7 +218,7 @@ export function targetHeight(s: DataGridStoreState): number {
  * the caller's next step ({@link buildPasteWrites} for the sync answer, `resolveBulkWrites` when a
  * column's schema is async). Exported for direct unit testing; not part of the public hook surface.
  */
-export function buildPasteCandidates(s: DataGridStoreState, cells: string[][], target: CellCoord): BulkCandidate[] {
+export function buildPasteCandidates(s: DataGridStoreState, cells: string[][], target: ViewCoord): BulkCandidate[] {
   const candidates: BulkCandidate[] = [];
   const rowCount = s.viewIndex.length;
   const colCount = s.visibleColumns.length;
@@ -248,7 +248,7 @@ export function buildPasteCandidates(s: DataGridStoreState, cells: string[][], t
         ? s.processCellFromClipboard(text, { row, column })
         : cellType.fromText(text, column.options);
 
-      candidates.push({ viewRow, columnId: column.id, value, validate: resolveColumnValidate(column, cellType), row, rowId });
+      candidates.push({ viewRowIndex: viewRow, columnId: column.id, value, validate: resolveColumnValidate(column, cellType), row, rowId });
     }
   }
   return candidates;
@@ -263,7 +263,7 @@ export function buildPasteCandidates(s: DataGridStoreState, cells: string[][], t
 export function buildPasteWrites(
   s: DataGridStoreState,
   cells: string[][],
-  target: CellCoord,
+  target: ViewCoord,
 ): BulkResolution | Promise<BulkResolution> {
   return resolveBulkWrites(buildPasteCandidates(s, cells, target));
 }

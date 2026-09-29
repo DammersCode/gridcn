@@ -13,12 +13,12 @@ import {
   targetHeight,
   tileToHeight,
 } from "./use-grid-clipboard";
-import type { CellCoord } from "../types";
+import type { ViewCoord } from "../types";
 import type { BulkWrite } from "../validation/validate-batch";
 import type { DataGridActions, DataGridStoreState } from "../store";
 
 /** Asserts the sync contract while calling: a sync-only column set must never return a Promise. */
-function buildPasteWrites(s: DataGridStoreState, cells: string[][], target: CellCoord): BulkWrite[] {
+function buildPasteWrites(s: DataGridStoreState, cells: string[][], target: ViewCoord): BulkWrite[] {
   const resolution = buildPasteWritesRaw(s, cells, target);
   if (resolution instanceof Promise) throw new Error("expected a synchronous result");
   return resolution.writes;
@@ -213,10 +213,10 @@ describe("buildPasteWrites", () => {
     const s = fakeState();
     const writes = buildPasteWrites(s, [["x", "9"], ["y", "8"]], { col: 0, row: 1 });
     expect(writes).toEqual([
-      { viewRow: 1, columnId: "name", value: "x" },
-      { viewRow: 1, columnId: "qty", value: 9 },
-      { viewRow: 2, columnId: "name", value: "y" },
-      { viewRow: 2, columnId: "qty", value: 8 },
+      { viewRowIndex: 1, columnId: "name", value: "x" },
+      { viewRowIndex: 1, columnId: "qty", value: 9 },
+      { viewRowIndex: 2, columnId: "name", value: "y" },
+      { viewRowIndex: 2, columnId: "qty", value: 8 },
     ]);
   });
 
@@ -225,8 +225,8 @@ describe("buildPasteWrites", () => {
     const writes = buildPasteWrites(s, [["x", "9"], ["y", "8"], ["z", "7"]], { col: 0, row: 3 });
     // target row 3 is the grid's last row (rowCount=4); the paste's row 1/2 ("y"/"z") fall past the edge and are clipped away.
     expect(writes).toEqual([
-      { viewRow: 3, columnId: "name", value: "x" },
-      { viewRow: 3, columnId: "qty", value: 9 },
+      { viewRowIndex: 3, columnId: "name", value: "x" },
+      { viewRowIndex: 3, columnId: "qty", value: 9 },
     ]);
   });
 
@@ -234,15 +234,15 @@ describe("buildPasteWrites", () => {
     const s = fakeState();
     const writes = buildPasteWrites(s, [["x", "9", "extra"]], { col: 0, row: 0 });
     expect(writes).toEqual([
-      { viewRow: 0, columnId: "name", value: "x" },
-      { viewRow: 0, columnId: "qty", value: 9 },
+      { viewRowIndex: 0, columnId: "name", value: "x" },
+      { viewRowIndex: 0, columnId: "qty", value: 9 },
     ]);
   });
 
   it("skips a readOnly column", () => {
     const s = fakeState({ visibleColumns: readOnlyColumns as unknown as DataGridStoreState["visibleColumns"] });
     const writes = buildPasteWrites(s, [["x", "9"]], { col: 0, row: 0 });
-    expect(writes).toEqual([{ viewRow: 0, columnId: "qty", value: 9 }]);
+    expect(writes).toEqual([{ viewRowIndex: 0, columnId: "qty", value: 9 }]);
   });
 
   it("skips a cell whose parsed value fails validate, without blocking the rest of the batch", () => {
@@ -258,13 +258,13 @@ describe("buildPasteWrites", () => {
     ];
     const s = fakeState({ visibleColumns: validatingColumns as unknown as DataGridStoreState["visibleColumns"] });
     const writes = buildPasteWrites(s, [["x", "-5"]], { col: 0, row: 0 });
-    expect(writes).toEqual([{ viewRow: 0, columnId: "name", value: "x" }]);
+    expect(writes).toEqual([{ viewRowIndex: 0, columnId: "name", value: "x" }]);
   });
 
   it("uses processCellFromClipboard when provided", () => {
     const s = fakeState({ processCellFromClipboard: (text) => text.toUpperCase() });
     const writes = buildPasteWrites(s, [["hi", "1"]], { col: 0, row: 0 });
-    expect(writes[0]).toEqual({ viewRow: 0, columnId: "name", value: "HI" });
+    expect(writes[0]).toEqual({ viewRowIndex: 0, columnId: "name", value: "HI" });
   });
 
   it("a passing sync Standard Schema commits its transformed value", () => {
@@ -276,8 +276,8 @@ describe("buildPasteWrites", () => {
     const s = fakeState({ visibleColumns: schemaColumns as unknown as DataGridStoreState["visibleColumns"] });
     const writes = buildPasteWrites(s, [["x", "9.6"]], { col: 0, row: 0 });
     expect(writes).toEqual([
-      { viewRow: 0, columnId: "name", value: "x" },
-      { viewRow: 0, columnId: "qty", value: 10 },
+      { viewRowIndex: 0, columnId: "name", value: "x" },
+      { viewRowIndex: 0, columnId: "qty", value: 10 },
     ]);
   });
 
@@ -293,8 +293,8 @@ describe("buildPasteWrites", () => {
     // a HELD batch carries rowId so the apply can re-resolve its view position after a reorder (#90)
     await expect(resolution).resolves.toEqual({
       writes: [
-        { viewRow: 0, columnId: "name", value: "x", rowId: "1" },
-        { viewRow: 0, columnId: "qty", value: 90, rowId: "1" },
+        { viewRowIndex: 0, columnId: "name", value: "x", rowId: "1" },
+        { viewRowIndex: 0, columnId: "qty", value: 90, rowId: "1" },
       ],
       rejected: [],
     });
@@ -315,11 +315,11 @@ describe("buildPasteWrites", () => {
     const s = fakeState({ visibleColumns: schemaColumns as unknown as DataGridStoreState["visibleColumns"] });
     await expect(buildPasteWritesRaw(s, [["x", "-5"], ["y", "3"]], { col: 0, row: 0 })).resolves.toEqual({
       writes: [
-        { viewRow: 0, columnId: "name", value: "x", rowId: "1" },
-        { viewRow: 1, columnId: "name", value: "y", rowId: "2" },
-        { viewRow: 1, columnId: "qty", value: 3, rowId: "2" },
+        { viewRowIndex: 0, columnId: "name", value: "x", rowId: "1" },
+        { viewRowIndex: 1, columnId: "name", value: "y", rowId: "2" },
+        { viewRowIndex: 1, columnId: "qty", value: 3, rowId: "2" },
       ],
-      rejected: [{ viewRow: 0, columnId: "qty", value: -5, message: "must be >= 0" }],
+      rejected: [{ rowId: "1", viewRowIndex: 0, columnId: "qty", value: -5, message: "must be >= 0" }],
     });
   });
 });
@@ -336,8 +336,8 @@ describe("pasteText", () => {
     expect(applied).toBe(true);
     expect(actions.applyCellUpdates).toHaveBeenCalledWith(
       [
-        { viewRow: 1, columnId: "name", value: "x" },
-        { viewRow: 1, columnId: "qty", value: 9 },
+        { viewRowIndex: 1, columnId: "name", value: "x" },
+        { viewRowIndex: 1, columnId: "qty", value: 9 },
       ],
       "paste",
     );
@@ -398,10 +398,10 @@ describe("pasteText", () => {
     });
     const actions = fakeActions();
     expect(pasteText(s, actions, "x\t-5")).toBe(true);
-    expect(actions.applyCellUpdates).toHaveBeenCalledWith([{ viewRow: 0, columnId: "name", value: "x" }], "paste");
+    expect(actions.applyCellUpdates).toHaveBeenCalledWith([{ viewRowIndex: 0, columnId: "name", value: "x" }], "paste");
     expect(onValidationError).toHaveBeenCalledWith({
       source: "paste",
-      rejected: [{ viewRow: 0, columnId: "qty", value: -5, message: "must be >= 0" }],
+      rejected: [{ rowId: "1", viewRowIndex: 0, columnId: "qty", value: -5, message: "must be >= 0" }],
     });
   });
 

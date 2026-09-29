@@ -8,7 +8,7 @@ import type { GridColumnLayout, WindowedColumn } from "@/registry/default/blocks
 export type DataGridPinnedRowProps = {
   /** The consumer-supplied pinned row object (from `useDataGridPinnedRows`'s `topRows`/`bottomRows` options — never a member of `data`). */
   row: unknown;
-  /** Position within its own band, 0-based — used only for the `data-grid-pinned-row-index` marker, never `CellCoord`/`aria-colindex` (pinned rows aren't in the data index space). */
+  /** Position within its own band, 0-based — used only for the `data-grid-pinned-row-index` marker, never `ViewCoord`/`aria-colindex` (pinned rows aren't in the data index space). */
   bandIndex: number;
   windowedColumns: readonly WindowedColumn[];
   layout: GridColumnLayout;

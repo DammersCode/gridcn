@@ -1,5 +1,5 @@
 import { CompactSelection } from "./compact-selection";
-import type { CellCoord, GridRect, GridSelection } from "../types";
+import type { ViewCoord, GridRect, GridSelection } from "../types";
 
 /** Shifts the row selection channel and any range rects to follow a row insert/delete at `atIndex`. */
 export function offsetSelectionForRows(selection: GridSelection, atIndex: number, delta: number): GridSelection {
@@ -13,7 +13,7 @@ export function offsetSelectionForRows(selection: GridSelection, atIndex: number
     if (rect.y + rect.height > atIndex) return { ...rect, height: Math.max(0, rect.height + delta) };
     return rect;
   };
-  const shiftCell = (cell: CellCoord): CellCoord =>
+  const shiftCell = (cell: ViewCoord): ViewCoord =>
     cell.row >= atIndex ? { ...cell, row: Math.max(atIndex, cell.row + delta) } : cell;
 
   // Only members at/after atIndex move; earlier members are untouched.

@@ -1,5 +1,5 @@
-import type { CellPatch, UpdateCellsOptions } from "./types";
-import type { FilterSpec, SortSpec } from "../types";
+import type { CellPatch, DataGridStoreState, UpdateCellsOptions } from "./types";
+import type { CellRef, FilterSpec, SortSpec, ViewCoord } from "../types";
 
 /**
  * Lazily-built, incrementally-maintained `rowId -> dataIndex` map for {@link DataGridActions.updateCells}.
@@ -48,6 +48,20 @@ export function createRowIndexCache(): RowIndexCache {
       if (cachedMap) cachedData = nextData;
     },
   };
+}
+
+/**
+ * Resolves a stable {@link CellRef} against the CURRENT view: `rowId` to a data index through the
+ * cache, that index to a view row through the `viewIndex` inverse (same `indexOf` read the
+ * commit path's `remapEditing` uses), and `columnId` to a visible-column index.
+ * `null` when the row is no longer in `data` or the column is hidden — the caller dev-warns.
+ */
+export function resolveCellRef(s: DataGridStoreState, cache: RowIndexCache, ref: CellRef): ViewCoord | null {
+  const dataRowIndex = cache.resolve(s.data, s.getRowId).get(ref.rowId);
+  const viewRow = dataRowIndex === undefined ? -1 : s.viewIndex.indexOf(dataRowIndex);
+  const col = s.visibleColumns.findIndex((column) => column.id === ref.columnId);
+  if (viewRow < 0 || col < 0) return null;
+  return { row: viewRow, col };
 }
 
 /**

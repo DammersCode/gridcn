@@ -77,8 +77,8 @@ describe("buildFillWrites", () => {
     const strip: GridRect = { x: 1, y: 2, width: 1, height: 2 };
     const { resolution, filled } = buildFillWrites(s, source, strip);
     expect(syncResolution(resolution).writes).toEqual([
-      { viewRow: 2, columnId: "qty", value: 6 },
-      { viewRow: 3, columnId: "qty", value: 8 },
+      { viewRowIndex: 2, columnId: "qty", value: 6 },
+      { viewRowIndex: 3, columnId: "qty", value: 8 },
     ]);
     expect(filled).toEqual([["6"], ["8"]]);
   });
@@ -89,8 +89,8 @@ describe("buildFillWrites", () => {
     const strip: GridRect = { x: 1, y: 2, width: 1, height: 2 };
     const { resolution } = buildFillWrites(s, source, strip, { forceCopy: true });
     expect(syncResolution(resolution).writes).toEqual([
-      { viewRow: 2, columnId: "qty", value: 2 },
-      { viewRow: 3, columnId: "qty", value: 4 },
+      { viewRowIndex: 2, columnId: "qty", value: 2 },
+      { viewRowIndex: 3, columnId: "qty", value: 4 },
     ]);
   });
 
@@ -107,8 +107,8 @@ describe("buildFillWrites", () => {
     const strip: GridRect = { x: 1, y: 0, width: 2, height: 1 };
     const { resolution } = buildFillWrites(s, source, strip);
     expect(syncResolution(resolution).writes).toEqual([
-      { viewRow: 0, columnId: "b", value: "x" },
-      { viewRow: 0, columnId: "c", value: "x" },
+      { viewRowIndex: 0, columnId: "b", value: "x" },
+      { viewRowIndex: 0, columnId: "c", value: "x" },
     ]);
   });
 
@@ -140,8 +140,8 @@ describe("buildFillWrites", () => {
     const settled = syncResolution(buildFillWrites(s, source, strip).resolution);
     expect(settled.writes).toEqual([]);
     expect(settled.rejected).toEqual([
-      { viewRow: 2, columnId: "qty", value: 6, message: "too big" },
-      { viewRow: 3, columnId: "qty", value: 8, message: "too big" },
+      { rowId: "3", viewRowIndex: 2, columnId: "qty", value: 6, message: "too big" },
+      { rowId: "4", viewRowIndex: 3, columnId: "qty", value: 8, message: "too big" },
     ]);
   });
 
@@ -156,7 +156,7 @@ describe("buildFillWrites", () => {
     const s = fakeState({ data: data as unknown as Row[], columns: wideColumns as never, visibleColumns: wideColumns as never });
     const source: GridRect = { x: 0, y: 0, width: 2, height: 1 };
     const strip: GridRect = { x: 2, y: 0, width: 1, height: 1 };
-    expect(syncResolution(buildFillWrites(s, source, strip).resolution).writes).toEqual([{ viewRow: 0, columnId: "c2", value: "6" }]);
+    expect(syncResolution(buildFillWrites(s, source, strip).resolution).writes).toEqual([{ viewRowIndex: 0, columnId: "c2", value: "6" }]);
   });
 });
 
@@ -206,8 +206,8 @@ describe("buildFillWrites with an async schema", () => {
     await expect(resolution).resolves.toEqual({
       writes: [],
       rejected: [
-        { viewRow: 2, columnId: "qty", value: 6, message: "too big" },
-        { viewRow: 3, columnId: "qty", value: 8, message: "too big" },
+        { rowId: "3", viewRowIndex: 2, columnId: "qty", value: 6, message: "too big" },
+        { rowId: "4", viewRowIndex: 3, columnId: "qty", value: 8, message: "too big" },
       ],
     });
   });
@@ -221,9 +221,9 @@ describe("buildFillWrites with an async schema", () => {
     // a HELD batch carries rowId so the apply can re-resolve its view position after a reorder (#90)
     await expect(resolution).resolves.toEqual({
       writes: [
-        { viewRow: 1, columnId: "qty", value: 2, rowId: "2" },
-        { viewRow: 2, columnId: "qty", value: 2, rowId: "3" },
-        { viewRow: 3, columnId: "qty", value: 2, rowId: "4" },
+        { viewRowIndex: 1, columnId: "qty", value: 2, rowId: "2" },
+        { viewRowIndex: 2, columnId: "qty", value: 2, rowId: "3" },
+        { viewRowIndex: 3, columnId: "qty", value: 2, rowId: "4" },
       ],
       rejected: [],
     });
@@ -288,8 +288,8 @@ describe("useFillHandle staleness guard — async fill held against a real store
       { wrapper },
     );
     act(() => {
-      result.current.actions.selectCell({ col: 1, row: 0 }); // qty, row 0
-      result.current.actions.extendTo({ col: 1, row: 1 }); // qty, row 1 — source row 0, strip row 1
+      result.current.actions.selectCellAt({ col: 1, row: 0 }); // qty, row 0
+      result.current.actions.extendToAt({ col: 1, row: 1 }); // qty, row 1 — source row 0, strip row 1
     });
     return result;
   }
@@ -387,8 +387,8 @@ describe("useFillHandle callback identity", () => {
 
     rerender({ tag: "second" });
     act(() => {
-      result.current.actions.selectCell({ col: 1, row: 0 });
-      result.current.actions.extendTo({ col: 1, row: 1 });
+      result.current.actions.selectCellAt({ col: 1, row: 0 });
+      result.current.actions.extendToAt({ col: 1, row: 1 });
     });
     act(() => result.current.fill.fillDown());
 

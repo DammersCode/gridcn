@@ -284,7 +284,7 @@ const columns = defineColumns<Row>()([
     accessorKey: "balance",
     type: "number",
     // string form applies to every cell in the column; the function form gets the same
-    // { value, row, column, viewRowIndex } context as the grid-level getCellClassName.
+    // { value, row, rowId, columnId, viewRowIndex, column } context as the grid-level getCellClassName.
     cellClassName: (ctx) => (ctx.value < 0 ? "text-destructive" : undefined),
     headerClassName: "text-right",
   },

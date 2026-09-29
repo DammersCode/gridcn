@@ -63,12 +63,12 @@ describe("computeRowEditsBatch", () => {
     const s = fakeState();
 
     const batch = computeRowEditsBatch(s, [
-      { viewRow: 0, columnId: "name", value: "Alpha" },
-      { viewRow: 0, columnId: "age", value: 30 },
-      { viewRow: 0, columnId: "name", value: "Beta" },
-      { viewRow: 0, columnId: "locked", value: "ignored" },
-      { viewRow: 99, columnId: "name", value: "ghost" },
-      { viewRow: 1, columnId: "missing", value: "nowhere" },
+      { viewRowIndex: 0, columnId: "name", value: "Alpha" },
+      { viewRowIndex: 0, columnId: "age", value: 30 },
+      { viewRowIndex: 0, columnId: "name", value: "Beta" },
+      { viewRowIndex: 0, columnId: "locked", value: "ignored" },
+      { viewRowIndex: 99, columnId: "name", value: "ghost" },
+      { viewRowIndex: 1, columnId: "missing", value: "nowhere" },
     ]);
 
     expect(batch).not.toBeNull();
@@ -93,9 +93,9 @@ describe("computeRowEditsBatch", () => {
     const s = fakeState();
     expect(
       computeRowEditsBatch(s, [
-        { viewRow: 0, columnId: "locked", value: "ignored" },
-        { viewRow: 99, columnId: "name", value: "ghost" },
-        { viewRow: 1, columnId: "missing", value: "nowhere" },
+        { viewRowIndex: 0, columnId: "locked", value: "ignored" },
+        { viewRowIndex: 99, columnId: "name", value: "ghost" },
+        { viewRowIndex: 1, columnId: "missing", value: "nowhere" },
       ]),
     ).toBeNull();
   });

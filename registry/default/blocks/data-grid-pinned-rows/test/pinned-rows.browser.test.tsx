@@ -235,7 +235,7 @@ describe("pinned rows — selection overlay never bleeds into bands", () => {
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
 
-    actions.selectCell({ col: 0, row: 9 }); // last data row
+    actions.selectCellAt({ col: 0, row: 9 }); // last data row
     // selectCell alone doesn't auto-scroll (only the keyboard-nav path does) — scroll to the end
     // explicitly so the active row is actually the one rendered just above the pinned-bottom band.
     await scrollAndSettle(grid, grid.scrollHeight);
@@ -255,8 +255,8 @@ describe("pinned rows — selection overlay never bleeds into bands", () => {
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
 
-    actions.selectCell({ col: 0, row: 0 });
-    actions.extendTo({ col: 4, row: 9 });
+    actions.selectCellAt({ col: 0, row: 0 });
+    actions.extendToAt({ col: 4, row: 9 });
     // extendTo doesn't auto-scroll either (that's use-grid-interaction's moveAndScroll's job on
     // keyboard extend) — scroll to the end so the whole range's far edge is actually rendered.
     await scrollAndSettle(grid, grid.scrollHeight);
@@ -277,8 +277,8 @@ describe("pinned rows — selection overlay never bleeds into bands", () => {
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
-    actions.selectCell({ col: 0, row: 0 });
-    actions.extendTo({ col: 4, row: 9 });
+    actions.selectCellAt({ col: 0, row: 0 });
+    actions.extendToAt({ col: 4, row: 9 });
     await new Promise((r) => setTimeout(r, 50));
 
     const pinnedCells = [...document.querySelectorAll(gridAttrSelector("pinnedRow"))];
@@ -341,7 +341,7 @@ describe("pinned rows — compose with resize and pinned columns", () => {
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
 
-    actions.selectCell({ col: 0, row: 0 });
+    actions.selectCellAt({ col: 0, row: 0 });
     grid.focus();
     // real keyboard nav (unlike a direct selectCell() action call) drives use-grid-interaction's
     // moveAndScroll, which calls scrollCellIntoView — the path this test actually exercises.

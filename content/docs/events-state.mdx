@@ -216,13 +216,13 @@ an option to that add-on's `useDataGridFill()` hook, not a `DataGrid` or
 ```ts
 onCellClick?: (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
 onRowClick?: (ctx: RowClickCtx<TData>, event: MouseEvent) => void;
-// CellClickCtx = { value, row, column, rowIndex, columnIndex }
-// RowClickCtx = { row, rowIndex }
+// CellClickCtx = { value, row, column, rowId, columnId, viewRowIndex, viewColumnIndex }
+// RowClickCtx = { row, rowId, viewRowIndex }
 ```
 
 Both fire from the same plain click on any non-skeleton, non-pinned-row cell. `onRowClick` fires
 once per click regardless of which column was clicked, and `onCellClick` fires with the specific
-cell's value, row, column, and indices. Neither is a veto point (contrast the `preventDefault()`
+cell's value, row, column, row and column identity, and view indices. Neither is a veto point (contrast the `preventDefault()`
 of `onFill`). They are pure notifications, fired alongside whatever the click already does
 (select the cell, toggle a checkbox). They attach to the cell's own existing DOM click handler,
 with no new per-cell subscription, so leaving both unset costs nothing.
@@ -320,8 +320,8 @@ write-up, including how to broadcast your own selection with `onSelectionChange`
 ## 10. Edit lifecycle and cell events
 
 ```ts
-onActiveCellChange?: (next: CellCoord | null) => void;
-onEditStart?: (coord: CellCoord) => boolean | void;
+onActiveCellChange?: (next: ViewCoord | null) => void;
+onEditStart?: (coord: ViewCoord) => boolean | void;
 onEditEnd?: (event: GridEditEndEvent) => void;
 onValidationError?: (event: GridValidationErrorEvent) => void;
 onCellDoubleClick?: (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
@@ -345,7 +345,7 @@ zero-re-render guarantee as the other callbacks on this page.
 - `onValidationError` fires after a bulk paste or fill settles, only when at least one cell was
   rejected by validation. The accepted cells are applied first, so their `onDataChange` fires
   before this event. `GridValidationErrorEvent` is `{ source: "paste" | "fill", rejected }`, and
-  each rejected entry is `{ viewRow, columnId, value, message }`. Single-cell edits do not use
+   each rejected entry is `{ rowId, columnId, viewRowIndex, value, message }`. Single-cell edits do not use
   this event. `onEditEnd` with `result: "rejected"` covers that surface.
 
 A commit's events arrive in this order: `onDataChange`, then `onActiveCellChange` (when the

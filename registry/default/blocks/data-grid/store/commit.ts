@@ -1,4 +1,4 @@
-import type { CellCoord, CellType, DataChange, DataOp } from "../types";
+import type { ViewCoord, CellType, DataChange, DataOp } from "../types";
 import type { OverlayPlugin } from "../overlays";
 import type { RowBandsSpec } from "../layout-context";
 import { getCellValue, setCellValue } from "../columns/column-helpers";
@@ -128,7 +128,7 @@ export function checkDevGuardrails(
  * is the async layer's awaited schema rejection, which the sync re-run here cannot see (a schema
  * Promise passes `runValidateSync` untouched).
  */
-export function computeCommit(s: DataGridStoreState, coord: CellCoord, value: unknown, rejection?: string): CommitResult {
+export function computeCommit(s: DataGridStoreState, coord: ViewCoord, value: unknown, rejection?: string): CommitResult {
   const target = resolveEditTarget(s, coord);
   if (!target) return { noop: true };
   const { column, dataRowIndex, row, cellType } = target;
@@ -175,7 +175,7 @@ export function computeCommit(s: DataGridStoreState, coord: CellCoord, value: un
 /** Looks up the column, data row, and cell type at a view coord; null when any part is unresolvable. */
 export function resolveEditTarget(
   s: DataGridStoreState,
-  coord: CellCoord,
+  coord: ViewCoord,
 ): { column: AnyColumnDef; dataRowIndex: number; row: unknown; cellType: CellType } | null {
   const column = s.visibleColumns[coord.col];
   if (!column) return null;
@@ -196,13 +196,13 @@ export function resolveEditTarget(
  */
 export function computeRowEditsBatch(
   s: DataGridStoreState,
-  writes: { viewRow: number; columnId: string; value: unknown }[],
+  writes: { viewRowIndex: number; columnId: string; value: unknown }[],
 ): { nextData: readonly unknown[]; ops: DataOp<unknown>[] } | null {
   const rowEdits = new Map<number, RowEdit>();
   const columnById = new Map(s.visibleColumns.map((column) => [column.id, column] as const));
 
   for (const write of writes) {
-    const dataRowIndex = s.viewIndex[write.viewRow];
+    const dataRowIndex = s.viewIndex[write.viewRowIndex];
     if (dataRowIndex === undefined) continue;
     const column = columnById.get(write.columnId);
     if (!column) continue;

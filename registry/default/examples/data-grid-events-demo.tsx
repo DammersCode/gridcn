@@ -8,7 +8,7 @@ import {
   DataGridBody,
   defineColumns,
   type CellClickCtx,
-  type CellCoord,
+  type ViewCoord,
   type ColumnLayout,
   type DataChange,
   type FilterJoinOperator,
@@ -188,7 +188,7 @@ export default function DataGridEventsDemo(): ReactNode {
       pushLog(prev, {
         source: "onCellClick",
         at: Date.now(),
-        payload: { columnId: ctx.column.id, rowIndex: ctx.rowIndex, columnIndex: ctx.columnIndex, value: ctx.value, rowId: ctx.row.id },
+        payload: { rowId: ctx.rowId, columnId: ctx.columnId, viewRowIndex: ctx.viewRowIndex, viewColumnIndex: ctx.viewColumnIndex, value: ctx.value },
       }),
     );
   }, []);
@@ -198,7 +198,7 @@ export default function DataGridEventsDemo(): ReactNode {
       pushLog(prev, {
         source: "onCellDoubleClick",
         at: Date.now(),
-        payload: { columnId: ctx.column.id, rowIndex: ctx.rowIndex, columnIndex: ctx.columnIndex, value: ctx.value, rowId: ctx.row.id },
+        payload: { rowId: ctx.rowId, columnId: ctx.columnId, viewRowIndex: ctx.viewRowIndex, viewColumnIndex: ctx.viewColumnIndex, value: ctx.value },
       }),
     );
   }, []);
@@ -208,16 +208,16 @@ export default function DataGridEventsDemo(): ReactNode {
       pushLog(prev, {
         source: "onCellContextMenu",
         at: Date.now(),
-        payload: { columnId: ctx.column.id, rowIndex: ctx.rowIndex, columnIndex: ctx.columnIndex, rowId: ctx.row.id },
+        payload: { rowId: ctx.rowId, columnId: ctx.columnId, viewRowIndex: ctx.viewRowIndex, viewColumnIndex: ctx.viewColumnIndex },
       }),
     );
   }, []);
 
-  const onActiveCellChange = useCallback((next: CellCoord | null) => {
+  const onActiveCellChange = useCallback((next: ViewCoord | null) => {
     setLog((prev) => pushLog(prev, { source: "onActiveCellChange", at: Date.now(), payload: next }));
   }, []);
 
-  const onEditStart = useCallback((coord: CellCoord) => {
+  const onEditStart = useCallback((coord: ViewCoord) => {
     setLog((prev) => pushLog(prev, { source: "onEditStart", at: Date.now(), payload: coord }));
   }, []);
 
@@ -230,7 +230,7 @@ export default function DataGridEventsDemo(): ReactNode {
   }, []);
 
   const onRowClick = useCallback((ctx: RowClickCtx<DemoRow>) => {
-    setLog((prev) => pushLog(prev, { source: "onRowClick", at: Date.now(), payload: { rowIndex: ctx.rowIndex, rowId: ctx.row.id } }));
+    setLog((prev) => pushLog(prev, { source: "onRowClick", at: Date.now(), payload: { rowId: ctx.rowId, viewRowIndex: ctx.viewRowIndex } }));
   }, []);
 
   const onPresenceFired = useCallback((payload: unknown) => {

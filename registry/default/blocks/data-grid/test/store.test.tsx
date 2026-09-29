@@ -85,7 +85,7 @@ describe("DataGridProvider instance isolation", () => {
     });
 
     act(() => {
-      a.result.current.actions.selectCell({ col: 0, row: 0 });
+      a.result.current.actions.selectCellAt({ col: 0, row: 0 });
     });
 
     const selA = renderHook(() => useDataGridActions(), { wrapper: wrapperA });
@@ -303,7 +303,7 @@ describe("atomic hook re-render counts", () => {
         return (
           <>
             <Probe />
-            <button onClick={() => actions.selectCell({ col: 0, row: 1 })}>select</button>
+            <button onClick={() => actions.selectCellAt({ col: 0, row: 1 })}>select</button>
           </>
         );
       }
@@ -524,14 +524,14 @@ describe("useDataGridRowCellState (one subscription per row)", () => {
     );
     const before = [...renders];
 
-    act(() => actionsRef!.selectCell({ col: 0, row: 0 }));
+    act(() => actionsRef!.selectCellAt({ col: 0, row: 0 }));
     // only row 0 (the newly-active row) re-renders; rows 1 and 2 are untouched.
     expect(renders[0]).toBe(before[0]! + 1);
     expect(renders[1]).toBe(before[1]);
     expect(renders[2]).toBe(before[2]);
 
     const afterFirst = [...renders];
-    act(() => actionsRef!.selectCell({ col: 0, row: 1 }));
+    act(() => actionsRef!.selectCellAt({ col: 0, row: 1 }));
     // moving the active cell from row 0 to row 1 re-renders exactly those two rows (each recomputes
     // its own activeCol to null/0 respectively); row 2 still never re-renders.
     expect(renders[0]).toBe(afterFirst[0]! + 1);
@@ -548,7 +548,7 @@ describe("useDataGridRowCellState (one subscription per row)", () => {
     const firstState = result.current.row2;
 
     // activating row 0's cell is unrelated to row 2 — row 2's derived object must keep its identity.
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
     rerender();
 
     expect(result.current.row2).toBe(firstState);
@@ -562,8 +562,8 @@ describe("useDataGridRowCellState (one subscription per row)", () => {
     );
 
     act(() => {
-      result.current.actions.selectCell({ col: 0, row: 0 });
-      result.current.actions.extendTo({ col: 1, row: 0 });
+      result.current.actions.selectCellAt({ col: 0, row: 0 });
+      result.current.actions.extendToAt({ col: 1, row: 0 });
     });
     rerender();
 
@@ -581,7 +581,7 @@ describe("useDataGridRowCellState (one subscription per row)", () => {
       { wrapper },
     );
 
-    act(() => result.current.actions.startEditing({ col: 0, row: 0 }, "typed"));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }, "typed"));
     rerender();
 
     expect(result.current.row0.editingCol).toBe(0);
@@ -612,8 +612,8 @@ describe("non-writable columns (accessorFn-only) in batch writes", () => {
       act(() => {
         result.current.applyCellUpdates(
           [
-            { viewRow: 0, columnId: "name", value: "Written" },
-            { viewRow: 0, columnId: "computed", value: "must-be-skipped" },
+            { viewRowIndex: 0, columnId: "name", value: "Written" },
+            { viewRowIndex: 0, columnId: "computed", value: "must-be-skipped" },
           ],
           "fill",
         );
@@ -647,7 +647,7 @@ describe("actions referential stability", () => {
     expect(result.current.actions).toBe(firstActions);
 
     act(() => {
-      result.current.actions.selectCell({ col: 0, row: 0 });
+      result.current.actions.selectCellAt({ col: 0, row: 0 });
     });
     rerender();
 
@@ -765,12 +765,12 @@ describe("activeCell stays synced with the selection anchor", () => {
     );
 
     act(() => {
-      result.current.actions.selectCell({ col: 0, row: 0 });
+      result.current.actions.selectCellAt({ col: 0, row: 0 });
     });
     rerender();
 
     act(() => {
-      result.current.actions.pushRange({ col: 1, row: 1 });
+      result.current.actions.pushRangeAt({ col: 1, row: 1 });
     });
     rerender();
 
@@ -788,7 +788,7 @@ describe("activeCell stays synced with the selection anchor", () => {
     expect(result.current.activeCell).toBeNull();
 
     act(() => {
-      result.current.actions.extendTo({ col: 1, row: 1 });
+      result.current.actions.extendToAt({ col: 1, row: 1 });
     });
     rerender();
 
@@ -1007,7 +1007,7 @@ describe("defaultData (uncontrolled mode)", () => {
     expect((result.current.row as EditRow).name).toBe("Charlie");
 
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
     });
     act(() => {
       result.current.actions.commitCellEdit("Charlotte", { dx: 0, dy: 0 });
@@ -1023,7 +1023,7 @@ describe("defaultData (uncontrolled mode)", () => {
     const { result } = renderHook(() => useDataGridActions(), { wrapper });
 
     act(() => {
-      result.current.startEditing({ col: 0, row: 0 });
+      result.current.startEditingAt({ col: 0, row: 0 });
       result.current.commitCellEdit("Charlotte", { dx: 0, dy: 0 });
     });
 
@@ -1042,7 +1042,7 @@ describe("defaultData (uncontrolled mode)", () => {
     );
 
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
       result.current.actions.commitCellEdit("Charlotte", { dx: 0, dy: 0 });
     });
     rerender();
@@ -1058,7 +1058,7 @@ describe("defaultData (uncontrolled mode)", () => {
     );
 
     act(() => {
-      result.current.actions.applyCellUpdates([{ viewRow: 1, columnId: "name", value: "Allison" }], "paste");
+      result.current.actions.applyCellUpdates([{ viewRowIndex: 1, columnId: "name", value: "Allison" }], "paste");
     });
     rerender();
 
@@ -1074,7 +1074,7 @@ describe("defaultData (uncontrolled mode)", () => {
     );
 
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
       result.current.actions.commitCellEdit("Charlotte", { dx: 0, dy: 0 });
     });
     rerender();
@@ -1120,12 +1120,12 @@ describe("defaultData (uncontrolled mode)", () => {
     const { result, rerender } = renderHook(() => useDataGridActions(), { wrapper });
 
     act(() => {
-      result.current.startEditing({ col: 0, row: 0 });
+      result.current.startEditingAt({ col: 0, row: 0 });
       result.current.commitCellEdit("Charlotte", { dx: 0, dy: 0 });
     });
     rerender();
     act(() => {
-      result.current.startEditing({ col: 1, row: 1 });
+      result.current.startEditingAt({ col: 1, row: 1 });
       result.current.commitCellEdit(99, { dx: 0, dy: 0 });
     });
     rerender();
@@ -1153,7 +1153,7 @@ describe("commitCellEdit", () => {
 
     // View row 1 is "Bob" (data index 2); edit the "age" column (view col 1).
     act(() => {
-      result.current.actions.startEditing({ col: 1, row: 1 });
+      result.current.actions.startEditingAt({ col: 1, row: 1 });
     });
     act(() => {
       result.current.actions.commitCellEdit(99);
@@ -1180,7 +1180,7 @@ describe("commitCellEdit", () => {
     const { result } = renderHook(() => useDataGridActions(), { wrapper });
 
     act(() => {
-      result.current.startEditing({ col: 0, row: 0 });
+      result.current.startEditingAt({ col: 0, row: 0 });
     });
     act(() => {
       result.current.commitCellEdit("Charlotte");
@@ -1201,7 +1201,7 @@ describe("commitCellEdit", () => {
     );
 
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 2 });
+      result.current.actions.startEditingAt({ col: 0, row: 2 });
     });
     rerender();
     expect(result.current.editing).toEqual({
@@ -1234,7 +1234,7 @@ describe("commitCellEdit", () => {
     );
 
     act(() => {
-      result.current.actions.startEditing({ col: 1, row: 0 });
+      result.current.actions.startEditingAt({ col: 1, row: 0 });
     });
     act(() => {
       result.current.actions.commitCellEdit(-5);
@@ -1257,7 +1257,7 @@ describe("commitCellEdit", () => {
     const { result } = renderHook(() => useDataGridActions(), { wrapper });
 
     act(() => {
-      result.current.startEditing({ col: 2, row: 1 });
+      result.current.startEditingAt({ col: 2, row: 1 });
       result.current.commitCellEdit(false, { dx: 0, dy: 0 });
     });
 
@@ -1276,7 +1276,7 @@ describe("commitCellEdit", () => {
     );
 
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
     });
     act(() => {
       result.current.actions.commitCellEdit("Charlie", { dx: 0, dy: 1 });
@@ -1297,7 +1297,7 @@ describe("commitCellEdit", () => {
     );
 
     act(() => {
-      result.current.actions.startEditing({ col: 3, row: 0 });
+      result.current.actions.startEditingAt({ col: 3, row: 0 });
     });
     rerender();
 
@@ -1316,7 +1316,7 @@ describe("editing anchored to its row across view rebuilds", () => {
 
     // Unsorted: view row 0 is Charlie (id "1"); edit his age (view col 1).
     act(() => {
-      result.current.actions.startEditing({ col: 1, row: 0 });
+      result.current.actions.startEditingAt({ col: 1, row: 0 });
     });
     rerender();
     expect(result.current.editing).toEqual({
@@ -1363,7 +1363,7 @@ describe("editing anchored to its row across view rebuilds", () => {
 
     // Bob (id "3") sits at view row 2 (age 40, the maximum).
     act(() => {
-      result.current.actions.startEditing({ col: 1, row: 2 }, "typed");
+      result.current.actions.startEditingAt({ col: 1, row: 2 }, "typed");
     });
     rerender();
     const before = result.current.editing;
@@ -1394,7 +1394,7 @@ describe("editing anchored to its row across view rebuilds", () => {
     );
 
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
     });
     rerender();
     expect(result.current.activeCell).toEqual({ col: 0, row: 0 });
@@ -1408,7 +1408,7 @@ describe("editing anchored to its row across view rebuilds", () => {
 
     // Click-away: activeCell sits on another cell, so a second sort must not touch it.
     act(() => {
-      result.current.actions.selectCell({ col: 1, row: 1 });
+      result.current.actions.selectCellAt({ col: 1, row: 1 });
     });
     rerender();
     expect(result.current.activeCell).toEqual({ col: 1, row: 1 });
@@ -1427,7 +1427,7 @@ describe("editing anchored to its row across view rebuilds", () => {
     );
 
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 }, "typed");
+      result.current.actions.startEditingAt({ col: 0, row: 0 }, "typed");
     });
     rerender();
     expect(result.current.editing).not.toBeNull();
@@ -1450,7 +1450,7 @@ describe("editing anchored to its row across view rebuilds", () => {
     );
 
     act(() => {
-      result.current.actions.startEditing({ col: 1, row: 0 });
+      result.current.actions.startEditingAt({ col: 1, row: 0 });
     });
     act(() => {
       result.current.actions.setFilters([{ columnId: "name", operator: "equals", value: "Alice" }]);
@@ -1475,7 +1475,7 @@ describe("editing anchored to its row across view rebuilds", () => {
     );
 
     act(() => {
-      result.current.actions.startEditing({ col: 1, row: 0 });
+      result.current.actions.startEditingAt({ col: 1, row: 0 });
     });
     rerender();
     expect(result.current.editing).not.toBeNull();
@@ -1496,7 +1496,7 @@ describe("editing anchored to its row across view rebuilds", () => {
     );
 
     act(() => {
-      result.current.actions.startEditing({ col: 1, row: 0 });
+      result.current.actions.startEditingAt({ col: 1, row: 0 });
     });
     rerender();
 
@@ -1531,7 +1531,7 @@ describe("editing anchored to its row across view rebuilds", () => {
     );
 
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 }, "typed");
+      result.current.actions.startEditingAt({ col: 0, row: 0 }, "typed");
     });
     rerender();
 
@@ -1572,7 +1572,7 @@ describe("Standard Schema validate", () => {
     const { result } = renderHook(() => useDataGridActions(), { wrapper });
 
     act(() => {
-      result.current.startEditing({ col: 0, row: 0 });
+      result.current.startEditingAt({ col: 0, row: 0 });
       result.current.commitCellEdit(41.6, { dx: 0, dy: 0 });
     });
 
@@ -1591,7 +1591,7 @@ describe("Standard Schema validate", () => {
     );
 
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
     });
     act(() => {
       result.current.actions.commitCellEdit(41.6);
@@ -1618,7 +1618,7 @@ describe("Standard Schema validate", () => {
     expect(result.current.editingError).toBeNull();
 
     act(() => {
-      result.current.actions.startEditing({ col: 1, row: 0 });
+      result.current.actions.startEditingAt({ col: 1, row: 0 });
     });
     act(() => {
       result.current.actions.setEditingError("async rejection message");
@@ -1675,8 +1675,8 @@ describe("deleteSelection", () => {
 
     act(() => {
       // Select the (name, age, active, locked) row for data row 0 ("Charlie").
-      result.current.actions.selectCell({ col: 0, row: 0 });
-      result.current.actions.extendTo({ col: 3, row: 0 });
+      result.current.actions.selectCellAt({ col: 0, row: 0 });
+      result.current.actions.extendToAt({ col: 3, row: 0 });
     });
     act(() => {
       result.current.actions.deleteSelection();
@@ -1707,8 +1707,8 @@ describe("deleteSelection", () => {
     const { result } = renderHook(() => useDataGridActions(), { wrapper });
 
     act(() => {
-      result.current.selectCell({ col: 0, row: 0 });
-      result.current.extendTo({ col: 3, row: 0 });
+      result.current.selectCellAt({ col: 0, row: 0 });
+      result.current.extendToAt({ col: 3, row: 0 });
     });
     act(() => {
       result.current.deleteSelection();
@@ -1739,7 +1739,7 @@ describe("_moveActiveCell", () => {
     );
 
     act(() => {
-      result.current.actions.selectCell({ col: 0, row: 0 });
+      result.current.actions.selectCellAt({ col: 0, row: 0 });
     });
     rerender();
 
@@ -1767,7 +1767,7 @@ describe("_moveActiveCell", () => {
     );
 
     act(() => {
-      result.current.actions.selectCell({ col: 0, row: 0 });
+      result.current.actions.selectCellAt({ col: 0, row: 0 });
     });
     rerender();
 
@@ -1799,8 +1799,8 @@ describe("_moveActiveCell", () => {
     );
 
     act(() => {
-      result.current.actions.selectCell({ col: 0, row: 0 });
-      result.current.actions.extendTo({ col: 1, row: 2 });
+      result.current.actions.selectCellAt({ col: 0, row: 0 });
+      result.current.actions.extendToAt({ col: 1, row: 2 });
     });
     rerender();
 
@@ -1839,7 +1839,7 @@ describe("actions object referential stability with new editing/delete actions",
     const firstActions = result.current;
 
     act(() => {
-      result.current.startEditing({ col: 0, row: 0 });
+      result.current.startEditingAt({ col: 0, row: 0 });
     });
     rerender();
     expect(result.current).toBe(firstActions);
@@ -1851,7 +1851,7 @@ describe("actions object referential stability with new editing/delete actions",
     expect(result.current).toBe(firstActions);
 
     act(() => {
-      result.current.selectCell({ col: 0, row: 0 });
+      result.current.selectCellAt({ col: 0, row: 0 });
       result.current.deleteSelection();
     });
     rerender();
@@ -1907,8 +1907,8 @@ describe("selection config defaults and gating", () => {
     const { result } = renderHook(() => ({ actions: useDataGridActions(), selection: useDataGridSelection() }), { wrapper });
 
     act(() => {
-      result.current.actions.selectCell({ col: 0, row: 0 });
-      result.current.actions.extendTo({ col: 1, row: 2 });
+      result.current.actions.selectCellAt({ col: 0, row: 0 });
+      result.current.actions.extendToAt({ col: 1, row: 2 });
     });
 
     expect(result.current.selection.current?.range).toEqual({ x: 1, y: 2, width: 1, height: 1 });
@@ -1920,7 +1920,7 @@ describe("selection config defaults and gating", () => {
     const { result } = renderHook(() => ({ actions: useDataGridActions(), selection: useDataGridSelection() }), { wrapper });
 
     act(() => {
-      result.current.actions.selectCell({ col: 0, row: 0 });
+      result.current.actions.selectCellAt({ col: 0, row: 0 });
       result.current.actions.extendSelection("down");
     });
 
@@ -1932,8 +1932,8 @@ describe("selection config defaults and gating", () => {
     const { result } = renderHook(() => ({ actions: useDataGridActions(), selection: useDataGridSelection() }), { wrapper });
 
     act(() => {
-      result.current.actions.selectCell({ col: 0, row: 0 });
-      result.current.actions.pushRange({ col: 1, row: 1 });
+      result.current.actions.selectCellAt({ col: 0, row: 0 });
+      result.current.actions.pushRangeAt({ col: 1, row: 1 });
     });
 
     expect(result.current.selection.current?.rangeStack).toEqual([]);
@@ -1960,7 +1960,7 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
     const { result } = renderHook(() => ({ actions: useDataGridActions(), selection: useDataGridSelection() }), { wrapper });
 
     act(() => {
-      result.current.actions.selectCell({ col: 0, row: 2 }); // unrelated range/active-cell state
+      result.current.actions.selectCellAt({ col: 0, row: 2 }); // unrelated range/active-cell state
       result.current.actions.setRowSelected(1, true);
     });
 
@@ -2037,8 +2037,8 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
     );
 
     act(() => {
-      result.current.actions.selectCell({ col: 0, row: 0 });
-      result.current.actions.extendTo({ col: 1, row: 2 });
+      result.current.actions.selectCellAt({ col: 0, row: 0 });
+      result.current.actions.extendToAt({ col: 1, row: 2 });
     });
 
     expect(result.current.row0Selected).toBe(true);
@@ -2098,8 +2098,8 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
     );
 
     act(() => {
-      result.current.actions.selectCell({ col: 0, row: 0 });
-      result.current.actions.extendTo({ col: 1, row: 2 }); // range covers rows 0-2, including row 1
+      result.current.actions.selectCellAt({ col: 0, row: 0 });
+      result.current.actions.extendToAt({ col: 1, row: 2 }); // range covers rows 0-2, including row 1
       result.current.actions.setRowSelected(1, true);
     });
     expect(result.current.row1Selected).toBe(true);
@@ -2645,7 +2645,7 @@ describe("onSelectionChange", () => {
     const wrapper = makeConfigWrapper({ onSelectionChange });
     const { result } = renderHook(useSelectionProbe, { wrapper });
 
-    act(() => result.current.actions.selectCell({ col: 0, row: 1 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 1 }));
 
     expect(onSelectionChange).toHaveBeenCalledTimes(1);
     const [selection] = onSelectionChange.mock.calls[0]!;
@@ -2657,9 +2657,9 @@ describe("onSelectionChange", () => {
     const wrapper = makeConfigWrapper({ onSelectionChange });
     const { result } = renderHook(useSelectionProbe, { wrapper });
 
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
-    act(() => result.current.actions.extendTo({ col: 0, row: 1 }));
-    act(() => result.current.actions.extendTo({ col: 0, row: 2 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    act(() => result.current.actions.extendToAt({ col: 0, row: 1 }));
+    act(() => result.current.actions.extendToAt({ col: 0, row: 2 }));
 
     expect(onSelectionChange).toHaveBeenCalledTimes(3);
   });
@@ -2669,8 +2669,8 @@ describe("onSelectionChange", () => {
     const wrapper = makeConfigWrapper({ onSelectionChange });
     const { result } = renderHook(useSelectionProbe, { wrapper });
 
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
-    act(() => result.current.actions.extendTo({ col: 0, row: 1 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    act(() => result.current.actions.extendToAt({ col: 0, row: 1 }));
 
     const [, details] = onSelectionChange.mock.calls.at(-1)!;
     expect(details.getRowIds()).toEqual(["1", "2"]);
@@ -2692,7 +2692,7 @@ describe("onSelectionChange", () => {
     const wrapper = makeConfigWrapper({ onSelectionChange, rowMarkers: "checkbox" });
     const { result } = renderHook(useSelectionProbe, { wrapper });
 
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
     act(() => result.current.actions.setRowSelected(0, true));
     act(() => result.current.actions.setRowSelected(2, true));
 
@@ -2705,7 +2705,7 @@ describe("onSelectionChange", () => {
     const wrapper = makeConfigWrapper({ onSelectionChange });
     const { result } = renderHook(useSelectionProbe, { wrapper });
 
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
     act(() => result.current.actions.clearSelection());
 
     const [, details] = onSelectionChange.mock.calls.at(-1)!;
@@ -2717,7 +2717,7 @@ describe("onSelectionChange", () => {
     const wrapper = makeConfigWrapper({ onSelectionChange });
     const { result } = renderHook(useSelectionProbe, { wrapper });
 
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
     onSelectionChange.mockClear();
     act(() => result.current.actions.clearSelection());
 
@@ -2730,7 +2730,7 @@ describe("onSelectionChange", () => {
     const wrapper = makeConfigWrapper({ onSelectionChange });
     const { result } = renderHook(useSelectionProbe, { wrapper });
 
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
     onSelectionChange.mockClear();
     act(() => result.current.actions.setColumnWidth("name", 200));
 
@@ -2742,11 +2742,11 @@ describe("onSelectionChange", () => {
     const wrapper = makeConfigWrapper({ onSelectionChange });
     const { result } = renderHook(useSelectionProbe, { wrapper });
 
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
-    act(() => result.current.actions.extendTo({ col: 0, row: 1 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    act(() => result.current.actions.extendToAt({ col: 0, row: 1 }));
     onSelectionChange.mockClear();
-    act(() => result.current.actions.extendTo({ col: 0, row: 1 }));
-    act(() => result.current.actions.extendTo({ col: 0, row: 1 }));
+    act(() => result.current.actions.extendToAt({ col: 0, row: 1 }));
+    act(() => result.current.actions.extendToAt({ col: 0, row: 1 }));
 
     expect(onSelectionChange).not.toHaveBeenCalled();
   });
@@ -2756,7 +2756,7 @@ describe("onSelectionChange", () => {
     const wrapper = makeConfigWrapper({ onSelectionChange });
     const { result } = renderHook(useSelectionProbe, { wrapper });
 
-    act(() => result.current.actions.selectCell({ col: 1, row: 2 })); // last of 2 columns and 3 rows
+    act(() => result.current.actions.selectCellAt({ col: 1, row: 2 })); // last of 2 columns and 3 rows
     onSelectionChange.mockClear();
     act(() => result.current.actions.extendSelection("down"));
     act(() => result.current.actions.extendSelection("right"));
@@ -2801,7 +2801,7 @@ describe("onSelectionCleared", () => {
     const wrapper = makeConfigWrapper({ onSelectionChange, onSelectionCleared });
     const { result } = renderHook(useSelectionProbe, { wrapper });
 
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
     act(() => result.current.actions.clearSelection());
 
     expect(onSelectionChange).toHaveBeenCalledTimes(2);
@@ -2813,7 +2813,7 @@ describe("onSelectionCleared", () => {
     const wrapper = makeConfigWrapper({ onSelectionCleared });
     const { result } = renderHook(useSelectionProbe, { wrapper });
 
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
     act(() => result.current.actions.clearSelection());
     onSelectionCleared.mockClear();
     act(() => result.current.actions.clearSelection());
@@ -2826,7 +2826,7 @@ describe("onSelectionCleared", () => {
     const wrapper = makeConfigWrapper({ onSelectionCleared });
     const { result } = renderHook(useSelectionProbe, { wrapper });
 
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
     onSelectionCleared.mockClear();
     act(() => result.current.actions.setColumnWidth("name", 200));
 
@@ -2844,8 +2844,8 @@ describe("onSelectionChange details.getValues()", () => {
     const wrapper = makeConfigWrapper({ onSelectionChange });
     const { result } = renderHook(useSelectionProbe, { wrapper });
 
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
-    act(() => result.current.actions.extendTo({ col: 1, row: 1 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    act(() => result.current.actions.extendToAt({ col: 1, row: 1 }));
 
     expect(onSelectionChange).toHaveBeenCalledTimes(2);
     const [, details] = onSelectionChange.mock.calls.at(-1)!;
@@ -2864,7 +2864,7 @@ describe("onSelectionChange details.getValues()", () => {
     act(() => result.current.actions.selectRow(0));
     expect(onSelectionChange.mock.calls.at(-1)![1].getValues()).toEqual([]);
 
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
     act(() => result.current.actions.clearSelection());
     expect(onSelectionChange.mock.calls.at(-1)![1].getValues()).toEqual([]);
   });
@@ -2877,8 +2877,8 @@ describe("onSelectionChange details.getValues()", () => {
     const wrapper = makeConfigWrapper({ onSelectionChange });
     const { result } = renderHook(useSelectionProbe, { wrapper });
 
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
-    act(() => result.current.actions.extendTo({ col: 1, row: 2 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    act(() => result.current.actions.extendToAt({ col: 1, row: 2 }));
 
     expect(onSelectionChange).toHaveBeenCalledTimes(2);
     expect(getValuesSpy).toHaveBeenCalledTimes(2);
@@ -2889,9 +2889,9 @@ describe("onSelectionChange details.getValues()", () => {
     const wrapper = makeConfigWrapper({ onSelectionChange });
     const { result } = renderHook(useSelectionProbe, { wrapper });
 
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
     const [, firstDetails] = onSelectionChange.mock.calls[0]!;
-    act(() => result.current.actions.selectCell({ col: 0, row: 2 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 2 }));
 
     // calling the FIRST fire's getValues() after a later selection change reads the NEW selection —
     // getValues closes over store.getState, not a point-in-time copy of the selection.
@@ -2910,7 +2910,7 @@ describe("useDataGridGetSelectionValues", () => {
 
     expect(result.current.getValues()).toEqual([]);
 
-    act(() => result.current.actions.selectCell({ col: 0, row: 2 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 2 }));
     expect(result.current.getValues()).toEqual([["Bob"]]);
   });
 
@@ -3253,7 +3253,7 @@ describe("updateCells while an edit session is open", () => {
     // sorted by name ascending: view order is Alice(1), Bob(2), Charlie(0).
     act(() => result.current.actions.setSorts([{ columnId: "name", direction: "asc" }]));
     expect(result.current.viewIndex).toEqual([1, 2, 0]);
-    act(() => result.current.actions.startEditing({ col: 0, row: 0 }));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
 
     // Charlie (data 0) renamed to "Aaron": an immediate re-sort would move him to the top of the view.
     act(() => result.current.actions.updateCells([{ rowId: "1", columnId: "name", value: "Aaron" }], { reorder: "immediate" }));
@@ -3370,5 +3370,65 @@ describe("useDataGridSelector / typed useDataGridRow", () => {
     act(() => storeApi?.getState().actions.deleteRows([0]));
     expect(renders).toBe(base + 1);
     unmount();
+  });
+});
+
+describe("CellRef actions (stable identity coordinates)", () => {
+  function useRefActions() {
+    return { actions: useDataGridActions(), selection: useDataGridSelection(), activeCell: useDataGridActiveCell(), editing: useDataGridEditing() };
+  }
+
+  it("selectCell resolves the ref against the current (sorted) view", () => {
+    const { result } = renderHook(useRefActions, {
+      wrapper: makeConfigWrapper({ sortState: [{ columnId: "name", direction: "asc" }] }),
+    });
+    // name-asc: Alice(2) view 0, Bob(3) view 1, Charlie(1) view 2
+    act(() => result.current.actions.selectCell({ rowId: "1", columnId: "age" }));
+    expect(result.current.selection.current?.cell).toEqual({ col: 1, row: 2 });
+  });
+
+  it("setActiveCell moves only the active cell; null clears it", () => {
+    const { result } = renderHook(useRefActions, {
+      wrapper: makeConfigWrapper({ sortState: [{ columnId: "name", direction: "asc" }] }),
+    });
+    act(() => result.current.actions.setActiveCell({ rowId: "3", columnId: "name" }));
+    expect(result.current.activeCell).toEqual({ col: 0, row: 1 });
+    expect(result.current.selection.current).toBeNull();
+    act(() => result.current.actions.setActiveCell(null));
+    expect(result.current.activeCell).toBeNull();
+  });
+
+  it("startEditing opens the session at the ref's resolved view cell", () => {
+    const { result } = renderHook(useRefActions, {
+      wrapper: makeConfigWrapper({ sortState: [{ columnId: "name", direction: "asc" }] }),
+    });
+    act(() => result.current.actions.startEditing({ rowId: "2", columnId: "age" }));
+    expect(result.current.editing).toMatchObject({ coord: { col: 1, row: 0 }, rowId: "2", columnId: "age" });
+    expect(result.current.activeCell).toEqual({ col: 1, row: 0 });
+  });
+
+  it("a ref that no longer resolves is a no-op and dev-warns once per grid", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { result } = renderHook(useRefActions, {
+      wrapper: makeConfigWrapper({ sortState: [{ columnId: "name", direction: "asc" }] }),
+    });
+    act(() => result.current.actions.selectCell({ rowId: "missing", columnId: "name" }));
+    expect(result.current.selection.current).toBeNull();
+    act(() => result.current.actions.selectCell({ rowId: "1", columnId: "hidden" }));
+    expect(result.current.selection.current).toBeNull();
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it("commitCellValue writes at the ref's resolved cell without moving the active cell", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { result } = renderHook(useRefActions, {
+      wrapper: makeConfigWrapper({ sortState: [{ columnId: "name", direction: "asc" }] }),
+    });
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    act(() => result.current.actions.commitCellValue({ rowId: "3", columnId: "age" }, 41));
+    expect(result.current.activeCell).toEqual({ col: 0, row: 0 });
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 });

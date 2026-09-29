@@ -369,8 +369,8 @@ describe("updateCells: controlled echo path", () => {
 describe("updateCells: editing is never disturbed", () => {
   it("keeps an open editor's focus and content while a stream runs", { timeout: 120_000 }, async () => {
     const api = await mountGrid({ sorted: false });
-    api.getState().actions.selectCell({ col: 1, row: 2 });
-    api.getState().actions.startEditing({ col: 1, row: 2 }, "typed-so-far");
+    api.getState().actions.selectCellAt({ col: 1, row: 2 });
+    api.getState().actions.startEditingAt({ col: 1, row: 2 }, "typed-so-far");
     await new Promise((r) => setTimeout(r, 60));
 
     const editorBefore = document.activeElement;

@@ -451,7 +451,7 @@ describe("onCellClick / onRowClick", () => {
 
     expect(onCellClick).toHaveBeenCalledTimes(1);
     const [ctx] = onCellClick.mock.calls[0]!;
-    expect(ctx).toMatchObject({ value: "Row 1", rowIndex: 1, columnIndex: 0 });
+    expect(ctx).toMatchObject({ value: "Row 1", rowId: "1", columnId: "name", viewRowIndex: 1, viewColumnIndex: 0 });
     expect(ctx.row).toEqual({ id: "1", name: "Row 1", qty: 1 });
     expect(ctx.column.id).toBe("name");
   });
@@ -463,7 +463,7 @@ describe("onCellClick / onRowClick", () => {
     fireEvent.click(cells[3]!); // row 1, "qty" column
 
     expect(onRowClick).toHaveBeenCalledTimes(1);
-    expect(onRowClick.mock.calls[0]![0]).toEqual({ row: { id: "1", name: "Row 1", qty: 1 }, rowIndex: 1 });
+    expect(onRowClick.mock.calls[0]![0]).toEqual({ row: { id: "1", name: "Row 1", qty: 1 }, rowId: "1", viewRowIndex: 1 });
   });
 
   it("both fire together from the same click when both props are supplied", () => {
@@ -857,10 +857,10 @@ describe("DataGrid selection changes re-render only overlays + the two affected 
     const before = [...rowRenderCounts];
 
     act(() => {
-      actionsRef!.selectCell({ col: 0, row: 0 });
+      actionsRef!.selectCellAt({ col: 0, row: 0 });
     });
     act(() => {
-      actionsRef!.selectCell({ col: 1, row: 0 });
+      actionsRef!.selectCellAt({ col: 1, row: 0 });
     });
     act(() => {
       actionsRef!._moveActiveCell({ dx: 0, dy: 1 });
@@ -925,7 +925,7 @@ describe("onSelectionChange / onColumnLayoutChange fire from store actions witho
     const cellsBefore = cellRenderCount;
 
     act(() => {
-      actionsRef!.selectCell({ col: 0, row: 0 });
+      actionsRef!.selectCellAt({ col: 0, row: 0 });
     });
 
     expect(onSelectionChange).toHaveBeenCalledTimes(1);
@@ -967,8 +967,8 @@ describe("onSelectionChange / onColumnLayoutChange fire from store actions witho
     const rowsBefore = [...rowRenderCounts];
 
     act(() => {
-      actionsRef!.selectCell({ col: 0, row: 0 });
-      actionsRef!.extendTo({ col: 1, row: 1 });
+      actionsRef!.selectCellAt({ col: 0, row: 0 });
+      actionsRef!.extendToAt({ col: 1, row: 1 });
     });
 
     expect(onSelectionChange).toHaveBeenCalledTimes(2);
@@ -1045,14 +1045,14 @@ describe("useDataGridCellState consolidates 6 store reads into 1 subscription", 
 
     // activating this cell flips exactly one of the 4 tracked primitives (isActive) once.
     act(() => {
-      actionsRef!.selectCell({ col: 0, row: 0 });
+      actionsRef!.selectCellAt({ col: 0, row: 0 });
     });
     expect(renderCount).toBe(before + 1);
 
     // moving the active cell elsewhere flips isActive back — one more render, not a burst of 4+
     // (one per formerly-separate atomic hook) from a single logical state transition.
     act(() => {
-      actionsRef!.selectCell({ col: 1, row: 0 });
+      actionsRef!.selectCellAt({ col: 1, row: 0 });
     });
     expect(renderCount).toBe(before + 2);
   });
@@ -1081,10 +1081,10 @@ describe("useDataGridCellState consolidates 6 store reads into 1 subscription", 
 
     const before = renderCount;
     act(() => {
-      actionsRef!.selectCell({ col: 0, row: 0 });
+      actionsRef!.selectCellAt({ col: 0, row: 0 });
     });
     act(() => {
-      actionsRef!.selectCell({ col: 0, row: 1 });
+      actionsRef!.selectCellAt({ col: 0, row: 1 });
     });
     expect(renderCount).toBe(before);
   });
@@ -1138,9 +1138,9 @@ describe("DataGridCell memo prop-stability audit", () => {
         id: "name",
         header: "Name",
         accessorKey: "name",
-        renderCell: ({ value, rowIndex }) => {
+        renderCell: ({ value, viewRowIndex }) => {
           renderCount++;
-          perRowCounts[rowIndex] = (perRowCounts[rowIndex] ?? 0) + 1;
+          perRowCounts[viewRowIndex] = (perRowCounts[viewRowIndex] ?? 0) + 1;
           return String(value);
         },
       },
@@ -1321,8 +1321,8 @@ describe("selection membership flips re-render only the affected cells (2026-09-
       id: `c${col}`,
       header: `C${col}`,
       accessorKey: "name",
-      renderCell: ({ value, rowIndex }: { value: unknown; rowIndex: number }) => {
-        cellCounts[rowIndex * colCount + col] = (cellCounts[rowIndex * colCount + col] ?? 0) + 1;
+      renderCell: ({ value, viewRowIndex }: { value: unknown; viewRowIndex: number }) => {
+        cellCounts[viewRowIndex * colCount + col] = (cellCounts[viewRowIndex * colCount + col] ?? 0) + 1;
         return String(value);
       },
     }));
@@ -1358,8 +1358,8 @@ describe("selection membership flips re-render only the affected cells (2026-09-
     const { actions, totalCellRenders, rowRenders } = await renderCountingSelectionGrid();
 
     act(() => {
-      actions().selectCell({ col: 0, row: 0 });
-      actions().extendTo({ col: 1, row: 0 });
+      actions().selectCellAt({ col: 0, row: 0 });
+      actions().extendToAt({ col: 1, row: 0 });
     });
     await act(async () => {});
 
@@ -1367,7 +1367,7 @@ describe("selection membership flips re-render only the affected cells (2026-09-
     const rowsBefore = rowRenders();
 
     act(() => {
-      actions().extendTo({ col: 1, row: 1 });
+      actions().extendToAt({ col: 1, row: 1 });
     });
     await act(async () => {});
 
@@ -1387,13 +1387,13 @@ describe("selection membership flips re-render only the affected cells (2026-09-
     const { actions, totalCellRenders } = await renderCountingSelectionGrid();
 
     act(() => {
-      actions().selectCell({ col: 0, row: 0 });
+      actions().selectCellAt({ col: 0, row: 0 });
     });
     await act(async () => {});
 
     const cellsBefore = totalCellRenders();
     act(() => {
-      actions().extendTo({ col: 1, row: 2 });
+      actions().extendToAt({ col: 1, row: 2 });
     });
     await act(async () => {});
 

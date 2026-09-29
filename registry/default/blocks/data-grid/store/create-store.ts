@@ -1,5 +1,5 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
-import type { CellCoord, CellType, DataOp, FilterSpec } from "../types";
+import type { ViewCoord, CellType, DataOp, FilterSpec } from "../types";
 import { DEFAULT_KEYMAP } from "../keyboard";
 import { CompactSelection } from "../selection/compact-selection";
 import { getCellValue } from "../columns/column-helpers";
@@ -41,7 +41,7 @@ import {
   EMPTY_ROW_BANDS,
 } from "./compute";
 import { resolveEditTarget, warnDev } from "./commit";
-import { createDataWriteActions, createDataWriteContext, forgetDeferredRows, resetDeferredRows } from "./data-write";
+import { createDataWriteActions, createDataWriteContext, forgetDeferredRows, resetDeferredRows, resolveRefOrWarn } from "./data-write";
 import { createRowIndexCache } from "./row-index";
 import type { AnyColumnDef, DataGridStoreState, InternalSyncProps, SyncInputs } from "./types";
 import { syncInputsEqual } from "./types";
@@ -240,19 +240,36 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     viewStale: false,
     visibleColumns,
     scrollToCellImpl: null,
+    dataWrite,
     fillHandlers: null,
     presenceViewSpaceActive: null,
     readOnly: false,
     keymap: DEFAULT_KEYMAP,
     labels: mergeLabels(init.labels),
     actions: {
-      setActiveCell(coord) {
+      setActiveCell(ref) {
+        if (ref === null) {
+          set({ activeCell: null });
+          return;
+        }
+        const coord = resolveRefOrWarn(dataWrite, get(), ref);
+        if (coord) set({ activeCell: coord });
+      },
+      setActiveCellAt(coord) {
         set({ activeCell: coord });
       },
-      selectCell(coord) {
+      selectCell(ref) {
+        const coord = resolveRefOrWarn(dataWrite, get(), ref);
+        if (coord) set({ activeCell: coord, selection: selectCellPure(coord) });
+      },
+      selectCellAt(coord) {
         set({ activeCell: coord, selection: selectCellPure(coord) });
       },
-      extendTo(coord) {
+      extendTo(ref) {
+        const coord = resolveRefOrWarn(dataWrite, get(), ref);
+        if (coord) get().actions.extendToAt(coord);
+      },
+      extendToAt(coord) {
         set((s) => {
           // enableRangeSelection: false collapses any drag/shift-extend gesture to single-cell active only.
           if (!s.enableRangeSelection) return { selection: selectCellPure(coord), activeCell: coord };
@@ -275,7 +292,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           }),
         });
       },
-      pushRange(coord) {
+      pushRange(ref) {
+        const coord = resolveRefOrWarn(dataWrite, get(), ref);
+        if (coord) get().actions.pushRangeAt(coord);
+      },
+      pushRangeAt(coord) {
         set((s) => {
           // enableMultiRange: false makes ctrl-click behave as a plain click (no stack push).
           if (!s.enableMultiRange) return { selection: selectCellPure(coord), activeCell: coord };
@@ -336,7 +357,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           s.selectAllStage.activeCell === s.activeCell
             ? s.selectAllStage.stage
             : null;
-        const isEmptyAt = (coord: CellCoord): boolean => {
+        const isEmptyAt = (coord: ViewCoord): boolean => {
           const column = s.visibleColumns[coord.col];
           if (!column) return true;
           const dataRowIndex = s.viewIndex[coord.row];
@@ -519,7 +540,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         // viewIndex is untouched: quick-search highlights + navigates, it never filters.
         set((s2) => ({ searchText: text, ...computeSearchMatches(s2.data, s2.columns, s2.viewIndex, s2.visibleColumns, text, s2.cellTypes) }));
       },
-      startEditing(coord, initialText) {
+      startEditing(ref, initialText) {
+        const coord = resolveRefOrWarn(dataWrite, get(), ref);
+        if (coord) get().actions.startEditingAt(coord, initialText);
+      },
+      startEditingAt(coord, initialText) {
         const s = get();
         const target = resolveEditTarget(s, coord);
         if (!target || isColumnReadOnly(target.column, target.row)) return;

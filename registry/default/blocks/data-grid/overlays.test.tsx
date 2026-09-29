@@ -60,8 +60,8 @@ describe("DataGridOverlays selection-range clamping", () => {
   it("clamps a range overlay to the currently rendered row window", () => {
     const { container, actions } = renderHarness({ windowStart: 4, rowCount: 6, colCount: 3 });
     act(() => {
-      actions().selectCell({ col: 0, row: 2 });
-      actions().extendTo({ col: 1, row: 8 });
+      actions().selectCellAt({ col: 0, row: 2 });
+      actions().extendToAt({ col: 1, row: 8 });
     });
 
     // window only covers rows [4, 10) — the range [2,9) must clamp to [4,9)
@@ -76,15 +76,15 @@ describe("DataGridOverlays selection-range clamping", () => {
   it("renders nothing when the range falls entirely outside the rendered window", () => {
     const { container, actions } = renderHarness({ windowStart: 5, rowCount: 5, colCount: 3 });
     act(() => {
-      actions().selectCell({ col: 0, row: 0 });
-      actions().extendTo({ col: 0, row: 1 });
+      actions().selectCellAt({ col: 0, row: 0 });
+      actions().extendToAt({ col: 0, row: 1 });
     });
     expect(container.querySelector(gridAttrSelector("selectionOverlay"))).toBeNull();
   });
 
   it("places the active-cell ring at the window-relative grid line", () => {
     const { container, actions } = renderHarness({ windowStart: 4, rowCount: 6, colCount: 3 });
-    act(() => actions().selectCell({ col: 1, row: 6 }));
+    act(() => actions().selectCellAt({ col: 1, row: 6 }));
 
     const ring = container.querySelector<HTMLElement>(gridAttrSelector("activeCellOverlay"));
     expect(ring).not.toBeNull();
@@ -94,13 +94,13 @@ describe("DataGridOverlays selection-range clamping", () => {
 
   it("omits the active-cell ring when the active cell is outside the rendered window", () => {
     const { container, actions } = renderHarness({ windowStart: 4, rowCount: 6, colCount: 3 });
-    act(() => actions().selectCell({ col: 0, row: 0 }));
+    act(() => actions().selectCellAt({ col: 0, row: 0 }));
     expect(container.querySelector(gridAttrSelector("activeCellOverlay"))).toBeNull();
   });
 
   it("all overlays are pointer-events-none", () => {
     const { container, actions } = renderHarness({ windowStart: 0, rowCount: 10, colCount: 3 });
-    act(() => actions().selectCell({ col: 0, row: 4 }));
+    act(() => actions().selectCellAt({ col: 0, row: 4 }));
 
     const overlays = container.querySelectorAll<HTMLElement>(
       `${gridAttrSelector("selectionOverlay")}, ${gridAttrSelector("activeCellOverlay")}`,
@@ -206,8 +206,8 @@ describe("DataGridOverlays pin-aware segmentation", () => {
   it("marks pinned-zone overlay segments with data-pinned and leaves the middle segment unmarked", () => {
     const { container, actions } = renderHarness({ windowStart: 0, rowCount: 10, colCount: 3, pinTrack });
     act(() => {
-      actions().selectCell({ col: 0, row: 2 });
-      actions().extendTo({ col: 2, row: 2 });
+      actions().selectCellAt({ col: 0, row: 2 });
+      actions().extendToAt({ col: 2, row: 2 });
     });
 
     const overlays = [...container.querySelectorAll<HTMLElement>(gridAttrSelector("selectionOverlay"))];
@@ -221,8 +221,8 @@ describe("DataGridOverlays pin-aware segmentation", () => {
   it("ranks pinned overlay segments above pinned cells (GRID_LAYER.pinnedOverlaySegment)", () => {
     const { container, actions } = renderHarness({ windowStart: 0, rowCount: 10, colCount: 3, pinTrack });
     act(() => {
-      actions().selectCell({ col: 0, row: 2 });
-      actions().extendTo({ col: 2, row: 2 });
+      actions().selectCellAt({ col: 0, row: 2 });
+      actions().extendToAt({ col: 2, row: 2 });
     });
 
     const pinnedOverlay = container.querySelector<HTMLElement>(gridAttrSelector("selectionOverlay") + gridAttrSelector("pinned"))!;
@@ -239,8 +239,8 @@ describe("DataGridOverlays pin-aware segmentation", () => {
     };
     const { container, actions } = renderHarness({ windowStart: 0, rowCount: 10, colCount: 3, pinTrack: flatTrack });
     act(() => {
-      actions().selectCell({ col: 0, row: 2 });
-      actions().extendTo({ col: 2, row: 2 });
+      actions().selectCellAt({ col: 0, row: 2 });
+      actions().extendToAt({ col: 2, row: 2 });
     });
 
     const overlays = [...container.querySelectorAll<HTMLElement>(gridAttrSelector("selectionOverlay"))];
@@ -250,7 +250,7 @@ describe("DataGridOverlays pin-aware segmentation", () => {
 
   it("ranks the active-cell ring with its pinned cell when the active column is pinned", () => {
     const { container, actions } = renderHarness({ windowStart: 0, rowCount: 10, colCount: 3, pinTrack });
-    act(() => actions().selectCell({ col: 2, row: 1 }));
+    act(() => actions().selectCellAt({ col: 2, row: 1 }));
 
     const ring = container.querySelector<HTMLElement>(gridAttrSelector("activeCellOverlay"))!;
     expect(ring.dataset["pinned"]).toBe("");
@@ -260,7 +260,7 @@ describe("DataGridOverlays pin-aware segmentation", () => {
 
   it("leaves the active-cell ring unpinned when the active column isn't pinned, ranking it below any pinned cell", () => {
     const { container, actions } = renderHarness({ windowStart: 0, rowCount: 10, colCount: 3, pinTrack });
-    act(() => actions().selectCell({ col: 1, row: 1 }));
+    act(() => actions().selectCellAt({ col: 1, row: 1 }));
 
     const ring = container.querySelector<HTMLElement>(gridAttrSelector("activeCellOverlay"))!;
     expect(ring.dataset["pinned"]).toBeUndefined();
@@ -323,7 +323,7 @@ describe("overlayPlugins seam", () => {
   it("renders plugin content before the active-cell ring in DOM order (local focus still paints on top)", () => {
     const dummyPlugin: OverlayPlugin = () => <div data-grid-dummy-plugin-overlay="" aria-hidden="true" />;
     const { container, actions } = renderHarness({ windowStart: 0, rowCount: 10, colCount: 3, overlayPlugins: [dummyPlugin] });
-    act(() => actions().selectCell({ col: 0, row: 2 }));
+    act(() => actions().selectCellAt({ col: 0, row: 2 }));
 
     const pluginOverlay = container.querySelector("[data-grid-dummy-plugin-overlay]")!;
     const ring = container.querySelector(gridAttrSelector("activeCellOverlay"))!;

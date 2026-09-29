@@ -223,7 +223,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // (force-render-active-column below), never on row-only moves — vertical arrows stay cheap.
   const activeColumn = useDataGridActiveColumn();
   // primitive boolean, not the full activeCell — see useDataGridHasActiveCell's doc for why this
-  // matters (a full CellCoord subscription here would re-render the root, and thus the whole tree
+  // matters (a full ViewCoord subscription here would re-render the root, and thus the whole tree
   // via its context value, on every single row/column move).
   const hasActiveCell = useDataGridHasActiveCell();
   // WAI-ARIA grid pattern: aria-multiselectable reflects whether more than one cell can be
@@ -513,7 +513,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
           // marker click's own row/column-channel selection must not be clobbered back to (0,0),
           // and focus bubbling up from a cell that already made itself active must not re-seed either.
           if (event.target === event.currentTarget && !pointerInteractionRef.current && !hasActiveCell && rowCount > 0) {
-            actions.selectCell({ col: 0, row: 0 });
+            actions.selectCellAt({ col: 0, row: 0 });
           }
           pointerInteractionRef.current = false;
         }}

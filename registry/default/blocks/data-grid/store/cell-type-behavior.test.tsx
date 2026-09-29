@@ -73,7 +73,7 @@ describe("cell type `validate` as the fallback for commit validation", () => {
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
 
     act(() => {
-      result.current.actions.startEditing({ row: 0, col: 1 });
+      result.current.actions.startEditingAt({ row: 0, col: 1 });
       result.current.actions.commitCellEdit(99);
     });
 
@@ -87,7 +87,7 @@ describe("cell type `validate` as the fallback for commit validation", () => {
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper({ onDataChange }) });
 
     act(() => {
-      result.current.actions.startEditing({ row: 0, col: 1 });
+      result.current.actions.startEditingAt({ row: 0, col: 1 });
       result.current.actions.commitCellEdit(99);
       result.current.actions.commitCellEdit(4);
     });
