@@ -11,6 +11,20 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Custom cell-type helpers:** `defineCellType(key, type)` adds a compile-time check at the
+  definition — the key must be a registered cell-type key (your `GridCellTypes` augmentation)
+  and the type's value/options must match that key's declared shape; it costs nothing at runtime
+  and returns the entry as-is. `useCellEditor(props, codec)` is the text-input editor primitive
+  the built-in `text` and `number` editors are built from: it owns the draft state (seeded from
+  `initialText`, or `codec.toDraft(value)`), the end-caret focus, the one-shot commit guard
+  (re-armed when `rejectionCount` rises), and the Enter/Escape/blur bindings, and returns
+  `{ ref, value, onChange, onKeyDown, onBlur, readOnly }` to spread onto an input. `CellEditorCodec`
+  is its `{ toDraft, toValue }` codec type.
+- **Typed `options` on cell components:** `CellRenderProps` and `CellEditorProps` carry an
+  `options` prop typed as the type's declared `TOptions` (a third type parameter on both). Cell
+  and editor components destructure it directly instead of casting `column.options`; the
+  built-ins no longer cast.
+
 - **Composition parts take props:** `DataGridHeader` accepts `className` for its header-layer
   element and `renderHeaderCell`, a per-column header cell slot. The slot is called with the
   column context — every built-in header cell prop — and `Default`, the built-in cell for that
@@ -191,6 +205,15 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **`cellTypes` merges over the built-ins (Breaking):** the `cellTypes` prop previously REPLACED
+  the whole registry — extending the built-ins required spreading them back in
+  (`cellTypes={{ ...cellTypes, myType }}`). It now merges over them: unnamed built-ins keep
+  working, a key that names a built-in replaces that built-in, and a key set to `null` removes a
+  type (columns that then use the removed key fall back to the built-in `text` type and get the
+  development warning). Prop type is `Record<string, AnyCellType | null>`.
+- **`gridcn-custom-cell-type` agent skill:** it now teaches the `cellTypes` merge semantics,
+  `defineCellType`, `useCellEditor`, and the typed `options` prop instead of the old
+  spread-the-built-ins pattern and the `column.options` cast.
 - **Core barrel split into a consumer API and an add-on SDK (Breaking):** `data-grid` is now
   the consumer surface — components, props and ctx types, the state hooks, and the op/validation
   engines the docs teach. Add-on-internal seams move to a new `data-grid-sdk` module in the same

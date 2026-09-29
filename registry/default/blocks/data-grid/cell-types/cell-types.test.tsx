@@ -5,13 +5,14 @@ import { DataGridProvider } from "../store";
 import userEvent from "@testing-library/user-event";
 import {
   cellTypes,
+  defineCellType,
   textCellType,
   numberCellType,
   checkboxCellType,
   selectCellType,
   dateCellType,
 } from "./cell-types";
-import type { ColumnDef } from "../types";
+import type { ColumnDef, GridCellTypes } from "../types";
 
 afterEach(cleanup);
 
@@ -37,6 +38,11 @@ function selectColumn(): ColumnDef<unknown, string | null> {
 describe("cellTypes registry", () => {
   it("exports all five built-in keys", () => {
     expect(Object.keys(cellTypes).sort()).toEqual(["checkbox", "date", "number", "select", "text"]);
+  });
+
+  it("defineCellType returns the entry as-is (the check is type-only, zero runtime)", () => {
+    const defined = defineCellType("text", textCellType);
+    expect(defined).toBe(textCellType);
   });
 });
 
@@ -410,6 +416,7 @@ describe("numberCellType.Editor lifecycle", () => {
         value={1.2345}
         row={{}}
         column={column}
+        options={{ decimals: 2 }}
         onChange={onChange}
         commit={commit}
         cancel={cancel}
@@ -429,6 +436,7 @@ describe("numberCellType.Editor lifecycle", () => {
         initialText=""
         row={{}}
         column={column}
+        options={{ min: 0, max: 10 }}
         onChange={onChange}
         commit={commit}
         cancel={cancel}
@@ -712,6 +720,7 @@ describe("selectCellType.Editor lifecycle", () => {
         value={null}
         row={{}}
         column={selectColumn()}
+        options={selectColumn().options as GridCellTypes["select"]["options"]}
         onChange={onChange}
         commit={commit}
         cancel={cancel}
@@ -732,6 +741,7 @@ describe("selectCellType.Editor lifecycle", () => {
         value={null}
         row={{}}
         column={selectColumn()}
+        options={selectColumn().options as GridCellTypes["select"]["options"]}
         onChange={onChange}
         commit={commit}
         cancel={cancel}

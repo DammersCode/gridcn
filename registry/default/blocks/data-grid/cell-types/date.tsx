@@ -82,22 +82,21 @@ function formatDateDisplay(value: string | null, options?: GridCellTypes["date"]
   return getDateFormatter(options.locale ?? "en-US", options.displayFormat).format(date);
 }
 
-function DateCell({ value, column }: CellRenderProps<unknown, string | null>) {
-  const options = column.options as GridCellTypes["date"]["options"] | undefined;
+function DateCell({ value, options }: CellRenderProps<unknown, string | null, GridCellTypes["date"]["options"]>) {
   return <CellSpan text={displayText(dateCellType, value, options)} align="right" />;
 }
 
 /** Popover + Calendar (shadcn date-picker pattern): opens on edit start; picking a date commits and stays; a small typed-input above the calendar accepts ISO or Date.parse-able text with Enter to commit. */
 function DateEditor({
   value,
+  options,
   onChange,
   commit,
   cancel,
   column,
   pending,
   rejectionCount,
-}: CellEditorProps<unknown, string | null>) {
-  const options = column.options as GridCellTypes["date"]["options"] | undefined;
+}: CellEditorProps<unknown, string | null, GridCellTypes["date"]["options"]>) {
   const labels = useDataGridLabels();
   const inputRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState(dateCellType.toText(value));

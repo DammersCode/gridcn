@@ -388,8 +388,8 @@ function ServerSyncedGrid() {
 <Callout type="idea" title="Looking for the full guide?">
   This is a short, minimal sketch. [Build your own cell type](/docs/custom-cell-types) has the
   complete contract walk-through, a keypoint checklist (performance caching, SSR-safe formatting,
-  editor commit semantics, the cellTypes-replaces-not-merges gotcha, popover outside-click
-  handling), a runnable worked `currency` example, and a testing pattern.
+  editor commit semantics, the merge semantics of `cellTypes`, popover outside-click handling), a
+  runnable worked `currency` example, and a testing pattern.
 </Callout>
 
 A cell type is `{ Cell, Editor, toText, fromText, clearValue, isEmpty, compare?, align? }`. Here
@@ -397,7 +397,7 @@ is a minimal `currency` type modeled on the built-in `number` type:
 
 ```tsx
 import type { CellEditorProps, CellRenderProps, CellType } from "@/components/data-grid/types";
-import { useCommitGuard } from "@/components/data-grid/data-grid";
+import { useCellEditor } from "@/components/data-grid/data-grid";
 import { Input } from "@/components/ui/input";
 
 type CurrencyOptions = { currency: string; locale?: string };
@@ -415,8 +415,7 @@ function getCurrencyFormatter(locale: string, currency: string): Intl.NumberForm
   return formatter;
 }
 
-function CurrencyCell({ value, column }: CellRenderProps<unknown, number | null>) {
-  const options = column.options as CurrencyOptions | undefined;
+function CurrencyCell({ value, options }: CellRenderProps<unknown, number | null, CurrencyOptions>) {
   if (value == null) return null;
   return (
     <span className="tabular-nums">
@@ -425,27 +424,14 @@ function CurrencyCell({ value, column }: CellRenderProps<unknown, number | null>
   );
 }
 
-function CurrencyEditor({ value, initialText, onChange, commit, cancel }: CellEditorProps<unknown, number | null>) {
-  const [text, setText] = useState(initialText ?? String(value ?? ""));
-  // One-shot latch: Enter commits, then the blur that follows must not commit a second time.
-  const committed = useCommitGuard();
-  const commitText = (movement?: { dx: number; dy: number }) => {
-    if (!committed.tryCommit()) return;
-    onChange(Number(text) || null);
-    commit(movement);
-  };
-  return (
-    <Input
-      autoFocus
-      value={text}
-      onChange={(e) => setText(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") commitText({ dx: 0, dy: 1 });
-        if (e.key === "Escape") cancel();
-      }}
-      onBlur={() => commitText({ dx: 0, dy: 0 })}
-    />
-  );
+// useCellEditor owns the draft state, the end-caret focus, the one-shot commit guard, and the
+// Enter/Escape/blur bindings; the codec adapts the plain input to the value pipeline
+function CurrencyEditor(props: CellEditorProps<unknown, number | null, CurrencyOptions>) {
+  const { ref, ...bindings } = useCellEditor(props, {
+    toDraft: (value) => String(value ?? ""),
+    toValue: (draft) => (draft.trim() === "" ? null : Number(draft) || null),
+  });
+  return <Input ref={ref} {...bindings} />;
 }
 
 export const currencyCellType: CellType<unknown, number | null, CurrencyOptions> = {
@@ -469,10 +455,8 @@ declare module "@/components/data-grid/types" {
   }
 }
 
-import { cellTypes } from "@/components/data-grid/data-grid";
-
-// spread the built-ins in — `cellTypes` REPLACES the registry, it does not merge
-<DataGridProvider cellTypes={{ ...cellTypes, currency: currencyCellType }} {...grid} columns={columns}>
+// only the custom entry — `cellTypes` merges over the built-ins, which keep working unnamed
+<DataGridProvider cellTypes={{ currency: currencyCellType }} {...grid} columns={columns}>
 ```
 
 ```tsx

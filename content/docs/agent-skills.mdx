@@ -48,7 +48,8 @@ edit, and the React DevTools Profiler shows only the rows that enter the viewpor
 registration and the `GridCellTypes` type augmentation. It also covers the failures that show no
 error:
 
-- A `cellTypes` object without the built-in types replaces them all.
+- A `cellTypes` entry set to `null` removes that type. The prop merges over the built-ins and
+  never replaces them wholesale.
 - An unknown `type` key renders the column as plain text.
 - A `fromText` that throws stops the paste.
 - A portaled editor without `data-grid-cell-editor` closes on the first click.

@@ -207,9 +207,11 @@ assertEqual<false, IsAny<ReturnType<typeof useDataGridAllColumns<Row>>>>(true);
 // The registry prop is deliberately untyped (a spread of built-ins plus a consumer's typed
 // entry must compile cast-free — see AnyCellType's doc). Per-key safety comes from
 // defineColumns + GridCellTypes augmentation, never from the registry; pin the erased shapes
-// so a future change to either the prop or the tooling hook's return fails this file.
+// so a future change to either the prop or the tooling hook's return fails this file. The
+// `| null` in the value type is the remove-a-built-in entry (merged over the built-ins at the
+// store boundary).
 assertEqual<CellType<any, any, any>, AnyCellType>(true); // eslint-disable-line @typescript-eslint/no-explicit-any
-assertEqual<Record<string, AnyCellType> | undefined, DataGridProps<Row>["cellTypes"]>(true);
+assertEqual<Record<string, AnyCellType | null> | undefined, DataGridProps<Row>["cellTypes"]>(true);
 assertEqual<Record<string, CellType>, ReturnType<typeof useDataGridCellTypes>>(true);
 
 // --- GlobalShortcutsConfig: flags ---------------------------------------------------

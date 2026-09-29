@@ -175,13 +175,15 @@ export type DataChange<TData> = {
   label?: string;
 };
 
-export type CellRenderProps<TData, TValue> = {
+export type CellRenderProps<TData, TValue, TOptions = unknown> = {
   /** The resolved cell value (through the column's `accessorKey`/`accessorFn`). */
   value: TValue;
   /** The full data row this cell belongs to. */
   row: TData;
   /** Display (view-space) row index: the sorted/filtered position, matching what the user sees. NOT a stable index into `data` — it reshuffles under sort and filter. Use `getRowId` for stable row identity. */
   rowIndex: number;
+  /** The column's `options`, typed through `TOptions` (your declared options type) when the cell type is parameterized with it. */
+  options?: TOptions;
   // `column`'s own validate erases independently (3rd param `any`) — same reasoning as
   // CellClassNameCtx.column below; without it, renderCell's own bivariance gets re-poisoned by
   // validate's union whenever TValue is erased to `unknown` at the array-common-type boundary.
@@ -263,13 +265,15 @@ type CellClassNameFnHolder<TData, TValue> = { fn(ctx: CellClassNameCtx<TData, TV
  * built-in editors' `commitText(movement)` helper shows the canonical order: guard, `onChange`,
  * `commit`.
  */
-export type CellEditorProps<TData, TValue> = {
+export type CellEditorProps<TData, TValue, TOptions = unknown> = {
   /** The last-COMMITTED value, as it was when the editor opened (seed for your initial draft). NOT your in-progress draft — that lives in your editor's local state. */
   value: TValue;
   /** Initial text seed when editing started by typing (type-to-replace); undefined for Enter/F2. */
   initialText?: string;
   /** The full data row this cell belongs to. */
   row: TData;
+  /** The column's `options`, typed through `TOptions` (your declared options type) when the cell type is parameterized with it. */
+  options?: TOptions;
   // `column`'s own validate erases independently (3rd param `any`) — same reasoning as
   // CellRenderProps.column above.
   column: ColumnDef<TData, TValue, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -314,8 +318,8 @@ export type CellEditorProps<TData, TValue> = {
  * - fill (series inference) works on the raw value, not on any text form.
  */
 export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
-  Cell: FC<CellRenderProps<TData, TValue>>;
-  Editor: FC<CellEditorProps<TData, TValue>>;
+  Cell: FC<CellRenderProps<TData, TValue, TOptions>>;
+  Editor: FC<CellEditorProps<TData, TValue, TOptions>>;
   /** Serialize for clipboard/export. Search and filter do NOT use this — they match on the raw `String(value)`. */
   toText(value: TValue, options?: TOptions): string;
   /** Optional display-only rendering (e.g. locale-formatted dates); the cell renders `toDisplayText ?? toText`. Clipboard/export always use `toText`. */

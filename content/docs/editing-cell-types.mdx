@@ -359,14 +359,12 @@ sort, clipboard, and paste.
 A cell type is `{ Cell, Editor, toText, fromText, clearValue, isEmpty, compare?, align? }`.
 Register custom types through the `cellTypes` prop on `DataGridProvider`. To get the same
 `options` and value inference through `defineColumns` that built-in types get, augment
-`GridCellTypes` through declaration merging.
+`GridCellTypes` through declaration merging and wrap the type in `defineCellType`.
 
-<Callout type="warn" title="cellTypes replaces the registry, it does not merge">
-  Passing `cellTypes` to `DataGridProvider` replaces the whole registry. Spread the built-ins
-  back in (`cellTypes={{ ...cellTypes, myType: myCellType }}`), or every built-in-typed column
-  renders as plain text with a dead editor. See
-  [Build your own cell type](/docs/custom-cell-types#worked-example-a-currency-cell-type).
-</Callout>
+The `cellTypes` prop **merges over the built-ins**: built-ins you do not name keep working, a key
+that names a built-in replaces that built-in, and a key set to `null` removes that type. Columns
+that use a removed or unknown type fall back to the built-in `text` type. See
+[Build your own cell type](/docs/custom-cell-types#worked-example-a-currency-cell-type).
 
 See [Build your own cell type](/docs/custom-cell-types) for the full contract walk-through. It
 has a keypoint checklist distilled from lessons learned from the built-in types, on performance

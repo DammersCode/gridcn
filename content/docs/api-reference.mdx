@@ -159,11 +159,12 @@ traffic in. Reach for it when you write custom column UI that does not know its 
 
 <AutoTypeTable path="./registry/default/blocks/data-grid/types.ts" name="CellType" />
 
-Register custom types through the `cellTypes` prop of `DataGridProvider`. A provided registry
-REPLACES the built-ins (`text`, `number`, `checkbox`, `select`, `date`) rather than merging over
-them: to extend the built-ins, spread the exported `cellTypes` in
-(`cellTypes={{ ...cellTypes, myType }}`). See
-[Recipes](/docs/recipes#custom-cell-type) for a worked example.
+Register custom types through the `cellTypes` prop of `DataGridProvider`. The prop **merges over
+the built-ins** (`text`, `number`, `checkbox`, `select`, `date`): unnamed built-ins keep working,
+a key that names a built-in replaces it, and a key set to `null` removes that type. Wrap the type
+in `defineCellType(key, type)` once your `GridCellTypes` augmentation is in place: it checks the
+key and the type's value/options against the augmentation at the definition, and returns the
+entry as-is. See [Recipes](/docs/recipes#custom-cell-type) for a worked example.
 
 ### `GridCellTypes`
 
@@ -180,6 +181,23 @@ declare module "@/components/data-grid/types" {
 ```
 
 Adjust the module path to wherever your `components.json` aliases actually placed `types.ts`.
+
+### `defineCellType(key, type)`
+
+A compile-time gate for a custom cell type: `key` must be a cell-type key of `GridCellTypes`
+(including your augmentation), and `type` must match that key's declared `value` and `options`.
+It costs nothing at runtime and returns the entry unchanged, ready for the `cellTypes` registry.
+
+### `useCellEditor(props, codec)`
+
+The text-input editor primitive the built-in `text` and `number` editors are built from. It owns
+the draft state (seeded from `props.initialText`, or `codec.toDraft(value)` when there is
+none), the end-caret focus, and the one-shot commit guard (re-armed when `rejectionCount`
+rises). It also binds Enter (commit, move down), Escape (cancel), and blur (commit in place).
+`codec` is `{ toDraft, toValue }`. `toValue` must never throw and must return your type's
+`clearValue` result for text it cannot parse. The hook returns
+`{ ref, value, onChange, onKeyDown, onBlur, readOnly }`. Spread the bindings onto your input
+and pass its `ref`. `readOnly` mirrors `props.pending`.
 
 ## `DataGridLabels`
 

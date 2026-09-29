@@ -67,6 +67,21 @@ import type { AnyColumnDef, CellPatch, DataGridStoreState, InternalSyncProps, Sy
 import { syncInputsEqual } from "./types";
 
 /**
+ * Resolves the `cellTypes` prop against the built-ins: entries merge OVER the built-ins, and a
+ * `null` entry removes a built-in (or a previously provided type). Built-ins stay available when
+ * the consumer provides only custom types.
+ */
+function resolveCellTypes(provided: Record<string, CellType | null> | undefined): Record<string, CellType> {
+  if (provided === undefined) return defaultCellTypes as unknown as Record<string, CellType>;
+  const out: Record<string, CellType> = { ...(defaultCellTypes as unknown as Record<string, CellType>) };
+  for (const [key, value] of Object.entries(provided)) {
+    if (value === null) delete out[key];
+    else out[key] = value;
+  }
+  return out;
+}
+
+/**
  * Creates one grid's vanilla store instance. Module-private: never export this
  * factory's result or a bound hook from this module — only the hooks below.
  */
@@ -85,8 +100,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const initFilterState = withFilterIds(init.filterState ?? []);
   const initJoinOperator = init.joinOperator ?? "and";
   // storage widens each per-column CellType<TData, TValue, TOptions> to the untyped registry shape; narrowed back per column at lookup (cell.tsx/store's column-op helpers).
-  const initCellTypes =
-    (init.cellTypes as unknown as Record<string, CellType> | undefined) ?? (defaultCellTypes as unknown as Record<string, CellType>);
+  const initCellTypes = resolveCellTypes(init.cellTypes as unknown as Record<string, CellType | null> | undefined);
   let lastSyncInputs: SyncInputs = {
     data: initData,
     cellTypes: initCellTypes,
@@ -1204,8 +1218,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             : [];
           const nextHiddenColumns = reseededHidden.length > 0 ? [...s.hiddenColumns, ...reseededHidden] : s.hiddenColumns;
           // same registry-widening cast as createDataGridStore's init — see that comment.
-          const nextCellTypes =
-            (props.cellTypes as unknown as Record<string, CellType> | undefined) ?? (defaultCellTypes as unknown as Record<string, CellType>);
+          const nextCellTypes = resolveCellTypes(props.cellTypes as unknown as Record<string, CellType | null> | undefined);
           const nextSyncInputs: SyncInputs = {
             data: nextData,
             cellTypes: nextCellTypes,

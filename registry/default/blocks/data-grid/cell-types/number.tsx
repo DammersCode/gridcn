@@ -26,24 +26,24 @@ function roundToDecimals(value: number, options?: GridCellTypes["number"]["optio
   return Math.round(value * factor) / factor;
 }
 
-function NumberCell({ value, column }: CellRenderProps<unknown, number | null>) {
-  const options = column.options as GridCellTypes["number"]["options"] | undefined;
+function NumberCell({ value, options }: CellRenderProps<unknown, number | null, GridCellTypes["number"]["options"]>) {
   return <CellSpan text={numberCellType.toText(value, options)} align="right" />;
 }
 
 function NumberEditor({
   value,
   initialText,
+  options,
   onChange,
   commit,
   cancel,
   column,
   pending,
   rejectionCount,
-}: CellEditorProps<unknown, number | null>) {
+}: CellEditorProps<unknown, number | null, GridCellTypes["number"]["options"]>) {
   const ref = useRef<HTMLInputElement>(null);
   // seed with the same options the cell display formats with, so the draft matches what the cell showed
-  const [text, setText] = useState(initialText ?? numberCellType.toText(value, column.options as GridCellTypes["number"]["options"]));
+  const [text, setText] = useState(initialText ?? numberCellType.toText(value, options));
   useSeedFocus(ref, initialText);
   const committed = useCommitGuard();
 
@@ -59,7 +59,7 @@ function NumberEditor({
 
   const commitText = (movement?: { dx: number; dy: number }) => {
     if (!committed.tryCommit()) return;
-    onChange(numberCellType.fromText(text, column.options as GridCellTypes["number"]["options"]));
+    onChange(numberCellType.fromText(text, options));
     commit(movement);
   };
 
@@ -82,7 +82,6 @@ function NumberEditor({
         } else if (e.key === "Escape") {
           cancel();
         } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-          const options = column.options as GridCellTypes["number"]["options"];
           // step the draft; a cleared draft falls back to the committed value, so an empty
           // cell with a null value has no step base and stays untouched
           const base = numberCellType.fromText(text, options) ?? value;

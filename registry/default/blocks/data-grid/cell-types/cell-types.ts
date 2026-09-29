@@ -1,4 +1,4 @@
-import type { CellOptionsOf, CellType, CellValueOf } from "../types";
+import type { CellOptionsOf, CellType, CellTypeKey, CellValueOf } from "../types";
 import { textCellType } from "./text";
 import { numberCellType } from "./number";
 import { checkboxCellType } from "./checkbox";
@@ -32,3 +32,17 @@ export const cellTypes = {
   select: selectCellType,
   date: dateCellType,
 } satisfies { [K in BuiltinCellTypeKey]: CellTypeFor<K> };
+
+/**
+ * Defines a custom cell type with the one compile-time check a plain object can't give: `key`
+ * must be a registered {@link CellTypeKey} (your `GridCellTypes` module augmentation) and the
+ * type's value/options must match that key's declared shape, so a typo in a key or a drifted
+ * `GridCellTypes` entry fails at the definition, not at every column that uses the type.
+ * Zero runtime cost — the entry is returned as-is, ready for the `cellTypes` registry.
+ */
+export function defineCellType<K extends CellTypeKey>(
+  key: K,
+  type: CellType<unknown, CellValueOf<K>, CellOptionsOf<K>>,
+): CellType<unknown, CellValueOf<K>, CellOptionsOf<K>> {
+  return type;
+}

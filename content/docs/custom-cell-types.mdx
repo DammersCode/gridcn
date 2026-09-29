@@ -15,8 +15,8 @@ the contract for every type. Get `fromText` wrong, and every consumer inherits t
 
 ```ts title="registry/default/blocks/data-grid/types.ts"
 export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
-  Cell: FC<CellRenderProps<TData, TValue>>;
-  Editor: FC<CellEditorProps<TData, TValue>>;
+  Cell: FC<CellRenderProps<TData, TValue, TOptions>>;
+  Editor: FC<CellEditorProps<TData, TValue, TOptions>>;
   toText(value: TValue, options?: TOptions): string;
   toDisplayText?(value: TValue, options?: TOptions): string;
   fromText(text: string, options?: TOptions): TValue;
@@ -27,15 +27,16 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
 };
 ```
 
-- **`Cell`** — read-mode rendering. It receives `{ value, row, rowIndex, column, isActive }`. It
-  runs for every visible cell on every window mount. This is a hot path (code that runs very
-  often, so its per-call cost matters), covered more below.
-- **`Editor`** — edit-mode rendering. It receives `{ value, initialText?, row, column, onChange,
-  commit, cancel, pending?, rejectionCount? }`. `commit(movement?)` writes the value back through
-  `onChange`, and tells the grid where the active cell goes next. `cancel()` discards the edit
-  entirely. `pending` and `rejectionCount` matter only if the `validate` of the column can be an
-  async Standard Schema. See [Editing & cell types](/docs/editing-cell-types#async-schemas) and
-  the checklist below.
+- **`Cell`** — read-mode rendering. It receives `{ value, row, rowIndex, column, options,
+  isActive }`. The `options` prop carries the column's `options`, typed as `TOptions` when you
+  parameterize the type with it. It runs for every visible cell on every window mount. This is a
+  hot path (code that runs very often, so its per-call cost matters), covered more below.
+- **`Editor`** — edit-mode rendering. It receives `{ value, initialText?, row, column, options,
+  onChange, commit, cancel, pending?, rejectionCount? }`. `commit(movement?)` writes the value
+  back through `onChange`, and tells the grid where the active cell goes next. `cancel()`
+  discards the edit entirely. `pending` and `rejectionCount` matter only if the `validate` of
+  the column can be an async Standard Schema. See
+  [Editing & cell types](/docs/editing-cell-types#async-schemas) and the checklist below.
 - **`toText`** — the *canonical* serialization. Clipboard copy and export use it unconditionally.
   It must round-trip through `fromText` for every value that the type can hold. Search and filter
   do NOT use it — see the value-pipeline note below.
@@ -142,12 +143,17 @@ cellTypes) · **fill** = raw value.
 
 ### Editor UX
 
-- **Use the commit guard (`useCommitGuard` or an equivalent one-shot latch) in every editor that
-  can commit from more than one code path.** An editor typically has at least two ways to end an
-  edit: Enter, then a blur that follows it, or React StrictMode's mount-cleanup-mount
-  double-invoke in dev. Without a guard, the second path fires `commit` or `onChange` again on an
-  edit that already committed. The guard is one `useRef` flag: `tryCommit()` returns `true` once,
-  and `false` after that.
+- **A text-input editor starts from `useCellEditor`, not from scratch.** It owns the draft state
+  (seeded from `initialText`, or from your codec's `toDraft(value)` when there is none), the
+  end-caret focus, the one-shot commit guard, the re-arm after a rejected commit, and the
+  Enter/Escape/blur bindings. You supply one codec object — `toDraft` and `toValue` — and spread
+  the returned bindings onto your input. The checklist points below state the rules the hook
+  already implements, for the editors that do not use it (popover, checkbox, and similar).
+- **If your editor commits from more than one code path, use the commit guard
+  (`useCommitGuard`).** An editor typically has at least two ways to end an edit: Enter, then a
+  blur that follows it, or React StrictMode's mount-cleanup-mount double-invoke in dev. Without
+  a guard, the second path fires `commit` or `onChange` again on an edit that already committed.
+  The guard is one `useRef` flag: `tryCommit()` returns `true` once, and `false` after that.
 - **Honor `pending` and `rejectionCount` if your column type can carry an async Standard Schema
   `validate`.** `CellEditorProps.pending` is true while an async schema is resolving. Set your
   input `readOnly`, never `disabled` (a disabled input cannot receive Escape or blur, which
@@ -213,10 +219,17 @@ cellTypes) · **fill** = raw value.
   `options` and the value type of the column fall back to `unknown` at the type level. You lose
   the compile-time catches that `defineColumns` gives every built-in type, for a typo in an
   option key and for a typo in a type key.
-- **The `cellTypes` registry is untyped.** Its type is `Record<string, AnyCellType>`: the keys
-  are not checked against your `GridCellTypes` declarations, and an entry's shape is not checked
-  against its key's declared type. Per-key safety comes from `defineColumns` plus the
-  augmentation above, not from the registry. Consider a `column.type` string that resolves to no
+- **Wrap your type in `defineCellType` once the augmentation is in.** The helper
+  `defineCellType("currency", currencyCellType)` adds a compile-time check at the definition:
+  the key must be a registered cell-type key, and the type's value and options must match that
+  key's declared `GridCellTypes` entry. A typo in the key, or a drifted entry, fails at the
+  definition, not at every column that uses the type. It costs nothing at runtime and returns
+  the entry as-is, ready for the `cellTypes` registry.
+- **The `cellTypes` registry is untyped in value.** Its type is
+  `Record<string, AnyCellType | null>`: an entry's shape is not checked against its key's
+  declared type, so a mismatched value or options type compiles. Per-key safety comes from
+  `defineColumns`, `defineCellType`, and the augmentation above, not from the registry. A `null`
+  entry removes a type from the registry. Consider a `column.type` string that resolves to no
   registry entry, for example a mistyped registry key. The cell then renders with the built-in
   `text` type, and editing that cell does nothing. In development, the grid logs one warning per
   column that names the column and the missing type.
@@ -224,10 +237,11 @@ cellTypes) · **fill** = raw value.
   Accessor/value cross-checking exists only on `defineColumns`' `TypedColumnDef`. A hand-written
   `ColumnDef<Product, number | null>` with `accessorKey: "name"` compiles; the value type is
   whatever you declare. Use `defineColumns` when your row type is known.
-- **Cast `column.options` to your declared options type in cell components.** The cell prop
-  types carry the column's options type erased. The convention is a direct cast to the type
-  you declared in the `GridCellTypes` entry. The worked example below applies it to
-  `CurrencyOptions`.
+- **Read the typed `options` prop in cell components.** The grid passes the column's `options`
+  into `Cell` and `Editor` as the `options` prop, typed as `TOptions` when the type is
+  parameterized with it. Parameterize your components with your options type
+  (`CellRenderProps<unknown, number | null, CurrencyOptions>`) and destructure `options`
+  directly. No cast is needed. The worked example below applies this to `CurrencyOptions`.
 
 ## Worked example: a `currency` cell type
 
@@ -267,8 +281,7 @@ function formatCurrencyDisplay(value: number | null, options?: CurrencyOptions):
   return getCurrencyFormatter(options?.locale ?? "en-US", options?.currency ?? "USD").format(value);
 }
 
-function CurrencyCell({ value, column }: CellRenderProps<unknown, number | null>) {
-  const options = column.options as CurrencyOptions | undefined;
+function CurrencyCell({ value, options }: CellRenderProps<unknown, number | null, CurrencyOptions>) {
   return (
     <span className="block w-full truncate tabular-nums">
       {formatCurrencyDisplay(value, options)}
@@ -276,9 +289,14 @@ function CurrencyCell({ value, column }: CellRenderProps<unknown, number | null>
   );
 }
 
-function CurrencyEditor({ value, initialText, onChange, commit, cancel, column }: CellEditorProps<unknown, number | null>) {
-  const options = column.options as CurrencyOptions | undefined;
-  // ... plain <Input>, commit guard, Enter/Escape/blur — same shape as the built-in `number` editor
+// useCellEditor owns the draft state, seed-focus, commit guard, and Enter/Escape/blur —
+// the same primitives the built-in `number` editor uses
+function CurrencyEditor(props: CellEditorProps<unknown, number | null, CurrencyOptions>) {
+  const { ref, ...bindings } = useCellEditor(props, {
+    toDraft: (value) => currencyCellType.toText(value),
+    toValue: (draft) => currencyCellType.fromText(draft, props.options),
+  });
+  return <Input ref={ref} {...bindings} className="h-full w-full ..." />;
 }
 
 export const currencyCellType: CellType<unknown, number | null, CurrencyOptions> = {
@@ -302,20 +320,19 @@ export const currencyCellType: CellType<unknown, number | null, CurrencyOptions>
 Register it through the `cellTypes` prop:
 
 ```tsx
-import { cellTypes } from "@/components/data-grid/data-grid";
-
 <DataGridProvider
   {...grid}
   columns={columns}
-  cellTypes={{ ...cellTypes, currency: currencyCellType }}
+  cellTypes={{ currency: currencyCellType }}
 >
 ```
 
-<Callout type="warn" title="cellTypes replaces the registry, it does not merge">
-  The built-ins do not merge in automatically — spread them back in (as the example above does),
-  or every built-in-typed column renders as plain text with a dead editor. Full semantics on
-  [Editing & cell types: Custom cell types](/docs/editing-cell-types#custom-cell-types).
-</Callout>
+The `cellTypes` prop **merges over the built-ins**: built-ins you do not name keep working, so
+only your custom entries go in the object. To replace a built-in, give its key your type. To
+remove a built-in (or one of your own entries), set its key to `null`. Columns that use a
+removed key then fall back to the built-in `text` type and get the development warning. Full
+semantics on [Editing & cell types: Custom cell
+types](/docs/editing-cell-types#custom-cell-types).
 
 ## Testing your cell type
 

@@ -233,6 +233,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       initialText?: string;
       row: unknown;
       column: AnyColumnDef;
+      options: unknown;
       onChange: (v: unknown) => void;
       commit: (movement?: { dx: number; dy: number }) => void;
       cancel: () => void;
@@ -245,6 +246,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         initialText={initialText}
         row={row}
         column={column}
+        options={column.options}
         onChange={onChange}
         commit={commit}
         cancel={cancel}
@@ -260,9 +262,10 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       row: unknown;
       rowIndex: number;
       column: AnyColumnDef;
+      options: unknown;
       isActive: boolean;
     }) => ReactNode;
-    content = <Cell value={value} row={row} rowIndex={rowIndex} column={column} isActive={isActive} />;
+    content = <Cell value={value} row={row} rowIndex={rowIndex} column={column} options={column.options} isActive={isActive} />;
   }
 
   const cell = (

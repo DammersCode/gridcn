@@ -17,12 +17,14 @@ the built-in `date` type follows with ISO strings). Display runs through a cache
 
 - `CellType` contract — `Cell`, `Editor`, `toText`, `toDisplayText`, `fromText` (never throws),
   `clearValue`, `isEmpty`, `compare`, `align`
-- `useSeedFocus` + `useCommitGuard` — the grid's editor primitives, so the custom editor
-  behaves identically to the built-ins
+- `useCellEditor` — the grid's text-editor primitive: draft state, end-caret focus, one-shot
+  commit guard, and the Enter/Escape/blur bindings, so the custom editor behaves identically
+  to the built-ins
+- The typed `options` prop on `Cell` and `Editor` — no cast on `column.options`
 - Formatter cache keyed on serialized `options` — `options` literals are re-created every
   render, so identity keying misses
-- `cellTypes={{ ...cellTypes, currency }}` — the prop **replaces** the registry. Spreading the
-  built-ins in is required
+- `cellTypes={{ currency }}` — the prop **merges over** the built-ins, which keep working
+  unnamed
 - Two locale variants (`en-US`/USD, `de-DE`/EUR) from one type via `options`
 
 ## Related

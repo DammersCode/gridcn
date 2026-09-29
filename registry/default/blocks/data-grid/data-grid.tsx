@@ -43,9 +43,10 @@ export {
   type PinTrackData,
   type RectSegment,
 } from "./overlays";
-/** Custom cell-type editors: the same focus/commit primitives the built-in editors use — seed the input's focus with the caret at the end, and guard a one-shot commit against Enter-then-blur double-commits. */
+/** Custom cell-type editors: the same focus/commit primitives the built-in editors use — seed the input's focus with the caret at the end, and guard a one-shot commit against Enter-then-blur double-commits. `useCellEditor` bundles both plus the draft state and the Enter/Escape/blur bindings a text-input editor needs. */
 export { useSeedFocus } from "./interaction/use-seed-focus";
 export { useCommitGuard } from "./interaction/use-commit-guard";
+export { useCellEditor, type CellEditorCodec } from "./interaction/use-cell-editor";
 /** The `direction` prop's value space (add-ons' direction math lives in `./data-grid-sdk`). */
 export type { GridDirection } from "./windowing/direction";
 /** The provider-level row-bands seam — `data-grid-pinned-rows`'s `useDataGridPinnedRows()` returns a `RowBandsSpec` to pass into `rowBands`. */
@@ -143,6 +144,7 @@ export { isMacPlatform, formatShortcut, formatShortcutToken } from "./keyboard";
 
 export {
   cellTypes,
+  defineCellType,
   textCellType,
   numberCellType,
   checkboxCellType,
@@ -252,11 +254,11 @@ export type DataGridProps<TData> = {
   /** Redo keymap action (mod+Y / mod+shift+Z); the `data-grid-history` add-on plugs its `redo()` in here. */
   onRedo?: () => void;
   /**
-   * Cell-type registry keyed by `ColumnDef.type`; defaults to the built-in registry. Providing a
-   * registry REPLACES the built-ins, it is not merged over them: to extend the built-ins, spread
-   * the exported `cellTypes` in (`cellTypes={{ ...cellTypes, myType }}`).
+   * Custom cell types keyed by `ColumnDef.type`, merged OVER the built-in registry — built-ins
+   * you do not name keep working. A `null` entry removes a built-in (or a previously provided
+   * type). See {@link DataGridSyncProps.cellTypes}.
    */
-  cellTypes?: Record<string, AnyCellType>;
+  cellTypes?: Record<string, AnyCellType | null>;
   /** Overrides a cell's clipboard-copy text; falls back to the cell type's `toText`. */
   processCellForClipboard?: (value: unknown, ctx: ClipboardProcessCtx<TData>) => string;
   /** Overrides parsing pasted text into a cell value; falls back to the cell type's `fromText`. */

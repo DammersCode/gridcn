@@ -10,13 +10,13 @@ Scope: one cell type, from value pipeline to registration. Auditing a slow grid 
 ## 1. Symptom check first, if you were sent here by a bug
 
 - **Column renders as plain text, editing does nothing** → the `type` key does not match a key in the registry you passed to `cellTypes`. The lookup falls back to the built-in `text` type, and edits, pastes, and deletes on it are dropped. The only signal is a dev-console warning: `[data-grid] column "<id>" has type "<type>" which resolves to nothing in the cellTypes registry`. Fix the key, or check step 4.
-- **Every built-in-typed column (number, date, select, checkbox) broke after adding a custom type** → the `cellTypes` prop replaced the registry instead of extending it. Go to step 4.
+- **A built-in-typed column (number, date, select, checkbox) broke after touching `cellTypes`** → a `null` entry removed that type from the registry. Go to step 4.
 - **Paste throws or aborts the whole paste** → `fromText` threw. Go to step 2.
 - **A popover/portal editor (date-picker, combobox, color picker) closes the instant you click into it** → go to step 6, `data-grid-cell-editor`.
 - **Values look right on screen but sort/search/fill act on the wrong thing** → you conflated `toText`/`toDisplayText` with the raw value. Search and filter always match raw `String(value)`, never `toText`; sort's default (no `compare`) is a numeric-aware collation of that same raw string. See `custom-cell-types.md#value-pipeline`.
 - **A column declares `type: "x" as never` (or `as any`)** → remove the cast and augment `GridCellTypes` (step 5).
 
-Put the type in your own folder (for example `src/components/grid-cells/currency.tsx`), with its `declare module` block in the same file. Add no files to and edit no files under `components/data-grid*`: an upgrade overwrites them. Import only from the `@/components/data-grid/data-grid` barrel; it exports `useCommitGuard`, `useSeedFocus`, `CellSpan`, and `displayText` for editors and cells.
+Put the type in your own folder (for example `src/components/grid-cells/currency.tsx`), with its `declare module` block in the same file. Add no files to and edit no files under `components/data-grid*`: an upgrade overwrites them. Import only from the `@/components/data-grid/data-grid` barrel; it exports `useCellEditor`, `useCommitGuard`, `useSeedFocus`, `defineCellType`, `CellSpan`, and `displayText` for editors and cells.
 
 ## 2. Design the value pipeline before writing any component
 
@@ -37,9 +37,9 @@ Completion for this step: you can state, in one sentence per method, what `toTex
 
 - `Cell` is a hot path: it renders once per visible cell on every window mount, and mounts happen continuously during scroll. Hoist and cache anything expensive (an `Intl.Format*` instance, a parsed regex) outside the component — never construct it inside `Cell`. Key the cache on serialized options (for example `` `${locale}|${JSON.stringify(options)}` ``), never on object identity: a column's `options` literal is commonly re-created every render, so an identity-keyed `Map` never hits.
 - Pin locales explicitly in any `Intl.DateTimeFormat`/`Intl.NumberFormat` you construct. Passing no locale falls back to the runtime's default, which commonly differs between Node SSR and the browser — same column, different rendered text, and a React hydration mismatch.
-- `Editor` receives `{ value, initialText?, row, column, onChange, commit, cancel, pending?, rejectionCount? }`. `commit(movement?)` writes the value and tells the grid where the active cell goes next; `cancel()` discards the edit — it must never call `onChange`. Enter commits with `{ dx: 0, dy: 1 }` (moves down); blur/click-away/an explicit pick commits with `{ dx: 0, dy: 0 }` (stays put); Escape only calls `cancel()`.
-- Guard against a double commit: an editor typically has at least two paths that can end it (Enter, then the blur that follows it; React StrictMode's dev double-invoke). Use `useCommitGuard` (from the barrel) — a one-shot latch, `true` once, `false` after — in every editor with more than one commit path.
-- Seed focus and the caret from `initialText` (type-to-replace) with `useSeedFocus` (from the barrel).
+- `Editor` receives `{ value, initialText?, row, column, options, onChange, commit, cancel, pending?, rejectionCount? }`. `commit(movement?)` writes the value and tells the grid where the active cell goes next; `cancel()` discards the edit — it must never call `onChange`. Enter commits with `{ dx: 0, dy: 1 }` (moves down); blur/click-away/an explicit pick commits with `{ dx: 0, dy: 0 }` (stays put); Escape only calls `cancel()`.
+- A text-input editor starts from `useCellEditor(props, codec)` (from the barrel): it owns the draft state (seeded from `initialText`, or `codec.toDraft(value)`), the end-caret focus, the one-shot commit guard (re-armed when `rejectionCount` rises), and the Enter/Escape/blur bindings. The codec is `{ toDraft, toValue }`. `toValue` never throws and returns `clearValue()`'s result for unparseable text. Spread the returned `{ ref, value, onChange, onKeyDown, onBlur, readOnly }` onto the input.
+- If you build the editor by hand instead, guard against a double commit with `useCommitGuard` (a one-shot latch, `true` once, `false` after) and seed focus and the caret from `initialText` with `useSeedFocus`.
 - If the column's `validate` can be an async Standard Schema, honor `pending` (mark the input `readOnly`, never `disabled` — a disabled input swallows Escape and blocks cancellation) and re-arm your commit guard off `rejectionCount`, not off `pending` clearing (it also clears on Escape, right before unmount).
 - Clamp or reject out-of-range editor input before `onChange`: `Cell` must render every value the editor can produce (`"★".repeat(-1)` throws).
 - Build editor UI from the project's shadcn primitives (`Input`, `Select`, `Popover`, `Calendar`, …) under `@/components/ui/*` — check the consumer's actual alias in `components.json` if unsure — to match the built-in types' look.
@@ -48,15 +48,13 @@ Completion for this step: Enter commits and moves down, Escape cancels without c
 
 ## 4. Register the type without breaking the built-ins
 
-`cellTypes` on `DataGridProvider` **replaces** the whole registry, it does not merge into it:
+`cellTypes` on `DataGridProvider` **merges over** the built-ins (`text`, `number`, `checkbox`, `select`, `date`). Pass only your custom entries:
 
 ```tsx
-import { cellTypes } from "@/components/data-grid/data-grid"; // barrel path — adjust to your alias
-
-<DataGridProvider {...grid} columns={columns} cellTypes={{ ...cellTypes, currency: currencyCellType }} />
+<DataGridProvider {...grid} columns={columns} cellTypes={{ currency: currencyCellType }} />
 ```
 
-Omit the spread and every built-in-typed column (`number`, `checkbox`, `select`, `date`) falls back to plain text with a dead editor. The registry itself is untyped (`Record<string, AnyCellType>`): a mistyped key compiles and does the same. Both fail at runtime only, with one dev-console warning per column: `[data-grid] column "<id>" has type "<type>" which resolves to nothing in the cellTypes registry`. If a column renders as text and you already spread the built-ins in, the `type` string does not match a key in the object you built — recheck the key, not the component.
+A key that names a built-in replaces that built-in. A key set to `null` removes that type, and columns that use it fall back to the built-in `text` type with a dead editor. The registry itself is untyped (`Record<string, AnyCellType | null>`): a mistyped key or a value/options shape that drifts from the key's declared type compiles and fails the same way. Both fail at runtime only, with one dev-console warning per column: `[data-grid] column "<id>" has type "<type>" which resolves to nothing in the cellTypes registry`. If a column renders as text, the `type` string does not match a key in the merged registry — recheck the key, not the component.
 
 Completion for this step: every pre-existing built-in-typed column on the grid still edits correctly after adding the custom type.
 
@@ -72,7 +70,9 @@ declare module "@/components/data-grid/types" {
 }
 ```
 
-Without this, `type: "currency"` still works at runtime, but `defineColumns` cannot narrow `options` or the column's value type — you lose the compile-time catch for a typo in an option key or in the type key itself. Cast `column.options` to your declared options type inside `Cell`/`Editor` (the cell props carry it erased): `column.options as CurrencyOptions | undefined`.
+Without this, `type: "currency"` still works at runtime, but `defineColumns` cannot narrow `options` or the column's value type — you lose the compile-time catch for a typo in an option key or in the type key itself.
+
+With the augmentation in place, wrap the type in `defineCellType("currency", currencyCellType)` (from the barrel): it checks the key and the type's value/options against the augmentation at the definition and returns the entry as-is, ready for `cellTypes`. In `Cell`/`Editor`, read the typed `options` prop directly — parameterize the component with your options type (`CellRenderProps<unknown, number | null, CurrencyOptions>`) and destructure `options`. No cast on `column.options` is needed.
 
 Completion for this step: `defineColumns` on a column with `type: "currency"` infers `options: { currency: string }` and the row's value as `number | null`, and an unknown option key is a type error.
 

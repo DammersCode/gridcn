@@ -211,6 +211,11 @@
                "target": "components/data-grid/interaction/use-async-validate.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/interaction/use-cell-editor.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/interaction/use-cell-editor.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/interaction/use-commit-guard.ts",
                "type": "registry:component",
                "target": "components/data-grid/interaction/use-commit-guard.ts"

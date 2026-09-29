@@ -22,15 +22,13 @@ function findChoice(
   return choices.find((c) => c.label.toLowerCase() === lower);
 }
 
-function SelectCell({ value, column }: CellRenderProps<unknown, string | null>) {
-  const options = column.options as GridCellTypes["select"]["options"] | undefined;
+function SelectCell({ value, options }: CellRenderProps<unknown, string | null, GridCellTypes["select"]["options"]>) {
   const choice = value == null ? undefined : findChoice(options?.choices, value);
   return <CellSpan text={choice?.label ?? value ?? ""} />;
 }
 
 /** Opens on mount; picking an option commits immediately (no separate confirm step). */
-function SelectEditor({ value, onChange, commit, cancel, column, rejectionCount }: CellEditorProps<unknown, string | null>) {
-  const options = column.options as GridCellTypes["select"]["options"] | undefined;
+function SelectEditor({ value, options, onChange, commit, cancel, column, rejectionCount }: CellEditorProps<unknown, string | null, GridCellTypes["select"]["options"]>) {
   const [open, setOpen] = useState(true);
   const committed = useCommitGuard();
 
