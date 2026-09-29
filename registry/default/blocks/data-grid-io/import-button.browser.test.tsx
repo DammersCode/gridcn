@@ -601,3 +601,49 @@ describe("multi-sheet workbook sheet picker", () => {
     await expect.element(page.getByRole("button", { name: "Import", exact: true })).toBeDisabled();
   });
 });
+
+// Runs last so the short viewport it sets never affects the earlier tests.
+describe("DataGridImportDialog at a short viewport", () => {
+  it("caps the dialog at 80vh and keeps the header and footer reachable by scrolling", async () => {
+    await page.viewport(1280, 460);
+
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton
+          createRow={(): Row => ({ id: "imported-0", name: "", age: null })}
+          onImport={() => {}}
+        />
+        <DataGridRoot className="h-[200px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
+    const rows = Array.from({ length: 10 }, (_, i) => `Alice${i},${i + 30}`).join("\n");
+    await userEvent.upload(fileInput!, makeCsvFile(`Name,Age\n${rows}`));
+    await expect.element(page.getByText("Alice0")).toBeInTheDocument();
+
+    const dialog = document.querySelector<HTMLElement>('[data-slot="dialog-content"]');
+    expect(dialog).not.toBeNull();
+    const rect = dialog!.getBoundingClientRect();
+    // the dialog box fits the short window; uncapped, the centered dialog clips past both edges.
+    expect(rect.top).toBeGreaterThanOrEqual(0);
+    expect(rect.bottom).toBeLessThanOrEqual(window.innerHeight);
+    // the 10-row preview overflows the capped box, so the content scrolls instead of dropping.
+    expect(dialog!.scrollHeight).toBeGreaterThan(dialog!.clientHeight);
+    await expect.element(page.getByText("Showing 10 of 10 rows")).toBeInTheDocument();
+
+    dialog!.scrollTop = dialog!.scrollHeight;
+    await delay(50);
+    const cancelButton = page.getByRole("button", { name: "Cancel" }).query() as HTMLElement;
+    expect(cancelButton).not.toBeNull();
+    const footerRect = cancelButton.getBoundingClientRect();
+    const dialogRect = dialog!.getBoundingClientRect();
+    // scrolled to the bottom, the footer sits inside the visible dialog box.
+    expect(footerRect.bottom).toBeLessThanOrEqual(dialogRect.bottom + 1);
+    expect(footerRect.top).toBeGreaterThanOrEqual(dialogRect.top - 1);
+  });
+});
