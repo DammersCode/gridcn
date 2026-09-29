@@ -190,7 +190,7 @@ compiler mirror 4m44, build 1m02, rest < 1 min.
 |------|--------|
 | W1 | DONE (13 items, commits `4d274fb`…`0114b28`, all gates green) |
 | W2 | DONE (19 items, commits `7d12104`…`0776df0`, all gates green) |
-| W3 | TODO (all decisions made) |
-| W4 | TODO |
+| W3 | DONE (10 items, commits `3f120da`..`ca1e972` + compliance `49db63f`, all gates green) |
+| W4 | DONE (2 items: W4-01 `66e1eed`, W4-02 `a76bffa`, all gates green) |
 | W5 | TODO (API foundation; specs for W5-05, W5-06, W5-08…W5-13) |
 | W6 | TODO (W6-01…W6-04 can run in parallel with W5) |
