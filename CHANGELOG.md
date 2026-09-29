@@ -304,6 +304,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Import dialog on a short viewport:** the dialog caps its height at 80vh and scrolls its
+  content, so on a low window the mapping table and the footer stay reachable instead of
+  clipping past the window edges.
 - **Docs: stable `overlayPlugins` in the fill and presence examples:** the examples and the `plugin`
   JSDoc of `useDataGridFill` and `useDataGridPresence` memoize the `overlayPlugins` array. The inline `[plugin]` literal they showed trips the core's
   identity-stability dev warning on every re-render.

@@ -185,7 +185,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="min-w-0 sm:max-w-2xl">
+      <DialogContent className="max-h-[80vh] min-w-0 overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{labels.io.importDialogTitle}</DialogTitle>
           <DialogDescription>{labels.io.importDialogDescription}</DialogDescription>
