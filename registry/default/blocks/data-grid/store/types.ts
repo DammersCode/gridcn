@@ -398,7 +398,13 @@ export type DataGridStoreState = Omit<
    * detects the mismatch and restarts from stage 1 — no need to instrument every reset site.
    */
   selectAllStage: { stage: "region" | "all"; selection: GridSelection; activeCell: CellCoord | null } | null;
-  editing: { coord: CellCoord; initialText?: string } | null;
+  /**
+   * `coord` is the view anchor, remapped by every viewIndex/visibleColumns rebuild so the editor
+   * follows its row; `rowId`/`columnId` are the identity anchor the commit resolves against, so a
+   * missed remap can never write the draft into a different row. When the row (or column) leaves
+   * the view the session is cancelled and the draft dropped.
+   */
+  editing: { coord: CellCoord; rowId: string; columnId: string; initialText?: string } | null;
   /** Transient rejection message from the last failed commitCellEdit; cleared on the next startEditing/commit/cancel. */
   editingError: string | null;
   /**

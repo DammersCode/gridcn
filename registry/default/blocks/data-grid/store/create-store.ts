@@ -219,6 +219,37 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText),
     };
   };
+  /**
+   * Owe after every viewIndex/visibleColumns rebuild: re-anchor an open edit to the new view
+   * position of its rowId/columnId (the draft survives the move), and move `activeCell` with it
+   * when it sat on the edit cell. When the row or column left the view, cancel — the typed value
+   * is dropped, never written into a hidden row. Keeps object identity when nothing moved.
+   */
+  const remapEditing = (
+    s: DataGridStoreState,
+    viewIndex: readonly number[],
+    visibleColumns: readonly AnyColumnDef[],
+  ): Partial<DataGridStoreState> => {
+    const editing = s.editing;
+    if (!editing) return {};
+    const dataRowIndex = rowIndexCache.resolve(s.data, s.getRowId).get(editing.rowId);
+    const viewRow = dataRowIndex === undefined ? -1 : viewIndex.indexOf(dataRowIndex);
+    const viewCol = visibleColumns.findIndex((column) => column.id === editing.columnId);
+    const onEditCell =
+      s.activeCell !== null && s.activeCell.row === editing.coord.row && s.activeCell.col === editing.coord.col;
+    if (viewRow === -1 || viewCol === -1) {
+      return {
+        editing: null,
+        editingError: null,
+        ...(onEditCell ? { activeCell: null } : {}),
+      };
+    }
+    if (viewRow === editing.coord.row && viewCol === editing.coord.col) return {};
+    return {
+      editing: { ...editing, coord: { col: viewCol, row: viewRow } },
+      ...(onEditCell ? { activeCell: { col: viewCol, row: viewRow } } : {}),
+    };
+  };
   // cellErrors keys owned by each row's last validateRow verdict, so a re-run clears exactly its
   // own stale messages and never a consumer's setCellErrors entries on other cells of that row.
   // Stale entries for deleted rows are harmless: their keys are already pruned, deleting is a no-op.
@@ -478,7 +509,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const currentIds = s.columnOrder ?? s.columns.map((c) => c.id);
         const nextIds = reorderColumnIds(currentIds, s.columns, id, targetId, position);
         if (nextIds === currentIds) return;
-        set({ columnOrder: nextIds, visibleColumns: computeVisibleColumns(s.columns, nextIds, s.hiddenColumns) });
+        const nextVisibleColumns = computeVisibleColumns(s.columns, nextIds, s.hiddenColumns);
+        set({ columnOrder: nextIds, visibleColumns: nextVisibleColumns, ...remapEditing(s, s.viewIndex, nextVisibleColumns) });
         s.onColumnLayoutChange?.(computeColumnLayout(s.columns, nextIds, s.columnWidths, s.hiddenColumns));
       },
       setColumnPin(id, pin) {
@@ -487,9 +519,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const column = s.columns.find((c) => c.id === id);
         if (!column || !columnFlag(column, "pinnable")) return;
         const nextColumns = s.columns.map((c) => (c.id === id ? { ...c, pin: pin ?? undefined } : c));
+        const nextVisibleColumns = computeVisibleColumns(nextColumns, s.columnOrder, s.hiddenColumns);
         set({
           columns: nextColumns,
-          visibleColumns: computeVisibleColumns(nextColumns, s.columnOrder, s.hiddenColumns),
+          visibleColumns: nextVisibleColumns,
+          ...remapEditing(s, s.viewIndex, nextVisibleColumns),
         });
         s.onColumnLayoutChange?.(computeColumnLayout(nextColumns, s.columnOrder, s.columnWidths, s.hiddenColumns));
       },
@@ -507,6 +541,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           visibleColumns: nextVisibleColumns,
           viewIndex,
           viewStale: false,
+          ...remapEditing(s, viewIndex, nextVisibleColumns),
           ...computeSearchMatches(s.data, s.columns, viewIndex, nextVisibleColumns, s.searchText),
         });
         s.onColumnLayoutChange?.(computeColumnLayout(s.columns, s.columnOrder, s.columnWidths, nextHidden));
@@ -531,6 +566,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             sortState: sorts,
             viewIndex,
             viewStale: false,
+            ...remapEditing(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText),
           };
         });
@@ -546,6 +582,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             sortState: sorts,
             viewIndex,
             viewStale: false,
+            ...remapEditing(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText),
           };
         });
@@ -563,6 +600,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             filterState: withIds,
             viewIndex,
             viewStale: false,
+            ...remapEditing(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText),
           };
         });
@@ -578,6 +616,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             joinOperator,
             viewIndex,
             viewStale: false,
+            ...remapEditing(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText),
           };
         });
@@ -593,7 +632,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const s = get();
         const target = resolveEditTarget(s, coord);
         if (!target || isColumnReadOnly(target.column, target.row)) return;
-        set({ editing: { coord, initialText }, editingError: null, editingRejectionCount: 0, activeCell: coord });
+        set({
+          editing: { coord, rowId: s.getRowId(target.row, target.dataRowIndex), columnId: target.column.id, initialText },
+          editingError: null,
+          editingRejectionCount: 0,
+          activeCell: coord,
+        });
       },
       cancelEditing() {
         set({ editing: null, editingError: null });
@@ -602,6 +646,19 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const s = get();
         const editing = s.editing;
         if (!editing) return;
+        // Identity guard: the write resolves by rowId/columnId, so a view rebuild the remap missed
+        // discards the draft here instead of writing it into whichever row the coord now points at.
+        const dataRowIndex = rowIndexCache.resolve(s.data, s.getRowId).get(editing.rowId);
+        const anchorStale =
+          dataRowIndex === undefined ||
+          s.viewIndex[editing.coord.row] !== dataRowIndex ||
+          s.visibleColumns[editing.coord.col]?.id !== editing.columnId;
+        if (anchorStale) {
+          const onEditCell =
+            s.activeCell !== null && s.activeCell.row === editing.coord.row && s.activeCell.col === editing.coord.col;
+          set({ editing: null, editingError: null, ...(onEditCell ? { activeCell: null } : {}) });
+          return;
+        }
         const maxRow = Math.max(0, s.viewIndex.length - 1);
         const maxCol = Math.max(0, s.visibleColumns.length - 1);
         const nextActiveCell = movement
@@ -889,6 +946,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         set({
           viewIndex,
           viewStale: false,
+          ...remapEditing(s, viewIndex, s.visibleColumns),
           ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText),
         });
       },
@@ -1197,6 +1255,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             // A real recompute reconciles whatever a deferred updateCells left stale; an echo or an
             // unchanged sync recomputed nothing, so the flag has to survive it.
             viewStale: unchanged ? s.viewStale : false,
+            ...(!unchanged ? remapEditing(s, nextViewIndex, nextVisibleColumns) : {}),
             ...(unchanged
               ? { searchMatches: s.searchMatches, searchMatchSet: s.searchMatchSet, searchMatchRows: s.searchMatchRows, searchMatchesCapped: s.searchMatchesCapped }
               : computeSearchMatches(nextData, nextColumns, nextViewIndex, nextVisibleColumns, nextSearchText)),

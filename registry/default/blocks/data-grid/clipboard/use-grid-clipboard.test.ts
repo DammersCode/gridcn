@@ -340,7 +340,7 @@ describe("pasteText", () => {
   it("returns false and applies nothing while a cell is being edited", () => {
     const s = fakeState({
       selection: selectCellPure({ col: 0, row: 0 }),
-      editing: { coord: { col: 0, row: 0 } },
+      editing: { coord: { col: 0, row: 0 }, rowId: "1", columnId: "name" },
     } as unknown as Partial<DataGridStoreState>);
     const actions = fakeActions();
     expect(pasteText(s, actions, "x")).toBe(false);

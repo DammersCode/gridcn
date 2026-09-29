@@ -35,6 +35,11 @@ The table means this:
 - Tab never moves the active cell. It commits and lets the browser move focus.
 - A popover editor without an explicit pick cancels rather than commits.
 
+An open edit stays bound to its row when the view changes. A re-sort, a filter, or a column
+reorder that moves the edited row moves the editor with it, and the typed draft survives. When
+the row or column leaves the view, the edit is cancelled and the typed value is discarded. It
+is never written into a row that is no longer visible.
+
 <Callout title="Checkboxes have no edit mode">
   A click on the box toggles a checkbox cell directly. A click elsewhere in the cell selects it,
   and a second click toggles it. Enter and Space toggle the active cell. A drag that starts on a

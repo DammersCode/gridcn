@@ -339,6 +339,12 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **An open edit stays bound to its row across view changes:** the store's edit session now anchors
+  on the row's id and column id, not on its view position. A re-sort, filter, column reorder, or a
+  consumer data swap that moves the edited row re-anchors the editor to the row's new view
+  position, and the typed draft survives the move. When the row (or column) leaves the view the
+  edit is cancelled and the typed value is discarded — it is never written into a row that is no
+  longer visible, and a validation that resolves after the cancel no longer commits.
 - **`validateRow` no longer wipes a reused rowId's consumer errors:** the store's per-row record of
   which `cellErrors` entries its own `validateRow` verdicts own is now pruned whenever a row leaves
   `data` — a new row reusing a deleted row's id keeps its consumer `setCellErrors` entries across

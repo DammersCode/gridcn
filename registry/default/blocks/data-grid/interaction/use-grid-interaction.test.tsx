@@ -316,7 +316,7 @@ describe("useGridInteraction onKeyDown", () => {
     hook.rerender();
     pressKey(hook, "x");
     const editing = hook.result.current.storeApi.getState().editing;
-    expect(editing).toEqual({ coord: { col: 0, row: 0 }, initialText: "x" });
+    expect(editing).toEqual({ coord: { col: 0, row: 0 }, rowId: "0", columnId: "name", initialText: "x" });
   });
 
   it("dispatches editReplace when a keymap binding matches (remappable)", () => {
@@ -325,7 +325,7 @@ describe("useGridInteraction onKeyDown", () => {
     hook.rerender();
     pressKey(hook, "F3");
     const state = hook.result.current.storeApi.getState();
-    expect(state.editing).toEqual({ coord: { col: 0, row: 2 }, initialText: undefined });
+    expect(state.editing).toEqual({ coord: { col: 0, row: 2 }, rowId: "2", columnId: "name", initialText: undefined });
   });
 
   it("a printable key bound to nothing else still type-to-replaces while editReplace is unbound", () => {

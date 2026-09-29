@@ -1127,7 +1127,12 @@ describe("commitCellEdit", () => {
       result.current.actions.startEditing({ col: 0, row: 2 });
     });
     rerender();
-    expect(result.current.editing).toEqual({ coord: { col: 0, row: 2 }, initialText: undefined });
+    expect(result.current.editing).toEqual({
+      coord: { col: 0, row: 2 },
+      rowId: "3",
+      columnId: "name",
+      initialText: undefined,
+    });
 
     // dy: +1 from the last row clamps back to the last row (3 rows -> max index 2).
     act(() => {
@@ -1160,7 +1165,12 @@ describe("commitCellEdit", () => {
     rerender();
 
     expect(onDataChange).not.toHaveBeenCalled();
-    expect(result.current.editing).toEqual({ coord: { col: 1, row: 0 }, initialText: undefined });
+    expect(result.current.editing).toEqual({
+      coord: { col: 1, row: 0 },
+      rowId: "1",
+      columnId: "age",
+      initialText: undefined,
+    });
     expect(result.current.editingError).toBe("must be >= 0");
   });
 
@@ -1214,6 +1224,245 @@ describe("commitCellEdit", () => {
     });
     rerender();
 
+    expect(result.current.editing).toBeNull();
+  });
+});
+
+describe("editing anchored to its row across view rebuilds", () => {
+  it("a re-sort while editing remaps the edit to the row's new view position and the commit lands on the original row", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeEditWrapper(onDataChange);
+    const { result, rerender } = renderHook(
+      () => ({ actions: useDataGridActions(), editing: useDataGridEditing() }),
+      { wrapper },
+    );
+
+    // Unsorted: view row 0 is Charlie (id "1"); edit his age (view col 1).
+    act(() => {
+      result.current.actions.startEditing({ col: 1, row: 0 });
+    });
+    rerender();
+    expect(result.current.editing).toEqual({
+      coord: { col: 1, row: 0 },
+      rowId: "1",
+      columnId: "age",
+      initialText: undefined,
+    });
+
+    // Sorting by name asc moves Charlie from view row 0 to view row 2.
+    act(() => {
+      result.current.actions.toggleSort("name", false);
+    });
+    rerender();
+    expect(result.current.editing).toEqual({
+      coord: { col: 1, row: 2 },
+      rowId: "1",
+      columnId: "age",
+      initialText: undefined,
+    });
+
+    act(() => {
+      result.current.actions.commitCellEdit(99);
+    });
+
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    const [next, change] = onDataChange.mock.calls[0] as [readonly EditRow[], DataChange<EditRow>];
+    // Charlie (data 0) receives the write, not the row that now occupies view row 0 (Alice, data 1).
+    expect(next[0]).toEqual({ id: "1", name: "Charlie", age: 99, active: false });
+    expect(next[1]!.age).toBe(25);
+    expect(next[2]!.age).toBe(40);
+    expect(change.ops[0]).toMatchObject({
+      rowId: "1",
+      cells: [{ columnId: "age", value: 99, prev: 30 }],
+    });
+  });
+
+  it("keeps the draft (initialText) and a stable editing reference when the rebuild moves nothing", () => {
+    const wrapper = makeEditWrapper(vi.fn());
+    const { result, rerender } = renderHook(
+      () => ({ actions: useDataGridActions(), editing: useDataGridEditing() }),
+      { wrapper },
+    );
+
+    // Bob (id "3") sits at view row 2 (age 40, the maximum).
+    act(() => {
+      result.current.actions.startEditing({ col: 1, row: 2 }, "typed");
+    });
+    rerender();
+    const before = result.current.editing;
+
+    // age asc: Alice(1), Charlie(0), Bob(2) — Bob stays at view row 2.
+    act(() => {
+      result.current.actions.toggleSort("age", false);
+    });
+    rerender();
+    expect(result.current.editing).toBe(before);
+    expect(result.current.editing).toEqual({
+      coord: { col: 1, row: 2 },
+      rowId: "3",
+      columnId: "age",
+      initialText: "typed",
+    });
+  });
+
+  it("activeCell follows the edit's row when it was the edit cell, and is left alone otherwise", () => {
+    const wrapper = makeWrapper();
+    const { result, rerender } = renderHook(
+      () => ({
+        actions: useDataGridActions(),
+        editing: useDataGridEditing(),
+        activeCell: useDataGridActiveCell(),
+      }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.actions.startEditing({ col: 0, row: 0 });
+    });
+    rerender();
+    expect(result.current.activeCell).toEqual({ col: 0, row: 0 });
+
+    act(() => {
+      result.current.actions.toggleSort("name", false);
+    });
+    rerender();
+    // Charlie moved 0 -> 2, so the cursor follows the row.
+    expect(result.current.activeCell).toEqual({ col: 0, row: 2 });
+
+    // Click-away: activeCell sits on another cell, so a second sort must not touch it.
+    act(() => {
+      result.current.actions.selectCell({ col: 1, row: 1 });
+    });
+    rerender();
+    expect(result.current.activeCell).toEqual({ col: 1, row: 1 });
+    act(() => {
+      result.current.actions.toggleSort("name", false);
+    });
+    rerender();
+    expect(result.current.activeCell).toEqual({ col: 1, row: 1 });
+  });
+
+  it("filtering out the edited row cancels the edit and drops the draft", () => {
+    const wrapper = makeWrapper();
+    const { result, rerender } = renderHook(
+      () => ({ actions: useDataGridActions(), editing: useDataGridEditing(), activeCell: useDataGridActiveCell() }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.actions.startEditing({ col: 0, row: 0 }, "typed");
+    });
+    rerender();
+    expect(result.current.editing).not.toBeNull();
+
+    // Keep only Alice: the edited row (Charlie) leaves the view.
+    act(() => {
+      result.current.actions.setFilters([{ columnId: "name", operator: "equals", value: "Alice" }]);
+    });
+    rerender();
+    expect(result.current.editing).toBeNull();
+    expect(result.current.activeCell).toBeNull();
+  });
+
+  it("a late commit after the cancel (a validation that resolved during the filter) is a no-op", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeEditWrapper(onDataChange);
+    const { result, rerender } = renderHook(
+      () => ({ actions: useDataGridActions(), editing: useDataGridEditing() }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.actions.startEditing({ col: 1, row: 0 });
+    });
+    act(() => {
+      result.current.actions.setFilters([{ columnId: "name", operator: "equals", value: "Alice" }]);
+    });
+    rerender();
+    expect(result.current.editing).toBeNull();
+
+    // The async layer resolves now and commits the value it validated.
+    act(() => {
+      result.current.actions.commitCellEdit(99);
+    });
+    rerender();
+
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("hiding the edited column cancels the edit", () => {
+    const wrapper = makeEditWrapper(vi.fn());
+    const { result, rerender } = renderHook(
+      () => ({ actions: useDataGridActions(), editing: useDataGridEditing() }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.actions.startEditing({ col: 1, row: 0 });
+    });
+    rerender();
+    expect(result.current.editing).not.toBeNull();
+
+    act(() => {
+      result.current.actions.setColumnHidden("age", true);
+    });
+    rerender();
+    expect(result.current.editing).toBeNull();
+  });
+
+  it("reordering columns remaps the edit's column and the commit lands on the right column", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeEditWrapper(onDataChange);
+    const { result, rerender } = renderHook(
+      () => ({ actions: useDataGridActions(), editing: useDataGridEditing(), visibleColumns: useDataGridVisibleColumns() }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.actions.startEditing({ col: 1, row: 0 });
+    });
+    rerender();
+
+    // Move age in front of name: the edit's view column becomes 0.
+    act(() => {
+      result.current.actions.setColumnOrder("age", "name", "before");
+    });
+    rerender();
+    expect(result.current.visibleColumns.map((c) => c.id)).toEqual(["age", "name", "active", "locked"]);
+    expect(result.current.editing).toEqual({
+      coord: { col: 0, row: 0 },
+      rowId: "1",
+      columnId: "age",
+      initialText: undefined,
+    });
+
+    act(() => {
+      result.current.actions.commitCellEdit(99);
+    });
+
+    const [next, change] = onDataChange.mock.calls[0] as [readonly EditRow[], DataChange<EditRow>];
+    expect(next[0]).toEqual({ id: "1", name: "Charlie", age: 99, active: false });
+    expect(next[0]!.name).toBe("Charlie");
+    expect(change.ops[0]).toMatchObject({ rowId: "1", cells: [{ columnId: "age", value: 99, prev: 30 }] });
+  });
+
+  it("a consumer data replacement that drops the edited row cancels the edit", () => {
+    const wrapper = makeWrapper();
+    const { result, rerender } = renderHook(
+      () => ({ actions: useDataGridActions(), editing: useDataGridEditing() }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.actions.startEditing({ col: 0, row: 0 }, "typed");
+    });
+    rerender();
+
+    // The consumer swaps the array and Charlie (id "1") is gone from the data.
+    act(() => {
+      result.current.actions._syncProps({ data: rows().slice(1), columns, getRowId: (r: Row) => r.id } as never);
+    });
+    rerender();
     expect(result.current.editing).toBeNull();
   });
 });
@@ -1300,7 +1549,12 @@ describe("Standard Schema validate", () => {
     rerender();
 
     expect(onDataChange).not.toHaveBeenCalled();
-    expect(result.current.editing).toEqual({ coord: { col: 1, row: 0 }, initialText: undefined });
+    expect(result.current.editing).toEqual({
+      coord: { col: 1, row: 0 },
+      rowId: "1",
+      columnId: "age",
+      initialText: undefined,
+    });
     expect(result.current.editingError).toBe("async rejection message");
   });
 });
@@ -2933,7 +3187,12 @@ describe("updateCells while an edit session is open", () => {
     // the patched row keeps its old slot (view 2) until the session ends.
     expect(result.current.viewIndex).toEqual([1, 2, 0]);
     expect(result.current.viewStale).toBe(true);
-    expect(result.current.editing).toEqual({ coord: { col: 0, row: 0 }, initialText: undefined });
+    expect(result.current.editing).toEqual({
+      coord: { col: 0, row: 0 },
+      rowId: "2",
+      columnId: "name",
+      initialText: undefined,
+    });
 
     // once the session ends, the deferred re-sort lands on the next reconcile.
     act(() => result.current.actions.cancelEditing());
