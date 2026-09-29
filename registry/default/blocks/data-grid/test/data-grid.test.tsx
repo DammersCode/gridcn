@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, beforeAll, vi } from "vitest";
 import { memo, useState } from "react";
 import type { CellType, ColumnDef } from "../types";
-import { DataGrid, DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, useDataGridActions, useDataGridCellState, useDataGridRow, GRID_ATTR, gridAttrSelector } from "../data-grid";
+import { DataGrid, DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, useDataGridActions, useDataGridApi, useDataGridCellState, useDataGridRow, useDataGridScrollToCell, useDataGridStoreApi, GRID_ATTR, gridAttrSelector, type DataGridApi } from "../data-grid";
 
 type Row = { id: string; name: string; qty: number };
 
@@ -1438,6 +1438,131 @@ describe("DataGrid wrapper render slots", () => {
   it("renders no header-menu trigger when renderHeaderMenu is omitted", () => {
     render(<DataGrid data={makeRows(3)} columns={columns} getRowId={(r) => r.id} />);
     expect(document.querySelector(gridAttrSelector("headerMenuTrigger"))).toBeNull();
+  });
+});
+
+describe("DataGridApi (imperative handle)", () => {
+  const unsorted: Row[] = [
+    { id: "2", name: "Charlie", qty: 30 },
+    { id: "1", name: "Bob", qty: 20 },
+    { id: "0", name: "Alice", qty: 10 },
+  ];
+
+  function renderWithHandle(props: { data: Row[] } = { data: makeRows(5) }) {
+    const ref = { current: null as DataGridApi<Row> | null };
+    const utils = render(
+      <DataGrid ref={(api) => { ref.current = api; }} data={props.data} columns={columns} getRowId={(r) => r.id} />,
+    );
+    return { ref, ...utils };
+  }
+
+  it("assigns one stable handle to the ref across re-renders", () => {
+    const seen: DataGridApi<Row>[] = [];
+    function Harness({ count }: { count: number }) {
+      return (
+        <DataGrid
+          ref={(api) => {
+            if (api) seen.push(api);
+          }}
+          data={makeRows(count)}
+          columns={columns}
+          getRowId={(r) => r.id}
+        />
+      );
+    }
+    const { rerender } = render(<Harness count={5} />);
+    rerender(<Harness count={3} />);
+    // the callback ref re-fires on re-render (new callback identity), but with the SAME object
+    expect(new Set(seen).size).toBe(1);
+    expect(seen[0]!.getRow(0)?.name).toBe("Row 0");
+  });
+
+  it("keeps one stable object across re-renders when called under the root (manual composition)", () => {
+    const seen: DataGridApi<Row>[] = [];
+    function Capture() {
+      seen.push(useDataGridApi());
+      return null;
+    }
+    const element = (
+      <DataGridProvider data={makeRows(3)} columns={columns} getRowId={(r) => r.id}>
+        <DataGridRoot>
+          <Capture />
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>
+    );
+    const { rerender } = render(element);
+    rerender(element);
+    expect(seen.length).toBe(2);
+    expect(seen[1]).toBe(seen[0]);
+  });
+
+  it("exposes the shared actions, store, and scroll closure", () => {
+    let probe: { actions: unknown; store: unknown; scrollTo: unknown; api: DataGridApi<Row> } | null = null;
+    function Capture() {
+      probe = { actions: useDataGridActions(), store: useDataGridStoreApi(), scrollTo: useDataGridScrollToCell(), api: useDataGridApi() };
+      return null;
+    }
+    render(
+      <DataGridProvider data={makeRows(3)} columns={columns} getRowId={(r) => r.id}>
+        <DataGridRoot>
+          <Capture />
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    // actions and store are store-owned: the same objects the shared hooks return
+    expect(probe!.api.actions).toBe(probe!.actions);
+    expect(probe!.api.store).toBe(probe!.store);
+    // scrollTo is a stable closure owned by the handle's own hook instance
+    expect(typeof probe!.api.scrollTo).toBe("function");
+  });
+
+  it("getRow and getViewRowIds read the current (sorted) view", () => {
+    const { ref } = renderWithHandle({ data: unsorted });
+    act(() => ref.current!.actions.setSorts([{ columnId: "name", direction: "asc" }]));
+    // name-asc: Alice(0) view 0, Bob(1) view 1, Charlie(2) view 2 — data order is Charlie first
+    expect(ref.current!.getViewRowIds()).toEqual(["0", "1", "2"]);
+    expect(ref.current!.getRow(0)?.id).toBe("0");
+    expect(ref.current!.getRow(2)?.id).toBe("2");
+    expect(ref.current!.getRow(99)).toBeUndefined();
+  });
+
+  it("setSelection selects at the ref's resolved view cell; null clears", () => {
+    const { ref } = renderWithHandle({ data: unsorted });
+    act(() => ref.current!.actions.setSorts([{ columnId: "name", direction: "asc" }]));
+    act(() => ref.current!.setSelection({ rowId: "2", columnId: "qty" }));
+    expect(ref.current!.getSelection().current?.cell).toEqual({ col: 1, row: 2 });
+    act(() => ref.current!.setSelection(null));
+    expect(ref.current!.getSelection().current).toBeNull();
+  });
+
+  it("startEditing opens a session at the ref's cell; stopEditing discards it", () => {
+    const { ref } = renderWithHandle();
+    act(() => ref.current!.startEditing({ rowId: "0", columnId: "name" }));
+    expect(ref.current!.store.getState().editing).toMatchObject({ rowId: "0", columnId: "name" });
+    act(() => ref.current!.stopEditing());
+    expect(ref.current!.store.getState().editing).toBeNull();
+  });
+
+  it("focus() seeds (0,0) and lands focus there when nothing is active, then follows the active cell", () => {
+    const { ref } = renderWithHandle();
+    act(() => ref.current!.focus());
+    // the grid's focus onboarding seeds (0,0) as the active cell; the seeded cell takes DOM focus
+    expect(document.activeElement).toBe(document.querySelector("[data-active]"));
+    expect((document.activeElement as HTMLElement).textContent).toContain("Row 0");
+    act(() => ref.current!.setSelection({ rowId: "2", columnId: "name" }));
+    act(() => ref.current!.focus());
+    expect((document.activeElement as HTMLElement).textContent).toContain("Row 2");
+  });
+
+  it("focus() is a no-op while an edit session is open", () => {
+    const { ref } = renderWithHandle();
+    act(() => ref.current!.startEditing({ rowId: "0", columnId: "name" }));
+    act(() => ref.current!.focus());
+    expect(document.activeElement).not.toBe(document.querySelector("[data-active]"));
   });
 });
 

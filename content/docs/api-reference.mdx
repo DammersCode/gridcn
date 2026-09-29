@@ -29,6 +29,33 @@ need a toolbar, overlays, or a context menu (see the [Quick start](/docs/quick-s
   what each shape means, and [Quick start](/docs/quick-start) for a worked example.
 </Callout>
 
+### Imperative handle
+
+The `ref` prop receives the grid's `DataGridApi`: `actions`, `store`, `scrollTo`, `focus`,
+`startEditing`, `stopEditing`, `getSelection`, `setSelection`, `getRow`, and `getViewRowIds`. The
+object is stable for the grid's lifetime, so a toolbar or effect can hold it and call into the
+grid without re-rendering when the grid changes:
+
+```tsx
+const gridRef = useRef<DataGridApi<Order> | null>(null);
+
+<DataGrid ref={gridRef} data={orders} columns={columns} getRowId={(o) => o.id} />
+
+// from a toolbar button or an effect
+gridRef.current?.scrollTo({ rowId: order.id, columnId: "symbol" });
+gridRef.current?.setSelection({ rowId: order.id, columnId: "symbol" });
+```
+
+- `getSelection`, `getRow`, and `getViewRowIds` are snapshots at call time — they never
+  re-render the calling component.
+- `setSelection` selects one cell (by stable `CellRef`) or clears the selection with `null`.
+- `startEditing` opens an edit session at the named cell; `stopEditing` discards the draft
+  without committing.
+- `focus` lands on the active cell; with none active it focuses the grid, whose onboarding
+  seeds (0,0). It is a no-op while an edit session is open.
+- For manual composition (`DataGridProvider` + `DataGridRoot`), call `useDataGridApi(ref)` in
+  a component under the root instead of passing a `ref`.
+
 ## `<DataGridProvider>`
 
 This is the composable entry point. It has the same sync props as `DataGrid` above, including
@@ -119,6 +146,8 @@ for most:
 - `useDataGridLabels()`, `useDataGridKeymap()`, `useDataGridReadOnly()`
 - `useDataGridScrollToCell()` — imperative scroll to a `CellRef`.
   `useDataGridScrollToCellAt()` — the same scroll to a `ViewCoord`.
+- `useDataGridApi(ref?)` — the grid's imperative handle (`DataGridApi`); see
+  [Imperative handle](#imperative-handle).
 - `useDataGridCellErrors()` — the full post-commit server-error map. See
   [Editing & cell types: Server errors](/docs/editing-cell-types#server-errors).
 - `useDataGridSelector<TData>(selector, eq?)` — a typed raw store selector: `TData` types
@@ -210,6 +239,10 @@ a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
 
 ## Other exported types
 
+- `DataGridApi<TData>` — the imperative handle of one grid: `actions`, `store`, `scrollTo`,
+  `focus`, `startEditing`, `stopEditing`, `getSelection`, `setSelection`, `getRow`, and
+  `getViewRowIds`. From `<DataGrid ref>` or from `useDataGridApi`. See
+  [Imperative handle](#imperative-handle).
 - `CellRef` (`{ rowId, columnId }`) — the stable identity of a cell: your `getRowId` value plus
   a column id. Sorting, filtering, and reordering never change it. Cell actions take a
   `CellRef` by default; each also has an `*At` variant that takes a `ViewCoord` instead.

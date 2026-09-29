@@ -11,6 +11,15 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Imperative grid handle (`data-grid`):** `DataGrid` accepts a `ref`, and a new
+  `useDataGridApi(ref?)` hook (call it under `DataGridRoot` for manual composition) return the
+  same stable `DataGridApi` object for the grid's lifetime. Members: `actions` (the
+  `useDataGridActions` object), `store` (the `useDataGridStoreApi` store), `scrollTo(ref)`
+  (stable-`CellRef` scroll), `focus()` (lands on the active cell; no-op while an edit session is
+  open), `startEditing(ref)` / `stopEditing()` (the latter discards the draft, `cancelEditing`
+  semantics), `getSelection()` (non-reactive snapshot), `setSelection(ref | null)` (single-cell
+  selection or clear), `getRow(viewRowIndex)` and `getViewRowIds()` (non-reactive reads in view
+  order). `DataGridApi` and `useDataGridApi` are exported from the `data-grid` barrel.
 - **Cell-type-driven behavior:** five new optional fields on `CellType`. `numeric` declares
   tabular-nums digit rendering (declared by `number` and `date`). `toSearchText(value, options)`
   supplies the quick-search text for a stored value (the default is `String(value)`; `select`

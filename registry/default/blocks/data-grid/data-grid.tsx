@@ -1,8 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useImperativeHandle, useMemo, type ReactNode, type Ref } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type {
+  CellRef,
   ViewCoord,
   ColumnLayout,
   DataChange,
@@ -23,10 +24,19 @@ import type {
   RowMarkersMode,
   SortSpec,
 } from "./types";
-import { DataGridProvider, type DataGridStoreState, type SelectionChangeDetails } from "./store";
+import {
+  DataGridProvider,
+  useDataGridActions,
+  useDataGridScrollToCell,
+  useDataGridStoreApi,
+  type DataGridActions,
+  type DataGridStoreState,
+  type SelectionChangeDetails,
+} from "./store";
 import type { GridDirection } from "./windowing/direction";
 import { DataGridRoot } from "./root";
 import type { EmptyStateRenderer, LoadingStateRenderer } from "./root";
+import { useDataGridContainer } from "./interaction/use-data-grid-container";
 import { DataGridHeader } from "./header";
 import { DataGridBody } from "./body";
 import type { OverlayPlugin } from "./overlays";
@@ -394,9 +404,104 @@ export type DataGridProps<TData> = {
   loadingState?: ReactNode | LoadingStateRenderer;
   /** Fired after a row-window commit with the rendered data-row range; see {@link DataGridRootProps.onRowWindowChange}. */
   onRowWindowChange?: (range: { start: number; end: number }) => void;
+  /**
+   * Imperative handle (React 19 ref-as-prop): assigned with this grid's {@link DataGridApi} once
+   * mounted; stable for the grid's lifetime. Manual composition gets the same handle from
+   * {@link useDataGridApi}, called under `DataGridRoot`.
+   */
+  ref?: Ref<DataGridApi<TData>>;
   /** Composition escape hatch; defaults to header + body when omitted. */
   children?: ReactNode;
 };
+
+/**
+ * The imperative handle of one grid: the stable actions object, the raw store, non-reactive state
+ * reads, and the two DOM gestures (scroll, focus). Obtain it from `<DataGrid ref>` or from
+ * {@link useDataGridApi} under `DataGridRoot` (manual composition).
+ */
+export type DataGridApi<TData> = {
+  /** The same stable object `useDataGridActions` returns. */
+  actions: DataGridActions;
+  /** The same store `useDataGridStoreApi` returns (row-agnostic — `getRow` is the typed read). */
+  store: StoreApi<DataGridStoreState>;
+  /** Scrolls the cell named by the ref into view; a ref that no longer resolves no-ops (dev-warned once per grid). */
+  scrollTo(ref: CellRef): void;
+  /** Focuses the active cell's element; with no active cell it focuses the grid (whose focus onboarding seeds (0,0)). No-ops while an edit session is open — focusing would blur the editor and commit it. */
+  focus(): void;
+  /** Starts an edit session at the ref's cell — the same guards as `actions.startEditing`. */
+  startEditing(ref: CellRef): void;
+  /** Discards the in-progress edit without emitting a change (`actions.cancelEditing`). */
+  stopEditing(): void;
+  /** A non-reactive snapshot of the current selection. */
+  getSelection(): GridSelection;
+  /** Selects the named cell as a single-cell selection; `null` clears the whole selection. */
+  setSelection(ref: CellRef | null): void;
+  /** The data row at a view (display) row index — the same read `useDataGridRow` performs, without a subscription. */
+  getRow(viewRowIndex: number): TData | undefined;
+  /** The row id of every view row, in view order. */
+  getViewRowIds(): readonly string[];
+};
+
+/**
+ * The imperative API of one grid — see {@link DataGridApi}. Call it under `DataGridRoot`
+ * (its `focus()` needs the root's scroll container). Pass a `ref` to hand the handle out; the
+ * returned object is stable for the grid's lifetime, safe to close over.
+ */
+export function useDataGridApi<TData = unknown>(ref?: Ref<DataGridApi<TData>>): DataGridApi<TData> {
+  const storeApi = useDataGridStoreApi();
+  const actions = useDataGridActions();
+  const scrollTo = useDataGridScrollToCell();
+  const containerRef = useDataGridContainer();
+  const api = useMemo<DataGridApi<TData>>(
+    () => {
+      const read = () => storeApi.getState();
+      return {
+        actions,
+        store: storeApi,
+        scrollTo,
+        focus() {
+          const root = containerRef.current;
+          if (!root || read().editing) return;
+          (root.querySelector<HTMLElement>("[data-active]") ?? root).focus();
+        },
+        startEditing(cellRef) {
+          actions.startEditing(cellRef);
+        },
+        stopEditing() {
+          actions.cancelEditing();
+        },
+        getSelection() {
+          return read().selection;
+        },
+        setSelection(cellRef) {
+          if (cellRef === null) {
+            actions.clearSelection();
+            return;
+          }
+          actions.selectCell(cellRef);
+        },
+        getRow(viewRowIndex) {
+          const s = read();
+          const dataRowIndex = s.viewIndex[viewRowIndex];
+          return dataRowIndex === undefined ? undefined : (s.data[dataRowIndex] as TData | undefined);
+        },
+        getViewRowIds() {
+          const s = read();
+          return s.viewIndex.map((dataRowIndex) => s.getRowId(s.data[dataRowIndex], dataRowIndex));
+        },
+      };
+    },
+    [actions, storeApi, scrollTo, containerRef],
+  );
+  useImperativeHandle(ref, () => api, [api]);
+  return api;
+}
+
+/** Renders nothing; runs {@link useDataGridApi} inside `DataGridRoot` so `<DataGrid ref>` reaches the scroll container for `focus()`. */
+function DataGridApiCapture<TData>(props: { ref?: Ref<DataGridApi<TData>> }) {
+  useDataGridApi<TData>(props.ref);
+  return null;
+}
 
 /**
  * Convenience wrapper: provider + scroll root + header + body. Compose the
@@ -472,6 +577,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
     loadingState,
     onRowWindowChange,
     children,
+    ref,
   } = props;
 
   // erasure boundary for the root-level callbacks: TData narrows to the root's unknown — safe for
@@ -553,6 +659,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
         onRowClick={erasedOnRowClick}
         onRowWindowChange={onRowWindowChange}
       >
+        <DataGridApiCapture<TData> ref={ref} />
         {children ?? (
           <>
             <DataGridHeader />
