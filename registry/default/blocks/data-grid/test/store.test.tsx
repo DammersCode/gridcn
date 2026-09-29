@@ -283,7 +283,7 @@ describe("atomic hook re-render counts", () => {
     expect(screen.getByTestId("row-1").textContent).toBe("Alicia");
   });
 
-  describe("useDataGridRowIdToViewRow (2026-08-02 optimization audit: rowId-native presence adapter)", () => {
+  describe("useDataGridRowIdToViewRow", () => {
     it("does not rebuild the map on an unrelated store change (selection)", () => {
       let computeCount = 0;
       let lastMap: ReadonlyMap<string, number> | undefined;
@@ -2107,7 +2107,7 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
     expect(result.current.row1Selected).toBe(true);
   });
 
-  it("useDataGridAllRowsSelected does not scan every row (2026-08-02 optimization audit: was O(rowCount) per store write)", () => {
+  it("useDataGridAllRowsSelected does not scan every row (O(1) per store write)", () => {
     const bigData: Row[] = Array.from({ length: 20_000 }, (_, i) => ({ id: String(i), name: `r${i}`, age: i }));
     const wrapper = makeConfigWrapper({ rowMarkers: "checkbox" }, bigData);
     const { result } = renderHook(

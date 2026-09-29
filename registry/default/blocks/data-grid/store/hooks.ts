@@ -368,10 +368,7 @@ export function useDataGridRowIds(viewRowIndices: readonly number[]): (string | 
 }
 
 /**
- * Full `rowId -> view row index` map for the current view (2026-08-02 optimization audit,
- * "rowId-native presence adapter" — confirmed medium: the docs' DIY mapping built this with
- * `useDataGridRowIds` under `useShallow`, which re-runs its full-array `.map()` PLUS an n-element
- * `shallow()` compare on every store change, not just view changes). Builds the Map lazily in
+ * Full `rowId -> view row index` map for the current view. Builds the Map lazily in
  * `useMemo` keyed on `viewIndex`, `rowIdentityVersion`, and `getRowId` identity, so the O(n) build
  * cost is paid once per actual row-identity change (sort/filter/insert/delete/reorder or a consumer
  * `data` replacement) or `getRowId` swap, never per streaming tick: a value-only write replaces
@@ -679,7 +676,7 @@ function mergeRowRange(ranges: RowRange[], start: number, end: number): void {
  *
  * O(rangeStack) instead of O(rowCount): the old implementation looped every view row calling
  * `hasIndex`/range-membership per row — a six-figure loop at the 100k-row floor, on every store
- * write, in any grid with marker columns (2026-08-02 optimization audit, confirmed high). Coverage
+ * write, in any grid with marker columns. Coverage
  * is derived from the range channel's rectangles (merged into row intervals, same technique
  * `selectedColRangesForRow` uses on the column axis) unioned against the rows channel, which answers
  * "is this whole span selected" via `CompactSelection.hasAll` in O(its own run count) rather than by
