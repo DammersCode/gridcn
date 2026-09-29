@@ -101,6 +101,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // store's already-backfilled array instead of re-running withFilterIds (which would mint fresh ids
   // for id-less filters and churn the sync input every render). Mirrors lastPropsColumns.
   let lastPropsFilterState: FilterSpec[] | undefined = init.filterState;
+  // A `commands` entry named after a built-in action silently disables the built-in — warn once about it.
+  let warnedCommandShadow = false;
   // `rowId -> dataIndex` for updateCells. Every path that inserts, deletes, duplicates, or replaces
   // rows invalidates it; a pure value patch never moves a row, so a streaming tick keeps it warm.
   const rowIndexCache = createRowIndexCache();
@@ -245,6 +247,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     presenceViewSpaceActive: null,
     readOnly: false,
     keymap: DEFAULT_KEYMAP,
+    commands: init.commands ?? null,
     labels: mergeLabels(init.labels),
     actions: {
       setActiveCell(ref) {
@@ -658,6 +661,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         }
       },
       _syncProps(props) {
+        if (props.commands && !warnedCommandShadow) {
+          const shadowed = Object.keys(props.commands).filter((name) => name in DEFAULT_KEYMAP);
+          if (shadowed.length > 0) {
+            warnedCommandShadow = true;
+            warnDev(`commands shadows built-in action(s) ${shadowed.join(", ")}; the command wins and the built-in no longer dispatches`);
+          }
+        }
         set((s) => {
           // controlled sort/filter/join/search: the prop (when defined) is the source of truth this
           // sync writes into the store; uncontrolled: keep whatever the store's own actions last set.
@@ -764,6 +774,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             viewIndex: nextViewIndex,
             // A real recompute reconciles whatever a deferred updateCells left stale; an echo or an
             // unchanged sync recomputed nothing, so the flag has to survive it.
+            commands: props.commands ?? null,
             viewStale: unchanged ? s.viewStale : false,
             // rows moved only when a genuine consumer data replacement invalidated the id cache
             // (our own echo never moves a row — updateCells patches values in place)

@@ -34,6 +34,7 @@ export {
   useDataGridFillHandlers,
   useDataGridReadOnly,
   useDataGridKeymap,
+  useDataGridCommands,
   useDataGridLabels,
   useDataGridActiveCell,
   useDataGridHasActiveCell,

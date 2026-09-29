@@ -9,7 +9,7 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useDataGridKeymap, useDataGridLabels, type DataGridLabels, type GridAction, type Keymap } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridCommands, useDataGridKeymap, useDataGridLabels, type DataGridLabels, type GridAction, type GridCommand, type Keymap } from "@/registry/default/blocks/data-grid/data-grid";
 import { KEYBINDING_CATEGORIES, categoryForAction, categoryLabel, type KeybindingCategory } from "./action-groups";
 import { labelForAction } from "./action-labels";
 import { BindingChips } from "./binding-label";
@@ -26,8 +26,8 @@ function nativeClipboardBindings(labels: DataGridLabels): { label: string; bindi
 /** A dialog row: either a keymap-driven `GridAction` (key = action name) or a native binding (key = its label). */
 type KeymapRow = { key: string; label: string; bindings: string[] };
 
-/** Every bound action in `keymap` plus the native clipboard bindings, grouped by category in {@link KEYBINDING_CATEGORIES} order; categories with no rows are omitted. */
-function groupKeymap(keymap: Keymap, labels: DataGridLabels): { category: KeybindingCategory; rows: KeymapRow[] }[] {
+/** Every bound action in `keymap` plus the native clipboard bindings, grouped by category in {@link KEYBINDING_CATEGORIES} order; categories with no rows are omitted. Custom commands (`commands`) override a row's label and category. */
+function groupKeymap(keymap: Keymap, labels: DataGridLabels, commands: Record<string, GridCommand> | null): { category: KeybindingCategory; rows: KeymapRow[] }[] {
   const byCategory = new Map<KeybindingCategory, KeymapRow[]>();
   const pushRow = (category: KeybindingCategory, row: KeymapRow) => {
     const list = byCategory.get(category) ?? [];
@@ -37,7 +37,12 @@ function groupKeymap(keymap: Keymap, labels: DataGridLabels): { category: Keybin
 
   for (const [action, bindings] of Object.entries(keymap) as [GridAction, string[] | undefined][]) {
     if (!bindings || bindings.length === 0) continue;
-    pushRow(categoryForAction(action), { key: action, label: labelForAction(action, labels), bindings });
+    const command = commands?.[action];
+    pushRow(command?.group ?? categoryForAction(action), {
+      key: action,
+      label: command?.label ?? labelForAction(action, labels),
+      bindings,
+    });
   }
   // native clipboard events (copy/cut/paste) aren't GridActions/keymap entries — see use-grid-clipboard.ts
   for (const { label, binding } of nativeClipboardBindings(labels)) {
@@ -71,7 +76,8 @@ export function DataGridKeybindingsDialog(props: DataGridKeybindingsDialogProps)
   const { open, onOpenChange, defaultOpen, trigger } = props;
   const keymap = useDataGridKeymap();
   const labels = useDataGridLabels();
-  const groups = useMemo(() => groupKeymap(keymap, labels), [keymap, labels]);
+  const commands = useDataGridCommands();
+  const groups = useMemo(() => groupKeymap(keymap, labels, commands), [keymap, labels, commands]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} defaultOpen={defaultOpen}>

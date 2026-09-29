@@ -154,6 +154,49 @@ key bound to `editReplace` (e.g. `"a"`) starts the edit seeded with that charact
 Action labels in the dialog (and the per-`GridAction` label map) come from
 `labels.keybindings` — see [Internationalization: coverage by group](/docs/i18n#coverage-by-group).
 
+## Custom commands
+
+A `keymap` binding that names no built-in action resolves to the provider's `commands` prop.
+Each entry is a `GridCommand` with `run`, an optional `when` gate, and optional `label`/`group`
+for the dialog:
+
+```tsx
+<DataGridProvider
+  {...grid}
+  columns={columns}
+  commands={{
+    saveRow: {
+      run: (ctx) => save(ctx.row),
+      when: (ctx) => ctx.cell !== null,
+      label: "Save row",
+      group: "editing",
+    },
+  }}
+>
+  <DataGridRoot keymap={{ saveRow: ["mod+s"] }} />
+</DataGridProvider>
+```
+
+- `run(ctx)` receives `actions`, the active cell `cell` (view space, `null` when none), that
+  cell's data row `row`, and `readOnly`.
+- `when(ctx)` gates the command. Return `false` to ignore the key entirely.
+- `label` and `group` control the command's dialog row; the default group is `"other"`.
+- A name that shadows a built-in action (`selectAll`, for example) wins over it. Dev mode
+  warns once.
+- A bound name with neither a built-in handler nor a `commands` entry is a no-op. Dev mode
+  warns once.
+
+Name the action by declaration-merging the `GridActions` interface (the same path as
+`GridCellTypes`), so `keymap` and `commands` accept it with your IDE's help:
+
+```tsx
+declare module "@/components/data-grid/types" {
+  interface GridActions {
+    saveRow: true;
+  }
+}
+```
+
 ## Related
 
 - [Selection & keyboard](/docs/selection-keyboard) — the selection model and the default

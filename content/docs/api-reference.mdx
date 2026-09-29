@@ -257,8 +257,13 @@ a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
   `CellTypeValueInput` (`"text" | "number" | "date" | "boolean" | "choices"`), the filter
   capabilities a cell type declares. See
   [custom cell types](/docs/custom-cell-types#the-contract-member-by-member).
-- `GridAction` (every named keyboard action) and `Keymap`
-  (`Partial<Record<GridAction, string[]>>`).
+- `GridActions` (the named keyboard actions, as an interface you can extend by declaration
+  merging) and `GridAction` (every named keyboard action — the built-ins plus any you merged in)
+  and `Keymap` (`Partial<Record<GridAction, KeyBinding[]>>`).
+- `GridCommand<TData>` (`{ run, when?, label?, group? }`) and `GridCommandCtx<TData>`
+  (`{ actions, cell, row, readOnly }`) — the custom-command contract behind the `commands` prop;
+  `CommandGroup` names the keybindings dialog's sections. See
+  [Keybindings: Custom commands](/docs/addons/keybindings#custom-commands).
 - `RowMarkersMode`, `HeaderClickBehavior`, and `DensityMode`.
 - `ColumnLayout` (`{ widths, order, pins, hidden }`), the `defaultColumnLayout` and
   `onColumnLayoutChange` snapshot. See

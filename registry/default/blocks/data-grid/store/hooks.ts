@@ -6,6 +6,7 @@ import type {
   CellType,
   FilterJoinOperator,
   FilterSpec,
+  GridCommand,
   GridSelection,
   HeaderClickBehavior,
   Keymap,
@@ -97,6 +98,11 @@ export function useDataGridReadOnly(): boolean {
  */
 export function useDataGridKeymap(): Keymap {
   return useDataGridStore((s) => s.keymap);
+}
+
+/** The grid's custom commands (the `commands` sync prop) — `null` when none; backs the keybindings dialog's label/group overrides. */
+export function useDataGridCommands(): Record<string, GridCommand> | null {
+  return useDataGridStore((s) => s.commands);
 }
 
 /**

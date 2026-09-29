@@ -12,6 +12,7 @@ import type {
   FilterSpec,
   GetCellClassName,
   GetRowClassName,
+  GridCommand,
   GridEditEndEvent,
   GridSelection,
   GridValidationErrorEvent,
@@ -79,6 +80,7 @@ export {
   useDataGridScrollToCellAt,
   useDataGridReadOnly,
   useDataGridKeymap,
+  useDataGridCommands,
   useDataGridLabels,
   useDataGridActiveCell,
   useDataGridActiveColumn,
@@ -215,7 +217,11 @@ export type {
   FilterOperator,
   FilterSpec,
   FilterJoinOperator,
+  GridActions,
   GridAction,
+  CommandGroup,
+  GridCommand,
+  GridCommandCtx,
   KeyBinding,
   Keymap,
   GridCellTypes,
@@ -340,6 +346,13 @@ export type DataGridProps<TData> = {
    * dev-warning no-op — mirrors `createRow`/`insertRow`.
    */
   duplicateRow?: (row: TData, index: number) => TData;
+  /**
+   * Custom keyboard commands keyed by name — the dispatch target of `keymap` bindings that name
+   * no built-in action (a `commands` entry named after a built-in action shadows it, dev-warned
+   * once). See {@link GridCommand} for the members (`run`, `when`, `label`, `group`). Pass a
+   * stable reference.
+   */
+  commands?: Record<string, GridCommand<TData>>;
   /** Controlled multi-sort spec (server escape hatch); omit for uncontrolled (store-owned) sort state. */
   sortState?: SortSpec[];
   /** Fires whenever the sort would change, controlled or not. */
@@ -544,6 +557,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
     labels,
     createRow,
     duplicateRow,
+    commands,
     sortState,
     onSortChange,
     filterState,
@@ -589,8 +603,9 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
   const erasedOnRowClick = onRowClick as OnRowClick<unknown> | undefined;
 
   return (
-    <DataGridProvider
-      data={data}
+      <DataGridProvider
+        commands={commands}
+        data={data}
       defaultData={defaultData}
       columns={columns}
       getRowId={getRowId}

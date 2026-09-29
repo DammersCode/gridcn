@@ -11,6 +11,18 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Custom keymap commands (`data-grid`):** the `DataGridProvider`/`DataGrid` `commands` prop
+  accepts `Record<string, GridCommand>` — consumer actions behind `keymap` bindings that name
+  no built-in action. Each `GridCommand` (`{ run, when?, label?, group? }`) receives
+  `GridCommandCtx` (`{ actions, cell, row, readOnly }` — `cell` in view space, `row` the active
+  cell's data row) and may gate itself with `when`; `label` and `group` set its row in the
+  keybindings dialog. A command name shadowing a built-in action wins over the built-in; an
+  unbound-and-unhandled name is a no-op (both warn once in dev). `GridActions` is now an
+  interface you can extend by declaration merging (like `GridCellTypes`), `GridAction` is
+  `keyof GridActions`, and `useDataGridCommands` returns the current `commands` map. `GridCommand`,
+  `GridCommandCtx`, and `CommandGroup` are exported from the `data-grid` barrel; the
+  `data-grid-keybindings` dialog lists custom commands with their label and group. See
+  [Keybindings: Custom commands](/docs/addons/keybindings#custom-commands).
 - **Imperative grid handle (`data-grid`):** `DataGrid` accepts a `ref`, and a new
   `useDataGridApi(ref?)` hook (call it under `DataGridRoot` for manual composition) return the
   same stable `DataGridApi` object for the grid's lifetime. Members: `actions` (the

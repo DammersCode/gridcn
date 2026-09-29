@@ -29,8 +29,12 @@ import type {
   FilterJoinOperator,
   FilterSpec,
   GetRowClassName,
+  GridActions,
   GridCellTypes,
+  GridCommand,
+  GridCommandCtx,
   HeaderMenuRenderer,
+  Keymap,
   MarkerCellRenderer,
   MarkerHeaderRenderer,
   RowClickCtx,
@@ -400,5 +404,40 @@ assertEqual<"data-scrolled-left", typeof GRID_ATTR.scrolledLeft>(true);
 assertEqual<"data-scrolled-right", typeof GRID_ATTR.scrolledRight>(true);
 assertEqual<"data-scrolled-top", typeof GRID_ATTR.scrolledTop>(true);
 assertEqual<"data-scrolled-bottom", typeof GRID_ATTR.scrolledBottom>(true);
+
+// --- Custom commands (GridActions consumer augmentation) -----------------------
+// GridActions is an interface so a consumer adds actions by declaration-merging it
+// (`declare module ".../types" { interface GridActions { saveAll: true } }`) — the same path as
+// GridCellTypes. That real augmentation can't run inside this tsc program: it would merge into
+// every file and break keyboard/index.test.ts's exhaustive Record<GridAction, true>. So the
+// mechanism is asserted structurally: a merged-in key is a GridAction, keymap/commands accept it,
+// and the command's run ctx keeps the grid's row type.
+type FakeAugmentedGridActions = GridActions & { saveAll: true };
+type FakeGridAction = keyof FakeAugmentedGridActions;
+assertEqual<true, "saveAll" extends FakeGridAction ? true : false>(true);
+assertEqual<true, "moveUp" extends FakeGridAction ? true : false>(true);
+
+const customKeymap: Partial<Record<FakeGridAction, string[]>> = { saveAll: ["mod+s"], moveUp: ["ArrowUp"] };
+function saveAllRun(ctx: GridCommandCtx<Row>): void {
+  void ctx.actions;
+  void ctx.cell;
+  assertEqual<Row | undefined, typeof ctx.row>(true);
+  assertEqual<boolean, typeof ctx.readOnly>(true);
+}
+const saveAllCommand: GridCommand<Row> = {
+  run: saveAllRun,
+  when: (ctx) => ctx.cell !== null,
+  label: "Save all",
+  group: "editing",
+};
+const commandProps: Pick<DataGridProps<Row>, "commands" | "keymap"> = {
+  commands: { saveAll: saveAllCommand },
+  keymap: customKeymap as Keymap,
+};
+void commandProps;
+
+// @ts-expect-error - group is a CommandGroup member, not an arbitrary string
+const badCommandGroup: GridCommand<Row> = { run: saveAllRun, group: "nope" };
+void badCommandGroup;
 
 export {};

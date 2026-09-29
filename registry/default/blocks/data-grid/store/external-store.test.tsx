@@ -75,6 +75,31 @@ describe("useDataGridStoreProps (external store ownership)", () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
+  it("syncs the commands prop into the store state (and back to null when removed)", () => {
+    const cmd = { run: () => {} };
+    let props: { data: Row[]; columns: typeof columns; getRowId: typeof getRowId; commands?: Record<string, { run: () => void }> } = {
+      data: rows(3),
+      columns,
+      getRowId,
+      commands: { myCmd: cmd },
+    };
+    const { result, rerender } = renderHook(() => useDataGridStoreProps(props));
+    expect(result.current.store.getState().commands).toEqual({ myCmd: cmd });
+    props = { data: rows(3), columns, getRowId };
+    rerender();
+    expect(result.current.store.getState().commands).toBeNull();
+  });
+
+  it("dev-warns once when a command shadows a built-in action name", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    renderHook(() =>
+      useDataGridStoreProps({ data: rows(3), columns, getRowId, commands: { selectAll: { run: () => {} } } }),
+    );
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]![0])).toContain("shadows");
+    warn.mockRestore();
+  });
+
   it("self-creating provider (no store prop) still owns the sync and subscriptions", () => {
     const spy = vi.fn();
     const { result } = renderHook(() => useDataGridActions(), {

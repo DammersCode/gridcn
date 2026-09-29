@@ -9,6 +9,7 @@ import type {
   DataChange,
   FilterJoinOperator,
   FilterSpec,
+  GridCommand,
   GridEditEndEvent,
   GridSelection,
   GridValidationErrorEvent,
@@ -116,6 +117,12 @@ export type DataGridSyncProps<TData = unknown> = {
    * `duplicateRows` a dev-warning no-op — mirrors `createRow`/`insertRow`.
    */
   duplicateRow?: (row: TData, index: number) => TData;
+  /**
+   * Consumer-defined keyboard commands keyed by name — the dispatch target of keymap bindings
+   * that name no built-in action (see {@link GridCommand}). A name that shadows a built-in action
+   * wins over it (dev-warned once). Pass a stable reference.
+   */
+  commands?: Record<string, GridCommand<TData>>;
   /**
    * Controlled multi-sort spec. Standard controlled-input
    * semantics: omitted (undefined) keeps today's uncontrolled behavior — the store owns
@@ -392,6 +399,7 @@ export type DataGridStoreState = Omit<
   | "data"
   | "defaultData"
   | "cellTypes"
+  | "commands"
   | "rowMarkers"
   | "enableRowSelection"
   | "enableColumnSelection"
@@ -580,6 +588,8 @@ export type DataGridStoreState = Omit<
    * bindings instead of re-deriving it. `DEFAULT_KEYMAP` before mount/after unmount.
    */
   keymap: Keymap;
+  /** The `commands` sync prop (see {@link DataGridSyncProps.commands}); `null` when none — the dispatch target for custom keymap names. */
+  commands: Record<string, GridCommand<unknown>> | null;
   /** {@link DEFAULT_LABELS} deep-merged with the `labels` sync prop; see {@link useDataGridLabels}. */
   labels: DataGridLabels;
   actions: DataGridActions;

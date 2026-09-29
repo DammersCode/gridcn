@@ -34,6 +34,10 @@ import {
 } from "../windowing/direction";
 import { gridAttrSelector } from "../data-attributes";
 import { getSelectedViewRows, isSelectionEmpty } from "../selection";
+import { warnDev } from "../store/commit";
+
+/** Action names already dev-warned as bound-but-unwired (dev-only, process-wide). */
+const warnedUnwiredActions = new Set<string>();
 
 /** Column/row layout the interaction hook needs to translate pointer px <-> view coords and to scroll a cell into view. */
 export type InteractionLayout = {
@@ -231,6 +235,20 @@ export function dispatchGridAction(args: {
   const state = storeApi.getState();
   const rowCount = state.viewIndex.length;
   const colCount = state.visibleColumns.length;
+
+  // Custom-command tier: a keymap name resolving to a `commands` entry dispatches there instead of
+  // the built-in switch (a name shadowing a built-in wins, dev-warned at sync time).
+  const command = state.commands?.[action];
+  if (command) {
+    const cell = state.activeCell;
+    const dataRowIndex = cell === null ? undefined : state.viewIndex[cell.row];
+    const row = dataRowIndex === undefined ? undefined : state.data[dataRowIndex];
+    const ctx = { actions, cell, row, readOnly: readOnly ?? false };
+    if (command.when?.(ctx) === false) return;
+    preventDefault();
+    command.run(ctx);
+    return;
+  }
 
   const moveAndScroll = (d: { dx: number; dy: number }, opts?: { extend?: boolean; retain?: boolean }) => {
     actions._moveActiveCell(d, opts);
@@ -447,6 +465,14 @@ export function dispatchGridAction(args: {
         const selected = getSelectedViewRows(state.selection);
         if (selected.length > 0) actions.deleteRows(selected);
         else if (state.activeCell) actions.deleteRows([state.activeCell.row]);
+      }
+      break;
+    }
+    // A keymap-resolved name with neither a built-in case nor a `commands` entry: a bound-but-unwired action.
+    default: {
+      if (!warnedUnwiredActions.has(action)) {
+        warnedUnwiredActions.add(action);
+        warnDev(`keymap action "${action}" has no built-in handler and no custom command; the binding is a no-op`);
       }
       break;
     }

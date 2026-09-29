@@ -1,5 +1,6 @@
 import type { FC, ReactNode } from "react";
 import type { KeyBinding } from "./keyboard/key-syntax";
+import type { DataGridActions } from "./store/types";
 
 export type { KeyBinding };
 
@@ -571,29 +572,106 @@ export type FilterJoinOperator = "and" | "or";
 export type FilterSpec = { filterId?: string; columnId: string; operator: FilterOperator; value?: string | [string, string] | string[] };
 
 /**
- * Named keyboard actions; bindings map keys to these (see `DEFAULT_KEYMAP` in
- * `keyboard/default-keymap.ts`). `editReplace` (type-to-replace) has no `DEFAULT_KEYMAP` binding:
- * by default any unbound printable key on an active cell dispatches it (Excel behavior, starting
- * an edit seeded with the typed char). Defining `keymap.editReplace` takes the action over
+ * Named keyboard actions, as an interface so consumers can ADD actions by declaration-merging
+ * this interface in their own module (the same path as `GridCellTypes` — the module is
+ * `@/components/data-grid/types` for the default install layout):
+ * ```ts
+ * declare module "@/components/data-grid/types" {
+ *   interface GridActions {
+ *     saveAll: true;
+ *   }
+ * }
+ * ```
+ * A merged name binds through the `keymap` prop and resolves to a `commands` entry
+ * ({@link GridCommand}). `editReplace` (type-to-replace) has no `DEFAULT_KEYMAP` binding: by
+ * default any unbound printable key on an active cell dispatches it (Excel behavior, starting an
+ * edit seeded with the typed char). Defining `keymap.editReplace` takes the action over
  * exclusively — `["F3"]` remaps the trigger (plain edit start, no char seed); `[]` disables it.
  */
-export type GridAction =
-  | "moveUp" | "moveDown" | "moveLeft" | "moveRight"
-  | "retainMoveUp" | "retainMoveDown" | "retainMoveLeft" | "retainMoveRight"
-  | "scrollActiveIntoView"
-  | "moveRowStart" | "moveRowEnd"
-  | "jumpUp" | "jumpDown" | "jumpLeft" | "jumpRight"
-  | "moveFirstCell" | "moveLastCell"
-  | "pageUp" | "pageDown"
-  | "extendUp" | "extendDown" | "extendLeft" | "extendRight"
-  | "extendJumpUp" | "extendJumpDown" | "extendJumpLeft" | "extendJumpRight"
-  | "extendFirstCell" | "extendLastCell"
-  | "selectRow" | "selectColumn" | "selectAll"
-  | "edit" | "editReplace" | "commitDown" | "commitUp" | "commitRight" | "commitLeft"
-  | "cancel" | "deleteContents"
-  | "undo" | "redo"
-  | "fillDown" | "fillRight"
-  | "insertRowBelow" | "insertRowAbove" | "duplicateRow" | "deleteRows";
+export interface GridActions {
+  moveUp: true;
+  moveDown: true;
+  moveLeft: true;
+  moveRight: true;
+  retainMoveUp: true;
+  retainMoveDown: true;
+  retainMoveLeft: true;
+  retainMoveRight: true;
+  scrollActiveIntoView: true;
+  moveRowStart: true;
+  moveRowEnd: true;
+  jumpUp: true;
+  jumpDown: true;
+  jumpLeft: true;
+  jumpRight: true;
+  moveFirstCell: true;
+  moveLastCell: true;
+  pageUp: true;
+  pageDown: true;
+  extendUp: true;
+  extendDown: true;
+  extendLeft: true;
+  extendRight: true;
+  extendJumpUp: true;
+  extendJumpDown: true;
+  extendJumpLeft: true;
+  extendJumpRight: true;
+  extendFirstCell: true;
+  extendLastCell: true;
+  selectRow: true;
+  selectColumn: true;
+  selectAll: true;
+  edit: true;
+  editReplace: true;
+  commitDown: true;
+  commitUp: true;
+  commitRight: true;
+  commitLeft: true;
+  cancel: true;
+  deleteContents: true;
+  undo: true;
+  redo: true;
+  fillDown: true;
+  fillRight: true;
+  insertRowBelow: true;
+  insertRowAbove: true;
+  duplicateRow: true;
+  deleteRows: true;
+}
+
+/** Every named keyboard action — the built-ins of {@link GridActions} plus any the consumer merged in. */
+export type GridAction = keyof GridActions;
+
+/** The dialog sections a custom command's `group` places it in (the same sections the keybindings dialog renders; i18n labels live in `labels.keybindings.categories`). */
+export type CommandGroup = "navigation" | "selection" | "editing" | "clipboardFill" | "history" | "other";
+
+/** The context a custom command's `run`/`when` receives, built fresh from the live store at dispatch time. */
+export type GridCommandCtx<TData = unknown> = {
+  /** The stable actions object (the `useDataGridActions` reference). */
+  actions: DataGridActions;
+  /** The active cell in view space, or `null` when no cell is active. */
+  cell: ViewCoord | null;
+  /** The data row of the active cell, or `undefined` when none. */
+  row: TData | undefined;
+  /** The grid's effective `readOnly` flag. */
+  readOnly: boolean;
+};
+
+/**
+ * One consumer-defined keyboard command, bound through the `keymap` prop by name
+ * (`commands: { saveAll: {...} }` + `keymap: { saveAll: ["mod+s"] }`). Method-style `run`/`when`
+ * keep a consumer's `GridCommand<TData>` assignable to the store's row-agnostic field.
+ */
+export type GridCommand<TData = unknown> = {
+  /** Runs the command when a bound key fires. */
+  run(ctx: GridCommandCtx<TData>): void;
+  /** Gate: return `false` to ignore the key entirely (no `preventDefault`, no `run`). */
+  when?(ctx: GridCommandCtx<TData>): boolean;
+  /** Keybindings-dialog label; default: `labels.keybindings.actions[name]` or the humanized name. */
+  label?: string;
+  /** Keybindings-dialog section; default: `"other"`. */
+  group?: CommandGroup;
+};
 
 /**
  * Key binding string: `mod` = Ctrl (win/linux) / Cmd (mac), `ctrl` = the LITERAL physical Ctrl key
