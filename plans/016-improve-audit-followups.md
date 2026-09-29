@@ -101,6 +101,71 @@ Gate for docs-only items: `pnpm build`. W1-12 changes payloads — full pre-push
 | W4-01 | NEW-1 | Editor bound to its row: store `rowId`/`columnId` in `editing`, remap `coord` wherever `viewIndex`/`visibleColumns` rebuild (`_syncProps`, `setSorts`, `setFilters`, `setJoinOperator`); when the row leaves the view, cancel the edit (the typed value is discarded, never written into a hidden row); a pending async validation drops its result | M | MED |
 | W4-02 | PERF-04 | Store `rowIdentityVersion` bumped at every `rowIndexCache.invalidate()` site (`create-store.ts:899,933,962,1020,1092`); `useDataGridRowIdToViewRow` keys on it instead of `data`. Test: an `updateCells` tick keeps the Map identity | M | MED (missed bump = presence on wrong rows) |
 
+## Wave R — review fixes for W2–W4 (run before continuing W5)
+
+Source: independent review of W2, W3, and W4 on 2026-09-29 (four reviewers, one per wave, each in its own worktree at the wave's last commit). Every fix was re-run with the fix reverted: all tests fail without their fix. The gaps below are sub-points that were missed, regressions the fixes introduced, and new findings. The planning session re-checked every R1 item and R-08, R-09, R-11, R-28 at `497fc45`.
+
+Decisions (maintainer rule: secure, performant, feature-rich; breaking changes welcome):
+- A throwing or rejecting validator blocks the edit with its message, on `onInvalid: "warn"` columns too.
+- `isAnyOf` URL lists are bounded by the column's own `choices` (1,000 for columns without `choices`), not by a fixed 64.
+- Clipboard formula neutralizing becomes a grid prop that the native Ctrl+C/Ctrl+X path and the context menu honor.
+- XLSX over a limit is rejected like CSV, never truncated; the import button and dialog take an `importLimits` prop.
+- Keybindings `bindingTokens` is removed in favor of `formatShortcut` (**Breaking**).
+- W3-04 (`onSelectionChange` fires only on real changes, `CompactSelectionLike.equals`) gets a **Breaking** CHANGELOG entry.
+- Internal hooks the add-ons need (`useDataGridInstanceId`, `formatShortcutToken`) move to the `data-grid-sdk` barrel.
+- The edit-time row-op guards stay until R-01 is proven, then R-35 lifts them.
+
+### R1 — security and data integrity (first)
+
+| # | Source | Change | Effort | Risk |
+|---|--------|--------|--------|------|
+| R-01 | W4-01 | `_syncProps` remaps the open editor against the OLD data: `remapEditing(s, nextViewIndex, …)` resolves the rowId with `rowIndexCache.resolve(s.data, …)` (`create-store.ts` `remapEditing`, `_syncProps` call). The editor stays on the wrong row after a consumer `data` swap, and the rebuilt index cache holds the old map, so the next `updateCells`/`validateRow` writes to the wrong row. Fix: pass `nextData` and `props.getRowId` into `remapEditing`. Tests: drop, reorder (commit lands on the right row), insert above (remap down), and replace + Escape + value write + `updateCells` (no stale index), each with ONE sync; fix the existing "drops the edited row" test, which passes only through a second sync | S | MED |
+| R-02 | W2-18 | `+` missing from `FORMULA_LEAD_CHARS` (`clipboard/serialize-cells.ts:10`): `+HYPERLINK(...)` and `+1+cmd\|...` pass unchanged. Add `+`; `+5` stays exempt. Tests for both payloads; add `+` to the docs callout, JSDoc, and CHANGELOG lists; put `**Breaking:**` at the start of the CHANGELOG entry without backticks | XS | LOW |
+| R-03 | W2-19 | Sparse two-cell XLSX (A1 + CV1000000, 15.7 KB) still builds 100M cells (43.5 s, 2 GB): `clampedSheetRange` sizes from real cells and `defval` fills the rectangle. Add `maxCells` (default 5M) to the limits; compute the real extent and reject when rows > `maxRows`, cols > `maxColumns`, or rows × cols > `maxCells` before `sheet_to_json`; read with `sheetRows: maxRows + 1` to detect overflow; reject instead of truncating (matches CSV and the docs); same `maxCells` for CSV; parse only the selected sheet (`sheets:`). `DataGridImportButton`/`DataGridImportDialog` take `importLimits`, which also feeds Dropzone `maxSize`; export `DEFAULT_IMPORT_LIMITS` from the io barrel (the CHANGELOG already claims it). Tests with the real library and a forged sparse file; a browser test that fails without the Dropzone `maxSize` wiring | S-M | LOW |
+| R-04 | W3 review | Cut can delete different cells than it copied: when `viewIndex`/`visibleColumns` change during the awaited clipboard write (sort, filter, lazy fetch, hide), the unchanged selection reference points at other rows (`use-data-grid-clipboard.ts` `cut`). Capture the rowIds and columnIds at copy time and delete by identity. Test: sort during a pending write | S | LOW |
+| R-05 | W2-18 + review | Clipboard formula opt-in is unreachable: `useGridClipboard` (root) and the context menu call the hook without options, so the CHANGELOG claim is false. Add a grid prop `sanitizeClipboardFormulas` read by both paths; also neutralize the HTML `<td>` text (Excel pastes HTML first) and accept the sanitized form in the raw check; give public `rowsToCsv` a `sanitizeFormulas = true` parameter | S | LOW |
+| R-06 | W3-01 | Pin the mirror in `registry.json`: `"@e965/xlsx@0.20.3"` (bare name installs the latest from a third-party publisher) | XS | LOW |
+| R-07 | W2-02 | A function-form `validate` that throws still sticks the editor: `runValidateSync` (`validate-cell.ts`) has no try/catch. Catch and return `{ error: message }`, which also covers `updateCells`. Test for the function form | S | LOW |
+
+### R2 — correctness gaps and regressions (easiest first)
+
+| # | Source | Change | Effort | Risk |
+|---|--------|--------|--------|------|
+| R-08 | W2-01 | Regression: Base UI `SelectValue` skips `placeholder` when `children` is a function, so an empty checkbox/select filter value renders blank (`filter-value-input.tsx`). Use Base UI's `items` prop on `<Select>` (labels without mounting, native placeholder) in all label-mapping selects; apply the same to the import dialog's delimiter and mapping selects (`import-dialog.tsx`, still raw `<SelectValue />`). Regression test; CHANGELOG entry | S | LOW |
+| R-09 | W2-05 | Regression: `search.tsx` reads and writes a ref during render, so the React Compiler bails out of `DataGridSearch`. Use the `useState` previous-value pattern | XS | LOW |
+| R-10 | W2-09 | `use-column-resize.ts` returns before `stopPropagation`, so a second touch on the handle selects the column and arms a reorder. Move the guard below the two calls. Reorder hooks: tear down `pendingRef` on `lostpointercapture`/`blur` so a lost non-mouse `pointerup` cannot wedge the gesture | XS-S | LOW |
+| R-11 | W2-17 | Round-trip regression: a value with U+00A0 or `\r` fails the raw check (innerHTML writes `&nbsp;`), and tabs turn into spaces. Compare against `escapeHtmlText(raw)` with `&nbsp;` normalization | XS | LOW |
+| R-12 | W3-03 + review | Number stepping: no-op while `pending` and during IME composition; without `decimals`, round to the step's decimals (`0.1` steps show `0.30000000000000004` today); test the default step of 1 | XS | LOW |
+| R-13 | W2-03 + review | `reconcilePage` in server mode still rewrites a deep link while `total` is 0 (`use-data-grid-pagination.ts`); client mode with empty data passes an unclamped page ("page 3 of 1") | XS | LOW |
+| R-14 | W2-16 | `isAnyOf` cap of 64 permanently truncates legitimate shared links (write-back rewrites them). Bound by the column's `choices`; cap parsed sorts at 64 (dev-warning spam) | S | LOW |
+| R-15 | W2-08 | A delimiter re-parse of the previous file can overwrite a newer file's preview (`use-data-grid-import.ts`: `loadFile` has no generation check). Give `loadFile` its own generation or clear `currentFileRef` at its start. Test | S | LOW |
+| R-16 | W4 review | While editing, `activeCell` is remapped but `selection.current.cell` is not: the range paints on another row, and Shift+Arrow after Escape extends from the wrong row. Remap the selection with the active cell | S | LOW |
+| R-17 | W4-02 | `useDataGridRowIdToViewRow` keeps the Map identity but still subscribes to `data`, so its host (presence overlays) re-renders on every tick; the CHANGELOG claims otherwise. Read `data` via `getState()` inside the memo | S | LOW |
+| R-18 | W3 review | Context-menu Cut ignores `"failed"` (no feedback); a throwing `execCommand` rejects unhandled (no catch in the fallback); `cut()` in a readOnly grid resolves `"ok"`. Catch and return `false`, surface `"failed"` through a label, return the copy result without delete when readOnly | S | LOW |
+| R-19 | review | Fill series corrupts IDs with more than 15 digits (`ID 1234…890` fills `…7000`, 400 digits fill `xNaN`): return null (tile) above 15 digits or use BigInt | XS | LOW |
+| R-20 | review | Date `fromText` still rolls over non-ISO inputs (`Feb 30, 2026`, `02/30/2026`, `2026-02-30T10:00Z` → `2026-03-02`): reject when the parsed date's components differ from the input's | S | LOW |
+| R-21 | review | CSV import allocates ~1.15 GB for a 49 MB file of delimiters before the column check: count columns per line without allocating, or `Papa.parse` with `step` and `abort()` on overflow | S | LOW |
+| R-22 | review | Lazy merge drops an edit to a row evicted between commit and merge (`applyChange` skips the missing id): dev warning, or write `op.row` at its snapshot index | S | LOW |
+| R-23 | review | Flash keys are `${viewRow}:${columnId}` (`create-store.ts` flash), so a sort or reorder leaves a flash on the wrong row for up to 1.4 s. Key by rowId | S-M | LOW |
+| R-24 | review | The view-space presence dev warning fires only for row ops and immediate `updateCells`; add it to sort, filter, join, and consumer data swaps | S | LOW |
+| R-25 | W3-05 review | Custom toolbars lose mod+F scope unless they carry `data-grid-instance`: accept `[data-grid-toolbar]` inside the provider, or document it | XS | LOW |
+| R-26 | W4 review | `useDataGridEditing` hides the `rowId`/`columnId` anchor; widen its return type (W5-08 may absorb it) | XS | LOW |
+
+### R3 — tests, exports, docs, CHANGELOG, comments, process
+
+| # | Source | Change | Effort | Risk |
+|---|--------|--------|--------|------|
+| R-27 | W4-02, W2-12 | Missing guard tests: same-length id swap, lazy hole fill, and `reorderRows` must rebuild the rowId Map (today all bumps can be removed and the suite stays green); id-less reference-stable controlled `filterState` keeps `viewIndex` and `filterId`s; `withFilterIds(allWithIds)` returns the same array | XS | LOW |
+| R-28 | W2-11, W3-05 | Barrel surface: move `useDataGridInstanceId` and `formatShortcutToken` to `data-grid-sdk`; remove keybindings `bindingTokens` (docs use `formatShortcut`, **Breaking**); CHANGELOG notes that `mod` matches Cmd on iPhone/iPad | S | LOW |
+| R-29 | reviews | CHANGELOG: **Breaking** for W3-04 (incl. `CompactSelectionLike.equals`), W3-05 instance id, W2-14 pageSize fallback, W2-01 entry, W2-02 wording; delete the stale "`options.step` is `@reserved`" line; merge the duplicate Added/Changed/Fixed blocks inside `## Unreleased` | S | LOW |
+| R-30 | reviews | Docs: the mirror paragraph splits the `installation.mdx` dependency table (rows render as text); `papaparse` is not lazy-loaded (`import-export.mdx`, installation table); url-pagination clamps "once `total` is positive", not "on mount" (JSDoc + `url-state.mdx`); `columns.mdx` names only `DataGridRoot` for `renderHeaderMenu`; "(grip focused)" in the sort/filter key tables; SSR note for `formatShortcut` (compute after mount); stale `GRID_ATTR.toolbar` JSDoc in `data-attributes.ts` | S | LOW |
+| R-31 | reviews | Comments (AGENTS.md): history comments in `vitest.config.ts`; stale "commit re-reads the shifted viewIndex" guard comments and the false "stale entries are harmless" line in `create-store.ts`; multi-line `//` and pointer comments in `use-column-resize.ts`, reorder hooks, `select-line-options.ts`, `search.tsx`, `filter-value-input.tsx`, `use-async-validate.ts`, `create-store.ts` (`lastPropsFilterState`), `detect-series.ts`, `fill.test.ts`, `use-data-grid-url-pagination.ts`, the CI aggregator; `remapEditing` JSDoc; misplaced `oxlint-disable-next-line` in `hooks.ts`; stale comment in `binding-label.test.ts`; 35-word JSDoc in `date.tsx` | S | LOW |
+| R-32 | W3-09 | Coverage: raise `parse-clipboard.ts`, `autosize-column.ts`, `build-imported-rows.ts` from 85 to 90; the key guard also rejects keys that match an `exclude` glob | XS | LOW |
+| R-33 | W3-10 | CI: keep main's top-level `permissions: contents: read` when merging (PR #52); cache `~/.cache/ms-playwright`; add `timeout-minutes`; confirm the `ci` aggregator on the first PR run (the ruleset requires context `ci`) | XS | LOW |
+| R-34 | process | A source-only comment commit (`49db63f`) left three payloads stale, and commits `26e7afd`…`13a742e` were made with `types:check` red (missing `FilterSpec` import, fixed later inside the unrelated `90b25f4`). Add `verify-payload-content` to the lint gate (or a pre-commit hook) and a React Compiler bail-out check over `registry/**` (new `CompileError`s fail; `use-column-resize`, reorder hooks, `filter-value-input` already bail out) | S | LOW |
+| R-35 | W4 review | After R-01 is merged and green: lift the edit-time guards (`insertRows`/`deleteRows`/`duplicateRows`/`reorderRows` no-ops and the `updateCells` immediate→defer downgrade), so streaming re-sorts and row ops apply live during an edit. Browser tests for each path with an open editor | M | MED |
+
+
 ## Wave 5 — API foundation (breaking welcome, spec first where marked)
 
 Source: extensibility review 2026-09-27 (API-R1…R12). Ordered by dependency; W5-01…W5-06 are independent of each other.
@@ -189,8 +254,9 @@ compiler mirror 4m44, build 1m02, rest < 1 min.
 | Wave | Status |
 |------|--------|
 | W1 | DONE (13 items, commits `4d274fb`…`0114b28`, all gates green) |
-| W2 | DONE (19 items, commits `7d12104`…`0776df0`, all gates green) |
-| W3 | DONE (10 items, commits `3f120da`..`ca1e972` + compliance `49db63f`, all gates green) |
-| W4 | DONE (2 items: W4-01 `66e1eed`, W4-02 `a76bffa`, all gates green) |
+| W2 | DONE (19 items, commits `7d12104`…`0776df0`); review 2026-09-29: 2 security bypasses and 2 regressions → Wave R |
+| W3 | DONE (10 items, commits `3f120da`..`ca1e972` + compliance `49db63f`); review 2026-09-29: docs/CHANGELOG gaps, stale payloads at `49db63f` → Wave R |
+| W4 | DONE (W4-01 `66e1eed`, W4-02 `a76bffa`); review 2026-09-29: W4-01 remaps against stale data on consumer data swaps → R-01 |
+| WR | TODO (R1 before the next W5 item; R-35 after R-01) |
 | W5 | TODO (API foundation; specs for W5-05, W5-06, W5-08…W5-13) |
 | W6 | TODO (W6-01…W6-04 can run in parallel with W5) |
