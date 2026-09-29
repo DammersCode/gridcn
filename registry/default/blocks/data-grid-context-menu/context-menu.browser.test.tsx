@@ -13,7 +13,12 @@ import {
   type Keymap,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPinnedRows } from "@/registry/default/blocks/data-grid-pinned-rows/data-grid-pinned-rows";
-import { DataGridContextMenu, type DataGridContextMenuProps } from "./data-grid-context-menu";
+import {
+  DataGridContextMenu,
+  DataGridHeaderDropdown,
+  type CellMenuItemsCtx,
+  type DataGridContextMenuProps,
+} from "./data-grid-context-menu";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply
 import "@/app/global.css";
 
@@ -70,8 +75,10 @@ function renderGrid(
     enableColumnResize?: boolean;
     onColumnLayoutChange?: (next: ColumnLayout) => void;
     onColumnResizing?: (columnId: string, width: number) => void;
-    renderCellMenuItems?: DataGridContextMenuProps["renderCellMenuItems"];
-    renderHeaderMenuItems?: DataGridContextMenuProps["renderHeaderMenuItems"];
+    getCellMenuItems?: DataGridContextMenuProps["getCellMenuItems"];
+    getHeaderMenuItems?: DataGridContextMenuProps["getHeaderMenuItems"];
+    /** Wires `renderHeaderMenu` to the add-on's `DataGridHeaderDropdown` (header-surface resolver coverage). */
+    headerDropdown?: boolean;
   } = {},
 ) {
   return render(
@@ -88,10 +95,15 @@ function renderGrid(
       onColumnResizing={opts.onColumnResizing}
     >
       <DataGridContextMenu
-        renderCellMenuItems={opts.renderCellMenuItems}
-        renderHeaderMenuItems={opts.renderHeaderMenuItems}
+        getCellMenuItems={opts.getCellMenuItems}
+        getHeaderMenuItems={opts.getHeaderMenuItems}
       >
-        <DataGridRoot className="h-[300px]" readOnly={opts.readOnly} keymap={opts.keymap}>
+        <DataGridRoot
+          className="h-[300px]"
+          readOnly={opts.readOnly}
+          keymap={opts.keymap}
+          renderHeaderMenu={opts.headerDropdown ? (ctx) => <DataGridHeaderDropdown {...ctx} /> : undefined}
+        >
           <DataGridHeader />
           <DataGridBody />
         </DataGridRoot>
@@ -406,63 +418,118 @@ describe("DataGridContextMenu — header menu autosize commits through onColumnL
   });
 });
 
-describe("DataGridContextMenu — custom item-set slots", () => {
-  it("renderCellMenuItems replaces the built-in cell items and receives the cell ctx", async () => {
+describe("DataGridContextMenu — menu resolvers", () => {
+  it("getCellMenuItems receives the cell ctx and the built-in defaults, and its return value is the complete item set", async () => {
+    const seen: { ctx?: CellMenuItemsCtx; defaultIds?: string[] } = {};
     await renderGrid({
       createRow: () => ({ id: "new", name: "New", email: "" }),
       duplicateRow: (row) => ({ ...row, id: "copy" }),
-      renderCellMenuItems: ({ row, columnId, canInsertRow, canDuplicateRow }) => (
-        <span
-          data-testid="custom-cell-items"
-          data-row={row}
-          data-column-id={columnId}
-          data-insert={String(canInsertRow)}
-          data-duplicate={String(canDuplicateRow)}
-        />
-      ),
+      getCellMenuItems: (ctx, defaults) => {
+        seen.ctx = ctx;
+        seen.defaultIds = defaults.map((s) => s.id);
+        return defaults.filter((s) => s.id === "duplicate-rows");
+      },
     });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     rightClick(gridCell("Bob", "name"));
 
-    const custom = () => document.querySelector<HTMLElement>("[data-testid='custom-cell-items']");
-    await vi.waitFor(() => expect(custom()).toBeTruthy());
-    expect(custom()!.getAttribute("data-row")).toBe("1");
-    expect(custom()!.getAttribute("data-column-id")).toBe("name");
-    expect(custom()!.getAttribute("data-insert")).toBe("true");
-    expect(custom()!.getAttribute("data-duplicate")).toBe("true");
-    // the slot's span is the only content, so no built-in menuitem may exist (document-based: the
-    // cell right-click's selectCell re-render detaches the `page` locator scope from the portal)
-    expect(document.querySelectorAll('[role="menuitem"]').length).toBe(0);
+    await vi.waitFor(() => expect(menuItem("Duplicate row")).toBeTruthy());
+    expect(seen.ctx).toEqual({ row: 1, columnId: "name", canInsertRow: true, canDuplicateRow: true });
+    expect(seen.defaultIds).toEqual([
+      "cut", "copy", "paste", "sep-clipboard", "clear-contents", "sep-rows",
+      "insert-row-above", "insert-row-below", "duplicate-rows", "delete-rows",
+    ]);
+    // only the kept entry renders (document-based: the cell right-click's selectCell re-render
+    // detaches the `page` locator scope from the portal)
+    const rendered = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].map((el) => el.textContent);
+    expect(rendered).toHaveLength(1);
+    expect(rendered[0]).toContain("Duplicate row");
   });
 
-  it("renderCellMenuItems receives false flags when no createRow/duplicateRow prop is given", async () => {
+  it("getCellMenuItems gets defaults without the Insert/Duplicate entries when no createRow/duplicateRow prop is given", async () => {
+    let defaultIds: string[] = [];
     await renderGrid({
-      renderCellMenuItems: ({ canInsertRow, canDuplicateRow }) => (
-        <span data-testid="custom-cell-items" data-insert={String(canInsertRow)} data-duplicate={String(canDuplicateRow)} />
-      ),
+      getCellMenuItems: (_ctx, defaults) => {
+        defaultIds = defaults.map((s) => s.id);
+        return defaults;
+      },
     });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     rightClick(gridCell("Alice", "name"));
 
-    const custom = () => document.querySelector<HTMLElement>("[data-testid='custom-cell-items']");
-    await vi.waitFor(() => expect(custom()).toBeTruthy());
-    expect(custom()!.getAttribute("data-insert")).toBe("false");
-    expect(custom()!.getAttribute("data-duplicate")).toBe("false");
+    await vi.waitFor(() => expect(menuItem("Delete row")).toBeTruthy());
+    expect(defaultIds).toEqual(["cut", "copy", "paste", "sep-clipboard", "clear-contents", "sep-rows", "delete-rows"]);
   });
 
-  it("renderHeaderMenuItems replaces the built-in header items and receives the header ctx", async () => {
+  it("a fully custom spec set renders through the spec renderer (label, destructive, click)", async () => {
+    const onClick = vi.fn();
     await renderGrid({
-      renderHeaderMenuItems: ({ columnId, scrollRoot }) => (
-        <span data-testid="custom-header-items" data-column-id={columnId} data-scroll-root={scrollRoot?.getAttribute("role") ?? "none"} />
-      ),
+      getCellMenuItems: () => [
+        { id: "custom", label: "Custom item", onClick },
+        { id: "custom-danger", label: "Danger item", destructive: true, onClick: () => {} },
+      ],
+    });
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    rightClick(gridCell("Alice", "name"));
+
+    await vi.waitFor(() => expect(menuItem("Custom item")).toBeTruthy());
+    await vi.waitFor(() => expect(menuItem("Danger item")).toBeTruthy());
+    expect(document.querySelectorAll('[role="menuitem"]').length).toBe(2);
+    const danger = menuItem("Danger item")!;
+    expect(danger.getAttribute("data-variant")).toBe("destructive");
+    menuItem("Custom item")!.click();
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("a disabled spec without tooltip renders hard-disabled (data-disabled, no click)", async () => {
+    const onClick = vi.fn();
+    await renderGrid({
+      getCellMenuItems: () => [
+        { id: "off", label: "Disabled item", disabled: true, onClick },
+      ],
+    });
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    rightClick(gridCell("Alice", "name"));
+
+    await vi.waitFor(() => expect(menuItem("Disabled item")).toBeTruthy());
+    const item = menuItem("Disabled item")!;
+    expect(item.hasAttribute("data-disabled")).toBe(true);
+    item.click();
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it("getHeaderMenuItems receives the header ctx and the built-in defaults, and its return value is the complete item set", async () => {
+    const seen: { columnId?: string; scrollRootRole?: string; defaultIds?: string[] } = {};
+    await renderGrid({
+      getHeaderMenuItems: (ctx, defaults) => {
+        seen.columnId = ctx.columnId;
+        seen.scrollRootRole = ctx.scrollRoot?.getAttribute("role") ?? "none";
+        seen.defaultIds = defaults.map((s) => s.id);
+        return defaults.filter((s) => s.id === "hide-column");
+      },
     });
     await expect.element(page.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
     rightClick(document.querySelector('[role="columnheader"][data-column-id="name"]')!);
 
-    const custom = () => document.querySelector<HTMLElement>("[data-testid='custom-header-items']");
-    await vi.waitFor(() => expect(custom()).toBeTruthy());
-    expect(custom()!.getAttribute("data-column-id")).toBe("name");
-    expect(custom()!.getAttribute("data-scroll-root")).toBe("grid");
+    await vi.waitFor(() => expect(menuItem("Hide column")).toBeTruthy());
+    expect(seen.columnId).toBe("name");
+    expect(seen.scrollRootRole).toBe("grid");
+    expect(seen.defaultIds).toEqual(["sort-asc", "sort-desc", "sep-sort", "pin-left", "pin-right", "hide-column", "sep-autosize", "autosize"]);
     await expect.element(page.getByRole("menuitem", { name: "Pin left" })).not.toBeInTheDocument();
+  });
+
+  it("DataGridHeaderDropdown honors the wrapper's getHeaderMenuItems via context", async () => {
+    await renderGrid({
+      headerDropdown: true,
+      getHeaderMenuItems: (_ctx, defaults) => defaults.filter((s) => s.id === "hide-column"),
+    });
+    // the chevron trigger joins the columnheader's accessible name, so locate by attribute here
+    const trigger = () =>
+      document.querySelector<HTMLElement>('[role="columnheader"][data-column-id="name"] [data-slot="dropdown-menu-trigger"]');
+    await vi.waitFor(() => expect(trigger()).toBeTruthy());
+    trigger()!.click();
+
+    await vi.waitFor(() => expect(menuItem("Hide column")).toBeTruthy());
+    expect(document.querySelectorAll('[role="menuitem"]').length).toBe(1);
   });
 });

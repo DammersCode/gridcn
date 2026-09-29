@@ -828,16 +828,6 @@
                "target": "components/data-grid-context-menu/context-menu.tsx"
             },
             {
-               "path": "registry/default/blocks/data-grid-context-menu/cell-menu-content.tsx",
-               "type": "registry:component",
-               "target": "components/data-grid-context-menu/cell-menu-content.tsx"
-            },
-            {
-               "path": "registry/default/blocks/data-grid-context-menu/header-menu-content.tsx",
-               "type": "registry:component",
-               "target": "components/data-grid-context-menu/header-menu-content.tsx"
-            },
-            {
                "path": "registry/default/blocks/data-grid-context-menu/header-dropdown.tsx",
                "type": "registry:component",
                "target": "components/data-grid-context-menu/header-dropdown.tsx"
@@ -846,6 +836,11 @@
                "path": "registry/default/blocks/data-grid-context-menu/autosize-column.ts",
                "type": "registry:component",
                "target": "components/data-grid-context-menu/autosize-column.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-context-menu/menu-items.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid-context-menu/menu-items.tsx"
             },
             {
                "path": "registry/default/blocks/data-grid-context-menu/menu-shortcut.tsx",

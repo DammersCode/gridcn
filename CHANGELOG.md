@@ -11,6 +11,19 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Menu resolvers (`data-grid-context-menu`):** the context menu and the header dropdown are now
+  data. `DataGridContextMenu.getCellMenuItems(ctx, defaults)` and
+  `DataGridContextMenu.getHeaderMenuItems(ctx, defaults)` receive the built-in item set as a
+  `GridMenuItemSpec[]` array (`defaults`) and return the complete item set — filter it by the
+  stable built-in ids (`cut`, `copy`, `paste`, `clear-contents`, `insert-row-above`,
+  `insert-row-below`, `duplicate-rows`, `delete-rows`; `sort-asc`, `sort-desc`, `clear-sort`,
+  `pin-left`, `pin-right`, `unpin`, `hide-column`, `autosize`), reorder it, extend it, or build
+  a custom set. `getHeaderMenuItems` applies to the right-click header menu AND to every
+  `DataGridHeaderDropdown` rendered inside the wrapper; `DataGridHeaderDropdown` also accepts
+  `getHeaderMenuItems` directly (it overrides the wrapper's resolver for that dropdown).
+  `GridMenuItemSpec` (item: `id`, `label`, `icon`, `shortcut`, `disabled`, `destructive`,
+  `tooltip`, `onClick`; separator: `id`, `separator: true`) and the ctx/resolver types are
+  exported from the add-on barrel.
 - **Custom cell-type helpers:** `defineCellType(key, type)` adds a compile-time check at the
   definition — the key must be a registered cell-type key (your `GridCellTypes` augmentation)
   and the type's value/options must match that key's declared shape; it costs nothing at runtime
@@ -205,6 +218,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **`renderCellMenuItems` / `renderHeaderMenuItems` replaced by menu resolvers (Breaking):** the
+  two render-slot props of `DataGridContextMenu` are removed. Pass `getCellMenuItems` /
+  `getHeaderMenuItems` instead — they return a `GridMenuItemSpec[]` item list (item-level
+  control) instead of a React node (whole-set replacement only), and the header resolver also
+  reaches the header dropdown.
 - **`cellTypes` merges over the built-ins (Breaking):** the `cellTypes` prop previously REPLACED
   the whole registry — extending the built-ins required spreading them back in
   (`cellTypes={{ ...cellTypes, myType }}`). It now merges over them: unnamed built-ins keep

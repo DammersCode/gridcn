@@ -68,42 +68,39 @@ under which props) lives on [Row operations](/docs/row-operations#context-menu).
 
 ## Custom menu items
 
-`DataGridContextMenu` accepts two render slots that replace the built-in item set — one per
-surface. Without a slot, the built-in items show. The slots apply to the right-click menus; the
-header dropdown (`DataGridHeaderDropdown`) keeps its built-in items.
+The menus are data. Each surface resolves its items through a resolver prop on
+`DataGridContextMenu` that receives the built-in set as a `GridMenuItemSpec[]` array
+(`defaults`) and returns the complete item set. Return `defaults` unchanged, filter it, reorder
+it, extend it, or build a fully custom set.
 
-| Prop | Replaces | Called with |
+| Prop | Surface | Called with |
 |---|---|---|
-| `renderCellMenuItems` | the cell-surface items | `{ row, columnId, canInsertRow, canDuplicateRow }` — the right-clicked cell's view row, its column id, and the `createRow`/`duplicateRow` availability flags the built-in set gates its Insert/Duplicate items on |
-| `renderHeaderMenuItems` | the header-surface items | `{ columnId, scrollRoot }` — the right-clicked column's id and the grid's scroll-container element (`null` when the right-clicked element has no grid ancestor) |
+| `getCellMenuItems` | the right-click cell menu | `(ctx, defaults)`. `ctx` is `{ row, columnId, canInsertRow, canDuplicateRow }` — the right-clicked cell's view row, its column id, and the `createRow`/`duplicateRow` availability flags the built-in set gates its Insert/Duplicate items on |
+| `getHeaderMenuItems` | the right-click header menu AND every `DataGridHeaderDropdown` inside the wrapper | `(ctx, defaults)`. `ctx` is `{ columnId, scrollRoot }` — the right-clicked column's id and the grid's scroll-container element (`null` when the right-clicked element has no grid ancestor) |
 
-The slot's output is the complete item set — it owns the items, their order, and their gating.
-Compose items from `ContextMenuItem` in `@/components/ui/context-menu`.
+The built-in entries carry stable `id`s, so a resolver keeps or drops them by id:
+
+| Surface | Built-in ids, in order |
+|---|---|
+| Cell | `cut`, `copy`, `paste`, `sep-clipboard`, `clear-contents`, `sep-rows`, `insert-row-above`, `insert-row-below`, `duplicate-rows`, `delete-rows` (the Insert entries appear only with `createRow`, the Duplicate entry only with `duplicateRow`) |
+| Header | `sort-asc`, `sort-desc`, `clear-sort`, `sep-sort`, `pin-left`, `pin-right`, `unpin`, `hide-column`, `sep-autosize`, `autosize` (`clear-sort` only while the column is sorted, `unpin` only while it is pinned, `autosize` only while resizing is enabled) |
+
+`GridMenuItemSpec` is an item or a separator. An item carries `id`, `label`, `icon` (a React
+node), `shortcut` (a keymap binding rendered as keycaps), `disabled`, `destructive`, `tooltip`
+(hover hint while disabled), and `onClick`. A separator is `{ id, separator: true }`.
 
 <ComponentPreview name="data-grid-context-menu-slots-demo" />
 
-A custom cell menu with a single hook-using item:
+Keep two row items for the cell surface, and one sort item for both header surfaces:
 
 ```tsx
-import { Plus } from "lucide-react";
-import { ContextMenuItem } from "@/components/ui/context-menu";
-import { useDataGridActions } from "@/components/data-grid/data-grid";
 import { DataGridContextMenu } from "@/components/data-grid-context-menu/data-grid-context-menu";
 
-function InsertRowItem({ row }: { row: number }) {
-  const actions = useDataGridActions();
-  return (
-    <ContextMenuItem onClick={() => actions.insertRow(row, "below")}>
-      <Plus className="size-4 text-muted-foreground" />
-      Insert row below
-    </ContextMenuItem>
-  );
-}
-
 <DataGridContextMenu
-  renderCellMenuItems={({ row, canInsertRow }) => (
-    <>{canInsertRow && <InsertRowItem row={row} />}</>
-  )}
+  getCellMenuItems={(_ctx, defaults) =>
+    defaults.filter((s) => s.id === "insert-row-below" || s.id === "duplicate-rows")
+  }
+  getHeaderMenuItems={(_ctx, defaults) => defaults.filter((s) => s.id === "sort-asc")}
 >
   <DataGridRoot>
     <DataGridHeader />
@@ -112,9 +109,40 @@ function InsertRowItem({ row }: { row: number }) {
 </DataGridContextMenu>
 ```
 
-<Callout type="warn" title="The slot body runs during the wrapper's render">
-  The slot is a plain function call, not a component. Do not call hooks in the slot body — wrap
-  hook-using items in a component of their own, as `InsertRowItem` above.
+Extend the built-in set with a custom item. The resolver closes over hook values that a
+component above it already holds:
+
+```tsx
+import { Plus } from "lucide-react";
+import { useDataGridActions } from "@/components/data-grid/data-grid";
+import { DataGridContextMenu } from "@/components/data-grid-context-menu/data-grid-context-menu";
+
+function GridWithExtraItem() {
+  const actions = useDataGridActions();
+  return (
+    <DataGridContextMenu
+      getCellMenuItems={(ctx, defaults) => [
+        ...defaults,
+        {
+          id: "new-row-here",
+          label: "New row here",
+          icon: <Plus className="size-4 text-muted-foreground" />,
+          onClick: () => actions.insertRow(ctx.row, "below"),
+        },
+      ]}
+    >
+      <DataGridRoot>
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridContextMenu>
+  );
+}
+```
+
+<Callout type="warn" title="The resolver runs during the wrapper's render">
+  The resolver is a plain function call, not a component. Do not call hooks in the resolver
+  body. Capture hook values in the enclosing component and close over them, as above.
 </Callout>
 
 ## Paste permission
