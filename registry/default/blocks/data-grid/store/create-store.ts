@@ -346,6 +346,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     searchControlled: init.searchText !== undefined,
     ...computeSearchMatches(initData, seeded.columns, initViewIndex, visibleColumns, init.searchText ?? ""),
     viewIndex: initViewIndex,
+    rowIdentityVersion: 0,
     viewStale: false,
     visibleColumns,
     scrollToCellImpl: null,
@@ -986,7 +987,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const view = rebuildRowOpView(s, batch.nextData);
         if (s.sortState.length > 0 || s.filterState.length > 0) {
           pruneRowValidationKeys(batch.nextData, s.getRowId);
-          set({ data: batch.nextData, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view });
+          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view });
           return;
         }
         // unsorted and unfiltered, the new rows land at this view index; shift selection/activeCell to follow them.
@@ -994,6 +995,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         pruneRowValidationKeys(batch.nextData, s.getRowId);
         set({
           data: batch.nextData,
+          rowIdentityVersion: s.rowIdentityVersion + 1,
           cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
           selection: offsetSelectionForRows(s.selection, viewInsertAt, count),
           activeCell: s.activeCell && s.activeCell.row >= viewInsertAt
@@ -1022,6 +1024,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         pruneRowValidationKeys(batch.nextData, s.getRowId);
         set({
           data: batch.nextData,
+          rowIdentityVersion: s.rowIdentityVersion + 1,
           cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
           selection: emptySelection(),
           activeCell: null,
@@ -1052,7 +1055,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const view = rebuildRowOpView(s, batch.nextData);
         if (s.sortState.length > 0 || s.filterState.length > 0) {
           pruneRowValidationKeys(batch.nextData, s.getRowId);
-          set({ data: batch.nextData, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view });
+          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view });
           return;
         }
         // unsorted and unfiltered, each duplicate lands directly after its source view row; fold one
@@ -1068,6 +1071,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         pruneRowValidationKeys(batch.nextData, s.getRowId);
         set({
           data: batch.nextData,
+          rowIdentityVersion: s.rowIdentityVersion + 1,
           cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
           selection,
           activeCell,
@@ -1112,6 +1116,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const f = rowReorderMap(from, to);
         set({
           data: nextData,
+          rowIdentityVersion: s.rowIdentityVersion + 1,
           selection: reorderSelectionForRow(s.selection, from, to),
           activeCell: s.activeCell ? { ...s.activeCell, row: f(s.activeCell.row) } : null,
           lastHighlightedRow: s.lastHighlightedRow === null ? null : f(s.lastHighlightedRow),
@@ -1255,6 +1260,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             // A real recompute reconciles whatever a deferred updateCells left stale; an echo or an
             // unchanged sync recomputed nothing, so the flag has to survive it.
             viewStale: unchanged ? s.viewStale : false,
+            // rows moved only when a genuine consumer data replacement invalidated the id cache
+            // (our own echo never moves a row — updateCells patches values in place)
+            rowIdentityVersion: nextData !== s.data && !isEcho ? s.rowIdentityVersion + 1 : s.rowIdentityVersion,
             ...(!unchanged ? remapEditing(s, nextViewIndex, nextVisibleColumns) : {}),
             ...(unchanged
               ? { searchMatches: s.searchMatches, searchMatchSet: s.searchMatchSet, searchMatchRows: s.searchMatchRows, searchMatchesCapped: s.searchMatchesCapped }

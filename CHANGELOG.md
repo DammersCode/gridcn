@@ -179,6 +179,12 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **`useDataGridRowIdToViewRow` keeps its map across streaming ticks:** the `rowId -> view row`
+  map now keys on a store-internal row-identity version (bumped only when rows move:
+  insert/delete/duplicate/reorder, or a consumer `data` replacement) instead of the `data` array
+  itself — value-only `updateCells` ticks no longer force the O(n) map rebuild, so consumers of
+  the map stop re-rendering per tick. `getRowId` must return stable ids across value-only writes
+  (row ids are identity, not content).
 - **Selection changes fire only on real changes:** repeated `extendTo` at the same coord (a
   stationary drag), a clamped `extendSelection` at a grid edge, and a `selectRow`/`selectColumn`
   re-fire that leaves both channels and `lastHighlighted*` unchanged no longer replace the

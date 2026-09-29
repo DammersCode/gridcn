@@ -486,6 +486,14 @@ export type DataGridStoreState = Omit<
   /** Recomputed by _syncProps/toggleSort/setSorts/setFilters only — search no longer affects it. */
   viewIndex: number[];
   /**
+   * Bumped at every row-moving or row-replacing write (insert/delete/duplicate/reorder, a
+   * consumer `data` replacement) — the rowId↔dataIndex mapping changed; value-only writes never
+   * bump. `useDataGridRowIdToViewRow` keys on this instead of `data` so a streaming tick skips the
+   * O(n) map rebuild. Relies on `getRowId` returning stable ids across value-only writes (ids are
+   * identity, not content) — the same invariant the rowId index cache holds.
+   */
+  rowIdentityVersion: number;
+  /**
    * True when at least one deferred `updateCells`/`updateRows` batch changed a value that the active
    * sort or filter reads, so the displayed order no longer matches the data. Drives a "re-sort"
    * affordance; `reconcileView()` (or any sort/filter/search change) clears it. See

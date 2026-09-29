@@ -374,6 +374,80 @@ describe("atomic hook re-render counts", () => {
       expect(result.current.map.get("2")).toBe(0);
       expect(result.current.map.get("1")).toBeUndefined();
     });
+
+    it("a value-only updateCells tick keeps the map identity (row identities did not move)", () => {
+      let computeCount = 0;
+      let lastMap: ReadonlyMap<string, number> | undefined;
+
+      function Probe() {
+        const map = useDataGridRowIdToViewRow();
+        if (map !== lastMap) computeCount++;
+        lastMap = map;
+        return map;
+      }
+
+      function Harness() {
+        const actions = useDataGridActions();
+        return (
+          <>
+            <Probe />
+            <button
+              onClick={() => {
+                actions.updateCells([{ rowId: "1", columnId: "name", value: "Aaron" }]);
+              }}
+            >
+              patch
+            </button>
+          </>
+        );
+      }
+
+      render(<Harness />, { wrapper: makeWrapper() });
+      expect(computeCount).toBe(1);
+
+      // A value-only patch replaces the `data` array (immutability) but moves no row: the map's
+      // contents are unchanged, so its reference must be too.
+      act(() => {
+        screen.getByText("patch").click();
+      });
+      expect(computeCount).toBe(1);
+    });
+
+    it("insertRows and deleteRows rebuild the map (the rowId-to-index mapping moved)", () => {
+      let computeCount = 0;
+      let lastMap: ReadonlyMap<string, number> | undefined;
+
+      function Probe() {
+        const map = useDataGridRowIdToViewRow();
+        if (map !== lastMap) computeCount++;
+        lastMap = map;
+        return map;
+      }
+
+      function Harness() {
+        const actions = useDataGridActions();
+        return (
+          <>
+            <Probe />
+            <button onClick={() => actions.insertRows(0, 1)}>insert</button>
+            <button onClick={() => actions.deleteRows([0])}>delete</button>
+          </>
+        );
+      }
+
+      render(<Harness />, { wrapper: makeConfigWrapper({ createRow: () => ({ id: "9", name: "New", age: 0 }) }) });
+      expect(computeCount).toBe(1);
+
+      act(() => {
+        screen.getByText("insert").click();
+      });
+      expect(computeCount).toBe(2);
+
+      act(() => {
+        screen.getByText("delete").click();
+      });
+      expect(computeCount).toBe(3);
+    });
   });
 
   it("useDataGridIsRowSelected only re-renders the affected row", () => {

@@ -371,19 +371,21 @@ export function useDataGridRowIds(viewRowIndices: readonly number[]): (string | 
  * Full `rowId -> view row index` map for the current view (2026-08-02 optimization audit,
  * "rowId-native presence adapter" — confirmed medium: the docs' DIY mapping built this with
  * `useDataGridRowIds` under `useShallow`, which re-runs its full-array `.map()` PLUS an n-element
- * `shallow()` compare on every store write, not just view changes). Subscribes to `viewIndex`,
- * `data`, and `getRowId` identity ONLY — three atomic primitive-reference reads, cheap on every
- * store change — and builds the Map lazily in `useMemo` keyed on those identities, so the O(n)
- * build cost is paid once per actual view change (sort/filter/insert/delete) or `getRowId` swap,
- * never per keystroke, selection step, or streaming tick. `data` is in the memo key (not just
- * `viewIndex`) because `getRowId` reads row objects out of it; a `data` replacement with the same
- * `viewIndex` (e.g. a value-only edit) must still rebuild since row identities may have changed.
- * Consumers needing view -> rowId (the other direction) already have
- * {@link useDataGridRowId}/{@link useDataGridRowIds}.
+ * `shallow()` compare on every store change, not just view changes). Builds the Map lazily in
+ * `useMemo` keyed on `viewIndex`, `rowIdentityVersion`, and `getRowId` identity, so the O(n) build
+ * cost is paid once per actual row-identity change (sort/filter/insert/delete/reorder or a consumer
+ * `data` replacement) or `getRowId` swap, never per streaming tick: a value-only write replaces
+ * `data` (immutability) without moving any row, so the map's contents are unchanged and its
+ * reference is kept. Relies on `getRowId` returning stable ids across value-only writes (ids are
+ * identity, not content) — the same invariant the store's rowId index cache holds. `data` is still
+ * subscribed so the closure reads the current array whenever the key does change. Consumers
+ * needing view -> rowId (the other direction) already have {@link useDataGridRowId}/
+ * {@link useDataGridRowIds}.
  */
 export function useDataGridRowIdToViewRow(): ReadonlyMap<string, number> {
   const viewIndex = useDataGridStore((s) => s.viewIndex);
   const data = useDataGridStore((s) => s.data);
+  const rowIdentityVersion = useDataGridStore((s) => s.rowIdentityVersion);
   const getRowId = useDataGridStore((s) => s.getRowId);
   return useMemo(() => {
     const map = new Map<string, number>();
@@ -395,7 +397,9 @@ export function useDataGridRowIdToViewRow(): ReadonlyMap<string, number> {
       map.set(getRowId(row, dataRowIndex), viewRow);
     }
     return map;
-  }, [viewIndex, data, getRowId]);
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+    // `data` is deliberately not a key: value-only writes replace it without changing any rowId.
+  }, [viewIndex, rowIdentityVersion, getRowId]);
 }
 
 /** Total number of rows currently in view (after filter/search). */
