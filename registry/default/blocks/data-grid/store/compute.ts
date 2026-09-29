@@ -199,7 +199,9 @@ export function textAccessorFor(
       const row = data[rowIndex];
       if (!column || row === undefined) return "";
       const value = rawCellValue(column, row);
-      return value == null ? "" : String(value);
+      if (value == null) return "";
+      const cellType = column.type ? cellTypes?.[column.type] : undefined;
+      return cellType?.toSearchText ? cellType.toSearchText(value, column.options) : String(value);
     },
     getValue(rowIndex, columnId) {
       const column = byId.get(columnId);
@@ -208,7 +210,10 @@ export function textAccessorFor(
       return rawCellValue(column, row);
     },
     filterMatch(columnId) {
-      return byId.get(columnId)?.filterMatch;
+      const column = byId.get(columnId);
+      if (!column) return undefined;
+      const cellType = column.type ? cellTypes?.[column.type] : undefined;
+      return column.filterMatch ?? cellType?.filter?.match;
     },
   };
 
@@ -451,11 +456,12 @@ export function computeSearchMatches(
   viewIndex: number[],
   visibleColumns: readonly AnyColumnDef[],
   searchText: string,
+  cellTypes?: Record<string, CellType>,
 ): Pick<DataGridStoreState, "searchMatches" | "searchMatchSet" | "searchMatchRows" | "searchMatchesCapped"> {
   if (searchText.trim() === "") {
     return { searchMatches: [], searchMatchSet: EMPTY_SEARCH_MATCH_SET, searchMatchRows: EMPTY_SEARCH_MATCH_ROWS, searchMatchesCapped: false };
   }
-  const dataAccessor = textAccessorFor(columns, data);
+  const dataAccessor = textAccessorFor(columns, data, cellTypes);
   // viewRow is always < viewIndex.length (findSearchMatches iterates 0..viewIndex.length)
   const viewAccessor: CellAccessor = {
     getText: (viewRow, columnId) => dataAccessor.getText(viewIndex[viewRow]!, columnId),

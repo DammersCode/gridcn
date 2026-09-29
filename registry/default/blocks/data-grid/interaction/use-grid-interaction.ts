@@ -11,7 +11,7 @@ import {
   type RefObject,
 } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { CellCoord, GridAction } from "../types";
+import type { CellCoord, CellType, GridAction } from "../types";
 import { isMacPlatform, isPrintableKey, matchKeymap, type KeymapEvent } from "../keyboard";
 import type { Keymap } from "../types";
 import { getCellValue } from "../columns/column-helpers";
@@ -375,14 +375,14 @@ export function dispatchGridAction(args: {
     case "edit": {
       preventDefault();
       if (readOnly || !state.activeCell) break;
-      if (isCheckboxCell(state, state.activeCell)) toggleCheckboxCell(state, actions, state.activeCell);
+      if (hasActivateCell(state, state.activeCell)) activateCell(state, actions, state.activeCell);
       else actions.startEditing(state.activeCell);
       break;
     }
     case "editReplace": {
       if (readOnly || !state.activeCell) break;
       preventDefault();
-      if (isCheckboxCell(state, state.activeCell)) break; // checkbox cells have no edit mode; the edit action toggles them, type-to-replace ignores them
+      if (hasActivateCell(state, state.activeCell)) break; // checkbox cells have no edit mode; the edit action toggles them, type-to-replace ignores them
       // printable trigger seeds the typed char (Excel replace mode); a non-printable binding (e.g. F3) starts a plain edit
       actions.startEditing(state.activeCell, triggerKey);
       break;
@@ -457,14 +457,20 @@ function pointerHitsCheckboxBox(event: ReactPointerEvent<HTMLElement>): boolean 
   return box !== undefined && event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
 }
 
-function isCheckboxCell(state: DataGridStoreState, coord: CellCoord): boolean {
-  return state.visibleColumns[coord.col]?.type === "checkbox";
+function cellTypeAt(state: DataGridStoreState, coord: CellCoord): CellType | undefined {
+  return state.cellTypes[state.visibleColumns[coord.col]?.type ?? "text"];
 }
 
-/** Toggles a checkbox cell's boolean value in place via the direct-write commit path (no edit session, no move). No-op for a readOnly column, an unresolvable row, or a non-checkbox column. */
-function toggleCheckboxCell(state: DataGridStoreState, actions: ReturnType<typeof useDataGridActions>, coord: CellCoord): void {
+/** Whether the cell's type declares `activate` — the gesture semantics come from the type, not the name. */
+function hasActivateCell(state: DataGridStoreState, coord: CellCoord): boolean {
+  return cellTypeAt(state, coord)?.activate != null;
+}
+
+/** Runs the cell type's `activate` in place via the direct-write commit path (no edit session, no move). No-op for a readOnly column, an unresolvable row, or a type without `activate`. */
+function activateCell(state: DataGridStoreState, actions: ReturnType<typeof useDataGridActions>, coord: CellCoord): void {
   const column = state.visibleColumns[coord.col];
-  if (!column || column.type !== "checkbox") return;
+  const cellType = cellTypeAt(state, coord);
+  if (!column || !cellType?.activate) return;
   const dataRowIndex = state.viewIndex[coord.row];
   const row = dataRowIndex === undefined ? undefined : state.data[dataRowIndex];
   if (row === undefined) return;
@@ -472,7 +478,7 @@ function toggleCheckboxCell(state: DataGridStoreState, actions: ReturnType<typeo
   if (readOnly) return;
   // explicit TData=unknown: row's `undefined`-narrowed type ({} | null) would otherwise drive inference instead of column's own already-unknown TData.
   const value = getCellValue<unknown, typeof column>(row, column);
-  actions.commitCellValue(coord, !value);
+  actions.commitCellValue(coord, cellType.activate(value, column.options));
 }
 
 /** Direction for a data-boundary (Ctrl/Cmd+Arrow) jump. */
@@ -867,7 +873,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       }
 
       const plainPress = !event.shiftKey && !isMultiKey && !state.editing;
-      if ((wasActive || (plainPress && pointerHitsCheckboxBox(event))) && !readOnly && isCheckboxCell(state, coord)) {
+      if ((wasActive || (plainPress && pointerHitsCheckboxBox(event))) && !readOnly && hasActivateCell(state, coord)) {
         // Resolved on the cell's native `click` — pointerdown can't yet tell a click from a drag.
         pendingActiveClickRef.current = coord;
       }
@@ -888,8 +894,8 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       if (event.detail >= 2) return;
       const state = storeApi.getState();
       // Excel model: only checkbox cells act on a stationary click; text/number/etc. never edit here.
-      if (isCheckboxCell(state, coord)) {
-        toggleCheckboxCell(state, actions, coord);
+      if (hasActivateCell(state, coord)) {
+        activateCell(state, actions, coord);
         resolvedByClickRef.current = coord;
       }
     },
@@ -909,7 +915,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       resolvedByClickRef.current = null;
       if (alreadyResolved) return;
       // checkbox has no edit mode; direct-toggle instead of entering edit mode.
-      if (isCheckboxCell(state, coord)) toggleCheckboxCell(state, actions, coord);
+      if (hasActivateCell(state, coord)) activateCell(state, actions, coord);
       else actions.startEditing(coord);
     },
     [actions, readOnly, storeApi],

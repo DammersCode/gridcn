@@ -52,8 +52,9 @@ import {
 - **`DataGridFilterMenu`** — the per-column filter popover. The operator set and filter
   semantics are on
   [Sorting, filtering & search: filtering](/docs/sorting-filtering-search#filtering). Pass
-  `operatorsForColumn(column)` to replace the per-column operator list; resolution order is this
-  prop, then the column's own `filterOperators`, then the built-in default for the cell type.
+   `operatorsForColumn(column)` to replace the per-column operator list; resolution order is this
+   prop, then the column's own `filterOperators`, then the cell type's `filter.operators`, then
+   the built-in default for the type's name.
 - **`DataGridSortList`** — the sort management popover,
   [its own page](/docs/addons/sort-list).
 - **`DataGridColumnsMenu`** — show and hide only. Pin controls live in the header menu, not

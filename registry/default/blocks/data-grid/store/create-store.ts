@@ -207,7 +207,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     if (s.searchText.trim() === "") return viewStale === s.viewStale ? {} : { viewStale };
     return {
       ...(viewStale === s.viewStale ? {} : { viewStale }),
-      ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText),
+      ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
     };
   };
   /**
@@ -230,7 +230,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     return {
       viewIndex,
       viewStale: false,
-      ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText),
+      ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
     };
   };
   /**
@@ -358,7 +358,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     filterControlled: init.filterState !== undefined,
     joinOperatorControlled: init.joinOperator !== undefined,
     searchControlled: init.searchText !== undefined,
-    ...computeSearchMatches(initData, seeded.columns, initViewIndex, visibleColumns, init.searchText ?? ""),
+    ...computeSearchMatches(initData, seeded.columns, initViewIndex, visibleColumns, init.searchText ?? "", initCellTypes),
     viewIndex: initViewIndex,
     rowIdentityVersion: 0,
     viewStale: false,
@@ -557,7 +557,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           viewIndex,
           viewStale: false,
           ...remapEditing(s, viewIndex, nextVisibleColumns),
-          ...computeSearchMatches(s.data, s.columns, viewIndex, nextVisibleColumns, s.searchText),
+          ...computeSearchMatches(s.data, s.columns, viewIndex, nextVisibleColumns, s.searchText, s.cellTypes),
         });
         s.onColumnLayoutChange?.(computeColumnLayout(s.columns, s.columnOrder, s.columnWidths, nextHidden));
       },
@@ -582,7 +582,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             viewIndex,
             viewStale: false,
             ...remapEditing(s2, viewIndex, s2.visibleColumns),
-            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText),
+            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
           };
         });
       },
@@ -598,7 +598,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             viewIndex,
             viewStale: false,
             ...remapEditing(s2, viewIndex, s2.visibleColumns),
-            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText),
+            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
           };
         });
       },
@@ -616,7 +616,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             viewIndex,
             viewStale: false,
             ...remapEditing(s2, viewIndex, s2.visibleColumns),
-            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText),
+            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
           };
         });
       },
@@ -632,7 +632,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             viewIndex,
             viewStale: false,
             ...remapEditing(s2, viewIndex, s2.visibleColumns),
-            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText),
+            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
           };
         });
       },
@@ -641,7 +641,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         s.onSearchTextChange?.(text);
         if (s.searchControlled) return;
         // viewIndex is untouched: quick-search highlights + navigates, it never filters.
-        set((s2) => ({ searchText: text, ...computeSearchMatches(s2.data, s2.columns, s2.viewIndex, s2.visibleColumns, text) }));
+        set((s2) => ({ searchText: text, ...computeSearchMatches(s2.data, s2.columns, s2.viewIndex, s2.visibleColumns, text, s2.cellTypes) }));
       },
       startEditing(coord, initialText) {
         const s = get();
@@ -945,7 +945,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           cellErrors,
           viewIndex,
           viewStale: false,
-          ...computeSearchMatches(batch.nextData, s.columns, viewIndex, s.visibleColumns, s.searchText),
+          ...computeSearchMatches(batch.nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
         });
         return { applied, skipped: batch.skipped, pending: false };
       },
@@ -969,7 +969,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           viewIndex,
           viewStale: false,
           ...remapEditing(s, viewIndex, s.visibleColumns),
-          ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText),
+          ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
         });
       },
       insertRow(viewRowIndex, position) {
@@ -1286,7 +1286,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             ...(!unchanged ? remapEditing(s, nextViewIndex, nextVisibleColumns) : {}),
             ...(unchanged
               ? { searchMatches: s.searchMatches, searchMatchSet: s.searchMatchSet, searchMatchRows: s.searchMatchRows, searchMatchesCapped: s.searchMatchesCapped }
-              : computeSearchMatches(nextData, nextColumns, nextViewIndex, nextVisibleColumns, nextSearchText)),
+              : computeSearchMatches(nextData, nextColumns, nextViewIndex, nextVisibleColumns, nextSearchText, nextCellTypes)),
             selection: rows === s.selection.rows ? s.selection : { ...s.selection, rows },
           };
         });

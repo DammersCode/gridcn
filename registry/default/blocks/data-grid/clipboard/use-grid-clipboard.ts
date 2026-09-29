@@ -8,6 +8,7 @@ import { serializeCells } from "./serialize-cells";
 import { parseClipboard } from "./parse-clipboard";
 import { useDataGridActions, useDataGridStoreApi, type DataGridActions, type DataGridStoreState } from "../store";
 import { resolveBulkWrites, type BulkCandidate, type BulkResolution } from "../validation/validate-batch";
+import { resolveColumnValidate } from "../cell-types/capabilities";
 import { candidateRowIds, reresolveBulkWrites, snapshotBulkBatch, useBulkGeneration, type BulkGeneration } from "../validation/bulk-generation";
 
 /** Options for {@link useGridClipboard}. */
@@ -247,7 +248,7 @@ export function buildPasteCandidates(s: DataGridStoreState, cells: string[][], t
         ? s.processCellFromClipboard(text, { row, column })
         : cellType.fromText(text, column.options);
 
-      candidates.push({ viewRow, columnId: column.id, value, validate: column.validate, row, rowId });
+      candidates.push({ viewRow, columnId: column.id, value, validate: resolveColumnValidate(column, cellType), row, rowId });
     }
   }
   return candidates;

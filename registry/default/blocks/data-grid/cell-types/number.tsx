@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Input } from "@/components/ui/input";
 import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "../types";
 import { CellSpan } from "./cell-span";
+import { COMPARISON_FILTER_OPERATORS, TEXT_FILTER_OPERATORS } from "./capabilities";
 import { useSeedFocus } from "../interaction/use-seed-focus";
 import { useCommitGuard } from "../interaction/use-commit-guard";
 import { columnLabelText } from "../columns/column-format-helpers";
@@ -104,6 +105,8 @@ function NumberEditor({
 export const numberCellType: CellType<unknown, number | null, GridCellTypes["number"]["options"]> = {
   Cell: NumberCell,
   Editor: NumberEditor,
+  numeric: true,
+  filter: { operators: [...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS], valueInput: "number" },
   toText: (value, options) => {
     if (value == null) return "";
     return String(options?.decimals !== undefined ? roundToDecimals(value, options) : value);

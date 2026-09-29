@@ -13,13 +13,14 @@ import {
 } from "react";
 import { cn } from "@/lib/utils";
 import { COLUMN_BORDER } from "./columns/column-border";
-import type { GetCellClassName, OnCellClick, OnRowClick } from "./types";
+import type { CellType, GetCellClassName, OnCellClick, OnRowClick } from "./types";
 import { getCellValue } from "./columns/column-helpers";
 import { useDataGridActions, useDataGridCellTypes, useDataGridCellEditingError, useDataGridCellRejectionCount, useDataGridStoreApi, type AnyColumnDef } from "./store";
 import { useDataGridRootContext } from "./layout-context";
 import { pinnedInsetStyle } from "./columns/pinned-inset-style";
 import { cellLayer } from "./layers";
 import { cellTypes as defaultCellTypes } from "./cell-types/cell-types";
+import { resolveColumnValidate } from "./cell-types/capabilities";
 import { useAsyncValidate } from "./interaction/use-async-validate";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -136,7 +137,6 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   // Pinned top/bottom rows are readOnly by default — they're usually derived aggregates,
   // not editable data — unless the column's own readOnly explicitly says otherwise.
   const readOnly = isPinnedRow ? (columnReadOnly ?? true) : Boolean(gridReadOnly || columnReadOnly);
-  const isNumberOrDate = column.type === "number" || column.type === "date";
 
   const style: CSSProperties = {
     gridColumnStart: columnIndex + gridColOffset,
@@ -200,6 +200,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   const cellTypesRegistry = useDataGridCellTypes();
   const cellType = cellTypesRegistry[column.type ?? "text"] ?? cellTypesRegistry["text"] ?? defaultCellTypes.text;
   const align = cellType.align ?? "left";
+  const isNumberOrDate = cellType.numeric === true;
 
   // Grid-level hook first, then the column's own override — later cn() args win on conflicting
   // utilities, so a per-column override can still beat a grid-wide default.
@@ -222,7 +223,8 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   }, []);
   // Async Standard Schema interception (see use-async-validate.ts doc) — a sync validate/schema
   // forwards to commitCellEdit immediately, zero behavior change from before this hook existed.
-  const asyncValidate = useAsyncValidate(actions, column);
+  // The type's own `validate` is the fallback the column didn't declare.
+  const asyncValidate = useAsyncValidate(actions, column, resolveColumnValidate(column as AnyColumnDef, cellType as CellType | undefined));
   const commit = useCallback(
     (movement?: { dx: number; dy: number }) => asyncValidate.commit(pendingValueRef.current, movement),
     [asyncValidate],

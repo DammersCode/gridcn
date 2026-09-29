@@ -7,6 +7,7 @@ import { isStandardSchema, runValidateSync, type ValidateResult } from "../valid
 import { runValidateBatch, type ValidateBatchItem } from "../validation/validate-batch";
 import { isColumnReadOnly } from "./compute";
 import { cellTypes as defaultCellTypes } from "../cell-types/cell-types";
+import { resolveColumnValidate } from "../cell-types/capabilities";
 import type { AnyColumnDef, CellPatch, CommitResult, DataGridStoreState, InternalSyncProps, RowEdit, UpdateCellsSkip } from "./types";
 
 export function warnDev(message: string): void {
@@ -130,8 +131,8 @@ export function checkDevGuardrails(
 export function computeCommit(s: DataGridStoreState, coord: CellCoord, value: unknown, rejection?: string): CommitResult {
   const target = resolveEditTarget(s, coord);
   if (!target) return { noop: true };
-  const { column, dataRowIndex, row } = target;
-  const validated = runValidateSync(column.validate, value, row);
+  const { column, dataRowIndex, row, cellType } = target;
+  const validated = runValidateSync(resolveColumnValidate(column, cellType), value, row);
   let nextValue: unknown;
   let warning: string | undefined;
   if ("error" in validated) {
@@ -293,7 +294,7 @@ export function computeCellPatchBatch(
 
     let value = patch.value;
     if (!skipValidation) {
-      const validated = runValidateSync(column.validate, value, baseRow);
+      const validated = runValidateSync(resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]), value, baseRow);
       if ("error" in validated) {
         skipped.push({ patchIndex, reason: "invalid" });
         continue;
@@ -344,7 +345,9 @@ export function computeCellPatchBatch(
 export function patchesNeedAsyncCheck(s: DataGridStoreState, patches: readonly CellPatch[]): boolean {
   const columnsById = new Map(s.columns.map((c) => [c.id, c] as const));
   for (const patch of patches) {
-    if (isStandardSchema(columnsById.get(patch.columnId)?.validate)) return true;
+    const column = columnsById.get(patch.columnId);
+    if (!column) continue;
+    if (isStandardSchema(resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]))) return true;
   }
   return false;
 }
@@ -366,8 +369,9 @@ export function prevalidatePatches(
   const columnsById = new Map(s.columns.map((c) => [c.id, c] as const));
   const items: ValidateBatchItem[] = patches.map((patch) => {
     const dataRowIndex = rowIndex.get(patch.rowId);
+    const column = columnsById.get(patch.columnId);
     return {
-      validate: columnsById.get(patch.columnId)?.validate,
+      validate: column ? resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]) : undefined,
       value: patch.value,
       row: dataRowIndex === undefined ? undefined : s.data[dataRowIndex],
     };

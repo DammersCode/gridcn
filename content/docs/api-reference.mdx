@@ -215,6 +215,10 @@ a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
 - `DataOp<TData>` (`update`, `insert`, `delete`, or `move`, id-keyed) and `DataChange<TData>`
   (`{ ops, source }`).
 - `SortSpec` (`{ columnId, direction }`), `FilterSpec`, and `FilterOperator`.
+- `CellTypeFilter` (`{ operators?, match?, valueInput? }`) and
+  `CellTypeValueInput` (`"text" | "number" | "date" | "boolean" | "choices"`), the filter
+  capabilities a cell type declares. See
+  [custom cell types](/docs/custom-cell-types#the-contract-member-by-member).
 - `GridAction` (every named keyboard action) and `Keymap`
   (`Partial<Record<GridAction, string[]>>`).
 - `RowMarkersMode`, `HeaderClickBehavior`, and `DensityMode`.

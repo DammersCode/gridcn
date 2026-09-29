@@ -661,6 +661,46 @@ describe("DataGrid cell-type-driven rendering and editing lifecycle", () => {
     const [nextData] = onDataChange.mock.calls[0]!;
     expect(nextData[0]!.active).toBe(true);
   });
+
+  it("a custom type's `activate` runs in place on Enter — no editor opens (the type owns the gesture, not the name)", () => {
+    type CountRow = { id: string; count: number };
+    const counterCellType: CellType<unknown, number> = {
+      Cell: ({ value }) => <span>{String(value)}</span>,
+      Editor: () => null,
+      toText: (value) => (value == null ? "" : String(value)),
+      fromText: (text) => Number(text) || 0,
+      clearValue: () => 0,
+      isEmpty: (value) => value == null,
+      activate: (value) => value + 1,
+    };
+    const counterColumns: readonly ColumnDef<CountRow, unknown>[] = [
+      { id: "count", header: "Count", accessorKey: "count", type: "counter" },
+    ];
+    const onDataChange = vi.fn<(next: readonly CountRow[]) => void>();
+    render(
+      <DataGrid
+        data={[{ id: "1", count: 5 }]}
+        columns={counterColumns}
+        getRowId={(r) => r.id}
+        cellTypes={{ counter: counterCellType }}
+        onDataChange={onDataChange}
+      />,
+    );
+    const grid = screen.getByRole("grid");
+    const cell = screen.getAllByRole("gridcell")[0]!;
+    fireEvent.pointerDown(cell, { button: 0 });
+    fireEvent.keyDown(grid, { key: "Enter" });
+
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    const [nextData] = onDataChange.mock.calls[0]!;
+    expect(nextData[0]!.count).toBe(6);
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    // a second press toggles again — the gesture repeats through the same path
+    fireEvent.pointerDown(cell, { button: 0 });
+    fireEvent.keyDown(grid, { key: "Enter" });
+    expect(onDataChange).toHaveBeenCalledTimes(2);
+    expect(onDataChange.mock.calls[1]![0][0]!.count).toBe(7);
+  });
 });
 
 describe("edit stash is seeded at editor open, not re-seeded on every render", () => {

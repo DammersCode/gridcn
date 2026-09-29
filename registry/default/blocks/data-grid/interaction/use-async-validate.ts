@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { AnyColumnDef, DataGridActions } from "../store";
 import type { StandardSchemaV1Result } from "../types";
-import { formatIssues, isStandardSchema } from "../validation/validate-cell";
+import { formatIssues, isStandardSchema, type CellValidate } from "../validation/validate-cell";
 
 /**
  * Intercepts a cell-type editor's `commit(movement)` to support an async Standard Schema
@@ -25,7 +25,7 @@ import { formatIssues, isStandardSchema } from "../validation/validate-cell";
  * resolution whose captured generation no longer matches current is dropped silently — covers
  * Escape/cancel, a newer commit superseding an in-flight one, and unmount.
  */
-export function useAsyncValidate(actions: DataGridActions, column: AnyColumnDef) {
+export function useAsyncValidate(actions: DataGridActions, column: AnyColumnDef, validate?: CellValidate) {
   const [pending, setPending] = useState(false);
   const generationRef = useRef(0);
 
@@ -36,8 +36,8 @@ export function useAsyncValidate(actions: DataGridActions, column: AnyColumnDef)
   }, []);
 
   function commit(value: unknown, movement?: { dx: number; dy: number }): void {
-    const validate = column.validate;
-    if (!isStandardSchema(validate)) {
+    const validator = validate ?? column.validate;
+    if (!isStandardSchema(validator)) {
       actions.commitCellEdit(value, movement);
       return;
     }
@@ -46,7 +46,7 @@ export function useAsyncValidate(actions: DataGridActions, column: AnyColumnDef)
     // exact same path as today — computeCommit re-runs it, cheap and correct, see validate-cell.ts.
     let probe: StandardSchemaV1Result<unknown> | Promise<StandardSchemaV1Result<unknown>>;
     try {
-      probe = validate["~standard"].validate(value) as StandardSchemaV1Result<unknown> | Promise<StandardSchemaV1Result<unknown>>;
+      probe = validator["~standard"].validate(value) as StandardSchemaV1Result<unknown> | Promise<StandardSchemaV1Result<unknown>>;
     } catch (error) {
       // a validator that throws is a rejection for this edit, like the batch paths (validate-batch.ts)
       actions.setEditingError(errorMessage(error));

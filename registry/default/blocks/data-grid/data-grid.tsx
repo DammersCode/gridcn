@@ -157,6 +157,7 @@ export {
 } from "./cell-types/cell-types";
 export { displayText } from "./cell-types/display-text";
 export { CellSpan } from "./cell-types/cell-span";
+export { COMPARISON_FILTER_OPERATORS, TEXT_FILTER_OPERATORS } from "./cell-types/capabilities";
 
 export { CompactSelection } from "./selection/compact-selection";
 export { defineColumns, getCellValue, setCellValue } from "./columns/column-helpers";
@@ -195,6 +196,8 @@ export type {
   CellRenderProps,
   CellEditorProps,
   CellType,
+  CellTypeValueInput,
+  CellTypeFilter,
   ColumnDef,
   SortSpec,
   FilterOperator,

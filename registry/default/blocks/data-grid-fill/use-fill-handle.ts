@@ -11,6 +11,7 @@ import {
   pointerToCoord,
   flashCellKey,
   resolveBulkWrites,
+  resolveColumnValidate,
   snapshotBulkBatch,
   useBulkGeneration,
   useDataGridStoreApi,
@@ -117,7 +118,7 @@ export function buildFillCandidates(
 
       // filled is generateFill's strip.height x strip.width output; row/col loop bounds match exactly
       const value = cellType.fromText(filled[row]![col]!, column.options);
-      candidates.push({ viewRow, columnId: column.id, value, validate: column.validate, row: dataRow, rowId });
+      candidates.push({ viewRow, columnId: column.id, value, validate: resolveColumnValidate(column, cellType), row: dataRow, rowId });
     }
   }
   if (skippedHoleRows > 0 && isDev()) {

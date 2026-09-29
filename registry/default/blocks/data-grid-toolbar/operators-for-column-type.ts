@@ -1,19 +1,9 @@
-import type { DataGridFilterOperatorLabels, FilterOperator } from "@/registry/default/blocks/data-grid/data-grid";
-
-/** Text/general operators offered for every column type. */
-const TEXT_OPERATORS: FilterOperator[] = [
-  "contains",
-  "notContains",
-  "equals",
-  "notEquals",
-  "startsWith",
-  "endsWith",
-  "empty",
-  "notEmpty",
-];
-
-/** Comparison operators added only for orderable types (gt/lt only for number/date). */
-const COMPARISON_OPERATORS: FilterOperator[] = ["gt", "gte", "lt", "lte", "isBetween"];
+import {
+  COMPARISON_FILTER_OPERATORS,
+  TEXT_FILTER_OPERATORS,
+  type DataGridFilterOperatorLabels,
+  type FilterOperator,
+} from "@/registry/default/blocks/data-grid/data-grid";
 
 /**
  * Sensible {@link FilterOperator} choices for a column's cell type: comparisons only apply to
@@ -22,10 +12,10 @@ const COMPARISON_OPERATORS: FilterOperator[] = ["gt", "gte", "lt", "lte", "isBet
  */
 export function operatorsForColumnType(columnType: string | undefined): FilterOperator[] {
   if (columnType === "number" || columnType === "date") {
-    return [...TEXT_OPERATORS, ...COMPARISON_OPERATORS];
+    return [...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS];
   }
-  if (columnType === "select") return [...TEXT_OPERATORS, "isAnyOf"];
-  return TEXT_OPERATORS;
+  if (columnType === "select") return [...TEXT_FILTER_OPERATORS, "isAnyOf"];
+  return [...TEXT_FILTER_OPERATORS];
 }
 
 /** Human-readable label for a {@link FilterOperator}, for the operator select — reads from {@link useDataGridLabels}'s `filterOperators` group. */

@@ -4,8 +4,10 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent, type ReactN
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+  useDataGridCellTypes,
   useDataGridLabels,
   type AnyColumnDef,
+  type CellTypeValueInput,
   type FilterOperator,
   type GridCellTypes,
 } from "@/registry/default/blocks/data-grid/data-grid";
@@ -166,10 +168,20 @@ function AnyOfValueInput(props: {
  * keystrokes so typing never triggers a `setFilters` view-index rebuild per character.
  * `isBetween` renders two of the column's typed input side by side instead of one.
  */
+/** Name-based input control for a column whose cell type declares no `filter.valueInput`. */
+function defaultValueInput(columnType: string | undefined): CellTypeValueInput {
+  if (columnType === "number" || columnType === "date") return columnType;
+  if (columnType === "checkbox") return "boolean";
+  if (columnType === "select") return "choices";
+  return "text";
+}
+
 export function DataGridFilterValueInput(props: DataGridFilterValueInputProps): ReactNode {
   const { column, operator, value, onValueChange } = props;
   const labels = useDataGridLabels();
+  const cellTypes = useDataGridCellTypes();
   const columnType = column?.type;
+  const valueInput = (columnType ? cellTypes[columnType]?.filter?.valueInput : undefined) ?? defaultValueInput(columnType);
 
   if (operatorIsAnyOf(operator)) {
     const choices = (column?.options as GridCellTypes["select"]["options"] | undefined)?.choices ?? [];
@@ -187,7 +199,7 @@ export function DataGridFilterValueInput(props: DataGridFilterValueInputProps): 
 
   if (operatorIsBetween(operator)) {
     const [from = "", to = ""] = Array.isArray(value) ? value : ["", ""];
-    const inputType = columnType === "number" ? "number" : columnType === "date" ? "date" : "text";
+    const inputType = valueInput === "number" ? "number" : valueInput === "date" ? "date" : "text";
     return (
       <BetweenValueInput
         type={inputType}
@@ -202,7 +214,7 @@ export function DataGridFilterValueInput(props: DataGridFilterValueInputProps): 
 
   const textValue = typeof value === "string" ? value : "";
 
-  if (columnType === "checkbox") {
+  if (valueInput === "boolean") {
     return (
       <Select value={textValue} onValueChange={(next) => onValueChange(next ?? "")}>
         <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.filterValueAriaLabel}>
@@ -217,7 +229,7 @@ export function DataGridFilterValueInput(props: DataGridFilterValueInputProps): 
     );
   }
 
-  if (columnType === "select") {
+  if (valueInput === "choices") {
     const choices = (column?.options as GridCellTypes["select"]["options"] | undefined)?.choices ?? [];
     return (
       <Select value={textValue} onValueChange={(next) => onValueChange(next ?? "")}>

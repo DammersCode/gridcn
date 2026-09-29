@@ -33,10 +33,11 @@ through `useDataGridActions().setSorts()` or `.toggleSort()`.
 
 Per-column operators include `contains`, `notContains`, `equals`, `notEquals`, `startsWith`,
 `endsWith`, `empty`, and `notEmpty`, plus `gt`, `gte`, `lt`, `lte`, and `isBetween` for numeric and
-date columns, and `isAnyOf` for select columns. `isBetween` renders two typed inputs (from and to)
-side by side instead of one. `isAnyOf` renders a checkbox list of the select column's own
-`choices` and keeps a row when its value equals any checked one. Its `value` is a `string[]`,
-and an empty list matches no rows.
+date columns, and `isAnyOf` for select columns. A cell type can declare its own operator list
+through `filter.operators`, which the menu offers when the column declares none. `isBetween`
+renders two typed inputs (from and to) side by side instead of one. `isAnyOf` renders a checkbox
+list of the select column's own `choices` and keeps a row when its value equals any checked one.
+Its `value` is a `string[]`, and an empty list matches no rows.
 `DataGridFilterMenu` is a popover that lists active filters as aligned rows (join cell, column,
 operator, value, trash, drag handle) with add and reset controls. Per-column `filterable: false`
 excludes a column from the menu's column picker. Row order is array order in `FilterSpec[]`. Drag
@@ -53,7 +54,8 @@ per-column predicate over the cell's RAW value — not its stringified form — 
 the row passes; it replaces the built-in matcher for that column, and a thrown predicate fails the
 row. `filterOperators` replaces the operator list the filter menu offers for that column, for
 example the comparison operators for a consumer-registered numeric cell type whose `type` key is
-not `number` or `date`:
+not `number` or `date`. The same two fields exist on a cell type as `filter.match` and
+`filter.operators`, and the column's own fields win over them:
 
 ```tsx
 const columns = defineColumns<Invoice>()([
@@ -80,6 +82,11 @@ and the filter menu's keyboard & accessibility table.
 `DataGridSearch` is a quick-search input across visible columns, with match highlighting and
 next and previous navigation that shows a `current/total` counter. Navigating to a match moves
 the active cell there and scrolls it into view, so results are never left off-screen.
+
+Search matches each cell's quick-search text: the type's `toSearchText` when the type declares
+it, else the raw `String(value)`. The built-in `select` type declares it, so a `select` column
+searches the choice LABEL, not the stored value. Full semantics on
+[custom cell types](/docs/custom-cell-types#value-pipeline).
 
 It debounces typing before it writes the store's search text. Pass `debounceMs` to change the
 200 ms default.

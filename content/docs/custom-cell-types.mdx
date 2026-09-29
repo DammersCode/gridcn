@@ -7,9 +7,13 @@ icon: Blocks
 ## The mental model
 
 A cell type is **one object** — `{ Cell, Editor, toText, fromText, clearValue, isEmpty,
-compare?, align? }`. Its four value-pipeline methods drive clipboard, the fill handle,
-quick-clear delete, search, sort, and import/export. One generic implementation runs against
-the contract for every type. Get `fromText` wrong, and every consumer inherits the bug.
+compare?, align?, numeric?, toSearchText?, validate?, activate?, filter? }`. Its four
+value-pipeline methods drive clipboard, the fill handle, quick-clear delete, search, sort, and
+import/export. The optional behavior fields drive the grid's built-in behaviors — commit
+validation, quick-search text, in-place edit gestures, and the filter menu's operators and
+value input — so the grid reads them from your type instead of from the type's name. One generic
+implementation runs against the contract for every type. Get `fromText` wrong, and every
+consumer inherits the bug.
 
 ## The contract, member by member
 
@@ -24,6 +28,15 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   isEmpty(value: TValue): boolean;
   compare?(a: TValue, b: TValue): number;
   align?: "left" | "right" | "center";
+  numeric?: boolean;
+  toSearchText?(value: TValue, options?: TOptions): string;
+  validate?: ((value: TValue, row: TData) => string | null) | StandardSchemaV1<TValue>;
+  activate?: (value: TValue, options?: TOptions) => TValue;
+  filter?: {
+    operators?: readonly FilterOperator[];
+    match?: (value: unknown, filter: FilterSpec) => boolean;
+    valueInput?: "text" | "number" | "date" | "boolean" | "choices";
+  };
 };
 ```
 
@@ -63,6 +76,26 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
    ever sees two non-empty values.
 - **`align`** — text alignment for the default `Cell` rendering. `"right"` reads better with
   `tabular-nums` for numeric-like types.
+- **`numeric`** — renders the cell's digits with `tabular-nums`, the fixed-width numerals that
+  keep columns of numbers aligned. `number` and `date` declare it.
+- **`toSearchText`** — the quick-search text for a stored value. The default is `String(value)`.
+  `select` declares it, so a `select` column searches the choice LABEL, not the stored value.
+  Filter never uses it — filter matches the raw value.
+- **`validate`** — the default validator for columns of this type when the column declares no
+  `validate` of its own. Same two forms as the column's `validate` (a function or a Standard
+  Schema — see [Editing & cell types: Validation](/docs/editing-cell-types#validation)). Every
+  validation path resolves `column.validate ?? cellType.validate`: a single-cell commit, a paste,
+  a fill, `updateCells`, and import.
+- **`activate`** — gives the cell an in-place edit gesture instead of an editor. Enter/F2, a
+  stationary click, and a double-click on an `activate` cell commit `activate(value, options)`
+  directly, with no edit session (so `onEditStart` and `onEditEnd` never fire). `checkbox`
+  declares `(value) => !value`. Without `activate`, the same gestures open the editor.
+- **`filter`** — the filter capabilities of the type, used when the column declares none of its
+  own. `filter.operators` replaces the operator list the filter menu offers for the type's
+  columns. `filter.match` is a raw-value predicate that replaces the built-in text matcher, with
+  the same contract as the column's `filterMatch`. `filter.valueInput` picks the filter row's
+  value widget (`"text"`, `"number"`, `"date"`, `"boolean"`, or `"choices"`). Each member falls
+  back to the type-name default when absent.
 
 <ComponentPreview name="data-grid-cell-types-demo" />
 
@@ -75,13 +108,16 @@ Each point states the lesson plus the reason for it.
 
 The pipeline contract, one surface per feature: **display** = `toDisplayText ?? toText` ·
 **clipboard/export** = `toText` · **sort** = `compare` (default: numeric-aware collation of the
-raw `String(value)`) · **search/filter** = `String(rawValue)` (the view pipeline is built without
-cellTypes) · **fill** = raw value.
+raw `String(value)`) · **quick search** = `toSearchText` when the type declares it, else
+`String(rawValue)` · **filter** = the raw value, through `filter.match` or the built-in text
+matcher · **fill** = raw value.
 
-- **Search and filter match the raw `String(value)`, not `toText`.** The view pipeline (filter,
-  then search, then sort) never sees a cell type's `toText`, so a custom `toText` changes what
-   copy and export produce but NOT what search or filter match. Consequences:
-   - A `select` column searches the stored VALUE, not the displayed label.
+- **Search and filter never use `toText`.** Quick search matches the type's `toSearchText` when
+  it declares one, and the raw `String(value)` otherwise. Filter matches the raw value, through
+  the type's or column's `filter.match` when declared, else the built-in text matcher. So a
+  custom `toText` changes what copy and export produce but NOT what search or filter match.
+  Consequences:
+   - A `select` column searches the displayed LABEL (its `toSearchText`), not the stored value.
    - A `number` column with `decimals` searches the unrounded value.
    - A `date` column with a `displayFormat` matches the ISO string.
 - **`fromText` must never throw.** Paste and import feed it arbitrary text. A thrown error breaks
@@ -192,8 +228,9 @@ cellTypes) · **fill** = raw value.
 - **Display-only cells, with no text-editable value, route interaction through the grid's own
   commit path, never through DOM events on the control itself.** The `Cell` of `checkbox` renders
   shadcn's `Checkbox` with `pointer-events-none` and `tabIndex={-1}`, so it never receives a
-  click. The interaction layer of the grid detects the click on the *cell*, calls
-  `commitCellValue` directly, and the control only reflects the resulting `value` prop. The
+  click. `checkbox` declares `activate: (value) => !value`, and the interaction layer of the grid
+  commits that result through `commitCellValue` directly, so the control only reflects the
+  resulting `value` prop. Any type can declare `activate` for the same in-place gesture. The
   `Editor` of `checkbox` exists only to guard a stray `startEditing` call (there is no separate
   edit mode to enter). It bails out through `cancel()` in an effect and renders nothing.
 - **Build editor UI from the shadcn primitives of the project, not from raw HTML controls.** Reach

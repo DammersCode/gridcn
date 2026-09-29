@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/select";
 import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "../types";
 import { CellSpan } from "./cell-span";
+import { TEXT_FILTER_OPERATORS } from "./capabilities";
 import { useCommitGuard } from "../interaction/use-commit-guard";
 import { columnLabelText } from "../columns/column-format-helpers";
 
@@ -76,6 +77,12 @@ export const selectCellType: CellType<unknown, string | null, GridCellTypes["sel
     if (value == null) return "";
     return findChoice(options?.choices, value)?.label ?? value;
   },
+  // search the label, like toText — the stored value is an opaque choice id
+  toSearchText: (value, options) => {
+    if (value == null) return "";
+    return findChoice(options?.choices, value)?.label ?? value;
+  },
+  filter: { operators: [...TEXT_FILTER_OPERATORS, "isAnyOf"], valueInput: "choices" },
   fromText: (text, options) => {
     const trimmed = text.trim();
     if (trimmed === "") return null;

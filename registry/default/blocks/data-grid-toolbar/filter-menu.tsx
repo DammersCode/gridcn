@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   useDataGridActions,
   useDataGridAllColumns,
+  useDataGridCellTypes,
   useDataGridFilterState,
   useDataGridJoinOperator,
   useDataGridLabels,
@@ -83,13 +84,17 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   const gridColumns = useDataGridAllColumns();
   const columns = allColumns ? gridColumns : visibleColumns;
   const labels = useDataGridLabels();
+  const cellTypes = useDataGridCellTypes();
   const filterableColumns = columns.filter((c) => c.filterable !== false);
 
-  // per-column operator list: this prop > the column's filterOperators > the built-in type default
+  // per-column operator list: this prop > the column's filterOperators > the cell type's declared operators > the name-based type default
   const operatorsFor = useCallback(
     (column: AnyColumnDef | undefined): readonly FilterOperator[] =>
-      (column && operatorsForColumn ? operatorsForColumn(column) : undefined) ?? column?.filterOperators ?? operatorsForColumnType(column?.type),
-    [operatorsForColumn],
+      (column && operatorsForColumn ? operatorsForColumn(column) : undefined) ??
+      column?.filterOperators ??
+      (column?.type ? cellTypes[column.type]?.filter?.operators : undefined) ??
+      operatorsForColumnType(column?.type),
+    [operatorsForColumn, cellTypes],
   );
 
   // A filter on a column outside the menu's option list (a hidden column by default, or one no

@@ -38,4 +38,7 @@ export const checkboxCellType: CellType<unknown, boolean, GridCellTypes["checkbo
   isEmpty: (value) => value == null,
   compare: (a, b) => Number(a) - Number(b),
   align: "center",
+  // the edit gestures toggle in place instead of opening an editor (the type owns the gesture, not the name)
+  activate: (value) => !value,
+  filter: { valueInput: "boolean" },
 };

@@ -11,6 +11,21 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Cell-type-driven behavior:** five new optional fields on `CellType`. `numeric` declares
+  tabular-nums digit rendering (declared by `number` and `date`). `toSearchText(value, options)`
+  supplies the quick-search text for a stored value (the default is `String(value)`; `select`
+  declares it, so select columns now search the choice label). `validate` is the default validator
+  for columns of the type when the column declares none — every validation path resolves
+  `column.validate ?? cellType.validate` (single-cell commit, paste, fill, `updateCells`, import).
+  `activate(value, options)` gives the cell an in-place edit gesture instead of an editor —
+  Enter/F2, a stationary click, and a double-click commit `activate(value, options)` directly,
+  with no edit session (declared by `checkbox` as the toggle). `filter` (`{ operators?,
+  match?, valueInput? }`) declares the type's filter capabilities — the filter menu's operator
+  list (ahead of the type-name default, behind the column's `filterOperators`), a raw-value
+  match predicate (same contract as the column's `filterMatch`), and the filter row's value
+  widget (`"text" | "number" | "date" | "boolean" | "choices"`). `CellTypeFilter` and
+  `CellTypeValueInput` are exported from the `data-grid` barrel, along with the operator arrays
+  `TEXT_FILTER_OPERATORS` and `COMPARISON_FILTER_OPERATORS` for declaring custom lists.
 - **Grid event API:** six new optional props on `DataGrid`/`DataGridProvider`. `onActiveCellChange(next)`
   fires when the active cell becomes a different cell or is cleared (`null`). `onEditStart(coord)`
   fires before an edit session opens and may return `false` to veto the edit. `onEditEnd(event)`
@@ -229,6 +244,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Select quick search matches the choice label, not the stored value:** a `select` column's
+  stored values are opaque choice ids; quick search now uses the option's `label` (its
+  `toSearchText`). Custom types can declare their own `toSearchText` for the same control.
 - **`resolveBulkWrites` returns the rejected cells too (Breaking, `data-grid-sdk`):** the
   validation tail of paste and fill now returns `{ writes, rejected }` (`BulkResolution`)
   instead of a plain write array — `rejected` carries every cell the validators refused, with its

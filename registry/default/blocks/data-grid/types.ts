@@ -335,10 +335,11 @@ export type CellEditorProps<TData, TValue, TOptions = unknown> = {
  * - clipboard copy and export = `toText`, always.
  * - sort = `compare` when the column declares this type, else a numeric-aware locale collation of
  *   the RAW `String(value)` — not of `toText` output.
- * - search and filter = `String(rawValue)`: the view pipeline is built WITHOUT cellTypes, so a
- *   custom `toText` never changes what search or filter see (a `select` column searches the
- *   stored VALUE, not the displayed label; a `number` with `decimals` searches the unrounded
- *   value; a `date` with a `displayFormat` matches the ISO string).
+ * - quick search = `toSearchText` when the type declares it, else `String(rawValue)` (a `select`
+ *   column searches the choice LABEL; a `number` with `decimals` searches the unrounded value; a
+ *   `date` with a `displayFormat` searches the ISO string).
+ * - filter = the raw-value predicate (`filter.match`, or the column's own `filterMatch`), else the
+ *   built-in text matcher over `String(rawValue)`.
  * - fill (series inference) works on the raw value, not on any text form.
  */
 export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
@@ -355,6 +356,40 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   /** Sort comparator for this type; when absent, sorting falls back to a numeric-aware locale collation of the raw `String(value)` — not of `toText` output. */
   compare?(a: TValue, b: TValue): number;
   align?: "left" | "right" | "center";
+  /** Tabular-nums cell rendering for the right-aligned digits; number and date declare it. */
+  numeric?: boolean;
+  /** The quick-search text for a stored value; the default is `String(value)`. select declares the choice label. */
+  toSearchText?(value: TValue, options?: TOptions): string;
+  /**
+   * Default validation for columns of this type when the column declares no `validate` of its
+   * own; same shape as {@link ColumnDef.validate}. Every validation path resolves
+   * `column.validate ?? cellType.validate` (single-cell commit, paste, fill, updateCells, import).
+   */
+  validate?: ((value: TValue, row: TData) => string | null) | StandardSchemaV1<TValue>;
+  /**
+   * The edit gestures ACTIVATE this cell in place instead of opening an editor: Enter/F2, a
+   * stationary click, and double-click commit `activate(value, options)` through `commitCellValue`
+   * (no edit session, so `onEditStart`/`onEditEnd` never fire). checkbox declares
+   * `(value) => !value`. Absent, the gestures open the editor.
+   */
+  activate?: (value: TValue, options?: TOptions) => TValue;
+  /** Filter capabilities for this type; each member falls back to the name-derived default when absent. */
+  filter?: CellTypeFilter;
+};
+
+/** Which value-input widget the filter row renders for a cell type. */
+export type CellTypeValueInput = "text" | "number" | "date" | "boolean" | "choices";
+
+/**
+ * Filter capabilities a cell type declares instead of the toolbar's name-derived defaults:
+ * `operators` beats the type-name operator table, `match` replaces the built-in text matcher
+ * (same raw-value contract as {@link ColumnDef.filterMatch}), and `valueInput` picks the filter
+ * row's widget.
+ */
+export type CellTypeFilter = {
+  operators?: readonly FilterOperator[];
+  match?: (value: unknown, filter: FilterSpec) => boolean;
+  valueInput?: CellTypeValueInput;
 };
 
 /**

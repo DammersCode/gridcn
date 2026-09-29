@@ -131,6 +131,11 @@ Per-column, static or row-dependent:
   the schema structurally (`"~standard" in validate`), so no adapter is necessary for a
   conforming library.
 
+A cell type can declare the same `validate` as a default for its columns, and a column's own
+`validate` wins over the type's. Every validation path — a single-cell commit, a paste, a fill,
+`updateCells`, and import — resolves `column.validate ?? cellType.validate`. See
+[custom cell types](/docs/custom-cell-types#the-contract-member-by-member).
+
 <Callout type="warn" title="Invalid edits cannot commit">
   The editor stays open on a rejected value. This is Excel semantics, not a toast-and-revert
   pattern. The exception is `onInvalid: "warn"` — see [Soft rules](#soft-rules-oninvalid) below.

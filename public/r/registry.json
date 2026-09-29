@@ -34,14 +34,19 @@
             "separator",
             "tooltip"
          ],
-         "files": [
-            {
-               "path": "registry/default/blocks/data-grid/body.tsx",
-               "type": "registry:component",
-               "target": "components/data-grid/body.tsx"
-            },
-            {
-               "path": "registry/default/blocks/data-grid/cell-types/cell-span.tsx",
+          "files": [
+             {
+                "path": "registry/default/blocks/data-grid/body.tsx",
+                "type": "registry:component",
+                "target": "components/data-grid/body.tsx"
+             },
+             {
+                "path": "registry/default/blocks/data-grid/cell-types/capabilities.ts",
+                "type": "registry:component",
+                "target": "components/data-grid/cell-types/capabilities.ts"
+             },
+             {
+                "path": "registry/default/blocks/data-grid/cell-types/cell-span.tsx",
                "type": "registry:component",
                "target": "components/data-grid/cell-types/cell-span.tsx"
             },
