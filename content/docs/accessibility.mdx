@@ -84,6 +84,8 @@ Three separate elements carry `aria-busy` or an equivalent progress role:
   `labels.grid.loading`) on the skeleton block as a whole.
 - A background refresh (`loading` true with rows already present) shows a slim progress bar
   instead, `role="progressbar"` with an `aria-label` and matching `aria-valuetext`.
+- A custom `loadingState` node replaces the skeleton or the bar. It carries no built-in role or
+  label — the node owns its own accessibility.
 ## Live regions
 
 The `data-grid-toolbar` search box announces its match count through `role="status"` with

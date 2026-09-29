@@ -160,6 +160,25 @@ renders nothing while the column is unsorted). For an icon-only or component hea
 `headerText` is required: without it, the screen-reader label and the header menu fall back
 to the raw column id. `headerClassName` styles the whole header cell.
 
+### The whole header cell
+
+`ColumnDef.header` replaces the label inside the built-in cell. The `renderHeaderCell` slot on
+`DataGridHeader` replaces the whole cell element. It is called once per visible column with the
+column context and `Default` — the built-in cell for that column, pre-wired with exactly those
+props. Return `Default` to keep the built-in cell; a custom node replaces it:
+
+```tsx
+<DataGridRoot className="h-[400px]">
+  <DataGridHeader
+    renderHeaderCell={(ctx, Default) => (ctx.column.id === "name" ? <MyNameHeader column={ctx.column} /> : Default)}
+  />
+  <DataGridBody />
+</DataGridRoot>
+```
+
+The slot mounts inside `DataGridRoot`, so it needs the composed parts — `DataGrid` (the
+convenience wrapper) does not forward it.
+
 ## Visibility
 
 The `DataGridColumnsMenu` of `data-grid-toolbar` is show and hide only. Pin controls live in the

@@ -24,6 +24,16 @@ patterns it pairs with are on the
 [Data & Integrations](/docs/examples/data) pages.
 </Callout>
 
+## Customizing the look
+
+`loadingState` replaces the skeleton (zero rows) or the indeterminate bar (rows present) while
+`loading` is true. It accepts a plain node or a function receiving `{ reason }` — `"no-data"`
+or `"rows-present"`. The replacement renders directly under the header at full width, and the
+node owns its own accessibility.
+
+`emptyState` takes the same two forms. Its `reason` is `"no-data"` when the data array is empty
+and `"filtered"` when rows exist but none are in view.
+
 ## Related
 
 - [Lazy loading](/docs/examples/data/lazy) — skeleton rows for per-window fetching instead of

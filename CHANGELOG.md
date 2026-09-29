@@ -11,6 +11,18 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Composition parts take props:** `DataGridHeader` accepts `className` for its header-layer
+  element and `renderHeaderCell`, a per-column header cell slot. The slot is called with the
+  column context — every built-in header cell prop — and `Default`, the built-in cell for that
+  column pre-wired with exactly those props. Return `Default` to keep the built-in cell or a
+  custom node to replace it. `DataGridBody` accepts `className` for its rows-canvas element.
+- **`emptyState` accepts a function:** it receives `{ reason }`. The reason is `"no-data"` when
+  the data array is empty and `"filtered"` when rows exist but none are in view. A plain node
+  still works.
+- **New `loadingState` prop:** it replaces the built-in loading presentation while `loading` is
+  true — the skeleton (zero rows in view) or the indeterminate bar under the header (rows
+  present). Its function form receives `{ reason: "no-data" | "rows-present" }`.
+
 - **Shortcut label API:** `data-grid` exports `isMacPlatform()`, `formatShortcut(binding)`, and
   `formatShortcutToken(segment)` so consumer UI can render shortcut labels that match the grid's
   own keycaps (glyphs on macOS and iOS, word names elsewhere). The keybindings and context-menu

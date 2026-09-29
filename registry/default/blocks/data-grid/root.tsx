@@ -22,6 +22,7 @@ import {
   useDataGridRowBands,
   useDataGridRowCount,
   useDataGridSelectionConfig,
+  useDataGridStore,
   useDataGridVisibleColumns,
 } from "./store";
 import { useElementDimensions, useViewportElement } from "./windowing/use-scroll-snapshot";
@@ -53,6 +54,18 @@ const SCROLL_SHADOW = `var(--grid-scroll-shadow, ${PIN_SHADOW})`;
 const SHADOW_SIZE = "var(--grid-shadow-size, 8px)";
 const shadowColor = (pinned: boolean) => (pinned ? PIN_SHADOW : SCROLL_SHADOW);
 
+/** Why the empty state shows: no rows in the data at all, or rows exist but none are in view. */
+export type EmptyStateReason = "no-data" | "filtered";
+
+/** Function form of {@link DataGridRootProps.emptyState} — receives why the view is empty. */
+export type EmptyStateRenderer = (ctx: { reason: EmptyStateReason }) => ReactNode;
+
+/** Which built-in loading presentation the slot is replacing: the skeleton (zero rows in view) or the header bar (rows present). */
+export type LoadingStateReason = "no-data" | "rows-present";
+
+/** Function form of {@link DataGridRootProps.loadingState} — receives which built-in presentation the node replaces. */
+export type LoadingStateRenderer = (ctx: { reason: LoadingStateReason }) => ReactNode;
+
 /** Props for {@link DataGridRoot}. `TData` (default `unknown`) types the callback props below — annotate explicitly (e.g. `DataGridRoot<Person>`), there's no `data` prop here to infer it from. */
 export type DataGridRootProps<TData = unknown> = {
   className?: string;
@@ -79,8 +92,12 @@ export type DataGridRootProps<TData = unknown> = {
   direction?: GridDirection;
   /** Disables editing and delete grid-wide, independent of any per-column `readOnly`. */
   readOnly?: boolean;
-  /** Rendered centered in place of the body when there are zero rows in view. Never shown while `loading` is true. */
-  emptyState?: ReactNode;
+  /**
+   * Rendered centered in place of the body when there are zero rows in view. Accepts a node or a
+   * function receiving `{ reason }` — `"no-data"` when the data array is empty, `"filtered"` when
+   * rows exist but none are in view. Never shown while `loading` is true.
+   */
+  emptyState?: ReactNode | EmptyStateRenderer;
   /**
    * Presentational loading flag: zero rows renders viewport-filling
    * skeleton rows instead of the empty state; rows present keeps them visible and adds a slim
@@ -88,6 +105,14 @@ export type DataGridRootProps<TData = unknown> = {
    * own (that's `data-grid-lazy`'s job for per-window skeletons). Default `false`.
    */
   loading?: boolean;
+  /**
+   * Replaces the built-in loading presentation while `loading` is true: the viewport-filling
+   * skeleton (zero rows in view) or the slim indeterminate bar under the header (rows present).
+   * Rendered positioned directly under the header at full width, in place of the built-in it
+   * replaces. The node owns its own accessibility — the built-ins' progressbar semantics do not
+   * apply to it.
+   */
+  loadingState?: ReactNode | LoadingStateRenderer;
   /**
    * Per-column header menu slot: rendered inline-end in each header cell as a ghost chevron
    * trigger, only when provided. The context-menu add-on's `DataGridHeaderDropdown` is the
@@ -143,6 +168,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     readOnly,
     emptyState,
     loading = false,
+    loadingState,
     renderHeaderMenu,
     renderMarker,
     renderMarkerHeader,
@@ -176,7 +202,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const isRtl = direction === "rtl";
   const visibleColumns = useDataGridVisibleColumns();
   const rowCount = useDataGridRowCount();
-  // labels.grid.emptyState is the translatable default; the emptyState prop (ReactNode) still wins when provided.
+  const dataLength = useDataGridStore((s) => s.data.length);
+  // labels.grid.emptyState is the translatable default; the emptyState prop (node or function) still wins when provided.
   const gridLabels = useDataGridLabels().grid;
   const emptyStateLabel = gridLabels.emptyState;
   // Provider-level seam: defaults to EMPTY_ROW_BANDS (store.tsx) when no add-on registered one —
@@ -524,19 +551,41 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground"
                 style={{ insetBlockStart: effectiveHeaderHeight }}
               >
-                {emptyState ?? emptyStateLabel}
+                {(typeof emptyState === "function"
+                  ? emptyState({ reason: dataLength === 0 ? "no-data" : "filtered" })
+                  : emptyState) ?? emptyStateLabel}
               </div>
             )}
-            {showLoadingSkeleton && (
-              <DataGridLoadingSkeleton
-                rowCount={skeletonRowCount}
-                columnCount={visibleColumns.length}
-                rowHeight={rowHeight}
-                headerHeight={effectiveHeaderHeight}
-                ariaLabel={gridLabels.loading}
-              />
-            )}
-            {showLoadingBar && <DataGridLoadingBar headerHeight={effectiveHeaderHeight} ariaLabel={gridLabels.loading} />}
+            {showLoadingSkeleton &&
+              (loadingState !== undefined ? (
+                <div
+                  data-grid-loading-state=""
+                  className="absolute"
+                  style={{ insetInlineStart: 0, insetBlockStart: effectiveHeaderHeight, width: "100%" }}
+                >
+                  {typeof loadingState === "function" ? loadingState({ reason: "no-data" }) : loadingState}
+                </div>
+              ) : (
+                <DataGridLoadingSkeleton
+                  rowCount={skeletonRowCount}
+                  columnCount={visibleColumns.length}
+                  rowHeight={rowHeight}
+                  headerHeight={effectiveHeaderHeight}
+                  ariaLabel={gridLabels.loading}
+                />
+              ))}
+            {showLoadingBar &&
+              (loadingState !== undefined ? (
+                <div
+                  data-grid-loading-state=""
+                  className="absolute"
+                  style={{ insetInlineStart: 0, insetBlockStart: effectiveHeaderHeight, width: "100%" }}
+                >
+                  {typeof loadingState === "function" ? loadingState({ reason: "rows-present" }) : loadingState}
+                </div>
+              ) : (
+                <DataGridLoadingBar headerHeight={effectiveHeaderHeight} ariaLabel={gridLabels.loading} />
+              ))}
             <div
               data-grid-pin-shadow="left"
               data-pinned={hasPinnedLeft ? "" : undefined}

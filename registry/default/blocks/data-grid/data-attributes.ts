@@ -61,6 +61,8 @@ export const GRID_ATTR = {
   loadingBar: "data-grid-loading-bar",
   /** root.tsx: the empty-state container (rendered when there are zero rows in view and not loading). */
   emptyState: "data-grid-empty-state",
+  /** root.tsx: the consumer `loadingState` node's container (rendered while `loading` is true, in place of the built-in skeleton/bar). */
+  loadingState: "data-grid-loading-state",
   /** root.tsx: `"left" | "right" | "top" | "bottom"`, a frozen-edge shadow shown while scrolled past that edge. */
   pinShadow: "data-grid-pin-shadow",
   /** cell-types/date.tsx, cell-types/select.tsx: a cell-type's own editor popup/portal content — `use-grid-interaction.ts` ignores pointer/click events that land inside one. */

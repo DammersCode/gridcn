@@ -42,8 +42,14 @@ function unpinnedWindowRange(
 
 let warnedRowCountMismatch = false;
 
+/** Props for {@link DataGridBody}. */
+export type DataGridBodyProps = {
+  /** Merged onto the rows-canvas element (the transformed canvas holding the windowed rows and overlays, not the scroll root). */
+  className?: string;
+};
+
 /** Renders only the windowed rows for the current scroll position, plus the active row so focus survives scrolling it out of view. */
-export function DataGridBody(): ReactNode {
+export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   const {
     scrollRef,
     windowedColumns,
@@ -270,7 +276,7 @@ export function DataGridBody(): ReactNode {
 
   return (
     <>
-      <div style={canvasStyle} data-grid-rows-canvas="">
+      <div style={canvasStyle} className={className} data-grid-rows-canvas="">
         {/* self-scoped keyframes for the flashCells write-pulse (loading-skeleton's own <style> pattern — registry item, no global.css edit) */}
         <style>{FLASH_KEYFRAMES}</style>
         {viewRowIndices.map((viewRowIndex, i) => {

@@ -22,6 +22,7 @@ import type {
 import { DataGridProvider, type DataGridStoreState, type SelectionChangeDetails } from "./store";
 import type { GridDirection } from "./windowing/direction";
 import { DataGridRoot } from "./root";
+import type { EmptyStateRenderer, LoadingStateRenderer } from "./root";
 import { DataGridHeader } from "./header";
 import { DataGridBody } from "./body";
 import type { OverlayPlugin } from "./overlays";
@@ -29,9 +30,9 @@ import type { HeaderMenuRenderer, MarkerCellRenderer, MarkerHeaderRenderer, RowB
 import type { DeepPartialLabels } from "./labels";
 
 /** Public entry point — the only module consumers/docs should import from. */
-export { DataGridRoot, type DataGridRootProps } from "./root";
-export { DataGridHeader } from "./header";
-export { DataGridBody } from "./body";
+export { DataGridRoot, type DataGridRootProps, type EmptyStateReason, type EmptyStateRenderer, type LoadingStateReason, type LoadingStateRenderer } from "./root";
+export { DataGridHeader, type DataGridHeaderProps, type HeaderCellRenderCtx, type HeaderCellRenderer } from "./header";
+export { DataGridBody, type DataGridBodyProps } from "./body";
 /** The per-cell renderer — `data-grid-pinned-rows`'s `DataGridPinnedRow` reuses this in `pinned` mode for identical cell-type rendering/alignment as data rows. */
 export { DataGridCell, type DataGridCellProps } from "./cell";
 export {
@@ -405,10 +406,12 @@ export type DataGridProps<TData> = {
   onCellClick?: OnCellClick<TData>;
   /** Fired alongside `onCellClick` once per click regardless of column — see {@link OnRowClick}. */
   onRowClick?: OnRowClick<TData>;
-  /** Rendered centered in place of the body when there are zero rows in view. Never shown while `loading` is true. */
-  emptyState?: ReactNode;
+  /** Rendered centered in place of the body when there are zero rows in view. Accepts a node or a function receiving `{ reason }` — `"no-data"` when the data array is empty, `"filtered"` when rows exist but none are in view. See {@link DataGridRootProps.emptyState}. */
+  emptyState?: ReactNode | EmptyStateRenderer;
   /** Presentational loading flag: zero rows renders a viewport-filling skeleton instead of the empty state; rows present adds a slim indeterminate bar under the header. Default `false`. See {@link DataGridRootProps.loading}. */
   loading?: boolean;
+  /** Replaces the built-in loading presentation while `loading` is true. See {@link DataGridRootProps.loadingState}. */
+  loadingState?: ReactNode | LoadingStateRenderer;
   /** Fired after a row-window commit with the rendered data-row range; see {@link DataGridRootProps.onRowWindowChange}. */
   onRowWindowChange?: (range: { start: number; end: number }) => void;
   /** Composition escape hatch; defaults to header + body when omitted. */
@@ -480,6 +483,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
     onRowClick,
     emptyState,
     loading,
+    loadingState,
     onRowWindowChange,
     children,
   } = props;
@@ -550,6 +554,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
         renderMarkerHeader={renderMarkerHeader}
         emptyState={emptyState}
         loading={loading}
+        loadingState={loadingState}
         getRowClassName={erasedRowClassName}
         getCellClassName={erasedCellClassName}
         onCellClick={erasedOnCellClick}

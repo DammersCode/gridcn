@@ -117,9 +117,10 @@ the DOM and what you can beat. Where a surface lists a merge point, the built-in
 | Active-cell ring (`[data-grid-active-cell-overlay]`) | `pointer-events-none z-10 ring-2 ring-inset ring-primary` | `--primary` or `--ring`. |
 | Edge shadow (`[data-grid-pin-shadow]`) | 8px gradient strip on each side, `opacity-0` to `100` via `data-scrolled-*`, at the grid edge or the pinned band boundary. Each strip spans only the scrolling area between the pinned bands. Color from `--grid-pin-shadow` | Override `--grid-pin-shadow` per theme. |
 | Column line | 1px line at the end side of each column, and at the start side of a right-pinned column. Color from `--grid-column-border` | `--grid-column-border`. `transparent` hides the lines. |
-| Empty state (`[data-grid-empty-state]`) | `pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground` | `emptyState` prop or `labels.emptyState`. |
+| Empty state (`[data-grid-empty-state]`) | `pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground` | The `emptyState` prop (node or function) or `labels.emptyState`. |
 | Loading skeleton (`[data-grid-loading-skeleton]`) | One `h-4 animate-pulse rounded bg-muted` bar per column per row, rows separated by `border-b border-border` | The `loading` flag. The skeleton renders only while `loading` is true. |
 | Loading bar (`[data-grid-loading-bar]`) | 2px track `bg-primary/20` with a `bg-primary` sweep (static under `prefers-reduced-motion`) | `--primary`. `--grid-loading-sweep-duration` for the sweep speed. |
+| Custom loading state (`[data-grid-loading-state]`) | A full-width container positioned directly under the header | The `loadingState` prop replaces the skeleton (zero rows) or the bar (rows present) while `loading` is true. |
 | Cell error tooltip | `rounded-sm border border-destructive/20 bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive`, placed below the cell while editing | `--destructive`. |
 | Resize handle (`[data-grid-resize-handle]`) | 8px column, a 3px `after` line in `bg-primary` revealed on hover and while `[data-resizing]` | `--primary`. |
 | Column drop indicator (`[data-grid-drop-indicator]`) | 2px line in `var(--color-primary)` at the drag boundary | `--primary`. |
@@ -139,8 +140,9 @@ the DOM and what you can beat. Where a surface lists a merge point, the built-in
    invalid) globally, with no React involved.
 4. **Class merges** — `className` on the root, `getRowClassName`/`getCellClassName` on the grid,
    `cellClassName`/`headerClassName` on a column. Your utilities win conflicts.
-5. **Content replacement** — per-column `renderCell` and custom `header`, `renderMarker`,
-   `emptyState`. Replace what is drawn, not how it is styled.
+5. **Content replacement** — per-column `renderCell`, `renderHeaderCell` on `DataGridHeader`,
+   custom `header`, `renderMarker`, `emptyState`, `loadingState`. Replace what is drawn, not how
+   it is styled.
 6. **Overlay plugins** — `overlayPlugins` on `DataGridProvider` for your own layer in the
    overlay stack (see [overlay-plugins](/docs/overlay-plugins)).
 
