@@ -11,6 +11,17 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Grid event API:** six new optional props on `DataGrid`/`DataGridProvider`. `onActiveCellChange(next)`
+  fires when the active cell becomes a different cell or is cleared (`null`). `onEditStart(coord)`
+  fires before an edit session opens and may return `false` to veto the edit. `onEditEnd(event)`
+  fires with `{ coord, result: "commit" | "cancel" | "rejected" }` — `rejected` fires per refused
+  commit attempt while the session stays open. `onValidationError(event)` fires after a bulk paste
+  or fill settles, only when at least one cell was rejected by validation:
+  `{ source: "paste" | "fill", rejected: [{ viewRow, columnId, value, message }] }`.
+  `onCellDoubleClick` and `onCellContextMenu` fire on the matching cell gesture with the
+  `CellClickCtx` shape plus the native `MouseEvent`; both are pure notifications, not veto points.
+  Payload types `GridEditEndEvent`, `GridValidationErrorEvent`, and `GridBulkValidationError` are
+  exported from the `data-grid` barrel.
 - **Menu resolvers (`data-grid-context-menu`):** the context menu and the header dropdown are now
   data. `DataGridContextMenu.getCellMenuItems(ctx, defaults)` and
   `DataGridContextMenu.getHeaderMenuItems(ctx, defaults)` receive the built-in item set as a
@@ -218,6 +229,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **`resolveBulkWrites` returns the rejected cells too (Breaking, `data-grid-sdk`):** the
+  validation tail of paste and fill now returns `{ writes, rejected }` (`BulkResolution`)
+  instead of a plain write array — `rejected` carries every cell the validators refused, with its
+  `message`, and feeds the new `onValidationError`. `buildPasteWrites` and `buildFillWrites`
+  follow the same shape (the latter now returns `{ resolution, filled }`).
 - **`renderCellMenuItems` / `renderHeaderMenuItems` replaced by menu resolvers (Breaking):** the
   two render-slot props of `DataGridContextMenu` are removed. Pass `getCellMenuItems` /
   `getHeaderMenuItems` instead — they return a `GridMenuItemSpec[]` item list (item-level

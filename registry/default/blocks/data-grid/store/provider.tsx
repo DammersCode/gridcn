@@ -41,6 +41,22 @@ function subscribeSelectionCleared(store: StoreApi<DataGridStoreState>): () => v
   });
 }
 
+/**
+ * Wires `onActiveCellChange`: one `storeApi.subscribe` on `state.activeCell` with VALUE equality
+ * (row+col), not identity — write paths that re-select the same cell through a freshly allocated
+ * coord object (`selectCell`, `startEditing`, a commit's cursor restore) must not fire. `null`
+ * fires too, when the active cell is cleared.
+ */
+function subscribeActiveCellChange(store: StoreApi<DataGridStoreState>): () => void {
+  return store.subscribe((state, prevState) => {
+    const next = state.activeCell;
+    const prev = prevState.activeCell;
+    if (next === prev) return;
+    if (next !== null && prev !== null && next.row === prev.row && next.col === prev.col) return;
+    state.onActiveCellChange?.(next);
+  });
+}
+
 const DataGridStoreContext = createContext<StoreApi<DataGridStoreState> | null>(null);
 
 const GridInstanceIdContext = createContext<string>("");
@@ -131,6 +147,12 @@ function useGridStoreCore<TData>(
     onColumnResizing,
     onSelectionChange,
     onSelectionCleared,
+    onActiveCellChange,
+    onEditStart,
+    onEditEnd,
+    onValidationError,
+    onCellDoubleClick,
+    onCellContextMenu,
   } = props;
   const internalInit = toInternalSyncProps({
     data,
@@ -173,6 +195,12 @@ function useGridStoreCore<TData>(
     onColumnResizing,
     onSelectionChange,
     onSelectionCleared,
+    onActiveCellChange,
+    onEditStart,
+    onEditEnd,
+    onValidationError,
+    onCellDoubleClick,
+    onCellContextMenu,
   });
   // Lazy: an external store means this instance owns nothing, and store creation computes the
   // initial view over the full dataset — it must not run for a shell.
@@ -195,6 +223,10 @@ function useGridStoreCore<TData>(
   useEffect(() => {
     if (externalStore) return;
     return subscribeSelectionCleared(store);
+  }, [store, externalStore]);
+  useEffect(() => {
+    if (externalStore) return;
+    return subscribeActiveCellChange(store);
   }, [store, externalStore]);
 
   useEffect(() => {
@@ -250,6 +282,12 @@ function useGridStoreCore<TData>(
     onColumnResizing,
     onSelectionChange,
     onSelectionCleared,
+    onActiveCellChange,
+    onEditStart,
+    onEditEnd,
+    onValidationError,
+    onCellDoubleClick,
+    onCellContextMenu,
   ]);
 
   return { store, actions: store.getState().actions };

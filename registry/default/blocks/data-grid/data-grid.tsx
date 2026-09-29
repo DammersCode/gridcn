@@ -11,10 +11,14 @@ import type {
   FilterSpec,
   GetCellClassName,
   GetRowClassName,
+  GridEditEndEvent,
   GridSelection,
+  GridValidationErrorEvent,
   HeaderClickBehavior,
   Keymap,
   OnCellClick,
+  OnCellContextMenu,
+  OnCellDoubleClick,
   OnRowClick,
   RowMarkersMode,
   SortSpec,
@@ -214,8 +218,13 @@ export type {
   CellClassNameCtx,
   OnCellClick,
   OnRowClick,
+  OnCellDoubleClick,
+  OnCellContextMenu,
   CellClickCtx,
   RowClickCtx,
+  GridEditEndEvent,
+  GridBulkValidationError,
+  GridValidationErrorEvent,
 } from "./types";
 export { measureTextWidths } from "./columns/measure-column-text";
 export { createFilterMatcher, type SearchMatch } from "./sort-filter";
@@ -344,9 +353,21 @@ export type DataGridProps<TData> = {
   onColumnResizing?: (columnId: string, width: number) => void;
   /** Fires on every committed selection change (click, extend step, row/column/all selection, clear) with a lazy `details.getValues()` accessor; drag-extend fires once per step. */
   onSelectionChange?: (next: GridSelection, details: SelectionChangeDetails) => void;
-  /** Fires exactly once when the selection transitions from non-empty to empty, from any clear path. */
-  onSelectionCleared?: () => void;
-  /** Row-height preset: compact 28 / default 36 / comfortable 44. Ignored when `rowHeight` is set. */
+   /** Fires exactly once when the selection transitions from non-empty to empty, from any clear path. */
+   onSelectionCleared?: () => void;
+   /** Fires when the active cell changes to a different cell (or is cleared, `null`) — see {@link DataGridSyncProps.onActiveCellChange}. */
+   onActiveCellChange?: (next: CellCoord | null) => void;
+   /** Fired when an edit session is about to start; return `false` to veto the edit. See {@link DataGridSyncProps.onEditStart}. */
+   onEditStart?: (coord: CellCoord) => boolean | void;
+   /** Fired when an edit session ends or a commit attempt is refused (`commit`/`cancel`/`rejected`). See {@link GridEditEndEvent}. */
+   onEditEnd?: (event: GridEditEndEvent) => void;
+   /** Fires after a bulk paste or fill settles, only when at least one cell was rejected by validation. See {@link GridValidationErrorEvent}. */
+   onValidationError?: (event: GridValidationErrorEvent) => void;
+   /** Fired on a double-click on any non-pinned, non-skeleton cell — pure notification, no veto. See {@link OnCellDoubleClick}. */
+   onCellDoubleClick?: OnCellDoubleClick<TData>;
+   /** Fired when the user right-clicks any non-pinned, non-skeleton cell — pure notification. See {@link OnCellContextMenu}. */
+   onCellContextMenu?: OnCellContextMenu<TData>;
+   /** Row-height preset: compact 28 / default 36 / comfortable 44. Ignored when `rowHeight` is set. */
   density?: DensityMode;
   /** Sticky header track height (px); `density` and `rowHeight` affect data rows only. Default 36. */
   headerHeight?: number;
@@ -428,6 +449,12 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
     onColumnResizing,
     onSelectionChange,
     onSelectionCleared,
+    onActiveCellChange,
+    onEditStart,
+    onEditEnd,
+    onValidationError,
+    onCellDoubleClick,
+    onCellContextMenu,
     density,
     headerHeight,
     columnOverscan,
@@ -493,6 +520,12 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
       onColumnResizing={onColumnResizing}
       onSelectionChange={onSelectionChange}
       onSelectionCleared={onSelectionCleared}
+      onActiveCellChange={onActiveCellChange}
+      onEditStart={onEditStart}
+      onEditEnd={onEditEnd}
+      onValidationError={onValidationError}
+      onCellDoubleClick={onCellDoubleClick}
+      onCellContextMenu={onCellContextMenu}
     >
       <DataGridRoot
         className={className}

@@ -647,6 +647,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const s = get();
         const target = resolveEditTarget(s, coord);
         if (!target || isColumnReadOnly(target.column, target.row)) return;
+        if (s.onEditStart?.(coord) === false) return;
         set({
           editing: { coord, rowId: s.getRowId(target.row, target.dataRowIndex), columnId: target.column.id, initialText },
           editingError: null,
@@ -655,7 +656,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         });
       },
       cancelEditing() {
+        const s = get();
         set({ editing: null, editingError: null });
+        if (s.editing) s.onEditEnd?.({ coord: s.editing.coord, result: "cancel" });
       },
       commitCellEdit(value, movement, rejection) {
         const s = get();
@@ -693,6 +696,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const restoreSelection = stale ? {} : { activeCell: nextActiveCell, selection: selectCellPure(nextActiveCell) };
         if ("error" in result) {
           set({ editingError: result.error, editingRejectionCount: s.editingRejectionCount + 1 });
+          s.onEditEnd?.({ coord: editing.coord, result: "rejected" });
           return;
         }
         if ("noop" in result) {
@@ -703,6 +707,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             // an `onInvalid: "warn"` re-commit of the same value still lands its flag
             ...(result.warnings ? { cellErrors: mergeCellErrors(s.cellErrors, result.warnings) } : {}),
           });
+          s.onEditEnd?.({ coord: editing.coord, result: "commit" });
           return;
         }
         rowIndexCache.rebase(result.data);
@@ -719,6 +724,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           ...restoreSelection,
           ...reconcileAfterWrite(s, result.data, result.change.ops),
         });
+        s.onEditEnd?.({ coord: editing.coord, result: "commit" });
       },
       commitCellValue(coord, value) {
         const s = get();
@@ -743,6 +749,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const s = get();
         if (!s.editing) return;
         set({ editingError: message, editingRejectionCount: s.editingRejectionCount + 1 });
+        s.onEditEnd?.({ coord: s.editing.coord, result: "rejected" });
       },
       setCellErrors(errors) {
         if (errors.length === 0) return;

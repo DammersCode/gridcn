@@ -246,6 +246,30 @@ export type RowClickCtx<TData> = {
 export type OnRowClick<TData> = (ctx: RowClickCtx<TData>, event: MouseEvent) => void;
 
 /**
+ * Fired by `onEditEnd` when an edit session ends or a commit attempt is refused: `commit` after the
+ * session closes (data written or no-op), `cancel` when the draft is discarded, `rejected` when a
+ * commit attempt failed validation and the session STAYS OPEN (fired per attempt, alongside the
+ * `editingRejectionCount` bump). The committed value is not included — `onDataChange` carries it.
+ */
+export type GridEditEndEvent = { coord: CellCoord; result: "commit" | "cancel" | "rejected" };
+
+/** One cell a bulk gesture (paste/fill) refused after validation: the view-space target plus the value that failed and the validator's message. */
+export type GridBulkValidationError = { viewRow: number; columnId: string; value: unknown; message: string };
+
+/**
+ * Fired by `onValidationError` after a bulk paste or fill settles, ONLY when at least one cell was
+ * rejected — the accepted cells are already applied (their `onDataChange`/`onSelectionChange` fire
+ * first). `rejected` lists every refused cell with its validator's message.
+ */
+export type GridValidationErrorEvent = { source: "paste" | "fill"; rejected: GridBulkValidationError[] };
+
+/** Fired on a double-click on any non-pinned, non-skeleton cell — a pure notification in the {@link OnCellClick} sense (no veto), fired regardless of readOnly. */
+export type OnCellDoubleClick<TData> = (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
+
+/** Fired when the user right-clicks any non-pinned, non-skeleton cell — a pure notification; the `data-grid-context-menu` add-on listens at the root and is unaffected. */
+export type OnCellContextMenu<TData> = (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
+
+/**
  * Method-shorthand holder purely so {@link ColumnDef.cellClassName}'s function branch can pull its
  * signature via indexed access (`CellClassNameFnHolder<...>["fn"]`) instead of writing the function
  * type directly in the union — a function type embedded straight in a union property is checked

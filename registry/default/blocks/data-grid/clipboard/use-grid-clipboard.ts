@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, type RefObject } from "react";
-import type { CellCoord, GridRect } from "../types";
+import type { CellCoord, GridBulkValidationError, GridRect } from "../types";
 import { getCellValue } from "../columns/column-helpers";
 import { isDev } from "../is-dev";
 import { serializeCells } from "./serialize-cells";
 import { parseClipboard } from "./parse-clipboard";
 import { useDataGridActions, useDataGridStoreApi, type DataGridActions, type DataGridStoreState } from "../store";
-import { resolveBulkWrites, type BulkCandidate, type BulkWrite } from "../validation/validate-batch";
+import { resolveBulkWrites, type BulkCandidate, type BulkResolution } from "../validation/validate-batch";
 import { candidateRowIds, reresolveBulkWrites, snapshotBulkBatch, useBulkGeneration, type BulkGeneration } from "../validation/bulk-generation";
 
 /** Options for {@link useGridClipboard}. */
@@ -254,15 +254,16 @@ export function buildPasteCandidates(s: DataGridStoreState, cells: string[][], t
 }
 
 /**
- * The paste-write list: {@link buildPasteCandidates} validated through {@link resolveBulkWrites}, so
- * an array when every touched column validates synchronously and a Promise for it when one does not.
- * Kept as a named export for consumers and tests that want the pure answer without the store.
+ * The paste resolution: {@link buildPasteCandidates} validated through {@link resolveBulkWrites}, so
+ * the accepted writes plus the rejected cells — synchronously when every touched column validates
+ * synchronously, a Promise for the same when one does not. Kept as a named export for consumers and
+ * tests that want the pure answer without the store.
  */
 export function buildPasteWrites(
   s: DataGridStoreState,
   cells: string[][],
   target: CellCoord,
-): BulkWrite[] | Promise<BulkWrite[]> {
+): BulkResolution | Promise<BulkResolution> {
   return resolveBulkWrites(buildPasteCandidates(s, cells, target));
 }
 
@@ -301,20 +302,28 @@ function applyParsedPaste(
   }
 
   const candidates = buildPasteCandidates(s, cappedCells, target);
-  const writes = resolveBulkWrites(candidates);
-  if (!(writes instanceof Promise)) {
-    actions.applyCellUpdates(writes, "paste");
+  const resolution = resolveBulkWrites(candidates);
+  if (!(resolution instanceof Promise)) {
+    actions.applyCellUpdates(resolution.writes, "paste");
+    fireBulkRejections(resolution.rejected, () => storeApi?.getState() ?? s);
     return true;
   }
 
   const token = guard?.begin();
   const snapshot = snapshotBulkBatch(s, candidateRowIds(s, candidates));
-  void writes.then((resolved) => {
+  void resolution.then((resolved) => {
     const current = storeApi?.getState() ?? s;
     if (guard && token !== undefined && !guard.isCurrent(token, current, snapshot)) return;
-    actions.applyCellUpdates(reresolveBulkWrites(current, resolved), "paste");
+    actions.applyCellUpdates(reresolveBulkWrites(current, resolved.writes), "paste");
+    fireBulkRejections(resolved.rejected, () => current);
   });
   return true;
+}
+
+/** Fires the consumer's `onValidationError` with `source: "paste"`, only when at least one cell was rejected. */
+function fireBulkRejections(rejected: GridBulkValidationError[], readState: () => DataGridStoreState): void {
+  if (rejected.length === 0) return;
+  readState().onValidationError?.({ source: "paste", rejected });
 }
 
 /**

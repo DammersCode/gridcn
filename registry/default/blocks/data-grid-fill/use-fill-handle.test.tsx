@@ -13,9 +13,15 @@ import {
   type GridRect,
   type GridSelection,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridStoreApi, type InteractionLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { useDataGridStoreApi, type BulkResolution, type InteractionLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { createFillStore } from "./fill-store";
 import { buildFillWrites, readRectAsText, useFillHandle } from "./use-fill-handle";
+
+/** Asserts the sync contract while calling: a sync-only column set must never return a Promise. */
+function syncResolution(resolution: BulkResolution | Promise<BulkResolution>): BulkResolution {
+  if (resolution instanceof Promise) throw new Error("expected a synchronous result");
+  return resolution;
+}
 
 /** A fresh 1x1 selection anchored at `coord` — inlined (not imported) since `selectCell` is core-internal (selection/select-cell.ts), not part of the public barrel. */
 function selectCellPure(coord: { col: number; row: number }): GridSelection {
@@ -69,8 +75,8 @@ describe("buildFillWrites", () => {
     const s = fakeState();
     const source: GridRect = { x: 1, y: 0, width: 1, height: 2 }; // qty column, "2","4"
     const strip: GridRect = { x: 1, y: 2, width: 1, height: 2 };
-    const { writes, filled } = buildFillWrites(s, source, strip);
-    expect(writes).toEqual([
+    const { resolution, filled } = buildFillWrites(s, source, strip);
+    expect(syncResolution(resolution).writes).toEqual([
       { viewRow: 2, columnId: "qty", value: 6 },
       { viewRow: 3, columnId: "qty", value: 8 },
     ]);
@@ -81,8 +87,8 @@ describe("buildFillWrites", () => {
     const s = fakeState();
     const source: GridRect = { x: 1, y: 0, width: 1, height: 2 };
     const strip: GridRect = { x: 1, y: 2, width: 1, height: 2 };
-    const { writes } = buildFillWrites(s, source, strip, { forceCopy: true });
-    expect(writes).toEqual([
+    const { resolution } = buildFillWrites(s, source, strip, { forceCopy: true });
+    expect(syncResolution(resolution).writes).toEqual([
       { viewRow: 2, columnId: "qty", value: 2 },
       { viewRow: 3, columnId: "qty", value: 4 },
     ]);
@@ -99,8 +105,8 @@ describe("buildFillWrites", () => {
     // single source cell "x" tiles rightward (no series on non-numeric single value)
     const source: GridRect = { x: 0, y: 0, width: 1, height: 1 };
     const strip: GridRect = { x: 1, y: 0, width: 2, height: 1 };
-    const { writes } = buildFillWrites(s, source, strip);
-    expect(writes).toEqual([
+    const { resolution } = buildFillWrites(s, source, strip);
+    expect(syncResolution(resolution).writes).toEqual([
       { viewRow: 0, columnId: "b", value: "x" },
       { viewRow: 0, columnId: "c", value: "x" },
     ]);
@@ -114,7 +120,7 @@ describe("buildFillWrites", () => {
     const s = fakeState({ columns: roColumns, visibleColumns: roColumns });
     const source: GridRect = { x: 1, y: 0, width: 1, height: 2 };
     const strip: GridRect = { x: 1, y: 2, width: 1, height: 1 };
-    expect(buildFillWrites(s, source, strip).writes).toEqual([]);
+    expect(syncResolution(buildFillWrites(s, source, strip).resolution).writes).toEqual([]);
   });
 
   it("skips a destination value rejected by validate", () => {
@@ -131,7 +137,12 @@ describe("buildFillWrites", () => {
     const s = fakeState({ columns: validated, visibleColumns: validated });
     const source: GridRect = { x: 1, y: 0, width: 1, height: 2 }; // "2","4"
     const strip: GridRect = { x: 1, y: 2, width: 1, height: 2 }; // would extrapolate to 6, 8 — both rejected
-    expect(buildFillWrites(s, source, strip).writes).toEqual([]);
+    const settled = syncResolution(buildFillWrites(s, source, strip).resolution);
+    expect(settled.writes).toEqual([]);
+    expect(settled.rejected).toEqual([
+      { viewRow: 2, columnId: "qty", value: 6, message: "too big" },
+      { viewRow: 3, columnId: "qty", value: 8, message: "too big" },
+    ]);
   });
 
   it("extends a horizontal series rightward", () => {
@@ -145,7 +156,7 @@ describe("buildFillWrites", () => {
     const s = fakeState({ data: data as unknown as Row[], columns: wideColumns as never, visibleColumns: wideColumns as never });
     const source: GridRect = { x: 0, y: 0, width: 2, height: 1 };
     const strip: GridRect = { x: 2, y: 0, width: 1, height: 1 };
-    expect(buildFillWrites(s, source, strip).writes).toEqual([{ viewRow: 0, columnId: "c2", value: "6" }]);
+    expect(syncResolution(buildFillWrites(s, source, strip).resolution).writes).toEqual([{ viewRow: 0, columnId: "c2", value: "6" }]);
   });
 });
 
@@ -160,8 +171,8 @@ describe("buildFillWrites over a lazy (sparse) grid", () => {
     const s = fakeState({ data: sparse, viewIndex: [0, 1, 2, 3] });
     const source: GridRect = { x: 1, y: 0, width: 1, height: 2 }; // qty column, "2","4"
     const strip: GridRect = { x: 1, y: 2, width: 1, height: 2 }; // both rows are holes
-    const { writes } = buildFillWrites(s, source, strip);
-    expect(writes).toEqual([]);
+    const { resolution } = buildFillWrites(s, source, strip);
+    expect(syncResolution(resolution).writes).toEqual([]);
     // one warn per fill gesture, not one per skipped cell
     expect(warn).toHaveBeenCalledTimes(1);
     warn.mockRestore();
@@ -187,33 +198,42 @@ describe("buildFillWrites with an async schema", () => {
     const s = fakeState({ columns: asyncColumns as never, visibleColumns: asyncColumns as never });
     const source: GridRect = { x: 1, y: 0, width: 1, height: 2 };
     const strip: GridRect = { x: 1, y: 2, width: 1, height: 2 };
-    const { writes, filled } = buildFillWrites(s, source, strip);
+    const { resolution, filled } = buildFillWrites(s, source, strip);
 
     expect(filled).toEqual([["6"], ["8"]]); // the 2,4 series continues, before any validation
-    expect(writes).toBeInstanceOf(Promise);
-    // both continued values exceed the schema's limit, so the batch resolves to nothing
-    await expect(writes).resolves.toEqual([]);
+    expect(resolution).toBeInstanceOf(Promise);
+    // both continued values exceed the schema's limit, so the batch resolves to nothing rejected
+    await expect(resolution).resolves.toEqual({
+      writes: [],
+      rejected: [
+        { viewRow: 2, columnId: "qty", value: 6, message: "too big" },
+        { viewRow: 3, columnId: "qty", value: 8, message: "too big" },
+      ],
+    });
   });
 
   it("commits only the cells that pass", async () => {
     const s = fakeState({ columns: asyncColumns as never, visibleColumns: asyncColumns as never });
     const source: GridRect = { x: 1, y: 0, width: 1, height: 1 };
     const strip: GridRect = { x: 1, y: 1, width: 1, height: 3 };
-    const { writes } = buildFillWrites(s, source, strip, { forceCopy: true });
+    const { resolution } = buildFillWrites(s, source, strip, { forceCopy: true });
     // forceCopy tiles the source value 2 down the strip; 2 passes the "> 5" check every time.
     // a HELD batch carries rowId so the apply can re-resolve its view position after a reorder (#90)
-    await expect(writes).resolves.toEqual([
-      { viewRow: 1, columnId: "qty", value: 2, rowId: "2" },
-      { viewRow: 2, columnId: "qty", value: 2, rowId: "3" },
-      { viewRow: 3, columnId: "qty", value: 2, rowId: "4" },
-    ]);
+    await expect(resolution).resolves.toEqual({
+      writes: [
+        { viewRow: 1, columnId: "qty", value: 2, rowId: "2" },
+        { viewRow: 2, columnId: "qty", value: 2, rowId: "3" },
+        { viewRow: 3, columnId: "qty", value: 2, rowId: "4" },
+      ],
+      rejected: [],
+    });
   });
 
   it("a fill that touches only sync columns stays synchronous", () => {
     const s = fakeState({ columns: asyncColumns as never, visibleColumns: asyncColumns as never });
     const source: GridRect = { x: 0, y: 0, width: 1, height: 1 };
     const strip: GridRect = { x: 0, y: 1, width: 1, height: 1 };
-    expect(buildFillWrites(s, source, strip).writes).not.toBeInstanceOf(Promise);
+    expect(buildFillWrites(s, source, strip).resolution).not.toBeInstanceOf(Promise);
   });
 });
 

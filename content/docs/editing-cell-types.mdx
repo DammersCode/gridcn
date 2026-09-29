@@ -224,8 +224,9 @@ Paste, fill, CSV/XLSX import, and `updateCells` hold the batch while the schema 
 - Nothing changes until every verdict is in. The accepted cells then commit together, as one
   `onDataChange` with one ops batch, the same as a sync bulk write. An import above 5,000 rows
   validates in chunks internally, and still hands the whole row array to `onImport` at once.
-- A rejected cell drops silently, and the other cells of the batch still commit. One bad value
-  never fails the batch.
+- A rejected cell drops, and the other cells of the batch still commit. One bad value never fails
+  the batch. Paste and fill report the rejected cells through `onValidationError` when you pass
+  one. `updateCells` and import report theirs through their return values instead.
 - The committed value is the schema's `result.value`, so a transform applies on bulk paths too.
 - A newer operation supersedes a held batch: a second paste over the same area, a data change, a
   sort or filter change, or the unmount of the grid drops the older batch silently.

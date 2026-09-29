@@ -149,15 +149,18 @@ describe("resolveBulkWrites", () => {
   ];
 
   it("keeps only the passing cells and commits the transformed value", async () => {
-    await expect(resolveBulkWrites(candidates)).resolves.toEqual([
-      { viewRow: 0, columnId: "a", value: 2 },
-      { viewRow: 1, columnId: "a", value: 3 },
-    ]);
+    await expect(resolveBulkWrites(candidates)).resolves.toEqual({
+      writes: [
+        { viewRow: 0, columnId: "a", value: 2 },
+        { viewRow: 1, columnId: "a", value: 3 },
+      ],
+      rejected: [{ viewRow: 0, columnId: "b", value: 2, message: "nope" }],
+    });
   });
 
   it("stays synchronous when no candidate is async", () => {
-    const writes = resolveBulkWrites([{ viewRow: 0, columnId: "a", value: 4, validate: syncDouble, row: {} }]);
-    expect(writes).not.toBeInstanceOf(Promise);
-    expect(writes).toEqual([{ viewRow: 0, columnId: "a", value: 8 }]);
+    const resolution = resolveBulkWrites([{ viewRow: 0, columnId: "a", value: 4, validate: syncDouble, row: {} }]);
+    expect(resolution).not.toBeInstanceOf(Promise);
+    expect(resolution).toEqual({ writes: [{ viewRow: 0, columnId: "a", value: 8 }], rejected: [] });
   });
 });

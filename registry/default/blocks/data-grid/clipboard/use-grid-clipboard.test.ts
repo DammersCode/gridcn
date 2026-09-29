@@ -19,9 +19,9 @@ import type { DataGridActions, DataGridStoreState } from "../store";
 
 /** Asserts the sync contract while calling: a sync-only column set must never return a Promise. */
 function buildPasteWrites(s: DataGridStoreState, cells: string[][], target: CellCoord): BulkWrite[] {
-  const writes = buildPasteWritesRaw(s, cells, target);
-  if (writes instanceof Promise) throw new Error("expected a synchronous result");
-  return writes;
+  const resolution = buildPasteWritesRaw(s, cells, target);
+  if (resolution instanceof Promise) throw new Error("expected a synchronous result");
+  return resolution.writes;
 }
 
 type Row = { id: string; name: string; qty: number | null };
@@ -288,13 +288,16 @@ describe("buildPasteWrites", () => {
       { id: "qty", header: "Qty", accessorKey: "qty", type: "number", validate: schema as never },
     ];
     const s = fakeState({ visibleColumns: schemaColumns as unknown as DataGridStoreState["visibleColumns"] });
-    const writes = buildPasteWritesRaw(s, [["x", "9"]], { col: 0, row: 0 });
-    expect(writes).toBeInstanceOf(Promise);
+    const resolution = buildPasteWritesRaw(s, [["x", "9"]], { col: 0, row: 0 });
+    expect(resolution).toBeInstanceOf(Promise);
     // a HELD batch carries rowId so the apply can re-resolve its view position after a reorder (#90)
-    await expect(writes).resolves.toEqual([
-      { viewRow: 0, columnId: "name", value: "x", rowId: "1" },
-      { viewRow: 0, columnId: "qty", value: 90, rowId: "1" },
-    ]);
+    await expect(resolution).resolves.toEqual({
+      writes: [
+        { viewRow: 0, columnId: "name", value: "x", rowId: "1" },
+        { viewRow: 0, columnId: "qty", value: 90, rowId: "1" },
+      ],
+      rejected: [],
+    });
   });
 
   it("an async rejection drops only that cell, exactly like a sync rejection", async () => {
@@ -310,11 +313,14 @@ describe("buildPasteWrites", () => {
       { id: "qty", header: "Qty", accessorKey: "qty", type: "number", validate: schema as never },
     ];
     const s = fakeState({ visibleColumns: schemaColumns as unknown as DataGridStoreState["visibleColumns"] });
-    await expect(buildPasteWritesRaw(s, [["x", "-5"], ["y", "3"]], { col: 0, row: 0 })).resolves.toEqual([
-      { viewRow: 0, columnId: "name", value: "x", rowId: "1" },
-      { viewRow: 1, columnId: "name", value: "y", rowId: "2" },
-      { viewRow: 1, columnId: "qty", value: 3, rowId: "2" },
-    ]);
+    await expect(buildPasteWritesRaw(s, [["x", "-5"], ["y", "3"]], { col: 0, row: 0 })).resolves.toEqual({
+      writes: [
+        { viewRow: 0, columnId: "name", value: "x", rowId: "1" },
+        { viewRow: 1, columnId: "name", value: "y", rowId: "2" },
+        { viewRow: 1, columnId: "qty", value: 3, rowId: "2" },
+      ],
+      rejected: [{ viewRow: 0, columnId: "qty", value: -5, message: "must be >= 0" }],
+    });
   });
 });
 
@@ -376,5 +382,38 @@ describe("pasteText", () => {
     const actions = fakeActions();
     expect(pasteText(s, actions, "x")).toBe(false);
     expect(actions.applyCellUpdates).not.toHaveBeenCalled();
+  });
+
+  const validatingColumns: readonly ColumnDef<Row, unknown>[] = [
+    { id: "name", header: "Name", accessorKey: "name" },
+    { id: "qty", header: "Qty", accessorKey: "qty", type: "number", validate: (v: unknown) => ((v as number) < 0 ? "must be >= 0" : null) },
+  ];
+
+  it("fires onValidationError after applying the accepted cells when a sync validation rejects", () => {
+    const onValidationError = vi.fn();
+    const s = fakeState({
+      selection: selectCellPure({ col: 0, row: 0 }),
+      visibleColumns: validatingColumns as unknown as DataGridStoreState["visibleColumns"],
+      onValidationError,
+    });
+    const actions = fakeActions();
+    expect(pasteText(s, actions, "x\t-5")).toBe(true);
+    expect(actions.applyCellUpdates).toHaveBeenCalledWith([{ viewRow: 0, columnId: "name", value: "x" }], "paste");
+    expect(onValidationError).toHaveBeenCalledWith({
+      source: "paste",
+      rejected: [{ viewRow: 0, columnId: "qty", value: -5, message: "must be >= 0" }],
+    });
+  });
+
+  it("does not fire onValidationError when every pasted cell passes", () => {
+    const onValidationError = vi.fn();
+    const s = fakeState({
+      selection: selectCellPure({ col: 0, row: 0 }),
+      visibleColumns: validatingColumns as unknown as DataGridStoreState["visibleColumns"],
+      onValidationError,
+    });
+    const actions = fakeActions();
+    expect(pasteText(s, actions, "x\t5")).toBe(true);
+    expect(onValidationError).not.toHaveBeenCalled();
   });
 });

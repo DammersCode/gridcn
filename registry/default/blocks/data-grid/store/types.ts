@@ -8,9 +8,13 @@ import type {
   DataChange,
   FilterJoinOperator,
   FilterSpec,
+  GridEditEndEvent,
   GridSelection,
+  GridValidationErrorEvent,
   HeaderClickBehavior,
   Keymap,
+  OnCellContextMenu,
+  OnCellDoubleClick,
   RowMarkersMode,
   SortSpec,
 } from "../types";
@@ -179,10 +183,39 @@ export type DataGridSyncProps<TData = unknown> = {
    * transition (with an empty selection) — this is the dedicated signal for UI resets. Does not
    * fire when the selection is already empty.
    */
-  onSelectionCleared?: () => void;
-  /**
-   * Fires on every live width write during a resize drag (`actions.setColumnWidth`, per drag
-   * frame) — the in-progress counterpart to `onColumnLayoutChange`'s once-per-commit snapshot.
+   onSelectionCleared?: () => void;
+   /**
+    * Fires when the active cell changes to a DIFFERENT cell (value equality on row+col), or when
+    * it is cleared (`null`) — keyboard moves, clicks, commit-driven cursor moves, and the clamp in
+    * `_syncProps`. Re-selecting the same cell does not fire. Fired by a single store subscription,
+    * so every write path to `activeCell` is covered.
+    */
+   onActiveCellChange?: (next: CellCoord | null) => void;
+   /**
+    * Fired when an edit session is about to start (Enter/F2, type-to-replace, double-click) with
+    * the target coord. Return `false` to VETO the edit — `startEditing` then makes no state change
+    * at all (no session, no cursor move). Checkbox cells never start an edit session, so the veto
+    * never applies to them.
+    */
+   onEditStart?: (coord: CellCoord) => boolean | void;
+   /**
+    * Fired when an edit session ends or a commit attempt is refused — `commit` after the session
+    * closes, `cancel` when the draft is discarded, `rejected` when validation refused a commit and
+    * the session stays open (fires per attempt). See {@link GridEditEndEvent}.
+    */
+   onEditEnd?: (event: GridEditEndEvent) => void;
+   /**
+    * Fires after a bulk paste or fill settles, only when at least one cell was rejected by
+    * validation — the accepted cells are applied first. See {@link GridValidationErrorEvent}.
+    */
+   onValidationError?: (event: GridValidationErrorEvent) => void;
+   /** Fired on a double-click on any non-pinned, non-skeleton cell — pure notification, no veto. See {@link OnCellDoubleClick}. */
+   onCellDoubleClick?: OnCellDoubleClick<TData>;
+   /** Fired when the user right-clicks any non-pinned, non-skeleton cell — pure notification. See {@link OnCellContextMenu}. */
+   onCellContextMenu?: OnCellContextMenu<TData>;
+   /**
+    * Fires on every live width write during a resize drag (`actions.setColumnWidth`, per drag
+    * frame) — the in-progress counterpart to `onColumnLayoutChange`'s once-per-commit snapshot.
    * Fired from the store actions layer, no React-render dependency. Not called for the commit
    * itself (drag release/autosize) — pair with `onColumnLayoutChange` if you need that too.
    */

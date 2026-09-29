@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
-import { getCellValue, useDataGridActions, type DataGridStoreState, type GridRect } from "@/registry/default/blocks/data-grid/data-grid";
+import { getCellValue, useDataGridActions, type DataGridStoreState, type GridBulkValidationError, type GridRect } from "@/registry/default/blocks/data-grid/data-grid";
 import {
   applyInlineScrollDelta,
   combineRects,
@@ -15,7 +15,7 @@ import {
   useBulkGeneration,
   useDataGridStoreApi,
   type BulkCandidate,
-  type BulkWrite,
+  type BulkResolution,
   type InteractionLayout,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { computeFillTarget, fillDirection, generateFill, rectRelativeTo, type SeriesDescriptor } from "./fill";
@@ -129,18 +129,18 @@ export function buildFillCandidates(
 }
 
 /**
- * The fill write list plus `generateFill`'s raw text grid. `writes` is a Promise when a filled
- * column's schema validates asynchronously — the hook holds the batch until it resolves, then
- * applies the passing cells as one `applyCellUpdates`.
+ * The fill resolution (accepted writes plus rejected cells) plus `generateFill`'s raw text grid.
+ * `resolution` is a Promise when a filled column's schema validates asynchronously — the hook holds
+ * the batch until it resolves, then applies the passing cells as one `applyCellUpdates`.
  */
 export function buildFillWrites(
   s: DataGridStoreState,
   source: GridRect,
   strip: GridRect,
   opts: { forceCopy?: boolean; detect?: (values: readonly string[]) => SeriesDescriptor | null } = {},
-): { writes: BulkWrite[] | Promise<BulkWrite[]>; filled: string[][] } {
+): { resolution: BulkResolution | Promise<BulkResolution>; filled: string[][] } {
   const { candidates, filled } = buildFillCandidates(s, source, strip, opts);
-  return { writes: resolveBulkWrites(candidates), filled };
+  return { resolution: resolveBulkWrites(candidates), filled };
 }
 
 /** Handlers for the fill-handle drag gesture (see fill-overlay.tsx's handle square) and the fillDown/fillRight shortcuts. */
@@ -236,21 +236,26 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
       onFill?.({ source, target: strip, values: filled, preventDefault: () => (prevented = true) });
       if (prevented) return;
 
-      const writes = resolveBulkWrites(candidates);
-      if (writes instanceof Promise) {
+      const resolution = resolveBulkWrites(candidates);
+      const fireRejected = (rejected: GridBulkValidationError[]) => {
+        if (rejected.length > 0) storeApi.getState().onValidationError?.({ source: "fill", rejected });
+      };
+      if (resolution instanceof Promise) {
         const token = guard.begin();
         const snapshot = snapshotBulkBatch(s, candidateRowIds(s, candidates));
-        void writes.then((resolved) => {
+        void resolution.then((resolved) => {
           const current = storeApi.getState();
           if (!guard.isCurrent(token, current, snapshot)) return;
-          const applied = guard.reresolve(current, resolved);
+          const applied = guard.reresolve(current, resolved.writes);
           actions.applyCellUpdates(applied, "fill");
           // Pulse the cells that actually landed — the re-resolved batch, not the held one.
           actions.flashCells(applied.map((w) => flashCellKey(w.viewRow, w.columnId)));
+          fireRejected(resolved.rejected);
         });
       } else {
-        actions.applyCellUpdates(writes, "fill");
-        actions.flashCells(writes.map((w) => flashCellKey(w.viewRow, w.columnId)));
+        actions.applyCellUpdates(resolution.writes, "fill");
+        actions.flashCells(resolution.writes.map((w) => flashCellKey(w.viewRow, w.columnId)));
+        fireRejected(resolution.rejected);
       }
 
       // expand selection to combineRects(source, strip): re-derive via the plain selectCell/extendTo

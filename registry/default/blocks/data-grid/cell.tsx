@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { COLUMN_BORDER } from "./columns/column-border";
 import type { GetCellClassName, OnCellClick, OnRowClick } from "./types";
 import { getCellValue } from "./columns/column-helpers";
-import { useDataGridActions, useDataGridCellTypes, useDataGridCellEditingError, useDataGridCellRejectionCount, type AnyColumnDef } from "./store";
+import { useDataGridActions, useDataGridCellTypes, useDataGridCellEditingError, useDataGridCellRejectionCount, useDataGridStoreApi, type AnyColumnDef } from "./store";
 import { useDataGridRootContext } from "./layout-context";
 import { pinnedInsetStyle } from "./columns/pinned-inset-style";
 import { cellLayer } from "./layers";
@@ -164,6 +164,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   // explicit TData=unknown: row's `undefined`-narrowed type ({} | null) would otherwise drive inference instead of column's own already-unknown TData.
   const value = row === undefined ? undefined : getCellValue<unknown, typeof column>(row, column);
 
+  const storeApi = useDataGridStoreApi();
   const onPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => interaction.onCellPointerDown(coord, event),
     [interaction, coord],
@@ -181,9 +182,19 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     },
     [interaction, coord, onCellClick, onRowClick, value, row, column, rowIndex, columnIndex],
   );
+  // Pure notifications, read off the store at event time (no prop threading, no re-render
+  // sensitivity) — fired regardless of readOnly and of whatever the gesture also does.
   const onDoubleClick = useCallback(
-    (event: ReactMouseEvent<HTMLDivElement>) => interaction.onCellDoubleClick(coord, event),
-    [interaction, coord],
+    (event: ReactMouseEvent<HTMLDivElement>) => {
+      interaction.onCellDoubleClick(coord, event);
+      storeApi.getState().onCellDoubleClick?.({ value, row, column, rowIndex, columnIndex }, event.nativeEvent);
+    },
+    [interaction, coord, storeApi, value, row, column, rowIndex, columnIndex],
+  );
+  const onContextMenu = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>) =>
+      storeApi.getState().onCellContextMenu?.({ value, row, column, rowIndex, columnIndex }, event.nativeEvent),
+    [storeApi, value, row, column, rowIndex, columnIndex],
   );
 
   const cellTypesRegistry = useDataGridCellTypes();
@@ -322,6 +333,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       // dblclick opens the editor (startEditing) — pointless on a row with nothing to edit yet,
       // and skipping it avoids the guaranteed no-op round-trip through resolveEditTarget.
       onDoubleClick={isPinnedRow || isSkeleton ? undefined : onDoubleClick}
+      onContextMenu={isPinnedRow || isSkeleton ? undefined : onContextMenu}
     >
       {isEditing ? (
         content

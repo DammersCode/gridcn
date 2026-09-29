@@ -45,6 +45,7 @@ export {
   type ValidateBatchItem,
   type BulkCandidate,
   type BulkWrite,
+  type BulkResolution,
 } from "./validation/validate-batch";
 export {
   useBulkGeneration,

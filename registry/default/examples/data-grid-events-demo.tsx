@@ -8,11 +8,14 @@ import {
   DataGridBody,
   defineColumns,
   type CellClickCtx,
+  type CellCoord,
   type ColumnLayout,
   type DataChange,
   type FilterJoinOperator,
   type FilterSpec,
+  type GridEditEndEvent,
   type GridSelection,
+  type GridValidationErrorEvent,
   type RowClickCtx,
   type SelectionChangeDetails,
   type SortSpec,
@@ -114,8 +117,9 @@ function PresenceReadBackButton({
  * pretty-printing the latest payload per event source, most recent first. Wires every event source
  * from the page's numbered sections — onDataChange, onSelectionChange (with details.getValues()),
  * onSortChange, onFilterChange + join, onCellClick/onRowClick, onFill (the `data-grid-fill`
- * add-on's hook option), onRowWindowChange,
- * onColumnLayoutChange + onColumnResizing, and presence read-back as the two-sided contrast.
+ * add-on's hook option), onRowWindowChange, onColumnLayoutChange + onColumnResizing,
+ * onEditStart/onEditEnd, onActiveCellChange, onValidationError, onCellDoubleClick/onCellContextMenu,
+ * and presence read-back as the two-sided contrast.
  */
 export default function DataGridEventsDemo(): ReactNode {
   const [data, setData] = useState<readonly DemoRow[]>(() => generateDemoRows(60));
@@ -189,6 +193,42 @@ export default function DataGridEventsDemo(): ReactNode {
     );
   }, []);
 
+  const onCellDoubleClick = useCallback((ctx: CellClickCtx<DemoRow, unknown>) => {
+    setLog((prev) =>
+      pushLog(prev, {
+        source: "onCellDoubleClick",
+        at: Date.now(),
+        payload: { columnId: ctx.column.id, rowIndex: ctx.rowIndex, columnIndex: ctx.columnIndex, value: ctx.value, rowId: ctx.row.id },
+      }),
+    );
+  }, []);
+
+  const onCellContextMenu = useCallback((ctx: CellClickCtx<DemoRow, unknown>) => {
+    setLog((prev) =>
+      pushLog(prev, {
+        source: "onCellContextMenu",
+        at: Date.now(),
+        payload: { columnId: ctx.column.id, rowIndex: ctx.rowIndex, columnIndex: ctx.columnIndex, rowId: ctx.row.id },
+      }),
+    );
+  }, []);
+
+  const onActiveCellChange = useCallback((next: CellCoord | null) => {
+    setLog((prev) => pushLog(prev, { source: "onActiveCellChange", at: Date.now(), payload: next }));
+  }, []);
+
+  const onEditStart = useCallback((coord: CellCoord) => {
+    setLog((prev) => pushLog(prev, { source: "onEditStart", at: Date.now(), payload: coord }));
+  }, []);
+
+  const onEditEnd = useCallback((event: GridEditEndEvent) => {
+    setLog((prev) => pushLog(prev, { source: "onEditEnd", at: Date.now(), payload: event }));
+  }, []);
+
+  const onValidationError = useCallback((event: GridValidationErrorEvent) => {
+    setLog((prev) => pushLog(prev, { source: "onValidationError", at: Date.now(), payload: event }));
+  }, []);
+
   const onRowClick = useCallback((ctx: RowClickCtx<DemoRow>) => {
     setLog((prev) => pushLog(prev, { source: "onRowClick", at: Date.now(), payload: { rowIndex: ctx.rowIndex, rowId: ctx.row.id } }));
   }, []);
@@ -205,7 +245,7 @@ export default function DataGridEventsDemo(): ReactNode {
     <div className="w-full flex h-[480px] gap-4">
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <p className="text-xs text-muted-foreground">
-          Click or edit a cell, drag-select, sort/filter a column, drag-fill, scroll, resize/pin/hide a column.
+          Click, double-click, right-click, or edit a cell, drag-select, sort/filter, drag-fill, scroll, resize/pin/hide a column.
         </p>
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-border">
           <DataGridProvider
@@ -219,6 +259,12 @@ export default function DataGridEventsDemo(): ReactNode {
             onJoinOperatorChange={onJoinOperatorChange}
             onColumnLayoutChange={onColumnLayoutChange}
             onColumnResizing={onColumnResizing}
+            onActiveCellChange={onActiveCellChange}
+            onEditStart={onEditStart}
+            onEditEnd={onEditEnd}
+            onValidationError={onValidationError}
+            onCellDoubleClick={onCellDoubleClick}
+            onCellContextMenu={onCellContextMenu}
             headerClickBehavior="sort"
             overlayPlugins={overlayPlugins}
           >

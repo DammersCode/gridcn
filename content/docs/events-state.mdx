@@ -24,6 +24,10 @@ sort or filter a column, drag-fill, scroll, resize, pin, or hide a column) to se
 | Control or observe the quick-search text | `searchText` / `onSearchTextChange` | Same controlled-pair convention as [3. `onSortChange`](#3-onsortchange) |
 | Intercept or veto a fill-handle drag | `onFill` | [5. `onFill`](#5-onfill) |
 | React to a plain click on a cell or row | `onCellClick` + `onRowClick` | [6. `onCellClick` + `onRowClick`](#6-oncellclick--onrowclick) |
+| Veto or react to an edit starting or ending | `onEditStart` + `onEditEnd` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
+| React to the active cell moving | `onActiveCellChange` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
+| React to cells a bulk paste or fill rejected | `onValidationError` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
+| React to a double-click or right-click on a cell | `onCellDoubleClick` + `onCellContextMenu` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
 | Fetch rows for the rendered window on demand | `onRowWindowChange` | [7. `onRowWindowChange`](#7-onrowwindowchange) |
 | Save and restore a user's column layout | `onColumnLayoutChange` + `defaultColumnLayout` + `onColumnResizing` | [8. `onColumnLayoutChange` + `defaultColumnLayout` + `onColumnResizing`](#8-oncolumnlayoutchange--defaultcolumnlayout--oncolumnresizing) |
 | Broadcast or receive a remote user's selection | `setPresenceHighlights` / `useDataGridPresenceHighlights` | [9. Presence read-back](#9-presence-read-back--the-two-sided-contrast) |
@@ -313,6 +317,50 @@ reads it back (outbound), with zero grid-owned network code in between. It lives
 core event source. See [Multiplayer presence](/docs/addons/presence) for the full
 write-up, including how to broadcast your own selection with `onSelectionChange`.
 
+## 10. Edit lifecycle and cell events
+
+```ts
+onActiveCellChange?: (next: CellCoord | null) => void;
+onEditStart?: (coord: CellCoord) => boolean | void;
+onEditEnd?: (event: GridEditEndEvent) => void;
+onValidationError?: (event: GridValidationErrorEvent) => void;
+onCellDoubleClick?: (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
+onCellContextMenu?: (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
+```
+
+The first four are store events. They fire from the actions layer with the same
+zero-re-render guarantee as the other callbacks on this page.
+
+- `onActiveCellChange` fires when the active cell becomes a different cell, or when it is
+  cleared (`null`). Re-selecting the same cell does not fire.
+- `onEditStart` fires right before an edit session opens, from Enter or F2, type-to-replace,
+  or a double-click. Return `false` to veto the edit. The edit then does not start at all,
+  and no other event fires for it. Checkbox cells toggle instead of editing, so they never
+  reach `onEditStart`.
+- `onEditEnd` fires with a `result` of `commit`, `cancel`, or `rejected`. `commit` fires after
+  the session closes. `cancel` fires when the draft is discarded, for example on Escape.
+  `rejected` fires when a commit attempt fails validation and the session stays open.
+  It fires once per rejected attempt. `GridEditEndEvent` is `{ coord, result }`. The committed
+  value is not included. `onDataChange` already carries it.
+- `onValidationError` fires after a bulk paste or fill settles, only when at least one cell was
+  rejected by validation. The accepted cells are applied first, so their `onDataChange` fires
+  before this event. `GridValidationErrorEvent` is `{ source: "paste" | "fill", rejected }`, and
+  each rejected entry is `{ viewRow, columnId, value, message }`. Single-cell edits do not use
+  this event. `onEditEnd` with `result: "rejected"` covers that surface.
+
+A commit's events arrive in this order: `onDataChange`, then `onActiveCellChange` (when the
+cursor moves), then `onEditEnd`. With an async `validate` schema, `onEditEnd` waits for the
+schema to settle. The editor stays open while `pending` is true.
+
+The last two are DOM notifications in the `onCellClick` sense:
+
+- `onCellDoubleClick` fires on a double-click on a cell. It fires even on a `readOnly` grid,
+  and it is not a veto point. The grid still starts the edit unless your `onEditStart` vetoes it.
+- `onCellContextMenu` fires on a right-click on a cell. It is a pure notification. The
+  `data-grid-context-menu` add-on listens at the root and is unaffected.
+
+Both receive the same `CellClickCtx` shape as `onCellClick`, plus the native `MouseEvent`.
+
 ## Zero re-render guarantee
 
 Every callback above fires from the store's actions layer, a plain DOM handler already attached
@@ -329,10 +377,8 @@ for anything deeper.
 
 ## Unsupported features
 
-- **Editing lifecycle (`onEditStart`/`onEditStop`)** — the single post-commit `DataChange` batch
-  of `onDataChange` already covers "what changed". Use it unless you must intercept mid-edit, for
-  example to block navigation while editing.
 - **Clipboard notification (`onCopy`/`onPaste`)** — `onDataChange` already fires for a paste
-  (`change.source === 'paste'`). There is no separate copy event.
+  (`change.source === 'paste'`). `onValidationError` reports a paste's rejected cells. There is
+  no separate copy event.
 - **Raw scroll-position callback** — `onRowWindowChange` already reports the rendered row range on
   every scroll-driven change. There is no lower-level pixel-position callback.
