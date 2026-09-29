@@ -450,13 +450,18 @@
                "type": "registry:component",
                "target": "components/data-grid/store/compute.ts"
             },
-            {
-               "path": "registry/default/blocks/data-grid/store/create-store.ts",
-               "type": "registry:component",
-               "target": "components/data-grid/store/create-store.ts"
-            },
-            {
-               "path": "registry/default/blocks/data-grid/store/hooks.ts",
+             {
+                "path": "registry/default/blocks/data-grid/store/create-store.ts",
+                "type": "registry:component",
+                "target": "components/data-grid/store/create-store.ts"
+             },
+             {
+                "path": "registry/default/blocks/data-grid/store/data-write.ts",
+                "type": "registry:component",
+                "target": "components/data-grid/store/data-write.ts"
+             },
+             {
+                "path": "registry/default/blocks/data-grid/store/hooks.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/hooks.ts"
             },

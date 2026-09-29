@@ -9,15 +9,10 @@ import {
   emptySelection,
   extendTo,
   extendSelection,
-  offsetSelectionForRows,
   pushRange,
-  rectFromCorners,
-  reorderSelectionForRow,
-  rowReorderMap,
   selectAllProgression,
   selectCell as selectCellPure,
   selectColumn as selectColumnPure,
-  selectionRects,
   selectRow as selectRowPure,
   type ExtendDirection,
 } from "../selection";
@@ -25,14 +20,12 @@ import {
   applyDefaultColumnLayout,
   cellErrorKey,
   clampIndex,
-  clearErrorsForOps,
   columnFlag,
   computeColumnLayout,
   computeSearchMatches,
   computeVisibleColumns,
   computeViewIndex,
   defHiddenColumnIds,
-  incrementalViewIndex,
   isColumnReadOnly,
   memoizedMergeLabels,
   mergeCellErrors,
@@ -40,7 +33,6 @@ import {
   pruneCellErrors,
   reorderColumnIds,
   resolveSelectionConfig,
-  sameElements,
   toggleSortAdditive,
   withFilterIds,
   EMPTY_CELL_ERRORS,
@@ -48,22 +40,10 @@ import {
   EMPTY_OVERLAY_PLUGINS,
   EMPTY_ROW_BANDS,
 } from "./compute";
-import {
-  computeCellPatchBatch,
-  computeCommit,
-  computeDeleteBatch,
-  computeDuplicateBatch,
-  computeInsertRowsBatch,
-  computeRowEditsBatch,
-  patchesNeedAsyncCheck,
-  prevalidatePatches,
-  type PrevalidatedPatches,
-  resolveEditTarget,
-  warnDev,
-} from "./commit";
-import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
-import { createRowIndexCache, resolveReorder, touchesViewInputs } from "./row-index";
-import type { AnyColumnDef, CellPatch, DataGridStoreState, InternalSyncProps, SyncInputs, UpdateCellsVerdict } from "./types";
+import { resolveEditTarget, warnDev } from "./commit";
+import { createDataWriteActions, createDataWriteContext, forgetDeferredRows, resetDeferredRows } from "./data-write";
+import { createRowIndexCache } from "./row-index";
+import type { AnyColumnDef, DataGridStoreState, InternalSyncProps, SyncInputs } from "./types";
 import { syncInputsEqual } from "./types";
 
 /**
@@ -124,115 +104,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // `rowId -> dataIndex` for updateCells. Every path that inserts, deletes, duplicates, or replaces
   // rows invalidates it; a pure value patch never moves a row, so a streaming tick keeps it warm.
   const rowIndexCache = createRowIndexCache();
-  /**
-   * The last `data` array this store handed to `onDataChange`. A controlled consumer that stores it
-   * and re-renders feeds that same array back through `_syncProps`; recognizing it as our own echo
-   * is what keeps `computeViewIndex` off the controlled streaming path (design spec §3.3 — without
-   * this the 56 ms cliff returns for every controlled consumer).
-   */
-   let lastEmittedData: readonly unknown[] | null = null;
-   /** Per-key auto-clear timers for `flashCells`; a re-flash of a live key clears its old timer so the pulse restarts. */
-   const flashTimers = new Map<string, ReturnType<typeof setTimeout>>();
-  /**
-   * Data indices whose values changed since `viewIndex` was last rebuilt, so `reconcileView` and the
-   * next `"immediate"` batch can take the same incremental path instead of a full re-sort. `null`
-   * means "no longer trackable" — the limit was passed, or a path that moves rows (insert/delete/
-   * duplicate/a consumer `data` replacement) or writes values outside `updateCells` ran — and the
-   * caller falls back to the full rebuild.
-   */
-  /**
-   * Generation counter for a HELD async `updateCells` batch — the streaming surface's counterpart to
-   * the per-hook `useBulkGeneration` the paste/fill/import surfaces use. Bumped by every path that
-   * replaces rows or writes values outside the held batch, so a verdict that resolves against a grid
-   * that has moved on is dropped instead of landing late on top of newer data.
-   */
-  let streamGeneration = 0;
-  let deferredRows: Set<number> | null = new Set();
-  const forgetDeferredRows = () => {
-    streamGeneration += 1;
-    deferredRows = null;
-  };
-  const resetDeferredRows = () => {
-    streamGeneration += 1;
-    deferredRows = new Set();
-  };
-  /** Records a non-reordering batch's rows, giving up once the set is bigger than the incremental path serves. */
-  const rememberDeferredRows = (touchedRows: readonly number[]) => {
-    if (!deferredRows) return;
-    for (const row of touchedRows) deferredRows.add(row);
-    if (deferredRows.size > INCREMENTAL_PATCH_LIMIT) forgetDeferredRows();
-  };
-  /** This batch's touched rows plus anything an earlier batch left unreconciled; `null` when untrackable. */
-  const pendingRows = (touchedRows: readonly number[]): readonly number[] | null => {
-    if (!deferredRows) return null;
-    if (deferredRows.size === 0) return touchedRows;
-    const union = new Set(deferredRows);
-    for (const row of touchedRows) union.add(row);
-    return Array.from(union);
-  };
-  /**
-   * The next `viewIndex` for a reorder: incremental when `pending` is known and provably equivalent
-   * to the rebuild, the full rebuild otherwise. Returns the PREVIOUS array identity when no row
-   * moved, so a tick that changes no position re-renders nothing downstream of `viewIndex`.
-   */
-  const resolveViewIndex = (
-    s: DataGridStoreState,
-    data: readonly unknown[],
-    pending: readonly number[] | null,
-  ): number[] => {
-    const incremental = pending
-      ? incrementalViewIndex(data, s.columns, s.sortState, s.filterState, s.joinOperator, s.viewIndex, pending, s.cellTypes)
-      : null;
-    if (incremental) return sameElements(incremental, s.viewIndex) ? s.viewIndex : incremental;
-    return computeViewIndex(data, s.columns, s.sortState, s.filterState, s.joinOperator, s.viewIndex, s.cellTypes);
-  };
-  /**
-   * The view bookkeeping every direct write path (edit/paste/fill/delete) owes after committing
-   * `nextData`, mirroring what `updateCells` does for a `"defer"` batch: `viewIndex` deliberately
-   * stays put (no auto-resort), but `viewStale` has to flip so the re-sort affordance and
-   * `reconcileView()` can recover, and `searchMatches` has no deferred contract at all so it is
-   * recomputed in place. Both halves no-op unless a search or a view-feeding column is involved.
-   */
-  const reconcileAfterWrite = (
-    s: DataGridStoreState,
-    nextData: readonly unknown[],
-    ops: readonly DataOp<unknown>[],
-  ): Partial<DataGridStoreState> => {
-    const written: CellPatch[] = [];
-    for (const op of ops) {
-      if (op.type !== "update" || !op.cells) continue;
-      for (const cell of op.cells) written.push({ rowId: op.rowId, columnId: cell.columnId, value: cell.value });
-    }
-    const viewStale = s.viewStale || touchesViewInputs(written, s.sortState, s.filterState);
-    if (s.searchText.trim() === "") return viewStale === s.viewStale ? {} : { viewStale };
-    return {
-      ...(viewStale === s.viewStale ? {} : { viewStale }),
-      ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
-    };
-  };
-  /**
-   * The view bookkeeping a row-shifting op (`insertRows`/`deleteRows`/`duplicateRows`) owes: the
-   * row count changed, so `computeViewIndex` always returns a fresh array (the content-equality
-   * reuse cannot apply), `searchMatches` is recomputed against it, and `viewStale` is cleared —
-   * the full rebuild reconciles whatever a deferred `updateCells` batch left stale, mirroring
-   * `setColumnHidden`.
-   */
-  /** With a sort or filter active, inserted rows land anywhere: follow the active row by identity and collapse the selection onto it. */
-  const followActiveRow = (s: DataGridStoreState, nextData: readonly unknown[], viewIndex: readonly number[]): Pick<DataGridStoreState, "selection" | "activeCell"> => {
-    const dataRow = s.activeCell ? s.viewIndex[s.activeCell.row] : undefined;
-    const row = dataRow === undefined || s.data[dataRow] === undefined ? -1 : viewIndex.indexOf(nextData.indexOf(s.data[dataRow]));
-    if (!s.activeCell || row === -1) return { selection: emptySelection(), activeCell: null };
-    const cell = { col: s.activeCell.col, row };
-    return { selection: { ...emptySelection(), current: { cell, range: rectFromCorners(cell, cell), rangeStack: [] } }, activeCell: cell };
-  };
-  const rebuildRowOpView = (s: DataGridStoreState, nextData: readonly unknown[]): Partial<DataGridStoreState> => {
-    const viewIndex = computeViewIndex(nextData, s.columns, s.sortState, s.filterState, s.joinOperator, s.viewIndex, s.cellTypes);
-    return {
-      viewIndex,
-      viewStale: false,
-      ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
-    };
-  };
+  /** Per-key auto-clear timers for `flashCells`; a re-flash of a live key clears its old timer so the pulse restarts. */
+  const flashTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  // The data-write cluster's streaming bookkeeping (see data-write.ts) — the write actions and _syncProps share it by reference.
+  const dataWrite = createDataWriteContext(rowIndexCache);
+
   /**
    * Owe after every viewIndex/visibleColumns rebuild: re-anchor an open edit to the new view
    * position of its rowId/columnId (the draft survives the move), and move `activeCell` with it
@@ -550,7 +426,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const nextHidden = Array.from(current);
         const nextVisibleColumns = computeVisibleColumns(s.columns, s.columnOrder, nextHidden);
         const viewIndex = computeViewIndex(s.data, s.columns, s.sortState, s.filterState, s.joinOperator, s.viewIndex, s.cellTypes);
-        resetDeferredRows();
+        resetDeferredRows(dataWrite);
         set({
           hiddenColumns: nextHidden,
           visibleColumns: nextVisibleColumns,
@@ -576,7 +452,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (s.sortControlled) return;
         set((s2) => {
           const viewIndex = computeViewIndex(s2.data, s2.columns, sorts, s2.filterState, s2.joinOperator, s2.viewIndex, s2.cellTypes);
-          resetDeferredRows();
+          resetDeferredRows(dataWrite);
           return {
             sortState: sorts,
             viewIndex,
@@ -592,7 +468,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (s.sortControlled) return;
         set((s2) => {
           const viewIndex = computeViewIndex(s2.data, s2.columns, sorts, s2.filterState, s2.joinOperator, s2.viewIndex, s2.cellTypes);
-          resetDeferredRows();
+          resetDeferredRows(dataWrite);
           return {
             sortState: sorts,
             viewIndex,
@@ -610,7 +486,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (s.filterControlled) return;
         set((s2) => {
           const viewIndex = computeViewIndex(s2.data, s2.columns, s2.sortState, withIds, s2.joinOperator, s2.viewIndex, s2.cellTypes);
-          resetDeferredRows();
+          resetDeferredRows(dataWrite);
           return {
             filterState: withIds,
             viewIndex,
@@ -626,7 +502,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (s.joinOperatorControlled) return;
         set((s2) => {
           const viewIndex = computeViewIndex(s2.data, s2.columns, s2.sortState, s2.filterState, joinOperator, s2.viewIndex, s2.cellTypes);
-          resetDeferredRows();
+          resetDeferredRows(dataWrite);
           return {
             joinOperator,
             viewIndex,
@@ -660,91 +536,14 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         set({ editing: null, editingError: null });
         if (s.editing) s.onEditEnd?.({ coord: s.editing.coord, result: "cancel" });
       },
-      commitCellEdit(value, movement, rejection) {
-        const s = get();
-        const editing = s.editing;
-        if (!editing) return;
-        // Identity guard: the write resolves by rowId/columnId, so a view rebuild the remap missed
-        // discards the draft here instead of writing it into whichever row the coord now points at.
-        const dataRowIndex = rowIndexCache.resolve(s.data, s.getRowId).get(editing.rowId);
-        const anchorStale =
-          dataRowIndex === undefined ||
-          s.viewIndex[editing.coord.row] !== dataRowIndex ||
-          s.visibleColumns[editing.coord.col]?.id !== editing.columnId;
-        if (anchorStale) {
-          const onEditCell =
-            s.activeCell !== null && s.activeCell.row === editing.coord.row && s.activeCell.col === editing.coord.col;
-          set({ editing: null, editingError: null, ...(onEditCell ? { activeCell: null } : {}) });
-          return;
-        }
-        const maxRow = Math.max(0, s.viewIndex.length - 1);
-        const maxCol = Math.max(0, s.visibleColumns.length - 1);
-        const nextActiveCell = movement
-          ? {
-              col: clampIndex(editing.coord.col + movement.dx, maxCol),
-              row: clampIndex(editing.coord.row + movement.dy, maxRow),
-            }
-          : editing.coord;
-
-        const result = computeCommit(s, editing.coord, value, rejection);
-        // Stale session: while a (possibly async) validation was pending the user moved
-        // activeCell off the editing cell (a click-away). The data commit is still the user's own
-        // value — but restoring `activeCell`/`selection` from the stale editing coord would drag
-        // their cursor back, so it is skipped.
-        const stale =
-          s.activeCell !== null && (s.activeCell.row !== editing.coord.row || s.activeCell.col !== editing.coord.col);
-        const restoreSelection = stale ? {} : { activeCell: nextActiveCell, selection: selectCellPure(nextActiveCell) };
-        if ("error" in result) {
-          set({ editingError: result.error, editingRejectionCount: s.editingRejectionCount + 1 });
-          s.onEditEnd?.({ coord: editing.coord, result: "rejected" });
-          return;
-        }
-        if ("noop" in result) {
-          set({
-            editing: null,
-            editingError: null,
-            ...restoreSelection,
-            // an `onInvalid: "warn"` re-commit of the same value still lands its flag
-            ...(result.warnings ? { cellErrors: mergeCellErrors(s.cellErrors, result.warnings) } : {}),
-          });
-          s.onEditEnd?.({ coord: editing.coord, result: "commit" });
-          return;
-        }
-        rowIndexCache.rebase(result.data);
-        forgetDeferredRows();
-        lastEmittedData = result.data;
-        s.onDataChange?.(result.data, result.change);
-        const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, result.change.ops), result.data, result.change.ops);
-        set({
-          data: result.data,
-          editing: null,
-          editingError: null,
-          // warn rejections commit AND flag — merged after the auto-clear + validateRow verdict so the freshest signal wins
-          cellErrors: result.warnings ? mergeCellErrors(cellErrors, result.warnings) : cellErrors,
-          ...restoreSelection,
-          ...reconcileAfterWrite(s, result.data, result.change.ops),
-        });
-        s.onEditEnd?.({ coord: editing.coord, result: "commit" });
-      },
-      commitCellValue(coord, value) {
-        const s = get();
-        const result = computeCommit(s, coord, value);
-        if ("error" in result) return;
-        if ("noop" in result) {
-          if (result.warnings) set({ cellErrors: mergeCellErrors(s.cellErrors, result.warnings) });
-          return;
-        }
-        rowIndexCache.rebase(result.data);
-        forgetDeferredRows();
-        lastEmittedData = result.data;
-        s.onDataChange?.(result.data, result.change);
-        const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, result.change.ops), result.data, result.change.ops);
-        set({
-          data: result.data,
-          cellErrors: result.warnings ? mergeCellErrors(cellErrors, result.warnings) : cellErrors,
-          ...reconcileAfterWrite(s, result.data, result.change.ops),
-        });
-      },
+      // The data-write cluster (see data-write.ts): the edit commits, the bulk writers, and the row ops.
+      ...createDataWriteActions(set, get, {
+        ctx: dataWrite,
+        applyRowValidation,
+        pruneRowValidationKeys,
+        warnViewSpacePresenceStale,
+        remapEditing,
+      }),
       setEditingError(message) {
         const s = get();
         if (!s.editing) return;
@@ -805,345 +604,6 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (next.size === s.flashingCells.size) return;
         set({ flashingCells: next });
       },
-      deleteSelection() {
-        const s = get();
-        if (s.readOnly) return;
-        const rects = selectionRects(s.selection, s.viewIndex.length, s.visibleColumns.length);
-        if (rects.length === 0) return;
-
-        const resolvedCols = s.visibleColumns.map((column) => {
-          const cellType = s.cellTypes[column.type ?? "text"];
-          return cellType ? { columnId: column.id, value: cellType.clearValue(column.options) } : null;
-        });
-        const writes: { viewRow: number; columnId: string; value: unknown }[] = [];
-        for (const rect of rects) {
-          for (let viewRow = rect.y; viewRow < rect.y + rect.height; viewRow++) {
-            for (let col = rect.x; col < rect.x + rect.width; col++) {
-              const resolved = resolvedCols[col];
-              if (!resolved) continue;
-              writes.push({ viewRow, columnId: resolved.columnId, value: resolved.value });
-            }
-          }
-        }
-
-        const batch = computeRowEditsBatch(s, writes);
-        if (!batch) return;
-        rowIndexCache.rebase(batch.nextData);
-        forgetDeferredRows();
-        lastEmittedData = batch.nextData;
-        s.onDataChange?.(batch.nextData, { source: "delete", ops: batch.ops });
-        set({
-          data: batch.nextData,
-          cellErrors: applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops),
-          ...reconcileAfterWrite(s, batch.nextData, batch.ops),
-        });
-      },
-      applyCellUpdates(updates, source) {
-        const s = get();
-        if (s.readOnly || updates.length === 0) return;
-        const batch = computeRowEditsBatch(s, updates);
-        if (!batch) return;
-        rowIndexCache.rebase(batch.nextData);
-        forgetDeferredRows();
-        lastEmittedData = batch.nextData;
-        s.onDataChange?.(batch.nextData, { source, ops: batch.ops });
-        const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops);
-
-        // move selection to cover the touched view rect (paste's anchored-expand result).
-        let minRow = Infinity, maxRow = -Infinity, minCol = Infinity, maxCol = -Infinity;
-        const idByCol = new Map(s.visibleColumns.map((c, i) => [c.id, i] as const));
-        for (const u of updates) {
-          const col = idByCol.get(u.columnId);
-          if (col === undefined) continue;
-          minRow = Math.min(minRow, u.viewRow);
-          maxRow = Math.max(maxRow, u.viewRow);
-          minCol = Math.min(minCol, col);
-          maxCol = Math.max(maxCol, col);
-        }
-        if (minRow === Infinity) {
-          set({ data: batch.nextData, cellErrors, ...reconcileAfterWrite(s, batch.nextData, batch.ops) });
-          return;
-        }
-        const range = rectFromCorners({ col: minCol, row: minRow }, { col: maxCol, row: maxRow });
-        set({
-          data: batch.nextData,
-          cellErrors,
-          selection: { ...emptySelection(), current: { cell: { col: minCol, row: minRow }, range, rangeStack: [] } },
-          activeCell: { col: minCol, row: minRow },
-          ...reconcileAfterWrite(s, batch.nextData, batch.ops),
-        });
-      },
-      updateCells(patches, options) {
-        const s = get();
-        if (s.readOnly || patches.length === 0) return { applied: 0, skipped: [], pending: false };
-        const skipValidation = options?.skipValidation ?? false;
-
-        // Re-enters with skipValidation once accepted, so the incremental view path only ever sees validated values.
-        if (!skipValidation && patchesNeedAsyncCheck(s, patches)) {
-          const rowIndex = rowIndexCache.resolve(s.data, s.getRowId);
-          const validated = prevalidatePatches(s, patches, rowIndex);
-          // Skips report indexes into the caller's `patches`, not into the accepted subset.
-          const apply = ({ accepted, acceptedIndexes, rejectedIndexes }: PrevalidatedPatches): UpdateCellsVerdict => {
-            const invalid = rejectedIndexes.map((patchIndex) => ({ patchIndex, reason: "invalid" as const }));
-            if (accepted.length === 0) return { applied: 0, skipped: invalid, pending: false };
-            const verdict = get().actions.updateCells(accepted, { ...options, skipValidation: true });
-            const remapped = verdict.skipped.map((skip) => ({ ...skip, patchIndex: acceptedIndexes[skip.patchIndex]! }));
-            return { ...verdict, skipped: [...invalid, ...remapped].sort((a, b) => a.patchIndex - b.patchIndex) };
-          };
-          if (validated instanceof Promise) {
-            const token = ++streamGeneration;
-            void validated.then((accepted) => {
-              // A newer updateCells, or any path that moved rows, supersedes this batch silently.
-              if (streamGeneration !== token) return;
-              void apply(accepted);
-            });
-            // the held batch's outcome (accepted, dropped, or superseded) is not reportable here
-            return { applied: 0, skipped: [], pending: true };
-          }
-          return apply(validated);
-        }
-
-        const rowIndex = rowIndexCache.resolve(s.data, s.getRowId);
-        const batch = computeCellPatchBatch(s, patches, rowIndex, skipValidation);
-        if (batch.nextData === null) return { applied: 0, skipped: batch.skipped, pending: false };
-        const applied = batch.ops.reduce((n, op) => (op.type === "update" ? n + (op.cells?.length ?? 0) : n), 0);
-
-        let reorder = resolveReorder(options?.reorder, patches, s.sortState, s.filterState);
-        // an open editor pins a view coordinate an immediate re-sort would silently remount (the
-        // commit path re-reads the shifted viewIndex for the same coord), so the batch defers
-        if (reorder === "immediate" && s.editing) reorder = "defer";
-        rowIndexCache.rebase(batch.nextData);
-        lastEmittedData = batch.nextData;
-        s.onDataChange?.(batch.nextData, { source: options?.source ?? "stream", ops: batch.ops });
-        // clearErrorsForOps returns the SAME map identity when `s.cellErrors` is empty (the common
-        // streaming case), so this costs nothing extra on the hot path this action exists for.
-        const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops);
-
-        // The fast path, and the whole point of the action: one set() writing `data` alone. Row
-        // identities changed only for touched rows, so their per-row subscriptions re-render and
-        // every other row's memo holds. viewIndex/searchMatches/visibleColumns keep their identity,
-        // so no comparator downstream of them re-runs.
-        if (reorder !== "immediate") {
-          // Recorded for `"never"` too: that mode is a caller ASSERTION that no touched column feeds
-          // the view, and a later reconcile has to stay correct even when the assertion was wrong.
-          rememberDeferredRows(batch.touchedRows);
-          set(
-            reorder === "defer" && !s.viewStale
-              ? { data: batch.nextData, viewStale: true, cellErrors }
-              : { data: batch.nextData, cellErrors },
-          );
-          return { applied, skipped: batch.skipped, pending: false };
-        }
-        warnViewSpacePresenceStale(s);
-        // Incremental maintenance: a full rebuild re-sorts all n rows every tick, and a patch of a
-        // few rows can only move those rows. Rows an earlier non-reordering batch left unreconciled
-        // move in this pass too, since the rest of the order is what the binary search trusts.
-        const viewIndex = resolveViewIndex(s, batch.nextData, pendingRows(batch.touchedRows));
-        resetDeferredRows();
-        set({
-          data: batch.nextData,
-          cellErrors,
-          viewIndex,
-          viewStale: false,
-          ...computeSearchMatches(batch.nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
-        });
-        return { applied, skipped: batch.skipped, pending: false };
-      },
-      updateRows(updates, options) {
-        if (updates.length === 0) return { applied: 0, skipped: [], pending: false };
-        const patches: CellPatch[] = [];
-        for (const update of updates) {
-          for (const columnId of Object.keys(update.changes)) {
-            patches.push({ rowId: update.rowId, columnId, value: update.changes[columnId] });
-          }
-        }
-        return get().actions.updateCells(patches, options);
-      },
-      reconcileView() {
-        const s = get();
-        if (!s.viewStale) return;
-        // Same incremental path an `"immediate"` batch takes, over whatever the deferred batches touched.
-        const viewIndex = resolveViewIndex(s, s.data, pendingRows([]));
-        resetDeferredRows();
-        set({
-          viewIndex,
-          viewStale: false,
-          ...remapEditing(s, viewIndex, s.visibleColumns),
-          ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
-        });
-      },
-      insertRow(viewRowIndex, position) {
-        // single implementation path: the 1-row case of the batch action (same one undo step).
-        get().actions.insertRows(viewRowIndex, 1, position);
-      },
-      insertRows(viewRowIndex, count, position = "below") {
-        const s = get();
-        if (s.readOnly) return;
-        // an open editor pins a view coordinate the shift would silently invalidate (the commit
-        // path re-reads the shifted viewIndex for the same coord)
-        if (s.editing) {
-          warnDev("insertRows is a no-op while an edit session is open");
-          return;
-        }
-        if (!s.createRow) {
-          warnDev("row insertion is a no-op because no `createRow` prop was provided");
-          return;
-        }
-        if (count <= 0 || !Number.isInteger(count)) {
-          if (count > 0) warnDev(`insertRows: count must be an integer (got ${count})`);
-          return;
-        }
-        const dataRowIndex = clampIndex(
-          position === "above" ? (s.viewIndex[viewRowIndex] ?? s.data.length) : (s.viewIndex[viewRowIndex] ?? s.data.length - 1) + 1,
-          s.data.length,
-        );
-        const rows: unknown[] = [];
-        for (let i = 0; i < count; i++) rows.push(s.createRow(dataRowIndex + i));
-        const batch = computeInsertRowsBatch(s, dataRowIndex, rows);
-        warnViewSpacePresenceStale(s);
-        rowIndexCache.invalidate();
-        forgetDeferredRows();
-        lastEmittedData = batch.nextData;
-        s.onDataChange?.(batch.nextData, { source: "row-op", ops: batch.ops });
-        const view = rebuildRowOpView(s, batch.nextData);
-        if (s.sortState.length > 0 || s.filterState.length > 0) {
-          pruneRowValidationKeys(batch.nextData, s.getRowId);
-          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view });
-          return;
-        }
-        // unsorted and unfiltered, the new rows land at this view index; shift selection/activeCell to follow them.
-        const viewInsertAt = position === "above" ? viewRowIndex : viewRowIndex + 1;
-        pruneRowValidationKeys(batch.nextData, s.getRowId);
-        set({
-          data: batch.nextData,
-          rowIdentityVersion: s.rowIdentityVersion + 1,
-          cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
-          selection: offsetSelectionForRows(s.selection, viewInsertAt, count),
-          activeCell: s.activeCell && s.activeCell.row >= viewInsertAt
-            ? { ...s.activeCell, row: s.activeCell.row + count }
-            : s.activeCell,
-          ...view,
-        });
-      },
-      deleteRows(viewRowIndexes) {
-        const s = get();
-        if (s.readOnly) return;
-        // an open editor pins a view coordinate the shift would silently invalidate (the commit
-        // path re-reads the shifted viewIndex for the same coord)
-        if (s.editing) {
-          warnDev("deleteRows is a no-op while an edit session is open");
-          return;
-        }
-        const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
-        const batch = computeDeleteBatch(s, dataRowIndexes);
-        if (!batch) return;
-        warnViewSpacePresenceStale(s);
-        rowIndexCache.invalidate();
-        forgetDeferredRows();
-        lastEmittedData = batch.nextData;
-        s.onDataChange?.(batch.nextData, { source: "row-op", ops: batch.ops });
-        pruneRowValidationKeys(batch.nextData, s.getRowId);
-        set({
-          data: batch.nextData,
-          rowIdentityVersion: s.rowIdentityVersion + 1,
-          cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
-          selection: emptySelection(),
-          activeCell: null,
-          ...rebuildRowOpView(s, batch.nextData),
-        });
-      },
-      duplicateRows(viewRowIndexes) {
-        const s = get();
-        if (s.readOnly) return;
-        // an open editor pins a view coordinate the shift would silently invalidate (the commit
-        // path re-reads the shifted viewIndex for the same coord)
-        if (s.editing) {
-          warnDev("duplicateRows is a no-op while an edit session is open");
-          return;
-        }
-        if (!s.duplicateRow) {
-          warnDev("duplicateRows is a no-op because no `duplicateRow` prop was provided");
-          return;
-        }
-        const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
-        const batch = computeDuplicateBatch(s, dataRowIndexes);
-        if (!batch) return;
-        warnViewSpacePresenceStale(s);
-        rowIndexCache.invalidate();
-        forgetDeferredRows();
-        lastEmittedData = batch.nextData;
-        s.onDataChange?.(batch.nextData, { source: "row-op", ops: batch.ops });
-        const view = rebuildRowOpView(s, batch.nextData);
-        if (s.sortState.length > 0 || s.filterState.length > 0) {
-          pruneRowValidationKeys(batch.nextData, s.getRowId);
-          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view });
-          return;
-        }
-        // unsorted and unfiltered, each duplicate lands directly after its source view row; fold one
-        // offset per source, ascending, so earlier insertions shift later sources' view indices too.
-        const uniqueAscendingViewRows = Array.from(new Set(viewRowIndexes)).sort((a, b) => a - b);
-        let selection = s.selection;
-        let activeCell = s.activeCell;
-        uniqueAscendingViewRows.forEach((viewRow, i) => {
-          const insertAt = viewRow + 1 + i;
-          selection = offsetSelectionForRows(selection, insertAt, 1);
-          if (activeCell && activeCell.row >= insertAt) activeCell = { ...activeCell, row: activeCell.row + 1 };
-        });
-        pruneRowValidationKeys(batch.nextData, s.getRowId);
-        set({
-          data: batch.nextData,
-          rowIdentityVersion: s.rowIdentityVersion + 1,
-          cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
-          selection,
-          activeCell,
-          ...view,
-        });
-      },
-      reorderRows(from, to) {
-        const s = get();
-        if (!s.enableRowReorder) return false;
-        if (s.readOnly) return false;
-        // an open editor pins a view coordinate the move would silently invalidate (the commit
-        // path re-reads the shifted viewIndex for the same coord)
-        if (s.editing) return false;
-        if (s.sortState.length > 0 || s.filterState.length > 0) {
-          warnDev("reorderRows is a no-op while a sort or filter is active (the view order is owned by the sort/filter)");
-          return false;
-        }
-        const n = s.data.length;
-        if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || from >= n || to < 0 || to >= n || from === to) return false;
-        // viewIndex is the identity permutation here (sort/filter gated above), so view == data indices
-        const fromData = s.viewIndex[from]!;
-        const toData = s.viewIndex[to]!;
-        if (toData === fromData) return false;
-        for (let i = 0; i < n; i++) {
-          // indexed access (not .some/forEach, which skip sparse holes): a reorder would shift
-          // the lazy add-on's index-keyed loaded-range bookkeeping out from under in-flight fetches
-          if (s.data[i] === undefined) {
-            warnDev("reorderRows is a no-op while rows are still unloaded (useDataGridLazyRows): load the range first");
-            return false;
-          }
-        }
-        const moved = s.data[fromData]!;
-        const nextData = s.data.slice();
-        nextData.splice(fromData, 1);
-        nextData.splice(toData, 0, moved);
-        const ops: DataOp<unknown>[] = [{ type: "move", rowId: s.getRowId(moved, fromData), row: moved, from: fromData, to: toData }];
-        warnViewSpacePresenceStale(s);
-        rowIndexCache.invalidate();
-        forgetDeferredRows();
-        lastEmittedData = nextData;
-        s.onDataChange?.(nextData, { source: "row-op", ops });
-        const f = rowReorderMap(from, to);
-        set({
-          data: nextData,
-          rowIdentityVersion: s.rowIdentityVersion + 1,
-          selection: reorderSelectionForRow(s.selection, from, to),
-          activeCell: s.activeCell ? { ...s.activeCell, row: f(s.activeCell.row) } : null,
-          lastHighlightedRow: s.lastHighlightedRow === null ? null : f(s.lastHighlightedRow),
-        });
-        return true;
-      },
       _moveActiveCell(d, opts) {
         const s = get();
         const active = s.activeCell ?? { col: 0, row: 0 };
@@ -1196,7 +656,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           // rows with a sort active. Recognizing our own array skips it, which is what makes
           // updateCells fast for controlled consumers too (design spec §3.3). A consumer who maps,
           // filters, or otherwise rebuilds the array before storing it falls back to the slow path.
-          const isEcho = nextData === lastEmittedData;
+          const isEcho = nextData === dataWrite.lastEmittedData;
           // A `data` array we did not produce reordered or replaced rows as far as this store knows,
           // so the id map must be rebuilt. Our own echo never moved a row (updateCells patches
           // values in place), so it keeps the map — rebuilding it per tick is the O(n) cost the API
@@ -1208,7 +668,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             nextData !== s.data && !isEcho ? pruneCellErrors(s.cellErrors, nextData, s.getRowId) : s.cellErrors;
           if (nextData !== s.data && !isEcho) {
             rowIndexCache.invalidate();
-            forgetDeferredRows();
+            forgetDeferredRows(dataWrite);
             pruneRowValidationKeys(nextData, s.getRowId);
           }
           // A genuine consumer-driven `columns` prop change replaces `s.columns` outright; syncing
@@ -1249,7 +709,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             ? s.viewIndex
             : computeViewIndex(nextData, nextColumns, nextSortState, nextFilterState, nextJoinOperator, s.viewIndex, nextCellTypes);
           // A full rebuild leaves nothing pending for the incremental path to replay.
-          if (!unchanged) resetDeferredRows();
+          if (!unchanged) resetDeferredRows(dataWrite);
           // If viewIndex is unchanged (same reference either from the guard above or from
           // computeViewIndex's own content-equality reuse), no row fell out of view, so this
           // clamp is a no-op — filtering against nextViewIndex.length still runs but keeps every row.
