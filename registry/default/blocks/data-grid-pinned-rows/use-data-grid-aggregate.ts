@@ -2,13 +2,8 @@
 
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { useStore } from "zustand";
-import {
-  getCellValue,
-  isDev,
-  useDataGridStoreApi,
-  type AnyColumnDef,
-  type DataGridStoreState,
-} from "@/registry/default/blocks/data-grid/data-grid";
+import { getCellValue, type AnyColumnDef, type DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Built-in reducers; a function receives every resolved value plus its source rows (empty values included — unlike the built-ins, a custom reducer owns its own empty handling). `TData` is the grid's row type: pass it at the hook call (or annotate `specs` as `AggregateSpecs<Row>`) so `rows` is typed. */
 export type AggregateReducer<TData = unknown> = "sum" | "avg" | "min" | "max" | "count" | ((values: readonly unknown[], rows: readonly TData[]) => unknown);

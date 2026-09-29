@@ -6,15 +6,14 @@ import {
   cellTypes,
   DataGridProvider,
   useDataGridActions,
-  useDataGridStoreApi,
   type ColumnDef,
   type DataChange,
   type DataGridProviderProps,
   type DataGridStoreState,
   type GridRect,
   type GridSelection,
-  type InteractionLayout,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridStoreApi, type InteractionLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { createFillStore } from "./fill-store";
 import { buildFillWrites, readRectAsText, useFillHandle } from "./use-fill-handle";
 

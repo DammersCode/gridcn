@@ -27,10 +27,13 @@ import {
   useDataGridSelection,
   useDataGridSelectionConfig,
   useDataGridGetSelectionValues,
+  useDataGridSelector,
   useDataGridSortState,
+  useDataGridStoreApi,
   useDataGridViewIndex,
   useDataGridViewStale,
   useDataGridVisibleColumns,
+  type DataGridStoreState,
 } from "../store";
 import type { FilterSpec, SortSpec } from "../types";
 
@@ -3325,5 +3328,47 @@ describe("row-moving ops with an active view-space presence entry", () => {
 
     expect(warn).toHaveBeenCalledTimes(2);
     warn.mockRestore();
+  });
+});
+
+describe("useDataGridSelector / typed useDataGridRow", () => {
+  it("hands the selector rows typed as TData", () => {
+    const { result, unmount } = renderHook(
+      () => {
+        const data = useDataGridSelector<Row, readonly Row[]>((s) => s.data);
+        const first = useDataGridRow<Row>(0);
+        return { data, first };
+      },
+      { wrapper: makeWrapper() },
+    );
+    expect(result.current.data.map((r) => r.name)).toEqual(["Charlie", "Alice", "Bob"]);
+    expect(result.current.first?.name).toBe("Charlie");
+    unmount();
+  });
+
+  it("honors an equality function: a value-only update that keeps the derived value equal does not re-render", () => {
+    let renders = 0;
+    let storeApi: import("zustand/vanilla").StoreApi<DataGridStoreState> | null = null;
+    function Probe() {
+      renders++;
+      storeApi = useDataGridStoreApi();
+      useDataGridSelector<Row, { n: number }>(
+        (s) => ({ n: s.data.length }),
+        (a, b) => a.n === b.n,
+      );
+      return null;
+    }
+    const { unmount } = render(
+      <DataGridProvider data={rows()} columns={columns} getRowId={(r) => r.id}>
+        <Probe />
+      </DataGridProvider>,
+    );
+    const base = renders;
+    act(() => storeApi?.getState().actions.updateCells([{ rowId: "1", columnId: "age", value: 31 }]));
+    expect(renders).toBe(base);
+    // a length change still re-renders
+    act(() => storeApi?.getState().actions.deleteRows([0]));
+    expect(renders).toBe(base + 1);
+    unmount();
   });
 });

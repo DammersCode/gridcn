@@ -43,41 +43,18 @@ export {
   type PinTrackData,
   type RectSegment,
 } from "./overlays";
-/** Pointer px -> view-coord translation + its layout input — `data-grid-fill`'s drag-tracking loop reuses this rather than reimplementing pointer hit-testing. */
-export { GRID_LAYER, cellLayer, type GridLayer } from "./layers";
-export { pointerToCoord, type InteractionLayout } from "./interaction/use-grid-interaction";
 /** Custom cell-type editors: the same focus/commit primitives the built-in editors use — seed the input's focus with the caret at the end, and guard a one-shot commit against Enter-then-blur double-commits. */
 export { useSeedFocus } from "./interaction/use-seed-focus";
 export { useCommitGuard } from "./interaction/use-commit-guard";
-/**
- * Direction (LTR/RTL) math, all of it. Physical pointer/scroll coordinates are converted to the
- * grid's inline axis exclusively through these, so add-ons doing their own pointer work stay
- * RTL-correct without repeating the sign logic — `data-grid-fill`'s drag auto-scroll is the
- * in-tree consumer. Add a helper here rather than writing new physical coordinate math elsewhere.
- */
-export {
-  applyInlineScrollDelta,
-  directionSign,
-  inlineAutoScrollStep,
-  inlineDelta,
-  inlineStartX,
-  isInlineStartHalf,
-  normalizeScrollLeft,
-  visualArrowKey,
-  type GridDirection,
-} from "./windowing/direction";
-/** The shared root layout context (scrollRef, column layout, row/header heights) — `data-grid-fill`'s tracker component reads this to reconstruct an `InteractionLayout` from inside `DataGridRoot`'s own subtree, the only place these values exist. */
-export { useDataGridRootContext, type DataGridRootContextValue } from "./layout-context";
+/** The `direction` prop's value space (add-ons' direction math lives in `./data-grid-sdk`). */
+export type { GridDirection } from "./windowing/direction";
 /** The provider-level row-bands seam — `data-grid-pinned-rows`'s `useDataGridPinnedRows()` returns a `RowBandsSpec` to pass into `rowBands`. */
-export { type RowBandsSpec, type RowBandRenderCtx, type WindowedColumn } from "./layout-context";
+export { type RowBandsSpec, type RowBandRenderCtx } from "./layout-context";
 /** The custom row-marker render slots (`DataGridRootProps.renderMarker`/`renderMarkerHeader`) and their ctx types. */
 export { type HeaderMenuRenderer, type MarkerCellRenderCtx, type MarkerHeaderRenderCtx, type MarkerCellRenderer, type MarkerHeaderRenderer } from "./layout-context";
-/** `layout-context.ts`'s per-column layout (widths/template/track offsets), aliased on export to avoid colliding with `types.ts`'s same-named `ColumnLayout` (the `defaultColumnLayout`/`onColumnLayoutChange` persisted-snapshot shape) below — `data-grid-pinned-rows` needs this one, for the live render-time layout `RowBandRenderCtx.layout` carries. */
-export { type ColumnLayout as GridColumnLayout } from "./layout-context";
 
 export {
   cellErrorKey,
-  flashCellKey,
   DataGridProvider,
   useDataGridInstanceId,
   useDataGridStoreApi,
@@ -144,17 +121,18 @@ export {
   type CellErrorTarget,
   type CellErrorEntry,
   type DataGridStoreState,
+  type DataGridStoreStateOf,
   type DataGridActions,
   type DataGridStore,
   type DataGridProviderProps,
   type AnyColumnDef,
+  useDataGridSelector,
 } from "./store";
 export type { AnyCellType, ColumnDefOf, ClipboardProcessCtx } from "./store";
 import type { AnyCellType, ColumnDefOf, ClipboardProcessCtx } from "./store";
 
 export { useDataGridClipboard, type UseDataGridClipboardResult, type PasteFromClipboardResult } from "./clipboard/use-data-grid-clipboard";
 export { sanitizeFormulaCell } from "./clipboard/serialize-cells";
-export { useDataGridContainer } from "./interaction/use-data-grid-container";
 export { DataGridGlobalShortcuts, type DataGridGlobalShortcutsProps } from "./keyboard/use-data-grid-global-shortcuts";
 export {
   type GlobalShortcutAction,
@@ -175,34 +153,10 @@ export { displayText } from "./cell-types/display-text";
 export { CellSpan } from "./cell-types/cell-span";
 
 export { CompactSelection } from "./selection/compact-selection";
-/** Bounding-box union of two rects — `data-grid-fill`'s drag pipeline uses this to expand a selection over `combineRects(source, strip)`. */
-export { combineRects } from "./selection";
-/** View rows covered by a selection (primary range + rangeStack + rows channel), deduped ascending — `data-grid-context-menu`'s row ops and `data-grid-io`'s selection-scope export derive their row set from this. */
-export { getSelectedViewRows } from "./selection";
 export { defineColumns, getCellValue, setCellValue } from "./columns/column-helpers";
 export type { KeysMatching, TypedColumnDef, TypedTextColumnDef, AnyTypedColumn, AccessorLike, InferredValue } from "./columns/column-helpers";
 /** A column's sort-direction arrow + multi-sort priority number — string headers get it automatically in `sort` mode; embed it inside a custom (ReactNode) header when you want it there. */
 export { DataGridSortIndicator, type DataGridSortIndicatorProps } from "./columns/sort-indicator";
-
-/** Runs a column's `validate` (function form or Standard Schema) for one cell; an async schema passes through unchanged here — `runValidateBatch`/`resolveBulkWrites` are the awaiting bulk path. */
-export { runValidateSync, runValidatePending, isStandardSchema, formatIssues, type CellValidate, type ValidateResult } from "./validation/validate-cell";
-/** The bulk validation engine: chunked-concurrency batches for paste/fill/import, and the per-surface race guard that drops a superseded one. See editing-cell-types.mdx. */
-export {
-  runValidateBatch,
-  resolveBulkWrites,
-  VALIDATE_CONCURRENCY,
-  type ValidateBatchItem,
-  type BulkCandidate,
-  type BulkWrite,
-} from "./validation/validate-batch";
-export {
-  useBulkGeneration,
-  snapshotBulkBatch,
-  candidateRowIds,
-  isBulkBatchCurrent,
-  type BulkGeneration,
-  type BulkBatchSnapshot,
-} from "./validation/bulk-generation";
 
 export { DEFAULT_KEYMAP } from "./keyboard";
 
@@ -222,8 +176,6 @@ export {
   type DataGridIOLabels,
   type DataGridPaginationLabels,
 } from "./labels";
-
-export { isDev } from "./is-dev";
 
 export { GRID_ATTR, gridAttrSelector, type GridAttrName, type GridAttr, type GridAttrValue } from "./data-attributes";
 
@@ -263,7 +215,7 @@ export type {
   CellClickCtx,
   RowClickCtx,
 } from "./types";
-export { measureColumnAutosizeWidth, measureTextWidths } from "./columns/measure-column-text";
+export { measureTextWidths } from "./columns/measure-column-text";
 export { createFilterMatcher, type SearchMatch } from "./sort-filter";
 
 /** Props for {@link DataGrid}. */

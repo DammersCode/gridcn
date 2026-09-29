@@ -1,12 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, type ReactNode } from "react";
-import {
-  useDataGridActions,
-  useDataGridReadOnly,
-  useDataGridRootContext,
-  type InteractionLayout,
-} from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridActions, useDataGridReadOnly } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridRootContext, type InteractionLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useFillHandle, type UseFillHandleOptions } from "./use-fill-handle";
 import type { FillStoreApi } from "./fill-store";
 

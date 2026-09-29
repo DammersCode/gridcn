@@ -2,7 +2,8 @@
 
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { DataGridCell, type GridColumnLayout, type WindowedColumn } from "@/registry/default/blocks/data-grid/data-grid";
+import { DataGridCell } from "@/registry/default/blocks/data-grid/data-grid";
+import type { GridColumnLayout, WindowedColumn } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export type DataGridPinnedRowProps = {
   /** The consumer-supplied pinned row object (from `useDataGridPinnedRows`'s `topRows`/`bottomRows` options — never a member of `data`). */

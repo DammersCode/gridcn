@@ -3,13 +3,14 @@
 import { createContext, use, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
+import { useStoreWithEqualityFn } from "zustand/traditional";
 import type { OverlayPlugin } from "../overlays";
 import type { RowBandsSpec } from "../layout-context";
 import { checkDevGuardrails, checkDuplicateColumnIds, checkUnresolvableColumnTypes } from "./commit";
 import { makeSelectionChangeDetails } from "./compute";
 import { createDataGridStore } from "./create-store";
 import { toInternalSyncProps } from "./types";
-import type { AnyColumnDef, DataGridActions, DataGridProviderProps, DataGridStoreState, DataGridSyncProps } from "./types";
+import type { AnyColumnDef, DataGridActions, DataGridProviderProps, DataGridStoreState, DataGridStoreStateOf, DataGridSyncProps } from "./types";
 import { isSelectionEmpty } from "../selection";
 
 /**
@@ -283,6 +284,20 @@ function useDataGridStoreApiInternal(): StoreApi<DataGridStoreState> {
 
 export function useDataGridStore<T>(selector: (state: DataGridStoreState) => T): T {
   return useStore(useDataGridStoreApiInternal(), selector);
+}
+
+/**
+ * Typed raw store selector for the current grid: `TData` types `state.data`, so a selector that
+ * reads rows gets them back typed (the same erasure-boundary guarantee as the provider — every
+ * row in `state.data` originated from this grid's own `TData`-typed `data`/`defaultData` prop).
+ * Pass an explicit `TData` when the return type cannot infer it (e.g. a selector over
+ * `state.data.length`). `eq` (default `Object.is`) controls re-renders, like `useStore`.
+ */
+export function useDataGridSelector<TData, TResult>(
+  selector: (state: DataGridStoreStateOf<TData>) => TResult,
+  eq?: (a: TResult, b: TResult) => boolean,
+): TResult {
+  return useStoreWithEqualityFn(useDataGridStoreApiInternal(), (s) => selector(s as DataGridStoreStateOf<TData>), eq);
 }
 
 /**

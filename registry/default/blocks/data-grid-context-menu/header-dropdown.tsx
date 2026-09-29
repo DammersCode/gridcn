@@ -6,7 +6,8 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useDataGridContainer, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
+import type { AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridContainer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { DataGridHeaderMenuContent } from "./header-menu-content";
 
 /** Props for {@link DataGridHeaderDropdown} — matches the core's `renderHeaderMenu` render-prop ctx exactly. */

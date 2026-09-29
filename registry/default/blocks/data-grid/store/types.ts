@@ -547,6 +547,9 @@ export type DataGridStoreState = Omit<
   actions: DataGridActions;
 };
 
+/** `DataGridStoreState` with `data` typed as `readonly TData[]` — the state view {@link useDataGridSelector} hands its selector. Every row in `data` originated from the grid's own `TData`-typed `data`/`defaultData` prop, so the widening is safe. */
+export type DataGridStoreStateOf<TData> = Omit<DataGridStoreState, "data"> & { data: readonly TData[] };
+
 /** Mutations for a single grid instance, nested under the stable `actions` key. */
 export type DataGridActions = {
   /**

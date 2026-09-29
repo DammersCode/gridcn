@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { applyChange, isDev, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
+import { applyChange, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes, type Range } from "./range-math";
 
 /** Default extra rows fetched per range beyond the visible window — ~1 viewport (spec: "default ~1 viewport of rows"). */

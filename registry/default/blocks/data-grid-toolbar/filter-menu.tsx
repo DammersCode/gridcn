@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  isDev,
   useDataGridActions,
   useDataGridAllColumns,
   useDataGridFilterState,
@@ -24,6 +23,7 @@ import {
   type FilterOperator,
   type FilterSpec,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { operatorHasValue, operatorLabel, operatorsForColumnType } from "./operators-for-column-type";
 import { DataGridFilterValueInput } from "./filter-value-input";
 

@@ -30,7 +30,9 @@ const REGISTRY_BLOCK_ITEMS = [
   "data-grid-sort-list",
   "dropzone",
 ];
-const ALLOWED_BARRELS = new Set(REGISTRY_BLOCK_ITEMS.map((item) => `${item}/${item}`));
+// data-grid/data-grid-sdk is the core's add-on-facing SDK barrel (first-party add-ons import it;
+// consumers use data-grid/data-grid).
+const ALLOWED_BARRELS = new Set([...REGISTRY_BLOCK_ITEMS.map((item) => `${item}/${item}`), "data-grid/data-grid-sdk"]);
 
 const BLOCKS_ROOT = join(root, "registry", "default", "blocks");
 const IMPORT_RE = /(?:from\s+|import\s+)["']([^"']+)["']/g;

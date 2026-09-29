@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { GRID_LAYER, type GridColumnLayout, type WindowedColumn } from "@/registry/default/blocks/data-grid/data-grid";
+import { GRID_LAYER, type GridColumnLayout, type WindowedColumn } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { DataGridPinnedRow } from "./pinned-row";
 
 /** Props for {@link DataGridPinnedRowBand}. */

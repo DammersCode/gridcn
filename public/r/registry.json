@@ -176,9 +176,14 @@
                "target": "components/data-grid/data-attributes.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/data-grid.tsx",
-               "type": "registry:component",
-               "target": "components/data-grid/data-grid.tsx"
+                "path": "registry/default/blocks/data-grid/data-grid.tsx",
+                "type": "registry:component",
+                "target": "components/data-grid/data-grid.tsx"
+            },
+            {
+                "path": "registry/default/blocks/data-grid/data-grid-sdk.ts",
+                "type": "registry:component",
+                "target": "components/data-grid/data-grid-sdk.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/header-cell.tsx",

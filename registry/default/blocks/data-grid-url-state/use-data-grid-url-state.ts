@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useQueryState } from "nuqs";
 import {
-  isDev,
   useDataGridActions,
   useDataGridAllColumns,
   useDataGridFilterState,
@@ -11,6 +10,7 @@ import {
   useDataGridSearchText,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { serializeSortState, parseSortState } from "./sort-param";
 import { serializeFilterState, parseFilterState } from "./filter-param";
 import { serializeJoinOperator, parseJoinOperator } from "./join-param";

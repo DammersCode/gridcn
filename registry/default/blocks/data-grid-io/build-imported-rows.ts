@@ -1,5 +1,7 @@
-import type { CellType, ColumnDef, ValidateBatchItem, ValidateResult } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, runValidateBatch, setCellValue } from "@/registry/default/blocks/data-grid/data-grid";
+import type { CellType, ColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
+import type { ValidateBatchItem, ValidateResult } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { setCellValue } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev, runValidateBatch } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** One import-column -> grid-column mapping entry; `null` skips the import column. */
 export type ImportColumnMapping = { importColumnIndex: number; gridColumnId: string | null };

@@ -8,8 +8,8 @@ import {
   DataGridProvider,
   DataGridRoot,
   defineColumns,
-  useDataGridStoreApi,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useDataGridFill } from "../data-grid-fill";
 
 /**

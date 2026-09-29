@@ -1,7 +1,8 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { GRID_LAYER, type GridRect, type OverlayPluginCtx } from "@/registry/default/blocks/data-grid/data-grid";
+import type { GridRect, OverlayPluginCtx } from "@/registry/default/blocks/data-grid/data-grid";
+import { GRID_LAYER } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { FillHandleHandlers } from "./use-fill-handle";
 
 /** The dashed fill-drag preview rect, window-relative, grid-line placed like core's own RangeOverlay; pinned segments add their zone's counter-offset + z-index 2 (above pinned cells' z1). */

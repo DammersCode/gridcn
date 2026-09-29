@@ -2,7 +2,8 @@
 
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
-import { isDev, type GridRect } from "@/registry/default/blocks/data-grid/data-grid";
+import type { GridRect } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /**
  * One remote user's (or cursor's) selection painted into the grid (multiplayer presence),

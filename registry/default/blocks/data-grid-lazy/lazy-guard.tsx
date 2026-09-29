@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import {
-  isDev,
   useDataGridFilterState,
   useDataGridSearchText,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Props for {@link DataGridLazyGuard}. */
 export type DataGridLazyGuardProps = {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isDev } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { clampPage, pageCount, pageRange } from "./pagination-math";
 
 /** Default page-size choices offered by `<DataGridPaginationBar />`'s select, and the initial `pageSize` when none is given. */

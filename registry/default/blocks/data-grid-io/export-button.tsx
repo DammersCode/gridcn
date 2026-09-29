@@ -2,7 +2,8 @@
 
 import type { ReactNode } from "react";
 import { Download } from "lucide-react";
-import { isDev, useDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

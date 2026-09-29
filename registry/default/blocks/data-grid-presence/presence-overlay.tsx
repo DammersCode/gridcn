@@ -1,7 +1,8 @@
 "use client";
 
 import { Fragment, memo, type CSSProperties, type ReactNode } from "react";
-import { GRID_LAYER, type GridRect, type OverlayPluginCtx } from "@/registry/default/blocks/data-grid/data-grid";
+import type { GridRect, OverlayPluginCtx } from "@/registry/default/blocks/data-grid/data-grid";
+import { GRID_LAYER } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   isRowIdPresenceHighlight,
   isRowIdRangePresenceHighlight,

@@ -2,14 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Paperclip, X } from "lucide-react";
-import {
-  isDev,
-  useDataGridActions,
-  useDataGridAllColumns,
-  useDataGridLabels,
-  useDataGridStoreApi,
-  type AnyColumnDef,
-} from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridActions, useDataGridAllColumns, useDataGridLabels, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   Dialog,
   DialogContent,

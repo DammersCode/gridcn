@@ -16,13 +16,14 @@ export type {
   CellErrorTarget,
   CellErrorEntry,
   DataGridStoreState,
+  DataGridStoreStateOf,
   DataGridActions,
   DataGridStore,
   DataGridProviderProps,
   DataGridCellState,
   DataGridRowCellState,
 } from "./types";
-export { DataGridProvider, useDataGridInstanceId, useDataGridStore, useDataGridStoreApi, useDataGridStoreProps } from "./provider";
+export { DataGridProvider, useDataGridInstanceId, useDataGridSelector, useDataGridStore, useDataGridStoreApi, useDataGridStoreProps } from "./provider";
 export { cellErrorKey, flashCellKey } from "./compute";
 export { getFocusCell } from "./hooks";
 export {

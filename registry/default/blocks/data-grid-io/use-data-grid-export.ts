@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { exportGrid, type ExportGridOptions } from "./export-grid";
 
 /** Public export trigger returned by {@link useDataGridExport}. */

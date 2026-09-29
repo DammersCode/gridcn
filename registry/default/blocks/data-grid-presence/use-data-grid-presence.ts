@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useDataGridRowIdToViewRow, useDataGridStoreApi, useDataGridVisibleColumns, type OverlayPlugin } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridRowIdToViewRow, useDataGridVisibleColumns, type OverlayPlugin } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   createPresenceStore,
   isRowIdPresenceHighlight,

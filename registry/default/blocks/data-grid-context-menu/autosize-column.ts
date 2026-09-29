@@ -1,4 +1,5 @@
-import { measureColumnAutosizeWidth, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
+import type { AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
+import { measureColumnAutosizeWidth } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 const ABSOLUTE_MIN_WIDTH = 32;
 

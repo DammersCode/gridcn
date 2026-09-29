@@ -191,6 +191,22 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Core barrel split into a consumer API and an add-on SDK (Breaking):** `data-grid` is now
+  the consumer surface — components, props and ctx types, the state hooks, and the op/validation
+  engines the docs teach. Add-on-internal seams move to a new `data-grid-sdk` module in the same
+  install: `GRID_LAYER`/`cellLayer`/`GridLayer`, `pointerToCoord`/`InteractionLayout`, the
+  direction math (`applyInlineScrollDelta` and friends, `GridDirection`), `useDataGridRootContext`
+  /`DataGridRootContextValue`, `useDataGridStoreApi`, `useDataGridContainer`, `isDev`, the
+  validation engine (`runValidateSync`, `runValidatePending`, `runValidateBatch`,
+  `resolveBulkWrites`, `useBulkGeneration` and the bulk types), `combineRects`,
+  `getSelectedViewRows`, `flashCellKey`, `measureColumnAutosizeWidth`, `GridColumnLayout`, and
+  `WindowedColumn`. Add-ons import them from `data-grid-sdk`; consumer code that imported any of
+  these from `data-grid` must switch to `data-grid-sdk`.
+- **Typed raw store access:** `useDataGridSelector<TData>(selector, eq?)` hands the selector
+  `state` with `state.data` typed as `readonly TData[]`; `eq` (default `Object.is`) controls
+  re-renders.
+  `useDataGridRow<TData>(viewRowIndex)` returns the typed row at a view index (unannotated it
+  stays `unknown`, as before).
 - **`useDataGridRowIdToViewRow` keeps its map across streaming ticks:** the `rowId -> view row`
   map now keys on a store-internal row-identity version (bumped only when rows move:
   insert/delete/duplicate/reorder, or a consumer `data` replacement) instead of the `data` array

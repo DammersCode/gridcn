@@ -11,4 +11,4 @@ export function isCellInSelection(selection: GridSelection, coord: CellCoord): b
 }
 
 /** Row-op target set — the core's own derivation of the selected view rows (see `getSelectedViewRows`), re-exported so the cell menu shares one code path with every other consumer. */
-export { getSelectedViewRows as selectedViewRows } from "@/registry/default/blocks/data-grid/data-grid";
+export { getSelectedViewRows as selectedViewRows } from "@/registry/default/blocks/data-grid/data-grid-sdk";

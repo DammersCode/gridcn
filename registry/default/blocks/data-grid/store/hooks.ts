@@ -335,12 +335,12 @@ export function useDataGridIsSearchMatch(coord: CellCoord): boolean {
   return useDataGridStore((s) => (column ? s.searchMatchSet.has(searchMatchKey(coord.row, column.id)) : false));
 }
 
-/** The data row at a given view (display) row index; re-renders only when that row's identity changes. */
-export function useDataGridRow(viewRowIndex: number): unknown {
+/** The data row at a given view (display) row index; re-renders only when that row's identity changes. Annotate `TData` with the grid's row type (or let the return type infer it). */
+export function useDataGridRow<TData = unknown>(viewRowIndex: number): TData | undefined {
   return useDataGridStore((s) => {
     const dataRowIndex = s.viewIndex[viewRowIndex];
     return dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
-  });
+  }) as TData | undefined;
 }
 
 /** Stable `getRowId` result for the row at a given view row index; used as the React key so rows survive sort/filter/insert/delete. */
