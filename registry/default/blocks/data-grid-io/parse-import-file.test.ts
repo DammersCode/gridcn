@@ -218,8 +218,14 @@ describe("parseImportFile — size and dimension limits", () => {
     await expect(parseImportFile(makeCsvFile(csv), { maxCells: 9 })).resolves.toMatchObject({ rows: [["a", "b", "c"], ["1"], ["2"]] });
   });
 
-  it("defaults to 50 MB, 1M rows, 1000 columns, and 5M cells, and small files pass", async () => {
-    expect(DEFAULT_IMPORT_LIMITS).toEqual({ maxFileBytes: 50 * 1024 * 1024, maxRows: 1_000_000, maxColumns: 1_000, maxCells: 5_000_000 });
+  it("defaults to 50 MB, 1M rows, 1000 columns, 5M cells, and 512 MiB per inflated xlsx part, and small files pass", async () => {
+    expect(DEFAULT_IMPORT_LIMITS).toEqual({
+      maxFileBytes: 50 * 1024 * 1024,
+      maxRows: 1_000_000,
+      maxColumns: 1_000,
+      maxCells: 5_000_000,
+      maxDecompressedBytes: 512 * 1024 * 1024,
+    });
     const result = await parseImportFile(makeCsvFile("a,b\n1,2"));
     expect(result.rows).toEqual([
       ["a", "b"],

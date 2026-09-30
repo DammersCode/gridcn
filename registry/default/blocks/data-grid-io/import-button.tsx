@@ -18,7 +18,7 @@ export type DataGridImportButtonProps<TData> = {
   onImport: (rows: TData[]) => void | Promise<void>;
   /** Consumer-configurable preselection defaults (delimiter, header row, skip columns, mapping). Omit for today's behavior unchanged. */
   importDefaults?: ImportDefaults;
-  /** Size, row, column, and cell bounds for the file; omitted fields use `DEFAULT_IMPORT_LIMITS`. `maxFileBytes` also sets the drop zone's `maxSize`. */
+  /** Size, row, column, cell, and unpacked-size bounds for the file; omitted fields use `DEFAULT_IMPORT_LIMITS`. `maxFileBytes` also sets the drop zone's `maxSize`. */
   importLimits?: ImportLimits;
 };
 

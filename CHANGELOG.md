@@ -272,8 +272,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Breaking:** `data-grid-io` reads and writes Excel files with `hucre` instead of
   `@e965/xlsx` (SheetJS). The registry item pins `hucre@1.1.0`; re-adding the item replaces the
   dependency. SheetJS inflated every part of an xlsx without a size cap, so a 311 KB file grew to
-  300 MB before any import limit ran. hucre caps each inflated part (512 MiB, rejected as
-  `errorFileTooLarge`) and reads only the selected sheet, sized by its real cells. A sheet over
+  300 MB before any import limit ran. hucre caps each inflated part at the new
+  `maxDecompressedBytes` import limit (default 512 MiB, in `DEFAULT_IMPORT_LIMITS`, `importLimits`,
+  and the `parseImportFile` options; rejected as `errorFileTooLarge`) and reads only the selected
+  sheet, sized by its real cells. A sheet over
   `maxRows`, `maxColumns`, or `maxCells` is rejected, never truncated, also when its far rows sit
   behind empty rows. Changed results:
   - `.xls` accepts only Excel 97-2003 (BIFF8) workbooks. An HTML table, Excel 2003 XML, or Excel

@@ -100,7 +100,7 @@ function resolveDelimiterOverride(options: ImportDefaults): CsvDelimiter | undef
  *
  * @param columnFallback `labels.io.columnFallback` — builds the header shown for column N when the file has no header row.
  * @param options Consumer-configurable preselection defaults (see {@link ImportDefaults}); omit for today's behavior unchanged.
- * @param limits Size, row, column, and cell bounds for every parse; omitted fields use `DEFAULT_IMPORT_LIMITS`.
+ * @param limits Size, row, column, cell, and unpacked-size bounds for every parse; omitted fields use `DEFAULT_IMPORT_LIMITS`.
  */
 export function useDataGridImportPreview(
   columnFallback: (index: number) => string,
@@ -118,8 +118,11 @@ export function useDataGridImportPreview(
   // generation guard for async re-parses (sheet switch, delimiter override): a newer switch, file load, or reset must win over a slower older one.
   const sheetGenerationRef = useRef(0);
   const { defaultHeaderRow = true, defaultSkipColumns, mapColumn } = options;
-  const { maxFileBytes, maxRows, maxColumns, maxCells } = limits;
-  const limitOptions = useMemo(() => ({ maxFileBytes, maxRows, maxColumns, maxCells }), [maxFileBytes, maxRows, maxColumns, maxCells]);
+  const { maxFileBytes, maxRows, maxColumns, maxCells, maxDecompressedBytes } = limits;
+  const limitOptions = useMemo(
+    () => ({ maxFileBytes, maxRows, maxColumns, maxCells, maxDecompressedBytes }),
+    [maxFileBytes, maxRows, maxColumns, maxCells, maxDecompressedBytes],
+  );
 
   const reset = useCallback(() => {
     sheetGenerationRef.current += 1;

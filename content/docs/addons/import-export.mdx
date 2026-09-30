@@ -195,6 +195,7 @@ limit is rejected with an error message in the dialog. The import never truncate
 | `maxRows` | 1,000,000 | Maximum rows, header row included. |
 | `maxColumns` | 1,000 | Maximum columns. |
 | `maxCells` | 5,000,000 | Maximum rows times columns. |
+| `maxDecompressedBytes` | 512 MiB | Maximum unpacked size of one part of an xlsx file, for example a worksheet. A zip bomb stops at this size. |
 
 For an xlsx or xls file, the rows and columns come from the real cells of the selected sheet.
 The check runs before the cells are converted. For an xlsx file, the other sheets of the workbook
@@ -213,7 +214,7 @@ omitted field keeps its default:
 />
 ```
 
-`parseImportFile` takes the same four fields as options. `DEFAULT_IMPORT_LIMITS` holds the
+`parseImportFile` takes the same five fields as options. `DEFAULT_IMPORT_LIMITS` holds the
 defaults.
 
 ## Import options

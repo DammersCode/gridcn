@@ -38,6 +38,20 @@ describe("parseImportFile — hostile xlsx", () => {
     await expectFastRejection(parseImportFile(file), "file-too-large", 3_000);
   }, 20_000);
 
+  it("rejects the 311 KB zip bomb that inflates to 300 MB under a lower maxDecompressedBytes", async () => {
+    const file = await xlsxWithWorksheet(worksheetXml(`<row r="1">${inlineCell("A1", "a")}</row>`), 300 * 1024 * 1024);
+    expect(file.size).toBeLessThan(400 * 1024);
+
+    await expectFastRejection(parseImportFile(file, { maxDecompressedBytes: 64 * 1024 * 1024 }), "file-too-large", 2_000);
+  }, 20_000);
+
+  it("applies maxDecompressedBytes to parts that lie about their size", async () => {
+    const file = await xlsxWithWorksheet(worksheetXml(`<row r="1">${inlineCell("A1", "a")}</row>`), 8 * 1024 * 1024, 1024);
+
+    await expect(parseImportFile(file, { maxDecompressedBytes: 4 * 1024 * 1024 })).rejects.toThrow("file-too-large");
+    await expect(parseImportFile(await workbookFile({ Sheet1: [["a"]] }), { maxDecompressedBytes: 4 * 1024 * 1024 })).resolves.toMatchObject({ rows: [["a"]] });
+  });
+
   it("rejects a ZIP64 directory, which can declare parts past any cap", async () => {
     const bytes = new Uint8Array(await (await workbookFile({ Sheet1: [["a"]] })).arrayBuffer());
     new DataView(bytes.buffer).setUint32(bytes.length - 22 + 16, 0xffffffff, true);

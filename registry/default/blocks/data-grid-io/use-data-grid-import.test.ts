@@ -221,3 +221,16 @@ describe("useDataGridImportPreview — unsupported Excel formats", () => {
     vi.restoreAllMocks();
   });
 });
+
+describe("useDataGridImportPreview — limits", () => {
+  it("passes every import limit, maxDecompressedBytes included, to the parser", async () => {
+    mockedParse.mockResolvedValue({ rows: [["Name"], ["A-row"]], delimiter: "," });
+    const limits = { maxFileBytes: 1, maxRows: 2, maxColumns: 3, maxCells: 4, maxDecompressedBytes: 5 };
+    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`, {}, limits));
+    await act(async () => {
+      await result.current.loadFile(FILE_B, TARGETS);
+    });
+    expect(mockedParse).toHaveBeenLastCalledWith(FILE_B, expect.objectContaining(limits), expect.anything());
+    vi.restoreAllMocks();
+  });
+});

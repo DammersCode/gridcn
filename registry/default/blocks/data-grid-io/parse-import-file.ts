@@ -19,6 +19,8 @@ export const DEFAULT_IMPORT_LIMITS = {
   maxColumns: 1_000,
   /** Maximum cells, counted as rows times columns of the imported rectangle; default 5,000,000. */
   maxCells: 5_000_000,
+  /** Maximum unpacked size of one xlsx part (a worksheet, the shared strings); default 512 MiB. */
+  maxDecompressedBytes: 512 * 1024 * 1024,
 } as const;
 
 /** Error message {@link parseImportFile} throws for a file over `maxFileBytes`. */
@@ -40,6 +42,8 @@ export type ImportLimits = {
   maxColumns?: number;
   /** Maximum rows times columns of the imported rectangle; default 5,000,000. */
   maxCells?: number;
+  /** Reject an xlsx whose parts (a worksheet, the shared strings) unpack to more than this many bytes; default 512 MiB. Stops zip bombs. */
+  maxDecompressedBytes?: number;
 };
 
 /** Options for {@link parseImportFile}. */
@@ -51,6 +55,7 @@ export type ParseImportFileOptions = ImportLimits & {
 };
 
 type GridLimits = Required<Pick<ImportLimits, "maxRows" | "maxColumns" | "maxCells">>;
+type ExcelLimits = GridLimits & Required<Pick<ImportLimits, "maxDecompressedBytes">>;
 
 /** Throws the too-many-cells error when a `rows` by `columns` rectangle breaks any cap. */
 function assertWithinLimits(rows: number, columns: number, limits: GridLimits): void {
@@ -95,9 +100,6 @@ function abortError(): DOMException {
 
 const ZIP_SIGNATURE = [0x50, 0x4b, 0x03, 0x04];
 const OLE2_SIGNATURE = [0xd0, 0xcf, 0x11, 0xe0];
-
-/** Largest xlsx part (worksheet, shared strings) that may be inflated; a bigger part is a zip bomb or far past the cell cap. */
-const MAX_DECOMPRESSED_BYTES = 512 * 1024 * 1024;
 
 function hasSignature(bytes: Uint8Array, signature: readonly number[]): boolean {
   return signature.every((byte, index) => bytes[index] === byte);
@@ -178,7 +180,7 @@ function importError(err: unknown, hucre: HucreReader): unknown {
 async function readXlsxSheet(
   bytes: Uint8Array,
   sheetName: string | undefined,
-  limits: GridLimits,
+  limits: ExcelLimits,
   { readXlsx, formatValue }: HucreReader,
 ): Promise<ParsedImportFile> {
   const sheetNames: string[] = [];
@@ -189,7 +191,7 @@ async function readXlsxSheet(
     },
     sparse: true,
     readStyles: true,
-    maxDecompressedBytes: MAX_DECOMPRESSED_BYTES,
+    maxDecompressedBytes: limits.maxDecompressedBytes,
   });
   if (sheetName !== undefined && !sheetNames.includes(sheetName)) throw new Error(`unknown sheet "${sheetName}"`);
   const sheet = workbook.sheets[0];
@@ -225,13 +227,13 @@ async function readXlsSheet(
 }
 
 /** Parses one sheet of an xlsx/xls workbook into a 2D string grid via lazily-imported hucre; `sheetName` selects the sheet (first by default). The file's signature, not its extension, picks the reader. */
-async function parseExcelFile(file: File, sheetName: string | undefined, limits: GridLimits, signal?: AbortSignal): Promise<ParsedImportFile> {
+async function parseExcelFile(file: File, sheetName: string | undefined, limits: ExcelLimits, signal?: AbortSignal): Promise<ParsedImportFile> {
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (signal?.aborted) throw abortError();
   const isXlsx = hasSignature(bytes, ZIP_SIGNATURE);
   if (!isXlsx && !hasSignature(bytes, OLE2_SIGNATURE)) throw new Error(UNSUPPORTED_EXCEL_FORMAT_MESSAGE);
   // an entry declared past the cap makes hucre stream-parse up to the cap (about 15 s of CPU) before it fails
-  if (isXlsx && largestDeclaredEntry(bytes) > MAX_DECOMPRESSED_BYTES) throw new Error(FILE_TOO_LARGE_MESSAGE);
+  if (isXlsx && largestDeclaredEntry(bytes) > limits.maxDecompressedBytes) throw new Error(FILE_TOO_LARGE_MESSAGE);
   const hucre = await import("./xlsx-reader");
   try {
     return await (isXlsx ? readXlsxSheet : readXlsSheet)(bytes, sheetName, limits, hucre);
@@ -256,7 +258,10 @@ export async function parseImportFile(file: File, options: ParseImportFileOption
   };
   // before any file read: file.size is synchronous, so the DoS check costs nothing
   if (file.size > maxFileBytes) throw new Error(FILE_TOO_LARGE_MESSAGE);
-  if (isExcelFile(file)) return parseExcelFile(file, options.sheetName, limits, signal);
+  if (isExcelFile(file)) {
+    const maxDecompressedBytes = options.maxDecompressedBytes ?? DEFAULT_IMPORT_LIMITS.maxDecompressedBytes;
+    return parseExcelFile(file, options.sheetName, { ...limits, maxDecompressedBytes }, signal);
+  }
   if (isCsvFile(file)) {
     const text = await file.text();
     if (signal?.aborted) throw abortError();
