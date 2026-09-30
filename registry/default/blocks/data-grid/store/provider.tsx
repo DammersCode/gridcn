@@ -232,6 +232,10 @@ function useGridStoreCore<TData>(
     if (externalStore) return;
     return subscribeActiveCellChange(store);
   }, [store, externalStore]);
+  useEffect(() => {
+    if (externalStore) return;
+    return store.getState().actions._subscribeEditEnd();
+  }, [store, externalStore]);
 
   useEffect(() => {
     if (externalStore) return;

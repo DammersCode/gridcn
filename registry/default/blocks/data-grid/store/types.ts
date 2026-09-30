@@ -216,8 +216,9 @@ export type DataGridSyncProps<TData = unknown> = {
    onEditStart?: (coord: ViewCoord) => boolean | void;
    /**
     * Fired when an edit session ends or a commit attempt is refused — `commit` after the session
-    * closes, `cancel` when the draft is discarded, `rejected` when validation refused a commit and
-    * the session stays open (fires per attempt). See {@link GridEditEndEvent}.
+    * closes, `cancel` when the draft is discarded (including a remap that drops the edited cell),
+    * `rejected` when validation refused a commit and the session stays open (fires per attempt).
+    * See {@link GridEditEndEvent}.
     */
    onEditEnd?: (event: GridEditEndEvent) => void;
    /**
@@ -683,7 +684,7 @@ export type DataGridActions = {
   setJoinOperator(joinOperator: FilterJoinOperator): void;
   /** Sets quick-search text and recomputes `searchMatches`/`searchMatchSet`/`searchMatchesCapped` once; never touches `viewIndex`. */
   setSearch(text: string): void;
-  /** Enters edit mode at the cell named by the stable {@link CellRef}; no-op when the grid or column is readOnly, or its type is unregistered or declares `activate`. */
+  /** Enters edit mode at the cell named by the stable {@link CellRef}, cancelling an open session first; no-op when the grid or column is readOnly, or its type is unregistered or declares `activate`. */
   startEditing(ref: CellRef, initialText?: string): void;
   /** View-space variant of {@link DataGridActions.startEditing} for callers that hold a {@link ViewCoord}. */
   startEditingAt(coord: ViewCoord, initialText?: string): void;
@@ -795,6 +796,12 @@ export type DataGridActions = {
   _moveActiveCell(d: { dx: number; dy: number }, opts?: { extend?: boolean; retain?: boolean }): void;
   /** @internal syncs live consumer props and recomputes derived state; not part of the public hook surface. */
   _syncProps(props: InternalSyncProps): void;
+  /**
+   * @internal The provider subscribes after its `onActiveCellChange` wiring: fires `onEditEnd`
+   * `cancel` when a session ends outside commit/cancel (remap, stale-anchor discard, direct store
+   * write). Returns the unsubscribe. Not part of the public hook surface.
+   */
+  _subscribeEditEnd(): () => void;
   /** @internal `DataGridRoot` registers/clears its scroll-into-view on mount/unmount; not part of the public hook surface. */
   _registerScrollToCell(impl: ((coord: ViewCoord) => void) | null): void;
   /** @internal `DataGridRoot` syncs its `readOnly` prop into the store on every render/unmount; not part of the public hook surface. */

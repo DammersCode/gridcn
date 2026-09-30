@@ -185,6 +185,8 @@ export type DataWriteDeps = {
   pruneRowValidationKeys: (data: readonly unknown[], getRowId: (row: unknown, index: number) => string) => void;
   warnViewSpacePresenceStale: (s: DataGridStoreState) => void;
   remapEditing: (s: DataGridStoreState, viewIndex: readonly number[], visibleColumns: readonly AnyColumnDef[]) => Partial<DataGridStoreState>;
+  /** Runs `write`, which ends `session`, without the `cancel` report: the caller reports its own `onEditEnd` result. */
+  endEditSession: (session: NonNullable<DataGridStoreState["editing"]>, write: () => void) => void;
 };
 
 /** Every data-writing action of the store, extracted as one cluster: the edit commits, the bulk writers, and the row ops. */
@@ -207,7 +209,7 @@ export type DataWriteActions = Pick<
 >;
 
 export function createDataWriteActions(set: SetState, get: GetState, deps: DataWriteDeps): DataWriteActions {
-  const { ctx, applyRowValidation, pruneRowValidationKeys, warnViewSpacePresenceStale, remapEditing } = deps;
+  const { ctx, applyRowValidation, pruneRowValidationKeys, warnViewSpacePresenceStale, remapEditing, endEditSession } = deps;
 
   /** Commits clear-to-clearValue() `writes` as one `delete` batch; shared by both delete actions. */
   const commitClearWrites = (s: DataGridStoreState, writes: { viewRowIndex: number; columnId: string; value: unknown }[]): void => {
@@ -265,13 +267,15 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         return;
       }
       if ("noop" in result) {
-        set({
-          editing: null,
-          editingError: null,
-          ...restoreSelection,
-          // an `onInvalid: "warn"` re-commit of the same value still lands its flag
-          ...(result.warnings ? { cellErrors: mergeCellErrors(s.cellErrors, result.warnings) } : {}),
-        });
+        endEditSession(editing, () =>
+          set({
+            editing: null,
+            editingError: null,
+            ...restoreSelection,
+            // an `onInvalid: "warn"` re-commit of the same value still lands its flag
+            ...(result.warnings ? { cellErrors: mergeCellErrors(s.cellErrors, result.warnings) } : {}),
+          }),
+        );
         s.onEditEnd?.({ coord: editing.coord, result: "commit" });
         return;
       }
@@ -280,15 +284,17 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       ctx.lastEmittedData = result.data;
       s.onDataChange?.(result.data, result.change);
       const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, result.change.ops), result.data, result.change.ops);
-      set({
-        data: result.data,
-        editing: null,
-        editingError: null,
-        // warn rejections commit AND flag — merged after the auto-clear + validateRow verdict so the freshest signal wins
-        cellErrors: result.warnings ? mergeCellErrors(cellErrors, result.warnings) : cellErrors,
-        ...restoreSelection,
-        ...reconcileAfterWrite(s, result.data, result.change.ops),
-      });
+      endEditSession(editing, () =>
+        set({
+          data: result.data,
+          editing: null,
+          editingError: null,
+          // warn rejections commit AND flag — merged after the auto-clear + validateRow verdict so the freshest signal wins
+          cellErrors: result.warnings ? mergeCellErrors(cellErrors, result.warnings) : cellErrors,
+          ...restoreSelection,
+          ...reconcileAfterWrite(s, result.data, result.change.ops),
+        }),
+      );
       s.onEditEnd?.({ coord: editing.coord, result: "commit" });
     },
     commitCellValue(ref, value) {

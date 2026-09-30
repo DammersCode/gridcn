@@ -338,8 +338,10 @@ zero-re-render guarantee as the other callbacks on this page.
   and no other event fires for it. Checkbox cells toggle instead of editing, so they never
   reach `onEditStart`.
 - `onEditEnd` fires with a `result` of `commit`, `cancel`, or `rejected`. `commit` fires after
-  the session closes. `cancel` fires when the draft is discarded, for example on Escape.
-  `rejected` fires when a commit attempt fails validation and the session stays open.
+  the session closes. `cancel` fires when the draft is discarded: on Escape, when a filter, a
+  hidden column, or a data change removes the edited cell from the view, and when a second
+  `startEditing` replaces the open session. Each session ends with exactly one `commit` or
+  `cancel`. `rejected` fires when a commit attempt fails validation and the session stays open.
   It fires once per rejected attempt. `GridEditEndEvent` is `{ coord, result }`. The committed
   value is not included. `onDataChange` already carries it.
 - `onValidationError` fires after a bulk paste or fill settles, only when at least one cell was

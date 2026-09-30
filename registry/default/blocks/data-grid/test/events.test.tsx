@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, renderHook, screen } from "@testing-li
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { ColumnDef } from "../types";
-import { DataGrid, DataGridProvider, useDataGridActions, useDataGridSelector, type DataGridProviderProps } from "../data-grid";
+import { DataGrid, DataGridProvider, useDataGridActions, useDataGridSelector, useDataGridStoreApi, type DataGridProviderProps } from "../data-grid";
 
 type Row = { id: string; name: string; qty: number };
 
@@ -136,6 +136,106 @@ describe("onEditEnd", () => {
     });
     expect(onEditEnd).toHaveBeenCalledWith({ coord: { col: 0, row: 0 }, result: "cancel" });
     expect(result.current.editing).toBeNull();
+  });
+
+  it("fires commit exactly once for a committed session", () => {
+    const onEditEnd = vi.fn();
+    const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditEnd }) });
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
+    act(() => result.current.actions.commitCellEdit("x"));
+    expect(onEditEnd.mock.calls).toEqual([[{ coord: { col: 0, row: 0 }, result: "commit" }]]);
+  });
+
+  it("fires cancel once when a filter removes the edited row", () => {
+    const onEditEnd = vi.fn();
+    const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditEnd }) });
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
+    act(() => result.current.actions.setFilters([{ filterId: "f", columnId: "name", operator: "equals", value: "Row 2" }]));
+    expect(result.current.editing).toBeNull();
+    expect(onEditEnd.mock.calls).toEqual([[{ coord: { col: 0, row: 0 }, result: "cancel" }]]);
+  });
+
+  it("fires nothing when a sort only moves the edited row", () => {
+    const onEditEnd = vi.fn();
+    const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditEnd }) });
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
+    act(() => result.current.actions.setSorts([{ columnId: "qty", direction: "desc" }]));
+    expect(result.current.editing).toMatchObject({ rowId: "1", coord: { col: 0, row: 2 } });
+    expect(onEditEnd).not.toHaveBeenCalled();
+  });
+
+  it("fires cancel once when the edited column is hidden", () => {
+    const onEditEnd = vi.fn();
+    const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditEnd }) });
+    act(() => result.current.actions.startEditingAt({ col: 1, row: 0 }));
+    act(() => result.current.actions.setColumnHidden("qty", true));
+    expect(result.current.editing).toBeNull();
+    expect(onEditEnd.mock.calls).toEqual([[{ coord: { col: 1, row: 0 }, result: "cancel" }]]);
+  });
+
+  it("fires cancel once when a consumer data swap drops the edited row", () => {
+    const onEditEnd = vi.fn();
+    let data = rows();
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider data={data} columns={columns} getRowId={(r) => r.id} onEditEnd={onEditEnd}>
+          {children}
+        </DataGridProvider>
+      );
+    }
+    const { result, rerender } = renderHook(useActionsAndEditing, { wrapper: Wrapper });
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 1 }));
+    data = data.filter((r) => r.id !== "2");
+    rerender();
+    expect(result.current.editing).toBeNull();
+    expect(onEditEnd.mock.calls).toEqual([[{ coord: { col: 0, row: 1 }, result: "cancel" }]]);
+  });
+
+  it("ends the open session with cancel before a second startEditing opens a new one", () => {
+    const onEditEnd = vi.fn();
+    const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditEnd }) });
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 2 }));
+    expect(result.current.editing).toMatchObject({ rowId: "3" });
+    expect(onEditEnd.mock.calls).toEqual([[{ coord: { col: 0, row: 0 }, result: "cancel" }]]);
+  });
+
+  it("keeps the open session when onEditStart vetoes a second startEditing", () => {
+    const onEditEnd = vi.fn();
+    const onEditStart = vi.fn((coord: { row: number }) => (coord.row === 2 ? false : undefined));
+    const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditEnd, onEditStart }) });
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 2 }));
+    expect(result.current.editing).toMatchObject({ rowId: "1" });
+    expect(onEditEnd).not.toHaveBeenCalled();
+  });
+
+  it("fires rejected per async rejection, then exactly one cancel when the session ends", () => {
+    const onEditEnd = vi.fn();
+    const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditEnd }) });
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
+    act(() => result.current.actions.setEditingError("taken"));
+    expect(result.current.editing).not.toBeNull();
+    act(() => result.current.actions.cancelEditing());
+    act(() => result.current.actions.cancelEditing());
+    expect(onEditEnd.mock.calls).toEqual([
+      [{ coord: { col: 0, row: 0 }, result: "rejected" }],
+      [{ coord: { col: 0, row: 0 }, result: "cancel" }],
+    ]);
+  });
+
+  it("fires cancel once when a commit discards a draft whose anchor went stale", () => {
+    const onEditEnd = vi.fn();
+    const onDataChange = vi.fn();
+    const { result } = renderHook(() => ({ ...useActionsAndEditing(), store: useDataGridStoreApi() }), {
+      wrapper: makeWrapper({ onEditEnd, onDataChange }),
+    });
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
+    // a view rebuild that bypassed the remap
+    act(() => result.current.store.setState({ viewIndex: [2, 1, 0] }));
+    act(() => result.current.actions.commitCellEdit("x"));
+    expect(onDataChange).not.toHaveBeenCalled();
+    expect(onEditEnd.mock.calls).toEqual([[{ coord: { col: 0, row: 0 }, result: "cancel" }]]);
   });
 
   it("delivers onDataChange, then onActiveCellChange, then onEditEnd on a moving commit", () => {

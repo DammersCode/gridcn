@@ -220,8 +220,18 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     warnedPresenceReorder = true;
     warnDev("rows moved while a view-space presence entry is active — its highlight position is now stale; use rowId-native presence entries for a live feed");
   };
+  // The session whose end commit/cancel report themselves; the edit-end subscription skips it.
+  let selfReportedSession: DataGridStoreState["editing"] = null;
+  const endEditSession = (session: NonNullable<DataGridStoreState["editing"]>, write: () => void): void => {
+    selfReportedSession = session;
+    try {
+      write();
+    } finally {
+      selfReportedSession = null;
+    }
+  };
   const initViewIndex = computeViewIndex(initData, seeded.columns, init.sortState ?? [], initFilterState, initJoinOperator, undefined, initCellTypes);
-  return createStore<DataGridStoreState>((set, get) => ({
+  return createStore<DataGridStoreState>((set, get, api) => ({
     ...init,
     ...resolveSelectionConfig(init),
     // storage widens each per-column CellType<TData, TValue, TOptions> to the untyped registry shape; narrowed back per column at lookup (cell.tsx/store's column-op helpers).
@@ -569,6 +579,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const target = resolveEditTarget(s, coord);
         if (!target || target.cellType.activate || isColumnReadOnly(target.column, target.row)) return;
         if (s.onEditStart?.(coord) === false) return;
+        if (s.editing) get().actions.cancelEditing();
         set({
           editing: { coord, rowId: s.getRowId(target.row, target.dataRowIndex), columnId: target.column.id, initialText },
           editingError: null,
@@ -578,8 +589,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       cancelEditing() {
         const s = get();
-        set({ editing: null, editingError: null });
-        if (s.editing) s.onEditEnd?.({ coord: s.editing.coord, result: "cancel" });
+        if (!s.editing) {
+          set({ editingError: null });
+          return;
+        }
+        endEditSession(s.editing, () => set({ editing: null, editingError: null }));
+        s.onEditEnd?.({ coord: s.editing.coord, result: "cancel" });
       },
       // The data-write cluster (see data-write.ts): the edit commits, the bulk writers, and the row ops.
       ...createDataWriteActions(set, get, {
@@ -588,6 +603,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         pruneRowValidationKeys,
         warnViewSpacePresenceStale,
         remapEditing,
+        endEditSession,
       }),
       setEditingError(message) {
         const s = get();
@@ -804,6 +820,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
               : computeSearchMatches(nextData, nextColumns, nextViewIndex, nextVisibleColumns, nextSearchText, nextCellTypes)),
             selection: rows === s.selection.rows ? s.selection : { ...s.selection, rows },
           };
+        });
+      },
+      _subscribeEditEnd() {
+        return api.subscribe((state, prev) => {
+          if (prev.editing === null || state.editing !== null || prev.editing === selfReportedSession) return;
+          state.onEditEnd?.({ coord: prev.editing.coord, result: "cancel" });
         });
       },
       _registerScrollToCell(impl) {

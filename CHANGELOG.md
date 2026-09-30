@@ -51,8 +51,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   fires when the active cell becomes a different cell or is cleared (`null`). `onEditStart(coord)`
   fires before an edit session opens and may return `false` to veto the edit. `onEditEnd(event)`
   fires with `{ coord, result: "commit" | "cancel" | "rejected" }` — `rejected` fires per refused
-  commit attempt while the session stays open. `onValidationError(event)` fires after a bulk paste
-  or fill settles, only when at least one cell was rejected by validation:
+  commit attempt while the session stays open. Each session ends with exactly one `commit` or
+  `cancel`: a filter, hidden column, or data change that drops the edited cell, and a second
+  `startEditing` over an open session (which ends the old session first), report `cancel`.
+  `onValidationError(event)` fires after a bulk paste or fill settles, only when at least one
+  cell was rejected by validation:
   `{ source: "paste" | "fill", rejected: [{ rowId, columnId, viewRowIndex, value, message }] }`.
   `onCellDoubleClick` and `onCellContextMenu` fire on the matching cell gesture with the
   `CellClickCtx` shape plus the native `MouseEvent`; both are pure notifications, not veto points.

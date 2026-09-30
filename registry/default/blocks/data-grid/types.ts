@@ -265,9 +265,11 @@ export type OnRowClick<TData> = (ctx: RowClickCtx<TData>, event: MouseEvent) => 
 
 /**
  * Fired by `onEditEnd` when an edit session ends or a commit attempt is refused: `commit` after the
- * session closes (data written or no-op), `cancel` when the draft is discarded, `rejected` when a
- * commit attempt failed validation and the session STAYS OPEN (fired per attempt, alongside the
- * `editingRejectionCount` bump). The committed value is not included — `onDataChange` carries it.
+ * session closes (data written or no-op), `cancel` when the draft is discarded (Escape, the cell
+ * leaving the view, or a new `startEditing` replacing the session), `rejected` when a commit
+ * attempt failed validation and the session STAYS OPEN (fired per attempt, alongside the
+ * `editingRejectionCount` bump). Each session ends with exactly one `commit` or `cancel`. The
+ * committed value is not included — `onDataChange` carries it.
  */
 export type GridEditEndEvent = { coord: ViewCoord; result: "commit" | "cancel" | "rejected" };
 
