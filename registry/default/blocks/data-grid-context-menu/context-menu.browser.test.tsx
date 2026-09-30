@@ -1,4 +1,4 @@
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import {
@@ -375,7 +375,7 @@ describe("DataGridContextMenu — a failed clipboard write", () => {
     delete (document as unknown as Record<string, unknown>)["execCommand"];
   });
 
-  it("does not keep Cut and Copy disabled after the menu reopens", async () => {
+  it("shows the failure on the next open only, then lets the user retry", async () => {
     Object.defineProperty(navigator, "clipboard", { value: { write: () => Promise.reject(new Error("denied")) }, configurable: true });
     document.execCommand = () => false;
     await renderGrid();
@@ -385,6 +385,18 @@ describe("DataGridContextMenu — a failed clipboard write", () => {
     await vi.waitFor(() => expect(menuItem("Copy")).toBeTruthy());
     menuItem("Copy")!.click();
     await vi.waitFor(() => expect(document.querySelectorAll('[role="menu"]').length).toBe(0));
+
+    rightClick(gridCell("Alice", "name"));
+    await vi.waitFor(() => expect(menuItem("Copy")).toBeTruthy());
+    expect(menuItem("Copy")!.getAttribute("aria-disabled")).toBe("true");
+    expect(menuItem("Cut")!.getAttribute("aria-disabled")).toBe("true");
+    menuItem("Copy")!.focus();
+    await vi.waitFor(() => expect(document.body.textContent).toContain("clipboard access failed"));
+
+    await vi.waitFor(async () => {
+      await userEvent.keyboard("{Escape}");
+      expect(document.querySelectorAll('[role="menu"]').length).toBe(0);
+    });
 
     rightClick(gridCell("Alice", "name"));
     await vi.waitFor(() => expect(menuItem("Copy")).toBeTruthy());

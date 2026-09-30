@@ -560,8 +560,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Context-menu Cut and Copy report failures (`data-grid-context-menu`, `data-grid`):** when the
   clipboard write fails, the menu disables Cut and Copy and shows the new
   `labels.contextMenu.clipboardFailed` tooltip ("clipboard access failed — use Ctrl+C or
-  Ctrl+X") until the menu opens again. A throwing `document.execCommand("copy")` resolves the copy as `'failed'` instead of
-  rejecting.
+  Ctrl+X") the next time it opens. The open after that is back to normal, so the
+  user can retry. A throwing `document.execCommand("copy")` resolves the copy as `'failed'`
+  instead of rejecting.
 - **Selection follows the edited row (`data-grid`):** while a cell is in edit mode, a sort, filter,
   or data change that moves its row moves the selection with the active cell. The range no longer
   paints on another record, and Shift+Arrow after Escape extends from the edited cell.

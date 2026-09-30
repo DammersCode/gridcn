@@ -117,7 +117,7 @@ Decisions (maintainer rule: secure, performant, feature-rich; breaking changes w
 - An ISO datetime with an offset stores its local calendar day.
 - Server-mode pagination does not reconcile while `total` is 0.
 - The edit remap collapses a multi-cell range to the edited cell.
-- A failed clipboard write disables Cut and Copy until the menu reopens.
+- A failed clipboard write disables Cut and Copy for the next menu open.
 - One custom toolbar hosting the searches of two grids is unsupported.
 
 Execution order (one implementer at a time on the branch, so blocks never collide in shared files such as `create-store.ts` and `CHANGELOG.md`; reviewers stay read-only in their own worktrees): R1 → R4 critical (R-36…R-43) → R5 (io + hucre) → R2 → R3 → remaining R4 → R-35 → W5-11 → W5-12 → W5-13.

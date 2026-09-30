@@ -78,6 +78,9 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
   // "use Ctrl+V" hint on the next open.
   const [pasteBlocked, setPasteBlocked] = useState(false);
   const [clipboardFailed, setClipboardFailed] = useState(false);
+  const clipboardFailedRef = useRef(false);
+  clipboardFailedRef.current = clipboardFailed;
+  const failureShownRef = useRef(false);
 
   // Captured at contextmenu time (not via useDataGridContainer): ContextMenuContent portals to
   // document.body, outside DataGridRoot's subtree, so its children can't reach the root context.
@@ -108,7 +111,12 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
 
   const onOpenChange = useCallback((open: boolean, eventDetails: ContextMenuPrimitive.Root.ChangeEventDetails) => {
     if (open && targetRef.current === null) eventDetails.cancel();
-    if (open) setClipboardFailed(false);
+    if (open) {
+      failureShownRef.current = clipboardFailedRef.current;
+    } else if (failureShownRef.current) {
+      failureShownRef.current = false;
+      setClipboardFailed(false);
+    }
   }, []);
 
   // The built-in sets as specs, resolved for the current state. Computed even with no menu open
