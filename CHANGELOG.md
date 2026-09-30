@@ -491,6 +491,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **`startEditing` honors `readOnly` and `activate`:** `actions.startEditing`/`startEditingAt`
+  and the imperative handle's `startEditing` open no edit session on a `readOnly` grid or on a
+  cell whose type declares `activate` (such as `checkbox`), the same gate as the keyboard edit
+  gestures. Before, a programmatic call opened an editor on a `readOnly` grid, and its commit wrote
+  through `onDataChange`.
 - **Cut clears exactly the copied cells:** Ctrl+X and `useDataGridClipboard().cut()` (the context
   menu's Cut) capture the copied rows and columns by id and clear exactly those cells. A sort,
   filter, or data change during the clipboard write no longer clears whichever rows moved into the

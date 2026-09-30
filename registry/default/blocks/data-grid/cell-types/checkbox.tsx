@@ -14,7 +14,7 @@ function CheckboxCell({ value }: CellRenderProps<unknown, boolean>) {
   );
 }
 
-/** Checkbox has no edit mode (interaction layer toggles+commits directly via `commitCellValue`); this only guards a stray `startEditing` call by bailing out immediately. */
+/** Checkbox has no edit mode: `startEditing` skips a type with `activate`; this bails out if a session is opened through the raw store anyway. */
 function CheckboxEditor({ cancel }: CellEditorProps<unknown, boolean>) {
   const committed = useCommitGuard();
   useEffect(() => {

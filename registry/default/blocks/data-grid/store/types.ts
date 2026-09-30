@@ -682,7 +682,7 @@ export type DataGridActions = {
   setJoinOperator(joinOperator: FilterJoinOperator): void;
   /** Sets quick-search text and recomputes `searchMatches`/`searchMatchSet`/`searchMatchesCapped` once; never touches `viewIndex`. */
   setSearch(text: string): void;
-  /** Enters edit mode at the cell named by the stable {@link CellRef}; no-op when the column is readOnly or its type is unregistered. */
+  /** Enters edit mode at the cell named by the stable {@link CellRef}; no-op when the grid or column is readOnly, or its type is unregistered or declares `activate`. */
   startEditing(ref: CellRef, initialText?: string): void;
   /** View-space variant of {@link DataGridActions.startEditing} for callers that hold a {@link ViewCoord}. */
   startEditingAt(coord: ViewCoord, initialText?: string): void;

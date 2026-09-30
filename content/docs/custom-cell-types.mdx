@@ -230,9 +230,9 @@ matcher · **fill** = raw value.
   shadcn's `Checkbox` with `pointer-events-none` and `tabIndex={-1}`, so it never receives a
   click. `checkbox` declares `activate: (value) => !value`, and the interaction layer of the grid
   commits that result through `commitCellValue` directly, so the control only reflects the
-  resulting `value` prop. Any type can declare `activate` for the same in-place gesture. The
-  `Editor` of `checkbox` exists only to guard a stray `startEditing` call (there is no separate
-  edit mode to enter). It bails out through `cancel()` in an effect and renders nothing.
+  resulting `value` prop. Any type can declare `activate` for the same in-place gesture.
+  `startEditing` opens no session on a type that declares `activate`, so the `Editor` of
+  `checkbox` does not mount. It bails out through `cancel()` in an effect and renders nothing.
 - **Build editor UI from the shadcn primitives of the project, not from raw HTML controls.** Reach
   for `Input`, `Select`, `Popover`, `Calendar`, and similar components from `@/components/ui/*`,
   the same way the built-in types do, so your cell type matches the rest of the design system.

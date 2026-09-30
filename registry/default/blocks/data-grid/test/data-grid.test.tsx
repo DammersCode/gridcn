@@ -1547,6 +1547,34 @@ describe("DataGridApi (imperative handle)", () => {
     expect(ref.current!.store.getState().editing).toBeNull();
   });
 
+  it("startEditing is a no-op on a readOnly grid: no editor opens and a commit writes nothing", () => {
+    const ref = { current: null as DataGridApi<Row> | null };
+    const onDataChange = vi.fn();
+    render(
+      <DataGrid ref={(api) => { ref.current = api; }} data={makeRows(3)} columns={columns} getRowId={(r) => r.id} onDataChange={onDataChange} readOnly />,
+    );
+    act(() => ref.current!.startEditing({ rowId: "0", columnId: "name" }));
+    expect(ref.current!.store.getState().editing).toBeNull();
+    expect(document.querySelector(gridAttrSelector("cellEditor"))).toBeNull();
+    // the editor's Enter path
+    act(() => ref.current!.actions.commitCellEdit("changed", { dx: 0, dy: 1 }));
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("startEditing opens no session on a cell whose type declares activate", () => {
+    type CheckRow = Row & { done: boolean };
+    const ref = { current: null as DataGridApi<CheckRow> | null };
+    const onEditStart = vi.fn();
+    const rows: CheckRow[] = makeRows(2).map((r) => ({ ...r, done: false }));
+    const checkColumns: readonly ColumnDef<CheckRow, unknown>[] = [{ id: "done", header: "Done", accessorKey: "done", type: "checkbox" }];
+    render(
+      <DataGrid ref={(api) => { ref.current = api; }} data={rows} columns={checkColumns} getRowId={(r) => r.id} onEditStart={onEditStart} />,
+    );
+    act(() => ref.current!.startEditing({ rowId: "0", columnId: "done" }));
+    expect(ref.current!.store.getState().editing).toBeNull();
+    expect(onEditStart).not.toHaveBeenCalled();
+  });
+
   it("focus() seeds (0,0) and lands focus there when nothing is active, then follows the active cell", () => {
     const { ref } = renderWithHandle();
     act(() => ref.current!.focus());

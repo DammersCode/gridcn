@@ -1251,19 +1251,19 @@ describe("commitCellEdit", () => {
     expect(result.current.editingError).toBe("must be >= 0");
   });
 
-  it("startEditing then commitCellEdit in the same tick commits (checkbox-style immediate commit)", () => {
+  it("startEditing then commitCellEdit in the same tick commits", () => {
     const onDataChange = vi.fn();
     const wrapper = makeEditWrapper(onDataChange);
     const { result } = renderHook(() => useDataGridActions(), { wrapper });
 
     act(() => {
-      result.current.startEditingAt({ col: 2, row: 1 });
-      result.current.commitCellEdit(false, { dx: 0, dy: 0 });
+      result.current.startEditingAt({ col: 0, row: 1 });
+      result.current.commitCellEdit("Zed", { dx: 0, dy: 0 });
     });
 
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [next, change] = onDataChange.mock.calls[0] as [readonly EditRow[], DataChange<EditRow>];
-    expect(next[1]!.active).toBe(false);
+    expect(next[1]!.name).toBe("Zed");
     expect(change.source).toBe("edit");
   });
 

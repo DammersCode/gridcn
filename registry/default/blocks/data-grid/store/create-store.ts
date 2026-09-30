@@ -552,8 +552,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       startEditingAt(coord, initialText) {
         const s = get();
+        if (s.readOnly) return;
         const target = resolveEditTarget(s, coord);
-        if (!target || isColumnReadOnly(target.column, target.row)) return;
+        if (!target || target.cellType.activate || isColumnReadOnly(target.column, target.row)) return;
         if (s.onEditStart?.(coord) === false) return;
         set({
           editing: { coord, rowId: s.getRowId(target.row, target.dataRowIndex), columnId: target.column.id, initialText },
