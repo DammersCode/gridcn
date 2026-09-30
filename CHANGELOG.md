@@ -558,7 +558,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Fill keeps long identifiers intact (`data-grid-fill`):** a series whose number has more than 15
   digits tiles instead of extrapolating. `ID 1234567890123456789` no longer fills as `…7000`, and
   a 400-digit number no longer fills as `xNaN`. A series also tiles once an
-  extrapolated value would leave the safe integer range.
+  extrapolated value would need more than 15 digits.
 - **Context-menu Cut and Copy report failures (`data-grid-context-menu`, `data-grid`):** when the
   clipboard write fails, the menu disables Cut and Copy and shows the new
   `labels.contextMenu.clipboardFailed` tooltip ("clipboard access failed — use Ctrl+C or

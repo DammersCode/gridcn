@@ -245,6 +245,13 @@ describe("detectSeries", () => {
     expect(series.extrapolate(-100)).toBe(values[0]);
   });
 
+  it("tiles a decimal series once an extrapolated value needs more than 15 digits", () => {
+    const series = detectSeries(["0.1", "10000000000000.1"])!;
+    expect(series.extrapolate(1)).toBe("10000000000000.1");
+    expect(series.extrapolate(500)).toBe("0.1");
+    expect(series.extrapolate(501)).toBe("10000000000000.1");
+  });
+
   it("detects a prefix series on a 20k-char value in linear time", () => {
     // the attack input: a long digit run, a non-digit, then a trailing digit — quadratic for the old
     // /^(.*?)(\d+)(\D*)$/ split, ~318 ms per value; a linear scan finishes in under a millisecond.

@@ -56,8 +56,8 @@ function detectArithmetic(values: readonly string[]): SeriesDescriptor | null {
   const precision = Math.max(...trimmed.map(decimalPlaces));
   return {
     extrapolate: (index: number) => {
-      const n = first + delta * index;
-      return Math.abs(n) > Number.MAX_SAFE_INTEGER ? tile(values, index) : n.toFixed(precision);
+      const formatted = (first + delta * index).toFixed(precision);
+      return exceedsExactDigits(formatted) ? tile(values, index) : formatted;
     },
   };
 }
