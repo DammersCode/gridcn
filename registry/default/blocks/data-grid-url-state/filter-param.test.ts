@@ -62,12 +62,23 @@ describe("serializeFilterState / parseFilterState", () => {
     expect(filters[0]).toEqual({ columnId: "c0", operator: "contains", value: "x" });
   });
 
-  it("caps an isAnyOf choice list at 64 entries", () => {
-    const raw = "status:isAnyOf:" + Array.from({ length: 100 }, (_, i) => `v${i}`).join("|");
-    const filters = parseFilterState(raw);
-    expect(filters).toHaveLength(1);
-    expect(filters[0]!.value).toHaveLength(64);
-    expect((filters[0]!.value as string[])[0]).toBe("v0");
+  describe("isAnyOf list bound", () => {
+    const list = (length: number) => "status:isAnyOf:" + Array.from({ length }, (_, i) => `v${i}`).join("|");
+
+    it("keeps a list longer than 64 when the column has that many choices", () => {
+      const filters = parseFilterState(list(200), { maxChoices: () => 200 });
+      expect(filters[0]!.value).toHaveLength(200);
+    });
+
+    it("bounds a list by the column's own number of choices", () => {
+      const filters = parseFilterState(list(100), { maxChoices: (columnId) => (columnId === "status" ? 3 : 1000) });
+      expect(filters[0]!.value).toEqual(["v0", "v1", "v2"]);
+    });
+
+    it("bounds a list at 1000 entries when no limit is given", () => {
+      expect(parseFilterState(list(1500))[0]!.value).toHaveLength(1000);
+      expect(parseFilterState(list(200))[0]!.value).toHaveLength(200);
+    });
   });
 
   it("never throws on malformed percent-encoding", () => {

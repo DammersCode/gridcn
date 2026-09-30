@@ -115,7 +115,8 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
       warnDev(`dropped URL sort spec for removed column "${spec.columnId}"`);
       return false;
     });
-    const parsedFilters = parseFilterState(filterParam);
+    const choiceCounts = new Map(allColumns.map((c) => [c.id, (c.options as { choices?: readonly unknown[] } | undefined)?.choices?.length]));
+    const parsedFilters = parseFilterState(filterParam, { maxChoices: (columnId) => choiceCounts.get(columnId) });
     const filters = parsedFilters.filter((spec) => {
       if (liveColumnIds.has(spec.columnId)) return true;
       warnDev(`dropped URL filter spec for removed column "${spec.columnId}"`);

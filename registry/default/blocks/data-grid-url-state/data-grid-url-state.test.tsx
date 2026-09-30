@@ -48,6 +48,19 @@ function UrlStateProbe(props: { prefix?: string; onResult: (result: UseDataGridU
   return null;
 }
 
+type StatusRow = { id: string; status: string };
+
+const statusColumns = defineColumns<StatusRow>()([
+  {
+    id: "status",
+    header: "Status",
+    accessorKey: "status",
+    type: "select",
+    width: 80,
+    options: { choices: [{ value: "new", label: "New" }, { value: "open", label: "Open" }] },
+  },
+] as const);
+
 function renderGrid(options: {
   searchParams?: string;
   prefix?: string;
@@ -71,6 +84,32 @@ function renderGrid(options: {
   );
   return { ...utils, getState: () => latestState!, getActions: () => actions! };
 }
+
+describe("DataGridUrlState isAnyOf bound", () => {
+  it("bounds a URL isAnyOf list by the column's own choices", () => {
+    const values = Array.from({ length: 10 }, (_, i) => `v${i}`).join("|");
+    let filter: unknown;
+    const Probe = () => {
+      filter = useDataGridFilterState();
+      return null;
+    };
+    render(
+      <NuqsTestingAdapter searchParams={`?filter=status%3AisAnyOf%3A${values}`}>
+        <DataGridProvider data={[{ id: "r0", status: "new" }]} columns={statusColumns} getRowId={(r) => r.id}>
+          <DataGridUrlState />
+          <Probe />
+        </DataGridProvider>
+      </NuqsTestingAdapter>,
+    );
+    expect(filter).toEqual([{ filterId: expect.any(String), columnId: "status", operator: "isAnyOf", value: ["v0", "v1"] }]);
+  });
+
+  it("keeps a long isAnyOf list for a column without choices", () => {
+    const values = Array.from({ length: 100 }, (_, i) => `v${i}`).join("|");
+    const { getState } = renderGrid({ searchParams: `?filter=name%3AisAnyOf%3A${values}` });
+    expect((getState().filter as { value: string[] }[])[0]!.value).toHaveLength(100);
+  });
+});
 
 describe("DataGridUrlState mount-apply", () => {
   it("applies sort/filter/search from the URL on mount", () => {
