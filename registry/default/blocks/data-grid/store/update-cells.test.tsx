@@ -959,7 +959,7 @@ describe("controlled echo detection", () => {
     const data = rows();
     function Wrapper({ children }: { children: ReactNode }) {
       return (
-        <DataGridProvider data={data} columns={priceColumns} getRowId={getRowId} sortState={stableSort} cellTypes={{ ...registryProp } as never}>
+        <DataGridProvider data={data} columns={priceColumns} getRowId={getRowId} sortState={stableSort} cellTypes={registryProp as never}>
           {children}
         </DataGridProvider>
       );
