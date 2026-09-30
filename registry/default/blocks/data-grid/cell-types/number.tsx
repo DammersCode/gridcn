@@ -27,6 +27,13 @@ function roundToDecimals(value: number, options?: GridCellTypes["number"]["optio
   return Math.round(value * factor) / factor;
 }
 
+/** Count of fractional digits in a finite number's shortest decimal form. */
+function decimalPlaces(value: number): number {
+  const [mantissa = "", exponent = "0"] = String(value).split("e");
+  const fraction = mantissa.split(".")[1]?.length ?? 0;
+  return Math.min(100, Math.max(0, fraction - Number(exponent)));
+}
+
 function NumberCell({ value, options }: CellRenderProps<unknown, number | null, GridCellTypes["number"]["options"]>) {
   return <CellSpan text={numberCellType.toText(value, options)} align="right" />;
 }
@@ -83,13 +90,22 @@ function NumberEditor({
         } else if (e.key === "Escape") {
           cancel();
         } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+          if (pending || e.nativeEvent.isComposing) return;
           // step the draft; a cleared draft falls back to the committed value, so an empty
           // cell with a null value has no step base and stays untouched
           const base = numberCellType.fromText(text, options) ?? value;
           if (base === null) return;
           e.preventDefault();
           const step = options?.step ?? 1;
-          const next = roundToDecimals(clampNumber(base + (e.key === "ArrowUp" ? step : -step), options), options);
+          const raw = base + (e.key === "ArrowUp" ? step : -step);
+          const clamped = clampNumber(raw, options);
+          // float drift (0.1 + 0.2) rounds away at the finer of the draft's and the step's precision
+          const next =
+            options?.decimals !== undefined
+              ? roundToDecimals(clamped, options)
+              : clamped === raw
+                ? Number(raw.toFixed(Math.max(decimalPlaces(base), decimalPlaces(step))))
+                : clamped;
           setText(String(next));
         }
       }}

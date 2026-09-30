@@ -527,6 +527,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Number editor stepping (`data-grid`):** ArrowUp and ArrowDown step by the column's `step`
+  (default 1) and round the result to the finer precision of the draft and the step, so `0.1`
+  steps read `0.3` instead of `0.30000000000000004`. The arrows do nothing while an async
+  validation is pending or an IME composition is active.
 - **Clipboard round trip keeps tabs, carriage returns, and non-breaking spaces (`data-grid`):** a
   cell copied from the grid and pasted back keeps its exact value when it holds a carriage
   return or a non-breaking space next to a tab. The HTML payload writes a carriage return as a

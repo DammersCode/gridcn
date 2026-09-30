@@ -761,6 +761,25 @@ describe("DataGrid in a real browser", () => {
         expect(next[0]!.age).toBe(42); // the schema's own result.value (a transform), not the raw 41.6
       });
 
+      it("ArrowUp while pending leaves the draft untouched", async () => {
+        const onDataChange = mockDataChangeFn<Row>();
+        const { schema, resolvers } = makeControlledAsyncSchema();
+        await renderAsyncSchemaGrid(onDataChange, schema);
+        await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+        const cell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-type="number"]')[0]!;
+        await userEvent.dblClick(cell);
+        const input = document.querySelector<HTMLInputElement>(`[role="gridcell"]${gridAttrSelector("editing", "true")} input`)!;
+        await userEvent.clear(input);
+        await userEvent.type(input, "7");
+        await userEvent.keyboard("{Enter}");
+        await vi.waitFor(() => expect(input.readOnly).toBe(true));
+
+        await userEvent.keyboard("{ArrowUp}");
+        expect(input.value).toBe("7");
+        expect(resolvers).toHaveLength(1);
+      });
+
       it("Escape while pending cancels the edit with no commit, even after the schema later resolves", async () => {
         const onDataChange = mockDataChangeFn<Row>();
         const { schema, resolvers } = makeControlledAsyncSchema();
@@ -1345,6 +1364,45 @@ describe("DataGrid in a real browser", () => {
 
       await userEvent.keyboard("{ArrowUp}{ArrowUp}{ArrowUp}");
       expect(input.value).toBe("2.3");
+    });
+
+    it("rounds fractional steps without decimals to the step's own precision", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(undefined, undefined, 0.1, undefined), 0.2);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowUp}");
+      expect(input.value).toBe("0.3");
+      await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}");
+      expect(input.value).toBe("0");
+    });
+
+    it("keeps the precision of a draft that is finer than the step", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(undefined, undefined, 0.1, undefined), 2.35);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowUp}");
+      expect(input.value).toBe("2.45");
+    });
+
+    it("steps by 1 when the column declares no step", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(undefined, undefined, undefined, undefined), 5);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowUp}{ArrowUp}{ArrowDown}");
+      expect(input.value).toBe("6");
+    });
+
+    it("ignores ArrowUp while an IME composition is active", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(undefined, undefined, 1, undefined), 5);
+      const input = await openNumberEditor();
+
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", isComposing: true, bubbles: true, cancelable: true }));
+      await userEvent.keyboard("{ArrowUp}");
+      expect(input.value).toBe("6");
     });
 
     it("steps from the committed value when the draft was cleared", async () => {
