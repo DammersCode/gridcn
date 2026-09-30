@@ -82,4 +82,35 @@ describe("useRowReorder document listener lifecycle", () => {
     unmount();
     addSpy.mockRestore();
   });
+
+  it("a lost pointer capture on an element inside the document keeps the gesture; one on the document ends it", () => {
+    const addSpy = vi.spyOn(document, "addEventListener");
+    const args = makeArgs();
+    const { result, unmount } = renderHook(() => useRowReorder(args));
+    const element = document.body.appendChild(document.createElement("div"));
+    const lostCapture = (target: EventTarget) => {
+      const event = Object.assign(new Event("lostpointercapture", { bubbles: true }), { pointerId: 1 });
+      target.dispatchEvent(event);
+    };
+
+    act(() => {
+      result.current.onMarkerDragPointerDown(0, pointerDown({ pointerId: 1 }));
+    });
+    const afterFirst = gestureAdds(addSpy);
+    act(() => lostCapture(element));
+    act(() => {
+      result.current.onMarkerDragPointerDown(1, pointerDown({ pointerId: 2 }));
+    });
+    expect(gestureAdds(addSpy)).toBe(afterFirst);
+
+    act(() => lostCapture(document));
+    act(() => {
+      result.current.onMarkerDragPointerDown(1, pointerDown({ pointerId: 2 }));
+    });
+    expect(gestureAdds(addSpy)).toBe(afterFirst * 2);
+
+    element.remove();
+    unmount();
+    addSpy.mockRestore();
+  });
 });
