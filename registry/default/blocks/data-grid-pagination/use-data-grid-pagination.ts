@@ -41,7 +41,7 @@ export type UseDataGridPaginationServerOptions = {
   onPageSizeChange?: (pageSize: number) => void;
   /**
    * Fires your `onPageChange` with the clamped page exactly once when `page` falls outside
-   * `[1, pageCount]` (e.g. `total` shrank). The hook never sets your page state. Default `false`.
+   * `[1, pageCount]` (e.g. `total` shrank), never while `total` is 0. The hook never sets your page state. Default `false`.
    */
   reconcilePage?: boolean;
 };
@@ -114,7 +114,7 @@ function useServerPagination(options: UseDataGridPaginationServerOptions): DataG
   // ignores the callback or passes an unstable onPageChange.
   const firedRef = useRef<{ page: number; clamped: number } | null>(null);
   useEffect(() => {
-    if (!reconcilePage) return;
+    if (!reconcilePage || total <= 0) return;
     const clamped = clampPage(page, total, pageSize);
     if (clamped === page) {
       firedRef.current = null;
@@ -145,8 +145,7 @@ function useClientPagination<TData>(options: UseDataGridPaginationClientOptions<
   const controlledPage = options.page;
   const controlled = controlledPage !== undefined;
   const rawPage = controlled ? controlledPage : internalPage;
-  // an empty dataset (data loading) must not clamp the controlled page away, or a deep link is lost until data arrives
-  const page = data.length > 0 ? clampPage(rawPage, data.length, pageSize) : rawPage;
+  const page = clampPage(rawPage, data.length, pageSize);
 
   const setPage = (next: number, sizeForClamp: number = pageSize) => {
     const clamped = clampPage(next, data.length, sizeForClamp);

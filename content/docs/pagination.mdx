@@ -140,7 +140,9 @@ rendering performance, and using the two together is not supported — when to p
 
     The bar clamps the displayed page when `total` shrinks below it, but your `page` state is
     yours. If a stale page would fetch the wrong rows, pass `reconcilePage: true` — the hook then
-    fires your `onPageChange` with the clamped page once. The hook never sets your state.
+    fires your `onPageChange` with the clamped page once. The hook never sets your state. While
+    `total` is `0` (your first fetch is still in flight), the hook keeps your page, so a deep link
+    survives until the total arrives.
 
     <AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationClientOptions" />
     <AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationServerOptions" />

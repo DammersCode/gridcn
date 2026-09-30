@@ -527,6 +527,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Pagination keeps deep links while data loads (`data-grid-pagination`):** server mode with
+  `reconcilePage` no longer rewrites your page while `total` is `0`, so a deep link survives the
+  first fetch. Client mode with an empty dataset shows page 1 of 1 instead of an out-of-range
+  page such as "page 3 of 1"; your controlled page is left as it is.
 - **Number editor stepping (`data-grid`):** ArrowUp and ArrowDown step by the column's `step`
   (default 1) and round the result to the finer precision of the draft and the step, so `0.1`
   steps read `0.3` instead of `0.30000000000000004`. The arrows do nothing while an async
