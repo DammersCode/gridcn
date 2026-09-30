@@ -237,6 +237,11 @@ Decisions:
 | R-67 | R-08 | Import dialog delimiter and column-mapping selects show labels (Base UI `items` prop), not raw values (`\t`, `fullName`, `__skip__`). Browser test | S | LOW |
 | R-68 | R4 implementer | Restarting an edit on the same cell carries the old draft and any in-flight async validation into the new session (the editor does not remount; the async guard only advances on unmount or `cancelPending`): key the editor or bump the async generation per session | S | LOW |
 | R-69 | R4 implementer | `CheckboxEditor` is dead code since `startEditing` skips `activate` types: remove it (and its tests) or keep it only as documented raw-store fallback | XS | LOW |
+| R-70 | R5 implementer | Sparse xlsx reads still cost ~125 B per real cell (5M minimal cells from a 160 KB file → 637 MB): lower the `maxDecompressedBytes` default to 256 MiB and reject before parsing when the sheet part's declared size implies more cells than `maxCells` allows; measure and document the memory ceiling in the "Import limits" table | S | LOW |
+| R-71 | R5 implementer | Report upstream to hucre (issue with reproducer, no code here): dense reader pads rows before its cell-box check (107 KB → 3.7 GB), and parts declared larger than the max string length are stream-parsed up to the cap. Pin stays at 1.1.0 until fixed | XS | LOW |
+| R-72 | R5 implementer | `.xls` (BIFF8) parses every sheet, so one oversized sheet rejects the workbook even when another sheet is selected: parse only the selected sheet if hucre allows it, else document | S | LOW |
+| R-73 | R5 implementer | Audit hucre's `formatValue` against hostile number-format strings (ReDoS, long patterns); cap the format-string length gridcn passes | S | LOW |
+| R-74 | R5 implementer | `scripts/normalize-payload-eol.mjs` keeps EOL-only changes of every embedded file when one file in the same payload really changed; normalize per embedded file | S | LOW |
 
 ## Wave 5 — API foundation (breaking welcome, spec first where marked)
 
