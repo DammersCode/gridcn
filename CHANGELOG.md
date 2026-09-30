@@ -527,6 +527,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Empty filter value selects show the placeholder (`data-grid-toolbar`):** an empty checkbox
+  or select filter value shows the "Value" placeholder instead of a blank trigger. The filter
+  row's selects pass their labels through the `items` prop of `Select`.
 - **Restarted edit sessions start clean (`data-grid`):** a second `startEditing` on the cell that is
   already being edited opens the editor on the stored value (or the new `initialText`) instead of
   the old session's draft, and drops the old session's pending async validation instead of

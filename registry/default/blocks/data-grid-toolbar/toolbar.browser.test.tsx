@@ -559,6 +559,15 @@ describe("DataGridFilterMenu typed value inputs", () => {
     await expect.element(page.getByRole("option", { name: "false" })).toBeInTheDocument();
   });
 
+  it("an empty checkbox or select filter value shows the placeholder", async () => {
+    await renderRichGrid();
+    await openFilterMenu();
+    await switchFilterColumn("Active");
+    await expect.element(page.getByRole("combobox", { name: "Filter value" })).toHaveTextContent("Value");
+    await switchFilterColumn("Role");
+    await expect.element(page.getByRole("combobox", { name: "Filter value" })).toHaveTextContent("Value");
+  });
+
   it("a select column gets a select of its own choices", async () => {
     await renderRichGrid();
     await openFilterMenu();

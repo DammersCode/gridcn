@@ -215,15 +215,21 @@ export function DataGridFilterValueInput(props: DataGridFilterValueInputProps): 
   const textValue = typeof value === "string" ? value : "";
 
   if (valueInput === "boolean") {
+    const booleanItems = [
+      { value: "true", label: labels.toolbar.filterValueTrue },
+      { value: "false", label: labels.toolbar.filterValueFalse },
+    ];
     return (
-      <Select value={textValue} onValueChange={(next) => onValueChange(next ?? "")}>
+      <Select items={booleanItems} value={textValue || null} onValueChange={(next) => onValueChange(next ?? "")}>
         <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.filterValueAriaLabel}>
-          {/* explicit label lookup: SelectValue only resolves a mounted SelectItem's label, which the popup content isn't until first opened. */}
-          <SelectValue placeholder={labels.toolbar.filterValuePlaceholder}>{(value: string) => (value === "true" ? labels.toolbar.filterValueTrue : value === "false" ? labels.toolbar.filterValueFalse : value)}</SelectValue>
+          <SelectValue placeholder={labels.toolbar.filterValuePlaceholder} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="true">{labels.toolbar.filterValueTrue}</SelectItem>
-          <SelectItem value="false">{labels.toolbar.filterValueFalse}</SelectItem>
+          {booleanItems.map((item) => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
     );
@@ -232,10 +238,9 @@ export function DataGridFilterValueInput(props: DataGridFilterValueInputProps): 
   if (valueInput === "choices") {
     const choices = (column?.options as GridCellTypes["select"]["options"] | undefined)?.choices ?? [];
     return (
-      <Select value={textValue} onValueChange={(next) => onValueChange(next ?? "")}>
+      <Select items={choices} value={textValue || null} onValueChange={(next) => onValueChange(next ?? "")}>
         <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.filterValueAriaLabel}>
-          {/* explicit label lookup: SelectValue only resolves a mounted SelectItem's label, which the popup content isn't until first opened. */}
-          <SelectValue placeholder={labels.toolbar.filterValuePlaceholder}>{(value: string) => choices.find((choice) => choice.value === value)?.label ?? value}</SelectValue>
+          <SelectValue placeholder={labels.toolbar.filterValuePlaceholder} />
         </SelectTrigger>
         <SelectContent>
           {choices.map((choice) => (

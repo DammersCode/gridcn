@@ -298,6 +298,12 @@ type FilterRowProps = {
 function FilterRow(props: FilterRowProps): ReactNode {
   const { filter, index, total, column, joinOperator, columns, filterableColumns, operatorsFor, labels, onJoinOperatorChange, onUpdate, onRemove, onArrowReorder, gripRef } = props;
   const operators = operatorsFor(column);
+  const joinOperatorItems = [
+    { value: "and", label: labels.toolbar.joinOperatorAnd },
+    { value: "or", label: labels.toolbar.joinOperatorOr },
+  ];
+  const columnItems = filterableColumns.map((c) => ({ value: c.id, label: columnLabel(c) }));
+  const operatorItems = operators.map((op) => ({ value: op, label: operatorLabel(op, labels.filterOperators) }));
   // dnd-kit's default plugins include OptimisticSortingPlugin, which physically moves DOM nodes
   // mid-drag — that fights React's own re-render once `onDragEnd` commits the new `filters` order
   // via setFilters, leaving rows with the wrong join-cell content after a drop. Passing an empty
@@ -344,6 +350,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
           <span className="text-sm text-muted-foreground">{labels.toolbar.filterWhere}</span>
         ) : index === 1 ? (
           <Select
+            items={joinOperatorItems}
             value={joinOperator}
             onValueChange={(value) => {
               if (value === null) return;
@@ -351,10 +358,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
             }}
           >
             <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.joinOperatorAriaLabel}>
-              {/* explicit label lookup: SelectValue only resolves a mounted SelectItem's label, which
-                  the popup content isn't until first opened — this control's own trigger text must be
-                  correct on first render (no open required) since it appears the moment 2+ filters exist. */}
-              <SelectValue>{(value: FilterJoinOperator) => (value === "or" ? labels.toolbar.joinOperatorOr : labels.toolbar.joinOperatorAnd)}</SelectValue>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="and">{labels.toolbar.joinOperatorAnd}</SelectItem>
@@ -366,6 +370,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
         )}
       </div>
       <Select
+        items={columnItems}
         value={filter.columnId}
         onValueChange={(value) => {
           if (value === null) return;
@@ -376,8 +381,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
         }}
       >
         <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.filterColumnAriaLabel}>
-          {/* explicit label lookup, same rationale as the join-operator select above. */}
-          <SelectValue className="truncate">{(value: string) => { const c = filterableColumns.find((col) => col.id === value); return c ? columnLabel(c) : value; }}</SelectValue>
+          <SelectValue className="truncate" />
         </SelectTrigger>
         <SelectContent>
           {filterableColumns.map((c) => (
@@ -388,6 +392,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
         </SelectContent>
       </Select>
       <Select
+        items={operatorItems}
         value={filter.operator}
         onValueChange={(value) => {
           if (value === null) return;
@@ -400,8 +405,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
         }}
       >
         <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.filterOperatorAriaLabel}>
-          {/* explicit label lookup, same rationale as the join-operator select above. */}
-          <SelectValue className="truncate">{(value: FilterOperator) => operatorLabel(value, labels.filterOperators)}</SelectValue>
+          <SelectValue className="truncate" />
         </SelectTrigger>
         <SelectContent>
           {operators.map((op) => (
