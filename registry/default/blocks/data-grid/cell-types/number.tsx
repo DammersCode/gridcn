@@ -96,7 +96,8 @@ function NumberEditor({
           const base = numberCellType.fromText(text, options) ?? value;
           if (base === null) return;
           e.preventDefault();
-          const step = options?.step ?? 1;
+          const configuredStep = options?.step ?? 1;
+          const step = options?.decimals !== undefined ? Math.max(configuredStep, 10 ** -options.decimals) : configuredStep;
           const raw = base + (e.key === "ArrowUp" ? step : -step);
           const clamped = clampNumber(raw, options);
           // float drift (0.1 + 0.2) rounds away at the finer of the draft's and the step's precision
