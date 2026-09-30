@@ -70,7 +70,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `getHeaderMenuItems` directly (it overrides the wrapper's resolver for that dropdown).
   `GridMenuItemSpec` (item: `id`, `label`, `icon`, `shortcut`, `disabled`, `destructive`,
   `tooltip`, `onClick`; separator: `id`, `separator: true`) and the ctx/resolver types are
-  exported from the add-on barrel.
+  exported from the add-on barrel. A `disabled` item never runs its `onClick`, with or without a
+  `tooltip`.
 - **Custom cell-type helpers:** `defineCellType(key, type)` adds a compile-time check at the
   definition — the key must be a registered cell-type key (your `GridCellTypes` augmentation)
   and the type's value/options must match that key's declared shape; it costs nothing at runtime

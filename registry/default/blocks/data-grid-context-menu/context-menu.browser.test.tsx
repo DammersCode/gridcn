@@ -498,6 +498,23 @@ describe("DataGridContextMenu — menu resolvers", () => {
     expect(onClick).not.toHaveBeenCalled();
   });
 
+  it("a disabled spec with a tooltip renders aria-disabled and never runs its onClick", async () => {
+    const onClick = vi.fn();
+    await renderGrid({
+      getCellMenuItems: () => [
+        { id: "hinted", label: "Hinted item", disabled: true, tooltip: "Not now", onClick },
+      ],
+    });
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    rightClick(gridCell("Alice", "name"));
+
+    await vi.waitFor(() => expect(menuItem("Hinted item")).toBeTruthy());
+    const item = menuItem("Hinted item")!;
+    expect(item.getAttribute("aria-disabled")).toBe("true");
+    item.click();
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
   it("getHeaderMenuItems receives the header ctx and the built-in defaults, and its return value is the complete item set", async () => {
     const seen: { columnId?: string; scrollRootRole?: string; defaultIds?: string[] } = {};
     await renderGrid({

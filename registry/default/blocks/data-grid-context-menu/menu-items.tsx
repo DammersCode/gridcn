@@ -230,7 +230,7 @@ function surfaceItem(
       disabled={tooltipDisabled ? undefined : spec.disabled || undefined}
       aria-disabled={tooltipDisabled ? true : undefined}
       className={tooltipDisabled ? "opacity-50" : undefined}
-      onClick={spec.onClick}
+      onClick={spec.disabled ? undefined : spec.onClick}
     >
       {spec.icon}
       {spec.label}
