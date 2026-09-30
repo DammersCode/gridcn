@@ -18,6 +18,22 @@ function isRealIsoDate(iso: string): boolean {
   return probe.getUTCFullYear() === year && probe.getUTCMonth() === month - 1 && probe.getUTCDate() === day;
 }
 
+const MONTH_NAME_PREFIXES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+/** True when the input itself names the parsed year, month, and day, so `Date` did not roll an invalid day into the next month. */
+function inputNamesDate(input: string, year: number, month: number, day: number): boolean {
+  const numbers = (input.match(/\d+/g) ?? []).map(Number);
+  const take = (matches: (n: number) => boolean): boolean => {
+    const at = numbers.findIndex(matches);
+    if (at === -1) return false;
+    numbers.splice(at, 1);
+    return true;
+  };
+  if (!take((n) => n === year || (n < 100 && n === year % 100))) return false;
+  if (!take((n) => n === day)) return false;
+  return take((n) => n === month) || input.toLowerCase().includes(MONTH_NAME_PREFIXES[month - 1]!);
+}
+
 /** Normalizes any Date-parseable input to its ISO `yyyy-mm-dd` date part; null when unparseable, calendar-invalid, or out of range. */
 function toIsoDatePart(input: string, options?: GridCellTypes["date"]["options"]): string | null {
   const trimmed = input.trim();
@@ -28,8 +44,11 @@ function toIsoDatePart(input: string, options?: GridCellTypes["date"]["options"]
     if (!isRealIsoDate(trimmed)) return null;
     isoDate = trimmed;
   } else {
+    // a time part can shift the local day: ISO datetimes get a date-part check, other timed input skips the rollover check
+    if (/^\d{4}-\d{2}-\d{2}T/.test(trimmed) && !isRealIsoDate(trimmed.slice(0, 10))) return null;
     const parsed = new Date(trimmed);
     if (Number.isNaN(parsed.getTime())) return null;
+    if (!trimmed.includes(":") && !inputNamesDate(trimmed, parsed.getFullYear(), parsed.getMonth() + 1, parsed.getDate())) return null;
     // use local getters, not toISOString(), so a locale-parsed date (local midnight) doesn't shift a day across UTC
     const year = String(parsed.getFullYear()).padStart(4, "0");
     const month = String(parsed.getMonth() + 1).padStart(2, "0");

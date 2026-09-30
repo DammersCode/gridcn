@@ -243,6 +243,23 @@ describe("dateCellType value pipeline", () => {
     expect(dateCellType.fromText("July 3, 2026")).toBe("2026-07-03");
   });
 
+  it("fromText rejects non-ISO dates that Date.parse would roll into the next month", () => {
+    expect(dateCellType.fromText("Feb 30, 2026")).toBeNull();
+    expect(dateCellType.fromText("02/30/2026")).toBeNull();
+    expect(dateCellType.fromText("2026/02/30")).toBeNull();
+    expect(dateCellType.fromText("2026-02-30T10:00Z")).toBeNull();
+    expect(dateCellType.fromText("Feb 29, 2026")).toBeNull();
+    expect(dateCellType.fromText("31 April 2026")).toBeNull();
+  });
+
+  it("fromText keeps real non-ISO dates", () => {
+    expect(dateCellType.fromText("Feb 29, 2024")).toBe("2024-02-29");
+    expect(dateCellType.fromText("Mar 2, 2026")).toBe("2026-03-02");
+    expect(dateCellType.fromText("12/31/2026")).toBe("2026-12-31");
+    expect(dateCellType.fromText("1/1/2026")).toBe("2026-01-01");
+    expect(dateCellType.fromText("30 January 2026")).toBe("2026-01-30");
+  });
+
   it("fromText returns null for unparseable/empty input, never throws", () => {
     expect(dateCellType.fromText("not a date")).toBeNull();
     expect(dateCellType.fromText("")).toBeNull();
