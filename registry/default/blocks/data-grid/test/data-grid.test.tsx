@@ -1552,6 +1552,14 @@ describe("DataGridApi (imperative handle)", () => {
     expect(ref.current!.getRow(99)).toBeUndefined();
   });
 
+  it("getViewRowIds maps an unloaded row (lazy hole) to undefined without calling getRowId on it", () => {
+    const rows = makeRows(3);
+    const sparse = [rows[0]!, undefined, rows[2]!] as Row[];
+    const ref = { current: null as DataGridApi<Row> | null };
+    render(<DataGrid ref={(api) => { ref.current = api; }} data={sparse} columns={columns} getRowId={(r) => r.id} />);
+    expect(ref.current!.getViewRowIds()).toEqual(["0", undefined, "2"]);
+  });
+
   it("setSelection selects at the ref's resolved view cell; null clears", () => {
     const { ref } = renderWithHandle({ data: unsorted });
     act(() => ref.current!.actions.setSorts([{ columnId: "name", direction: "asc" }]));

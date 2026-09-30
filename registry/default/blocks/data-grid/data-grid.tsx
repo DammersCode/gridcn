@@ -453,8 +453,8 @@ export type DataGridApi<TData> = {
   setSelection(ref: CellRef | null): void;
   /** The data row at a view (display) row index — the same read `useDataGridRow` performs, without a subscription. */
   getRow(viewRowIndex: number): TData | undefined;
-  /** The row id of every view row, in view order. */
-  getViewRowIds(): readonly string[];
+  /** The row id of every view row, in view order; `undefined` at an unloaded row (a lazy hole), so index `i` is view row `i`. */
+  getViewRowIds(): readonly (string | undefined)[];
 };
 
 /**
@@ -502,7 +502,10 @@ export function useDataGridApi<TData = unknown>(ref?: Ref<DataGridApi<TData>>): 
         },
         getViewRowIds() {
           const s = read();
-          return s.viewIndex.map((dataRowIndex) => s.getRowId(s.data[dataRowIndex], dataRowIndex));
+          return s.viewIndex.map((dataRowIndex) => {
+            const row = s.data[dataRowIndex];
+            return row === undefined ? undefined : s.getRowId(row, dataRowIndex);
+          });
         },
       };
     },
