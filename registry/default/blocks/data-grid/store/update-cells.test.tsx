@@ -10,10 +10,12 @@ import {
   useDataGridRow,
   useDataGridSearchMatches,
   useDataGridSelection,
+  useDataGridStoreApi,
   useDataGridViewIndex,
   useDataGridViewStale,
 } from "../store";
 import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
+import { cellTypes } from "../cell-types/cell-types";
 import { INCREMENTAL_VIEW_ASSERT_RATE, setIncrementalAssertRate } from "./compute";
 import * as compute from "./compute";
 import { createRowIndexCache, diffRowIndex, resolveReorder, touchesViewInputs } from "./row-index";
@@ -913,6 +915,62 @@ describe("controlled echo detection", () => {
     expect(result.current.viewIndex).toBe(before);
     expect(viewSpy.mock.calls.length).toBe(rebuildsAfterEdit);
     viewSpy.mockRestore();
+  });
+
+  it("an inline cellTypes literal with the same entries keeps the deferred order and viewIndex identity on echo", () => {
+    let data = rows();
+    const onDataChange = vi.fn((next: readonly Row[]) => {
+      data = next as Row[];
+    });
+    const stableSort: SortSpec[] = [{ columnId: "name", direction: "asc" }];
+    const noteType = { ...cellTypes.text };
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider
+          data={data}
+          columns={columns}
+          getRowId={getRowId}
+          onDataChange={onDataChange}
+          sortState={stableSort}
+          cellTypes={{ note: noteType } as never}
+        >
+          {children}
+        </DataGridProvider>
+      );
+    }
+    const { result, rerender } = renderHook(() => ({ ...useHarness(), store: useDataGridStoreApi() }), { wrapper: Wrapper });
+    const registry = result.current.store.getState().cellTypes;
+    const before = result.current.viewIndex;
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
+    rerender();
+    expect(result.current.viewIndex).toBe(before);
+    expect(result.current.viewIndex).toEqual([1, 2, 0]);
+    expect(result.current.store.getState().cellTypes).toBe(registry);
+  });
+
+  it("a cellTypes prop with a changed entry resolves a new registry and rebuilds the view", () => {
+    const byPriceDesc = { ...cellTypes.number, compare: (a: number, b: number) => b - a };
+    let registryProp: Record<string, unknown> = { price: cellTypes.number };
+    const stableSort: SortSpec[] = [{ columnId: "price", direction: "asc" }];
+    const priceColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      { id: "price", header: "Price", accessorKey: "price", type: "price" as never },
+    ];
+    const data = rows();
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider data={data} columns={priceColumns} getRowId={getRowId} sortState={stableSort} cellTypes={{ ...registryProp } as never}>
+          {children}
+        </DataGridProvider>
+      );
+    }
+    const { result, rerender } = renderHook(() => ({ ...useHarness(), store: useDataGridStoreApi() }), { wrapper: Wrapper });
+    expect(result.current.viewIndex).toEqual([1, 0, 2]);
+    const registry = result.current.store.getState().cellTypes;
+    registryProp = { price: byPriceDesc };
+    rerender();
+    expect(result.current.store.getState().cellTypes).not.toBe(registry);
+    expect(result.current.viewIndex).toEqual([2, 0, 1]);
   });
 
   it("an echo sync that also changes the sort still recomputes", () => {

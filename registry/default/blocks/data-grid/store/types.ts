@@ -70,7 +70,8 @@ export type DataGridSyncProps<TData = unknown> = {
    * Custom cell types keyed by `ColumnDef.type`, merged OVER the built-in registry — built-ins
    * you do not name keep working. A `null` entry removes a built-in (or a previously provided
    * type); the grid then renders its columns with the `text` fallback and dev-warns about the
-   * unresolvable type.
+   * unresolvable type. An inline object literal is fine: the grid rebuilds the registry only
+   * when an entry changes identity, so define each type once, outside render.
    */
   cellTypes?: Record<string, AnyCellType | null>;
   /** Overrides a cell's clipboard-copy text; falls back to the cell type's `toText`. */

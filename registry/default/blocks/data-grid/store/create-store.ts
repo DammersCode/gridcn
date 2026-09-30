@@ -61,6 +61,17 @@ function resolveCellTypes(provided: Record<string, CellType | null> | undefined)
   return out;
 }
 
+type ProvidedCellTypes = Record<string, CellType | null> | undefined;
+
+/** True when both `cellTypes` props hold the same keys with `===` entries (an inline literal re-created per render). */
+function sameCellTypeEntries(a: ProvidedCellTypes, b: ProvidedCellTypes): boolean {
+  if (a === b) return true;
+  if (a === undefined || b === undefined) return false;
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((key) => key in b && a[key] === b[key]);
+}
+
 /**
  * Creates one grid's vanilla store instance. Module-private: never export this
  * factory's result or a bound hook from this module — only the hooks below.
@@ -80,7 +91,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const initFilterState = withFilterIds(init.filterState ?? []);
   const initJoinOperator = init.joinOperator ?? "and";
   // storage widens each per-column CellType<TData, TValue, TOptions> to the untyped registry shape; narrowed back per column at lookup (cell.tsx/store's column-op helpers).
-  const initCellTypes = resolveCellTypes(init.cellTypes as unknown as Record<string, CellType | null> | undefined);
+  const initCellTypes = resolveCellTypes(init.cellTypes as unknown as ProvidedCellTypes);
+  // A new registry identity is a sync-input change: reuse the resolved one while the prop's entries are unchanged.
+  let lastPropsCellTypes = init.cellTypes as unknown as ProvidedCellTypes;
   let lastSyncInputs: SyncInputs = {
     data: initData,
     cellTypes: initCellTypes,
@@ -724,7 +737,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             : [];
           const nextHiddenColumns = reseededHidden.length > 0 ? [...s.hiddenColumns, ...reseededHidden] : s.hiddenColumns;
           // same registry-widening cast as createDataGridStore's init — see that comment.
-          const nextCellTypes = resolveCellTypes(props.cellTypes as unknown as Record<string, CellType | null> | undefined);
+          const propsCellTypes = props.cellTypes as unknown as ProvidedCellTypes;
+          const nextCellTypes = sameCellTypeEntries(propsCellTypes, lastPropsCellTypes) ? s.cellTypes : resolveCellTypes(propsCellTypes);
+          lastPropsCellTypes = propsCellTypes;
           const nextSyncInputs: SyncInputs = {
             data: nextData,
             cellTypes: nextCellTypes,

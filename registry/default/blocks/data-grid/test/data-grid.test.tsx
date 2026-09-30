@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, beforeAll, vi } from "vitest";
 import { memo, useState } from "react";
 import type { CellType, ColumnDef } from "../types";
+import { textCellType } from "../cell-types/cell-types";
 import { DataGrid, DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, useDataGridActions, useDataGridApi, useDataGridCellState, useDataGridRow, useDataGridScrollToCell, useDataGridStoreApi, GRID_ATTR, gridAttrSelector, type DataGridApi } from "../data-grid";
 
 type Row = { id: string; name: string; qty: number };
@@ -1210,6 +1211,27 @@ describe("DataGridCell memo prop-stability audit", () => {
     // `gridReadOnly` genuinely flips for every rendered cell — a memo that dropped it from its
     // comparator would swallow this entirely (renderCount unchanged); it must fire again.
     expect(renderCount).toBeGreaterThan(before);
+  });
+
+  it("cellTypes: a fresh literal with the same entries does not re-render cells", () => {
+    let renderCount = 0;
+    const counting: CellType<unknown, unknown> = {
+      ...(textCellType as unknown as CellType<unknown, unknown>),
+      Cell: ({ value }) => {
+        renderCount++;
+        return <span>{String(value)}</span>;
+      },
+    };
+    const probeColumns: readonly ColumnDef<Row, unknown>[] = [{ id: "name", header: "Name", accessorKey: "name", type: "counting" as never }];
+    const rows = makeRows(2);
+    const getRowId = (r: Row) => r.id;
+    const { rerender } = render(<DataGrid data={rows} columns={probeColumns} getRowId={getRowId} cellTypes={{ counting }} />);
+    // the first re-render settles the viewport measurement, which re-renders cells once with any props
+    rerender(<DataGrid data={rows} columns={probeColumns} getRowId={getRowId} cellTypes={{ counting }} />);
+    const before = renderCount;
+    expect(before).toBeGreaterThan(0);
+    rerender(<DataGrid data={rows} columns={probeColumns} getRowId={getRowId} cellTypes={{ counting }} />);
+    expect(renderCount).toBe(before);
   });
 
   it("density: a rowHeight/density change does not require the cell's own props to differ (layout-only, template-level)", () => {

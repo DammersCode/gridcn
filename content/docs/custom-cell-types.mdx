@@ -369,8 +369,11 @@ Register it through the `cellTypes` prop:
 The `cellTypes` prop **merges over the built-ins**: built-ins you do not name keep working, so
 only your custom entries go in the object. To replace a built-in, give its key your type. To
 remove a built-in (or one of your own entries), set its key to `null`. Columns that use a
-removed key then fall back to the built-in `text` type and get the development warning. Full
-semantics on [Editing & cell types: Custom cell
+removed key then fall back to the built-in `text` type and get the development warning.
+
+An inline object literal for `cellTypes` is safe. The grid rebuilds its registry only when an
+entry changes identity. Define each cell type once, outside the component, so its identity
+stays stable across renders. Full semantics on [Editing & cell types: Custom cell
 types](/docs/editing-cell-types#custom-cell-types).
 
 ## Testing your cell type

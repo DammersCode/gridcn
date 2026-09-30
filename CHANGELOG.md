@@ -498,6 +498,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **An inline `cellTypes` literal no longer rebuilds the view on every render:** the grid reuses
+  its resolved cell-type registry while the prop's entries keep their identity. A controlled
+  `onDataChange` echo keeps its deferred sort order, an unrelated sync skips the view rebuild,
+  and cells do not re-render.
 - **`startEditing` honors `readOnly` and `activate`:** `actions.startEditing`/`startEditingAt`
   and the imperative handle's `startEditing` open no edit session on a `readOnly` grid or on a
   cell whose type declares `activate` (such as `checkbox`), the same gate as the keyboard edit
