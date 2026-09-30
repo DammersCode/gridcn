@@ -554,13 +554,13 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   on `2026-03-02`, also when they carry a time part. Text without a day, such as `Jul 2026` or
   `2026`, is rejected too. A datetime with an offset stores its local calendar day.
 - **Fill keeps long identifiers intact (`data-grid-fill`):** a series whose number has more than 15
-  digits tiles instead of extrapolating. `ID 1234567890123456789` no longer fills as `â€¦7000`, and
-  a 400-digit number no longer fills as `xNaN`. A series also
-  tiles once an extrapolated value would leave the safe integer range.
+  digits tiles instead of extrapolating. `ID 1234567890123456789` no longer fills as `…7000`, and
+  a 400-digit number no longer fills as `xNaN`. A series also tiles once an
+  extrapolated value would leave the safe integer range.
 - **Context-menu Cut and Copy report failures (`data-grid-context-menu`, `data-grid`):** when the
   clipboard write fails, the menu disables Cut and Copy and shows the new
-  `labels.contextMenu.clipboardFailed` tooltip ("clipboard access failed â€” use Ctrl+C or
-  Ctrl+X"). A throwing `document.execCommand("copy")` resolves the copy as `'failed'` instead of
+  `labels.contextMenu.clipboardFailed` tooltip ("clipboard access failed — use Ctrl+C or
+  Ctrl+X") until the menu opens again. A throwing `document.execCommand("copy")` resolves the copy as `'failed'` instead of
   rejecting.
 - **Selection follows the edited row (`data-grid`):** while a cell is in edit mode, a sort, filter,
   or data change that moves its row moves the selection with the active cell. The range no longer
