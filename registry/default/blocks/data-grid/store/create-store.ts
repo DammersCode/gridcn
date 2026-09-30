@@ -26,6 +26,7 @@ import {
   computeVisibleColumns,
   computeViewIndex,
   defHiddenColumnIds,
+  flashKeyRowId,
   isColumnReadOnly,
   memoizedMergeLabels,
   mergeCellErrors,
@@ -33,6 +34,7 @@ import {
   pruneCellErrors,
   reorderColumnIds,
   resolveSelectionConfig,
+  rowIdAtViewRow,
   toggleSortAdditive,
   withFilterIds,
   EMPTY_CELL_ERRORS,
@@ -660,13 +662,14 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       _pruneFlashingCells(keptViewRows) {
         const s = get();
         if (s.flashingCells.size === 0) return;
-        const kept = new Set(keptViewRows);
+        const keptRowIds = new Set<string>();
+        for (const viewRow of keptViewRows) {
+          const rowId = rowIdAtViewRow(s, viewRow);
+          if (rowId !== undefined) keptRowIds.add(rowId);
+        }
         const next = new Set(s.flashingCells);
         for (const key of next) {
-          // flashCellKey is `${viewRow}:${columnId}` — the view row is always a plain integer up to the first colon.
-          const viewRow = Number(key.slice(0, key.indexOf(":")));
-          if (kept.has(viewRow)) continue;
-          next.delete(key);
+          if (!keptRowIds.has(flashKeyRowId(key))) next.delete(key);
         }
         if (next.size === s.flashingCells.size) return;
         set({ flashingCells: next });

@@ -10,6 +10,7 @@ import {
   candidateRowIds,
   pointerToCoord,
   flashCellKey,
+  rowIdAtViewRow,
   resolveBulkWrites,
   resolveColumnValidate,
   snapshotBulkBatch,
@@ -21,6 +22,14 @@ import {
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { computeFillTarget, fillDirection, generateFill, rectRelativeTo, type SeriesDescriptor } from "./fill";
 import type { FillStoreApi } from "./fill-store";
+
+/** Flash keys for the cells a fill is about to write, resolved before the write so a re-sort cannot shift them. */
+function flashKeysFor(s: DataGridStoreState, writes: readonly { viewRowIndex: number; columnId: string }[]): string[] {
+  return writes.flatMap((w) => {
+    const rowId = rowIdAtViewRow(s, w.viewRowIndex);
+    return rowId === undefined ? [] : [flashCellKey(rowId, w.columnId)];
+  });
+}
 
 /** rAF-throttled auto-scroll step (px), matching `useGridInteraction`'s drag auto-scroll. */
 const AUTO_SCROLL_STEP = 16;
@@ -248,14 +257,16 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
           const current = storeApi.getState();
           if (!guard.isCurrent(token, current, snapshot)) return;
           const applied = guard.reresolve(current, resolved.writes);
+          const flashKeys = flashKeysFor(current, applied);
           actions.applyCellUpdates(applied, "fill");
           // Pulse the cells that actually landed — the re-resolved batch, not the held one.
-          actions.flashCells(applied.map((w) => flashCellKey(w.viewRowIndex, w.columnId)));
+          actions.flashCells(flashKeys);
           fireRejected(resolved.rejected);
         });
       } else {
+        const flashKeys = flashKeysFor(storeApi.getState(), resolution.writes);
         actions.applyCellUpdates(resolution.writes, "fill");
-        actions.flashCells(resolution.writes.map((w) => flashCellKey(w.viewRowIndex, w.columnId)));
+        actions.flashCells(flashKeys);
         fireRejected(resolution.rejected);
       }
 

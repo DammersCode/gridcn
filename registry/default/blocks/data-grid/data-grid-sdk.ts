@@ -58,7 +58,7 @@ export {
 } from "./validation/bulk-generation";
 
 export { combineRects, getSelectedViewRows } from "./selection";
-export { flashCellKey } from "./store/compute";
+export { flashCellKey, rowIdAtViewRow } from "./store/compute";
 export { measureColumnAutosizeWidth } from "./columns/measure-column-text";
 export { isDev } from "./is-dev";
 export { useDataGridStoreApi } from "./store";

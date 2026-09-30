@@ -19,7 +19,7 @@ import type { DataGridLabels } from "../labels";
 import type { SearchMatch } from "../sort-filter";
 import { isSelectionEmpty, selectionContainsCell } from "../selection";
 import { colRangesEqual, selectedColRangesForRow, type ColRange } from "../selection/selected-col-ranges-for-row";
-import { cellErrorKey, flashCellKey, getRangeValues, searchMatchKey } from "./compute";
+import { cellErrorKey, flashCellKey, getRangeValues, rowIdAtViewRow, searchMatchKey } from "./compute";
 import { resolveRefOrWarn } from "./data-write";
 import { useDataGridStore, useDataGridStoreApi } from "./provider";
 import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridRowCellState, DataGridStoreState } from "./types";
@@ -565,11 +565,13 @@ function rowErrorCols(s: DataGridStoreState, viewRow: number): ReadonlyMap<numbe
 /** This row's currently-flashing columns (view-col index set), or null when no flash key covers the row — same null-not-empty-Set convention as `searchMatchRows`. */
 function flashingColsForRow(s: DataGridStoreState, viewRow: number): ReadonlySet<number> | null {
   if (s.flashingCells.size === 0) return null;
+  const rowId = rowIdAtViewRow(s, viewRow);
+  if (rowId === undefined) return null;
   let cols: Set<number> | null = null;
   for (let col = 0; col < s.visibleColumns.length; col++) {
     const column = s.visibleColumns[col];
     if (!column) continue;
-    if (!s.flashingCells.has(flashCellKey(viewRow, column.id))) continue;
+    if (!s.flashingCells.has(flashCellKey(rowId, column.id))) continue;
     if (!cols) cols = new Set();
     cols.add(col);
   }

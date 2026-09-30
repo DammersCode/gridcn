@@ -37,9 +37,24 @@ export function searchMatchKey(viewRow: number, columnId: string): string {
 /** Shared empty-Set identity for the no-search-active state, so `useDataGridIsSearchMatch` never allocates on the hot path. */
 export const EMPTY_SEARCH_MATCH_SET: ReadonlySet<string> = new Set();
 
-/** Stable key for {@link DataGridStoreState.flashingCells}: `"${viewRow}:${columnId}"` — view-space like `searchMatchKey` (a flash is a transient pulse on the cell currently on screen, never row identity). */
-export function flashCellKey(viewRow: number, columnId: string): string {
-  return `${viewRow}:${columnId}`;
+const FLASH_KEY_SEPARATOR = "\u0000";
+
+/** Stable key for {@link DataGridStoreState.flashingCells}: row id plus column id, so a sort or reorder moves the pulse with its row. */
+export function flashCellKey(rowId: string, columnId: string): string {
+  return `${rowId}${FLASH_KEY_SEPARATOR}${columnId}`;
+}
+
+/** The row id portion of a {@link flashCellKey}. */
+export function flashKeyRowId(key: string): string {
+  return key.slice(0, key.indexOf(FLASH_KEY_SEPARATOR));
+}
+
+/** Row id shown at `viewRow`, or `undefined` for a missing or unloaded row. */
+export function rowIdAtViewRow(s: Pick<DataGridStoreState, "viewIndex" | "data" | "getRowId">, viewRow: number): string | undefined {
+  const dataRowIndex = s.viewIndex[viewRow];
+  if (dataRowIndex === undefined) return undefined;
+  const row = s.data[dataRowIndex];
+  return row === undefined ? undefined : s.getRowId(row, dataRowIndex);
 }
 
 /** Shared empty-Set identity for the no-flash-active state, so per-row flash derivation never allocates on the common path. */

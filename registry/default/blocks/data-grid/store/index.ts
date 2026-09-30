@@ -24,7 +24,7 @@ export type {
   DataGridRowCellState,
 } from "./types";
 export { DataGridProvider, useDataGridInstanceId, useDataGridSelector, useDataGridStore, useDataGridStoreApi, useDataGridStoreProps } from "./provider";
-export { cellErrorKey, flashCellKey } from "./compute";
+export { cellErrorKey, flashCellKey, rowIdAtViewRow } from "./compute";
 export { getFocusCell } from "./hooks";
 export {
   useDataGridActions,

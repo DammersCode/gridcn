@@ -486,7 +486,7 @@ export type DataGridStoreState = Omit<
    */
    cellErrors: ReadonlyMap<string, string>;
    /**
-    * Transient "highlight-what-changed" keys ({@link flashCellKey}, view-space) currently flashing,
+    * Transient "highlight-what-changed" keys ({@link flashCellKey}, row-id space) currently flashing,
     * auto-cleared per key after `flashCells`'s duration (default 1400 ms — the 1.2 s fade pulse
     * finishes before the key lifts, so the cell never visibly snaps back). NOT a data change: no
     * `DataChange`, no history entry. Always {@link EMPTY_FLASHING_CELLS} identity when empty.
@@ -818,7 +818,7 @@ export type DataGridActions = {
    */
   _registerPresenceViewSpaceActive(impl: (() => boolean) | null): void;
   /**
-   * @internal Drops the flash keys whose view row left `keptViewRows` (the body's rendered window),
+   * @internal Drops the flash keys whose row left `keptViewRows` (the body's rendered window),
    * so a cell that scrolls out and back in never replays its one-shot pulse. Not part of the
    * public hook surface.
    */

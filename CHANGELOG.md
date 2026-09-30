@@ -269,6 +269,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking:** flash keys are row-id keyed (`data-grid`, `data-grid-sdk`). `flashCellKey(rowId,
+  columnId)` takes a row id where it took a view row index, so a sort, filter, or reorder moves the
+  write-pulse with its row instead of leaving it on another record for up to 1.4 s. The store's
+  `flashingCells` holds the new keys. The `data-grid-sdk` barrel also exports `rowIdAtViewRow(state,
+  viewRow)` to resolve the id for a view row.
 - **Breaking:** `data-grid-io` reads and writes Excel files with `hucre` instead of
   `@e965/xlsx` (SheetJS). The registry item pins `hucre@1.1.0`; re-adding the item replaces the
   dependency. SheetJS inflated every part of an xlsx without a size cap, so a 311 KB file grew to
