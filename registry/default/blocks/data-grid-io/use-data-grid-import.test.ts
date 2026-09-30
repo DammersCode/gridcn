@@ -157,6 +157,59 @@ describe("useDataGridImportPreview — stale sheet parse after the file changed"
     expect(result.current.isParsing).toBe(false);
   });
 
+  it("a delimiter re-parse started while a newer file loads cannot overwrite that file's preview", async () => {
+    const reparseB = makeDeferredParse();
+    const loadC = makeDeferredParse();
+    let csvCalls = 0;
+    mockedParse.mockImplementation((file) => {
+      if (file.name === "c.csv") return loadC.promise;
+      csvCalls += 1;
+      return csvCalls === 1 ? Promise.resolve({ rows: [["Name"], ["B1"]], delimiter: "," }) : reparseB.promise;
+    });
+    const FILE_C = new File([], "c.csv", { type: "text/csv" });
+
+    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));
+    await act(async () => {
+      await result.current.loadFile(FILE_B, TARGETS);
+    });
+
+    const { loading, reparse } = await act(async () => {
+      const loading = result.current.loadFile(FILE_C, TARGETS); // the newer file, still parsing
+      return { loading, reparse: result.current.setDelimiter(";") }; // started after it
+    });
+    await act(async () => {
+      loadC.resolve({ rows: [["Name"], ["C-row"]], delimiter: "," });
+      await loading;
+    });
+    await act(async () => {
+      reparseB.resolve({ rows: [["Name"], ["B2"]], delimiter: ";" });
+      await reparse;
+    });
+
+    expect(result.current.preview?.fileName).toBe("c.csv");
+    expect(result.current.preview?.rows).toEqual([["Name"], ["C-row"]]);
+    expect(result.current.isParsing).toBe(false);
+  });
+
+  it("a superseded file load that still resolves cannot overwrite the newer file's preview", async () => {
+    const a = makeDeferredParse();
+    mockedParse.mockImplementation((file) => (file.name === "a.xlsx" ? a.promise : Promise.resolve({ rows: [["Name"], ["B-row"]], delimiter: "," })));
+
+    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));
+    const { loadA, loadB } = await act(async () => ({
+      loadA: result.current.loadFile(FILE_A, TARGETS), // slow, past its file read
+      loadB: result.current.loadFile(FILE_B, TARGETS),
+    }));
+    await act(async () => {
+      await loadB;
+      a.resolve({ rows: [["Name"], ["A-row"]], sheetNames: ["S1"], sheetName: "S1" });
+      await loadA;
+    });
+
+    expect(result.current.preview?.fileName).toBe("b.csv");
+    expect(result.current.preview?.rows).toEqual([["Name"], ["B-row"]]);
+  });
+
   it("a failed delimiter re-parse sets the error instead of throwing and keeps the preview", async () => {
     // the re-parse uses the SAME file as the initial load: the mock fails only the second call
     let csvCalls = 0;

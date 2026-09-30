@@ -527,6 +527,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Import preview races (`data-grid-io`):** a delimiter or sheet re-parse started while a newer
+  file loads no longer overwrites that file's preview, and a superseded file load that still
+  resolves no longer replaces the newer file's preview.
 - **Import drop zone size limit (`data-grid-io`):** the empty drop zone in the import dialog shows
   the size limit next to "No file chosen" (for example "No file chosen — up to 50 MB"). The dialog's
   description used to hide the Dropzone's own size caption. The text comes from the new

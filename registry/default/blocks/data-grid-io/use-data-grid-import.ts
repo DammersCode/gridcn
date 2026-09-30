@@ -115,8 +115,8 @@ export function useDataGridImportPreview(
   const gridColumnsRef = useRef<readonly ImportTargetColumn[]>([]);
   // aborts an in-flight file read when a newer load starts or the dialog resets.
   const parseControllerRef = useRef<AbortController | null>(null);
-  // generation guard for async re-parses (sheet switch, delimiter override): a newer switch, file load, or reset must win over a slower older one.
-  const sheetGenerationRef = useRef(0);
+  // generation guard for every async parse (file load, sheet switch, delimiter override): a newer parse or reset wins over a slower older one.
+  const parseGenerationRef = useRef(0);
   const { defaultHeaderRow = true, defaultSkipColumns, mapColumn } = options;
   const { maxFileBytes, maxRows, maxColumns, maxCells, maxDecompressedBytes } = limits;
   const limitOptions = useMemo(
@@ -125,7 +125,7 @@ export function useDataGridImportPreview(
   );
 
   const reset = useCallback(() => {
-    sheetGenerationRef.current += 1;
+    parseGenerationRef.current += 1;
     parseControllerRef.current?.abort();
     setPreview(null);
     setError(null);
@@ -135,7 +135,9 @@ export function useDataGridImportPreview(
   }, []);
 
   const loadFile = useCallback(async (file: File, gridColumns: readonly ImportTargetColumn[]) => {
-    sheetGenerationRef.current += 1;
+    const generation = ++parseGenerationRef.current;
+    // a re-parse started while this file loads has no file to re-parse, so it cannot outlive this load
+    currentFileRef.current = null;
     parseControllerRef.current?.abort();
     const controller = new AbortController();
     parseControllerRef.current = controller;
@@ -143,6 +145,7 @@ export function useDataGridImportPreview(
     setIsParsing(true);
     try {
       const parsed = await parseImportFile(file, { ...limitOptions, csvDelimiter: resolveDelimiterOverride(options) }, controller.signal);
+      if (generation !== parseGenerationRef.current) return; // superseded by a newer file load or a reset
       if (parsed.rows.length === 0) {
         setError("errorNoRows");
         setPreview(null);
@@ -165,7 +168,7 @@ export function useDataGridImportPreview(
       });
     } catch (err) {
       const key = importErrorKey(err);
-      if (key === null) return; // aborted: superseded by a newer file or a dialog reset
+      if (key === null || generation !== parseGenerationRef.current) return; // superseded by a newer file or a dialog reset
       setError(key);
       setPreview(null);
     } finally {
@@ -190,12 +193,12 @@ export function useDataGridImportPreview(
     async (delimiter: CsvDelimiter) => {
       const file = currentFileRef.current;
       if (!file) return;
-      const generation = ++sheetGenerationRef.current;
+      const generation = ++parseGenerationRef.current;
       setError(null);
       setIsParsing(true);
       try {
         const parsed = await parseImportFile(file, { ...limitOptions, csvDelimiter: delimiter }, parseControllerRef.current?.signal);
-        if (generation !== sheetGenerationRef.current) return; // superseded by a newer file load, sheet switch, or reset
+        if (generation !== parseGenerationRef.current) return; // superseded by a newer file load, sheet switch, or reset
         if (parsed.rows.length === 0) return;
         setPreview((prev) => {
           if (!prev) return prev;
@@ -212,9 +215,9 @@ export function useDataGridImportPreview(
       } catch (err) {
         const key = importErrorKey(err);
         if (key === null) return;
-        if (generation === sheetGenerationRef.current) setError(key);
+        if (generation === parseGenerationRef.current) setError(key);
       } finally {
-        if (generation === sheetGenerationRef.current) setIsParsing(false);
+        if (generation === parseGenerationRef.current) setIsParsing(false);
       }
     },
     [columnFallback, defaultSkipColumns, mapColumn, limitOptions],
@@ -224,12 +227,12 @@ export function useDataGridImportPreview(
     async (sheetName: string) => {
       const file = currentFileRef.current;
       if (!file) return;
-      const generation = ++sheetGenerationRef.current;
+      const generation = ++parseGenerationRef.current;
       setError(null);
       setIsParsing(true);
       try {
         const parsed = await parseImportFile(file, { ...limitOptions, sheetName }, parseControllerRef.current?.signal);
-        if (generation !== sheetGenerationRef.current) return; // superseded by a newer sheet switch, file load, or reset
+        if (generation !== parseGenerationRef.current) return; // superseded by a newer sheet switch, file load, or reset
         if (parsed.rows.length === 0) {
           // empty sheet: the picker keeps the chosen name honest, the preview clears, Import stays disabled
           setPreview((prev) =>
@@ -253,9 +256,9 @@ export function useDataGridImportPreview(
       } catch (err) {
         const key = importErrorKey(err);
         if (key === null) return;
-        if (generation === sheetGenerationRef.current) setError(key);
+        if (generation === parseGenerationRef.current) setError(key);
       } finally {
-        if (generation === sheetGenerationRef.current) setIsParsing(false);
+        if (generation === parseGenerationRef.current) setIsParsing(false);
       }
     },
     [columnFallback, defaultSkipColumns, mapColumn, limitOptions],
