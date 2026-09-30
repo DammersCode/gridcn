@@ -257,6 +257,6 @@ compiler mirror 4m44, build 1m02, rest < 1 min.
 | W2 | DONE (19 items, commits `7d12104`…`0776df0`); review 2026-09-29: 2 security bypasses and 2 regressions → Wave R |
 | W3 | DONE (10 items, commits `3f120da`..`ca1e972` + compliance `49db63f`); review 2026-09-29: docs/CHANGELOG gaps, stale payloads at `49db63f` → Wave R |
 | W4 | DONE (W4-01 `66e1eed`, W4-02 `a76bffa`); review 2026-09-29: W4-01 remaps against stale data on consumer data swaps → R-01 |
-| WR | TODO (R1 before the next W5 item; R-35 after R-01) |
+| WR | R1 DONE (R-01 `0c3579a`, R-02 `4f993b5`, R-03 `bb001d4`, R-04 `23d9296`, R-05 `d72dc18`, R-06 `62e28e5`, R-07 `bd66943`; all gates green incl. e2e install); R2/R3 TODO (R-35 now unblocked) |
 | W5 | TODO (API foundation; specs for W5-05, W5-06, W5-08…W5-13) |
 | W6 | TODO (W6-01…W6-04 can run in parallel with W5) |
