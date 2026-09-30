@@ -65,6 +65,25 @@ describe("useColumnResize document listener lifecycle", () => {
     removeSpy.mockRestore();
   });
 
+  it("a second pointerdown while a resize drag is active still stops propagation", () => {
+    const target = document.createElement("div");
+    const { result, unmount } = renderResizeHook();
+    act(() => {
+      result.current.onPointerDown(pointerDown(target, 1));
+    });
+
+    const second = pointerDown(target, 2);
+    const stopPropagation = vi.spyOn(second, "stopPropagation");
+    const preventDefault = vi.spyOn(second, "preventDefault");
+    act(() => {
+      result.current.onPointerDown(second);
+    });
+
+    expect(stopPropagation).toHaveBeenCalledOnce();
+    expect(preventDefault).toHaveBeenCalledOnce();
+    unmount();
+  });
+
   it("unmounting during a resize drag removes every listener the drag attached", () => {
     const target = document.createElement("div");
     const docAddSpy = vi.spyOn(document, "addEventListener");

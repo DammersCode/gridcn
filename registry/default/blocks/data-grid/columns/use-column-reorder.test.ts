@@ -58,4 +58,28 @@ describe("useColumnReorder document listener lifecycle", () => {
     addSpy.mockRestore();
     removeSpy.mockRestore();
   });
+
+  it.each([
+    ["window blur", () => window.dispatchEvent(new Event("blur"))],
+    ["a lost pointer capture", () => document.dispatchEvent(Object.assign(new Event("lostpointercapture"), { pointerId: 1 }))],
+  ])("%s ends a pending gesture so the next press arms again", (_name, loseGesture) => {
+    const addSpy = vi.spyOn(document, "addEventListener");
+    const args = makeArgs();
+    const { result, unmount } = renderHook(() => useColumnReorder(args));
+
+    act(() => {
+      result.current.onHeaderDragPointerDown("c1", pointerDown({ pointerId: 1 }));
+    });
+    const afterFirst = gestureAdds(addSpy);
+    act(() => {
+      loseGesture();
+    });
+    act(() => {
+      result.current.onHeaderDragPointerDown("c1", pointerDown({ pointerId: 2 }));
+    });
+
+    expect(gestureAdds(addSpy)).toBe(afterFirst * 2);
+    unmount();
+    addSpy.mockRestore();
+  });
 });

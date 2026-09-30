@@ -107,13 +107,22 @@ export function useColumnReorder(args: {
         teardown();
       };
 
+      const handleLost = (e: Event) => {
+        if ("pointerId" in e && e.pointerId !== pendingRef.current?.pointerId) return;
+        teardown();
+      };
+
       document.addEventListener("pointermove", handleMove);
       document.addEventListener("pointerup", handleUp);
       document.addEventListener("pointercancel", handleUp);
+      document.addEventListener("lostpointercapture", handleLost);
+      window.addEventListener("blur", handleLost);
       cleanupRef.current = () => {
         document.removeEventListener("pointermove", handleMove);
         document.removeEventListener("pointerup", handleUp);
         document.removeEventListener("pointercancel", handleUp);
+        document.removeEventListener("lostpointercapture", handleLost);
+        window.removeEventListener("blur", handleLost);
       };
     },
     [enabled, isColumnReorderable, setDrag, teardown],

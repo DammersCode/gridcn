@@ -54,11 +54,11 @@ export function useColumnResize(args: {
   const onPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
+      event.stopPropagation();
+      event.preventDefault();
       // a second pointer while a resize is in flight must not arm a second listener set (the
       // first would outlive its release event and leak)
       if (dragRef.current) return;
-      event.stopPropagation();
-      event.preventDefault();
       // React pools synthetic events — event.currentTarget is nulled once this handler returns, so
       // the native listeners below (which outlive it) must close over the real element directly.
       const target = event.currentTarget;

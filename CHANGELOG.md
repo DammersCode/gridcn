@@ -527,6 +527,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Resize and reorder gestures survive touch edge cases (`data-grid`):** a second touch on a
+  column resize handle no longer selects the column or arms a reorder. A column or row reorder
+  that loses its pointer (lost capture or window blur) ends instead of blocking the next drag.
 - **Empty filter value selects show the placeholder (`data-grid-toolbar`):** an empty checkbox
   or select filter value shows the "Value" placeholder instead of a blank trigger. The filter
   row's selects pass their labels through the `items` prop of `Select`.
