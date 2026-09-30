@@ -114,6 +114,11 @@ Decisions (maintainer rule: secure, performant, feature-rich; breaking changes w
 - W3-04 (`onSelectionChange` fires only on real changes, `CompactSelectionLike.equals`) gets a **Breaking** CHANGELOG entry.
 - Internal hooks the add-ons need (`useDataGridInstanceId`, `formatShortcutToken`) move to the `data-grid-sdk` barrel.
 - The edit-time row-op guards stay until R-01 is proven, then R-35 lifts them.
+- An ISO datetime with an offset stores its local calendar day.
+- Server-mode pagination does not reconcile while `total` is 0.
+- The edit remap collapses a multi-cell range to the edited cell.
+- A failed clipboard write disables Cut and Copy until the menu reopens.
+- One custom toolbar hosting the searches of two grids is unsupported.
 
 Execution order (one implementer at a time on the branch, so blocks never collide in shared files such as `create-store.ts` and `CHANGELOG.md`; reviewers stay read-only in their own worktrees): R1 → R4 critical (R-36…R-43) → R5 (io + hucre) → R2 → R3 → remaining R4 → R-35 → W5-11 → W5-12 → W5-13.
 
@@ -168,6 +173,10 @@ A single implementer works through the execution order.
 | R-33 | W3-10 | CI: keep main's top-level `permissions: contents: read` when merging (PR #52); cache `~/.cache/ms-playwright`; add `timeout-minutes`; confirm the `ci` aggregator on the first PR run (the ruleset requires context `ci`) | XS | LOW |
 | R-34 | process | A source-only comment commit (`49db63f`) left three payloads stale, and commits `26e7afd`…`13a742e` were made with `types:check` red (missing `FilterSpec` import, fixed later inside the unrelated `90b25f4`). Add `verify-payload-content` to the lint gate (or a pre-commit hook) and a React Compiler bail-out check over `registry/**` (new `CompileError`s fail; `use-column-resize`, reorder hooks, `filter-value-input` already bail out) | S | LOW |
 | R-35 | W4 review | After R-01 is merged and green: lift the edit-time guards (`insertRows`/`deleteRows`/`duplicateRows`/`reorderRows` no-ops and the `updateCells` immediate→defer downgrade), so streaming re-sorts and row ops apply live during an edit. Browser tests for each path with an open editor | M | MED |
+| R-75 | R2 review | `isDev()` (`is-dev.ts`) reads `globalThis.process?.env?.NODE_ENV`. Browser bundles without a `process` global (Vite) treat production as dev, so dev warnings and dev-only O(n) scans run in production. Use the literal `process.env.NODE_ENV` that bundlers replace, with a safe fallback, and verify with a real Vite and Next production build | S | MED |
+| R-76 | R2 review | `pnpm test:compiler` runs babel-plugin-react-compiler on `@babel/core` 8.0.5 (via `@rolldown/plugin-babel`). It silently skips every component with a destructuring default (`search.tsx`, `filter-menu.tsx`, `root.tsx`, `menu-items.tsx`, `pagination-footer.tsx`, `sort-list.tsx`, the pagination, url-pagination, and pinned-rows hooks). Pin Babel 7.29 for the compiler pass (Next uses 7), and make R-34's bail-out check run on Babel 7 | S | MED |
+| R-77 | R2 review | The view-space presence warning ignores column reorder and hide, though `range` uses view columns | XS | LOW |
+| R-78 | R2 review | A touch row reorder cannot carry a row past the rendered window: the origin grip unmounts during autoscroll and the gesture cancels | S | LOW |
 
 
 ### R4 — W5-01…W5-10 review fixes
