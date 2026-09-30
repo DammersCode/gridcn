@@ -284,6 +284,28 @@ describe("useDataGridLazyRows", () => {
     expect(result.current.gridProps.data.length).toBe(10);
   });
 
+  it("onDataChange dev-warns once when an edit targets a row evicted before the merge, and writes nothing", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const { result } = renderHook(() =>
+      useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+    );
+    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 10 }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    act(() => result.current.evict({ start: 0, end: 5 }));
+
+    const edit = {
+      source: "edit" as const,
+      ops: [{ type: "update" as const, rowId: "row-2", row: { id: "row-2", name: "Edited" }, prev: { id: "row-2", name: "Person 2" } }],
+    };
+    act(() => result.current.onDataChange([], edit));
+    act(() => result.current.onDataChange([], edit));
+
+    expect(result.current.gridProps.data[2]).toBeUndefined();
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("row-2"))).toHaveLength(1);
+    warn.mockRestore();
+  });
+
   it("onDataChange applies a length-changing row op (delete) to the latest state, keeping alignment", async () => {
     const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
     const { result } = renderHook(() =>

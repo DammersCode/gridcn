@@ -148,6 +148,11 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
   const [isLoading, setIsLoading] = useState(false);
   // per-instance once-flag: a persistently broken fetchRows must not re-warn on every fetch
   const lengthMismatchWarnedRef = useRef(false);
+  const droppedEditWarnedRef = useRef(false);
+  const rowsRef = useRef(rows);
+  useEffect(() => {
+    rowsRef.current = rows;
+  });
   const lastWindowRef = useRef<Range | null>(null);
   const pendingWindowRef = useRef(false);
 
@@ -288,6 +293,19 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
 
   const onDataChange = useCallback(
     (next: readonly TData[], change: DataChange<TData>) => {
+      if (isDev() && !droppedEditWarnedRef.current) {
+        const loadedIds = new Set<string>();
+        rowsRef.current.forEach((row, index) => {
+          if (row !== undefined) loadedIds.add(getRowId(row, index));
+        });
+        const dropped = change.ops.find((op) => op.type !== "insert" && !loadedIds.has(op.rowId));
+        if (dropped) {
+          droppedEditWarnedRef.current = true;
+          console.warn(
+            `[data-grid-lazy] an edit to row "${dropped.rowId}" was dropped because the row was evicted before the change merged; this hook does not own persistence, so keep the edit in your own cache`,
+          );
+        }
+      }
       // `next` is DataGrid's own post-op snapshot, itself sparse at runtime (see gridProps.data's
       // doc) — and it can predate rows a just-resolved fetch already wrote into state, so replacing
       // the array with it drops those rows. With ops, re-apply them to the latest state instead
@@ -298,7 +316,7 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
           : (next.slice() as (TData | undefined)[]),
       );
     },
-    [gridGetRowId],
+    [gridGetRowId, getRowId],
   );
 
   const gridProps = useMemo(

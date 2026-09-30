@@ -527,6 +527,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Lazy rows warn about dropped edits (`data-grid-lazy`):** in development,
+  `useDataGridLazyRows().onDataChange` warns once when a change targets a row that `evict()`
+  removed before the merge. The edit is not written into another row.
 - **Date cells reject rolled-over dates (`data-grid`):** typed, pasted, or imported non-ISO dates
   such as `Feb 30, 2026`, `02/30/2026`, and `2026-02-30T10:00Z` are rejected instead of landing
   on `2026-03-02`.
