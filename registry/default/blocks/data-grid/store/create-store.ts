@@ -36,12 +36,14 @@ import {
   resolveSelectionConfig,
   rowIdAtViewRow,
   toggleSortAdditive,
+  viewRowsMoved,
   withFilterIds,
   EMPTY_CELL_ERRORS,
   EMPTY_FLASHING_CELLS,
   EMPTY_OVERLAY_PLUGINS,
   EMPTY_ROW_BANDS,
 } from "./compute";
+import { isDev } from "../is-dev";
 import { resolveEditTarget, warnDev } from "./commit";
 import { createDataWriteActions, createDataWriteContext, forgetDeferredRows, resetDeferredRows, resolveRefOrWarn } from "./data-write";
 import { createRowIndexCache } from "./row-index";
@@ -223,8 +225,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // entries track their rows and never trip this): warn once when a row-moving op runs while one
   // is active. The predicate is registered by the `data-grid-presence` add-on; null when absent.
   let warnedPresenceReorder = false;
-  const warnViewSpacePresenceStale = (s: DataGridStoreState) => {
-    if (warnedPresenceReorder || !s.presenceViewSpaceActive?.()) return;
+  const warnViewSpacePresenceStale = (s: DataGridStoreState, rowsMoved?: () => boolean) => {
+    if (warnedPresenceReorder || !isDev() || !s.presenceViewSpaceActive?.()) return;
+    if (rowsMoved && !rowsMoved()) return;
     warnedPresenceReorder = true;
     warnDev("rows moved while a view-space presence entry is active — its highlight position is now stale; use rowId-native presence entries for a live feed");
   };
@@ -792,7 +795,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const nextViewIndex = unchanged
             ? s.viewIndex
             : computeViewIndex(nextData, nextColumns, nextSortState, nextFilterState, nextJoinOperator, s.viewIndex, nextCellTypes);
-          if (nextViewIndex !== s.viewIndex || (nextData !== s.data && !isEcho)) warnViewSpacePresenceStale(s);
+          if (nextViewIndex !== s.viewIndex || (nextData !== s.data && !isEcho)) {
+            warnViewSpacePresenceStale(s, () => viewRowsMoved(s, nextViewIndex, nextData, props.getRowId));
+          }
           // A full rebuild leaves nothing pending for the incremental path to replay.
           if (!unchanged) resetDeferredRows(dataWrite);
           // If viewIndex is unchanged (same reference either from the guard above or from

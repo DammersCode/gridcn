@@ -44,13 +44,33 @@ export function flashCellKey(rowId: string, columnId: string): string {
   return `${rowId}${FLASH_KEY_SEPARATOR}${columnId}`;
 }
 
+/** True when a loaded row in the old view no longer sits at its position in the next view; holes and appended rows do not count. */
+export function viewRowsMoved(
+  s: Pick<DataGridStoreState, "viewIndex" | "data" | "getRowId">,
+  nextViewIndex: readonly number[],
+  nextData: readonly unknown[],
+  nextGetRowId: DataGridStoreState["getRowId"],
+): boolean {
+  if (nextViewIndex.length < s.viewIndex.length) return true;
+  for (let viewRow = 0; viewRow < s.viewIndex.length; viewRow++) {
+    const oldId = rowIdAtViewRow(s, viewRow);
+    if (oldId === undefined) continue;
+    const nextRowId = rowIdAtViewRow({ viewIndex: nextViewIndex, data: nextData, getRowId: nextGetRowId }, viewRow);
+    if (nextRowId !== oldId) return true;
+  }
+  return false;
+}
+
 /** The row id portion of a {@link flashCellKey}. */
 export function flashKeyRowId(key: string): string {
   return key.slice(0, key.indexOf(FLASH_KEY_SEPARATOR));
 }
 
 /** Row id shown at `viewRow`, or `undefined` for a missing or unloaded row. */
-export function rowIdAtViewRow(s: Pick<DataGridStoreState, "viewIndex" | "data" | "getRowId">, viewRow: number): string | undefined {
+export function rowIdAtViewRow(
+  s: { viewIndex: readonly number[]; data: readonly unknown[]; getRowId: DataGridStoreState["getRowId"] },
+  viewRow: number,
+): string | undefined {
   const dataRowIndex = s.viewIndex[viewRow];
   if (dataRowIndex === undefined) return undefined;
   const row = s.data[dataRowIndex];

@@ -3641,6 +3641,50 @@ describe("row-moving ops with an active view-space presence entry", () => {
     warn.mockRestore();
   });
 
+  it("warns when setSorts rebuilds the view", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    act(() => result.current._registerPresenceViewSpaceActive(() => true));
+    act(() => result.current.setSorts([{ columnId: "name", direction: "asc" }]));
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it("does not warn when a consumer swap keeps every row at its position, or a lazy page fills holes", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let actions: ReturnType<typeof useDataGridActions> | undefined;
+    function Probe() {
+      actions = useDataGridActions();
+      return null;
+    }
+    const lazyId = (r: Row | undefined, index: number) => (r === undefined ? `hole-${index}` : r.id);
+    const ui = (data: (Row | undefined)[]) => (
+      <DataGridProvider data={data as Row[]} columns={columns} getRowId={lazyId as never}>
+        <Probe />
+      </DataGridProvider>
+    );
+    const sparse: (Row | undefined)[] = rows();
+    sparse[1] = undefined;
+    const view = render(ui(sparse));
+    act(() => actions!._registerPresenceViewSpaceActive(() => true));
+
+    view.rerender(ui(rows()));
+    view.rerender(ui(rows().map((r) => ({ ...r, age: r.age + 1 }))));
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("does not ask the presence predicate outside development", () => {
+    const predicate = vi.fn(() => true);
+    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    act(() => result.current._registerPresenceViewSpaceActive(predicate));
+    vi.stubEnv("NODE_ENV", "production");
+    act(() => result.current.reorderRows(0, 2));
+    vi.unstubAllEnvs();
+    expect(predicate).not.toHaveBeenCalled();
+  });
+
   it("warns when a consumer data swap replaces the rows", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     let actions: ReturnType<typeof useDataGridActions> | undefined;
