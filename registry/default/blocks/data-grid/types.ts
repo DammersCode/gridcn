@@ -353,9 +353,10 @@ export type CellEditorProps<TData, TValue, TOptions = unknown> = {
  * - clipboard copy and export = `toText`, always.
  * - sort = `compare` when the column declares this type, else a numeric-aware locale collation of
  *   the RAW `String(value)` — not of `toText` output.
- * - quick search = `toSearchText` when the type declares it, else `String(rawValue)` (a `select`
- *   column searches the choice LABEL; a `number` with `decimals` searches the unrounded value; a
- *   `date` with a `displayFormat` searches the ISO string).
+ * - quick search = `toSearchText` when the type declares it, else `toText`; a column without a
+ *   declared type searches `String(rawValue)` (a `select` column searches the choice LABEL; a
+ *   `number` with `decimals` searches the rounded value; a `date` with a `displayFormat` searches
+ *   the ISO string).
  * - filter = the raw-value predicate (`filter.match`, or the column's own `filterMatch`), else the
  *   built-in text matcher over `String(rawValue)`.
  * - fill (series inference) works on the raw value, not on any text form.
@@ -363,7 +364,7 @@ export type CellEditorProps<TData, TValue, TOptions = unknown> = {
 export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   Cell: FC<CellRenderProps<TData, TValue, TOptions>>;
   Editor: FC<CellEditorProps<TData, TValue, TOptions>>;
-  /** Serialize for clipboard/export. Search and filter do NOT use this — they match on the raw `String(value)`. */
+  /** Serialize for clipboard/export; quick search uses it when the type declares no `toSearchText`. Filter never uses it — it matches the raw value. */
   toText(value: TValue, options?: TOptions): string;
   /** Optional display-only rendering (e.g. locale-formatted dates); the cell renders `toDisplayText ?? toText`. Clipboard/export always use `toText`. */
   toDisplayText?(value: TValue, options?: TOptions): string;
@@ -376,7 +377,7 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   align?: "left" | "right" | "center";
   /** Tabular-nums cell rendering for the right-aligned digits; number and date declare it. */
   numeric?: boolean;
-  /** The quick-search text for a stored value; the default is `String(value)`. select declares the choice label. */
+  /** The quick-search text for a stored value; the default is `toText`. select declares the choice label. */
   toSearchText?(value: TValue, options?: TOptions): string;
   /**
    * Default validation for columns of this type when the column declares no `validate` of its
@@ -718,7 +719,10 @@ export interface GridCellTypes {
   checkbox: { value: boolean; options: object };
   select: {
     value: string | null;
-    options: { choices: readonly { value: string; label: string }[] };
+    options: {
+      /** Lookups are cached per array: pass a new array to change the choices, never mutate it in place. */
+      choices: readonly { value: string; label: string }[];
+    };
   };
   date: {
     value: string | null;

@@ -51,12 +51,13 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   the column can be an async Standard Schema. See
   [Editing & cell types](/docs/editing-cell-types#async-schemas) and the checklist below.
 - **`toText`** — the *canonical* serialization. Clipboard copy and export use it unconditionally.
-  It must round-trip through `fromText` for every value that the type can hold. Search and filter
-  do NOT use it — see the value-pipeline note below.
+  It must round-trip through `fromText` for every value that the type can hold. Quick search uses
+  it when the type declares no `toSearchText`. Filter does NOT use it — see the value-pipeline
+  note below.
 - **`toDisplayText`** (optional) — a *display-only* formatted view, for example locale-formatted
   dates or currency symbols. It is never round-tripped, and only the cell's display rendering
-  reads it: clipboard and export call `toText` directly, and search/filter run on the raw
-  `String(value)` (see the value-pipeline note below). When you omit it, the type falls back to
+  reads it: clipboard and export call `toText` directly, search reads `toSearchText ?? toText`,
+  and filter runs on the raw value (see the value-pipeline note below). When you omit it, the type falls back to
   `toText` (see the `displayText()` helper, exported from the `data-grid` entry point). To render
   that text like a built-in cell, use `CellSpan` from the same entry point. It takes `text` and an
   optional `align` (`"left"`, `"right"`, or `"center"`), truncates the text, and applies the alignment.
@@ -78,7 +79,7 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   `tabular-nums` for numeric-like types.
 - **`numeric`** — renders the cell's digits with `tabular-nums`, the fixed-width numerals that
   keep columns of numbers aligned. `number` and `date` declare it.
-- **`toSearchText`** — the quick-search text for a stored value. The default is `String(value)`.
+- **`toSearchText`** — the quick-search text for a stored value. The default is `toText`.
   `select` declares it, so a `select` column searches the choice LABEL, not the stored value.
   Filter never uses it — filter matches the raw value.
 - **`validate`** — the default validator for columns of this type when the column declares no
@@ -109,16 +110,17 @@ Each point states the lesson plus the reason for it.
 The pipeline contract, one surface per feature: **display** = `toDisplayText ?? toText` ·
 **clipboard/export** = `toText` · **sort** = `compare` (default: numeric-aware collation of the
 raw `String(value)`) · **quick search** = `toSearchText` when the type declares it, else
-`String(rawValue)` · **filter** = the raw value, through `filter.match` or the built-in text
+`toText` · **filter** = the raw value, through `filter.match` or the built-in text
 matcher · **fill** = raw value.
 
-- **Search and filter never use `toText`.** Quick search matches the type's `toSearchText` when
-  it declares one, and the raw `String(value)` otherwise. Filter matches the raw value, through
-  the type's or column's `filter.match` when declared, else the built-in text matcher. So a
-  custom `toText` changes what copy and export produce but NOT what search or filter match.
-  Consequences:
-   - A `select` column searches the displayed LABEL (its `toSearchText`), not the stored value.
-   - A `number` column with `decimals` searches the unrounded value.
+- **Search matches text; filter matches the stored value.** Quick search matches the type's
+  `toSearchText` when it declares one, and its `toText` otherwise. A column without a declared
+  type searches the raw `String(value)`. Filter matches the raw value, through the type's or
+  column's `filter.match` when declared, else the built-in text matcher. So a custom `toText`
+  changes what copy, export, and search produce, but NOT what filter matches. Consequences:
+   - A `select` column searches the displayed LABEL (its `toSearchText`). Its filters match the
+     stored value, so `equals` and `isAnyOf` take choice values, not labels.
+   - A `number` column with `decimals` searches the rounded value.
    - A `date` column with a `displayFormat` matches the ISO string.
 - **`fromText` must never throw.** Paste and import feed it arbitrary text. A thrown error breaks
   the whole paste, not only one cell. Garbage in produces the result of `clearValue()` out.

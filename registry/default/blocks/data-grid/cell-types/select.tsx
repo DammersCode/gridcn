@@ -12,15 +12,30 @@ import { TEXT_FILTER_OPERATORS } from "./capabilities";
 import { useCommitGuard } from "../interaction/use-commit-guard";
 import { columnLabelText } from "../columns/column-format-helpers";
 
-function findChoice(
-  choices: readonly { value: string; label: string }[] | undefined,
-  raw: string,
-): { value: string; label: string } | undefined {
+type Choice = { value: string; label: string };
+type ChoiceIndex = { byValue: Map<string, Choice>; byLowerLabel: Map<string, Choice> };
+
+// Per-cell lookups (search, display, copy) stay O(1); keyed by array identity, so an in-place mutation of `choices` is not seen.
+const choiceIndexes = new WeakMap<readonly Choice[], ChoiceIndex>();
+
+function choiceIndex(choices: readonly Choice[]): ChoiceIndex {
+  let index = choiceIndexes.get(choices);
+  if (index) return index;
+  index = { byValue: new Map(), byLowerLabel: new Map() };
+  for (const choice of choices) {
+    if (!index.byValue.has(choice.value)) index.byValue.set(choice.value, choice);
+    const lower = choice.label.toLowerCase();
+    if (!index.byLowerLabel.has(lower)) index.byLowerLabel.set(lower, choice);
+  }
+  choiceIndexes.set(choices, index);
+  return index;
+}
+
+/** The choice whose value is `raw`, else the first whose label matches `raw` case-insensitively. */
+function findChoice(choices: readonly Choice[] | undefined, raw: string): Choice | undefined {
   if (!choices) return undefined;
-  const byValue = choices.find((c) => c.value === raw);
-  if (byValue) return byValue;
-  const lower = raw.toLowerCase();
-  return choices.find((c) => c.label.toLowerCase() === lower);
+  const index = choiceIndex(choices);
+  return index.byValue.get(raw) ?? index.byLowerLabel.get(String(raw).toLowerCase());
 }
 
 function SelectCell({ value, options }: CellRenderProps<unknown, string | null, GridCellTypes["select"]["options"]>) {

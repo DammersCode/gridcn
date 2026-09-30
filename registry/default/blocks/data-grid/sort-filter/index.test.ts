@@ -427,6 +427,19 @@ describe("buildViewIndex", () => {
     expect(result).toEqual([0, 2]);
   });
 
+  it("search reads getSearchText while filters and sort keys read getText", () => {
+    const raw = ["v2", "v1", "v3"];
+    const labels: Record<string, string> = { v1: "Cherry", v2: "Apple", v3: "Banana" };
+    const accessor: CellAccessor = {
+      getText: (rowIndex) => raw[rowIndex] ?? "",
+      getSearchText: (rowIndex) => labels[raw[rowIndex] ?? ""] ?? "",
+    };
+    const filters: FilterSpec[] = [{ filterId: "f", columnId: "a", operator: "isAnyOf", value: ["v1", "v2"] }];
+    expect(buildViewIndex(raw.length, accessor, { sorts: [{ columnId: "a", direction: "asc" }], filters })).toEqual([1, 0]);
+    expect(buildViewIndex(raw.length, accessor, { sorts: [], filters: [], search: "cherry", searchColumnIds: ["a"] })).toEqual([1]);
+    expect(buildViewIndex(raw.length, accessor, { sorts: [], filters: [], search: "v1", searchColumnIds: ["a"] })).toEqual([]);
+  });
+
   it("uses accessor.compare when provided for a column", () => {
     const rows = [{ a: "x" }, { a: "y" }, { a: "z" }];
     const accessor: CellAccessor = {
@@ -569,6 +582,12 @@ describe("findSearchMatches", () => {
       { row: 0, columnId: "b" },
       { row: 1, columnId: "a" },
     ]);
+  });
+
+  it("matches getSearchText when the accessor provides it", () => {
+    const accessor: CellAccessor = { getText: () => "v1", getSearchText: () => "Cherry" };
+    expect(findSearchMatches(1, accessor, "cherry", ["a"])).toEqual([{ row: 0, columnId: "a" }]);
+    expect(findSearchMatches(1, accessor, "v1", ["a"])).toEqual([]);
   });
 
   it("never exceeds maxMatches even when the dataset has far more hits", () => {

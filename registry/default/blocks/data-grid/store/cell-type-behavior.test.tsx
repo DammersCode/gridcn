@@ -151,3 +151,53 @@ describe("select quick search matches the choice label, not the stored value", (
     expect(result.current.store.getState().searchMatches).toHaveLength(1);
   });
 });
+
+describe("select filters match the stored value, not the label", () => {
+  it("isAnyOf matches by stored value", () => {
+    const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
+
+    act(() => {
+      result.current.actions.setFilters([{ filterId: "f", columnId: "fruit", operator: "isAnyOf", value: ["v2"] }]);
+    });
+    expect(result.current.store.getState().viewIndex).toEqual([1]);
+  });
+
+  it("equals matches by stored value and not by label", () => {
+    const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
+
+    act(() => {
+      result.current.actions.setFilters([{ filterId: "f", columnId: "fruit", operator: "equals", value: "v1" }]);
+    });
+    expect(result.current.store.getState().viewIndex).toEqual([0]);
+
+    act(() => {
+      result.current.actions.setFilters([{ filterId: "f", columnId: "fruit", operator: "equals", value: "Cherry" }]);
+    });
+    expect(result.current.store.getState().viewIndex).toEqual([]);
+  });
+
+  it("search still finds the label while a value filter is active", () => {
+    const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
+
+    act(() => {
+      result.current.actions.setFilters([{ filterId: "f", columnId: "fruit", operator: "isAnyOf", value: ["v1", "v2"] }]);
+      result.current.actions.setSearch("Dragon");
+    });
+    expect(result.current.store.getState().viewIndex).toEqual([0, 1]);
+    expect(result.current.store.getState().searchMatches).toEqual([{ row: 1, columnId: "fruit" }]);
+  });
+});
+
+describe("quick search falls back to the cell type's toText", () => {
+  it("a type without toSearchText searches its toText output", () => {
+    const tagged = { ...makeCustomType(), toText: (value: unknown) => (value == null ? "" : `#${String(value)}`) };
+    const { result } = renderHook(() => useHarness(), {
+      wrapper: makeWrapper({ cellTypes: { "custom-qty": tagged } as never }),
+    });
+
+    act(() => {
+      result.current.actions.setSearch("#7");
+    });
+    expect(result.current.store.getState().searchMatches).toEqual([{ row: 1, columnId: "qty" }]);
+  });
+});

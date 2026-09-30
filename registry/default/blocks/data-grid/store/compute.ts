@@ -12,6 +12,7 @@ import {
   buildViewIndex,
   defaultCompareText,
   findSearchMatches,
+  searchTextReader,
   updateViewIndex,
   type CellAccessor,
   type SearchMatch,
@@ -181,7 +182,28 @@ function rawCellValue(column: AnyColumnDef, row: unknown): unknown {
 }
 
 /**
- * The `CellAccessor` the view pipeline reads through. A column's `sortCompare` and (when
+ * The column's quick-search text function: its declared type's `toSearchText`, else its `toText`.
+ * Null when the column declares no registered type; such a column searches the raw `String(value)`.
+ */
+function searchTextFor(column: AnyColumnDef, cellTypes: Record<string, CellType> | undefined): ((value: unknown) => string) | null {
+  const cellType = column.type ? cellTypes?.[column.type] : undefined;
+  const toText = cellType?.toSearchText ?? cellType?.toText;
+  if (!toText) return null;
+  const options = column.options;
+  return (value) => {
+    // a value that does not match the declared type may throw in its toText; search must not crash the view
+    try {
+      return String(toText(value, options));
+    } catch {
+      return String(value);
+    }
+  };
+}
+
+/**
+ * The `CellAccessor` the view pipeline reads through. `getText` is the raw `String(value)` the
+ * filter matcher, the empty check, and the default sort read; `getSearchText` is the quick-search
+ * text (the declared type's `toSearchText`, else its `toText`). A column's `sortCompare` and (when
  * `cellTypes` is wired) its cell type's `compare` supply the sort comparators, so a
  * `number`/`date`/`select` column sorts by its own semantics instead of collating `String(value)` —
  * the collator segments digit runs, so it orders 1.5 before 1.25 and all negatives backwards.
@@ -193,15 +215,22 @@ export function textAccessorFor(
   cellTypes?: Record<string, CellType>,
 ): CellAccessor {
   const byId = new Map(columns.map((c) => [c.id, c] as const));
+  const searchById = new Map(columns.map((c) => [c.id, { column: c, toSearchText: searchTextFor(c, cellTypes) }] as const));
   const accessor: CellAccessor = {
     getText(rowIndex, columnId) {
       const column = byId.get(columnId);
       const row = data[rowIndex];
       if (!column || row === undefined) return "";
       const value = rawCellValue(column, row);
+      return value == null ? "" : String(value);
+    },
+    getSearchText(rowIndex, columnId) {
+      const entry = searchById.get(columnId);
+      const row = data[rowIndex];
+      if (!entry || row === undefined) return "";
+      const value = rawCellValue(entry.column, row);
       if (value == null) return "";
-      const cellType = column.type ? cellTypes?.[column.type] : undefined;
-      return cellType?.toSearchText ? cellType.toSearchText(value, column.options) : String(value);
+      return entry.toSearchText ? entry.toSearchText(value) : String(value);
     },
     getValue(rowIndex, columnId) {
       const column = byId.get(columnId);
@@ -463,8 +492,10 @@ export function computeSearchMatches(
   }
   const dataAccessor = textAccessorFor(columns, data, cellTypes);
   // viewRow is always < viewIndex.length (findSearchMatches iterates 0..viewIndex.length)
+  const readSearchText = searchTextReader(dataAccessor);
   const viewAccessor: CellAccessor = {
     getText: (viewRow, columnId) => dataAccessor.getText(viewIndex[viewRow]!, columnId),
+    getSearchText: (viewRow, columnId) => readSearchText(viewIndex[viewRow]!, columnId),
     getValue: (viewRow, columnId) => dataAccessor.getValue?.(viewIndex[viewRow]!, columnId),
     filterMatch: (columnId) => dataAccessor.filterMatch?.(columnId),
   };

@@ -13,7 +13,7 @@ Scope: one cell type, from value pipeline to registration. Auditing a slow grid 
 - **A built-in-typed column (number, date, select, checkbox) broke after touching `cellTypes`** → a `null` entry removed that type from the registry. Go to step 4.
 - **Paste throws or aborts the whole paste** → `fromText` threw. Go to step 2.
 - **A popover/portal editor (date-picker, combobox, color picker) closes the instant you click into it** → go to step 6, `data-grid-cell-editor`.
-- **Values look right on screen but sort/search/fill act on the wrong thing** → you conflated `toText`/`toDisplayText` with the raw value. Search and filter always match raw `String(value)`, never `toText`; sort's default (no `compare`) is a numeric-aware collation of that same raw string. See `custom-cell-types.md#value-pipeline`.
+- **Values look right on screen but sort/search/fill act on the wrong thing** → you conflated `toText`/`toDisplayText` with the raw value. Filter always matches the raw value, never `toText`; search matches `toSearchText ?? toText`; sort's default (no `compare`) is a numeric-aware collation of that same raw string. See `custom-cell-types.md#value-pipeline`.
 - **A column declares `type: "x" as never` (or `as any`)** → remove the cast and augment `GridCellTypes` (step 5).
 
 Put the type in your own folder (for example `src/components/grid-cells/currency.tsx`), with its `declare module` block in the same file. Add no files to and edit no files under `components/data-grid*`: an upgrade overwrites them. Import only from the `@/components/data-grid/data-grid` barrel; it exports `useCellEditor`, `useCommitGuard`, `useSeedFocus`, `defineCellType`, `CellSpan`, and `displayText` for editors and cells.

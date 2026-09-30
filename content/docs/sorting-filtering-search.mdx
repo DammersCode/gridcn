@@ -84,8 +84,9 @@ next and previous navigation that shows a `current/total` counter. Navigating to
 the active cell there and scrolls it into view, so results are never left off-screen.
 
 Search matches each cell's quick-search text: the type's `toSearchText` when the type declares
-it, else the raw `String(value)`. The built-in `select` type declares it, so a `select` column
-searches the choice LABEL, not the stored value. Full semantics on
+it, else its `toText`. A column without a declared type searches the raw `String(value)`. The
+built-in `select` type declares `toSearchText`, so a `select` column searches the choice LABEL.
+Its filters match the stored value. Full semantics on
 [custom cell types](/docs/custom-cell-types#value-pipeline).
 
 It debounces typing before it writes the store's search text. Pass `debounceMs` to change the

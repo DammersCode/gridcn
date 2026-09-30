@@ -34,7 +34,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   order). `DataGridApi` and `useDataGridApi` are exported from the `data-grid` barrel.
 - **Cell-type-driven behavior:** five new optional fields on `CellType`. `numeric` declares
   tabular-nums digit rendering (declared by `number` and `date`). `toSearchText(value, options)`
-  supplies the quick-search text for a stored value (the default is `String(value)`; `select`
+  supplies the quick-search text for a stored value (the default is the type's `toText`; `select`
   declares it, so select columns now search the choice label). `validate` is the default validator
   for columns of the type when the column declares none — every validation path resolves
   `column.validate ?? cellType.validate` (single-cell commit, paste, fill, `updateCells`, import).
@@ -265,6 +265,13 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking:** quick search matches the cell type's display text; filters match the stored
+  value. Search reads the type's `toSearchText`, else its `toText`, so a `select` column searches
+  the choice label and a `number` column with `decimals` searches the rounded value. A column
+  without a declared type searches the raw `String(value)`. Filters, the empty check, and the
+  default sort read the raw value: `equals` and `isAnyOf` on a `select` column take choice
+  values, so shared URL filters keep matching. Select label lookups are cached per `choices`
+  array; pass a new array to change the choices.
 - **`CellRef` is the public cell coordinate (Breaking):** `CellCoord` is renamed to
   `ViewCoord` (same `{ col, row }` shape — view space, not a `data` index). The cell actions
   `selectCell`, `setActiveCell`, `extendTo`, `pushRange`, `startEditing`, and `commitCellValue`
