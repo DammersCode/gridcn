@@ -51,7 +51,7 @@ export type DataGridSearchProps = {
   captureFindShortcut?: boolean;
 };
 
-/** True when `target` sits inside THIS grid instance's own DOM (its scroll/root container or its toolbar), or inside a `[data-grid-toolbar]` that holds `input`, never in a sibling grid's. */
+/** True when `target` sits in this grid's DOM, or in a `[data-grid-toolbar]` that holds `input`; never in a sibling grid. */
 function isInsideGridScope(target: EventTarget | null, instanceId: string, input: HTMLElement | null): boolean {
   if (!(target instanceof Element)) return false;
   if (target.closest(`[${GRID_ATTR.instance}="${instanceId}"]`) !== null) return true;
@@ -99,10 +99,7 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
     if (debounceRef.current) clearTimeout(debounceRef.current);
   }, []);
 
-  // Grid-scoped mod+F capture: no DOM ancestor spans both the toolbar and DataGridRoot (siblings
-  // under DataGridProvider, which renders no wrapper element), so this listens on `document` and
-  // gates on the provider's `data-grid-instance` id — with two grids on one page each search
-  // claims mod+F only for the grid that holds focus. Native find is left untouched outside the grid.
+  // No DOM ancestor spans toolbar and root, so listen on document and gate by instance id or the toolbar holding this input.
   useEffect(() => {
     if (!captureFindShortcut) return;
 
