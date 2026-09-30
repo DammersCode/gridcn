@@ -108,6 +108,7 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
 
   const onOpenChange = useCallback((open: boolean, eventDetails: ContextMenuPrimitive.Root.ChangeEventDetails) => {
     if (open && targetRef.current === null) eventDetails.cancel();
+    if (open) setClipboardFailed(false);
   }, []);
 
   // The built-in sets as specs, resolved for the current state. Computed even with no menu open

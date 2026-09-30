@@ -46,7 +46,9 @@ The row-operation items act on **every view row covered by the current selection
 back to the right-clicked row when nothing is selected, so a range selection duplicates or
 deletes all of its rows at once. Every mutating item (everything but Copy) is disabled on a
 `readOnly` grid. Right-clicking a cell makes it the active cell with a single-cell selection
-before the menu opens, so the items always act on a known target.
+before the menu opens, so the items always act on a known target. If a Cut or Copy write
+fails, the menu disables both items with the `labels.contextMenu.clipboardFailed` tooltip. The
+items are enabled again the next time the menu opens.
 
 The cell-surface items, in order:
 
@@ -152,9 +154,6 @@ function GridWithExtraItem() {
   the menu item itself. When permission is not available, the item degrades to a disabled state
   with a "press Ctrl+V" hint, instead of failing silently.
 </Callout>
-
-If a Cut or Copy write fails, both items become disabled. Their tooltip,
-`labels.contextMenu.clipboardFailed`, points to Ctrl+C and Ctrl+X.
 
 The paste semantics themselves (TSV/HTML formats, anchored expand, tiling) are documented on
 [Clipboard](/docs/clipboard).

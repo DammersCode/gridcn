@@ -369,6 +369,30 @@ describe("DataGridContextMenu — paste permission-denied survives menu reopen",
   });
 });
 
+describe("DataGridContextMenu — a failed clipboard write", () => {
+  afterEach(() => {
+    delete (navigator as unknown as { clipboard?: unknown }).clipboard;
+    delete (document as unknown as Record<string, unknown>)["execCommand"];
+  });
+
+  it("does not keep Cut and Copy disabled after the menu reopens", async () => {
+    Object.defineProperty(navigator, "clipboard", { value: { write: () => Promise.reject(new Error("denied")) }, configurable: true });
+    document.execCommand = () => false;
+    await renderGrid();
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    rightClick(gridCell("Alice", "name"));
+    await vi.waitFor(() => expect(menuItem("Copy")).toBeTruthy());
+    menuItem("Copy")!.click();
+    await vi.waitFor(() => expect(document.querySelectorAll('[role="menu"]').length).toBe(0));
+
+    rightClick(gridCell("Alice", "name"));
+    await vi.waitFor(() => expect(menuItem("Copy")).toBeTruthy());
+    expect(menuItem("Copy")!.getAttribute("aria-disabled")).not.toBe("true");
+    expect(menuItem("Cut")!.getAttribute("aria-disabled")).not.toBe("true");
+  });
+});
+
 describe("DataGridContextMenu — header menu autosize commits through onColumnLayoutChange", () => {
   it("Autosize through the menu fires onColumnLayoutChange once and never onColumnResizing", async () => {
     const onColumnLayoutChange = vi.fn();
