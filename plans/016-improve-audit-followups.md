@@ -117,7 +117,7 @@ Decisions (maintainer rule: secure, performant, feature-rich; breaking changes w
 
 Execution order (one implementer at a time on the branch, so blocks never collide in shared files such as `create-store.ts` and `CHANGELOG.md`; reviewers stay read-only in their own worktrees): R1 → R4 critical (R-36…R-43) → R5 (io + hucre) → R2 → R3 → remaining R4 → R-35 → W5-11 → W5-12 → W5-13.
 
-Second lane (a separate worker on `chore/improvement-plan`, in parallel with the Wave R lane), limited to work that shares no source files with Wave R: (1) W6-01, the new `data-grid-status-bar` add-on, built only on existing exports (copy the aggregate reducers instead of moving them); (2) the `research/` specs for W5-11, W5-12, W5-13, W6-06, W6-07, W6-10, and W6-12, written against the decisions in this plan (CellRef identity, imperative handle, commands) — specs only, no source changes. Everything else waits: W6-02 (touches `create-store.ts`) after W5-11, W6-03 after R5, W6-04 after R-12 and R-49, the rest of W6 after W5-13. The second lane updates only its own W6 status entries in this plan; CHANGELOG and `registry.json` conflicts are resolved at merge time.
+A single implementer works through the execution order.
 
 ### R1 — security and data integrity (first)
 
