@@ -241,12 +241,12 @@ function useGridStoreCore<TData>(
     if (externalStore) return;
     checkDevGuardrails(internalInit, prevColumns.current, prevData.current, prevOverlayPlugins.current, prevRowBands.current);
     checkDuplicateColumnIds(internalInit.columns, warnedDuplicateColumnIds.current);
-    checkUnresolvableColumnTypes(internalInit.columns, internalInit.cellTypes, warnedColumnTypes.current);
     prevColumns.current = internalInit.columns;
     prevData.current = internalInit.data;
     prevOverlayPlugins.current = internalInit.overlayPlugins;
     prevRowBands.current = internalInit.rowBands;
     store.getState().actions._syncProps(internalInit);
+    checkUnresolvableColumnTypes(internalInit.columns, store.getState().cellTypes, warnedColumnTypes.current);
     // internalInit is a fresh cast object each render; depend on the raw props instead.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [

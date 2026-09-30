@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { memo, type ReactNode } from "react";
 import type { ColumnDef, DataChange } from "../types";
 import { CompactSelection } from "../selection/compact-selection";
+import { cellTypes } from "../cell-types/cell-types";
 import {
   DataGridProvider,
   type DataGridProviderProps,
@@ -878,6 +879,41 @@ describe("dev-mode guardrails", () => {
 
     // once per instance (per bad column id + type), not per render
     expect(warn.mock.calls.filter((c) => String(c[0]).includes('type "bogus"')).length).toBe(1);
+    warn.mockRestore();
+  });
+
+  it("does not warn for a built-in type when the cellTypes prop names only custom types", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const cols: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name", type: "custom" as never },
+      { id: "age", header: "Age", accessorKey: "age", type: "number" },
+    ];
+    const custom = { ...cellTypes.text };
+
+    render(
+      <DataGridProvider data={rows()} columns={cols} getRowId={(r) => r.id} cellTypes={{ custom } as never}>
+        <div />
+      </DataGridProvider>,
+    );
+
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("resolves to nothing"))).toEqual([]);
+    warn.mockRestore();
+  });
+
+  it("warns when a null cellTypes entry removes a type a column uses", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const cols: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      { id: "age", header: "Age", accessorKey: "age", type: "number" },
+    ];
+
+    render(
+      <DataGridProvider data={rows()} columns={cols} getRowId={(r) => r.id} cellTypes={{ number: null }}>
+        <div />
+      </DataGridProvider>,
+    );
+
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes('type "number"')).length).toBe(1);
     warn.mockRestore();
   });
 

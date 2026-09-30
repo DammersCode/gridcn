@@ -6,7 +6,6 @@ import { isDev } from "../is-dev";
 import { isStandardSchema, runValidateSync, type ValidateResult } from "../validation/validate-cell";
 import { runValidateBatch, type ValidateBatchItem } from "../validation/validate-batch";
 import { isColumnReadOnly } from "./compute";
-import { cellTypes as defaultCellTypes } from "../cell-types/cell-types";
 import { resolveColumnValidate } from "../cell-types/capabilities";
 import type { AnyColumnDef, CellPatch, CommitResult, DataGridStoreState, InternalSyncProps, RowEdit, UpdateCellsSkip } from "./types";
 
@@ -16,24 +15,22 @@ export function warnDev(message: string): void {
 
 /**
  * Warns once per instance (per passed Set) for every column whose `type` resolves to nothing in
- * the effective cellTypes registry (the passed registry, or the built-ins when none was passed) —
- * a typo silently degrades the column to text rendering, and its edit/paste/delete paths go dead
- * (see `resolveEditTarget`). The single warn site for the cellTypes replace-semantics footgun
- * (a custom registry omitting a used type); do not add a second one.
+ * `registry`, the store's resolved (built-ins merged with the `cellTypes` prop) registry — a typo
+ * or a `null` removal silently degrades the column to text rendering, and its edit/paste/delete
+ * paths go dead (see `resolveEditTarget`). The single warn site for it; do not add a second one.
  */
 export function checkUnresolvableColumnTypes(
   columns: readonly AnyColumnDef[],
-  cellTypes: Readonly<Record<string, unknown>> | undefined,
+  registry: Readonly<Record<string, unknown>>,
   warned: Set<string>,
 ): void {
   if (!isDev()) return;
-  const registry: Record<string, unknown> = cellTypes ?? defaultCellTypes;
   for (const column of columns) {
     if (column.type === undefined || registry[column.type] !== undefined) continue;
     const key = `${column.id}:${column.type}`;
     if (warned.has(key)) continue;
     warned.add(key);
-    warnDev(`column "${column.id}" has type "${column.type}" which resolves to nothing in the cellTypes registry (typo or a custom registry without it); it renders as text and its edits, pastes, and deletes are dropped`);
+    warnDev(`column "${column.id}" has type "${column.type}" which resolves to nothing in the cellTypes registry (a typo, or a null entry removed it); it renders as text and its edits, pastes, and deletes are dropped`);
   }
 }
 

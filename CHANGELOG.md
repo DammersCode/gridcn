@@ -312,7 +312,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   (`cellTypes={{ ...cellTypes, myType }}`). It now merges over them: unnamed built-ins keep
   working, a key that names a built-in replaces that built-in, and a key set to `null` removes a
   type (columns that then use the removed key fall back to the built-in `text` type and get the
-  development warning). Prop type is `Record<string, AnyCellType | null>`.
+  development warning). The warning checks the merged registry, so a column of a built-in type
+  never warns when `cellTypes` names only custom types. Prop type is
+  `Record<string, AnyCellType | null>`.
 - **`gridcn-custom-cell-type` agent skill:** it now teaches the `cellTypes` merge semantics,
   `defineCellType`, `useCellEditor`, and the typed `options` prop instead of the old
   spread-the-built-ins pattern and the `column.options` cast.
