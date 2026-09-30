@@ -31,10 +31,13 @@ function inputNamesDate(input: string, year: number, month: number, day: number)
   };
   if (!take((n) => n === year || (n < 100 && n === year % 100))) return false;
   if (!take((n) => n === day)) return false;
-  return take((n) => n === month) || input.toLowerCase().includes(MONTH_NAME_PREFIXES[month - 1]!);
+  const namedMonths = new Set((input.toLowerCase().match(/[a-z]+/g) ?? []).map((word) => word.slice(0, 3)).filter((prefix) => MONTH_NAME_PREFIXES.includes(prefix)));
+  if (namedMonths.size > 1) return false;
+  return take((n) => n === month) || namedMonths.has(MONTH_NAME_PREFIXES[month - 1]!);
 }
 
-const TIME_PART_RE = /(?:[Tt]|,?\s+)\d{1,2}:\d{2}.*$/;
+// anchored time grammar: hh:mm[:ss[.f]] [AM|PM] [Z | [GMT|UTC]+hh[:]mm] [(zone name)]; the lookbehind keeps whitespace runs linear
+const TIME_PART_RE = /(?:[Tt]|(?<![\s,]),?\s+)\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:\s*[AaPp][Mm])?(?:\s*(?:[Zz]|(?:GMT|UTC)?[+-]\d{2}:?\d{2}))?(?:\s*\([^()]*\))?$/;
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Normalizes any Date-parseable input to its ISO `yyyy-mm-dd` date part; null when unparseable, calendar-invalid, or out of range. A datetime stores its local calendar day. */

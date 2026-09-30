@@ -267,6 +267,25 @@ describe("dateCellType value pipeline", () => {
   });
 
   it.each([
+    ["a run of spaces", () => "a" + " ".repeat(1e5) + "a"],
+    ["repeated time starts", () => " 1:11".repeat(2e4) + "\na"],
+  ])("fromText parses %s in linear time", (_name, make) => {
+    const text = make();
+    const start = performance.now();
+    expect(dateCellType.fromText(text)).toBeNull();
+    expect(performance.now() - start).toBeLessThan(50);
+  });
+
+  it.each([
+    "Mar 30, 2026 10:00 Feb",
+    "Jan 31, 2026 10:00 Feb",
+    "Mar 5, 2026 10:00 Feb 30",
+    "Feb 5 Mar 5 2026",
+  ])("fromText rejects %s, which names a second month", (text) => {
+    expect(dateCellType.fromText(text)).toBeNull();
+  });
+
+  it.each([
     ["2026-07-03T00:00", "2026-07-03"],
     ["Feb 29, 2024 10:00", "2024-02-29"],
     ["7/3/26", "2026-07-03"],
