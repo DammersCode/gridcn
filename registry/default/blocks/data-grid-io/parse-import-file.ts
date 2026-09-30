@@ -85,12 +85,76 @@ function isExcelFile(file: File): boolean {
   return name.endsWith(".xlsx") || name.endsWith(".xls");
 }
 
-/** Parses CSV text with papaparse; delimiter auto-detected unless `csvDelimiter` overrides it. */
-function parseCsvText(text: string, csvDelimiter?: CsvDelimiter): ParsedImportFile {
-  const result = Papa.parse<string[]>(text, { delimiter: csvDelimiter, skipEmptyLines: true });
-  const rows = result.data.map((row) => row.map((cell) => cell ?? ""));
-  const delimiter = (csvDelimiter ?? (result.meta.delimiter as CsvDelimiter | undefined)) || ",";
-  return { rows, delimiter };
+/** Characters papaparse sees when it guesses the delimiter and the newline. */
+const CSV_SAMPLE_CHARS = 1024 * 1024;
+
+/** The newline papaparse would guess: whichever of `\n`, `\r\n`, or `\r` ends the first line. */
+function detectNewline(sample: string): "\n" | "\r\n" | "\r" {
+  const cr = sample.indexOf("\r");
+  const lf = sample.indexOf("\n");
+  if (cr === -1 || (lf !== -1 && lf < cr)) return "\n";
+  return sample[cr + 1] === "\n" ? "\r\n" : "\r";
+}
+
+/**
+ * Checks the rows and the widest row against the limits without building a field. The counts
+ * are upper bounds of papaparse's: it leaves a quoted field only at a quote before a delimiter or newline.
+ */
+function assertCsvWithinLimits(text: string, delimiter: string, newline: string, limits: GridLimits): void {
+  const delimiterCode = delimiter.charCodeAt(0);
+  const newlineCode = newline.charCodeAt(0);
+  let rows = 0;
+  let columns = 0;
+  let fields = 1;
+  let lineLength = 0;
+  let inQuotes = false;
+  let fieldStart = true;
+  const endLine = () => {
+    if (lineLength > 0) {
+      rows += 1;
+      if (fields > columns) columns = fields;
+      assertWithinLimits(rows, columns, limits);
+    }
+    fields = 1;
+    lineLength = 0;
+    fieldStart = true;
+  };
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    if (inQuotes) {
+      lineLength += 1;
+      if (code !== 34) continue;
+      if (text.charCodeAt(i + 1) === 34) i += 1;
+      else inQuotes = false;
+      continue;
+    }
+    if (code === newlineCode && text.startsWith(newline, i)) {
+      endLine();
+      i += newline.length - 1;
+      continue;
+    }
+    lineLength += 1;
+    if (code === delimiterCode) {
+      fields += 1;
+      if (fields > limits.maxColumns) assertWithinLimits(rows + 1, fields, limits);
+      fieldStart = true;
+      continue;
+    }
+    if (fieldStart && code === 34) inQuotes = true;
+    fieldStart = false;
+  }
+  endLine();
+}
+
+/** Parses CSV text with papaparse; delimiter auto-detected unless `csvDelimiter` overrides it. The limits run before the parse, which builds a whole row at once. */
+function parseCsvText(text: string, csvDelimiter: CsvDelimiter | undefined, limits: GridLimits): ParsedImportFile {
+  const sample = text.slice(0, CSV_SAMPLE_CHARS);
+  const newline = detectNewline(sample);
+  const delimiter =
+    csvDelimiter ?? ((Papa.parse<string[]>(sample, { preview: 10, newline, skipEmptyLines: true }).meta.delimiter as CsvDelimiter | undefined) || ",");
+  assertCsvWithinLimits(text, delimiter, newline, limits);
+  const result = Papa.parse<string[]>(text, { delimiter, newline, skipEmptyLines: true });
+  return { rows: result.data.map((row) => row.map((cell) => cell ?? "")), delimiter };
 }
 
 /** Aborts the file read; rejected parses surface as an AbortError the caller can ignore. */
@@ -265,7 +329,7 @@ export async function parseImportFile(file: File, options: ParseImportFileOption
   if (isCsvFile(file)) {
     const text = await file.text();
     if (signal?.aborted) throw abortError();
-    const parsed = parseCsvText(text, options.csvDelimiter);
+    const parsed = parseCsvText(text, options.csvDelimiter, limits);
     let columns = 0;
     for (const row of parsed.rows) if (row.length > columns) columns = row.length;
     assertWithinLimits(parsed.rows.length, columns, limits);

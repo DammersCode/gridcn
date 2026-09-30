@@ -1,3 +1,4 @@
+import Papa from "papaparse";
 import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_IMPORT_LIMITS, parseImportFile } from "./parse-import-file";
 import { workbookFile, XLSX_TYPE } from "./xlsx-fixtures.test-helper";
@@ -230,6 +231,66 @@ describe("parseImportFile — size and dimension limits", () => {
     expect(result.rows).toEqual([
       ["a", "b"],
       ["1", "2"],
+    ]);
+  });
+});
+
+// papaparse builds a whole row before any callback runs, so a line of millions of delimiters must be rejected before it parses
+describe("parseImportFile — csv limits before the parse", () => {
+  // the delimiter guess reads a bounded preview; a full parse is any call without `preview`
+  function fullParses(parse: { mock: { calls: unknown[][] } }, text: string): number {
+    return parse.mock.calls.filter(([input, config]) => input === text && (config as { preview?: number } | undefined)?.preview === undefined).length;
+  }
+
+  it("rejects a single line of 5,000,000 delimiters without parsing it", async () => {
+    const text = ",".repeat(5_000_000);
+    const parse = vi.spyOn(Papa, "parse");
+    try {
+      await expect(parseImportFile(makeCsvFile(text))).rejects.toThrow("import-too-many-cells");
+      await expect(parseImportFile(makeCsvFile(text), { csvDelimiter: "," })).rejects.toThrow("import-too-many-cells");
+      expect(fullParses(parse, text)).toBe(0);
+      for (const [input] of parse.mock.calls) expect(String(input).length).toBeLessThanOrEqual(1024 * 1024);
+    } finally {
+      parse.mockRestore();
+    }
+  });
+
+  it("rejects a file over maxRows or maxCells without parsing it", async () => {
+    const rows = "a,b\n".repeat(1_000);
+    const parse = vi.spyOn(Papa, "parse");
+    try {
+      await expect(parseImportFile(makeCsvFile(rows), { maxRows: 999 })).rejects.toThrow("import-too-many-cells");
+      await expect(parseImportFile(makeCsvFile(rows), { maxCells: 1_999 })).rejects.toThrow("import-too-many-cells");
+      expect(fullParses(parse, rows)).toBe(0);
+    } finally {
+      parse.mockRestore();
+    }
+  });
+
+  it("counts a quoted field with delimiters and line breaks as one cell", async () => {
+    const quoted = `${",".repeat(5_000)}\n${";".repeat(10)}`;
+    const result = await parseImportFile(makeCsvFile(`"${quoted}",b\nc,d`), { maxColumns: 2, maxRows: 2 });
+    expect(result.rows).toEqual([
+      [quoted, "b"],
+      ["c", "d"],
+    ]);
+  });
+
+  it("splits rows on a CR-only newline the same way the limits count them", async () => {
+    const result = await parseImportFile(makeCsvFile("a,b\rc,d\re,f"), { maxRows: 3, maxColumns: 2 });
+    expect(result.rows).toEqual([
+      ["a", "b"],
+      ["c", "d"],
+      ["e", "f"],
+    ]);
+    await expect(parseImportFile(makeCsvFile("a,b\rc,d\re,f"), { maxRows: 2 })).rejects.toThrow("import-too-many-cells");
+  });
+
+  it("counts CRLF rows once and an escaped quote as part of its field", async () => {
+    const result = await parseImportFile(makeCsvFile('a,"say ""hi"", ok"\r\nc,d\r\n'), { maxRows: 2, maxColumns: 2 });
+    expect(result.rows).toEqual([
+      ["a", 'say "hi", ok'],
+      ["c", "d"],
     ]);
   });
 });

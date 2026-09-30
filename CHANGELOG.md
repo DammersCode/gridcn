@@ -527,6 +527,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **CSV import limits run before the parse (`data-grid-io`):** `parseImportFile` counts the rows
+  and the fields of each CSV row without building them and rejects a file over `maxRows`,
+  `maxColumns`, or `maxCells` before papaparse runs. A 49 MB file of delimiters used to allocate
+  about 1.15 GB first, because papaparse builds a whole row before any callback sees it. The
+  delimiter guess reads the first MiB of the file.
 - **Import preview races (`data-grid-io`):** a delimiter or sheet re-parse started while a newer
   file loads no longer overwrites that file's preview, and a superseded file load that still
   resolves no longer replaces the newer file's preview.
