@@ -108,6 +108,7 @@ export function useColumnReorder(args: {
       };
 
       const handleLost = (e: Event) => {
+        if (e.type === "lostpointercapture" && e.target !== document) return;
         if ("pointerId" in e && e.pointerId !== pendingRef.current?.pointerId) return;
         teardown();
       };

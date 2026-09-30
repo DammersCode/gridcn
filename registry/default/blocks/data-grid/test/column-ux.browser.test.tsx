@@ -136,6 +136,20 @@ describe("column reorder", () => {
     expect(newOrder.indexOf("id")).toBeGreaterThan(newOrder.indexOf("name"));
   });
 
+  it("real mouse input dragging a header onto another reorders with default column selection", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" enableColumnReorder />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    await userEvent.dragAndDrop(headerCells()[0]!, headerCells()[2]!);
+
+    const newOrder = headerCells().map((h) => h.getAttribute("data-column-id"));
+    expect(newOrder.indexOf("id")).toBeGreaterThan(newOrder.indexOf("name"));
+  });
+
   it("a plain click on a header still selects the column (no drag = no reorder)", async () => {
     await render(
       <div style={{ height: 400 }}>
