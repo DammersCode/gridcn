@@ -47,9 +47,14 @@ export function quoteCsvField(value: string, delimiter: string): string {
   return `"${value.replace(/"/g, '""')}"`;
 }
 
-/** Joins rows of already-quoted-as-needed fields into an RFC4180 CSV string (CRLF line endings). */
-export function rowsToCsv(rows: readonly (readonly string[])[], delimiter: string): string {
-  return rows.map((row) => row.map((field) => quoteCsvField(field, delimiter)).join(delimiter)).join("\r\n");
+/**
+ * Joins rows into an RFC4180 CSV string (CRLF line endings), quoting fields as needed. With
+ * `sanitizeFormulas` (default `true`), formula-like fields get a leading `'` first (see `sanitizeFormulaCell`).
+ */
+export function rowsToCsv(rows: readonly (readonly string[])[], delimiter: string, sanitizeFormulas = true): string {
+  // sanitize before quoting: the apostrophe prefix itself never needs quoting
+  const field = (value: string) => quoteCsvField(sanitizeFormulas ? sanitizeFormulaCell(value) : value, delimiter);
+  return rows.map((row) => row.map(field).join(delimiter)).join("\r\n");
 }
 
 /** Truncates to `maxRows` data rows when the scope exceeds the cap, with a dev-only warning. */
@@ -148,9 +153,7 @@ export async function exportGrid(state: DataGridStoreState, options: ExportGridO
   if (format === "csv") {
     const rows = capExportRows(buildExportRows(state, scope), maxRows);
     const table = includeHeaders ? [buildExportHeaders(state), ...rows] : rows;
-    // sanitize before quoting: the apostrophe prefix itself never needs quoting
-    const safeTable = sanitizeFormulas ? table.map((row) => row.map(sanitizeFormulaCell)) : table;
-    const csv = (csvBom ? "\uFEFF" : "") + rowsToCsv(safeTable, csvDelimiter);
+    const csv = (csvBom ? "\uFEFF" : "") + rowsToCsv(table, csvDelimiter, sanitizeFormulas);
     downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8;" }), `${fileName}.csv`);
     return;
   }

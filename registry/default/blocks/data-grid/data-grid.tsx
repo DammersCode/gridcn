@@ -295,6 +295,8 @@ export type DataGridProps<TData> = {
   processCellFromClipboard?: (text: string, ctx: ClipboardProcessCtx<TData>) => unknown;
   /** Runs on the parsed paste grid before it's applied; returning `false` vetoes the paste entirely. */
   processPaste?: (cells: string[][], target: ViewCoord) => string[][] | false;
+  /** Prefixes formula-like copied cells with `'` in the clipboard text and HTML. See {@link DataGridSyncProps.sanitizeClipboardFormulas}. */
+  sanitizeClipboardFormulas?: boolean;
   /** Merged over `DEFAULT_KEYMAP`; per-action bindings here take precedence. */
   keymap?: Keymap;
   /** Layout direction; omitted, it follows the page's own direction. See {@link DataGridRootProps.direction}. */
@@ -538,6 +540,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
     processCellForClipboard,
     processCellFromClipboard,
     processPaste,
+    sanitizeClipboardFormulas,
     keymap,
     direction,
     readOnly,
@@ -618,6 +621,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
       processCellForClipboard={processCellForClipboard}
       processCellFromClipboard={processCellFromClipboard}
       processPaste={processPaste}
+      sanitizeClipboardFormulas={sanitizeClipboardFormulas}
       rowMarkers={rowMarkers}
       enableRowSelection={enableRowSelection}
       enableColumnSelection={enableColumnSelection}

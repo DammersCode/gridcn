@@ -26,6 +26,27 @@ writes two formats to the system clipboard:
   as a locale date string, never leaks into the clipboard.
 </Callout>
 
+## Formula sanitizing
+
+Excel, LibreOffice, and Sheets run a pasted cell that starts with `=`, `+`, `-`, `@`, TAB, or CR
+as a formula. To paste such cells into those apps as text, set `sanitizeClipboardFormulas`:
+
+```tsx
+<DataGrid {...grid} columns={columns} sanitizeClipboardFormulas />
+```
+
+When the prop is set, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+C, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+X, and the
+context menu's Copy and Cut add a single quote in front of each formula-like cell. The quote goes
+into both the `text/plain` and the `text/html` payload. Plain numbers such as `-5` and `+5` stay
+unchanged. A paste back into gridcn restores the raw value.
+
+| Prop | Type | Default |
+|---|---|---|
+| `sanitizeClipboardFormulas` | `boolean` | `false` |
+
+`DataGridProvider` takes the same prop. A custom copy UI on `useDataGridClipboard` follows the
+prop; its `sanitizeFormulas` option overrides it.
+
 ## Paste
 
 Pasting parses HTML first, when the clipboard has a `text/html` payload, for example when you

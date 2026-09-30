@@ -53,11 +53,12 @@ takes:
   `+`, `-`, `@`, TAB, or CR. Plain numbers stay untouched. External spreadsheets treat that quote as a
   hidden text marker. A cell holding `=HYPERLINK("http://x")` opens as literal text in Excel,
   LibreOffice, and Sheets, not as a running formula. If a downstream consumer expects the raw
-  string, pass `sanitizeFormulas: false` to `exportGrid`. `data-grid` also exports
+  string, pass `sanitizeFormulas: false` to `exportGrid`. `rowsToCsv` sanitizes the same way by
+  default; pass `false` as its third argument for raw fields. `data-grid` also exports
   `sanitizeFormulaCell(value)` for your own CSV or TSV writers. Clipboard copy and cut stay raw
-  by default, so the grid's own paste round-trip is byte-identical. If you build your own copy
-  UI on `useDataGridClipboard`, pass `sanitizeFormulas: true` to neutralize formula-like cells
-  there. XLSX exports are unaffected: string cells never run as formulas there.
+  unless the grid's `sanitizeClipboardFormulas` prop is set, see
+  [Clipboard: Formula sanitizing](/docs/clipboard#formula-sanitizing). XLSX exports are
+  unaffected: string cells never run as formulas there.
 </Callout>
 
 <Callout title="Encodings and Excel">

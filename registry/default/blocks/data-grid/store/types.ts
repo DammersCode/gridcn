@@ -79,6 +79,12 @@ export type DataGridSyncProps<TData = unknown> = {
   processCellFromClipboard?: (text: string, ctx: ClipboardProcessCtx<TData>) => unknown;
   /** Runs on the parsed paste grid before it's applied; returning `false` vetoes the paste entirely. */
   processPaste?: (cells: string[][], target: ViewCoord) => string[][] | false;
+  /**
+   * Prefixes formula-like copied cells (leading `=`, `+`, `-`, `@`, TAB, or CR; plain numbers
+   * exempt) with `'` in the clipboard text and HTML, for Ctrl+C/Ctrl+X and the context menu's
+   * Copy/Cut. A paste back into gridcn still restores the raw value. Default `false`.
+   */
+  sanitizeClipboardFormulas?: boolean;
   /** Marker column mode; default 'none'. See {@link RowMarkersMode}. */
   rowMarkers?: RowMarkersMode;
   /** Whole-row selection channel gestures (marker click, Shift+Space); default true. */

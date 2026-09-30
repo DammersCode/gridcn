@@ -81,6 +81,21 @@ describe("serializeCells", () => {
   });
 });
 
+describe("serializeCells with sanitizeFormulas", () => {
+  it("neutralizes the HTML cell text too, and a grid paste still reads back the raw value", () => {
+    const { html } = serializeCells([['=HYPERLINK("x")', "+A1", "-5"]], { sanitizeFormulas: true });
+    const cells = new DOMParser().parseFromString(html, "text/html").querySelectorAll("td");
+
+    expect(Array.from(cells, (cell) => cell.textContent)).toEqual([`'=HYPERLINK("x")`, "'+A1", "-5"]);
+    expect(parseClipboardHtml(html)).toEqual([['=HYPERLINK("x")', "+A1", "-5"]]);
+  });
+
+  it("still rejects a raw attribute whose cell text is neither the value nor its sanitized form", () => {
+    const html = `<table><tbody><tr><td data-gridcn-raw="=EVIL()">'=SAFE()</td></tr></tbody></table>`;
+    expect(parseClipboardHtml(html)).toEqual([["'=SAFE()"]]);
+  });
+});
+
 describe("sanitizeFormulaCell", () => {
   it("prefixes a leading formula character with a single quote", () => {
     expect(sanitizeFormulaCell('=HYPERLINK("http://x")')).toBe("'=HYPERLINK(\"http://x\")");

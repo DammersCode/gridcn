@@ -393,7 +393,7 @@ export function useGridClipboard(options: UseGridClipboardOptions): void {
       const scope = resolveCopyScope(s);
       if (!scope) return;
       event.preventDefault();
-      writeClipboardEvent(event, serializeCopyScope(s, scope), sanitizeFormulas);
+      writeClipboardEvent(event, serializeCopyScope(s, scope), sanitizeFormulas ?? s.sanitizeClipboardFormulas);
     },
     [storeApi, sanitizeFormulas],
   );
@@ -405,7 +405,7 @@ export function useGridClipboard(options: UseGridClipboardOptions): void {
       const scope = resolveCopyScope(s);
       if (!scope) return;
       event.preventDefault();
-      writeClipboardEvent(event, serializeCopyScope(s, scope), sanitizeFormulas);
+      writeClipboardEvent(event, serializeCopyScope(s, scope), sanitizeFormulas ?? s.sanitizeClipboardFormulas);
       if (readOnly) return;
       const { rowIds, columnIds } = copyScopeCellIds(s, scope);
       actions._deleteCellsById(rowIds, columnIds);

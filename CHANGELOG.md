@@ -342,10 +342,14 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   with a single quote, so Excel, LibreOffice, and Sheets open them as text instead of running them
   (a CSV carrying `=HYPERLINK("http://x")` no longer opens as a live formula). Pass
   `sanitizeFormulas: false` to `exportGrid` for the previous raw output. XLSX exports are
-  unaffected: string cells never run as formulas. `data-grid` exports the
-  `sanitizeFormulaCell(value)` helper, and `useDataGridClipboard({ sanitizeFormulas: true })`
-  applies the same neutralization to the context menu's copy and cut. Clipboard copy and cut stay
-  raw by default so the grid's own paste round-trip is byte-identical.
+  unaffected: string cells never run as formulas. `rowsToCsv(rows, delimiter, sanitizeFormulas)`
+  applies the same neutralization by default; pass `false` as the third argument for raw fields.
+  `data-grid` exports the `sanitizeFormulaCell(value)` helper.
+- **Clipboard formula sanitizing (`data-grid`):** the new `sanitizeClipboardFormulas` prop on
+  `DataGrid` and `DataGridProvider` (default `false`) applies the same neutralization to
+  Ctrl+C/Ctrl+X and the context menu's Copy and Cut, in both the `text/plain` and the `text/html`
+  payload. A paste back into gridcn still restores the raw value. `useDataGridClipboard`'s
+  `sanitizeFormulas` option overrides the prop for custom copy UI.
 
 - **`overlayPlugins` identity warning names the real cost:** the dev warning ends with "or every
   render re-syncs the provider props into the store". `DataGridOverlays` does not re-render for a

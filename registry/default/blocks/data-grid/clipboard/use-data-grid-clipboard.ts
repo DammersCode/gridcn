@@ -11,7 +11,7 @@ export type PasteFromClipboardResult = "ok" | "permission-denied" | "empty";
 
 /** Options for {@link useDataGridClipboard}. */
 export type UseDataGridClipboardOptions = {
-  /** Prefix formula-like cells with `'` in the copied text/plain payload (same opt-in as {@link serializeCells}); default `false` so the grid's own paste round-trip stays byte-identical. */
+  /** Prefix formula-like cells with `'` in the copied text and HTML (see {@link serializeCells}); default: the grid's `sanitizeClipboardFormulas` prop. */
   sanitizeFormulas?: boolean;
 };
 
@@ -94,7 +94,7 @@ export function useDataGridClipboard(options: UseDataGridClipboardOptions = {}):
     const s = storeApi.getState();
     const scope = resolveCopyScope(s);
     if (!scope) return Promise.resolve("no-selection");
-    const { text, html } = serializeCells(serializeCopyScope(s, scope), { sanitizeFormulas });
+    const { text, html } = serializeCells(serializeCopyScope(s, scope), { sanitizeFormulas: sanitizeFormulas ?? s.sanitizeClipboardFormulas });
     return writeToClipboard(text, html);
   }, [storeApi, sanitizeFormulas]);
 
@@ -102,7 +102,7 @@ export function useDataGridClipboard(options: UseDataGridClipboardOptions = {}):
     const s = storeApi.getState();
     const scope = resolveCopyScope(s);
     if (!scope) return "no-selection";
-    const { text, html } = serializeCells(serializeCopyScope(s, scope), { sanitizeFormulas });
+    const { text, html } = serializeCells(serializeCopyScope(s, scope), { sanitizeFormulas: sanitizeFormulas ?? s.sanitizeClipboardFormulas });
     const { rowIds, columnIds } = copyScopeCellIds(s, scope);
     const result = await writeToClipboard(text, html);
     if (result !== "failed" && storeApi.getState().selection === s.selection) actions._deleteCellsById(rowIds, columnIds);

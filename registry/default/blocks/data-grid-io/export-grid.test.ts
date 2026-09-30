@@ -75,6 +75,12 @@ describe("rowsToCsv round-trip", () => {
     const parsed = Papa.default.parse<string[]>(csv, { skipEmptyLines: true });
     expect(parsed.data).toEqual(rows);
   });
+
+  it("neutralizes formula-like fields by default and keeps them raw with sanitizeFormulas false", () => {
+    const rows = [["=1+1", "+cmd", "-5", "plain"]];
+    expect(rowsToCsv(rows, ",")).toBe("'=1+1,'+cmd,-5,plain");
+    expect(rowsToCsv(rows, ",", false)).toBe("=1+1,+cmd,-5,plain");
+  });
 });
 
 describe("buildExportRows / buildExportHeaders", () => {

@@ -1,4 +1,4 @@
-import { escapeHtmlText } from "./serialize-cells";
+import { escapeHtmlText, sanitizeFormulaCell } from "./serialize-cells";
 
 const BLOCK_TAGS = new Set(["P", "DIV", "LI"]);
 
@@ -6,10 +6,11 @@ const BLOCK_TAGS = new Set(["P", "DIV", "LI"]);
  * The grid's own `data-gridcn-raw` trust check: the attribute holds a value the DOM never sees
  * (raw "\t"/spaces/newlines the display renders as spans/`<br>`), so it is trusted only when it is
  * the serializer's own rendering of this exact cell — a hand-crafted payload cannot set it to a
- * different value without the cell's visible text contradicting it.
+ * different value without the cell's visible text contradicting it. The formula-sanitized
+ * rendering (`'` prefix) of the same value also matches.
  */
 function rawMatchesCell(raw: string, cell: Element): boolean {
-  return cell.innerHTML === escapeHtmlText(raw);
+  return cell.innerHTML === escapeHtmlText(raw) || cell.innerHTML === escapeHtmlText(sanitizeFormulaCell(raw));
 }
 
 /** Converts a table cell's DOM content to text, treating `<br>` as a newline and separating block-level children (e.g. Apple Numbers' `<p>` per line) with one. */

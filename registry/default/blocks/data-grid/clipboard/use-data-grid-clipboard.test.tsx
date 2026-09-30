@@ -238,6 +238,45 @@ describe("useDataGridClipboard.cut on a readOnly grid", () => {
   });
 });
 
+describe("sanitizeClipboardFormulas grid prop", () => {
+  /** Captures the text/plain and text/html blobs of the one ClipboardItem the copy writes. */
+  function captureClipboardItem() {
+    const items: Record<string, Blob>[] = [];
+    vi.stubGlobal("navigator", { clipboard: { write: vi.fn().mockResolvedValue(undefined) } });
+    vi.stubGlobal(
+      "ClipboardItem",
+      class {
+        constructor(item: Record<string, Blob>) {
+          items.push(item);
+        }
+      },
+    );
+    return async () => ({ text: await items[0]!["text/plain"]!.text(), html: await items[0]!["text/html"]!.text() });
+  }
+
+  it("neutralizes the menu copy's text and HTML when the grid prop is on", async () => {
+    const read = captureClipboardItem();
+    const wrapper = makeWrapper({ data: [{ id: "1", name: "=HYPERLINK(\"x\")" }], sanitizeClipboardFormulas: true });
+    const result = setUpGrid(wrapper);
+
+    await act(async () => result.current.clipboard.copy());
+
+    const { text, html } = await read();
+    expect(text).toBe(`"'=HYPERLINK(""x"")"`);
+    expect(html).toContain(`>'=HYPERLINK("x")</td>`);
+  });
+
+  it("keeps the menu copy raw by default", async () => {
+    const read = captureClipboardItem();
+    const wrapper = makeWrapper({ data: [{ id: "1", name: "=1+1" }] });
+    const result = setUpGrid(wrapper);
+
+    await act(async () => result.current.clipboard.copy());
+
+    expect((await read()).text).toBe("=1+1");
+  });
+});
+
 describe("useDataGridClipboard.copy/cut outcomes", () => {
   // jsdom has no document.execCommand; the legacy fallback test installs a stand-in and removes it
   afterEach(() => {

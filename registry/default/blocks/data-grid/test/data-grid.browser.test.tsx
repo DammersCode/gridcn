@@ -1496,6 +1496,29 @@ describe("DataGrid in a real browser", () => {
       expect(gridCells()[1]!.textContent).toBe("ShouldWrite"); // sibling writable column still updated
     });
 
+    it("sanitizeClipboardFormulas neutralizes the native copy's text and HTML", async () => {
+      type Row = { id: string; label: string };
+      const formulaColumns: readonly ColumnDef<Row, unknown>[] = [{ id: "label", header: "Label", accessorKey: "label" }];
+      await render(
+        <div style={{ height: 300 }}>
+          <DataGrid
+            data={[{ id: "1", label: "+1+cmd|' /C calc'!A0" }]}
+            columns={formulaColumns}
+            getRowId={(r) => r.id}
+            className="h-[300px]"
+            sanitizeClipboardFormulas
+          />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      await userEvent.click(gridCells()[0]!);
+
+      const dataTransfer = await dispatchClipboardEvent("copy");
+
+      expect(dataTransfer.getData("text/plain")).toBe("'+1+cmd|' /C calc'!A0");
+      expect(dataTransfer.getData("text/html")).toContain(">'+1+cmd|' /C calc'!A0</td>");
+    });
+
     it("cut copies then clears the selection", async () => {
       const onDataChange = mockDataChangeFn<Row>();
       await render(

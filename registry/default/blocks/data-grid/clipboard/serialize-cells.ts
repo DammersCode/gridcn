@@ -25,7 +25,7 @@ export function sanitizeFormulaCell(value: string): string {
 
 /** Options for {@link serializeCells}. */
 export type SerializeCellsOptions = {
-  /** Prefix formula-like cells with `'` in the text/plain payload so external spreadsheets read them as text; default `false`, which keeps the grid's own copy/paste round-trip byte-identical. */
+  /** Prefix formula-like cells with `'` in the text/plain payload and the HTML cell text so external spreadsheets read them as text; `data-gridcn-raw` keeps the raw value for a paste back into gridcn. Default `false`. */
   sanitizeFormulas?: boolean;
 };
 
@@ -54,14 +54,13 @@ function escapeHtmlAttr(value: string): string {
  */
 export function serializeCells(cells: string[][], options: SerializeCellsOptions = {}): { text: string; html: string } {
   const { sanitizeFormulas = false } = options;
-  const text = cells
-    .map((row) => row.map((cell) => quoteTsvField(sanitizeFormulas ? sanitizeFormulaCell(cell) : cell)).join("\t"))
-    .join("\n");
+  const shown = (cell: string): string => (sanitizeFormulas ? sanitizeFormulaCell(cell) : cell);
+  const text = cells.map((row) => row.map((cell) => quoteTsvField(shown(cell))).join("\t")).join("\n");
 
   const rowsHtml = cells
     .map((row) => {
       const cellsHtml = row
-        .map((cell) => `<td data-gridcn-raw="${escapeHtmlAttr(cell)}">${escapeHtmlText(cell)}</td>`)
+        .map((cell) => `<td data-gridcn-raw="${escapeHtmlAttr(cell)}">${escapeHtmlText(shown(cell))}</td>`)
         .join("");
       return `<tr>${cellsHtml}</tr>`;
     })
