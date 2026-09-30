@@ -454,9 +454,10 @@ export type DataGridStoreState = Omit<
    * `coord` is the view anchor, remapped by every viewIndex/visibleColumns rebuild so the editor
    * follows its row; `rowId`/`columnId` are the identity anchor the commit resolves against, so a
    * missed remap can never write the draft into a different row. When the row (or column) leaves
-   * the view the session is cancelled and the draft dropped.
+   * the view the session is cancelled and the draft dropped. `session` is unique per started
+   * session, so a restart on the same cell still gets a fresh editor.
    */
-  editing: { coord: ViewCoord; rowId: string; columnId: string; initialText?: string } | null;
+  editing: { coord: ViewCoord; rowId: string; columnId: string; initialText?: string; session: number } | null;
   /** Transient rejection message from the last failed commitCellEdit; cleared on the next startEditing/commit/cancel. */
   editingError: string | null;
   /**
@@ -894,6 +895,8 @@ export type DataGridCellState = {
   isSelected: boolean;
   isEditing: boolean;
   initialText: string | undefined;
+  /** The open edit session's id when `isEditing`; a new id means a new session, even on the same cell. */
+  editSession: number | undefined;
   isSearchMatch: boolean;
   /** This cell's `cellErrors` message, or null when it has none — same visual language as a sync `validate` rejection. */
   cellError: string | null;
@@ -912,6 +915,8 @@ export type DataGridRowCellState = {
   editingCol: number | null;
   /** Only set when `editingCol` is non-null (mirrors {@link useDataGridCellInitialText}'s per-cell scoping). */
   editingInitialText: string | undefined;
+  /** The open edit session's id; only set when `editingCol` is non-null. */
+  editingSession: number | undefined;
   /** Every column index in this row matching the current search, or null when search is inactive/no row match — null (not an empty Set) lets a row with no matches skip allocating one. */
   searchMatchCols: ReadonlySet<number> | null;
   /** This row's errored columns (column index -> message), or null when this row has none — same zero-render contract as `searchMatchCols`. */

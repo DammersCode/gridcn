@@ -208,3 +208,53 @@ describe("async Standard Schema on streaming updateCells", () => {
     expect(onDataChange.mock.calls[0]![0][0]!.name).toBe("raw");
   });
 });
+
+describe("restarting an edit session on the same cell", () => {
+  async function renderEditableGrid(onDataChange: ReturnType<typeof mockDataChangeFn>) {
+    let storeApi: StoreApi<DataGridStoreState> | null = null;
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGridProvider data={makeRows(4)} columns={asyncColumns} getRowId={(r) => r.id} onDataChange={onDataChange}>
+          <StoreProbe onReady={(api) => (storeApi = api)} />
+          <DataGridRoot className="h-[400px]">
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    return () => storeApi!;
+  }
+
+  function editorInput(): HTMLInputElement | null {
+    return document.querySelector<HTMLInputElement>('[role="gridcell"][data-editing="true"] input');
+  }
+
+  it("starts the new session from the stored value, not the old session's draft", async () => {
+    const getStore = await renderEditableGrid(mockDataChangeFn());
+    await userEvent.dblClick(gridCells()[1]!);
+    await userEvent.clear(editorInput()!);
+    await userEvent.type(editorInput()!, "draft");
+
+    getStore().getState().actions.startEditing({ rowId: "row-0", columnId: "name" });
+
+    await vi.waitFor(() => expect(editorInput()?.value).toBe("Person 0"));
+  });
+
+  it("drops the old session's pending async validation instead of committing it into the new session", async () => {
+    const onDataChange = mockDataChangeFn();
+    const getStore = await renderEditableGrid(onDataChange);
+    await userEvent.dblClick(gridCells()[1]!);
+    await userEvent.clear(editorInput()!);
+    await userEvent.type(editorInput()!, "alpha");
+    await userEvent.keyboard("{Enter}"); // the schema holds the commit for ~30 ms
+
+    getStore().getState().actions.startEditing({ rowId: "row-0", columnId: "name" });
+    await delay(80);
+
+    expect(onDataChange).not.toHaveBeenCalled();
+    expect(getStore().getState().editing).toMatchObject({ rowId: "row-0", columnId: "name" });
+    expect(editorInput()?.readOnly).toBe(false);
+  });
+});

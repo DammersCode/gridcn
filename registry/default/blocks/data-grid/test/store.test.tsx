@@ -1245,6 +1245,7 @@ describe("commitCellEdit", () => {
       rowId: "3",
       columnId: "name",
       initialText: undefined,
+      session: expect.any(Number),
     });
 
     // dy: +1 from the last row clamps back to the last row (3 rows -> max index 2).
@@ -1283,6 +1284,7 @@ describe("commitCellEdit", () => {
       rowId: "1",
       columnId: "age",
       initialText: undefined,
+      session: expect.any(Number),
     });
     expect(result.current.editingError).toBe("must be >= 0");
   });
@@ -1360,6 +1362,7 @@ describe("editing anchored to its row across view rebuilds", () => {
       rowId: "1",
       columnId: "age",
       initialText: undefined,
+      session: expect.any(Number),
     });
 
     // Sorting by name asc moves Charlie from view row 0 to view row 2.
@@ -1372,6 +1375,7 @@ describe("editing anchored to its row across view rebuilds", () => {
       rowId: "1",
       columnId: "age",
       initialText: undefined,
+      session: expect.any(Number),
     });
 
     act(() => {
@@ -1415,6 +1419,7 @@ describe("editing anchored to its row across view rebuilds", () => {
       rowId: "3",
       columnId: "age",
       initialText: "typed",
+      session: expect.any(Number),
     });
   });
 
@@ -1547,6 +1552,7 @@ describe("editing anchored to its row across view rebuilds", () => {
       rowId: "1",
       columnId: "age",
       initialText: undefined,
+      session: expect.any(Number),
     });
 
     act(() => {
@@ -1607,7 +1613,7 @@ describe("consumer data swap while editing (exactly one sync)", () => {
 
     grid.swapData(editRows().reverse());
 
-    expect(grid.state().editing).toEqual({ coord: { col: 1, row: 2 }, rowId: "1", columnId: "age", initialText: undefined });
+    expect(grid.state().editing).toEqual({ coord: { col: 1, row: 2 }, rowId: "1", columnId: "age", initialText: undefined, session: expect.any(Number) });
     expect(grid.state().activeCell).toEqual({ col: 1, row: 2 });
     act(() => grid.actions.commitCellEdit(99, { dx: 0, dy: 1 }));
     const [next, change] = grid.onDataChange.mock.calls[0] as [readonly EditRow[], DataChange<EditRow>];
@@ -1731,6 +1737,7 @@ describe("Standard Schema validate", () => {
       rowId: "1",
       columnId: "age",
       initialText: undefined,
+      session: expect.any(Number),
     });
     expect(result.current.editingError).toBe("async rejection message");
   });
@@ -3369,6 +3376,7 @@ describe("updateCells while an edit session is open", () => {
       rowId: "2",
       columnId: "name",
       initialText: undefined,
+      session: expect.any(Number),
     });
 
     // once the session ends, the deferred re-sort lands on the next reconcile.

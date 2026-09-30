@@ -516,6 +516,7 @@ export function useDataGridCellState(coord: ViewCoord): DataGridCellState {
         isSelected,
         isEditing: editingHere,
         initialText: editingHere ? editing.initialText : undefined,
+        editSession: editingHere ? editing.session : undefined,
         isSearchMatch,
         cellError,
       };
@@ -582,6 +583,7 @@ function computeRowCellState(s: DataGridStoreState, viewRow: number): DataGridRo
   const editingHere = editing !== null && editing.coord.row === viewRow;
   const editingCol = editingHere ? editing.coord.col : null;
   const editingInitialText = editingHere ? editing.initialText : undefined;
+  const editingSession = editingHere ? editing.session : undefined;
 
   // O(1) map lookup instead of an O(visibleColumns) scan + string-key Set.has per column (perf
   // audit 2026-07-17: measured 29x faster at 100k rows/8 cols — see searchMatchRows' doc comment).
@@ -596,7 +598,7 @@ function computeRowCellState(s: DataGridStoreState, viewRow: number): DataGridRo
     ? EMPTY_COL_RANGES
     : selectedColRangesForRow(s.selection, viewRow, s.visibleColumns.length);
 
-  return { activeCol, editingCol, editingInitialText, searchMatchCols, errorCols, flashingCols, selectedColRanges };
+  return { activeCol, editingCol, editingInitialText, editingSession, searchMatchCols, errorCols, flashingCols, selectedColRanges };
 }
 
 /** Content equality for two nullable `Set<number>`s — {@link computeRowCellState} allocates a fresh Set per call, so `searchMatchCols` needs content (not reference) comparison to stay referentially stable across unrelated store updates. */
@@ -622,6 +624,7 @@ function rowCellStateEqual(a: DataGridRowCellState, b: DataGridRowCellState): bo
     a.activeCol === b.activeCol &&
     a.editingCol === b.editingCol &&
     a.editingInitialText === b.editingInitialText &&
+    a.editingSession === b.editingSession &&
     searchMatchColsEqual(a.searchMatchCols, b.searchMatchCols) &&
     errorColsEqual(a.errorCols, b.errorCols) &&
     searchMatchColsEqual(a.flashingCols, b.flashingCols) &&

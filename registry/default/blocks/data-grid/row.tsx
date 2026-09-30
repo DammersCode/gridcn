@@ -134,6 +134,7 @@ export const DataGridRow = memo(function DataGridRow({
             isActive={isActive}
             isEditing={isEditing}
             initialText={isEditing ? cellState.editingInitialText : undefined}
+            editSession={isEditing ? cellState.editingSession : undefined}
             isSearchMatch={cellState.searchMatchCols?.has(index) ?? false}
             isSelected={isActive || colRangesContain(cellState.selectedColRanges, index)}
             isSkeleton={isSkeleton}

@@ -222,6 +222,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   };
   // The session whose end commit/cancel report themselves; the edit-end subscription skips it.
   let selfReportedSession: DataGridStoreState["editing"] = null;
+  let editSessionCount = 0;
   const endEditSession = (session: NonNullable<DataGridStoreState["editing"]>, write: () => void): void => {
     selfReportedSession = session;
     try {
@@ -581,7 +582,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (s.onEditStart?.(coord) === false) return;
         if (s.editing) get().actions.cancelEditing();
         set({
-          editing: { coord, rowId: s.getRowId(target.row, target.dataRowIndex), columnId: target.column.id, initialText },
+          editing: { coord, rowId: s.getRowId(target.row, target.dataRowIndex), columnId: target.column.id, initialText, session: ++editSessionCount },
           editingError: null,
           editingRejectionCount: 0,
           activeCell: coord,

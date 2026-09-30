@@ -21,19 +21,21 @@ import { formatIssues, isStandardSchema, type CellValidate } from "../validation
  * `commitCellEdit(value, movement, message)` (`onInvalid: "warn"` — the raw value commits and the
  * cell is flagged in `cellErrors`).
  *
- * Race guard: a generation counter bumped on every `commit()` call AND on unmount/cancel. A
- * resolution whose captured generation no longer matches current is dropped silently — covers
- * Escape/cancel, a newer commit superseding an in-flight one, and unmount.
+ * Race guard: a generation counter bumped on every `commit()` call, on unmount/cancel, and when
+ * `session` changes. A resolution whose captured generation no longer matches current is dropped
+ * silently — covers Escape/cancel, a newer commit superseding an in-flight one, unmount, and a
+ * restarted edit session on the same cell.
  */
-export function useAsyncValidate(actions: DataGridActions, column: AnyColumnDef, validate?: CellValidate) {
+export function useAsyncValidate(actions: DataGridActions, column: AnyColumnDef, validate?: CellValidate, session?: number) {
   const [pending, setPending] = useState(false);
   const generationRef = useRef(0);
 
   useEffect(() => {
     return () => {
       generationRef.current += 1;
+      setPending(false);
     };
-  }, []);
+  }, [session]);
 
   function commit(value: unknown, movement?: { dx: number; dy: number }): void {
     const validator = validate ?? column.validate;

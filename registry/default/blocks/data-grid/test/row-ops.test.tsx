@@ -682,7 +682,7 @@ describe("row ops rebuild the view index", () => {
 });
 
 describe("row ops with an open edit session", () => {
-  const editSession = { coord: { col: 0, row: 0 }, rowId: "1", columnId: "name", initialText: undefined };
+  const editSession = { coord: { col: 0, row: 0 }, rowId: "1", columnId: "name", initialText: undefined, session: expect.any(Number) };
 
   it("insertRows is a no-op with a dev warning (editor state untouched)", () => {
     const onDataChange = vi.fn();

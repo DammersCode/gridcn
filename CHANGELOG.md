@@ -527,6 +527,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Restarted edit sessions start clean (`data-grid`):** a second `startEditing` on the cell that is
+  already being edited opens the editor on the stored value (or the new `initialText`) instead of
+  the old session's draft, and drops the old session's pending async validation instead of
+  committing it into the new session. `editing` carries a `session` id, unique per started
+  session; `useDataGridCellState` returns it as `editSession`.
 - **Import dialog select labels (`data-grid-io`):** the delimiter and column-mapping selects show
   their labels ("Tab", the grid column's header, "— Skip —") instead of the raw values (`\t`,
   the column id, `__skip__`) before their popup first opens.

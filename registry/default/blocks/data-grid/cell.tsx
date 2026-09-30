@@ -72,6 +72,8 @@ export type DataGridCellProps = {
   isEditing?: boolean;
   /** Only meaningful when `isEditing` is true. */
   initialText?: string;
+  /** The open edit session's id; a new id remounts the editor and drops the old session's draft and pending validation. */
+  editSession?: number;
   isSearchMatch?: boolean;
   /** True when `row` is a hole in `data` (lazy loading) — renders a static shimmer block instead of cell content and skips every pointer/focus handler, same as a pinned-row cell. */
   isSkeleton?: boolean;
@@ -107,6 +109,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     isSelected = false,
     isEditing = false,
     initialText,
+    editSession,
     isSearchMatch = false,
     isSkeleton = false,
     isFlashing = false,
@@ -220,14 +223,18 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   // cell-types/index.ts); stash the pending value in a ref for commit, re-seeding only while
   // not editing so a mid-edit re-render (stream tick, cellError) never resets the typed draft.
   const pendingValueRef = useRef<unknown>(value);
-  if (!isEditing) pendingValueRef.current = value;
+  const pendingSessionRef = useRef(editSession);
+  if (!isEditing || pendingSessionRef.current !== editSession) {
+    pendingValueRef.current = value;
+    pendingSessionRef.current = editSession;
+  }
   const onChange = useCallback((nextValue: unknown) => {
     pendingValueRef.current = nextValue;
   }, []);
   // Async Standard Schema interception (see use-async-validate.ts doc) — a sync validate/schema
   // forwards to commitCellEdit immediately, zero behavior change from before this hook existed.
   // The type's own `validate` is the fallback the column didn't declare.
-  const asyncValidate = useAsyncValidate(actions, column, resolveColumnValidate(column as AnyColumnDef, cellType as CellType | undefined));
+  const asyncValidate = useAsyncValidate(actions, column, resolveColumnValidate(column as AnyColumnDef, cellType as CellType | undefined), editSession);
   const commit = useCallback(
     (movement?: { dx: number; dy: number }) => asyncValidate.commit(pendingValueRef.current, movement),
     [asyncValidate],
@@ -258,6 +265,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     }) => ReactNode;
     content = (
       <Editor
+        key={editSession}
         value={value}
         initialText={initialText}
         row={row}
