@@ -141,6 +141,10 @@ A cell type can declare the same `validate` as a default for its columns, and a 
   pattern. The exception is `onInvalid: "warn"` — see [Soft rules](#soft-rules-oninvalid) below.
 </Callout>
 
+If a validator throws, or its promise rejects, the grid rejects the value and shows the error
+message. This applies to every validation path, and a throwing validator blocks the edit on an
+`onInvalid: "warn"` column too.
+
 ```tsx
 // Function form
 {

@@ -124,9 +124,9 @@ export function checkDevGuardrails(
  * is unchanged and a direct `commitCellValue` call always gets checked.
  *
  * `onInvalid: "warn"` columns commit a rejected value (raw — a rejection carries no transformed
- * value) and report it in `warnings` so the store can flag the cell in `cellErrors`; `rejection`
- * is the async layer's awaited schema rejection, which the sync re-run here cannot see (a schema
- * Promise passes `runValidateSync` untouched).
+ * value) and report it in `warnings` so the store can flag the cell in `cellErrors`; a validator
+ * that threw blocks there too. `rejection` is the async layer's awaited schema rejection, which the
+ * sync re-run here cannot see (a schema Promise passes `runValidateSync` untouched).
  */
 export function computeCommit(s: DataGridStoreState, coord: ViewCoord, value: unknown, rejection?: string): CommitResult {
   const target = resolveEditTarget(s, coord);
@@ -136,7 +136,7 @@ export function computeCommit(s: DataGridStoreState, coord: ViewCoord, value: un
   let nextValue: unknown;
   let warning: string | undefined;
   if ("error" in validated) {
-    if (column.onInvalid !== "warn") return { error: validated.error };
+    if (column.onInvalid !== "warn" || validated.thrown) return { error: validated.error };
     nextValue = value;
     warning = validated.error;
   } else {

@@ -559,9 +559,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   clamps or rewrites `?page=` while `total` is 0, so a deep link survives until the real total
   arrives; `useDataGridPagination` client mode keeps a controlled page the same way on an empty
   dataset.
-- **Async validator crash on edit commit:** a cell `validate` that throws, or whose promise
-  rejects, now rejects the edit with the error message and clears the pending state, instead of
-  leaving the editor stuck read-only with no message.
+- **Validator crash on edit commit:** a cell `validate` that throws, or whose promise rejects,
+  now rejects the edit with the error message and clears the pending state, instead of leaving the
+  editor stuck read-only with no message. This covers the function form and `updateCells` (the
+  patch is skipped as `invalid`), and a throwing validator blocks the edit on an
+  `onInvalid: "warn"` column too.
 - **Docs: stable `overlayPlugins` in the fill and presence examples:** the examples and the `plugin`
   JSDoc of `useDataGridFill` and `useDataGridPresence` memoize the `overlayPlugins` array. The inline `[plugin]` literal they showed trips the core's
   identity-stability dev warning on every re-render.
