@@ -14,7 +14,7 @@ function CheckboxCell({ value }: CellRenderProps<unknown, boolean>) {
   );
 }
 
-/** Checkbox has no edit mode: `startEditing` skips a type with `activate`; this bails out if a session is opened through the raw store anyway. */
+/** `CellType` requires an `Editor`, but `startEditing` skips `activate` types: this one only cancels a session opened directly through the store. */
 function CheckboxEditor({ cancel }: CellEditorProps<unknown, boolean>) {
   const committed = useCommitGuard();
   useEffect(() => {

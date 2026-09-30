@@ -615,9 +615,8 @@ describe("dateCellType.Editor lifecycle", () => {
 });
 
 describe("checkboxCellType.Editor lifecycle", () => {
-  // checkbox has no edit mode (diceui-editing-spec.md item 6): the interaction layer toggles
-  // and commits directly via commitCellValue, never calling startEditing. This editor only
-  // guards a stray startEditing call by bailing out (cancel) without writing anything.
+  // checkbox has no edit mode: startEditing skips `activate` types, so this editor mounts only
+  // for a session opened directly through the store, and cancels it without writing anything.
   it("renders nothing and cancels immediately without calling onChange/commit", () => {
     const { onChange, commit, cancel } = editorSpies();
     const { container } = render(

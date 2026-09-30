@@ -234,7 +234,9 @@ matcher · **fill** = raw value.
   commits that result through `commitCellValue` directly, so the control only reflects the
   resulting `value` prop. Any type can declare `activate` for the same in-place gesture.
   `startEditing` opens no session on a type that declares `activate`, so the `Editor` of
-  `checkbox` does not mount. It bails out through `cancel()` in an effect and renders nothing.
+  `checkbox` does not mount through a grid gesture or action. `CellType` still requires an
+  `Editor`. The `Editor` of `checkbox` mounts only for a session that code opens directly through
+  the store (`store.setState`): it calls `cancel()` in an effect and renders nothing.
 - **Build editor UI from the shadcn primitives of the project, not from raw HTML controls.** Reach
   for `Input`, `Select`, `Popover`, `Calendar`, and similar components from `@/components/ui/*`,
   the same way the built-in types do, so your cell type matches the rest of the design system.

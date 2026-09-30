@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, beforeAll, vi } from "vitest";
-import { memo, useState } from "react";
+import { createRef, memo, useState } from "react";
 import type { CellType, ColumnDef } from "../types";
 import { textCellType } from "../cell-types/cell-types";
 import { DataGrid, DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, useDataGridActions, useDataGridApi, useDataGridCellState, useDataGridRow, useDataGridScrollToCell, useDataGridStoreApi, GRID_ATTR, gridAttrSelector, type DataGridApi } from "../data-grid";
@@ -661,6 +661,27 @@ describe("DataGrid cell-type-driven rendering and editing lifecycle", () => {
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [nextData] = onDataChange.mock.calls[0]!;
     expect(nextData[0]!.active).toBe(true);
+  });
+
+  it("a session opened on a checkbox cell directly through the store closes as a cancel, without a write", () => {
+    type BoolRow = { id: string; active: boolean };
+    const boolColumns: readonly ColumnDef<BoolRow, unknown>[] = [
+      { id: "active", header: "Active", accessorKey: "active", type: "checkbox" },
+    ];
+    const onDataChange = vi.fn();
+    const onEditEnd = vi.fn();
+    const ref = createRef<DataGridApi<BoolRow>>();
+    render(
+      <DataGrid ref={ref} data={[{ id: "1", active: false }]} columns={boolColumns} getRowId={(r) => r.id} onDataChange={onDataChange} onEditEnd={onEditEnd} />,
+    );
+
+    act(() => {
+      ref.current!.store.setState({ editing: { coord: { col: 0, row: 0 }, rowId: "1", columnId: "active", session: 1 } });
+    });
+
+    expect(ref.current!.store.getState().editing).toBeNull();
+    expect(onEditEnd).toHaveBeenCalledWith(expect.objectContaining({ result: "cancel" }));
+    expect(onDataChange).not.toHaveBeenCalled();
   });
 
   it("a custom type's `activate` runs in place on Enter — no editor opens (the type owns the gesture, not the name)", () => {
