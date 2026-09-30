@@ -218,6 +218,20 @@ describe("detectSeries", () => {
     expect(series!.extrapolate(2)).toBe("Item 10");
   });
 
+  it("extrapolates a 15-digit id exactly", () => {
+    const series = detectSeries(["ID 100000000000000", "ID 100000000000001"]);
+    expect(series!.extrapolate(2)).toBe("ID 100000000000002");
+  });
+
+  it.each([
+    ["a prefixed id", ["ID 1234567890123456789", "ID 1234567890123456790"]],
+    ["a 400-digit prefixed id", ["x" + "1".repeat(400), "x" + "1".repeat(399) + "2"]],
+    ["a bare integer", ["1234567890123456789", "1234567890123456790"]],
+    ["a zero-padded integer", ["0000000000000001", "0000000000000002"]],
+  ])("returns no series for %s above 15 digits, so the fill tiles", (_name, values) => {
+    expect(detectSeries(values)).toBeNull();
+  });
+
   it("detects a prefix series on a 20k-char value in linear time", () => {
     // the attack input: a long digit run, a non-digit, then a trailing digit — quadratic for the old
     // /^(.*?)(\d+)(\D*)$/ split, ~318 ms per value; a linear scan finishes in under a millisecond.

@@ -527,6 +527,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Fill keeps long identifiers intact (`data-grid-fill`):** a series whose number has more than 15
+  digits tiles instead of extrapolating. `ID 1234567890123456789` no longer fills as `â€¦7000`, and
+  a 400-digit number no longer fills as `xNaN`.
 - **Context-menu Cut and Copy report failures (`data-grid-context-menu`, `data-grid`):** when the
   clipboard write fails, the menu disables Cut and Copy and shows the new
   `labels.contextMenu.clipboardFailed` tooltip ("clipboard access failed â€” use Ctrl+C or

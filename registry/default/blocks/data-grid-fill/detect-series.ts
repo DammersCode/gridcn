@@ -6,6 +6,12 @@ export type SeriesDescriptor = {
 const NUMERIC_RE = /^-?\d+(\.\d+)?$/;
 const PADDED_INT_RE = /^\d+$/;
 const EPSILON = 1e-9;
+/** Longest digit run a double holds exactly; longer ids would extrapolate to wrong digits, so they tile. */
+const MAX_EXACT_DIGITS = 15;
+
+function exceedsExactDigits(value: string): boolean {
+  return value.replace(/\D/g, "").length > MAX_EXACT_DIGITS;
+}
 
 /**
  * Splits `value` into the maximal digit run that ends the digit/suffix boundary plus everything
@@ -35,7 +41,7 @@ function detectArithmetic(values: readonly string[]): SeriesDescriptor | null {
   if (values.length < 2) return null;
   const trimmed = values.map((v) => v.trim());
   const nums = trimmed.map((v) => (NUMERIC_RE.test(v) ? Number(v) : null));
-  if (nums.some((n) => n === null)) return null;
+  if (nums.some((n) => n === null) || trimmed.some(exceedsExactDigits)) return null;
   const numbers = nums as number[];
   const first = numbers[0]!;
   const delta = numbers[1]! - first;
@@ -51,7 +57,7 @@ function detectArithmetic(values: readonly string[]): SeriesDescriptor | null {
 function detectPaddedNumeric(values: readonly string[]): SeriesDescriptor | null {
   if (values.length < 2) return null;
   const trimmed = values.map((v) => v.trim());
-  if (!trimmed.every((v) => PADDED_INT_RE.test(v))) return null;
+  if (!trimmed.every((v) => PADDED_INT_RE.test(v)) || trimmed.some(exceedsExactDigits)) return null;
   if (!trimmed.some((v) => v.length > 1 && v.startsWith("0"))) return null;
   const width = trimmed[0]!.length;
   if (!trimmed.every((v) => v.length === width)) return null;
@@ -79,6 +85,7 @@ function detectPrefixNumber(values: readonly string[]): SeriesDescriptor | null 
   const prefix = parsed[0]!.prefix;
   const suffix = parsed[0]!.suffix;
   if (!parsed.every((p) => p.prefix === prefix && p.suffix === suffix)) return null;
+  if (parsed.some((p) => p.digits.length > MAX_EXACT_DIGITS)) return null;
 
   const numStrings = parsed.map((p) => p.digits);
   const numbers = numStrings.map((n) => Number(n));
