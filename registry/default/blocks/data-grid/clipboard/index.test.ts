@@ -145,6 +145,19 @@ describe("parseClipboardHtml", () => {
     ]);
   });
 
+  it.each([
+    ["a non-breaking space", "a\u00a0b"],
+    ["a lone carriage return", "a\rb"],
+    ["a CRLF pair", "a\r\nb"],
+    ["a tab next to a non-breaking space", "a\t\u00a0b"],
+    ["a formula-looking value with a carriage return", "=1\r+2"],
+  ])("round-trips %s through the grid's own serialization", (_name, value) => {
+    const plain = serializeCells([[value]]).html;
+    expect(parseClipboardHtml(plain)).toEqual([[value]]);
+    const sanitized = serializeCells([[value]], { sanitizeFormulas: true }).html;
+    expect(parseClipboardHtml(sanitized)).toEqual([[value]]);
+  });
+
   it("falls back to textContent with <br> as newline when no data attrs (real Excel paste)", () => {
     const html =
       "<html><body><table><tr><td>line1<br>line2</td><td>plain</td></tr></table></body></html>";

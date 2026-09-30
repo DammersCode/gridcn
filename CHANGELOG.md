@@ -527,6 +527,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Clipboard round trip keeps tabs, carriage returns, and non-breaking spaces (`data-grid`):** a
+  cell copied from the grid and pasted back keeps its exact value when it holds a carriage
+  return or a non-breaking space next to a tab. The HTML payload writes a carriage return as a
+  character reference, which the HTML parser otherwise turns into a newline.
 - **Resize and reorder gestures survive touch edge cases (`data-grid`):** a second touch on a
   column resize handle no longer selects the column or arms a reorder. A column or row reorder
   that loses its pointer (lost capture or window blur) ends instead of blocking the next drag.

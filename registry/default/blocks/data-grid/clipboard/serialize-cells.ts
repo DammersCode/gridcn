@@ -35,6 +35,7 @@ export function escapeHtmlText(value: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
+    .replace(/\r/g, "&#13;")
     .replace(/\t/g, "    ")
     .replace(/  +/g, (run) => `<span>${" ".repeat(run.length)}</span>`)
     .replace(/\n/g, "<br>");
@@ -45,7 +46,8 @@ function escapeHtmlAttr(value: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/\r/g, "&#13;");
 }
 
 /**
