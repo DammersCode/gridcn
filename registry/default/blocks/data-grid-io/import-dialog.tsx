@@ -36,6 +36,9 @@ const DELIMITER_OPTIONS: { value: CsvDelimiter; labelKey: "delimiterComma" | "de
   { value: "\t", labelKey: "delimiterTab" },
 ];
 
+/** Mapping-select value for a source column that maps to no grid column. */
+const SKIP_VALUE = "__skip__";
+
 /** Column display header: `headerText`, else the string `header`, else the id. */
 function columnLabel(column: Pick<AnyColumnDef, "id" | "header" | "headerText">): string {
   return column.headerText ?? (typeof column.header === "string" ? column.header : column.id);
@@ -77,6 +80,9 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   const abortControllerRef = useRef<AbortController | null>(null);
   const { preview, error, isParsing, loadFile, setHasHeaderRow, setDelimiter, setSheetName, setMapping, reset, previewRows, importRows } =
     useDataGridImportPreview(labels.io.columnFallback, importDefaults, importLimits);
+  // Base UI's SelectValue shows the raw value until the popup mounts its items, unless the root gets `items`
+  const delimiterItems = DELIMITER_OPTIONS.map((option) => ({ value: option.value, label: labels.io[option.labelKey] }));
+  const mappingItems = [{ value: SKIP_VALUE, label: labels.io.skipColumn }, ...allColumns.map((column) => ({ value: column.id, label: columnLabel(column) }))];
 
   useEffect(() => {
     if (open) return;
@@ -222,14 +228,14 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
                 {preview.delimiter !== undefined && (
                   <label className="flex items-center gap-2 text-sm text-foreground">
                     {labels.io.delimiter}
-                    <Select value={preview.delimiter} onValueChange={(value) => void setDelimiter(value as CsvDelimiter)}>
+                    <Select items={delimiterItems} value={preview.delimiter} onValueChange={(value) => void setDelimiter(value as CsvDelimiter)}>
                       <SelectTrigger className="w-36" size="sm" aria-label={labels.io.delimiter}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {DELIMITER_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {labels.io[option.labelKey]}
+                        {delimiterItems.map((item) => (
+                          <SelectItem key={item.value} value={item.value}>
+                            {item.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -283,19 +289,19 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
                           </div>
                           <div className="flex items-center gap-1">
                             <Select
-                              value={currentGridColumnId ?? "__skip__"}
+                              items={mappingItems}
+                              value={currentGridColumnId ?? SKIP_VALUE}
                               onValueChange={(value) =>
-                                setMapping(importColumnIndex, value === "__skip__" || value === null ? null : value)
+                                setMapping(importColumnIndex, value === SKIP_VALUE || value === null ? null : value)
                               }
                             >
                               <SelectTrigger className="w-full" size="sm" aria-label={labels.io.mapColumnAriaLabel(header)}>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="__skip__">{labels.io.skipColumn}</SelectItem>
-                                {allColumns.map((column) => (
-                                  <SelectItem key={column.id} value={column.id} disabled={takenElsewhere.has(column.id)}>
-                                    {columnLabel(column)}
+                                {mappingItems.map((item) => (
+                                  <SelectItem key={item.value} value={item.value} disabled={takenElsewhere.has(item.value)}>
+                                    {item.label}
                                   </SelectItem>
                                 ))}
                               </SelectContent>

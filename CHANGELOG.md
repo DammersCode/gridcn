@@ -527,6 +527,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Import dialog select labels (`data-grid-io`):** the delimiter and column-mapping selects show
+  their labels ("Tab", the grid column's header, "— Skip —") instead of the raw values (`\t`,
+  the column id, `__skip__`) before their popup first opens.
 - **CSV import limits run before the parse (`data-grid-io`):** `parseImportFile` counts the rows
   and the fields of each CSV row without building them and rejects a file over `maxRows`,
   `maxColumns`, or `maxCells` before papaparse runs. A 49 MB file of delimiters used to allocate
