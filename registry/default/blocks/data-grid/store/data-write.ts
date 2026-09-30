@@ -194,6 +194,7 @@ export type DataWriteActions = Pick<
   | "commitCellValue"
   | "commitCellValueAt"
   | "deleteSelection"
+  | "_deleteCellsById"
   | "applyCellUpdates"
   | "updateCells"
   | "updateRows"
@@ -207,6 +208,22 @@ export type DataWriteActions = Pick<
 
 export function createDataWriteActions(set: SetState, get: GetState, deps: DataWriteDeps): DataWriteActions {
   const { ctx, applyRowValidation, pruneRowValidationKeys, warnViewSpacePresenceStale, remapEditing } = deps;
+
+  /** Commits clear-to-clearValue() `writes` as one `delete` batch; shared by both delete actions. */
+  const commitClearWrites = (s: DataGridStoreState, writes: { viewRowIndex: number; columnId: string; value: unknown }[]): void => {
+    const batch = computeRowEditsBatch(s, writes);
+    if (!batch) return;
+    ctx.rowIndexCache.rebase(batch.nextData);
+    forgetDeferredRows(ctx);
+    ctx.lastEmittedData = batch.nextData;
+    s.onDataChange?.(batch.nextData, { source: "delete", ops: batch.ops });
+    set({
+      data: batch.nextData,
+      cellErrors: applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops),
+      ...reconcileAfterWrite(s, batch.nextData, batch.ops),
+    });
+  };
+
   return {
     commitCellEdit(value, movement, rejection) {
       const s = get();
@@ -317,18 +334,29 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           }
         }
       }
-
-      const batch = computeRowEditsBatch(s, writes);
-      if (!batch) return;
-      ctx.rowIndexCache.rebase(batch.nextData);
-      forgetDeferredRows(ctx);
-      ctx.lastEmittedData = batch.nextData;
-      s.onDataChange?.(batch.nextData, { source: "delete", ops: batch.ops });
-      set({
-        data: batch.nextData,
-        cellErrors: applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops),
-        ...reconcileAfterWrite(s, batch.nextData, batch.ops),
+      commitClearWrites(s, writes);
+    },
+    _deleteCellsById(rowIds, columnIds) {
+      const s = get();
+      if (s.readOnly || rowIds.length === 0 || columnIds.length === 0) return;
+      const cleared = columnIds.flatMap((columnId) => {
+        const column = s.visibleColumns.find((c) => c.id === columnId);
+        const cellType = column ? s.cellTypes[column.type ?? "text"] : undefined;
+        return column && cellType ? [{ columnId, value: cellType.clearValue(column.options) }] : [];
       });
+      const rowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId);
+      const dataRows = new Set<number>();
+      for (const rowId of rowIds) {
+        const dataRowIndex = rowIndex.get(rowId);
+        if (dataRowIndex !== undefined) dataRows.add(dataRowIndex);
+      }
+      const writes: { viewRowIndex: number; columnId: string; value: unknown }[] = [];
+      // a row or column that left the view since the copy stays untouched, like any hidden cell
+      s.viewIndex.forEach((dataRowIndex, viewRowIndex) => {
+        if (!dataRows.has(dataRowIndex)) return;
+        for (const { columnId, value } of cleared) writes.push({ viewRowIndex, columnId, value });
+      });
+      commitClearWrites(s, writes);
     },
     applyCellUpdates(updates, source) {
       const s = get();

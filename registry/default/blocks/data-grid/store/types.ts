@@ -721,6 +721,12 @@ export type DataGridActions = {
   /** Clears every non-readOnly cell in the current selection to its type's clearValue(), as one batch DataChange. */
   deleteSelection(): void;
   /**
+   * @internal Clears every `rowIds` x `columnIds` cell still in view, as one `delete` batch. Cut
+   * captures the ids at copy time, so a view change during the clipboard write never shifts the
+   * cleared cells. Not part of the public hook surface.
+   */
+  _deleteCellsById(rowIds: readonly string[], columnIds: readonly string[]): void;
+  /**
    * The one generic multi-cell write path: applies `updates` (view-space coords via `viewRow`) as
    * a single `source`-tagged DataChange batch. Dedupes multiple updates to the same row/column
    * (last write wins), skips readOnly cells and no-op writes, preserves identity of untouched rows,

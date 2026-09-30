@@ -328,6 +328,63 @@ describe("useDataGridClipboard.copy/cut outcomes", () => {
     expect((onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>])[1].source).toBe("delete");
   });
 
+  it("cut clears the copied cells by row identity when a sort moves the rows while the write is in flight", async () => {
+    let resolveWrite!: () => void;
+    const write = vi.fn(() => new Promise<void>((resolve) => (resolveWrite = resolve)));
+    vi.stubGlobal("navigator", { clipboard: { write } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const onDataChange = vi.fn();
+    const data: Row[] = [
+      { id: "1", name: "c" },
+      { id: "2", name: "a" },
+      { id: "3", name: "b" },
+    ];
+    const wrapper = makeWrapper({ data, onDataChange });
+    const result = setUpGrid(wrapper);
+    act(() => result.current.actions.extendToAt({ col: 0, row: 1 }));
+
+    await act(async () => {
+      const pending = result.current.clipboard.cut();
+      // ids 1 and 2 were copied; ascending by name puts them at view rows 2 and 0
+      act(() => result.current.actions.toggleSort("name", false));
+      resolveWrite();
+      await pending;
+    });
+
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(change.ops.map((op) => op.rowId).sort()).toEqual(["1", "2"]);
+    expect(next).toEqual([
+      { id: "1", name: "" },
+      { id: "2", name: "" },
+      { id: "3", name: "b" },
+    ]);
+  });
+
+  it("cut leaves a copied row that a filter hid during the write untouched", async () => {
+    let resolveWrite!: () => void;
+    const write = vi.fn(() => new Promise<void>((resolve) => (resolveWrite = resolve)));
+    vi.stubGlobal("navigator", { clipboard: { write } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper({ onDataChange });
+    const result = setUpGrid(wrapper);
+    act(() => result.current.actions.extendToAt({ col: 0, row: 1 }));
+
+    await act(async () => {
+      const pending = result.current.clipboard.cut();
+      act(() => result.current.actions.setFilters([{ columnId: "name", operator: "equals", value: "b" }]));
+      resolveWrite();
+      await pending;
+    });
+
+    const [next] = onDataChange.mock.calls[0] as [readonly Row[]];
+    expect(next).toEqual([
+      { id: "1", name: "a" },
+      { id: "2", name: "" },
+    ]);
+  });
+
   it("cut does not delete when the selection changes while the write is in flight", async () => {
     let resolveWrite!: () => void;
     const write = vi.fn(() => new Promise<void>((resolve) => (resolveWrite = resolve)));

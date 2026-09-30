@@ -487,6 +487,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Cut clears exactly the copied cells:** Ctrl+X and `useDataGridClipboard().cut()` (the context
+  menu's Cut) capture the copied rows and columns by id and clear exactly those cells. A sort,
+  filter, or data change during the clipboard write no longer clears whichever rows moved into the
+  old view positions; a copied row that left the view stays untouched. A multi-range selection or
+  a copy truncated at the copy cap clears only the cells that were copied.
 - **An open edit stays bound to its row across view changes:** the store's edit session now anchors
   on the row's id and column id, not on its view position. A re-sort, filter, column reorder, or a
   consumer data swap that moves the edited row re-anchors the editor to the row's new view

@@ -4,7 +4,7 @@ import { useCallback, useMemo } from "react";
 import { serializeCells } from "./serialize-cells";
 import { useDataGridActions, useDataGridStoreApi } from "../store";
 import { useBulkGeneration } from "../validation/bulk-generation";
-import { pasteText, resolveCopyScope, serializeCopyScope } from "./use-grid-clipboard";
+import { copyScopeCellIds, pasteText, resolveCopyScope, serializeCopyScope } from "./use-grid-clipboard";
 
 /** Result of {@link useDataGridClipboard.prototype.pasteFromClipboard}'s permission/content outcome. */
 export type PasteFromClipboardResult = "ok" | "permission-denied" | "empty";
@@ -25,9 +25,11 @@ export type UseDataGridClipboardResult = {
    */
   copy: () => Promise<"ok" | "fallback" | "failed" | "no-selection">;
   /**
-   * Same as {@link copy}, then clears the copied selection via `deleteSelection` — only when the
-   * write succeeded (`'ok'`/`'fallback'`) and the selection is the same reference it was when the
-   * write started. A failed write keeps the selection intact.
+   * Same as {@link copy}, then clears exactly the copied cells — only when the write succeeded
+   * (`'ok'`/`'fallback'`) and the selection is the same reference it was when the write started.
+   * The cells are captured by row and column id at copy time, so a sort, filter, or data change
+   * during the write clears the copied rows wherever they moved; a row that left the view stays.
+   * A failed write keeps the selection intact.
    */
   cut: () => Promise<"ok" | "fallback" | "failed" | "no-selection">;
   /**
@@ -101,8 +103,9 @@ export function useDataGridClipboard(options: UseDataGridClipboardOptions = {}):
     const scope = resolveCopyScope(s);
     if (!scope) return "no-selection";
     const { text, html } = serializeCells(serializeCopyScope(s, scope), { sanitizeFormulas });
+    const { rowIds, columnIds } = copyScopeCellIds(s, scope);
     const result = await writeToClipboard(text, html);
-    if (result !== "failed" && storeApi.getState().selection === s.selection) actions.deleteSelection();
+    if (result !== "failed" && storeApi.getState().selection === s.selection) actions._deleteCellsById(rowIds, columnIds);
     return result;
   }, [storeApi, actions, sanitizeFormulas]);
 

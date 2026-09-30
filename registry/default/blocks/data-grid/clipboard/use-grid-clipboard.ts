@@ -154,6 +154,32 @@ export function serializeCopyScope(s: DataGridStoreState, scope: CopyScope): str
   return serializeDisjointRows(s, allViewRows(s), scope.columns);
 }
 
+/**
+ * The row and column ids {@link serializeCopyScope} serializes for `scope`, truncation included:
+ * cut clears exactly these cells, by identity, never the view positions they had at copy time.
+ */
+export function copyScopeCellIds(s: DataGridStoreState, scope: CopyScope): { rowIds: string[]; columnIds: string[] } {
+  const span = (start: number, count: number): number[] => Array.from({ length: count }, (_, i) => start + i);
+  const viewCols: readonly number[] =
+    scope.kind === "rect" ? span(scope.rect.x, scope.rect.width) : scope.kind === "rows" ? span(0, s.visibleColumns.length) : scope.columns;
+  const maxRows = Math.max(1, Math.floor(MAX_COPY_CELLS / Math.max(1, viewCols.length)));
+  const viewRows: readonly number[] =
+    scope.kind === "rect"
+      ? span(scope.rect.y, Math.min(scope.rect.height, maxRows))
+      : (scope.kind === "rows" ? scope.rows : allViewRows(s)).slice(0, maxRows);
+  const rowIds: string[] = [];
+  for (const viewRow of viewRows) {
+    const dataRowIndex = s.viewIndex[viewRow];
+    const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
+    if (row !== undefined) rowIds.push(s.getRowId(row, dataRowIndex!));
+  }
+  const columnIds = viewCols.flatMap((col) => {
+    const column = s.visibleColumns[col];
+    return column ? [column.id] : [];
+  });
+  return { rowIds, columnIds };
+}
+
 /** Writes both `text/plain` (TSV) and `text/html` (table) to a clipboard event's DataTransfer. */
 function writeClipboardEvent(event: ClipboardEvent, cells: string[][], sanitizeFormulas?: boolean): void {
   const { text, html } = serializeCells(cells, { sanitizeFormulas });
@@ -380,7 +406,9 @@ export function useGridClipboard(options: UseGridClipboardOptions): void {
       if (!scope) return;
       event.preventDefault();
       writeClipboardEvent(event, serializeCopyScope(s, scope), sanitizeFormulas);
-      if (!readOnly) actions.deleteSelection();
+      if (readOnly) return;
+      const { rowIds, columnIds } = copyScopeCellIds(s, scope);
+      actions._deleteCellsById(rowIds, columnIds);
     },
     [storeApi, actions, readOnly, sanitizeFormulas],
   );
