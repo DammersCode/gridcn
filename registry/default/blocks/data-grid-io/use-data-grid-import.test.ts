@@ -209,3 +209,15 @@ describe("useDataGridImportPreview — limit errors map to their own keys", () =
     vi.restoreAllMocks();
   });
 });
+
+describe("useDataGridImportPreview — unsupported Excel formats", () => {
+  it("surfaces errorUnsupportedExcelFormat for an .xls that is not a BIFF8 workbook", async () => {
+    mockedParse.mockRejectedValue(new Error("unsupported-excel-format"));
+    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));
+    await act(async () => {
+      await result.current.loadFile(FILE_A, TARGETS);
+    });
+    expect(result.current.error).toBe("errorUnsupportedExcelFormat");
+    vi.restoreAllMocks();
+  });
+});

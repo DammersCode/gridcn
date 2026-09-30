@@ -190,6 +190,8 @@ export type DataGridIOLabels = {
   errorParseFailed: string;
   errorNoRows: string;
   errorUnsupportedFile: string;
+  /** Shown for an Excel file that is neither xlsx nor Excel 97-2003 (BIFF8) xls, e.g. an HTML table or Excel 2003 XML saved as .xls. */
+  errorUnsupportedExcelFormat: string;
   /** Shown when a chosen file exceeds the import size limit. */
   errorFileTooLarge: string;
   /** Shown when a file exceeds the import row, column, or cell limit. */
@@ -425,6 +427,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     errorParseFailed: "Could not read this file.",
     errorNoRows: "No rows found in this file.",
     errorUnsupportedFile: "Unsupported file type — choose a .csv, .xlsx, or .xls file.",
+    errorUnsupportedExcelFormat: "This Excel format can't be imported — save the file as .xlsx and try again.",
     errorFileTooLarge: "This file is too large to import.",
     errorTooManyCells: "This file has too many rows or columns to import.",
     importRejectedCells: (count) => `${count} cell${count === 1 ? "" : "s"} failed validation and ${count === 1 ? "was" : "were"} left empty.`,

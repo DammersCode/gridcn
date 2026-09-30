@@ -5,10 +5,8 @@ icon: FileSpreadsheet
 ---
 
 Import and export live in the `data-grid-io` add-on, kept separate so the core stays free of the
-spreadsheet and CSV dependencies. The add-on depends on `@e965/xlsx` (pinned to 0.20.3) and
-`papaparse`.
-`@e965/xlsx` is the community-published mirror of SheetJS `xlsx` 0.20.x. gridcn imports both
-lazily. They load only when an xlsx or CSV operation actually happens.
+spreadsheet and CSV dependencies. The add-on depends on `hucre` (pinned to 1.1.0) and `papaparse`.
+gridcn imports `hucre` lazily: it loads only when an xlsx or xls file is read or written.
 
 <ComponentPreview name="data-grid-io-demo" />
 
@@ -66,7 +64,7 @@ takes:
   CSV exports are UTF-8 and carry a UTF-8 BOM by default — Excel only detects UTF-8 when the file
   starts with a BOM, so without it umlauts and other non-ASCII characters open as mojibake. Pass
   `csvBom: false` to `exportGrid` when a downstream consumer chokes on a leading BOM character.
-  XLSX exports write every cell as text (SheetJS's `aoa_to_sheet` from `toText` strings): a
+  XLSX exports write every cell as a text cell that holds its `toText` string: a
   `number` column opens in Excel as text, not as a number, so it must be re-converted there if
   Excel arithmetic on it matters.
 </Callout>
@@ -100,8 +98,10 @@ in every scope. Export after the window you need is loaded.
 `maxRows` caps the number of data rows in the export. The header row is not counted. When the
 scope holds more rows, the export keeps the first `maxRows` rows and the dev console warns.
 
-XLSX exports name their single sheet `workbookName` (default `'Sheet1'`). `buildXlsx(state, options)`
-builds the workbook as a `Blob` without triggering a download, for uploads to a server.
+XLSX exports name their single sheet `workbookName` (default `'Sheet1'`). A name that Excel does not
+accept as a sheet name rejects the export: more than 31 characters, one of `[ ] : * ? / \`, or
+`History`. `buildXlsx(state, options)` builds the workbook as a `Blob` without triggering a
+download, for uploads to a server. The xlsx file is compressed.
 
 `DataGridExportButton` takes an `onError` callback for a failed export. Without one, a failure
 logs a dev-only warning.
@@ -168,6 +168,22 @@ array, and you decide how to apply it: replace all data, append it, or run it th
 `onDataChange` for history or audit purposes. See the demo above, which routes imported rows
 through `grid.onDataChange` with an explicit `delete` and `insert` ops batch.
 
+### Excel files
+
+The import reads the file content, not the extension, to find the format. It accepts two Excel
+formats:
+
+- `.xlsx` workbooks. Each cell comes in as its display text in Excel: the cell's number format
+  applies to dates, currency, and percentages. A number without a format shows at most 15
+  significant digits, so `0.1 + 0.2` comes in as `0.3`. Error cells come in as their code, for
+  example `#DIV/0!`.
+- Excel 97-2003 `.xls` workbooks (BIFF8). Their cells come in without number formats: a date comes
+  in as an ISO date (`2024-01-15`), and a number comes in as its value.
+
+Some programs save other content with an `.xls` extension: an HTML table, Excel 2003 XML, or an
+Excel 5.0/95 workbook. The import rejects these files with the `errorUnsupportedExcelFormat`
+message. Save such a file as `.xlsx` in Excel, then import it again.
+
 ## Import limits
 
 Every import is bounded, so an oversized or crafted file cannot stall the tab. A file over a
@@ -181,8 +197,10 @@ limit is rejected with an error message in the dialog. The import never truncate
 | `maxCells` | 5,000,000 | Maximum rows times columns. |
 
 For an xlsx or xls file, the rows and columns come from the real cells of the selected sheet.
-The check runs before the cells are converted, and the other sheets of the workbook are not
-parsed. For a CSV file, the check runs after the parse, and the widest row sets the column count.
+The check runs before the cells are converted. For an xlsx file, the other sheets of the workbook
+are not parsed. For an xls file, every sheet is parsed, and each sheet must stay within
+`maxCells`. For a CSV file, the check runs after the parse, and the widest row sets the column
+count.
 
 To change the limits, pass `importLimits` to `DataGridImportButton` or `DataGridImportDialog`. An
 omitted field keeps its default:

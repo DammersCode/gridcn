@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import type { CellType, ColumnDef, DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid";
-import { buildExportHeaders, buildExportRows, downloadBlob, exportGrid, quoteCsvField, rowsToCsv, type ExportGridOptions } from "./export-grid";
+import { buildExportHeaders, buildExportRows, buildXlsx, downloadBlob, exportGrid, quoteCsvField, rowsToCsv, type ExportGridOptions } from "./export-grid";
+import { parseImportFile } from "./parse-import-file";
+import { listZip, XLSX_TYPE } from "./xlsx-fixtures.test-helper";
 
 type Row = { id: string; name: string; note: string };
 
@@ -350,60 +352,32 @@ describe("exportGrid — formula sanitizing", () => {
   });
 });
 
-describe("exportGrid lazy xlsx loading", () => {
-  it("does not import xlsx for a csv export", async () => {
-    vi.resetModules();
-    const xlsxModuleSpy = vi.fn();
-    vi.doMock("@e965/xlsx", () => {
-      xlsxModuleSpy();
-      return { utils: {}, write: vi.fn() };
-    });
+function stubDownload(): void {
+  // a subclass keeps `new URL()` working for the module loader while the download is stubbed
+  vi.stubGlobal("URL", Object.assign(class extends URL {}, { createObjectURL: vi.fn(() => "blob:mock-url"), revokeObjectURL: vi.fn() }));
+  const anchor = document.createElement("a");
+  anchor.click = vi.fn();
+  vi.spyOn(document, "createElement").mockReturnValue(anchor);
+}
 
+describe("exportGrid lazy xlsx loading", () => {
+  it("loads hucre only when an xlsx export runs, never for a csv export", async () => {
+    vi.resetModules();
+    const hucreLoaded = vi.fn();
+    vi.doMock("hucre/xlsx", async (importOriginal) => {
+      hucreLoaded();
+      return importOriginal();
+    });
     const { exportGrid: freshExportGrid } = await import("./export-grid");
-    const createObjectURL = vi.fn(() => "blob:mock-url");
-    const revokeObjectURL = vi.fn();
-    vi.stubGlobal("URL", { ...URL, createObjectURL, revokeObjectURL });
-    const anchor = document.createElement("a");
-    anchor.click = vi.fn();
-    vi.spyOn(document, "createElement").mockReturnValue(anchor);
+    stubDownload();
 
     await freshExportGrid(makeState(), { format: "csv" });
-
-    expect(xlsxModuleSpy).not.toHaveBeenCalled();
-
-    vi.doUnmock("@e965/xlsx");
-    vi.unstubAllGlobals();
-    vi.restoreAllMocks();
-  });
-
-  it("imports xlsx only when an xlsx export actually runs", async () => {
-    vi.resetModules();
-    const xlsxModuleSpy = vi.fn();
-    const aoa_to_sheet = vi.fn(() => ({}));
-    const book_new = vi.fn(() => ({}));
-    const book_append_sheet = vi.fn();
-    const write = vi.fn(() => new ArrayBuffer(0));
-    vi.doMock("@e965/xlsx", () => {
-      xlsxModuleSpy();
-      return { utils: { aoa_to_sheet, book_new, book_append_sheet }, write };
-    });
-
-    const { exportGrid: freshExportGrid } = await import("./export-grid");
-    expect(xlsxModuleSpy).not.toHaveBeenCalled();
-
-    const createObjectURL = vi.fn(() => "blob:mock-url");
-    const revokeObjectURL = vi.fn();
-    vi.stubGlobal("URL", { ...URL, createObjectURL, revokeObjectURL });
-    const anchor = document.createElement("a");
-    anchor.click = vi.fn();
-    vi.spyOn(document, "createElement").mockReturnValue(anchor);
+    expect(hucreLoaded).not.toHaveBeenCalled();
 
     await freshExportGrid(makeState(), { format: "xlsx" });
+    expect(hucreLoaded).toHaveBeenCalledTimes(1);
 
-    expect(xlsxModuleSpy).toHaveBeenCalledTimes(1);
-    expect(write).toHaveBeenCalled();
-
-    vi.doUnmock("@e965/xlsx");
+    vi.doUnmock("hucre/xlsx");
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -411,55 +385,56 @@ describe("exportGrid lazy xlsx loading", () => {
 
 describe("exportGrid — xlsx builds the table once", () => {
   it("calls toText exactly once per cell for an xlsx export", async () => {
-    vi.resetModules();
-    const aoa_to_sheet = vi.fn(() => ({}));
-    const book_new = vi.fn(() => ({}));
-    const book_append_sheet = vi.fn();
-    const write = vi.fn(() => new ArrayBuffer(0));
-    vi.doMock("@e965/xlsx", () => ({ utils: { aoa_to_sheet, book_new, book_append_sheet }, write }));
-
-    const { exportGrid: freshExportGrid } = await import("./export-grid");
-    const createObjectURL = vi.fn(() => "blob:mock-url");
-    vi.stubGlobal("URL", { ...URL, createObjectURL, revokeObjectURL: vi.fn() });
-    const anchor = document.createElement("a");
-    anchor.click = vi.fn();
-    vi.spyOn(document, "createElement").mockReturnValue(anchor);
-
+    stubDownload();
     const toTextSpy = vi.fn((value: string) => value ?? "");
     const state = makeState({ cellTypes: { text: { ...textCellType, toText: toTextSpy } as never } });
 
-    await freshExportGrid(state, { format: "xlsx" });
+    await exportGrid(state, { format: "xlsx" });
 
     // 3 rows x 2 columns: a double table build would call toText 12 times instead of 6.
     expect(toTextSpy).toHaveBeenCalledTimes(6);
 
-    vi.doUnmock("@e965/xlsx");
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 });
 
 describe("buildXlsx", () => {
-  it("resolves with a Blob and names the sheet per workbookName, defaulting to 'Sheet1'", async () => {
-    vi.resetModules();
-    const aoa_to_sheet = vi.fn(() => ({}));
-    const book_new = vi.fn(() => ({}));
-    const book_append_sheet = vi.fn();
-    const write = vi.fn(() => new ArrayBuffer(8));
-    vi.doMock("@e965/xlsx", () => ({ utils: { aoa_to_sheet, book_new, book_append_sheet }, write }));
-
-    const { buildXlsx: freshBuildXlsx } = await import("./export-grid");
-
-    const blob = await freshBuildXlsx(makeState());
+  it("resolves with an xlsx Blob whose single sheet is named per workbookName, defaulting to 'Sheet1'", async () => {
+    const blob = await buildXlsx(makeState());
     expect(blob).toBeInstanceOf(Blob);
-    expect(blob.size).toBe(8);
-    expect(book_append_sheet).toHaveBeenLastCalledWith(expect.anything(), expect.anything(), "Sheet1");
+    expect(blob.type).toBe(XLSX_TYPE);
+    await expect(parseImportFile(new File([blob], "export.xlsx"))).resolves.toMatchObject({ sheetNames: ["Sheet1"] });
 
-    await freshBuildXlsx(makeState(), { workbookName: "Q3 Data" });
-    expect(book_append_sheet).toHaveBeenLastCalledWith(expect.anything(), expect.anything(), "Q3 Data");
+    const named = await buildXlsx(makeState(), { workbookName: "Q3 Data" });
+    await expect(parseImportFile(new File([named], "export.xlsx"))).resolves.toMatchObject({ sheetNames: ["Q3 Data"] });
+  });
 
-    vi.doUnmock("@e965/xlsx");
-    vi.restoreAllMocks();
+  it("writes every cell as a string, never a formula, and round-trips the text unchanged", async () => {
+    const data = [
+      { id: "1", name: "=1+1", note: '=HYPERLINK("http://x")' },
+      { id: "2", name: "00123", note: "+cmd|' /C calc'!A0" },
+      { id: "3", name: "1e5", note: "TRUE" },
+    ];
+    const blob = await buildXlsx(makeState({ data }));
+
+    const sheetXml = new TextDecoder().decode(listZip(new Uint8Array(await blob.arrayBuffer())).find((entry) => entry.name === "xl/worksheets/sheet1.xml")?.data);
+    expect(sheetXml).not.toMatch(/<f[ >]/);
+    const parsed = await parseImportFile(new File([blob], "export.xlsx"));
+    expect(parsed.rows).toEqual([["Name", "Note"], ...data.map((row) => [row.name, row.note])]);
+  });
+
+  it("rejects a workbookName that Excel does not accept as a sheet name", async () => {
+    await expect(buildXlsx(makeState(), { workbookName: "Q3/Q4" })).rejects.toThrow();
+    await expect(buildXlsx(makeState(), { workbookName: "x".repeat(32) })).rejects.toThrow();
+  });
+
+  it("compresses every part of the workbook", async () => {
+    const blob = await buildXlsx(makeState());
+
+    const entries = listZip(new Uint8Array(await blob.arrayBuffer()));
+    expect(entries.length).toBeGreaterThan(0);
+    for (const entry of entries) expect(entry, entry.name).toMatchObject({ method: 8 });
   });
 });
 

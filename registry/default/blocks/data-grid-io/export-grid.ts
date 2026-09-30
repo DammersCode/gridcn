@@ -4,7 +4,7 @@ import type { CsvDelimiter } from "./parse-import-file";
 
 /** Options for {@link exportGrid}. */
 export type ExportGridOptions = {
-  /** 'xlsx' via lazily-imported SheetJS, or hand-rolled RFC4180 'csv'. */
+  /** 'xlsx' via lazily-imported hucre, or hand-rolled RFC4180 'csv'. */
   format: "xlsx" | "csv";
   /** 'view' (default) exports the current sort/filter order; 'all' ignores view order and exports every row in `data` order; 'selection' exports only the selected rows, in view order. */
   scope?: "view" | "all" | "selection";
@@ -27,7 +27,7 @@ export type ExportGridOptions = {
   sanitizeFormulas?: boolean;
   /** Download file name, without extension; default 'export'. */
   fileName?: string;
-  /** Name of the single sheet inside the xlsx file; default 'Sheet1'. Ignored for csv. */
+  /** Name of the single sheet inside the xlsx file; default 'Sheet1'. Ignored for csv. An invalid Excel sheet name (over 31 characters, `[]:*?/\`, `History`) rejects. */
   workbookName?: string;
   /** Caps the number of data rows exported (the header row is not counted); when the scope exceeds the cap, the export is truncated with a dev-only warning. */
   maxRows?: number;
@@ -119,7 +119,7 @@ export type BuildXlsxOptions = {
   scope?: "view" | "all" | "selection";
   /** Whether to emit a header row; default true. */
   includeHeaders?: boolean;
-  /** Name of the single sheet inside the workbook; default 'Sheet1'. */
+  /** Name of the single sheet inside the workbook; default 'Sheet1'. An invalid Excel sheet name (over 31 characters, `[]:*?/\`, `History`) rejects. */
   workbookName?: string;
   /** Same row cap as {@link ExportGridOptions.maxRows}. */
   maxRows?: number;
@@ -128,25 +128,23 @@ export type BuildXlsxOptions = {
 /**
  * Builds an xlsx `Blob` from the grid's state without triggering a download — for server uploads
  * or inspecting the workbook before it leaves the browser. Values go through each column's cell
- * type `toText` like `exportGrid`; `xlsx` loads lazily.
+ * type `toText` like `exportGrid` and land as string cells, never formulas; hucre loads lazily.
  */
 export async function buildXlsx(state: DataGridStoreState, options: BuildXlsxOptions = {}): Promise<Blob> {
   const { scope = "view", includeHeaders = true, workbookName = "Sheet1", maxRows } = options;
   const rows = capExportRows(buildExportRows(state, scope), maxRows);
   const table = includeHeaders ? [buildExportHeaders(state), ...rows] : rows;
 
-  const XLSX = await import("@e965/xlsx");
-  const worksheet = XLSX.utils.aoa_to_sheet(table);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, workbookName);
-  const arrayBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
-  return new Blob([arrayBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const { writeXlsx } = await import("./xlsx-writer");
+  const bytes = await writeXlsx({ sheets: [{ name: workbookName, rows: table }] });
+  // hucre types its output as ArrayBufferLike, but writeXlsx never returns a SharedArrayBuffer view
+  return new Blob([bytes as Uint8Array<ArrayBuffer>], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 
 /**
  * Serializes the grid to CSV or XLSX and triggers a download. Values always go through each
- * column's cell type `toText` (never raw values), so clipboard/export fidelity matches. `xlsx` is
- * loaded lazily (dynamic `import("@e965/xlsx")`) so the dependency never loads for CSV-only consumers.
+ * column's cell type `toText` (never raw values), so clipboard/export fidelity matches. hucre is
+ * loaded lazily (dynamic `import()`) so the dependency never loads for CSV-only consumers.
  */
 export async function exportGrid(state: DataGridStoreState, options: ExportGridOptions): Promise<void> {
   const { format, scope = "view", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true, fileName = "export", workbookName, maxRows } = options;

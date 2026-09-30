@@ -1024,7 +1024,7 @@
          "description": "Import/export add-on for the gridcn data grid: xlsx and csv, with delimiter detection and preview. New user-facing strings live under `labels.io` (see lib/labels.ts DataGridIOLabels) — export button/menu, import dialog (file picker, header-row toggle, delimiter select, column mapping, preview, errors).",
          "author": "gridcn",
           "dependencies": [
-             "@e965/xlsx@0.20.3",
+             "hucre@1.1.0",
              "papaparse"
           ],
          "devDependencies": [
@@ -1050,6 +1050,11 @@
                "target": "components/data-grid-io/export-grid.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid-io/xlsx-writer.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-io/xlsx-writer.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid-io/use-data-grid-export.ts",
                "type": "registry:component",
                "target": "components/data-grid-io/use-data-grid-export.ts"
@@ -1063,6 +1068,11 @@
                "path": "registry/default/blocks/data-grid-io/parse-import-file.ts",
                "type": "registry:component",
                "target": "components/data-grid-io/parse-import-file.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-io/xlsx-reader.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-io/xlsx-reader.ts"
             },
             {
                "path": "registry/default/blocks/data-grid-io/match-import-column.ts",

@@ -104,17 +104,15 @@ const boomCellType: CellType<unknown, string> = {
 };
 
 describe("DataGridExportButton export failures (browser)", () => {
-  /** Renders the button with the lazily-imported `xlsx` module mocked to fail on first use. */
+  /** Renders the button with the lazily-imported `hucre/xlsx` module mocked to fail on first use. */
   async function renderWithFailingXlsx(onError?: (error: unknown, format: "xlsx" | "csv") => void): Promise<Error> {
     vi.resetModules();
     const loadError = new Error("xlsx failed to load");
     // the browser mocker rejects mock factories that throw, so the failure is placed on first use
-    // (aoa_to_sheet runs right after the import) — the rejection reaches the same exportGrid catch
-    vi.doMock("@e965/xlsx", () => ({
-      utils: {
-        aoa_to_sheet: () => {
-          throw loadError;
-        },
+    // (writeXlsx runs right after the import) — the rejection reaches the same exportGrid catch
+    vi.doMock("hucre/xlsx", () => ({
+      writeXlsx: () => {
+        throw loadError;
       },
     }));
     const freshDataGrid = await import("@/registry/default/blocks/data-grid/data-grid");
@@ -141,7 +139,7 @@ describe("DataGridExportButton export failures (browser)", () => {
     await vi.waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
     expect(onError).toHaveBeenCalledWith(loadError, "xlsx");
 
-    vi.doUnmock("@e965/xlsx");
+    vi.doUnmock("hucre/xlsx");
   });
 
   it("logs a dev warning instead of invoking onError when none is provided", async () => {
@@ -157,7 +155,7 @@ describe("DataGridExportButton export failures (browser)", () => {
       );
     } finally {
       warnSpy.mockRestore();
-      vi.doUnmock("@e965/xlsx");
+      vi.doUnmock("hucre/xlsx");
     }
   });
 

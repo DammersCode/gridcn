@@ -53,7 +53,7 @@ function resolveAlias(specifier) {
   return null;
 }
 
-/** A registry.json dependency entry without its optional `@version` pin ("@e965/xlsx@0.20.3" -> "@e965/xlsx"). */
+/** A registry.json dependency entry without its optional `@version` pin ("hucre@1.1.0" -> "hucre", "@scope/pkg@1.2.3" -> "@scope/pkg"). */
 function dependencyName(dep) {
   return dep.replace(/(?<=.)@[^/@]*$/, "");
 }

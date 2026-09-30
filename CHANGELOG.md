@@ -269,6 +269,27 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking:** `data-grid-io` reads and writes Excel files with `hucre` instead of
+  `@e965/xlsx` (SheetJS). The registry item pins `hucre@1.1.0`; re-adding the item replaces the
+  dependency. SheetJS inflated every part of an xlsx without a size cap, so a 311 KB file grew to
+  300 MB before any import limit ran. hucre caps each inflated part (512 MiB, rejected as
+  `errorFileTooLarge`) and reads only the selected sheet, sized by its real cells. A sheet over
+  `maxRows`, `maxColumns`, or `maxCells` is rejected, never truncated, also when its far rows sit
+  behind empty rows. Changed results:
+  - `.xls` accepts only Excel 97-2003 (BIFF8) workbooks. An HTML table, Excel 2003 XML, or Excel
+    5.0/95 workbook saved as `.xls` is rejected with the new `labels.io.errorUnsupportedExcelFormat`
+    message (`ImportErrorKey` gains `"errorUnsupportedExcelFormat"`). `.xls` cells come in without
+    number formats: dates as ISO dates, numbers as their value. Every sheet of an `.xls` workbook
+    must stay within `maxCells`.
+  - The file content, not the extension, picks the reader: an xlsx renamed to `.xls` imports.
+  - xlsx display text differs from SheetJS in edge cases: a General number keeps up to 15
+    significant digits (`123456789012345`, not `1.23457E+14`), the built-in short date shows a
+    four-digit year (`1/15/2024`), and error cells come in as their code (`#DIV/0!`, not empty).
+  - xlsx exports are compressed (a 50k x 20 export drops from about 45 MB to about 7 MB), and a
+    `workbookName` that Excel rejects as a sheet name (over 31 characters, `[ ] : * ? / \`, or
+    `History`) rejects the export.
+  - The lazy import chunk drops from about 160 KB to about 69 KB gzip, the export chunk to about
+    66 KB; they share 50 KB.
 - **Breaking:** quick search matches the cell type's display text; filters match the stored
   value. Search reads the type's `toSearchText`, else its `toText`, so a `select` column searches
   the choice label and a `number` column with `decimals` searches the rounded value. A column

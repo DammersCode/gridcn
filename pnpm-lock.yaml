@@ -22,9 +22,6 @@ importers:
       '@dnd-kit/react':
         specifier: ^0.5.0
         version: 0.5.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@e965/xlsx':
-        specifier: 0.20.3
-        version: 0.20.3
       '@vercel/analytics':
         specifier: ^2.0.1
         version: 2.0.1(next@16.3.5(@babel/core@8.0.5)(@opentelemetry/api@1.9.1)(@types/node@26.5.1)(babel-plugin-macros@3.1.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
@@ -49,6 +46,9 @@ importers:
       fumadocs-ui:
         specifier: ^16.15.11
         version: 16.15.11(patch_hash=bbc040b7d17d599f4731d5c124f0415578c438fb7277c4a8b757b041ce7764fd)(@types/mdx@2.0.14)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(fumadocs-core@16.15.11(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.3.0)(lucide-react@1.46.0(react@19.3.0))(next@16.3.5(@babel/core@8.0.5)(@opentelemetry/api@1.9.1)(@types/node@26.5.1)(babel-plugin-macros@3.1.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(zod@4.6.5))(next@16.3.5(@babel/core@8.0.5)(@opentelemetry/api@1.9.1)(@types/node@26.5.1)(babel-plugin-macros@3.1.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3)
+      hucre:
+        specifier: 1.1.0
+        version: 1.1.0
       lucide-react:
         specifier: ^1.46.0
         version: 1.46.0(react@19.3.0)
@@ -546,11 +546,6 @@ packages:
 
   '@dotenvx/primitives@0.8.0':
     resolution: {integrity: sha512-VYJy0uhFm9zTJ1TxBaW/pA8bjbOM/OttaNMwZ1RHG4JKyRG7DhSdiqD1ipQoAyoD22olUtxbP78W9xY3Wd11bg==}
-
-  '@e965/xlsx@0.20.3':
-    resolution: {integrity: sha512-703RN/3OdsRD5mtse2HBX7Um7xwaP9tlswEG6svOtjqokXoX7rJdQj7DyabD2I+xk22RgaIIU+R6BHgkpZGB/w==}
-    engines: {node: '>=0.8'}
-    hasBin: true
 
   '@emnapi/core@1.11.1':
     resolution: {integrity: sha512-RSvbQmHzdKzNsLYa/wHrbc3KN4sYLKAdPZxqiM2HATqv/SBk2/ENSHpvXGaLOMcsAyz0poEGqkmmKYG3OWiJEQ==}
@@ -4041,6 +4036,11 @@ packages:
     resolution: {integrity: sha512-4FbRdAX+bSdmo4AUFuS0WNiPz8NgFt+r8ThgNWmlrjQjt1Q7ZR9+zTlce2859x4KSXrwIsaeTqDoKQmtP8pLmQ==}
     engines: {node: '>= 0.8'}
 
+  hucre@1.1.0:
+    resolution: {integrity: sha512-3HROYLWzejzhMKdGVrBuU4UWuDleVVQwpjFeYwTHzXLN8o2kptOkPS1Yq04xL5kQVwF6ELM1R2myuWW8WNu1fQ==}
+    engines: {node: '>=24'}
+    hasBin: true
+
   human-signals@2.1.0:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
     engines: {node: '>=10.17.0'}
@@ -6458,8 +6458,6 @@ snapshots:
       yocto-spinner: 1.2.2
 
   '@dotenvx/primitives@0.8.0': {}
-
-  '@e965/xlsx@0.20.3': {}
 
   '@emnapi/core@1.11.1':
     dependencies:
@@ -9551,6 +9549,8 @@ snapshots:
       setprototypeof: 1.2.0
       statuses: 2.0.2
       toidentifier: 1.0.1
+
+  hucre@1.1.0: {}
 
   human-signals@2.1.0: {}
 

@@ -94,14 +94,13 @@ below lists the dependencies of each add-on.
 | `data-grid-sort-list` | `@dnd-kit/react`, `lucide-react` | none |
 | `data-grid-context-menu` | `lucide-react` | none |
 | `data-grid-pagination` | `lucide-react` | none |
-| `data-grid-io` | `@e965/xlsx@0.20.3`, `papaparse` (lazy-loaded) | `@types/papaparse` |
-
-`@e965/xlsx` is a community mirror of the SheetJS `xlsx` package (0.20.3, byte-identical
-sources, SLSA v1 provenance). gridcn uses it because the npm `xlsx` line stopped at 0.18.5 with
-two unpatched high-severity advisories.
+| `data-grid-io` | `hucre@1.1.0` (lazy-loaded), `papaparse` | `@types/papaparse` |
 | `data-grid-url-state` | `nuqs` | none |
 | `dropzone` | `lucide-react` | none |
 | All other add-ons | none beyond the core | none |
+
+The registry pins `hucre` to an exact version. `hucre` limits the unpacked size and the cell
+count of an untrusted spreadsheet before it allocates the cells.
 
 ## Where files land
 
