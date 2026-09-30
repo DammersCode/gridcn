@@ -29,7 +29,7 @@ function inputNamesDate(input: string, year: number, month: number, day: number)
     numbers.splice(at, 1);
     return true;
   };
-  if (!take((n) => n === year || (n < 100 && n === year % 100))) return false;
+  if (!take((n) => n === year) && !take((n) => n < 100 && n === year % 100)) return false;
   if (!take((n) => n === day)) return false;
   const namedMonths = new Set((input.toLowerCase().match(/[a-z]+/g) ?? []).map((word) => word.slice(0, 3)).filter((prefix) => MONTH_NAME_PREFIXES.includes(prefix)));
   if (namedMonths.size > 1) return false;

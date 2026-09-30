@@ -293,6 +293,11 @@ describe("dateCellType value pipeline", () => {
     ["Sept 3, 2026", "2026-09-03"],
     ["Tue Jul 03 2026", "2026-07-03"],
     ["Jul 3, 2026 11:59 PM", "2026-07-03"],
+    ["Feb 26, 2026", "2026-02-26"],
+    ["7/26/2026", "2026-07-26"],
+    ["Jul 26, 2026 10:00", "2026-07-26"],
+    ["Dec 24, 2024", "2024-12-24"],
+    ["Mar 3, 2003", "2003-03-03"],
   ])("fromText keeps %s", (text, expected) => {
     expect(dateCellType.fromText(text)).toBe(expected);
   });
