@@ -77,6 +77,7 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
   // a permission-denied paste result must survive the close/reopen cycle to keep showing the
   // "use Ctrl+V" hint on the next open.
   const [pasteBlocked, setPasteBlocked] = useState(false);
+  const [clipboardFailed, setClipboardFailed] = useState(false);
 
   // Captured at contextmenu time (not via useDataGridContainer): ContextMenuContent portals to
   // document.body, outside DataGridRoot's subtree, so its children can't reach the root context.
@@ -117,6 +118,8 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
     canDuplicateRow,
     pasteBlocked,
     onPasteBlocked: () => setPasteBlocked(true),
+    clipboardFailed,
+    onClipboardFailed: () => setClipboardFailed(true),
   });
   const defaultHeaderSpecs = useDefaultHeaderMenuItems({
     columnId: target?.kind === "header" ? target.columnId : "",

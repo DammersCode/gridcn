@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, render } from "@testing-library/react";
-import { DataGridProvider, DataGridRoot, defineColumns } from "../data-grid/data-grid";
+import { useEffect } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, waitFor } from "@testing-library/react";
+import { DataGridProvider, DataGridRoot, defineColumns, useDataGridActions } from "../data-grid/data-grid";
 import {
   useDefaultCellMenuItems,
   useDefaultHeaderMenuItems,
@@ -34,11 +35,17 @@ type ProbeProps = {
   pin?: "left" | "right";
   readOnly?: boolean;
   headerColumnId?: string;
+  clipboardFailed?: boolean;
+  onClipboardFailed?: () => void;
   onSpecs?: (cell: GridMenuItemSpec[], header: GridMenuItemSpec[]) => void;
 };
 
 function Probe(props: ProbeProps) {
+  const actions = useDataGridActions();
+  useEffect(() => actions.selectCellAt({ col: 0, row: 0 }), [actions]);
   const cellSpecs = useDefaultCellMenuItems({
+    clipboardFailed: props.clipboardFailed,
+    onClipboardFailed: props.onClipboardFailed,
     row: 1,
     canInsertRow: props.createRow != null,
     canDuplicateRow: props.duplicateRow != null,
@@ -101,6 +108,42 @@ describe("useDefaultCellMenuItems", () => {
     }
     expect(item(cell, "copy")?.disabled).toBeUndefined();
     expect(item(cell, "paste")?.tooltip).toBeUndefined();
+  });
+
+  describe("a failed clipboard write", () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      delete (document as unknown as Record<string, unknown>)["execCommand"];
+    });
+
+    it.each(["cut", "copy"])("reports a failed %s", async (id) => {
+      document.execCommand = vi.fn(() => false);
+      vi.stubGlobal("navigator", { clipboard: { write: vi.fn().mockRejectedValue(new Error("denied")) } });
+      vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+      const onClipboardFailed = vi.fn();
+      let cell: GridMenuItemSpec[] = [];
+      renderProbe({ onClipboardFailed, onSpecs: (c) => { cell = c; } });
+
+      await item(cell, id)?.onClick?.();
+
+      await waitFor(() => expect(onClipboardFailed).toHaveBeenCalledOnce());
+    });
+
+    it("disables Cut and Copy with the clipboard-failed tooltip once one failed", () => {
+      let cell: GridMenuItemSpec[] = [];
+      renderProbe({ clipboardFailed: true, onSpecs: (c) => { cell = c; } });
+      for (const id of ["cut", "copy"]) {
+        expect(item(cell, id)?.disabled, id).toBe(true);
+        expect(item(cell, id)?.tooltip, id).toBe("clipboard access failed — use Ctrl+C or Ctrl+X");
+      }
+    });
+
+    it("keeps Cut and Copy enabled while no write failed", () => {
+      let cell: GridMenuItemSpec[] = [];
+      renderProbe({ onSpecs: (c) => { cell = c; } });
+      expect(item(cell, "copy")?.disabled).toBeUndefined();
+      expect(item(cell, "copy")?.tooltip).toBeUndefined();
+    });
   });
 
   it("gives Paste the blocked tooltip and disabled fields when pasteBlocked", () => {

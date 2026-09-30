@@ -340,6 +340,20 @@ describe("useDataGridClipboard.copy/cut outcomes", () => {
     expect(outcome).toBe("failed");
   });
 
+  it("copy resolves 'failed' instead of rejecting when execCommand throws", async () => {
+    document.execCommand = vi.fn(() => {
+      throw new Error("blocked");
+    });
+    vi.stubGlobal("navigator", { clipboard: { write: vi.fn().mockRejectedValue(new Error("denied")) } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const wrapper = makeWrapper();
+    const result = setUpGrid(wrapper);
+
+    const outcome = await act(async () => result.current.clipboard.copy());
+    expect(outcome).toBe("failed");
+    expect(document.querySelector("textarea")).toBeNull();
+  });
+
   it("cut resolves 'failed' when both write paths fail and never deletes the selection", async () => {
     document.execCommand = vi.fn(() => false);
     vi.stubGlobal("navigator", { clipboard: { write: vi.fn().mockRejectedValue(new Error("denied")) } });

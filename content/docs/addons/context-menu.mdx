@@ -153,6 +153,9 @@ function GridWithExtraItem() {
   with a "press Ctrl+V" hint, instead of failing silently.
 </Callout>
 
+If a Cut or Copy write fails, both items become disabled. Their tooltip,
+`labels.contextMenu.clipboardFailed`, points to Ctrl+C and Ctrl+X.
+
 The paste semantics themselves (TSV/HTML formats, anchored expand, tiling) are documented on
 [Clipboard](/docs/clipboard).
 

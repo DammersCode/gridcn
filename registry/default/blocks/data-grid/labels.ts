@@ -95,6 +95,8 @@ export type DataGridContextMenuLabels = {
   paste: string;
   /** Tooltip shown on a blocked paste item (no clipboard-read permission granted). */
   pasteBlocked: string;
+  /** Tooltip shown on Cut and Copy after the clipboard write failed (no clipboard-write permission, or no secure context). */
+  clipboardFailed: string;
   clearContents: string;
   insertRowAbove: string;
   insertRowBelow: string;
@@ -302,6 +304,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     copy: "Copy",
     paste: "Paste",
     pasteBlocked: "requires clipboard permission — use Ctrl+V",
+    clipboardFailed: "clipboard access failed — use Ctrl+C or Ctrl+X",
     clearContents: "Clear contents",
     insertRowAbove: "Insert row above",
     insertRowBelow: "Insert row below",

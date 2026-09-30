@@ -112,8 +112,10 @@ export function useDefaultCellMenuItems(args: {
   canDuplicateRow: boolean;
   pasteBlocked: boolean;
   onPasteBlocked: () => void;
+  clipboardFailed?: boolean;
+  onClipboardFailed?: () => void;
 }): GridMenuItemSpec[] {
-  const { row, canInsertRow, canDuplicateRow, pasteBlocked, onPasteBlocked } = args;
+  const { row, canInsertRow, canDuplicateRow, pasteBlocked, onPasteBlocked, clipboardFailed = false, onClipboardFailed } = args;
   const actions = useDataGridActions();
   const selection = useDataGridSelection();
   const clipboard = useDataGridClipboard();
@@ -133,9 +135,19 @@ export function useDefaultCellMenuItems(args: {
     });
   }, [clipboard, onPasteBlocked, pasteBlocked, readOnly]);
 
+  const reportFailure = (write: () => Promise<string>) => () => {
+    write().then(
+      (result) => {
+        if (result === "failed") onClipboardFailed?.();
+      },
+      () => onClipboardFailed?.(),
+    );
+  };
+  const clipboardTooltip = clipboardFailed ? labels.contextMenu.clipboardFailed : undefined;
+
   const specs: GridMenuItemSpec[] = [
-    { id: "cut", label: labels.contextMenu.cut, icon: <Scissors className="size-4 text-muted-foreground" />, shortcut: "mod+x", disabled: readOnly, onClick: clipboard.cut },
-    { id: "copy", label: labels.contextMenu.copy, icon: <Copy className="size-4 text-muted-foreground" />, shortcut: "mod+c", onClick: clipboard.copy },
+    { id: "cut", label: labels.contextMenu.cut, icon: <Scissors className="size-4 text-muted-foreground" />, shortcut: "mod+x", disabled: readOnly || clipboardFailed, tooltip: readOnly ? undefined : clipboardTooltip, onClick: reportFailure(clipboard.cut) },
+    { id: "copy", label: labels.contextMenu.copy, icon: <Copy className="size-4 text-muted-foreground" />, shortcut: "mod+c", disabled: clipboardFailed || undefined, tooltip: clipboardTooltip, onClick: reportFailure(clipboard.copy) },
     {
       id: "paste",
       label: labels.contextMenu.paste,
