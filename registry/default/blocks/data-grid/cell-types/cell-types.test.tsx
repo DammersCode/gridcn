@@ -252,6 +252,36 @@ describe("dateCellType value pipeline", () => {
     expect(dateCellType.fromText("31 April 2026")).toBeNull();
   });
 
+  it.each([
+    "Feb 30, 2026 10:00",
+    "02/30/2026 1:00",
+    "2026-02-30 10:00",
+    "2026-02-30t10:00z",
+    "2026/02/30 10:00",
+    "Feb 30, 2026, 10:00 AM",
+    "Thu Feb 30 2026 10:00:00 GMT+0000",
+    "Jul 2026",
+    "2026",
+  ])("fromText rejects %s", (text) => {
+    expect(dateCellType.fromText(text)).toBeNull();
+  });
+
+  it.each([
+    ["2026-07-03T00:00", "2026-07-03"],
+    ["Feb 29, 2024 10:00", "2024-02-29"],
+    ["7/3/26", "2026-07-03"],
+    ["2026-7-3", "2026-07-03"],
+    ["Sept 3, 2026", "2026-09-03"],
+    ["Tue Jul 03 2026", "2026-07-03"],
+    ["Jul 3, 2026 11:59 PM", "2026-07-03"],
+  ])("fromText keeps %s", (text, expected) => {
+    expect(dateCellType.fromText(text)).toBe(expected);
+  });
+
+  it("fromText keeps a datetime with an offset as a date", () => {
+    expect(dateCellType.fromText("2026-03-01T01:00+05:00")).toMatch(/^2026-0(2-28|3-01)$/);
+  });
+
   it("fromText keeps real non-ISO dates", () => {
     expect(dateCellType.fromText("Feb 29, 2024")).toBe("2024-02-29");
     expect(dateCellType.fromText("Mar 2, 2026")).toBe("2026-03-02");

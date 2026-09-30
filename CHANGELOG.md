@@ -550,7 +550,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   removed before the merge. The edit is not written into another row.
 - **Date cells reject rolled-over dates (`data-grid`):** typed, pasted, or imported non-ISO dates
   such as `Feb 30, 2026`, `02/30/2026`, and `2026-02-30T10:00Z` are rejected instead of landing
-  on `2026-03-02`.
+  on `2026-03-02`, also when they carry a time part. Text without a day, such as `Jul 2026` or
+  `2026`, is rejected too. A datetime with an offset stores its local calendar day.
 - **Fill keeps long identifiers intact (`data-grid-fill`):** a series whose number has more than 15
   digits tiles instead of extrapolating. `ID 1234567890123456789` no longer fills as `â€¦7000`, and
   a 400-digit number no longer fills as `xNaN`.

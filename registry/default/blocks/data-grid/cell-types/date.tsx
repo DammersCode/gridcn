@@ -34,21 +34,27 @@ function inputNamesDate(input: string, year: number, month: number, day: number)
   return take((n) => n === month) || input.toLowerCase().includes(MONTH_NAME_PREFIXES[month - 1]!);
 }
 
-/** Normalizes any Date-parseable input to its ISO `yyyy-mm-dd` date part; null when unparseable, calendar-invalid, or out of range. */
+const TIME_PART_RE = /(?:[Tt]|,?\s+)\d{1,2}:\d{2}.*$/;
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Normalizes any Date-parseable input to its ISO `yyyy-mm-dd` date part; null when unparseable, calendar-invalid, or out of range. A datetime stores its local calendar day. */
 function toIsoDatePart(input: string, options?: GridCellTypes["date"]["options"]): string | null {
   const trimmed = input.trim();
   if (trimmed === "") return null;
+  // the written date, without its time part, is what must be a real calendar day
+  const written = trimmed.replace(TIME_PART_RE, "");
   let isoDate: string;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+  if (ISO_DATE_RE.test(written) && written === trimmed) {
     // the shape check is not a calendar check — 2026-02-30 matches it and must not commit
     if (!isRealIsoDate(trimmed)) return null;
     isoDate = trimmed;
   } else {
-    // a time part can shift the local day: ISO datetimes get a date-part check, other timed input skips the rollover check
-    if (/^\d{4}-\d{2}-\d{2}T/.test(trimmed) && !isRealIsoDate(trimmed.slice(0, 10))) return null;
+    if (ISO_DATE_RE.test(written) && !isRealIsoDate(written)) return null;
     const parsed = new Date(trimmed);
     if (Number.isNaN(parsed.getTime())) return null;
-    if (!trimmed.includes(":") && !inputNamesDate(trimmed, parsed.getFullYear(), parsed.getMonth() + 1, parsed.getDate())) return null;
+    const writtenDate = new Date(written);
+    if (Number.isNaN(writtenDate.getTime())) return null;
+    if (!inputNamesDate(written, writtenDate.getFullYear(), writtenDate.getMonth() + 1, writtenDate.getDate())) return null;
     // use local getters, not toISOString(), so a locale-parsed date (local midnight) doesn't shift a day across UTC
     const year = String(parsed.getFullYear()).padStart(4, "0");
     const month = String(parsed.getMonth() + 1).padStart(2, "0");
