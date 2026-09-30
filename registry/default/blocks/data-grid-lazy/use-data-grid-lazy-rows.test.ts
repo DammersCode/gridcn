@@ -306,6 +306,27 @@ describe("useDataGridLazyRows", () => {
     warn.mockRestore();
   });
 
+  it("onDataChange warns when the eviction and the edit land in the same batch", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const { result } = renderHook(() =>
+      useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+    );
+    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 10 }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      result.current.evict({ start: 0, end: 5 });
+      result.current.onDataChange([], {
+        source: "edit",
+        ops: [{ type: "update", rowId: "row-2", row: { id: "row-2", name: "Edited" }, prev: { id: "row-2", name: "Person 2" } }],
+      });
+    });
+
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("row-2"))).toHaveLength(1);
+    warn.mockRestore();
+  });
+
   it("onDataChange applies a length-changing row op (delete) to the latest state, keeping alignment", async () => {
     const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
     const { result } = renderHook(() =>
