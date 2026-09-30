@@ -417,6 +417,65 @@ describe("atomic hook re-render counts", () => {
       expect(computeCount).toBe(1);
     });
 
+    it("reorderRows without a sort moves the mapped rows", () => {
+      const { result } = renderHook(
+        () => ({ actions: useDataGridActions(), map: useDataGridRowIdToViewRow() }),
+        { wrapper: makeWrapper() },
+      );
+      expect(result.current.map.get("1")).toBe(0);
+
+      act(() => {
+        result.current.actions.reorderRows(0, 2);
+      });
+
+      // Alice(2)=row0, Bob(3)=row1, Charlie(1)=row2
+      expect(result.current.map.get("1")).toBe(2);
+      expect(result.current.map.get("2")).toBe(0);
+    });
+
+    it("a consumer swap to same-length data with other ids rebuilds the map", () => {
+      let map: ReadonlyMap<string, number> = new Map();
+      function Probe() {
+        map = useDataGridRowIdToViewRow();
+        return null;
+      }
+      const stableGetRowId = (r: Row) => r.id;
+      const ui = (data: Row[]) => (
+        <DataGridProvider data={data} columns={columns} getRowId={stableGetRowId}>
+          <Probe />
+        </DataGridProvider>
+      );
+      const view = render(ui(rows()));
+      expect(map.get("1")).toBe(0);
+
+      view.rerender(ui(rows().map((r) => ({ ...r, id: `x${r.id}` }))));
+
+      expect(map.get("1")).toBeUndefined();
+      expect(map.get("x1")).toBe(0);
+    });
+
+    it("filling a lazy hole adds the row to the map", () => {
+      let map: ReadonlyMap<string, number> = new Map();
+      function Probe() {
+        map = useDataGridRowIdToViewRow();
+        return null;
+      }
+      const lazyId = (r: Row | undefined, index: number) => (r === undefined ? `hole-${index}` : r.id);
+      const ui = (data: (Row | undefined)[]) => (
+        <DataGridProvider data={data as Row[]} columns={columns} getRowId={lazyId as never}>
+          <Probe />
+        </DataGridProvider>
+      );
+      const sparse: (Row | undefined)[] = rows();
+      sparse[1] = undefined;
+      const view = render(ui(sparse));
+      expect(map.get("2")).toBeUndefined();
+
+      view.rerender(ui(rows()));
+
+      expect(map.get("2")).toBe(1);
+    });
+
     it("a value-only updateCells tick does not re-render the host", () => {
       let renderCount = 0;
 

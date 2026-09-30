@@ -389,35 +389,36 @@ export function useDataGridRowIds(viewRowIndices: readonly number[]): (string | 
   );
 }
 
+type RowIdToViewRowEntry = { version: number; getRowId: DataGridStoreState["getRowId"]; map: ReadonlyMap<string, number> };
+
+// keyed on the viewIndex array so one map survives every store write that keeps the view and row identity
+const rowIdToViewRowCache = new WeakMap<readonly number[], RowIdToViewRowEntry>();
+
+function selectRowIdToViewRow(s: DataGridStoreState): ReadonlyMap<string, number> {
+  const cached = rowIdToViewRowCache.get(s.viewIndex);
+  if (cached && cached.version === s.rowIdentityVersion && cached.getRowId === s.getRowId) return cached.map;
+  const map = new Map<string, number>();
+  for (let viewRow = 0; viewRow < s.viewIndex.length; viewRow++) {
+    const rowId = rowIdAtViewRow(s, viewRow);
+    if (rowId !== undefined) map.set(rowId, viewRow);
+  }
+  rowIdToViewRowCache.set(s.viewIndex, { version: s.rowIdentityVersion, getRowId: s.getRowId, map });
+  return map;
+}
+
 /**
- * Full `rowId -> view row index` map for the current view. Builds the Map lazily in
- * `useMemo` keyed on `viewIndex`, `rowIdentityVersion`, and `getRowId` identity, so the O(n) build
- * cost is paid once per actual row-identity change (sort/filter/insert/delete/reorder or a consumer
- * `data` replacement) or `getRowId` swap, never per streaming tick: a value-only write replaces
- * `data` (immutability) without moving any row, so the map's contents are unchanged and its
- * reference is kept. Relies on `getRowId` returning stable ids across value-only writes (ids are
- * identity, not content) — the same invariant the store's rowId index cache holds. The hook reads
- * `data` without subscribing to it, so a value-only tick does not re-render the host. Consumers
+ * Full `rowId -> view row index` map for the current view. The map is cached per `viewIndex`
+ * array, `rowIdentityVersion`, and `getRowId` identity, so the O(n) build cost is paid once per
+ * actual row-identity change (sort/filter/insert/delete/reorder or a consumer `data`
+ * replacement) or `getRowId` swap, never per streaming tick: a value-only write replaces `data`
+ * (immutability) without moving any row, so the map keeps its reference and the host does not
+ * re-render. Relies on `getRowId` returning stable ids across value-only writes (ids are
+ * identity, not content) — the same invariant the store's rowId index cache holds. Consumers
  * needing view -> rowId (the other direction) already have {@link useDataGridRowId}/
  * {@link useDataGridRowIds}.
  */
 export function useDataGridRowIdToViewRow(): ReadonlyMap<string, number> {
-  const storeApi = useDataGridStoreApi();
-  const viewIndex = useDataGridStore((s) => s.viewIndex);
-  const rowIdentityVersion = useDataGridStore((s) => s.rowIdentityVersion);
-  const getRowId = useDataGridStore((s) => s.getRowId);
-  return useMemo(() => {
-    const { data } = storeApi.getState();
-    const map = new Map<string, number>();
-    for (let viewRow = 0; viewRow < viewIndex.length; viewRow++) {
-      const dataRowIndex = viewIndex[viewRow];
-      if (dataRowIndex === undefined) continue;
-      const row = data[dataRowIndex];
-      if (row === undefined) continue;
-      map.set(getRowId(row, dataRowIndex), viewRow);
-    }
-    return map;
-  }, [storeApi, viewIndex, rowIdentityVersion, getRowId]);
+  return useDataGridStore(selectRowIdToViewRow);
 }
 
 /** Total number of rows currently in view (after filter/search). */
