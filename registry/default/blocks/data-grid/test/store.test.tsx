@@ -417,6 +417,32 @@ describe("atomic hook re-render counts", () => {
       expect(computeCount).toBe(1);
     });
 
+    it("a value-only updateCells tick does not re-render the host", () => {
+      let renderCount = 0;
+
+      function Probe() {
+        useDataGridRowIdToViewRow();
+        renderCount++;
+        return null;
+      }
+
+      const Base = makeWrapper();
+      const { result } = renderHook(() => useDataGridActions(), {
+        wrapper: ({ children }) => (
+          <Base>
+            <Probe />
+            {children}
+          </Base>
+        ),
+      });
+      expect(renderCount).toBe(1);
+
+      act(() => {
+        result.current.updateCells([{ rowId: "1", columnId: "name", value: "Aaron" }]);
+      });
+      expect(renderCount).toBe(1);
+    });
+
     it("insertRows and deleteRows rebuild the map (the rowId-to-index mapping moved)", () => {
       let computeCount = 0;
       let lastMap: ReadonlyMap<string, number> | undefined;

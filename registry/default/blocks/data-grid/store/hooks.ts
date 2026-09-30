@@ -396,17 +396,18 @@ export function useDataGridRowIds(viewRowIndices: readonly number[]): (string | 
  * `data` replacement) or `getRowId` swap, never per streaming tick: a value-only write replaces
  * `data` (immutability) without moving any row, so the map's contents are unchanged and its
  * reference is kept. Relies on `getRowId` returning stable ids across value-only writes (ids are
- * identity, not content) — the same invariant the store's rowId index cache holds. `data` is still
- * subscribed so the closure reads the current array whenever the key does change. Consumers
+ * identity, not content) — the same invariant the store's rowId index cache holds. The hook reads
+ * `data` without subscribing to it, so a value-only tick does not re-render the host. Consumers
  * needing view -> rowId (the other direction) already have {@link useDataGridRowId}/
  * {@link useDataGridRowIds}.
  */
 export function useDataGridRowIdToViewRow(): ReadonlyMap<string, number> {
+  const storeApi = useDataGridStoreApi();
   const viewIndex = useDataGridStore((s) => s.viewIndex);
-  const data = useDataGridStore((s) => s.data);
   const rowIdentityVersion = useDataGridStore((s) => s.rowIdentityVersion);
   const getRowId = useDataGridStore((s) => s.getRowId);
   return useMemo(() => {
+    const { data } = storeApi.getState();
     const map = new Map<string, number>();
     for (let viewRow = 0; viewRow < viewIndex.length; viewRow++) {
       const dataRowIndex = viewIndex[viewRow];
@@ -416,9 +417,7 @@ export function useDataGridRowIdToViewRow(): ReadonlyMap<string, number> {
       map.set(getRowId(row, dataRowIndex), viewRow);
     }
     return map;
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-    // `data` is deliberately not a key: value-only writes replace it without changing any rowId.
-  }, [viewIndex, rowIdentityVersion, getRowId]);
+  }, [storeApi, viewIndex, rowIdentityVersion, getRowId]);
 }
 
 /** Total number of rows currently in view (after filter/search). */
