@@ -129,8 +129,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   /**
    * Owe after every viewIndex/visibleColumns rebuild: re-anchor an open edit to the new view
    * position of its rowId/columnId (the draft survives the move), and move `activeCell` and the
-   * selection with it when they sat on the edit cell. When the row or column left the view, cancel — the typed value
-   * is dropped, never written into a hidden row. Keeps object identity when nothing moved.
+   * selection with it when they sat on the edit cell (a multi-cell range collapses to that cell).
+   * When the row or column left the view, cancel — the typed value is dropped, never written into
+   * a hidden row. Keeps object identity when nothing moved.
    * `data` must be the array `viewIndex` indexes; a consumer swap passes the incoming array.
    */
   const remapEditing = (
@@ -797,9 +798,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           // If viewIndex is unchanged (same reference either from the guard above or from
           // computeViewIndex's own content-equality reuse), no row fell out of view, so this
           // clamp is a no-op — filtering against nextViewIndex.length still runs but keeps every row.
-          const rows = s.selection.rows.length === 0
-            ? s.selection.rows
-            : CompactSelection.fromArray(s.selection.rows.toArray().filter((row) => row < nextViewIndex.length));
+          const editRemap = unchanged ? {} : remapEditing(s, nextViewIndex, nextVisibleColumns, nextData, props.getRowId);
+          const baseSelection = editRemap.selection ?? s.selection;
+          const rows = baseSelection.rows.length === 0
+            ? baseSelection.rows
+            : CompactSelection.fromArray(baseSelection.rows.toArray().filter((row) => row < nextViewIndex.length));
           return {
             ...props,
             ...resolveSelectionConfig(props),
@@ -828,11 +831,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             // rows moved only when a genuine consumer data replacement invalidated the id cache
             // (our own echo never moves a row — updateCells patches values in place)
             rowIdentityVersion: nextData !== s.data && !isEcho ? s.rowIdentityVersion + 1 : s.rowIdentityVersion,
-            ...(!unchanged ? remapEditing(s, nextViewIndex, nextVisibleColumns, nextData, props.getRowId) : {}),
+            ...editRemap,
             ...(unchanged
               ? { searchMatches: s.searchMatches, searchMatchSet: s.searchMatchSet, searchMatchRows: s.searchMatchRows, searchMatchesCapped: s.searchMatchesCapped }
               : computeSearchMatches(nextData, nextColumns, nextViewIndex, nextVisibleColumns, nextSearchText, nextCellTypes)),
-            selection: rows === s.selection.rows ? s.selection : { ...s.selection, rows },
+            selection: rows === baseSelection.rows ? baseSelection : { ...baseSelection, rows },
           };
         });
       },

@@ -1746,6 +1746,59 @@ describe("consumer data swap while editing (exactly one sync)", () => {
     expect(grid.state().activeCell).toBeNull();
   });
 
+  it("reversing the rows moves the selection anchor with the edit", () => {
+    const grid = renderControlled(editRows());
+    act(() => {
+      grid.actions.selectCellAt({ col: 1, row: 0 });
+      grid.actions.startEditingAt({ col: 1, row: 0 });
+    });
+
+    grid.swapData(editRows().reverse());
+
+    expect(grid.state().activeCell).toEqual({ col: 1, row: 2 });
+    expect(grid.state().selection.current?.cell).toEqual({ col: 1, row: 2 });
+    expect(grid.state().selection.current?.range).toEqual({ x: 1, y: 2, width: 1, height: 1 });
+  });
+
+  it("a controlled sortState change moves the selection anchor with the edit", () => {
+    let storeApi: import("zustand/vanilla").StoreApi<DataGridStoreState> | null = null;
+    function Probe() {
+      storeApi = useDataGridStoreApi();
+      return null;
+    }
+    const data = editRows();
+    const ui = (sortState: SortSpec[]) => (
+      <DataGridProvider data={data} columns={editColumns} getRowId={getEditRowId} sortState={sortState}>
+        <Probe />
+      </DataGridProvider>
+    );
+    const view = render(ui([]));
+    act(() => {
+      storeApi!.getState().actions.selectCellAt({ col: 0, row: 0 });
+      storeApi!.getState().actions.startEditingAt({ col: 0, row: 0 });
+    });
+
+    view.rerender(ui([{ columnId: "name", direction: "asc" }]));
+
+    // Charlie moves from view row 0 to 2
+    expect(storeApi!.getState().activeCell).toEqual({ col: 0, row: 2 });
+    expect(storeApi!.getState().selection.current?.cell).toEqual({ col: 0, row: 2 });
+  });
+
+  it("a multi-cell range collapses to the edited cell when its row moves", () => {
+    const grid = renderControlled(editRows());
+    act(() => {
+      grid.actions.selectCellAt({ col: 1, row: 0 });
+      grid.actions.extendSelection("down");
+      grid.actions.startEditingAt({ col: 1, row: 0 });
+    });
+    expect(grid.state().selection.current?.range.height).toBe(2);
+
+    grid.swapData(editRows().reverse());
+
+    expect(grid.state().selection.current?.range).toEqual({ x: 1, y: 2, width: 1, height: 1 });
+  });
+
   it("reversing the rows moves the editor with its row and the commit lands on that row", () => {
     const grid = renderControlled(editRows());
     act(() => grid.actions.startEditingAt({ col: 1, row: 0 }));

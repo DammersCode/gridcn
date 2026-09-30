@@ -532,6 +532,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Selection follows the edited row on every view change (`data-grid`):** a controlled `sortState`,
+  `filterState`, join, or search change and a consumer data replacement now move the selection
+  with the edited cell too, not only the grid's own sort and filter actions. A multi-cell range
+  collapses to the edited cell when its row moves.
 - **`useDataGridEditing` return type (`data-grid`):** the hook's type now includes the `rowId`,
   `columnId`, and `session` fields the store always carried, next to `coord` and `initialText`.
 - **Custom toolbars keep the mod+F capture (`data-grid-toolbar`):** a toolbar you build yourself
