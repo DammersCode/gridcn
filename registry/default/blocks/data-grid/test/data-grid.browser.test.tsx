@@ -1388,6 +1388,15 @@ describe("DataGrid in a real browser", () => {
       expect(input.value).toBe("4");
     });
 
+    it("never steps past a max that has more decimals than the column", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(undefined, 0.99, 0.1, 1), 0.9);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowUp}");
+      expect(input.value).toBe("0.9");
+    });
+
     it("keeps the precision of a draft that is finer than the step", async () => {
       const onDataChange = mockDataChangeFn<StepRow>();
       await renderStepGrid(onDataChange, stepColumns(undefined, undefined, 0.1, undefined), 2.35);

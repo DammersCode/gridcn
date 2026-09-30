@@ -34,6 +34,15 @@ function decimalPlaces(value: number): number {
   return Math.min(100, Math.max(0, fraction - Number(exponent)));
 }
 
+/** Clamps into min/max, pulling each bound inward to the column's decimals so the result never exceeds it. */
+function clampToDecimals(value: number, options: GridCellTypes["number"]["options"], decimals: number): number {
+  const factor = 10 ** decimals;
+  let clamped = value;
+  if (options?.min !== undefined) clamped = Math.max(clamped, Math.ceil(options.min * factor) / factor);
+  if (options?.max !== undefined) clamped = Math.min(clamped, Math.floor(options.max * factor) / factor);
+  return clamped;
+}
+
 function NumberCell({ value, options }: CellRenderProps<unknown, number | null, GridCellTypes["number"]["options"]>) {
   return <CellSpan text={numberCellType.toText(value, options)} align="right" />;
 }
@@ -103,7 +112,7 @@ function NumberEditor({
           // float drift (0.1 + 0.2) rounds away at the finer of the draft's and the step's precision
           const next =
             options?.decimals !== undefined
-              ? roundToDecimals(clamped, options)
+              ? clampToDecimals(roundToDecimals(raw, options), options, options.decimals)
               : clamped === raw
                 ? Number(raw.toFixed(Math.max(decimalPlaces(base), decimalPlaces(step))))
                 : clamped;
