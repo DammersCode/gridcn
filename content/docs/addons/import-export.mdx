@@ -166,13 +166,35 @@ array, and you decide how to apply it: replace all data, append it, or run it th
 `onDataChange` for history or audit purposes. See the demo above, which routes imported rows
 through `grid.onDataChange` with an explicit `delete` and `insert` ops batch.
 
-<Callout title="Import limits">
-  Every import is bounded so an oversized or corrupt file cannot stall the tab. Files above
-  50 MB are rejected before they are read. A file with more than 1,000,000 rows or 1,000 columns
-  is rejected with its own error message. The dialog's drop zone shows the size limit and
-  rejects oversized files before they reach the parse step. `parseImportFile` takes
-  `maxFileBytes`, `maxRows`, and `maxColumns` to change the defaults.
-</Callout>
+## Import limits
+
+Every import is bounded, so an oversized or crafted file cannot stall the tab. A file over a
+limit is rejected with an error message in the dialog. The import never truncates a file.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `maxFileBytes` | 50 MB | Maximum file size. The check runs before the file is read. The dialog's drop zone uses this value as its `maxSize`. |
+| `maxRows` | 1,000,000 | Maximum rows, header row included. |
+| `maxColumns` | 1,000 | Maximum columns. |
+| `maxCells` | 5,000,000 | Maximum rows times columns. |
+
+For an xlsx or xls file, the rows and columns come from the real cells of the selected sheet.
+The check runs before the cells are converted, and the other sheets of the workbook are not
+parsed. For a CSV file, the check runs after the parse, and the widest row sets the column count.
+
+To change the limits, pass `importLimits` to `DataGridImportButton` or `DataGridImportDialog`. An
+omitted field keeps its default:
+
+```tsx
+<DataGridImportButton
+  createRow={createImportedRow}
+  onImport={onImport}
+  importLimits={{ maxFileBytes: 5 * 1024 * 1024, maxRows: 10_000 }}
+/>
+```
+
+`parseImportFile` takes the same four fields as options. `DEFAULT_IMPORT_LIMITS` holds the
+defaults.
 
 ## Import options
 

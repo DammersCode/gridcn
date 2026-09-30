@@ -141,6 +141,47 @@ describe("DataGridImportButton (browser)", () => {
     await expect.element(page.getByText("Import", { exact: true })).toBeDisabled();
   });
 
+  it("importLimits.maxFileBytes sets the drop zone's maxSize, so of two dropped files the one within the limit loads", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton
+          createRow={(): Row => ({ id: "imported-0", name: "", age: null })}
+          onImport={() => {}}
+          importLimits={{ maxFileBytes: 1024 }}
+        />
+      </DataGridProvider>,
+    );
+
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    const dropzone = document.querySelector<HTMLElement>('[role="button"][aria-label="Choose file"]')!;
+    // Without the drop zone's maxSize, both files pass its filter and maxFiles keeps the first (oversized) one.
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(new File([`Name,Age\n${"x".repeat(2_000)},1`], "big.csv", { type: "text/csv" }));
+    dataTransfer.items.add(makeCsvFile("Name,Age\nAlice,30"));
+    dropzone.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer }));
+
+    await expect.element(page.getByText("Alice")).toBeInTheDocument();
+    await expect.element(page.getByText("This file is too large to import.")).not.toBeInTheDocument();
+  });
+
+  it("importLimits reaches the parser: a file over maxCells shows the too-many-cells error", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton
+          createRow={(): Row => ({ id: "imported-0", name: "", age: null })}
+          onImport={() => {}}
+          importLimits={{ maxCells: 3 }}
+        />
+      </DataGridProvider>,
+    );
+
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    await userEvent.upload(document.querySelector<HTMLInputElement>('input[type="file"]')!, makeCsvFile("Name,Age\nAlice,30"));
+
+    await expect.element(page.getByText("This file has too many rows or columns to import.")).toBeInTheDocument();
+    await expect.element(page.getByText("Alice")).not.toBeInTheDocument();
+  });
+
   it("dropping a second CSV in the mapping step replaces the preview with the new file's headers", async () => {
     await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>

@@ -276,7 +276,7 @@ describe("parseImportFile — size and dimension limits", () => {
     }
   });
 
-  it("clamps the SheetJS read with sheetRows and converts only the real cell extent, never a forged !ref", async () => {
+  it("reads one row past maxRows, only the selected sheet, and converts only the real cell extent, never a forged !ref", async () => {
     // forged !ref plus two real cells: the range follows the real cells, or sheet_to_json materializes the forged rectangle
     const sheet = { A1: { t: "s", v: "a" }, B3: { t: "n", v: 1 }, "!ref": "A1:ZZ1000000" };
     vi.resetModules();
@@ -288,14 +288,14 @@ describe("parseImportFile — size and dimension limits", () => {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
     await freshParse(file, { maxRows: 1000, maxColumns: 50 });
-    expect(read).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ sheetRows: 1000 }));
+    expect(read).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ sheetRows: 1001, sheets: 0 }));
     expect(sheetToJSON).toHaveBeenCalledWith(sheet, expect.objectContaining({ range: "A1:B3" }));
 
     vi.doUnmock("@e965/xlsx");
     vi.restoreAllMocks();
   });
 
-  it("caps the conversion range at maxRows/maxColumns when real cells exceed them", async () => {
+  it("rejects without converting when real cells exceed maxRows/maxColumns", async () => {
     const sheet = { A1: { t: "s", v: "a" }, AY5000: { t: "s", v: "b" }, "!ref": "A1:AY5000" };
     vi.resetModules();
     const read = vi.fn(() => ({ SheetNames: ["Sheet1"], Sheets: { Sheet1: sheet } }));
@@ -305,8 +305,9 @@ describe("parseImportFile — size and dimension limits", () => {
     const file = new File([new ArrayBuffer(8)], "wide.xlsx", {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
-    await freshParse(file, { maxRows: 1000, maxColumns: 50 });
-    expect(sheetToJSON).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ range: "A1:AX1000" }));
+    await expect(freshParse(file, { maxRows: 1000, maxColumns: 100 })).rejects.toThrow("import-too-many-cells");
+    await expect(freshParse(file, { maxRows: 10_000, maxColumns: 50 })).rejects.toThrow("import-too-many-cells");
+    expect(sheetToJSON).not.toHaveBeenCalled();
 
     vi.doUnmock("@e965/xlsx");
     vi.restoreAllMocks();
@@ -341,8 +342,14 @@ describe("parseImportFile — size and dimension limits", () => {
     await expect(parseImportFile(makeCsvFile("a,b,c"), { maxColumns: 2 })).rejects.toThrow("import-too-many-cells");
   });
 
-  it("defaults to 50 MB, 1M rows, and 1000 columns, and small files pass", async () => {
-    expect(DEFAULT_IMPORT_LIMITS).toEqual({ maxFileBytes: 50 * 1024 * 1024, maxRows: 1_000_000, maxColumns: 1_000 });
+  it("rejects a csv whose rows times its widest row exceed maxCells", async () => {
+    const csv = "a,b,c\n1\n2";
+    await expect(parseImportFile(makeCsvFile(csv), { maxCells: 8 })).rejects.toThrow("import-too-many-cells");
+    await expect(parseImportFile(makeCsvFile(csv), { maxCells: 9 })).resolves.toMatchObject({ rows: [["a", "b", "c"], ["1"], ["2"]] });
+  });
+
+  it("defaults to 50 MB, 1M rows, 1000 columns, and 5M cells, and small files pass", async () => {
+    expect(DEFAULT_IMPORT_LIMITS).toEqual({ maxFileBytes: 50 * 1024 * 1024, maxRows: 1_000_000, maxColumns: 1_000, maxCells: 5_000_000 });
     const result = await parseImportFile(makeCsvFile("a,b\n1,2"));
     expect(result.rows).toEqual([
       ["a", "b"],

@@ -192,7 +192,7 @@ export type DataGridIOLabels = {
   errorUnsupportedFile: string;
   /** Shown when a chosen file exceeds the import size limit. */
   errorFileTooLarge: string;
-  /** Shown when a file exceeds the import row or column limit. */
+  /** Shown when a file exceeds the import row, column, or cell limit. */
   errorTooManyCells: string;
   /** Shown under the mapping grid when the import build rejected cells; `count` is the rejected-cell count. */
   importRejectedCells: (count: number) => string;

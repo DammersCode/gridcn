@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { buildImportedRows, type ImportRejectedCell } from "./build-imported-rows";
 import { useDataGridImportPreview, type ImportTargetColumn, type ImportDefaults } from "./use-data-grid-import";
-import { DEFAULT_IMPORT_LIMITS, type CsvDelimiter } from "./parse-import-file";
+import { DEFAULT_IMPORT_LIMITS, type CsvDelimiter, type ImportLimits } from "./parse-import-file";
 import { Dropzone, DropzoneEmptyState, type DropzoneAccept, type DropzoneRejection } from "@/registry/default/blocks/dropzone/dropzone";
 
 /** Accepted import file types, shared by the file input and the {@link Dropzone}. */
@@ -51,6 +51,8 @@ export type DataGridImportDialogProps<TData> = {
   onImport: (rows: TData[]) => void | Promise<void>;
   /** Consumer-configurable preselection defaults (delimiter, header row, skip columns, mapping). Omit for today's behavior unchanged. */
   importDefaults?: ImportDefaults;
+  /** Size, row, column, and cell bounds for the file; omitted fields use `DEFAULT_IMPORT_LIMITS`. `maxFileBytes` also sets the drop zone's `maxSize`. */
+  importLimits?: ImportLimits;
 };
 
 /**
@@ -62,7 +64,8 @@ export type DataGridImportDialogProps<TData> = {
  * rejected cells are listed in {@link buildImportedRows}'s `rejected` result.
  */
 export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TData>): ReactNode {
-  const { open, onOpenChange, createRow, onImport, importDefaults } = props;
+  const { open, onOpenChange, createRow, onImport, importDefaults, importLimits } = props;
+  const maxFileBytes = importLimits?.maxFileBytes ?? DEFAULT_IMPORT_LIMITS.maxFileBytes;
   const labels = useDataGridLabels();
   const actions = useDataGridActions();
   const storeApi = useDataGridStoreApi();
@@ -73,7 +76,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   /** Aborts the in-flight chunked build (large sync imports and async-schema imports alike) when Cancel is clicked or the dialog closes. */
   const abortControllerRef = useRef<AbortController | null>(null);
   const { preview, error, isParsing, loadFile, setHasHeaderRow, setDelimiter, setSheetName, setMapping, reset, previewRows, importRows } =
-    useDataGridImportPreview(labels.io.columnFallback, importDefaults);
+    useDataGridImportPreview(labels.io.columnFallback, importDefaults, importLimits);
 
   useEffect(() => {
     if (open) return;
@@ -188,13 +191,13 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
 
         <div className="flex min-w-0 flex-col gap-3">
           {preview ? (
-            <Dropzone compact accept={IMPORT_ACCEPT} maxFiles={1} maxSize={DEFAULT_IMPORT_LIMITS.maxFileBytes} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
+            <Dropzone compact accept={IMPORT_ACCEPT} maxFiles={1} maxSize={maxFileBytes} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
               <Paperclip className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               <span className="min-w-0 flex-1 truncate text-sm text-foreground">{preview.fileName}</span>
               <span className="shrink-0 text-xs text-muted-foreground">{labels.io.replaceFile}</span>
             </Dropzone>
           ) : (
-            <Dropzone accept={IMPORT_ACCEPT} maxFiles={1} maxSize={DEFAULT_IMPORT_LIMITS.maxFileBytes} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
+            <Dropzone accept={IMPORT_ACCEPT} maxFiles={1} maxSize={maxFileBytes} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
               <DropzoneEmptyState title={labels.io.chooseFile} description={labels.io.noFileChosen} />
             </Dropzone>
           )}
