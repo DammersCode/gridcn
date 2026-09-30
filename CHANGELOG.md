@@ -532,6 +532,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **View-space presence warning covers every view change (`data-grid`, `data-grid-presence`):** the
+  one-time development warning now also fires when a sort, filter, join operator change, or
+  consumer data replacement rebuilds the view while a view-space presence entry is active. It
+  used to cover only row operations and immediate `updateCells`.
 - **Lazy rows warn about dropped edits (`data-grid-lazy`):** in development,
   `useDataGridLazyRows().onDataChange` warns once when a change targets a row that `evict()`
   removed before the merge. The edit is not written into another row.

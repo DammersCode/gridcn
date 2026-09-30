@@ -3492,6 +3492,51 @@ describe("row-moving ops with an active view-space presence entry", () => {
     warn.mockRestore();
   });
 
+  it("warns when a sort, filter, or join change rebuilds the view", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const sort = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    act(() => sort.result.current._registerPresenceViewSpaceActive(() => true));
+    act(() => sort.result.current.toggleSort("name", false));
+    expect(warn).toHaveBeenCalledTimes(1);
+
+    const filter = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    act(() => filter.result.current._registerPresenceViewSpaceActive(() => true));
+    act(() => filter.result.current.setFilters([{ columnId: "name", operator: "equals", value: "Alice" }]));
+    expect(warn).toHaveBeenCalledTimes(2);
+
+    const join = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    act(() =>
+      join.result.current.setFilters([
+        { columnId: "name", operator: "equals", value: "Alice" },
+        { columnId: "age", operator: "gt", value: "35" },
+      ]),
+    );
+    act(() => join.result.current._registerPresenceViewSpaceActive(() => true));
+    act(() => join.result.current.setJoinOperator("or"));
+    expect(warn).toHaveBeenCalledTimes(3);
+    warn.mockRestore();
+  });
+
+  it("warns when a consumer data swap replaces the rows", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let actions: ReturnType<typeof useDataGridActions> | undefined;
+    function Probe() {
+      actions = useDataGridActions();
+      return null;
+    }
+    const ui = (data: Row[]) => (
+      <DataGridProvider data={data} columns={columns} getRowId={(r) => r.id}>
+        <Probe />
+      </DataGridProvider>
+    );
+    const view = render(ui(rows()));
+    act(() => actions!._registerPresenceViewSpaceActive(() => true));
+
+    view.rerender(ui(rows().reverse()));
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
   it("warns once per grid instance, including on deleteRows", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const first = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });

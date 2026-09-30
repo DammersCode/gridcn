@@ -173,7 +173,8 @@ different local sort or filter paints it on the wrong cells. A receiver-side liv
 `reorder: "immediate"` (see [Streaming updates](/docs/streaming-updates)) moves rows in the same
 call. The `range` entry then points at the wrong rows on the receiver itself. Use the rowId-native
 forms whenever sender and receiver views can diverge, or when the receiver's own feed reorders
-rows while entries are active:
+rows while entries are active. In development, the grid warns once when a row move, sort, filter,
+join, or data replacement runs while a view-space entry is active:
 
 ```ts
 type PresenceHighlight = {

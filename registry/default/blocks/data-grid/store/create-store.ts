@@ -510,6 +510,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (s.sortControlled) return;
         set((s2) => {
           const viewIndex = computeViewIndex(s2.data, s2.columns, sorts, s2.filterState, s2.joinOperator, s2.viewIndex, s2.cellTypes);
+          if (viewIndex !== s2.viewIndex) warnViewSpacePresenceStale(s2);
           resetDeferredRows(dataWrite);
           return {
             sortState: sorts,
@@ -526,6 +527,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (s.sortControlled) return;
         set((s2) => {
           const viewIndex = computeViewIndex(s2.data, s2.columns, sorts, s2.filterState, s2.joinOperator, s2.viewIndex, s2.cellTypes);
+          if (viewIndex !== s2.viewIndex) warnViewSpacePresenceStale(s2);
           resetDeferredRows(dataWrite);
           return {
             sortState: sorts,
@@ -544,6 +546,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (s.filterControlled) return;
         set((s2) => {
           const viewIndex = computeViewIndex(s2.data, s2.columns, s2.sortState, withIds, s2.joinOperator, s2.viewIndex, s2.cellTypes);
+          if (viewIndex !== s2.viewIndex) warnViewSpacePresenceStale(s2);
           resetDeferredRows(dataWrite);
           return {
             filterState: withIds,
@@ -560,6 +563,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (s.joinOperatorControlled) return;
         set((s2) => {
           const viewIndex = computeViewIndex(s2.data, s2.columns, s2.sortState, s2.filterState, joinOperator, s2.viewIndex, s2.cellTypes);
+          if (viewIndex !== s2.viewIndex) warnViewSpacePresenceStale(s2);
           resetDeferredRows(dataWrite);
           return {
             joinOperator,
@@ -787,6 +791,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const nextViewIndex = unchanged
             ? s.viewIndex
             : computeViewIndex(nextData, nextColumns, nextSortState, nextFilterState, nextJoinOperator, s.viewIndex, nextCellTypes);
+          if (nextViewIndex !== s.viewIndex || (nextData !== s.data && !isEcho)) warnViewSpacePresenceStale(s);
           // A full rebuild leaves nothing pending for the incremental path to replay.
           if (!unchanged) resetDeferredRows(dataWrite);
           // If viewIndex is unchanged (same reference either from the guard above or from
