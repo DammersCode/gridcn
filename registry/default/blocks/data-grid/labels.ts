@@ -165,6 +165,8 @@ export type DataGridIOLabels = {
   importDialogDescription: string;
   chooseFile: string;
   noFileChosen: string;
+  /** Size limit shown next to `noFileChosen` in the empty drop zone; `bytes` is the import's `maxFileBytes`. */
+  maxFileSize: (bytes: number) => string;
   /** Caption on the compact drop zone shown once a file is already chosen, in the column-mapping step. */
   replaceFile: string;
   /** Fallback column header in the mapping table when "First row is a header" is unchecked; `index` is 1-based. */
@@ -407,6 +409,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     importDialogDescription: "Choose a CSV or Excel file, then map its columns to the grid.",
     chooseFile: "Choose file",
     noFileChosen: "No file chosen",
+    maxFileSize: (bytes) => `up to ${formatFileSize(bytes)}`,
     replaceFile: "Drop or click to replace",
     columnFallback: (index) => `Column ${index}`,
     delimiter: "Delimiter",
@@ -456,6 +459,19 @@ export type DeepPartialLabels<T = DataGridLabels> = {
         ? DeepPartialLabels<T[K]>
         : T[K];
 };
+
+/** A byte count as "512 KB" or "1.5 MB": one decimal below 10, whole numbers above. */
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KB", "MB", "GB"];
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value.toFixed(value < 10 ? 1 : 0)} ${units[unit]}`;
+}
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

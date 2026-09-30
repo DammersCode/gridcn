@@ -164,6 +164,28 @@ describe("DataGridImportButton (browser)", () => {
     await expect.element(page.getByText("This file is too large to import.")).not.toBeInTheDocument();
   });
 
+  it("the empty drop zone shows the size limit, from importLimits.maxFileBytes or the default", async () => {
+    const { rerender } = await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton createRow={(): Row => ({ id: "imported-0", name: "", age: null })} onImport={() => {}} />
+      </DataGridProvider>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    // this file mocks the default limit down to 100,000 bytes
+    await expect.element(page.getByText("No file chosen — up to 98 KB")).toBeInTheDocument();
+
+    await rerender(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton
+          createRow={(): Row => ({ id: "imported-0", name: "", age: null })}
+          onImport={() => {}}
+          importLimits={{ maxFileBytes: 512 * 1024 }}
+        />
+      </DataGridProvider>,
+    );
+    await expect.element(page.getByText("No file chosen — up to 512 KB")).toBeInTheDocument();
+  });
+
   it("importLimits reaches the parser: a file over maxCells shows the too-many-cells error", async () => {
     await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>

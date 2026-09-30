@@ -527,6 +527,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Import drop zone size limit (`data-grid-io`):** the empty drop zone in the import dialog shows
+  the size limit next to "No file chosen" (for example "No file chosen — up to 50 MB"). The dialog's
+  description used to hide the Dropzone's own size caption. The text comes from the new
+  `labels.io.maxFileSize(bytes)` label and follows `importLimits.maxFileBytes`.
 - **An inline `cellTypes` literal no longer rebuilds the view on every render:** the grid reuses
   its resolved cell-type registry while the prop's entries keep their identity. A controlled
   `onDataChange` echo keeps its deferred sort order, an unrelated sync skips the view rebuild,

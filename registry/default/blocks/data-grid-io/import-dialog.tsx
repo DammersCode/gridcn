@@ -198,7 +198,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
             </Dropzone>
           ) : (
             <Dropzone accept={IMPORT_ACCEPT} maxFiles={1} maxSize={maxFileBytes} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
-              <DropzoneEmptyState title={labels.io.chooseFile} description={labels.io.noFileChosen} />
+              <DropzoneEmptyState title={labels.io.chooseFile} description={`${labels.io.noFileChosen} — ${labels.io.maxFileSize(maxFileBytes)}`} />
             </Dropzone>
           )}
 
