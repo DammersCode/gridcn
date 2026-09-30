@@ -532,6 +532,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **`useDataGridEditing` return type (`data-grid`):** the hook's type now includes the `rowId`,
+  `columnId`, and `session` fields the store always carried, next to `coord` and `initialText`.
 - **Custom toolbars keep the mod+F capture (`data-grid-toolbar`):** a toolbar you build yourself
   that holds the `DataGridSearch` and carries the `data-grid-toolbar` attribute now scopes mod+F
   to its grid without a `data-grid-instance` attribute.

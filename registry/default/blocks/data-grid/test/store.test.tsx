@@ -1420,6 +1420,18 @@ describe("editing anchored to its row across view rebuilds", () => {
     });
   });
 
+  it("useDataGridEditing exposes the row and column identity the edit is anchored to", () => {
+    const wrapper = makeEditWrapper(vi.fn());
+    const { result } = renderHook(() => ({ actions: useDataGridActions(), editing: useDataGridEditing() }), { wrapper });
+
+    act(() => {
+      result.current.actions.startEditingAt({ col: 1, row: 0 });
+    });
+
+    const anchor: { rowId: string; columnId: string } | undefined = result.current.editing ?? undefined;
+    expect(anchor).toEqual({ coord: { col: 1, row: 0 }, rowId: "1", columnId: "age", initialText: undefined, session: expect.any(Number) });
+  });
+
   it("keeps the draft (initialText) and a stable editing reference when the rebuild moves nothing", () => {
     const wrapper = makeEditWrapper(vi.fn());
     const { result, rerender } = renderHook(

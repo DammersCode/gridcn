@@ -205,8 +205,8 @@ export function useDataGridRowBands(): RowBandsSpec {
   return useDataGridStore((s) => s.rowBands);
 }
 
-/** The in-progress cell edit, or null when no cell is being edited. */
-export function useDataGridEditing(): { coord: ViewCoord; initialText?: string } | null {
+/** The in-progress cell edit with the `rowId`/`columnId` it is anchored to, or null when no cell is being edited. */
+export function useDataGridEditing(): DataGridStoreState["editing"] {
   return useDataGridStore((s) => s.editing);
 }
 
