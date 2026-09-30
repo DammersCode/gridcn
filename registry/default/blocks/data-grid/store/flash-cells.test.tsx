@@ -1,15 +1,15 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
-import type { ColumnDef } from "../types";
+import type { CellRef, ColumnDef } from "../types";
 import {
   DataGridProvider,
-  flashCellKey,
   useDataGridActions,
   useDataGridRowCellState,
   useDataGridStoreApi,
   type DataGridProviderProps,
 } from "../store";
+import { flashCellKey } from "./compute";
 
 type Row = { id: string; name: string; age: number };
 
@@ -33,7 +33,8 @@ function makeWrapper(overrides: Partial<DataGridProviderProps<Row>> = {}) {
   };
 }
 
-const key = (viewRow: number, columnId: string) => flashCellKey(rows()[viewRow]!.id, columnId);
+const cell = (viewRow: number, columnId: string): CellRef => ({ rowId: rows()[viewRow]!.id, columnId });
+const key = (viewRow: number, columnId: string) => flashCellKey(cell(viewRow, columnId).rowId, columnId);
 
 function useHarness() {
   return {
@@ -51,7 +52,7 @@ describe("flashCells (transient write-pulse)", () => {
     );
 
     act(() => {
-      result.current.actions.flashCells([flashCellKey("1", "name")]);
+      result.current.actions.flashCells([{ rowId: "1", columnId: "name" }]);
     });
     expect(result.current.row0.flashingCols?.has(0)).toBe(true);
 
@@ -67,7 +68,7 @@ describe("flashCells (transient write-pulse)", () => {
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
 
     act(() => {
-      result.current.actions.flashCells([key(0, "name"), key(0, "age")]);
+      result.current.actions.flashCells([cell(0, "name"), cell(0, "age")]);
     });
 
     const s = result.current.api.getState();
@@ -82,7 +83,7 @@ describe("flashCells (transient write-pulse)", () => {
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
 
     act(() => {
-      result.current.actions.flashCells([key(0, "name"), key(1, "age")]);
+      result.current.actions.flashCells([cell(0, "name"), cell(1, "age")]);
     });
     expect(result.current.api.getState().flashingCells.size).toBe(2);
 
@@ -103,13 +104,13 @@ describe("flashCells (transient write-pulse)", () => {
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
 
     act(() => {
-      result.current.actions.flashCells([key(0, "name")]);
+      result.current.actions.flashCells([cell(0, "name")]);
     });
     act(() => {
       vi.advanceTimersByTime(1200);
     });
     act(() => {
-      result.current.actions.flashCells([key(0, "name")]);
+      result.current.actions.flashCells([cell(0, "name")]);
     });
     // 1 ms past the ORIGINAL deadline: the key would be gone if the first timer survived the re-flash.
     act(() => {
@@ -129,7 +130,7 @@ describe("flashCells (transient write-pulse)", () => {
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
 
     act(() => {
-      result.current.actions.flashCells([key(0, "name")], 500);
+      result.current.actions.flashCells([cell(0, "name")], 500);
     });
     act(() => {
       vi.advanceTimersByTime(499);
@@ -172,7 +173,7 @@ describe("flashCells (transient write-pulse)", () => {
     const { result, unmount } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
 
     act(() => {
-      result.current.actions.flashCells([key(0, "name"), key(2, "age"), key(2, "name"), flashCellKey("gone", "age")]);
+      result.current.actions.flashCells([cell(0, "name"), cell(2, "age"), cell(2, "name"), { rowId: "gone", columnId: "age" }]);
     });
     act(() => {
       result.current.actions._pruneFlashingCells([0, 1, 2]);
@@ -208,7 +209,7 @@ describe("flashCells (transient write-pulse)", () => {
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
 
     act(() => {
-      result.current.actions.flashCells([flashCellKey("gone", "name")]);
+      result.current.actions.flashCells([{ rowId: "gone", columnId: "name" }]);
     });
     act(() => {
       result.current.actions._pruneFlashingCells([0, 1]);
@@ -237,7 +238,7 @@ describe("flashCells (transient write-pulse)", () => {
     const row1Before = result.current.row1;
 
     act(() => {
-      result.current.actions.flashCells([key(0, "name")]);
+      result.current.actions.flashCells([cell(0, "name")]);
     });
 
     // row 1's derived object keeps its identity — the flash never reaches it.

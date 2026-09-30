@@ -269,11 +269,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
-- **Breaking:** flash keys are row-id keyed (`data-grid`, `data-grid-sdk`). `flashCellKey(rowId,
-  columnId)` takes a row id where it took a view row index, so a sort, filter, or reorder moves the
-  write-pulse with its row instead of leaving it on another record for up to 1.4 s. The store's
-  `flashingCells` holds the new keys. The `data-grid-sdk` barrel also exports `rowIdAtViewRow(state,
-  viewRow)` to resolve the id for a view row.
+- **Breaking:** the write-pulse follows its row (`data-grid`, `data-grid-sdk`). `flashCells` takes
+  `CellRef[]` (`{ rowId, columnId }`) instead of opaque string keys, so a sort, filter, or reorder
+  moves the pulse with its row instead of leaving it on another record for up to 1.4 s.
+  `flashCellKey` is no longer exported, and the store's `flashingCells` holds row-id keys. The
+  `data-grid-sdk` barrel exports `rowIdAtViewRow(state, viewRow)` to resolve the id for a view row.
 - **Breaking:** `data-grid-io` reads and writes Excel files with `hucre` instead of
   `@e965/xlsx` (SheetJS). The registry item pins `hucre@1.1.0`; re-adding the item replaces the
   dependency. SheetJS inflated every part of an xlsx without a size cap, so a 311 KB file grew to
@@ -354,7 +354,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   /`DataGridRootContextValue`, `useDataGridStoreApi`, `useDataGridContainer`, `isDev`, the
   validation engine (`runValidateSync`, `runValidatePending`, `runValidateBatch`,
   `resolveBulkWrites`, `useBulkGeneration` and the bulk types), `combineRects`,
-  `getSelectedViewRows`, `flashCellKey`, `measureColumnAutosizeWidth`, `GridColumnLayout`, and
+  `getSelectedViewRows`, `measureColumnAutosizeWidth`, `GridColumnLayout`, and
   `WindowedColumn`. Add-ons import them from `data-grid-sdk`; consumer code that imported any of
   these from `data-grid` must switch to `data-grid-sdk`.
 - **Typed raw store access:** `useDataGridSelector<TData>(selector, eq?)` hands the selector

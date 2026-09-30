@@ -486,7 +486,7 @@ export type DataGridStoreState = Omit<
    */
    cellErrors: ReadonlyMap<string, string>;
    /**
-    * Transient "highlight-what-changed" keys ({@link flashCellKey}, row-id space) currently flashing,
+    * Transient "highlight-what-changed" keys (row id plus column id) currently flashing,
     * auto-cleared per key after `flashCells`'s duration (default 1400 ms — the 1.2 s fade pulse
     * finishes before the key lifts, so the cell never visibly snaps back). NOT a data change: no
     * `DataChange`, no history entry. Always {@link EMPTY_FLASHING_CELLS} identity when empty.
@@ -721,12 +721,12 @@ export type DataGridActions = {
   /** Clears `cellErrors` for `targets`, or every entry when `targets` is omitted. Same non-data-change contract as `setCellErrors`. */
   clearCellErrors(targets?: readonly CellErrorTarget[]): void;
   /**
-   * Puts the given {@link flashCellKey} keys into a transient ~1.2 s fade pulse (the
+   * Puts the given cells into a transient ~1.2 s fade pulse (the
    * "highlight-what-changed" effect a fill/paste/move gesture plays on the cells it just wrote).
    * A key already flashing gets its timer RESET, so overlapping gestures each get the full pulse.
    * NOT a data change — no `DataChange`, no history, no selection movement.
    */
-  flashCells(keys: readonly string[], durationMs?: number): void;
+  flashCells(cells: readonly CellRef[], durationMs?: number): void;
   /** Clears every non-readOnly cell in the current selection to its type's clearValue(), as one batch DataChange. */
   deleteSelection(): void;
   /**

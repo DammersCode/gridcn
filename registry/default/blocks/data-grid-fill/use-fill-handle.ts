@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
-import { getCellValue, useDataGridActions, type DataGridStoreState, type GridBulkValidationError, type GridRect } from "@/registry/default/blocks/data-grid/data-grid";
+import { getCellValue, useDataGridActions, type CellRef, type DataGridStoreState, type GridBulkValidationError, type GridRect } from "@/registry/default/blocks/data-grid/data-grid";
 import {
   applyInlineScrollDelta,
   combineRects,
@@ -9,7 +9,6 @@ import {
   inlineAutoScrollStep,
   candidateRowIds,
   pointerToCoord,
-  flashCellKey,
   rowIdAtViewRow,
   resolveBulkWrites,
   resolveColumnValidate,
@@ -23,11 +22,11 @@ import {
 import { computeFillTarget, fillDirection, generateFill, rectRelativeTo, type SeriesDescriptor } from "./fill";
 import type { FillStoreApi } from "./fill-store";
 
-/** Flash keys for the cells a fill is about to write, resolved before the write so a re-sort cannot shift them. */
-function flashKeysFor(s: DataGridStoreState, writes: readonly { viewRowIndex: number; columnId: string }[]): string[] {
+/** Cells a fill is about to write, resolved before the write so a re-sort cannot shift them. */
+function flashCellsFor(s: DataGridStoreState, writes: readonly { viewRowIndex: number; columnId: string }[]): CellRef[] {
   return writes.flatMap((w) => {
     const rowId = rowIdAtViewRow(s, w.viewRowIndex);
-    return rowId === undefined ? [] : [flashCellKey(rowId, w.columnId)];
+    return rowId === undefined ? [] : [{ rowId, columnId: w.columnId }];
   });
 }
 
@@ -257,16 +256,16 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
           const current = storeApi.getState();
           if (!guard.isCurrent(token, current, snapshot)) return;
           const applied = guard.reresolve(current, resolved.writes);
-          const flashKeys = flashKeysFor(current, applied);
+          const flashed = flashCellsFor(current, applied);
           actions.applyCellUpdates(applied, "fill");
           // Pulse the cells that actually landed — the re-resolved batch, not the held one.
-          actions.flashCells(flashKeys);
+          actions.flashCells(flashed);
           fireRejected(resolved.rejected);
         });
       } else {
-        const flashKeys = flashKeysFor(storeApi.getState(), resolution.writes);
+        const flashed = flashCellsFor(storeApi.getState(), resolution.writes);
         actions.applyCellUpdates(resolution.writes, "fill");
-        actions.flashCells(flashKeys);
+        actions.flashCells(flashed);
         fireRejected(resolution.rejected);
       }
 

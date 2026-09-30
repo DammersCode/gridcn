@@ -267,6 +267,25 @@ describe("data-grid-fill add-on", () => {
     await expect.poll(() => flashed().length, { timeout: 5000 }).toBe(0);
   });
 
+  it("keeps the pulse on the filled rows when a re-sort moves them", async () => {
+    const data = makeFillRows(6);
+    data[0]!.value = 2;
+    data[1]!.value = 4;
+    await renderFillGrid(data);
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    await selectValueColumn(2);
+    await dragHandleToRow(4);
+    const flashed = () => [...document.querySelectorAll<HTMLElement>('[role="gridcell"][data-flash]')];
+    await expect.poll(() => flashed().length, { timeout: 2000 }).toBe(3);
+
+    const labelHeader = page.getByRole("columnheader", { name: "Label" });
+    await labelHeader.click();
+    await labelHeader.click();
+
+    const rowLabels = () => flashed().map((c) => c.closest('[role="row"]')!.querySelector('[data-column-id="label"]')!.textContent).sort();
+    expect(rowLabels()).toEqual(["L2", "L3", "L4"]);
+  });
+
   it("a flashed cell that scrolls out of the viewport never replays its pulse on scroll-back", async () => {
     const data = makeFillRows(30);
     data[0]!.value = 2;

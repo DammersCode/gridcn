@@ -26,6 +26,7 @@ import {
   computeVisibleColumns,
   computeViewIndex,
   defHiddenColumnIds,
+  flashCellKey,
   flashKeyRowId,
   isColumnReadOnly,
   memoizedMergeLabels,
@@ -646,10 +647,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         }
         if (changed) set({ cellErrors: next });
       },
-      flashCells(keys, durationMs = 1400) {
-        if (keys.length === 0) return;
+      flashCells(cells, durationMs = 1400) {
+        if (cells.length === 0) return;
         const next = new Set(get().flashingCells);
-        for (const key of keys) {
+        for (const { rowId, columnId } of cells) {
+          const key = flashCellKey(rowId, columnId);
           next.add(key);
           const existing = flashTimers.get(key);
           if (existing !== undefined) clearTimeout(existing);

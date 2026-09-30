@@ -39,7 +39,7 @@ export const EMPTY_SEARCH_MATCH_SET: ReadonlySet<string> = new Set();
 
 const FLASH_KEY_SEPARATOR = "\u0000";
 
-/** Stable key for {@link DataGridStoreState.flashingCells}: row id plus column id, so a sort or reorder moves the pulse with its row. */
+/** Key for {@link DataGridStoreState.flashingCells}: row id plus column id, so a sort or reorder moves the pulse with its row. */
 export function flashCellKey(rowId: string, columnId: string): string {
   return `${rowId}${FLASH_KEY_SEPARATOR}${columnId}`;
 }
