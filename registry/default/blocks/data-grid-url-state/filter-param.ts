@@ -96,9 +96,9 @@ function decodeFilterValue(operator: string, raw: string, maxChoices: number): F
  * Inverse of {@link serializeFilterState}. Malformed segments (unknown operator, empty/undecodable
  * column id, wrong field count, malformed `isBetween` range or `isAnyOf` list) are dropped silently
  * rather than throwing — a corrupt/hand-edited URL degrades to fewer filters, never an error.
- * The parsed list is capped at 64 filters, and each `isAnyOf` list at `options.maxChoices(columnId)`
- * entries (1000 by default); the first segments win, so a hand-edited URL cannot express an
- * unbounded filter set.
+ * Parsing stops after 256 raw segments. The parsed list is capped at 64 filters, and each `isAnyOf`
+ * list at `options.maxChoices(columnId)` entries (1000 by default); the first segments win, so a
+ * hand-edited URL cannot express an unbounded filter set.
  * Every filter parses without a `filterId`; the store backfills a fresh stable one on the next sync.
  *
  * @example parseFilterState("age:gt:30") // => [{ columnId: "age", operator: "gt", value: "30" }]

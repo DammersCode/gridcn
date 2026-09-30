@@ -532,10 +532,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
-- **Selection follows the edited row on every view change (`data-grid`):** a controlled `sortState`,
-  `filterState`, join, or search change and a consumer data replacement now move the selection
-  with the edited cell too, not only the grid's own sort and filter actions. A multi-cell range
-  collapses to the edited cell when its row moves.
+- **Selection follows the edited row (`data-grid`):** while a cell is in edit mode, a sort,
+  filter, join, or search change (the grid's own or a controlled prop) and a consumer data
+  replacement that moves its row move the selection with the active cell. The range no longer
+  paints on another record, and Shift+Arrow after Escape extends from the edited cell. A
+  multi-cell range collapses to the edited cell when its row moves.
 - **`useDataGridEditing` return type (`data-grid`):** the hook's type now includes the `rowId`,
   `columnId`, and `session` fields the store always carried, next to `coord` and `initialText`.
 - **Custom toolbars keep the mod+F capture (`data-grid-toolbar`):** a toolbar you build yourself
@@ -565,9 +566,6 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   Ctrl+X") the next time it opens. The open after that is back to normal, so the
   user can retry. A throwing `document.execCommand("copy")` resolves the copy as `'failed'`
   instead of rejecting.
-- **Selection follows the edited row (`data-grid`):** while a cell is in edit mode, a sort, filter,
-  or data change that moves its row moves the selection with the active cell. The range no longer
-  paints on another record, and Shift+Arrow after Escape extends from the edited cell.
 - **Pagination keeps deep links while data loads (`data-grid-pagination`):** server mode with
   `reconcilePage` no longer rewrites your page while `total` is `0`, so a deep link survives the
   first fetch. Client mode with an empty dataset shows page 1 of 1 instead of an out-of-range
@@ -658,8 +656,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   own serialization of that cell (it renders back to the cell's exact innerHTML) — a crafted
   clipboard payload can no longer smuggle a value the user did not see into a paste.
 - **URL state hardening:** the `filter` URL param parses at most 64 filters and reads at most 256
-  raw segments. Each `isAnyOf` list holds at most as many entries as its column has `choices`
-  (but never fewer than 64), or 1000 for a column with missing or empty `choices`. The `sort`
+  raw segments. Each `isAnyOf` list holds at most `max(number of choices, 64)` values for a
+  column with `choices`, or 1000 values for a column with missing or empty `choices`. The `sort`
   URL param keeps one direction per column (first segment wins) and at most 64 sorts — a
   hand-edited URL can no longer express an unbounded view state. `parseFilterState` takes an
   optional `maxChoices` option, a function from a column id to its bound.

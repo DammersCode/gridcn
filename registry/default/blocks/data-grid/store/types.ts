@@ -723,7 +723,7 @@ export type DataGridActions = {
   /**
    * Puts the given cells into a transient ~1.2 s fade pulse (the
    * "highlight-what-changed" effect a fill/paste/move gesture plays on the cells it just wrote).
-   * A key already flashing gets its timer RESET, so overlapping gestures each get the full pulse.
+   * A cell already flashing gets its timer RESET, so overlapping gestures each get the full pulse.
    * NOT a data change — no `DataChange`, no history, no selection movement.
    */
   flashCells(cells: readonly CellRef[], durationMs?: number): void;
