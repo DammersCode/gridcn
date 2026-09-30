@@ -1523,24 +1523,88 @@ describe("editing anchored to its row across view rebuilds", () => {
     expect(change.ops[0]).toMatchObject({ rowId: "1", cells: [{ columnId: "age", value: 99, prev: 30 }] });
   });
 
-  it("a consumer data replacement that drops the edited row cancels the edit", () => {
-    const wrapper = makeWrapper();
-    const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), editing: useDataGridEditing() }),
-      { wrapper },
+});
+
+describe("consumer data swap while editing (exactly one sync)", () => {
+  const getEditRowId = (r: EditRow) => r.id;
+
+  function renderControlled(initial: EditRow[]) {
+    const onDataChange = vi.fn();
+    let storeApi: import("zustand/vanilla").StoreApi<DataGridStoreState> | null = null;
+    function Probe() {
+      storeApi = useDataGridStoreApi();
+      return null;
+    }
+    const ui = (data: EditRow[]) => (
+      <DataGridProvider data={data} columns={editColumns} getRowId={getEditRowId} onDataChange={onDataChange}>
+        <Probe />
+      </DataGridProvider>
     );
+    const view = render(ui(initial));
+    const state = () => storeApi!.getState();
+    const syncProps = vi.spyOn(state().actions, "_syncProps");
+    return {
+      onDataChange,
+      state,
+      actions: state().actions,
+      swapData(next: EditRow[]) {
+        view.rerender(ui(next));
+        // A second sync re-remaps against the swapped data and masks a wrong first remap.
+        expect(syncProps).toHaveBeenCalledTimes(1);
+      },
+    };
+  }
 
-    act(() => {
-      result.current.actions.startEditingAt({ col: 0, row: 0 }, "typed");
-    });
-    rerender();
+  it("a consumer data replacement that drops the edited row cancels the edit", () => {
+    const grid = renderControlled(editRows());
+    act(() => grid.actions.startEditingAt({ col: 1, row: 0 }, "typed"));
 
-    // The consumer swaps the array and Charlie (id "1") is gone from the data.
+    grid.swapData(editRows().slice(1));
+
+    expect(grid.state().editing).toBeNull();
+    expect(grid.state().activeCell).toBeNull();
+  });
+
+  it("reversing the rows moves the editor with its row and the commit lands on that row", () => {
+    const grid = renderControlled(editRows());
+    act(() => grid.actions.startEditingAt({ col: 1, row: 0 }));
+
+    grid.swapData(editRows().reverse());
+
+    expect(grid.state().editing).toEqual({ coord: { col: 1, row: 2 }, rowId: "1", columnId: "age", initialText: undefined });
+    expect(grid.state().activeCell).toEqual({ col: 1, row: 2 });
+    act(() => grid.actions.commitCellEdit(99, { dx: 0, dy: 1 }));
+    const [next, change] = grid.onDataChange.mock.calls[0] as [readonly EditRow[], DataChange<EditRow>];
+    expect(next.map((r) => r.age)).toEqual([40, 25, 99]);
+    expect(change.ops[0]).toMatchObject({ rowId: "1", cells: [{ columnId: "age", value: 99, prev: 30 }] });
+  });
+
+  it("inserting a row above the edited row remaps the editor down", () => {
+    const grid = renderControlled(editRows());
+    act(() => grid.actions.startEditingAt({ col: 1, row: 0 }));
+
+    grid.swapData([{ id: "0", name: "Zed", age: 1, active: false }, ...editRows()]);
+
+    expect(grid.state().editing?.coord).toEqual({ col: 1, row: 1 });
+    act(() => grid.actions.commitCellEdit(99));
+    const [next] = grid.onDataChange.mock.calls[0] as [readonly EditRow[]];
+    expect(next.map((r) => r.age)).toEqual([1, 99, 25, 40]);
+  });
+
+  it("a replace, Escape, a value write, and updateCells by rowId write the right rows", () => {
+    const grid = renderControlled(editRows());
+    act(() => grid.actions.startEditingAt({ col: 1, row: 0 }));
+
+    grid.swapData(editRows().reverse());
+    act(() => grid.actions.cancelEditing());
+    // View row 0 is now Bob (id "3"); the value write rebases the rowId map onto its new array.
+    act(() => grid.actions.commitCellValueAt({ col: 1, row: 0 }, 50));
     act(() => {
-      result.current.actions._syncProps({ data: rows().slice(1), columns, getRowId: (r: Row) => r.id } as never);
+      grid.actions.updateCells([{ rowId: "1", columnId: "age", value: 77 }]);
     });
-    rerender();
-    expect(result.current.editing).toBeNull();
+
+    const byId = Object.fromEntries((grid.state().data as EditRow[]).map((r) => [r.id, r.age]));
+    expect(byId).toEqual({ "1": 77, "2": 25, "3": 50 });
   });
 });
 

@@ -116,15 +116,18 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
    * position of its rowId/columnId (the draft survives the move), and move `activeCell` with it
    * when it sat on the edit cell. When the row or column left the view, cancel — the typed value
    * is dropped, never written into a hidden row. Keeps object identity when nothing moved.
+   * `data` must be the array `viewIndex` indexes; a consumer swap passes the incoming array.
    */
   const remapEditing = (
     s: DataGridStoreState,
     viewIndex: readonly number[],
     visibleColumns: readonly AnyColumnDef[],
+    data: readonly unknown[] = s.data,
+    getRowId: (row: unknown, index: number) => string = s.getRowId,
   ): Partial<DataGridStoreState> => {
     const editing = s.editing;
     if (!editing) return {};
-    const dataRowIndex = rowIndexCache.resolve(s.data, s.getRowId).get(editing.rowId);
+    const dataRowIndex = rowIndexCache.resolve(data, getRowId).get(editing.rowId);
     const viewRow = dataRowIndex === undefined ? -1 : viewIndex.indexOf(dataRowIndex);
     const viewCol = visibleColumns.findIndex((column) => column.id === editing.columnId);
     const onEditCell =
@@ -779,7 +782,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             // rows moved only when a genuine consumer data replacement invalidated the id cache
             // (our own echo never moves a row — updateCells patches values in place)
             rowIdentityVersion: nextData !== s.data && !isEcho ? s.rowIdentityVersion + 1 : s.rowIdentityVersion,
-            ...(!unchanged ? remapEditing(s, nextViewIndex, nextVisibleColumns) : {}),
+            ...(!unchanged ? remapEditing(s, nextViewIndex, nextVisibleColumns, nextData, props.getRowId) : {}),
             ...(unchanged
               ? { searchMatches: s.searchMatches, searchMatchSet: s.searchMatchSet, searchMatchRows: s.searchMatchRows, searchMatchesCapped: s.searchMatchesCapped }
               : computeSearchMatches(nextData, nextColumns, nextViewIndex, nextVisibleColumns, nextSearchText, nextCellTypes)),

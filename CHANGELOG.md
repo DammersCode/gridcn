@@ -492,7 +492,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   consumer data swap that moves the edited row re-anchors the editor to the row's new view
   position, and the typed draft survives the move. When the row (or column) leaves the view the
   edit is cancelled and the typed value is discarded — it is never written into a row that is no
-  longer visible, and a validation that resolves after the cancel no longer commits.
+  longer visible, and a validation that resolves after the cancel no longer commits. A consumer
+  data swap resolves the edited row in the new array, so later `updateCells` calls by `rowId`
+  write to the right row.
 - **`validateRow` no longer wipes a reused rowId's consumer errors:** the store's per-row record of
   which `cellErrors` entries its own `validateRow` verdicts own is now pruned whenever a row leaves
   `data` — a new row reusing a deleted row's id keeps its consumer `setCellErrors` entries across
