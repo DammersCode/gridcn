@@ -651,11 +651,12 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Pasted HTML:** the `data-gridcn-raw` cell attribute is now trusted only when it is the grid's
   own serialization of that cell (it renders back to the cell's exact innerHTML) — a crafted
   clipboard payload can no longer smuggle a value the user did not see into a paste.
-- **URL state hardening:** the `filter` URL param parses at most 64 filters (each `isAnyOf` list
-  at most as many entries as its column has `choices`, or 1000 for a column without `choices`),
-  and the `sort` URL param keeps one direction per column (first segment wins) and at most 64
-  sorts — a hand-edited URL can no longer express an unbounded view state. `parseFilterState`
-  takes an optional `maxChoices(columnId)` callback for the per-column bound.
+- **URL state hardening:** the `filter` URL param parses at most 64 filters and reads at most 256
+  raw segments. Each `isAnyOf` list holds at most as many entries as its column has `choices`
+  (but never fewer than 64), or 1000 for a column with missing or empty `choices`. The `sort`
+  URL param keeps one direction per column (first segment wins) and at most 64 sorts — a
+  hand-edited URL can no longer express an unbounded view state. `parseFilterState` takes an
+  optional `maxChoices` option, a function from a column id to its bound.
 - **URL pagination hardening:** a URL `pageSize` is now gated by the pager's default size list
   (10/25/50/100) even when `pageSizeOptions` is omitted, and a URL `page` beyond 1,000,000
   falls back to 1 — an unbounded `?pageSize=` or `?page=` can no longer force a huge fetch.

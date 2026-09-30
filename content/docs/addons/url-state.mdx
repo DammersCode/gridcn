@@ -97,9 +97,10 @@ toggle existed still parses identically.
   filter does not pollute the browser's back and forward history.
 - The core stays router-agnostic. `data-grid-url-state` is the only piece that knows about a
   router, and it is entirely optional.
-- A URL cannot express an unbounded view state. The `filter` param parses at most 64 filters.
-  Each `isAnyOf` list holds at most as many entries as its column has `choices`, or 1000 entries
-  for a column without `choices`. The `sort` param keeps one direction per column (the first
+- A URL cannot express an unbounded view state. The `filter` param parses at most 64 filters and
+  reads at most 256 segments. Each `isAnyOf` list holds at most as many entries as its column has
+  `choices`, but never fewer than 64. A column with missing or empty `choices` allows 1000
+  entries. The `sort` param keeps one direction per column (the first
   segment wins) and parses at most 64 sorts. A hand-edited URL beyond these limits degrades to
   fewer filters and sorts.
 

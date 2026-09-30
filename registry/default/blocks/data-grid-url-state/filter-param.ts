@@ -10,6 +10,9 @@ const ANYOF_SEPARATOR = "|";
 /** A hand-edited URL must not express an unbounded view state; filter segments beyond the cap are dropped. */
 const MAX_URL_FILTERS = 64;
 
+/** Raw comma-separated segments read before parsing stops; bounds the work a URL of empty segments can cost. */
+const MAX_URL_FILTER_SEGMENTS = MAX_URL_FILTERS * 4;
+
 /** Bound for one `isAnyOf` list parsed from a URL when the caller names no per-column limit. */
 const DEFAULT_MAX_ANYOF_CHOICES = 1000;
 
@@ -107,8 +110,12 @@ function decodeFilterValue(operator: string, raw: string, maxChoices: number): F
 export function parseFilterState(raw: string, options: ParseFilterStateOptions = {}): FilterSpec[] {
   if (!raw) return [];
   const filters: FilterSpec[] = [];
-  for (const segment of raw.split(",")) {
-    if (filters.length >= MAX_URL_FILTERS) break;
+  let start = 0;
+  for (let read = 0; read < MAX_URL_FILTER_SEGMENTS && start <= raw.length && filters.length < MAX_URL_FILTERS; read++) {
+    const comma = raw.indexOf(",", start);
+    const end = comma === -1 ? raw.length : comma;
+    const segment = raw.slice(start, end);
+    start = end + 1;
     const parts = segment.split(":");
     if (parts.length !== 3) continue;
     const [columnId, operator, rawValue] = parts;

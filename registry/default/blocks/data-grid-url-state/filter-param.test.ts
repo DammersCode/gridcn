@@ -81,6 +81,12 @@ describe("serializeFilterState / parseFilterState", () => {
     });
   });
 
+  it("stops reading raw segments after 256, so empty segments cannot exhaust the parse", () => {
+    const raw = `${",".repeat(300)}age:gt:30`;
+    expect(parseFilterState(raw)).toEqual([]);
+    expect(parseFilterState(`${",".repeat(200)}age:gt:30`)).toHaveLength(1);
+  });
+
   it("never throws on malformed percent-encoding", () => {
     expect(() => parseFilterState("age:gt:%E0%A4%A")).not.toThrow();
     expect(parseFilterState("age:gt:%E0%A4%A")).toEqual([]);

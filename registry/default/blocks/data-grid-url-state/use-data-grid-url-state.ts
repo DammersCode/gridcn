@@ -16,6 +16,9 @@ import { serializeFilterState, parseFilterState } from "./filter-param";
 import { serializeJoinOperator, parseJoinOperator } from "./join-param";
 import { prefixedKey } from "./prefixed-key";
 
+/** Smallest `isAnyOf` list bound for a column with choices, so a link written before a choice was removed still parses. */
+const MIN_CHOICE_BOUND = 64;
+
 /** Debounce (ms) between typing in the quick-search box and writing `searchText` to the URL. */
 const SEARCH_WRITE_DEBOUNCE_MS = 300;
 
@@ -115,8 +118,13 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
       warnDev(`dropped URL sort spec for removed column "${spec.columnId}"`);
       return false;
     });
-    const choiceCounts = new Map(allColumns.map((c) => [c.id, (c.options as { choices?: readonly unknown[] } | undefined)?.choices?.length]));
-    const parsedFilters = parseFilterState(filterParam, { maxChoices: (columnId) => choiceCounts.get(columnId) });
+    const choiceBounds = new Map(
+      allColumns.map((c) => {
+        const choices = (c.options as { choices?: unknown } | undefined)?.choices;
+        return [c.id, Array.isArray(choices) && choices.length > 0 ? Math.max(choices.length, MIN_CHOICE_BOUND) : undefined];
+      }),
+    );
+    const parsedFilters = parseFilterState(filterParam, { maxChoices: (columnId) => choiceBounds.get(columnId) });
     const filters = parsedFilters.filter((spec) => {
       if (liveColumnIds.has(spec.columnId)) return true;
       warnDev(`dropped URL filter spec for removed column "${spec.columnId}"`);

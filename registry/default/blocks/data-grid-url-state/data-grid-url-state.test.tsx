@@ -87,7 +87,7 @@ function renderGrid(options: {
 
 describe("DataGridUrlState isAnyOf bound", () => {
   it("bounds a URL isAnyOf list by the column's own choices", () => {
-    const values = Array.from({ length: 10 }, (_, i) => `v${i}`).join("|");
+    const values = Array.from({ length: 100 }, (_, i) => `v${i}`).join("|");
     let filter: unknown;
     const Probe = () => {
       filter = useDataGridFilterState();
@@ -101,7 +101,28 @@ describe("DataGridUrlState isAnyOf bound", () => {
         </DataGridProvider>
       </NuqsTestingAdapter>,
     );
-    expect(filter).toEqual([{ filterId: expect.any(String), columnId: "status", operator: "isAnyOf", value: ["v0", "v1"] }]);
+    expect(filter).toEqual([{ filterId: expect.any(String), columnId: "status", operator: "isAnyOf", value: Array.from({ length: 64 }, (_, i) => `v${i}`) }]);
+  });
+
+  it("keeps a deep link on a select column whose choices have not loaded yet", () => {
+    let filter: unknown;
+    const Probe = () => {
+      filter = useDataGridFilterState();
+      return null;
+    };
+    render(
+      <NuqsTestingAdapter searchParams="?filter=status%3AisAnyOf%3Anew%7Copen">
+        <DataGridProvider
+          data={[{ id: "r0", status: "new" }]}
+          columns={defineColumns<StatusRow>()([{ id: "status", header: "Status", accessorKey: "status", type: "select", width: 80, options: { choices: [] } }] as const)}
+          getRowId={(r) => r.id}
+        >
+          <DataGridUrlState />
+          <Probe />
+        </DataGridProvider>
+      </NuqsTestingAdapter>,
+    );
+    expect(filter).toEqual([{ filterId: expect.any(String), columnId: "status", operator: "isAnyOf", value: ["new", "open"] }]);
   });
 
   it("keeps a long isAnyOf list for a column without choices", () => {

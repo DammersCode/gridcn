@@ -107,7 +107,7 @@ Source: independent review of W2, W3, and W4 on 2026-09-29 (four reviewers, one 
 
 Decisions (maintainer rule: secure, performant, feature-rich; breaking changes welcome):
 - A throwing or rejecting validator blocks the edit with its message, on `onInvalid: "warn"` columns too.
-- `isAnyOf` URL lists are bounded by the column's own `choices` (1,000 for columns without `choices`), not by a fixed 64.
+- `isAnyOf` URL lists are bounded by `max(choices.length, 64)` for a column with `choices`, and by 1,000 for a column with missing or empty `choices`.
 - Clipboard formula neutralizing becomes a grid prop that the native Ctrl+C/Ctrl+X path and the context menu honor.
 - XLSX over a limit is rejected like CSV, never truncated; the import button and dialog take an `importLimits` prop.
 - Keybindings `bindingTokens` is removed in favor of `formatShortcut` (**Breaking**).
