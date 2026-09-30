@@ -51,10 +51,12 @@ export type DataGridSearchProps = {
   captureFindShortcut?: boolean;
 };
 
-/** True when `target` sits inside THIS grid instance's own DOM (its scroll/root container or its toolbar), never in a sibling grid's. */
-function isInsideGridScope(target: EventTarget | null, instanceId: string): boolean {
+/** True when `target` sits inside THIS grid instance's own DOM (its scroll/root container or its toolbar), or inside a `[data-grid-toolbar]` that holds `input`, never in a sibling grid's. */
+function isInsideGridScope(target: EventTarget | null, instanceId: string, input: HTMLElement | null): boolean {
   if (!(target instanceof Element)) return false;
-  return target.closest(`[${GRID_ATTR.instance}="${instanceId}"]`) !== null;
+  if (target.closest(`[${GRID_ATTR.instance}="${instanceId}"]`) !== null) return true;
+  const toolbar = target.closest(`[${GRID_ATTR.toolbar}]`);
+  return toolbar !== null && input !== null && toolbar.contains(input);
 }
 
 /**
@@ -106,7 +108,7 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
 
     function onKeyDown(event: KeyboardEvent) {
       const isFind = (event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === "f";
-      if (!isFind || !isInsideGridScope(event.target, instanceId)) return;
+      if (!isFind || !isInsideGridScope(event.target, instanceId, inputRef.current)) return;
       event.preventDefault();
       const input = inputRef.current;
       if (!input) return;

@@ -287,6 +287,32 @@ describe("DataGridSearch captureFindShortcut", () => {
     await expect.element(inputA).not.toHaveFocus();
   });
 
+  it("a custom [data-grid-toolbar] without an instance id still scopes mod+F to the search it holds", async () => {
+    const gridWithCustomToolbar = (name: string) => (
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id} labels={{ toolbar: { searchAriaLabel: `Search grid ${name}` } }}>
+        <div data-grid-toolbar="">
+          <button type="button">{`tool ${name}`}</button>
+          <DataGridSearch />
+        </div>
+        <DataGridRoot className="h-[200px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>
+    );
+    await render(
+      <>
+        {gridWithCustomToolbar("A")}
+        {gridWithCustomToolbar("B")}
+      </>,
+    );
+    page.getByRole("button", { name: "tool B" }).element().focus();
+    const event = dispatchModF(document.activeElement ?? document.body);
+    expect(event.defaultPrevented).toBe(true);
+    await expect.element(page.getByRole("textbox", { name: "Search grid B" })).toHaveFocus();
+    await expect.element(page.getByRole("textbox", { name: "Search grid A" })).not.toHaveFocus();
+  });
+
   it("captureFindShortcut={false} opts out: mod+F is never intercepted regardless of focus", async () => {
     await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>

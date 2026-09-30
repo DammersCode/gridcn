@@ -532,6 +532,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Custom toolbars keep the mod+F capture (`data-grid-toolbar`):** a toolbar you build yourself
+  that holds the `DataGridSearch` and carries the `data-grid-toolbar` attribute now scopes mod+F
+  to its grid without a `data-grid-instance` attribute.
 - **View-space presence warning covers every view change (`data-grid`, `data-grid-presence`):** the
   one-time development warning now also fires when a sort, filter, join operator change, or
   consumer data replacement rebuilds the view while a view-space presence entry is active. It
