@@ -50,7 +50,7 @@ takes:
 
 <Callout title="Formula sanitizing">
   CSV exports prefix formula-like cells with a single quote. The affected cells start with `=`,
-  `-`, `@`, TAB, or CR. Plain numbers stay untouched. External spreadsheets treat that quote as a
+  `+`, `-`, `@`, TAB, or CR. Plain numbers stay untouched. External spreadsheets treat that quote as a
   hidden text marker. A cell holding `=HYPERLINK("http://x")` opens as literal text in Excel,
   LibreOffice, and Sheets, not as a running formula. If a downstream consumer expects the raw
   string, pass `sanitizeFormulas: false` to `exportGrid`. `data-grid` also exports

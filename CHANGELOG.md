@@ -337,10 +337,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   provenance, zero npm-audit vulnerabilities). The npm `xlsx` line stopped at 0.18.5 with two
   unpatched high-severity advisories. The API is unchanged; installers now add `@e965/xlsx`
   instead of `xlsx`.
-- **CSV export neutralizes formula-like cells (`data-grid-io`):** `**Breaking:**` `exportGrid` now
-  prefixes formula-like cells — leading `=`, `-`, `@`, TAB, or CR, plain numbers exempt — with a
-  single quote, so Excel, LibreOffice, and Sheets open them as text instead of running them (a CSV
-  carrying `=HYPERLINK("http://x")` no longer opens as a live formula). Pass
+- **Breaking:** CSV export neutralizes formula-like cells (`data-grid-io`): `exportGrid` now
+  prefixes formula-like cells — leading `=`, `+`, `-`, `@`, TAB, or CR, plain numbers exempt —
+  with a single quote, so Excel, LibreOffice, and Sheets open them as text instead of running them
+  (a CSV carrying `=HYPERLINK("http://x")` no longer opens as a live formula). Pass
   `sanitizeFormulas: false` to `exportGrid` for the previous raw output. XLSX exports are
   unaffected: string cells never run as formulas. `data-grid` exports the
   `sanitizeFormulaCell(value)` helper, and `useDataGridClipboard({ sanitizeFormulas: true })`

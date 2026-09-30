@@ -90,6 +90,11 @@ describe("sanitizeFormulaCell", () => {
     expect(sanitizeFormulaCell("\rx")).toBe("'" + "\rx");
   });
 
+  it("prefixes a leading plus, which Excel also runs as a formula", () => {
+    expect(sanitizeFormulaCell('+HYPERLINK("x")')).toBe(`'+HYPERLINK("x")`);
+    expect(sanitizeFormulaCell("+1+cmd|' /C calc'!A0")).toBe("'+1+cmd|' /C calc'!A0");
+  });
+
   it("leaves plain numbers and other text untouched", () => {
     expect(sanitizeFormulaCell("-5")).toBe("-5");
     expect(sanitizeFormulaCell("+5")).toBe("+5");

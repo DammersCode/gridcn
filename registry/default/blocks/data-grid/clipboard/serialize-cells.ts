@@ -7,13 +7,13 @@ function quoteTsvField(cell: string): string {
 }
 
 /** A leading one of these makes a CSV/TSV cell a formula in Excel, LibreOffice, and Sheets. */
-const FORMULA_LEAD_CHARS = new Set(["=", "-", "@", "\t", "\r"]);
+const FORMULA_LEAD_CHARS = new Set(["=", "+", "-", "@", "\t", "\r"]);
 
-/** Values where a leading `-` is still a plain number. */
+/** Values where a leading `+` or `-` is still a plain number. */
 const PLAIN_NUMBER_RE = /^[+-]?\d+(\.\d+)?$/;
 
 /**
- * Prefixes a formula-like cell (leading `=`, `-`, `@`, TAB, or CR; plain numbers exempt) with a
+ * Prefixes a formula-like cell (leading `=`, `+`, `-`, `@`, TAB, or CR; plain numbers exempt) with a
  * single quote. External spreadsheets treat that quote as a hidden text marker, so a CSV export or
  * clipboard paste cannot run `=HYPERLINK(...)`-style formulas in another sheet.
  */
