@@ -53,6 +53,11 @@ function resolveAlias(specifier) {
   return null;
 }
 
+/** A registry.json dependency entry without its optional `@version` pin ("@e965/xlsx@0.20.3" -> "@e965/xlsx"). */
+function dependencyName(dep) {
+  return dep.replace(/(?<=.)@[^/@]*$/, "");
+}
+
 function npmPackageName(specifier) {
   return specifier.startsWith("@")
     ? specifier.split("/").slice(0, 2).join("/")
@@ -229,13 +234,13 @@ for (const item of examples) {
     }
     if (depItem.name === item.name) {
       for (const dep of [...(depItem.dependencies ?? []), ...(depItem.devDependencies ?? [])]) {
-        if (!npmPackages.has(dep)) errors.push(`${depItem.name}: npm dependency "${dep}" not declared in package.json (deps/devDeps)`);
+        if (!npmPackages.has(dependencyName(dep))) errors.push(`${depItem.name}: npm dependency "${dep}" not declared in package.json (deps/devDeps)`);
       }
     }
   }
   const declaredNpm = new Set();
   for (const depItem of closure.values()) {
-    for (const dep of [...(depItem.dependencies ?? []), ...(depItem.devDependencies ?? [])]) declaredNpm.add(dep);
+    for (const dep of [...(depItem.dependencies ?? []), ...(depItem.devDependencies ?? [])]) declaredNpm.add(dependencyName(dep));
   }
 
   // (b) payload imports
