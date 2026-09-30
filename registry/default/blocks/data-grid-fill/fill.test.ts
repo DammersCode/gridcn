@@ -232,6 +232,19 @@ describe("detectSeries", () => {
     expect(detectSeries(values)).toBeNull();
   });
 
+  it.each([
+    ["an arithmetic series", ["100000000000001", "200000000000002"]],
+    ["a padded series", ["000000000000001", "100000000000001"]],
+    ["a prefixed series", ["ID 100000000000000", "ID 200000000000000"]],
+  ])("tiles %s once an extrapolated value leaves the safe integer range", (_name, values) => {
+    const series = detectSeries(values)!;
+    expect(series).not.toBeNull();
+    expect(series.extrapolate(2)).not.toBe(values[0]);
+    expect(series.extrapolate(100)).toBe(values[0]);
+    expect(series.extrapolate(101)).toBe(values[1]);
+    expect(series.extrapolate(-100)).toBe(values[0]);
+  });
+
   it("detects a prefix series on a 20k-char value in linear time", () => {
     // the attack input: a long digit run, a non-digit, then a trailing digit — quadratic for the old
     // /^(.*?)(\d+)(\D*)$/ split, ~318 ms per value; a linear scan finishes in under a millisecond.

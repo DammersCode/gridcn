@@ -9,6 +9,11 @@ const EPSILON = 1e-9;
 /** Longest digit run a double holds exactly; longer ids would extrapolate to wrong digits, so they tile. */
 const MAX_EXACT_DIGITS = 15;
 
+/** Tile fallback for an index whose extrapolated number left the safe integer range. */
+function tile(values: readonly string[], index: number): string {
+  return values[((index % values.length) + values.length) % values.length]!;
+}
+
 function exceedsExactDigits(value: string): boolean {
   return value.replace(/\D/g, "").length > MAX_EXACT_DIGITS;
 }
@@ -50,7 +55,10 @@ function detectArithmetic(values: readonly string[]): SeriesDescriptor | null {
   }
   const precision = Math.max(...trimmed.map(decimalPlaces));
   return {
-    extrapolate: (index: number) => (first + delta * index).toFixed(precision),
+    extrapolate: (index: number) => {
+      const n = first + delta * index;
+      return Math.abs(n) > Number.MAX_SAFE_INTEGER ? tile(values, index) : n.toFixed(precision);
+    },
   };
 }
 
@@ -70,6 +78,7 @@ function detectPaddedNumeric(values: readonly string[]): SeriesDescriptor | null
   return {
     extrapolate: (index: number) => {
       const n = first + delta * index;
+      if (!Number.isSafeInteger(n)) return tile(values, index);
       const sign = n < 0 ? "-" : "";
       const digits = String(Math.abs(n)).padStart(width, "0");
       return sign + digits;
@@ -100,6 +109,7 @@ function detectPrefixNumber(values: readonly string[]): SeriesDescriptor | null 
   return {
     extrapolate: (index: number) => {
       const n = first + delta * index;
+      if (!Number.isSafeInteger(n)) return tile(values, index);
       const digits = uniformWidth && n >= 0 ? String(n).padStart(width, "0") : String(n);
       return prefix + digits + suffix;
     },
