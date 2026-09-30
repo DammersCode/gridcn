@@ -126,8 +126,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
 
   /**
    * Owe after every viewIndex/visibleColumns rebuild: re-anchor an open edit to the new view
-   * position of its rowId/columnId (the draft survives the move), and move `activeCell` with it
-   * when it sat on the edit cell. When the row or column left the view, cancel — the typed value
+   * position of its rowId/columnId (the draft survives the move), and move `activeCell` and the
+   * selection with it when they sat on the edit cell. When the row or column left the view, cancel — the typed value
    * is dropped, never written into a hidden row. Keeps object identity when nothing moved.
    * `data` must be the array `viewIndex` indexes; a consumer swap passes the incoming array.
    */
@@ -145,17 +145,22 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     const viewCol = visibleColumns.findIndex((column) => column.id === editing.columnId);
     const onEditCell =
       s.activeCell !== null && s.activeCell.row === editing.coord.row && s.activeCell.col === editing.coord.col;
+    const anchor = s.selection.current?.cell;
+    const anchoredOnEditCell = onEditCell && anchor !== undefined && anchor.row === editing.coord.row && anchor.col === editing.coord.col;
     if (viewRow === -1 || viewCol === -1) {
       return {
         editing: null,
         editingError: null,
         ...(onEditCell ? { activeCell: null } : {}),
+        ...(anchoredOnEditCell ? { selection: { ...s.selection, current: null } } : {}),
       };
     }
     if (viewRow === editing.coord.row && viewCol === editing.coord.col) return {};
+    const moved = { col: viewCol, row: viewRow };
     return {
-      editing: { ...editing, coord: { col: viewCol, row: viewRow } },
-      ...(onEditCell ? { activeCell: { col: viewCol, row: viewRow } } : {}),
+      editing: { ...editing, coord: moved },
+      ...(onEditCell ? { activeCell: moved } : {}),
+      ...(anchoredOnEditCell ? { selection: { ...selectCellPure(moved), rows: s.selection.rows, columns: s.selection.columns } } : {}),
     };
   };
   // cellErrors keys owned by each row's last validateRow verdict, so a re-run clears exactly its

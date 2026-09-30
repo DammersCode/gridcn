@@ -527,6 +527,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Selection follows the edited row (`data-grid`):** while a cell is in edit mode, a sort, filter,
+  or data change that moves its row moves the selection with the active cell. The range no longer
+  paints on another record, and Shift+Arrow after Escape extends from the edited cell.
 - **Pagination keeps deep links while data loads (`data-grid-pagination`):** server mode with
   `reconcilePage` no longer rewrites your page while `total` is `0`, so a deep link survives the
   first fetch. Client mode with an empty dataset shows page 1 of 1 instead of an out-of-range

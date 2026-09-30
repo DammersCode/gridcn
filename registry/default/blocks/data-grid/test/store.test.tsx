@@ -1460,6 +1460,48 @@ describe("editing anchored to its row across view rebuilds", () => {
     expect(result.current.activeCell).toEqual({ col: 1, row: 1 });
   });
 
+  it("the selection anchor follows the edit's row, so a range never paints on another record", () => {
+    const wrapper = makeWrapper();
+    const { result, rerender } = renderHook(
+      () => ({ actions: useDataGridActions(), selection: useDataGridSelection(), activeCell: useDataGridActiveCell() }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.actions.selectCellAt({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
+    });
+    rerender();
+    act(() => {
+      result.current.actions.toggleSort("name", false);
+    });
+    rerender();
+
+    expect(result.current.activeCell).toEqual({ col: 0, row: 2 });
+    expect(result.current.selection.current?.cell).toEqual({ col: 0, row: 2 });
+    expect(result.current.selection.current?.range).toEqual({ x: 0, y: 2, width: 1, height: 1 });
+  });
+
+  it("the selection is cleared with the active cell when the edited row leaves the view", () => {
+    const wrapper = makeWrapper();
+    const { result, rerender } = renderHook(
+      () => ({ actions: useDataGridActions(), selection: useDataGridSelection() }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.actions.selectCellAt({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
+    });
+    rerender();
+    act(() => {
+      result.current.actions.setFilters([{ columnId: "name", operator: "equals", value: "Alice" }]);
+    });
+    rerender();
+
+    expect(result.current.selection.current).toBeNull();
+  });
+
   it("filtering out the edited row cancels the edit and drops the draft", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
