@@ -27,6 +27,21 @@ describe("autosizeColumn", () => {
     document.body.removeChild(root);
   });
 
+  it("treats a cell with a null textContent as blank", () => {
+    const root = document.createElement("div");
+    const cell = document.createElement("div");
+    cell.setAttribute("role", "gridcell");
+    cell.setAttribute("data-column-id", "name");
+    // spec browsers return null for an element with no children; jsdom returns "" — force the spec value
+    Object.defineProperty(cell, "textContent", { value: null });
+    root.appendChild(cell);
+    document.body.appendChild(root);
+    const commitWidth = vi.fn();
+    autosizeColumn(root, makeColumn(), commitWidth);
+    expect(commitWidth).toHaveBeenCalledWith("name", expect.any(Number));
+    document.body.removeChild(root);
+  });
+
   it("uses headerText override when present, and respects column minWidth", () => {
     const commitWidth = vi.fn();
     autosizeColumn(null, makeColumn({ headerText: "Full Name", minWidth: 200 }), commitWidth);

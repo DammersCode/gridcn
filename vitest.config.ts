@@ -4,12 +4,13 @@ import { fileURLToPath } from "node:url";
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { playwright } from "@vitest/browser-playwright";
+import picomatch from "picomatch";
 import { defineConfig } from "vitest/config";
 
 const root = dirname(fileURLToPath(import.meta.url));
 
-// per-file branch bars for the pure-lib modules. Keys are file paths relative to the repo root;
-// a key that matches no file silently enforces nothing, so the set is validated at load.
+// per-file branch bars for the pure-lib modules; keys are repo-root-relative file paths.
+// Validated at load: a key matching no file or a coverage exclude glob enforces nothing.
 const perFileBranchThresholds: Record<string, { branches: number }> = {
   "registry/default/blocks/data-grid/cell-types/cell-types.ts": { branches: 90 },
   "registry/default/blocks/data-grid/columns/column-helpers.ts": { branches: 90 },
@@ -27,8 +28,7 @@ const perFileBranchThresholds: Record<string, { branches: number }> = {
   "registry/default/blocks/data-grid/keyboard/match-keymap.ts": { branches: 90 },
   "registry/default/blocks/data-grid/sort-filter/matches-filter.ts": { branches: 90 },
   "registry/default/blocks/data-grid/selection/offset-selection-for-rows.ts": { branches: 90 },
-  // merged from parse-clipboard-html.ts (85) + parse-clipboard-text.ts (90) + parse-clipboard.ts (90) - kept at the lower bound so the merge itself isn't a gate regression
-  "registry/default/blocks/data-grid/clipboard/parse-clipboard.ts": { branches: 85 },
+  "registry/default/blocks/data-grid/clipboard/parse-clipboard.ts": { branches: 90 },
   // merged from pin-left-offsets.ts + pin-right-offsets.ts (both 90)
   "registry/default/blocks/data-grid/columns/pin-offsets.ts": { branches: 90 },
   "registry/default/blocks/data-grid/columns/pinned-inset-style.ts": { branches: 90 },
@@ -56,11 +56,11 @@ const perFileBranchThresholds: Record<string, { branches: number }> = {
   "registry/default/blocks/data-grid-fill/detect-series.ts": { branches: 90 },
   "registry/default/blocks/data-grid-fill/fill-direction.ts": { branches: 90 },
   "registry/default/blocks/data-grid-fill/generate-fill.ts": { branches: 90 },
-  "registry/default/blocks/data-grid-context-menu/autosize-column.ts": { branches: 85 },
+  "registry/default/blocks/data-grid-context-menu/autosize-column.ts": { branches: 90 },
   // was data-grid-context-menu/is-cell-in-selection.ts (90)
   "registry/default/blocks/data-grid-context-menu/selection-queries.ts": { branches: 90 },
   "registry/default/blocks/data-grid-context-menu/resolve-context-menu-target.ts": { branches: 90 },
-  "registry/default/blocks/data-grid-io/build-imported-rows.ts": { branches: 85 },
+  "registry/default/blocks/data-grid-io/build-imported-rows.ts": { branches: 90 },
   "registry/default/blocks/data-grid-io/export-grid.ts": { branches: 90 },
   "registry/default/blocks/data-grid-io/match-import-column.ts": { branches: 90 },
   "registry/default/blocks/data-grid-io/parse-import-file.ts": { branches: 90 },
@@ -75,7 +75,18 @@ const perFileBranchThresholds: Record<string, { branches: number }> = {
   "registry/default/blocks/data-grid-url-state/filter-param.ts": { branches: 90 },
 };
 
+// Files coverage never measures: a threshold key inside these globs would silently enforce nothing.
+const coverageExclude = [
+  "**/*.test.{ts,tsx}",
+  "**/*.browser.test.{ts,tsx}",
+  "**/*.type-test.ts",
+  "**/*.tsx",
+  "registry/**/index.ts",
+];
+const isCoverageExcluded = picomatch(coverageExclude);
+
 for (const key of Object.keys(perFileBranchThresholds)) {
+  if (isCoverageExcluded(key)) throw new Error(`coverage perFile threshold key matches a coverage exclude glob: ${key}`);
   if (!existsSync(join(root, key))) throw new Error(`coverage perFile threshold key matches no file: ${key}`);
 }
 
@@ -93,13 +104,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "json-summary", "json"],
       include: ["registry/**/*.ts"],
-      exclude: [
-        "**/*.test.{ts,tsx}",
-        "**/*.browser.test.{ts,tsx}",
-        "**/*.type-test.ts",
-        "**/*.tsx",
-        "registry/**/index.ts",
-      ],
+      exclude: coverageExclude,
       // Testing bar: pure lib modules (selection math, clipboard parse/serialize, fill/series,
       // sort-filter, history, keymap matching, url-state serializers, etc.) hold a ~90-100%
       // branch bar with an enforced CI gate. React glue (hooks, store, context, components) is
