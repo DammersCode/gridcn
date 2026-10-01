@@ -269,7 +269,7 @@
     },
     {
       "path": "registry/default/blocks/data-grid/is-dev.ts",
-      "content": "/** True outside production; reads `process.env.NODE_ENV` via `globalThis` so it typechecks without `@types/node` (Vite consumers don't have it by default). */\r\nexport function isDev(): boolean {\r\n  const env = (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env?.NODE_ENV;\r\n  return env !== \"production\";\r\n}\r\n",
+      "content": "// file-local declaration, so the literal below typechecks in consumers without @types/node\ndeclare const process: { env: { NODE_ENV?: string } };\n\n/**\n * True outside production. The literal `process.env.NODE_ENV` is replaced by bundlers\n * (webpack, Vite, Next) before it can run, so no `process` global exists at runtime; the catch\n * keeps builds that skip the replacement on the development side instead of crashing.\n */\nexport function isDev(): boolean {\n  try {\n    return process.env.NODE_ENV !== \"production\";\n  } catch {\n    return true;\n  }\n}\n",
       "type": "registry:component",
       "target": "components/data-grid/is-dev.ts"
     },
