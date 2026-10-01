@@ -1,3 +1,7 @@
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { normalizePayloadText } from "../scripts/normalize-payload-eol.mjs";
 
@@ -55,5 +59,42 @@ describe("normalizePayloadText", () => {
     const head = payloadText([{ path: "a.ts", content: "a\r\n" }]);
     const work = payloadText([{ path: "a.ts", content: "b\r\n" }]);
     expect(normalizePayloadText(head, work).text).toBe(work);
+  });
+
+  it("keeps a payload whose files only changed order", () => {
+    const head = payloadText([
+      { path: "a.ts", content: "a\r\n" },
+      { path: "b.ts", content: "b\r\n" },
+    ]);
+    const work = payloadText([
+      { path: "b.ts", content: "b\r\n" },
+      { path: "a.ts", content: "a\r\n" },
+    ]);
+
+    const { status, text } = normalizePayloadText(head, work);
+
+    expect(status).toBe("real-kept");
+    expect((JSON.parse(text) as { files: PayloadFile[] }).files.map((file) => file.path)).toEqual(["b.ts", "a.ts"]);
+  });
+});
+
+describe("normalize-payload-eol script", () => {
+  it("skips a tracked payload that was deleted instead of crashing", () => {
+    const repo = mkdtempSync(join(tmpdir(), "payload-eol-"));
+    try {
+      const git = (...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd: repo, stdio: "pipe" });
+      git("init", "-q");
+      mkdirSync(join(repo, "public", "r"), { recursive: true });
+      writeFileSync(join(repo, "public", "r", "gone.json"), payloadText([{ path: "a.ts", content: "a\r\n" }]));
+      git("add", ".");
+      git("commit", "-q", "-m", "payload");
+      rmSync(join(repo, "public", "r", "gone.json"));
+
+      const output = execFileSync("node", [resolve(__dirname, "../scripts/normalize-payload-eol.mjs")], { cwd: repo, encoding: "utf8" });
+
+      expect(output).toContain("deleted-skipped public/r/gone.json");
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
   });
 });

@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 const toLf = (s) => s.replace(/\r\n/g, "\n");
@@ -18,7 +18,7 @@ export function normalizePayloadText(headText, workText) {
     const keepsCrlf = committed === undefined ? payloadIsCrlf : committed.includes("\r\n");
     return { ...file, content: keepsCrlf ? file.content : toLf(file.content) };
   });
-  const sameFiles = work.files.length === headByPath.size;
+  const sameFiles = work.files.length === headByPath.size && work.files.every((file, index) => file.path === head.files[index].path);
   if (!changed && sameFiles && toLf(JSON.stringify({ ...work, files: undefined })) === toLf(JSON.stringify({ ...head, files: undefined }))) {
     return { status: "drift-discarded", text: headText };
   }
@@ -30,6 +30,10 @@ export function normalizePayloadText(headText, workText) {
 function main() {
   const changed = execSync("git diff HEAD --name-only public/r", { encoding: "utf8" }).trim().split("\n").filter(Boolean);
   for (const f of changed) {
+    if (!existsSync(f)) {
+      console.log(`deleted-skipped ${f}`);
+      continue;
+    }
     let head;
     try {
       head = execSync(`git show HEAD:${f}`, { encoding: "utf8" });
