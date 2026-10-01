@@ -10,6 +10,7 @@ import {
   useDataGridRow,
   useDataGridSearchMatches,
   useDataGridSelection,
+  useDataGridStore,
   useDataGridStoreApi,
   useDataGridViewIndex,
   useDataGridViewStale,
@@ -917,6 +918,43 @@ describe("controlled echo detection", () => {
     viewSpy.mockRestore();
   });
 
+  it("a reference-stable controlled filterState without ids keeps viewIndex and the backfilled filterIds", () => {
+    let data = rows();
+    const onDataChange = vi.fn((next: readonly Row[]) => {
+      data = next as Row[];
+    });
+    // the store backfills the missing ids once; a same-reference prop re-sync must reuse the
+    // backfilled array, not re-mint ids (which would churn sync inputs and rebuild the view)
+    const stableFilters: FilterSpec[] = [{ columnId: "price", operator: "gt", value: "0" }];
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider
+          data={data}
+          columns={columns}
+          getRowId={getRowId}
+          onDataChange={onDataChange}
+          filterState={stableFilters}
+        >
+          {children}
+        </DataGridProvider>
+      );
+    }
+    const { result, rerender } = renderHook(
+      () => ({ ...useHarness(), filterState: useDataGridStore((s) => s.filterState) }),
+      { wrapper: Wrapper },
+    );
+    const viewSpy = vi.spyOn(compute, "computeViewIndex");
+    const before = result.current.viewIndex;
+    const filterId = result.current.filterState[0]!.filterId;
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "note", value: "x" }]));
+    const rebuildsAfterEdit = viewSpy.mock.calls.length;
+    rerender();
+    expect(result.current.viewIndex).toBe(before);
+    expect(viewSpy.mock.calls.length).toBe(rebuildsAfterEdit);
+    expect(result.current.filterState[0]!.filterId).toBe(filterId);
+    viewSpy.mockRestore();
+  });
+
   it("an inline cellTypes literal with the same entries keeps the deferred order and viewIndex identity on echo", () => {
     let data = rows();
     const onDataChange = vi.fn((next: readonly Row[]) => {
@@ -998,6 +1036,28 @@ describe("controlled echo detection", () => {
     rerender();
     // desc by name: Charlie->Aaron so order is Bob(c), Alice(b), Aaron(a)
     expect(result.current.viewIndex).toEqual([2, 1, 0]);
+  });
+});
+
+describe("withFilterIds", () => {
+  it("returns the input array itself when every filter has an id", () => {
+    const filters: FilterSpec[] = [
+      { filterId: "f1", columnId: "name", operator: "equals", value: "x" },
+      { filterId: "f2", columnId: "price", operator: "gt", value: "0" },
+    ];
+    expect(compute.withFilterIds(filters)).toBe(filters);
+  });
+
+  it("backfills only the missing ids and keeps the existing ones", () => {
+    const filters: FilterSpec[] = [
+      { filterId: "f1", columnId: "name", operator: "equals", value: "x" },
+      { columnId: "price", operator: "gt", value: "0" },
+    ];
+    const out = compute.withFilterIds(filters);
+    expect(out).not.toBe(filters);
+    expect(out[0]).toBe(filters[0]);
+    expect(out[0]!.filterId).toBe("f1");
+    expect(out[1]!.filterId).toEqual(expect.any(String));
   });
 });
 
