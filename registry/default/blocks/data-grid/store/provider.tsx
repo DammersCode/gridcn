@@ -56,23 +56,26 @@ function activeCellEvent(s: DataGridStoreState, coord: ViewCoord): ViewCellRef {
 
 /**
  * Wires `onActiveCellChange`: one `storeApi.subscribe` on `state.activeCell` that fires on a coord
- * move, a clear, or the record under the cursor changing — a sort rebuilds the view without
- * touching `activeCell`, so the identity check alone would miss it. Re-selecting the same cell on
- * the same record does not fire, whether the coord is the same object or a freshly allocated one
- * (`selectCell`, `startEditing`, a commit's cursor restore).
+ * move, a clear, or a different record or column under the cursor (a sort, a lazy load, a column
+ * hide, reorder, or pin). Re-selecting the same cell on the same record and column does not fire.
  */
 function subscribeActiveCellChange(store: StoreApi<DataGridStoreState>): () => void {
   return store.subscribe((state, prevState) => {
+    if (!state.onActiveCellChange) return;
     const next = state.activeCell;
     const prev = prevState.activeCell;
-    if (next !== null && prev !== null) {
-      const coordMoved = next.row !== prev.row || next.col !== prev.col;
-      const recordMoved = rowIdAtViewRow(prevState, prev.row) !== rowIdAtViewRow(state, next.row);
-      if (!coordMoved && !recordMoved) return;
+    const viewChanged =
+      state.viewIndex !== prevState.viewIndex || state.data !== prevState.data || state.getRowId !== prevState.getRowId;
+    const columnsChanged = state.visibleColumns !== prevState.visibleColumns;
+    if (next === prev && !viewChanged && !columnsChanged) return;
+    if (next !== null && prev !== null && next.row === prev.row && next.col === prev.col) {
+      const columnMoved = columnsChanged && prevState.visibleColumns[prev.col]?.id !== state.visibleColumns[next.col]?.id;
+      const recordMoved = viewChanged && rowIdAtViewRow(prevState, prev.row) !== rowIdAtViewRow(state, next.row);
+      if (!columnMoved && !recordMoved) return;
     } else if (next === prev) {
       return;
     }
-    state.onActiveCellChange?.(next === null ? null : activeCellEvent(state, next));
+    state.onActiveCellChange(next === null ? null : activeCellEvent(state, next));
   });
 }
 

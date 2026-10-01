@@ -24,7 +24,7 @@ import {
   computeColumnLayout,
   computeSearchMatches,
   computeVisibleColumns,
-  clampActiveCell,
+  clampCursor,
   computeViewIndex,
   defHiddenColumnIds,
   flashCellKey,
@@ -464,7 +464,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (nextIds === currentIds) return;
         const nextVisibleColumns = computeVisibleColumns(s.columns, nextIds, s.hiddenColumns);
         if (visibleColumnsMoved(s.visibleColumns, nextVisibleColumns)) warnViewSpacePresenceStale(s);
-        set({ columnOrder: nextIds, visibleColumns: nextVisibleColumns, activeCell: clampActiveCell(s.activeCell, s.viewIndex.length, nextVisibleColumns.length), ...remapEditing(s, s.viewIndex, nextVisibleColumns) });
+        set({ columnOrder: nextIds, visibleColumns: nextVisibleColumns, ...clampCursor(s, s.viewIndex.length, nextVisibleColumns.length), ...remapEditing(s, s.viewIndex, nextVisibleColumns) });
         s.onColumnLayoutChange?.(computeColumnLayout(s.columns, nextIds, s.columnWidths, s.hiddenColumns));
       },
       setColumnPin(id, pin) {
@@ -478,7 +478,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         set({
           columns: nextColumns,
           visibleColumns: nextVisibleColumns,
-          activeCell: clampActiveCell(s.activeCell, s.viewIndex.length, nextVisibleColumns.length),
+          ...clampCursor(s, s.viewIndex.length, nextVisibleColumns.length),
           ...remapEditing(s, s.viewIndex, nextVisibleColumns),
         });
         s.onColumnLayoutChange?.(computeColumnLayout(nextColumns, s.columnOrder, s.columnWidths, s.hiddenColumns));
@@ -498,7 +498,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           visibleColumns: nextVisibleColumns,
           viewIndex,
           viewStale: false,
-          activeCell: clampActiveCell(s.activeCell, viewIndex.length, nextVisibleColumns.length),
+          ...clampCursor(s, viewIndex.length, nextVisibleColumns.length),
           ...remapEditing(s, viewIndex, nextVisibleColumns),
           ...computeSearchMatches(s.data, s.columns, viewIndex, nextVisibleColumns, s.searchText, s.cellTypes),
         });
@@ -525,7 +525,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             sortState: sorts,
             viewIndex,
             viewStale: false,
-            activeCell: clampActiveCell(s2.activeCell, viewIndex.length, s2.visibleColumns.length),
+            ...clampCursor(s2, viewIndex.length, s2.visibleColumns.length),
             ...remapEditing(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
           };
@@ -543,7 +543,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             sortState: sorts,
             viewIndex,
             viewStale: false,
-            activeCell: clampActiveCell(s2.activeCell, viewIndex.length, s2.visibleColumns.length),
+            ...clampCursor(s2, viewIndex.length, s2.visibleColumns.length),
             ...remapEditing(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
           };
@@ -563,7 +563,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             filterState: withIds,
             viewIndex,
             viewStale: false,
-            activeCell: clampActiveCell(s2.activeCell, viewIndex.length, s2.visibleColumns.length),
+            ...clampCursor(s2, viewIndex.length, s2.visibleColumns.length),
             ...remapEditing(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
           };
@@ -581,7 +581,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             joinOperator,
             viewIndex,
             viewStale: false,
-            activeCell: clampActiveCell(s2.activeCell, viewIndex.length, s2.visibleColumns.length),
+            ...clampCursor(s2, viewIndex.length, s2.visibleColumns.length),
             ...remapEditing(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
           };
@@ -819,7 +819,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           // computeViewIndex's own content-equality reuse), no row fell out of view, so this
           // clamp is a no-op — filtering against nextViewIndex.length still runs but keeps every row.
           const editRemap = unchanged ? {} : remapEditing(s, nextViewIndex, nextVisibleColumns, nextData, props.getRowId);
-          const baseSelection = editRemap.selection ?? s.selection;
+          const cursor = clampCursor(s, nextViewIndex.length, nextVisibleColumns.length);
+          const baseSelection = editRemap.selection ?? ("selection" in cursor ? cursor.selection : s.selection);
           const rows = baseSelection.rows.length === 0
             ? baseSelection.rows
             : CompactSelection.fromArray(baseSelection.rows.toArray().filter((row) => row < nextViewIndex.length));
@@ -851,7 +852,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             // rows moved only when a genuine consumer data replacement invalidated the id cache
             // (our own echo never moves a row — updateCells patches values in place)
             rowIdentityVersion: nextData !== s.data && !isEcho ? s.rowIdentityVersion + 1 : s.rowIdentityVersion,
-            activeCell: clampActiveCell(s.activeCell, nextViewIndex.length, nextVisibleColumns.length),
+            activeCell: cursor.activeCell,
             ...editRemap,
             ...(unchanged
               ? { searchMatches: s.searchMatches, searchMatchSet: s.searchMatchSet, searchMatchRows: s.searchMatchRows, searchMatchesCapped: s.searchMatchesCapped }

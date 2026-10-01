@@ -19,6 +19,7 @@ import {
   type SearchMatch,
 } from "../sort-filter";
 import { getCellValue } from "../columns/column-helpers";
+import { selectCell } from "../selection/selection-ops";
 import { isDev } from "../is-dev";
 import type { OverlayPlugin } from "../overlays";
 import type { RowBandsSpec } from "../layout-context";
@@ -88,6 +89,17 @@ export function clampActiveCell(activeCell: ViewCoord | null, viewLength: number
   const row = Math.min(activeCell.row, viewLength - 1);
   const col = Math.min(activeCell.col, columnCount - 1);
   return row === activeCell.row && col === activeCell.col ? activeCell : { row, col };
+}
+
+/** The cursor fitted into a rebuilt view: a clamp that moves `activeCell` also collapses the selection onto the clamped cell. */
+export function clampCursor(
+  s: Pick<DataGridStoreState, "activeCell" | "selection">,
+  viewLength: number,
+  columnCount: number,
+): Pick<DataGridStoreState, "activeCell"> | Pick<DataGridStoreState, "activeCell" | "selection"> {
+  const activeCell = clampActiveCell(s.activeCell, viewLength, columnCount);
+  if (activeCell === s.activeCell || activeCell === null) return { activeCell };
+  return { activeCell, selection: { ...selectCell(activeCell), rows: s.selection.rows, columns: s.selection.columns } };
 }
 
 /** Row id shown at `viewRow`, or `undefined` for a missing or unloaded row. */

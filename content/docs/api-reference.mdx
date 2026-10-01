@@ -254,6 +254,9 @@ a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
   `CellRef` by default; each also has an `*At` variant that takes a `ViewCoord` instead.
 - `ViewCoord` (`{ col, row }`) — view space: the sorted/filtered row position, not a `data`
   index. It moves when the view changes.
+- `ViewCellRef` (`{ rowId, columnId, viewRowIndex, viewColumnIndex }`) — a `CellRef` plus the
+  view position the cell occupied when an event fired. `onActiveCellChange`, `onEditStart`, and
+  `onEditEnd` deliver it.
 - `GridRect` (`{ x, y, width, height }`, half-open).
 - `GridSelection` (`{ current: {cell, range, rangeStack} | null, rows, columns }`).
 - `DataOp<TData>` (`update`, `insert`, `delete`, or `move`, id-keyed) and `DataChange<TData>`

@@ -63,15 +63,17 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `CellTypeValueInput` are exported from the `data-grid` barrel, along with the operator arrays
   `TEXT_FILTER_OPERATORS` and `COMPARISON_FILTER_OPERATORS` for declaring custom lists.
 - **Grid event API:** six new optional props on `DataGrid`/`DataGridProvider`. `onActiveCellChange(next)`
-  fires when the active cell becomes a different cell, when a sort or filter moves another record
-  under the cursor, or when it is cleared (`null`); the payload is a `ViewCellRef`
+  fires when the active cell becomes a different cell, when another record or column moves under
+  the cursor (a sort, filter, lazy row load, column hide, reorder, or pin), or when it is cleared
+  (`null`); a value-only write does not fire it. The payload is a `ViewCellRef`
   (`{ rowId, columnId, viewRowIndex, viewColumnIndex }`). `onEditStart(cell)` fires before an edit
   session opens with the target cell's `ViewCellRef` and may return `false` to veto the edit.
   `onEditEnd(event)` fires with a `GridEditEndEvent`
   `{ rowId, columnId, viewRowIndex, viewColumnIndex, result: "commit" | "cancel" | "rejected" }` —
   `rejected` fires per refused commit attempt while the session stays open. A view rebuild that
-  shrinks the view clamps the active cell to the nearest in-view cell (or clears it when the view
-  empties), and `onActiveCellChange` fires for the move. Each session ends with exactly one
+  shrinks the view clamps the active cell to the nearest in-view cell and collapses the selection
+  onto it (or clears the active cell when the view empties), and `onActiveCellChange` fires for
+  the move. Each session ends with exactly one
   `commit` or `cancel`: a filter, hidden column, or data change that drops the edited cell, and a
   second `startEditing` over an open session (which ends the old session first), report `cancel`.
   `onValidationError(event)` fires after a bulk paste or fill settles, only when at least one
@@ -80,8 +82,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `onCellDoubleClick` and `onCellContextMenu` fire on the matching cell gesture with the
   `CellClickCtx` shape plus the native `MouseEvent`; both are pure notifications, not veto points.
   Payload types `ViewCellRef`, `GridEditEndEvent`, `GridValidationErrorEvent`, and
-  `GridBulkValidationError` are exported from the `data-grid` barrel. `CellEditorProps` gains
-  `rowId` and `columnId`.
+  `GridBulkValidationError` are exported from the `data-grid` barrel.
 - **Menu resolvers (`data-grid-context-menu`):** the context menu and the header dropdown are now
   data. `DataGridContextMenu.getCellMenuItems(ctx, defaults)` and
   `DataGridContextMenu.getHeaderMenuItems(ctx, defaults)` receive the built-in item set as a
@@ -317,6 +318,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking:** `CellEditorProps` has required `rowId` and `columnId` props (`data-grid`). A
+  custom editor receives the stable ids of the edited cell. Code that renders an editor component
+  directly must pass both props.
 - **Breaking:** the write-pulse follows its row (`data-grid`, `data-grid-sdk`). `flashCells` takes
   `CellRef[]` (`{ rowId, columnId }`) instead of opaque string keys, so a sort, filter, or reorder
   moves the pulse with its row instead of leaving it on another record for up to 1.4 s.

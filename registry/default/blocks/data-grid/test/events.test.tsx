@@ -320,6 +320,130 @@ describe("onActiveCellChange", () => {
   });
 });
 
+describe("onActiveCellChange — columns, writes, and clamps", () => {
+  function useActionsAndStore() {
+    return { actions: useDataGridActions(), store: useDataGridStoreApi() };
+  }
+
+  it("fires when hiding a column moves another column under the cursor", () => {
+    const onActiveCellChange = vi.fn();
+    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper({ onActiveCellChange }) });
+    act(() => result.current.selectCellAt({ col: 0, row: 0 }));
+    act(() => result.current.setColumnHidden("name", true));
+    expect(onActiveCellChange).toHaveBeenCalledTimes(2);
+    expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "1", columnId: "qty", viewRowIndex: 0, viewColumnIndex: 0 });
+  });
+
+  it("fires when a column reorder moves another column under the cursor", () => {
+    const onActiveCellChange = vi.fn();
+    const { result } = renderHook(() => useDataGridActions(), {
+      wrapper: makeWrapper({ onActiveCellChange, enableColumnReorder: true }),
+    });
+    act(() => result.current.selectCellAt({ col: 0, row: 0 }));
+    act(() => result.current.setColumnOrder("qty", "name", "before"));
+    expect(onActiveCellChange).toHaveBeenCalledTimes(2);
+    expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "1", columnId: "qty", viewRowIndex: 0, viewColumnIndex: 0 });
+  });
+
+  it("fires when pinning a column moves it under the cursor", () => {
+    const onActiveCellChange = vi.fn();
+    const { result } = renderHook(() => useDataGridActions(), {
+      wrapper: makeWrapper({ onActiveCellChange, enableColumnPinning: true }),
+    });
+    act(() => result.current.selectCellAt({ col: 0, row: 0 }));
+    act(() => result.current.setColumnPin("qty", "left"));
+    expect(onActiveCellChange).toHaveBeenCalledTimes(2);
+    expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "1", columnId: "qty", viewRowIndex: 0, viewColumnIndex: 0 });
+  });
+
+  it("does not fire for a value-only updateCells under the cursor", () => {
+    const onActiveCellChange = vi.fn();
+    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper({ onActiveCellChange }) });
+    act(() => result.current.selectCellAt({ col: 1, row: 0 }));
+    act(() => {
+      result.current.updateCells([{ rowId: "1", columnId: "qty", value: 9 }], { reorder: "immediate" });
+    });
+    expect(onActiveCellChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls no getRowId for a store update that leaves the cursor, view, data, and columns alone", () => {
+    const getRowId = vi.fn((r: Row) => r.id);
+    const onActiveCellChange = vi.fn();
+    const { result } = renderHook(() => useActionsAndStore(), { wrapper: makeWrapper({ onActiveCellChange, getRowId }) });
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    getRowId.mockClear();
+    act(() => result.current.actions.setColumnWidth("name", 222));
+    expect(getRowId).not.toHaveBeenCalled();
+    expect(onActiveCellChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls no getRowId from the subscription when no onActiveCellChange is set", () => {
+    const getRowId = vi.fn((r: Row) => r.id);
+    const { result } = renderHook(() => useActionsAndStore(), { wrapper: makeWrapper({ getRowId }) });
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    getRowId.mockClear();
+    act(() => result.current.actions.selectCellAt({ col: 1, row: 1 }));
+    expect(getRowId).not.toHaveBeenCalled();
+  });
+
+  it("clamps the cursor and collapses the selection when a consumer data swap shrinks the view", () => {
+    const onActiveCellChange = vi.fn();
+    let data = rows();
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider data={data} columns={columns} getRowId={(r) => r.id} onActiveCellChange={onActiveCellChange}>
+          {children}
+        </DataGridProvider>
+      );
+    }
+    const { result, rerender } = renderHook(() => useActionsAndStore(), { wrapper: Wrapper });
+    act(() => result.current.actions.selectCellAt({ col: 1, row: 2 }));
+    data = rows().slice(0, 1);
+    rerender();
+    const s = result.current.store.getState();
+    expect(s.activeCell).toEqual({ col: 1, row: 0 });
+    expect(s.selection.current?.cell).toEqual({ col: 1, row: 0 });
+    expect(s.selection.current?.range).toEqual({ x: 1, y: 0, width: 1, height: 1 });
+    expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "1", columnId: "qty", viewRowIndex: 0, viewColumnIndex: 1 });
+  });
+
+  it("fires when a lazy row loads under the cursor", () => {
+    const onActiveCellChange = vi.fn();
+    const loaded = rows();
+    let data: Row[] = [loaded[0]!, undefined as unknown as Row, loaded[2]!];
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider data={data} columns={columns} getRowId={(r) => r.id} onActiveCellChange={onActiveCellChange}>
+          {children}
+        </DataGridProvider>
+      );
+    }
+    const { result, rerender } = renderHook(() => useActionsAndStore(), { wrapper: Wrapper });
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 1 }));
+    expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "__lazy-unloaded-1", columnId: "name", viewRowIndex: 1, viewColumnIndex: 0 });
+    data = loaded;
+    rerender();
+    expect(onActiveCellChange).toHaveBeenCalledTimes(2);
+    expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "2", columnId: "name", viewRowIndex: 1, viewColumnIndex: 0 });
+  });
+
+  it("clamps the cursor when an immediate updateCells drops its row out of a filtered view", () => {
+    const onActiveCellChange = vi.fn();
+    const { result } = renderHook(() => useActionsAndStore(), { wrapper: makeWrapper({ onActiveCellChange }) });
+    act(() => result.current.actions.setFilters([{ filterId: "f", columnId: "qty", operator: "gt", value: "0" }]));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 1 }));
+    expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "3", columnId: "name", viewRowIndex: 1, viewColumnIndex: 0 });
+    act(() => {
+      result.current.actions.updateCells([{ rowId: "3", columnId: "qty", value: -5 }], { reorder: "immediate" });
+    });
+    const s = result.current.store.getState();
+    expect(s.viewIndex).toHaveLength(1);
+    expect(s.activeCell).toEqual({ col: 0, row: 0 });
+    expect(s.selection.current?.cell).toEqual({ col: 0, row: 0 });
+    expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "2", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0 });
+  });
+});
+
 describe("DOM cell events", () => {
   it("onCellDoubleClick fires with the cell context and the native event", () => {
     const onCellDoubleClick = vi.fn();

@@ -1,5 +1,5 @@
 import {
-  clampActiveCell,
+  clampCursor,
   clampIndex,
   clearErrorsForOps,
   computeSearchMatches,
@@ -185,7 +185,12 @@ export type DataWriteDeps = {
   ) => ReadonlyMap<string, string>;
   pruneRowValidationKeys: (data: readonly unknown[], getRowId: (row: unknown, index: number) => string) => void;
   warnViewSpacePresenceStale: (s: DataGridStoreState) => void;
-  remapEditing: (s: DataGridStoreState, viewIndex: readonly number[], visibleColumns: readonly AnyColumnDef[]) => Partial<DataGridStoreState>;
+  remapEditing: (
+    s: DataGridStoreState,
+    viewIndex: readonly number[],
+    visibleColumns: readonly AnyColumnDef[],
+    data?: readonly unknown[],
+  ) => Partial<DataGridStoreState>;
   /** Runs `write`, which ends `session`, without the `cancel` report: the caller reports its own `onEditEnd` result. */
   endEditSession: (session: NonNullable<DataGridStoreState["editing"]>, write: () => void) => void;
 };
@@ -471,6 +476,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         cellErrors,
         viewIndex,
         viewStale: false,
+        ...clampCursor(s, viewIndex.length, s.visibleColumns.length),
+        ...remapEditing(s, viewIndex, s.visibleColumns, batch.nextData),
         ...computeSearchMatches(batch.nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
       });
       return { applied, skipped: batch.skipped, pending: false };
@@ -494,7 +501,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       set({
         viewIndex,
         viewStale: false,
-        activeCell: clampActiveCell(s.activeCell, viewIndex.length, s.visibleColumns.length),
+        ...clampCursor(s, viewIndex.length, s.visibleColumns.length),
         ...remapEditing(s, viewIndex, s.visibleColumns),
         ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
       });
