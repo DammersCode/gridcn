@@ -26,7 +26,7 @@ async function expectFastRejection(parse: Promise<unknown>, message: string, bud
 
 describe("parseImportFile — hostile xlsx", () => {
   it("rejects a zip bomb whose worksheet inflates past the default decompression cap", async () => {
-    const file = await xlsxWithWorksheet(worksheetXml(`<row r="1">${inlineCell("A1", "a")}</row>`), 513 * 1024 * 1024);
+    const file = await xlsxWithWorksheet(worksheetXml(`<row r="1">${inlineCell("A1", "a")}</row>`), 257 * 1024 * 1024);
     expect(file.size).toBeLessThan(1024 * 1024);
 
     await expectFastRejection(parseImportFile(file), "file-too-large", 3_000);
@@ -50,6 +50,30 @@ describe("parseImportFile — hostile xlsx", () => {
 
     await expect(parseImportFile(file, { maxDecompressedBytes: 4 * 1024 * 1024 })).rejects.toThrow("file-too-large");
     await expect(parseImportFile(await workbookFile({ Sheet1: [["a"]] }), { maxDecompressedBytes: 4 * 1024 * 1024 })).resolves.toMatchObject({ rows: [["a"]] });
+  });
+
+  it("rejects a worksheet whose declared size could hold more cells than maxCells, before parsing it", async () => {
+    const sheet = worksheetXml(`<row r="1">${inlineCell("A1", "a")}</row>`);
+    const padded = await xlsxWithWorksheet(sheet, 8 * 1024 * 1024);
+    const lying = await xlsxWithWorksheet(sheet, 1, 8 * 1024 * 1024);
+
+    await expectFastRejection(parseImportFile(padded, { maxCells: 100_000 }), "import-too-many-cells", 1_000);
+    await expectFastRejection(parseImportFile(lying, { maxCells: 100_000 }), "import-too-many-cells", 1_000);
+  });
+
+  it("sizes the worksheet bound at 21 bytes per allowed cell, the smallest real cell, plus 1 MiB for the rest of the sheet", async () => {
+    const sheet = worksheetXml('<row r="1"><c r="A1"><v>1</v></c></row>');
+    const pad = (maxCells: number) => 21 * maxCells + 1024 * 1024 - new TextEncoder().encode(sheet).length;
+
+    await expect(parseImportFile(await xlsxWithWorksheet(sheet, pad(1_000)), { maxCells: 1_000 })).resolves.toMatchObject({ rows: [["1"]] });
+    await expect(parseImportFile(await xlsxWithWorksheet(sheet, pad(1_000) + 1), { maxCells: 1_000 })).rejects.toThrow("import-too-many-cells");
+  });
+
+  it("does not hold large parts other than worksheets to the cell bound", async () => {
+    const base = await workbookFile({ Sheet1: [["a"]] });
+    const file = await withEntries(base, { "xl/media/image1.bin": new Uint8Array(8 * 1024 * 1024) });
+
+    await expect(parseImportFile(file, { maxCells: 100_000 })).resolves.toMatchObject({ rows: [["a"]] });
   });
 
   it("rejects a ZIP64 directory, which can declare parts past any cap", async () => {

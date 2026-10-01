@@ -19,8 +19,8 @@ export const DEFAULT_IMPORT_LIMITS = {
   maxColumns: 1_000,
   /** Maximum cells, counted as rows times columns of the imported rectangle; default 5,000,000. */
   maxCells: 5_000_000,
-  /** Maximum unpacked size of one xlsx part (a worksheet, the shared strings); default 512 MiB. */
-  maxDecompressedBytes: 512 * 1024 * 1024,
+  /** Maximum unpacked size of one xlsx part (a worksheet, the shared strings); default 256 MiB. */
+  maxDecompressedBytes: 256 * 1024 * 1024,
 } as const;
 
 /** Error message {@link parseImportFile} throws for a file over `maxFileBytes`. */
@@ -42,7 +42,7 @@ export type ImportLimits = {
   maxColumns?: number;
   /** Maximum rows times columns of the imported rectangle; default 5,000,000. */
   maxCells?: number;
-  /** Reject an xlsx whose parts (a worksheet, the shared strings) unpack to more than this many bytes; default 512 MiB. Stops zip bombs. */
+  /** Reject an xlsx whose parts (a worksheet, the shared strings) unpack to more than this many bytes; default 256 MiB. Stops zip bombs. */
   maxDecompressedBytes?: number;
 };
 
@@ -169,26 +169,41 @@ function hasSignature(bytes: Uint8Array, signature: readonly number[]): boolean 
   return signature.every((byte, index) => bytes[index] === byte);
 }
 
+/** The smallest real xlsx cell, `<c r="A1"><v>1</v></c>`; hucre's sparse read holds about 125 bytes per cell it finds. */
+const MIN_CELL_XML_BYTES = 21;
+
+/** Room in a worksheet part for everything but cells: columns, merges, validations, formatting rules. */
+const WORKSHEET_OVERHEAD_BYTES = 1024 * 1024;
+
+const WORKSHEET_PART = /^xl\/worksheets\/[^/]+\.xml$/i;
+
+type DeclaredSizes = { largestPart: number; largestWorksheet: number };
+
 /**
- * The largest uncompressed size an entry declares in the zip's central directory; a ZIP64 directory
- * counts as unbounded. 0 when the directory is unreadable, so hucre reports the corruption itself.
+ * The largest uncompressed sizes the zip's central directory declares, for any part and for worksheet
+ * parts. A ZIP64 directory counts as unbounded. Zero when the directory is unreadable, so hucre reports
+ * the corruption itself.
  */
-function largestDeclaredEntry(bytes: Uint8Array): number {
+function declaredSizes(bytes: Uint8Array): DeclaredSizes {
+  const sizes: DeclaredSizes = { largestPart: 0, largestWorksheet: 0 };
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const lowest = Math.max(0, bytes.length - 22 - 0xffff);
   let end = bytes.length - 22;
   while (end >= lowest && view.getUint32(end, true) !== 0x06054b50) end--;
-  if (end < lowest) return 0;
+  if (end < lowest) return sizes;
   const count = view.getUint16(end + 10, true);
   let offset = view.getUint32(end + 16, true);
-  if (count === 0xffff || offset === 0xffffffff) return Infinity;
-  let largest = 0;
+  if (count === 0xffff || offset === 0xffffffff) return { largestPart: Infinity, largestWorksheet: Infinity };
+  const decoder = new TextDecoder();
   for (let i = 0; i < count; i++) {
-    if (offset + 46 > bytes.length || view.getUint32(offset, true) !== 0x02014b50) return largest;
-    largest = Math.max(largest, view.getUint32(offset + 24, true));
-    offset += 46 + view.getUint16(offset + 28, true) + view.getUint16(offset + 30, true) + view.getUint16(offset + 32, true);
+    if (offset + 46 > bytes.length || view.getUint32(offset, true) !== 0x02014b50) return sizes;
+    const size = view.getUint32(offset + 24, true);
+    const nameLength = view.getUint16(offset + 28, true);
+    sizes.largestPart = Math.max(sizes.largestPart, size);
+    if (size > sizes.largestWorksheet && WORKSHEET_PART.test(decoder.decode(bytes.subarray(offset + 46, offset + 46 + nameLength)))) sizes.largestWorksheet = size;
+    offset += 46 + nameLength + view.getUint16(offset + 30, true) + view.getUint16(offset + 32, true);
   }
-  return largest;
+  return sizes;
 }
 
 type HucreReader = typeof import("./xlsx-reader");
@@ -317,8 +332,13 @@ async function parseExcelFile(file: File, sheetName: string | undefined, limits:
   if (signal?.aborted) throw abortError();
   const isXlsx = hasSignature(bytes, ZIP_SIGNATURE);
   if (!isXlsx && !hasSignature(bytes, OLE2_SIGNATURE)) throw new Error(UNSUPPORTED_EXCEL_FORMAT_MESSAGE);
-  // an entry declared past the cap makes hucre stream-parse up to the cap (about 15 s of CPU) before it fails
-  if (isXlsx && largestDeclaredEntry(bytes) > limits.maxDecompressedBytes) throw new Error(FILE_TOO_LARGE_MESSAGE);
+  if (isXlsx) {
+    const sizes = declaredSizes(bytes);
+    // an entry declared past the cap makes hucre stream-parse up to the cap (about 15 s of CPU) before it fails
+    if (sizes.largestPart > limits.maxDecompressedBytes) throw new Error(FILE_TOO_LARGE_MESSAGE);
+    // a sparse read holds every real cell, so a worksheet that could hold more than maxCells is refused unread
+    if (sizes.largestWorksheet > limits.maxCells * MIN_CELL_XML_BYTES + WORKSHEET_OVERHEAD_BYTES) throw new Error(IMPORT_TOO_MANY_CELLS_MESSAGE);
+  }
   const hucre = await import("./xlsx-reader");
   try {
     return await (isXlsx ? readXlsxSheet : readXlsSheet)(bytes, sheetName, limits, hucre);

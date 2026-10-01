@@ -634,6 +634,13 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   navigable, excluded from sort/filter/selection). Core also now exports `DataGridCell` and
   `WindowedColumn` from its barrel, since the add-on's moved `DataGridPinnedRow` needs both.
 
+- **Breaking:** the `data-grid-io` `maxDecompressedBytes` default drops from 512 MiB to 256 MiB
+  (`DEFAULT_IMPORT_LIMITS`), and an xlsx worksheet part declared larger than `maxCells` times 21
+  bytes plus 1 MiB (about 100 MiB at the default) is rejected with `errorTooManyCells` before it
+  is read. hucre's sparse read holds every real cell it finds at 125 to 200 bytes, so a crafted
+  sheet of 12 million tiny cells in a 31 MB file used to peak at 2 GB before the cell check ran.
+  The rejection now costs milliseconds. A sheet with more than about 100 MiB of XML needs a
+  higher `maxCells` in `importLimits`.
 
 ### Fixed
 
