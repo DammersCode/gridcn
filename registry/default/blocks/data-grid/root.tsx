@@ -11,7 +11,7 @@ import {
 import { DirectionProvider } from "@base-ui/react/direction-provider";
 import { cn } from "@/lib/utils";
 import type { DensityMode, GetCellClassName, GetRowClassName, Keymap, OnCellClick, OnRowClick } from "./types";
-import { DEFAULT_KEYMAP, validateKeymap } from "./keyboard";
+import { DEFAULT_KEYMAP, validateKeymap, validateSharedBindings } from "./keyboard";
 import {
   useDataGridActions,
   useDataGridActiveColumn,
@@ -238,6 +238,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const { template, leftOffsets, rightOffsets, trackLefts: lefts, trackRights: rights, widths, pins, totalWidth } =
     layout;
 
+  // Per-action merge: a consumer array replaces the default BY REFERENCE, which is how
+  // matchKeymap recognizes consumer entries (tie-break) and validateSharedBindings (warning).
   const effectiveKeymap = useMemo(() => ({ ...DEFAULT_KEYMAP, ...keymap }), [keymap]);
   const interactionLayout: InteractionLayout = useMemo(() => {
     // the marker column (when present) is always pinned-left before every data column, so it's
@@ -300,6 +302,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   useEffect(() => {
     actions._registerKeymap(effectiveKeymap);
     validateKeymap(effectiveKeymap);
+    validateSharedBindings(effectiveKeymap);
     return () => actions._registerKeymap(DEFAULT_KEYMAP);
   }, [actions, effectiveKeymap]);
 

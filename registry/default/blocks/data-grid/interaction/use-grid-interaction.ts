@@ -11,7 +11,7 @@ import {
   type RefObject,
 } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { ViewCoord, CellType, GridAction } from "../types";
+import type { ViewCoord, CellType, GridAction, GridCommandCtx } from "../types";
 import { isMacPlatform, isPrintableKey, matchKeymap, type KeymapEvent } from "../keyboard";
 import type { Keymap } from "../types";
 import { getCellValue } from "../columns/column-helpers";
@@ -35,6 +35,8 @@ import {
 import { gridAttrSelector } from "../data-attributes";
 import { getSelectedViewRows, isSelectionEmpty } from "../selection";
 import { warnDev } from "../store/commit";
+import { buildApiHandle } from "../store/api";
+import { holeRowId } from "../store/compute";
 
 /** Action names already dev-warned as bound-but-unwired (dev-only, process-wide). */
 const warnedUnwiredActions = new Set<string>();
@@ -237,13 +239,35 @@ export function dispatchGridAction(args: {
   const colCount = state.visibleColumns.length;
 
   // Custom-command tier: a keymap name resolving to a `commands` entry dispatches there instead of
-  // the built-in switch (a name shadowing a built-in wins, dev-warned at sync time).
+  // the built-in switch (a name shadowing a built-in wins, dev-warned at sync time). Scope
+  // eligibility is the caller's check (grid keydown vs editor keydown), so it is not repeated here.
   const command = state.commands?.[action];
   if (command) {
-    const cell = state.activeCell;
-    const dataRowIndex = cell === null ? undefined : state.viewIndex[cell.row];
+    const api = buildApiHandle<unknown>({ actions, storeApi, containerRef: scrollRef });
+    const coord = state.activeCell;
+    const dataRowIndex = coord === null ? undefined : state.viewIndex[coord.row];
     const row = dataRowIndex === undefined ? undefined : state.data[dataRowIndex];
-    const ctx = { actions, cell, row, readOnly: readOnly ?? false };
+    const cell =
+      coord === null
+        ? null
+        : {
+            // a cursor outside the view is unreachable (every view rebuild clamps it); the
+            // empty rowId matches the active-cell event's dangling-coord fallback
+            rowId:
+              dataRowIndex === undefined
+                ? ""
+                : row === undefined
+                  ? holeRowId(dataRowIndex)
+                  : state.getRowId(row, dataRowIndex),
+            columnId: state.visibleColumns[coord.col]?.id ?? "",
+          };
+    const ctx: GridCommandCtx = {
+      api,
+      cell,
+      viewRowIndex: coord === null ? null : coord.row,
+      row,
+      readOnly: readOnly ?? false,
+    };
     if (command.when?.(ctx) === false) return;
     preventDefault();
     command.run(ctx);
@@ -822,20 +846,21 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       // The editor is the only thing that renders a focusable form control inside a cell, so
       // this key having originated from one means it belongs to that (possibly just-finished) edit.
       const target = event.target as HTMLElement | null;
-      if (target && target !== event.currentTarget && /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) return;
+      const fromEditorInput =
+        target !== null &&
+        target !== event.currentTarget &&
+        /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName);
 
       const state = storeApi.getState();
       const editing = state.editing;
-      // while editing, the editor owns every key (including its own Tab/Enter commit contract)
-      if (editing) return;
 
+      // Arrow keys move VISUALLY: under RTL, ArrowRight goes to the next column on the screen,
+      // which is the PREVIOUS column index. Swapping the KEY here — the one place a key becomes
+      // an action — is what lets every navigation helper, and any consumer's custom keymap, stay
+      // written in logical terms (moveLeft/moveRight/extendLeft/jumpLeft). Tab/Shift+Tab are not
+      // swapped: they are already reading-order logical. Home/End need no swap either, since
+      // moveRowStart/moveRowEnd are logically named and "row start" is column 0 in both directions.
       const keymapEvent: KeymapEvent = {
-        // Arrow keys move VISUALLY: under RTL, ArrowRight goes to the next column on the screen,
-        // which is the PREVIOUS column index. Swapping the KEY here — the one place a key becomes
-        // an action — is what lets every navigation helper, and any consumer's custom keymap, stay
-        // written in logical terms (moveLeft/moveRight/extendLeft/jumpLeft). Tab/Shift+Tab are not
-        // swapped: they are already reading-order logical. Home/End need no swap either, since
-        // moveRowStart/moveRowEnd are logically named and "row start" is column 0 in both directions.
         key: visualArrowKey(event.key, layoutRef.current.direction ?? "ltr"),
         ctrlKey: event.ctrlKey,
         metaKey: event.metaKey,
@@ -843,12 +868,49 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         altKey: event.altKey,
       };
 
+      if (fromEditorInput) {
+        // Keys from the editor's input while a session is open: only commands scoped to
+        // "editing"/"always" dispatch here — the editor's own handler owns the built-in
+        // contract (Enter/Escape/Tab), and just-finished edits (editing === null) pass.
+        if (editing) {
+          const action = matchKeymap(keymapEvent, keymap, isMacRef.current);
+          if (action !== null) {
+            const command = state.commands?.[action];
+            // scope defaults to "grid": only "editing"/"always" dispatch from the editor's keydown
+            if (command && (command.scope ?? "grid") !== "grid") {
+              dispatchGridAction({
+                action,
+                actions,
+                storeApi,
+                scrollRef,
+                scrollCellIntoView: scrollActiveCellIntoView,
+                rowHeight: layoutRef.current.rowHeight,
+                readOnly,
+                triggerKey: isPrintableKey(keymapEvent) ? keymapEvent.key : undefined,
+                preventDefault: () => event.preventDefault(),
+                fillDown,
+                fillRight,
+                cancelFillDrag,
+              });
+            }
+          }
+        }
+        return;
+      }
+
+      // while editing, the editor owns every key (including its own Tab/Enter commit contract)
+      if (editing) return;
+
       // unbound printable key = implicit editReplace trigger (Excel behavior); a consumer keymap that DEFINES editReplace (even []) takes it over and disables the fallback
       const action =
         matchKeymap(keymapEvent, keymap, isMacRef.current) ??
         (isPrintableKey(keymapEvent) && keymap.editReplace === undefined ? "editReplace" : null);
 
       if (!action) return;
+
+      // A command scoped "editing" never fires from the grid's own keydown: its binding belongs
+      // to the editor's input, so the key passes through untouched (no preventDefault).
+      if (state.commands?.[action]?.scope === "editing") return;
 
       dispatchGridAction({
         action,

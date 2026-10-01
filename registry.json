@@ -441,6 +441,11 @@
                "target": "components/data-grid/sort-filter/matches-filter.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/store/api.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/api.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/store/commit.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/commit.ts"

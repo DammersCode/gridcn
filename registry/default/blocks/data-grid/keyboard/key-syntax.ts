@@ -1,6 +1,8 @@
-import type { Keymap } from "../types";
+import type { GridAction, Keymap } from "../types";
 import { isDev } from "../is-dev";
 import { warnDev } from "../store/commit";
+import { DEFAULT_KEYMAP } from "./default-keymap";
+import { parseBinding } from "./match-keymap";
 
 /**
  * Key tokens for keymap binding strings (the last `+`-separated part). Letters are lowercase
@@ -126,5 +128,66 @@ export function validateKeymap(keymap: Keymap): void {
       warnedBindings.add(dedupe);
       warnDev(`keymap binding "${binding}" for action "${action}": ${issues.join("; ")}`);
     }
+  }
+}
+
+/** One combo (modifier set + key) that two or more distinct actions bind. */
+export type SharedKeymapBinding = {
+  /** The first-seen binding string of the combo (modifier order as written). */
+  binding: string;
+  /** The distinct actions bound to the combo, in keymap entry order. */
+  actions: readonly GridAction[];
+};
+
+/**
+ * The combos of `keymap` bound to two or more distinct actions. The matcher resolves a shared
+ * combo to ONE action (most modifier-specific, then a consumer entry over a default, then the
+ * earlier entry), so the other bindings are silently dead — this list is what the dev warning
+ * reports.
+ */
+export function sharedKeymapBindings(keymap: Keymap): SharedKeymapBinding[] {
+  const bySignature = new Map<string, { binding: string; actions: GridAction[] }>();
+  for (const [action, bindings] of Object.entries(keymap) as [GridAction, string[] | undefined][]) {
+    if (!bindings) continue;
+    for (const binding of bindings) {
+      const parsed = parseBinding(binding);
+      const key = parsed.key.length === 1 ? parsed.key.toLowerCase() : parsed.key;
+      const signature = [
+        parsed.mod ? "mod" : "",
+        parsed.ctrl ? "ctrl" : "",
+        parsed.shift ? "shift" : "",
+        parsed.alt ? "alt" : "",
+        key,
+      ]
+        .filter(Boolean)
+        .join("+");
+      const entry = bySignature.get(signature) ?? { binding, actions: [] };
+      if (!entry.actions.includes(action)) entry.actions.push(action);
+      bySignature.set(signature, entry);
+    }
+  }
+  return [...bySignature.values()]
+    .filter((e) => e.actions.length >= 2)
+    .map((e) => ({ binding: e.binding, actions: e.actions }));
+}
+
+const warnedSharedBindings = new Set<string>();
+
+/**
+ * Warns in development for every combo shared across two or more distinct actions that involves
+ * at least one consumer-defined entry, once per unique combo+action set. Curated default-default
+ * shares stay silent (e.g. Enter: `edit` and `commitDown` are contextually exclusive).
+ */
+export function validateSharedBindings(keymap: Keymap): void {
+  if (!isDev()) return;
+  for (const shared of sharedKeymapBindings(keymap)) {
+    const consumerInvolved = shared.actions.some((a) => keymap[a] !== DEFAULT_KEYMAP[a]);
+    if (!consumerInvolved) continue;
+    const dedupe = `${shared.binding}:${[...shared.actions].sort().join(",")}`;
+    if (warnedSharedBindings.has(dedupe)) continue;
+    warnedSharedBindings.add(dedupe);
+    warnDev(
+      `keymap binding "${shared.binding}" is bound to multiple actions (${shared.actions.join(", ")}); the consumer's binding wins the tie — assign distinct combos to keep both reachable`,
+    );
   }
 }

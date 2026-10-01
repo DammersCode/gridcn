@@ -10,13 +10,19 @@ const data: readonly unknown[] = [
   { id: "c", name: "Charlie" },
 ];
 
+const fakeColumns = [
+  { id: "name", header: "Name" },
+  { id: "qty", header: "Qty" },
+];
+
 function fakeStore(partial: Partial<DataGridStoreState>): StoreApi<DataGridStoreState> {
   return {
     getState: () =>
       ({
         data,
         viewIndex: [2, 1, 0], // view 0 -> data 2 (Charlie), view 1 -> data 1 (Bob), view 2 -> data 0 (Alice)
-        visibleColumns: [],
+        visibleColumns: fakeColumns,
+        getRowId: (row: { id: string }) => row.id,
         activeCell: { col: 1, row: 1 },
         readOnly: false,
         commands: null,
@@ -48,7 +54,7 @@ function dispatch(args: { action: string; commands?: DataGridStoreState["command
 }
 
 describe("dispatchGridAction custom-command tier", () => {
-  it("runs the command with the active cell, its data row, and readOnly; prevents the default", () => {
+  it("runs the command with the stable cell ids, the view row, the data row, and the api handle; prevents the default", () => {
     const run = vi.fn();
     const { actions, preventDefault } = dispatch({
       action: "saveAll",
@@ -56,18 +62,21 @@ describe("dispatchGridAction custom-command tier", () => {
     });
     expect(run).toHaveBeenCalledTimes(1);
     const ctx = run.mock.calls[0]![0];
-    expect(ctx.actions).toBe(actions);
-    expect(ctx.cell).toEqual({ col: 1, row: 1 });
-    expect(ctx.row).toEqual({ id: "b", name: "Bob" }); // view row 1 -> data row 1
+    expect(ctx.cell).toEqual({ rowId: "b", columnId: "qty" }); // view row 1 -> data row 1 (Bob), col 1
+    expect(ctx.viewRowIndex).toBe(1);
+    expect(ctx.row).toEqual({ id: "b", name: "Bob" });
     expect(ctx.readOnly).toBe(false);
+    expect(ctx.api).toBeTruthy();
+    expect(ctx.api.actions).toBe(actions);
     expect(preventDefault).toHaveBeenCalledTimes(1);
   });
 
-  it("a ref-less grid (no active cell) gets cell null and row undefined", () => {
+  it("a ref-less grid (no active cell) gets cell null, viewRowIndex null, and row undefined", () => {
     const run = vi.fn();
     dispatch({ action: "saveAll", commands: { saveAll: { run } }, activeCell: null });
     const ctx = run.mock.calls[0]![0];
     expect(ctx.cell).toBeNull();
+    expect(ctx.viewRowIndex).toBeNull();
     expect(ctx.row).toBeUndefined();
   });
 

@@ -100,6 +100,17 @@ describe("useDataGridStoreProps (external store ownership)", () => {
     warn.mockRestore();
   });
 
+  it("dev-warns when a command shadows editReplace, which has no default binding", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    renderHook(() =>
+      useDataGridStoreProps({ data: rows(3), columns, getRowId, commands: { editReplace: { run: () => {} } } }),
+    );
+    const shadow = warn.mock.calls.map((c) => String(c[0])).filter((m) => m.includes("shadows"));
+    expect(shadow).toHaveLength(1);
+    expect(shadow[0]).toContain("editReplace");
+    warn.mockRestore();
+  });
+
   it("self-creating provider (no store prop) still owns the sync and subscriptions", () => {
     const spy = vi.fn();
     const { result } = renderHook(() => useDataGridActions(), {

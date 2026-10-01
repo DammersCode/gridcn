@@ -1,4 +1,5 @@
 import type { GridAction, Keymap } from "../types";
+import { DEFAULT_KEYMAP } from "./default-keymap";
 
 /** Parsed form of a binding string (see `Keymap` in ../types for the string format). */
 export type ParsedBinding = {
@@ -60,24 +61,30 @@ function matchesBinding(event: KeymapEvent, binding: ParsedBinding, isMac: boole
 
 /**
  * Resolves a keyboard event to a `GridAction` using `keymap`, or null if unbound.
- * When several actions share a binding, the most modifier-specific one wins.
+ * When several actions share a binding, the most modifier-specific one wins; on an exact
+ * specificity tie a consumer-defined entry (a binding array that is not `DEFAULT_KEYMAP`'s —
+ * the per-action merge replaces arrays by reference) beats a default it collides with. A
+ * tie between two defaults keeps the earlier entry (e.g. Enter: `edit` before `commitDown`).
  */
 export function matchKeymap(
   event: KeymapEvent,
   keymap: Keymap,
   isMac: boolean,
 ): GridAction | null {
-  let best: { action: GridAction; specificity: number } | null = null;
+  let best: { action: GridAction; specificity: number; consumer: boolean } | null = null;
 
   for (const [action, bindings] of Object.entries(keymap) as [GridAction, string[] | undefined][]) {
     if (!bindings) continue;
+    const consumer = bindings !== DEFAULT_KEYMAP[action];
     for (const raw of bindings) {
       const parsed = parseBinding(raw);
       if (!matchesBinding(event, parsed, isMac)) continue;
       const specificity =
         (parsed.mod ? 1 : 0) + (parsed.ctrl ? 1 : 0) + (parsed.shift ? 1 : 0) + (parsed.alt ? 1 : 0);
       if (!best || specificity > best.specificity) {
-        best = { action, specificity };
+        best = { action, specificity, consumer };
+      } else if (specificity === best.specificity && consumer && !best.consumer) {
+        best = { action, specificity, consumer };
       }
     }
   }

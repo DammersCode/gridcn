@@ -18,15 +18,22 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   controls re-renders. Exported from the `data-grid` barrel.
 - **Custom keymap commands (`data-grid`):** the `DataGridProvider`/`DataGrid` `commands` prop
   accepts `Record<string, GridCommand>` — consumer actions behind `keymap` bindings that name
-  no built-in action. Each `GridCommand` (`{ run, when?, label?, group? }`) receives
-  `GridCommandCtx` (`{ actions, cell, row, readOnly }` — `cell` in view space, `row` the active
-  cell's data row) and may gate itself with `when`; `label` and `group` set its row in the
-  keybindings dialog. A command name shadowing a built-in action wins over the built-in; an
-  unbound-and-unhandled name is a no-op (both warn once in dev). `GridActions` is now an
-  interface you can extend by declaration merging (like `GridCellTypes`), `GridAction` is
-  `keyof GridActions`, and `useDataGridCommands` returns the current `commands` map. `GridCommand`,
-  `GridCommandCtx`, and `CommandGroup` are exported from the `data-grid` barrel; the
-  `data-grid-keybindings` dialog lists custom commands with their label and group. See
+  no built-in action. Each `GridCommand` (`{ run, when?, scope?, label?, group? }`) receives
+  `GridCommandCtx` (`{ api, cell, viewRowIndex, row, readOnly }` — `api` the grid's imperative
+  handle (`DataGridApi`), `cell` a stable `{ rowId, columnId }` ref or `null`, `viewRowIndex`
+  the active cell's view row index or `null`, `row` the active cell's data row) and may gate
+  itself with `when`. `scope` selects the dispatching surface: `"grid"` (default) the
+  grid-level keydown only, `"editing"` the cell editor's keydown only (the key passes the grid
+  untouched), `"always"` both. `label` and `group` set the command's row in the keybindings
+  dialog. A command name shadowing any built-in action (including `editReplace`, which has no
+  default binding) wins over the built-in; a combo bound to two or more actions resolves to the
+  most modifier-specific binding, and a `keymap` entry wins a specificity tie against a default
+  it collides with; an unbound-and-unhandled name is a no-op (each case warns once in dev).
+  `GridActions` is now an interface you can extend by declaration merging (like
+  `GridCellTypes`), `GridAction` is `keyof GridActions`, and `useDataGridCommands` returns the
+  current `commands` map. `GridCommand`, `GridCommandCtx`, and `CommandGroup` are exported from
+  the `data-grid` barrel; the `data-grid-keybindings` dialog lists custom commands with their
+  label and group. See
   [Keybindings: Custom commands](/docs/addons/keybindings#custom-commands).
 - **Imperative grid handle (`data-grid`):** `DataGrid` accepts a `ref`, and a new
   `useDataGridApi(ref?)` hook (call it under `DataGridRoot` for manual composition) return the

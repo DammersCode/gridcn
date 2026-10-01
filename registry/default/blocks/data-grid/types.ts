@@ -1,6 +1,7 @@
 import type { FC, ReactNode } from "react";
+import type { StoreApi } from "zustand/vanilla";
 import type { KeyBinding } from "./keyboard/key-syntax";
-import type { DataGridActions } from "./store/types";
+import type { DataGridActions, DataGridStoreState } from "./store/types";
 
 export type { KeyBinding };
 
@@ -660,12 +661,42 @@ export type GridAction = keyof GridActions;
 /** The dialog sections a custom command's `group` places it in (the same sections the keybindings dialog renders; i18n labels live in `labels.keybindings.categories`). */
 export type CommandGroup = "navigation" | "selection" | "editing" | "clipboardFill" | "history" | "other";
 
+/**
+ * The imperative handle of one grid: the stable actions object, the raw store, non-reactive state
+ * reads, and the two DOM gestures (scroll, focus). Obtain it from `<DataGrid ref>` or from
+ * {@link useDataGridApi} under `DataGridRoot` (manual composition).
+ */
+export type DataGridApi<TData> = {
+  /** The same stable object `useDataGridActions` returns. */
+  actions: DataGridActions;
+  /** The same store `useDataGridStoreApi` returns (row-agnostic — `getRow` is the typed read). */
+  store: StoreApi<DataGridStoreState>;
+  /** Scrolls the cell named by the ref into view; a ref that no longer resolves no-ops (dev-warned once per grid). */
+  scrollTo(ref: CellRef): void;
+  /** Focuses the active cell's element; with no active cell it focuses the grid (whose focus onboarding seeds (0,0)). No-ops while an edit session is open — focusing would blur the editor and commit it. */
+  focus(): void;
+  /** Starts an edit session at the ref's cell — the same guards as `actions.startEditing`. */
+  startEditing(ref: CellRef): void;
+  /** Discards the in-progress edit without emitting a change (`actions.cancelEditing`). */
+  stopEditing(): void;
+  /** A non-reactive snapshot of the current selection. */
+  getSelection(): GridSelection;
+  /** Selects the named cell as a single-cell selection; `null` clears the whole selection. */
+  setSelection(ref: CellRef | null): void;
+  /** The data row at a view (display) row index — the same read `useDataGridRow` performs, without a subscription. */
+  getRow(viewRowIndex: number): TData | undefined;
+  /** The row id of every view row, in view order; `undefined` at an unloaded row (a lazy hole), so index `i` is view row `i`. */
+  getViewRowIds(): readonly (string | undefined)[];
+};
+
 /** The context a custom command's `run`/`when` receives, built fresh from the live store at dispatch time. */
 export type GridCommandCtx<TData = unknown> = {
-  /** The stable actions object (the `useDataGridActions` reference). */
-  actions: DataGridActions;
-  /** The active cell in view space, or `null` when no cell is active. */
-  cell: ViewCoord | null;
+  /** The grid's imperative handle ({@link DataGridApi}) for the grid being dispatched on. */
+  api: DataGridApi<TData>;
+  /** The active cell as a stable {@link CellRef}, or `null` when no cell is active. */
+  cell: CellRef | null;
+  /** The view (display) row index of the active cell, or `null` when no cell is active. */
+  viewRowIndex: number | null;
   /** The data row of the active cell, or `undefined` when none. */
   row: TData | undefined;
   /** The grid's effective `readOnly` flag. */
@@ -682,6 +713,12 @@ export type GridCommand<TData = unknown> = {
   run(ctx: GridCommandCtx<TData>): void;
   /** Gate: return `false` to ignore the key entirely (no `preventDefault`, no `run`). */
   when?(ctx: GridCommandCtx<TData>): boolean;
+  /**
+   * Which surface dispatches the command: `"grid"` (default) the grid-level keydown only;
+   * `"editing"` the cell editor's keydown only (a command scoped here never fires while the grid
+   * itself has the key); `"always"` both.
+   */
+  scope?: "grid" | "editing" | "always";
   /** Keybindings-dialog label; default: `labels.keybindings.actions[name]` or the humanized name. */
   label?: string;
   /** Keybindings-dialog section; default: `"other"`. */

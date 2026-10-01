@@ -419,8 +419,9 @@ assertEqual<true, "moveUp" extends FakeGridAction ? true : false>(true);
 
 const customKeymap: Partial<Record<FakeGridAction, string[]>> = { saveAll: ["mod+s"], moveUp: ["ArrowUp"] };
 function saveAllRun(ctx: GridCommandCtx<Row>): void {
-  void ctx.actions;
+  void ctx.api;
   void ctx.cell;
+  assertEqual<number | null, typeof ctx.viewRowIndex>(true);
   assertEqual<Row | undefined, typeof ctx.row>(true);
   assertEqual<boolean, typeof ctx.readOnly>(true);
 }
@@ -429,7 +430,11 @@ const saveAllCommand: GridCommand<Row> = {
   when: (ctx) => ctx.cell !== null,
   label: "Save all",
   group: "editing",
+  scope: "always",
 };
+// @ts-expect-error - scope is one of "grid" | "editing" | "always"
+const badCommandScope: GridCommand<Row> = { run: saveAllRun, scope: "both" };
+void badCommandScope;
 const commandProps: Pick<DataGridProps<Row>, "commands" | "keymap"> = {
   commands: { saveAll: saveAllCommand },
   keymap: customKeymap as Keymap,

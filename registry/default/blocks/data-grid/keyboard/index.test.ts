@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { DEFAULT_KEYMAP, matchKeymap, parseBinding, isPrintableKey, type KeymapEvent } from ".";
-import type { GridAction } from "../types";
+import { describe, it, expect, vi } from "vitest";
+import { DEFAULT_KEYMAP, matchKeymap, parseBinding, isPrintableKey, sharedKeymapBindings, validateSharedBindings, type KeymapEvent } from ".";
+import type { GridAction, Keymap } from "../types";
 
 function makeEvent(overrides: Partial<KeymapEvent> & { key: string }): KeymapEvent {
   return {
@@ -391,5 +391,54 @@ describe("GridAction coverage", () => {
         `"${action}" is neither bound in DEFAULT_KEYMAP, an implicit fallback, nor in CONSUMER_ONLY_ACTIONS`,
       ).toBe(true);
     }
+  });
+});
+
+describe("matchKeymap - tie-break", () => {
+  it("a consumer binding wins a specificity tie against the default binding of the same combo", () => {
+    // a fresh array reference marks the entry as consumer-defined (the merge replaces arrays by reference)
+    const keymap = { ...DEFAULT_KEYMAP, saveAll: ["mod+z"] } as Keymap;
+    expect(matchKeymap(makeEvent({ key: "z", ctrlKey: true }), keymap, false)).toBe("saveAll");
+  });
+
+  it("keeps the earlier entry on a tie between two default bindings (Enter: edit before commitDown)", () => {
+    expect(matchKeymap(makeEvent({ key: "Enter" }), DEFAULT_KEYMAP, false)).toBe("edit");
+  });
+});
+
+describe("sharedKeymapBindings", () => {
+  it("reports each combo bound to two or more distinct actions, once per combo", () => {
+    const keymap = { undo: ["mod+z"], saveAll: ["mod+z", "F9"], moveUp: ["ArrowUp", "shift+z"] } as Keymap;
+    expect(sharedKeymapBindings(keymap)).toEqual([
+      { binding: "mod+z", actions: ["undo", "saveAll"] },
+    ]);
+  });
+
+  it("the same action repeating a combo is not shared", () => {
+    expect(sharedKeymapBindings({ moveUp: ["ArrowUp", "mod+ArrowUp"] } as Keymap)).toEqual([]);
+  });
+
+  it("modifier order in the binding string does not matter", () => {
+    expect(sharedKeymapBindings({ undo: ["shift+mod+z"], saveAll: ["mod+shift+z"] } as Keymap)).toHaveLength(1);
+  });
+});
+
+describe("validateSharedBindings", () => {
+  it("dev-warns once per shared combo, naming the combo and both actions", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    validateSharedBindings({ undo: ["mod+z"], saveAll: ["mod+z"] } as Keymap);
+    validateSharedBindings({ undo: ["mod+z"], saveAll: ["mod+z"] } as Keymap);
+    const shared = warn.mock.calls.filter((c) => String(c[0]).includes("mod+z"));
+    expect(shared.length).toBe(1);
+    expect(String(shared[0]![0])).toContain("undo");
+    expect(String(shared[0]![0])).toContain("saveAll");
+    warn.mockRestore();
+  });
+
+  it("is silent when no combo is shared", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    validateSharedBindings(DEFAULT_KEYMAP);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 });

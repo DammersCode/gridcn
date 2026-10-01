@@ -1,4 +1,4 @@
-import type { Keymap } from "../types";
+import type { GridAction, Keymap } from "../types";
 
 /**
  * Default keyboard bindings (see research/glide-behavior-spec.md §2). `mod` resolves to Cmd on
@@ -61,3 +61,9 @@ export const DEFAULT_KEYMAP: Keymap = {
   insertRowAbove: ["mod+shift+u"],
   deleteRows: ["mod+shift+Backspace"],
 };
+
+/**
+ * Every built-in action name — the `DEFAULT_KEYMAP` keys plus `editReplace`, which has no default
+ * binding (the implicit printable-key fallback) but is still shadowable by a `commands` entry.
+ */
+export const BUILTIN_ACTIONS: readonly GridAction[] = [...(Object.keys(DEFAULT_KEYMAP) as GridAction[]), "editReplace"];

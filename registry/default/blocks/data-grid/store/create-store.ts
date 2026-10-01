@@ -1,6 +1,6 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
 import type { ViewCoord, CellType, DataOp, FilterSpec } from "../types";
-import { DEFAULT_KEYMAP } from "../keyboard";
+import { BUILTIN_ACTIONS, DEFAULT_KEYMAP } from "../keyboard";
 import { CompactSelection } from "../selection/compact-selection";
 import { getCellValue } from "../columns/column-helpers";
 import { clampColumnWidth } from "../columns/resolve-column-width";
@@ -722,7 +722,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       _syncProps(props) {
         if (props.commands && !warnedCommandShadow) {
-          const shadowed = Object.keys(props.commands).filter((name) => name in DEFAULT_KEYMAP);
+          // the FULL built-in set, not just DEFAULT_KEYMAP's keys: editReplace has no default
+          // binding (implicit printable-key fallback) but a command named editReplace shadows it.
+          const shadowed = Object.keys(props.commands).filter((name) =>
+            (BUILTIN_ACTIONS as readonly string[]).includes(name),
+          );
           if (shadowed.length > 0) {
             warnedCommandShadow = true;
             warnDev(`commands shadows built-in action(s) ${shadowed.join(", ")}; the command wins and the built-in no longer dispatches`);

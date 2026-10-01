@@ -1,7 +1,14 @@
 import type { CommandGroup, DataGridLabels, GridAction } from "@/registry/default/blocks/data-grid/data-grid";
 
 /** Section order for the dialog; 'other' catches consumer-added actions not in this map. Display strings live in `labels.keybindings.categories` (i18n). */
-export const KEYBINDING_CATEGORIES = ["navigation", "selection", "editing", "clipboardFill", "history", "other"] as const;
+export const KEYBINDING_CATEGORIES = [
+  "navigation",
+  "selection",
+  "editing",
+  "clipboardFill",
+  "history",
+  "other",
+] as const satisfies readonly CommandGroup[];
 
 /** The dialog's section set — core's {@link CommandGroup} (a custom command's `group` must name one of these). */
 export type KeybindingCategory = CommandGroup;

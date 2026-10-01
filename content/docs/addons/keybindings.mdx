@@ -160,8 +160,8 @@ Action labels in the dialog (and the per-`GridAction` label map) come from
 ## Custom commands
 
 A `keymap` binding that names no built-in action resolves to the provider's `commands` prop.
-Each entry is a `GridCommand` with `run`, an optional `when` gate, and optional `label`/`group`
-for the dialog:
+Each entry is a `GridCommand` with `run`, an optional `when` gate, an optional `scope`, and
+optional `label`/`group` for the dialog:
 
 ```tsx
 <DataGridProvider
@@ -180,12 +180,20 @@ for the dialog:
 </DataGridProvider>
 ```
 
-- `run(ctx)` receives `actions`, the active cell `cell` (view space, `null` when none), that
-  cell's data row `row`, and `readOnly`.
+- `run(ctx)` receives the command context: `api` (the grid's imperative handle — the same
+  object `useDataGridApi` returns), `cell` (the active cell as a stable `{ rowId, columnId }`
+  ref, or `null`), `viewRowIndex` (the active cell's view row index, or `null`), `row` (the
+  active cell's data row, or `undefined`), and `readOnly`.
 - `when(ctx)` gates the command. Return `false` to ignore the key entirely.
+- `scope` selects which surface dispatches the command. The default `"grid"` dispatches from the
+  grid-level keydown only. `"editing"` dispatches from the cell editor's keydown only — the key
+  passes through the grid untouched. `"always"` dispatches from both.
 - `label` and `group` control the command's dialog row; the default group is `"other"`.
 - A name that shadows a built-in action (`selectAll`, for example) wins over it. Dev mode
   warns once.
+- A key combo bound to two or more actions resolves to one: the most modifier-specific binding
+  wins, and a `keymap` entry wins a tie against a default binding it collides with. Dev mode
+  warns once per shared combo.
 - A bound name with neither a built-in handler nor a `commands` entry is a no-op. Dev mode
   warns once.
 
