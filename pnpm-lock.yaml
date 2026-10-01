@@ -4,6 +4,10 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  fast-uri@<3.1.8: ^3.1.8
+  ip-address@<10.7.1: ^10.7.1
+
 patchedDependencies:
   fumadocs-ui@16.15.11:
     hash: bbc040b7d17d599f4731d5c124f0415578c438fb7277c4a8b757b041ce7764fd
