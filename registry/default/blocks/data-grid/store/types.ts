@@ -578,9 +578,10 @@ export type DataGridStoreState = Omit<
    * The `data-grid-presence` add-on's view-space activeness predicate, registered on mount and
    * cleared on unmount (same registration pattern as `fillHandlers`): answers "is any VIEW-space
    * (range-form) presence entry active right now". View-space entries pin to a display position,
-   * so a row-moving op (`reorderRows`, `insertRows`, `deleteRows`, `duplicateRows`, `updateCells`
-   * with `reorder: "immediate"`) dev-warns once per grid when it runs while the predicate reports true; rowId-native entries track their rows through
-   * reorders and never trip it. `null` before mount/after unmount, or when the add-on is absent.
+   * so any op that moves rows or columns in the view (row ops, immediate `updateCells`, sort,
+   * filter, join, column reorder/hide/pin, consumer data/column swaps) dev-warns once per grid
+   * when it runs while the predicate reports true; rowId-native entries track their rows and
+   * never trip it. `null` before mount/after unmount, or when the add-on is absent.
    */
   presenceViewSpaceActive: (() => boolean) | null;
   /**
@@ -813,7 +814,7 @@ export type DataGridActions = {
   _registerFillHandlers(handlers: { fillDown: () => void; fillRight: () => void; cancelFillDrag: () => void } | null): void;
   /**
    * @internal the `data-grid-presence` add-on registers/clears its view-space-activeness predicate
-   * (see `presenceViewSpaceActive`) on mount/unmount; row-moving ops dev-warn once when they run
+   * (see `presenceViewSpaceActive`) on mount/unmount; view-moving ops dev-warn once when they run
    * while it reports true. Not part of the public hook surface.
    */
   _registerPresenceViewSpaceActive(impl: (() => boolean) | null): void;

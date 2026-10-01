@@ -61,6 +61,15 @@ export function viewRowsMoved(
   return false;
 }
 
+/** True when any column sits at a different display position in the next visible-column array. */
+export function visibleColumnsMoved(oldColumns: readonly AnyColumnDef[], nextColumns: readonly AnyColumnDef[]): boolean {
+  if (oldColumns.length !== nextColumns.length) return true;
+  for (let i = 0; i < oldColumns.length; i++) {
+    if (oldColumns[i]!.id !== nextColumns[i]!.id) return true;
+  }
+  return false;
+}
+
 /** The row id portion of a {@link flashCellKey}. */
 export function flashKeyRowId(key: string): string {
   return key.slice(0, key.indexOf(FLASH_KEY_SEPARATOR));

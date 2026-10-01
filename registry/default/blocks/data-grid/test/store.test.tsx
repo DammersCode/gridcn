@@ -3718,6 +3718,65 @@ describe("row-moving ops with an active view-space presence entry", () => {
     expect(warn).toHaveBeenCalledTimes(2);
     warn.mockRestore();
   });
+
+  it("warns when a column reorder, hide, or pin moves the view columns", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const reorder = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    act(() => reorder.result.current._registerPresenceViewSpaceActive(() => true));
+    act(() => reorder.result.current.setColumnOrder("age", "name", "before"));
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]?.[0]).toContain("view-space presence");
+
+    const hide = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    act(() => hide.result.current._registerPresenceViewSpaceActive(() => true));
+    act(() => hide.result.current.setColumnHidden("name", true));
+    expect(warn).toHaveBeenCalledTimes(2);
+
+    const pin = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    act(() => pin.result.current._registerPresenceViewSpaceActive(() => true));
+    act(() => pin.result.current.setColumnPin("age", "left"));
+    expect(warn).toHaveBeenCalledTimes(3);
+    warn.mockRestore();
+  });
+
+  it("does not warn when a width change or a same-position reorder leaves the view columns in place", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    act(() => result.current._registerPresenceViewSpaceActive(() => true));
+    act(() => result.current.setColumnWidth("name", 200));
+    act(() => result.current.setColumnOrder("name", "age", "before"));
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("warns when a consumer columns swap reorders the view columns", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let actions: ReturnType<typeof useDataGridActions> | undefined;
+    function Probe() {
+      actions = useDataGridActions();
+      return null;
+    }
+    const columnsFirst = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      { id: "age", header: "Age", accessorKey: "age" },
+    ] as const;
+    const columnsSecond = [
+      { id: "age", header: "Age", accessorKey: "age" },
+      { id: "name", header: "Name", accessorKey: "name" },
+    ] as const;
+    const ui = (cols: readonly ColumnDef<Row, unknown>[]) => (
+      <DataGridProvider data={rows()} columns={cols} getRowId={(r) => r.id}>
+        <Probe />
+      </DataGridProvider>
+    );
+    const view = render(ui(columnsFirst));
+    act(() => actions!._registerPresenceViewSpaceActive(() => true));
+
+    view.rerender(ui(columnsSecond));
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("view-space presence"))).toHaveLength(1);
+    warn.mockRestore();
+  });
 });
 
 describe("useDataGridSelector / typed useDataGridRow", () => {
