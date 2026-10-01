@@ -40,7 +40,7 @@ import type {
   RowClickCtx,
   SortSpec,
 } from "./data-grid";
-import { createDataGridSelector, useDataGridCellTypes, useDataGridVisibleColumns, useDataGridAllColumns, type GRID_ATTR } from "./data-grid";
+import { createDataGridSelector, useDataGridSelector, useDataGridCellTypes, useDataGridVisibleColumns, useDataGridAllColumns, type GRID_ATTR } from "./data-grid";
 
 /** Compile-only check: `Actual` must be identical to `Expected` (both directions assignable). */
 type Equal<Expected, Actual> = (<T>() => T extends Expected ? 1 : 2) extends <T>() => T extends Actual ? 1 : 2
@@ -446,9 +446,7 @@ const badCommandGroup: GridCommand<Row> = { run: saveAllRun, group: "nope" };
 void badCommandGroup;
 
 // --- createDataGridSelector: TData fixed at factory time, TResult inferred ---------------------
-// The one-type-argument consumer form: `TData` is fixed at the factory call, so the returned
-// hook's selector gets `state.data` typed and the result type is inferred from the selector —
-// no second type argument at the call site.
+// One type argument at the factory; the call site infers the result type.
 
 const useRowSelector = createDataGridSelector<Row>();
 
@@ -467,5 +465,12 @@ function useTypedGridSelector() {
   return data;
 }
 void useTypedGridSelector;
+
+function useDirectGridSelector() {
+  const names = useDataGridSelector<Row, string[]>((s) => s.data.map((r) => r.name));
+  assertEqual<string[], typeof names>(true);
+  return names;
+}
+void useDirectGridSelector;
 
 export {};

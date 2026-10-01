@@ -11,11 +11,13 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
-- **Typed store selector factory (`data-grid`):** `createDataGridSelector<TData>()` returns a
-  typed raw store selector hook — `TData` types `state.data`, so a selector that reads rows gets
-  them back typed, and the result type is inferred from the selector (one type argument at the
-  factory, none at the call). The hook takes `(selector, eq?)`; `eq` (default `Object.is`)
-  controls re-renders. Exported from the `data-grid` barrel.
+- **Typed store selectors (`data-grid`):** `createDataGridSelector<TData>()` returns a typed raw
+  store selector hook. Create it once at module scope and name it `use…`, like any hook. `TData`
+  types `state.data`, and the hook infers the result type from the selector, so the call takes no
+  type argument. The hook takes `(selector, eq?)`; `eq` (default `Object.is`) controls
+  re-renders. `useDataGridSelector<TData, TResult>(selector, eq?)` is the direct form and takes
+  both type arguments. `useDataGridRow<TData>(viewRowIndex)` returns the typed row at a view index
+  (unannotated it stays `unknown`, as before). Exported from the `data-grid` barrel.
 - **Custom keymap commands (`data-grid`):** the `DataGridProvider`/`DataGrid` `commands` prop
   accepts `Record<string, GridCommand>` — consumer actions behind `keymap` bindings that name
   no built-in action. Each `GridCommand` (`{ run, when?, scope?, label?, group? }`) receives
@@ -410,11 +412,6 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `getSelectedViewRows`, `measureColumnAutosizeWidth`, `GridColumnLayout`, and
   `WindowedColumn`. Add-ons import them from `data-grid-sdk`; consumer code that imported any of
   these from `data-grid` must switch to `data-grid-sdk`.
-- **Typed raw store access:** `useDataGridSelector<TData>(selector, eq?)` hands the selector
-  `state` with `state.data` typed as `readonly TData[]`; `eq` (default `Object.is`) controls
-  re-renders.
-  `useDataGridRow<TData>(viewRowIndex)` returns the typed row at a view index (unannotated it
-  stays `unknown`, as before).
 - **`useDataGridRowIdToViewRow` keeps its map across streaming ticks:** the `rowId -> view row`
   map now keys on a store-internal row-identity version (bumped only when rows move:
   insert/delete/duplicate/reorder, or a consumer `data` replacement) instead of the `data` array
