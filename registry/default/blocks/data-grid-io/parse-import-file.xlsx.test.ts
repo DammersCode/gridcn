@@ -240,6 +240,11 @@ describe("parseImportFile — legacy xls", () => {
     await expect(parseImportFile(xlsFixture("biff8.xls"), { maxCells: 10 })).rejects.toThrow("import-too-many-cells");
   });
 
+  it("bounds every sheet, so an oversized sheet rejects the workbook even when another sheet is selected", async () => {
+    await expect(parseImportFile(xlsFixture("biff8.xls"), { sheetName: "Other" })).resolves.toMatchObject({ rows: [["x"], ["1"]] });
+    await expect(parseImportFile(xlsFixture("biff8.xls"), { sheetName: "Other", maxCells: 10 })).rejects.toThrow("import-too-many-cells");
+  });
+
   it("rejects an HTML table saved with an .xls extension", async () => {
     const file = textFile("<html><body><table><tr><td>a</td><td>b</td></tr></table></body></html>", "export.xls");
 

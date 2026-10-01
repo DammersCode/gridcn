@@ -200,8 +200,8 @@ limit is rejected with an error message in the dialog. The import never truncate
 
 For an xlsx or xls file, the rows and columns come from the real cells of the selected sheet.
 The check runs before the cells are converted. For an xlsx file, the other sheets of the workbook
-are not parsed. For an xls file, every sheet is parsed, and each sheet must stay within
-`maxCells`. For a CSV file, the check runs before the parse: the import counts the rows and the
+are not parsed. For an xls file, the reader parses every sheet. A sheet over `maxCells`
+rejects the workbook, even when you select another sheet. For a CSV file, the check runs before the parse: the import counts the rows and the
 fields of each row without building them, and the widest row sets the column count.
 
 To change the limits, pass `importLimits` to `DataGridImportButton` or `DataGridImportDialog`. An
