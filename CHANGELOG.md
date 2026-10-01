@@ -679,6 +679,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   steps read `0.3` instead of `0.30000000000000004`. A step finer than the column's
   `decimals` steps by one unit of those decimals. The arrows do nothing while an async validation
   is pending or an IME composition is active.
+- **Number cells with `decimals` stay inside `min` and `max` (`data-grid`):** typed, pasted, and
+  imported text rounds to `decimals` first and then clamps to the bounds on the decimals grid.
+  With `max: 0.125` and `decimals: 2`, typing `0.2` stores `0.12` instead of `0.13`. A bound that
+  already sits on the decimals grid, such as `min: 0.28`, is reachable by stepping.
 - **Clipboard round trip keeps tabs, carriage returns, and non-breaking spaces (`data-grid`):** a
   cell copied from the grid and pasted back keeps its exact value when it holds a carriage
   return or a non-breaking space next to a tab. The HTML payload writes a carriage return as a

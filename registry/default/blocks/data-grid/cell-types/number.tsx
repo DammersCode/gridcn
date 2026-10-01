@@ -148,7 +148,8 @@ export const numberCellType: CellType<unknown, number | null, GridCellTypes["num
     if (normalized === "") return null;
     const parsed = Number(normalized);
     if (Number.isNaN(parsed)) return null;
-    return roundToDecimals(clampNumber(parsed, options), options);
+    if (options?.decimals !== undefined) return clampToDecimals(roundToDecimals(parsed, options), options, options.decimals);
+    return clampNumber(parsed, options);
   },
   clearValue: () => null,
   isEmpty: (value) => value == null,

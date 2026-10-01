@@ -1464,11 +1464,20 @@ describe("DataGrid in a real browser", () => {
 
     it("steps into a min bound that already sits on the decimals grid", async () => {
       const onDataChange = mockDataChangeFn<StepRow>();
-      await renderStepGrid(onDataChange, stepColumns(0.3, undefined, 0.01, 2), 0.31);
+      await renderStepGrid(onDataChange, stepColumns(0.28, undefined, 0.01, 2), 0.29);
       const input = await openNumberEditor();
 
       await userEvent.keyboard("{ArrowDown}");
-      expect(input.value).toBe("0.3");
+      expect(input.value).toBe("0.28");
+    });
+
+    it("steps into a negative min bound that already sits on the decimals grid", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(-0.29, undefined, 0.01, 2), -0.28);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowDown}");
+      expect(input.value).toBe("-0.29");
     });
 
     it("keeps the precision of a draft that is finer than the step", async () => {

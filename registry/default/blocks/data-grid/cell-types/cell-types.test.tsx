@@ -100,6 +100,12 @@ describe("numberCellType value pipeline", () => {
     expect(numberCellType.fromText("5", { min: 0, max: 10 })).toBe(5);
   });
 
+  it("fromText with decimals never lands outside min/max after rounding", () => {
+    expect(numberCellType.fromText("0.2", { max: 0.125, decimals: 2 })).toBe(0.12);
+    expect(numberCellType.fromText("0", { min: 0.125, decimals: 2 })).toBe(0.13);
+    expect(numberCellType.fromText("0.29", { max: 0.29, decimals: 2 })).toBe(0.29);
+  });
+
   it("toText uses plain String(), no locale formatting", () => {
     expect(numberCellType.toText(1000)).toBe("1000");
     expect(numberCellType.toText(3.5)).toBe("3.5");
