@@ -53,8 +53,9 @@ pin, autosize, hide).
   even when the user did not select the cell first.
 </Callout>
 
-The `renderHeaderMenu` slot of `DataGridRoot` renders at the inline-end of each header cell, as a ghost
-chevron button on hover, and opens the same menu that a right-click gives you. Per-column
+The `renderHeaderMenu` slot of `DataGridRoot` (the `DataGrid` wrapper forwards it) renders at the
+inline-end of each header cell, as a ghost chevron button on hover, and opens the same menu that a
+right-click gives you. Per-column
 `pinnable: false`, or grid-wide `enableColumnPinning={false}`, disables pin and unpin.
 
 A soft directional shadow marks the pinned boundary: the last left-pinned column casts a shadow

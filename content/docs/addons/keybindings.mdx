@@ -86,6 +86,9 @@ import { formatShortcut, isMacPlatform } from "@/components/data-grid/data-grid"
 Modifier tokens render as glyphs (⌘ ⇧ ⌥) on macOS and iOS, and as word names (Ctrl, Shift, Alt)
 everywhere else. `ctrl` always renders as `Ctrl`, including on macOS.
 
+The platform check reads `navigator`, which does not exist during server rendering — there the
+labels render as word names. Compute the labels after mount.
+
 ## Remapping
 
 The keymap is a plain data table, the `keymap` prop, merged over `DEFAULT_KEYMAP`. You can

@@ -191,8 +191,9 @@ trusted; omitted, the pager's default list 10/25/50/100 is the gate), and `total
 see below). The result carries the resolved `pageSizeOptions` — pass them to `useDataGridPagination`
 so the bar's page-size select and the URL's allow-list stay the same list.
 
-Pass `total` and an out-of-range deep-linked `page` clamps to the last page on mount, with the
-clamped value written back to the URL, so a shared link never disagrees with the rendered view:
+Pass `total` and an out-of-range deep-linked `page` clamps to the last page once `total` is
+positive — on mount, or when a late fetch resolves — with the clamped value written back to the
+URL, so a shared link never disagrees with the rendered view:
 
 ```tsx
 const url = useDataGridUrlPagination({ total: rows.length });

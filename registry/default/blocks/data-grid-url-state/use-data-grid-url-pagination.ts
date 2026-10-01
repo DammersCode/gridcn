@@ -37,8 +37,9 @@ export type UseDataGridUrlPaginationResult = {
  * const url = useDataGridUrlPagination();
  * const pager = useDataGridPagination({ total: rows.length, pageSizeOptions: url.pageSizeOptions, ...url });
  *
- * Pass `total` so an out-of-range deep-linked `page` clamps to the last page on mount and the
- * clamped value replaces the raw one in the URL.
+ * Pass `total` so an out-of-range deep-linked `page` clamps to the last page once `total` is
+ * positive (on mount, or when a late fetch resolves), and the clamped value replaces the raw
+ * one in the URL.
  *
  * `page` is 1-based and omitted from the URL at 1; `pageSize` is omitted when it equals
  * `defaultPageSize`. Both writes use `history: "replace"`, matching this add-on's sort/filter/

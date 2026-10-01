@@ -7,6 +7,7 @@ icon: FileSpreadsheet
 Import and export live in the `data-grid-io` add-on, kept separate so the core stays free of the
 spreadsheet and CSV dependencies. The add-on depends on `hucre` (pinned to 1.1.0) and `papaparse`.
 gridcn imports `hucre` lazily: it loads only when an xlsx or xls file is read or written.
+`papaparse` is not lazy: it loads with the item.
 
 <ComponentPreview name="data-grid-io-demo" />
 

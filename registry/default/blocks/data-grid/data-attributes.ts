@@ -96,7 +96,7 @@ export const GRID_ATTR = {
   sortList: "data-grid-sort-list",
   /** data-grid-sort-list/sort-list.tsx: one reorderable row within the sort list. */
   sortRow: "data-grid-sort-row",
-  /** data-grid-toolbar/toolbar.tsx: the toolbar container; also used by `data-grid-toolbar/search.tsx` to test whether an event target sits inside the grid's own scope. */
+  /** data-grid-toolbar/toolbar.tsx: the toolbar container. `search.tsx` matches it on custom toolbars, so their mod+F capture works without the instance attribute. */
   toolbar: "data-grid-toolbar",
   /** root.tsx and data-grid-toolbar/toolbar.tsx: this provider instance's id (a React `useId` value); scopes `data-grid-toolbar/search.tsx`'s mod+F capture to this grid, never a sibling grid. */
   instance: "data-grid-instance",
