@@ -65,8 +65,8 @@ import { BindingChips } from "@/components/data-grid-keybindings/data-grid-keybi
 <BindingChips binding="mod+shift+ArrowUp" />
 ```
 
-For plain text, `bindingTokens(binding)` from the same entry point returns the tokens as an array
-(`["⌘", "C"]`).
+For plain text, the core's `formatShortcut(binding)` (the `data-grid` entry point, below)
+returns the same tokens as an array (`["⌘", "C"]`).
 
 Tokens are platform-aware (`mod` → ⌘ on macOS, Ctrl elsewhere), and a binding renders as one
 keycap per token.

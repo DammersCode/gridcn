@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { GRID_ATTR, useDataGridInstanceId } from "@/registry/default/blocks/data-grid/data-grid";
+import { GRID_ATTR } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridInstanceId } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Props for {@link DataGridToolbar}. */
 export type DataGridToolbarProps = {

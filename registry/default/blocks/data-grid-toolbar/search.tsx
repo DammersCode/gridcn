@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import {
   GRID_ATTR,
   useDataGridActions,
-  useDataGridInstanceId,
   useDataGridLabels,
   useDataGridScrollToCellAt,
   useDataGridSearchCapped,
@@ -24,6 +23,7 @@ import {
   useDataGridSearchText,
   useDataGridVisibleColumns,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridInstanceId } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Default debounce (ms) between typing and updating the store's `searchText`. */
 const SEARCH_DEBOUNCE_MS = 200;

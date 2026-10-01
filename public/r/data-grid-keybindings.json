@@ -12,7 +12,7 @@
   "files": [
     {
       "path": "registry/default/blocks/data-grid-keybindings/data-grid-keybindings.ts",
-      "content": "/** Public entry point — the only module consumers/docs should import from. */\r\n\r\nexport { DataGridKeybindingsDialog, type DataGridKeybindingsDialogProps } from \"./keybindings-dialog\";\r\nexport { DataGridKeybindingsShortcut, type DataGridKeybindingsShortcutProps } from \"./keybindings-shortcut\";\r\nexport { BindingChips, bindingTokens } from \"./binding-label\";\r\nexport { KEYBINDING_CATEGORIES, ACTION_CATEGORY, categoryForAction, categoryLabel, type KeybindingCategory } from \"./action-groups\";\r\nexport { labelForAction } from \"./action-labels\";\r\n",
+      "content": "/** Public entry point — the only module consumers/docs should import from. */\r\n\r\nexport { DataGridKeybindingsDialog, type DataGridKeybindingsDialogProps } from \"./keybindings-dialog\";\r\nexport { DataGridKeybindingsShortcut, type DataGridKeybindingsShortcutProps } from \"./keybindings-shortcut\";\r\nexport { BindingChips } from \"./binding-label\";\r\nexport { KEYBINDING_CATEGORIES, ACTION_CATEGORY, categoryForAction, categoryLabel, type KeybindingCategory } from \"./action-groups\";\r\nexport { labelForAction } from \"./action-labels\";\r\n",
       "type": "registry:component",
       "target": "components/data-grid-keybindings/data-grid-keybindings.ts"
     },
@@ -30,7 +30,7 @@
     },
     {
       "path": "registry/default/blocks/data-grid-keybindings/binding-label.tsx",
-      "content": "\"use client\";\n\nimport type { ReactNode } from \"react\";\nimport { formatShortcut } from \"@/registry/default/components/data-grid/data-grid\";\nimport { Kbd, KbdGroup } from \"@/components/ui/kbd\";\n\n/** One binding string (\"mod+shift+ArrowUp\") to its display tokens — delegates to the core's `formatShortcut`. */\nexport function bindingTokens(binding: string): string[] {\n  return formatShortcut(binding);\n}\n\n/** One binding string (\"mod+c\") rendered as a row of `<Kbd>` chips (\"⌘\" \"C\"). */\nexport function BindingChips({ binding }: { binding: string }): ReactNode {\n  return (\n    <KbdGroup>\n      {formatShortcut(binding).map((token, i) => (\n        // tokens within one binding have no other stable identity; index is fine, this list never reorders\n        <Kbd key={i}>{token}</Kbd>\n      ))}\n    </KbdGroup>\n  );\n}\n",
+      "content": "\"use client\";\n\nimport type { ReactNode } from \"react\";\nimport { formatShortcut } from \"@/registry/default/components/data-grid/data-grid\";\nimport { Kbd, KbdGroup } from \"@/components/ui/kbd\";\n\n/** One binding string (\"mod+c\") rendered as a row of `<Kbd>` chips (\"⌘\" \"C\"). */\nexport function BindingChips({ binding }: { binding: string }): ReactNode {\n  return (\n    <KbdGroup>\n      {formatShortcut(binding).map((token, i) => (\n        // tokens within one binding have no other stable identity; index is fine, this list never reorders\n        <Kbd key={i}>{token}</Kbd>\n      ))}\n    </KbdGroup>\n  );\n}\n",
       "type": "registry:component",
       "target": "components/data-grid-keybindings/binding-label.tsx"
     },

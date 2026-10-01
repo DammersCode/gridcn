@@ -72,7 +72,6 @@ export { type HeaderMenuRenderer, type MarkerCellRenderCtx, type MarkerHeaderRen
 export {
   cellErrorKey,
   DataGridProvider,
-  useDataGridInstanceId,
   useDataGridStoreApi,
   useDataGridStoreProps,
   useDataGridActions,
@@ -157,7 +156,7 @@ export {
   type GlobalShortcutsConfig,
   type DataGridGlobalShortcutActions,
 } from "./keyboard/global-shortcuts";
-export { isMacPlatform, formatShortcut, formatShortcutToken } from "./keyboard";
+export { isMacPlatform, formatShortcut } from "./keyboard";
 
 export {
   cellTypes,

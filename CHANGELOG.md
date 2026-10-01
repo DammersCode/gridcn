@@ -101,10 +101,12 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   true — the skeleton (zero rows in view) or the indeterminate bar under the header (rows
   present). Its function form receives `{ reason: "no-data" | "rows-present" }`.
 
-- **Shortcut label API:** `data-grid` exports `isMacPlatform()`, `formatShortcut(binding)`, and
-  `formatShortcutToken(segment)` so consumer UI can render shortcut labels that match the grid's
-  own keycaps (glyphs on macOS and iOS, word names elsewhere). The keybindings and context-menu
-  add-ons now use this shared API; on macOS the keybindings chips render `⇧` for Shift.
+- **Shortcut label API:** `data-grid` exports `isMacPlatform()` and `formatShortcut(binding)`
+  so consumer UI can render shortcut labels that match the grid's own keycaps (glyphs on macOS
+  and iOS, word names elsewhere). `mod` matches Cmd on iPhone and iPad, so their labels render
+  the `⌘` glyph. The keybindings and context-menu add-ons use this shared API; on macOS the
+  keybindings chips render `⇧` for Shift. The single-segment `formatShortcutToken(segment)`
+  lives on the `data-grid-sdk` surface, not the entry point.
 
 - **Agent skills:** `npx skills add DammersCode/gridcn` installs five skills for Claude Code,
   Cursor, Codex, and other agents: `gridcn-performance`, `gridcn-custom-cell-type`,
@@ -150,8 +152,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Public barrel additions:** the `data-grid` barrel now exports `createFilterMatcher`
   (previously documented but only importable from the internal `sort-filter` path), `displayText`,
   and the `CellSpan` display primitive; the `data-grid-keybindings` barrel exports `BindingChips`
-  and `bindingTokens` (the binding chips the keybindings page already teaches); the
-  `data-grid-presence` barrel exports the `isRowIdPresenceHighlight` /
+  (the binding chips the keybindings page teaches); the `data-grid-presence` barrel exports the `isRowIdPresenceHighlight` /
   `isRowIdRangePresenceHighlight` payload type guards for narrowing untrusted remote payloads.
 - **`grid.datePlaceholder` label key:** the date editor's input placeholder now reads from
   `labels.grid.datePlaceholder` (default `"yyyy-mm-dd"`), so it participates in
@@ -529,6 +530,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   fill page documents `onFill.values` as the computed target-strip pattern (not a copy of the
   source range) and the `detectSeries` option; the sorting/filtering page documents
   `filterMatch`/`filterOperators`.
+- **Breaking:** the `data-grid-keybindings` entry point no longer exports `bindingTokens` — the
+  core's `formatShortcut` (from the `data-grid` entry point) returns the same tokens. The
+  `data-grid` entry point no longer exports `useDataGridInstanceId` or `formatShortcutToken`;
+  both are on the `data-grid-sdk` surface the first-party add-ons import.
 
 ### Fixed
 
