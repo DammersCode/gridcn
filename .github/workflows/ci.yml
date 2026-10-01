@@ -8,10 +8,14 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   checks:
     name: Checks (typecheck, lint)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     # PR runs gate on author (fork PRs skip, 0 min); to check an outside PR, Actions -> Run workflow on its branch.
     if: >-
       github.event_name != 'pull_request' ||
@@ -45,6 +49,7 @@ jobs:
   unit:
     name: Unit + coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: >-
       github.event_name != 'pull_request' ||
       contains('["DammersCode"]', github.event.pull_request.user.login)
@@ -67,6 +72,7 @@ jobs:
   browser:
     name: Browser tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     if: >-
       github.event_name != 'pull_request' ||
       contains('["DammersCode"]', github.event.pull_request.user.login)
@@ -83,6 +89,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # The lockfile pins the Playwright version, so a lockfile change busts the browser cache.
+      - name: Cache Playwright browsers
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ms-playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
@@ -92,6 +105,7 @@ jobs:
   unit-compiled:
     name: Unit + React Compiler
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: >-
       github.event_name != 'pull_request' ||
       contains('["DammersCode"]', github.event.pull_request.user.login)
@@ -115,6 +129,7 @@ jobs:
   browser-compiled:
     name: Browser + React Compiler
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     if: >-
       github.event_name != 'pull_request' ||
       contains('["DammersCode"]', github.event.pull_request.user.login)
@@ -131,6 +146,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # The lockfile pins the Playwright version, so a lockfile change busts the browser cache.
+      - name: Cache Playwright browsers
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ms-playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
@@ -141,6 +163,7 @@ jobs:
   build:
     name: Build + registry
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     if: >-
       github.event_name != 'pull_request' ||
       contains('["DammersCode"]', github.event.pull_request.user.login)
@@ -188,6 +211,7 @@ jobs:
   # named exactly `ci`, and a job's display name becomes the check context instead.
   ci:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [checks, unit, browser, unit-compiled, browser-compiled, build]
     if: >-
       always() &&
