@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, posix } from "node:path";
 import { fileURLToPath } from "node:url";
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
@@ -10,7 +10,7 @@ import { defineConfig } from "vitest/config";
 const root = dirname(fileURLToPath(import.meta.url));
 
 // per-file branch bars for the pure-lib modules; keys are repo-root-relative file paths.
-// Validated at load: a key matching no file or a coverage exclude glob enforces nothing.
+// Validated at load: a key outside the coverage include, inside an exclude, or naming no file enforces nothing.
 const perFileBranchThresholds: Record<string, { branches: number }> = {
   "registry/default/blocks/data-grid/cell-types/cell-types.ts": { branches: 90 },
   "registry/default/blocks/data-grid/columns/column-helpers.ts": { branches: 90 },
@@ -64,6 +64,8 @@ const perFileBranchThresholds: Record<string, { branches: number }> = {
   "registry/default/blocks/data-grid-url-state/filter-param.ts": { branches: 90 },
 };
 
+const coverageInclude = ["registry/**/*.ts"];
+const isCoverageIncluded = picomatch(coverageInclude);
 // Files coverage never measures: a threshold key inside these globs would silently enforce nothing.
 const coverageExclude = [
   "**/*.test.{ts,tsx}",
@@ -75,6 +77,8 @@ const coverageExclude = [
 const isCoverageExcluded = picomatch(coverageExclude);
 
 for (const key of Object.keys(perFileBranchThresholds)) {
+  if (key.startsWith("./") || key !== posix.normalize(key)) throw new Error(`coverage perFile threshold key is not a normalized repo-relative path: ${key}`);
+  if (!isCoverageIncluded(key)) throw new Error(`coverage perFile threshold key matches no coverage include glob: ${key}`);
   if (isCoverageExcluded(key)) throw new Error(`coverage perFile threshold key matches a coverage exclude glob: ${key}`);
   if (!existsSync(join(root, key))) throw new Error(`coverage perFile threshold key matches no file: ${key}`);
 }
@@ -92,7 +96,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json-summary", "json"],
-      include: ["registry/**/*.ts"],
+      include: coverageInclude,
       exclude: coverageExclude,
       // Pure lib modules hold a 90-100% branch bar per file; React glue is not coverage-chased.
       thresholds: {
