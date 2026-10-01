@@ -268,6 +268,32 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `renderCellMenuItems`/`renderHeaderMenuItems`; `data-grid-filter-operators-demo` shows
   `operatorsForColumn`, `ColumnDef.filterOperators`, and `DataGridSortList`'s `allColumns`.
 
+- Coverage thresholds (branch-level, ~85-90% floor) enforced in CI for every pure-lib module —
+  selection math, `CompactSelection`, clipboard parse/serialize, fill/series inference, sort/filter
+  matching, keymap matching, history, url-state serializers, CSV/XLSX import/export helpers, and
+  context-menu target resolution.
+- `LICENSE` (Apache License 2.0).
+- `data-grid-lazy` add-on: `useDataGridLazyRows` + `DataGridLazyGuard` for fetching rows on demand
+  as the viewport scrolls, instead of loading the full dataset up front.
+- `data-grid-sort-list` add-on: toolbar sort button + popover for adding/removing/reordering
+  multi-column sorts (drag handle or ArrowUp/ArrowDown while focused), mirroring the filter menu's UX.
+- Multiplayer presence highlights: `presenceHighlights` prop paints other users' live selections as
+  named, colored overlays, independent of the local selection.
+- tablecn-parity filter and sort popovers: drag-to-reorder (and keyboard ArrowUp/ArrowDown)
+  reordering for both the filter menu's rows and the sort-list's rows, with a live-region
+  announcement on each move.
+- Two-stage Ctrl+A (Excel/Sheets parity): the first press selects the active cell's contiguous data
+  region, an immediate second press selects the whole grid; any selection change, active-cell move,
+  or edit resets the progression back to stage one.
+- The grid's empty-state text is now wired to `labels.grid.emptyState` (translatable), with the
+  `emptyState` prop still taking precedence when provided.
+- Type-to-replace (Excel parity): typing a printable key on an active cell now starts an edit
+  seeded with the typed character (replace mode — the first character replaces the value, like
+  Excel). Behavior change: printable keys without a keymap binding used to be no-ops; define
+  `keymap.editReplace` (even `[]`) to take the action over and suppress the implicit fallback.
+  `editReplace` is a first-class remappable keymap action — a printable binding (e.g. a letter)
+  seeds the typed char, a non-printable binding (e.g. F3) starts a plain edit.
+
 ### Changed
 
 - **Breaking:** the write-pulse follows its row (`data-grid`, `data-grid-sdk`). `flashCells` takes
@@ -369,11 +395,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   itself — value-only `updateCells` ticks no longer force the O(n) map rebuild, so consumers of
   the map stop re-rendering per tick. `getRowId` must return stable ids across value-only writes
   (row ids are identity, not content).
-- **Selection changes fire only on real changes:** repeated `extendTo` at the same coord (a
-  stationary drag), a clamped `extendSelection` at a grid edge, and a `selectRow`/`selectColumn`
-  re-fire that leaves both channels and `lastHighlighted*` unchanged no longer replace the
-  selection object. `onSelectionChange` and selection-keyed re-renders now fire only when the
-  selection content actually changed.
+- **Breaking:** selection changes fire only on real changes: repeated `extendTo` at the same
+  coord (a stationary drag), a clamped `extendSelection` at a grid edge, and a
+  `selectRow`/`selectColumn` re-fire that leaves both channels and `lastHighlighted*` unchanged no
+  longer replace the selection object. `onSelectionChange` and selection-keyed re-renders now fire
+  only when the selection content actually changed.
 - **`data-grid-io` swaps `xlsx` for `@e965/xlsx`:** the add-on's SheetJS dependency moves from
   `xlsx@0.18.5` to the community mirror `@e965/xlsx@0.20.3` (byte-identical sources, SLSA v1
   provenance, zero npm-audit vulnerabilities). The npm `xlsx` line stopped at 0.18.5 with two
@@ -436,7 +462,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `csvBom: false` on `exportGrid`. Related additions: `.tsv` files are now accepted on import
   (the import dialog's `accept` includes them), `IMPORT_CANCELLED_MESSAGE` is re-exported from the
   `data-grid-io` barrel, and `useDataGridState`'s `history` object now exposes `clear` (empties
-  both undo/redo stacks). `number`'s `options.step` is marked `@reserved` (accepted, no-op for now).
+  both undo/redo stacks).
 - Linting moved from ESLint to **oxlint** (`pnpm lint` — whole-repo, ~0.2s): the two structural
   import-boundary rules (barrel-only cross-item imports, core-never-imports-an-add-on) now run as
   `scripts/verify-import-boundaries.mjs` in the same script, and the type-checked `no-unsafe-*`
@@ -535,6 +561,43 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `data-grid` entry point no longer exports `useDataGridInstanceId` or `formatShortcutToken`;
   both are on the `data-grid-sdk` surface the first-party add-ons import.
 
+- README rewritten to describe the actual shipped feature set (pinned rows, controlled props,
+  styling API, url-state) and point to the docs site instead of the generic Fumadocs scaffold text.
+- **Breaking:** `data-grid-pagination`'s `DataGridPagination` component was replaced by a composable
+  `DataGridPaginationBar` plus standalone parts (`DataGridPaginationRange`, `DataGridPaginationPageSize`,
+  `DataGridPaginationFirst`, `DataGridPaginationPrev`, `DataGridPaginationPages`,
+  `DataGridPaginationNext`, `DataGridPaginationLast`), so consumers can rearrange or restyle the
+  footer instead of accepting one fixed layout.
+- **Breaking:** Multiplayer presence extracted out of core into a new `data-grid-presence` add-on.
+  Core's `presenceHighlights` state/prop, `setPresenceHighlights` action,
+  `useDataGridHighlights` hook, and the `PresenceHighlight` type are all removed — install
+  `@gridcn/data-grid-presence` and call its `useDataGridPresence()` hook instead. Core gains one new
+  seam in exchange: `overlayPlugins` on `DataGridProvider`/`DataGrid`, a generic overlay-plugin slot
+  `DataGridOverlays` renders after its built-in range/band layers (but before the local active-cell
+  ring) — `data-grid-presence` is the first consumer, `data-grid-fill` (below) the second.
+- **Breaking:** The fill handle extracted out of core into a new `data-grid-fill` add-on, reusing
+  the overlay-plugin seam the presence extraction built. README/docs positioning updated: core is
+  now range selection + Excel clipboard + editing engine; the fill handle is its own free add-on,
+  one `npx shadcn add @gridcn/data-grid-fill` away. Removed from
+  core: `useFillHandle`, `FillHandleHandlers`, `FillPatternArgs`, the `fillPreview`/`setFillPreview`
+  store state, `DataGridRoot`'s `onFillPattern` prop, and `DataGridOverlays`'s `fillHandleHandlers`
+  prop — install the add-on and call its `useDataGridFill()` hook instead (`onFillPattern` is now
+  an option to that hook). `GridAction`'s `fillDown`/`fillRight` and their `DEFAULT_KEYMAP` bindings
+  stay in core (two string literals are cheaper surface than a fully extensible-action mechanism);
+  without the add-on both keys are silent no-ops, matching every other optional-callback seam.
+- **Breaking:** Pinned rows extracted out of core into a new `data-grid-pinned-rows` add-on.
+  Unlike presence/fill (which register into the `overlayPlugins` paint
+  seam), pinned rows affect band heights and `aria-rowcount`, so core needed a seam available
+  SYNCHRONOUSLY at first render instead of a mount-effect registration: `DataGridProvider`/`DataGrid`
+  gain `rowBands` (a `RowBandsSpec`), and `DataGridRoot`/`DataGridProvider`'s `pinnedTopRows`/
+  `pinnedBottomRows` props are removed, along with `DataGridPinnedRow`/`DataGridPinnedRowBand` and
+  their barrel exports — install `@gridcn/data-grid-pinned-rows` and call its
+  `useDataGridPinnedRows({ top?, bottom? })` hook instead, passing its `rowBands` result straight
+  into `rowBands`. v1 semantics are unchanged (separate arrays from `data`, readOnly by default, not
+  navigable, excluded from sort/filter/selection). Core also now exports `DataGridCell` and
+  `WindowedColumn` from its barrel, since the add-on's moved `DataGridPinnedRow` needs both.
+
+
 ### Fixed
 
 - **Selection follows the edited row (`data-grid`):** while a cell is in edit mode, a sort,
@@ -588,9 +651,12 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   column resize handle no longer selects the column or arms a reorder. A column or row reorder
   ends instead of blocking the next drag when the window blurs or when the element that held the
   pointer capture left the document.
-- **Empty filter value selects show the placeholder (`data-grid-toolbar`):** an empty checkbox
-  or select filter value shows the "Value" placeholder instead of a blank trigger. The filter
-  row's selects pass their labels through the `items` prop of `Select`.
+- **Breaking:** filter and pagination selects show labels, not raw values: the filter row's
+  boolean and choice selects show the label (`labels.toolbar.filterValueTrue`/`filterValueFalse`,
+  the choice's own label) instead of the stored value, and the pagination footer's page-size
+  select shows `labels.pagination.pageSizeOption(size)` (default `25 / page`). An empty checkbox
+  or select filter value shows the "Value" placeholder instead of a blank trigger. The selects
+  pass their labels through the `items` prop of `Select`.
 - **Restarted edit sessions start clean (`data-grid`):** a second `startEditing` on the cell that is
   already being edited opens the editor on the stored value (or the new `initialText`) instead of
   the old session's draft, and drops the old session's pending async validation instead of
@@ -641,10 +707,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `onDataChange` now re-applies the change's ops to the latest sparse state instead of replacing
   the array with the grid's post-op snapshot — a snapshot taken before an in-flight fetch resolved
   no longer evicts the rows that fetch just wrote (row ops that change length apply cleanly too).
-- **`mod+F` with several grids on one page:** `DataGridSearch`'s find-shortcut capture now scopes
-  to the grid that holds focus (each provider stamps its root and toolbar with a `useId`-derived
-  `data-grid-instance` marker) — pressing `mod+F` in grid A no longer moves focus into grid B's
-  search input.
+- **Breaking:** `mod+F` with several grids on one page: `DataGridSearch`'s find-shortcut capture
+  now scopes to the grid that holds focus (each provider stamps its root and toolbar with a
+  `useId`-derived `data-grid-instance` marker) — pressing `mod+F` in grid A no longer moves focus
+  into grid B's search input.
 - **Import limits (`data-grid-io`):** `parseImportFile` now bounds every import against a memory/CPU
   DoS — a 16 KB xlsx with two far-apart cells used to build 100M cells. Files above 50 MB are
   rejected before they are read. A file with more than 1,000,000 rows, 1,000 columns, or
@@ -666,9 +732,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   URL param keeps one direction per column (first segment wins) and at most 64 sorts — a
   hand-edited URL can no longer express an unbounded view state. `parseFilterState` takes an
   optional `maxChoices` option, a function from a column id to its bound.
-- **URL pagination hardening:** a URL `pageSize` is now gated by the pager's default size list
-  (10/25/50/100) even when `pageSizeOptions` is omitted, and a URL `page` beyond 1,000,000
-  falls back to 1 — an unbounded `?pageSize=` or `?page=` can no longer force a huge fetch.
+- **Breaking:** URL pagination hardening: a URL `pageSize` is now gated by the pager's default
+  size list (10/25/50/100) even when `pageSizeOptions` is omitted, and a URL `page` beyond
+  1,000,000 falls back to 1 — an unbounded `?pageSize=` or `?page=` can no longer force a huge
+  fetch.
 - **Drag listener leaks:** a second pointer pressing a reorder grip, row-reorder marker, or resize
   handle while a gesture is in flight no longer arms a second document listener set, and an
   unmounted column-resize drag drops its document listeners.
@@ -692,9 +759,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   arrives; `useDataGridPagination` client mode keeps a controlled page the same way on an empty
   dataset.
 - **Validator crash on edit commit:** a cell `validate` that throws, or whose promise rejects,
-  now rejects the edit with the error message and clears the pending state, instead of leaving the
-  editor stuck read-only with no message. This covers the function form and `updateCells` (the
-  patch is skipped as `invalid`), and a throwing validator blocks the edit on an
+  now rejects the edit with the error message — a rejecting promise also clears the pending state,
+  so the editor no longer stays stuck read-only. This covers the function form and `updateCells`
+  (the patch is skipped as `invalid`), and a throwing validator blocks the edit on an
   `onInvalid: "warn"` column too.
 - **Docs: stable `overlayPlugins` in the fill and presence examples:** the examples and the `plugin`
   JSDoc of `useDataGridFill` and `useDataGridPresence` memoize the `overlayPlugins` array. The inline `[plugin]` literal they showed trips the core's
@@ -740,74 +807,6 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   gets the icon package the components import.
 - **Inline fill callbacks:** `useDataGridFill`'s `onFill` and `detectSeries` may be inline
   functions; a new identity no longer re-creates the fill handlers on every render.
-
-### Added
-
-- Coverage thresholds (branch-level, ~85-90% floor) enforced in CI for every pure-lib module —
-  selection math, `CompactSelection`, clipboard parse/serialize, fill/series inference, sort/filter
-  matching, keymap matching, history, url-state serializers, CSV/XLSX import/export helpers, and
-  context-menu target resolution.
-- `LICENSE` (Apache License 2.0).
-- `data-grid-lazy` add-on: `useDataGridLazyRows` + `DataGridLazyGuard` for fetching rows on demand
-  as the viewport scrolls, instead of loading the full dataset up front.
-- `data-grid-sort-list` add-on: toolbar sort button + popover for adding/removing/reordering
-  multi-column sorts (drag handle or ArrowUp/ArrowDown while focused), mirroring the filter menu's UX.
-- Multiplayer presence highlights: `presenceHighlights` prop paints other users' live selections as
-  named, colored overlays, independent of the local selection.
-- tablecn-parity filter and sort popovers: drag-to-reorder (and keyboard ArrowUp/ArrowDown)
-  reordering for both the filter menu's rows and the sort-list's rows, with a live-region
-  announcement on each move.
-- Two-stage Ctrl+A (Excel/Sheets parity): the first press selects the active cell's contiguous data
-  region, an immediate second press selects the whole grid; any selection change, active-cell move,
-  or edit resets the progression back to stage one.
-- The grid's empty-state text is now wired to `labels.grid.emptyState` (translatable), with the
-  `emptyState` prop still taking precedence when provided.
-- Type-to-replace (Excel parity): typing a printable key on an active cell now starts an edit
-  seeded with the typed character (replace mode — the first character replaces the value, like
-  Excel). Behavior change: printable keys without a keymap binding used to be no-ops; define
-  `keymap.editReplace` (even `[]`) to take the action over and suppress the implicit fallback.
-  `editReplace` is a first-class remappable keymap action — a printable binding (e.g. a letter)
-  seeds the typed char, a non-printable binding (e.g. F3) starts a plain edit.
-
-### Changed
-
-- README rewritten to describe the actual shipped feature set (pinned rows, controlled props,
-  styling API, url-state) and point to the docs site instead of the generic Fumadocs scaffold text.
-- **Breaking:** `data-grid-pagination`'s `DataGridPagination` component was replaced by a composable
-  `DataGridPaginationBar` plus standalone parts (`DataGridPaginationRange`, `DataGridPaginationPageSize`,
-  `DataGridPaginationFirst`, `DataGridPaginationPrev`, `DataGridPaginationPages`,
-  `DataGridPaginationNext`, `DataGridPaginationLast`), so consumers can rearrange or restyle the
-  footer instead of accepting one fixed layout.
-- **Breaking:** Multiplayer presence extracted out of core into a new `data-grid-presence` add-on.
-  Core's `presenceHighlights` state/prop, `setPresenceHighlights` action,
-  `useDataGridHighlights` hook, and the `PresenceHighlight` type are all removed — install
-  `@gridcn/data-grid-presence` and call its `useDataGridPresence()` hook instead. Core gains one new
-  seam in exchange: `overlayPlugins` on `DataGridProvider`/`DataGrid`, a generic overlay-plugin slot
-  `DataGridOverlays` renders after its built-in range/band layers (but before the local active-cell
-  ring) — `data-grid-presence` is the first consumer, `data-grid-fill` (below) the second.
-- **Breaking:** The fill handle extracted out of core into a new `data-grid-fill` add-on, reusing
-  the overlay-plugin seam the presence extraction built. README/docs positioning updated: core is
-  now range selection + Excel clipboard + editing engine; the fill handle is its own free add-on,
-  one `npx shadcn add @gridcn/data-grid-fill` away. Removed from
-  core: `useFillHandle`, `FillHandleHandlers`, `FillPatternArgs`, the `fillPreview`/`setFillPreview`
-  store state, `DataGridRoot`'s `onFillPattern` prop, and `DataGridOverlays`'s `fillHandleHandlers`
-  prop — install the add-on and call its `useDataGridFill()` hook instead (`onFillPattern` is now
-  an option to that hook). `GridAction`'s `fillDown`/`fillRight` and their `DEFAULT_KEYMAP` bindings
-  stay in core (two string literals are cheaper surface than a fully extensible-action mechanism);
-  without the add-on both keys are silent no-ops, matching every other optional-callback seam.
-- **Breaking:** Pinned rows extracted out of core into a new `data-grid-pinned-rows` add-on.
-  Unlike presence/fill (which register into the `overlayPlugins` paint
-  seam), pinned rows affect band heights and `aria-rowcount`, so core needed a seam available
-  SYNCHRONOUSLY at first render instead of a mount-effect registration: `DataGridProvider`/`DataGrid`
-  gain `rowBands` (a `RowBandsSpec`), and `DataGridRoot`/`DataGridProvider`'s `pinnedTopRows`/
-  `pinnedBottomRows` props are removed, along with `DataGridPinnedRow`/`DataGridPinnedRowBand` and
-  their barrel exports — install `@gridcn/data-grid-pinned-rows` and call its
-  `useDataGridPinnedRows({ top?, bottom? })` hook instead, passing its `rowBands` result straight
-  into `rowBands`. v1 semantics are unchanged (separate arrays from `data`, readOnly by default, not
-  navigable, excluded from sort/filter/selection). Core also now exports `DataGridCell` and
-  `WindowedColumn` from its barrel, since the add-on's moved `DataGridPinnedRow` needs both.
-
-### Fixed
 
 - The empty-state row no longer renders a hardcoded "No data" literal that i18n consumers couldn't
   translate.
