@@ -75,6 +75,11 @@ export function flashKeyRowId(key: string): string {
   return key.slice(0, key.indexOf(FLASH_KEY_SEPARATOR));
 }
 
+/** Placeholder row id for a hole in `data` (an unloaded lazy row) — index-derived, stable only while the hole keeps its index. */
+export function holeRowId(dataRowIndex: number): string {
+  return `__lazy-unloaded-${dataRowIndex}`;
+}
+
 /** Row id shown at `viewRow`, or `undefined` for a missing or unloaded row. */
 export function rowIdAtViewRow(
   s: { viewIndex: readonly number[]; data: readonly unknown[]; getRowId: DataGridStoreState["getRowId"] },

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { applyChange, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes, type Range } from "./range-math";
 
 /** Default extra rows fetched per range beyond the visible window — ~1 viewport (spec: "default ~1 viewport of rows"). */
@@ -94,11 +94,6 @@ export type UseDataGridLazyRowsResult<TData> = {
    */
   getLoadedRanges: () => readonly Range[];
 };
-
-/** Index-derived placeholder id for an unloaded row — unstable across loads, but unloaded rows carry no state (documented: unstable identity for unloaded rows is fine). */
-function placeholderId(index: number): string {
-  return `__lazy-unloaded-${index}`;
-}
 
 /** A consumer callback throwing must not escape the fetch's promise chain as an unhandled rejection. */
 function guardCallback(fn: (() => void) | undefined): void {
@@ -283,7 +278,7 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
   });
 
   const gridGetRowId = useCallback(
-    (row: TData, index: number) => (row === undefined ? placeholderId(index) : getRowId(row, index)),
+    (row: TData, index: number) => (row === undefined ? holeRowId(index) : getRowId(row, index)),
     [getRowId],
   );
 

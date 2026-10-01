@@ -3,12 +3,12 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { DataGridCell } from "@/registry/default/blocks/data-grid/data-grid";
-import type { GridColumnLayout, WindowedColumn } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { useDataGridStore, type GridColumnLayout, type WindowedColumn } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export type DataGridPinnedRowProps = {
   /** The consumer-supplied pinned row object (from `useDataGridPinnedRows`'s `topRows`/`bottomRows` options — never a member of `data`). */
   row: unknown;
-  /** Position within its own band, 0-based — used only for the `data-grid-pinned-row-index` marker, never `ViewCoord`/`aria-colindex` (pinned rows aren't in the data index space). */
+  /** Position within its own band, 0-based — the `data-grid-pinned-row-index` marker and the `getRowId` index argument of the row's resolved id; never `ViewCoord`/`aria-colindex` (pinned rows aren't in the data index space). */
   bandIndex: number;
   windowedColumns: readonly WindowedColumn[];
   layout: GridColumnLayout;
@@ -30,6 +30,8 @@ export type DataGridPinnedRowProps = {
  */
 export function DataGridPinnedRow(props: DataGridPinnedRowProps): ReactNode {
   const { row, bandIndex, windowedColumns, layout, gridRowStart, ariaRowIndex, className } = props;
+  // pinned rows aren't members of `data`, so resolve their ctx id through the grid's own getRowId.
+  const getRowId = useDataGridStore((s) => s.getRowId);
   const markerColOffset = layout.markerWidth > 0 ? 2 : 1;
   return (
     <div
@@ -48,6 +50,7 @@ export function DataGridPinnedRow(props: DataGridPinnedRowProps): ReactNode {
         <DataGridCell
           key={column.id}
           row={row}
+          rowId={getRowId(row, bandIndex)}
           rowIndex={bandIndex}
           column={column}
           columnIndex={index}

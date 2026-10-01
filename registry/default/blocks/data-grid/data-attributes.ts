@@ -55,6 +55,8 @@ export const GRID_ATTR = {
   markerNumber: "data-grid-marker-number",
   /** rows/marker-header.tsx: the row-marker column's header cell (select-all checkbox). */
   markerHeader: "data-grid-marker-header",
+  /** cell.tsx: present (`""`) on a cell of an unloaded (lazy) hole row — the shimmer block standing in for the row's content. */
+  skeleton: "data-skeleton",
   /** rows/loading-skeleton.tsx: the empty-data loading skeleton (`loading && rowCount === 0`). */
   loadingSkeleton: "data-grid-loading-skeleton",
   /** rows/loading-skeleton.tsx: the data-present loading indicator bar (`loading && rowCount > 0`). */

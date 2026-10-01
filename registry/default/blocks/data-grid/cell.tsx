@@ -40,7 +40,7 @@ export const FLASH_KEYFRAMES =
 export type DataGridCellProps = {
   row: unknown;
   rowIndex: number;
-  /** The row's stable `getRowId()` value; undefined on pinned band rows (not members of `data`). */
+  /** The row's stable `getRowId()` value — a data row's own id, a placeholder id for an unloaded (lazy) hole, and the getRowId-resolved id on pinned band rows. */
   rowId?: string;
   column: AnyColumnDef;
   /** Pure data-column index — drives `ViewCoord.col`, `aria-colindex`, and pin-var lookup. Never touched by the marker column (it lives outside the data index space). */

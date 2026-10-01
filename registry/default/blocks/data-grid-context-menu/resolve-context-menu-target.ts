@@ -31,10 +31,11 @@ function resolveViewRow(rowEl: Element): number | null {
 
 /**
  * Resolves the logical grid surface under `eventTarget`. Marker cells (`data-grid-marker-cell`)
- * carry no `aria-colindex` by design (outside the data column index space) and pinned
- * top/bottom row cells (`data-grid-pinned-row`, from the `data-grid-pinned-rows` add-on) aren't
- * part of `data`/the selection model — both are excluded and resolve to `null` (no cell/header
- * menu; add a marker- or pinned-row-specific menu separately if ever needed).
+ * carry no `aria-colindex` by design (outside the data column index space), pinned top/bottom row
+ * cells (`data-grid-pinned-row`, from the `data-grid-pinned-rows` add-on) aren't part of
+ * `data`/the selection model, and skeleton cells (`data-skeleton`) carry no row data — all are
+ * excluded and resolve to `null` (no cell/header menu; add a marker- or pinned-row-specific menu
+ * separately if ever needed).
  */
 export function resolveContextMenuTarget(eventTarget: EventTarget | null): ContextMenuTarget | null {
   if (!(eventTarget instanceof Element)) return null;
@@ -48,7 +49,7 @@ export function resolveContextMenuTarget(eventTarget: EventTarget | null): Conte
   }
 
   const gridCell = eventTarget.closest(
-    `[role="gridcell"]:not(${gridAttrSelector("markerCell")}):not(${gridAttrSelector("pinnedRow")})`,
+    `[role="gridcell"]:not(${gridAttrSelector("markerCell")}):not(${gridAttrSelector("pinnedRow")}):not(${gridAttrSelector("skeleton")})`,
   );
   if (gridCell) {
     const col = ariaIndex(gridCell, "aria-colindex");

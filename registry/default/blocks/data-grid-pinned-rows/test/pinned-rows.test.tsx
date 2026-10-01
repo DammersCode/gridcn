@@ -75,6 +75,25 @@ describe("pinned rows — band rendering", () => {
     expect(band.textContent).toContain("45");
   });
 
+  it("resolves a pinned row's cell ctx rowId through the grid's getRowId", () => {
+    const seenRowIds: (string | undefined)[] = [];
+    const cols: readonly ColumnDef<Row, unknown>[] = [
+      {
+        id: "name",
+        header: "Name",
+        accessorKey: "name",
+        width: 120,
+        renderCell: (ctx) => {
+          seenRowIds.push(ctx.rowId);
+          return String(ctx.value);
+        },
+      },
+      { id: "qty", header: "Qty", accessorKey: "qty", type: "number", width: 80 },
+    ];
+    render(<PinnedGrid data={makeRows(5)} columns={cols} topRows={[totals]} />);
+    expect(seenRowIds).toContain("totals");
+  });
+
   it("pinned-row cells align to the same column tracks as data cells (shared grid-template-columns)", () => {
     render(<PinnedGrid data={makeRows(5)} topRows={[totals]} />);
     const canvas = document.querySelector(gridAttrSelector("rowsCanvas")) as HTMLElement;

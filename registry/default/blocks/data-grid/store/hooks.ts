@@ -19,7 +19,7 @@ import type { DataGridLabels } from "../labels";
 import type { SearchMatch } from "../sort-filter";
 import { isSelectionEmpty, selectionContainsCell } from "../selection";
 import { colRangesEqual, selectedColRangesForRow, type ColRange } from "../selection/selected-col-ranges-for-row";
-import { cellErrorKey, flashCellKey, getRangeValues, rowIdAtViewRow, searchMatchKey } from "./compute";
+import { cellErrorKey, flashCellKey, getRangeValues, holeRowId, rowIdAtViewRow, searchMatchKey } from "./compute";
 import { resolveRefOrWarn } from "./data-write";
 import { useDataGridStore, useDataGridStoreApi } from "./provider";
 import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridRowCellState, DataGridStoreState } from "./types";
@@ -365,13 +365,13 @@ export function useDataGridRow<TData = unknown>(viewRowIndex: number): TData | u
   }) as TData | undefined;
 }
 
-/** Stable `getRowId` result for the row at a given view row index; used as the React key so rows survive sort/filter/insert/delete. */
+/** Stable `getRowId` result for the row at a given view row index — a hole in `data` resolves to the index-derived placeholder id. Used as the React key so rows survive sort/filter/insert/delete. */
 export function useDataGridRowId(viewRowIndex: number): string | undefined {
   return useDataGridStore((s) => {
     const dataRowIndex = s.viewIndex[viewRowIndex];
     if (dataRowIndex === undefined) return undefined;
     const row = s.data[dataRowIndex];
-    return row === undefined ? undefined : s.getRowId(row, dataRowIndex);
+    return row === undefined ? holeRowId(dataRowIndex) : s.getRowId(row, dataRowIndex);
   });
 }
 
@@ -383,7 +383,7 @@ export function useDataGridRowIds(viewRowIndices: readonly number[]): (string | 
         const dataRowIndex = s.viewIndex[viewRowIndex];
         if (dataRowIndex === undefined) return undefined;
         const row = s.data[dataRowIndex];
-        return row === undefined ? undefined : s.getRowId(row, dataRowIndex);
+        return row === undefined ? holeRowId(dataRowIndex) : s.getRowId(row, dataRowIndex);
       }),
     ),
   );

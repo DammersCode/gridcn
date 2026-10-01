@@ -58,8 +58,8 @@ export {
 } from "./validation/bulk-generation";
 
 export { combineRects, getSelectedViewRows } from "./selection";
-export { rowIdAtViewRow } from "./store/compute";
+export { holeRowId, rowIdAtViewRow } from "./store/compute";
 export { measureColumnAutosizeWidth } from "./columns/measure-column-text";
 export { isDev } from "./is-dev";
-export { useDataGridInstanceId, useDataGridStoreApi } from "./store";
+export { useDataGridInstanceId, useDataGridStore, useDataGridStoreApi } from "./store";
 export { formatShortcutToken } from "./keyboard";
