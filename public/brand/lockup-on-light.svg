@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 176 48" width="176" height="48" fill="none">
+  <g transform="scale(2)" color="#141210">
+    <rect x="2.5" y="2.5" width="19" height="19" rx="2.5" stroke="currentColor" stroke-width="1.7"/>
+    <path d="M2.5 12h19M12 2.5v19" stroke="currentColor" stroke-width="1.7"/>
+    <path d="M12 2.5h9.5v9.5z" fill="currentColor"/>
+    <path d="M2.5 12h9.5v9.5z" fill="currentColor" opacity="0.35"/>
+  </g>
+  <text x="58" y="35" fill="#141210" font-family="Geist, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="33" font-weight="600" letter-spacing="-0.5">gridcn</text>
+</svg>
