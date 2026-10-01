@@ -253,8 +253,7 @@ describe("detectSeries", () => {
   });
 
   it("detects a prefix series on a 20k-char value in linear time", () => {
-    // the attack input: a long digit run, a non-digit, then a trailing digit — quadratic for the old
-    // /^(.*?)(\d+)(\D*)$/ split, ~318 ms per value; a linear scan finishes in under a millisecond.
+    // attack input: a long digit run, a non-digit, then a trailing digit — quadratic for a capture regex, under a ms for a linear scan
     const prefix = "1".repeat(20_000);
     const start = performance.now();
     const series = detectSeries([prefix + "a1", prefix + "a2"]);
@@ -364,9 +363,7 @@ describe("generateFill", () => {
   });
 
   it("uses a custom detect over the built-in one", () => {
-    // the built-in detectSeries does not detect dates; a custom detector (e.g. ISO dates) can.
-    // the year rollover keeps the built-in prefix+number detector honest (prefixes differ, day
-    // delta is not arithmetic), so the no-detect assertion below really is a tiling fallback.
+    // the year rollover defeats the built-in prefix+number detector (prefixes differ, day delta is not arithmetic), so the no-detect assertion below is a tiling fallback
     const detect = (values: readonly string[]) => {
       if (values.length < 2) return null;
       const d0 = Date.parse(values[0]!);

@@ -204,11 +204,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx shadcn@latest registry validate DammersCode/gridcn#${{ github.sha }}
 
-  # Aggregator the branch-protection ruleset requires under the name `ci`. Fails on ANY
-  # non-success of a required job — a skipped job counts, so a manually-skipped step can never
-  # smuggle a green check through. (The author gate above also skips this job itself on fork PRs.)
-  # Job id (not a `name:` key) on purpose: the branch-protection ruleset requires a status check
-  # named exactly `ci`, and a job's display name becomes the check context instead.
+  # Aggregator the branch-protection ruleset requires under the name `ci` — job id, not `name:`,
+  # because the display name becomes the check context. Fails on any non-success, skipped included.
   ci:
     runs-on: ubuntu-latest
     timeout-minutes: 5

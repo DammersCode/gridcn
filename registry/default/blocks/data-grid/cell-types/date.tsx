@@ -85,10 +85,8 @@ function localDateToIsoDatePart(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-/** Constructing an `Intl.DateTimeFormat` costs ~38us against ~0.7us to reuse one (measured) — at
- * fling speed that ran once per date cell per newly-mounted row, so formatters are cached by their
- * resolved locale + format options instead. Keyed on the serialized options rather than the options
- * object's identity: a column literal re-created each render is the common case and must still hit. */
+/** Caches formatters by serialized options (locale + format), not object identity — a re-created
+ * column literal still hits. Building one costs ~38us versus ~0.7us to reuse. */
 const dateFormatterCache = new Map<string, Intl.DateTimeFormat>();
 
 function getDateFormatter(locale: string, format: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {

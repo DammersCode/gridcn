@@ -63,16 +63,14 @@ export function useDataGridUrlPagination(options: UseDataGridUrlPaginationOption
     history: "replace",
   });
 
-  // the URL value is always gated by a size list — the consumer's, or the pager default when omitted —
-  // so ?pageSize=100000000 can never force an unbounded fetch size
+  // the URL value is always gated by a size list, so ?pageSize=100000000 can never force an unbounded fetch
   const resolvedPageSizeOptions: readonly number[] = pageSizeOptions ?? DEFAULT_PAGE_SIZES;
   const rawPage = parsePage(pageParam);
   const pageSize = parsePageSize(pageSizeParam, defaultPageSize, resolvedPageSizeOptions);
   // a 0 total (data loading) must not clamp or write back, or a deep-linked ?page= is wiped before the real total arrives
   const page = total !== undefined && total > 0 ? clampPage(rawPage, total, pageSize) : rawPage;
 
-  // normalize once, when the first positive total is known: a deep-linked ?page=999 stays raw in the URL (shared
-  // link disagrees with the rendered view, and "revives" if the dataset grows) unless the clamped value is written back
+  // normalize once when the first positive total arrives: write the clamped page back so a deep-linked ?page=999 never revives
   const normalizedRef = useRef(false);
   useEffect(() => {
     if (normalizedRef.current || total === undefined || total <= 0) return;

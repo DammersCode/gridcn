@@ -435,8 +435,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const applied = batch.ops.reduce((n, op) => (op.type === "update" ? n + (op.cells?.length ?? 0) : n), 0);
 
       let reorder = resolveReorder(options?.reorder, patches, s.sortState, s.filterState);
-      // an open editor pins a view coordinate an immediate re-sort would silently remount (the
-      // commit path re-reads the shifted viewIndex for the same coord), so the batch defers
+      // an open editor pins a view coordinate an immediate re-sort would silently remount, so the batch defers
       if (reorder === "immediate" && s.editing) reorder = "defer";
       ctx.rowIndexCache.rebase(batch.nextData);
       ctx.lastEmittedData = batch.nextData;
@@ -505,8 +504,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     insertRows(viewRowIndex, count, position = "below") {
       const s = get();
       if (s.readOnly) return;
-      // an open editor pins a view coordinate the shift would silently invalidate (the commit
-      // path re-reads the shifted viewIndex for the same coord)
+      // an open editor pins a view coordinate the shift would silently invalidate
       if (s.editing) {
         warnDev("insertRows is a no-op while an edit session is open");
         return;
@@ -554,8 +552,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     deleteRows(viewRowIndexes) {
       const s = get();
       if (s.readOnly) return;
-      // an open editor pins a view coordinate the shift would silently invalidate (the commit
-      // path re-reads the shifted viewIndex for the same coord)
+      // an open editor pins a view coordinate the shift would silently invalidate
       if (s.editing) {
         warnDev("deleteRows is a no-op while an edit session is open");
         return;
@@ -581,8 +578,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     duplicateRows(viewRowIndexes) {
       const s = get();
       if (s.readOnly) return;
-      // an open editor pins a view coordinate the shift would silently invalidate (the commit
-      // path re-reads the shifted viewIndex for the same coord)
+      // an open editor pins a view coordinate the shift would silently invalidate
       if (s.editing) {
         warnDev("duplicateRows is a no-op while an edit session is open");
         return;
@@ -629,8 +625,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const s = get();
       if (!s.enableRowReorder) return false;
       if (s.readOnly) return false;
-      // an open editor pins a view coordinate the move would silently invalidate (the commit
-      // path re-reads the shifted viewIndex for the same coord)
+      // an open editor pins a view coordinate the move would silently invalidate
       if (s.editing) return false;
       if (s.sortState.length > 0 || s.filterState.length > 0) {
         warnDev("reorderRows is a no-op while a sort or filter is active (the view order is owned by the sort/filter)");

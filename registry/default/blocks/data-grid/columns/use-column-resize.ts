@@ -56,21 +56,16 @@ export function useColumnResize(args: {
       if (event.button !== 0) return;
       event.stopPropagation();
       event.preventDefault();
-      // a second pointer while a resize is in flight must not arm a second listener set (the
-      // first would outlive its release event and leak)
+      // a second pointer must not arm a second listener set (the first would outlive its release and leak)
       if (dragRef.current) return;
-      // React pools synthetic events — event.currentTarget is nulled once this handler returns, so
-      // the native listeners below (which outlive it) must close over the real element directly.
+      // React nulls event.currentTarget when this handler returns; the document listeners below outlive it
       const target = event.currentTarget;
       const pointerId = event.pointerId;
       dragRef.current = { startX: event.clientX, startWidth: argsRef.current.currentWidth };
       target.setPointerCapture?.(pointerId);
       setIsResizing(true);
 
-      // Listeners on `document`, not the handle element (checklist-consistent with use-grid-interaction.ts's
-      // drag machinery): pointer capture retargets real hardware pointer events to the captured element, but
-      // that retargeting doesn't apply to events dispatched directly on `document` (incl. in tests), so a
-      // handle-scoped listener alone would miss every move once the pointer leaves the handle's own bounds.
+      // document-level listeners: pointer capture retargets hardware events to the handle, not events dispatched on document (tests)
       let lastWidth = argsRef.current.currentWidth;
       const handleMove = (e: PointerEvent) => {
         if (e.pointerId !== pointerId) return;
@@ -94,8 +89,7 @@ export function useColumnResize(args: {
         // drag-release commit point for onColumnLayoutChange — fires once here, not per handleMove frame.
         argsRef.current.commitColumnWidth(column.id, lastWidth);
       };
-      // lostpointercapture (not pointerup) fires reliably even when the pointerup is missed (alt-tab, etc);
-      // pointerup/pointercancel on document are the fallback for environments without real capture semantics.
+      // lostpointercapture fires even when pointerup is missed (alt-tab); the document fallbacks cover environments without capture semantics
       document.addEventListener("pointermove", handleMove);
       document.addEventListener("pointerup", handleEnd);
       document.addEventListener("pointercancel", handleEnd);

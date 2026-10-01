@@ -62,8 +62,7 @@ export function useRowReorder(args: {
   argsRef.current = args;
 
   const [dragState, setDragState] = useState<RowReorderState | null>(null);
-  // mirrors dragState synchronously — the document pointermove listener closes over stale React
-  // state otherwise (it's attached once per gesture, not re-subscribed on every setDragState).
+  // attached once per gesture, the document listener would close over stale React state without this ref
   const dragStateRef = useRef<RowReorderState | null>(null);
   const pendingRef = useRef<{ row: number; startX: number; startY: number; pointerId: number } | null>(null);
   const pointerPointRef = useRef<{ x: number; y: number } | null>(null);
@@ -75,9 +74,7 @@ export function useRowReorder(args: {
     setDragState(next);
   }, []);
 
-  // Edge auto-scroll while armed: one rAF per frame scrolls a fixed step while the pointer sits in
-  // an edge zone, then re-runs the hit test at the (stationary) pointer so the indicator tracks the
-  // content scrolling underneath it. Mirrors the interaction layer's select-drag auto-scroll.
+  // one rAF per frame scrolls a fixed step in an edge zone, then re-runs the hit test so the indicator tracks the scrolling content
   const runFrame = useCallback(() => {
     const drag = dragStateRef.current;
     const point = pointerPointRef.current;
@@ -125,8 +122,7 @@ export function useRowReorder(args: {
       // Shift+drag is always row-select (disambiguation rule above) — never arm the reorder path.
       if (event.shiftKey) return;
       if (!enabled) return;
-      // a second pointer while a gesture is in flight must not arm a second listener set (the
-      // first cleanup would be overwritten and its listeners would leak)
+      // a second pointer must not arm a second listener set (the first cleanup would be overwritten, listeners leak)
       if (pendingRef.current) return;
 
       pendingRef.current = { row: viewRowIndex, startX: event.clientX, startY: event.clientY, pointerId: event.pointerId };
@@ -138,8 +134,7 @@ export function useRowReorder(args: {
         pointerPointRef.current = { x: e.clientX, y: e.clientY };
 
         if (!dragStateRef.current) {
-          // not yet armed: only commit to reorder once the vertical move exceeds the threshold
-          // AND has left the origin row (hitTest resolves to a different row).
+          // not yet armed: commit to reorder only past the threshold AND off the origin row (hitTest says a different row)
           const dy = Math.abs(e.clientY - pending.startY);
           if (dy < REORDER_THRESHOLD) return;
           const hit = argsRef.current.hitTestRow(e.clientX, e.clientY);

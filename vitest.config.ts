@@ -29,26 +29,18 @@ const perFileBranchThresholds: Record<string, { branches: number }> = {
   "registry/default/blocks/data-grid/sort-filter/matches-filter.ts": { branches: 90 },
   "registry/default/blocks/data-grid/selection/offset-selection-for-rows.ts": { branches: 90 },
   "registry/default/blocks/data-grid/clipboard/parse-clipboard.ts": { branches: 90 },
-  // merged from pin-left-offsets.ts + pin-right-offsets.ts (both 90)
   "registry/default/blocks/data-grid/columns/pin-offsets.ts": { branches: 90 },
   "registry/default/blocks/data-grid/columns/pinned-inset-style.ts": { branches: 90 },
   "registry/default/blocks/data-grid/columns/resolve-column-width.ts": { branches: 90 },
   "registry/default/blocks/data-grid/selection/select-all-progression.ts": { branches: 90 },
   "registry/default/blocks/data-grid/selection/select-line-options.ts": { branches: 90 },
-  // merged from combine-rects/intersect-rect/point-in-rect/rect-contains/rect-from-corners/rect-relative-to.ts (all 90)
   "registry/default/blocks/data-grid/selection/rects.ts": { branches: 90 },
-  // merged from empty-selection/extend-to/push-range/select-cell.ts (all 90)
   "registry/default/blocks/data-grid/selection/selection-ops.ts": { branches: 90 },
-  // merged from select-row/select-column/selection-rects/selection-contains-cell.ts
   "registry/default/blocks/data-grid/selection/line-ops.ts": { branches: 90 },
-  // was selection/grow-selection.ts (90)
   "registry/default/blocks/data-grid/selection/extend-selection.ts": { branches: 90 },
-  // was columns/encode-template.ts (90)
   "registry/default/blocks/data-grid/columns/column-format-helpers.ts": { branches: 90 },
-  // was keyboard/keymap.ts (90)
   "registry/default/blocks/data-grid/keyboard/key-syntax.ts": { branches: 90 },
   "registry/default/blocks/data-grid/clipboard/serialize-cells.ts": { branches: 90 },
-  // was sort-filter/sort-filter.ts (90); the view pipeline left the old *-index.ts coverage exclude
   "registry/default/blocks/data-grid/sort-filter/build-view-index.ts": { branches: 90 },
   "registry/default/blocks/data-grid/sort-filter/incremental-view-index.ts": { branches: 90 },
   "registry/default/blocks/data-grid/selection/selected-view-rows.ts": { branches: 90 },
@@ -57,7 +49,6 @@ const perFileBranchThresholds: Record<string, { branches: number }> = {
   "registry/default/blocks/data-grid-fill/fill-direction.ts": { branches: 90 },
   "registry/default/blocks/data-grid-fill/generate-fill.ts": { branches: 90 },
   "registry/default/blocks/data-grid-context-menu/autosize-column.ts": { branches: 90 },
-  // was data-grid-context-menu/is-cell-in-selection.ts (90)
   "registry/default/blocks/data-grid-context-menu/selection-queries.ts": { branches: 90 },
   "registry/default/blocks/data-grid-context-menu/resolve-context-menu-target.ts": { branches: 90 },
   "registry/default/blocks/data-grid-io/build-imported-rows.ts": { branches: 90 },
@@ -69,9 +60,7 @@ const perFileBranchThresholds: Record<string, { branches: number }> = {
   "registry/default/blocks/data-grid-toolbar/operators-for-column-type.ts": { branches: 90 },
   "registry/default/blocks/data-grid-url-state/filter-operators.ts": { branches: 90 },
   "registry/default/blocks/data-grid-url-state/prefixed-key.ts": { branches: 90 },
-  // merged from serialize-sort-state.ts + parse-sort-state.ts (both 90)
   "registry/default/blocks/data-grid-url-state/sort-param.ts": { branches: 90 },
-  // merged from serialize-filter-state.ts + parse-filter-state.ts (both 90)
   "registry/default/blocks/data-grid-url-state/filter-param.ts": { branches: 90 },
 };
 

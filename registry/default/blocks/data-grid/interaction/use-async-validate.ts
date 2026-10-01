@@ -44,13 +44,12 @@ export function useAsyncValidate(actions: DataGridActions, column: AnyColumnDef,
       return;
     }
 
-    // Peek: a sync-resolving schema (including one that never returns a Promise at all) takes the
-    // exact same path as today — computeCommit re-runs it, cheap and correct, see validate-cell.ts.
+    // Peek: a sync-resolving schema (even one that never returns a Promise) takes the sync path — computeCommit re-runs it
     let probe: StandardSchemaV1Result<unknown> | Promise<StandardSchemaV1Result<unknown>>;
     try {
       probe = validator["~standard"].validate(value) as StandardSchemaV1Result<unknown> | Promise<StandardSchemaV1Result<unknown>>;
     } catch (error) {
-      // a validator that throws is a rejection for this edit, like the batch paths (validate-batch.ts)
+      // a validator that throws is a rejection for this edit
       actions.setEditingError(errorMessage(error));
       return;
     }
@@ -67,8 +66,7 @@ export function useAsyncValidate(actions: DataGridActions, column: AnyColumnDef,
         setPending(false);
         if (result.issues) {
           const message = formatIssues(result.issues);
-          // `onInvalid: "warn"`: commit the raw value and flag the cell — the awaited rejection is
-          // forwarded because computeCommit's sync re-run cannot see a schema Promise's issues
+          // onInvalid "warn": commit the raw value and flag the cell — computeCommit's sync re-run cannot see a Promise's issues
           if (column.onInvalid === "warn") {
             actions.commitCellEdit(value, movement, message);
             return;

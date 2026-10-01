@@ -87,8 +87,7 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
     setInputValue(searchText);
   }, [searchText]);
 
-  // the match list changes shape (new search, data change) — restart navigation at the first hit,
-  // during render (not in an effect) so a shrinking list never paints an out-of-range index ("2/1").
+  // restart navigation at the first hit during render, not in an effect: a shrinking list must not paint an out-of-range index
   const [lastMatches, setLastMatches] = useState(matches);
   if (lastMatches !== matches) {
     setLastMatches(matches);

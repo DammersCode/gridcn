@@ -38,7 +38,7 @@ export function useColumnReorder(args: {
   /** Resolves the header element at a client point to a column id + before/after half, or null off any header. */
   hitTestHeader: (clientX: number, clientY: number) => { columnId: string; position: "before" | "after" } | null;
   onReorder: (id: string, targetId: string, position: "before" | "after") => void;
-  /** Called the instant a press arms into a reorder drag — the caller cancels the sibling header column-select drag that started from the same press (see the JSDoc rule above). */
+  /** Called the instant a press arms into a reorder drag — the caller cancels the sibling header column-select drag that started from the same press. */
   onArm?: () => void;
 }): ColumnReorderHandlers {
   const { enabled, isColumnReorderable } = args;
@@ -46,8 +46,7 @@ export function useColumnReorder(args: {
   argsRef.current = args;
 
   const [dragState, setDragState] = useState<ColumnReorderState | null>(null);
-  // mirrors dragState synchronously — the document pointermove listener closes over stale React
-  // state otherwise (it's attached once per gesture, not re-subscribed on every setDragState).
+  // attached once per gesture, the document listener would close over stale React state without this ref
   const dragStateRef = useRef<ColumnReorderState | null>(null);
   const pendingRef = useRef<{ columnId: string; startX: number; startY: number; pointerId: number } | null>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
@@ -70,8 +69,7 @@ export function useColumnReorder(args: {
       // Shift+drag is always select-drag (disambiguation rule above) — never arm the reorder path.
       if (event.shiftKey) return;
       if (!enabled || !isColumnReorderable(columnId)) return;
-      // a second pointer while a gesture is in flight must not arm a second listener set (the
-      // first cleanup would be overwritten and its listeners would leak)
+      // a second pointer must not arm a second listener set (the first cleanup would be overwritten, listeners leak)
       if (pendingRef.current) return;
 
       pendingRef.current = { columnId, startX: event.clientX, startY: event.clientY, pointerId: event.pointerId };
@@ -81,8 +79,7 @@ export function useColumnReorder(args: {
         if (!pending || e.pointerId !== pending.pointerId) return;
 
         if (!dragStateRef.current) {
-          // not yet armed: only commit to reorder once the horizontal move exceeds the threshold
-          // AND has left the origin header (hitTest resolves to a different column).
+          // not yet armed: commit to reorder only past the threshold AND off the origin header (hitTest says a different column)
           const dx = Math.abs(e.clientX - pending.startX);
           if (dx < REORDER_THRESHOLD) return;
           const hit = argsRef.current.hitTestHeader(e.clientX, e.clientY);

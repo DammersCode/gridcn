@@ -19,9 +19,9 @@ function exceedsExactDigits(value: string): boolean {
 }
 
 /**
- * Splits `value` into the maximal digit run that ends the digit/suffix boundary plus everything
- * before/after it — the linear equivalent of `/^(.*?)(\d+)(\D*)$/` (that regex backtracks
- * quadratically on a long digit run before a trailing digit). `null` when value has no digit run.
+ * Splits `value` into the maximal trailing digit run plus everything before/after it, by a linear
+ * scan — a capture regex backtracks quadratically on a long digit run before a trailing digit.
+ * `null` when `value` has no digit run.
  */
 function splitPrefixNumber(value: string): { prefix: string; digits: string; suffix: string } | null {
   let suffixStart = value.length;

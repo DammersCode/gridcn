@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { operatorIsAnyOf, operatorIsBetween } from "./operators-for-column-type";
 
-/** Debounce (ms) between typing and committing a filter value, matching {@link DataGridSearch}. */
+/** Debounce (ms) between typing and committing a filter value. */
 const FILTER_VALUE_DEBOUNCE_MS = 200;
 
 /** Props for {@link DataGridFilterValueInput}. */
@@ -32,7 +32,7 @@ export type DataGridFilterValueInputProps = {
   onValueChange: (value: string | [string, string] | string[]) => void;
 };
 
-/** Debounces a single text/number/date input's keystrokes into one commit, matching {@link DataGridSearch}. */
+/** Debounces a single text/number/date input's keystrokes into one commit. */
 function useDebouncedInput(value: string, onValueChange: (value: string) => void) {
   const [inputValue, setInputValue] = useState(value);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);

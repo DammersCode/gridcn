@@ -116,9 +116,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // change of the consumer's own prop should reset `s.columns`; re-syncing with the SAME prop
   // reference (e.g. an unrelated parent re-render) must not silently discard those pin mutations.
   let lastPropsColumns: readonly AnyColumnDef[] = init.columns;
-  // The raw `filterState` prop reference last seen by _syncProps — a same-reference re-sync reuses the
-  // store's already-backfilled array instead of re-running withFilterIds (which would mint fresh ids
-  // for id-less filters and churn the sync input every render). Mirrors lastPropsColumns.
+  // The raw `filterState` prop ref last seen by _syncProps — a same-reference re-sync skips withFilterIds, which would churn the sync input.
   let lastPropsFilterState: FilterSpec[] | undefined = init.filterState;
   // A `commands` entry named after a built-in action silently disables the built-in — warn once about it.
   let warnedCommandShadow = false;
@@ -131,7 +129,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const dataWrite = createDataWriteContext(rowIndexCache);
 
   /**
-   * Owe after every viewIndex/visibleColumns rebuild: re-anchor an open edit to the new view
+   * Runs after every viewIndex/visibleColumns rebuild: re-anchor an open edit to the new view
    * position of its rowId/columnId (the draft survives the move), and move `activeCell` and the
    * selection with it when they sat on the edit cell (a multi-cell range collapses to that cell).
    * When the row or column left the view, cancel — the typed value is dropped, never written into
@@ -172,7 +170,6 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   };
   // cellErrors keys owned by each row's last validateRow verdict, so a re-run clears exactly its
   // own stale messages and never a consumer's setCellErrors entries on other cells of that row.
-  // Stale entries for deleted rows are harmless: their keys are already pruned, deleting is a no-op.
   const rowValidationKeys = new Map<string, string[]>();
   // Pruned wherever cellErrors is pruned: an unpruned entry for a deleted rowId lets the next
   // validateRow wipe a reused row's consumer setCellErrors entries.
