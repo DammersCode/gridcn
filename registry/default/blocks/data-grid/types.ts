@@ -87,6 +87,14 @@ export type ViewCoord = { col: number; row: number };
 /** Stable cell identity: the row's `getRowId()` value plus the column's id. Survives sort, filter, and reorder — the coordinate for actions and the identity the cell ctx hands out. */
 export type CellRef = { rowId: string; columnId: string };
 
+/** A {@link CellRef} plus the view-space position the cell occupied when the event fired. */
+export type ViewCellRef = CellRef & {
+  /** The view (display) row index at fire time. */
+  viewRowIndex: number;
+  /** The view (display) column index at fire time. */
+  viewColumnIndex: number;
+};
+
 /** What a marker mode renders: the 1-based view row index, the row-select checkbox, or both (number swapped for the checkbox on hover/selected). */
 export type RowMarkersContent = "number" | "checkbox" | "both";
 
@@ -271,7 +279,7 @@ export type OnRowClick<TData> = (ctx: RowClickCtx<TData>, event: MouseEvent) => 
  * `editingRejectionCount` bump). Each session ends with exactly one `commit` or `cancel`. The
  * committed value is not included — `onDataChange` carries it.
  */
-export type GridEditEndEvent = { coord: ViewCoord; result: "commit" | "cancel" | "rejected" };
+export type GridEditEndEvent = ViewCellRef & { result: "commit" | "cancel" | "rejected" };
 
 /** One cell a bulk gesture (paste/fill) refused after validation: the target (stable id plus view position) plus the value that failed and the validator's message. */
 export type GridBulkValidationError = { rowId: string; columnId: string; viewRowIndex: number; value: unknown; message: string };
@@ -316,6 +324,10 @@ export type CellEditorProps<TData, TValue, TOptions = unknown> = {
   initialText?: string;
   /** The full data row this cell belongs to. */
   row: TData;
+  /** The row's `getRowId()` value — stable row identity. */
+  rowId: string;
+  /** The id of the column being edited. */
+  columnId: string;
   /** The column's `options`, typed through `TOptions` (your declared options type) when the cell type is parameterized with it. */
   options?: TOptions;
   // `column`'s own validate erases independently (3rd param `any`) — same reasoning as

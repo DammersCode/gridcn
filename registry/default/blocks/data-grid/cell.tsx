@@ -255,6 +255,8 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       value: unknown;
       initialText?: string;
       row: unknown;
+      rowId: string;
+      columnId: string;
       column: AnyColumnDef;
       options: unknown;
       onChange: (v: unknown) => void;
@@ -269,6 +271,8 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         value={value}
         initialText={initialText}
         row={row}
+        rowId={rowId!}
+        columnId={column.id}
         column={column}
         options={column.options}
         onChange={onChange}

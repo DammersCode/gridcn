@@ -1,4 +1,5 @@
 import {
+  clampActiveCell,
   clampIndex,
   clearErrorsForOps,
   computeSearchMatches,
@@ -150,7 +151,7 @@ export function reconcileAfterWrite(s: DataGridStoreState, nextData: readonly un
  * row count changed, so `computeViewIndex` always returns a fresh array (the content-equality
  * reuse cannot apply), `searchMatches` is recomputed against it, and `viewStale` is cleared —
  * the full rebuild reconciles whatever a deferred `updateCells` batch left stale, mirroring
- * `setColumnHidden`.
+ * `setColumnHidden`. The caller owns `activeCell` (it follows or clears the cursor itself).
  */
 export function rebuildRowOpView(s: DataGridStoreState, nextData: readonly unknown[]): Partial<DataGridStoreState> {
   const viewIndex = computeViewIndex(nextData, s.columns, s.sortState, s.filterState, s.joinOperator, s.viewIndex, s.cellTypes);
@@ -263,7 +264,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const restoreSelection = stale ? {} : { activeCell: nextActiveCell, selection: selectCellPure(nextActiveCell) };
       if ("error" in result) {
         set({ editingError: result.error, editingRejectionCount: s.editingRejectionCount + 1 });
-        s.onEditEnd?.({ coord: editing.coord, result: "rejected" });
+        s.onEditEnd?.({ rowId: editing.rowId, columnId: editing.columnId, viewRowIndex: editing.coord.row, viewColumnIndex: editing.coord.col, result: "rejected" });
         return;
       }
       if ("noop" in result) {
@@ -276,7 +277,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
             ...(result.warnings ? { cellErrors: mergeCellErrors(s.cellErrors, result.warnings) } : {}),
           }),
         );
-        s.onEditEnd?.({ coord: editing.coord, result: "commit" });
+        s.onEditEnd?.({ rowId: editing.rowId, columnId: editing.columnId, viewRowIndex: editing.coord.row, viewColumnIndex: editing.coord.col, result: "commit" });
         return;
       }
       ctx.rowIndexCache.rebase(result.data);
@@ -295,7 +296,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           ...reconcileAfterWrite(s, result.data, result.change.ops),
         }),
       );
-      s.onEditEnd?.({ coord: editing.coord, result: "commit" });
+      s.onEditEnd?.({ rowId: editing.rowId, columnId: editing.columnId, viewRowIndex: editing.coord.row, viewColumnIndex: editing.coord.col, result: "commit" });
     },
     commitCellValue(ref, value) {
       const coord = resolveRefOrWarn(ctx, get(), ref);
@@ -493,6 +494,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       set({
         viewIndex,
         viewStale: false,
+        activeCell: clampActiveCell(s.activeCell, viewIndex.length, s.visibleColumns.length),
         ...remapEditing(s, viewIndex, s.visibleColumns),
         ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
       });

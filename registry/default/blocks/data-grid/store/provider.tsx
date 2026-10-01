@@ -7,10 +7,11 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import type { OverlayPlugin } from "../overlays";
 import type { RowBandsSpec } from "../layout-context";
 import { checkDevGuardrails, checkDuplicateColumnIds, checkUnresolvableColumnTypes } from "./commit";
-import { makeSelectionChangeDetails } from "./compute";
+import { holeRowId, makeSelectionChangeDetails, rowIdAtViewRow } from "./compute";
 import { createDataGridStore } from "./create-store";
 import { toInternalSyncProps } from "./types";
 import type { AnyColumnDef, DataGridActions, DataGridProviderProps, DataGridStoreState, DataGridStoreStateOf, DataGridSyncProps } from "./types";
+import type { ViewCellRef, ViewCoord } from "../types";
 import { isSelectionEmpty } from "../selection";
 
 /**
@@ -41,19 +42,37 @@ function subscribeSelectionCleared(store: StoreApi<DataGridStoreState>): () => v
   });
 }
 
+/** The event payload for a cursor: the record's stable id (the index-derived placeholder id for an unloaded hole) plus its view position. */
+function activeCellEvent(s: DataGridStoreState, coord: ViewCoord): ViewCellRef {
+  const dataRowIndex = s.viewIndex[coord.row];
+  const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
+  return {
+    rowId: dataRowIndex === undefined ? "" : row === undefined ? holeRowId(dataRowIndex) : s.getRowId(row, dataRowIndex),
+    columnId: s.visibleColumns[coord.col]?.id ?? "",
+    viewRowIndex: coord.row,
+    viewColumnIndex: coord.col,
+  };
+}
+
 /**
- * Wires `onActiveCellChange`: one `storeApi.subscribe` on `state.activeCell` with VALUE equality
- * (row+col), not identity — write paths that re-select the same cell through a freshly allocated
- * coord object (`selectCell`, `startEditing`, a commit's cursor restore) must not fire. `null`
- * fires too, when the active cell is cleared.
+ * Wires `onActiveCellChange`: one `storeApi.subscribe` on `state.activeCell` that fires on a coord
+ * move, a clear, or the record under the cursor changing — a sort rebuilds the view without
+ * touching `activeCell`, so the identity check alone would miss it. Re-selecting the same cell on
+ * the same record does not fire, whether the coord is the same object or a freshly allocated one
+ * (`selectCell`, `startEditing`, a commit's cursor restore).
  */
 function subscribeActiveCellChange(store: StoreApi<DataGridStoreState>): () => void {
   return store.subscribe((state, prevState) => {
     const next = state.activeCell;
     const prev = prevState.activeCell;
-    if (next === prev) return;
-    if (next !== null && prev !== null && next.row === prev.row && next.col === prev.col) return;
-    state.onActiveCellChange?.(next);
+    if (next !== null && prev !== null) {
+      const coordMoved = next.row !== prev.row || next.col !== prev.col;
+      const recordMoved = rowIdAtViewRow(prevState, prev.row) !== rowIdAtViewRow(state, next.row);
+      if (!coordMoved && !recordMoved) return;
+    } else if (next === prev) {
+      return;
+    }
+    state.onActiveCellChange?.(next === null ? null : activeCellEvent(state, next));
   });
 }
 

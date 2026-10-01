@@ -24,6 +24,7 @@ import type {
   OnRowClick,
   RowMarkersMode,
   SortSpec,
+  ViewCellRef,
 } from "./types";
 import {
   DataGridProvider,
@@ -201,6 +202,7 @@ export { GRID_ATTR, gridAttrSelector, type GridAttrName, type GridAttr, type Gri
 
 export type {
   CellRef,
+  ViewCellRef,
   ViewCoord,
   GridRect,
   GridSelection,
@@ -385,10 +387,10 @@ export type DataGridProps<TData> = {
   onSelectionChange?: (next: GridSelection, details: SelectionChangeDetails) => void;
    /** Fires exactly once when the selection transitions from non-empty to empty, from any clear path. */
    onSelectionCleared?: () => void;
-   /** Fires when the active cell changes to a different cell (or is cleared, `null`) — see {@link DataGridSyncProps.onActiveCellChange}. */
-   onActiveCellChange?: (next: ViewCoord | null) => void;
+   /** Fires when the active cell changes to a different cell, when another record moves under the cursor, or when it is cleared (`null`) — see {@link DataGridSyncProps.onActiveCellChange}. */
+   onActiveCellChange?: (next: ViewCellRef | null) => void;
    /** Fired when an edit session is about to start; return `false` to veto the edit. See {@link DataGridSyncProps.onEditStart}. */
-   onEditStart?: (coord: ViewCoord) => boolean | void;
+   onEditStart?: (cell: ViewCellRef) => boolean | void;
    /** Fired when an edit session ends or a commit attempt is refused (`commit`/`cancel`/`rejected`). See {@link GridEditEndEvent}. */
    onEditEnd?: (event: GridEditEndEvent) => void;
    /** Fires after a bulk paste or fill settles, only when at least one cell was rejected by validation. See {@link GridValidationErrorEvent}. */

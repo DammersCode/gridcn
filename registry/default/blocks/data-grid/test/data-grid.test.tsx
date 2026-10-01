@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, beforeAll, vi } from "vitest";
-import { createRef, memo, useState } from "react";
+import { createRef, memo, useLayoutEffect, useState } from "react";
 import type { CellType, ColumnDef } from "../types";
 import { textCellType } from "../cell-types/cell-types";
 import { DataGrid, DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, useDataGridActions, useDataGridApi, useDataGridCellState, useDataGridRow, useDataGridScrollToCell, useDataGridStoreApi, GRID_ATTR, gridAttrSelector, type DataGridApi } from "../data-grid";
@@ -817,6 +817,36 @@ describe("edit stash is seeded at editor open, not re-seeded on every render", (
     fireEvent.keyDown(screen.getByRole("textbox", { name: "stash editor" }), { key: "Enter" });
     expect(onDataChange).not.toHaveBeenCalled();
     expect(screen.getByText("Row 0")).toBeInTheDocument();
+  });
+
+  it("hands the editor the cell's rowId and columnId", () => {
+    const seen: { rowId?: string; columnId?: string }[] = [];
+    function RecordingEditor({ rowId, columnId }: { rowId?: string; columnId?: string }) {
+      useLayoutEffect(() => {
+        seen.push({ rowId, columnId });
+      });
+      return null;
+    }
+    const recordingCellType: CellType<unknown, string> = {
+      Cell: ({ value }) => <span>{value}</span>,
+      Editor: RecordingEditor,
+      toText: (value) => (value == null ? "" : String(value)),
+      fromText: (text) => text,
+      clearValue: () => "",
+      isEmpty: (value) => value == null || value === "",
+    };
+    render(
+      <DataGrid
+        data={makeRows(2)}
+        columns={[{ id: "name", header: "Name", accessorKey: "name", type: "recording" }]}
+        getRowId={(r) => r.id}
+        cellTypes={{ recording: recordingCellType }}
+      />,
+    );
+    const grid = screen.getByRole("grid");
+    fireEvent.pointerDown(screen.getAllByRole("gridcell")[1]!, { button: 0 });
+    fireEvent.keyDown(grid, { key: "F2" });
+    expect(seen).toEqual([{ rowId: "1", columnId: "name" }]);
   });
 });
 

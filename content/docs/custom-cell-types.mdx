@@ -44,7 +44,7 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   column, options, isActive }`. The `options` prop carries the column's `options`, typed as `TOptions` when you
   parameterize the type with it. It runs for every visible cell on every window mount. This is a
   hot path (code that runs very often, so its per-call cost matters), covered more below.
-- **`Editor`** — edit-mode rendering. It receives `{ value, initialText?, row, column, options,
+- **`Editor`** — edit-mode rendering. It receives `{ value, initialText?, row, rowId, columnId, column, options,
   onChange, commit, cancel, pending?, rejectionCount? }`. `commit(movement?)` writes the value
   back through `onChange`, and tells the grid where the active cell goes next. `cancel()`
   discards the edit entirely. `pending` and `rejectionCount` matter only if the `validate` of

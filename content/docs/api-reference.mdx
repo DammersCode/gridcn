@@ -284,7 +284,7 @@ a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
 - `CellErrorEntry` (`{ rowId, columnId, message }`) and `CellErrorTarget` (`{ rowId, columnId }`),
   the input shapes for `actions.setCellErrors`/`actions.clearCellErrors`. See
   [Editing & cell types: Server errors](/docs/editing-cell-types#server-errors).
-- `GridEditEndEvent` (`{ coord, result: "commit" | "cancel" | "rejected" }`),
+- `GridEditEndEvent` (`{ rowId, columnId, viewRowIndex, viewColumnIndex, result: "commit" | "cancel" | "rejected" }`),
   `GridValidationErrorEvent` (`{ source: "paste" | "fill", rejected }`), and
   `GridBulkValidationError` (`{ rowId, columnId, viewRowIndex, value, message }`), the payloads of
   `onEditEnd` and `onValidationError`. See

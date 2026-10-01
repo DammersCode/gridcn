@@ -8,7 +8,7 @@ import {
   DataGridBody,
   defineColumns,
   type CellClickCtx,
-  type ViewCoord,
+  type ViewCellRef,
   type ColumnLayout,
   type DataChange,
   type FilterJoinOperator,
@@ -213,12 +213,12 @@ export default function DataGridEventsDemo(): ReactNode {
     );
   }, []);
 
-  const onActiveCellChange = useCallback((next: ViewCoord | null) => {
+  const onActiveCellChange = useCallback((next: ViewCellRef | null) => {
     setLog((prev) => pushLog(prev, { source: "onActiveCellChange", at: Date.now(), payload: next }));
   }, []);
 
-  const onEditStart = useCallback((coord: ViewCoord) => {
-    setLog((prev) => pushLog(prev, { source: "onEditStart", at: Date.now(), payload: coord }));
+  const onEditStart = useCallback((cell: ViewCellRef) => {
+    setLog((prev) => pushLog(prev, { source: "onEditStart", at: Date.now(), payload: cell }));
   }, []);
 
   const onEditEnd = useCallback((event: GridEditEndEvent) => {

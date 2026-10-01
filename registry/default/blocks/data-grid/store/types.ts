@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type {
   CellRef,
+  ViewCellRef,
   ViewCoord,
   CellType,
   ColumnDef,
@@ -201,19 +202,20 @@ export type DataGridSyncProps<TData = unknown> = {
    */
    onSelectionCleared?: () => void;
    /**
-    * Fires when the active cell changes to a DIFFERENT cell (value equality on row+col), or when
-    * it is cleared (`null`) — keyboard moves, clicks, commit-driven cursor moves, and the clamp in
-    * `_syncProps`. Re-selecting the same cell does not fire. Fired by a single store subscription,
-    * so every write path to `activeCell` is covered.
+    * Fires when the active cell changes to a different cell, when a sort or filter moves another
+    * record under the same cursor, or when it is cleared (`null`) — keyboard moves, clicks,
+    * commit-driven cursor moves, and the clamp into a shrunken view. Re-selecting the same cell on
+    * the same record does not fire. Fired by a single store subscription, so every write path to
+    * `activeCell` is covered.
     */
-   onActiveCellChange?: (next: ViewCoord | null) => void;
+   onActiveCellChange?: (next: ViewCellRef | null) => void;
    /**
     * Fired when an edit session is about to start (Enter/F2, type-to-replace, double-click) with
-    * the target coord. Return `false` to VETO the edit — `startEditing` then makes no state change
-    * at all (no session, no cursor move). Checkbox cells never start an edit session, so the veto
-    * never applies to them.
+    * the target cell's ids and view position. Return `false` to VETO the edit — `startEditing`
+    * then makes no state change at all (no session, no cursor move). Checkbox cells never start an
+    * edit session, so the veto never applies to them.
     */
-   onEditStart?: (coord: ViewCoord) => boolean | void;
+   onEditStart?: (cell: ViewCellRef) => boolean | void;
    /**
     * Fired when an edit session ends or a commit attempt is refused — `commit` after the session
     * closes, `cancel` when the draft is discarded (including a remap that drops the edited cell),

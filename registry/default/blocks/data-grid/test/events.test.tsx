@@ -57,7 +57,7 @@ describe("onEditStart", () => {
     act(() => {
       result.current.actions.startEditingAt({ col: 0, row: 0 });
     });
-    expect(onEditStart).toHaveBeenCalledWith({ col: 0, row: 0 });
+    expect(onEditStart).toHaveBeenCalledWith({ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0 });
     expect(result.current.editing).toBeNull();
   });
 
@@ -67,7 +67,7 @@ describe("onEditStart", () => {
     act(() => {
       result.current.actions.startEditingAt({ col: 0, row: 0 });
     });
-    expect(onEditStart).toHaveBeenCalledWith({ col: 0, row: 0 });
+    expect(onEditStart).toHaveBeenCalledWith({ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0 });
     expect(result.current.editing).not.toBeNull();
   });
 
@@ -96,7 +96,7 @@ describe("onEditEnd", () => {
     act(() => {
       result.current.actions.commitCellEdit("x");
     });
-    expect(onEditEnd).toHaveBeenCalledWith({ coord: { col: 0, row: 0 }, result: "commit" });
+    expect(onEditEnd).toHaveBeenCalledWith({ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0, result: "commit" });
     expect(result.current.editing).toBeNull();
   });
 
@@ -109,7 +109,7 @@ describe("onEditEnd", () => {
     act(() => {
       result.current.actions.commitCellEdit(-1);
     });
-    expect(onEditEnd).toHaveBeenCalledWith({ coord: { col: 1, row: 0 }, result: "rejected" });
+    expect(onEditEnd).toHaveBeenCalledWith({ rowId: "1", columnId: "qty", viewRowIndex: 0, viewColumnIndex: 1, result: "rejected" });
     expect(result.current.editing).not.toBeNull();
   });
 
@@ -122,7 +122,7 @@ describe("onEditEnd", () => {
     act(() => {
       result.current.actions.commitCellEdit("Row 0");
     });
-    expect(onEditEnd).toHaveBeenCalledWith({ coord: { col: 0, row: 0 }, result: "commit" });
+    expect(onEditEnd).toHaveBeenCalledWith({ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0, result: "commit" });
   });
 
   it("fires cancel when the draft is discarded", () => {
@@ -134,7 +134,7 @@ describe("onEditEnd", () => {
     act(() => {
       result.current.actions.cancelEditing();
     });
-    expect(onEditEnd).toHaveBeenCalledWith({ coord: { col: 0, row: 0 }, result: "cancel" });
+    expect(onEditEnd).toHaveBeenCalledWith({ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0, result: "cancel" });
     expect(result.current.editing).toBeNull();
   });
 
@@ -143,7 +143,7 @@ describe("onEditEnd", () => {
     const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditEnd }) });
     act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
     act(() => result.current.actions.commitCellEdit("x"));
-    expect(onEditEnd.mock.calls).toEqual([[{ coord: { col: 0, row: 0 }, result: "commit" }]]);
+    expect(onEditEnd.mock.calls).toEqual([[{ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0, result: "commit" }]]);
   });
 
   it("fires cancel once when a filter removes the edited row", () => {
@@ -152,7 +152,7 @@ describe("onEditEnd", () => {
     act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
     act(() => result.current.actions.setFilters([{ filterId: "f", columnId: "name", operator: "equals", value: "Row 2" }]));
     expect(result.current.editing).toBeNull();
-    expect(onEditEnd.mock.calls).toEqual([[{ coord: { col: 0, row: 0 }, result: "cancel" }]]);
+    expect(onEditEnd.mock.calls).toEqual([[{ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0, result: "cancel" }]]);
   });
 
   it("fires nothing when a sort only moves the edited row", () => {
@@ -170,7 +170,7 @@ describe("onEditEnd", () => {
     act(() => result.current.actions.startEditingAt({ col: 1, row: 0 }));
     act(() => result.current.actions.setColumnHidden("qty", true));
     expect(result.current.editing).toBeNull();
-    expect(onEditEnd.mock.calls).toEqual([[{ coord: { col: 1, row: 0 }, result: "cancel" }]]);
+    expect(onEditEnd.mock.calls).toEqual([[{ rowId: "1", columnId: "qty", viewRowIndex: 0, viewColumnIndex: 1, result: "cancel" }]]);
   });
 
   it("fires cancel once when a consumer data swap drops the edited row", () => {
@@ -188,7 +188,7 @@ describe("onEditEnd", () => {
     data = data.filter((r) => r.id !== "2");
     rerender();
     expect(result.current.editing).toBeNull();
-    expect(onEditEnd.mock.calls).toEqual([[{ coord: { col: 0, row: 1 }, result: "cancel" }]]);
+    expect(onEditEnd.mock.calls).toEqual([[{ rowId: "2", columnId: "name", viewRowIndex: 1, viewColumnIndex: 0, result: "cancel" }]]);
   });
 
   it("ends the open session with cancel before a second startEditing opens a new one", () => {
@@ -197,12 +197,12 @@ describe("onEditEnd", () => {
     act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
     act(() => result.current.actions.startEditingAt({ col: 0, row: 2 }));
     expect(result.current.editing).toMatchObject({ rowId: "3" });
-    expect(onEditEnd.mock.calls).toEqual([[{ coord: { col: 0, row: 0 }, result: "cancel" }]]);
+    expect(onEditEnd.mock.calls).toEqual([[{ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0, result: "cancel" }]]);
   });
 
   it("keeps the open session when onEditStart vetoes a second startEditing", () => {
     const onEditEnd = vi.fn();
-    const onEditStart = vi.fn((coord: { row: number }) => (coord.row === 2 ? false : undefined));
+    const onEditStart = vi.fn((cell: { viewRowIndex: number }) => (cell.viewRowIndex === 2 ? false : undefined));
     const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditEnd, onEditStart }) });
     act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
     act(() => result.current.actions.startEditingAt({ col: 0, row: 2 }));
@@ -219,8 +219,8 @@ describe("onEditEnd", () => {
     act(() => result.current.actions.cancelEditing());
     act(() => result.current.actions.cancelEditing());
     expect(onEditEnd.mock.calls).toEqual([
-      [{ coord: { col: 0, row: 0 }, result: "rejected" }],
-      [{ coord: { col: 0, row: 0 }, result: "cancel" }],
+      [{ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0, result: "rejected" }],
+      [{ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0, result: "cancel" }],
     ]);
   });
 
@@ -235,7 +235,7 @@ describe("onEditEnd", () => {
     act(() => result.current.store.setState({ viewIndex: [2, 1, 0] }));
     act(() => result.current.actions.commitCellEdit("x"));
     expect(onDataChange).not.toHaveBeenCalled();
-    expect(onEditEnd.mock.calls).toEqual([[{ coord: { col: 0, row: 0 }, result: "cancel" }]]);
+    expect(onEditEnd.mock.calls).toEqual([[{ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0, result: "cancel" }]]);
   });
 
   it("delivers onDataChange, then onActiveCellChange, then onEditEnd on a moving commit", () => {
@@ -266,7 +266,7 @@ describe("onActiveCellChange", () => {
       result.current.selectCellAt({ col: 1, row: 0 });
     });
     expect(onActiveCellChange).toHaveBeenCalledTimes(1);
-    expect(onActiveCellChange).toHaveBeenLastCalledWith({ col: 1, row: 0 });
+    expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "1", columnId: "qty", viewRowIndex: 0, viewColumnIndex: 1 });
     act(() => {
       result.current.selectCellAt({ col: 1, row: 0 });
     });
@@ -275,7 +275,48 @@ describe("onActiveCellChange", () => {
       result.current.selectCellAt({ col: 0, row: 1 });
     });
     expect(onActiveCellChange).toHaveBeenCalledTimes(2);
-    expect(onActiveCellChange).toHaveBeenLastCalledWith({ col: 0, row: 1 });
+    expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "2", columnId: "name", viewRowIndex: 1, viewColumnIndex: 0 });
+  });
+
+  it("fires when a sort moves another record under the cursor", () => {
+    const onActiveCellChange = vi.fn();
+    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper({ onActiveCellChange }) });
+    act(() => {
+      result.current.selectCellAt({ col: 0, row: 0 });
+    });
+    expect(onActiveCellChange).toHaveBeenCalledTimes(1);
+    // qty desc: view row 0 becomes record "3" (qty 2); the cursor stays at view row 0
+    act(() => {
+      result.current.setSorts([{ columnId: "qty", direction: "desc" }]);
+    });
+    expect(onActiveCellChange).toHaveBeenCalledTimes(2);
+    expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "3", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0 });
+  });
+
+  it("clamps the active cell into the view when a filter shrinks it", () => {
+    const onActiveCellChange = vi.fn();
+    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper({ onActiveCellChange }) });
+    act(() => {
+      result.current.selectCellAt({ col: 0, row: 2 });
+    });
+    act(() => {
+      result.current.setFilters([{ filterId: "f", columnId: "name", operator: "equals", value: "Row 2" }]);
+    });
+    expect(onActiveCellChange).toHaveBeenCalledTimes(2);
+    expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "3", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0 });
+  });
+
+  it("clears the active cell when a filter empties the view", () => {
+    const onActiveCellChange = vi.fn();
+    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper({ onActiveCellChange }) });
+    act(() => {
+      result.current.selectCellAt({ col: 0, row: 0 });
+    });
+    act(() => {
+      result.current.setFilters([{ filterId: "f", columnId: "name", operator: "equals", value: "missing" }]);
+    });
+    expect(onActiveCellChange).toHaveBeenCalledTimes(2);
+    expect(onActiveCellChange).toHaveBeenLastCalledWith(null);
   });
 });
 

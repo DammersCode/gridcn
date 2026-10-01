@@ -320,8 +320,8 @@ write-up, including how to broadcast your own selection with `onSelectionChange`
 ## 10. Edit lifecycle and cell events
 
 ```ts
-onActiveCellChange?: (next: ViewCoord | null) => void;
-onEditStart?: (coord: ViewCoord) => boolean | void;
+onActiveCellChange?: (next: ViewCellRef | null) => void;
+onEditStart?: (cell: ViewCellRef) => boolean | void;
 onEditEnd?: (event: GridEditEndEvent) => void;
 onValidationError?: (event: GridValidationErrorEvent) => void;
 onCellDoubleClick?: (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
@@ -331,19 +331,26 @@ onCellContextMenu?: (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => vo
 The first four are store events. They fire from the actions layer with the same
 zero-re-render guarantee as the other callbacks on this page.
 
-- `onActiveCellChange` fires when the active cell becomes a different cell, or when it is
-  cleared (`null`). Re-selecting the same cell does not fire.
+- `onActiveCellChange` fires when the active cell becomes a different cell, when a sort or a
+  filter moves another record under the same cursor, or when it is cleared (`null`). Re-selecting
+  the same cell on the same record does not fire. The payload is a `ViewCellRef`: the cell's
+  stable `rowId` and `columnId` plus the `viewRowIndex`/`viewColumnIndex` it occupied when the
+  event fired.
 - `onEditStart` fires right before an edit session opens, from Enter or F2, type-to-replace,
-  or a double-click. Return `false` to veto the edit. The edit then does not start at all,
-  and no other event fires for it. Checkbox cells toggle instead of editing, so they never
-  reach `onEditStart`.
+  or a double-click, with the target cell's `ViewCellRef`. Return `false` to veto the edit.
+  The edit then does not start at all, and no other event fires for it. Checkbox cells toggle
+  instead of editing, so they never reach `onEditStart`.
 - `onEditEnd` fires with a `result` of `commit`, `cancel`, or `rejected`. `commit` fires after
   the session closes. `cancel` fires when the draft is discarded: on Escape, when a filter, a
   hidden column, or a data change removes the edited cell from the view, and when a second
   `startEditing` replaces the open session. Each session ends with exactly one `commit` or
   `cancel`. `rejected` fires when a commit attempt fails validation and the session stays open.
-  It fires once per rejected attempt. `GridEditEndEvent` is `{ coord, result }`. The committed
-  value is not included. `onDataChange` already carries it.
+  It fires once per rejected attempt. `GridEditEndEvent` is a `ViewCellRef` plus `result`:
+  `{ rowId, columnId, viewRowIndex, viewColumnIndex, result }`. The committed value is not
+  included. `onDataChange` already carries it.
+- A sort, filter, or data change that shrinks the view clamps the active cell to the nearest
+  in-view cell, and `onActiveCellChange` fires for the move. When the view becomes empty, the
+  grid clears the active cell and fires `onActiveCellChange` with `null`.
 - `onValidationError` fires after a bulk paste or fill settles, only when at least one cell was
   rejected by validation. The accepted cells are applied first, so their `onDataChange` fires
   before this event. `GridValidationErrorEvent` is `{ source: "paste" | "fill", rejected }`, and

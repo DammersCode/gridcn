@@ -6,6 +6,7 @@ import type {
   FilterSpec,
   GridRect,
   SortSpec,
+  ViewCoord,
 } from "../types";
 import { DEFAULT_LABELS, deepMergeLabels, type DataGridLabels, type DeepPartialLabels } from "../labels";
 import {
@@ -78,6 +79,15 @@ export function flashKeyRowId(key: string): string {
 /** Placeholder row id for a hole in `data` (an unloaded lazy row) — index-derived, stable only while the hole keeps its index. */
 export function holeRowId(dataRowIndex: number): string {
   return `__lazy-unloaded-${dataRowIndex}`;
+}
+
+/** The active cell fitted into a rebuilt view: an out-of-range coord clamps to the nearest edge, and an empty view or column set clears it. */
+export function clampActiveCell(activeCell: ViewCoord | null, viewLength: number, columnCount: number): ViewCoord | null {
+  if (activeCell === null) return null;
+  if (viewLength === 0 || columnCount === 0) return null;
+  const row = Math.min(activeCell.row, viewLength - 1);
+  const col = Math.min(activeCell.col, columnCount - 1);
+  return row === activeCell.row && col === activeCell.col ? activeCell : { row, col };
 }
 
 /** Row id shown at `viewRow`, or `undefined` for a missing or unloaded row. */

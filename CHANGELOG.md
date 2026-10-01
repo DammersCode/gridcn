@@ -53,19 +53,25 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `CellTypeValueInput` are exported from the `data-grid` barrel, along with the operator arrays
   `TEXT_FILTER_OPERATORS` and `COMPARISON_FILTER_OPERATORS` for declaring custom lists.
 - **Grid event API:** six new optional props on `DataGrid`/`DataGridProvider`. `onActiveCellChange(next)`
-  fires when the active cell becomes a different cell or is cleared (`null`). `onEditStart(coord)`
-  fires before an edit session opens and may return `false` to veto the edit. `onEditEnd(event)`
-  fires with `{ coord, result: "commit" | "cancel" | "rejected" }` — `rejected` fires per refused
-  commit attempt while the session stays open. Each session ends with exactly one `commit` or
-  `cancel`: a filter, hidden column, or data change that drops the edited cell, and a second
-  `startEditing` over an open session (which ends the old session first), report `cancel`.
+  fires when the active cell becomes a different cell, when a sort or filter moves another record
+  under the cursor, or when it is cleared (`null`); the payload is a `ViewCellRef`
+  (`{ rowId, columnId, viewRowIndex, viewColumnIndex }`). `onEditStart(cell)` fires before an edit
+  session opens with the target cell's `ViewCellRef` and may return `false` to veto the edit.
+  `onEditEnd(event)` fires with a `GridEditEndEvent`
+  `{ rowId, columnId, viewRowIndex, viewColumnIndex, result: "commit" | "cancel" | "rejected" }` —
+  `rejected` fires per refused commit attempt while the session stays open. A view rebuild that
+  shrinks the view clamps the active cell to the nearest in-view cell (or clears it when the view
+  empties), and `onActiveCellChange` fires for the move. Each session ends with exactly one
+  `commit` or `cancel`: a filter, hidden column, or data change that drops the edited cell, and a
+  second `startEditing` over an open session (which ends the old session first), report `cancel`.
   `onValidationError(event)` fires after a bulk paste or fill settles, only when at least one
   cell was rejected by validation:
   `{ source: "paste" | "fill", rejected: [{ rowId, columnId, viewRowIndex, value, message }] }`.
   `onCellDoubleClick` and `onCellContextMenu` fire on the matching cell gesture with the
   `CellClickCtx` shape plus the native `MouseEvent`; both are pure notifications, not veto points.
-  Payload types `GridEditEndEvent`, `GridValidationErrorEvent`, and `GridBulkValidationError` are
-  exported from the `data-grid` barrel.
+  Payload types `ViewCellRef`, `GridEditEndEvent`, `GridValidationErrorEvent`, and
+  `GridBulkValidationError` are exported from the `data-grid` barrel. `CellEditorProps` gains
+  `rowId` and `columnId`.
 - **Menu resolvers (`data-grid-context-menu`):** the context menu and the header dropdown are now
   data. `DataGridContextMenu.getCellMenuItems(ctx, defaults)` and
   `DataGridContextMenu.getHeaderMenuItems(ctx, defaults)` receive the built-in item set as a

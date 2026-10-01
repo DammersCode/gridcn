@@ -24,6 +24,7 @@ import {
   computeColumnLayout,
   computeSearchMatches,
   computeVisibleColumns,
+  clampActiveCell,
   computeViewIndex,
   defHiddenColumnIds,
   flashCellKey,
@@ -463,7 +464,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (nextIds === currentIds) return;
         const nextVisibleColumns = computeVisibleColumns(s.columns, nextIds, s.hiddenColumns);
         if (visibleColumnsMoved(s.visibleColumns, nextVisibleColumns)) warnViewSpacePresenceStale(s);
-        set({ columnOrder: nextIds, visibleColumns: nextVisibleColumns, ...remapEditing(s, s.viewIndex, nextVisibleColumns) });
+        set({ columnOrder: nextIds, visibleColumns: nextVisibleColumns, activeCell: clampActiveCell(s.activeCell, s.viewIndex.length, nextVisibleColumns.length), ...remapEditing(s, s.viewIndex, nextVisibleColumns) });
         s.onColumnLayoutChange?.(computeColumnLayout(s.columns, nextIds, s.columnWidths, s.hiddenColumns));
       },
       setColumnPin(id, pin) {
@@ -477,6 +478,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         set({
           columns: nextColumns,
           visibleColumns: nextVisibleColumns,
+          activeCell: clampActiveCell(s.activeCell, s.viewIndex.length, nextVisibleColumns.length),
           ...remapEditing(s, s.viewIndex, nextVisibleColumns),
         });
         s.onColumnLayoutChange?.(computeColumnLayout(nextColumns, s.columnOrder, s.columnWidths, s.hiddenColumns));
@@ -496,6 +498,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           visibleColumns: nextVisibleColumns,
           viewIndex,
           viewStale: false,
+          activeCell: clampActiveCell(s.activeCell, viewIndex.length, nextVisibleColumns.length),
           ...remapEditing(s, viewIndex, nextVisibleColumns),
           ...computeSearchMatches(s.data, s.columns, viewIndex, nextVisibleColumns, s.searchText, s.cellTypes),
         });
@@ -522,6 +525,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             sortState: sorts,
             viewIndex,
             viewStale: false,
+            activeCell: clampActiveCell(s2.activeCell, viewIndex.length, s2.visibleColumns.length),
             ...remapEditing(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
           };
@@ -539,6 +543,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             sortState: sorts,
             viewIndex,
             viewStale: false,
+            activeCell: clampActiveCell(s2.activeCell, viewIndex.length, s2.visibleColumns.length),
             ...remapEditing(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
           };
@@ -558,6 +563,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             filterState: withIds,
             viewIndex,
             viewStale: false,
+            activeCell: clampActiveCell(s2.activeCell, viewIndex.length, s2.visibleColumns.length),
             ...remapEditing(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
           };
@@ -575,6 +581,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             joinOperator,
             viewIndex,
             viewStale: false,
+            activeCell: clampActiveCell(s2.activeCell, viewIndex.length, s2.visibleColumns.length),
             ...remapEditing(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
           };
@@ -596,7 +603,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (s.readOnly) return;
         const target = resolveEditTarget(s, coord);
         if (!target || target.cellType.activate || isColumnReadOnly(target.column, target.row)) return;
-        if (s.onEditStart?.(coord) === false) return;
+        if (s.onEditStart?.({ rowId: s.getRowId(target.row, target.dataRowIndex), columnId: target.column.id, viewRowIndex: coord.row, viewColumnIndex: coord.col }) === false) return;
         if (s.editing) get().actions.cancelEditing();
         set({
           editing: { coord, rowId: s.getRowId(target.row, target.dataRowIndex), columnId: target.column.id, initialText, session: ++editSessionCount },
@@ -612,7 +619,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           return;
         }
         endEditSession(s.editing, () => set({ editing: null, editingError: null }));
-        s.onEditEnd?.({ coord: s.editing.coord, result: "cancel" });
+        s.onEditEnd?.({ rowId: s.editing.rowId, columnId: s.editing.columnId, viewRowIndex: s.editing.coord.row, viewColumnIndex: s.editing.coord.col, result: "cancel" });
       },
       // The data-write cluster (see data-write.ts): the edit commits, the bulk writers, and the row ops.
       ...createDataWriteActions(set, get, {
@@ -627,7 +634,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const s = get();
         if (!s.editing) return;
         set({ editingError: message, editingRejectionCount: s.editingRejectionCount + 1 });
-        s.onEditEnd?.({ coord: s.editing.coord, result: "rejected" });
+        s.onEditEnd?.({ rowId: s.editing.rowId, columnId: s.editing.columnId, viewRowIndex: s.editing.coord.row, viewColumnIndex: s.editing.coord.col, result: "rejected" });
       },
       setCellErrors(errors) {
         if (errors.length === 0) return;
@@ -840,6 +847,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             // rows moved only when a genuine consumer data replacement invalidated the id cache
             // (our own echo never moves a row — updateCells patches values in place)
             rowIdentityVersion: nextData !== s.data && !isEcho ? s.rowIdentityVersion + 1 : s.rowIdentityVersion,
+            activeCell: clampActiveCell(s.activeCell, nextViewIndex.length, nextVisibleColumns.length),
             ...editRemap,
             ...(unchanged
               ? { searchMatches: s.searchMatches, searchMatchSet: s.searchMatchSet, searchMatchRows: s.searchMatchRows, searchMatchesCapped: s.searchMatchesCapped }
@@ -851,7 +859,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       _subscribeEditEnd() {
         return api.subscribe((state, prev) => {
           if (prev.editing === null || state.editing !== null || prev.editing === selfReportedSession) return;
-          state.onEditEnd?.({ coord: prev.editing.coord, result: "cancel" });
+          state.onEditEnd?.({ rowId: prev.editing.rowId, columnId: prev.editing.columnId, viewRowIndex: prev.editing.coord.row, viewColumnIndex: prev.editing.coord.col, result: "cancel" });
         });
       },
       _registerScrollToCell(impl) {
