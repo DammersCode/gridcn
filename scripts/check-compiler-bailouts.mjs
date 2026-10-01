@@ -1,154 +1,122 @@
 #!/usr/bin/env node
-// Runs the React Compiler (Babel 7.29, pinned) over every source file under registry/ and
-// compares the set of top-level functions it compiles against a baseline. The compiler fails
-// silently — a function it cannot compile is left untransformed without an error — so a new
-// bailout (or CompileError) ships untested code to the test:compiler mirror. Any drift fails:
-// a function that stopped compiling is a regression; one that newly compiles changes shipped
-// behavior and must be verified with `pnpm test:compiler` before `--update` refreshes the baseline.
+// Fails on React Compiler CompileErrors under registry/ that the per-function baseline does not allow, and on stale entries.
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as babel from "@babel/core";
-import { reactCompilerPreset } from "@vitejs/plugin-react";
+import reactCompiler from "babel-plugin-react-compiler";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const registryDir = join(root, "registry");
-const baselinePath = join(dirname(fileURLToPath(import.meta.url)), "compiler-bailouts.baseline.json");
+const baselinePath = join(root, "scripts", "compiler-bailouts.baseline.json");
 const update = process.argv.includes("--update");
-const preset = reactCompilerPreset({ target: "19" }).preset;
+const parserOpts = { plugins: ["typescript", "jsx"] };
+const testFile = /\.(test|browser\.test|test-helper|type-test)\.tsx?$|\.d\.ts$/;
 
 function listFiles(dir) {
   const out = [];
   for (const name of readdirSync(dir)) {
     const full = join(dir, name);
-    const stat = statSync(full);
-    if (stat.isDirectory()) out.push(...listFiles(full));
-    else if (/\.(ts|tsx)$/.test(name)) out.push(full);
+    if (statSync(full).isDirectory()) out.push(...listFiles(full));
+    else if (/\.tsx?$/.test(name) && !testFile.test(name)) out.push(full);
   }
   return out;
 }
 
-function topLevelNodes(ast) {
-  // export wrappers hold the declaration they export; a default export may wrap a function too
-  const out = [];
-  for (const node of ast.program.body) {
-    // a re-export (`export { x } from ...`) carries no declaration
-    if ((node.type === "ExportNamedDeclaration" || node.type === "ExportDefaultDeclaration") && node.declaration) {
-      out.push(node.declaration);
-    } else {
-      out.push(node);
-    }
+function functionName(path) {
+  if (path.node.id) return path.node.id.name;
+  let current = path.parentPath;
+  while (current) {
+    const { node } = current;
+    if (node.type === "VariableDeclarator" && node.id.type === "Identifier") return node.id.name;
+    if ((node.type === "ObjectProperty" || node.type === "ObjectMethod") && node.key.type === "Identifier") return node.key.name;
+    if (node.type === "ExportDefaultDeclaration") return "default";
+    if (node.type !== "CallExpression" && node.type !== "TSAsExpression" && node.type !== "TSSatisfiesExpression") break;
+    current = current.parentPath;
   }
-  return out;
+  return `<anonymous:${path.node.loc.start.line}>`;
 }
 
-function topLevelFunctionNames(code) {
-  const ast = babel.parseSync(code, {
-    filename: "source.tsx",
-    babelrc: false,
-    configFile: false,
-    sourceType: "module",
-    parserOpts: { plugins: ["typescript", "jsx"] },
+function namesAt(source, rel, locs) {
+  const ast = babel.parseSync(source, { filename: rel, babelrc: false, configFile: false, sourceType: "module", parserOpts });
+  const names = [];
+  babel.traverse(ast, {
+    Function(path) {
+      const start = path.node.loc?.start;
+      if (start && locs.has(`${start.line}:${start.column}`)) names.push(functionName(path));
+    },
   });
-  const names = new Set();
-  for (const node of topLevelNodes(ast)) {
-    if (node.type === "FunctionDeclaration" && node.id) names.add(node.id.name);
-    if (node.type === "VariableDeclaration") {
-      for (const decl of node.declarations) {
-        if (
-          decl.id.type === "Identifier" &&
-          (decl.init?.type === "FunctionExpression" || decl.init?.type === "ArrowFunctionExpression")
-        ) {
-          names.add(decl.id.name);
-        }
-      }
-    }
-  }
   return names;
 }
 
-function compiledFunctionNames(code, names) {
-  const ast = babel.parseSync(code, {
-    filename: "output.tsx",
-    babelrc: false,
-    configFile: false,
-    sourceType: "module",
-    parserOpts: { plugins: ["typescript", "jsx"] },
-  });
-  const compiled = new Set();
-  const check = (name, body) => {
-    if (!names.has(name)) return;
-    if (code.slice(body.start, body.end).includes("_c(")) compiled.add(name);
+function compileErrors(source, rel) {
+  const locs = new Set();
+  let fileLevel = false;
+  const logger = {
+    logEvent(_filename, event) {
+      if (event.kind !== "CompileError" && event.kind !== "PipelineError") return;
+      if (event.fnLoc) locs.add(`${event.fnLoc.start.line}:${event.fnLoc.start.column}`);
+      else fileLevel = true;
+    },
   };
-  for (const node of topLevelNodes(ast)) {
-    if (node.type === "FunctionDeclaration" && node.id) check(node.id.name, node.body);
-    if (node.type === "VariableDeclaration") {
-      for (const decl of node.declarations) {
-        if (
-          decl.id.type === "Identifier" &&
-          (decl.init?.type === "FunctionExpression" || decl.init?.type === "ArrowFunctionExpression")
-        ) {
-          check(decl.id.name, decl.init.body);
-        }
-      }
-    }
-  }
-  return compiled;
-}
-
-const files = listFiles(registryDir);
-const baseline = existsSync(baselinePath) ? JSON.parse(readFileSync(baselinePath, "utf8")) : {};
-const problems = [];
-let filesChecked = 0;
-
-for (const file of files) {
-  const rel = relative(root, file).split(sep).join("/");
-  const source = readFileSync(file, "utf8");
-  const names = topLevelFunctionNames(source);
-  if (names.size === 0) continue;
-  filesChecked += 1;
-  const before = new Set(baseline[rel] ?? []);
-  const after = compiledFunctionNames(
+  try {
     babel.transformSync(source, {
       filename: rel,
       babelrc: false,
       configFile: false,
       sourceType: "module",
-      parserOpts: { plugins: ["typescript", "jsx"] },
-      presets: [preset],
-    }).code,
-    names,
-  );
-
-  if (update) {
-    const sorted = [...after].sort();
-    if (sorted.length > 0) baseline[rel] = sorted;
-    else delete baseline[rel];
-    continue;
+      parserOpts,
+      plugins: [[reactCompiler, { target: "19", panicThreshold: "none", logger }]],
+    });
+  } catch {
+    fileLevel = true;
   }
+  const names = namesAt(source, rel, locs);
+  if (fileLevel) names.push("<file>");
+  return names.sort();
+}
 
-  for (const name of before) {
-    if (!after.has(name)) problems.push(`${rel}: ${name} — compiled before, bails out now (new CompileError)`);
+function diff(expected, actual) {
+  const remaining = [...actual];
+  const missing = [];
+  for (const name of expected) {
+    const index = remaining.indexOf(name);
+    if (index === -1) missing.push(name);
+    else remaining.splice(index, 1);
   }
-  for (const name of after) {
-    if (!before.has(name)) problems.push(`${rel}: ${name} — newly compiled (verify with pnpm test:compiler, then --update)`);
+  return { missing, extra: remaining };
+}
+
+const baseline = existsSync(baselinePath) ? JSON.parse(readFileSync(baselinePath, "utf8")) : {};
+const next = {};
+const problems = [];
+const files = listFiles(registryDir);
+
+for (const file of files) {
+  const rel = relative(root, file).split(sep).join("/");
+  const errors = compileErrors(readFileSync(file, "utf8"), rel);
+  if (errors.length > 0) next[rel] = errors;
+  const { missing, extra } = diff(baseline[rel] ?? [], errors);
+  for (const name of extra) problems.push(`${rel}: ${name} — new compiler bail-out (CompileError)`);
+  for (const name of missing) problems.push(`${rel}: ${name} — compiles now; remove it from the baseline`);
+}
+for (const rel of Object.keys(baseline)) {
+  if (!files.some((file) => relative(root, file).split(sep).join("/") === rel)) {
+    problems.push(`${rel} — file is gone; remove it from the baseline`);
   }
 }
 
 if (update) {
-  const keys = Object.keys(baseline).sort();
-  const normalized = {};
-  for (const key of keys) normalized[key] = baseline[key];
-  writeFileSync(baselinePath, JSON.stringify(normalized, null, 2) + "\n", "utf8");
-  console.log(`Baseline updated: ${Object.keys(normalized).length} files.`);
+  writeFileSync(baselinePath, JSON.stringify(next, null, 2) + "\n", "utf8");
+  console.log(`Baseline updated: ${Object.keys(next).length} files with allowed bail-outs.`);
   process.exit(0);
 }
 
 if (problems.length) {
   console.error(`Compiler bail-out drift (${problems.length}):`);
   for (const problem of problems) console.error(`  - ${problem}`);
-  console.error("\nRun pnpm test:compiler; refresh with: node scripts/check-compiler-bailouts.mjs --update");
+  console.error("\nFix the new bail-out, or after pnpm test:compiler refresh with: node scripts/check-compiler-bailouts.mjs --update");
   process.exit(1);
 }
 
-console.log(`Compiler bail-outs match the baseline: ${filesChecked} files.`);
+console.log(`Compiler bail-outs match the baseline: ${files.length} files checked.`);
