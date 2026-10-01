@@ -362,7 +362,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   default sort read the raw value: `equals` and `isAnyOf` on a `select` column take choice
   values, so shared URL filters keep matching. Select label lookups are cached per `choices`
   array; pass a new array to change the choices.
-- **`CellRef` is the public cell coordinate (Breaking):** `CellCoord` is renamed to
+- **Breaking:** `CellRef` is the public cell coordinate. `CellCoord` is renamed to
   `ViewCoord` (same `{ col, row }` shape — view space, not a `data` index). The cell actions
   `selectCell`, `setActiveCell`, `extendTo`, `pushRange`, `startEditing`, and `commitCellValue`
   now take a `CellRef` (`{ rowId, columnId }`) — the stable identity that survives sorting,
@@ -375,11 +375,12 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Breaking:** every cell context has a string `rowId` (`data-grid`, `data-grid-pinned-rows`,
   `data-grid-context-menu`). `useDataGridRowId` and `useDataGridRowIds` return the placeholder
   id `__lazy-unloaded-<index>` for an unloaded lazy row instead of `undefined`; a `renderMarker`
-  ctx on such a row carries the same id. A pinned row's cell ctx `rowId` comes from `getRowId`. If `getRowId` throws on a pinned row or returns an empty or non-string value,
-  the row gets the band id `__pinned-top-<index>` or `__pinned-bottom-<index>`.
+  ctx on such a row carries the same id. A pinned row's cell ctx `rowId` comes from `getRowId`.
+  If `getRowId` throws on a pinned row or returns an empty or non-string value, the row gets the
+  band id `__pinned-top-<index>` or `__pinned-bottom-<index>`.
   `DataGridPinnedRow` takes a required `position` prop (`"top" | "bottom"`). A right-click on a
   skeleton cell of an unloaded row opens no context menu.
-- **Cell contexts carry row and column identity (Breaking):** `renderCell` (and `Cell`
+- **Breaking:** cell contexts carry row and column identity. `renderCell` (and `Cell`
   components) rename `rowIndex` to `viewRowIndex` and add `rowId` and `columnId`. The
   `getCellClassName` ctx gains `rowId` and `columnId`. `CellClickCtx` (used by `onCellClick`,
   `onCellDoubleClick`, and `onCellContextMenu`) renames `rowIndex`/`columnIndex` to
@@ -390,17 +391,17 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Select quick search matches the choice label, not the stored value:** a `select` column's
   stored values are opaque choice ids; quick search now uses the option's `label` (its
   `toSearchText`). Custom types can declare their own `toSearchText` for the same control.
-- **`resolveBulkWrites` returns the rejected cells too (Breaking, `data-grid-sdk`):** the
+- **Breaking:** `resolveBulkWrites` returns the rejected cells too (`data-grid-sdk`). The
   validation tail of paste and fill now returns `{ writes, rejected }` (`BulkResolution`)
   instead of a plain write array — `rejected` carries every cell the validators refused, with its
   `message`, and feeds the new `onValidationError`. `buildPasteWrites` and `buildFillWrites`
   follow the same shape (the latter now returns `{ resolution, filled }`).
-- **`renderCellMenuItems` / `renderHeaderMenuItems` replaced by menu resolvers (Breaking):** the
-  two render-slot props of `DataGridContextMenu` are removed. Pass `getCellMenuItems` /
+- **Breaking:** `renderCellMenuItems` / `renderHeaderMenuItems` are replaced by menu resolvers.
+  The two render-slot props of `DataGridContextMenu` are removed. Pass `getCellMenuItems` /
   `getHeaderMenuItems` instead — they return a `GridMenuItemSpec[]` item list (item-level
   control) instead of a React node (whole-set replacement only), and the header resolver also
   reaches the header dropdown.
-- **`cellTypes` merges over the built-ins (Breaking):** the `cellTypes` prop previously REPLACED
+- **Breaking:** `cellTypes` merges over the built-ins. The `cellTypes` prop previously REPLACED
   the whole registry — extending the built-ins required spreading them back in
   (`cellTypes={{ ...cellTypes, myType }}`). It now merges over them: unnamed built-ins keep
   working, a key that names a built-in replaces that built-in, and a key set to `null` removes a
@@ -411,7 +412,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **`gridcn-custom-cell-type` agent skill:** it now teaches the `cellTypes` merge semantics,
   `defineCellType`, `useCellEditor`, and the typed `options` prop instead of the old
   spread-the-built-ins pattern and the `column.options` cast.
-- **Core barrel split into a consumer API and an add-on SDK (Breaking):** `data-grid` is now
+- **Breaking:** the core barrel is split into a consumer API and an add-on SDK. `data-grid` is now
   the consumer surface — components, props and ctx types, the state hooks, and the op/validation
   engines the docs teach. Add-on-internal seams move to a new `data-grid-sdk` module in the same
   install: `GRID_LAYER`/`cellLayer`/`GridLayer`, `pointerToCoord`/`InteractionLayout`, the
@@ -432,7 +433,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   coord (a stationary drag), a clamped `extendSelection` at a grid edge, and a
   `selectRow`/`selectColumn` re-fire that leaves both channels and `lastHighlighted*` unchanged no
   longer replace the selection object. `onSelectionChange` and selection-keyed re-renders now fire
-  only when the selection content actually changed.
+  only when the selection content actually changed. `CompactSelectionLike` gains
+  `equals(other)`: a custom selection channel in a selection's `rows` or `columns` must implement
+  it.
 - **`data-grid-io` swaps `xlsx` for `@e965/xlsx`:** the add-on's SheetJS dependency moves from
   `xlsx@0.18.5` to the community mirror `@e965/xlsx@0.20.3` (byte-identical sources, SLSA v1
   provenance, zero npm-audit vulnerabilities). The npm `xlsx` line stopped at 0.18.5 with two
@@ -490,9 +493,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   registry directly — the separate `npx shadcn registry add "@gridcn=…"` step is no longer needed.
   The GitHub registry path (`npx shadcn add DammersCode/gridcn/<item>#<ref>`) remains the way to
   pin a tag, branch, or commit.
-- **Byte-level output change:** CSV exports now start with a UTF-8 BOM by default, so Excel detects
-  UTF-8 (without it, umlauts and other non-ASCII characters opened as mojibake). Opt out with
-  `csvBom: false` on `exportGrid`. Related additions: `.tsv` files are now accepted on import
+- **Breaking:** byte-level output change. CSV exports now start with a UTF-8 BOM by default, so
+  Excel detects UTF-8 (without it, umlauts and other non-ASCII characters opened as mojibake).
+  Opt out with `csvBom: false` on `exportGrid`. Related additions: `.tsv` files are now accepted on import
   (the import dialog's `accept` includes them), `IMPORT_CANCELLED_MESSAGE` is re-exported from the
   `data-grid-io` barrel, and `useDataGridState`'s `history` object now exposes `clear` (empties
   both undo/redo stacks).
@@ -567,10 +570,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   index in the patch list and a reason (`unknown-row`, `unknown-column`, `hole`, `readonly`,
   `invalid`, `no-op`); `pending` is `true` while an async schema holds the batch (its outcome is
   not reportable on the return value).
-- **Import rejects are reported:** `buildImportedRows` now returns `{ rows, rejected }` instead
-  of the row array — `rejected` (`ImportRejectedCell[]`) lists every cell that failed its column's
-  `validate` and was cleared, with the data row, the source column, and the grid column. **Breaking**
-  for code that called `buildImportedRows` directly and read the array. The import dialog shows
+- **Breaking:** import rejects are reported. `buildImportedRows` now returns `{ rows, rejected }`
+  instead of the row array, which breaks code that called it directly and read the array.
+  `rejected` (`ImportRejectedCell[]`) lists every cell that failed its column's `validate` and was
+  cleared, with the data row, the source column, and the grid column. The import dialog shows
   the rejected-cell count and stays open until you close it.
 - **Import merge lifecycle:** `DataGridImportDialog`'s `onImport` may return a Promise (e.g. a
   server upsert). The dialog stays pending until the promise settles; a rejection shows an error
