@@ -2,9 +2,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseImportFile } from "./parse-import-file";
-import { inlineCell, partText, withEntries, workbookFile, worksheetXml, xlsxWithSheetAt, xlsxWithWorksheet } from "./xlsx-fixtures.test-helper";
+import { inlineCell, withEntries, workbookFile, worksheetXml, xlsxWithWorksheet } from "./xlsx-fixtures.test-helper";
 
 const XLS_TYPE = "application/vnd.ms-excel";
+const MIB = 1024 * 1024;
 
 function xlsBytes(name: string): Uint8Array<ArrayBuffer> {
   return new Uint8Array(readFileSync(resolve(__dirname, "../../../../tests/fixtures/xls", name)));
@@ -52,64 +53,97 @@ describe("parseImportFile — hostile xlsx", () => {
     await expect(parseImportFile(await workbookFile({ Sheet1: [["a"]] }), { maxDecompressedBytes: 4 * 1024 * 1024 })).resolves.toMatchObject({ rows: [["a"]] });
   });
 
-  it("rejects a worksheet whose declared size could hold more cells than maxCells, before parsing it", async () => {
+  describe("per-entry cap of maxCells * 10 bytes + 1 MiB", () => {
+    const SMALL = { maxCells: 100_000 };
     const sheet = worksheetXml(`<row r="1">${inlineCell("A1", "a")}</row>`);
-    const padded = await xlsxWithWorksheet(sheet, 8 * 1024 * 1024);
-    const lying = await xlsxWithWorksheet(sheet, 1, 8 * 1024 * 1024);
+    const sheetPath = "xl/worksheets/sheet1.xml";
 
-    await expectFastRejection(parseImportFile(padded, { maxCells: 100_000 }), "import-too-many-cells", 1_000);
-    await expectFastRejection(parseImportFile(lying, { maxCells: 100_000 }), "import-too-many-cells", 1_000);
+    it("rejects a worksheet padded past the cap", async () => {
+      await expectFastRejection(parseImportFile(await xlsxWithWorksheet(sheet, 8 * MIB), SMALL), "file-too-large", 1_000);
+    });
+
+    it("rejects a worksheet that declares a small size and inflates past the cap", async () => {
+      await expectFastRejection(parseImportFile(await xlsxWithWorksheet(sheet, 8 * MIB, 1024), SMALL), "file-too-large", 1_000);
+    });
+
+    it("rejects a worksheet whose central directory declares size 0", async () => {
+      const file = await withEntries(await xlsxWithWorksheet(sheet, 8 * MIB), {}, { [sheetPath]: 0 }, { centralOnly: [sheetPath] });
+
+      await expectFastRejection(parseImportFile(file, SMALL), "file-too-large", 1_000);
+    });
+
+    it("rejects a worksheet that keeps its sizes in a data descriptor", async () => {
+      const file = await withEntries(await xlsxWithWorksheet(sheet, 8 * MIB), {}, { [sheetPath]: 0 }, { descriptor: [sheetPath] });
+
+      await expectFastRejection(parseImportFile(file, SMALL), "file-too-large", 1_000);
+    });
+
+    it("rejects a stored worksheet that under-declares its size", async () => {
+      const file = await withEntries(await xlsxWithWorksheet(sheet, 8 * MIB), {}, { [sheetPath]: 1024 }, { stored: [sheetPath] });
+
+      await expectFastRejection(parseImportFile(file, SMALL), "file-too-large", 1_000);
+    });
+
+    it("rejects a worksheet no relationship points at, so a decoy relationship cannot hide it", async () => {
+      const base = await workbookFile({ Sheet1: [["a"]] });
+      const file = await withEntries(base, { "xl/data/huge.xml": new Uint8Array(8 * MIB).fill(0x20) });
+
+      await expectFastRejection(parseImportFile(file, SMALL), "file-too-large", 1_000);
+    });
+
+    it("rejects an oversized worksheet in a workbook whose workbook part is UTF-16", async () => {
+      const utf16 = new Uint8Array([0xff, 0xfe, ...new Uint8Array(new Uint16Array([...'<workbook><sheets><sheet name="a" r:id="rId1"/></sheets></workbook>'].map((char) => char.charCodeAt(0))).buffer)]);
+      const file = await withEntries(await xlsxWithWorksheet(sheet, 8 * MIB), { "xl/workbook.xml": utf16 });
+
+      await expectFastRejection(parseImportFile(file, SMALL), "file-too-large", 1_000);
+    });
+
+    it("rejects 300,000 styled empty cells, 10 bytes each, before building 300,000 map entries", async () => {
+      const cells = '<c s="0"/>'.repeat(300_000);
+      const file = await xlsxWithWorksheet(worksheetXml(`<row r="1">${cells}</row>`));
+
+      await expectFastRejection(parseImportFile(file, SMALL), "file-too-large", 1_000);
+    });
+
+    it("rejects 300,000 minimal 15-byte cells", async () => {
+      const cells = "<c><v>1</v></c>".repeat(300_000);
+      const file = await xlsxWithWorksheet(worksheetXml(`<row r="1">${cells}</row>`));
+
+      await expectFastRejection(parseImportFile(file, SMALL), "file-too-large", 1_000);
+    });
+
+    it("rejects a 220 KB file of 10 million styled empty cells at the default limits, without building them", async () => {
+      const cells = '<c s="0"/>'.repeat(10_000_000);
+      const file = await xlsxWithWorksheet(worksheetXml(`<row r="1">${cells}</row>`));
+      expect(file.size).toBeLessThan(400 * 1024);
+
+      await expectFastRejection(parseImportFile(file), "file-too-large", 500);
+    }, 60_000);
+
+    it("imports a worksheet under the cap, spaces and all", async () => {
+      await expect(parseImportFile(await xlsxWithWorksheet(sheet, MIB), SMALL)).resolves.toMatchObject({ rows: [["a"]] });
+    });
+
+    it("lets maxDecompressedBytes lower the cap below the cell bound", async () => {
+      await expect(parseImportFile(await xlsxWithWorksheet(sheet, 2 * MIB), { maxDecompressedBytes: MIB })).rejects.toThrow("file-too-large");
+    });
   });
 
-  it("sizes the worksheet bound at 21 bytes per allowed cell, the smallest real cell, plus 1 MiB for the rest of the sheet", async () => {
-    const sheet = worksheetXml('<row r="1"><c r="A1"><v>1</v></c></row>');
-    const pad = (maxCells: number) => 21 * maxCells + 1024 * 1024 - new TextEncoder().encode(sheet).length;
+  it("rejects a zip with an entry size of the ZIP64 sentinel", async () => {
+    const bytes = new Uint8Array(await (await workbookFile({ Sheet1: [["a"]] })).arrayBuffer());
+    const view = new DataView(bytes.buffer);
+    let end = bytes.length - 22;
+    while (view.getUint32(end, true) !== 0x06054b50) end--;
+    view.setUint32(view.getUint32(end + 16, true) + 24, 0xffffffff, true);
 
-    await expect(parseImportFile(await xlsxWithWorksheet(sheet, pad(1_000)), { maxCells: 1_000 })).resolves.toMatchObject({ rows: [["1"]] });
-    await expect(parseImportFile(await xlsxWithWorksheet(sheet, pad(1_000) + 1), { maxCells: 1_000 })).rejects.toThrow("import-too-many-cells");
+    await expect(parseImportFile(new File([bytes], "zip64-size.xlsx"))).rejects.toThrow("file-too-large");
   });
 
-  it.each(["data/huge.xml", "/xl/data/huge.xml", "../xl/data/huge.xml", "./data/huge.xml"])(
-    "bounds the worksheet part its relationship targets (%s), wherever it sits",
-    async (target) => {
-      const file = await xlsxWithSheetAt(target, 8 * 1024 * 1024);
+  it("rejects a zip whose end-of-central-directory record is missing", async () => {
+    const bytes = new Uint8Array(await (await workbookFile({ Sheet1: [["a"]] })).arrayBuffer());
+    bytes.fill(0, bytes.length - 22);
 
-      await expectFastRejection(parseImportFile(file, { maxCells: 100_000 }), "import-too-many-cells", 1_000);
-    },
-  );
-
-  it.each(["data/sheet.xml", "/xl/worksheets/sheet1.xml", "../xl/data/sheet.xml"])("imports a worksheet whose relationship targets %s", async (target) => {
-    await expect(parseImportFile(await xlsxWithSheetAt(target, 0))).resolves.toMatchObject({ rows: [["a"]] });
-  });
-
-  it("bounds the selected sheet's part, not another sheet's", async () => {
-    const book = await workbookFile({ Small: [["x"]], Other: [["y"]] });
-    const huge = await withEntries(book, { "xl/worksheets/sheet2.xml": worksheetXml(`<row r="1">${inlineCell("A1", "y")}</row>`) }, { "xl/worksheets/sheet2.xml": 8 * 1024 * 1024 });
-
-    await expect(parseImportFile(huge, { maxCells: 100_000 })).resolves.toMatchObject({ rows: [["x"]] });
-    await expect(parseImportFile(huge, { maxCells: 100_000, sheetName: "Other" })).rejects.toThrow("import-too-many-cells");
-  });
-
-  it("rejects a workbook whose selected sheet targets a part missing from the zip", async () => {
-    const base = await workbookFile({ Sheet1: [["a"]] });
-    const rels = (await partText(base, "xl/_rels/workbook.xml.rels")).replace("worksheets/sheet1.xml", "data/missing.xml");
-
-    await expect(parseImportFile(await withEntries(base, { "xl/_rels/workbook.xml.rels": rels }))).rejects.toThrow("unsupported-excel-format");
-  });
-
-  it("rejects a workbook whose relationships part declares more than 16 MiB", async () => {
-    const base = await workbookFile({ Sheet1: [["a"]] });
-    const rels = await partText(base, "xl/_rels/workbook.xml.rels");
-    const file = await withEntries(base, { "xl/_rels/workbook.xml.rels": rels }, { "xl/_rels/workbook.xml.rels": 17 * 1024 * 1024 });
-
-    await expect(parseImportFile(file)).rejects.toThrow("file-too-large");
-  });
-
-  it("does not hold large parts other than worksheets to the cell bound", async () => {
-    const base = await workbookFile({ Sheet1: [["a"]] });
-    const file = await withEntries(base, { "xl/media/image1.bin": new Uint8Array(8 * 1024 * 1024) });
-
-    await expect(parseImportFile(file, { maxCells: 100_000 })).resolves.toMatchObject({ rows: [["a"]] });
+    await expect(parseImportFile(new File([bytes], "no-eocd.xlsx"))).rejects.toThrow("unreadable-zip");
   });
 
   it("rejects a ZIP64 directory, which can declare parts past any cap", async () => {
@@ -119,11 +153,11 @@ describe("parseImportFile — hostile xlsx", () => {
     await expect(parseImportFile(new File([bytes], "zip64.xlsx"))).rejects.toThrow("file-too-large");
   });
 
-  it("leaves a broken central directory to the reader's own error", async () => {
+  it("rejects a broken central directory as unreadable", async () => {
     const bytes = new Uint8Array(await (await workbookFile({ Sheet1: [["a"]] })).arrayBuffer());
     new DataView(bytes.buffer).setUint32(bytes.length - 22 + 16, 0, true);
 
-    await expect(parseImportFile(new File([bytes], "broken.xlsx"))).rejects.not.toThrow(/file-too-large|import-too-many-cells|unsupported-excel-format/);
+    await expect(parseImportFile(new File([bytes], "broken.xlsx"))).rejects.toThrow("unreadable-zip");
   });
 
   it("rejects a forged A1 + XFD1048576 box before building the grid", async () => {
@@ -291,6 +325,34 @@ describe("parseImportFile — xlsx formatted text", () => {
 
     expect(result.rows).toEqual([["0.3141592653"]]);
     expect(performance.now() - started).toBeLessThan(500);
+  });
+
+  it.each([
+    "# ?/[Red]?????????",
+    "# ?[Red]/?????????",
+    "# ?/_x?????????",
+    "# ?_x/?????????",
+    "# ?/*x?????????",
+    "[>5]# ?/?????????",
+    "# ?[$-409]/?????????",
+    "# ?/[Color 3]?????????",
+  ])("falls back to the raw value for the fraction format %s once hucre strips its decoration", async (numFmt) => {
+    const file = await workbookFile({ Sheet1: [[{ value: 0.3141592653, style: { numFmt } }]] });
+    const started = performance.now();
+
+    const result = await parseImportFile(file);
+
+    expect(result.rows).toEqual([["0.3141592653"]]);
+    expect(performance.now() - started).toBeLessThan(250);
+  });
+
+  it.each(['# ?"x"/?????????', "# ?\\/?????????", '# ??/?"x"????????', "# ?/\\??????????"])("formats %s, which hucre does not read as a fraction, within 250 ms", async (numFmt) => {
+    const file = await workbookFile({ Sheet1: [[{ value: 0.3141592653, style: { numFmt } }]] });
+    const started = performance.now();
+
+    await parseImportFile(file);
+
+    expect(performance.now() - started).toBeLessThan(250);
   });
 
   it("still renders a fraction format with a three-digit denominator", async () => {

@@ -196,7 +196,7 @@ limit is rejected with an error message in the dialog. The import never truncate
 | `maxRows` | 1,000,000 | Maximum rows, header row included. |
 | `maxColumns` | 1,000 | Maximum columns. |
 | `maxCells` | 5,000,000 | Maximum rows times columns. |
-| `maxDecompressedBytes` | 256 MiB | Maximum unpacked size of one part of an xlsx file, for example a worksheet. A zip bomb stops at this size. |
+| `maxDecompressedBytes` | 256 MiB | Maximum unpacked size of one part of an xlsx file, for example a worksheet. A zip bomb stops at this size. The cap per part is the lower of this value and `maxCells` times 10 bytes plus 1 MiB. |
 
 For an xlsx or xls file, the rows and columns come from the real cells of the selected sheet.
 The check runs before the cells are converted. For an xlsx file, the other sheets of the workbook
@@ -205,13 +205,14 @@ the workbook, even when you select another sheet. For a CSV file, the check runs
 parse: the import counts the rows and the fields of each row without building them, and the
 widest row sets the column count.
 
-The import finds the selected sheet's part through the workbook relationships, wherever the file
-stores it. That part must fit `maxCells` at 21 bytes per cell, the size of the smallest real
-cell, plus 1 MiB for everything else in the sheet. At the default `maxCells`, that is about
-100 MiB. A larger part is rejected with the cell error before it is read. A crafted sheet can
-hold millions of tiny cells, and each cell the reader finds costs 125 to 200 bytes of memory. A
-sheet at the default bound peaks near 0.8 GB. When you raise `maxCells`, the bound and the peak
-rise with it.
+The reader inflates every part of an xlsx file, so each part has a cap: `maxCells` times 10
+bytes plus 1 MiB, or `maxDecompressedBytes` when that is lower. Ten bytes is the smallest cell
+the reader stores, a styled empty cell. At the default `maxCells`, the cap is about 51 MiB. A part
+over the cap rejects the file with the size error before it is read. The shared strings count as
+a part, so a text-heavy sheet with few cells can need a higher `maxCells`.
+
+The reader keeps every cell it finds in memory, and a sheet at the default cap peaks near 0.9 GB.
+When you raise `maxCells`, the cap and the peak rise with it.
 
 An xlsx cell comes in as its General text, not its formatted text, when its number format is over
 255 characters long, has a fraction denominator of four or more placeholders, or throws when

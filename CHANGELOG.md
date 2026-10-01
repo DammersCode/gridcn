@@ -635,12 +635,12 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `WindowedColumn` from its barrel, since the add-on's moved `DataGridPinnedRow` needs both.
 
 - **Breaking:** the `data-grid-io` `maxDecompressedBytes` default drops from 512 MiB to 256 MiB
-  (`DEFAULT_IMPORT_LIMITS`), and an xlsx worksheet part declared larger than `maxCells` times 21
-  bytes plus 1 MiB (about 100 MiB at the default) is rejected with `errorTooManyCells` before it
-  is read. hucre's sparse read holds every real cell it finds at 125 to 200 bytes, so a crafted
-  sheet of 12 million tiny cells in a 31 MB file used to peak at 2 GB before the cell check ran.
-  The rejection now costs milliseconds. A sheet with more than about 100 MiB of XML needs a
-  higher `maxCells` in `importLimits`.
+  (`DEFAULT_IMPORT_LIMITS`), and an xlsx part is also capped at `maxCells` times 10 bytes plus
+  1 MiB (about 51 MiB at the default); a part over the cap is rejected with `errorFileTooLarge`
+  before it is read. hucre's sparse read keeps every cell it finds, so a 234 KB file of 10 million
+  styled empty cells (`<c s="0"/>`) used to peak at 1.6 GB. A sheet at the new cap peaks near
+  0.9 GB. The cap covers the shared strings too, so a sheet with more than about 51 MiB of XML
+  or text needs a higher `maxCells` in `importLimits`.
 
 ### Fixed
 
@@ -862,7 +862,6 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 - The empty-state row no longer renders a hardcoded "No data" literal that i18n consumers couldn't
   translate.
-
 
 - **Number-format guard (`data-grid-io`):** an xlsx cell whose number format is longer than 255
   characters, has a fraction denominator of four or more placeholders (`# ?/????`), or makes

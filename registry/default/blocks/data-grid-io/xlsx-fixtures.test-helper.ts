@@ -30,25 +30,39 @@ export function listZip(bytes: Uint8Array): ZipEntry[] {
   return entries;
 }
 
+/** Zip quirks a hostile file can use; each lists the entry names it applies to. */
+export type ZipForgery = {
+  /** Stored (method 0) instead of deflated. */
+  stored?: string[];
+  /** Sizes and crc live in a data descriptor; the local header holds zeros. */
+  descriptor?: string[];
+  /** The declared size is written to the central directory only; the local header keeps the real size. */
+  centralOnly?: string[];
+};
+
 /** Writes entries as a deflated zip archive; `declaredSizes` overrides the uncompressed size an entry claims. */
-function writeZip(entries: ZipEntries, declaredSizes: Record<string, number> = {}): Uint8Array<ArrayBuffer> {
+function writeZip(entries: ZipEntries, declaredSizes: Record<string, number> = {}, forgery: ZipForgery = {}): Uint8Array<ArrayBuffer> {
   const locals: Uint8Array[] = [];
   const centrals: Uint8Array[] = [];
   let offset = 0;
   for (const [name, data] of entries) {
     const nameBytes = new TextEncoder().encode(name);
-    const compressed = deflateRawSync(data, { level: 9 });
+    const stored = forgery.stored?.includes(name) ?? false;
+    const descriptor = forgery.descriptor?.includes(name) ?? false;
+    const compressed = stored ? data : deflateRawSync(data, { level: 9 });
     const crc = crc32(data);
     const declaredSize = declaredSizes[name] ?? data.length;
+    const localSize = forgery.centralOnly?.includes(name) ? data.length : declaredSize;
     const local = new Uint8Array(30 + nameBytes.length);
     const lv = new DataView(local.buffer);
     lv.setUint32(0, 0x04034b50, true);
     lv.setUint16(4, 20, true);
-    lv.setUint16(8, 8, true);
+    lv.setUint16(6, descriptor ? 0x08 : 0, true);
+    lv.setUint16(8, stored ? 0 : 8, true);
     lv.setUint16(12, 0x21, true);
-    lv.setUint32(14, crc, true);
-    lv.setUint32(18, compressed.length, true);
-    lv.setUint32(22, declaredSize, true);
+    lv.setUint32(14, descriptor ? 0 : crc, true);
+    lv.setUint32(18, descriptor ? 0 : compressed.length, true);
+    lv.setUint32(22, descriptor ? 0 : localSize, true);
     lv.setUint16(26, nameBytes.length, true);
     local.set(nameBytes, 30);
     const central = new Uint8Array(46 + nameBytes.length);
@@ -56,7 +70,8 @@ function writeZip(entries: ZipEntries, declaredSizes: Record<string, number> = {
     cv.setUint32(0, 0x02014b50, true);
     cv.setUint16(4, 20, true);
     cv.setUint16(6, 20, true);
-    cv.setUint16(10, 8, true);
+    cv.setUint16(8, descriptor ? 0x08 : 0, true);
+    cv.setUint16(10, stored ? 0 : 8, true);
     cv.setUint16(14, 0x21, true);
     cv.setUint32(16, crc, true);
     cv.setUint32(20, compressed.length, true);
@@ -64,9 +79,17 @@ function writeZip(entries: ZipEntries, declaredSizes: Record<string, number> = {
     cv.setUint16(28, nameBytes.length, true);
     cv.setUint32(42, offset, true);
     central.set(nameBytes, 46);
-    locals.push(local, compressed);
+    const trailer = new Uint8Array(descriptor ? 16 : 0);
+    if (descriptor) {
+      const tv = new DataView(trailer.buffer);
+      tv.setUint32(0, 0x08074b50, true);
+      tv.setUint32(4, crc, true);
+      tv.setUint32(8, compressed.length, true);
+      tv.setUint32(12, data.length, true);
+    }
+    locals.push(local, compressed, trailer);
     centrals.push(central);
-    offset += local.length + compressed.length;
+    offset += local.length + compressed.length + trailer.length;
   }
   const centralSize = centrals.reduce((sum, part) => sum + part.length, 0);
   const eocd = new Uint8Array(22);
@@ -92,12 +115,17 @@ export async function workbookFile(sheets: Record<string, unknown[][]>, name = "
 }
 
 /** A copy of `file` with some zip entries replaced, e.g. a hand-written worksheet XML. */
-export async function withEntries(file: File, replacements: Record<string, string | Uint8Array>, declaredSizes?: Record<string, number>): Promise<File> {
+export async function withEntries(
+  file: File,
+  replacements: Record<string, string | Uint8Array>,
+  declaredSizes?: Record<string, number>,
+  forgery?: ZipForgery,
+): Promise<File> {
   const entries: ZipEntries = new Map(listZip(new Uint8Array(await file.arrayBuffer())).map((entry) => [entry.name, entry.data]));
   for (const [path, content] of Object.entries(replacements)) {
     entries.set(path, typeof content === "string" ? new TextEncoder().encode(content) : content);
   }
-  return new File([writeZip(entries, declaredSizes)], file.name, { type: XLSX_TYPE });
+  return new File([writeZip(entries, declaredSizes, forgery)], file.name, { type: XLSX_TYPE });
 }
 
 /** Wraps `<sheetData>` rows in a minimal worksheet document. */
@@ -121,20 +149,4 @@ export async function xlsxWithWorksheet(sheetXml: string, padBytes = 0, declared
   padded.set(prefix, 0);
   padded.set(suffix, prefix.length + padBytes);
   return withEntries(base, { "xl/worksheets/sheet1.xml": padded }, declaredSize === undefined ? undefined : { "xl/worksheets/sheet1.xml": declaredSize });
-}
-
-/** The text of one part of an xlsx `File`. */
-export async function partText(file: File, name: string): Promise<string> {
-  const entry = listZip(new Uint8Array(await file.arrayBuffer())).find((candidate) => candidate.name === name);
-  if (!entry) throw new Error(`no part ${name}`);
-  return new TextDecoder().decode(entry.data);
-}
-
-/** A one-sheet xlsx whose worksheet part sits at `target` (a workbook-relative or absolute rels target), `padBytes` of spaces long. */
-export async function xlsxWithSheetAt(target: string, padBytes: number): Promise<File> {
-  const base = await workbookFile({ Sheet1: [["a"]] });
-  const rels = (await partText(base, "xl/_rels/workbook.xml.rels")).replace("worksheets/sheet1.xml", target);
-  const sheet = new TextEncoder().encode(`<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${" ".repeat(padBytes)}<row r="1">${inlineCell("A1", "a")}</row></sheetData></worksheet>`);
-  const partPath = target.startsWith("/") ? target.slice(1) : target.startsWith("../") ? target.slice(3) : `xl/${target.replace(/^\.\//, "")}`;
-  return withEntries(base, { "xl/_rels/workbook.xml.rels": rels, [partPath]: sheet });
 }
