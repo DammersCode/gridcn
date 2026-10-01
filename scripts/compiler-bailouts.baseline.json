@@ -1,0 +1,474 @@
+{
+  "registry/default/blocks/data-grid-context-menu/context-menu.browser.test.tsx": [
+    "PinnedGridWithMenu"
+  ],
+  "registry/default/blocks/data-grid-context-menu/header-dropdown.tsx": [
+    "DataGridHeaderDropdown"
+  ],
+  "registry/default/blocks/data-grid-context-menu/menu-items.tsx": [
+    "useDefaultCellMenuItems",
+    "useDefaultHeaderMenuItems"
+  ],
+  "registry/default/blocks/data-grid-context-menu/menu-shortcut.tsx": [
+    "MenuShortcut"
+  ],
+  "registry/default/blocks/data-grid-fill/fill-overlay.tsx": [
+    "FillHandle",
+    "FillPreviewOverlay"
+  ],
+  "registry/default/blocks/data-grid-fill/fill-tracker.tsx": [
+    "FillHandleTracker",
+    "useInteractionLayoutFromContext"
+  ],
+  "registry/default/blocks/data-grid-fill/test/fill.browser.test.tsx": [
+    "renderAsyncFillGrid",
+    "renderFillGrid"
+  ],
+  "registry/default/blocks/data-grid-history/use-data-grid-state.ts": [
+    "useDataGridState"
+  ],
+  "registry/default/blocks/data-grid-io/export-button.tsx": [
+    "DataGridExportButton"
+  ],
+  "registry/default/blocks/data-grid-io/import-button.tsx": [
+    "DataGridImportButton"
+  ],
+  "registry/default/blocks/data-grid-io/use-data-grid-export.ts": [
+    "useDataGridExport"
+  ],
+  "registry/default/blocks/data-grid-keybindings/binding-label.tsx": [
+    "BindingChips"
+  ],
+  "registry/default/blocks/data-grid-keybindings/keybindings-dialog.tsx": [
+    "DataGridKeybindingsDialog"
+  ],
+  "registry/default/blocks/data-grid-keybindings/keybindings-shortcut.tsx": [
+    "DataGridKeybindingsShortcut"
+  ],
+  "registry/default/blocks/data-grid-keybindings/keybindings.browser.test.tsx": [
+    "Harness"
+  ],
+  "registry/default/blocks/data-grid-lazy/data-grid-lazy.browser.test.tsx": [
+    "CallbacksLazyGrid",
+    "LazyGrid"
+  ],
+  "registry/default/blocks/data-grid-lazy/lazy-guard.tsx": [
+    "DataGridLazyGuard"
+  ],
+  "registry/default/blocks/data-grid-pagination/pagination-footer.browser.test.tsx": [
+    "CustomPaginatedGrid",
+    "PaginatedGrid",
+    "WindowedPaginatedGrid"
+  ],
+  "registry/default/blocks/data-grid-pagination/pagination-footer.tsx": [
+    "DataGridPaginationBar",
+    "DataGridPaginationFirst",
+    "DataGridPaginationLast",
+    "DataGridPaginationNext",
+    "DataGridPaginationPageSize",
+    "DataGridPaginationPages",
+    "DataGridPaginationPrev",
+    "DataGridPaginationRange"
+  ],
+  "registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts": [
+    "useClientPagination",
+    "useDataGridPagination",
+    "useServerPagination"
+  ],
+  "registry/default/blocks/data-grid-pinned-rows/pinned-row-band.tsx": [
+    "DataGridPinnedRowBand"
+  ],
+  "registry/default/blocks/data-grid-pinned-rows/pinned-row.tsx": [
+    "DataGridPinnedRow"
+  ],
+  "registry/default/blocks/data-grid-pinned-rows/test/aggregate.test.tsx": [
+    "Capture"
+  ],
+  "registry/default/blocks/data-grid-pinned-rows/test/pinned-rows.browser.test.tsx": [
+    "PinnedGrid",
+    "PinnedRootGrid"
+  ],
+  "registry/default/blocks/data-grid-pinned-rows/test/pinned-rows.test.tsx": [
+    "PinnedGrid"
+  ],
+  "registry/default/blocks/data-grid-pinned-rows/use-data-grid-aggregate.ts": [
+    "useDataGridAggregate"
+  ],
+  "registry/default/blocks/data-grid-pinned-rows/use-data-grid-pinned-rows.tsx": [
+    "useDataGridPinnedRows"
+  ],
+  "registry/default/blocks/data-grid-sort-list/sort-list.tsx": [
+    "DataGridSortList",
+    "SortRow"
+  ],
+  "registry/default/blocks/data-grid-toolbar/columns-menu.tsx": [
+    "ColumnRow",
+    "DataGridColumnsMenu"
+  ],
+  "registry/default/blocks/data-grid-toolbar/filter-menu.tsx": [
+    "DataGridFilterMenu",
+    "FilterRow"
+  ],
+  "registry/default/blocks/data-grid-toolbar/filter-value-input.tsx": [
+    "AnyOfValueInput",
+    "DataGridFilterValueInput",
+    "SingleValueInput",
+    "useDebouncedInput"
+  ],
+  "registry/default/blocks/data-grid-toolbar/search.tsx": [
+    "DataGridSearch"
+  ],
+  "registry/default/blocks/data-grid-toolbar/toolbar.browser.test.tsx": [
+    "ActiveCellProbe"
+  ],
+  "registry/default/blocks/data-grid-toolbar/toolbar.tsx": [
+    "DataGridToolbar"
+  ],
+  "registry/default/blocks/data-grid-url-state/data-grid-url-state.test.tsx": [
+    "UrlStateProbe"
+  ],
+  "registry/default/blocks/data-grid-url-state/use-data-grid-url-pagination.browser.test.tsx": [
+    "TotalFlipper",
+    "UrlPaginatedGrid"
+  ],
+  "registry/default/blocks/data-grid-url-state/use-data-grid-url-pagination.ts": [
+    "useDataGridUrlPagination"
+  ],
+  "registry/default/blocks/data-grid/cell-types/cell-span.tsx": [
+    "CellSpan"
+  ],
+  "registry/default/blocks/data-grid/cell-types/cell-types.test.tsx": [
+    "DateEditorProvider"
+  ],
+  "registry/default/blocks/data-grid/cell-types/checkbox.tsx": [
+    "CheckboxCell",
+    "CheckboxEditor"
+  ],
+  "registry/default/blocks/data-grid/cell-types/date.tsx": [
+    "DateCell",
+    "DateEditor"
+  ],
+  "registry/default/blocks/data-grid/cell-types/number.tsx": [
+    "NumberCell",
+    "NumberEditor"
+  ],
+  "registry/default/blocks/data-grid/cell-types/select.tsx": [
+    "SelectCell",
+    "SelectEditor"
+  ],
+  "registry/default/blocks/data-grid/cell-types/text.tsx": [
+    "TextCell",
+    "TextEditor"
+  ],
+  "registry/default/blocks/data-grid/clipboard/use-data-grid-clipboard.ts": [
+    "useDataGridClipboard"
+  ],
+  "registry/default/blocks/data-grid/clipboard/use-grid-clipboard.ts": [
+    "useGridClipboard"
+  ],
+  "registry/default/blocks/data-grid/columns/sort-indicator.tsx": [
+    "DataGridSortIndicator"
+  ],
+  "registry/default/blocks/data-grid/data-grid.tsx": [
+    "DataGrid",
+    "useDataGridApi"
+  ],
+  "registry/default/blocks/data-grid/header-cell.tsx": [
+    "DataGridHeaderCell"
+  ],
+  "registry/default/blocks/data-grid/header.tsx": [
+    "DataGridHeader"
+  ],
+  "registry/default/blocks/data-grid/interaction/use-async-validate.ts": [
+    "useAsyncValidate"
+  ],
+  "registry/default/blocks/data-grid/interaction/use-cell-editor.test.tsx": [
+    "ProbeEditor"
+  ],
+  "registry/default/blocks/data-grid/interaction/use-cell-editor.ts": [
+    "useCellEditor"
+  ],
+  "registry/default/blocks/data-grid/interaction/use-commit-guard.ts": [
+    "useCommitGuard"
+  ],
+  "registry/default/blocks/data-grid/interaction/use-grid-interaction.test.tsx": [
+    "renderInteraction"
+  ],
+  "registry/default/blocks/data-grid/interaction/use-seed-focus.ts": [
+    "useSeedFocus"
+  ],
+  "registry/default/blocks/data-grid/layout-context.ts": [
+    "useColumnLayout"
+  ],
+  "registry/default/blocks/data-grid/overlays.test.tsx": [
+    "Harness"
+  ],
+  "registry/default/blocks/data-grid/overlays.tsx": [
+    "RangeOverlay"
+  ],
+  "registry/default/blocks/data-grid/root.tsx": [
+    "DataGridRoot"
+  ],
+  "registry/default/blocks/data-grid/rows/loading-skeleton.tsx": [
+    "DataGridLoadingBar",
+    "DataGridLoadingSkeleton"
+  ],
+  "registry/default/blocks/data-grid/rows/marker-cell.tsx": [
+    "DataGridMarkerCell"
+  ],
+  "registry/default/blocks/data-grid/rows/marker-header.tsx": [
+    "DataGridMarkerHeader"
+  ],
+  "registry/default/blocks/data-grid/store/cell-errors.test.tsx": [
+    "useHarness"
+  ],
+  "registry/default/blocks/data-grid/store/cell-type-behavior.test.tsx": [
+    "makeCustomType",
+    "useHarness"
+  ],
+  "registry/default/blocks/data-grid/store/flash-cells.test.tsx": [
+    "useHarness"
+  ],
+  "registry/default/blocks/data-grid/store/hooks.ts": [
+    "useDataGridCellEditingError",
+    "useDataGridCellInitialText",
+    "useDataGridCellRejectionCount",
+    "useDataGridCellState",
+    "useDataGridColumnWidth",
+    "useDataGridColumnWidths",
+    "useDataGridGetSelectionValues",
+    "useDataGridIsCellActive",
+    "useDataGridIsCellEditing",
+    "useDataGridIsColumnHidden",
+    "useDataGridIsRowCellSelected",
+    "useDataGridIsRowChannelSelected",
+    "useDataGridIsRowSelected",
+    "useDataGridIsSearchMatch",
+    "useDataGridRow",
+    "useDataGridRowCellState",
+    "useDataGridRowHasError",
+    "useDataGridRowId",
+    "useDataGridRowIds",
+    "useDataGridScrollToCell",
+    "useDataGridScrollToCellAt"
+  ],
+  "registry/default/blocks/data-grid/store/on-invalid.test.tsx": [
+    "useHarness"
+  ],
+  "registry/default/blocks/data-grid/store/provider.tsx": [
+    "DataGridProvider",
+    "useDataGridSelector",
+    "useDataGridStoreProps",
+    "useGridStoreCore"
+  ],
+  "registry/default/blocks/data-grid/store/sort-compare.test.tsx": [
+    "derivedHarness",
+    "harness"
+  ],
+  "registry/default/blocks/data-grid/store/stale-commit.test.tsx": [
+    "useHarness"
+  ],
+  "registry/default/blocks/data-grid/store/update-cells.test.tsx": [
+    "renderHarness",
+    "useHarness"
+  ],
+  "registry/default/blocks/data-grid/test/a11y.browser.test.tsx": [
+    "Fixture"
+  ],
+  "registry/default/blocks/data-grid/test/compiler-wiring.browser.test.tsx": [
+    "Probe"
+  ],
+  "registry/default/blocks/data-grid/test/custom-marker-perf.browser.test.tsx": [
+    "CustomHeaderButton"
+  ],
+  "registry/default/blocks/data-grid/test/events.test.tsx": [
+    "useActionsAndEditing"
+  ],
+  "registry/default/blocks/data-grid/test/global-shortcuts.browser.test.tsx": [
+    "HistoryGrid"
+  ],
+  "registry/default/blocks/data-grid/test/marker-renderers.test.tsx": [
+    "TestHeaderButton",
+    "ToggleHeaderButton"
+  ],
+  "registry/default/blocks/data-grid/test/store-probe.test-helper.tsx": [
+    "StoreProbe"
+  ],
+  "registry/default/blocks/dropzone/dropzone.tsx": [
+    "DropzoneContent",
+    "DropzoneEmptyState"
+  ],
+  "registry/default/examples/data-grid-actions-demo.tsx": [
+    "DataGridActionsDemo",
+    "RowActions"
+  ],
+  "registry/default/examples/data-grid-cell-errors-demo.tsx": [
+    "CellErrorsBar",
+    "DataGridCellErrorsDemo"
+  ],
+  "registry/default/examples/data-grid-cell-types-demo.tsx": [
+    "DataGridCellTypesDemo"
+  ],
+  "registry/default/examples/data-grid-column-drag-demo.tsx": [
+    "DataGridColumnDragDemo",
+    "ReorderControls"
+  ],
+  "registry/default/examples/data-grid-column-layout-demo.tsx": [
+    "DataGridColumnLayoutDemo"
+  ],
+  "registry/default/examples/data-grid-conditional-styling-demo.tsx": [
+    "DataGridConditionalStylingDemo"
+  ],
+  "registry/default/examples/data-grid-context-menu-demo.tsx": [
+    "DataGridContextMenuDemo"
+  ],
+  "registry/default/examples/data-grid-context-menu-slots-demo.tsx": [
+    "DataGridContextMenuSlotsDemo"
+  ],
+  "registry/default/examples/data-grid-cross-field-demo.tsx": [
+    "DataGridCrossFieldDemo"
+  ],
+  "registry/default/examples/data-grid-custom-cell-demo.tsx": [
+    "CurrencyCell",
+    "CurrencyEditor",
+    "DataGridCustomCellDemo"
+  ],
+  "registry/default/examples/data-grid-custom-headers-demo.tsx": [
+    "DataGridCustomHeadersDemo",
+    "SortStateIcon"
+  ],
+  "registry/default/examples/data-grid-custom-markers-demo.tsx": [
+    "DataGridCustomMarkersDemo",
+    "SelectAllMarkerButton"
+  ],
+  "registry/default/examples/data-grid-demo.tsx": [
+    "DataGridDemo"
+  ],
+  "registry/default/examples/data-grid-events-demo.tsx": [
+    "DataGridEventsDemo",
+    "EventLogPanel",
+    "PresenceReadBackButton"
+  ],
+  "registry/default/examples/data-grid-fill-patterns-demo.tsx": [
+    "DataGridFillPatternsDemo"
+  ],
+  "registry/default/examples/data-grid-filter-operators-demo.tsx": [
+    "DataGridFilterOperatorsDemo"
+  ],
+  "registry/default/examples/data-grid-global-shortcuts-demo.tsx": [
+    "DataGridGlobalShortcutsDemo"
+  ],
+  "registry/default/examples/data-grid-history-demo.tsx": [
+    "DataGridHistoryDemo"
+  ],
+  "registry/default/examples/data-grid-i18n-demo.tsx": [
+    "DataGridI18nDemo"
+  ],
+  "registry/default/examples/data-grid-io-demo.tsx": [
+    "DataGridIODemo"
+  ],
+  "registry/default/examples/data-grid-keybindings-demo.tsx": [
+    "DataGridKeybindingsDemo"
+  ],
+  "registry/default/examples/data-grid-large-data-demo.tsx": [
+    "DataGridLargeDataDemo"
+  ],
+  "registry/default/examples/data-grid-lazy-demo.tsx": [
+    "DataGridLazyDemo"
+  ],
+  "registry/default/examples/data-grid-lazy-react-query-demo.tsx": [
+    "DataGridLazyReactQueryDemo",
+    "LazyReactQueryGrid"
+  ],
+  "registry/default/examples/data-grid-lazy-swr-demo.tsx": [
+    "DataGridLazySwrDemo",
+    "LazySwrGrid"
+  ],
+  "registry/default/examples/data-grid-loading-demo.tsx": [
+    "DataGridLoadingDemo"
+  ],
+  "registry/default/examples/data-grid-minimal-demo.tsx": [
+    "DataGridMinimalDemo"
+  ],
+  "registry/default/examples/data-grid-pagination-demo.tsx": [
+    "DataGridPaginationDemo"
+  ],
+  "registry/default/examples/data-grid-pagination-react-query-demo.tsx": [
+    "DataGridPaginationReactQueryDemo",
+    "PaginatedReactQueryGrid"
+  ],
+  "registry/default/examples/data-grid-pagination-swr-demo.tsx": [
+    "DataGridPaginationSwrDemo",
+    "PaginatedSwrGrid"
+  ],
+  "registry/default/examples/data-grid-performance-demo.tsx": [
+    "DataGridPerformanceDemo",
+    "FpsMeter"
+  ],
+  "registry/default/examples/data-grid-pinned-rows-demo.tsx": [
+    "DataGridPinnedRowsDemo"
+  ],
+  "registry/default/examples/data-grid-pinning-all-sides-demo.tsx": [
+    "DataGridPinningAllSidesDemo"
+  ],
+  "registry/default/examples/data-grid-pinning-demo.tsx": [
+    "DataGridPinningDemo"
+  ],
+  "registry/default/examples/data-grid-playground-demo.tsx": [
+    "CustomMarkerSelectAll",
+    "DataGridPlaygroundDemo",
+    "LazyGrid",
+    "LazySortedGrid",
+    "LiveSortHeader",
+    "PaginatedGrid",
+    "PlaygroundToolbar",
+    "StreamingFeed",
+    "ToggleLabel",
+    "VirtualizedGrid",
+    "usePresenceDriver",
+    "useTotalsBand"
+  ],
+  "registry/default/examples/data-grid-presence-demo.tsx": [
+    "DataGridPresenceDemo",
+    "useSimulatedPresenceDriver"
+  ],
+  "registry/default/examples/data-grid-row-markers-demo.tsx": [
+    "DataGridRowMarkersDemo"
+  ],
+  "registry/default/examples/data-grid-row-ops-demo.tsx": [
+    "DataGridRowOpsDemo",
+    "RowOpsControls"
+  ],
+  "registry/default/examples/data-grid-row-reorder-demo.tsx": [
+    "DataGridRowReorderDemo",
+    "MoveDownButton"
+  ],
+  "registry/default/examples/data-grid-server-side-demo.tsx": [
+    "DataGridServerSideDemo",
+    "RemoteStateBridge",
+    "ServerSideGrid"
+  ],
+  "registry/default/examples/data-grid-sort-list-demo.tsx": [
+    "DataGridSortListDemo"
+  ],
+  "registry/default/examples/data-grid-sorting-filtering-demo.tsx": [
+    "DataGridSortingFilteringDemo"
+  ],
+  "registry/default/examples/data-grid-streaming-demo.tsx": [
+    "DataGridStreamingDemo",
+    "ReSortBar"
+  ],
+  "registry/default/examples/data-grid-styling-patterns-demo.tsx": [
+    "DataGridStylingPatternsDemo"
+  ],
+  "registry/default/examples/data-grid-url-state-demo.tsx": [
+    "DataGridUrlStateDemo",
+    "DataGridUrlStateDemoInner"
+  ],
+  "registry/default/examples/data-grid-validation-demo.tsx": [
+    "DataGridValidationDemo"
+  ],
+  "registry/default/examples/home-mobile.browser.test.tsx": [
+    "HomeRoute"
+  ]
+}
