@@ -3740,6 +3740,17 @@ describe("row-moving ops with an active view-space presence entry", () => {
     warn.mockRestore();
   });
 
+  it("does not warn when unhiding a trailing column appends it to the view columns", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    act(() => result.current.setColumnHidden("age", true));
+    act(() => result.current._registerPresenceViewSpaceActive(() => true));
+    act(() => result.current.setColumnHidden("age", false));
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
   it("does not warn when a width change or a same-position reorder leaves the view columns in place", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });

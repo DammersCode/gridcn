@@ -221,13 +221,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     }
     return next ?? cellErrors;
   };
-  // View-space presence entries pin to a display position a row or column move invalidates
-  // (rowId-native entries track their rows and never trip this): warn once when a view-moving op
-  // runs while one is active. The predicate is registered by the `data-grid-presence` add-on; null when absent.
+  // A row or column move strands view-space presence entries; `moved` runs only in development.
   let warnedPresenceReorder = false;
-  const warnViewSpacePresenceStale = (s: DataGridStoreState, rowsMoved?: () => boolean) => {
+  const warnViewSpacePresenceStale = (s: DataGridStoreState, moved?: () => boolean) => {
     if (warnedPresenceReorder || !isDev() || !s.presenceViewSpaceActive?.()) return;
-    if (rowsMoved && !rowsMoved()) return;
+    if (moved && !moved()) return;
     warnedPresenceReorder = true;
     warnDev("rows or columns moved while a view-space presence entry is active — its highlight position is now stale; use rowId-native presence entries for a live feed");
   };
@@ -463,7 +461,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const nextIds = reorderColumnIds(currentIds, s.columns, id, targetId, position);
         if (nextIds === currentIds) return;
         const nextVisibleColumns = computeVisibleColumns(s.columns, nextIds, s.hiddenColumns);
-        if (visibleColumnsMoved(s.visibleColumns, nextVisibleColumns)) warnViewSpacePresenceStale(s);
+        warnViewSpacePresenceStale(s, () => visibleColumnsMoved(s.visibleColumns, nextVisibleColumns));
         set({ columnOrder: nextIds, visibleColumns: nextVisibleColumns, ...clampCursor(s, s.viewIndex.length, nextVisibleColumns.length), ...remapEditing(s, s.viewIndex, nextVisibleColumns) });
         s.onColumnLayoutChange?.(computeColumnLayout(s.columns, nextIds, s.columnWidths, s.hiddenColumns));
       },
@@ -474,7 +472,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (!column || !columnFlag(column, "pinnable")) return;
         const nextColumns = s.columns.map((c) => (c.id === id ? { ...c, pin: pin ?? undefined } : c));
         const nextVisibleColumns = computeVisibleColumns(nextColumns, s.columnOrder, s.hiddenColumns);
-        if (visibleColumnsMoved(s.visibleColumns, nextVisibleColumns)) warnViewSpacePresenceStale(s);
+        warnViewSpacePresenceStale(s, () => visibleColumnsMoved(s.visibleColumns, nextVisibleColumns));
         set({
           columns: nextColumns,
           visibleColumns: nextVisibleColumns,
@@ -490,7 +488,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         else current.delete(id);
         const nextHidden = Array.from(current);
         const nextVisibleColumns = computeVisibleColumns(s.columns, s.columnOrder, nextHidden);
-        if (visibleColumnsMoved(s.visibleColumns, nextVisibleColumns)) warnViewSpacePresenceStale(s);
+        warnViewSpacePresenceStale(s, () => visibleColumnsMoved(s.visibleColumns, nextVisibleColumns));
         const viewIndex = computeViewIndex(s.data, s.columns, s.sortState, s.filterState, s.joinOperator, s.viewIndex, s.cellTypes);
         resetDeferredRows(dataWrite);
         set({
@@ -808,9 +806,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const nextViewIndex = unchanged
             ? s.viewIndex
             : computeViewIndex(nextData, nextColumns, nextSortState, nextFilterState, nextJoinOperator, s.viewIndex, nextCellTypes);
-          const columnsMoved = visibleColumnsMoved(s.visibleColumns, nextVisibleColumns);
-          if (nextViewIndex !== s.viewIndex || (nextData !== s.data && !isEcho) || columnsMoved) {
-            warnViewSpacePresenceStale(s, () => viewRowsMoved(s, nextViewIndex, nextData, props.getRowId) || columnsMoved);
+          if (nextViewIndex !== s.viewIndex || (nextData !== s.data && !isEcho) || nextVisibleColumns !== s.visibleColumns) {
+            warnViewSpacePresenceStale(
+              s,
+              () => viewRowsMoved(s, nextViewIndex, nextData, props.getRowId) || visibleColumnsMoved(s.visibleColumns, nextVisibleColumns),
+            );
           }
           // A full rebuild leaves nothing pending for the incremental path to replay.
           if (!unchanged) resetDeferredRows(dataWrite);

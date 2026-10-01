@@ -63,9 +63,10 @@ export function viewRowsMoved(
   return false;
 }
 
-/** True when any column sits at a different display position in the next visible-column array. */
+/** True when a visible column moves or disappears; a column appended at the end moves nothing. */
 export function visibleColumnsMoved(oldColumns: readonly AnyColumnDef[], nextColumns: readonly AnyColumnDef[]): boolean {
-  if (oldColumns.length !== nextColumns.length) return true;
+  if (oldColumns === nextColumns) return false;
+  if (nextColumns.length < oldColumns.length) return true;
   for (let i = 0; i < oldColumns.length; i++) {
     if (oldColumns[i]!.id !== nextColumns[i]!.id) return true;
   }

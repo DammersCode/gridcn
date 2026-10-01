@@ -648,9 +648,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   to its grid without a `data-grid-instance` attribute.
 - **View-space presence warning covers every view change (`data-grid`, `data-grid-presence`):** the
   one-time development warning now also fires when a sort, filter, join operator change, or
-  consumer data replacement moves rows while a view-space presence entry is active. A same-order
-  refetch or a lazy page load does not warn. The warning used to cover only row operations and
-  immediate `updateCells`.
+  consumer data replacement moves rows while a view-space presence entry is active. It also fires
+  when a column reorder, hide, or pin, or a consumer `columns` swap, moves or removes a visible
+  column. A same-order refetch, a lazy page load, and a column unhidden at the end do not warn.
+  The warning used to cover only row operations and immediate `updateCells`.
 - **Lazy rows warn about dropped edits (`data-grid-lazy`):** in development,
   `useDataGridLazyRows().onDataChange` warns once when a change targets a row that `evict()`
   removed before the merge. The edit is not written into another row.
