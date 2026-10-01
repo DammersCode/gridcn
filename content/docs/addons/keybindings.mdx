@@ -50,9 +50,9 @@ function OrdersGrid() {
   character.
 </Callout>
 
-`mod` resolves to <kbd>Cmd</kbd> on macOS and <kbd>Ctrl</kbd> elsewhere. Copy, Cut, and Paste
-(<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+C/X/V) are native browser clipboard events, not part of the
-keymap, but the dialog lists them together for completeness.
+`mod` resolves to <kbd>Cmd</kbd> on macOS, iOS, and iPadOS, and to <kbd>Ctrl</kbd> elsewhere.
+Copy, Cut, and Paste (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+C/X/V) are native browser clipboard events,
+not part of the keymap, but the dialog lists them together for completeness.
 
 ## Binding chips
 
@@ -68,8 +68,8 @@ import { BindingChips } from "@/components/data-grid-keybindings/data-grid-keybi
 For plain text, the core's `formatShortcut(binding)` (the `data-grid` entry point, below)
 returns the same tokens as an array (`["⌘", "C"]`).
 
-Tokens are platform-aware (`mod` → ⌘ on macOS, Ctrl elsewhere), and a binding renders as one
-keycap per token.
+Tokens are platform-aware (`mod` → ⌘ on macOS, iOS, and iPadOS, Ctrl elsewhere), and a binding
+renders as one keycap per token.
 
 ## Shortcut labels for your own UI
 
@@ -86,8 +86,10 @@ import { formatShortcut, isMacPlatform } from "@/components/data-grid/data-grid"
 Modifier tokens render as glyphs (⌘ ⇧ ⌥) on macOS and iOS, and as word names (Ctrl, Shift, Alt)
 everywhere else. `ctrl` always renders as `Ctrl`, including on macOS.
 
-The platform check reads `navigator`, which does not exist during server rendering — there the
-labels render as word names. Compute the labels after mount.
+The platform check reads `navigator`, which does not exist during server rendering. There the
+labels render as word names. `BindingChips` renders word names on the server and switches to
+glyphs after hydration. For your own labels, compute them after mount, or pass the platform as
+the second argument: `formatShortcut(binding, isMac)`.
 
 ## Remapping
 
@@ -113,7 +115,7 @@ overrides only the actions you specify. Everything else falls back to `DEFAULT_K
 
 A binding string is a modifier prefix plus a key. Combine the modifiers `mod`, `ctrl`,
 `shift`, and `alt` in that order (`"mod+shift+ArrowUp"`). `mod` resolves to <kbd>Cmd</kbd> on
-macOS and <kbd>Ctrl</kbd> elsewhere. `ctrl` matches the literal physical <kbd>Ctrl</kbd> on
+macOS, iOS, and iPadOS, and to <kbd>Ctrl</kbd> elsewhere. `ctrl` matches the literal physical <kbd>Ctrl</kbd> on
 every platform. Use it where <kbd>Cmd</kbd> is reserved by the OS, for example `selectColumn`
 on <kbd>Ctrl</kbd>+<kbd>Space</kbd>.
 

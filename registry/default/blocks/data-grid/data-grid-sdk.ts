@@ -62,4 +62,3 @@ export { holeRowId, rowIdAtViewRow } from "./store/compute";
 export { measureColumnAutosizeWidth } from "./columns/measure-column-text";
 export { isDev } from "./is-dev";
 export { useDataGridInstanceId, useDataGridStoreApi } from "./store";
-export { formatShortcutToken } from "./keyboard";

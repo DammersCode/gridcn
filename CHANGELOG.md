@@ -123,12 +123,13 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   true — the skeleton (zero rows in view) or the indeterminate bar under the header (rows
   present). Its function form receives `{ reason: "no-data" | "rows-present" }`.
 
-- **Shortcut label API:** `data-grid` exports `isMacPlatform()` and `formatShortcut(binding)`
-  so consumer UI can render shortcut labels that match the grid's own keycaps (glyphs on macOS
-  and iOS, word names elsewhere). `mod` matches Cmd on iPhone and iPad, so their labels render
-  the `⌘` glyph. The keybindings and context-menu add-ons use this shared API; on macOS the
-  keybindings chips render `⇧` for Shift. The single-segment `formatShortcutToken(segment)`
-  lives on the `data-grid-sdk` surface, not the entry point.
+- **Shortcut label API:** `data-grid` exports `isMacPlatform()` and
+  `formatShortcut(binding, isMac?)` so consumer UI can render shortcut labels that match the
+  grid's own keycaps (glyphs on macOS and iOS, word names elsewhere). `isMac` defaults to
+  `isMacPlatform()`. `mod` matches Cmd on iPhone and iPad, so their labels render the `⌘` glyph.
+  The keybindings and context-menu add-ons use this shared API; on macOS the keybindings chips
+  render `⇧` for Shift. `BindingChips` renders word names during server rendering and switches
+  to glyphs after hydration, so a Mac client hydrates without a mismatch.
 
 - **Agent skills:** `npx skills add DammersCode/gridcn` installs five skills for Claude Code,
   Cursor, Codex, and other agents: `gridcn-performance`, `gridcn-custom-cell-type`,
@@ -594,8 +595,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `filterMatch`/`filterOperators`.
 - **Breaking:** the `data-grid-keybindings` entry point no longer exports `bindingTokens` — the
   core's `formatShortcut` (from the `data-grid` entry point) returns the same tokens. The
-  `data-grid` entry point no longer exports `useDataGridInstanceId` or `formatShortcutToken`;
-  both are on the `data-grid-sdk` surface the first-party add-ons import.
+  `data-grid` entry point no longer exports `useDataGridInstanceId`; it is on the `data-grid-sdk`
+  surface the first-party add-ons import.
 
 - README rewritten to describe the actual shipped feature set (pinned rows, controlled props,
   styling API, url-state) and point to the docs site instead of the generic Fumadocs scaffold text.
