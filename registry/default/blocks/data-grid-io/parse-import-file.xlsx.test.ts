@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseImportFile } from "./parse-import-file";
-import { inlineCell, withEntries, workbookFile, worksheetXml, xlsxWithWorksheet } from "./xlsx-fixtures.test-helper";
+import { inlineCell, partText, withEntries, workbookFile, worksheetXml, xlsxWithSheetAt, xlsxWithWorksheet } from "./xlsx-fixtures.test-helper";
 
 const XLS_TYPE = "application/vnd.ms-excel";
 
@@ -67,6 +67,42 @@ describe("parseImportFile — hostile xlsx", () => {
 
     await expect(parseImportFile(await xlsxWithWorksheet(sheet, pad(1_000)), { maxCells: 1_000 })).resolves.toMatchObject({ rows: [["1"]] });
     await expect(parseImportFile(await xlsxWithWorksheet(sheet, pad(1_000) + 1), { maxCells: 1_000 })).rejects.toThrow("import-too-many-cells");
+  });
+
+  it.each(["data/huge.xml", "/xl/data/huge.xml", "../xl/data/huge.xml", "./data/huge.xml"])(
+    "bounds the worksheet part its relationship targets (%s), wherever it sits",
+    async (target) => {
+      const file = await xlsxWithSheetAt(target, 8 * 1024 * 1024);
+
+      await expectFastRejection(parseImportFile(file, { maxCells: 100_000 }), "import-too-many-cells", 1_000);
+    },
+  );
+
+  it.each(["data/sheet.xml", "/xl/worksheets/sheet1.xml", "../xl/data/sheet.xml"])("imports a worksheet whose relationship targets %s", async (target) => {
+    await expect(parseImportFile(await xlsxWithSheetAt(target, 0))).resolves.toMatchObject({ rows: [["a"]] });
+  });
+
+  it("bounds the selected sheet's part, not another sheet's", async () => {
+    const book = await workbookFile({ Small: [["x"]], Other: [["y"]] });
+    const huge = await withEntries(book, { "xl/worksheets/sheet2.xml": worksheetXml(`<row r="1">${inlineCell("A1", "y")}</row>`) }, { "xl/worksheets/sheet2.xml": 8 * 1024 * 1024 });
+
+    await expect(parseImportFile(huge, { maxCells: 100_000 })).resolves.toMatchObject({ rows: [["x"]] });
+    await expect(parseImportFile(huge, { maxCells: 100_000, sheetName: "Other" })).rejects.toThrow("import-too-many-cells");
+  });
+
+  it("rejects a workbook whose selected sheet targets a part missing from the zip", async () => {
+    const base = await workbookFile({ Sheet1: [["a"]] });
+    const rels = (await partText(base, "xl/_rels/workbook.xml.rels")).replace("worksheets/sheet1.xml", "data/missing.xml");
+
+    await expect(parseImportFile(await withEntries(base, { "xl/_rels/workbook.xml.rels": rels }))).rejects.toThrow("unsupported-excel-format");
+  });
+
+  it("rejects a workbook whose relationships part declares more than 16 MiB", async () => {
+    const base = await workbookFile({ Sheet1: [["a"]] });
+    const rels = await partText(base, "xl/_rels/workbook.xml.rels");
+    const file = await withEntries(base, { "xl/_rels/workbook.xml.rels": rels }, { "xl/_rels/workbook.xml.rels": 17 * 1024 * 1024 });
+
+    await expect(parseImportFile(file)).rejects.toThrow("file-too-large");
   });
 
   it("does not hold large parts other than worksheets to the cell bound", async () => {

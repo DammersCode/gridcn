@@ -205,8 +205,9 @@ the workbook, even when you select another sheet. For a CSV file, the check runs
 parse: the import counts the rows and the fields of each row without building them, and the
 widest row sets the column count.
 
-An xlsx worksheet part must also fit `maxCells` at 21 bytes per cell, the size of the smallest
-real cell, plus 1 MiB for everything else in the sheet. At the default `maxCells`, that is about
+The import finds the selected sheet's part through the workbook relationships, wherever the file
+stores it. That part must fit `maxCells` at 21 bytes per cell, the size of the smallest real
+cell, plus 1 MiB for everything else in the sheet. At the default `maxCells`, that is about
 100 MiB. A larger part is rejected with the cell error before it is read. A crafted sheet can
 hold millions of tiny cells, and each cell the reader finds costs 125 to 200 bytes of memory. A
 sheet at the default bound peaks near 0.8 GB. When you raise `maxCells`, the bound and the peak

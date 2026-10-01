@@ -122,3 +122,19 @@ export async function xlsxWithWorksheet(sheetXml: string, padBytes = 0, declared
   padded.set(suffix, prefix.length + padBytes);
   return withEntries(base, { "xl/worksheets/sheet1.xml": padded }, declaredSize === undefined ? undefined : { "xl/worksheets/sheet1.xml": declaredSize });
 }
+
+/** The text of one part of an xlsx `File`. */
+export async function partText(file: File, name: string): Promise<string> {
+  const entry = listZip(new Uint8Array(await file.arrayBuffer())).find((candidate) => candidate.name === name);
+  if (!entry) throw new Error(`no part ${name}`);
+  return new TextDecoder().decode(entry.data);
+}
+
+/** A one-sheet xlsx whose worksheet part sits at `target` (a workbook-relative or absolute rels target), `padBytes` of spaces long. */
+export async function xlsxWithSheetAt(target: string, padBytes: number): Promise<File> {
+  const base = await workbookFile({ Sheet1: [["a"]] });
+  const rels = (await partText(base, "xl/_rels/workbook.xml.rels")).replace("worksheets/sheet1.xml", target);
+  const sheet = new TextEncoder().encode(`<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${" ".repeat(padBytes)}<row r="1">${inlineCell("A1", "a")}</row></sheetData></worksheet>`);
+  const partPath = target.startsWith("/") ? target.slice(1) : target.startsWith("../") ? target.slice(3) : `xl/${target.replace(/^\.\//, "")}`;
+  return withEntries(base, { "xl/_rels/workbook.xml.rels": rels, [partPath]: sheet });
+}

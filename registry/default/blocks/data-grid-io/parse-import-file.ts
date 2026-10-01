@@ -175,35 +175,158 @@ const MIN_CELL_XML_BYTES = 21;
 /** Room in a worksheet part for everything but cells: columns, merges, validations, formatting rules. */
 const WORKSHEET_OVERHEAD_BYTES = 1024 * 1024;
 
-const WORKSHEET_PART = /^xl\/worksheets\/[^/]+\.xml$/i;
+/** Largest declared size of a package part read to find the selected sheet's part. */
+const MAX_PACKAGE_PART_BYTES = 16 * 1024 * 1024;
 
-type DeclaredSizes = { largestPart: number; largestWorksheet: number };
+type ZipEntry = { method: number; compressedSize: number; size: number; localOffset: number };
+
+type ZipDirectory = { entries: Map<string, ZipEntry>; largestPart: number };
 
 /**
- * The largest uncompressed sizes the zip's central directory declares, for any part and for worksheet
- * parts. A ZIP64 directory counts as unbounded. Zero when the directory is unreadable, so hucre reports
- * the corruption itself.
+ * Reads the zip's central directory. A ZIP64 directory counts as unbounded; an unreadable one yields
+ * no entries, so hucre reports the corruption itself.
  */
-function declaredSizes(bytes: Uint8Array): DeclaredSizes {
-  const sizes: DeclaredSizes = { largestPart: 0, largestWorksheet: 0 };
+function readZipDirectory(bytes: Uint8Array): ZipDirectory {
+  const directory: ZipDirectory = { entries: new Map(), largestPart: 0 };
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const lowest = Math.max(0, bytes.length - 22 - 0xffff);
   let end = bytes.length - 22;
   while (end >= lowest && view.getUint32(end, true) !== 0x06054b50) end--;
-  if (end < lowest) return sizes;
+  if (end < lowest) return directory;
   const count = view.getUint16(end + 10, true);
   let offset = view.getUint32(end + 16, true);
-  if (count === 0xffff || offset === 0xffffffff) return { largestPart: Infinity, largestWorksheet: Infinity };
+  if (count === 0xffff || offset === 0xffffffff) return { entries: new Map(), largestPart: Infinity };
   const decoder = new TextDecoder();
   for (let i = 0; i < count; i++) {
-    if (offset + 46 > bytes.length || view.getUint32(offset, true) !== 0x02014b50) return sizes;
+    if (offset + 46 > bytes.length || view.getUint32(offset, true) !== 0x02014b50) return directory;
     const size = view.getUint32(offset + 24, true);
     const nameLength = view.getUint16(offset + 28, true);
-    sizes.largestPart = Math.max(sizes.largestPart, size);
-    if (size > sizes.largestWorksheet && WORKSHEET_PART.test(decoder.decode(bytes.subarray(offset + 46, offset + 46 + nameLength)))) sizes.largestWorksheet = size;
+    directory.largestPart = Math.max(directory.largestPart, size);
+    directory.entries.set(decoder.decode(bytes.subarray(offset + 46, offset + 46 + nameLength)), {
+      method: view.getUint16(offset + 10, true),
+      compressedSize: view.getUint32(offset + 20, true),
+      size,
+      localOffset: view.getUint32(offset + 42, true),
+    });
     offset += 46 + nameLength + view.getUint16(offset + 30, true) + view.getUint16(offset + 32, true);
   }
-  return sizes;
+  return directory;
+}
+
+function unresolvablePackage(): Error {
+  return new Error(UNSUPPORTED_EXCEL_FORMAT_MESSAGE);
+}
+
+async function inflateWithin(data: Uint8Array, limit: number): Promise<Uint8Array> {
+  const source = new ReadableStream<BufferSource>({
+    start(controller) {
+      controller.enqueue(data as Uint8Array<ArrayBuffer>);
+      controller.close();
+    },
+  });
+  const reader = source.pipeThrough(new DecompressionStream("deflate-raw")).getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.length;
+      if (total > limit) {
+        await reader.cancel();
+        throw new Error(FILE_TOO_LARGE_MESSAGE);
+      }
+      chunks.push(value);
+    }
+  } catch (err) {
+    throw err instanceof Error && err.message === FILE_TOO_LARGE_MESSAGE ? err : unresolvablePackage();
+  }
+  const out = new Uint8Array(total);
+  let at = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, at);
+    at += chunk.length;
+  }
+  return out;
+}
+
+/** Inflates one small package part; a part declaring or inflating past the limit is a zip bomb. */
+async function readPackagePart(bytes: Uint8Array, directory: ZipDirectory, path: string): Promise<string> {
+  const entry = directory.entries.get(path);
+  if (!entry) throw unresolvablePackage();
+  if (entry.size > MAX_PACKAGE_PART_BYTES) throw new Error(FILE_TOO_LARGE_MESSAGE);
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  if (entry.localOffset + 30 > bytes.length || view.getUint32(entry.localOffset, true) !== 0x04034b50) throw unresolvablePackage();
+  const dataStart = entry.localOffset + 30 + view.getUint16(entry.localOffset + 26, true) + view.getUint16(entry.localOffset + 28, true);
+  const data = bytes.subarray(dataStart, dataStart + entry.compressedSize);
+  let inflated: Uint8Array;
+  if (entry.method === 0) inflated = data;
+  else if (entry.method === 8) inflated = await inflateWithin(data, MAX_PACKAGE_PART_BYTES);
+  else throw unresolvablePackage();
+  const encoding = inflated[0] === 0xff && inflated[1] === 0xfe ? "utf-16le" : inflated[0] === 0xfe && inflated[1] === 0xff ? "utf-16be" : "utf-8";
+  return new TextDecoder(encoding).decode(inflated);
+}
+
+const XML_ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
+
+function decodeXmlEntities(text: string): string {
+  return text.replace(/&(?:#x([0-9a-f]+)|#(\d+)|(amp|lt|gt|quot|apos));/gi, (_, hex: string | undefined, decimal: string | undefined, name: string | undefined) =>
+    name ? XML_ENTITIES[name.toLowerCase()]! : String.fromCodePoint(hex ? parseInt(hex, 16) : Number(decimal)),
+  );
+}
+
+/** The attributes of every `<local ...>` element; comments and CDATA are dropped first, and quoted values may hold `>`. */
+function elementAttributes(xml: string, local: string): Record<string, string>[] {
+  const stripped = xml.replace(/<!--[\s\S]*?-->/g, "").replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, "");
+  const tag = new RegExp(`<(?:[\\w.-]+:)?${local}(?=[\\s/>])((?:[^>"']|"[^"]*"|'[^']*')*)>`, "g");
+  return [...stripped.matchAll(tag)].map((match) => {
+    const attributes: Record<string, string> = {};
+    for (const attribute of match[1]!.matchAll(/([\w:.-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)) {
+      attributes[attribute[1]!] = decodeXmlEntities(attribute[2] ?? attribute[3] ?? "");
+    }
+    return attributes;
+  });
+}
+
+/** Resolves a relationship target against a base directory the way hucre does. */
+function resolvePackagePath(baseDirectory: string, target: string): string {
+  if (target.startsWith("/")) return target.slice(1);
+  const parts = baseDirectory.split("/").filter(Boolean);
+  for (const part of target.split("/").filter(Boolean)) {
+    if (part === "..") parts.pop();
+    else if (part !== ".") parts.push(part);
+  }
+  return parts.join("/");
+}
+
+function relationshipsOf(xml: string): { id: string; type: string; target: string }[] {
+  return elementAttributes(xml, "Relationship").flatMap((attributes) =>
+    attributes["Id"] && attributes["Type"] && attributes["Target"] ? [{ id: attributes["Id"], type: attributes["Type"], target: attributes["Target"] }] : [],
+  );
+}
+
+/**
+ * The directory entry of the worksheet part hucre reads for the selected sheet, found through the package
+ * relationships as hucre finds it. `undefined` when hucre reads no worksheet: no such sheet, or a chart sheet.
+ */
+async function selectedSheetEntry(bytes: Uint8Array, directory: ZipDirectory, sheetName: string | undefined): Promise<ZipEntry | undefined> {
+  if (directory.entries.size === 0) return undefined;
+  const rootRelationship = relationshipsOf(await readPackagePart(bytes, directory, "_rels/.rels")).find((rel) => rel.type.endsWith("/officeDocument"));
+  if (!rootRelationship) throw unresolvablePackage();
+  const workbookPath = rootRelationship.target.startsWith("/") ? rootRelationship.target.slice(1) : rootRelationship.target;
+  const slash = workbookPath.lastIndexOf("/");
+  const workbookDirectory = slash === -1 ? "" : workbookPath.slice(0, slash);
+  const relationshipsPath = workbookDirectory ? `${workbookDirectory}/_rels/${workbookPath.slice(slash + 1)}.rels` : `_rels/${workbookPath}.rels`;
+  const sheets = elementAttributes(await readPackagePart(bytes, directory, workbookPath), "sheet");
+  const selected = sheetName === undefined ? sheets[0] : sheets.find((sheet) => sheet["name"] === sheetName);
+  if (!selected) return undefined;
+  const relationshipId = selected["r:id"] ?? selected["R:id"] ?? Object.entries(selected).find(([key, value]) => key.endsWith(":id") && value.startsWith("rId"))?.[1];
+  const relationship = relationshipsOf(await readPackagePart(bytes, directory, relationshipsPath)).find((rel) => rel.id === relationshipId);
+  if (!relationship) throw unresolvablePackage();
+  if (!relationship.type.endsWith("/worksheet")) return undefined;
+  const entry = directory.entries.get(resolvePackagePath(workbookDirectory, relationship.target));
+  if (!entry) throw unresolvablePackage();
+  return entry;
 }
 
 type HucreReader = typeof import("./xlsx-reader");
@@ -333,11 +456,12 @@ async function parseExcelFile(file: File, sheetName: string | undefined, limits:
   const isXlsx = hasSignature(bytes, ZIP_SIGNATURE);
   if (!isXlsx && !hasSignature(bytes, OLE2_SIGNATURE)) throw new Error(UNSUPPORTED_EXCEL_FORMAT_MESSAGE);
   if (isXlsx) {
-    const sizes = declaredSizes(bytes);
+    const directory = readZipDirectory(bytes);
     // an entry declared past the cap makes hucre stream-parse up to the cap (about 15 s of CPU) before it fails
-    if (sizes.largestPart > limits.maxDecompressedBytes) throw new Error(FILE_TOO_LARGE_MESSAGE);
+    if (directory.largestPart > limits.maxDecompressedBytes) throw new Error(FILE_TOO_LARGE_MESSAGE);
     // a sparse read holds every real cell, so a worksheet that could hold more than maxCells is refused unread
-    if (sizes.largestWorksheet > limits.maxCells * MIN_CELL_XML_BYTES + WORKSHEET_OVERHEAD_BYTES) throw new Error(IMPORT_TOO_MANY_CELLS_MESSAGE);
+    const sheetEntry = await selectedSheetEntry(bytes, directory, sheetName);
+    if (sheetEntry && sheetEntry.size > limits.maxCells * MIN_CELL_XML_BYTES + WORKSHEET_OVERHEAD_BYTES) throw new Error(IMPORT_TOO_MANY_CELLS_MESSAGE);
   }
   const hucre = await import("./xlsx-reader");
   try {
