@@ -40,7 +40,7 @@ import type {
   RowClickCtx,
   SortSpec,
 } from "./data-grid";
-import { useDataGridCellTypes, useDataGridVisibleColumns, useDataGridAllColumns, type GRID_ATTR } from "./data-grid";
+import { createDataGridSelector, useDataGridCellTypes, useDataGridVisibleColumns, useDataGridAllColumns, type GRID_ATTR } from "./data-grid";
 
 /** Compile-only check: `Actual` must be identical to `Expected` (both directions assignable). */
 type Equal<Expected, Actual> = (<T>() => T extends Expected ? 1 : 2) extends <T>() => T extends Actual ? 1 : 2
@@ -439,5 +439,28 @@ void commandProps;
 // @ts-expect-error - group is a CommandGroup member, not an arbitrary string
 const badCommandGroup: GridCommand<Row> = { run: saveAllRun, group: "nope" };
 void badCommandGroup;
+
+// --- createDataGridSelector: TData fixed at factory time, TResult inferred ---------------------
+// The one-type-argument consumer form: `TData` is fixed at the factory call, so the returned
+// hook's selector gets `state.data` typed and the result type is inferred from the selector —
+// no second type argument at the call site.
+
+const useRowSelector = createDataGridSelector<Row>();
+
+function useTypedGridSelector() {
+  const data = useRowSelector((s) => s.data);
+  assertEqual<readonly Row[], typeof data>(true);
+
+  const names = useRowSelector((s) => s.data.map((r) => r.name));
+  assertEqual<string[], typeof names>(true);
+
+  const len = useRowSelector((s) => s.data.length);
+  assertEqual<number, typeof len>(true);
+
+  void names;
+  void len;
+  return data;
+}
+void useTypedGridSelector;
 
 export {};

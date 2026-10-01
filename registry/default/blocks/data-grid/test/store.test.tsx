@@ -8,6 +8,7 @@ import {
   DataGridProvider,
   type DataGridProviderProps,
   cellErrorKey,
+  createDataGridSelector,
   useDataGridActions,
   useDataGridCellErrors,
   useDataGridActiveCell,
@@ -3817,6 +3818,21 @@ describe("useDataGridSelector / typed useDataGridRow", () => {
     // a length change still re-renders
     act(() => storeApi?.getState().actions.deleteRows([0]));
     expect(renders).toBe(base + 1);
+    unmount();
+  });
+
+  it("createDataGridSelector: the factory form reads typed rows with an inferred result", () => {
+    const useRowSelector = createDataGridSelector<Row>();
+    const { result, unmount } = renderHook(
+      () => {
+        const names = useRowSelector((s) => s.data.map((r) => r.name));
+        const first = useRowSelector((s) => s.data[0]?.name);
+        return { names, first };
+      },
+      { wrapper: makeWrapper() },
+    );
+    expect(result.current.names).toEqual(["Charlie", "Alice", "Bob"]);
+    expect(result.current.first).toBe("Charlie");
     unmount();
   });
 });

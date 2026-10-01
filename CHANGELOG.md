@@ -11,6 +11,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Typed store selector factory (`data-grid`):** `createDataGridSelector<TData>()` returns a
+  typed raw store selector hook — `TData` types `state.data`, so a selector that reads rows gets
+  them back typed, and the result type is inferred from the selector (one type argument at the
+  factory, none at the call). The hook takes `(selector, eq?)`; `eq` (default `Object.is`)
+  controls re-renders. Exported from the `data-grid` barrel.
 - **Custom keymap commands (`data-grid`):** the `DataGridProvider`/`DataGrid` `commands` prop
   accepts `Record<string, GridCommand>` — consumer actions behind `keymap` bindings that name
   no built-in action. Each `GridCommand` (`{ run, when?, label?, group? }`) receives

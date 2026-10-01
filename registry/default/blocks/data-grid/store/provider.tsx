@@ -338,14 +338,30 @@ export function useDataGridStore<T>(selector: (state: DataGridStoreState) => T):
  * Typed raw store selector for the current grid: `TData` types `state.data`, so a selector that
  * reads rows gets them back typed (the same erasure-boundary guarantee as the provider — every
  * row in `state.data` originated from this grid's own `TData`-typed `data`/`defaultData` prop).
- * Pass an explicit `TData` when the return type cannot infer it (e.g. a selector over
- * `state.data.length`). `eq` (default `Object.is`) controls re-renders, like `useStore`.
+ * Both type arguments are explicit at the call (`useDataGridSelector<Row, readonly Row[]>((s) => s.data)`);
+ * prefer {@link createDataGridSelector}, which fixes `TData` at the factory and infers the result.
+ * `eq` (default `Object.is`) controls re-renders, like `useStore`.
  */
 export function useDataGridSelector<TData, TResult>(
   selector: (state: DataGridStoreStateOf<TData>) => TResult,
   eq?: (a: TResult, b: TResult) => boolean,
 ): TResult {
   return useStoreWithEqualityFn(useDataGridStoreApiInternal(), (s) => selector(s as DataGridStoreStateOf<TData>), eq);
+}
+
+/**
+ * Creates a typed raw store selector with `TData` fixed at the factory call: the returned hook
+ * hands its selector `state.data` typed as `readonly TData[]` and infers the result type, so the
+ * common one-type-argument form compiles without a second annotation. `eq` (default `Object.is`)
+ * controls re-renders, like `useStore`.
+ */
+export function createDataGridSelector<TData>() {
+  return function useDataGridSelector<TResult>(
+    selector: (state: DataGridStoreStateOf<TData>) => TResult,
+    eq?: (a: TResult, b: TResult) => boolean,
+  ): TResult {
+    return useStoreWithEqualityFn(useDataGridStoreApiInternal(), (s) => selector(s as DataGridStoreStateOf<TData>), eq);
+  };
 }
 
 /**

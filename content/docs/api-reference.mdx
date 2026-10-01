@@ -153,9 +153,9 @@ for most:
   [Imperative handle](#imperative-handle).
 - `useDataGridCellErrors()` — the full post-commit server-error map. See
   [Editing & cell types: Server errors](/docs/editing-cell-types#server-errors).
-- `useDataGridSelector<TData>(selector, eq?)` — a typed raw store selector: `TData` types
-  `state.data`, so a selector that reads rows gets them back typed. `eq` (default `Object.is`)
-  controls re-renders.
+- `createDataGridSelector<TData>()` — returns a typed raw store selector: `TData` types
+  `state.data`, so a selector that reads rows gets them back typed. The returned hook takes
+  `(selector, eq?)`; `eq` (default `Object.is`) controls re-renders.
 - `useDataGridRow<TData>(viewRowIndex)` — the typed row at a view (display) index. Omit
   `TData` for `unknown`, the previous shape.
 
