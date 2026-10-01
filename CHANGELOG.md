@@ -856,6 +856,14 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - The empty-state row no longer renders a hardcoded "No data" literal that i18n consumers couldn't
   translate.
 
+
+- **Number-format guard (`data-grid-io`):** an xlsx cell whose number format is longer than 255
+  characters, has a fraction denominator of four or more placeholders (`# ?/????`), or makes
+  hucre throw imports as its General text (the raw value) instead of its formatted text. hucre's
+  format scan grew quadratically (about 5 s per cell at 100,000 characters) and its denominator
+  search cost about a second per cell at nine placeholders. A format that throws no longer
+  rejects the whole import.
+
 ## 0.1.0
 
 Initial build-out. Highlights, in rough chronological order:

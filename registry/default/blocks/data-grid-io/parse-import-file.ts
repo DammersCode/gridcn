@@ -202,10 +202,31 @@ function isoDateText(date: Date): string {
   return iso.endsWith("T00:00:00.000Z") ? iso.slice(0, 10) : iso.slice(0, 19).replace("T", " ");
 }
 
-/** A cell's display text: its number format when it has one, else Excel's General rendering. */
+/** Excel's own limit on a number format's length; hucre's format scanning grows quadratically past it. */
+const MAX_NUMBER_FORMAT_LENGTH = 255;
+
+/** A fraction denominator of four or more placeholders: hucre searches every denominator up to 10^n, about a second per cell at n = 9. */
+const WIDE_FRACTION_DENOMINATOR = /\/[?#0]{4}/;
+
+function isSafeNumberFormat(numFmt: string): boolean {
+  return numFmt.length <= MAX_NUMBER_FORMAT_LENGTH && !WIDE_FRACTION_DENOMINATOR.test(numFmt);
+}
+
+/** The number format's rendering, or `undefined` when the format is unsafe or hucre cannot apply it. */
+function formattedText(value: CellValue, numFmt: string | undefined, formatValue: FormatValue): string | undefined {
+  if (numFmt === undefined || numFmt === "General" || !isSafeNumberFormat(numFmt)) return undefined;
+  try {
+    return formatValue(value, numFmt);
+  } catch {
+    return undefined;
+  }
+}
+
+/** A cell's display text: its number format when it has a usable one, else Excel's General rendering. */
 function cellText(value: CellValue, numFmt: string | undefined, formatValue: FormatValue): string {
   if (value === null) return "";
-  if (numFmt !== undefined && numFmt !== "General") return formatValue(value, numFmt);
+  const formatted = formattedText(value, numFmt, formatValue);
+  if (formatted !== undefined) return formatted;
   // 15 significant digits is Excel's precision: 0.1 + 0.2 shows as 0.3
   if (typeof value === "number") return String(Number(value.toPrecision(15)));
   if (typeof value === "boolean") return value ? "TRUE" : "FALSE";

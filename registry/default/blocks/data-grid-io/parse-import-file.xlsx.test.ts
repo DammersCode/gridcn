@@ -205,6 +205,46 @@ describe("parseImportFile — xlsx formatted text", () => {
     expect(result.rows).toEqual([["1/15/2024", "13%", "1.23E+04", "1,234.50"]]);
   });
 
+  it("falls back to the raw value for a number format over 255 characters, without running it", async () => {
+    const file = await workbookFile({ Sheet1: [[{ value: 1234.5, style: { numFmt: "0".repeat(100_000) } }]] });
+    const started = performance.now();
+
+    const result = await parseImportFile(file);
+
+    expect(result.rows).toEqual([["1234.5"]]);
+    expect(performance.now() - started).toBeLessThan(1_500);
+  });
+
+  it("still applies a number format of exactly 255 characters", async () => {
+    const numFmt = `"${"x".repeat(252)}"0`;
+    const file = await workbookFile({ Sheet1: [[{ value: 7, style: { numFmt } }]] });
+
+    expect(numFmt).toHaveLength(255);
+    await expect(parseImportFile(file)).resolves.toMatchObject({ rows: [[`${"x".repeat(252)}7`]] });
+  });
+
+  it("falls back to the raw value for a fraction format whose denominator search would stall the tab", async () => {
+    const file = await workbookFile({ Sheet1: [[{ value: 0.3141592653, style: { numFmt: `# ?/${"?".repeat(16)}` } }]] });
+    const started = performance.now();
+
+    const result = await parseImportFile(file);
+
+    expect(result.rows).toEqual([["0.3141592653"]]);
+    expect(performance.now() - started).toBeLessThan(500);
+  });
+
+  it("still renders a fraction format with a three-digit denominator", async () => {
+    const file = await workbookFile({ Sheet1: [[{ value: 0.3141592653, style: { numFmt: "# ???/???" } }]] });
+
+    await expect(parseImportFile(file)).resolves.toMatchObject({ rows: [[" 71/226"]] });
+  });
+
+  it("falls back to the raw value when hucre throws on a format", async () => {
+    const file = await workbookFile({ Sheet1: [[{ value: 1234.5, style: { numFmt: `0.${"0".repeat(120)}` } }]] });
+
+    await expect(parseImportFile(file)).resolves.toMatchObject({ rows: [["1234.5"]] });
+  });
+
   it("renders General cells like Excel: 15 significant digits, TRUE/FALSE, error codes, strings as-is", async () => {
     const sheet = worksheetXml(
       '<row r="1"><c r="A1"><v>0.30000000000000004</v></c><c r="B1"><v>123456789012345</v></c><c r="C1"><v>-0.5</v></c>' +
