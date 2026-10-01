@@ -618,6 +618,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Development checks stay out of production builds (`data-grid`):** dev warnings and dev-only
+  checks no longer run in production builds whose bundler provides no `process` global, such as
+  Vite.
 - **Selection follows the edited row (`data-grid`):** while a cell is in edit mode, a sort,
   filter, join, or search change (the grid's own or a controlled prop) and a consumer data
   replacement that moves its row move the selection with the active cell. The range no longer

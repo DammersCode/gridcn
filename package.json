@@ -73,6 +73,7 @@
     "@vitest/coverage-v8": "^5.0.1",
     "axe-core": "^4.13.0",
     "babel-plugin-react-compiler": "1.0.0",
+    "esbuild": "^0.28.2",
     "joi": "^18.2.9",
     "jsdom": "^30.0.1",
     "oxlint": "^1.83.0",
