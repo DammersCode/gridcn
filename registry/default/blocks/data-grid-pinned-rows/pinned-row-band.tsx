@@ -57,8 +57,9 @@ export function DataGridPinnedRowBand(props: DataGridPinnedRowBandProps): ReactN
     <div role="rowgroup" data-grid-pinned-row-band={position} style={layerStyle}>
       {rows.map((row, i) => (
         <DataGridPinnedRow
-          // oxlint-disable-next-line react/no-array-index-key -- pinned rows have no getRowId; band position is a stable-enough key for a small, consumer-controlled array (documented v1 scope).
+          // oxlint-disable-next-line react/no-array-index-key -- a pinned row id can be a band id; band position is a stable key for a small consumer array.
           key={i}
+          position={position}
           row={row}
           bandIndex={i}
           windowedColumns={windowedColumns}

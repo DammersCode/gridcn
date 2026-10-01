@@ -188,7 +188,7 @@ Source: independent review of W5-01…W5-10 on 2026-09-30 (four reviewers at `ba
 
 Decisions (maintainer rule):
 - Event payloads and editor props carry `CellRef` identity (`rowId`, `columnId`) next to the view coordinate; `onActiveCellChange` fires when the identity under the cursor changes.
-- Pinned rows get real ids through `getRowId`; lazy holes use the placeholder ids, so every ctx `rowId` is a `string`.
+- Pinned rows get ids through `getRowId`; when it throws or returns a non-string or empty id, the row gets the band id `__pinned-top-<index>`/`__pinned-bottom-<index>`. Lazy holes use the placeholder ids, so every ctx `rowId` is a `string`.
 - `filter.valueInput` accepts the built-in enum or a component (`CellTypeValueInput | ComponentType<FilterValueInputProps>`).
 - `onValidationError` also fires for `updateCells` (source `"stream"`), so consumers handle every rejection in one place.
 - Built-in `text` and `number` editors use `useCellEditor`.

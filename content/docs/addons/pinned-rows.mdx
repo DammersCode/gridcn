@@ -70,6 +70,11 @@ const { rowBands } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows:
     column alignment, the same `text`, `number`, `date`, and other formatting, and the same
     subgrid column tracks. So a pinned row lines up with its columns pixel-for-pixel, including
     pinned-left and pinned-right columns and column resize.
+
+    Pinned rows go through the grid's `getRowId`, so `ctx.rowId` in a pinned cell is that id. If
+    `getRowId` throws on a pinned row or returns an empty or non-string value, the row gets a band
+    id instead. The band id is `__pinned-top-<index>` or `__pinned-bottom-<index>`, where
+    `<index>` is the row's position in its band.
   </Tab>
   <Tab value="Totals">
     ## Computing a totals row
@@ -135,8 +140,9 @@ const { rowBands } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows:
       `bottomRows` arrays you pass keep the same identity. A fresh array on every render (like the
       inline `bottomRows: [totals]`) makes `rowBands` churn every render, and the grid dev-warns
       on that. Memoize the arrays, as in the example above, so they only change when the band
-      contents change. The band rows themselves still need no `getRowId`: pinned cells resolve
-      through each column's `accessorKey`/`accessorFn` exactly like data rows.
+      contents change. The band rows need no id field: pinned cells resolve values through each
+      column's `accessorKey`/`accessorFn` exactly like data rows, and a row without an id gets a
+      band id.
     </Callout>
 
     ### Custom reducers

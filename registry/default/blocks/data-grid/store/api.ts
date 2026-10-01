@@ -2,6 +2,7 @@ import type { RefObject } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { DataGridApi } from "../types";
 import type { DataGridActions, DataGridStoreState } from "./types";
+import { holeRowId } from "./compute";
 import { resolveRefOrWarn } from "./data-write";
 
 /**
@@ -55,7 +56,7 @@ export function buildApiHandle<TData>(parts: {
       const s = read();
       return s.viewIndex.map((dataRowIndex) => {
         const row = s.data[dataRowIndex];
-        return row === undefined ? undefined : s.getRowId(row, dataRowIndex);
+        return row === undefined ? holeRowId(dataRowIndex) : s.getRowId(row, dataRowIndex);
       });
     },
   };

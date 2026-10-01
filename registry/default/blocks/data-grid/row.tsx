@@ -73,7 +73,6 @@ export const DataGridRow = memo(function DataGridRow({
   onRowClick,
 }: DataGridRowProps) {
   const row = useDataGridRow(viewRowIndex);
-  // stable row identity handed to the cells' ctx builders; undefined on a lazy hole.
   const rowId = useDataGridRowId(viewRowIndex);
   // ONE subscription for the whole row's interactive cell state (not one per cell). Referentially
   // stable across ticks that don't touch this row (see useDataGridRowCellState's comparator), so
@@ -86,6 +85,8 @@ export const DataGridRow = memo(function DataGridRow({
   // existing memo/subscription contract (useDataGridRow re-renders on that identity change like
   // any other row edit) — no extra state or subscription needed for the transition itself.
   const isSkeleton = row === undefined;
+  // Only a view index past the end has no id; a lazy hole has a placeholder id.
+  if (rowId === undefined) return null;
   return (
     <div
       ref={rowRef}
@@ -108,6 +109,7 @@ export const DataGridRow = memo(function DataGridRow({
         <DataGridMarkerCell
           mode={rowMarkers}
           viewRowIndex={viewRowIndex}
+          rowId={rowId}
           onPointerDown={onMarkerPointerDown}
           onGripPointerDown={onMarkerGripPointerDown}
           onCheckboxPointerDown={onMarkerCheckboxPointerDown}

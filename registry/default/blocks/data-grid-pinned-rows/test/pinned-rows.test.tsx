@@ -33,11 +33,15 @@ const totals: Row = { id: "totals", name: "Total", qty: 45 };
  * consumer shape (see the fill-handle.mdx/multiplayer-presence.mdx precedent), so every test below
  * exercises the real hook -> `rowBands` prop -> root.tsx arithmetic pipeline end to end. */
 function PinnedGrid(
-  props: { columns?: readonly ColumnDef<Row, unknown>[]; data: readonly Row[] } & UseDataGridPinnedRowsOptions,
+  props: {
+    columns?: readonly ColumnDef<Row, unknown>[];
+    data: readonly Row[];
+    getRowId?: (row: Row, index: number) => string;
+  } & UseDataGridPinnedRowsOptions,
 ) {
-  const { topRows, bottomRows, data, columns: cols = columns } = props;
+  const { topRows, bottomRows, data, columns: cols = columns, getRowId = (r: Row) => r.id } = props;
   const { rowBands } = useDataGridPinnedRows({ topRows, bottomRows });
-  return <DataGrid data={data} columns={cols} getRowId={(r) => r.id} rowBands={rowBands} />;
+  return <DataGrid data={data} columns={cols} getRowId={getRowId} rowBands={rowBands} />;
 }
 
 describe("pinned rows — band rendering", () => {
@@ -92,6 +96,45 @@ describe("pinned rows — band rendering", () => {
     ];
     render(<PinnedGrid data={makeRows(5)} columns={cols} topRows={[totals]} />);
     expect(seenRowIds).toContain("totals");
+  });
+
+  function rowIdRecordingColumns(seen: string[]): readonly ColumnDef<Row, unknown>[] {
+    return [
+      {
+        id: "name",
+        header: "Name",
+        accessorKey: "name",
+        width: 120,
+        renderCell: (ctx) => {
+          seen.push(ctx.rowId);
+          return String(ctx.value);
+        },
+      },
+    ];
+  }
+
+  it("gives a pinned row a band id when getRowId throws on it", () => {
+    const seen: string[] = [];
+    const aggregate = { qty: 45 } as unknown as Row;
+    const getRowId = (r: Row) => r.id.toString();
+    render(
+      <PinnedGrid data={makeRows(2)} columns={rowIdRecordingColumns(seen)} getRowId={getRowId} topRows={[aggregate]} bottomRows={[totals, aggregate]} />,
+    );
+    expect(seen).toContain("__pinned-top-0");
+    expect(seen).toContain("totals");
+    expect(seen).toContain("__pinned-bottom-1");
+  });
+
+  it("gives a pinned row a band id when getRowId returns an empty or non-string id", () => {
+    const seen: string[] = [];
+    const getRowId = (r: Row) => (r.id === "totals" ? "" : r.id === "count" ? (7 as unknown as string) : r.id);
+    const count: Row = { id: "count", name: "Count", qty: 2 };
+    render(
+      <PinnedGrid data={makeRows(2)} columns={rowIdRecordingColumns(seen)} getRowId={getRowId} topRows={[totals]} bottomRows={[count]} />,
+    );
+    expect(seen).toContain("__pinned-top-0");
+    expect(seen).toContain("__pinned-bottom-0");
+    expect(seen).not.toContain("");
   });
 
   it("pinned-row cells align to the same column tracks as data cells (shared grid-template-columns)", () => {

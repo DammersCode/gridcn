@@ -48,8 +48,9 @@ gridRef.current?.setSelection({ rowId: order.id, columnId: "symbol" });
 
 - `getSelection`, `getRow`, and `getViewRowIds` are snapshots at call time — they never
   re-render the calling component.
-- `getViewRowIds` returns one entry per view row, in view order. An unloaded row of a lazy grid
-  gives `undefined`, so entry `i` is always view row `i`.
+- `getViewRowIds` returns one entry per view row, in view order, so entry `i` is always view
+  row `i`. An unloaded row of a lazy grid gives its placeholder id (`__lazy-unloaded-<index>`),
+  the same id `useDataGridRowIds` returns.
 - `setSelection` selects one cell (by stable `CellRef`) or clears the selection with `null`.
 - `startEditing` opens an edit session at the named cell; `stopEditing` discards the draft
   without committing. `startEditing` does nothing on a `readOnly` grid, on a `readOnly` cell,

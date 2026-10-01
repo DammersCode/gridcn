@@ -22,6 +22,8 @@ import {
 import { useHasCreateRow, useHasDuplicateRow } from "./has-row-op";
 
 /** Props for {@link DataGridContextMenu}. */
+type MenuTarget = (Extract<ContextMenuTarget, { kind: "cell" }> & { rowId: string }) | Extract<ContextMenuTarget, { kind: "header" }>;
+
 export type DataGridContextMenuProps = {
   className?: string;
   children?: ReactNode;
@@ -71,8 +73,8 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
   const canDuplicateRow = useHasDuplicateRow();
   const selectionRef = useRef(selection);
   selectionRef.current = selection;
-  const [target, setTarget] = useState<(ContextMenuTarget & { rowId?: string }) | null>(null);
-  const targetRef = useRef<(ContextMenuTarget & { rowId?: string }) | null>(null);
+  const [target, setTarget] = useState<MenuTarget | null>(null);
+  const targetRef = useRef<MenuTarget | null>(null);
   // Lives here (not in the menu content) because the content portals and unmounts on close —
   // a permission-denied paste result must survive the close/reopen cycle to keep showing the
   // "use Ctrl+V" hint on the next open.
@@ -88,20 +90,18 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
     (event: ReactMouseEvent<HTMLDivElement>) => {
       const resolved = resolveContextMenuTarget(event.target);
       // the DOM carries only view-space coords; the stable row id comes off the store at event time.
-      let next: (ContextMenuTarget & { rowId?: string }) | null = resolved;
+      let next: MenuTarget | null = resolved?.kind === "header" ? resolved : null;
       if (resolved?.kind === "cell") {
         const s = storeApi.getState();
         const dataRowIndex = s.viewIndex[resolved.row];
-        if (dataRowIndex !== undefined) {
-          const dataRow = s.data[dataRowIndex];
-          if (dataRow !== undefined) next = { ...resolved, rowId: s.getRowId(dataRow, dataRowIndex) };
-        }
+        const dataRow = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
+        if (dataRowIndex !== undefined && dataRow !== undefined) next = { ...resolved, rowId: s.getRowId(dataRow, dataRowIndex) };
       }
       targetRef.current = next;
       setTarget(next);
       scrollRootRef.current = event.target instanceof Element ? event.target.closest('[role="grid"]') : null;
-      if (resolved?.kind === "cell" && !isCellInSelection(selectionRef.current, { row: resolved.row, col: resolved.col })) {
-        actions.selectCellAt({ row: resolved.row, col: resolved.col });
+      if (next?.kind === "cell" && !isCellInSelection(selectionRef.current, { row: next.row, col: next.col })) {
+        actions.selectCellAt({ row: next.row, col: next.col });
       }
     },
     [actions, storeApi],
@@ -143,7 +143,7 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
           {target?.kind === "cell" &&
             renderContextMenuItems(
               getCellMenuItems
-                ? getCellMenuItems({ rowId: target.rowId!, viewRowIndex: target.row, columnId: target.columnId, canInsertRow, canDuplicateRow }, defaultCellSpecs)
+                ? getCellMenuItems({ rowId: target.rowId, viewRowIndex: target.row, columnId: target.columnId, canInsertRow, canDuplicateRow }, defaultCellSpecs)
                 : defaultCellSpecs,
             )}
           {target?.kind === "header" &&

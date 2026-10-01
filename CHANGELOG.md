@@ -43,7 +43,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   open), `startEditing(ref)` / `stopEditing()` (the latter discards the draft, `cancelEditing`
   semantics), `getSelection()` (non-reactive snapshot), `setSelection(ref | null)` (single-cell
   selection or clear), `getRow(viewRowIndex)` and `getViewRowIds()` (non-reactive reads in view
-  order; `getViewRowIds` gives `undefined` for an unloaded lazy row). `DataGridApi` and `useDataGridApi` are exported from the `data-grid` barrel.
+  order; `getViewRowIds` gives an unloaded lazy row its placeholder id). `DataGridApi` and
+  `useDataGridApi` are exported from the `data-grid` barrel.
 - **Cell-type-driven behavior:** five new optional fields on `CellType`. `numeric` declares
   tabular-nums digit rendering (declared by `number` and `date`). `toSearchText(value, options)`
   supplies the quick-search text for a stored value (the default is the type's `toText`; `select`
@@ -359,6 +360,13 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `useDataGridScrollToCellAt` takes a `ViewCoord`. A `CellRef` that no longer resolves (row
   removed from `data`, column hidden) is a no-op with one console warning per grid in
   development.
+- **Breaking:** every cell context has a string `rowId` (`data-grid`, `data-grid-pinned-rows`,
+  `data-grid-context-menu`). `useDataGridRowId` and `useDataGridRowIds` return the placeholder
+  id `__lazy-unloaded-<index>` for an unloaded lazy row instead of `undefined`; a `renderMarker`
+  ctx on such a row carries the same id. A pinned row's cell ctx `rowId` comes from `getRowId`. If `getRowId` throws on a pinned row or returns an empty or non-string value,
+  the row gets the band id `__pinned-top-<index>` or `__pinned-bottom-<index>`.
+  `DataGridPinnedRow` takes a required `position` prop (`"top" | "bottom"`). A right-click on a
+  skeleton cell of an unloaded row opens no context menu.
 - **Cell contexts carry row and column identity (Breaking):** `renderCell` (and `Cell`
   components) rename `rowIndex` to `viewRowIndex` and add `rowId` and `columnId`. The
   `getCellClassName` ctx gains `rowId` and `columnId`. `CellClickCtx` (used by `onCellClick`,

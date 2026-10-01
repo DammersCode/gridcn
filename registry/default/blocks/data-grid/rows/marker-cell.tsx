@@ -16,7 +16,6 @@ import {
   useDataGridIsRowChannelSelected,
   useDataGridIsRowSelected,
   useDataGridLabels,
-  useDataGridRowId,
   useDataGridRowReorderEnabled,
 } from "../store";
 
@@ -24,6 +23,8 @@ import {
 export type DataGridMarkerCellProps = {
   mode: RowMarkersMode;
   viewRowIndex: number;
+  /** The row's stable id; a placeholder id on an unloaded (lazy) hole. */
+  rowId: string;
   /** Number/rest zone of the cell: resolves the plain/shift/ctrl click-select gesture and starts a row-range drag (see use-grid-interaction.ts' onMarkerPointerDown). */
   onPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLDivElement>) => void;
   /** Grip zone of the cell (reorder family): click-select without a row-range drag (see use-grid-interaction.ts' onMarkerGripPointerDown). */
@@ -50,7 +51,7 @@ export type DataGridMarkerCellProps = {
  * number/rest of the cell is the plain row-select surface.
  */
 export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
-  const { mode, viewRowIndex, onPointerDown, onGripPointerDown, onCheckboxPointerDown, onReorderPointerDown, isReorderDragging } = props;
+  const { mode, viewRowIndex, rowId, onPointerDown, onGripPointerDown, onCheckboxPointerDown, onReorderPointerDown, isReorderDragging } = props;
   const actions = useDataGridActions();
   // chrome (wrapper tint/data-row-selected) and the built-in checkbox keep the any-channel union
   const isSelected = useDataGridIsRowSelected(viewRowIndex);
@@ -58,7 +59,6 @@ export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
   const isRowChannelSelected = useDataGridIsRowChannelSelected(viewRowIndex);
   const isCellSelected = useDataGridIsRowCellSelected(viewRowIndex);
   const labels = useDataGridLabels();
-  const rowId = useDataGridRowId(viewRowIndex);
   const reorderEnabled = useDataGridRowReorderEnabled();
   const { renderMarker } = useDataGridRootContext();
 
@@ -123,7 +123,7 @@ export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
       }}
     >
       {renderMarker ? (
-        renderMarker({ rowId: rowId!, viewRowIndex, isRowChannelSelected, isCellSelected })
+        renderMarker({ rowId, viewRowIndex, isRowChannelSelected, isCellSelected })
       ) : (
         <>
           {showGrip && (

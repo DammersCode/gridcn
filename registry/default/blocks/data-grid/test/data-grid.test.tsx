@@ -1603,12 +1603,12 @@ describe("DataGridApi (imperative handle)", () => {
     expect(ref.current!.getRow(99)).toBeUndefined();
   });
 
-  it("getViewRowIds maps an unloaded row (lazy hole) to undefined without calling getRowId on it", () => {
+  it("getViewRowIds maps an unloaded row (lazy hole) to its placeholder id without calling getRowId on it", () => {
     const rows = makeRows(3);
     const sparse = [rows[0]!, undefined, rows[2]!] as Row[];
     const ref = { current: null as DataGridApi<Row> | null };
     render(<DataGrid ref={(api) => { ref.current = api; }} data={sparse} columns={columns} getRowId={(r) => r.id} />);
-    expect(ref.current!.getViewRowIds()).toEqual(["0", undefined, "2"]);
+    expect(ref.current!.getViewRowIds()).toEqual(["0", "__lazy-unloaded-1", "2"]);
   });
 
   it("setSelection selects at the ref's resolved view cell; null clears", () => {
