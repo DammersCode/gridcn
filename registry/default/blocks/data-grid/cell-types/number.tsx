@@ -34,12 +34,18 @@ function decimalPlaces(value: number): number {
   return Math.min(100, Math.max(0, fraction - Number(exponent)));
 }
 
+/** Pulls a bound into the column's decimals, keeping a bound that already sits on that grid. */
+function boundToDecimals(bound: number, decimals: number, inward: (n: number) => number): number {
+  const rounded = Math.round(bound * 10 ** decimals) / 10 ** decimals;
+  if (rounded === bound) return rounded;
+  return inward(bound * 10 ** decimals) / 10 ** decimals;
+}
+
 /** Clamps into min/max, pulling each bound inward to the column's decimals so the result never exceeds it. */
 function clampToDecimals(value: number, options: GridCellTypes["number"]["options"], decimals: number): number {
-  const factor = 10 ** decimals;
   let clamped = value;
-  if (options?.min !== undefined) clamped = Math.max(clamped, Math.ceil(options.min * factor) / factor);
-  if (options?.max !== undefined) clamped = Math.min(clamped, Math.floor(options.max * factor) / factor);
+  if (options?.min !== undefined) clamped = Math.max(clamped, boundToDecimals(options.min, decimals, Math.ceil));
+  if (options?.max !== undefined) clamped = Math.min(clamped, boundToDecimals(options.max, decimals, Math.floor));
   return clamped;
 }
 
