@@ -1,9 +1,5 @@
 #!/usr/bin/env node
-// Diffs registry.json `files` arrays against the filesystem per item, and asserts every file
-// entry's `target` matches the derived value (scripts/add-registry-targets.mjs) — without it
-// the shadcn CLI flattens nested source into components/ and domain index.ts files collide
-// (the #60 install-layout defect). Run `node scripts/add-registry-targets.mjs` to fix drift.
-// Excludes test files (*.test.*, *.browser.test.*, *.type-test.*, *.test-helper.*) and __screenshots__ — those must never ship.
+// Fails when registry.json files[] or their targets drift from the filesystem; tests and screenshots never ship.
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

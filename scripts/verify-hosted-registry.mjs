@@ -1,7 +1,4 @@
-// End-to-end check of the hosted Vercel registry: gridcn.vercel.app serves the committed
-// public/r/ payloads. Validates the hosted registry's own consistency — registry.json plus
-// every item payload it references — never its equality with this repo, since the Vercel
-// deploy can lag a main push by minutes.
+// Checks that the hosted registry serves a consistent registry.json and every item payload it references.
 const BASE = "https://gridcn.vercel.app/r";
 
 async function getJson(name) {

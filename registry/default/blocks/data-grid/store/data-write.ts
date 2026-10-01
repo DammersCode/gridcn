@@ -237,8 +237,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const s = get();
       const editing = s.editing;
       if (!editing) return;
-      // Identity guard: the write resolves by rowId/columnId, so a view rebuild the remap missed
-      // discards the draft here instead of writing it into whichever row the coord now points at.
+      // Resolve by rowId, so a view rebuild the remap missed discards the draft instead of writing another row.
       const dataRowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId).get(editing.rowId);
       const anchorStale =
         dataRowIndex === undefined ||
@@ -260,10 +259,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         : editing.coord;
 
       const result = computeCommit(s, editing.coord, value, rejection);
-      // Stale session: while a (possibly async) validation was pending the user moved
-      // activeCell off the editing cell (a click-away). The data commit is still the user's own
-      // value — but restoring `activeCell`/`selection` from the stale editing coord would drag
-      // their cursor back, so it is skipped.
+      // The user clicked away while validation was pending: commit the value but leave the cursor where it is.
       const stale =
         s.activeCell !== null && (s.activeCell.row !== editing.coord.row || s.activeCell.col !== editing.coord.col);
       const restoreSelection = stale ? {} : { activeCell: nextActiveCell, selection: selectCellPure(nextActiveCell) };
@@ -446,17 +442,12 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       ctx.rowIndexCache.rebase(batch.nextData);
       ctx.lastEmittedData = batch.nextData;
       s.onDataChange?.(batch.nextData, { source: options?.source ?? "stream", ops: batch.ops });
-      // clearErrorsForOps returns the SAME map identity when `s.cellErrors` is empty (the common
-      // streaming case), so this costs nothing extra on the hot path this action exists for.
+      // With no cell errors, clearErrorsForOps returns the same map, so the streaming hot path pays nothing.
       const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops);
 
-      // The fast path, and the whole point of the action: one set() writing `data` alone. Row
-      // identities changed only for touched rows, so their per-row subscriptions re-render and
-      // every other row's memo holds. viewIndex/searchMatches/visibleColumns keep their identity,
-      // so no comparator downstream of them re-runs.
+      // Fast path: one set() writing `data` alone, so only touched rows re-render and view-derived state keeps its identity.
       if (reorder !== "immediate") {
-        // Recorded for `"never"` too: that mode is a caller ASSERTION that no touched column feeds
-        // the view, and a later reconcile has to stay correct even when the assertion was wrong.
+        // Recorded for `"never"` too, so a later reconcile stays correct when the caller's assertion was wrong.
         rememberDeferredRows(ctx, batch.touchedRows);
         set(
           reorder === "defer" && !s.viewStale
@@ -466,9 +457,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         return { applied, skipped: batch.skipped, pending: false };
       }
       warnViewSpacePresenceStale(s);
-      // Incremental maintenance: a full rebuild re-sorts all n rows every tick, and a patch of a
-      // few rows can only move those rows. Rows an earlier non-reordering batch left unreconciled
-      // move in this pass too, since the rest of the order is what the binary search trusts.
+      // Re-place only touched and earlier deferred rows; the binary search trusts the rest of the order.
       const viewIndex = resolveViewIndex(s, batch.nextData, pendingRows(ctx, batch.touchedRows));
       resetDeferredRows(ctx);
       set({
@@ -610,8 +599,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view });
         return;
       }
-      // unsorted and unfiltered, each duplicate lands directly after its source view row; fold one
-      // offset per source, ascending, so earlier insertions shift later sources' view indices too.
+      // Each duplicate lands after its source; ascending offsets let earlier insertions shift later sources.
       const uniqueAscendingViewRows = Array.from(new Set(viewRowIndexes)).sort((a, b) => a - b);
       let selection = s.selection;
       let activeCell = s.activeCell;
@@ -647,8 +635,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const toData = s.viewIndex[to]!;
       if (toData === fromData) return false;
       for (let i = 0; i < n; i++) {
-        // indexed access (not .some/forEach, which skip sparse holes): a reorder would shift
-        // the lazy add-on's index-keyed loaded-range bookkeeping out from under in-flight fetches
+        // Indexed access sees sparse holes; a reorder would shift the lazy add-on's in-flight index bookkeeping.
         if (s.data[i] === undefined) {
           warnDev("reorderRows is a no-op while rows are still unloaded (useDataGridLazyRows): load the range first");
           return false;

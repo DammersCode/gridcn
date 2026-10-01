@@ -1,15 +1,5 @@
 #!/usr/bin/env node
-// Static install proof for every registry:example item in registry.json:
-// (a) registryDependencies resolve — namespaced entries (DammersCode/gridcn/<name>) must exist
-//     as items in this registry, bare shadcn/ui entries (button, switch, ...) must exist as
-//     components/ui/<name> in this repo (the shadcn registry serves the same component the CLI
-//     would install), and npm dependencies must be declared in package.json (deps or devDeps);
-// (b) every import in the installed payload (public/r/<item>.json) resolves to a payload file of
-//     the item or its transitive registry closure, to a repo file under the @/ alias (tsconfig
-//     paths + components.json aliases), or to an npm package declared in package.json.
-// Unresolvable = FAIL with item + import string, exit 1. Warnings (non-fatal) flag npm imports a
-// fresh consumer might not have: resolvable here, but not declared in any closure item's
-// registry.json dependencies.
+// Static install proof: every example's registry dependencies resolve and every payload import resolves to a file or declared package.
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";

@@ -1,18 +1,6 @@
 #!/usr/bin/env node
-// End-to-end consumer smoke test: serves public/r locally, scaffolds a fresh Next.js app,
-// `shadcn add`s real registry items through the CLI (not just static resolution, unlike
-// verify-demo-install.mjs), renders one page per installed demo, then builds and boots the
-// app and fetches every page expecting HTTP 200 with no error markers in the HTML.
-//
-// Usage:
-//   node scripts/verify-e2e-install.mjs [items...]   # default: changed-addon demos + data-grid-demo
-//   node scripts/verify-e2e-install.mjs --all        # every registry:example item
-//   node scripts/verify-e2e-install.mjs --reuse ...  # reuse a cached scaffold dir between runs
-//   node scripts/verify-e2e-install.mjs --vite [...] # plain-React (Vite) consumer instead of Next.js
-//   node scripts/verify-e2e-install.mjs --vite --all # every registry:example item, Vite path
-//
-// All long-running commands run under a hard timeout with output redirected to a log file
-// under LOG_DIR; only tails/greps of those logs are ever printed.
+// End-to-end consumer smoke test: installs registry items into a fresh app through the shadcn CLI, then builds and serves it.
+// Usage: node scripts/verify-e2e-install.mjs [--all] [--reuse] [--vite] [items...]
 import { spawn, execSync, execFileSync } from "node:child_process";
 import { createServer } from "node:http";
 import { readFileSync, existsSync, mkdirSync, writeFileSync, rmSync, openSync, closeSync } from "node:fs";

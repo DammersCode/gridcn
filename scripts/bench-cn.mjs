@@ -1,8 +1,5 @@
 #!/usr/bin/env node
-// Micro-benchmark of the `cn` class merger on this repo's real cn() call shapes (stable
-// strings + boolean conditionals, no object args). Measured 2026-09-15 (Windows, Node 24):
-// cn 0.3.0 ~15 ns/call, the replaced cnfast 0.2.0 ~16 ns/call, the classic
-// twMerge(clsx(...)) baseline ~190 ns/call. Run: node scripts/bench-cn.mjs
+// Micro-benchmark of `cn` on this repo's real call shapes (2026-09-15, Node 24: ~15 ns/call). Run: node scripts/bench-cn.mjs
 import { cn } from "cn";
 
 const BASES = [

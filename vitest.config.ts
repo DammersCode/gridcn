@@ -94,10 +94,7 @@ export default defineConfig({
       reporter: ["text", "json-summary", "json"],
       include: ["registry/**/*.ts"],
       exclude: coverageExclude,
-      // Testing bar: pure lib modules (selection math, clipboard parse/serialize, fill/series,
-      // sort-filter, history, keymap matching, url-state serializers, etc.) hold a ~90-100%
-      // branch bar with an enforced CI gate. React glue (hooks, store, context, components) is
-      // explicitly NOT line-coverage-chased here.
+      // Pure lib modules hold a 90-100% branch bar per file; React glue is not coverage-chased.
       thresholds: {
         // no global floor: hooks/components/examples are intentionally excluded from this gate.
         branches: 0,

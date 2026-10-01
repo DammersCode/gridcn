@@ -1,16 +1,5 @@
 #!/usr/bin/env node
-// `shadcn build` inlines source verbatim, including internal dev-alias imports of the form
-// `@/registry/default/blocks/<item>/<rest>` that registry items use to reach each other. That
-// path resolves fine in this monorepo (tsconfig maps `@/*` -> `./*`) but the shadcn CLI's import
-// rewriter has no rule for arbitrary `@/registry/<style>/blocks/...` paths, so it falls back to
-// `t.aliases.components + rest-after-style`, producing `@/components/blocks/<item>/<rest>` — a
-// path that doesn't exist for the consumer (every item's files are flattened straight into the
-// components alias dir with no `blocks/<item>` subfolder). The CLI *does* special-case any
-// `@/registry/<style>/components/...` path, rewriting it to exactly `t.aliases.components + rest`
-// (see `wa()` in shadcn/dist/chunk-*.js). So post-build, rewrite every such alias to the
-// equivalent `.../components/...` form — this is the exact inverse of deriveTarget() in
-// scripts/add-registry-targets.mjs (`registry/default/blocks/<item>/<rest>` -> `components/<item>/<rest>`),
-// so it lands on the correct flattened path for every item, not just the core.
+// Rewrites built payload imports from `@/registry/default/blocks/<item>/<rest>` to the `components` form the shadcn CLI resolves.
 import { copyFileSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

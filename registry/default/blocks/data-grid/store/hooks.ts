@@ -587,8 +587,7 @@ function computeRowCellState(s: DataGridStoreState, viewRow: number): DataGridRo
   const editingInitialText = editingHere ? editing.initialText : undefined;
   const editingSession = editingHere ? editing.session : undefined;
 
-  // O(1) map lookup instead of an O(visibleColumns) scan + string-key Set.has per column (perf
-  // audit 2026-07-17: measured 29x faster at 100k rows/8 cols — see searchMatchRows' doc comment).
+  // One map lookup per row instead of a per-column Set scan: 29x faster at 100k rows by 8 columns.
   const searchMatchCols: ReadonlySet<number> | null = s.searchMatchRows.get(viewRow) ?? null;
 
   const errorCols = rowErrorCols(s, viewRow);

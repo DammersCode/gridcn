@@ -88,13 +88,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const seeded = applyDefaultColumnLayout(init.columns, defHidden, init.defaultColumnLayout);
   const visibleColumns = computeVisibleColumns(seeded.columns, seeded.columnOrder, seeded.hiddenColumns);
   const mergeLabels = memoizedMergeLabels();
-  // `data` wins when both are given (React value/defaultValue precedence; checkDevGuardrails warns).
-  // `dataControlled` latches this decision for the store's lifetime — later renders can't flip
-  // uncontrolled-to-controlled or back, matching `<input>`'s own value/defaultValue semantics.
+  // `data` wins over `defaultData`, and the decision latches for the store's lifetime, like `<input>` value/defaultValue.
   const dataControlled = init.data !== undefined;
   const initData: readonly unknown[] = init.data ?? init.defaultData ?? [];
-  // Set on every _syncProps call (including the implicit init-time seed below) so the very first
-  // real sync has something to compare against instead of special-casing "no previous sync yet".
+  // Seeded at init, so the first real sync has a previous value to compare against.
   const initFilterState = withFilterIds(init.filterState ?? []);
   const initJoinOperator = init.joinOperator ?? "and";
   // storage widens each per-column CellType<TData, TValue, TOptions> to the untyped registry shape; narrowed back per column at lookup (cell.tsx/store's column-op helpers).
@@ -112,17 +109,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     columnOrder: seeded.columnOrder,
     hiddenColumns: seeded.hiddenColumns,
   };
-  // The raw `columns` prop reference last seen by _syncProps — separate from `s.columns`, which may
-  // carry runtime column-pin mutations (setColumnPin / the initial-layout seed). Only a genuine
-  // change of the consumer's own prop should reset `s.columns`; re-syncing with the SAME prop
-  // reference (e.g. an unrelated parent re-render) must not silently discard those pin mutations.
+  // The last raw `columns` prop; `s.columns` also carries runtime pin changes that a same-reference re-sync keeps.
   let lastPropsColumns: readonly AnyColumnDef[] = init.columns;
   // The raw `filterState` prop ref last seen by _syncProps — a same-reference re-sync skips withFilterIds, which would churn the sync input.
   let lastPropsFilterState: FilterSpec[] | undefined = init.filterState;
   // A `commands` entry named after a built-in action silently disables the built-in — warn once about it.
   let warnedCommandShadow = false;
-  // `rowId -> dataIndex` for updateCells. Every path that inserts, deletes, duplicates, or replaces
-  // rows invalidates it; a pure value patch never moves a row, so a streaming tick keeps it warm.
+  // `rowId -> dataIndex` for updateCells: row moves invalidate it, value patches keep it warm.
   const rowIndexCache = createRowIndexCache();
   /** Per-key auto-clear timers for `flashCells`; a re-flash of a live key clears its old timer so the pulse restarts. */
   const flashTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -169,11 +162,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       ...(anchoredOnEditCell ? { selection: { ...selectCellPure(moved), rows: s.selection.rows, columns: s.selection.columns } } : {}),
     };
   };
-  // cellErrors keys owned by each row's last validateRow verdict, so a re-run clears exactly its
-  // own stale messages and never a consumer's setCellErrors entries on other cells of that row.
+  // cellErrors keys of each row's last validateRow verdict, so a re-run clears only its own messages.
   const rowValidationKeys = new Map<string, string[]>();
-  // Pruned wherever cellErrors is pruned: an unpruned entry for a deleted rowId lets the next
-  // validateRow wipe a reused row's consumer setCellErrors entries.
+  // An unpruned entry for a deleted rowId lets the next validateRow wipe a reused row's consumer errors.
   const pruneRowValidationKeys = (data: readonly unknown[], getRowId: (row: unknown, index: number) => string): void => {
     if (rowValidationKeys.size === 0) return;
     const live = new Set<string>();
@@ -319,8 +310,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         });
       },
       extendSelection(direction, opts) {
-        // rowCount is the VIEW row count (viewIndex.length), not data.length, so growth stays
-        // within the visible display order under an active filter.
+        // Bounded by the view row count, so growth stays inside the filtered display order.
         const { viewIndex, visibleColumns, selection, enableRangeSelection } = get();
         if (!enableRangeSelection) return;
         set({
@@ -346,8 +336,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       selectRow(index, opts = {}) {
         const { lastHighlightedRow, selection, enableRowSelection, enableMultiRange, enableRangeSelection } = get();
         if (!enableRowSelection) return;
-        // enableMultiRange: false demotes ctrl-click to a plain toggle-select of just this row.
-        // enableRangeSelection: false demotes shift-click to a plain toggle-select too (no row range).
+        // Without multi-range or range selection, ctrl-click and shift-click toggle only this row.
         const additive = opts.additive && enableMultiRange;
         const extendFromLast = opts.extendFromLast && enableRangeSelection;
         const replaceFromLast = opts.replaceFromLast && enableRangeSelection;
@@ -357,9 +346,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           replaceFromLast,
           from: opts.from ?? lastHighlightedRow ?? undefined,
         });
-        // a stationary marker drag re-fires the same span: skip the set so selection identity
-        // (and onSelectionChange) stays quiet — line-ops always build new channel objects, so
-        // content equality is the check, not identity.
+        // A stationary marker drag re-fires the same span; compare content so onSelectionChange stays quiet.
         if (
           next.rows.equals(selection.rows) &&
           next.columns.equals(selection.columns) &&
@@ -388,8 +375,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const s = get();
         if (!s.enableRangeSelection) return;
         const active = s.activeCell ?? { col: 0, row: 0 };
-        // stage carries over only if the last selectAll's own output (selection/activeCell identity)
-        // is still exactly what's in the store now — any intervening action replaced one of them.
+        // The stage carries over only while the last selectAll's selection and activeCell are still in the store.
         const priorStage =
           s.selectAllStage &&
           s.selectAllStage.selection === s.selection &&
@@ -512,8 +498,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             ? []
             : [{ columnId, direction }];
         s.onSortChange?.(sorts);
-        // controlled: `sortState` prop is the source of truth — _syncProps writes it once the
-        // consumer's prop actually changes; a callback-ignoring consumer's grid stays fixed.
+        // Controlled: _syncProps writes the consumer's next `sortState` prop.
         if (s.sortControlled) return;
         set((s2) => {
           const viewIndex = computeViewIndex(s2.data, s2.columns, sorts, s2.filterState, s2.joinOperator, s2.viewIndex, s2.cellTypes);
@@ -696,8 +681,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const maxRow = Math.max(0, s.viewIndex.length - 1);
         const maxCol = Math.max(0, s.visibleColumns.length - 1);
         if (opts?.extend && s.enableRangeSelection) {
-          // Grow from the anchor's far edge (Excel-correct contraction), never re-deriving
-          // `next` from activeCell — the anchor stays put for the whole extend gesture.
+          // Grow from the anchor's far edge; the anchor stays put for the whole extend gesture.
           const direction: ExtendDirection = d.dy < 0 ? "up" : d.dy > 0 ? "down" : d.dx < 0 ? "left" : "right";
           const selection = extendSelection(s.selection.current ? s.selection : selectCellPure(active), direction, {
             rowCount: s.viewIndex.length,
@@ -730,36 +714,20 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           }
         }
         set((s) => {
-          // controlled sort/filter/join/search: the prop (when defined) is the source of truth this
-          // sync writes into the store; uncontrolled: keep whatever the store's own actions last set.
+          // A defined controlled prop is the source of truth; otherwise the store keeps its own state.
           const nextSortState = props.sortState ?? s.sortState;
-          // backfill: a controlled filterState prop may omit filterId (backward-compat input boundary);
-          // a same-reference re-sync reuses s.filterState (see lastPropsFilterState).
+          // A controlled filterState may omit filterId; the same prop reference reuses s.filterState.
           const propsFilterStateChanged = props.filterState !== lastPropsFilterState;
           lastPropsFilterState = props.filterState;
           const nextFilterState =
             props.filterState === undefined || !propsFilterStateChanged ? s.filterState : withFilterIds(props.filterState);
           const nextJoinOperator = props.joinOperator ?? s.joinOperator;
           const nextSearchText = props.searchText ?? s.searchText;
-          // data: controlled (props.data defined) mirrors the prop every sync, byte-identical to
-          // pre-defaultData behavior; uncontrolled keeps the store's own array — every commit action
-          // (edit/paste/fill/delete/row-ops) already wrote it there directly, and `defaultData` itself
-          // is init-only (never re-read past store creation, matching `<input defaultValue>`).
+          // Controlled data mirrors the prop; uncontrolled keeps the store's array, and `defaultData` is init-only.
           const nextData = s.dataControlled && props.data !== undefined ? props.data : s.data;
-          // Echo detection: a controlled consumer that stores what onDataChange handed it and
-          // re-renders feeds that exact array back here. `data` then differs from the last sync by
-          // identity, so syncInputsEqual fails and computeViewIndex runs — the ~56 ms cliff at 100k
-          // rows with a sort active. Recognizing our own array skips it, which is what makes
-          // updateCells fast for controlled consumers too (design spec §3.3). A consumer who maps,
-          // filters, or otherwise rebuilds the array before storing it falls back to the slow path.
+          // Our own onDataChange array fed back is an echo; skipping its view rebuild saves ~56 ms at 100k sorted rows.
           const isEcho = nextData === dataWrite.lastEmittedData;
-          // A `data` array we did not produce reordered or replaced rows as far as this store knows,
-          // so the id map must be rebuilt. Our own echo never moved a row (updateCells patches
-          // values in place), so it keeps the map — rebuilding it per tick is the O(n) cost the API
-          // exists to remove.
-          // A genuine consumer-driven replacement (not our own echo) may have dropped rows (e.g. an
-          // import replacing the whole array) — prune any cellErrors entry whose rowId no longer
-          // exists, same discipline as the rowId-index cache invalidation right below.
+          // A foreign array may move or drop rows, so prune errors and rebuild the id map; our own echo keeps both.
           const nextCellErrors =
             nextData !== s.data && !isEcho ? pruneCellErrors(s.cellErrors, nextData, s.getRowId) : s.cellErrors;
           if (nextData !== s.data && !isEcho) {
@@ -767,20 +735,16 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             forgetDeferredRows(dataWrite);
             pruneRowValidationKeys(nextData, s.getRowId);
           }
-          // A genuine consumer-driven `columns` prop change replaces `s.columns` outright; syncing
-          // again with the SAME prop reference (any unrelated re-render) keeps `s.columns` as-is so
-          // runtime column-pin mutations (setColumnPin / the initial-layout seed) survive it.
+          // Only a new `columns` reference replaces `s.columns`, so runtime pin changes survive re-renders.
           const propsColumnsChanged = props.columns !== lastPropsColumns;
           lastPropsColumns = props.columns;
           const nextColumns = propsColumnsChanged ? props.columns : s.columns;
-          // A replaced `columns` array re-asserts its def-level hidden flags into `hiddenColumns`;
-          // a same-reference re-render must not re-hide a column the user re-showed via
-          // `setColumnHidden` (user intent wins over the def until the def itself changes).
+          // A new `columns` array re-asserts def-level hidden flags; a re-render keeps a column the user re-showed.
           const reseededHidden = propsColumnsChanged
             ? defHiddenColumnIds(props.columns).filter((id) => !s.hiddenColumns.includes(id))
             : [];
           const nextHiddenColumns = reseededHidden.length > 0 ? [...s.hiddenColumns, ...reseededHidden] : s.hiddenColumns;
-          // same registry-widening cast as createDataGridStore's init — see that comment.
+          // Widens each typed CellType to the untyped registry shape.
           const propsCellTypes = props.cellTypes as unknown as ProvidedCellTypes;
           const nextCellTypes = sameCellTypeEntries(propsCellTypes, lastPropsCellTypes) ? s.cellTypes : resolveCellTypes(propsCellTypes);
           lastPropsCellTypes = propsCellTypes;
@@ -795,8 +759,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             columnOrder: s.columnOrder,
             hiddenColumns: nextHiddenColumns,
           };
-          // An echo only licenses skipping the recompute when `data` is the ONLY input that moved —
-          // a sync that also changed sort/filter/search/columns still has to rebuild for those.
+          // An echo skips the recompute only when `data` is the only input that moved.
           const echoOnly =
             isEcho && syncInputsEqual({ ...nextSyncInputs, data: lastSyncInputs.data }, lastSyncInputs);
           const unchanged = syncInputsEqual(nextSyncInputs, lastSyncInputs) || echoOnly;
@@ -814,9 +777,6 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           }
           // A full rebuild leaves nothing pending for the incremental path to replay.
           if (!unchanged) resetDeferredRows(dataWrite);
-          // If viewIndex is unchanged (same reference either from the guard above or from
-          // computeViewIndex's own content-equality reuse), no row fell out of view, so this
-          // clamp is a no-op — filtering against nextViewIndex.length still runs but keeps every row.
           const editRemap = unchanged ? {} : remapEditing(s, nextViewIndex, nextVisibleColumns, nextData, props.getRowId);
           const cursor = clampCursor(s, nextViewIndex.length, nextVisibleColumns.length);
           const baseSelection = editRemap.selection ?? ("selection" in cursor ? cursor.selection : s.selection);
@@ -844,12 +804,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             joinOperatorControlled: props.joinOperator !== undefined,
             searchControlled: props.searchText !== undefined,
             viewIndex: nextViewIndex,
-            // A real recompute reconciles whatever a deferred updateCells left stale; an echo or an
-            // unchanged sync recomputed nothing, so the flag has to survive it.
             commands: props.commands ?? null,
+            // A real recompute reconciles a deferred updateCells; an echo or unchanged sync keeps the flag.
             viewStale: unchanged ? s.viewStale : false,
-            // rows moved only when a genuine consumer data replacement invalidated the id cache
-            // (our own echo never moves a row — updateCells patches values in place)
+            // Rows move only on a foreign data replacement, never on our own echo.
             rowIdentityVersion: nextData !== s.data && !isEcho ? s.rowIdentityVersion + 1 : s.rowIdentityVersion,
             activeCell: cursor.activeCell,
             ...editRemap,

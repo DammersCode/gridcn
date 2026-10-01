@@ -244,12 +244,7 @@ type SortRowProps = {
 /** One sort row: `useSortable` wires pointer-drag reorder via `@dnd-kit/react`; the grip's `onKeyDown` implements the ArrowUp/ArrowDown fallback, which always takes precedence over dnd-kit's own keyboard sensor (checked first, `stopPropagation`'d). */
 function SortRow(props: SortRowProps): ReactNode {
   const { sort, index, total, availableColumns, labels, onUpdate, onRemove, onArrowReorder, gripRef } = props;
-  // dnd-kit's default plugins include OptimisticSortingPlugin, which physically moves DOM nodes
-  // mid-drag — that fights React's own re-render once `onDragEnd` commits the new sort order via
-  // setSorts, leaving rows with stale content after a drop. Passing an empty plugins array drops it
-  // (and the default keyboard plugin); this row's own `onGripKeyDown` below is the only keyboard
-  // reorder path, so nothing is lost. The DOM then only ever reorders once, driven by React itself
-  // from the committed store order.
+  // No plugins: dnd-kit's optimistic DOM moves fight React's re-render after a drop; `onGripKeyDown` is the keyboard path.
   const { ref, handleRef, isDragSource } = useSortable<SortRowDragData>({
     id: sort.columnId,
     index,

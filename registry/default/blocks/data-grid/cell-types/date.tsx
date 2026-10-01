@@ -85,8 +85,7 @@ function localDateToIsoDatePart(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-/** Caches formatters by serialized options (locale + format), not object identity — a re-created
- * column literal still hits. Building one costs ~38us versus ~0.7us to reuse. */
+/** Formatters keyed by serialized options, so a re-created column literal reuses one (build ~38us, reuse ~0.7us). */
 const dateFormatterCache = new Map<string, Intl.DateTimeFormat>();
 
 function getDateFormatter(locale: string, format: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
@@ -179,12 +178,9 @@ function DateEditor({
           <Input
             ref={inputRef}
             value={text}
-            // readOnly, not disabled: a disabled input can't receive focus/keyboard events at all, which
-            // would silently swallow Escape while an async validation is pending — readOnly blocks typing
-            // but keeps Escape/Tab/blur working.
+            // readOnly, not disabled: a disabled input swallows Escape while an async validation is pending.
             readOnly={pending}
-            // ISO date text is direction-neutral; see the number editor for why `auto` beats the
-            // grid's inherited layout direction on a value-carrying input.
+            // ISO date text is direction-neutral, so it must not inherit the grid's layout direction.
             dir="auto"
             placeholder={labels.grid.datePlaceholder}
             onChange={(e) => setText(e.target.value)}

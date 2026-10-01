@@ -1,24 +1,5 @@
 #!/usr/bin/env node
-// The shadcn CLI flattens every registry:component/registry:block file into the consumer's
-// components/ alias dir UNLESS an explicit files[].target says otherwise (proven empirically
-// against shadcn 4.16.1: Qt()/getResolvedFilePath honors `target` verbatim, joining it under
-// `src/` when the consumer has a src/ dir, under cwd otherwise — no `~/` or alias placeholder
-// needed). Our repo nests each item's source under registry/default/blocks/<item>/ (domain
-// subfolders incl. 10 colliding index.ts names) — without a target, the CLI drops that nesting
-// and the index.ts files overwrite each other. This script derives+writes the correct target
-// for every files[] entry so `node scripts/verify-registry.mjs` can assert it never drifts.
-//
-// Derivation rule (mechanical, no hand-editing):
-//   registry/default/blocks/<item>/<rest>   -> components/<item>/<rest>   (preserve nesting)
-//   registry/default/examples/<rest>        -> components/<rest>          (flat, matches
-//                                              shadcn's own registry:example convention;
-//                                              examples have no domain subfolders and any
-//                                              shared file like demo-data.ts is byte-identical
-//                                              across items, so flattening is safe)
-//   anything else (already consumer-relative, e.g. components/ui/kbd.tsx) -> unchanged
-//
-// Rewrites only the `files[]` entry lines, in place, to avoid reformatting the rest of the
-// hand-maintained registry.json (JSON.stringify would blow up every compact one-line array).
+// Writes each registry.json files[] target (blocks/<item>/<rest> -> components/<item>/<rest>, examples flat), so the shadcn CLI keeps the nesting.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";

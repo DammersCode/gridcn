@@ -204,8 +204,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx shadcn@latest registry validate DammersCode/gridcn#${{ github.sha }}
 
-  # Aggregator the branch-protection ruleset requires under the name `ci` — job id, not `name:`,
-  # because the display name becomes the check context. Fails on any non-success, skipped included.
+  # The ruleset requires the check context `ci`, which is this job id; it fails on any non-success, including skipped.
   ci:
     runs-on: ubuntu-latest
     timeout-minutes: 5

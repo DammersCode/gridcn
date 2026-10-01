@@ -1,13 +1,5 @@
 #!/usr/bin/env node
-// Structural import-boundary gate for registry source (replaces the old no-restricted-imports
-// eslint rules, which oxlint cannot express):
-//   A) barrel-only: cross-item imports must go through the target item's block-root barrel
-//      (`@/registry/default/blocks/<item>/<item>`) — the exact shape shadcn's CLI import
-//      rewriter special-cases (scripts/fix-registry-imports.mjs). Any other `blocks/<item>/...`
-//      path ships a payload consumers can't install.
-//   B) dependency direction: the core `data-grid` item must never import an add-on item.
-// Tests are exempt (never shipped — verify-registry.mjs excludes them); side-effect/dynamic
-// imports are out of scope, same as the eslint rule.
+// Fails when registry source imports another item outside its block-root barrel, or when the core imports an add-on.
 import { readFileSync, readdirSync } from "node:fs";
 import { join, relative, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

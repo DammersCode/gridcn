@@ -304,12 +304,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
   ];
   const columnItems = filterableColumns.map((c) => ({ value: c.id, label: columnLabel(c) }));
   const operatorItems = operators.map((op) => ({ value: op, label: operatorLabel(op, labels.filterOperators) }));
-  // dnd-kit's default plugins include OptimisticSortingPlugin, which physically moves DOM nodes
-  // mid-drag — that fights React's own re-render once `onDragEnd` commits the new `filters` order
-  // via setFilters, leaving rows with the wrong join-cell content after a drop. Passing an empty
-  // plugins array drops it (and the default keyboard plugin); this row's own `onGripKeyDown` below
-  // is the only keyboard reorder path, so nothing is lost. The DOM then only ever reorders once,
-  // driven by React itself from the committed store order.
+  // No plugins: dnd-kit's optimistic DOM moves fight React's re-render after a drop; `onGripKeyDown` is the keyboard path.
   const { ref, handleRef, isDragSource } = useSortable<FilterRowDragData>({
     id: filter.filterId!,
     index,
