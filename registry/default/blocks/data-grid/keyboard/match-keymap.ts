@@ -60,25 +60,27 @@ function matchesBinding(event: KeymapEvent, binding: ParsedBinding, isMac: boole
 }
 
 /**
- * Resolves a keyboard event to a `GridAction` using `keymap`, or null if unbound.
- * When several actions share a binding, the most modifier-specific one wins; on an exact
- * specificity tie a consumer-defined entry (a binding array that is not `DEFAULT_KEYMAP`'s —
- * the per-action merge replaces arrays by reference) beats a default it collides with. A
- * tie between two defaults keeps the earlier entry (e.g. Enter: `edit` before `commitDown`).
+ * Resolves a keyboard event to a `GridAction` using `keymap`, or null if unbound. `include`
+ * limits the candidates to the actions it accepts. When several actions share a combo, the most
+ * modifier-specific binding wins; on a tie a keymap binding that is not one of the action's
+ * defaults beats a default, and a tie between two defaults keeps the earlier entry (Enter: `edit`
+ * before `commitDown`).
  */
 export function matchKeymap(
   event: KeymapEvent,
   keymap: Keymap,
   isMac: boolean,
+  include?: (action: GridAction) => boolean,
 ): GridAction | null {
   let best: { action: GridAction; specificity: number; consumer: boolean } | null = null;
 
   for (const [action, bindings] of Object.entries(keymap) as [GridAction, string[] | undefined][]) {
     if (!bindings) continue;
-    const consumer = bindings !== DEFAULT_KEYMAP[action];
+    if (include && !include(action)) continue;
     for (const raw of bindings) {
       const parsed = parseBinding(raw);
       if (!matchesBinding(event, parsed, isMac)) continue;
+      const consumer = !isDefaultBinding(action, raw);
       const specificity =
         (parsed.mod ? 1 : 0) + (parsed.ctrl ? 1 : 0) + (parsed.shift ? 1 : 0) + (parsed.alt ? 1 : 0);
       if (!best || specificity > best.specificity) {
@@ -90,4 +92,10 @@ export function matchKeymap(
   }
 
   return best?.action ?? null;
+}
+
+/** True when `binding` is one of `action`'s `DEFAULT_KEYMAP` bindings. */
+export function isDefaultBinding(action: GridAction, binding: string): boolean {
+  const defaults: readonly string[] | undefined = DEFAULT_KEYMAP[action];
+  return defaults?.includes(binding) ?? false;
 }

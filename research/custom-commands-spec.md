@@ -25,9 +25,12 @@ the keybindings dialog.
    | `label?` | keybindings-dialog label; default: `labels.keybindings.actions[name]` or the humanized name. |
    | `group?` | dialog section: a `CommandGroup` (`"navigation" \| "selection" \| "editing" \| "clipboardFill" \| "history" \| "other"`); default: the action's usual category, i.e. `"other"` for custom names. |
 
-   `GridCommandCtx = { actions, cell, row, readOnly }` — the stable actions object, the active
-   cell in view space (`null` when none), the active cell's data row (`TData`, `undefined` when
-   none), and the grid's effective `readOnly`. `run`/`when` use method syntax so a consumer's
+   `GridCommandCtx = { api, cell, viewRowIndex, viewColumnIndex, row, readOnly }` — a
+   `DataGridApi` handle with the methods `useDataGridApi` returns (built per dispatch from the
+   store, not the same object), the active cell as a stable `CellRef` (`null` when none; a
+   placeholder ref on an unloaded lazy row), its view row and column index (`null` when none),
+   the active cell's data row (`TData`, `undefined` when none), and the grid's effective
+   `readOnly`. `run`/`when` use method syntax so a consumer's
    `GridCommand<TData>` stays assignable to the store's erased `GridCommand<unknown>` field
    (bivariance — the same trick the erased callbacks use).
 
@@ -47,6 +50,20 @@ the keybindings dialog.
    wins (and `_syncProps` dev-warns once per grid, since the shadow silently disables the
    built-in). A keymap-resolved name that is neither a built-in case nor a `commands` entry hits
    the switch's new `default:` and dev-warns once per name — a bound-but-unwired command.
+
+5a. **`scope?: "grid" | "editing" | "always"`** (default `"grid"`): `"grid"` dispatches while no
+   edit session is open, `"editing"` while one is open (every editor, including popups without a
+   text input; the check runs only when `commands` is set), `"always"` both. `matchKeymap` takes an
+   `include` filter: the grid path and the global-shortcut layer exclude `"editing"` commands, so
+   an editor command never takes over a grid binding or type-to-edit.
+
+5b. **Shadow check** uses `BUILTIN_ACTIONS` (the full built-in set, including `editReplace`,
+   which has no default binding), in development only.
+
+5c. **Tie rule, per binding:** the most modifier-specific binding wins; on a tie a binding that
+   is not one of the action's `DEFAULT_KEYMAP` bindings beats a default, and two defaults keep
+   keymap order. Off macOS `ctrl` and `mod` share one signature in the shared-binding warning.
+   **Breaking** against 0.1.0, where the first action in keymap order won every tie.
 
 6. **Keybindings dialog** — reads the new `useDataGridCommands()` hook (store field) and applies
    the per-command overrides: label `commands[a]?.label ?? labelForAction(a, labels)`, category

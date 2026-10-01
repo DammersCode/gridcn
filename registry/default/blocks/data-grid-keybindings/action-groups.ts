@@ -10,6 +10,10 @@ export const KEYBINDING_CATEGORIES = [
   "other",
 ] as const satisfies readonly CommandGroup[];
 
+// Fails to compile when a CommandGroup has no dialog section.
+const everyGroupHasASection: [Exclude<CommandGroup, (typeof KEYBINDING_CATEGORIES)[number]>] extends [never] ? true : never = true;
+void everyGroupHasASection;
+
 /** The dialog's section set — core's {@link CommandGroup} (a custom command's `group` must name one of these). */
 export type KeybindingCategory = CommandGroup;
 

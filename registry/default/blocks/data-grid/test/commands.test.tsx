@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { DataGrid } from "../data-grid";
-import type { ColumnDef, Keymap } from "../types";
+import type { CellType, ColumnDef, Keymap } from "../types";
 
 // jsdom performs no layout; drive useRowWindow's viewport math by stubbing clientHeight.
 beforeAll(() => {
@@ -68,6 +68,7 @@ describe("custom keymap commands through <DataGrid commands keymap>", () => {
     const ctx = run.mock.calls[0]![0] as { api: unknown; cell: unknown; viewRowIndex: unknown; row: unknown; readOnly: unknown };
     expect(ctx.cell).toEqual({ rowId: "1", columnId: "qty" });
     expect(ctx.viewRowIndex).toBe(0);
+    expect((ctx as { viewColumnIndex?: unknown }).viewColumnIndex).toBe(1);
     expect(ctx.row).toEqual(rows()[0]);
     expect(ctx.readOnly).toBe(false);
     expect(ctx.api).toBeTruthy();
@@ -84,6 +85,7 @@ describe("custom keymap commands through <DataGrid commands keymap>", () => {
     expect(run).toHaveBeenCalledTimes(1);
     const ctx = run.mock.calls[0]![0] as { cell: unknown; viewRowIndex: unknown; row: unknown };
     expect(ctx.cell).toBeNull();
+    expect((ctx as { viewColumnIndex?: unknown }).viewColumnIndex).toBeNull();
     expect(ctx.viewRowIndex).toBeNull();
     expect(ctx.row).toBeUndefined();
   });
@@ -167,6 +169,76 @@ describe("custom keymap commands through <DataGrid commands keymap>", () => {
     const input = screen.getByRole("textbox");
     press(input, { key: "b", ctrlKey: true, shiftKey: true });
     expect(run).toHaveBeenCalledTimes(2);
+  });
+
+  it("an editing command never takes over the grid's select-all binding", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const run = vi.fn();
+    const { grid, focusCell, press } = renderGrid({
+      commands: { logEdit: { run, scope: "editing" } },
+      keymap: { logEdit: ["mod+a"] } as Keymap,
+    });
+    focusCell(0);
+    press(grid, { key: "a", ctrlKey: true });
+    expect(run).not.toHaveBeenCalled();
+    expect(document.querySelectorAll('[role="gridcell"][aria-selected="true"]')).toHaveLength(6);
+    warn.mockRestore();
+  });
+
+  it("an editing command bound to a printable key keeps type-to-edit on the grid", () => {
+    const run = vi.fn();
+    const { grid, focusCell, press } = renderGrid({
+      commands: { logEdit: { run, scope: "editing" } },
+      keymap: { logEdit: ["x"] } as Keymap,
+    });
+    focusCell(0);
+    press(grid, { key: "x" });
+    expect(run).not.toHaveBeenCalled();
+    expect(screen.getByRole("textbox")).toHaveValue("x");
+  });
+
+  it("a keymap entry repeating a default binding keeps the default tie order (Enter still edits)", () => {
+    const { grid, focusCell, press } = renderGrid({ keymap: { commitDown: ["Enter"] } as Keymap });
+    focusCell(0);
+    press(grid, { key: "Enter" });
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
+  });
+
+  it("dispatches an editing command from an editor that renders no input", () => {
+    const run = vi.fn();
+    function PanelEditor() {
+      return <div role="dialog" aria-label="panel editor" tabIndex={-1} />;
+    }
+    const panelType: CellType<unknown, string> = {
+      Cell: ({ value }) => <span>{value}</span>,
+      Editor: PanelEditor,
+      toText: (value) => (value == null ? "" : String(value)),
+      fromText: (text) => text,
+      clearValue: () => "",
+      isEmpty: (value) => value == null || value === "",
+    };
+    render(
+      <DataGrid
+        data={rows()}
+        columns={[{ id: "name", header: "Name", accessorKey: "name", type: "panel" }]}
+        getRowId={(r) => r.id}
+        cellTypes={{ panel: panelType }}
+        commands={{ logEdit: { run, scope: "editing" } }}
+        keymap={{ logEdit: ["mod+shift+e"] } as Keymap}
+      />,
+    );
+    const grid = screen.getByRole("grid");
+    act(() => {
+      fireEvent.pointerDown(screen.getAllByRole("gridcell")[0]!, { button: 0 });
+    });
+    act(() => {
+      fireEvent.keyDown(grid, { key: "F2" });
+    });
+    const panel = screen.getByRole("dialog", { name: "panel editor" });
+    act(() => {
+      fireEvent.keyDown(panel, { key: "e", ctrlKey: true, shiftKey: true });
+    });
+    expect(run).toHaveBeenCalledTimes(1);
   });
 
   it("a commands entry named editReplace dev-warns the shadow and takes over an explicit binding", () => {

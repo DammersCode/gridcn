@@ -396,7 +396,6 @@ describe("GridAction coverage", () => {
 
 describe("matchKeymap - tie-break", () => {
   it("a consumer binding wins a specificity tie against the default binding of the same combo", () => {
-    // a fresh array reference marks the entry as consumer-defined (the merge replaces arrays by reference)
     const keymap = { ...DEFAULT_KEYMAP, saveAll: ["mod+z"] } as Keymap;
     expect(matchKeymap(makeEvent({ key: "z", ctrlKey: true }), keymap, false)).toBe("saveAll");
   });
@@ -404,13 +403,34 @@ describe("matchKeymap - tie-break", () => {
   it("keeps the earlier entry on a tie between two default bindings (Enter: edit before commitDown)", () => {
     expect(matchKeymap(makeEvent({ key: "Enter" }), DEFAULT_KEYMAP, false)).toBe("edit");
   });
+
+  it("treats a keymap entry that repeats a default binding as a default (commitDown: [Enter] keeps edit)", () => {
+    const keymap = { ...DEFAULT_KEYMAP, commitDown: ["Enter"] } as Keymap;
+    expect(matchKeymap(makeEvent({ key: "Enter" }), keymap, false)).toBe("edit");
+  });
+
+  it("a JSON-cloned default keymap resolves like the default keymap", () => {
+    const keymap = JSON.parse(JSON.stringify(DEFAULT_KEYMAP)) as Keymap;
+    expect(matchKeymap(makeEvent({ key: "Enter" }), keymap, false)).toBe("edit");
+    expect(matchKeymap(makeEvent({ key: "z", ctrlKey: true }), keymap, false)).toBe("undo");
+  });
+});
+
+describe("matchKeymap - include filter", () => {
+  it("skips actions the filter excludes, so a lower-ranked binding of the combo wins", () => {
+    const keymap = { ...DEFAULT_KEYMAP, logEdit: ["mod+a"] } as Keymap;
+    const event = makeEvent({ key: "a", ctrlKey: true });
+    expect(matchKeymap(event, keymap, false)).toBe("logEdit");
+    expect(matchKeymap(event, keymap, false, (action: string) => action !== "logEdit")).toBe("selectAll");
+    expect(matchKeymap(event, keymap, false, (action: string) => action === "logEdit")).toBe("logEdit");
+  });
 });
 
 describe("sharedKeymapBindings", () => {
   it("reports each combo bound to two or more distinct actions, once per combo", () => {
     const keymap = { undo: ["mod+z"], saveAll: ["mod+z", "F9"], moveUp: ["ArrowUp", "shift+z"] } as Keymap;
     expect(sharedKeymapBindings(keymap)).toEqual([
-      { binding: "mod+z", actions: ["undo", "saveAll"] },
+      { binding: "mod+z", actions: ["undo", "saveAll"], consumerInvolved: true },
     ]);
   });
 
@@ -420,6 +440,12 @@ describe("sharedKeymapBindings", () => {
 
   it("modifier order in the binding string does not matter", () => {
     expect(sharedKeymapBindings({ undo: ["shift+mod+z"], saveAll: ["mod+shift+z"] } as Keymap)).toHaveLength(1);
+  });
+
+  it("treats ctrl and mod as one combo off macOS and as two combos on macOS", () => {
+    const keymap = { undo: ["mod+z"], saveAll: ["ctrl+z"] } as Keymap;
+    expect(sharedKeymapBindings(keymap, false)).toHaveLength(1);
+    expect(sharedKeymapBindings(keymap, true)).toEqual([]);
   });
 });
 
@@ -439,6 +465,21 @@ describe("validateSharedBindings", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     validateSharedBindings(DEFAULT_KEYMAP);
     expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("is silent for a JSON-cloned default keymap", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    validateSharedBindings(JSON.parse(JSON.stringify(DEFAULT_KEYMAP)) as Keymap);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("names the tie rule in the warning", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    validateSharedBindings({ undo: ["mod+x"], saveAll: ["mod+x"] } as Keymap);
+    const message = warn.mock.calls.map((c) => String(c[0])).find((m) => m.includes("mod+x"));
+    expect(message).toContain("the most specific binding wins; on a tie a keymap binding beats a default");
     warn.mockRestore();
   });
 });

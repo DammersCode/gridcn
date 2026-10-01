@@ -78,10 +78,9 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
         targetIsEditable,
         targetInAnyGrid,
         ownsFocus: lastFocusedGrid === gridId,
+        include: (a) => storeApi.getState().commands?.[a]?.scope !== "editing",
       });
       if (action === null) return;
-      // scope "editing" dispatches only from the editor's own keydown, never from the window layer
-      if (storeApi.getState().commands?.[action]?.scope === "editing") return;
       const fill = latest.fillHandlers;
       dispatchGridAction({
         action,

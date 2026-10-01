@@ -238,8 +238,6 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const { template, leftOffsets, rightOffsets, trackLefts: lefts, trackRights: rights, widths, pins, totalWidth } =
     layout;
 
-  // Per-action merge: a consumer array replaces the default BY REFERENCE, which is how
-  // matchKeymap recognizes consumer entries (tie-break) and validateSharedBindings (warning).
   const effectiveKeymap = useMemo(() => ({ ...DEFAULT_KEYMAP, ...keymap }), [keymap]);
   const interactionLayout: InteractionLayout = useMemo(() => {
     // the marker column (when present) is always pinned-left before every data column, so it's

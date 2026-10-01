@@ -693,10 +693,15 @@ export type DataGridApi<TData> = {
 export type GridCommandCtx<TData = unknown> = {
   /** The grid's imperative handle ({@link DataGridApi}) for the grid being dispatched on. */
   api: DataGridApi<TData>;
-  /** The active cell as a stable {@link CellRef}, or `null` when no cell is active. */
+  /**
+   * The active cell as a stable {@link CellRef}, or `null` when no cell is active. On an unloaded
+   * lazy row it is a placeholder ref that `api` cannot resolve.
+   */
   cell: CellRef | null;
   /** The view (display) row index of the active cell, or `null` when no cell is active. */
   viewRowIndex: number | null;
+  /** The view (display) column index of the active cell, or `null` when no cell is active. */
+  viewColumnIndex: number | null;
   /** The data row of the active cell, or `undefined` when none. */
   row: TData | undefined;
   /** The grid's effective `readOnly` flag. */
@@ -714,9 +719,8 @@ export type GridCommand<TData = unknown> = {
   /** Gate: return `false` to ignore the key entirely (no `preventDefault`, no `run`). */
   when?(ctx: GridCommandCtx<TData>): boolean;
   /**
-   * Which surface dispatches the command: `"grid"` (default) the grid-level keydown only;
-   * `"editing"` the cell editor's keydown only (a command scoped here never fires while the grid
-   * itself has the key); `"always"` both.
+   * When the command dispatches: `"grid"` (default) while no edit session is open; `"editing"`
+   * while an edit session is open; `"always"` in both cases. The grid keeps its built-in bindings.
    */
   scope?: "grid" | "editing" | "always";
   /** Keybindings-dialog label; default: `labels.keybindings.actions[name]` or the humanized name. */

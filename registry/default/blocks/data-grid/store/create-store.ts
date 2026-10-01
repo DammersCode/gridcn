@@ -721,9 +721,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         }
       },
       _syncProps(props) {
-        if (props.commands && !warnedCommandShadow) {
-          // the FULL built-in set, not just DEFAULT_KEYMAP's keys: editReplace has no default
-          // binding (implicit printable-key fallback) but a command named editReplace shadows it.
+        if (props.commands && !warnedCommandShadow && isDev()) {
+          // BUILTIN_ACTIONS includes editReplace, which has no default binding.
           const shadowed = Object.keys(props.commands).filter((name) =>
             (BUILTIN_ACTIONS as readonly string[]).includes(name),
           );

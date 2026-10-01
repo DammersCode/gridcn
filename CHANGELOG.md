@@ -21,16 +21,16 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Custom keymap commands (`data-grid`):** the `DataGridProvider`/`DataGrid` `commands` prop
   accepts `Record<string, GridCommand>` — consumer actions behind `keymap` bindings that name
   no built-in action. Each `GridCommand` (`{ run, when?, scope?, label?, group? }`) receives
-  `GridCommandCtx` (`{ api, cell, viewRowIndex, row, readOnly }` — `api` the grid's imperative
-  handle (`DataGridApi`), `cell` a stable `{ rowId, columnId }` ref or `null`, `viewRowIndex`
-  the active cell's view row index or `null`, `row` the active cell's data row) and may gate
-  itself with `when`. `scope` selects the dispatching surface: `"grid"` (default) the
-  grid-level keydown only, `"editing"` the cell editor's keydown only (the key passes the grid
-  untouched), `"always"` both. `label` and `group` set the command's row in the keybindings
-  dialog. A command name shadowing any built-in action (including `editReplace`, which has no
-  default binding) wins over the built-in; a combo bound to two or more actions resolves to the
-  most modifier-specific binding, and a `keymap` entry wins a specificity tie against a default
-  it collides with; an unbound-and-unhandled name is a no-op (each case warns once in dev).
+  `GridCommandCtx` (`{ api, cell, viewRowIndex, viewColumnIndex, row, readOnly }` — `api` a
+  `DataGridApi` handle with the methods `useDataGridApi` returns, `cell` a stable
+  `{ rowId, columnId }` ref or `null`, `viewRowIndex`/`viewColumnIndex` the active cell's view
+  position or `null`, `row` the active cell's data row) and may gate itself with `when`. `scope`
+  selects when the command dispatches: `"grid"` (default) while no edit session is open,
+  `"editing"` while an edit session is open (any editor, including the select list and the date
+  calendar), `"always"` both. An `"editing"` command never takes over a grid binding. `label`
+  and `group` set the command's row in the keybindings dialog. A command name shadowing any
+  built-in action (including `editReplace`, which has no default binding) wins over the
+  built-in; an unbound-and-unhandled name is a no-op (each case warns once in dev).
   `GridActions` is now an interface you can extend by declaration merging (like
   `GridCellTypes`), `GridAction` is `keyof GridActions`, and `useDataGridCommands` returns the
   current `commands` map. `GridCommand`, `GridCommandCtx`, and `CommandGroup` are exported from
@@ -318,6 +318,12 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking:** keymap ties resolve per binding (`data-grid`). When two actions bind the same
+  combo with the same number of modifiers, a `keymap` binding that is not one of the action's
+  default bindings wins; a tie between default bindings keeps the earlier action (Enter: `edit`
+  before `commitDown`). A `keymap` entry that repeats a default binding counts as the default.
+  Before, the first action in keymap order won every tie. Off macOS, `ctrl` and `mod` bindings
+  of the same key count as one shared combo for the development warning.
 - **Breaking:** `CellEditorProps` has required `rowId` and `columnId` props (`data-grid`). A
   custom editor receives the stable ids of the edited cell. Code that renders an editor component
   directly must pass both props.

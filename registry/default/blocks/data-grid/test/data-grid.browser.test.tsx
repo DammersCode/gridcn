@@ -1,7 +1,7 @@
 import { page, userEvent } from "vitest/browser";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
-import type { ColumnDef, DataChange } from "../types";
+import type { ColumnDef, DataChange, Keymap } from "../types";
 import { defineColumns, DataGrid, GRID_ATTR, gridAttrSelector } from "../data-grid";
 import { useDataGridState } from "@/registry/default/blocks/data-grid-history/data-grid-history";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply — without it the layout bug can't reproduce
@@ -1289,6 +1289,62 @@ describe("DataGrid in a real browser", () => {
         // still editing — a press inside data-grid-cell-editor must not be treated as click-away
         expect(document.querySelector(gridAttrSelector("editing", "true"))).not.toBeNull();
       });
+    });
+  });
+
+  describe("editor-scoped commands in popup editors", () => {
+    type PopupRow = { id: string; role: string | null; joined: string | null };
+    const popupColumns: readonly ColumnDef<PopupRow, unknown>[] = [
+      {
+        id: "role",
+        header: "Role",
+        accessorKey: "role",
+        type: "select",
+        options: { choices: [{ value: "admin", label: "Admin" }, { value: "user", label: "User" }] },
+      },
+      { id: "joined", header: "Joined", accessorKey: "joined", type: "date" },
+    ];
+
+    async function renderPopupGrid(run: () => void) {
+      await render(
+        <div style={{ height: 300 }}>
+          <DataGrid
+            data={[{ id: "1", role: "admin", joined: "2026-07-03" }]}
+            columns={popupColumns}
+            getRowId={(r) => r.id}
+            className="h-[300px]"
+            commands={{ logEdit: { run, scope: "editing" } }}
+            keymap={{ logEdit: ["mod+shift+e"] } as Keymap}
+          />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    }
+
+    it("dispatches an editing command while the select popup has focus", async () => {
+      const run = vi.fn();
+      await renderPopupGrid(run);
+      await userEvent.click(document.querySelectorAll<HTMLElement>('[role="gridcell"]')[0]!);
+      await userEvent.keyboard("{Enter}");
+      const option = page.getByRole("option", { name: "User" }).element() as HTMLElement;
+      option.focus();
+      await userEvent.keyboard("{Control>}{Shift>}e{/Shift}{/Control}");
+      expect(run).toHaveBeenCalledTimes(1);
+      expect(document.querySelector(gridAttrSelector("editing", "true"))).not.toBeNull();
+    });
+
+    it("dispatches an editing command while the date calendar has focus", async () => {
+      const run = vi.fn();
+      await renderPopupGrid(run);
+      await userEvent.click(document.querySelectorAll<HTMLElement>('[role="gridcell"]')[1]!);
+      await userEvent.keyboard("{Enter}");
+      const editor = document.querySelector<HTMLElement>(gridAttrSelector("cellEditor"))!;
+      const dayButton = editor.querySelector<HTMLElement>('[data-day="2026-07-15"] button')!;
+      dayButton.focus();
+      expect(document.activeElement).toBe(dayButton);
+      await userEvent.keyboard("{Control>}{Shift>}e{/Shift}{/Control}");
+      expect(run).toHaveBeenCalledTimes(1);
+      expect(document.querySelector(gridAttrSelector("editing", "true"))).not.toBeNull();
     });
   });
 

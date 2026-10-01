@@ -71,6 +71,8 @@ export type GlobalShortcutContext = {
   targetInAnyGrid: boolean;
   /** This grid is the last focused opted-in grid (the multi-grid tie-break). */
   ownsFocus: boolean;
+  /** Limits the keymap match to the actions it accepts. */
+  include?: (action: GridAction) => boolean;
 };
 
 /**
@@ -92,7 +94,7 @@ export function resolveGlobalShortcut(
   if (ctx.targetIsEditable) return null;
   if (ctx.targetInAnyGrid) return null;
   if (!ctx.ownsFocus) return null;
-  const action = matchKeymap(event, ctx.keymap, ctx.isMac);
+  const action = matchKeymap(event, ctx.keymap, ctx.isMac, ctx.include);
   if (action === null) return null;
   return ctx.actions.includes(action) ? action : null;
 }

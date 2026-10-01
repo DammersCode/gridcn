@@ -64,6 +64,13 @@ describe("resolveGlobalShortcut - gate rules", () => {
     expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true }), makeCtx({ isMac: true }))).toBe(null);
   });
 
+  it("skips actions the include filter rejects, so an editor-only command keeps undo working", () => {
+    const keymap = { ...DEFAULT_KEYMAP, logEdit: ["mod+z"] } as GlobalShortcutContext["keymap"];
+    const include = (action: string) => action !== "logEdit";
+    expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true }), makeCtx({ keymap }))).toBe(null);
+    expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true }), makeCtx({ keymap, include }))).toBe("undo");
+  });
+
   it("rejects both platform modifiers held at once", () => {
     expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true, metaKey: true }), makeCtx())).toBe(null);
   });

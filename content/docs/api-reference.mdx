@@ -270,9 +270,9 @@ a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
   merging) and `GridAction` (every named keyboard action — the built-ins plus any you merged in)
   and `Keymap` (`Partial<Record<GridAction, KeyBinding[]>>`).
 - `GridCommand<TData>` (`{ run, when?, scope?, label?, group? }`) and `GridCommandCtx<TData>`
-  (`{ api, cell, viewRowIndex, row, readOnly }`) — the custom-command contract behind the
-  `commands` prop; `scope` selects the dispatching surface (`"grid"`, `"editing"`, `"always"`),
-  and `CommandGroup` names the keybindings dialog's sections. See
+  (`{ api, cell, viewRowIndex, viewColumnIndex, row, readOnly }`) — the custom-command contract
+  behind the `commands` prop. `scope` selects when the command dispatches (`"grid"`,
+  `"editing"`, `"always"`), and `CommandGroup` names the keybindings dialog's sections. See
   [Keybindings: Custom commands](/docs/addons/keybindings#custom-commands).
 - `RowMarkersMode`, `HeaderClickBehavior`, and `DensityMode`.
 - `ColumnLayout` (`{ widths, order, pins, hidden }`), the `defaultColumnLayout` and

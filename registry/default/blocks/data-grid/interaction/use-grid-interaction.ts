@@ -217,6 +217,8 @@ function scrollCellIntoView(scrollElement: HTMLElement, coord: ViewCoord, layout
  * the caller's event handler, invoked only for the actions that would preventDefault in-grid.
  * Not part of the public hook surface.
  */
+const handledKeyEvents = new WeakSet<Event>();
+
 export function dispatchGridAction(args: {
   action: GridAction;
   actions: DataGridActions;
@@ -238,9 +240,7 @@ export function dispatchGridAction(args: {
   const rowCount = state.viewIndex.length;
   const colCount = state.visibleColumns.length;
 
-  // Custom-command tier: a keymap name resolving to a `commands` entry dispatches there instead of
-  // the built-in switch (a name shadowing a built-in wins, dev-warned at sync time). Scope
-  // eligibility is the caller's check (grid keydown vs editor keydown), so it is not repeated here.
+  // A command name shadowing a built-in action wins; callers check the command's scope.
   const command = state.commands?.[action];
   if (command) {
     const api = buildApiHandle<unknown>({ actions, storeApi, containerRef: scrollRef });
@@ -251,8 +251,7 @@ export function dispatchGridAction(args: {
       coord === null
         ? null
         : {
-            // a cursor outside the view is unreachable (every view rebuild clamps it); the
-            // empty rowId matches the active-cell event's dangling-coord fallback
+            // Every view rebuild clamps the cursor, so an unresolved row id stays a defensive fallback.
             rowId:
               dataRowIndex === undefined
                 ? ""
@@ -265,6 +264,7 @@ export function dispatchGridAction(args: {
       api,
       cell,
       viewRowIndex: coord === null ? null : coord.row,
+      viewColumnIndex: coord === null ? null : coord.col,
       row,
       readOnly: readOnly ?? false,
     };
@@ -838,6 +838,9 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   const onKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLElement>) => {
       if (event.nativeEvent.isComposing) return;
+      // React can deliver a portaled popup's keydown twice when another portal listens on an ancestor container.
+      if (handledKeyEvents.has(event.nativeEvent)) return;
+      handledKeyEvents.add(event.nativeEvent);
 
       // A commit/cancel keystroke (e.g. Enter) handled by the editor's own onKeyDown already
       // updated the store (ending edit mode) before this bubbled handler runs on the same
@@ -868,64 +871,43 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         altKey: event.altKey,
       };
 
-      if (fromEditorInput) {
-        // Keys from the editor's input while a session is open: only commands scoped to
-        // "editing"/"always" dispatch here — the editor's own handler owns the built-in
-        // contract (Enter/Escape/Tab), and just-finished edits (editing === null) pass.
-        if (editing) {
-          const action = matchKeymap(keymapEvent, keymap, isMacRef.current);
-          if (action !== null) {
-            const command = state.commands?.[action];
-            // scope defaults to "grid": only "editing"/"always" dispatch from the editor's keydown
-            if (command && (command.scope ?? "grid") !== "grid") {
-              dispatchGridAction({
-                action,
-                actions,
-                storeApi,
-                scrollRef,
-                scrollCellIntoView: scrollActiveCellIntoView,
-                rowHeight: layoutRef.current.rowHeight,
-                readOnly,
-                triggerKey: isPrintableKey(keymapEvent) ? keymapEvent.key : undefined,
-                preventDefault: () => event.preventDefault(),
-                fillDown,
-                fillRight,
-                cancelFillDrag,
-              });
-            }
-          }
+      const dispatch = (action: GridAction) =>
+        dispatchGridAction({
+          action,
+          actions,
+          storeApi,
+          scrollRef,
+          scrollCellIntoView: scrollActiveCellIntoView,
+          rowHeight: layoutRef.current.rowHeight,
+          readOnly,
+          triggerKey: isPrintableKey(keymapEvent) ? keymapEvent.key : undefined,
+          preventDefault: () => event.preventDefault(),
+          fillDown,
+          fillRight,
+          cancelFillDrag,
+        });
+
+      // While a session is open the editor owns the built-in keys; only editor-scoped commands dispatch.
+      if (editing || fromEditorInput) {
+        const commands = state.commands;
+        if (editing && commands) {
+          const action = matchKeymap(keymapEvent, keymap, isMacRef.current, (a) => {
+            const scope = commands[a]?.scope;
+            return scope === "editing" || scope === "always";
+          });
+          if (action !== null) dispatch(action);
         }
         return;
       }
 
-      // while editing, the editor owns every key (including its own Tab/Enter commit contract)
-      if (editing) return;
-
+      const commands = state.commands;
+      const notEditorOnly = commands ? (a: GridAction) => commands[a]?.scope !== "editing" : undefined;
       // unbound printable key = implicit editReplace trigger (Excel behavior); a consumer keymap that DEFINES editReplace (even []) takes it over and disables the fallback
       const action =
-        matchKeymap(keymapEvent, keymap, isMacRef.current) ??
+        matchKeymap(keymapEvent, keymap, isMacRef.current, notEditorOnly) ??
         (isPrintableKey(keymapEvent) && keymap.editReplace === undefined ? "editReplace" : null);
 
-      if (!action) return;
-
-      // A command scoped "editing" never fires from the grid's own keydown: its binding belongs
-      // to the editor's input, so the key passes through untouched (no preventDefault).
-      if (state.commands?.[action]?.scope === "editing") return;
-
-      dispatchGridAction({
-        action,
-        actions,
-        storeApi,
-        scrollRef,
-        scrollCellIntoView: scrollActiveCellIntoView,
-        rowHeight: layoutRef.current.rowHeight,
-        readOnly,
-        triggerKey: isPrintableKey(keymapEvent) ? keymapEvent.key : undefined,
-        preventDefault: () => event.preventDefault(),
-        fillDown,
-        fillRight,
-        cancelFillDrag,
-      });
+      if (action) dispatch(action);
     },
     [actions, cancelFillDrag, fillDown, fillRight, keymap, readOnly, scrollActiveCellIntoView, scrollRef, storeApi],
   );
