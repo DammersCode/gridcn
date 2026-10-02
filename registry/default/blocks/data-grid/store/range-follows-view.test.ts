@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ColumnDef } from "../types";
+import type { ColumnDef, DataChange } from "../types";
 import { createDataGridStore } from "./create-store";
 import type { InternalSyncProps } from "./types";
 
@@ -26,5 +26,19 @@ describe("a foreign data swap with a single-cell range (100k rows)", () => {
 
     expect(getRowId.mock.calls.length).toBeLessThan(100);
     expect(store.getState().selection.current).not.toBeNull();
+  });
+});
+
+describe("a range after the visible columns change", () => {
+  it("does not clear a different column when a column left of it is hidden", () => {
+    const onDataChange = vi.fn<(next: readonly unknown[], change: DataChange<unknown>) => void>();
+    const store = createDataGridStore({ data: makeRows(3), columns, getRowId: (row: Row) => row.id, onDataChange } as InternalSyncProps);
+    store.getState().actions.selectCellAt({ row: 0, col: 1 });
+
+    store.getState().actions.setColumnHidden("id", true);
+    store.getState().actions.deleteSelection();
+
+    const notes = (store.getState().data as readonly Row[]).map((row) => row.note);
+    expect(notes).toEqual(["Note 0", "Note 1", "Note 2"]);
   });
 });

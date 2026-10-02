@@ -183,6 +183,21 @@ export function rectsKeepRecords(
   return true;
 }
 
+/** Whether every column a range covers still shows the same column id at its position. */
+export function rectsKeepColumns(
+  rects: readonly GridRect[],
+  prevVisibleColumns: readonly AnyColumnDef[],
+  nextVisibleColumns: readonly AnyColumnDef[],
+): boolean {
+  if (prevVisibleColumns === nextVisibleColumns) return true;
+  for (const rect of rects) {
+    for (let col = rect.x; col < rect.x + rect.width; col++) {
+      if (prevVisibleColumns[col]?.id !== nextVisibleColumns[col]?.id) return false;
+    }
+  }
+  return true;
+}
+
 function allRowsSame(rect: GridRect, sameRecordAt: (viewRow: number) => boolean): boolean {
   for (let viewRow = rect.y; viewRow < rect.y + rect.height; viewRow++) if (!sameRecordAt(viewRow)) return false;
   return true;

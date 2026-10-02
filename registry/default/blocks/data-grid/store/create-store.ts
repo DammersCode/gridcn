@@ -35,6 +35,7 @@ import {
   mergeCellErrors,
   nextDirection,
   pruneCellErrors,
+  rectsKeepColumns,
   rectsKeepRecords,
   remapColumnChannel,
   remapRowChannel,
@@ -203,11 +204,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           return prevRow !== undefined && nextRow !== undefined && s.getRowId(prevRow, prevDataRow) === getRowId(nextRow, nextDataRow);
         }
       : undefined;
+    const rects = current ? [current.range, ...current.rangeStack] : [];
     if (
       !editRemap.selection &&
       !("selection" in cursor) &&
       current &&
-      !rectsKeepRecords([current.range, ...current.rangeStack], s.viewIndex, viewIndex, toNextDataRow, sameRecordAt)
+      !(rectsKeepRecords(rects, s.viewIndex, viewIndex, toNextDataRow, sameRecordAt) && rectsKeepColumns(rects, s.visibleColumns, visibleColumns))
     ) {
       base = { ...base, current: null };
     }
