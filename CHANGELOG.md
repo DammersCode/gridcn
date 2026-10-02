@@ -917,16 +917,19 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   rejects the whole import.
 
 - **Legacy xls bound (`data-grid-io`):** an `.xls` workbook is rejected with `errorTooManyCells` when
-  its sheets together span more than `maxCells`. The reader pads every sheet to a full rectangle, and
-  sheets can share one worksheet substream, so a 3 KB file with 50 such sheets peaked near 2.9 GB.
-  The check reads the workbook's cell records in one linear pass before the reader runs, and rejects a
-  workbook whose structure it cannot follow. A single sheet at the default limits peaks near 0.2 GB.
+  its sheets together span more than `maxCells`, or when it holds more than half of `maxCells` plus
+  100,000 records. The reader pads every sheet to a full rectangle and builds one object per record, and
+  sheets can share one worksheet substream, so a 3 KB file with 50 such sheets peaked near 2.9 GB and
+  a 50 MB file of empty records near 2.8 GB. The check reads the workbook's records in time linear in
+  the file size before the reader runs, follows the OLE2 container the way the reader does, and
+  rejects a workbook whose structure it cannot follow. A single sheet at the default limits peaks
+  near 0.2 GB.
 
 - **Part-size error (`data-grid-io`):** an xlsx part over the per-part cap (a worksheet or the shared
   strings, a ZIP64 marker included) is rejected with the new `labels.io.errorPartTooLarge` instead of
   `errorFileTooLarge`. The message says that a part of the file is too large to read safely and that
   the import limit can be raised. `ImportErrorKey` gains `"errorPartTooLarge"`, `parseImportFile`
-  throws `part-too-large` (exported as `PART_TOO_LARGE_MESSAGE`), and `labels.io` gains the key.
+  throws the error code `part-too-large`, and `labels.io` gains the key.
   `errorFileTooLarge` stays for a file over `maxFileBytes`.
 
 ## 0.1.0

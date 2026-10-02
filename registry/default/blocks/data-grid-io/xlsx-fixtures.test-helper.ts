@@ -175,12 +175,16 @@ const BIFF_EOF = 0x0a;
 const BIFF_BOUNDSHEET = 0x85;
 const BIFF_NUMBER = 0x203;
 const BIFF_MULRK = 0xbd;
+const BIFF_JUNK = 0x1234;
+const SECTOR = 512;
+const END_OF_CHAIN = 0xfffffffe;
+const FREE_SECTOR = 0xffffffff;
 
-function biffBof(substream: "globals" | "worksheet", version = 0x600): Uint8Array {
-  const data = new Uint8Array(16);
+function biffBof(substream: "globals" | "worksheet", dataLength = 16, version = 0x600): Uint8Array {
+  const data = new Uint8Array(dataLength);
   const view = new DataView(data.buffer);
-  view.setUint16(0, version, true);
-  view.setUint16(2, substream === "globals" ? 0x05 : 0x10, true);
+  if (dataLength >= 2) view.setUint16(0, version, true);
+  if (dataLength >= 4) view.setUint16(2, substream === "globals" ? 0x05 : 0x10, true);
   return biffRecord(BIFF_BOF, data);
 }
 
@@ -193,12 +197,11 @@ function biffNumber(row: number, col: number): Uint8Array {
   return biffRecord(BIFF_NUMBER, data);
 }
 
-function biffMulrk(row: number, firstCol: number, count: number): Uint8Array {
-  const data = new Uint8Array(4 + count * 6 + 2);
+function biffMulrk(row: number, firstCol: number, count: number, extraBytes: number): Uint8Array {
+  const data = new Uint8Array(4 + count * 6 + 2 + extraBytes);
   const view = new DataView(data.buffer);
   view.setUint16(0, row, true);
   view.setUint16(2, firstCol, true);
-  view.setUint16(data.length - 2, firstCol + count - 1, true);
   return biffRecord(BIFF_MULRK, data);
 }
 
@@ -210,75 +213,204 @@ function biffBoundSheet(position: number, name: string): Uint8Array {
   return biffRecord(BIFF_BOUNDSHEET, data);
 }
 
-/** Wraps `stream` as the `Workbook` stream of a 512-byte-sector OLE2 container, padded to the 4096-byte mini-stream cutoff. */
-function writeOle2(stream: Uint8Array): Uint8Array<ArrayBuffer> {
-  const sector = 512;
-  const sectors = Math.max(8, Math.ceil(stream.length / sector));
-  const END = 0xfffffffe;
-  const FREE = 0xffffffff;
-  const out = new Uint8Array(sector * (3 + sectors));
+type Ole2Stream = { name: string; data: Uint8Array; mini?: boolean };
+
+/** Header and table edits a hostile OLE2 container can make, applied as the container is laid out. */
+export type Ole2Forgery = {
+  miniCutoff?: number;
+  miniShift?: number;
+  numFatSectors?: number;
+  /** Extra header DIFAT entries, after the FAT sectors the container uses. */
+  headerFatSectors?: number[];
+  /** Overwrites FAT entries, `sector -> next`. */
+  fatLinks?: Record<number, number>;
+  /** Directory entries written as given, after the streams. */
+  rawEntries?: { name: string; type: number; start: number; size: number }[];
+  /** Size to declare for the Workbook stream instead of its real size. */
+  workbookSize?: number;
+  /** Adds a one-byte stream of this name whose sector chain loops on itself. */
+  cycleStream?: string;
+  /** Lists the FAT sectors in a DIFAT sector instead of the header. */
+  difat?: boolean;
+};
+
+/** Lays streams out in a 512-byte-sector OLE2 container: FAT, directory, mini FAT and mini stream when any stream is mini, then regular streams padded to 4096 bytes. */
+function writeOle2(streams: Ole2Stream[], forgery: Ole2Forgery = {}): Uint8Array<ArrayBuffer> {
+  const regular = streams.filter((stream) => !stream.mini);
+  const mini = streams.filter((stream) => stream.mini);
+  const entryCount = 1 + streams.length + (forgery.rawEntries?.length ?? 0) + (forgery.cycleStream ? 1 : 0);
+  const directorySectors = Math.ceil(entryCount / 4);
+  const miniOffsets: number[] = [];
+  let miniSize = 0;
+  for (const stream of mini) {
+    miniOffsets.push(miniSize / 64);
+    miniSize += Math.ceil(stream.data.length / 64) * 64;
+  }
+  const miniFatSectors = mini.length > 0 ? 1 : 0;
+  const miniStreamSectors = Math.ceil(miniSize / SECTOR);
+  const regularSectors = regular.map((stream) => Math.max(8, Math.ceil(stream.data.length / SECTOR)));
+  const dataSectors =
+    directorySectors + miniFatSectors + miniStreamSectors + regularSectors.reduce((sum, count) => sum + count, 0) + (forgery.cycleStream ? 1 : 0) + (forgery.difat ? 1 : 0);
+  let fatSectors = 1;
+  while (fatSectors * (SECTOR / 4) < fatSectors + dataSectors) fatSectors++;
+  const directoryAt = fatSectors;
+  const miniFatAt = directoryAt + directorySectors;
+  const miniStreamAt = miniFatAt + miniFatSectors;
+  const regularAt: number[] = [];
+  let next = miniStreamAt + miniStreamSectors;
+  for (const count of regularSectors) {
+    regularAt.push(next);
+    next += count;
+  }
+  const cycleSector = forgery.cycleStream ? next++ : -1;
+  const difatSector = forgery.difat ? next++ : -1;
+  const out = new Uint8Array(SECTOR * (1 + next));
   const view = new DataView(out.buffer);
+  const sectorOffset = (sector: number) => (sector + 1) * SECTOR;
   out.set([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1], 0);
   view.setUint16(24, 0x3e, true);
   view.setUint16(26, 3, true);
   view.setUint16(28, 0xfffe, true);
   view.setUint16(30, 9, true);
-  view.setUint16(32, 6, true);
-  view.setUint32(44, 1, true);
-  view.setUint32(48, 1, true);
-  view.setUint32(56, 4096, true);
-  view.setUint32(60, END, true);
-  view.setUint32(68, END, true);
-  for (let i = 0; i < 109; i++) view.setUint32(76 + i * 4, i === 0 ? 0 : FREE, true);
-  const fat = sector;
-  for (let i = 0; i < sector / 4; i++) view.setUint32(fat + i * 4, FREE, true);
-  view.setUint32(fat, 0xfffffffd, true);
-  view.setUint32(fat + 4, END, true);
-  for (let i = 0; i < sectors; i++) view.setUint32(fat + (2 + i) * 4, i === sectors - 1 ? END : 3 + i, true);
-  const directory = 2 * sector;
-  const entry = (at: number, name: string, type: number, start: number, size: number) => {
+  view.setUint16(32, forgery.miniShift ?? 6, true);
+  view.setUint32(44, forgery.numFatSectors ?? fatSectors, true);
+  view.setUint32(48, directoryAt, true);
+  view.setUint32(56, forgery.miniCutoff ?? 4096, true);
+  view.setUint32(60, mini.length > 0 ? miniFatAt : END_OF_CHAIN, true);
+  view.setUint32(64, miniFatSectors, true);
+  view.setUint32(68, difatSector >= 0 ? difatSector : END_OF_CHAIN, true);
+  view.setUint32(72, difatSector >= 0 ? 1 : 0, true);
+  for (let i = 0; i < 109; i++) {
+    const listed = i < fatSectors ? i : (forgery.headerFatSectors?.[i - fatSectors] ?? FREE_SECTOR);
+    view.setUint32(76 + i * 4, difatSector >= 0 ? FREE_SECTOR : listed, true);
+  }
+  if (difatSector >= 0) {
+    for (let i = 0; i < SECTOR / 4; i++) view.setUint32(sectorOffset(difatSector) + i * 4, i < fatSectors ? i : FREE_SECTOR, true);
+    view.setUint32(sectorOffset(difatSector) + SECTOR - 4, END_OF_CHAIN, true);
+  }
+  for (let i = 0; i < (fatSectors * SECTOR) / 4; i++) view.setUint32(sectorOffset(0) + i * 4, FREE_SECTOR, true);
+  const link = (sector: number, to: number) => view.setUint32(sectorOffset(0) + sector * 4, to, true);
+  for (let i = 0; i < fatSectors; i++) link(i, 0xfffffffd);
+  const chain = (start: number, count: number) => {
+    for (let i = 0; i < count; i++) link(start + i, i === count - 1 ? END_OF_CHAIN : start + i + 1);
+  };
+  chain(directoryAt, directorySectors);
+  if (miniFatSectors > 0) {
+    chain(miniFatAt, 1);
+    for (let i = 0; i < miniSize / 64; i++) view.setUint32(sectorOffset(miniFatAt) + i * 4, i + 1 < miniSize / 64 && !miniOffsets.includes(i + 1) ? i + 1 : END_OF_CHAIN, true);
+  }
+  if (miniStreamSectors > 0) chain(miniStreamAt, miniStreamSectors);
+  regularSectors.forEach((count, i) => chain(regularAt[i]!, count));
+  if (cycleSector >= 0) link(cycleSector, cycleSector);
+  if (difatSector >= 0) link(difatSector, 0xfffffffc);
+  for (const [sector, to] of Object.entries(forgery.fatLinks ?? {})) link(Number(sector), to);
+  const entry = (index: number, name: string, type: number, start: number, size: number) => {
+    const at = sectorOffset(directoryAt) + index * 128;
     for (let i = 0; i < name.length; i++) view.setUint16(at + i * 2, name.charCodeAt(i), true);
     view.setUint16(at + 64, (name.length + 1) * 2, true);
     out[at + 66] = type;
-    view.setUint32(at + 68, FREE, true);
-    view.setUint32(at + 72, FREE, true);
-    view.setUint32(at + 76, FREE, true);
+    view.setUint32(at + 68, FREE_SECTOR, true);
+    view.setUint32(at + 72, FREE_SECTOR, true);
+    view.setUint32(at + 76, FREE_SECTOR, true);
     view.setUint32(at + 116, start, true);
     view.setUint32(at + 120, size, true);
   };
-  entry(directory, "Root Entry", 5, END, 0);
-  entry(directory + 128, "Workbook", 2, 2, sectors * sector);
-  out.set(stream, 3 * sector);
+  entry(0, "Root Entry", 5, miniStreamSectors > 0 ? miniStreamAt : END_OF_CHAIN, miniSize);
+  let index = 1;
+  let regularIndex = 0;
+  let miniIndex = 0;
+  for (const stream of streams) {
+    const declared = stream.name === "Workbook" ? forgery.workbookSize : undefined;
+    if (stream.mini) {
+      const at = miniOffsets[miniIndex]!;
+      out.set(stream.data, sectorOffset(miniStreamAt) + at * 64);
+      entry(index++, stream.name, 2, at, declared ?? stream.data.length);
+      miniIndex++;
+    } else {
+      out.set(stream.data, sectorOffset(regularAt[regularIndex]!));
+      entry(index++, stream.name, 2, regularAt[regularIndex]!, declared ?? regularSectors[regularIndex]! * SECTOR);
+      regularIndex++;
+    }
+  }
+  for (const raw of forgery.rawEntries ?? []) entry(index++, raw.name, raw.type, raw.start, raw.size);
+  if (forgery.cycleStream) entry(index++, forgery.cycleStream, 2, cycleSector, 1);
   return out;
 }
 
-/** Byte length of the BIFF record that `forgedXlsFile` writes for the BOF, so a test can point a sheet at the records after it. */
-export const FORGED_XLS_FIRST_RECORD_OFFSET = 20;
+/** The last sector of a container written by {@link forgedXlsFile}; a hostile chain can point at it. */
+export function lastForgedSector(file: File): number {
+  return Math.floor(file.size / SECTOR) - 2;
+}
 
 type ForgedXlsOptions = {
   sheets: number;
   cell: { row: number; col: number };
+  /** One cell per sheet, each in its own worksheet substream; overrides `sheets` and `cell`. */
+  sheetCells?: { row: number; col: number }[];
   /** Write a MULRK record of this many cells starting at `cell`, instead of one number. */
   mulrkCount?: number;
+  /** Bytes added to the MULRK record after its last cell. */
+  mulrkExtraBytes?: number;
   /** Absolute stream offsets the sheets point at, in order; the worksheet substream when omitted. */
   sheetOffsets?: number[];
+  /** Write a record before each worksheet BOF and point the sheets at it. */
+  junkBeforeWorksheet?: boolean;
   /** Leave the worksheet without its EOF record. */
   unterminatedWorksheet?: boolean;
+  /** Four-byte records written into the worksheet after its cell. */
+  junkRecords?: number;
+  /** Data length of the globals BOF record; 16 by default. */
+  globalsBofLength?: number;
+  /** Put the workbook in the mini stream. */
+  mini?: boolean;
+  /** Write a benign workbook under the same stream name ahead of the real one. */
+  decoyWorkbook?: boolean;
+  forgery?: Ole2Forgery;
   name?: string;
   version?: number;
 };
 
-/** A forged BIFF8 `.xls`: every sheet name in `sheets` points at one worksheet substream that holds one number, or one MULRK run, at `cell`. */
-export function forgedXlsFile(options: ForgedXlsOptions): File {
-  const names = Array.from({ length: options.sheets }, (_, i) => `S${i}`);
+/** Offsets of the BOUNDSHEET records of a forged workbook with `names`, for tests that point sheets at them. */
+export function forgedBoundSheetOffsets(names: string[], globalsBofLength = 16): number[] {
+  const offsets: number[] = [];
+  let at = 4 + globalsBofLength;
+  for (const name of names) {
+    offsets.push(at);
+    at += 12 + name.length;
+  }
+  return offsets;
+}
+
+function forgedWorkbookStream(options: ForgedXlsOptions): Uint8Array {
+  const cells = options.sheetCells ?? Array.from({ length: options.sheets }, () => options.cell);
+  const names = cells.map((_, i) => `S${i}`);
   const eof = biffRecord(BIFF_EOF, new Uint8Array(0));
-  const globalsLength = biffBof("globals").length + names.reduce((sum, name) => sum + biffBoundSheet(0, name).length, 0) + eof.length;
-  const globals = concat([
-    biffBof("globals", options.version),
-    ...names.map((name, i) => biffBoundSheet(options.sheetOffsets?.[i] ?? globalsLength, name)),
-    eof,
-  ]);
-  const cell = options.mulrkCount ? biffMulrk(options.cell.row, options.cell.col, options.mulrkCount) : biffNumber(options.cell.row, options.cell.col);
-  const worksheet = concat([biffBof("worksheet"), cell, ...(options.unterminatedWorksheet ? [] : [eof])]);
-  return new File([writeOle2(concat([globals, worksheet]))], options.name ?? "forged.xls", { type: "application/vnd.ms-excel" });
+  const bof = biffBof("globals", options.globalsBofLength, options.version);
+  const globalsLength = bof.length + names.reduce((sum, name) => sum + biffBoundSheet(0, name).length, 0) + eof.length;
+  const worksheets = cells.map((cell) =>
+    concat([
+      ...(options.junkBeforeWorksheet ? [biffRecord(BIFF_JUNK, new Uint8Array(2))] : []),
+      biffBof("worksheet"),
+      options.mulrkCount !== undefined ? biffMulrk(cell.row, cell.col, options.mulrkCount, options.mulrkExtraBytes ?? 0) : biffNumber(cell.row, cell.col),
+      ...Array.from({ length: options.junkRecords ?? 0 }, () => biffRecord(BIFF_JUNK, new Uint8Array(0))),
+      ...(options.unterminatedWorksheet ? [] : [eof]),
+    ]),
+  );
+  const sharedWorksheet = options.sheetCells === undefined;
+  const starts: number[] = [];
+  let at = globalsLength;
+  for (const worksheet of worksheets) {
+    starts.push(at);
+    if (!sharedWorksheet) at += worksheet.length;
+  }
+  const globals = concat([bof, ...names.map((name, i) => biffBoundSheet(options.sheetOffsets?.[i] ?? starts[i]!, name)), eof]);
+  return concat([globals, ...(sharedWorksheet ? worksheets.slice(0, 1) : worksheets)]);
+}
+
+/** A forged BIFF8 `.xls`: by default every sheet points at one worksheet substream that holds one number, or one MULRK run, at `cell`. */
+export function forgedXlsFile(options: ForgedXlsOptions): File {
+  const streams: Ole2Stream[] = [];
+  if (options.decoyWorkbook) streams.push({ name: "Workbook", data: forgedWorkbookStream({ sheets: 1, cell: { row: 0, col: 0 } }) });
+  streams.push({ name: "Workbook", data: forgedWorkbookStream(options), mini: options.mini });
+  return new File([writeOle2(streams, options.forgery)], options.name ?? "forged.xls", { type: "application/vnd.ms-excel" });
 }
