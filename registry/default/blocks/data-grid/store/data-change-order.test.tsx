@@ -276,3 +276,66 @@ describe("a write from a store subscriber during a commit", () => {
     if (mode === "controlled") expect(consumerData()).toBe(data);
   });
 });
+
+describe.each<Mode>(["controlled", "uncontrolled"])("a write from a store subscriber at every emit site (%s)", (mode) => {
+  it.each(sites)("$site emits in gesture order and keeps both writes", ({ run, check }) => {
+    let api: StoreApi<DataGridStoreState> | null = null;
+    let consumerData: readonly Row[] = initialRows;
+    const emits: DataChange<Row>[] = [];
+    let answered = false;
+    function Probe() {
+      api = useDataGridStoreApi();
+      return null;
+    }
+    const onDataChange = (change: DataChange<Row>) => emits.push(change);
+    const rowOps = {
+      createRow: () => ({ id: "new", name: "New", note: "" }),
+      duplicateRow: (row: Row) => ({ ...row, id: `${row.id}2` }),
+    };
+    function Controlled() {
+      const [data, setData] = useState(initialRows);
+      consumerData = data;
+      return (
+        <DataGridProvider
+          data={data}
+          columns={columns}
+          getRowId={getRowId}
+          {...rowOps}
+          onDataChange={(next, change) => {
+            setData(next);
+            onDataChange(change);
+          }}
+        >
+          <Probe />
+        </DataGridProvider>
+      );
+    }
+    function Uncontrolled() {
+      return (
+        <DataGridProvider
+          defaultData={initialRows}
+          columns={columns}
+          getRowId={getRowId}
+          {...rowOps}
+          onDataChange={(_next, change) => onDataChange(change)}
+        >
+          <Probe />
+        </DataGridProvider>
+      );
+    }
+    render(mode === "controlled" ? <Controlled /> : <Uncontrolled />);
+    api!.subscribe((state, prev) => {
+      if (answered || state.data === prev.data) return;
+      answered = true;
+      state.actions.updateCells([{ rowId: "b", columnId: "note", value: "answered" }], { source: "stream" });
+    });
+
+    act(() => run(api!));
+
+    const data = api!.getState().data;
+    check(data);
+    expect(byId(data, "b").note).toBe("answered");
+    expect(emits.map((change) => change.source)).toEqual([expect.not.stringMatching(/^stream$/), "stream"]);
+    if (mode === "controlled") expect(consumerData).toBe(data);
+  });
+});

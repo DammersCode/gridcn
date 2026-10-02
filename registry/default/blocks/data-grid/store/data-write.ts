@@ -106,9 +106,21 @@ export function writeThenEmit(
     write();
   } finally {
     ctx.writeDepth -= 1;
+    if (ctx.writeDepth === 0) flushEmits(ctx);
   }
-  if (ctx.writeDepth > 0) return;
-  for (let emit = ctx.pendingEmits.shift(); emit; emit = ctx.pendingEmits.shift()) emit();
+}
+
+/** Delivers every queued emit even when one throws, then rethrows the first error. */
+function flushEmits(ctx: DataWriteContext): void {
+  let failure: { error: unknown } | null = null;
+  for (let emit = ctx.pendingEmits.shift(); emit; emit = ctx.pendingEmits.shift()) {
+    try {
+      emit();
+    } catch (error) {
+      failure ??= { error };
+    }
+  }
+  if (failure) throw failure.error;
 }
 
 /** Any path that writes values or moves rows outside a held batch: give up tracking and drop the token. */
