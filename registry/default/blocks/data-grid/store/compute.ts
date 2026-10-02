@@ -136,6 +136,32 @@ export function remapRowChannel(
   return rows.equals(next) ? rows : next;
 }
 
+/**
+ * Whether `rects` cover the same set of records after a view rebuild. Each covered view row maps to
+ * its data row, through `toNextDataRow` when `data` was replaced, and is compared with the data row
+ * the rebuilt view shows at that position.
+ */
+export function rectsKeepRecords(
+  rects: readonly GridRect[],
+  prevViewIndex: readonly number[],
+  nextViewIndex: readonly number[],
+  toNextDataRow?: (prevDataRow: number) => number | undefined,
+): boolean {
+  if (prevViewIndex === nextViewIndex && !toNextDataRow) return true;
+  const prevRecords = new Set<number | undefined>();
+  const nextRecords = new Set<number | undefined>();
+  for (const rect of rects) {
+    for (let viewRow = rect.y; viewRow < rect.y + rect.height; viewRow++) {
+      const prevDataRow = prevViewIndex[viewRow];
+      prevRecords.add(prevDataRow === undefined || !toNextDataRow ? prevDataRow : toNextDataRow(prevDataRow));
+      nextRecords.add(nextViewIndex[viewRow]);
+    }
+  }
+  if (prevRecords.size !== nextRecords.size) return false;
+  for (const record of prevRecords) if (!nextRecords.has(record)) return false;
+  return true;
+}
+
 /** Row id shown at `viewRow`, or `undefined` for a missing or unloaded row. */
 export function rowIdAtViewRow(
   s: { viewIndex: readonly number[]; data: readonly unknown[]; getRowId: DataGridStoreState["getRowId"] },

@@ -35,6 +35,7 @@ import {
   mergeCellErrors,
   nextDirection,
   pruneCellErrors,
+  rectsKeepRecords,
   remapRowChannel,
   reorderColumnIds,
   resolveSelectionConfig,
@@ -165,8 +166,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     };
   };
   /**
-   * The cursor, the open edit, and the row channel carried into a rebuilt view. `sameRecords` keeps
-   * data indices as identity (no `data` swap, or our own echo); otherwise the row channel maps by rowId.
+   * The cursor, the open edit, and the selection carried into a rebuilt view. `sameRecords` keeps
+   * data indices as identity (no `data` swap, or our own echo); otherwise records map by rowId, and
+   * a duplicated rowId resolves to the last row with that id. The row channel follows its records;
+   * a range that now covers other records is dropped, so a row op never reaches a record nobody selected.
    */
   const followView = (
     s: DataGridStoreState,
@@ -178,7 +181,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   ): Partial<DataGridStoreState> => {
     const cursor = clampCursor(s, viewIndex.length, visibleColumns.length);
     const editRemap = remapEditing(s, viewIndex, visibleColumns, data, getRowId);
-    const base = editRemap.selection ?? ("selection" in cursor ? cursor.selection : s.selection);
+    let base = editRemap.selection ?? ("selection" in cursor ? cursor.selection : s.selection);
     const toNextDataRow = sameRecords
       ? undefined
       : (prevDataRow: number) => {
@@ -187,6 +190,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           if (row === undefined) return prevDataRow < data.length ? prevDataRow : undefined;
           return rowIndexCache.resolve(data, getRowId).get(s.getRowId(row, prevDataRow));
         };
+    const current = s.selection.current;
+    if (!editRemap.selection && !("selection" in cursor) && current && !rectsKeepRecords([current.range, ...current.rangeStack], s.viewIndex, viewIndex, toNextDataRow)) {
+      base = { ...base, current: null };
+    }
     const rows = remapRowChannel(base.rows, s.viewIndex, viewIndex, toNextDataRow);
     const selection = rows === base.rows ? base : { ...base, rows };
     return { ...cursor, ...editRemap, ...(selection === s.selection ? {} : { selection }) };

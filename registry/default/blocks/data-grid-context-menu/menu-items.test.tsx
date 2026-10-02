@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, waitFor } from "@testing-library/react";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { DataGridProvider, DataGridRoot, defineColumns, useDataGridActions } from "../data-grid/data-grid";
 import {
   useDefaultCellMenuItems,
@@ -187,3 +187,41 @@ describe("useDefaultHeaderMenuItems", () => {
 // The spec renderers need base-ui's Menu.Root context, so they are covered end to end by the
 // browser suite (context-menu.browser.test.tsx "menu resolvers"), not in jsdom.
 
+
+describe("delete-rows after a sort", () => {
+  it("deletes only the checked records, not the records the sort moved under the cursor range", async () => {
+    type Person = { id: string; name: string };
+    const people: Person[] = [
+      { id: "a", name: "Echo" },
+      { id: "b", name: "Alpha" },
+      { id: "c", name: "Delta" },
+      { id: "d", name: "Bravo" },
+      { id: "e", name: "Charlie" },
+    ];
+    const onDataChange = vi.fn();
+    let specs: GridMenuItemSpec[] = [];
+    let actions: ReturnType<typeof useDataGridActions> | null = null;
+    function SortProbe() {
+      actions = useDataGridActions();
+      specs = useDefaultCellMenuItems({ row: 0, canInsertRow: false, canDuplicateRow: false, pasteBlocked: false, onPasteBlocked: () => {} });
+      return null;
+    }
+    render(
+      <DataGridProvider data={people} columns={[{ id: "name", header: "Name", accessorKey: "name" }]} getRowId={(row) => row.id} onDataChange={onDataChange}>
+        <DataGridRoot>
+          <SortProbe />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    act(() => actions!.selectCellAt({ row: 0, col: 0 }));
+    act(() => actions!.setRowSelected(2, true));
+    act(() => actions!.setRowSelected(3, true));
+    act(() => actions!.setSorts([{ columnId: "name", direction: "asc" }]));
+
+    act(() => item(specs, "delete-rows")!.onClick!());
+
+    await waitFor(() => expect(onDataChange).toHaveBeenCalledTimes(1));
+    const ops = onDataChange.mock.calls[0]![1].ops as { rowId: string }[];
+    expect(ops.map((op) => op.rowId).sort()).toEqual(["c", "d"]);
+  });
+});

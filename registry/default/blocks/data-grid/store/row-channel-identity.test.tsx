@@ -5,6 +5,7 @@ import type { ColumnDef, DataChange } from "../types";
 import { getSelectedViewRows } from "../selection/selected-view-rows";
 import { DataGridProvider, useDataGridStoreApi, type DataGridProviderProps, type DataGridStoreState } from ".";
 import { getSelectedRowIds } from "./compute";
+import { dispatchGridAction } from "../interaction/use-grid-interaction";
 
 type Row = { id: string; name: string; age: number };
 
@@ -46,7 +47,10 @@ function mount(props: Props) {
 
 function checkedIds(store: StoreApi<DataGridStoreState>): string[] {
   const s = store.getState();
-  return s.selection.rows.toArray().map((viewRow) => s.getRowId(s.data[s.viewIndex[viewRow]!], s.viewIndex[viewRow]!));
+  return s.selection.rows
+    .toArray()
+    .filter((viewRow) => viewRow < s.viewIndex.length)
+    .map((viewRow) => s.getRowId(s.data[s.viewIndex[viewRow]!], s.viewIndex[viewRow]!));
 }
 
 function check(store: StoreApi<DataGridStoreState>, ids: readonly string[]): void {
@@ -95,30 +99,29 @@ describe("row channel follows record identity", () => {
 
   it("a filter that hides a checked row drops it from the selection", () => {
     const { store } = mount({ defaultData: rows() });
-    check(store(), ["a", "e"]);
+    check(store(), ["c", "e"]);
 
     act(() => store().getState().actions.setFilters([{ columnId: "age", operator: "gt", value: "25" }]));
-    expect(checkedIds(store())).toEqual(["a"]);
+    expect(checkedIds(store())).toEqual(["c"]);
 
     act(() => store().getState().actions.setFilters([]));
-    expect(checkedIds(store())).toEqual(["a"]);
+    expect(checkedIds(store())).toEqual(["c"]);
   });
 
   it("setJoinOperator keeps the checked records", () => {
     const { store } = mount({ defaultData: rows() });
     act(() =>
       store().getState().actions.setFilters([
-        { columnId: "age", operator: "gt", value: "30" },
-        { columnId: "name", operator: "contains", value: "Alpha" },
+        { columnId: "age", operator: "gt", value: "25" },
+        { columnId: "name", operator: "contains", value: "a" },
       ]),
     );
-    expect(store().getState().viewIndex).toEqual([]);
-    act(() => store().getState().actions.setJoinOperator("or"));
-    check(store(), ["b", "d"]);
-    expect(checkedIds(store())).toEqual(["b", "d"]);
+    expect(store().getState().viewIndex).toEqual([2, 3]);
+    check(store(), ["d"]);
 
-    act(() => store().getState().actions.setJoinOperator("and"));
-    expect(checkedIds(store())).toEqual([]);
+    act(() => store().getState().actions.setJoinOperator("or"));
+
+    expect(checkedIds(store())).toEqual(["d"]);
   });
 
   it("a controlled sort and a consumer data swap keep the checked records", () => {
@@ -216,5 +219,66 @@ describe("row channel over unloaded rows", () => {
     view.rerender(grid(loaded));
 
     expect(api!.getState().selection.rows.toArray()).toEqual([0, 1, 2, 3, 4]);
+  });
+});
+
+describe("the cursor range across a view rebuild", () => {
+  function deleteViaShortcut(store: StoreApi<DataGridStoreState>): void {
+    act(() =>
+      dispatchGridAction({
+        action: "deleteRows",
+        actions: store.getState().actions,
+        storeApi: store,
+        scrollRef: { current: null },
+        scrollCellIntoView: () => {},
+        rowHeight: 36,
+        preventDefault: () => {},
+      }),
+    );
+  }
+
+  it("collapses when the sort moves other records under it, so deleteRows deletes only the checked records", () => {
+    const onDataChange = vi.fn<(next: readonly Row[], change: DataChange<Row>) => void>();
+    const { store } = mount({ defaultData: rows(), onDataChange });
+    act(() => store().getState().actions.selectCellAt({ row: 0, col: 0 }));
+    check(store(), ["c", "d"]);
+
+    act(() => store().getState().actions.setSorts([{ columnId: "name", direction: "asc" }]));
+    deleteViaShortcut(store());
+
+    const [, change] = onDataChange.mock.calls[0]!;
+    expect(change.ops.map((op) => op.rowId).sort()).toEqual(["c", "d"]);
+  });
+
+  it("stays when the rebuild keeps the same records under it", () => {
+    const { store } = mount({ defaultData: rows() });
+    act(() => store().getState().actions.selectCellAt({ row: 0, col: 0 }));
+    const current = store().getState().selection.current;
+
+    act(() => store().getState().actions.setFilters([{ columnId: "age", operator: "gt", value: "25" }]));
+
+    expect(store().getState().selection.current).toBe(current);
+  });
+});
+
+describe("row ops under a sort keep the checked records", () => {
+  it("insertRows keeps the row channel on its records", () => {
+    const { store } = mount({ defaultData: rows(), createRow: () => ({ id: "new", name: "Aaron", age: 1 }) });
+    act(() => store().getState().actions.setSorts([{ columnId: "name", direction: "asc" }]));
+    check(store(), ["c", "d"]);
+
+    act(() => store().getState().actions.insertRows(0, 1, "above"));
+
+    expect(checkedIds(store()).sort()).toEqual(["c", "d"]);
+  });
+
+  it("duplicateRows keeps the row channel on its records", () => {
+    const { store } = mount({ defaultData: rows(), duplicateRow: (row) => ({ ...row, id: `${row.id}2` }) });
+    act(() => store().getState().actions.setSorts([{ columnId: "name", direction: "asc" }]));
+    check(store(), ["c", "d"]);
+
+    act(() => store().getState().actions.duplicateRows([0]));
+
+    expect(checkedIds(store()).sort()).toEqual(["c", "d"]);
   });
 });

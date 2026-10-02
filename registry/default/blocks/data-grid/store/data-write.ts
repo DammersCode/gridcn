@@ -6,6 +6,7 @@ import {
   incrementalViewIndex,
   mergeCellErrors,
   pruneCellErrors,
+  remapRowChannel,
   sameElements,
 } from "./compute";
 import {
@@ -161,13 +162,30 @@ export function rebuildRowOpView(s: DataGridStoreState, nextData: readonly unkno
   };
 }
 
-/** With a sort or filter active, inserted rows land anywhere: follow the active row by identity and collapse the selection onto it. */
+/**
+ * With a sort or filter active, inserted rows land anywhere: follow the active row by identity and
+ * collapse the range onto it; the row channel follows its records.
+ */
 export function followActiveRow(s: DataGridStoreState, nextData: readonly unknown[], viewIndex: readonly number[]): Pick<DataGridStoreState, "selection" | "activeCell"> {
+  const checked = s.selection.rows;
+  let rows = emptySelection().rows;
+  if (checked.length > 0) {
+    const records = new Set<unknown>();
+    for (const viewRow of checked.toArray()) {
+      const record = s.data[s.viewIndex[viewRow] ?? -1];
+      if (record !== undefined) records.add(record);
+    }
+    const nextIndexOf = new Map<unknown, number>();
+    nextData.forEach((record, index) => {
+      if (records.has(record)) nextIndexOf.set(record, index);
+    });
+    rows = remapRowChannel(checked, s.viewIndex, viewIndex, (prevDataRow) => nextIndexOf.get(s.data[prevDataRow]));
+  }
   const dataRow = s.activeCell ? s.viewIndex[s.activeCell.row] : undefined;
   const row = dataRow === undefined || s.data[dataRow] === undefined ? -1 : viewIndex.indexOf(nextData.indexOf(s.data[dataRow]));
-  if (!s.activeCell || row === -1) return { selection: emptySelection(), activeCell: null };
+  if (!s.activeCell || row === -1) return { selection: { ...emptySelection(), rows }, activeCell: null };
   const cell = { col: s.activeCell.col, row };
-  return { selection: { ...emptySelection(), current: { cell, range: rectFromCorners(cell, cell), rangeStack: [] } }, activeCell: cell };
+  return { selection: { ...emptySelection(), rows, current: { cell, range: rectFromCorners(cell, cell), rangeStack: [] } }, activeCell: cell };
 }
 
 type SetState = (partial: Partial<DataGridStoreState>) => void;

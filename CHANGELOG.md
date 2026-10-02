@@ -318,10 +318,13 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 - **Breaking:** checked rows follow their records (`data-grid`). The row channel
   (`selection.rows`, the marker checkboxes) moves with each record when a sort, filter, join
-  operator, consumer `data` swap, or `updateCells` reorder rebuilds the view. A record that leaves
-  the view leaves the selection, and it stays unchecked when it comes back. `deleteRows`,
-  `duplicateRows`, the row shortcuts, the context menu, and `getRowIds()` act on the checked
-  records. Before, the checks stayed on view positions, so a sort moved them onto other records.
+  operator, consumer `data` swap, `updateCells` reorder, or a row insert or duplicate under a sort
+  or filter changes the view. A record that leaves the view leaves the selection, and it stays
+  unchecked when it comes back. When a rebuild puts other records under the cursor range, the
+  grid drops the range and keeps the active cell. So `deleteRows`, `duplicateRows`, the row
+  shortcuts, the context menu, and `getRowIds()` never act on a record that nobody selected.
+  Before, the checks and the range stayed on view positions, so a sort moved them onto other
+  records, and a row insert or duplicate under a sort cleared the checks.
 - **Breaking:** `useDataGridActions()` and `useDataGridStoreProps().actions` return only the
   public actions (`data-grid`). The `_`-prefixed internal actions, such as `_registerReadOnly` and
   `_syncProps`, are gone from both the `DataGridActions` type and the returned object, so consumer

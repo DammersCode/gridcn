@@ -11,6 +11,12 @@ A selection has an **anchor cell** (the active cell, Excel's white cell) and a r
 ctrl-clicked ranges. Rows and columns also have their own whole-row and whole-column selection
 channels, through marker-column checkbox clicks and header clicks, independent of the range.
 
+Checked rows follow their records when a sort, filter, or new `data` array rebuilds the view.
+When a row leaves the view, the grid unchecks it. Row ids must be unique: when two rows share an
+id, the check follows the last row with that id. When a rebuild puts other records under the
+range, the grid drops the range and keeps the active cell, so a row operation never reaches a
+record that you did not select.
+
 Selection overlays are placed on grid lines and render with zero cell re-renders. Dragging a
 selection never re-renders a single cell.
 
