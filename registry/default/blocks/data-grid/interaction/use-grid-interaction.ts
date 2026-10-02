@@ -217,8 +217,6 @@ function scrollCellIntoView(scrollElement: HTMLElement, coord: ViewCoord, layout
  * the caller's event handler, invoked only for the actions that would preventDefault in-grid.
  * Not part of the public hook surface.
  */
-const handledKeyEvents = new WeakSet<Event>();
-
 export function dispatchGridAction(args: {
   action: GridAction;
   actions: DataGridActions;
@@ -835,12 +833,13 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
     [scrollRef],
   );
 
+  const lastKeyEvent = useRef<Event | null>(null);
   const onKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLElement>) => {
       if (event.nativeEvent.isComposing) return;
-      // React can deliver a portaled popup's keydown twice when another portal listens on an ancestor container.
-      if (handledKeyEvents.has(event.nativeEvent)) return;
-      handledKeyEvents.add(event.nativeEvent);
+      // Base UI mounts its popup container through a React portal, so React dispatches a popup keydown twice.
+      if (lastKeyEvent.current === event.nativeEvent) return;
+      lastKeyEvent.current = event.nativeEvent;
 
       // A key from an editor (inline, or a portaled popup) belongs to that edit even after its own handler ended it.
       const target = event.target as HTMLElement | null;

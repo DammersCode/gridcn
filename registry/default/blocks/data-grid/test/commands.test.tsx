@@ -241,6 +241,52 @@ describe("custom keymap commands through <DataGrid commands keymap>", () => {
     expect(run).toHaveBeenCalledTimes(1);
   });
 
+  it("handles one native keydown once per grid, so an outer grid still sees a nested grid's key", () => {
+    const innerRun = vi.fn();
+    const outerRun = vi.fn();
+    const innerColumns: readonly ColumnDef<Row, unknown>[] = [{ id: "name", header: "Name", accessorKey: "name" }];
+    const outerColumns: readonly ColumnDef<Row, unknown>[] = [
+      {
+        id: "name",
+        header: "Name",
+        accessorKey: "name",
+        renderCell: (ctx) =>
+          ctx.rowId === "1" ? (
+            <div data-testid="inner">
+              <DataGrid
+                data={rows()}
+                columns={innerColumns}
+                getRowId={(r) => r.id}
+                commands={{ innerCmd: { run: innerRun } }}
+                keymap={{ innerCmd: ["mod+k"] } as Keymap}
+              />
+            </div>
+          ) : (
+            String(ctx.value)
+          ),
+      },
+    ];
+    render(
+      <DataGrid
+        data={rows()}
+        columns={outerColumns}
+        getRowId={(r) => r.id}
+        commands={{ outerCmd: { run: outerRun } }}
+        keymap={{ outerCmd: ["mod+k"] } as Keymap}
+      />,
+    );
+    const innerGrid = screen.getByTestId("inner").querySelector('[role="grid"]')!;
+    const event = new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true, cancelable: true });
+    act(() => {
+      innerGrid.dispatchEvent(event);
+    });
+    act(() => {
+      innerGrid.dispatchEvent(event);
+    });
+    expect(innerRun).toHaveBeenCalledTimes(1);
+    expect(outerRun).toHaveBeenCalledTimes(1);
+  });
+
   it("a commands entry named editReplace dev-warns the shadow and takes over an explicit binding", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const run = vi.fn();
