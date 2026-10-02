@@ -297,6 +297,50 @@ describe("useFillHandle staleness guard — async fill held against a real store
   /** Lets every queued microtask drain, which is all a held batch needs to resolve. */
   const settle = () => act(async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); });
 
+  it("fires onValidationError with source fill after the accepted cells apply", () => {
+    const order: string[] = [];
+    const onDataChange = vi.fn(() => order.push("data"));
+    const onValidationError = vi.fn(() => order.push("validation"));
+    const rowAwareColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      { id: "qty", header: "Qty", accessorKey: "qty", type: "number", validate: (_value, row) => (row.id === "3" ? "row 3 is locked" : null) },
+    ];
+    const result = setUpFill(makeWrapper(rowAwareColumns, { onDataChange, onValidationError }));
+    act(() => result.current.actions.extendToAt({ col: 1, row: 2 }));
+
+    act(() => result.current.fill.fillDown());
+
+    expect(order).toEqual(["data", "validation"]);
+    expect(onValidationError).toHaveBeenCalledWith({
+      source: "fill",
+      rejected: [{ rowId: "3", columnId: "qty", viewRowIndex: 2, value: 2, message: "row 3 is locked" }],
+    });
+  });
+
+  it("fires onValidationError with source fill once a held fill settles", async () => {
+    const onValidationError = vi.fn();
+    const rejectingColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      {
+        id: "qty",
+        header: "Qty",
+        accessorKey: "qty",
+        type: "number",
+        validate: { "~standard": { version: 1, vendor: "mock", validate: async () => ({ issues: [{ message: "bad" }] }) } } as never,
+      },
+    ];
+    const result = setUpFill(makeWrapper(rejectingColumns, { onValidationError }));
+
+    act(() => result.current.fill.fillDown());
+    expect(onValidationError).not.toHaveBeenCalled();
+    await settle();
+
+    expect(onValidationError).toHaveBeenCalledWith({
+      source: "fill",
+      rejected: [{ rowId: "2", columnId: "qty", viewRowIndex: 1, value: 2, message: "bad" }],
+    });
+  });
+
   it("drops a held fill and its rejections when the grid turns read-only before it settles", async () => {
     const onDataChange = vi.fn();
     const onValidationError = vi.fn();

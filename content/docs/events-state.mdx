@@ -26,7 +26,7 @@ sort or filter a column, drag-fill, scroll, resize, pin, or hide a column) to se
 | React to a plain click on a cell or row | `onCellClick` + `onRowClick` | [6. `onCellClick` + `onRowClick`](#6-oncellclick--onrowclick) |
 | Veto or react to an edit starting or ending | `onEditStart` + `onEditEnd` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
 | React to the active cell moving | `onActiveCellChange` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
-| React to cells a bulk paste or fill rejected | `onValidationError` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
+| React to cells a bulk paste, fill, or `updateCells` rejected | `onValidationError` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
 | React to a double-click or right-click on a cell | `onCellDoubleClick` + `onCellContextMenu` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
 | Fetch rows for the rendered window on demand | `onRowWindowChange` | [7. `onRowWindowChange`](#7-onrowwindowchange) |
 | Save and restore a user's column layout | `onColumnLayoutChange` + `defaultColumnLayout` + `onColumnResizing` | [8. `onColumnLayoutChange` + `defaultColumnLayout` + `onColumnResizing`](#8-oncolumnlayoutchange--defaultcolumnlayout--oncolumnresizing) |
@@ -361,13 +361,16 @@ zero-re-render guarantee as the other callbacks on this page.
   the active cell. This happens even when other rows stay in the view.
 - When the active cell's row or column leaves the view, the grid clamps the active cell to its
   view position, or to the nearest in-view cell, and `onActiveCellChange` fires. When the clamp
-  moves the active cell, the selection collapses onto the clamped cell. When the view becomes empty, the grid clears the active cell and the
-  selection's current range, and fires `onActiveCellChange` with `null`.
-- `onValidationError` fires after a bulk paste or fill settles, only when at least one cell was
-  rejected by validation. The accepted cells are applied first, so their `onDataChange` fires
-  before this event. `GridValidationErrorEvent` is `{ source: "paste" | "fill", rejected }`, and
-   each rejected entry is `{ rowId, columnId, viewRowIndex, value, message }`. Single-cell edits do not use
-  this event. `onEditEnd` with `result: "rejected"` covers that surface.
+  moves the active cell, the selection collapses onto the clamped cell. When the view becomes
+  empty, the grid clears the active cell and the selection's current range, and fires
+  `onActiveCellChange` with `null`.
+- `onValidationError` fires after a bulk paste, a fill, or an `updateCells` call settles, only
+  when at least one cell was rejected by validation. The accepted cells are applied first, so
+  their `onDataChange` fires before this event. `GridValidationErrorEvent` is
+  `{ source: "paste" | "fill" | "stream", rejected }`. `updateCells` and `updateRows` report
+  `"stream"`. Each rejected entry is `{ rowId, columnId, viewRowIndex, value, message }`. For a
+  row outside the view, `viewRowIndex` is `-1`. Single-cell edits do not use this event.
+  `onEditEnd` with `result: "rejected"` covers that surface.
 
 A commit's events arrive in this order: `onActiveCellChange` (when the cursor moves) and
 `onSelectionChange`, then `onDataChange`, then `onEditEnd`. With an async `validate` schema, `onEditEnd` waits for the

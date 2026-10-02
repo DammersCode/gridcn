@@ -80,9 +80,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   and `onActiveCellChange` fires for the move. Each session ends with exactly one
   `commit` or `cancel`: a filter, hidden column, or data change that drops the edited cell, and a
   second `startEditing` over an open session (which ends the old session first), report `cancel`.
-  `onValidationError(event)` fires after a bulk paste or fill settles, only when at least one
-  cell was rejected by validation:
-  `{ source: "paste" | "fill", rejected: [{ rowId, columnId, viewRowIndex, value, message }] }`.
+  `onValidationError(event)` fires after a bulk paste, a fill, or an `updateCells` call settles,
+  only when at least one cell was rejected by validation:
+  `{ source: "paste" | "fill" | "stream", rejected: [{ rowId, columnId, viewRowIndex, value, message }] }`
+  (`"stream"` for `updateCells` and `updateRows`; `viewRowIndex` is `-1` for a row outside the view).
   `onCellDoubleClick` and `onCellContextMenu` fire on the matching cell gesture with the
   `CellClickCtx` shape plus the native `MouseEvent`; both are pure notifications, not veto points.
   Payload types `ViewCellRef`, `GridEditEndEvent`, `GridValidationErrorEvent`, and

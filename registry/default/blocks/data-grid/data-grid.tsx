@@ -391,7 +391,7 @@ export type DataGridProps<TData> = {
    onEditStart?: (cell: ViewCellRef) => boolean | void;
    /** Fired when an edit session ends or a commit attempt is refused (`commit`/`cancel`/`rejected`). See {@link GridEditEndEvent}. */
    onEditEnd?: (event: GridEditEndEvent) => void;
-   /** Fires after a bulk paste or fill settles, only when at least one cell was rejected by validation. See {@link GridValidationErrorEvent}. */
+   /** Fires after a bulk paste, a fill, or an `updateCells` call settles, only when at least one cell was rejected by validation. See {@link GridValidationErrorEvent}. */
    onValidationError?: (event: GridValidationErrorEvent) => void;
    /** Fired on a double-click on any non-pinned, non-skeleton cell — pure notification, no veto. See {@link OnCellDoubleClick}. */
    onCellDoubleClick?: OnCellDoubleClick<TData>;

@@ -432,6 +432,37 @@ describe("pasteText", () => {
     expect(onValidationError).not.toHaveBeenCalled();
   });
 
+  it("fires onValidationError once a held paste settles, after applying the accepted cells", async () => {
+    const onValidationError = vi.fn();
+    const asyncColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      {
+        id: "qty",
+        header: "Qty",
+        accessorKey: "qty",
+        type: "number",
+        validate: { "~standard": { version: 1, vendor: "mock", validate: async () => ({ issues: [{ message: "bad" }] }) } } as never,
+      },
+    ];
+    const s = fakeState({
+      selection: selectCellPure({ col: 0, row: 0 }),
+      visibleColumns: asyncColumns as unknown as DataGridStoreState["visibleColumns"],
+      onValidationError,
+    });
+    const actions = fakeActions();
+    vi.mocked(actions.applyCellUpdates).mockImplementation(() => expect(onValidationError).not.toHaveBeenCalled());
+
+    expect(pasteText(s, actions, "x\t-5", undefined, { getState: () => s })).toBe(true);
+    expect(onValidationError).not.toHaveBeenCalled();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(actions.applyCellUpdates).toHaveBeenCalledWith([{ viewRowIndex: 0, columnId: "name", value: "x", rowId: "1" }], "paste");
+    expect(onValidationError).toHaveBeenCalledWith({
+      source: "paste",
+      rejected: [{ rowId: "1", viewRowIndex: 0, columnId: "qty", value: -5, message: "bad" }],
+    });
+  });
+
   it("does not fire onValidationError when every pasted cell passes", () => {
     const onValidationError = vi.fn();
     const s = fakeState({

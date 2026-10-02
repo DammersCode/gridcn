@@ -253,17 +253,25 @@ export function computeRowEditsBatch(
  * producer that already validated; otherwise a cell whose value fails validation is skipped,
  * matching {@link computeRowEditsBatch}'s bulk contract (a stream has no UI surface to reject a
  * batch on and must never drop a whole batch for one bad value). Every skipped patch is named in
- * the returned `skipped` list for the action's verdict.
+ * the returned `skipped` list for the action's verdict, and every rejected value in `rejected`
+ * with its validator's message.
  */
 export function computeCellPatchBatch(
   s: DataGridStoreState,
   patches: readonly CellPatch[],
   rowIndex: ReadonlyMap<string, number>,
   skipValidation: boolean,
-): { nextData: readonly unknown[] | null; ops: DataOp<unknown>[]; touchedRows: number[]; skipped: UpdateCellsSkip[] } {
+): {
+  nextData: readonly unknown[] | null;
+  ops: DataOp<unknown>[];
+  touchedRows: number[];
+  skipped: UpdateCellsSkip[];
+  rejected: PatchRejection[];
+} {
   const columnsById = new Map(s.columns.map((c) => [c.id, c] as const));
   const rowEdits = new Map<number, RowEdit>();
   const skipped: UpdateCellsSkip[] = [];
+  const rejected: PatchRejection[] = [];
 
   for (let patchIndex = 0; patchIndex < patches.length; patchIndex++) {
     const patch = patches[patchIndex]!;
@@ -294,6 +302,7 @@ export function computeCellPatchBatch(
       const validated = runValidateSync(resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]), value, baseRow);
       if ("error" in validated) {
         skipped.push({ patchIndex, reason: "invalid" });
+        rejected.push({ patchIndex, message: validated.error });
         continue;
       }
       value = validated.value;
@@ -312,7 +321,7 @@ export function computeCellPatchBatch(
     rowEdits.set(dataRowIndex, { row, cells });
   }
 
-  if (rowEdits.size === 0) return { nextData: null, ops: [], touchedRows: [], skipped };
+  if (rowEdits.size === 0) return { nextData: null, ops: [], touchedRows: [], skipped, rejected };
 
   const nextData = s.data.slice();
   const ops: DataOp<unknown>[] = [];
@@ -330,7 +339,7 @@ export function computeCellPatchBatch(
       cells: Array.from(cells.values()),
     });
   }
-  return { nextData, ops, touchedRows, skipped };
+  return { nextData, ops, touchedRows, skipped, rejected };
 }
 
 /**
@@ -379,15 +388,18 @@ export function prevalidatePatches(
   return keepAccepted(patches, results);
 }
 
-/** Accepted patches with their index in the caller's array, and the caller's indexes of rejected ones. */
-export type PrevalidatedPatches = { accepted: CellPatch[]; acceptedIndexes: number[]; rejectedIndexes: number[] };
+/** A patch the column's validator refused: its index in the caller's array and the validator's message. */
+export type PatchRejection = { patchIndex: number; message: string };
+
+/** Accepted patches with their index in the caller's array, and the rejected ones. */
+export type PrevalidatedPatches = { accepted: CellPatch[]; acceptedIndexes: number[]; rejected: PatchRejection[] };
 
 function keepAccepted(patches: readonly CellPatch[], results: readonly ValidateResult[]): PrevalidatedPatches {
-  const out: PrevalidatedPatches = { accepted: [], acceptedIndexes: [], rejectedIndexes: [] };
+  const out: PrevalidatedPatches = { accepted: [], acceptedIndexes: [], rejected: [] };
   for (let i = 0; i < patches.length; i++) {
     const result = results[i];
     if (!result || "error" in result) {
-      out.rejectedIndexes.push(i);
+      out.rejected.push({ patchIndex: i, message: result?.error ?? "" });
       continue;
     }
     out.accepted.push({ ...patches[i]!, value: result.value }); // i < patches.length by loop condition

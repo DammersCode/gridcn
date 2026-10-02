@@ -18,6 +18,7 @@ import {
   computeRowEditsBatch,
   patchesNeedAsyncCheck,
   prevalidatePatches,
+  type PatchRejection,
   type PrevalidatedPatches,
   warnDev,
 } from "./commit";
@@ -32,7 +33,7 @@ import {
   selectCell as selectCellPure,
   selectionRects,
 } from "../selection";
-import type { CellRef, DataChange, DataOp, ViewCoord } from "../types";
+import type { CellRef, DataChange, DataOp, GridValidationErrorEvent, ViewCoord } from "../types";
 import type { AnyColumnDef, CellPatch, DataGridStoreActions, DataGridStoreState, UpdateCellsVerdict } from "./types";
 
 /**
@@ -108,6 +109,12 @@ export function writeThenEmit(
     ctx.writeDepth -= 1;
     if (ctx.writeDepth === 0) flushEmits(ctx);
   }
+}
+
+/** Queues `emit` behind the pending `onDataChange` emits; runs the queue at once when no store write is in progress. */
+function emitAfterWrites(ctx: DataWriteContext, emit: () => void): void {
+  ctx.pendingEmits.push(emit);
+  if (ctx.writeDepth === 0) flushEmits(ctx);
 }
 
 /** Delivers every queued emit even when one throws, then rethrows the first error. */
@@ -275,6 +282,26 @@ export type DataWriteActions = Pick<
 
 export function createDataWriteActions(set: SetState, get: GetState, deps: DataWriteDeps): DataWriteActions {
   const { ctx, applyRowValidation, pruneRowValidationKeys, warnViewSpacePresenceStale, followView, endEditSession } = deps;
+
+  /** Reports the patches a validator refused through `onValidationError`; a row outside the view reports `viewRowIndex: -1`. */
+  const emitStreamRejections = (patches: readonly CellPatch[], rejected: readonly PatchRejection[]): void => {
+    const s = get();
+    const onValidationError = s.onValidationError;
+    if (rejected.length === 0 || !onValidationError || s.readOnly) return;
+    const rowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId);
+    const viewRowOf = new Map<number, number>();
+    s.viewIndex.forEach((dataRowIndex, viewRowIndex) => viewRowOf.set(dataRowIndex, viewRowIndex));
+    const event: GridValidationErrorEvent = {
+      source: "stream",
+      rejected: rejected.map(({ patchIndex, message }) => {
+        const { rowId, columnId, value } = patches[patchIndex]!;
+        const dataRowIndex = rowIndex.get(rowId);
+        const viewRowIndex = dataRowIndex === undefined ? undefined : viewRowOf.get(dataRowIndex);
+        return { rowId, columnId, viewRowIndex: viewRowIndex ?? -1, value, message };
+      }),
+    };
+    emitAfterWrites(ctx, () => onValidationError(event));
+  };
 
   /** Commits clear-to-clearValue() `writes` as one `delete` batch; shared by both delete actions. */
   const commitClearWrites = (s: DataGridStoreState, writes: { viewRowIndex: number; columnId: string; value: unknown }[]): void => {
@@ -472,10 +499,11 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         const rowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId);
         const validated = prevalidatePatches(s, patches, rowIndex);
         // Skips report indexes into the caller's `patches`, not into the accepted subset.
-        const apply = ({ accepted, acceptedIndexes, rejectedIndexes }: PrevalidatedPatches): UpdateCellsVerdict => {
-          const invalid = rejectedIndexes.map((patchIndex) => ({ patchIndex, reason: "invalid" as const }));
-          if (accepted.length === 0) return { applied: 0, skipped: invalid, pending: false };
-          const verdict = get().actions.updateCells(accepted, { ...options, skipValidation: true });
+        const apply = ({ accepted, acceptedIndexes, rejected }: PrevalidatedPatches): UpdateCellsVerdict => {
+          const invalid = rejected.map(({ patchIndex }) => ({ patchIndex, reason: "invalid" as const }));
+          const verdict = accepted.length === 0 ? null : get().actions.updateCells(accepted, { ...options, skipValidation: true });
+          emitStreamRejections(patches, rejected);
+          if (!verdict) return { applied: 0, skipped: invalid, pending: false };
           const remapped = verdict.skipped.map((skip) => ({ ...skip, patchIndex: acceptedIndexes[skip.patchIndex]! }));
           return { ...verdict, skipped: [...invalid, ...remapped].sort((a, b) => a.patchIndex - b.patchIndex) };
         };
@@ -495,7 +523,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const rowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId);
       const batch = computeCellPatchBatch(s, patches, rowIndex, skipValidation);
       const nextData = batch.nextData;
-      if (nextData === null) return { applied: 0, skipped: batch.skipped, pending: false };
+      if (nextData === null) {
+        emitStreamRejections(patches, batch.rejected);
+        return { applied: 0, skipped: batch.skipped, pending: false };
+      }
       const applied = batch.ops.reduce((n, op) => (op.type === "update" ? n + (op.cells?.length ?? 0) : n), 0);
 
       let reorder = resolveReorder(options?.reorder, patches, s.sortState, s.filterState);
@@ -518,6 +549,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
               : { data: nextData, cellErrors },
           ),
         );
+        emitStreamRejections(patches, batch.rejected);
         return { applied, skipped: batch.skipped, pending: false };
       }
       warnViewSpacePresenceStale(s);
@@ -534,6 +566,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
         }),
       );
+      emitStreamRejections(patches, batch.rejected);
       return { applied, skipped: batch.skipped, pending: false };
     },
     updateRows(updates, options) {

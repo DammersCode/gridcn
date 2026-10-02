@@ -224,8 +224,8 @@ export type DataGridSyncProps<TData = unknown> = {
     */
    onEditEnd?: (event: GridEditEndEvent) => void;
    /**
-    * Fires after a bulk paste or fill settles, only when at least one cell was rejected by
-    * validation — the accepted cells are applied first. See {@link GridValidationErrorEvent}.
+    * Fires after a bulk paste, a fill, or an `updateCells` call settles, only when at least one cell
+    * was rejected by validation — the accepted cells are applied first. See {@link GridValidationErrorEvent}.
     */
    onValidationError?: (event: GridValidationErrorEvent) => void;
    /** Fired on a double-click on any non-pinned, non-skeleton cell — pure notification, no veto. See {@link OnCellDoubleClick}. */

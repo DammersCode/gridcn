@@ -282,15 +282,16 @@ export type OnRowClick<TData> = (ctx: RowClickCtx<TData>, event: MouseEvent) => 
  */
 export type GridEditEndEvent = ViewCellRef & { result: "commit" | "cancel" | "rejected" };
 
-/** One cell a bulk gesture (paste/fill) refused after validation: the target (stable id plus view position) plus the value that failed and the validator's message. */
+/** One cell a bulk write (paste, fill, `updateCells`) refused after validation: the target (stable id plus view position, `-1` outside the view) plus the value that failed and the validator's message. */
 export type GridBulkValidationError = { rowId: string; columnId: string; viewRowIndex: number; value: unknown; message: string };
 
 /**
- * Fired by `onValidationError` after a bulk paste or fill settles, ONLY when at least one cell was
- * rejected — the accepted cells are already applied (their `onDataChange`/`onSelectionChange` fire
- * first). `rejected` lists every refused cell with its validator's message.
+ * Fired by `onValidationError` after a bulk paste, a fill, or an `updateCells` call (`"stream"`)
+ * settles, ONLY when at least one cell was rejected — the accepted cells are already applied
+ * (their `onDataChange`/`onSelectionChange` fire first). `rejected` lists every refused cell with
+ * its validator's message.
  */
-export type GridValidationErrorEvent = { source: "paste" | "fill"; rejected: GridBulkValidationError[] };
+export type GridValidationErrorEvent = { source: "paste" | "fill" | "stream"; rejected: GridBulkValidationError[] };
 
 /** Fired on a double-click on any non-pinned, non-skeleton cell — a pure notification in the {@link OnCellClick} sense (no veto), fired regardless of readOnly. */
 export type OnCellDoubleClick<TData> = (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
