@@ -107,9 +107,12 @@ export function useDataGridClipboard(options: UseDataGridClipboardOptions = {}):
     const { text, html } = serializeCells(serializeCopyScope(s, scope), { sanitizeFormulas: sanitizeFormulas ?? s.sanitizeClipboardFormulas });
     const { rowIds, columnIds } = copyScopeCellIds(s, scope);
     const result = await writeToClipboard(text, html);
-    // A view rebuild may drop the range; only a new range from the user cancels the delete.
-    const current = storeApi.getState().selection.current;
-    if (result !== "failed" && (current === s.selection.current || current === null)) actions._deleteCellsById(rowIds, columnIds);
+    // A view rebuild may drop the range; a new or cleared range from the user cancels the delete.
+    const latest = storeApi.getState();
+    const current = latest.selection.current;
+    const rebuilt = latest.viewIndex !== s.viewIndex || latest.visibleColumns !== s.visibleColumns;
+    const selectionKept = current === s.selection.current || (current === null && rebuilt);
+    if (result !== "failed" && selectionKept) actions._deleteCellsById(rowIds, columnIds);
     return result;
   }, [storeApi, actions, sanitizeFormulas]);
 

@@ -438,6 +438,25 @@ describe("useDataGridClipboard.copy/cut outcomes", () => {
     ]);
   });
 
+  it("cut does not delete when the selection is cleared while the write is in flight", async () => {
+    let resolveWrite!: () => void;
+    const write = vi.fn(() => new Promise<void>((resolve) => (resolveWrite = resolve)));
+    vi.stubGlobal("navigator", { clipboard: { write } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper({ onDataChange });
+    const result = setUpGrid(wrapper);
+
+    await act(async () => {
+      const pending = result.current.clipboard.cut();
+      act(() => result.current.actions.clearSelection());
+      resolveWrite();
+      await pending;
+    });
+
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
   it("cut does not delete when the selection changes while the write is in flight", async () => {
     let resolveWrite!: () => void;
     const write = vi.fn(() => new Promise<void>((resolve) => (resolveWrite = resolve)));
