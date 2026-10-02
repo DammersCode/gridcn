@@ -847,6 +847,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         target !== null &&
         target !== event.currentTarget &&
         (/^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName) ||
+          target.isContentEditable ||
           target.closest(gridAttrSelector("cellEditor")) !== null ||
           !event.currentTarget.contains(target));
 

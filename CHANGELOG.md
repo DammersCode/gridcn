@@ -677,6 +677,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Keys typed in a `contenteditable` inside the grid stay there (`data-grid`):** the grid
+  ignores key events from an editable element, such as a `contenteditable` in a custom cell, that
+  is not its own cell editor. Before, Delete and Backspace in such an element also cleared the
+  selected cells.
 - **Registry items declare every dependency they import:** `data-grid-url-state` depends on
   `data-grid-pagination`. `data-grid` and `data-grid-context-menu` declare `@base-ui/react`,
   `data-grid-context-menu` declares `zustand`, and `data-grid-io` declares `lucide-react`.

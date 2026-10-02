@@ -668,6 +668,39 @@ describe("DataGrid in a real browser", () => {
       expect(gridCells()[1]!.textContent).toBe("");
     });
 
+    it("Delete typed in a contenteditable inside a cell leaves the grid's cells unchanged", async () => {
+      const onDataChange = mockDataChangeFn<Row>();
+      const editableColumns = defineColumns<Row>()([
+        { id: "id", header: "ID", accessorKey: "id", type: "text" },
+        {
+          id: "name",
+          header: "Name",
+          accessorKey: "name",
+          type: "text",
+          renderCell: () => <div data-testid="host-editable" contentEditable suppressContentEditableWarning />,
+        },
+      ]);
+      await render(
+        <div style={{ height: 600 }}>
+          <DataGrid
+            data={makeRows(5)}
+            columns={editableColumns}
+            getRowId={(r) => r.id}
+            className="h-[600px]"
+            onDataChange={onDataChange}
+          />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      await userEvent.click(gridCells()[0]!);
+      const editable = document.querySelector<HTMLElement>('[data-testid="host-editable"]')!;
+      editable.focus();
+      expect(document.activeElement).toBe(editable);
+      await userEvent.keyboard("{Delete}{Backspace}");
+
+      expect(onDataChange).not.toHaveBeenCalled();
+    });
+
     it("double-click opens the editor", async () => {
       await renderGrid(5);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
