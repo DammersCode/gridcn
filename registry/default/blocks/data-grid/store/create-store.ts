@@ -489,10 +489,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const s = get();
         if (!s.enableColumnReorder) return;
         const byId = new Map(s.columns.map((c) => [c.id, c] as const));
-        if (!columnFlag(byId.get(id), "reorderable") || !columnFlag(byId.get(targetId), "reorderable")) return;
+        const column = byId.get(id);
+        const target = byId.get(targetId);
+        if (!column || !target || !columnFlag(column, "reorderable") || !columnFlag(target, "reorderable")) return;
         const currentIds = completeColumnOrder(s.columns, s.columnOrder);
         const nextIds = reorderColumnIds(currentIds, s.columns, id, targetId, position);
-        if (nextIds === currentIds) return;
+        if (nextIds.length === currentIds.length && nextIds.every((columnId, index) => columnId === currentIds[index])) return;
         const nextVisibleColumns = computeVisibleColumns(s.columns, nextIds, s.hiddenColumns);
         warnViewSpacePresenceStale(s, () => visibleColumnsMoved(s.visibleColumns, nextVisibleColumns));
         set({ columnOrder: nextIds, visibleColumns: nextVisibleColumns, ...followView(s, s.viewIndex, nextVisibleColumns) });

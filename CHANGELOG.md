@@ -319,6 +319,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking:** `onColumnLayoutChange` fires only on real changes (`data-grid`). `setColumnPin`
+  with the current pin, `setColumnHidden` with the current visibility, `setColumnOrder` with a
+  drop that keeps the order, and `commitColumnWidth` with the last committed width no longer fire
+  it. `setColumnHidden` ignores a column id that `columns` does not define. Before, each call fired
+  the callback, and an unknown id went into `hidden`.
 - **Breaking:** selected columns follow their column (`data-grid`). The column channel
   (`selection.columns`, header selection) moves with each column on `setColumnOrder`,
   `setColumnHidden`, `setColumnPin`, and a new `columns` array. A column that leaves the view
@@ -675,10 +680,6 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **A held fill or paste stays silent in a read-only grid (`data-grid`, `data-grid-fill`):** when
   the grid turns read-only while an async validation holds a fill or paste, the late result writes
   nothing and fires no `onValidationError`. Before, the rejected cells still fired the event.
-- **`onColumnLayoutChange` fires only on real changes (`data-grid`):** `setColumnPin` with the
-  current pin, `setColumnHidden` with the current visibility, and `commitColumnWidth` with the last
-  committed width no longer fire it. `setColumnHidden` ignores a column id that `columns` does not
-  define. Before, each call fired the callback, and an unknown id went into `hidden`.
 - **`defaultColumnLayout` is normalized (`data-grid`):** the grid drops layout entries for column
   ids that `columns` does not define, clamps each width to the column's `minWidth`/`maxWidth`, and
   ignores a pin on a `pinnable: false` column. Before, a saved layout applied these entries as

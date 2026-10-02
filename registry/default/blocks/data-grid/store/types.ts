@@ -648,13 +648,14 @@ export type DataGridActions = {
    * Live per-frame width write during a resize drag; fires `onColumnResizing` (not
    * `onColumnLayoutChange` — see `commitColumnWidth` for the commit point). The width is clamped
    * to the column's legal range (`[max(32, minWidth), maxWidth]`, the same bounds the resize
-   * gesture enforces); a callback-observed width is the clamped one.
+   * gesture enforces); a callback-observed width is the clamped one. An unknown column id is a no-op.
    */
   setColumnWidth(id: string, width: number): void;
   /**
    * Sets the column's width AND fires `onColumnLayoutChange` once — the resize-drag-release/autosize
    * commit point. The width is clamped exactly as {@link setColumnWidth} clamps, and the fired
-   * snapshot carries the clamped value.
+   * snapshot carries the clamped value. Fires only when the width differs from the last committed
+   * one; an unknown column id is a no-op.
    */
   commitColumnWidth(id: string, width: number): void;
   /**
@@ -667,17 +668,18 @@ export type DataGridActions = {
    * Reorders visible columns. `id` moves to sit immediately before/after `targetId` (per `position`).
    * Pinned columns only reorder within their own pin zone (left/right/unpinned) — a cross-zone
    * request is a no-op recompute (dropping a left-pinned column onto the unpinned band does nothing).
-   * No-op when the column's own `reorderable: false` or the grid-wide `enableColumnReorder` is false.
-   * Fires `onColumnLayoutChange` once on an actual move.
+   * No-op when the column's own `reorderable: false`, the grid-wide `enableColumnReorder` is false,
+   * an id is unknown, or the drop keeps the order. Fires `onColumnLayoutChange` once on an actual move.
    */
   setColumnOrder(id: string, targetId: string, position: "before" | "after"): void;
-  /** Pins/unpins a column (`null` = unpinned). No-op when the column's `pinnable: false` or grid-wide `enableColumnPinning` is false. Fires `onColumnLayoutChange` once. */
+  /** Pins/unpins a column (`null` = unpinned). No-op when the id is unknown, the column's `pinnable: false`, grid-wide `enableColumnPinning` is false, or the pin already matches. Fires `onColumnLayoutChange` once on a real change. */
   setColumnPin(id: string, pin: "left" | "right" | null): void;
   /**
    * Shows/hides a column via the `hiddenColumns` set; works on a def-level `hidden: true` column
    * — `setColumnHidden(id, false)` re-shows it, and the def's flag re-applies only when a NEW
    * `columns` array is passed (a same-reference re-render keeps the user's choice).
-   * Fires `onColumnLayoutChange` once.
+   * No-op when the id is unknown or the visibility already matches; otherwise fires
+   * `onColumnLayoutChange` once.
    */
   setColumnHidden(id: string, hidden: boolean): void;
   toggleSort(columnId: string, additive: boolean): void;

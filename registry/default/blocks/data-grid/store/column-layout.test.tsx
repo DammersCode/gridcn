@@ -208,3 +208,25 @@ describe("column widths for unknown ids", () => {
     expect(onColumnLayoutChange).not.toHaveBeenCalled();
   });
 });
+
+describe("setColumnOrder on a no-op drop", () => {
+  it("does not fire onColumnLayoutChange when the drop keeps the order", () => {
+    const onColumnLayoutChange = vi.fn();
+    const { store } = mount({ columns: twoColumns, onColumnLayoutChange });
+
+    act(() => store().getState().actions.setColumnOrder("a", "b", "before"));
+
+    expect(onColumnLayoutChange).not.toHaveBeenCalled();
+    expect(store().getState().columnOrder).toBeNull();
+  });
+
+  it("ignores an unknown column id", () => {
+    const onColumnLayoutChange = vi.fn();
+    const { store } = mount({ columns: twoColumns, onColumnLayoutChange });
+
+    act(() => store().getState().actions.setColumnOrder("ghost", "b", "before"));
+
+    expect(onColumnLayoutChange).not.toHaveBeenCalled();
+    expect(store().getState().columnOrder).toBeNull();
+  });
+});
