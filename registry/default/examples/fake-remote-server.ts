@@ -1,3 +1,4 @@
+import { applyChange, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
 import { generateDemoRows, type DemoRow } from "./demo-data";
 
 export type RemoteSort = { columnId: string; direction: "asc" | "desc" };
@@ -112,20 +113,11 @@ export function createRemoteServer() {
     return { rows: list.slice(start, start + query.pageSize), total };
   }
 
-  function applyOps(ops: readonly { type: string; rowId: string; row: DemoRow; index?: number; to?: number }[]): void {
-    for (const op of ops) {
-      if (op.type === "delete") {
-        rows.delete(op.rowId);
-        order = order.filter((id) => id !== op.rowId);
-      } else {
-        rows.set(op.rowId, op.row);
-        if (op.type === "insert") order.splice(Math.min(op.index ?? order.length, order.length), 0, op.rowId);
-        if (op.type === "move") {
-          order = order.filter((id) => id !== op.rowId);
-          order.splice(Math.min(op.to ?? 0, order.length), 0, op.rowId);
-        }
-      }
-    }
+  function applyOps(ops: DataChange<DemoRow>["ops"]): void {
+    const next = applyChange(order.map((id) => rows.get(id)!), { ops, source: "app" }, (row) => row.id);
+    rows.clear();
+    for (const row of next) rows.set(row.id, row);
+    order = next.map((row) => row.id);
   }
 
   return { total: rows.size, fetchPage, applyOps };

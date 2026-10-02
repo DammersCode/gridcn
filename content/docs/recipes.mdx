@@ -44,25 +44,27 @@ function OrdersGrid() {
 ### Translate ops into API calls
 
 `change.ops` is an array of `DataOp<Order>`. Each op names its own shape, so a `switch` on
-`op.type` maps directly to one API call per op:
+`op.type` maps to one API call per op. The `move` ops of a batch go in one request:
 
 ```ts
 function opsToRequests(ops: DataOp<Order>[]) {
-  return ops.map((op) => {
+  const requests = ops.flatMap((op) => {
     switch (op.type) {
       case "update":
         // op.cells is present for a cell edit/paste/fill; absent for a whole-row update.
         // Send a patch keyed by rowId, not an index — indices don't survive sort or filter.
-        return api.orders.patch(op.rowId, op.cells ? cellsToPatch(op.cells) : op.row);
+        return [api.orders.patch(op.rowId, op.cells ? cellsToPatch(op.cells) : op.row)];
       case "insert":
-        return api.orders.create(op.row);
+        return [api.orders.create(op.row)];
       case "delete":
-        return api.orders.remove(op.rowId);
+        return [api.orders.remove(op.rowId)];
       case "move":
-        // op.from/op.to are snapshot positions: the row's index before and after the move.
-        return api.orders.move(op.rowId, op.from, op.to);
+        return [];
     }
   });
+  const moves = ops.filter((op) => op.type === "move");
+  if (moves.length > 0) requests.push(api.orders.reorder(moves.map(({ rowId, to }) => ({ rowId, to }))));
+  return requests;
 }
 
 type UpdateOp<TData> = Extract<DataOp<TData>, { type: "update" }>;
@@ -71,6 +73,10 @@ function cellsToPatch(cells: NonNullable<UpdateOp<Order>["cells"]>) {
   return Object.fromEntries(cells.map((cell) => [cell.columnId, cell.value]));
 }
 ```
+
+Each move's `to` is the row's final index after the whole batch. The server removes all moved rows,
+then inserts them in ascending `to` order, as `applyChange` does. Moves applied one at a time end
+in the wrong order.
 
 ### Strategy A: optimistic, roll back on failure
 

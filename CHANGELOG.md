@@ -677,6 +677,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Server examples apply a move batch in the right order:** the fake remote server and the
+  "Translate ops into API calls" recipe handle the `move` ops of a batch together, with
+  `applyChange` semantics. Before, moves applied one at a time put rows in the wrong order.
 - **Keys typed in a `contenteditable` inside the grid stay there (`data-grid`):** the grid
   ignores key events from an editable element, such as a `contenteditable` in a custom cell, that
   is not its own cell editor. Before, Delete and Backspace in such an element also cleared the
