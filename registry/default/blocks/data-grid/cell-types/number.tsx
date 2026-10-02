@@ -20,11 +20,17 @@ function clampNumber(value: number, options?: GridCellTypes["number"]["options"]
   return clamped;
 }
 
-/** Rounds to the column's configured decimal precision, if any. */
+/** Moves the decimal point by `places` through the exponent, so `1.005` shifts to exactly `100.5`. */
+function shiftDecimal(value: number, places: number): number {
+  const [mantissa = "0", exponent = "0"] = String(value).split("e");
+  return Number(`${mantissa}e${Number(exponent) + places}`);
+}
+
+/** Rounds to the column's configured decimal precision, if any; never returns `-0`. */
 function roundToDecimals(value: number, options?: GridCellTypes["number"]["options"]): number {
-  if (options?.decimals === undefined) return value;
-  const factor = 10 ** options.decimals;
-  return Math.round(value * factor) / factor;
+  if (options?.decimals === undefined || !Number.isFinite(value)) return value;
+  const rounded = shiftDecimal(Math.round(shiftDecimal(value, options.decimals)), -options.decimals);
+  return rounded === 0 ? 0 : rounded;
 }
 
 /** Count of fractional digits in a finite number's shortest decimal form. */

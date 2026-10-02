@@ -701,7 +701,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Number cells with `decimals` stay inside `min` and `max` (`data-grid`):** typed, pasted, and
   imported text rounds to `decimals` first and then clamps to the bounds on the decimals grid.
   With `max: 0.125` and `decimals: 2`, typing `0.2` stores `0.12` instead of `0.13`. A bound that
-  already sits on the decimals grid, such as `min: 0.28`, is reachable by stepping.
+  already sits on the decimals grid, such as `min: 0.28`, is reachable by stepping. Rounding works
+  on the decimal digits, so `1.005` with `decimals: 2` stores `1.01`, and a value that rounds to
+  zero stores `0`, never `-0`.
 - **Clipboard round trip keeps tabs, carriage returns, and non-breaking spaces (`data-grid`):** a
   cell copied from the grid and pasted back keeps its exact value when it holds a carriage
   return or a non-breaking space next to a tab. The HTML payload writes a carriage return as a

@@ -100,6 +100,15 @@ describe("numberCellType value pipeline", () => {
     expect(numberCellType.fromText("5", { min: 0, max: 10 })).toBe(5);
   });
 
+  it("fromText rounds on the decimal representation and never stores -0", () => {
+    expect(numberCellType.fromText("1.005", { decimals: 2 })).toBe(1.01);
+    expect(numberCellType.fromText("2.675", { decimals: 2 })).toBe(2.68);
+    expect(Object.is(numberCellType.fromText("-0.4", { decimals: 0 }), 0)).toBe(true);
+    expect(numberCellType.fromText("-1.25", { decimals: 1 })).toBe(-1.2);
+    expect(numberCellType.toText(1.005, { decimals: 2 })).toBe("1.01");
+    expect(numberCellType.toText(Infinity, { decimals: 2 })).toBe("Infinity");
+  });
+
   it("fromText with decimals never lands outside min/max after rounding", () => {
     expect(numberCellType.fromText("0.2", { max: 0.125, decimals: 2 })).toBe(0.12);
     expect(numberCellType.fromText("0", { min: 0.125, decimals: 2 })).toBe(0.13);
