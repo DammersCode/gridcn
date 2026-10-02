@@ -14,6 +14,8 @@ export type UseDataGridStateOptions<TData> = {
    * See `useDataGridHistory`'s `datasetKey`.
    */
   datasetKey?: string | number;
+  /** Pass the grid's `readOnly`; see `useDataGridHistory`'s `readOnly`. */
+  readOnly?: boolean;
 };
 
 /** Return value of {@link useDataGridState}, spreadable straight onto `<DataGrid {...grid} />`. */
@@ -64,7 +66,7 @@ export function useDataGridState<TData>(
   defaultRows: readonly TData[],
   opts: UseDataGridStateOptions<TData>,
 ): UseDataGridStateResult<TData> {
-  const { getRowId, capacity, datasetKey } = opts;
+  const { getRowId, capacity, datasetKey, readOnly } = opts;
   const [data, setData] = useState<readonly TData[]>(defaultRows);
   const { onDataChange, undo, redo, canUndo, canRedo, clear, historySize, record: historyRecord } = useDataGridHistory({
     data,
@@ -72,6 +74,7 @@ export function useDataGridState<TData>(
     getRowId,
     capacity,
     datasetKey,
+    readOnly,
   });
   // stable identity: useDataGridRowIdToViewRow keys its O(n) Map build on getRowId identity.
   const gridGetRowId = useCallback((row: TData, index: number) => getRowId(row, index), [getRowId]);

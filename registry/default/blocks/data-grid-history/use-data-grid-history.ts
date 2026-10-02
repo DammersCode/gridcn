@@ -28,6 +28,8 @@ export type UseDataGridHistoryOptions<TData> = {
    * `setData` still runs for every change, recorded or not.
    */
   recordSources?: readonly DataChange<TData>["source"][];
+  /** Pass the grid's `readOnly`. When `true`, `undo` and `redo` do nothing, and `canUndo`/`canRedo` are `false`. */
+  readOnly?: boolean;
 };
 
 // Fires at most once per app, dev-only: undo ran over a sparse (lazy) data array.
@@ -85,7 +87,7 @@ export type UseDataGridHistoryResult<TData> = {
  * mutation) — the consumer wires one setter, not a whole controlled-component contract.
  */
 export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>): UseDataGridHistoryResult<TData> {
-  const { data, setData, getRowId, capacity, recordSources, datasetKey } = opts;
+  const { data, setData, getRowId, capacity, recordSources, datasetKey, readOnly = false } = opts;
   const history = useMemo(() => createHistory<TData>({ capacity }), [capacity]);
   // history's canUndo/canRedo are getters on a mutable object; this forces a re-render
   // after every mutating call so callers see them update even when `setData` alone wouldn't
@@ -122,6 +124,7 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
   );
 
   const undo = useCallback(() => {
+    if (readOnly) return;
     const change = history.undo();
     if (!change) return;
     // Sparse (lazy) data needs a hole-tolerant getRowId and skips evicted rows silently — flag once, not per undo.
@@ -133,14 +136,15 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
     }
     setData(applyChange(dataRef.current, change, getRowIdRef.current));
     forceUpdate((n) => n + 1);
-  }, [history, setData]);
+  }, [history, setData, readOnly]);
 
   const redo = useCallback(() => {
+    if (readOnly) return;
     const change = history.redo();
     if (!change) return;
     setData(applyChange(dataRef.current, change, getRowIdRef.current));
     forceUpdate((n) => n + 1);
-  }, [history, setData]);
+  }, [history, setData, readOnly]);
 
   const clear = useCallback(() => {
     history.clear();
@@ -159,8 +163,8 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
     onDataChange,
     undo,
     redo,
-    canUndo: history.canUndo,
-    canRedo: history.canRedo,
+    canUndo: !readOnly && history.canUndo,
+    canRedo: !readOnly && history.canRedo,
     historySize: history.size,
     clear,
     record,

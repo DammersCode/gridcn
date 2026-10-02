@@ -60,7 +60,8 @@ the grid.
 With the opt-in [`DataGridGlobalShortcuts`](/docs/global-shortcuts) component, undo and
 redo also work while focus is on a custom toolbar or anywhere else on the page.
 In a `readOnly` grid, these shortcuts do nothing. Your own toolbar buttons call `undo` and
-`redo` directly, so disable them yourself when the grid is read-only.
+`redo` directly, so also pass the grid's `readOnly` to the hook (see
+[Read-only grids](#read-only-grids)).
 
 ## Composable: `useDataGridHistory`
 
@@ -148,6 +149,17 @@ setDatasetKey((key) => key + 1);
 
 A dataset id or a version counter both work. The key only needs to differ between datasets.
 Use `clear()` for a reset with no key, for example a "reset to defaults" button.
+
+## Read-only grids
+
+Pass the grid's `readOnly` to either hook. When it is `true`, `undo` and `redo` do nothing, and
+`canUndo` and `canRedo` are `false`, so toolbar buttons bound to them disable themselves:
+
+```tsx
+const grid = useDataGridState(initialRows, { getRowId: (row) => row.id, readOnly });
+
+<DataGrid {...grid} columns={columns} readOnly={readOnly} />;
+```
 
 ## With data-grid-lazy
 

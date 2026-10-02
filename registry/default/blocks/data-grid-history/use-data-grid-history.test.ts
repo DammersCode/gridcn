@@ -436,3 +436,28 @@ describe("useDataGridHistory", () => {
     expect(result.current.historySize).toBe(1);
   });
 });
+
+describe("useDataGridHistory readOnly", () => {
+  it("makes undo and redo no-ops and reports nothing to undo or redo", () => {
+    let data: readonly Row[] = initialRows;
+    const setData = vi.fn((next: readonly Row[]) => {
+      data = next;
+    });
+    const hook = renderHook(
+      (props: { readOnly: boolean }) => useDataGridHistory({ data, setData, getRowId, readOnly: props.readOnly }),
+      { initialProps: { readOnly: false } },
+    );
+    const renamed = { ...initialRows[0]!, name: "Alicia" };
+    act(() => hook.result.current.onDataChange([renamed, initialRows[1]!, initialRows[2]!], editChange("a", renamed, initialRows[0]!)));
+    setData.mockClear();
+
+    hook.rerender({ readOnly: true });
+    expect(hook.result.current.canUndo).toBe(false);
+    act(() => hook.result.current.undo());
+    act(() => hook.result.current.redo());
+    expect(setData).not.toHaveBeenCalled();
+
+    hook.rerender({ readOnly: false });
+    expect(hook.result.current.canUndo).toBe(true);
+  });
+});

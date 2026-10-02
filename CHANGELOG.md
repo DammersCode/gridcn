@@ -11,6 +11,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **History respects a read-only grid (`data-grid-history`):** `useDataGridHistory` and
+  `useDataGridState` take a `readOnly` option. When it is `true`, `undo` and `redo` do nothing,
+  and `canUndo` and `canRedo` are `false`.
 - **Typed store selectors (`data-grid`):** `createDataGridSelector<TData>()` returns a typed raw
   store selector hook. Create it once at module scope and name it `use…`, like any hook. `TData`
   types `state.data`, and the hook infers the result type from the selector, so the call takes no
