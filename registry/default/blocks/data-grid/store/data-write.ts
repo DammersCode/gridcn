@@ -451,12 +451,6 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         minCol = Math.min(minCol, col);
         maxCol = Math.max(maxCol, col);
       }
-      if (minRow === Infinity) {
-        writeThenEmit(ctx, s, batch.nextData, { source, ops: batch.ops }, () =>
-          set({ data: batch.nextData, cellErrors, ...reconcileAfterWrite(s, batch.nextData, batch.ops) }),
-        );
-        return;
-      }
       const range = rectFromCorners({ col: minCol, row: minRow }, { col: maxCol, row: maxRow });
       writeThenEmit(ctx, s, batch.nextData, { source, ops: batch.ops }, () =>
         set({
