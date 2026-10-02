@@ -63,9 +63,9 @@ export type DataGridSyncProps<TData = unknown> = {
    * insert/duplicate/delete or on consumer `data` replacement. Sync only.
    */
   validateRow?: (row: TData, rowId: string) => Record<string, string> | null;
-  /** Undo keymap action (mod+Z); the `data-grid-history` add-on plugs its `undo()` in here. */
+  /** Undo keymap action (mod+Z), skipped in a read-only grid; the `data-grid-history` add-on plugs its `undo()` in here. */
   onUndo?: () => void;
-  /** Redo keymap action (mod+Y / mod+shift+Z); the `data-grid-history` add-on plugs its `redo()` in here. */
+  /** Redo keymap action (mod+Y / mod+shift+Z), skipped in a read-only grid; the `data-grid-history` add-on plugs its `redo()` in here. */
   onRedo?: () => void;
   /**
    * Custom cell types keyed by `ColumnDef.type`, merged OVER the built-in registry — built-ins

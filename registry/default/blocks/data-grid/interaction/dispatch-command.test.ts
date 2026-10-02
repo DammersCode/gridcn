@@ -112,3 +112,31 @@ describe("dispatchGridAction custom-command tier", () => {
     expect(preventDefault).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("dispatchGridAction undo and redo", () => {
+  function dispatchHistory(action: "undo" | "redo", readOnly: boolean) {
+    const onUndo = vi.fn();
+    const onRedo = vi.fn();
+    dispatchGridAction({
+      action,
+      actions: fakeActions(),
+      storeApi: fakeStore({ onUndo, onRedo, readOnly }),
+      scrollRef: { current: null },
+      scrollCellIntoView: vi.fn(),
+      rowHeight: 36,
+      readOnly,
+      preventDefault: vi.fn(),
+    });
+    return { onUndo, onRedo };
+  }
+
+  it("calls onUndo and onRedo in an editable grid", () => {
+    expect(dispatchHistory("undo", false).onUndo).toHaveBeenCalledTimes(1);
+    expect(dispatchHistory("redo", false).onRedo).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not call onUndo or onRedo in a read-only grid", () => {
+    expect(dispatchHistory("undo", true).onUndo).not.toHaveBeenCalled();
+    expect(dispatchHistory("redo", true).onRedo).not.toHaveBeenCalled();
+  });
+});

@@ -450,12 +450,12 @@ export function dispatchGridAction(args: {
     }
     case "undo": {
       preventDefault();
-      state.onUndo?.();
+      if (!readOnly) state.onUndo?.();
       break;
     }
     case "redo": {
       preventDefault();
-      state.onRedo?.();
+      if (!readOnly) state.onRedo?.();
       break;
     }
     case "insertRowBelow": {

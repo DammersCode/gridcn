@@ -649,6 +649,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Undo and redo stay off in a read-only grid (`data-grid`):** in a `readOnly` grid, the undo
+  and redo shortcuts no longer call `onUndo`/`onRedo`, in the grid and through
+  `DataGridGlobalShortcuts`. Before, Ctrl+Z wrote the history entry back into the data.
 - **Global shortcuts wait for an open edit session (`data-grid`):** while a cell editor is open,
   `DataGridGlobalShortcuts` ignores keys. Before, Ctrl+Z in a select list undid an earlier grid
   edit, and an opted-in `selectAll` fired.

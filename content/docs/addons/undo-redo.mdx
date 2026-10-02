@@ -59,6 +59,8 @@ stacks; for a dataset change, pass `datasetKey` instead of calling `clear` by ha
 the grid.
 With the opt-in [`DataGridGlobalShortcuts`](/docs/global-shortcuts) component, undo and
 redo also work while focus is on a custom toolbar or anywhere else on the page.
+In a `readOnly` grid, these shortcuts do nothing. Your own toolbar buttons call `undo` and
+`redo` directly, so disable them yourself when the grid is read-only.
 
 ## Composable: `useDataGridHistory`
 
