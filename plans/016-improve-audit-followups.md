@@ -2,7 +2,7 @@
 
 Source: `research/improve-audit-2026-09-27.md` (26 findings), re-verified at `b36ae5a` by five
 independent verifier agents, plus two fresh scans (add-on bugs, docs-vs-code drift) that
-added 17 findings. A second round under the decision rule below added a security review (6), an extensibility/API review (12), and a competitor feature-gap scan (12); spot checks confirmed every security finding and the API review's doc errors. Spot checks by the planning session confirmed NEW-1/2/3/6 and DOC-01/03/04.
+added 17 findings. A second round under the decision rule below added a security review (6), an extensibility/API review (12), and a feature-gap scan (12); spot checks confirmed every security finding and the API review's doc errors. Spot checks by the planning session confirmed NEW-1/2/3/6 and DOC-01/03/04.
 
 Decision rule (maintainer, 2026-09-27): take the recommended option; the repo must be secure, performant, and feature-rich/extensible; breaking changes are welcome — record them with the **Breaking** CHANGELOG marker, no compatibility shims.
 
@@ -24,7 +24,7 @@ Risk = what can break when the change lands.
 | BUG-02 | stale preview overwrite | PARTIAL: only `isParsing` reset + `setDelimiter` gaps are real |
 | BUG-05 | fix via result check | Fix sketch has no effect: `writeToClipboard` never reports failure; real fix in W3-02 |
 | API-02 | io unusable uncontrolled | PARTIAL: overstated, the documented path is controlled `data`; hand-built ops remain |
-| API-04 | Excel parity | Excel has no arrow stepping; the no-op option itself is confirmed |
+| API-04 | Spreadsheet parity | Spreadsheet apps have no arrow stepping; the no-op option itself is confirmed |
 | API-06 | context menu users blocked | PARTIAL: `DataGridContextMenu` needs composition anyway; forwarded plus drift guard in W3-07 |
 | ARCH-01 | 22 stale gates | CONFIRMED, worse: gates never enforced since the initial commit; `*-index.ts` exclude hides the view pipeline |
 | ARCH-03 | 6 items | PARTIAL: `lucide-react` gap in 5 items is real; `@base-ui/react` is moot |
@@ -124,7 +124,7 @@ Decisions (maintainer rule: secure, performant, feature-rich; breaking changes w
 - The compiler bail-out check collects React Compiler `CompileError` events on Babel 7.29 and fails on any bail-out outside a committed per-function allowed baseline (function plus category and reason), and on stale baseline entries. The compiler stops at the first failing pass, so a later-pass reason behind an earlier one stays invisible.
 - The `ci` aggregator always runs and fails unless every needed job succeeded, so a fork PR shows a failing `ci` until a maintainer runs it; the other jobs keep the author gate.
 
-Execution order (one implementer at a time on the branch, so blocks never collide in shared files such as `create-store.ts` and `CHANGELOG.md`; reviewers stay read-only in their own worktrees): R1 → R4 critical (R-36…R-43) → R5 (io + hucre) → R2 → R3 → R6 (data integrity and readOnly) → remaining R4 → R-35 → W5-12 → W5-11 → W6-05 → W5-13.
+Execution order (one implementer at a time on the branch, so blocks never collide in shared files such as `create-store.ts` and `CHANGELOG.md`; reviewers stay read-only in their own worktrees): R1 → R4 critical (R-36…R-43) → R5 (io + hucre) → R2 → R3 → R6 (data integrity and readOnly) → R7 (spec-writing findings) → remaining R4 → R-35 → W5-12 → W5-11 → W6-05 → W5-13.
 
 A single implementer works through the execution order.
 
@@ -136,7 +136,7 @@ A single implementer works through the execution order.
 | R-02 | W2-18 | `+` missing from `FORMULA_LEAD_CHARS` (`clipboard/serialize-cells.ts:10`): `+HYPERLINK(...)` and `+1+cmd\|...` pass unchanged. Add `+`; `+5` stays exempt. Tests for both payloads; add `+` to the docs callout, JSDoc, and CHANGELOG lists; put `**Breaking:**` at the start of the CHANGELOG entry without backticks | XS | LOW |
 | R-03 | W2-19 | Sparse two-cell XLSX (A1 + CV1000000, 15.7 KB) still builds 100M cells (43.5 s, 2 GB): `clampedSheetRange` sizes from real cells and `defval` fills the rectangle. Add `maxCells` (default 5M) to the limits; compute the real extent and reject when rows > `maxRows`, cols > `maxColumns`, or rows × cols > `maxCells` before `sheet_to_json`; read with `sheetRows: maxRows + 1` to detect overflow; reject instead of truncating (matches CSV and the docs); same `maxCells` for CSV; parse only the selected sheet (`sheets:`). `DataGridImportButton`/`DataGridImportDialog` take `importLimits`, which also feeds Dropzone `maxSize`; export `DEFAULT_IMPORT_LIMITS` from the io barrel (the CHANGELOG already claims it). Tests with the real library and a forged sparse file; a browser test that fails without the Dropzone `maxSize` wiring | S-M | LOW |
 | R-04 | W3 review | Cut can delete different cells than it copied: when `viewIndex`/`visibleColumns` change during the awaited clipboard write (sort, filter, lazy fetch, hide), the unchanged selection reference points at other rows (`use-data-grid-clipboard.ts` `cut`). Capture the rowIds and columnIds at copy time and delete by identity. Test: sort during a pending write | S | LOW |
-| R-05 | W2-18 + review | Clipboard formula opt-in is unreachable: `useGridClipboard` (root) and the context menu call the hook without options, so the CHANGELOG claim is false. Add a grid prop `sanitizeClipboardFormulas` read by both paths; also neutralize the HTML `<td>` text (Excel pastes HTML first) and accept the sanitized form in the raw check; give public `rowsToCsv` a `sanitizeFormulas = true` parameter | S | LOW |
+| R-05 | W2-18 + review | Clipboard formula opt-in is unreachable: `useGridClipboard` (root) and the context menu call the hook without options, so the CHANGELOG claim is false. Add a grid prop `sanitizeClipboardFormulas` read by both paths; also neutralize the HTML `<td>` text (spreadsheet apps paste HTML first) and accept the sanitized form in the raw check; give public `rowsToCsv` a `sanitizeFormulas = true` parameter | S | LOW |
 | R-06 | W3-01 | **Done (`62e28e5`); R-62 replaces the pinned package with hucre.** Pin the mirror in `registry.json`: `"@e965/xlsx@0.20.3"` (bare name installs the latest from a third-party publisher) | XS | LOW |
 | R-07 | W2-02 | A function-form `validate` that throws still sticks the editor: `runValidateSync` (`validate-cell.ts`) has no try/catch. Catch and return `{ error: message }`, which also covers `updateCells`. Test for the function form | S | LOW |
 
@@ -252,7 +252,7 @@ Supersedes R-06 (pin moves to hucre) and R-59 (hucre rejects over-limit sheets o
 Decisions:
 - Pin `hucre` to the exact version `1.1.0` in `registry.json` and `package.json`; upgrades are deliberate (v2 is breaking and in review upstream).
 - Keep the library behind the two existing seams (`parseImportFile`, `buildXlsx`), so a later switch stays a two-file change.
-- Legacy `.xls`: real Excel 97–2003 (BIFF8) stays supported; HTML-, SpreadsheetML-2003-, and BIFF5-flavoured `.xls` files are rejected with a clear error (**Breaking**, documented). `.xls` values come back without number formatting.
+- Legacy `.xls`: the real 97–2003 binary format (BIFF8) stays supported; HTML-, SpreadsheetML-2003-, and BIFF5-flavoured `.xls` files are rejected with a clear error (**Breaking**, documented). `.xls` values come back without number formatting.
 - New import limit `maxDecompressedBytes` (default 512 MiB) next to the existing limits.
 
 | # | Source | Change | Effort | Risk |
@@ -273,20 +273,32 @@ Decisions:
 
 ### R6 — data integrity and readOnly (from the spec review)
 
-Source: the spec advisor review of W5-11, W5-12, and W5-13 on 2026-10-02. R6 runs before the rest of R4. R-93 lands with W5-12 and R-94 with W5-13.
+Source: the spec advisor review of W5-11, W5-12, and W5-13 on 2026-10-02. R6 runs before R7 and the rest of R4. R-93 lands with W5-12 and R-94 with W5-13.
 
-| # | Severity | Effort | Change |
-|---|----------|--------|--------|
-| R-85 | HIGH | S | Row-channel checks stay on view positions across sort, filter and data swaps (`setSorts`/`toggleSort`/`setFilters` leave `selection.rows` alone), so `deleteRows`/`duplicateRows` (shortcut, context menu) and `getRowIds()` act on records the user did not check. Remap the row channel by record identity on every view rebuild. Test: check rows, sort, deleteRows deletes only the checked records. |
-| R-86 | MED | XS | Undo/redo run in a read-only grid (`use-grid-interaction.ts` ~453-462 has no readOnly check; history writes through `setData`). Guard both. |
-| R-87 | MED | S | `commitCellEdit` and `commitCellValue(At)` lack the store readOnly guard (`data-write.ts`): an editor open when readOnly turns true commits on Enter; `actions.commitCellValue` writes in a read-only grid. Guard them; cancel the session when the flag turns on. |
-| R-88 | MED | S | A column added to `columns` after any reorder, or missing from a restored `defaultColumnLayout.order`, never renders (`computeVisibleColumns`, compute.ts ~396-407). Append missing ids in def order. |
-| R-89 | MED | S | Writes from inside `onDataChange` are lost: all nine emit sites call `onDataChange` before `set` (data-write.ts ~227,287,317,377,444,529,565,595,653). Emit after `set`. |
-| R-90 | LOW | XS | `defaultColumnLayout` is applied without normalizing: pins on `pinnable: false` columns, unclamped widths, unknown ids kept (`applyDefaultColumnLayout`). |
-| R-91 | LOW | XS | `onColumnLayoutChange` fires on no-op `setColumnPin`/`setColumnHidden`/`commitColumnWidth`; `setColumnHidden` stores unknown ids. |
-| R-92 | LOW | XS | `useDataGridActions()` (consumer barrel) exposes `_registerReadOnly`/`_syncProps`; `_registerReadOnly(false)` lifts readOnly for menu and clipboard. Hide internals now (W5-13 closes fully). |
-| R-93 | LOW | in W5-12 | SSR/first paint render the fill handle in a read-only grid (store mirrors readOnly only after mount). |
-| R-94 | LOW | in W5-13 | Overlay plugins call hooks inside `DataGridOverlays`' loop: a changing list throws on the hook count; compiler bail-out. |
+| # | Source | Change | Effort | Risk |
+|---|--------|--------|--------|------|
+| R-85 | spec review | Row-channel checks stay on view positions across sort, filter and data swaps (`setSorts`/`toggleSort`/`setFilters` leave `selection.rows` alone), so `deleteRows`/`duplicateRows` (shortcut, context menu) and `getRowIds()` act on records the user did not check. Remap the row channel by record identity on every view rebuild. Test: check rows, sort, deleteRows deletes only the checked records. | S | HIGH |
+| R-86 | spec review | Undo/redo run in a read-only grid (`use-grid-interaction.ts` ~453-462 has no readOnly check; history writes through `setData`). Guard both. | XS | MED |
+| R-87 | spec review | `commitCellEdit` and `commitCellValue(At)` lack the store readOnly guard (`data-write.ts`): an editor open when readOnly turns true commits on Enter; `actions.commitCellValue` writes in a read-only grid. Guard them; cancel the session when the flag turns on. | S | MED |
+| R-88 | spec review | A column added to `columns` after any reorder, or missing from a restored `defaultColumnLayout.order`, never renders (`computeVisibleColumns`, compute.ts ~396-407). Append missing ids in def order. | S | MED |
+| R-89 | spec review | Writes from inside `onDataChange` are lost: all nine emit sites call `onDataChange` before `set` (data-write.ts ~227,287,317,377,444,529,565,595,653). Emit after `set`. | S | MED |
+| R-90 | spec review | `defaultColumnLayout` is applied without normalizing: pins on `pinnable: false` columns, unclamped widths, unknown ids kept (`applyDefaultColumnLayout`). | XS | LOW |
+| R-91 | spec review | `onColumnLayoutChange` fires on no-op `setColumnPin`/`setColumnHidden`/`commitColumnWidth`; `setColumnHidden` stores unknown ids. | XS | LOW |
+| R-92 | spec review | `useDataGridActions()` (consumer barrel) exposes `_registerReadOnly`/`_syncProps`; `_registerReadOnly(false)` lifts readOnly for menu and clipboard. Hide internals now (W5-13 closes fully). | XS | LOW |
+| R-93 | spec review | SSR/first paint render the fill handle in a read-only grid (store mirrors readOnly only after mount). | in W5-12 | LOW |
+| R-94 | spec review | Overlay plugins call hooks inside `DataGridOverlays`' loop: a changing list throws on the hook count; compiler bail-out. | in W5-13 | LOW |
+
+### R7 — found during spec writing
+
+Source: the Wave 6 spec writing on 2026-10-02. R7 runs before the remaining R4 work.
+
+| # | Source | Change | Effort | Risk |
+|---|--------|--------|--------|------|
+| R-95 | spec writing | `data-grid-url-state` imports `data-grid-pagination` but `registry.json` (~951-953) does not declare it in `registryDependencies`; an install misses files. Fix + `test:e2e-install` | XS | MED |
+| R-96 | spec writing | `data-grid-io` uses `lucide-react` (`export-button.tsx:4`) but does not declare it. Fix + `test:e2e-install` | XS | LOW |
+| R-97 | spec writing | Delete/Backspace typed in a `contenteditable` (or other non-input editable) inside the grid clears host cells; the grid's key handling must ignore events from editable descendants that are not the cell editor. Test | S | MED |
+| R-98 | spec writing | `registry/default/examples/fake-remote-server.ts:115-128` and `content/docs/recipes.mdx:61-63` apply `move` ops one at a time, which gives a wrong order for multi-move batches (snapshot-index semantics). Fix with `applyChange` semantics | S | LOW |
+| R-99 | spec writing | `buildExportRows` builds every row before applying `maxRows` (export cost); cap early | XS | LOW |
 
 ## Wave 5 — API foundation (breaking welcome, spec first where marked)
 
@@ -299,6 +311,8 @@ W5 decisions (spec review 2026-10-02):
 - `SelectionState = { range: { start, end } | null, anchor, rangeStack, rowIds, columnIds }`; the anchor may lie inside the range (Ctrl+A).
 - The row channel follows record identity; rows that leave the view leave the selection (**Breaking**).
 - A range survives a view rebuild only if it covers the same records; otherwise it collapses onto the active cell.
+- A range collapses onto the active cell when a view rebuild changes the records it covers.
+- The selection's column channel follows column identity.
 - An omitted part of a controlled layout stays uncontrolled (same rule as `setColumnLayout`).
 - Saved and controlled layouts are normalized: missing ids appended in def order, unknown ids dropped.
 - W5-12 syncs in two phases: config props (readOnly, keymap, commands, labels, enable*, callbacks…) in a layout effect via `_syncConfig`; recompute inputs in the passive effect.
@@ -309,6 +323,10 @@ W5 decisions (spec review 2026-10-02):
 - Plugin overlays are components keyed by plugin name.
 - Plugin bindings never win against a default or consumer binding.
 - `onDataChange` and plugin observers run after the store write.
+- `onDataChange` emits are queued FIFO after the outermost store write.
+- `readOnly` registers in a layout effect.
+- `useDataGridHistory` takes `readOnly`.
+- The commit event order is `onActiveCellChange` → `onDataChange` → `onEditEnd`.
 - W6-05 `commitChange` comes before W5-13 (no-op on readOnly, emit after set, row-op guards, pass-through for source "history").
 - Execution order: W5-12 → W5-11 → W6-05 → W5-13 (after R-47, R-51, R-52, R-56). W6-05 moves out of Wave 6 into this order.
 
@@ -325,30 +343,48 @@ W5 decisions (spec review 2026-10-02):
 | W5-09 | API-R1 | Imperative handle: `<DataGrid ref>` + `useDataGridApi()` → `scrollTo`, `focus`, `startEditing`, `stopEditing`, `getSelection`, `setSelection`, `getRow`, `getViewRowIds`, `actions`, `store`. Replaces store lifting with duplicated props | M | LOW-MED | yes (short) |
 | W5-10 | API-R8 | Custom commands: `commands?: Record<string, GridCommand>` (`run(api)`, `when`, `label`, `group`); `keymap` accepts custom command names; `GridAction` becomes an interface-mergeable registry like `GridCellTypes`; the keybindings dialog lists custom commands | M | LOW-MED | yes |
 | W5-11 | API-R7 | Controlled selection and layout: `selection`/`defaultSelection`/`onSelectionChange(next: SelectionState)` in `CellRef` terms; controlled `columnLayout` (`defaultColumnLayout` stays the seed); drop `onSelectionCleared`. Absorbs the `setColumnLayout` action. W3-04 bail-outs must hold on the drag path | L | MED | yes: `research/controlled-selection-layout-spec.md` |
-| W5-12 | API-R11 | One config home: every behavior prop (`readOnly`, `keymap`, render slots, events) is a sync prop; `DataGridRoot` keeps only DOM/layout props; `DataGridProps = DataGridSyncProps & DataGridRootProps` by spread (no ~60 hand-forwarded props, W3-07's guard becomes structural) | M | MED | yes: `research/config-home-spec.md` |
-| W5-13 | API-R5 | Plugin system: `plugins={[fill, history, pinnedRows]}` with `DataGridPlugin = { name, overlay?, rowBands?, onDataChange?, commands?, keymap?, Mount? }`; bands concatenate; replaces the per-add-on wiring and `_register*` actions; third parties can write add-ons | L | MED | yes: `research/plugin-system-spec.md` |
+| W5-12 | API-R11 | One config home: every behavior prop (`readOnly`, `keymap`, `commands`, labels, events) is a sync prop; render-only slots stay `DataGridRoot` props, which keeps DOM/layout props too; `DataGridProps = DataGridSyncProps & DataGridRootProps` by spread (no ~60 hand-forwarded props, W3-07's guard becomes structural) | M | MED | yes: `research/config-home-spec.md` |
+| W5-13 | API-R5 | Plugin system: `plugins={[fill.plugin, history.plugin, pinnedRows.plugin]}` with `DataGridPlugin = { name, overlay?, rowBands?, onDataChange?, commands?, keymap?, Mount? }`, where `overlay` is an `Overlay` component; bands concatenate; replaces the per-add-on wiring and the `_register*` actions, except `_registerScrollToCell`, which stays; third parties can write add-ons | L | MED | yes: `research/plugin-system-spec.md` |
 
 ## Wave 6 — features
 
-Source: competitor gap scan 2026-09-27 (FEAT-1…12) plus the former W5 features. **W6-01…W6-04 are small and independent — they can run in parallel with Wave 5.** The rest build on Wave 5.
+Source: feature gap scan 2026-09-27 (FEAT-1…12) plus the former W5 features. **W6-01…W6-04 are small and independent — they can run in parallel with Wave 5.** The rest build on Wave 5.
 
-| # | ID | Feature | Effort | Risk | Prerequisites |
-|---|----|---------|--------|------|---------------|
-| W6-01 | FEAT-1 | Add-on `data-grid-status-bar`: sum/avg/count/min/max of the selected cells, capped with "≈" (AG Enterprise status bar, Excel) | S | LOW | W3-04 |
-| W6-02 | FEAT-2 | `autosizeColumns({ columnIds?, sampleRows?, includeHeader? })` over view rows via canvas `measureText`, one `onColumnLayoutChange`; optional `autosizeOnMount`. Today autosize measures only mounted cells (`autosize-column.ts:5-13`) | S | LOW | — |
-| W6-03 | FEAT-6 | `printGrid()` / `<DataGridPrintButton>` in io: static table from `buildExportRows` in a hidden iframe, `window.print()` (also gives PDF) | S-M | LOW | — |
-| W6-04 | FEAT-3 | `number.options.format: Intl.NumberFormatOptions` (currency, percent, compact; `toText` stays raw); new `url` cell type (href allow-list `http`/`https`/`mailto` only) and `longText` (popover editor) | S-M | LOW | W3-03 |
-| W6-05 | API-02 | Generic write action `actions.commitChange(change)`: `applyChange` when uncontrolled, `onDataChange` in both modes, row-op guards, one undo entry; io import uses it; runs in the Wave 5 order before W5-13 (no-op on readOnly, emit after set, pass-through for source "history") | M-L | MED | W5-07 |
-| W6-06 | API-01 | Bulk row reorder: batch `reorderRows` (one `move` batch, one undo entry), then multi-row drag from the grip, keyboard reorder | M + L | MED | W2-09, W5-07, spec |
-| W6-07 | API-03 | Column layout in the URL: per-part opt-in (`order`, `hidden`, `widths`, `pins`; default `order` + `hidden`), write-back at the gesture commit point | M | LOW-MED | W5-11 |
-| W6-08 | FEAT-4 | Per-column header filter popover + distinct-values ("set") filter with search and virtual list; `isAnyOf` for text/number/date; `data-filtered` header indicator | M | LOW-MED | W2-01, W2-07, W5-04 |
-| W6-09 | FEAT-5 | Find & replace (mod+H): replace / replace all through `fromText` + validation, readOnly skipped, one undo entry, new change source `"replace"` | M | MED | W6-05, W4-01 |
-| W6-10 | FEAT-7 | Column groups / multi-level headers: `columnGroups` prop, header tracks with `grid-column: span`, pin splits groups per band, `aria-colspan` | M-L | MED | W5-11, spec |
-| W6-11 | FEAT-8 | Touch / coarse pointer: tap select, double-tap edit, long-press range, corner handles, larger hit areas under `(pointer: coarse)` | M-L | MED | W2-09 |
-| W6-12 | FEAT-9 | Tree data: `getParentId(row)`, controlled `expandedRowIds`, `treeColumn` indent/toggle, filter keeps ancestors | L | MED-HIGH | W5-07, W5-08, W4-01, spec |
-| W6-13 | FEAT-10 | Variable row heights (known heights): `getRowHeight(row)`, per-column `wrap`, prefix-offset window math; measured auto-height stays out | L | HIGH | perf suite, plan 010 |
-| W6-14 | FEAT-11 | Master-detail / expandable full-width rows (`renderDetail`, `detailHeight`) | XL | HIGH | W6-12, W6-13 |
-| W6-15 | FEAT-12 | Row grouping + aggregation (reopens the PLAN v1 non-goal) | XL | HIGH | W6-12, spec |
+Wave 6 is tracked as GitHub issues and worked one issue at a time after Wave 5; each spec is a draft and is checked against the code at pickup.
+
+W6 decisions (recommendations accepted):
+- Status bar: hidden for a single cell.
+- `autosizeOnMount` is off by default.
+- Print ignores on-screen widths.
+- W6-04: search works on raw digits, and the editor edits the raw value.
+- Bulk reorder: key bursts are separate undo entries.
+- `widths` is not in the default URL layout parts.
+- Header filter: no condition row, with per-value counts.
+- Find/replace: limit of 10,000 cells per click, visible (filtered-in) rows only.
+- Column-group export header rows come as a follow-up.
+- Touch: no long-press drag; the fill handle is hidden on coarse pointers.
+- Tree: a matching parent does not show non-matching children; deleting a parent re-roots its children; lazy children come later.
+- Variable heights: no measured auto-height.
+- Master-detail: several rows can be open; keyboard open moves focus in; no auto-grow.
+- Grouping: new groups start collapsed; copy includes group rows as text; `groupKey` comes later.
+
+| # | ID | Feature | Effort | Risk | Prerequisites | Issue | Spec |
+|---|----|---------|--------|------|---------------|-------|------|
+| W6-01 | FEAT-1 | Add-on `data-grid-status-bar`: sum/avg/count/min/max of the selected cells, capped with "≈" | S | LOW | W3-04 | #58 | `research/status-bar-spec.md` |
+| W6-02 | FEAT-2 | `autosizeColumns({ columnIds?, sampleRows?, includeHeader? })` over view rows via canvas `measureText`, one `onColumnLayoutChange`; optional `autosizeOnMount`. Today autosize measures only mounted cells (`autosize-column.ts:5-13`) | S | LOW | — | #59 | `research/autosize-columns-spec.md` |
+| W6-03 | FEAT-6 | `printGrid()` / `<DataGridPrintButton>` in io: static table from `buildExportRows` in a hidden iframe, `window.print()` (also gives PDF) | S-M | LOW | — | #60 | `research/print-spec.md` |
+| W6-04 | FEAT-3 | `number.options.format: Intl.NumberFormatOptions` (currency, percent, compact; `toText` stays raw); new `url` cell type (href allow-list `http`/`https`/`mailto` only) and `longText` (popover editor) | S-M | LOW | W3-03 | #61 | `research/cell-types-format-url-longtext-spec.md` |
+| W6-05 | API-02 | Generic write action `actions.commitChange(change)`: `applyChange` when uncontrolled, `onDataChange` in both modes, row-op guards, one undo entry; io import uses it; runs in the Wave 5 order before W5-13 (no-op on readOnly, emit after set, pass-through for source "history") | M-L | MED | W5-07 | — | — |
+| W6-06 | API-01 | Bulk row reorder: batch `reorderRows` (one `move` batch, one undo entry), then multi-row drag from the grip, keyboard reorder | M + L | MED | W2-09, W5-07, spec | #62 | `research/bulk-row-reorder-spec.md` |
+| W6-07 | API-03 | Column layout in the URL: per-part opt-in (`order`, `hidden`, `widths`, `pins`; default `order` + `hidden`), write-back at the gesture commit point | M | LOW-MED | W5-11 | #63 | `research/column-layout-url-spec.md` |
+| W6-08 | FEAT-4 | Per-column header filter popover + distinct-values ("set") filter with search and virtual list; `isAnyOf` for text/number/date; `data-filtered` header indicator | M | LOW-MED | W2-01, W2-07, W5-04 | #64 | `research/header-filter-spec.md` |
+| W6-09 | FEAT-5 | Find & replace (mod+H): replace / replace all through `fromText` + validation, readOnly skipped, one undo entry, new change source `"replace"` | M | MED | W6-05, W4-01 | #65 | `research/find-replace-spec.md` |
+| W6-10 | FEAT-7 | Column groups / multi-level headers: `columnGroups` prop, header tracks with `grid-column: span`, pin splits groups per band, `aria-colspan` | M-L | MED | W5-11, spec | #66 | `research/column-groups-spec.md` |
+| W6-11 | FEAT-8 | Touch / coarse pointer: tap select, double-tap edit, long-press range, corner handles, larger hit areas under `(pointer: coarse)` | M-L | MED | W2-09 | #67 | `research/touch-input-spec.md` |
+| W6-12 | FEAT-9 | Tree data: `getParentId(row)`, controlled `expandedRowIds`, `treeColumn` indent/toggle, filter keeps ancestors | L | MED-HIGH | W5-07, W5-08, W4-01, spec | #68 | `research/tree-data-spec.md` |
+| W6-13 | FEAT-10 | Variable row heights (known heights): `getRowHeight(row)`, per-column `wrap`, prefix-offset window math; measured auto-height stays out | L | HIGH | perf suite, plan 010 | #69 | `research/variable-row-heights-spec.md` |
+| W6-14 | FEAT-11 | Master-detail / expandable full-width rows (`renderDetail`, `detailHeight`) | XL | HIGH | W6-12, W6-13 | #70 | `research/master-detail-spec.md` |
+| W6-15 | FEAT-12 | Row grouping + aggregation (reopens the PLAN v1 non-goal) | XL | HIGH | W6-12, spec | #71 | `research/row-grouping-spec.md` |
 
 ## Rejected
 
@@ -399,6 +435,6 @@ compiler mirror 4m44, build 1m02, rest < 1 min.
 | W2 | DONE (19 items, commits `7d12104`…`0776df0`); review 2026-09-29: 2 security bypasses and 2 regressions → Wave R |
 | W3 | DONE (10 items, commits `3f120da`..`ca1e972` + compliance `49db63f`); review 2026-09-29: docs/CHANGELOG gaps, stale payloads at `49db63f` → Wave R |
 | W4 | DONE (W4-01 `66e1eed`, W4-02 `a76bffa`); review 2026-09-29: W4-01 remaps against stale data on consumer data swaps → R-01 |
-| WR | R1 DONE (R-01 `0c3579a`, R-02 `4f993b5`, R-03 `bb001d4`, R-04 `23d9296`, R-05 `d72dc18`, R-06 `62e28e5`, R-07 `bd66943`; all gates green incl. e2e install); R4 critical part DONE (R-36 `1564871`, R-37 `eecf2a1`, R-38 `d12c5ee` + `814c49d`, R-39 `f95e36b`, R-40 `468c620`, R-41 `4085797`, R-43 `1dc30e6`; all gates green incl. compiler mirror and e2e install); R5 DONE (R-62 `44eae8f`, R-63 `f41161f`, R-64 `330add5`, R-65 `b3d1197`, R-66 `61800b3`, R-67 `30ed183`, R-68 `6cdee5f`, R-69 `48bb4ff` (kept as the documented store-session fallback), audit follow-up `93a53b0`; all gates green incl. compiler mirror and e2e install); R2 DONE (R-08…R-26 item commits `12d798b`…`d81ecd6`, review fix loops `f35a28c`…`ff33aa7`; all gates green incl. compiler mirror and e2e install); R3 DONE (R-80 `e34a23e`, R-77 `cc261ad`, R-27 `ccbb0eb`, R-75 `e2e5557`, R-76 `b176e2e`, R-34 `f4e5cf7`, R-33 `db38118`, R-32 `81a8df7`, R-28 `57dc429`, R-29 `2500f7d`, R-30 `ba4e168`, R-31 `c2b283e`, audit pin `5d500ce`; all gates green incl. compiler mirror, e2e install, and a clean production audit; R-27's rowId-map guard sub-point, R-31's misplaced-oxlint-disable sub-point (removed by the rowId-map rework), and R-31's stale binding-label comment (file deleted in R-28) were already resolved at review time; R-33's `ci` aggregator confirmation is external — first PR run on GitHub). The R3 "all gates green" claim was false on a clean install: a stale hoisted `vite` hid that `is-dev.test.ts` imported an undeclared dependency, so types:check, ts5, build, and the unit gate failed and the coverage thresholds never ran; R-78 and R-79 were skipped. R3 review fixes DONE: clean install `6edb3f6` (esbuild guard for `isDev`), pnpm overrides `ebb82d1`, compiler bail-out baseline `c236db0`, R-80 `4e962af`, R-77 `780640a`, R-29 `cc72c84`, R-31 `ea80c25`, R-30/R-28 nits `d11b6ce` + `17ac944` + `a78c32d`, R-32 `4f47841`, R-33 `70aa20d`. R4 DONE after review: R-42 `389b129` + `5dfd088`, R-44 `a1f18da` + `d28c522`, R-45 `95a95c4` + `a1abbdc`, R-46 `d66b810` + `e464c4e`; all gates green on a clean install incl. compiler mirror, e2e install, and a clean production audit. Final R3/R4 review loop DONE: popup editor keys `53c99bb`, global shortcuts off while editing `e472767`, per-grid keydown dedupe `a890d20`, selection cleared with the cursor `e259f94`, docs `7c2904a`, normalized default bindings `56d1f9e`, `ci` aggregator always runs `73f4597`, compiler baseline with reasons `9558067`, decimal rounding `d9dd0a7`, docs/CHANGELOG nits `467749b`, pinned `getRowId` swap test `f72d2c9`; all gates green incl. compiler mirror, e2e install, and a clean production audit. io lane DONE: R-70, R-72, R-73, R-74 (`97cd570`, `d8f1f37`, `3d2bba9`, `19cf8a0`, `ab04426`, `27529fb`, `f74b268`; `f74b268` replaced the custom part resolver from `ab04426` with hucre's per-entry cap); R-71 drafted, waiting for the maintainer to post it upstream. R-47 in progress (parked WIP). TODO: R-47…R-58, R-61, R-78, R-79, R-81…R-84, R-35 |
+| WR | R1 DONE (R-01 `0c3579a`, R-02 `4f993b5`, R-03 `bb001d4`, R-04 `23d9296`, R-05 `d72dc18`, R-06 `62e28e5`, R-07 `bd66943`; all gates green incl. e2e install); R4 critical part DONE (R-36 `1564871`, R-37 `eecf2a1`, R-38 `d12c5ee` + `814c49d`, R-39 `f95e36b`, R-40 `468c620`, R-41 `4085797`, R-43 `1dc30e6`; all gates green incl. compiler mirror and e2e install); R5 DONE (R-62 `44eae8f`, R-63 `f41161f`, R-64 `330add5`, R-65 `b3d1197`, R-66 `61800b3`, R-67 `30ed183`, R-68 `6cdee5f`, R-69 `48bb4ff` (kept as the documented store-session fallback), audit follow-up `93a53b0`; all gates green incl. compiler mirror and e2e install); R2 DONE (R-08…R-26 item commits `12d798b`…`d81ecd6`, review fix loops `f35a28c`…`ff33aa7`; all gates green incl. compiler mirror and e2e install); R3 DONE (R-80 `e34a23e`, R-77 `cc261ad`, R-27 `ccbb0eb`, R-75 `e2e5557`, R-76 `b176e2e`, R-34 `f4e5cf7`, R-33 `db38118`, R-32 `81a8df7`, R-28 `57dc429`, R-29 `2500f7d`, R-30 `ba4e168`, R-31 `c2b283e`, audit pin `5d500ce`; all gates green incl. compiler mirror, e2e install, and a clean production audit; R-27's rowId-map guard sub-point, R-31's misplaced-oxlint-disable sub-point (removed by the rowId-map rework), and R-31's stale binding-label comment (file deleted in R-28) were already resolved at review time; R-33's `ci` aggregator confirmation is external — first PR run on GitHub). The R3 "all gates green" claim was false on a clean install: a stale hoisted `vite` hid that `is-dev.test.ts` imported an undeclared dependency, so types:check, ts5, build, and the unit gate failed and the coverage thresholds never ran; R-78 and R-79 were skipped. R3 review fixes DONE: clean install `6edb3f6` (esbuild guard for `isDev`), pnpm overrides `ebb82d1`, compiler bail-out baseline `c236db0`, R-80 `4e962af`, R-77 `780640a`, R-29 `cc72c84`, R-31 `ea80c25`, R-30/R-28 nits `d11b6ce` + `17ac944` + `a78c32d`, R-32 `4f47841`, R-33 `70aa20d`. R4 DONE after review: R-42 `389b129` + `5dfd088`, R-44 `a1f18da` + `d28c522`, R-45 `95a95c4` + `a1abbdc`, R-46 `d66b810` + `e464c4e`; all gates green on a clean install incl. compiler mirror, e2e install, and a clean production audit. Final R3/R4 review loop DONE: popup editor keys `53c99bb`, global shortcuts off while editing `e472767`, per-grid keydown dedupe `a890d20`, selection cleared with the cursor `e259f94`, docs `7c2904a`, normalized default bindings `56d1f9e`, `ci` aggregator always runs `73f4597`, compiler baseline with reasons `9558067`, decimal rounding `d9dd0a7`, docs/CHANGELOG nits `467749b`, pinned `getRowId` swap test `f72d2c9`; all gates green incl. compiler mirror, e2e install, and a clean production audit. io lane DONE: R-70, R-72, R-73, R-74 (`97cd570`, `d8f1f37`, `3d2bba9`, `19cf8a0`, `ab04426`, `27529fb`, `f74b268`; `f74b268` replaced the custom part resolver from `ab04426` with hucre's per-entry cap); R-71 drafted, waiting for the maintainer to post it upstream. R-47 in progress (parked WIP). R6 DONE (R-85…R-92: `74c5e04`, `83ea038`, `f70f86e`, `b19b679`, `a9cacbd`, `fa8049c`, `8bdf2be`, `6e1ebd1`, `d4e6719`; review fix loop `fc2b416`…`aab8a41`, re-review pending; R-93 stays with W5-12, R-94 with W5-13). TODO: R-47…R-58, R-61, R-78, R-79, R-81…R-84, R-35, R-93 (with W5-12), R-94 (with W5-13), R-95…R-99 |
 | W5 | TODO (API foundation; specs for W5-05, W5-06, W5-08…W5-13) |
 | W6 | TODO (W6-01…W6-04 can run in parallel with W5) |
