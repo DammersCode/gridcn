@@ -52,7 +52,7 @@ export type DataGridSyncProps<TData = unknown> = {
   // a defineColumns literal's narrow-TValue `validate` needs this documented widening to fit here.
   columns: readonly ColumnDefOf<TData>[];
   getRowId: (row: TData, index: number) => string;
-  /** Fired once per user gesture with the next data array and an id-keyed delta batch. */
+  /** Fired once per user gesture with the next data array and an id-keyed delta batch, after the grid stores that array. */
   onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
   /**
    * Row-level cross-field validation, run once per touched row after a write gesture commits

@@ -238,7 +238,7 @@ describe("onEditEnd", () => {
     expect(onEditEnd.mock.calls).toEqual([[{ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0, result: "cancel" }]]);
   });
 
-  it("delivers onDataChange, then onActiveCellChange, then onEditEnd on a moving commit", () => {
+  it("delivers onActiveCellChange, then onDataChange, then onEditEnd on a moving commit", () => {
     const order: string[] = [];
     const wrapper = makeWrapper({
       onDataChange: () => order.push("data"),
@@ -253,7 +253,7 @@ describe("onEditEnd", () => {
     act(() => {
       result.current.actions.commitCellEdit("x", { dx: 0, dy: 1 });
     });
-    expect(order).toEqual(["data", "active", "editend"]);
+    expect(order).toEqual(["active", "data", "editend"]);
   });
 });
 

@@ -92,6 +92,9 @@ goes blank after a delete.
 already applied the change, and the callback is only a notification. See the [Quick start](/docs/quick-start) for the `defaultData`
 opt-in and the [API reference](/docs/api-reference) for the exclusivity rule.
 
+`onDataChange` fires after the grid stores `next`. A write action that you call inside the
+handler, such as `updateCells`, starts from `next` and keeps both changes.
+
 ## 2. `onSelectionChange`
 
 ```ts
@@ -361,8 +364,8 @@ zero-re-render guarantee as the other callbacks on this page.
    each rejected entry is `{ rowId, columnId, viewRowIndex, value, message }`. Single-cell edits do not use
   this event. `onEditEnd` with `result: "rejected"` covers that surface.
 
-A commit's events arrive in this order: `onDataChange`, then `onActiveCellChange` (when the
-cursor moves), then `onEditEnd`. With an async `validate` schema, `onEditEnd` waits for the
+A commit's events arrive in this order: `onActiveCellChange` (when the cursor moves), then
+`onDataChange`, then `onEditEnd`. With an async `validate` schema, `onEditEnd` waits for the
 schema to settle. The editor stays open while `pending` is true.
 
 The last two are DOM notifications in the `onCellClick` sense:

@@ -277,7 +277,7 @@ export type DataGridProps<TData> = {
   className?: string;
   /** Row height in px; also exposed as the `--grid-row-height` CSS var. */
   rowHeight?: number;
-  /** Fired once per user gesture (edit, delete, paste, fill) with the next data array and an id-keyed delta batch. */
+  /** Fired once per user gesture (edit, delete, paste, fill) with the next data array and an id-keyed delta batch, after the grid stores that array. */
   onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
   /** Row-level cross-field validation, once per touched row after a write gesture commits; `columnId -> message` into `cellErrors`, values still commit. See {@link DataGridSyncProps.validateRow}. */
   validateRow?: (row: TData, rowId: string) => Record<string, string> | null;
