@@ -46,6 +46,27 @@ describe("columns missing from the column order", () => {
     expect(visibleIds(store())).toEqual(["b", "a", "c"]);
   });
 
+  it("reorders around a column added after a reorder", () => {
+    const { store, rerender } = mount({ columns: twoColumns });
+    act(() => store().getState().actions.setColumnOrder("b", "a", "before"));
+    rerender({ columns: threeColumns });
+
+    act(() => store().getState().actions.setColumnOrder("a", "c", "after"));
+
+    expect(visibleIds(store())).toEqual(["b", "c", "a"]);
+  });
+
+  it("reports the completed order to onColumnLayoutChange after a column is added", () => {
+    const onColumnLayoutChange = vi.fn();
+    const { store, rerender } = mount({ columns: twoColumns, onColumnLayoutChange });
+    act(() => store().getState().actions.setColumnOrder("b", "a", "before"));
+    rerender({ columns: threeColumns, onColumnLayoutChange });
+
+    act(() => store().getState().actions.commitColumnWidth("a", 200));
+
+    expect(onColumnLayoutChange).toHaveBeenLastCalledWith(expect.objectContaining({ order: ["b", "a", "c"] }));
+  });
+
   it("renders a column missing from a restored defaultColumnLayout order", () => {
     const { store } = mount({ columns: threeColumns, defaultColumnLayout: { widths: {}, order: ["c", "a"], pins: {}, hidden: [] } });
 
