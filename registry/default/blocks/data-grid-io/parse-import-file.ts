@@ -415,9 +415,13 @@ function* biffRecords(stream: Uint8Array, view: DataView, offset: number): Gener
 function biffSheetBox(stream: Uint8Array, view: DataView, start: number, cap: number): number {
   let rows = 0;
   let columns = 0;
-  const records = biffRecords(stream, view, start);
-  if (records.next().value?.id !== BIFF_BOF) return 0;
-  for (const { id, data, length } of records) {
+  let atStart = true;
+  for (const { id, data, length } of biffRecords(stream, view, start)) {
+    if (atStart) {
+      if (id !== BIFF_BOF) return 0;
+      atStart = false;
+      continue;
+    }
     if (id === BIFF_EOF) break;
     const mulrk = id === BIFF_MULRK;
     if (length < 4 || data + 4 > stream.length || !(mulrk || BIFF_CELL_RECORDS.has(id))) continue;
@@ -437,11 +441,14 @@ function biffSheetBox(stream: Uint8Array, view: DataView, start: number, cap: nu
 function assertXlsWithinLimits(bytes: Uint8Array, limits: GridLimits): void {
   const stream = readOle2Workbook(bytes);
   const view = new DataView(stream.buffer, stream.byteOffset, stream.byteLength);
-  const globals = biffRecords(stream, view, 0);
-  const bof = globals.next().value;
-  if (bof?.id !== BIFF_BOF || bof.length < 2 || view.getUint16(bof.data, true) !== BIFF8_VERSION) return;
   const sheetStarts: number[] = [];
-  for (const { id, data, length } of globals) {
+  let atStart = true;
+  for (const { id, data, length } of biffRecords(stream, view, 0)) {
+    if (atStart) {
+      if (id !== BIFF_BOF || length < 2 || view.getUint16(data, true) !== BIFF8_VERSION) return;
+      atStart = false;
+      continue;
+    }
     if (id === BIFF_EOF) break;
     if (id === BIFF_BOUNDSHEET && length >= 4) sheetStarts.push(view.getUint32(data, true));
   }

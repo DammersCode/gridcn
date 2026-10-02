@@ -174,6 +174,7 @@ const BIFF_BOF = 0x809;
 const BIFF_EOF = 0x0a;
 const BIFF_BOUNDSHEET = 0x85;
 const BIFF_NUMBER = 0x203;
+const BIFF_MULRK = 0xbd;
 
 function biffBof(substream: "globals" | "worksheet", version = 0x600): Uint8Array {
   const data = new Uint8Array(16);
@@ -190,6 +191,15 @@ function biffNumber(row: number, col: number): Uint8Array {
   view.setUint16(2, col, true);
   view.setFloat64(6, 1, true);
   return biffRecord(BIFF_NUMBER, data);
+}
+
+function biffMulrk(row: number, firstCol: number, count: number): Uint8Array {
+  const data = new Uint8Array(4 + count * 6 + 2);
+  const view = new DataView(data.buffer);
+  view.setUint16(0, row, true);
+  view.setUint16(2, firstCol, true);
+  view.setUint16(data.length - 2, firstCol + count - 1, true);
+  return biffRecord(BIFF_MULRK, data);
 }
 
 function biffBoundSheet(position: number, name: string): Uint8Array {
@@ -242,12 +252,33 @@ function writeOle2(stream: Uint8Array): Uint8Array<ArrayBuffer> {
   return out;
 }
 
-/** A forged BIFF8 `.xls`: every sheet name in `sheets` points at one worksheet substream that holds a single number at `cell`. */
-export function forgedXlsFile(options: { sheets: number; cell: { row: number; col: number }; name?: string; version?: number }): File {
+/** Byte length of the BIFF record that `forgedXlsFile` writes for the BOF, so a test can point a sheet at the records after it. */
+export const FORGED_XLS_FIRST_RECORD_OFFSET = 20;
+
+type ForgedXlsOptions = {
+  sheets: number;
+  cell: { row: number; col: number };
+  /** Write a MULRK record of this many cells starting at `cell`, instead of one number. */
+  mulrkCount?: number;
+  /** Absolute stream offsets the sheets point at, in order; the worksheet substream when omitted. */
+  sheetOffsets?: number[];
+  /** Leave the worksheet without its EOF record. */
+  unterminatedWorksheet?: boolean;
+  name?: string;
+  version?: number;
+};
+
+/** A forged BIFF8 `.xls`: every sheet name in `sheets` points at one worksheet substream that holds one number, or one MULRK run, at `cell`. */
+export function forgedXlsFile(options: ForgedXlsOptions): File {
   const names = Array.from({ length: options.sheets }, (_, i) => `S${i}`);
   const eof = biffRecord(BIFF_EOF, new Uint8Array(0));
   const globalsLength = biffBof("globals").length + names.reduce((sum, name) => sum + biffBoundSheet(0, name).length, 0) + eof.length;
-  const globals = concat([biffBof("globals", options.version), ...names.map((name) => biffBoundSheet(globalsLength, name)), eof]);
-  const worksheet = concat([biffBof("worksheet"), biffNumber(options.cell.row, options.cell.col), eof]);
+  const globals = concat([
+    biffBof("globals", options.version),
+    ...names.map((name, i) => biffBoundSheet(options.sheetOffsets?.[i] ?? globalsLength, name)),
+    eof,
+  ]);
+  const cell = options.mulrkCount ? biffMulrk(options.cell.row, options.cell.col, options.mulrkCount) : biffNumber(options.cell.row, options.cell.col);
+  const worksheet = concat([biffBof("worksheet"), cell, ...(options.unterminatedWorksheet ? [] : [eof])]);
   return new File([writeOle2(concat([globals, worksheet]))], options.name ?? "forged.xls", { type: "application/vnd.ms-excel" });
 }

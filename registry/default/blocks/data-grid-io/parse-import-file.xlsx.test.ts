@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseImportFile } from "./parse-import-file";
-import { forgedXlsFile, inlineCell, withEntries, workbookFile, worksheetXml, xlsxWithWorksheet } from "./xlsx-fixtures.test-helper";
+import { FORGED_XLS_FIRST_RECORD_OFFSET, forgedXlsFile, inlineCell, withEntries, workbookFile, worksheetXml, xlsxWithWorksheet } from "./xlsx-fixtures.test-helper";
 
 const XLS_TYPE = "application/vnd.ms-excel";
 const MIB = 1024 * 1024;
@@ -433,6 +433,83 @@ describe("parseImportFile — legacy xls", () => {
     bytes.set([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
 
     await expect(parseImportFile(new File([bytes], "broken.xls"))).rejects.toThrow();
+  });
+
+  it("counts every cell of a MULRK run toward the cell limit", async () => {
+    const file = () => forgedXlsFile({ sheets: 1, cell: { row: 0, col: 0 }, mulrkCount: 3 });
+
+    await expect(parseImportFile(file())).resolves.toMatchObject({ rows: [["0", "0", "0"]] });
+    await expect(parseImportFile(file(), { maxCells: 2 })).rejects.toThrow("import-too-many-cells");
+  });
+
+  it("reads a worksheet whose substream has no EOF record", async () => {
+    const result = await parseImportFile(forgedXlsFile({ sheets: 1, cell: { row: 0, col: 0 }, unterminatedWorksheet: true }));
+
+    expect(result.rows).toEqual([["1"]]);
+  });
+
+  it("reads a sheet that points at a record other than a BOF as an empty sheet", async () => {
+    const file = forgedXlsFile({ sheets: 1, cell: { row: 0, col: 0 }, sheetOffsets: [FORGED_XLS_FIRST_RECORD_OFFSET] });
+
+    await expect(parseImportFile(file)).resolves.toMatchObject({ rows: [] });
+  });
+
+  it("rejects a workbook whose sheets start at many different records, so scanning them cannot go quadratic", async () => {
+    const file = forgedXlsFile({ sheets: 4, cell: { row: 0, col: 0 }, sheetOffsets: [0, 20, 34, 48] });
+
+    await expect(parseImportFile(file)).rejects.toThrow("unreadable-xls");
+  });
+
+  describe("a damaged OLE2 container", () => {
+    it("rejects a container shorter than its header", async () => {
+      const file = new File([new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0, 0, 0, 0])], "tiny.xls");
+
+      await expect(parseImportFile(file)).rejects.toThrow("unreadable-xls");
+    });
+
+    async function damaged(patch: (view: DataView, bytes: Uint8Array) => void): Promise<File> {
+      const bytes = new Uint8Array(await forgedXlsFile({ sheets: 1, cell: { row: 0, col: 0 } }).arrayBuffer());
+      patch(new DataView(bytes.buffer), bytes);
+      return new File([bytes], "damaged.xls");
+    }
+
+    it("rejects a container without a Workbook stream", async () => {
+      const file = await damaged((view) => view.setUint16(1024 + 128, 0x58, true));
+
+      await expect(parseImportFile(file)).rejects.toThrow("unreadable-xls");
+    });
+
+    it("rejects a Workbook stream that starts outside the file", async () => {
+      const file = await damaged((view) => view.setUint32(1024 + 128 + 116, 0x7fff, true));
+
+      await expect(parseImportFile(file)).rejects.toThrow("unreadable-xls");
+    });
+
+    it("rejects an unsupported sector size", async () => {
+      const file = await damaged((view) => view.setUint16(30, 7, true));
+
+      await expect(parseImportFile(file)).rejects.toThrow("unreadable-xls");
+    });
+
+    it("rejects a DIFAT chain that leaves the file", async () => {
+      const file = await damaged((view) => view.setUint32(68, 0x7fff, true));
+
+      await expect(parseImportFile(file)).rejects.toThrow("unreadable-xls");
+    });
+
+    it("rejects a FAT sector outside the file", async () => {
+      const file = await damaged((view) => view.setUint32(76, 0x7fff, true));
+
+      await expect(parseImportFile(file)).rejects.toThrow("unreadable-xls");
+    });
+
+    it("rejects a mini stream the file does not hold", async () => {
+      const bytes = xlsBytes("biff8.xls");
+      const view = new DataView(bytes.buffer);
+      view.setUint32((view.getUint32(48, true) + 1) * 512 + 120, 0, true);
+
+      await expect(parseImportFile(new File([bytes], "no-mini.xls"))).rejects.toThrow("unreadable-xls");
+    });
   });
 
   it("rejects an HTML table saved with an .xls extension", async () => {
