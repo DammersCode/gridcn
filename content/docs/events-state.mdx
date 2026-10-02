@@ -349,6 +349,8 @@ zero-re-render guarantee as the other callbacks on this page.
   It fires once per rejected attempt. `GridEditEndEvent` is a `ViewCellRef` plus `result`:
   `{ rowId, columnId, viewRowIndex, viewColumnIndex, result }`. The committed value is not
   included. `onDataChange` already carries it.
+- A filter, hidden column, or data change that drops the edited cell cancels the edit and clears
+  the active cell. This happens even when other rows stay in the view.
 - A sort, filter, or data change that shrinks the view clamps the active cell to the nearest
   in-view cell, and `onActiveCellChange` fires for the move. The selection then collapses onto
   the clamped cell. When the view becomes empty, the grid clears the active cell and the

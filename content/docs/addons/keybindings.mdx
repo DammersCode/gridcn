@@ -215,6 +215,9 @@ On an unloaded row of a lazy grid, `cell` is a placeholder ref. `api` cannot res
 An `"editing"` command never takes over a grid binding. While no edit session is open, the grid
 keeps its built-in bindings and type-to-edit on that key.
 
+An `"editing"` command bound to Enter, Escape, or Tab never runs from the built-in editors. The
+editor commits or cancels on that key first.
+
 Other rules:
 
 - A name that shadows a built-in action (`selectAll`, for example) wins over it. Dev mode
