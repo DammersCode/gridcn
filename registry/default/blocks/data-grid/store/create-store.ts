@@ -823,11 +823,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const isEcho = nextData === dataWrite.lastEmittedData && nextData === s.data;
           const foreignData = nextData !== s.data;
           // A foreign array may move or drop rows, so prune errors and rebuild the id map; our own echo keeps both.
-          const nextCellErrors = foreignData ? pruneCellErrors(s.cellErrors, nextData, s.getRowId) : s.cellErrors;
+          const nextCellErrors = foreignData ? pruneCellErrors(s.cellErrors, nextData, props.getRowId) : s.cellErrors;
           if (foreignData) {
             rowIndexCache.invalidate();
             forgetDeferredRows(dataWrite);
-            pruneRowValidationKeys(nextData, s.getRowId);
+            pruneRowValidationKeys(nextData, props.getRowId);
           }
           // Only a new `columns` reference replaces `s.columns`, so runtime pin changes survive re-renders.
           const propsColumnsChanged = props.columns !== lastPropsColumns;

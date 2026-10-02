@@ -684,6 +684,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **A new `getRowId` with new `data` prunes errors by the new ids (`data-grid`):** when the
+  consumer replaces `getRowId` and `data` in the same render, the grid drops `cellErrors` entries
+  and `validateRow` bookkeeping for row ids that the new `getRowId` does not return. Before, the
+  grid read the ids with the old `getRowId`, so a stale entry could stay and a later `validateRow`
+  run could clear a consumer error on a reused id.
 - **Ctrl+A is linear in the row count (`data-grid`):** the first press finds the data region by
   growing each edge to its limit, so a 100k-row grid with an empty neighbour column selects at
   once. Before, the growth rescanned that column for every added row.

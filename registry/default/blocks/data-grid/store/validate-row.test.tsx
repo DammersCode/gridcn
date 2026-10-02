@@ -102,3 +102,48 @@ describe("validateRow", () => {
     expect(store.getState().cellErrors).toBe(before);
   });
 });
+
+describe("a getRowId swapped together with data", () => {
+  type Keyed = Row & { key: string };
+  const byId = (row: unknown) => (row as Keyed).id;
+  const byKey = (row: unknown) => (row as Keyed).key;
+  const keyedStore = () =>
+    makeStore({
+      data: [{ id: "a", key: "k1", price: 100, discount: 10, note: "" }],
+      getRowId: byId,
+    });
+
+  it("prunes cellErrors by the new row ids", () => {
+    const store = keyedStore();
+    store.getState().actions.setCellErrors([{ rowId: "a", columnId: "note", message: "server" }]);
+
+    store.getState().actions._syncProps({
+      data: [{ id: "a", key: "k1", price: 100, discount: 10, note: "" }],
+      columns,
+      getRowId: byKey,
+    } as InternalSyncProps);
+
+    expect(store.getState().cellErrors.has("a:note")).toBe(false);
+  });
+
+  it("prunes validateRow keys by the new row ids, so a reused id keeps its consumer errors", () => {
+    const store = keyedStore();
+    store.getState().actions.updateCells([{ rowId: "a", columnId: "discount", value: 400 }]);
+    expect(store.getState().cellErrors.get("a:discount")).toBe("discount above price");
+
+    store.getState().actions._syncProps({
+      data: [{ id: "a", key: "k1", price: 100, discount: 400, note: "" }],
+      columns,
+      getRowId: byKey,
+    } as InternalSyncProps);
+    store.getState().actions._syncProps({
+      data: [{ id: "x", key: "a", price: 100, discount: 10, note: "" }],
+      columns,
+      getRowId: byKey,
+    } as InternalSyncProps);
+    store.getState().actions.setCellErrors([{ rowId: "a", columnId: "discount", message: "server" }]);
+    store.getState().actions.updateCells([{ rowId: "a", columnId: "note", value: "edited" }]);
+
+    expect(store.getState().cellErrors.get("a:discount")).toBe("server");
+  });
+});
