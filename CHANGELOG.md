@@ -334,9 +334,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   (`selection.rows`, the marker checkboxes) moves with each record when a sort, filter, join
   operator, consumer `data` swap, `updateCells` reorder, or a row insert or duplicate under a sort
   or filter changes the view. A record that leaves the view leaves the selection, and it stays
-  unchecked when it comes back. When a rebuild puts other records under the cursor range, the
-  grid drops the range and keeps the active cell. So `deleteRows`, `duplicateRows`, the row
-  shortcuts, the context menu, and `getRowIds()` never act on a record that nobody selected.
+  unchecked when it comes back. When a rebuild puts other records or other columns under the
+  cursor range, the grid drops the range and keeps the active cell at its view position. A row
+  operation on checked rows, and `getRowIds()`, never reach a record that was not checked. Without
+  checked rows, `deleteRows` and the row shortcuts act on the active cell's row.
   Before, the checks and the range stayed on view positions, so a sort moved them onto other
   records, and a row insert or duplicate under a sort cleared the checks.
 - **Breaking:** `useDataGridActions()` and `useDataGridStoreProps().actions` return only the
