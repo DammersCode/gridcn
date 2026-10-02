@@ -300,6 +300,9 @@ Source: the Wave 6 spec writing on 2026-10-02. R7 runs before the remaining R4 w
 | R-97 | spec writing | Delete/Backspace typed in a `contenteditable` (or other non-input editable) inside the grid clears host cells; the grid's key handling must ignore events from editable descendants that are not the cell editor. Test | S | MED |
 | R-98 | spec writing | `registry/default/examples/fake-remote-server.ts:115-128` and `content/docs/recipes.mdx:61-63` apply `move` ops one at a time, which gives a wrong order for multi-move batches (snapshot-index semantics). Fix with `applyChange` semantics | S | LOW |
 | R-99 | spec writing | `buildExportRows` builds every row before applying `maxRows` (export cost); cap early | XS | LOW |
+| R-101 | R6 re-review | The active cell stays on its view column position when a column is hidden, reordered, or pinned, so a delete after hiding a column to its left clears a different column. Decision: the active cell follows its column id (and its row id), like the selection channels. Test | S | MED |
+| R-102 | R7 implementer | The grid root's copy/cut/paste listeners (`use-grid-clipboard.ts` ~390-445) take over clipboard events from a `contenteditable` or other non-input editable inside the grid (same class as R-97). Ignore events from editable descendants that are not the cell editor. Browser test | S | MED |
+| R-103 | R7 implementer | The `minRow === Infinity` branch in `applyCellUpdates` (`data-write.ts` ~441) is unreachable (a non-null batch only writes visible columns). Delete it | XS | LOW |
 
 ## Wave 5 — API foundation (breaking welcome, spec first where marked)
 
