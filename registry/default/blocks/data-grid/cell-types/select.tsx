@@ -32,6 +32,25 @@ function choiceIndex(choices: readonly Choice[]): ChoiceIndex {
   return index;
 }
 
+// Sort ranks by label per `choices` array; equal labels share a rank, so a sort compares integers.
+const choiceRanks = new WeakMap<readonly Choice[], Map<string, number>>();
+
+function choiceRank(choices: readonly Choice[]): Map<string, number> {
+  let ranks = choiceRanks.get(choices);
+  if (ranks) return ranks;
+  ranks = new Map();
+  const byLabel = [...choices].sort((a, b) => defaultCompareText(a.label, b.label));
+  let rank = -1;
+  let previous: string | undefined;
+  for (const choice of byLabel) {
+    if (previous === undefined || defaultCompareText(previous, choice.label) !== 0) rank++;
+    previous = choice.label;
+    if (!ranks.has(choice.value)) ranks.set(choice.value, rank);
+  }
+  choiceRanks.set(choices, ranks);
+  return ranks;
+}
+
 /** The choice whose value is `raw`, else the first whose label matches `raw` case-insensitively. */
 function findChoice(choices: readonly Choice[] | undefined, raw: string): Choice | undefined {
   if (!choices) return undefined;
@@ -112,7 +131,14 @@ export const selectCellType: CellType<unknown, string | null, GridCellTypes["sel
     if (a == null && b == null) return 0;
     if (a == null) return -1;
     if (b == null) return 1;
-    return defaultCompareText(findChoice(options?.choices, a)?.label ?? a, findChoice(options?.choices, b)?.label ?? b);
+    const choices = options?.choices;
+    if (choices) {
+      const ranks = choiceRank(choices);
+      const rankA = ranks.get(a);
+      const rankB = ranks.get(b);
+      if (rankA !== undefined && rankB !== undefined) return rankA - rankB;
+    }
+    return defaultCompareText(findChoice(choices, a)?.label ?? a, findChoice(choices, b)?.label ?? b);
   },
   align: "left",
 };
