@@ -109,8 +109,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   and returns the entry as-is. `useCellEditor(props, codec)` is the text-input editor primitive
   the built-in `text` and `number` editors are built from: it owns the draft state (seeded from
   `initialText`, or `codec.toDraft(value)`), the end-caret focus, the one-shot commit guard
-  (re-armed when `rejectionCount` rises), and the Enter/Escape/blur bindings, and returns
-  `{ ref, value, onChange, onKeyDown, onBlur, readOnly }` to spread onto an input. `CellEditorCodec`
+  (re-armed when `rejectionCount` rises), and the Enter/Escape/blur bindings (Enter and Escape
+  during IME composition do nothing), and returns
+  `{ ref, value, onChange, onKeyDown, onBlur, readOnly, "aria-label", "aria-busy", dir }` to spread
+  onto an input: the column label, `aria-busy` while `pending`, and `dir="auto"`. `CellEditorCodec`
   is its `{ toDraft, toValue }` codec type.
 - **Typed `options` on cell components:** `CellRenderProps` and `CellEditorProps` carry an
   `options` prop typed as the type's declared `TOptions` (a third type parameter on both). Cell
@@ -690,6 +692,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **IME composition keeps the editor open (`data-grid`):** Enter and Escape that confirm or
+  cancel an IME composition no longer commit or cancel the edit in the text, number, and date
+  editors, or in an editor built on `useCellEditor`.
 - **A new `getRowId` with new `data` prunes errors by the new ids (`data-grid`):** when the
   consumer replaces `getRowId` and `data` in the same render, the grid drops `cellErrors` entries
   and `validateRow` bookkeeping for row ids that the new `getRowId` does not return. Before, the

@@ -153,7 +153,11 @@ function DateEditor({
   return (
     <Popover
       open={open}
-      onOpenChange={(next) => {
+      onOpenChange={(next, details) => {
+        if (!next && details.reason === "escape-key" && details.event.isComposing) {
+          details.cancel();
+          return;
+        }
         setOpen(next);
         if (!next && committed.tryCommit()) cancel();
       }}
@@ -169,7 +173,7 @@ function DateEditor({
         align="start"
         className="w-auto p-0"
         onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-          if (e.key === "Escape") {
+          if (e.key === "Escape" && !e.nativeEvent.isComposing) {
             if (committed.tryCommit()) cancel();
           }
         }}
@@ -185,6 +189,8 @@ function DateEditor({
             placeholder={labels.grid.datePlaceholder}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+              // Enter or Escape during IME composition confirms or cancels the composition, not the edit.
+              if (e.nativeEvent.isComposing) return;
               if (e.key === "Enter") {
                 commitValue(dateCellType.fromText(text, options), { dx: 0, dy: 1 });
               } else if (e.key === "Escape") {

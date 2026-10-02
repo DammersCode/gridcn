@@ -775,6 +775,44 @@ describe("DataGrid in a real browser", () => {
       expect(cell).toHaveAttribute(GRID_ATTR.editing, "true");
     });
 
+    it("Enter and Escape during IME composition leave the text, number, and date editors open", async () => {
+      type Dated = { id: string; name: string; age: number; joined: string };
+      const onDataChange = mockDataChangeFn<Dated>();
+      const datedColumns = defineColumns<Dated>()([
+        { id: "name", header: "Name", accessorKey: "name", type: "text" },
+        { id: "age", header: "Age", accessorKey: "age", type: "number" },
+        { id: "joined", header: "Joined", accessorKey: "joined", type: "date" },
+      ]);
+      await render(
+        <div style={{ height: 600 }}>
+          <DataGrid
+            data={[{ id: "1", name: "Ann", age: 30, joined: "2026-01-02" }]}
+            columns={datedColumns}
+            getRowId={(r) => r.id}
+            className="h-[600px]"
+            onDataChange={onDataChange}
+          />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+      for (const col of [0, 1, 2]) {
+        const cell = gridCells()[col]!;
+        await userEvent.dblClick(cell);
+        await expect.poll(() => document.querySelector(`${gridAttrSelector("cellEditor")} input, [${GRID_ATTR.editing}="true"] input`)).not.toBeNull();
+        const input = document.querySelector<HTMLInputElement>(`${gridAttrSelector("cellEditor")} input, [${GRID_ATTR.editing}="true"] input`)!;
+        input.focus();
+        for (const key of ["Enter", "Escape"]) {
+          input.dispatchEvent(new KeyboardEvent("keydown", { key, isComposing: true, bubbles: true, cancelable: true }));
+          await new Promise((resolve) => setTimeout(resolve, 0));
+          expect(cell, `${key} on column ${col}`).toHaveAttribute(GRID_ATTR.editing, "true");
+        }
+        await userEvent.keyboard("{Escape}");
+        await expect.poll(() => cell.getAttribute(GRID_ATTR.editing)).not.toBe("true");
+      }
+      expect(onDataChange).not.toHaveBeenCalled();
+    });
+
     describe("async Standard Schema validate", () => {
       type AgeResult = { value: number } | { issues: { message: string }[] };
 

@@ -232,10 +232,12 @@ The text-input editor primitive the built-in `text` and `number` editors are bui
 the draft state (seeded from `props.initialText`, or `codec.toDraft(value)` when there is
 none), the end-caret focus, and the one-shot commit guard (re-armed when `rejectionCount`
 rises). It also binds Enter (commit, move down), Escape (cancel), and blur (commit in place).
-`codec` is `{ toDraft, toValue }`. `toValue` must never throw and must return your type's
-`clearValue` result for text it cannot parse. The hook returns
-`{ ref, value, onChange, onKeyDown, onBlur, readOnly }`. Spread the bindings onto your input
-and pass its `ref`. `readOnly` mirrors `props.pending`.
+During IME composition, Enter and Escape do nothing. `codec` is `{ toDraft, toValue }`. `toValue`
+must never throw and must return your type's `clearValue` result for text it cannot parse. The
+hook returns `{ ref, value, onChange, onKeyDown, onBlur, readOnly, "aria-label", "aria-busy", dir }`.
+Spread the bindings onto your input and pass its `ref`. `readOnly` mirrors `props.pending`,
+`aria-label` is the column label, `aria-busy` is `true` while `props.pending` is true, and `dir`
+is `"auto"`.
 
 ## `DataGridLabels`
 

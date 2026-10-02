@@ -133,4 +133,26 @@ describe("useCellEditor", () => {
     render(<ProbeEditor {...makeProps({ pending: false })} />);
     expect((screen.getAllByRole("textbox") as HTMLInputElement[]).at(-1)!.readOnly).toBe(false);
   });
+
+  it("binds the column label, the pending state, and an automatic text direction", () => {
+    function BareEditor(props: Props) {
+      const { ref, ...rest } = useCellEditor(props, codec);
+      return <input ref={ref} {...rest} />;
+    }
+    render(<BareEditor {...makeProps({ pending: true })} />);
+    const input = screen.getByRole("textbox");
+    expect(input.getAttribute("aria-label")).toBe("Col");
+    expect(input.getAttribute("aria-busy")).toBe("true");
+    expect(input.getAttribute("dir")).toBe("auto");
+  });
+
+  it("ignores Enter and Escape during IME composition", () => {
+    const props = makeProps();
+    render(<ProbeEditor {...props} />);
+    const input = screen.getByRole("textbox");
+    fireEvent.keyDown(input, { key: "Enter", isComposing: true });
+    fireEvent.keyDown(input, { key: "Escape", isComposing: true });
+    expect(props.commit).not.toHaveBeenCalled();
+    expect(props.cancel).not.toHaveBeenCalled();
+  });
 });

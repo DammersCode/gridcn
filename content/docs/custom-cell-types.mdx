@@ -200,9 +200,10 @@ matcher · **fill** = raw value.
 
 - **A text-input editor starts from `useCellEditor`, not from scratch.** It owns the draft state
   (seeded from `initialText`, or from your codec's `toDraft(value)` when there is none), the
-  end-caret focus, the one-shot commit guard, the re-arm after a rejected commit, and the
-  Enter/Escape/blur bindings. You supply one codec object — `toDraft` and `toValue` — and spread
-  the returned bindings onto your input. The checklist points below state the rules the hook
+  end-caret focus, the one-shot commit guard, the re-arm after a rejected commit, the
+  Enter/Escape/blur bindings (inactive during IME composition), and the `aria-label`,
+  `aria-busy`, and `dir="auto"` attributes. You supply one codec object — `toDraft` and
+  `toValue` — and spread the returned bindings onto your input. The checklist points below state the rules the hook
   already implements, for the editors that do not use it (popover, checkbox, and similar).
 - **If your editor commits from more than one code path, use the commit guard
   (`useCommitGuard`).** An editor typically has at least two ways to end an edit: Enter, then a

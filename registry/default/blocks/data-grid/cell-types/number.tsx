@@ -1,11 +1,9 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import type { KeyboardEvent } from "react";
 import { Input } from "@/components/ui/input";
 import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "../types";
 import { CellSpan } from "./cell-span";
 import { COMPARISON_FILTER_OPERATORS, TEXT_FILTER_OPERATORS } from "./capabilities";
-import { useSeedFocus } from "../interaction/use-seed-focus";
-import { useCommitGuard } from "../interaction/use-commit-guard";
-import { columnLabelText } from "../columns/column-format-helpers";
+import { useCellEditorDraft } from "../interaction/use-cell-editor";
 
 /** Normalizes a comma decimal separator to a dot so `Number()` can parse locales pasted verbatim. */
 function normalizeNumberText(text: string): string {
@@ -59,81 +57,43 @@ function NumberCell({ value, options }: CellRenderProps<unknown, number | null, 
   return <CellSpan text={numberCellType.toText(value, options)} align="right" />;
 }
 
-function NumberEditor({
-  value,
-  initialText,
-  options,
-  onChange,
-  commit,
-  cancel,
-  column,
-  pending,
-  rejectionCount,
-}: CellEditorProps<unknown, number | null, GridCellTypes["number"]["options"]>) {
-  const ref = useRef<HTMLInputElement>(null);
+function NumberEditor(props: CellEditorProps<unknown, number | null, GridCellTypes["number"]["options"]>) {
+  const { value, options, pending } = props;
   // seed with the same options the cell display formats with, so the draft matches what the cell showed
-  const [text, setText] = useState(initialText ?? numberCellType.toText(value, options));
-  useSeedFocus(ref, initialText);
-  const committed = useCommitGuard();
-
-  // An async schema resolving with ISSUES leaves editing open — re-arm the guard so the user's
-  // next Enter/blur after fixing the value isn't silently dropped. Keyed off rejectionCount
-  // specifically (not "pending went from true to false", which also fires on Escape/cancel right
-  // before unmount — resetting there let the unmount's own blur commit a second, stale time).
-  const lastRejectionCount = useRef(rejectionCount ?? 0);
-  useEffect(() => {
-    if ((rejectionCount ?? 0) !== lastRejectionCount.current) committed.reset();
-    lastRejectionCount.current = rejectionCount ?? 0;
-  }, [rejectionCount, committed]);
-
-  const commitText = (movement?: { dx: number; dy: number }) => {
-    if (!committed.tryCommit()) return;
-    onChange(numberCellType.fromText(text, options));
-    commit(movement);
-  };
+  const { bindings, setDraft } = useCellEditorDraft(props, {
+    toDraft: (draftValue) => numberCellType.toText(draftValue, options),
+    toValue: (draft) => numberCellType.fromText(draft, options),
+  });
+  const { ref, onKeyDown, ...rest } = bindings;
 
   return (
     <Input
       ref={ref}
-      value={text}
-      // Numerals are direction-neutral, so under an inherited `dir=rtl` a leading minus sign and the
-      // caret land on the wrong end. `auto` has no strong character to find here and resolves to
-      // ltr — the correct reading order for a number in either layout direction.
-      dir="auto"
-      // readOnly, not disabled: a disabled input can't receive focus/keyboard events at all, which
-      // would silently swallow Escape while an async validation is pending — readOnly blocks typing
-      // but keeps Escape/Tab/blur working.
-      readOnly={pending}
-      onChange={(e) => setText(e.target.value)}
+      {...rest}
       onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") {
-          commitText({ dx: 0, dy: 1 });
-        } else if (e.key === "Escape") {
-          cancel();
-        } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-          if (pending || e.nativeEvent.isComposing) return;
-          // step the draft; a cleared draft falls back to the committed value, so an empty
-          // cell with a null value has no step base and stays untouched
-          const base = numberCellType.fromText(text, options) ?? value;
-          if (base === null) return;
-          e.preventDefault();
-          const configuredStep = options?.step ?? 1;
-          const step = options?.decimals !== undefined ? Math.max(configuredStep, 10 ** -options.decimals) : configuredStep;
-          const raw = base + (e.key === "ArrowUp" ? step : -step);
-          const clamped = clampNumber(raw, options);
-          // float drift (0.1 + 0.2) rounds away at the finer of the draft's and the step's precision
-          const next =
-            options?.decimals !== undefined
-              ? clampToDecimals(roundToDecimals(raw, options), options, options.decimals)
-              : clamped === raw
-                ? Number(raw.toFixed(Math.max(decimalPlaces(base), decimalPlaces(step))))
-                : clamped;
-          setText(String(next));
+        if (e.key !== "ArrowUp" && e.key !== "ArrowDown") {
+          onKeyDown(e);
+          return;
         }
+        if (pending || e.nativeEvent.isComposing) return;
+        // step the draft; a cleared draft falls back to the committed value, so an empty
+        // cell with a null value has no step base and stays untouched
+        const base = numberCellType.fromText(rest.value, options) ?? value;
+        if (base === null) return;
+        e.preventDefault();
+        const configuredStep = options?.step ?? 1;
+        const step = options?.decimals !== undefined ? Math.max(configuredStep, 10 ** -options.decimals) : configuredStep;
+        const raw = base + (e.key === "ArrowUp" ? step : -step);
+        const clamped = clampNumber(raw, options);
+        // float drift (0.1 + 0.2) rounds away at the finer of the draft's and the step's precision
+        const next =
+          options?.decimals !== undefined
+            ? clampToDecimals(roundToDecimals(raw, options), options, options.decimals)
+            : clamped === raw
+              ? Number(raw.toFixed(Math.max(decimalPlaces(base), decimalPlaces(step))))
+              : clamped;
+        setDraft(String(next));
       }}
-      onBlur={() => commitText({ dx: 0, dy: 0 })}
-      aria-label={columnLabelText(column)}
-      aria-busy={pending || undefined}
       className="h-full w-full border-none bg-transparent p-0 text-end shadow-none outline-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
     />
   );
