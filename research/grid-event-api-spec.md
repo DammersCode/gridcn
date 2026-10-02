@@ -40,7 +40,8 @@ export type GridValidationErrorEvent = { source: "paste" | "fill"; rejected: Gri
     (checkbox) fires no edit events at all — it has no session.
 - `onEditEnd` fires LAST, after the state write it reports: a commit delivers
   `onActiveCellChange` (cursor move) and `onSelectionChange` during the store write, then
-  `onDataChange` once the write returns, then `onEditEnd({ result: "commit" })`.
+  `onDataChange` once the write returns, then `onEditEnd({ result: "commit" })`. The order is
+  `onActiveCellChange` → `onDataChange` → `onEditEnd`.
 - `onActiveCellChange` uses value equality (row+col), not object identity: re-selecting the same
   cell through a path that allocates a new coord object does not fire. Fires with `null` when the
   active cell is cleared.

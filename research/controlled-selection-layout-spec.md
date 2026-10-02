@@ -168,16 +168,16 @@ The plan's "absorbs the `setColumnLayout` action" names an action that does not 
 `columnLayout`, `setColumnLayout`, and (W6-07) URL input:
 
 - Unknown column ids are dropped from every part; `order` gets missing ids appended in def order.
-  Today `computeVisibleColumns` (`compute.ts:396-407`) does not render a column missing from
-  `columnOrder`, so a saved layout from before a column was added hides that column forever.
+  `computeVisibleColumns` appends a column missing from `columnOrder` in def order, so a saved
+  layout from before a column was added still renders that column.
 - Widths go through `clampColumnWidth`; a pin on a `pinnable: false` column is dropped.
 - Size is bounded by the column count, so a hostile URL cannot allocate past it.
 
 ### 10. Write-back points
 
-`state.columnLayout` is recomputed at every layout write, including a `columns` swap in
-`_syncProps` (which re-seeds def-hidden ids and drops runtime pins today, `create-store.ts:741-746`),
-so it is always current. Only commit points fire the event, through one internal
+`state.columnLayout` is recomputed at every commit point, including a `columns` swap in
+`_syncProps` (which re-seeds def-hidden ids and drops runtime pins today, `create-store.ts:741-746`).
+It changes only at commit points, never on live resize frames. Only commit points fire the event, through one internal
 `commitLayout(s, nextParts)`: normalize → structural compare with the always-current
 `s.columnLayout` → equal: no `set`, no event → else write `columnWidths`/`columnOrder`/
 `hiddenColumns`/column pins and the snapshot in one `set`, then fire `onColumnLayoutChange` once.
@@ -193,7 +193,7 @@ so it is always current. Only commit points fire the event, through one internal
 
 - `setColumnWidth` (per drag frame, 420) stays live-only: it writes `columnWidths`, fires
   `onColumnResizing`, and never fires the event.
-- Today `setColumnHidden`/`setColumnPin` fire even when nothing changed; the compare fixes that.
+- `setColumnHidden`/`setColumnPin` fire nothing when nothing changed; the compare skips the write.
 - A controlled apply runs the same normalize + write without the event. In controlled mode a new
   `columns` array re-applies the controlled parts over the new defs.
 
