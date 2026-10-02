@@ -1,7 +1,7 @@
-import type { FC, ReactNode } from "react";
+import type { ComponentType, FC, ReactNode } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { KeyBinding } from "./keyboard/key-syntax";
-import type { DataGridActions, DataGridStoreState } from "./store/types";
+import type { AnyColumnDef, DataGridActions, DataGridStoreState } from "./store/types";
 
 export type { KeyBinding };
 
@@ -388,8 +388,8 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   fromText(text: string, options?: TOptions): TValue;
   clearValue(options?: TOptions): TValue;
   isEmpty(value: TValue): boolean;
-  /** Sort comparator for this type; when absent, sorting falls back to a numeric-aware locale collation of the raw `String(value)` — not of `toText` output. */
-  compare?(a: TValue, b: TValue): number;
+  /** Sort comparator for this type, given the column's `options`; when absent, sorting falls back to a numeric-aware locale collation of the raw `String(value)` — not of `toText` output. */
+  compare?(a: TValue, b: TValue, options?: TOptions): number;
   align?: "left" | "right" | "center";
   /** Tabular-nums cell rendering for the right-aligned digits; number and date declare it. */
   numeric?: boolean;
@@ -412,19 +412,30 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   filter?: CellTypeFilter;
 };
 
-/** Which value-input widget the filter row renders for a cell type. */
+/** Which built-in value-input widget the filter row renders for a cell type. */
 export type CellTypeValueInput = "text" | "number" | "date" | "boolean" | "choices";
+
+/**
+ * Props of a custom filter value input (a component in `CellTypeFilter.valueInput`). `value` is a
+ * string, an `isBetween` pair, or an `isAnyOf` list, depending on `operator`.
+ */
+export type FilterValueInputProps = {
+  column: AnyColumnDef;
+  operator: FilterOperator;
+  value: string | [string, string] | string[] | undefined;
+  onValueChange: (value: string | [string, string] | string[]) => void;
+};
 
 /**
  * Filter capabilities a cell type declares instead of the toolbar's name-derived defaults:
  * `operators` beats the type-name operator table, `match` replaces the built-in text matcher
  * (same raw-value contract as {@link ColumnDef.filterMatch}), and `valueInput` picks the filter
- * row's widget.
+ * row's widget: a built-in one by name, or a component that renders for every operator with a value.
  */
 export type CellTypeFilter = {
   operators?: readonly FilterOperator[];
   match?: (value: unknown, filter: FilterSpec) => boolean;
-  valueInput?: CellTypeValueInput;
+  valueInput?: CellTypeValueInput | ComponentType<FilterValueInputProps>;
 };
 
 /**

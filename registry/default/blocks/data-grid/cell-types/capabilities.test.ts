@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { ColumnDef } from "../types";
 import { cellTypes } from "./cell-types";
-import { COMPARISON_FILTER_OPERATORS, resolveColumnValidate, TEXT_FILTER_OPERATORS } from "./capabilities";
+import {
+  COMPARISON_FILTER_OPERATORS,
+  resolveColumnValidate,
+  resolveFilterOperators,
+  resolveFilterValueInput,
+  TEXT_FILTER_OPERATORS,
+} from "./capabilities";
 import type { AnyColumnDef } from "../store/types";
 
 const noopColumn: AnyColumnDef = { id: "col", header: "Col" };
@@ -82,5 +88,33 @@ describe("column-level overrides stay authoritative", () => {
     // so the resolution is simply the column's own validator
     const resolved = resolveColumnValidate(column as unknown as AnyColumnDef, cellTypes.select);
     expect(resolved).toBeUndefined();
+  });
+});
+
+describe("resolveFilterOperators", () => {
+  const typeOperators = ["equals", "gt"] as const;
+  const customType = { ...cellTypes.text, filter: { operators: typeOperators } };
+
+  it("prefers the column's filterOperators, then the type's, then the type-name default", () => {
+    expect(resolveFilterOperators({ ...noopColumn, filterOperators: ["contains"] }, customType)).toEqual(["contains"]);
+    expect(resolveFilterOperators({ ...noopColumn, type: "custom" }, customType)).toBe(typeOperators);
+    expect(resolveFilterOperators({ ...noopColumn, type: "number" }, undefined)).toEqual([...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS]);
+    expect(resolveFilterOperators({ ...noopColumn, type: "select" }, undefined)).toEqual([...TEXT_FILTER_OPERATORS, "isAnyOf"]);
+    expect(resolveFilterOperators(noopColumn, undefined)).toEqual(TEXT_FILTER_OPERATORS);
+  });
+});
+
+describe("resolveFilterValueInput", () => {
+  it("prefers the type's valueInput, a name or a component, over the type-name default", () => {
+    const Custom = () => null;
+    expect(resolveFilterValueInput({ ...noopColumn, type: "money" }, { ...cellTypes.text, filter: { valueInput: "number" } })).toBe("number");
+    expect(resolveFilterValueInput({ ...noopColumn, type: "money" }, { ...cellTypes.text, filter: { valueInput: Custom } })).toBe(Custom);
+  });
+
+  it("derives the widget from the type name when the type declares none", () => {
+    expect(resolveFilterValueInput({ ...noopColumn, type: "date" }, undefined)).toBe("date");
+    expect(resolveFilterValueInput({ ...noopColumn, type: "checkbox" }, undefined)).toBe("boolean");
+    expect(resolveFilterValueInput({ ...noopColumn, type: "select" }, undefined)).toBe("choices");
+    expect(resolveFilterValueInput({ ...noopColumn, type: "money" }, cellTypes.text)).toBe("text");
   });
 });

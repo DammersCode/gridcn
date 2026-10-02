@@ -317,6 +317,23 @@ describe("useFillHandle staleness guard — async fill held against a real store
     });
   });
 
+  it("rejects a fill value through the cell type's validate when the column declares none", () => {
+    const onValidationError = vi.fn();
+    const typedColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      { id: "qty", header: "Qty", accessorKey: "qty", type: "noTwos" as never },
+    ];
+    const noTwos = { ...cellTypes.number, validate: (value: unknown) => (value === 2 ? "no twos" : null) };
+    const result = setUpFill(makeWrapper(typedColumns, { onValidationError, cellTypes: { noTwos } as never }));
+
+    act(() => result.current.fill.fillDown());
+
+    expect(onValidationError).toHaveBeenCalledWith({
+      source: "fill",
+      rejected: [{ rowId: "2", columnId: "qty", viewRowIndex: 1, value: 2, message: "no twos" }],
+    });
+  });
+
   it("fires onValidationError with source fill once a held fill settles", async () => {
     const onValidationError = vi.fn();
     const rejectingColumns: readonly ColumnDef<Row, unknown>[] = [

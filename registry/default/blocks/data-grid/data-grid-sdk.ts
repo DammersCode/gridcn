@@ -47,7 +47,7 @@ export {
   type BulkWrite,
   type BulkResolution,
 } from "./validation/validate-batch";
-export { resolveColumnValidate } from "./cell-types/capabilities";
+export { operatorsForColumnType, resolveColumnValidate, resolveFilterOperators, resolveFilterValueInput } from "./cell-types/capabilities";
 export {
   useBulkGeneration,
   snapshotBulkBatch,

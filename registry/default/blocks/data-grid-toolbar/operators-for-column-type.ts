@@ -1,22 +1,6 @@
-import {
-  COMPARISON_FILTER_OPERATORS,
-  TEXT_FILTER_OPERATORS,
-  type DataGridFilterOperatorLabels,
-  type FilterOperator,
-} from "@/registry/default/blocks/data-grid/data-grid";
+import type { DataGridFilterOperatorLabels, FilterOperator } from "@/registry/default/blocks/data-grid/data-grid";
 
-/**
- * Sensible {@link FilterOperator} choices for a column's cell type: comparisons only apply to
- * number/date, and `isAnyOf` only to select columns, whose `options.choices` are what the
- * multi-value input offers.
- */
-export function operatorsForColumnType(columnType: string | undefined): FilterOperator[] {
-  if (columnType === "number" || columnType === "date") {
-    return [...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS];
-  }
-  if (columnType === "select") return [...TEXT_FILTER_OPERATORS, "isAnyOf"];
-  return [...TEXT_FILTER_OPERATORS];
-}
+export { operatorsForColumnType } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Human-readable label for a {@link FilterOperator}, for the operator select — reads from {@link useDataGridLabels}'s `filterOperators` group. */
 export function operatorLabel(operator: FilterOperator, labels: DataGridFilterOperatorLabels): string {

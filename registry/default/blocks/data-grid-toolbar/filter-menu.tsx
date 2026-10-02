@@ -24,8 +24,8 @@ import {
   type FilterOperator,
   type FilterSpec,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { operatorHasValue, operatorLabel, operatorsForColumnType } from "./operators-for-column-type";
+import { isDev, operatorsForColumnType, resolveFilterOperators } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { operatorHasValue, operatorLabel } from "./operators-for-column-type";
 import { DataGridFilterValueInput } from "./filter-value-input";
 
 /** Props for {@link DataGridFilterMenu}. */
@@ -89,11 +89,10 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
 
   // per-column operator list: this prop > the column's filterOperators > the cell type's declared operators > the name-based type default
   const operatorsFor = useCallback(
-    (column: AnyColumnDef | undefined): readonly FilterOperator[] =>
-      (column && operatorsForColumn ? operatorsForColumn(column) : undefined) ??
-      column?.filterOperators ??
-      (column?.type ? cellTypes[column.type]?.filter?.operators : undefined) ??
-      operatorsForColumnType(column?.type),
+    (column: AnyColumnDef | undefined): readonly FilterOperator[] => {
+      if (!column) return operatorsForColumnType(undefined);
+      return operatorsForColumn?.(column) ?? resolveFilterOperators(column, column.type ? cellTypes[column.type] : undefined);
+    },
     [operatorsForColumn, cellTypes],
   );
 

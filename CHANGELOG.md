@@ -62,8 +62,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   match?, valueInput? }`) declares the type's filter capabilities — the filter menu's operator
   list (ahead of the type-name default, behind the column's `filterOperators`), a raw-value
   match predicate (same contract as the column's `filterMatch`), and the filter row's value
-  widget (`"text" | "number" | "date" | "boolean" | "choices"`). `CellTypeFilter` and
-  `CellTypeValueInput` are exported from the `data-grid` barrel, along with the operator arrays
+  widget (`"text" | "number" | "date" | "boolean" | "choices"`, or a component that receives
+  `FilterValueInputProps` and renders for every operator with a value). `CellTypeFilter`,
+  `CellTypeValueInput`, and `FilterValueInputProps` are exported from the `data-grid` barrel, along with the operator arrays
   `TEXT_FILTER_OPERATORS` and `COMPARISON_FILTER_OPERATORS` for declaring custom lists.
 - **Grid event API:** six new optional props on `DataGrid`/`DataGridProvider`. `onActiveCellChange(next)`
   fires when the active cell becomes a different cell, when it follows its record or column to
@@ -321,6 +322,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking:** `select` columns sort by choice label (`data-grid`). The built-in `select` type's
+  `compare` orders the labels with a numeric-aware, case-insensitive collation. A cell type's
+  `compare` receives the column's `options` as a third argument. Before, `select` columns sorted
+  by the stored value.
 - **Breaking:** `onColumnLayoutChange` fires only on real changes (`data-grid`). `setColumnPin`
   with the current pin, `setColumnHidden` with the current visibility, `setColumnOrder` with a
   drop that keeps the order, and `commitColumnWidth` with the last committed width no longer fire

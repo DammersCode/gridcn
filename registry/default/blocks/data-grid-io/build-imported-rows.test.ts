@@ -107,6 +107,30 @@ describe("buildImportedRows", () => {
     expect(rows).toEqual([{ id: "row-0", name: "Alice", age: null }]);
   });
 
+  it("clears a value that fails the cell type's validate when the column declares none", () => {
+    const cappedCellType: CellType<Row, number | null> = { ...numberCellType, validate: (value) => (value !== null && value > 100 ? "too old" : null) };
+    const result = buildImportedRowsRaw<Row>({
+      dataRows: [["Alice", "130"], ["Bob", "40"]],
+      mapping: [
+        { importColumnIndex: 0, gridColumnId: "name" },
+        { importColumnIndex: 1, gridColumnId: "age" },
+      ],
+      columns: [
+        { id: "name", header: "Name", accessorKey: "name", type: "text" },
+        { id: "age", header: "Age", accessorKey: "age", type: "capped" as never },
+      ],
+      cellTypes: { text: textCellType, capped: cappedCellType } as never,
+      createRow: makeRow,
+    });
+    if (result instanceof Promise) throw new Error("expected a synchronous result");
+
+    expect(result.rows).toEqual([
+      { id: "row-0", name: "Alice", age: null },
+      { id: "row-1", name: "Bob", age: 40 },
+    ]);
+    expect(result.rejected).toEqual([{ rowIndex: 0, importColumnIndex: 1, gridColumnId: "age" }]);
+  });
+
   it("lists every rejected cell in `rejected` with its row and source column, and still builds all rows", () => {
     const columns: ColumnDef<Row, unknown>[] = [
       { id: "name", header: "Name", accessorKey: "name", type: "text", validate: (value) => (value === "bad" ? "invalid name" : null) },

@@ -9,7 +9,7 @@ icon: ArrowUpDown
 ## Sorting
 
 Sorting is multi-column. Columns with a declared `type` sort with that cell type's `compare`
-(numbers numerically, dates chronologically). Untyped columns use a numeric-aware
+(numbers numerically, dates chronologically, select columns by choice label). Untyped columns use a numeric-aware
 `localeCompare`. Empty cells sort last in both directions. Click a header to sort by that column.
 Shift-click adds another column to the sort without clearing the first.
 
@@ -34,7 +34,8 @@ through `useDataGridActions().setSorts()` or `.toggleSort()`.
 Per-column operators include `contains`, `notContains`, `equals`, `notEquals`, `startsWith`,
 `endsWith`, `empty`, and `notEmpty`, plus `gt`, `gte`, `lt`, `lte`, and `isBetween` for numeric and
 date columns, and `isAnyOf` for select columns. A cell type can declare its own operator list
-through `filter.operators`, which the menu offers when the column declares none. `isBetween`
+through `filter.operators`, which the menu offers when the column declares none. The value input
+follows the cell type's `filter.valueInput`. `isBetween`
 renders two typed inputs (from and to) side by side instead of one. `isAnyOf` renders a checkbox
 list of the select column's own `choices` and keeps a row when its value equals any checked one.
 Its `value` is a `string[]`, and an empty list matches no rows.

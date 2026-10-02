@@ -212,6 +212,7 @@ export type {
   CellType,
   CellTypeValueInput,
   CellTypeFilter,
+  FilterValueInputProps,
   ColumnDef,
   SortSpec,
   FilterOperator,

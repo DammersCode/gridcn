@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { CellType, ColumnDef } from "../types";
 import { DataGridProvider, useDataGridActions, useDataGridViewIndex } from "../store";
@@ -222,5 +222,55 @@ describe("column-level sortCompare", () => {
     const { result } = derivedHarness(rows, typedColumns);
     act(() => result.current.actions.setSorts([{ columnId: "label", direction: "asc" }]));
     expect(result.current.viewIndex.map((row) => rows[row]!.label)).toEqual(["zeta", "mid", "alpha"]);
+  });
+});
+
+describe("select sort order", () => {
+  type Pick = { id: string; fruit: string };
+  const choices = [
+    { value: "z", label: "apple" },
+    { value: "a", label: "Cherry" },
+    { value: "m", label: "banana" },
+  ];
+
+  it("sorts by the choice label, case-insensitively, not by the stored value", () => {
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider
+          data={[{ id: "1", fruit: "a" }, { id: "2", fruit: "m" }, { id: "3", fruit: "z" }]}
+          columns={[{ id: "fruit", header: "Fruit", accessorKey: "fruit", type: "select", options: { choices } }] as readonly ColumnDef<Pick, unknown>[]}
+          getRowId={(r) => r.id}
+        >
+          {children}
+        </DataGridProvider>
+      );
+    }
+    const { result } = renderHook(() => ({ actions: useDataGridActions(), viewIndex: useDataGridViewIndex() }), { wrapper: Wrapper });
+
+    act(() => result.current.actions.setSorts([{ columnId: "fruit", direction: "asc" }]));
+
+    expect(result.current.viewIndex).toEqual([2, 1, 0]);
+  });
+
+  it("passes the column's options to a type's compare", () => {
+    const compare = vi.fn((a: unknown, b: unknown) => String(a).localeCompare(String(b)));
+    const withOptions: CellType = { ...(builtinCellTypes.text as unknown as CellType), compare };
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider
+          data={[{ id: "1", fruit: "b" }, { id: "2", fruit: "a" }]}
+          columns={[{ id: "fruit", header: "Fruit", accessorKey: "fruit", type: "ordered" as never, options: { rank: 1 } }] as readonly ColumnDef<Pick, unknown>[]}
+          getRowId={(r) => r.id}
+          cellTypes={{ ordered: withOptions } as never}
+        >
+          {children}
+        </DataGridProvider>
+      );
+    }
+    const { result } = renderHook(() => useDataGridActions(), { wrapper: Wrapper });
+
+    act(() => result.current.setSorts([{ columnId: "fruit", direction: "asc" }]));
+
+    expect(compare).toHaveBeenCalledWith(expect.anything(), expect.anything(), { rank: 1 });
   });
 });

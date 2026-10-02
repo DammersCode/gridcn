@@ -26,7 +26,7 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   fromText(text: string, options?: TOptions): TValue;
   clearValue(options?: TOptions): TValue;
   isEmpty(value: TValue): boolean;
-  compare?(a: TValue, b: TValue): number;
+  compare?(a: TValue, b: TValue, options?: TOptions): number;
   align?: "left" | "right" | "center";
   numeric?: boolean;
   toSearchText?(value: TValue, options?: TOptions): string;
@@ -35,7 +35,7 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   filter?: {
     operators?: readonly FilterOperator[];
     match?: (value: unknown, filter: FilterSpec) => boolean;
-    valueInput?: "text" | "number" | "date" | "boolean" | "choices";
+    valueInput?: "text" | "number" | "date" | "boolean" | "choices" | ComponentType<FilterValueInputProps>;
   };
 };
 ```
@@ -95,8 +95,25 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   own. `filter.operators` replaces the operator list the filter menu offers for the type's
   columns. `filter.match` is a raw-value predicate that replaces the built-in text matcher, with
   the same contract as the column's `filterMatch`. `filter.valueInput` picks the filter row's
-  value widget (`"text"`, `"number"`, `"date"`, `"boolean"`, or `"choices"`). Each member falls
-  back to the type-name default when absent.
+  value widget: `"text"`, `"number"`, `"date"`, `"boolean"`, `"choices"`, or your own component.
+  Each member falls back to the type-name default when absent.
+
+A component in `filter.valueInput` renders for every operator that takes a value. It receives
+`FilterValueInputProps`: `{ column, operator, value, onValueChange }`. `value` is a string, a
+`[from, to]` pair for `isBetween`, or a `string[]` for `isAnyOf`:
+
+```tsx
+function MoneyFilterInput({ operator, value, onValueChange }: FilterValueInputProps) {
+  // isBetween and isAnyOf need their own layout; this input handles single values only.
+  if (operator === "isBetween" || operator === "isAnyOf") return null;
+  return <input type="number" step="0.01" value={typeof value === "string" ? value : ""} onChange={(e) => onValueChange(e.target.value)} />;
+}
+
+const moneyCellType: CellType<Row, number | null> = {
+  // Cell, Editor, toText, fromText, clearValue, and isEmpty as usual
+  filter: { valueInput: MoneyFilterInput },
+};
+```
 
 <ComponentPreview name="data-grid-cell-types-demo" />
 

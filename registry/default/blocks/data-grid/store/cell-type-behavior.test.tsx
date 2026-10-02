@@ -1,5 +1,5 @@
-import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act, cleanup, render, renderHook } from "@testing-library/react";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { ColumnDef } from "../types";
 import {
@@ -9,6 +9,8 @@ import {
   useDataGridStoreApi,
   type DataGridProviderProps,
 } from "../store";
+import { DataGrid } from "../data-grid";
+import { pasteText } from "../clipboard/use-grid-clipboard";
 
 type Row = { id: string; fruit: string | null; qty: number };
 
@@ -199,5 +201,56 @@ describe("quick search falls back to the cell type's toText", () => {
       result.current.actions.setSearch("#7");
     });
     expect(result.current.store.getState().searchMatches).toEqual([{ row: 1, columnId: "qty" }]);
+  });
+});
+
+describe("a custom type's numeric and filter capabilities", () => {
+  afterEach(cleanup);
+  // jsdom performs no layout; the row window needs a viewport height to render rows.
+  beforeAll(() => {
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 360 });
+  });
+
+  it("numeric renders the type's cells with tabular-nums", () => {
+    const columns: readonly ColumnDef<Row, unknown>[] = [{ id: "qty", header: "Qty", accessorKey: "qty", type: "custom-qty" as never }];
+    const { container } = render(
+      <DataGrid
+        data={[{ id: "1", fruit: null, qty: 3 }]}
+        columns={columns}
+        getRowId={(r) => r.id}
+        cellTypes={{ "custom-qty": { ...makeCustomType(), numeric: true } } as never}
+      />,
+    );
+    expect(container.querySelector('[role="gridcell"]')!.className).toContain("tabular-nums");
+  });
+
+  it("filter.match decides which rows a filter keeps", () => {
+    const atLeast = { ...makeCustomType(), filter: { match: (value: unknown, filter: { value?: unknown }) => Number(value) >= Number(filter.value) } };
+    const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper({ cellTypes: { "custom-qty": atLeast } as never }) });
+
+    act(() => result.current.actions.setFilters([{ columnId: "qty", operator: "equals", value: "5" }]));
+
+    expect(result.current.store.getState().viewIndex).toEqual([1]);
+  });
+});
+
+describe("cell type `validate` on the paste path", () => {
+  it("rejects a pasted value and reports it through onValidationError", () => {
+    const onValidationError = vi.fn();
+    const numericQty = { ...makeCustomType((value) => (typeof value === "number" && value > 5 ? "Too big" : null)), fromText: Number };
+    const { result } = renderHook(() => useHarness(), {
+      wrapper: makeWrapper({ onValidationError, cellTypes: { "custom-qty": numericQty } as never }),
+    });
+    act(() => result.current.actions.selectCellAt({ col: 1, row: 0 }));
+
+    act(() => {
+      pasteText(result.current.store.getState(), result.current.actions, "8");
+    });
+
+    expect((result.current.store.getState().data[0]! as Row).qty).toBe(3);
+    expect(onValidationError).toHaveBeenCalledWith({
+      source: "paste",
+      rejected: [{ rowId: "1", columnId: "qty", viewRowIndex: 0, value: 8, message: "Too big" }],
+    });
   });
 });

@@ -461,7 +461,7 @@ export function textAccessorFor(
       // string in a `number` one) makes a comparator throw or return NaN. Neither may take the grid
       // down or make the order non-transitive, so fall back to the text ordering for that pair.
       try {
-        const result = compare(valueA, valueB);
+        const result = compare(valueA, valueB, column.options);
         if (Number.isFinite(result)) return result;
       } catch {
         // fall through to the text comparator below

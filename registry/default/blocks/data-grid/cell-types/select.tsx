@@ -11,6 +11,7 @@ import { CellSpan } from "./cell-span";
 import { TEXT_FILTER_OPERATORS } from "./capabilities";
 import { useCommitGuard } from "../interaction/use-commit-guard";
 import { columnLabelText } from "../columns/column-format-helpers";
+import { defaultCompareText } from "../sort-filter/default-compare-text";
 
 type Choice = { value: string; label: string };
 type ChoiceIndex = { byValue: Map<string, Choice>; byLowerLabel: Map<string, Choice> };
@@ -106,11 +107,12 @@ export const selectCellType: CellType<unknown, string | null, GridCellTypes["sel
   },
   clearValue: () => null,
   isEmpty: (value) => value == null,
-  compare: (a, b) => {
+  // sort by the label the user sees, not the opaque stored value
+  compare: (a, b, options) => {
     if (a == null && b == null) return 0;
     if (a == null) return -1;
     if (b == null) return 1;
-    return a.localeCompare(b);
+    return defaultCompareText(findChoice(options?.choices, a)?.label ?? a, findChoice(options?.choices, b)?.label ?? b);
   },
   align: "left",
 };
