@@ -193,7 +193,22 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           return rowIndexCache.resolve(data, getRowId).get(s.getRowId(row, prevDataRow));
         };
     const current = s.selection.current;
-    if (!editRemap.selection && !("selection" in cursor) && current && !rectsKeepRecords([current.range, ...current.rangeStack], s.viewIndex, viewIndex, toNextDataRow)) {
+    const sameRecordAt = toNextDataRow
+      ? (viewRow: number) => {
+          const prevDataRow = s.viewIndex[viewRow];
+          const nextDataRow = viewIndex[viewRow];
+          if (prevDataRow === undefined || nextDataRow === undefined) return false;
+          const prevRow = s.data[prevDataRow];
+          const nextRow = data[nextDataRow];
+          return prevRow !== undefined && nextRow !== undefined && s.getRowId(prevRow, prevDataRow) === getRowId(nextRow, nextDataRow);
+        }
+      : undefined;
+    if (
+      !editRemap.selection &&
+      !("selection" in cursor) &&
+      current &&
+      !rectsKeepRecords([current.range, ...current.rangeStack], s.viewIndex, viewIndex, toNextDataRow, sameRecordAt)
+    ) {
       base = { ...base, current: null };
     }
     const rows = remapRowChannel(base.rows, s.viewIndex, viewIndex, toNextDataRow);
