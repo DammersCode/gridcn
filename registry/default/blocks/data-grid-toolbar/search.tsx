@@ -14,16 +14,18 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  GRID_ATTR,
   useDataGridActions,
   useDataGridLabels,
   useDataGridScrollToCellAt,
-  useDataGridSearchCapped,
-  useDataGridSearchMatches,
   useDataGridSearchText,
   useDataGridVisibleColumns,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridInstanceId } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import {
+  useDataGridInstanceId,
+  GRID_ATTR,
+  useDataGridSearchCapped,
+  useDataGridSearchMatches,
+} from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Default debounce (ms) between typing and updating the store's `searchText`. */
 const SEARCH_DEBOUNCE_MS = 200;

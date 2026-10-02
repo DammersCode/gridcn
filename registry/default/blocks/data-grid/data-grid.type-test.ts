@@ -41,7 +41,7 @@ import type {
   RowClickCtx,
   SortSpec,
 } from "./data-grid";
-import { createDataGridSelector, useDataGridSelector, useDataGridCellTypes, useDataGridVisibleColumns, useDataGridAllColumns, type GRID_ATTR } from "./data-grid";
+import { createDataGridSelector, useDataGridSelector, useDataGridCellTypes, useDataGridVisibleColumns, useDataGridAllColumns } from "./data-grid";
 
 /** Compile-only check: `Actual` must be identical to `Expected` (both directions assignable). */
 type Equal<Expected, Actual> = (<T>() => T extends Expected ? 1 : 2) extends <T>() => T extends Actual ? 1 : 2
@@ -236,6 +236,7 @@ assertEqual<true | undefined, GlobalShortcutsConfig["deleteRows"]>(true);
 
 import type { StandardSchemaV1 as OfficialStandardSchemaV1 } from "@standard-schema/spec";
 import type { StandardSchemaV1 } from "./types";
+import { type GRID_ATTR } from "./data-grid-sdk";
 
 function assertVendoredMatchesOfficial<Input, Output>(
   _vendoredToOfficial: (v: StandardSchemaV1<Input, Output>) => OfficialStandardSchemaV1<Input, Output>,

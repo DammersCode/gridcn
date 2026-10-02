@@ -9,10 +9,11 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useDataGridCommands, useDataGridKeymap, useDataGridLabels, type DataGridLabels, type GridAction, type GridCommand, type Keymap } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridKeymap, useDataGridLabels, type DataGridLabels, type GridAction, type GridCommand, type Keymap } from "@/registry/default/blocks/data-grid/data-grid";
 import { KEYBINDING_CATEGORIES, categoryForAction, categoryLabel, type KeybindingCategory } from "./action-groups";
 import { labelForAction } from "./action-labels";
 import { BindingChips } from "./binding-label";
+import { useDataGridCommands } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** One always-on native clipboard shortcut not covered by the keymap (copy/cut/paste are native browser events, see use-grid-clipboard.ts); labels come from `labels.keybindings.native*` (i18n). */
 function nativeClipboardBindings(labels: DataGridLabels): { label: string; binding: string }[] {

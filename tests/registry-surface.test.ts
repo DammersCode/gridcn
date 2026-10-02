@@ -17,6 +17,28 @@ it("carries the instance id on the `data-grid-sdk` surface and no unused token f
   expect(dataGridSdk).not.toHaveProperty("useDataGridStore");
 });
 
+// Add-on-only runtime names live on the sdk surface; the docs teach none of them to consumers.
+it("moves the add-on-only store, attribute, history, and operator names to `data-grid-sdk`", () => {
+  const moved = [
+    "useDataGridStoreApi",
+    "useDataGridCommands",
+    "GRID_ATTR",
+    "gridAttrSelector",
+    "createHistory",
+    "setCellValue",
+    "useDataGridColumnFeatureFlags",
+    "useDataGridSearchMatches",
+    "useDataGridSearchCapped",
+    "TEXT_FILTER_OPERATORS",
+    "COMPARISON_FILTER_OPERATORS",
+  ];
+  for (const name of moved) {
+    expect(dataGrid, name).not.toHaveProperty(name);
+    expect(dataGridSdk, name).toHaveProperty(name);
+  }
+  expect(dataGrid).toHaveProperty("useDataGridStoreProps");
+});
+
 // The core `formatShortcut` returns the same tokens; the keybindings entry point stops re-exporting the name.
 it("keeps `bindingTokens` off the `data-grid-keybindings` entry point", () => {
   expect(dataGridKeybindings).toHaveProperty("BindingChips");

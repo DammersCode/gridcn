@@ -9,11 +9,15 @@ import {
   type ColumnDef,
   type DataChange,
   type DataGridProviderProps,
-  type DataGridStoreState,
   type GridRect,
   type GridSelection,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridStoreApi, type BulkResolution, type InteractionLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import {
+  useDataGridStoreApi,
+  type BulkResolution,
+  type InteractionLayout,
+  type DataGridStoreState,
+} from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { createFillStore } from "./fill-store";
 import { buildFillWrites, readRectAsText, useFillHandle } from "./use-fill-handle";
 

@@ -1,7 +1,8 @@
 import { page } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { DataGrid, DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, gridAttrSelector, type DeepPartialLabels } from "../data-grid";
+import { DataGrid, DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, type DeepPartialLabels } from "../data-grid";
+import { gridAttrSelector } from "../data-grid-sdk";
 // real stylesheet — layout/viewport-fill assertions need the real cascade.
 import "@/app/global.css";
 

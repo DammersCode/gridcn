@@ -1,8 +1,9 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
-import { DataGrid, gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid";
+import { DataGrid } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPinnedRows, type UseDataGridPinnedRowsOptions } from "../use-data-grid-pinned-rows";
+import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 type Row = { id: string; name: string; qty: number };
 

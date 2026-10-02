@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
-import { getCellValue, useDataGridActions, type CellRef, type DataGridStoreState, type GridBulkValidationError, type GridRect } from "@/registry/default/blocks/data-grid/data-grid";
+import { getCellValue, useDataGridActions, type CellRef, type GridBulkValidationError, type GridRect } from "@/registry/default/blocks/data-grid/data-grid";
 import {
   applyInlineScrollDelta,
   combineRects,
@@ -18,6 +18,7 @@ import {
   type BulkCandidate,
   type BulkResolution,
   type InteractionLayout,
+  type DataGridStoreState,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { computeFillTarget, fillDirection, generateFill, rectRelativeTo, type SeriesDescriptor } from "./fill";
 import type { FillStoreApi } from "./fill-store";

@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
-import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot, gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid";
+import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPresence } from "../data-grid-presence";
 import type { PresenceHighlight } from "../data-grid-presence";
+import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 // real stylesheet so Tailwind's `grid`/color-mix()/CSS vars actually apply — paint placement is unverifiable without real layout
 import "@/app/global.css";
 

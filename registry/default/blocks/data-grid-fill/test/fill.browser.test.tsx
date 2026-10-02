@@ -7,11 +7,11 @@ import {
   DataGridProvider,
   DataGridRoot,
   defineColumns,
-  gridAttrSelector,
   type DataChange,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridFill } from "../data-grid-fill";
 import type { FillArgs } from "../data-grid-fill";
+import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply — without it the layout bug can't reproduce
 import "@/app/global.css";
 

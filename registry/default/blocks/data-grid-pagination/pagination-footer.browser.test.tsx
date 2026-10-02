@@ -2,9 +2,10 @@ import { page } from "vitest/browser";
 import { Component, type ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { DataGrid, defineColumns, GRID_ATTR } from "@/registry/default/blocks/data-grid/data-grid";
+import { DataGrid, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPagination } from "./use-data-grid-pagination";
 import { DataGridPaginationBar, DataGridPaginationPrev, DataGridPaginationNext } from "./pagination-footer";
+import { GRID_ATTR } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 // real stylesheet so Select/Button layout is real, matching other block browser tests
 import "@/app/global.css";
 

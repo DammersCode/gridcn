@@ -8,11 +8,10 @@ import {
   DataGridBody,
   defineColumns,
   useDataGridActiveCell,
-  GRID_ATTR,
-  gridAttrSelector,
   type ColumnDef,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridToolbar, DataGridSearch, DataGridFilterMenu, DataGridColumnsMenu } from "./data-grid-toolbar";
+import { GRID_ATTR, gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply
 import "@/app/global.css";
 

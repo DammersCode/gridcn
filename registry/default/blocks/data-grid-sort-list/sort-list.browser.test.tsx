@@ -1,9 +1,10 @@
 import { page, userEvent } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns, gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid";
+import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridToolbar, DataGridColumnsMenu } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
 import { DataGridSortList } from "./data-grid-sort-list";
+import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply
 import "@/app/global.css";
 

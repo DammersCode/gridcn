@@ -1,6 +1,6 @@
 import { useStore } from "zustand";
-import type { DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import type { DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Whether the grid was given a `createRow` prop — Insert row above/below are hidden without one. */
 export function useHasCreateRow(): boolean {

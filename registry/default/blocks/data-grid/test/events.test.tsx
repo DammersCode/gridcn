@@ -2,7 +2,8 @@ import { act, cleanup, fireEvent, render, renderHook, screen } from "@testing-li
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { ColumnDef } from "../types";
-import { DataGrid, DataGridProvider, useDataGridActions, useDataGridSelector, useDataGridStoreApi, type DataGridProviderProps } from "../data-grid";
+import { DataGrid, DataGridProvider, useDataGridActions, useDataGridSelector, type DataGridProviderProps } from "../data-grid";
+import { useDataGridStoreApi } from "../data-grid-sdk";
 
 type Row = { id: string; name: string; qty: number };
 

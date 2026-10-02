@@ -8,11 +8,10 @@ import {
   DataGridProvider,
   DataGridRoot,
   useDataGridActions,
-  GRID_ATTR,
-  gridAttrSelector,
   type ColumnDef,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPinnedRows, type UseDataGridPinnedRowsOptions } from "../use-data-grid-pinned-rows";
+import { GRID_ATTR, gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 // real stylesheet — pin/sticky geometry is unverifiable without real layout
 import "@/app/global.css";
 

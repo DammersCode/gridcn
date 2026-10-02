@@ -1,9 +1,10 @@
 import { page, userEvent } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { DataGrid, gridAttrSelector } from "../data-grid";
+import { DataGrid } from "../data-grid";
 import { VELOCITY_OVERSCAN_CAP_PX } from "../windowing/velocity-estimator";
 import type { ColumnDef } from "../types";
+import { gridAttrSelector } from "../data-grid-sdk";
 // real stylesheet — layout/scroll must be real for these probes to mean anything
 import "@/app/global.css";
 

@@ -8,10 +8,10 @@ import {
   DataGridProvider,
   DataGridRoot,
   type CellPatch,
-  type DataGridStoreState,
   type SortSpec,
 } from "../data-grid";
 import { StoreProbe } from "./store-probe.test-helper";
+import { type DataGridStoreState } from "../data-grid-sdk";
 // real stylesheet — windowing/layout must be real for these numbers to mean anything
 import "@/app/global.css";
 

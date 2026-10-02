@@ -10,9 +10,9 @@ import {
   DataGridRoot,
   defineColumns,
   type DataChange,
-  type DataGridStoreState,
 } from "../data-grid";
 import { StoreProbe } from "./store-probe.test-helper";
+import { type DataGridStoreState } from "../data-grid-sdk";
 // real stylesheet so Tailwind's grid/overflow utilities actually apply
 import "@/app/global.css";
 

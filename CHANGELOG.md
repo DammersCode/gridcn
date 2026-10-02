@@ -35,8 +35,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   built-in action (including `editReplace`, which has no default binding) wins over the
   built-in; an unbound-and-unhandled name is a no-op (each case warns once in dev).
   `GridActions` is now an interface you can extend by declaration merging (like
-  `GridCellTypes`), `GridAction` is `keyof GridActions`, and `useDataGridCommands` returns the
-  current `commands` map. `GridCommand`, `GridCommandCtx`, and `CommandGroup` are exported from
+  `GridCellTypes`), `GridAction` is `keyof GridActions`, and `useDataGridCommands`
+  (`data-grid-sdk`) returns the current `commands` map. `GridCommand`, `GridCommandCtx`, and
+  `CommandGroup` are exported from
   the `data-grid` barrel; the `data-grid-keybindings` dialog lists custom commands with their
   label and group. See
   [Keybindings: Custom commands](/docs/addons/keybindings#custom-commands).
@@ -64,8 +65,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   match predicate (same contract as the column's `filterMatch`), and the filter row's value
   widget (`"text" | "number" | "date" | "boolean" | "choices"`, or a component that receives
   `FilterValueInputProps` and renders for every operator with a value). `CellTypeFilter`,
-  `CellTypeValueInput`, and `FilterValueInputProps` are exported from the `data-grid` barrel, along with the operator arrays
-  `TEXT_FILTER_OPERATORS` and `COMPARISON_FILTER_OPERATORS` for declaring custom lists.
+  `CellTypeValueInput`, and `FilterValueInputProps` are exported from the `data-grid` barrel. The
+  operator arrays `TEXT_FILTER_OPERATORS` and `COMPARISON_FILTER_OPERATORS`, for declaring custom
+  lists, are on `data-grid-sdk`.
 - **Grid event API:** six new optional props on `DataGrid`/`DataGridProvider`. `onActiveCellChange(next)`
   fires when the active cell becomes a different cell, when it follows its record or column to
   another view position (a sort, filter, data change, column hide, reorder, or pin), when another
@@ -471,13 +473,18 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   the consumer surface — components, props and ctx types, the state hooks, and the op/validation
   engines the docs teach. Add-on-internal seams move to a new `data-grid-sdk` module in the same
   install: `GRID_LAYER`/`cellLayer`/`GridLayer`, `pointerToCoord`/`InteractionLayout`, the
-  direction math (`applyInlineScrollDelta` and friends, `GridDirection`), `useDataGridRootContext`
-  /`DataGridRootContextValue`, `useDataGridStoreApi`, `useDataGridContainer`, `isDev`, the
-  validation engine (`runValidateSync`, `runValidatePending`, `runValidateBatch`,
-  `resolveBulkWrites`, `useBulkGeneration` and the bulk types), `combineRects`,
-  `getSelectedViewRows`, `measureColumnAutosizeWidth`, `GridColumnLayout`, and
-  `WindowedColumn`. Add-ons import them from `data-grid-sdk`; consumer code that imported any of
-  these from `data-grid` must switch to `data-grid-sdk`.
+  direction math (`applyInlineScrollDelta` and friends; the `GridDirection` type stays on
+  `data-grid`), `useDataGridRootContext`/`DataGridRootContextValue`, `useDataGridStoreApi`,
+  `DataGridStoreState`, `useDataGridCommands`, `useDataGridColumnFeatureFlags`,
+  `useDataGridSearchMatches`, `useDataGridSearchCapped`, `useDataGridContainer`, `isDev`,
+  `GRID_ATTR`/`gridAttrSelector` and their `GridAttr*` types, `createHistory` with `History` and
+  `HistoryOptions`, `setCellValue`, `TEXT_FILTER_OPERATORS`, `COMPARISON_FILTER_OPERATORS`,
+  `DataGridFilterOperatorLabels`, the validation engine (`runValidateSync`,
+  `runValidatePending`, `runValidateBatch`, `resolveBulkWrites`, `useBulkGeneration` and the bulk
+  types), `combineRects`, `getSelectedViewRows`, `measureColumnAutosizeWidth`,
+  `GridColumnLayout`, and `WindowedColumn`. Add-ons import them from `data-grid-sdk`; consumer
+  code that imported any of these from `data-grid` must switch to `data-grid-sdk`.
+  `useDataGridStoreProps` stays on `data-grid`.
 - **`useDataGridRowIdToViewRow` keeps its map across streaming ticks:** the `rowId -> view row`
   map now keys on a store-internal row-identity version (bumped only when rows move:
   insert/delete/duplicate/reorder, or a consumer `data` replacement) instead of the `data` array

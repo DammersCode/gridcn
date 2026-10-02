@@ -2,8 +2,9 @@
 
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { DataGridCell, useDataGridSelector, type DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid";
+import { DataGridCell, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid";
 import type { GridColumnLayout, WindowedColumn } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { type DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export type DataGridPinnedRowProps = {
   /** The band this row belongs to; part of the fallback row id. */

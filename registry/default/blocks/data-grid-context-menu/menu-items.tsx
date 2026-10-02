@@ -34,11 +34,11 @@ import {
   useDataGridReadOnly,
   useDataGridSelection,
   useDataGridSortState,
-  useDataGridColumnFeatureFlags,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { autosizeColumn } from "./autosize-column";
 import { MenuShortcut } from "./menu-shortcut";
 import { selectedViewRows } from "./selection-queries";
+import { useDataGridColumnFeatureFlags } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /**
  * One context/dropdown menu entry, in display order. The built-in sets are these specs; a

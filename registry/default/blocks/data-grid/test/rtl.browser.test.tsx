@@ -7,9 +7,9 @@ import {
   DataGridProvider,
   DataGridRoot,
   useDataGridActions,
-  gridAttrSelector,
   type GridDirection,
 } from "../data-grid";
+import { gridAttrSelector } from "../data-grid-sdk";
 // real stylesheet so Tailwind's `grid`/`overflow-auto`/CSS vars actually apply — direction geometry is unverifiable without real layout
 import "@/app/global.css";
 

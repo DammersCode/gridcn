@@ -7,7 +7,6 @@ import {
   DataGridHeader,
   DataGridBody,
   defineColumns,
-  gridAttrSelector,
   type ColumnLayout,
   type DataChange,
   type Keymap,
@@ -19,6 +18,7 @@ import {
   type CellMenuItemsCtx,
   type DataGridContextMenuProps,
 } from "./data-grid-context-menu";
+import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply
 import "@/app/global.css";
 

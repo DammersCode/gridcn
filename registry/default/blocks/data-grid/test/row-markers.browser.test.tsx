@@ -1,7 +1,8 @@
 import { page, userEvent } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { defineColumns, DataGrid, GRID_ATTR, gridAttrSelector } from "../data-grid";
+import { defineColumns, DataGrid } from "../data-grid";
+import { GRID_ATTR, gridAttrSelector } from "../data-grid-sdk";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply — without it the layout bug can't reproduce
 import "@/app/global.css";
 

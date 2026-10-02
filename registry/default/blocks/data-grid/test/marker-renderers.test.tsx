@@ -4,12 +4,11 @@ import type { ReactNode } from "react";
 import type { ColumnDef } from "../types";
 import {
   DataGrid,
-  GRID_ATTR,
-  gridAttrSelector,
   useDataGridActions,
   type MarkerCellRenderCtx,
   type MarkerHeaderRenderCtx,
 } from "../data-grid";
+import { GRID_ATTR, gridAttrSelector } from "../data-grid-sdk";
 
 type Row = { id: string; name: string; qty: number };
 

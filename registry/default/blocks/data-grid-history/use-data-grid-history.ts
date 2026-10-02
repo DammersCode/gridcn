@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { applyChange, createHistory, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { applyChange, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev, createHistory } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Options for {@link useDataGridHistory}. */
 export type UseDataGridHistoryOptions<TData> = {

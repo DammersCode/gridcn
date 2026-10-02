@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it, beforeAll, vi } from "vitest";
 import { createRef, memo, useLayoutEffect, useState } from "react";
 import type { CellType, ColumnDef } from "../types";
 import { textCellType } from "../cell-types/cell-types";
-import { DataGrid, DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, useDataGridActions, useDataGridApi, useDataGridCellState, useDataGridRow, useDataGridScrollToCell, useDataGridStoreApi, GRID_ATTR, gridAttrSelector, type DataGridApi, type DataGridStoreState } from "../data-grid";
+import { DataGrid, DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, useDataGridActions, useDataGridApi, useDataGridCellState, useDataGridRow, useDataGridScrollToCell, type DataGridApi } from "../data-grid";
+import { useDataGridStoreApi, GRID_ATTR, gridAttrSelector, type DataGridStoreState } from "../data-grid-sdk";
 
 type Row = { id: string; name: string; qty: number };
 

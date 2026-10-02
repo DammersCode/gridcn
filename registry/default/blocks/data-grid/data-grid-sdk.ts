@@ -47,7 +47,14 @@ export {
   type BulkWrite,
   type BulkResolution,
 } from "./validation/validate-batch";
-export { operatorsForColumnType, resolveColumnValidate, resolveFilterOperators, resolveFilterValueInput } from "./cell-types/capabilities";
+export {
+  COMPARISON_FILTER_OPERATORS,
+  TEXT_FILTER_OPERATORS,
+  operatorsForColumnType,
+  resolveColumnValidate,
+  resolveFilterOperators,
+  resolveFilterValueInput,
+} from "./cell-types/capabilities";
 export {
   useBulkGeneration,
   snapshotBulkBatch,
@@ -61,4 +68,16 @@ export { combineRects, getSelectedViewRows } from "./selection";
 export { holeRowId, rowIdAtViewRow } from "./store/compute";
 export { measureColumnAutosizeWidth } from "./columns/measure-column-text";
 export { isDev } from "./is-dev";
-export { useDataGridInstanceId, useDataGridStoreApi } from "./store";
+export {
+  useDataGridColumnFeatureFlags,
+  useDataGridCommands,
+  useDataGridInstanceId,
+  useDataGridSearchCapped,
+  useDataGridSearchMatches,
+  useDataGridStoreApi,
+  type DataGridStoreState,
+} from "./store";
+export { setCellValue } from "./columns/column-helpers";
+export { createHistory, type History, type HistoryOptions } from "./interaction/history";
+export type { DataGridFilterOperatorLabels } from "./labels";
+export { GRID_ATTR, gridAttrSelector, type GridAttrName, type GridAttr, type GridAttrValue } from "./data-attributes";

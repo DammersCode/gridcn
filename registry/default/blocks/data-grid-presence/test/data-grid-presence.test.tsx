@@ -10,11 +10,11 @@ import {
   useDataGridActions,
   useDataGridCellState,
   useDataGridRow,
-  gridAttrSelector,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPresence, useDataGridPresenceHighlights, type PresenceHighlightEntry, type PresenceStoreApi } from "../data-grid-presence";
 import { MAX_RESOLVED_RECTS, resolveHighlights } from "../presence-overlay";
 import type { GridRect } from "@/registry/default/blocks/data-grid/data-grid";
+import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 type Row = { id: string; name: string; qty: number };
 

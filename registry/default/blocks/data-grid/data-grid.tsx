@@ -70,14 +70,12 @@ export { type HeaderMenuRenderer, type MarkerCellRenderCtx, type MarkerHeaderRen
 export {
   cellErrorKey,
   DataGridProvider,
-  useDataGridStoreApi,
   useDataGridStoreProps,
   useDataGridActions,
   useDataGridScrollToCell,
   useDataGridScrollToCellAt,
   useDataGridReadOnly,
   useDataGridKeymap,
-  useDataGridCommands,
   useDataGridLabels,
   useDataGridActiveCell,
   useDataGridActiveColumn,
@@ -100,8 +98,6 @@ export {
   useDataGridFilterState,
   useDataGridJoinOperator,
   useDataGridSearchText,
-  useDataGridSearchMatches,
-  useDataGridSearchCapped,
   useDataGridIsSearchMatch,
   useDataGridRow,
   useDataGridRowId,
@@ -123,7 +119,6 @@ export {
   useDataGridSelectionConfig,
   useDataGridAllRowsSelected,
   useDataGridHeaderClickBehavior,
-  useDataGridColumnFeatureFlags,
   type DataGridSyncProps,
   type SelectionChangeDetails,
   type SelectLineActionOptions,
@@ -135,7 +130,6 @@ export {
   type UpdateCellsVerdict,
   type CellErrorTarget,
   type CellErrorEntry,
-  type DataGridStoreState,
   type DataGridStoreStateOf,
   type DataGridActions,
   type DataGridStore,
@@ -168,17 +162,16 @@ export {
 } from "./cell-types/cell-types";
 export { displayText } from "./cell-types/display-text";
 export { CellSpan } from "./cell-types/cell-span";
-export { COMPARISON_FILTER_OPERATORS, TEXT_FILTER_OPERATORS } from "./cell-types/capabilities";
 
 export { CompactSelection } from "./selection/compact-selection";
-export { defineColumns, getCellValue, setCellValue } from "./columns/column-helpers";
+export { defineColumns, getCellValue } from "./columns/column-helpers";
 export type { KeysMatching, TypedColumnDef, TypedTextColumnDef, AnyTypedColumn, AccessorLike, InferredValue } from "./columns/column-helpers";
 /** A column's sort-direction arrow + multi-sort priority number — string headers get it automatically in `sort` mode; embed it inside a custom (ReactNode) header when you want it there. */
 export { DataGridSortIndicator, type DataGridSortIndicatorProps } from "./columns/sort-indicator";
 
 export { DEFAULT_KEYMAP } from "./keyboard";
 
-export { createHistory, applyChange, invertChange, type History, type HistoryOptions } from "./interaction/history";
+export { applyChange, invertChange } from "./interaction/history";
 
 export {
   DEFAULT_LABELS,
@@ -186,7 +179,6 @@ export {
   type DataGridLabels,
   type DeepPartialLabels,
   type DataGridToolbarLabels,
-  type DataGridFilterOperatorLabels,
   type DataGridContextMenuLabels,
   type DataGridKeybindingsLabels,
   type DataGridMarkerLabels,
@@ -195,7 +187,6 @@ export {
   type DataGridPaginationLabels,
 } from "./labels";
 
-export { GRID_ATTR, gridAttrSelector, type GridAttrName, type GridAttr, type GridAttrValue } from "./data-attributes";
 
 export type {
   CellRef,

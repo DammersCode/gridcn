@@ -7,10 +7,9 @@ import {
   DataGridHeader,
   DataGridBody,
   defineColumns,
-  GRID_ATTR,
-  gridAttrSelector,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridHeaderDropdown } from "./data-grid-context-menu";
+import { GRID_ATTR, gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 // real stylesheet so Tailwind's `grid`/`group-hover` utilities actually apply
 import "@/app/global.css";
 

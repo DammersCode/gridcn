@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import type { CellType, ColumnDef, DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid";
+import type { CellType, ColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import { buildExportHeaders, buildExportRows, buildXlsx, downloadBlob, exportGrid, quoteCsvField, rowsToCsv, type ExportGridOptions } from "./export-grid";
 import { parseImportFile } from "./parse-import-file";
 import { listZip, XLSX_TYPE } from "./xlsx-fixtures.test-helper";
+import type { DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 type Row = { id: string; name: string; note: string };
 

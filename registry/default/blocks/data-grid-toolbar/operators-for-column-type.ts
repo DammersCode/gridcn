@@ -1,4 +1,5 @@
-import type { DataGridFilterOperatorLabels, FilterOperator } from "@/registry/default/blocks/data-grid/data-grid";
+import type { FilterOperator } from "@/registry/default/blocks/data-grid/data-grid";
+import type { DataGridFilterOperatorLabels } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export { operatorsForColumnType } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 

@@ -1,4 +1,4 @@
-import { GRID_ATTR, gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid";
+import { GRID_ATTR, gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /**
  * Which surface a `contextmenu` event landed on, in view-space coordinates: a data cell (`row`

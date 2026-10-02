@@ -1,7 +1,8 @@
 import { page } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { defineColumns, DataGrid, gridAttrSelector } from "../data-grid";
+import { defineColumns, DataGrid } from "../data-grid";
+import { gridAttrSelector } from "../data-grid-sdk";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply (same convention as column-ux.browser.test.tsx)
 import "@/app/global.css";
 
