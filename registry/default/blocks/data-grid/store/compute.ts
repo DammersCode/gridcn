@@ -1,6 +1,7 @@
 import type {
   CellType,
   ColumnLayout,
+  CompactSelectionLike,
   DataOp,
   FilterJoinOperator,
   FilterSpec,
@@ -20,6 +21,7 @@ import {
 } from "../sort-filter";
 import { getCellValue } from "../columns/column-helpers";
 import { selectCell } from "../selection/selection-ops";
+import { CompactSelection } from "../selection/compact-selection";
 import { isDev } from "../is-dev";
 import type { OverlayPlugin } from "../overlays";
 import type { RowBandsSpec } from "../layout-context";
@@ -102,6 +104,33 @@ export function clampCursor(
   if (activeCell === s.activeCell) return { activeCell };
   if (activeCell === null) return s.selection.current === null ? { activeCell } : { activeCell, selection: { ...s.selection, current: null } };
   return { activeCell, selection: { ...selectCell(activeCell), rows: s.selection.rows, columns: s.selection.columns } };
+}
+
+/**
+ * The row channel carried into a rebuilt view by record identity: each checked view row maps to its
+ * data row, through `toNextDataRow` when `data` was replaced, and back into `nextViewIndex`. A
+ * record that left the view leaves the channel. Returns `rows` itself when nothing moved.
+ */
+export function remapRowChannel(
+  rows: CompactSelectionLike,
+  prevViewIndex: readonly number[],
+  nextViewIndex: readonly number[],
+  toNextDataRow?: (prevDataRow: number) => number | undefined,
+): CompactSelectionLike {
+  if (rows.length === 0 || (prevViewIndex === nextViewIndex && !toNextDataRow)) return rows;
+  const wanted = new Set<number>();
+  for (const viewRow of rows.toArray()) {
+    const prevDataRow = prevViewIndex[viewRow];
+    if (prevDataRow === undefined) continue;
+    const nextDataRow = toNextDataRow ? toNextDataRow(prevDataRow) : prevDataRow;
+    if (nextDataRow !== undefined) wanted.add(nextDataRow);
+  }
+  const found: number[] = [];
+  for (let viewRow = 0; viewRow < nextViewIndex.length && found.length < wanted.size; viewRow++) {
+    if (wanted.has(nextViewIndex[viewRow]!)) found.push(viewRow);
+  }
+  const next = CompactSelection.fromArray(found);
+  return rows.equals(next) ? rows : next;
 }
 
 /** Row id shown at `viewRow`, or `undefined` for a missing or unloaded row. */

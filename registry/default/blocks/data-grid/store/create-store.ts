@@ -29,11 +29,13 @@ import {
   defHiddenColumnIds,
   flashCellKey,
   flashKeyRowId,
+  holeRowId,
   isColumnReadOnly,
   memoizedMergeLabels,
   mergeCellErrors,
   nextDirection,
   pruneCellErrors,
+  remapRowChannel,
   reorderColumnIds,
   resolveSelectionConfig,
   rowIdAtViewRow,
@@ -161,6 +163,32 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       ...(onEditCell ? { activeCell: moved } : {}),
       ...(anchoredOnEditCell ? { selection: { ...selectCellPure(moved), rows: s.selection.rows, columns: s.selection.columns } } : {}),
     };
+  };
+  /**
+   * The cursor, the open edit, and the row channel carried into a rebuilt view. `sameRecords` keeps
+   * data indices as identity (no `data` swap, or our own echo); otherwise the row channel maps by rowId.
+   */
+  const followView = (
+    s: DataGridStoreState,
+    viewIndex: readonly number[],
+    visibleColumns: readonly AnyColumnDef[],
+    data: readonly unknown[] = s.data,
+    getRowId: (row: unknown, index: number) => string = s.getRowId,
+    sameRecords = data === s.data,
+  ): Partial<DataGridStoreState> => {
+    const cursor = clampCursor(s, viewIndex.length, visibleColumns.length);
+    const editRemap = remapEditing(s, viewIndex, visibleColumns, data, getRowId);
+    const base = editRemap.selection ?? ("selection" in cursor ? cursor.selection : s.selection);
+    const toNextDataRow = sameRecords
+      ? undefined
+      : (prevDataRow: number) => {
+          const row = s.data[prevDataRow];
+          const rowId = row === undefined ? holeRowId(prevDataRow) : s.getRowId(row, prevDataRow);
+          return rowIndexCache.resolve(data, getRowId).get(rowId);
+        };
+    const rows = remapRowChannel(base.rows, s.viewIndex, viewIndex, toNextDataRow);
+    const selection = rows === base.rows ? base : { ...base, rows };
+    return { ...cursor, ...editRemap, ...(selection === s.selection ? {} : { selection }) };
   };
   // cellErrors keys of each row's last validateRow verdict, so a re-run clears only its own messages.
   const rowValidationKeys = new Map<string, string[]>();
@@ -448,7 +476,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (nextIds === currentIds) return;
         const nextVisibleColumns = computeVisibleColumns(s.columns, nextIds, s.hiddenColumns);
         warnViewSpacePresenceStale(s, () => visibleColumnsMoved(s.visibleColumns, nextVisibleColumns));
-        set({ columnOrder: nextIds, visibleColumns: nextVisibleColumns, ...clampCursor(s, s.viewIndex.length, nextVisibleColumns.length), ...remapEditing(s, s.viewIndex, nextVisibleColumns) });
+        set({ columnOrder: nextIds, visibleColumns: nextVisibleColumns, ...followView(s, s.viewIndex, nextVisibleColumns) });
         s.onColumnLayoutChange?.(computeColumnLayout(s.columns, nextIds, s.columnWidths, s.hiddenColumns));
       },
       setColumnPin(id, pin) {
@@ -462,8 +490,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         set({
           columns: nextColumns,
           visibleColumns: nextVisibleColumns,
-          ...clampCursor(s, s.viewIndex.length, nextVisibleColumns.length),
-          ...remapEditing(s, s.viewIndex, nextVisibleColumns),
+          ...followView(s, s.viewIndex, nextVisibleColumns),
         });
         s.onColumnLayoutChange?.(computeColumnLayout(nextColumns, s.columnOrder, s.columnWidths, s.hiddenColumns));
       },
@@ -482,8 +509,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           visibleColumns: nextVisibleColumns,
           viewIndex,
           viewStale: false,
-          ...clampCursor(s, viewIndex.length, nextVisibleColumns.length),
-          ...remapEditing(s, viewIndex, nextVisibleColumns),
+          ...followView(s, viewIndex, nextVisibleColumns),
           ...computeSearchMatches(s.data, s.columns, viewIndex, nextVisibleColumns, s.searchText, s.cellTypes),
         });
         s.onColumnLayoutChange?.(computeColumnLayout(s.columns, s.columnOrder, s.columnWidths, nextHidden));
@@ -508,8 +534,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             sortState: sorts,
             viewIndex,
             viewStale: false,
-            ...clampCursor(s2, viewIndex.length, s2.visibleColumns.length),
-            ...remapEditing(s2, viewIndex, s2.visibleColumns),
+            ...followView(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
           };
         });
@@ -526,8 +551,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             sortState: sorts,
             viewIndex,
             viewStale: false,
-            ...clampCursor(s2, viewIndex.length, s2.visibleColumns.length),
-            ...remapEditing(s2, viewIndex, s2.visibleColumns),
+            ...followView(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
           };
         });
@@ -546,8 +570,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             filterState: withIds,
             viewIndex,
             viewStale: false,
-            ...clampCursor(s2, viewIndex.length, s2.visibleColumns.length),
-            ...remapEditing(s2, viewIndex, s2.visibleColumns),
+            ...followView(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
           };
         });
@@ -564,8 +587,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             joinOperator,
             viewIndex,
             viewStale: false,
-            ...clampCursor(s2, viewIndex.length, s2.visibleColumns.length),
-            ...remapEditing(s2, viewIndex, s2.visibleColumns),
+            ...followView(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
           };
         });
@@ -610,7 +632,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         applyRowValidation,
         pruneRowValidationKeys,
         warnViewSpacePresenceStale,
-        remapEditing,
+        followView,
         endEditSession,
       }),
       setEditingError(message) {
@@ -777,12 +799,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           }
           // A full rebuild leaves nothing pending for the incremental path to replay.
           if (!unchanged) resetDeferredRows(dataWrite);
-          const editRemap = unchanged ? {} : remapEditing(s, nextViewIndex, nextVisibleColumns, nextData, props.getRowId);
-          const cursor = clampCursor(s, nextViewIndex.length, nextVisibleColumns.length);
-          const baseSelection = editRemap.selection ?? ("selection" in cursor ? cursor.selection : s.selection);
-          const rows = baseSelection.rows.length === 0
-            ? baseSelection.rows
-            : CompactSelection.fromArray(baseSelection.rows.toArray().filter((row) => row < nextViewIndex.length));
+          const followed = unchanged
+            ? {}
+            : followView(s, nextViewIndex, nextVisibleColumns, nextData, props.getRowId, nextData === s.data || isEcho);
           return {
             ...props,
             ...resolveSelectionConfig(props),
@@ -809,12 +828,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             viewStale: unchanged ? s.viewStale : false,
             // Rows move only on a foreign data replacement, never on our own echo.
             rowIdentityVersion: nextData !== s.data && !isEcho ? s.rowIdentityVersion + 1 : s.rowIdentityVersion,
-            activeCell: cursor.activeCell,
-            ...editRemap,
+            ...followed,
             ...(unchanged
               ? { searchMatches: s.searchMatches, searchMatchSet: s.searchMatchSet, searchMatchRows: s.searchMatchRows, searchMatchesCapped: s.searchMatchesCapped }
               : computeSearchMatches(nextData, nextColumns, nextViewIndex, nextVisibleColumns, nextSearchText, nextCellTypes)),
-            selection: rows === baseSelection.rows ? baseSelection : { ...baseSelection, rows },
           };
         });
       },

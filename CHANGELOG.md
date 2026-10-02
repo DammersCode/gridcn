@@ -316,6 +316,12 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking:** checked rows follow their records (`data-grid`). The row channel
+  (`selection.rows`, the marker checkboxes) moves with each record when a sort, filter, join
+  operator, consumer `data` swap, or `updateCells` reorder rebuilds the view. A record that leaves
+  the view leaves the selection, and it stays unchecked when it comes back. `deleteRows`,
+  `duplicateRows`, the row shortcuts, the context menu, and `getRowIds()` act on the checked
+  records. Before, the checks stayed on view positions, so a sort moved them onto other records.
 - **Breaking:** keymap ties resolve per binding (`data-grid`). When two actions bind the same
   combo with the same number of modifiers, a `keymap` binding that is not one of the action's
   default bindings wins; a tie between default bindings keeps the earlier action (Enter: `edit`

@@ -1,5 +1,4 @@
 import {
-  clampCursor,
   clampIndex,
   clearErrorsForOps,
   computeSearchMatches,
@@ -185,11 +184,14 @@ export type DataWriteDeps = {
   ) => ReadonlyMap<string, string>;
   pruneRowValidationKeys: (data: readonly unknown[], getRowId: (row: unknown, index: number) => string) => void;
   warnViewSpacePresenceStale: (s: DataGridStoreState) => void;
-  remapEditing: (
+  /** The cursor, the open edit, and the row channel carried into a rebuilt view. */
+  followView: (
     s: DataGridStoreState,
     viewIndex: readonly number[],
     visibleColumns: readonly AnyColumnDef[],
     data?: readonly unknown[],
+    getRowId?: (row: unknown, index: number) => string,
+    sameRecords?: boolean,
   ) => Partial<DataGridStoreState>;
   /** Runs `write`, which ends `session`, without the `cancel` report: the caller reports its own `onEditEnd` result. */
   endEditSession: (session: NonNullable<DataGridStoreState["editing"]>, write: () => void) => void;
@@ -215,7 +217,7 @@ export type DataWriteActions = Pick<
 >;
 
 export function createDataWriteActions(set: SetState, get: GetState, deps: DataWriteDeps): DataWriteActions {
-  const { ctx, applyRowValidation, pruneRowValidationKeys, warnViewSpacePresenceStale, remapEditing, endEditSession } = deps;
+  const { ctx, applyRowValidation, pruneRowValidationKeys, warnViewSpacePresenceStale, followView, endEditSession } = deps;
 
   /** Commits clear-to-clearValue() `writes` as one `delete` batch; shared by both delete actions. */
   const commitClearWrites = (s: DataGridStoreState, writes: { viewRowIndex: number; columnId: string; value: unknown }[]): void => {
@@ -465,8 +467,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         cellErrors,
         viewIndex,
         viewStale: false,
-        ...clampCursor(s, viewIndex.length, s.visibleColumns.length),
-        ...remapEditing(s, viewIndex, s.visibleColumns, batch.nextData),
+        ...followView(s, viewIndex, s.visibleColumns, batch.nextData, s.getRowId, true),
         ...computeSearchMatches(batch.nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
       });
       return { applied, skipped: batch.skipped, pending: false };
@@ -490,8 +491,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       set({
         viewIndex,
         viewStale: false,
-        ...clampCursor(s, viewIndex.length, s.visibleColumns.length),
-        ...remapEditing(s, viewIndex, s.visibleColumns),
+        ...followView(s, viewIndex, s.visibleColumns),
         ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
       });
     },
