@@ -6,7 +6,8 @@
   "description": "A fake saveOrders rejects any committed Quantity over 100 after ~600ms; the onDataChange handler calls actions.setCellErrors to paint the exact cell with the same ring/tint/aria-invalid treatment as a live validate rejection, after commit. A badge reads the count via useDataGridCellErrors(), and a Clear all button calls clearCellErrors().",
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-history"
+    "DammersCode/gridcn/data-grid-history",
+    "button"
   ],
   "files": [
     {

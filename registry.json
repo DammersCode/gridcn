@@ -20,7 +20,8 @@
          },
          "dependencies": [
             "zustand",
-            "lucide-react"
+            "lucide-react",
+            "@base-ui/react"
          ],
          "registryDependencies": [
             "button",
@@ -823,7 +824,9 @@
          "description": "Right-click context menus for the gridcn data grid: cut/copy/paste/clear/row operations on cells, sort/pin/hide/autosize on headers.",
          "author": "gridcn",
          "dependencies": [
-            "lucide-react"
+            "lucide-react",
+            "@base-ui/react",
+            "zustand"
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
@@ -949,7 +952,8 @@
             "nuqs"
          ],
          "registryDependencies": [
-            "DammersCode/gridcn/data-grid"
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-pagination"
          ],
          "files": [
             {
@@ -1030,7 +1034,8 @@
          "author": "gridcn",
           "dependencies": [
              "hucre@1.1.0",
-             "papaparse"
+             "papaparse",
+             "lucide-react"
           ],
          "devDependencies": [
             "@types/papaparse"
@@ -1319,7 +1324,8 @@
          "description": "A worked custom cell type: currency storage as a plain number, cached locale-formatted display, and a symbol-stripping fromText, registered via the cellTypes prop.",
          "author": "gridcn",
          "registryDependencies": [
-            "DammersCode/gridcn/data-grid"
+            "DammersCode/gridcn/data-grid",
+            "input"
          ],
          "files": [
             {
@@ -1393,7 +1399,8 @@
          "author": "gridcn",
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
-            "DammersCode/gridcn/data-grid-history"
+            "DammersCode/gridcn/data-grid-history",
+            "button"
          ],
          "files": [
             {
@@ -1474,7 +1481,8 @@
          "author": "gridcn",
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
-            "DammersCode/gridcn/data-grid-keybindings"
+            "DammersCode/gridcn/data-grid-keybindings",
+            "button"
          ],
          "files": [
             {
@@ -1695,7 +1703,9 @@
          "description": "Drag a header to reorder columns within its pin zone (enableColumnReorder, per-column reorderable opt-out, pinned-right column), plus a column picker wired to the programmatic setColumnOrder(id, targetId, position) path.",
          "author": "gridcn",
          "registryDependencies": [
-            "DammersCode/gridcn/data-grid"
+            "DammersCode/gridcn/data-grid",
+            "button",
+            "select"
          ],
          "files": [
             {
@@ -1725,7 +1735,8 @@
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
             "DammersCode/gridcn/data-grid-context-menu",
-            "DammersCode/gridcn/data-grid-toolbar"
+            "DammersCode/gridcn/data-grid-toolbar",
+            "button"
          ],
          "files": [
             {
@@ -1750,7 +1761,9 @@
          "description": "Action-buttons column pattern: a pinned-right readOnly column whose renderCell composes shadcn Buttons over store actions (startEditing on the row's first editable cell, deleteRows/duplicateRows by view index) plus a more dropdown (Edit, Duplicate, Delete).",
          "author": "gridcn",
          "registryDependencies": [
-            "DammersCode/gridcn/data-grid"
+            "DammersCode/gridcn/data-grid",
+            "button",
+            "dropdown-menu"
          ],
          "files": [
             {
@@ -1781,7 +1794,8 @@
             "DammersCode/gridcn/data-grid",
             "DammersCode/gridcn/data-grid-context-menu",
             "DammersCode/gridcn/data-grid-toolbar",
-            "switch"
+            "switch",
+            "button"
          ],
          "files": [
             {
@@ -1904,7 +1918,8 @@
          "description": "A fully-styled brand column (per-column cellClassName/headerClassName), a fully-styled at-risk row (getRowClassName beyond a bg tint), and a live density/rowHeight toggle.",
          "author": "gridcn",
          "registryDependencies": [
-            "DammersCode/gridcn/data-grid"
+            "DammersCode/gridcn/data-grid",
+            "select"
          ],
          "files": [
             {
@@ -2107,7 +2122,8 @@
          "author": "gridcn",
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
-            "DammersCode/gridcn/data-grid-history"
+            "DammersCode/gridcn/data-grid-history",
+            "button"
          ],
          "files": [
             {
@@ -2395,7 +2411,9 @@
          "author": "gridcn",
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
-            "DammersCode/gridcn/data-grid-history"
+            "DammersCode/gridcn/data-grid-history",
+            "button",
+            "input"
          ],
          "files": [
             {
@@ -2423,7 +2441,8 @@
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
             "DammersCode/gridcn/data-grid-toolbar",
-            "DammersCode/gridcn/data-grid-history"
+            "DammersCode/gridcn/data-grid-history",
+            "button"
          ],
          "files": [
             {

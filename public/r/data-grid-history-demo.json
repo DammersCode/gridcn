@@ -6,7 +6,8 @@
   "description": "Undo/redo via the useDataGridState quick start, with toolbar buttons wired to the returned history object.",
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-history"
+    "DammersCode/gridcn/data-grid-history",
+    "button"
   ],
   "files": [
     {

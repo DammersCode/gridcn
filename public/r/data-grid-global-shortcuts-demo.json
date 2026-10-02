@@ -6,7 +6,9 @@
   "description": "Undo and redo keep working while focus sits on a custom toolbar - the opt-in useDataGridGlobalShortcuts hook, with the editable-target guard shown live.",
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-history"
+    "DammersCode/gridcn/data-grid-history",
+    "button",
+    "input"
   ],
   "files": [
     {

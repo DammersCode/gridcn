@@ -8,7 +8,8 @@
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",
     "DammersCode/gridcn/data-grid-toolbar",
-    "DammersCode/gridcn/data-grid-history"
+    "DammersCode/gridcn/data-grid-history",
+    "button"
   ],
   "files": [
     {

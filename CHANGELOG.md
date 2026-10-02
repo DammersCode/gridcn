@@ -677,6 +677,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Registry items declare every dependency they import:** `data-grid-url-state` depends on
+  `data-grid-pagination`. `data-grid` and `data-grid-context-menu` declare `@base-ui/react`,
+  `data-grid-context-menu` declares `zustand`, and `data-grid-io` declares `lucide-react`.
+  Several demos declare the `button`, `input`, `select`, and `dropdown-menu` components they
+  use. An install no longer misses these files and packages.
 - **A held fill or paste stays silent in a read-only grid (`data-grid`, `data-grid-fill`):** when
   the grid turns read-only while an async validation holds a fill or paste, the late result writes
   nothing and fires no `onValidationError`. Before, the rejected cells still fired the event.

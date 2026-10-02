@@ -8,7 +8,9 @@
     "lucide-react"
   ],
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid"
+    "DammersCode/gridcn/data-grid",
+    "button",
+    "select"
   ],
   "files": [
     {

@@ -6,7 +6,8 @@
   "description": "An editable data grid: range selection, spreadsheet clipboard, editing engine, validation, sorting, filtering, pinning, streaming updates. Real DOM cells, shadcn styling.",
   "dependencies": [
     "zustand",
-    "lucide-react"
+    "lucide-react",
+    "@base-ui/react"
   ],
   "registryDependencies": [
     "button",

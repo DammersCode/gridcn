@@ -8,7 +8,8 @@
     "DammersCode/gridcn/data-grid",
     "DammersCode/gridcn/data-grid-context-menu",
     "DammersCode/gridcn/data-grid-toolbar",
-    "switch"
+    "switch",
+    "button"
   ],
   "files": [
     {
