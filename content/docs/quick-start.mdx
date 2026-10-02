@@ -90,7 +90,9 @@ icon: Rocket
 
     <Callout title="getRowId is mandatory">
       `getRowId` must return a stable, unique id for each row. Two rows that share an id corrupt
-      selection, editing, and undo and redo, because every internal lookup is id-keyed.
+      selection, editing, and undo and redo, because every internal lookup is id-keyed. When you
+      change what `getRowId` returns, pass a new `data` array in the same render. In development,
+      the grid warns when `getRowId` returns other ids while `data` keeps its array.
     </Callout>
 
     <ComponentPreview name="data-grid-minimal-demo" />

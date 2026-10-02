@@ -75,6 +75,19 @@ function resolveCellTypes(provided: Record<string, CellType | null> | undefined)
 
 type ProvidedCellTypes = Record<string, CellType | null> | undefined;
 
+/** Whether two `getRowId` functions disagree on the first or the last loaded row (lazy holes are skipped). */
+function sampledRowIdsDiffer(
+  data: readonly unknown[],
+  before: (row: unknown, index: number) => string,
+  after: (row: unknown, index: number) => string,
+): boolean {
+  const differs = (index: number) => before(data[index], index) !== after(data[index], index);
+  const first = data.findIndex((row) => row !== undefined);
+  if (first === -1) return false;
+  const last = data.findLastIndex((row) => row !== undefined);
+  return differs(first) || differs(last);
+}
+
 /** True when both `cellTypes` props hold the same keys with `===` entries (an inline literal re-created per render). */
 function sameCellTypeEntries(a: ProvidedCellTypes, b: ProvidedCellTypes): boolean {
   if (a === b) return true;
@@ -120,6 +133,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   let lastPropsFilterState: FilterSpec[] | undefined = init.filterState;
   // A `commands` entry named after a built-in action silently disables the built-in — warn once about it.
   let warnedCommandShadow = false;
+  // A getRowId swap on the same data array keeps ids, errors, and the row index of the old function.
+  let warnedGetRowIdSwap = false;
   // `rowId -> dataIndex` for updateCells: row moves invalidate it, value patches keep it warm.
   const rowIndexCache = createRowIndexCache();
   /** Per-key auto-clear timers for `flashCells`; a re-flash of a live key clears its old timer so the pulse restarts. */
@@ -822,6 +837,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           // A foreign sync in between replaced s.data, so a late-adopted emitted array is foreign too.
           const isEcho = nextData === dataWrite.lastEmittedData && nextData === s.data;
           const foreignData = nextData !== s.data;
+          if (!foreignData && !warnedGetRowIdSwap && props.getRowId !== s.getRowId && isDev() && sampledRowIdsDiffer(nextData, s.getRowId, props.getRowId)) {
+            warnedGetRowIdSwap = true;
+            warnDev("getRowId returns other ids but data kept its array; pass a new data array together with a new getRowId");
+          }
           // A foreign array may move or drop rows, so prune errors and rebuild the id map; our own echo keeps both.
           const nextCellErrors = foreignData ? pruneCellErrors(s.cellErrors, nextData, props.getRowId) : s.cellErrors;
           if (foreignData) {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createDataGridStore } from "./create-store";
 import type { InternalSyncProps } from "./types";
 
@@ -145,5 +145,46 @@ describe("a getRowId swapped together with data", () => {
     store.getState().actions.updateCells([{ rowId: "a", columnId: "note", value: "edited" }]);
 
     expect(store.getState().cellErrors.get("a:discount")).toBe("server");
+  });
+});
+
+describe("a getRowId swap that keeps the data array", () => {
+  type Keyed = Row & { key: string };
+  const data: Keyed[] = [
+    { id: "a", key: "k1", price: 100, discount: 10, note: "" },
+    { id: "b", key: "k2", price: 100, discount: 10, note: "" },
+  ];
+
+  it("does not warn for a new function that returns the same ids", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const store = makeStore({ data, getRowId: (row) => (row as Keyed).id });
+
+    store.getState().actions._syncProps({ data, columns, getRowId: (row: unknown) => (row as Keyed).id } as InternalSyncProps);
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("warns once when the new function returns other ids for the same data array", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const store = makeStore({ data, getRowId: (row) => (row as Keyed).id });
+
+    store.getState().actions._syncProps({ data, columns, getRowId: (row: unknown) => (row as Keyed).key } as InternalSyncProps);
+    store.getState().actions._syncProps({ data, columns, getRowId: (row: unknown) => `x-${(row as Keyed).key}` } as InternalSyncProps);
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]![0])).toContain("getRowId");
+    warn.mockRestore();
+  });
+
+  it("skips unloaded rows when it samples ids", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const sparse = [undefined, data[0], undefined] as unknown as Keyed[];
+    const store = makeStore({ data: sparse, getRowId: (row) => (row as Keyed).id });
+
+    store.getState().actions._syncProps({ data: sparse, columns, getRowId: (row: unknown) => (row as Keyed).id } as InternalSyncProps);
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 });
