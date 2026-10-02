@@ -260,6 +260,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       selfReportedSession = null;
     }
   };
+  // Widths as of the last onColumnLayoutChange; a drag writes columnWidths per frame, so the commit compares against this.
+  let committedWidths: Record<string, number> = seeded.columnWidths;
   const initViewIndex = computeViewIndex(initData, seeded.columns, init.sortState ?? [], initFilterState, initJoinOperator, undefined, initCellTypes);
   return createStore<DataGridStoreState>((set, get, api) => ({
     ...init,
@@ -458,12 +460,16 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const next = column ? clampColumnWidth(column, width) : width;
         const columnWidths = { ...s.columnWidths, [id]: next };
         set({ columnWidths });
+        if (committedWidths[id] === next) return;
+        committedWidths = { ...committedWidths, [id]: next };
         s.onColumnLayoutChange?.(computeColumnLayout(s.columns, s.columnOrder, columnWidths, s.hiddenColumns));
       },
       resetColumnWidth(id) {
         const s = get();
         if (s.columnWidths[id] === undefined) return;
         const { [id]: _dropped, ...columnWidths } = s.columnWidths;
+        const { [id]: _committed, ...nextCommitted } = committedWidths;
+        committedWidths = nextCommitted;
         set({ columnWidths });
         s.onColumnLayoutChange?.(computeColumnLayout(s.columns, s.columnOrder, columnWidths, s.hiddenColumns));
       },
@@ -484,7 +490,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const s = get();
         if (!s.enableColumnPinning) return;
         const column = s.columns.find((c) => c.id === id);
-        if (!column || !columnFlag(column, "pinnable")) return;
+        if (!column || !columnFlag(column, "pinnable") || (column.pin ?? null) === pin) return;
         const nextColumns = s.columns.map((c) => (c.id === id ? { ...c, pin: pin ?? undefined } : c));
         const nextVisibleColumns = computeVisibleColumns(nextColumns, s.columnOrder, s.hiddenColumns);
         warnViewSpacePresenceStale(s, () => visibleColumnsMoved(s.visibleColumns, nextVisibleColumns));
@@ -497,6 +503,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       setColumnHidden(id, hidden) {
         const s = get();
+        if (!s.columns.some((c) => c.id === id) || s.hiddenColumns.includes(id) === hidden) return;
         const current = new Set(s.hiddenColumns);
         if (hidden) current.add(id);
         else current.delete(id);

@@ -1,5 +1,5 @@
 import { act, render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef } from "../types";
 import { DataGridProvider, useDataGridStoreApi, type DataGridProviderProps, type DataGridStoreState } from ".";
@@ -85,5 +85,51 @@ describe("defaultColumnLayout normalization", () => {
     expect(s.columnWidths).toEqual({ a: 200, c: 60 });
     expect(s.columnOrder).toEqual(["c", "a", "b"]);
     expect(s.hiddenColumns).toEqual([]);
+  });
+});
+
+describe("onColumnLayoutChange on no-op layout actions", () => {
+  const columns: readonly ColumnDef<Row, unknown>[] = [col("a", { pin: "left" }), col("b"), col("c", { pinnable: false })];
+
+  function mountWithSpy() {
+    const onColumnLayoutChange = vi.fn();
+    const { store } = mount({ columns, onColumnLayoutChange });
+    return { actions: () => store().getState().actions, store, onColumnLayoutChange };
+  }
+
+  it("does not fire when setColumnPin keeps the pin", () => {
+    const { actions, onColumnLayoutChange } = mountWithSpy();
+
+    act(() => actions().setColumnPin("a", "left"));
+    act(() => actions().setColumnPin("b", null));
+
+    expect(onColumnLayoutChange).not.toHaveBeenCalled();
+    act(() => actions().setColumnPin("b", "right"));
+    expect(onColumnLayoutChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not fire when setColumnHidden keeps the visibility, and ignores unknown ids", () => {
+    const { actions, store, onColumnLayoutChange } = mountWithSpy();
+
+    act(() => actions().setColumnHidden("b", false));
+    act(() => actions().setColumnHidden("ghost", true));
+
+    expect(onColumnLayoutChange).not.toHaveBeenCalled();
+    expect(store().getState().hiddenColumns).toEqual([]);
+    act(() => actions().setColumnHidden("b", true));
+    act(() => actions().setColumnHidden("b", true));
+    expect(onColumnLayoutChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not fire when commitColumnWidth repeats the committed width", () => {
+    const { actions, onColumnLayoutChange } = mountWithSpy();
+
+    act(() => actions().setColumnWidth("b", 220));
+    act(() => actions().commitColumnWidth("b", 220));
+    act(() => actions().commitColumnWidth("b", 220));
+
+    expect(onColumnLayoutChange).toHaveBeenCalledTimes(1);
+    act(() => actions().commitColumnWidth("b", 240));
+    expect(onColumnLayoutChange).toHaveBeenCalledTimes(2);
   });
 });

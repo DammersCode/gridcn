@@ -653,6 +653,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **`onColumnLayoutChange` fires only on real changes (`data-grid`):** `setColumnPin` with the
+  current pin, `setColumnHidden` with the current visibility, and `commitColumnWidth` with the last
+  committed width no longer fire it. `setColumnHidden` ignores a column id that `columns` does not
+  define. Before, each call fired the callback, and an unknown id went into `hidden`.
 - **`defaultColumnLayout` is normalized (`data-grid`):** the grid drops layout entries for column
   ids that `columns` does not define, clamps each width to the column's `minWidth`/`maxWidth`, and
   ignores a pin on a `pinnable: false` column. Before, a saved layout applied these entries as
