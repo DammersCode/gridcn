@@ -215,8 +215,9 @@ tells the user that a part of the file is too large to read safely. To accept su
 `maxCells` or `maxDecompressedBytes`. The shared strings count as a part, so a text-heavy sheet
 with few cells can need a higher `maxCells`.
 
-The reader keeps every cell it finds in memory, and a sheet at the default cap peaks near 0.9 GB.
-When you raise `maxCells`, the cap and the peak rise with it.
+The reader keeps every cell it finds in memory. A sheet of styled empty cells at the default cap
+peaks near 0.9 GB. A sheet of about 1.9 million cells with values, the most the default cap
+admits, peaks near 0.5 GB. When you raise `maxCells`, the cap and the peak rise with it.
 
 An xlsx cell comes in as its General text, not its formatted text, when its number format is over
 255 characters long, has a fraction denominator of four or more placeholders, or throws when
