@@ -190,9 +190,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Clipboard outcomes for programmatic copy/cut:** `useDataGridClipboard`'s `copy()` and `cut()`
   now resolve to `"ok"` (the async Clipboard API accepted the write), `"fallback"` (the legacy
   `execCommand` text-only path reported success), `"failed"` (both paths failed), or
-  `"no-selection"` (nothing was selected). `**Breaking:**` `cut()` now awaits the write and only
-  clears the selection when it succeeded and the selection is unchanged — a failed cut keeps the
-  selection and writes no `onDataChange`.
+  `"no-selection"` (nothing was selected).
+- **Breaking:** `useDataGridClipboard`'s `cut()` now awaits the write and only clears the selection
+  when it succeeded and the selection is unchanged — a failed cut keeps the selection and writes no
+  `onDataChange`.
 - **Compile-time API pins:** new type tests pin `useDataGridLazyRows`' public options/result
   shapes (including the `Range` type used by `evict`/`getLoadedRanges`) and the
   `data-grid-presence` payload contract (entry union shapes, guard narrowing, malformed-payload
@@ -224,10 +225,6 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Typed streaming patches:** `CellPatch` and `RowPatch` accept an optional type argument — the
   columns' `id` union — so a typo'd column id fails to compile instead of skipping silently at
   runtime.
-- **Context menu item slots:** `DataGridContextMenuProps` accepts `renderCellMenuItems` and
-  `renderHeaderMenuItems` render props. The cell slot receives `{ row, columnId, canInsertRow,
-  canDuplicateRow }`, the header slot `{ columnId, scrollRoot }`; the returned items replace the
-  built-in set, so consumers own which items show, their order, and their gating.
 - **Column layout reset and clamped width writes:** the store gains `resetColumnWidth(id)` —
   drops the width override, restores the column to flex distribution, and fires
   `onColumnLayoutChange` once. `setColumnWidth`/`commitColumnWidth` now clamp to the column's
@@ -287,8 +284,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   selection, active cell, marker cell, invalid cell, and search match. Defaults are unchanged.
 - **Docs example for pinning all four sides:** `data-grid-pinning-all-sides-demo` (Examples → Rows &
   Selection → Pinning) combines pinned left/right columns with pinned top/bottom row bands.
-- **Docs examples for menu slots and operator lists:** `data-grid-context-menu-slots-demo` shows
-  `renderCellMenuItems`/`renderHeaderMenuItems`; `data-grid-filter-operators-demo` shows
+- **Docs examples for menu resolvers and operator lists:** `data-grid-context-menu-slots-demo` shows
+  `getCellMenuItems`/`getHeaderMenuItems`; `data-grid-filter-operators-demo` shows
   `operatorsForColumn`, `ColumnDef.filterOperators`, and `DataGridSortList`'s `allColumns`.
 
 - Coverage thresholds (branch-level, ~85-90% floor) enforced in CI for every pure-lib module —
@@ -380,8 +377,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   ctx on such a row carries the same id. A pinned row's cell ctx `rowId` comes from `getRowId`.
   If `getRowId` throws on a pinned row or returns an empty or non-string value, the row gets the
   band id `__pinned-top-<index>` or `__pinned-bottom-<index>`.
-  `DataGridPinnedRow` takes a required `position` prop (`"top" | "bottom"`). A right-click on a
-  skeleton cell of an unloaded row opens no context menu.
+  `DataGridPinnedRow` takes a required `position` prop (`"top" | "bottom"`), and
+  `DataGridCellProps.rowId` is required. A right-click on a skeleton cell of an unloaded row opens
+  no context menu.
 - **Breaking:** cell contexts carry row and column identity. `renderCell` (and `Cell`
   components) rename `rowIndex` to `viewRowIndex` and add `rowId` and `columnId`. The
   `getCellClassName` ctx gains `rowId` and `columnId`. `CellClickCtx` (used by `onCellClick`,
@@ -859,8 +857,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   missing. Before, a fresh install rendered the pinned-column and pinned-row shadow invisible.
 - **Reduced motion in lazy skeleton cells:** the per-cell loading shimmer of `data-grid-lazy` holes
   respects `prefers-reduced-motion`, like the whole-grid loading skeleton.
-- **Vite type-check:** the core grid no longer reads `process.env` directly, so `tsc -b` passes in a
-  Vite project whose `tsconfig.app.json` lacks `@types/node`.
+- **Vite type-check:** the core grid declares the `process` global it reads in its own file, so
+  `tsc -b` passes in a Vite project whose `tsconfig.app.json` lacks `@types/node`.
 - **Demo npm dependencies:** `data-grid-context-menu-slots-demo` declares `lucide-react` and
   `data-grid-validation-demo` declares `sonner`, so a fresh install gets both packages.
 - **Registry npm dependencies:** `data-grid`, `data-grid-toolbar`, `data-grid-sort-list`,

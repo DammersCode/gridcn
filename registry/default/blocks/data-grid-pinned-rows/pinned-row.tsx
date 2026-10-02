@@ -20,16 +20,6 @@ export type DataGridPinnedRowProps = {
   className?: string;
 };
 
-/**
- * A pinned top/bottom band row: reuses
-  * `DataGridCell` in its `pinnedRow` mode for identical cell-type rendering/alignment/column tracks as
- * data rows, but bypasses `DataGridRow`'s `useDataGridRow(viewRowIndex)` store lookup entirely —
- * pinned rows are a separate array the consumer supplies to `useDataGridPinnedRows`, not indices
- * into `data`/`viewIndex`, so they never sort, filter, or participate in range selection or the
- * rows-channel (documented v1 scope). Not memoized like `DataGridRow`: pinned bands are always
- * fully rendered (never windowed/virtualized — a handful of totals/frozen rows, not tens of
- * thousands), so there's no window-shift-driven re-render pressure to protect against.
- */
 function resolvePinnedRowId(getRowId: DataGridStoreState["getRowId"], row: unknown, bandIndex: number, position: "top" | "bottom"): string {
   let id: unknown;
   try {
@@ -40,6 +30,16 @@ function resolvePinnedRowId(getRowId: DataGridStoreState["getRowId"], row: unkno
   return typeof id === "string" && id !== "" ? id : `__pinned-${position}-${bandIndex}`;
 }
 
+/**
+ * A pinned top/bottom band row: reuses
+  * `DataGridCell` in its `pinnedRow` mode for identical cell-type rendering/alignment/column tracks as
+ * data rows, but bypasses `DataGridRow`'s `useDataGridRow(viewRowIndex)` store lookup entirely —
+ * pinned rows are a separate array the consumer supplies to `useDataGridPinnedRows`, not indices
+ * into `data`/`viewIndex`, so they never sort, filter, or participate in range selection or the
+ * rows-channel (documented v1 scope). Not memoized like `DataGridRow`: pinned bands are always
+ * fully rendered (never windowed/virtualized — a handful of totals/frozen rows, not tens of
+ * thousands), so there's no window-shift-driven re-render pressure to protect against.
+ */
 export function DataGridPinnedRow(props: DataGridPinnedRowProps): ReactNode {
   const { position, row, bandIndex, windowedColumns, layout, gridRowStart, ariaRowIndex, className } = props;
   const getRowId = useDataGridSelector((s) => s.getRowId);

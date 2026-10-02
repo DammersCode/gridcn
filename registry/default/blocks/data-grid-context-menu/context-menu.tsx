@@ -21,9 +21,9 @@ import {
 } from "./menu-items";
 import { useHasCreateRow, useHasDuplicateRow } from "./has-row-op";
 
-/** Props for {@link DataGridContextMenu}. */
 type MenuTarget = (Extract<ContextMenuTarget, { kind: "cell" }> & { rowId: string }) | Extract<ContextMenuTarget, { kind: "header" }>;
 
+/** Props for {@link DataGridContextMenu}. */
 export type DataGridContextMenuProps = {
   className?: string;
   children?: ReactNode;
