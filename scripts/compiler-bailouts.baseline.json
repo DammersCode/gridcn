@@ -1,91 +1,153 @@
 {
-  "registry/default/blocks/data-grid/body.tsx": [
-    "DataGridBody"
-  ],
-  "registry/default/blocks/data-grid/cell.tsx": [
-    "DataGridCellImpl"
-  ],
-  "registry/default/blocks/data-grid/columns/use-column-reorder.ts": [
-    "useColumnReorder"
-  ],
-  "registry/default/blocks/data-grid/columns/use-column-resize.ts": [
-    "useColumnResize"
-  ],
-  "registry/default/blocks/data-grid/data-grid.tsx": [
-    "DataGridApiCapture"
-  ],
-  "registry/default/blocks/data-grid/interaction/use-grid-interaction.ts": [
-    "useGridInteraction"
-  ],
-  "registry/default/blocks/data-grid/keyboard/use-data-grid-global-shortcuts.ts": [
-    "useDataGridGlobalShortcuts"
-  ],
-  "registry/default/blocks/data-grid/overlays.tsx": [
-    "DataGridOverlays"
-  ],
-  "registry/default/blocks/data-grid/rows/use-row-reorder.ts": [
-    "useRowReorder"
-  ],
-  "registry/default/blocks/data-grid/validation/bulk-generation.ts": [
-    "useBulkGeneration"
-  ],
-  "registry/default/blocks/data-grid/windowing/use-column-window.ts": [
-    "useColumnWindow"
-  ],
-  "registry/default/blocks/data-grid/windowing/use-pin-shadow-edges.ts": [
-    "usePinShadowEdges"
-  ],
-  "registry/default/blocks/data-grid/windowing/use-row-window.ts": [
-    "useRowWindow"
-  ],
-  "registry/default/blocks/data-grid/windowing/use-scroll-snapshot.ts": [
-    "useElementDimensions",
-    "useScrollSnapshot",
-    "useViewportElement"
-  ],
-  "registry/default/blocks/data-grid/windowing/use-scrolled-edges.ts": [
-    "useScrolledEdges"
-  ],
-  "registry/default/blocks/data-grid-context-menu/context-menu.tsx": [
-    "DataGridContextMenu"
-  ],
-  "registry/default/blocks/data-grid-fill/use-data-grid-fill.tsx": [
-    "useDataGridFill"
-  ],
-  "registry/default/blocks/data-grid-fill/use-fill-handle.ts": [
-    "useFillHandle"
-  ],
-  "registry/default/blocks/data-grid-history/use-data-grid-history.ts": [
-    "useDataGridHistory"
-  ],
-  "registry/default/blocks/data-grid-io/import-dialog.tsx": [
-    "DataGridImportDialog"
-  ],
-  "registry/default/blocks/data-grid-io/use-data-grid-import.ts": [
-    "useDataGridImportPreview"
-  ],
-  "registry/default/blocks/data-grid-lazy/use-data-grid-lazy-rows.ts": [
-    "useDataGridLazyRows"
-  ],
-  "registry/default/blocks/data-grid-pinned-rows/use-data-grid-aggregate.ts": [
-    "DataGridAggregateReporter"
-  ],
-  "registry/default/blocks/data-grid-presence/use-data-grid-presence.ts": [
-    "useDataGridPresence"
-  ],
-  "registry/default/blocks/data-grid-toolbar/filter-value-input.tsx": [
-    "BetweenValueInput"
-  ],
-  "registry/default/blocks/data-grid-url-state/use-data-grid-url-state.ts": [
-    "useDataGridUrlState"
-  ],
-  "registry/default/blocks/dropzone/dropzone.tsx": [
-    "Dropzone"
-  ],
-  "registry/default/examples/data-grid-playground-demo.tsx": [
-    "useLatestRef"
-  ],
-  "registry/default/examples/data-grid-streaming-demo.tsx": [
-    "TickerFeed"
-  ]
+  "registry/default/blocks/data-grid/body.tsx": {
+    "DataGridBody": [
+      "Globals: Cannot reassign variables declared outside of the component/hook"
+    ]
+  },
+  "registry/default/blocks/data-grid/cell.tsx": {
+    "DataGridCellImpl": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid/columns/use-column-reorder.ts": {
+    "useColumnReorder": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid/columns/use-column-resize.ts": {
+    "useColumnResize": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid/data-grid.tsx": {
+    "DataGridApiCapture": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid/interaction/use-grid-interaction.ts": {
+    "useGridInteraction": [
+      "Immutability: Cannot access variable before it is declared"
+    ]
+  },
+  "registry/default/blocks/data-grid/keyboard/use-data-grid-global-shortcuts.ts": {
+    "useDataGridGlobalShortcuts": [
+      "Todo: (BuildHIR::lowerExpression) Support UpdateExpression where argument is a global"
+    ]
+  },
+  "registry/default/blocks/data-grid/overlays.tsx": {
+    "DataGridOverlays": [
+      "Todo: (BuildHIR::node.lowerReorderableExpression) Expression type `BinaryExpression` cannot be safely reordered"
+    ]
+  },
+  "registry/default/blocks/data-grid/rows/use-row-reorder.ts": {
+    "useRowReorder": [
+      "Immutability: Cannot access variable before it is declared"
+    ]
+  },
+  "registry/default/blocks/data-grid/validation/bulk-generation.ts": {
+    "useBulkGeneration": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid/windowing/use-column-window.ts": {
+    "useColumnWindow": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid/windowing/use-pin-shadow-edges.ts": {
+    "usePinShadowEdges": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid/windowing/use-row-window.ts": {
+    "useRowWindow": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid/windowing/use-scroll-snapshot.ts": {
+    "useElementDimensions": [
+      "Refs: Cannot access refs during render"
+    ],
+    "useScrollSnapshot": [
+      "Refs: Cannot access refs during render"
+    ],
+    "useViewportElement": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid/windowing/use-scrolled-edges.ts": {
+    "useScrolledEdges": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid-context-menu/context-menu.tsx": {
+    "DataGridContextMenu": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid-fill/use-data-grid-fill.tsx": {
+    "useDataGridFill": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid-fill/use-fill-handle.ts": {
+    "useFillHandle": [
+      "Immutability: Cannot access variable before it is declared"
+    ]
+  },
+  "registry/default/blocks/data-grid-history/use-data-grid-history.ts": {
+    "useDataGridHistory": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid-io/import-dialog.tsx": {
+    "DataGridImportDialog": [
+      "Immutability: Cannot access variable before it is declared"
+    ]
+  },
+  "registry/default/blocks/data-grid-io/use-data-grid-import.ts": {
+    "useDataGridImportPreview": [
+      "Todo: (BuildHIR::lowerStatement) Handle TryStatement with a finalizer ('finally') clause"
+    ]
+  },
+  "registry/default/blocks/data-grid-lazy/use-data-grid-lazy-rows.ts": {
+    "useDataGridLazyRows": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid-pinned-rows/use-data-grid-aggregate.ts": {
+    "DataGridAggregateReporter": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid-presence/use-data-grid-presence.ts": {
+    "useDataGridPresence": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid-toolbar/filter-value-input.tsx": {
+    "BetweenValueInput": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid-url-state/use-data-grid-url-state.ts": {
+    "useDataGridUrlState": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/dropzone/dropzone.tsx": {
+    "Dropzone": [
+      "Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement"
+    ]
+  },
+  "registry/default/examples/data-grid-playground-demo.tsx": {
+    "useLatestRef": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/examples/data-grid-streaming-demo.tsx": {
+    "TickerFeed": [
+      "Refs: Cannot access refs during render"
+    ]
+  }
 }

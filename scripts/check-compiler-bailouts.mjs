@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Fails on React Compiler CompileErrors under registry/ that the per-function baseline does not allow, and on stale entries.
+// Fails on React Compiler bail-outs under registry/ whose function or category and reason the baseline does not allow, and on stale entries.
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -39,24 +39,39 @@ function functionName(path) {
 
 function namesAt(source, rel, locs) {
   const ast = babel.parseSync(source, { filename: rel, babelrc: false, configFile: false, sourceType: "module", parserOpts });
-  const names = [];
+  const names = new Map();
   babel.traverse(ast, {
     Function(path) {
       const start = path.node.loc?.start;
-      if (start && locs.has(`${start.line}:${start.column}`)) names.push(functionName(path));
+      const key = start && `${start.line}:${start.column}`;
+      if (key && locs.has(key)) names.set(key, functionName(path));
     },
   });
   return names;
 }
 
+function describe(event) {
+  if (event.kind === "PipelineError") return `PipelineError: ${event.data}`;
+  const detail = event.detail ?? {};
+  const category = detail.category ?? detail.options?.category ?? "Unknown";
+  const reason = detail.reason ?? detail.options?.reason ?? "";
+  return `${category}: ${reason}`;
+}
+
+/** Bail-outs of one file as `{ functionName: [category: reason, ...] }`, reasons sorted and unique. */
 function compileErrors(source, rel) {
-  const locs = new Set();
-  let fileLevel = false;
+  const byLoc = new Map();
+  const fileLevel = new Set();
   const logger = {
     logEvent(_filename, event) {
       if (event.kind !== "CompileError" && event.kind !== "PipelineError") return;
-      if (event.fnLoc) locs.add(`${event.fnLoc.start.line}:${event.fnLoc.start.column}`);
-      else fileLevel = true;
+      if (!event.fnLoc) {
+        fileLevel.add(describe(event));
+        return;
+      }
+      const key = `${event.fnLoc.start.line}:${event.fnLoc.start.column}`;
+      if (!byLoc.has(key)) byLoc.set(key, new Set());
+      byLoc.get(key).add(describe(event));
     },
   };
   try {
@@ -68,42 +83,45 @@ function compileErrors(source, rel) {
       parserOpts,
       plugins: [[reactCompiler, { target: "19", panicThreshold: "none", logger }]],
     });
-  } catch {
-    fileLevel = true;
+  } catch (error) {
+    fileLevel.add(`Crash: ${error instanceof Error ? (error.message.split(/\r?\n/)[0] ?? "") : String(error)}`);
   }
-  const names = namesAt(source, rel, locs);
-  if (fileLevel) names.push("<file>");
-  return names.sort();
-}
-
-function diff(expected, actual) {
-  const remaining = [...actual];
-  const missing = [];
-  for (const name of expected) {
-    const index = remaining.indexOf(name);
-    if (index === -1) missing.push(name);
-    else remaining.splice(index, 1);
+  const names = namesAt(source, rel, new Set(byLoc.keys()));
+  const result = {};
+  for (const [key, reasons] of byLoc) {
+    const name = names.get(key) ?? `<unknown:${key}>`;
+    result[name] = [...new Set([...(result[name] ?? []), ...reasons])].sort();
   }
-  return { missing, extra: remaining };
+  if (fileLevel.size > 0) result["<file>"] = [...fileLevel].sort();
+  return Object.fromEntries(Object.entries(result).sort(([a], [b]) => a.localeCompare(b)));
 }
 
 const baseline = existsSync(baselinePath) ? JSON.parse(readFileSync(baselinePath, "utf8")) : {};
 const next = {};
 const problems = [];
 const files = listFiles(registryDir);
+const relFiles = new Set(files.map((file) => relative(root, file).split(sep).join("/")));
 
 for (const file of files) {
   const rel = relative(root, file).split(sep).join("/");
-  const errors = compileErrors(readFileSync(file, "utf8"), rel);
-  if (errors.length > 0) next[rel] = errors;
-  const { missing, extra } = diff(baseline[rel] ?? [], errors);
-  for (const name of extra) problems.push(`${rel}: ${name} — new compiler bail-out (CompileError)`);
-  for (const name of missing) problems.push(`${rel}: ${name} — compiles now; remove it from the baseline`);
+  const actual = compileErrors(readFileSync(file, "utf8"), rel);
+  if (Object.keys(actual).length > 0) next[rel] = actual;
+  const allowed = baseline[rel] ?? {};
+  for (const [name, reasons] of Object.entries(actual)) {
+    const allowedReasons = allowed[name];
+    if (!allowedReasons) {
+      problems.push(`${rel}: ${name} — new compiler bail-out (${reasons.join("; ")})`);
+      continue;
+    }
+    for (const reason of reasons) if (!allowedReasons.includes(reason)) problems.push(`${rel}: ${name} — new bail-out reason (${reason})`);
+    for (const reason of allowedReasons) if (!reasons.includes(reason)) problems.push(`${rel}: ${name} — reason gone; remove it from the baseline (${reason})`);
+  }
+  for (const name of Object.keys(allowed)) {
+    if (!actual[name]) problems.push(`${rel}: ${name} — compiles now; remove it from the baseline`);
+  }
 }
 for (const rel of Object.keys(baseline)) {
-  if (!files.some((file) => relative(root, file).split(sep).join("/") === rel)) {
-    problems.push(`${rel} — file is gone; remove it from the baseline`);
-  }
+  if (!relFiles.has(rel)) problems.push(`${rel} — file is gone; remove it from the baseline`);
 }
 
 if (update) {
