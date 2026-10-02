@@ -427,6 +427,25 @@ describe("onActiveCellChange — columns, writes, and clamps", () => {
     expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "2", columnId: "name", viewRowIndex: 1, viewColumnIndex: 0 });
   });
 
+  it("clears the selection's current range when a filter empties the view", () => {
+    const { result } = renderHook(() => useActionsAndStore(), { wrapper: makeWrapper() });
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 1 }));
+    act(() => result.current.actions.setFilters([{ filterId: "f", columnId: "name", operator: "equals", value: "missing" }]));
+    const s = result.current.store.getState();
+    expect(s.activeCell).toBeNull();
+    expect(s.selection.current).toBeNull();
+  });
+
+  it("clears the selection's current range when every column is hidden", () => {
+    const { result } = renderHook(() => useActionsAndStore(), { wrapper: makeWrapper() });
+    act(() => result.current.actions.selectCellAt({ col: 1, row: 0 }));
+    act(() => result.current.actions.setColumnHidden("name", true));
+    act(() => result.current.actions.setColumnHidden("qty", true));
+    const s = result.current.store.getState();
+    expect(s.activeCell).toBeNull();
+    expect(s.selection.current).toBeNull();
+  });
+
   it("clamps the cursor when an immediate updateCells drops its row out of a filtered view", () => {
     const onActiveCellChange = vi.fn();
     const { result } = renderHook(() => useActionsAndStore(), { wrapper: makeWrapper({ onActiveCellChange }) });

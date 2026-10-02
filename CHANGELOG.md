@@ -72,8 +72,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `{ rowId, columnId, viewRowIndex, viewColumnIndex, result: "commit" | "cancel" | "rejected" }` —
   `rejected` fires per refused commit attempt while the session stays open. A view rebuild that
   shrinks the view clamps the active cell to the nearest in-view cell and collapses the selection
-  onto it (or clears the active cell when the view empties), and `onActiveCellChange` fires for
-  the move. Each session ends with exactly one
+  onto it (or clears the active cell and the selection's current range when the view empties),
+  and `onActiveCellChange` fires for the move. Each session ends with exactly one
   `commit` or `cancel`: a filter, hidden column, or data change that drops the edited cell, and a
   second `startEditing` over an open session (which ends the old session first), report `cancel`.
   `onValidationError(event)` fires after a bulk paste or fill settles, only when at least one

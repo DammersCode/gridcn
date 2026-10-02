@@ -92,14 +92,15 @@ export function clampActiveCell(activeCell: ViewCoord | null, viewLength: number
   return row === activeCell.row && col === activeCell.col ? activeCell : { row, col };
 }
 
-/** The cursor fitted into a rebuilt view: a clamp that moves `activeCell` also collapses the selection onto the clamped cell. */
+/** The cursor fitted into a rebuilt view: a move collapses the selection onto the clamped cell, a clear drops its current range. */
 export function clampCursor(
   s: Pick<DataGridStoreState, "activeCell" | "selection">,
   viewLength: number,
   columnCount: number,
 ): Pick<DataGridStoreState, "activeCell"> | Pick<DataGridStoreState, "activeCell" | "selection"> {
   const activeCell = clampActiveCell(s.activeCell, viewLength, columnCount);
-  if (activeCell === s.activeCell || activeCell === null) return { activeCell };
+  if (activeCell === s.activeCell) return { activeCell };
+  if (activeCell === null) return s.selection.current === null ? { activeCell } : { activeCell, selection: { ...s.selection, current: null } };
   return { activeCell, selection: { ...selectCell(activeCell), rows: s.selection.rows, columns: s.selection.columns } };
 }
 

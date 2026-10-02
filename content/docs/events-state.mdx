@@ -351,8 +351,8 @@ zero-re-render guarantee as the other callbacks on this page.
   included. `onDataChange` already carries it.
 - A sort, filter, or data change that shrinks the view clamps the active cell to the nearest
   in-view cell, and `onActiveCellChange` fires for the move. The selection then collapses onto
-  the clamped cell. When the view becomes empty, the grid clears the active cell and fires
-  `onActiveCellChange` with `null`.
+  the clamped cell. When the view becomes empty, the grid clears the active cell and the
+  selection's current range, and fires `onActiveCellChange` with `null`.
 - `onValidationError` fires after a bulk paste or fill settles, only when at least one cell was
   rejected by validation. The accepted cells are applied first, so their `onDataChange` fires
   before this event. `GridValidationErrorEvent` is `{ source: "paste" | "fill", rejected }`, and
