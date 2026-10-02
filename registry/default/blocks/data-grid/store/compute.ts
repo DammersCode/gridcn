@@ -534,8 +534,10 @@ export function applyDefaultColumnLayout(
   hiddenColumns: string[],
   layout: ColumnLayout | undefined,
 ): { columns: readonly AnyColumnDef[]; columnWidths: Record<string, number>; columnOrder: string[] | null; hiddenColumns: string[] } {
-  if (!layout) return { columns, columnWidths: {}, columnOrder: null, hiddenColumns };
-  const pins = layout.pins;
+  if (!layout || typeof layout !== "object") return { columns, columnWidths: {}, columnOrder: null, hiddenColumns };
+  const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
+  const stringList = (value: unknown): string[] | null => (Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : null);
+  const pins = isRecord(layout.pins) ? layout.pins : null;
   const nextColumns = pins
     ? columns.map((c) => {
         const pin = pins[c.id];
@@ -543,18 +545,24 @@ export function applyDefaultColumnLayout(
       })
     : columns;
   const columnWidths: Record<string, number> = {};
-  if (layout.widths) {
+  const widths = isRecord(layout.widths) ? layout.widths : null;
+  if (widths) {
     for (const column of columns) {
-      const width = layout.widths[column.id];
+      const width = widths[column.id];
       if (typeof width === "number" && Number.isFinite(width)) columnWidths[column.id] = clampColumnWidth(column, width);
     }
   }
   const known = new Set(columns.map((c) => c.id));
+  const order = stringList(layout.order);
+  const savedHidden = stringList(layout.hidden);
+  const nextHidden = savedHidden ? savedHidden.filter((id) => known.has(id)) : [...hiddenColumns];
+  // A def-hidden column the saved order does not list was added after the save; its def flag wins.
+  if (order) for (const id of hiddenColumns) if (!order.includes(id) && !nextHidden.includes(id)) nextHidden.push(id);
   return {
     columns: nextColumns,
     columnWidths,
-    columnOrder: layout.order ? completeColumnOrder(columns, layout.order) : null,
-    hiddenColumns: layout.hidden ? layout.hidden.filter((id) => known.has(id)) : hiddenColumns,
+    columnOrder: order ? completeColumnOrder(columns, order) : null,
+    hiddenColumns: nextHidden,
   };
 }
 

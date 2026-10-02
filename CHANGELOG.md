@@ -682,8 +682,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   nothing and fires no `onValidationError`. Before, the rejected cells still fired the event.
 - **`defaultColumnLayout` is normalized (`data-grid`):** the grid drops layout entries for column
   ids that `columns` does not define, clamps each width to the column's `minWidth`/`maxWidth`, and
-  ignores a pin on a `pinnable: false` column. Before, a saved layout applied these entries as
-  they were.
+  ignores a pin on a `pinnable: false` column. A `hidden: true` column that the saved `order` does
+  not list stays hidden, and a layout part with the wrong shape is ignored. Before, a saved layout
+  applied these entries as they were, showed such a column, and a malformed part threw.
 - **New columns render after a column reorder (`data-grid`):** a column that the column order
   does not list follows the listed columns in `columns` order. This covers a column added to
   `columns` after a reorder and a column missing from a restored `defaultColumnLayout.order`.

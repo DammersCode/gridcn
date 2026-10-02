@@ -230,3 +230,20 @@ describe("setColumnOrder on a no-op drop", () => {
     expect(store().getState().columnOrder).toBeNull();
   });
 });
+
+describe("defaultColumnLayout restored from older or malformed storage", () => {
+  it("keeps a def-hidden column hidden when the saved order does not list it", () => {
+    const columns: readonly ColumnDef<Row, unknown>[] = [col("a"), col("b"), col("c", { hidden: true })];
+    const { store } = mount({ columns, defaultColumnLayout: { widths: {}, order: ["b", "a"], pins: {}, hidden: [] } });
+
+    expect(visibleIds(store())).toEqual(["b", "a"]);
+  });
+
+  it("ignores malformed parts instead of throwing", () => {
+    const malformed = { widths: "wide", order: { a: 1 }, pins: 5, hidden: "a" } as unknown as DataGridProviderProps<Row>["defaultColumnLayout"];
+    const { store } = mount({ columns: threeColumns, defaultColumnLayout: malformed });
+
+    expect(visibleIds(store())).toEqual(["a", "b", "c"]);
+    expect(store().getState().columnWidths).toEqual({});
+  });
+});
