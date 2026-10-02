@@ -288,7 +288,7 @@ describe("select sort cost", () => {
           { id: "fruit", header: "Fruit", accessorKey: "fruit", type: "select", options: { choices } },
           { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
         ],
-        getRowId: (row) => (row as { id: string }).id,
+        getRowId: (row: unknown) => (row as { id: string }).id,
         cellTypes: builtinCellTypes,
       } as unknown as InternalSyncProps);
       const start = performance.now();
