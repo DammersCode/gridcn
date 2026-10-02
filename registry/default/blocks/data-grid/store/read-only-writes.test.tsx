@@ -83,3 +83,21 @@ describe("store writes in a read-only grid", () => {
     expect(onDataChange).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("the readOnly flip", () => {
+  it("is visible to onEditEnd when it cancels the open edit", () => {
+    let readOnlyAtEditEnd: boolean | null = null;
+    let api: StoreApi<DataGridStoreState> | null = null;
+    const store = mount({
+      onEditEnd: () => {
+        readOnlyAtEditEnd = api!.getState().readOnly;
+      },
+    });
+    api = store;
+    act(() => store.getState().actions.startEditingAt({ row: 0, col: 0 }));
+
+    act(() => store.getState().actions._registerReadOnly(true));
+
+    expect(readOnlyAtEditEnd).toBe(true);
+  });
+});
