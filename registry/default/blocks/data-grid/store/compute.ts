@@ -418,6 +418,22 @@ export function defHiddenColumnIds(columns: readonly AnyColumnDef[]): string[] {
   return columns.filter((c) => c.hidden).map((c) => c.id);
 }
 
+/** `columnOrder` completed for `columns`: unknown ids drop out, and def ids it lacks follow in def order. */
+export function completeColumnOrder(columns: readonly AnyColumnDef[], columnOrder: readonly string[] | null): string[] {
+  const defIds = columns.map((c) => c.id);
+  if (!columnOrder) return defIds;
+  const known = new Set(defIds);
+  const ordered: string[] = [];
+  const seen = new Set<string>();
+  for (const id of columnOrder) {
+    if (!known.has(id) || seen.has(id)) continue;
+    seen.add(id);
+    ordered.push(id);
+  }
+  for (const id of defIds) if (!seen.has(id)) ordered.push(id);
+  return ordered;
+}
+
 /**
  * Visible columns in display order (pinned-left, unpinned, pinned-right). Visibility reads
  * `hiddenColumns` alone — a def-level `hidden: true` is honored only through that set's seeding —
@@ -430,11 +446,10 @@ export function computeVisibleColumns(
   hiddenColumns: readonly string[],
 ): readonly AnyColumnDef[] {
   const byId = new Map(columns.map((c) => [c.id, c] as const));
-  const orderedIds = columnOrder ?? columns.map((c) => c.id);
   const hidden = new Set(hiddenColumns);
-  const ordered = orderedIds
-    .map((id) => byId.get(id))
-    .filter((c): c is AnyColumnDef => c != null && !hidden.has(c.id));
+  const ordered = completeColumnOrder(columns, columnOrder)
+    .map((id) => byId.get(id)!)
+    .filter((c) => !hidden.has(c.id));
   const left = ordered.filter((c) => c.pin === "left");
   const right = ordered.filter((c) => c.pin === "right");
   const middle = ordered.filter((c) => c.pin !== "left" && c.pin !== "right");
@@ -454,7 +469,7 @@ export function computeColumnLayout(
   }
   return {
     widths: { ...columnWidths },
-    order: columnOrder ?? columns.map((c) => c.id),
+    order: completeColumnOrder(columns, columnOrder),
     pins,
     hidden: [...hiddenColumns],
   };

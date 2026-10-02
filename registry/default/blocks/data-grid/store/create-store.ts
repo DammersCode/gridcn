@@ -21,6 +21,7 @@ import {
   cellErrorKey,
   clampIndex,
   columnFlag,
+  completeColumnOrder,
   computeColumnLayout,
   computeSearchMatches,
   computeVisibleColumns,
@@ -471,7 +472,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (!s.enableColumnReorder) return;
         const byId = new Map(s.columns.map((c) => [c.id, c] as const));
         if (!columnFlag(byId.get(id), "reorderable") || !columnFlag(byId.get(targetId), "reorderable")) return;
-        const currentIds = s.columnOrder ?? s.columns.map((c) => c.id);
+        const currentIds = completeColumnOrder(s.columns, s.columnOrder);
         const nextIds = reorderColumnIds(currentIds, s.columns, id, targetId, position);
         if (nextIds === currentIds) return;
         const nextVisibleColumns = computeVisibleColumns(s.columns, nextIds, s.hiddenColumns);

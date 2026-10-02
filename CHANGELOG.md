@@ -653,6 +653,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **New columns render after a column reorder (`data-grid`):** a column that the column order
+  does not list follows the listed columns in `columns` order. This covers a column added to
+  `columns` after a reorder and a column missing from a restored `defaultColumnLayout.order`.
+  `onColumnLayoutChange` reports the completed order. Before, such a column never rendered.
 - **A late-adopted `onDataChange` array applies in full (`data-grid`):** when a controlled
   consumer passes a refetched `data` array and then adopts an array the grid emitted earlier, the
   grid rebuilds its view from that array. Before, the grid took the array for its own echo, kept
