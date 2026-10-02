@@ -102,7 +102,7 @@ export function clampCursor(
   s: Pick<DataGridStoreState, "activeCell" | "selection">,
   viewLength: number,
   columnCount: number,
-): Pick<DataGridStoreState, "activeCell"> | Pick<DataGridStoreState, "activeCell" | "selection"> {
+): Pick<DataGridStoreState, "activeCell"> & Partial<Pick<DataGridStoreState, "selection">> {
   const activeCell = clampActiveCell(s.activeCell, viewLength, columnCount);
   if (activeCell === s.activeCell) return { activeCell };
   if (activeCell === null) return s.selection.current === null ? { activeCell } : { activeCell, selection: { ...s.selection, current: null } };

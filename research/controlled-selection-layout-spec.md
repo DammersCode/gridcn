@@ -116,7 +116,7 @@ Row ops keep their own selection rules: insert and duplicate shift the selection
   checked rows deletes records the user never checked.
 - Column channel: follows `columnId`; a hidden column leaves it.
 - Ranges: a range stays when its view rect still covers the same records as a set (and the same
-  column ids); otherwise the grid drops every range and keeps the active cell at its view position (after the R-45 clamp). A
+  column ids); otherwise every range collapses onto the active cell, which follows its record and column id; after a clamp (its row or column left the view) the grid drops every range instead. A
   Ctrl+A whole-grid range therefore survives a sort. Rejected: corner identity — after a sort the
   rectangle between the two corner records silently absorbs unselected records, and Delete/Cut
   would hit them. Rejected: positional ranges — the emitted ids change although the user did
@@ -228,7 +228,7 @@ demand); `setSelection(next: SelectionState | null)` (`null` clears). New
 | `api.getSelection(): GridSelection` | `api.getSelection(): SelectionState` (**Breaking**) |
 | `api.setSelection(ref \| null)` | `api.setSelection(state \| null)`; one cell: `actions.selectCell(ref)` (**Breaking**) |
 | Row channel stays on view positions across sort/filter | Row channel follows record identity (**Breaking**) |
-| Ranges stay on view positions across a row move | A range stays only while it covers the same records, else is dropped and the active cell stays (**Breaking**) |
+| Ranges stay on view positions across a row move | A range stays only while it covers the same records, else collapses onto the active cell, which follows its record and column (**Breaking**) |
 | `broadcasting-presence.mdx:60-72` sends `selection.current?.range` (view space) | Send `next.range` (refs) for the rowId-native form, or map the range's rows through `details.getRowIds()` |
 | `data-grid-events-demo.tsx:133` `(selection: GridSelection, details)` | `(selection: SelectionState, details)`; log `anchor`/`range` |
 | `data-grid-column-layout-demo.tsx:114-115` seed + persist | Same seed path; the demo text drops "NOT controlled" and points to `columnLayout` |
@@ -250,8 +250,8 @@ Unit (`test/controlled-selection.test.tsx`, `test/controlled-layout.test.tsx`):
 - `rowIds` keeps its array identity across a range drag while the row channel is unchanged.
 - Sort with a row-channel selection: the same records stay checked and nothing fires; check rows,
   sort, then `deleteRows` on the checked rows deletes only the checked records. Filter that drops
-  one checked row: one event without it. Sort under a partial range: one event, range dropped and the
-  active cell kept. Sort under a Ctrl+A whole-grid range: no event. A data swap that moves nothing keeps
+  one checked row: one event without it. Sort under a partial range: one event, the range collapsed onto the
+  active cell on its record. Sort under a Ctrl+A whole-grid range: no event. A data swap that moves nothing keeps
   the selection identity. Insert and reorder keep their `offsetSelectionForRows` /
   `reorderSelectionForRow` results.
 - Controlled value naming a hidden column or a missing row: the resolvable subset applies, no event,

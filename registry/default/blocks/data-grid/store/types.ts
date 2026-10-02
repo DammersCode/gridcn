@@ -202,10 +202,10 @@ export type DataGridSyncProps<TData = unknown> = {
    */
    onSelectionCleared?: () => void;
    /**
-    * Fires when the active cell changes to a different cell, when another record or column moves
-    * under the same cursor (a sort, filter, lazy row load, column hide, reorder, or pin), or when it
-    * is cleared (`null`). Keyboard moves, clicks, commit-driven cursor moves, and the clamp into a
-    * shrunken view all fire. Re-selecting the same cell on the same record and column does not fire.
+    * Fires when the active cell changes to a different cell, when it follows its record or column to
+    * another view position (a sort, filter, data change, column hide, reorder, or pin), when another
+    * record comes under it (a lazy row load, or a clamp after its row or column left the view), or
+    * when it is cleared (`null`). Re-selecting the same cell on the same record and column does not fire.
     */
    onActiveCellChange?: (next: ViewCellRef | null) => void;
    /**

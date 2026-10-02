@@ -338,10 +338,12 @@ The first four are store events. They fire from the actions layer with the same
 zero-re-render guarantee as the other callbacks on this page.
 
 - `onActiveCellChange` fires when the active cell becomes a different cell or is cleared
-  (`null`). It also fires when another record or column moves under the same cursor: a sort, a
-  filter, a lazy row that loads, or a column hide, reorder, or pin. Re-selecting the same cell
-  on the same record and column does not fire. A value-only write to the record under the cursor
-  does not fire. The payload is a `ViewCellRef`: the cell's stable `rowId` and `columnId` plus
+  (`null`). The active cell follows its record and its column. When a sort, a filter, a data
+  change, or a column hide, reorder, or pin moves them, the active cell moves with them, and the
+  event fires with the new view position. The event also fires when another record comes under
+  the same cursor: a lazy row that loads, or a clamp. Re-selecting the same cell on the same
+  record and column does not fire. A rebuild that keeps the record and the column at their view
+  position does not fire. A value-only write to the record under the cursor does not fire. The payload is a `ViewCellRef`: the cell's stable `rowId` and `columnId` plus
   the `viewRowIndex`/`viewColumnIndex` it occupied when the event fired.
 - `onEditStart` fires right before an edit session opens, from Enter or F2, type-to-replace,
   or a double-click, with the target cell's `ViewCellRef`. Return `false` to veto the edit.
@@ -357,9 +359,9 @@ zero-re-render guarantee as the other callbacks on this page.
   included. `onDataChange` already carries it.
 - A filter, hidden column, or data change that drops the edited cell cancels the edit and clears
   the active cell. This happens even when other rows stay in the view.
-- A sort, filter, or data change that shrinks the view clamps the active cell to the nearest
-  in-view cell, and `onActiveCellChange` fires for the move. The selection then collapses onto
-  the clamped cell. When the view becomes empty, the grid clears the active cell and the
+- When the active cell's row or column leaves the view, the grid clamps the active cell to its
+  view position, or to the nearest in-view cell, and `onActiveCellChange` fires. When the clamp
+  moves the active cell, the selection collapses onto the clamped cell. When the view becomes empty, the grid clears the active cell and the
   selection's current range, and fires `onActiveCellChange` with `null`.
 - `onValidationError` fires after a bulk paste or fill settles, only when at least one cell was
   rejected by validation. The accepted cells are applied first, so their `onDataChange` fires

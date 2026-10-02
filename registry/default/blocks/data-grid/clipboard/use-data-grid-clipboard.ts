@@ -2,7 +2,8 @@
 
 import { useCallback, useMemo } from "react";
 import { serializeCells } from "./serialize-cells";
-import { useDataGridInternalActions, useDataGridStoreApi } from "../store";
+import { useDataGridInternalActions, useDataGridStoreApi, type DataGridStoreState } from "../store";
+import { rowIdAtViewRow } from "../store/compute";
 import { useBulkGeneration } from "../validation/bulk-generation";
 import { copyScopeCellIds, pasteText, resolveCopyScope, serializeCopyScope } from "./use-grid-clipboard";
 
@@ -15,6 +16,17 @@ export type UseDataGridClipboardOptions = {
   sanitizeFormulas?: boolean;
 };
 
+/** Whether a view rebuild collapsed the selection onto the same record and column the cursor had in `before`. */
+function collapsedOntoFollowedCursor(before: DataGridStoreState, after: DataGridStoreState): boolean {
+  const current = after.selection.current;
+  const from = before.activeCell;
+  const to = after.activeCell;
+  if (!current || !from || !to || current.rangeStack.length > 0) return false;
+  const { range, cell } = current;
+  if (range.width !== 1 || range.height !== 1 || cell.row !== to.row || cell.col !== to.col) return false;
+  return rowIdAtViewRow(before, from.row) === rowIdAtViewRow(after, to.row) && before.visibleColumns[from.col]?.id === after.visibleColumns[to.col]?.id;
+}
+
 /** Public clipboard triggers, usable outside native browser clipboard events. */
 export type UseDataGridClipboardResult = {
   /**
@@ -26,7 +38,8 @@ export type UseDataGridClipboardResult = {
   copy: () => Promise<"ok" | "fallback" | "failed" | "no-selection">;
   /**
    * Same as {@link copy}, then clears exactly the copied cells — only when the write succeeded
-   * (`'ok'`/`'fallback'`) and the selection is the same reference it was when the write started.
+   * (`'ok'`/`'fallback'`) and nobody selected or cleared cells during the write; a view rebuild that
+   * drops the range or collapses it onto the active cell keeps the cut.
    * The cells are captured by row and column id at copy time, so a sort, filter, or data change
    * during the write clears the copied rows wherever they moved; a row that left the view stays.
    * A failed write keeps the selection intact.
@@ -107,11 +120,11 @@ export function useDataGridClipboard(options: UseDataGridClipboardOptions = {}):
     const { text, html } = serializeCells(serializeCopyScope(s, scope), { sanitizeFormulas: sanitizeFormulas ?? s.sanitizeClipboardFormulas });
     const { rowIds, columnIds } = copyScopeCellIds(s, scope);
     const result = await writeToClipboard(text, html);
-    // A view rebuild may drop the range; a new or cleared range from the user cancels the delete.
+    // A view rebuild drops the range or collapses it onto the cursor; a new or cleared range from the user cancels the delete.
     const latest = storeApi.getState();
     const current = latest.selection.current;
     const rebuilt = latest.viewIndex !== s.viewIndex || latest.visibleColumns !== s.visibleColumns;
-    const selectionKept = current === s.selection.current || (current === null && rebuilt);
+    const selectionKept = current === s.selection.current || (rebuilt && (current === null || collapsedOntoFollowedCursor(s, latest)));
     if (result !== "failed" && selectionKept) actions._deleteCellsById(rowIds, columnIds);
     return result;
   }, [storeApi, actions, sanitizeFormulas]);

@@ -387,7 +387,7 @@ export type DataGridProps<TData> = {
   onSelectionChange?: (next: GridSelection, details: SelectionChangeDetails) => void;
    /** Fires exactly once when the selection transitions from non-empty to empty, from any clear path. */
    onSelectionCleared?: () => void;
-   /** Fires when the active cell changes to a different cell, when another record moves under the cursor, or when it is cleared (`null`) — see {@link DataGridSyncProps.onActiveCellChange}. */
+   /** Fires when the active cell changes to a different cell or view position, when another record comes under it, or when it is cleared (`null`) — see {@link DataGridSyncProps.onActiveCellChange}. */
    onActiveCellChange?: (next: ViewCellRef | null) => void;
    /** Fired when an edit session is about to start; return `false` to veto the edit. See {@link DataGridSyncProps.onEditStart}. */
    onEditStart?: (cell: ViewCellRef) => boolean | void;

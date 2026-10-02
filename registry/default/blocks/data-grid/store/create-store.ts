@@ -168,11 +168,38 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     };
   };
   /**
+   * The active cell's coord in a rebuilt view: it follows its record and its column id. Returns
+   * `undefined` when its row or column left the view, so the caller clamps instead.
+   */
+  const followActiveCell = (
+    s: DataGridStoreState,
+    viewIndex: readonly number[],
+    visibleColumns: readonly AnyColumnDef[],
+    toNextDataRow: ((prevDataRow: number) => number | undefined) | undefined,
+    sameRecordAt: ((viewRow: number) => boolean) | undefined,
+  ): DataGridStoreState["activeCell"] | undefined => {
+    const active = s.activeCell;
+    if (active === null) return null;
+    const prevDataRow = s.viewIndex[active.row];
+    const columnId = s.visibleColumns[active.col]?.id;
+    if (prevDataRow === undefined || columnId === undefined) return undefined;
+    let row = active.row;
+    if (sameRecordAt ? !sameRecordAt(active.row) : viewIndex[active.row] !== prevDataRow) {
+      const nextDataRow = toNextDataRow ? toNextDataRow(prevDataRow) : prevDataRow;
+      row = nextDataRow === undefined ? -1 : viewIndex.indexOf(nextDataRow);
+    }
+    const col = visibleColumns[active.col]?.id === columnId ? active.col : visibleColumns.findIndex((column) => column.id === columnId);
+    if (row === -1 || col === -1) return undefined;
+    return row === active.row && col === active.col ? active : { row, col };
+  };
+  /**
    * The cursor, the open edit, and the selection carried into a rebuilt view. `sameRecords` keeps
    * data indices as identity (no `data` swap, or our own echo); otherwise records map by rowId, and
-   * a duplicated rowId resolves to the last row with that id. The row channel follows its records,
-   * the column channel its column ids. A range that now covers other records is dropped, so a row
-   * op never reaches a record nobody selected.
+   * a duplicated rowId resolves to the last row with that id. The active cell follows its record and
+   * column and clamps only when one of them left the view. The row channel follows its records, the
+   * column channel its column ids. A range that now covers other records or columns collapses onto
+   * the followed active cell, or is dropped after a clamp, so a row op never reaches a record nobody
+   * selected.
    */
   const followView = (
     s: DataGridStoreState,
@@ -182,9 +209,6 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     getRowId: (row: unknown, index: number) => string = s.getRowId,
     sameRecords = data === s.data,
   ): Partial<DataGridStoreState> => {
-    const cursor = clampCursor(s, viewIndex.length, visibleColumns.length);
-    const editRemap = remapEditing(s, viewIndex, visibleColumns, data, getRowId);
-    let base = editRemap.selection ?? ("selection" in cursor ? cursor.selection : s.selection);
     const toNextDataRow = sameRecords
       ? undefined
       : (prevDataRow: number) => {
@@ -204,19 +228,26 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           return prevRow !== undefined && nextRow !== undefined && s.getRowId(prevRow, prevDataRow) === getRowId(nextRow, nextDataRow);
         }
       : undefined;
+    const followed = followActiveCell(s, viewIndex, visibleColumns, toNextDataRow, sameRecordAt);
+    const clamped = followed === undefined ? clampCursor(s, viewIndex.length, visibleColumns.length) : undefined;
+    const clampedSelection = clamped?.selection;
+    const editRemap = remapEditing(s, viewIndex, visibleColumns, data, getRowId);
+    let base: DataGridStoreState["selection"] = editRemap.selection ?? clampedSelection ?? s.selection;
     const rects = current ? [current.range, ...current.rangeStack] : [];
-    if (
-      !editRemap.selection &&
-      !("selection" in cursor) &&
-      current &&
-      !(rectsKeepRecords(rects, s.viewIndex, viewIndex, toNextDataRow, sameRecordAt) && rectsKeepColumns(rects, s.visibleColumns, visibleColumns))
-    ) {
-      base = { ...base, current: null };
+    if (!editRemap.selection && !clampedSelection && current) {
+      const rangeKept =
+        rectsKeepRecords(rects, s.viewIndex, viewIndex, toNextDataRow, sameRecordAt) && rectsKeepColumns(rects, s.visibleColumns, visibleColumns);
+      const anchorOnCursor = s.activeCell !== null && current.cell.row === s.activeCell.row && current.cell.col === s.activeCell.col;
+      if (!rangeKept) {
+        base = followed ? { ...selectCellPure(followed), rows: base.rows, columns: base.columns } : { ...base, current: null };
+      } else if (followed && followed !== s.activeCell && anchorOnCursor) {
+        base = { ...base, current: { ...current, cell: followed } };
+      }
     }
     const rows = remapRowChannel(base.rows, s.viewIndex, viewIndex, toNextDataRow);
     const columns = remapColumnChannel(base.columns, s.visibleColumns, visibleColumns);
     const selection = rows === base.rows && columns === base.columns ? base : { ...base, rows, columns };
-    return { ...cursor, ...editRemap, ...(selection === s.selection ? {} : { selection }) };
+    return { ...(clamped ?? { activeCell: followed ?? null }), ...editRemap, ...(selection === s.selection ? {} : { selection }) };
   };
   // cellErrors keys of each row's last validateRow verdict, so a re-run clears only its own messages.
   const rowValidationKeys = new Map<string, string[]>();

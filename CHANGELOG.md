@@ -66,16 +66,17 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `CellTypeValueInput` are exported from the `data-grid` barrel, along with the operator arrays
   `TEXT_FILTER_OPERATORS` and `COMPARISON_FILTER_OPERATORS` for declaring custom lists.
 - **Grid event API:** six new optional props on `DataGrid`/`DataGridProvider`. `onActiveCellChange(next)`
-  fires when the active cell becomes a different cell, when another record or column moves under
-  the cursor (a sort, filter, lazy row load, column hide, reorder, or pin), or when it is cleared
-  (`null`); a value-only write does not fire it. The payload is a `ViewCellRef`
+  fires when the active cell becomes a different cell, when it follows its record or column to
+  another view position (a sort, filter, data change, column hide, reorder, or pin), when another
+  record comes under it (a lazy row load, or a clamp), or when it is cleared (`null`); a
+  value-only write does not fire it. The payload is a `ViewCellRef`
   (`{ rowId, columnId, viewRowIndex, viewColumnIndex }`). `onEditStart(cell)` fires before an edit
   session opens with the target cell's `ViewCellRef` and may return `false` to veto the edit.
   `onEditEnd(event)` fires with a `GridEditEndEvent`
   `{ rowId, columnId, viewRowIndex, viewColumnIndex, result: "commit" | "cancel" | "rejected" }` —
   `rejected` fires per refused commit attempt while the session stays open. A view rebuild that
-  shrinks the view clamps the active cell to the nearest in-view cell and collapses the selection
-  onto it (or clears the active cell and the selection's current range when the view empties),
+  removes the active cell's row or column clamps the active cell to the nearest in-view cell and
+  collapses the selection onto it (or clears the active cell and the selection's current range when the view empties),
   and `onActiveCellChange` fires for the move. Each session ends with exactly one
   `commit` or `cancel`: a filter, hidden column, or data change that drops the edited cell, and a
   second `startEditing` over an open session (which ends the old session first), report `cancel`.
@@ -324,6 +325,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   drop that keeps the order, and `commitColumnWidth` with the last committed width no longer fire
   it. `setColumnHidden` ignores a column id that `columns` does not define. Before, each call fired
   the callback, and an unknown id went into `hidden`.
+- **Breaking:** the active cell follows its record and its column (`data-grid`). A sort, filter,
+  consumer `data` swap, or a column hide, reorder, or pin moves the active cell with its record and
+  column, and `onActiveCellChange` fires with the new view position. The grid clamps the active
+  cell only when its row or column leaves the view. Before, the active cell stayed on its view
+  position, so a Delete after hiding a column to its left cleared a different column.
 - **Breaking:** selected columns follow their column (`data-grid`). The column channel
   (`selection.columns`, header selection) moves with each column on `setColumnOrder`,
   `setColumnHidden`, `setColumnPin`, and a new `columns` array. A column that leaves the view
@@ -335,9 +341,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   operator, consumer `data` swap, `updateCells` reorder, or a row insert or duplicate under a sort
   or filter changes the view. A record that leaves the view leaves the selection, and it stays
   unchecked when it comes back. When a rebuild puts other records or other columns under the
-  cursor range, the grid drops the range and keeps the active cell at its view position. A row
-  operation on checked rows, and `getRowIds()`, never reach a record that was not checked. Without
-  checked rows, `deleteRows` and the row shortcuts act on the active cell's row.
+  cursor range, the grid collapses the range onto the active cell, or drops it after a clamp. A row
+  operation and `getRowIds()` never reach a record that was not selected. Without checked rows or
+  a range, `deleteRows` and the row shortcuts act on the active cell's row.
   Before, the checks and the range stayed on view positions, so a sort moved them onto other
   records, and a row insert or duplicate under a sort cleared the checks.
 - **Breaking:** `useDataGridActions()` and `useDataGridStoreProps().actions` return only the

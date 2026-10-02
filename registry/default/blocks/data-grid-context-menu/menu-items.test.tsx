@@ -189,7 +189,7 @@ describe("useDefaultHeaderMenuItems", () => {
 
 
 describe("delete-rows after a sort", () => {
-  it("deletes only the checked records, not the records the sort moved under the cursor range", async () => {
+  it("deletes the checked records and the cursor's record, not the records the sort moved under the cursor range", async () => {
     type Person = { id: string; name: string };
     const people: Person[] = [
       { id: "a", name: "Echo" },
@@ -222,6 +222,6 @@ describe("delete-rows after a sort", () => {
 
     await waitFor(() => expect(onDataChange).toHaveBeenCalledTimes(1));
     const ops = onDataChange.mock.calls[0]![1].ops as { rowId: string }[];
-    expect(ops.map((op) => op.rowId).sort()).toEqual(["c", "d"]);
+    expect(ops.map((op) => op.rowId).sort()).toEqual(["a", "c", "d"]);
   });
 });

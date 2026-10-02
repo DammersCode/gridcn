@@ -56,8 +56,9 @@ function activeCellEvent(s: DataGridStoreState, coord: ViewCoord): ViewCellRef {
 
 /**
  * Wires `onActiveCellChange`: one `storeApi.subscribe` on `state.activeCell` that fires on a coord
- * move, a clear, or a different record or column under the cursor (a sort, a lazy load, a column
- * hide, reorder, or pin). Re-selecting the same cell on the same record and column does not fire.
+ * move (the cursor following its record or column included), a clear, or a different record or
+ * column under the cursor (a lazy load, a clamp). Re-selecting the same cell on the same record and
+ * column does not fire.
  */
 function subscribeActiveCellChange(store: StoreApi<DataGridStoreState>): () => void {
   return store.subscribe((state, prevState) => {

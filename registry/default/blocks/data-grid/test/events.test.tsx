@@ -278,19 +278,18 @@ describe("onActiveCellChange", () => {
     expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "2", columnId: "name", viewRowIndex: 1, viewColumnIndex: 0 });
   });
 
-  it("fires when a sort moves another record under the cursor", () => {
+  it("follows its record when a sort moves it, and fires for the move", () => {
     const onActiveCellChange = vi.fn();
     const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper({ onActiveCellChange }) });
     act(() => {
       result.current.selectCellAt({ col: 0, row: 0 });
     });
     expect(onActiveCellChange).toHaveBeenCalledTimes(1);
-    // qty desc: view row 0 becomes record "3" (qty 2); the cursor stays at view row 0
     act(() => {
       result.current.setSorts([{ columnId: "qty", direction: "desc" }]);
     });
     expect(onActiveCellChange).toHaveBeenCalledTimes(2);
-    expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "3", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0 });
+    expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "1", columnId: "name", viewRowIndex: 2, viewColumnIndex: 0 });
   });
 
   it("clamps the active cell into the view when a filter shrinks it", () => {
@@ -334,7 +333,7 @@ describe("onActiveCellChange — columns, writes, and clamps", () => {
     expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "1", columnId: "qty", viewRowIndex: 0, viewColumnIndex: 0 });
   });
 
-  it("fires when a column reorder moves another column under the cursor", () => {
+  it("follows its column when a column reorder moves it, and fires for the move", () => {
     const onActiveCellChange = vi.fn();
     const { result } = renderHook(() => useDataGridActions(), {
       wrapper: makeWrapper({ onActiveCellChange, enableColumnReorder: true }),
@@ -342,10 +341,10 @@ describe("onActiveCellChange — columns, writes, and clamps", () => {
     act(() => result.current.selectCellAt({ col: 0, row: 0 }));
     act(() => result.current.setColumnOrder("qty", "name", "before"));
     expect(onActiveCellChange).toHaveBeenCalledTimes(2);
-    expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "1", columnId: "qty", viewRowIndex: 0, viewColumnIndex: 0 });
+    expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 1 });
   });
 
-  it("fires when pinning a column moves it under the cursor", () => {
+  it("follows its column when pinning another column moves it, and fires for the move", () => {
     const onActiveCellChange = vi.fn();
     const { result } = renderHook(() => useDataGridActions(), {
       wrapper: makeWrapper({ onActiveCellChange, enableColumnPinning: true }),
@@ -353,7 +352,16 @@ describe("onActiveCellChange — columns, writes, and clamps", () => {
     act(() => result.current.selectCellAt({ col: 0, row: 0 }));
     act(() => result.current.setColumnPin("qty", "left"));
     expect(onActiveCellChange).toHaveBeenCalledTimes(2);
-    expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "1", columnId: "qty", viewRowIndex: 0, viewColumnIndex: 0 });
+    expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 1 });
+  });
+
+  it("does not fire when a rebuild keeps its record and column in place", () => {
+    const onActiveCellChange = vi.fn();
+    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper({ onActiveCellChange }) });
+    act(() => result.current.selectCellAt({ col: 0, row: 0 }));
+    act(() => result.current.setColumnHidden("qty", true));
+    act(() => result.current.setSorts([{ columnId: "qty", direction: "asc" }]));
+    expect(onActiveCellChange).toHaveBeenCalledTimes(1);
   });
 
   it("does not fire for a value-only updateCells under the cursor", () => {

@@ -237,7 +237,7 @@ describe("the cursor range across a view rebuild", () => {
     );
   }
 
-  it("collapses when the sort moves other records under it, so deleteRows deletes only the checked records", () => {
+  it("collapses onto the cursor's record when the sort moves other records under it, so deleteRows deletes only selected records", () => {
     const onDataChange = vi.fn<(next: readonly Row[], change: DataChange<Row>) => void>();
     const { store } = mount({ defaultData: rows(), onDataChange });
     act(() => store().getState().actions.selectCellAt({ row: 0, col: 0 }));
@@ -247,7 +247,7 @@ describe("the cursor range across a view rebuild", () => {
     deleteViaShortcut(store());
 
     const [, change] = onDataChange.mock.calls[0]!;
-    expect(change.ops.map((op) => op.rowId).sort()).toEqual(["c", "d"]);
+    expect(change.ops.map((op) => op.rowId).sort()).toEqual(["a", "c", "d"]);
   });
 
   it("stays when the rebuild keeps the same records under it", () => {
