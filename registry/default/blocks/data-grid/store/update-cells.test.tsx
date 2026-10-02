@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import type { CellPatch, ColumnDef, DataChange, FilterSpec, SortSpec } from "../data-grid";
 import {
   DataGridProvider,
-  useDataGridActions,
+  useDataGridInternalActions,
   useDataGridActiveCell,
   useDataGridEditing,
   useDataGridRow,
@@ -55,7 +55,7 @@ type HarnessProps = {
 /** Everything the streaming tests read, in one hook so a single `act()` sees a consistent snapshot. */
 function useHarness() {
   return {
-    actions: useDataGridActions(),
+    actions: useDataGridInternalActions(),
     viewIndex: useDataGridViewIndex(),
     viewStale: useDataGridViewStale(),
     searchMatches: useDataGridSearchMatches(),
@@ -627,7 +627,7 @@ describe("updateCells — interaction state is never moved", () => {
   /** Adds the interaction-state subscriptions the contrast with `applyCellUpdates` needs. */
   function useInteractionHarness() {
     return {
-      actions: useDataGridActions(),
+      actions: useDataGridInternalActions(),
       activeCell: useDataGridActiveCell(),
       selection: useDataGridSelection(),
       editing: useDataGridEditing(),

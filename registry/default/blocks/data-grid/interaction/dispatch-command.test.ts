@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import { dispatchGridAction } from "./use-grid-interaction";
-import type { DataGridActions, DataGridStoreState } from "../store";
+import { publicActionsOf } from "../store/compute";
+import type { DataGridStoreActions, DataGridStoreState } from "../store";
 import type { GridAction } from "../types";
 
 const data: readonly unknown[] = [
@@ -31,8 +32,8 @@ function fakeStore(partial: Partial<DataGridStoreState>): StoreApi<DataGridStore
   } as unknown as StoreApi<DataGridStoreState>;
 }
 
-function fakeActions(): DataGridActions {
-  return { selectAll: vi.fn(), clearSelection: vi.fn() } as unknown as DataGridActions;
+function fakeActions(): DataGridStoreActions {
+  return { selectAll: vi.fn(), clearSelection: vi.fn() } as unknown as DataGridStoreActions;
 }
 
 function dispatch(args: { action: string; commands?: DataGridStoreState["commands"]; activeCell?: { col: number; row: number } | null }) {
@@ -67,7 +68,7 @@ describe("dispatchGridAction custom-command tier", () => {
     expect(ctx.row).toEqual({ id: "b", name: "Bob" });
     expect(ctx.readOnly).toBe(false);
     expect(ctx.api).toBeTruthy();
-    expect(ctx.api.actions).toBe(actions);
+    expect(ctx.api.actions).toBe(publicActionsOf(actions));
     expect(preventDefault).toHaveBeenCalledTimes(1);
   });
 

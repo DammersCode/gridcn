@@ -322,6 +322,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   the view leaves the selection, and it stays unchecked when it comes back. `deleteRows`,
   `duplicateRows`, the row shortcuts, the context menu, and `getRowIds()` act on the checked
   records. Before, the checks stayed on view positions, so a sort moved them onto other records.
+- **Breaking:** `useDataGridActions()` and `useDataGridStoreProps().actions` return only the
+  public actions (`data-grid`). The `_`-prefixed internal actions, such as `_registerReadOnly` and
+  `_syncProps`, are gone from both the `DataGridActions` type and the returned object, so consumer
+  code cannot lift `readOnly` or skip the prop sync. The imperative handle's `actions` follows the
+  same rule.
 - **Breaking:** `onDataChange` fires after the grid stores the new data (`data-grid`). A write
   action called inside the handler, such as `updateCells`, starts from that data, and the grid
   keeps both changes. Before, the outer write overwrote the inner one. A commit's events arrive in

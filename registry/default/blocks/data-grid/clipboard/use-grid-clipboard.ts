@@ -6,7 +6,7 @@ import { getCellValue } from "../columns/column-helpers";
 import { isDev } from "../is-dev";
 import { serializeCells } from "./serialize-cells";
 import { parseClipboard } from "./parse-clipboard";
-import { useDataGridActions, useDataGridStoreApi, type DataGridActions, type DataGridStoreState } from "../store";
+import { useDataGridInternalActions, useDataGridStoreApi, type DataGridActions, type DataGridStoreState } from "../store";
 import { resolveBulkWrites, type BulkCandidate, type BulkResolution } from "../validation/validate-batch";
 import { resolveColumnValidate } from "../cell-types/capabilities";
 import { candidateRowIds, reresolveBulkWrites, snapshotBulkBatch, useBulkGeneration, type BulkGeneration } from "../validation/bulk-generation";
@@ -381,7 +381,7 @@ export function pasteText(
  */
 export function useGridClipboard(options: UseGridClipboardOptions): void {
   const { rootRef, readOnly, sanitizeFormulas } = options;
-  const actions = useDataGridActions();
+  const actions = useDataGridInternalActions();
   const storeApi = useDataGridStoreApi();
   // One counter for this grid's paste surface: a second paste supersedes a still-validating first.
   const guard = useBulkGeneration();

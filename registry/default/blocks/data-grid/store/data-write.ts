@@ -32,7 +32,7 @@ import {
   selectionRects,
 } from "../selection";
 import type { CellRef, DataOp, ViewCoord } from "../types";
-import type { AnyColumnDef, CellPatch, DataGridActions, DataGridStoreState, UpdateCellsVerdict } from "./types";
+import type { AnyColumnDef, CellPatch, DataGridStoreActions, DataGridStoreState, UpdateCellsVerdict } from "./types";
 
 /**
  * The data-write cluster's streaming bookkeeping: the mutable `let` state shared by the write
@@ -199,7 +199,7 @@ export type DataWriteDeps = {
 
 /** Every data-writing action of the store, extracted as one cluster: the edit commits, the bulk writers, and the row ops. */
 export type DataWriteActions = Pick<
-  DataGridActions,
+  DataGridStoreActions,
   | "commitCellEdit"
   | "commitCellValue"
   | "commitCellValueAt"

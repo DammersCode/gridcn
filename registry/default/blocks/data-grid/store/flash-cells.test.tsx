@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import type { CellRef, ColumnDef } from "../types";
 import {
   DataGridProvider,
-  useDataGridActions,
+  useDataGridInternalActions,
   useDataGridRowCellState,
   useDataGridStoreApi,
   type DataGridProviderProps,
@@ -38,7 +38,7 @@ const key = (viewRow: number, columnId: string) => flashCellKey(cell(viewRow, co
 
 function useHarness() {
   return {
-    actions: useDataGridActions(),
+    actions: useDataGridInternalActions(),
     api: useDataGridStoreApi(),
     rowCellState: useDataGridRowCellState(0),
   };
@@ -47,7 +47,7 @@ function useHarness() {
 describe("flashCells (transient write-pulse)", () => {
   it("keys a flash by row identity, so a sort moves the pulse with its row", () => {
     const { result } = renderHook(
-      () => ({ actions: useDataGridActions(), row0: useDataGridRowCellState(0), row2: useDataGridRowCellState(2) }),
+      () => ({ actions: useDataGridInternalActions(), row0: useDataGridRowCellState(0), row2: useDataGridRowCellState(2) }),
       { wrapper: makeWrapper() },
     );
 
@@ -229,7 +229,7 @@ describe("flashCells (transient write-pulse)", () => {
     vi.useFakeTimers();
     const { result, unmount } = renderHook(
       () => ({
-        actions: useDataGridActions(),
+        actions: useDataGridInternalActions(),
         row0: useDataGridRowCellState(0),
         row1: useDataGridRowCellState(1),
       }),

@@ -8,7 +8,7 @@ import { useDataGridContainer } from "../interaction/use-data-grid-container";
 import { dispatchGridAction } from "../interaction/use-grid-interaction";
 import { useDataGridRootContext } from "../layout-context";
 import {
-  useDataGridActions,
+  useDataGridInternalActions,
   useDataGridFillHandlers,
   useDataGridKeymap,
   useDataGridReadOnly,
@@ -29,7 +29,7 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
   const containerRef = useDataGridContainer();
   const storeApi = useDataGridStoreApi();
   const keymap = useDataGridKeymap();
-  const actions = useDataGridActions();
+  const actions = useDataGridInternalActions();
   const readOnly = useDataGridReadOnly();
   const fillHandlers = useDataGridFillHandlers();
   const { rowHeight, interaction } = useDataGridRootContext();

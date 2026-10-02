@@ -29,6 +29,8 @@ import type { RowBandsSpec } from "../layout-context";
 import type {
   AnyColumnDef,
   CellErrorEntry,
+  DataGridActions,
+  DataGridStoreActions,
   DataGridStoreState,
   InternalSyncProps,
   SelectionChangeDetails,
@@ -794,4 +796,16 @@ export function makeSelectionChangeDetails(getSnapshot: () => DataGridStoreState
       return getSelectedRowIds(getSnapshot());
     },
   };
+}
+
+const publicActionsCache = new WeakMap<DataGridStoreActions, DataGridActions>();
+
+/** The store's actions without the `_`-prefixed internals; one identity per store. */
+export function publicActionsOf(actions: DataGridStoreActions): DataGridActions {
+  let view = publicActionsCache.get(actions);
+  if (!view) {
+    view = Object.fromEntries(Object.entries(actions).filter(([name]) => !name.startsWith("_"))) as DataGridActions;
+    publicActionsCache.set(actions, view);
+  }
+  return view;
 }

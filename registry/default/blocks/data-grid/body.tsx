@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
-  useDataGridActions,
+  useDataGridInternalActions,
   useDataGridActiveCell,
   useDataGridLabels,
   useDataGridRowCount,
@@ -178,7 +178,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
 
   // Drag-to-reorder rows: one shared instance for the whole body (one indicator, one gesture),
   // mirroring how DataGridHeader owns useColumnReorder for its headers.
-  const actions = useDataGridActions();
+  const actions = useDataGridInternalActions();
   const labels = useDataGridLabels();
   const rowReorderEnabled = useDataGridRowReorderEnabled();
   // the gesture lives on the marker's reorder family only — plain number/checkbox/both markers

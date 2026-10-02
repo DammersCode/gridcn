@@ -9,7 +9,7 @@ import {
   type DataGridProviderProps,
   cellErrorKey,
   createDataGridSelector,
-  useDataGridActions,
+  useDataGridInternalActions,
   useDataGridCellErrors,
   useDataGridActiveCell,
   useDataGridAllRowsSelected,
@@ -79,10 +79,10 @@ describe("DataGridProvider instance isolation", () => {
   it("actions on one provider instance do not affect another", () => {
     const wrapperA = makeWrapper();
     const wrapperB = makeWrapper();
-    const a = renderHook(() => ({ actions: useDataGridActions(), viewIndex: useDataGridViewIndex() }), {
+    const a = renderHook(() => ({ actions: useDataGridInternalActions(), viewIndex: useDataGridViewIndex() }), {
       wrapper: wrapperA,
     });
-    const b = renderHook(() => ({ actions: useDataGridActions(), viewIndex: useDataGridViewIndex() }), {
+    const b = renderHook(() => ({ actions: useDataGridInternalActions(), viewIndex: useDataGridViewIndex() }), {
       wrapper: wrapperB,
     });
 
@@ -90,7 +90,7 @@ describe("DataGridProvider instance isolation", () => {
       a.result.current.actions.selectCellAt({ col: 0, row: 0 });
     });
 
-    const selA = renderHook(() => useDataGridActions(), { wrapper: wrapperA });
+    const selA = renderHook(() => useDataGridInternalActions(), { wrapper: wrapperA });
     void selA;
 
     // Selection state lives outside these hooks under test here; assert isolation via sort instead.
@@ -109,7 +109,7 @@ describe("_syncProps recompute", () => {
   it("recomputes viewIndex when sort state changes", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), viewIndex: useDataGridViewIndex(), sortState: useDataGridSortState() }),
+      () => ({ actions: useDataGridInternalActions(), viewIndex: useDataGridViewIndex(), sortState: useDataGridSortState() }),
       { wrapper },
     );
 
@@ -170,7 +170,7 @@ describe("_syncProps recompute", () => {
     const data = rows();
     const { result, rerender } = renderHook(
       () => ({
-        actions: useDataGridActions(),
+        actions: useDataGridInternalActions(),
         viewIndex: useDataGridViewIndex(),
         visibleColumns: useDataGridVisibleColumns(),
         searchMatches: useDataGridSearchMatches(),
@@ -230,7 +230,7 @@ describe("viewIndex reference reuse", () => {
   it("re-applying an identical sort (setSorts with a new but content-equal spec) keeps the viewIndex reference", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), viewIndex: useDataGridViewIndex() }),
+      () => ({ actions: useDataGridInternalActions(), viewIndex: useDataGridViewIndex() }),
       { wrapper },
     );
 
@@ -301,7 +301,7 @@ describe("atomic hook re-render counts", () => {
       }
 
       function Harness() {
-        const actions = useDataGridActions();
+        const actions = useDataGridInternalActions();
         return (
           <>
             <Probe />
@@ -331,7 +331,7 @@ describe("atomic hook re-render counts", () => {
       }
 
       function Harness() {
-        const actions = useDataGridActions();
+        const actions = useDataGridInternalActions();
         return (
           <>
             <Probe />
@@ -351,7 +351,7 @@ describe("atomic hook re-render counts", () => {
 
     it("maps rowId to the correct post-sort view row", () => {
       const { result } = renderHook(
-        () => ({ actions: useDataGridActions(), map: useDataGridRowIdToViewRow() }),
+        () => ({ actions: useDataGridInternalActions(), map: useDataGridRowIdToViewRow() }),
         { wrapper: makeWrapper() },
       );
 
@@ -368,7 +368,7 @@ describe("atomic hook re-render counts", () => {
 
     it("a rowId filtered out of the view is absent from the map", () => {
       const { result } = renderHook(
-        () => ({ actions: useDataGridActions(), map: useDataGridRowIdToViewRow() }),
+        () => ({ actions: useDataGridInternalActions(), map: useDataGridRowIdToViewRow() }),
         { wrapper: makeWrapper() },
       );
 
@@ -392,7 +392,7 @@ describe("atomic hook re-render counts", () => {
       }
 
       function Harness() {
-        const actions = useDataGridActions();
+        const actions = useDataGridInternalActions();
         return (
           <>
             <Probe />
@@ -420,7 +420,7 @@ describe("atomic hook re-render counts", () => {
 
     it("reorderRows without a sort moves the mapped rows", () => {
       const { result } = renderHook(
-        () => ({ actions: useDataGridActions(), map: useDataGridRowIdToViewRow() }),
+        () => ({ actions: useDataGridInternalActions(), map: useDataGridRowIdToViewRow() }),
         { wrapper: makeWrapper() },
       );
       expect(result.current.map.get("1")).toBe(0);
@@ -487,7 +487,7 @@ describe("atomic hook re-render counts", () => {
       }
 
       const Base = makeWrapper();
-      const { result } = renderHook(() => useDataGridActions(), {
+      const { result } = renderHook(() => useDataGridInternalActions(), {
         wrapper: ({ children }) => (
           <Base>
             <Probe />
@@ -515,7 +515,7 @@ describe("atomic hook re-render counts", () => {
       }
 
       function Harness() {
-        const actions = useDataGridActions();
+        const actions = useDataGridInternalActions();
         return (
           <>
             <Probe />
@@ -551,7 +551,7 @@ describe("atomic hook re-render counts", () => {
     }
 
     function Harness() {
-      const actions = useDataGridActions();
+      const actions = useDataGridInternalActions();
       return (
         <>
           <button onClick={() => actions.selectRow(0)}>select-0</button>
@@ -585,7 +585,7 @@ describe("atomic hook re-render counts", () => {
 describe("useDataGridRowCellState (one subscription per row)", () => {
   it("an active-cell move only re-renders the two affected rows, never an untouched row", () => {
     const renders = [0, 0, 0];
-    let actionsRef: ReturnType<typeof useDataGridActions> | null = null;
+    let actionsRef: ReturnType<typeof useDataGridInternalActions> | null = null;
 
     function RowProbe({ index, onRender }: { index: number; onRender: () => void }) {
       onRender();
@@ -594,7 +594,7 @@ describe("useDataGridRowCellState (one subscription per row)", () => {
     }
 
     function Harness() {
-      actionsRef = useDataGridActions();
+      actionsRef = useDataGridInternalActions();
       return (
         <>
           <RowProbe index={0} onRender={() => renders[0]!++} />
@@ -629,7 +629,7 @@ describe("useDataGridRowCellState (one subscription per row)", () => {
   it("row-level selector output is referentially stable across a store update that doesn't touch this row", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), row2: useDataGridRowCellState(2) }),
+      () => ({ actions: useDataGridInternalActions(), row2: useDataGridRowCellState(2) }),
       { wrapper },
     );
     const firstState = result.current.row2;
@@ -644,7 +644,7 @@ describe("useDataGridRowCellState (one subscription per row)", () => {
   it("collapses selection to a small selectedColRanges array instead of a per-column flag", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), row0: useDataGridRowCellState(0) }),
+      () => ({ actions: useDataGridInternalActions(), row0: useDataGridRowCellState(0) }),
       { wrapper },
     );
 
@@ -661,7 +661,7 @@ describe("useDataGridRowCellState (one subscription per row)", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
       () => ({
-        actions: useDataGridActions(),
+        actions: useDataGridInternalActions(),
         row0: useDataGridRowCellState(0),
         row1: useDataGridRowCellState(1),
       }),
@@ -693,7 +693,7 @@ describe("non-writable columns (accessorFn-only) in batch writes", () => {
         </DataGridProvider>
       );
     }
-    const { result } = renderHook(() => useDataGridActions(), { wrapper: Wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper: Wrapper });
 
     expect(() =>
       act(() => {
@@ -721,7 +721,7 @@ describe("actions referential stability", () => {
   it("the actions object keeps the same identity across state changes", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), viewIndex: useDataGridViewIndex() }),
+      () => ({ actions: useDataGridInternalActions(), viewIndex: useDataGridViewIndex() }),
       { wrapper },
     );
     const firstActions = result.current.actions;
@@ -763,7 +763,7 @@ describe("hidden columns", () => {
 
   it("excludes def-level hidden columns from quick-search matches", () => {
     const { result } = renderHook(
-      () => ({ actions: useDataGridActions(), matches: useDataGridSearchMatches() }),
+      () => ({ actions: useDataGridInternalActions(), matches: useDataGridSearchMatches() }),
       { wrapper: wrapperWithHidden },
     );
 
@@ -781,7 +781,7 @@ describe("search never filters viewIndex", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
       () => ({
-        actions: useDataGridActions(),
+        actions: useDataGridInternalActions(),
         viewIndex: useDataGridViewIndex(),
         matches: useDataGridSearchMatches(),
       }),
@@ -812,7 +812,7 @@ describe("search never filters viewIndex", () => {
       );
     }
     function Probe() {
-      const actions = useDataGridActions();
+      const actions = useDataGridInternalActions();
       const viewIndex = useDataGridViewIndex();
       const matches = useDataGridSearchMatches();
       return (
@@ -844,7 +844,7 @@ describe("activeCell stays synced with the selection anchor", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
       () => ({
-        actions: useDataGridActions(),
+        actions: useDataGridInternalActions(),
         activeCell: useDataGridActiveCell(),
         selection: useDataGridSelection(),
       }),
@@ -868,7 +868,7 @@ describe("activeCell stays synced with the selection anchor", () => {
   it("extendTo's empty-selection fallback sets activeCell to the new anchor", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), activeCell: useDataGridActiveCell() }),
+      () => ({ actions: useDataGridInternalActions(), activeCell: useDataGridActiveCell() }),
       { wrapper },
     );
 
@@ -887,7 +887,7 @@ describe("toggleSort additive preserves column priority", () => {
   it("shift-click on an already-sorted column cycles direction in place instead of demoting it", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), sortState: useDataGridSortState() }),
+      () => ({ actions: useDataGridInternalActions(), sortState: useDataGridSortState() }),
       { wrapper },
     );
 
@@ -1122,7 +1122,7 @@ describe("defaultData (uncontrolled mode)", () => {
     const onDataChange = vi.fn();
     const wrapper = makeUncontrolledWrapper(onDataChange);
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), row: useDataGridRow(0) }),
+      () => ({ actions: useDataGridInternalActions(), row: useDataGridRow(0) }),
       { wrapper },
     );
 
@@ -1142,7 +1142,7 @@ describe("defaultData (uncontrolled mode)", () => {
   it("onDataChange still notifies (same payload shape as controlled) even though the grid owns the data", () => {
     const onDataChange = vi.fn();
     const wrapper = makeUncontrolledWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => {
       result.current.startEditingAt({ col: 0, row: 0 });
@@ -1159,7 +1159,7 @@ describe("defaultData (uncontrolled mode)", () => {
   it("onDataChange is optional — omitting it doesn't prevent the internal mutation", () => {
     const wrapper = makeUncontrolledWrapper(undefined);
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), row: useDataGridRow(0) }),
+      () => ({ actions: useDataGridInternalActions(), row: useDataGridRow(0) }),
       { wrapper },
     );
 
@@ -1175,7 +1175,7 @@ describe("defaultData (uncontrolled mode)", () => {
   it("deleteSelection/paste-style batch writes (applyCellUpdates) mutate the internal array too", () => {
     const wrapper = makeUncontrolledWrapper();
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), row: useDataGridRow(1) }),
+      () => ({ actions: useDataGridInternalActions(), row: useDataGridRow(1) }),
       { wrapper },
     );
 
@@ -1191,7 +1191,7 @@ describe("defaultData (uncontrolled mode)", () => {
     const seed = editRows();
     const wrapper = makeUncontrolledWrapper(undefined, seed);
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), row: useDataGridRow(0) }),
+      () => ({ actions: useDataGridInternalActions(), row: useDataGridRow(0) }),
       { wrapper },
     );
 
@@ -1239,7 +1239,7 @@ describe("defaultData (uncontrolled mode)", () => {
   it("committing edits in uncontrolled mode never fires the controlled-mode 'data array identity changed' guardrail", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const wrapper = makeUncontrolledWrapper();
-    const { result, rerender } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result, rerender } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => {
       result.current.startEditingAt({ col: 0, row: 0 });
@@ -1262,7 +1262,7 @@ describe("commitCellEdit", () => {
     const onDataChange = vi.fn();
     const wrapper = makeEditWrapper(onDataChange);
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), viewIndex: useDataGridViewIndex() }),
+      () => ({ actions: useDataGridInternalActions(), viewIndex: useDataGridViewIndex() }),
       { wrapper },
     );
 
@@ -1299,7 +1299,7 @@ describe("commitCellEdit", () => {
     const onDataChange = vi.fn();
     const original = editRows();
     const wrapper = makeEditWrapper(onDataChange, original);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => {
       result.current.startEditingAt({ col: 0, row: 0 });
@@ -1318,7 +1318,7 @@ describe("commitCellEdit", () => {
     const onDataChange = vi.fn();
     const wrapper = makeEditWrapper(onDataChange);
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), activeCell: useDataGridActiveCell(), editing: useDataGridEditing() }),
+      () => ({ actions: useDataGridInternalActions(), activeCell: useDataGridActiveCell(), editing: useDataGridEditing() }),
       { wrapper },
     );
 
@@ -1349,7 +1349,7 @@ describe("commitCellEdit", () => {
     const wrapper = makeEditWrapper(onDataChange);
     const { result, rerender } = renderHook(
       () => ({
-        actions: useDataGridActions(),
+        actions: useDataGridInternalActions(),
         editing: useDataGridEditing(),
         editingError: useDataGridEditingError(),
       }),
@@ -1378,7 +1378,7 @@ describe("commitCellEdit", () => {
   it("startEditing then commitCellEdit in the same tick commits", () => {
     const onDataChange = vi.fn();
     const wrapper = makeEditWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => {
       result.current.startEditingAt({ col: 0, row: 1 });
@@ -1395,7 +1395,7 @@ describe("commitCellEdit", () => {
     const onDataChange = vi.fn();
     const wrapper = makeEditWrapper(onDataChange);
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), activeCell: useDataGridActiveCell(), editing: useDataGridEditing() }),
+      () => ({ actions: useDataGridInternalActions(), activeCell: useDataGridActiveCell(), editing: useDataGridEditing() }),
       { wrapper },
     );
 
@@ -1416,7 +1416,7 @@ describe("commitCellEdit", () => {
     const onDataChange = vi.fn();
     const wrapper = makeEditWrapper(onDataChange);
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), editing: useDataGridEditing() }),
+      () => ({ actions: useDataGridInternalActions(), editing: useDataGridEditing() }),
       { wrapper },
     );
 
@@ -1434,7 +1434,7 @@ describe("editing anchored to its row across view rebuilds", () => {
     const onDataChange = vi.fn();
     const wrapper = makeEditWrapper(onDataChange);
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), editing: useDataGridEditing() }),
+      () => ({ actions: useDataGridInternalActions(), editing: useDataGridEditing() }),
       { wrapper },
     );
 
@@ -1482,7 +1482,7 @@ describe("editing anchored to its row across view rebuilds", () => {
 
   it("useDataGridEditing exposes the row and column identity the edit is anchored to", () => {
     const wrapper = makeEditWrapper(vi.fn());
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), editing: useDataGridEditing() }), { wrapper });
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), editing: useDataGridEditing() }), { wrapper });
 
     act(() => {
       result.current.actions.startEditingAt({ col: 1, row: 0 });
@@ -1495,7 +1495,7 @@ describe("editing anchored to its row across view rebuilds", () => {
   it("keeps the draft (initialText) and a stable editing reference when the rebuild moves nothing", () => {
     const wrapper = makeEditWrapper(vi.fn());
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), editing: useDataGridEditing() }),
+      () => ({ actions: useDataGridInternalActions(), editing: useDataGridEditing() }),
       { wrapper },
     );
 
@@ -1525,7 +1525,7 @@ describe("editing anchored to its row across view rebuilds", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
       () => ({
-        actions: useDataGridActions(),
+        actions: useDataGridInternalActions(),
         editing: useDataGridEditing(),
         activeCell: useDataGridActiveCell(),
       }),
@@ -1561,7 +1561,7 @@ describe("editing anchored to its row across view rebuilds", () => {
   it("the selection anchor follows the edit's row, so a range never paints on another record", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), selection: useDataGridSelection(), activeCell: useDataGridActiveCell() }),
+      () => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection(), activeCell: useDataGridActiveCell() }),
       { wrapper },
     );
 
@@ -1583,7 +1583,7 @@ describe("editing anchored to its row across view rebuilds", () => {
   it("the selection is cleared with the active cell when the edited row leaves the view", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), selection: useDataGridSelection() }),
+      () => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }),
       { wrapper },
     );
 
@@ -1603,7 +1603,7 @@ describe("editing anchored to its row across view rebuilds", () => {
   it("filtering out the edited row cancels the edit and drops the draft", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), editing: useDataGridEditing(), activeCell: useDataGridActiveCell() }),
+      () => ({ actions: useDataGridInternalActions(), editing: useDataGridEditing(), activeCell: useDataGridActiveCell() }),
       { wrapper },
     );
 
@@ -1626,7 +1626,7 @@ describe("editing anchored to its row across view rebuilds", () => {
     const onDataChange = vi.fn();
     const wrapper = makeEditWrapper(onDataChange);
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), editing: useDataGridEditing() }),
+      () => ({ actions: useDataGridInternalActions(), editing: useDataGridEditing() }),
       { wrapper },
     );
 
@@ -1651,7 +1651,7 @@ describe("editing anchored to its row across view rebuilds", () => {
   it("hiding the edited column cancels the edit", () => {
     const wrapper = makeEditWrapper(vi.fn());
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), editing: useDataGridEditing() }),
+      () => ({ actions: useDataGridInternalActions(), editing: useDataGridEditing() }),
       { wrapper },
     );
 
@@ -1672,7 +1672,7 @@ describe("editing anchored to its row across view rebuilds", () => {
     const onDataChange = vi.fn();
     const wrapper = makeEditWrapper(onDataChange);
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), editing: useDataGridEditing(), visibleColumns: useDataGridVisibleColumns() }),
+      () => ({ actions: useDataGridInternalActions(), editing: useDataGridEditing(), visibleColumns: useDataGridVisibleColumns() }),
       { wrapper },
     );
 
@@ -1868,7 +1868,7 @@ describe("Standard Schema validate", () => {
     const onDataChange = vi.fn();
     const schema = mockSchema<number>((v) => ({ value: Math.round(v as number) }));
     const wrapper = schemaWrapper(onDataChange, schema);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => {
       result.current.startEditingAt({ col: 0, row: 0 });
@@ -1885,7 +1885,7 @@ describe("Standard Schema validate", () => {
     const schema = mockSchema<number>(() => ({ issues: [{ message: "must be a whole number" }] }));
     const wrapper = schemaWrapper(onDataChange, schema);
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), editing: useDataGridEditing(), editingError: useDataGridEditingError() }),
+      () => ({ actions: useDataGridInternalActions(), editing: useDataGridEditing(), editingError: useDataGridEditingError() }),
       { wrapper },
     );
 
@@ -1906,7 +1906,7 @@ describe("Standard Schema validate", () => {
     const onDataChange = vi.fn();
     const wrapper = makeEditWrapper(onDataChange);
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), editing: useDataGridEditing(), editingError: useDataGridEditingError() }),
+      () => ({ actions: useDataGridInternalActions(), editing: useDataGridEditing(), editingError: useDataGridEditingError() }),
       { wrapper },
     );
 
@@ -1942,7 +1942,7 @@ describe("validateRow verdict ownership across row deletion", () => {
       validateRow: (row: Row) => (row.name === "Charlie" ? { name: "Charlie is banned" } : null),
       createRow: () => ({ id: "1", name: "Reused", age: 50 }),
     });
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), errors: useDataGridCellErrors() }), { wrapper });
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), errors: useDataGridCellErrors() }), { wrapper });
 
     act(() => {
       result.current.actions.updateCells([{ rowId: "1", columnId: "age", value: 31 }]);
@@ -1969,7 +1969,7 @@ describe("deleteSelection", () => {
     const onDataChange = vi.fn();
     const wrapper = makeEditWrapper(onDataChange);
     const { result } = renderHook(
-      () => ({ actions: useDataGridActions() }),
+      () => ({ actions: useDataGridInternalActions() }),
       { wrapper },
     );
 
@@ -2004,7 +2004,7 @@ describe("deleteSelection", () => {
     const onDataChange = vi.fn();
     const noopRows: EditRow[] = [{ id: "1", name: "", age: null as unknown as number, active: false }];
     const wrapper = makeEditWrapper(onDataChange, noopRows);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => {
       result.current.selectCellAt({ col: 0, row: 0 });
@@ -2020,7 +2020,7 @@ describe("deleteSelection", () => {
   it("is a no-op with nothing selected", () => {
     const onDataChange = vi.fn();
     const wrapper = makeEditWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => {
       result.current.deleteSelection();
@@ -2034,7 +2034,7 @@ describe("_moveActiveCell", () => {
   it("moves the active cell by delta, clamped to view bounds", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), activeCell: useDataGridActiveCell() }),
+      () => ({ actions: useDataGridInternalActions(), activeCell: useDataGridActiveCell() }),
       { wrapper },
     );
 
@@ -2062,7 +2062,7 @@ describe("_moveActiveCell", () => {
   it("extends the selection instead of replacing it when opts.extend is set", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), selection: useDataGridSelection(), activeCell: useDataGridActiveCell() }),
+      () => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection(), activeCell: useDataGridActiveCell() }),
       { wrapper },
     );
 
@@ -2094,7 +2094,7 @@ describe("_moveActiveCell", () => {
   it("retain mode moves the active cell without collapsing the existing selection", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), selection: useDataGridSelection(), activeCell: useDataGridActiveCell() }),
+      () => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection(), activeCell: useDataGridActiveCell() }),
       { wrapper },
     );
 
@@ -2117,7 +2117,7 @@ describe("_moveActiveCell", () => {
   it("retain mode from an empty selection does not create a selection", () => {
     const wrapper = makeWrapper();
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), selection: useDataGridSelection(), activeCell: useDataGridActiveCell() }),
+      () => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection(), activeCell: useDataGridActiveCell() }),
       { wrapper },
     );
 
@@ -2135,7 +2135,7 @@ describe("actions object referential stability with new editing/delete actions",
   it("keeps the same actions identity across startEditing/commitCellEdit/deleteSelection", () => {
     const onDataChange = vi.fn();
     const wrapper = makeEditWrapper(onDataChange);
-    const { result, rerender } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result, rerender } = renderHook(() => useDataGridInternalActions(), { wrapper });
     const firstActions = result.current;
 
     act(() => {
@@ -2186,7 +2186,7 @@ describe("selection config defaults and gating", () => {
 
   it("enableRowSelection: false makes selectRow a no-op", () => {
     const wrapper = makeConfigWrapper({ enableRowSelection: false });
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), selection: useDataGridSelection() }), { wrapper });
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }), { wrapper });
 
     act(() => result.current.actions.selectRow(1));
 
@@ -2195,7 +2195,7 @@ describe("selection config defaults and gating", () => {
 
   it("enableColumnSelection: false makes selectColumn a no-op", () => {
     const wrapper = makeConfigWrapper({ enableColumnSelection: false });
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), selection: useDataGridSelection() }), { wrapper });
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }), { wrapper });
 
     act(() => result.current.actions.selectColumn(1));
 
@@ -2204,7 +2204,7 @@ describe("selection config defaults and gating", () => {
 
   it("enableRangeSelection: false collapses extendTo to single-cell active only", () => {
     const wrapper = makeConfigWrapper({ enableRangeSelection: false });
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), selection: useDataGridSelection() }), { wrapper });
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }), { wrapper });
 
     act(() => {
       result.current.actions.selectCellAt({ col: 0, row: 0 });
@@ -2217,7 +2217,7 @@ describe("selection config defaults and gating", () => {
 
   it("enableRangeSelection: false makes extendSelection (shift+arrow) a no-op", () => {
     const wrapper = makeConfigWrapper({ enableRangeSelection: false });
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), selection: useDataGridSelection() }), { wrapper });
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }), { wrapper });
 
     act(() => {
       result.current.actions.selectCellAt({ col: 0, row: 0 });
@@ -2229,7 +2229,7 @@ describe("selection config defaults and gating", () => {
 
   it("enableMultiRange: false makes pushRange (ctrl-click) behave as a plain click", () => {
     const wrapper = makeConfigWrapper({ enableMultiRange: false });
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), selection: useDataGridSelection() }), { wrapper });
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }), { wrapper });
 
     act(() => {
       result.current.actions.selectCellAt({ col: 0, row: 0 });
@@ -2242,7 +2242,7 @@ describe("selection config defaults and gating", () => {
 
   it("enableMultiRange: false demotes an additive selectRow to a plain single-row toggle", () => {
     const wrapper = makeConfigWrapper({ enableMultiRange: false });
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), selection: useDataGridSelection() }), { wrapper });
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }), { wrapper });
 
     act(() => {
       result.current.actions.selectRow(0);
@@ -2257,7 +2257,7 @@ describe("selection config defaults and gating", () => {
 describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGridAllRowsSelected", () => {
   it("setRowSelected adds/removes a single row from the rows channel without touching the range channel", () => {
     const wrapper = makeConfigWrapper({ rowMarkers: "checkbox" });
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), selection: useDataGridSelection() }), { wrapper });
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }), { wrapper });
 
     act(() => {
       result.current.actions.selectCellAt({ col: 0, row: 2 }); // unrelated range/active-cell state
@@ -2273,7 +2273,7 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
 
   it("setRowSelected is additive: toggling a second row keeps the first", () => {
     const wrapper = makeConfigWrapper({ rowMarkers: "checkbox" });
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), selection: useDataGridSelection() }), { wrapper });
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }), { wrapper });
 
     act(() => {
       result.current.actions.setRowSelected(0, true);
@@ -2285,7 +2285,7 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
 
   it("setRowSelected is a no-op when enableRowSelection is false", () => {
     const wrapper = makeConfigWrapper({ rowMarkers: "checkbox", enableRowSelection: false });
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), selection: useDataGridSelection() }), { wrapper });
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }), { wrapper });
 
     act(() => result.current.actions.setRowSelected(0, true));
 
@@ -2294,7 +2294,7 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
 
   it("setAllRowsSelected(true) selects every view row; (false) clears the channel", () => {
     const wrapper = makeConfigWrapper({ rowMarkers: "checkbox" });
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), selection: useDataGridSelection() }), { wrapper });
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }), { wrapper });
 
     act(() => result.current.actions.setAllRowsSelected(true));
     expect(result.current.selection.rows.toArray()).toEqual([0, 1, 2]);
@@ -2306,7 +2306,7 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
   it("useDataGridAllRowsSelected reports checked/indeterminate/unchecked", () => {
     const wrapper = makeConfigWrapper({ rowMarkers: "checkbox" });
     const { result } = renderHook(
-      () => ({ actions: useDataGridActions(), state: useDataGridAllRowsSelected() }),
+      () => ({ actions: useDataGridInternalActions(), state: useDataGridAllRowsSelected() }),
       { wrapper },
     );
 
@@ -2327,7 +2327,7 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
     const wrapper = makeConfigWrapper({ rowMarkers: "checkbox" });
     const { result } = renderHook(
       () => ({
-        actions: useDataGridActions(),
+        actions: useDataGridInternalActions(),
         allRowsState: useDataGridAllRowsSelected(),
         row0Selected: useDataGridIsRowSelected(0),
         row1Selected: useDataGridIsRowSelected(1),
@@ -2357,10 +2357,10 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
     ];
     // re-render the SAME provider instance with narrowed data via a prop change, so the fix in
     // _syncProps (not a fresh store) is what's under test.
-    let latest: { actions: ReturnType<typeof useDataGridActions>; allRowsState: string; rows: number[] } | null = null;
+    let latest: { actions: ReturnType<typeof useDataGridInternalActions>; allRowsState: string; rows: number[] } | null = null;
     function Probe() {
       latest = {
-        actions: useDataGridActions(),
+        actions: useDataGridInternalActions(),
         allRowsState: useDataGridAllRowsSelected(),
         rows: useDataGridSelection().rows.toArray(),
       };
@@ -2393,7 +2393,7 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
   it("setRowSelected(index, false) visually unchecks a row even while it remains inside an active range", () => {
     const wrapper = makeConfigWrapper({ rowMarkers: "checkbox" });
     const { result } = renderHook(
-      () => ({ actions: useDataGridActions(), row1Selected: useDataGridIsRowSelected(1) }),
+      () => ({ actions: useDataGridInternalActions(), row1Selected: useDataGridIsRowSelected(1) }),
       { wrapper },
     );
 
@@ -2414,7 +2414,7 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
     const bigData: Row[] = Array.from({ length: 20_000 }, (_, i) => ({ id: String(i), name: `r${i}`, age: i }));
     const wrapper = makeConfigWrapper({ rowMarkers: "checkbox" }, bigData);
     const { result } = renderHook(
-      () => ({ actions: useDataGridActions(), state: useDataGridAllRowsSelected() }),
+      () => ({ actions: useDataGridInternalActions(), state: useDataGridAllRowsSelected() }),
       { wrapper },
     );
 
@@ -2458,7 +2458,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
 
   function useColumnProbe() {
     return {
-      actions: useDataGridActions(),
+      actions: useDataGridInternalActions(),
       visibleIds: useDataGridVisibleColumns().map((c) => c.id),
       flags: useDataGridColumnFeatureFlags(),
     };
@@ -2610,10 +2610,10 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
         { id: "name", header: "Name", accessorKey: "name" },
         { id: "age", header: "Age", accessorKey: "age", hidden: true },
       ];
-      let actionsRef: ReturnType<typeof useDataGridActions> | null = null;
+      let actionsRef: ReturnType<typeof useDataGridInternalActions> | null = null;
       let probed: string[] = [];
       function Probe() {
-        actionsRef = useDataGridActions();
+        actionsRef = useDataGridInternalActions();
         probed = useDataGridVisibleColumns().map((c) => c.id);
         return null;
       }
@@ -2673,7 +2673,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
     it("sets a live width override read back by resolveColumnWidth's consumers", () => {
       const wrapper = makeConfigWrapper({ columns: threeColumns });
       const { result } = renderHook(
-        () => ({ actions: useDataGridActions() }),
+        () => ({ actions: useDataGridInternalActions() }),
         { wrapper },
       );
       act(() => result.current.actions.setColumnWidth("name", 240));
@@ -2686,7 +2686,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
     it("does NOT fire onColumnLayoutChange (per-frame drag write; commitColumnWidth is the commit point)", () => {
       const onColumnLayoutChange = vi.fn();
       const wrapper = makeConfigWrapper({ columns: threeColumns, onColumnLayoutChange });
-      const { result } = renderHook(() => ({ actions: useDataGridActions() }), { wrapper });
+      const { result } = renderHook(() => ({ actions: useDataGridInternalActions() }), { wrapper });
       act(() => result.current.actions.setColumnWidth("name", 240));
       expect(onColumnLayoutChange).not.toHaveBeenCalled();
     });
@@ -2694,7 +2694,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
     it("fires onColumnResizing once per call, with the column id and width — the in-progress counterpart to onColumnLayoutChange", () => {
       const onColumnResizing = vi.fn();
       const wrapper = makeConfigWrapper({ columns: threeColumns, onColumnResizing });
-      const { result } = renderHook(() => ({ actions: useDataGridActions() }), { wrapper });
+      const { result } = renderHook(() => ({ actions: useDataGridInternalActions() }), { wrapper });
 
       act(() => result.current.actions.setColumnWidth("name", 240));
       expect(onColumnResizing).toHaveBeenCalledTimes(1);
@@ -2715,7 +2715,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
       const wrapper = makeConfigWrapper({ columns: cols, onColumnResizing });
       const { result } = renderHook(
         () => ({
-          actions: useDataGridActions(),
+          actions: useDataGridInternalActions(),
           nameWidth: useDataGridColumnWidth("name"),
           ageWidth: useDataGridColumnWidth("age"),
         }),
@@ -2741,7 +2741,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
     it("sets the width and fires onColumnLayoutChange once with the full snapshot", () => {
       const onColumnLayoutChange = vi.fn();
       const wrapper = makeConfigWrapper({ columns: threeColumns, onColumnLayoutChange });
-      const { result } = renderHook(() => ({ actions: useDataGridActions() }), { wrapper });
+      const { result } = renderHook(() => ({ actions: useDataGridInternalActions() }), { wrapper });
 
       act(() => result.current.actions.commitColumnWidth("name", 240));
 
@@ -2757,7 +2757,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
     it("does NOT fire onColumnResizing (commit point; setColumnWidth is the per-frame one)", () => {
       const onColumnResizing = vi.fn();
       const wrapper = makeConfigWrapper({ columns: threeColumns, onColumnResizing });
-      const { result } = renderHook(() => ({ actions: useDataGridActions() }), { wrapper });
+      const { result } = renderHook(() => ({ actions: useDataGridInternalActions() }), { wrapper });
 
       act(() => result.current.actions.commitColumnWidth("name", 240));
       expect(onColumnResizing).not.toHaveBeenCalled();
@@ -2771,7 +2771,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
       ];
       const onColumnLayoutChange = vi.fn();
       const wrapper = makeConfigWrapper({ columns: cols, onColumnLayoutChange });
-      const { result } = renderHook(() => ({ actions: useDataGridActions() }), { wrapper });
+      const { result } = renderHook(() => ({ actions: useDataGridInternalActions() }), { wrapper });
 
       act(() => result.current.actions.commitColumnWidth("name", 10));
 
@@ -2790,7 +2790,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
       const onColumnLayoutChange = vi.fn();
       const wrapper = makeConfigWrapper({ columns: threeColumns, onColumnLayoutChange });
       const { result } = renderHook(
-        () => ({ actions: useDataGridActions(), nameWidth: useDataGridColumnWidth("name") }),
+        () => ({ actions: useDataGridInternalActions(), nameWidth: useDataGridColumnWidth("name") }),
         { wrapper },
       );
 
@@ -2811,7 +2811,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
     it("is a no-op (no callback) when the column has no override", () => {
       const onColumnLayoutChange = vi.fn();
       const wrapper = makeConfigWrapper({ columns: threeColumns, onColumnLayoutChange });
-      const { result } = renderHook(() => ({ actions: useDataGridActions() }), { wrapper });
+      const { result } = renderHook(() => ({ actions: useDataGridInternalActions() }), { wrapper });
 
       act(() => result.current.actions.resetColumnWidth("name"));
 
@@ -2823,7 +2823,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
     it("fires once per setColumnOrder commit with the full snapshot", () => {
       const onColumnLayoutChange = vi.fn();
       const wrapper = makeConfigWrapper({ columns: threeColumns, onColumnLayoutChange });
-      const { result } = renderHook(() => ({ actions: useDataGridActions() }), { wrapper });
+      const { result } = renderHook(() => ({ actions: useDataGridInternalActions() }), { wrapper });
 
       act(() => result.current.actions.setColumnOrder("id", "name", "before"));
 
@@ -2839,7 +2839,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
     it("does not fire setColumnOrder's callback on a gated/no-op reorder", () => {
       const onColumnLayoutChange = vi.fn();
       const wrapper = makeConfigWrapper({ columns: threeColumns, enableColumnReorder: false, onColumnLayoutChange });
-      const { result } = renderHook(() => ({ actions: useDataGridActions() }), { wrapper });
+      const { result } = renderHook(() => ({ actions: useDataGridInternalActions() }), { wrapper });
 
       act(() => result.current.actions.setColumnOrder("id", "name", "before"));
 
@@ -2849,7 +2849,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
     it("fires once per setColumnPin commit with the full snapshot", () => {
       const onColumnLayoutChange = vi.fn();
       const wrapper = makeConfigWrapper({ columns: threeColumns, onColumnLayoutChange });
-      const { result } = renderHook(() => ({ actions: useDataGridActions() }), { wrapper });
+      const { result } = renderHook(() => ({ actions: useDataGridInternalActions() }), { wrapper });
 
       act(() => result.current.actions.setColumnPin("id", "left"));
 
@@ -2865,7 +2865,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
     it("fires once per setColumnHidden commit with the full snapshot", () => {
       const onColumnLayoutChange = vi.fn();
       const wrapper = makeConfigWrapper({ columns: threeColumns, onColumnLayoutChange });
-      const { result } = renderHook(() => ({ actions: useDataGridActions() }), { wrapper });
+      const { result } = renderHook(() => ({ actions: useDataGridInternalActions() }), { wrapper });
 
       act(() => result.current.actions.setColumnHidden("age", true));
 
@@ -2937,7 +2937,7 @@ describe("defaultColumnLayout", () => {
 
 describe("onSelectionChange", () => {
   function useSelectionProbe() {
-    return { actions: useDataGridActions() };
+    return { actions: useDataGridInternalActions() };
   }
 
   it("fires on selectCell with the current GridSelection", () => {
@@ -3092,7 +3092,7 @@ describe("onSelectionChange", () => {
 
 describe("onSelectionCleared", () => {
   function useSelectionProbe() {
-    return { actions: useDataGridActions() };
+    return { actions: useDataGridInternalActions() };
   }
 
   it("fires exactly once when the selection transitions from non-empty to empty", () => {
@@ -3136,7 +3136,7 @@ describe("onSelectionCleared", () => {
 
 describe("onSelectionChange details.getValues()", () => {
   function useSelectionProbe() {
-    return { actions: useDataGridActions(), getValues: useDataGridGetSelectionValues() };
+    return { actions: useDataGridInternalActions(), getValues: useDataGridGetSelectionValues() };
   }
 
   it("reads the primary range's raw cell values, view-row-major", () => {
@@ -3201,7 +3201,7 @@ describe("onSelectionChange details.getValues()", () => {
 
 describe("useDataGridGetSelectionValues", () => {
   function useSelectionProbe() {
-    return { actions: useDataGridActions(), getValues: useDataGridGetSelectionValues() };
+    return { actions: useDataGridInternalActions(), getValues: useDataGridGetSelectionValues() };
   }
 
   it("reads the current selection's values imperatively, outside any onSelectionChange fire", () => {
@@ -3225,13 +3225,13 @@ describe("useDataGridGetSelectionValues", () => {
 
 describe("controlled sortState/filterState/searchText (server escape hatch)", () => {
   function useSortProbe() {
-    return { actions: useDataGridActions(), sortState: useDataGridSortState(), viewIndex: useDataGridViewIndex() };
+    return { actions: useDataGridInternalActions(), sortState: useDataGridSortState(), viewIndex: useDataGridViewIndex() };
   }
   function useFilterProbe() {
-    return { actions: useDataGridActions(), filterState: useDataGridFilterState(), viewIndex: useDataGridViewIndex() };
+    return { actions: useDataGridInternalActions(), filterState: useDataGridFilterState(), viewIndex: useDataGridViewIndex() };
   }
   function useSearchProbe() {
-    return { actions: useDataGridActions(), searchText: useDataGridSearchText(), searchMatches: useDataGridSearchMatches() };
+    return { actions: useDataGridInternalActions(), searchText: useDataGridSearchText(), searchMatches: useDataGridSearchMatches() };
   }
 
   describe("uncontrolled (prop omitted): unchanged store-owned behavior", () => {
@@ -3451,7 +3451,7 @@ describe("controlled sortState/filterState/searchText (server escape hatch)", ()
 
   describe("joinOperator (same pattern as sort/filter)", () => {
     function useJoinProbe() {
-      return { actions: useDataGridActions(), joinOperator: useDataGridJoinOperator(), viewIndex: useDataGridViewIndex() };
+      return { actions: useDataGridInternalActions(), joinOperator: useDataGridJoinOperator(), viewIndex: useDataGridViewIndex() };
     }
 
     it("defaults to 'and'", () => {
@@ -3542,7 +3542,7 @@ describe("updateCells while an edit session is open", () => {
     const wrapper = makeUncontrolledWrapper(onDataChange);
     const { result } = renderHook(
       () => ({
-        actions: useDataGridActions(),
+        actions: useDataGridInternalActions(),
         viewIndex: useDataGridViewIndex(),
         viewStale: useDataGridViewStale(),
         editing: useDataGridEditing(),
@@ -3583,7 +3583,7 @@ describe("updateCells while an edit session is open", () => {
 describe("row-moving ops with an active view-space presence entry", () => {
   it("does not warn while the registered predicate reports no view-space entry", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper: makeWrapper() });
 
     act(() => result.current._registerPresenceViewSpaceActive(() => false));
     act(() => {
@@ -3599,7 +3599,7 @@ describe("row-moving ops with an active view-space presence entry", () => {
 
   it("warns exactly once across repeated row-moving ops, not per op", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper: makeWrapper() });
 
     act(() => result.current._registerPresenceViewSpaceActive(() => true));
     act(() => {
@@ -3619,17 +3619,17 @@ describe("row-moving ops with an active view-space presence entry", () => {
 
   it("warns when a sort, filter, or join change rebuilds the view", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const sort = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    const sort = renderHook(() => useDataGridInternalActions(), { wrapper: makeWrapper() });
     act(() => sort.result.current._registerPresenceViewSpaceActive(() => true));
     act(() => sort.result.current.toggleSort("name", false));
     expect(warn).toHaveBeenCalledTimes(1);
 
-    const filter = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    const filter = renderHook(() => useDataGridInternalActions(), { wrapper: makeWrapper() });
     act(() => filter.result.current._registerPresenceViewSpaceActive(() => true));
     act(() => filter.result.current.setFilters([{ columnId: "name", operator: "equals", value: "Alice" }]));
     expect(warn).toHaveBeenCalledTimes(2);
 
-    const join = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    const join = renderHook(() => useDataGridInternalActions(), { wrapper: makeWrapper() });
     act(() =>
       join.result.current.setFilters([
         { columnId: "name", operator: "equals", value: "Alice" },
@@ -3644,7 +3644,7 @@ describe("row-moving ops with an active view-space presence entry", () => {
 
   it("warns when setSorts rebuilds the view", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper: makeWrapper() });
     act(() => result.current._registerPresenceViewSpaceActive(() => true));
     act(() => result.current.setSorts([{ columnId: "name", direction: "asc" }]));
     expect(warn).toHaveBeenCalledTimes(1);
@@ -3653,9 +3653,9 @@ describe("row-moving ops with an active view-space presence entry", () => {
 
   it("does not warn when a consumer swap keeps every row at its position, or a lazy page fills holes", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    let actions: ReturnType<typeof useDataGridActions> | undefined;
+    let actions: ReturnType<typeof useDataGridInternalActions> | undefined;
     function Probe() {
-      actions = useDataGridActions();
+      actions = useDataGridInternalActions();
       return null;
     }
     const lazyId = (r: Row | undefined, index: number) => (r === undefined ? `hole-${index}` : r.id);
@@ -3678,7 +3678,7 @@ describe("row-moving ops with an active view-space presence entry", () => {
 
   it("does not ask the presence predicate outside development", () => {
     const predicate = vi.fn(() => true);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper: makeWrapper() });
     act(() => result.current._registerPresenceViewSpaceActive(predicate));
     vi.stubEnv("NODE_ENV", "production");
     act(() => result.current.reorderRows(0, 2));
@@ -3688,9 +3688,9 @@ describe("row-moving ops with an active view-space presence entry", () => {
 
   it("warns when a consumer data swap replaces the rows", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    let actions: ReturnType<typeof useDataGridActions> | undefined;
+    let actions: ReturnType<typeof useDataGridInternalActions> | undefined;
     function Probe() {
-      actions = useDataGridActions();
+      actions = useDataGridInternalActions();
       return null;
     }
     const ui = (data: Row[]) => (
@@ -3708,8 +3708,8 @@ describe("row-moving ops with an active view-space presence entry", () => {
 
   it("warns once per grid instance, including on deleteRows", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const first = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
-    const second = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    const first = renderHook(() => useDataGridInternalActions(), { wrapper: makeWrapper() });
+    const second = renderHook(() => useDataGridInternalActions(), { wrapper: makeWrapper() });
 
     for (const { result } of [first, second]) {
       act(() => result.current._registerPresenceViewSpaceActive(() => true));
@@ -3722,18 +3722,18 @@ describe("row-moving ops with an active view-space presence entry", () => {
 
   it("warns when a column reorder, hide, or pin moves the view columns", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const reorder = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    const reorder = renderHook(() => useDataGridInternalActions(), { wrapper: makeWrapper() });
     act(() => reorder.result.current._registerPresenceViewSpaceActive(() => true));
     act(() => reorder.result.current.setColumnOrder("age", "name", "before"));
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn.mock.calls[0]?.[0]).toContain("view-space presence");
 
-    const hide = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    const hide = renderHook(() => useDataGridInternalActions(), { wrapper: makeWrapper() });
     act(() => hide.result.current._registerPresenceViewSpaceActive(() => true));
     act(() => hide.result.current.setColumnHidden("name", true));
     expect(warn).toHaveBeenCalledTimes(2);
 
-    const pin = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    const pin = renderHook(() => useDataGridInternalActions(), { wrapper: makeWrapper() });
     act(() => pin.result.current._registerPresenceViewSpaceActive(() => true));
     act(() => pin.result.current.setColumnPin("age", "left"));
     expect(warn).toHaveBeenCalledTimes(3);
@@ -3742,7 +3742,7 @@ describe("row-moving ops with an active view-space presence entry", () => {
 
   it("does not warn when unhiding a trailing column appends it to the view columns", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper: makeWrapper() });
     act(() => result.current.setColumnHidden("age", true));
     act(() => result.current._registerPresenceViewSpaceActive(() => true));
     act(() => result.current.setColumnHidden("age", false));
@@ -3753,7 +3753,7 @@ describe("row-moving ops with an active view-space presence entry", () => {
 
   it("does not warn when a width change or a same-position reorder leaves the view columns in place", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper: makeWrapper() });
     act(() => result.current._registerPresenceViewSpaceActive(() => true));
     act(() => result.current.setColumnWidth("name", 200));
     act(() => result.current.setColumnOrder("name", "age", "before"));
@@ -3764,9 +3764,9 @@ describe("row-moving ops with an active view-space presence entry", () => {
 
   it("warns when a consumer columns swap reorders the view columns", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    let actions: ReturnType<typeof useDataGridActions> | undefined;
+    let actions: ReturnType<typeof useDataGridInternalActions> | undefined;
     function Probe() {
-      actions = useDataGridActions();
+      actions = useDataGridInternalActions();
       return null;
     }
     const columnsFirst = [
@@ -3850,7 +3850,7 @@ describe("useDataGridSelector / typed useDataGridRow", () => {
 
 describe("CellRef actions (stable identity coordinates)", () => {
   function useRefActions() {
-    return { actions: useDataGridActions(), selection: useDataGridSelection(), activeCell: useDataGridActiveCell(), editing: useDataGridEditing() };
+    return { actions: useDataGridInternalActions(), selection: useDataGridSelection(), activeCell: useDataGridActiveCell(), editing: useDataGridEditing() };
   }
 
   it("selectCell resolves the ref against the current (sorted) view", () => {

@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import type { DensityMode, GetCellClassName, GetRowClassName, Keymap, OnCellClick, OnRowClick } from "./types";
 import { DEFAULT_KEYMAP, validateKeymap, validateSharedBindings } from "./keyboard";
 import {
-  useDataGridActions,
+  useDataGridInternalActions,
   useDataGridActiveColumn,
   useDataGridFillHandlers,
   useDataGridHasActiveCell,
@@ -282,7 +282,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
 
   // Registers this mount's scroll-into-view on the store so add-ons outside this subtree (e.g.
   // data-grid-toolbar's search, a DataGridRoot sibling) can reach it; cleared on unmount.
-  const actions = useDataGridActions();
+  const actions = useDataGridInternalActions();
   useEffect(() => {
     actions._registerScrollToCell(interaction.scrollCellIntoView);
     return () => actions._registerScrollToCell(null);

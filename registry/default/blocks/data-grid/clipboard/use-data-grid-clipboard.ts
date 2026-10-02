@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from "react";
 import { serializeCells } from "./serialize-cells";
-import { useDataGridActions, useDataGridStoreApi } from "../store";
+import { useDataGridInternalActions, useDataGridStoreApi } from "../store";
 import { useBulkGeneration } from "../validation/bulk-generation";
 import { copyScopeCellIds, pasteText, resolveCopyScope, serializeCopyScope } from "./use-grid-clipboard";
 
@@ -88,7 +88,7 @@ function execCommandCopyFallback(text: string): boolean {
  */
 export function useDataGridClipboard(options: UseDataGridClipboardOptions = {}): UseDataGridClipboardResult {
   const { sanitizeFormulas } = options;
-  const actions = useDataGridActions();
+  const actions = useDataGridInternalActions();
   const storeApi = useDataGridStoreApi();
   const guard = useBulkGeneration();
 

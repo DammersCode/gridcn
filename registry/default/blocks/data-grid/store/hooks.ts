@@ -19,13 +19,18 @@ import type { DataGridLabels } from "../labels";
 import type { SearchMatch } from "../sort-filter";
 import { isSelectionEmpty, selectionContainsCell } from "../selection";
 import { colRangesEqual, selectedColRangesForRow, type ColRange } from "../selection/selected-col-ranges-for-row";
-import { cellErrorKey, flashCellKey, getRangeValues, holeRowId, rowIdAtViewRow, searchMatchKey } from "./compute";
+import { cellErrorKey, flashCellKey, getRangeValues, holeRowId, publicActionsOf, rowIdAtViewRow, searchMatchKey } from "./compute";
 import { resolveRefOrWarn } from "./data-write";
 import { useDataGridStore, useDataGridStoreApi } from "./provider";
-import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridRowCellState, DataGridStoreState } from "./types";
+import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridRowCellState, DataGridStoreActions, DataGridStoreState } from "./types";
 
 /** The stable actions object for the current grid; never changes identity, so this hook never re-renders. */
 export function useDataGridActions(): DataGridActions {
+  return publicActionsOf(useDataGridStore((s) => s.actions));
+}
+
+/** @internal {@link useDataGridActions} plus the `_`-prefixed actions the core wiring calls. */
+export function useDataGridInternalActions(): DataGridStoreActions {
   return useDataGridStore((s) => s.actions);
 }
 

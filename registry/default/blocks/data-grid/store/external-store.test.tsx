@@ -10,6 +10,7 @@ import {
   useDataGridStoreProps,
   type DataGridStoreState,
 } from "../store";
+import { publicActionsOf } from "./compute";
 
 type Row = { id: string; name: string; age: number };
 
@@ -37,7 +38,7 @@ describe("useDataGridStoreProps (external store ownership)", () => {
     rerender();
     expect(result.current.store).toBe(first.store);
     expect(result.current.actions).toBe(first.actions);
-    expect(result.current.actions).toBe(first.store.getState().actions);
+    expect(result.current.actions).toBe(publicActionsOf(first.store.getState().actions));
   });
 
   it("keeps the store in sync with live props passed to the hook", () => {

@@ -603,7 +603,7 @@ export type DataGridStoreState = Omit<
   commands: Record<string, GridCommand<unknown>> | null;
   /** {@link DEFAULT_LABELS} deep-merged with the `labels` sync prop; see {@link useDataGridLabels}. */
   labels: DataGridLabels;
-  actions: DataGridActions;
+  actions: DataGridStoreActions;
 };
 
 /** `DataGridStoreState` with `data` typed as `readonly TData[]` — the state view {@link useDataGridSelector} hands its selector. Every row in `data` originated from the grid's own `TData`-typed `data`/`defaultData` prop, so the widening is safe. */
@@ -733,12 +733,6 @@ export type DataGridActions = {
   /** Clears every non-readOnly cell in the current selection to its type's clearValue(), as one batch DataChange. */
   deleteSelection(): void;
   /**
-   * @internal Clears every `rowIds` x `columnIds` cell still in view, as one `delete` batch. Cut
-   * captures the ids at copy time, so a view change during the clipboard write never shifts the
-   * cleared cells. Not part of the public hook surface.
-   */
-  _deleteCellsById(rowIds: readonly string[], columnIds: readonly string[]): void;
-  /**
    * The one generic multi-cell write path: applies `updates` (view-space coords via `viewRow`) as
    * a single `source`-tagged DataChange batch. Dedupes multiple updates to the same row/column
    * (last write wins), skips readOnly cells and no-op writes, preserves identity of untouched rows,
@@ -796,6 +790,16 @@ export type DataGridActions = {
    * no-op — the drag gesture uses the verdict for its a11y announcement.
    */
   reorderRows(from: number, to: number): boolean;
+};
+
+/** @internal The `_`-prefixed store actions that the core and add-on wiring call; `useDataGridActions` never returns them. */
+export type DataGridInternalActions = {
+  /**
+   * @internal Clears every `rowIds` x `columnIds` cell still in view, as one `delete` batch. Cut
+   * captures the ids at copy time, so a view change during the clipboard write never shifts the
+   * cleared cells. Not part of the public hook surface.
+   */
+  _deleteCellsById(rowIds: readonly string[], columnIds: readonly string[]): void;
   /** @internal keyboard nav helper: moves/extends the active cell by a view-space delta, clamped to view bounds. */
   _moveActiveCell(d: { dx: number; dy: number }, opts?: { extend?: boolean; retain?: boolean }): void;
   /** @internal syncs live consumer props and recomputes derived state; not part of the public hook surface. */
@@ -827,6 +831,9 @@ export type DataGridActions = {
    */
   _pruneFlashingCells(keptViewRows: readonly number[]): void;
 };
+
+/** @internal The full `actions` object the store holds: {@link DataGridActions} plus {@link DataGridInternalActions}. */
+export type DataGridStoreActions = DataGridActions & DataGridInternalActions;
 
 /** Full store shape: interaction state + the stable actions object. */
 export type DataGridStore = DataGridStoreState;

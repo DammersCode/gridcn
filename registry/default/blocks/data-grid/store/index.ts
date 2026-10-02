@@ -18,6 +18,8 @@ export type {
   DataGridStoreState,
   DataGridStoreStateOf,
   DataGridActions,
+  DataGridInternalActions,
+  DataGridStoreActions,
   DataGridStore,
   DataGridProviderProps,
   DataGridCellState,
@@ -28,6 +30,7 @@ export { cellErrorKey } from "./compute";
 export { getFocusCell } from "./hooks";
 export {
   useDataGridActions,
+  useDataGridInternalActions,
   useDataGridCellTypes,
   useDataGridScrollToCell,
   useDataGridScrollToCellAt,

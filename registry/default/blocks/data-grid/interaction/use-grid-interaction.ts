@@ -17,9 +17,9 @@ import type { Keymap } from "../types";
 import { getCellValue } from "../columns/column-helpers";
 import {
   getFocusCell,
-  useDataGridActions,
+  useDataGridInternalActions,
   useDataGridStoreApi,
-  type DataGridActions,
+  type DataGridStoreActions,
   type DataGridStoreState,
 } from "../store";
 import {
@@ -36,7 +36,7 @@ import { gridAttrSelector } from "../data-attributes";
 import { getSelectedViewRows, isSelectionEmpty } from "../selection";
 import { warnDev } from "../store/commit";
 import { buildApiHandle } from "../store/api";
-import { holeRowId } from "../store/compute";
+import { holeRowId, publicActionsOf } from "../store/compute";
 
 /** Action names already dev-warned as bound-but-unwired (dev-only, process-wide). */
 const warnedUnwiredActions = new Set<string>();
@@ -219,7 +219,7 @@ function scrollCellIntoView(scrollElement: HTMLElement, coord: ViewCoord, layout
  */
 export function dispatchGridAction(args: {
   action: GridAction;
-  actions: DataGridActions;
+  actions: DataGridStoreActions;
   storeApi: StoreApi<DataGridStoreState>;
   scrollRef: RefObject<HTMLElement | null>;
   scrollCellIntoView: (coord: ViewCoord) => void;
@@ -241,7 +241,7 @@ export function dispatchGridAction(args: {
   // A command name shadowing a built-in action wins; callers check the command's scope.
   const command = state.commands?.[action];
   if (command) {
-    const api = buildApiHandle<unknown>({ actions, storeApi, containerRef: scrollRef });
+    const api = buildApiHandle<unknown>({ actions: publicActionsOf(actions), storeApi, containerRef: scrollRef });
     const coord = state.activeCell;
     const dataRowIndex = coord === null ? undefined : state.viewIndex[coord.row];
     const row = dataRowIndex === undefined ? undefined : state.data[dataRowIndex];
@@ -515,7 +515,7 @@ function hasActivateCell(state: DataGridStoreState, coord: ViewCoord): boolean {
 }
 
 /** Runs the cell type's `activate` in place via the direct-write commit path (no edit session, no move). No-op for a readOnly column, an unresolvable row, or a type without `activate`. */
-function activateCell(state: DataGridStoreState, actions: ReturnType<typeof useDataGridActions>, coord: ViewCoord): void {
+function activateCell(state: DataGridStoreState, actions: DataGridStoreActions, coord: ViewCoord): void {
   const column = state.visibleColumns[coord.col];
   const cellType = cellTypeAt(state, coord);
   if (!column || !cellType?.activate) return;
@@ -691,7 +691,7 @@ export type GridInteractionHandlers = {
  */
 export function useGridInteraction(options: UseGridInteractionOptions): GridInteractionHandlers {
   const { scrollRef, layout, keymap, readOnly, fillDown, fillRight, cancelFillDrag } = options;
-  const actions = useDataGridActions();
+  const actions = useDataGridInternalActions();
   const storeApi = useDataGridStoreApi();
   const isMacRef = useRef(false);
   isMacRef.current = isMacPlatform();

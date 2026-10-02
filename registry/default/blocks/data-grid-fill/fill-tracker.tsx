@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, type ReactNode } from "react";
-import { useDataGridActions, useDataGridReadOnly } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridRootContext, type InteractionLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { useDataGridReadOnly } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridRootContext, useDataGridStoreApi, type InteractionLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useFillHandle, type UseFillHandleOptions } from "./use-fill-handle";
 import type { FillStoreApi } from "./fill-store";
 
@@ -50,7 +50,7 @@ export type FillHandleTrackerProps = Pick<UseFillHandleOptions, "disabled" | "on
 export function FillHandleTracker(props: FillHandleTrackerProps): ReactNode {
   const layout = useInteractionLayoutFromContext();
   const { scrollRef } = useDataGridRootContext();
-  const actions = useDataGridActions();
+  const storeApi = useDataGridStoreApi();
   // the grid's own readOnly disables fill too: core's write actions no-op there, so the handle,
   // the drag, and the mod+D/mod+R shortcuts would all be dead UI without this.
   const gridReadOnly = useDataGridReadOnly();
@@ -58,9 +58,10 @@ export function FillHandleTracker(props: FillHandleTrackerProps): ReactNode {
   const handlers = useFillHandle({ ...props, disabled, scrollRef, layout });
 
   useEffect(() => {
+    const actions = storeApi.getState().actions;
     actions._registerFillHandlers({ fillDown: handlers.fillDown, fillRight: handlers.fillRight, cancelFillDrag: handlers.cancelFillDrag });
     return () => actions._registerFillHandlers(null);
-  }, [actions, handlers]);
+  }, [storeApi, handlers]);
 
   // The plugin (created above DataGridProvider, see use-data-grid-fill.ts) reads this back out of
   // the SAME fillStore to wire onto its rendered handle square — the only way the two ends meet.

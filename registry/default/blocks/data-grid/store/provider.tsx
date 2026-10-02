@@ -7,7 +7,7 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import type { OverlayPlugin } from "../overlays";
 import type { RowBandsSpec } from "../layout-context";
 import { checkDevGuardrails, checkDuplicateColumnIds, checkUnresolvableColumnTypes } from "./commit";
-import { holeRowId, makeSelectionChangeDetails, rowIdAtViewRow } from "./compute";
+import { holeRowId, makeSelectionChangeDetails, publicActionsOf, rowIdAtViewRow } from "./compute";
 import { createDataGridStore } from "./create-store";
 import { toInternalSyncProps } from "./types";
 import type { AnyColumnDef, DataGridActions, DataGridProviderProps, DataGridStoreState, DataGridStoreStateOf, DataGridSyncProps } from "./types";
@@ -322,7 +322,7 @@ function useGridStoreCore<TData>(
     onCellContextMenu,
   ]);
 
-  return { store, actions: store.getState().actions };
+  return { store, actions: publicActionsOf(store.getState().actions) };
 }
 
 /**
