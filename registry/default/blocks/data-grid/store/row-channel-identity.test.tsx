@@ -194,3 +194,27 @@ describe("row channel remap cost", () => {
     expect(api!.getState().selection).toBe(selection);
   });
 });
+
+describe("row channel over unloaded rows", () => {
+  it("keeps select-all checks on unloaded rows when a page loads them", () => {
+    let api: StoreApi<DataGridStoreState> | null = null;
+    function Probe() {
+      api = useDataGridStoreApi();
+      return null;
+    }
+    const getRowId = (row: Row | undefined, index: number) => (row === undefined ? `__lazy-unloaded-${index}` : row.id);
+    const grid = (data: readonly (Row | undefined)[]) => (
+      <DataGridProvider data={data as readonly Row[]} columns={columns} getRowId={getRowId as (row: Row, index: number) => string}>
+        <Probe />
+      </DataGridProvider>
+    );
+    const loaded = rows();
+    const sparse: (Row | undefined)[] = [loaded[0], loaded[1], undefined, undefined, undefined];
+    const view = render(grid(sparse));
+    act(() => api!.getState().actions.setAllRowsSelected(true));
+
+    view.rerender(grid(loaded));
+
+    expect(api!.getState().selection.rows.toArray()).toEqual([0, 1, 2, 3, 4]);
+  });
+});

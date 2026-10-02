@@ -30,7 +30,6 @@ import {
   defHiddenColumnIds,
   flashCellKey,
   flashKeyRowId,
-  holeRowId,
   isColumnReadOnly,
   memoizedMergeLabels,
   mergeCellErrors,
@@ -184,8 +183,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       ? undefined
       : (prevDataRow: number) => {
           const row = s.data[prevDataRow];
-          const rowId = row === undefined ? holeRowId(prevDataRow) : s.getRowId(row, prevDataRow);
-          return rowIndexCache.resolve(data, getRowId).get(rowId);
+          // An unloaded row has no record yet; a page load fills the same index.
+          if (row === undefined) return prevDataRow < data.length ? prevDataRow : undefined;
+          return rowIndexCache.resolve(data, getRowId).get(s.getRowId(row, prevDataRow));
         };
     const rows = remapRowChannel(base.rows, s.viewIndex, viewIndex, toNextDataRow);
     const selection = rows === base.rows ? base : { ...base, rows };
