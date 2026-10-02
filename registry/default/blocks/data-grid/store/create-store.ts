@@ -748,11 +748,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           // Controlled data mirrors the prop; uncontrolled keeps the store's array, and `defaultData` is init-only.
           const nextData = s.dataControlled && props.data !== undefined ? props.data : s.data;
           // Our own onDataChange array fed back is an echo; skipping its view rebuild saves ~56 ms at 100k sorted rows.
-          const isEcho = nextData === dataWrite.lastEmittedData;
+          // A foreign sync in between replaced s.data, so a late-adopted emitted array is foreign too.
+          const isEcho = nextData === dataWrite.lastEmittedData && nextData === s.data;
+          const foreignData = nextData !== s.data;
           // A foreign array may move or drop rows, so prune errors and rebuild the id map; our own echo keeps both.
-          const nextCellErrors =
-            nextData !== s.data && !isEcho ? pruneCellErrors(s.cellErrors, nextData, s.getRowId) : s.cellErrors;
-          if (nextData !== s.data && !isEcho) {
+          const nextCellErrors = foreignData ? pruneCellErrors(s.cellErrors, nextData, s.getRowId) : s.cellErrors;
+          if (foreignData) {
             rowIndexCache.invalidate();
             forgetDeferredRows(dataWrite);
             pruneRowValidationKeys(nextData, s.getRowId);
@@ -791,7 +792,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const nextViewIndex = unchanged
             ? s.viewIndex
             : computeViewIndex(nextData, nextColumns, nextSortState, nextFilterState, nextJoinOperator, s.viewIndex, nextCellTypes);
-          if (nextViewIndex !== s.viewIndex || (nextData !== s.data && !isEcho) || nextVisibleColumns !== s.visibleColumns) {
+          if (nextViewIndex !== s.viewIndex || foreignData || nextVisibleColumns !== s.visibleColumns) {
             warnViewSpacePresenceStale(
               s,
               () => viewRowsMoved(s, nextViewIndex, nextData, props.getRowId) || visibleColumnsMoved(s.visibleColumns, nextVisibleColumns),
@@ -801,7 +802,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           if (!unchanged) resetDeferredRows(dataWrite);
           const followed = unchanged
             ? {}
-            : followView(s, nextViewIndex, nextVisibleColumns, nextData, props.getRowId, nextData === s.data || isEcho);
+            : followView(s, nextViewIndex, nextVisibleColumns, nextData, props.getRowId, !foreignData);
           return {
             ...props,
             ...resolveSelectionConfig(props),
@@ -827,7 +828,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             // A real recompute reconciles a deferred updateCells; an echo or unchanged sync keeps the flag.
             viewStale: unchanged ? s.viewStale : false,
             // Rows move only on a foreign data replacement, never on our own echo.
-            rowIdentityVersion: nextData !== s.data && !isEcho ? s.rowIdentityVersion + 1 : s.rowIdentityVersion,
+            rowIdentityVersion: foreignData ? s.rowIdentityVersion + 1 : s.rowIdentityVersion,
             ...followed,
             ...(unchanged
               ? { searchMatches: s.searchMatches, searchMatchSet: s.searchMatchSet, searchMatchRows: s.searchMatchRows, searchMatchesCapped: s.searchMatchesCapped }

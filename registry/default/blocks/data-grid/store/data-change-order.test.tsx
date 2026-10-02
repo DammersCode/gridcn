@@ -107,3 +107,40 @@ describe.each<Mode>(["controlled", "uncontrolled"])("a write inside onDataChange
     expect(byId(data, "b").note).toBe("answered");
   });
 });
+
+describe("echo detection after a foreign sync", () => {
+  it("applies an emitted array that the consumer adopts after syncing a refetched one", () => {
+    let api: StoreApi<DataGridStoreState> | null = null;
+    let emitted: readonly Row[] | null = null;
+    function Probe() {
+      api = useDataGridStoreApi();
+      return null;
+    }
+    const grid = (data: readonly Row[]) => (
+      <DataGridProvider
+        data={data}
+        columns={columns}
+        getRowId={getRowId}
+        createRow={() => ({ id: "new", name: "New", note: "" })}
+        onDataChange={(next) => {
+          emitted = next;
+        }}
+      >
+        <Probe />
+      </DataGridProvider>
+    );
+    const view = render(grid(initialRows));
+    act(() => api!.getState().actions.insertRows(1, 1, "below"));
+    const refetched: readonly Row[] = [{ id: "b", name: "Bravo (refetched)", note: "" }];
+
+    view.rerender(grid(refetched));
+    const versionAfterRefetch = api!.getState().rowIdentityVersion;
+    view.rerender(grid(emitted!));
+
+    const s = api!.getState();
+    expect(s.viewIndex.map((dataRow) => getRowId(s.data[dataRow] as Row))).toEqual(["a", "b", "new"]);
+    expect(s.rowIdentityVersion).toBeGreaterThan(versionAfterRefetch);
+    act(() => api!.getState().actions.updateCells([{ rowId: "new", columnId: "note", value: "found" }]));
+    expect(byId(api!.getState().data, "new").note).toBe("found");
+  });
+});

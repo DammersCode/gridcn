@@ -653,6 +653,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **A late-adopted `onDataChange` array applies in full (`data-grid`):** when a controlled
+  consumer passes a refetched `data` array and then adopts an array the grid emitted earlier, the
+  grid rebuilds its view from that array. Before, the grid took the array for its own echo, kept
+  the refetched view, and rows disappeared.
 - **A read-only grid rejects edit commits (`data-grid`):** `commitCellEdit`, `commitCellValue`,
   and `commitCellValueAt` do nothing in a `readOnly` grid. When `readOnly` turns on, the grid
   cancels an open edit session (`onEditEnd` reports `cancel`). Before, Enter in an editor that was
