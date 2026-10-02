@@ -211,15 +211,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx shadcn@latest registry validate DammersCode/gridcn#${{ github.sha }}
 
-  # The ruleset requires the check context `ci`, which is this job id; it fails on any non-success, including skipped.
+  # The ruleset requires the check context `ci` (this job id); it always runs, so the jobs a fork PR skips fail it.
   ci:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [checks, unit, browser, unit-compiled, browser-compiled, build]
-    if: >-
-      always() &&
-      (github.event_name != 'pull_request' ||
-      contains('["DammersCode"]', github.event.pull_request.user.login))
+    if: always()
     steps:
       - name: Fail unless every required job succeeded
         if: |
