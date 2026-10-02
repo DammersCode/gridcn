@@ -238,7 +238,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     commitCellEdit(value, movement, rejection) {
       const s = get();
       const editing = s.editing;
-      if (!editing) return;
+      if (!editing || s.readOnly) return;
       // Resolve by rowId, so a view rebuild the remap missed discards the draft instead of writing another row.
       const dataRowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId).get(editing.rowId);
       const anchorStale =
@@ -307,6 +307,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     commitCellValueAt(coord, value) {
       const s = get();
+      if (s.readOnly) return;
       const result = computeCommit(s, coord, value);
       if ("error" in result) return;
       if ("noop" in result) {

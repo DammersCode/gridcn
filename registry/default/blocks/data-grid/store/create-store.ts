@@ -845,6 +845,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         set({ scrollToCellImpl: impl });
       },
       _registerReadOnly(readOnly) {
+        if (readOnly && get().editing) get().actions.cancelEditing();
         set({ readOnly });
       },
       _registerKeymap(keymap) {

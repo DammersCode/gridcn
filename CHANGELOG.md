@@ -649,6 +649,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **A read-only grid rejects edit commits (`data-grid`):** `commitCellEdit`, `commitCellValue`,
+  and `commitCellValueAt` do nothing in a `readOnly` grid. When `readOnly` turns on, the grid
+  cancels an open edit session (`onEditEnd` reports `cancel`). Before, Enter in an editor that was
+  open when `readOnly` turned on wrote the value, and `actions.commitCellValue` wrote in a
+  read-only grid.
 - **Undo and redo stay off in a read-only grid (`data-grid`):** in a `readOnly` grid, the undo
   and redo shortcuts no longer call `onUndo`/`onRedo`, in the grid and through
   `DataGridGlobalShortcuts`. Before, Ctrl+Z wrote the history entry back into the data.

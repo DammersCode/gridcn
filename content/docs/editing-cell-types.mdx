@@ -110,7 +110,8 @@ Per-column, static or row-dependent:
 
 <Callout title="Grid-wide read-only wins">
   `<DataGridProvider readOnly>` disables editing and delete everywhere, independent of any
-  per-column `readOnly`.
+  per-column `readOnly`. When `readOnly` turns on during an edit, the grid cancels the edit and
+  discards the draft.
 </Callout>
 
 ## Validation

@@ -697,10 +697,11 @@ export type DataGridActions = {
    * Validates and commits the in-progress edit; rejects (keeps editing, sets editingError) or emits
    * one DataChange and moves activeCell by `movement`. `rejection` is the async validation layer's
    * awaited schema rejection for an `onInvalid: "warn"` column: the commit's sync re-run cannot see
-   * a schema Promise's issues, so the layer forwards the message to flag the cell.
+   * a schema Promise's issues, so the layer forwards the message to flag the cell. No-op in a
+   * read-only grid.
    */
   commitCellEdit(value: unknown, movement?: { dx: number; dy: number }, rejection?: string): void;
-  /** Direct-write path for types with no edit mode (checkbox): validates and commits `value` at the cell named by the stable {@link CellRef} without requiring `startEditing` first, and never moves the active cell. */
+  /** Direct-write path for types with no edit mode (checkbox): validates and commits `value` at the cell named by the stable {@link CellRef} without requiring `startEditing` first, and never moves the active cell. No-op in a read-only grid. */
   commitCellValue(ref: CellRef, value: unknown): void;
   /** View-space variant of {@link DataGridActions.commitCellValue} for callers that hold a {@link ViewCoord}. */
   commitCellValueAt(coord: ViewCoord, value: unknown): void;
@@ -807,7 +808,7 @@ export type DataGridActions = {
   _subscribeEditEnd(): () => void;
   /** @internal `DataGridRoot` registers/clears its scroll-into-view on mount/unmount; not part of the public hook surface. */
   _registerScrollToCell(impl: ((coord: ViewCoord) => void) | null): void;
-  /** @internal `DataGridRoot` syncs its `readOnly` prop into the store on every render/unmount; not part of the public hook surface. */
+  /** @internal `DataGridRoot` syncs its `readOnly` prop into the store on every render/unmount; turning it on cancels an open edit session. */
   _registerReadOnly(readOnly: boolean): void;
   /** @internal `DataGridRoot` syncs its effective (merged) keymap into the store on every render/unmount; not part of the public hook surface. */
   _registerKeymap(keymap: Keymap): void;
