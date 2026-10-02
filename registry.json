@@ -237,6 +237,11 @@
                "target": "components/data-grid/interaction/use-grid-interaction.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/interaction/closest-grid-root.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/interaction/closest-grid-root.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/interaction/use-seed-focus.ts",
                "type": "registry:component",
                "target": "components/data-grid/interaction/use-seed-focus.ts"

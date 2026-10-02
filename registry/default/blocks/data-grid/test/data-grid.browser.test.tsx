@@ -1,6 +1,7 @@
 import { page, userEvent } from "vitest/browser";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
+import { useEffect, useRef } from "react";
 import type { ColumnDef, DataChange, Keymap } from "../types";
 import {
   defineColumns,
@@ -1800,6 +1801,121 @@ describe("DataGrid in a real browser", () => {
       }
       expect(onDataChange).not.toHaveBeenCalled();
       expect(gridCells()[0]!.textContent).toBe("row-0");
+    });
+
+    it("leaves a paste from an input in a cell's shadow root to that input", async () => {
+      const onDataChange = mockDataChangeFn<Row>();
+      function ShadowInput() {
+        const hostRef = useRef<HTMLDivElement>(null);
+        useEffect(() => {
+          const host = hostRef.current;
+          if (!host || host.shadowRoot) return;
+          host.attachShadow({ mode: "open" }).append(document.createElement("input"));
+        }, []);
+        return <div ref={hostRef} data-testid="shadow-host" />;
+      }
+      const shadowColumns = defineColumns<Row>()([
+        { id: "id", header: "ID", accessorKey: "id", type: "text" },
+        { id: "name", header: "Name", accessorKey: "name", type: "text", renderCell: () => <ShadowInput /> },
+      ]);
+      await render(
+        <div style={{ height: 600 }}>
+          <DataGrid data={makeRows(5)} columns={shadowColumns} getRowId={(r) => r.id} className="h-[600px]" onDataChange={onDataChange} />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      await userEvent.click(gridCells()[0]!);
+      await expect.poll(() => document.querySelector('[data-testid="shadow-host"]')?.shadowRoot?.querySelector("input")).toBeTruthy();
+      const input = document.querySelector('[data-testid="shadow-host"]')!.shadowRoot!.querySelector("input")!;
+
+      const dataTransfer = new DataTransfer();
+      dataTransfer.setData("text/plain", "Pasted");
+      const event = new ClipboardEvent("paste", { bubbles: true, cancelable: true, composed: true, clipboardData: dataTransfer });
+      input.dispatchEvent(event);
+      await new Promise((r) => setTimeout(r, 0));
+
+      expect(event.defaultPrevented).toBe(false);
+      expect(onDataChange).not.toHaveBeenCalled();
+    });
+
+    describe("a grid nested in a cell", () => {
+      const innerRows = makeRows(1);
+      const outerRows = makeRows(2);
+      const innerColumns = defineColumns<Row>()([{ id: "name", header: "Inner", accessorKey: "name", type: "text" }]);
+
+      async function renderNested(onOuterChange = mockDataChangeFn<Row>(), onInnerChange = mockDataChangeFn<Row>()) {
+        const apis = { outer: null as DataGridApi<Row> | null, inner: null as DataGridApi<Row> | null };
+        const outerColumns = defineColumns<Row>()([
+          { id: "name", header: "Name", accessorKey: "name", type: "text" },
+          {
+            id: "email",
+            header: "Nested",
+            accessorKey: "email",
+            type: "text",
+            width: 300,
+            renderCell: ({ rowId }) =>
+              rowId !== "row-0" ? null : (
+                <DataGrid
+                  ref={(api) => {
+                    apis.inner = api;
+                  }}
+                  data={innerRows}
+                  columns={innerColumns}
+                  getRowId={(r) => r.id}
+                  className="h-[120px]"
+                  onDataChange={onInnerChange}
+                />
+              ),
+          },
+        ]);
+        await render(
+          <div style={{ height: 600 }}>
+            <DataGrid
+              ref={(api) => {
+                apis.outer = api;
+              }}
+              data={outerRows}
+              columns={outerColumns}
+              getRowId={(r) => r.id}
+              className="h-[600px]"
+              onDataChange={onOuterChange}
+            />
+          </div>,
+        );
+        await expect.poll(() => apis.inner !== null && apis.outer !== null).toBe(true);
+        return apis;
+      }
+
+      it("writes a paste inside the nested grid into the nested grid only", async () => {
+        const onOuterChange = mockDataChangeFn<Row>();
+        const onInnerChange = mockDataChangeFn<Row>();
+        const apis = await renderNested(onOuterChange, onInnerChange);
+        apis.outer!.setSelection({ rowId: "row-0", columnId: "email" });
+        apis.inner!.setSelection({ rowId: "row-0", columnId: "name" });
+        await expect.poll(() => document.querySelectorAll("[data-active]").length).toBe(2);
+        const innerRoot = document.querySelectorAll<HTMLElement>('[role="grid"]')[1]!;
+        const innerActive = innerRoot.querySelector<HTMLElement>("[data-active]")!;
+
+        const dataTransfer = new DataTransfer();
+        dataTransfer.setData("text/plain", "Pasted");
+        innerActive.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: dataTransfer }));
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(onInnerChange).toHaveBeenCalledTimes(1);
+        expect(onOuterChange).not.toHaveBeenCalled();
+      });
+
+      it("focus() lands on the host grid's active cell, not on the nested grid's", async () => {
+        const apis = await renderNested();
+        apis.inner!.setSelection({ rowId: "row-0", columnId: "name" });
+        apis.outer!.setSelection({ rowId: "row-1", columnId: "name" });
+        await expect.poll(() => document.querySelectorAll("[data-active]").length).toBe(2);
+        (document.activeElement as HTMLElement | null)?.blur();
+
+        apis.outer!.focus();
+
+        await expect.poll(() => (document.activeElement as HTMLElement | null)?.textContent).toBe("Person 1");
+      });
     });
 
     it("copy scope for a selected row copies the full row width", async () => {

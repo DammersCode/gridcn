@@ -45,7 +45,8 @@ import { usePinShadowEdges } from "./windowing/use-pin-shadow-edges";
 import { GRID_LAYER } from "./layers";
 import { DataGridLoadingSkeleton, DataGridLoadingBar } from "./rows/loading-skeleton";
 import { isDev } from "./is-dev";
-import { GRID_ATTR } from "./data-attributes";
+import { GRID_ATTR, gridAttrSelector } from "./data-attributes";
+import { closestGridRoot } from "./interaction/closest-grid-root";
 
 /** Default sticky header track height (px); density/rowHeight only affect data rows, never the header. */
 const HEADER_HEIGHT = 36;
@@ -294,7 +295,9 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   useEffect(() => {
     actions._registerFocus(() => {
       const root = scrollRef.current;
-      if (root) (root.querySelector<HTMLElement>("[data-active]") ?? root).focus();
+      if (!root) return;
+      const active = Array.from(root.querySelectorAll<HTMLElement>(gridAttrSelector("active"))).find((el) => closestGridRoot(el) === root);
+      (active ?? root).focus();
     });
     return () => actions._registerFocus(null);
   }, [actions]);

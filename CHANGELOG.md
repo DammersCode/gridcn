@@ -729,8 +729,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   selected cells.
 - **Clipboard events from an editable element inside the grid stay there (`data-grid`):** the
   grid ignores `copy`, `cut`, and `paste` events from an input or a `contenteditable` in a custom
-  cell. Before, the grid copied its selection instead, a cut cleared the selected cells, and a
-  paste wrote into the grid.
+  cell, also inside a shadow root. Before, the grid copied its selection instead, a cut cleared
+  the selected cells, and a paste wrote into the grid.
+- **A grid nested in a cell owns its own clipboard and focus (`data-grid`):** a `copy`, `cut`, or
+  `paste` inside a nested grid reaches only the nested grid, and the host's `api.focus()` never
+  lands on the nested grid's active cell. Before, one paste wrote into both grids.
 - **Registry items declare every dependency they import:** `data-grid-url-state` depends on
   `data-grid-pagination`. `data-grid` and `data-grid-context-menu` declare `@base-ui/react`,
   `data-grid-context-menu` declares `zustand`, and `data-grid-io` declares `lucide-react`.
