@@ -111,6 +111,9 @@ export function writeThenEmit(
   }
 }
 
+/** Rejected rows up to this count resolve their view row with one `indexOf` each instead of one full pass. */
+const STREAM_REJECTION_SCAN_LIMIT = 16;
+
 /** Queues `emit` behind the pending `onDataChange` emits; runs the queue at once when no store write is in progress. */
 function emitAfterWrites(ctx: DataWriteContext, emit: () => void): void {
   ctx.pendingEmits.push(emit);
@@ -289,8 +292,20 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     const onValidationError = s.onValidationError;
     if (rejected.length === 0 || !onValidationError || s.readOnly) return;
     const rowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId);
+    const dataRows = new Set<number>();
+    for (const { patchIndex } of rejected) {
+      const dataRowIndex = rowIndex.get(patches[patchIndex]!.rowId);
+      if (dataRowIndex !== undefined) dataRows.add(dataRowIndex);
+    }
     const viewRowOf = new Map<number, number>();
-    s.viewIndex.forEach((dataRowIndex, viewRowIndex) => viewRowOf.set(dataRowIndex, viewRowIndex));
+    // A few rows scan the view once each; many rows share one pass over it.
+    if (dataRows.size <= STREAM_REJECTION_SCAN_LIMIT) {
+      for (const dataRowIndex of dataRows) viewRowOf.set(dataRowIndex, s.viewIndex.indexOf(dataRowIndex));
+    } else {
+      s.viewIndex.forEach((dataRowIndex, viewRowIndex) => {
+        if (dataRows.has(dataRowIndex)) viewRowOf.set(dataRowIndex, viewRowIndex);
+      });
+    }
     const event: GridValidationErrorEvent = {
       source: "stream",
       rejected: rejected.map(({ patchIndex, message }) => {

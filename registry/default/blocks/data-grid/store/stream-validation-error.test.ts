@@ -101,6 +101,20 @@ describe("onValidationError for updateCells", () => {
     expect(onValidationError).toHaveBeenCalledTimes(1);
   });
 
+  it("fires nothing for an async batch that a newer updateCells supersedes", async () => {
+    const { store, onValidationError } = makeStore(asyncNonNegative);
+
+    store.getState().actions.updateCells([{ rowId: "a", columnId: "price", value: -1 }]);
+    store.getState().actions.updateCells([{ rowId: "b", columnId: "price", value: -2 }]);
+    await settle();
+
+    expect(onValidationError).toHaveBeenCalledTimes(1);
+    expect(onValidationError).toHaveBeenCalledWith({
+      source: "stream",
+      rejected: [{ rowId: "b", columnId: "price", viewRowIndex: 1, value: -2, message: "must be >= 0" }],
+    });
+  });
+
   it("drops the async rejections of a batch that a read-only grid never applies", async () => {
     const { store, onValidationError } = makeStore(asyncNonNegative);
 
@@ -109,5 +123,34 @@ describe("onValidationError for updateCells", () => {
     await settle();
 
     expect(onValidationError).not.toHaveBeenCalled();
+  });
+});
+
+describe("onValidationError cost on a streaming tick", () => {
+  // Shared CI runners are several times slower; the ceiling guards the order of magnitude.
+  const CI_FACTOR = process.env["CI"] ? 3 : 1;
+
+  it("resolves view rows only for the rejected cells (100k sorted rows)", () => {
+    const data = Array.from({ length: 100_000 }, (_, i) => ({ id: `r${i}`, name: `n${i}`, price: i }));
+    const store = createDataGridStore({
+      data,
+      columns: [
+        { id: "name", header: "Name", accessorKey: "name" },
+        { id: "price", header: "Price", accessorKey: "price", type: "number", validate: nonNegative },
+      ],
+      getRowId: (row) => (row as Row).id,
+      sortState: [{ columnId: "name", direction: "desc" }],
+      onValidationError: () => {},
+    } as InternalSyncProps);
+    const ticks = 100;
+    const start = performance.now();
+    for (let tick = 0; tick < ticks; tick++) {
+      store.getState().actions.updateCells([
+        { rowId: `r${tick}`, columnId: "price", value: -1 },
+        { rowId: `r${tick + 1}`, columnId: "price", value: tick },
+      ]);
+    }
+    const perTick = (performance.now() - start) / ticks;
+    expect(perTick).toBeLessThan(2 * CI_FACTOR);
   });
 });
