@@ -677,6 +677,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Ctrl+A is linear in the row count (`data-grid`):** the first press finds the data region by
+  growing each edge to its limit, so a 100k-row grid with an empty neighbour column selects at
+  once. Before, the growth rescanned that column for every added row.
 - **Export with `maxRows` builds only the capped rows (`data-grid-io`):** `exportGrid`,
   `buildXlsx`, and `buildExportRows` (new optional `maxRows` argument) run the cell accessors
   for at most `maxRows` rows. Before, they built every row, then cut the result.

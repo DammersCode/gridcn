@@ -34,26 +34,30 @@ export function computeDataRegion(active: ViewCoord, rowCount: number, colCount:
     return false;
   };
 
-  // grow each edge outward while the next row/column just past it still has data; a pass with no
-  // growth on any edge means the rect is stable (Excel's flood-fill-by-line, not per-cell).
-  let grew = true;
-  while (grew) {
-    grew = false;
-    if (top > 0 && rowHasData(top - 1, left, right)) {
-      top--;
-      grew = true;
+  const growRows = (): boolean => {
+    const before = bottom - top;
+    while (top > 0 && rowHasData(top - 1, left, right)) top--;
+    while (bottom < rowCount - 1 && rowHasData(bottom + 1, left, right)) bottom++;
+    return bottom - top > before;
+  };
+  const growColumns = (): boolean => {
+    const before = right - left;
+    while (left > 0 && colHasData(left - 1, top, bottom)) left--;
+    while (right < colCount - 1 && colHasData(right + 1, top, bottom)) right++;
+    return right - left > before;
+  };
+
+  // Each axis grows to its limit; the other axis is re-checked only after this one grew.
+  let rowsDirty = true;
+  let columnsDirty = true;
+  while (rowsDirty || columnsDirty) {
+    if (rowsDirty) {
+      rowsDirty = false;
+      if (growRows()) columnsDirty = true;
     }
-    if (bottom < rowCount - 1 && rowHasData(bottom + 1, left, right)) {
-      bottom++;
-      grew = true;
-    }
-    if (left > 0 && colHasData(left - 1, top, bottom)) {
-      left--;
-      grew = true;
-    }
-    if (right < colCount - 1 && colHasData(right + 1, top, bottom)) {
-      right++;
-      grew = true;
+    if (columnsDirty) {
+      columnsDirty = false;
+      if (growColumns()) rowsDirty = true;
     }
   }
 

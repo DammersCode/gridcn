@@ -522,6 +522,22 @@ describe("computeDataRegion", () => {
   });
 });
 
+describe("computeDataRegion at scale", () => {
+  const ROWS = 100_000;
+  const budgetMs = process.env["CI"] ? 400 : 200;
+
+  it("grows through 100k rows next to an empty column within the budget", () => {
+    const isEmptyAt: IsEmptyAt = (c) => c.col !== 0;
+
+    const start = performance.now();
+    const region = computeDataRegion({ col: 0, row: ROWS / 2 }, ROWS, 3, isEmptyAt);
+    const ms = performance.now() - start;
+
+    expect(region).toEqual({ x: 0, y: 0, width: 1, height: ROWS });
+    expect(ms).toBeLessThan(budgetMs);
+  });
+});
+
 describe("selectAllProgression", () => {
   it("dense data: stage 1 already selects the whole grid, keeping the anchor", () => {
     const sel = selectCell({ col: 4, row: 4 });
