@@ -38,8 +38,9 @@ export type GridValidationErrorEvent = { source: "paste" | "fill"; rejected: Gri
   - No event for the stale-anchor identity discard in `commitCellEdit`: an internal race where a
     newer session supersedes the old one; the newer session owns the lifecycle. `commitCellValue`
     (checkbox) fires no edit events at all — it has no session.
-- `onEditEnd` fires LAST, after the state write it reports: a commit delivers `onDataChange`,
-  then `onActiveCellChange` (cursor move), then `onEditEnd({ result: "commit" })`.
+- `onEditEnd` fires LAST, after the state write it reports: a commit delivers
+  `onActiveCellChange` (cursor move) and `onSelectionChange` during the store write, then
+  `onDataChange` once the write returns, then `onEditEnd({ result: "commit" })`.
 - `onActiveCellChange` uses value equality (row+col), not object identity: re-selecting the same
   cell through a path that allocates a new coord object does not fire. Fires with `null` when the
   active cell is cleared.

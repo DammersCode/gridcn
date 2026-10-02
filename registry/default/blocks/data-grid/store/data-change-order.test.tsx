@@ -21,19 +21,32 @@ const getRowId = (row: Row) => row.id;
 
 type Mode = "controlled" | "uncontrolled";
 
-/** Mounts a grid whose `onDataChange` answers the first change with one `updateCells` write. */
-function mount(mode: Mode) {
+type Answer = "onDataChange" | "onActiveCellChange";
+
+/** Mounts a grid whose `onDataChange` (or `onActiveCellChange`) answers the first change with one `updateCells` write. */
+function mount(mode: Mode, answerFrom: Answer = "onDataChange") {
   let api: StoreApi<DataGridStoreState> | null = null;
   let consumerData: readonly Row[] = initialRows;
   let answered = false;
+  let armed = answerFrom === "onDataChange";
   function Probe() {
     api = useDataGridStoreApi();
     return null;
   }
-  const answer = (change: DataChange<Row>) => {
-    if (answered || change.source === "stream") return;
+  const write = () => {
     answered = true;
     api!.getState().actions.updateCells([{ rowId: "b", columnId: "note", value: "answered" }]);
+  };
+  const answer = (change: DataChange<Row>) => {
+    if (answerFrom !== "onDataChange" || answered || change.source === "stream") return;
+    write();
+  };
+  const onActiveCellChange = () => {
+    if (answerFrom === "onActiveCellChange" && armed && !answered) write();
+  };
+  const rowOps = {
+    createRow: () => ({ id: "new", name: "New", note: "" }),
+    duplicateRow: (row: Row) => ({ ...row, id: `${row.id}2` }),
   };
   function Controlled() {
     const [data, setData] = useState(initialRows);
@@ -43,7 +56,8 @@ function mount(mode: Mode) {
         data={data}
         columns={columns}
         getRowId={getRowId}
-        createRow={() => ({ id: "new", name: "New", note: "" })}
+        {...rowOps}
+        onActiveCellChange={onActiveCellChange}
         onDataChange={(next, change) => {
           setData(next);
           answer(change);
@@ -59,7 +73,8 @@ function mount(mode: Mode) {
         defaultData={initialRows}
         columns={columns}
         getRowId={getRowId}
-        createRow={() => ({ id: "new", name: "New", note: "" })}
+        {...rowOps}
+        onActiveCellChange={onActiveCellChange}
         onDataChange={(_next, change) => answer(change)}
       >
         <Probe />
@@ -67,7 +82,13 @@ function mount(mode: Mode) {
     );
   }
   render(mode === "controlled" ? <Controlled /> : <Uncontrolled />);
-  return { store: () => api!, consumerData: () => consumerData };
+  return {
+    store: () => api!,
+    consumerData: () => consumerData,
+    arm: () => {
+      armed = true;
+    },
+  };
 }
 
 function byId(data: readonly unknown[], id: string): Row {
@@ -142,5 +163,116 @@ describe("echo detection after a foreign sync", () => {
     expect(s.rowIdentityVersion).toBeGreaterThan(versionAfterRefetch);
     act(() => api!.getState().actions.updateCells([{ rowId: "new", columnId: "note", value: "found" }]));
     expect(byId(api!.getState().data, "new").note).toBe("found");
+  });
+});
+
+type Site = { site: string; run: (store: StoreApi<DataGridStoreState>) => void; check: (data: readonly unknown[]) => void };
+
+const sortByName = (store: StoreApi<DataGridStoreState>) => store.getState().actions.setSorts([{ columnId: "name", direction: "asc" }]);
+const ids = (data: readonly unknown[]) => (data as readonly Row[]).map((row) => row.id);
+
+const sites: Site[] = [
+  {
+    site: "deleteSelection",
+    run: (store) => {
+      store.getState().actions.selectCellAt({ row: 0, col: 0 });
+      store.getState().actions.deleteSelection();
+    },
+    check: (data) => expect(byId(data, "a").name).toBe(""),
+  },
+  {
+    site: "commitCellEdit",
+    run: (store) => {
+      store.getState().actions.startEditingAt({ row: 0, col: 0 });
+      store.getState().actions.commitCellEdit("Changed");
+    },
+    check: (data) => expect(byId(data, "a").name).toBe("Changed"),
+  },
+  {
+    site: "commitCellValueAt",
+    run: (store) => store.getState().actions.commitCellValueAt({ row: 0, col: 0 }, "Changed"),
+    check: (data) => expect(byId(data, "a").name).toBe("Changed"),
+  },
+  {
+    site: "applyCellUpdates",
+    run: (store) => store.getState().actions.applyCellUpdates([{ viewRowIndex: 0, columnId: "name", value: "Changed" }], "paste"),
+    check: (data) => expect(byId(data, "a").name).toBe("Changed"),
+  },
+  {
+    site: "updateCells (deferred)",
+    run: (store) => store.getState().actions.updateCells([{ rowId: "a", columnId: "name", value: "Changed" }], { source: "app" }),
+    check: (data) => expect(byId(data, "a").name).toBe("Changed"),
+  },
+  {
+    site: "updateCells (immediate)",
+    run: (store) => {
+      sortByName(store);
+      store.getState().actions.updateCells([{ rowId: "a", columnId: "name", value: "Zulu" }], { source: "app", reorder: "immediate" });
+    },
+    check: (data) => expect(byId(data, "a").name).toBe("Zulu"),
+  },
+  {
+    site: "insertRows",
+    run: (store) => store.getState().actions.insertRows(0, 1, "below"),
+    check: (data) => expect(ids(data)).toEqual(["a", "new", "b"]),
+  },
+  {
+    site: "insertRows (sorted)",
+    run: (store) => {
+      sortByName(store);
+      store.getState().actions.insertRows(0, 1, "below");
+    },
+    check: (data) => expect(ids(data)).toEqual(["a", "new", "b"]),
+  },
+  {
+    site: "deleteRows",
+    run: (store) => store.getState().actions.deleteRows([0]),
+    check: (data) => expect(ids(data)).toEqual(["b"]),
+  },
+  {
+    site: "duplicateRows",
+    run: (store) => store.getState().actions.duplicateRows([0]),
+    check: (data) => expect(ids(data)).toEqual(["a", "a2", "b"]),
+  },
+  {
+    site: "duplicateRows (sorted)",
+    run: (store) => {
+      sortByName(store);
+      store.getState().actions.duplicateRows([0]);
+    },
+    check: (data) => expect(ids(data)).toEqual(["a", "a2", "b"]),
+  },
+  {
+    site: "reorderRows",
+    run: (store) => store.getState().actions.reorderRows(0, 1),
+    check: (data) => expect(ids(data)).toEqual(["b", "a"]),
+  },
+];
+
+describe.each<Mode>(["controlled", "uncontrolled"])("a write inside onDataChange at every emit site (%s)", (mode) => {
+  it.each(sites)("$site keeps both writes", ({ run, check }) => {
+    const { store, consumerData } = mount(mode);
+
+    act(() => run(store()));
+
+    const data = store().getState().data;
+    check(data);
+    expect(byId(data, "b").note).toBe("answered");
+    if (mode === "controlled") expect(consumerData()).toBe(data);
+  });
+});
+
+describe("a write from a store subscriber during a commit", () => {
+  it.each<Mode>(["controlled", "uncontrolled"])("keeps both the commit and an onActiveCellChange write (%s)", (mode) => {
+    const { store, consumerData, arm } = mount(mode, "onActiveCellChange");
+    act(() => store().getState().actions.startEditingAt({ row: 0, col: 0 }));
+    arm();
+
+    act(() => store().getState().actions.commitCellEdit("Changed", { dx: 0, dy: 1 }));
+
+    const data = store().getState().data;
+    expect(byId(data, "a").name).toBe("Changed");
+    expect(byId(data, "b").note).toBe("answered");
+    if (mode === "controlled") expect(consumerData()).toBe(data);
   });
 });

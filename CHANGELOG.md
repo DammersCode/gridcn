@@ -338,8 +338,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   same rule.
 - **Breaking:** `onDataChange` fires after the grid stores the new data (`data-grid`). A write
   action called inside the handler, such as `updateCells`, starts from that data, and the grid
-  keeps both changes. Before, the outer write overwrote the inner one. A commit's events arrive in
-  the order `onActiveCellChange`, `onDataChange`, `onEditEnd`; before, `onDataChange` came first.
+  keeps both changes. A write that an `onActiveCellChange` or `onSelectionChange` handler makes
+  during a write emits after it, in gesture order. Before, the outer write overwrote the inner
+  one. A commit's events arrive in the order `onActiveCellChange` and `onSelectionChange`, then
+  `onDataChange`, then `onEditEnd`; before, `onDataChange` came first.
 - **Breaking:** keymap ties resolve per binding (`data-grid`). When two actions bind the same
   combo with the same number of modifiers, a `keymap` binding that is not one of the action's
   default bindings wins; a tie between default bindings keeps the earlier action (Enter: `edit`

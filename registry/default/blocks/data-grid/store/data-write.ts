@@ -32,7 +32,7 @@ import {
   selectCell as selectCellPure,
   selectionRects,
 } from "../selection";
-import type { CellRef, DataOp, ViewCoord } from "../types";
+import type { CellRef, DataChange, DataOp, ViewCoord } from "../types";
 import type { AnyColumnDef, CellPatch, DataGridStoreActions, DataGridStoreState, UpdateCellsVerdict } from "./types";
 
 /**
@@ -68,10 +68,14 @@ export type DataWriteContext = {
   lastEmittedData: readonly unknown[] | null;
   /** Dev-warns at most once per grid that a {@link CellRef} failed to resolve (stale row or hidden column). */
   warnedStaleCellRef: boolean;
+  /** `onDataChange` calls waiting for the outermost write to return; see {@link writeThenEmit}. */
+  pendingEmits: (() => void)[];
+  /** How many {@link writeThenEmit} writes are running, nested through store subscribers. */
+  writeDepth: number;
 };
 
 export function createDataWriteContext(rowIndexCache: RowIndexCache): DataWriteContext {
-  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false };
+  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, pendingEmits: [], writeDepth: 0 };
 }
 
 /** {@link resolveCellRef} plus the once-per-grid dev-warn for a ref that no longer resolves. */
@@ -82,6 +86,29 @@ export function resolveRefOrWarn(ctx: DataWriteContext, s: DataGridStoreState, r
     warnDev(`CellRef { rowId: ${ref.rowId}, columnId: ${ref.columnId} } does not resolve in the current view (row no longer in data, or column hidden); the action is a no-op`);
   }
   return coord;
+}
+
+/**
+ * Runs `write` and queues its `onDataChange`. The queue flushes FIFO once the outermost write
+ * returns, so a write that a store subscriber makes during `write` emits after it, in gesture order.
+ */
+export function writeThenEmit(
+  ctx: DataWriteContext,
+  s: DataGridStoreState,
+  next: readonly unknown[],
+  change: DataChange<unknown>,
+  write: () => void,
+): void {
+  const onDataChange = s.onDataChange;
+  if (onDataChange) ctx.pendingEmits.push(() => onDataChange(next, change));
+  ctx.writeDepth += 1;
+  try {
+    write();
+  } finally {
+    ctx.writeDepth -= 1;
+  }
+  if (ctx.writeDepth > 0) return;
+  for (let emit = ctx.pendingEmits.shift(); emit; emit = ctx.pendingEmits.shift()) emit();
 }
 
 /** Any path that writes values or moves rows outside a held batch: give up tracking and drop the token. */
@@ -244,12 +271,13 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     ctx.rowIndexCache.rebase(batch.nextData);
     forgetDeferredRows(ctx);
     ctx.lastEmittedData = batch.nextData;
-    set({
-      data: batch.nextData,
-      cellErrors: applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops),
-      ...reconcileAfterWrite(s, batch.nextData, batch.ops),
-    });
-    s.onDataChange?.(batch.nextData, { source: "delete", ops: batch.ops });
+    writeThenEmit(ctx, s, batch.nextData, { source: "delete", ops: batch.ops }, () =>
+      set({
+        data: batch.nextData,
+        cellErrors: applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops),
+        ...reconcileAfterWrite(s, batch.nextData, batch.ops),
+      }),
+    );
   };
 
   return {
@@ -305,18 +333,19 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       forgetDeferredRows(ctx);
       ctx.lastEmittedData = result.data;
       const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, result.change.ops), result.data, result.change.ops);
-      endEditSession(editing, () =>
-        set({
-          data: result.data,
-          editing: null,
-          editingError: null,
-          // warn rejections commit AND flag — merged after the auto-clear + validateRow verdict so the freshest signal wins
-          cellErrors: result.warnings ? mergeCellErrors(cellErrors, result.warnings) : cellErrors,
-          ...restoreSelection,
-          ...reconcileAfterWrite(s, result.data, result.change.ops),
-        }),
+      writeThenEmit(ctx, s, result.data, result.change, () =>
+        endEditSession(editing, () =>
+          set({
+            data: result.data,
+            editing: null,
+            editingError: null,
+            // warn rejections commit AND flag — merged after the auto-clear + validateRow verdict so the freshest signal wins
+            cellErrors: result.warnings ? mergeCellErrors(cellErrors, result.warnings) : cellErrors,
+            ...restoreSelection,
+            ...reconcileAfterWrite(s, result.data, result.change.ops),
+          }),
+        ),
       );
-      s.onDataChange?.(result.data, result.change);
       s.onEditEnd?.({ rowId: editing.rowId, columnId: editing.columnId, viewRowIndex: editing.coord.row, viewColumnIndex: editing.coord.col, result: "commit" });
     },
     commitCellValue(ref, value) {
@@ -336,12 +365,13 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       forgetDeferredRows(ctx);
       ctx.lastEmittedData = result.data;
       const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, result.change.ops), result.data, result.change.ops);
-      set({
-        data: result.data,
-        cellErrors: result.warnings ? mergeCellErrors(cellErrors, result.warnings) : cellErrors,
-        ...reconcileAfterWrite(s, result.data, result.change.ops),
-      });
-      s.onDataChange?.(result.data, result.change);
+      writeThenEmit(ctx, s, result.data, result.change, () =>
+        set({
+          data: result.data,
+          cellErrors: result.warnings ? mergeCellErrors(cellErrors, result.warnings) : cellErrors,
+          ...reconcileAfterWrite(s, result.data, result.change.ops),
+        }),
+      );
     },
     deleteSelection() {
       const s = get();
@@ -409,19 +439,21 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         maxCol = Math.max(maxCol, col);
       }
       if (minRow === Infinity) {
-        set({ data: batch.nextData, cellErrors, ...reconcileAfterWrite(s, batch.nextData, batch.ops) });
-        s.onDataChange?.(batch.nextData, { source, ops: batch.ops });
+        writeThenEmit(ctx, s, batch.nextData, { source, ops: batch.ops }, () =>
+          set({ data: batch.nextData, cellErrors, ...reconcileAfterWrite(s, batch.nextData, batch.ops) }),
+        );
         return;
       }
       const range = rectFromCorners({ col: minCol, row: minRow }, { col: maxCol, row: maxRow });
-      set({
-        data: batch.nextData,
-        cellErrors,
-        selection: { ...emptySelection(), current: { cell: { col: minCol, row: minRow }, range, rangeStack: [] } },
-        activeCell: { col: minCol, row: minRow },
-        ...reconcileAfterWrite(s, batch.nextData, batch.ops),
-      });
-      s.onDataChange?.(batch.nextData, { source, ops: batch.ops });
+      writeThenEmit(ctx, s, batch.nextData, { source, ops: batch.ops }, () =>
+        set({
+          data: batch.nextData,
+          cellErrors,
+          selection: { ...emptySelection(), current: { cell: { col: minCol, row: minRow }, range, rangeStack: [] } },
+          activeCell: { col: minCol, row: minRow },
+          ...reconcileAfterWrite(s, batch.nextData, batch.ops),
+        }),
+      );
     },
     updateCells(patches, options) {
       const s = get();
@@ -455,43 +487,46 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
 
       const rowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId);
       const batch = computeCellPatchBatch(s, patches, rowIndex, skipValidation);
-      if (batch.nextData === null) return { applied: 0, skipped: batch.skipped, pending: false };
+      const nextData = batch.nextData;
+      if (nextData === null) return { applied: 0, skipped: batch.skipped, pending: false };
       const applied = batch.ops.reduce((n, op) => (op.type === "update" ? n + (op.cells?.length ?? 0) : n), 0);
 
       let reorder = resolveReorder(options?.reorder, patches, s.sortState, s.filterState);
       // an open editor pins a view coordinate an immediate re-sort would silently remount, so the batch defers
       if (reorder === "immediate" && s.editing) reorder = "defer";
-      ctx.rowIndexCache.rebase(batch.nextData);
-      ctx.lastEmittedData = batch.nextData;
+      ctx.rowIndexCache.rebase(nextData);
+      ctx.lastEmittedData = nextData;
       const change = { source: options?.source ?? "stream", ops: batch.ops };
       // With no cell errors, clearErrorsForOps returns the same map, so the streaming hot path pays nothing.
-      const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops);
+      const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), nextData, batch.ops);
 
       // Fast path: one set() writing `data` alone, so only touched rows re-render and view-derived state keeps its identity.
       if (reorder !== "immediate") {
         // Recorded for `"never"` too, so a later reconcile stays correct when the caller's assertion was wrong.
         rememberDeferredRows(ctx, batch.touchedRows);
-        set(
-          reorder === "defer" && !s.viewStale
-            ? { data: batch.nextData, viewStale: true, cellErrors }
-            : { data: batch.nextData, cellErrors },
+        writeThenEmit(ctx, s, nextData, change, () =>
+          set(
+            reorder === "defer" && !s.viewStale
+              ? { data: nextData, viewStale: true, cellErrors }
+              : { data: nextData, cellErrors },
+          ),
         );
-        s.onDataChange?.(batch.nextData, change);
         return { applied, skipped: batch.skipped, pending: false };
       }
       warnViewSpacePresenceStale(s);
       // Re-place only touched and earlier deferred rows; the binary search trusts the rest of the order.
-      const viewIndex = resolveViewIndex(s, batch.nextData, pendingRows(ctx, batch.touchedRows));
+      const viewIndex = resolveViewIndex(s, nextData, pendingRows(ctx, batch.touchedRows));
       resetDeferredRows(ctx);
-      set({
-        data: batch.nextData,
-        cellErrors,
-        viewIndex,
-        viewStale: false,
-        ...followView(s, viewIndex, s.visibleColumns, batch.nextData, s.getRowId, true),
-        ...computeSearchMatches(batch.nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
-      });
-      s.onDataChange?.(batch.nextData, change);
+      writeThenEmit(ctx, s, nextData, change, () =>
+        set({
+          data: nextData,
+          cellErrors,
+          viewIndex,
+          viewStale: false,
+          ...followView(s, viewIndex, s.visibleColumns, nextData, s.getRowId, true),
+          ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
+        }),
+      );
       return { applied, skipped: batch.skipped, pending: false };
     },
     updateRows(updates, options) {
@@ -551,24 +586,26 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const view = rebuildRowOpView(s, batch.nextData);
       if (s.sortState.length > 0 || s.filterState.length > 0) {
         pruneRowValidationKeys(batch.nextData, s.getRowId);
-        set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view });
-        s.onDataChange?.(batch.nextData, { source: "row-op", ops: batch.ops });
+        writeThenEmit(ctx, s, batch.nextData, { source: "row-op", ops: batch.ops }, () =>
+          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view }),
+        );
         return;
       }
       // unsorted and unfiltered, the new rows land at this view index; shift selection/activeCell to follow them.
       const viewInsertAt = position === "above" ? viewRowIndex : viewRowIndex + 1;
       pruneRowValidationKeys(batch.nextData, s.getRowId);
-      set({
-        data: batch.nextData,
-        rowIdentityVersion: s.rowIdentityVersion + 1,
-        cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
-        selection: offsetSelectionForRows(s.selection, viewInsertAt, count),
-        activeCell: s.activeCell && s.activeCell.row >= viewInsertAt
-          ? { ...s.activeCell, row: s.activeCell.row + count }
-          : s.activeCell,
-        ...view,
-      });
-      s.onDataChange?.(batch.nextData, { source: "row-op", ops: batch.ops });
+      writeThenEmit(ctx, s, batch.nextData, { source: "row-op", ops: batch.ops }, () =>
+        set({
+          data: batch.nextData,
+          rowIdentityVersion: s.rowIdentityVersion + 1,
+          cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
+          selection: offsetSelectionForRows(s.selection, viewInsertAt, count),
+          activeCell: s.activeCell && s.activeCell.row >= viewInsertAt
+            ? { ...s.activeCell, row: s.activeCell.row + count }
+            : s.activeCell,
+          ...view,
+        }),
+      );
     },
     deleteRows(viewRowIndexes) {
       const s = get();
@@ -586,15 +623,16 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       forgetDeferredRows(ctx);
       ctx.lastEmittedData = batch.nextData;
       pruneRowValidationKeys(batch.nextData, s.getRowId);
-      set({
-        data: batch.nextData,
-        rowIdentityVersion: s.rowIdentityVersion + 1,
-        cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
-        selection: emptySelection(),
-        activeCell: null,
-        ...rebuildRowOpView(s, batch.nextData),
-      });
-      s.onDataChange?.(batch.nextData, { source: "row-op", ops: batch.ops });
+      writeThenEmit(ctx, s, batch.nextData, { source: "row-op", ops: batch.ops }, () =>
+        set({
+          data: batch.nextData,
+          rowIdentityVersion: s.rowIdentityVersion + 1,
+          cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
+          selection: emptySelection(),
+          activeCell: null,
+          ...rebuildRowOpView(s, batch.nextData),
+        }),
+      );
     },
     duplicateRows(viewRowIndexes) {
       const s = get();
@@ -618,8 +656,9 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const view = rebuildRowOpView(s, batch.nextData);
       if (s.sortState.length > 0 || s.filterState.length > 0) {
         pruneRowValidationKeys(batch.nextData, s.getRowId);
-        set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view });
-        s.onDataChange?.(batch.nextData, { source: "row-op", ops: batch.ops });
+        writeThenEmit(ctx, s, batch.nextData, { source: "row-op", ops: batch.ops }, () =>
+          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view }),
+        );
         return;
       }
       // Each duplicate lands after its source; ascending offsets let earlier insertions shift later sources.
@@ -632,15 +671,16 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         if (activeCell && activeCell.row >= insertAt) activeCell = { ...activeCell, row: activeCell.row + 1 };
       });
       pruneRowValidationKeys(batch.nextData, s.getRowId);
-      set({
-        data: batch.nextData,
-        rowIdentityVersion: s.rowIdentityVersion + 1,
-        cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
-        selection,
-        activeCell,
-        ...view,
-      });
-      s.onDataChange?.(batch.nextData, { source: "row-op", ops: batch.ops });
+      writeThenEmit(ctx, s, batch.nextData, { source: "row-op", ops: batch.ops }, () =>
+        set({
+          data: batch.nextData,
+          rowIdentityVersion: s.rowIdentityVersion + 1,
+          cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
+          selection,
+          activeCell,
+          ...view,
+        }),
+      );
     },
     reorderRows(from, to) {
       const s = get();
@@ -675,14 +715,15 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       forgetDeferredRows(ctx);
       ctx.lastEmittedData = nextData;
       const f = rowReorderMap(from, to);
-      set({
-        data: nextData,
-        rowIdentityVersion: s.rowIdentityVersion + 1,
-        selection: reorderSelectionForRow(s.selection, from, to),
-        activeCell: s.activeCell ? { ...s.activeCell, row: f(s.activeCell.row) } : null,
-        lastHighlightedRow: s.lastHighlightedRow === null ? null : f(s.lastHighlightedRow),
-      });
-      s.onDataChange?.(nextData, { source: "row-op", ops });
+      writeThenEmit(ctx, s, nextData, { source: "row-op", ops }, () =>
+        set({
+          data: nextData,
+          rowIdentityVersion: s.rowIdentityVersion + 1,
+          selection: reorderSelectionForRow(s.selection, from, to),
+          activeCell: s.activeCell ? { ...s.activeCell, row: f(s.activeCell.row) } : null,
+          lastHighlightedRow: s.lastHighlightedRow === null ? null : f(s.lastHighlightedRow),
+        }),
+      );
       return true;
     },
   };
