@@ -25,7 +25,7 @@ import {
   type FilterSpec,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { isDev, operatorsForColumnType, resolveFilterOperators } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { operatorHasValue, operatorLabel } from "./operators-for-column-type";
+import { emptyValueFor, operatorHasValue, operatorLabel } from "./operators-for-column-type";
 import { DataGridFilterValueInput } from "./filter-value-input";
 
 /** Props for {@link DataGridFilterMenu}. */
@@ -162,7 +162,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
     const first = filterableColumns[0];
     if (!first) return;
     const operator = operatorsFor(first)[0]!; // always non-empty (TEXT_OPERATORS is the floor)
-    actions.setFilters([...filters, { columnId: first.id, operator, value: "" }]);
+    actions.setFilters([...filters, { columnId: first.id, operator, value: emptyValueFor(operator) }]);
   }, [actions, filterableColumns, filters, operatorsFor]);
 
   const resetFilters = useCallback(() => {
@@ -371,7 +371,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
           const nextColumn = columns.find((c) => c.id === value);
           const nextOperators = operatorsFor(nextColumn);
           const nextOperator = nextOperators.includes(filter.operator) ? filter.operator : nextOperators[0];
-          onUpdate(filter.filterId, { columnId: value, operator: nextOperator, value: "" });
+          onUpdate(filter.filterId, { columnId: value, operator: nextOperator, value: emptyValueFor(nextOperator) });
         }}
       >
         <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.filterColumnAriaLabel}>
@@ -391,11 +391,8 @@ function FilterRow(props: FilterRowProps): ReactNode {
         onValueChange={(value) => {
           if (value === null) return;
           const nextOperator = value as FilterOperator;
-          onUpdate(filter.filterId, {
-            operator: nextOperator,
-            // isBetween's value shape differs from every other operator's; reset rather than carry a mismatched shape.
-            value: nextOperator === "isBetween" ? ["", ""] : "",
-          });
+          // each operator family has its own value shape; reset rather than carry a mismatched one
+          onUpdate(filter.filterId, { operator: nextOperator, value: emptyValueFor(nextOperator) });
         }}
       >
         <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.filterOperatorAriaLabel}>

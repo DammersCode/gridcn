@@ -8,7 +8,10 @@ import {
   DataGridBody,
   defineColumns,
   useDataGridActiveCell,
+  cellTypes,
+  type CellType,
   type ColumnDef,
+  type FilterValueInputProps,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridToolbar, DataGridSearch, DataGridFilterMenu, DataGridColumnsMenu } from "./data-grid-toolbar";
 import { GRID_ATTR, gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -336,6 +339,48 @@ describe("DataGridSearch i18n labels", () => {
   it("a partial labels override replaces the search placeholder", async () => {
     await renderGridWithLabels({ toolbar: { searchPlaceholder: "Suchen…" } });
     await expect.element(page.getByPlaceholder("Suchen…")).toBeInTheDocument();
+  });
+});
+
+describe("DataGridFilterMenu value reset", () => {
+  function TierInput({ value }: FilterValueInputProps) {
+    return <span data-testid="tier-value">{JSON.stringify(value)}</span>;
+  }
+  const tierType: CellType = {
+    ...(cellTypes.text as unknown as CellType),
+    filter: { operators: ["isAnyOf", "equals", "isBetween"], valueInput: TierInput },
+  };
+  const tierColumns = defineColumns<Row>()([
+    { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140 },
+    { id: "email", header: "Tier", accessorKey: "email", type: "tier" as never, width: 200 },
+  ]);
+
+  it("gives a custom value input the empty value of the operator after a column or operator change", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={tierColumns} getRowId={(r) => r.id} cellTypes={{ tier: tierType } as never}>
+        <DataGridToolbar>
+          <DataGridFilterMenu />
+        </DataGridToolbar>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await page.getByRole("button", { name: "Filters" }).click();
+    await page.getByRole("button", { name: "Add filter" }).click();
+
+    await page.getByRole("combobox", { name: "Filter column" }).click();
+    await page.getByRole("option", { name: "Tier" }).click();
+    await expect.poll(() => document.querySelector('[data-testid="tier-value"]')?.textContent).toBe("[]");
+
+    await page.getByRole("combobox", { name: "Filter operator" }).click();
+    await page.getByRole("option", { name: "is between" }).click();
+    await expect.poll(() => document.querySelector('[data-testid="tier-value"]')?.textContent).toBe('["",""]');
+
+    await page.getByRole("combobox", { name: "Filter operator" }).click();
+    await page.getByRole("option", { name: "is any of" }).click();
+    await expect.poll(() => document.querySelector('[data-testid="tier-value"]')?.textContent).toBe("[]");
   });
 });
 

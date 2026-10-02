@@ -18,6 +18,13 @@ export function operatorIsBetween(operator: FilterOperator): boolean {
   return operator === "isBetween";
 }
 
+/** The empty filter value for `operator`: a list for `isAnyOf`, a from/to pair for `isBetween`, otherwise text. */
+export function emptyValueFor(operator: FilterOperator | undefined): string | [string, string] | string[] {
+  if (operator === "isAnyOf") return [];
+  if (operator === "isBetween") return ["", ""];
+  return "";
+}
+
 /** Whether `operator` takes a multi-value choice list (`isAnyOf`) rather than a single text input. */
 export function operatorIsAnyOf(operator: FilterOperator): boolean {
   return operator === "isAnyOf";
