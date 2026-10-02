@@ -43,6 +43,7 @@ function dispatch(args: { action: string; commands?: DataGridStoreState["command
     action: args.action as GridAction,
     actions,
     storeApi: fakeStore({
+      actions,
       commands: args.commands,
       activeCell: args.activeCell === undefined ? { col: 1, row: 1 } : args.activeCell,
     }),

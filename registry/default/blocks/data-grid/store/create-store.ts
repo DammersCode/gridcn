@@ -358,6 +358,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     viewStale: false,
     visibleColumns,
     scrollToCellImpl: null,
+    focusImpl: null,
     dataWrite,
     fillHandlers: null,
     presenceViewSpaceActive: null,
@@ -914,6 +915,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       _registerScrollToCell(impl) {
         set({ scrollToCellImpl: impl });
+      },
+      _registerFocus(impl) {
+        set({ focusImpl: impl });
       },
       _registerReadOnly(readOnly) {
         set({ readOnly });

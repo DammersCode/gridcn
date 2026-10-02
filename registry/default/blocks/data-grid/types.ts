@@ -663,8 +663,8 @@ export type CommandGroup = "navigation" | "selection" | "editing" | "clipboardFi
 
 /**
  * The imperative handle of one grid: the stable actions object, the raw store, non-reactive state
- * reads, and the two DOM gestures (scroll, focus). Obtain it from `<DataGrid ref>` or from
- * {@link useDataGridApi} under `DataGridRoot` (manual composition).
+ * reads, and the two DOM gestures (scroll, focus). Obtain it from `<DataGrid ref>`, from
+ * `<DataGridProvider ref>`, or from {@link useDataGridApi} anywhere under the provider.
  */
 export type DataGridApi<TData> = {
   /** The same stable object `useDataGridActions` returns. */
@@ -673,7 +673,7 @@ export type DataGridApi<TData> = {
   store: StoreApi<DataGridStoreState>;
   /** Scrolls the cell named by the ref into view; a ref that no longer resolves no-ops (dev-warned once per grid). */
   scrollTo(ref: CellRef): void;
-  /** Focuses the active cell's element; with no active cell it focuses the grid (whose focus onboarding seeds (0,0)). No-ops while an edit session is open — focusing would blur the editor and commit it. */
+  /** Focuses the active cell's element, first scrolling an off-window active cell into view; with no active cell it focuses the grid (whose focus onboarding seeds (0,0)). No-ops while an edit session is open — focusing would blur the editor and commit it. */
   focus(): void;
   /** Starts an edit session at the ref's cell — the same guards as `actions.startEditing`. */
   startEditing(ref: CellRef): void;

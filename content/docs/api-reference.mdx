@@ -55,10 +55,12 @@ gridRef.current?.setSelection({ rowId: order.id, columnId: "symbol" });
 - `startEditing` opens an edit session at the named cell; `stopEditing` discards the draft
   without committing. `startEditing` does nothing on a `readOnly` grid, on a `readOnly` cell,
   and on a cell whose type declares `activate`, like the keyboard edit gestures.
-- `focus` lands on the active cell; with none active it focuses the grid, whose onboarding
-  seeds (0,0). It is a no-op while an edit session is open.
-- For manual composition (`DataGridProvider` + `DataGridRoot`), call `useDataGridApi(ref)` in
-  a component under the root instead of passing a `ref`.
+- `focus` scrolls the active cell into view and lands on it. With no active cell, it focuses the
+  grid, whose onboarding seeds (0,0). It is a no-op while an edit session is open.
+- For manual composition (`DataGridProvider` + `DataGridRoot`), pass the `ref` to
+  `DataGridProvider`, or call `useDataGridApi(ref)` in any component under the provider. A
+  toolbar next to `DataGridRoot` can use the handle. `scrollTo` and `focus` do nothing until a
+  `DataGridRoot` mounts.
 
 ## `<DataGridProvider>`
 

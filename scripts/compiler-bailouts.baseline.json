@@ -19,11 +19,6 @@
       "Refs: Cannot access refs during render"
     ]
   },
-  "registry/default/blocks/data-grid/data-grid.tsx": {
-    "DataGridApiCapture": [
-      "Refs: Cannot access refs during render"
-    ]
-  },
   "registry/default/blocks/data-grid/interaction/use-grid-interaction.ts": {
     "useGridInteraction": [
       "Immutability: Cannot access variable before it is declared"

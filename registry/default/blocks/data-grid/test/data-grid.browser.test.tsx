@@ -2,7 +2,18 @@ import { page, userEvent } from "vitest/browser";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import type { ColumnDef, DataChange, Keymap } from "../types";
-import { defineColumns, DataGrid, GRID_ATTR, gridAttrSelector } from "../data-grid";
+import {
+  defineColumns,
+  DataGrid,
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  GRID_ATTR,
+  gridAttrSelector,
+  useDataGridApi,
+  type DataGridApi,
+} from "../data-grid";
 import { useDataGridState } from "@/registry/default/blocks/data-grid-history/data-grid-history";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply — without it the layout bug can't reproduce
 import "@/app/global.css";
@@ -228,6 +239,61 @@ describe("DataGrid in a real browser", () => {
     const min = Math.min(...indices);
     expect(min).toBeGreaterThan(4_000);
     expect(renderedDataRowCount()).toBeLessThan(80);
+  });
+
+  describe("the imperative handle's DOM gestures", () => {
+    function rowIsVisible(ariaRowIndex: number): boolean {
+      const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+      const rowEl = document.querySelector<HTMLElement>(`[aria-rowindex="${ariaRowIndex}"]`);
+      if (!rowEl) return false;
+      const rowRect = rowEl.getBoundingClientRect();
+      const gridRect = grid.getBoundingClientRect();
+      return rowRect.top >= gridRect.top && rowRect.bottom <= gridRect.bottom + 1;
+    }
+
+    it("scrollTo from a toolbar sibling of DataGridRoot scrolls an off-window row into view", async () => {
+      const handle = { current: null as DataGridApi<Row> | null };
+      function Toolbar() {
+        handle.current = useDataGridApi<Row>();
+        return null;
+      }
+      await render(
+        <div style={{ height: 600 }}>
+          <DataGridProvider data={makeRows(1_000)} columns={columns} getRowId={(r) => r.id}>
+            <Toolbar />
+            <DataGridRoot className="h-[600px]">
+              <DataGridHeader />
+              <DataGridBody />
+            </DataGridRoot>
+          </DataGridProvider>
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+      expect(grid.scrollTop).toBe(0);
+
+      handle.current!.scrollTo({ rowId: "row-500", columnId: "name" });
+
+      await expect.poll(() => rowIsVisible(502)).toBe(true);
+      expect(grid.scrollTop).toBeGreaterThan(0);
+    });
+
+    it("focus() scrolls an off-window active cell into view and focuses it", async () => {
+      const apiRef = { current: null as DataGridApi<Row> | null };
+      await render(
+        <div style={{ height: 600 }}>
+          <DataGrid ref={apiRef} data={makeRows(1_000)} columns={columns} getRowId={(r) => r.id} className="h-[600px]" />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      apiRef.current!.actions.setActiveCell({ rowId: "row-700", columnId: "name" });
+      expect(document.querySelector("[data-active]")).toBeNull();
+
+      apiRef.current!.focus();
+
+      await expect.poll(() => (document.activeElement as HTMLElement | null)?.textContent).toBe("Person 700");
+      await expect.poll(() => rowIsVisible(702)).toBe(true);
+    });
   });
 
   describe("sticky-viewport transform architecture (zero-blank guarantee)", () => {

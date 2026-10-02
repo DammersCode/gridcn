@@ -24,6 +24,7 @@ import {
   useDataGridRowCount,
   useDataGridSelectionConfig,
   useDataGridStore,
+  useDataGridStoreApi,
   useDataGridVisibleColumns,
 } from "./store";
 import { useElementDimensions, useViewportElement } from "./windowing/use-scroll-snapshot";
@@ -227,6 +228,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // matters (a full ViewCoord subscription here would re-render the root, and thus the whole tree
   // via its context value, on every single row/column move).
   const hasActiveCell = useDataGridHasActiveCell();
+  const storeApi = useDataGridStoreApi();
   // WAI-ARIA grid pattern: aria-multiselectable reflects whether more than one cell can be
   // selected at once — true whenever any multi-cell channel (range/row/column/multi-range) is on.
   const { enableRangeSelection, enableRowSelection, enableColumnSelection, enableMultiRange } = useDataGridSelectionConfig();
@@ -288,6 +290,14 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     actions._registerScrollToCell(interaction.scrollCellIntoView);
     return () => actions._registerScrollToCell(null);
   }, [actions, interaction.scrollCellIntoView]);
+
+  useEffect(() => {
+    actions._registerFocus(() => {
+      const root = scrollRef.current;
+      if (root) (root.querySelector<HTMLElement>("[data-active]") ?? root).focus();
+    });
+    return () => actions._registerFocus(null);
+  }, [actions]);
 
   // Mirrors `readOnly` into the store so add-on mutation surfaces outside this subtree (context
   // menu, useDataGridClipboard) honor it too — false on unmount, matching the prop's own default.
@@ -515,7 +525,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
           // outside, the only case tabIndex=0 is reachable in) seeds the first cell — a header/
           // marker click's own row/column-channel selection must not be clobbered back to (0,0),
           // and focus bubbling up from a cell that already made itself active must not re-seed either.
-          if (event.target === event.currentTarget && !pointerInteractionRef.current && !hasActiveCell && rowCount > 0) {
+          // The store, not the render, holds the cursor: an api call may set it in the same tick.
+          if (event.target === event.currentTarget && !pointerInteractionRef.current && storeApi.getState().activeCell === null && rowCount > 0) {
             actions.selectCellAt({ col: 0, row: 0 });
           }
           pointerInteractionRef.current = false;

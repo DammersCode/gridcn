@@ -1552,23 +1552,51 @@ describe("DataGridApi (imperative handle)", () => {
 
   it("keeps one stable object across re-renders when called under the root (manual composition)", () => {
     const seen: DataGridApi<Row>[] = [];
-    function Capture() {
-      seen.push(useDataGridApi());
+    // A new `pass` re-renders Capture instead of letting React bail out.
+    function Capture({ pass }: { pass: number }) {
+      const api = useDataGridApi<Row>();
+      seen.push(api);
+      return <span data-pass={pass} />;
+    }
+    function Harness({ pass }: { pass: number }) {
+      return (
+        <DataGridProvider data={makeRows(3)} columns={columns} getRowId={(r) => r.id}>
+          <DataGridRoot>
+            <Capture pass={pass} />
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    const { rerender } = render(<Harness pass={1} />);
+    rerender(<Harness pass={2} />);
+    expect(seen.length).toBe(2);
+    expect(seen[1]).toBe(seen[0]);
+  });
+
+  it("works in a sibling of DataGridRoot and hands the same handle to the provider's ref", () => {
+    let sibling: DataGridApi<Row> | null = null;
+    const providerRef = createRef<DataGridApi<Row>>();
+    function Toolbar() {
+      sibling = useDataGridApi<Row>();
       return null;
     }
-    const element = (
-      <DataGridProvider data={makeRows(3)} columns={columns} getRowId={(r) => r.id}>
+    render(
+      <DataGridProvider ref={providerRef} data={makeRows(3)} columns={columns} getRowId={(r) => r.id}>
+        <Toolbar />
         <DataGridRoot>
-          <Capture />
           <DataGridHeader />
           <DataGridBody />
         </DataGridRoot>
-      </DataGridProvider>
+      </DataGridProvider>,
     );
-    const { rerender } = render(element);
-    rerender(element);
-    expect(seen.length).toBe(2);
-    expect(seen[1]).toBe(seen[0]);
+    expect(sibling!.getViewRowIds()).toEqual(["0", "1", "2"]);
+    expect(providerRef.current).toBe(sibling);
+    expect(Object.keys(sibling!.actions).some((name) => name.startsWith("_"))).toBe(false);
+    act(() => sibling!.setSelection({ rowId: "1", columnId: "name" }));
+    act(() => sibling!.focus());
+    expect((document.activeElement as HTMLElement).textContent).toContain("Row 1");
   });
 
   it("exposes the shared actions, store, and scroll closure", () => {
@@ -1589,7 +1617,6 @@ describe("DataGridApi (imperative handle)", () => {
     // actions and store are store-owned: the same objects the shared hooks return
     expect(probe!.api.actions).toBe(probe!.actions);
     expect(probe!.api.store).toBe(probe!.store);
-    // scrollTo is a stable closure owned by the handle's own hook instance
     expect(typeof probe!.api.scrollTo).toBe("function");
   });
 

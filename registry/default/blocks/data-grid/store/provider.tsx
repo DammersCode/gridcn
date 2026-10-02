@@ -1,11 +1,12 @@
 "use client";
 
-import { createContext, use, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createContext, use, useEffect, useId, useImperativeHandle, useRef, useState, type ReactNode } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import type { OverlayPlugin } from "../overlays";
 import type { RowBandsSpec } from "../layout-context";
+import { apiHandleOf } from "./api";
 import { checkDevGuardrails, checkDuplicateColumnIds, checkUnresolvableColumnTypes } from "./commit";
 import { holeRowId, makeSelectionChangeDetails, publicActionsOf, rowIdAtViewRow } from "./compute";
 import { createDataGridStore } from "./create-store";
@@ -330,11 +331,12 @@ function useGridStoreCore<TData>(
  * Provides the grid's store to the component subtree. By default it self-creates the store via
  * the same ownership core as {@link useDataGridStoreProps}; pass `store` to serve a
  * consumer-created store instead — then this component is a pure context shell and the sync
- * loop lives on the consumer's `useDataGridStoreProps` call.
+ * loop lives on the consumer's `useDataGridStoreProps` call. `ref` receives the grid's imperative handle.
  */
 export function DataGridProvider<TData>(props: DataGridProviderProps<TData>): ReactNode {
-  const { store: externalStore, children, ...syncProps } = props;
+  const { store: externalStore, children, ref, ...syncProps } = props;
   const { store } = useGridStoreCore<TData>(syncProps, externalStore);
+  useImperativeHandle(ref, () => apiHandleOf<TData>(store), [store]);
   // useId is hydration-safe and distinct per provider instance — two grids on one page each get their own id.
   const instanceId = useId();
   return (

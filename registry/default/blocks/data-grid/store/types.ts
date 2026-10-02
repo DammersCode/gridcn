@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type {
   CellRef,
@@ -8,6 +8,7 @@ import type {
   ColumnDef,
   ColumnLayout,
   DataChange,
+  DataGridApi,
   FilterJoinOperator,
   FilterSpec,
   GridCommand,
@@ -563,6 +564,8 @@ export type DataGridStoreState = Omit<
    * root-internal refs. See {@link useDataGridScrollToCell}.
    */
   scrollToCellImpl: ((coord: ViewCoord) => void) | null;
+  /** DOM focus for the active cell's element, or the grid when that element is not rendered; registered by the mounted `DataGridRoot`, like `scrollToCellImpl`. */
+  focusImpl: (() => void) | null;
   /** @internal The data-write cluster's mutable context box (see `data-write.ts`); exposed here so the `useDataGridScrollToCell` ref resolution shares its row-index cache and stale-ref warn flag. */
   dataWrite: DataWriteContext;
   /**
@@ -814,6 +817,8 @@ export type DataGridInternalActions = {
   _subscribeEditEnd(): () => void;
   /** @internal `DataGridRoot` registers/clears its scroll-into-view on mount/unmount; not part of the public hook surface. */
   _registerScrollToCell(impl: ((coord: ViewCoord) => void) | null): void;
+  /** @internal `DataGridRoot` registers/clears its DOM focus on mount/unmount; not part of the public hook surface. */
+  _registerFocus(impl: (() => void) | null): void;
   /** @internal `DataGridRoot` syncs its `readOnly` prop into the store on every render/unmount; turning it on cancels an open edit session. */
   _registerReadOnly(readOnly: boolean): void;
   /** @internal `DataGridRoot` syncs its effective (merged) keymap into the store on every render/unmount; not part of the public hook surface. */
@@ -891,6 +896,8 @@ export type RowEdit = { row: unknown; cells: Map<string, { columnId: string; val
 /** Props for {@link DataGridProvider}. */
 export type DataGridProviderProps<TData = unknown> = DataGridSyncProps<TData> & {
   children: ReactNode;
+  /** Receives the grid's imperative handle ({@link DataGridApi}), the same object `useDataGridApi` returns under this provider. */
+  ref?: Ref<DataGridApi<TData>>;
   /**
    * A consumer-created store (from `useDataGridStoreProps`) to serve to the subtree instead
    * of self-creating one. When set, the provider becomes a pure context shell: no store

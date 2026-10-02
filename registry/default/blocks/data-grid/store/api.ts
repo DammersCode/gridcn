@@ -1,23 +1,28 @@
-import type { RefObject } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { DataGridApi } from "../types";
-import type { DataGridActions, DataGridStoreState } from "./types";
-import { holeRowId } from "./compute";
+import type { DataGridStoreState } from "./types";
+import { holeRowId, publicActionsOf } from "./compute";
 import { resolveRefOrWarn } from "./data-write";
 
+const handles = new WeakMap<StoreApi<DataGridStoreState>, DataGridApi<unknown>>();
+
 /**
- * Assembles the grid's imperative handle from its stable parts. The handle is stateless beyond
- * them — every assembly is behaviorally identical, so the same builder serves the hook (with the
- * root's container ref) and the keymap-dispatch path (with the interaction's scroll container).
+ * The grid's imperative handle, one identity per store. Its DOM gestures run through the impls
+ * the mounted `DataGridRoot` registers, so it works anywhere under the provider.
  * @internal
  */
-export function buildApiHandle<TData>(parts: {
-  actions: DataGridActions;
-  storeApi: StoreApi<DataGridStoreState>;
-  containerRef: RefObject<HTMLElement | null>;
-}): DataGridApi<TData> {
-  const { actions, storeApi, containerRef } = parts;
+export function apiHandleOf<TData>(storeApi: StoreApi<DataGridStoreState>): DataGridApi<TData> {
+  let api = handles.get(storeApi);
+  if (!api) {
+    api = buildApiHandle(storeApi);
+    handles.set(storeApi, api);
+  }
+  return api as DataGridApi<TData>;
+}
+
+function buildApiHandle(storeApi: StoreApi<DataGridStoreState>): DataGridApi<unknown> {
   const read = () => storeApi.getState();
+  const actions = publicActionsOf(read().actions);
   return {
     actions,
     store: storeApi,
@@ -27,9 +32,10 @@ export function buildApiHandle<TData>(parts: {
       if (coord) s.scrollToCellImpl?.(coord);
     },
     focus() {
-      const root = containerRef.current;
-      if (!root || read().editing) return;
-      (root.querySelector<HTMLElement>("[data-active]") ?? root).focus();
+      const s = read();
+      if (s.editing) return;
+      if (s.activeCell) s.scrollToCellImpl?.(s.activeCell);
+      s.focusImpl?.();
     },
     startEditing(cellRef) {
       actions.startEditing(cellRef);
@@ -50,7 +56,7 @@ export function buildApiHandle<TData>(parts: {
     getRow(viewRowIndex) {
       const s = read();
       const dataRowIndex = s.viewIndex[viewRowIndex];
-      return dataRowIndex === undefined ? undefined : (s.data[dataRowIndex] as TData | undefined);
+      return dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
     },
     getViewRowIds() {
       const s = read();

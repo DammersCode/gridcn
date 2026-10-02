@@ -35,8 +35,8 @@ import {
 import { gridAttrSelector } from "../data-attributes";
 import { getSelectedViewRows, isSelectionEmpty } from "../selection";
 import { warnDev } from "../store/commit";
-import { buildApiHandle } from "../store/api";
-import { holeRowId, publicActionsOf } from "../store/compute";
+import { apiHandleOf } from "../store/api";
+import { holeRowId } from "../store/compute";
 
 /** Action names already dev-warned as bound-but-unwired (dev-only, process-wide). */
 const warnedUnwiredActions = new Set<string>();
@@ -241,7 +241,7 @@ export function dispatchGridAction(args: {
   // A command name shadowing a built-in action wins; callers check the command's scope.
   const command = state.commands?.[action];
   if (command) {
-    const api = buildApiHandle<unknown>({ actions: publicActionsOf(actions), storeApi, containerRef: scrollRef });
+    const api = apiHandleOf<unknown>(storeApi);
     const coord = state.activeCell;
     const dataRowIndex = coord === null ? undefined : state.viewIndex[coord.row];
     const row = dataRowIndex === undefined ? undefined : state.data[dataRowIndex];

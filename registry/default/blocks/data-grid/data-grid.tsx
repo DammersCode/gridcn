@@ -1,6 +1,6 @@
 "use client";
 
-import { useImperativeHandle, useMemo, type ReactNode, type Ref } from "react";
+import { useImperativeHandle, type ReactNode, type Ref } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type {
   DataGridApi,
@@ -28,16 +28,14 @@ import type {
 } from "./types";
 import {
   DataGridProvider,
-  useDataGridActions,
   useDataGridStoreApi,
   type DataGridStoreState,
   type SelectionChangeDetails,
 } from "./store";
-import { buildApiHandle } from "./store/api";
+import { apiHandleOf } from "./store/api";
 import type { GridDirection } from "./windowing/direction";
 import { DataGridRoot } from "./root";
 import type { EmptyStateRenderer, LoadingStateRenderer } from "./root";
-import { useDataGridContainer } from "./interaction/use-data-grid-container";
 import { DataGridHeader } from "./header";
 import { DataGridBody } from "./body";
 import type { OverlayPlugin } from "./overlays";
@@ -424,7 +422,7 @@ export type DataGridProps<TData> = {
   /**
    * Imperative handle (React 19 ref-as-prop): assigned with this grid's {@link DataGridApi} once
    * mounted; stable for the grid's lifetime. Manual composition gets the same handle from
-   * {@link useDataGridApi}, called under `DataGridRoot`.
+   * `DataGridProvider`'s `ref` or from {@link useDataGridApi}.
    */
   ref?: Ref<DataGridApi<TData>>;
   /** Composition escape hatch; defaults to header + body when omitted. */
@@ -432,26 +430,15 @@ export type DataGridProps<TData> = {
 };
 
 /**
- * The imperative API of one grid — see {@link DataGridApi}. Call it under `DataGridRoot`
- * (its `focus()` needs the root's scroll container). Pass a `ref` to hand the handle out; the
- * returned object is stable for the grid's lifetime, safe to close over.
+ * The imperative API of one grid — see {@link DataGridApi}. Call it anywhere under the grid's
+ * `DataGridProvider`, a toolbar sibling of `DataGridRoot` included. `scrollTo` and `focus` no-op
+ * until a `DataGridRoot` mounts. Pass a `ref` to hand the handle out; the returned object is
+ * stable for the grid's lifetime, safe to close over.
  */
 export function useDataGridApi<TData = unknown>(ref?: Ref<DataGridApi<TData>>): DataGridApi<TData> {
-  const storeApi = useDataGridStoreApi();
-  const actions = useDataGridActions();
-  const containerRef = useDataGridContainer();
-  const api = useMemo(
-    () => buildApiHandle<TData>({ actions, storeApi, containerRef }),
-    [actions, storeApi, containerRef],
-  );
+  const api = apiHandleOf<TData>(useDataGridStoreApi());
   useImperativeHandle(ref, () => api, [api]);
   return api;
-}
-
-/** Renders nothing; runs {@link useDataGridApi} inside `DataGridRoot` so `<DataGrid ref>` reaches the scroll container for `focus()`. */
-function DataGridApiCapture<TData>(props: { ref?: Ref<DataGridApi<TData>> }) {
-  useDataGridApi<TData>(props.ref);
-  return null;
 }
 
 /**
@@ -543,6 +530,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
 
   return (
       <DataGridProvider
+        ref={ref}
         commands={commands}
         data={data}
       defaultData={defaultData}
@@ -614,7 +602,6 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
         onRowClick={erasedOnRowClick}
         onRowWindowChange={onRowWindowChange}
       >
-        <DataGridApiCapture<TData> ref={ref} />
         {children ?? (
           <>
             <DataGridHeader />
