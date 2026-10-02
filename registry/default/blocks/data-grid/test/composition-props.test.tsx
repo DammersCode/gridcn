@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { type ReactNode } from "react";
 import type { ColumnDef, FilterSpec } from "../types";
@@ -82,6 +82,48 @@ describe("DataGridHeader composition props", () => {
     expect(ctx.column.id).toBe("name");
     expect(ctx.index).toBe(0);
     expect(ctx.width).toBeGreaterThan(0);
+  });
+
+  it("ignores sort and select gestures that start on interactive content in renderHeaderCell", () => {
+    const onSortChange = vi.fn();
+    const onSelectionChange = vi.fn();
+    const renderHeaderCell: HeaderCellRenderer = (ctx, Default) => (
+      <>
+        {Default}
+        <button type="button" data-testid={`action-${ctx.column.id}`}>
+          act
+        </button>
+      </>
+    );
+    function Harness({ behavior }: { behavior: "sort" | "select" }) {
+      return (
+        <DataGridProvider
+          data={rows()}
+          columns={columns}
+          getRowId={(r) => r.id}
+          headerClickBehavior={behavior}
+          onSortChange={onSortChange}
+          onSelectionChange={onSelectionChange}
+        >
+          <DataGridRoot className="h-[400px]">
+            <DataGridHeader renderHeaderCell={renderHeaderCell} />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    const { rerender } = render(<Harness behavior="sort" />);
+    const button = screen.getByTestId("action-name");
+    fireEvent.pointerDown(button);
+    fireEvent.click(button);
+    expect(onSortChange).not.toHaveBeenCalled();
+
+    rerender(<Harness behavior="select" />);
+    fireEvent.pointerDown(screen.getByTestId("action-name"));
+    expect(onSelectionChange).not.toHaveBeenCalled();
+
+    fireEvent.pointerDown(screen.getByText("Name"));
+    expect(onSelectionChange).toHaveBeenCalled();
   });
 
   it("without renderHeaderCell the default header cells render (regression guard)", () => {

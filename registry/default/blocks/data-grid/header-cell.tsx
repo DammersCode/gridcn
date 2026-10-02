@@ -15,6 +15,14 @@ import { useDataGridLabels, type AnyColumnDef } from "./store";
 import { columnLabelText as headerLabelText } from "./columns/column-format-helpers";
 import { gridAttrSelector } from "./data-attributes";
 
+const INTERACTIVE_CONTENT = 'button, a, input, select, textarea, [role="button"], [contenteditable]:not([contenteditable="false"])';
+
+/** Whether an event starts on interactive content inside the header cell, which owns its own gestures. */
+function fromInteractiveContent(event: { target: EventTarget; currentTarget: EventTarget }): boolean {
+  const target = event.target instanceof Element ? event.target.closest(INTERACTIVE_CONTENT) : null;
+  return target !== null && target !== event.currentTarget && (event.currentTarget as Element).contains(target);
+}
+
 /** What a {@link HeaderCellRenderer} receives for one column. */
 export type HeaderCellRenderCtx = {
   column: AnyColumnDef;
@@ -28,7 +36,8 @@ export type HeaderCellRenderCtx = {
 /**
  * Per-column header cell slot, called once per visible column. It returns the CONTENTS of the
  * grid-owned header cell, which keeps its placement, pinned inset, `role`, `aria-colindex`, gestures,
- * and resize handle. `Default` is the built-in contents (label, sort indicator, header menu
+ * and resize handle. The cell's sort, select, and reorder gestures ignore events that start on
+ * interactive content (button, link, form control, `role="button"`, contenteditable). `Default` is the built-in contents (label, sort indicator, header menu
  * trigger): return it to keep them, or a custom node to replace them. Pass a stable identity. (The
  * column-level `renderCell` covers body cells — a different slot.)
  */
@@ -117,7 +126,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
       // the header menu's popup is a React portal: its events still bubble through the REACT tree
       // (not the DOM tree) up to this handler, so a click on e.g. "Hide column" would otherwise also
       // fire the column-select gesture here — bail out for any event actually targeting the popup.
-      if ((event.target as HTMLElement).closest(gridAttrSelector("headerMenuPopup"))) return;
+      if ((event.target as HTMLElement).closest(gridAttrSelector("headerMenuPopup")) || fromInteractiveContent(event)) return;
       // 'sort' mode reassigns the plain click to sorting (handleClick below); the column-select
       // gesture (and its press+drag range-select) only applies in the default 'select' mode.
       if (headerClickBehavior === "select") onSelect(index, event);
@@ -128,7 +137,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
 
   const handleClick = useCallback(
     (event: ReactMouseEvent<HTMLElement>) => {
-      if ((event.target as HTMLElement).closest(gridAttrSelector("headerMenuPopup"))) return;
+      if ((event.target as HTMLElement).closest(gridAttrSelector("headerMenuPopup")) || fromInteractiveContent(event)) return;
       if (headerClickBehavior !== "sort" || column.sortable === false) return;
       onSort(column.id, event.shiftKey);
     },

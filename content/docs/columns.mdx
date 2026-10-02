@@ -180,6 +180,10 @@ custom node replaces them:
 </DataGridRoot>
 ```
 
+Interactive content in the slot keeps its own clicks. When a press starts on a button, a link, a
+form control, a `role="button"` element, or a `contenteditable` element, the header cell does not
+sort, select, or start a column reorder.
+
 The slot mounts inside `DataGridRoot`, so it needs the composed parts — `DataGrid` (the
 convenience wrapper) does not forward it.
 
