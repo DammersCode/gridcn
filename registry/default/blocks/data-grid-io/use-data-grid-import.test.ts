@@ -252,6 +252,17 @@ describe("useDataGridImportPreview — limit errors map to their own keys", () =
     vi.restoreAllMocks();
   });
 
+  it("surfaces errorPartTooLarge for a part-too-large parse", async () => {
+    mockedParse.mockRejectedValue(new Error("part-too-large"));
+    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));
+    await act(async () => {
+      await result.current.loadFile(FILE_B, TARGETS);
+    });
+    expect(result.current.error).toBe("errorPartTooLarge");
+    expect(result.current.preview).toBeNull();
+    vi.restoreAllMocks();
+  });
+
   it("surfaces errorTooManyCells for an over-dimension parse", async () => {
     mockedParse.mockRejectedValue(new Error("import-too-many-cells"));
     const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));

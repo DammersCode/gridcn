@@ -26,6 +26,9 @@ export const DEFAULT_IMPORT_LIMITS = {
 /** Error message {@link parseImportFile} throws for a file over `maxFileBytes`. */
 export const FILE_TOO_LARGE_MESSAGE = "file-too-large";
 
+/** Error message {@link parseImportFile} throws when one part of an xlsx file (a worksheet, the shared strings) unpacks to more than the part cap, a lower `maxDecompressedBytes` or `maxCells` times 10 bytes plus 1 MiB. */
+export const PART_TOO_LARGE_MESSAGE = "part-too-large";
+
 /** Error message {@link parseImportFile} throws when the grid exceeds `maxRows`, `maxColumns`, or `maxCells`. */
 export const IMPORT_TOO_MANY_CELLS_MESSAGE = "import-too-many-cells";
 
@@ -197,12 +200,12 @@ function assertEntriesWithin(bytes: Uint8Array, cap: number): void {
   if (end < lowest) throw new Error(UNREADABLE_ZIP_MESSAGE);
   const count = view.getUint16(end + 10, true);
   let offset = view.getUint32(end + 16, true);
-  if (count === 0xffff || view.getUint32(end + 12, true) === ZIP64_SENTINEL || offset === ZIP64_SENTINEL) throw new Error(FILE_TOO_LARGE_MESSAGE);
+  if (count === 0xffff || view.getUint32(end + 12, true) === ZIP64_SENTINEL || offset === ZIP64_SENTINEL) throw new Error(PART_TOO_LARGE_MESSAGE);
   for (let i = 0; i < count; i++) {
     if (offset + 46 > bytes.length || view.getUint32(offset, true) !== 0x02014b50) throw new Error(UNREADABLE_ZIP_MESSAGE);
     const compressedSize = view.getUint32(offset + 20, true);
     const uncompressedSize = view.getUint32(offset + 24, true);
-    if (compressedSize > cap || uncompressedSize > cap || compressedSize === ZIP64_SENTINEL || uncompressedSize === ZIP64_SENTINEL) throw new Error(FILE_TOO_LARGE_MESSAGE);
+    if (compressedSize > cap || uncompressedSize > cap || compressedSize === ZIP64_SENTINEL || uncompressedSize === ZIP64_SENTINEL) throw new Error(PART_TOO_LARGE_MESSAGE);
     offset += 46 + view.getUint16(offset + 28, true) + view.getUint16(offset + 30, true) + view.getUint16(offset + 32, true);
   }
 }
@@ -279,7 +282,7 @@ function textGrid(forEachCell: (visit: CellVisitor) => void, limits: GridLimits,
 
 /** Maps hucre's limit errors to gridcn's messages; hucre has no error codes, so its message text is matched. */
 function importError(err: unknown, hucre: HucreReader): unknown {
-  if (err instanceof hucre.ZipError && err.message.includes("exceeds limit")) return new Error(FILE_TOO_LARGE_MESSAGE, { cause: err });
+  if (err instanceof hucre.ZipError && err.message.includes("exceeds limit")) return new Error(PART_TOO_LARGE_MESSAGE, { cause: err });
   if (err instanceof hucre.ParseError) {
     if (/over the \d+ limit|more than \d+ filled cells/.test(err.message)) return new Error(IMPORT_TOO_MANY_CELLS_MESSAGE, { cause: err });
     if (err.message.startsWith("Unsupported XLS version")) return new Error(UNSUPPORTED_EXCEL_FORMAT_MESSAGE, { cause: err });

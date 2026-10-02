@@ -210,8 +210,10 @@ widest row sets the column count.
 The reader inflates every part of an xlsx file, so each part has a cap: `maxCells` times 10
 bytes plus 1 MiB, or `maxDecompressedBytes` when that is lower. Ten bytes is the smallest cell
 the reader stores, a styled empty cell. At the default `maxCells`, the cap is about 51 MiB. A part
-over the cap rejects the file with the size error before it is read. The shared strings count as
-a part, so a text-heavy sheet with few cells can need a higher `maxCells`.
+over the cap rejects the file with `labels.io.errorPartTooLarge` before it is read. The message
+tells the user that a part of the file is too large to read safely. To accept such a file, raise
+`maxCells` or `maxDecompressedBytes`. The shared strings count as a part, so a text-heavy sheet
+with few cells can need a higher `maxCells`.
 
 The reader keeps every cell it finds in memory, and a sheet at the default cap peaks near 0.9 GB.
 When you raise `maxCells`, the cap and the peak rise with it.

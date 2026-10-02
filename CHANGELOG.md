@@ -922,6 +922,13 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   The check reads the workbook's cell records in one linear pass before the reader runs, and rejects a
   workbook whose structure it cannot follow. A single sheet at the default limits peaks near 0.2 GB.
 
+- **Part-size error (`data-grid-io`):** an xlsx part over the per-part cap (a worksheet or the shared
+  strings, a ZIP64 marker included) is rejected with the new `labels.io.errorPartTooLarge` instead of
+  `errorFileTooLarge`. The message says that a part of the file is too large to read safely and that
+  the import limit can be raised. `ImportErrorKey` gains `"errorPartTooLarge"`, `parseImportFile`
+  throws `part-too-large` (exported as `PART_TOO_LARGE_MESSAGE`), and `labels.io` gains the key.
+  `errorFileTooLarge` stays for a file over `maxFileBytes`.
+
 ## 0.1.0
 
 Initial build-out. Highlights, in rough chronological order:

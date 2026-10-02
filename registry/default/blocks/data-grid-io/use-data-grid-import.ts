@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { FILE_TOO_LARGE_MESSAGE, IMPORT_TOO_MANY_CELLS_MESSAGE, UNSUPPORTED_EXCEL_FORMAT_MESSAGE, parseImportFile, type CsvDelimiter, type ImportLimits } from "./parse-import-file";
+import { FILE_TOO_LARGE_MESSAGE, IMPORT_TOO_MANY_CELLS_MESSAGE, PART_TOO_LARGE_MESSAGE, UNSUPPORTED_EXCEL_FORMAT_MESSAGE, parseImportFile, type CsvDelimiter, type ImportLimits } from "./parse-import-file";
 import { applyImportOptions, type ImportTargetColumn, type ImportDefaults } from "./match-import-column";
 import type { ImportColumnMapping } from "./build-imported-rows";
 
@@ -11,7 +11,7 @@ export type { ImportTargetColumn, ImportDefaults };
 export const IMPORT_PREVIEW_ROW_COUNT = 10;
 
 /** Keys into `labels.io` for the parse-failure messages {@link useDataGridImportPreview} can surface. */
-export type ImportErrorKey = "errorParseFailed" | "errorNoRows" | "errorUnsupportedFile" | "errorUnsupportedExcelFormat" | "errorFileTooLarge" | "errorTooManyCells";
+export type ImportErrorKey = "errorParseFailed" | "errorNoRows" | "errorUnsupportedFile" | "errorUnsupportedExcelFormat" | "errorFileTooLarge" | "errorPartTooLarge" | "errorTooManyCells";
 
 /** Error thrown by {@link parseImportFile} for extensions outside csv/xlsx/xls. */
 const UNSUPPORTED_FILE_TYPE_MESSAGE = "unsupported-file-type";
@@ -32,6 +32,8 @@ function importErrorKey(err: unknown): ImportErrorKey | null {
         return "errorUnsupportedExcelFormat";
       case FILE_TOO_LARGE_MESSAGE:
         return "errorFileTooLarge";
+      case PART_TOO_LARGE_MESSAGE:
+        return "errorPartTooLarge";
       case IMPORT_TOO_MANY_CELLS_MESSAGE:
         return "errorTooManyCells";
     }

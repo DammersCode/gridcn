@@ -198,6 +198,8 @@ export type DataGridIOLabels = {
   errorUnsupportedExcelFormat: string;
   /** Shown when a chosen file exceeds the import size limit. */
   errorFileTooLarge: string;
+  /** Shown when one part of an xlsx file (a worksheet, the shared strings) is too large to read safely; the app owner raises `importLimits.maxCells` or `maxDecompressedBytes`. */
+  errorPartTooLarge: string;
   /** Shown when a file exceeds the import row, column, or cell limit. */
   errorTooManyCells: string;
   /** Shown under the mapping grid when the import build rejected cells; `count` is the rejected-cell count. */
@@ -435,6 +437,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     errorUnsupportedFile: "Unsupported file type — choose a .csv, .xlsx, or .xls file.",
     errorUnsupportedExcelFormat: "This Excel format can't be imported — save the file as .xlsx and try again.",
     errorFileTooLarge: "This file is too large to import.",
+    errorPartTooLarge: "A part of this file is too large to read safely. Save a smaller file, or ask the app owner to raise the import limit.",
     errorTooManyCells: "This file has too many rows or columns to import.",
     importRejectedCells: (count) => `${count} cell${count === 1 ? "" : "s"} failed validation and ${count === 1 ? "was" : "were"} left empty.`,
     importMergeFailed: "The import could not be completed. Try again.",
