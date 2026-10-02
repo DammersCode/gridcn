@@ -4,6 +4,7 @@ import { useCallback, useEffect, type RefObject } from "react";
 import type { ViewCoord, GridBulkValidationError, GridRect } from "../types";
 import { getCellValue } from "../columns/column-helpers";
 import { isDev } from "../is-dev";
+import { gridAttrSelector } from "../data-attributes";
 import { serializeCells } from "./serialize-cells";
 import { parseClipboard } from "./parse-clipboard";
 import { useDataGridInternalActions, useDataGridStoreApi, type DataGridActions, type DataGridStoreState } from "../store";
@@ -373,12 +374,20 @@ export function pasteText(
   return applyParsedPaste(s, actions, parseClipboard({ text }), guard, storeApi);
 }
 
+/** Whether a clipboard event comes from an editable element that a cell renders, other than the cell editor. */
+function fromHostEditable(event: ClipboardEvent): boolean {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return false;
+  const editable = /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName) || target.isContentEditable;
+  return editable && target.closest(gridAttrSelector("cellEditor")) === null;
+}
+
 /**
  * Wires native `copy`/`cut`/`paste` events to the grid root so OS-native shortcuts and menu
  * actions work (glide-behavior-spec.md §2, §4). Attached to the root element (not `document`) so
  * multiple grids on one page each own their own clipboard traffic, gated on focus being inside the
  * grid via roving tabindex; inactive while a cell is being edited (the editor owns its own
- * clipboard then).
+ * clipboard then) and for events from an input or `contenteditable` that a cell renders.
  */
 export function useGridClipboard(options: UseGridClipboardOptions): void {
   const { rootRef, readOnly, sanitizeFormulas } = options;
@@ -390,7 +399,7 @@ export function useGridClipboard(options: UseGridClipboardOptions): void {
   const onCopy = useCallback(
     (event: ClipboardEvent) => {
       const s = storeApi.getState();
-      if (s.editing) return;
+      if (s.editing || fromHostEditable(event)) return;
       const scope = resolveCopyScope(s);
       if (!scope) return;
       event.preventDefault();
@@ -402,7 +411,7 @@ export function useGridClipboard(options: UseGridClipboardOptions): void {
   const onCut = useCallback(
     (event: ClipboardEvent) => {
       const s = storeApi.getState();
-      if (s.editing) return;
+      if (s.editing || fromHostEditable(event)) return;
       const scope = resolveCopyScope(s);
       if (!scope) return;
       event.preventDefault();
@@ -417,7 +426,7 @@ export function useGridClipboard(options: UseGridClipboardOptions): void {
   const onPaste = useCallback(
     (event: ClipboardEvent) => {
       const s = storeApi.getState();
-      if (s.editing || readOnly) return;
+      if (s.editing || readOnly || fromHostEditable(event)) return;
       // resolvePasteTarget gates BEFORE parsing/preventDefault, so a no-target paste (nothing
       // selected/active) leaves the native paste behavior (e.g. into an unrelated focused input) intact.
       if (!resolvePasteTarget(s)) return;

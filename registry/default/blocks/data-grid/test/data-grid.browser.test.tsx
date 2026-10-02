@@ -1659,6 +1659,46 @@ describe("DataGrid in a real browser", () => {
       expect(dataTransfer.getData("text/html")).toContain("Person 0");
     });
 
+    it("leaves copy, cut, and paste from an editable element inside a cell to that element", async () => {
+      const onDataChange = mockDataChangeFn<Row>();
+      const hostColumns = defineColumns<Row>()([
+        { id: "id", header: "ID", accessorKey: "id", type: "text" },
+        {
+          id: "name",
+          header: "Name",
+          accessorKey: "name",
+          type: "text",
+          renderCell: () => (
+            <div>
+              <div data-testid="host-editable" contentEditable suppressContentEditableWarning />
+              <input data-testid="host-input" />
+            </div>
+          ),
+        },
+      ]);
+      await render(
+        <div style={{ height: 600 }}>
+          <DataGrid data={makeRows(5)} columns={hostColumns} getRowId={(r) => r.id} className="h-[600px]" onDataChange={onDataChange} />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      await userEvent.click(gridCells()[0]!);
+
+      for (const testId of ["host-editable", "host-input"]) {
+        const target = document.querySelector<HTMLElement>(`[data-testid="${testId}"]`)!;
+        for (const type of ["copy", "cut", "paste"] as const) {
+          const dataTransfer = new DataTransfer();
+          if (type === "paste") dataTransfer.setData("text/plain", "Pasted");
+          const event = new ClipboardEvent(type, { bubbles: true, cancelable: true, clipboardData: dataTransfer });
+          target.dispatchEvent(event);
+          await new Promise((r) => setTimeout(r, 0));
+          expect(event.defaultPrevented, `${type} from ${testId}`).toBe(false);
+        }
+      }
+      expect(onDataChange).not.toHaveBeenCalled();
+      expect(gridCells()[0]!.textContent).toBe("row-0");
+    });
+
     it("copy scope for a selected row copies the full row width", async () => {
       await renderGrid(5);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
