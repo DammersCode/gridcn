@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { operatorHasValue, operatorLabel, operatorsForColumnType } from "./operators-for-column-type";
+import { emptyValueFor, operatorHasValue, operatorLabel, operatorsForColumnType } from "./operators-for-column-type";
 import { DEFAULT_LABELS, type FilterOperator } from "@/registry/default/blocks/data-grid/data-grid";
 
 describe("operatorsForColumnType", () => {
@@ -56,5 +56,14 @@ describe("operatorHasValue", () => {
     expect(operatorHasValue("notEmpty")).toBe(false);
     expect(operatorHasValue("contains")).toBe(true);
     expect(operatorHasValue("gt")).toBe(true);
+  });
+});
+
+describe("emptyValueFor", () => {
+  it("gives each operator family its empty value shape", () => {
+    expect(emptyValueFor("isAnyOf")).toEqual([]);
+    expect(emptyValueFor("isBetween")).toEqual(["", ""]);
+    expect(emptyValueFor("contains")).toBe("");
+    expect(emptyValueFor(undefined)).toBe("");
   });
 });
