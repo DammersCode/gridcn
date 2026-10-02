@@ -19,6 +19,7 @@ import type {
   CellPatch,
   DataGridActions,
   DataGridProps,
+  useDataGridActions,
   DataGridSyncProps,
   GlobalShortcutsConfig,
   RowPatch,
@@ -363,6 +364,11 @@ declare const _actions: DataGridActions;
 assertEqual<(patches: readonly CellPatch[], options?: UpdateCellsOptions) => UpdateCellsVerdict, typeof _actions.updateCells>(true);
 assertEqual<(updates: readonly RowPatch[], options?: UpdateCellsOptions) => UpdateCellsVerdict, typeof _actions.updateRows>(true);
 assertEqual<() => void, typeof _actions.reconcileView>(true);
+
+// The public actions hook carries no internal `_` actions.
+declare const publicActions: ReturnType<typeof useDataGridActions>;
+// @ts-expect-error `_registerReadOnly` is internal and absent from the public actions
+void publicActions._registerReadOnly;
 
 // TValue typing flows through the usual ColumnDef conventions: a consumer builds patches from a
 // typed column's own id, while the patch value stays erased at the store boundary (one runtime

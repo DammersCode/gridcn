@@ -333,9 +333,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   records, and a row insert or duplicate under a sort cleared the checks.
 - **Breaking:** `useDataGridActions()` and `useDataGridStoreProps().actions` return only the
   public actions (`data-grid`). The `_`-prefixed internal actions, such as `_registerReadOnly` and
-  `_syncProps`, are gone from both the `DataGridActions` type and the returned object, so consumer
-  code cannot lift `readOnly` or skip the prop sync. The imperative handle's `actions` follows the
-  same rule.
+  `_syncProps`, are gone from both the `DataGridActions` type and the returned object. The
+  imperative handle's `actions` follows the same rule. The raw store (`store.getState().actions`,
+  store selectors) still holds the internal actions.
 - **Breaking:** `onDataChange` fires after the grid stores the new data (`data-grid`). A write
   action called inside the handler, such as `updateCells`, starts from that data, and the grid
   keeps both changes. A write that an `onActiveCellChange` or `onSelectionChange` handler makes
