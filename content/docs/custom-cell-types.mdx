@@ -104,8 +104,20 @@ A component in `filter.valueInput` renders for every operator that takes a value
 
 ```tsx
 function MoneyFilterInput({ operator, value, onValueChange }: FilterValueInputProps) {
-  // isBetween and isAnyOf need their own layout; this input handles single values only.
-  if (operator === "isBetween" || operator === "isAnyOf") return null;
+  if (operator === "isBetween") {
+    const [from = "", to = ""] = Array.isArray(value) ? value : [];
+    return (
+      <>
+        <input type="number" step="0.01" value={from} onChange={(e) => onValueChange([e.target.value, to])} />
+        <input type="number" step="0.01" value={to} onChange={(e) => onValueChange([from, e.target.value])} />
+      </>
+    );
+  }
+  if (operator === "isAnyOf") {
+    // A comma-separated list of amounts
+    const list = Array.isArray(value) ? value.join(",") : "";
+    return <input value={list} onChange={(e) => onValueChange(e.target.value.split(",").map((part) => part.trim()))} />;
+  }
   return <input type="number" step="0.01" value={typeof value === "string" ? value : ""} onChange={(e) => onValueChange(e.target.value)} />;
 }
 

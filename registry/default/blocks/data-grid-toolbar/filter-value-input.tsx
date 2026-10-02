@@ -25,7 +25,7 @@ const FILTER_VALUE_DEBOUNCE_MS = 200;
 
 /** Props for {@link DataGridFilterValueInput}. */
 export type DataGridFilterValueInputProps = {
-  /** The filtered column, for choosing a typed input (number/date/checkbox/select) over the plain-text default. */
+  /** The filtered column; its cell type's `filter.valueInput` (or the type-name default) picks the widget. */
   column: AnyColumnDef | undefined;
   operator: FilterOperator;
   value: string | [string, string] | string[] | undefined;
