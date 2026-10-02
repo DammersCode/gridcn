@@ -644,6 +644,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Global shortcuts wait for an open edit session (`data-grid`):** while a cell editor is open,
+  `DataGridGlobalShortcuts` ignores keys. Before, Ctrl+Z in a select list undid an earlier grid
+  edit, and an opted-in `selectAll` fired.
 - **Enter in a popup editor commits once (`data-grid`):** Enter on a select option commits the
   value and closes the editor. Before, the same keystroke reached the grid and reopened the
   editor, so `onEditStart` fired twice.

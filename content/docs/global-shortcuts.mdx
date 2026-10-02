@@ -20,7 +20,7 @@ active at every focus position.
 It renders nothing.
 Mount it inside `DataGridRoot`.
 The component listens for `keydown` on the window.
-A gate of six rules decides whether an event reaches the grid:
+A gate of seven rules decides whether an event reaches the grid:
 
 1. While IME composition is in progress, the gate skips the event.
 2. When the event is already `defaultPrevented`, the gate skips it. (The page or the grid handled
@@ -31,7 +31,9 @@ A gate of six rules decides whether an event reaches the grid:
    the key.
 5. The gate requires this grid to be the last focused grid with the component. This rule breaks
    ties between grids.
-6. The key must resolve to an enabled action through the effective keymap.
+6. While an edit session is open, the gate skips the event. The editor owns the key, also in a
+   popup such as the select list.
+7. The key must resolve to an enabled action through the effective keymap.
 
 When the gate passes, the component dispatches the action through the in-grid keymap. For undo
 and redo, that is the `onUndo` or `onRedo` seam.

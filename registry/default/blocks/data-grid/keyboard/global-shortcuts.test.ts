@@ -71,6 +71,10 @@ describe("resolveGlobalShortcut - gate rules", () => {
     expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true }), makeCtx({ keymap, include }))).toBe("undo");
   });
 
+  it("returns null while an edit session is open", () => {
+    expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true }), makeCtx({ editing: true }))).toBe(null);
+  });
+
   it("rejects both platform modifiers held at once", () => {
     expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true, metaKey: true }), makeCtx())).toBe(null);
   });

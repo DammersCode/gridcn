@@ -78,6 +78,7 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
         targetIsEditable,
         targetInAnyGrid,
         ownsFocus: lastFocusedGrid === gridId,
+        editing: storeApi.getState().editing !== null,
         include: (a) => storeApi.getState().commands?.[a]?.scope !== "editing",
       });
       if (action === null) return;
