@@ -468,3 +468,42 @@ describe("exportGrid — maxRows", () => {
     }
   });
 });
+
+describe("export — maxRows caps before building rows", () => {
+  function makeLargeState(accessorFn: (row: Row) => unknown): DataGridStoreState {
+    const data: Row[] = Array.from({ length: 100_000 }, (_, i) => ({ id: String(i), name: `Name ${i}`, note: "" }));
+    return makeState({
+      data,
+      visibleColumns: [{ id: "name", header: "Name", accessorFn, type: "text" }] as never,
+      viewIndex: data.map((_, i) => i),
+    });
+  }
+
+  it("buildExportRows calls the cell accessor only for the capped rows", () => {
+    const accessorFn = vi.fn((row: Row) => row.name);
+
+    const rows = buildExportRows(makeLargeState(accessorFn), "view", 10);
+
+    expect(rows).toHaveLength(10);
+    expect(accessorFn).toHaveBeenCalledTimes(10);
+  });
+
+  it("exportGrid reads only maxRows rows and still warns with the full count", async () => {
+    const accessorFn = vi.fn((row: Row) => row.name);
+    vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => "blob:mock-url"), revokeObjectURL: vi.fn() });
+    const anchor = document.createElement("a");
+    anchor.click = vi.fn();
+    vi.spyOn(document, "createElement").mockReturnValue(anchor);
+    const warnSpy = vi.spyOn(console, "warn");
+
+    try {
+      await exportGrid(makeLargeState(accessorFn), { format: "csv", maxRows: 10 });
+
+      expect(accessorFn).toHaveBeenCalledTimes(10);
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("export truncated to 10 of 100000"));
+    } finally {
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    }
+  });
+});

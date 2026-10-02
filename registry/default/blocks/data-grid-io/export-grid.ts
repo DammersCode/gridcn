@@ -57,30 +57,32 @@ export function rowsToCsv(rows: readonly (readonly string[])[], delimiter: strin
   return rows.map((row) => row.map(field).join(delimiter)).join("\r\n");
 }
 
-/** Truncates to `maxRows` data rows when the scope exceeds the cap, with a dev-only warning. */
-function capExportRows(rows: string[][], maxRows: number | undefined): string[][] {
-  if (maxRows === undefined || rows.length <= maxRows) return rows;
-  if (isDev()) console.warn(`[data-grid-io] export truncated to ${maxRows} of ${rows.length} rows (maxRows)`);
-  return rows.slice(0, maxRows);
-}
-
 /**
  * Resolves the rows to export via the cell-type pipeline (`toText`, never raw values), in the
  * requested `scope` order: `'view'` walks `viewIndex` (current sort/filter order), `'all'` walks
  * `data` as-is, ignoring any active sort/filter, `'selection'` walks only the selected rows in
  * view order. Every scope emits all visible columns, so a row-shaped export always matches its
  * header row. Hole rows (unloaded indices of a lazy grid's sparse `data`) are skipped in every
- * scope.
+ * scope. A `maxRows` cap builds only that many rows.
  */
-export function buildExportRows(state: DataGridStoreState, scope: "view" | "all" | "selection"): string[][] {
-  const dataIndices =
+export function buildExportRows(state: DataGridStoreState, scope: "view" | "all" | "selection", maxRows?: number): string[][] {
+  const dataIndices = exportDataIndices(state, scope);
+  return buildRowsAt(state, maxRows === undefined ? dataIndices : dataIndices.slice(0, maxRows));
+}
+
+function exportDataIndices(state: DataGridStoreState, scope: "view" | "all" | "selection"): number[] {
+  const scoped =
     scope === "all"
       ? state.data.map((_, i) => i)
       : scope === "selection"
-          ? getSelectedViewRows(state.selection).map((viewRow) => state.viewIndex[viewRow]!)
+        ? getSelectedViewRows(state.selection).map((viewRow) => state.viewIndex[viewRow]!)
         : state.viewIndex;
   // lazy grids keep `data` sparse: skip holes before any accessor runs
-  return dataIndices.filter((dataRowIndex) => state.data[dataRowIndex] !== undefined).map((dataRowIndex) => {
+  return scoped.filter((dataRowIndex) => state.data[dataRowIndex] !== undefined);
+}
+
+function buildRowsAt(state: DataGridStoreState, dataIndices: readonly number[]): string[][] {
+  return dataIndices.map((dataRowIndex) => {
     const row = state.data[dataRowIndex];
     return state.visibleColumns.map((column) => {
       const cellType = state.cellTypes[column.type ?? "text"];
@@ -92,6 +94,14 @@ export function buildExportRows(state: DataGridStoreState, scope: "view" | "all"
       return cellType ? cellType.toText(value, column.options) : "";
     });
   });
+}
+
+/** Builds at most `maxRows` rows, with a dev-only warning when the scope exceeds the cap. */
+function buildCappedExportRows(state: DataGridStoreState, scope: "view" | "all" | "selection", maxRows: number | undefined): string[][] {
+  const dataIndices = exportDataIndices(state, scope);
+  if (maxRows === undefined || dataIndices.length <= maxRows) return buildRowsAt(state, dataIndices);
+  if (isDev()) console.warn(`[data-grid-io] export truncated to ${maxRows} of ${dataIndices.length} rows (maxRows)`);
+  return buildRowsAt(state, dataIndices.slice(0, maxRows));
 }
 
 /** Header row text for each visible column, in the same order `buildExportRows` emits cells. */
@@ -132,7 +142,7 @@ export type BuildXlsxOptions = {
  */
 export async function buildXlsx(state: DataGridStoreState, options: BuildXlsxOptions = {}): Promise<Blob> {
   const { scope = "view", includeHeaders = true, workbookName = "Sheet1", maxRows } = options;
-  const rows = capExportRows(buildExportRows(state, scope), maxRows);
+  const rows = buildCappedExportRows(state, scope, maxRows);
   const table = includeHeaders ? [buildExportHeaders(state), ...rows] : rows;
 
   const { writeXlsx } = await import("./xlsx-writer");
@@ -149,7 +159,7 @@ export async function buildXlsx(state: DataGridStoreState, options: BuildXlsxOpt
 export async function exportGrid(state: DataGridStoreState, options: ExportGridOptions): Promise<void> {
   const { format, scope = "view", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true, fileName = "export", workbookName, maxRows } = options;
   if (format === "csv") {
-    const rows = capExportRows(buildExportRows(state, scope), maxRows);
+    const rows = buildCappedExportRows(state, scope, maxRows);
     const table = includeHeaders ? [buildExportHeaders(state), ...rows] : rows;
     const csv = (csvBom ? "\uFEFF" : "") + rowsToCsv(table, csvDelimiter, sanitizeFormulas);
     downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8;" }), `${fileName}.csv`);

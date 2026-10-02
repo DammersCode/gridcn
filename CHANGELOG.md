@@ -677,6 +677,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Export with `maxRows` builds only the capped rows (`data-grid-io`):** `exportGrid`,
+  `buildXlsx`, and `buildExportRows` (new optional `maxRows` argument) run the cell accessors
+  for at most `maxRows` rows. Before, they built every row, then cut the result.
 - **Server examples apply a move batch in the right order:** the fake remote server and the
   "Translate ops into API calls" recipe handle the `move` ops of a batch together, with
   `applyChange` semantics. Before, moves applied one at a time put rows in the wrong order.
