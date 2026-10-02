@@ -184,7 +184,7 @@ when `data`, `getRowId`, or `getParentId` change) and `viewTree` (view space: `l
 ## Open product questions
 
 1. Does a filter match on a parent also show its non-matching children? Recommendation: no; a filter
-   shows matches and their paths only. A `includeDescendants` filter option can follow if users ask.
+   shows matches and their paths only. An `includeDescendants` filter option can follow if users ask.
 2. Does deleting a parent delete its descendants? Recommendation: no; delete removes exactly the
    selected records, and children become roots. Silent cascading deletes lose data the user did not
    select.
