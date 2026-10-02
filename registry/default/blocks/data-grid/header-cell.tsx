@@ -15,6 +15,25 @@ import { useDataGridLabels, type AnyColumnDef } from "./store";
 import { columnLabelText as headerLabelText } from "./columns/column-format-helpers";
 import { gridAttrSelector } from "./data-attributes";
 
+/** What a {@link HeaderCellRenderer} receives for one column. */
+export type HeaderCellRenderCtx = {
+  column: AnyColumnDef;
+  /** The column's view index (its position among the visible columns). */
+  index: number;
+  width: number;
+  headerClickBehavior: HeaderClickBehavior;
+  sortState: readonly SortSpec[];
+};
+
+/**
+ * Per-column header cell slot, called once per visible column. It returns the CONTENTS of the
+ * grid-owned header cell, which keeps its placement, pinned inset, `role`, `aria-colindex`, gestures,
+ * and resize handle. `Default` is the built-in contents (label, sort indicator, header menu
+ * trigger): return it to keep them, or a custom node to replace them. Pass a stable identity. (The
+ * column-level `renderCell` covers body cells — a different slot.)
+ */
+export type HeaderCellRenderer = (ctx: HeaderCellRenderCtx, Default: ReactNode) => ReactNode;
+
 /** Props for {@link DataGridHeaderCell}. */
 export type DataGridHeaderCellProps = {
   column: AnyColumnDef;
@@ -40,6 +59,8 @@ export type DataGridHeaderCellProps = {
   onSort: (columnId: string, additive: boolean) => void;
   /** Optional per-column header menu slot (root `renderHeaderMenu` prop) — renders a ghost chevron trigger when provided. */
   renderHeaderMenu?: HeaderMenuRenderer;
+  /** Replaces the cell's contents; see {@link HeaderCellRenderer}. */
+  renderHeaderCell?: HeaderCellRenderer;
 };
 
 /**
@@ -60,6 +81,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
     onSelect,
     onSort,
     renderHeaderMenu,
+    renderHeaderCell,
   } = props;
 
   const labels = useDataGridLabels();
@@ -113,27 +135,8 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
     [headerClickBehavior, column.sortable, onSort, column.id],
   );
 
-  return (
-    <div
-      ref={cellRef}
-      role="columnheader"
-      aria-colindex={index + 1}
-      // sort state is announced to AT in every click behavior — only the visual arrow below is click-gated
-      aria-sort={column.sortable !== false ? ariaSortFor(column.id, sortState) : undefined}
-      data-column-id={column.id}
-      data-pinned={pinned || undefined}
-      data-dragging={isDragging || undefined}
-      className={cn(
-        "group relative flex items-center border-b border-border bg-muted px-2 font-medium select-none",
-        COLUMN_BORDER,
-        isDragging && "opacity-50",
-        column.headerClassName,
-      )}
-      style={style}
-      onPointerDown={handleLabelPointerDown}
-      onClick={handleClick}
-      onDoubleClick={(event) => event.stopPropagation()}
-    >
+  const defaultContent = (
+    <>
       {typeof column.header === "string" ? <span className="truncate">{column.header}</span> : column.header}
       {/* A custom (ReactNode) header owns its display, so the built-in arrow is only appended for string headers;
           embed DataGridSortIndicator inside a custom header when you still want it. */}
@@ -157,6 +160,31 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
             </button>
           ),
         })}
+    </>
+  );
+
+  return (
+    <div
+      ref={cellRef}
+      role="columnheader"
+      aria-colindex={index + 1}
+      // sort state is announced to AT in every click behavior — only the visual arrow below is click-gated
+      aria-sort={column.sortable !== false ? ariaSortFor(column.id, sortState) : undefined}
+      data-column-id={column.id}
+      data-pinned={pinned || undefined}
+      data-dragging={isDragging || undefined}
+      className={cn(
+        "group relative flex items-center border-b border-border bg-muted px-2 font-medium select-none",
+        COLUMN_BORDER,
+        isDragging && "opacity-50",
+        column.headerClassName,
+      )}
+      style={style}
+      onPointerDown={handleLabelPointerDown}
+      onClick={handleClick}
+      onDoubleClick={(event) => event.stopPropagation()}
+    >
+      {renderHeaderCell ? renderHeaderCell({ column, index, width, headerClickBehavior, sortState }, defaultContent) : defaultContent}
       {columnResizable && (
         <div
           data-grid-resize-handle=""

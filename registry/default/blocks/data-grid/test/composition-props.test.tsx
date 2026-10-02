@@ -57,22 +57,31 @@ describe("DataGridHeader composition props", () => {
     expect(container.querySelector(gridAttrSelector("headerLayer"))).toHaveClass("my-header");
   });
 
-  it("renderHeaderCell is called once per visible column with the column context and a pre-wired Default element", () => {
+  it("renderHeaderCell replaces the contents of a grid-owned header cell, once per visible column", () => {
     const renderHeaderCell = vi.fn((ctx: HeaderCellRenderCtx, Default: ReactNode) =>
       ctx.column.id === "name" ? <span data-testid="custom-header">custom</span> : Default,
     );
     const { container } = render(compose({ headerProps: { renderHeaderCell } }));
 
     expect(renderHeaderCell).toHaveBeenCalledTimes(2);
-    // the column that delegates renders the built-in cell, the other one is fully replaced
-    expect(screen.getByTestId("custom-header")).toBeDefined();
-    expect(container.querySelectorAll("[data-column-id]").length).toBe(1);
-    expect(container.querySelector('[data-column-id="age"]')).not.toBeNull();
-    const [ctx, defaultNode] = renderHeaderCell.mock.calls[0]!;
+    const nameCell = container.querySelector<HTMLElement>('[data-column-id="name"]')!;
+    expect(nameCell.getAttribute("role")).toBe("columnheader");
+    expect(nameCell.getAttribute("aria-colindex")).toBe("1");
+    expect(nameCell.style.gridColumnStart).not.toBe("");
+    expect(nameCell.contains(screen.getByTestId("custom-header"))).toBe(true);
+    expect(nameCell.textContent).toBe("custom");
+    expect(container.querySelector('[data-column-id="age"]')!.textContent).toContain("Age");
+  });
+
+  it("renderHeaderCell receives the column context without the resize and reorder plumbing", () => {
+    const renderHeaderCell = vi.fn((_ctx: HeaderCellRenderCtx, Default: ReactNode) => Default);
+    render(compose({ headerProps: { renderHeaderCell } }));
+
+    const [ctx] = renderHeaderCell.mock.calls[0]!;
+    expect(Object.keys(ctx).sort()).toEqual(["column", "headerClickBehavior", "index", "sortState", "width"]);
     expect(ctx.column.id).toBe("name");
     expect(ctx.index).toBe(0);
     expect(ctx.width).toBeGreaterThan(0);
-    expect(defaultNode).toBeDefined();
   });
 
   it("without renderHeaderCell the default header cells render (regression guard)", () => {

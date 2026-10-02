@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useMemo, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useMemo, type CSSProperties, type ReactNode } from "react";
 import { useDataGridRootContext } from "./layout-context";
 import {
   useDataGridActions,
@@ -10,11 +10,21 @@ import {
   useDataGridSortState,
 } from "./store";
 import { DataGridMarkerHeader } from "./rows/marker-header";
-import { DataGridHeaderCell, type DataGridHeaderCellProps } from "./header-cell";
+import { DataGridHeaderCell, type HeaderCellRenderer } from "./header-cell";
 import { useColumnReorder } from "./columns/use-column-reorder";
 import { pinnedInsetStyle } from "./columns/pinned-inset-style";
 import { GRID_LAYER } from "./layers";
 import { isInlineStartHalf } from "./windowing/direction";
+
+export type { HeaderCellRenderCtx, HeaderCellRenderer } from "./header-cell";
+
+/** Props for {@link DataGridHeader}. */
+export type DataGridHeaderProps = {
+  /** Merged onto the header layer element (the sticky `role="row"` layer, not the individual cells). */
+  className?: string;
+  /** Per-column header cell slot — see {@link HeaderCellRenderer}. The marker column's header cell and the reorder drop indicator are untouched. */
+  renderHeaderCell?: HeaderCellRenderer;
+};
 
 /**
  * Header layer: absolutely positioned inside the sticky Viewport, counter-translated
@@ -27,26 +37,6 @@ import { isInlineStartHalf } from "./windowing/direction";
  * the marker carries no `aria-colindex` at all and sits outside the data header's a11y column
  * count (chosen over shifting every data cell's aria-colindex by one).
  */
-/** Everything the built-in header cell receives for one column — the context of {@link HeaderCellRenderer}. */
-export type HeaderCellRenderCtx = DataGridHeaderCellProps;
-
-/**
- * Per-column header cell slot, called once per visible column. `ctx` carries everything the
- * built-in header cell receives; `Default` is the built-in cell for that column, pre-wired with
- * exactly those props. Return `Default` to keep the built-in cell, or a custom node to replace
- * it. Pass a stable identity. (The column-level `renderCell` covers body cells — a different
- * slot.)
- */
-export type HeaderCellRenderer = (ctx: HeaderCellRenderCtx, Default: ReactNode) => ReactNode;
-
-/** Props for {@link DataGridHeader}. */
-export type DataGridHeaderProps = {
-  /** Merged onto the header layer element (the sticky `role="row"` layer, not the individual cells). */
-  className?: string;
-  /** Per-column header cell slot — see {@link HeaderCellRenderer}. The marker column's header cell and the reorder drop indicator are untouched. */
-  renderHeaderCell?: HeaderCellRenderer;
-};
-
 export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderProps): ReactNode {
   const { scrollRef, windowedColumns, template, layout, headerHeight, interaction, direction, renderHeaderMenu } = useDataGridRootContext();
   const rowMarkers = useDataGridRowMarkers();
@@ -140,36 +130,33 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
   return (
     <div role="row" style={layerStyle} className={className} data-grid-header-layer="">
       {layout.markerWidth > 0 && <DataGridMarkerHeader mode={rowMarkers} headerHeight={headerHeight} />}
-      {windowedColumns.map(({ column, index }) => {
-        const cellProps = {
-          column,
-          index,
-          width: layout.widths[index]!, // index is a real index into columns; layout.widths is columns.map(...), same length
-          gridColOffset: markerColOffset,
-          headerClickBehavior,
-          sortState,
-          resize: {
+      {windowedColumns.map(({ column, index }) => (
+        <DataGridHeaderCell
+          key={column.id}
+          column={column}
+          index={index}
+          width={layout.widths[index]!} // index is a real index into columns; layout.widths is columns.map(...), same length
+          gridColOffset={markerColOffset}
+          headerClickBehavior={headerClickBehavior}
+          sortState={sortState}
+          resize={{
             enabled: enableColumnResize,
             scrollRootRef: scrollRef,
             setColumnWidth: actions.setColumnWidth,
             commitColumnWidth: actions.commitColumnWidth,
             direction,
-          },
-          reorder: {
+          }}
+          reorder={{
             enabled: enableColumnReorder,
             state: dragState,
             onPointerDown: onHeaderDragPointerDown,
-          },
-          onSelect: interaction.onHeaderPointerDown,
-          onSort: actions.toggleSort,
-          renderHeaderMenu,
-        } as const;
-        return (
-          <Fragment key={column.id}>
-            {renderHeaderCell ? renderHeaderCell(cellProps, <DataGridHeaderCell {...cellProps} />) : <DataGridHeaderCell {...cellProps} />}
-          </Fragment>
-        );
-      })}
+          }}
+          onSelect={interaction.onHeaderPointerDown}
+          onSort={actions.toggleSort}
+          renderHeaderMenu={renderHeaderMenu}
+          renderHeaderCell={renderHeaderCell}
+        />
+      ))}
       {dragState && dropIndicator && <div data-grid-drop-indicator="" aria-hidden="true" style={dropIndicator.style} />}
     </div>
   );

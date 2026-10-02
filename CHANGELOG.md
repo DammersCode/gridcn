@@ -120,10 +120,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   built-ins no longer cast.
 
 - **Composition parts take props:** `DataGridHeader` accepts `className` for its header-layer
-  element and `renderHeaderCell`, a per-column header cell slot. The slot is called with the
-  column context — every built-in header cell prop — and `Default`, the built-in cell for that
-  column pre-wired with exactly those props. Return `Default` to keep the built-in cell or a
-  custom node to replace it. `DataGridBody` accepts `className` for its rows-canvas element.
+  element and `renderHeaderCell`, a per-column header contents slot. The slot is called with
+  `{ column, index, width, headerClickBehavior, sortState }` and `Default`, the built-in contents
+  (label, sort indicator, header menu trigger). Return `Default` to keep them or a custom node to
+  replace them; the grid keeps the header cell element, its placement, ARIA, gestures, and resize
+  handle. `DataGridBody` accepts `className` for its rows-canvas element.
 - **`emptyState` accepts a function:** it receives `{ reason }`. The reason is `"no-data"` when
   the data array is empty and `"filtered"` when rows exist but none are in view. A plain node
   still works.
@@ -324,6 +325,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking:** `renderHeaderCell` replaces the contents of a grid-owned header cell
+  (`data-grid`). Its `ctx` is `{ column, index, width, headerClickBehavior, sortState }`; the
+  resize, reorder, select, and sort plumbing is gone from it. Before, the slot replaced the whole
+  header cell element, so a custom cell had to place itself and set its own `role` and
+  `aria-colindex`.
 - **Breaking:** `select` columns sort by choice label (`data-grid`). The built-in `select` type's
   `compare` orders the labels with a numeric-aware, case-insensitive collation. A cell type's
   `compare` receives the column's `options` as a third argument. Before, `select` columns sorted

@@ -164,9 +164,12 @@ to the raw column id. `headerClassName` styles the whole header cell.
 ### The whole header cell
 
 `ColumnDef.header` replaces the label inside the built-in cell. The `renderHeaderCell` slot on
-`DataGridHeader` replaces the whole cell element. It is called once per visible column with the
-column context and `Default` — the built-in cell for that column, pre-wired with exactly those
-props. Return `Default` to keep the built-in cell; a custom node replaces it:
+`DataGridHeader` replaces the contents of the cell. The grid keeps the cell element itself: its
+placement, pinned offset, `role`, `aria-colindex`, sort and select gestures, and resize handle.
+The slot is called once per visible column with `ctx` and `Default`. `ctx` is
+`{ column, index, width, headerClickBehavior, sortState }`. `Default` is the built-in contents:
+the label, the sort indicator, and the header menu trigger. Return `Default` to keep them; a
+custom node replaces them:
 
 ```tsx
 <DataGridRoot className="h-[400px]">
