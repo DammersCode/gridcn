@@ -381,6 +381,32 @@ describe("useDataGridClipboard.copy/cut outcomes", () => {
     expect((onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>])[1].source).toBe("delete");
   });
 
+  it("cut still clears a whole-column range when a sort during the write keeps its records", async () => {
+    let resolveWrite!: () => void;
+    const write = vi.fn(() => new Promise<void>((resolve) => (resolveWrite = resolve)));
+    vi.stubGlobal("navigator", { clipboard: { write } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const onDataChange = vi.fn();
+    const data: Row[] = [
+      { id: "1", name: "c" },
+      { id: "2", name: "b" },
+      { id: "3", name: "a" },
+    ];
+    const result = setUpGrid(makeWrapper({ data, onDataChange }));
+    act(() => result.current.actions.extendToAt({ col: 0, row: 2 }));
+
+    await act(async () => {
+      const pending = result.current.clipboard.cut();
+      act(() => result.current.actions.toggleSort("name", false));
+      resolveWrite();
+      await pending;
+    });
+
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    const [, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(change.ops.map((op) => op.rowId).sort()).toEqual(["1", "2", "3"]);
+  });
+
   it("cut clears the copied cells by row identity when a sort moves the rows while the write is in flight", async () => {
     let resolveWrite!: () => void;
     const write = vi.fn(() => new Promise<void>((resolve) => (resolveWrite = resolve)));

@@ -16,9 +16,11 @@ export type UseDataGridClipboardOptions = {
   sanitizeFormulas?: boolean;
 };
 
-/** Whether a view rebuild collapsed the selection onto the same record and column the cursor had in `before`. */
-function collapsedOntoFollowedCursor(before: DataGridStoreState, after: DataGridStoreState): boolean {
+/** Whether a view rebuild kept the range (only its anchor followed the cursor) or collapsed it onto the cursor's record and column. */
+function selectionFollowedRebuild(before: DataGridStoreState, after: DataGridStoreState): boolean {
   const current = after.selection.current;
+  const kept = before.selection.current;
+  if (current && kept && current.range === kept.range && current.rangeStack === kept.rangeStack) return true;
   const from = before.activeCell;
   const to = after.activeCell;
   if (!current || !from || !to || current.rangeStack.length > 0) return false;
@@ -124,7 +126,7 @@ export function useDataGridClipboard(options: UseDataGridClipboardOptions = {}):
     const latest = storeApi.getState();
     const current = latest.selection.current;
     const rebuilt = latest.viewIndex !== s.viewIndex || latest.visibleColumns !== s.visibleColumns;
-    const selectionKept = current === s.selection.current || (rebuilt && (current === null || collapsedOntoFollowedCursor(s, latest)));
+    const selectionKept = current === s.selection.current || (rebuilt && (current === null || selectionFollowedRebuild(s, latest)));
     if (result !== "failed" && selectionKept) actions._deleteCellsById(rowIds, columnIds);
     return result;
   }, [storeApi, actions, sanitizeFormulas]);
