@@ -1,7 +1,7 @@
 import type { GridAction, Keymap } from "../types";
 import { isDev } from "../is-dev";
 import { warnDev } from "../store/commit";
-import { isDefaultBinding, parseBinding } from "./match-keymap";
+import { bindingSignature, isDefaultBinding } from "./match-keymap";
 import { isMacPlatform } from "./platform";
 
 /**
@@ -151,18 +151,7 @@ export function sharedKeymapBindings(keymap: Keymap, isMac: boolean = isMacPlatf
   for (const [action, bindings] of Object.entries(keymap) as [GridAction, string[] | undefined][]) {
     if (!bindings) continue;
     for (const binding of bindings) {
-      const parsed = parseBinding(binding);
-      const key = parsed.key.length === 1 ? parsed.key.toLowerCase() : parsed.key;
-      const ctrlIsMod = !isMac && (parsed.mod || parsed.ctrl);
-      const signature = [
-        ctrlIsMod || parsed.mod ? "mod" : "",
-        parsed.ctrl && !ctrlIsMod ? "ctrl" : "",
-        parsed.shift ? "shift" : "",
-        parsed.alt ? "alt" : "",
-        key,
-      ]
-        .filter(Boolean)
-        .join("+");
+      const signature = bindingSignature(binding, !isMac);
       const entry = bySignature.get(signature) ?? { binding, actions: [], consumerInvolved: false };
       if (!entry.actions.includes(action)) entry.actions.push(action);
       if (!isDefaultBinding(action, binding)) entry.consumerInvolved = true;

@@ -322,7 +322,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Breaking:** keymap ties resolve per binding (`data-grid`). When two actions bind the same
   combo with the same number of modifiers, a `keymap` binding that is not one of the action's
   default bindings wins; a tie between default bindings keeps the earlier action (Enter: `edit`
-  before `commitDown`). A `keymap` entry that repeats a default binding counts as the default.
+  before `commitDown`). A `keymap` entry that repeats a default binding counts as the default,
+  whatever its modifier order or key case.
   Before, the first action in keymap order won every tie. Off macOS, `ctrl` and `mod` bindings
   of the same key count as one shared combo for the development warning.
 - **Breaking:** `CellEditorProps` has required `rowId` and `columnId` props (`data-grid`). A

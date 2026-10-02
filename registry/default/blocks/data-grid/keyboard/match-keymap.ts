@@ -94,8 +94,24 @@ export function matchKeymap(
   return best?.action ?? null;
 }
 
-/** True when `binding` is one of `action`'s `DEFAULT_KEYMAP` bindings. */
+/**
+ * Canonical form of a binding: modifiers in fixed order and a lowercase single-character key.
+ * With `ctrlIsMod`, `ctrl` and `mod` share one token (both mean the Ctrl key off macOS).
+ */
+export function bindingSignature(binding: string, ctrlIsMod = false): string {
+  const parsed = parseBinding(binding);
+  const key = parsed.key.length === 1 ? parsed.key.toLowerCase() : parsed.key;
+  const mod = parsed.mod || (ctrlIsMod && parsed.ctrl);
+  const ctrl = parsed.ctrl && !ctrlIsMod;
+  return [mod ? "mod" : "", ctrl ? "ctrl" : "", parsed.shift ? "shift" : "", parsed.alt ? "alt" : "", key]
+    .filter(Boolean)
+    .join("+");
+}
+
+/** True when `binding` restates one of `action`'s `DEFAULT_KEYMAP` bindings (modifier order and key case aside). */
 export function isDefaultBinding(action: GridAction, binding: string): boolean {
   const defaults: readonly string[] | undefined = DEFAULT_KEYMAP[action];
-  return defaults?.includes(binding) ?? false;
+  if (!defaults) return false;
+  const signature = bindingSignature(binding);
+  return defaults.some((d) => bindingSignature(d) === signature);
 }

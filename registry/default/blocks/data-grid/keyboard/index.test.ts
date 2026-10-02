@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { isDefaultBinding } from "./match-keymap";
 import { DEFAULT_KEYMAP, matchKeymap, parseBinding, isPrintableKey, sharedKeymapBindings, validateSharedBindings, type KeymapEvent } from ".";
 import type { GridAction, Keymap } from "../types";
 
@@ -409,10 +410,16 @@ describe("matchKeymap - tie-break", () => {
     expect(matchKeymap(makeEvent({ key: "Enter" }), keymap, false)).toBe("edit");
   });
 
-  it("a JSON-cloned default keymap resolves like the default keymap", () => {
-    const keymap = JSON.parse(JSON.stringify(DEFAULT_KEYMAP)) as Keymap;
-    expect(matchKeymap(makeEvent({ key: "Enter" }), keymap, false)).toBe("edit");
-    expect(matchKeymap(makeEvent({ key: "z", ctrlKey: true }), keymap, false)).toBe("undo");
+  it("treats a JSON-cloned default keymap as defaults, so a keymap binding still wins the tie", () => {
+    const keymap = { ...(JSON.parse(JSON.stringify(DEFAULT_KEYMAP)) as Keymap), saveAll: ["Enter"] } as Keymap;
+    expect(matchKeymap(makeEvent({ key: "Enter" }), keymap, false)).toBe("saveAll");
+  });
+
+  it("counts a restated default as a default regardless of modifier order or key case", () => {
+    expect(isDefaultBinding("redo", "shift+mod+z")).toBe(true);
+    expect(isDefaultBinding("redo", "mod+shift+Z")).toBe(true);
+    expect(isDefaultBinding("redo", "mod+alt+z")).toBe(false);
+    expect(isDefaultBinding("undo", "ctrl+z")).toBe(false);
   });
 });
 
