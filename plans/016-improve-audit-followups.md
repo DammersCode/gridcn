@@ -124,7 +124,7 @@ Decisions (maintainer rule: secure, performant, feature-rich; breaking changes w
 - The compiler bail-out check collects React Compiler `CompileError` events on Babel 7.29 and fails on any bail-out outside a committed per-function allowed baseline (function plus category and reason), and on stale baseline entries. The compiler stops at the first failing pass, so a later-pass reason behind an earlier one stays invisible.
 - The `ci` aggregator always runs and fails unless every needed job succeeded, so a fork PR shows a failing `ci` until a maintainer runs it; the other jobs keep the author gate.
 
-Execution order (one implementer at a time on the branch, so blocks never collide in shared files such as `create-store.ts` and `CHANGELOG.md`; reviewers stay read-only in their own worktrees): R1 → R4 critical (R-36…R-43) → R5 (io + hucre) → R2 → R3 → remaining R4 → R-35 → W5-11 → W5-12 → W5-13.
+Execution order (one implementer at a time on the branch, so blocks never collide in shared files such as `create-store.ts` and `CHANGELOG.md`; reviewers stay read-only in their own worktrees): R1 → R4 critical (R-36…R-43) → R5 (io + hucre) → R2 → R3 → R6 (data integrity and readOnly) → remaining R4 → R-35 → W5-12 → W5-11 → W6-05 → W5-13.
 
 A single implementer works through the execution order.
 
@@ -271,9 +271,46 @@ Decisions:
 | R-73 | R5 implementer | Audit hucre's `formatValue` against hostile number-format strings (ReDoS, long patterns); cap the format-string length gridcn passes | S | LOW |
 | R-74 | R5 implementer | `scripts/normalize-payload-eol.mjs` keeps EOL-only changes of every embedded file when one file in the same payload really changed; normalize per embedded file | S | LOW |
 
+### R6 — data integrity and readOnly (from the spec review)
+
+Source: the spec advisor review of W5-11, W5-12, and W5-13 on 2026-10-02. R6 runs before the rest of R4. R-93 lands with W5-12 and R-94 with W5-13.
+
+| # | Severity | Effort | Change |
+|---|----------|--------|--------|
+| R-85 | HIGH | S | Row-channel checks stay on view positions across sort, filter and data swaps (`setSorts`/`toggleSort`/`setFilters` leave `selection.rows` alone), so `deleteRows`/`duplicateRows` (shortcut, context menu) and `getRowIds()` act on records the user did not check. Remap the row channel by record identity on every view rebuild. Test: check rows, sort, deleteRows deletes only the checked records. |
+| R-86 | MED | XS | Undo/redo run in a read-only grid (`use-grid-interaction.ts` ~453-462 has no readOnly check; history writes through `setData`). Guard both. |
+| R-87 | MED | S | `commitCellEdit` and `commitCellValue(At)` lack the store readOnly guard (`data-write.ts`): an editor open when readOnly turns true commits on Enter; `actions.commitCellValue` writes in a read-only grid. Guard them; cancel the session when the flag turns on. |
+| R-88 | MED | S | A column added to `columns` after any reorder, or missing from a restored `defaultColumnLayout.order`, never renders (`computeVisibleColumns`, compute.ts ~396-407). Append missing ids in def order. |
+| R-89 | MED | S | Writes from inside `onDataChange` are lost: all nine emit sites call `onDataChange` before `set` (data-write.ts ~227,287,317,377,444,529,565,595,653). Emit after `set`. |
+| R-90 | LOW | XS | `defaultColumnLayout` is applied without normalizing: pins on `pinnable: false` columns, unclamped widths, unknown ids kept (`applyDefaultColumnLayout`). |
+| R-91 | LOW | XS | `onColumnLayoutChange` fires on no-op `setColumnPin`/`setColumnHidden`/`commitColumnWidth`; `setColumnHidden` stores unknown ids. |
+| R-92 | LOW | XS | `useDataGridActions()` (consumer barrel) exposes `_registerReadOnly`/`_syncProps`; `_registerReadOnly(false)` lifts readOnly for menu and clipboard. Hide internals now (W5-13 closes fully). |
+| R-93 | LOW | in W5-12 | SSR/first paint render the fill handle in a read-only grid (store mirrors readOnly only after mount). |
+| R-94 | LOW | in W5-13 | Overlay plugins call hooks inside `DataGridOverlays`' loop: a changing list throws on the hook count; compiler bail-out. |
+
 ## Wave 5 — API foundation (breaking welcome, spec first where marked)
 
 Source: extensibility review 2026-09-27 (API-R1…R12). Ordered by dependency; W5-01…W5-06 are independent of each other.
+
+W5 decisions (spec review 2026-10-02):
+- W5-11 `selection` is gesture-first: a gesture applies at once and emits; a changed `selection` prop that differs from the grid's value overrides it. Strict control paints drags a frame late and breaks same-tick composite gestures.
+- `columnLayout` is gesture-first too; resize frames never wait for the consumer.
+- Echo detection uses an in-flight queue of emitted values; a matching prop is an echo (drops itself and older entries); any other prop applies only when it differs structurally.
+- `SelectionState = { range: { start, end } | null, anchor, rangeStack, rowIds, columnIds }`; the anchor may lie inside the range (Ctrl+A).
+- The row channel follows record identity; rows that leave the view leave the selection (**Breaking**).
+- A range survives a view rebuild only if it covers the same records; otherwise it collapses onto the active cell.
+- An omitted part of a controlled layout stays uncontrolled (same rule as `setColumnLayout`).
+- Saved and controlled layouts are normalized: missing ids appended in def order, unknown ids dropped.
+- W5-12 syncs in two phases: config props (readOnly, keymap, commands, labels, enable*, callbacks…) in a layout effect via `_syncConfig`; recompute inputs in the passive effect.
+- Render-only slots (emptyState, loadingState, renderHeaderMenu, renderMarker, renderMarkerHeader, getRowClassName, getCellClassName) stay `DataGridRoot` props.
+- `DataGridProviderProps` is a union: `store` excludes sync props.
+- When `readOnly` turns true, the open edit session cancels; every store write action no-ops on `readOnly` (the guard lives in the store).
+- Plugins are trusted code; the handle is a contract, not isolation. Runtime `api.store` wrapper without `setState`; `_` actions live outside the state.
+- Plugin overlays are components keyed by plugin name.
+- Plugin bindings never win against a default or consumer binding.
+- `onDataChange` and plugin observers run after the store write.
+- W6-05 `commitChange` comes before W5-13 (no-op on readOnly, emit after set, row-op guards, pass-through for source "history").
+- Execution order: W5-12 → W5-11 → W6-05 → W5-13 (after R-47, R-51, R-52, R-56). W6-05 moves out of Wave 6 into this order.
 
 | # | ID | Change | Effort | Risk | Spec |
 |---|----|--------|--------|------|------|
@@ -287,9 +324,9 @@ Source: extensibility review 2026-09-27 (API-R1…R12). Ordered by dependency; W
 | W5-08 | API-R2 | `CellRef = { rowId, columnId }` as the public coordinate: actions (`selectCell`, `startEditing`, `scrollTo`) take refs, positional variants get an `*At` suffix; every ctx (render, click, className, marker, menu) carries `rowId` + `columnId` and one name `viewRowIndex`; `CellCoord` renamed `ViewCoord` and documented as view space | L | MED-HIGH | yes |
 | W5-09 | API-R1 | Imperative handle: `<DataGrid ref>` + `useDataGridApi()` → `scrollTo`, `focus`, `startEditing`, `stopEditing`, `getSelection`, `setSelection`, `getRow`, `getViewRowIds`, `actions`, `store`. Replaces store lifting with duplicated props | M | LOW-MED | yes (short) |
 | W5-10 | API-R8 | Custom commands: `commands?: Record<string, GridCommand>` (`run(api)`, `when`, `label`, `group`); `keymap` accepts custom command names; `GridAction` becomes an interface-mergeable registry like `GridCellTypes`; the keybindings dialog lists custom commands | M | LOW-MED | yes |
-| W5-11 | API-R7 | Controlled selection and layout: `selection`/`defaultSelection`/`onSelectionChange(next: SelectionState)` in `CellRef` terms; controlled `columnLayout` (`defaultColumnLayout` stays the seed); drop `onSelectionCleared`. Absorbs the `setColumnLayout` action. W3-04 bail-outs must hold on the drag path | L | MED | yes |
-| W5-12 | API-R11 | One config home: every behavior prop (`readOnly`, `keymap`, render slots, events) is a sync prop; `DataGridRoot` keeps only DOM/layout props; `DataGridProps = DataGridSyncProps & DataGridRootProps` by spread (no ~60 hand-forwarded props, W3-07's guard becomes structural) | M | MED | yes (short) |
-| W5-13 | API-R5 | Plugin system: `plugins={[fill, history, pinnedRows]}` with `DataGridPlugin = { name, overlay?, rowBands?, onDataChange?, commands?, keymap?, Mount? }`; bands concatenate; replaces the per-add-on wiring and `_register*` actions; third parties can write add-ons | L | MED | yes |
+| W5-11 | API-R7 | Controlled selection and layout: `selection`/`defaultSelection`/`onSelectionChange(next: SelectionState)` in `CellRef` terms; controlled `columnLayout` (`defaultColumnLayout` stays the seed); drop `onSelectionCleared`. Absorbs the `setColumnLayout` action. W3-04 bail-outs must hold on the drag path | L | MED | yes: `research/controlled-selection-layout-spec.md` |
+| W5-12 | API-R11 | One config home: every behavior prop (`readOnly`, `keymap`, render slots, events) is a sync prop; `DataGridRoot` keeps only DOM/layout props; `DataGridProps = DataGridSyncProps & DataGridRootProps` by spread (no ~60 hand-forwarded props, W3-07's guard becomes structural) | M | MED | yes: `research/config-home-spec.md` |
+| W5-13 | API-R5 | Plugin system: `plugins={[fill, history, pinnedRows]}` with `DataGridPlugin = { name, overlay?, rowBands?, onDataChange?, commands?, keymap?, Mount? }`; bands concatenate; replaces the per-add-on wiring and `_register*` actions; third parties can write add-ons | L | MED | yes: `research/plugin-system-spec.md` |
 
 ## Wave 6 — features
 
@@ -301,7 +338,7 @@ Source: competitor gap scan 2026-09-27 (FEAT-1…12) plus the former W5 features
 | W6-02 | FEAT-2 | `autosizeColumns({ columnIds?, sampleRows?, includeHeader? })` over view rows via canvas `measureText`, one `onColumnLayoutChange`; optional `autosizeOnMount`. Today autosize measures only mounted cells (`autosize-column.ts:5-13`) | S | LOW | — |
 | W6-03 | FEAT-6 | `printGrid()` / `<DataGridPrintButton>` in io: static table from `buildExportRows` in a hidden iframe, `window.print()` (also gives PDF) | S-M | LOW | — |
 | W6-04 | FEAT-3 | `number.options.format: Intl.NumberFormatOptions` (currency, percent, compact; `toText` stays raw); new `url` cell type (href allow-list `http`/`https`/`mailto` only) and `longText` (popover editor) | S-M | LOW | W3-03 |
-| W6-05 | API-02 | Generic write action `actions.commitChange(change)`: `applyChange` when uncontrolled, `onDataChange` in both modes, row-op guards, one undo entry; io import uses it | M-L | MED | W5-07 |
+| W6-05 | API-02 | Generic write action `actions.commitChange(change)`: `applyChange` when uncontrolled, `onDataChange` in both modes, row-op guards, one undo entry; io import uses it; runs in the Wave 5 order before W5-13 (no-op on readOnly, emit after set, pass-through for source "history") | M-L | MED | W5-07 |
 | W6-06 | API-01 | Bulk row reorder: batch `reorderRows` (one `move` batch, one undo entry), then multi-row drag from the grip, keyboard reorder | M + L | MED | W2-09, W5-07, spec |
 | W6-07 | API-03 | Column layout in the URL: per-part opt-in (`order`, `hidden`, `widths`, `pins`; default `order` + `hidden`), write-back at the gesture commit point | M | LOW-MED | W5-11 |
 | W6-08 | FEAT-4 | Per-column header filter popover + distinct-values ("set") filter with search and virtual list; `isAnyOf` for text/number/date; `data-filtered` header indicator | M | LOW-MED | W2-01, W2-07, W5-04 |
