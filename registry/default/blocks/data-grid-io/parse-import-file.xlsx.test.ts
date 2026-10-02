@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseImportFile } from "./parse-import-file";
-import { inlineCell, withEntries, workbookFile, worksheetXml, xlsxWithWorksheet } from "./xlsx-fixtures.test-helper";
+import { forgedXlsFile, inlineCell, withEntries, workbookFile, worksheetXml, xlsxWithWorksheet } from "./xlsx-fixtures.test-helper";
 
 const XLS_TYPE = "application/vnd.ms-excel";
 const MIB = 1024 * 1024;
@@ -405,6 +405,34 @@ describe("parseImportFile — legacy xls", () => {
   it("bounds every sheet, so an oversized sheet rejects the workbook even when another sheet is selected", async () => {
     await expect(parseImportFile(xlsFixture("biff8.xls"), { sheetName: "Other" })).resolves.toMatchObject({ rows: [["x"], ["1"]] });
     await expect(parseImportFile(xlsFixture("biff8.xls"), { sheetName: "Other", maxCells: 10 })).rejects.toThrow("import-too-many-cells");
+  });
+
+  it("rejects a forged workbook whose sheets each fit the cell limit but together exceed it, before hucre pads them", async () => {
+    const file = forgedXlsFile({ sheets: 4, cell: { row: 19_000, col: 255 } });
+
+    await expectFastRejection(parseImportFile(file), "import-too-many-cells", 1_000);
+  });
+
+  it("rejects a forged workbook with a single cell at the far corner of the BIFF8 grid", async () => {
+    await expectFastRejection(parseImportFile(forgedXlsFile({ sheets: 1, cell: { row: 65_535, col: 255 } })), "import-too-many-cells", 1_000);
+  });
+
+  it("reads a forged workbook with one cell inside the limits", async () => {
+    const result = await parseImportFile(forgedXlsFile({ sheets: 2, cell: { row: 2, col: 1 } }));
+
+    expect(result.sheetNames).toEqual(["S0", "S1"]);
+    expect(result.rows).toEqual([
+      ["", ""],
+      ["", ""],
+      ["", "1"],
+    ]);
+  });
+
+  it("rejects an OLE2 file with no readable workbook stream", async () => {
+    const bytes = new Uint8Array(2048);
+    bytes.set([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
+
+    await expect(parseImportFile(new File([bytes], "broken.xls"))).rejects.toThrow();
   });
 
   it("rejects an HTML table saved with an .xls extension", async () => {

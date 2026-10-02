@@ -916,6 +916,12 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   search cost about a second per cell at nine placeholders. A format that throws no longer
   rejects the whole import.
 
+- **Legacy xls bound (`data-grid-io`):** an `.xls` workbook is rejected with `errorTooManyCells` when
+  its sheets together span more than `maxCells`. The reader pads every sheet to a full rectangle, and
+  sheets can share one worksheet substream, so a 3 KB file with 50 such sheets peaked near 2.9 GB.
+  The check reads the workbook's cell records in one linear pass before the reader runs, and rejects a
+  workbook whose structure it cannot follow. A single sheet at the default limits peaks near 0.2 GB.
+
 ## 0.1.0
 
 Initial build-out. Highlights, in rough chronological order:

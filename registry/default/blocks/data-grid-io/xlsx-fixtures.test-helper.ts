@@ -150,3 +150,104 @@ export async function xlsxWithWorksheet(sheetXml: string, padBytes = 0, declared
   padded.set(suffix, prefix.length + padBytes);
   return withEntries(base, { "xl/worksheets/sheet1.xml": padded }, declaredSize === undefined ? undefined : { "xl/worksheets/sheet1.xml": declaredSize });
 }
+
+function biffRecord(id: number, data: Uint8Array): Uint8Array {
+  const record = new Uint8Array(4 + data.length);
+  const view = new DataView(record.buffer);
+  view.setUint16(0, id, true);
+  view.setUint16(2, data.length, true);
+  record.set(data, 4);
+  return record;
+}
+
+function concat(parts: Uint8Array[]): Uint8Array {
+  const out = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0));
+  let at = 0;
+  for (const part of parts) {
+    out.set(part, at);
+    at += part.length;
+  }
+  return out;
+}
+
+const BIFF_BOF = 0x809;
+const BIFF_EOF = 0x0a;
+const BIFF_BOUNDSHEET = 0x85;
+const BIFF_NUMBER = 0x203;
+
+function biffBof(substream: "globals" | "worksheet", version = 0x600): Uint8Array {
+  const data = new Uint8Array(16);
+  const view = new DataView(data.buffer);
+  view.setUint16(0, version, true);
+  view.setUint16(2, substream === "globals" ? 0x05 : 0x10, true);
+  return biffRecord(BIFF_BOF, data);
+}
+
+function biffNumber(row: number, col: number): Uint8Array {
+  const data = new Uint8Array(14);
+  const view = new DataView(data.buffer);
+  view.setUint16(0, row, true);
+  view.setUint16(2, col, true);
+  view.setFloat64(6, 1, true);
+  return biffRecord(BIFF_NUMBER, data);
+}
+
+function biffBoundSheet(position: number, name: string): Uint8Array {
+  const data = new Uint8Array(8 + name.length);
+  new DataView(data.buffer).setUint32(0, position, true);
+  data[6] = name.length;
+  for (let i = 0; i < name.length; i++) data[8 + i] = name.charCodeAt(i);
+  return biffRecord(BIFF_BOUNDSHEET, data);
+}
+
+/** Wraps `stream` as the `Workbook` stream of a 512-byte-sector OLE2 container, padded to the 4096-byte mini-stream cutoff. */
+function writeOle2(stream: Uint8Array): Uint8Array<ArrayBuffer> {
+  const sector = 512;
+  const sectors = Math.max(8, Math.ceil(stream.length / sector));
+  const END = 0xfffffffe;
+  const FREE = 0xffffffff;
+  const out = new Uint8Array(sector * (3 + sectors));
+  const view = new DataView(out.buffer);
+  out.set([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1], 0);
+  view.setUint16(24, 0x3e, true);
+  view.setUint16(26, 3, true);
+  view.setUint16(28, 0xfffe, true);
+  view.setUint16(30, 9, true);
+  view.setUint16(32, 6, true);
+  view.setUint32(44, 1, true);
+  view.setUint32(48, 1, true);
+  view.setUint32(56, 4096, true);
+  view.setUint32(60, END, true);
+  view.setUint32(68, END, true);
+  for (let i = 0; i < 109; i++) view.setUint32(76 + i * 4, i === 0 ? 0 : FREE, true);
+  const fat = sector;
+  for (let i = 0; i < sector / 4; i++) view.setUint32(fat + i * 4, FREE, true);
+  view.setUint32(fat, 0xfffffffd, true);
+  view.setUint32(fat + 4, END, true);
+  for (let i = 0; i < sectors; i++) view.setUint32(fat + (2 + i) * 4, i === sectors - 1 ? END : 3 + i, true);
+  const directory = 2 * sector;
+  const entry = (at: number, name: string, type: number, start: number, size: number) => {
+    for (let i = 0; i < name.length; i++) view.setUint16(at + i * 2, name.charCodeAt(i), true);
+    view.setUint16(at + 64, (name.length + 1) * 2, true);
+    out[at + 66] = type;
+    view.setUint32(at + 68, FREE, true);
+    view.setUint32(at + 72, FREE, true);
+    view.setUint32(at + 76, FREE, true);
+    view.setUint32(at + 116, start, true);
+    view.setUint32(at + 120, size, true);
+  };
+  entry(directory, "Root Entry", 5, END, 0);
+  entry(directory + 128, "Workbook", 2, 2, sectors * sector);
+  out.set(stream, 3 * sector);
+  return out;
+}
+
+/** A forged BIFF8 `.xls`: every sheet name in `sheets` points at one worksheet substream that holds a single number at `cell`. */
+export function forgedXlsFile(options: { sheets: number; cell: { row: number; col: number }; name?: string; version?: number }): File {
+  const names = Array.from({ length: options.sheets }, (_, i) => `S${i}`);
+  const eof = biffRecord(BIFF_EOF, new Uint8Array(0));
+  const globalsLength = biffBof("globals").length + names.reduce((sum, name) => sum + biffBoundSheet(0, name).length, 0) + eof.length;
+  const globals = concat([biffBof("globals", options.version), ...names.map((name) => biffBoundSheet(globalsLength, name)), eof]);
+  const worksheet = concat([biffBof("worksheet"), biffNumber(options.cell.row, options.cell.col), eof]);
+  return new File([writeOle2(concat([globals, worksheet]))], options.name ?? "forged.xls", { type: "application/vnd.ms-excel" });
+}

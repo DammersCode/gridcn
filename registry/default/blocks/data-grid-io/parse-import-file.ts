@@ -320,6 +320,142 @@ async function readXlsxSheet(
   return { rows, sheetNames, sheetName: sheet.name };
 }
 
+const OLE2_END_OF_CHAIN = 0xfffffffe;
+const OLE2_FREE_SECTOR = 0xffffffff;
+const UNREADABLE_XLS_MESSAGE = "unreadable-xls";
+
+/** The bytes of the sector chain at `start`; throws on a loop or a sector outside the file. */
+function ole2Chain(bytes: Uint8Array, fat: Uint32Array, start: number, sectorSize: number): Uint8Array {
+  const sectors: number[] = [];
+  for (let sector = start; sector !== OLE2_END_OF_CHAIN && sector !== OLE2_FREE_SECTOR; sector = fat[sector] ?? OLE2_END_OF_CHAIN) {
+    if (sectors.length > fat.length || (sector + 2) * sectorSize > bytes.length) throw new Error(UNREADABLE_XLS_MESSAGE);
+    sectors.push(sector);
+  }
+  const out = new Uint8Array(sectors.length * sectorSize);
+  sectors.forEach((sector, index) => out.set(bytes.subarray((sector + 1) * sectorSize, (sector + 2) * sectorSize), index * sectorSize));
+  return out;
+}
+
+/** The `Workbook` (or `Book`) stream of an OLE2 container; fails closed on any structure it cannot follow. */
+function readOle2Workbook(bytes: Uint8Array): Uint8Array {
+  if (bytes.length < 512) throw new Error(UNREADABLE_XLS_MESSAGE);
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const sectorSize = 1 << view.getUint16(30, true);
+  const miniSectorSize = 1 << view.getUint16(32, true);
+  if (sectorSize !== 512 && sectorSize !== 4096) throw new Error(UNREADABLE_XLS_MESSAGE);
+  const sectorCount = Math.floor(bytes.length / sectorSize);
+  const fatSectors: number[] = [];
+  const addFatSector = (sector: number) => {
+    if (sector !== OLE2_FREE_SECTOR && sector !== OLE2_END_OF_CHAIN) fatSectors.push(sector);
+  };
+  for (let i = 0; i < 109; i++) addFatSector(view.getUint32(76 + i * 4, true));
+  let difat = view.getUint32(68, true);
+  for (let hops = 0; difat !== OLE2_END_OF_CHAIN && difat !== OLE2_FREE_SECTOR; hops++) {
+    if (hops > sectorCount || (difat + 2) * sectorSize > bytes.length) throw new Error(UNREADABLE_XLS_MESSAGE);
+    const at = (difat + 1) * sectorSize;
+    for (let i = 0; i < sectorSize / 4 - 1; i++) addFatSector(view.getUint32(at + i * 4, true));
+    difat = view.getUint32(at + sectorSize - 4, true);
+  }
+  const fat = new Uint32Array((fatSectors.length * sectorSize) / 4);
+  fatSectors.forEach((sector, index) => {
+    if ((sector + 2) * sectorSize > bytes.length) throw new Error(UNREADABLE_XLS_MESSAGE);
+    for (let i = 0; i < sectorSize / 4; i++) fat[index * (sectorSize / 4) + i] = view.getUint32((sector + 1) * sectorSize + i * 4, true);
+  });
+  const directory = ole2Chain(bytes, fat, view.getUint32(48, true), sectorSize);
+  const directoryView = new DataView(directory.buffer);
+  const entries: { name: string; type: number; start: number; size: number }[] = [];
+  for (let at = 0; at + 128 <= directory.length; at += 128) {
+    let name = "";
+    for (let i = 0; i + 2 < directoryView.getUint16(at + 64, true) && i < 64; i += 2) name += String.fromCharCode(directoryView.getUint16(at + i, true));
+    entries.push({ name, type: directory[at + 66]!, start: directoryView.getUint32(at + 116, true), size: directoryView.getUint32(at + 120, true) });
+  }
+  const workbook = entries.find((entry) => entry.type === 2 && entry.name === "Workbook") ?? entries.find((entry) => entry.type === 2 && entry.name === "Book");
+  const root = entries.find((entry) => entry.type === 5);
+  if (!workbook || !root) throw new Error(UNREADABLE_XLS_MESSAGE);
+  if (workbook.size >= view.getUint32(56, true)) return ole2Chain(bytes, fat, workbook.start, sectorSize).subarray(0, workbook.size);
+  const miniStream = ole2Chain(bytes, fat, root.start, sectorSize).subarray(0, root.size);
+  const miniFatBytes = ole2Chain(bytes, fat, view.getUint32(60, true), sectorSize);
+  const miniFatView = new DataView(miniFatBytes.buffer);
+  const miniFat = Uint32Array.from({ length: miniFatBytes.length / 4 }, (_, i) => miniFatView.getUint32(i * 4, true));
+  const out = new Uint8Array(workbook.size);
+  let filled = 0;
+  for (let sector = workbook.start; filled < workbook.size; sector = miniFat[sector] ?? OLE2_END_OF_CHAIN) {
+    if (sector === OLE2_END_OF_CHAIN || sector === OLE2_FREE_SECTOR || (sector + 1) * miniSectorSize > miniStream.length) throw new Error(UNREADABLE_XLS_MESSAGE);
+    const chunk = miniStream.subarray(sector * miniSectorSize, (sector + 1) * miniSectorSize);
+    out.set(chunk.subarray(0, workbook.size - filled), filled);
+    filled += chunk.length;
+  }
+  return out;
+}
+
+const BIFF_BOF = 0x809;
+const BIFF_EOF = 0x0a;
+const BIFF_BOUNDSHEET = 0x85;
+const BIFF8_VERSION = 0x600;
+const BIFF_CELL_RECORDS = new Set([0xfd, 0x27e, 0x203, 0x205, 0x204, 0x06]);
+const BIFF_MULRK = 0xbd;
+
+type BiffRecord = { id: number; data: number; length: number };
+
+/** Walks the BIFF records from `offset`; stops where the reader stops. */
+function* biffRecords(stream: Uint8Array, view: DataView, offset: number): Generator<BiffRecord> {
+  for (let at = offset; at + 4 <= stream.length; ) {
+    const id = view.getUint16(at, true);
+    const length = view.getUint16(at + 2, true);
+    if (id === 0 && length === 0) return;
+    yield { id, data: at + 4, length };
+    at += 4 + length;
+  }
+}
+
+/** Cells a worksheet substream spans, from its cell records alone; stops reading once the span passes `cap`. */
+function biffSheetBox(stream: Uint8Array, view: DataView, start: number, cap: number): number {
+  let rows = 0;
+  let columns = 0;
+  const records = biffRecords(stream, view, start);
+  if (records.next().value?.id !== BIFF_BOF) return 0;
+  for (const { id, data, length } of records) {
+    if (id === BIFF_EOF) break;
+    const mulrk = id === BIFF_MULRK;
+    if (length < 4 || data + 4 > stream.length || !(mulrk || BIFF_CELL_RECORDS.has(id))) continue;
+    const lastColumn = view.getUint16(data + 2, true) + (mulrk ? Math.max(0, Math.floor((length - 6) / 6) - 1) : 0);
+    rows = Math.max(rows, view.getUint16(data, true) + 1);
+    columns = Math.max(columns, lastColumn + 1);
+    if (rows * columns > cap) break;
+  }
+  return rows * columns;
+}
+
+/**
+ * Rejects a BIFF8 workbook whose sheets together span more than `maxCells`. The reader pads every sheet
+ * to its full rectangle, and sheets can share one worksheet substream, so a few KB can cost gigabytes.
+ * Linear in the workbook stream; fails closed on a stream it cannot follow.
+ */
+function assertXlsWithinLimits(bytes: Uint8Array, limits: GridLimits): void {
+  const stream = readOle2Workbook(bytes);
+  const view = new DataView(stream.buffer, stream.byteOffset, stream.byteLength);
+  const globals = biffRecords(stream, view, 0);
+  const bof = globals.next().value;
+  if (bof?.id !== BIFF_BOF || bof.length < 2 || view.getUint16(bof.data, true) !== BIFF8_VERSION) return;
+  const sheetStarts: number[] = [];
+  for (const { id, data, length } of globals) {
+    if (id === BIFF_EOF) break;
+    if (id === BIFF_BOUNDSHEET && length >= 4) sheetStarts.push(view.getUint32(data, true));
+  }
+  const boxes = new Map<number, number>();
+  let total = 0;
+  let scanBudget = 2 * stream.length;
+  for (const start of sheetStarts) {
+    if (!boxes.has(start)) {
+      scanBudget -= Math.max(0, stream.length - start);
+      if (scanBudget < 0) throw new Error(UNREADABLE_XLS_MESSAGE);
+      boxes.set(start, biffSheetBox(stream, view, start, limits.maxCells));
+    }
+    total += boxes.get(start)!;
+    if (total > limits.maxCells) throw new Error(IMPORT_TOO_MANY_CELLS_MESSAGE);
+  }
+}
+
 /** Reads a BIFF8 `.xls` workbook; hucre parses every sheet, each bounded by `maxCells`, and returns values without number formats. */
 async function readXlsSheet(
   bytes: Uint8Array,
@@ -327,6 +463,7 @@ async function readXlsSheet(
   limits: GridLimits,
   { readXls, formatValue }: HucreReader,
 ): Promise<ParsedImportFile> {
+  assertXlsWithinLimits(bytes, limits);
   const workbook = await readXls(bytes, { maxTotalCells: limits.maxCells });
   const sheetNames = workbook.sheets.map((sheet) => sheet.name);
   const selected = sheetName !== undefined ? sheetNames.indexOf(sheetName) : 0;
