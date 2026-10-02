@@ -125,6 +125,17 @@ describe("pinned rows — band rendering", () => {
     expect(seen).toContain("__pinned-bottom-1");
   });
 
+  it("resolves a pinned row's id through a swapped getRowId", () => {
+    const seen: string[] = [];
+    const cols = rowIdRecordingColumns(seen);
+    const first = (r: Row) => `a-${r.id}`;
+    const second = (r: Row) => `b-${r.id}`;
+    const view = render(<PinnedGrid data={makeRows(2)} columns={cols} getRowId={first} topRows={[totals]} />);
+    expect(seen).toContain("a-totals");
+    view.rerender(<PinnedGrid data={makeRows(2)} columns={cols} getRowId={second} topRows={[totals]} />);
+    expect(seen.filter((id) => id.endsWith("totals")).at(-1)).toBe("b-totals");
+  });
+
   it("gives a pinned row a band id when getRowId returns an empty or non-string id", () => {
     const seen: string[] = [];
     const getRowId = (r: Row) => (r.id === "totals" ? "" : r.id === "count" ? (7 as unknown as string) : r.id);
