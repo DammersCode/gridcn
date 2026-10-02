@@ -18,7 +18,7 @@ Every vertical computation assumes one `rowHeight`:
 | `body.tsx:267` | canvas `gridAutoRows: rowHeight px`; rows placed by `gridRowStart = viewRow − effectiveStart + 1` (`body.tsx:244-252`) |
 | `root.tsx:366` | `contentHeight = effectiveHeaderHeight + rowCount × rowHeight + pinnedBottomHeight` |
 | `interaction/use-grid-interaction.ts:136-139` (`rowAtY`), `:146-174` (`pointerToCoord`) | `row = floor(y / rowHeight)` |
-| `interaction/use-grid-interaction.ts:179-215` (`scrollCellIntoView`) | `cellTop = row × rowHeight` |
+| `interaction/use-grid-interaction.ts:179-210` (`scrollCellIntoView`) | `cellTop = row × rowHeight` |
 | `interaction/use-grid-interaction.ts:390-395` (page keys) | `visibleRows = floor(clientHeight / rowHeight) − 4` |
 | `data-grid-fill/fill-tracker.tsx:12-32` | builds its own `InteractionLayout` with `rowHeight` |
 
