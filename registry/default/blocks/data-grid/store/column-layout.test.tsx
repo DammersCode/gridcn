@@ -133,3 +133,57 @@ describe("onColumnLayoutChange on no-op layout actions", () => {
     expect(onColumnLayoutChange).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("the column channel follows column identity", () => {
+  const selectedColumnIds = (store: StoreApi<DataGridStoreState>) => {
+    const s = store.getState();
+    return s.selection.columns.toArray().map((col) => s.visibleColumns[col]?.id);
+  };
+
+  it("keeps the selected column across a reorder", () => {
+    const { store } = mount({ columns: threeColumns });
+    act(() => store().getState().actions.selectColumn(0));
+
+    act(() => store().getState().actions.setColumnOrder("a", "c", "after"));
+
+    expect(selectedColumnIds(store())).toEqual(["a"]);
+  });
+
+  it("keeps the selected column when a column before it hides, pins, or the consumer swaps columns", () => {
+    const { store, rerender } = mount({ columns: threeColumns });
+    act(() => store().getState().actions.selectColumn(1));
+
+    act(() => store().getState().actions.setColumnHidden("a", true));
+    expect(selectedColumnIds(store())).toEqual(["b"]);
+
+    act(() => store().getState().actions.setColumnPin("c", "left"));
+    expect(selectedColumnIds(store())).toEqual(["b"]);
+
+    rerender({ columns: [col("b"), col("a"), col("c")] });
+    expect(selectedColumnIds(store())).toEqual(["b"]);
+  });
+
+  it("drops a selected column that leaves the view", () => {
+    const { store } = mount({ columns: threeColumns });
+    act(() => store().getState().actions.selectColumn(1));
+
+    act(() => store().getState().actions.setColumnHidden("b", true));
+
+    expect(selectedColumnIds(store())).toEqual([]);
+  });
+});
+
+describe("column widths for unknown ids", () => {
+  it("setColumnWidth and commitColumnWidth ignore a column id that columns does not define", () => {
+    const onColumnLayoutChange = vi.fn();
+    const onColumnResizing = vi.fn();
+    const { store } = mount({ columns: twoColumns, onColumnLayoutChange, onColumnResizing });
+
+    act(() => store().getState().actions.setColumnWidth("ghost", 200));
+    act(() => store().getState().actions.commitColumnWidth("ghost", 200));
+
+    expect(store().getState().columnWidths).toEqual({});
+    expect(onColumnResizing).not.toHaveBeenCalled();
+    expect(onColumnLayoutChange).not.toHaveBeenCalled();
+  });
+});

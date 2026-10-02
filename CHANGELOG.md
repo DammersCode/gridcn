@@ -316,6 +316,12 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking:** selected columns follow their column (`data-grid`). The column channel
+  (`selection.columns`, header selection) moves with each column on `setColumnOrder`,
+  `setColumnHidden`, `setColumnPin`, and a new `columns` array. A column that leaves the view
+  leaves the selection. `setColumnWidth` and `commitColumnWidth` ignore a column id that
+  `columns` does not define. Before, the selection stayed on column positions, and an unknown id
+  got a width entry.
 - **Breaking:** checked rows follow their records (`data-grid`). The row channel
   (`selection.rows`, the marker checkboxes) moves with each record when a sort, filter, join
   operator, consumer `data` swap, `updateCells` reorder, or a row insert or duplicate under a sort

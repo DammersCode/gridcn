@@ -136,6 +136,24 @@ export function remapRowChannel(
   return rows.equals(next) ? rows : next;
 }
 
+/** The column channel carried into rebuilt visible columns by column id; a column that left the view leaves the channel. */
+export function remapColumnChannel(
+  columns: CompactSelectionLike,
+  prevVisibleColumns: readonly AnyColumnDef[],
+  nextVisibleColumns: readonly AnyColumnDef[],
+): CompactSelectionLike {
+  if (columns.length === 0 || prevVisibleColumns === nextVisibleColumns) return columns;
+  const nextIndexById = new Map(nextVisibleColumns.map((column, index) => [column.id, index] as const));
+  const found: number[] = [];
+  for (const col of columns.toArray()) {
+    const id = prevVisibleColumns[col]?.id;
+    const next = id === undefined ? undefined : nextIndexById.get(id);
+    if (next !== undefined) found.push(next);
+  }
+  const next = CompactSelection.fromArray(found);
+  return columns.equals(next) ? columns : next;
+}
+
 /**
  * Whether `rects` cover the same set of records after a view rebuild. Each covered view row maps to
  * its data row, through `toNextDataRow` when `data` was replaced, and is compared with the data row

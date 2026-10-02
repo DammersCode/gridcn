@@ -15,7 +15,8 @@ Checked rows follow their records when a sort, filter, or new `data` array rebui
 When a row leaves the view, the grid unchecks it. Row ids must be unique: when two rows share an
 id, the check follows the last row with that id. When a rebuild puts other records under the
 range, the grid drops the range and keeps the active cell, so a row operation never reaches a
-record that you did not select.
+record that you did not select. Selected columns follow their column when columns move, hide,
+or pin, and a column that leaves the view leaves the selection.
 
 Selection overlays are placed on grid lines and render with zero cell re-renders. Dragging a
 selection never re-renders a single cell.

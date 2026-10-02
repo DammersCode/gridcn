@@ -36,6 +36,7 @@ import {
   nextDirection,
   pruneCellErrors,
   rectsKeepRecords,
+  remapColumnChannel,
   remapRowChannel,
   reorderColumnIds,
   resolveSelectionConfig,
@@ -168,8 +169,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   /**
    * The cursor, the open edit, and the selection carried into a rebuilt view. `sameRecords` keeps
    * data indices as identity (no `data` swap, or our own echo); otherwise records map by rowId, and
-   * a duplicated rowId resolves to the last row with that id. The row channel follows its records;
-   * a range that now covers other records is dropped, so a row op never reaches a record nobody selected.
+   * a duplicated rowId resolves to the last row with that id. The row channel follows its records,
+   * the column channel its column ids. A range that now covers other records is dropped, so a row
+   * op never reaches a record nobody selected.
    */
   const followView = (
     s: DataGridStoreState,
@@ -195,7 +197,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       base = { ...base, current: null };
     }
     const rows = remapRowChannel(base.rows, s.viewIndex, viewIndex, toNextDataRow);
-    const selection = rows === base.rows ? base : { ...base, rows };
+    const columns = remapColumnChannel(base.columns, s.visibleColumns, visibleColumns);
+    const selection = rows === base.rows && columns === base.columns ? base : { ...base, rows, columns };
     return { ...cursor, ...editRemap, ...(selection === s.selection ? {} : { selection }) };
   };
   // cellErrors keys of each row's last validateRow verdict, so a re-run clears only its own messages.
@@ -457,14 +460,16 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       setColumnWidth(id, width) {
         const column = get().columns.find((c) => c.id === id);
-        const next = column ? clampColumnWidth(column, width) : width;
+        if (!column) return;
+        const next = clampColumnWidth(column, width);
         set((s) => ({ columnWidths: { ...s.columnWidths, [id]: next } }));
         get().onColumnResizing?.(id, next);
       },
       commitColumnWidth(id, width) {
         const s = get();
         const column = s.columns.find((c) => c.id === id);
-        const next = column ? clampColumnWidth(column, width) : width;
+        if (!column) return;
+        const next = clampColumnWidth(column, width);
         const columnWidths = { ...s.columnWidths, [id]: next };
         set({ columnWidths });
         if (committedWidths[id] === next) return;
