@@ -142,9 +142,9 @@ export function safeHref(raw: string): string | null;
 W3-03 (number stepping, done), W5-06 (type-driven filter), R-49 (`useCellEditor` in built-ins),
 W5-10 (`openLink` as a built-in action listed by the dialog).
 
-## Open product questions
+## Product decisions (maintainer, 2026-10-02)
 
-1. Should quick search match the formatted number (`"$1,234"`)? Recommendation: no — search stays
-   on raw digits; formatting 100k values per keystroke costs ~100 ms, and users type digits.
-2. Should a percent column edit as `25` for a stored `0.25`? Recommendation: no — raw edit, same as
-   copy and paste; a consumer who wants it writes a custom type.
+- Quick search stays on raw digits, never the formatted number: formatting 100k values per
+  keystroke costs ~100 ms, and users type digits.
+- The editor edits the raw value (a stored `0.25` edits as `0.25` under `style: "percent"`), the
+  same form as copy and paste; a consumer who wants another edit form writes a custom type.
