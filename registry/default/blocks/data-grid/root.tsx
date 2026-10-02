@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -290,7 +291,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
 
   // Mirrors `readOnly` into the store so add-on mutation surfaces outside this subtree (context
   // menu, useDataGridClipboard) honor it too — false on unmount, matching the prop's own default.
-  useEffect(() => {
+  // A layout effect closes the write window between the commit and the passive effects.
+  useLayoutEffect(() => {
     actions._registerReadOnly(Boolean(readOnly));
     return () => actions._registerReadOnly(false);
   }, [actions, readOnly]);
