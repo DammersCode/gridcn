@@ -842,17 +842,14 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       if (handledKeyEvents.has(event.nativeEvent)) return;
       handledKeyEvents.add(event.nativeEvent);
 
-      // A commit/cancel keystroke (e.g. Enter) handled by the editor's own onKeyDown already
-      // updated the store (ending edit mode) before this bubbled handler runs on the same
-      // native event; re-checking store.editing here would then be stale and re-dispatch the
-      // same key against the *new* active cell (e.g. re-opening the editor it just moved to).
-      // The editor is the only thing that renders a focusable form control inside a cell, so
-      // this key having originated from one means it belongs to that (possibly just-finished) edit.
+      // A key from an editor (inline, or a portaled popup) belongs to that edit even after its own handler ended it.
       const target = event.target as HTMLElement | null;
       const fromEditorInput =
         target !== null &&
         target !== event.currentTarget &&
-        /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName);
+        (/^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName) ||
+          target.closest(gridAttrSelector("cellEditor")) !== null ||
+          !event.currentTarget.contains(target));
 
       const state = storeApi.getState();
       const editing = state.editing;

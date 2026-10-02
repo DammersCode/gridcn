@@ -644,6 +644,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Enter in a popup editor commits once (`data-grid`):** Enter on a select option commits the
+  value and closes the editor. Before, the same keystroke reached the grid and reopened the
+  editor, so `onEditStart` fired twice.
 - **Development checks stay out of production builds (`data-grid`):** dev warnings and dev-only
   checks no longer run in production builds whose bundler provides no `process` global, such as
   Vite.
