@@ -40,8 +40,9 @@ export type UseDataGridClipboardResult = {
   copy: () => Promise<"ok" | "fallback" | "failed" | "no-selection">;
   /**
    * Same as {@link copy}, then clears exactly the copied cells — only when the write succeeded
-   * (`'ok'`/`'fallback'`) and nobody selected or cleared cells during the write; a view rebuild that
-   * drops the range or collapses it onto the active cell keeps the cut.
+   * (`'ok'`/`'fallback'`) and nobody selected or cleared cells during the write. A view rebuild
+   * that keeps the range, drops it, or collapses it onto the followed active cell keeps the cut; a
+   * clamp that moves the active cell collapses the selection onto another record and cancels it.
    * The cells are captured by row and column id at copy time, so a sort, filter, or data change
    * during the write clears the copied rows wherever they moved; a row that left the view stays.
    * A failed write keeps the selection intact.
@@ -122,7 +123,7 @@ export function useDataGridClipboard(options: UseDataGridClipboardOptions = {}):
     const { text, html } = serializeCells(serializeCopyScope(s, scope), { sanitizeFormulas: sanitizeFormulas ?? s.sanitizeClipboardFormulas });
     const { rowIds, columnIds } = copyScopeCellIds(s, scope);
     const result = await writeToClipboard(text, html);
-    // A view rebuild drops the range or collapses it onto the cursor; a new or cleared range from the user cancels the delete.
+    // A view rebuild keeps, drops, or collapses the range; a new or cleared range from the user cancels the delete.
     const latest = storeApi.getState();
     const current = latest.selection.current;
     const rebuilt = latest.viewIndex !== s.viewIndex || latest.visibleColumns !== s.visibleColumns;

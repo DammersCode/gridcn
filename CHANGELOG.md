@@ -357,7 +357,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   operator, consumer `data` swap, `updateCells` reorder, or a row insert or duplicate under a sort
   or filter changes the view. A record that leaves the view leaves the selection, and it stays
   unchecked when it comes back. When a rebuild puts other records or other columns under the
-  cursor range, the grid collapses the range onto the active cell, or drops it after a clamp. A row
+  cursor range, the grid collapses the range onto the active cell. A clamp that moves the active
+  cell collapses the selection onto it; a clamp in place drops the range. A row
   operation and `getRowIds()` never reach a record that was not selected. Without checked rows or
   a range, `deleteRows` and the row shortcuts act on the active cell's row.
   Before, the checks and the range stayed on view positions, so a sort moved them onto other

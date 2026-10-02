@@ -198,8 +198,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
    * a duplicated rowId resolves to the last row with that id. The active cell follows its record and
    * column and clamps only when one of them left the view. The row channel follows its records, the
    * column channel its column ids. A range that now covers other records or columns collapses onto
-   * the followed active cell, or is dropped after a clamp, so a row op never reaches a record nobody
-   * selected.
+   * the followed active cell; a clamp that moves the cursor collapses onto it, and a clamp in place
+   * drops the range, so a row op never reaches a record nobody selected.
    */
   const followView = (
     s: DataGridStoreState,

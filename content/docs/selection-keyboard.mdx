@@ -16,8 +16,9 @@ When a row leaves the view, the grid unchecks it. Row ids must be unique: when t
 id, the check follows the last row with that id. The active cell follows its record and its column
 when the view rebuilds and when columns move, hide, or pin. When its row or its column leaves the
 view, the active cell keeps its view position, clamped into the view. When a rebuild puts other
-records or other columns under the range, the grid collapses the range onto the active cell. After
-a clamp, the grid drops the range. A row operation never reaches a record that you did not select.
+records or other columns under the range, the grid collapses the range onto the active cell. A
+clamp that moves the active cell also collapses the selection onto it. A clamp that keeps the
+active cell in place drops the range. A row operation never reaches a record that you did not select.
 Without checked rows or a range, a row operation acts on the active cell's row. Selected columns
 follow their column when columns move, hide, or pin, and a column that leaves the view leaves the
 selection.
