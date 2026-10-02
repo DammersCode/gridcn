@@ -4,6 +4,7 @@ import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "
 import { CellSpan } from "./cell-span";
 import { COMPARISON_FILTER_OPERATORS, TEXT_FILTER_OPERATORS } from "./capabilities";
 import { useCellEditorDraft } from "../interaction/use-cell-editor";
+import { isComposingKey } from "../interaction/is-composing-key";
 
 /** Normalizes a comma decimal separator to a dot so `Number()` can parse locales pasted verbatim. */
 function normalizeNumberText(text: string): string {
@@ -75,7 +76,7 @@ function NumberEditor(props: CellEditorProps<unknown, number | null, GridCellTyp
           onKeyDown(e);
           return;
         }
-        if (pending || e.nativeEvent.isComposing) return;
+        if (pending || isComposingKey(e)) return;
         // step the draft; a cleared draft falls back to the committed value, so an empty
         // cell with a null value has no step base and stays untouched
         const base = numberCellType.fromText(rest.value, options) ?? value;

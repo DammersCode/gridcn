@@ -708,7 +708,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 - **IME composition keeps the editor open (`data-grid`):** Enter and Escape that confirm or
   cancel an IME composition no longer commit or cancel the edit in the text, number, and date
-  editors, or in an editor built on `useCellEditor`.
+  editors, or in an editor built on `useCellEditor`. This includes the confirming Enter that
+  Safari sends with `keyCode` 229.
 - **A new `getRowId` with new `data` prunes errors by the new ids (`data-grid`):** when the
   consumer replaces `getRowId` and `data` in the same render, the grid drops `cellErrors` entries
   and `validateRow` bookkeeping for row ids that the new `getRowId` does not return. Before, the

@@ -155,4 +155,11 @@ describe("useCellEditor", () => {
     expect(props.commit).not.toHaveBeenCalled();
     expect(props.cancel).not.toHaveBeenCalled();
   });
+
+  it("ignores the composition-confirming Enter that Safari sends with keyCode 229", () => {
+    const props = makeProps();
+    render(<ProbeEditor {...props} />);
+    fireEvent.keyDown(screen.getByRole("textbox"), { key: "Enter", keyCode: 229 });
+    expect(props.commit).not.toHaveBeenCalled();
+  });
 });

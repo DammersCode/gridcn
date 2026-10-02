@@ -802,10 +802,16 @@ describe("DataGrid in a real browser", () => {
         await expect.poll(() => document.querySelector(`${gridAttrSelector("cellEditor")} input, [${GRID_ATTR.editing}="true"] input`)).not.toBeNull();
         const input = document.querySelector<HTMLInputElement>(`${gridAttrSelector("cellEditor")} input, [${GRID_ATTR.editing}="true"] input`)!;
         input.focus();
-        for (const key of ["Enter", "Escape"]) {
-          input.dispatchEvent(new KeyboardEvent("keydown", { key, isComposing: true, bubbles: true, cancelable: true }));
+        const composing = [
+          { key: "Enter", isComposing: true },
+          { key: "Escape", isComposing: true },
+          { key: "Enter", keyCode: 229 },
+          { key: "Escape", keyCode: 229 },
+        ];
+        for (const init of composing) {
+          input.dispatchEvent(new KeyboardEvent("keydown", { ...init, bubbles: true, cancelable: true }));
           await new Promise((resolve) => setTimeout(resolve, 0));
-          expect(cell, `${key} on column ${col}`).toHaveAttribute(GRID_ATTR.editing, "true");
+          expect(cell, `${JSON.stringify(init)} on column ${col}`).toHaveAttribute(GRID_ATTR.editing, "true");
         }
         await userEvent.keyboard("{Escape}");
         await expect.poll(() => cell.getAttribute(GRID_ATTR.editing)).not.toBe("true");

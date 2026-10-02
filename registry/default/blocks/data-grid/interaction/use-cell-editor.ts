@@ -3,6 +3,7 @@ import type { CellEditorProps } from "../types";
 import { useCommitGuard } from "./use-commit-guard";
 import { useSeedFocus } from "./use-seed-focus";
 import { columnLabelText } from "../columns/column-format-helpers";
+import { isComposingKey } from "./is-composing-key";
 
 /** The text-form codec that adapts a plain text input to a cell type's value pipeline. */
 export type CellEditorCodec<TValue> = {
@@ -40,7 +41,7 @@ export function useCellEditorDraft<TValue>(props: CellEditorProps<unknown, TValu
     onChange: (e: ChangeEvent<HTMLInputElement>) => setText(e.target.value),
     onKeyDown: (e: KeyboardEvent<HTMLInputElement>) => {
       // Enter or Escape during IME composition confirms or cancels the composition, not the edit.
-      if (e.nativeEvent.isComposing) return;
+      if (isComposingKey(e)) return;
       if (e.key === "Enter") {
         commitText({ dx: 0, dy: 1 });
       } else if (e.key === "Escape") {
