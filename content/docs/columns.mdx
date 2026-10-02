@@ -256,7 +256,9 @@ reorder drop, a pin or unpin, or a show or hide. See
 for the full payload shape and the live, per-drag-frame `onColumnResizing`. `defaultColumnLayout`
 is not a controlled prop: the grid reads it once at mount and ignores later changes, so always
 pair it with `onColumnLayoutChange`. A column that the layout `order` does not list, such as a
-column added after the layout was saved, follows the listed columns in `columns` order.
+column added after the layout was saved, follows the listed columns in `columns` order. The
+grid drops layout entries for unknown column ids, clamps each width to the column's
+`minWidth`/`maxWidth`, and ignores a pin on a `pinnable: false` column.
 
 `useDataGridVisibleColumns()` and `useDataGridAllColumns()` return the full `ColumnDef` of each
 column. So a custom column UI can call `accessorFn`, `setValue`, or a function-form `readOnly`

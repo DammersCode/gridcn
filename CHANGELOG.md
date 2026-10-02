@@ -653,6 +653,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **`defaultColumnLayout` is normalized (`data-grid`):** the grid drops layout entries for column
+  ids that `columns` does not define, clamps each width to the column's `minWidth`/`maxWidth`, and
+  ignores a pin on a `pinnable: false` column. Before, a saved layout applied these entries as
+  they were.
 - **New columns render after a column reorder (`data-grid`):** a column that the column order
   does not list follows the listed columns in `columns` order. This covers a column added to
   `columns` after a reorder and a column missing from a restored `defaultColumnLayout.order`.

@@ -20,6 +20,7 @@ import {
   type SearchMatch,
 } from "../sort-filter";
 import { getCellValue } from "../columns/column-helpers";
+import { clampColumnWidth } from "../columns/resolve-column-width";
 import { selectCell } from "../selection/selection-ops";
 import { CompactSelection } from "../selection/compact-selection";
 import { isDev } from "../is-dev";
@@ -478,7 +479,9 @@ export function computeColumnLayout(
 /**
  * Seeds `columnWidths`/`columnOrder`/`hiddenColumns`/per-column `pin` from `defaultColumnLayout` at
  * store-creation time only (never re-applied — see the sync prop's doc comment). Partial layouts
- * are fine: any field omitted keeps today's def-derived default.
+ * are fine: any field omitted keeps today's def-derived default. The layout is normalized against
+ * `columns`: unknown ids drop out, widths clamp to each column's range, a `pinnable: false`
+ * column keeps its def pin, and columns the order lacks follow in def order.
  */
 export function applyDefaultColumnLayout(
   columns: readonly AnyColumnDef[],
@@ -486,14 +489,26 @@ export function applyDefaultColumnLayout(
   layout: ColumnLayout | undefined,
 ): { columns: readonly AnyColumnDef[]; columnWidths: Record<string, number>; columnOrder: string[] | null; hiddenColumns: string[] } {
   if (!layout) return { columns, columnWidths: {}, columnOrder: null, hiddenColumns };
-  const nextColumns = layout.pins
-    ? columns.map((c) => (layout.pins[c.id] ? { ...c, pin: layout.pins[c.id] } : c))
+  const pins = layout.pins;
+  const nextColumns = pins
+    ? columns.map((c) => {
+        const pin = pins[c.id];
+        return (pin === "left" || pin === "right") && columnFlag(c, "pinnable") ? { ...c, pin } : c;
+      })
     : columns;
+  const columnWidths: Record<string, number> = {};
+  if (layout.widths) {
+    for (const column of columns) {
+      const width = layout.widths[column.id];
+      if (typeof width === "number" && Number.isFinite(width)) columnWidths[column.id] = clampColumnWidth(column, width);
+    }
+  }
+  const known = new Set(columns.map((c) => c.id));
   return {
     columns: nextColumns,
-    columnWidths: layout.widths ? { ...layout.widths } : {},
-    columnOrder: layout.order ?? null,
-    hiddenColumns: layout.hidden ?? hiddenColumns,
+    columnWidths,
+    columnOrder: layout.order ? completeColumnOrder(columns, layout.order) : null,
+    hiddenColumns: layout.hidden ? layout.hidden.filter((id) => known.has(id)) : hiddenColumns,
   };
 }
 
