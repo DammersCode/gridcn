@@ -271,10 +271,11 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     ctx.rowIndexCache.rebase(batch.nextData);
     forgetDeferredRows(ctx);
     ctx.lastEmittedData = batch.nextData;
+    const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops);
     writeThenEmit(ctx, s, batch.nextData, { source: "delete", ops: batch.ops }, () =>
       set({
         data: batch.nextData,
-        cellErrors: applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops),
+        cellErrors,
         ...reconcileAfterWrite(s, batch.nextData, batch.ops),
       }),
     );
