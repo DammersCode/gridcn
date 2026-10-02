@@ -405,6 +405,33 @@ describe("pasteText", () => {
     });
   });
 
+  it("drops a held paste and its rejections when the grid turns read-only before it settles", async () => {
+    const onValidationError = vi.fn();
+    const asyncColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      {
+        id: "qty",
+        header: "Qty",
+        accessorKey: "qty",
+        type: "number",
+        validate: { "~standard": { version: 1, vendor: "mock", validate: async () => ({ issues: [{ message: "bad" }] }) } } as never,
+      },
+    ];
+    const s = fakeState({
+      selection: selectCellPure({ col: 0, row: 0 }),
+      visibleColumns: asyncColumns as unknown as DataGridStoreState["visibleColumns"],
+      onValidationError,
+    });
+    const actions = fakeActions();
+    const readOnlyLater = { getState: () => ({ ...s, readOnly: true }) as DataGridStoreState };
+
+    expect(pasteText(s, actions, "x	-5", undefined, readOnlyLater)).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(actions.applyCellUpdates).not.toHaveBeenCalled();
+    expect(onValidationError).not.toHaveBeenCalled();
+  });
+
   it("does not fire onValidationError when every pasted cell passes", () => {
     const onValidationError = vi.fn();
     const s = fakeState({

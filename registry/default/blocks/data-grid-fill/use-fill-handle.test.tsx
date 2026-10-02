@@ -297,6 +297,26 @@ describe("useFillHandle staleness guard — async fill held against a real store
   /** Lets every queued microtask drain, which is all a held batch needs to resolve. */
   const settle = () => act(async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); });
 
+  it("drops a held fill and its rejections when the grid turns read-only before it settles", async () => {
+    const onDataChange = vi.fn();
+    const onValidationError = vi.fn();
+    let reject!: () => void;
+    const gate = new Promise<{ issues: { message: string }[] }>((resolve) => (reject = () => resolve({ issues: [{ message: "bad" }] })));
+    const rejectingColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      { id: "qty", header: "Qty", accessorKey: "qty", type: "number", validate: { "~standard": { version: 1, vendor: "mock", validate: () => gate } } as never },
+    ];
+    const result = setUpFill(makeWrapper(rejectingColumns, { onDataChange, onValidationError }));
+
+    act(() => result.current.fill.fillDown());
+    act(() => result.current.storeApi.getState().actions._registerReadOnly(true));
+    reject();
+    await settle();
+
+    expect(onDataChange).not.toHaveBeenCalled();
+    expect(onValidationError).not.toHaveBeenCalled();
+  });
+
   it("drops a held fill when the sort changes before it settles", async () => {
     const onDataChange = vi.fn();
     const { columns: heldColumns, release } = heldSchema();

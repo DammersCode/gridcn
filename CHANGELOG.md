@@ -669,6 +669,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **A held fill or paste stays silent in a read-only grid (`data-grid`, `data-grid-fill`):** when
+  the grid turns read-only while an async validation holds a fill or paste, the late result writes
+  nothing and fires no `onValidationError`. Before, the rejected cells still fired the event.
 - **`onColumnLayoutChange` fires only on real changes (`data-grid`):** `setColumnPin` with the
   current pin, `setColumnHidden` with the current visibility, and `commitColumnWidth` with the last
   committed width no longer fire it. `setColumnHidden` ignores a column id that `columns` does not

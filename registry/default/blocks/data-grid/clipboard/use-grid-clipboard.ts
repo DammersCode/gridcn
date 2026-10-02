@@ -340,6 +340,7 @@ function applyParsedPaste(
   const snapshot = snapshotBulkBatch(s, candidateRowIds(s, candidates));
   void resolution.then((resolved) => {
     const current = storeApi?.getState() ?? s;
+    if (current.readOnly) return;
     if (guard && token !== undefined && !guard.isCurrent(token, current, snapshot)) return;
     actions.applyCellUpdates(reresolveBulkWrites(current, resolved.writes), "paste");
     fireBulkRejections(resolved.rejected, () => current);

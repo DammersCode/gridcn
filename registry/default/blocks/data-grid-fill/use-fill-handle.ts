@@ -254,7 +254,7 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
         const snapshot = snapshotBulkBatch(s, candidateRowIds(s, candidates));
         void resolution.then((resolved) => {
           const current = storeApi.getState();
-          if (!guard.isCurrent(token, current, snapshot)) return;
+          if (current.readOnly || !guard.isCurrent(token, current, snapshot)) return;
           const applied = guard.reresolve(current, resolved.writes);
           const flashed = flashCellsFor(current, applied);
           actions.applyCellUpdates(applied, "fill");
