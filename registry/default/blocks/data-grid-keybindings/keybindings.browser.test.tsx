@@ -93,9 +93,10 @@ describe("DataGridKeybindingsShortcut + DataGridKeybindingsDialog", () => {
         columns={columns}
         getRowId={(r) => r.id}
         commands={{ saveRow: { label: "Save row", group: "editing", run: () => {} } }}
+        keymap={keymap}
       >
         <DataGridKeybindingsDialog open />
-        <DataGridRoot className="h-[300px]" keymap={keymap}>
+        <DataGridRoot className="h-[300px]">
           <DataGridHeader />
           <DataGridBody />
         </DataGridRoot>

@@ -1,6 +1,4 @@
 import type { ViewCoord, CellType, DataChange, DataOp } from "../types";
-import type { OverlayPlugin } from "../overlays";
-import type { RowBandsSpec } from "../layout-context";
 import { getCellValue, setCellValue } from "../columns/column-helpers";
 import { isDev } from "../is-dev";
 import { isStandardSchema, runValidateSync, type ValidateResult } from "../validation/validate-cell";
@@ -36,12 +34,20 @@ export function checkUnresolvableColumnTypes(
 
 /** Fires `warnDev` at most once per session — for guardrails whose cause (a mistaken prop combo) doesn't change across re-renders, so repeating it every render would just be noise. */
 let warnedBothDataProps = false;
+let warnedExternalStoreSyncProps = false;
 
 /** `data` + `defaultData` are mutually exclusive (React value/defaultValue semantics); `data` wins. */
 export function warnBothDataPropsOnce(): void {
   if (warnedBothDataProps || !isDev()) return;
   warnedBothDataProps = true;
   warnDev("both `data` and `defaultData` were provided; `data` wins (controlled) and `defaultData` is ignored");
+}
+
+/** `store` next to a sync prop is a type error for typed callers; this catches a cast/untyped one. */
+export function warnExternalStoreSyncPropsOnce(): void {
+  if (warnedExternalStoreSyncProps || !isDev()) return;
+  warnedExternalStoreSyncProps = true;
+  warnDev("<DataGridProvider store={…}> ignores the sync props next to it; pass them to useDataGridStoreProps instead");
 }
 
 /**
@@ -61,13 +67,15 @@ export function checkDuplicateColumnIds(columns: readonly AnyColumnDef[], warned
   }
 }
 
-/** Dev-only guardrails: missing getRowId, unstable columns/data/overlayPlugins/rowBands identity across renders. */
+/**
+ * Dev-only guardrails for the recompute-slice props (the `_syncProps` inputs): missing getRowId,
+ * the data/defaultData combo, unstable columns/data identity across renders. The config-slice
+ * identity warnings (overlayPlugins, rowBands) live in the provider's config-phase effect.
+ */
 export function checkDevGuardrails(
   props: InternalSyncProps,
   prevColumns: readonly AnyColumnDef[] | undefined,
   prevData: readonly unknown[] | undefined,
-  prevOverlayPlugins: readonly OverlayPlugin[] | undefined,
-  prevRowBands: RowBandsSpec | undefined,
 ): void {
   if (!isDev()) return;
 
@@ -82,16 +90,6 @@ export function checkDevGuardrails(
   if (prevColumns !== undefined && prevColumns !== props.columns) {
     warnDev(
       "columns array identity changed since the last render; pass a stable reference (e.g. useMemo) or every row re-renders",
-    );
-  }
-  if (prevOverlayPlugins !== undefined && prevOverlayPlugins !== props.overlayPlugins) {
-    warnDev(
-      "overlayPlugins array identity changed since the last render; pass a stable reference (module scope or useMemo) or every render re-syncs the provider props into the store",
-    );
-  }
-  if (prevRowBands !== undefined && prevRowBands !== props.rowBands) {
-    warnDev(
-      "rowBands identity changed since the last render; pass a stable reference (the add-on's hook already returns one) or every render recomputes band heights/aria-rowcount",
     );
   }
   // Controlled mode only: in uncontrolled mode props.data is undefined (data lives in the store),

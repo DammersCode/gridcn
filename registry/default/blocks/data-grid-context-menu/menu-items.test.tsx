@@ -65,9 +65,9 @@ function renderProbe(props: ProbeProps) {
       getRowId={(row) => row.id}
       createRow={props.createRow}
       duplicateRow={props.duplicateRow}
+      readOnly={props.readOnly}
     >
-      {/* `readOnly` lives on the root, not the provider (useDataGridReadOnly reads the root context) */}
-      <DataGridRoot readOnly={props.readOnly}>
+      <DataGridRoot>
         <Probe {...props} />
       </DataGridRoot>
     </DataGridProvider>,

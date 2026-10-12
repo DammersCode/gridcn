@@ -18,8 +18,10 @@ import type {
   GridValidationErrorEvent,
   HeaderClickBehavior,
   Keymap,
+  OnCellClick,
   OnCellContextMenu,
   OnCellDoubleClick,
+  OnRowClick,
   RowMarkersMode,
   SortSpec,
 } from "../types";
@@ -66,6 +68,23 @@ export type DataGridSyncProps<TData = unknown> = {
   // a defineColumns literal's narrow-TValue `validate` needs this documented widening to fit here.
   columns: readonly ColumnDefOf<TData>[];
   getRowId: (row: TData, index: number) => string;
+  /**
+   * Disables editing and delete grid-wide, independent of any per-column `readOnly`. The store is
+   * the home of this flag: it is seeded from these init props (so SSR and the first client paint
+   * already see it) and kept in sync by the provider's config phase — `DataGridRoot`,
+   * interaction, and clipboard read `state.readOnly` at event/render time, so a flip to `true`
+   * blocks the next keydown before any passive effect runs and cancels an open edit session.
+   * Default `false`.
+   */
+  readOnly?: boolean;
+  /**
+   * Merged over `DEFAULT_KEYMAP` at the store (per-action bindings here take precedence; an
+   * action mapped to `[]` unbinds it). `state.keymap` holds the merged result and keeps its
+   * reference while this prop's entries are content-equal, so an inline `keymap={{ … }}` literal
+   * does not churn the interaction memos. Surfaces outside `DataGridRoot` (the keybindings dialog)
+   * read `state.keymap` via {@link useDataGridKeymap}.
+   */
+  keymap?: Keymap;
   /** Fired once per user gesture with the next data array and an id-keyed delta batch, after the grid stores that array. */
   onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
   /**
@@ -252,8 +271,25 @@ export type DataGridSyncProps<TData = unknown> = {
    onCellDoubleClick?: OnCellDoubleClick<TData>;
    /** Fired when the user right-clicks any non-pinned, non-skeleton cell — pure notification. See {@link OnCellContextMenu}. */
    onCellContextMenu?: OnCellContextMenu<TData>;
-   /**
-    * Fires on every live width write during a resize drag (`actions.setColumnWidth`, per drag
+    /**
+     * Fired on a plain click on any cell — see {@link OnCellClick}. Fired from the cell's own
+     * existing click handler (no new subscription); the cell reads it from the store at click
+     * time, so an identity change re-renders no cell. Pass a stable identity (e.g. `useCallback`)
+     * to keep the store's config sync from running once per render with a new callback.
+     */
+    onCellClick?: OnCellClick<TData>;
+    /** Fired alongside `onCellClick` once per click regardless of column — see {@link OnRowClick}. */
+    onRowClick?: OnRowClick<TData>;
+    /**
+     * Fired after a row-window commit with the rendered data-row range `[start, end)` (inclusive
+     * start, exclusive end — same convention as `useRowWindow`'s `RowWindow`). Only fires when the
+     * range actually changed since the last call, including once for the initial mount commit; a
+     * scroll tick that stays within the current window's overscan buffer does not re-fire it.
+     * Useful for lazy-loading/prefetch/analytics add-ons; core has no fetching logic of its own.
+     */
+    onRowWindowChange?: (range: { start: number; end: number }) => void;
+    /**
+     * Fires on every live width write during a resize drag (`actions.setColumnWidth`, per drag
     * frame) — the in-progress counterpart to `onColumnLayoutChange`'s once-per-commit snapshot.
    * Fired from the store actions layer, no React-render dependency. Not called for the commit
    * itself (drag release/autosize) — pair with `onColumnLayoutChange` if you need that too.
@@ -444,6 +480,8 @@ export type DataGridStoreState = Omit<
   | "overlayPlugins"
   | "rowBands"
   | "defaultColumnLayout"
+  | "readOnly"
+  | "keymap"
 > & {
   /** Always defined: controlled mode mirrors the `data` prop every sync; uncontrolled mode seeds from `defaultData` once and the store owns it thereafter (mutated in place by the commit actions). */
   data: readonly unknown[];
@@ -617,17 +655,18 @@ export type DataGridStoreState = Omit<
    */
   presenceViewSpaceActive: (() => boolean) | null;
   /**
-   * Mirrors `DataGridRoot`'s `readOnly` prop, registered on mount, so
-   * mutation surfaces outside the root's subtree (context menu, `useDataGridClipboard`) can see it
-   * too — the root prop alone only reached its own local `useGridInteraction`/`useGridClipboard`.
-   * `false` before mount/after unmount.
+   * The `readOnly` sync prop, defaulted to `false`: editing and delete are disabled grid-wide,
+   * independent of any per-column `readOnly`. Seeded from the provider's init props (SSR and the
+   * first client paint already see it) and kept in sync by the config phase, so a flip to `true`
+   * is live before the next event; every reader (root `aria-readonly`, interaction, clipboard,
+   * context menu) goes through this field.
    */
   readOnly: boolean;
   /**
-   * Mirrors `DataGridRoot`'s effective keymap — `DEFAULT_KEYMAP` merged with its `keymap` prop —
-   * registered on mount (backing the `data-grid-keybindings` add-on) so surfaces outside
-   * the root's subtree (e.g. the keybindings dialog) can read the single source of truth for
-   * bindings instead of re-deriving it. `DEFAULT_KEYMAP` before mount/after unmount.
+   * The effective keymap — `DEFAULT_KEYMAP` merged with the `keymap` sync prop — seeded at store
+   * creation and kept in sync by the config phase, the single source of truth for bindings
+   * (backing the `data-grid-keybindings` add-on). Keeps its reference while the prop's entries
+   * are content-equal (see `keymapContentEqual`). `DEFAULT_KEYMAP` when no prop is passed.
    */
   keymap: Keymap;
   /** The `commands` sync prop (see {@link DataGridSyncProps.commands}); `null` when none — the dispatch target for custom keymap names. */
@@ -849,6 +888,16 @@ export type DataGridInternalActions = {
   /** @internal syncs live consumer props and recomputes derived state; not part of the public hook surface. */
   _syncProps(props: InternalSyncProps): void;
   /**
+   * @internal Syncs the config slice (every sync prop that feeds no derived state: `readOnly`,
+   * `keymap`, the `enable*` flags, `rowMarkers`, `headerClickBehavior`, `labels`, `commands`,
+   * `overlayPlugins`, `rowBands`, `autosizeOnMount`, and every `on*`/`process*`/`validateRow`/
+   * `createRow`/`duplicateRow` callback) into the store, run from the provider's layout effect so
+   * a `readOnly` flip is live before the browser paints or dispatches the next event. A `keymap`
+   * content change runs the dev-only binding validation here; `readOnly` turning on cancels an
+   * open edit session. Not part of the public hook surface.
+   */
+  _syncConfig(props: InternalSyncProps): void;
+  /**
    * @internal The provider subscribes after its `onActiveCellChange` wiring: fires `onEditEnd`
    * `cancel` when a session ends outside commit/cancel (remap, stale-anchor discard, direct store
    * write). Returns the unsubscribe. Not part of the public hook surface.
@@ -858,10 +907,6 @@ export type DataGridInternalActions = {
   _registerScrollToCell(impl: ((coord: ViewCoord) => void) | null): void;
   /** @internal `DataGridRoot` registers/clears its DOM focus on mount/unmount; not part of the public hook surface. */
   _registerFocus(impl: (() => void) | null): void;
-  /** @internal `DataGridRoot` syncs its `readOnly` prop into the store on every render/unmount; turning it on cancels an open edit session. */
-  _registerReadOnly(readOnly: boolean): void;
-  /** @internal `DataGridRoot` syncs its effective (merged) keymap into the store on every render/unmount; not part of the public hook surface. */
-  _registerKeymap(keymap: Keymap): void;
   /** @internal `DataGridRoot` registers/clears its autosize measure context (fonts, mounted row window, header-menu flag) on mount/unmount; `autosizeColumns` reads it lazily. Not part of the public hook surface. */
   _registerMeasureFonts(impl: (() => AutosizeMeasureContext | null) | null): void;
   /** @internal the `data-grid-fill` add-on's tracker component registers/clears its keymap handlers on mount/unmount; not part of the public hook surface. */
@@ -934,8 +979,20 @@ export type CommitResult =
 /** Per-row accumulator: the row as edited so far, plus its per-column cell deltas (columnId -> entry). */
 export type RowEdit = { row: unknown; cells: Map<string, { columnId: string; value: unknown; prev: unknown }> };
 
+/**
+ * The `store` branch of {@link DataGridProviderProps}/{@link DataGridProps}: a consumer-created
+ * store is passed ALONE — any sync prop next to it would be silently ignored (the owner's
+ * `useDataGridStoreProps` call drives the store), so the mapped-`never` makes it a type error.
+ * Dev mode warns once when an untyped (cast) caller passes both anyway.
+ */
+export type ExternalStoreProps = { store: StoreApi<DataGridStoreState> } & {
+  [K in keyof DataGridSyncProps<unknown>]?: never;
+};
+/** The owned-store branch of {@link DataGridProviderProps}/{@link DataGridProps}: this instance self-creates and syncs the store from the sync props. */
+export type OwnedStoreProps<TData> = DataGridSyncProps<TData> & { store?: undefined };
+
 /** Props for {@link DataGridProvider}. */
-export type DataGridProviderProps<TData = unknown> = DataGridSyncProps<TData> & {
+export type DataGridProviderProps<TData = unknown> = (ExternalStoreProps | OwnedStoreProps<TData>) & {
   children: ReactNode;
   /** Receives the grid's imperative handle ({@link DataGridApi}), the same object `useDataGridApi` returns under this provider. */
   ref?: Ref<DataGridApi<TData>>;
@@ -943,7 +1000,8 @@ export type DataGridProviderProps<TData = unknown> = DataGridSyncProps<TData> & 
    * A consumer-created store (from `useDataGridStoreProps`) to serve to the subtree instead
    * of self-creating one. When set, the provider becomes a pure context shell: no store
    * creation, no prop sync, no subscription wiring — the owner's `useDataGridStoreProps` call
-   * drives the store and must pass the same live props.
+   * drives the store and must pass the same live props; pass the store ALONE (see
+   * {@link ExternalStoreProps} for why sync props next to it are a type error).
    */
   store?: StoreApi<DataGridStoreState>;
 };

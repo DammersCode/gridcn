@@ -87,19 +87,20 @@ export function useDataGridFillHandlers(): DataGridStoreState["fillHandlers"] {
 }
 
 /**
- * Mirrors the mounted `DataGridRoot`'s `readOnly` prop — for add-on
- * mutation surfaces outside the root's subtree (e.g. the context-menu add-on) that need to hide or
- * disable their own actions on a read-only grid. `false` before mount/after unmount.
+ * The grid-wide `readOnly` flag (the provider's `readOnly` prop) — for add-on mutation surfaces
+ * outside the root's subtree (e.g. the context-menu add-on) that need to hide or disable their own
+ * actions on a read-only grid. Seeded from the provider's props, so it is live from the first
+ * render, SSR included.
  */
 export function useDataGridReadOnly(): boolean {
   return useDataGridStore((s) => s.readOnly);
 }
 
 /**
- * The mounted `DataGridRoot`'s effective keymap — `DEFAULT_KEYMAP` merged over with its `keymap`
- * prop — the single source of truth for every bound action (backs the `data-grid-keybindings`
- * add-on's dialog so it never hardcodes a shortcut list). `DEFAULT_KEYMAP`
- * before mount/after unmount.
+ * The grid's effective keymap — `DEFAULT_KEYMAP` merged over with the provider's `keymap` prop —
+ * the single source of truth for every bound action (backs the `data-grid-keybindings` add-on's
+ * dialog so it never hardcodes a shortcut list). Seeded from the provider's props, so it is live
+ * from the first render, SSR included.
  */
 export function useDataGridKeymap(): Keymap {
   return useDataGridStore((s) => s.keymap);

@@ -9,7 +9,7 @@ import {
   DataGridHeader,
   DataGridProvider,
   DataGridRoot,
-  type DataGridProviderProps,
+  type DataGridSyncProps,
 } from "../data-grid";
 import { useDataGridStoreApi, gridAttrSelector, type DataGridStoreState } from "../data-grid-sdk";
 import type { DataChange } from "../types";
@@ -40,7 +40,7 @@ function StoreCapture({ onReady }: { onReady: (store: StoreApi<DataGridStoreStat
 
 function renderGrid(
   onStore: (store: StoreApi<DataGridStoreState>) => void,
-  overrides: Partial<DataGridProviderProps<Row>> = {},
+  overrides: Partial<DataGridSyncProps<Row>> = {},
   rowCount = 5,
 ) {
   return render(

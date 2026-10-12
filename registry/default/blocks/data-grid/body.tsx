@@ -6,10 +6,12 @@ import {
   useDataGridInternalActions,
   useDataGridActiveCell,
   useDataGridLabels,
+  useDataGridReadOnly,
   useDataGridRowCount,
   useDataGridRowIds,
   useDataGridRowMarkers,
   useDataGridRowReorderEnabled,
+  useDataGridStoreApi,
   type AnyColumnDef,
 } from "./store";
 import { useRowWindow } from "./windowing/use-row-window";
@@ -60,14 +62,12 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
     pinnedTopCount,
     template,
     layout,
-    readOnly,
     interaction,
     getRowClassName,
     getCellClassName,
-    onCellClick,
-    onRowClick,
-    onRowWindowChange,
   } = useDataGridRootContext();
+  const readOnly = useDataGridReadOnly();
+  const storeApi = useDataGridStoreApi();
   const rowMarkers = useDataGridRowMarkers();
   const rowCount = useDataGridRowCount();
   const activeCell = useDataGridActiveCell();
@@ -93,14 +93,15 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   // fallback and the real window both looked like genuine, distinct committed ranges and this fired
   // twice on every mount (root cause of the double-fire bug) — the fallback was never a range a
   // consumer (e.g. data-grid-lazy's fetch-on-window) should act on in the first place.
+  // The callback is read off the store at fire time (not a dep), so an identity change never re-fires it — only a range change does.
   const lastFiredRangeRef = useRef<{ start: number; end: number } | null>(null);
   useEffect(() => {
     if (!measured) return;
     const last = lastFiredRangeRef.current;
     if (last && last.start === start && last.end === end) return;
     lastFiredRangeRef.current = { start, end };
-    onRowWindowChange?.({ start, end });
-  }, [start, end, measured, onRowWindowChange]);
+    storeApi.getState().onRowWindowChange?.({ start, end });
+  }, [start, end, measured, storeApi]);
 
   // A naive "clear then repopulate" would blank the body for a frame on every window shift.
   // Rows are keyed by getRowId and mapped straight from viewRowIndices, so keyed reconciliation
@@ -298,8 +299,6 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
               ariaRowIndexOffset={pinnedTopCount}
               getRowClassName={getRowClassName}
               getCellClassName={getCellClassName}
-              onCellClick={onCellClick}
-              onRowClick={onRowClick}
             />
           );
         })}

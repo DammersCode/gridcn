@@ -244,22 +244,28 @@ with no new per-cell subscription, so leaving both unset costs nothing.
 
 `<DataGrid<TData>>` infers `TData` from its own `data` or `defaultData` prop, so
 `getRowClassName`, `getCellClassName`, `onCellClick`, and `onRowClick` are typed automatically.
-Composing directly (`DataGridProvider` plus `DataGridRoot`) has no such prop on `DataGridRoot` to
-infer from, because `data` lives on the sibling `DataGridProvider` instead. So annotate `TData`
-explicitly:
+In split composition (`DataGridProvider` plus `DataGridRoot`), `onCellClick` and `onRowClick`
+live on the `DataGridProvider`, which infers `TData` from its own `data` prop. The root has no
+`data` prop, so annotate its generic for the class-name callbacks:
 
 ```tsx
-<DataGridRoot<Person>
+<DataGridProvider<Person>
+  data={people}
+  columns={columns}
+  getRowId={(p) => p.id}
   onCellClick={(ctx) => console.log(ctx.row.name)} // ctx.row: Person, no cast
   onRowClick={(ctx) => console.log(ctx.row.age)}
-  getRowClassName={(row) => (row.active ? "bg-accent/20" : undefined)}
-/>
+>
+  <DataGridRoot<Person>
+    getRowClassName={(row) => (row.active ? "bg-accent/20" : undefined)}
+  />
+</DataGridProvider>
 ```
 
-`DataGridRootProps<TData>` defaults to `unknown` when you omit the generic (every existing
-untyped call site is unaffected), and all four callback props narrow together from the one
-annotation. See `data-grid.type-test.ts` for the compile-time proof and
-`data-grid-events-demo.tsx` for a worked example with `onCellClick` and `onRowClick`.
+`DataGridProviderProps<TData>` and `DataGridRootProps<TData>` both default to `unknown` when you
+omit the generic (every existing untyped call site is unaffected). See `data-grid.type-test.ts`
+for the compile-time proof and `data-grid-events-demo.tsx` for a worked example with
+`onCellClick` and `onRowClick`.
 
 ## 7. `onRowWindowChange`
 
@@ -269,7 +275,7 @@ onRowWindowChange?: (range: { start: number; end: number }) => void;
 
 This fires after a row-window commit, including once for the initial mount, with the rendered
 data-row range. This is the mechanism that `useDataGridLazyRows` of `data-grid-lazy` uses to
-fetch only scrolled-into-view rows. It is also a `DataGridRoot` prop. See
+fetch only scrolled-into-view rows. It is a prop on `DataGridProvider` and `DataGrid`. See
 [Lazy loading](/docs/lazy-loading).
 
 ## 8. `onColumnLayoutChange` + `defaultColumnLayout` + `onColumnResizing`

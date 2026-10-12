@@ -61,7 +61,7 @@ describe("useDataGridStoreProps (external store ownership)", () => {
     const consumer = renderHook(() => ({ actions: useDataGridActions(), api: useDataGridStoreApi() }), {
       wrapper: function Wrapper({ children }: { children: ReactNode }) {
         return (
-          <DataGridProvider store={external ?? undefined} data={rows(3)} columns={columns} getRowId={getRowId}>
+          <DataGridProvider store={external!}>
             {children}
           </DataGridProvider>
         );

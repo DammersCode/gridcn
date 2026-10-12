@@ -126,7 +126,6 @@ describe("dispatchGridAction undo and redo", () => {
       scrollRef: { current: null },
       scrollCellIntoView: vi.fn(),
       rowHeight: 36,
-      readOnly,
       preventDefault: vi.fn(),
     });
     return { onUndo, onRedo };

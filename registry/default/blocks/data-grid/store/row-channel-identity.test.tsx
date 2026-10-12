@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef, DataChange } from "../types";
 import { getSelectedViewRows } from "../selection/selected-view-rows";
-import { DataGridProvider, useDataGridStoreApi, type DataGridProviderProps, type DataGridStoreState } from ".";
+import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
 import { getSelectedRowIds } from "./compute";
 import { dispatchGridAction } from "../interaction/use-grid-interaction";
 
@@ -24,7 +24,7 @@ function rows(): Row[] {
   ];
 }
 
-type Props = Partial<DataGridProviderProps<Row>>;
+type Props = Partial<DataGridSyncProps<Row>>;
 
 function mount(props: Props) {
   let api: StoreApi<DataGridStoreState> | null = null;

@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, renderHook, screen } from "@testing-li
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { ColumnDef } from "../types";
-import { DataGrid, DataGridProvider, useDataGridActions, useDataGridSelector, type DataGridProviderProps } from "../data-grid";
+import { DataGrid, DataGridProvider, useDataGridActions, useDataGridSelector, type DataGridSyncProps } from "../data-grid";
 import { useDataGridStoreApi } from "../data-grid-sdk";
 
 type Row = { id: string; name: string; qty: number };
@@ -25,7 +25,7 @@ const validatingColumns: readonly ColumnDef<Row, unknown>[] = [
   { id: "qty", header: "Qty", accessorKey: "qty", type: "number", validate: (v) => (v === -1 ? "nope" : null) },
 ];
 
-function makeWrapper(overrides: Partial<DataGridProviderProps<Row>> = {}) {
+function makeWrapper(overrides: Partial<DataGridSyncProps<Row>> = {}) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <DataGridProvider data={rows()} columns={columns} getRowId={(r) => r.id} {...overrides}>

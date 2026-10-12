@@ -6,7 +6,7 @@ import { CompactSelection } from "../selection/compact-selection";
 import { cellTypes } from "../cell-types/cell-types";
 import {
   DataGridProvider,
-  type DataGridProviderProps,
+  type DataGridSyncProps,
   cellErrorKey,
   createDataGridSelector,
   useDataGridInternalActions,
@@ -65,7 +65,7 @@ function makeWrapper(data: Row[] = rows()) {
 }
 
 /** Wrapper accepting selection-config/rowMarkers overrides, for the gating tests below. */
-function makeConfigWrapper(configProps: Partial<DataGridProviderProps<Row>> = {}, data: Row[] = rows()) {
+function makeConfigWrapper(configProps: Partial<DataGridSyncProps<Row>> = {}, data: Row[] = rows()) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <DataGridProvider data={data} columns={columns} getRowId={(r) => r.id} {...configProps}>

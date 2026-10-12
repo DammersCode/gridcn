@@ -7,8 +7,10 @@
  * columns/column-helpers.type-test.ts). `PresenceHighlight`'s own type-test lives in the
  * `data-grid-presence` add-on with the rest of presence.
  */
+import type { StoreApi } from "zustand/vanilla";
 import type {
   DataGrid,
+  DataGridProviderProps,
   DataGridRootProps,
   defineColumns,
   ColumnDef,
@@ -42,6 +44,8 @@ import type {
   SortSpec,
 } from "./data-grid";
 import { createDataGridSelector, useDataGridSelector, useDataGridCellTypes, useDataGridVisibleColumns, useDataGridAllColumns } from "./data-grid";
+import { DATA_GRID_ROOT_PROP_KEYS } from "./root";
+import type { DataGridStoreState } from "./store";
 
 /** Compile-only check: `Actual` must be identical to `Expected` (both directions assignable). */
 type Equal<Expected, Actual> = (<T>() => T extends Expected ? 1 : 2) extends <T>() => T extends Actual ? 1 : 2
@@ -108,17 +112,25 @@ void badSortState;
 const badJoinOperator: Pick<DataGridProps<Row>, "joinOperator"> = { joinOperator: "xor" };
 void badJoinOperator;
 
-// --- DataGrid wrapper prop-surface drift guard ------------------------------------------------
-// DataGridProps must forward every DataGridSyncProps sync prop into DataGridProvider.
-// Pin the "intentionally absent from the wrapper" set explicitly (currently empty) so a sync prop
-// added to the provider without a matching DataGridProps field fails this file's compile.
-type IntentionallyAbsentFromWrapper = never;
-assertEqual<IntentionallyAbsentFromWrapper, Exclude<keyof DataGridSyncProps<Row>, keyof DataGridProps<Row>>>(true);
+// --- DataGrid wrapper prop surface: one home per prop ------------------------------------------
+// DataGridProps is built as (ExternalStoreProps | OwnedStoreProps) & DataGridRootProps & { ref }, so
+// a prop cannot exist on one home and be forgotten on the wrapper. These guards pin the split itself.
 
-// Same guard for the root's own props: a DataGridRootProps field the wrapper does not forward is a
-// compile error here until it is added to DataGridProps (or named in the intentionally-absent set).
-type IntentionallyAbsentFromRootForwarding = never;
-assertEqual<IntentionallyAbsentFromRootForwarding, Exclude<keyof DataGridRootProps, keyof DataGridProps<Row>>>(true);
+// Disjoint: a sync prop that also exists on the root would be ambiguous about which home reads it.
+assertEqual<never, Extract<keyof DataGridSyncProps<Row>, keyof DataGridRootProps<Row>>>(true);
+
+// Exhaustive: a new root prop missing from DATA_GRID_ROOT_PROP_KEYS would leak to the provider
+// instead of the root (the wrapper forwards the list to the root and spreads the rest).
+assertEqual<never, Exclude<keyof DataGridRootProps<Row>, (typeof DATA_GRID_ROOT_PROP_KEYS)[number]>>(true);
+
+// @ts-expect-error - `readOnly` is a sync prop (the store's home), not a root prop
+const rootReadOnly: DataGridRootProps<Row> = { readOnly: true };
+void rootReadOnly;
+
+declare const externalStore: StoreApi<DataGridStoreState>;
+// @ts-expect-error - a sync prop next to `store` is a type error (the union types it as never)
+const externalWithSync: DataGridProviderProps<Row> = { store: externalStore, readOnly: true, children: null };
+void externalWithSync;
 
 // --- DeepPartialLabels: nested plain objects become deep-partial; arrays/functions stay whole ---
 
@@ -309,19 +321,19 @@ assertEqual<MarkerHeaderRenderer | undefined, DataGridProps<Row>["renderMarkerHe
 assertEqual<HeaderMenuRenderer | undefined, DataGridRootProps["renderHeaderMenu"]>(true);
 assertEqual<HeaderMenuRenderer | undefined, DataGridProps<Row>["renderHeaderMenu"]>(true);
 
-const onCellClick: TypedRootProps["onCellClick"] = (ctx: CellClickCtx<Row, unknown>) => {
+const onCellClick: DataGridSyncProps<Row>["onCellClick"] = (ctx: CellClickCtx<Row, unknown>) => {
   const name: string = ctx.row.name; // Row, no cast
   void name;
 };
 void onCellClick;
 
-const onRowClick: TypedRootProps["onRowClick"] = (ctx: RowClickCtx<Row>) => {
+const onRowClick: DataGridSyncProps<Row>["onRowClick"] = (ctx: RowClickCtx<Row>) => {
   const age: number = ctx.row.age;
   void age;
 };
 void onRowClick;
 
-const onCellClickWrongShape: TypedRootProps["onCellClick"] = (ctx: CellClickCtx<Row, unknown>) => {
+const onCellClickWrongShape: DataGridSyncProps<Row>["onCellClick"] = (ctx: CellClickCtx<Row, unknown>) => {
   // @ts-expect-error - Row has no `totallyDifferentShape` field
   void ctx.row.totallyDifferentShape;
 };

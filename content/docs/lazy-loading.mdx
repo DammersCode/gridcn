@@ -57,9 +57,10 @@ shimmer with plain CSS instead of a class override.
           columns={columns}
           getRowId={lazy.gridProps.getRowId}
           onDataChange={lazy.onDataChange}
+          onRowWindowChange={lazy.gridProps.onRowWindowChange}
         >
           <DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />
-          <DataGridRoot onRowWindowChange={lazy.gridProps.onRowWindowChange}>
+          <DataGridRoot>
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
@@ -68,7 +69,7 @@ shimmer with plain CSS instead of a class override.
     }
     ```
 
-    `onRowWindowChange` is a core `DataGridRoot` or `DataGrid` prop (see
+    `onRowWindowChange` is a core `DataGridProvider` or `DataGrid` prop (see
     [Virtualization](/docs/virtualization)). This add-on is the first consumer of it, but the prop
     is generic and available even without this add-on, for example for analytics or prefetch.
 
@@ -191,7 +192,10 @@ point:
 ```tsx
 const MIN_DISTANCE = 500;
 
-<DataGridRoot
+<DataGridProvider
+  data={lazy.gridProps.data}
+  columns={columns}
+  getRowId={lazy.gridProps.getRowId}
   onRowWindowChange={(range) => {
     lazy.gridProps.onRowWindowChange(range);
     for (const loaded of lazy.getLoadedRanges()) {
@@ -201,9 +205,11 @@ const MIN_DISTANCE = 500;
     }
   }}
 >
-  <DataGridHeader />
-  <DataGridBody />
-</DataGridRoot>
+  <DataGridRoot>
+    <DataGridHeader />
+    <DataGridBody />
+  </DataGridRoot>
+</DataGridProvider>
 ```
 
 The demo's "Evict loaded rows" button runs `lazy.evict` over the whole range, so every loaded

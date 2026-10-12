@@ -2,13 +2,14 @@ import { act, render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef, DataChange } from "../types";
-import { DataGridProvider, useDataGridStoreApi, type DataGridProviderProps, type DataGridStoreState } from ".";
+import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
+import { toInternalSyncProps } from "./types";
 
 type Row = { id: string; name: string };
 
 const columns: readonly ColumnDef<Row, unknown>[] = [{ id: "name", header: "Name", accessorKey: "name" }];
 
-function mount(props: Partial<DataGridProviderProps<Row>>) {
+function mount(props: Partial<DataGridSyncProps<Row>>) {
   let api: StoreApi<DataGridStoreState> | null = null;
   function Probe() {
     api = useDataGridStoreApi();
@@ -31,14 +32,28 @@ function mount(props: Partial<DataGridProviderProps<Row>>) {
 }
 
 describe("store writes in a read-only grid", () => {
-  it("cancels the open edit session when readOnly turns true, so a later commit writes nothing", () => {
+  it("cancels the open edit session when the config sync flips readOnly, so a later commit writes nothing", () => {
     const onDataChange = vi.fn<(next: readonly Row[], change: DataChange<Row>) => void>();
     const onEditEnd = vi.fn();
     const store = mount({ onDataChange, onEditEnd });
     act(() => store.getState().actions.startEditingAt({ row: 0, col: 0 }));
     expect(store.getState().editing).not.toBeNull();
 
-    act(() => store.getState().actions._registerReadOnly(true));
+    act(() =>
+      store.getState().actions._syncConfig(
+        toInternalSyncProps({
+          defaultData: [
+            { id: "a", name: "Alpha" },
+            { id: "b", name: "Bravo" },
+          ],
+          columns,
+          getRowId: (row) => row.id,
+          onDataChange,
+          onEditEnd,
+          readOnly: true,
+        }),
+      ),
+    );
 
     expect(store.getState().editing).toBeNull();
     expect(onEditEnd).toHaveBeenCalledTimes(1);
@@ -63,7 +78,7 @@ describe("store writes in a read-only grid", () => {
   it("commitCellValue and commitCellValueAt write nothing", () => {
     const onDataChange = vi.fn();
     const store = mount({ onDataChange });
-    act(() => store.getState().actions._registerReadOnly(true));
+    act(() => store.setState({ readOnly: true }));
 
     act(() => store.getState().actions.commitCellValue({ rowId: "b", columnId: "name" }, "Changed"));
     act(() => store.getState().actions.commitCellValueAt({ row: 0, col: 0 }, "Changed"));
@@ -75,8 +90,8 @@ describe("store writes in a read-only grid", () => {
   it("commitCellValue writes once readOnly turns false again", () => {
     const onDataChange = vi.fn();
     const store = mount({ onDataChange });
-    act(() => store.getState().actions._registerReadOnly(true));
-    act(() => store.getState().actions._registerReadOnly(false));
+    act(() => store.setState({ readOnly: true }));
+    act(() => store.setState({ readOnly: false }));
 
     act(() => store.getState().actions.commitCellValue({ rowId: "b", columnId: "name" }, "Changed"));
 
@@ -85,18 +100,30 @@ describe("store writes in a read-only grid", () => {
 });
 
 describe("the readOnly flip", () => {
-  it("is visible to onEditEnd when it cancels the open edit", () => {
+  it("is visible to onEditEnd when the config sync flip cancels the open edit", () => {
     let readOnlyAtEditEnd: boolean | null = null;
     let api: StoreApi<DataGridStoreState> | null = null;
-    const store = mount({
-      onEditEnd: () => {
-        readOnlyAtEditEnd = api!.getState().readOnly;
-      },
-    });
+    const onEditEnd = () => {
+      readOnlyAtEditEnd = api!.getState().readOnly;
+    };
+    const store = mount({ onEditEnd });
     api = store;
     act(() => store.getState().actions.startEditingAt({ row: 0, col: 0 }));
 
-    act(() => store.getState().actions._registerReadOnly(true));
+    act(() =>
+      store.getState().actions._syncConfig(
+        toInternalSyncProps({
+          defaultData: [
+            { id: "a", name: "Alpha" },
+            { id: "b", name: "Bravo" },
+          ],
+          columns,
+          getRowId: (row) => row.id,
+          onEditEnd,
+          readOnly: true,
+        }),
+      ),
+    );
 
     expect(readOnlyAtEditEnd).toBe(true);
   });

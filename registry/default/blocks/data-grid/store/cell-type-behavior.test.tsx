@@ -7,7 +7,7 @@ import {
   useDataGridActions,
   useDataGridCellErrors,
   useDataGridStoreApi,
-  type DataGridProviderProps,
+  type DataGridSyncProps,
 } from "../store";
 import { DataGrid } from "../data-grid";
 import { pasteText } from "../clipboard/use-grid-clipboard";
@@ -43,7 +43,7 @@ function makeCustomType(validate?: (value: unknown, row: unknown) => string | nu
   };
 }
 
-function makeWrapper(overrides: Partial<DataGridProviderProps<Row>> = {}) {
+function makeWrapper(overrides: Partial<DataGridSyncProps<Row>> = {}) {
   const columns: readonly ColumnDef<Row, unknown>[] = [
     { id: "fruit", header: "Fruit", accessorKey: "fruit", type: "select", options: { choices: CHOICES } },
     { id: "qty", header: "Qty", accessorKey: "qty", type: "custom-qty" as never },

@@ -2,7 +2,7 @@ import { act, render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef } from "../types";
-import { DataGridProvider, useDataGridStoreApi, type DataGridProviderProps, type DataGridStoreState } from ".";
+import { DataGridProvider, useDataGridStoreApi, type DataGridProviderProps, type DataGridStoreState, type DataGridSyncProps } from ".";
 
 type Row = { id: string; a: string; b: string; c: string };
 
@@ -16,7 +16,7 @@ const col = (id: keyof Row & string, extra: Partial<ColumnDef<Row, unknown>> = {
 const twoColumns: readonly ColumnDef<Row, unknown>[] = [col("a"), col("b")];
 const threeColumns: readonly ColumnDef<Row, unknown>[] = [col("a"), col("b"), col("c")];
 
-type Props = Partial<DataGridProviderProps<Row>>;
+type Props = Partial<DataGridSyncProps<Row>>;
 
 function mount(props: Props) {
   let api: StoreApi<DataGridStoreState> | null = null;

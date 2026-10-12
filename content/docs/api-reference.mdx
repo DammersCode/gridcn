@@ -70,9 +70,8 @@ This is the composable entry point. It has the same sync props as `DataGrid` abo
 <AutoTypeTable path="./registry/default/blocks/data-grid/store/types.ts" name="DataGridProviderProps" />
 
 <Callout title="Doesn't take every DataGrid prop">
-  `rowHeight`, `density`, `className`, `emptyState`, `loading`, `loadingState`, `keymap`,
-  `getRowClassName`,
-  `getCellClassName`, `onCellClick`, and `onRowClick` live on `DataGridRoot` when composing
+  `rowHeight`, `density`, `className`, `emptyState`, `loading`, `loadingState`,
+  `getRowClassName`, and `getCellClassName` live on `DataGridRoot` when composing
   directly. `DataGrid` passes its own copies of these straight through to the `DataGridRoot` that
   it renders. `onFill` is not a prop on either. It is an option to the `useDataGridFill()`
   hook of the `data-grid-fill` add-on (see [Fill handle](/docs/addons/fill)), since fill itself

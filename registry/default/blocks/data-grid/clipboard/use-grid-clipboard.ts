@@ -16,7 +16,6 @@ import { candidateRowIds, reresolveBulkWrites, snapshotBulkBatch, useBulkGenerat
 /** Options for {@link useGridClipboard}. */
 export type UseGridClipboardOptions = {
   rootRef: RefObject<HTMLElement | null>;
-  readOnly?: boolean;
   /** Prefix formula-like cells with `'` in the copied text/plain payload (same opt-in as {@link serializeCells}); default `false` so the grid's own paste round-trip stays byte-identical. */
   sanitizeFormulas?: boolean;
 };
@@ -397,7 +396,7 @@ function ownsClipboardEvent(event: ClipboardEvent): boolean {
  * events from a grid nested in a cell.
  */
 export function useGridClipboard(options: UseGridClipboardOptions): void {
-  const { rootRef, readOnly, sanitizeFormulas } = options;
+  const { rootRef, sanitizeFormulas } = options;
   const actions = useDataGridInternalActions();
   const storeApi = useDataGridStoreApi();
   // One counter for this grid's paste surface: a second paste supersedes a still-validating first.
@@ -423,17 +422,17 @@ export function useGridClipboard(options: UseGridClipboardOptions): void {
       if (!scope) return;
       event.preventDefault();
       writeClipboardEvent(event, serializeCopyScope(s, scope), sanitizeFormulas ?? s.sanitizeClipboardFormulas);
-      if (readOnly) return;
+      if (s.readOnly) return;
       const { rowIds, columnIds } = copyScopeCellIds(s, scope);
       actions._deleteCellsById(rowIds, columnIds);
     },
-    [storeApi, actions, readOnly, sanitizeFormulas],
+    [storeApi, actions, sanitizeFormulas],
   );
 
   const onPaste = useCallback(
     (event: ClipboardEvent) => {
       const s = storeApi.getState();
-      if (s.editing || readOnly || !ownsClipboardEvent(event)) return;
+      if (s.editing || s.readOnly || !ownsClipboardEvent(event)) return;
       // resolvePasteTarget gates BEFORE parsing/preventDefault, so a no-target paste (nothing
       // selected/active) leaves the native paste behavior (e.g. into an unrelated focused input) intact.
       if (!resolvePasteTarget(s)) return;
@@ -444,7 +443,7 @@ export function useGridClipboard(options: UseGridClipboardOptions): void {
       event.preventDefault();
       applyParsedPaste(s, actions, parsed, guard, storeApi);
     },
-    [storeApi, actions, readOnly, guard],
+    [storeApi, actions, guard],
   );
 
   useEffect(() => {

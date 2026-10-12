@@ -9,7 +9,7 @@ import {
   useDataGridEditing,
   useDataGridSelection,
   useDataGridViewIndex,
-  type DataGridProviderProps,
+  type DataGridSyncProps,
 } from "../store";
 
 type Row = { id: string; name: string; age: number };
@@ -29,7 +29,7 @@ function rows(): Row[] {
 
 function makeWrapper(
   onDataChange: (next: readonly Row[], change: DataChange<Row>) => void,
-  overrides: Partial<DataGridProviderProps<Row>> = {},
+  overrides: Partial<DataGridSyncProps<Row>> = {},
   data: Row[] = rows(),
 ) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -414,10 +414,19 @@ describe("reorderRows", () => {
 
   it("is a no-op while readOnly", () => {
     const onDataChange = vi.fn();
-    const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
-
-    act(() => result.current._registerReadOnly(true));
+    // Read directly in the wrapper body: a factory-built component type is compiler-cached at
+    // first render and would keep its initial props forever.
+    const flags = { readOnly: false };
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider data={rows()} columns={columns} getRowId={(r) => r.id} onDataChange={onDataChange} readOnly={flags.readOnly}>
+          {children}
+        </DataGridProvider>
+      );
+    }
+    const { result, rerender } = renderHook(() => useDataGridInternalActions(), { wrapper: Wrapper });
+    flags.readOnly = true;
+    rerender();
     act(() => result.current.reorderRows(0, 2));
 
     expect(onDataChange).not.toHaveBeenCalled();

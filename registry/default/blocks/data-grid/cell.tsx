@@ -13,7 +13,7 @@ import {
 } from "react";
 import { cn } from "@/lib/utils";
 import { COLUMN_BORDER } from "./columns/column-border";
-import type { CellType, GetCellClassName, OnCellClick, OnRowClick } from "./types";
+import type { CellType, GetCellClassName } from "./types";
 import { getCellValue } from "./columns/column-helpers";
 import { useDataGridActions, useDataGridCellTypes, useDataGridCellEditingError, useDataGridCellRejectionCount, useDataGridStoreApi, type AnyColumnDef } from "./store";
 import { useDataGridRootContext } from "./layout-context";
@@ -45,16 +45,12 @@ export type DataGridCellProps = {
   column: AnyColumnDef;
   /** Pure data-column index — drives `ViewCoord.col`, `aria-colindex`, and pin-var lookup. Never touched by the marker column (it lives outside the data index space). */
   columnIndex: number;
-  /** Grid-level readOnly (from `DataGridRoot`), independent of the column's own `readOnly`. */
+  /** Grid-level readOnly (from the store), independent of the column's own `readOnly`. */
   gridReadOnly?: boolean;
   /** 1-based `gridColumnStart` offset added to `columnIndex`; 2 when a marker column occupies track 1, else 1. Presentation-only — never affects `coord`/`aria-colindex`. */
   gridColOffset?: number;
   /** Forwarded from row.tsx (stable identity, root's dev guardrail) rather than read from context here, so this memoized cell's props stay shallow-equal across ticks. */
   getCellClassName?: GetCellClassName<unknown>;
-  /** Forwarded from row.tsx, same stable-identity guidance as `getCellClassName`. Fired from this cell's own existing click handler — see {@link OnCellClick}. */
-  onCellClick?: OnCellClick<unknown>;
-  /** Forwarded alongside `onCellClick`, fired from the same click — see {@link OnRowClick}. */
-  onRowClick?: OnRowClick<unknown>;
   /**
    * True for a pinned top/bottom row cell (the `data-grid-pinned-rows` add-on's row-bands):
    * display-only, so this skips every pointer/focus handler — pinned rows aren't part of
@@ -102,8 +98,6 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     gridReadOnly,
     gridColOffset = 1,
     getCellClassName,
-    onCellClick,
-    onRowClick,
     pinnedRow: isPinnedRow,
     isActive = false,
     isSelected = false,
@@ -179,14 +173,16 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     (event: ReactMouseEvent<HTMLDivElement>) => {
       interaction.onCellClick(coord, event);
       // Pure notification, fired alongside whatever the click already resolved to (select/toggle) —
-      // never gated on it. Skeleton/pinned-row cells don't reach here (this handler isn't attached
-      // for them below), so `row`/`value` are always real by construction.
-      if (onCellClick || onRowClick) {
-        onCellClick?.({ value, row, column, rowId, columnId: column.id, viewRowIndex: rowIndex, viewColumnIndex: columnIndex }, event.nativeEvent);
-        onRowClick?.({ row, rowId, viewRowIndex: rowIndex }, event.nativeEvent);
+      // never gated on it. Read off the store at click time (no prop threading), so a callback
+      // identity change re-renders no cell. Skeleton/pinned-row cells don't reach here (this handler
+      // isn't attached for them below), so `row`/`value` are always real by construction.
+      const s = storeApi.getState();
+      if (s.onCellClick || s.onRowClick) {
+        s.onCellClick?.({ value, row, column, rowId, columnId: column.id, viewRowIndex: rowIndex, viewColumnIndex: columnIndex }, event.nativeEvent);
+        s.onRowClick?.({ row, rowId, viewRowIndex: rowIndex }, event.nativeEvent);
       }
     },
-    [interaction, coord, onCellClick, onRowClick, value, row, column, rowId, rowIndex, columnIndex],
+    [interaction, coord, storeApi, value, row, column, rowId, rowIndex, columnIndex],
   );
   // Pure notifications, read off the store at event time (no prop threading, no re-render
   // sensitivity) — fired regardless of readOnly and of whatever the gesture also does.

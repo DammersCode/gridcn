@@ -398,8 +398,8 @@ describe("data-grid-fill add-on", () => {
     function Harness() {
       const { plugin, FillHandleTracker } = useDataGridFill({});
       return (
-        <DataGridProvider data={data} columns={fillColumns} getRowId={(r) => r.id} onDataChange={onDataChange} overlayPlugins={[plugin]}>
-          <DataGridRoot className="h-[600px]" readOnly>
+        <DataGridProvider data={data} columns={fillColumns} getRowId={(r) => r.id} onDataChange={onDataChange} overlayPlugins={[plugin]} readOnly>
+          <DataGridRoot className="h-[600px]">
             <DataGridHeader />
             <DataGridBody />
             <FillHandleTracker />

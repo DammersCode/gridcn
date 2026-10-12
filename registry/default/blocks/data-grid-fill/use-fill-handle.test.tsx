@@ -8,7 +8,7 @@ import {
   useDataGridActions,
   type ColumnDef,
   type DataChange,
-  type DataGridProviderProps,
+  type DataGridSyncProps,
   type GridRect,
   type GridSelection,
 } from "@/registry/default/blocks/data-grid/data-grid";
@@ -259,7 +259,7 @@ describe("useFillHandle staleness guard — async fill held against a real store
     return { columns, release: (value: unknown) => resolveFn({ value }) };
   }
 
-  function makeWrapper(columns: readonly ColumnDef<Row, unknown>[], overrides: Partial<DataGridProviderProps<Row>> = {}) {
+  function makeWrapper(columns: readonly ColumnDef<Row, unknown>[], overrides: Partial<DataGridSyncProps<Row>> = {}) {
     return function Wrapper({ children }: { children: ReactNode }) {
       return (
         <DataGridProvider data={rows()} columns={columns} getRowId={(r) => r.id} {...overrides}>
@@ -374,7 +374,7 @@ describe("useFillHandle staleness guard — async fill held against a real store
     const result = setUpFill(makeWrapper(rejectingColumns, { onDataChange, onValidationError }));
 
     act(() => result.current.fill.fillDown());
-    act(() => result.current.storeApi.getState().actions._registerReadOnly(true));
+    act(() => result.current.storeApi.setState({ readOnly: true }));
     reject();
     await settle();
 

@@ -182,7 +182,7 @@ export default function DataGridEventsDemo(): ReactNode {
     setLog((prev) => pushLog(prev, { source: "onColumnResizing", at: Date.now(), payload: { columnId, width } }));
   }, []);
 
-  // <DataGridRoot<DemoRow>> below types ctx.row directly — no cast (see events-state.mdx).
+  // The provider infers DemoRow from its own data prop, so the click callbacks are typed without a cast (see events-state.mdx).
   const onCellClick = useCallback((ctx: CellClickCtx<DemoRow, unknown>) => {
     setLog((prev) =>
       pushLog(prev, {
@@ -265,6 +265,9 @@ export default function DataGridEventsDemo(): ReactNode {
             onValidationError={onValidationError}
             onCellDoubleClick={onCellDoubleClick}
             onCellContextMenu={onCellContextMenu}
+            onCellClick={onCellClick}
+            onRowClick={onRowClick}
+            onRowWindowChange={onRowWindowChange}
             headerClickBehavior="sort"
             overlayPlugins={overlayPlugins}
           >
@@ -277,9 +280,6 @@ export default function DataGridEventsDemo(): ReactNode {
               <DataGridRoot<DemoRow>
                 className="h-full rounded-none border-none"
                 renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}
-                onRowWindowChange={onRowWindowChange}
-                onCellClick={onCellClick}
-                onRowClick={onRowClick}
               >
                 <DataGridHeader />
                 <DataGridBody />

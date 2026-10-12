@@ -371,6 +371,23 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking:** one config home (`data-grid`): `readOnly`, `keymap`, `onCellClick`,
+  `onRowClick`, and `onRowWindowChange` move from `DataGridRoot` to `DataGridProvider`. They
+  are sync props: the provider (or `useDataGridStoreProps` for an external store) feeds them to
+  the store, and every reader reads the store - the root's `aria-readonly` and keymap through
+  `useDataGridReadOnly()` and `useDataGridKeymap()`, interaction and clipboard at event time,
+  and the cell's click handlers at click time. `DataGrid` prop names are unchanged. Manual
+  composition moves the five props to `<DataGridProvider>`; `DataGridCellProps` loses
+  `onCellClick` and `onRowClick`, and the SDK's `DataGridRootContextValue` loses all five -
+  read the store instead. A sync prop next to `store` is a type error (`DataGridProviderProps`
+  and `DataGridProps` union the two ownership shapes), and dev mode warns once when an untyped
+  caller passes both. `readOnly` and `keymap` now seed the store at creation, so SSR and the
+  first client paint see them: the fill handle no longer paints in a read-only grid before mount
+  effects run. A `readOnly` flip syncs before passive effects flush, so a keydown right after
+  the commit is already blocked, and an open editor cancels with `onEditEnd` `cancel`. `keymap`
+  keeps its state identity while the action keys and binding strings are equal in the same
+  order, so an inline `keymap={{ ... }}` literal neither re-syncs nor churns the interaction
+  memos.
 - **Breaking:** `buildExportRows` takes an options object instead of a positional `maxRows`
   (`data-grid-io`). `buildExportRows(state, scope, { text?: "export" | "display"; maxRows? })`:
   `maxRows` now lives in the object, and `text: "display"` emits the cell type's display text

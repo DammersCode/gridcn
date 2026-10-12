@@ -1,6 +1,6 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
-import type { ViewCoord, CellType, DataOp, FilterSpec } from "../types";
-import { BUILTIN_ACTIONS, DEFAULT_KEYMAP } from "../keyboard";
+import type { ViewCoord, CellType, DataOp, FilterSpec, Keymap } from "../types";
+import { BUILTIN_ACTIONS, keymapContentEqual, mergeKeymap, validateKeymap, validateSharedBindings } from "../keyboard";
 import { CompactSelection } from "../selection/compact-selection";
 import { getCellValue } from "../columns/column-helpers";
 import { clampColumnWidth, resolveColumnWidth } from "../columns/resolve-column-width";
@@ -130,6 +130,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   };
   // The last raw `columns` prop; `s.columns` also carries runtime pin changes that a same-reference re-sync keeps.
   let lastPropsColumns: readonly AnyColumnDef[] = init.columns;
+  // The raw `keymap` prop last seen by _syncConfig: a content-equal re-render (an inline literal) keeps `s.keymap`'s
+  // reference; `undefined` at seed so the first config sync validates the effective map.
+  let lastKeymapProp: Keymap | undefined = undefined;
   // The raw `filterState` prop ref last seen by _syncProps — a same-reference re-sync skips withFilterIds, which would churn the sync input.
   let lastPropsFilterState: FilterSpec[] | undefined = init.filterState;
   // A `commands` entry named after a built-in action silently disables the built-in — warn once about it.
@@ -379,8 +382,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     dataWrite,
     fillHandlers: null,
     presenceViewSpaceActive: null,
-    readOnly: false,
-    keymap: DEFAULT_KEYMAP,
+    // Seeded from the sync props so SSR and the first client paint already see them (the
+    // provider's config phase keeps them in sync from here on).
+    readOnly: Boolean(init.readOnly),
+    keymap: mergeKeymap(init.keymap),
     commands: init.commands ?? null,
     labels: mergeLabels(init.labels),
     actions: {
@@ -848,7 +853,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           }
         }
       },
-      _syncProps(props) {
+      _syncConfig(props) {
         if (props.commands && !warnedCommandShadow && isDev()) {
           // BUILTIN_ACTIONS includes editReplace, which has no default binding.
           const shadowed = Object.keys(props.commands).filter((name) =>
@@ -859,6 +864,59 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             warnDev(`commands shadows built-in action(s) ${shadowed.join(", ")}; the command wins and the built-in no longer dispatches`);
           }
         }
+        // A content-equal `keymap` re-render (an inline literal) keeps `s.keymap`'s reference; only
+        // a real change re-merges and re-runs the dev-only binding validation.
+        const keymapChanged = !keymapContentEqual(props.keymap, lastKeymapProp);
+        if (keymapChanged) {
+          lastKeymapProp = props.keymap;
+          const effective = mergeKeymap(props.keymap);
+          if (isDev()) {
+            validateKeymap(effective);
+            validateSharedBindings(effective);
+          }
+        }
+        set((s) => ({
+          ...resolveSelectionConfig(props),
+          labels: mergeLabels(props.labels),
+          overlayPlugins: props.overlayPlugins ?? EMPTY_OVERLAY_PLUGINS,
+          rowBands: props.rowBands ?? EMPTY_ROW_BANDS,
+          commands: props.commands ?? null,
+          autosizeOnMount: props.autosizeOnMount,
+          onDataChange: props.onDataChange,
+          validateRow: props.validateRow,
+          onUndo: props.onUndo,
+          onRedo: props.onRedo,
+          processCellForClipboard: props.processCellForClipboard,
+          processCellFromClipboard: props.processCellFromClipboard,
+          processPaste: props.processPaste,
+          sanitizeClipboardFormulas: props.sanitizeClipboardFormulas,
+          createRow: props.createRow,
+          duplicateRow: props.duplicateRow,
+          onSortChange: props.onSortChange,
+          onFilterChange: props.onFilterChange,
+          onJoinOperatorChange: props.onJoinOperatorChange,
+          onSearchTextChange: props.onSearchTextChange,
+          onColumnLayoutChange: props.onColumnLayoutChange,
+          onColumnResizing: props.onColumnResizing,
+          onSelectionChange: props.onSelectionChange,
+          onSelectionCleared: props.onSelectionCleared,
+          onActiveCellChange: props.onActiveCellChange,
+          onEditStart: props.onEditStart,
+          onEditEnd: props.onEditEnd,
+          onValidationError: props.onValidationError,
+          onCellDoubleClick: props.onCellDoubleClick,
+          onCellContextMenu: props.onCellContextMenu,
+          onCellClick: props.onCellClick,
+          onRowClick: props.onRowClick,
+          onRowWindowChange: props.onRowWindowChange,
+          readOnly: Boolean(props.readOnly),
+          keymap: keymapChanged ? mergeKeymap(props.keymap) : s.keymap,
+        }));
+        // A flip to readOnly cancels an open edit session (so onEditEnd fires with `cancel`); an
+        // already-closed session has nothing to cancel.
+        if (props.readOnly && get().editing) get().actions.cancelEditing();
+      },
+      _syncProps(props) {
         set((s) => {
           // A defined controlled prop is the source of truth; otherwise the store keeps its own state.
           const nextSortState = props.sortState ?? s.sortState;
@@ -931,17 +989,15 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const followed = unchanged
             ? {}
             : followView(s, nextViewIndex, nextVisibleColumns, nextData, props.getRowId, !foreignData);
+          // Only the recompute slice is written here: the config slice (callbacks, enable* flags,
+          // readOnly, keymap, …) is owned by _syncConfig, so a data/sort/filter sync never rewrites it.
           return {
-            ...props,
-            ...resolveSelectionConfig(props),
             data: nextData,
+            getRowId: props.getRowId,
             cellErrors: nextCellErrors,
             columns: nextColumns,
             hiddenColumns: nextHiddenColumns,
             cellTypes: nextCellTypes,
-            labels: mergeLabels(props.labels),
-            overlayPlugins: props.overlayPlugins ?? EMPTY_OVERLAY_PLUGINS,
-            rowBands: props.rowBands ?? EMPTY_ROW_BANDS,
             visibleColumns: nextVisibleColumns,
             sortState: nextSortState,
             filterState: nextFilterState,
@@ -952,7 +1008,6 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             joinOperatorControlled: props.joinOperator !== undefined,
             searchControlled: props.searchText !== undefined,
             viewIndex: nextViewIndex,
-            commands: props.commands ?? null,
             // A real recompute reconciles a deferred updateCells; an echo or unchanged sync keeps the flag.
             viewStale: unchanged ? s.viewStale : false,
             // Rows move only on a foreign data replacement, never on our own echo.
@@ -978,13 +1033,6 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       _registerMeasureFonts(impl) {
         set({ measureFonts: impl });
-      },
-      _registerReadOnly(readOnly) {
-        set({ readOnly });
-        if (readOnly && get().editing) get().actions.cancelEditing();
-      },
-      _registerKeymap(keymap) {
-        set({ keymap });
       },
       _registerFillHandlers(handlers) {
         set({ fillHandlers: handlers });

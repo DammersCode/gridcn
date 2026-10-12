@@ -2,7 +2,7 @@ import { act, render } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef } from "../types";
-import { DataGridProvider, useDataGridStoreApi, type DataGridProviderProps, type DataGridStoreState } from ".";
+import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
 import { DataGridRoot } from "../root";
 import { DataGridHeader } from "../header";
 import { DataGridBody } from "../body";
@@ -38,7 +38,7 @@ const rows: Row[] = [
 // expected measured widths: a = max(21px header, 35px cell) + 20 = 55; b = max(7, 7) + 20 = 27 → 32 floor
 const MEASURED = { a: 55, b: 32 };
 
-type Props = Partial<DataGridProviderProps<Row>>;
+type Props = Partial<DataGridSyncProps<Row>>;
 
 function mount(props: Props) {
   let api: StoreApi<DataGridStoreState> | null = null;

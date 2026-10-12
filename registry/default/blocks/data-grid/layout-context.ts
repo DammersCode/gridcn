@@ -1,5 +1,5 @@
 import { createContext, use, useMemo, type ReactElement, type ReactNode, type RefObject } from "react";
-import type { GetCellClassName, GetRowClassName, OnCellClick, OnRowClick } from "./types";
+import type { GetCellClassName, GetRowClassName } from "./types";
 import { useDataGridColumnWidths, useDataGridRowMarkers, type AnyColumnDef } from "./store";
 import { resolveColumnWidth, distributeFlexWidths } from "./columns/resolve-column-width";
 import { encodeTemplate } from "./columns/column-format-helpers";
@@ -177,7 +177,6 @@ export type DataGridRootContextValue = {
   interaction: GridInteractionHandlers;
   /** Resolved layout direction for this grid — the single value every direction-aware seam inside the root reads (header reorder half-test, resize delta, pin-shadow measurement). */
   direction: GridDirection;
-  readOnly?: boolean;
   /** Optional per-column header menu slot (ghost chevron trigger); undefined renders nothing. */
   renderHeaderMenu?: HeaderMenuRenderer;
   /** Optional custom row-marker cell renderer; undefined renders the built-in number/checkbox. */
@@ -195,12 +194,6 @@ export type DataGridRootContextValue = {
    */
   getRowClassName?: GetRowClassName<unknown>;
   getCellClassName?: GetCellClassName<unknown>;
-  /** Forwarded to each cell's click handler; see {@link DataGridRootProps.onCellClick} in root.tsx. */
-  onCellClick?: OnCellClick<unknown>;
-  /** Forwarded alongside `onCellClick`; see {@link DataGridRootProps.onRowClick} in root.tsx. */
-  onRowClick?: OnRowClick<unknown>;
-  /** Fired by `DataGridBody` after a row-window commit; see {@link DataGridRootProps.onRowWindowChange} in root.tsx. */
-  onRowWindowChange?: (range: { start: number; end: number }) => void;
 };
 
 export const DataGridRootContext = createContext<DataGridRootContextValue | null>(null);

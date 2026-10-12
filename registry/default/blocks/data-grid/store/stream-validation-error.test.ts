@@ -119,7 +119,7 @@ describe("onValidationError for updateCells", () => {
     const { store, onValidationError } = makeStore(asyncNonNegative);
 
     store.getState().actions.updateCells([{ rowId: "a", columnId: "price", value: -1 }]);
-    store.getState().actions._registerReadOnly(true);
+    store.setState({ readOnly: true });
     await settle();
 
     expect(onValidationError).not.toHaveBeenCalled();

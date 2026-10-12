@@ -44,8 +44,14 @@ function LazyGrid(props: {
   });
   return (
     <div style={{ height: 360, width: 400 }}>
-      <DataGridProvider data={lazy.gridProps.data} columns={columns} getRowId={lazy.gridProps.getRowId} onDataChange={lazy.onDataChange}>
-        <DataGridRoot className="h-90 w-100" onRowWindowChange={lazy.gridProps.onRowWindowChange}>
+      <DataGridProvider
+        data={lazy.gridProps.data}
+        columns={columns}
+        getRowId={lazy.gridProps.getRowId}
+        onDataChange={lazy.onDataChange}
+        onRowWindowChange={lazy.gridProps.onRowWindowChange}
+      >
+        <DataGridRoot className="h-90 w-100">
           <DataGridHeader />
           <DataGridBody />
         </DataGridRoot>
@@ -258,10 +264,10 @@ function CallbacksLazyGrid(props: {
         columns={callbackColumns}
         getRowId={lazy.gridProps.getRowId}
         onDataChange={lazy.onDataChange}
+        onRowWindowChange={lazy.gridProps.onRowWindowChange}
       >
         <DataGridRoot
           className="h-90 w-100"
-          onRowWindowChange={lazy.gridProps.onRowWindowChange}
           getRowClassName={callbackRowClassName}
         >
           <DataGridHeader />

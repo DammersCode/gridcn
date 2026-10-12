@@ -7,7 +7,7 @@ import {
   useDataGridInternalActions,
   useDataGridRowCellState,
   useDataGridStoreApi,
-  type DataGridProviderProps,
+  type DataGridSyncProps,
 } from "../store";
 import { flashCellKey } from "./compute";
 
@@ -26,7 +26,7 @@ function rows(): Row[] {
   ];
 }
 
-function makeWrapper(overrides: Partial<DataGridProviderProps<Row>> = {}) {
+function makeWrapper(overrides: Partial<DataGridSyncProps<Row>> = {}) {
   const data = rows();
   return function Wrapper({ children }: { children: ReactNode }) {
     return <DataGridProvider data={data} columns={columns} getRowId={(r) => r.id} {...overrides}>{children}</DataGridProvider>;

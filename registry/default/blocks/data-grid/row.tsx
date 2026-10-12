@@ -7,7 +7,7 @@ import { colRangesContain } from "./selection/selected-col-ranges-for-row";
 import { DataGridCell } from "./cell";
 import { DataGridMarkerCell } from "./rows/marker-cell";
 import type { ColumnLayout, WindowedColumn } from "./layout-context";
-import type { GetCellClassName, GetRowClassName, OnCellClick, OnRowClick, RowMarkersMode } from "./types";
+import type { GetCellClassName, GetRowClassName, RowMarkersMode } from "./types";
 
 export type DataGridRowProps = {
   viewRowIndex: number;
@@ -33,10 +33,6 @@ export type DataGridRowProps = {
   getRowClassName?: GetRowClassName<unknown>;
   /** Forwarded to each cell; see {@link DataGridRowProps.getRowClassName}. */
   getCellClassName?: GetCellClassName<unknown>;
-  /** Forwarded to each cell's click handler; stable identity, same guidance as `getCellClassName`. */
-  onCellClick?: OnCellClick<unknown>;
-  /** Forwarded to each cell; fired alongside `onCellClick` once per click. */
-  onRowClick?: OnRowClick<unknown>;
 };
 
 /**
@@ -69,8 +65,6 @@ export const DataGridRow = memo(function DataGridRow({
   ariaRowIndexOffset,
   getRowClassName,
   getCellClassName,
-  onCellClick,
-  onRowClick,
 }: DataGridRowProps) {
   const row = useDataGridRow(viewRowIndex);
   const rowId = useDataGridRowId(viewRowIndex);
@@ -131,8 +125,6 @@ export const DataGridRow = memo(function DataGridRow({
             gridColOffset={markerColOffset}
             gridReadOnly={readOnly}
             getCellClassName={getCellClassName}
-            onCellClick={onCellClick}
-            onRowClick={onRowClick}
             isActive={isActive}
             isEditing={isEditing}
             initialText={isEditing ? cellState.editingInitialText : undefined}

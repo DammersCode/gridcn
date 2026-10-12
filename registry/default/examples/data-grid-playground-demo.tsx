@@ -340,6 +340,7 @@ function VirtualizedGrid({ controls }: { controls: PlaygroundControls }): ReactN
       headerClickBehavior={controls.headerClickBehavior}
        rowBands={rowBands}
        enableRowReorder={controls.enableRowReorder}
+      readOnly={controls.readOnly}
     >
       {controls.pinnedTotals && <DataGridAggregateReporter specs={AGGREGATE_SPECS} onChange={onTotalsChange} />}
       <StreamingFeed enabled={controls.streaming} reorder={controls.streamingReorder} rowIds={rowIds} />
@@ -352,7 +353,6 @@ function VirtualizedGrid({ controls }: { controls: PlaygroundControls }): ReactN
           renderMarkerHeader={controls.renderMarkerHeader}
           density={controls.density}
           direction={controls.direction}
-          readOnly={controls.readOnly}
           loading={controls.loading}
         >
           <DataGridKeybindingsShortcut onOpen={() => setKeybindingsOpen(true)} />
@@ -397,6 +397,7 @@ function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNod
         headerClickBehavior={controls.headerClickBehavior}
         rowBands={rowBands}
         enableRowReorder={controls.enableRowReorder}
+        readOnly={controls.readOnly}
       >
         {controls.pinnedTotals && <DataGridAggregateReporter specs={AGGREGATE_SPECS} onChange={onTotalsChange} />}
         <StreamingFeed enabled={controls.streaming} reorder={controls.streamingReorder} rowIds={rowIds} />
@@ -409,7 +410,6 @@ function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNod
             renderMarkerHeader={controls.renderMarkerHeader}
             density={controls.density}
             direction={controls.direction}
-            readOnly={controls.readOnly}
             loading={controls.loading}
           >
             <DataGridKeybindingsShortcut onOpen={() => setKeybindingsOpen(true)} />
@@ -550,6 +550,8 @@ function LazySortedGrid({
       sortState={NO_CLIENT_SORT}
       onSortChange={onSortsChange}
       enableRowReorder={controls.enableRowReorder}
+      onRowWindowChange={lazy.gridProps.onRowWindowChange}
+      readOnly={controls.readOnly}
     >
       <DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />
       <div data-testid="lazy-server-sort" className="px-2 text-xs text-muted-foreground">
@@ -562,10 +564,8 @@ function LazySortedGrid({
           renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}
           renderMarker={controls.renderMarker}
           renderMarkerHeader={controls.renderMarkerHeader}
-          onRowWindowChange={lazy.gridProps.onRowWindowChange}
           density={controls.density}
           direction={controls.direction}
-          readOnly={controls.readOnly}
           loading={controls.loading}
         >
           <DataGridKeybindingsShortcut onOpen={() => setKeybindingsOpen(true)} />

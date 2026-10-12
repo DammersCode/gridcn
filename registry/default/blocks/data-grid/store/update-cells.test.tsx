@@ -1288,9 +1288,7 @@ describe("updateCells — verdict", () => {
   });
 
   it("reports a grid-level readOnly as an empty verdict", () => {
-    // the store's grid-level flag is what DataGridRoot syncs via _registerReadOnly; the provider prop alone does not set it
-    const { result } = renderHarness();
-    act(() => result.current.actions._registerReadOnly(true));
+    const { result } = renderHarness({ readOnly: true });
     expect(result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 1 }])).toEqual({
       applied: 0,
       skipped: [],

@@ -97,20 +97,20 @@ The keymap is a plain data table, the `keymap` prop, merged over `DEFAULT_KEYMAP
 remap or extend any binding without touching the engine:
 
 ```tsx
-<DataGridProvider {...grid} columns={columns}>
-  <DataGridRoot keymap={{ selectAll: ["mod+shift+a"] }} />
+<DataGridProvider {...grid} columns={columns} keymap={{ selectAll: ["mod+shift+a"] }}>
+  <DataGridRoot />
 </DataGridProvider>
 ```
 
-`keymap` lives on `DataGridRoot` (or the `DataGrid` wrapper), not on `DataGridProvider`. This
+`keymap` lives on `DataGridProvider` (or the `DataGrid` wrapper), not on `DataGridRoot`. This
 overrides only the actions you specify. Everything else falls back to `DEFAULT_KEYMAP`.
 
 ```tsx
 // extend the default set: keep mod+a, add a second binding on top
-<DataGridRoot keymap={{ selectAll: ["mod+a", "mod+shift+a"] }} />
+<DataGrid keymap={{ selectAll: ["mod+a", "mod+shift+a"] }} />
 
 // disable an action entirely (empty list = unbound, its keys become no-ops)
-<DataGridRoot keymap={{ selectColumn: [] }} />
+<DataGrid keymap={{ selectColumn: [] }} />
 ```
 
 A binding string is a modifier prefix plus a key. Combine the modifiers `mod`, `ctrl`,
@@ -169,6 +169,7 @@ optional `label`/`group` for the dialog:
 <DataGridProvider
   {...grid}
   columns={columns}
+  keymap={{ saveRow: ["mod+s"] }}
   commands={{
     saveRow: {
       run: (ctx) => save(ctx.row),
@@ -178,7 +179,7 @@ optional `label`/`group` for the dialog:
     },
   }}
 >
-  <DataGridRoot keymap={{ saveRow: ["mod+s"] }} />
+  <DataGridRoot />
 </DataGridProvider>
 ```
 

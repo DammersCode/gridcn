@@ -45,12 +45,13 @@ function OrdersGrid() {
       columns={columns}
       getRowId={lazy.gridProps.getRowId}
       onDataChange={lazy.onDataChange}
+      onRowWindowChange={lazy.gridProps.onRowWindowChange}
       sortState={EMPTY_SORT}
       onSortChange={onSortChange}
       headerClickBehavior="sort"
     >
       <DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />
-      <DataGridRoot onRowWindowChange={lazy.gridProps.onRowWindowChange}>
+      <DataGridRoot>
         <DataGridHeader />
         <DataGridBody />
       </DataGridRoot>

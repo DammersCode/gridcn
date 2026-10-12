@@ -62,8 +62,8 @@ Everything else mounts as a plain child component, inside the provider:
 | Lazy loading | `useDataGridLazyRows` (owns `data`) + `DataGridLazyGuard` | hook above the provider; `DataGridLazyGuard` inside the provider |
 | Pagination | `useDataGridPagination` + `DataGridPaginationBar` | standalone — does not read the store, works inside or outside the provider |
 
-`keymap` (remapping or the keybindings dialog's source of truth) is a prop of `DataGridRoot` (or the
-`DataGrid` wrapper), never of `DataGridProvider`.
+`keymap` (remapping or the keybindings dialog's source of truth) is a prop of `DataGridProvider` (or
+the `DataGrid` wrapper), never of `DataGridRoot`.
 
 ## 3. Combine multiple add-ons in one grid
 

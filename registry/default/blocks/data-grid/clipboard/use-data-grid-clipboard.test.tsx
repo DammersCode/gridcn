@@ -2,7 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { ColumnDef, DataChange } from "../types";
-import { DataGridProvider, useDataGridActions, useDataGridStoreApi, type DataGridProviderProps } from "../store";
+import { DataGridProvider, useDataGridActions, useDataGridStoreApi, type DataGridSyncProps } from "../store";
 import { useDataGridClipboard } from "./use-data-grid-clipboard";
 
 type Row = { id: string; name: string };
@@ -16,7 +16,7 @@ function rows(): Row[] {
   ];
 }
 
-function makeWrapper(overrides: Partial<DataGridProviderProps<Row>> = {}) {
+function makeWrapper(overrides: Partial<DataGridSyncProps<Row>> = {}) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <DataGridProvider data={rows()} columns={columns} getRowId={(r) => r.id} {...overrides}>
@@ -31,7 +31,7 @@ function makeWrapper(overrides: Partial<DataGridProviderProps<Row>> = {}) {
  * `DataGridProvider` (a fresh `renderHook` per hook would each mount its own provider instance,
  * i.e. its own store — selecting a cell on one would never be visible to another). Selects the
  * whole first cell so `pasteFromClipboard`/`cut` have a resolvable target/scope, and optionally
- * flips the store's `readOnly` flag the same way `DataGridRoot` registers it.
+ * flips the store's `readOnly` flag (the field the provider's config sync writes).
  */
 function setUpGrid(wrapper: ReturnType<typeof makeWrapper>, opts: { readOnly?: boolean } = {}) {
   const { result } = renderHook(
@@ -39,7 +39,7 @@ function setUpGrid(wrapper: ReturnType<typeof makeWrapper>, opts: { readOnly?: b
     { wrapper },
   );
   act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
-  if (opts.readOnly) act(() => result.current.storeApi.getState().actions._registerReadOnly(true));
+  if (opts.readOnly) act(() => result.current.storeApi.setState({ readOnly: true }));
   return result;
 }
 

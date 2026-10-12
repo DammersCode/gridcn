@@ -7,7 +7,7 @@ import {
   useDataGridActions,
   useDataGridCellErrors,
   useDataGridStoreApi,
-  type DataGridProviderProps,
+  type DataGridSyncProps,
 } from "../store";
 
 type Row = { id: string; name: string; note: string };
@@ -27,7 +27,7 @@ function rows(): Row[] {
 
 function makeWrapper(
   onDataChange?: (next: readonly Row[], change: DataChange<Row>) => void,
-  overrides: Partial<DataGridProviderProps<Row>> = {},
+  overrides: Partial<DataGridSyncProps<Row>> = {},
 ) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (

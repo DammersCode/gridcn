@@ -93,6 +93,8 @@ function renderGrid(
       enableColumnResize={opts.enableColumnResize}
       onColumnLayoutChange={opts.onColumnLayoutChange}
       onColumnResizing={opts.onColumnResizing}
+      readOnly={opts.readOnly}
+      keymap={opts.keymap}
     >
       <DataGridContextMenu
         getCellMenuItems={opts.getCellMenuItems}
@@ -100,8 +102,6 @@ function renderGrid(
       >
         <DataGridRoot
           className="h-[300px]"
-          readOnly={opts.readOnly}
-          keymap={opts.keymap}
           renderHeaderMenu={opts.headerDropdown ? (ctx) => <DataGridHeaderDropdown {...ctx} /> : undefined}
         >
           <DataGridHeader />

@@ -1,17 +1,16 @@
 "use client";
 
-import { createContext, use, useEffect, useId, useImperativeHandle, useRef, useState, type ReactNode } from "react";
+import { createContext, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
 import { useStoreWithEqualityFn } from "zustand/traditional";
-import type { OverlayPlugin } from "../overlays";
-import type { RowBandsSpec } from "../layout-context";
+import { isDev } from "../is-dev";
 import { apiHandleOf } from "./api";
-import { checkDevGuardrails, checkDuplicateColumnIds, checkUnresolvableColumnTypes } from "./commit";
+import { checkDevGuardrails, checkDuplicateColumnIds, checkUnresolvableColumnTypes, warnDev, warnExternalStoreSyncPropsOnce } from "./commit";
 import { holeRowId, makeSelectionChangeDetails, publicActionsOf, rowIdAtViewRow } from "./compute";
 import { createDataGridStore } from "./create-store";
 import { toInternalSyncProps } from "./types";
-import type { AnyColumnDef, DataGridActions, DataGridProviderProps, DataGridStoreState, DataGridStoreStateOf, DataGridSyncProps } from "./types";
+import type { AnyColumnDef, DataGridActions, DataGridProviderProps, DataGridStoreState, DataGridStoreStateOf, DataGridSyncProps, InternalSyncProps } from "./types";
 import type { ViewCellRef, ViewCoord } from "../types";
 import { isSelectionEmpty } from "../selection";
 
@@ -119,129 +118,97 @@ export function useDataGridStoreProps<TData>(props: DataGridSyncProps<TData>): {
   return { store, actions };
 }
 
+/** The recompute-phase slice: the inputs of derived state (`_syncProps` rebuilds the view index and search matches over them). */
+const RECOMPUTE_KEYS = ["data", "columns", "getRowId", "cellTypes", "sortState", "filterState", "joinOperator", "searchText"] as const satisfies readonly (keyof DataGridSyncProps)[];
+/** Seed-only props: applied once at store creation, ignored on later renders — in neither sync phase. */
+const SEED_KEYS = ["defaultData", "defaultColumnLayout"] as const satisfies readonly (keyof DataGridSyncProps)[];
+/** The config-phase slice: everything that feeds no derived state — `readOnly`, `keymap`, the `enable*` flags, and every callback. */
+const CONFIG_KEYS = [
+  "readOnly",
+  "keymap",
+  "onDataChange",
+  "validateRow",
+  "onUndo",
+  "onRedo",
+  "processCellForClipboard",
+  "processCellFromClipboard",
+  "processPaste",
+  "sanitizeClipboardFormulas",
+  "rowMarkers",
+  "enableRowSelection",
+  "enableColumnSelection",
+  "enableRangeSelection",
+  "enableMultiRange",
+  "enableColumnResize",
+  "enableColumnReorder",
+  "enableRowReorder",
+  "enableColumnPinning",
+  "headerClickBehavior",
+  "labels",
+  "createRow",
+  "duplicateRow",
+  "commands",
+  "onSortChange",
+  "onFilterChange",
+  "onJoinOperatorChange",
+  "onSearchTextChange",
+  "overlayPlugins",
+  "rowBands",
+  "autosizeOnMount",
+  "onColumnLayoutChange",
+  "onColumnResizing",
+  "onSelectionChange",
+  "onSelectionCleared",
+  "onActiveCellChange",
+  "onEditStart",
+  "onEditEnd",
+  "onValidationError",
+  "onCellDoubleClick",
+  "onCellContextMenu",
+  "onCellClick",
+  "onRowClick",
+  "onRowWindowChange",
+] as const satisfies readonly (keyof DataGridSyncProps)[];
+
+/** Fails the compile when a new sync prop lands in no slice list (a silently-unsynced prop). */
+const _syncSliceExhaustive: (Exclude<keyof DataGridSyncProps, (typeof RECOMPUTE_KEYS)[number] | (typeof SEED_KEYS)[number] | (typeof CONFIG_KEYS)[number]> extends never ? true : never) = true;
+void _syncSliceExhaustive;
+
+/** True when any of `keys` differs by reference between `last` and `next`. */
+function sliceChanged(last: InternalSyncProps, next: InternalSyncProps, keys: readonly (keyof InternalSyncProps)[]): boolean {
+  for (const key of keys) {
+    if (last[key] !== next[key]) return true;
+  }
+  return false;
+}
+
 /**
  * The store-ownership core shared by {@link useDataGridStoreProps} and `DataGridProvider`'s
  * default (self-creating) path — one sync loop, guardrail checks, and subscription wiring for
  * both. When `externalStore` is set the hook owns nothing: no creation, no sync, no
  * subscriptions; the consumer's own `useDataGridStoreProps` call drives the store, and this
  * instance only supplies the context value.
+ *
+ * The sync runs in two phases, each with no deps array (the slice compare against the last
+ * synced slice is the gate): a layout effect writes the config slice so a `readOnly` flip is
+ * live before the browser paints or dispatches the next event, and a passive effect writes the
+ * recompute slice so the O(n log n) view rebuild stays off the layout-effect path.
  */
 function useGridStoreCore<TData>(
   props: DataGridSyncProps<TData>,
   externalStore: StoreApi<DataGridStoreState> | undefined,
 ): { store: StoreApi<DataGridStoreState>; actions: DataGridActions } {
-  const {
-    data,
-    defaultData,
-    columns,
-    getRowId,
-    onDataChange,
-    validateRow,
-    onUndo,
-    onRedo,
-    cellTypes,
-    processCellForClipboard,
-    processCellFromClipboard,
-    processPaste,
-    sanitizeClipboardFormulas,
-    rowMarkers,
-    enableRowSelection,
-    enableColumnSelection,
-    enableRangeSelection,
-    enableMultiRange,
-    enableColumnResize,
-    enableColumnReorder,
-    enableRowReorder,
-    enableColumnPinning,
-    headerClickBehavior,
-    labels,
-    createRow,
-    duplicateRow,
-    commands,
-    sortState,
-    onSortChange,
-    filterState,
-    onFilterChange,
-    joinOperator,
-    onJoinOperatorChange,
-    searchText,
-    onSearchTextChange,
-    overlayPlugins,
-    rowBands,
-    defaultColumnLayout,
-    autosizeOnMount,
-    onColumnLayoutChange,
-    onColumnResizing,
-    onSelectionChange,
-    onSelectionCleared,
-    onActiveCellChange,
-    onEditStart,
-    onEditEnd,
-    onValidationError,
-    onCellDoubleClick,
-    onCellContextMenu,
-  } = props;
-  const internalInit = toInternalSyncProps({
-    data,
-    defaultData,
-    columns,
-    getRowId,
-    onDataChange,
-    validateRow,
-    onUndo,
-    onRedo,
-    cellTypes,
-    processCellForClipboard,
-    processCellFromClipboard,
-    processPaste,
-    sanitizeClipboardFormulas,
-    rowMarkers,
-    enableRowSelection,
-    enableColumnSelection,
-    enableRangeSelection,
-    enableMultiRange,
-    enableColumnResize,
-    enableColumnReorder,
-    enableRowReorder,
-    enableColumnPinning,
-    headerClickBehavior,
-    labels,
-    createRow,
-    duplicateRow,
-    commands,
-    sortState,
-    onSortChange,
-    filterState,
-    onFilterChange,
-    joinOperator,
-    onJoinOperatorChange,
-    searchText,
-    onSearchTextChange,
-    overlayPlugins,
-    rowBands,
-    defaultColumnLayout,
-    autosizeOnMount,
-    onColumnLayoutChange,
-    onColumnResizing,
-    onSelectionChange,
-    onSelectionCleared,
-    onActiveCellChange,
-    onEditStart,
-    onEditEnd,
-    onValidationError,
-    onCellDoubleClick,
-    onCellContextMenu,
-  });
+  const internalInit = toInternalSyncProps(props);
   // Lazy: an external store means this instance owns nothing, and store creation computes the
   // initial view over the full dataset — it must not run for a shell.
   const [ownedStore] = useState<StoreApi<DataGridStoreState> | null>(() => (externalStore ? null : createDataGridStore(internalInit)));
   const store = externalStore ?? (ownedStore as StoreApi<DataGridStoreState>);
   const prevColumns = useRef<readonly AnyColumnDef[] | undefined>(undefined);
   const prevData = useRef<readonly unknown[] | undefined>(undefined);
-  const prevOverlayPlugins = useRef<readonly OverlayPlugin[] | undefined>(undefined);
-  const prevRowBands = useRef<RowBandsSpec | undefined>(undefined);
   const warnedColumnTypes = useRef<Set<string>>(new Set());
   const warnedDuplicateColumnIds = useRef<Set<string>>(new Set());
+  const lastConfig = useRef<InternalSyncProps | null>(null);
+  const lastRecompute = useRef<InternalSyncProps | null>(null);
 
   // One subscription per store instance, outside React's render path (see subscribeSelectionChange).
   // External stores are subscribed by their owner's useDataGridStoreProps call — subscribing here
@@ -263,68 +230,42 @@ function useGridStoreCore<TData>(
     return store.getState().actions._subscribeEditEnd();
   }, [store, externalStore]);
 
+  // Config phase: the slice that feeds no derived state. The layout timing closes the write
+  // window between the commit and the passive effects, so a `readOnly` flip blocks a keydown
+  // that arrives right after the commit.
+  useLayoutEffect(() => {
+    if (externalStore) return;
+    const last = lastConfig.current;
+    if (last !== null && !sliceChanged(last, internalInit, CONFIG_KEYS)) return;
+    if (isDev() && last !== null) {
+      if (last.overlayPlugins !== undefined && last.overlayPlugins !== internalInit.overlayPlugins) {
+        warnDev(
+          "overlayPlugins array identity changed since the last render; pass a stable reference (module scope or useMemo) or every render re-syncs the provider props into the store",
+        );
+      }
+      if (last.rowBands !== undefined && last.rowBands !== internalInit.rowBands) {
+        warnDev(
+          "rowBands identity changed since the last render; pass a stable reference (the add-on's hook already returns one) or every render recomputes band heights/aria-rowcount",
+        );
+      }
+    }
+    lastConfig.current = internalInit;
+    store.getState().actions._syncConfig(internalInit);
+  });
+
+  // Recompute phase: the derived-state inputs, off the layout-effect path.
   useEffect(() => {
     if (externalStore) return;
-    checkDevGuardrails(internalInit, prevColumns.current, prevData.current, prevOverlayPlugins.current, prevRowBands.current);
+    const last = lastRecompute.current;
+    if (last !== null && !sliceChanged(last, internalInit, RECOMPUTE_KEYS)) return;
+    lastRecompute.current = internalInit;
+    checkDevGuardrails(internalInit, prevColumns.current, prevData.current);
     checkDuplicateColumnIds(internalInit.columns, warnedDuplicateColumnIds.current);
     prevColumns.current = internalInit.columns;
     prevData.current = internalInit.data;
-    prevOverlayPlugins.current = internalInit.overlayPlugins;
-    prevRowBands.current = internalInit.rowBands;
     store.getState().actions._syncProps(internalInit);
     checkUnresolvableColumnTypes(internalInit.columns, store.getState().cellTypes, warnedColumnTypes.current);
-    // internalInit is a fresh cast object each render; depend on the raw props instead.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    store,
-    externalStore,
-    data,
-    columns,
-    getRowId,
-    onDataChange,
-    validateRow,
-    onUndo,
-    onRedo,
-    cellTypes,
-    processCellForClipboard,
-    processCellFromClipboard,
-    processPaste,
-    sanitizeClipboardFormulas,
-    rowMarkers,
-    enableRowSelection,
-    enableColumnSelection,
-    enableRangeSelection,
-    enableMultiRange,
-    enableColumnResize,
-    enableColumnReorder,
-    enableRowReorder,
-    enableColumnPinning,
-    headerClickBehavior,
-    labels,
-    createRow,
-    duplicateRow,
-    commands,
-    sortState,
-    onSortChange,
-    filterState,
-    onFilterChange,
-    joinOperator,
-    onJoinOperatorChange,
-    searchText,
-    onSearchTextChange,
-    overlayPlugins,
-    rowBands,
-    onColumnLayoutChange,
-    onColumnResizing,
-    onSelectionChange,
-    onSelectionCleared,
-    onActiveCellChange,
-    onEditStart,
-    onEditEnd,
-    onValidationError,
-    onCellDoubleClick,
-    onCellContextMenu,
-  ]);
+  });
 
   return { store, actions: publicActionsOf(store.getState().actions) };
 }
@@ -337,7 +278,12 @@ function useGridStoreCore<TData>(
  */
 export function DataGridProvider<TData>(props: DataGridProviderProps<TData>): ReactNode {
   const { store: externalStore, children, ref, ...syncProps } = props;
-  const { store } = useGridStoreCore<TData>(syncProps, externalStore);
+  // The prop union makes a sync prop next to `store` a compile error; this catches a cast/untyped caller.
+  if (externalStore && Object.values(syncProps).some((v) => v !== undefined)) {
+    warnExternalStoreSyncPropsOnce();
+  }
+  // The rest's external-store branch types the sync keys as never; the core reads none of them when `externalStore` is set.
+  const { store } = useGridStoreCore<TData>(syncProps as DataGridSyncProps<TData>, externalStore);
   useImperativeHandle(ref, () => apiHandleOf<TData>(store), [store]);
   // useId is hydration-safe and distinct per provider instance — two grids on one page each get their own id.
   const instanceId = useId();

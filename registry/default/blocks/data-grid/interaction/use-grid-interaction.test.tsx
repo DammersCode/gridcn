@@ -129,6 +129,7 @@ function renderInteraction(
         getRowId={(r) => r.id}
         createRow={createRow}
         duplicateRow={duplicateRow}
+        readOnly={readOnly}
       >
         {children}
       </DataGridProvider>
@@ -136,7 +137,7 @@ function renderInteraction(
   }
   const hook = renderHook(
     () => ({
-      interaction: useGridInteraction({ scrollRef, layout: LAYOUT, keymap, readOnly }),
+      interaction: useGridInteraction({ scrollRef, layout: LAYOUT, keymap }),
       actions: useDataGridActions(),
       activeCell: useDataGridActiveCell(),
       selection: useDataGridSelection(),

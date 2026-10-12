@@ -69,3 +69,29 @@ export const DEFAULT_KEYMAP: Keymap = {
  * binding (the implicit printable-key fallback) but is still shadowable by a `commands` entry.
  */
 export const BUILTIN_ACTIONS: readonly GridAction[] = [...(Object.keys(DEFAULT_KEYMAP) as GridAction[]), "editReplace"];
+
+/** `DEFAULT_KEYMAP` merged with the consumer's `keymap` prop; `undefined` (and `{}`) keeps the default's own reference. */
+export function mergeKeymap(prop: Keymap | undefined): Keymap {
+  if (!prop || Object.keys(prop).length === 0) return DEFAULT_KEYMAP;
+  return { ...DEFAULT_KEYMAP, ...prop };
+}
+
+/**
+ * Content equality for `keymap` props: the same action keys and the same binding strings in the
+ * same order. An inline `keymap={{ … }}` literal is a fresh object each render, so identity alone
+ * would churn `state.keymap` and the interaction memos that key on it.
+ */
+export function keymapContentEqual(a: Keymap | undefined, b: Keymap | undefined): boolean {
+  const ka = a ? Object.keys(a) : [];
+  const kb = b ? Object.keys(b) : [];
+  if (ka.length !== kb.length) return false;
+  for (let i = 0; i < ka.length; i++) {
+    const key = ka[i]! as GridAction;
+    if (key !== kb[i]) return false;
+    const ba = a?.[key] ?? [];
+    const bb = b?.[key] ?? [];
+    if (ba.length !== bb.length) return false;
+    for (let j = 0; j < ba.length; j++) if (ba[j] !== bb[j]) return false;
+  }
+  return true;
+}

@@ -2,7 +2,6 @@
 
 import {
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -11,15 +10,16 @@ import {
 } from "react";
 import { DirectionProvider } from "@base-ui/react/direction-provider";
 import { cn } from "@/lib/utils";
-import type { DensityMode, GetCellClassName, GetRowClassName, Keymap, OnCellClick, OnRowClick } from "./types";
-import { DEFAULT_KEYMAP, validateKeymap, validateSharedBindings } from "./keyboard";
+import type { DensityMode, GetCellClassName, GetRowClassName } from "./types";
 import {
   useDataGridInternalActions,
   useDataGridActiveColumn,
   useDataGridFillHandlers,
   useDataGridHasActiveCell,
   useDataGridInstanceId,
+  useDataGridKeymap,
   useDataGridLabels,
+  useDataGridReadOnly,
   useDataGridRowBands,
   useDataGridRowCount,
   useDataGridSelectionConfig,
@@ -81,8 +81,6 @@ export type DataGridRootProps<TData = unknown> = {
   headerHeight?: number;
   /** Extra unpinned columns rendered beyond the visible viewport on each side. Default 1. */
   columnOverscan?: number;
-  /** Merged over `DEFAULT_KEYMAP`; per-action bindings here take precedence. */
-  keymap?: Keymap;
   /**
    * Layout direction. Omitted, the grid reads the direction it inherits from the page (the `dir`
    * attribute on an ancestor, or the document default) once at mount — so a grid inside
@@ -94,8 +92,6 @@ export type DataGridRootProps<TData = unknown> = {
    * screen, which is the previous column index. `Tab` keeps its reading order.
    */
   direction?: GridDirection;
-  /** Disables editing and delete grid-wide, independent of any per-column `readOnly`. */
-  readOnly?: boolean;
   /**
    * Rendered centered in place of the body when there are zero rows in view. Accepts a node or a
    * function receiving `{ reason }` — `"no-data"` when the data array is empty, `"filtered"` when
@@ -136,20 +132,28 @@ export type DataGridRootProps<TData = unknown> = {
   getRowClassName?: GetRowClassName<TData>;
   /** Cell class hook, merged via `cn()` after the built-in cell classes. Pass a stable identity — see {@link GetCellClassName}. */
   getCellClassName?: GetCellClassName<TData>;
-  /** Fired on a plain click on any cell — see {@link OnCellClick}. Attached to the cell's own existing click handler, no new subscription. Pass a stable identity, same guidance as `getCellClassName`. */
-  onCellClick?: OnCellClick<TData>;
-  /** Fired alongside `onCellClick` once per click regardless of column — see {@link OnRowClick}. */
-  onRowClick?: OnRowClick<TData>;
-  /**
-   * Fired after a row-window commit with the rendered data-row range `[start, end)` (inclusive
-   * start, exclusive end — same convention as `useRowWindow`'s `RowWindow`). Only fires when the
-   * range actually changed since the last call, including once for the initial mount commit; a
-   * scroll tick that stays within the current window's overscan buffer does not re-fire it. Useful
-   * for lazy-loading/prefetch/analytics add-ons; core has no fetching logic of its own.
-   */
-  onRowWindowChange?: (range: { start: number; end: number }) => void;
+  /** Composition parts: header + body, or your own. The `DataGrid` wrapper defaults to header + body when omitted. */
   children?: ReactNode;
 };
+
+/** Every `DataGridRootProps` key the `DataGrid` wrapper keeps for the root; the rest (the sync props plus `store`) goes to the provider. */
+export const DATA_GRID_ROOT_PROP_KEYS = [
+  "className",
+  "rowHeight",
+  "density",
+  "headerHeight",
+  "columnOverscan",
+  "direction",
+  "emptyState",
+  "loading",
+  "loadingState",
+  "renderHeaderMenu",
+  "renderMarker",
+  "renderMarkerHeader",
+  "getRowClassName",
+  "getCellClassName",
+  "children",
+] as const satisfies readonly (keyof DataGridRootProps)[];
 
 /**
  * The scroll container: a plain `overflow:auto` div (real scroll element, native scrollbar) with
@@ -167,9 +171,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     density,
     headerHeight: headerHeightProp,
     columnOverscan,
-    keymap,
     direction: directionProp,
-    readOnly,
     emptyState,
     loading = false,
     loadingState,
@@ -178,9 +180,6 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     renderMarkerHeader,
     getRowClassName,
     getCellClassName,
-    onCellClick,
-    onRowClick,
-    onRowWindowChange,
     children,
   } = props;
   const rowHeight = resolveRowHeight(density, rowHeightProp);
@@ -243,7 +242,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const { template, leftOffsets, rightOffsets, trackLefts: lefts, trackRights: rights, widths, pins, totalWidth } =
     layout;
 
-  const effectiveKeymap = useMemo(() => ({ ...DEFAULT_KEYMAP, ...keymap }), [keymap]);
+  const keymap = useDataGridKeymap();
+  const readOnly = useDataGridReadOnly();
   const interactionLayout: InteractionLayout = useMemo(() => {
     // the marker column (when present) is always pinned-left before every data column, so it's
     // part of the static-pinned-left band for pointer hit-testing (pointerToCoord's columnAtX).
@@ -277,13 +277,12 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const interaction = useGridInteraction({
     scrollRef,
     layout: interactionLayout,
-    keymap: effectiveKeymap,
-    readOnly,
+    keymap,
     fillDown: fillHandlers?.fillDown,
     fillRight: fillHandlers?.fillRight,
     cancelFillDrag: fillHandlers?.cancelFillDrag,
   });
-  useGridClipboard({ rootRef: scrollRef, readOnly });
+  useGridClipboard({ rootRef: scrollRef });
 
   // Registers this mount's scroll-into-view on the store so add-ons outside this subtree (e.g.
   // data-grid-toolbar's search, a DataGridRoot sibling) can reach it; cleared on unmount.
@@ -302,23 +301,6 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     });
     return () => actions._registerFocus(null);
   }, [actions]);
-
-  // Mirrors `readOnly` into the store so add-on mutation surfaces outside this subtree (context
-  // menu, useDataGridClipboard) honor it too — false on unmount, matching the prop's own default.
-  // A layout effect closes the write window between the commit and the passive effects.
-  useLayoutEffect(() => {
-    actions._registerReadOnly(Boolean(readOnly));
-    return () => actions._registerReadOnly(false);
-  }, [actions, readOnly]);
-
-  // Mirrors the effective (merged) keymap into the store so surfaces outside this subtree (the
-  // data-grid-keybindings add-on's dialog) read the same single source of truth as interaction handling.
-  useEffect(() => {
-    actions._registerKeymap(effectiveKeymap);
-    validateKeymap(effectiveKeymap);
-    validateSharedBindings(effectiveKeymap);
-    return () => actions._registerKeymap(DEFAULT_KEYMAP);
-  }, [actions, effectiveKeymap]);
 
   // Registers the autosize measure context (fonts, mounted row window, header-menu flag) so
   // store actions can size columns with canvas `measureText` without their own DOM query;
@@ -388,8 +370,6 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // consumers on every DataGridRoot render, same anti-pattern as unstable `columns`/`data`.
   const prevGetRowClassName = useRef(getRowClassName);
   const prevGetCellClassName = useRef(getCellClassName);
-  const prevOnCellClick = useRef(onCellClick);
-  const prevOnRowClick = useRef(onRowClick);
   useEffect(() => {
     if (isDev()) {
       if (prevGetRowClassName.current !== undefined && prevGetRowClassName.current !== getRowClassName) {
@@ -398,18 +378,10 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       if (prevGetCellClassName.current !== undefined && prevGetCellClassName.current !== getCellClassName) {
         console.warn("[data-grid] getCellClassName identity changed since the last render; pass a stable reference (e.g. useCallback) or every cell re-renders");
       }
-      if (prevOnCellClick.current !== undefined && prevOnCellClick.current !== onCellClick) {
-        console.warn("[data-grid] onCellClick identity changed since the last render; pass a stable reference (e.g. useCallback) or every cell re-renders");
-      }
-      if (prevOnRowClick.current !== undefined && prevOnRowClick.current !== onRowClick) {
-        console.warn("[data-grid] onRowClick identity changed since the last render; pass a stable reference (e.g. useCallback) or every row re-renders");
-      }
     }
     prevGetRowClassName.current = getRowClassName;
     prevGetCellClassName.current = getCellClassName;
-    prevOnCellClick.current = onCellClick;
-    prevOnRowClick.current = onRowClick;
-  }, [getRowClassName, getCellClassName, onCellClick, onRowClick]);
+  }, [getRowClassName, getCellClassName]);
 
   const { indices: columnWindowIndices } = useColumnWindow(scrollRef, {
     widths,
@@ -507,7 +479,6 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       template,
       interaction,
       direction,
-      readOnly,
       renderHeaderMenu,
       renderMarker,
       renderMarkerHeader,
@@ -516,9 +487,6 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       // every row they ever receive at runtime came from this same subtree's DataGridProvider.
       getRowClassName: getRowClassName as GetRowClassName<unknown> | undefined,
       getCellClassName: getCellClassName as GetCellClassName<unknown> | undefined,
-      onCellClick: onCellClick as OnCellClick<unknown> | undefined,
-      onRowClick: onRowClick as OnRowClick<unknown> | undefined,
-      onRowWindowChange,
     }),
     [
       scrollRef,
@@ -534,15 +502,11 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       template,
       interaction,
       direction,
-      readOnly,
       renderHeaderMenu,
       renderMarker,
       renderMarkerHeader,
       getRowClassName,
       getCellClassName,
-      onCellClick,
-      onRowClick,
-      onRowWindowChange,
     ],
   );
 

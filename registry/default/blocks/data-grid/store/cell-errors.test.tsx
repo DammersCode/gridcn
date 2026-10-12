@@ -8,7 +8,7 @@ import {
   useDataGridCellErrors,
   useDataGridRowCellState,
   useDataGridRowHasError,
-  type DataGridProviderProps,
+  type DataGridSyncProps,
 } from "../store";
 
 type Row = { id: string; name: string; age: number; active: boolean };
@@ -29,7 +29,7 @@ function rows(): Row[] {
 
 function makeWrapper(
   onDataChange?: (next: readonly Row[], change: DataChange<Row>) => void,
-  overrides: Partial<DataGridProviderProps<Row>> = {},
+  overrides: Partial<DataGridSyncProps<Row>> = {},
   data: Row[] = rows(),
 ) {
   return function Wrapper({ children }: { children: ReactNode }) {

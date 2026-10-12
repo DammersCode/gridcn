@@ -103,7 +103,7 @@ export default function DataGridCellErrorsDemo(): ReactNode {
   }
 
   return (
-    <DataGridProvider store={store} columns={columns} getRowId={grid.getRowId}>
+    <DataGridProvider store={store}>
       <div className="w-full flex flex-col gap-3">
         <p className="text-sm text-muted-foreground">
           Set a Quantity above 100 and press Enter: the fake server rejects it after ~600ms and the

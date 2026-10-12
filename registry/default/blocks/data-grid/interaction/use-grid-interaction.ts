@@ -72,7 +72,6 @@ export type UseGridInteractionOptions = {
   scrollRef: RefObject<HTMLElement | null>;
   layout: InteractionLayout;
   keymap: Keymap;
-  readOnly?: boolean;
   /** mod+D — wired to the `data-grid-fill` add-on's fillDown; absent (add-on not installed) it's a no-op. */
   fillDown?: () => void;
   /** mod+R — wired to the `data-grid-fill` add-on's fillRight; absent it's a no-op. */
@@ -226,7 +225,6 @@ export function dispatchGridAction(args: {
   scrollCellIntoView: (coord: ViewCoord) => void;
   /** The grid's resolved data-row height (px) — `pageUp`/`pageDown`'s visible-row math. */
   rowHeight: number;
-  readOnly?: boolean;
   /** The printable seed char for `editReplace`, when the trigger was a printable key; undefined otherwise. */
   triggerKey?: string;
   preventDefault: () => void;
@@ -234,7 +232,7 @@ export function dispatchGridAction(args: {
   fillRight?: () => void;
   cancelFillDrag?: () => void;
 }): void {
-  const { action, actions, storeApi, scrollRef, scrollCellIntoView, rowHeight, readOnly, triggerKey, preventDefault, fillDown, fillRight, cancelFillDrag } = args;
+  const { action, actions, storeApi, scrollRef, scrollCellIntoView, rowHeight, triggerKey, preventDefault, fillDown, fillRight, cancelFillDrag } = args;
   const state = storeApi.getState();
   const rowCount = state.viewIndex.length;
   const colCount = state.visibleColumns.length;
@@ -265,7 +263,7 @@ export function dispatchGridAction(args: {
       viewRowIndex: coord === null ? null : coord.row,
       viewColumnIndex: coord === null ? null : coord.col,
       row,
-      readOnly: readOnly ?? false,
+      readOnly: state.readOnly,
     };
     if (command.when?.(ctx) === false) return;
     preventDefault();
@@ -415,13 +413,13 @@ export function dispatchGridAction(args: {
     }
     case "edit": {
       preventDefault();
-      if (readOnly || !state.activeCell) break;
+      if (state.readOnly || !state.activeCell) break;
       if (hasActivateCell(state, state.activeCell)) activateCell(state, actions, state.activeCell);
       else actions.startEditingAt(state.activeCell);
       break;
     }
     case "editReplace": {
-      if (readOnly || !state.activeCell) break;
+      if (state.readOnly || !state.activeCell) break;
       preventDefault();
       if (hasActivateCell(state, state.activeCell)) break; // checkbox cells have no edit mode; the edit action toggles them, type-to-replace ignores them
       // printable trigger seeds the typed char (Excel replace mode); a non-printable binding (e.g. F3) starts a plain edit
@@ -436,39 +434,39 @@ export function dispatchGridAction(args: {
     }
     case "deleteContents": {
       preventDefault();
-      if (!readOnly) actions.deleteSelection();
+      if (!state.readOnly) actions.deleteSelection();
       break;
     }
     case "fillDown": {
       preventDefault();
-      if (!readOnly) fillDown?.();
+      if (!state.readOnly) fillDown?.();
       break;
     }
     case "fillRight": {
       preventDefault();
-      if (!readOnly) fillRight?.();
+      if (!state.readOnly) fillRight?.();
       break;
     }
     case "undo": {
       preventDefault();
-      if (!readOnly) state.onUndo?.();
+      if (!state.readOnly) state.onUndo?.();
       break;
     }
     case "redo": {
       preventDefault();
-      if (!readOnly) state.onRedo?.();
+      if (!state.readOnly) state.onRedo?.();
       break;
     }
     case "insertRowBelow": {
       preventDefault();
       // mirrors cell-menu-content.tsx's canInsertRow guard: without createRow, insertRow is a
       // dev-warning no-op — skip the call so the shortcut doesn't spam that warning on every press.
-      if (!readOnly && state.createRow && state.activeCell) actions.insertRow(state.activeCell.row, "below");
+      if (!state.readOnly && state.createRow && state.activeCell) actions.insertRow(state.activeCell.row, "below");
       break;
     }
     case "duplicateRow": {
       preventDefault();
-      if (!readOnly && state.duplicateRow) {
+      if (!state.readOnly && state.duplicateRow) {
         // the context-menu item this shortcut labels duplicates the WHOLE selection; no
         // selection, just the active row
         const selected = getSelectedViewRows(state.selection);
@@ -479,12 +477,12 @@ export function dispatchGridAction(args: {
     }
     case "insertRowAbove": {
       preventDefault();
-      if (!readOnly && state.createRow && state.activeCell) actions.insertRow(state.activeCell.row, "above");
+      if (!state.readOnly && state.createRow && state.activeCell) actions.insertRow(state.activeCell.row, "above");
       break;
     }
     case "deleteRows": {
       preventDefault();
-      if (!readOnly) {
+      if (!state.readOnly) {
         const selected = getSelectedViewRows(state.selection);
         if (selected.length > 0) actions.deleteRows(selected);
         else if (state.activeCell) actions.deleteRows([state.activeCell.row]);
@@ -707,7 +705,7 @@ export type GridInteractionHandlers = {
  * scroll-into-view/drag-autoscroll machinery. One instance per `<DataGridRoot>` mount.
  */
 export function useGridInteraction(options: UseGridInteractionOptions): GridInteractionHandlers {
-  const { scrollRef, layout, keymap, readOnly, fillDown, fillRight, cancelFillDrag } = options;
+  const { scrollRef, layout, keymap, fillDown, fillRight, cancelFillDrag } = options;
   const actions = useDataGridInternalActions();
   const storeApi = useDataGridStoreApi();
   const isMacRef = useRef(false);
@@ -893,7 +891,6 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
           scrollRef,
           scrollCellIntoView: scrollActiveCellIntoView,
           rowHeight: layoutRef.current.rowHeight,
-          readOnly,
           triggerKey: isPrintableKey(keymapEvent) ? keymapEvent.key : undefined,
           preventDefault: () => event.preventDefault(),
           fillDown,
@@ -923,7 +920,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
 
       if (action) dispatch(action);
     },
-    [actions, cancelFillDrag, fillDown, fillRight, keymap, readOnly, scrollActiveCellIntoView, scrollRef, storeApi],
+    [actions, cancelFillDrag, fillDown, fillRight, keymap, scrollActiveCellIntoView, scrollRef, storeApi],
   );
 
   const onCellPointerDown = useCallback(
@@ -957,7 +954,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       }
 
       const plainPress = !event.shiftKey && !isMultiKey && !state.editing;
-      if ((wasActive || (plainPress && pointerHitsCheckboxBox(event))) && !readOnly && hasActivateCell(state, coord)) {
+      if ((wasActive || (plainPress && pointerHitsCheckboxBox(event))) && !state.readOnly && hasActivateCell(state, coord)) {
         // Resolved on the cell's native `click` — pointerdown can't yet tell a click from a drag.
         pendingActiveClickRef.current = coord;
       }
@@ -966,7 +963,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       event.currentTarget.setPointerCapture?.(event.pointerId);
       beginDrag("range", event.pointerId, event.currentTarget);
     },
-    [actions, beginDrag, readOnly, storeApi],
+    [actions, beginDrag, storeApi],
   );
 
   const onCellClick = useCallback(
@@ -988,11 +985,11 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
 
   const onCellDoubleClick = useCallback(
     (coord: ViewCoord, event: ReactMouseEvent<HTMLElement>) => {
-      if (readOnly) return;
+      const state = storeApi.getState();
+      if (state.readOnly) return;
       // same portal-bubbling concern as onCellPointerDown above.
       if ((event.target as HTMLElement | null)?.closest(gridAttrSelector("cellEditor"))) return;
       pendingActiveClickRef.current = null;
-      const state = storeApi.getState();
       actions.selectCellAt(coord);
       // this gesture's first click may have already resolved the action via onCellClick.
       const alreadyResolved = resolvedByClickRef.current?.col === coord.col && resolvedByClickRef.current?.row === coord.row;
@@ -1002,7 +999,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       if (hasActivateCell(state, coord)) activateCell(state, actions, coord);
       else actions.startEditingAt(coord);
     },
-    [actions, readOnly, storeApi],
+    [actions, storeApi],
   );
 
   const onHeaderPointerDown = useCallback(

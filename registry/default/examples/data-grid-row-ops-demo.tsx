@@ -151,6 +151,7 @@ export default function DataGridRowOpsDemo(): ReactNode {
         getRowId={(row) => row.id}
         createRow={createRow}
         duplicateRow={duplicateRow}
+        readOnly={readOnly}
         onDataChange={(_, change) =>
           setLast({
             source: change.source,
@@ -162,10 +163,7 @@ export default function DataGridRowOpsDemo(): ReactNode {
         <div className="flex gap-3">
           <div className="h-[300px] min-w-0 flex-1 overflow-hidden rounded-md border border-border">
             <DataGridContextMenu className="flex h-full flex-col">
-              <DataGridRoot
-                className="h-full rounded-none border-none"
-                readOnly={readOnly}
-              >
+              <DataGridRoot className="h-full rounded-none border-none">
                 <DataGridHeader />
                 <DataGridBody />
               </DataGridRoot>
