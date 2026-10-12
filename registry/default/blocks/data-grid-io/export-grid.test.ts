@@ -123,6 +123,22 @@ describe("buildExportRows / buildExportHeaders", () => {
     expect(rows[0]).toEqual(["[Alice]", '[has "quotes"]']);
   });
 
+  it("defaults to the export text and uses the display text with options.text: 'display'", () => {
+    const state = makeState({
+      cellTypes: {
+        text: {
+          ...textCellType,
+          toText: (value: string) => `raw:${value}`,
+          toDisplayText: (value: string) => `fmt(${value})`,
+        } as never,
+      },
+      visibleColumns: [{ id: "name", header: "Name", accessorKey: "name", type: "text" }] as never,
+    });
+    expect(buildExportRows(state, "view")[0]).toEqual(["raw:Alice"]);
+    expect(buildExportRows(state, "view", { text: "export" })[0]).toEqual(["raw:Alice"]);
+    expect(buildExportRows(state, "view", { text: "display" })[0]).toEqual(["fmt(Alice)"]);
+  });
+
   it("scope 'view' walks viewIndex (respects an active sort)", () => {
     // reversed order simulates a descending sort on `name`.
     const state = makeState({ viewIndex: [2, 1, 0] });
@@ -483,7 +499,7 @@ describe("export — maxRows caps before building rows", () => {
   it("buildExportRows calls the cell accessor only for the capped rows", () => {
     const accessorFn = vi.fn((row: Row) => row.name);
 
-    const rows = buildExportRows(makeLargeState(accessorFn), "view", 10);
+    const rows = buildExportRows(makeLargeState(accessorFn), "view", { maxRows: 10 });
 
     expect(rows).toHaveLength(10);
     expect(accessorFn).toHaveBeenCalledTimes(10);

@@ -1085,6 +1085,21 @@
           "target": "components/data-grid-io/export-button.tsx"
         },
         {
+          "path": "registry/default/blocks/data-grid-io/print-grid.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-io/print-grid.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-io/use-data-grid-print.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-io/use-data-grid-print.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-io/print-button.tsx",
+          "type": "registry:component",
+          "target": "components/data-grid-io/print-button.tsx"
+        },
+        {
           "path": "registry/default/blocks/data-grid-io/parse-import-file.ts",
           "type": "registry:component",
           "target": "components/data-grid-io/parse-import-file.ts"

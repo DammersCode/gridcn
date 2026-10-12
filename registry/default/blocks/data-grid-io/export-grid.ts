@@ -1,5 +1,5 @@
-import { sanitizeFormulaCell, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
-import { getSelectedViewRows, isDev, type DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { getCellValue, sanitizeFormulaCell, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
+import { displayText, getSelectedViewRows, isDev, type DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { CsvDelimiter } from "./parse-import-file";
 
 /** Options for {@link exportGrid}. */
@@ -57,20 +57,20 @@ export function rowsToCsv(rows: readonly (readonly string[])[], delimiter: strin
   return rows.map((row) => row.map(field).join(delimiter)).join("\r\n");
 }
 
-/**
- * Resolves the rows to export via the cell-type pipeline (`toText`, never raw values), in the
- * requested `scope` order: `'view'` walks `viewIndex` (current sort/filter order), `'all'` walks
- * `data` as-is, ignoring any active sort/filter, `'selection'` walks only the selected rows in
- * view order. Every scope emits all visible columns, so a row-shaped export always matches its
- * header row. Hole rows (unloaded indices of a lazy grid's sparse `data`) are skipped in every
- * scope. A `maxRows` cap builds only that many rows.
- */
-export function buildExportRows(state: DataGridStoreState, scope: "view" | "all" | "selection", maxRows?: number): string[][] {
-  const dataIndices = exportDataIndices(state, scope);
-  return buildRowsAt(state, maxRows === undefined ? dataIndices : dataIndices.slice(0, maxRows));
-}
+/** Options for {@link buildExportRows}. */
+export type BuildExportRowsOptions = {
+  /** Cell text source: `'export'` uses the cell type's `toText` (CSV/XLSX), `'display'` uses `toDisplayText ?? toText` (print). Default `'export'`. */
+  text?: "export" | "display";
+  /** Caps the number of data rows built (the header row is not counted). */
+  maxRows?: number;
+};
 
-function exportDataIndices(state: DataGridStoreState, scope: "view" | "all" | "selection"): number[] {
+/**
+ * Resolves the data indices a scope covers (lazy holes excluded): `'view'` walks `viewIndex`
+ * (current sort/filter order), `'all'` walks `data` as-is, `'selection'` walks only the selected
+ * rows in view order.
+ */
+export function exportDataIndices(state: DataGridStoreState, scope: "view" | "all" | "selection"): number[] {
   const scoped =
     scope === "all"
       ? state.data.map((_, i) => i)
@@ -81,17 +81,26 @@ function exportDataIndices(state: DataGridStoreState, scope: "view" | "all" | "s
   return scoped.filter((dataRowIndex) => state.data[dataRowIndex] !== undefined);
 }
 
-function buildRowsAt(state: DataGridStoreState, dataIndices: readonly number[]): string[][] {
+/**
+ * Resolves the rows to export via the cell-type pipeline, in the requested `scope` order. With
+ * `options.text: "display"` the cell type's display text (`toDisplayText ?? toText`) is used; the
+ * default `'export'` uses `toText` (CSV/XLSX). Every scope emits all visible columns, so a
+ * row-shaped export always matches its header row. Hole rows (unloaded indices of a lazy grid's
+ * sparse `data`) are skipped in every scope. `options.maxRows` caps the number of rows built.
+ */
+export function buildExportRows(state: DataGridStoreState, scope: "view" | "all" | "selection", options: BuildExportRowsOptions = {}): string[][] {
+  const { text = "export", maxRows } = options;
+  const dataIndices = exportDataIndices(state, scope);
+  return buildRowsAt(state, maxRows === undefined ? dataIndices : dataIndices.slice(0, maxRows), text);
+}
+
+function buildRowsAt(state: DataGridStoreState, dataIndices: readonly number[], text: "export" | "display"): string[][] {
   return dataIndices.map((dataRowIndex) => {
     const row = state.data[dataRowIndex];
     return state.visibleColumns.map((column) => {
       const cellType = state.cellTypes[column.type ?? "text"];
-      const value = column.accessorFn
-        ? column.accessorFn(row)
-        : column.accessorKey
-          ? (row as Record<string, unknown> | undefined)?.[column.accessorKey]
-          : undefined;
-      return cellType ? cellType.toText(value, column.options) : "";
+      const value = getCellValue<unknown, AnyColumnDef>(row, column);
+      return cellType ? (text === "display" ? displayText(cellType, value, column.options) : cellType.toText(value, column.options)) : "";
     });
   });
 }
@@ -99,9 +108,9 @@ function buildRowsAt(state: DataGridStoreState, dataIndices: readonly number[]):
 /** Builds at most `maxRows` rows, with a dev-only warning when the scope exceeds the cap. */
 function buildCappedExportRows(state: DataGridStoreState, scope: "view" | "all" | "selection", maxRows: number | undefined): string[][] {
   const dataIndices = exportDataIndices(state, scope);
-  if (maxRows === undefined || dataIndices.length <= maxRows) return buildRowsAt(state, dataIndices);
+  if (maxRows === undefined || dataIndices.length <= maxRows) return buildRowsAt(state, dataIndices, "export");
   if (isDev()) console.warn(`[data-grid-io] export truncated to ${maxRows} of ${dataIndices.length} rows (maxRows)`);
-  return buildRowsAt(state, dataIndices.slice(0, maxRows));
+  return buildRowsAt(state, dataIndices.slice(0, maxRows), "export");
 }
 
 /** Header row text for each visible column, in the same order `buildExportRows` emits cells. */

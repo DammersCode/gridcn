@@ -11,6 +11,15 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Print and PDF (`data-grid-io`):** `printGrid(state, options)` prints the grid's rows as a
+  plain paged table in a hidden, sandboxed iframe and opens the browser print dialog — its "Save
+  as PDF" produces the PDF file, so no PDF library is needed. `useDataGridPrint()` wires it to the
+  grid's store; `<DataGridPrintButton />` is the toolbar trigger. The scope follows export's
+  (`"view"`, `"all"`, `"selection"`); the table holds the visible columns in view order and uses
+  the cell type's display text, so formatted values print as they read on screen. A row cap
+  (default 10,000, hard ceiling of 500,000 cells) ends the table with a "Printed N of M rows" note
+  when it cuts the output. A lazy grid prints its loaded rows only. New user-facing strings:
+  `labels.io.printButtonAriaLabel`, `labels.io.printTruncated`.
 - **View-sampling autosize (`data-grid`):** `actions.autosizeColumns(options)` sizes columns to
   their content over the whole view, not the mounted rows: it samples `options.sampleRows` view
   rows (default 1000, clamped to [1, 10000]) evenly strided across the sorted/filtered view plus
@@ -348,6 +357,12 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking:** `buildExportRows` takes an options object instead of a positional `maxRows`
+  (`data-grid-io`). `buildExportRows(state, scope, { text?: "export" | "display"; maxRows? })`:
+  `maxRows` now lives in the object, and `text: "display"` emits the cell type's display text
+  (`toDisplayText ?? toText`) instead of the export text (`toText`) — the mode print uses. Cell
+  values are read through `getCellValue`; a column with neither `accessorKey` nor `accessorFn`
+  (already a development warning) now throws on read instead of exporting empty cells.
 - **Autosize measures the view sample, not the mounted rows (`data-grid`):** the header
   double-click and the header menu's "Autosize column" previously measured only the rendered,
   windowed cells — a column whose widest value sat off-screen fit the visible rows, and a long

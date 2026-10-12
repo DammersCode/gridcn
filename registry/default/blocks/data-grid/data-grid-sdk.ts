@@ -55,6 +55,7 @@ export {
   resolveFilterOperators,
   resolveFilterValueInput,
 } from "./cell-types/capabilities";
+export { displayText } from "./cell-types/display-text";
 export {
   useBulkGeneration,
   snapshotBulkBatch,

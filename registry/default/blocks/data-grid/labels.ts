@@ -208,6 +208,10 @@ export type DataGridIOLabels = {
   importRejectedCells: (count: number) => string;
   /** Shown when the `onImport` callback rejected; the dialog stays open and the import can be retried. */
   importMergeFailed: string;
+  /** aria-label for the print toolbar button. */
+  printButtonAriaLabel: string;
+  /** Note shown under the printed table when the row cap cut the output; `printed` is the table's rows, `total` the scope rows. */
+  printTruncated: (printed: number, total: number) => string;
 };
 
 /** Pagination add-on strings (`data-grid-pagination`): footer prev/next, page numbers, page-size select, range label. */
@@ -456,6 +460,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
     errorTooManyCells: "This file has too many rows or columns to import.",
     importRejectedCells: (count) => `${count} cell${count === 1 ? "" : "s"} failed validation and ${count === 1 ? "was" : "were"} left empty.`,
     importMergeFailed: "The import could not be completed. Try again.",
+    printButtonAriaLabel: "Print",
+    printTruncated: (printed, total) => `Printed ${printed} of ${total} rows`,
   },
   pagination: {
     firstPage: "First page",

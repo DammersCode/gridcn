@@ -107,6 +107,33 @@ download, for uploads to a server. The xlsx file is compressed.
 `DataGridExportButton` takes an `onError` callback for a failed export. Without one, a failure
 logs a dev-only warning.
 
+## Print
+
+`printGrid(state, options)` prints the grid's rows as a plain paged table. The browser's print
+dialog opens, and its "Save as PDF" produces the PDF file. Inside the grid's tree, use
+`useDataGridPrint()`, or place `<DataGridPrintButton />` in the toolbar.
+
+Print takes the same `scope` as export: `"view"` (the current sort and filter order), `"all"`, or
+`"selection"`. The table holds the visible columns in view order. Hidden columns never print.
+Cell text is the cell type's display text (`toDisplayText ?? toText`), not the export text, so a
+formatted value prints the way it reads on screen.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/print-grid.ts" name="PrintGridOptions" />
+
+`options.title` prints a heading and sets the document title. `options.orientation` defaults to
+`landscape` above 6 visible columns and `portrait` below. `options.maxRows` caps the printed rows
+at 10,000 by default, further cut to fit a hard ceiling of 500,000 cells. Cell text longer than
+32,767 characters is cut. When the cap reduces the output, the table ends with a "Printed N of M
+rows" note.
+
+<Callout type="warn" title="A lazy grid prints its loaded rows only">
+Print reads the grid's data, like export. A lazy grid prints the rows it has loaded, not the rows
+it has not loaded yet. Load the window you need first, then print.
+</Callout>
+
+`DataGridPrintButton` forwards its `options` prop to `printGrid`, so
+`<DataGridPrintButton options={{ scope: "selection" }} />` prints the selection.
+
 ## Import
 
 `DataGridImportButton` opens a dialog that walks through the same pipeline that a paste uses
