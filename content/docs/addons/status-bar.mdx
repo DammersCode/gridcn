@@ -1,0 +1,84 @@
+---
+title: Status bar
+description: The data-grid-status-bar add-on — count, sum, avg, min, and max of the selected cells under the grid.
+icon: Sigma
+---
+
+Users read totals of a selection without exporting it. `data-grid-status-bar` computes them from
+the grid's own data: `<DataGridStatusBar />` renders the bar, and `useDataGridSelectionStats` is
+the headless hook. It reads committed values only, never the open editor's draft, and writes
+nothing, so `readOnly` grids work unchanged.
+
+<ComponentPreview name="data-grid-status-bar-demo" />
+
+<InstallCommand item="data-grid-status-bar" manual manualSlot={<ManualInstall item="data-grid-status-bar" />} />
+
+Place the bar inside `DataGridProvider`, next to `DataGridRoot`, like the pagination bar:
+
+```tsx
+import { DataGridStatusBar } from "@/components/data-grid-status-bar/data-grid-status-bar";
+
+<DataGridProvider {...grid} columns={columns}>
+  <DataGridRoot>
+    <DataGridHeader />
+    <DataGridBody />
+  </DataGridRoot>
+  <DataGridStatusBar />
+</DataGridProvider>;
+```
+
+## Which cells count
+
+The bar aggregates the union of every selection channel: the primary range, the stacked
+Ctrl+click ranges, whole-row selections, and whole-column selections. A cell that sits in two
+channels counts once. Hidden columns, filtered rows, and unloaded lazy rows are never in the
+view, so they never count.
+
+## Which values count
+
+A cell is numeric when its raw value is a finite `number` — value detection, not a flag on the
+cell type, so a custom numeric type aggregates without configuration. `count` counts the
+non-empty cells, where empty means the column's cell type `isEmpty` returns `true`. `sum`,
+`avg`, `min`, and `max` run over the numeric cells; the sum uses Neumaier-compensated
+summation, so `0.1 + 0.2` shows `0.3`.
+
+## Display and formatting
+
+The bar renders nothing while fewer than 2 cells are selected. `count` always shows; `sum`,
+`avg`, `min`, and `max` show only while at least one numeric cell is selected.
+
+When every numeric cell comes from one column, that column's `toDisplayText` formats `sum`,
+`avg`, `min`, and `max` — a `number` column with a `format` option shows currency. Otherwise
+the default `Intl.NumberFormat(locale, { maximumFractionDigits: 4 })` applies. `formatValue`
+overrides both.
+
+## When it computes
+
+The hook recomputes after the selection settles: at once for a selection of up to 5,000 cells,
+otherwise on a 150 ms trailing timer, so dragging a large range does not walk the whole
+selection on every frame. A walk stops at 200,000 cells (`MAX_STATUS_CELLS`); above the cap,
+every value gets a `≈` prefix and the bar's `title` says how many cells the values cover.
+
+## Props
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `aggregates` | `readonly ("count" \| "sum" \| "avg" \| "min" \| "max")[]` | all five, in this order | Which aggregates to show, and in which order. |
+| `formatValue` | `(value: number, aggregate: StatusBarAggregate) => string` | the single-column rule, else the `Intl` default | Formats the shown aggregate values. |
+| `locale` | `string` | `"en-US"` | Locale for the default number format. |
+| `labels` | `Partial<DataGridStatusBarLabels>` | merged over `labels.statusBar` | i18n override for this bar's strings. |
+| `className` | `string` | — | Extra classes on the bar element. |
+| `children` | `ReactNode` | — | Extra items, rendered after the aggregates. |
+
+<Callout type="idea" title="The bar is a polite live region">
+  The bar is `role="status"` with `aria-live="polite"` and `aria-atomic="true"`. Its text
+  changes only when a computation finishes, so a drag does not flood the screen reader. Each
+  value carries its label ("Sum 1,234").
+</Callout>
+
+## Related
+
+- [Selection & keyboard](/docs/selection-keyboard) — the selection channels the bar aggregates
+- [Cell types](/docs/editing-cell-types) — `isEmpty` and `toDisplayText`
+- [Pagination](/docs/pagination) — page-local data: the bar aggregates the current page slice
+- [Pinned rows](/docs/addons/pinned-rows) — the other totals surface, for a fixed band

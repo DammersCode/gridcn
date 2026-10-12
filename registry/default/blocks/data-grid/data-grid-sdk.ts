@@ -64,7 +64,7 @@ export {
   type BulkBatchSnapshot,
 } from "./validation/bulk-generation";
 
-export { combineRects, getSelectedViewRows } from "./selection";
+export { combineRects, getSelectedViewRows, selectionRects } from "./selection";
 export { holeRowId, rowIdAtViewRow } from "./store/compute";
 export { measureColumnAutosizeWidth } from "./columns/measure-column-text";
 export { isDev } from "./is-dev";

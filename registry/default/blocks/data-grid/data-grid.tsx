@@ -185,6 +185,7 @@ export {
   type DataGridGridLabels,
   type DataGridIOLabels,
   type DataGridPaginationLabels,
+  type DataGridStatusBarLabels,
 } from "./labels";
 
 

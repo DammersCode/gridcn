@@ -37,6 +37,7 @@
     "addons/context-menu",
     "addons/keybindings",
     "addons/sort-list",
+    "addons/status-bar",
     "addons/url-state",
     "addons/import-export",
     "---[Blocks]Architecture---",

@@ -224,6 +224,17 @@ export type DataGridPaginationLabels = {
   rangeEmpty: string;
 };
 
+/** Status-bar add-on strings (`data-grid-status-bar`): aggregate labels and the capped-walk `title`. */
+export type DataGridStatusBarLabels = {
+  count: string;
+  sum: string;
+  avg: string;
+  min: string;
+  max: string;
+  /** `title` while the walk stopped at the cell cap; `count` is the cap. */
+  approximate: (count: number) => string;
+};
+
 /** Every user-facing default string across core + every add-on, grouped by owning surface. */
 export interface DataGridLabels {
   toolbar: DataGridToolbarLabels;
@@ -235,6 +246,7 @@ export interface DataGridLabels {
   grid: DataGridGridLabels;
   io: DataGridIOLabels;
   pagination: DataGridPaginationLabels;
+  statusBar: DataGridStatusBarLabels;
 }
 
 /** English defaults — every string in the shipped UI today, verbatim (so adopting `labels` never changes visible copy without an explicit override). */
@@ -452,6 +464,14 @@ export const DEFAULT_LABELS: DataGridLabels = {
     pageSizeOption: (size) => `${size} / page`,
     range: (from, to, total) => `${from}–${to} of ${total}`,
     rangeEmpty: "0 of 0",
+  },
+  statusBar: {
+    count: "Count",
+    sum: "Sum",
+    avg: "Avg",
+    min: "Min",
+    max: "Max",
+    approximate: (count) => `From the first ${count.toLocaleString("en-US")} cells`,
   },
 };
 

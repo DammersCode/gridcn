@@ -11,6 +11,16 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Status bar add-on (`data-grid-status-bar`):** `<DataGridStatusBar />` shows count, sum,
+  avg, min, and max of the selected cells under the grid; `useDataGridSelectionStats` is the
+  headless hook. A cell is numeric when its raw value is a finite number; `count` counts the
+  non-empty cells via the column's cell type `isEmpty`; sums use Neumaier-compensated
+  summation. The bar renders nothing below 2 cells, computes at once for up to 5,000 selected
+  cells and on a 150 ms trailing timer above, stops at 200,000 cells (`MAX_STATUS_CELLS`) and
+  flags every value with `≈` plus a `title` when capped, and formats sum/avg/min/max through
+  the single numeric column's `toDisplayText` when all numeric cells come from one column
+  (otherwise `Intl.NumberFormat(locale, { maximumFractionDigits: 4 })`, overridable with
+  `formatValue`). New user-facing strings live under `labels.statusBar`.
 - **History respects a read-only grid (`data-grid-history`):** `useDataGridHistory` and
   `useDataGridState` take a `readOnly` option. When it is `true`, `undo` and `redo` do nothing,
   and `canUndo` and `canRedo` are `false`.

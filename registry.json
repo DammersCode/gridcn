@@ -1233,6 +1233,40 @@
          "categories": [
             "data"
          ]
+      },      {
+         "name": "data-grid-status-bar",
+         "type": "registry:block",
+         "title": "Data Grid Status Bar",
+         "description": "Status-bar add-on for the gridcn data grid: <DataGridStatusBar /> shows count, sum, avg, min, and max of the selected cells under the grid (useDataGridSelectionStats is the headless hook). Numbers are detected by value (finite numbers), sums use Neumaier-compensated summation, a single-column selection formats through that column's toDisplayText, and above 200,000 cells the walk caps and flags the values with ≈. New user-facing strings live under labels.statusBar (see data-grid/labels.ts DataGridStatusBarLabels). Zero core changes — purely additive.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid"
+         ],
+         "files": [
+            {
+               "path": "registry/default/blocks/data-grid-status-bar/data-grid-status-bar.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-status-bar/data-grid-status-bar.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-status-bar/status-bar.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid-status-bar/status-bar.tsx"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-status-bar/use-data-grid-selection-stats.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-status-bar/use-data-grid-selection-stats.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-status-bar/compute-selection-stats.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-status-bar/compute-selection-stats.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
       },
       {
          "name": "data-grid-minimal-demo",
@@ -2005,6 +2039,31 @@
                "path": "registry/default/examples/data-grid-sort-list-demo.tsx",
                "type": "registry:example",
                "target": "components/data-grid-sort-list-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },      {
+         "name": "data-grid-status-bar-demo",
+         "type": "registry:example",
+         "title": "Data Grid Status Bar Demo",
+         "description": "Select a range, a row, or a column — the status bar below the grid aggregates count, sum, avg, min, and max of the selection in real time.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-status-bar"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-status-bar-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-status-bar-demo.tsx"
             },
             {
                "path": "registry/default/examples/demo-data.ts",
