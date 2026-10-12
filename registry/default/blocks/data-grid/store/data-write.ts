@@ -260,6 +260,14 @@ export type DataWriteDeps = {
     getRowId?: (row: unknown, index: number) => string,
     sameRecords?: boolean,
   ) => Partial<DataGridStoreState>;
+  /** Re-anchors an open edit to the new view position of its rowId/columnId (or cancels it when the row left the view); `data` must be the array `viewIndex` indexes. */
+  remapEditing: (
+    s: DataGridStoreState,
+    viewIndex: readonly number[],
+    visibleColumns: readonly AnyColumnDef[],
+    data?: readonly unknown[],
+    getRowId?: (row: unknown, index: number) => string,
+  ) => Partial<DataGridStoreState>;
   /** Runs `write`, which ends `session`, without the `cancel` report: the caller reports its own `onEditEnd` result. */
   endEditSession: (session: NonNullable<DataGridStoreState["editing"]>, write: () => void) => void;
 };
@@ -284,7 +292,7 @@ export type DataWriteActions = Pick<
 >;
 
 export function createDataWriteActions(set: SetState, get: GetState, deps: DataWriteDeps): DataWriteActions {
-  const { ctx, applyRowValidation, pruneRowValidationKeys, warnViewSpacePresenceStale, followView, endEditSession } = deps;
+  const { ctx, applyRowValidation, pruneRowValidationKeys, warnViewSpacePresenceStale, followView, remapEditing, endEditSession } = deps;
 
   /** Reports the patches a validator refused through `onValidationError`; a row outside the view reports `viewRowIndex: -1`. */
   const emitStreamRejections = (patches: readonly CellPatch[], rejected: readonly PatchRejection[]): void => {
@@ -544,9 +552,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       }
       const applied = batch.ops.reduce((n, op) => (op.type === "update" ? n + (op.cells?.length ?? 0) : n), 0);
 
-      let reorder = resolveReorder(options?.reorder, patches, s.sortState, s.filterState);
-      // an open editor pins a view coordinate an immediate re-sort would silently remount, so the batch defers
-      if (reorder === "immediate" && s.editing) reorder = "defer";
+      const reorder = resolveReorder(options?.reorder, patches, s.sortState, s.filterState);
       ctx.rowIndexCache.rebase(nextData);
       ctx.lastEmittedData = nextData;
       const change = { source: options?.source ?? "stream", ops: batch.ops };
@@ -614,11 +620,6 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     insertRows(viewRowIndex, count, position = "below") {
       const s = get();
       if (s.readOnly) return;
-      // an open editor pins a view coordinate the shift would silently invalidate
-      if (s.editing) {
-        warnDev("insertRows is a no-op while an edit session is open");
-        return;
-      }
       if (!s.createRow) {
         warnDev("row insertion is a no-op because no `createRow` prop was provided");
         return;
@@ -639,10 +640,11 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       forgetDeferredRows(ctx);
       ctx.lastEmittedData = batch.nextData;
       const view = rebuildRowOpView(s, batch.nextData);
+      const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
       if (s.sortState.length > 0 || s.filterState.length > 0) {
         pruneRowValidationKeys(batch.nextData, s.getRowId);
         writeThenEmit(ctx, s, batch.nextData, { source: "row-op", ops: batch.ops }, () =>
-          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view }),
+          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view, ...editRemap }),
         );
         return;
       }
@@ -659,17 +661,13 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
             ? { ...s.activeCell, row: s.activeCell.row + count }
             : s.activeCell,
           ...view,
+          ...editRemap,
         }),
       );
     },
     deleteRows(viewRowIndexes) {
       const s = get();
       if (s.readOnly) return;
-      // an open editor pins a view coordinate the shift would silently invalidate
-      if (s.editing) {
-        warnDev("deleteRows is a no-op while an edit session is open");
-        return;
-      }
       const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
       const batch = computeDeleteBatch(s, dataRowIndexes);
       if (!batch) return;
@@ -678,6 +676,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       forgetDeferredRows(ctx);
       ctx.lastEmittedData = batch.nextData;
       pruneRowValidationKeys(batch.nextData, s.getRowId);
+      const view = rebuildRowOpView(s, batch.nextData);
+      const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
       writeThenEmit(ctx, s, batch.nextData, { source: "row-op", ops: batch.ops }, () =>
         set({
           data: batch.nextData,
@@ -685,18 +685,14 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
           selection: emptySelection(),
           activeCell: null,
-          ...rebuildRowOpView(s, batch.nextData),
+          ...view,
+          ...editRemap,
         }),
       );
     },
     duplicateRows(viewRowIndexes) {
       const s = get();
       if (s.readOnly) return;
-      // an open editor pins a view coordinate the shift would silently invalidate
-      if (s.editing) {
-        warnDev("duplicateRows is a no-op while an edit session is open");
-        return;
-      }
       if (!s.duplicateRow) {
         warnDev("duplicateRows is a no-op because no `duplicateRow` prop was provided");
         return;
@@ -709,10 +705,11 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       forgetDeferredRows(ctx);
       ctx.lastEmittedData = batch.nextData;
       const view = rebuildRowOpView(s, batch.nextData);
+      const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
       if (s.sortState.length > 0 || s.filterState.length > 0) {
         pruneRowValidationKeys(batch.nextData, s.getRowId);
         writeThenEmit(ctx, s, batch.nextData, { source: "row-op", ops: batch.ops }, () =>
-          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view }),
+          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view, ...editRemap }),
         );
         return;
       }
@@ -734,6 +731,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           selection,
           activeCell,
           ...view,
+          ...editRemap,
         }),
       );
     },
@@ -741,8 +739,6 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const s = get();
       if (!s.enableRowReorder) return false;
       if (s.readOnly) return false;
-      // an open editor pins a view coordinate the move would silently invalidate
-      if (s.editing) return false;
       if (s.sortState.length > 0 || s.filterState.length > 0) {
         warnDev("reorderRows is a no-op while a sort or filter is active (the view order is owned by the sort/filter)");
         return false;
@@ -770,6 +766,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       forgetDeferredRows(ctx);
       ctx.lastEmittedData = nextData;
       const f = rowReorderMap(from, to);
+      // no view rebuild: unsorted and unfiltered, the identity `viewIndex` content is unchanged
+      const editRemap = remapEditing(s, s.viewIndex, s.visibleColumns, nextData, s.getRowId);
       writeThenEmit(ctx, s, nextData, { source: "row-op", ops }, () =>
         set({
           data: nextData,
@@ -777,6 +775,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           selection: reorderSelectionForRow(s.selection, from, to),
           activeCell: s.activeCell ? { ...s.activeCell, row: f(s.activeCell.row) } : null,
           lastHighlightedRow: s.lastHighlightedRow === null ? null : f(s.lastHighlightedRow),
+          ...editRemap,
         }),
       );
       return true;

@@ -719,6 +719,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         pruneRowValidationKeys,
         warnViewSpacePresenceStale,
         followView,
+        remapEditing,
         endEditSession,
       }),
       setEditingError(message) {

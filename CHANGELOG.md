@@ -327,6 +327,14 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking:** row ops and immediate re-sorts apply live while an edit session is open
+  (`data-grid`). `insertRows`, `deleteRows`, `duplicateRows`, `reorderRows`, and an
+  `updateCells` batch with `reorder: "immediate"` no longer no-op (or defer) under an open
+  editor: the op applies and the open edit re-anchors to its row's new view position, keeping
+  its draft while the row stays in the rendered window. A row op that removes the edited row
+  cancels the session — the draft is dropped and `onEditEnd` fires with `result: "cancel"`.
+  Before, the row ops were no-ops with a development warning, and an immediate re-sort
+  deferred until the session ended.
 - **Breaking:** `renderHeaderCell` replaces the contents of a grid-owned header cell
   (`data-grid`). Its `ctx` is `{ column, index, width, headerClickBehavior, sortState }`; the
   resize, reorder, select, and sort plumbing is gone from it. Before, the slot replaced the whole

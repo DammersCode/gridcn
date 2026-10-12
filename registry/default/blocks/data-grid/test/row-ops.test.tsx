@@ -423,15 +423,32 @@ describe("reorderRows", () => {
     expect(onDataChange).not.toHaveBeenCalled();
   });
 
-  it("is a no-op while an edit session is open (the editor pins a view coordinate)", () => {
+  it("applies the move live under an open edit session and remaps the edit onto the moved row", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
+    const { result } = renderHook(
+      () => ({
+        actions: useDataGridInternalActions(),
+        editing: useDataGridEditing(),
+        activeCell: useDataGridActiveCell(),
+      }),
+      { wrapper },
+    );
 
-    act(() => result.current.startEditingAt({ col: 0, row: 0 }));
-    act(() => result.current.reorderRows(0, 2));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
+    act(() => result.current.actions.reorderRows(0, 2));
 
-    expect(onDataChange).not.toHaveBeenCalled();
+    const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["2", "3", "1"]);
+    expect(change.source).toBe("row-op");
+    expect(result.current.editing).toEqual({
+      coord: { col: 0, row: 2 },
+      rowId: "1",
+      columnId: "name",
+      initialText: undefined,
+      session: expect.any(Number),
+    });
+    expect(result.current.activeCell).toEqual({ col: 0, row: 2 });
   });
 
   it("is a no-op with a dev warning while a sort is active", () => {
@@ -682,56 +699,101 @@ describe("row ops rebuild the view index", () => {
 });
 
 describe("row ops with an open edit session", () => {
-  const editSession = { coord: { col: 0, row: 0 }, rowId: "1", columnId: "name", initialText: undefined, session: expect.any(Number) };
-
-  it("insertRows is a no-op with a dev warning (editor state untouched)", () => {
+  it("insertRows above the edited row applies live and remaps the edit and cursor down", () => {
     const onDataChange = vi.fn();
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const wrapper = makeWrapper(onDataChange, { createRow });
-    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), editing: useDataGridEditing() }), {
-      wrapper,
+    const { result } = renderHook(
+      () => ({
+        actions: useDataGridInternalActions(),
+        editing: useDataGridEditing(),
+        activeCell: useDataGridActiveCell(),
+      }),
+      { wrapper },
+    );
+
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 1 })); // Alice (rowId "2", data 1)
+    act(() => result.current.actions.insertRows(1, 1, "above"));
+
+    const [next] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["1", "new", "2", "3"]);
+    expect(result.current.editing).toEqual({
+      coord: { col: 0, row: 2 },
+      rowId: "2",
+      columnId: "name",
+      initialText: undefined,
+      session: expect.any(Number),
     });
-
-    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
-    act(() => result.current.actions.insertRows(0, 1));
-
-    expect(onDataChange).not.toHaveBeenCalled();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("edit session"));
-    expect(result.current.editing).toEqual(editSession);
-    warn.mockRestore();
+    expect(result.current.activeCell).toEqual({ col: 0, row: 2 });
   });
 
-  it("deleteRows is a no-op with a dev warning (editor state untouched)", () => {
+  it("deleteRows of the edited row cancels the session and reports onEditEnd", () => {
     const onDataChange = vi.fn();
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const onEditEnd = vi.fn();
+    const wrapper = makeWrapper(onDataChange, { onEditEnd });
+    const { result } = renderHook(
+      () => ({
+        actions: useDataGridInternalActions(),
+        editing: useDataGridEditing(),
+        activeCell: useDataGridActiveCell(),
+      }),
+      { wrapper },
+    );
+
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 })); // Charlie (rowId "1")
+    act(() => result.current.actions.deleteRows([0]));
+
+    const [next] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["2", "3"]);
+    expect(result.current.editing).toBeNull();
+    expect(result.current.activeCell).toBeNull();
+    expect(onEditEnd).toHaveBeenCalledWith(expect.objectContaining({ rowId: "1", columnId: "name", result: "cancel" }));
+  });
+
+  it("deleteRows of another row keeps the open edit on its record", () => {
+    const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange);
     const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), editing: useDataGridEditing() }), {
       wrapper,
     });
 
-    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
-    act(() => result.current.actions.deleteRows([0]));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 })); // Charlie (rowId "1")
+    act(() => result.current.actions.deleteRows([1])); // Alice leaves
 
-    expect(onDataChange).not.toHaveBeenCalled();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("edit session"));
-    expect(result.current.editing).toEqual(editSession);
-    warn.mockRestore();
+    const [next] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["1", "3"]);
+    expect(result.current.editing).toEqual({
+      coord: { col: 0, row: 0 },
+      rowId: "1",
+      columnId: "name",
+      initialText: undefined,
+      session: expect.any(Number),
+    });
   });
 
-  it("duplicateRows is a no-op with a dev warning (editor state untouched)", () => {
+  it("duplicateRows of the row above the edited row applies live and remaps the edit down", () => {
     const onDataChange = vi.fn();
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const wrapper = makeWrapper(onDataChange, { duplicateRow });
-    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), editing: useDataGridEditing() }), {
-      wrapper,
+    const { result } = renderHook(
+      () => ({
+        actions: useDataGridInternalActions(),
+        editing: useDataGridEditing(),
+        activeCell: useDataGridActiveCell(),
+      }),
+      { wrapper },
+    );
+
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 1 })); // Alice (rowId "2", data 1)
+    act(() => result.current.actions.duplicateRows([0])); // Charlie's copy lands below him
+
+    const [next] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["1", "1-copy", "2", "3"]);
+    expect(result.current.editing).toEqual({
+      coord: { col: 0, row: 2 },
+      rowId: "2",
+      columnId: "name",
+      initialText: undefined,
+      session: expect.any(Number),
     });
-
-    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
-    act(() => result.current.actions.duplicateRows([0]));
-
-    expect(onDataChange).not.toHaveBeenCalled();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("edit session"));
-    expect(result.current.editing).toEqual(editSession);
-    warn.mockRestore();
+    expect(result.current.activeCell).toEqual({ col: 0, row: 2 });
   });
 });
