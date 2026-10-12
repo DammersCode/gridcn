@@ -60,6 +60,8 @@ export const DEFAULT_KEYMAP: Keymap = {
   // Sheets/Excel chords (Ctrl+Alt+=/-, Ctrl+Shift+=, Ctrl+-) hit AltGr or non-preventable browser zoom; u/Backspace don't.
   insertRowAbove: ["mod+shift+u"],
   deleteRows: ["mod+shift+Backspace"],
+  // Enter is edit/commitDown; alt+Enter was free
+  openLink: ["alt+Enter"],
 };
 
 /**

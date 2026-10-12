@@ -160,6 +160,9 @@ export {
   checkboxCellType,
   selectCellType,
   dateCellType,
+  urlCellType,
+  longTextCellType,
+  safeHref,
 } from "./cell-types/cell-types";
 export { displayText } from "./cell-types/display-text";
 export { CellSpan } from "./cell-types/cell-span";

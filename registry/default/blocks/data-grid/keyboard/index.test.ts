@@ -380,6 +380,7 @@ describe("GridAction coverage", () => {
     undo: true, redo: true,
     fillDown: true, fillRight: true,
     insertRowBelow: true, insertRowAbove: true, duplicateRow: true, deleteRows: true,
+    openLink: true,
   };
 
   it("every GridAction is either bound in DEFAULT_KEYMAP, implicit-fallback, or explicitly allowlisted", () => {

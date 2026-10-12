@@ -22,7 +22,8 @@ export const columns = [
   { id: "name", header: "Name", accessorKey: "name" as const, type: "text" as const, width: 180 },
   { id: "email", header: "Email", accessorKey: "email" as const, type: "text" as const, width: 220 },
   { id: "age", header: "Age", accessorKey: "age" as const, type: "number" as const, width: 80 },
-  { id: "score", header: "Score", accessorKey: "score" as const, type: "number" as const, width: 100 },
+  // currency format exercises the per-cell Intl.NumberFormat path (cache hit + one format call) in the scroll perf tests
+  { id: "score", header: "Score", accessorKey: "score" as const, type: "number" as const, width: 100, options: { format: { style: "currency" as const, currency: "USD" } } },
   { id: "col6", header: "Col 6", accessorKey: "score" as const, type: "number" as const, width: 100 },
   { id: "col7", header: "Col 7", accessorKey: "score" as const, type: "number" as const, width: 100 },
   { id: "col8", header: "Col 8", accessorKey: "score" as const, type: "number" as const, width: 100 },

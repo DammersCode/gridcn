@@ -26,9 +26,9 @@ function makeStore(cellTypesProp: Record<string, CellType | null> | undefined) {
 }
 
 describe("cellTypes registry resolution", () => {
-  it("resolves all five built-ins when the prop is omitted", () => {
+  it("resolves all seven built-ins when the prop is omitted", () => {
     const registry = makeStore(undefined).getState().cellTypes;
-    expect(Object.keys(registry).sort()).toEqual(["checkbox", "date", "number", "select", "text"]);
+    expect(Object.keys(registry).sort()).toEqual(["checkbox", "date", "longText", "number", "select", "text", "url"]);
     expect(registry["text"]).toBe(cellTypes.text);
     expect(registry["number"]).toBe(cellTypes.number);
   });

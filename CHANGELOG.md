@@ -11,6 +11,20 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Number format, `url`, and `longText` cell types (`data-grid`):** `number` gains
+  `options.format` (`Intl.NumberFormatOptions`) and `options.locale` (default `"en-US"`) for
+  display-only locale formatting — currency, percent, compact; `toText`, copy, export, sort, and
+  the editor keep the raw value, and one `Intl.NumberFormat` is cached per options object. The new
+  `url` cell type renders a safe link from the stored URL (`options.label` maps the URL to the
+  shown text): only `http`, `https`, and `mailto` render as links — the grid routes every
+  `CellType.href` result through the new exported `safeHref()`, so a type cannot widen the list —
+  and `openLink` (new built-in action, default alt+Enter) opens the active cell's safe href via
+  `window.open(…, "_blank", "noopener,noreferrer")`. The new `longText` cell type stores
+  multi-line text verbatim, renders the first 500 characters with line breaks as spaces, and
+  edits in a popover textarea (Enter commits and moves down, Shift/Alt+Enter insert a line break,
+  Escape cancels, an outside press commits); `options.maxLength` (default 100,000) caps the
+  stored text through the textarea and a type-level `validate`. New user-facing string:
+  `labels.actions.openLink`.
 - **Print and PDF (`data-grid-io`):** `printGrid(state, options)` prints the grid's rows as a
   plain paged table in a hidden, sandboxed iframe and opens the browser print dialog — its "Save
   as PDF" produces the PDF file, so no PDF library is needed. `useDataGridPrint()` wires it to the

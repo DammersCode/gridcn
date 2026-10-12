@@ -36,8 +36,8 @@ function selectColumn(): ColumnDef<unknown, string | null> {
 }
 
 describe("cellTypes registry", () => {
-  it("exports all five built-in keys", () => {
-    expect(Object.keys(cellTypes).sort()).toEqual(["checkbox", "date", "number", "select", "text"]);
+  it("exports all seven built-in keys", () => {
+    expect(Object.keys(cellTypes).sort()).toEqual(["checkbox", "date", "longText", "number", "select", "text", "url"]);
   });
 
   it("defineCellType returns the entry as-is (the check is type-only, zero runtime)", () => {

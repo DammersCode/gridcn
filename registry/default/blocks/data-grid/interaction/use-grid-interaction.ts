@@ -15,6 +15,7 @@ import type { ViewCoord, CellType, GridAction, GridCommandCtx } from "../types";
 import { isMacPlatform, isPrintableKey, matchKeymap, type KeymapEvent } from "../keyboard";
 import type { Keymap } from "../types";
 import { getCellValue } from "../columns/column-helpers";
+import { safeHref } from "../cell-types/safe-href";
 import {
   getFocusCell,
   useDataGridInternalActions,
@@ -488,6 +489,22 @@ export function dispatchGridAction(args: {
         if (selected.length > 0) actions.deleteRows(selected);
         else if (state.activeCell) actions.deleteRows([state.activeCell.row]);
       }
+      break;
+    }
+    case "openLink": {
+      // reads data only: runs in a read-only grid; during an edit session the grid's keydown never fires.
+      preventDefault();
+      const active = state.activeCell;
+      if (!active) break;
+      const column = state.visibleColumns[active.col];
+      const href = cellTypeAt(state, active)?.href;
+      if (!column || !href) break;
+      const dataRowIndex = state.viewIndex[active.row];
+      const row = dataRowIndex === undefined ? undefined : state.data[dataRowIndex];
+      if (row === undefined) break; // lazy hole: nothing to link
+      const link = href(getCellValue<unknown, typeof column>(row, column), column.options);
+      const safe = link ? safeHref(link) : null;
+      if (safe) window.open(safe, "_blank", "noopener,noreferrer");
       break;
     }
     // A keymap-resolved name with neither a built-in case nor a `commands` entry: a bound-but-unwired action.

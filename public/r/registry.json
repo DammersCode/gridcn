@@ -67,6 +67,21 @@
           "target": "components/data-grid/cell-types/date.tsx"
         },
         {
+          "path": "registry/default/blocks/data-grid/cell-types/safe-href.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/cell-types/safe-href.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/cell-types/url.tsx",
+          "type": "registry:component",
+          "target": "components/data-grid/cell-types/url.tsx"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/cell-types/long-text.tsx",
+          "type": "registry:component",
+          "target": "components/data-grid/cell-types/long-text.tsx"
+        },
+        {
           "path": "registry/default/blocks/data-grid/cell-types/display-text.ts",
           "type": "registry:component",
           "target": "components/data-grid/cell-types/display-text.ts"

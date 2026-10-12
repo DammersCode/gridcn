@@ -7,7 +7,7 @@ icon: Blocks
 ## The mental model
 
 A cell type is **one object** — `{ Cell, Editor, toText, fromText, clearValue, isEmpty,
-compare?, align?, numeric?, toSearchText?, validate?, activate?, filter? }`. Its four
+compare?, align?, numeric?, toSearchText?, validate?, activate?, href?, filter? }`. Its four
 value-pipeline methods drive clipboard, the fill handle, quick-clear delete, search, sort, and
 import/export. The optional behavior fields drive the grid's built-in behaviors — commit
 validation, quick-search text, in-place edit gestures, and the filter menu's operators and
@@ -32,6 +32,7 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   toSearchText?(value: TValue, options?: TOptions): string;
   validate?: ((value: TValue, row: TData) => string | null) | StandardSchemaV1<TValue>;
   activate?: (value: TValue, options?: TOptions) => TValue;
+  href?(value: TValue, options?: TOptions): string | null;
   filter?: {
     operators?: readonly FilterOperator[];
     match?: (value: unknown, filter: FilterSpec) => boolean;
@@ -91,6 +92,10 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   stationary click, and a double-click on an `activate` cell commit `activate(value, options)`
   directly, with no edit session (so `onEditStart` and `onEditEnd` never fire). `checkbox`
   declares `(value) => !value`. Without `activate`, the same gestures open the editor.
+- **`href`** — the link target for a stored value. The grid routes every result through
+  `safeHref` (exported from the `data-grid` barrel) before it renders it or opens it: only
+  `http`, `https`, and `mailto` survive, and a type cannot widen the list. `url` declares it;
+  the `openLink` action (alt+Enter) opens the active cell's safe href.
 - **`filter`** — the filter capabilities of the type, used when the column declares none of its
   own. `filter.operators` replaces the operator list the filter menu offers for the type's
   columns. `filter.match` is a raw-value predicate that replaces the built-in text matcher, with

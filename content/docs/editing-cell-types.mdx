@@ -60,10 +60,12 @@ filter match values, is on [custom cell types](/docs/custom-cell-types#value-pip
 | Type | Value | Notes |
 |---|---|---|
 | `text` | `string` | Default when `type` is omitted. `options.placeholder`. |
-| `number` | `number \| null` | `options.min`/`max`/`decimals`. In the editor, ArrowUp/ArrowDown step by `options.step` (default 1) and clamp to `min`/`max`. |
+| `number` | `number \| null` | `options.min`/`max`/`decimals`. In the editor, ArrowUp/ArrowDown step by `options.step` (default 1) and clamp to `min`/`max`. `options.format`/`locale` render display-only locale formatting — copy and export keep the raw number. |
 | `checkbox` | `boolean` | No edit mode — direct toggle. |
 | `select` | `string \| null` | `options.choices: { value, label }[]`. |
 | `date` | `string \| null` (ISO `yyyy-mm-dd`) | See below. |
+| `url` | `string \| null` | The value is a URL. Renders a safe link (http, https, mailto only); other values stay plain text. alt+Enter opens the active cell's link. `options.label` maps the URL to the shown text. |
+| `longText` | `string` | Multi-line value. The cell shows the first 500 characters with line breaks as spaces; the editor is a popover textarea. `options.maxLength` (default 100,000), `options.placeholder`. |
 
 ```tsx
 const columns = defineColumns<Person>()([
@@ -98,6 +100,49 @@ with typed-input passthrough. Enter commits the value, and Escape cancels it.
   options: { displayFormat: { year: "numeric", month: "short", day: "numeric" }, locale: "en-US" },
 }
 ```
+
+### Number formatting
+
+`options.format` (an `Intl.NumberFormatOptions` object) and `options.locale` (default `"en-US"`)
+render the value with locale formatting: currency, percent, compact. Formatting is display only —
+`toText`, the editor, copy, paste, sort, and export keep the raw number, so a stored `0.25` under
+`style: "percent"` displays as `25%` and edits as `0.25`. When `decimals` is set and the format
+declares no fraction digits, `decimals` sets both the minimum and the maximum fraction digits.
+Invalid format options (for example `style: "currency"` without a `currency`) fall back to the raw
+value and log a one-time dev warning.
+
+```tsx
+{
+  id: "price",
+  header: "Price",
+  accessorKey: "price",
+  type: "number",
+  options: { format: { style: "currency", currency: "USD" } },
+}
+```
+
+### URL links
+
+The value is a URL. The cell renders a safe link that opens in a new tab without a referrer and is
+not a tab stop. A click on the link selects the cell and opens it; alt+Enter (`openLink`) opens
+the link of the active cell. Only values with an `http`, `https`, or `mailto` protocol render as a
+link; every other value renders as plain text. `options.label` maps the stored URL to the shown
+link text — `toText` and copy stay the URL.
+
+<Callout type="warn" title="Only http, https, and mailto render as links">
+The allow-list is fixed, and a cell type cannot widen it. A `javascript:`, `data:`, or relative
+value never renders as a link and `openLink` does not open it.
+</Callout>
+
+### Long text
+
+`longText` stores multi-line text verbatim. The cell is one line and shows the first 500
+characters with line breaks as spaces. The editor is a popover with a multi-line textarea:
+Enter commits and moves down, Shift+Enter and Alt+Enter insert a line break, Escape cancels, and
+an outside press commits the draft. `options.maxLength` (default 100,000) caps the stored text:
+the editor's textarea enforces it while typing, and a type-level `validate` rejects pasted,
+filled, or imported text longer than the default. A column with a custom `maxLength` declares its
+own `validate` to get the same rejection message on those paths.
 
 ## Read-only
 

@@ -411,6 +411,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
 
       undo: "Undo",
       redo: "Redo",
+
+      openLink: "Open link",
     },
   },
   markers: {

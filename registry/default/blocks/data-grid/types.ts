@@ -408,6 +408,12 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
    * `(value) => !value`. Absent, the gestures open the editor.
    */
   activate?: (value: TValue, options?: TOptions) => TValue;
+  /**
+   * Link target for a stored value. The grid routes every result through `safeHref` (http/https/
+   * mailto only) before it renders or opens; a type cannot widen the allow-list. `url` declares
+   * it; the `openLink` action (alt+Enter) opens the active cell's safe href.
+   */
+  href?(value: TValue, options?: TOptions): string | null;
   /** Filter capabilities for this type; each member falls back to the name-derived default when absent. */
   filter?: CellTypeFilter;
 };
@@ -665,6 +671,7 @@ export interface GridActions {
   insertRowAbove: true;
   duplicateRow: true;
   deleteRows: true;
+  openLink: true;
 }
 
 /** Every named keyboard action — the built-ins of {@link GridActions} plus any the consumer merged in. */
@@ -781,6 +788,10 @@ export interface GridCellTypes {
       /** Step applied by ArrowUp/ArrowDown in the editor; default 1. */
       step?: number;
       decimals?: number;
+      /** Display-only locale format (currency, percent, compact); `toText`, copy, export, and the editor stay on the raw value. */
+      format?: Intl.NumberFormatOptions;
+      /** Locale for `format`; default `"en-US"` — an explicit default keeps SSR and client HTML identical. */
+      locale?: string;
     };
   };
   checkbox: { value: boolean; options: object };
@@ -795,6 +806,21 @@ export interface GridCellTypes {
     value: string | null;
     /** `locale` defaults to `"en-US"` — an explicit default keeps SSR and client HTML identical. */
     options: { min?: string; max?: string; displayFormat?: Intl.DateTimeFormatOptions; locale?: string };
+  };
+  url: {
+    value: string | null;
+    options: {
+      /** Maps the stored URL to the shown link text; `toText`, copy, and export stay the URL. */
+      label?: (value: string) => string;
+    };
+  };
+  longText: {
+    value: string;
+    options: {
+      /** Max stored length (the editor textarea's `maxLength`); default 100,000. */
+      maxLength?: number;
+      placeholder?: string;
+    };
   };
 }
 

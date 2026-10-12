@@ -4,22 +4,27 @@ import { numberCellType } from "./number";
 import { checkboxCellType } from "./checkbox";
 import { selectCellType } from "./select";
 import { dateCellType } from "./date";
+import { urlCellType } from "./url";
+import { longTextCellType } from "./long-text";
 
 export { textCellType } from "./text";
 export { numberCellType } from "./number";
 export { checkboxCellType } from "./checkbox";
 export { selectCellType } from "./select";
 export { dateCellType } from "./date";
+export { urlCellType } from "./url";
+export { longTextCellType } from "./long-text";
+export { safeHref } from "./safe-href";
 
 /**
- * The five built-in keys, deliberately DECOUPLED from `CellTypeKey` (which is
+ * The seven built-in keys, deliberately DECOUPLED from `CellTypeKey` (which is
  * `keyof GridCellTypes` and grows with consumer augmentation). Keeping this
  * union literal means the `satisfies` below only ever checks these five
  * built-in entries — a consumer's `declare module` augmentation adds a key to
  * `GridCellTypes`/`CellTypeKey` without requiring the shipped `cellTypes`
  * object to provide an implementation for it.
  */
-type BuiltinCellTypeKey = "text" | "number" | "checkbox" | "select" | "date";
+type BuiltinCellTypeKey = "text" | "number" | "checkbox" | "select" | "date" | "url" | "longText";
 
 /** A `CellType` for one {@link BuiltinCellTypeKey}, with its exact value/options shape. */
 type CellTypeFor<K extends BuiltinCellTypeKey> = CellType<unknown, CellValueOf<K>, CellOptionsOf<K>>;
@@ -31,6 +36,8 @@ export const cellTypes = {
   checkbox: checkboxCellType,
   select: selectCellType,
   date: dateCellType,
+  url: urlCellType,
+  longText: longTextCellType,
 } satisfies { [K in BuiltinCellTypeKey]: CellTypeFor<K> };
 
 /**
