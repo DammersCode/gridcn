@@ -38,7 +38,7 @@ export type DataGridHeaderProps = {
  * count (chosen over shifting every data cell's aria-colindex by one).
  */
 export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderProps): ReactNode {
-  const { scrollRef, windowedColumns, template, layout, headerHeight, interaction, direction, renderHeaderMenu } = useDataGridRootContext();
+  const { windowedColumns, template, layout, headerHeight, interaction, direction, renderHeaderMenu } = useDataGridRootContext();
   const rowMarkers = useDataGridRowMarkers();
   const actions = useDataGridActions();
   const sortState = useDataGridSortState();
@@ -141,9 +141,9 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
           sortState={sortState}
           resize={{
             enabled: enableColumnResize,
-            scrollRootRef: scrollRef,
             setColumnWidth: actions.setColumnWidth,
             commitColumnWidth: actions.commitColumnWidth,
+            autosizeColumns: actions.autosizeColumns,
             direction,
           }}
           reorder={{

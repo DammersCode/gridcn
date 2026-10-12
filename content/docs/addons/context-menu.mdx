@@ -85,7 +85,7 @@ The built-in entries carry stable `id`s, so a resolver keeps or drops them by id
 | Surface | Built-in ids, in order |
 |---|---|
 | Cell | `cut`, `copy`, `paste`, `sep-clipboard`, `clear-contents`, `sep-rows`, `insert-row-above`, `insert-row-below`, `duplicate-rows`, `delete-rows` (the Insert entries appear only with `createRow`, the Duplicate entry only with `duplicateRow`) |
-| Header | `sort-asc`, `sort-desc`, `clear-sort`, `sep-sort`, `pin-left`, `pin-right`, `unpin`, `hide-column`, `sep-autosize`, `autosize` (`clear-sort` only while the column is sorted, `unpin` only while it is pinned, `autosize` only while resizing is enabled) |
+| Header | `sort-asc`, `sort-desc`, `clear-sort`, `sep-sort`, `pin-left`, `pin-right`, `unpin`, `hide-column`, `sep-autosize`, `autosize`, `autosize-all` (`clear-sort` only while the column is sorted, `unpin` only while it is pinned, the autosize items only while resizing is enabled) |
 
 `GridMenuItemSpec` is an item or a separator. An item carries `id`, `label`, `icon` (a React
 node), `shortcut` (a keymap binding rendered as keycaps), `disabled`, `destructive`, `tooltip`

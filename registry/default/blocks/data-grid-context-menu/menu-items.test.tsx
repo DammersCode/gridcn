@@ -164,7 +164,7 @@ describe("useDefaultHeaderMenuItems", () => {
   it("builds the full built-in set for a sortable, pinnable, resizable column", () => {
     let header: GridMenuItemSpec[] = [];
     renderProbe({ onSpecs: (_c, h) => { header = h; } });
-    expect(ids(header)).toEqual(["sort-asc", "sort-desc", "sep-sort", "pin-left", "pin-right", "hide-column", "sep-autosize", "autosize"]);
+    expect(ids(header)).toEqual(["sort-asc", "sort-desc", "sep-sort", "pin-left", "pin-right", "hide-column", "sep-autosize", "autosize", "autosize-all"]);
     expect(item(header, "unpin")).toBeUndefined();
     // `disabled: !pinnable` is explicit; only `true` renders inert
     expect(item(header, "pin-left")?.disabled).toBe(false);
@@ -173,7 +173,7 @@ describe("useDefaultHeaderMenuItems", () => {
   it("adds the unpin entry for a pinned column", () => {
     let header: GridMenuItemSpec[] = [];
     renderProbe({ pin: "left", onSpecs: (_c, h) => { header = h; } });
-    expect(ids(header)).toEqual(["sort-asc", "sort-desc", "sep-sort", "pin-left", "pin-right", "unpin", "hide-column", "sep-autosize", "autosize"]);
+    expect(ids(header)).toEqual(["sort-asc", "sort-desc", "sep-sort", "pin-left", "pin-right", "unpin", "hide-column", "sep-autosize", "autosize", "autosize-all"]);
   });
 
   it("returns no items for an unknown column id", () => {

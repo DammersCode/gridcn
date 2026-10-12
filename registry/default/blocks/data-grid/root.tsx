@@ -23,6 +23,7 @@ import {
   useDataGridRowBands,
   useDataGridRowCount,
   useDataGridSelectionConfig,
+  useDataGridSelector,
   useDataGridStore,
   useDataGridStoreApi,
   useDataGridVisibleColumns,
@@ -318,6 +319,57 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     validateSharedBindings(effectiveKeymap);
     return () => actions._registerKeymap(DEFAULT_KEYMAP);
   }, [actions, effectiveKeymap]);
+
+  // Registers the autosize measure context (fonts, mounted row window, header-menu flag) so
+  // store actions can size columns with canvas `measureText` without their own DOM query;
+  // cleared on unmount. Declared before the autosizeOnMount effect below so a same-mount run
+  // already finds the getter registered.
+  useEffect(() => {
+    actions._registerMeasureFonts(() => {
+      const root = scrollRef.current;
+      if (!root) return null;
+      const canvas = root.querySelector<HTMLElement>("[data-grid-rows-canvas]");
+      const cell = root.querySelector<HTMLElement>('[role="gridcell"]');
+      const header = root.querySelector<HTMLElement>('[role="columnheader"]');
+      return {
+        cellFont: cell ? getComputedStyle(cell).font : "",
+        headerFont: header ? getComputedStyle(header).font : "",
+        window: canvas
+          ? {
+              start: Number(canvas.dataset["gridWindowStart"] ?? 0),
+              end: Number(canvas.dataset["gridWindowEnd"] ?? 0),
+            }
+          : null,
+        hasHeaderMenu: Boolean(renderHeaderMenu),
+      };
+    });
+    return () => actions._registerMeasureFonts(null);
+  }, [actions, renderHeaderMenu]);
+
+  // autosizeOnMount: one autosize pass once the view first has rows (a lazy grid waits for its
+  // first page). Runs once per mount. A saved layout wins: columns with a saved width
+  // (`columnWidths`, e.g. from `defaultColumnLayout`) keep it and are left out of the pass. The
+  // one-shot store subscription avoids re-rendering this tree per view change.
+  const autosizeOnMount = useDataGridSelector((s) => s.autosizeOnMount);
+  const autoSizedOnMount = useRef(false);
+  useEffect(() => {
+    if (!autosizeOnMount || autoSizedOnMount.current) return;
+    const base = typeof autosizeOnMount === "object" ? autosizeOnMount : undefined;
+    let unsubscribe: () => void = () => {};
+    const run = () => {
+      if (autoSizedOnMount.current) return;
+      const s = storeApi.getState();
+      if (s.viewIndex.length === 0) return;
+      autoSizedOnMount.current = true;
+      unsubscribe();
+      const saved = new Set(Object.keys(s.columnWidths));
+      const columnIds = (base?.columnIds ?? s.visibleColumns.map((column) => column.id)).filter((id) => !saved.has(id));
+      actions.autosizeColumns({ ...base, columnIds });
+    };
+    unsubscribe = storeApi.subscribe(run);
+    run();
+    return unsubscribe;
+  }, [autosizeOnMount, actions, storeApi]);
 
   useViewportElement(scrollRef, viewportRef);
   // Imperative data-scrolled-left/right writer (for the pinned-edge shadows) — no React re-render per tick.

@@ -421,6 +421,19 @@ describe("DataGridContextMenu — header menu autosize commits through onColumnL
     expect(layout.widths["name"]).toBeGreaterThan(32);
   });
 
+  it("Autosize all columns sizes every visible resizable column and commits once", async () => {
+    const onColumnLayoutChange = vi.fn();
+    await renderGrid({ onColumnLayoutChange });
+    await expect.element(page.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
+    rightClick(document.querySelector('[role="columnheader"][data-column-id="name"]')!);
+    await page.getByRole("menuitem", { name: "Autosize all columns" }).click();
+
+    await vi.waitFor(() => expect(onColumnLayoutChange).toHaveBeenCalledTimes(1));
+    const [layout] = onColumnLayoutChange.mock.calls[0] as [ColumnLayout];
+    // both def widths (140/200) are wider than the short content → both measured widths commit
+    expect(Object.keys(layout.widths).sort()).toEqual(["email", "name"]);
+  });
+
   it("hides the Autosize item for a column with resizable: false", async () => {
     const nonResizableName = defineColumns<Row>()([
       { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140, resizable: false },
@@ -567,7 +580,7 @@ describe("DataGridContextMenu — menu resolvers", () => {
     await vi.waitFor(() => expect(menuItem("Hide column")).toBeTruthy());
     expect(seen.columnId).toBe("name");
     expect(seen.scrollRootRole).toBe("grid");
-    expect(seen.defaultIds).toEqual(["sort-asc", "sort-desc", "sep-sort", "pin-left", "pin-right", "hide-column", "sep-autosize", "autosize"]);
+    expect(seen.defaultIds).toEqual(["sort-asc", "sort-desc", "sep-sort", "pin-left", "pin-right", "hide-column", "sep-autosize", "autosize", "autosize-all"]);
     await expect.element(page.getByRole("menuitem", { name: "Pin left" })).not.toBeInTheDocument();
   });
 

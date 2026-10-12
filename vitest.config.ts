@@ -48,7 +48,6 @@ const perFileBranchThresholds: Record<string, { branches: number }> = {
   "registry/default/blocks/data-grid-fill/detect-series.ts": { branches: 90 },
   "registry/default/blocks/data-grid-fill/fill-direction.ts": { branches: 90 },
   "registry/default/blocks/data-grid-fill/generate-fill.ts": { branches: 90 },
-  "registry/default/blocks/data-grid-context-menu/autosize-column.ts": { branches: 90 },
   "registry/default/blocks/data-grid-context-menu/selection-queries.ts": { branches: 90 },
   "registry/default/blocks/data-grid-context-menu/resolve-context-menu-target.ts": { branches: 90 },
   "registry/default/blocks/data-grid-io/build-imported-rows.ts": { branches: 90 },

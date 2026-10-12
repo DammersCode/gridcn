@@ -27,12 +27,29 @@ resize.
 A column without `width` renders at the 150px default. A resize clamps to the column's
 `minWidth`, with a 32px absolute floor that no `minWidth` can lower.
 
-<Callout type="warn" title="Autosize measures the visible window only">
-  Autosize (double-click and the header menu's "Autosize column") measures only the rendered,
-  windowed cells. On a virtualized grid that is the visible window, not the whole
-  column: a column whose widest value sits off-screen fits the visible rows, and a long dataset
-  can make it shrink. It is a viewport fit, not a global-content width.
-</Callout>
+## Autosize
+
+Double-click the handle to size the column to its content. The header menu's "Autosize column"
+and "Autosize all columns" items do the same for one or every visible column (both from the
+[context menu add-on](/docs/addons/context-menu)).
+
+Autosize samples the view, not the mounted rows: it measures `sampleRows` view rows (default
+1000, clamped to [1, 10000]) evenly strided across the sorted and filtered view, plus every row
+in the currently mounted window, and sizes the column to the widest measured display text and
+the header. A column whose widest value sits off-screen still fits it through the sample.
+Sampled texts are cut to 1000 characters.
+
+`actions.autosizeColumns(options)` runs the pass programmatically; it commits every changed
+width in one write, fires `onColumnLayoutChange` once, and returns the measured widths:
+
+- `columnIds` — the columns to size; default is every visible column while column resizing is
+  enabled. Hidden, non-resizable, and unknown ids are skipped.
+- `sampleRows` — view rows to sample; default 1000.
+- `includeHeader` — measure the header text too; default true.
+
+Pass `autosizeOnMount` on `DataGridProvider` (or `true` for the defaults) to run one pass
+automatically when the view first has rows; a lazy grid waits for its first page. It runs once
+per mount, and columns with a saved width keep it — a saved layout wins.
 
 ## Reorder
 

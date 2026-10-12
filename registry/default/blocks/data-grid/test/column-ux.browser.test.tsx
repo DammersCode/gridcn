@@ -87,7 +87,7 @@ describe("column resize", () => {
     expect(after).toBeGreaterThan(before + 40);
   });
 
-  it("double-clicking the resize handle autosizes the column to fit its widest rendered content", async () => {
+  it("double-clicking the resize handle autosizes the column to fit its widest view content", async () => {
     const wideRows = makeRows(5);
     wideRows[0]!.name = "A Very Very Long Name That Needs Room";
     await render(
@@ -104,6 +104,26 @@ describe("column resize", () => {
 
     const after = headerCells()[1]!.getBoundingClientRect().width;
     expect(after).toBeGreaterThan(before);
+  });
+
+  it("double-clicking the handle sizes the column to a long value that sits outside the mounted window", async () => {
+    const rows = makeRows(60);
+    rows[59]!.name = "A Very Very Long Name That Sits Far Below The Fold And Needs Room";
+    await render(
+      <div style={{ height: 160 }}>
+        <DataGrid data={rows} columns={columns} getRowId={(r) => r.id} className="h-[160px]" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    // row 59 is not mounted: the on-screen name values are all short ("Person i")
+    const header = headerCells()[1]!; // "name" column, width 100
+    const before = header.getBoundingClientRect().width;
+    const handle = header.querySelector<HTMLElement>(gridAttrSelector("resizeHandle"))!;
+
+    await userEvent.dblClick(handle);
+
+    // the off-window 58-char value must drive the width far past the 100px def
+    expect(headerCells()[1]!.getBoundingClientRect().width).toBeGreaterThan(before + 150);
   });
 
   it("resizable: false on a column omits its resize handle", async () => {
@@ -529,7 +549,7 @@ describe("resize handle position + hover affordance", () => {
     expect(handle).not.toHaveAttribute(GRID_ATTR.resizing);
   });
 
-  it("resize drag and dblclick autosize still work with the fixed handle position", async () => {
+  it("resize drag still works with the fixed handle position", async () => {
     await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />

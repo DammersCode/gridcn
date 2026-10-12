@@ -811,6 +811,16 @@ export type ColumnLayout = {
   hidden: string[];
 };
 
+/** Options for `actions.autosizeColumns` and the `autosizeOnMount` prop. */
+export type AutosizeOptions = {
+  /** Column ids to size; hidden, unknown, or non-resizable ids are skipped (unknown ids dev-warn). Default: every visible resizable column. */
+  columnIds?: readonly string[];
+  /** View rows to sample, evenly strided across the view; the mounted window's rows are always included. Default 1000, clamped to [1, 10000]. */
+  sampleRows?: number;
+  /** Measure the header text (plus its sort-indicator and header-menu affordances) alongside the cells. Default true. */
+  includeHeader?: boolean;
+};
+
 /** Registered cell-type keys (built-in + consumer-augmented). */
 export type CellTypeKey = keyof GridCellTypes;
 

@@ -5,6 +5,7 @@ import type { StoreApi } from "zustand/vanilla";
 import type {
   DataGridApi,
   ViewCoord,
+  AutosizeOptions,
   ColumnLayout,
   DataChange,
   DensityMode,
@@ -226,6 +227,7 @@ export type {
   SelectionConfig,
   DensityMode,
   HeaderClickBehavior,
+  AutosizeOptions,
   ColumnLayout,
   GetRowClassName,
   GetCellClassName,
@@ -370,6 +372,8 @@ export type DataGridProps<TData> = {
   rowBands?: RowBandsSpec;
   /** Seeds column widths/order/pins/hidden once at mount, over the `columns` prop's own defaults; NOT controlled — later changes are ignored. Pair with `onColumnLayoutChange` to persist a user's layout. */
   defaultColumnLayout?: ColumnLayout;
+  /** Runs one `autosizeColumns` pass after mount, when the view first has rows; runs once per mount and keeps columns' saved widths. `true` uses the action's defaults; an options object narrows the pass. */
+  autosizeOnMount?: boolean | AutosizeOptions;
   /** Fires once per committed column-layout change (resize commit, reorder drop, pin/hide/autosize) with the full current snapshot. */
   onColumnLayoutChange?: (next: ColumnLayout) => void;
   /** Fires on every live width write during a resize drag (per drag frame) — the in-progress counterpart to `onColumnLayoutChange`. */
@@ -488,6 +492,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
     overlayPlugins,
     rowBands,
     defaultColumnLayout,
+    autosizeOnMount,
     onColumnLayoutChange,
     onColumnResizing,
     onSelectionChange,
@@ -563,6 +568,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
       overlayPlugins={overlayPlugins}
       rowBands={rowBands}
       defaultColumnLayout={defaultColumnLayout}
+      autosizeOnMount={autosizeOnMount}
       onColumnLayoutChange={onColumnLayoutChange}
       onColumnResizing={onColumnResizing}
       onSelectionChange={onSelectionChange}

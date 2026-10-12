@@ -112,6 +112,8 @@ export type DataGridContextMenuLabels = {
   unpin: string;
   hideColumn: string;
   autosize: string;
+  /** "Autosize all columns" — sizes every visible resizable column to its content. */
+  autosizeAll: string;
   /** aria-label for the per-column header dropdown's ghost chevron trigger; `column` is the header text. */
   columnMenuAriaLabel: (column: string) => string;
 };
@@ -334,6 +336,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     unpin: "Unpin",
     hideColumn: "Hide column",
     autosize: "Autosize column",
+    autosizeAll: "Autosize all columns",
     columnMenuAriaLabel: (column) => `${column} column menu`,
   },
   keybindings: {

@@ -137,6 +137,11 @@
           "target": "components/data-grid/columns/index.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/columns/autosize-columns.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/columns/autosize-columns.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/columns/measure-column-text.ts",
           "type": "registry:component",
           "target": "components/data-grid/columns/measure-column-text.ts"
@@ -859,11 +864,6 @@
           "path": "registry/default/blocks/data-grid-context-menu/header-dropdown.tsx",
           "type": "registry:component",
           "target": "components/data-grid-context-menu/header-dropdown.tsx"
-        },
-        {
-          "path": "registry/default/blocks/data-grid-context-menu/autosize-column.ts",
-          "type": "registry:component",
-          "target": "components/data-grid-context-menu/autosize-column.ts"
         },
         {
           "path": "registry/default/blocks/data-grid-context-menu/menu-items.tsx",

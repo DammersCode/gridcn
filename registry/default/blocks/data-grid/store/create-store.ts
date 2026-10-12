@@ -3,7 +3,8 @@ import type { ViewCoord, CellType, DataOp, FilterSpec } from "../types";
 import { BUILTIN_ACTIONS, DEFAULT_KEYMAP } from "../keyboard";
 import { CompactSelection } from "../selection/compact-selection";
 import { getCellValue } from "../columns/column-helpers";
-import { clampColumnWidth } from "../columns/resolve-column-width";
+import { clampColumnWidth, resolveColumnWidth } from "../columns/resolve-column-width";
+import { computeAutosizeWidths } from "../columns/autosize-columns";
 import { cellTypes as defaultCellTypes } from "../cell-types/cell-types";
 import {
   emptySelection,
@@ -374,6 +375,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     visibleColumns,
     scrollToCellImpl: null,
     focusImpl: null,
+    measureFonts: null,
     dataWrite,
     fillHandlers: null,
     presenceViewSpaceActive: null,
@@ -539,6 +541,41 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (committedWidths[id] === next) return;
         committedWidths = { ...committedWidths, [id]: next };
         s.onColumnLayoutChange?.(computeColumnLayout(s.columns, s.columnOrder, columnWidths, s.hiddenColumns));
+      },
+      autosizeColumns(options) {
+        const s = get();
+        const context = s.measureFonts ? s.measureFonts() : null;
+        if (!context) return {};
+        const measured = computeAutosizeWidths(
+          {
+            columns: s.columns,
+            visibleColumns: s.visibleColumns,
+            hiddenColumns: s.hiddenColumns,
+            columnWidths: s.columnWidths,
+            viewIndex: s.viewIndex,
+            data: s.data,
+            cellTypes: s.cellTypes,
+            sortState: s.sortState,
+            enableColumnResize: s.enableColumnResize,
+            hasHeaderMenu: context.hasHeaderMenu,
+          },
+          { cellFont: context.cellFont, headerFont: context.headerFont },
+          context.window,
+          options,
+        );
+        const changed: Record<string, number> = {};
+        for (const id of Object.keys(measured)) {
+          const column = s.columns.find((c) => c.id === id);
+          if (!column) continue;
+          if (resolveColumnWidth(column, s.columnWidths[id]) !== measured[id]!) changed[id] = measured[id]!;
+        }
+        if (Object.keys(changed).length > 0) {
+          const columnWidths = { ...s.columnWidths, ...changed };
+          committedWidths = { ...committedWidths, ...changed };
+          set({ columnWidths });
+          s.onColumnLayoutChange?.(computeColumnLayout(s.columns, s.columnOrder, columnWidths, s.hiddenColumns));
+        }
+        return measured;
       },
       resetColumnWidth(id) {
         const s = get();
@@ -938,6 +975,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       _registerFocus(impl) {
         set({ focusImpl: impl });
+      },
+      _registerMeasureFonts(impl) {
+        set({ measureFonts: impl });
       },
       _registerReadOnly(readOnly) {
         set({ readOnly });

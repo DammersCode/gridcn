@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { PointerEvent as ReactPointerEvent } from "react";
+import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import type { AnyColumnDef } from "../store";
 import { useColumnResize } from "./use-column-resize";
 
@@ -17,18 +17,32 @@ function pointerDown(target: HTMLElement, pointerId: number) {
   } as ReactPointerEvent<HTMLElement>;
 }
 
-function renderResizeHook() {
-  return renderHook(() =>
-    useColumnResize({
-      column: COLUMN,
-      currentWidth: 100,
-      setColumnWidth: vi.fn(),
-      commitColumnWidth: vi.fn(),
-      getRenderedCellTexts: () => [] as string[],
-      fontSourceRef: { current: null },
-    }),
-  );
+function renderResizeHook(autosizeColumns = vi.fn()) {
+  return {
+    autosizeColumns,
+    hook: renderHook(() =>
+      useColumnResize({
+        column: COLUMN,
+        currentWidth: 100,
+        setColumnWidth: vi.fn(),
+        commitColumnWidth: vi.fn(),
+        autosizeColumns,
+      }),
+    ),
+  };
 }
+
+describe("useColumnResize double-click", () => {
+  it("double-click calls the store's autosizeColumns for this column", () => {
+    const autosizeColumns = vi.fn();
+    const { hook } = renderResizeHook(autosizeColumns);
+    act(() => {
+      hook.result.current.onDoubleClick({} as ReactMouseEvent<HTMLElement>);
+    });
+    expect(autosizeColumns).toHaveBeenCalledWith({ columnIds: ["c1"] });
+    hook.unmount();
+  });
+});
 
 const GESTURE_EVENTS = new Set(["pointermove", "pointerup", "pointercancel"]);
 
@@ -45,7 +59,7 @@ describe("useColumnResize document listener lifecycle", () => {
     const target = document.createElement("div");
     const addSpy = vi.spyOn(document, "addEventListener");
     const removeSpy = vi.spyOn(document, "removeEventListener");
-    const { result, unmount } = renderResizeHook();
+    const { result, unmount } = renderResizeHook().hook;
 
     act(() => {
       result.current.onPointerDown(pointerDown(target, 1));
@@ -67,7 +81,7 @@ describe("useColumnResize document listener lifecycle", () => {
 
   it("a second pointerdown while a resize drag is active still stops propagation", () => {
     const target = document.createElement("div");
-    const { result, unmount } = renderResizeHook();
+    const { result, unmount } = renderResizeHook().hook;
     act(() => {
       result.current.onPointerDown(pointerDown(target, 1));
     });
@@ -90,7 +104,7 @@ describe("useColumnResize document listener lifecycle", () => {
     const docRemoveSpy = vi.spyOn(document, "removeEventListener");
     const targetAddSpy = vi.spyOn(target, "addEventListener");
     const targetRemoveSpy = vi.spyOn(target, "removeEventListener");
-    const { result, unmount } = renderResizeHook();
+    const { result, unmount } = renderResizeHook().hook;
 
     act(() => {
       result.current.onPointerDown(pointerDown(target, 1));

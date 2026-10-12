@@ -4,6 +4,7 @@ import type {
   CellRef,
   ViewCellRef,
   ViewCoord,
+  AutosizeOptions,
   CellType,
   ColumnDef,
   ColumnLayout,
@@ -29,6 +30,18 @@ import type { SearchMatch } from "../sort-filter";
 import type { ExtendDirection, SelectLineOptions } from "../selection";
 import type { ColRange } from "../selection/selected-col-ranges-for-row";
 import type { DataWriteContext } from "./data-write";
+
+/** The lazily-read context `DataGridRoot` registers for {@link DataGridActions.autosizeColumns}. */
+export type AutosizeMeasureContext = {
+  /** The computed `font` of one mounted body cell (canvas `measureText` font). */
+  cellFont: string;
+  /** The computed `font` of one mounted header cell (headers render `font-medium`). */
+  headerFont: string;
+  /** The currently mounted view-row window `[start, end)`, or `null` when no rows are mounted. */
+  window: { start: number; end: number } | null;
+  /** The consumer renders a per-column header-menu trigger (adds its fixed width allowance). */
+  hasHeaderMenu: boolean;
+};
 
 /** Live props synced from the consumer's render into the store on every change, typed over the consumer's row shape. */
 export type DataGridSyncProps<TData = unknown> = {
@@ -180,6 +193,13 @@ export type DataGridSyncProps<TData = unknown> = {
    * a user's layout (e.g. to localStorage) without a fully-controlled overlay fighting the defs.
    */
   defaultColumnLayout?: ColumnLayout;
+  /**
+   * Runs one {@link DataGridActions.autosizeColumns} pass after mount, when the view first has
+   * rows (a lazy grid waits for its first page); it runs once per mount. Columns with a saved
+   * width (`columnWidths`) keep it — a saved layout wins. `true` uses the action's defaults;
+   * an options object narrows the pass.
+   */
+  autosizeOnMount?: boolean | AutosizeOptions;
   /**
    * Fires once per committed column-layout change (resize drag release/autosize, reorder drop,
    * pin/unpin, show/hide) with the full current `ColumnLayout` snapshot — never per drag frame.
@@ -501,6 +521,8 @@ export type DataGridStoreState = Omit<
   lastHighlightedRow: number | null;
   lastHighlightedCol: number | null;
   columnWidths: Record<string, number>;
+  /** `autosizeOnMount` as passed to the provider; the mounted root consumes it once. */
+  autosizeOnMount?: boolean | AutosizeOptions;
   /** null = follow the `columns` prop order. */
   columnOrder: string[] | null;
   /** Single source of truth for visibility; seeded with the def-level `hidden` ids at creation and re-seeded when a new `columns` array is passed. */
@@ -566,6 +588,12 @@ export type DataGridStoreState = Omit<
   scrollToCellImpl: ((coord: ViewCoord) => void) | null;
   /** DOM focus for the active cell's element, or the grid when that element is not rendered; registered by the mounted `DataGridRoot`, like `scrollToCellImpl`. */
   focusImpl: (() => void) | null;
+  /**
+   * The autosize measure context the mounted `DataGridRoot` registers (fonts, mounted row
+   * window, header-menu flag) — `null` before mount/after unmount, when
+   * {@link DataGridActions.autosizeColumns} measures nothing.
+   */
+  measureFonts: (() => AutosizeMeasureContext | null) | null;
   /** @internal The data-write cluster's mutable context box (see `data-write.ts`); exposed here so the `useDataGridScrollToCell` ref resolution shares its row-index cache and stale-ref warn flag. */
   dataWrite: DataWriteContext;
   /**
@@ -661,6 +689,17 @@ export type DataGridActions = {
    * one; an unknown column id is a no-op.
    */
   commitColumnWidth(id: string, width: number): void;
+  /**
+   * Sizes columns to their content over the whole view, not the mounted window: samples
+   * `options.sampleRows` view rows (default 1000, clamped to [1, 10000]) evenly strided across
+   * the view plus the mounted window's rows, measures each column's cell-type display text with
+   * canvas `measureText`, and commits every changed width in ONE write with ONE
+   * `onColumnLayoutChange`. Default targets: every visible column while column resizing is
+   * enabled and `resizable !== false`; a named hidden, non-resizable, or unknown (dev-warned)
+   * column is skipped. Unchanged widths commit nothing and fire no event. Returns the measured
+   * widths; `{}` when the grid has no mounted root (nothing measured, nothing written).
+   */
+  autosizeColumns(options?: AutosizeOptions): Record<string, number>;
   /**
    * Drops a column's width override, restoring its def `width` (and re-joining `flex` distribution
    * — a manually resized flex column leaves it while an override is set). No-op without an
@@ -823,6 +862,8 @@ export type DataGridInternalActions = {
   _registerReadOnly(readOnly: boolean): void;
   /** @internal `DataGridRoot` syncs its effective (merged) keymap into the store on every render/unmount; not part of the public hook surface. */
   _registerKeymap(keymap: Keymap): void;
+  /** @internal `DataGridRoot` registers/clears its autosize measure context (fonts, mounted row window, header-menu flag) on mount/unmount; `autosizeColumns` reads it lazily. Not part of the public hook surface. */
+  _registerMeasureFonts(impl: (() => AutosizeMeasureContext | null) | null): void;
   /** @internal the `data-grid-fill` add-on's tracker component registers/clears its keymap handlers on mount/unmount; not part of the public hook surface. */
   _registerFillHandlers(handlers: { fillDown: () => void; fillRight: () => void; cancelFillDrag: () => void } | null): void;
   /**

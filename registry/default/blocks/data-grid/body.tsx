@@ -276,7 +276,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
 
   return (
     <>
-      <div style={canvasStyle} className={className} data-grid-rows-canvas="">
+      <div style={canvasStyle} className={className} data-grid-rows-canvas="" data-grid-window-start={start} data-grid-window-end={end}>
         {/* self-scoped keyframes for the flashCells write-pulse (loading-skeleton's own <style> pattern — registry item, no global.css edit) */}
         <style>{FLASH_KEYFRAMES}</style>
         {viewRowIndices.map((viewRowIndex, i) => {

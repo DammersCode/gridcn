@@ -11,6 +11,17 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **View-sampling autosize (`data-grid`):** `actions.autosizeColumns(options)` sizes columns to
+  their content over the whole view, not the mounted rows: it samples `options.sampleRows` view
+  rows (default 1000, clamped to [1, 10000]) evenly strided across the sorted/filtered view plus
+  the mounted window's rows, measures the cell-type display text with canvas `measureText`, and
+  commits every changed width in one write with one `onColumnLayoutChange`. `options.columnIds`
+  narrows the pass (hidden, non-resizable, and unknown ids are skipped), `options.includeHeader`
+  measures the header text too (default true). The header double-click, the header menu's
+  "Autosize column", and the new "Autosize all columns" item (id `autosize-all`) all call the
+  action. `DataGridProvider`/`DataGrid` take `autosizeOnMount` (`true` or the same options) to
+  run one pass when the view first has rows — once per mount, and columns with a saved width
+  keep it. New user-facing string: `labels.contextMenu.autosizeAll`.
 - **Status bar add-on (`data-grid-status-bar`):** `<DataGridStatusBar />` shows count, sum,
   avg, min, and max of the selected cells under the grid; `useDataGridSelectionStats` is the
   headless hook. A cell is numeric when its raw value is a finite number; `count` counts the
@@ -337,6 +348,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Autosize measures the view sample, not the mounted rows (`data-grid`):** the header
+  double-click and the header menu's "Autosize column" previously measured only the rendered,
+  windowed cells — a column whose widest value sat off-screen fit the visible rows, and a long
+  dataset could make it shrink. Both now run the store's `autosizeColumns` action, which samples
+  the whole view (see the autosize entry under Added).
 - **Breaking:** row ops and immediate re-sorts apply live while an edit session is open
   (`data-grid`). `insertRows`, `deleteRows`, `duplicateRows`, `reorderRows`, and an
   `updateCells` batch with `reorder: "immediate"` no longer no-op (or defer) under an open

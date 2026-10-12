@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import type { AnyColumnDef } from "../store";
+import type { AutosizeOptions } from "../types";
 import { inlineDelta, type GridDirection } from "../windowing/direction";
-import { measureColumnAutosizeWidth } from "./measure-column-text";
-import { MIN_COLUMN_WIDTH, clampColumnWidth } from "./resolve-column-width";
+import { clampColumnWidth } from "./resolve-column-width";
 
 /** Handlers returned by {@link useColumnResize}, wired onto each header cell's resize handle. */
 export type ColumnResizeHandlers = {
@@ -18,10 +18,8 @@ export type ColumnResizeHandlers = {
  * Pointer-capture column resize: drag the handle to live-update the column's
  * width via `setColumnWidth`, clamped to `[minWidth ?? 32, maxWidth ?? Infinity]`; ends on
  * `lostpointercapture` (not `pointerup` — pointerup can be missed on alt-tab, per the adazzle
- * study). Double-click autosizes: measures the header text + every rendered cell's text in that
- * column via `measure-column-text.ts`'s canvas helper, using `fontSourceRef`'s computed font
- * (an element inside the grid root, since the grid sets its own `text-sm` and may differ from
- * `document.body`).
+ * study). Double-click sizes this column to its content over the whole view via the store's
+ * `autosizeColumns` action (one commit, one `onColumnLayoutChange`).
  */
 export function useColumnResize(args: {
   column: AnyColumnDef;
@@ -29,10 +27,8 @@ export function useColumnResize(args: {
   setColumnWidth: (id: string, width: number) => void;
   /** Fires once at drag-release/autosize — the `onColumnLayoutChange` commit point (not per drag frame). */
   commitColumnWidth: (id: string, width: number) => void;
-  /** Reads the currently-rendered cell text for this column from the DOM (windowed rows only). */
-  getRenderedCellTexts: (columnId: string) => string[];
-  /** Element whose computed font is used for autosize measurement — must be inside the grid root, not document.body. */
-  fontSourceRef: RefObject<Element | null>;
+  /** The store's `autosizeColumns` action; double-click calls it for this column. */
+  autosizeColumns: (options?: AutosizeOptions) => void;
   /**
    * Layout direction. The handle sits at the column's inline-END edge in both directions (the
    * logical `end-0` class places it), so dragging toward the inline end must always widen the
@@ -41,7 +37,7 @@ export function useColumnResize(args: {
    */
   direction?: GridDirection;
 }): ColumnResizeHandlers {
-  const { column, getRenderedCellTexts } = args;
+  const { column } = args;
   const argsRef = useRef(args);
   argsRef.current = args;
   const [isResizing, setIsResizing] = useState(false);
@@ -109,27 +105,12 @@ export function useColumnResize(args: {
     [],
   );
 
-  const onDoubleClick = useCallback(() => {
-    const fontSource = argsRef.current.fontSourceRef.current;
-    const font = fontSource ? getComputedStyle(fontSource).font : "";
-    const headerText = column.headerText ?? (typeof column.header === "string" ? column.header : "");
-    const cellTexts = getRenderedCellTexts(column.id);
-    const width = measureColumnAutosizeWidth({
-      headerText,
-      cellTexts,
-      font,
-      minWidth: Math.max(MIN_COLUMN_WIDTH, column.minWidth ?? 0),
-      maxWidth: column.maxWidth,
-    });
-    argsRef.current.commitColumnWidth(column.id, width);
-  }, [column, getRenderedCellTexts]);
+  const onDoubleClick = useCallback(
+    () => {
+      argsRef.current.autosizeColumns({ columnIds: [column.id] });
+    },
+    [column.id],
+  );
 
   return { onPointerDown, onDoubleClick, isResizing };
-}
-
-/** Reads the rendered text of every currently-mounted gridcell for `columnId` from the DOM, scoped to `root`. */
-export function readRenderedCellTexts(root: Element | null, columnId: string): string[] {
-  if (!root) return [];
-  const cells = root.querySelectorAll(`[role="gridcell"][data-column-id="${CSS.escape(columnId)}"]`);
-  return Array.from(cells, (cell) => cell.textContent ?? "");
 }

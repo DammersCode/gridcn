@@ -4,9 +4,9 @@ import { useCallback, useRef, type CSSProperties, type MouseEvent as ReactMouseE
 import { COLUMN_BORDER } from "./columns/column-border";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { HeaderClickBehavior, SortSpec } from "./types";
+import type { AutosizeOptions, HeaderClickBehavior, SortSpec } from "./types";
 import { pinnedInsetStyle } from "./columns/pinned-inset-style";
-import { useColumnResize, readRenderedCellTexts } from "./columns/use-column-resize";
+import { useColumnResize } from "./columns/use-column-resize";
 import { DataGridSortIndicator, ariaSortFor } from "./columns/sort-indicator";
 import type { ColumnReorderState } from "./columns/use-column-reorder";
 import type { HeaderMenuRenderer } from "./layout-context";
@@ -53,9 +53,10 @@ export type DataGridHeaderCellProps = {
   sortState: readonly SortSpec[];
   resize: {
     enabled: boolean;
-    scrollRootRef: React.RefObject<HTMLElement | null>;
     setColumnWidth: (id: string, width: number) => void;
     commitColumnWidth: (id: string, width: number) => void;
+    /** The store's `autosizeColumns` action; double-click on the handle calls it for this column. */
+    autosizeColumns: (options?: AutosizeOptions) => void;
     /** Signs the drag delta so the handle always widens toward the inline end — see {@link useColumnResize}. */
     direction: GridDirection;
   };
@@ -98,17 +99,12 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
   const cellRef = useRef<HTMLDivElement | null>(null);
   const columnResizable = resizeProps.enabled && (column.resizable ?? true);
 
-  const getRenderedCellTexts = useCallback(
-    (columnId: string) => readRenderedCellTexts(resizeProps.scrollRootRef.current, columnId),
-    [resizeProps.scrollRootRef],
-  );
   const resize = useColumnResize({
     column,
     currentWidth: width,
     setColumnWidth: resizeProps.setColumnWidth,
     commitColumnWidth: resizeProps.commitColumnWidth,
-    getRenderedCellTexts,
-    fontSourceRef: cellRef,
+    autosizeColumns: resizeProps.autosizeColumns,
     direction: resizeProps.direction,
   });
 

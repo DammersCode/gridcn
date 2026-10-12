@@ -14,6 +14,7 @@ import {
   CopyPlus,
   Eraser,
   EyeOff,
+  Maximize2,
   MoveHorizontal,
   Pin,
   PinOff,
@@ -35,7 +36,6 @@ import {
   useDataGridSelection,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { autosizeColumn } from "./autosize-column";
 import { MenuShortcut } from "./menu-shortcut";
 import { selectedViewRows } from "./selection-queries";
 import { useDataGridColumnFeatureFlags } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -46,7 +46,7 @@ import { useDataGridColumnFeatureFlags } from "@/registry/default/blocks/data-gr
  */
 export type GridMenuItemSpec =
   | {
-      /** Stable identity for locating and replacing a built-in item. Built-in ids: `cut`, `copy`, `paste`, `clear-contents`, `insert-row-above`, `insert-row-below`, `duplicate-rows`, `delete-rows` (cell) and `sort-asc`, `sort-desc`, `clear-sort`, `pin-left`, `pin-right`, `unpin`, `hide-column`, `autosize` (header); separators use `sep-*` ids. */
+      /** Stable identity for locating and replacing a built-in item. Built-in ids: `cut`, `copy`, `paste`, `clear-contents`, `insert-row-above`, `insert-row-below`, `duplicate-rows`, `delete-rows` (cell) and `sort-asc`, `sort-desc`, `clear-sort`, `pin-left`, `pin-right`, `unpin`, `hide-column`, `autosize`, `autosize-all` (header); separators use `sep-*` ids. */
       id: string;
       /** Display label; i18n is the caller's (the built-ins use `labels.contextMenu`). */
       label: string;
@@ -176,7 +176,7 @@ export function useDefaultCellMenuItems(args: {
 
 /** The built-in header-surface set as specs, resolved for the current grid state (sort, pin/resize flags, labels). */
 export function useDefaultHeaderMenuItems(args: { columnId: string; scrollRoot: HTMLElement | null }): GridMenuItemSpec[] {
-  const { columnId, scrollRoot } = args;
+  const { columnId } = args;
   const actions = useDataGridActions();
   const sortState = useDataGridSortState();
   const columns = useDataGridAllColumns();
@@ -215,7 +215,8 @@ export function useDefaultHeaderMenuItems(args: { columnId: string; scrollRoot: 
   if (resizable) {
     specs.push(
       { id: "sep-autosize", separator: true },
-      { id: "autosize", label: labels.contextMenu.autosize, icon: <MoveHorizontal className="size-4 text-muted-foreground" />, onClick: () => autosizeColumn(scrollRoot, column, actions.commitColumnWidth) },
+      { id: "autosize", label: labels.contextMenu.autosize, icon: <MoveHorizontal className="size-4 text-muted-foreground" />, onClick: () => actions.autosizeColumns({ columnIds: [columnId] }) },
+      { id: "autosize-all", label: labels.contextMenu.autosizeAll, icon: <Maximize2 className="size-4 text-muted-foreground" />, onClick: () => actions.autosizeColumns() },
     );
   }
   return specs;
