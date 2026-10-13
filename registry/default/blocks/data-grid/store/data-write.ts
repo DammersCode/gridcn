@@ -23,6 +23,7 @@ import {
   warnDev,
 } from "./commit";
 import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
+import { applyChange } from "../interaction/history";
 import { resolveCellRef, resolveReorder, touchesViewInputs, type RowIndexCache } from "./row-index";
 import {
   emptySelection,
@@ -289,6 +290,7 @@ export type DataWriteActions = Pick<
   | "deleteRows"
   | "duplicateRows"
   | "reorderRows"
+  | "commitChange"
 >;
 
 export function createDataWriteActions(set: SetState, get: GetState, deps: DataWriteDeps): DataWriteActions {
@@ -779,6 +781,43 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         }),
       );
       return true;
+    },
+    commitChange(change) {
+      const s = get();
+      if (s.readOnly) return;
+      if (change.ops.length === 0) return;
+      const nextData = applyChange(s.data, change, s.getRowId);
+      // applyChange keeps row references for untouched rows, so an all-skipped batch comes back element-identical.
+      let applied = nextData.length !== s.data.length;
+      if (!applied) {
+        for (let i = 0; i < nextData.length; i++) {
+          if (nextData[i] !== s.data[i]) {
+            applied = true;
+            break;
+          }
+        }
+      }
+      if (!applied) return;
+      const movesRows = change.ops.some((op) => op.type !== "update");
+      if (movesRows) warnViewSpacePresenceStale(s);
+      ctx.rowIndexCache.invalidate();
+      forgetDeferredRows(ctx);
+      ctx.lastEmittedData = nextData;
+      pruneRowValidationKeys(nextData, s.getRowId);
+      const cellErrors = pruneCellErrors(clearErrorsForOps(s.cellErrors, change.ops), nextData, s.getRowId);
+      const view = rebuildRowOpView(s, nextData);
+      const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, nextData, s.getRowId);
+      const followed = movesRows ? followActiveRow(s, nextData, view.viewIndex!) : {};
+      writeThenEmit(ctx, s, nextData, change, () =>
+        set({
+          data: nextData,
+          ...(movesRows ? { rowIdentityVersion: s.rowIdentityVersion + 1 } : {}),
+          cellErrors,
+          ...followed,
+          ...view,
+          ...editRemap,
+        }),
+      );
     },
   };
 }

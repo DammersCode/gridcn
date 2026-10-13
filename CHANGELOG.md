@@ -11,6 +11,17 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **`actions.commitChange` (`data-grid`):** the generic data-write action. Pass a `DataChange`
+  and the grid applies all of its ops — `update`, `insert`, `delete`, `move` — in one write and
+  fires `onDataChange` exactly once, so a history add-on records one undo entry per call. Ops
+  resolve by row id through `applyChange`: an op whose row is gone is skipped, and a batch where
+  no op applies writes and fires nothing. Row-moving ops run the row-op view bookkeeping (view
+  rebuild; the row channel and the cursor follow their records); update-only batches keep the
+  selection and the cursor. Cell errors clear for the written cells, and errors of removed rows
+  are pruned. No-op on a `readOnly` grid; a `source: "history"` change passes through without a
+  second undo entry. Values are not revalidated — `updateCells` validates; the io add-on
+  validates imported rows before `onImport` runs. The import demo now routes imported rows
+  through `commitChange` as one `source: "import"` change.
 - **Controllable selection (`data-grid`):** `DataGridProvider`/`DataGrid` take `selection`
   (controlled value) and `defaultSelection` (one-shot seed; with both set, `selection` wins and
   dev mode warns once). `onSelectionChange` now delivers the selection in stable `CellRef` terms

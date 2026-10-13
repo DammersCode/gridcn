@@ -138,10 +138,13 @@ for most:
   `setSearch`, `setColumnWidth`, `setColumnOrder`, `setColumnPin`, `setColumnHidden`,
   `setColumnLayout`, `setSelection`,
   `autosizeColumns`, `selectCell`, `extendTo`, `startEditing`, `commitCellEdit`, `deleteSelection`,
-  `updateCells`, `updateRows`, `reconcileView`, `setCellErrors`, `clearCellErrors`, plus the row
+  `updateCells`, `updateRows`, `commitChange`, `reconcileView`, `setCellErrors`, `clearCellErrors`,
+  plus the row
   operations
   `insertRow`, `duplicateRows`, `deleteRows` — see [Row operations](/docs/row-operations)). The
-  complete list is the `DataGridActions` type.
+  complete list is the `DataGridActions` type. `commitChange(change)` applies a whole
+  `DataChange` op batch in one write and emits `onDataChange` once, so it lands on the undo
+  stack as a single entry; it is a no-op on a `readOnly` grid and does not revalidate values.
 - `useDataGridViewStale()` — true when a write left the sorted order stale: a deferred
   `updateCells` batch, or an edit, paste, fill, or cleared selection that touched a column the
   active sort or filter reads. See [Streaming updates](/docs/streaming-updates).

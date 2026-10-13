@@ -930,6 +930,21 @@ export type DataGridActions = {
    * no-op — the drag gesture uses the verdict for its a11y announcement.
    */
   reorderRows(from: number, to: number): boolean;
+  /**
+   * The single generic data-write action: applies a whole {@link DataChange} (a consumer-built op
+   * batch or a history-inverted one) in ONE write and emits `onDataChange` EXACTLY ONCE - one undo
+   * entry in the history add-on - like a gesture. Ops resolve by row id through `applyChange`: an
+   * op whose row is gone is skipped silently, and a batch where no op applies writes and emits
+   * nothing. Row-moving ops (insert, delete, move) run the row-op view bookkeeping - full view
+   * rebuild, `rowIdentityVersion` bump, and the row channel and the active cell follow their
+   * records - while an update-only batch keeps the selection and cursor as-is (the rebuild only
+   * re-orders rows under an active sort). Cell errors clear for the written cells, and errors of
+   * removed rows are pruned. No-op on a `readOnly` grid. A `source: "history"` change is a
+   * pass-through: the history stack ignores it, so an undo or redo applied through this action
+   * records no second entry. Values are NOT revalidated - that is `updateCells`' job; build import
+   * rows validated (the io add-on does it) and undo/redo reverts to previously applied states.
+   */
+  commitChange(change: DataChange<unknown>): void;
 };
 
 /** @internal The `_`-prefixed store actions that the core and add-on wiring call; `useDataGridActions` never returns them. */

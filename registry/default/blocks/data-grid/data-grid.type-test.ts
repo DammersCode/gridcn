@@ -20,6 +20,7 @@ import type {
   CellType,
   CellPatch,
   CellRef,
+  DataChange,
   DataGridActions,
   DataGridApi,
   DataGridProps,
@@ -164,6 +165,23 @@ assertEqual<(next: SelectionState | null) => void, typeof gridApi.setSelection>(
 declare const wActions: DataGridActions;
 assertEqual<(next: SelectionState | null) => void, typeof wActions.setSelection>(true);
 assertEqual<(parts: Partial<ColumnLayout>) => void, typeof wActions.setColumnLayout>(true);
+
+// --- W6-05: the generic write action ----------------------------------------------------------
+// commitChange takes a DataChange; typed consumer ops (DataChange<Row>) are assignable to the
+// unknown-based action signature. One call is one write and one onDataChange emit (one undo
+// entry); source "history" passes through without a second history entry (stack-level rule).
+
+const commitBefore: Row = { id: "1", name: "Before", age: 30 };
+const commitAfter: Row = { id: "1", name: "After", age: 31 };
+const commitUpdate: DataChange<Row> = {
+  source: "app",
+  label: "batch save",
+  ops: [{ type: "update", rowId: "1", row: commitAfter, prev: commitBefore, cells: [{ columnId: "name", value: "After", prev: "Before" }] }],
+};
+const commitMove: DataChange<Row> = { source: "row-op", ops: [{ type: "move", rowId: "1", row: commitBefore, from: 0, to: 1 }] };
+wActions.commitChange(commitUpdate);
+wActions.commitChange(commitMove);
+assertEqual<(change: DataChange<unknown>) => void, typeof wActions.commitChange>(true);
 
 // --- DataGrid wrapper prop surface: one home per prop ------------------------------------------
 // DataGridProps is built as (ExternalStoreProps | OwnedStoreProps) & DataGridRootProps & { ref }, so
