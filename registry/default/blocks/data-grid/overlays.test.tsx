@@ -1,7 +1,7 @@
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import type { ColumnDef } from "./types";
-import { DataGridOverlays, splitRectByPinZones, type OverlayPlugin, type PinTrackData } from "./overlays";
+import type { ColumnDef, DataGridPlugin } from "./types";
+import { DataGridOverlays, splitRectByPinZones, type OverlayPluginCtx, type PinTrackData } from "./overlays";
 import { GRID_LAYER } from "./layers";
 import { DataGridProvider, useDataGridActions } from "./store";
 import { gridAttrSelector } from "./data-attributes";
@@ -43,11 +43,11 @@ function renderHarness(props: {
   rowCount: number;
   colCount: number;
   pinTrack?: PinTrackData;
-  overlayPlugins?: readonly OverlayPlugin[];
+  plugins?: readonly DataGridPlugin<unknown>[];
 }) {
   let actions!: ReturnType<typeof useDataGridActions>;
   const utils = render(
-    <DataGridProvider data={makeRows(10)} columns={columns} getRowId={(r) => r.id} overlayPlugins={props.overlayPlugins}>
+    <DataGridProvider data={makeRows(10)} columns={columns} getRowId={(r) => r.id} plugins={props.plugins}>
       <Harness {...props} onActions={(a) => (actions = a)} />
     </DataGridProvider>,
   );
@@ -283,15 +283,18 @@ describe("DataGridOverlays pin-aware segmentation", () => {
   });
 });
 
-describe("overlayPlugins seam", () => {
-  it("renders a registered plugin into the overlay layer, passing it the expected ctx shape", () => {
-    let receivedCtx: Parameters<OverlayPlugin>[0] | undefined;
-    const dummyPlugin: OverlayPlugin = (ctx) => {
-      receivedCtx = ctx;
-      return <div data-testid="dummy-overlay-plugin">plugin content</div>;
+describe("plugin Overlay seam", () => {
+  it("renders a registered plugin's Overlay into the overlay layer, passing it the expected ctx shape", () => {
+    let receivedCtx: OverlayPluginCtx | undefined;
+    const dummyPlugin: DataGridPlugin<unknown> = {
+      name: "dummy",
+      Overlay: (ctx: OverlayPluginCtx) => {
+        receivedCtx = ctx;
+        return <div data-testid="dummy-overlay-plugin">plugin content</div>;
+      },
     };
 
-    const { container } = renderHarness({ windowStart: 2, rowCount: 6, colCount: 3, overlayPlugins: [dummyPlugin] });
+    const { container } = renderHarness({ windowStart: 2, rowCount: 6, colCount: 3, plugins: [dummyPlugin] });
 
     expect(container.querySelector('[data-testid="dummy-overlay-plugin"]')).not.toBeNull();
     expect(receivedCtx).toBeDefined();
@@ -304,25 +307,30 @@ describe("overlayPlugins seam", () => {
     expect(typeof receivedCtx!.clampRectToWindow).toBe("function");
   });
 
-  it("renders nothing extra when overlayPlugins is omitted", () => {
+  it("renders nothing extra when plugins is omitted", () => {
     const { container } = renderHarness({ windowStart: 0, rowCount: 10, colCount: 3 });
     expect(container.querySelector('[data-testid="dummy-overlay-plugin"]')).toBeNull();
   });
 
   it("renders multiple registered plugins, each receiving ctx", () => {
     let callCount = 0;
-    const countingPlugin: OverlayPlugin = () => {
+    const overlay = () => {
       callCount += 1;
       return null;
     };
+    const pluginA: DataGridPlugin<unknown> = { name: "a", Overlay: overlay };
+    const pluginB: DataGridPlugin<unknown> = { name: "b", Overlay: overlay };
 
-    renderHarness({ windowStart: 0, rowCount: 10, colCount: 3, overlayPlugins: [countingPlugin, countingPlugin] });
+    renderHarness({ windowStart: 0, rowCount: 10, colCount: 3, plugins: [pluginA, pluginB] });
     expect(callCount).toBe(2);
   });
 
   it("renders plugin content before the active-cell ring in DOM order (local focus still paints on top)", () => {
-    const dummyPlugin: OverlayPlugin = () => <div data-grid-dummy-plugin-overlay="" aria-hidden="true" />;
-    const { container, actions } = renderHarness({ windowStart: 0, rowCount: 10, colCount: 3, overlayPlugins: [dummyPlugin] });
+    const dummyPlugin: DataGridPlugin<unknown> = {
+      name: "dummy",
+      Overlay: () => <div data-grid-dummy-plugin-overlay="" aria-hidden="true" />,
+    };
+    const { container, actions } = renderHarness({ windowStart: 0, rowCount: 10, colCount: 3, plugins: [dummyPlugin] });
     act(() => actions().selectCellAt({ col: 0, row: 2 }));
 
     const pluginOverlay = container.querySelector("[data-grid-dummy-plugin-overlay]")!;

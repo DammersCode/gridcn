@@ -107,7 +107,7 @@ function useSimulatedPresenceDriver(rows: readonly DemoRow[], setPresenceHighlig
 export default function DataGridPresenceDemo(): ReactNode {
   const rows = useMemo(() => generateDemoRows(ROW_COUNT), []);
   const { plugin, setPresenceHighlights } = useDataGridPresence();
-  const overlayPlugins = useMemo(() => [plugin], [plugin]);
+  const plugins = useMemo(() => [plugin], [plugin]);
   useSimulatedPresenceDriver(rows, setPresenceHighlights);
 
   return (
@@ -122,7 +122,7 @@ export default function DataGridPresenceDemo(): ReactNode {
           defaultData={rows}
           columns={columns}
           getRowId={(row) => row.id}
-          overlayPlugins={overlayPlugins}
+          plugins={plugins}
           headerClickBehavior="sort"
         >
           <DataGridRoot className="h-full rounded-none border-none">

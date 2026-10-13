@@ -2,7 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { ColumnDef, DataChange } from "../types";
-import { DataGridProvider, useDataGridActions, useDataGridStoreApi, type DataGridSyncProps } from "../store";
+import { DataGridProvider, getInternalActions, useDataGridActions, useDataGridStoreApi, type DataGridSyncProps } from "../store";
 import { useDataGridClipboard } from "./use-data-grid-clipboard";
 
 type Row = { id: string; name: string };
@@ -208,7 +208,7 @@ describe("useDataGridClipboard.pasteFromClipboard with an async schema", () => {
     // setUpGrid selects { col: 0, row: 0 } — the paste targets row id "1" ({ id: "1", name: "a" }).
     await act(() => result.current.clipboard.pasteFromClipboard());
     act(() =>
-      result.current.storeApi.getState().actions._syncProps({
+      getInternalActions(result.current.storeApi)._syncProps({
         data: reordered,
         columns: heldColumns as never,
         getRowId: ((r: Row) => r.id) as never,

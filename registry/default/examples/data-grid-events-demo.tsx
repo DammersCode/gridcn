@@ -239,8 +239,8 @@ export default function DataGridEventsDemo(): ReactNode {
   }, []);
 
   const { plugin: presencePlugin, setPresenceHighlights } = useDataGridPresence();
-  const { plugin: fillPlugin, FillHandleTracker } = useDataGridFill({ onFill });
-  const overlayPlugins = useMemo(() => [presencePlugin, fillPlugin], [presencePlugin, fillPlugin]);
+  const { plugin: fillPlugin } = useDataGridFill({ onFill });
+  const plugins = useMemo(() => [presencePlugin, fillPlugin], [presencePlugin, fillPlugin]);
 
   return (
     <div className="w-full flex h-[480px] gap-4">
@@ -270,7 +270,7 @@ export default function DataGridEventsDemo(): ReactNode {
             onRowClick={onRowClick}
             onRowWindowChange={onRowWindowChange}
             headerClickBehavior="sort"
-            overlayPlugins={overlayPlugins}
+            plugins={plugins}
           >
             <DataGridToolbar>
               <DataGridSearch />
@@ -284,7 +284,6 @@ export default function DataGridEventsDemo(): ReactNode {
               >
                 <DataGridHeader />
                 <DataGridBody />
-                <FillHandleTracker />
               </DataGridRoot>
             </DataGridContextMenu>
           </DataGridProvider>

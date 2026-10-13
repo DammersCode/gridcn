@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import { dispatchGridAction } from "./use-grid-interaction";
-import { publicActionsOf } from "../store/compute";
-import type { DataGridStoreActions, DataGridStoreState } from "../store";
+import type { DataGridActions, DataGridStoreState } from "../store";
 import type { GridAction } from "../types";
 
 const data: readonly unknown[] = [
@@ -32,8 +31,8 @@ function fakeStore(partial: Partial<DataGridStoreState>): StoreApi<DataGridStore
   } as unknown as StoreApi<DataGridStoreState>;
 }
 
-function fakeActions(): DataGridStoreActions {
-  return { selectAll: vi.fn(), clearSelection: vi.fn() } as unknown as DataGridStoreActions;
+function fakeActions(): DataGridActions {
+  return { selectAll: vi.fn(), clearSelection: vi.fn() } as unknown as DataGridActions;
 }
 
 function dispatch(args: { action: string; commands?: DataGridStoreState["commands"]; activeCell?: { col: number; row: number } | null }) {
@@ -69,7 +68,7 @@ describe("dispatchGridAction custom-command tier", () => {
     expect(ctx.row).toEqual({ id: "b", name: "Bob" });
     expect(ctx.readOnly).toBe(false);
     expect(ctx.api).toBeTruthy();
-    expect(ctx.api.actions).toBe(publicActionsOf(actions));
+    expect(ctx.api.actions).toBe(actions);
     expect(preventDefault).toHaveBeenCalledTimes(1);
   });
 
@@ -115,29 +114,25 @@ describe("dispatchGridAction custom-command tier", () => {
   });
 });
 
-describe("dispatchGridAction undo and redo", () => {
-  function dispatchHistory(action: "undo" | "redo", readOnly: boolean) {
-    const onUndo = vi.fn();
-    const onRedo = vi.fn();
+describe("dispatchGridAction pluggable built-ins (undo/redo/fillDown/fillRight)", () => {
+  function dispatchHollow(action: GridAction) {
+    const actions = fakeActions();
+    const preventDefault = vi.fn();
     dispatchGridAction({
       action,
-      actions: fakeActions(),
-      storeApi: fakeStore({ onUndo, onRedo, readOnly }),
+      actions,
+      storeApi: fakeStore({}),
       scrollRef: { current: null },
       scrollCellIntoView: vi.fn(),
       rowHeight: 36,
-      preventDefault: vi.fn(),
+      preventDefault,
     });
-    return { onUndo, onRedo };
+    return { actions, preventDefault };
   }
 
-  it("calls onUndo and onRedo in an editable grid", () => {
-    expect(dispatchHistory("undo", false).onUndo).toHaveBeenCalledTimes(1);
-    expect(dispatchHistory("redo", false).onRedo).toHaveBeenCalledTimes(1);
-  });
-
-  it("does not call onUndo or onRedo in a read-only grid", () => {
-    expect(dispatchHistory("undo", true).onUndo).not.toHaveBeenCalled();
-    expect(dispatchHistory("redo", true).onRedo).not.toHaveBeenCalled();
+  it.each(["undo", "redo", "fillDown", "fillRight"] as const)("%s preventDefaults and runs no core body", (action) => {
+    const { actions, preventDefault } = dispatchHollow(action);
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+    expect(actions.selectAll).not.toHaveBeenCalled();
   });
 });

@@ -41,8 +41,8 @@ function PinnedGrid(
   } & UseDataGridPinnedRowsOptions,
 ) {
   const { topRows, bottomRows, data, columns: cols = columns, getRowId = (r: Row) => r.id } = props;
-  const { rowBands } = useDataGridPinnedRows({ topRows, bottomRows });
-  return <DataGrid data={data} columns={cols} getRowId={getRowId} rowBands={rowBands} />;
+  const { plugin: pinnedPlugin } = useDataGridPinnedRows({ topRows, bottomRows });
+  return <DataGrid data={data} columns={cols} getRowId={getRowId} plugins={[pinnedPlugin]} />;
 }
 
 describe("pinned rows — band rendering", () => {

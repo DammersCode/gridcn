@@ -89,8 +89,7 @@ export default function DataGridCellErrorsDemo(): ReactNode {
   const { store, actions } = useDataGridStoreProps({
     data: grid.data,
     getRowId: grid.getRowId,
-    onUndo: grid.onUndo,
-    onRedo: grid.onRedo,
+    plugins: grid.plugins,
     columns,
     onDataChange: handleDataChange,
   });

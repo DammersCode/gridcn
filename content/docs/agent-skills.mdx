@@ -28,7 +28,7 @@ come first:
 - bounded grid height, so virtualization can start
 - stable `columns` and `data` references
 - stable class-name functions and click handlers
-- stable `overlayPlugins` and `rowBands`
+- stable plugin objects in `plugins`
 - no formatter allocation inside a custom `Cell`
 - `updateCells` for high-rate feeds
 
@@ -78,11 +78,11 @@ states that it covers only the loaded rows.
 
 **What it does.** The skill installs each add-on and puts each output where it belongs:
 
-- `overlayPlugins`, `rowBands`, and `keymap` on the provider
+- the add-on's `plugin` into the `plugins` array on the provider, and `keymap` on the provider
 - toolbar pieces inside `DataGridToolbar`
 
-It merges all overlay plugins into one stable array. It also checks the rules that apply when you
-combine add-ons: one `NuqsAdapter`, one `useDataGridPresence()` call, and no URL state on a lazy
+It combines every add-on's plugin into one `plugins` array. It also checks the rules that apply when
+you combine add-ons: one `NuqsAdapter`, one `useDataGridPresence()` call, and no URL state on a lazy
 grid.
 
 **When to reach for it.** You add an add-on, you combine several add-ons in one grid, or an

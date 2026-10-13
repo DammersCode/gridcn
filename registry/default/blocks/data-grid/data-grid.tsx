@@ -22,7 +22,6 @@ export { DataGridCell, type DataGridCellProps } from "./cell";
 export {
   DataGridOverlays,
   type DataGridOverlaysProps,
-  type OverlayPlugin,
   type OverlayPluginCtx,
   type PinTrackData,
   type RectSegment,
@@ -33,8 +32,9 @@ export { useCommitGuard } from "./interaction/use-commit-guard";
 export { useCellEditor, type CellEditorCodec } from "./interaction/use-cell-editor";
 /** The `direction` prop's value space (add-ons' direction math lives in `./data-grid-sdk`). */
 export type { GridDirection } from "./windowing/direction";
-/** The provider-level row-bands seam — `data-grid-pinned-rows`'s `useDataGridPinnedRows()` returns a `RowBandsSpec` to pass into `rowBands`. */
-export { type RowBandsSpec, type RowBandRenderCtx } from "./layout-context";
+/** The `plugins` prop's surface: one entry per add-on that reaches into the grid — overlay painter, row-band contribution, data-change observer, commands/keymap, and root mount. `DataGridReadState` is what `api.store` exposes. */
+export type { DataGridPlugin, PluginRowBands, DataGridPluginCtx, DataGridReadState, DataGridStoreWrapper } from "./types";
+export { type RowBandRenderCtx } from "./layout-context";
 /** The custom row-marker render slots (`DataGridRootProps.renderMarker`/`renderMarkerHeader`) and their ctx types. */
 export { type HeaderMenuRenderer, type MarkerCellRenderCtx, type MarkerHeaderRenderCtx, type MarkerCellRenderer, type MarkerHeaderRenderer } from "./layout-context";
 

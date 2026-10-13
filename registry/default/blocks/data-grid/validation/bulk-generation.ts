@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { DataGridStoreState } from "../store";
+import type { DataGridReadState } from "../types";
 
 /**
  * The store facts an in-flight bulk batch was built against, plus the row ids it targets. A batch
@@ -15,17 +15,17 @@ import type { DataGridStoreState } from "../store";
  */
 export type BulkBatchSnapshot = {
   rowIds: readonly string[];
-  sortState: DataGridStoreState["sortState"];
-  filterState: DataGridStoreState["filterState"];
+  sortState: DataGridReadState["sortState"];
+  filterState: DataGridReadState["filterState"];
 };
 
 /** Reads the snapshot an async bulk batch is held against: its target row ids plus the view specs they were chosen under. */
-export function snapshotBulkBatch(s: DataGridStoreState, rowIds: readonly string[]): BulkBatchSnapshot {
+export function snapshotBulkBatch(s: DataGridReadState, rowIds: readonly string[]): BulkBatchSnapshot {
   return { rowIds, sortState: s.sortState, filterState: s.filterState };
 }
 
 /** The distinct row ids a view-space bulk batch targets — resolved NOW, so a later reorder can still find them. */
-export function candidateRowIds(s: DataGridStoreState, candidates: readonly { viewRowIndex: number }[]): string[] {
+export function candidateRowIds(s: DataGridReadState, candidates: readonly { viewRowIndex: number }[]): string[] {
   const rowIds = new Set<string>();
   for (const candidate of candidates) {
     const dataRowIndex = s.viewIndex[candidate.viewRowIndex];
@@ -46,7 +46,7 @@ export function candidateRowIds(s: DataGridStoreState, candidates: readonly { vi
  * re-render, a scroll, a selection change, an unrelated edit, and any reordering of `data` that keeps
  * the target rows present.
  */
-export function isBulkBatchCurrent(s: DataGridStoreState, snapshot: BulkBatchSnapshot): boolean {
+export function isBulkBatchCurrent(s: DataGridReadState, snapshot: BulkBatchSnapshot): boolean {
   if (s.sortState !== snapshot.sortState || s.filterState !== snapshot.filterState) return false;
   if (snapshot.rowIds.length === 0) return true;
   const present = new Set<string>();
@@ -64,7 +64,7 @@ export function isBulkBatchCurrent(s: DataGridStoreState, snapshot: BulkBatchSna
  * be undone here. Writes with no `rowId` (a caller that never resolved one) pass through untouched.
  */
 export function reresolveBulkWrites<T extends { viewRowIndex: number; rowId?: string }>(
-  s: DataGridStoreState,
+  s: DataGridReadState,
   writes: readonly T[],
 ): T[] {
   const viewRowById = new Map<string, number>();
@@ -92,9 +92,9 @@ export type BulkGeneration = {
   /** Bumps the counter and returns this batch's token. Any batch begun earlier is now stale. */
   begin(): number;
   /** Whether `token` is still the newest batch AND the store still matches `snapshot`. */
-  isCurrent(token: number, s: DataGridStoreState, snapshot: BulkBatchSnapshot): boolean;
+  isCurrent(token: number, s: DataGridReadState, snapshot: BulkBatchSnapshot): boolean;
   /** {@link reresolveBulkWrites} — the apply-time half of the guard, reached without a second import. */
-  reresolve<T extends { viewRowIndex: number; rowId?: string }>(s: DataGridStoreState, writes: readonly T[]): T[];
+  reresolve<T extends { viewRowIndex: number; rowId?: string }>(s: DataGridReadState, writes: readonly T[]): T[];
 };
 
 /**

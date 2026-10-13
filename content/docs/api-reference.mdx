@@ -111,20 +111,22 @@ return <DataGrid store={store} data={data} columns={columns} getRowId={getRowId}
 - `store.getState()` and `store.subscribe()` are reachable from outside React for anything the
   selector hooks can't reach, e.g. a page-level error badge that renders outside the provider.
 
-### `overlayPlugins`
+### `plugins`
 
-`readonly OverlayPlugin[]`, optional, on both `DataGridProvider` and `DataGrid`. Each registered
-plugin paints into the same overlay layer the core's own selection and active-cell rendering use.
-See [Overlay plugins](/docs/overlay-plugins) for the full contract, and
-[Multiplayer presence](/docs/addons/presence) and [Fill handle](/docs/addons/fill) for two
-first-party consumers.
+`readonly DataGridPlugin[]`, optional, on both `DataGridProvider` and `DataGrid`. Each entry is
+an add-on — or your own code — that reaches into the grid through six optional members: an
+`Overlay` component, a `rowBands` contribution, an `onDataChange` observer, `commands`, a
+`keymap`, and a `Mount` component. Array order is precedence and visual order.
+See [Plugins](/docs/plugins) for the full contract, and
+[Multiplayer presence](/docs/addons/presence), [Fill handle](/docs/addons/fill), and
+[Undo & redo](/docs/addons/undo-redo) for three first-party consumers.
 
-<Callout type="warn" title="Pass a stable array reference">
-  A dev-mode guardrail warns when the `overlayPlugins` array's identity changes across renders:
-  `"overlayPlugins array identity changed since the last render; pass a stable reference (module
-  scope or useMemo) or every render re-syncs the provider props into the store"`. Memoize the array itself, not
-  only the plugin functions inside it: `useMemo(() => [plugin], [plugin])`, not a fresh `[plugin]`
-  literal written inline on every render of your own component.
+<Callout title="Identity is entry-wise">
+  The grid compares the list entry-wise — same length, same `name` per entry, every member
+  identity-equal — so a fresh `[plugin]` array per render is harmless while the plugin keeps its
+  identity. A changed plugin member re-resolves the grid's plugins and remounts the plugin
+  components whose type changed. A plugin object attaches to one grid; the same object on two
+  grids dev-errors, and the second grid excludes it.
 </Callout>
 
 ### Hooks
@@ -298,16 +300,13 @@ a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
   `onColumnLayoutChange` payload, and the shape of the `columnLayout`/`defaultColumnLayout`
   props in `Partial` form. See
   [Events & state](/docs/events-state#8-columnlayout--defaultcolumnlayout--oncolumnlayoutchange--oncolumnresizing).
-- `OverlayPlugin` (`(ctx: OverlayPluginCtx) => ReactNode`) and `OverlayPluginCtx`, the
-  overlay-plugin seam that add-ons like `data-grid-presence` and `data-grid-fill` register into.
-  See [Overlay plugins](/docs/overlay-plugins) for the full contract and a worked example, and
-  [Multiplayer presence](/docs/addons/presence) and [Fill handle](/docs/addons/fill) for two
+- `DataGridPlugin<TData>` (`{ name, Overlay?, rowBands?, onDataChange?, commands?, keymap?, Mount? }`),
+  `PluginRowBands` (`{ top?, bottom?, render }`), `RowBandRenderCtx`, `DataGridPluginCtx<TData>`
+  (`{ api }`), and `OverlayPluginCtx` — the plugin members and their contexts. See
+  [Plugins](/docs/plugins) for the full contract and a worked example, and
+  [Multiplayer presence](/docs/addons/presence), [Fill handle](/docs/addons/fill),
+  [Undo & redo](/docs/addons/undo-redo), and [Pinned rows](/docs/addons/pinned-rows) for the
   first-party consumers.
-
-  <AutoTypeTable path="./registry/default/blocks/data-grid/overlays.tsx" name="OverlayPluginCtx" />
-
-- `RowBandsSpec` and `RowBandRenderCtx`, the provider-level row-bands seam that
-  `data-grid-pinned-rows` registers into. See [Pinned rows](/docs/addons/pinned-rows).
 - `CellErrorEntry` (`{ rowId, columnId, message }`) and `CellErrorTarget` (`{ rowId, columnId }`),
   the input shapes for `actions.setCellErrors`/`actions.clearCellErrors`. See
   [Editing & cell types: Server errors](/docs/editing-cell-types#server-errors).

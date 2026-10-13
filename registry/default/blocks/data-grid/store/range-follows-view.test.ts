@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ColumnDef, DataChange } from "../types";
 import { createDataGridStore } from "./create-store";
+import { getInternalActions } from "./internal-actions";
 import type { InternalSyncProps } from "./types";
 
 type Row = { id: string; name: string; note: string };
@@ -22,7 +23,7 @@ describe("a foreign data swap with a single-cell range (100k rows)", () => {
     const swapped = makeRows(100_000);
     getRowId.mockClear();
 
-    store.getState().actions._syncProps({ data: swapped, columns, getRowId } as InternalSyncProps);
+    getInternalActions(store)._syncProps({ data: swapped, columns, getRowId } as InternalSyncProps);
 
     expect(getRowId.mock.calls.length).toBeLessThan(100);
     expect(store.getState().selection.current).not.toBeNull();
@@ -87,7 +88,7 @@ describe("the active cell after a view rebuild", () => {
     expect(store.getState().activeCell).toEqual({ row: 2, col: 2 });
 
     store.getState().actions.setSorts([]);
-    store.getState().actions._syncProps({
+    getInternalActions(store)._syncProps({
       data: [{ id: "new", name: "New", note: "New" }, ...makeRows(3)],
       columns,
       getRowId: (row: Row) => row.id,

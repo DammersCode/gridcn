@@ -3,7 +3,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { ColumnDef } from "../types";
 import { DataGrid, DataGridProvider, useDataGridActions, useDataGridSelector, type DataGridSyncProps } from "../data-grid";
-import { useDataGridStoreApi } from "../data-grid-sdk";
+import { useDataGridStoreApi } from "../store";
 
 type Row = { id: string; name: string; qty: number };
 

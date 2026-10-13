@@ -1,22 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { applyChange, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
+import { useDataGridApi, type DataChange, type DataGridApi, type DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
 import { isDev, createHistory } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Options for {@link useDataGridHistory}. */
 export type UseDataGridHistoryOptions<TData> = {
-  /** Current data array; the hook diffs/applies against this on every render (like `data` passed to `DataGrid`). */
-  data: readonly TData[];
-  /** Writes the next array back to the consumer's state (e.g. a `useState` setter). */
-  setData: (next: readonly TData[]) => void;
-  getRowId: (row: TData, index: number) => string;
   /** Maximum number of entries kept on the undo stack; oldest entries are dropped past this. */
   capacity?: number;
   /**
-   * Identity of the dataset that `data` belongs to (a dataset id, a version counter). When the
-   * key changes between renders, both stacks clear, so undo after a dataset swap cannot
-   * reinsert rows from the old dataset. Omit it and reset with `clear()` instead.
+   * Identity of the dataset; a change between renders clears both stacks, so undo after a dataset
+   * swap cannot reinsert rows from the old dataset. Omit it and reset with `clear()` instead.
    */
   datasetKey?: string | number;
   /**
@@ -24,12 +18,10 @@ export type UseDataGridHistoryOptions<TData> = {
    * `"stream"` — a 100-updates/s `updateCells` feed would otherwise evict the user's whole undo
    * stack within seconds. Pass a list to change the set, for example
    * `["edit", "paste", "fill", "delete", "row-op", "import", "stream", "app"]` to record
-   * streams too.
-   * `setData` still runs for every change, recorded or not.
+   * streams too. `source: "history"` (undo/redo applied through the grid) is never recorded,
+   * whatever the list says — that is what keeps an undo from pushing a second entry.
    */
   recordSources?: readonly DataChange<TData>["source"][];
-  /** Pass the grid's `readOnly`. When `true`, `undo` and `redo` do nothing, and `canUndo`/`canRedo` are `false`. */
-  readOnly?: boolean;
 };
 
 // Fires at most once per app, dev-only: undo ran over a sparse (lazy) data array.
@@ -42,7 +34,7 @@ function hasSparseHoles(data: readonly unknown[]): boolean {
   return false;
 }
 
-/** Sources `useDataGridHistory` records when `recordSources` is omitted — everything a user did on purpose. */
+/** Sources `useDataGridHistory` records when `recordSources` is omitted — everything a user did on purpose (`"history"` is skipped before the filter runs). */
 const DEFAULT_RECORD_SOURCES: readonly DataChange<unknown>["source"][] = [
   "edit",
   "paste",
@@ -50,17 +42,16 @@ const DEFAULT_RECORD_SOURCES: readonly DataChange<unknown>["source"][] = [
   "delete",
   "row-op",
   "import",
-  "history",
   "app",
 ];
 
 /** Return value of {@link useDataGridHistory}. */
 export type UseDataGridHistoryResult<TData> = {
-  /** Pass straight through as `DataGrid`'s `onDataChange`: records the change, then writes `next` via `setData`. */
-  onDataChange: (next: readonly TData[], change: DataChange<TData>) => void;
-  /** Pass as `DataGrid`'s `onUndo`. No-op when nothing to undo. */
+  /** One entry of the grid's `plugins` prop — the plugin's `onDataChange` observer records the grid's data changes, its `undo`/`redo` commands back the mod+Z/mod+Shift+Z bindings, and its `Mount` hands the grid's api handle to the imperative triggers below. Stable for the hook's lifetime. An inline `plugins={[plugin]}` is fine: re-resolution is gated on entry identity (name + member references), not on the array's. */
+  plugin: DataGridPlugin<TData>;
+  /** Imperative undo (a toolbar button outside the keyboard bindings); no-op when nothing to undo or the grid is read-only. */
   undo: () => void;
-  /** Pass as `DataGrid`'s `onRedo`. No-op when nothing to redo. */
+  /** Imperative redo; see {@link UseDataGridHistoryResult.undo}. */
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
@@ -69,29 +60,31 @@ export type UseDataGridHistoryResult<TData> = {
   /** Clears both stacks. A dataset change clears them itself when `datasetKey` changes; use `clear` for an imperative reset. */
   clear: () => void;
   /**
-   * Imperatively registers a programmatic change the consumer has ALREADY applied to `data`
-   * (e.g. a set-row-count batch, a batch-save rollback) as one undo entry on the same stack -
-   * this hook does not write data here, the consumer owns the array. Deliberately recorded
-   * regardless of `recordSources`: an explicit call is intent, not a gesture stream. `label`
-   * is an optional human-readable entry label (it also works as a field on `change` itself).
+   * Applies a programmatic change (the consumer-built op batch) to the grid as one write AND
+   * registers it as one undo entry — `commitChange` with `source: "app"`, which the observer
+   * records like any user gesture. No-op when the grid is not mounted yet or is read-only.
+   * `label` is an optional human-readable entry label.
    */
   record: (change: DataChange<TData>, label?: string) => void;
 };
 
 /**
- * Op-based undo/redo wired to a consumer-owned data array. Plugs into core's
- * `onDataChange`/`onUndo`/`onRedo` extension points with no core edits.
+ * Op-based undo/redo as a grid plugin. Records the grid's own `onDataChange` stream (the observer
+ * runs after the store write and after the consumer's `onDataChange`), and undoes/redoes by
+ * applying the inverted op batch back through the grid's `commitChange` — one write, one emit,
+ * so a controlled `data` prop sees the same change the user made.
  *
- * Design: takes `data` + `setData` (mirroring `useState`'s tuple) rather than owning
- * the array itself, so it composes with any state source (useState, a store, a server
- * mutation) — the consumer wires one setter, not a whole controlled-component contract.
+ * Design: the plugin does not take `data`/`setData` — the grid's store is the write target, and
+ * the consumer's controlled-data echo (their `onDataChange` calling their own state setter)
+ * stays exactly where it always was. `undo`/`redo` applied through the grid carry
+ * `source: "history"`, which the observer skips, so each undo or redo records no second entry.
  */
 export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>): UseDataGridHistoryResult<TData> {
-  const { data, setData, getRowId, capacity, recordSources, datasetKey, readOnly = false } = opts;
+  const { capacity, datasetKey, recordSources } = opts;
   const history = useMemo(() => createHistory<TData>({ capacity }), [capacity]);
   // history's canUndo/canRedo are getters on a mutable object; this forces a re-render
-  // after every mutating call so callers see them update even when `setData` alone wouldn't
-  // re-render this hook (e.g. `clear()`, or a consumer setter that dedupes identical arrays).
+  // after every mutating call so callers see them update even when nothing else re-renders
+  // this hook (e.g. `clear()`, or a consumer setter that dedupes identical arrays).
   const [, forceUpdate] = useState(0);
 
   // stale entries reference the old dataset: undo after a swap would resurrect dead rows
@@ -103,48 +96,45 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
     forceUpdate((n) => n + 1);
   }, [datasetKey, history]);
 
-  // mirrors the latest data/getRowId for undo/redo, which run outside the triggering render.
-  const dataRef = useRef(data);
-  dataRef.current = data;
-  const getRowIdRef = useRef(getRowId);
-  getRowIdRef.current = getRowId;
-
   const recorded = useMemo(
     () => new Set<DataChange<TData>["source"]>(recordSources ?? DEFAULT_RECORD_SOURCES),
     [recordSources],
   );
+  const recordedRef = useRef(recorded);
+  recordedRef.current = recorded;
 
-  const onDataChange = useCallback(
-    (next: readonly TData[], change: DataChange<TData>) => {
-      if (recorded.has(change.source)) history.push(change);
-      setData(next);
-      forceUpdate((n) => n + 1);
-    },
-    [history, setData, recorded],
-  );
+  // The grid's imperative handle, stashed by the plugin's Mount (and refreshed by every
+  // command/observer ctx): the imperative `undo`/`redo`/`record` triggers below run through it.
+  const apiRef = useRef<DataGridApi<TData> | null>(null);
 
   const undo = useCallback(() => {
-    if (readOnly) return;
+    const api = apiRef.current;
+    if (!api) return;
+    // a read-only grid never applied the change it would revert (writes are gated), so popping the
+    // entry would only lose it
+    if (api.store.getState().readOnly) return;
     const change = history.undo();
     if (!change) return;
     // Sparse (lazy) data needs a hole-tolerant getRowId and skips evicted rows silently — flag once, not per undo.
-    if (!warnedSparseData && isDev() && hasSparseHoles(dataRef.current)) {
+    if (!warnedSparseData && isDev() && hasSparseHoles(api.store.getState().data)) {
       warnedSparseData = true;
       console.warn(
         "[data-grid-history] undo ran over a sparse (lazy) data array: unloaded rows are holes and their ops are skipped. Use a hole-tolerant getRowId and pass a datasetKey (or call clear()) on lazy.reset() or a dataset swap.",
       );
     }
-    setData(applyChange(dataRef.current, change, getRowIdRef.current));
+    api.actions.commitChange(change);
     forceUpdate((n) => n + 1);
-  }, [history, setData, readOnly]);
+  }, [history]);
 
   const redo = useCallback(() => {
-    if (readOnly) return;
+    const api = apiRef.current;
+    if (!api) return;
+    if (api.store.getState().readOnly) return;
     const change = history.redo();
     if (!change) return;
-    setData(applyChange(dataRef.current, change, getRowIdRef.current));
+    api.actions.commitChange(change);
     forceUpdate((n) => n + 1);
-  }, [history, setData, readOnly]);
+  }, [history]);
 
   const clear = useCallback(() => {
     history.clear();
@@ -153,18 +143,61 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
 
   const record = useCallback(
     (change: DataChange<TData>, label?: string) => {
-      history.push(label ? { ...change, label } : change);
+      const api = apiRef.current;
+      if (!api) return;
+      // `source: "app"` tags the imperative entry (see DataChange.source); the observer records it
+      api.actions.commitChange({ ...change, source: "app", ...(label !== undefined ? { label } : {}) });
       forceUpdate((n) => n + 1);
     },
     [history],
   );
 
+  // The Mount must keep ONE identity for the hook's lifetime (a fresh component type per render
+  // would remount it); the api stash touches no hook state, so a once-created closure is safe.
+  const mountRef = useRef<ComponentType | null>(null);
+  if (mountRef.current === null) {
+    const ref = apiRef;
+    mountRef.current = function HistoryApiStash(): ReactNode {
+      ref.current = useDataGridApi<TData>();
+      return null;
+    };
+  }
+
+  const plugin = useMemo<DataGridPlugin<TData>>(
+    () => ({
+      name: "history",
+      onDataChange: (_next, change) => {
+        if (change.source === "history") return;
+        if (recordedRef.current.has(change.source)) history.push(change);
+        forceUpdate((n) => n + 1);
+      },
+      commands: {
+        undo: {
+          when: (ctx) => !ctx.readOnly,
+          run: (ctx) => {
+            apiRef.current = ctx.api;
+            undo();
+          },
+        },
+        redo: {
+          when: (ctx) => !ctx.readOnly,
+          run: (ctx) => {
+            apiRef.current = ctx.api;
+            redo();
+          },
+        },
+      },
+      Mount: mountRef.current ?? undefined,
+    }),
+    [history, undo, redo, mountRef.current],
+  );
+
   return {
-    onDataChange,
+    plugin,
     undo,
     redo,
-    canUndo: !readOnly && history.canUndo,
-    canRedo: !readOnly && history.canRedo,
+    canUndo: history.canUndo,
+    canRedo: history.canRedo,
     historySize: history.size,
     clear,
     record,

@@ -2,7 +2,7 @@ import { act, render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef, DataChange } from "../types";
-import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
+import { DataGridProvider, getInternalActions, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
 
 type Row = { id: string; name: string; age: number };
 
@@ -38,7 +38,7 @@ function mount(props: Props) {
   const view = render(grid(props));
   return {
     state: () => api!.getState(),
-    derived: () => api!.getState().actions._deriveSelection(),
+    derived: () => getInternalActions(api!)._deriveSelection(),
     commit: (change: DataChange<Row>) => act(() => api!.getState().actions.commitChange(change)),
     rerender: (next: Props) => view.rerender(grid(next)),
   };

@@ -13,25 +13,24 @@ import type {
   RowMarkersMode,
   SortSpec,
 } from "../types";
-import type { OverlayPlugin } from "../overlays";
-import type { RowBandsSpec } from "../layout-context";
 import type { DataGridLabels } from "../labels";
 import type { SearchMatch } from "../sort-filter";
 import { isSelectionEmpty, selectionContainsCell } from "../selection";
 import { colRangesEqual, selectedColRangesForRow, type ColRange } from "../selection/selected-col-ranges-for-row";
-import { cellErrorKey, flashCellKey, getRangeValues, holeRowId, publicActionsOf, rowIdAtViewRow, searchMatchKey } from "./compute";
+import { cellErrorKey, flashCellKey, getRangeValues, holeRowId, rowIdAtViewRow, searchMatchKey } from "./compute";
 import { resolveRefOrWarn } from "./data-write";
+import { getInternalActions } from "./internal-actions";
 import { useDataGridStore, useDataGridStoreApi } from "./provider";
-import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridRowCellState, DataGridStoreActions, DataGridStoreState } from "./types";
+import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridInternalActions, DataGridRowCellState, DataGridStoreState, ResolvedPlugins } from "./types";
 
 /** The stable actions object for the current grid; never changes identity, so this hook never re-renders. */
 export function useDataGridActions(): DataGridActions {
-  return publicActionsOf(useDataGridStore((s) => s.actions));
+  return useDataGridStore((s) => s.actions);
 }
 
-/** @internal {@link useDataGridActions} plus the `_`-prefixed actions the core wiring calls. */
-export function useDataGridInternalActions(): DataGridStoreActions {
-  return useDataGridStore((s) => s.actions);
+/** @internal {@link useDataGridActions} plus the `_`-prefixed actions the core wiring calls — one stable object (the public table merged with the store-private internals table). */
+export function useDataGridInternalActions(): DataGridInternalActions & DataGridActions {
+  return getInternalActions(useDataGridStoreApi());
 }
 
 /**
@@ -75,18 +74,6 @@ export function useDataGridScrollToCellAt(): (coord: ViewCoord) => void {
 }
 
 /**
- * Fill-handle keymap handlers registered by the `data-grid-fill` add-on's tracker component (see
- * `fillHandlers`'s doc comment) — read by `DataGridRoot` itself on every render and forwarded to
- * `useGridInteraction`'s optional `fillDown`/`fillRight`/`cancelFillDrag` params. `null` before the
- * add-on's tracker mounts (or when it's absent entirely), matching every other registration slot's
-  * no-op-by-default contract. Not part of the public API; consumers should not import it.
-  * @internal
-  */
-export function useDataGridFillHandlers(): DataGridStoreState["fillHandlers"] {
-  return useDataGridStore((s) => s.fillHandlers);
-}
-
-/**
  * The grid-wide `readOnly` flag (the provider's `readOnly` prop) — for add-on mutation surfaces
  * outside the root's subtree (e.g. the context-menu add-on) that need to hide or disable their own
  * actions on a read-only grid. Seeded from the provider's props, so it is live from the first
@@ -97,16 +84,16 @@ export function useDataGridReadOnly(): boolean {
 }
 
 /**
- * The grid's effective keymap — `DEFAULT_KEYMAP` merged over with the provider's `keymap` prop —
- * the single source of truth for every bound action (backs the `data-grid-keybindings` add-on's
- * dialog so it never hardcodes a shortcut list). Seeded from the provider's props, so it is live
- * from the first render, SSR included.
+ * The grid's effective keymap — `DEFAULT_KEYMAP` merged with the plugins' keymaps, then the
+ * provider's `keymap` prop over everything — the single source of truth for every bound action
+ * (backs the `data-grid-keybindings` add-on's dialog so it never hardcodes a shortcut list).
+ * Seeded from the provider's props, so it is live from the first render, SSR included.
  */
 export function useDataGridKeymap(): Keymap {
   return useDataGridStore((s) => s.keymap);
 }
 
-/** The grid's custom commands (the `commands` sync prop) — `null` when none; backs the keybindings dialog's label/group overrides. */
+/** The grid's effective commands — the consumer's `commands` merged over the plugins' commands — `null` when none; backs the keybindings dialog's label/group overrides. */
 export function useDataGridCommands(): Record<string, GridCommand> | null {
   return useDataGridStore((s) => s.commands);
 }
@@ -191,24 +178,32 @@ export function useDataGridGetSelectionValues(): () => unknown[][] {
     return range ? getRangeValues(s, range) : [];
   }, [storeApi]);
 }
-
 /**
- * Registered overlay plugins; consumed ONLY by {@link DataGridOverlays} — never by row/cell
- * subscriptions. Not part of the public API; consumers should not import it.
+ * The resolved row-band segments (every plugin's `rowBands`, in plugin array order); consumed
+ * ONLY by {@link DataGridRoot} — reads the segment lengths for its height/aria-rowcount math and
+ * calls each segment's `render`. Not part of the public API; consumers should not import it.
  * @internal
  */
-export function useDataGridOverlayPlugins(): readonly OverlayPlugin[] {
-  return useDataGridStore(useShallow((s) => s.overlayPlugins));
+export function useDataGridPluginBands(): ResolvedPlugins["bands"] {
+  return useDataGridStore((s) => s.plugins.bands);
 }
 
 /**
- * Registered row-bands spec; consumed ONLY by {@link DataGridRoot} — reads `topRows`/`bottomRows.length`
- * for its own height/aria-rowcount math and calls `renderBand`. Not part of the public API;
- * consumers should not import it.
+ * The resolved plugin mounts (the `Mount` components); consumed ONLY by {@link DataGridRoot},
+ * which renders them after its children. Not part of the public API; consumers should not import it.
  * @internal
  */
-export function useDataGridRowBands(): RowBandsSpec {
-  return useDataGridStore((s) => s.rowBands);
+export function useDataGridPluginMounts(): ResolvedPlugins["mounts"] {
+  return useDataGridStore((s) => s.plugins.mounts);
+}
+
+/**
+ * The resolved overlay components; consumed ONLY by {@link DataGridOverlays} — never by row/cell
+ * subscriptions. Not part of the public API; consumers should not import it.
+ * @internal
+ */
+export function useDataGridPluginOverlays(): ResolvedPlugins["overlays"] {
+  return useDataGridStore((s) => s.plugins.overlays);
 }
 
 /** The in-progress cell edit with the `rowId`/`columnId` it is anchored to, or null when no cell is being edited. */

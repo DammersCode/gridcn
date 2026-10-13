@@ -44,7 +44,7 @@ async function renderEngine(opts: {
     const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
     setPresenceHighlights = setHighlights;
     return (
-      <DataGridProvider data={makeRows(opts.rowCount ?? 200)} columns={opts.columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+      <DataGridProvider data={makeRows(opts.rowCount ?? 200)} columns={opts.columns} getRowId={(r) => r.id} plugins={[plugin]}>
         <DataGridRoot className={`h-[${opts.height ?? 300}px] w-[${opts.width ?? 400}px]`}>
           <DataGridHeader />
           <DataGridBody />

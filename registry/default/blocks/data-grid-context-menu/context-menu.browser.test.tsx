@@ -116,12 +116,12 @@ const totals: Row = { id: "totals", name: "Total", email: "" };
 
 /** Same shape as `renderGrid`, plus a `data-grid-pinned-rows` top band — exercises the resolver's
  * pinned-top offset and pinned-cell exclusion end to end through the real
- * hook -> rowBands -> root.tsx pipeline, not a hand-built DOM fixture. */
+ * hook -> plugin rowBands -> root.tsx pipeline, not a hand-built DOM fixture. */
 function PinnedGridWithMenu(props: {
   top: readonly Row[];
   onDataChange?: (next: readonly Row[], change: DataChange<Row>) => void;
 }) {
-  const { rowBands } = useDataGridPinnedRows({ topRows: props.top });
+  const { plugin: pinnedPlugin } = useDataGridPinnedRows({ topRows: props.top });
   return (
     <DataGridProvider
       data={makeRows()}
@@ -129,7 +129,7 @@ function PinnedGridWithMenu(props: {
       getRowId={(r) => r.id}
       onDataChange={props.onDataChange}
       duplicateRow={(row) => ({ ...row, id: `copy-${row.id}` })}
-      rowBands={rowBands}
+      plugins={[pinnedPlugin]}
     >
       <DataGridContextMenu>
         <DataGridRoot className="h-[300px]">

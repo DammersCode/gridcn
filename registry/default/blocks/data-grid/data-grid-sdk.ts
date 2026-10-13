@@ -6,6 +6,12 @@
  * install time (scripts/fix-registry-imports.mjs).
  */
 
+import { useDataGridStoreApi as useDataGridStoreApiRaw } from "./store";
+import { gridStoreWrapper } from "./store/api";
+import type { DataGridStoreWrapper } from "./types";
+
+export type { DataGridReadState, DataGridStoreWrapper } from "./types";
+
 export {
   applyInlineScrollDelta,
   directionSign,
@@ -66,7 +72,7 @@ export {
 } from "./validation/bulk-generation";
 
 export { combineRects, getSelectedViewRows, selectionRects } from "./selection";
-export { holeRowId, rowIdAtViewRow } from "./store/compute";
+export { holeRowId, rowIdAtViewRow, viewRowsMoved, visibleColumnsMoved } from "./store/compute";
 export { measureColumnAutosizeWidth } from "./columns/measure-column-text";
 export { isDev } from "./is-dev";
 export {
@@ -75,9 +81,17 @@ export {
   useDataGridInstanceId,
   useDataGridSearchCapped,
   useDataGridSearchMatches,
-  useDataGridStoreApi,
   type DataGridStoreState,
 } from "./store";
+
+/**
+ * The grid's read-only store view for add-ons: `getState`/`getInitialState`/`subscribe`, no
+ * `setState` (writes go through the actions). One wrapper identity per store; use it with
+ * zustand's `useStore` for per-field subscriptions.
+ */
+export function useDataGridStoreApi(): DataGridStoreWrapper {
+  return gridStoreWrapper(useDataGridStoreApiRaw());
+}
 export { setCellValue } from "./columns/column-helpers";
 export { createHistory, type History, type HistoryOptions } from "./interaction/history";
 export type { DataGridFilterOperatorLabels } from "./labels";

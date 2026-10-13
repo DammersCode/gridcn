@@ -1,4 +1,4 @@
-import { type DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { buildExportHeaders, buildExportRows, exportDataIndices } from "./export-grid";
 
 /** Default number of rows printed when `maxRows` is not given. */
@@ -65,7 +65,7 @@ function printCss(orientation: "portrait" | "landscape"): string {
  * with a truncation note. The iframe is removed on `afterprint` (with a 60 s fallback timer),
  * and a second call while one is open replaces the first. No-op without a DOM (SSR).
  */
-export function printGrid(state: DataGridStoreState, options: PrintGridOptions = {}): void {
+export function printGrid(state: DataGridReadState, options: PrintGridOptions = {}): void {
   if (typeof document === "undefined") return;
   removeOpenIframe();
 

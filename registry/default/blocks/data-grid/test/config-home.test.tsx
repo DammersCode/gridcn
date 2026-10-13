@@ -16,7 +16,7 @@ import {
   type Keymap,
   type OnCellClick,
 } from "../data-grid";
-import { useDataGridStoreApi, type DataGridStoreState } from "../store";
+import { getInternalActions, useDataGridStoreApi, type DataGridStoreState } from "../store";
 
 type Row = { id: string; name: string; qty: number };
 
@@ -93,8 +93,8 @@ describe("config home: keymap", () => {
     }
     const { result, rerender } = renderHook(() => useDataGridStoreApi(), { wrapper: Wrapper });
     const store = result.current;
-    const syncConfig = vi.spyOn(store.getState().actions, "_syncConfig");
-    const syncProps = vi.spyOn(store.getState().actions, "_syncProps");
+    const syncConfig = vi.spyOn(getInternalActions(store), "_syncConfig");
+    const syncProps = vi.spyOn(getInternalActions(store), "_syncProps");
 
     // equal props (every slice reference unchanged): neither phase runs
     rerender();

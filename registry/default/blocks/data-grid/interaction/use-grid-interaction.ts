@@ -18,9 +18,9 @@ import { getCellValue } from "../columns/column-helpers";
 import { safeHref } from "../cell-types/safe-href";
 import {
   getFocusCell,
-  useDataGridInternalActions,
+  useDataGridActions,
   useDataGridStoreApi,
-  type DataGridStoreActions,
+  type DataGridActions,
   type DataGridStoreState,
 } from "../store";
 import {
@@ -37,6 +37,7 @@ import { gridAttrSelector } from "../data-attributes";
 import { getSelectedViewRows, isSelectionEmpty } from "../selection";
 import { warnDev } from "../store/commit";
 import { apiHandleOf } from "../store/api";
+import { getInternalActions } from "../store/internal-actions";
 import { holeRowId } from "../store/compute";
 
 /** Action names already dev-warned as bound-but-unwired (dev-only, process-wide). */
@@ -72,12 +73,6 @@ export type UseGridInteractionOptions = {
   scrollRef: RefObject<HTMLElement | null>;
   layout: InteractionLayout;
   keymap: Keymap;
-  /** mod+D — wired to the `data-grid-fill` add-on's fillDown; absent (add-on not installed) it's a no-op. */
-  fillDown?: () => void;
-  /** mod+R — wired to the `data-grid-fill` add-on's fillRight; absent it's a no-op. */
-  fillRight?: () => void;
-  /** Escape — wired to the `data-grid-fill` add-on's cancelDrag, so it aborts an in-progress fill drag too; absent it's a no-op. */
-  cancelFillDrag?: () => void;
 };
 
 /**
@@ -213,13 +208,14 @@ function scrollCellIntoView(scrollElement: HTMLElement, coord: ViewCoord, layout
  * Executes one already-resolved keymap action against the store — the dispatch shared by the
  * in-grid keydown handler and the global-shortcut window layer, so a globally registered action
  * behaves EXACTLY like its in-grid binding (same scrolling, same store-side guards: `insertRowBelow`
- * without `createRow` no-ops, `fillDown` without the fill add-on no-ops, ...). `preventDefault` is
- * the caller's event handler, invoked only for the actions that would preventDefault in-grid.
+ * without `createRow` no-ops, a hollow built-in (`undo`, `fillDown`, ...) no-ops until a command
+ * implements it, ...). `preventDefault` is the caller's event handler, invoked only for the
+ * actions that would preventDefault in-grid.
  * Not part of the public hook surface.
  */
 export function dispatchGridAction(args: {
   action: GridAction;
-  actions: DataGridStoreActions;
+  actions: DataGridActions;
   storeApi: StoreApi<DataGridStoreState>;
   scrollRef: RefObject<HTMLElement | null>;
   scrollCellIntoView: (coord: ViewCoord) => void;
@@ -228,11 +224,8 @@ export function dispatchGridAction(args: {
   /** The printable seed char for `editReplace`, when the trigger was a printable key; undefined otherwise. */
   triggerKey?: string;
   preventDefault: () => void;
-  fillDown?: () => void;
-  fillRight?: () => void;
-  cancelFillDrag?: () => void;
 }): void {
-  const { action, actions, storeApi, scrollRef, scrollCellIntoView, rowHeight, triggerKey, preventDefault, fillDown, fillRight, cancelFillDrag } = args;
+  const { action, actions, storeApi, scrollRef, scrollCellIntoView, rowHeight, triggerKey, preventDefault } = args;
   const state = storeApi.getState();
   const rowCount = state.viewIndex.length;
   const colCount = state.visibleColumns.length;
@@ -272,7 +265,7 @@ export function dispatchGridAction(args: {
   }
 
   const moveAndScroll = (d: { dx: number; dy: number }, opts?: { extend?: boolean; retain?: boolean }) => {
-    actions._moveActiveCell(d, opts);
+    getInternalActions(storeApi)._moveActiveCell(d, opts);
     // extend keeps activeCell pinned at the anchor — scroll the growing selection's edge instead.
     const next = getFocusCell(storeApi.getState());
     if (next) scrollCellIntoView(next);
@@ -428,7 +421,6 @@ export function dispatchGridAction(args: {
     }
     case "cancel": {
       preventDefault();
-      cancelFillDrag?.();
       actions.clearSelection();
       break;
     }
@@ -437,24 +429,13 @@ export function dispatchGridAction(args: {
       if (!state.readOnly) actions.deleteSelection();
       break;
     }
-    case "fillDown": {
-      preventDefault();
-      if (!state.readOnly) fillDown?.();
-      break;
-    }
-    case "fillRight": {
-      preventDefault();
-      if (!state.readOnly) fillRight?.();
-      break;
-    }
-    case "undo": {
-      preventDefault();
-      if (!state.readOnly) state.onUndo?.();
-      break;
-    }
+    // Pluggable built-ins: the body is hollow; a plugin (or the consumer's `commands`) that names
+    // the action takes over above, in the command path, with its own `when` gate.
+    case "fillDown":
+    case "fillRight":
+    case "undo":
     case "redo": {
       preventDefault();
-      if (!state.readOnly) state.onRedo?.();
       break;
     }
     case "insertRowBelow": {
@@ -530,7 +511,7 @@ function hasActivateCell(state: DataGridStoreState, coord: ViewCoord): boolean {
 }
 
 /** Runs the cell type's `activate` in place via the direct-write commit path (no edit session, no move). No-op for a readOnly column, an unresolvable row, or a type without `activate`. */
-function activateCell(state: DataGridStoreState, actions: DataGridStoreActions, coord: ViewCoord): void {
+function activateCell(state: DataGridStoreState, actions: DataGridActions, coord: ViewCoord): void {
   const column = state.visibleColumns[coord.col];
   const cellType = cellTypeAt(state, coord);
   if (!column || !cellType?.activate) return;
@@ -705,8 +686,8 @@ export type GridInteractionHandlers = {
  * scroll-into-view/drag-autoscroll machinery. One instance per `<DataGridRoot>` mount.
  */
 export function useGridInteraction(options: UseGridInteractionOptions): GridInteractionHandlers {
-  const { scrollRef, layout, keymap, fillDown, fillRight, cancelFillDrag } = options;
-  const actions = useDataGridInternalActions();
+  const { scrollRef, layout, keymap } = options;
+  const actions = useDataGridActions();
   const storeApi = useDataGridStoreApi();
   const isMacRef = useRef(false);
   isMacRef.current = isMacPlatform();
@@ -893,9 +874,6 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
           rowHeight: layoutRef.current.rowHeight,
           triggerKey: isPrintableKey(keymapEvent) ? keymapEvent.key : undefined,
           preventDefault: () => event.preventDefault(),
-          fillDown,
-          fillRight,
-          cancelFillDrag,
         });
 
       // While a session is open the editor owns the built-in keys; only editor-scoped commands dispatch.
@@ -920,7 +898,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
 
       if (action) dispatch(action);
     },
-    [actions, cancelFillDrag, fillDown, fillRight, keymap, scrollActiveCellIntoView, scrollRef, storeApi],
+    [actions, keymap, scrollActiveCellIntoView, scrollRef, storeApi],
   );
 
   const onCellPointerDown = useCallback(

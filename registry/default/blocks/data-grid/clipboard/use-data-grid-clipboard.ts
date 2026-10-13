@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from "react";
 import { serializeCells } from "./serialize-cells";
-import { useDataGridInternalActions, useDataGridStoreApi, type DataGridStoreState } from "../store";
+import { useDataGridActions, useDataGridInternalActions, useDataGridStoreApi, type DataGridStoreState } from "../store";
 import { rowIdAtViewRow } from "../store/compute";
 import { useBulkGeneration } from "../validation/bulk-generation";
 import { copyScopeCellIds, pasteText, resolveCopyScope, serializeCopyScope } from "./use-grid-clipboard";
@@ -104,7 +104,8 @@ function execCommandCopyFallback(text: string): boolean {
  */
 export function useDataGridClipboard(options: UseDataGridClipboardOptions = {}): UseDataGridClipboardResult {
   const { sanitizeFormulas } = options;
-  const actions = useDataGridInternalActions();
+  const actions = useDataGridActions();
+  const internalActions = useDataGridInternalActions();
   const storeApi = useDataGridStoreApi();
   const guard = useBulkGeneration();
 
@@ -128,9 +129,9 @@ export function useDataGridClipboard(options: UseDataGridClipboardOptions = {}):
     const current = latest.selection.current;
     const rebuilt = latest.viewIndex !== s.viewIndex || latest.visibleColumns !== s.visibleColumns;
     const selectionKept = current === s.selection.current || (rebuilt && (current === null || selectionFollowedRebuild(s, latest)));
-    if (result !== "failed" && selectionKept) actions._deleteCellsById(rowIds, columnIds);
+    if (result !== "failed" && selectionKept) internalActions._deleteCellsById(rowIds, columnIds);
     return result;
-  }, [storeApi, actions, sanitizeFormulas]);
+  }, [storeApi, internalActions, sanitizeFormulas]);
 
   const pasteFromClipboard = useCallback(async (): Promise<PasteFromClipboardResult> => {
     let text: string;

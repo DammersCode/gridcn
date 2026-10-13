@@ -11,6 +11,51 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Plugin system (`data-grid`):** `DataGridProvider`/`DataGrid` take `plugins` —
+  `readonly DataGridPlugin[]` — the single seam add-ons and consumer code use to extend the grid.
+  A `DataGridPlugin` is a plain object with a `name` and optional members; array order is
+  precedence and visual order. `Overlay` paints a `pointer-events-none` layer appended to the
+  overlay stack after the built-in range layers and before the active-cell ring. `rowBands`
+  contributes rows to the sticky top and bottom row bands: the root renders one segment per
+  plugin in array order, and `RowBandRenderCtx` gains `rowOffset`, the rows earlier plugins
+  placed in the same band. `onDataChange` is an observer that runs after the store write and
+  after the consumer's own `onDataChange`; a throwing observer warns once and the remaining
+  observers still run — the write is never rolled back. `commands` merges into the command map:
+  the consumer's own `commands` win silently, and a built-in action name is dev-warned and
+  dropped unless the action is pluggable. `keymap` binds the plugin's own commands only: an
+  entry naming a command the plugin does not define, or a binding the default keymap or the
+  consumer's `keymap` already owns, is dropped, dev-warned; merge order is the default keymap,
+  the plugins in array order, then the consumer. `Mount` is a component rendered inside
+  `DataGridRoot` after its children, with no props, reading the grid through `useDataGridApi` —
+  the slot for engine work a paint-only overlay cannot do.
+- **Entry-wise plugin identity (`data-grid`):** the grid compares the `plugins` list entry-wise —
+  same length, the same `name` at each position, every member identity-equal — so a fresh
+  `[plugin]` array per render re-resolves nothing, and the resolved `plugins`, `commands`, and
+  `keymap` references stay stable across re-renders. A changed member re-resolves the list, and
+  React remounts the plugin components whose type changed — dev-warned, naming the component. A
+  plugin instance attaches to one grid: the same object on two grids dev-errors, and the second
+  grid drops it and keeps the rest of its list.
+- **The plugin's reach (`data-grid`):** every plugin ctx carries `api`, the imperative handle.
+  `api.store` is a read-only wrapper — `getState`, `getInitialState`, `subscribe`, no
+  `setState` — whose state reads return the store's live objects and omit the consumer's `on*`
+  event callbacks and the core's internal slots (`DataGridReadState`). `api.actions` exposes
+  the public actions only; the `_`-prefixed internal actions are not on it. The SDK's
+  `useDataGridStoreApi` now returns that read-only wrapper (`DataGridStoreWrapper`), and the
+  SDK re-exports `viewRowsMoved` and `visibleColumnsMoved`. `DataGridPlugin`, `PluginRowBands`,
+  `DataGridPluginCtx`, `DataGridReadState`, and `DataGridStoreWrapper` are exported from the
+  `data-grid` barrel. The `plugins` prop is typed `readonly DataGridPlugin<unknown>[]`, so a
+  typed `DataGridPlugin<TData>` stays assignable.
+- **Pluggable built-ins (`data-grid`):** `undo`, `redo`, `fillDown`, and `fillRight` are
+  pluggable. The core keeps their keymap bindings and their `preventDefault` but hollows their
+  bodies: the keys swallow the browser default (mod+R never reloads the page) and run nothing
+  until a plugin — or the consumer's own `commands` — defines a command of that name. The
+  first-party add-ons register through the seam: `data-grid-fill` (the drag engine moves from
+  the `FillHandleTracker` child into the plugin's `Mount`; the hook returns `{ plugin }`),
+  `data-grid-history` (the `onDataChange` observer records and the `undo`/`redo` commands back
+  mod+Z/mod+Y; the hooks read the grid's `readOnly` flag instead of taking a `readOnly` option),
+  `data-grid-presence` (the plugin's `Mount` dev-warns once when rows or columns move under an
+  active view-space entry), and `data-grid-pinned-rows` (the bands live in the plugin's
+  `rowBands` member; the hook returns `{ plugin }`).
 - **`actions.commitChange` (`data-grid`):** the generic data-write action. Pass a `DataChange`
   and the grid applies all of its ops — `update`, `insert`, `delete`, `move` — in one write and
   fires `onDataChange` exactly once, so a history add-on records one undo entry per call. Ops
@@ -409,6 +454,26 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking:** one `plugins` seam replaces the overlay and row-bands seams (`data-grid`): the
+  `overlayPlugins`, `rowBands`, `onUndo`, and `onRedo` props are removed. Register add-ons — and
+  custom overlays, bands, observers, commands, and keymap entries — through the `plugins` prop
+  (see the plugin-system entry under Added). `FillHandleTracker`, `OverlayPlugin`,
+  `RowBandsSpec`, `useDataGridFillHandlers`, `useDataGridOverlayPlugins`, and
+  `useDataGridRowBands` are removed from the add-on barrels. `useDataGridFill` returns
+  `{ plugin }` — the plugin's `Mount` renders the drag engine inside `DataGridRoot`, so the
+  `<FillHandleTracker />` child goes away. `useDataGridPinnedRows` returns `{ plugin }` instead
+  of `{ rowBands }`.
+- **Breaking:** `useDataGridHistory` takes `{ capacity?, datasetKey?, recordSources? }`
+  (`data-grid-history`): the `data`, `setData`, `getRowId`, and `readOnly` options are removed —
+  the plugin observes the grid's writes, the hooks read the grid's `readOnly` flag, and the
+  grid's `getRowId` prop addresses the ops. `record(change, label?)` now applies the op batch
+  to the grid through `commitChange` (`source: "app"`) AND registers it as one entry — do not
+  apply the change to your own array first; the grid's `onDataChange` echo updates it.
+  `useDataGridState` takes `{ getRowId, capacity?, datasetKey? }` (its `readOnly` option is
+  removed) and still returns the spreadable `{ data, getRowId, onDataChange, plugins, history }`;
+  the provider wiring moves from the `onUndo`/`onRedo` props to the history `plugin` in
+  `plugins`. `DataGridApi.store` is now the read-only wrapper — no `setState`, public actions
+  only (see the plugin-system entry under Added).
 - **Breaking:** `onSelectionChange` delivers the stable `SelectionState`, and
   `onSelectionCleared` is gone (`data-grid`). The payload is now `{ anchor, range, rangeStack,
   rowIds, columnIds }` in `CellRef` terms (the new props are in the entry under Added): code

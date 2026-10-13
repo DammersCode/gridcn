@@ -8,8 +8,7 @@ import { useDataGridContainer } from "../interaction/use-data-grid-container";
 import { dispatchGridAction } from "../interaction/use-grid-interaction";
 import { useDataGridRootContext } from "../layout-context";
 import {
-  useDataGridInternalActions,
-  useDataGridFillHandlers,
+  useDataGridActions,
   useDataGridKeymap,
   useDataGridStoreApi,
 } from "../store";
@@ -28,8 +27,7 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
   const containerRef = useDataGridContainer();
   const storeApi = useDataGridStoreApi();
   const keymap = useDataGridKeymap();
-  const actions = useDataGridInternalActions();
-  const fillHandlers = useDataGridFillHandlers();
+  const actions = useDataGridActions();
   const { rowHeight, interaction } = useDataGridRootContext();
 
   // content-based dep (not the `config` object) so an inline config doesn't recompute per render;
@@ -42,8 +40,8 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
   );
 
   // the window handler reads fresh values per event without re-attaching on every config change
-  const latestRef = useRef({ keymap, enabled, actions, fillHandlers, scrollCellIntoView: interaction.scrollCellIntoView, rowHeight });
-  latestRef.current = { keymap, enabled, actions, fillHandlers, scrollCellIntoView: interaction.scrollCellIntoView, rowHeight };
+  const latestRef = useRef({ keymap, enabled, actions, scrollCellIntoView: interaction.scrollCellIntoView, rowHeight });
+  latestRef.current = { keymap, enabled, actions, scrollCellIntoView: interaction.scrollCellIntoView, rowHeight };
 
   // one id per mount: a fresh id on every effect run would drop the grid's focus ownership
   // (lastFocusedGrid would no longer match) whenever the effect re-runs
@@ -80,7 +78,6 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
         include: (a) => storeApi.getState().commands?.[a]?.scope !== "editing",
       });
       if (action === null) return;
-      const fill = latest.fillHandlers;
       dispatchGridAction({
         action,
         actions: latest.actions,
@@ -90,9 +87,6 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
         rowHeight: latest.rowHeight,
         triggerKey: isPrintableKey(event) ? event.key : undefined,
         preventDefault: () => event.preventDefault(),
-        fillDown: fill?.fillDown,
-        fillRight: fill?.fillRight,
-        cancelFillDrag: fill?.cancelFillDrag,
       });
     }
 

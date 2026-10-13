@@ -4,10 +4,10 @@ import { createContext, use, useEffect, useId, useImperativeHandle, useLayoutEff
 import type { StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
 import { useStoreWithEqualityFn } from "zustand/traditional";
-import { isDev } from "../is-dev";
 import { apiHandleOf } from "./api";
-import { checkDevGuardrails, checkDuplicateColumnIds, checkUnresolvableColumnTypes, warnDev, warnExternalStoreSyncPropsOnce } from "./commit";
-import { holeRowId, publicActionsOf, rowIdAtViewRow } from "./compute";
+import { checkDevGuardrails, checkDuplicateColumnIds, checkUnresolvableColumnTypes, warnExternalStoreSyncPropsOnce } from "./commit";
+import { holeRowId, rowIdAtViewRow } from "./compute";
+import { getInternalActions } from "./internal-actions";
 import { createDataGridStore } from "./create-store";
 import { toInternalSyncProps } from "./types";
 import type { AnyColumnDef, DataGridActions, DataGridProviderProps, DataGridStoreState, DataGridStoreStateOf, DataGridSyncProps, InternalSyncProps } from "./types";
@@ -99,8 +99,6 @@ const CONFIG_KEYS = [
   "keymap",
   "onDataChange",
   "validateRow",
-  "onUndo",
-  "onRedo",
   "processCellForClipboard",
   "processCellFromClipboard",
   "processPaste",
@@ -123,8 +121,7 @@ const CONFIG_KEYS = [
   "onFilterChange",
   "onJoinOperatorChange",
   "onSearchTextChange",
-  "overlayPlugins",
-  "rowBands",
+  "plugins",
   "autosizeOnMount",
   "onColumnLayoutChange",
   "onColumnResizing",
@@ -186,7 +183,7 @@ function useGridStoreCore<TData>(
   // in the store closure, so the wiring is a store action, like _subscribeEditEnd.
   useEffect(() => {
     if (externalStore) return;
-    return store.getState().actions._subscribeSelection();
+    return getInternalActions(store)._subscribeSelection();
   }, [store, externalStore]);
   useEffect(() => {
     if (externalStore) return;
@@ -194,7 +191,7 @@ function useGridStoreCore<TData>(
   }, [store, externalStore]);
   useEffect(() => {
     if (externalStore) return;
-    return store.getState().actions._subscribeEditEnd();
+    return getInternalActions(store)._subscribeEditEnd();
   }, [store, externalStore]);
 
   // Config phase: the slice that feeds no derived state. The layout timing closes the write
@@ -204,20 +201,8 @@ function useGridStoreCore<TData>(
     if (externalStore) return;
     const last = lastConfig.current;
     if (last !== null && !sliceChanged(last, internalInit, CONFIG_KEYS)) return;
-    if (isDev() && last !== null) {
-      if (last.overlayPlugins !== undefined && last.overlayPlugins !== internalInit.overlayPlugins) {
-        warnDev(
-          "overlayPlugins array identity changed since the last render; pass a stable reference (module scope or useMemo) or every render re-syncs the provider props into the store",
-        );
-      }
-      if (last.rowBands !== undefined && last.rowBands !== internalInit.rowBands) {
-        warnDev(
-          "rowBands identity changed since the last render; pass a stable reference (the add-on's hook already returns one) or every render recomputes band heights/aria-rowcount",
-        );
-      }
-    }
     lastConfig.current = internalInit;
-    store.getState().actions._syncConfig(internalInit);
+    getInternalActions(store)._syncConfig(internalInit);
   });
 
   // Recompute phase: the derived-state inputs, off the layout-effect path.
@@ -230,11 +215,11 @@ function useGridStoreCore<TData>(
     checkDuplicateColumnIds(internalInit.columns, warnedDuplicateColumnIds.current);
     prevColumns.current = internalInit.columns;
     prevData.current = internalInit.data;
-    store.getState().actions._syncProps(internalInit);
+    getInternalActions(store)._syncProps(internalInit);
     checkUnresolvableColumnTypes(internalInit.columns, store.getState().cellTypes, warnedColumnTypes.current);
   });
 
-  return { store, actions: publicActionsOf(store.getState().actions) };
+  return { store, actions: store.getState().actions };
 }
 
 /**

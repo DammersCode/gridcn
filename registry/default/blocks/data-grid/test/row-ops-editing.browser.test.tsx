@@ -11,7 +11,8 @@ import {
   DataGridRoot,
   type DataGridSyncProps,
 } from "../data-grid";
-import { useDataGridStoreApi, gridAttrSelector, type DataGridStoreState } from "../data-grid-sdk";
+import { gridAttrSelector } from "../data-grid-sdk";
+import { useDataGridStoreApi, type DataGridStoreState } from "../store";
 import type { DataChange } from "../types";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply (same convention as column-ux.browser.test.tsx)
 import "@/app/global.css";

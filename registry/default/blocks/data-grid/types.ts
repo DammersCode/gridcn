@@ -1,7 +1,8 @@
 import type { ComponentType, FC, ReactNode } from "react";
-import type { StoreApi } from "zustand/vanilla";
 import type { KeyBinding } from "./keyboard/key-syntax";
 import type { AnyColumnDef, DataGridActions, DataGridStoreState } from "./store/types";
+import type { RowBandRenderCtx } from "./layout-context";
+import type { OverlayPluginCtx } from "./overlays";
 
 export type { KeyBinding };
 
@@ -705,15 +706,15 @@ export type GridAction = keyof GridActions;
 export type CommandGroup = "navigation" | "selection" | "editing" | "clipboardFill" | "history" | "other";
 
 /**
- * The imperative handle of one grid: the stable actions object, the raw store, non-reactive state
- * reads, and the two DOM gestures (scroll, focus). Obtain it from `<DataGrid ref>`, from
+ * The imperative handle of one grid: the stable actions object, the read-only store, non-reactive
+ * state reads, and the two DOM gestures (scroll, focus). Obtain it from `<DataGrid ref>`, from
  * `<DataGridProvider ref>`, or from {@link useDataGridApi} anywhere under the provider.
  */
 export type DataGridApi<TData> = {
-  /** The same stable object `useDataGridActions` returns. */
+  /** The same stable object `useDataGridActions` returns (public actions only). */
   actions: DataGridActions;
-  /** The same store `useDataGridStoreApi` returns (row-agnostic — `getRow` is the typed read). */
-  store: StoreApi<DataGridStoreState>;
+  /** The read-only store view {@link useDataGridStoreApi} returns: no `setState` — the consumer's writable store is `useDataGridStoreProps` (row-agnostic — `getRow` is the typed read). */
+  store: DataGridStoreWrapper;
   /** Scrolls the cell named by the ref into view; a ref that no longer resolves no-ops (dev-warned once per grid). */
   scrollTo(ref: CellRef): void;
   /** Focuses the active cell's element, first scrolling an off-window active cell into view; with no active cell it focuses the grid (whose focus onboarding seeds (0,0)). No-ops while an edit session is open — focusing would blur the editor and commit it. */
@@ -730,6 +731,91 @@ export type DataGridApi<TData> = {
   getRow(viewRowIndex: number): TData | undefined;
   /** The row id of every view row, in view order; an unloaded row (a lazy hole) gets its placeholder id, like `useDataGridRowIds`. */
   getViewRowIds(): readonly string[];
+};
+
+/**
+ * The store state as plugins and the `api.store` handle see it: every state field except the
+ * consumer's `on*` event callbacks and the core's internal impl slots. State reads return the
+ * store's live objects (`data`, `selection`, `columns`) — they must not be mutated (no copy is
+ * made; a copy per read would cost O(n) on the hot path).
+ */
+export type DataGridReadState = Omit<
+  DataGridStoreState,
+  | "onDataChange"
+  | "onValidationError"
+  | "onEditStart"
+  | "onEditEnd"
+  | "onSortChange"
+  | "onFilterChange"
+  | "onJoinOperatorChange"
+  | "onSearchTextChange"
+  | "onColumnLayoutChange"
+  | "onColumnResizing"
+  | "onSelectionChange"
+  | "onActiveCellChange"
+  | "onCellDoubleClick"
+  | "onCellContextMenu"
+  | "onCellClick"
+  | "onRowClick"
+  | "onRowWindowChange"
+  | "scrollToCellImpl"
+  | "focusImpl"
+  | "measureFonts"
+  | "dataWrite"
+>;
+
+/**
+ * The read-only store view behind `DataGridApi.store` and `useDataGridStoreApi`: `getState` and
+ * `subscribe` only — `setState` does not exist on it. The consumer's writable store (the
+ * store-ownership path) is `useDataGridStoreProps`.
+ */
+export type DataGridStoreWrapper = {
+  getState(): DataGridReadState;
+  getInitialState(): DataGridReadState;
+  subscribe(listener: (state: DataGridReadState, prevState: DataGridReadState) => void): () => void;
+};
+
+/**
+ * One entry of the `plugins` prop: an add-on that reaches into the grid. Members are optional;
+ * `name` is the React key of the plugin's components and its identity — unique per grid (a dev
+ * error when two plugins share a name). `Overlay` renders into the overlay layer (after the
+ * built-in range layers, before the active-cell ring); `rowBands` contributes to the top/bottom
+ * row bands; `onDataChange` observes every data change AFTER the store write and the consumer's
+ * `onDataChange`; `commands`/`keymap` join the grid's command and keymap merges; `Mount` renders
+ * inside `DataGridRoot` after its children for engine work (pointer handlers, listeners). Array
+ * order is precedence and visual order. A plugin object attaches to ONE grid.
+ */
+export type DataGridPlugin<TData = unknown> = {
+  /** Unique per grid: the React key of the plugin's components and its identity in the store. */
+  name: string;
+  /** A component rendered by `DataGridOverlays` with the overlay ctx (window clamp + pin-zone helpers). */
+  Overlay?: ComponentType<OverlayPluginCtx>;
+  /** Row-band contribution: which rows land in which band plus the painter. */
+  rowBands?: PluginRowBands;
+  /** Observes every data change after the store write and the consumer's `onDataChange`; a throwing observer logs and does not stop the others. */
+  onDataChange?(next: readonly TData[], change: DataChange<TData>, ctx: DataGridPluginCtx<TData>): void;
+  /** This plugin's commands, merged into the grid's command map (the consumer's `commands` win; a built-in action name is dropped unless pluggable). */
+  commands?: Record<string, GridCommand<TData>>;
+  /** Binds THIS plugin's commands only: an entry naming a command the plugin does not define is dropped, dev-warned; a binding the grid's default keymap or the consumer's `keymap` already uses is dropped, dev-warned. */
+  keymap?: Keymap;
+  /** A component rendered inside `DataGridRoot` after its children (no props — read the grid through {@link useDataGridApi}). */
+  Mount?: ComponentType;
+};
+
+/** The row-band contribution of a {@link DataGridPlugin}. */
+export type PluginRowBands = {
+  /** Rows for the top band (above the first data row); omit for no top band. */
+  top?: readonly unknown[];
+  /** Rows for the bottom band (below the last data row); omit for no bottom band. */
+  bottom?: readonly unknown[];
+  /** Paints this plugin's rows of one band; called as a plain function during the root's render — a band that needs state renders a component inside the returned node. */
+  render(ctx: RowBandRenderCtx): ReactNode;
+};
+
+/** What a {@link DataGridPlugin} `onDataChange` observer receives besides the change. */
+export type DataGridPluginCtx<TData = unknown> = {
+  /** The grid's imperative handle for the grid the change belongs to. */
+  api: DataGridApi<TData>;
 };
 
 /** The context a custom command's `run`/`when` receives, built fresh from the live store at dispatch time. */

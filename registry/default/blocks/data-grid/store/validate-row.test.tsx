@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createDataGridStore } from "./create-store";
+import { getInternalActions } from "./internal-actions";
 import type { InternalSyncProps } from "./types";
 
 type Row = { id: string; price: number; discount: number; note: string };
@@ -117,7 +118,7 @@ describe("a getRowId swapped together with data", () => {
     const store = keyedStore();
     store.getState().actions.setCellErrors([{ rowId: "a", columnId: "note", message: "server" }]);
 
-    store.getState().actions._syncProps({
+    getInternalActions(store)._syncProps({
       data: [{ id: "a", key: "k1", price: 100, discount: 10, note: "" }],
       columns,
       getRowId: byKey,
@@ -131,12 +132,12 @@ describe("a getRowId swapped together with data", () => {
     store.getState().actions.updateCells([{ rowId: "a", columnId: "discount", value: 400 }]);
     expect(store.getState().cellErrors.get("a:discount")).toBe("discount above price");
 
-    store.getState().actions._syncProps({
+    getInternalActions(store)._syncProps({
       data: [{ id: "a", key: "k1", price: 100, discount: 400, note: "" }],
       columns,
       getRowId: byKey,
     } as InternalSyncProps);
-    store.getState().actions._syncProps({
+    getInternalActions(store)._syncProps({
       data: [{ id: "x", key: "a", price: 100, discount: 10, note: "" }],
       columns,
       getRowId: byKey,
@@ -159,7 +160,7 @@ describe("a getRowId swap that keeps the data array", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const store = makeStore({ data, getRowId: (row) => (row as Keyed).id });
 
-    store.getState().actions._syncProps({ data, columns, getRowId: (row: unknown) => (row as Keyed).id } as InternalSyncProps);
+    getInternalActions(store)._syncProps({ data, columns, getRowId: (row: unknown) => (row as Keyed).id } as InternalSyncProps);
 
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
@@ -169,8 +170,8 @@ describe("a getRowId swap that keeps the data array", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const store = makeStore({ data, getRowId: (row) => (row as Keyed).id });
 
-    store.getState().actions._syncProps({ data, columns, getRowId: (row: unknown) => (row as Keyed).key } as InternalSyncProps);
-    store.getState().actions._syncProps({ data, columns, getRowId: (row: unknown) => `x-${(row as Keyed).key}` } as InternalSyncProps);
+    getInternalActions(store)._syncProps({ data, columns, getRowId: (row: unknown) => (row as Keyed).key } as InternalSyncProps);
+    getInternalActions(store)._syncProps({ data, columns, getRowId: (row: unknown) => `x-${(row as Keyed).key}` } as InternalSyncProps);
 
     expect(warn).toHaveBeenCalledTimes(1);
     expect(String(warn.mock.calls[0]![0])).toContain("getRowId");
@@ -182,7 +183,7 @@ describe("a getRowId swap that keeps the data array", () => {
     const sparse = [undefined, data[0], undefined] as unknown as Keyed[];
     const store = makeStore({ data: sparse, getRowId: (row) => (row as Keyed).id });
 
-    store.getState().actions._syncProps({ data: sparse, columns, getRowId: (row: unknown) => (row as Keyed).id } as InternalSyncProps);
+    getInternalActions(store)._syncProps({ data: sparse, columns, getRowId: (row: unknown) => (row as Keyed).id } as InternalSyncProps);
 
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();

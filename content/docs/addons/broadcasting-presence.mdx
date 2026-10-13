@@ -49,13 +49,11 @@ positions, so a peer with a different local sort or filter resolves every ref ag
 view. Send `next` as-is — no hooks, no column-indexing by hand:
 
 ```tsx
-const overlayPlugins = useMemo(() => [plugin], [plugin]);
-
 <DataGridProvider
   data={data}
   columns={columns}
   getRowId={getRowId}
-  overlayPlugins={overlayPlugins}
+  plugins={[plugin]}
   onSelectionChange={(next) => {
     if (!next.range && next.rowIds.length === 0 && next.columnIds.length === 0) {
       // cleared — send the leave message instead

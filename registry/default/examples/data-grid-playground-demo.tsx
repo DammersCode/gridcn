@@ -278,8 +278,8 @@ function useTotalsBand(enabled: boolean) {
     setTotalsRow((prev) => ({ ...prev, ...row }));
   }, []);
   const bottom = useMemo(() => (enabled ? [totalsRow] : []), [enabled, totalsRow]);
-  const { rowBands } = useDataGridPinnedRows({ bottomRows: bottom });
-  return { rowBands, onTotalsChange };
+  const { plugin: pinnedRowsPlugin } = useDataGridPinnedRows({ bottomRows: bottom });
+  return { pinnedRowsPlugin, onTotalsChange };
 }
 
 /** Toolbar + keybindings dialog shared identically across all three row-supply modes. */
@@ -322,11 +322,11 @@ function PlaygroundToolbar({
 /** The virtualized (default, no row-supply add-on) subtree: plain in-memory data via `useDataGridState`, full control set live. */
 function VirtualizedGrid({ controls }: { controls: PlaygroundControls }): ReactNode {
   const grid = useDataGridState(useMemo(() => generateDemoRows(60), []), { getRowId: (row) => row.id });
-  const { plugin: fillPlugin, FillHandleTracker } = useDataGridFill({});
+  const { plugin: fillPlugin } = useDataGridFill({});
   const { plugin: presencePlugin, setPresenceHighlights } = useDataGridPresence();
-  const overlayPlugins = useMemo(() => [fillPlugin, presencePlugin], [fillPlugin, presencePlugin]);
   const [keybindingsOpen, setKeybindingsOpen] = useState(false);
-  const { rowBands, onTotalsChange } = useTotalsBand(controls.pinnedTotals);
+  const { pinnedRowsPlugin, onTotalsChange } = useTotalsBand(controls.pinnedTotals);
+  const plugins = useMemo(() => [...grid.plugins, fillPlugin, presencePlugin, pinnedRowsPlugin], [grid.plugins, fillPlugin, presencePlugin, pinnedRowsPlugin]);
   const rowIds = useMemo(() => grid.data.map((row) => row.id), [grid.data]);
 
   usePresenceDriver(setPresenceHighlights, controls.presence);
@@ -335,11 +335,10 @@ function VirtualizedGrid({ controls }: { controls: PlaygroundControls }): ReactN
     <DataGridProvider
       {...grid}
       columns={controls.columns}
-      overlayPlugins={overlayPlugins}
+      plugins={plugins}
       rowMarkers={controls.rowMarkers}
       headerClickBehavior={controls.headerClickBehavior}
-       rowBands={rowBands}
-       enableRowReorder={controls.enableRowReorder}
+      enableRowReorder={controls.enableRowReorder}
       readOnly={controls.readOnly}
     >
       {controls.pinnedTotals && <DataGridAggregateReporter specs={AGGREGATE_SPECS} onChange={onTotalsChange} />}
@@ -358,7 +357,6 @@ function VirtualizedGrid({ controls }: { controls: PlaygroundControls }): ReactN
           <DataGridKeybindingsShortcut onOpen={() => setKeybindingsOpen(true)} />
           <DataGridHeader />
           <DataGridBody />
-          <FillHandleTracker />
         </DataGridRoot>
       </DataGridContextMenu>
     </DataGridProvider>
@@ -369,11 +367,11 @@ function VirtualizedGrid({ controls }: { controls: PlaygroundControls }): ReactN
 function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNode {
   const [rows, setRows] = useState(() => generateDemoRows(120));
   const pager = useDataGridPagination({ data: rows, pageSize: 20 });
-  const { plugin: fillPlugin, FillHandleTracker } = useDataGridFill({});
+  const { plugin: fillPlugin } = useDataGridFill({});
   const { plugin: presencePlugin, setPresenceHighlights } = useDataGridPresence();
-  const overlayPlugins = useMemo(() => [fillPlugin, presencePlugin], [fillPlugin, presencePlugin]);
   const [keybindingsOpen, setKeybindingsOpen] = useState(false);
-  const { rowBands, onTotalsChange } = useTotalsBand(controls.pinnedTotals);
+  const { pinnedRowsPlugin, onTotalsChange } = useTotalsBand(controls.pinnedTotals);
+  const plugins = useMemo(() => [fillPlugin, presencePlugin, pinnedRowsPlugin], [fillPlugin, presencePlugin, pinnedRowsPlugin]);
   const rowIds = useMemo(() => rows.map((row) => row.id), [rows]);
 
   usePresenceDriver(setPresenceHighlights, controls.presence);
@@ -392,10 +390,9 @@ function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNod
         columns={controls.columns}
         getRowId={(row) => row.id}
         onDataChange={onDataChange}
-        overlayPlugins={overlayPlugins}
+        plugins={plugins}
         rowMarkers={controls.rowMarkers}
         headerClickBehavior={controls.headerClickBehavior}
-        rowBands={rowBands}
         enableRowReorder={controls.enableRowReorder}
         readOnly={controls.readOnly}
       >
@@ -415,7 +412,6 @@ function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNod
             <DataGridKeybindingsShortcut onOpen={() => setKeybindingsOpen(true)} />
             <DataGridHeader />
             <DataGridBody />
-            <FillHandleTracker />
           </DataGridRoot>
         </DataGridContextMenu>
       </DataGridProvider>
@@ -531,9 +527,9 @@ function LazySortedGrid({
     fetchRows: fetchSorted,
     getRowId: (row) => row.id,
   });
-  const { plugin: fillPlugin, FillHandleTracker } = useDataGridFill({});
+  const { plugin: fillPlugin } = useDataGridFill({});
   const { plugin: presencePlugin, setPresenceHighlights } = useDataGridPresence();
-  const overlayPlugins = useMemo(() => [fillPlugin, presencePlugin], [fillPlugin, presencePlugin]);
+  const plugins = useMemo(() => [fillPlugin, presencePlugin], [fillPlugin, presencePlugin]);
   const [keybindingsOpen, setKeybindingsOpen] = useState(false);
 
   usePresenceDriver(setPresenceHighlights, controls.presence);
@@ -544,7 +540,7 @@ function LazySortedGrid({
       columns={controls.columns}
       getRowId={lazy.gridProps.getRowId}
       onDataChange={lazy.onDataChange}
-      overlayPlugins={overlayPlugins}
+      plugins={plugins}
       rowMarkers={controls.rowMarkers}
       headerClickBehavior={controls.headerClickBehavior}
       sortState={NO_CLIENT_SORT}
@@ -571,7 +567,6 @@ function LazySortedGrid({
           <DataGridKeybindingsShortcut onOpen={() => setKeybindingsOpen(true)} />
           <DataGridHeader />
           <DataGridBody />
-          <FillHandleTracker />
         </DataGridRoot>
       </DataGridContextMenu>
     </DataGridProvider>

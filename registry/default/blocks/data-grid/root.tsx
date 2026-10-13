@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Fragment,
   useEffect,
   useMemo,
   useRef,
@@ -12,15 +13,16 @@ import { DirectionProvider } from "@base-ui/react/direction-provider";
 import { cn } from "@/lib/utils";
 import type { DensityMode, GetCellClassName, GetRowClassName } from "./types";
 import {
+  useDataGridActions,
   useDataGridInternalActions,
   useDataGridActiveColumn,
-  useDataGridFillHandlers,
   useDataGridHasActiveCell,
   useDataGridInstanceId,
   useDataGridKeymap,
   useDataGridLabels,
+  useDataGridPluginBands,
+  useDataGridPluginMounts,
   useDataGridReadOnly,
-  useDataGridRowBands,
   useDataGridRowCount,
   useDataGridSelectionConfig,
   useDataGridSelector,
@@ -209,14 +211,24 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // labels.grid.emptyState is the translatable default; the emptyState prop (node or function) still wins when provided.
   const gridLabels = useDataGridLabels().grid;
   const emptyStateLabel = gridLabels.emptyState;
-  // Provider-level seam: defaults to EMPTY_ROW_BANDS (store.tsx) when no add-on registered one —
-  // same identity-guardrailed sync-prop pattern as overlayPlugins, read here (not via a
-  // DataGridRootProps prop) so it's available before DataGridRoot even mounts.
-  const rowBands = useDataGridRowBands();
-  const pinnedTopRows = rowBands.topRows;
-  const pinnedBottomRows = rowBands.bottomRows;
-  const pinnedTopHeight = pinnedTopRows.length * rowHeight;
-  const pinnedBottomHeight = pinnedBottomRows.length * rowHeight;
+  // The resolved row-band segments (every plugin's `rowBands`, in plugin array order); an empty
+  // shared identity when no plugin contributes bands.
+  const bands = useDataGridPluginBands();
+  const topBandRowCount = bands.top.reduce((n, seg) => n + seg.rows.length, 0);
+  const bottomBandRowCount = bands.bottom.reduce((n, seg) => n + seg.rows.length, 0);
+  const mounts = useDataGridPluginMounts();
+  // A band's segments stack in plugin array order; a segment's ARIA row offset is the rows the earlier segments take.
+  // No render-scope accumulator: the compiler bails on a `let` reassigned inside the map callback.
+  const topSegments = bands.top.map((segment, index) => ({
+    segment,
+    offset: bands.top.slice(0, index).reduce((n, seg) => n + seg.rows.length, 0),
+  }));
+  const bottomSegments = bands.bottom.map((segment, index) => ({
+    segment,
+    offset: bands.bottom.slice(0, index).reduce((n, seg) => n + seg.rows.length, 0),
+  }));
+  const pinnedTopHeight = topBandRowCount * rowHeight;
+  const pinnedBottomHeight = bottomBandRowCount * rowHeight;
   // Effective header height: the sticky header track PLUS any pinned-top band — every "data row 0
   // starts here" computation (row window, scroll-into-view, canvas transform) uses this, not
   // HEADER_HEIGHT alone, so the pinned-top band is treated as part of the fixed chrome above the
@@ -268,46 +280,38 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   }, [lefts, rights, rowHeight, pins, widths, layout.markerWidth, effectiveHeaderHeight, pinnedBottomHeight, direction]);
   const hasPinnedLeft = interactionLayout.pinnedLeftWidth > 0;
   const hasPinnedRight = interactionLayout.pinnedRightWidth > 0;
-  // Registered by the `data-grid-fill` add-on's tracker component — it must render
-  // somewhere inside THIS subtree to reach scrollRef/layout via useDataGridRootContext, a level
-  // below this very hook call, so it reaches back up through the store rather than a prop (see
-  // `fillHandlers`'s doc comment in store.tsx). `null` (add-on absent, or not yet mounted) makes
-  // mod+D/mod+R/Escape-mid-drag no-ops — useGridInteraction already treats each as optional.
-  const fillHandlers = useDataGridFillHandlers();
   const interaction = useGridInteraction({
     scrollRef,
     layout: interactionLayout,
     keymap,
-    fillDown: fillHandlers?.fillDown,
-    fillRight: fillHandlers?.fillRight,
-    cancelFillDrag: fillHandlers?.cancelFillDrag,
   });
   useGridClipboard({ rootRef: scrollRef });
 
   // Registers this mount's scroll-into-view on the store so add-ons outside this subtree (e.g.
   // data-grid-toolbar's search, a DataGridRoot sibling) can reach it; cleared on unmount.
-  const actions = useDataGridInternalActions();
+  const actions = useDataGridActions();
+  const internalActions = useDataGridInternalActions();
   useEffect(() => {
-    actions._registerScrollToCell(interaction.scrollCellIntoView);
-    return () => actions._registerScrollToCell(null);
-  }, [actions, interaction.scrollCellIntoView]);
+    internalActions._registerScrollToCell(interaction.scrollCellIntoView);
+    return () => internalActions._registerScrollToCell(null);
+  }, [internalActions, interaction.scrollCellIntoView]);
 
   useEffect(() => {
-    actions._registerFocus(() => {
+    internalActions._registerFocus(() => {
       const root = scrollRef.current;
       if (!root) return;
       const active = Array.from(root.querySelectorAll<HTMLElement>(gridAttrSelector("active"))).find((el) => closestGridRoot(el) === root);
       (active ?? root).focus();
     });
-    return () => actions._registerFocus(null);
-  }, [actions]);
+    return () => internalActions._registerFocus(null);
+  }, [internalActions]);
 
   // Registers the autosize measure context (fonts, mounted row window, header-menu flag) so
   // store actions can size columns with canvas `measureText` without their own DOM query;
   // cleared on unmount. Declared before the autosizeOnMount effect below so a same-mount run
   // already finds the getter registered.
   useEffect(() => {
-    actions._registerMeasureFonts(() => {
+    internalActions._registerMeasureFonts(() => {
       const root = scrollRef.current;
       if (!root) return null;
       const canvas = root.querySelector<HTMLElement>("[data-grid-rows-canvas]");
@@ -325,8 +329,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
         hasHeaderMenu: Boolean(renderHeaderMenu),
       };
     });
-    return () => actions._registerMeasureFonts(null);
-  }, [actions, renderHeaderMenu]);
+    return () => internalActions._registerMeasureFonts(null);
+  }, [internalActions, renderHeaderMenu]);
 
   // autosizeOnMount: one autosize pass once the view first has rows (a lazy grid waits for its
   // first page). Runs once per mount. A saved layout wins: columns with a saved width
@@ -475,7 +479,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       headerHeight,
       pinnedTopHeight,
       pinnedBottomHeight,
-      pinnedTopCount: pinnedTopRows.length,
+      pinnedTopCount: topBandRowCount,
       template,
       interaction,
       direction,
@@ -498,7 +502,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       headerHeight,
       pinnedTopHeight,
       pinnedBottomHeight,
-      pinnedTopRows.length,
+      topBandRowCount,
       template,
       interaction,
       direction,
@@ -527,7 +531,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
         // entry point or a keyboard user can never reach the grid at all. Once a cell becomes
         // active it takes over as the sole tab stop (see cell.tsx), and the root reverts to -1.
         tabIndex={!hasActiveCell && rowCount > 0 ? 0 : -1}
-        aria-rowcount={rowCount + 1 + pinnedTopRows.length + pinnedBottomRows.length}
+        aria-rowcount={rowCount + 1 + topBandRowCount + bottomBandRowCount}
         aria-colcount={visibleColumns.length}
         aria-multiselectable={ariaMultiselectable || undefined}
         aria-readonly={readOnly || undefined}
@@ -555,28 +559,39 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
         <div style={contentStyle}>
           <div ref={viewportRef} style={viewportStyle}>
             {children}
-            {pinnedTopRows.length > 0 &&
-              rowBands.renderBand({
-                position: "top",
-                rows: pinnedTopRows,
-                windowedColumns,
-                layout,
-                rowHeight,
-                template,
-                headerHeight,
-                ariaRowIndexBase: 2,
-              })}
-            {pinnedBottomRows.length > 0 &&
-              rowBands.renderBand({
-                position: "bottom",
-                rows: pinnedBottomRows,
-                windowedColumns,
-                layout,
-                rowHeight,
-                template,
-                headerHeight,
-                ariaRowIndexBase: 2 + pinnedTopRows.length + rowCount,
-              })}
+            {mounts.map(({ name, Mount }) => (
+              <Mount key={name} />
+            ))}
+            {topSegments.map(({ segment, offset }) => (
+              <Fragment key={segment.name}>
+                {segment.render({
+                  position: "top",
+                  rows: segment.rows,
+                  rowOffset: offset,
+                  windowedColumns,
+                  layout,
+                  rowHeight,
+                  template,
+                  headerHeight,
+                  ariaRowIndexBase: 2 + offset,
+                })}
+              </Fragment>
+            ))}
+            {bottomSegments.map(({ segment, offset }) => (
+              <Fragment key={segment.name}>
+                {segment.render({
+                  position: "bottom",
+                  rows: segment.rows,
+                  rowOffset: offset,
+                  windowedColumns,
+                  layout,
+                  rowHeight,
+                  template,
+                  headerHeight,
+                  ariaRowIndexBase: 2 + topBandRowCount + rowCount + offset,
+                })}
+              </Fragment>
+            ))}
             {/* the empty state never shows while loading — a zero-row loading grid renders the skeleton below instead */}
             {rowCount === 0 && !loading && (
               <div
@@ -654,7 +669,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
             />
             <div
               data-grid-pin-shadow="top"
-              data-pinned={pinnedTopRows.length > 0 ? "" : undefined}
+              data-pinned={topBandRowCount > 0 ? "" : undefined}
               aria-hidden="true"
               className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-top:opacity-100"
               style={{
@@ -662,13 +677,13 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 insetInlineStart: `var(--grid-pin-shadow-left-x, ${interactionLayout.pinnedLeftWidth}px)`,
                 insetInlineEnd: `var(--grid-pin-shadow-right-x, ${interactionLayout.pinnedRightWidth}px)`,
                 height: SHADOW_SIZE,
-                backgroundImage: `linear-gradient(to bottom, ${shadowColor(pinnedTopRows.length > 0)}, transparent)`,
+                backgroundImage: `linear-gradient(to bottom, ${shadowColor(topBandRowCount > 0)}, transparent)`,
                 zIndex: GRID_LAYER.pinShadow,
               }}
             />
             <div
               data-grid-pin-shadow="bottom"
-              data-pinned={pinnedBottomRows.length > 0 ? "" : undefined}
+              data-pinned={bottomBandRowCount > 0 ? "" : undefined}
               aria-hidden="true"
               className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-bottom:opacity-100"
               style={{
@@ -676,7 +691,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 insetInlineStart: `var(--grid-pin-shadow-left-x, ${interactionLayout.pinnedLeftWidth}px)`,
                 insetInlineEnd: `var(--grid-pin-shadow-right-x, ${interactionLayout.pinnedRightWidth}px)`,
                 height: SHADOW_SIZE,
-                backgroundImage: `linear-gradient(to top, ${shadowColor(pinnedBottomRows.length > 0)}, transparent)`,
+                backgroundImage: `linear-gradient(to top, ${shadowColor(bottomBandRowCount > 0)}, transparent)`,
                 zIndex: GRID_LAYER.pinShadow,
               }}
             />

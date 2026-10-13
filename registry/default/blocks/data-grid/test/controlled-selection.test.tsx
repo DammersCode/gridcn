@@ -4,7 +4,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef, SelectionState } from "../types";
 import { DataGrid, DataGridProvider } from "../data-grid";
-import { useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from "../store";
+import { getInternalActions, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from "../store";
 import * as selectionStateModule from "../store/selection-state";
 
 type Row = { id: string; name: string; age: number };
@@ -47,7 +47,7 @@ function mount(props: Props) {
     store: () => api!,
     actions: () => api!.getState().actions,
     rerender: (next: Props) => view.rerender(grid(next)),
-    derived: () => api!.getState().actions._deriveSelection(),
+    derived: () => getInternalActions(api!)._deriveSelection(),
   };
 }
 

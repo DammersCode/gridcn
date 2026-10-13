@@ -5,6 +5,8 @@ import type { CellType, ColumnDef } from "../types";
 import { textCellType } from "../cell-types/cell-types";
 import { DataGrid, DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, useDataGridActions, useDataGridApi, useDataGridCellState, useDataGridRow, useDataGridScrollToCell, type DataGridApi } from "../data-grid";
 import { useDataGridStoreApi, GRID_ATTR, gridAttrSelector, type DataGridStoreState } from "../data-grid-sdk";
+import { useDataGridInternalActions, useDataGridStoreApi as useRawStoreApi } from "../store";
+import type { StoreApi } from "zustand/vanilla";
 
 type Row = { id: string; name: string; qty: number };
 
@@ -672,12 +674,21 @@ describe("DataGrid cell-type-driven rendering and editing lifecycle", () => {
     const onDataChange = vi.fn();
     const onEditEnd = vi.fn();
     const ref = createRef<DataGridApi<BoolRow>>();
+    let rawStore: StoreApi<DataGridStoreState> | null = null;
+    function RawStoreCapture() {
+      rawStore = useRawStoreApi();
+      return null;
+    }
     render(
-      <DataGrid ref={ref} data={[{ id: "1", active: false }]} columns={boolColumns} getRowId={(r) => r.id} onDataChange={onDataChange} onEditEnd={onEditEnd} />,
+      <DataGrid ref={ref} data={[{ id: "1", active: false }]} columns={boolColumns} getRowId={(r) => r.id} onDataChange={onDataChange} onEditEnd={onEditEnd}>
+        <RawStoreCapture />
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGrid>,
     );
 
     act(() => {
-      ref.current!.store.setState({ editing: { coord: { col: 0, row: 0 }, rowId: "1", columnId: "active", session: 1 } });
+      rawStore!.setState({ editing: { coord: { col: 0, row: 0 }, rowId: "1", columnId: "active", session: 1 } });
     });
 
     expect(ref.current!.store.getState().editing).toBeNull();
@@ -892,9 +903,9 @@ describe("DataGrid selection changes re-render only overlays + the two affected 
     }
     const MemoCountingRow = memo(CountingRow);
 
-    let actionsRef: DataGridStoreState["actions"] | null = null;
+    let actionsRef: ReturnType<typeof useDataGridInternalActions> | null = null;
     function ActionsCapture() {
-      actionsRef = useDataGridStoreApi().getState().actions;
+      actionsRef = useDataGridInternalActions();
       return null;
     }
 

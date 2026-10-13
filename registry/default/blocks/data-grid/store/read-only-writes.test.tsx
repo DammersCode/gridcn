@@ -2,7 +2,7 @@ import { act, render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef, DataChange } from "../types";
-import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
+import { DataGridProvider, getInternalActions, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
 import { toInternalSyncProps } from "./types";
 
 type Row = { id: string; name: string };
@@ -40,7 +40,7 @@ describe("store writes in a read-only grid", () => {
     expect(store.getState().editing).not.toBeNull();
 
     act(() =>
-      store.getState().actions._syncConfig(
+      getInternalActions(store)._syncConfig(
         toInternalSyncProps({
           defaultData: [
             { id: "a", name: "Alpha" },
@@ -111,7 +111,7 @@ describe("the readOnly flip", () => {
     act(() => store.getState().actions.startEditingAt({ row: 0, col: 0 }));
 
     act(() =>
-      store.getState().actions._syncConfig(
+      getInternalActions(store)._syncConfig(
         toInternalSyncProps({
           defaultData: [
             { id: "a", name: "Alpha" },

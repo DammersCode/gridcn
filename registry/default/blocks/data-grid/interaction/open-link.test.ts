@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import { dispatchGridAction } from "./use-grid-interaction";
 import { cellTypes } from "../cell-types/cell-types";
-import type { DataGridStoreActions, DataGridStoreState } from "../store";
+import type { DataGridActions, DataGridStoreState } from "../store";
 import type { GridAction } from "../types";
 
 const data: readonly unknown[] = [
@@ -28,7 +28,7 @@ function fakeStore(partial: Partial<DataGridStoreState>): StoreApi<DataGridStore
 }
 
 function dispatch(args: { action: GridAction; activeCell?: { col: number; row: number } | null; readOnly?: boolean }) {
-  const actions = {} as unknown as DataGridStoreActions;
+  const actions = {} as unknown as DataGridActions;
   const preventDefault = vi.fn();
   dispatchGridAction({
     action: args.action,
@@ -74,7 +74,7 @@ describe("openLink", () => {
     const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
     dispatchGridAction({
       action: "openLink",
-      actions: {} as unknown as DataGridStoreActions,
+      actions: {} as unknown as DataGridActions,
       storeApi: {
         getState: () =>
           ({
@@ -99,7 +99,7 @@ describe("openLink", () => {
     const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
     dispatchGridAction({
       action: "openLink",
-      actions: {} as unknown as DataGridStoreActions,
+      actions: {} as unknown as DataGridActions,
       storeApi: {
         getState: () =>
           ({

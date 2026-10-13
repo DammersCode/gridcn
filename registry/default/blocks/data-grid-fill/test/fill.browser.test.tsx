@@ -31,20 +31,19 @@ function mockDataChangeFn() {
   return vi.fn<(next: readonly NumRow[], change: DataChange<NumRow>) => void>();
 }
 
-/** Composes the fill add-on's hook with a real provider/root, mirroring the `data-grid-presence` test's harness pattern — plugin registered on the provider, `FillHandleTracker` rendered inside the root's subtree where scrollRef/layout live. */
+/** Composes the fill add-on's hook with a real provider/root, mirroring the `data-grid-presence` test's harness pattern — the fill plugin's Mount runs the pointer engine inside the root's subtree where scrollRef/layout live. */
 function renderFillGrid(
   data: NumRow[],
   onDataChange?: (next: readonly NumRow[], change: DataChange<NumRow>) => void,
   onFill?: (args: FillArgs) => void,
 ) {
   function Harness() {
-    const { plugin, FillHandleTracker } = useDataGridFill({ onFill });
+    const { plugin } = useDataGridFill({ onFill });
     return (
-      <DataGridProvider data={data} columns={fillColumns} getRowId={(r) => r.id} onDataChange={onDataChange} overlayPlugins={[plugin]}>
+      <DataGridProvider data={data} columns={fillColumns} getRowId={(r) => r.id} onDataChange={onDataChange} plugins={[plugin]}>
         <DataGridRoot className="h-[600px]">
           <DataGridHeader />
           <DataGridBody />
-          <FillHandleTracker />
         </DataGridRoot>
       </DataGridProvider>
     );
@@ -356,13 +355,12 @@ describe("data-grid-fill add-on", () => {
     ] as const);
 
     function Harness() {
-      const { plugin, FillHandleTracker } = useDataGridFill({});
+      const { plugin } = useDataGridFill({});
       return (
-        <DataGridProvider data={data} columns={pinnedColumns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+        <DataGridProvider data={data} columns={pinnedColumns} getRowId={(r) => r.id} plugins={[plugin]}>
           <DataGridRoot className="h-[600px] w-[400px]">
             <DataGridHeader />
             <DataGridBody />
-            <FillHandleTracker />
           </DataGridRoot>
         </DataGridProvider>
       );
@@ -396,13 +394,12 @@ describe("data-grid-fill add-on", () => {
     data[1]!.value = 4;
 
     function Harness() {
-      const { plugin, FillHandleTracker } = useDataGridFill({});
+      const { plugin } = useDataGridFill({});
       return (
-        <DataGridProvider data={data} columns={fillColumns} getRowId={(r) => r.id} onDataChange={onDataChange} overlayPlugins={[plugin]} readOnly>
+        <DataGridProvider data={data} columns={fillColumns} getRowId={(r) => r.id} onDataChange={onDataChange} plugins={[plugin]} readOnly>
           <DataGridRoot className="h-[600px]">
             <DataGridHeader />
             <DataGridBody />
-            <FillHandleTracker />
           </DataGridRoot>
         </DataGridProvider>
       );
@@ -489,13 +486,12 @@ const asyncFillColumns = defineColumns<NumRow>()([
 
 function renderAsyncFillGrid(data: NumRow[], onDataChange: ReturnType<typeof mockDataChangeFn>) {
   function Harness() {
-    const { plugin, FillHandleTracker } = useDataGridFill({});
+    const { plugin } = useDataGridFill({});
     return (
-      <DataGridProvider data={data} columns={asyncFillColumns} getRowId={(r) => r.id} onDataChange={onDataChange} overlayPlugins={[plugin]}>
+      <DataGridProvider data={data} columns={asyncFillColumns} getRowId={(r) => r.id} onDataChange={onDataChange} plugins={[plugin]}>
         <DataGridRoot className="h-[600px]">
           <DataGridHeader />
           <DataGridBody />
-          <FillHandleTracker />
         </DataGridRoot>
       </DataGridProvider>
     );

@@ -43,7 +43,7 @@ const totals: Row = { id: "totals", name: "Total", email: "", age: 145 };
  * for that so the rule checks what it's meant to.
  */
 function Fixture() {
-  const { rowBands } = useDataGridPinnedRows({ topRows: [totals] });
+  const { plugin: pinnedPlugin } = useDataGridPinnedRows({ topRows: [totals] });
   return (
     <main data-testid="fixture-root">
       <DataGridProvider
@@ -52,7 +52,7 @@ function Fixture() {
         getRowId={(r) => r.id}
         sortState={[{ columnId: "name", direction: "asc" }]}
         rowMarkers="checkbox"
-        rowBands={rowBands}
+        plugins={[pinnedPlugin]}
       >
         <DataGridToolbar>
           <DataGridSearch />

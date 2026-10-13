@@ -1,4 +1,4 @@
-import type { ReactNode, Ref } from "react";
+import type { ComponentType, ReactNode, Ref } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type {
   CellRef,
@@ -10,12 +10,14 @@ import type {
   ColumnLayout,
   DataChange,
   DataGridApi,
+  DataGridPlugin,
   FilterJoinOperator,
   FilterSpec,
   GridCommand,
   GridEditEndEvent,
   GridSelection,
   GridValidationErrorEvent,
+  GridBulkValidationError,
   HeaderClickBehavior,
   Keymap,
   OnCellClick,
@@ -26,8 +28,8 @@ import type {
   SelectionState,
   SortSpec,
 } from "../types";
-import type { OverlayPlugin } from "../overlays";
-import type { RowBandsSpec } from "../layout-context";
+import type { RowBandRenderCtx } from "../layout-context";
+import type { OverlayPluginCtx } from "../overlays";
 import type { DataGridLabels, DeepPartialLabels } from "../labels";
 import type { SearchMatch } from "../sort-filter";
 import type { ExtendDirection, SelectLineOptions } from "../selection";
@@ -97,10 +99,6 @@ export type DataGridSyncProps<TData = unknown> = {
    * insert/duplicate/delete or on consumer `data` replacement. Sync only.
    */
   validateRow?: (row: TData, rowId: string) => Record<string, string> | null;
-  /** Undo keymap action (mod+Z), skipped in a read-only grid; the `data-grid-history` add-on plugs its `undo()` in here. */
-  onUndo?: () => void;
-  /** Redo keymap action (mod+Y / mod+shift+Z), skipped in a read-only grid; the `data-grid-history` add-on plugs its `redo()` in here. */
-  onRedo?: () => void;
   /**
    * Custom cell types keyed by `ColumnDef.type`, merged OVER the built-in registry — built-ins
    * you do not name keep working. A `null` entry removes a built-in (or a previously provided
@@ -189,22 +187,18 @@ export type DataGridSyncProps<TData = unknown> = {
   /** Fires whenever the user (or `actions.setSearch`) would change the search text, controlled or not; see `searchText`. */
   onSearchTextChange?: (next: string) => void;
   /**
-   * Overlay-plugin registration: each plugin renders into the overlay layer
-   * after the fill preview but before the local active-cell ring, receiving `OverlayPluginCtx`
-   * (window-clamp + pin-zone helpers, layout vars). The `data-grid-presence` add-on is the
-   * motivating consumer. Pass a stable array reference (e.g. module scope or `useMemo`) — same
-   * dev-mode guardrail as `columns`/`getRowClassName`: an unstable identity here re-renders
-   * `DataGridOverlays` every tick for nothing.
+   * Installed plugins (add-ons that reach into the grid): overlay layers, row bands, data-change
+   * observers, commands, keymap bindings, and root mounts — one seam instead of one per add-on.
+   * Resolved at store creation (so SSR has band heights and `aria-rowcount`) and re-resolved in
+   * the config phase only when the list actually changes: an entry is unchanged when its `name`
+   * and every member keep their identity, so an inline `plugins={[fill.plugin, …]}` array is fine.
+   * Array order is precedence and visual order (overlays paint in order, later on top; top bands
+   * stack from the header down; bottom bands stack top to bottom; `Mount`s and observers run in
+   * order). A plugin object attaches to ONE grid — a second grid resolving the same object is a
+   * dev error. The list is row-shape-agnostic: a typed `DataGridPlugin<TData>` is assignable to it,
+   * and an inline plugin's `onDataChange` observer sees `unknown` rows. See {@link DataGridPlugin}.
    */
-  overlayPlugins?: readonly OverlayPlugin[];
-  /**
-   * Row-bands registration: a spec object so root.tsx can compute band heights/`aria-rowcount`
-   * SYNCHRONOUSLY at first render (no SSR/first-paint layout shift) while the actual pinned-row
-   * semantics live in the `data-grid-pinned-rows` add-on's `useDataGridPinnedRows()`. Same
-   * dev-mode identity guardrail as `overlayPlugins` — pass a stable reference (the hook already
-   * returns one).
-   */
-  rowBands?: RowBandsSpec;
+  plugins?: readonly DataGridPlugin<unknown>[];
   /**
    * Seeds `columnWidths`/`columnOrder`/`hiddenColumns`/per-column `pin` ONCE at store creation,
    * over the `columns` prop's own def defaults (`resolveColumnWidth` precedence: layout beats def).
@@ -352,6 +346,35 @@ export type SelectionChangeDetails = {
 // call those same fields without a cast either.
 /** `DataGridSyncProps` cast to the store's internal row-agnostic shape; the one unsafe cast, applied once at the boundary. */
 export type InternalSyncProps = DataGridSyncProps<unknown>;
+
+/** The overlay contribution of one resolved plugin: the component plus its `name` (the React key). */
+export type ResolvedPluginOverlay = { name: string; Overlay: ComponentType<OverlayPluginCtx> };
+
+/** The root-mount contribution of one resolved plugin: the component plus its `name` (the React key). */
+export type ResolvedPluginMount = { name: string; Mount: ComponentType };
+
+/** One band segment of the resolved row bands: one plugin's rows plus its painter. Segments stack in plugin array order (top: header down; bottom: top to bottom). */
+export type ResolvedBandSegment = {
+  name: string;
+  rows: readonly unknown[];
+  render: (ctx: RowBandRenderCtx) => ReactNode;
+};
+
+/** A data-change observer resolved from a plugin's `onDataChange`: runs after the store write and the consumer's `onDataChange`, each in its own try/catch. */
+export type PluginDataChangeObserver = (next: readonly unknown[], change: DataChange<unknown>, ctx: { api: DataGridApi<unknown> }) => void;
+
+/**
+ * The `plugins` sync prop resolved into what core consumes, written as ONE store field so the
+ * config phase can keep its reference (and the merged `commands`/`keymap` that feed from it)
+ * while the list is unchanged. `list` is the raw prop array (entry-identity compare baseline).
+ */
+export type ResolvedPlugins = {
+  list: readonly DataGridPlugin[];
+  overlays: readonly ResolvedPluginOverlay[];
+  bands: { top: readonly ResolvedBandSegment[]; bottom: readonly ResolvedBandSegment[] };
+  mounts: readonly ResolvedPluginMount[];
+  observers: readonly PluginDataChangeObserver[];
+};
 
 /**
  * `ColumnDef` widened to the store's internal row-agnostic shape (see the erasure comment above).
@@ -506,8 +529,7 @@ export type DataGridStoreState = Omit<
   | "enableColumnPinning"
   | "headerClickBehavior"
   | "labels"
-  | "overlayPlugins"
-  | "rowBands"
+  | "plugins"
   | "defaultColumnLayout"
   | "defaultSelection"
   | "selection"
@@ -584,10 +606,8 @@ export type DataGridStoreState = Omit<
     * `DataChange`, no history entry. Always {@link EMPTY_FLASHING_CELLS} identity when empty.
     */
    flashingCells: ReadonlySet<string>;
-   /** Always defined: defaults to {@link EMPTY_OVERLAY_PLUGINS} so `useDataGridOverlayPlugins` never returns undefined. See `overlayPlugins`'s doc comment (DataGridSyncProps). */
-  overlayPlugins: readonly OverlayPlugin[];
-  /** Always defined: defaults to {@link EMPTY_ROW_BANDS} (zero-length top/bottom, `render` never called) so `useDataGridRowBands` never returns undefined. See `rowBands`'s doc comment (DataGridSyncProps). */
-  rowBands: RowBandsSpec;
+    /** The `plugins` sync prop resolved (see {@link ResolvedPlugins}); always defined — an absent list resolves to empty members, so overlays/bands/mounts/observers never read undefined. */
+  plugins: ResolvedPlugins;
   lastHighlightedRow: number | null;
   lastHighlightedCol: number | null;
   columnWidths: Record<string, number>;
@@ -675,26 +695,6 @@ export type DataGridStoreState = Omit<
   /** @internal The data-write cluster's mutable context box (see `data-write.ts`); exposed here so the `useDataGridScrollToCell` ref resolution shares its row-index cache and stale-ref warn flag. */
   dataWrite: DataWriteContext;
   /**
-   * Fill-handle keymap handlers, registered by the `data-grid-fill` add-on's tracker
-   * component — which must render somewhere inside `DataGridRoot`'s subtree to reach `scrollRef`/
-   * layout via `useDataGridRootContext()`, a level `DataGridRoot`'s OWN `useGridInteraction` call
-   * (which needs these three callbacks) sits above. Registering through the store the same way
-   * `scrollToCellImpl` does resolves that ordering: `DataGridRoot` reads this slot and forwards it
-   * to `useGridInteraction` on every render; `null` (pre-mount, post-unmount, or add-on absent)
-   * makes mod+D/mod+R/Escape-mid-drag the documented no-ops.
-   */
-  fillHandlers: { fillDown: () => void; fillRight: () => void; cancelFillDrag: () => void } | null;
-  /**
-   * The `data-grid-presence` add-on's view-space activeness predicate, registered on mount and
-   * cleared on unmount (same registration pattern as `fillHandlers`): answers "is any VIEW-space
-   * (range-form) presence entry active right now". View-space entries pin to a display position,
-   * so any op that moves rows or columns in the view (row ops, immediate `updateCells`, sort,
-   * filter, join, column reorder/hide/pin, consumer data/column swaps) dev-warns once per grid
-   * when it runs while the predicate reports true; rowId-native entries track their rows and
-   * never trip it. `null` before mount/after unmount, or when the add-on is absent.
-   */
-  presenceViewSpaceActive: (() => boolean) | null;
-  /**
    * The `readOnly` sync prop, defaulted to `false`: editing and delete are disabled grid-wide,
    * independent of any per-column `readOnly`. Seeded from the provider's init props (SSR and the
    * first client paint already see it) and kept in sync by the config phase, so a flip to `true`
@@ -709,11 +709,12 @@ export type DataGridStoreState = Omit<
    * are content-equal (see `keymapContentEqual`). `DEFAULT_KEYMAP` when no prop is passed.
    */
   keymap: Keymap;
-  /** The `commands` sync prop (see {@link DataGridSyncProps.commands}); `null` when none — the dispatch target for custom keymap names. */
+  /** The merged command map: `DEFAULT_KEYMAP`'s pluggable bodies replaced by the plugins' and the consumer's `commands` (plugins in array order, the consumer last and silently winning). `null` when no plugin or consumer command exists. */
   commands: Record<string, GridCommand<unknown>> | null;
   /** {@link DEFAULT_LABELS} deep-merged with the `labels` sync prop; see {@link useDataGridLabels}. */
   labels: DataGridLabels;
-  actions: DataGridStoreActions;
+  /** The public actions only — the `_`-prefixed internals live in the store-private table ({@link getInternalActions}), never in state. */
+  actions: DataGridActions;
 };
 
 /** `DataGridStoreState` with `data` typed as `readonly TData[]` — the state view {@link useDataGridSelector} hands its selector. Every row in `data` originated from the grid's own `TData`-typed `data`/`defaultData` prop, so the widening is safe. */
@@ -877,8 +878,9 @@ export type DataGridActions = {
    * a single `source`-tagged DataChange batch. Dedupes multiple updates to the same row/column
    * (last write wins), skips readOnly cells and no-op writes, preserves identity of untouched rows,
    * suppresses an empty batch entirely, and moves the selection to cover the touched view rect.
+   * With `rejected` present, fires `onValidationError` (same `source`) after the write settles.
    */
-  applyCellUpdates(updates: { viewRowIndex: number; columnId: string; value: unknown }[], source: DataChange<unknown>["source"]): void;
+  applyCellUpdates(updates: { viewRowIndex: number; columnId: string; value: unknown }[], source: DataChange<unknown>["source"], rejected?: readonly GridBulkValidationError[]): void;
   /**
    * The streaming write path: applies id-keyed {@link CellPatch}es in ONE `set()` and skips the
    * `computeViewIndex`/`computeSearchMatches` rebuild that a `data` prop replacement forces. This is
@@ -961,12 +963,13 @@ export type DataGridInternalActions = {
   _syncProps(props: InternalSyncProps): void;
   /**
    * @internal Syncs the config slice (every sync prop that feeds no derived state: `readOnly`,
-   * `keymap`, the `enable*` flags, `rowMarkers`, `headerClickBehavior`, `labels`, `commands`,
-   * `overlayPlugins`, `rowBands`, `autosizeOnMount`, and every `on*`/`process*`/`validateRow`/
+   * `keymap`, the `enable*` flags, `rowMarkers`, `headerClickBehavior`, `labels`, `plugins`,
+   * `commands`, `autosizeOnMount`, and every `on*`/`process*`/`validateRow`/
    * `createRow`/`duplicateRow` callback) into the store, run from the provider's layout effect so
-   * a `readOnly` flip is live before the browser paints or dispatches the next event. A `keymap`
-   * content change runs the dev-only binding validation here; `readOnly` turning on cancels an
-   * open edit session. Not part of the public hook surface.
+   * a `readOnly` flip is live before the browser paints or dispatches the next event. A changed
+   * `plugins` list or `keymap` re-resolves and re-merges (the keymap then runs the dev-only binding
+   * validation); a `readOnly` flip on cancels an open edit session. Not part of the public hook
+   * surface.
    */
   _syncConfig(props: InternalSyncProps): void;
   /**
@@ -990,14 +993,6 @@ export type DataGridInternalActions = {
   _registerFocus(impl: (() => void) | null): void;
   /** @internal `DataGridRoot` registers/clears its autosize measure context (fonts, mounted row window, header-menu flag) on mount/unmount; `autosizeColumns` reads it lazily. Not part of the public hook surface. */
   _registerMeasureFonts(impl: (() => AutosizeMeasureContext | null) | null): void;
-  /** @internal the `data-grid-fill` add-on's tracker component registers/clears its keymap handlers on mount/unmount; not part of the public hook surface. */
-  _registerFillHandlers(handlers: { fillDown: () => void; fillRight: () => void; cancelFillDrag: () => void } | null): void;
-  /**
-   * @internal the `data-grid-presence` add-on registers/clears its view-space-activeness predicate
-   * (see `presenceViewSpaceActive`) on mount/unmount; view-moving ops dev-warn once when they run
-   * while it reports true. Not part of the public hook surface.
-   */
-  _registerPresenceViewSpaceActive(impl: (() => boolean) | null): void;
   /**
    * @internal Drops the flash keys whose row left `keptViewRows` (the body's rendered window),
    * so a cell that scrolls out and back in never replays its one-shot pulse. Not part of the
@@ -1005,9 +1000,6 @@ export type DataGridInternalActions = {
    */
   _pruneFlashingCells(keptViewRows: readonly number[]): void;
 };
-
-/** @internal The full `actions` object the store holds: {@link DataGridActions} plus {@link DataGridInternalActions}. */
-export type DataGridStoreActions = DataGridActions & DataGridInternalActions;
 
 /** Full store shape: interaction state + the stable actions object. */
 export type DataGridStore = DataGridStoreState;

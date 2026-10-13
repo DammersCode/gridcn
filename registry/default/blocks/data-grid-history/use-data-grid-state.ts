@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { applyChange, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
+import { useCallback, useMemo, useState } from "react";
+import { type DataChange, type DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridHistory } from "./use-data-grid-history";
 
 /** Options for {@link useDataGridState}. */
@@ -14,17 +14,16 @@ export type UseDataGridStateOptions<TData> = {
    * See `useDataGridHistory`'s `datasetKey`.
    */
   datasetKey?: string | number;
-  /** Pass the grid's `readOnly`; see `useDataGridHistory`'s `readOnly`. */
-  readOnly?: boolean;
 };
 
 /** Return value of {@link useDataGridState}, spreadable straight onto `<DataGrid {...grid} />`. */
 export type UseDataGridStateResult<TData> = {
   data: readonly TData[];
   getRowId: (row: TData, index: number) => string;
+  /** Writes the grid's next array back into the hook-owned state — the controlled-data echo the undo/redo flow relies on. */
   onDataChange: (next: readonly TData[], change: DataChange<TData>) => void;
-  onUndo: () => void;
-  onRedo: () => void;
+  /** The grid's `plugins` prop: the history plugin (observer + `undo`/`redo` commands + api stash). Combine with other plugins explicitly after the spread, e.g. `plugins={[fillPlugin, ...grid.plugins]}`. */
+  plugins: readonly DataGridPlugin<TData>[];
   /**
    * For a toolbar's undo/redo buttons, outside the spreadable `DataGrid` props. `clear` empties
    * both stacks for an imperative reset — it lives on this sub-object, not the
@@ -40,9 +39,8 @@ export type UseDataGridStateResult<TData> = {
     redo: () => void;
     clear: () => void;
     /**
-     * Applies a programmatic change (the consumer-built op batch) to the hook-owned data AND
-     * registers it as one undo entry - unlike the bare `useDataGridHistory` `record`, which only
-     * registers, because here the hook owns the array and the consumer has no other write path.
+     * Applies a programmatic change (the consumer-built op batch) to the grid AND registers it as
+     * one undo entry — one `commitChange` write, recorded by the history plugin's observer.
      */
     record: (change: DataChange<TData>, label?: string) => void;
   };
@@ -66,34 +64,34 @@ export function useDataGridState<TData>(
   defaultRows: readonly TData[],
   opts: UseDataGridStateOptions<TData>,
 ): UseDataGridStateResult<TData> {
-  const { getRowId, capacity, datasetKey, readOnly } = opts;
+  const { getRowId, capacity, datasetKey } = opts;
   const [data, setData] = useState<readonly TData[]>(defaultRows);
-  const { onDataChange, undo, redo, canUndo, canRedo, clear, historySize, record: historyRecord } = useDataGridHistory({
-    data,
-    setData,
-    getRowId,
-    capacity,
-    datasetKey,
-    readOnly,
-  });
+  const history = useDataGridHistory<TData>({ capacity, datasetKey });
   // stable identity: useDataGridRowIdToViewRow keys its O(n) Map build on getRowId identity.
   const gridGetRowId = useCallback((row: TData, index: number) => getRowId(row, index), [getRowId]);
 
-  const record = useCallback(
-    (change: DataChange<TData>, label?: string) => {
-      const tagged = label ? { ...change, label } : change;
-      setData((current) => applyChange(current, tagged, gridGetRowId));
-      historyRecord(tagged);
-    },
-    [historyRecord, gridGetRowId],
-  );
+  const onDataChange = useCallback((next: readonly TData[]) => {
+    setData(next);
+  }, []);
+
+  const historyPlugin = history.plugin;
+  // a fresh `[historyPlugin]` per render is entry-equal (no re-resolution), but the config phase
+  // keys its sync on array identity — a stable reference skips the store set entirely
+  const plugins = useMemo(() => [historyPlugin], [historyPlugin]);
 
   return {
     data,
     getRowId: gridGetRowId,
     onDataChange,
-    onUndo: undo,
-    onRedo: redo,
-    history: { canUndo, canRedo, historySize, undo, redo, clear, record },
+    plugins,
+    history: {
+      canUndo: history.canUndo,
+      canRedo: history.canRedo,
+      historySize: history.historySize,
+      undo: history.undo,
+      redo: history.redo,
+      clear: history.clear,
+      record: history.record,
+    },
   };
 }

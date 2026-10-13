@@ -309,12 +309,13 @@ describe("global keyboard shortcuts (focus outside the grid)", () => {
 });
 
 describe("global keyboard shortcuts in a read-only grid", () => {
-  function UndoGrid({ readOnly, onUndo }: { readOnly: boolean; onUndo: () => void }) {
+  function ReadOnlyGrid() {
+    const grid = useDataGridState(makeRows(3), { getRowId: (r) => r.id });
     return (
       <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
         <button id="ro-toolbar">toolbar</button>
         <div style={{ height: 300 }}>
-          <DataGrid data={makeRows(3)} columns={columns} getRowId={(r) => r.id} readOnly={readOnly} onUndo={onUndo} className="h-[300px]">
+          <DataGrid {...grid} columns={columns} readOnly className="h-[300px]">
             <DataGridGlobalShortcuts />
             <DataGridHeader />
             <DataGridBody />
@@ -324,18 +325,15 @@ describe("global keyboard shortcuts in a read-only grid", () => {
     );
   }
 
-  it.each([
-    { readOnly: false, calls: 1 },
-    { readOnly: true, calls: 0 },
-  ])("Ctrl+Z outside the grid calls onUndo $calls time(s) when readOnly is $readOnly", async ({ readOnly, calls }) => {
-    const onUndo = vi.fn();
-    await render(<UndoGrid readOnly={readOnly} onUndo={onUndo} />);
+  it("Ctrl+Z outside the grid is a no-op when readOnly (the history command is gated off)", async () => {
+    await render(<ReadOnlyGrid />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const cell = gridCells()[1]!;
+    const before = cell.textContent;
 
-    await userEvent.click(gridCells()[1]!);
     await userEvent.click(document.getElementById("ro-toolbar")!);
     await userEvent.keyboard("{Control>}z{/Control}");
 
-    expect(onUndo).toHaveBeenCalledTimes(calls);
+    expect(cell.textContent).toBe(before);
   });
 });

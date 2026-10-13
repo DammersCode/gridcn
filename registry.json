@@ -507,6 +507,11 @@
                "target": "components/data-grid/store/index.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/store/internal-actions.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/internal-actions.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/store/row-index.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/row-index.ts"
@@ -520,6 +525,11 @@
                "path": "registry/default/blocks/data-grid/store/provider.tsx",
                "type": "registry:component",
                "target": "components/data-grid/store/provider.tsx"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/store/plugins.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/plugins.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/store/types.ts",
@@ -688,9 +698,9 @@
                "target": "components/data-grid-fill/fill-store.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid-fill/fill-tracker.tsx",
+               "path": "registry/default/blocks/data-grid-fill/fill-mount.tsx",
                "type": "registry:component",
-               "target": "components/data-grid-fill/fill-tracker.tsx"
+               "target": "components/data-grid-fill/fill-mount.tsx"
             },
             {
                "path": "registry/default/blocks/data-grid-fill/fill.ts",

@@ -34,8 +34,8 @@ import {
   selectCell as selectCellPure,
   selectionRects,
 } from "../selection";
-import type { CellRef, DataChange, DataOp, GridValidationErrorEvent, ViewCoord } from "../types";
-import type { AnyColumnDef, CellPatch, DataGridStoreActions, DataGridStoreState, UpdateCellsVerdict } from "./types";
+import type { CellRef, DataChange, DataGridApi, DataOp, GridBulkValidationError, GridValidationErrorEvent, ViewCoord } from "../types";
+import type { AnyColumnDef, CellPatch, DataGridActions, DataGridStoreState, UpdateCellsVerdict } from "./types";
 
 /**
  * The data-write cluster's streaming bookkeeping: the mutable `let` state shared by the write
@@ -74,10 +74,12 @@ export type DataWriteContext = {
   pendingEmits: (() => void)[];
   /** How many {@link writeThenEmit} writes are running, nested through store subscribers. */
   writeDepth: number;
+  /** The grid's imperative handle, handed to plugin `onDataChange` observers; set at store creation, before any write can run. */
+  pluginApi: DataGridApi<unknown> | null;
 };
 
 export function createDataWriteContext(rowIndexCache: RowIndexCache): DataWriteContext {
-  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, pendingEmits: [], writeDepth: 0 };
+  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, pendingEmits: [], writeDepth: 0, pluginApi: null };
 }
 
 /** {@link resolveCellRef} plus the once-per-grid dev-warn for a ref that no longer resolves. */
@@ -93,6 +95,8 @@ export function resolveRefOrWarn(ctx: DataWriteContext, s: DataGridStoreState, r
 /**
  * Runs `write` and queues its `onDataChange`. The queue flushes FIFO once the outermost write
  * returns, so a write that a store subscriber makes during `write` emits after it, in gesture order.
+ * The consumer's `onDataChange` runs first, then each resolved plugin observer — one try/catch
+ * per observer, so a throwing observer logs and the rest still run.
  */
 export function writeThenEmit(
   ctx: DataWriteContext,
@@ -102,7 +106,20 @@ export function writeThenEmit(
   write: () => void,
 ): void {
   const onDataChange = s.onDataChange;
-  if (onDataChange) ctx.pendingEmits.push(() => onDataChange(next, change));
+  const observers = s.plugins.observers;
+  const pluginApi = ctx.pluginApi;
+  ctx.pendingEmits.push(() => {
+    if (onDataChange) onDataChange(next, change);
+    if (observers.length === 0 || !pluginApi) return;
+    const observerCtx = { api: pluginApi };
+    for (const observer of observers) {
+      try {
+        observer(next, change, observerCtx);
+      } catch (error) {
+        console.warn("[data-grid] a plugin onDataChange observer threw; the change was applied and the remaining observers still run", error);
+      }
+    }
+  });
   ctx.writeDepth += 1;
   try {
     write();
@@ -251,7 +268,6 @@ export type DataWriteDeps = {
     ops: readonly DataOp<unknown>[],
   ) => ReadonlyMap<string, string>;
   pruneRowValidationKeys: (data: readonly unknown[], getRowId: (row: unknown, index: number) => string) => void;
-  warnViewSpacePresenceStale: (s: DataGridStoreState) => void;
   /** The cursor, the open edit, and the row channel carried into a rebuilt view. */
   followView: (
     s: DataGridStoreState,
@@ -273,14 +289,13 @@ export type DataWriteDeps = {
   endEditSession: (session: NonNullable<DataGridStoreState["editing"]>, write: () => void) => void;
 };
 
-/** Every data-writing action of the store, extracted as one cluster: the edit commits, the bulk writers, and the row ops. */
+/** Every data-writing action of the store, extracted as one cluster: the edit commits, the bulk writers, and the row ops; `_deleteCellsById` is the internal clipboard seam, split out by the store factory. */
 export type DataWriteActions = Pick<
-  DataGridStoreActions,
+  DataGridActions,
   | "commitCellEdit"
   | "commitCellValue"
   | "commitCellValueAt"
   | "deleteSelection"
-  | "_deleteCellsById"
   | "applyCellUpdates"
   | "updateCells"
   | "updateRows"
@@ -291,10 +306,13 @@ export type DataWriteActions = Pick<
   | "duplicateRows"
   | "reorderRows"
   | "commitChange"
->;
+> & {
+  /** Clears every `rowIds` x `columnIds` cell still in view, as one `delete` batch (the cut-capture seam). */
+  _deleteCellsById(rowIds: readonly string[], columnIds: readonly string[]): void;
+};
 
 export function createDataWriteActions(set: SetState, get: GetState, deps: DataWriteDeps): DataWriteActions {
-  const { ctx, applyRowValidation, pruneRowValidationKeys, warnViewSpacePresenceStale, followView, remapEditing, endEditSession } = deps;
+  const { ctx, applyRowValidation, pruneRowValidationKeys, followView, remapEditing, endEditSession } = deps;
 
   /** Reports the patches a validator refused through `onValidationError`; a row outside the view reports `viewRowIndex: -1`. */
   const emitStreamRejections = (patches: readonly CellPatch[], rejected: readonly PatchRejection[]): void => {
@@ -326,6 +344,15 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       }),
     };
     emitAfterWrites(ctx, () => onValidationError(event));
+  };
+
+  /** Reports the cells a caller's validator refused through `onValidationError`, queued behind the write's `onDataChange`. */
+  const emitBulkRejections = (source: DataChange<unknown>["source"], rejected: readonly GridBulkValidationError[]): void => {
+    if (rejected.length === 0) return;
+    const s = get();
+    const onValidationError = s.onValidationError;
+    if (!onValidationError || s.readOnly) return;
+    emitAfterWrites(ctx, () => onValidationError({ source: source as GridValidationErrorEvent["source"], rejected: [...rejected] }));
   };
 
   /** Commits clear-to-clearValue() `writes` as one `delete` batch; shared by both delete actions. */
@@ -482,9 +509,14 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       });
       commitClearWrites(s, writes);
     },
-    applyCellUpdates(updates, source) {
+    applyCellUpdates(updates, source, rejected) {
       const s = get();
-      if (s.readOnly || updates.length === 0) return;
+      if (s.readOnly) return;
+      if (updates.length === 0) {
+        // every cell rejected: the write is a no-op, but the consumer still gets the rejection report
+        if (rejected) emitBulkRejections(source, rejected);
+        return;
+      }
       const batch = computeRowEditsBatch(s, updates);
       if (!batch) return;
       ctx.rowIndexCache.rebase(batch.nextData);
@@ -513,6 +545,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           ...reconcileAfterWrite(s, batch.nextData, batch.ops),
         }),
       );
+      if (rejected) emitBulkRejections(source, rejected);
     },
     updateCells(patches, options) {
       const s = get();
@@ -575,7 +608,6 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         emitStreamRejections(patches, batch.rejected);
         return { applied, skipped: batch.skipped, pending: false };
       }
-      warnViewSpacePresenceStale(s);
       // Re-place only touched and earlier deferred rows; the binary search trusts the rest of the order.
       const viewIndex = resolveViewIndex(s, nextData, pendingRows(ctx, batch.touchedRows));
       resetDeferredRows(ctx);
@@ -637,7 +669,6 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const rows: unknown[] = [];
       for (let i = 0; i < count; i++) rows.push(s.createRow(dataRowIndex + i));
       const batch = computeInsertRowsBatch(s, dataRowIndex, rows);
-      warnViewSpacePresenceStale(s);
       ctx.rowIndexCache.invalidate();
       forgetDeferredRows(ctx);
       ctx.lastEmittedData = batch.nextData;
@@ -673,7 +704,6 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
       const batch = computeDeleteBatch(s, dataRowIndexes);
       if (!batch) return;
-      warnViewSpacePresenceStale(s);
       ctx.rowIndexCache.invalidate();
       forgetDeferredRows(ctx);
       ctx.lastEmittedData = batch.nextData;
@@ -702,7 +732,6 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
       const batch = computeDuplicateBatch(s, dataRowIndexes);
       if (!batch) return;
-      warnViewSpacePresenceStale(s);
       ctx.rowIndexCache.invalidate();
       forgetDeferredRows(ctx);
       ctx.lastEmittedData = batch.nextData;
@@ -763,7 +792,6 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       nextData.splice(fromData, 1);
       nextData.splice(toData, 0, moved);
       const ops: DataOp<unknown>[] = [{ type: "move", rowId: s.getRowId(moved, fromData), row: moved, from: fromData, to: toData }];
-      warnViewSpacePresenceStale(s);
       ctx.rowIndexCache.invalidate();
       forgetDeferredRows(ctx);
       ctx.lastEmittedData = nextData;
@@ -799,7 +827,6 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       }
       if (!applied) return;
       const movesRows = change.ops.some((op) => op.type !== "update");
-      if (movesRows) warnViewSpacePresenceStale(s);
       ctx.rowIndexCache.invalidate();
       forgetDeferredRows(ctx);
       ctx.lastEmittedData = nextData;

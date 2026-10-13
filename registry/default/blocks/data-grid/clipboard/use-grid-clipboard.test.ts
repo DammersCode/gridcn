@@ -340,6 +340,7 @@ describe("pasteText", () => {
         { viewRowIndex: 1, columnId: "qty", value: 9 },
       ],
       "paste",
+      [],
     );
   });
 
@@ -397,8 +398,17 @@ describe("pasteText", () => {
       onValidationError,
     });
     const actions = fakeActions();
+    // mirrors the store contract: applyCellUpdates reports rejected cells through onValidationError
+    // after its own write (the report is queued behind the write's emit)
+    vi.mocked(actions.applyCellUpdates).mockImplementation((_writes, _source, rejected) => {
+      if (rejected && rejected.length > 0) onValidationError({ source: "paste", rejected: [...rejected] });
+    });
     expect(pasteText(s, actions, "x\t-5")).toBe(true);
-    expect(actions.applyCellUpdates).toHaveBeenCalledWith([{ viewRowIndex: 0, columnId: "name", value: "x" }], "paste");
+    expect(actions.applyCellUpdates).toHaveBeenCalledWith(
+      [{ viewRowIndex: 0, columnId: "name", value: "x" }],
+      "paste",
+      [{ rowId: "1", viewRowIndex: 0, columnId: "qty", value: -5, message: "must be >= 0" }],
+    );
     expect(onValidationError).toHaveBeenCalledWith({
       source: "paste",
       rejected: [{ rowId: "1", viewRowIndex: 0, columnId: "qty", value: -5, message: "must be >= 0" }],
@@ -450,13 +460,21 @@ describe("pasteText", () => {
       onValidationError,
     });
     const actions = fakeActions();
-    vi.mocked(actions.applyCellUpdates).mockImplementation(() => expect(onValidationError).not.toHaveBeenCalled());
+    // mirrors the store contract: the rejection report lands with the write (after it emits)
+    vi.mocked(actions.applyCellUpdates).mockImplementation((_writes, _source, rejected) => {
+      expect(onValidationError).not.toHaveBeenCalled();
+      if (rejected && rejected.length > 0) onValidationError({ source: "paste", rejected: [...rejected] });
+    });
 
     expect(pasteText(s, actions, "x\t-5", undefined, { getState: () => s })).toBe(true);
     expect(onValidationError).not.toHaveBeenCalled();
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(actions.applyCellUpdates).toHaveBeenCalledWith([{ viewRowIndex: 0, columnId: "name", value: "x", rowId: "1" }], "paste");
+    expect(actions.applyCellUpdates).toHaveBeenCalledWith(
+      [{ viewRowIndex: 0, columnId: "name", value: "x", rowId: "1" }],
+      "paste",
+      [{ rowId: "1", viewRowIndex: 0, columnId: "qty", value: -5, message: "bad" }],
+    );
     expect(onValidationError).toHaveBeenCalledWith({
       source: "paste",
       rejected: [{ rowId: "1", viewRowIndex: 0, columnId: "qty", value: -5, message: "bad" }],

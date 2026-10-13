@@ -24,13 +24,9 @@ import { clampColumnWidth } from "../columns/resolve-column-width";
 import { selectCell } from "../selection/selection-ops";
 import { CompactSelection } from "../selection/compact-selection";
 import { isDev } from "../is-dev";
-import type { OverlayPlugin } from "../overlays";
-import type { RowBandsSpec } from "../layout-context";
 import type {
   AnyColumnDef,
   CellErrorEntry,
-  DataGridActions,
-  DataGridStoreActions,
   DataGridStoreState,
   InternalSyncProps,
   SelectionChangeDetails,
@@ -228,12 +224,6 @@ export const EMPTY_FLASHING_CELLS: ReadonlySet<string> = new Set();
 
 /** Shared empty-Map identity for the no-search-active state; mirrors {@link EMPTY_SEARCH_MATCH_SET}. */
 export const EMPTY_SEARCH_MATCH_ROWS: ReadonlyMap<number, ReadonlySet<number>> = new Map();
-
-/** Shared empty-array identity for the no-overlay-plugins state, so a grid with none never allocates a fresh `[]` per render. */
-export const EMPTY_OVERLAY_PLUGINS: readonly OverlayPlugin[] = [];
-
-/** Shared empty-bands identity for the no-`rowBands` state — zero-length arrays make root.tsx's height/aria-rowcount math a no-op; `renderBand` is never called since root only calls it when a band's own length is > 0. */
-export const EMPTY_ROW_BANDS: RowBandsSpec = { topRows: [], bottomRows: [], renderBand: () => null };
 
 /** Stable key for {@link DataGridStoreState.cellErrors}: `"${rowId}:${columnId}"` — row-id-space, unlike {@link searchMatchKey}'s view-space, so an error survives a sort/filter that moves its row. */
 export function cellErrorKey(rowId: string, columnId: string): string {
@@ -920,16 +910,4 @@ export function makeSelectionChangeDetails(getSnapshot: () => DataGridStoreState
       return getSelectedRowIds(getSnapshot());
     },
   };
-}
-
-const publicActionsCache = new WeakMap<DataGridStoreActions, DataGridActions>();
-
-/** The store's actions without the `_`-prefixed internals; one identity per store. */
-export function publicActionsOf(actions: DataGridStoreActions): DataGridActions {
-  let view = publicActionsCache.get(actions);
-  if (!view) {
-    view = Object.fromEntries(Object.entries(actions).filter(([name]) => !name.startsWith("_"))) as DataGridActions;
-    publicActionsCache.set(actions, view);
-  }
-  return view;
 }

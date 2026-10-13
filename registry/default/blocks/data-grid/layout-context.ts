@@ -87,14 +87,17 @@ export function useColumnLayout(columns: readonly AnyColumnDef[], availableWidth
 export type WindowedColumn = { column: AnyColumnDef; index: number };
 
 /**
- * Context passed to {@link RowBandsSpec.renderBand} for one band — exactly what root.tsx computes
- * for the band's render. `ariaRowIndexBase` is root's own aria index-layout math (header=1, top
- * band next, then data rows, bottom band last), so the add-on never has to know rowCount or the
- * other band's length.
+ * Context passed to a plugin's {@link PluginRowBands.render} for one band — exactly what root.tsx
+ * computes for the band's render. `ariaRowIndexBase` is root's own aria index-layout math
+ * (header=1, top bands next, then data rows, bottom bands last), so the add-on never has to know
+ * rowCount or the other band's length. `rowOffset` is the number of rows earlier plugins put in
+ * the same band (bands stack: top from the header down, bottom top to bottom, in plugin order).
  */
 export type RowBandRenderCtx = {
   position: "top" | "bottom";
   rows: readonly unknown[];
+  /** The rows that earlier plugins put in this plugin's band position, before this plugin's rows. */
+  rowOffset: number;
   windowedColumns: readonly WindowedColumn[];
   layout: ColumnLayout;
   rowHeight: number;
@@ -102,20 +105,6 @@ export type RowBandRenderCtx = {
   /** The sticky header track's own height (not including either band). */
   headerHeight: number;
   ariaRowIndexBase: number;
-};
-
-/**
- * Provider-level row-bands seam: unlike `overlayPlugins` (pure paint, no layout impact), bands
- * affect band heights and `aria-rowcount`, which root.tsx must know SYNCHRONOUSLY at first render
- * (SSR + no one-frame layout shift) — so this is a spec object, not a mount-effect registration
- * like `fillHandlers`. Core only reads `topRows.length`/`bottomRows.length` for its own arithmetic
- * and calls `renderBand`; it never inspects the row contents. `data-grid-pinned-rows`'s
- * `useDataGridPinnedRows` is the motivating (and so far only) producer.
- */
-export type RowBandsSpec = {
-  topRows: readonly unknown[];
-  bottomRows: readonly unknown[];
-  renderBand: (ctx: RowBandRenderCtx) => ReactNode;
 };
 
 /**

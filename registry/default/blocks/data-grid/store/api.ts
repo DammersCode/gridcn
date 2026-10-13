@@ -1,10 +1,31 @@
 import type { StoreApi } from "zustand/vanilla";
-import type { DataGridApi } from "../types";
+import type { DataGridApi, DataGridStoreWrapper } from "../types";
 import type { DataGridStoreState } from "./types";
-import { holeRowId, publicActionsOf } from "./compute";
+import { holeRowId } from "./compute";
+import { getInternalActions } from "./internal-actions";
 import { resolveRefOrWarn } from "./data-write";
 
 const handles = new WeakMap<StoreApi<DataGridStoreState>, DataGridApi<unknown>>();
+const wrappers = new WeakMap<StoreApi<DataGridStoreState>, DataGridStoreWrapper>();
+
+/**
+ * The grid's read-only store view ({@link DataGridStoreWrapper}), one identity per store.
+ * `useDataGridStoreProps` owns the writable store; this is what `api.store` and the sdk's
+ * `useDataGridStoreApi` expose to consumers and plugins.
+ * @internal
+ */
+export function gridStoreWrapper(store: StoreApi<DataGridStoreState>): DataGridStoreWrapper {
+  let wrapper = wrappers.get(store);
+  if (!wrapper) {
+    wrapper = {
+      getState: () => store.getState(),
+      getInitialState: () => store.getInitialState(),
+      subscribe: (listener) => store.subscribe(listener),
+    };
+    wrappers.set(store, wrapper);
+  }
+  return wrapper;
+}
 
 /**
  * The grid's imperative handle, one identity per store. Its DOM gestures run through the impls
@@ -22,10 +43,10 @@ export function apiHandleOf<TData>(storeApi: StoreApi<DataGridStoreState>): Data
 
 function buildApiHandle(storeApi: StoreApi<DataGridStoreState>): DataGridApi<unknown> {
   const read = () => storeApi.getState();
-  const actions = publicActionsOf(read().actions);
+  const actions = read().actions;
   return {
     actions,
-    store: storeApi,
+    store: gridStoreWrapper(storeApi),
     scrollTo(ref) {
       const s = read();
       const coord = resolveRefOrWarn(s.dataWrite, s, ref);
@@ -44,7 +65,7 @@ function buildApiHandle(storeApi: StoreApi<DataGridStoreState>): DataGridApi<unk
       actions.cancelEditing();
     },
     getSelection() {
-      return read().actions._deriveSelection();
+      return getInternalActions(storeApi)._deriveSelection();
     },
     setSelection(next) {
       actions.setSelection(next);

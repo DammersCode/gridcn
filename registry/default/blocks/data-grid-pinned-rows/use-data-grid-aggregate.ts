@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { useStore } from "zustand";
 import { getCellValue, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, useDataGridStoreApi, type DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isDev, useDataGridStoreApi, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Built-in reducers; a function receives every resolved value plus its source rows (empty values included — unlike the built-ins, a custom reducer owns its own empty handling). `TData` is the grid's row type: pass it at the hook call (or annotate `specs` as `AggregateSpecs<Row>`) so `rows` is typed. */
 export type AggregateReducer<TData = unknown> = "sum" | "avg" | "min" | "max" | "count" | ((values: readonly unknown[], rows: readonly TData[]) => unknown);
@@ -66,7 +66,7 @@ function warnUnknownSpecKey(columnId: string): void {
   );
 }
 
-function computeAggregate<TData>(state: DataGridStoreState, specs: AggregateSpecs<TData>, scope: "view" | "all"): Record<string, unknown> {
+function computeAggregate<TData>(state: DataGridReadState, specs: AggregateSpecs<TData>, scope: "view" | "all"): Record<string, unknown> {
   const byId = new Map(state.columns.map((c) => [c.id, c] as const));
   const scoped = scope === "all" ? state.data : state.viewIndex.map((i) => state.data[i]);
   // undefined rows are unloaded holes of a lazy grid; reduce over the loaded rows only.
@@ -94,7 +94,7 @@ function computeAggregate<TData>(state: DataGridStoreState, specs: AggregateSpec
  * reducing over `viewIndex` (sorted/filtered display order) — pass `scope: "all"` to reduce
  * over the raw `data` instead, ignoring the active filter. Recomputes only when `viewIndex`, `data`,
  * `scope`, or the `specs` object's own identity changes, so scrolling (no store write touches any of
- * those) never recomputes — same identity-guardrailed contract as `rowBands`/`overlayPlugins`; define
+ * those) never recomputes — same identity-guardrailed contract as the `plugins` prop; define
  * `specs` at module scope or memoize it, same discipline as any other grid callback prop.
  * `undefined` rows (unloaded holes of a lazy grid) are skipped and a dev warning fires once — on a
  * lazy grid the result covers loaded rows only. A spec key that matches no column id is ignored

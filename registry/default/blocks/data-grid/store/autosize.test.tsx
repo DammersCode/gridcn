@@ -2,7 +2,7 @@ import { act, render } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef } from "../types";
-import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
+import { DataGridProvider, getInternalActions, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
 import { DataGridRoot } from "../root";
 import { DataGridHeader } from "../header";
 import { DataGridBody } from "../body";
@@ -57,7 +57,7 @@ function mount(props: Props) {
 
 function registerFonts(store: StoreApi<DataGridStoreState>) {
   act(() => {
-    store.getState().actions._registerMeasureFonts(() => ({
+    getInternalActions(store)._registerMeasureFonts(() => ({
       cellFont: "14px Arial",
       headerFont: "14px Arial",
       window: { start: 0, end: 3 },

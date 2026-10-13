@@ -53,30 +53,29 @@ own id (each entry paints one rect, or one rect per contiguous fragment for the 
 
 ## Wiring it up
 
-The add-on registers into the generic **overlay-plugin seam** of the core (`overlayPlugins` on
-`DataGridProvider`). A plugin renders into the same overlay layer that selection and the
-fill-preview use, and receives a `ctx` with the same window-clamp and pin-zone segmentation
-helpers that the built-in overlays of the core use. See
-[Overlay plugins](/docs/overlay-plugins) for the full seam, including every `ctx` field and a
-worked example of a plugin from scratch.
+The add-on is one plugin: its `Overlay` paints the highlights, its `Mount` dev-warns once when
+rows or columns move under an active view-space entry. The plugin renders into the same overlay
+layer that selection and the fill preview use, and receives a `ctx` with the same window-clamp
+and pin-zone segmentation helpers that the built-in overlays of the core use. See
+[Plugins](/docs/plugins) for the full seam, including every `ctx` field and a worked example of
+a plugin from scratch.
 
 `useDataGridPresence()` is a single hook. Call it EXACTLY ONCE per grid, in your own component
-ABOVE where you render `<DataGridProvider>`. The `overlayPlugins` prop lives on the provider, so
-the plugin has to exist before it. Every further call mints ANOTHER store: only the plugin wired
-into `overlayPlugins` paints, so a second instance's `setPresenceHighlights` writes into a store
+ABOVE where you render `<DataGridProvider>`. The `plugins` prop lives on the provider, so the
+plugin has to exist before it. Every further call mints ANOTHER store: only the plugin wired
+into `plugins` paints, so a second instance's `setPresenceHighlights` writes into a store
 nothing reads. If other components need the setter or the read-back `storeApi`, pass them down
 as props from the single call:
 
 ```tsx
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { DataGrid } from "@/components/data-grid/data-grid";
 import { useDataGridPresence } from "@/components/data-grid-presence/data-grid-presence";
 
 function MyGrid() {
   const { plugin, setPresenceHighlights } = useDataGridPresence();
-  const overlayPlugins = useMemo(() => [plugin], [plugin]);
 
   useEffect(() => {
     const socket = connectToRoom(roomId);
@@ -84,15 +83,14 @@ function MyGrid() {
     return () => socket.close();
   }, [setPresenceHighlights, roomId]);
 
-  return <DataGrid data={data} columns={columns} getRowId={getRowId} overlayPlugins={overlayPlugins} />;
+  return <DataGrid data={data} columns={columns} getRowId={getRowId} plugins={[plugin]} />;
 }
 ```
 
-`setPresenceHighlights(highlights)` is the real, imperative mechanism. Call it directly from your
-transport handler: a websocket message, a CRDT awareness update, or a polling tick. The identity
-of `plugin` never changes across renders. Memoize the `overlayPlugins` array on it: an inline
-`[plugin]` literal is a new array on every render and trips the identity-stability dev guardrail of
-the core.
+`setPresenceHighlights(highlights)` is the real, imperative mechanism. Call it directly from
+your transport handler: a websocket message, a CRDT awareness update, or a polling tick. The
+identity of `plugin` never changes across renders, and the grid compares the `plugins` list
+entry-wise, so the inline `[plugin]` array is stable enough as-is.
 
 `setPresenceHighlights` REPLACES the whole list (snapshot semantics): each call must carry the
 full current set of remote entries, not a diff — the natural shape of a websocket "presence state"

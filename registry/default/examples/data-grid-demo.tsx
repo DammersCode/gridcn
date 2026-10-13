@@ -64,16 +64,15 @@ const columns = defineColumns<DemoRow>()([
  */
 export default function DataGridDemo(): ReactNode {
   const rows = useMemo(() => generateDemoRows(12), []);
-  const { plugin, FillHandleTracker } = useDataGridFill({});
-  const overlayPlugins = useMemo(() => [plugin], [plugin]);
+  const { plugin } = useDataGridFill({});
+  const plugins = useMemo(() => [plugin], [plugin]);
 
   return (
     <div className="w-full h-[420px] overflow-hidden rounded-md border border-border">
-      <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} overlayPlugins={overlayPlugins}>
+      <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} plugins={plugins}>
         <DataGridRoot className="h-full rounded-none border-none">
           <DataGridHeader />
           <DataGridBody />
-          <FillHandleTracker />
         </DataGridRoot>
       </DataGridProvider>
     </div>

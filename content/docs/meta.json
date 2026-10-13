@@ -41,7 +41,7 @@
     "addons/url-state",
     "addons/import-export",
     "---[Blocks]Architecture---",
-    "overlay-plugins",
+    "plugins",
     "performance",
     "virtualization",
     "accessibility",

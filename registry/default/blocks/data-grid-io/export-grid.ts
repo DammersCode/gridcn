@@ -1,5 +1,5 @@
 import { getCellValue, sanitizeFormulaCell, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
-import { displayText, getSelectedViewRows, isDev, type DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { displayText, getSelectedViewRows, isDev, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { CsvDelimiter } from "./parse-import-file";
 
 /** Options for {@link exportGrid}. */
@@ -70,7 +70,7 @@ export type BuildExportRowsOptions = {
  * (current sort/filter order), `'all'` walks `data` as-is, `'selection'` walks only the selected
  * rows in view order.
  */
-export function exportDataIndices(state: DataGridStoreState, scope: "view" | "all" | "selection"): number[] {
+export function exportDataIndices(state: DataGridReadState, scope: "view" | "all" | "selection"): number[] {
   const scoped =
     scope === "all"
       ? state.data.map((_, i) => i)
@@ -88,13 +88,13 @@ export function exportDataIndices(state: DataGridStoreState, scope: "view" | "al
  * row-shaped export always matches its header row. Hole rows (unloaded indices of a lazy grid's
  * sparse `data`) are skipped in every scope. `options.maxRows` caps the number of rows built.
  */
-export function buildExportRows(state: DataGridStoreState, scope: "view" | "all" | "selection", options: BuildExportRowsOptions = {}): string[][] {
+export function buildExportRows(state: DataGridReadState, scope: "view" | "all" | "selection", options: BuildExportRowsOptions = {}): string[][] {
   const { text = "export", maxRows } = options;
   const dataIndices = exportDataIndices(state, scope);
   return buildRowsAt(state, maxRows === undefined ? dataIndices : dataIndices.slice(0, maxRows), text);
 }
 
-function buildRowsAt(state: DataGridStoreState, dataIndices: readonly number[], text: "export" | "display"): string[][] {
+function buildRowsAt(state: DataGridReadState, dataIndices: readonly number[], text: "export" | "display"): string[][] {
   return dataIndices.map((dataRowIndex) => {
     const row = state.data[dataRowIndex];
     return state.visibleColumns.map((column) => {
@@ -106,7 +106,7 @@ function buildRowsAt(state: DataGridStoreState, dataIndices: readonly number[], 
 }
 
 /** Builds at most `maxRows` rows, with a dev-only warning when the scope exceeds the cap. */
-function buildCappedExportRows(state: DataGridStoreState, scope: "view" | "all" | "selection", maxRows: number | undefined): string[][] {
+function buildCappedExportRows(state: DataGridReadState, scope: "view" | "all" | "selection", maxRows: number | undefined): string[][] {
   const dataIndices = exportDataIndices(state, scope);
   if (maxRows === undefined || dataIndices.length <= maxRows) return buildRowsAt(state, dataIndices, "export");
   if (isDev()) console.warn(`[data-grid-io] export truncated to ${maxRows} of ${dataIndices.length} rows (maxRows)`);
@@ -114,7 +114,7 @@ function buildCappedExportRows(state: DataGridStoreState, scope: "view" | "all" 
 }
 
 /** Header row text for each visible column, in the same order `buildExportRows` emits cells. */
-export function buildExportHeaders(state: DataGridStoreState): string[] {
+export function buildExportHeaders(state: DataGridReadState): string[] {
   return state.visibleColumns.map((column) => columnHeaderText(column));
 }
 
@@ -149,7 +149,7 @@ export type BuildXlsxOptions = {
  * or inspecting the workbook before it leaves the browser. Values go through each column's cell
  * type `toText` like `exportGrid` and land as string cells, never formulas; hucre loads lazily.
  */
-export async function buildXlsx(state: DataGridStoreState, options: BuildXlsxOptions = {}): Promise<Blob> {
+export async function buildXlsx(state: DataGridReadState, options: BuildXlsxOptions = {}): Promise<Blob> {
   const { scope = "view", includeHeaders = true, workbookName = "Sheet1", maxRows } = options;
   const rows = buildCappedExportRows(state, scope, maxRows);
   const table = includeHeaders ? [buildExportHeaders(state), ...rows] : rows;
@@ -165,7 +165,7 @@ export async function buildXlsx(state: DataGridStoreState, options: BuildXlsxOpt
  * column's cell type `toText` (never raw values), so clipboard/export fidelity matches. hucre is
  * loaded lazily (dynamic `import()`) so the dependency never loads for CSV-only consumers.
  */
-export async function exportGrid(state: DataGridStoreState, options: ExportGridOptions): Promise<void> {
+export async function exportGrid(state: DataGridReadState, options: ExportGridOptions): Promise<void> {
   const { format, scope = "view", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true, fileName = "export", workbookName, maxRows } = options;
   if (format === "csv") {
     const rows = buildCappedExportRows(state, scope, maxRows);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
-import { getCellValue, useDataGridActions, type CellRef, type GridBulkValidationError, type GridRect } from "@/registry/default/blocks/data-grid/data-grid";
+import { getCellValue, useDataGridActions, type CellRef, type GridRect } from "@/registry/default/blocks/data-grid/data-grid";
 import {
   applyInlineScrollDelta,
   combineRects,
@@ -18,13 +18,13 @@ import {
   type BulkCandidate,
   type BulkResolution,
   type InteractionLayout,
-  type DataGridStoreState,
+  type DataGridReadState,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { computeFillTarget, fillDirection, generateFill, rectRelativeTo, type SeriesDescriptor } from "./fill";
 import type { FillStoreApi } from "./fill-store";
 
 /** Cells a fill is about to write, resolved before the write so a re-sort cannot shift them. */
-function flashCellsFor(s: DataGridStoreState, writes: readonly { viewRowIndex: number; columnId: string }[]): CellRef[] {
+function flashCellsFor(s: DataGridReadState, writes: readonly { viewRowIndex: number; columnId: string }[]): CellRef[] {
   return writes.flatMap((w) => {
     const rowId = rowIdAtViewRow(s, w.viewRowIndex);
     return rowId === undefined ? [] : [{ rowId, columnId: w.columnId }];
@@ -59,7 +59,7 @@ export type UseFillHandleOptions = {
 };
 
 /** Reads one cell's text value via its column's cell type `toText`, for use as a fill source. */
-function cellText(s: DataGridStoreState, viewRow: number, colIndex: number): string {
+function cellText(s: DataGridReadState, viewRow: number, colIndex: number): string {
   const column = s.visibleColumns[colIndex];
   if (!column) return "";
   const dataRowIndex = s.viewIndex[viewRow];
@@ -73,7 +73,7 @@ function cellText(s: DataGridStoreState, viewRow: number, colIndex: number): str
 }
 
 /** Reads `rect` as a 2D string grid via each cell type's `toText` — the fill algorithm's raw input. */
-export function readRectAsText(s: DataGridStoreState, rect: GridRect): string[][] {
+export function readRectAsText(s: DataGridReadState, rect: GridRect): string[][] {
   const out: string[][] = [];
   for (let row = rect.y; row < rect.y + rect.height; row++) {
     const line: string[] = [];
@@ -92,7 +92,7 @@ export function readRectAsText(s: DataGridStoreState, rect: GridRect): string[][
  * testing; not part of the public hook surface.
  */
 export function buildFillCandidates(
-  s: DataGridStoreState,
+  s: DataGridReadState,
   source: GridRect,
   strip: GridRect,
   opts: { forceCopy?: boolean; detect?: (values: readonly string[]) => SeriesDescriptor | null } = {},
@@ -144,7 +144,7 @@ export function buildFillCandidates(
  * the batch until it resolves, then applies the passing cells as one `applyCellUpdates`.
  */
 export function buildFillWrites(
-  s: DataGridStoreState,
+  s: DataGridReadState,
   source: GridRect,
   strip: GridRect,
   opts: { forceCopy?: boolean; detect?: (values: readonly string[]) => SeriesDescriptor | null } = {},
@@ -247,9 +247,6 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
       if (prevented) return;
 
       const resolution = resolveBulkWrites(candidates);
-      const fireRejected = (rejected: GridBulkValidationError[]) => {
-        if (rejected.length > 0) storeApi.getState().onValidationError?.({ source: "fill", rejected });
-      };
       if (resolution instanceof Promise) {
         const token = guard.begin();
         const snapshot = snapshotBulkBatch(s, candidateRowIds(s, candidates));
@@ -258,16 +255,15 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
           if (current.readOnly || !guard.isCurrent(token, current, snapshot)) return;
           const applied = guard.reresolve(current, resolved.writes);
           const flashed = flashCellsFor(current, applied);
-          actions.applyCellUpdates(applied, "fill");
+          // rejected cells are reported by the write itself (same source, after the write's emit)
+          actions.applyCellUpdates(applied, "fill", resolved.rejected);
           // Pulse the cells that actually landed — the re-resolved batch, not the held one.
           actions.flashCells(flashed);
-          fireRejected(resolved.rejected);
         });
       } else {
         const flashed = flashCellsFor(storeApi.getState(), resolution.writes);
-        actions.applyCellUpdates(resolution.writes, "fill");
+        actions.applyCellUpdates(resolution.writes, "fill", resolution.rejected);
         actions.flashCells(flashed);
-        fireRejected(resolution.rejected);
       }
 
       // expand selection to combineRects(source, strip): re-derive via the plain selectCell/extendTo

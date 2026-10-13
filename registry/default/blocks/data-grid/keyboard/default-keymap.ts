@@ -70,6 +70,13 @@ export const DEFAULT_KEYMAP: Keymap = {
  */
 export const BUILTIN_ACTIONS: readonly GridAction[] = [...(Object.keys(DEFAULT_KEYMAP) as GridAction[]), "editReplace"];
 
+/**
+ * The built-in actions a `commands` entry or a plugin command may implement: their built-in bodies
+ * are hollow (the key stays bound and preventDefaults, but nothing runs without a command). The
+ * shadow warning exempts these four names.
+ */
+export const PLUGGABLE_ACTIONS: readonly string[] = ["undo", "redo", "fillDown", "fillRight"];
+
 /** `DEFAULT_KEYMAP` merged with the consumer's `keymap` prop; `undefined` (and `{}`) keeps the default's own reference. */
 export function mergeKeymap(prop: Keymap | undefined): Keymap {
   if (!prop || Object.keys(prop).length === 0) return DEFAULT_KEYMAP;

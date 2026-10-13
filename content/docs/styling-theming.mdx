@@ -113,7 +113,7 @@ the DOM and what you can beat. Where a surface lists a merge point, the built-in
 | Row (`[role="row"]`) | `group/row` | `getRowClassName`. |
 | Marker cell (`[data-grid-marker-cell]`) | `group flex items-center justify-center border-b border-border bg-background transition-colors`, the column line, `cursor-grab` when row reorder is on, the selected-row tint | `renderMarker` replaces the content. For the cell chrome itself, see [Override recipes](#override-recipes). |
 | Marker header (`[data-grid-marker-header]`) | `flex items-center justify-center border-b border-border bg-muted` plus the column line | Internal. |
-| Selection overlay (`[data-grid-selection-overlay]`) | `pointer-events-none border border-primary/40 bg-primary/10` | `--primary`. `overlayPlugins` for your own layer. |
+| Selection overlay (`[data-grid-selection-overlay]`) | `pointer-events-none border border-primary/40 bg-primary/10` | `--primary`. A plugin `Overlay` for your own layer. |
 | Active-cell ring (`[data-grid-active-cell-overlay]`) | `pointer-events-none z-10 ring-2 ring-inset ring-primary` | `--primary` or `--ring`. |
 | Edge shadow (`[data-grid-pin-shadow]`) | 8px gradient strip on each side, `opacity-0` to `100` via `data-scrolled-*`, at the grid edge or the pinned band boundary. Each strip spans only the scrolling area between the pinned bands. Color from `--grid-pin-shadow` | Override `--grid-pin-shadow` per theme. |
 | Column line | 1px line at the end side of each column, and at the start side of a right-pinned column. Color from `--grid-column-border` | `--grid-column-border`. `transparent` hides the lines. |
@@ -126,7 +126,7 @@ the DOM and what you can beat. Where a surface lists a merge point, the built-in
 | Column drop indicator (`[data-grid-drop-indicator]`) | 2px line in `var(--color-primary)` at the drag boundary | `--primary`. |
 | Sort indicator (`[data-grid-sort-indicator]`) | `text-muted-foreground`, 14px icon, multi-sort rank badge `text-[10px] tabular-nums` | Embed `DataGridSortIndicator` in a custom header. `--muted-foreground`. |
 | Fill preview (`[data-grid-fill-preview]`) | `pointer-events-none border border-dashed border-primary bg-primary/5`. Handle: `size-2 border border-background bg-primary cursor-crosshair` | `--primary`. |
-| Presence overlay (`[data-grid-presence-overlay]`) | Border + 12% fill mixed from the user's `--presence-color`. Name chip `rounded-sm px-1.5 py-0.5 text-xs shadow-sm` | Per-user color via the presence API. `--presence-label-foreground` for the chip text. `overlayPlugins` for your own layer. |
+| Presence overlay (`[data-grid-presence-overlay]`) | Border + 12% fill mixed from the user's `--presence-color`. Name chip `rounded-sm px-1.5 py-0.5 text-xs shadow-sm` | Per-user color via the presence API. `--presence-label-foreground` for the chip text. A plugin `Overlay` for your own layer. |
 | Pinned-row band (`[data-grid-pinned-row-band]`) | Band separator `border-border`. Band cells get an opaque 30% `muted` tint + `font-medium` | `--muted`, `--border`. |
 | Built-in editors | `text`/`number`: a borderless transparent `Input` filling the cell. `select`/`date`: your `ui/*` `Select`/`Popover`/`Calendar` primitives with the cell chrome stripped | Retheme the `ui/*` primitives, or pass a custom cell type. |
 | Write pulse (`[data-flash]`) | One-shot fade from `--grid-flash-intensity` of `--grid-flash-color` to transparent. Keyframes injected by the grid | `--grid-flash-duration`, `--grid-flash-intensity`, `--grid-flash-color`. |
@@ -143,8 +143,8 @@ the DOM and what you can beat. Where a surface lists a merge point, the built-in
 5. **Content replacement** — per-column `renderCell`, `renderHeaderCell` on `DataGridHeader`,
    custom `header`, `renderMarker`, `emptyState`, `loadingState`. Replace what is drawn, not how
    it is styled.
-6. **Overlay plugins** — `overlayPlugins` on `DataGridProvider` for your own layer in the
-   overlay stack (see [overlay-plugins](/docs/overlay-plugins)).
+6. **Plugin overlays** — a plugin's `Overlay` member, through `plugins` on `DataGridProvider`,
+   for your own layer in the overlay stack (see [Plugins](/docs/plugins)).
 
 ## Data-attribute contract
 The grid stamps state on the DOM as data attributes, so you can style with the Tailwind

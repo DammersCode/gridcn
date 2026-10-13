@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, type RefObject } from "react";
-import type { ViewCoord, GridBulkValidationError, GridRect } from "../types";
+import type { ViewCoord, GridRect } from "../types";
 import { getCellValue } from "../columns/column-helpers";
 import { isDev } from "../is-dev";
 import { gridAttrSelector } from "../data-attributes";
 import { closestGridRoot } from "../interaction/closest-grid-root";
 import { serializeCells } from "./serialize-cells";
 import { parseClipboard } from "./parse-clipboard";
-import { useDataGridInternalActions, useDataGridStoreApi, type DataGridActions, type DataGridStoreState } from "../store";
+import { useDataGridActions, useDataGridInternalActions, useDataGridStoreApi, type DataGridActions, type DataGridStoreState } from "../store";
 import { resolveBulkWrites, type BulkCandidate, type BulkResolution } from "../validation/validate-batch";
 import { resolveColumnValidate } from "../cell-types/capabilities";
 import { candidateRowIds, reresolveBulkWrites, snapshotBulkBatch, useBulkGeneration, type BulkGeneration } from "../validation/bulk-generation";
@@ -332,8 +332,8 @@ function applyParsedPaste(
   const candidates = buildPasteCandidates(s, cappedCells, target);
   const resolution = resolveBulkWrites(candidates);
   if (!(resolution instanceof Promise)) {
-    actions.applyCellUpdates(resolution.writes, "paste");
-    fireBulkRejections(resolution.rejected, () => storeApi?.getState() ?? s);
+    // rejected cells are reported by the write itself (same source, after the write's emit)
+    actions.applyCellUpdates(resolution.writes, "paste", resolution.rejected);
     return true;
   }
 
@@ -343,16 +343,9 @@ function applyParsedPaste(
     const current = storeApi?.getState() ?? s;
     if (current.readOnly) return;
     if (guard && token !== undefined && !guard.isCurrent(token, current, snapshot)) return;
-    actions.applyCellUpdates(reresolveBulkWrites(current, resolved.writes), "paste");
-    fireBulkRejections(resolved.rejected, () => current);
+    actions.applyCellUpdates(reresolveBulkWrites(current, resolved.writes), "paste", resolved.rejected);
   });
   return true;
-}
-
-/** Fires the consumer's `onValidationError` with `source: "paste"`, only when at least one cell was rejected. */
-function fireBulkRejections(rejected: GridBulkValidationError[], readState: () => DataGridStoreState): void {
-  if (rejected.length === 0) return;
-  readState().onValidationError?.({ source: "paste", rejected });
 }
 
 /**
@@ -397,7 +390,8 @@ function ownsClipboardEvent(event: ClipboardEvent): boolean {
  */
 export function useGridClipboard(options: UseGridClipboardOptions): void {
   const { rootRef, sanitizeFormulas } = options;
-  const actions = useDataGridInternalActions();
+  const actions = useDataGridActions();
+  const internalActions = useDataGridInternalActions();
   const storeApi = useDataGridStoreApi();
   // One counter for this grid's paste surface: a second paste supersedes a still-validating first.
   const guard = useBulkGeneration();
@@ -424,9 +418,9 @@ export function useGridClipboard(options: UseGridClipboardOptions): void {
       writeClipboardEvent(event, serializeCopyScope(s, scope), sanitizeFormulas ?? s.sanitizeClipboardFormulas);
       if (s.readOnly) return;
       const { rowIds, columnIds } = copyScopeCellIds(s, scope);
-      actions._deleteCellsById(rowIds, columnIds);
+      internalActions._deleteCellsById(rowIds, columnIds);
     },
-    [storeApi, actions, sanitizeFormulas],
+    [storeApi, internalActions, sanitizeFormulas],
   );
 
   const onPaste = useCallback(

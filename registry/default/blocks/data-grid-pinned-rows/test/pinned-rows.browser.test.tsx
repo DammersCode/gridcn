@@ -55,8 +55,8 @@ function PinnedGrid(
   props: { data: readonly Row[]; className?: string; cols?: readonly ColumnDef<Row, unknown>[] } & UseDataGridPinnedRowsOptions,
 ) {
   const { data, className, cols = columns, topRows, bottomRows } = props;
-  const { rowBands } = useDataGridPinnedRows({ topRows, bottomRows });
-  return <DataGrid data={data} columns={cols} getRowId={(r) => r.id} className={className} rowBands={rowBands} />;
+  const { plugin: pinnedPlugin } = useDataGridPinnedRows({ topRows, bottomRows });
+  return <DataGrid data={data} columns={cols} getRowId={(r) => r.id} className={className} plugins={[pinnedPlugin]} />;
 }
 
 /** Wires `useDataGridPinnedRows` into the raw provider/root/header/body composition, for tests that also need `actions`. */
@@ -64,9 +64,9 @@ function PinnedRootGrid(
   props: { data: readonly Row[]; className?: string; onActions: (actions: ReturnType<typeof useDataGridActions>) => void } & UseDataGridPinnedRowsOptions,
 ) {
   const { data, className, onActions, topRows, bottomRows } = props;
-  const { rowBands } = useDataGridPinnedRows({ topRows, bottomRows });
+  const { plugin: pinnedPlugin } = useDataGridPinnedRows({ topRows, bottomRows });
   return (
-    <DataGridProvider data={data} columns={columns} getRowId={(r) => r.id} rowBands={rowBands}>
+    <DataGridProvider data={data} columns={columns} getRowId={(r) => r.id} plugins={[pinnedPlugin]}>
       <ActionsCapture onActions={onActions} />
       <DataGridRoot className={className}>
         <DataGridHeader />

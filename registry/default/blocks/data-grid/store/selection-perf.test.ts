@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ColumnDef, SelectionState } from "../types";
 import { CompactSelection } from "../selection/compact-selection";
 import { createDataGridStore } from "./create-store";
+import { getInternalActions } from "./internal-actions";
 import type { InternalSyncProps } from "./types";
 
 // Shared GitHub Actions runners are several × slower than a dev machine; the ceilings guard the
@@ -49,19 +50,19 @@ describe("controlled selection perf (100k rows)", () => {
       emitted = next;
     };
     const store = makeStore(rows, onSelectionChange);
-    const unsub = store.getState().actions._subscribeSelection();
+    const unsub = getInternalActions(store)._subscribeSelection();
     const props = { data: rows, columns, getRowId, selection: EMPTY_SELECTION, onSelectionChange } as unknown as InternalSyncProps;
 
-    store.getState().actions._syncProps(props); // warmup: establishes the last-props references
+    getInternalActions(store)._syncProps(props); // warmup: establishes the last-props references
     store.getState().actions.selectCellAt({ row: 0, col: 0 });
-    store.getState().actions._syncProps({ ...props, selection: emitted! });
+    getInternalActions(store)._syncProps({ ...props, selection: emitted! });
 
     const iterations = 3;
     const start = performance.now();
     for (let pass = 0; pass < iterations; pass++) {
       for (let step = 1; step < DRAG_STEPS; step++) {
         store.getState().actions.extendToAt({ row: step % 1000, col: 0 });
-        store.getState().actions._syncProps({ ...props, selection: emitted! });
+        getInternalActions(store)._syncProps({ ...props, selection: emitted! });
       }
     }
     const ms = (performance.now() - start) / (iterations * (DRAG_STEPS - 1));
@@ -122,7 +123,7 @@ describe("controlled selection perf (1M rows)", () => {
       emissions++;
       emitted = next;
     });
-    const unsub = store.getState().actions._subscribeSelection();
+    const unsub = getInternalActions(store)._subscribeSelection();
     const t0 = performance.now();
     store.getState().actions.setAllRowsSelected(true);
     const ms = performance.now() - t0;

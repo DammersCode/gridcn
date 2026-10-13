@@ -51,14 +51,14 @@ Grep for these four props on `DataGridRoot`/`DataGrid`. An inline arrow function
   - `[data-grid] onRowClick identity changed since the last render; pass a stable reference (e.g. useCallback) or every row re-renders`
 - Fix: module scope if the function needs no closure state, otherwise `useCallback` with a stable dependency list.
 
-## 5. Unstable `overlayPlugins` / `rowBands`
+## 5. Unstable plugin members in `plugins`
 
-Grep any add-on hook output (`useDataGridFill`, `useDataGridPresence`, `useDataGridPinnedRows`) and how its result reaches the provider. Passing `overlayPlugins={[plugin]}` or a `topRows`/`bottomRows` literal inline in JSX allocates a fresh array every render, even though the individual `plugin` or row array inside it is stable.
+The grid compares the `plugins` array entry-wise — same length, same `name`, every member identity-equal — so an inline `plugins={[fill.plugin]}` is harmless while the `plugin` objects are stable, which every first-party hook's result is. The trap is a plugin MEMBER that churns: a rebuilt `Overlay` or `Mount` component, a fresh `onDataChange` closure, or a fresh `topRows`/`bottomRows` literal passed to `useDataGridPinnedRows` every render. A changed member re-resolves the grid's plugin list and remounts the plugin components whose type changed, dropping their state.
 
 - Symptoms:
-  - `[data-grid] overlayPlugins array identity changed since the last render; pass a stable reference (module scope or useMemo) or every render re-syncs the provider props into the store`
-  - `[data-grid] rowBands identity changed since the last render; pass a stable reference (the add-on's hook already returns one) or every render recomputes band heights/aria-rowcount`
-- Fix: wrap the array in `useMemo`, e.g. `useMemo(() => [fill.plugin, presence.plugin], [fill.plugin, presence.plugin])`. `rowBands` from `useDataGridPinnedRows` is already stable — only re-wrapping it in a new literal breaks it.
+  - `[data-grid] plugin "X"'s Overlay component identity changed; the overlay remounts and loses its state`
+  - `[data-grid] plugin "X"'s Mount component identity changed; the mount remounts and loses its state`
+- Fix: keep the add-on hook's `plugin` as-is (its members are stable). For a custom plugin, hoist `Overlay`/`Mount` to module scope or memoize them on the data they close over. For pinned rows, memoize `topRows`/`bottomRows` so the hook's `plugin` changes only when the band contents change.
 
 ## 6. Custom `Cell`/`renderCell` allocating per render
 
@@ -88,7 +88,7 @@ Zero `[data-grid]`-prefixed warnings and no `gridcn: the grid viewport shows mor
 
 - `https://gridcn.vercel.app/docs/performance.md` — identity-stability rules, scroll model.
 - `https://gridcn.vercel.app/docs/virtualization.md` — bounded-height requirement, windowing model.
-- `https://gridcn.vercel.app/docs/overlay-plugins.md` — `overlayPlugins`/`rowBands` identity rules.
+- `https://gridcn.vercel.app/docs/plugins.md` — plugin identity rules (entry-wise list comparison, one plugin per grid).
 - `https://gridcn.vercel.app/docs/styling-theming.md` — `getRowClassName`/`getCellClassName` stability.
 - `https://gridcn.vercel.app/docs/custom-cell-types.md` — formatter caching, allocation-free `Cell`.
 - `https://gridcn.vercel.app/docs/streaming-updates.md` — `updateCells`/`updateRows`, `skipValidation`.

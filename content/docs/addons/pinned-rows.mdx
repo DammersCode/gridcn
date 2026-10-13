@@ -12,9 +12,9 @@ bottom band at the viewport's bottom edge, both scrolling the data rows undernea
 <InstallCommand item="data-grid-pinned-rows" manual manualSlot={<ManualInstall item="data-grid-pinned-rows" />} />
 
 ```tsx
-const { rowBands } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows: [totalsRow] });
+const { plugin } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows: [totalsRow] });
 
-<DataGridProvider {...grid} columns={columns} rowBands={rowBands}>
+<DataGridProvider {...grid} columns={columns} plugins={[...grid.plugins, plugin]}>
   <DataGridRoot>
     <DataGridHeader />
     <DataGridBody />
@@ -27,7 +27,7 @@ const { rowBands } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows:
     ## Wiring it up
 
     `useDataGridPinnedRows()` is a single hook. Call it in your own component ABOVE where you
-    render `<DataGridProvider>`. The `rowBands` prop lives on the provider, so the spec has to
+    render `<DataGridProvider>`. The `plugins` prop lives on the provider, so the plugin has to
     exist before it. The same composition works with the core's `DataGrid` convenience wrapper —
     see the note on [Fill handle](/docs/addons/fill#composing-with-cores-datagrid-convenience-wrapper).
 
@@ -38,9 +38,9 @@ const { rowBands } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows:
     import { useDataGridPinnedRows } from "@/components/data-grid-pinned-rows/data-grid-pinned-rows";
 
     function MyGrid() {
-      const { rowBands } = useDataGridPinnedRows({ topRows: [totalsRow] });
+      const { plugin } = useDataGridPinnedRows({ topRows: [totalsRow] });
 
-      return <DataGrid data={data} columns={columns} getRowId={getRowId} rowBands={rowBands} />;
+      return <DataGrid data={data} columns={columns} getRowId={getRowId} plugins={[plugin]} />;
     }
     ```
 
@@ -87,16 +87,17 @@ const { rowBands } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows:
       const [totals, setTotals] = useState({ id: "__totals__" });
 
       // Stable identity: keep `onChange` out of the inline-closure pattern, and keep the band
-      // arrays memoized so `rowBands` only changes when the totals actually do.
+      // arrays memoized so the plugin only changes when the totals actually do.
       const onTotalsChange = useCallback((row: Record<string, unknown>) => {
         setTotals((prev) => ({ ...prev, ...row }));
       }, []);
 
       const bottomRows = useMemo(() => [totals], [totals]);
-      const { rowBands } = useDataGridPinnedRows({ bottomRows });
+      const { plugin } = useDataGridPinnedRows({ bottomRows });
+      const plugins = useMemo(() => [...grid.plugins, plugin], [grid.plugins, plugin]);
 
       return (
-        <DataGridProvider {...grid} columns={columns} rowBands={rowBands}>
+        <DataGridProvider {...grid} columns={columns} plugins={plugins}>
           <DataGridAggregateReporter specs={TOTALS_SPECS} onChange={onTotalsChange} />
           <DataGridRoot>
             <DataGridHeader />
@@ -117,7 +118,8 @@ const { rowBands } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows:
     the active filter. If a `specs` key matches no column id, the aggregate ignores it and a dev
     warning fires once.
 
-    Because the hook reads the store and `rowBands` is a provider prop, `DataGridAggregateReporter`
+    Because the hook reads the store and the `plugins` prop lives on the provider,
+    `DataGridAggregateReporter`
     bridges the two: it renders as a plain child under the provider and reports the result through
     `onChange` into parent state, which is what feeds `topRows`/`bottomRows`.
 
@@ -136,13 +138,13 @@ const { rowBands } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows:
     </Callout>
 
     <Callout type="warn" title="Keep the band arrays referentially stable">
-      `useDataGridPinnedRows` returns a stable `rowBands` reference only while the `topRows` and
+      `useDataGridPinnedRows` returns a stable `plugin` reference only while the `topRows` and
       `bottomRows` arrays you pass keep the same identity. A fresh array on every render (like the
-      inline `bottomRows: [totals]`) makes `rowBands` churn every render, and the grid dev-warns
-      on that. Memoize the arrays, as in the example above, so they only change when the band
-      contents change. The band rows need no id field: pinned cells resolve values through each
-      column's `accessorKey`/`accessorFn` exactly like data rows, and a row without an id gets a
-      band id.
+      inline `bottomRows: [totals]`) rebuilds the plugin every render, and the grid re-resolves
+      its plugin list on every render. Memoize the arrays, as in the example above, so they only
+      change when the band contents change. The band rows need no id field: pinned cells resolve
+      values through each column's `accessorKey`/`accessorFn` exactly like data rows, and a row
+      without an id gets a band id.
     </Callout>
 
     ### Custom reducers

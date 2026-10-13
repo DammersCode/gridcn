@@ -13,11 +13,11 @@ import {
   type GridSelection,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import {
-  useDataGridStoreApi,
   type BulkResolution,
   type InteractionLayout,
   type DataGridStoreState,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { getInternalActions, useDataGridStoreApi as useRawStoreApi } from "@/registry/default/blocks/data-grid/store";
 import { createFillStore } from "./fill-store";
 import { buildFillWrites, readRectAsText, useFillHandle } from "./use-fill-handle";
 
@@ -280,14 +280,15 @@ describe("useFillHandle staleness guard — async fill held against a real store
     const { result } = renderHook(
       () => {
         const actions = useDataGridActions();
-        const storeApi = useDataGridStoreApi();
+        const storeApi = useRawStoreApi();
+        const internal = getInternalActions(storeApi);
         const scrollRef = useRef<HTMLElement | null>(null);
         const fill = useFillHandle({
           scrollRef,
           layout: {} as InteractionLayout,
           fillStore: createFillStore(),
         });
-        return { actions, storeApi, fill };
+        return { actions, storeApi, internal, fill };
       },
       { wrapper },
     );
@@ -424,7 +425,7 @@ describe("useFillHandle staleness guard — async fill held against a real store
     // source is row 0 (id "1", qty 2), strip targets row 1 (id "2", qty 4 -> overwritten by fill).
     act(() => result.current.fill.fillDown());
     act(() =>
-      result.current.storeApi.getState().actions._syncProps({
+      result.current.internal._syncProps({
         data: reordered,
         columns: heldColumns as never,
         getRowId: ((r: Row) => r.id) as never,

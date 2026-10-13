@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
+  useDataGridActions,
   useDataGridInternalActions,
   useDataGridActiveCell,
   useDataGridLabels,
@@ -179,7 +180,8 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
 
   // Drag-to-reorder rows: one shared instance for the whole body (one indicator, one gesture),
   // mirroring how DataGridHeader owns useColumnReorder for its headers.
-  const actions = useDataGridInternalActions();
+  const actions = useDataGridActions();
+  const internalActions = useDataGridInternalActions();
   const labels = useDataGridLabels();
   const rowReorderEnabled = useDataGridRowReorderEnabled();
   // the gesture lives on the marker's reorder family only — plain number/checkbox/both markers
@@ -256,8 +258,8 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   // its one-shot pulse on scroll-back while the key is still live (the pulse is viewport-scoped by design).
   useEffect(() => {
     if (!measured) return;
-    actions._pruneFlashingCells(viewRowIndices);
-  }, [measured, viewRowIndices, actions]);
+    internalActions._pruneFlashingCells(viewRowIndices);
+  }, [measured, viewRowIndices, internalActions]);
 
   const canvasStyle: CSSProperties & Record<string, string | number> = {
     position: "absolute",

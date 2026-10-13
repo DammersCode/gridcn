@@ -36,7 +36,9 @@ A gate of seven rules decides whether an event reaches the grid:
 7. The key must resolve to an enabled action through the effective keymap.
 
 When the gate passes, the component dispatches the action through the in-grid keymap. For undo
-and redo, that is the `onUndo` or `onRedo` seam.
+and redo, that is the `undo`/`redo` command of the
+[data-grid-history](/docs/addons/undo-redo) plugin — the global shortcut behaves exactly like the
+in-grid mod+Z binding.
 With the `data-grid-history` add-on, undo reverses grid edits.
 Without the add-on the layer is a no-op, like in-grid undo.
 
@@ -122,6 +124,6 @@ This protects the layer from your listener and your listener from the layer.
 
 ## Related
 
-- [Undo & redo](/docs/addons/undo-redo) — the `onUndo`/`onRedo` seam of this component
+- [Undo & redo](/docs/addons/undo-redo) — the `undo`/`redo` commands this component reaches
 - [Keybindings](/docs/addons/keybindings) — the effective keymap and remapping
 - [Selection & keyboard](/docs/selection-keyboard) — the in-grid keymap table

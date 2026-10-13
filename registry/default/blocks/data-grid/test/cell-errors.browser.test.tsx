@@ -11,7 +11,8 @@ import {
   DataGridRoot,
   type ColumnDef,
 } from "../data-grid";
-import { useDataGridStoreApi, gridAttrSelector, type DataGridStoreState } from "../data-grid-sdk";
+import { gridAttrSelector } from "../data-grid-sdk";
+import { useDataGridStoreApi, type DataGridStoreState } from "../store";
 // real stylesheet so Tailwind's ring/tint utilities actually apply
 import "@/app/global.css";
 

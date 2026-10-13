@@ -365,7 +365,7 @@ useDataGridPresenceHighlights(storeApi): readonly PresenceHighlight[];
 Presence is the odd one out: it is a **setter plus read hook** pair, not a callback. Your
 transport handler calls `setPresenceHighlights` (inbound) and `useDataGridPresenceHighlights(storeApi)`
 reads it back (outbound), with zero grid-owned network code in between. It lives in the separate
-`data-grid-presence` add-on, registered through the generic `overlayPlugins` seam, and is not a
+`data-grid-presence` add-on, registered through the grid's `plugins` seam, and is not a
 core event source. See [Multiplayer presence](/docs/addons/presence) for the full
 write-up, including how to broadcast your own selection with `onSelectionChange`.
 
