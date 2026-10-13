@@ -86,7 +86,7 @@ export type AccessorKeyOf<TData> = unknown extends TData ? string : keyof TData 
 /** Cell coordinate in view space: 0-based view row (sorted/filtered, not a data index) and 0-based visible-column index (marker columns excluded). It reshuffles under sort and filter — never persist it or compare it across a reorder; address cells by {@link CellRef} instead. */
 export type ViewCoord = { col: number; row: number };
 
-/** Stable cell identity: the row's `getRowId()` value plus the column's id. Survives sort, filter, and reorder — the coordinate for actions and the identity the cell ctx hands out. */
+/** Stable cell identity: the row's `getRowId()` value plus the column's id. Survives sort, filter, and reorder — the coordinate for actions and the identity the cell ctx hands out. A ref whose row is not in the current data (filtered out, paged away, deleted) or whose column is hidden does not resolve: the action is a no-op, and dev mode warns once per grid. */
 export type CellRef = { rowId: string; columnId: string };
 
 /** A {@link CellRef} plus the view-space position the cell occupied when the event fired. */

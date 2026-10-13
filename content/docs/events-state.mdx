@@ -393,8 +393,9 @@ zero-re-render guarantee as the other callbacks on this page.
   the `viewRowIndex`/`viewColumnIndex` it occupied when the event fired.
 - `onEditStart` fires right before an edit session opens, from Enter or F2, type-to-replace,
   or a double-click, with the target cell's `ViewCellRef`. Return `false` to veto the edit.
-  The edit then does not start at all, and no other event fires for it. Checkbox cells toggle
-  instead of editing, so they never reach `onEditStart`.
+  The edit then does not start at all, and no other event fires for it. Cells of a type that
+  declares `activate` (like `checkbox`) toggle instead of editing, so they never reach
+  `onEditStart`.
 - `onEditEnd` fires with a `result` of `commit`, `cancel`, or `rejected`. `commit` fires after
   the session closes. `cancel` fires when the draft is discarded: on Escape, when a filter, a
   hidden column, or a data change removes the edited cell from the view, and when a second

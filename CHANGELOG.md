@@ -903,6 +903,16 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **The currency recipe's codec preserves `0`:** `toValue` and `fromText` built the value with
+  `Number(draft) || null`, so a typed `0` — falsy — became `null`. They now parse the trimmed
+  draft and reject only `NaN`, so `0` commits as a value.
+- **The server-error examples use the imperative handle, not store lifting:** the cell-errors
+  demo and the server-error examples in the docs call
+  `gridRef.current?.actions.setCellErrors` for the async `onDataChange` follow-up — the
+  rejection lands long after mount — instead of lifting the store with
+  `useDataGridStoreProps`, which stays for a store that must live outside the provider's
+  render. The context-menu catalog description names `getCellMenuItems` and
+  `getHeaderMenuItems`.
 - **IME composition keeps the editor open (`data-grid`):** Enter and Escape that confirm or
   cancel an IME composition no longer commit or cancel the edit in the text, number, and date
   editors, or in an editor built on `useCellEditor`. This includes the confirming Enter that

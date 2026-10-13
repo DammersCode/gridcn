@@ -435,7 +435,7 @@ function CurrencyCell({ value, options }: CellRenderProps<unknown, number | null
 function CurrencyEditor(props: CellEditorProps<unknown, number | null, CurrencyOptions>) {
   const { ref, ...bindings } = useCellEditor(props, {
     toDraft: (value) => String(value ?? ""),
-    toValue: (draft) => (draft.trim() === "" ? null : Number(draft) || null),
+    toValue: (draft) => (draft.trim() === "" || Number.isNaN(Number(draft.trim())) ? null : Number(draft.trim())),
   });
   return <Input ref={ref} {...bindings} />;
 }
@@ -444,7 +444,7 @@ export const currencyCellType: CellType<unknown, number | null, CurrencyOptions>
   Cell: CurrencyCell,
   Editor: CurrencyEditor,
   toText: (value) => (value == null ? "" : String(value)),
-  fromText: (text) => (text.trim() === "" ? null : Number(text) || null),
+  fromText: (text) => (text.trim() === "" || Number.isNaN(Number(text.trim())) ? null : Number(text.trim())),
   clearValue: () => null,
   isEmpty: (value) => value == null,
   compare: (a, b) => (a ?? 0) - (b ?? 0),

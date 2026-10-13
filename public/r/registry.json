@@ -1538,7 +1538,7 @@
       "name": "data-grid-context-menu-slots-demo",
       "type": "registry:example",
       "title": "Data Grid Context Menu Slots Demo",
-      "description": "Custom context menu items via renderCellMenuItems and renderHeaderMenuItems, replacing the built-in item sets.",
+      "description": "Custom context menu items via getCellMenuItems and getHeaderMenuItems, replacing the built-in item sets.",
       "author": "gridcn",
       "dependencies": [
         "lucide-react"

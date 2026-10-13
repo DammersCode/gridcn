@@ -230,7 +230,8 @@ Other rules:
   warns once.
 
 Name the action by declaration-merging the `GridActions` interface (the same path as
-`GridCellTypes`), so `keymap` and `commands` accept it with your IDE's help:
+`GridCellTypes`): the merged name becomes a valid `GridAction`, so your IDE lists it in
+`keymap`, and `commands` accepts it as a plain key:
 
 ```tsx
 declare module "@/components/data-grid/types" {

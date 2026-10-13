@@ -340,29 +340,23 @@ message in a tooltip:
 
 <ComponentPreview name="data-grid-cell-errors-demo" />
 
-`handleDataChange` lives outside the provider's subtree, so the grid's actions come from
-`useDataGridStoreProps` — the store-ownership hook, which also keeps the store in sync (see
-[API reference: external store ownership](/docs/api-reference#store-external-store-ownership)):
+The rejection lands a round trip after `onDataChange`, long after the grid is mounted, so the
+handler reaches the grid's actions through the imperative handle — no lifted store needed:
 
 ```tsx
 function OrdersGrid() {
   const [data, setData] = useState<readonly Order[]>(initialOrders);
-  const { store, actions } = useDataGridStoreProps({
-    data,
-    columns,
-    getRowId: (row) => row.id,
-    onDataChange: handleDataChange,
-  });
+  const gridRef = useRef<DataGridApi<Order> | null>(null);
 
   function handleDataChange(next: readonly Order[], change: DataChange<Order>) {
     setData(next);
     saveOrders(change.ops).catch((error) => {
-      actions.setCellErrors(parseFieldErrors(error)); // [{ rowId, columnId, message }]
+      gridRef.current?.actions.setCellErrors(parseFieldErrors(error)); // [{ rowId, columnId, message }]
     });
   }
 
   return (
-    <DataGrid store={store} data={data} columns={columns} getRowId={(row) => row.id} onDataChange={handleDataChange} />
+    <DataGrid ref={gridRef} data={data} columns={columns} getRowId={(row) => row.id} onDataChange={handleDataChange} />
   );
 }
 ```

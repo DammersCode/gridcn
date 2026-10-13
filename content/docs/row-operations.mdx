@@ -190,10 +190,11 @@ Try all four modes alongside every other toggle in the [playground](/docs/playgr
 while keeping its chrome and gestures:
 
 - `renderMarker` replaces the built-in row number/checkbox in every marker cell. It receives the
-  0-based `viewRowIndex` plus two independent selection signals: `isRowChannelSelected` (the rows
-  channel only, so a cell click never flips it) and `isCellSelected` (the cell or column channel
-  covers at least one cell of the row). A renderer can therefore tell "this row is selected" apart
-  from "cells in this row are selected" and render them differently.
+  row's `rowId`, the 0-based `viewRowIndex`, and two independent selection signals:
+  `isRowChannelSelected` (the rows channel only, so a cell click never flips it) and
+  `isCellSelected` (the cell or column channel covers at least one cell of the row). A renderer
+  can therefore tell "this row is selected" apart from "cells in this row are selected" and
+  render them differently.
 - `renderMarkerHeader` replaces the select-all checkbox in the marker header. It receives the
   `allSelected` state (`"checked"`, `"indeterminate"`, `"unchecked"`). In `"number"` mode there is no
   select-all checkbox, so the renderer replaces the blank header cell instead.
