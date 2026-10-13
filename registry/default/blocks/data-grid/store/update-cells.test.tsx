@@ -346,6 +346,26 @@ describe("updateCells — async validation", () => {
     expect(lastData(onDataChange)[0]!.price).toBe(22);
   });
 
+  it("a consumer data swap supersedes a held batch — the held values never land on the swapped data", async () => {
+    const onDataChange = vi.fn();
+    const { result } = renderHarness({ onDataChange, columnsOverride: asyncColumns });
+    let pending = false;
+    act(() => {
+      pending = result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 11 }]).pending;
+    });
+    expect(pending).toBe(true); // held against the async schema
+    // the consumer replaces the data array before the schema resolves
+    const swapped: Row[] = [
+      { id: "a", name: "Charlie", price: 30, note: "swapped" },
+      { id: "x", name: "New", price: 1 },
+    ];
+    act(() => result.current.actions._syncProps({ data: swapped, columns: asyncColumns, getRowId } as never));
+    // sized to the real async dependency, not a guessed tick count
+    await act(() => asyncPrice["~standard"].validate(11) as Promise<unknown>);
+    expect(onDataChange).not.toHaveBeenCalled(); // the held write was dropped, not replayed onto the swap
+    expect(result.current.firstRow!.price).toBe(30);
+  });
+
   it("a sync column in the same grid keeps the fully synchronous path", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange, columnsOverride: asyncColumns });

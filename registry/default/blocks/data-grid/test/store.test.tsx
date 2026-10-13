@@ -3668,6 +3668,21 @@ describe("CellRef actions (stable identity coordinates)", () => {
     expect(result.current.activeCell).toEqual({ col: 1, row: 0 });
   });
 
+  it("extendTo and pushRange resolve their ref against the current (sorted) view", () => {
+    const { result } = renderHook(useRefActions, {
+      wrapper: makeConfigWrapper({ sortState: [{ columnId: "name", direction: "asc" }] }),
+    });
+    // name-asc: Alice(2) view 0, Bob(3) view 1, Charlie(1) view 2
+    act(() => result.current.actions.selectCell({ rowId: "2", columnId: "name" }));
+    act(() => result.current.actions.extendTo({ rowId: "1", columnId: "age" }));
+    // anchor (0,0) to Charlie's age cell (1,2): a 2x3 rect
+    expect(result.current.selection.current?.range).toEqual({ x: 0, y: 0, width: 2, height: 3 });
+    act(() => result.current.actions.pushRange({ rowId: "3", columnId: "name" }));
+    expect(result.current.selection.current?.cell).toEqual({ col: 0, row: 1 });
+    expect(result.current.selection.current?.range).toEqual({ x: 0, y: 1, width: 1, height: 1 });
+    expect(result.current.selection.current?.rangeStack).toHaveLength(1);
+  });
+
   it("a ref that no longer resolves is a no-op and dev-warns once per grid", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { result } = renderHook(useRefActions, {
@@ -3677,6 +3692,24 @@ describe("CellRef actions (stable identity coordinates)", () => {
     expect(result.current.selection.current).toBeNull();
     act(() => result.current.actions.selectCell({ rowId: "1", columnId: "hidden" }));
     expect(result.current.selection.current).toBeNull();
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it("a ref to a row filtered out of the view is a no-op; an in-view ref still resolves", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { result } = renderHook(useRefActions, {
+      wrapper: makeConfigWrapper({
+        filterState: [{ filterId: "f", columnId: "name", operator: "equals", value: "Alice" }],
+      }),
+    });
+    // the filter keeps Alice (id "2") only; Charlie (id "1") and Bob (id "3") are filtered out.
+    act(() => result.current.actions.selectCell({ rowId: "1", columnId: "name" }));
+    expect(result.current.selection.current).toBeNull();
+    expect(warn).toHaveBeenCalledTimes(1);
+    // the same grid still resolves a ref to an in-view row, at its filtered position
+    act(() => result.current.actions.selectCell({ rowId: "2", columnId: "age" }));
+    expect(result.current.selection.current?.cell).toEqual({ col: 1, row: 0 });
     expect(warn).toHaveBeenCalledTimes(1);
     warn.mockRestore();
   });
