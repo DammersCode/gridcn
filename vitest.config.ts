@@ -110,6 +110,8 @@ export default defineConfig({
         extends: true,
         test: {
           name: "unit",
+          // One jsdom env per worker instead of per file (49% of run time); the VM context keeps per-file isolation.
+          pool: "vmThreads",
           environment: "jsdom",
           include: ["registry/**/*.test.{ts,tsx}", "tests/**/*.test.{ts,tsx}"],
           exclude: ["**/node_modules/**", "**/*.browser.test.{ts,tsx}"],
@@ -141,6 +143,8 @@ export default defineConfig({
         plugins: [reactCompiler()],
         test: {
           name: "unit-compiled",
+          // One jsdom env per worker instead of per file (49% of run time); the VM context keeps per-file isolation.
+          pool: "vmThreads",
           environment: "jsdom",
           include: ["registry/**/*.test.{ts,tsx}", "tests/**/*.test.{ts,tsx}"],
           exclude: ["**/node_modules/**", "**/*.browser.test.{ts,tsx}"],

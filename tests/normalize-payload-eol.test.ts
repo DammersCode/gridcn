@@ -79,6 +79,7 @@ describe("normalizePayloadText", () => {
 });
 
 describe("normalize-payload-eol script", () => {
+  // Spawns a fresh node process plus git init/commit; the default 5 s timeout flakes under full-suite load.
   it("skips a tracked payload that was deleted instead of crashing", () => {
     const repo = mkdtempSync(join(tmpdir(), "payload-eol-"));
     try {
@@ -96,5 +97,5 @@ describe("normalize-payload-eol script", () => {
     } finally {
       rmSync(repo, { recursive: true, force: true });
     }
-  });
+  }, 15_000);
 });

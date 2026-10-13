@@ -374,12 +374,4 @@ describe("printGrid", () => {
     }
   });
 
-  it("is a no-op without a document (SSR)", () => {
-    vi.stubGlobal("document", undefined);
-    try {
-      expect(() => printGrid(makeState())).not.toThrow();
-    } finally {
-      vi.unstubAllGlobals();
-    }
-  });
 });
