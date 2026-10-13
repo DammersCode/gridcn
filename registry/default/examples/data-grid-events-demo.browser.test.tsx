@@ -18,7 +18,7 @@ function latestPayloadFor(source: string): unknown {
 }
 
 describe("data-grid-events-demo", () => {
-  it("clicking a cell logs an onSelectionChange entry with the clicked coord", async () => {
+  it("clicking a cell logs an onSelectionChange entry with the clicked cell's stable refs", async () => {
     await render(<DataGridEventsDemo />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
@@ -27,10 +27,16 @@ describe("data-grid-events-demo", () => {
 
     await expect.element(page.getByText("onSelectionChange")).toBeInTheDocument();
     const payload = latestPayloadFor("onSelectionChange") as {
-      cell: unknown;
+      anchor: { rowId: string; columnId: string } | null;
+      range: { start: { rowId: string; columnId: string }; end: { rowId: string; columnId: string } } | null;
       values: { rows: unknown[][]; truncated: boolean };
     };
-    expect(payload.cell).toEqual({ col: 0, row: 0 });
+    // The payload is stable CellRef terms, not view coords: the clicked row's getRowId plus column id.
+    expect(payload.anchor).toEqual({ rowId: "row-0", columnId: "name" });
+    expect(payload.range).toEqual({
+      start: { rowId: "row-0", columnId: "name" },
+      end: { rowId: "row-0", columnId: "name" },
+    });
     // details.getValues() over the single-cell range: one row, one column, the Name cell's value.
     expect(payload.values.rows).toEqual([[expect.any(String)]]);
     expect(payload.values.truncated).toBe(false);

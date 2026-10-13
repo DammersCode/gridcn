@@ -19,7 +19,9 @@ import type {
   CellClickCtx,
   CellType,
   CellPatch,
+  CellRef,
   DataGridActions,
+  DataGridApi,
   DataGridProps,
   useDataGridActions,
   DataGridSyncProps,
@@ -41,7 +43,9 @@ import type {
   MarkerCellRenderer,
   MarkerHeaderRenderer,
   RowClickCtx,
+  SelectionState,
   SortSpec,
+  ColumnLayout,
 } from "./data-grid";
 import { createDataGridSelector, useDataGridSelector, useDataGridCellTypes, useDataGridVisibleColumns, useDataGridAllColumns } from "./data-grid";
 import { DATA_GRID_ROOT_PROP_KEYS } from "./root";
@@ -111,6 +115,55 @@ void badSortState;
 // @ts-expect-error - joinOperator is "and" | "or", not an arbitrary string
 const badJoinOperator: Pick<DataGridProps<Row>, "joinOperator"> = { joinOperator: "xor" };
 void badJoinOperator;
+
+// --- W5-11: controlled selection and column layout, in stable CellRef terms ---------------------
+// `selection`/`defaultSelection` are mutually exclusive (selection wins), `onSelectionChange`
+// receives the public SelectionState (the active cell is NOT part of it), and `columnLayout` is
+// Partial: each provided part replaces that part, omitted parts stay uncontrolled.
+
+const cellRef: CellRef = { rowId: "1", columnId: "name" };
+const selectionValue: SelectionState = {
+  anchor: cellRef,
+  range: { start: cellRef, end: { rowId: "3", columnId: "age" } },
+  rangeStack: [],
+  rowIds: [],
+  columnIds: [],
+};
+const controlledSelection: Pick<DataGridProps<Row>, "selection" | "defaultSelection" | "onSelectionChange"> = {
+  selection: selectionValue,
+  defaultSelection: selectionValue,
+  onSelectionChange: (next: SelectionState) => {
+    const rowIds: readonly string[] = next.rowIds;
+    const anchor: CellRef | null = next.anchor;
+    void rowIds;
+    void anchor;
+  },
+};
+void controlledSelection;
+
+// every part of a layout is independently optional; a width-only control leaves the rest uncontrolled
+const partialLayout: Pick<DataGridProps<Row>, "columnLayout" | "defaultColumnLayout" | "onColumnLayoutChange"> = {
+  columnLayout: { widths: { name: 220 } },
+  defaultColumnLayout: { order: ["age", "name", "id"] },
+  onColumnLayoutChange: (layout: ColumnLayout) => {
+    const order: string[] = layout.order;
+    void order;
+  },
+};
+void partialLayout;
+
+// @ts-expect-error - onSelectionCleared was removed with W5-11 (a clear arrives as an empty onSelectionChange)
+const clearedProp: DataGridSyncProps<Row> = { onSelectionCleared: () => {} };
+void clearedProp;
+
+// the api handle reads/writes the public selection value; a single cell stays actions.selectCell
+declare const gridApi: DataGridApi<Row>;
+assertEqual<() => SelectionState, typeof gridApi.getSelection>(true);
+assertEqual<(next: SelectionState | null) => void, typeof gridApi.setSelection>(true);
+
+declare const wActions: DataGridActions;
+assertEqual<(next: SelectionState | null) => void, typeof wActions.setSelection>(true);
+assertEqual<(parts: Partial<ColumnLayout>) => void, typeof wActions.setColumnLayout>(true);
 
 // --- DataGrid wrapper prop surface: one home per prop ------------------------------------------
 // DataGridProps is built as (ExternalStoreProps | OwnedStoreProps) & DataGridRootProps & { ref }, so

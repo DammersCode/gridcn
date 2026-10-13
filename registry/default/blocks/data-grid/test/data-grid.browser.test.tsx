@@ -1,8 +1,8 @@
 import { page, userEvent } from "vitest/browser";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
-import { useEffect, useRef } from "react";
-import type { ColumnDef, DataChange, Keymap } from "../types";
+import { useEffect, useRef, useState } from "react";
+import type { ColumnDef, ColumnLayout, DataChange, Keymap, SelectionState } from "../types";
 import {
   defineColumns,
   DataGrid,
@@ -590,8 +590,8 @@ describe("DataGrid in a real browser", () => {
       expect(activeCell).not.toBeNull();
     });
 
-    it("gutter and page-area pointerdowns clear the selection, fire onSelectionCleared once, and detach the outside-click listener", async () => {
-      const onSelectionCleared = vi.fn();
+    it("gutter and page-area pointerdowns clear the selection, fire onSelectionChange with an empty selection once, and detach the outside-click listener", async () => {
+      const onSelectionChange = vi.fn();
       const addSpy = vi.spyOn(document, "addEventListener");
       const removeSpy = vi.spyOn(document, "removeEventListener");
       const adds = () => addSpy.mock.calls.filter((args) => args[0] === "pointerdown" && args[2] === true).length;
@@ -600,7 +600,7 @@ describe("DataGrid in a real browser", () => {
         <>
           <button type="button" data-testid="outside-target" />
           <div style={{ height: 600 }}>
-            <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[600px]" onSelectionCleared={onSelectionCleared} />
+            <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[600px]" onSelectionChange={onSelectionChange} />
           </div>
         </>,
       );
@@ -616,11 +616,12 @@ describe("DataGrid in a real browser", () => {
       expect(removes()).toBe(removesBefore);
 
       grid.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerType: "mouse" }));
-      expect(onSelectionCleared).toHaveBeenCalledTimes(1);
+      expect(onSelectionChange).toHaveBeenCalledTimes(2);
+      expect(onSelectionChange.mock.calls.at(-1)![0].range).toBeNull();
       expect(adds()).toBe(addsBefore + 1);
       expect(removes()).toBe(removesBefore + 1);
 
-      onSelectionCleared.mockClear();
+      onSelectionChange.mockClear();
       await userEvent.click(gridCells()[0]!);
       expect(adds()).toBe(addsBefore + 2);
       expect(removes()).toBe(removesBefore + 1);
@@ -628,7 +629,8 @@ describe("DataGrid in a real browser", () => {
       const outside = document.querySelector<HTMLButtonElement>("[data-testid='outside-target']")!;
       await outside.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerType: "mouse" }));
 
-      expect(onSelectionCleared).toHaveBeenCalledTimes(1);
+      expect(onSelectionChange).toHaveBeenCalledTimes(2);
+      expect(onSelectionChange.mock.calls.at(-1)![0].range).toBeNull();
       expect(adds()).toBe(addsBefore + 2);
       expect(removes()).toBe(removesBefore + 2);
 
@@ -1289,10 +1291,10 @@ describe("DataGrid in a real browser", () => {
       });
 
       it("a pointerdown inside the portaled select editor does not clear the selection", async () => {
-        const onSelectionCleared = vi.fn();
+        const onSelectionChange = vi.fn();
         await render(
           <div style={{ height: 300 }}>
-            <DataGrid data={[{ id: "1", role: "admin" }]} columns={roleColumns} getRowId={(r) => r.id} className="h-[300px]" onSelectionCleared={onSelectionCleared} />
+            <DataGrid data={[{ id: "1", role: "admin" }]} columns={roleColumns} getRowId={(r) => r.id} className="h-[300px]" onSelectionChange={onSelectionChange} />
           </div>,
         );
         await expect.element(page.getByRole("grid")).toBeInTheDocument();
@@ -1303,7 +1305,7 @@ describe("DataGrid in a real browser", () => {
         const editor = document.querySelector<HTMLElement>(gridAttrSelector("cellEditor"))!;
         await editor.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerType: "mouse" }));
 
-        expect(onSelectionCleared).not.toHaveBeenCalled();
+        expect(onSelectionChange.mock.calls.at(-1)![0].range).not.toBeNull();
         expect(document.querySelector(gridAttrSelector("cellEditor"))).toBe(editor);
       });
 
@@ -1849,6 +1851,11 @@ describe("DataGrid in a real browser", () => {
       const outerRows = makeRows(2);
       const innerColumns = defineColumns<Row>()([{ id: "name", header: "Inner", accessorKey: "name", type: "text" }]);
 
+      function cellSelection(rowId: string, columnId: string): SelectionState {
+        const ref = { rowId, columnId };
+        return { anchor: ref, range: { start: ref, end: ref }, rangeStack: [], rowIds: [], columnIds: [] };
+      }
+
       async function renderNested(onOuterChange = mockDataChangeFn<Row>(), onInnerChange = mockDataChangeFn<Row>()) {
         const apis = { outer: null as DataGridApi<Row> | null, inner: null as DataGridApi<Row> | null };
         const outerColumns = defineColumns<Row>()([
@@ -1896,8 +1903,8 @@ describe("DataGrid in a real browser", () => {
         const onOuterChange = mockDataChangeFn<Row>();
         const onInnerChange = mockDataChangeFn<Row>();
         const apis = await renderNested(onOuterChange, onInnerChange);
-        apis.outer!.setSelection({ rowId: "row-0", columnId: "email" });
-        apis.inner!.setSelection({ rowId: "row-0", columnId: "name" });
+        apis.outer!.setSelection(cellSelection("row-0", "email"));
+        apis.inner!.setSelection(cellSelection("row-0", "name"));
         await expect.poll(() => document.querySelectorAll("[data-active]").length).toBe(2);
         const innerRoot = document.querySelectorAll<HTMLElement>('[role="grid"]')[1]!;
         const innerActive = innerRoot.querySelector<HTMLElement>("[data-active]")!;
@@ -1913,8 +1920,8 @@ describe("DataGrid in a real browser", () => {
 
       it("focus() lands on the host grid's active cell, not on the nested grid's", async () => {
         const apis = await renderNested();
-        apis.inner!.setSelection({ rowId: "row-0", columnId: "name" });
-        apis.outer!.setSelection({ rowId: "row-1", columnId: "name" });
+        apis.inner!.setSelection(cellSelection("row-0", "name"));
+        apis.outer!.setSelection(cellSelection("row-1", "name"));
         await expect.poll(() => document.querySelectorAll("[data-active]").length).toBe(2);
         (document.activeElement as HTMLElement | null)?.blur();
 
@@ -2148,5 +2155,103 @@ describe("DataGrid a11y — roving tabindex bootstrap (real keyboard Tab)", () =
     expect(firstCell).toHaveAttribute("tabindex", "0");
     // roving tabindex has taken over: the root itself reverts to -1, no longer a tab stop.
     expect(grid).toHaveAttribute("tabindex", "-1");
+  });
+});
+
+describe("controlled selection and layout: the controlled loop adds no extra work", () => {
+  const EMPTY_SELECTION: SelectionState = { anchor: null, range: null, rangeStack: [], rowIds: [], columnIds: [] };
+
+  it("a 20-step controlled drag renders the same probe cells as the uncontrolled baseline", { timeout: 30_000 }, async () => {
+    async function drag(controlled: boolean): Promise<number> {
+      let renderCount = 0;
+      const probed = columns.map((column) => (column.id === "name" ? { ...column, renderCell: () => { renderCount++; return null; } } : column));
+      function Consumer() {
+        const [selection, setSelection] = useState<SelectionState>(EMPTY_SELECTION);
+        return (
+          <DataGrid
+            data={makeRows(100)}
+            columns={probed}
+            getRowId={(r) => r.id}
+            className="h-[360px]"
+            selection={controlled ? selection : undefined}
+            onSelectionChange={(next) => setSelection(next)}
+          />
+        );
+      }
+      const view = await render(
+        <div style={{ height: 360, width: 1200 }}>
+          <Consumer />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      const stride = probed.length;
+      const cells = [...document.querySelectorAll<HTMLElement>('[role="gridcell"]')];
+      await userEvent.click(cells[3 * stride]!);
+      await new Promise((r) => requestAnimationFrame(r));
+      renderCount = 0;
+      for (let i = 0; i < 19; i++) {
+        await userEvent.keyboard("{Shift>}{ArrowDown}{/Shift}");
+        await new Promise((r) => requestAnimationFrame(r));
+      }
+      await new Promise((r) => setTimeout(r, 100));
+      const count = renderCount;
+      await view.unmount();
+      return count;
+    }
+
+    const baseline = await drag(false);
+    const controlled = await drag(true);
+    // The echo-sync early return keeps the controlled loop at baseline cost: no extra cell renders.
+    expect(controlled).toBe(baseline);
+  });
+
+  it("controlled resize: onColumnResizing per frame, one onColumnLayoutChange at release, no snap-back after the echo", { timeout: 30_000 }, async () => {
+    const onColumnResizing = vi.fn();
+    const onColumnLayoutChange = vi.fn();
+    function Consumer() {
+      const [layout, setLayout] = useState<ColumnLayout | undefined>(undefined);
+      return (
+        <DataGrid
+          data={makeRows(20)}
+          columns={columns}
+          getRowId={(r) => r.id}
+          className="h-[400px]"
+          columnLayout={layout}
+          onColumnLayoutChange={(next) => {
+            onColumnLayoutChange(next);
+            setLayout(next);
+          }}
+          onColumnResizing={onColumnResizing}
+        />
+      );
+    }
+    const view = await render(
+      <div style={{ height: 400 }}>
+        <Consumer />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const header = document.querySelector<HTMLElement>('[role="columnheader"]')!;
+    const before = header.getBoundingClientRect().width;
+    const handle = header.querySelector<HTMLElement>(gridAttrSelector("resizeHandle"))!;
+    const rect = handle.getBoundingClientRect();
+
+    await handle.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1, clientX: rect.left, clientY: rect.top }));
+    for (let i = 1; i <= 3; i++) {
+      document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: rect.left + 20 * i, clientY: rect.top }));
+      await new Promise((r) => requestAnimationFrame(r));
+    }
+    expect(onColumnResizing).toHaveBeenCalled();
+    expect(onColumnLayoutChange).not.toHaveBeenCalled(); // live frames are not commits
+
+    document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 1 }));
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => setTimeout(r, 100));
+
+    expect(onColumnLayoutChange).toHaveBeenCalledTimes(1); // one commit at release
+    // The consumer feeds the fired snapshot back (echo): the width holds, no snap-back, no second commit.
+    expect(header.getBoundingClientRect().width).toBeGreaterThan(before + 20);
+    await view.unmount();
   });
 });

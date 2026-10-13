@@ -512,6 +512,11 @@
           "target": "components/data-grid/store/row-index.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/store/selection-state.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/selection-state.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/store/provider.tsx",
           "type": "registry:component",
           "target": "components/data-grid/store/provider.tsx"

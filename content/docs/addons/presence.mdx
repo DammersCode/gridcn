@@ -167,13 +167,14 @@ const { plugin, ...rest } = useDataGridPresence({
 
 `PresenceHighlight`'s original `range` form (view-space, the same coordinate system as
 `GridSelection.current.range`) still works side by side with the rowId entries in the same array —
-it is the send side that needs no hooks at all (the payload already carries the selection's
-`range`), at the cost of one caveat: `range` is in the SENDER's view space, so a receiver with a
+at the cost of one caveat: `range` is in the SENDER's view space, so a receiver with a
 different local sort or filter paints it on the wrong cells. A receiver-side live feed with
 `reorder: "immediate"` (see [Streaming updates](/docs/streaming-updates)) moves rows in the same
 call. The `range` entry then points at the wrong rows on the receiver itself. Use the rowId-native
 forms whenever sender and receiver views can diverge, or when the receiver's own feed reorders
-rows while entries are active. In development, the grid warns once when a row move, sort, filter,
+rows while entries are active. The stable `onSelectionChange` payload (`SelectionState`) is
+rowId-native, so the rowId entries build straight from it. In development, the grid warns once
+when a row move, sort, filter,
 join operator change, or data replacement moves rows while a view-space entry is active.
 
 The two entry shapes:

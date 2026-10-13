@@ -11,6 +11,31 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Controllable selection (`data-grid`):** `DataGridProvider`/`DataGrid` take `selection`
+  (controlled value) and `defaultSelection` (one-shot seed; with both set, `selection` wins and
+  dev mode warns once). `onSelectionChange` now delivers the selection in stable `CellRef` terms
+  as the new exported `SelectionState` — `{ anchor, range, rangeStack, rowIds, columnIds }`,
+  with `CellRange` = `{ start: CellRef; end: CellRef }` — replacing the view-space
+  `GridSelection` payload. Gestures are first: a gesture writes the store and fires the callback
+  at once; the grid never waits for the consumer's re-render. A re-render that feeds a fired
+  value back applies nothing — the store tracks its own emissions, so a consumer several drag
+  steps behind never snaps the selection back — and a structurally equal inline literal applies
+  nothing. An applied value resolves every ref against the current view: a range with an
+  unresolvable corner and unresolvable `rowIds`/`columnIds` are dropped, an `anchor` outside its
+  range resets to `range.start`, and the cursor moves to the `anchor` (a normal cursor move,
+  `onActiveCellChange`); dev mode warns once per grid for the dropped refs. `onSelectionChange`
+  fires only when the derived value differs structurally from the last emitted or applied value,
+  so a view rebuild that re-projects the same identities fires nothing, and the callback and the
+  controlled flag are the only things that run the derivation. The active cell is not part of the
+  value (it moves on every arrow key); `onActiveCellChange` covers it.
+- **Controllable column layout (`data-grid`):** `DataGridProvider`/`DataGrid` take
+  `columnLayout` (`Partial<ColumnLayout>`), controlled and gesture-first like `selection`, with
+  the same echo rule: each given part replaces that part, and an omitted part stays uncontrolled
+  (`columnLayout={{ widths }}` controls only widths, and a user reorder survives).
+  `defaultColumnLayout` is now `Partial<ColumnLayout>` (the seed is unchanged).
+  `actions.setColumnLayout(parts)` replaces the given parts and commits once, like the gestures.
+  The store gains `columnLayout`: the always-current snapshot the event fires, recomputed at
+  every layout write.
 - **Number format, `url`, and `longText` cell types (`data-grid`):** `number` gains
   `options.format` (`Intl.NumberFormatOptions`) and `options.locale` (default `"en-US"`) for
   display-only locale formatting — currency, percent, compact; `toText`, copy, export, sort, and
@@ -91,8 +116,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   Members: `actions` (the `useDataGridActions` object), `store` (the `useDataGridStoreApi`
   store), `scrollTo(ref)` (stable-`CellRef` scroll), `focus()` (scrolls the active cell into view
   and lands on it; no-op while an edit session is open), `startEditing(ref)` / `stopEditing()` (the latter discards the draft, `cancelEditing`
-  semantics), `getSelection()` (non-reactive snapshot), `setSelection(ref | null)` (single-cell
-  selection or clear), `getRow(viewRowIndex)` and `getViewRowIds()` (non-reactive reads in view
+  semantics), `getSelection()` (a non-reactive `SelectionState` snapshot, stable `CellRef`
+  terms), `setSelection(next: SelectionState | null)` (applies a whole selection in stable
+  `CellRef` terms or clears with `null`; a single cell stays `actions.selectCell(ref)`),
+  `getRow(viewRowIndex)` and `getViewRowIds()` (non-reactive reads in view
   order; `getViewRowIds` gives an unloaded lazy row its placeholder id). `DataGridApi` and
   `useDataGridApi` are exported from the `data-grid` barrel.
 - **Cell-type-driven behavior:** five new optional fields on `CellType`. `numeric` declares
@@ -371,6 +398,20 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking:** `onSelectionChange` delivers the stable `SelectionState`, and
+  `onSelectionCleared` is gone (`data-grid`). The payload is now `{ anchor, range, rangeStack,
+  rowIds, columnIds }` in `CellRef` terms (the new props are in the entry under Added): code
+  that read the view-space `next.current.range` rect re-reads `next.range`'s `{ start, end }`
+  `CellRef` corners, and the `next.rows`/`next.columns` channels become `next.rowIds`/
+  `next.columnIds` id arrays. `onSelectionCleared` is removed — an empty `next`
+  (`range: null`, both channels empty) is the cleared signal, and `onSelectionChange` fires it
+  once on the non-empty-to-empty transition.
+- **Breaking:** `setSelection` takes a `SelectionState`, and `getSelection` returns one
+  (`data-grid`). The imperative handle's `setSelection(next: SelectionState | null)` applies a
+  whole selection — a range, a range stack, and the row and column channels — in stable
+  `CellRef` terms, or clears it with `null`, and emits like a gesture. Selecting a single cell
+  stays `actions.selectCell(ref)`. `getSelection()` returns the derived `SelectionState`
+  (empty fields when nothing is selected), not a view-space snapshot.
 - **Breaking:** one config home (`data-grid`): `readOnly`, `keymap`, `onCellClick`,
   `onRowClick`, and `onRowWindowChange` move from `DataGridRoot` to `DataGridProvider`. They
   are sync props: the provider (or `useDataGridStoreProps` for an external store) feeds them to

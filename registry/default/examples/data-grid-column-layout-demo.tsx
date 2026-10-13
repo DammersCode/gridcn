@@ -55,10 +55,10 @@ const columns = defineColumns<DemoRow>()([
 ] as const);
 
 /**
- * Column layout persistence: `defaultColumnLayout` seeds widths/order/pins/hidden once at mount
- * (NOT controlled — later changes are ignored), and `onColumnLayoutChange` fires from the store
- * actions layer on every resize commit, reorder, pin, and hide. This demo round-trips the
- * snapshot to localStorage, so a manual page reload restores the user's layout.
+ * Column layout persistence: `defaultColumnLayout` seeds widths/order/pins/hidden once at mount,
+ * and `onColumnLayoutChange` fires on every commit (resize release, reorder, pin, hide). This demo
+ * round-trips the snapshot to localStorage, so a page reload restores the user's layout. For an
+ * app-driven layout, pass the `columnLayout` prop or call `actions.setColumnLayout`.
  */
 export default function DataGridColumnLayoutDemo(): ReactNode {
   const rows = useMemo(() => generateDemoRows(10), []);

@@ -7,40 +7,11 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import { isDev } from "../is-dev";
 import { apiHandleOf } from "./api";
 import { checkDevGuardrails, checkDuplicateColumnIds, checkUnresolvableColumnTypes, warnDev, warnExternalStoreSyncPropsOnce } from "./commit";
-import { holeRowId, makeSelectionChangeDetails, publicActionsOf, rowIdAtViewRow } from "./compute";
+import { holeRowId, publicActionsOf, rowIdAtViewRow } from "./compute";
 import { createDataGridStore } from "./create-store";
 import { toInternalSyncProps } from "./types";
 import type { AnyColumnDef, DataGridActions, DataGridProviderProps, DataGridStoreState, DataGridStoreStateOf, DataGridSyncProps, InternalSyncProps } from "./types";
 import type { ViewCellRef, ViewCoord } from "../types";
-import { isSelectionEmpty } from "../selection";
-
-/**
- * Wires `onSelectionChange`: one `storeApi.subscribe` on `state.selection`'s identity, not a
- * per-action callback insertion — `selection` is replaced by ~15 different call sites (click,
- * extend, row/col select, edits shifting rows, `_syncProps` clamping out-of-view rows, etc.), and a
- * single subscription covers all of them without threading the callback through every one, and
- * without adding a React subscription in row/cell components (this runs entirely outside React).
- * Reads `onSelectionChange` fresh off the store on each fire so `_syncProps` updates to it apply
- * immediately, same as every other sync-prop callback. Returns the unsubscribe.
- */
-function subscribeSelectionChange(store: StoreApi<DataGridStoreState>): () => void {
-  return store.subscribe((state, prevState) => {
-    if (state.selection === prevState.selection) return;
-    // getValues() closes over store.getState (not this fire's `state`) so a call from inside the
-    // handler always sees the current selection even if something re-entrantly changed it first.
-    state.onSelectionChange?.(state.selection, makeSelectionChangeDetails(store.getState));
-  });
-}
-
-function subscribeSelectionCleared(store: StoreApi<DataGridStoreState>): () => void {
-  let wasEmpty = isSelectionEmpty(store.getState().selection);
-  return store.subscribe((state, prevState) => {
-    if (state.selection === prevState.selection) return;
-    const empty = isSelectionEmpty(state.selection);
-    if (empty && !wasEmpty) state.onSelectionCleared?.();
-    wasEmpty = empty;
-  });
-}
 
 /** The event payload for a cursor: the record's stable id (the index-derived placeholder id for an unloaded hole) plus its view position. */
 function activeCellEvent(s: DataGridStoreState, coord: ViewCoord): ViewCellRef {
@@ -119,9 +90,9 @@ export function useDataGridStoreProps<TData>(props: DataGridSyncProps<TData>): {
 }
 
 /** The recompute-phase slice: the inputs of derived state (`_syncProps` rebuilds the view index and search matches over them). */
-const RECOMPUTE_KEYS = ["data", "columns", "getRowId", "cellTypes", "sortState", "filterState", "joinOperator", "searchText"] as const satisfies readonly (keyof DataGridSyncProps)[];
+const RECOMPUTE_KEYS = ["data", "columns", "getRowId", "cellTypes", "sortState", "filterState", "joinOperator", "searchText", "selection", "columnLayout"] as const satisfies readonly (keyof DataGridSyncProps)[];
 /** Seed-only props: applied once at store creation, ignored on later renders — in neither sync phase. */
-const SEED_KEYS = ["defaultData", "defaultColumnLayout"] as const satisfies readonly (keyof DataGridSyncProps)[];
+const SEED_KEYS = ["defaultData", "defaultColumnLayout", "defaultSelection"] as const satisfies readonly (keyof DataGridSyncProps)[];
 /** The config-phase slice: everything that feeds no derived state — `readOnly`, `keymap`, the `enable*` flags, and every callback. */
 const CONFIG_KEYS = [
   "readOnly",
@@ -158,7 +129,6 @@ const CONFIG_KEYS = [
   "onColumnLayoutChange",
   "onColumnResizing",
   "onSelectionChange",
-  "onSelectionCleared",
   "onActiveCellChange",
   "onEditStart",
   "onEditEnd",
@@ -210,16 +180,13 @@ function useGridStoreCore<TData>(
   const lastConfig = useRef<InternalSyncProps | null>(null);
   const lastRecompute = useRef<InternalSyncProps | null>(null);
 
-  // One subscription per store instance, outside React's render path (see subscribeSelectionChange).
-  // External stores are subscribed by their owner's useDataGridStoreProps call — subscribing here
-  // too would double-fire onSelectionChange.
+  // One subscription per store instance, outside React's render path. External stores are
+  // subscribed by their owner's useDataGridStoreProps call — subscribing here too would
+  // double-fire onSelectionChange. The selection fire guard (last-known value + echo queue) lives
+  // in the store closure, so the wiring is a store action, like _subscribeEditEnd.
   useEffect(() => {
     if (externalStore) return;
-    return subscribeSelectionChange(store);
-  }, [store, externalStore]);
-  useEffect(() => {
-    if (externalStore) return;
-    return subscribeSelectionCleared(store);
+    return store.getState().actions._subscribeSelection();
   }, [store, externalStore]);
   useEffect(() => {
     if (externalStore) return;

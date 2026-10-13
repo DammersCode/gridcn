@@ -44,14 +44,10 @@ function buildApiHandle(storeApi: StoreApi<DataGridStoreState>): DataGridApi<unk
       actions.cancelEditing();
     },
     getSelection() {
-      return read().selection;
+      return read().actions._deriveSelection();
     },
-    setSelection(cellRef) {
-      if (cellRef === null) {
-        actions.clearSelection();
-        return;
-      }
-      actions.selectCell(cellRef);
+    setSelection(next) {
+      actions.setSelection(next);
     },
     getRow(viewRowIndex) {
       const s = read();

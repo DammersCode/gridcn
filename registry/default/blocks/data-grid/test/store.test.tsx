@@ -2940,7 +2940,7 @@ describe("onSelectionChange", () => {
     return { actions: useDataGridInternalActions() };
   }
 
-  it("fires on selectCell with the current GridSelection", () => {
+  it("fires on selectCell with the current selection in CellRef terms", () => {
     const onSelectionChange = vi.fn();
     const wrapper = makeConfigWrapper({ onSelectionChange });
     const { result } = renderHook(useSelectionProbe, { wrapper });
@@ -2949,7 +2949,13 @@ describe("onSelectionChange", () => {
 
     expect(onSelectionChange).toHaveBeenCalledTimes(1);
     const [selection] = onSelectionChange.mock.calls[0]!;
-    expect(selection.current?.cell).toEqual({ col: 0, row: 1 });
+    expect(selection.anchor).toEqual({ rowId: "2", columnId: "name" });
+    expect(selection.range).toEqual({
+      start: { rowId: "2", columnId: "name" },
+      end: { rowId: "2", columnId: "name" },
+    });
+    expect(selection.rowIds).toEqual([]);
+    expect(selection.columnIds).toEqual([]);
   });
 
   it("fires once per extendTo step (drag-extend), not just on drop", () => {
@@ -3022,7 +3028,8 @@ describe("onSelectionChange", () => {
     act(() => result.current.actions.clearSelection());
 
     expect(onSelectionChange).toHaveBeenCalledTimes(1);
-    expect(onSelectionChange.mock.calls[0]![0].current).toBeNull();
+    expect(onSelectionChange.mock.calls[0]![0].range).toBeNull();
+    expect(onSelectionChange.mock.calls[0]![0].anchor).toBeNull();
   });
 
   it("does not fire when an action leaves selection unchanged", () => {
@@ -3090,47 +3097,40 @@ describe("onSelectionChange", () => {
   });
 });
 
-describe("onSelectionCleared", () => {
+describe("onSelectionChange on clear", () => {
   function useSelectionProbe() {
     return { actions: useDataGridInternalActions() };
   }
 
-  it("fires exactly once when the selection transitions from non-empty to empty", () => {
+  it("fires an empty SelectionState when the selection transitions from non-empty to empty", () => {
     const onSelectionChange = vi.fn();
-    const onSelectionCleared = vi.fn();
-    const wrapper = makeConfigWrapper({ onSelectionChange, onSelectionCleared });
+    const wrapper = makeConfigWrapper({ onSelectionChange });
     const { result } = renderHook(useSelectionProbe, { wrapper });
 
     act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
     act(() => result.current.actions.clearSelection());
 
     expect(onSelectionChange).toHaveBeenCalledTimes(2);
-    expect(onSelectionCleared).toHaveBeenCalledTimes(1);
+    expect(onSelectionChange.mock.calls.at(-1)![0]).toEqual({
+      anchor: null,
+      range: null,
+      rangeStack: [],
+      rowIds: [],
+      columnIds: [],
+    });
   });
 
   it("does not fire again when clearing an already-empty selection", () => {
-    const onSelectionCleared = vi.fn();
-    const wrapper = makeConfigWrapper({ onSelectionCleared });
+    const onSelectionChange = vi.fn();
+    const wrapper = makeConfigWrapper({ onSelectionChange });
     const { result } = renderHook(useSelectionProbe, { wrapper });
 
     act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
     act(() => result.current.actions.clearSelection());
-    onSelectionCleared.mockClear();
+    onSelectionChange.mockClear();
     act(() => result.current.actions.clearSelection());
 
-    expect(onSelectionCleared).not.toHaveBeenCalled();
-  });
-
-  it("does not fire for an unrelated store write", () => {
-    const onSelectionCleared = vi.fn();
-    const wrapper = makeConfigWrapper({ onSelectionCleared });
-    const { result } = renderHook(useSelectionProbe, { wrapper });
-
-    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
-    onSelectionCleared.mockClear();
-    act(() => result.current.actions.setColumnWidth("name", 200));
-
-    expect(onSelectionCleared).not.toHaveBeenCalled();
+    expect(onSelectionChange).not.toHaveBeenCalled();
   });
 });
 

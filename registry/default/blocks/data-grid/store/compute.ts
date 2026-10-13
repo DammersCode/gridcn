@@ -83,9 +83,18 @@ export function flashKeyRowId(key: string): string {
   return key.slice(0, key.indexOf(FLASH_KEY_SEPARATOR));
 }
 
+const HOLE_ROW_ID_PREFIX = "__lazy-unloaded-";
+
 /** Placeholder row id for a hole in `data` (an unloaded lazy row) — index-derived, stable only while the hole keeps its index. */
 export function holeRowId(dataRowIndex: number): string {
-  return `__lazy-unloaded-${dataRowIndex}`;
+  return `${HOLE_ROW_ID_PREFIX}${dataRowIndex}`;
+}
+
+/** The data index a {@link holeRowId} placeholder encodes, or -1 when `rowId` is not a placeholder. */
+export function holeRowIndex(rowId: string): number {
+  if (!rowId.startsWith(HOLE_ROW_ID_PREFIX)) return -1;
+  const index = Number(rowId.slice(HOLE_ROW_ID_PREFIX.length));
+  return Number.isInteger(index) && index >= 0 ? index : -1;
 }
 
 /** The active cell fitted into a rebuilt view: an out-of-range coord clamps to the nearest edge, and an empty view or column set clears it. */
@@ -546,29 +555,40 @@ export function computeColumnLayout(
 }
 
 /**
- * Seeds `columnWidths`/`columnOrder`/`hiddenColumns`/per-column `pin` from `defaultColumnLayout` at
- * store-creation time only (never re-applied — see the sync prop's doc comment). Partial layouts
- * are fine: any field omitted keeps today's def-derived default. The layout is normalized against
- * `columns`: unknown ids drop out, widths clamp to each column's range, a `pinnable: false`
- * column keeps its def pin, and columns the order lacks follow in def order.
+ * The parts a layout write-back can supply: `order: null` means "follow the def order" (the
+ * store's `columnOrder` state), and the lists may be readonly (the store's `hiddenColumns` state).
  */
-export function applyDefaultColumnLayout(
+export type ColumnLayoutParts = {
+  widths?: Record<string, number>;
+  order?: string[] | null;
+  pins?: Record<string, "left" | "right">;
+  hidden?: readonly string[];
+};
+
+/**
+ * Normalizes a (partial) layout against `columns`: unknown column ids are dropped from every part,
+ * `order` gets missing ids appended in def order (a layout from before a column was added still
+ * renders that column), widths pass through `clampColumnWidth`, and a pin on a `pinnable: false`
+ * column is dropped. Size is bounded by the column count, so a hostile input cannot allocate past
+ * it. Runs for `defaultColumnLayout`, `columnLayout`, `setColumnLayout`, and URL input.
+ */
+export function normalizeColumnLayout(
   columns: readonly AnyColumnDef[],
+  parts: ColumnLayoutParts,
   hiddenColumns: string[],
-  layout: ColumnLayout | undefined,
 ): { columns: readonly AnyColumnDef[]; columnWidths: Record<string, number>; columnOrder: string[] | null; hiddenColumns: string[] } {
-  if (!layout || typeof layout !== "object") return { columns, columnWidths: {}, columnOrder: null, hiddenColumns };
   const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
   const stringList = (value: unknown): string[] | null => (Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : null);
-  const pins = isRecord(layout.pins) ? layout.pins : null;
+  const pins = isRecord(parts.pins) ? parts.pins : null;
   const nextColumns = pins
     ? columns.map((c) => {
         const pin = pins[c.id];
-        return (pin === "left" || pin === "right") && columnFlag(c, "pinnable") ? { ...c, pin } : c;
+        // The given pins map is authoritative: a column it does not pin drops a stale pin.
+        return (pin === "left" || pin === "right") && columnFlag(c, "pinnable") ? { ...c, pin } : c.pin ? { ...c, pin: undefined } : c;
       })
     : columns;
   const columnWidths: Record<string, number> = {};
-  const widths = isRecord(layout.widths) ? layout.widths : null;
+  const widths = isRecord(parts.widths) ? parts.widths : null;
   if (widths) {
     for (const column of columns) {
       const width = widths[column.id];
@@ -576,8 +596,8 @@ export function applyDefaultColumnLayout(
     }
   }
   const known = new Set(columns.map((c) => c.id));
-  const order = stringList(layout.order);
-  const savedHidden = stringList(layout.hidden);
+  const order = stringList(parts.order);
+  const savedHidden = stringList(parts.hidden);
   const nextHidden = savedHidden ? savedHidden.filter((id) => known.has(id)) : [...hiddenColumns];
   // A def-hidden column the saved order does not list was added after the save; its def flag wins.
   if (order) for (const id of hiddenColumns) if (!order.includes(id) && !nextHidden.includes(id)) nextHidden.push(id);
@@ -587,6 +607,35 @@ export function applyDefaultColumnLayout(
     columnOrder: order ? completeColumnOrder(columns, order) : null,
     hiddenColumns: nextHidden,
   };
+}
+
+/**
+ * Seeds `columnWidths`/`columnOrder`/`hiddenColumns`/per-column `pin` from `defaultColumnLayout` at
+ * store-creation time only (never re-applied - see the sync prop's doc comment). Partial layouts
+ * are fine: any field omitted keeps today's def-derived default.
+ */
+export function applyDefaultColumnLayout(
+  columns: readonly AnyColumnDef[],
+  hiddenColumns: string[],
+  layout: Partial<ColumnLayout> | undefined,
+): { columns: readonly AnyColumnDef[]; columnWidths: Record<string, number>; columnOrder: string[] | null; hiddenColumns: string[] } {
+  if (!layout || typeof layout !== "object") return { columns, columnWidths: {}, columnOrder: null, hiddenColumns };
+  return normalizeColumnLayout(columns, layout, hiddenColumns);
+}
+
+/** Whether two {@link ColumnLayout} snapshots hold the same widths, order, pins, and hidden ids (structural). */
+export function layoutSnapshotsEqual(a: ColumnLayout, b: ColumnLayout): boolean {
+  const aWidthIds = Object.keys(a.widths);
+  if (aWidthIds.length !== Object.keys(b.widths).length) return false;
+  for (const id of aWidthIds) if (a.widths[id] !== b.widths[id]) return false;
+  if (a.order.length !== b.order.length) return false;
+  for (let i = 0; i < a.order.length; i++) if (a.order[i] !== b.order[i]) return false;
+  const aPinIds = Object.keys(a.pins);
+  if (aPinIds.length !== Object.keys(b.pins).length) return false;
+  for (const id of aPinIds) if (a.pins[id] !== b.pins[id]) return false;
+  if (a.hidden.length !== b.hidden.length) return false;
+  for (let i = 0; i < a.hidden.length; i++) if (a.hidden[i] !== b.hidden[i]) return false;
+  return true;
 }
 
 /** True when `a`/`b` have the same length and every element is `===`-equal at each position. */

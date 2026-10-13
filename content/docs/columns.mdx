@@ -255,7 +255,8 @@ State hooks let you build your own UI around any of the features above:
 on the next visit, use the dedicated pair below instead of subscribing to the actions:
 
 ```ts
-defaultColumnLayout?: ColumnLayout; // seeds widths/order/pins/hidden ONCE at mount
+defaultColumnLayout?: Partial<ColumnLayout>; // seeds widths/order/pins/hidden ONCE at mount
+columnLayout?: Partial<ColumnLayout>; // controlled, per part; an omitted part stays uncontrolled
 onColumnLayoutChange?: (next: ColumnLayout) => void; // fires once per committed change
 ```
 
@@ -276,10 +277,14 @@ const [layout, setLayout] = useState(() => {
 `onColumnLayoutChange` fires once per committed change: a resize commit (a drag release, or an
 autosize from a double-click or the header menu — never per drag frame), a width reset, a
 reorder drop, a pin or unpin, or a show or hide. See
-[Events & state](/docs/events-state#8-oncolumnlayoutchange--defaultcolumnlayout--oncolumnresizing)
-for the full payload shape and the live, per-drag-frame `onColumnResizing`. `defaultColumnLayout`
+[Events & state](/docs/events-state#8-columnlayout--defaultcolumnlayout--oncolumnlayoutchange--oncolumnresizing)
+for the full payload shape, the controlled `columnLayout` prop, and the live, per-drag-frame
+`onColumnResizing`. `defaultColumnLayout`
 is not a controlled prop: the grid reads it once at mount and ignores later changes, so always
-pair it with `onColumnLayoutChange`. A column that the layout `order` does not list, such as a
+pair it with `onColumnLayoutChange`. An app that owns the layout state instead passes
+`columnLayout`: each given part replaces that part, and an omitted part keeps the store's
+current value, so `columnLayout={{ widths }}` controls widths only and a user reorder survives.
+A column that the layout `order` does not list, such as a
 column added after the layout was saved, follows the listed columns in `columns` order. The
 grid drops layout entries for unknown column ids, clamps each width to the column's
 `minWidth`/`maxWidth`, and ignores a pin on a `pinnable: false` column. A `hidden: true` column

@@ -43,6 +43,15 @@ export function warnBothDataPropsOnce(): void {
   warnDev("both `data` and `defaultData` were provided; `data` wins (controlled) and `defaultData` is ignored");
 }
 
+let warnedBothSelectionProps = false;
+
+/** `selection` + `defaultSelection` are mutually exclusive (React value/defaultValue semantics); `selection` wins. */
+export function warnBothSelectionPropsOnce(): void {
+  if (warnedBothSelectionProps || !isDev()) return;
+  warnedBothSelectionProps = true;
+  warnDev("both `selection` and `defaultSelection` were provided; `selection` wins (controlled) and `defaultSelection` is ignored");
+}
+
 /** `store` next to a sync prop is a type error for typed callers; this catches a cast/untyped one. */
 export function warnExternalStoreSyncPropsOnce(): void {
   if (warnedExternalStoreSyncProps || !isDev()) return;

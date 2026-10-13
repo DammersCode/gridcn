@@ -14,8 +14,8 @@ import {
   type FilterJoinOperator,
   type FilterSpec,
   type GridEditEndEvent,
-  type GridSelection,
   type GridValidationErrorEvent,
+  type SelectionState,
   type RowClickCtx,
   type SelectionChangeDetails,
   type SortSpec,
@@ -130,16 +130,17 @@ export default function DataGridEventsDemo(): ReactNode {
     setLog((prev) => pushLog(prev, { source: "onDataChange", at: Date.now(), payload: change }));
   }, []);
 
-  const onSelectionChange = useCallback((selection: GridSelection, details: SelectionChangeDetails) => {
+  const onSelectionChange = useCallback((selection: SelectionState, details: SelectionChangeDetails) => {
     setLog((prev) =>
       pushLog(prev, {
         source: "onSelectionChange",
         at: Date.now(),
         payload: {
-          cell: selection.current?.cell ?? null,
-          range: selection.current?.range ?? null,
-          rows: selection.rows.toArray(),
-          columns: selection.columns.toArray(),
+          anchor: selection.anchor,
+          range: selection.range,
+          rangeStack: [...selection.rangeStack],
+          rowIds: [...selection.rowIds],
+          columnIds: [...selection.columnIds],
           // details.getValues() is lazy — only materialized here because the inspector displays it;
           // truncated to MAX_VALUES_PREVIEW_ROWS so a large drag-selected range doesn't dump a huge payload.
           values: truncateValuesPreview(details.getValues()),

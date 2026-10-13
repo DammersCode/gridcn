@@ -96,6 +96,30 @@ export type ViewCellRef = CellRef & {
   viewColumnIndex: number;
 };
 
+/** The two opposite corners of a rectangular selection; either diagonal order is accepted on resolve. */
+export type CellRange = { start: CellRef; end: CellRef };
+
+/**
+ * The grid's selection in stable {@link CellRef} terms: the primary range with its anchor, the
+ * ctrl-click range stack, and the whole-row/whole-column channels. The active cell is
+ * deliberately not part of it — it moves on every arrow key, and controlling it would push every
+ * keystroke through the consumer's render; it stays uncontrolled with `onActiveCellChange`.
+ * `anchor` may lie inside the range (Ctrl+A puts the active cell as the anchor inside the
+ * region); a resolved anchor outside its range resets to `range.start`.
+ */
+export type SelectionState = {
+  /** The primary range's anchor (Excel's white cell), or `null` when there is no primary range. */
+  anchor: CellRef | null;
+  /** The primary range; `null` when only the row/column channels (or nothing) are selected. */
+  range: CellRange | null;
+  /** Earlier ctrl-click ranges, oldest first. */
+  rangeStack: readonly CellRange[];
+  /** Row ids of the row channel, in view order. */
+  rowIds: readonly string[];
+  /** Column ids of the column channel, in view order. */
+  columnIds: readonly string[];
+};
+
 /** What a marker mode renders: the 1-based view row index, the row-select checkbox, or both (number swapped for the checkbox on hover/selected). */
 export type RowMarkersContent = "number" | "checkbox" | "both";
 
@@ -698,10 +722,10 @@ export type DataGridApi<TData> = {
   startEditing(ref: CellRef): void;
   /** Discards the in-progress edit without emitting a change (`actions.cancelEditing`). */
   stopEditing(): void;
-  /** A non-reactive snapshot of the current selection. */
-  getSelection(): GridSelection;
-  /** Selects the named cell as a single-cell selection; `null` clears the whole selection. */
-  setSelection(ref: CellRef | null): void;
+  /** A non-reactive snapshot of the current selection in stable {@link CellRef} terms. */
+  getSelection(): SelectionState;
+  /** Applies the named selection as a whole, emitting like a gesture; `null` clears the whole selection. A single cell stays `actions.selectCell(ref)`. */
+  setSelection(next: SelectionState | null): void;
   /** The data row at a view (display) row index — the same read `useDataGridRow` performs, without a subscription. */
   getRow(viewRowIndex: number): TData | undefined;
   /** The row id of every view row, in view order; an unloaded row (a lazy hole) gets its placeholder id, like `useDataGridRowIds`. */

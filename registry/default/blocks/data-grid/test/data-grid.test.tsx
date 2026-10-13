@@ -1595,7 +1595,15 @@ describe("DataGridApi (imperative handle)", () => {
     expect(sibling!.getViewRowIds()).toEqual(["0", "1", "2"]);
     expect(providerRef.current).toBe(sibling);
     expect(Object.keys(sibling!.actions).some((name) => name.startsWith("_"))).toBe(false);
-    act(() => sibling!.setSelection({ rowId: "1", columnId: "name" }));
+    act(() =>
+      sibling!.setSelection({
+        anchor: { rowId: "1", columnId: "name" },
+        range: { start: { rowId: "1", columnId: "name" }, end: { rowId: "1", columnId: "name" } },
+        rangeStack: [],
+        rowIds: [],
+        columnIds: [],
+      }),
+    );
     act(() => sibling!.focus());
     expect((document.activeElement as HTMLElement).textContent).toContain("Row 1");
   });
@@ -1639,13 +1647,21 @@ describe("DataGridApi (imperative handle)", () => {
     expect(ref.current!.getViewRowIds()).toEqual(["0", "__lazy-unloaded-1", "2"]);
   });
 
-  it("setSelection selects at the ref's resolved view cell; null clears", () => {
+  it("setSelection applies the named selection at its resolved view cells; null clears", () => {
     const { ref } = renderWithHandle({ data: unsorted });
     act(() => ref.current!.actions.setSorts([{ columnId: "name", direction: "asc" }]));
-    act(() => ref.current!.setSelection({ rowId: "2", columnId: "qty" }));
-    expect(ref.current!.getSelection().current?.cell).toEqual({ col: 1, row: 2 });
+    act(() =>
+      ref.current!.setSelection({
+        anchor: { rowId: "2", columnId: "qty" },
+        range: { start: { rowId: "2", columnId: "qty" }, end: { rowId: "2", columnId: "qty" } },
+        rangeStack: [],
+        rowIds: [],
+        columnIds: [],
+      }),
+    );
+    expect(ref.current!.getSelection().anchor).toEqual({ rowId: "2", columnId: "qty" });
     act(() => ref.current!.setSelection(null));
-    expect(ref.current!.getSelection().current).toBeNull();
+    expect(ref.current!.getSelection().range).toBeNull();
   });
 
   it("startEditing opens a session at the ref's cell; stopEditing discards it", () => {
@@ -1690,7 +1706,15 @@ describe("DataGridApi (imperative handle)", () => {
     // the grid's focus onboarding seeds (0,0) as the active cell; the seeded cell takes DOM focus
     expect(document.activeElement).toBe(document.querySelector("[data-active]"));
     expect((document.activeElement as HTMLElement).textContent).toContain("Row 0");
-    act(() => ref.current!.setSelection({ rowId: "2", columnId: "name" }));
+    act(() =>
+      ref.current!.setSelection({
+        anchor: { rowId: "2", columnId: "name" },
+        range: { start: { rowId: "2", columnId: "name" }, end: { rowId: "2", columnId: "name" } },
+        rangeStack: [],
+        rowIds: [],
+        columnIds: [],
+      }),
+    );
     act(() => ref.current!.focus());
     expect((document.activeElement as HTMLElement).textContent).toContain("Row 2");
   });

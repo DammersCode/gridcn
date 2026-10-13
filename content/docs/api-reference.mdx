@@ -43,7 +43,7 @@ const gridRef = useRef<DataGridApi<Order> | null>(null);
 
 // from a toolbar button or an effect
 gridRef.current?.scrollTo({ rowId: order.id, columnId: "symbol" });
-gridRef.current?.setSelection({ rowId: order.id, columnId: "symbol" });
+gridRef.current?.actions.selectCell({ rowId: order.id, columnId: "symbol" });
 ```
 
 - `getSelection`, `getRow`, and `getViewRowIds` are snapshots at call time — they never
@@ -51,7 +51,10 @@ gridRef.current?.setSelection({ rowId: order.id, columnId: "symbol" });
 - `getViewRowIds` returns one entry per view row, in view order, so entry `i` is always view
   row `i`. An unloaded row of a lazy grid gives its placeholder id (`__lazy-unloaded-<index>`),
   the same id `useDataGridRowIds` returns.
-- `setSelection` selects one cell (by stable `CellRef`) or clears the selection with `null`.
+- `setSelection` applies a whole selection — a range, a range stack, row and column channels —
+  in stable `CellRef` terms, or clears the selection with `null`. It emits like a gesture:
+  `onSelectionChange` fires when the result differs from the grid's current value. Selecting a
+  single cell stays `actions.selectCell(ref)`.
 - `startEditing` opens an edit session at the named cell; `stopEditing` discards the draft
   without committing. `startEditing` does nothing on a `readOnly` grid, on a `readOnly` cell,
   and on a cell whose type declares `activate`, like the keyboard edit gestures.
@@ -133,6 +136,7 @@ for most:
 
 - `useDataGridActions()` — the single stable actions object (`setSorts`, `setFilters`,
   `setSearch`, `setColumnWidth`, `setColumnOrder`, `setColumnPin`, `setColumnHidden`,
+  `setColumnLayout`, `setSelection`,
   `autosizeColumns`, `selectCell`, `extendTo`, `startEditing`, `commitCellEdit`, `deleteSelection`,
   `updateCells`, `updateRows`, `reconcileView`, `setCellErrors`, `clearCellErrors`, plus the row
   operations
@@ -256,6 +260,13 @@ a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
 - `CellRef` (`{ rowId, columnId }`) — the stable identity of a cell: your `getRowId` value plus
   a column id. Sorting, filtering, and reordering never change it. Cell actions take a
   `CellRef` by default; each also has an `*At` variant that takes a `ViewCoord` instead.
+- `CellRange` (`{ start: CellRef; end: CellRef }`) — the two opposite corners of a rectangular
+  selection; either diagonal order.
+- `SelectionState` (`{ anchor, range, rangeStack, rowIds, columnIds }`) — the selection in
+  stable `CellRef` terms: the `onSelectionChange` payload, the `selection`/`defaultSelection`
+  prop value, and the `setSelection`/`getSelection` arguments. The active cell is deliberately
+  not part of it. See
+  [Events & state](/docs/events-state#2-onselectionchange).
 - `ViewCoord` (`{ col, row }`) — view space: the sorted/filtered row position, not a `data`
   index. It moves when the view changes.
 - `ViewCellRef` (`{ rowId, columnId, viewRowIndex, viewColumnIndex }`) — a `CellRef` plus the
@@ -280,9 +291,10 @@ a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
   `"editing"`, `"always"`), and `CommandGroup` names the keybindings dialog's sections. See
   [Keybindings: Custom commands](/docs/addons/keybindings#custom-commands).
 - `RowMarkersMode`, `HeaderClickBehavior`, and `DensityMode`.
-- `ColumnLayout` (`{ widths, order, pins, hidden }`), the `defaultColumnLayout` and
-  `onColumnLayoutChange` snapshot. See
-  [Events & state](/docs/events-state#8-oncolumnlayoutchange--defaultcolumnlayout--oncolumnresizing).
+- `ColumnLayout` (`{ widths, order, pins, hidden }`) — the full layout snapshot: the
+  `onColumnLayoutChange` payload, and the shape of the `columnLayout`/`defaultColumnLayout`
+  props in `Partial` form. See
+  [Events & state](/docs/events-state#8-columnlayout--defaultcolumnlayout--oncolumnlayoutchange--oncolumnresizing).
 - `OverlayPlugin` (`(ctx: OverlayPluginCtx) => ReactNode`) and `OverlayPluginCtx`, the
   overlay-plugin seam that add-ons like `data-grid-presence` and `data-grid-fill` register into.
   See [Overlay plugins](/docs/overlay-plugins) for the full contract and a worked example, and

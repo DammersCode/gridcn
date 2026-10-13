@@ -43,11 +43,10 @@ subscription. It already fires on every committed change (click, extend step, ro
 all selection, and clear) from the actions layer of the store. It also fires once per step of a
 drag-extend gesture, exactly the granularity that a live broadcast wants.
 
-The multi-cell stopgap is the view-space `range` form: the payload already carries the
-selection's `range` (view space), so the send side needs NO hooks at all — no `useDataGridRowIds`
- called outside the provider (core hooks throw when called outside it), and no column-indexing by
-hand. `cell.col` is a view-space index into the VISIBLE columns. Indexing the raw `columns`
-array is wrong when a column is hidden:
+The payload is the stable `SelectionState`: `range` corners and `rangeStack` are
+`{ rowId, columnId }` pairs, and `rowIds`/`columnIds` are stable ids. It carries no view
+positions, so a peer with a different local sort or filter resolves every ref against its own
+view. Send `next` as-is — no hooks, no column-indexing by hand:
 
 ```tsx
 const overlayPlugins = useMemo(() => [plugin], [plugin]);
@@ -57,22 +56,17 @@ const overlayPlugins = useMemo(() => [plugin], [plugin]);
   columns={columns}
   getRowId={getRowId}
   overlayPlugins={overlayPlugins}
-  onSelectionChange={(selection) => {
-    const range = selection.current?.range;
-    if (!range) return; // cleared — send the leave message instead
-    socket.send(JSON.stringify({ id: userId, color, range }));
+  onSelectionChange={(next) => {
+    if (!next.range && next.rowIds.length === 0 && next.columnIds.length === 0) {
+      // cleared — send the leave message instead
+      return;
+    }
+    socket.send(JSON.stringify({ id: userId, color, selection: next }));
   }}
 >
 ```
 
-<Callout type="warn" title="range is in the sender's view space">
-  A receiver with a different local sort or filter paints a `range` payload on the wrong cells
-  (the full trade-off is on [Coordinates](/docs/addons/presence#coordinates-rowid-native-or-view-space)).
-  For divergence-proof multi-cell broadcasts, send the rowId-native range form
-  `{ rowIds, columnIds }` instead: map the selection's view rows to rowIds with
-  `useDataGridRowId` / `useDataGridRowIds` and the visible view columns to column ids, called
-  INSIDE the provider. The receiver's plugin resolves every id against its own view — filtered
-  rows are dropped silently, hidden/unknown columns dev-warn once — no mapping code on the
-  receive side. See [Events & state](/docs/events-state#2-onselectionchange) for the full payload
-  shape.
-</Callout>
+The receiver applies the payload with `actions.setSelection(next)` or a controlled `selection`
+prop. Rows the receiver has filtered out and hidden or unknown columns are dropped, and dev
+mode warns once for the dropped refs — no mapping code on the receive side. A payload from a
+fuller view therefore applies cleanly to a narrower one.

@@ -164,6 +164,8 @@ export {
 
 export type {
   CellRef,
+  CellRange,
+  SelectionState,
   DataGridApi,
   ViewCellRef,
   ViewCoord,

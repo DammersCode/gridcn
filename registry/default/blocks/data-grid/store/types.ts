@@ -23,6 +23,7 @@ import type {
   OnCellDoubleClick,
   OnRowClick,
   RowMarkersMode,
+  SelectionState,
   SortSpec,
 } from "../types";
 import type { OverlayPlugin } from "../overlays";
@@ -210,8 +211,22 @@ export type DataGridSyncProps<TData = unknown> = {
    * Deliberately NOT a controlled prop — later changes to this value are ignored (uncontrolled
    * with events); pair it with `onColumnLayoutChange` to save/restore
    * a user's layout (e.g. to localStorage) without a fully-controlled overlay fighting the defs.
+   * Partial layouts are normalized the same way `columnLayout` is: unknown column ids are dropped,
+   * `order` gets missing ids appended in def order, widths are clamped, and pins on
+   * `pinnable: false` columns are dropped.
    */
-  defaultColumnLayout?: ColumnLayout;
+  defaultColumnLayout?: Partial<ColumnLayout>;
+  /**
+   * Controlled column layout (React `value` semantics, gesture-first like `selection`): each
+   * provided part (`widths`, `order`, `pins`, `hidden`) replaces that part, and an omitted part
+   * stays uncontrolled — the store keeps its current value for it, so
+   * `columnLayout={{ widths }}` controls only widths and a user reorder survives. A gesture
+   * writes the store at once and fires `onColumnLayoutChange`; a `columnLayout` prop that changes
+   * identity, is not an echo of a value the grid just fired, and differs from the grid's current
+   * snapshot then overrides the store. Omitted (undefined) keeps the uncontrolled behavior
+   * (store-owned, with events).
+   */
+  columnLayout?: Partial<ColumnLayout>;
   /**
    * Runs one {@link DataGridActions.autosizeColumns} pass after mount, when the view first has
    * rows (a lazy grid waits for its first page); it runs once per mount. Columns with a saved
@@ -221,26 +236,41 @@ export type DataGridSyncProps<TData = unknown> = {
   autosizeOnMount?: boolean | AutosizeOptions;
   /**
    * Fires once per committed column-layout change (resize drag release/autosize, reorder drop,
-   * pin/unpin, show/hide) with the full current `ColumnLayout` snapshot — never per drag frame.
-   * Fired from the store actions layer, no React-render dependency. See `defaultColumnLayout` for
-   * the matching restore path.
+   * pin/unpin, show/hide, `setColumnLayout`) with the full current `ColumnLayout` snapshot -
+   * never per drag frame, and never when nothing changed. Fired from the store actions layer, no
+   * React-render dependency. See `defaultColumnLayout` for the seed path and `columnLayout` for
+   * the controlled one.
    */
   onColumnLayoutChange?: (next: ColumnLayout) => void;
   /**
-   * Fires on every committed selection change (click, extend step, range push, row/column/all
-   * selection, clear) with the current `GridSelection` plus a lazy `details.getValues()` accessor.
-   * A drag-extend gesture fires once per step (intended — the presence/broadcast use case wants
-   * live updates, not just the final drop) — `getValues()` is a function, not a materialized array,
-   * specifically so that hot path never pays for building a value matrix on steps nobody reads.
+   * Controlled selection (React `value` semantics, gesture-first): a gesture writes the store at
+   * once and fires this callback; a `selection` prop that changes identity, is not an echo of a
+   * value the grid just fired, and differs structurally from the grid's current value then
+   * overrides the store. An applied value with an `anchor` moves the active cell to the anchor
+   * (a normal cursor move: `onActiveCellChange` fires); without an anchor the cursor stays.
+   * Omitted (undefined) keeps the uncontrolled behavior (store-owned, with events). Mutually
+   * exclusive with `defaultSelection`; when both are given, `selection` wins (dev-mode warns once).
    */
-  onSelectionChange?: (next: GridSelection, details: SelectionChangeDetails) => void;
+  selection?: SelectionState;
   /**
-   * Fired exactly once when the selection transitions from non-empty to empty, from ANY path
-   * (outside-click, clearSelection, a cleared range, etc.). `onSelectionChange` also fires on that
-   * transition (with an empty selection) — this is the dedicated signal for UI resets. Does not
-   * fire when the selection is already empty.
+   * Seeds the selection ONCE at store creation (React `defaultValue` semantics): the value
+   * resolves against the initial data/columns, and a resolved `anchor` also seeds the initial
+   * active cell. Later changes to this value are ignored (uncontrolled, like `defaultData`),
+   * which also means a consumer `data` swap never re-applies it. Mutually exclusive with
+   * `selection` - see that prop's doc for precedence.
    */
-   onSelectionCleared?: () => void;
+  defaultSelection?: SelectionState;
+  /**
+   * Fires on every committed selection change (click, extend step, range push, row/column/all
+   * selection, clear) with the current selection in stable {@link SelectionState} terms plus a
+   * lazy `details.getValues()` accessor. Fires only when the derived `SelectionState` differs
+   * structurally from the grid's last known value, so a view rebuild that re-projects the same
+   * records (a sort that keeps the selection's rows) fires nothing. A drag-extend gesture fires
+   * once per step (intended - the presence/broadcast use case wants live updates, not just the
+   * final drop) - `getValues()` is a function, not a materialized array, specifically so that
+   * hot path never pays for building a value matrix on steps nobody reads.
+   */
+  onSelectionChange?: (next: SelectionState, details: SelectionChangeDetails) => void;
    /**
     * Fires when the active cell changes to a different cell, when it follows its record or column to
     * another view position (a sort, filter, data change, column hide, reorder, or pin), when another
@@ -298,14 +328,13 @@ export type DataGridSyncProps<TData = unknown> = {
 };
 
 /**
- * Second argument to `onSelectionChange`. `getValues()` reads the
- * CURRENT `selection.current.range` only — a multi-range selection (ctrl-click stack) is not
- * flattened or concatenated, matching clipboard copy's own "primary range only" scope
- * (`resolveCopyScope`) — call it once per range in `selection.current.rangeStack` yourself if you
- * need the others. Returns `[]` when there's no active range (row/column-channel-only selection,
- * or a clear). Deliberately lazy: built fresh from the store snapshot only when called, so a
- * consumer that ignores it (the common case) never pays for reading/allocating a value matrix on
- * every drag step.
+ * Second argument to `onSelectionChange`. `getValues()` reads the CURRENT `next.range` only — a
+ * multi-range selection (ctrl-click stack) is not flattened or concatenated, matching clipboard
+ * copy's own "primary range only" scope (`resolveCopyScope`) — call it once per range in
+ * `next.rangeStack` yourself if you need the others. Returns `[]` when there's no active range
+ * (row/column-channel-only selection, or a clear). Deliberately lazy: built fresh from the store
+ * snapshot only when called, so a consumer that ignores it (the common case) never pays for
+ * reading/allocating a value matrix on every drag step.
  */
 export type SelectionChangeDetails = {
   /** Raw cell VALUES (not clipboard text) over the primary range, view-row-major: `values[0][0]` is the range's top-left cell. */
@@ -480,6 +509,9 @@ export type DataGridStoreState = Omit<
   | "overlayPlugins"
   | "rowBands"
   | "defaultColumnLayout"
+  | "defaultSelection"
+  | "selection"
+  | "columnLayout"
   | "readOnly"
   | "keymap"
 > & {
@@ -565,6 +597,14 @@ export type DataGridStoreState = Omit<
   columnOrder: string[] | null;
   /** Single source of truth for visibility; seeded with the def-level `hidden` ids at creation and re-seeded when a new `columns` array is passed. */
   hiddenColumns: readonly string[];
+  /**
+   * The current column-layout snapshot (`widths`/`order`/`pins`/`hidden`), recomputed at every
+   * commit point (resize release, reorder, pin, hide, `setColumnLayout`) and at every `columns`
+   * swap — never on live resize frames. Its identity is the echo token of the controlled
+   * `columnLayout` prop: a prop that is the same object a commit just fired is an echo and
+   * applies nothing.
+   */
+  columnLayout: ColumnLayout;
   sortState: SortSpec[];
   filterState: FilterSpec[];
   /** How `filterState`'s rows combine; default `"and"`. See `FilterJoinOperator`. */
@@ -715,8 +755,17 @@ export type DataGridActions = {
   setAllRowsSelected(checked: boolean): void;
   clearSelection(): void;
   /**
+   * Applies a whole selection in stable {@link CellRef} terms, emitting like a gesture (`onSelectionChange`
+   * fires when the result differs from the grid's current value): corner refs resolve through the
+   * row-index cache plus the view inverse, a range with an unresolvable corner is dropped,
+   * unresolvable `rowIds`/`columnIds` are dropped, and an unresolvable or outside anchor resets to
+   * `range.start` (dev mode warns once per grid). A value with an `anchor` also moves the active
+   * cell to the anchor; `null` clears the whole selection. A single cell stays `selectCell(ref)`.
+   */
+  setSelection(next: SelectionState | null): void;
+  /**
    * Live per-frame width write during a resize drag; fires `onColumnResizing` (not
-   * `onColumnLayoutChange` — see `commitColumnWidth` for the commit point). The width is clamped
+   * `onColumnLayoutChange` - see `commitColumnWidth` for the commit point). The width is clamped
    * to the column's legal range (`[max(32, minWidth), maxWidth]`, the same bounds the resize
    * gesture enforces); a callback-observed width is the clamped one. An unknown column id is a no-op.
    */
@@ -763,6 +812,14 @@ export type DataGridActions = {
    * `onColumnLayoutChange` once.
    */
   setColumnHidden(id: string, hidden: boolean): void;
+  /**
+   * Applies a partial column layout as ONE commit (the imperative twin of the `columnLayout`
+   * prop): each given part (`widths`, `order`, `pins`, `hidden`) replaces that part, omitted
+   * parts keep the current value. Normalized like `columnLayout` (unknown ids dropped, missing
+   * order ids appended in def order, widths clamped, unpinnable pins dropped), and fires
+   * `onColumnLayoutChange` once only when the layout actually changed.
+   */
+  setColumnLayout(parts: Partial<ColumnLayout>): void;
   toggleSort(columnId: string, additive: boolean): void;
   setSorts(sorts: SortSpec[]): void;
   setFilters(filters: FilterSpec[]): void;
@@ -903,6 +960,15 @@ export type DataGridInternalActions = {
    * write). Returns the unsubscribe. Not part of the public hook surface.
    */
   _subscribeEditEnd(): () => void;
+  /**
+   * @internal The provider subscribes after its `onActiveCellChange` wiring: fires
+   * `onSelectionChange` with the derived {@link SelectionState} when `state.selection`'s identity
+   * changes and the derived value differs structurally from the last emitted/applied value.
+   * Returns the unsubscribe. Not part of the public hook surface.
+   */
+  _subscribeSelection(): () => void;
+  /** @internal Derives the current selection's public {@link SelectionState} on demand (`api.getSelection()`). Not part of the public hook surface. */
+  _deriveSelection(): SelectionState;
   /** @internal `DataGridRoot` registers/clears its scroll-into-view on mount/unmount; not part of the public hook surface. */
   _registerScrollToCell(impl: ((coord: ViewCoord) => void) | null): void;
   /** @internal `DataGridRoot` registers/clears its DOM focus on mount/unmount; not part of the public hook surface. */

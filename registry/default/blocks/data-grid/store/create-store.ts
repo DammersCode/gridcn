@@ -1,5 +1,5 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
-import type { ViewCoord, CellType, DataOp, FilterSpec, Keymap } from "../types";
+import type { ColumnLayout, CompactSelectionLike, GridRect, SelectionState, ViewCoord, CellType, DataOp, FilterSpec, Keymap } from "../types";
 import { BUILTIN_ACTIONS, keymapContentEqual, mergeKeymap, validateKeymap, validateSharedBindings } from "../keyboard";
 import { CompactSelection } from "../selection/compact-selection";
 import { getCellValue } from "../columns/column-helpers";
@@ -10,6 +10,7 @@ import {
   emptySelection,
   extendTo,
   extendSelection,
+  isSelectionEmpty,
   pushRange,
   selectAllProgression,
   selectCell as selectCellPure,
@@ -21,6 +22,7 @@ import {
   applyDefaultColumnLayout,
   cellErrorKey,
   clampIndex,
+  type ColumnLayoutParts,
   columnFlag,
   completeColumnOrder,
   computeColumnLayout,
@@ -32,9 +34,12 @@ import {
   flashCellKey,
   flashKeyRowId,
   isColumnReadOnly,
+  layoutSnapshotsEqual,
+  makeSelectionChangeDetails,
   memoizedMergeLabels,
   mergeCellErrors,
   nextDirection,
+  normalizeColumnLayout,
   pruneCellErrors,
   rectsKeepColumns,
   rectsKeepRecords,
@@ -53,9 +58,18 @@ import {
   EMPTY_ROW_BANDS,
 } from "./compute";
 import { isDev } from "../is-dev";
-import { resolveEditTarget, warnDev } from "./commit";
+import { resolveEditTarget, warnBothSelectionPropsOnce, warnDev } from "./commit";
 import { createDataWriteActions, createDataWriteContext, forgetDeferredRows, resetDeferredRows, resolveRefOrWarn } from "./data-write";
 import { createRowIndexCache, viewRowOfDataIndex } from "./row-index";
+import {
+  EMPTY_SELECTION_STATE,
+  cellRefAtViewCoord,
+  deriveColumnIds,
+  deriveRowIds,
+  resolveSelectionState,
+  selectionStatesEqual,
+  type ResolveWarnFlag,
+} from "./selection-state";
 import type { AnyColumnDef, DataGridStoreState, InternalSyncProps, SyncInputs } from "./types";
 import { syncInputsEqual } from "./types";
 
@@ -105,7 +119,25 @@ function sameCellTypeEntries(a: ProvidedCellTypes, b: ProvidedCellTypes): boolea
 export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridStoreState> {
   const defHidden = defHiddenColumnIds(init.columns);
   const seeded = applyDefaultColumnLayout(init.columns, defHidden, init.defaultColumnLayout);
-  const visibleColumns = computeVisibleColumns(seeded.columns, seeded.columnOrder, seeded.hiddenColumns);
+  // `columnLayout` wins over `defaultColumnLayout`, and both resolve here (not in the provider),
+  // so the server render and the first client paint already show the controlled layout. Omitted
+  // parts fall back to the seeded values (there is no store state yet).
+  const seededPins: Record<string, "left" | "right"> = {};
+  for (const column of seeded.columns) if (column.pin === "left" || column.pin === "right") seededPins[column.id] = column.pin;
+  const effectiveLayout =
+    init.columnLayout !== undefined
+      ? normalizeColumnLayout(
+          init.columns,
+          {
+            widths: init.columnLayout.widths ?? seeded.columnWidths,
+            order: init.columnLayout.order !== undefined ? init.columnLayout.order : seeded.columnOrder,
+            pins: init.columnLayout.pins ?? seededPins,
+            hidden: init.columnLayout.hidden ?? seeded.hiddenColumns,
+          },
+          defHidden,
+        )
+      : seeded;
+  const visibleColumns = computeVisibleColumns(effectiveLayout.columns, effectiveLayout.columnOrder, effectiveLayout.hiddenColumns);
   const mergeLabels = memoizedMergeLabels();
   // `data` wins over `defaultData`, and the decision latches for the store's lifetime, like `<input>` value/defaultValue.
   const dataControlled = init.data !== undefined;
@@ -120,13 +152,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   let lastSyncInputs: SyncInputs = {
     data: initData,
     cellTypes: initCellTypes,
-    columns: seeded.columns,
+    columns: effectiveLayout.columns,
     sortState: init.sortState ?? [],
     filterState: initFilterState,
     joinOperator: initJoinOperator,
     searchText: init.searchText ?? "",
-    columnOrder: seeded.columnOrder,
-    hiddenColumns: seeded.hiddenColumns,
+    columnOrder: effectiveLayout.columnOrder,
+    hiddenColumns: effectiveLayout.hiddenColumns,
   };
   // The last raw `columns` prop; `s.columns` also carries runtime pin changes that a same-reference re-sync keeps.
   let lastPropsColumns: readonly AnyColumnDef[] = init.columns;
@@ -337,19 +369,134 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       selfReportedSession = null;
     }
   };
-  // Widths as of the last onColumnLayoutChange; a drag writes columnWidths per frame, so the commit compares against this.
-  let committedWidths: Record<string, number> = seeded.columnWidths;
-  const initViewIndex = computeViewIndex(initData, seeded.columns, init.sortState ?? [], initFilterState, initJoinOperator, undefined, initCellTypes);
-  return createStore<DataGridStoreState>((set, get, api) => ({
+  // Controlled selection (W5-11): the flag mirrors the `selection` prop's presence on the last
+  // sync; lastKnownSelection is the last emitted value, or the last applied controlled/default
+  // value, in public SelectionState form - the fire guard and the _syncProps structural compare
+  // both read it. The queue holds every emitted value no prop has confirmed yet, in emit order,
+  // so a consumer lagging several drag steps behind never snaps the selection back.
+  let selectionControlled = init.selection !== undefined;
+  let lastKnownSelection: SelectionState = EMPTY_SELECTION_STATE;
+  let selectionEchoQueue: SelectionState[] = [];
+  // The resolver's once-per-grid dev-warn flag (the resolveRefOrWarn convention).
+  const warnedControlledSelection: ResolveWarnFlag = { value: false };
+  // Partial-typed: the echo check is an identity match, and a consumer may feed back either a
+  // fired snapshot (full) or its own partial value.
+  let layoutEchoQueue: Partial<ColumnLayout>[] = [];
+  // Derivation is cached per channel identity: a range-drag step re-derives the three corner
+  // refs only, and the rowIds/columnIds arrays keep their identity.
+  let rowIdsDerivation: { rows: CompactSelectionLike; viewIndex: readonly number[]; data: readonly unknown[]; getRowId: (row: unknown, index: number) => string; rowIds: string[] } | null = null;
+  let columnIdsDerivation: { columns: CompactSelectionLike; visibleColumns: readonly AnyColumnDef[]; columnIds: string[] } | null = null;
+  const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, init.sortState ?? [], initFilterState, initJoinOperator, undefined, initCellTypes);
+  // `selection` wins over `defaultSelection`, and both resolve here (not in the provider), so the
+  // server render and the first client paint already show them.
+  const initSelectionValue = init.selection ?? init.defaultSelection;
+  if (init.selection !== undefined && init.defaultSelection !== undefined) warnBothSelectionPropsOnce();
+  let initialSelection = emptySelection();
+  let initialActiveCell: ViewCoord | null = null;
+  if (initSelectionValue) {
+    const resolved = resolveSelectionState(
+      { data: initData, getRowId: init.getRowId, viewIndex: initViewIndex, visibleColumns, selection: initialSelection },
+      rowIndexCache,
+      initSelectionValue,
+      warnedControlledSelection,
+    );
+    initialSelection = resolved.grid;
+    initialActiveCell = resolved.activeCell ?? null;
+    lastKnownSelection = resolved.selection;
+  }
+  return createStore<DataGridStoreState>((set, get, api) => {
+    /**
+     * Derives the public SelectionState with per-channel caches (decision 4): a range-drag step
+     * re-derives the three corner refs only, and the rowIds/columnIds arrays keep their identity
+     * while their channels keep theirs.
+     */
+    const deriveCurrentSelection = (s: DataGridStoreState): SelectionState => {
+      let rowIds: string[];
+      const rowCache = rowIdsDerivation;
+      if (rowCache && rowCache.rows === s.selection.rows && rowCache.viewIndex === s.viewIndex && rowCache.data === s.data && rowCache.getRowId === s.getRowId) {
+        rowIds = rowCache.rowIds;
+      } else {
+        rowIds = deriveRowIds(s);
+        rowIdsDerivation = { rows: s.selection.rows, viewIndex: s.viewIndex, data: s.data, getRowId: s.getRowId, rowIds };
+      }
+      let columnIds: string[];
+      const columnCache = columnIdsDerivation;
+      if (columnCache && columnCache.columns === s.selection.columns && columnCache.visibleColumns === s.visibleColumns) {
+        columnIds = columnCache.columnIds;
+      } else {
+        columnIds = deriveColumnIds(s);
+        columnIdsDerivation = { columns: s.selection.columns, visibleColumns: s.visibleColumns, columnIds };
+      }
+      const current = s.selection.current;
+      if (!current) return { anchor: null, range: null, rangeStack: [], rowIds, columnIds };
+      const refAt = (coord: ViewCoord) => cellRefAtViewCoord(s, coord);
+      const rangeRef = (rect: GridRect): { start: { rowId: string; columnId: string }; end: { rowId: string; columnId: string } } => ({
+        start: refAt({ row: rect.y, col: rect.x }),
+        end: refAt({ row: rect.y + rect.height - 1, col: rect.x + rect.width - 1 }),
+      });
+      return {
+        anchor: refAt(current.cell),
+        range: rangeRef(current.range),
+        rangeStack: current.rangeStack.map(rangeRef),
+        rowIds,
+        columnIds,
+      };
+    };
+    /**
+     * The one layout write-back point (decision 10): merges `changedParts` over the current
+     * layout, normalizes it, and structurally compares the result with the always-current
+     * s.columnLayout snapshot - equal: no set, no event; else one set (pins/widths/order/hidden/
+     * visible columns/snapshot) plus one onColumnLayoutChange. Live resize frames never run
+     * through here (setColumnWidth).
+     */
+    const commitLayout = (changedParts: Partial<ColumnLayout>): void => {
+      const s = get();
+      const pins: Record<string, "left" | "right"> = {};
+      for (const column of s.columns) if (column.pin === "left" || column.pin === "right") pins[column.id] = column.pin;
+      const merged: ColumnLayoutParts = {
+        widths: changedParts.widths ?? s.columnWidths,
+        order: changedParts.order !== undefined ? changedParts.order : s.columnOrder,
+        pins: changedParts.pins !== undefined ? changedParts.pins : pins,
+        hidden: changedParts.hidden ?? [...s.hiddenColumns],
+      };
+      const normalized = normalizeColumnLayout(s.columns, merged, defHiddenColumnIds(s.columns));
+      const snapshot = computeColumnLayout(normalized.columns, normalized.columnOrder, normalized.columnWidths, normalized.hiddenColumns);
+      if (layoutSnapshotsEqual(snapshot, s.columnLayout)) return;
+      const nextVisibleColumns = computeVisibleColumns(normalized.columns, normalized.columnOrder, normalized.hiddenColumns);
+      const columnsChanged = changedParts.order !== undefined || changedParts.pins !== undefined || changedParts.hidden !== undefined;
+      set({
+        columns: normalized.columns,
+        columnWidths: normalized.columnWidths,
+        columnOrder: normalized.columnOrder,
+        hiddenColumns: normalized.hiddenColumns,
+        visibleColumns: nextVisibleColumns,
+        columnLayout: snapshot,
+        ...(columnsChanged
+          ? {
+              // A columns-moving commit re-runs the cursor/selection remap and the search-match
+              // row map, like the old individual actions.
+              ...followView(s, s.viewIndex, nextVisibleColumns),
+              ...computeSearchMatches(s.data, normalized.columns, s.viewIndex, nextVisibleColumns, s.searchText, s.cellTypes),
+            }
+          : {}),
+      });
+      // Keep the sync baseline current: the controlled echo re-render that follows the commit
+      // must early-return instead of paying a one-time view recompute.
+      lastSyncInputs = { ...lastSyncInputs, columns: normalized.columns, columnOrder: normalized.columnOrder, hiddenColumns: normalized.hiddenColumns };
+      if (s.onColumnLayoutChange) layoutEchoQueue.push(snapshot);
+      s.onColumnLayoutChange?.(snapshot);
+    };
+    return {
     ...init,
     ...resolveSelectionConfig(init),
     // storage widens each per-column CellType<TData, TValue, TOptions> to the untyped registry shape; narrowed back per column at lookup (cell.tsx/store's column-op helpers).
     cellTypes: initCellTypes,
-    columns: seeded.columns,
+    columns: effectiveLayout.columns,
     data: initData,
     dataControlled,
-    activeCell: null,
-    selection: emptySelection(),
+    // A resolved `selection`/`defaultSelection` seeds both the selection and the initial cursor.
+    activeCell: initialActiveCell,
+    selection: initialSelection,
     selectAllStage: null,
     editing: null,
     editingError: null,
@@ -360,9 +507,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     rowBands: init.rowBands ?? EMPTY_ROW_BANDS,
     lastHighlightedRow: null,
     lastHighlightedCol: null,
-    columnWidths: seeded.columnWidths,
-    columnOrder: seeded.columnOrder,
-    hiddenColumns: seeded.hiddenColumns,
+    columnWidths: effectiveLayout.columnWidths,
+    columnOrder: effectiveLayout.columnOrder,
+    hiddenColumns: effectiveLayout.hiddenColumns,
+    columnLayout: computeColumnLayout(effectiveLayout.columns, effectiveLayout.columnOrder, effectiveLayout.columnWidths, effectiveLayout.hiddenColumns),
     sortState: init.sortState ?? [],
     filterState: initFilterState,
     joinOperator: initJoinOperator,
@@ -371,7 +519,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     filterControlled: init.filterState !== undefined,
     joinOperatorControlled: init.joinOperator !== undefined,
     searchControlled: init.searchText !== undefined,
-    ...computeSearchMatches(initData, seeded.columns, initViewIndex, visibleColumns, init.searchText ?? "", initCellTypes),
+    ...computeSearchMatches(initData, effectiveLayout.columns, initViewIndex, visibleColumns, init.searchText ?? "", initCellTypes),
     viewIndex: initViewIndex,
     rowIdentityVersion: 0,
     viewStale: false,
@@ -527,7 +675,22 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         set({ selection: { ...selection, rows } });
       },
       clearSelection() {
+        if (isSelectionEmpty(get().selection)) return;
         set({ selection: emptySelection() });
+      },
+      setSelection(next) {
+        const s = get();
+        if (next === null) {
+          if (isSelectionEmpty(s.selection)) return;
+          set({ selection: emptySelection() });
+          return;
+        }
+        const resolved = resolveSelectionState(s, rowIndexCache, next, warnedControlledSelection);
+        if (resolved.grid === s.selection) return;
+        set({
+          selection: resolved.grid,
+          ...(resolved.activeCell !== undefined ? { activeCell: resolved.activeCell } : {}),
+        });
       },
       setColumnWidth(id, width) {
         const column = get().columns.find((c) => c.id === id);
@@ -541,11 +704,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const column = s.columns.find((c) => c.id === id);
         if (!column) return;
         const next = clampColumnWidth(column, width);
-        const columnWidths = { ...s.columnWidths, [id]: next };
-        set({ columnWidths });
-        if (committedWidths[id] === next) return;
-        committedWidths = { ...committedWidths, [id]: next };
-        s.onColumnLayoutChange?.(computeColumnLayout(s.columns, s.columnOrder, columnWidths, s.hiddenColumns));
+        commitLayout({ widths: { ...s.columnWidths, [id]: next } });
       },
       autosizeColumns(options) {
         const s = get();
@@ -575,10 +734,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           if (resolveColumnWidth(column, s.columnWidths[id]) !== measured[id]!) changed[id] = measured[id]!;
         }
         if (Object.keys(changed).length > 0) {
-          const columnWidths = { ...s.columnWidths, ...changed };
-          committedWidths = { ...committedWidths, ...changed };
-          set({ columnWidths });
-          s.onColumnLayoutChange?.(computeColumnLayout(s.columns, s.columnOrder, columnWidths, s.hiddenColumns));
+          commitLayout({ widths: { ...s.columnWidths, ...changed } });
         }
         return measured;
       },
@@ -586,10 +742,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const s = get();
         if (s.columnWidths[id] === undefined) return;
         const { [id]: _dropped, ...columnWidths } = s.columnWidths;
-        const { [id]: _committed, ...nextCommitted } = committedWidths;
-        committedWidths = nextCommitted;
-        set({ columnWidths });
-        s.onColumnLayoutChange?.(computeColumnLayout(s.columns, s.columnOrder, columnWidths, s.hiddenColumns));
+        commitLayout({ widths: columnWidths });
       },
       setColumnOrder(id, targetId, position) {
         const s = get();
@@ -603,8 +756,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (nextIds.length === currentIds.length && nextIds.every((columnId, index) => columnId === currentIds[index])) return;
         const nextVisibleColumns = computeVisibleColumns(s.columns, nextIds, s.hiddenColumns);
         warnViewSpacePresenceStale(s, () => visibleColumnsMoved(s.visibleColumns, nextVisibleColumns));
-        set({ columnOrder: nextIds, visibleColumns: nextVisibleColumns, ...followView(s, s.viewIndex, nextVisibleColumns) });
-        s.onColumnLayoutChange?.(computeColumnLayout(s.columns, nextIds, s.columnWidths, s.hiddenColumns));
+        commitLayout({ order: nextIds });
       },
       setColumnPin(id, pin) {
         const s = get();
@@ -614,12 +766,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const nextColumns = s.columns.map((c) => (c.id === id ? { ...c, pin: pin ?? undefined } : c));
         const nextVisibleColumns = computeVisibleColumns(nextColumns, s.columnOrder, s.hiddenColumns);
         warnViewSpacePresenceStale(s, () => visibleColumnsMoved(s.visibleColumns, nextVisibleColumns));
-        set({
-          columns: nextColumns,
-          visibleColumns: nextVisibleColumns,
-          ...followView(s, s.viewIndex, nextVisibleColumns),
-        });
-        s.onColumnLayoutChange?.(computeColumnLayout(nextColumns, s.columnOrder, s.columnWidths, s.hiddenColumns));
+        const pins: Record<string, "left" | "right"> = {};
+        for (const column of nextColumns) if (column.pin === "left" || column.pin === "right") pins[column.id] = column.pin;
+        commitLayout({ pins });
       },
       setColumnHidden(id, hidden) {
         const s = get();
@@ -630,17 +779,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const nextHidden = Array.from(current);
         const nextVisibleColumns = computeVisibleColumns(s.columns, s.columnOrder, nextHidden);
         warnViewSpacePresenceStale(s, () => visibleColumnsMoved(s.visibleColumns, nextVisibleColumns));
-        const viewIndex = computeViewIndex(s.data, s.columns, s.sortState, s.filterState, s.joinOperator, s.viewIndex, s.cellTypes);
         resetDeferredRows(dataWrite);
-        set({
-          hiddenColumns: nextHidden,
-          visibleColumns: nextVisibleColumns,
-          viewIndex,
-          viewStale: false,
-          ...followView(s, viewIndex, nextVisibleColumns),
-          ...computeSearchMatches(s.data, s.columns, viewIndex, nextVisibleColumns, s.searchText, s.cellTypes),
-        });
-        s.onColumnLayoutChange?.(computeColumnLayout(s.columns, s.columnOrder, s.columnWidths, nextHidden));
+        commitLayout({ hidden: nextHidden });
+      },
+      setColumnLayout(parts) {
+        commitLayout(parts);
       },
       toggleSort(columnId, additive) {
         const s = get();
@@ -899,7 +1042,6 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           onColumnLayoutChange: props.onColumnLayoutChange,
           onColumnResizing: props.onColumnResizing,
           onSelectionChange: props.onSelectionChange,
-          onSelectionCleared: props.onSelectionCleared,
           onActiveCellChange: props.onActiveCellChange,
           onEditStart: props.onEditStart,
           onEditEnd: props.onEditEnd,
@@ -978,27 +1120,117 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const nextViewIndex = unchanged
             ? s.viewIndex
             : computeViewIndex(nextData, nextColumns, nextSortState, nextFilterState, nextJoinOperator, s.viewIndex, nextCellTypes);
-          if (nextViewIndex !== s.viewIndex || foreignData || nextVisibleColumns !== s.visibleColumns) {
+          // Controlled columnLayout (decision 8): the same echo/structural-equal rule as selection,
+          // merged over the incoming column state; a new `columns` array re-applies the controlled
+          // parts over the new defs (normalize re-seeds def-hidden and drops unpinnable pins).
+          if (props.columnLayout === undefined) layoutEchoQueue = [];
+          let layoutApply: Partial<DataGridStoreState> | null = null;
+          if (props.columnLayout !== undefined) {
+            const echoIndex = layoutEchoQueue.indexOf(props.columnLayout);
+            if (echoIndex !== -1) {
+              // The echo and every older entry leave the queue (decision 4); newer entries stay.
+              layoutEchoQueue.splice(0, echoIndex + 1);
+            } else {
+              const pins: Record<string, "left" | "right"> = {};
+              for (const column of nextColumns) if (column.pin === "left" || column.pin === "right") pins[column.id] = column.pin;
+              const normalized = normalizeColumnLayout(
+                nextColumns,
+                {
+                  widths: props.columnLayout.widths ?? s.columnWidths,
+                  order: props.columnLayout.order !== undefined ? props.columnLayout.order : s.columnOrder,
+                  pins: props.columnLayout.pins ?? pins,
+                  hidden: props.columnLayout.hidden ?? nextHiddenColumns,
+                },
+                defHiddenColumnIds(nextColumns),
+              );
+              const snapshot = computeColumnLayout(normalized.columns, normalized.columnOrder, normalized.columnWidths, normalized.hiddenColumns);
+              if (!layoutSnapshotsEqual(snapshot, s.columnLayout)) {
+                layoutApply = {
+                  columns: normalized.columns,
+                  columnWidths: normalized.columnWidths,
+                  columnOrder: normalized.columnOrder,
+                  hiddenColumns: normalized.hiddenColumns,
+                  visibleColumns: computeVisibleColumns(normalized.columns, normalized.columnOrder, normalized.hiddenColumns),
+                  columnLayout: snapshot,
+                };
+              }
+            }
+          }
+          // Controlled selection (decision 4): an echo or a structurally-equal value applies
+          // nothing; any other new identity resolves against the incoming view and overrides the
+          // store. Resolving against the incoming view (not `s`) keeps an applied value positional
+          // when a foreign data swap lands in the same sync.
+          if (props.selection !== undefined) selectionControlled = true;
+          else {
+            selectionControlled = false;
+            selectionEchoQueue = [];
+          }
+          const finalColumns = layoutApply?.columns ?? nextColumns;
+          const finalVisibleColumns = layoutApply?.visibleColumns ?? nextVisibleColumns;
+          let selectionApply: Partial<DataGridStoreState> | null = null;
+          if (props.selection !== undefined) {
+            const echoIndex = selectionEchoQueue.indexOf(props.selection);
+            if (echoIndex !== -1) {
+              // The echo and every older entry leave the queue (decision 4); newer entries stay.
+              selectionEchoQueue.splice(0, echoIndex + 1);
+              lastKnownSelection = props.selection;
+            } else if (selectionStatesEqual(props.selection, lastKnownSelection)) {
+              lastKnownSelection = props.selection;
+            } else {
+              const resolved = resolveSelectionState(
+                { data: nextData, getRowId: props.getRowId, viewIndex: nextViewIndex, visibleColumns: finalVisibleColumns, selection: s.selection },
+                rowIndexCache,
+                props.selection,
+                warnedControlledSelection,
+              );
+              lastKnownSelection = resolved.selection;
+              if (resolved.grid !== s.selection) {
+                selectionApply = {
+                  selection: resolved.grid,
+                  ...(resolved.activeCell !== undefined ? { activeCell: resolved.activeCell } : {}),
+                };
+              }
+            }
+          }
+          if (nextViewIndex !== s.viewIndex || foreignData || finalVisibleColumns !== s.visibleColumns) {
             warnViewSpacePresenceStale(
               s,
-              () => viewRowsMoved(s, nextViewIndex, nextData, props.getRowId) || visibleColumnsMoved(s.visibleColumns, nextVisibleColumns),
+              () => viewRowsMoved(s, nextViewIndex, nextData, props.getRowId) || visibleColumnsMoved(s.visibleColumns, finalVisibleColumns),
             );
           }
           // A full rebuild leaves nothing pending for the incremental path to replay.
           if (!unchanged) resetDeferredRows(dataWrite);
-          const followed = unchanged
-            ? {}
-            : followView(s, nextViewIndex, nextVisibleColumns, nextData, props.getRowId, !foreignData);
+          // An echo-only sync (every recompute input unchanged, selection/layout no-ops, flags
+          // stable) returns the same state so zustand skips every listener: the controlled loop
+          // pays zero store work per drag step (decision 4).
+          const flagsChanged =
+            s.sortControlled !== (props.sortState !== undefined) ||
+            s.filterControlled !== (props.filterState !== undefined) ||
+            s.joinOperatorControlled !== (props.joinOperator !== undefined) ||
+            s.searchControlled !== (props.searchText !== undefined);
+          if (unchanged && props.getRowId === s.getRowId && layoutApply === null && selectionApply === null && !flagsChanged) return s;
+          // A layout-only apply still remaps the selection's column channel (its visible columns
+          // moved), so the remap runs whenever a layout apply is in flight.
+          const followed =
+            unchanged && layoutApply === null
+              ? {}
+              : followView(s, nextViewIndex, finalVisibleColumns, nextData, props.getRowId, !foreignData);
           // Only the recompute slice is written here: the config slice (callbacks, enable* flags,
           // readOnly, keymap, …) is owned by _syncConfig, so a data/sort/filter sync never rewrites it.
           return {
             data: nextData,
             getRowId: props.getRowId,
             cellErrors: nextCellErrors,
-            columns: nextColumns,
-            hiddenColumns: nextHiddenColumns,
+            columns: finalColumns,
+            hiddenColumns: layoutApply?.hiddenColumns ?? nextHiddenColumns,
             cellTypes: nextCellTypes,
-            visibleColumns: nextVisibleColumns,
+            visibleColumns: finalVisibleColumns,
+            columnWidths: layoutApply?.columnWidths ?? s.columnWidths,
+            columnOrder: layoutApply?.columnOrder ?? s.columnOrder,
+            // A `columns` swap re-seeds the snapshot even uncontrolled (decision 10).
+            columnLayout:
+              layoutApply?.columnLayout ??
+              (propsColumnsChanged ? computeColumnLayout(nextColumns, s.columnOrder, s.columnWidths, nextHiddenColumns) : s.columnLayout),
             sortState: nextSortState,
             filterState: nextFilterState,
             joinOperator: nextJoinOperator,
@@ -1013,9 +1245,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             // Rows move only on a foreign data replacement, never on our own echo.
             rowIdentityVersion: foreignData ? s.rowIdentityVersion + 1 : s.rowIdentityVersion,
             ...followed,
-            ...(unchanged
+            // A layout-only apply moves visible columns, so the search-match row map re-runs with it.
+            ...(unchanged && layoutApply === null
               ? { searchMatches: s.searchMatches, searchMatchSet: s.searchMatchSet, searchMatchRows: s.searchMatchRows, searchMatchesCapped: s.searchMatchesCapped }
-              : computeSearchMatches(nextData, nextColumns, nextViewIndex, nextVisibleColumns, nextSearchText, nextCellTypes)),
+              : computeSearchMatches(nextData, finalColumns, nextViewIndex, finalVisibleColumns, nextSearchText, nextCellTypes)),
+            // The controlled values win over the remapped ones.
+            ...selectionApply,
           };
         });
       },
@@ -1024,6 +1259,28 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           if (prev.editing === null || state.editing !== null || prev.editing === selfReportedSession) return;
           state.onEditEnd?.({ rowId: prev.editing.rowId, columnId: prev.editing.columnId, viewRowIndex: prev.editing.coord.row, viewColumnIndex: prev.editing.coord.col, result: "cancel" });
         });
+      },
+      _subscribeSelection() {
+        return api.subscribe((state, prev) => {
+          if (state.selection === prev.selection) return;
+          // Decision 3: derive only when someone reads the value - a callback or the controlled
+          // prop (which keeps lastKnownSelection fresh for the _syncProps structural compare).
+          if (!state.onSelectionChange && !selectionControlled) return;
+          const derived = deriveCurrentSelection(state);
+          if (selectionStatesEqual(derived, lastKnownSelection)) return;
+          // Updated BEFORE the callback so a gesture fired from inside onSelectionChange compares
+          // against the value it just read, and an applied controlled value re-derives equal and
+          // stays silent (decisions 3 and 4).
+          lastKnownSelection = derived;
+          if (state.onSelectionChange) {
+            selectionEchoQueue.push(derived);
+            if (selectionEchoQueue.length > 128) selectionEchoQueue.shift();
+          }
+          state.onSelectionChange?.(derived, makeSelectionChangeDetails(() => api.getState()));
+        });
+      },
+      _deriveSelection() {
+        return deriveCurrentSelection(get());
       },
       _registerScrollToCell(impl) {
         set({ scrollToCellImpl: impl });
@@ -1041,5 +1298,6 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         set({ presenceViewSpaceActive: impl });
       },
     },
-  }));
+    };
+  });
 }
