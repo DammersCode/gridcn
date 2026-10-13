@@ -7,7 +7,7 @@ import { isComposingKey } from "./is-composing-key";
 
 /** The text-form codec that adapts a plain text input to a cell type's value pipeline. */
 export type CellEditorCodec<TValue> = {
-  /** Initial draft text for the committed `value` (mirror the type's `toText`/`toDisplayText` convention). */
+  /** Initial draft text for the committed `value`. */
   toDraft(value: TValue): string;
   /** Parse a draft into the type's value. Never throw — return the type's `clearValue` result for garbage. */
   toValue(draft: string): TValue;

@@ -104,9 +104,9 @@ export type DataGridContextMenuProps = {
  * `onOpenChange` here cancels that open via `eventDetails.cancel()` — checked against `targetRef`
  * (synchronous, unlike `target` state) since the "should this open" decision has to be made in the
  * same tick as the triggering event, before React re-renders. The native browser context menu is
- * deliberately NOT re-enabled for this case (no `event.preventDefault()` is skipped) — suppressing
- * silently, matching how a plain click on empty grid space is already a quiet no-op elsewhere, is
- * less surprising than a browser chrome menu popping up only sometimes depending on grid surface.
+ * deliberately NOT re-enabled for this case (no `event.preventDefault()` is skipped) — silent
+ * suppression is less surprising than a browser chrome menu popping up only sometimes depending
+ * on grid surface.
  */
 export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode {
   const { className, children, getCellMenuItems, getHeaderMenuItems } = props;

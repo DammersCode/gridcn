@@ -91,8 +91,9 @@ Out of scope, deliberately:
   consumer owns `getRowId` and can derive the id.
 - `GridSelection` / rects / row-column channels stay view-index based — the
   selection model is view space by construction (W5-11 revisits).
-- `flashCells` keys, `setCellErrors`/`clearCellErrors` targets — already
-  `rowId:columnId` keyed.
+- `flashCells` keys, `setCellErrors`/`clearCellErrors` targets — `rowId:columnId`
+  keyed. (Claimed here as pre-existing; the flash keys were view-row-based at the
+  time of this spec and a later fix, `516f795`, made them row-id-keyed.)
 
 ## Impact surface
 

@@ -505,4 +505,19 @@ describe("DOM cell events", () => {
     expect(ctx.viewRowIndex).toBe(1);
     expect(event).toBeInstanceOf(MouseEvent);
   });
+
+  it("onCellDoubleClick and onCellContextMenu ignore events the open editor owns", () => {
+    const onCellDoubleClick = vi.fn();
+    const onCellContextMenu = vi.fn();
+    render(<DataGrid data={rows()} columns={columns} getRowId={(r) => r.id} onCellDoubleClick={onCellDoubleClick} onCellContextMenu={onCellContextMenu} />);
+    const cell = screen.getByRole("gridcell", { name: "Row 1" });
+    fireEvent.doubleClick(cell);
+    expect(onCellDoubleClick).toHaveBeenCalledTimes(1);
+    const input = cell.querySelector("input")!;
+    // the editor's own input: a word-select dblclick and a paste-menu right-click are editor events
+    fireEvent.doubleClick(input);
+    expect(onCellDoubleClick).toHaveBeenCalledTimes(1);
+    fireEvent.contextMenu(input);
+    expect(onCellContextMenu).not.toHaveBeenCalled();
+  });
 });

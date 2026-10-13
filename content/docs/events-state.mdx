@@ -193,11 +193,11 @@ that reads the current selection on click, not from the last change notification
 `useDataGridGetSelectionValues()`. It returns a stable callback with the same lazy,
 primary-range-only semantics:
 
- ```ts
- const getValues = useDataGridGetSelectionValues();
- // later, e.g. in a click handler:
- const values = getValues();
- ```
+```ts
+const getValues = useDataGridGetSelectionValues();
+// later, e.g. in a click handler:
+const values = getValues();
+```
 
 ### Clearing the selection
 
@@ -429,6 +429,9 @@ The last two are DOM notifications in the `onCellClick` sense:
   and it is not a veto point. The grid still starts the edit unless your `onEditStart` vetoes it.
 - `onCellContextMenu` fires on a right-click on a cell. It is a pure notification. The
   `data-grid-context-menu` add-on listens at the root and is unaffected.
+
+A double-click or right-click inside the open editor (its inline input, or the portaled date,
+select, and long-text popover) fires neither event.
 
 Both receive the same `CellClickCtx` shape as `onCellClick`, plus the native `MouseEvent`.
 

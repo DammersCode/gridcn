@@ -166,7 +166,7 @@ export type FillHandleHandlers = {
 
 /**
  * Drives the fill-handle drag: pointerdown on the handle starts a document-level drag (capture +
- * rAF-throttled move + auto-scroll, mirroring `useGridInteraction`'s range drag), live-updates
+ * rAF-throttled move + auto-scroll), live-updates
  * the add-on's local `fillStore` via `computeFillTarget` (orthogonal axis snap), and on release
  * runs the shared fill pipeline (`buildFillWrites`) as one `applyCellUpdates` batch, expanding the
  * selection to `combineRects(source, strip)`. Alt held at release forces plain-copy tiling over
@@ -210,7 +210,6 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
 
     if (pointer.clientY < rect.top + AUTO_SCROLL_ZONE) scrollElement.scrollTop -= AUTO_SCROLL_STEP;
     else if (pointer.clientY > rect.bottom - AUTO_SCROLL_ZONE) scrollElement.scrollTop += AUTO_SCROLL_STEP;
-    // Inline-axis edge test + step, mirroring core's own drag auto-scroll (use-grid-interaction.ts).
     const direction = layoutRef.current.direction ?? "ltr";
     const inlineStep = inlineAutoScrollStep(pointer.clientX, rect, AUTO_SCROLL_ZONE, direction);
     if (inlineStep !== 0) applyInlineScrollDelta(scrollElement, inlineStep * AUTO_SCROLL_STEP, direction);

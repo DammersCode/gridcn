@@ -476,7 +476,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         ...(columnsChanged
           ? {
               // A columns-moving commit re-runs the cursor/selection remap and the search-match
-              // row map, like the old individual actions.
+              // row map.
               ...followView(s, s.viewIndex, nextVisibleColumns),
               ...computeSearchMatches(s.data, normalized.columns, s.viewIndex, nextVisibleColumns, s.searchText, s.cellTypes),
             }
@@ -900,8 +900,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     measureFonts: null,
     dataWrite,
     plugins: initPlugins,
-    // Seeded from the sync props so SSR and the first client paint already see them (the
-    // provider's config phase keeps them in sync from here on).
+    // Seeded from the sync props so SSR and the first client paint already see them.
     readOnly: Boolean(init.readOnly),
     keymap: initKeymap,
     commands: initCommands,

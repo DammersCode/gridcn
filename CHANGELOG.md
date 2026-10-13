@@ -11,6 +11,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **`use-sync-external-store` declared by the `data-grid` item:** the store's selector hook
+  uses `zustand/traditional`, which imports `use-sync-external-store/shim` — a package the
+  item now declares so strict package managers (pnpm) resolve it on a fresh install.
 - **Plugin system (`data-grid`):** `DataGridProvider`/`DataGrid` take `plugins` —
   `readonly DataGridPlugin[]` — the single seam add-ons and consumer code use to extend the grid.
   A `DataGridPlugin` is a plain object with a `name` and optional members; array order is
@@ -454,6 +457,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking:** `DataGridCell`'s view-index props are renamed (`data-grid`): `rowIndex` is
+  `viewRowIndex` and `columnIndex` is `viewColumnIndex`, the view-space names every cell ctx
+  already uses. Custom compositions that render `DataGridCell` pass the new names.
 - **Breaking:** one `plugins` seam replaces the overlay and row-bands seams (`data-grid`): the
   `overlayPlugins`, `rowBands`, `onUndo`, and `onRedo` props are removed. Register add-ons — and
   custom overlays, bands, observers, commands, and keymap entries — through the `plugins` prop
@@ -906,6 +912,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **`onCellDoubleClick`/`onCellContextMenu` ignore editor-owned events (`data-grid`):** a
+  double-click or right-click inside the cell's open editor — the inline text/number input,
+  or the portaled date/select/long-text popover — no longer fires the consumer's events.
 - **The currency recipe's codec preserves `0`:** `toValue` and `fromText` built the value with
   `Number(draft) || null`, so a typed `0` — falsy — became `null`. They now parse the trimmed
   draft and reject only `NaN`, so `0` commits as a value.

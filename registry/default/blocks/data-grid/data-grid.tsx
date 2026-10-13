@@ -26,7 +26,7 @@ export {
   type PinTrackData,
   type RectSegment,
 } from "./overlays";
-/** Custom cell-type editors: the same focus/commit primitives the built-in editors use — seed the input's focus with the caret at the end, and guard a one-shot commit against Enter-then-blur double-commits. `useCellEditor` bundles both plus the draft state and the Enter/Escape/blur bindings a text-input editor needs. */
+/** Primitives for custom cell-type editors: seed the input's focus with the caret at the end, and guard a one-shot commit against Enter-then-blur double-commits. `useCellEditor` bundles both plus the draft state and the Enter/Escape/blur bindings a text-input editor needs. */
 export { useSeedFocus } from "./interaction/use-seed-focus";
 export { useCommitGuard } from "./interaction/use-commit-guard";
 export { useCellEditor, type CellEditorCodec } from "./interaction/use-cell-editor";

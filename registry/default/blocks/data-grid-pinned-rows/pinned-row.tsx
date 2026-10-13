@@ -65,9 +65,9 @@ export function DataGridPinnedRow(props: DataGridPinnedRowProps): ReactNode {
           key={column.id}
           row={row}
           rowId={rowId}
-          rowIndex={bandIndex}
+          viewRowIndex={bandIndex}
           column={column}
-          columnIndex={index}
+          viewColumnIndex={index}
           gridColOffset={markerColOffset}
           pinnedRow
         />
