@@ -633,19 +633,22 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   If `getRowId` throws on a pinned row or returns an empty or non-string value, the row gets the
   band id `__pinned-top-<index>` or `__pinned-bottom-<index>`.
   `DataGridPinnedRow` takes a required `position` prop (`"top" | "bottom"`), and
-  `DataGridCellProps.rowId` is required. A right-click on a skeleton cell of an unloaded row opens
-  no context menu.
+  `DataGridCellProps.rowId` is required. Skeleton cells of an unloaded row fire no click
+  events (`onCellClick`, `onRowClick`, `onCellDoubleClick`), and a right-click opens no
+  context menu.
 - **Breaking:** cell contexts carry row and column identity. `renderCell` (and `Cell`
   components) rename `rowIndex` to `viewRowIndex` and add `rowId` and `columnId`. The
   `getCellClassName` ctx gains `rowId` and `columnId`. `CellClickCtx` (used by `onCellClick`,
   `onCellDoubleClick`, and `onCellContextMenu`) renames `rowIndex`/`columnIndex` to
   `viewRowIndex`/`viewColumnIndex` and adds `rowId`/`columnId`; `RowClickCtx` (used by
-  `onRowClick`) adds `rowId`. The context menu's `getCellMenuItems` ctx renames `row` to
+  `onRowClick`) renames `rowIndex` to `viewRowIndex` and adds `rowId`. The context menu's `getCellMenuItems` ctx renames `row` to
   `viewRowIndex` and adds `rowId`. `GridBulkValidationError` rejected entries add `rowId` and
-  rename `viewRow` to `viewRowIndex`, as do `applyCellUpdates` entries.
-- **Select quick search matches the choice label, not the stored value:** a `select` column's
-  stored values are opaque choice ids; quick search now uses the option's `label` (its
-  `toSearchText`). Custom types can declare their own `toSearchText` for the same control.
+  rename `viewRow` to `viewRowIndex`, as do `applyCellUpdates` entries and the sdk's
+  `BulkCandidate`/`BulkWrite` types.
+- **Breaking:** `select` quick search matches the choice label, not the stored value
+  (`data-grid`). A `select` column's stored values are opaque choice ids; quick search now
+  uses the option's `label` (its `toSearchText`). Custom types can declare their own
+  `toSearchText` for the same control.
 - **Breaking:** `resolveBulkWrites` returns the rejected cells too (`data-grid-sdk`). The
   validation tail of paste and fill now returns `{ writes, rejected }` (`BulkResolution`)
   instead of a plain write array — `rejected` carries every cell the validators refused, with its
