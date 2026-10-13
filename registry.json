@@ -343,6 +343,11 @@
                "target": "components/data-grid/root.tsx"
             },
             {
+               "path": "registry/default/blocks/data-grid/row-element-registry.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/row-element-registry.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/row.tsx",
                "type": "registry:component",
                "target": "components/data-grid/row.tsx"

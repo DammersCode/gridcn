@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useReducer, useRef, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { isDev } from "../is-dev";
 import { getElementStore, INITIAL_SNAPSHOT, type ScrollSnapshot } from "./use-scroll-snapshot";
 import { createVelocityEstimator, updateVelocityEstimate, VELOCITY_OVERSCAN_CAP_PX, type VelocityEstimator } from "./velocity-estimator";
@@ -94,6 +94,13 @@ function computeWindow(
  * per tick, so a diagonal scroll that moves both windows in the same event still commits once. The
  * new rows land synchronously inside the scroll event — before the compositor's next paint — instead
  * of risking a deferred React commit that lets the compositor reveal unrendered rows.
+ *
+ * Render-phase notes (React Compiler): the element, the velocity estimate, and the scroll
+ * snapshot are all state (a render-time ref read bails compilation; a render-time getSnapshot()
+ * call would be memoized per element identity and serve a stale snapshot on tick re-renders).
+ * The render-time useMemo is the heal: an element attach, an opts change, or a flushed tick
+ * (new snapshot state) all recompute the window in the SAME render, so nothing can lag a
+ * change that shrinks the grid below a committed window.
  */
 export function useRowWindow(scrollRef: RefObject<HTMLElement | null>, opts: UseRowWindowOptions): RowWindow {
   // The canvas transform tracks every scroll pixel (checklist step 4), so overscan only needs to
@@ -101,85 +108,89 @@ export function useRowWindow(scrollRef: RefObject<HTMLElement | null>, opts: Use
   const { rowCount, rowHeight, dataRowTop, bottomInset = 0, overscan = 1 } = opts;
   const resolvedOpts = { rowCount, rowHeight, dataRowTop, bottomInset, overscan };
 
-  const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
+  // Tracked in state (a render-time ref read bails the compiler); the watcher below picks up the
+  // element on any render after it attaches, so a ref that sets post-mount still heals.
+  const [element, setElement] = useState<HTMLElement | null>(null);
 
-  // Mutable so the store listener (a stable callback, subscribed once per element) always
-  // compares against the latest computed window without re-subscribing on every option change.
+  // The scroll snapshot is state, not a render-time store read: the React Compiler memoizes a
+  // getSnapshot() call per element identity and would serve a stale snapshot on tick re-renders.
+  // The watcher seeds it on element attach; the store listener refreshes it on every flushed
+  // tick — both at effect/event time. The token forces the memo to recompute on a write whose
+  // snapshot/estimate values happen to be unchanged (e.g. a velocity-cap plateau).
+  const [tick, setTick] = useState<{ estimate: number; snapshot: ScrollSnapshot | null; token: number }>({
+    estimate: 0,
+    snapshot: null,
+    token: 0,
+  });
+
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (el !== element) {
+      setElement(el);
+      setTick((prev) => ({ estimate: prev.estimate, snapshot: el ? getElementStore(el).getSnapshot() : null, token: prev.token + 1 }));
+    }
+  });
+
+  // Inline opts object (not the per-render `resolvedOpts`): every value the memo callback reads
+  // must be a declared dep for the React Compiler to preserve the manual memoization.
+  const rowWindow = useMemo(
+    () => computeWindow(element, element ? (tick.snapshot ?? INITIAL_SNAPSHOT) : INITIAL_SNAPSHOT, { rowCount, rowHeight, dataRowTop, bottomInset, overscan }, tick.estimate),
+    [element, tick, rowCount, rowHeight, dataRowTop, bottomInset, overscan],
+  );
+
+  // The listener's skip-compare cache: the last committed window, synced post-commit (pre-paint)
+  // so a tick never compares against a window a render has already superseded.
   const windowRef = useRef<RowWindow | null>(null);
-  const optsRef = useRef(resolvedOpts);
-  optsRef.current = resolvedOpts;
+  useLayoutEffect(() => {
+    windowRef.current = rowWindow;
+  });
+
   // One estimator per hook instance (task 1: state lives in the hook, not the shared element
   // store, since the store is per-element and multiple row-window consumers could theoretically
-  // want independent overscan tuning). Fed exclusively from the subscribed-listener/healing paths
-  // below (the actual per-tick observation points) — the render-time useMemo only *reads* the
-  // latest estimate, so a snapshot's delta is never counted twice.
+  // want independent overscan tuning). Fed exclusively from the listener/heal paths below
+  // (the actual per-tick observation points), so a snapshot's delta is never counted twice.
   const velocityRef = useRef<VelocityEstimator>(createVelocityEstimator());
-  const velocityEstimateRef = useRef(0);
 
   useEffect(() => {
-    const element = scrollRef.current;
     if (!element) return;
     const store = getElementStore(element);
 
     // Fires from the retry timer when a settle's idle-reset lands with no further scroll tick to
-    // ride in on (see updateVelocityEstimate's onIdleReset doc) — same healing shape as the no-element
-    // fallback below: a plain forceUpdate, never flushSync, since it's not inside a store notify() cycle.
-    // Reads velocityRef directly (not velocityEstimateRef, which only the recompute/heal paths below
-    // write) since the retry timer mutates the estimator's `estimate` field out-of-band from those.
+    // ride in on (see updateVelocityEstimate's onIdleReset doc) — plain setTick (never
+    // flushSync/requestFlush): the timer runs outside a store notify() cycle, and the re-render
+    // it triggers recomputes the shrunken window via the memo.
     const onIdleReset = () => {
-      velocityEstimateRef.current = velocityRef.current.estimate;
+      const est = velocityRef.current.estimate;
       const snap = store.getSnapshot();
-      const next = computeWindow(element, snap, optsRef.current, velocityEstimateRef.current);
+      const next = computeWindow(element, snap, resolvedOpts, est);
       const prev = windowRef.current;
       if (prev && prev.start === next.start && prev.end === next.end) return;
-      windowRef.current = next;
-      forceUpdate();
+      setTick((prevTick) => ({ estimate: est, snapshot: snap, token: prevTick.token + 1 }));
     };
 
     const recompute = () => {
       const snap = store.getSnapshot();
-      velocityEstimateRef.current = updateVelocityEstimate(velocityRef.current, snap.deltaTop, snap.isScrolling, onIdleReset);
-      const next = computeWindow(element, snap, optsRef.current, velocityEstimateRef.current);
+      const est = updateVelocityEstimate(velocityRef.current, snap.deltaTop, snap.isScrolling, onIdleReset);
+      const next = computeWindow(element, snap, resolvedOpts, est);
       const prev = windowRef.current;
       if (prev && prev.start === next.start && prev.end === next.end) return;
-      windowRef.current = next;
       // Enqueue instead of flushing directly — the store drains every listener's queued update
       // (row window + column window) into one flushSync after this tick's notify() finishes.
-      store.requestFlush(forceUpdate);
+      store.requestFlush(() => setTick((prevTick) => ({ estimate: est, snapshot: snap, token: prevTick.token + 1 })));
     };
-
-    // The first render ran before this ref existed, so windowRef holds the no-element fallback;
-    // heal it now (plain forceUpdate, never flushSync/requestFlush — this runs post-commit, not
-    // mid-scroll, and there's no notify() cycle here to drain into).
-    const prev = windowRef.current;
-    const snap = store.getSnapshot();
-    velocityEstimateRef.current = updateVelocityEstimate(velocityRef.current, snap.deltaTop, snap.isScrolling, onIdleReset);
-    const real = computeWindow(element, snap, optsRef.current, velocityEstimateRef.current);
-    windowRef.current = real;
-    if (!prev || prev.start !== real.start || prev.end !== real.end) forceUpdate();
 
     const unsubscribe = store.subscribe(recompute);
     return () => {
       unsubscribe();
-      // Unmounting mid-wait must not fire forceUpdate on a gone component after teardown.
+      // Unmounting mid-wait must not fire setTick on a gone component after teardown.
       const pendingRetry = velocityRef.current.retryTimer;
       if (pendingRetry !== null) {
         clearTimeout(pendingRetry);
         velocityRef.current.retryTimer = null;
       }
     };
-    // scrollRef is a ref object; re-subscribing is driven by its .current changing between calls, not by identity.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollRef.current]);
+  }, [element, rowCount, rowHeight, dataRowTop, bottomInset, overscan]);
 
-  const element = scrollRef.current;
-  const snapshot = element ? getElementStore(element).getSnapshot() : INITIAL_SNAPSHOT;
-
-  return useMemo(() => {
-    // Reads (never updates) the estimate — the effect above is the sole feed point per tick.
-    const computed = computeWindow(element, snapshot, resolvedOpts, velocityEstimateRef.current);
-    windowRef.current = computed;
-    return computed;
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [element, snapshot, rowCount, rowHeight, dataRowTop, bottomInset, overscan]);
+  return rowWindow;
 }

@@ -181,7 +181,10 @@ function hasAnyPin(pinTrack: PinTrackData | undefined): pinTrack is PinTrackData
  * BEFORE the active-cell ring, so local focus always wins visually over plugin content.
  */
 export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
-  const { windowStart, rowCount, clampRowStart = windowStart, clampRowEnd = windowStart + rowCount, colCount, colOffset = 1, pinTrack } = props;
+  const { windowStart, rowCount, clampRowStart, clampRowEnd, colCount, colOffset = 1, pinTrack } = props;
+  // The compiler can't lower a binary expression as a destructure default; resolve the defaults here.
+  const clampedRowStart = clampRowStart ?? windowStart;
+  const clampedRowEnd = clampRowEnd ?? windowStart + rowCount;
   const selection = useDataGridSelection();
   const activeCell = useDataGridActiveCell();
   const overlays = useDataGridPluginOverlays();
@@ -202,11 +205,11 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
   // or shift these bands past the real rendered bottom.
   const columnBands: GridRect[] = membershipRuns(selection.columns, 0, colCount).map((run) => ({
     x: run.start,
-    y: clampRowStart,
+    y: clampedRowStart,
     width: run.length,
-    height: clampRowEnd - clampRowStart,
+    height: clampedRowEnd - clampedRowStart,
   }));
-  const rowBands: GridRect[] = membershipRuns(selection.rows, clampRowStart, clampRowEnd).map((run) => ({
+  const rowBands: GridRect[] = membershipRuns(selection.rows, clampedRowStart, clampedRowEnd).map((run) => ({
     x: 0,
     y: run.start,
     width: colCount,
@@ -223,7 +226,7 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
   return (
     <>
       {rangeRects.map((rect, i) => {
-        const clamped = clampRectToWindow(rect, clampRowStart, clampRowEnd, colCount);
+        const clamped = clampRectToWindow(rect, clampedRowStart, clampedRowEnd, colCount);
         if (!clamped) return null;
         return segment(clamped).map((seg, j) => (
           <RangeOverlay key={`${i}-${j}`} rect={seg.rect} windowStart={windowStart} colOffset={colOffset} pinStyle={seg.pinStyle} />
@@ -247,8 +250,8 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
           <Overlay
             key={name}
             windowStart={windowStart}
-            clampRowStart={clampRowStart}
-            clampRowEnd={clampRowEnd}
+            clampRowStart={clampedRowStart}
+            clampRowEnd={clampedRowEnd}
             colCount={colCount}
             colOffset={colOffset}
             pinTrack={pinTrack}

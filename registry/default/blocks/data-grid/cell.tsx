@@ -227,14 +227,19 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       : column.cellClassName;
 
   // The editor contract calls onChange(nextValue) then commit(movement) synchronously (see
-  // cell-types/index.ts); stash the pending value in a ref for commit, re-seeding only while
-  // not editing so a mid-edit re-render (stream tick, cellError) never resets the typed draft.
+  // cell-types/index.ts); commit reads the ref onChange last wrote. Seeding (not editing or a new
+  // session) runs in a layout effect, not render — a render-time ref write bails the compiler —
+  // and the layout phase flushes before the checkbox editor's on-mount commit; mid-edit
+  // re-renders never re-seed, so a typed draft is never reset.
   const pendingValueRef = useRef<unknown>(value);
   const pendingSessionRef = useRef(editSession);
-  if (!isEditing || pendingSessionRef.current !== editSession) {
-    pendingValueRef.current = value;
-    pendingSessionRef.current = editSession;
-  }
+  useLayoutEffect(() => {
+    if (!isEditing || pendingSessionRef.current !== editSession) {
+      pendingValueRef.current = value;
+      pendingSessionRef.current = editSession;
+    }
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing, editSession]);
   const onChange = useCallback((nextValue: unknown) => {
     pendingValueRef.current = nextValue;
   }, []);

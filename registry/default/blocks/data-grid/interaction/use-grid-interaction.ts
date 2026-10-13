@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -689,11 +690,14 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   const { scrollRef, layout, keymap } = options;
   const actions = useDataGridActions();
   const storeApi = useDataGridStoreApi();
+  // Event-time values only: both refs are written in a layout effect (render-time ref writes
+  // bail the React Compiler) and read exclusively inside the handlers below.
   const isMacRef = useRef(false);
-  isMacRef.current = isMacPlatform();
-
   const layoutRef = useRef(layout);
-  layoutRef.current = layout;
+  useLayoutEffect(() => {
+    isMacRef.current = isMacPlatform();
+    layoutRef.current = layout;
+  }, [layout]);
 
   // drag state lives in a ref, never React state — a drag never re-renders anything but the
   // overlay/active-cell subscribers that selection changes already touch. `anchor` is the
@@ -715,6 +719,9 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
     }
   }, []);
 
+  // Self-scheduling rAF re-enters through a ref: a direct self-reference and a hoisted
+  // declaration both bail the React Compiler (use-before-declare / PruneHoistedContexts).
+  const dragFrameRef = useRef<(() => void) | null>(null);
   const runDragFrame = useCallback(() => {
     const scrollElement = scrollRef.current;
     const pointer = lastPointerRef.current;
@@ -750,8 +757,11 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       actions.selectRow(clamped.row, drag.anchor !== undefined ? { replaceFromLast: true, from: drag.anchor } : { extendFromLast: true });
     } else actions.selectColumn(clamped.col, { extendFromLast: true });
 
-    rafRef.current = requestAnimationFrame(runDragFrame);
+    rafRef.current = requestAnimationFrame(() => dragFrameRef.current?.());
   }, [actions, scrollRef, storeApi]);
+  useEffect(() => {
+    dragFrameRef.current = runDragFrame;
+  }, [runDragFrame]);
 
   // pointermove/pointerup are attached to `document` only for the lifetime of an active drag —
   // beginDrag attaches them, endDrag tears them down immediately, instead of a permanent

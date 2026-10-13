@@ -79,9 +79,9 @@ export function usePinShadowEdges(
     // ResizeObserver entry alone would miss that — the header row as a whole is small (one row).
     for (const el of viewport.querySelectorAll<HTMLElement>('[role="columnheader"]')) observer.observe(el);
     return () => observer.disconnect();
-    // viewportRef is a ref object; re-running is driven by .current/hasPinnedLeft/hasPinnedRight changing.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewportRef.current, hasPinnedLeft, hasPinnedRight, direction, pinSignature]);
+    // The viewport is the grid's own element, stable for the grid's lifetime; a swap is a remount,
+    // which re-runs this effect from scratch.
+  }, [hasPinnedLeft, hasPinnedRight, direction, pinSignature]);
 }
 
 /** The pinned-inline-start band's boundary cell: the one whose inline-end edge is furthest along the inline axis. */

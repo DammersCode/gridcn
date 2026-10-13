@@ -63,7 +63,11 @@ describe("DataGridHeader composition props", () => {
     );
     const { container } = render(compose({ headerProps: { renderHeaderCell } }));
 
-    expect(renderHeaderCell).toHaveBeenCalledTimes(2);
+    // Every visible column is custom-rendered. The mount heal render (the windowing element
+    // attaches in a pre-paint layout-effect flush) may render the header a second time, so
+    // count per column rather than in total.
+    const renderedColumns = new Set(renderHeaderCell.mock.calls.map(([ctx]) => ctx.column.id));
+    expect([...renderedColumns].sort()).toEqual(["age", "name"]);
     const nameCell = container.querySelector<HTMLElement>('[data-column-id="name"]')!;
     expect(nameCell.getAttribute("role")).toBe("columnheader");
     expect(nameCell.getAttribute("aria-colindex")).toBe("1");
@@ -156,7 +160,10 @@ describe("emptyState function form", () => {
       />,
     );
     expect(screen.getByText("no-data")).toBeDefined();
-    expect(seen).toEqual(["no-data"]);
+    // The mount heal render calls emptyState again pre-paint — every call must report the
+    // no-data reason; the count itself is an implementation detail.
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.every((reason) => reason === "no-data")).toBe(true);
   });
 
   it("reports reason 'filtered' when rows exist but the filter removes all of them", () => {

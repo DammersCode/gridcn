@@ -1,14 +1,4 @@
 {
-  "registry/default/blocks/data-grid/body.tsx": {
-    "DataGridBody": [
-      "Globals: Cannot reassign variables declared outside of the component/hook"
-    ]
-  },
-  "registry/default/blocks/data-grid/cell.tsx": {
-    "DataGridCellImpl": [
-      "Refs: Cannot access refs during render"
-    ]
-  },
   "registry/default/blocks/data-grid/columns/use-column-reorder.ts": {
     "useColumnReorder": [
       "Refs: Cannot access refs during render"
@@ -19,19 +9,9 @@
       "Refs: Cannot access refs during render"
     ]
   },
-  "registry/default/blocks/data-grid/interaction/use-grid-interaction.ts": {
-    "useGridInteraction": [
-      "Immutability: Cannot access variable before it is declared"
-    ]
-  },
   "registry/default/blocks/data-grid/keyboard/use-data-grid-global-shortcuts.ts": {
     "useDataGridGlobalShortcuts": [
       "Todo: (BuildHIR::lowerExpression) Support UpdateExpression where argument is a global"
-    ]
-  },
-  "registry/default/blocks/data-grid/overlays.tsx": {
-    "DataGridOverlays": [
-      "Todo: (BuildHIR::node.lowerReorderableExpression) Expression type `BinaryExpression` cannot be safely reordered"
     ]
   },
   "registry/default/blocks/data-grid/rows/use-row-reorder.ts": {
@@ -41,42 +21,6 @@
   },
   "registry/default/blocks/data-grid/validation/bulk-generation.ts": {
     "useBulkGeneration": [
-      "Refs: Cannot access refs during render"
-    ]
-  },
-  "registry/default/blocks/data-grid/windowing/use-column-window.ts": {
-    "useColumnWindow": [
-      "Refs: Cannot access refs during render"
-    ]
-  },
-  "registry/default/blocks/data-grid/windowing/use-pin-shadow-edges.ts": {
-    "usePinShadowEdges": [
-      "Refs: Cannot access refs during render"
-    ]
-  },
-  "registry/default/blocks/data-grid/windowing/use-row-window.ts": {
-    "useRowWindow": [
-      "Refs: Cannot access refs during render"
-    ]
-  },
-  "registry/default/blocks/data-grid/windowing/use-scroll-snapshot.ts": {
-    "useElementDimensions": [
-      "Refs: Cannot access refs during render"
-    ],
-    "useScrollSnapshot": [
-      "Refs: Cannot access refs during render"
-    ],
-    "useViewportElement": [
-      "Refs: Cannot access refs during render"
-    ]
-  },
-  "registry/default/blocks/data-grid/windowing/use-scrolled-edges.ts": {
-    "useScrolledEdges": [
-      "Refs: Cannot access refs during render"
-    ]
-  },
-  "registry/default/blocks/data-grid-context-menu/context-menu.tsx": {
-    "DataGridContextMenu": [
       "Refs: Cannot access refs during render"
     ]
   },

@@ -1261,19 +1261,21 @@ describe("DataGridCell memo prop-stability audit", () => {
     expect(renderCount).toBeGreaterThan(before);
   });
 
-  it("readOnly: flipping grid-level readOnly re-renders cells (gridReadOnly prop genuinely changes)", () => {
-    let renderCount = 0;
+  it("readOnly: flipping grid-level readOnly reaches every cell's render (gridReadOnly genuinely changes)", () => {
     const probeColumns: readonly ColumnDef<Row, unknown>[] = [
-      { id: "name", header: "Name", accessorKey: "name", renderCell: ({ value }) => { renderCount++; return String(value); } },
+      { id: "name", header: "Name", accessorKey: "name" },
       { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
     ];
     const rows = makeRows(2); // stable reference across rerenders — isolates readOnly as the only changed input
     const { rerender } = render(<DataGrid data={rows} columns={probeColumns} getRowId={(r) => r.id} readOnly={false} />);
-    const before = renderCount;
+    const cell = screen.getAllByRole("gridcell")[0]!; // row 0, name col
+    expect(cell.hasAttribute("data-readonly")).toBe(false);
     rerender(<DataGrid data={rows} columns={probeColumns} getRowId={(r) => r.id} readOnly={true} />);
-    // `gridReadOnly` genuinely flips for every rendered cell — a memo that dropped it from its
-    // comparator would swallow this entirely (renderCount unchanged); it must fire again.
-    expect(renderCount).toBeGreaterThan(before);
+    // The cell's own `data-readonly` hook (see styling-theming docs) reads the resolved readOnly,
+    // so its appearance proves the flip reached the cell's render — a memo/comparator that dropped
+    // gridReadOnly would keep it absent. (Content re-invocation is not asserted: the React Compiler
+    // legitimately skips re-invoking a cell type's render when none of its inputs changed.)
+    expect(cell.hasAttribute("data-readonly")).toBe(true);
   });
 
   it("cellTypes: a fresh literal with the same entries does not re-render cells", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useReducer, useRef, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useState, type RefObject } from "react";
 import { flushSync } from "react-dom";
 import { normalizeScrollLeft } from "./direction";
 
@@ -252,24 +252,27 @@ export function getElementStore(element: HTMLElement): ElementStore {
  * Subscribes to an element's live scroll geometry ({@link ScrollSnapshot}) without the
  * `useSyncExternalStore` re-render-on-every-tick behavior — callers that need a plain
  * read-and-rerender subscription (not the flushSync window-change gating in {@link useRowWindow})
- * can build on this directly (e.g. a future column-windowing hook).
+ * can build on this directly (e.g. a future column-windowing hook). The element is tracked in
+ * state (a render-time ref read bails the React Compiler); a layout watcher picks up `scrollRef`
+ * as soon as it attaches, on any later render.
  */
 export function useScrollSnapshot(scrollRef: RefObject<HTMLElement | null>): ScrollSnapshot {
-  const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
+  const [element, setElement] = useState<HTMLElement | null>(null);
+  const [snapshot, setSnapshot] = useState<ScrollSnapshot>(INITIAL_SNAPSHOT);
+
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (el !== element) setElement(el);
+  });
 
   useEffect(() => {
-    const element = scrollRef.current;
     if (!element) return;
     const store = getElementStore(element);
-    forceUpdate();
-    return store.subscribe(forceUpdate);
-    // scrollRef is a ref object; re-subscribing is driven by its .current changing between calls, not by identity.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollRef.current]);
+    setSnapshot(store.getSnapshot());
+    return store.subscribe(() => setSnapshot(store.getSnapshot()));
+  }, [element]);
 
-  const element = scrollRef.current;
-  if (element) return getElementStore(element).getSnapshot();
-  return INITIAL_SNAPSHOT;
+  return snapshot;
 }
 
 /**
@@ -282,36 +285,34 @@ export function useElementDimensions(scrollRef: RefObject<HTMLElement | null>): 
   clientWidth: number;
   clientHeight: number;
 } {
-  const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
-  const lastRef = useRef({ clientWidth: 0, clientHeight: 0 });
+  const [element, setElement] = useState<HTMLElement | null>(null);
+  const [dimensions, setDimensions] = useState({ clientWidth: 0, clientHeight: 0 });
+
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (el !== element) setElement(el);
+  });
 
   useEffect(() => {
-    const element = scrollRef.current;
     if (!element) return;
     const store = getElementStore(element);
 
+    // Equality-gated functional update: the store notifies on every scroll pixel, so an
+    // unconditional set would re-render the consumer per tick — bail on unchanged size.
     const checkForResize = () => {
       const snap = store.getSnapshot();
-      const last = lastRef.current;
-      if (snap.clientWidth !== last.clientWidth || snap.clientHeight !== last.clientHeight) {
-        lastRef.current = { clientWidth: snap.clientWidth, clientHeight: snap.clientHeight };
-        forceUpdate();
-      }
+      setDimensions((prev) =>
+        prev.clientWidth === snap.clientWidth && prev.clientHeight === snap.clientHeight
+          ? prev
+          : { clientWidth: snap.clientWidth, clientHeight: snap.clientHeight },
+      );
     };
 
     checkForResize();
     return store.subscribe(checkForResize);
-    // scrollRef is a ref object; re-subscribing is driven by its .current changing between calls, not by identity.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollRef.current]);
+  }, [element]);
 
-  const element = scrollRef.current;
-  if (element) {
-    const snap = getElementStore(element).getSnapshot();
-    lastRef.current = { clientWidth: snap.clientWidth, clientHeight: snap.clientHeight };
-    return lastRef.current;
-  }
-  return lastRef.current;
+  return dimensions;
 }
 
 /**
@@ -324,13 +325,20 @@ export function useViewportElement(
   scrollRef: RefObject<HTMLElement | null>,
   viewportRef: RefObject<HTMLElement | null>,
 ): void {
+  const [element, setElement] = useState<HTMLElement | null>(null);
+  const [viewport, setViewport] = useState<HTMLElement | null>(null);
+
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    const vp = viewportRef.current;
+    if (el !== element) setElement(el);
+    if (vp !== viewport) setViewport(vp);
+  });
+
   useEffect(() => {
-    const element = scrollRef.current;
-    const viewport = viewportRef.current;
     if (!element || !viewport) return;
     const store = getElementStore(element);
     store.setViewportElement(viewport);
     return () => store.setViewportElement(null);
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollRef.current, viewportRef.current]);
+  }, [element, viewport]);
 }

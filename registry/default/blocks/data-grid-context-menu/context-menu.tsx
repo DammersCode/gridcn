@@ -7,7 +7,7 @@ import {
   ContextMenuContent,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { useDataGridActions, useDataGridSelection } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridActions } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { resolveContextMenuTarget, type ContextMenuTarget } from "./resolve-context-menu-target";
 import { isCellInSelection } from "./selection-queries";
@@ -111,10 +111,7 @@ export type DataGridContextMenuProps = {
 export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode {
   const { className, children, getCellMenuItems, getHeaderMenuItems } = props;
   const actions = useDataGridActions();
-  const selection = useDataGridSelection();
   const storeApi = useDataGridStoreApi();
-  const selectionRef = useRef(selection);
-  selectionRef.current = selection;
   const [target, setTarget] = useState<MenuTarget | null>(null);
   const targetRef = useRef<MenuTarget | null>(null);
   // Lives here (not in the menu content) because the content portals and unmounts on close —
@@ -126,23 +123,26 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
 
   // Captured at contextmenu time (not via useDataGridContainer): ContextMenuContent portals to
   // document.body, outside DataGridRoot's subtree, so its children can't reach the root context.
-  const scrollRootRef = useRef<HTMLElement | null>(null);
+  // State, not a ref read in render (a ref read bails the compiler): set in the same handler as
+  // setTarget, so the render that opens the menu already carries it.
+  const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null);
 
   const onContextMenu = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
       const resolved = resolveContextMenuTarget(event.target);
-      // the DOM carries only view-space coords; the stable row id comes off the store at event time.
+      // the DOM carries only view-space coords; the stable row id and the selection both come off
+      // the store at event time.
+      const s = storeApi.getState();
       let next: MenuTarget | null = resolved?.kind === "header" ? resolved : null;
       if (resolved?.kind === "cell") {
-        const s = storeApi.getState();
         const dataRowIndex = s.viewIndex[resolved.row];
         const dataRow = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
         if (dataRowIndex !== undefined && dataRow !== undefined) next = { ...resolved, rowId: s.getRowId(dataRow, dataRowIndex) };
       }
       targetRef.current = next;
       setTarget(next);
-      scrollRootRef.current = event.target instanceof Element ? event.target.closest('[role="grid"]') : null;
-      if (next?.kind === "cell" && !isCellInSelection(selectionRef.current, { row: next.row, col: next.col })) {
+      setScrollRoot(event.target instanceof Element ? event.target.closest('[role="grid"]') : null);
+      if (next?.kind === "cell" && !isCellInSelection(s.selection, { row: next.row, col: next.col })) {
         actions.selectCellAt({ row: next.row, col: next.col });
       }
     },
@@ -177,7 +177,7 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
             />
           )}
           {target?.kind === "header" && (
-            <HeaderMenuContent target={target} scrollRoot={scrollRootRef.current} getHeaderMenuItems={getHeaderMenuItems} />
+            <HeaderMenuContent target={target} scrollRoot={scrollRoot} getHeaderMenuItems={getHeaderMenuItems} />
           )}
         </ContextMenuContent>
       </ContextMenu>

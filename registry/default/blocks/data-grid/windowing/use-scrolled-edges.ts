@@ -53,7 +53,7 @@ export function useScrolledEdges(
 
     write();
     return store.subscribe(write);
-    // scrollRef/viewportRef are ref objects; re-subscribing is driven by their .current changing, not identity.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollRef.current, viewportRef.current]);
+    // The grid's own scroll/viewport elements are stable for the grid's lifetime; a swap is a
+    // remount, which re-runs this effect from scratch.
+  }, []);
 }

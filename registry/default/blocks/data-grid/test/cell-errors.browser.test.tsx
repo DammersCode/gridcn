@@ -234,10 +234,14 @@ describe("cell-errors: zero-render probe", () => {
       expect(cell).toHaveAttribute("aria-invalid", "true");
     });
 
-    // Only row-2's cells (one per visible column: id/name/age = 3) should have re-rendered — every
-    // other mounted row's memo must bail, same acceptance shape as the searchMatch/scroll probes.
+    // Exactly the errored cell carries the error state — row-2's other columns and every other
+    // row's cell must not react (the affected cell's content itself is legitimately not
+    // re-invoked under the React Compiler: none of its inputs changed).
+    expect(document.querySelectorAll('[role="gridcell"][aria-invalid]').length).toBe(1);
+
+    // Only row-2's cells (one per visible column: id/name/age = 3) may re-render — every other
+    // mounted row's memo must bail, same acceptance shape as the searchMatch/scroll probes.
     const rendersForThisChange = renderCount - before;
-    expect(rendersForThisChange).toBeGreaterThan(0);
     expect(rendersForThisChange).toBeLessThanOrEqual(probeColumns.length);
   });
 
@@ -277,8 +281,10 @@ describe("cell-errors: zero-render probe", () => {
       expect(cell).not.toHaveAttribute("aria-invalid");
     });
 
+    // The error state is gone from every cell, not just the first one checked.
+    expect(document.querySelectorAll('[role="gridcell"][aria-invalid]').length).toBe(0);
+
     const rendersForThisChange = renderCount - before;
-    expect(rendersForThisChange).toBeGreaterThan(0);
     expect(rendersForThisChange).toBeLessThanOrEqual(probeColumns.length);
   });
 });
@@ -365,9 +371,12 @@ describe("cell-errors: tooltip performance", () => {
       expect(cell).toHaveAttribute("aria-invalid", "true");
     });
 
+    // Both errored cells (row-2, row-5) carry the error state — the tooltip-open row-2's DOM is
+    // untouched, and no other cell reacted.
+    expect(document.querySelectorAll('[role="gridcell"][aria-invalid]').length).toBe(2);
+
     // at most row-5's cells re-render — the already-errored row-2 (tooltip open) must not re-render
     const rendersForThisChange = renderCount - before;
-    expect(rendersForThisChange).toBeGreaterThan(0);
     expect(rendersForThisChange).toBeLessThanOrEqual(probeColumns.length);
   });
 });

@@ -22,6 +22,7 @@ import { DataGridOverlays } from "./overlays";
 import { predictReorderTarget, useRowReorder } from "./rows/use-row-reorder";
 import { isReorderMarkerMode } from "./rows/marker-width";
 import { FLASH_KEYFRAMES } from "./cell";
+import { createRowElementRegistry } from "./row-element-registry";
 import { GRID_LAYER } from "./layers";
 import { gridAttrSelector } from "./data-attributes";
 import { isDev } from "./is-dev";
@@ -44,6 +45,15 @@ function unpinnedWindowRange(
 }
 
 let warnedRowCountMismatch = false;
+
+/** Dev-only: warn once when the rendered row set is not exactly the windowed range plus the off-window active row. */
+function warnRowCountMismatch(indicesLength: number, expected: number, start: number, end: number, activeRowOffWindow: boolean): void {
+  if (indicesLength === expected || warnedRowCountMismatch) return;
+  warnedRowCountMismatch = true;
+  console.warn(
+    `gridcn: rendered row count (${indicesLength}) does not match the expected window size (${expected}) — start=${start} end=${end} activeRowOffWindow=${activeRowOffWindow}.`,
+  );
+}
 
 /** Props for {@link DataGridBody}. */
 export type DataGridBodyProps = {
@@ -88,12 +98,11 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   // own microtask-free schedule). Gated on [start, end] identity so it fires once on mount and
   // again only when the committed range actually moved, never on a same-window scroll tick.
   //
-  // `!measured` skips the one render before the scroll element is attached: useRowWindow's mount
-  // effect measures the real element and force-updates to the real window in the SAME effect flush
-  // this component's own effect runs in, so without this guard the fixed {0, min(rowCount,30)}
-  // fallback and the real window both looked like genuine, distinct committed ranges and this fired
-  // twice on every mount (root cause of the double-fire bug) — the fallback was never a range a
-  // consumer (e.g. data-grid-lazy's fetch-on-window) should act on in the first place.
+  // `!measured` skips the pre-heal render: useRowWindow heals the no-element fallback to the real
+  // window in a pre-paint layout-effect flush, so the fixed {0, min(rowCount,30)} fallback and the
+  // real window are two distinct committed ranges; without this guard this fired on both on every
+  // mount — the fallback is never a range a consumer (e.g. data-grid-lazy's fetch-on-window)
+  // should act on in the first place.
   // The callback is read off the store at fire time (not a dep), so an identity change never re-fires it — only a range change does.
   const lastFiredRangeRef = useRef<{ start: number; end: number } | null>(null);
   useEffect(() => {
@@ -120,12 +129,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
     // duplicates rows.
     if (isDev()) {
       const expected = end - start + (activeRowOffWindow ? 1 : 0);
-      if (indices.length !== expected && !warnedRowCountMismatch) {
-        warnedRowCountMismatch = true;
-        console.warn(
-          `gridcn: rendered row count (${indices.length}) does not match the expected window size (${expected}) — start=${start} end=${end} activeRowOffWindow=${activeRowOffWindow}.`,
-        );
-      }
+      warnRowCountMismatch(indices.length, expected, start, end, activeRowOffWindow);
     }
     return indices;
   }, [start, end, activeCell, rowCount]);
@@ -133,42 +137,10 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   // Rows are memoized by getRowId, not viewRowIndex, so sort/filter/insert/delete reuses the right DOM row.
   const rowIds = useDataGridRowIds(viewRowIndices);
 
-  // Keyed by getRowId (matches the row's own React key) so a row kept across a shift is found by
-  // identity, not array position — viewRowIndices order can change (e.g. the off-window active row
-  // entry moving) independent of which DOM nodes actually moved. React calls the ref callback with
-  // null on unmount, so a scrolled-out row removes its own rowElements entry — no pruning needed here.
-  const rowElements = useRef(new Map<string | number, HTMLDivElement>());
-  // A fresh inline ref callback every render would itself defeat DataGridRow's memo (ref is a plain
-  // prop in React 19, included in memo's shallow compare) — cache one stable callback per row key so
-  // reused rows (same key across a shift) get the same function reference every render.
-  const rowRefCallbacks = useRef(new Map<string | number, (el: HTMLDivElement | null) => void>());
-  // Rows churn through unique getRowId keys during a long scroll session (e.g. 100k rows) — the
-  // callback cache would otherwise grow unbounded. React unmounts stale rows (calling their ref
-  // callback with null) before this component's next render, so pruning on that same rAF-driven
-  // cadence is redundant work on the full-swap hot path (a Map scan for cols*rows keys every tick);
-  // amortize it instead, sweeping only once the cache has grown well past a live window's size.
-  const PRUNE_THRESHOLD = 500;
-  const getRowRefCallback = (key: string | number) => {
-    let cb = rowRefCallbacks.current.get(key);
-    if (!cb) {
-      cb = (el) => {
-        if (el) rowElements.current.set(key, el);
-        else {
-          rowElements.current.delete(key);
-          rowRefCallbacks.current.delete(key);
-        }
-      };
-      rowRefCallbacks.current.set(key, cb);
-      if (rowRefCallbacks.current.size > PRUNE_THRESHOLD) {
-        // defensive sweep for any key whose unmount ref-callback somehow didn't fire (should not
-        // happen under normal React unmounts, but keeps the cache bounded even so).
-        for (const k of rowRefCallbacks.current.keys()) {
-          if (!rowElements.current.has(k)) rowRefCallbacks.current.delete(k);
-        }
-      }
-    }
-    return cb;
-  };
+  // Keyed by getRowId (the row's own React key), so a row kept across a shift is found by
+  // identity, not array position. Separate module: the render-time callback lookup reads Maps —
+  // a ref read in render bails the React Compiler (see row-element-registry.ts).
+  const rowRegistry = useMemo(() => createRowElementRegistry(), []);
 
   // When the active row sits ABOVE the window, gridRowStart (viewRowIndex - windowStart + 1) would
   // be <= 0 — an invalid <integer> (dropped, falls back to auto placement) or a negative index
@@ -249,7 +221,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
       // i < viewRowIndices.length by loop condition
       const viewRowIndex = viewRowIndices[i]!;
       const key = rowIds[i] ?? viewRowIndex;
-      const el = rowElements.current.get(key);
+      const el = rowRegistry.elements.get(key);
       if (el) el.style.gridRowStart = String(viewRowIndex - effectiveStart + 1);
     }
   });
@@ -298,7 +270,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
               onMarkerCheckboxPointerDown={interaction.onMarkerCheckboxPointerDown}
               onMarkerReorderPointerDown={rowReorder.onMarkerDragPointerDown}
               isRowReorderDragging={rowReorder.dragState?.draggingRow === viewRowIndex}
-              rowRef={getRowRefCallback(key)}
+              rowRef={rowRegistry.getCallback(key)}
               ariaRowIndexOffset={pinnedTopCount}
               getRowClassName={getRowClassName}
               getCellClassName={getCellClassName}
