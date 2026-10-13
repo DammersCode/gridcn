@@ -55,7 +55,7 @@ import {
 import { isDev } from "../is-dev";
 import { resolveEditTarget, warnDev } from "./commit";
 import { createDataWriteActions, createDataWriteContext, forgetDeferredRows, resetDeferredRows, resolveRefOrWarn } from "./data-write";
-import { createRowIndexCache } from "./row-index";
+import { createRowIndexCache, viewRowOfDataIndex } from "./row-index";
 import type { AnyColumnDef, DataGridStoreState, InternalSyncProps, SyncInputs } from "./types";
 import { syncInputsEqual } from "./types";
 
@@ -163,8 +163,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   ): Partial<DataGridStoreState> => {
     const editing = s.editing;
     if (!editing) return {};
-    const dataRowIndex = rowIndexCache.resolve(data, getRowId).get(editing.rowId);
-    const viewRow = dataRowIndex === undefined ? -1 : viewIndex.indexOf(dataRowIndex);
+    const dataRowIndex = rowIndexCache.resolveOne(data, getRowId, editing.rowId);
+    const viewRow = dataRowIndex === undefined ? -1 : viewRowOfDataIndex(viewIndex, dataRowIndex);
     const viewCol = visibleColumns.findIndex((column) => column.id === editing.columnId);
     const onEditCell =
       s.activeCell !== null && s.activeCell.row === editing.coord.row && s.activeCell.col === editing.coord.col;
@@ -205,7 +205,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     let row = active.row;
     if (sameRecordAt ? !sameRecordAt(active.row) : viewIndex[active.row] !== prevDataRow) {
       const nextDataRow = toNextDataRow ? toNextDataRow(prevDataRow) : prevDataRow;
-      row = nextDataRow === undefined ? -1 : viewIndex.indexOf(nextDataRow);
+      row = nextDataRow === undefined ? -1 : viewRowOfDataIndex(viewIndex, nextDataRow);
     }
     const col = visibleColumns[active.col]?.id === columnId ? active.col : visibleColumns.findIndex((column) => column.id === columnId);
     if (row === -1 || col === -1) return undefined;

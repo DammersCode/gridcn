@@ -2,7 +2,7 @@
 
 import { memo, type PointerEvent as ReactPointerEvent, type Ref } from "react";
 import { cn } from "@/lib/utils";
-import { useDataGridRow, useDataGridRowCellState, useDataGridRowId } from "./store";
+import { useDataGridRow, useDataGridRowCellState } from "./store";
 import { colRangesContain } from "./selection/selected-col-ranges-for-row";
 import { DataGridCell } from "./cell";
 import { DataGridMarkerCell } from "./rows/marker-cell";
@@ -11,6 +11,8 @@ import type { GetCellClassName, GetRowClassName, RowMarkersMode } from "./types"
 
 export type DataGridRowProps = {
   viewRowIndex: number;
+  /** The row's `getRowId()` value (a hole's placeholder id); `undefined` only for a view index past the end. */
+  rowId: string | undefined;
   windowedColumns: readonly WindowedColumn[];
   layout: ColumnLayout;
   readOnly?: boolean;
@@ -52,6 +54,7 @@ export type DataGridRowProps = {
  */
 export const DataGridRow = memo(function DataGridRow({
   viewRowIndex,
+  rowId,
   windowedColumns,
   layout,
   readOnly,
@@ -67,7 +70,6 @@ export const DataGridRow = memo(function DataGridRow({
   getCellClassName,
 }: DataGridRowProps) {
   const row = useDataGridRow(viewRowIndex);
-  const rowId = useDataGridRowId(viewRowIndex);
   // ONE subscription for the whole row's interactive cell state (not one per cell). Referentially
   // stable across ticks that don't touch this row (see useDataGridRowCellState's comparator), so
   // this memoized row only re-renders when its own active/editing/search/selection state changed.

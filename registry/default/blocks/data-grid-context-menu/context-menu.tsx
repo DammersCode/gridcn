@@ -21,7 +21,51 @@ import {
 } from "./menu-items";
 import { useHasCreateRow, useHasDuplicateRow } from "./has-row-op";
 
-type MenuTarget = (Extract<ContextMenuTarget, { kind: "cell" }> & { rowId: string }) | Extract<ContextMenuTarget, { kind: "header" }>;
+type CellTarget = Extract<ContextMenuTarget, { kind: "cell" }> & { rowId: string };
+type MenuTarget = CellTarget | Extract<ContextMenuTarget, { kind: "header" }>;
+
+/**
+ * The cell-surface items, mounted only while the menu content is open on a cell target — the
+ * default set's store subscriptions (selection, clipboard, keymap, labels) and the `defaults`
+ * build must not run on the wrapper's per-render path.
+ */
+function CellMenuContent(props: {
+  target: CellTarget;
+  getCellMenuItems?: CellMenuItemsResolver;
+  pasteBlocked: boolean;
+  onPasteBlocked: () => void;
+  clipboardFailed: boolean;
+  onClipboardFailed: () => void;
+}): ReactNode {
+  const { target, getCellMenuItems, pasteBlocked, onPasteBlocked, clipboardFailed, onClipboardFailed } = props;
+  const canInsertRow = useHasCreateRow();
+  const canDuplicateRow = useHasDuplicateRow();
+  const defaultSpecs = useDefaultCellMenuItems({
+    row: target.row,
+    canInsertRow,
+    canDuplicateRow,
+    pasteBlocked,
+    onPasteBlocked,
+    clipboardFailed,
+    onClipboardFailed,
+  });
+  const specs = getCellMenuItems
+    ? getCellMenuItems({ rowId: target.rowId, viewRowIndex: target.row, columnId: target.columnId, canInsertRow, canDuplicateRow }, defaultSpecs)
+    : defaultSpecs;
+  return renderContextMenuItems(specs);
+}
+
+/** The header-surface items for a right-click header target; see {@link CellMenuContent}. */
+function HeaderMenuContent(props: {
+  target: Extract<ContextMenuTarget, { kind: "header" }>;
+  scrollRoot: HTMLElement | null;
+  getHeaderMenuItems?: HeaderMenuItemsResolver;
+}): ReactNode {
+  const { target, scrollRoot, getHeaderMenuItems } = props;
+  const defaultSpecs = useDefaultHeaderMenuItems({ columnId: target.columnId, scrollRoot });
+  const specs = getHeaderMenuItems ? getHeaderMenuItems({ columnId: target.columnId, scrollRoot }, defaultSpecs) : defaultSpecs;
+  return renderContextMenuItems(specs);
+}
 
 /** Props for {@link DataGridContextMenu}. */
 export type DataGridContextMenuProps = {
@@ -32,9 +76,9 @@ export type DataGridContextMenuProps = {
    * Duplicate row(s), Delete row(s)). `defaults` is the built-in set as
    * {@link GridMenuItemSpec} entries for the current state; return `defaults` unchanged, a
    * filtered/reordered/extended array, or a fully custom set. The returned array is the complete
-   * item set — it owns the items, their order, and their gating. Runs during the wrapper's render
-   * (a plain function call, not a component), so it must not call hooks. Omit for the built-in
-   * set.
+   * item set — it owns the items, their order, and their gating. Runs during the menu content's
+   * render (a plain function call, not a component), so it must not call hooks. Omit for the
+   * built-in set.
    */
   getCellMenuItems?: CellMenuItemsResolver;
   /**
@@ -42,8 +86,8 @@ export type DataGridContextMenuProps = {
    * Autosize column). `defaults` is the built-in set as {@link GridMenuItemSpec} entries for the
    * current state; the return value is the complete item set. Applies to the right-click header
    * menu AND every `DataGridHeaderDropdown` rendered inside this wrapper (it flows through
-   * {@link DataGridHeaderMenuItemsContext}). Runs during the wrapper's render, so it must not
-   * call hooks. Omit for the built-in set.
+   * {@link DataGridHeaderMenuItemsContext}). Runs during the menu content's render, so it must
+   * not call hooks. Omit for the built-in set.
    */
   getHeaderMenuItems?: HeaderMenuItemsResolver;
 };
@@ -69,8 +113,6 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
   const actions = useDataGridActions();
   const selection = useDataGridSelection();
   const storeApi = useDataGridStoreApi();
-  const canInsertRow = useHasCreateRow();
-  const canDuplicateRow = useHasDuplicateRow();
   const selectionRef = useRef(selection);
   selectionRef.current = selection;
   const [target, setTarget] = useState<MenuTarget | null>(null);
@@ -117,22 +159,6 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
     }
   }, [clipboardFailed, failureShown]);
 
-  // The built-in sets as specs, resolved for the current state. Computed even with no menu open
-  // (hook rules); a resolver receives them as `defaults`, and without a resolver they render as-is.
-  const defaultCellSpecs = useDefaultCellMenuItems({
-    row: target?.kind === "cell" ? target.row : 0,
-    canInsertRow,
-    canDuplicateRow,
-    pasteBlocked,
-    onPasteBlocked: () => setPasteBlocked(true),
-    clipboardFailed,
-    onClipboardFailed: () => setClipboardFailed(true),
-  });
-  const defaultHeaderSpecs = useDefaultHeaderMenuItems({
-    columnId: target?.kind === "header" ? target.columnId : "",
-    scrollRoot: scrollRootRef.current,
-  });
-
   return (
     <DataGridHeaderMenuItemsContext.Provider value={getHeaderMenuItems ?? null}>
       <ContextMenu onOpenChange={onOpenChange}>
@@ -140,18 +166,19 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
           {children}
         </ContextMenuTrigger>
         <ContextMenuContent data-grid-context-menu="">
-          {target?.kind === "cell" &&
-            renderContextMenuItems(
-              getCellMenuItems
-                ? getCellMenuItems({ rowId: target.rowId, viewRowIndex: target.row, columnId: target.columnId, canInsertRow, canDuplicateRow }, defaultCellSpecs)
-                : defaultCellSpecs,
-            )}
-          {target?.kind === "header" &&
-            renderContextMenuItems(
-              getHeaderMenuItems
-                ? getHeaderMenuItems({ columnId: target.columnId, scrollRoot: scrollRootRef.current }, defaultHeaderSpecs)
-                : defaultHeaderSpecs,
-            )}
+          {target?.kind === "cell" && (
+            <CellMenuContent
+              target={target}
+              getCellMenuItems={getCellMenuItems}
+              pasteBlocked={pasteBlocked}
+              onPasteBlocked={() => setPasteBlocked(true)}
+              clipboardFailed={clipboardFailed}
+              onClipboardFailed={() => setClipboardFailed(true)}
+            />
+          )}
+          {target?.kind === "header" && (
+            <HeaderMenuContent target={target} scrollRoot={scrollRootRef.current} getHeaderMenuItems={getHeaderMenuItems} />
+          )}
         </ContextMenuContent>
       </ContextMenu>
     </DataGridHeaderMenuItemsContext.Provider>

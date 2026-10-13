@@ -286,6 +286,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
             <DataGridRow
               key={key}
               viewRowIndex={viewRowIndex}
+              rowId={rowIds[i]}
               windowedColumns={windowedColumns}
               layout={layout}
               readOnly={readOnly}

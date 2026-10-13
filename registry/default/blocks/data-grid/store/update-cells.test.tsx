@@ -19,7 +19,7 @@ import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
 import { cellTypes } from "../cell-types/cell-types";
 import { INCREMENTAL_VIEW_ASSERT_RATE, setIncrementalAssertRate } from "./compute";
 import * as compute from "./compute";
-import { createRowIndexCache, diffRowIndex, resolveReorder, touchesViewInputs } from "./row-index";
+import { createRowIndexCache, diffRowIndex, resolveReorder, touchesViewInputs, viewRowOfDataIndex } from "./row-index";
 import * as sortFilter from "../sort-filter";
 
 type Row = { id: string; name: string; price: number; note?: string };
@@ -1093,6 +1093,32 @@ describe("row-index helpers", () => {
     cache.rebase(rows());
     const map = cache.resolve(rows(), getRowId as (row: unknown, i: number) => string);
     expect(map.size).toBe(3);
+  });
+
+  it("resolveOne finds the id on a cold cache and a later resolve stays consistent", () => {
+    const cache = createRowIndexCache();
+    const data = rows();
+    expect(cache.resolveOne(data, getRowId as (row: unknown, i: number) => string, "c")).toBe(2);
+    expect(cache.resolveOne(data, getRowId as (row: unknown, i: number) => string, "missing")).toBeUndefined();
+    expect(cache.resolve(data, getRowId as (row: unknown, i: number) => string).get("a")).toBe(0);
+  });
+
+  it("resolveOne reads the warm map and invalidate makes it scan again", () => {
+    const cache = createRowIndexCache();
+    const data = rows();
+    cache.resolve(data, getRowId as (row: unknown, i: number) => string);
+    expect(cache.resolveOne(data, getRowId as (row: unknown, i: number) => string, "b")).toBe(1);
+    expect(cache.resolveOne(data, getRowId as (row: unknown, i: number) => string, "missing")).toBeUndefined();
+    cache.invalidate();
+    expect(cache.resolveOne(data, getRowId as (row: unknown, i: number) => string, "b")).toBe(1);
+  });
+
+  it("viewRowOfDataIndex maps a data row to its view row and misses unknown rows", () => {
+    const viewIndex = [2, 0];
+    expect(viewRowOfDataIndex(viewIndex, 0)).toBe(1);
+    expect(viewRowOfDataIndex(viewIndex, 2)).toBe(0);
+    expect(viewRowOfDataIndex(viewIndex, 1)).toBe(-1);
+    expect(viewRowOfDataIndex([2, 0], 0)).toBe(1);
   });
 
   it("diffRowIndex reports rows whose index moved and rows that vanished", () => {

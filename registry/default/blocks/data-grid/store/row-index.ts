@@ -17,6 +17,8 @@ import type { CellRef, FilterSpec, SortSpec, ViewCoord } from "../types";
 export type RowIndexCache = {
   /** `rowId -> dataIndex` for `data`, rebuilding when stale. */
   resolve(data: readonly unknown[], getRowId: (row: unknown, index: number) => string): ReadonlyMap<string, number>;
+  /** Data index of one `rowId`, or `undefined` when the row is not in `data`; a cold cache scans for the id instead of building the full map. */
+  resolveOne(data: readonly unknown[], getRowId: (row: unknown, index: number) => string, rowId: string): number | undefined;
   /** Drops the cached map. Call from every path that inserts, deletes, reorders, or replaces rows. */
   invalidate(): void;
   /**
@@ -40,6 +42,11 @@ export function createRowIndexCache(): RowIndexCache {
       cachedMap = map;
       return map;
     },
+    resolveOne(data, getRowId, rowId) {
+      if (cachedMap && cachedData === data) return cachedMap.get(rowId);
+      for (let i = 0; i < data.length; i++) if (getRowId(data[i], i) === rowId) return i;
+      return undefined;
+    },
     invalidate() {
       cachedData = null;
       cachedMap = null;
@@ -50,15 +57,29 @@ export function createRowIndexCache(): RowIndexCache {
   };
 }
 
+// `dataIndex -> viewRow` inverse, keyed on the viewIndex array: every rebuild returns a fresh array, so the identity key never goes stale.
+const viewInverseCache = new WeakMap<readonly number[], Map<number, number>>();
+
+/** The view row of `dataRowIndex` under `viewIndex`, or -1 when the row is not in the view. */
+export function viewRowOfDataIndex(viewIndex: readonly number[], dataRowIndex: number): number {
+  let inverse = viewInverseCache.get(viewIndex);
+  if (!inverse) {
+    inverse = new Map<number, number>();
+    for (let viewRow = 0; viewRow < viewIndex.length; viewRow++) inverse.set(viewIndex[viewRow]!, viewRow);
+    viewInverseCache.set(viewIndex, inverse);
+  }
+  return inverse.get(dataRowIndex) ?? -1;
+}
+
 /**
  * Resolves a stable {@link CellRef} against the CURRENT view: `rowId` to a data index through the
- * cache, that index to a view row through the `viewIndex` inverse (same `indexOf` read the
- * commit path's `remapEditing` uses), and `columnId` to a visible-column index.
- * `null` when the row is no longer in `data` or the column is hidden — the caller dev-warns.
+ * cache's single-id scan, that index to a view row through the {@link viewRowOfDataIndex} inverse,
+ * and `columnId` to a visible-column index. `null` when the row is no longer in `data` or the
+ * column is hidden — the caller dev-warns.
  */
 export function resolveCellRef(s: DataGridStoreState, cache: RowIndexCache, ref: CellRef): ViewCoord | null {
-  const dataRowIndex = cache.resolve(s.data, s.getRowId).get(ref.rowId);
-  const viewRow = dataRowIndex === undefined ? -1 : s.viewIndex.indexOf(dataRowIndex);
+  const dataRowIndex = cache.resolveOne(s.data, s.getRowId, ref.rowId);
+  const viewRow = dataRowIndex === undefined ? -1 : viewRowOfDataIndex(s.viewIndex, dataRowIndex);
   const col = s.visibleColumns.findIndex((column) => column.id === ref.columnId);
   if (viewRow < 0 || col < 0) return null;
   return { row: viewRow, col };
