@@ -912,6 +912,12 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Touch row-reorder drags survive auto-scroll past the rendered window (`data-grid`):** a
+  browser implicitly captures a touch pointer on the pressed element and releases it when that
+  element unmounts — the grip's row unmounts the moment auto-scroll moves it out of the window,
+  which silently killed the drag's document-level tracking. The gesture now takes pointer capture
+  on the grid's scroll element the instant it arms, so the drag reaches rows past the initial
+  window on touch as on mouse.
 - **`onCellDoubleClick`/`onCellContextMenu` ignore editor-owned events (`data-grid`):** a
   double-click or right-click inside the cell's open editor — the inline text/number input,
   or the portaled date/select/long-text popover — no longer fires the consumer's events.

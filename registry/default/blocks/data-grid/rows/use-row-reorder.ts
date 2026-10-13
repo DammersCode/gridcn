@@ -46,8 +46,10 @@ export type RowReorderHandlers = {
  * While armed, the hook auto-scrolls the grid's scroll element (same zone/step as the interaction
  * layer's select-drag) when the pointer sits beyond a viewport edge, and re-resolves the drop
  * boundary after each scrolled frame so a stationary pointer keeps tracking the scrolling content
- * — rows outside the rendered window stay reachable through that auto-scroll. <kbd>Escape</kbd>
- * cancels the gesture in flight.
+ * — rows outside the rendered window stay reachable through that auto-scroll. When the drag
+ * arms, the hook takes pointer capture on the scroll element, never the grip: a touch pointer's
+ * implicit capture on the grip releases when the grip's row unmounts mid-auto-scroll, which would
+ * sever the gesture's document-level tracking. <kbd>Escape</kbd> cancels the gesture in flight.
  */
 export function useRowReorder(args: {
   enabled: boolean;
@@ -68,6 +70,7 @@ export function useRowReorder(args: {
   const pointerPointRef = useRef<{ x: number; y: number } | null>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
   const rafRef = useRef<number | null>(null);
+  const captureRef = useRef<{ el: Element; pointerId: number } | null>(null);
 
   const setDrag = useCallback((next: RowReorderState | null) => {
     dragStateRef.current = next;
@@ -108,6 +111,12 @@ export function useRowReorder(args: {
   }, []);
 
   const teardown = useCallback(() => {
+    const captureEl = captureRef.current?.el as (Element & { hasPointerCapture?: (id: number) => boolean; releasePointerCapture?: (id: number) => void }) | null;
+    const captureId = captureRef.current?.pointerId;
+    if (captureEl && captureId !== undefined && captureEl.hasPointerCapture?.(captureId)) {
+      captureEl.releasePointerCapture?.(captureId);
+    }
+    captureRef.current = null;
     cleanupRef.current?.();
     cleanupRef.current = null;
     pendingRef.current = null;
@@ -139,6 +148,10 @@ export function useRowReorder(args: {
           if (dy < REORDER_THRESHOLD) return;
           const hit = argsRef.current.hitTestRow(e.clientX, e.clientY);
           if (!hit || hit.row === pending.row) return;
+          // the grip can unmount mid-auto-scroll; the scroll element's capture outlives the drag
+          const captureEl = argsRef.current.getScrollElement();
+          captureEl?.setPointerCapture?.(pending.pointerId);
+          captureRef.current = captureEl ? { el: captureEl, pointerId: pending.pointerId } : null;
           setDrag({ draggingRow: pending.row, overRow: hit.row, position: hit.position });
           if (rafRef.current === null) rafRef.current = requestAnimationFrame(runFrame);
           return;

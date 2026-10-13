@@ -114,3 +114,40 @@ describe("useRowReorder document listener lifecycle", () => {
     addSpy.mockRestore();
   });
 });
+
+describe("useRowReorder pointer capture", () => {
+  it("a stationary press takes no capture; the drag takes capture on the scroll element when it arms, and teardown releases it", () => {
+    const capture = { setPointerCapture: vi.fn(), releasePointerCapture: vi.fn(), hasPointerCapture: vi.fn(() => true) };
+    const el = {
+      ...capture,
+      scrollTop: 0,
+      getBoundingClientRect: () => ({ top: 0, bottom: 1000, left: 0, right: 800 }),
+    } as unknown as HTMLElement;
+    const args = {
+      ...makeArgs(),
+      getScrollElement: () => el,
+      // arming needs a hit on a different row past the 5px threshold
+      hitTestRow: (_x: number, y: number) => (y > 5 ? { row: 1, position: "before" as const } : null),
+    };
+    const { result, unmount } = renderHook(() => useRowReorder(args));
+
+    act(() => {
+      result.current.onMarkerDragPointerDown(0, pointerDown({ pointerId: 7 }));
+    });
+    expect(capture.setPointerCapture).not.toHaveBeenCalled();
+
+    act(() => {
+      document.dispatchEvent(Object.assign(new Event("pointermove"), { pointerId: 7, clientX: 0, clientY: 20 }));
+    });
+    expect(capture.setPointerCapture).toHaveBeenCalledTimes(1);
+    expect(capture.setPointerCapture).toHaveBeenCalledWith(7);
+
+    act(() => {
+      document.dispatchEvent(Object.assign(new Event("pointerup"), { pointerId: 7 }));
+    });
+    expect(capture.releasePointerCapture).toHaveBeenCalledTimes(1);
+    expect(capture.releasePointerCapture).toHaveBeenCalledWith(7);
+
+    unmount();
+  });
+});
