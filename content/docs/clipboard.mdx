@@ -38,7 +38,9 @@ as a formula. To paste such cells into those apps as text, set `sanitizeClipboar
 When the prop is set, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+C, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+X, and the
 context menu's Copy and Cut add a single quote in front of each formula-like cell. The quote goes
 into both the `text/plain` and the `text/html` payload. Plain numbers such as `-5` and `+5` stay
-unchanged. A paste back into gridcn restores the raw value.
+unchanged. A paste back into gridcn restores the raw value. In a browser that lacks or denies the
+async Clipboard API, the copy falls back to a plain-text-only write. A paste back from that copy
+keeps the quote.
 
 | Prop | Type | Default |
 |---|---|---|
