@@ -141,7 +141,9 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
       }
       targetRef.current = next;
       setTarget(next);
-      setScrollRoot(event.target instanceof Element ? event.target.closest('[role="grid"]') : null);
+      // explicit type parameter: consumer TypeScript doesn't infer `E = HTMLElement` from the
+      // setState context type and defaults `closest` to `Element`.
+      setScrollRoot(event.target instanceof Element ? event.target.closest<HTMLElement>('[role="grid"]') : null);
       if (next?.kind === "cell" && !isCellInSelection(s.selection, { row: next.row, col: next.col })) {
         actions.selectCellAt({ row: next.row, col: next.col });
       }
