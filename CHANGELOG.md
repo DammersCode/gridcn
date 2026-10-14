@@ -912,6 +912,17 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Touch select drags survive auto-scroll past the rendered window (`data-grid`):** a
+  selection drag (cell range, row marker, or column header) that reaches a viewport edge
+  auto-scrolls the grid; the pressed element unmounts the moment the scroll moves it out of
+  the rendered window, and the browser releases its pointer capture on unmount — which
+  cancelled the touch pointer and silently ended the drag. Once the edge auto-scroll engages,
+  the drag hands its capture to the grid's scroll element, which outlives the drag, so a touch
+  select drag now reaches cells and rows past the initial window as on mouse. When that
+  handoff has happened, the press's release-time resolution (a checkbox press toggling on
+  release back on the pressed cell) runs on the true pointerup coordinate, because the
+  capture-retargeted `click` no longer reaches the pressed cell; without the handoff the
+  existing click-based path is untouched.
 - **Touch row-reorder drags survive auto-scroll past the rendered window (`data-grid`):** a
   browser implicitly captures a touch pointer on the pressed element and releases it when that
   element unmounts — the grip's row unmounts the moment auto-scroll moves it out of the window,

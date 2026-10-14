@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { ColumnDef } from "../types";
 import { DEFAULT_KEYMAP } from "../keyboard";
@@ -9,11 +9,16 @@ import { DataGridProvider, useDataGridActions, useDataGridActiveCell, useDataGri
 import { jumpToDataBoundary, pointerToCoord, useGridInteraction, type InteractionLayout } from "./use-grid-interaction";
 import type { DataGridStoreState } from "../store";
 
-type Row = { id: string; name: string; qty: number | null };
+type Row = { id: string; name: string; qty: number | null; flag?: boolean };
 
 const columns: readonly ColumnDef<Row, unknown>[] = [
   { id: "name", header: "Name", accessorKey: "name" },
   { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
+];
+
+const checkboxColumns: readonly ColumnDef<Row, unknown>[] = [
+  { id: "name", header: "Name", accessorKey: "name" },
+  { id: "flag", header: "Flag", accessorKey: "flag", type: "checkbox" },
 ];
 
 /** Minimal fake store state — jumpToDataBoundary only reads viewIndex/visibleColumns/data/cellTypes. */
@@ -666,5 +671,174 @@ describe("pointerToCoord pinned-column hit-testing", () => {
     // fall through to the clamp — meanwhile a plain unscrolled unpinned hit still resolves directly.
     const unscrolled = scrolledElement(0, 300);
     expect(pointerToCoord(150, 50, unscrolled, PINNED_LAYOUT, 10).col).toBe(1);
+  });
+});
+
+describe("select-drag pointer capture", () => {
+  // The drag frame loop is rAF-driven; a stubbed queue drives it deterministically.
+  let rafId = 0;
+  let rafPending: Map<number, FrameRequestCallback>;
+
+  function driveFrame() {
+    const id = [...rafPending.keys()].pop();
+    expect(id).not.toBeUndefined();
+    const cb = rafPending.get(id!)!;
+    rafPending.delete(id!);
+    act(() => {
+      cb(0);
+    });
+  }
+
+  /** A DOM Event carrying the fields the handlers read (dispatched to `document`). */
+  function pointerEvent(type: string, fields: Record<string, unknown>): Event {
+    return Object.assign(new Event(type), fields);
+  }
+
+  /** Plain stand-in for the React pointer event of a DIRECT handler call (`currentTarget` is getter-only on a real Event). */
+  function pressEvent(fields: Record<string, unknown>): React.PointerEvent<HTMLElement> {
+    return fields as unknown as React.PointerEvent<HTMLElement>;
+  }
+
+  function makePressElement() {
+    return {
+      setPointerCapture: vi.fn(),
+      releasePointerCapture: vi.fn(),
+      hasPointerCapture: vi.fn(() => true),
+      querySelector: () => null,
+    } as unknown as HTMLElement;
+  }
+
+  // Rect sized so the bottom auto-scroll zone (y > bottom - 24) overlaps row 1's band
+  // (y in [72, 108)): a pointer at y 90 is in the zone AND on row 1.
+  function zoneScroll(el: HTMLElement) {
+    el.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 300, bottom: 100, width: 300, height: 100, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+    el.setPointerCapture = vi.fn();
+    el.releasePointerCapture = vi.fn();
+    el.hasPointerCapture = vi.fn(() => true);
+    return el;
+  }
+
+  beforeEach(() => {
+    rafId = 0;
+    rafPending = new Map();
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      rafId += 1;
+      rafPending.set(rafId, cb);
+      return rafId;
+    });
+    vi.stubGlobal("cancelAnimationFrame", (id: number) => {
+      rafPending.delete(id);
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("takes capture on the pressed cell, hands it to the scroll element when auto-scroll engages, and releases it there", () => {
+    const { hook, scrollRef } = renderInteraction(20);
+    const scroll = zoneScroll(scrollRef.current);
+    const cell = makePressElement();
+
+    act(() => {
+      hook.result.current.interaction.onCellPointerDown(
+        { col: 0, row: 5 },
+        pressEvent({ button: 0, pointerId: 7, currentTarget: cell, clientX: 60, clientY: 230 }),
+      );
+    });
+    expect(cell.setPointerCapture).toHaveBeenCalledWith(7);
+
+    act(() => {
+      document.dispatchEvent(pointerEvent("pointermove", { pointerId: 7, clientX: 60, clientY: 90 }));
+    });
+    driveFrame();
+    expect(scroll.setPointerCapture).toHaveBeenCalledWith(7);
+
+    act(() => {
+      document.dispatchEvent(pointerEvent("pointerup", { pointerId: 7, clientX: 60, clientY: 90, detail: 1 }));
+    });
+    expect(scroll.releasePointerCapture).toHaveBeenCalledWith(7);
+    expect(cell.releasePointerCapture).not.toHaveBeenCalled();
+  });
+
+  it("keeps capture on the pressed cell while the pointer never enters an edge zone", () => {
+    const { hook, scrollRef } = renderInteraction(20);
+    const scroll = zoneScroll(scrollRef.current);
+    const cell = makePressElement();
+
+    act(() => {
+      hook.result.current.interaction.onCellPointerDown(
+        { col: 0, row: 0 },
+        pressEvent({ button: 0, pointerId: 7, currentTarget: cell, clientX: 60, clientY: 50 }),
+      );
+    });
+
+    act(() => {
+      document.dispatchEvent(pointerEvent("pointermove", { pointerId: 7, clientX: 60, clientY: 50 }));
+    });
+    driveFrame();
+    expect(scroll.setPointerCapture).not.toHaveBeenCalled();
+
+    act(() => {
+      document.dispatchEvent(pointerEvent("pointerup", { pointerId: 7, clientX: 60, clientY: 50, detail: 1 }));
+    });
+    expect(cell.releasePointerCapture).toHaveBeenCalledWith(7);
+    expect(scroll.releasePointerCapture).not.toHaveBeenCalled();
+  });
+
+  it("does not resolve the pending press on pointerup while capture stays on the pressed cell (the cell click owns it)", () => {
+    const { hook, scrollRef } = renderInteraction(20, { columns: checkboxColumns, uncontrolled: true });
+    zoneScroll(scrollRef.current);
+    const cell = makePressElement();
+
+    act(() => {
+      hook.result.current.actions.selectCellAt({ col: 1, row: 1 });
+    });
+    // y 74 is on row 1's band but outside both edge zones (top zone ends at 24, bottom starts at 76)
+    act(() => {
+      hook.result.current.interaction.onCellPointerDown({ col: 1, row: 1 }, pressEvent({ button: 0, pointerId: 7, currentTarget: cell, clientX: 180, clientY: 74 }));
+    });
+
+    act(() => {
+      document.dispatchEvent(pointerEvent("pointermove", { pointerId: 7, clientX: 180, clientY: 74 }));
+    });
+    driveFrame();
+    expect(cell.setPointerCapture).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      document.dispatchEvent(pointerEvent("pointerup", { pointerId: 7, clientX: 180, clientY: 74, detail: 1 }));
+    });
+    const row = hook.result.current.storeApi.getState().data[1] as Row;
+    expect(row.flag).toBeUndefined();
+  });
+
+  it("still toggles a checkbox press on release when auto-scroll has handed the capture off", () => {
+    const { hook, scrollRef } = renderInteraction(20, { columns: checkboxColumns, uncontrolled: true });
+    const scroll = zoneScroll(scrollRef.current);
+    const cell = makePressElement();
+
+    act(() => {
+      hook.result.current.actions.selectCellAt({ col: 1, row: 1 });
+    });
+    act(() => {
+      hook.result.current.interaction.onCellPointerDown(
+        { col: 1, row: 1 },
+        pressEvent({ button: 0, pointerId: 7, currentTarget: cell, clientX: 180, clientY: 90 }),
+      );
+    });
+    expect(cell.setPointerCapture).toHaveBeenCalledWith(7);
+
+    act(() => {
+      document.dispatchEvent(pointerEvent("pointermove", { pointerId: 7, clientX: 180, clientY: 90 }));
+    });
+    driveFrame();
+    expect(scroll.setPointerCapture).toHaveBeenCalledWith(7);
+
+    act(() => {
+      document.dispatchEvent(pointerEvent("pointerup", { pointerId: 7, clientX: 180, clientY: 90, detail: 1 }));
+    });
+    const row = hook.result.current.storeApi.getState().data[1] as Row;
+    expect(row.flag).toBe(true);
   });
 });

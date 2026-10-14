@@ -712,6 +712,13 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   // Coord a single click just resolved, so the following dblclick (same gesture) doesn't re-resolve it.
   const resolvedByClickRef = useRef<ViewCoord | null>(null);
 
+  // The element that took setPointerCapture for the active drag; released explicitly on end
+  // rather than relying on the browser's implicit release, which some environments (real
+  // Chromium via Playwright) don't reliably fire before a later, unrelated click gesture —
+  // a stale capture otherwise swallows that next gesture's pointerup/click on its real target
+  // (e.g. an option in a portaled Select popup opened right after this cell's click).
+  const captureElementRef = useRef<Element | null>(null);
+
   const stopAutoScrollLoop = useCallback(() => {
     if (rafRef.current !== null) {
       cancelAnimationFrame(rafRef.current);
@@ -733,13 +740,30 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
     const rect = scrollElement.getBoundingClientRect();
 
     // auto-scroll the container by a fixed step per frame while the pointer sits beyond an edge
-    if (pointer.clientY < rect.top + AUTO_SCROLL_ZONE) scrollElement.scrollTop -= AUTO_SCROLL_STEP;
-    else if (pointer.clientY > rect.bottom - AUTO_SCROLL_ZONE) scrollElement.scrollTop += AUTO_SCROLL_STEP;
+    let scrolled = false;
+    if (pointer.clientY < rect.top + AUTO_SCROLL_ZONE) {
+      scrollElement.scrollTop -= AUTO_SCROLL_STEP;
+      scrolled = true;
+    } else if (pointer.clientY > rect.bottom - AUTO_SCROLL_ZONE) {
+      scrollElement.scrollTop += AUTO_SCROLL_STEP;
+      scrolled = true;
+    }
     // Which physical edge means "scroll toward the inline start" depends on direction; the step is
     // then applied in the container's own scrollLeft convention.
     const direction = layoutRef.current.direction ?? "ltr";
     const inlineStep = inlineAutoScrollStep(pointer.clientX, rect, AUTO_SCROLL_ZONE, direction);
-    if (inlineStep !== 0) applyInlineScrollDelta(scrollElement, inlineStep * AUTO_SCROLL_STEP, direction);
+    if (inlineStep !== 0) {
+      applyInlineScrollDelta(scrollElement, inlineStep * AUTO_SCROLL_STEP, direction);
+      scrolled = true;
+    }
+
+    // Once edge auto-scroll engages, the pressed element will unmount out of the rendered window;
+    // the browser releases the capture on unmount and cancels a touch pointer with it. Hand the
+    // capture to the scroll element, which outlives the drag.
+    if (scrolled && captureElementRef.current && captureElementRef.current !== scrollElement) {
+      scrollElement.setPointerCapture?.(drag.pointerId);
+      captureElementRef.current = scrollElement;
+    }
 
     const state = storeApi.getState();
     const rowCount = state.viewIndex.length;
@@ -767,13 +791,6 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   // beginDrag attaches them, endDrag tears them down immediately, instead of a permanent
   // always-on subscription.
   const documentListenersRef = useRef<(() => void) | null>(null);
-
-  // The element that took setPointerCapture for the active drag; released explicitly on end
-  // rather than relying on the browser's implicit release, which some environments (real
-  // Chromium via Playwright) don't reliably fire before a later, unrelated click gesture —
-  // a stale capture otherwise swallows that next gesture's pointerup/click on its real target
-  // (e.g. an option in a portaled Select popup opened right after this cell's click).
-  const captureElementRef = useRef<Element | null>(null);
 
   const endDrag = useCallback(() => {
     const pointerId = dragRef.current?.pointerId;
@@ -812,6 +829,25 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         };
         const onUp = (event: PointerEvent) => {
           if (!dragRef.current || dragRef.current.pointerId !== event.pointerId) return;
+          // If the capture was handed to the scroll element, the post-drag `click` targets the
+          // scroll element and can never reach the pressed cell — the cell's click can't resolve
+          // the pending active-cell press anymore, so resolve (or discard) it here, on the true
+          // pointerup coordinate. Without the handoff the cell's own `click` resolves it as usual.
+          const scrollElement = scrollRef.current;
+          if (scrollElement && captureElementRef.current === scrollElement) {
+            const pending = pendingActiveClickRef.current;
+            pendingActiveClickRef.current = null;
+            if (event.type !== "pointercancel" && pending && event.detail < 2) {
+              const coord = pointerToCoord(event.clientX, event.clientY, scrollElement, layoutRef.current, storeApi.getState().viewIndex.length);
+              if (coord.col === pending.col && coord.row === pending.row) {
+                const state = storeApi.getState();
+                if (!state.readOnly && hasActivateCell(state, pending)) {
+                  activateCell(state, actions, pending);
+                  resolvedByClickRef.current = pending;
+                }
+              }
+            }
+          }
           endDrag();
         };
         document.addEventListener("pointermove", onMove);
@@ -824,7 +860,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         };
       }
     },
-    [runDragFrame, endDrag, scrollRef, storeApi],
+    [actions, runDragFrame, endDrag, scrollRef, storeApi],
   );
 
   // safety net: tear down a still-active drag's listeners/rAF if the component unmounts mid-drag
