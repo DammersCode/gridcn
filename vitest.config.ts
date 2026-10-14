@@ -110,6 +110,9 @@ export default defineConfig({
         extends: true,
         test: {
           name: "unit",
+          // The 100k-row timing-budget perf tests flake a random subset under full-suite
+          // load, passing in isolation; a real failure fails all retries.
+          retry: 2,
           // One jsdom env per worker instead of per file (49% of run time); the VM context keeps per-file isolation.
           pool: "vmThreads",
           environment: "jsdom",
@@ -143,6 +146,9 @@ export default defineConfig({
         plugins: [reactCompiler()],
         test: {
           name: "unit-compiled",
+          // The 100k-row timing-budget perf tests flake a random subset under full-suite
+          // load, passing in isolation; a real failure fails all retries.
+          retry: 2,
           // One jsdom env per worker instead of per file (49% of run time); the VM context keeps per-file isolation.
           pool: "vmThreads",
           environment: "jsdom",

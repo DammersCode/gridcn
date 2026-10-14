@@ -45,7 +45,14 @@ no-op case — moved to `print-grid-ssr.test.ts` with `@vitest-environment node`
 
 Reliability fix: the `normalize-payload-eol` shell-out test (git + node spawn) flaked against the
 default 5 s timeout under full-suite load (twice in this work, passing in isolation); it now has
-a 15 s budget — the same pattern the heavy `print-grid.test.ts` case uses.
+a 15 s budget - the same pattern the heavy `print-grid.test.ts` case uses.
+
+Reliability follow-up (2026-10-14): the 100k-row timing-budget perf tests flake a random
+2-5-subset of the full unit suite under load (each passing in isolation; one file even failed
+its first retry when the machine stayed loaded through the run) - the vmThreads pool runs
+files concurrently, so the budget-sensitive tests contend for CPU with the rest of the suite.
+The `unit` and `unit-compiled` projects now retry a failed file twice (matching the browser
+projects, which carry `retry: 2` for the same flake class); a real failure fails all retries.
 
 ## Considered and rejected
 
