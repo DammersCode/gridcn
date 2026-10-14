@@ -8,9 +8,10 @@ on:
 permissions:
   contents: read
 
+# Pinned: ubuntu-latest rolls to 26.04 automatically (GitHub migration, from 2026-10-19); test 26.04 here before switching.
 jobs:
   verify-hosted-registry:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
 

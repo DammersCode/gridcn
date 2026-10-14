@@ -11,10 +11,11 @@ concurrency:
 permissions:
   contents: read
 
+# Pinned: ubuntu-latest rolls to 26.04 automatically (GitHub migration, from 2026-10-19); test 26.04 here before switching.
 jobs:
   checks:
     name: Checks (typecheck, lint)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     # PR runs gate on author (fork PRs skip, 0 min); to check an outside PR, Actions -> Run workflow on its branch.
     if: >-
@@ -48,7 +49,7 @@ jobs:
 
   unit:
     name: Unit + coverage
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: >-
       github.event_name != 'pull_request' ||
@@ -71,7 +72,7 @@ jobs:
 
   browser:
     name: Browser tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     if: >-
       github.event_name != 'pull_request' ||
@@ -108,7 +109,7 @@ jobs:
 
   unit-compiled:
     name: Unit + React Compiler
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: >-
       github.event_name != 'pull_request' ||
@@ -132,7 +133,7 @@ jobs:
 
   browser-compiled:
     name: Browser + React Compiler
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     if: >-
       github.event_name != 'pull_request' ||
@@ -169,7 +170,7 @@ jobs:
 
   build:
     name: Build + registry
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     if: >-
       github.event_name != 'pull_request' ||
@@ -213,7 +214,7 @@ jobs:
 
   # The ruleset requires the check context `ci` (this job id); it always runs, so the jobs a fork PR skips fail it.
   ci:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     needs: [checks, unit, browser, unit-compiled, browser-compiled, build]
     if: always()
