@@ -275,7 +275,13 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Agent skills:** `npx skills add DammersCode/gridcn` installs five skills for Claude Code,
   Cursor, Codex, and other agents: `gridcn-performance`, `gridcn-custom-cell-type`,
   `gridcn-data-source`, `gridcn-addons`, and `gridcn-upgrade`. The
-  [Agent Skills](https://gridcn.vercel.app/docs/agent-skills) page describes each one.
+  [Agent Skills](https://gridcn.vercel.app/docs/agent-skills) page describes each one. The page
+  table carries a copy button per row: it copies the single-skill command
+  (`npx skills add DammersCode/gridcn@<skill>`, runner prefix follows the site's package-manager
+  choice) so one skill installs without the other four.
+- **Docs site version and status display:** the top navigation and the docs sidebar show the
+  current gridcn version (read from the repository `package.json`); a docs page frontmattered
+  `status: new` shows a "new" badge next to its sidebar entry.
 - **Column lines:** a 1px line separates columns in the header, the body, the marker column, and
   pinned row bands. A right-pinned column draws its line on the start side, so the line marks the
   pinned band edge. `--grid-column-border` sets the color (default `--color-border`;

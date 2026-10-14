@@ -2,6 +2,7 @@
 title: Agent Skills
 description: Five installable skills that teach Claude Code, Cursor, Codex, and other coding agents how to build with gridcn.
 icon: Bot
+status: new
 ---
 
 gridcn ships five agent skills for tasks that cross many docs pages. Each skill gives the agent
@@ -12,13 +13,16 @@ done.
 
 ## Skills
 
-| Skill | What it does | Reach for it when |
-| --- | --- | --- |
-| [`gridcn-performance`](#gridcn-performance) | Audits the grid integration against the memoization and virtualization traps. | The grid is slow to scroll, type, or edit, or a code review touches grid props. |
-| [`gridcn-custom-cell-type`](#gridcn-custom-cell-type) | Builds a cell type that pastes, sorts, and edits like the built-in types. | You build a cell type, or a custom type renders as plain text. |
-| [`gridcn-data-source`](#gridcn-data-source) | Selects plain data, pagination, lazy loading, or streaming, and moves sort and filter to the server. | You connect the grid to a backend or to a dataset too large for one payload. |
-| [`gridcn-addons`](#gridcn-addons) | Installs add-ons and wires each output to the correct place. | You add one or more add-ons, or an add-on has no effect. |
-| [`gridcn-upgrade`](#gridcn-upgrade) | Merges a newer gridcn release into your installed source and keeps your edits. | You pull a newer gridcn release into source that you already installed. |
+| Skill | What it does | Reach for it when | Install |
+| --- | --- | --- | --- |
+| [`gridcn-performance`](#gridcn-performance) | Audits the grid integration against the memoization and virtualization traps. | The grid is slow to scroll, type, or edit, or a code review touches grid props. | <SkillInstall skill="gridcn-performance" /> |
+| [`gridcn-custom-cell-type`](#gridcn-custom-cell-type) | Builds a cell type that pastes, sorts, and edits like the built-in types. | You build a cell type, or a custom type renders as plain text. | <SkillInstall skill="gridcn-custom-cell-type" /> |
+| [`gridcn-data-source`](#gridcn-data-source) | Selects plain data, pagination, lazy loading, or streaming, and moves sort and filter to the server. | You connect the grid to a backend or to a dataset too large for one payload. | <SkillInstall skill="gridcn-data-source" /> |
+| [`gridcn-addons`](#gridcn-addons) | Installs add-ons and wires each output to the correct place. | You add one or more add-ons, or an add-on has no effect. | <SkillInstall skill="gridcn-addons" /> |
+| [`gridcn-upgrade`](#gridcn-upgrade) | Merges a newer gridcn release into your installed source and keeps your edits. | You pull a newer gridcn release into source that you already installed. | <SkillInstall skill="gridcn-upgrade" /> |
+
+The copy button in the Install column copies the command for that one skill. The command above
+the table installs all five.
 
 ## gridcn-performance
 

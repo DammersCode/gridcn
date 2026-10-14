@@ -3,7 +3,7 @@ import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import { baseOptions } from '@/lib/layout.shared';
 import { GitHubStarsLive } from '@/components/github-stars-live';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { gitConfig } from '@/lib/shared';
+import { appVersion, gitConfig } from '@/lib/shared';
 
 export default function Layout({ children }: LayoutProps<'/docs'>) {
   return (
@@ -24,6 +24,7 @@ export default function Layout({ children }: LayoutProps<'/docs'>) {
             >
               llms.txt
             </a>
+            <span className="text-muted-foreground text-xs">{appVersion}</span>
             <div className="ms-auto flex items-center gap-1.5">
               <ThemeToggle />
               <GitHubStarsLive repo={`${gitConfig.user}/${gitConfig.repo}`} />

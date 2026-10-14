@@ -9,6 +9,7 @@ import { ComponentPreview } from '@/components/component-preview';
 import { InstallCommand } from '@/components/install-command';
 import { ManualInstall } from '@/components/manual-install';
 import { KeymapTable } from '@/components/keymap-table';
+import { SkillInstall } from '@/components/skill-install';
 
 export function getMDXComponents(components?: MDXComponents) {
   return {
@@ -18,6 +19,7 @@ export function getMDXComponents(components?: MDXComponents) {
     InstallCommand,
     ManualInstall,
     KeymapTable,
+    SkillInstall,
     Step,
     Steps,
     File,
