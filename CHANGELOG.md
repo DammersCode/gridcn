@@ -947,6 +947,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Number cell rejects non-decimal input:** `fromText` returns `null` for `Infinity`, `1e999` (overflow), and hex, octal, or binary text such as `0x10`, instead of storing `Infinity` or a surprising integer. Decimal and scientific notation still parse.
 - **Drags survive a refused pointer capture (`data-grid`):** range, row, column, row-reorder and column-resize drags no longer abort when the browser rejects `setPointerCapture` (an unknown pointer id from synthetic test events, or a detached element). The drag falls back to its document-level listeners.
 
 - **Checkbox cells have an accessible name (`data-grid`):** the `checkbox` display box carries an `aria-label` from its column header, which clears axe's `aria-toggle-field-name` violation.

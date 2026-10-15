@@ -67,3 +67,27 @@ describe("number display formatting", () => {
     expect(constructorSpy).toHaveBeenCalledTimes(3);
   });
 });
+
+describe("number fromText input validation", () => {
+  const fromText = numberCellType.fromText!;
+
+  it.each(["Infinity", "-Infinity", "1e999", "-1e999", "0x10", "0b11", "0o7", "1_000", "NaN", "1e", "--1", "."])(
+    "rejects %s",
+    (text) => {
+      expect(fromText(text, undefined)).toBeNull();
+    },
+  );
+
+  it.each([
+    ["42", 42],
+    ["-3.5", -3.5],
+    ["+7", 7],
+    [" 1,5 ", 1.5],
+    [".5", 0.5],
+    ["5.", 5],
+    ["1e3", 1000],
+    ["-2.5E-2", -0.025],
+  ])("accepts %s", (text, expected) => {
+    expect(fromText(text, undefined)).toBe(expected);
+  });
+});

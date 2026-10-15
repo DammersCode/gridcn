@@ -8,6 +8,8 @@ import { isComposingKey } from "../interaction/is-composing-key";
 import { displayText } from "./display-text";
 import { warnDev } from "../store/commit";
 
+const DECIMAL_NUMBER = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;
+
 /** Normalizes a comma decimal separator to a dot so `Number()` can parse locales pasted verbatim. */
 function normalizeNumberText(text: string): string {
   return text.trim().replace(",", ".");
@@ -152,8 +154,9 @@ export const numberCellType: CellType<unknown, number | null, GridCellTypes["num
   fromText: (text, options) => {
     const normalized = normalizeNumberText(text);
     if (normalized === "") return null;
+    if (!DECIMAL_NUMBER.test(normalized)) return null;
     const parsed = Number(normalized);
-    if (Number.isNaN(parsed)) return null;
+    if (!Number.isFinite(parsed)) return null;
     if (options?.decimals !== undefined) return clampToDecimals(roundToDecimals(parsed, options), options, options.decimals);
     return clampNumber(parsed, options);
   },
