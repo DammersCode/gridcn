@@ -37,7 +37,10 @@ export function createRowIndexCache(): RowIndexCache {
     resolve(data, getRowId) {
       if (cachedMap && cachedData === data) return cachedMap;
       const map = new Map<string, number>();
-      for (let i = 0; i < data.length; i++) map.set(getRowId(data[i], i), i);
+      for (let i = 0; i < data.length; i++) {
+        const rowId = getRowId(data[i], i);
+        if (!map.has(rowId)) map.set(rowId, i);
+      }
       cachedData = data;
       cachedMap = map;
       return map;
