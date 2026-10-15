@@ -8,6 +8,17 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
+## Project
+
+gridcn is a React 19 + TypeScript data grid distributed as a shadcn registry (`npx shadcn add @gridcn/data-grid`) and documented on a Fumadocs site. Real DOM cells, Tailwind v4, Base UI primitives, Zustand store per grid instance, no TanStack Table. Target: smooth at 100k rows.
+
+- `registry/default/blocks/<item>/` — the shipped source; each folder is one registry item. `data-grid` is the core, the other folders are add-ons.
+- `registry/default/examples/` — demos the docs embed through `<ComponentPreview>`.
+- `content/docs/` — docs pages. `CHANGELOG.md` — user-facing changes.
+- `public/r/` — generated registry payloads. Never edit by hand; `pnpm registry:build` writes them.
+- `plans/`, `research/`, `PLAN.md` — decision records and specs. Read the one that covers your task before changing behavior.
+- `scripts/` — verification scripts that `pnpm lint` and `pnpm registry:verify` run.
+
 ## Language
 
 Everything in this repo is written in English: code, comments, docs, plans, research notes,
@@ -21,8 +32,8 @@ Write a comment only when the code cannot say it. The code says *what*; the comm
 - Default: no comment. A good name or structure beats any comment.
 - Add a comment only for one of: a non-obvious constraint outside the code (browser quirk, platform limit, an invariant the types cannot express); a workaround for an external bug (name the bug); a deliberate simplification and its ceiling (state the upgrade path); a public API's semantics the signature does not show (JSDoc).
 - Delete instead of writing: restatements of the line below; pointers to other code ("memoized like X" — read that code instead); history ("used to ..."); references to external tracking (plan, spec, workplan, advisor, or finding IDs such as "G5", "plan 012", "spec 4b", "workplan #80"); commented-out code; markers that name the obvious.
-- One idea per comment, at most 25 words, one line. Short plain English: active voice, condition before statement, no "should", "could", "may".
-- JSDoc (`/**`) documents the API for its users; keep it well-formed (tools parse it). The 25-word and one-line caps yield only when the API cannot be stated shorter (complex semantics, an invariant the signature cannot show). `//` comments note implementation details for the file's readers only.
+- One idea per comment. Aim for one line. Use up to three lines (about 60 words) for an invariant, an ordering constraint, or a platform quirk that one line cannot hold. If it needs more, simplify the code or move the text to JSDoc or a spec. Short plain English: active voice, condition before statement, no "should", "could", "may".
+- JSDoc (`/**`) documents the API for its users; keep it well-formed (tools parse it). The length caps yield only when the API cannot be stated shorter (complex semantics, an invariant the signature cannot show). `//` comments note implementation details for the file's readers only.
 - Test names carry the spec. Comment a test only for non-obvious setup or the reason an assertion exists.
 - When you edit a comment that no longer earns its place, delete it.
 
@@ -67,6 +78,17 @@ consumer can import. Keep the surface to the public API.
 - Test: grep `content/docs` for the name. If the docs never tell the reader to call it, do not
   export it. Existing barrel exports are grandfathered; do not add new ones.
 
+## Security
+
+Grid data and imported files are untrusted input.
+
+- Render values with React text nodes or `textContent`. Never pass a cell value to `innerHTML` or `dangerouslySetInnerHTML`. If markup is required, sanitize it first.
+- Links come from `safeHref` (`http`, `https`, `mailto` only). Add no new protocol.
+- Bound every parse of imported files (XLSX, XLS, CSV, clipboard) through the library's own options. Do not hand-mirror a library parser; it diverges and gets bypassed.
+- Neutralize formula-like text on CSV export.
+- Add no dependency without a reason in the commit message. `pnpm audit --prod` must show no HIGH finding.
+- Never put secrets, tokens, or personal data into code, tests, fixtures, or docs.
+
 ## Workflow
 
 ### Gates
@@ -78,6 +100,10 @@ All green before committing — a red gate gets fixed, not committed around. Run
 3. `pnpm lint:typed`
 4. `npx vitest run registry --exclude "**/*.browser.test.*" --project unit --coverage`
 5. `npx vitest run --project browser --bail=1` (about 2 minutes; `--bail=1` stops a failure cascade early)
+
+Fast check while you work: `npx vitest run <file> --project unit` for a unit file, `npx vitest run <file> --project browser` for a browser file. Run the full gates before you commit.
+
+Browser runs share one port. Take the lock before a `--project browser` or `browser-compiled` run: loop `mkdir C:/repos/danny/.review-browser-lock` until it succeeds, run, then `rmdir` it, also on failure. Use `--maxWorkers=3` under load.
 
 A single failed test: rerun that one file once before debugging (timing-budget perf tests flake under machine load; the browser config's `retry: 2` absorbs them). Still red on the rerun = a real failure. Many failures in one file = shared-state pollution, not flake: look for an un-awaited `render()`/`unmount()` (both return Promises; `pnpm lint:typed` enforces `no-floating-promises` on browser tests).
 
