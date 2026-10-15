@@ -62,8 +62,9 @@ export function parseClipboardHtml(html: string): string[][] | null {
  * Parses a clipboard `text/plain` TSV payload with Excel-style quoting: a field starting with
  * `"` is quoted, `""` is an escaped quote, and tabs/newlines inside quotes are literal.
  * Handles both `\r\n` and `\n` row separators; a trailing empty row from a final newline is dropped.
+ * With `maxCells`, parsing stops after the row that pushes the cell total past it; the caller trims that row.
  */
-export function parseClipboardText(text: string): string[][] {
+export function parseClipboardText(text: string, maxCells?: number): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
   let field = "";
@@ -72,6 +73,8 @@ export function parseClipboardText(text: string): string[][] {
   let fieldPending = false;
   let i = 0;
   const len = text.length;
+  let cellCount = 0;
+  let full = false;
   // start of the current unflushed run; -1 means nothing pending (avoids per-char += allocation)
   let start = -1;
 
@@ -90,10 +93,12 @@ export function parseClipboardText(text: string): string[][] {
   const endRow = () => {
     endField();
     rows.push(row);
+    cellCount += row.length;
     row = [];
+    if (maxCells !== undefined && cellCount > maxCells) full = true;
   };
 
-  while (i < len) {
+  while (i < len && !full) {
     const ch = text[i];
 
     if (inQuotes) {
@@ -141,24 +146,28 @@ export function parseClipboardText(text: string): string[][] {
   }
 
   // final field/row, unless the input ended exactly on a row separator (trailing newline)
-  if (fieldPending || row.length > 0) {
+  if (!full && (fieldPending || row.length > 0)) {
     endRow();
   }
 
   return rows;
 }
 
+/** Upper bound for the markup one cell takes in a clipboard table; a larger payload skips the HTML parse. */
+const HTML_CHARS_PER_CELL = 80;
+
 /**
  * Produces a 2D string grid from clipboard data, preferring the HTML table representation
- * and falling back to TSV plain text. Returns an empty array when neither is usable.
+ * and falling back to TSV plain text. With `maxCells`, an HTML payload too large for that many cells
+ * is skipped and the text parse stops early. Returns an empty array when neither is usable.
  */
-export function parseClipboard(data: { html?: string; text?: string }): string[][] {
-  if (data.html) {
+export function parseClipboard(data: { html?: string; text?: string }, maxCells?: number): string[][] {
+  if (data.html && (maxCells === undefined || data.html.length <= maxCells * HTML_CHARS_PER_CELL)) {
     const fromHtml = parseClipboardHtml(data.html);
     if (fromHtml && fromHtml.length > 0) return fromHtml;
   }
   if (data.text !== undefined) {
-    return parseClipboardText(data.text);
+    return parseClipboardText(data.text, maxCells);
   }
   return [];
 }

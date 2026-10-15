@@ -364,7 +364,7 @@ export function pasteText(
   storeApi?: { getState: () => DataGridStoreState },
 ): boolean {
   if (s.editing || s.readOnly) return false;
-  return applyParsedPaste(s, actions, parseClipboard({ text }), guard, storeApi);
+  return applyParsedPaste(s, actions, parseClipboard({ text }, MAX_PASTE_CELLS), guard, storeApi);
 }
 
 /**
@@ -432,7 +432,7 @@ export function useGridClipboard(options: UseGridClipboardOptions): void {
       if (!resolvePasteTarget(s)) return;
       const html = event.clipboardData?.getData("text/html");
       const text = event.clipboardData?.getData("text/plain");
-      const parsed = parseClipboard({ html: html || undefined, text });
+      const parsed = parseClipboard({ html: html || undefined, text }, MAX_PASTE_CELLS);
       if (parsed.length === 0) return;
       event.preventDefault();
       applyParsedPaste(s, actions, parsed, guard, storeApi);

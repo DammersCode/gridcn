@@ -3,6 +3,7 @@ import type { ColumnDef } from "../types";
 import { createDataGridStore } from "../store/create-store";
 import type { InternalSyncProps } from "../store/types";
 import { MAX_PASTE_CELLS, pasteText, truncatePasteGrid } from "./use-grid-clipboard";
+import { parseClipboard, parseClipboardText } from "./parse-clipboard";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -88,5 +89,24 @@ describe("pasteText cap", () => {
     expect(next[expectedRows - 1]!["c19"]).toBe("p19");
     expect(next[expectedRows]!["c0"]).toBe(`row-${expectedRows}-c0`);
     expect(warn).toHaveBeenCalledWith(`gridcn: paste truncated to ${expectedRows} of ${rowCount} rows (MAX_PASTE_CELLS)`);
+  });
+});
+
+describe("parse-time paste cap", () => {
+  it("stops parsing text once the cell cap is passed", () => {
+    const text = Array.from({ length: 1000 }, (_, row) => `a${row}\tb${row}`).join("\n");
+    const rows = parseClipboardText(text, 10);
+    expect(rows.length).toBeLessThan(10);
+    expect(rows[0]).toEqual(["a0", "b0"]);
+  });
+
+  it("parses the whole text without a cap", () => {
+    expect(parseClipboardText("a\tb\nc\td")).toHaveLength(2);
+  });
+
+  it("skips an HTML payload too large for the cell cap and falls back to the text", () => {
+    const html = `<table><tr><td>from-html</td></tr></table>${" ".repeat(10_000)}`;
+    expect(parseClipboard({ html, text: "from-text" }, 10)).toEqual([["from-text"]]);
+    expect(parseClipboard({ html, text: "from-text" })).toEqual([["from-html"]]);
   });
 });
