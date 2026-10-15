@@ -26,7 +26,7 @@ const VELOCITY_DECAY_FACTOR = 0.5;
 /** Px cap on the leading-edge velocity buffer — the minimum that keeps the blank detector's random
  * 200-1500px thumb-drag deltas reliably covered (measured: 200-trial simulation fails below ~1500px,
  * clean at 1600px+); every px above that is pure full-swap FPS cost with no blank-coverage benefit
- * (spec 6c-8's sustained 800px/tick case never needs more than its own delta). Exported so
+ * (a sustained 800px/tick scroll never needs more than its own delta). Exported so
  * {@link useColumnWindow} shares the same cap. */
 export const VELOCITY_OVERSCAN_CAP_PX = 1600;
 

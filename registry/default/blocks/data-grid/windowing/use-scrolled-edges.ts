@@ -38,7 +38,7 @@ export function useScrolledEdges(
       const scrollLeft = normalizeScrollLeft(snapshot.scrollLeft);
       // Read off the snapshot, not the element — the element's geometry was already read once (and
       // possibly dirtied by a same-tick style write) upstream in commit(); a second direct read here
-      // would force a redundant reflow (2026-08-02 optimization audit, confirmed medium).
+      // would force a redundant reflow.
       const maxLeft = snapshot.scrollWidth - clientWidth;
       const maxTop = snapshot.scrollHeight - clientHeight;
       if (scrollLeft > EDGE_EPSILON) viewport.setAttribute(GRID_ATTR.scrolledLeft, "");

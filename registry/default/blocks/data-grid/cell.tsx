@@ -347,7 +347,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         align === "center" && "justify-center",
         align === "right" && "justify-end",
         isNumberOrDate && !isEditing && "tabular-nums",
-        // One visual language for "this value is wrong" (design spec), whether a live sync/async
+        // One visual language for "this value is wrong", whether a live sync/async
         // `validate` rejection or a persisted post-commit `cellErrors` entry set the message — same
         // aria-invalid:ring-destructive/20 convention every shadcn form control in this repo already
         // uses (input.tsx/button.tsx/select.tsx), inset + z-1 so it wins over the search-match tint.

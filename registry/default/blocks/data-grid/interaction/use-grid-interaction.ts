@@ -1124,7 +1124,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
 
   useEffect(() => stopAutoScrollLoop, [stopAutoScrollLoop]);
 
-  // Page-area click-outside clear (2026-09-03 audit N4): the listener is attached only while a
+  // Page-area click-outside clear: the listener is attached only while a
   // non-empty selection exists, so no document-level listener is present at rest.
   useEffect(() => {
     let attached = false;

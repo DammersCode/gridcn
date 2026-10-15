@@ -64,7 +64,7 @@ export type DataWriteContext = {
   /**
    * The last `data` array this store handed to `onDataChange`. A controlled consumer that stores it
    * and re-renders feeds that same array back through `_syncProps`; recognizing it as our own echo
-   * is what keeps `computeViewIndex` off the controlled streaming path (design spec §3.3 — without
+   * is what keeps `computeViewIndex` off the controlled streaming path (without
    * this the 56 ms cliff returns for every controlled consumer).
    */
   lastEmittedData: readonly unknown[] | null;

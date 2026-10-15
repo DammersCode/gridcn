@@ -164,7 +164,7 @@ export function getElementStore(element: HTMLElement): ElementStore {
   // fires from a real event/timer callback (never render) — safe, and required, to flush sync
   // (task 2: gates the async-commit blanking window on the final settle).
   //
-  // Read-once, write-once per tick (2026-08-02 optimization audit, confirmed medium): the old
+  // Read-once, write-once per tick: the old
   // version read geometry for the viewport-var write, then read it AGAIN for the snapshot — the
   // first write (a style mutation on an ancestor of `viewportElement`'s layout-affecting insets)
   // had already dirtied layout, forcing a reflow on the second read. Hoisting one `readGeometry`

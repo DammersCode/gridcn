@@ -28,8 +28,7 @@ export type PresenceHighlight = {
 };
 
 /**
- * rowId-native alternative to {@link PresenceHighlight} (2026-08-02 optimization audit, "rowId-native
- * presence adapter"): a single cell keyed by stable rowId + columnId instead of a view-space rect.
+ * rowId-native alternative to {@link PresenceHighlight}: a single cell keyed by stable rowId + columnId instead of a view-space rect.
  * The plugin resolves `rowId` -> view row itself at paint time via `useDataGridRowIdToViewRow()`, so
  * a locally-active sort/filter never mispaints it; an entry whose `rowId` fell out of the current
  * view (filtered out) is dropped silently, same contract as the manual mapping it replaces.

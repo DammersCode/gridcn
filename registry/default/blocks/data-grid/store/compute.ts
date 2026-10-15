@@ -276,8 +276,7 @@ export function mergeCellErrors(cellErrors: ReadonlyMap<string, string>, entries
 }
 
 /**
- * Prunes any `cellErrors` entry whose rowId no longer exists in `data` (spec: "pruned on row
- * deletion, audited like the rowId-index cache") — called from every row-shape-changing path
+ * Prunes any `cellErrors` entry whose rowId no longer exists in `data` — called from every row-shape-changing path
  * (`deleteRows`, `duplicateRows`, `insertRow`) and from `_syncProps` on a genuine consumer `data`
  * replacement. Returns the SAME map identity when nothing needed pruning.
  */

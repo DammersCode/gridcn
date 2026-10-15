@@ -73,7 +73,7 @@ export function serializeRect(s: DataGridStoreState, rect: GridRect): string[][]
 /**
  * A copy above this many cells is truncated to the rows that fit — no spreadsheet accepts a
  * clipboard payload this large anyway, and below this cap output is byte-identical to the
- * uncapped path (2026-08-02 optimization audit, confirmed medium; same precedent as
+ * uncapped path (same precedent as
  * `MAX_SEARCH_MATCHES` in store/compute.ts). 200k cells is generously above any realistic manual
  * copy while still bounding the worst case (a Ctrl+A copy on a 100k-row grid) to a few seconds.
  */
@@ -85,8 +85,7 @@ export const MAX_COPY_CELLS = 200_000;
  * indices) copy-scope branches. Column + cellType resolution happens once per selected column,
  * hoisted OUTSIDE the row loop, instead of `serializeRowSlice`'s per-(row,col) re-resolution — the
  * columns branch used to call `serializeRowSlice(s, viewRow, col, 1)` once per cell, re-reading
- * `visibleColumns`/`cellTypes` and allocating a throwaway 1-element array every time (2026-08-02
- * optimization audit, confirmed medium). Truncates at {@link MAX_COPY_CELLS}.
+ * `visibleColumns`/`cellTypes` and allocating a throwaway 1-element array every time. Truncates at {@link MAX_COPY_CELLS}.
  */
 function serializeDisjointRows(s: DataGridStoreState, rows: readonly number[], cols: readonly number[]): string[][] {
   const resolved = cols.map((col) => {

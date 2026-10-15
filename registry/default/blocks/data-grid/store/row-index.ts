@@ -114,7 +114,7 @@ export function diffRowIndex(
 /**
  * Resolves `reorder` to what the store must actually do this tick. `"defer"` downgrades to `"never"`
  * when no touched column feeds the active sort or filter, so a ticker streaming into a
- * non-sort column never flips `viewStale` and never needs a reconcile (design spec §3.4).
+ * non-sort column never flips `viewStale` and never needs a reconcile.
  */
 export function resolveReorder(
   requested: UpdateCellsOptions["reorder"],

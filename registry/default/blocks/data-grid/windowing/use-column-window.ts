@@ -14,7 +14,7 @@ export type UseColumnWindowOptions = {
   overscan?: number;
   /** Marker column width (px), 0 when `rowMarkers` is 'none'; shifts the viewport band into the real DOM coordinate space, which includes the marker track (`layout.totalWidth`). */
   markerWidth?: number;
-  /** Full content width (px, includes the marker track) — clamps the trailing viewport edge to match pin-right's `min(viewport, content)` anchor (spec 6c-1) so the window never renders past the pinned cell's visual position. */
+  /** Full content width (px, includes the marker track) — clamps the trailing viewport edge to match pin-right's `min(viewport, content)` anchor so the window never renders past the pinned cell's visual position. */
   contentWidth?: number;
 };
 
@@ -94,7 +94,7 @@ function computeIndices(snapshot: ScrollSnapshot, opts: Required<UseColumnWindow
   // normalize to the same rightward-positive axis the cumulative widths are built on (adazzle rdg).
   const scrollLeft = Math.abs(snapshot.scrollLeft);
 
-  // Mirrors pinnedInsetStyle's min(viewportWidth, contentWidth) anchor (spec 6c-1): when content is
+  // Mirrors pinnedInsetStyle's min(viewportWidth, contentWidth) anchor: when content is
   // narrower than the viewport, the trailing edge is the content's own edge, not the viewport's.
   const effectiveClientWidth = contentWidth > 0 ? Math.min(snapshot.clientWidth, contentWidth) : snapshot.clientWidth;
 
@@ -144,7 +144,7 @@ function indicesEqual(a: number[], b: number[]): boolean {
  * `scrollLeft` is normalized with `Math.abs` so `dir="rtl"` containers (which report it <= 0)
  * compute the same band as LTR, and the band's trailing edge includes any column it only
  * partially intersects, so the viewport's last pixel column is never dropped. The `min(clientWidth,
- * contentWidth)` clamp mirrors pin-right's visual anchor (spec 6c-1) so the window never renders a
+ * contentWidth)` clamp mirrors pin-right's visual anchor so the window never renders a
  * column past where the pinned-right cell actually sits when content is narrower than the viewport.
  *
  * Render-phase notes (React Compiler): same as {@link useRowWindow} — element, estimate, and

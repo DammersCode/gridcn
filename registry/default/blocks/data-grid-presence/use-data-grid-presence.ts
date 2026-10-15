@@ -46,8 +46,7 @@ export type UseDataGridPresenceResult = {
  * Zero-cell-render contract preserved: `plugin`'s identity never changes across renders (returned
  * from a one-time `useState` initializer), and the plugin's `Overlay` component's own
  * `usePresenceHighlights` subscription only re-renders `DataGridOverlays` (the component that
- * renders the `Overlay` inside its own tree) — never rows or cells. See the render-count probe in
- * `data-grid-presence.test.tsx`.
+ * renders the `Overlay` inside its own tree) — never rows or cells.
  *
  * A hook (not a `<DataGridPresence>` component) is the simplest wiring here: the plugin must be
  * threaded into `plugins` on `DataGridProvider`, which sits ABOVE anywhere a child component

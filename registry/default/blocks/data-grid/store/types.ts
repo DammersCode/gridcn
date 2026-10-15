@@ -647,7 +647,7 @@ export type DataGridStoreState = Omit<
   searchMatchSet: ReadonlySet<string>;
   /**
    * `searchMatches` grouped by view row -> matched column indices, for {@link computeRowCellState}'s
-   * per-row derivation (perf audit 2026-07-17: the previous per-row `for` loop over every visible
+   * per-row derivation (the previous per-row `for` loop over every visible
    * column, each doing a `searchMatchSet.has(`${row}:${columnId}`)` string-key lookup, cost ~44ms/2000
    * ticks at 100k rows/8 cols with an active search — measured 29x faster building this map once per
    * search-text change and doing an O(1) `Map.get` per row per tick instead).
