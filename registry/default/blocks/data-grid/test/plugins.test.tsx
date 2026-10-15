@@ -1,3 +1,4 @@
+import { StrictMode } from "react";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { renderToString } from "react-dom/server";
@@ -285,6 +286,40 @@ describe("plugin identity across renders", () => {
     expect(String(warn.mock.calls[0]![0])).toContain("already attached");
     expect(storeA.getState().plugins.list).toContain(plugin);
     expect(storeB.getState().plugins.list).toHaveLength(0);
+    warn.mockRestore();
+  });
+
+  it("a plugin under StrictMode attaches without a warning and keeps its overlay", () => {
+    const plugin = { name: "strict", Overlay: () => null } as const;
+    const warn = vi.spyOn(console, "warn");
+    render(
+      <StrictMode>
+        <DataGridProvider data={rows} columns={columns} getRowId={getRowId} plugins={[plugin]}>
+          <DataGridRoot className="h-[360px]">
+            <DataGridBody />
+            <StoreCapture />
+          </DataGridRoot>
+        </DataGridProvider>
+      </StrictMode>,
+    );
+    expect(warn).not.toHaveBeenCalled();
+    expect(store!.getState().plugins.overlays).toHaveLength(1);
+    warn.mockRestore();
+  });
+
+  it("unmounting a grid releases its plugin so a remount with the same object keeps it", () => {
+    const plugin = { name: "remount", Overlay: () => null } as const;
+    const warn = vi.spyOn(console, "warn");
+    const first = render(
+      <DataGridProvider data={rows} columns={columns} getRowId={getRowId} plugins={[plugin]}>
+        <DataGridRoot className="h-[360px]"><DataGridBody /></DataGridRoot>
+      </DataGridProvider>,
+    );
+    first.unmount();
+    const h = mountGrid([plugin]);
+    expect(warn).not.toHaveBeenCalled();
+    expect(h.store().getState().plugins.overlays).toHaveLength(1);
+    expect(h.store().getState().plugins.list).toHaveLength(1);
     warn.mockRestore();
   });
 

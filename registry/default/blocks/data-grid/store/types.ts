@@ -973,6 +973,14 @@ export type DataGridInternalActions = {
    */
   _syncConfig(props: InternalSyncProps): void;
   /**
+   * @internal Claims the current `plugins` list for this store from a mount effect (a plugin
+   * instance attaches to one live grid; a plugin another grid holds is dropped and dev-warned) and
+   * re-claims when the list changes. Not part of the public hook surface.
+   */
+  _syncPluginClaims(): void;
+  /** @internal Frees this store's plugin claims on unmount. Not part of the public hook surface. */
+  _releasePluginClaims(): void;
+  /**
    * @internal The provider subscribes after its `onActiveCellChange` wiring: fires `onEditEnd`
    * `cancel` when a session ends outside commit/cancel (remap, stale-anchor discard, direct store
    * write). Returns the unsubscribe. Not part of the public hook surface.

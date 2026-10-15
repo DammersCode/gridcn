@@ -41,30 +41,41 @@ export function pluginsListEqual(a: readonly DataGridPlugin[] | undefined, b: re
   return true;
 }
 
-/** plugin object -> the store that resolved it first; a plugin instance attaches to ONE grid. */
+/** plugin object -> the store whose mounted grid holds it; a plugin instance attaches to ONE grid. */
 const pluginAttachments = new WeakMap<object, object>();
 
+function ownedByAnotherStore(plugin: DataGridPlugin, store: object): boolean {
+  const owner = pluginAttachments.get(plugin);
+  return owner !== undefined && owner !== store;
+}
+
 /**
- * Records which store owns each plugin object and drops the ones another live grid already
- * resolved (the first grid keeps them; the second grid's resolution skips them, dev-errored).
- * Returns the input list unchanged when nothing was dropped.
+ * Claims each plugin for `store` (call from a mount effect) and drops the ones another live grid
+ * already holds, dev-warning once per dropped plugin. `release` frees the claims this call made.
  */
-export function claimPluginAttachments(list: readonly DataGridPlugin[], store: object, warn: PluginWarnOnce): readonly DataGridPlugin[] {
-  let claimed: DataGridPlugin[] | null = null;
+export function claimPluginAttachments(
+  list: readonly DataGridPlugin[],
+  store: object,
+  warn: PluginWarnOnce,
+): { kept: readonly DataGridPlugin[]; release: () => void } {
+  const kept: DataGridPlugin[] = [];
   for (const plugin of list) {
-    const owner = pluginAttachments.get(plugin);
-    if (owner === undefined) {
-      pluginAttachments.set(plugin, store);
-    } else if (owner !== store) {
-      if (!claimed) claimed = list.slice(0, list.indexOf(plugin));
+    if (ownedByAnotherStore(plugin, store)) {
       warn(
         `attach:${plugin.name}`,
         `plugin "${plugin.name}" is already attached to another grid; a plugin instance attaches to one grid — pass a fresh plugin object (the add-on hook's result) to each grid`,
       );
       continue;
     }
+    pluginAttachments.set(plugin, store);
+    kept.push(plugin);
   }
-  return claimed ?? list;
+  return {
+    kept: kept.length === list.length ? list : kept,
+    release: () => {
+      for (const plugin of kept) if (pluginAttachments.get(plugin) === store) pluginAttachments.delete(plugin);
+    },
+  };
 }
 
 /**
@@ -199,12 +210,9 @@ export function mergePluginKeymaps(
   return merged;
 }
 
-/** Claim + resolve one grid's plugin list; an absent list is the shared empty identity. */
-export function resolvePluginsList(
-  list: readonly DataGridPlugin[] | undefined,
-  store: object,
-  warn: PluginWarnOnce,
-): ResolvedPlugins {
+/** Resolves one grid's plugin list, skipping plugins another live grid holds; an absent list is the shared empty identity. */
+export function resolvePluginsList(list: readonly DataGridPlugin[] | undefined, store: object, warn: PluginWarnOnce): ResolvedPlugins {
   if (!list || list.length === 0) return EMPTY_PLUGINS;
-  return resolvePlugins(claimPluginAttachments(list, store, warn), warn);
+  const free = list.filter((plugin) => !ownedByAnotherStore(plugin, store));
+  return resolvePlugins(free.length === list.length ? list : free, warn);
 }

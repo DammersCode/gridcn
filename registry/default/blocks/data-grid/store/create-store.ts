@@ -58,7 +58,7 @@ import { resolveEditTarget, warnBothSelectionPropsOnce, warnDev } from "./commit
 import { apiHandleOf } from "./api";
 import { createDataWriteActions, createDataWriteContext, forgetDeferredRows, resetDeferredRows, resolveRefOrWarn } from "./data-write";
 import { registerInternalActions } from "./internal-actions";
-import { mergePluginCommands, mergePluginKeymaps, pluginsListEqual, resolvePluginsList, warnPluginComponentRemounts } from "./plugins";
+import { claimPluginAttachments, mergePluginCommands, mergePluginKeymaps, pluginsListEqual, resolvePluginsList, warnPluginComponentRemounts } from "./plugins";
 import { createRowIndexCache, viewRowOfDataIndex } from "./row-index";
 import {
   EMPTY_SELECTION_STATE,
@@ -179,6 +179,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     pluginWarnedKeys.add(key);
     warnDev(message);
   };
+  let claimedPlugins: readonly DataGridPlugin[] | undefined;
+  let releasePluginClaims: (() => void) | null = null;
   // A getRowId swap on the same data array keeps ids, errors, and the row index of the old function.
   let warnedGetRowIdSwap = false;
   // `rowId -> dataIndex` for updateCells: row moves invalidate it, value patches keep it warm.
@@ -818,6 +820,25 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             ...selectionApply,
           };
         });
+      },
+      _syncPluginClaims() {
+        const list = lastPluginsProp;
+        if (releasePluginClaims && pluginsListEqual(list, claimedPlugins)) return;
+        releasePluginClaims?.();
+        const claim = claimPluginAttachments(list ?? [], api, pluginWarnOnce);
+        releasePluginClaims = claim.release;
+        claimedPlugins = list;
+        if (claim.kept === list || !list) return;
+        const resolved = resolvePluginsList(claim.kept, api, pluginWarnOnce);
+        set({
+          plugins: resolved,
+          keymap: mergePluginKeymaps(resolved.list, lastKeymapProp, pluginWarnOnce),
+          commands: mergePluginCommands(resolved.list, lastCommandsProp ?? undefined, pluginWarnOnce),
+        });
+      },
+      _releasePluginClaims() {
+        releasePluginClaims?.();
+        releasePluginClaims = null;
       },
       _subscribeEditEnd() {
         return api.subscribe((state, prev) => {

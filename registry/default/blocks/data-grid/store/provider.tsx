@@ -194,6 +194,15 @@ function useGridStoreCore<TData>(
     return getInternalActions(store)._subscribeEditEnd();
   }, [store, externalStore]);
 
+  useEffect(() => {
+    if (externalStore) return;
+    getInternalActions(store)._syncPluginClaims();
+  });
+  useEffect(() => {
+    if (externalStore) return;
+    return () => getInternalActions(store)._releasePluginClaims();
+  }, [store, externalStore]);
+
   // Config phase: the slice that feeds no derived state. The layout timing closes the write
   // window between the commit and the passive effects, so a `readOnly` flip blocks a keydown
   // that arrives right after the commit.

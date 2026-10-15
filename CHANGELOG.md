@@ -942,6 +942,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Plugins attach on mount (`data-grid`):** a plugin object is claimed when the grid mounts and released when it unmounts. A plugin no longer logs a false "already attached" warning under `<StrictMode>`, and re-mounting a grid with the same plugin object keeps the plugin. A second live grid with the same plugin object is still refused and warned.
+
 - **Touch select drags survive auto-scroll past the rendered window (`data-grid`):** a
   selection drag (cell range, row marker, or column header) that reaches a viewport edge
   auto-scrolls the grid; the pressed element unmounts the moment the scroll moves it out of
