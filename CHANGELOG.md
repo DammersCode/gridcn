@@ -915,6 +915,30 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   styled empty cells (`<c s="0"/>`) used to peak at 1.6 GB. A sheet at the new cap peaks near
   0.9 GB. The cap covers the shared strings too, so a sheet with more than about 51 MiB of XML
   or text needs a higher `maxCells` in `importLimits`.
+- The `checkbox` cell type's display renders a lightweight `span` instead of the full base-ui
+  `Checkbox` control (`data-grid`): the display cell is never interactive (the interaction layer
+  toggles the value; the box receives no events and was never focusable), so the span carries
+  `role="checkbox"`, `aria-checked`, the `data-grid-checkbox` attribute, the same 16px box and
+  check icon, and skips the control's state machine and per-row effect work. No API change; the
+  element under a checkbox cell is a `span` instead of a `button`.
+
+### Removed
+
+- **Breaking:** five unused hooks leave the `data-grid` barrel (`data-grid`):
+  `useDataGridEditingError`, `useDataGridRowHasError`, `useDataGridIsCellActive`,
+  `useDataGridIsCellEditing`, `useDataGridCellInitialText`. They were undocumented and have no
+  first-party caller; cell-level reads use `useDataGridCellState` and
+  `useDataGridCellEditingError`, and row-level error presence uses `useDataGridRowCellState`.
+- **Breaking:** the `data-grid-fill` entry no longer exports the fill-engine internals —
+  `computeFillTarget`, `generateFill`, `fillDirection`, `rectRelativeTo`, and the
+  `AllowedFillDirections`, `ComputeFillTargetOptions`, `FillDirection`, and `GenerateFillOptions`
+  types. The surface is `useDataGridFill`, `detectSeries`, `FillArgs`, and `SeriesDescriptor`.
+- **Breaking:** the `data-grid-url-state` entry no longer exports the URL param codecs —
+  `serializeSortState`/`parseSortState`, `serializeFilterState`/`parseFilterState`,
+  `serializeJoinOperator`/`parseJoinOperator`, `serializePage`/`parsePage`,
+  `serializePageSize`/`parsePageSize`, `DEFAULT_URL_PAGE_SIZE`, `FILTER_OPERATORS`, and
+  `prefixedKey`. `useDataGridUrlState`, `useDataGridUrlPagination`, and `DataGridUrlState` use
+  them internally; the surface keeps those hooks and the `Use*Options`/`Use*Result` types.
 
 ### Fixed
 
