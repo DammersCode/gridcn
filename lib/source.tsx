@@ -11,12 +11,15 @@ export const source = loader({
   plugins: [
     lucideIconsPlugin(),
     statusBadgesPlugin({
-      renderBadge: (status) =>
-        status === 'new' ? (
-          <span title="New page" className="ml-2 size-1.5 shrink-0 rounded-full bg-status-new" />
-        ) : (
-          <span title="Updated page" className="ml-2 size-1.5 shrink-0 rounded-full bg-status-updated" />
-        ),
+      renderBadge: (status) => (
+        <>
+          <span
+            aria-hidden
+            className={`ml-2 size-1.5 shrink-0 rounded-full ${status === 'new' ? 'bg-status-new' : 'bg-status-updated'}`}
+          />
+          <span className="sr-only">{status === 'new' ? 'New' : 'Updated'}</span>
+        </>
+      ),
     }),
   ],
 });
