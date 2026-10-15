@@ -2,7 +2,7 @@ import { page } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGrid } from "../data-grid";
-import { columns, makeRows, measureScrollFps } from "./perf-probe.test-helper";
+import { columns, makeRows, measureScrollFps, measureScrollLongTasks } from "./perf-probe.test-helper";
 // real stylesheet — layout/scroll must be real for a frame-timing probe to mean anything
 import "@/app/global.css";
 
@@ -73,5 +73,34 @@ describe("full-window-swap vs near-idle scroll FPS ratio", () => {
     expect(bestRatio).toBeGreaterThanOrEqual(0.1);
     const swapFloor = Math.min(15, bestIdle * 0.08);
     expect(bestSwap).toBeGreaterThanOrEqual(swapFloor);
+  });
+});
+
+describe("long tasks during rAF-paced fling scroll", () => {
+  // Long tasks are the user-perceived jank signal the FPS ratio cannot see: the ratio tolerates a
+  // uniformly slow machine, while a single over-50ms main-thread task is jank regardless of the
+  // average. Reference machine (headless Chromium, real stylesheet, 240px/frame fling, 240 frames):
+  // 0 long tasks, 0ms. The 2026-10-14 checkbox regression measured 89 long tasks / ~2400ms on the
+  // same class of scroll — this budget (200ms, ~4 long tasks) catches that collapse with margin for
+  // a loaded runner. Like the FPS test, the window is rAF-paced so dropped frames (not a tight
+  // synchronous loop, which is one long task by construction) are what the observer sees.
+  it("keeps long-task time within budget", { timeout: 120_000 }, async () => {
+    await render(
+      <div style={{ height: 600, width: 1200 }}>
+        <DataGrid data={makeRows(100_000)} columns={columns} getRowId={(r) => r.id} className="h-150 w-300" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+
+    // Warm-up so cold JIT/layout caches don't make the first fling the measured one.
+    await measureScrollLongTasks(grid, 240, 60);
+    const { count, totalMs } = await measureScrollLongTasks(grid, 240, 240);
+
+    console.log(`perf long-tasks: count=${count} total=${Math.round(totalMs)}ms`);
+    if (count > 0) {
+      console.warn(`perf long-tasks: ${count} over 50ms during the fling window — investigate if reproducible.`);
+    }
+    expect(totalMs).toBeLessThan(200);
   });
 });
