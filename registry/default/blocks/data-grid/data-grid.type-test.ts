@@ -43,7 +43,6 @@ import type {
   Keymap,
   MarkerCellRenderer,
   MarkerHeaderRenderer,
-  RowClickCtx,
   SelectionState,
   SortSpec,
   ColumnLayout,
@@ -397,12 +396,6 @@ const onCellClick: DataGridSyncProps<Row>["onCellClick"] = (ctx: CellClickCtx<Ro
   void name;
 };
 void onCellClick;
-
-const onRowClick: DataGridSyncProps<Row>["onRowClick"] = (ctx: RowClickCtx<Row>) => {
-  const age: number = ctx.row.age;
-  void age;
-};
-void onRowClick;
 
 const onCellClickWrongShape: DataGridSyncProps<Row>["onCellClick"] = (ctx: CellClickCtx<Row, unknown>) => {
   // @ts-expect-error - Row has no `totallyDifferentShape` field

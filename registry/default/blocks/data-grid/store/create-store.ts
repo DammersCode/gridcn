@@ -622,7 +622,6 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           onCellDoubleClick: props.onCellDoubleClick,
           onCellContextMenu: props.onCellContextMenu,
           onCellClick: props.onCellClick,
-          onRowClick: props.onRowClick,
           onRowWindowChange: props.onRowWindowChange,
           readOnly: Boolean(props.readOnly),
           keymap: nextKeymap ?? s.keymap,

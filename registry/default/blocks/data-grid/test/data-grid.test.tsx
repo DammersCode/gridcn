@@ -446,7 +446,7 @@ describe("aria-sort under the default headerClickBehavior", () => {
   });
 });
 
-describe("onCellClick / onRowClick", () => {
+describe("onCellClick", () => {
   it("onCellClick fires with the clicked cell's value/row/column/indices", () => {
     const onCellClick = vi.fn();
     render(<DataGrid data={makeRows(2)} columns={columns} getRowId={(r) => r.id} onCellClick={onCellClick} />);
@@ -460,31 +460,8 @@ describe("onCellClick / onRowClick", () => {
     expect(ctx.column.id).toBe("name");
   });
 
-  it("onRowClick fires alongside onCellClick, once per click regardless of column", () => {
-    const onRowClick = vi.fn();
-    render(<DataGrid data={makeRows(2)} columns={columns} getRowId={(r) => r.id} onRowClick={onRowClick} />);
-    const cells = screen.getAllByRole("gridcell");
-    fireEvent.click(cells[3]!); // row 1, "qty" column
-
-    expect(onRowClick).toHaveBeenCalledTimes(1);
-    expect(onRowClick.mock.calls[0]![0]).toEqual({ row: { id: "1", name: "Row 1", qty: 1 }, rowId: "1", viewRowIndex: 1 });
-  });
-
-  it("both fire together from the same click when both props are supplied", () => {
-    const onCellClick = vi.fn();
-    const onRowClick = vi.fn();
-    render(
-      <DataGrid data={makeRows(1)} columns={columns} getRowId={(r) => r.id} onCellClick={onCellClick} onRowClick={onRowClick} />,
-    );
-    fireEvent.click(screen.getAllByRole("gridcell")[0]!);
-
-    expect(onCellClick).toHaveBeenCalledTimes(1);
-    expect(onRowClick).toHaveBeenCalledTimes(1);
-  });
-
-  it("neither fires without the corresponding prop (no cost when unused)", () => {
+  it("a click without an onCellClick prop does not throw", () => {
     render(<DataGrid data={makeRows(1)} columns={columns} getRowId={(r) => r.id} />);
-    // no assertion needed beyond "doesn't throw" — this documents the props are fully optional.
     expect(() => fireEvent.click(screen.getAllByRole("gridcell")[0]!)).not.toThrow();
   });
 });

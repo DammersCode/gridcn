@@ -285,18 +285,6 @@ export type CellClickCtx<TData, TValue> = {
  */
 export type OnCellClick<TData> = (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
 
-/** Context passed to `onRowClick`. */
-export type RowClickCtx<TData> = {
-  row: TData;
-  /** The row's `getRowId()` value — stable row identity. */
-  rowId: string;
-  /** Display (view-space) row index — matches {@link CellClassNameCtx.viewRowIndex}. */
-  viewRowIndex: number;
-};
-
-/** Same firing site as {@link OnCellClick}, once per click regardless of which column was clicked. */
-export type OnRowClick<TData> = (ctx: RowClickCtx<TData>, event: MouseEvent) => void;
-
 /**
  * Fired by `onEditEnd` when an edit session ends or a commit attempt is refused: `commit` after the
  * session closes (data written or no-op), `cancel` when the draft is discarded (Escape, the cell
@@ -756,7 +744,6 @@ export type DataGridReadState = Omit<
   | "onCellDoubleClick"
   | "onCellContextMenu"
   | "onCellClick"
-  | "onRowClick"
   | "onRowWindowChange"
   | "scrollToCellImpl"
   | "focusImpl"

@@ -185,10 +185,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       // identity change re-renders no cell. Skeleton/pinned-row cells don't reach here (this handler
       // isn't attached for them below), so `row`/`value` are always real by construction.
       const s = storeApi.getState();
-      if (s.onCellClick || s.onRowClick) {
-        s.onCellClick?.({ value, row, column, rowId, columnId: column.id, viewRowIndex: viewRowIndex, viewColumnIndex: viewColumnIndex }, event.nativeEvent);
-        s.onRowClick?.({ row, rowId, viewRowIndex: viewRowIndex }, event.nativeEvent);
-      }
+      s.onCellClick?.({ value, row, column, rowId, columnId: column.id, viewRowIndex: viewRowIndex, viewColumnIndex: viewColumnIndex }, event.nativeEvent);
     },
     [interaction, coord, storeApi, value, row, column, rowId, viewRowIndex, viewColumnIndex],
   );

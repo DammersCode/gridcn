@@ -40,15 +40,14 @@ Grep the `data`/`onDataChange` (controlled mode) call sites. If `data` is rebuil
 - Fix: keep row references stable across renders that don't touch them; update immutably (swap only the changed row's reference), don't rebuild the whole array. This warning does not fire in uncontrolled mode (no `data` prop) — the store's own array legitimately gets a new reference on every mutation there.
 - In controlled mode, store the array `onDataChange` hands over unchanged: `onDataChange={(next) => setData(next as Row[])}`. A copy (`[...next]`), `map`, or `filter` defeats the store's echo check, so every edit or `updateCells` tick rebuilds the row-id map and the view index.
 
-## 4. Unstable `getRowClassName` / `getCellClassName` / `onCellClick` / `onRowClick`
+## 4. Unstable `getRowClassName` / `getCellClassName` / `onCellClick`
 
-Grep for these four props on `DataGridRoot`/`DataGrid`. An inline arrow function or closure passed directly in JSX is a fresh identity every render, breaking row/cell memoization the same way unstable `columns` does.
+Grep for these three props on `DataGridRoot`/`DataGrid`. An inline arrow function or closure passed directly in JSX is a fresh identity every render, breaking row/cell memoization the same way unstable `columns` does.
 
 - Symptoms (each independent):
   - `[data-grid] getRowClassName identity changed since the last render; pass a stable reference (e.g. useCallback) or every row re-renders`
   - `[data-grid] getCellClassName identity changed since the last render; pass a stable reference (e.g. useCallback) or every cell re-renders`
   - `[data-grid] onCellClick identity changed since the last render; pass a stable reference (e.g. useCallback) or every cell re-renders`
-  - `[data-grid] onRowClick identity changed since the last render; pass a stable reference (e.g. useCallback) or every row re-renders`
 - Fix: module scope if the function needs no closure state, otherwise `useCallback` with a stable dependency list.
 
 ## 5. Unstable plugin members in `plugins`

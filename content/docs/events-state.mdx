@@ -24,7 +24,7 @@ sort or filter a column, drag-fill, scroll, resize, pin, or hide a column) to se
 | React to a filter or join-operator change | `onFilterChange` + join | [4. `onFilterChange` + join](#4-onfilterchange--join) |
 | Control or observe the quick-search text | `searchText` / `onSearchTextChange` | Same controlled-pair convention as [3. `onSortChange`](#3-onsortchange) |
 | Intercept or veto a fill-handle drag | `onFill` | [5. `onFill`](#5-onfill) |
-| React to a plain click on a cell or row | `onCellClick` + `onRowClick` | [6. `onCellClick` + `onRowClick`](#6-oncellclick--onrowclick) |
+| React to a plain click on a cell or its row | `onCellClick` | [6. `onCellClick`](#6-oncellclick) |
 | Veto or react to an edit starting or ending | `onEditStart` + `onEditEnd` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
 | React to the active cell moving | `onActiveCellChange` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
 | React to cells a bulk paste, fill, or `updateCells` rejected | `onValidationError` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
@@ -250,35 +250,33 @@ selection does not expand. Fill itself lives in the separate `data-grid-fill` ad
 an option to that add-on's `useDataGridFill()` hook, not a `DataGrid` or
 `DataGridRoot` prop. See [Fill handle](/docs/addons/fill).
 
-## 6. `onCellClick` + `onRowClick`
+## 6. `onCellClick`
 
 ```ts
 onCellClick?: (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
-onRowClick?: (ctx: RowClickCtx<TData>, event: MouseEvent) => void;
 // CellClickCtx = { value, row, column, rowId, columnId, viewRowIndex, viewColumnIndex }
-// RowClickCtx = { row, rowId, viewRowIndex }
 ```
 
-Both fire from the same plain click on any non-skeleton, non-pinned-row cell. `onRowClick` fires
-once per click regardless of which column was clicked, and `onCellClick` fires with the specific
-cell's value, row, column, row and column identity, and view indices. Neither is a veto point (contrast the `preventDefault()`
-of `onFill`). They are pure notifications, fired alongside whatever the click already does
-(select the cell, toggle a checkbox). They attach to the cell's own existing DOM click handler,
-with no new per-cell subscription, so leaving both unset costs nothing.
+`onCellClick` fires once per plain click on any non-skeleton, non-pinned-row cell. Its ctx carries
+the cell's value, row, column, row and column identity, and view indices. A row-level reaction
+reads `ctx.row`, `ctx.rowId`, and `ctx.viewRowIndex`. It is not a veto point (contrast the
+`preventDefault()` of `onFill`). It is a pure notification, fired alongside whatever the click
+already does (select the cell, toggle a checkbox). It attaches to the cell's own existing DOM
+click handler, with no new per-cell subscription, so leaving it unset costs nothing.
 
 <Callout type="warn" title="Not the same as selection">
-  A click always updates `selection` and `activeCell` too (see `onSelectionChange` above). These
-  two callbacks are for "I clicked THIS cell/row" as a discrete event, not for tracking the
-  resulting selection state. Use both together if you need to know what the user clicked, and
+  A click always updates `selection` and `activeCell` too (see `onSelectionChange` above).
+  `onCellClick` is for "I clicked THIS cell" as a discrete event, not for tracking the resulting
+  selection state. Use it with `onSelectionChange` if you need to know what the user clicked, and
   where that left the selection.
 </Callout>
 
 ### Typed callbacks in split composition
 
 `<DataGrid<TData>>` infers `TData` from its own `data` or `defaultData` prop, so
-`getRowClassName`, `getCellClassName`, `onCellClick`, and `onRowClick` are typed automatically.
-In split composition (`DataGridProvider` plus `DataGridRoot`), `onCellClick` and `onRowClick`
-live on the `DataGridProvider`, which infers `TData` from its own `data` prop. The root has no
+`getRowClassName`, `getCellClassName`, and `onCellClick` are typed automatically.
+In split composition (`DataGridProvider` plus `DataGridRoot`), `onCellClick`
+lives on the `DataGridProvider`, which infers `TData` from its own `data` prop. The root has no
 `data` prop, so annotate its generic for the class-name callbacks:
 
 ```tsx
@@ -287,7 +285,6 @@ live on the `DataGridProvider`, which infers `TData` from its own `data` prop. T
   columns={columns}
   getRowId={(p) => p.id}
   onCellClick={(ctx) => console.log(ctx.row.name)} // ctx.row: Person, no cast
-  onRowClick={(ctx) => console.log(ctx.row.age)}
 >
   <DataGridRoot<Person>
     getRowClassName={(row) => (row.active ? "bg-accent/20" : undefined)}
@@ -298,7 +295,7 @@ live on the `DataGridProvider`, which infers `TData` from its own `data` prop. T
 `DataGridProviderProps<TData>` and `DataGridRootProps<TData>` both default to `unknown` when you
 omit the generic (every existing untyped call site is unaffected). See `data-grid.type-test.ts`
 for the compile-time proof and `data-grid-events-demo.tsx` for a worked example with
-`onCellClick` and `onRowClick`.
+`onCellClick`.
 
 ## 7. `onRowWindowChange`
 

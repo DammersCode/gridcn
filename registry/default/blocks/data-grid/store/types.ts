@@ -23,7 +23,6 @@ import type {
   OnCellClick,
   OnCellContextMenu,
   OnCellDoubleClick,
-  OnRowClick,
   RowMarkersMode,
   SelectionState,
   SortSpec,
@@ -302,8 +301,6 @@ export type DataGridSyncProps<TData = unknown> = {
      * to keep the store's config sync from running once per render with a new callback.
      */
     onCellClick?: OnCellClick<TData>;
-    /** Fired alongside `onCellClick` once per click regardless of column — see {@link OnRowClick}. */
-    onRowClick?: OnRowClick<TData>;
     /**
      * Fired after a row-window commit with the rendered data-row range `[start, end)` (inclusive
      * start, exclusive end — same convention as `useRowWindow`'s `RowWindow`). Only fires when the

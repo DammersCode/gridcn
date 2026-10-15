@@ -16,7 +16,6 @@ import {
   type GridEditEndEvent,
   type GridValidationErrorEvent,
   type SelectionState,
-  type RowClickCtx,
   type SelectionChangeDetails,
   type SortSpec,
 } from "@/registry/default/blocks/data-grid/data-grid";
@@ -116,7 +115,7 @@ function PresenceReadBackButton({
  * Events & state showcase (docs/events-state): grid on the left, live inspector on the right
  * pretty-printing the latest payload per event source, most recent first. Wires every event source
  * from the page's numbered sections — onDataChange, onSelectionChange (with details.getValues()),
- * onSortChange, onFilterChange + join, onCellClick/onRowClick, onFill (the `data-grid-fill`
+ * onSortChange, onFilterChange + join, onCellClick, onFill (the `data-grid-fill`
  * add-on's hook option), onRowWindowChange, onColumnLayoutChange + onColumnResizing,
  * onEditStart/onEditEnd, onActiveCellChange, onValidationError, onCellDoubleClick/onCellContextMenu,
  * and presence read-back as the two-sided contrast.
@@ -230,10 +229,6 @@ export default function DataGridEventsDemo(): ReactNode {
     setLog((prev) => pushLog(prev, { source: "onValidationError", at: Date.now(), payload: event }));
   }, []);
 
-  const onRowClick = useCallback((ctx: RowClickCtx<DemoRow>) => {
-    setLog((prev) => pushLog(prev, { source: "onRowClick", at: Date.now(), payload: { rowId: ctx.rowId, viewRowIndex: ctx.viewRowIndex } }));
-  }, []);
-
   const onPresenceFired = useCallback((payload: unknown) => {
     setLog((prev) => pushLog(prev, { source: "setPresenceHighlights (read-back)", at: Date.now(), payload }));
   }, []);
@@ -267,7 +262,6 @@ export default function DataGridEventsDemo(): ReactNode {
             onCellDoubleClick={onCellDoubleClick}
             onCellContextMenu={onCellContextMenu}
             onCellClick={onCellClick}
-            onRowClick={onRowClick}
             onRowWindowChange={onRowWindowChange}
             headerClickBehavior="sort"
             plugins={plugins}

@@ -924,6 +924,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Removed
 
+- **Breaking:** `onRowClick` and `RowClickCtx` are removed (`data-grid`); use `onCellClick`, whose
+  ctx carries `row`, `rowId`, and `viewRowIndex`. `OnRowClick` leaves the type exports too.
 - **Breaking:** five unused hooks leave the `data-grid` barrel (`data-grid`):
   `useDataGridEditingError`, `useDataGridRowHasError`, `useDataGridIsCellActive`,
   `useDataGridIsCellEditing`, `useDataGridCellInitialText`. They were undocumented and have no

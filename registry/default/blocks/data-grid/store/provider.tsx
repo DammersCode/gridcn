@@ -133,7 +133,6 @@ const CONFIG_KEYS = [
   "onCellDoubleClick",
   "onCellContextMenu",
   "onCellClick",
-  "onRowClick",
   "onRowWindowChange",
 ] as const satisfies readonly (keyof DataGridSyncProps)[];
 
