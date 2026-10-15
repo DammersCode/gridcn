@@ -48,9 +48,6 @@ function build(sidebar: HTMLElement) {
   });
 
   const root = sidebar.querySelector<HTMLElement>("[data-radix-scroll-area-viewport] > div");
-  // The viewport's *:gap-0.5! child utility carries !important and wins the cascade;
-  // only an inline important declaration on the frame zeroes the row gap reliably.
-  if (root) root.style.setProperty("gap", "0px", "important");
 
   const process = (container: Element | null, depth: number) => {
     if (!container) return;

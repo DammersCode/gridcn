@@ -290,6 +290,7 @@ button[data-search],
 /* docs sidebar grid canvas: one continuous table, 36px rows, 1px line at every boundary,
    every element its own bordered cell. The cell structure (chevron/gutter/content, ghost
    cells, group band) is built by components/sidebar-grid.tsx; this only styles it.
+   Row and wrapper selectors match fumadocs-ui 16.15 utility classes (no data attributes exist).
    No :has() here (repo policy). */
 
 /* 312px sidebar (fumadocs default is 268px). Ties fumadocs' #nd-docs-layout:has(...) width
@@ -307,10 +308,15 @@ button[data-search],
   box-shadow: 0 1px 0 0 var(--color-border), 0 6px 16px -6px rgb(0 0 0 / 0.5);
 }
 
+/* Layered !important beats unlayered !important, so this rule sits in @layer base to outrank
+   the viewport's *:gap-0.5! utility (utilities layer) in the server-rendered HTML. */
+@layer base {
+  :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div {
+    gap: 0 !important;
+  }
+}
+
 :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div {
-  /* the viewport's *:gap-0.5! child utility wins the cascade with !important; the builder
-     also sets gap inline, this documents intent and covers other gap sources */
-  gap: 0 !important;
   border: 1px solid var(--color-border);
   background: var(--color-background);
 }
