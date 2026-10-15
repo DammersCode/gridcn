@@ -110,12 +110,14 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   // appliedRef guard below) and is exposed as applyFromUrl so a consumer can re-apply after an
   // external URL change (back/forward, setSearchParams, query-only route change).
   const applyUrl = useCallback((keepMountDefaults: boolean) => {
-    // Drop specs referencing a column no longer in the grid (a shared link outlived a removal) and dev-warn each one.
-    const liveColumnIds = new Set(allColumns.map((c) => c.id));
+    // Drop specs a shared link must not apply: a removed column, or one the integrator excluded from sorting/filtering or hid. Each drop dev-warns.
+    const usable = (c: (typeof allColumns)[number]) => c.hidden !== true;
+    const sortableIds = new Set(allColumns.filter((c) => usable(c) && c.sortable !== false).map((c) => c.id));
+    const filterableIds = new Set(allColumns.filter((c) => usable(c) && c.filterable !== false).map((c) => c.id));
     const parsedSorts = parseSortState(sortParam);
     const sorts = parsedSorts.filter((spec) => {
-      if (liveColumnIds.has(spec.columnId)) return true;
-      warnDev(`dropped URL sort spec for removed column "${spec.columnId}"`);
+      if (sortableIds.has(spec.columnId)) return true;
+      warnDev(`dropped URL sort spec for removed, hidden, or unsortable column "${spec.columnId}"`);
       return false;
     });
     const choiceBounds = new Map(
@@ -126,8 +128,8 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     );
     const parsedFilters = parseFilterState(filterParam, { maxChoices: (columnId) => choiceBounds.get(columnId) });
     const filters = parsedFilters.filter((spec) => {
-      if (liveColumnIds.has(spec.columnId)) return true;
-      warnDev(`dropped URL filter spec for removed column "${spec.columnId}"`);
+      if (filterableIds.has(spec.columnId)) return true;
+      warnDev(`dropped URL filter spec for removed, hidden, or unfilterable column "${spec.columnId}"`);
       return false;
     });
     const join = parseJoinOperator(joinParam);

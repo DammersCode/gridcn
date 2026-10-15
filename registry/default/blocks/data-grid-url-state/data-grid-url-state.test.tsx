@@ -172,6 +172,42 @@ describe("DataGridUrlState mount-apply", () => {
   });
 });
 
+describe("DataGridUrlState excluded columns", () => {
+  const guardedColumns = defineColumns<Row>()([
+    { id: "name", header: "Name", accessorKey: "name", type: "text", width: 100 },
+    { id: "age", header: "Age", accessorKey: "age", type: "number", width: 80, sortable: false },
+    { id: "id", header: "Id", accessorKey: "id", type: "text", width: 80, filterable: false, hidden: true },
+  ] as const);
+
+  function renderGuarded(searchParams: string) {
+    let latest: { sort: unknown; filter: unknown; search: string } | undefined;
+    render(
+      <NuqsTestingAdapter searchParams={searchParams}>
+        <DataGridProvider data={rows} columns={guardedColumns} getRowId={(r) => r.id}>
+          <DataGridUrlState />
+          <StateProbe onState={(s) => (latest = s)} />
+        </DataGridProvider>
+      </NuqsTestingAdapter>,
+    );
+    return () => latest!;
+  }
+
+  it("drops URL sort specs for a sortable:false or hidden column and dev-warns", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const getState = renderGuarded("?sort=age%3Aasc,id%3Adesc,name%3Aasc");
+    expect(getState().sort).toEqual([{ columnId: "name", direction: "asc" }]);
+    expect(warn.mock.calls.length).toBe(2);
+    warn.mockRestore();
+  });
+
+  it("drops URL filter specs for a filterable:false or hidden column", () => {
+    const getState = renderGuarded("?filter=id%3Aequals%3Ar0,name%3Aequals%3AAlice");
+    expect(getState().filter).toEqual([
+      { filterId: expect.any(String), columnId: "name", operator: "equals", value: "Alice" },
+    ]);
+  });
+});
+
 describe("DataGridUrlState state -> URL write", () => {
   it("writes a sort change to the URL", async () => {
     const onUrlUpdate = vi.fn();
