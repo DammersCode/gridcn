@@ -312,7 +312,7 @@ An HR dataset shows all four styling surfaces at once, each suited to a differen
 
 <Callout type="warn" title="Pass a stable function identity">
   Pass `getRowClassName` and `getCellClassName` as stable references (module scope or
-  `useCallback`, the same rule as `columns` and `data`, see
+  `useCallback`; the same rule applies to `columns` and `data`. See
   [Performance](/docs/performance#keeping-it-fast)): a fresh arrow function on every render makes
   every row and cell re-render on every parent render, and a dev-mode console warning fires if
   the identity changes across renders.

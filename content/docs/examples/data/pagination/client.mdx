@@ -1,6 +1,6 @@
 ---
 title: Client mode
-description: useDataGridPagination slicing a full dataset. When the whole table already fits in the browser.
+description: useDataGridPagination slicing a full dataset, for a table that already fits in the browser.
 icon: Table
 ---
 
@@ -31,8 +31,8 @@ const pager = useDataGridPagination({
 ```
 
 Both return the same `controls` shape, so `<DataGridPaginationBar {...pager.controls} />`
-doesn't need to know which mode it's in. The footer sits outside the provider in both cases
-. It reads no store.
+doesn't need to know which mode it's in. The footer sits outside the provider in both cases,
+so it reads no store.
 
 Use client mode when the dataset already fits in memory (a few hundred to a few thousand
 rows). Switch to server mode when a page is a real API call. See

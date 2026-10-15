@@ -84,7 +84,7 @@ exportGrid(state, { format: "csv", scope: "selection" });
 
 `scope` controls which rows get exported. The default, `'view'`, follows whatever the user
 sees, the active sort and filter, by walking `viewIndex` (quick search never narrows
-`viewIndex`. See [Sorting, filtering & search](/docs/sorting-filtering-search#search)). `'all'`
+`viewIndex`; see [Sorting, filtering & search](/docs/sorting-filtering-search#search)). `'all'`
 ignores view order entirely and exports every row of the raw `data` array as-is.
 `'selection'` walks only the selected rows, counting both the marker checkboxes and any cell range.
 
@@ -321,7 +321,7 @@ import { Dropzone, DropzoneEmptyState, DropzoneContent } from "@/components/drop
 | `compact` | `boolean` | `false` | Single-row layout (icon + content inline) instead of the tall centered box. |
 | `onDrop` | `(accepted: File[], rejections: DropzoneRejection[]) => void` | none | Called after a drop or file-picker selection, win or lose. |
 | `onError` | `(error: Error) => void` | none | Called when the native file read itself fails. |
-| `src` | `File[]` | none | Currently held files, read by the default `DropzoneContent`. |
+| `src` | `File[]` | none | The files the dropzone holds, read by the default `DropzoneContent`. |
 | `className` | `string` | none | Merged onto the drop-surface root after the built-in classes. |
 
 ### Styling hooks

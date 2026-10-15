@@ -70,8 +70,7 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
    to the cleared cell, and the rest of the paste keeps going.
 - **`clearValue`**: the empty value of the type (`""`, `null`, `false`, and so on). Quick-clear
   delete, the garbage fallback of `fromText`, and fill-clear all use it.
-- **`isEmpty`**: whether a value counts as empty. This is a semantic choice, not a technicality.
-  See the checklist below. It decides what a Ctrl+A "select all data" region treats as non-blank,
+- **`isEmpty`**: whether a value counts as empty. See the checklist below. It decides what a Ctrl+A "select all data" region treats as non-blank,
   and what the fill handle treats as a fillable gap.
 - **`compare`**: the sort comparator, used when the column declares this `type`. When you omit
    it, the default is a numeric-aware locale collation of the RAW `String(value)`, not of

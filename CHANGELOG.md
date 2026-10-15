@@ -939,6 +939,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `serializePageSize`/`parsePageSize`, `DEFAULT_URL_PAGE_SIZE`, `FILTER_OPERATORS`, and
   `prefixedKey`. `useDataGridUrlState`, `useDataGridUrlPagination`, and `DataGridUrlState` use
   them internally; the surface keeps those hooks and the `Use*Options`/`Use*Result` types.
+- `data-grid`: the internal `components/data-grid/clipboard/index.ts` barrel is no longer installed.
+  Import `useDataGridClipboard` from `@/components/data-grid/data-grid`.
 
 ### Fixed
 
