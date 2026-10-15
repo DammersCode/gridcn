@@ -78,6 +78,25 @@ describe("computeAutosizeWidths", () => {
     expect(withWindow["a"]).toBe(80 * PX + 20);
   });
 
+  it.each([[1999], [1500], [1001], [2999], [10999]])("samples evenly through the tail and includes the last row (count %i)", (count) => {
+    const sampleRows = 1000;
+    const touched: number[] = [];
+    const rows = new Proxy([] as Row[], {
+      get(_target, key) {
+        if (typeof key === "string" && /^\d+$/.test(key)) {
+          touched.push(Number(key));
+          return { a: "1", b: "2" };
+        }
+        return undefined;
+      },
+    });
+    computeAutosizeWidths(makeState({ viewIndex: Array.from({ length: count }, (_, i) => i), data: rows }), { cellFont: "f", headerFont: "f" }, null, { sampleRows });
+    const sorted = [...new Set(touched)].sort((x, y) => x - y);
+    expect(sorted.at(-1)).toBe(count - 1);
+    const maxGap = Math.max(...sorted.slice(1).map((row, i) => row - sorted[i]!));
+    expect(maxGap).toBeLessThanOrEqual(Math.ceil(count / sampleRows));
+  });
+
   it("adds the sort-indicator and header-menu trigger allowances to the header width", () => {
     const widths = computeAutosizeWidths(
       makeState({ sortState: [{ columnId: "a", direction: "asc" }], hasHeaderMenu: true }),
@@ -158,12 +177,12 @@ describe("computeAutosizeWidths", () => {
 
   it("clamps sampleRows into [1, 10000]", () => {
     const rows: Row[] = Array.from({ length: 20_000 }, () => ({ a: "1", b: "2" }));
-    rows[19_999] = { a: "L".repeat(80), b: "2" };
+    rows[19_997] = { a: "L".repeat(80), b: "2" };
     const state = { viewIndex: rows.map((_, i) => i), data: rows };
     const fonts = { cellFont: "f", headerFont: "f" };
-    // 50000 clamps to 10000 → stride 2 → row 19999 (odd) never sampled
+    // 50000 clamps to 10000 → every second row → row 19997 (odd) never sampled
     expect(computeAutosizeWidths(makeState(state), fonts, null, { sampleRows: 50_000 })["a"]).toBe(DEFAULT_WIDTH);
-    // sampleRows 0/undefined clamp to at least 1: only row 0 + window rows are sampled
+    // sampleRows 0/undefined clamp to at least 1: only rows 0 and 9 + window rows are sampled
     const small: Row[] = Array.from({ length: 10 }, () => ({ a: "1", b: "2" }));
     small[5] = { a: "L".repeat(80), b: "2" };
     const smallState = { viewIndex: small.map((_, i) => i), data: small };

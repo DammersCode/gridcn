@@ -76,14 +76,12 @@ export function computeAutosizeWidths(
   }
   if (targets.length === 0) return {};
 
-  // sample view rows: evenly strided across the whole view, plus every mounted window row
+  // sample view rows: evenly spread across the whole view, plus the last row and every mounted window row
   const count = viewIndex.length;
   const sampled = new Set<number>();
-  const stride = Math.max(1, Math.floor(count / sampleRows));
-  for (let i = 0; i < count; i += stride) {
-    sampled.add(i);
-    if (sampled.size >= sampleRows) break;
-  }
+  const spread = Math.min(sampleRows, count);
+  for (let k = 0; k < spread; k++) sampled.add(Math.floor((k * count) / spread));
+  if (count > 0) sampled.add(count - 1);
   if (window) {
     for (let i = Math.max(window.start, 0); i < Math.min(window.end, count); i++) sampled.add(i);
   }
