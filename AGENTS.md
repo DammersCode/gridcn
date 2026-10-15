@@ -113,7 +113,7 @@ Before pushing, additionally mirror the remaining `.github/workflows/ci.yml` ste
 
 - Push only when the user explicitly asks for it.
 - Conventional prefixes (`feat:`, `fix:`, `docs:`, `chore:`, `test:`), imperative subject.
-- Never add a `Co-Authored-By` trailer.
+- Never add a `Co-Authored-By` trailer. Once per clone, run `git config core.hooksPath .githooks`: its `commit-msg` hook rejects AI attribution in commit messages. PR and issue text is not checked; keep it free of attribution too.
 
 ### Changelog
 
