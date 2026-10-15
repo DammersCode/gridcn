@@ -16,7 +16,7 @@ function TextEditor(props: CellEditorProps<unknown, string>) {
 export const textCellType: CellType<unknown, string, GridCellTypes["text"]["options"]> = {
   Cell: TextCell,
   Editor: TextEditor,
-  toText: (value) => value,
+  toText: (value) => String(value ?? ""),
   fromText: (text) => text,
   clearValue: () => "",
   isEmpty: (value) => value == null || value === "",

@@ -110,12 +110,14 @@ export const selectCellType: CellType<unknown, string | null, GridCellTypes["sel
   Editor: SelectEditor,
   toText: (value, options) => {
     if (value == null) return "";
-    return findChoice(options?.choices, value)?.label ?? value;
+    const key = String(value);
+    return findChoice(options?.choices, key)?.label ?? key;
   },
   // search the label, like toText — the stored value is an opaque choice id
   toSearchText: (value, options) => {
     if (value == null) return "";
-    return findChoice(options?.choices, value)?.label ?? value;
+    const key = String(value);
+    return findChoice(options?.choices, key)?.label ?? key;
   },
   filter: { operators: [...TEXT_FILTER_OPERATORS, "isAnyOf"], valueInput: "choices" },
   fromText: (text, options) => {

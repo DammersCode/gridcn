@@ -36,13 +36,13 @@ export const urlCellType: CellType<unknown, string | null, GridCellTypes["url"][
   Cell: UrlCell,
   Editor: UrlEditor,
   filter: { operators: TEXT_FILTER_OPERATORS, valueInput: "text" },
-  toText: (value) => (value ?? "").trim(),
+  toText: (value) => String(value ?? "").trim(),
   toDisplayText: (value, options) => {
-    const url = (value ?? "").trim();
+    const url = String(value ?? "").trim();
     return options?.label ? options.label(url) : url;
   },
   href: (value) => {
-    const url = (value ?? "").trim();
+    const url = String(value ?? "").trim();
     return url === "" ? null : safeHref(url);
   },
   fromText: (text) => text.trim(),
