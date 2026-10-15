@@ -942,6 +942,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **A `null` selection anchor no longer warns (`data-grid`):** a selection value with a `range` and a `null` `anchor` resets the anchor to `range.start` silently. The false warning also used up the one-per-grid warning for a real unresolvable value.
+
 - **Large selections resolve in one pass (`data-grid`):** `setSelection`, the controlled `selection` prop, and `defaultSelection` look up many row ids with one index build instead of one full scan per id. Resolving 2,000 ids over 100k rows no longer makes about 100 million `getRowId` calls.
 
 - **Plugins attach on mount (`data-grid`):** a plugin object is claimed when the grid mounts and released when it unmounts. A plugin no longer logs a false "already attached" warning under `<StrictMode>`, and re-mounting a grid with the same plugin object keeps the plugin. A second live grid with the same plugin object is still refused and warned.

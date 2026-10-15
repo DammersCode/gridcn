@@ -175,7 +175,7 @@ export function resolveSelectionState(
     if (start && end) {
       range = { start: { rowId: start.rowId, columnId: start.columnId }, end: { rowId: end.rowId, columnId: end.columnId } };
       rangeRect = rectFromCorners({ row: start.row, col: start.col }, { row: end.row, col: end.col });
-      const anchor = resolveRef(value.anchor);
+      const anchor = value.anchor === null || value.anchor === undefined ? null : resolveRef(value.anchor);
       if (anchor && rectContains(rangeRect, { row: anchor.row, col: anchor.col })) {
         anchorRef = { rowId: anchor.rowId, columnId: anchor.columnId };
         anchorCoord = { row: anchor.row, col: anchor.col };
