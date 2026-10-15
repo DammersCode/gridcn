@@ -1,6 +1,6 @@
 import type { GridRect } from "@/registry/default/blocks/data-grid/data-grid";
 
-/** Walk cap for one status-bar aggregation, in counted cells (same cap as the clipboard's `MAX_COPY_CELLS`). */
+/** Walk cap for one status-bar aggregation, in visited cells (same cap as the clipboard's `MAX_COPY_CELLS`). */
 export const MAX_STATUS_CELLS = 200_000;
 
 export type SelectionStats = {
@@ -47,14 +47,15 @@ export type SelectionStatsInput = {
   isEmptyAt: (viewCol: number, value: unknown) => boolean;
   /** The id of the visible column at `viewCol`. */
   columnIdAt: (viewCol: number) => string;
-  /** Stop the walk once `cells` reaches this (default {@link MAX_STATUS_CELLS}). */
+  /** Stop the walk once this many cells were visited, lazy holes included (default {@link MAX_STATUS_CELLS}). */
   maxCells?: number;
 };
 
 export function computeSelectionStats(input: SelectionStatsInput): SelectionStats {
   const { rects, rowCount, colCount, valueAt, isEmptyAt, columnIdAt } = input;
   const maxCells = input.maxCells ?? MAX_STATUS_CELLS;
-  const seen = new Set<number>();
+  const seen = rects.length > 1 ? new Set<number>() : null;
+  let visited = 0;
   let cells = 0;
   let count = 0;
   let numeric = 0;
@@ -75,14 +76,15 @@ export function computeSelectionStats(input: SelectionStatsInput): SelectionStat
     for (let y = Math.max(rect.y, 0); y < y1 && !stopped; y++) {
       for (let x = Math.max(rect.x, 0); x < x1; x++) {
         const key = y * colCount + x;
-        if (seen.has(key)) continue;
-        if (cells === maxCells) {
-          // cap reached: the first `maxCells` cells are in, the rest is not read
+        if (seen?.has(key)) continue;
+        if (visited === maxCells) {
+          // cap reached: the first `maxCells` visited cells (holes included) are in, the rest is not read
           approximate = true;
           stopped = true;
           break;
         }
-        seen.add(key);
+        seen?.add(key);
+        visited += 1;
         const value = valueAt(y, x);
         if (value === undefined) continue;
         cells += 1;
@@ -102,13 +104,13 @@ export function computeSelectionStats(input: SelectionStatsInput): SelectionStat
     }
   }
 
-  const total = sum + compensation;
+  const total = Number.isFinite(sum) ? sum + compensation : sum;
   return {
     cells,
     count,
     numeric,
     sum: numeric > 0 ? total : null,
-    avg: numeric > 0 ? total / numeric : null,
+    avg: numeric > 0 && Number.isFinite(total) ? total / numeric : null,
     min: numeric > 0 ? min : null,
     max: numeric > 0 ? max : null,
     numericColumnId: numeric > 0 && !mixedColumns ? numericColumnId : null,

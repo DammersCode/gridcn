@@ -125,6 +125,36 @@ describe("computeSelectionStats", () => {
     expect(stats.sum).toBe(14);
   });
 
+  it("counts lazy holes against the cap and flags approximate", () => {
+    let calls = 0;
+    const stats = computeSelectionStats({
+      rects: [{ x: 0, y: 0, width: 10, height: 1000 }],
+      rowCount: 1000,
+      colCount: 10,
+      valueAt: () => {
+        calls += 1;
+        return undefined;
+      },
+      isEmptyAt: () => false,
+      columnIdAt: (x) => `c${x}`,
+      maxCells: 50,
+    });
+    expect(calls).toBe(50);
+    expect(stats.cells).toBe(0);
+    expect(stats.approximate).toBe(true);
+  });
+
+  it("returns infinite, never NaN, when the sum overflows", () => {
+    const stats = computeSelectionStats(
+      makeInput({
+        rects: [{ x: 0, y: 0, width: 2, height: 1 }],
+        valueAt: () => 1.7e308,
+      }),
+    );
+    expect(stats.sum).toBe(Infinity);
+    expect(stats.avg).toBeNull();
+  });
+
   it("exposes the cap and an all-zero baseline", () => {
     expect(MAX_STATUS_CELLS).toBe(200_000);
     expect(EMPTY_SELECTION_STATS).toEqual({
