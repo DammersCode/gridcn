@@ -8,6 +8,9 @@ const isCell = (n: Node) => n.nodeType === Node.ELEMENT_NODE && ((n as Element).
 
 // Rewrites the fumadocs sidebar into the grid canvas. Idempotent: every step guards on the
 // nodes it creates, so re-runs (MutationObserver, React re-render) are no-ops.
+// Risk: it moves React-owned link children (icon, title, badge, chevron) into wrapper cells, so a
+// runtime page-tree change (dev HMR of a page's status or icon) can make React throw NotFoundError.
+// The static production tree never re-renders those nodes.
 function build(sidebar: HTMLElement) {
   sidebar.querySelectorAll("a.relative.flex.flex-row, button.relative.flex.flex-row").forEach((item) => {
     // The folder chevron is the only direct-child svg carrying data-icon (fumadocs base.js).
@@ -81,21 +84,30 @@ function build(sidebar: HTMLElement) {
   process(root, 0);
 }
 
+const SIDEBARS = "#nd-sidebar";
+
+// Only mutations inside a sidebar, or one mounting a sidebar outside <main>, need a rebuild.
+const touchesSidebar = (record: MutationRecord) => {
+  const target = record.target as Element;
+  if (target.closest(SIDEBARS)) return true;
+  if (target.closest("main")) return false;
+  return [...record.addedNodes].some((n) => n instanceof Element && (n.matches(SIDEBARS) || n.querySelector(SIDEBARS)));
+};
+
 /** Mounts the sidebar grid-canvas rewrite (docs pages only; renders nothing). */
 export function SidebarGrid() {
   useEffect(() => {
-    const sidebar = document.getElementById("nd-sidebar");
-    if (!sidebar) return;
     let raf = 0;
     const apply = () => {
       raf = 0;
-      build(sidebar);
+      document.querySelectorAll<HTMLElement>(SIDEBARS).forEach(build);
     };
-    const observer = new MutationObserver(() => {
-      if (!raf) raf = requestAnimationFrame(apply);
+    // Fumadocs swaps the sidebar element across the 768px breakpoint, so look it up on every run.
+    const observer = new MutationObserver((records) => {
+      if (!raf && records.some(touchesSidebar)) raf = requestAnimationFrame(apply);
     });
     apply();
-    observer.observe(sidebar, { childList: true, subtree: true });
+    observer.observe(document.body, { childList: true, subtree: true });
     return () => {
       cancelAnimationFrame(raf);
       observer.disconnect();
