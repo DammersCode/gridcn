@@ -947,6 +947,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Presence validates remote colors:** a peer's `color` that the browser does not parse as a CSS color falls back to a default instead of reaching the overlay styles unchecked.
 - **XLSX export cuts oversized cell text:** `buildXlsx` and `exportGrid` cut cell text to Excel's 32,767-character limit, so Excel no longer offers to repair the file. Print already cut at the same limit.
 - **URL state ignores excluded columns:** sort and filter specs from the URL are dropped (with a dev warning) when the column is `sortable: false`, `filterable: false`, or `hidden: true`, so a crafted link can no longer filter by a column the grid excludes.
 - **Number cell rejects non-decimal input:** `fromText` returns `null` for `Infinity`, `1e999` (overflow), and hex, octal, or binary text such as `0x10`, instead of storing `Infinity` or a surprising integer. Decimal and scientific notation still parse.

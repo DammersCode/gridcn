@@ -12,7 +12,7 @@ import {
   useDataGridRow,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPresence, useDataGridPresenceHighlights, type PresenceHighlightEntry, type PresenceStoreApi } from "../data-grid-presence";
-import { MAX_RESOLVED_RECTS, resolveHighlights } from "../presence-overlay";
+import { DEFAULT_PRESENCE_COLOR, MAX_RESOLVED_RECTS, resolveHighlights, safePresenceColor } from "../presence-overlay";
 import type { GridRect } from "@/registry/default/blocks/data-grid/data-grid";
 import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
@@ -1072,3 +1072,20 @@ describe("stale view-space entry warning (plugin Mount)", () => {
   });
 });
 
+
+describe("safePresenceColor", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("falls back to the default color when the browser rejects the value", () => {
+    vi.stubGlobal("CSS", { supports: (_property: string, value: string) => value !== "url(https://example.test/x)" });
+    expect(safePresenceColor("url(https://example.test/x)")).toBe(DEFAULT_PRESENCE_COLOR);
+    expect(safePresenceColor("rebeccapurple")).toBe("rebeccapurple");
+  });
+
+  it("passes the value through where CSS.supports is unavailable", () => {
+    vi.stubGlobal("CSS", undefined);
+    expect(safePresenceColor("anything")).toBe("anything");
+  });
+});

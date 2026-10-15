@@ -15,6 +15,14 @@ import {
 /** Default cap on the rects ONE range entry may paint (per contiguous fragment): a remote selection of scattered rows must not turn the overlay layer into thousands of divs. Override it with `useDataGridPresence({ maxRects })`; excess fragments are dropped and reported via the `onExcessRects` option. */
 export const MAX_RESOLVED_RECTS = 1024;
 
+export const DEFAULT_PRESENCE_COLOR = "oklch(0.6 0.2 260)";
+
+/** Returns `color` when the browser parses it as a CSS color, else the default; passes through where `CSS.supports` is missing (SSR, jsdom). */
+export function safePresenceColor(color: string): string {
+  if (typeof CSS === "undefined" || typeof CSS.supports !== "function") return color;
+  return CSS.supports("color", color) ? color : DEFAULT_PRESENCE_COLOR;
+}
+
 /** One remote user's selection-range fill + border, grid-line placed like core's own RangeOverlay; color comes from the highlight itself via `--presence-color`, not a shadcn token. Memoized: the resolved rects keep identity across overlay renders (see `makePresencePlugin`'s memo), so an unchanged highlight never re-renders its divs on a local keystroke. */
 const PresenceHighlightOverlay = memo(function PresenceHighlightOverlay({
   rect,
@@ -29,6 +37,7 @@ const PresenceHighlightOverlay = memo(function PresenceHighlightOverlay({
   colOffset: number;
   pinStyle?: CSSProperties;
 }) {
+  const safeColor = safePresenceColor(color);
   return (
     <div
       data-grid-presence-overlay=""
@@ -38,7 +47,7 @@ const PresenceHighlightOverlay = memo(function PresenceHighlightOverlay({
       style={{
         // positioned: cells are position:relative, so a static overlay would paint below them
         position: "relative",
-        "--presence-color": color,
+        "--presence-color": safeColor,
         gridColumnStart: rect.x + colOffset,
         gridColumnEnd: rect.x + rect.width + colOffset,
         gridRowStart: rect.y - windowStart + 1,
@@ -66,6 +75,7 @@ const PresenceLabelChip = memo(function PresenceLabelChip({
   colOffset: number;
   pinStyle?: CSSProperties;
 }) {
+  const safeColor = safePresenceColor(color);
   return (
     <div
       data-grid-presence-label=""
@@ -82,7 +92,7 @@ const PresenceLabelChip = memo(function PresenceLabelChip({
     >
       <span
         className="-translate-y-1/2 rounded-sm px-1.5 py-0.5 text-xs font-medium whitespace-nowrap shadow-sm"
-        style={{ backgroundColor: color, color: "var(--presence-label-foreground, white)" }}
+        style={{ backgroundColor: safeColor, color: "var(--presence-label-foreground, white)" }}
       >
         {label}
       </span>
