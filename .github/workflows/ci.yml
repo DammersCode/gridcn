@@ -20,13 +20,15 @@ jobs:
     # PR runs gate on author (fork PRs skip, 0 min); to check an outside PR, Actions -> Run workflow on its branch.
     if: >-
       github.event_name != 'pull_request' ||
-      contains('["DammersCode"]', github.event.pull_request.user.login)
+      contains(fromJSON('["DammersCode"]'), github.event.pull_request.user.login)
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 24
           cache: pnpm
@@ -53,13 +55,15 @@ jobs:
     timeout-minutes: 15
     if: >-
       github.event_name != 'pull_request' ||
-      contains('["DammersCode"]', github.event.pull_request.user.login)
+      contains(fromJSON('["DammersCode"]'), github.event.pull_request.user.login)
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 24
           cache: pnpm
@@ -76,13 +80,15 @@ jobs:
     timeout-minutes: 20
     if: >-
       github.event_name != 'pull_request' ||
-      contains('["DammersCode"]', github.event.pull_request.user.login)
+      contains(fromJSON('["DammersCode"]'), github.event.pull_request.user.login)
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 24
           cache: pnpm
@@ -96,7 +102,7 @@ jobs:
 
       # Only this job saves the cache, so the two browser jobs never race to save one key.
       - name: Cache Playwright browsers
-        uses: actions/cache@v5
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: ~/.cache/ms-playwright
           key: ms-playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
@@ -113,13 +119,15 @@ jobs:
     timeout-minutes: 15
     if: >-
       github.event_name != 'pull_request' ||
-      contains('["DammersCode"]', github.event.pull_request.user.login)
+      contains(fromJSON('["DammersCode"]'), github.event.pull_request.user.login)
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 24
           cache: pnpm
@@ -137,13 +145,15 @@ jobs:
     timeout-minutes: 20
     if: >-
       github.event_name != 'pull_request' ||
-      contains('["DammersCode"]', github.event.pull_request.user.login)
+      contains(fromJSON('["DammersCode"]'), github.event.pull_request.user.login)
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 24
           cache: pnpm
@@ -156,7 +166,7 @@ jobs:
         run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Restore Playwright browsers
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: ~/.cache/ms-playwright
           key: ms-playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
@@ -174,13 +184,15 @@ jobs:
     timeout-minutes: 20
     if: >-
       github.event_name != 'pull_request' ||
-      contains('["DammersCode"]', github.event.pull_request.user.login)
+      contains(fromJSON('["DammersCode"]'), github.event.pull_request.user.login)
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 24
           cache: pnpm
