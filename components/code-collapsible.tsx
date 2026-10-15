@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Check, ChevronDown, Clipboard } from "lucide-react";
+import { ChevronDown, Clipboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { CopyAnnouncer, CopyIcon, useCopyText } from "@/components/copy-status";
 
 type CodeCollapsibleProps = {
   /** Destination path shown as the block's title bar, e.g. "components/data-grid-fill/fill.ts". */
@@ -20,14 +21,7 @@ const COLLAPSED_HEIGHT = "max-h-72";
 /** Collapsed-by-default code block with its own title bar (destination path + copy + expand), matching shadcn/diceui's manual-install pattern. */
 export function CodeCollapsible({ title, code, children, className }: CodeCollapsibleProps): ReactNode {
   const [open, setOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  const copy = () => {
-    void navigator.clipboard.writeText(code).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
-  };
+  const { status, copy } = useCopyText();
 
   return (
     <div
@@ -41,10 +35,11 @@ export function CodeCollapsible({ title, code, children, className }: CodeCollap
           variant="ghost"
           size="icon-sm"
           aria-label="Copy code"
-          onClick={copy}
+          onClick={() => void copy(code)}
         >
-          {copied ? <Check /> : <Clipboard />}
+          <CopyIcon status={status} idle={<Clipboard />} />
         </Button>
+        <CopyAnnouncer status={status} />
         <Button
           type="button"
           variant="secondary"
