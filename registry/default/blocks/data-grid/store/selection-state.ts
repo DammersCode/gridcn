@@ -100,6 +100,9 @@ export function deriveColumnIds(s: SelectionStateSource): string[] {
   return out;
 }
 
+/** Above this many id lookups, one O(n) index build beats a per-id scan of a cold cache. */
+const WARM_INDEX_LOOKUPS = 8;
+
 /** The resolver's `warnDev` flag box: it warns at most once per grid (the `resolveRefOrWarn` convention). */
 export type ResolveWarnFlag = { value: boolean };
 
@@ -125,12 +128,14 @@ export function resolveSelectionState(
       warnDev("a controlled selection value names rows, columns, or range corners that no longer resolve (a row left the data, a column is hidden); the resolvable subset was applied");
     }
   };
+  const lookupCount = 2 + (Array.isArray(value.rowIds) ? value.rowIds.length : 0) + (Array.isArray(value.rangeStack) ? 2 * value.rangeStack.length : 0);
+  const rowIndex = lookupCount > WARM_INDEX_LOOKUPS ? cache.resolve(s.data, s.getRowId) : null;
   const resolveRow = (rowId: string): number => {
     if (typeof rowId !== "string") {
       warn();
       return -1;
     }
-    let dataRowIndex = cache.resolveOne(s.data, s.getRowId, rowId);
+    let dataRowIndex = rowIndex ? rowIndex.get(rowId) : cache.resolveOne(s.data, s.getRowId, rowId);
     if (dataRowIndex === undefined) dataRowIndex = holeRowIndex(rowId);
     if (dataRowIndex === undefined) return -1;
     const viewRow = viewRowOfDataIndex(s.viewIndex, dataRowIndex);
