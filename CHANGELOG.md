@@ -11,6 +11,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Registry dependencies declare version ranges:** every npm package in `registry.json` now carries a range (caret for stable packages, tilde for `@dnd-kit/*`), so a fresh install no longer picks up a future major or a 0.x breaking minor.
 - **`use-sync-external-store` declared by the `data-grid` item:** the store's selector hook
   uses `zustand/traditional`, which imports `use-sync-external-store/shim` — a package the
   item now declares so strict package managers (pnpm) resolve it on a fresh install.

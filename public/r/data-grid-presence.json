@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "Multiplayer presence add-on for the gridcn data grid: useDataGridPresence registers an overlay plugin that paints remote users' live selections as named, colored highlights, with zero core re-renders.",
   "dependencies": [
-    "zustand"
+    "zustand@^5.0.15"
   ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid"

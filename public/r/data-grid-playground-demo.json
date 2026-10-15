@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "Every add-on composed in one grid: toolbar, context menu, fill, undo/redo, keybindings, sort list, import/export, plus independent toggles (row markers, pinned totals, validation, read-only, loading, RTL, presence, streaming, density, header click) and an exclusive virtualized/paginated/lazy mode select.",
   "dependencies": [
-    "lucide-react"
+    "lucide-react@^1.46.0"
   ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",

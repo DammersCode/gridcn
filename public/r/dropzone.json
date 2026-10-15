@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "Dependency-free file dropzone: drag and drop or click to choose, with accept, size, and count checks and a compact variant. Used by the data-grid-io import dialog.",
   "dependencies": [
-    "lucide-react"
+    "lucide-react@^1.46.0"
   ],
   "files": [
     {

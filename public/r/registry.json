@@ -19,10 +19,10 @@
         }
       },
       "dependencies": [
-        "zustand",
-        "use-sync-external-store",
-        "lucide-react",
-        "@base-ui/react"
+        "zustand@^5.0.15",
+        "use-sync-external-store@^1.6.0",
+        "lucide-react@^1.46.0",
+        "@base-ui/react@^1.8.0"
       ],
       "registryDependencies": [
         "button",
@@ -629,7 +629,7 @@
       "description": "Multiplayer presence add-on for the gridcn data grid: useDataGridPresence registers an overlay plugin that paints remote users' live selections as named, colored highlights, with zero core re-renders.",
       "author": "gridcn",
       "dependencies": [
-        "zustand"
+        "zustand@^5.0.15"
       ],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid"
@@ -667,7 +667,7 @@
       "description": "Fill-handle add-on for the gridcn data grid: drag-to-tile with series inference (arithmetic runs, zero-padded numbers, prefix+number sequences), mod+D/mod+R keyboard fill, via the overlay-plugin seam, with zero core re-renders.",
       "author": "gridcn",
       "dependencies": [
-        "zustand"
+        "zustand@^5.0.15"
       ],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid"
@@ -740,7 +740,7 @@
       "description": "Pinned top/bottom row bands add-on for the gridcn data grid: useDataGridPinnedRows registers a rowBands spec (e.g. a totals row) that stays sticky under the header or at the viewport's bottom edge, pixel-aligned with data rows and pinned columns. useDataGridAggregate computes filter-aware sum/avg/min/max/count for those bands.",
       "author": "gridcn",
       "dependencies": [
-        "zustand"
+        "zustand@^5.0.15"
       ],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid"
@@ -814,9 +814,9 @@
       "description": "Toolbar add-on for the gridcn data grid: quick-search with match navigation, a per-column filter menu (aligned rows, join column, drag-to-reorder via @dnd-kit/react), and a column visibility/pin menu.",
       "author": "gridcn",
       "dependencies": [
-        "@dnd-kit/dom",
-        "@dnd-kit/react",
-        "lucide-react"
+        "@dnd-kit/dom@~0.5.0",
+        "@dnd-kit/react@~0.5.0",
+        "lucide-react@^1.46.0"
       ],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
@@ -875,9 +875,9 @@
       "description": "Right-click context menus for the gridcn data grid: cut/copy/paste/clear/row operations on cells, sort/pin/hide/autosize on headers.",
       "author": "gridcn",
       "dependencies": [
-        "lucide-react",
-        "@base-ui/react",
-        "zustand"
+        "lucide-react@^1.46.0",
+        "@base-ui/react@^1.8.0",
+        "zustand@^5.0.15"
       ],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
@@ -995,7 +995,7 @@
       "description": "Syncs the gridcn data grid's sort/filter/search state with the URL via nuqs (router-agnostic — requires a NuqsAdapter above it). Mount <DataGridUrlState prefix?> inside the provider; the prefix option namespaces the URL keys for multiple grids on one page.",
       "author": "gridcn",
       "dependencies": [
-        "nuqs"
+        "nuqs@^2.10.1"
       ],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
@@ -1059,7 +1059,7 @@
       "description": "Dependency-free file dropzone: drag and drop or click to choose, with accept, size, and count checks and a compact variant. Used by the data-grid-io import dialog.",
       "author": "gridcn",
       "dependencies": [
-        "lucide-react"
+        "lucide-react@^1.46.0"
       ],
       "files": [
         {
@@ -1080,11 +1080,11 @@
       "author": "gridcn",
       "dependencies": [
         "hucre@1.1.0",
-        "papaparse",
-        "lucide-react"
+        "papaparse@^5.7.0",
+        "lucide-react@^1.46.0"
       ],
       "devDependencies": [
-        "@types/papaparse"
+        "@types/papaparse@^5.5.2"
       ],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
@@ -1218,7 +1218,7 @@
       "description": "Pagination add-on for the gridcn data grid: useDataGridPagination (client mode slices data; server mode is fully controlled) plus a composable <DataGridPaginationBar /> footer (range, page-size select, first/prev/pages/next/last parts) — shadcn-Pagination style, renders a default layout with no children or a custom composition of parts. New user-facing strings live under labels.pagination (see data-grid/labels.ts DataGridPaginationLabels). Zero core changes — purely additive.",
       "author": "gridcn",
       "dependencies": [
-        "lucide-react"
+        "lucide-react@^1.46.0"
       ],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
@@ -1258,9 +1258,9 @@
       "description": "Toolbar sort add-on for the gridcn data grid: a sort button + popover listing applied sorts as editable, aligned rows (column / direction / remove / drag handle), with add/clear-all and precedence reordering via @dnd-kit/react drag or ArrowUp/ArrowDown on the grip (array order in SortSpec[]). New user-facing strings live under labels.sort (see data-grid/labels.ts DataGridSortLabels). Zero core changes — purely additive.",
       "author": "gridcn",
       "dependencies": [
-        "@dnd-kit/dom",
-        "@dnd-kit/react",
-        "lucide-react"
+        "@dnd-kit/dom@~0.5.0",
+        "@dnd-kit/react@~0.5.0",
+        "lucide-react@^1.46.0"
       ],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
@@ -1547,7 +1547,7 @@
       "description": "Custom context menu items via getCellMenuItems and getHeaderMenuItems, replacing the built-in item sets.",
       "author": "gridcn",
       "dependencies": [
-        "lucide-react"
+        "lucide-react@^1.46.0"
       ],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
@@ -1631,7 +1631,7 @@
       "description": "Sort/filter/search/pagination state synced to the URL via nuqs; wrapped in the Next.js app-router NuqsAdapter (swap for your framework's adapter).",
       "author": "gridcn",
       "dependencies": [
-        "nuqs"
+        "nuqs@^2.10.1"
       ],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
@@ -1706,7 +1706,7 @@
         "data"
       ],
       "dependencies": [
-        "lucide-react"
+        "lucide-react@^1.46.0"
       ]
     },
     {
@@ -1735,7 +1735,7 @@
         "data"
       ],
       "dependencies": [
-        "lucide-react"
+        "lucide-react@^1.46.0"
       ]
     },
     {
@@ -1819,7 +1819,7 @@
         "data"
       ],
       "dependencies": [
-        "lucide-react"
+        "lucide-react@^1.46.0"
       ]
     },
     {
@@ -1877,7 +1877,7 @@
         "data"
       ],
       "dependencies": [
-        "lucide-react"
+        "lucide-react@^1.46.0"
       ]
     },
     {
@@ -2190,10 +2190,10 @@
       "description": "Nine rejection paths in one grid: a sync function (Age), hand-rolled sync/async/coercing Standard Schemas (Email, SKU, Price), a soft onInvalid rule (Notes), and one column per major library that implements Standard Schema natively — Zod (Score), Joi (Code), Valibot (Tag). Pasting mixed valid/invalid values shows the bulk-rejection path.",
       "author": "gridcn",
       "dependencies": [
-        "joi",
-        "sonner",
-        "valibot",
-        "zod"
+        "joi@^18.2.9",
+        "sonner@^2.0.8",
+        "valibot@^1.5.0",
+        "zod@^4.6.5"
       ],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
@@ -2371,7 +2371,7 @@
         "data"
       ],
       "dependencies": [
-        "lucide-react"
+        "lucide-react@^1.46.0"
       ]
     },
     {
@@ -2381,7 +2381,7 @@
       "description": "10k rows fetched through a TanStack Query cache: each scrolled window becomes a fetchQuery (deduped, cached for the session, scrolling back never refetches).",
       "author": "gridcn",
       "dependencies": [
-        "@tanstack/react-query"
+        "@tanstack/react-query@^5.103.2"
       ],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
@@ -2405,7 +2405,7 @@
       "description": "10k rows fetched through SWR's global cache via preload: each scrolled window is fetched once per key and shared with any useSWR consumer.",
       "author": "gridcn",
       "dependencies": [
-        "swr"
+        "swr@^2.5.1"
       ],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
@@ -2429,7 +2429,7 @@
       "description": "Server-mode pagination backed by useQuery: the current page/pageSize is the query key, edits write through to the fake server then invalidate the cached pages.",
       "author": "gridcn",
       "dependencies": [
-        "@tanstack/react-query"
+        "@tanstack/react-query@^5.103.2"
       ],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
@@ -2463,7 +2463,7 @@
       "description": "Server-mode pagination backed by useSWR: the page is cached by key so paging back is instant, and edits revalidate the current key after writing through.",
       "author": "gridcn",
       "dependencies": [
-        "swr"
+        "swr@^2.5.1"
       ],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
@@ -2497,7 +2497,7 @@
       "description": "The full remote contract: header-click sort, filter menu, quick search and pagination are all sent to the fake server in one useQuery per view state; edits write through and refetch.",
       "author": "gridcn",
       "dependencies": [
-        "@tanstack/react-query"
+        "@tanstack/react-query@^5.103.2"
       ],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",

@@ -5,9 +5,9 @@
   "author": "gridcn",
   "description": "Right-click context menus for the gridcn data grid: cut/copy/paste/clear/row operations on cells, sort/pin/hide/autosize on headers.",
   "dependencies": [
-    "lucide-react",
-    "@base-ui/react",
-    "zustand"
+    "lucide-react@^1.46.0",
+    "@base-ui/react@^1.8.0",
+    "zustand@^5.0.15"
   ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",

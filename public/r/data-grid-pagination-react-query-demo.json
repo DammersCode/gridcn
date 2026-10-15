@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "Server-mode pagination backed by useQuery: the current page/pageSize is the query key, edits write through to the fake server then invalidate the cached pages.",
   "dependencies": [
-    "@tanstack/react-query"
+    "@tanstack/react-query@^5.103.2"
   ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",

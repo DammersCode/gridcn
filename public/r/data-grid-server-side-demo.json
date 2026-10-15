@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "The full remote contract: header-click sort, filter menu, quick search and pagination are all sent to the fake server in one useQuery per view state; edits write through and refetch.",
   "dependencies": [
-    "@tanstack/react-query"
+    "@tanstack/react-query@^5.103.2"
   ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",

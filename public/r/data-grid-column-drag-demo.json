@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "Drag a header to reorder columns within its pin zone (enableColumnReorder, per-column reorderable opt-out, pinned-right column), plus a column picker wired to the programmatic setColumnOrder(id, targetId, position) path.",
   "dependencies": [
-    "lucide-react"
+    "lucide-react@^1.46.0"
   ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",

@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "Fill-handle add-on for the gridcn data grid: drag-to-tile with series inference (arithmetic runs, zero-padded numbers, prefix+number sequences), mod+D/mod+R keyboard fill, via the overlay-plugin seam, with zero core re-renders.",
   "dependencies": [
-    "zustand"
+    "zustand@^5.0.15"
   ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid"

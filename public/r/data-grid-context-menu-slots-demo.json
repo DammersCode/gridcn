@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "Custom context menu items via getCellMenuItems and getHeaderMenuItems, replacing the built-in item sets.",
   "dependencies": [
-    "lucide-react"
+    "lucide-react@^1.46.0"
   ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",

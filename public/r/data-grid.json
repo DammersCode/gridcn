@@ -5,10 +5,10 @@
   "author": "gridcn",
   "description": "An editable data grid: range selection, spreadsheet clipboard, editing engine, validation, sorting, filtering, pinning, streaming updates. Real DOM cells, shadcn styling.",
   "dependencies": [
-    "zustand",
-    "use-sync-external-store",
-    "lucide-react",
-    "@base-ui/react"
+    "zustand@^5.0.15",
+    "use-sync-external-store@^1.6.0",
+    "lucide-react@^1.46.0",
+    "@base-ui/react@^1.8.0"
   ],
   "registryDependencies": [
     "button",

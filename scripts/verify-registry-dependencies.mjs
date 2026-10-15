@@ -30,6 +30,9 @@ const problems = [];
 for (const item of registry.items) {
   const registryDeps = new Set(item.registryDependencies ?? []);
   const npmDeps = new Set([...(item.dependencies ?? []), ...(item.devDependencies ?? [])].map(dependencyName));
+  for (const dep of [...(item.dependencies ?? []), ...(item.devDependencies ?? [])]) {
+    if (dep === dependencyName(dep)) problems.push(`${item.name}: dependency "${dep}" declares no version range`);
+  }
   const need = (kind, name, declared, from) => {
     if (!declared) problems.push(`${item.name}: ${from} needs ${kind} "${name}" but registry.json does not declare it`);
   };

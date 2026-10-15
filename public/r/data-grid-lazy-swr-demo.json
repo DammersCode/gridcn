@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "10k rows fetched through SWR's global cache via preload: each scrolled window is fetched once per key and shared with any useSWR consumer.",
   "dependencies": [
-    "swr"
+    "swr@^2.5.1"
   ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",

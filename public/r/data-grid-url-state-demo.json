@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "Sort/filter/search/pagination state synced to the URL via nuqs; wrapped in the Next.js app-router NuqsAdapter (swap for your framework's adapter).",
   "dependencies": [
-    "nuqs"
+    "nuqs@^2.10.1"
   ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",

@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "10k rows fetched through a TanStack Query cache: each scrolled window becomes a fetchQuery (deduped, cached for the session, scrolling back never refetches).",
   "dependencies": [
-    "@tanstack/react-query"
+    "@tanstack/react-query@^5.103.2"
   ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",

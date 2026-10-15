@@ -6,11 +6,11 @@
   "description": "Import/export add-on for the gridcn data grid: xlsx and csv, with delimiter detection and preview. New user-facing strings live under `labels.io` (see lib/labels.ts DataGridIOLabels) — export button/menu, import dialog (file picker, header-row toggle, delimiter select, column mapping, preview, errors).",
   "dependencies": [
     "hucre@1.1.0",
-    "papaparse",
-    "lucide-react"
+    "papaparse@^5.7.0",
+    "lucide-react@^1.46.0"
   ],
   "devDependencies": [
-    "@types/papaparse"
+    "@types/papaparse@^5.5.2"
   ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",

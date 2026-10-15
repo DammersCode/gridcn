@@ -5,9 +5,9 @@
   "author": "gridcn",
   "description": "Toolbar add-on for the gridcn data grid: quick-search with match navigation, a per-column filter menu (aligned rows, join column, drag-to-reorder via @dnd-kit/react), and a column visibility/pin menu.",
   "dependencies": [
-    "@dnd-kit/dom",
-    "@dnd-kit/react",
-    "lucide-react"
+    "@dnd-kit/dom@~0.5.0",
+    "@dnd-kit/react@~0.5.0",
+    "lucide-react@^1.46.0"
   ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",

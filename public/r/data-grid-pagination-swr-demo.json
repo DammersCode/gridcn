@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "Server-mode pagination backed by useSWR: the page is cached by key so paging back is instant, and edits revalidate the current key after writing through.",
   "dependencies": [
-    "swr"
+    "swr@^2.5.1"
   ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid",
