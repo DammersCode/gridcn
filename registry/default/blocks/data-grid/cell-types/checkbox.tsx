@@ -4,7 +4,7 @@ import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "
 import { useCommitGuard } from "../interaction/use-commit-guard";
 import { GRID_ATTR } from "../data-attributes";
 
-function CheckboxCell({ value }: CellRenderProps<unknown, boolean>) {
+function CheckboxCell({ value, column }: CellRenderProps<unknown, boolean>) {
   if (value == null) return null;
   // display-only: the interaction layer toggles via commitCellValue, so the box never receives events
   // plain span, not the base-ui control: one mounts per row per window commit, and its state machine and effects cost more than the visual
@@ -13,6 +13,7 @@ function CheckboxCell({ value }: CellRenderProps<unknown, boolean>) {
       <span
         role="checkbox"
         aria-checked={value ? "true" : "false"}
+        aria-label={column.headerText ?? (typeof column.header === "string" ? column.header : column.id)}
         data-checked={value || undefined}
         className="pointer-events-none flex size-4 shrink-0 items-center justify-center rounded-none border border-input dark:bg-input/30 data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground dark:data-checked:bg-primary"
         {...{ [GRID_ATTR.checkboxBox]: "" }}

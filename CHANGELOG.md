@@ -942,6 +942,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Checkbox cells have an accessible name (`data-grid`):** the `checkbox` display box carries an `aria-label` from its column header, which clears axe's `aria-toggle-field-name` violation.
+
 - **Autosize samples the whole row range (`data-grid`):** `autosizeColumns` spreads its sample rows evenly across the view and always includes the last row, so wide values in the final rows no longer go unmeasured.
 
 - **Status bar caps the walk on lazy holes (`data-grid-status-bar`):** the 200,000-cell cap counts every visited cell, not only loaded ones, so a selection over unloaded rows stops early and reports `approximate`. A sum that overflows to infinity reports `Infinity` with no average instead of `NaN`.
