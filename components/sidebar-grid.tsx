@@ -84,7 +84,7 @@ function build(sidebar: HTMLElement) {
   process(root, 0);
 }
 
-const SIDEBARS = "#nd-sidebar";
+const SIDEBARS = "#nd-sidebar, #nd-sidebar-mobile";
 
 // Only mutations inside a sidebar, or one mounting a sidebar outside <main>, need a rebuild.
 const touchesSidebar = (record: MutationRecord) => {

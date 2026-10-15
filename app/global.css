@@ -277,7 +277,7 @@ button[data-search],
   --color-fd-ring: var(--ring);
 }
 
-#nd-sidebar {
+:is(#nd-sidebar, #nd-sidebar-mobile) {
   background-color: var(--sidebar);
   color: var(--sidebar-foreground);
   border-color: var(--sidebar-border);
@@ -300,14 +300,14 @@ button[data-search],
   }
 }
 
-#nd-sidebar > div.flex.flex-col {
+:is(#nd-sidebar, #nd-sidebar-mobile) > div.flex.flex-col {
   position: relative;
   z-index: 10;
   border-bottom: 1px solid var(--color-border);
   box-shadow: 0 1px 0 0 var(--color-border), 0 6px 16px -6px rgb(0 0 0 / 0.5);
 }
 
-#nd-sidebar [data-radix-scroll-area-viewport] > div {
+:is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div {
   /* the viewport's *:gap-0.5! child utility wins the cascade with !important; the builder
      also sets gap inline, this documents intent and covers other gap sources */
   gap: 0 !important;
@@ -317,12 +317,12 @@ button[data-search],
 
 /* nested content wrappers ship pt-0.5: without zeroing both, the first child of every folder
    sits 2px below its trigger (breaks the chevron-column line at folder boundaries) */
-#nd-sidebar .flex.flex-col.gap-0\.5 {
+:is(#nd-sidebar, #nd-sidebar-mobile) .flex.flex-col.gap-0\.5 {
   gap: 0 !important;
   padding: 0 !important;
 }
 
-#nd-sidebar :is(a.relative.flex.flex-row, button.relative.flex.flex-row) {
+:is(#nd-sidebar, #nd-sidebar-mobile) :is(a.relative.flex.flex-row, button.relative.flex.flex-row) {
   border: 0;
   border-bottom: 1px solid var(--color-border);
   background: transparent;
@@ -332,20 +332,20 @@ button[data-search],
   overflow: hidden;
 }
 
-#nd-sidebar :is(a.relative.flex.flex-row, button.relative.flex.flex-row):hover {
+:is(#nd-sidebar, #nd-sidebar-mobile) :is(a.relative.flex.flex-row, button.relative.flex.flex-row):hover {
   background: color-mix(in oklab, var(--color-muted) 40%, transparent);
 }
 
 /* Data-Grid-style selection ring on click/keyboard focus: 2px inset primary (ring-2 ring-inset
    ring-primary). Drawn on the content cell so it wraps the title/icon only, not the gutter
    (nesting offset) or the chevron column. */
-#nd-sidebar :is(a.relative.flex.flex-row, button.relative.flex.flex-row):focus .nav-content {
+:is(#nd-sidebar, #nd-sidebar-mobile) :is(a.relative.flex.flex-row, button.relative.flex.flex-row):focus .nav-content {
   box-shadow: inset 0 0 0 2px var(--color-primary);
 }
 
 /* section headers styled as Data Grid header cells (header-cell.tsx): bg-muted, border-b
    border-border, px-2, font-medium, 36px (HEADER_HEIGHT), default foreground. */
-#nd-sidebar p.inline-flex.items-center {
+:is(#nd-sidebar, #nd-sidebar-mobile) p.inline-flex.items-center {
   margin: 0;
   padding: 0 8px;
   border-bottom: 1px solid var(--color-border);
@@ -357,12 +357,12 @@ button[data-search],
 }
 
 /* folder trigger rows carry the group band (class assigned by the builder) */
-#nd-sidebar :is(a, button).nd-nav-band {
+:is(#nd-sidebar, #nd-sidebar-mobile) :is(a, button).nd-nav-band {
   background: color-mix(in oklab, var(--color-muted) 30%, transparent);
   font-weight: 600;
 }
 
-#nd-sidebar .nav-content {
+:is(#nd-sidebar, #nd-sidebar-mobile) .nav-content {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
@@ -372,21 +372,21 @@ button[data-search],
   padding: 0 8px;
 }
 
-#nd-sidebar .nav-title {
+:is(#nd-sidebar, #nd-sidebar-mobile) .nav-title {
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-#nd-sidebar .gutter-cell {
+:is(#nd-sidebar, #nd-sidebar-mobile) .gutter-cell {
   flex: none;
   width: 22px;
   align-self: stretch;
   border-right: 1px solid var(--color-border);
 }
 
-#nd-sidebar .chev-cell {
+:is(#nd-sidebar, #nd-sidebar-mobile) .chev-cell {
   flex: none;
   width: 28px;
   align-self: stretch;
@@ -397,26 +397,26 @@ button[data-search],
   color: var(--color-muted-foreground);
 }
 
-#nd-sidebar .chev-cell svg {
+:is(#nd-sidebar, #nd-sidebar-mobile) .chev-cell svg {
   width: 14px;
   height: 14px;
   margin: 0;
 }
 
-#nd-sidebar a[data-active="true"] {
+:is(#nd-sidebar, #nd-sidebar-mobile) a[data-active="true"] {
   background: color-mix(in oklab, var(--color-primary) 12%) !important;
   box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-primary) 60%);
 }
 
 /* fumadocs ships a 1px left indicator line on the active item via ::before; suppress it so
    the inset border above is the only active marker. */
-#nd-sidebar a[data-active="true"]::before {
+:is(#nd-sidebar, #nd-sidebar-mobile) a[data-active="true"]::before {
   display: none;
 }
 
 /* fumadocs also draws a depth-1 "tree connector" line via ::before on each top-level folder's
    collapsible content. The gutter columns already encode nesting, so suppress it too. */
-#nd-sidebar div[data-state] > div.overflow-hidden::before {
+:is(#nd-sidebar, #nd-sidebar-mobile) div[data-state] > div.overflow-hidden::before {
   display: none;
 }
 
