@@ -3,6 +3,7 @@ import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import { baseOptions } from '@/lib/layout.shared';
 import { GitHubStarsLive } from '@/components/github-stars-live';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { SidebarGrid } from '@/components/sidebar-grid';
 import { gitConfig } from '@/lib/shared';
 
 export default function Layout({ children }: LayoutProps<'/docs'>) {
@@ -32,6 +33,7 @@ export default function Layout({ children }: LayoutProps<'/docs'>) {
         ),
       }}
     >
+      <SidebarGrid />
       {children}
     </DocsLayout>
   );
