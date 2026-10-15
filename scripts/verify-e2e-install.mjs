@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // End-to-end consumer smoke test: installs registry items into a fresh app through the shadcn CLI, then builds and serves it.
-// Usage: node scripts/verify-e2e-install.mjs [--all] [--reuse] [--vite] [items...]
+// Usage: node scripts/verify-e2e-install.mjs [--all] [--reuse] [--vite] [--smoke] [items...]
 import { spawn, execSync, execFileSync } from "node:child_process";
 import { createServer } from "node:http";
 import { readFileSync, existsSync, mkdirSync, writeFileSync, rmSync, openSync, closeSync } from "node:fs";
@@ -8,6 +8,7 @@ import { join, dirname, extname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import net from "node:net";
+import { SMOKE_ITEMS, writeRemountPage } from "./e2e-smoke.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 // Windows dev default matches the documented temp convention; CI (ubuntu-latest) uses os.tmpdir().
@@ -20,7 +21,8 @@ const args = process.argv.slice(2);
 const reuse = args.includes("--reuse");
 const all = args.includes("--all");
 const viteMode = args.includes("--vite");
-const itemArgs = args.filter((a) => a !== "--reuse" && a !== "--all" && a !== "--vite");
+const forceSmoke = args.includes("--smoke");
+const itemArgs = args.filter((a) => !["--reuse", "--all", "--vite", "--smoke"].includes(a));
 
 // data-grid-url-state-demo is excluded: it hardcodes nuqs/adapters/next/app (imports
 // next/navigation), which is the correct choice for the docs site's own Next.js demo but fails to
@@ -189,6 +191,9 @@ function changedAddonDemos() {
   return [...affected];
 }
 
+const changedDemos = changedAddonDemos();
+const runSmoke = !viteMode && (forceSmoke || all || (itemArgs.length === 0 && changedDemos.length > 0));
+
 let items;
 if (all) {
   items = [...exampleNames];
@@ -197,8 +202,9 @@ if (all) {
 } else if (viteMode) {
   items = VITE_DEFAULT_ITEMS;
 } else {
-  items = ["data-grid-demo", ...changedAddonDemos()];
+  items = ["data-grid-demo", ...changedDemos];
 }
+if (runSmoke) items.push(...SMOKE_ITEMS);
 items = [...new Set(items)];
 
 for (const name of items) {
@@ -378,6 +384,8 @@ async function runNextFlow() {
     pageReports.push(name);
   }
 
+  if (runSmoke) writeRemountPage(e2eDir);
+
   if (pageReports.length === 0) {
     console.error("No demo pages could be generated; aborting before build.");
     console.error(problems.join("\n"));
@@ -447,6 +455,14 @@ async function runNextFlow() {
         } catch (e) {
           problems.push(`${name}: GET ${url} failed: ${e.message}`);
         }
+      }
+      if (runSmoke) {
+        const smokeLog = join(LOG_DIR, "e2e-smoke.log");
+        const smokeResult = await mark("e2e-smoke", () =>
+          run("node", [join("scripts", "e2e-smoke.mjs"), JSON.stringify(scaffoldDir), "--url", `http://127.0.0.1:${appPort}`], { cwd: root, logFile: smokeLog, timeoutMs: 5 * 60_000 }),
+        );
+        if (smokeResult.code !== 0) problems.push(`feature smoke failed (see ${smokeLog}):\n` + tailFile(smokeLog, 60));
+        else log(tailFile(smokeLog, 3));
       }
     }
   } else {
