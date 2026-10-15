@@ -481,6 +481,26 @@ describe("DataGrid in a real browser", () => {
 
     // regression (user QA): the drag frame-loop died when the first pointermove arrived after
     // frame 1 — fast drags worked, slow press-then-move drags never painted.
+    it("a drag with a synthetic pointer id (capture refused) still paints the range", async () => {
+      await renderGrid(20);
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      const cellAt = (rowIndex: number, colIndex: number) =>
+        document.querySelector<HTMLElement>(`[aria-rowindex="${rowIndex}"] [aria-colindex="${colIndex}"]`)!;
+      const origin = cellAt(3, 2);
+      const target = cellAt(4, 3);
+      const originRect = origin.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      await origin.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 4242, clientX: originRect.left + 5, clientY: originRect.top + 5 }));
+      document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 4242, clientX: targetRect.left + 5, clientY: targetRect.top + 5 }));
+      await new Promise((r) => requestAnimationFrame(r));
+      await new Promise((r) => requestAnimationFrame(r));
+      document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 4242 }));
+
+      const overlay = document.querySelector<HTMLElement>(gridAttrSelector("selectionOverlay"));
+      expect(overlay).not.toBeNull();
+      expect(overlay!.getBoundingClientRect().bottom).toBeCloseTo(targetRect.bottom, 0);
+    });
+
     it("a slow drag (press, pause, then small moves) still paints the range", async () => {
       await renderGrid(20);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();

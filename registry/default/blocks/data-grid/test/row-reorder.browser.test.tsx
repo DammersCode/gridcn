@@ -36,7 +36,8 @@ function markerCell(viewRowIndex: number): HTMLElement {
   return row.querySelector<HTMLElement>(gridAttrSelector("markerCell"))!;
 }
 
-async function markerDrag(viewRowIndex: number, toX: number, toY: number, opts?: { steps?: number; shift?: boolean }) {
+async function markerDrag(viewRowIndex: number, toX: number, toY: number, opts?: { steps?: number; shift?: boolean; pointerId?: number }) {
+  const pointerId = opts?.pointerId ?? 1;
   // the grip is the reorder zone; plain modes have no grip element and fall back to the cell
   const from = markerCell(viewRowIndex).querySelector<HTMLElement>(gridAttrSelector("reorderHandle")) ?? markerCell(viewRowIndex);
   const rect = from.getBoundingClientRect();
@@ -44,7 +45,7 @@ async function markerDrag(viewRowIndex: number, toX: number, toY: number, opts?:
     new PointerEvent("pointerdown", {
       bubbles: true,
       button: 0,
-      pointerId: 1,
+      pointerId,
       shiftKey: opts?.shift ?? false,
       clientX: rect.left + 2,
       clientY: rect.top + rect.height / 2,
@@ -52,10 +53,10 @@ async function markerDrag(viewRowIndex: number, toX: number, toY: number, opts?:
   );
   const steps = opts?.steps ?? 1;
   for (let i = 1; i <= steps; i++) {
-    document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, shiftKey: opts?.shift ?? false, clientX: toX, clientY: toY }));
+    document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId, shiftKey: opts?.shift ?? false, clientX: toX, clientY: toY }));
     await new Promise((r) => requestAnimationFrame(r));
   }
-  document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 1, shiftKey: opts?.shift ?? false }));
+  document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId, shiftKey: opts?.shift ?? false }));
   await new Promise((r) => requestAnimationFrame(r));
 }
 
@@ -84,6 +85,19 @@ describe("row reorder (marker drag)", () => {
     // re-keyed in place, not remounted: the pre-drag node still owns "Person 0"
     expect(draggedNode.isConnected).toBe(true);
     expect(dataCell(draggedNode).textContent).toBe("Person 0");
+  });
+
+  it("reorders with a synthetic pointer id the browser refuses to capture", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const target = rows().find((r) => dataCell(r).textContent === "Person 3")!;
+    const targetRect = target.getBoundingClientRect();
+    await markerDrag(0, markerCell(0).getBoundingClientRect().left + 2, targetRect.top + targetRect.height - 5, { steps: 3, pointerId: 4242 });
+    await expect.poll(() => visualOrder(), { timeout: 2000 }).toEqual(["Person 1", "Person 2", "Person 3", "Person 0", "Person 4", "Person 5", "Person 6", "Person 7"]);
   });
 
   it("a plain click on the marker still selects the row and never reorders", async () => {

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { AUTO_SCROLL_STEP, AUTO_SCROLL_ZONE } from "../windowing/direction";
+import { safeSetPointerCapture } from "../interaction/safe-set-pointer-capture";
 
 /** px of vertical pointer movement off the origin row before a marker press commits to a reorder drag. */
 const REORDER_THRESHOLD = 5;
@@ -150,7 +151,7 @@ export function useRowReorder(args: {
           if (!hit || hit.row === pending.row) return;
           // the grip can unmount mid-auto-scroll; the scroll element's capture outlives the drag
           const captureEl = argsRef.current.getScrollElement();
-          captureEl?.setPointerCapture?.(pending.pointerId);
+          safeSetPointerCapture(captureEl, pending.pointerId);
           captureRef.current = captureEl ? { el: captureEl, pointerId: pending.pointerId } : null;
           setDrag({ draggingRow: pending.row, overRow: hit.row, position: hit.position });
           if (rafRef.current === null) rafRef.current = requestAnimationFrame(runFrame);

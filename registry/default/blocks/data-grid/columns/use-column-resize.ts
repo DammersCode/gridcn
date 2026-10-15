@@ -5,6 +5,7 @@ import type { AnyColumnDef } from "../store";
 import type { AutosizeOptions } from "../types";
 import { inlineDelta, type GridDirection } from "../windowing/direction";
 import { clampColumnWidth } from "./resolve-column-width";
+import { safeSetPointerCapture } from "../interaction/safe-set-pointer-capture";
 
 /** Handlers returned by {@link useColumnResize}, wired onto each header cell's resize handle. */
 export type ColumnResizeHandlers = {
@@ -58,7 +59,7 @@ export function useColumnResize(args: {
       const target = event.currentTarget;
       const pointerId = event.pointerId;
       dragRef.current = { startX: event.clientX, startWidth: argsRef.current.currentWidth };
-      target.setPointerCapture?.(pointerId);
+      safeSetPointerCapture(target, pointerId);
       setIsResizing(true);
 
       // document-level listeners: pointer capture retargets hardware events to the handle, not events dispatched on document (tests)

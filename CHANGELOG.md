@@ -942,6 +942,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Drags survive a refused pointer capture (`data-grid`):** range, row, column, row-reorder and column-resize drags no longer abort when the browser rejects `setPointerCapture` (an unknown pointer id from synthetic test events, or a detached element). The drag falls back to its document-level listeners.
+
 - **Checkbox cells have an accessible name (`data-grid`):** the `checkbox` display box carries an `aria-label` from its column header, which clears axe's `aria-toggle-field-name` violation.
 
 - **Autosize samples the whole row range (`data-grid`):** `autosizeColumns` spreads its sample rows evenly across the view and always includes the last row, so wide values in the final rows no longer go unmeasured.

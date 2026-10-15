@@ -16,6 +16,7 @@ import type { ViewCoord, CellType, GridAction, GridCommandCtx } from "../types";
 import { isMacPlatform, isPrintableKey, matchKeymap, type KeymapEvent } from "../keyboard";
 import type { Keymap } from "../types";
 import { getCellValue } from "../columns/column-helpers";
+import { safeSetPointerCapture } from "./safe-set-pointer-capture";
 import { safeHref } from "../cell-types/safe-href";
 import {
   getFocusCell,
@@ -761,7 +762,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
     // the browser releases the capture on unmount and cancels a touch pointer with it. Hand the
     // capture to the scroll element, which outlives the drag.
     if (scrolled && captureElementRef.current && captureElementRef.current !== scrollElement) {
-      scrollElement.setPointerCapture?.(drag.pointerId);
+      safeSetPointerCapture(scrollElement, drag.pointerId);
       captureElementRef.current = scrollElement;
     }
 
@@ -983,8 +984,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         pendingActiveClickRef.current = coord;
       }
 
-      // jsdom (unit tests) doesn't implement the Pointer Events capture methods; guard for it.
-      event.currentTarget.setPointerCapture?.(event.pointerId);
+      safeSetPointerCapture(event.currentTarget, event.pointerId);
       beginDrag("range", event.pointerId, event.currentTarget);
     },
     [actions, beginDrag, storeApi],
@@ -1038,7 +1038,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       } else {
         actions.selectColumn(columnIndex);
       }
-      event.currentTarget.setPointerCapture?.(event.pointerId);
+      safeSetPointerCapture(event.currentTarget, event.pointerId);
       beginDrag("column", event.pointerId, event.currentTarget);
     },
     [actions, beginDrag, storeApi],
@@ -1061,7 +1061,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       } else {
         actions.selectRow(viewRowIndex);
       }
-      event.currentTarget.setPointerCapture?.(event.pointerId);
+      safeSetPointerCapture(event.currentTarget, event.pointerId);
       beginDrag("row", event.pointerId, event.currentTarget, anchor);
     },
     [actions, beginDrag, storeApi],
@@ -1097,7 +1097,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       // stays unseeded, so runDragFrame's first tick is a no-op (pointer is null) exactly like the
       // other drag starts; only a real pointermove commits to extending from this anchor.
       actions.armRowDragAnchor(viewRowIndex);
-      event.currentTarget.setPointerCapture?.(event.pointerId);
+      safeSetPointerCapture(event.currentTarget, event.pointerId);
       // the checkbox press is the range gesture's anchor: dragging makes the row channel exactly
       // pressRow..current (grow AND shrink), matching the plain marker drag.
       beginDrag("row", event.pointerId, event.currentTarget, viewRowIndex);

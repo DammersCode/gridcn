@@ -233,6 +233,11 @@
                "target": "components/data-grid/interaction/use-async-validate.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/interaction/safe-set-pointer-capture.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/interaction/safe-set-pointer-capture.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/interaction/use-cell-editor.ts",
                "type": "registry:component",
                "target": "components/data-grid/interaction/use-cell-editor.ts"
