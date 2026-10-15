@@ -1,5 +1,5 @@
 import { page, userEvent } from "vitest/browser";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { defineColumns, DataGrid } from "../data-grid";
 import { GRID_ATTR, gridAttrSelector } from "../data-grid-sdk";
@@ -599,6 +599,76 @@ describe("mouse-selection hardening matrix (regression: drag-select must never e
     await expect.poll(() => selectedCount(), { timeout: 2000 }).toBe(3);
     document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 1 }));
     expect(selectedCount()).toBe(3);
+  });
+
+  it("a column header select drag with a synthetic pointer id (capture refused) still selects columns", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(10)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const headers = [...document.querySelectorAll<HTMLElement>('[role="columnheader"]')];
+    const second = headers[1]!.getBoundingClientRect();
+    const below = gridCells()[1]!.getBoundingClientRect();
+
+    await headers[0]!.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 4242 }));
+    document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 4242, clientX: below.left + 5, clientY: below.top + 5 }));
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => requestAnimationFrame(r));
+    document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 4242 }));
+
+    const overlay = document.querySelector<HTMLElement>(gridAttrSelector("selectionOverlay"));
+    expect(overlay).not.toBeNull();
+    expect(overlay!.getBoundingClientRect().right).toBeCloseTo(second.right, 0);
+  });
+
+  it("a checkbox press+drag with a synthetic pointer id (capture refused) still selects the row range", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(10)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="checkbox" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const checkbox = (row: number) => [...document.querySelectorAll<HTMLElement>(gridAttrSelector("markerCheckbox"))][row]!;
+    const target = checkbox(3).getBoundingClientRect();
+
+    await checkbox(0).dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 4242 }));
+    document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 4242, clientX: target.left + 5, clientY: target.top + 5 }));
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => requestAnimationFrame(r));
+    document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 4242 }));
+
+    await expect.poll(() => markerCells().filter((m) => m.hasAttribute("data-row-selected")).length, { timeout: 2000 }).toBe(4);
+  });
+
+  it("edge auto-scroll hands the capture to the scroll element, even when the browser refuses it", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(200)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const captureTargets: Element[] = [];
+    const spy = vi.spyOn(Element.prototype, "setPointerCapture").mockImplementation(function (this: Element) {
+      captureTargets.push(this);
+      throw new DOMException("refused", "NotFoundError");
+    });
+    try {
+      const origin = gridCells()[0]!;
+      const gridRect = document.querySelector<HTMLElement>('[role="grid"]')!.getBoundingClientRect();
+      await origin.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 4242 }));
+      document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 4242, clientX: gridRect.left + 20, clientY: gridRect.bottom - 2 }));
+      await new Promise((r) => setTimeout(r, 200));
+      document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 4242 }));
+
+      const handoff = captureTargets.at(-1)!;
+      expect(handoff).not.toBe(origin);
+      expect(handoff.contains(origin) || !origin.isConnected).toBe(true);
+      expect((handoff as HTMLElement).scrollTop).toBeGreaterThan(0);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   // Excel model: clicks never edit — this guards that pointer jitter neither

@@ -87,6 +87,31 @@ describe("column resize", () => {
     expect(after).toBeGreaterThan(before + 40);
   });
 
+  it("a resize drag with a synthetic pointer id (capture refused) still changes the width", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const header = headerCells()[0]!;
+    const before = header.getBoundingClientRect().width;
+    const handle = header.querySelector<HTMLElement>(gridAttrSelector("resizeHandle"))!;
+    const handleRect = handle.getBoundingClientRect();
+
+    await handle.dispatchEvent(
+      new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 4242, clientX: handleRect.left, clientY: handleRect.top }),
+    );
+    document.dispatchEvent(
+      new PointerEvent("pointermove", { bubbles: true, pointerId: 4242, clientX: handleRect.left + 60, clientY: handleRect.top }),
+    );
+    await new Promise((r) => requestAnimationFrame(r));
+    document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 4242 }));
+    await new Promise((r) => requestAnimationFrame(r));
+
+    expect(headerCells()[0]!.getBoundingClientRect().width).toBeGreaterThan(before + 40);
+  });
+
   it("double-clicking the resize handle autosizes the column to fit its widest view content", async () => {
     const wideRows = makeRows(5);
     wideRows[0]!.name = "A Very Very Long Name That Needs Room";
