@@ -2,6 +2,7 @@
 title: Sorting, filtering & search
 description: Client-side multi-column sort, per-column filters, and quick search with match navigation.
 icon: ArrowUpDown
+status: updated
 ---
 
 <ComponentPreview name="data-grid-sorting-filtering-demo" />
@@ -51,7 +52,7 @@ to change it.
 `allColumns`, the menu shows that row as a raw column id and logs a dev-time warning.
 
 Two column-level fields replace the built-in behavior. `filterMatch(value, filter)` is a
-per-column predicate over the cell's RAW value — not its stringified form — that decides whether
+per-column predicate over the cell's RAW value (not its stringified form) that decides whether
 the row passes; it replaces the built-in matcher for that column, and a thrown predicate fails the
 row. `filterOperators` replaces the operator list the filter menu offers for that column, for
 example the comparison operators for a consumer-registered numeric cell type whose `type` key is
@@ -94,8 +95,8 @@ It debounces typing before it writes the store's search text. Pass `debounceMs` 
 200 ms default.
 
 It never narrows the row set. Search highlights and navigates matches over the rows already in
-`data`. `viewIndex` is untouched, so everything that walks `viewIndex` — export with
-`scope: "view"`, select-all, pinned-row aggregates — sees the same rows with or without a search
+`data`. `viewIndex` is untouched, so everything that walks `viewIndex` (export with
+`scope: "view"`, select-all, pinned-row aggregates) sees the same rows with or without a search
 term. To actually remove rows, use a filter.
 
 <Callout title="Search is capped at 1000 matches">

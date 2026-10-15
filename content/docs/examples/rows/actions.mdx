@@ -1,11 +1,12 @@
 ---
 title: Action buttons
-description: The action-buttons column pattern — inline Edit/Delete buttons and a more dropdown, composed over store actions.
+description: The action-buttons column pattern (inline Edit/Delete buttons and a more dropdown, composed over store actions).
 icon: Ellipsis
+status: updated
 ---
 
 The action-buttons column: a pinned-right `readOnly` column whose `renderCell` composes plain
-shadcn Buttons over store actions. No new core feature — every button calls an existing action,
+shadcn Buttons over store actions. No new core feature. Every button calls an existing action,
 and the column's `readOnly: true` keeps the grid from ever trying to edit it.
 
 <ComponentPreview name="data-grid-actions-demo" />
@@ -48,14 +49,14 @@ actions.duplicateRows([rowIndex]);
 actions.deleteRows([rowIndex]);
 ```
 
-`viewRowIndex` is the **view-space** position, exactly what the row-op actions expect — no
-index translation needed. Cell actions like `startEditing` take a stable `CellRef`
+`viewRowIndex` is the **view-space** position, exactly what the row-op actions expect (no
+index translation needed). Cell actions like `startEditing` take a stable `CellRef`
 (`{ rowId, columnId }`) by default; the `*At` variants take the `viewRowIndex`/column position
 instead. Target the row by identity through `rowId` (in `renderCell`'s props) whenever the
 action needs something beyond its position.
 
 ## Behavior reference
 
-- [Programmatic actions](/docs/row-operations#programmatic-actions) — signatures for `startEditing`'s siblings
-- [Pinning](/docs/examples/columns/pinning) — the pinned band the column sits in
-- [Selection & keyboard](/docs/selection-keyboard) — what happens to the selection after a delete
+- [Programmatic actions](/docs/row-operations#programmatic-actions): signatures for `startEditing`'s siblings
+- [Pinning](/docs/examples/columns/pinning): the pinned band the column sits in
+- [Selection & keyboard](/docs/selection-keyboard): what happens to the selection after a delete

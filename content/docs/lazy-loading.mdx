@@ -2,6 +2,7 @@
 title: Lazy loading
 description: Fetch row windows on demand for datasets too large (or too expensive) to load up front.
 icon: CloudDownload
+status: updated
 ---
 
 `data-grid-lazy` gives the grid a `total` and a `fetchRows(start, end)` function, and
@@ -11,7 +12,7 @@ icon: CloudDownload
 
 <InstallCommand item="data-grid-lazy" manual manualSlot={<ManualInstall item="data-grid-lazy" />} />
 
-Lazy loading gives an infinite-feel single scrollable surface — no page boundary, a grid that
+Lazy loading gives an infinite-feel single scrollable surface: no page boundary, a grid that
 fills in as the user scrolls. It fits one continuous dataset best.
 Explicit, bookmarkable pages with a bounded per-request payload are
 [Pagination](/docs/pagination). Virtualization renders huge datasets cheaply either way.
@@ -81,7 +82,7 @@ shimmer with plain CSS instead of a class override.
       Unloaded indices are holes (`undefined`), which the core renders as skeleton cells.
     - **Function-form row and cell callbacks are skipped on holes.** `readOnly(row)`,
       `getRowClassName`, and the function forms of `getCellClassName` / `column.cellClassName`
-      never receive an `undefined` row — the skeleton row is inert.
+      never receive an `undefined` row. The skeleton row is inert.
     - **Placeholder row ids are index-derived** for unloaded rows (`getRowId` only runs on rows
       that exist). This id is unstable. It does not survive a range being unloaded and reloaded
       with different content at the same index, but this is fine. An unloaded row carries no
@@ -129,7 +130,7 @@ shimmer with plain CSS instead of a class override.
     `onError` is the only signal that a fetch failed. There is no thrown-error boundary, because
     a failed range stays a hole, rendered as a skeleton row, and is retried automatically
     the next time it is scrolled into view. The demo's "Simulate a failed fetch" and "Simulate a
-    permanent failure" buttons show the two cases live — permanent failures and the retry UI for
+    permanent failure" buttons show the two cases live. Permanent failures and the retry UI for
     them are on the next page.
 
     `onLoaded(range)` is the success counterpart of `onError`. It fires once a range fetch
@@ -219,7 +220,7 @@ Two behaviors matter when you wire your own policy:
 
 - An in-flight fetch that started before the evict still lands and marks its range loaded. The
   evicted rows reappear once that fetch resolves.
-- Evicted rows lose edits merged through `onDataChange` that you did not persist — this hook
+- Evicted rows lose edits merged through `onDataChange` that you did not persist. This hook
   does not own persistence. See [Editing loaded rows](#editing-loaded-rows).
 
 Undo and redo compose with this hook's `onDataChange`. The wiring, the hole-tolerant `getRowId`,
@@ -275,7 +276,7 @@ and `DataGridSortList` shows no active sorts. Render the active sort from your o
 asc → desc → none cycle against your own spec, as `data-grid-playground-demo` does.
 
 Filtering follows the same rule for the same reason: `filterState` narrows `data` locally when
-set. `searchText` never narrows anything — it only highlights and navigates matches over the
+set. `searchText` never narrows anything. It only highlights and navigates matches over the
 rows already in `data`, so a search over a partial array highlights matches in the loaded part
 and nothing more.
 
@@ -307,9 +308,9 @@ and nothing more.
   <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> twice) selects the full view, holes included.
   `getRowIds` for an unloaded row in that selection returns its index-derived placeholder id
   (`__lazy-unloaded-<index>`), not a real row id. If a selection must mean "only loaded rows",
-   filter the selected rows through the sparse `data` array yourself — a hole is `undefined`
-   there — or read `lazy.getLoadedRanges()` and keep only the rows whose index falls in a
-   loaded range. The result is a snapshot that never triggers a render — call it in an effect
+   filter the selected rows through the sparse `data` array yourself (a hole is `undefined`
+   there) or read `lazy.getLoadedRanges()` and keep only the rows whose index falls in a
+   loaded range. The result is a snapshot that never triggers a render. Call it in an effect
    or handler. An export of a lazy grid covers only the loaded rows: `buildExportRows` skips
    holes in every scope (see [Import & export](/docs/addons/import-export)).
 </Callout>

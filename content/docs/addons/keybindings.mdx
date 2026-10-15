@@ -1,11 +1,12 @@
 ---
 title: Keybindings
-description: The data-grid-keybindings add-on — an in-app shortcuts dialog that always reflects the effective keymap, plus binding chips for your own UI.
+description: "The data-grid-keybindings add-on: an in-app shortcuts dialog that always reflects the effective keymap, plus binding chips for your own UI."
 icon: Keyboard
+status: updated
 ---
 
-`data-grid-keybindings` displays the grid's effective keymap as an in-app dialog — always
-reflecting the actual bindings of your grid, including `keymap` overrides. The core keyboard
+`data-grid-keybindings` displays the grid's effective keymap as an in-app dialog (always
+reflecting the actual bindings of your grid, including `keymap` overrides). The core keyboard
 model and the default binding table live on [Selection & keyboard](/docs/selection-keyboard#keyboard-map).
 This page covers the add-on's display surface.
 
@@ -56,7 +57,7 @@ not part of the keymap, but the dialog lists them together for completeness.
 
 ## Binding chips
 
-`BindingChips` renders one binding string ("mod+c") as a row of `Kbd` chips ("⌘" "C") — the
+`BindingChips` renders one binding string ("mod+c") as a row of `Kbd` chips ("⌘" "C"), the
 same tokens the dialog uses, for your own tooltips or legend rows:
 
 ```tsx
@@ -151,13 +152,13 @@ When you remap an action, every surface uses the new binding.
 The type-to-replace trigger (`editReplace`) is remapped the same way. By default it has no
 binding: any unbound printable key on the active cell dispatches it and opens the editor seeded
 with the typed character (Excel behavior). Defining it in `keymap` takes the action over
-exclusively — ANY `editReplace` binding suppresses the implicit printable-key fallback entirely,
+exclusively. ANY `editReplace` binding suppresses the implicit printable-key fallback entirely,
 there is no additive mode: `keymap={{ editReplace: ["F3"] }}` means type-to-replace only happens
 on F3 (a plain edit start), and `keymap={{ editReplace: [] }}` disables it entirely. A printable
 key bound to `editReplace` (e.g. `"a"`) starts the edit seeded with that character, Excel-style.
 
 Action labels in the dialog (and the per-`GridAction` label map) come from
-`labels.keybindings` — see [Internationalization: coverage by group](/docs/i18n#coverage-by-group).
+`labels.keybindings` (see [Internationalization: coverage by group](/docs/i18n#coverage-by-group)).
 
 ## Custom commands
 
@@ -243,8 +244,8 @@ declare module "@/components/data-grid/types" {
 
 ## Related
 
-- [Selection & keyboard](/docs/selection-keyboard) — the selection model and the default
+- [Selection & keyboard](/docs/selection-keyboard): the selection model and the default
   keymap table
-- [Two-stage Ctrl+A](/docs/selection-keyboard#two-stage-ctrla) — the select-all nuance
-- [Global shortcuts](/docs/global-shortcuts) — the opt-in layer that also follows the
+- [Two-stage Ctrl+A](/docs/selection-keyboard#two-stage-ctrla): the select-all nuance
+- [Global shortcuts](/docs/global-shortcuts): the opt-in layer that also follows the
   remapped undo and redo bindings outside the grid

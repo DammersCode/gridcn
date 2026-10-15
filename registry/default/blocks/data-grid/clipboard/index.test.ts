@@ -1,11 +1,6 @@
 import { describe, it, expect } from "vitest";
-import {
-  serializeCells,
-  sanitizeFormulaCell,
-  parseClipboardHtml,
-  parseClipboardText,
-  parseClipboard,
-} from ".";
+import { serializeCells, sanitizeFormulaCell } from "./serialize-cells";
+import { parseClipboardHtml, parseClipboardText, parseClipboard } from "./parse-clipboard";
 
 describe("serializeCells", () => {
   it("joins rows with \\n and cells with \\t", () => {

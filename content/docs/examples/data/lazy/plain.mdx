@@ -1,11 +1,11 @@
 ---
 title: Plain fetcher
-description: useDataGridLazyRows with a plain simulated-latency fetcher — the baseline pattern.
+description: useDataGridLazyRows with a plain simulated-latency fetcher. The baseline pattern.
 icon: Loader
 ---
 
 The baseline: `useDataGridLazyRows` owns the sparse row array and the window bookkeeping.
-You own `fetchRows(start, end, signal)`. The demo has 100,000 rows — only the windows that
+You own `fetchRows(start, end, signal)`. The demo has 100,000 rows. Only the windows that
 actually scroll into view are ever fetched, and skeleton rows hold the space until each
 window lands. The two failure buttons show the transient/permanent error split. The third
 page covers what a real fetcher replaces.
@@ -30,10 +30,10 @@ const lazy = useDataGridLazyRows<Row>({
 - `fetchRows` resolves exactly the `[start, end)` slice, positionally aligned to `start`.
   The hook writes it into the sparse array. The core renders real rows over the skeletons.
 - `signal` aborts the in-flight fetch when the window leaves view. A rejection after abort
-  is ignored, so an abort is not an error — reject with an `AbortError` and move on.
+  is ignored, so an abort is not an error. Reject with an `AbortError` and move on.
 - Failed ranges revert to unloaded and the next scroll into them retries automatically
   ("refetch on next visibility"). `onError` still fires, so a permanent failure (an expired
-   token, for example) can surface a manual retry — re-fire
+   token, for example) can surface a manual retry. Re-fire
    `gridProps.onRowWindowChange(range)`, and the range takes the same path as a real scroll.
 
 ## Bring your own fetcher
@@ -44,14 +44,14 @@ the session: [TanStack Query](/docs/examples/data/lazy/react-query) and
 
 ## Behavior reference
 
-- [Lazy loading](/docs/lazy-loading) — overscan, batch size, and the uncontrolled
+- [Lazy loading](/docs/lazy-loading): overscan, batch size, and the uncontrolled
   sort/filter/search guard
-- [Tuning the fetch window](/docs/lazy-loading#tuning-the-fetch-window) — `maxFetchRows` and
+- [Tuning the fetch window](/docs/lazy-loading#tuning-the-fetch-window): `maxFetchRows` and
   the other size knobs
-- [Memory & retention](/docs/lazy-loading#memory-retention) — `reset`, `evict`, and
+- [Memory & retention](/docs/lazy-loading#memory-retention): `reset`, `evict`, and
   `getLoadedRanges`
 
 ## Related
 
-- [Large data](/docs/examples/data/large-data) — the opposite pattern: everything loaded,
+- [Large data](/docs/examples/data/large-data): the opposite pattern: everything loaded,
   virtualization does the work

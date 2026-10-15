@@ -167,7 +167,7 @@ export type OverlayPluginCtx = {
 };
 
 /** True when any column is pinned — segmentation is a no-op (and skippable) otherwise. */
-function hasAnyPin(pinTrack: PinTrackData | undefined): pinTrack is PinTrackData {
+export function hasAnyPin(pinTrack: PinTrackData | undefined): pinTrack is PinTrackData {
   return Boolean(pinTrack && pinTrack.pins.some((p) => p === "left" || p === "right"));
 }
 

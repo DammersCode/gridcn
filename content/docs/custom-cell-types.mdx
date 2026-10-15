@@ -2,16 +2,17 @@
 title: Build your own cell type
 description: The CellType contract, a keypoint checklist distilled from every lesson the built-in types learned the hard way, and a full worked currency example.
 icon: Blocks
+status: updated
 ---
 
 ## The mental model
 
-A cell type is **one object** — `{ Cell, Editor, toText, fromText, clearValue, isEmpty,
+A cell type is **one object**: `{ Cell, Editor, toText, fromText, clearValue, isEmpty,
 compare?, align?, numeric?, toSearchText?, validate?, activate?, href?, filter? }`. Its four
 value-pipeline methods drive clipboard, the fill handle, quick-clear delete, search, sort, and
-import/export. The optional behavior fields drive the grid's built-in behaviors — commit
+import/export. The optional behavior fields drive the grid's built-in behaviors (commit
 validation, quick-search text, in-place edit gestures, and the filter menu's operators and
-value input — so the grid reads them from your type instead of from the type's name. One generic
+value input) so the grid reads them from your type instead of from the type's name. One generic
 implementation runs against the contract for every type. Get `fromText` wrong, and every
 consumer inherits the bug.
 
@@ -41,62 +42,62 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
 };
 ```
 
-- **`Cell`** — read-mode rendering. It receives `{ value, row, rowId, columnId, viewRowIndex,
+- **`Cell`**: read-mode rendering. It receives `{ value, row, rowId, columnId, viewRowIndex,
   column, options, isActive }`. The `options` prop carries the column's `options`, typed as `TOptions` when you
   parameterize the type with it. It runs for every visible cell on every window mount. This is a
   hot path (code that runs very often, so its per-call cost matters), covered more below.
-- **`Editor`** — edit-mode rendering. It receives `{ value, initialText?, row, rowId, columnId, column, options,
+- **`Editor`**: edit-mode rendering. It receives `{ value, initialText?, row, rowId, columnId, column, options,
   onChange, commit, cancel, pending?, rejectionCount? }`. `commit(movement?)` writes the value
   back through `onChange`, and tells the grid where the active cell goes next. `cancel()`
   discards the edit entirely. `pending` and `rejectionCount` matter only if the `validate` of
   the column can be an async Standard Schema. See
   [Editing & cell types](/docs/editing-cell-types#async-schemas) and the checklist below.
-- **`toText`** — the *canonical* serialization. Clipboard copy and export use it unconditionally.
+- **`toText`**: the *canonical* serialization. Clipboard copy and export use it unconditionally.
   It must round-trip through `fromText` for every value that the type can hold. Quick search uses
-  it when the type declares no `toSearchText`. Filter does NOT use it — see the value-pipeline
+  it when the type declares no `toSearchText`. Filter does NOT use it. See the value-pipeline
   note below.
-- **`toDisplayText`** (optional) — a *display-only* formatted view, for example locale-formatted
+- **`toDisplayText`** (optional): a *display-only* formatted view, for example locale-formatted
   dates or currency symbols. It is never round-tripped, and only the cell's display rendering
   reads it: clipboard and export call `toText` directly, search reads `toSearchText ?? toText`,
   and filter runs on the raw value (see the value-pipeline note below). When you omit it, the type falls back to
   `toText` (see the `displayText()` helper, exported from the `data-grid` entry point). To render
   that text like a built-in cell, use `CellSpan` from the same entry point. It takes `text` and an
   optional `align` (`"left"`, `"right"`, or `"center"`), truncates the text, and applies the alignment.
-- **`fromText`** — parses pasted, imported, or typed text into `TValue`. **It must never throw.**
+- **`fromText`**: parses pasted, imported, or typed text into `TValue`. **It must never throw.**
   Paste and import feed it arbitrary, untrusted text: a stray clipboard fragment, a spreadsheet
   export from a different tool, or a typo made by a user. For anything it cannot parse, return
    the result of `clearValue()`, not `undefined` and not a thrown error. So a bad paste degrades
    to the cleared cell, and the rest of the paste keeps going.
-- **`clearValue`** — the empty value of the type (`""`, `null`, `false`, and so on). Quick-clear
+- **`clearValue`**: the empty value of the type (`""`, `null`, `false`, and so on). Quick-clear
   delete, the garbage fallback of `fromText`, and fill-clear all use it.
-- **`isEmpty`** — whether a value counts as empty. This is a semantic choice, not a technicality.
+- **`isEmpty`**: whether a value counts as empty. This is a semantic choice, not a technicality.
   See the checklist below. It decides what a Ctrl+A "select all data" region treats as non-blank,
   and what the fill handle treats as a fillable gap.
-- **`compare`** — the sort comparator, used when the column declares this `type`. When you omit
-   it, the default is a numeric-aware locale collation of the RAW `String(value)` — not of
+- **`compare`**: the sort comparator, used when the column declares this `type`. When you omit
+   it, the default is a numeric-aware locale collation of the RAW `String(value)`, not of
    `toText` output. Empty values (per `isEmpty`) sort last in both directions. `compare` only
    ever sees two non-empty values.
-- **`align`** — text alignment for the default `Cell` rendering. `"right"` reads better with
+- **`align`**: text alignment for the default `Cell` rendering. `"right"` reads better with
   `tabular-nums` for numeric-like types.
-- **`numeric`** — renders the cell's digits with `tabular-nums`, the fixed-width numerals that
+- **`numeric`**: renders the cell's digits with `tabular-nums`, the fixed-width numerals that
   keep columns of numbers aligned. `number` and `date` declare it.
-- **`toSearchText`** — the quick-search text for a stored value. The default is `toText`.
+- **`toSearchText`**: the quick-search text for a stored value. The default is `toText`.
   `select` declares it, so a `select` column searches the choice LABEL, not the stored value.
-  Filter never uses it — filter matches the raw value.
-- **`validate`** — the default validator for columns of this type when the column declares no
+  Filter never uses it. Filter matches the raw value.
+- **`validate`**: the default validator for columns of this type when the column declares no
   `validate` of its own. Same two forms as the column's `validate` (a function or a Standard
-  Schema — see [Editing & cell types: Validation](/docs/editing-cell-types#validation)). Every
+  Schema. See [Editing & cell types: Validation](/docs/editing-cell-types#validation)). Every
   validation path resolves `column.validate ?? cellType.validate`: a single-cell commit, a paste,
   a fill, `updateCells`, and import.
-- **`activate`** — gives the cell an in-place edit gesture instead of an editor. Enter/F2, a
+- **`activate`**: gives the cell an in-place edit gesture instead of an editor. Enter/F2, a
   stationary click, and a double-click on an `activate` cell commit `activate(value, options)`
   directly, with no edit session (so `onEditStart` and `onEditEnd` never fire). `checkbox`
   declares `(value) => !value`. Without `activate`, the same gestures open the editor.
-- **`href`** — the link target for a stored value. The grid routes every result through
+- **`href`**: the link target for a stored value. The grid routes every result through
   `safeHref` (exported from the `data-grid` barrel) before it renders it or opens it: only
   `http`, `https`, and `mailto` survive, and a type cannot widen the list. `url` declares it;
   the `openLink` action (alt+Enter) opens the active cell's safe href.
-- **`filter`** — the filter capabilities of the type, used when the column declares none of its
+- **`filter`**: the filter capabilities of the type, used when the column declares none of its
   own. `filter.operators` replaces the operator list the filter menu offers for the type's
   columns. `filter.match` is a raw-value predicate that replaces the built-in text matcher, with
   the same contract as the column's `filterMatch`. `filter.valueInput` picks the filter row's
@@ -219,8 +220,8 @@ matcher · **fill** = raw value.
   (seeded from `initialText`, or from your codec's `toDraft(value)` when there is none), the
   end-caret focus, the one-shot commit guard, the re-arm after a rejected commit, the
   Enter/Escape/blur bindings (inactive during IME composition), and the `aria-label`,
-  `aria-busy`, and `dir="auto"` attributes. You supply one codec object — `toDraft` and
-  `toValue` — and spread the returned bindings onto your input. The checklist points below state the rules the hook
+  `aria-busy`, and `dir="auto"` attributes. You supply one codec object (`toDraft` and
+  `toValue`) and spread the returned bindings onto your input. The checklist points below state the rules the hook
   already implements, for the editors that do not use it (popover, checkbox, and similar).
 - **If your editor commits from more than one code path, use the commit guard
   (`useCommitGuard`).** An editor typically has at least two ways to end an edit: Enter, then a

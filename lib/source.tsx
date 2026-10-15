@@ -2,7 +2,6 @@ import { docs } from 'collections/server';
 import { loader } from 'fumadocs-core/source';
 import { lucideIconsPlugin } from 'fumadocs-core/source/lucide-icons';
 import { statusBadgesPlugin } from 'fumadocs-core/source/plugins/status-badges';
-import { Badge } from '@/components/ui/badge';
 import { docsContentRoute, docsImageRoute, docsRoute } from './shared';
 
 // See https://fumadocs.dev/docs/headless/source-api for more info
@@ -12,11 +11,12 @@ export const source = loader({
   plugins: [
     lucideIconsPlugin(),
     statusBadgesPlugin({
-      renderBadge: (status) => (
-        <Badge variant="secondary" className="ml-2">
-          {status}
-        </Badge>
-      ),
+      renderBadge: (status) =>
+        status === 'new' ? (
+          <span title="New page" className="ml-2 size-1.5 shrink-0 rounded-full bg-status-new" />
+        ) : (
+          <span title="Updated page" className="ml-2 size-1.5 shrink-0 rounded-full bg-status-updated" />
+        ),
     }),
   ],
 });

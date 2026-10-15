@@ -1,12 +1,13 @@
 ---
 title: Toolbar
-description: The data-grid-toolbar add-on — a flex frame for search, filter menu, sort list, columns menu, and your own buttons.
+description: "The data-grid-toolbar add-on: a flex frame for search, filter menu, sort list, columns menu, and your own buttons."
 icon: PanelTop
+status: updated
 ---
 
 `data-grid-toolbar` is a flex frame for the grid's toolbar slots: quick search, the filter menu,
 the sort list, the columns menu, and your own buttons. It renders children left to right in the
-order you write them, and each piece is independent — drop one and the rest keep their relative
+order you write them, and each piece is independent. Drop one and the rest keep their relative
 order.
 
 <InstallCommand item="data-grid-toolbar" manual manualSlot={<ManualInstall item="data-grid-toolbar" />} />
@@ -37,7 +38,7 @@ import {
 ```
 
 <Callout type="info" title="Standard toolbar order">
-  The gridcn convention is: `DataGridSearch` first (leftmost — finding data comes before
+  The gridcn convention is: `DataGridSearch` first (leftmost. Finding data comes before
   anything else), then the row-view modifiers `DataGridFilterMenu` and `DataGridSortList`, then
   the column configuration `DataGridColumnsMenu`, then data movement `DataGridImportButton`
   before `DataGridExportButton` (data flows in, then out), and your own utility buttons
@@ -46,18 +47,18 @@ import {
 
 ## The pieces
 
-- **`DataGridSearch`** — quick search with match navigation. The behavior (capping, `mod+F`
+- **`DataGridSearch`**: quick search with match navigation. The behavior (capping, `mod+F`
   capture) is documented on
   [Sorting, filtering & search: search](/docs/sorting-filtering-search#search).
-- **`DataGridFilterMenu`** — the per-column filter popover. The operator set and filter
+- **`DataGridFilterMenu`**: the per-column filter popover. The operator set and filter
   semantics are on
   [Sorting, filtering & search: filtering](/docs/sorting-filtering-search#filtering). Pass
    `operatorsForColumn(column)` to replace the per-column operator list; resolution order is this
    prop, then the column's own `filterOperators`, then the cell type's `filter.operators`, then
    the built-in default for the type's name.
-- **`DataGridSortList`** — the sort management popover,
+- **`DataGridSortList`**: the sort management popover,
   [its own page](/docs/addons/sort-list).
-- **`DataGridColumnsMenu`** — show and hide only. Pin controls live in the header menu, not
+- **`DataGridColumnsMenu`**: show and hide only. Pin controls live in the header menu, not
   here (see [Columns: visibility](/docs/columns#visibility)).
 
 <ComponentPreview name="data-grid-filter-operators-demo" />
@@ -81,6 +82,6 @@ list is empty.
 
 ## Related
 
-- [Sorting, filtering & search](/docs/sorting-filtering-search) — the core behavior the
+- [Sorting, filtering & search](/docs/sorting-filtering-search): the core behavior the
   toolbar controls
-- [Context menu](/docs/addons/context-menu) — the other per-column surface
+- [Context menu](/docs/addons/context-menu): the other per-column surface

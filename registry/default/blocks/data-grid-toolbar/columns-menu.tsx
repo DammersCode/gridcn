@@ -17,16 +17,12 @@ import {
   useDataGridLabels,
   type AnyColumnDef,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { columnLabelText } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Props for {@link DataGridColumnsMenu}. */
 export type DataGridColumnsMenuProps = {
   className?: string;
 };
-
-/** Column label for the menu row: `headerText`, else the string `header`, else the id. */
-function columnLabel(column: AnyColumnDef): string {
-  return column.headerText ?? (typeof column.header === "string" ? column.header : column.id);
-}
 
 /** One column's visibility row; a separate component so each row subscribes to its own hidden state. */
 function ColumnRow(props: { column: AnyColumnDef }): ReactNode {
@@ -39,7 +35,7 @@ function ColumnRow(props: { column: AnyColumnDef }): ReactNode {
       checked={!hidden}
       onCheckedChange={(checked) => actions.setColumnHidden(column.id, checked !== true)}
     >
-      {columnLabel(column)}
+      {columnLabelText(column)}
     </DropdownMenuCheckboxItem>
   );
 }

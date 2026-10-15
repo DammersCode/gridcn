@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { isDefaultBinding } from "./match-keymap";
-import { DEFAULT_KEYMAP, keymapContentEqual, matchKeymap, mergeKeymap, parseBinding, isPrintableKey, sharedKeymapBindings, validateSharedBindings, type KeymapEvent } from ".";
+import { DEFAULT_KEYMAP, keymapContentEqual, matchKeymap, parseBinding, isPrintableKey, sharedKeymapBindings, validateSharedBindings, type KeymapEvent } from ".";
 import type { GridAction, Keymap } from "../types";
 
 function makeEvent(overrides: Partial<KeymapEvent> & { key: string }): KeymapEvent {
@@ -489,20 +489,6 @@ describe("validateSharedBindings", () => {
     const message = warn.mock.calls.map((c) => String(c[0])).find((m) => m.includes("mod+x"));
     expect(message).toContain("the most specific binding wins; on a tie a keymap binding beats a default");
     warn.mockRestore();
-  });
-});
-
-describe("mergeKeymap", () => {
-  it("keeps DEFAULT_KEYMAP's own reference for an absent or empty keymap", () => {
-    expect(mergeKeymap(undefined)).toBe(DEFAULT_KEYMAP);
-    expect(mergeKeymap({})).toBe(DEFAULT_KEYMAP);
-  });
-
-  it("merges the consumer keymap over the defaults, keeping the untouched defaults", () => {
-    const merged = mergeKeymap({ selectAll: ["mod+shift+a"], cancel: [] });
-    expect(merged.selectAll).toEqual(["mod+shift+a"]);
-    expect(merged.cancel).toEqual([]);
-    expect(merged.moveUp).toEqual(DEFAULT_KEYMAP.moveUp);
   });
 });
 

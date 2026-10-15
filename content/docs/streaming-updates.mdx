@@ -2,6 +2,7 @@
 title: Streaming updates
 description: Push live values into cells by row id, without a full data replacement.
 icon: Radio
+status: updated
 ---
 
 `updateCells` writes values straight into the grid by row id, for live feeds that update many cells per second.
@@ -80,7 +81,7 @@ actions.updateCells(patches, { reorder: "immediate" });
 | --- | --- | --- |
 | `"defer"` (default) | The value changes, the row holds its position, and `viewStale` becomes true. | When a row that jumps position mid-read is worse than a stale order the user clears on demand. |
 | `"immediate"` | The grid moves the patched rows to their new positions in the same call. | When the displayed order must always match the sort. |
-| `"never"` | The value changes and `viewStale` stays false. | — |
+| `"never"` | The value changes and `viewStale` stays false. | none |
 
 If no patched column feeds the active sort or filter, `"defer"` becomes `"never"` automatically, so
 `viewStale` stays false for a feed that writes only non-sorted columns.
@@ -100,7 +101,7 @@ At 100,000 rows with one sort column, a production build measures:
 Above 256 rows in one batch, the grid rebuilds the full order instead. It also rebuilds when the
 sort or filter changed in the same tick, or when a column supplies its own comparator.
 
-The demo's auto-sort switch toggles `reorder` between the modes on every tick — on, rows on the
+The demo's auto-sort switch toggles `reorder` between the modes on every tick. On, rows on the
 sorted column stay in the correct order without a re-sort click.
 
 ## Controlled mode

@@ -2,6 +2,7 @@
 title: API reference
 description: DataGrid, DataGridProvider, ColumnDef, and the CellType contract.
 icon: FileCode
+status: updated
 ---
 
 This page is generated from the real TypeScript source at build time through
@@ -46,12 +47,12 @@ gridRef.current?.scrollTo({ rowId: order.id, columnId: "symbol" });
 gridRef.current?.actions.selectCell({ rowId: order.id, columnId: "symbol" });
 ```
 
-- `getSelection`, `getRow`, and `getViewRowIds` are snapshots at call time — they never
+- `getSelection`, `getRow`, and `getViewRowIds` are snapshots at call time. They never
   re-render the calling component.
 - `getViewRowIds` returns one entry per view row, in view order, so entry `i` is always view
   row `i`. An unloaded row of a lazy grid gives its placeholder id (`__lazy-unloaded-<index>`),
   the same id `useDataGridRowIds` returns.
-- `setSelection` applies a whole selection — a range, a range stack, row and column channels —
+- `setSelection` applies a whole selection (a range, a range stack, row and column channels)
   in stable `CellRef` terms, or clears the selection with `null`. It emits like a gesture:
   `onSelectionChange` fires when the result differs from the grid's current value. Selecting a
   single cell stays `actions.selectCell(ref)`.
@@ -84,8 +85,8 @@ This is the composable entry point. It has the same sync props as `DataGrid` abo
 ### `store`: external store ownership
 
 By default `DataGridProvider` creates and owns its store. When the store must live OUTSIDE the
-provider's render — a panel beside the grid that reads it without a provider above, one store
-shared by several provider trees — create it with `useDataGridStoreProps(props)` and feed it in
+provider's render (a panel beside the grid that reads it without a provider above, one store
+shared by several provider trees) create it with `useDataGridStoreProps(props)` and feed it in
 through the `store` prop (on both `DataGridProvider` and `DataGrid`):
 
 ```tsx
@@ -108,21 +109,21 @@ return (
 ```
 
 - `useDataGridStoreProps` takes the same sync props as the provider and keeps the store in sync
-  with them on every render — pass it the same live props the grid renders from.
+  with them on every render. Pass it the same live props the grid renders from.
 - With `store` set, the provider is a pure context shell: it creates nothing, syncs nothing, and
-  subscribes to nothing — your `useDataGridStoreProps` call owns the store.
-- Imperative calls from your own component — a server follow-up in `onDataChange`, a WebSocket
-  push of validation errors — need no lifted store: by the time the async handler resolves the
+  subscribes to nothing. Your `useDataGridStoreProps` call owns the store.
+- Imperative calls from your own component (a server follow-up in `onDataChange`, a WebSocket
+  push of validation errors) need no lifted store: by the time the async handler resolves the
   handle is set, so `gridRef.current?.actions.…` reaches the same actions. The lifted `actions`
   is the only actions source on the first render, before the handle is set.
 - `store.getState()` and `store.subscribe()` are reachable from outside React for anything the
-  selector hooks can't reach — the handle's read-only `store` offers the same pair once the grid
+  selector hooks can't reach. The handle's read-only `store` offers the same pair once the grid
   is mounted.
 
 ### `plugins`
 
 `readonly DataGridPlugin[]`, optional, on both `DataGridProvider` and `DataGrid`. Each entry is
-an add-on — or your own code — that reaches into the grid through six optional members: an
+an add-on (or your own code) that reaches into the grid through six optional members: an
 `Overlay` component, a `rowBands` contribution, an `onDataChange` observer, `commands`, a
 `keymap`, and a `Mount` component. Array order is precedence and visual order.
 See [Plugins](/docs/plugins) for the full contract, and
@@ -130,8 +131,8 @@ See [Plugins](/docs/plugins) for the full contract, and
 [Undo & redo](/docs/addons/undo-redo) for three first-party consumers.
 
 <Callout title="Identity is entry-wise">
-  The grid compares the list entry-wise — same length, same `name` per entry, every member
-  identity-equal — so a fresh `[plugin]` array per render is harmless while the plugin keeps its
+  The grid compares the list entry-wise (same length, same `name` per entry, every member
+  identity-equal) so a fresh `[plugin]` array per render is harmless while the plugin keeps its
   identity. A changed plugin member re-resolves the grid's plugins and remounts the plugin
   components whose type changed. A plugin object attaches to one grid; the same object on two
   grids dev-errors, and the second grid excludes it.
@@ -144,41 +145,41 @@ State access is hooks only. Call them under `DataGridProvider`. The one way out 
 provider's subtree. The full list lives in `store/hooks.ts`. These are the ones you will reach
 for most:
 
-- `useDataGridActions()` — the single stable actions object (`setSorts`, `setFilters`,
+- `useDataGridActions()`: the single stable actions object (`setSorts`, `setFilters`,
   `setSearch`, `setColumnWidth`, `setColumnOrder`, `setColumnPin`, `setColumnHidden`,
   `setColumnLayout`, `setSelection`,
   `autosizeColumns`, `selectCell`, `extendTo`, `startEditing`, `commitCellEdit`, `deleteSelection`,
   `updateCells`, `updateRows`, `commitChange`, `reconcileView`, `setCellErrors`, `clearCellErrors`,
   plus the row
   operations
-  `insertRow`, `duplicateRows`, `deleteRows` — see [Row operations](/docs/row-operations)). The
+  `insertRow`, `duplicateRows`, `deleteRows`. See [Row operations](/docs/row-operations)). The
   complete list is the `DataGridActions` type. `commitChange(change)` applies a whole
   `DataChange` op batch in one write and emits `onDataChange` once, so it lands on the undo
   stack as a single entry; it is a no-op on a `readOnly` grid and does not revalidate values.
-- `useDataGridViewStale()` — true when a write left the sorted order stale: a deferred
+- `useDataGridViewStale()`: true when a write left the sorted order stale: a deferred
   `updateCells` batch, or an edit, paste, fill, or cleared selection that touched a column the
   active sort or filter reads. See [Streaming updates](/docs/streaming-updates).
-- `useDataGridCellTypes()` — the resolved cell-type registry (built-ins or consumer-provided),
+- `useDataGridCellTypes()`: the resolved cell-type registry (built-ins or consumer-provided),
   for tooling that needs to inspect or resolve a column's renderer/editor.
-- `useDataGridActiveColumn()` — the active cell's column index (or `null`), for tooling that only
+- `useDataGridActiveColumn()`: the active cell's column index (or `null`), for tooling that only
   cares about the active column.
 - `useDataGridActiveCell()`, `useDataGridSelection()`, `useDataGridGetSelectionValues()`, `useDataGridEditing()`
 - `useDataGridSortState()`, `useDataGridFilterState()`, `useDataGridSearchText()`
 - `useDataGridVisibleColumns()`, `useDataGridAllColumns()`, `useDataGridColumnWidth(id)`,
   `useDataGridIsColumnHidden(id)`
 - `useDataGridLabels()`, `useDataGridKeymap()`, `useDataGridReadOnly()`
-- `useDataGridScrollToCell()` — imperative scroll to a `CellRef`.
-  `useDataGridScrollToCellAt()` — the same scroll to a `ViewCoord`.
-- `useDataGridApi(ref?)` — the grid's imperative handle (`DataGridApi`); see
+- `useDataGridScrollToCell()`: imperative scroll to a `CellRef`.
+  `useDataGridScrollToCellAt()`: the same scroll to a `ViewCoord`.
+- `useDataGridApi(ref?)`: the grid's imperative handle (`DataGridApi`); see
   [Imperative handle](#imperative-handle).
-- `useDataGridCellErrors()` — the full post-commit server-error map. See
+- `useDataGridCellErrors()`: the full post-commit server-error map. See
   [Editing & cell types: Server errors](/docs/editing-cell-types#server-errors).
-- `createDataGridSelector<TData>()` — returns a typed raw store selector hook. Create the hook
+- `createDataGridSelector<TData>()`: returns a typed raw store selector hook. Create the hook
   once at module scope and name it `use…`, for example
   `const useOrderSelector = createDataGridSelector<Order>()`. `TData` types `state.data`, so a
   selector that reads rows gets them back typed. The hook takes `(selector, eq?)`; `eq` (default
   `Object.is`) controls re-renders.
-- `useDataGridRow<TData>(viewRowIndex)` — the typed row at a view (display) index. Omit
+- `useDataGridRow<TData>(viewRowIndex)`: the typed row at a view (display) index. Omit
   `TData` for `unknown`, the previous shape.
 
 `onSelectionChange`, `onColumnLayoutChange`, and every other event source are covered in full on
@@ -203,8 +204,8 @@ traffic in. Reach for it when you write custom column UI that does not know its 
   `validate` is `((value: TValue, row: TData) => string | null) | StandardSchemaV1<TValue>`: the
   function form, or any [Standard Schema](https://standardschema.dev). `ColumnDef` has a 3rd type
   parameter, `TValidate` (defaults to `TValue`), because the function-or-schema union does not
-  stay assignable when the row-agnostic `AnyColumnDef` erases its type parameters to `unknown` —
-  so `AnyColumnDef` erases `TValidate` to `any` instead. This never affects how you author
+  stay assignable when the row-agnostic `AnyColumnDef` erases its type parameters to `unknown`.
+  So `AnyColumnDef` erases `TValidate` to `any` instead. This never affects how you author
   `validate` on a concretely-typed column through `defineColumns`. `StandardSchemaV1.InferInput<S>`
   and `InferOutput<S>` are exported from `types.ts` for inspecting a schema's own input and output
   types.
@@ -266,23 +267,23 @@ a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
 
 ## Other exported types
 
-- `DataGridApi<TData>` — the imperative handle of one grid: `actions`, `store`, `scrollTo`,
+- `DataGridApi<TData>`: the imperative handle of one grid: `actions`, `store`, `scrollTo`,
   `focus`, `startEditing`, `stopEditing`, `getSelection`, `setSelection`, `getRow`, and
   `getViewRowIds`. From `<DataGrid ref>` or from `useDataGridApi`. See
   [Imperative handle](#imperative-handle).
-- `CellRef` (`{ rowId, columnId }`) — the stable identity of a cell: your `getRowId` value plus
+- `CellRef` (`{ rowId, columnId }`): the stable identity of a cell: your `getRowId` value plus
   a column id. Sorting, filtering, and reordering never change it. Cell actions take a
   `CellRef` by default; each also has an `*At` variant that takes a `ViewCoord` instead.
-- `CellRange` (`{ start: CellRef; end: CellRef }`) — the two opposite corners of a rectangular
+- `CellRange` (`{ start: CellRef; end: CellRef }`): the two opposite corners of a rectangular
   selection; either diagonal order.
-- `SelectionState` (`{ anchor, range, rangeStack, rowIds, columnIds }`) — the selection in
+- `SelectionState` (`{ anchor, range, rangeStack, rowIds, columnIds }`): the selection in
   stable `CellRef` terms: the `onSelectionChange` payload, the `selection`/`defaultSelection`
   prop value, and the `setSelection`/`getSelection` arguments. The active cell is deliberately
   not part of it. See
   [Events & state](/docs/events-state#2-onselectionchange).
-- `ViewCoord` (`{ col, row }`) — view space: the sorted/filtered row position, not a `data`
+- `ViewCoord` (`{ col, row }`): view space: the sorted/filtered row position, not a `data`
   index. It moves when the view changes.
-- `ViewCellRef` (`{ rowId, columnId, viewRowIndex, viewColumnIndex }`) — a `CellRef` plus the
+- `ViewCellRef` (`{ rowId, columnId, viewRowIndex, viewColumnIndex }`): a `CellRef` plus the
   view position the cell occupied when an event fired. `onActiveCellChange`, `onEditStart`, and
   `onEditEnd` deliver it.
 - `GridRect` (`{ x, y, width, height }`, half-open).
@@ -296,21 +297,21 @@ a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
   capabilities a cell type declares. See
   [custom cell types](/docs/custom-cell-types#the-contract-member-by-member).
 - `GridActions` (the named keyboard actions, as an interface you can extend by declaration
-  merging) and `GridAction` (every named keyboard action — the built-ins plus any you merged in)
+  merging) and `GridAction` (every named keyboard action, the built-ins plus any you merged in)
   and `Keymap` (`Partial<Record<GridAction, KeyBinding[]>>`).
 - `GridCommand<TData>` (`{ run, when?, scope?, label?, group? }`) and `GridCommandCtx<TData>`
-  (`{ api, cell, viewRowIndex, viewColumnIndex, row, readOnly }`) — the custom-command contract
+  (`{ api, cell, viewRowIndex, viewColumnIndex, row, readOnly }`): the custom-command contract
   behind the `commands` prop. `scope` selects when the command dispatches (`"grid"`,
   `"editing"`, `"always"`), and `CommandGroup` names the keybindings dialog's sections. See
   [Keybindings: Custom commands](/docs/addons/keybindings#custom-commands).
 - `RowMarkersMode`, `HeaderClickBehavior`, and `DensityMode`.
-- `ColumnLayout` (`{ widths, order, pins, hidden }`) — the full layout snapshot: the
+- `ColumnLayout` (`{ widths, order, pins, hidden }`): the full layout snapshot: the
   `onColumnLayoutChange` payload, and the shape of the `columnLayout`/`defaultColumnLayout`
   props in `Partial` form. See
   [Events & state](/docs/events-state#8-columnlayout--defaultcolumnlayout--oncolumnlayoutchange--oncolumnresizing).
 - `DataGridPlugin<TData>` (`{ name, Overlay?, rowBands?, onDataChange?, commands?, keymap?, Mount? }`),
   `PluginRowBands` (`{ top?, bottom?, render }`), `RowBandRenderCtx`, `DataGridPluginCtx<TData>`
-  (`{ api }`), and `OverlayPluginCtx` — the plugin members and their contexts. See
+  (`{ api }`), and `OverlayPluginCtx`: the plugin members and their contexts. See
   [Plugins](/docs/plugins) for the full contract and a worked example, and
   [Multiplayer presence](/docs/addons/presence), [Fill handle](/docs/addons/fill),
   [Undo & redo](/docs/addons/undo-redo), and [Pinned rows](/docs/addons/pinned-rows) for the
@@ -333,7 +334,7 @@ and returns a reusable `(text: string) => boolean` matcher. This has the same se
 The core applies every `DataChange` batch through one engine. The `data-grid` barrel exports it
 for consumers who apply ops to their own copy of the data:
 
-- **`applyChange(data, change, getRowId)`** — applies a batch to a row array and returns a new
+- **`applyChange(data, change, getRowId)`**: applies a batch to a row array and returns a new
   array, in O(n + k log(n + k)) for `n` rows and `k` ops. A `move` op applies as a delete plus
   an insert at `to`.
 - **Id-keyed, missing-id skip.** `update` and `delete` ops locate the row by `rowId`, never by
@@ -341,7 +342,7 @@ for consumers who apply ops to their own copy of the data:
 - **Snapshot indices.** Each op's `index` is the row's position in the array as it stood before
   the whole batch, not a running position updated op-by-op. `insert` ops apply in ascending
   index order, so a multi-row batch round-trips through `invertChange`.
-- **`invertChange(change)`** — returns the change that undoes a batch. Each op is inverted:
+- **`invertChange(change)`**: returns the change that undoes a batch. Each op is inverted:
   `update` swaps `row`/`prev`, `insert` becomes `delete` and back, `move` swaps `from`/`to`.
   The op order is reversed, so a batch unwinds in the correct dependency order.
 

@@ -4,7 +4,6 @@ export {
   rectFromCorners,
   combineRects,
   rectContains,
-  pointInRect,
   intersectRect,
 } from "./rects";
 export { emptySelection, selectCell, extendTo, pushRange, isSelectionEmpty } from "./selection-ops";

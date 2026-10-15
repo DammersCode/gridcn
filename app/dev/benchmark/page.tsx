@@ -74,7 +74,7 @@ function resultsToMarkdown(
   lines.push("");
   if (env?.isDev) lines.push(`> ⚠ **DEV MODE RUN — NOT COMPARABLE.** ${DEV_MODE_WARNING}`, "");
   lines.push(
-    `_env: ${env?.mode ?? "unknown"}${env?.commit ? ` · commit ${env.commit}` : ""} · rows: ${rowCount.toLocaleString()} · dataset seed: ${DATASET_SEED}_`,
+    `_env: ${env?.mode ?? "unknown"}${env?.commit ? ` · commit ${env.commit}` : ""} · rows: ${rowCount.toLocaleString("en-US")} · dataset seed: ${DATASET_SEED}_`,
   );
   lines.push("");
   lines.push(`_scroll tiers (burst→settle): ${SCROLL_SPEED_TIERS.map((t) => `${t.label} ${t.peakDelta}px peak × ${t.burstFrames}f + ${t.settleFrames}f settle`).join(" · ")}_`);
@@ -196,7 +196,7 @@ export default function BenchmarkRunnerPage(): ReactNode {
             >
               {ROW_SIZE_OPTIONS.map((n) => (
                 <option key={n} value={n}>
-                  {n.toLocaleString()}
+                  {n.toLocaleString("en-US")}
                 </option>
               ))}
             </select>

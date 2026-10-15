@@ -35,7 +35,7 @@ the regression suite that enforces them.
 The scrollable area is a sticky viewport. The rows and columns you see are absolutely positioned
 inside a full-size canvas, sized to the *total* row and column extent, so the scrollbar's length
 and thumb position are always correct. A single CSS transform slides the rendered window to track
-scroll position — on every tick, not on the next React commit — so the browser can never reveal a
+scroll position (on every tick, not on the next React commit) so the browser can never reveal a
 strip of unrendered area between a scroll event and the window catching up, even during a hard
 scrollbar-drag fling.
 
@@ -48,10 +48,10 @@ never exposes blank space without permanent over-rendering while scrolling slowl
 
 ### What's virtualized
 
-- **Rows** — only data rows that intersect the viewport, plus overscan, mount. Row height is
+- **Rows**: only data rows that intersect the viewport, plus overscan, mount. Row height is
   uniform (`rowHeight` or `density`), so the window is a cheap range computation, not a per-row
   measurement pass.
-- **Columns** — only columns that intersect the horizontal viewport, plus overscan, mount,
+- **Columns**: only columns that intersect the horizontal viewport, plus overscan, mount,
   independent of row windowing. A diagonal scroll recomputes both in the same tick.
 
 ## Guarantees

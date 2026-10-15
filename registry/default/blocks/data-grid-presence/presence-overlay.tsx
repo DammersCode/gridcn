@@ -2,7 +2,7 @@
 
 import { Fragment, memo, type CSSProperties, type ReactNode } from "react";
 import type { GridRect, OverlayPluginCtx } from "@/registry/default/blocks/data-grid/data-grid";
-import { GRID_LAYER } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { GRID_LAYER, hasAnyPin } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   isRowIdPresenceHighlight,
   isRowIdRangePresenceHighlight,
@@ -193,7 +193,7 @@ function contiguousRuns(values: number[]): { min: number; length: number }[] {
  */
 export function renderPresenceOverlay(highlights: readonly PresenceHighlight[], ctx: OverlayPluginCtx): ReactNode {
   const { windowStart, clampRowStart, clampRowEnd, colCount, colOffset, pinTrack, splitRectByPinZones, clampRectToWindow } = ctx;
-  const pinned = pinTrack && pinTrack.pins.some((p) => p === "left" || p === "right") ? pinTrack : undefined;
+  const pinned = hasAnyPin(pinTrack) ? pinTrack : undefined;
   const segment = (rect: GridRect) => (pinned ? splitRectByPinZones(rect, pinned) : [{ rect, pinStyle: undefined }]);
 
   return (

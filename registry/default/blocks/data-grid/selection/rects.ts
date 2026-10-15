@@ -20,11 +20,6 @@ export function rectContains(rect: GridRect, coord: ViewCoord): boolean {
   );
 }
 
-/** Alias of rectContains with (rect, coord) argument order reversed for call-site readability. */
-export function pointInRect(coord: ViewCoord, rect: GridRect): boolean {
-  return rectContains(rect, coord);
-}
-
 /** Whether two rects span the same cells. */
 export function rectsEqual(a: GridRect, b: GridRect): boolean {
   return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;

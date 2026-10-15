@@ -2,6 +2,7 @@
 title: Columns
 description: Resize, reorder, pin, and show/hide columns.
 icon: Columns3
+status: updated
 ---
 
 Resize and drag-to-reorder are built into the core, with no add-on needed. Pin, unpin, and
@@ -42,14 +43,14 @@ Sampled texts are cut to 1000 characters.
 `actions.autosizeColumns(options)` runs the pass programmatically; it commits every changed
 width in one write, fires `onColumnLayoutChange` once, and returns the measured widths:
 
-- `columnIds` — the columns to size; default is every visible column while column resizing is
+- `columnIds`: the columns to size; default is every visible column while column resizing is
   enabled. Hidden, non-resizable, and unknown ids are skipped.
-- `sampleRows` — view rows to sample; default 1000.
-- `includeHeader` — measure the header text too; default true.
+- `sampleRows`: view rows to sample; default 1000.
+- `includeHeader`: measure the header text too; default true.
 
 Pass `autosizeOnMount` on `DataGridProvider` (or `true` for the defaults) to run one pass
 automatically when the view first has rows; a lazy grid waits for its first page. It runs once
-per mount, and columns with a saved width keep it — a saved layout wins.
+per mount, and columns with a saved width keep it. A saved layout wins.
 
 ## Reorder
 
@@ -60,7 +61,7 @@ zone. Dragging a left-pinned column onto the unpinned band does nothing. It neve
 ## Pin left/right
 
 Set `pin: 'left' | 'right'` per column as an initial value, or change it at runtime through the
-header dropdown menu or the right-click header context menu — both installed by the
+header dropdown menu or the right-click header context menu, both installed by the
 [context menu add-on](/docs/addons/context-menu), which owns the menu wiring and its items (sort,
 pin, autosize, hide).
 
@@ -201,7 +202,7 @@ Interactive content in the slot keeps its own clicks. When a press starts on a b
 form control, a `role="button"` element, or a `contenteditable` element, the header cell does not
 sort, select, or start a column reorder.
 
-The slot mounts inside `DataGridRoot`, so it needs the composed parts — `DataGrid` (the
+The slot mounts inside `DataGridRoot`, so it needs the composed parts. `DataGrid` (the
 convenience wrapper) does not forward it.
 
 ## Visibility
@@ -275,7 +276,7 @@ const [layout, setLayout] = useState(() => {
 ```
 
 `onColumnLayoutChange` fires once per committed change: a resize commit (a drag release, or an
-autosize from a double-click or the header menu — never per drag frame), a width reset, a
+autosize from a double-click or the header menu, never per drag frame), a width reset, a
 reorder drop, a pin or unpin, or a show or hide. See
 [Events & state](/docs/events-state#8-columnlayout--defaultcolumnlayout--oncolumnlayoutchange--oncolumnresizing)
 for the full payload shape, the controlled `columnLayout` prop, and the live, per-drag-frame

@@ -1,11 +1,11 @@
 ---
 title: Supabase
-description: The grid's server fetch contract with Supabase — supabase.from().select() plus range, the shortest path.
+description: The grid's server fetch contract with Supabase. Supabase.from().select() plus range, the shortest path.
 icon: Cloud
 ---
 
 <Callout type="info" title="Recipe">
-Recipe — not a shadcn registry example. It requires a server.
+Recipe: not a shadcn registry example. It requires a server.
 </Callout>
 
 Supabase's PostgREST API already does filtering, ordering, and pagination, so the handler
@@ -45,7 +45,7 @@ Notes:
 
 - `range(from, to)` is inclusive on both ends, hence the `- 1`.
 - Column filters map to PostgREST operators one-to-one: `eq`, `neq`, `gt`, `gte`, `lt`,
-  `lte`, `like`, `in.(...)` — for example, `query = query.eq("score", f.value)` for `equals`.
+  `lte`, `like`, `in.(...)` (for example, `query = query.eq("score", f.value)` for `equals`).
 - `SUPABASE_SERVICE_ROLE_KEY` keeps the grid's requests server-side. With the anon key, you
   also need a permissive RLS policy on `users` for reads.
 - The client is the [server-side example](/docs/examples/data/server-side) unchanged. Edits

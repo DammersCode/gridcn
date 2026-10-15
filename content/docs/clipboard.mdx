@@ -2,6 +2,7 @@
 title: Clipboard
 description: Native copy/cut/paste with spreadsheet-compatible TSV and HTML formats.
 icon: Clipboard
+status: updated
 ---
 
 Clipboard support uses native browser copy, cut, and paste events.
@@ -14,10 +15,10 @@ Copy, cut, and paste use the native browser clipboard events, so no `clipboard-w
 prompt appears for copy or cut. Selecting a range and pressing <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+C
 writes two formats to the system clipboard:
 
-- **`text/plain`** — tab-separated values (TSV), one row per line. A cell that contains a tab,
+- **`text/plain`**: tab-separated values (TSV), one row per line. A cell that contains a tab,
   newline, or quote is quoted, with the quote doubled internally, matching the TSV quoting of
   Excel and Sheets.
-- **`text/html`** — an HTML `<table>` with the raw value of each cell stashed in `data-*`
+- **`text/html`**: an HTML `<table>` with the raw value of each cell stashed in `data-*`
   attributes. So a paste back into gridcn recovers the exact typed values, not only their display
   text, while a paste into a real spreadsheet app still gets a normal table.
 
@@ -57,9 +58,9 @@ parser for plain-text sources, handling tabs, newlines, and quotes inside quoted
 
 Paste semantics:
 
-- **Anchored expand** — pasting an N×M block starting at the active cell overwrites that N×M
+- **Anchored expand**: pasting an N×M block starting at the active cell overwrites that N×M
   region.
-- **Single-row tiling down a selection** — pasting one row into a taller selected range repeats
+- **Single-row tiling down a selection**: pasting one row into a taller selected range repeats
   it down every row.
 - Pasted text runs through the `fromText` of each target cell type, then through `validate` if
   present. An invalid cell in the pasted block is rejected the same way as a manual edit.

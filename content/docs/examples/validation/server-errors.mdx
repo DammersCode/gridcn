@@ -1,10 +1,11 @@
 ---
 title: Server errors
-description: Painting post-commit rejections with setCellErrors / clearCellErrors — the value committed, the server disagrees.
+description: Painting post-commit rejections with setCellErrors / clearCellErrors. The value committed, the server disagrees.
 icon: ServerCrash
+status: updated
 ---
 
-`validate` only runs **before** commit. A server can still reject an already-committed value —
+`validate` only runs **before** commit. A server can still reject an already-committed value:
 a 422 that names the field, for example. `actions.setCellErrors` paints that rejection on the
 exact cell. The demo wires a fake `saveOrders` call into `onDataChange` that rejects any
 Quantity above 100 after ~600 ms.
@@ -42,18 +43,18 @@ actions.clearCellErrors(targets?: readonly { rowId: string; columnId: string }[]
 - **Auto-clear**: the moment the user commits a new value to that cell, through any write path
   (edit, paste, fill, `updateCells`), the error clears on its own. The server can set it again
   if the new value is still wrong.
-- `useDataGridCellErrors()` reads the full map for a summary view — the demo's bar shows the
+- `useDataGridCellErrors()` reads the full map for a summary view. The demo's bar shows the
   count plus a Clear-all button.
 
 <Callout type="warn" title="Not a data change">
   `setCellErrors`/`clearCellErrors` never touch `data`: they fire no `onDataChange`, and
   [`data-grid-history`](/docs/addons/undo-redo) never records them. A server error is metadata about a
-  cell, not an edit the user made — undo must not walk past it.
+  cell, not an edit the user made. Undo must not walk past it.
 </Callout>
 
 ## Behavior reference
 
-- [Server errors](/docs/editing-cell-types#server-errors) — the full contract, including
+- [Server errors](/docs/editing-cell-types#server-errors): the full contract, including
   `cellErrorKey`
-- [Validation](/docs/examples/validation/validation) — the pre-commit side of the same display
+- [Validation](/docs/examples/validation/validation): the pre-commit side of the same display
   treatment

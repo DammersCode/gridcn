@@ -18,10 +18,9 @@ export const INCREMENTAL_PATCH_LIMIT = 256;
 
 /**
  * Why {@link updateViewIndex} declined the incremental path — `null` means it ran. See each valve's
- * own guard. `"custom-comparator"` is retained for callers that switch on it, but no longer fires:
- * a resolved `accessor.compare` rides the incremental path (see {@link makeViewComparator}).
+ * own guard.
  */
-export type IncrementalBailReason = "too-many-rows" | "custom-comparator" | "search-active";
+export type IncrementalBailReason = "too-many-rows" | "search-active";
 
 export type IncrementalViewIndexResult =
   | { viewIndex: number[]; bail: null }

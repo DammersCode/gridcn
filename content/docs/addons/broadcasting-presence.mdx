@@ -2,6 +2,7 @@
 title: Broadcasting your selection
 description: Send your own selection to peers over a real websocket, and choose the divergence-proof payload form.
 icon: Radio
+status: updated
 ---
 
 Follow-up to [Multiplayer presence](/docs/addons/presence). The receiving side is the
@@ -46,7 +47,7 @@ drag-extend gesture, exactly the granularity that a live broadcast wants.
 The payload is the stable `SelectionState`: `range` corners and `rangeStack` are
 `{ rowId, columnId }` pairs, and `rowIds`/`columnIds` are stable ids. It carries no view
 positions, so a peer with a different local sort or filter resolves every ref against its own
-view. Send `next` as-is — no hooks, no column-indexing by hand:
+view. Send `next` as-is (no hooks, no column-indexing by hand):
 
 ```tsx
 <DataGridProvider
@@ -66,5 +67,5 @@ view. Send `next` as-is — no hooks, no column-indexing by hand:
 
 The receiver applies the payload with `actions.setSelection(next)` or a controlled `selection`
 prop. Rows the receiver has filtered out and hidden or unknown columns are dropped, and dev
-mode warns once for the dropped refs — no mapping code on the receive side. A payload from a
+mode warns once for the dropped refs (no mapping code on the receive side). A payload from a
 fuller view therefore applies cleanly to a narrower one.

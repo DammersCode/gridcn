@@ -2,7 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createRef } from "react";
 import { useRowWindow } from "./use-row-window";
-import { useScrollSnapshot } from "./use-scroll-snapshot";
+import { getElementStore } from "./use-scroll-snapshot";
 import { VELOCITY_OVERSCAN_CAP_PX } from "./velocity-estimator";
 import { useColumnWindow } from "./use-column-window";
 
@@ -161,7 +161,7 @@ describe("useRowWindow", () => {
   });
 });
 
-describe("useRowWindow isScrolling / flushSync commit timing", () => {
+describe("element store + useRowWindow: isScrolling / flushSync commit timing", () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -171,118 +171,97 @@ describe("useRowWindow isScrolling / flushSync commit timing", () => {
   });
 
   // jsdom's `window` reports `"onscrollend" in window` as true (the property exists), so the
-  // hook takes the native-scrollend branch here; these tests dispatch it explicitly the way a
+  // store takes the native-scrollend branch here; these tests dispatch it explicitly the way a
   // real browser would at the end of a scroll gesture.
 
   it("marks isScrolling true on scroll and resets on a dispatched scrollend event", () => {
     const el = makeScrollElement(0, 360);
-    const ref = { current: el };
-    const { result } = renderHook(() => useScrollSnapshot(ref));
+    const store = getElementStore(el);
+    const unsubscribe = store.subscribe(() => {});
 
-    expect(result.current.isScrolling).toBe(false);
+    expect(store.getSnapshot().isScrolling).toBe(false);
 
-    act(() => {
-      Object.defineProperty(el, "scrollTop", { value: ROW_HEIGHT, writable: true, configurable: true });
-      el.dispatchEvent(new Event("scroll"));
-    });
-    expect(result.current.isScrolling).toBe(true);
+    Object.defineProperty(el, "scrollTop", { value: ROW_HEIGHT, writable: true, configurable: true });
+    el.dispatchEvent(new Event("scroll"));
+    expect(store.getSnapshot().isScrolling).toBe(true);
 
-    act(() => {
-      el.dispatchEvent(new Event("scrollend"));
-    });
-    expect(result.current.isScrolling).toBe(false);
+    el.dispatchEvent(new Event("scrollend"));
+    expect(store.getSnapshot().isScrolling).toBe(false);
+
+    unsubscribe();
   });
 
   it("stays isScrolling across repeated scroll ticks until scrollend fires", () => {
     const el = makeScrollElement(0, 360);
-    const ref = { current: el };
-    const { result } = renderHook(() => useScrollSnapshot(ref));
+    const store = getElementStore(el);
+    const unsubscribe = store.subscribe(() => {});
 
-    act(() => {
-      Object.defineProperty(el, "scrollTop", { value: ROW_HEIGHT, writable: true, configurable: true });
-      el.dispatchEvent(new Event("scroll"));
-    });
-    expect(result.current.isScrolling).toBe(true);
+    Object.defineProperty(el, "scrollTop", { value: ROW_HEIGHT, writable: true, configurable: true });
+    el.dispatchEvent(new Event("scroll"));
+    expect(store.getSnapshot().isScrolling).toBe(true);
 
-    act(() => {
-      Object.defineProperty(el, "scrollTop", { value: 2 * ROW_HEIGHT, writable: true, configurable: true });
-      el.dispatchEvent(new Event("scroll"));
-    });
-    expect(result.current.isScrolling).toBe(true);
+    Object.defineProperty(el, "scrollTop", { value: 2 * ROW_HEIGHT, writable: true, configurable: true });
+    el.dispatchEvent(new Event("scroll"));
+    expect(store.getSnapshot().isScrolling).toBe(true);
 
-    act(() => {
-      el.dispatchEvent(new Event("scrollend"));
-    });
-    expect(result.current.isScrolling).toBe(false);
+    el.dispatchEvent(new Event("scrollend"));
+    expect(store.getSnapshot().isScrolling).toBe(false);
+
+    unsubscribe();
   });
 
   it("falls back to the 150ms debounce reset when no scrollend event ever arrives", () => {
     const el = makeScrollElement(0, 360);
-    const ref = { current: el };
-    const { result } = renderHook(() => useScrollSnapshot(ref));
+    const store = getElementStore(el);
+    const unsubscribe = store.subscribe(() => {});
 
-    act(() => {
-      Object.defineProperty(el, "scrollTop", { value: ROW_HEIGHT, writable: true, configurable: true });
-      el.dispatchEvent(new Event("scroll"));
-    });
-    expect(result.current.isScrolling).toBe(true);
+    Object.defineProperty(el, "scrollTop", { value: ROW_HEIGHT, writable: true, configurable: true });
+    el.dispatchEvent(new Event("scroll"));
+    expect(store.getSnapshot().isScrolling).toBe(true);
 
-    act(() => {
-      vi.advanceTimersByTime(149);
-    });
-    expect(result.current.isScrolling).toBe(true);
+    vi.advanceTimersByTime(149);
+    expect(store.getSnapshot().isScrolling).toBe(true);
 
-    act(() => {
-      vi.advanceTimersByTime(1);
-    });
-    expect(result.current.isScrolling).toBe(false);
+    vi.advanceTimersByTime(1);
+    expect(store.getSnapshot().isScrolling).toBe(false);
+
+    unsubscribe();
   });
 
   it("re-arms the debounce timer on each scroll tick instead of resetting mid-scroll", () => {
     const el = makeScrollElement(0, 360);
-    const ref = { current: el };
-    const { result } = renderHook(() => useScrollSnapshot(ref));
+    const store = getElementStore(el);
+    const unsubscribe = store.subscribe(() => {});
 
-    act(() => {
-      Object.defineProperty(el, "scrollTop", { value: ROW_HEIGHT, writable: true, configurable: true });
-      el.dispatchEvent(new Event("scroll"));
-    });
+    Object.defineProperty(el, "scrollTop", { value: ROW_HEIGHT, writable: true, configurable: true });
+    el.dispatchEvent(new Event("scroll"));
 
-    act(() => {
-      vi.advanceTimersByTime(100);
-      Object.defineProperty(el, "scrollTop", { value: 2 * ROW_HEIGHT, writable: true, configurable: true });
-      el.dispatchEvent(new Event("scroll"));
-    });
+    vi.advanceTimersByTime(100);
+    Object.defineProperty(el, "scrollTop", { value: 2 * ROW_HEIGHT, writable: true, configurable: true });
+    el.dispatchEvent(new Event("scroll"));
     // a second tick 100ms in re-arms the 150ms window; total elapsed since last tick is only 100ms
-    act(() => {
-      vi.advanceTimersByTime(100);
-    });
-    expect(result.current.isScrolling).toBe(true);
+    vi.advanceTimersByTime(100);
+    expect(store.getSnapshot().isScrolling).toBe(true);
 
-    act(() => {
-      vi.advanceTimersByTime(50);
-    });
-    expect(result.current.isScrolling).toBe(false);
+    vi.advanceTimersByTime(50);
+    expect(store.getSnapshot().isScrolling).toBe(false);
+
+    unsubscribe();
   });
 
   it("resets isScrolling for a later re-subscribe after the last listener unmounts mid-scroll", () => {
     const el = makeScrollElement(0, 360);
-    const ref = { current: el };
-    const first = renderHook(() => useScrollSnapshot(ref));
+    const store = getElementStore(el);
 
-    act(() => {
-      Object.defineProperty(el, "scrollTop", { value: ROW_HEIGHT, writable: true, configurable: true });
-      el.dispatchEvent(new Event("scroll"));
-    });
-    expect(first.result.current.isScrolling).toBe(true);
+    const unsubscribe = store.subscribe(() => {});
+    Object.defineProperty(el, "scrollTop", { value: ROW_HEIGHT, writable: true, configurable: true });
+    el.dispatchEvent(new Event("scroll"));
+    expect(store.getSnapshot().isScrolling).toBe(true);
 
-    first.unmount();
+    unsubscribe();
 
-    const second = renderHook(() => useScrollSnapshot(ref));
-    act(() => {
-      vi.advanceTimersByTime(10_000);
-    });
-    expect(second.result.current.isScrolling).toBe(false);
+    vi.advanceTimersByTime(10_000);
+    expect(store.getSnapshot().isScrolling).toBe(false);
   });
 
   it("commits a window change synchronously (flushSync) while isScrolling is true", () => {

@@ -246,8 +246,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // selected at once — true whenever any multi-cell channel (range/row/column/multi-range) is on.
   const { enableRangeSelection, enableRowSelection, enableColumnSelection, enableMultiRange } = useDataGridSelectionConfig();
   const ariaMultiselectable = enableRangeSelection || enableRowSelection || enableColumnSelection || enableMultiRange;
-  // Dimensions-only (resize-rate), not the full scroll snapshot — a plain useScrollSnapshot here
-  // would re-render this whole tree on every scroll pixel, negating row memoization (mustFix).
+  // Dimensions-only (resize-rate), not the full scroll snapshot — subscribing to every scroll tick
+  // here would re-render this whole tree on every scroll pixel, negating row memoization (mustFix).
   // Read before useColumnLayout: clientWidth drives flex-column distribution below.
   const dimensions = useElementDimensions(scrollRef);
   const layout = useColumnLayout(visibleColumns, dimensions.clientWidth);
@@ -369,7 +369,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
 
   // Dev-only guardrail: getRowClassName/getCellClassName reach
   // row.tsx/cell.tsx through this root's context value rather than a per-row prop specifically so a
-  // DataGridRoot re-render (rare — structural only, see the useScrollSnapshot comment above) doesn't
+  // DataGridRoot re-render (rare — structural only, see the useElementDimensions comment above) doesn't
   // reach the memoized row/cell hot path; an unstable identity here would still bust the CONTEXT
   // consumers on every DataGridRoot render, same anti-pattern as unstable `columns`/`data`.
   const prevGetRowClassName = useRef(getRowClassName);

@@ -24,7 +24,7 @@ import {
   type FilterOperator,
   type FilterSpec,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, operatorsForColumnType, resolveFilterOperators } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { columnLabelText, isDev, operatorsForColumnType, resolveFilterOperators } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { emptyValueFor, operatorHasValue, operatorLabel } from "./operators-for-column-type";
 import { DataGridFilterValueInput } from "./filter-value-input";
 
@@ -47,11 +47,6 @@ export type DataGridFilterMenuProps = {
 
 /** dnd-kit drag payload for a filter row: compiler-checked in place of `Record<string, any>`. */
 type FilterRowDragData = { index: number; filterId: string };
-
-/** Column label for a select item/trigger: `headerText`, else the string `header`, else the id. */
-function columnLabel(column: AnyColumnDef): string {
-  return column.headerText ?? (typeof column.header === "string" ? column.header : column.id);
-}
 
 /** Moves the item at `fromIndex` to `toIndex`, returning a new array (no mutation of `list`). */
 function moveItem<T>(list: T[], fromIndex: number, toIndex: number): T[] {
@@ -174,7 +169,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
     (filterId: string, toIndex: number, total: number) => {
       const filter = filters.find((f) => f.filterId === filterId);
       const column = columns.find((c) => c.id === filter?.columnId);
-      const label = column ? columnLabel(column) : (filter?.columnId ?? "");
+      const label = column ? columnLabelText(column) : (filter?.columnId ?? "");
       setAnnouncement(labels.toolbar.filterReorderAnnouncement(label, toIndex + 1, total));
     },
     [filters, columns, labels],
@@ -301,7 +296,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
     { value: "and", label: labels.toolbar.joinOperatorAnd },
     { value: "or", label: labels.toolbar.joinOperatorOr },
   ];
-  const columnItems = filterableColumns.map((c) => ({ value: c.id, label: columnLabel(c) }));
+  const columnItems = filterableColumns.map((c) => ({ value: c.id, label: columnLabelText(c) }));
   const operatorItems = operators.map((op) => ({ value: op, label: operatorLabel(op, labels.filterOperators) }));
   // No plugins: dnd-kit's optimistic DOM moves fight React's re-render after a drop; `onGripKeyDown` is the keyboard path.
   const { ref, handleRef, isDragSource } = useSortable<FilterRowDragData>({
@@ -380,7 +375,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
         <SelectContent>
           {filterableColumns.map((c) => (
             <SelectItem key={c.id} value={c.id}>
-              {columnLabel(c)}
+              {columnLabelText(c)}
             </SelectItem>
           ))}
         </SelectContent>

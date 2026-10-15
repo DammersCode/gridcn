@@ -5,7 +5,6 @@ import {
   rectFromCorners,
   combineRects,
   rectContains,
-  pointInRect,
   intersectRect,
   emptySelection,
   selectCell,
@@ -39,14 +38,12 @@ describe("rect helpers", () => {
     expect(combineRects(a, b)).toEqual({ x: 0, y: 0, width: 5, height: 5 });
   });
 
-  it("rectContains / pointInRect agree and respect the half-open far edge", () => {
+  it("rectContains respects the half-open far edge", () => {
     const rect = { x: 1, y: 1, width: 2, height: 2 }; // cols 1-2, rows 1-2
     expect(rectContains(rect, { col: 1, row: 1 })).toBe(true);
     expect(rectContains(rect, { col: 2, row: 2 })).toBe(true);
     expect(rectContains(rect, { col: 3, row: 1 })).toBe(false);
     expect(rectContains(rect, { col: 1, row: 3 })).toBe(false);
-    expect(pointInRect({ col: 1, row: 1 }, rect)).toBe(true);
-    expect(pointInRect({ col: 3, row: 1 }, rect)).toBe(false);
   });
 
   it("intersectRect returns overlap or null when disjoint", () => {
@@ -281,31 +278,31 @@ describe("pushRange", () => {
 describe("selectionContainsCell", () => {
   it("checks the primary range", () => {
     const sel = selectCell({ col: 2, row: 2 });
-    expect(selectionContainsCell(sel, { col: 2, row: 2 }, 10, 10)).toBe(true);
-    expect(selectionContainsCell(sel, { col: 3, row: 3 }, 10, 10)).toBe(false);
+    expect(selectionContainsCell(sel, { col: 2, row: 2 })).toBe(true);
+    expect(selectionContainsCell(sel, { col: 3, row: 3 })).toBe(false);
   });
 
   it("checks the range stack", () => {
     const sel = pushRange(selectCell({ col: 0, row: 0 }), { col: 5, row: 5 });
-    expect(selectionContainsCell(sel, { col: 0, row: 0 }, 10, 10)).toBe(true);
-    expect(selectionContainsCell(sel, { col: 5, row: 5 }, 10, 10)).toBe(true);
+    expect(selectionContainsCell(sel, { col: 0, row: 0 })).toBe(true);
+    expect(selectionContainsCell(sel, { col: 5, row: 5 })).toBe(true);
   });
 
   it("is false for a coord that misses the primary range and every stacked range", () => {
     const sel = pushRange(selectCell({ col: 0, row: 0 }), { col: 5, row: 5 });
-    expect(selectionContainsCell(sel, { col: 9, row: 9 }, 10, 10)).toBe(false);
+    expect(selectionContainsCell(sel, { col: 9, row: 9 })).toBe(false);
   });
 
   it("checks the rows channel (full width)", () => {
     const sel: GridSelection = { current: null, rows: CompactSelection.fromSingleSelection(3), columns: CompactSelection.empty() };
-    expect(selectionContainsCell(sel, { col: 99, row: 3 }, 10, 100)).toBe(true);
-    expect(selectionContainsCell(sel, { col: 0, row: 4 }, 10, 100)).toBe(false);
+    expect(selectionContainsCell(sel, { col: 99, row: 3 })).toBe(true);
+    expect(selectionContainsCell(sel, { col: 0, row: 4 })).toBe(false);
   });
 
   it("checks the columns channel (full height)", () => {
     const sel: GridSelection = { current: null, rows: CompactSelection.empty(), columns: CompactSelection.fromSingleSelection(2) };
-    expect(selectionContainsCell(sel, { col: 2, row: 99 }, 100, 10)).toBe(true);
-    expect(selectionContainsCell(sel, { col: 3, row: 0 }, 100, 10)).toBe(false);
+    expect(selectionContainsCell(sel, { col: 2, row: 99 })).toBe(true);
+    expect(selectionContainsCell(sel, { col: 3, row: 0 })).toBe(false);
   });
 });
 

@@ -4,10 +4,11 @@ import { useState, type ReactNode } from "react";
 import type { ColumnDef, DataChange } from "../types";
 import {
   DataGridProvider,
+  cellErrorKey,
   useDataGridActions,
   useDataGridCellErrors,
   useDataGridRowCellState,
-  useDataGridRowHasError,
+  useDataGridStore,
   type DataGridSyncProps,
 } from "../store";
 
@@ -566,9 +567,9 @@ describe("pruning on row-shape changes", () => {
       expect(result.current.cellErrors.has("t1:o8:meta:sku")).toBe(false);
     });
 
-    it("useDataGridRowHasError does not report a colon-prefix rowId's error as its own", () => {
+    it("an exact-key row probe does not report a colon-prefix rowId's error as its own", () => {
       const { result } = renderHook(
-        () => ({ ...useHarness(), t1HasError: useDataGridRowHasError("t1") }),
+        () => ({ ...useHarness(), t1HasError: useDataGridStore((s) => s.cellErrors.has(cellErrorKey("t1", "meta:sku"))) }),
         { wrapper: joinedWrapper() },
       );
       act(() => {
@@ -579,9 +580,9 @@ describe("pruning on row-shape changes", () => {
       expect(result.current.t1HasError).toBe(false);
     });
 
-    it("useDataGridRowHasError still reports the colon-bearing row's own error", () => {
+    it("an exact-key row probe still reports the colon-bearing row's own error", () => {
       const { result } = renderHook(
-        () => ({ ...useHarness(), hasError: useDataGridRowHasError("t1:o9") }),
+        () => ({ ...useHarness(), hasError: useDataGridStore((s) => s.cellErrors.has(cellErrorKey("t1:o9", "meta:sku"))) }),
         { wrapper: joinedWrapper() },
       );
       act(() => {

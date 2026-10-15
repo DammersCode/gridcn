@@ -19,6 +19,7 @@ import {
   type DataGridLabels,
   type SortSpec,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { columnLabelText } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Props for {@link DataGridSortList}. */
 export type DataGridSortListProps = {
@@ -32,11 +33,6 @@ export type DataGridSortListProps = {
 
 /** dnd-kit drag payload for a sort row: compiler-checked in place of `Record<string, any>`. */
 type SortRowDragData = { index: number; columnId: string };
-
-/** Column label for a select item/trigger: `headerText`, else the string `header`, else the id. */
-function columnLabel(column: { header: string | ReactNode; headerText?: string; id: string }): string {
-  return column.headerText ?? (typeof column.header === "string" ? column.header : column.id);
-}
 
 /** Moves the item at `fromIndex` to `toIndex`, returning a new array (no mutation of `list`). */
 function moveItem<T>(list: T[], fromIndex: number, toIndex: number): T[] {
@@ -119,7 +115,7 @@ export function DataGridSortList(props: DataGridSortListProps): ReactNode {
   const announceMove = useCallback(
     (columnId: string, toIndex: number, total: number) => {
       const column = columns.find((c) => c.id === columnId);
-      const label = column ? columnLabel(column) : columnId;
+      const label = column ? columnLabelText(column) : columnId;
       setAnnouncement(labels.sort.sortReorderAnnouncement(label, toIndex + 1, total));
     },
     [columns, labels],
@@ -292,12 +288,12 @@ function SortRow(props: SortRowProps): ReactNode {
           {/* explicit label lookup: SelectValue only resolves a mounted SelectItem's label, which
               the popup content isn't until first opened — this control's own trigger text must be
               correct on first render (no open required), same rationale as the filter menu's join-operator select. */}
-          <SelectValue className="truncate">{(value: string) => { const c = availableColumns.find((col) => col.id === value); return c ? columnLabel(c) : value; }}</SelectValue>
+          <SelectValue className="truncate">{(value: string) => { const c = availableColumns.find((col) => col.id === value); return c ? columnLabelText(c) : value; }}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           {availableColumns.map((c) => (
             <SelectItem key={c.id} value={c.id}>
-              {columnLabel(c)}
+              {columnLabelText(c)}
             </SelectItem>
           ))}
         </SelectContent>

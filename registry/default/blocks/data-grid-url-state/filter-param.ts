@@ -1,5 +1,6 @@
 import type { FilterOperator, FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { isFilterOperator } from "./filter-operators";
+import { safeDecode } from "./sort-param";
 
 /** In-value separator for `isBetween`'s two-part value. `encodeURIComponent` leaves `~` in its unreserved set untouched, so a literal `~` inside a bound must be escaped separately (see {@link encodeRangePart}) to stay unambiguous against the separator. */
 const RANGE_SEPARATOR = "~";
@@ -54,15 +55,6 @@ function encodeFilterValue(operator: FilterOperator, value: FilterSpec["value"])
  */
 export function serializeFilterState(filters: readonly FilterSpec[]): string {
   return filters.map((f) => `${encodeURIComponent(f.columnId)}:${f.operator}:${encodeFilterValue(f.operator, f.value)}`).join(",");
-}
-
-/** `decodeURIComponent` throws on malformed `%` sequences a hand-edited URL can contain — never let that surface. */
-function safeDecode(value: string): string | null {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return null;
-  }
 }
 
 /** Sentinel distinguishing "decode failed, drop the segment" from a legitimately-empty decoded value (`""`). */

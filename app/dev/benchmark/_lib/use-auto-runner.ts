@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { onRunnerMessage, postToParent, runBenchmarkScenario, type BenchmarkRunResult } from "./harness";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { findScrollElement, postToParent, runBenchmarkScenario, type BenchmarkRunResult } from "./harness";
 
 export type AutoRunnerRefs = {
   scrollEl: HTMLElement | null;
@@ -36,7 +36,7 @@ function waitForGridRoot(getRefs: () => AutoRunnerRefs): Promise<ResolvedAutoRun
 
 /**
  * Drives a per-grid page's scripted scenario when embedded in the runner's iframe (URL carries
- * `?auto=1`) or when the runner posts an explicit `benchmark:run` message. `mountKey` is bumped to
+ * `?auto=1`). `mountKey` is bumped to
  * force 5 remount cycles (via the caller's `key={mountKey}` on the grid subtree) for the
  * post-mount-unmount heap-delta measurement.
  */
@@ -82,21 +82,29 @@ export function useAutoRunner(grid: string, getRefs: () => AutoRunnerRefs) {
   useEffect(() => {
     postToParent({ type: "benchmark:ready" });
     const params = new URLSearchParams(window.location.search);
-    const offRunnerMessage = onRunnerMessage((message) => {
-      if (message.type === "benchmark:run") void run();
-    });
     if (params.get("auto") === "1") {
       // Give the initially-mounted grid a frame to settle before the scenario's own mount-time
       // measurement starts (isReady() may already be true by the time this effect runs).
       const id = requestAnimationFrame(() => void run());
       return () => {
         cancelAnimationFrame(id);
-        offRunnerMessage();
       };
     }
-    return offRunnerMessage;
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- run once per mount; `run` closes over refs read fresh via getRefs()
   }, []);
 
   return { mountKey };
+}
+
+/** Wires a benchmark page into the auto-runner: the grid's scroll element doubles as the click target; the container scopes the DOM node count. */
+export function useBenchmarkRunner(grid: string, containerRef: RefObject<HTMLDivElement | null>) {
+  return useAutoRunner(grid, () => {
+    const scrollEl = containerRef.current ? findScrollElement(containerRef.current) : null;
+    return {
+      scrollEl,
+      clickTargetEl: scrollEl,
+      domScopeEl: containerRef.current,
+      isReady: () => scrollEl !== null,
+    };
+  });
 }

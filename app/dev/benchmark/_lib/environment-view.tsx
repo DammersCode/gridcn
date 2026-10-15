@@ -27,7 +27,7 @@ export function EnvironmentBanner({ rowCount }: { rowCount?: BenchmarkRowSize })
         <span className="font-medium text-foreground">
           {`env: ${env?.mode ?? "…"}`}
           {env?.commit ? ` · commit ${env.commit}` : ""}
-          {rowCount ? ` · ${rowCount.toLocaleString()} rows` : ""}
+          {rowCount ? ` · ${rowCount.toLocaleString("en-US")} rows` : ""}
         </span>{" "}
         {`· dataset seed: ${DATASET_SEED}`}
         {env?.hardwareConcurrency ? ` · ${env.hardwareConcurrency} cores` : ""}

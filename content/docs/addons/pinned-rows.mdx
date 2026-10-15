@@ -2,6 +2,7 @@
 title: Pinned rows
 description: Sticky top/bottom row bands (e.g. a totals row) via the same sticky machinery as the header.
 icon: Pin
+status: updated
 ---
 
 Pinned rows live in the separate `data-grid-pinned-rows` add-on: a top band under the header, a
@@ -28,8 +29,8 @@ const { plugin } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows: [
 
     `useDataGridPinnedRows()` is a single hook. Call it in your own component ABOVE where you
     render `<DataGridProvider>`. The `plugins` prop lives on the provider, so the plugin has to
-    exist before it. The same composition works with the core's `DataGrid` convenience wrapper —
-    see the note on [Fill handle](/docs/addons/fill#composing-with-cores-datagrid-convenience-wrapper).
+    exist before it. The same composition works with the core's `DataGrid` convenience wrapper (see
+    the note on [Fill handle](/docs/addons/fill#composing-with-cores-datagrid-convenience-wrapper)).
 
     ```tsx
     "use client";
@@ -109,7 +110,7 @@ const { plugin } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows: [
     ```
 
     `useDataGridAggregate(specs)` reduces each `columnId` in `specs` over the grid's filtered/sorted/
-    searched `viewIndex`. It returns a `{ [columnId]: value }` object — the row shape
+    searched `viewIndex`. It returns a `{ [columnId]: value }` object: the row shape
     `useDataGridPinnedRows`'s `topRows`/`bottomRows` expect, since pinned cells resolve values
     through each column's `accessorKey`/`accessorFn` like data rows do. A reducer is `"sum"`,
     `"avg"`, `"min"`, `"max"`, `"count"`, or a custom `(values, rows) => unknown` function.
@@ -125,7 +126,7 @@ const { plugin } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows: [
 
     <Callout type="warn" title="Under client-mode pagination, a totals band is page-local">
       The grid's `data` is the current page's slice. So `useDataGridAggregate` sums only that page's
-      rows, and `scope: "all"` does not help — the slice is the grid's whole `data`. Fetch
+      rows, and `scope: "all"` does not help. The slice is the grid's whole `data`. Fetch
       dataset-wide totals from your server. Or compute them from your full dataset outside the grid,
       and pin the result as a static band row. See [Pagination](/docs/pagination).
     </Callout>
@@ -149,7 +150,7 @@ const { plugin } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows: [
 
     ### Custom reducers
 
-    A reducer function receives every resolved value and its source row, unfiltered — write your
+    A reducer function receives every resolved value and its source row, unfiltered. Write your
     own empty-handling if the built-ins don't fit. The hook is generic over the row type: when
     `specs` carries it (as `AggregateSpecs<Row>` here, or as the generic at the hook call),
     `rows` is typed:
@@ -193,7 +194,7 @@ compose with everything else that shares that viewport:
 - Column resize and reorder.
 - Pinned-left and pinned-right columns. A pinned column's cell stays fixed horizontally inside
   a pinned row band, exactly like it does in a data row. Each band casts a soft shadow on its
-  scroll-facing edge, shown only once a data row has actually scrolled beneath it — the same
+  scroll-facing edge, shown only once a data row has actually scrolled beneath it: the same
   `--grid-pin-shadow` token and the same "real content scrolled under it" gate used by
   [pinned columns](/docs/columns#pin-leftright).
 

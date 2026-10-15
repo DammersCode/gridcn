@@ -47,17 +47,8 @@ export function selectionRects(selection: GridSelection, rowCount: number, colCo
   return rects;
 }
 
-/**
- * Whether `coord` is selected via any channel: primary range, range stack, whole-row, or whole-column.
- * rowCount/colCount are accepted for a stable signature across callers but unused: row/column
- * channels already store data-space indices, and range containment needs no grid bounds.
- */
-export function selectionContainsCell(
-  selection: GridSelection,
-  coord: ViewCoord,
-  _rowCount: number,
-  _colCount: number,
-): boolean {
+/** Whether `coord` is selected via any channel: primary range, range stack, whole-row, or whole-column. */
+export function selectionContainsCell(selection: GridSelection, coord: ViewCoord): boolean {
   if (selection.rows.hasIndex(coord.row)) return true;
   if (selection.columns.hasIndex(coord.col)) return true;
   if (selection.current) {

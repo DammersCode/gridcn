@@ -2,6 +2,7 @@
 title: Multiplayer presence
 description: Paint remote users' selections into the grid with zero core re-renders.
 icon: Users
+status: updated
 ---
 
 Multiplayer presence lives in the separate `data-grid-presence` add-on.
@@ -47,7 +48,7 @@ type RowIdRangePresenceHighlight = {
 ```
 
 `setPresenceHighlights` takes an array of any of the three forms, mixed freely. The `id` must be
-unique per entry — a user with a multi-range selection sends one entry per range, each with its
+unique per entry. A user with a multi-range selection sends one entry per range, each with its
 own id (each entry paints one rect, or one rect per contiguous fragment for the range form). See
 [Coordinates](#coordinates-rowid-native-or-view-space) below.
 
@@ -93,7 +94,7 @@ identity of `plugin` never changes across renders, and the grid compares the `pl
 entry-wise, so the inline `[plugin]` array is stable enough as-is.
 
 `setPresenceHighlights` REPLACES the whole list (snapshot semantics): each call must carry the
-full current set of remote entries, not a diff — the natural shape of a websocket "presence state"
+full current set of remote entries, not a diff: the natural shape of a websocket "presence state"
 message or a CRDT awareness snapshot. For a transport that sends diffs instead, the per-entry
 lifecycle hooks cover the common cases:
 
@@ -110,14 +111,14 @@ one entry per range. For that peer, either key every range entry by the same pee
 each, or resend the filtered snapshot as before. `clearPresenceHighlights()` removes every entry.
 Both re-render `DataGridOverlays` and nothing else, the same as a snapshot call.
 
-The same composition works with the core's `DataGrid` convenience wrapper — see the note on
-[Fill handle](/docs/addons/fill#composing-with-cores-datagrid-convenience-wrapper).
+The same composition works with the core's `DataGrid` convenience wrapper (see the note on
+[Fill handle](/docs/addons/fill#composing-with-cores-datagrid-convenience-wrapper)).
 
 ## Zero re-render guarantee
 
 Calling `setPresenceHighlights` re-renders `DataGridOverlays` and nothing else: no row, no cell,
 and no `aria-selected` change. If you need a read-back subscription elsewhere, pass `storeApi`
-into `useDataGridPresenceHighlights(storeApi)` — it re-renders only the component that calls it.
+into `useDataGridPresenceHighlights(storeApi)`. It re-renders only the component that calls it.
 
 ## Coordinates: rowId-native, or view-space
 
@@ -132,13 +133,13 @@ setPresenceHighlights([
 
 The plugin resolves `rowId` to this grid's own current view row internally, so a locally-active
 sort or filter never mispaints it. A `rowId` that fell out of the current filter is dropped
-silently — nothing paints for that highlight until the row is back in view.
+silently. Nothing paints for that highlight until the row is back in view.
 
 The rowId-native RANGE form (`RowIdRangePresenceHighlight`) is the divergence-proof multi-cell
 selection: the plugin resolves every `rowId` and `columnId` against this grid's own view, drops
 rows that fell out of the current filter silently (and dev-warns once per entry when a
 `columnId` is hidden or unknown), and paints the surviving cells as one rect per contiguous run
-of resolved rows × runs of resolved columns — a local filter that splits the range paints one
+of resolved rows × runs of resolved columns. A local filter that splits the range paints one
 rect per fragment instead of one wrong rect:
 
 ```tsx
@@ -164,8 +165,7 @@ const { plugin, ...rest } = useDataGridPresence({
 ```
 
 `PresenceHighlight`'s original `range` form (view-space, the same coordinate system as
-`GridSelection.current.range`) still works side by side with the rowId entries in the same array —
-at the cost of one caveat: `range` is in the SENDER's view space, so a receiver with a
+`GridSelection.current.range`) still works side by side with the rowId entries in the same array (at the cost of one caveat): `range` is in the SENDER's view space, so a receiver with a
 different local sort or filter paints it on the wrong cells. A receiver-side live feed with
 `reorder: "immediate"` (see [Streaming updates](/docs/streaming-updates)) moves rows in the same
 call. The `range` entry then points at the wrong rows on the receiver itself. Use the rowId-native
@@ -201,7 +201,7 @@ Building the map yourself (e.g. to resolve a rowId outside the plugin) uses the 
 
 - Highlights reuse the core's overlay pipeline through the plugin `ctx`: they clamp to the
   window, split at pinned columns (pinned segments paint at the pinned cell's fixed screen
-  position), and the `color` becomes the overlay node's `--presence-color` — border at full
+  position), and the `color` becomes the overlay node's `--presence-color`: border at full
   opacity, fill translucent enough that two overlapping highlights both stay legible.
 - Presence paints **below** the local active-cell ring and is fully `aria-hidden` and
   `pointer-events-none`: it never touches `aria-selected` and never reaches the row-level path.
@@ -212,11 +212,11 @@ Building the map yourself (e.g. to resolve a rowId outside the plugin) uses the 
 - Data rows only. There is no presence painting on pinned row bands, since they already sit
   outside selection.
 - No cursors, no per-cell avatars, and no "who is online" chrome: presence is the in-window
-  highlight overlay only — any roster/avatar UI is plain app-level code the consumer builds
+  highlight overlay only. Any roster/avatar UI is plain app-level code the consumer builds
   themselves, not a grid feature.
 
 ## Broadcasting your selection
 
-Sending your own selection to peers — a real websocket sketch, the `onSelectionChange` wiring,
-and the view-space-vs-rowId payload trade-off — is on the
+Sending your own selection to peers (a real websocket sketch, the `onSelectionChange` wiring,
+and the view-space-vs-rowId payload trade-off) is on the
 [Broadcasting your selection](/docs/addons/broadcasting-presence) page.

@@ -15,7 +15,7 @@ export function serializeSortState(sorts: readonly SortSpec[]): string {
 }
 
 /** `decodeURIComponent` throws on malformed `%` sequences a hand-edited URL can contain — never let that surface. */
-function safeDecode(value: string): string | null {
+export function safeDecode(value: string): string | null {
   try {
     return decodeURIComponent(value);
   } catch {

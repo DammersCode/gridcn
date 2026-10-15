@@ -1,7 +1,8 @@
 ---
 title: Status bar
-description: The data-grid-status-bar add-on — count, sum, avg, min, and max of the selected cells under the grid.
+description: "The data-grid-status-bar add-on: count, sum, avg, min, and max of the selected cells under the grid."
 icon: Sigma
+status: new
 ---
 
 Users read totals of a selection without exporting it. `data-grid-status-bar` computes them from
@@ -36,7 +37,7 @@ view, so they never count.
 
 ## Which values count
 
-A cell is numeric when its raw value is a finite `number` — value detection, not a flag on the
+A cell is numeric when its raw value is a finite `number`: value detection, not a flag on the
 cell type, so a custom numeric type aggregates without configuration. `count` counts the
 non-empty cells, where empty means the column's cell type `isEmpty` returns `true`. `sum`,
 `avg`, `min`, and `max` run over the numeric cells; the sum uses Neumaier-compensated
@@ -48,7 +49,7 @@ The bar renders nothing while fewer than 2 cells are selected. `count` always sh
 `avg`, `min`, and `max` show only while at least one numeric cell is selected.
 
 When every numeric cell comes from one column, that column's `toDisplayText` formats `sum`,
-`avg`, `min`, and `max` — a `number` column with a `format` option shows currency. Otherwise
+`avg`, `min`, and `max`. A `number` column with a `format` option shows currency. Otherwise
 the default `Intl.NumberFormat(locale, { maximumFractionDigits: 4 })` applies. `formatValue`
 overrides both.
 
@@ -67,8 +68,8 @@ every value gets a `≈` prefix and the bar's `title` says how many cells the va
 | `formatValue` | `(value: number, aggregate: StatusBarAggregate) => string` | the single-column rule, else the `Intl` default | Formats the shown aggregate values. |
 | `locale` | `string` | `"en-US"` | Locale for the default number format. |
 | `labels` | `Partial<DataGridStatusBarLabels>` | merged over `labels.statusBar` | i18n override for this bar's strings. |
-| `className` | `string` | — | Extra classes on the bar element. |
-| `children` | `ReactNode` | — | Extra items, rendered after the aggregates. |
+| `className` | `string` | none | Extra classes on the bar element. |
+| `children` | `ReactNode` | none | Extra items, rendered after the aggregates. |
 
 <Callout type="idea" title="The bar is a polite live region">
   The bar is `role="status"` with `aria-live="polite"` and `aria-atomic="true"`. Its text
@@ -78,7 +79,7 @@ every value gets a `≈` prefix and the bar's `title` says how many cells the va
 
 ## Related
 
-- [Selection & keyboard](/docs/selection-keyboard) — the selection channels the bar aggregates
-- [Cell types](/docs/editing-cell-types) — `isEmpty` and `toDisplayText`
-- [Pagination](/docs/pagination) — page-local data: the bar aggregates the current page slice
-- [Pinned rows](/docs/addons/pinned-rows) — the other totals surface, for a fixed band
+- [Selection & keyboard](/docs/selection-keyboard): the selection channels the bar aggregates
+- [Cell types](/docs/editing-cell-types): `isEmpty` and `toDisplayText`
+- [Pagination](/docs/pagination): page-local data: the bar aggregates the current page slice
+- [Pinned rows](/docs/addons/pinned-rows): the other totals surface, for a fixed band

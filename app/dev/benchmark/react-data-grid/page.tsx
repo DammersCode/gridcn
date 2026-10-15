@@ -4,8 +4,7 @@ import dynamic from "next/dynamic";
 import { useMemo, useRef, type ReactNode } from "react";
 import { BenchmarkPageShell, useBenchmarkRowCount } from "../_lib/page-shell";
 import { generateBenchmarkRows } from "../_lib/dataset";
-import { useAutoRunner } from "../_lib/use-auto-runner";
-import { findScrollElement } from "../_lib/harness";
+import { useBenchmarkRunner } from "../_lib/use-auto-runner";
 
 // Dynamic import: react-data-grid's bundle + stylesheet must never load outside this page.
 const ReactDataGridInner = dynamic(() => import("./grid-inner"), {
@@ -18,15 +17,7 @@ export default function ReactDataGridBenchmarkPage(): ReactNode {
   const rows = useMemo(() => generateBenchmarkRows(rowCount), [rowCount]);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { mountKey } = useAutoRunner("react-data-grid", () => {
-    const scrollEl = containerRef.current ? findScrollElement(containerRef.current) : null;
-    return {
-      scrollEl,
-      clickTargetEl: scrollEl,
-      domScopeEl: containerRef.current,
-      isReady: () => scrollEl !== null,
-    };
-  });
+  const { mountKey } = useBenchmarkRunner("react-data-grid", containerRef);
 
   return (
     <BenchmarkPageShell

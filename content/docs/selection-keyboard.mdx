@@ -2,6 +2,7 @@
 title: Selection & keyboard
 description: Range selection, mouse gestures, and the full keyboard shortcut reference.
 icon: MousePointer2
+status: updated
 ---
 
 ## Selection model
@@ -36,7 +37,7 @@ selection never re-renders a single cell.
 - **Marker press and drag**, with `rowMarkers` enabled, selects multiple rows. The range follows
   the pointer from the press row, so dragging back over selected rows de-selects them again. In
   the `reorder`-family marker modes only a drag that starts on the grip zone (everything in the
-  cell except the number and checkbox glyphs) reorders the row — Shift+drag from the grip and
+  cell except the number and checkbox glyphs) reorders the row. Shift+drag from the grip and
   drags from the number or checkbox glyph still select.
 - **Ctrl/Cmd-click** adds a new range to the stack (`enableMultiRange`, on by default).
 
@@ -90,7 +91,7 @@ under `headerClickBehavior="sort"`. You can still sort it programmatically throu
 ## Keyboard map
 
 The keymap is a plain data table, the `keymap` prop, merged over `DEFAULT_KEYMAP`. You can remap
-or extend any binding without touching the engine — the remapping surface and the in-app
+or extend any binding without touching the engine. The remapping surface and the in-app
 shortcuts dialog are on the [Keybindings](/docs/addons/keybindings) page. The table below is generated
 from the shipped defaults.
 

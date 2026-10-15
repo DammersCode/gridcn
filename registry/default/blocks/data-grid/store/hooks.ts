@@ -211,11 +211,6 @@ export function useDataGridEditing(): DataGridStoreState["editing"] {
   return useDataGridStore((s) => s.editing);
 }
 
-/** The transient rejection message from the last failed commitCellEdit, or null. */
-export function useDataGridEditingError(): string | null {
-  return useDataGridStore((s) => s.editingError);
-}
-
 /**
  * Post-commit server-error map, keyed `"rowId:columnId"` — see `cellErrors`' doc
  * comment for the full auto-clear/history/zero-render contract. Reach for this to build a
@@ -225,21 +220,6 @@ export function useDataGridEditingError(): string | null {
  */
 export function useDataGridCellErrors(): ReadonlyMap<string, string> {
   return useDataGridStore((s) => s.cellErrors);
-}
-
-/**
- * Whether `rowId` has ANY cell error, for a row-level indicator (e.g. a row-marker badge) that
- * doesn't need atomic per-cell scoping. Probes one exact key per column rather than prefix-matching
- * the map: both ids can contain colons, so `"a"` prefix-matches row `"a:b"`'s keys.
- */
-export function useDataGridRowHasError(rowId: string | undefined): boolean {
-  return useDataGridStore((s) => {
-    if (rowId === undefined || s.cellErrors.size === 0) return false;
-    for (const column of s.columns) {
-      if (s.cellErrors.has(cellErrorKey(rowId, column.id))) return true;
-    }
-    return false;
-  });
 }
 
 /** The sorted/filtered/searched row-index view, in display order. */
@@ -450,31 +430,11 @@ export function useDataGridIsRowCellSelected(viewRowIndex: number): boolean {
   return useDataGridStore((s) => s.selection.columns.length > 0 || isRowInRangeChannel(s.selection, viewRowIndex));
 }
 
-/** Whether `coord` is the active (focused) cell — an atomic per-cell subscription so an active-cell move re-renders only the two affected cells, never every cell or any row. */
-export function useDataGridIsCellActive(coord: ViewCoord): boolean {
-  return useDataGridStore((s) => s.activeCell !== null && s.activeCell.col === coord.col && s.activeCell.row === coord.row);
-}
-
-/** Whether `coord` is the cell currently being edited — same atomic-subscription rationale as {@link useDataGridIsCellActive}. */
-export function useDataGridIsCellEditing(coord: ViewCoord): boolean {
-  return useDataGridStore((s) => s.editing !== null && s.editing.coord.col === coord.col && s.editing.coord.row === coord.row);
-}
-
-/** The initial-text seed for `coord`'s edit session (type-to-replace), or undefined; null when `coord` isn't the editing cell. Atomic per-cell, like {@link useDataGridIsCellEditing}. */
-export function useDataGridCellInitialText(coord: ViewCoord): string | undefined {
-  return useDataGridStore((s) =>
-    s.editing !== null && s.editing.coord.col === coord.col && s.editing.coord.row === coord.row
-      ? s.editing.initialText
-      : undefined,
-  );
-}
-
 /**
  * `editingError` scoped to whether `coord` is the currently-editing cell — null for every other
- * cell. Deliberately NOT a plain `useDataGridEditingError()` read inside `DataGridCell`: that would
- * select the same raw string for every mounted cell, so a rejection would re-render the whole
- * visible window instead of only the editing cell — same atomic-subscription rationale as
- * {@link useDataGridIsCellEditing}/{@link useDataGridCellInitialText}.
+ * cell. A plain store read of `s.editingError` inside `DataGridCell` would select the same raw
+ * string for every mounted cell, so a rejection would re-render the whole visible window instead
+ * of only the editing cell.
  */
 export function useDataGridCellEditingError(coord: ViewCoord): string | null {
   return useDataGridStore((s) =>
@@ -506,7 +466,7 @@ export function useDataGridCellState(coord: ViewCoord): DataGridCellState {
   return useDataGridStore(
     useShallow((s) => {
       const isActive = s.activeCell !== null && s.activeCell.col === coord.col && s.activeCell.row === coord.row;
-      const isSelected = isActive || selectionContainsCell(s.selection, coord, s.viewIndex.length, s.visibleColumns.length);
+      const isSelected = isActive || selectionContainsCell(s.selection, coord);
       const editing = s.editing;
       const editingHere = editing !== null && editing.coord.col === coord.col && editing.coord.row === coord.row;
       const column = s.visibleColumns[coord.col];

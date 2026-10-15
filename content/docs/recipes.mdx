@@ -2,6 +2,7 @@
 title: Recipes
 description: Server round-trips, TanStack Query, react-hook-form dialogs, and more.
 icon: ChefHat
+status: updated
 ---
 
 ## Server round-trip
@@ -155,7 +156,7 @@ value, through any write path. See
 contract, including `clearCellErrors` and the read hook.
 
 <Callout type="idea" title="Toast and revert, or history undo, still apply">
-  `setCellErrors` does not roll back the value on its own — pair it with
+  `setCellErrors` does not roll back the value on its own. Pair it with
   [Strategy A](#strategy-a-optimistic-roll-back-on-failure)'s rollback, or
   [`data-grid-history`](/docs/addons/undo-redo)'s `undo()`, when leaving the rejected
   value showing is the wrong choice.
@@ -164,7 +165,7 @@ contract, including `clearCellErrors` and the read hook.
 ## TanStack Query wiring
 
 <Callout type="idea" title="Grid-side parts are the contract. TanStack Query parts are illustrative">
-  gridcn does not install `@tanstack/react-query` — the snippet is written against its stable
+  gridcn does not install `@tanstack/react-query`. The snippet is written against its stable
   public API (`useQuery`/`useMutation`/`onMutate`/`onError`), the same illustrative-snippet
   convention as the Standard Schema example in
   [Editing & cell types](/docs/editing-cell-types#validation). See also
@@ -225,14 +226,14 @@ instead of a new `data` array. See [Streaming updates](/docs/streaming-updates).
   Inline cell editors are single-value, single-column. Reach for a dialog form when an edit needs
   MULTIPLE fields at once or a layout the grid's inline editors cannot express. For a single
   value in one column, the built-in cell types (see
-  [Editing & cell types](/docs/editing-cell-types)) are simpler and stay in place — do not reach
+  [Editing & cell types](/docs/editing-cell-types)) are simpler and stay in place. Do not reach
   for a dialog by default. For cross-field RULES on inline paths (paste, fill, bulk update), use
-  [`validateRow`](/docs/editing-cell-types#cross-field-rules-validaterow) — those paths never
+  [`validateRow`](/docs/editing-cell-types#cross-field-rules-validaterow). Those paths never
   open a dialog.
 </Callout>
 
 <Callout type="idea" title="Illustrative — react-hook-form is not installed">
-  gridcn does not install `react-hook-form` — the snippet is written against its stable public
+  gridcn does not install `react-hook-form`. The snippet is written against its stable public
   API (`useForm`/`register`/`handleSubmit`), the same illustrative-snippet convention as the
   TanStack Query recipe above.
 </Callout>
@@ -380,7 +381,7 @@ function ServerSyncedGrid() {
   when `data` holds only part of the result set, as under
   [lazy loading](/docs/lazy-loading#sorting-a-lazy-grid): sorting a partial array re-orders the
   fetched rows among themselves and hides the true server order. `sortable: false` does not change
-  this — it only removes the header's click and indicator, never the comparator.
+  this. It only removes the header's click and indicator, never the comparator.
 </Callout>
 
 <Callout type="idea" title="Client-side sort/filter needs none of this">

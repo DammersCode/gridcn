@@ -2,6 +2,7 @@
 title: Installation
 description: Install the core grid from the @gridcn registry. No npm package.
 icon: Download
+status: updated
 ---
 
 The [shadcn CLI](https://ui.shadcn.com/docs/cli) distributes gridcn entirely from the hosted
@@ -16,7 +17,7 @@ package: the source files are copied into your project.
     <InstallCommand item="data-grid" manual manualSlot={<ManualInstall item="data-grid" tree />} />
 
     The CLI resolves the `@gridcn` registry from the hosted site
-    ([gridcn.vercel.app](https://gridcn.vercel.app)) — no namespace registration needed. To pin
+    ([gridcn.vercel.app](https://gridcn.vercel.app)). No namespace registration needed. To pin
     a tag, branch, or commit, use the
     [GitHub registry path](#alternative-github-registry-no-setup) instead:
     `npx shadcn add DammersCode/gridcn/data-grid#v1.0.0`.
@@ -28,7 +29,7 @@ package: the source files are copied into your project.
   <Step>
     ### Add optional pieces
 
-    Each add-on is independently installable and depends only on the core — check the ones you
+    Each add-on is independently installable and depends only on the core. Check the ones you
     want and the command joins them in one call:
 
     <InstallCommand
@@ -63,7 +64,7 @@ Without a ref, the CLI uses the repository's default branch.
 
 ## Alternative: GitHub registry (no setup)
 
-The same items are available directly from this repository's GitHub registry — no namespace
+The same items are available directly from this repository's GitHub registry: no namespace
 registration, and the only path that supports ref pinning:
 
 <InstallCommand command="shadcn add DammersCode/gridcn/data-grid" />
@@ -113,7 +114,7 @@ import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
 ```
 
 Add-ons follow the same pattern (`components/data-grid-history/data-grid-history.ts`, etc.). The
-`data-grid` install also writes `components/data-grid/LICENSE.md` — the text of the Apache
+`data-grid` install also writes `components/data-grid/LICENSE.md`: the text of the Apache
 License 2.0, which applies to the installed files.
 
 ## Framework notes

@@ -2,6 +2,7 @@
 title: Events & state
 description: Every callback the grid fires, what it's for, and how it's shaped.
 icon: Radio
+status: updated
 ---
 
 Every writable slice of the grid's API has a matching read hook or change callback, following
@@ -36,11 +37,11 @@ sort or filter a column, drag-fill, scroll, resize, pin, or hide a column) to se
 
 | Shape | Example | Controlled prop? | Restore path |
 |---|---|---|---|
-| Controlled pair | `sortState` / `onSortChange`; `selection` / `onSelectionChange` (one-shot seed `defaultSelection`); `columnLayout` / `onColumnLayoutChange` (one-shot seed `defaultColumnLayout`) | Yes — prop omitted keeps uncontrolled (store-owned) state; `columnLayout` is per-part, an omitted part stays uncontrolled. Gestures are first: the gesture writes the store and fires the event at once, and a re-render that feeds the fired value back applies nothing | Pass the value back in (`sortState`, `selection`, or `columnLayout`) |
-| Data: controlled or uncontrolled opt-in | `data` (controlled) vs `defaultData` (uncontrolled) / `onDataChange` | Either — `data` makes it a controlled pair, `defaultData` seeds once and the store owns the array | Controlled: pass `data` back in. Uncontrolled: nothing to restore — the store already has it |
-| Setter + read hook | `useDataGridPresence().setPresenceHighlights` / `useDataGridPresenceHighlights(storeApi)` | N/A — imperative in, hook out | Call the setter again with saved state |
+| Controlled pair | `sortState` / `onSortChange`; `selection` / `onSelectionChange` (one-shot seed `defaultSelection`); `columnLayout` / `onColumnLayoutChange` (one-shot seed `defaultColumnLayout`) | Yes. Prop omitted keeps uncontrolled (store-owned) state; `columnLayout` is per-part, an omitted part stays uncontrolled. Gestures are first: the gesture writes the store and fires the event at once, and a re-render that feeds the fired value back applies nothing | Pass the value back in (`sortState`, `selection`, or `columnLayout`) |
+| Data: controlled or uncontrolled opt-in | `data` (controlled) vs `defaultData` (uncontrolled) / `onDataChange` | Either. `data` makes it a controlled pair, `defaultData` seeds once and the store owns the array | Controlled: pass `data` back in. Uncontrolled: nothing to restore. The store already has it |
+| Setter + read hook | `useDataGridPresence().setPresenceHighlights` / `useDataGridPresenceHighlights(storeApi)` | N/A: imperative in, hook out | Call the setter again with saved state |
 
-## 1. `onDataChange` — the flagship shape
+## 1. `onDataChange`: the flagship shape [#1-ondatachange--the-flagship-shape]
 
 ```ts
 onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
@@ -100,7 +101,7 @@ onSelectionChange?: (next: SelectionState, details: SelectionChangeDetails) => v
 // SelectionChangeDetails = { getValues: () => unknown[][]; getRowIds: () => string[] }
 ```
 
-The payload is the grid's selection in stable `CellRef` terms — `rowId` plus `columnId`, which
+The payload is the grid's selection in stable `CellRef` terms, `rowId` plus `columnId`, which
 sorting, filtering, and reordering never change:
 
 ```ts
@@ -115,7 +116,7 @@ type SelectionState = {
 
 This fires on every **committed** selection change that alters that value: a click, a range
 extend step, a row, column, or all selection, or a clear. A view rebuild that keeps every
-selected record at its view position does not fire — a sort that moves nothing, a filter that
+selected record at its view position does not fire: a sort that moves nothing, a filter that
 keeps the selected rows, or a data swap that moves no record. The grid applying its own
 controlled `selection` back in does not fire either.
 
@@ -135,17 +136,17 @@ them. There is no callback that observes active-cell-only changes.
 value/defaultValue convention as `sortState` and `filterState`. Omit both for uncontrolled
 (store-owned) behavior.
 
-- `selection` — the controlled value. Gestures are first: a click or a drag step writes the
+- `selection`: the controlled value. Gestures are first: a click or a drag step writes the
   store and fires the callback at once; the grid never waits for your re-render. A re-render
-  that feeds the fired value back applies nothing — the store recognizes its own emission, so a
+  that feeds the fired value back applies nothing. The store recognizes its own emission, so a
   consumer lagging several drag steps behind never snaps the selection back to an older step.
   Any other value applies to the store without firing; a value with an `anchor` moves the
   cursor to the anchor (a normal cursor move, which fires `onActiveCellChange`).
-- `defaultSelection` — seeds the store once at the first render, then is ignored. With
+- `defaultSelection`: seeds the store once at the first render, then is ignored. With
   `selection` set too, `selection` wins and dev mode warns once.
 
 When a value applies, the grid resolves every ref against its current view. A range with a
-corner that does not resolve — its row filtered out, or its column hidden — is dropped, as are
+corner that does not resolve (its row filtered out, or its column hidden) is dropped, as are
 unresolvable `rowIds` and `columnIds`. An `anchor` outside its range resets to `range.start`.
 The grid keeps the resolvable subset and dev mode warns once per grid.
 
@@ -183,7 +184,7 @@ onSelectionChange={(selection, { getRowIds }) => {
 `getRowIds()` is the row-level counterpart for bulk actions: delete, assign, or send the selected
 rows to a server. It is lazy for the same reason `getValues()` is.
 
-Unlike the payload's `rowIds` — the row channel only — `getRowIds()` covers **every** selected
+Unlike the payload's `rowIds` (the row channel only), `getRowIds()` covers **every** selected
 row: the rows checked through the marker checkboxes plus every row under `range` and
 `rangeStack`. That matches what the checkmarks on screen show, so a bulk action never disagrees
 with the UI.
@@ -201,7 +202,7 @@ const values = getValues();
 
 ### Clearing the selection
 
-An empty `next` — `range: null` and both channels empty — is the cleared signal.
+An empty `next` (`range: null` and both channels empty) is the cleared signal.
 `onSelectionChange` fires exactly once on the non-empty-to-empty transition, so one clear from
 any path (outside click, gutter click, `clearSelection()`, a cleared range) delivers one empty
 payload. Use it to reset an "N cells selected" chip.
@@ -335,7 +336,7 @@ and app-driven layouts share one path:
   (`resetColumnWidth`), a reorder drop, a pin or unpin, or a show or hide.
   It fires with the full current snapshot. `widths` holds only columns the user actually
   resized. `order` is always the complete current column-id order, not only the moved id.
-- `columnLayout` — the controlled value, gesture-first like `selection`: a commit writes the
+- `columnLayout`: the controlled value, gesture-first like `selection`: a commit writes the
   store and fires the callback at once, and the grid never waits for your re-render. A re-render
   that feeds the fired snapshot back applies nothing. Any other value applies without firing,
   and each given part replaces that part while the omitted parts keep the store's current value:
@@ -355,7 +356,7 @@ once, like the gestures.
 
 See [Columns](/docs/columns#reading-column-state) for the localStorage persistence recipe.
 
-## 9. Presence read-back — the two-sided contrast
+## 9. Presence read-back: the two-sided contrast [#9-presence-read-back--the-two-sided-contrast]
 
 ```ts
 const { setPresenceHighlights, storeApi } = useDataGridPresence();
@@ -438,7 +439,7 @@ Both receive the same `CellClickCtx` shape as `onCellClick`, plus the native `Mo
 ## Zero re-render guarantee
 
 Every callback above fires from the store's actions layer, a plain DOM handler already attached
-to the cell or row, or one `storeApi.subscribe` registered once outside React — never from a new
+to the cell or row, or one `storeApi.subscribe` registered once outside React (never from a new
 per-cell or per-row subscription, so firing them does not re-render a memoized
 `useDataGridRow` or `useDataGridCellState` subscriber. `setPresenceHighlights` of
 `data-grid-presence` gives the same guarantee.
@@ -451,8 +452,8 @@ for anything deeper.
 
 ## Unsupported features
 
-- **Clipboard notification (`onCopy`/`onPaste`)** — `onDataChange` already fires for a paste
+- **Clipboard notification (`onCopy`/`onPaste`)**: `onDataChange` already fires for a paste
   (`change.source === 'paste'`). `onValidationError` reports a paste's rejected cells. There is
   no separate copy event.
-- **Raw scroll-position callback** — `onRowWindowChange` already reports the rendered row range on
+- **Raw scroll-position callback**: `onRowWindowChange` already reports the rendered row range on
   every scroll-driven change. There is no lower-level pixel-position callback.

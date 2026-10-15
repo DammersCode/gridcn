@@ -1,5 +1,5 @@
 import { getCellValue, sanitizeFormulaCell, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
-import { displayText, getSelectedViewRows, isDev, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { columnLabelText, displayText, getSelectedViewRows, isDev, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { CsvDelimiter } from "./parse-import-file";
 
 /** Options for {@link exportGrid}. */
@@ -34,11 +34,6 @@ export type ExportGridOptions = {
 };
 
 const NEEDS_QUOTING_DEFAULT = /["\r\n]/;
-
-/** Column display header: `headerText` override, else the string `header`, else the column id. */
-function columnHeaderText(column: AnyColumnDef): string {
-  return column.headerText ?? (typeof column.header === "string" ? column.header : column.id);
-}
 
 /** Quotes one RFC4180 CSV field when it contains the delimiter, a quote, or a line break; doubles internal quotes. */
 export function quoteCsvField(value: string, delimiter: string): string {
@@ -107,15 +102,16 @@ function buildRowsAt(state: DataGridReadState, dataIndices: readonly number[], t
 
 /** Builds at most `maxRows` rows, with a dev-only warning when the scope exceeds the cap. */
 function buildCappedExportRows(state: DataGridReadState, scope: "view" | "all" | "selection", maxRows: number | undefined): string[][] {
-  const dataIndices = exportDataIndices(state, scope);
-  if (maxRows === undefined || dataIndices.length <= maxRows) return buildRowsAt(state, dataIndices, "export");
-  if (isDev()) console.warn(`[data-grid-io] export truncated to ${maxRows} of ${dataIndices.length} rows (maxRows)`);
-  return buildRowsAt(state, dataIndices.slice(0, maxRows), "export");
+  if (maxRows !== undefined) {
+    const total = exportDataIndices(state, scope).length;
+    if (total > maxRows && isDev()) console.warn(`[data-grid-io] export truncated to ${maxRows} of ${total} rows (maxRows)`);
+  }
+  return buildExportRows(state, scope, { maxRows });
 }
 
 /** Header row text for each visible column, in the same order `buildExportRows` emits cells. */
 export function buildExportHeaders(state: DataGridReadState): string[] {
-  return state.visibleColumns.map((column) => columnHeaderText(column));
+  return state.visibleColumns.map((column) => columnLabelText(column));
 }
 
 /** Triggers a browser download of `blob` named `fileName`, via a temporary anchor + object URL (revoke deferred — see below). */

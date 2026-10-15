@@ -1,6 +1,7 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { Logo } from '@/components/logo';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { Badge } from '@/components/ui/badge';
 import { appName, appVersion, gitConfig } from './shared';
 
 export function baseOptions(): BaseLayoutProps {
@@ -11,7 +12,7 @@ export function baseOptions(): BaseLayoutProps {
         <span className="inline-flex items-center gap-2">
           <Logo className="size-[22px]" />
           {appName}
-          <span className="text-xs font-normal text-muted-foreground">{appVersion}</span>
+          <Badge variant="secondary">{appVersion}</Badge>
         </span>
       ),
     },

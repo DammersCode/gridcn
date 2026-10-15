@@ -1104,7 +1104,7 @@ export type DataGridRowCellState = {
   activeCol: number | null;
   /** The editing cell's column in this row, or null if editing isn't happening in this row. */
   editingCol: number | null;
-  /** Only set when `editingCol` is non-null (mirrors {@link useDataGridCellInitialText}'s per-cell scoping). */
+  /** Only set when `editingCol` is non-null (mirrors {@link useDataGridCellState}'s per-cell scoping). */
   editingInitialText: string | undefined;
   /** The open edit session's id; only set when `editingCol` is non-null. */
   editingSession: number | undefined;

@@ -129,6 +129,8 @@ button[data-search],
   --color-chart-1: var(--chart-1);
   --color-warning: var(--warning);
   --color-search-highlight: var(--search-highlight);
+  --color-status-new: var(--status-new);
+  --color-status-updated: var(--status-updated);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -186,6 +188,9 @@ button[data-search],
   --warning: oklch(66.6% 0.179 58.318);
   /* gridcn search highlight: deliberate amber, distinct convention from selection/active tokens — amber-200 */
   --search-highlight: oklch(92.4% 0.12 95.746);
+  /* docs sidebar status markers (green dot = new page, orange dot = updated page) */
+  --status-new: oklch(0.696 0.17 162.48);
+  --status-updated: oklch(0.705 0.213 47.604);
   /* grid schema: sharp corners throughout — a data grid is a lattice of cells, not a stack of soft cards */
   --radius: 0rem;
   --sidebar: oklch(0.97 0.008 65);
@@ -233,6 +238,9 @@ button[data-search],
   --warning: oklch(76.9% 0.188 70.08);
   /* gridcn search highlight in dark: amber-400 */
   --search-highlight: oklch(82.8% 0.189 84.429);
+  /* docs sidebar status markers in dark: lighter to read on charcoal */
+  --status-new: oklch(0.765 0.177 163.94);
+  --status-updated: oklch(0.778 0.186 52.93);
   --sidebar: oklch(0.21 0.009 55);
   --sidebar-foreground: oklch(0.94 0.006 65);
   --sidebar-primary: oklch(0.6 0.09 55);

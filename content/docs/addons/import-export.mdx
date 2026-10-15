@@ -2,6 +2,7 @@
 title: Import & export
 description: xlsx and CSV, in and out, mapped through your cell types.
 icon: FileSpreadsheet
+status: updated
 ---
 
 Import and export live in the `data-grid-io` add-on, kept separate so the core stays free of the
@@ -62,7 +63,7 @@ takes:
 </Callout>
 
 <Callout title="Encodings and Excel">
-  CSV exports are UTF-8 and carry a UTF-8 BOM by default — Excel only detects UTF-8 when the file
+  CSV exports are UTF-8 and carry a UTF-8 BOM by default. Excel only detects UTF-8 when the file
   starts with a BOM, so without it umlauts and other non-ASCII characters open as mojibake. Pass
   `csvBom: false` to `exportGrid` when a downstream consumer chokes on a leading BOM character.
   XLSX exports write every cell as a text cell that holds its `toText` string: a
@@ -83,7 +84,7 @@ exportGrid(state, { format: "csv", scope: "selection" });
 
 `scope` controls which rows get exported. The default, `'view'`, follows whatever the user
 sees, the active sort and filter, by walking `viewIndex` (quick search never narrows
-`viewIndex` — see [Sorting, filtering & search](/docs/sorting-filtering-search#search)). `'all'`
+`viewIndex`. See [Sorting, filtering & search](/docs/sorting-filtering-search#search)). `'all'`
 ignores view order entirely and exports every row of the raw `data` array as-is.
 `'selection'` walks only the selected rows, counting both the marker checkboxes and any cell range.
 
@@ -298,7 +299,7 @@ one step. The button hides once the column is already skipped.
 
 ## Dropzone
 
-The import dialog's drop target is its own registry item, `dropzone` — installing `data-grid-io`
+The import dialog's drop target is its own registry item, `dropzone`. Installing `data-grid-io`
 installs it too. Use it standalone for any file-drop surface:
 
 ```tsx
@@ -318,10 +319,10 @@ import { Dropzone, DropzoneEmptyState, DropzoneContent } from "@/components/drop
 | `minSize` | `number` | none | Minimum file size in bytes. |
 | `disabled` | `boolean` | `false` | Ignores drop, click, and keyboard activation. |
 | `compact` | `boolean` | `false` | Single-row layout (icon + content inline) instead of the tall centered box. |
-| `onDrop` | `(accepted: File[], rejections: DropzoneRejection[]) => void` | — | Called after a drop or file-picker selection, win or lose. |
-| `onError` | `(error: Error) => void` | — | Called when the native file read itself fails. |
-| `src` | `File[]` | — | Currently held files, read by the default `DropzoneContent`. |
-| `className` | `string` | — | Merged onto the drop-surface root after the built-in classes. |
+| `onDrop` | `(accepted: File[], rejections: DropzoneRejection[]) => void` | none | Called after a drop or file-picker selection, win or lose. |
+| `onError` | `(error: Error) => void` | none | Called when the native file read itself fails. |
+| `src` | `File[]` | none | Currently held files, read by the default `DropzoneContent`. |
+| `className` | `string` | none | Merged onto the drop-surface root after the built-in classes. |
 
 ### Styling hooks
 
@@ -329,7 +330,7 @@ import { Dropzone, DropzoneEmptyState, DropzoneContent } from "@/components/drop
 |---|---|
 | `data-drag-active` | Present on the zone root while a file is dragged over it. |
 | `data-disabled` | Present on the zone root while `disabled` is true. |
-| `className` | Merges after the built-in classes — a conflicting utility wins. |
+| `className` | Merges after the built-in classes. A conflicting utility wins. |
 
 ```css
 [data-drag-active] {
@@ -370,7 +371,7 @@ const { rows, rejected } = await buildImportedRows({ dataRows, mapping, columns,
 `buildImportedRows` resolves to `{ rows, rejected }`, where `rejected` lists every cell that failed
 its column's `validate` and was cleared. It returns the object directly for a synchronous import of
 5,000 rows or fewer. Above that (or with an async Standard Schema `validate` on a mapped column) it
-returns a Promise — await the result either way. Large imports run in chunks that yield to the event
+returns a Promise. Await the result either way. Large imports run in chunks that yield to the event
 loop, and an `AbortSignal` passed as `signal` cancels between chunks, rejecting with
 `"import-cancelled"`.
 

@@ -1,4 +1,4 @@
-/** Runner <-> per-grid-page contract, driven over postMessage so each grid mounts in its own iframe (isolated module graph, DOM, React tree). */
+/** Page→runner postMessage contract: each grid mounts in its own iframe (isolated module graph, DOM, React tree) and posts results up. */
 
 import {
   measureMountTime,
@@ -23,7 +23,6 @@ export type BenchmarkRunResult = {
   longTaskCount: number;
 };
 
-export type RunnerToPageMessage = { type: "benchmark:run"; rowCount: number };
 export type PageToRunnerMessage =
   | { type: "benchmark:ready" }
   | { type: "benchmark:result"; result: BenchmarkRunResult }
@@ -49,16 +48,6 @@ export function findScrollElement(container: HTMLElement): HTMLElement | null {
 
 export function postToParent(message: PageToRunnerMessage) {
   window.parent.postMessage({ source: MESSAGE_SOURCE, ...message }, "*");
-}
-
-export function onRunnerMessage(handler: (message: RunnerToPageMessage) => void): () => void {
-  function listener(event: MessageEvent) {
-    const data = event.data as { source?: string } | undefined;
-    if (!data || data.source !== MESSAGE_SOURCE) return;
-    handler(data as unknown as RunnerToPageMessage);
-  }
-  window.addEventListener("message", listener);
-  return () => window.removeEventListener("message", listener);
 }
 
 /**

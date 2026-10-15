@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 // Static install proof: every example's registry dependencies resolve and every payload import resolves to a file or declared package.
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join, sep } from "node:path";
+import { dirname, join, sep, posix } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { deriveTarget } from "./add-registry-targets.mjs";
+import { dependencyName, npmPackageName } from "./_lib.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const registry = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"));
@@ -41,17 +43,6 @@ function resolveAlias(specifier) {
     return null;
   }
   return null;
-}
-
-/** A registry.json dependency entry without its optional `@version` pin ("hucre@1.1.0" -> "hucre", "@scope/pkg@1.2.3" -> "@scope/pkg"). */
-function dependencyName(dep) {
-  return dep.replace(/(?<=.)@[^/@]*$/, "");
-}
-
-function npmPackageName(specifier) {
-  return specifier.startsWith("@")
-    ? specifier.split("/").slice(0, 2).join("/")
-    : specifier.split("/")[0];
 }
 
 function npmSubpathResolves(specifier) {
@@ -196,18 +187,6 @@ function importsOf(content) {
   return out;
 }
 
-function deriveTarget(payloadPath) {
-  // Same rule as scripts/add-registry-targets.mjs: registry/default/<kind>/<rest> ->
-  // components/<item-or-flat>/<rest>; examples ship flat (components/<file>), blocks nest per item.
-  const parts = payloadPath.split("/");
-  const kindIndex = parts.indexOf("examples") >= 0 ? parts.indexOf("examples") : parts.indexOf("blocks");
-  if (kindIndex === -1) return null;
-  const kind = parts[kindIndex];
-  if (kind === "examples") return `components/${parts[parts.length - 1]}`;
-  const item = parts[kindIndex + 1];
-  return `components/${item}/${parts.slice(kindIndex + 2).join("/")}`;
-}
-
 const examples = registry.items.filter((item) => item.type === "registry:example");
 const failures = [];
 const warnings = [];
@@ -289,7 +268,7 @@ for (const item of examples) {
       }
 
       if (spec.startsWith("./") || spec.startsWith("../")) {
-        const resolved = normalizeRelative(selfDir, spec);
+        const resolved = posix.normalize(posix.join(selfDir, spec));
         const resolves = EXTENSIONS.some((ext) => closureTargets.has(resolved + ext)) || closureTargets.has(resolved) || closureTargets.has(resolved + "/index.ts") || closureTargets.has(resolved + "/index.tsx");
         if (!resolves) errors.push(`${item.name}: import "${spec}" (${file.path}) does not resolve to a payload file in the item or its closure`);
         continue;
@@ -307,17 +286,6 @@ for (const item of examples) {
   }
 
   failures.push(...errors);
-}
-
-function normalizeRelative(baseDir, spec) {
-  const stack = [...baseDir.split("/").filter(Boolean), ...spec.split("/").filter(Boolean)];
-  const out = [];
-  for (const part of stack) {
-    if (part === ".") continue;
-    if (part === "..") out.pop();
-    else out.push(part);
-  }
-  return out.join("/");
 }
 
 const uniqueWarnings = [...new Set(warnings)];

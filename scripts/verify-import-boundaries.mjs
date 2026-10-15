@@ -3,25 +3,12 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join, relative, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isTestFile } from "./_lib.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
-const REGISTRY_BLOCK_ITEMS = [
-  "data-grid",
-  "data-grid-presence",
-  "data-grid-fill",
-  "data-grid-pinned-rows",
-  "data-grid-history",
-  "data-grid-toolbar",
-  "data-grid-context-menu",
-  "data-grid-keybindings",
-  "data-grid-url-state",
-  "data-grid-io",
-  "data-grid-lazy",
-  "data-grid-pagination",
-  "data-grid-sort-list",
-  "dropzone",
-];
+const registry = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"));
+const REGISTRY_BLOCK_ITEMS = registry.items.filter((item) => item.type === "registry:block").map((item) => item.name);
 // data-grid/data-grid-sdk is the core's add-on-facing SDK barrel (first-party add-ons import it;
 // consumers use data-grid/data-grid).
 const ALLOWED_BARRELS = new Set([...REGISTRY_BLOCK_ITEMS.map((item) => `${item}/${item}`), "data-grid/data-grid-sdk"]);
@@ -29,15 +16,11 @@ const ALLOWED_BARRELS = new Set([...REGISTRY_BLOCK_ITEMS.map((item) => `${item}/
 const BLOCKS_ROOT = join(root, "registry", "default", "blocks");
 const IMPORT_RE = /(?:from\s+|import\s+)["']([^"']+)["']/g;
 
-function isTestFile(name) {
-  return /\.(test|browser\.test|type-test|test-helper)\.[^./]+$/.test(name);
-}
-
 function* walk(dir) {
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const full = join(dir, entry.name);
-    if (entry.isDirectory()) yield* walk(full);
-    else if (entry.isFile() && /\.(ts|tsx)$/.test(entry.name) && !isTestFile(entry.name)) yield full;
+  for (const entry of readdirSync(dir, { recursive: true, withFileTypes: true })) {
+    if (entry.isFile() && /\.(ts|tsx)$/.test(entry.name) && !isTestFile(entry.name)) {
+      yield join(entry.parentPath, entry.name);
+    }
   }
 }
 

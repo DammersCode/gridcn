@@ -1,6 +1,6 @@
 /** Domain barrel — row/column virtualization windows and scrolled-edge detection. */
 export { useRowWindow, type RowWindow, type UseRowWindowOptions } from "./use-row-window";
-export { getElementStore, useScrollSnapshot, useElementDimensions, useViewportElement, type ScrollSnapshot } from "./use-scroll-snapshot";
+export { getElementStore, useElementDimensions, useViewportElement, type ScrollSnapshot } from "./use-scroll-snapshot";
 export { createVelocityEstimator, updateVelocityEstimate, VELOCITY_OVERSCAN_CAP_PX, type VelocityEstimator } from "./velocity-estimator";
 export { useColumnWindow, type UseColumnWindowOptions } from "./use-column-window";
 export { useScrolledEdges } from "./use-scrolled-edges";

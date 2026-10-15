@@ -89,8 +89,8 @@ type ElementStore = {
    * Queues a window-change `forceUpdate` to commit once, after every listener in this tick's
    * `notify()` has run — the mechanism that collapses row- and column-window flushSync into a
    * single React commit per scroll tick. Only for listeners whose update is itself gated on a
-   * computed value changing (row/column window); {@link useScrollSnapshot} and friends keep
-   * calling their own `forceUpdate` directly and must never route through this.
+   * computed value changing (row/column window); plain subscribers (e.g. {@link useElementDimensions})
+   * update directly and must never route through this.
    */
   requestFlush: (fn: () => void) => void;
 };
@@ -246,33 +246,6 @@ export function getElementStore(element: HTMLElement): ElementStore {
   };
   elementStores.set(element, store);
   return store;
-}
-
-/**
- * Subscribes to an element's live scroll geometry ({@link ScrollSnapshot}) without the
- * `useSyncExternalStore` re-render-on-every-tick behavior — callers that need a plain
- * read-and-rerender subscription (not the flushSync window-change gating in {@link useRowWindow})
- * can build on this directly (e.g. a future column-windowing hook). The element is tracked in
- * state (a render-time ref read bails the React Compiler); a layout watcher picks up `scrollRef`
- * as soon as it attaches, on any later render.
- */
-export function useScrollSnapshot(scrollRef: RefObject<HTMLElement | null>): ScrollSnapshot {
-  const [element, setElement] = useState<HTMLElement | null>(null);
-  const [snapshot, setSnapshot] = useState<ScrollSnapshot>(INITIAL_SNAPSHOT);
-
-  useLayoutEffect(() => {
-    const el = scrollRef.current;
-    if (el !== element) setElement(el);
-  });
-
-  useEffect(() => {
-    if (!element) return;
-    const store = getElementStore(element);
-    setSnapshot(store.getSnapshot());
-    return store.subscribe(() => setSnapshot(store.getSnapshot()));
-  }, [element]);
-
-  return snapshot;
 }
 
 /**

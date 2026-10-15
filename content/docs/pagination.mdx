@@ -2,6 +2,7 @@
 title: Pagination
 description: Explicit, bookmarkable pages with a bounded per-request payload.
 icon: ListOrdered
+status: updated
 ---
 
 `data-grid-pagination` is a UX and server-load pattern, not a performance need.
@@ -14,7 +15,7 @@ icon: ListOrdered
 fully controlled), and `<DataGridPaginationBar />` renders the footer, composed from parts in the
 shadcn-`Pagination` style. Virtualization already handles rendering huge datasets cheaply either
 way, so this add-on is purely additive: zero core changes. Neither it nor lazy loading exists for
-rendering performance, and using the two together is not supported — when to pick which is on the
+rendering performance, and using the two together is not supported. When to pick which is on the
 [Lazy loading](/docs/lazy-loading) page.
 
 <Tabs items={["Modes", "Footer"]}>
@@ -55,7 +56,7 @@ rendering performance, and using the two together is not supported — when to p
 
     <Callout type="warn" title="In client mode, everything the grid sees is page-local">
       The grid only ever receives `pager.pageData`, so sort, filter, and search operate on the
-      current page's slice alone — while the pager's `total` and page count still reflect the full
+      current page's slice alone. The pager's `total` and page count still reflect the full
       dataset. A search that matches rows on other pages finds nothing here. A pinned totals band
       computed from the grid covers the page slice the same way (see [Pinned rows](/docs/addons/pinned-rows)).
       Use server mode for dataset-wide search, sort, or filter (your backend applies the spec over
@@ -73,7 +74,7 @@ rendering performance, and using the two together is not supported — when to p
 
     <Callout type="warn" title="Streaming patches only reach the current page">
       The grid's store only holds the current page's rows, so a streaming `updateCells` batch
-      silently skips patches for rows that are not on the visible page — no error, no warning.
+      silently skips patches for rows that are not on the visible page (no error, no warning).
       Either apply the feed to your full dataset (client mode) or to the fetched page (server mode)
       and let the grid's `data` follow, or stream only rows the current page can see.
     </Callout>
@@ -139,7 +140,7 @@ rendering performance, and using the two together is not supported — when to p
     current page, so there is nothing left for the hook to slice.
 
     The bar clamps the displayed page when `total` shrinks below it, but your `page` state is
-    yours. If a stale page would fetch the wrong rows, pass `reconcilePage: true` — the hook then
+    yours. If a stale page would fetch the wrong rows, pass `reconcilePage: true`. The hook then
     fires your `onPageChange` with the clamped page once. The hook never sets your state. While
     `total` is `0` (your first fetch is still in flight), the hook keeps your page, so a deep link
     survives until the total arrives.
@@ -167,7 +168,7 @@ rendering performance, and using the two together is not supported — when to p
 
     | Prop | Type | Meaning |
     |---|---|---|
-    | `className` | `string` | Merged onto the footer's root `<div>` after the built-in classes — a conflicting utility wins. |
+    | `className` | `string` | Merged onto the footer's root `<div>` after the built-in classes. A conflicting utility wins. |
     | `labels` | `Partial<DataGridPaginationLabels>` | Deep-merged override of the `labels.pagination` group, same merge semantics as core's `labels` prop. |
     | `windowSize` | `number` | How many numbered page buttons the default layout shows at once (default 5). Ignored with `children`. |
 
@@ -196,13 +197,13 @@ rendering performance, and using the two together is not supported — when to p
     pagination props directly. Only `DataGridPaginationBar` does. Each part throws if rendered
     outside a `DataGridPaginationBar`.
 
-    - `DataGridPaginationRange` — the "x-y of z" label.
-    - `DataGridPaginationPageSize` — the rows-per-page `<Select>`.
-    - `DataGridPaginationFirst` / `DataGridPaginationLast` — jump to page 1 or the last page.
+    - `DataGridPaginationRange`: the "x-y of z" label.
+    - `DataGridPaginationPageSize`: the rows-per-page `<Select>`.
+    - `DataGridPaginationFirst` / `DataGridPaginationLast`: jump to page 1 or the last page.
       Disabled at their respective edge.
-    - `DataGridPaginationPrev` / `DataGridPaginationNext` — moves the page by 1, chevron-only.
+    - `DataGridPaginationPrev` / `DataGridPaginationNext`: moves the page by 1, chevron-only.
       Disabled at their respective edge.
-    - `DataGridPaginationPages` — the windowed numbered page buttons, the only source of page
+    - `DataGridPaginationPages`: the windowed numbered page buttons, the only source of page
       numbers. Takes an optional `windowSize` prop (default 5).
   </Tab>
 </Tabs>
@@ -235,10 +236,10 @@ function OrdersGrid({ rows, total }: { rows: Order[]; total: number }) {
 Client mode isn't a fit: its `pageSize` seeds once from `useState` and can't be pushed a new value
 afterward, so a URL-driven `pageSize` change has nothing to land on. Server mode's
 `page`/`pageSize`/`onPageChange`/`onPageSizeChange` are fully controlled, which is exactly what a
-URL-backed value needs — fetch each page's rows yourself, keyed off `url.page` and `url.pageSize`.
+URL-backed value needs. Fetch each page's rows yourself, keyed off `url.page` and `url.pageSize`.
 
 `page` (1-based) is omitted from the URL at page 1, and `pageSize` is omitted when it equals the
-configured default — the full option list is on
+configured default. The full option list is on
 [URL state](/docs/addons/url-state#pagination).
 
 <Callout type="warn" title="Reset to page 1 when filters or search change">

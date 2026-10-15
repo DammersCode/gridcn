@@ -113,11 +113,6 @@
                "target": "components/data-grid/cell.tsx"
             },
             {
-               "path": "registry/default/blocks/data-grid/clipboard/index.ts",
-               "type": "registry:component",
-               "target": "components/data-grid/clipboard/index.ts"
-            },
-            {
                "path": "registry/default/blocks/data-grid/clipboard/parse-clipboard.ts",
                "type": "registry:component",
                "target": "components/data-grid/clipboard/parse-clipboard.ts"

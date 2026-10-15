@@ -77,12 +77,6 @@ export const BUILTIN_ACTIONS: readonly GridAction[] = [...(Object.keys(DEFAULT_K
  */
 export const PLUGGABLE_ACTIONS: readonly string[] = ["undo", "redo", "fillDown", "fillRight"];
 
-/** `DEFAULT_KEYMAP` merged with the consumer's `keymap` prop; `undefined` (and `{}`) keeps the default's own reference. */
-export function mergeKeymap(prop: Keymap | undefined): Keymap {
-  if (!prop || Object.keys(prop).length === 0) return DEFAULT_KEYMAP;
-  return { ...DEFAULT_KEYMAP, ...prop };
-}
-
 /**
  * Content equality for `keymap` props: the same action keys and the same binding strings in the
  * same order. An inline `keymap={{ … }}` literal is a fresh object each render, so identity alone

@@ -2,12 +2,13 @@
 title: Fill handle
 description: Drag to tile a selection, with series inference for numeric and text runs.
 icon: PaintBucket
+status: updated
 ---
 
 The fill handle is the small square at the bottom-right corner of a selection. Drag it up, down,
 left, or right to extend the selection and fill the new cells from the source range. The drag
 snaps to whichever axis you move further on. Once a fill commits, the cells it wrote play a brief
-fade pulse so the changed values stand out — the pulse only plays for cells in the viewport and
+fade pulse so the changed values stand out. The pulse only plays for cells in the viewport and
 never replays when a cell scrolls back into view.
 
 <ComponentPreview name="data-grid-demo" />
@@ -66,10 +67,10 @@ repeats, a 2-row pattern repeats every 2 rows, and so on.
 
 If the source cells form a detectable series, the fill extrapolates it instead of tiling:
 
-- **Arithmetic runs** — `1, 2, 3` becomes `4, 5, 6`. `10, 20, 30` becomes `40, 50, 60`. This also
+- **Arithmetic runs**. `1, 2, 3` becomes `4, 5, 6`. `10, 20, 30` becomes `40, 50, 60`. This also
   works with a single-column decimal step.
-- **Zero-padded numbers** — `001, 002` becomes `003, 004`, with width preserved.
-- **Text plus trailing number** — `Item 1` becomes `Item 2`, `Item 3`, and so on.
+- **Zero-padded numbers**. `001, 002` becomes `003, 004`, with width preserved.
+- **Text plus trailing number**. `Item 1` becomes `Item 2`, `Item 3`, and so on.
 
 A number with more than 15 digits is an identifier, not a count. The fill tiles such a value and
 does not extrapolate it.
@@ -130,9 +131,9 @@ function MyGrid() {
 
 ## Keyboard fill
 
-- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>D</kbd> — fill down. This copies the top row of the current
+- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>D</kbd>: fill down. This copies the top row of the current
   selection into every row below it.
-- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>R</kbd> — fill right. This copies the left column into
+- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>R</kbd>: fill right. This copies the left column into
   every column to its right.
 
 Both go through the same tiling and series pipeline as a drag. The keys are core bindings: their

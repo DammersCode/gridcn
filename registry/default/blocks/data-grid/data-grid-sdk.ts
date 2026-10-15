@@ -25,6 +25,7 @@ export {
 } from "./windowing/direction";
 
 export { GRID_LAYER, cellLayer, type GridLayer } from "./layers";
+export { hasAnyPin } from "./overlays";
 
 export { pointerToCoord, type InteractionLayout } from "./interaction/use-grid-interaction";
 export { useDataGridContainer } from "./interaction/use-data-grid-container";
@@ -93,6 +94,7 @@ export function useDataGridStoreApi(): DataGridStoreWrapper {
   return gridStoreWrapper(useDataGridStoreApiRaw());
 }
 export { setCellValue } from "./columns/column-helpers";
+export { columnLabelText } from "./columns/column-format-helpers";
 export { createHistory, type History, type HistoryOptions } from "./interaction/history";
 export type { DataGridFilterOperatorLabels } from "./labels";
 export { GRID_ATTR, gridAttrSelector, type GridAttrName, type GridAttr, type GridAttrValue } from "./data-attributes";

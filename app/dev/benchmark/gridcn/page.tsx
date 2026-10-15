@@ -11,8 +11,7 @@ import {
 import { useDataGridState } from "@/registry/default/blocks/data-grid-history/data-grid-history";
 import { BenchmarkPageShell, useBenchmarkRowCount } from "../_lib/page-shell";
 import { generateBenchmarkRows, ROLE_CHOICES, DATE_DISPLAY_FORMAT, DATE_LOCALE, type BenchmarkRow } from "../_lib/dataset";
-import { useAutoRunner } from "../_lib/use-auto-runner";
-import { findScrollElement } from "../_lib/harness";
+import { useBenchmarkRunner } from "../_lib/use-auto-runner";
 
 const columns = defineColumns<BenchmarkRow>()([
   { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120 },
@@ -52,15 +51,7 @@ export default function GridcnBenchmarkPage(): ReactNode {
   const [rowCount, setRowCount] = useBenchmarkRowCount();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { mountKey } = useAutoRunner("gridcn", () => {
-    const scrollEl = containerRef.current ? findScrollElement(containerRef.current) : null;
-    return {
-      scrollEl,
-      clickTargetEl: scrollEl,
-      domScopeEl: containerRef.current,
-      isReady: () => scrollEl !== null,
-    };
-  });
+  const { mountKey } = useBenchmarkRunner("gridcn", containerRef);
 
   return (
     <BenchmarkPageShell

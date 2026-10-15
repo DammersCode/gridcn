@@ -16,7 +16,6 @@ import {
   useDataGridAllRowsSelected,
   useDataGridColumnFeatureFlags,
   useDataGridEditing,
-  useDataGridEditingError,
   useDataGridFilterState,
   useDataGridIsRowSelected,
   useDataGridJoinOperator,
@@ -32,6 +31,7 @@ import {
   useDataGridGetSelectionValues,
   useDataGridSelector,
   useDataGridSortState,
+  useDataGridStore,
   useDataGridStoreApi,
   useDataGridViewIndex,
   useDataGridViewStale,
@@ -1352,7 +1352,7 @@ describe("commitCellEdit", () => {
       () => ({
         actions: useDataGridInternalActions(),
         editing: useDataGridEditing(),
-        editingError: useDataGridEditingError(),
+        editingError: useDataGridStore((s) => s.editingError),
       }),
       { wrapper },
     );
@@ -1886,7 +1886,7 @@ describe("Standard Schema validate", () => {
     const schema = mockSchema<number>(() => ({ issues: [{ message: "must be a whole number" }] }));
     const wrapper = schemaWrapper(onDataChange, schema);
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridInternalActions(), editing: useDataGridEditing(), editingError: useDataGridEditingError() }),
+      () => ({ actions: useDataGridInternalActions(), editing: useDataGridEditing(), editingError: useDataGridStore((s) => s.editingError) }),
       { wrapper },
     );
 
@@ -1907,7 +1907,7 @@ describe("Standard Schema validate", () => {
     const onDataChange = vi.fn();
     const wrapper = makeEditWrapper(onDataChange);
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridInternalActions(), editing: useDataGridEditing(), editingError: useDataGridEditingError() }),
+      () => ({ actions: useDataGridInternalActions(), editing: useDataGridEditing(), editingError: useDataGridStore((s) => s.editingError) }),
       { wrapper },
     );
 

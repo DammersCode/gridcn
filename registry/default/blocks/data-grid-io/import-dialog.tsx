@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Paperclip, X } from "lucide-react";
-import { useDataGridActions, useDataGridAllColumns, useDataGridLabels, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { useDataGridActions, useDataGridAllColumns, useDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid";
+import { columnLabelText, isDev, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   Dialog,
   DialogContent,
@@ -38,11 +38,6 @@ const DELIMITER_OPTIONS: { value: CsvDelimiter; labelKey: "delimiterComma" | "de
 
 /** Mapping-select value for a source column that maps to no grid column. */
 const SKIP_VALUE = "__skip__";
-
-/** Column display header: `headerText`, else the string `header`, else the id. */
-function columnLabel(column: Pick<AnyColumnDef, "id" | "header" | "headerText">): string {
-  return column.headerText ?? (typeof column.header === "string" ? column.header : column.id);
-}
 
 /** Props for {@link DataGridImportDialog}. */
 export type DataGridImportDialogProps<TData> = {
@@ -82,7 +77,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     useDataGridImportPreview(labels.io.columnFallback, importDefaults, importLimits);
   // Base UI's SelectValue shows the raw value until the popup mounts its items, unless the root gets `items`
   const delimiterItems = DELIMITER_OPTIONS.map((option) => ({ value: option.value, label: labels.io[option.labelKey] }));
-  const mappingItems = [{ value: SKIP_VALUE, label: labels.io.skipColumn }, ...allColumns.map((column) => ({ value: column.id, label: columnLabel(column) }))];
+  const mappingItems = [{ value: SKIP_VALUE, label: labels.io.skipColumn }, ...allColumns.map((column) => ({ value: column.id, label: columnLabelText(column) }))];
 
   useEffect(() => {
     if (open) return;

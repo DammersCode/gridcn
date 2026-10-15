@@ -2,9 +2,10 @@
 title: Styling & theming
 description: The shadcn token contract, the built-in class surface, data attributes, and how to restyle the grid.
 icon: Palette
+status: updated
 ---
 
-gridcn renders only existing shadcn tokens — it ships no design layer of its own, so restyling the
+gridcn renders only existing shadcn tokens. It ships no design layer of its own, so restyling the
 grid is restyling your theme. Everything below answers three questions: which surfaces use which
 token, which classes the grid renders and can be overridden, and how deep you can go when you
 need something custom.
@@ -32,7 +33,7 @@ in your `:root` / `.dark` blocks). The map below is the complete token-to-surfac
 | `destructive` | Invalid cells (tint + inset ring) and the validation error tooltip. |
 | `search-highlight` (optional) | The quick-search match tint (60%, 25% in dark). See [CSS variables](#css-variables). |
 
-**Changing the color scheme** means changing the tokens in your theme — the grid follows, in both
+**Changing the color scheme** means changing the tokens in your theme. The grid follows, in both
 light and dark, with no grid-specific configuration:
 
 ```css
@@ -55,23 +56,23 @@ needs to differ from its token, the escape hatches are per-surface: data-attribu
 
 ## CSS variables
 
-- `--grid-row-height` — set per instance by the `rowHeight` prop or the `density` preset
+- `--grid-row-height`: set per instance by the `rowHeight` prop or the `density` preset
   (`compact` 28px, `default` 36px, `comfortable` 44px). It sizes every row track.
-- `--grid-pin-shadow` — the color of the shadow at pinned column and row bands, and the default
+- `--grid-pin-shadow`: the color of the shadow at pinned column and row bands, and the default
   color of the edge shadows. The CLI install adds it to your CSS for light and dark mode. Without
   the variable, the grid uses a light-mode default.
-- `--grid-column-border` — the color of the vertical lines between columns. Defaults to
+- `--grid-column-border`: the color of the vertical lines between columns. Defaults to
   `--color-border`. `transparent` hides the lines.
-- `--grid-scroll-shadow` and `--grid-shadow-size` — the edge shadow color and strip size. See
+- `--grid-scroll-shadow` and `--grid-shadow-size`: the edge shadow color and strip size. See
   [Scroll shadows](#scroll-shadows).
-- `--grid-scroll-left` — internal. The grid writes the live horizontal scroll offset so the
+- `--grid-scroll-left`: internal. The grid writes the live horizontal scroll offset so the
   marker column and header layer can counter-translate. Read-only for consumers.
-- `--color-search-highlight` — an **optional** theme color. The built-in quick-search tint is the
+- `--color-search-highlight`: an **optional** theme color. The built-in quick-search tint is the
   utility `bg-search-highlight/60`. Tailwind only generates it when the color exists in your
   theme. Define it (for example an amber that does not collide with the `primary` selection tint)
-  to get the built-in highlight, or skip it and style `[data-search-match]` yourself — the
+  to get the built-in highlight, or skip it and style `[data-search-match]` yourself. The
   attribute is stamped either way.
-- `--presence-color` — internal to the `data-grid-presence` add-on: each remote user's highlight
+- `--presence-color`: internal to the `data-grid-presence` add-on: each remote user's highlight
   overlay and name chip are mixed from that user's color, set through the presence API, not CSS.
 
 | Variable | Effect | Default |
@@ -133,23 +134,23 @@ the DOM and what you can beat. Where a surface lists a merge point, the built-in
 
 **How deep you can go, in order of effort:**
 
-1. **Theme tokens** — re-color a whole semantic group at once. Both light and dark follow.
-2. **CSS variables** — `--grid-row-height` (or `density`/`rowHeight`), `--grid-pin-shadow`,
+1. **Theme tokens**: re-color a whole semantic group at once. Both light and dark follow.
+2. **CSS variables**: `--grid-row-height` (or `density`/`rowHeight`), `--grid-pin-shadow`,
    optional `--color-search-highlight`.
-3. **Data-attribute CSS** — style interaction state (active, pinned, selected, searching,
+3. **Data-attribute CSS**: style interaction state (active, pinned, selected, searching,
    invalid) globally, with no React involved.
-4. **Class merges** — `className` on the root, `getRowClassName`/`getCellClassName` on the grid,
+4. **Class merges**: `className` on the root, `getRowClassName`/`getCellClassName` on the grid,
    `cellClassName`/`headerClassName` on a column. Your utilities win conflicts.
-5. **Content replacement** — per-column `renderCell`, `renderHeaderCell` on `DataGridHeader`,
+5. **Content replacement**: per-column `renderCell`, `renderHeaderCell` on `DataGridHeader`,
    custom `header`, `renderMarker`, `emptyState`, `loadingState`. Replace what is drawn, not how
    it is styled.
-6. **Plugin overlays** — a plugin's `Overlay` member, through `plugins` on `DataGridProvider`,
+6. **Plugin overlays**: a plugin's `Overlay` member, through `plugins` on `DataGridProvider`,
    for your own layer in the overlay stack (see [Plugins](/docs/plugins)).
 
 ## Data-attribute contract
 The grid stamps state on the DOM as data attributes, so you can style with the Tailwind
 `data-[attr]:` variant or plain CSS without touching React. This is the stable contract for
-restyling interaction state — the utility classes in the table above can change between versions.
+restyling interaction state. The utility classes in the table above can change between versions.
 The attributes do not.
 
 | Attribute | Where | Meaning |
@@ -213,7 +214,7 @@ The grid also stamps one attribute per structural element, as a selector for the
 Every built-in class in the [class surface](#the-built-in-class-surface) above is a Tailwind
 utility, generated into the `utilities` cascade layer (`@import "tailwindcss"` in `app/global.css`
 declares `@layer theme, base, components, utilities;`, and Tailwind's generated utilities live in
-that last layer). A plain CSS rule you write, with no `@layer` around it, is unlayered — and an
+that last layer). A plain CSS rule you write, with no `@layer` around it, is unlayered. An
 unlayered rule always wins over any layered rule, regardless of selector specificity or source
 order. So a stylesheet rule targeting one of the selectors below overrides the grid's built-in
 utility with no `!important` and no specificity fight:
@@ -300,18 +301,18 @@ complements `renderCell` for display overrides that need more than a class (see
 
 An HR dataset shows all four styling surfaces at once, each suited to a different scope:
 
-- **`getCellClassName` (per value)** — colors the cells of the Performance column against a
+- **`getCellClassName` (per value)**: colors the cells of the Performance column against a
   threshold: below 50 tints `text-destructive` and `bg-destructive/10`, 90 and above tints
   `text-primary` and `bg-primary/10`.
-- **`getRowClassName` (per row)** — mutes and strikes through `terminated` rows as a whole.
-- **`cellClassName` (per column, string form)** — every Salary cell gets `font-medium
+- **`getRowClassName` (per row)**: mutes and strikes through `terminated` rows as a whole.
+- **`cellClassName` (per column, string form)**: every Salary cell gets `font-medium
   tabular-nums` for right-aligned emphasis.
-- **`headerClassName` (per column)** — the Performance header is tinted `text-primary` to match
+- **`headerClassName` (per column)**: the Performance header is tinted `text-primary` to match
   the semantics of the cells beneath it.
 
 <Callout type="warn" title="Pass a stable function identity">
   Pass `getRowClassName` and `getCellClassName` as stable references (module scope or
-  `useCallback` — the same rule as `columns` and `data`, see
+  `useCallback`, the same rule as `columns` and `data`, see
   [Performance](/docs/performance#keeping-it-fast)): a fresh arrow function on every render makes
   every row and cell re-render on every parent render, and a dev-mode console warning fires if
   the identity changes across renders.
@@ -421,7 +422,7 @@ every mounted row, with no re-render of cell content, only the row track size. P
 `rowHeight={32}` instead of `density` when you need a value that the three presets do not cover.
 It always wins over `density` when both are set.
 
-The header row does not follow `density` — set its height with the `headerHeight` prop (default
+The header row does not follow `density`. Set its height with the `headerHeight` prop (default
 36).
 
 ## Scroll shadows
@@ -471,10 +472,10 @@ const [loading, setLoading] = useState(true);
 <DataGrid data={rows} columns={columns} getRowId={(r) => r.id} loading={loading} />
 ```
 
-- **Zero rows** — a viewport-filling skeleton (muted `animate-pulse` bars, one per column)
+- **Zero rows**: a viewport-filling skeleton (muted `animate-pulse` bars, one per column)
   replaces the empty state entirely. The `emptyState` prop or label never shows while `loading`
   is true.
-- **Rows already present** (a background refresh) — the rows stay visible, and a slim
+- **Rows already present** (a background refresh): the rows stay visible, and a slim
   indeterminate bar appears pinned under the header instead, so the grid does not blank out
   mid-session.
 - `aria-busy="true"` is set on the grid root either way. The skeleton region and the progress bar

@@ -1,24 +1,25 @@
 #!/usr/bin/env node
 // Fails on React Compiler bail-outs under registry/ whose function or category and reason the baseline does not allow, and on stale entries.
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as babel from "@babel/core";
 import reactCompiler from "babel-plugin-react-compiler";
+import { isTestFile } from "./_lib.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const registryDir = join(root, "registry");
 const baselinePath = join(root, "scripts", "compiler-bailouts.baseline.json");
 const update = process.argv.includes("--update");
 const parserOpts = { plugins: ["typescript", "jsx"] };
-const testFile = /\.(test|browser\.test|test-helper|type-test)\.tsx?$|\.d\.ts$/;
 
 function listFiles(dir) {
   const out = [];
-  for (const name of readdirSync(dir)) {
-    const full = join(dir, name);
-    if (statSync(full).isDirectory()) out.push(...listFiles(full));
-    else if (/\.tsx?$/.test(name) && !testFile.test(name)) out.push(full);
+  for (const entry of readdirSync(dir, { recursive: true, withFileTypes: true })) {
+    // .d.ts files are declarations, not source the compiler runs over.
+    if (entry.isFile() && /\.tsx?$/.test(entry.name) && !isTestFile(entry.name) && !entry.name.endsWith(".d.ts")) {
+      out.push(join(entry.parentPath, entry.name));
+    }
   }
   return out;
 }

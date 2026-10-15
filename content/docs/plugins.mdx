@@ -2,9 +2,10 @@
 title: Plugins
 description: The grid's extension seam. One `plugins` prop carries overlays, row bands, change observers, commands, keymap entries, and mount components.
 icon: Puzzle
+status: new
 ---
 
-Plugins are how add-ons — and your own code — reach into the grid. The `plugins` prop on
+Plugins are how add-ons (and your own code) reach into the grid. The `plugins` prop on
 `DataGridProvider` takes an array of `DataGridPlugin` objects. Each object declares the parts it
 needs: an overlay to paint, row bands to contribute, a data-change observer, keyboard commands,
 or a mount component for engine work. Every first-party add-on (fill, history, presence, pinned
@@ -67,11 +68,11 @@ active-cell ring are the core's built-in layers. A plugin's `Overlay` joins that
 
 <Callout title="Local focus always wins">
   Plugins render before the active-cell ring, never after. A plugin painting remote or transient
-  state — a presence highlight, a fill-drag preview — always loses visually to your own active
+  state (a presence highlight, a fill-drag preview) always loses visually to your own active
   cell on the same square.
 </Callout>
 
-A plugin's hooks run against the component that calls it — `DataGridOverlays` — so the plugin's
+A plugin's hooks run against the component that calls it (`DataGridOverlays`) so the plugin's
 own state change re-renders only the overlay layer. Never rows or cells. That is what makes a
 presence highlight or a fill-drag frame cost zero row or cell renders.
 
@@ -79,20 +80,20 @@ presence highlight or a fill-drag frame cost zero row or cell renders.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid/overlays.tsx" name="OverlayPluginCtx" />
 
-- **`windowStart`** — the first rendered (data-space) row index. Overlays place content
+- **`windowStart`**: the first rendered (data-space) row index. Overlays place content
   window-relative, so an overlay's `gridRowStart` must subtract this, not the true row index.
-- **`clampRowStart` / `clampRowEnd`** — the true contiguous `[start, end)` rendered row span.
+- **`clampRowStart` / `clampRowEnd`**: the true contiguous `[start, end)` rendered row span.
   Clamp any painted rect to this range (it can differ from `windowStart` plus the row count).
-- **`colCount`** — the total number of visible columns, in real column-index space, not the
-  scrolled column window's size — pin-zone splitting needs it to reach a pinned-right zone.
-- **`colOffset`** — the 1-based grid-column offset to add to every rect's `x`: `2` when a row
+- **`colCount`**: the total number of visible columns, in real column-index space, not the
+  scrolled column window's size. Pin-zone splitting needs it to reach a pinned-right zone.
+- **`colOffset`**: the 1-based grid-column offset to add to every rect's `x`: `2` when a row
   marker column occupies track 1, else `1`.
-- **`pinTrack`** (optional) — per-column pin and track data, present only when the grid has a
+- **`pinTrack`** (optional): per-column pin and track data, present only when the grid has a
   pinned column. `undefined` means skip segmentation entirely.
-- **`splitRectByPinZones(rect, pinTrack)`** — splits a data-space rect into up to three contiguous
+- **`splitRectByPinZones(rect, pinTrack)`**: splits a data-space rect into up to three contiguous
   segments: pinned-left, unpinned, pinned-right. Call it whenever `pinTrack` is defined and your
   rect can span a pinned column.
-- **`clampRectToWindow(rect, rowStart, rowEnd, colCount)`** — clamps a data-space rect to the given
+- **`clampRectToWindow(rect, rowStart, rowEnd, colCount)`**: clamps a data-space rect to the given
   row window and `[0, colCount)`, or returns `null` when it falls fully outside. Call this before
   `splitRectByPinZones`.
 
@@ -107,8 +108,8 @@ This matters the moment two independent grids, or a grid and a remote peer, disa
 or filter state. A view-row index computed on one side goes stale the instant the other side's
 view changes. The fix, worked through in full with a `rowId`-to-view-row lookup helper, lives on
 [Multiplayer presence](/docs/addons/presence#coordinates-rowid-native-or-view-space).
-Any overlay that receives coordinates from outside the grid — a network peer, a URL parameter,
-anywhere but the grid's own current selection — needs the same rowId-to-view-row mapping step
+Any overlay that receives coordinates from outside the grid (a network peer, a URL parameter,
+anywhere but the grid's own current selection) needs the same rowId-to-view-row mapping step
 before it paints.
 
 ## Row bands
@@ -124,7 +125,7 @@ type PluginRowBands = {
 };
 ```
 
-- `top` and `bottom` are the rows for each band — a separate array from `data`, not indices into
+- `top` and `bottom` are the rows for each band: a separate array from `data`, not indices into
   it. Omit one for no band on that side.
 - `render` paints this plugin's rows of one band. The root calls it as a plain function during
   its own render. A band that needs state renders a component inside the returned node.
@@ -132,13 +133,13 @@ type PluginRowBands = {
 When several plugins contribute to the same band, the root renders one segment per plugin, in
 array order. `RowBandRenderCtx` carries the segment's data:
 
-- **`position`** — `"top"` or `"bottom"`: which band this segment paints.
-- **`rows`** — this plugin's rows for this band.
-- **`rowOffset`** — how many rows earlier plugins put in this band before this segment. Top bands
+- **`position`**: `"top"` or `"bottom"`: which band this segment paints.
+- **`rows`**: this plugin's rows for this band.
+- **`rowOffset`**: how many rows earlier plugins put in this band before this segment. Top bands
   stack from the header down; bottom bands stack top to bottom.
-- **`ariaRowIndexBase`** — the `aria-rowindex` of this segment's first row. Header is 1, then
+- **`ariaRowIndexBase`**: the `aria-rowindex` of this segment's first row. Header is 1, then
   pinned-top rows, then data rows, then pinned-bottom rows.
-- **`rowHeight`**, **`windowedColumns`**, **`layout`**, **`template`**, **`headerHeight`** — the
+- **`rowHeight`**, **`windowedColumns`**, **`layout`**, **`template`**, **`headerHeight`**: the
   root's layout values, so a segment lines up pixel-for-pixel with the cell grid.
 
 The band's row counts feed the root's `aria-rowcount` and its sticky-height arithmetic. Bands
@@ -158,7 +159,7 @@ the `DataChange` batch, and `ctx.api` is the grid's imperative handle. An observ
 `ctx.api.store.getState().data` sees the write already applied.
 
 An observer that throws logs a warning and does not stop the other observers. The change is
-already applied at that point — the write is never rolled back because an observer failed.
+already applied at that point. The write is never rolled back because an observer failed.
 
 Observers can write back. `ctx.api.actions` exposes the grid's public actions, and
 `commitChange` is one of them. The [Undo & redo](/docs/addons/undo-redo) add-on uses exactly this
@@ -177,14 +178,14 @@ type GridCommand<TData = unknown> = {
 ```
 
 `run` runs when a bound key fires. `when` gates the key: return `false` to ignore the key
-entirely — no `preventDefault`, no `run`. `ctx` carries the grid's `api` handle, the active cell
+entirely (no `preventDefault`, no `run`). `ctx` carries the grid's `api` handle, the active cell
 as a `CellRef`, its view indices, its data row, and the effective `readOnly` flag.
 
 The merge order for the command map:
 
 1. The plugins' commands, in array order. A later plugin that defines the same command name wins
    and a dev warning names both.
-2. Your own `commands` prop, over everything. You win silently — it is the app owner's explicit
+2. Your own `commands` prop, over everything. You win silently. It is the app owner's explicit
    choice.
 3. A command named after a built-in action is dropped with a dev warning, unless the action is
    pluggable (below).
@@ -194,7 +195,7 @@ The merge order for the command map:
 Four built-in actions are pluggable: `undo`, `redo`, `fillDown`, `fillRight`. The core keeps
 their keymap bindings and their `preventDefault`, but hollows their bodies. Without a command of
 that name, the keys do nothing but swallow the browser default (mod+R never reloads the page).
-A plugin — or your own `commands` — that defines `undo` gives the key a body. That is how the
+A plugin (or your own `commands`) that defines `undo` gives the key a body. That is how the
 [Undo & redo](/docs/addons/undo-redo) add-on backs mod+Z and mod+Y, and how
 [Fill](/docs/addons/fill) backs mod+D and mod+R.
 
@@ -219,7 +220,7 @@ your `keymap`, which wins.
 reads the grid through `useDataGridApi` and the grid's own context (the scroll root, the live
 column layout).
 
-The overlay layer stays paint-only — every element an `Overlay` renders is
+The overlay layer stays paint-only. Every element an `Overlay` renders is
 `pointer-events-none`. When a plugin needs real interaction, its `Mount` does the work. The
 fill add-on runs its drag engine from its `Mount`: the pointer math, the fill preview store, and
 the keyboard-shortcut registration all live there, and the paint-only `Overlay` reads the preview
@@ -244,7 +245,7 @@ A plugin that needs a value it does not get from the ctx can subscribe:
 ## Identity
 
 The grid compares your `plugins` array entry-wise, not by reference: same length, the same
-`name` at each position, and every member identity-equal means nothing re-resolves — the store
+`name` at each position, and every member identity-equal means nothing re-resolves. The store
 keeps its resolved plugin list, merged commands, and merged keymap. An inline
 `plugins={[plugin]}` array is fine while the plugin object keeps its identity, which every
 first-party hook's result does.
@@ -262,7 +263,7 @@ that mounted second excludes the plugin and keeps the rest of its list.
 ## Worked example: highlight a column
 
 A plugin does not need selection or presence state to be useful. This one highlights a single
-column with a tinted band, driven entirely by a prop your own component controls — the column
+column with a tinted band, driven entirely by a prop your own component controls: the column
 under a filter, or one flagged by a validation pass elsewhere in your app.
 
 ```tsx title="use-column-highlight.tsx"
@@ -315,7 +316,7 @@ export function useColumnHighlight(highlightColumn: number | null): DataGridPlug
 }
 ```
 
-Wire it inline — the entry-wise comparison makes a fresh array per render harmless:
+Wire it inline. The entry-wise comparison makes a fresh array per render harmless:
 
 ```tsx
 function MyGrid() {
@@ -326,7 +327,7 @@ function MyGrid() {
 }
 ```
 
-Every rect this plugin paints comes from `ctx` — `clampRowStart`, `clampRowEnd`, `colCount` — so
+Every rect this plugin paints comes from `ctx` (`clampRowStart`, `clampRowEnd`, `colCount`) so
 it never has to know the current scroll position or the rendered row window. The plugin stays
 correct through scrolling, resizing, and pinning changes.
 
@@ -341,8 +342,8 @@ server.
 
 ## Related
 
-- [Fill](/docs/addons/fill) — overlay + engine-work plugin, with the keyboard fill commands
-- [Undo & redo](/docs/addons/undo-redo) — observer + commands plugin
-- [Multiplayer presence](/docs/addons/presence) — overlay plugin
-- [Pinned rows](/docs/addons/pinned-rows) — row-bands plugin
-- [API reference](/docs/api-reference) — the `plugins` prop and the `DataGridPlugin` types
+- [Fill](/docs/addons/fill): overlay + engine-work plugin, with the keyboard fill commands
+- [Undo & redo](/docs/addons/undo-redo): observer + commands plugin
+- [Multiplayer presence](/docs/addons/presence): overlay plugin
+- [Pinned rows](/docs/addons/pinned-rows): row-bands plugin
+- [API reference](/docs/api-reference): the `plugins` prop and the `DataGridPlugin` types

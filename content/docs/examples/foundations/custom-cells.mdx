@@ -1,7 +1,8 @@
 ---
 title: Custom cell type
-description: A worked currency type — plain-number storage, cached locale display, symbol-stripping input.
+description: A worked currency type (plain-number storage, cached locale display, symbol-stripping input).
 icon: Wrench
+status: updated
 ---
 
 The worked example from the custom-cell-types guide: a `currency` type registered via the
@@ -15,19 +16,19 @@ the built-in `date` type follows with ISO strings). Display runs through a cache
 
 ## What's in the demo
 
-- `CellType` contract — `Cell`, `Editor`, `toText`, `toDisplayText`, `fromText` (never throws),
+- `CellType` contract: `Cell`, `Editor`, `toText`, `toDisplayText`, `fromText` (never throws),
   `clearValue`, `isEmpty`, `compare`, `align`
-- `useCellEditor` — the grid's text-editor primitive: draft state, end-caret focus, one-shot
+- `useCellEditor`: the grid's text-editor primitive: draft state, end-caret focus, one-shot
   commit guard, and the Enter/Escape/blur bindings, so the custom editor behaves identically
   to the built-ins
-- The typed `options` prop on `Cell` and `Editor` — no cast on `column.options`
-- Formatter cache keyed on serialized `options` — `options` literals are re-created every
+- The typed `options` prop on `Cell` and `Editor`: no cast on `column.options`
+- Formatter cache keyed on serialized `options`: `options` literals are re-created every
   render, so identity keying misses
-- `cellTypes={{ currency }}` — the prop **merges over** the built-ins, which keep working
+- `cellTypes={{ currency }}`: the prop **merges over** the built-ins, which keep working
   unnamed
 - Two locale variants (`en-US`/USD, `de-DE`/EUR) from one type via `options`
 
 ## Related
 
-- [Custom cell types](/docs/custom-cell-types) — the full contract, member by member
-- [Built-in cell types](/docs/examples/foundations/cell-types) — the types this one extends
+- [Custom cell types](/docs/custom-cell-types): the full contract, member by member
+- [Built-in cell types](/docs/examples/foundations/cell-types): the types this one extends

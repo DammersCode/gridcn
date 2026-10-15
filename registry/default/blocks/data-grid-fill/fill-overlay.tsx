@@ -2,7 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import type { GridRect, OverlayPluginCtx } from "@/registry/default/blocks/data-grid/data-grid";
-import { GRID_LAYER } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { GRID_LAYER, hasAnyPin } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { FillHandleHandlers } from "./use-fill-handle";
 
 /** The dashed fill-drag preview rect, window-relative, grid-line placed like core's own RangeOverlay; pinned segments add their zone's counter-offset + z-index 2 (above pinned cells' z1). */
@@ -89,7 +89,7 @@ export type FillOverlayState = {
  */
 export function renderFillOverlay(state: FillOverlayState, ctx: OverlayPluginCtx): ReactNode {
   const { windowStart, clampRowStart, clampRowEnd, colCount, colOffset, pinTrack, splitRectByPinZones, clampRectToWindow } = ctx;
-  const pinned = pinTrack && pinTrack.pins.some((p) => p === "left" || p === "right") ? pinTrack : undefined;
+  const pinned = hasAnyPin(pinTrack) ? pinTrack : undefined;
   const segment = (rect: GridRect) => (pinned ? splitRectByPinZones(rect, pinned) : [{ rect, pinStyle: undefined }]);
 
   const clampedFillPreview = state.fillPreview ? clampRectToWindow(state.fillPreview, clampRowStart, clampRowEnd, colCount) : null;

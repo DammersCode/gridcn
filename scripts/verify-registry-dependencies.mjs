@@ -4,23 +4,19 @@ import { readFileSync, existsSync } from "node:fs";
 import { join, dirname, resolve, relative } from "node:path";
 import { builtinModules } from "node:module";
 import { fileURLToPath } from "node:url";
+import { dependencyName, isTestFile, npmPackageName } from "./_lib.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const registry = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"));
 const NAMESPACE = "DammersCode/gridcn/";
 const PROVIDED = new Set(["react", "react-dom", "next"]);
 const IMPORT_RE = /^\s*(?:(?:import|export)\b[^;'"]*?\bfrom\s+|import\s+)["']([^"']+)["']|\bimport\(\s*["']([^"']+)["']\s*\)/gm;
-const isShipped = (p) => !/\.(test|browser\.test|type-test|test-helper)\.[^./]+$/.test(p) && !p.includes("__screenshots__");
+const isShipped = (p) => !isTestFile(p) && !p.includes("__screenshots__");
 const norm = (p) => p.split("\\").join("/");
 
 const ownersOfFile = new Map();
 for (const item of registry.items) {
   for (const f of item.files) ownersOfFile.set(norm(f.path), [...(ownersOfFile.get(norm(f.path)) ?? []), item.name]);
-}
-
-function packageName(spec) {
-  const parts = spec.split("/");
-  return spec.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0];
 }
 
 function resolveFile(base) {
@@ -33,7 +29,7 @@ function resolveFile(base) {
 const problems = [];
 for (const item of registry.items) {
   const registryDeps = new Set(item.registryDependencies ?? []);
-  const npmDeps = new Set([...(item.dependencies ?? []), ...(item.devDependencies ?? [])].map((d) => d.replace(/(?<=.)@[^@/]*$/, "")));
+  const npmDeps = new Set([...(item.dependencies ?? []), ...(item.devDependencies ?? [])].map(dependencyName));
   const need = (kind, name, declared, from) => {
     if (!declared) problems.push(`${item.name}: ${from} needs ${kind} "${name}" but registry.json does not declare it`);
   };
@@ -48,7 +44,7 @@ for (const item of registry.items) {
       if (spec.startsWith("@/")) target = resolveFile(join(root, spec.slice(2)));
       else if (spec.startsWith(".")) target = resolveFile(resolve(dirname(abs), spec));
       else {
-        const pkg = packageName(spec);
+        const pkg = npmPackageName(spec);
         if (PROVIDED.has(pkg) || pkg.startsWith("node:") || builtinModules.includes(pkg)) continue;
         need("package", pkg, npmDeps.has(pkg), file.path);
         continue;

@@ -8,7 +8,7 @@
  */
 import type { CellRange, CellRef, GridRect, GridSelection, SelectionState, ViewCoord } from "../types";
 import { CompactSelection } from "../selection/compact-selection";
-import { pointInRect, rectFromCorners, rectsEqual } from "../selection/rects";
+import { rectContains, rectFromCorners, rectsEqual } from "../selection/rects";
 import type { AnyColumnDef, DataGridStoreState } from "./types";
 import type { RowIndexCache } from "./row-index";
 import { viewRowOfDataIndex } from "./row-index";
@@ -100,26 +100,6 @@ export function deriveColumnIds(s: SelectionStateSource): string[] {
   return out;
 }
 
-/** Derives the public {@link SelectionState} from the view-space {@link GridSelection}. */
-export function deriveSelectionState(s: SelectionStateSource): SelectionState {
-  const rowIds = deriveRowIds(s);
-  const columnIds = deriveColumnIds(s);
-  const current = s.selection.current;
-  if (!current) return { anchor: null, range: null, rangeStack: [], rowIds, columnIds };
-  const refAt = (coord: ViewCoord) => cellRefAtViewCoord(s, coord);
-  const rangeRef = (rect: GridRect): CellRange => ({
-    start: refAt({ row: rect.y, col: rect.x }),
-    end: refAt({ row: rect.y + rect.height - 1, col: rect.x + rect.width - 1 }),
-  });
-  return {
-    anchor: refAt(current.cell),
-    range: rangeRef(current.range),
-    rangeStack: current.rangeStack.map(rangeRef),
-    rowIds,
-    columnIds,
-  };
-}
-
 /** The resolver's `warnDev` flag box: it warns at most once per grid (the `resolveRefOrWarn` convention). */
 export type ResolveWarnFlag = { value: boolean };
 
@@ -191,7 +171,7 @@ export function resolveSelectionState(
       range = { start: { rowId: start.rowId, columnId: start.columnId }, end: { rowId: end.rowId, columnId: end.columnId } };
       rangeRect = rectFromCorners({ row: start.row, col: start.col }, { row: end.row, col: end.col });
       const anchor = resolveRef(value.anchor);
-      if (anchor && pointInRect({ row: anchor.row, col: anchor.col }, rangeRect)) {
+      if (anchor && rectContains(rangeRect, { row: anchor.row, col: anchor.col })) {
         anchorRef = { rowId: anchor.rowId, columnId: anchor.columnId };
         anchorCoord = { row: anchor.row, col: anchor.col };
       } else {

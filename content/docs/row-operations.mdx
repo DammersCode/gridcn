@@ -2,6 +2,7 @@
 title: Row operations
 description: Insert, duplicate, delete, and reorder rows through props, keyboard shortcuts, the context menu, and a marker drag.
 icon: Rows3
+status: updated
 ---
 
 Inserting, duplicating, deleting, and reordering whole rows. All four act on **view-space**
@@ -46,14 +47,14 @@ prop like every other binding (see [Keybindings](/docs/addons/keybindings#remapp
 **See the live example:** [Drag & drop reorder](/docs/examples/rows/drag-reorder)
 
 Drag a row marker vertically to reorder rows. A thin line marks the drop target, and the row
-moves on release. The gesture is zone-based — the press location decides the behavior, not later
+moves on release. The gesture is zone-based. The press location decides the behavior, not later
 movement. In the `reorder`-family marker modes (`reorder`, `reorder-number`, `reorder-checkbox`,
-`reorder-both`), the **grip zone** — the grip handle plus everything in the marker cell except
-the number and checkbox glyphs (the whole cell in `reorder` mode) — is the only reorder entry:
+`reorder-both`), the **grip zone**, the grip handle plus everything in the marker cell except
+the number and checkbox glyphs (the whole cell in `reorder` mode), is the only reorder entry:
 a press there selects the row, and a vertical drag that leaves the row reorders it. The **number
 and checkbox glyphs stay pure row-select surfaces**: a press on them selects (click) or drags a
 row range (drag), never reorders. Plain `number`, `checkbox`, and `both` markers are selection
-surfaces across the cell — a selection drag can never accidentally reorder.
+surfaces across the cell. A selection drag can never accidentally reorder.
 <kbd>Shift</kbd>+drag from the grip is always the row-select range gesture.
 
 | Prop | Role | Default |
@@ -81,7 +82,7 @@ through the grid's `aria-live` region (`labels.markers.reorderAnnouncement`).
 
 <Callout type="warn" title="Position-based data goes stale">
   Search match counts and presence highlights in the original view-space `range` form reference
-  positions, not row ids, so they go stale after a move — the same parity as `insertRows`.
+  positions, not row ids, so they go stale after a move (the same parity as `insertRows`).
   Presence's rowId-native range form ([Multiplayer presence](/docs/addons/presence)) tracks
   its rows through the move.
 </Callout>
@@ -95,15 +96,15 @@ known target.
 
 The cell-surface items, in order:
 
-1. **Cut** / **Copy** / **Paste** — the native clipboard pipeline (see [Clipboard](/docs/clipboard)).
-2. **Clear contents** — empties the selection to each type's `clearValue()` (the `deleteContents`
+1. **Cut** / **Copy** / **Paste**: the native clipboard pipeline (see [Clipboard](/docs/clipboard)).
+2. **Clear contents**: empties the selection to each type's `clearValue()` (the `deleteContents`
    action, <kbd>Delete</kbd>/<kbd>Backspace</kbd>).
 3. **Insert row above** (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd>) / **Insert
-   row below** (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>) — anchored at the
+   row below** (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>): anchored at the
    right-clicked row. Hidden without `createRow`.
-4. **Duplicate row(s)** — <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>. Hidden
+4. **Duplicate row(s)**: <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>. Hidden
    without `duplicateRow`.
-5. **Delete row(s)** — <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Backspace</kbd>,
+5. **Delete row(s)**: <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Backspace</kbd>,
    destructive item.
 
 The row-operation items act on **every view row covered by the current selection**, falling back
@@ -171,12 +172,12 @@ from the `columns` array, and reorder and resize do not affect it. Set `rowMarke
 | `"number"` | The 1-based view row index, non-interactive. |
 | `"checkbox"` | A per-row checkbox that drives the rows selection channel, plus a select-all checkbox in the marker header. |
 | `"both"` | The row number, replaced by the checkbox on hover or when the row is selected (a group-hover pattern). The number is never gone. The checkbox only sits in front of it at the moment the checkbox is actionable. |
-| `"reorder"` | A grip handle — the whole cell is the grip zone that drag-reorders the row. No number or checkbox. |
+| `"reorder"` | A grip handle. The whole cell is the grip zone that drag-reorders the row. No number or checkbox. |
 | `"reorder-number"` / `"reorder-checkbox"` / `"reorder-both"` | The grip zone (grip handle + cell background) plus the number and/or checkbox content, which stay row-select surfaces. |
 
 Only the `reorder` family arms the [drag-to-reorder gesture](#reorder). The plain modes are pure
 row-select surfaces. Marker press and drag, in the plain modes, selects a contiguous multi-row
-range that follows the pointer from the press row — dragging back over selected rows de-selects
+range that follows the pointer from the press row. Dragging back over selected rows de-selects
 them (contrast the header gesture, whose column range only grows). See
 [Selection & keyboard](/docs/selection-keyboard#mouse-gestures). The aria-labels of the marker
 column (`markers.selectAll` and `markers.selectRow`) are translatable through `labels`. See
@@ -242,7 +243,7 @@ const renderMarkerHeader: MarkerHeaderRenderer = (ctx) => <SelectAllMarker {...c
 ```
 
 Define both renderers at module scope (stable identity, the same rule as `getRowClassName`, see
-[Performance](/docs/performance#keeping-it-fast)) — a component-body function re-renders every
+[Performance](/docs/performance#keeping-it-fast)). A component-body function re-renders every
 marker cell on every root update.
 
 The built-in checkboxes carry the translatable `labels.markers.*` aria-labels. A custom renderer

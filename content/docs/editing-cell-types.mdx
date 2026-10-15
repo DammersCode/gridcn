@@ -2,6 +2,7 @@
 title: Editing & cell types
 description: How editing works, the built-in cell types, and how to add your own.
 icon: Pencil
+status: updated
 ---
 
 ## Edit activation
@@ -52,16 +53,16 @@ visible.
 
 ## Built-in cell types
 
-Every cell type implements the same small pipeline — display = `toDisplayText ?? toText`,
-clipboard/export = `toText`, sort = `compare`, fill = raw value — so one override changes how a
+Every cell type implements the same small pipeline (display = `toDisplayText ?? toText`,
+clipboard/export = `toText`, sort = `compare`, fill = raw value) so one override changes how a
 type converts text to and from a value. The full per-feature contract, including how search and
 filter match values, is on [custom cell types](/docs/custom-cell-types#value-pipeline).
 
 | Type | Value | Notes |
 |---|---|---|
 | `text` | `string` | Default when `type` is omitted. `options.placeholder`. |
-| `number` | `number \| null` | `options.min`/`max`/`decimals`. In the editor, ArrowUp/ArrowDown step by `options.step` (default 1) and clamp to `min`/`max`. `options.format`/`locale` render display-only locale formatting — copy and export keep the raw number. |
-| `checkbox` | `boolean` | No edit mode — direct toggle. |
+| `number` | `number \| null` | `options.min`/`max`/`decimals`. In the editor, ArrowUp/ArrowDown step by `options.step` (default 1) and clamp to `min`/`max`. `options.format`/`locale` render display-only locale formatting. Copy and export keep the raw number. |
+| `checkbox` | `boolean` | No edit mode: direct toggle. |
 | `select` | `string \| null` | `options.choices: { value, label }[]`. |
 | `date` | `string \| null` (ISO `yyyy-mm-dd`) | See below. |
 | `url` | `string \| null` | The value is a URL. Renders a safe link (http, https, mailto only); other values stay plain text. alt+Enter opens the active cell's link. `options.label` maps the URL to the shown text. |
@@ -104,7 +105,7 @@ with typed-input passthrough. Enter commits the value, and Escape cancels it.
 ### Number formatting
 
 `options.format` (an `Intl.NumberFormatOptions` object) and `options.locale` (default `"en-US"`)
-render the value with locale formatting: currency, percent, compact. Formatting is display only —
+render the value with locale formatting: currency, percent, compact. Formatting is display only.
 `toText`, the editor, copy, paste, sort, and export keep the raw number, so a stored `0.25` under
 `style: "percent"` displays as `25%` and edits as `0.25`. When `decimals` is set and the format
 declares no fraction digits, `decimals` sets both the minimum and the maximum fraction digits.
@@ -127,7 +128,7 @@ The value is a URL. The cell renders a safe link that opens in a new tab without
 not a tab stop. A click on the link selects the cell and opens it; alt+Enter (`openLink`) opens
 the link of the active cell. Only values with an `http`, `https`, or `mailto` protocol render as a
 link; every other value renders as plain text. `options.label` maps the stored URL to the shown
-link text — `toText` and copy stay the URL.
+link text. `toText` and copy stay the URL.
 
 <Callout type="warn" title="Only http, https, and mailto render as links">
 The allow-list is fixed, and a cell type cannot widen it. A `javascript:`, `data:`, or relative
@@ -172,20 +173,20 @@ Per-column, static or row-dependent:
 `validate` accepts either of two forms:
 
 - **A function** that returns an error message to reject a value, or `null` to accept it. The
-  function is your code, so side effects work — the demo's Age rule fires a toast from inside it.
+  function is your code, so side effects work. The demo's Age rule fires a toast from inside it.
 - **Any [Standard Schema](https://standardschema.dev)** for the value of the column: Zod,
   Joi, Valibot, Yup, ArkType, or any other library that implements the spec. gridcn detects
   the schema structurally (`"~standard" in validate`), so no adapter is necessary for a
   conforming library.
 
 A cell type can declare the same `validate` as a default for its columns, and a column's own
-`validate` wins over the type's. Every validation path — a single-cell commit, a paste, a fill,
-`updateCells`, and import — resolves `column.validate ?? cellType.validate`. See
+`validate` wins over the type's. Every validation path (a single-cell commit, a paste, a fill,
+`updateCells`, and import) resolves `column.validate ?? cellType.validate`. See
 [custom cell types](/docs/custom-cell-types#the-contract-member-by-member).
 
 <Callout type="warn" title="Invalid edits cannot commit">
   The editor stays open on a rejected value. This is Excel semantics, not a toast-and-revert
-  pattern. The exception is `onInvalid: "warn"` — see [Soft rules](#soft-rules-oninvalid) below.
+  pattern. The exception is `onInvalid: "warn"`. See [Soft rules](#soft-rules-oninvalid) below.
 </Callout>
 
 If a validator throws, or its promise rejects, the grid rejects the value and shows the error
@@ -215,7 +216,7 @@ message. This applies to every validation path, and a throwing validator blocks 
 ### Soft rules: onInvalid
 
 By default a rejection is blocking: the value never commits. `onInvalid: "warn"` commits the
-value and flags the cell instead — the same ring, tint, and hover tooltip as a
+value and flags the cell instead: the same ring, tint, and hover tooltip as a
 [server error](#server-errors), auto-cleared by the next valid commit of that cell. The editor
 closes, because from the grid's point of view the commit succeeded:
 
@@ -229,7 +230,7 @@ closes, because from the grid's point of view the commit succeeded:
 }
 ```
 
-`"warn"` works with every `validate` form — function and sync/async Standard Schema. A rejection
+`"warn"` works with every `validate` form: function and sync/async Standard Schema. A rejection
 carries no transformed value, so a soft commit stores the raw input. Per-row softness is the
 function form's `row` argument (return `null` to skip the rule for that row). Bulk paths (paste,
 fill, `updateCells`) still drop rejected cells, even in soft columns.
@@ -317,14 +318,14 @@ Paste, fill, CSV/XLSX import, and `updateCells` hold the batch while the schema 
 />
 ```
 
-`validateRow` runs once per touched row after a write gesture commits — a single edit, a paste,
-a fill, or a bulk update — against the row with ALL of the gesture's cells applied, so the verdict
+`validateRow` runs once per touched row after a write gesture commits (a single edit, a paste,
+a fill, or a bulk update) against the row with ALL of the gesture's cells applied, so the verdict
 never depends on column order (a per-column `validate` runs mid-gesture and cannot guarantee
 that).
 
 Return `columnId -> message` to mark cells, or `null` when the row is fine. Messages land in the
 same per-cell error display as [Server errors](#server-errors) (ring, tint, hover tooltip,
-`aria-invalid`), and the values still commit — the same stance as server errors, no rollback. A
+`aria-invalid`), and the values still commit (the same stance as server errors, no rollback). A
 later write that makes the row consistent clears the verdict, even when it writes a different
 column than the marked one.
 
@@ -341,7 +342,7 @@ message in a tooltip:
 <ComponentPreview name="data-grid-cell-errors-demo" />
 
 The rejection lands a round trip after `onDataChange`, long after the grid is mounted, so the
-handler reaches the grid's actions through the imperative handle — no lifted store needed:
+handler reaches the grid's actions through the imperative handle (no lifted store needed):
 
 ```tsx
 function OrdersGrid() {
@@ -388,7 +389,7 @@ const message = errors.get(cellErrorKey(row.id, "email"));
 <Callout type="warn" title="Not a data change">
   `setCellErrors` and `clearCellErrors` never touch `data`. They fire no `onDataChange`, and
   [`data-grid-history`](/docs/addons/undo-redo) never records them. A server error is metadata about a
-  cell, not an edit the user made — undo must not need to walk past it.
+  cell, not an edit the user made. Undo must not need to walk past it.
 </Callout>
 
 ## Display override without a new type
