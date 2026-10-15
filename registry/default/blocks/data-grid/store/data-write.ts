@@ -710,13 +710,16 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       pruneRowValidationKeys(batch.nextData, s.getRowId);
       const view = rebuildRowOpView(s, batch.nextData);
       const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
+      const survivingEdit = "editing" in editRemap ? editRemap.editing : s.editing;
+      const cursor = survivingEdit
+        ? { selection: selectCellPure(survivingEdit.coord), activeCell: survivingEdit.coord }
+        : { selection: emptySelection(), activeCell: null };
       writeThenEmit(ctx, s, batch.nextData, { source: "row-op", ops: batch.ops }, () =>
         set({
           data: batch.nextData,
           rowIdentityVersion: s.rowIdentityVersion + 1,
           cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
-          selection: emptySelection(),
-          activeCell: null,
+          ...cursor,
           ...view,
           ...editRemap,
         }),

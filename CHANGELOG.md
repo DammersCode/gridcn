@@ -942,6 +942,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **`deleteRows` keeps the cursor on an open edit (`data-grid`):** when the edited row survives a `deleteRows` call, the active cell and selection stay on the edit cell. Before, Escape after such a delete left the grid with no active cell and dead arrow keys.
+
 - **A `null` selection anchor no longer warns (`data-grid`):** a selection value with a `range` and a `null` `anchor` resets the anchor to `range.start` silently. The false warning also used up the one-per-grid warning for a real unresolvable value.
 
 - **Large selections resolve in one pass (`data-grid`):** `setSelection`, the controlled `selection` prop, and `defaultSelection` look up many row ids with one index build instead of one full scan per id. Resolving 2,000 ids over 100k rows no longer makes about 100 million `getRowId` calls.

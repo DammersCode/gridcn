@@ -9,6 +9,7 @@ import {
   DataGridHeader,
   DataGridProvider,
   DataGridRoot,
+  type DataGridActions,
   type DataGridSyncProps,
 } from "../data-grid";
 import { gridAttrSelector } from "../data-grid-sdk";
@@ -143,6 +144,44 @@ describe("row ops under an open edit session", () => {
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(change.source).toBe("row-op");
     expect(next.map((r) => r.id)).toEqual(["row-0", "row-2", "row-3", "row-4"]);
+  });
+
+  it("deleteRows of another row keeps the cursor on the surviving edit session, so Escape leaves keyboard navigation alive", async () => {
+    let store: StoreApi<DataGridStoreState> | undefined;
+    await renderGrid((s) => (store = s));
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    await openEditorOnRow(0, "X"); // row-0 stays at view row 0 when row-3 goes
+    store!.getState().actions.deleteRows([3]);
+
+    expect(store!.getState().editing?.rowId).toBe("row-0");
+    expect(store!.getState().activeCell).toEqual({ row: 0, col: 0 });
+    expect(store!.getState().selection.current?.cell).toEqual({ row: 0, col: 0 });
+
+    await userEvent.keyboard("{Escape}");
+    await vi.waitFor(() => expect(document.activeElement?.getAttribute("role")).toBe("gridcell"));
+    expect(store!.getState().activeCell).toEqual({ row: 0, col: 0 });
+    expect(store!.getState().selection.current).not.toBeNull();
+
+    await userEvent.keyboard("{ArrowDown}");
+    expect(store!.getState().activeCell).toEqual({ row: 1, col: 0 });
+  });
+
+  it.each([
+    ["insertRows below", (a: DataGridActions) => a.insertRows(3, 1, "below")],
+    ["duplicateRows of another row", (a: DataGridActions) => a.duplicateRows([3])],
+    ["reorderRows of other rows", (a: DataGridActions) => a.reorderRows(3, 4)],
+  ])("%s keeps the cursor on the surviving edit session", async (_name, op) => {
+    let store: StoreApi<DataGridStoreState> | undefined;
+    await renderGrid((s) => (store = s), { createRow: () => ({ id: "new", name: "New", age: 0 }), duplicateRow: (r) => ({ ...r, id: `${r.id}-copy` }), enableRowReorder: true });
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    await openEditorOnRow(0, "X");
+    op(store!.getState().actions);
+
+    expect(store!.getState().editing?.rowId).toBe("row-0");
+    expect(store!.getState().activeCell).toEqual({ row: 0, col: 0 });
+    expect(store!.getState().selection.current?.cell).toEqual({ row: 0, col: 0 });
   });
 
   it("reorderRows moves the edited row live and the commit lands on the original record", async () => {
