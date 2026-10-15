@@ -2,6 +2,9 @@ import { getCellValue, sanitizeFormulaCell, type AnyColumnDef } from "@/registry
 import { columnLabelText, displayText, getSelectedViewRows, isDev, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { CsvDelimiter } from "./parse-import-file";
 
+/** Longest cell text an Excel worksheet holds; XLSX export and print cut longer text to it. */
+export const MAX_CELL_TEXT = 32_767;
+
 /** Options for {@link exportGrid}. */
 export type ExportGridOptions = {
   /** 'xlsx' via lazily-imported hucre, or hand-rolled RFC4180 'csv'. */
@@ -150,8 +153,10 @@ export async function buildXlsx(state: DataGridReadState, options: BuildXlsxOpti
   const rows = buildCappedExportRows(state, scope, maxRows);
   const table = includeHeaders ? [buildExportHeaders(state), ...rows] : rows;
 
+  const cutRows = table.map((row) => row.map((text) => (text.length > MAX_CELL_TEXT ? text.slice(0, MAX_CELL_TEXT) : text)));
+
   const { writeXlsx } = await import("./xlsx-writer");
-  const bytes = await writeXlsx({ sheets: [{ name: workbookName, rows: table }] });
+  const bytes = await writeXlsx({ sheets: [{ name: workbookName, rows: cutRows }] });
   // hucre types its output as ArrayBufferLike, but writeXlsx never returns a SharedArrayBuffer view
   return new Blob([bytes as Uint8Array<ArrayBuffer>], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }

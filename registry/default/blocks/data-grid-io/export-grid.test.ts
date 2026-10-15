@@ -441,6 +441,14 @@ describe("buildXlsx", () => {
     expect(parsed.rows).toEqual([["Name", "Note"], ...data.map((row) => [row.name, row.note])]);
   });
 
+  it("cuts cell text to the 32,767-character Excel limit", async () => {
+    const data = [{ id: "1", name: "x".repeat(40_000), note: "short" }];
+    const blob = await buildXlsx(makeState({ data }));
+    const parsed = await parseImportFile(new File([blob], "export.xlsx"));
+    expect(parsed.rows[1]![0]).toBe("x".repeat(32_767));
+    expect(parsed.rows[1]![1]).toBe("short");
+  });
+
   it("rejects a workbookName that Excel does not accept as a sheet name", async () => {
     await expect(buildXlsx(makeState(), { workbookName: "Q3/Q4" })).rejects.toThrow();
     await expect(buildXlsx(makeState(), { workbookName: "x".repeat(32) })).rejects.toThrow();

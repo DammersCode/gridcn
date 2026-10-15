@@ -1,12 +1,10 @@
 import { type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { buildExportHeaders, buildExportRows, exportDataIndices } from "./export-grid";
+import { MAX_CELL_TEXT, buildExportHeaders, buildExportRows, exportDataIndices } from "./export-grid";
 
 /** Default number of rows printed when `maxRows` is not given. */
 const DEFAULT_PRINT_MAX_ROWS = 10_000;
 /** Hard ceiling on the printed table's cell count (a multi-million-cell DOM table hangs the print dialog). */
 const PRINT_CELL_CEILING = 500_000;
-/** Cell texts longer than this are cut (the XLSX cell limit, so print and export agree). */
-const MAX_PRINT_CELL_TEXT = 32_767;
 /** Fallback removal (ms) for the print iframe when the window's `afterprint` never fires. */
 const PRINT_FALLBACK_MS = 60_000;
 
@@ -38,7 +36,7 @@ function removeOpenIframe(): void {
 }
 
 function cutText(text: string): string {
-  return text.length > MAX_PRINT_CELL_TEXT ? text.slice(0, MAX_PRINT_CELL_TEXT) : text;
+  return text.length > MAX_CELL_TEXT ? text.slice(0, MAX_CELL_TEXT) : text;
 }
 
 function printCss(orientation: "portrait" | "landscape"): string {
