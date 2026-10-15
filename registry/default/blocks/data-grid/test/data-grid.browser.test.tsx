@@ -479,8 +479,6 @@ describe("DataGrid in a real browser", () => {
       expect(overlayRect.bottom).toBeCloseTo(targetRect.bottom, 0);
     });
 
-    // regression (user QA): the drag frame-loop died when the first pointermove arrived after
-    // frame 1 — fast drags worked, slow press-then-move drags never painted.
     it("a drag with a synthetic pointer id (capture refused) still paints the range", async () => {
       await renderGrid(20);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
@@ -501,6 +499,8 @@ describe("DataGrid in a real browser", () => {
       expect(overlay!.getBoundingClientRect().bottom).toBeCloseTo(targetRect.bottom, 0);
     });
 
+    // regression (user QA): the drag frame-loop died when the first pointermove arrived after
+    // frame 1 — fast drags worked, slow press-then-move drags never painted.
     it("a slow drag (press, pause, then small moves) still paints the range", async () => {
       await renderGrid(20);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
