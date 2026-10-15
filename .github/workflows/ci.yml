@@ -210,7 +210,7 @@ jobs:
       - name: Validate GitHub registry (shadcn CLI)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx shadcn@latest registry validate DammersCode/gridcn#${{ github.sha }}
+        run: npx shadcn@4.21.0 registry validate DammersCode/gridcn#${{ github.sha }}
 
   # The ruleset requires the check context `ci` (this job id); it always runs, so the jobs a fork PR skips fail it.
   ci:
