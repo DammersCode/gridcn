@@ -323,6 +323,87 @@ describe("plugin identity across renders", () => {
     warn.mockRestore();
   });
 
+  it("a keyed re-mount with the same plugin object keeps the plugin", () => {
+    const plugin = { name: "keyed", Overlay: () => null } as const;
+    const warn = vi.spyOn(console, "warn");
+    const grid = (key: string) => (
+      <DataGridProvider key={key} data={rows} columns={columns} getRowId={getRowId} plugins={[plugin]}>
+        <DataGridRoot className="h-[360px]"><DataGridBody /><StoreCapture /></DataGridRoot>
+      </DataGridProvider>
+    );
+    const view = render(grid("1"));
+    view.rerender(grid("2"));
+    expect(warn).not.toHaveBeenCalled();
+    expect(store!.getState().plugins.list).toHaveLength(1);
+    expect(store!.getState().plugins.overlays).toHaveLength(1);
+    warn.mockRestore();
+  });
+
+  it("a plugin moving from one grid to another in one render ends up on the new grid", () => {
+    const plugin = { name: "moving", Overlay: () => null } as const;
+    const stores: Record<string, StoreApi<DataGridStoreState>> = {};
+    function Capture({ id }: { id: string }) {
+      stores[id] = useDataGridStoreApi();
+      return null;
+    }
+    const pair = (aPlugins: readonly DataGridPlugin[], bPlugins: readonly DataGridPlugin[]) => (
+      <>
+        <DataGridProvider data={rows} columns={columns} getRowId={getRowId} plugins={aPlugins}>
+          <DataGridRoot className="h-[120px]"><DataGridBody /><Capture id="a" /></DataGridRoot>
+        </DataGridProvider>
+        <DataGridProvider data={rows} columns={columns} getRowId={getRowId} plugins={bPlugins}>
+          <DataGridRoot className="h-[120px]"><DataGridBody /><Capture id="b" /></DataGridRoot>
+        </DataGridProvider>
+      </>
+    );
+    const holdsA = [plugin];
+    const none: readonly DataGridPlugin[] = [];
+    const holdsB = [plugin];
+    const view = render(pair(holdsA, none));
+    view.rerender(pair(none, holdsB));
+    expect(stores["a"]!.getState().plugins.list).toHaveLength(0);
+    expect(stores["b"]!.getState().plugins.list).toHaveLength(1);
+  });
+
+  it("a second live grid with the same plugin object stays refused with one warning", () => {
+    const plugin = { name: "live-dup", Overlay: () => null } as const;
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const stores: StoreApi<DataGridStoreState>[] = [];
+    function Capture() {
+      stores.push(useDataGridStoreApi());
+      return null;
+    }
+    const list = [plugin];
+    render(
+      <>
+        {[0, 1].map((i) => (
+          <DataGridProvider key={i} data={rows} columns={columns} getRowId={getRowId} plugins={list}>
+            <DataGridRoot className="h-[120px]"><DataGridBody />{i === 1 ? <Capture /> : null}</DataGridRoot>
+          </DataGridProvider>
+        ))}
+      </>,
+    );
+    expect(stores[0]!.getState().plugins.list).toHaveLength(0);
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("already attached"))).toHaveLength(1);
+    warn.mockRestore();
+  });
+
+  it("changing the plugin list between renders releases the removed plugin and claims the added one", () => {
+    const first = { name: "first", Overlay: () => null } as const;
+    const second = { name: "second", Overlay: () => null } as const;
+    const grid = (plugins: readonly DataGridPlugin[]) => (
+      <DataGridProvider data={rows} columns={columns} getRowId={getRowId} plugins={plugins}>
+        <DataGridRoot className="h-[360px]"><DataGridBody /><StoreCapture /></DataGridRoot>
+      </DataGridProvider>
+    );
+    const view = render(grid([first]));
+    view.rerender(grid([second]));
+    expect(store!.getState().plugins.list.map((p) => p.name)).toEqual(["second"]);
+    cleanup();
+    mountGrid([first]);
+    expect(store!.getState().plugins.list.map((p) => p.name)).toEqual(["first"]);
+  });
+
   it("removing an overlay plugin between renders does not throw", () => {
     const plugin = { name: "ov", Overlay: () => null } as const;
     const h = mountGrid([plugin]);

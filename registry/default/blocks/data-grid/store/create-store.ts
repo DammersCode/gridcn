@@ -828,8 +828,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const claim = claimPluginAttachments(list ?? [], api, pluginWarnOnce);
         releasePluginClaims = claim.release;
         claimedPlugins = list;
-        if (claim.kept === list || !list) return;
         const resolved = resolvePluginsList(claim.kept, api, pluginWarnOnce);
+        if (pluginsListEqual(resolved.list, get().plugins.list)) return;
         set({
           plugins: resolved,
           keymap: mergePluginKeymaps(resolved.list, lastKeymapProp, pluginWarnOnce),
