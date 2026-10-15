@@ -88,6 +88,11 @@ const reactCompiler = () => babel({ presets: [reactCompilerPreset({ target: "19"
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    // Browser-mode tests run in the page, where `process` is undefined; the CI flag is
+    // injected host-side so the perf test can gate its budget like the unit project's CI_FACTOR.
+    "import.meta.env.CI": JSON.stringify(process.env["CI"] === "true"),
+  },
   resolve: {
     alias: { "@": __dirname },
   },
