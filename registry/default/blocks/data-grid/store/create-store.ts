@@ -12,6 +12,7 @@ import {
   extendSelection,
   isSelectionEmpty,
   pushRange,
+  removeRowFromSelection,
   selectAllProgression,
   selectCell as selectCellPure,
   selectColumn as selectColumnPure,
@@ -1058,9 +1059,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       setRowSelected(index, checked) {
         const { selection, enableRowSelection } = get();
         if (!enableRowSelection) return;
-        const current = CompactSelection.fromArray(selection.rows.toArray());
-        const rows = checked ? current.add(index) : current.remove(index);
-        // additive membership change only — never touches the primary range/rangeStack/column channel.
+        if (!checked) {
+          const next = removeRowFromSelection(selection, index);
+          if (next !== selection) set({ selection: next });
+          return;
+        }
+        const rows = CompactSelection.fromArray(selection.rows.toArray()).add(index);
         set({ selection: { ...selection, rows } });
       },
       armRowDragAnchor(index) {

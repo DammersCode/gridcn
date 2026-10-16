@@ -12,6 +12,8 @@ import {
   extendTo,
   extendSelection,
   pushRange,
+  removeRowFromSelection,
+  isRowChecked,
   selectionContainsCell,
   selectionRects,
   selectRow,
@@ -591,5 +593,34 @@ describe("selectAllProgression", () => {
     const { selection, stage } = selectAllProgression(sel, 10, 10, { col: 1, row: 1 }, isEmptyAt, "all");
     expect(selection.current?.range).toEqual({ x: 0, y: 0, width: 3, height: 3 });
     expect(stage).toBe("region");
+  });
+});
+
+describe("removeRowFromSelection", () => {
+  const at = (row: number, height = 1) => ({ x: 0, y: row, width: 2, height });
+  const sel = (range: ReturnType<typeof at>, rangeStack: ReturnType<typeof at>[] = []): GridSelection => ({
+    current: { cell: { col: 0, row: range.y }, range, rangeStack },
+    rows: CompactSelection.empty(),
+    columns: CompactSelection.empty(),
+  });
+
+  it("drops a single-row range and clears current", () => {
+    const next = removeRowFromSelection(sel(at(3)), 3);
+    expect(next.current).toBeNull();
+    expect(isRowChecked(next, 3)).toBe(false);
+  });
+
+  it("splits a range that spans the row and keeps the cell inside a piece", () => {
+    const next = removeRowFromSelection(sel(at(1, 5)), 3);
+    expect(isRowChecked(next, 3)).toBe(false);
+    expect([1, 2, 4, 5].every((r) => isRowChecked(next, r))).toBe(true);
+    expect(next.current!.range).toEqual(at(4, 2));
+    expect(next.current!.rangeStack).toEqual([at(1, 2)]);
+  });
+
+  it("removes the row from the rows channel and returns the same object when the row is in neither", () => {
+    const withRow: GridSelection = { ...emptySelection(), rows: CompactSelection.fromSingleSelection(2) };
+    expect(removeRowFromSelection(withRow, 2).rows.hasIndex(2)).toBe(false);
+    expect(removeRowFromSelection(withRow, 4)).toBe(withRow);
   });
 });

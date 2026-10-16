@@ -855,12 +855,21 @@ describe("row checking by keyboard", () => {
   it("Ctrl+Shift+Space toggles the active row without replacing the checked rows", async () => {
     await renderCheckboxGrid();
     await userEvent.click(gridCells()[0]!);
-    await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
     await userEvent.keyboard("{Alt>}{ArrowDown}{ArrowDown}{/Alt}");
     await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
     await vi.waitFor(() => expect(checked()).toEqual([true, false, true, false, false]));
     await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
     await vi.waitFor(() => expect(checked()).toEqual([true, false, false, false, false]));
+  });
+
+  it("Ctrl+Shift+Space unchecks a row that a plain click checked through the cell range, then checks it again", async () => {
+    await renderCheckboxGrid();
+    await userEvent.click(gridCells()[0]!);
+    await vi.waitFor(() => expect(checked()[0]).toBe(true));
+    await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
+    await vi.waitFor(() => expect(checked()[0]).toBe(false));
+    await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
+    await vi.waitFor(() => expect(checked()[0]).toBe(true));
   });
 
   it("Ctrl+Alt+Space checks every row, then unchecks them, like the header checkbox", async () => {

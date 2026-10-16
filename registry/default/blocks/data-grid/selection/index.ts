@@ -6,7 +6,7 @@ export {
   rectContains,
   intersectRect,
 } from "./rects";
-export { emptySelection, selectCell, extendTo, pushRange, isSelectionEmpty } from "./selection-ops";
+export { emptySelection, selectCell, extendTo, pushRange, isSelectionEmpty, removeRowFromSelection, isRowChecked } from "./selection-ops";
 export { extendSelection, type ExtendDirection, type ExtendSelectionOptions } from "./extend-selection";
 export { selectionContainsCell, selectionRects, selectRow, selectColumn } from "./line-ops";
 export { selectLine, type SelectLineOptions } from "./select-line-options";

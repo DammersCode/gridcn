@@ -36,7 +36,7 @@ import {
   type GridDirection,
 } from "../virtualization/direction";
 import { GRID_ATTR, gridAttrSelector } from "../data-attributes";
-import { getSelectedViewRows, isSelectionEmpty } from "../selection";
+import { getSelectedViewRows, isRowChecked, isSelectionEmpty } from "../selection";
 import { warnDev } from "../store/commit";
 import { allRowsSelectedState } from "../store/hooks";
 import { apiHandleOf } from "../store/api";
@@ -405,7 +405,7 @@ export function dispatchGridAction(args: {
     case "toggleRow": {
       preventDefault();
       const active = state.activeCell;
-      if (active) actions.setRowSelected(active.row, !state.selection.rows.hasIndex(active.row));
+      if (active) actions.setRowSelected(active.row, !isRowChecked(state.selection, active.row));
       break;
     }
     case "toggleAllRows": {

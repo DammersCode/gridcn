@@ -1,4 +1,4 @@
-import type { ViewCoord, GridSelection } from "../types";
+import type { ViewCoord, GridSelection, GridRect } from "../types";
 import { CompactSelection } from "./compact-selection";
 import { rectFromCorners, rectsEqual } from "./rects";
 
@@ -32,6 +32,39 @@ export function extendTo(selection: GridSelection, coord: ViewCoord): GridSelect
     rows: selection.rows,
     columns: selection.columns,
   };
+}
+
+/** True when `row` is covered by the rows channel or any cell range — the state a marker checkbox shows. */
+export function isRowChecked(selection: GridSelection, row: number): boolean {
+  const { current } = selection;
+  const covers = (r: GridRect) => row >= r.y && row < r.y + r.height;
+  return selection.rows.hasIndex(row) || (!!current && (covers(current.range) || current.rangeStack.some(covers)));
+}
+
+/** Removes `row` from the rows channel and from every cell range, splitting a range that spans it; `selection` itself comes back when the row is in neither channel. */
+export function removeRowFromSelection(selection: GridSelection, row: number): GridSelection {
+  const rows = selection.rows.hasIndex(row) ? CompactSelection.fromArray(selection.rows.toArray()).remove(row) : selection.rows;
+  const current = selection.current;
+  const covers = (r: GridRect) => row >= r.y && row < r.y + r.height;
+  if (!current || (!covers(current.range) && !current.rangeStack.some(covers))) {
+    return rows === selection.rows ? selection : { ...selection, rows };
+  }
+  const without = (r: GridRect): GridRect[] => {
+    if (!covers(r)) return [r];
+    const above = row - r.y;
+    const below = r.y + r.height - row - 1;
+    return [
+      ...(above > 0 ? [{ ...r, height: above }] : []),
+      ...(below > 0 ? [{ ...r, y: row + 1, height: below }] : []),
+    ];
+  };
+  const rangePieces = without(current.range);
+  const pieces = [...current.rangeStack.flatMap(without), ...rangePieces];
+  const range = rangePieces.at(-1) ?? pieces.at(-1);
+  if (!range) return { ...selection, current: null, rows };
+  const rangeStack = pieces.filter((piece) => piece !== range);
+  const cellInRange = current.cell.col >= range.x && current.cell.col < range.x + range.width && current.cell.row >= range.y && current.cell.row < range.y + range.height;
+  return { ...selection, rows, current: { cell: cellInRange ? current.cell : { col: range.x, row: range.y }, range, rangeStack } };
 }
 
 /** Ctrl-click: pushes the current primary range onto the stack and starts a new 1x1 range at `coord`. */
