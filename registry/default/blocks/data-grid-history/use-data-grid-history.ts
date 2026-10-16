@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
-import { invertChange, useDataGridApi, type DataChange, type DataGridApi, type DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, createHistory } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { getCellValue, invertChange, useDataGridApi, type DataChange, type DataGridApi, type DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev, createHistory, setCellValue } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Options for {@link useDataGridHistory}. */
 export type UseDataGridHistoryOptions<TData> = {
@@ -45,6 +45,39 @@ const DEFAULT_RECORD_SOURCES: readonly DataChange<unknown>["source"][] = [
   "app",
 ];
 
+/**
+ * Builds the inverse of `change` against the current data: a cell reverts only while it still holds
+ * the change's value, so later edits to the same row (or the same cell) survive the rollback.
+ */
+function buildRollback<TData>(change: DataChange<TData>, s: ReturnType<DataGridApi<TData>["store"]["getState"]>): DataChange<TData> {
+  const rowById = new Map<string, TData>();
+  (s.data as readonly TData[]).forEach((row, i) => rowById.set(s.getRowId(row, i), row));
+  const columnsById = new Map(s.columns.map((c) => [c.id, c] as const));
+  const ops: DataChange<TData>["ops"] = [];
+  for (const op of [...change.ops].reverse()) {
+    if (op.type !== "update") {
+      ops.push(...invertChange({ ops: [op], source: "rollback" }, "rollback").ops);
+      continue;
+    }
+    const current = rowById.get(op.rowId);
+    if (current === undefined) continue;
+    if (!op.cells) {
+      if (current === op.row) ops.push({ type: "update", rowId: op.rowId, row: op.prev, prev: op.row });
+      continue;
+    }
+    let row: TData = current;
+    const cells: NonNullable<typeof op.cells> = [];
+    for (const cell of [...op.cells].reverse()) {
+      const column = columnsById.get(cell.columnId);
+      if (!column || !Object.is(getCellValue(row, column as never), cell.value)) continue;
+      row = setCellValue<TData, never>(row, column as never, cell.prev as never);
+      cells.push({ columnId: cell.columnId, value: cell.prev, prev: cell.value });
+    }
+    if (cells.length > 0) ops.push({ type: "update", rowId: op.rowId, row, prev: current, cells });
+  }
+  return { ops, source: "rollback", label: change.label };
+}
+
 /** Return value of {@link useDataGridHistory}. */
 export type UseDataGridHistoryResult<TData> = {
   /** One entry of the grid's `plugins` prop — the plugin's `onDataChange` observer records the grid's data changes, its `undo`/`redo` commands back the mod+Z/mod+Shift+Z bindings, and its `Mount` hands the grid's api handle to the imperative triggers below. Stable for the hook's lifetime. An inline `plugins={[plugin]}` is fine: re-resolution is gated on entry identity (name + member references), not on the array's. */
@@ -62,7 +95,8 @@ export type UseDataGridHistoryResult<TData> = {
   /**
    * Reverts `change` (the object an `onDataChange` handler received) after its save failed: applies the
    * inverse with `source: "rollback"` and drops the entry from the stacks, so no dead undo step remains.
-   * No-op when the grid is not mounted yet or is read-only.
+   * A cell reverts only while it still holds the change's value, so later edits survive. A change the
+   * user already undid is dropped without a write. No-op when the grid is not mounted yet or is read-only.
    */
   rollback: (change: DataChange<TData>) => void;
   /**
@@ -147,15 +181,20 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
     forceUpdate((n) => n + 1);
   }, [history]);
 
+  const rolledBack = useMemo(() => new WeakSet<DataChange<TData>>(), []);
+
   const rollback = useCallback(
     (change: DataChange<TData>) => {
       const api = apiRef.current;
       if (!api || api.store.getState().readOnly) return;
-      history.discard(change);
-      api.actions.commitChange(invertChange(change, "rollback"));
+      rolledBack.add(change);
+      const undoSize = history.size;
+      const found = history.discard(change);
+      const alreadyUndone = found && history.size === undoSize;
+      if (!alreadyUndone) api.actions.commitChange(buildRollback(change, api.store.getState()));
       forceUpdate((n) => n + 1);
     },
-    [history],
+    [history, rolledBack],
   );
 
   const record = useCallback(
@@ -185,7 +224,7 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
       name: "history",
       onDataChange: (_next, change) => {
         if (change.source === "history" || change.source === "rollback") return;
-        if (recordedRef.current.has(change.source)) history.push(change);
+        if (recordedRef.current.has(change.source) && !rolledBack.has(change)) history.push(change);
         forceUpdate((n) => n + 1);
       },
       commands: {
@@ -206,7 +245,7 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
       },
       Mount: mountRef.current ?? undefined,
     }),
-    [history, undo, redo, mountRef.current],
+    [history, rolledBack, undo, redo, mountRef.current],
   );
 
   return {

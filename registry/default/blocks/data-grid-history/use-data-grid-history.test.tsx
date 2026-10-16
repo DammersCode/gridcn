@@ -465,4 +465,65 @@ describe("useDataGridHistory readOnly", () => {
     expect(h.history().historySize).toBe(0);
     expect(h.history().canRedo).toBe(false);
   });
+  it("rollback keeps later edits to other cells of the same row", () => {
+    const seen: DataChange<Row>[] = [];
+    const h = setupHarness({}, { onDataChange: (_next, change) => seen.push(change) });
+    const a = initialRows[0]!;
+    const renamed = { ...a, name: "Alicia" };
+    const aged = { ...renamed, age: 31 };
+    h.commit(editChange("a", renamed, a));
+    h.commit({
+      source: "edit",
+      ops: [{ type: "update", rowId: "a", row: aged, prev: renamed, cells: [{ columnId: "age", value: 31, prev: 30 }] }],
+    });
+
+    act(() => h.history().rollback(seen[0]!));
+
+    expect(h.data()[0]).toEqual({ id: "a", name: "Alice", age: 31 });
+  });
+
+  it("rollback skips a cell whose value was overwritten later", () => {
+    const seen: DataChange<Row>[] = [];
+    const h = setupHarness({}, { onDataChange: (_next, change) => seen.push(change) });
+    const a = initialRows[0]!;
+    const first = { ...a, name: "Alicia" };
+    const second = { ...a, name: "Ali" };
+    h.commit(editChange("a", first, a));
+    h.commit(editChange("a", second, first));
+
+    act(() => h.history().rollback(seen[0]!));
+
+    expect(h.data()[0]!.name).toBe("Ali");
+  });
+
+  it("rollback of a change the user already undid does not apply the inverse twice", () => {
+    const seen: DataChange<Row>[] = [];
+    const h = setupHarness({}, { onDataChange: (_next, change) => seen.push(change) });
+    h.commit({ source: "delete", ops: [{ type: "delete", rowId: "b", row: initialRows[1]!, index: 1 }] });
+    act(() => h.history().undo());
+    expect(h.data().map((r) => r.id)).toEqual(["a", "b", "c"]);
+
+    act(() => h.history().rollback(seen[0]!));
+
+    expect(h.data().map((r) => r.id)).toEqual(["a", "b", "c"]);
+    expect(h.history().canRedo).toBe(false);
+  });
+
+  it("a synchronous rollback inside onDataChange leaves no undo entry", () => {
+    let rollback: UseDataGridHistoryResult<Row>["rollback"] | null = null;
+    const h = setupHarness(
+      {},
+      {
+        onDataChange: (_next, change) => {
+          if (change.source === "edit") rollback?.(change);
+        },
+      },
+    );
+    rollback = (change) => h.history().rollback(change);
+
+    h.commit(editChange("a", { id: "a", name: "Alicia", age: 30 }, initialRows[0]!));
+
+    expect(h.data()[0]!.name).toBe("Alice");
+    expect(h.history().historySize).toBe(0);
+  });
 });
