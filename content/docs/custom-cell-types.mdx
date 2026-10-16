@@ -80,7 +80,7 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   `tabular-nums` for numeric-like types.
 - **`numeric`**: renders the cell's digits with `tabular-nums`, the fixed-width numerals that
   keep columns of numbers aligned. `number` and `date` declare it.
-- **`toSearchText`**: the quick-search text for a stored value. The default is `toText`.
+- **`toSearchText`** <NewBadge />: the quick-search text for a stored value. The default is `toText`.
   `select` declares it, so a `select` column searches the choice LABEL, not the stored value.
   Filter never uses it. Filter matches the raw value.
 - **`validate`**: the default validator for columns of this type when the column declares no
@@ -88,15 +88,15 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   Schema. See [Editing & cell types: Validation](/docs/editing-cell-types#validation)). Every
   validation path resolves `column.validate ?? cellType.validate`: a single-cell commit, a paste,
   a fill, `updateCells`, and import.
-- **`activate`**: gives the cell an in-place edit gesture instead of an editor. Enter/F2, a
+- **`activate`** <NewBadge />: gives the cell an in-place edit gesture instead of an editor. Enter/F2, a
   stationary click, and a double-click on an `activate` cell commit `activate(value, options)`
   directly, with no edit session (so `onEditStart` and `onEditEnd` never fire). `checkbox`
   declares `(value) => !value`. Without `activate`, the same gestures open the editor.
-- **`href`**: the link target for a stored value. The grid routes every result through
+- **`href`** <NewBadge />: the link target for a stored value. The grid routes every result through
   `safeHref` (exported from the `data-grid` barrel) before it renders it or opens it: only
   `http`, `https`, and `mailto` survive, and a type cannot widen the list. `url` declares it;
   the `openLink` action (alt+Enter) opens the active cell's safe href.
-- **`filter`**: the filter capabilities of the type, used when the column declares none of its
+- **`filter`** <NewBadge />: the filter capabilities of the type, used when the column declares none of its
   own. `filter.operators` replaces the operator list the filter menu offers for the type's
   columns. `filter.match` is a raw-value predicate that replaces the built-in text matcher, with
   the same contract as the column's `filterMatch`. `filter.valueInput` picks the filter row's

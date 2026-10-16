@@ -65,8 +65,8 @@ filter match values, is on [custom cell types](/docs/custom-cell-types#value-pip
 | `checkbox` | `boolean` | No edit mode: direct toggle. |
 | `select` | `string \| null` | `options.choices: { value, label }[]`. |
 | `date` | `string \| null` (ISO `yyyy-mm-dd`) | See below. |
-| `url` | `string \| null` | The value is a URL. Renders a safe link (http, https, mailto only); other values stay plain text. alt+Enter opens the active cell's link; so do Ctrl+click (Cmd+click on macOS) and middle-click on the link. `options.label` maps the URL to the shown text. |
-| `longText` | `string` | Multi-line value. The cell shows the first 500 characters with line breaks as spaces; the editor is a popover textarea. `options.maxLength` (default 100,000), `options.placeholder`. |
+| `url` <NewBadge /> | `string \| null` | The value is a URL. Renders a safe link (http, https, mailto only); other values stay plain text. alt+Enter opens the active cell's link; so do Ctrl+click (Cmd+click on macOS) and middle-click on the link. `options.label` maps the URL to the shown text. |
+| `longText` <NewBadge /> | `string` | Multi-line value. The cell shows the first 500 characters with line breaks as spaces; the editor is a popover textarea. `options.maxLength` (default 100,000), `options.placeholder`. |
 
 ```tsx
 const columns = defineColumns<Person>()([
@@ -102,11 +102,7 @@ with typed-input passthrough. Enter commits the value, and Escape cancels it.
 }
 ```
 
-### Number formatting
-
-
-
-<NewBadge />
+### Number formatting <NewBadge />
 
 `options.format` (an `Intl.NumberFormatOptions` object) and `options.locale` (default `"en-US"`)
 render the value with locale formatting: currency, percent, compact. Formatting is display only.
@@ -126,11 +122,7 @@ value and log a one-time dev warning.
 }
 ```
 
-### URL links
-
-
-
-<NewBadge />
+### URL links <NewBadge />
 
 The value is a URL. The cell renders a safe link that opens in a new tab without a referrer and is
 not a tab stop. A plain click on the link selects the cell only. Ctrl+click (Cmd+click on macOS) and
@@ -143,11 +135,7 @@ The allow-list is fixed, and a cell type cannot widen it. A `javascript:`, `data
 value never renders as a link and `openLink` does not open it.
 </Callout>
 
-### Long text
-
-
-
-<NewBadge />
+### Long text <NewBadge />
 
 `longText` stores multi-line text verbatim. The cell is one line and shows the first 500
 characters with line breaks as spaces. The editor is a popover with a multi-line textarea:
