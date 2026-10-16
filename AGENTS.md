@@ -68,6 +68,8 @@ Component and addon page structure (match the existing pages):
 
 ### Page status and "New" badges
 
+Docs follow the same discipline as the changelog: every added or substantively changed page and section is marked in the same commit, before a task is called done. Deleted pages and sections are not marked (the sidebar shows only new and updated content); a removal gets a `CHANGELOG.md` entry instead.
+
 The sidebar dot comes from the page's `status` frontmatter. The baseline is `origin/main` (the published docs); `scripts/verify-doc-status.mjs` (run by `pnpm lint`) enforces it.
 
 - A page added since the baseline gets `status: new`. A page changed in substance gets `status: updated`. A wording-only edit (the script ignores punctuation and link targets) that still alters words gets `status: none`: no dot. A page without changes has no `status`.
@@ -142,7 +144,7 @@ Before pushing, additionally mirror the remaining `.github/workflows/ci.yml` ste
 
 ### Changelog
 
-A user-facing change to the registry (component behavior, props, API, new item) or to the docs examples gets an entry under `## Unreleased` in `CHANGELOG.md` (Keep a Changelog style, `**Breaking:**` marker where applicable) in the same commit. Docs prose edits and internal/test-only changes: no entry.
+A user-facing change to the registry (component behavior, props, API, new item, or a removal or rename) or to the docs examples gets an entry under `## Unreleased` in `CHANGELOG.md` (Keep a Changelog style, `**Breaking:**` marker where applicable) in the same commit. Docs prose edits and internal/test-only changes: no entry.
 
 ### Specs and plans
 
