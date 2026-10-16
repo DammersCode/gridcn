@@ -75,7 +75,7 @@ const coreTraits = [
     icon: Keyboard,
     title: "Typed columns",
     description:
-      "defineColumns<TData>() infers value types and per-cell-type options; typos are compile errors.",
+      "defineColumns<TData>() infers value types and per-cell-type options; accessor key typos are compile errors.",
     href: "/docs/quick-start#define-columns",
   },
   {

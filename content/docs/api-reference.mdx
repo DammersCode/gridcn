@@ -103,7 +103,7 @@ function handleDataChange(next: readonly Order[], change: DataChange<Order>) {
 return (
   <>
     <PageErrorPanel store={store} /> {/* beside the grid — no provider above it */}
-    <DataGrid ref={gridRef} store={store} data={data} columns={columns} getRowId={getRowId} onDataChange={handleDataChange} />
+    <DataGrid ref={gridRef} store={store} />
   </>
 );
 ```
@@ -192,7 +192,7 @@ for most:
 <Callout title="Prefer defineColumns over typing ColumnDef[] by hand">
   `defineColumns<TData>()([...])` infers `TValue` per column from `accessorKey` or `accessorFn`,
   and narrows `options` and `validate` through the cell type's key in `GridCellTypes`, catching
-  column-id typos and type-key typos at compile time. See
+  `accessorKey` typos and type-key typos at compile time. See
   [Quick start](/docs/quick-start#define-columns).
 </Callout>
 

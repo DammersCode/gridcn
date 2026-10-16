@@ -27,7 +27,7 @@ Range selection, spreadsheet clipboard, typed cell editors, validation, and wind
 - **Range selection.** Anchor plus rectangular range, ctrl-click multi-range, row and column selection, and keyboard extension (Shift+Arrow, Shift+Ctrl+Arrow, Ctrl+A).
 - **Spreadsheet clipboard.** Native copy, cut, and paste in TSV and HTML table formats, to and from Excel, Google Sheets, Apple Numbers, and LibreOffice.
 - **Typed editing.** Text, number, checkbox, date, and select editors, plus custom cell types. The fill-handle add-on adds series fill.
-- **Typed columns.** `defineColumns<TData>()` infers value types and per-cell-type `options` from your data shape. A typo in a column id is a compile error.
+- **Typed columns.** `defineColumns<TData>()` infers value types and per-cell-type `options` from your data shape. A typo in an accessor key is a compile error.
 - **Validation.** A function or any [Standard Schema](https://standardschema.dev) library (Zod, Valibot, ArkType). Sync and async, on single edits and on bulk paste, fill, and import.
 - **Server errors.** `setCellErrors` paints an API rejection on the exact cell. The error clears when the user commits a fix.
 - **Streaming updates.** `updateCells` applies live value patches without a full re-render. An incremental sort keeps sorted grids correct and fast at 100k rows.
