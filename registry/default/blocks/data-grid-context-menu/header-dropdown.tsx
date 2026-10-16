@@ -78,7 +78,9 @@ export function DataGridHeaderDropdown(props: DataGridHeaderDropdownProps): Reac
         // the trigger is not a tab stop; the keyboard path (openColumnMenu) opens from the active cell
         finalFocus={() => {
           if (!keyboardOpenedRef.current) return true;
-          api.focus();
+          const active = document.activeElement;
+          const focusIsFree = !active || active === document.body || active.closest("[data-grid-header-menu-popup], [" + GRID_ATTR.headerMenuTrigger + "]") !== null;
+          if (focusIsFree) api.focus();
           return false;
         }}
       >

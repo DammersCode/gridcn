@@ -134,6 +134,35 @@ describe("DataGridHeaderDropdown", () => {
     await vi.waitFor(() => expect(document.activeElement).toBe(emailCell()));
   });
 
+  it("an outside click on another focusable element closes a keyboard-opened menu without stealing focus back", async () => {
+    await renderGrid();
+    await vi.waitFor(() => expect(document.querySelector('[data-column-id="email"]')).toBeTruthy());
+    const outside = document.createElement("input");
+    document.body.append(outside);
+    const listeners = new AbortController();
+    try {
+      await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"][aria-colindex="2"]')!);
+      await userEvent.keyboard("{Shift>}{Alt>}{ArrowDown}{/Alt}{/Shift}");
+      await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeTruthy());
+
+      outside.focus();
+      const focusedAfterOutsidePress: Element[] = [];
+      const record = (e: FocusEvent) => {
+        if (e.target !== outside) focusedAfterOutsidePress.push(e.target as Element);
+      };
+      document.addEventListener("focusin", record, { signal: listeners.signal });
+      outside.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "mouse" }));
+      outside.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeUndefined());
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(focusedAfterOutsidePress).toEqual([]);
+      expect(document.activeElement).toBe(outside);
+    } finally {
+      listeners.abort();
+      outside.remove();
+    }
+  });
+
   it("closing a mouse-opened menu leaves a scrolled-away grid where it is", async () => {
     await renderGrid(400);
     await vi.waitFor(() => expect(document.querySelector('[data-column-id="email"]')).toBeTruthy());
