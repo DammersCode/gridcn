@@ -10,7 +10,7 @@ import {
   useDataGridSearchText,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isDev, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { serializeSortState, parseSortState } from "./sort-param";
 import { serializeFilterState, parseFilterState } from "./filter-param";
 import { serializeJoinOperator, parseJoinOperator } from "./join-param";
@@ -61,6 +61,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   const { prefix } = options;
   const actions = useDataGridActions();
   const allColumns = useDataGridAllColumns();
+  const storeApi = useDataGridStoreApi();
   const sortState = useDataGridSortState();
   const filterState = useDataGridFilterState();
   const joinOperator = useDataGridJoinOperator();
@@ -110,8 +111,9 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   // appliedRef guard below) and is exposed as applyFromUrl so a consumer can re-apply after an
   // external URL change (back/forward, setSearchParams, query-only route change).
   const applyUrl = useCallback((keepMountDefaults: boolean) => {
-    // Drop specs a shared link must not apply: a removed column, or one the integrator excluded from sorting/filtering or hid. Each drop dev-warns.
-    const usable = (c: (typeof allColumns)[number]) => c.hidden !== true;
+    // Drop specs a shared link must not apply: a removed column, or one the integrator excluded from sorting/filtering or currently hides. Each drop dev-warns.
+    const hidden = new Set(storeApi.getState().hiddenColumns);
+    const usable = (c: (typeof allColumns)[number]) => !hidden.has(c.id);
     const sortableIds = new Set(allColumns.filter((c) => usable(c) && c.sortable !== false).map((c) => c.id));
     const filterableIds = new Set(allColumns.filter((c) => usable(c) && c.filterable !== false).map((c) => c.id));
     const parsedSorts = parseSortState(sortParam);
@@ -138,7 +140,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     if (filters.length > 0 || !keepMountDefaults) actions.setFilters(filters);
     if (join !== "and" || !keepMountDefaults) actions.setJoinOperator(join);
     if (searchParam || !keepMountDefaults) actions.setSearch(searchParam);
-  }, [actions, allColumns, sortParam, filterParam, joinParam, searchParam]);
+  }, [actions, allColumns, storeApi, sortParam, filterParam, joinParam, searchParam]);
   const applyFromUrl = useCallback(() => applyUrl(false), [applyUrl]);
 
   // apply URL -> store exactly once on mount; afterwards the store is the source of truth and

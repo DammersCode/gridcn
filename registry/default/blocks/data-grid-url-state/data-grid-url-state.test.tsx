@@ -200,6 +200,25 @@ describe("DataGridUrlState excluded columns", () => {
     warn.mockRestore();
   });
 
+  it("keeps a URL sort for a def-hidden column the user shows again", async () => {
+    let result: UseDataGridUrlStateResult | undefined;
+    let actions: ReturnType<typeof useDataGridActions> | undefined;
+    let latest: { sort: unknown } | undefined;
+    render(
+      <NuqsTestingAdapter searchParams="?sort=id%3Adesc">
+        <DataGridProvider data={rows} columns={guardedColumns} getRowId={(r) => r.id}>
+          <UrlStateProbe onResult={(r) => (result = r)} />
+          <ActionsProbe onActions={(a) => (actions = a)} />
+          <StateProbe onState={(s) => (latest = s)} />
+        </DataGridProvider>
+      </NuqsTestingAdapter>,
+    );
+    act(() => actions!.setColumnHidden("id", false));
+    act(() => actions!.setSorts([{ columnId: "id", direction: "desc" }]));
+    await act(async () => result!.applyFromUrl());
+    expect(latest!.sort).toEqual([{ columnId: "id", direction: "desc" }]);
+  });
+
   it("drops URL filter specs for a filterable:false or hidden column", () => {
     const getState = renderGuarded("?filter=id%3Aequals%3Ar0,name%3Aequals%3AAlice");
     expect(getState().filter).toEqual([
