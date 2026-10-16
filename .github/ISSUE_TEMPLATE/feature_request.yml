@@ -1,7 +1,21 @@
 name: Feature request
 description: Suggest a capability gridcn does not have.
+title: "[feature]: "
 labels: [enhancement]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Search the [open and closed issues](https://github.com/DammersCode/gridcn/issues?q=is%3Aissue) and the [docs](https://gridcn.vercel.app/docs) first. gridcn ships its source into your project, so a workaround in your own copy is often possible. Describe it below if you tried one.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you submit
+      options:
+        - label: I searched the existing issues and found no duplicate.
+          required: true
+        - label: I checked the docs and the recipes. The feature is not covered.
+          required: true
   - type: textarea
     id: problem
     attributes:
@@ -16,12 +30,36 @@ body:
       description: How it should work, ideally with a small code sample of the call site.
     validations:
       required: true
-  - type: input
-    id: items
+  - type: dropdown
+    id: area
     attributes:
-      label: Related gridcn items
-      placeholder: data-grid, data-grid-io
+      label: Related items
+      multiple: true
+      options:
+        - data-grid (core)
+        - data-grid-toolbar
+        - data-grid-context-menu
+        - data-grid-keybindings
+        - data-grid-history (undo and redo)
+        - data-grid-io (import, export, print)
+        - data-grid-lazy
+        - data-grid-pagination
+        - data-grid-url-state
+        - data-grid-pinned-rows
+        - data-grid-fill
+        - data-grid-presence
+        - data-grid-sort-list
+        - data-grid-status-bar
+        - dropzone
+        - A new add-on
   - type: textarea
     id: alternatives
     attributes:
       label: Workarounds you tried
+      description: What you did instead, and what is still missing.
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I would send a pull request for this.

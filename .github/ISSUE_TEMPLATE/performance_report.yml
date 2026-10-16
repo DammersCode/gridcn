@@ -1,0 +1,54 @@
+name: Performance report
+description: The grid feels slow, janks while scrolling, or uses too much memory.
+title: "[perf]: "
+labels: [performance]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        gridcn targets smooth scrolling at 100,000 rows. A report with numbers and a profile helps most.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is slow
+      description: Describe the action (scroll, sort, filter, edit, paste, import) and how long it takes or how it looks.
+    validations:
+      required: true
+  - type: input
+    id: size
+    attributes:
+      label: Grid size
+      description: Number of rows, columns, and pinned columns or rows.
+      placeholder: 100000 rows, 20 columns
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: A link to a minimal repository or sandbox, with the data size above. Say whether it runs in a production build.
+    validations:
+      required: true
+  - type: textarea
+    id: profile
+    attributes:
+      label: Profile or measurements
+      description: A browser performance profile summary, long task timings, or a screenshot of the flame chart. Attach the exported profile file if you can.
+  - type: input
+    id: gridcn-version
+    attributes:
+      label: gridcn version or commit
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser, version, and device
+      placeholder: Chrome 140 on a 2021 laptop, 16 GB RAM
+    validations:
+      required: true
+  - type: textarea
+    id: custom
+    attributes:
+      label: Custom cell types, plugins, or heavy callbacks
+      description: Anything you added that runs per cell or per row.

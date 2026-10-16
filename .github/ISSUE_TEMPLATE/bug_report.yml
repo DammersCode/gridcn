@@ -1,27 +1,73 @@
 name: Bug report
 description: Something in gridcn does not work as documented.
+title: "[bug]: "
 labels: [bug]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. This tracker is for reproducible bugs. For help with building something, use the [question template](https://github.com/DammersCode/gridcn/issues/new?template=question.yml).
+        Search the [open and closed issues](https://github.com/DammersCode/gridcn/issues?q=is%3Aissue) first. A report we can reproduce gets fixed fastest.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you submit
+      options:
+        - label: I searched the existing issues and found no duplicate.
+          required: true
+        - label: I reproduced the bug with the latest gridcn items (run `npx shadcn add @gridcn/data-grid` again, or use the latest tag).
+          required: true
+        - label: I read the page for this feature in the [docs](https://gridcn.vercel.app/docs).
+          required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected items
+      description: Select every installed item that takes part in the bug. If you are not sure, select data-grid.
+      multiple: true
+      options:
+        - data-grid (core)
+        - data-grid-toolbar
+        - data-grid-context-menu
+        - data-grid-keybindings
+        - data-grid-history (undo and redo)
+        - data-grid-io (import, export, print)
+        - data-grid-lazy
+        - data-grid-pagination
+        - data-grid-url-state
+        - data-grid-pinned-rows
+        - data-grid-fill
+        - data-grid-presence
+        - data-grid-sort-list
+        - data-grid-status-bar
+        - dropzone
+    validations:
+      required: true
   - type: textarea
     id: what-happened
     attributes:
       label: What happened
-      description: Describe the bug and what you expected instead.
+      description: Describe the bug.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: Describe what should happen instead. Link the docs sentence you rely on, if there is one.
     validations:
       required: true
   - type: textarea
     id: reproduction
     attributes:
-      label: Reproduction
-      description: Steps, or a link to a minimal repository or sandbox. A column definition and a few rows are often enough.
-    validations:
-      required: true
-  - type: input
-    id: items
-    attributes:
-      label: gridcn items
-      description: The registry items you installed.
-      placeholder: data-grid, data-grid-toolbar, data-grid-io
+      label: Steps to reproduce
+      description: |
+        Numbered steps, plus a link to a minimal repository or sandbox. A column definition and a few rows are often enough.
+        A report without a reproduction may be closed.
+      placeholder: |
+        1. Render a grid with these columns: ...
+        2. Click ...
+        3. See ...
     validations:
       required: true
   - type: input
@@ -61,4 +107,5 @@ body:
     id: logs
     attributes:
       label: Console output or screenshots
+      description: Paste browser console output here. Drag screenshots or a short screen recording into this field.
       render: shell
