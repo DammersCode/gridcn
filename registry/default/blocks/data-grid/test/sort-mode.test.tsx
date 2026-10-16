@@ -36,7 +36,7 @@ describe("sortMode", () => {
   it('"server" cycles asc/desc/none in the store without reordering data', () => {
     const onSortChange = vi.fn();
     const { state } = mount({ sortMode: "server", onSortChange });
-    const toggle = () => act(() => state().actions.toggleSort("name"));
+    const toggle = () => act(() => state().actions.toggleSort("name", false));
 
     toggle();
     expect(state().sortState).toEqual([{ columnId: "name", direction: "asc" }]);
@@ -57,7 +57,7 @@ describe("sortMode", () => {
 
   it('"client" (default) sorts the rows', () => {
     const { state } = mount({});
-    act(() => state().actions.toggleSort("name"));
+    act(() => state().actions.toggleSort("name", false));
     expect(state().viewIndex).toEqual([1, 2, 0]);
   });
 });
