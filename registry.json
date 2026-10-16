@@ -2130,11 +2130,10 @@
          "name": "data-grid-detail-panel-demo",
          "type": "registry:example",
          "title": "Data Grid Detail Panel Demo",
-         "description": "Open a dialog with the clicked row from onCellClick, or with a custom Ctrl+Shift+Enter command on the active cell.",
+         "description": "Show the active row in a non-modal side panel opened from onCellClick or a custom Ctrl+Shift+Enter command.",
          "author": "gridcn",
          "registryDependencies": [
-            "DammersCode/gridcn/data-grid",
-            "dialog"
+            "DammersCode/gridcn/data-grid"
          ],
          "files": [
             {
