@@ -347,9 +347,6 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   now resolve to `"ok"` (the async Clipboard API accepted the write), `"fallback"` (the legacy
   `execCommand` text-only path reported success), `"failed"` (both paths failed), or
   `"no-selection"` (nothing was selected).
-- **Breaking:** `useDataGridClipboard`'s `cut()` now awaits the write and only clears the selection
-  when it succeeded and the selection is unchanged — a failed cut keeps the selection and writes no
-  `onDataChange`.
 - **Compile-time API pins:** new type tests pin `useDataGridLazyRows`' public options/result
   shapes (including the `Range` type used by `evict`/`getLoadedRanges`) and the
   `data-grid-presence` payload contract (entry union shapes, guard narrowing, malformed-payload
@@ -453,9 +450,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   as the viewport scrolls, instead of loading the full dataset up front.
 - `data-grid-sort-list` add-on: toolbar sort button + popover for adding/removing/reordering
   multi-column sorts (drag handle or ArrowUp/ArrowDown while focused), mirroring the filter menu's UX.
-- Multiplayer presence highlights: `presenceHighlights` prop paints other users' live selections as
-  named, colored overlays, independent of the local selection.
-- tablecn-parity filter and sort popovers: drag-to-reorder (and keyboard ArrowUp/ArrowDown)
+- Filter and sort popovers: drag-to-reorder (and keyboard ArrowUp/ArrowDown)
   reordering for both the filter menu's rows and the sort-list's rows, with a live-region
   announcement on each move.
 - Two-stage Ctrl+A (Excel/Sheets parity): the first press selects the active cell's contiguous data
@@ -472,6 +467,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking:** `useDataGridClipboard`'s `cut()` now awaits the write and only clears the selection
+  when it succeeded and the selection is unchanged — a failed cut keeps the selection and writes no
+  `onDataChange`.
 - **Breaking: `retainMoveUp`, `retainMoveDown`, `retainMoveLeft`, and `retainMoveRight` keymap actions are now `moveUpKeepSelection`, `moveDownKeepSelection`, `moveLeftKeepSelection`, and `moveRightKeepSelection` (`data-grid`).** They move the active cell and keep the selection. Rename them in any `keymap` override. The matching `labels.keymap` keys are renamed the same way (`moveUpKeepSelection`, `moveDownKeepSelection`, `moveLeftKeepSelection`, `moveRightKeepSelection`).
 - **Breaking: `editReplace` keymap action is now `typeToReplace` (`data-grid`, `data-grid-keybindings`).** It matches the name the docs use. Rename it in any `keymap` override. Rename the matching key in a `labels` override too.
 - **Breaking: `deleteContents` keymap action is now `clearContents` (`data-grid`).** It matches the "Clear contents" menu item. Rename it in any `keymap` override. Rename the matching key in a `labels` override too.
@@ -860,7 +858,14 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `aria-readonly`; events-state documents the `searchText`/`onSearchTextChange` controlled
   pair; the custom cell-types page states what Tab actually does in built-in editors; and the
   url-state page documents the reset-page-to-1 contract on a page-size change and flags
-  `DataGridUrlState` as incompatible with lazy grids.
+  `DataGridUrlState` as incompatible with lazy grids;
+  the custom-cell-types page states the `cellTypes` registry's type
+  erasure (per-key safety comes from `defineColumns` + `GridCellTypes` augmentation) and what a
+  plain `ColumnDef` does or does not cross-check; the columns and events-state pages agree on
+  what fires `onColumnLayoutChange` (drag release, double-click autosize, and menu autosize); the
+  fill page documents `onFill.values` as the computed target-strip pattern (not a copy of the
+  source range) and the `detectSeries` option; the sorting/filtering page documents
+  `filterMatch`/`filterOperators`.
 - **Streaming verdicts:** `updateCells` and `updateRows` now return a verdict —
   `{ applied, skipped, pending }`. `skipped` names every patch that was not written, with its
   index in the patch list and a reason (`unknown-row`, `unknown-column`, `hole`, `readonly`,
@@ -881,13 +886,6 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Global shortcut dispatch:** the window layer now dispatches every enabled action through the
   grid's own keymap path (`dispatchGridAction`) instead of a hardcoded undo/redo branch — same
   guards, same scrolling, and `fillDown`/`fillRight` work globally when enabled.
-- **Docs consistency:** the custom-cell-types page states the `cellTypes` registry's type
-  erasure (per-key safety comes from `defineColumns` + `GridCellTypes` augmentation) and what a
-  plain `ColumnDef` does or does not cross-check; the columns and events-state pages agree on
-  what fires `onColumnLayoutChange` (drag release, double-click autosize, and menu autosize); the
-  fill page documents `onFill.values` as the computed target-strip pattern (not a copy of the
-  source range) and the `detectSeries` option; the sorting/filtering page documents
-  `filterMatch`/`filterOperators`.
 - **Breaking:** the `data-grid-keybindings` entry point no longer exports `bindingTokens` — the
   core's `formatShortcut` (from the `data-grid` entry point) returns the same tokens. The
   `data-grid` entry point no longer exports `useDataGridInstanceId`; it is on the `data-grid-sdk`
@@ -967,6 +965,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Duplicate column ids warn once per grid instance:** the development warning for duplicate column ids no longer fires on every render.
+- **Consumer TypeScript infers `closest`'s type parameter:** the parameter is explicit, so TypeScript 5.9 infers it in consumer code.
 - **Cell values that cannot be stringified no longer unmount the grid:** the `text`, `url`, and `select` cell types render an empty string for a null-prototype object or a deeply nested array instead of throwing.
 - **URL state keeps sort and filter for a column the user shows again:** a URL spec is dropped only while its column is currently hidden, not for every column defined with `hidden: true`.
 - **Paste cell cap applies inside one row:** a clipboard row wider than the 200,000-cell paste cap stops parsing at the cap, in both the plain-text and HTML parsers, and a first row over the cap is cropped instead of dropping the whole paste.
@@ -1085,7 +1085,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   ignores a pin on a `pinnable: false` column. A `hidden: true` column that the saved `order` does
   not list stays hidden, and a layout part with the wrong shape is ignored. Before, a saved layout
   applied these entries as they were, showed such a column, and a malformed part threw.
-- **New columns render after a column reorder (`data-grid`):** a column that the column order
+- **Columns missing from the column order render after a column reorder (`data-grid`):** a column that the column order
   does not list follows the listed columns in `columns` order. This covers a column added to
   `columns` after a reorder and a column missing from a restored `defaultColumnLayout.order`.
   `onColumnLayoutChange` reports the completed order. Before, such a column never rendered.
