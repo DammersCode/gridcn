@@ -77,7 +77,7 @@ function selectionForRect(rect: GridRect, anchor: ViewCoord): GridSelection {
 }
 
 /**
- * Two-stage Ctrl+A (Excel/Sheets parity, docs/agent-work/specs/2026-07-18-two-stage-select-all-design.md):
+ * Two-stage Ctrl+A (Excel/Sheets parity):
  * stage 1 selects the active cell's data region, stage 2 (an immediate repeat, tracked by the
  * caller via `stage`) selects the whole grid. When the region already equals the whole grid
  * (dense data), stage 1 already lands on `"all"` so a repeated press stays a no-op rather than

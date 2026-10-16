@@ -160,11 +160,11 @@ export const DATA_GRID_ROOT_PROP_KEYS = [
 /**
  * The scroll container: a plain `overflow:auto` div (real scroll element, native scrollbar) with
  * an in-flow Content div that provides the full virtual scroll extent, and inside it a
- * `position:sticky` Viewport that is pinned to the scrollport (MUI "controlled virtualizer"
- * pattern, research/mui-controlled-virtualizer.md). Native scroll only moves the Content div under
+ * `position:sticky` Viewport that is pinned to the scrollport (controlled-virtualizer
+ * pattern). Native scroll only moves the Content div under
  * the sticky Viewport; 100% of visible row/header motion is the JS-written transform on the two
  * layers inside — the compositor can never reveal unrendered rows because rows never move via
- * native scroll (see research/scroll-blanking.md).
+ * native scroll.
  */
 export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): ReactNode {
   const {

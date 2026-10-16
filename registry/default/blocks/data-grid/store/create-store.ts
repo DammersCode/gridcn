@@ -373,7 +373,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       selfReportedSession = null;
     }
   };
-  // Controlled selection (W5-11): the flag mirrors the `selection` prop's presence on the last
+  // Controlled selection: the flag mirrors the `selection` prop's presence on the last
   // sync; lastKnownSelection is the last emitted value, or the last applied controlled/default
   // value, in public SelectionState form - the fire guard and the _syncProps structural compare
   // both read it. The queue holds every emitted value no prop has confirmed yet, in emit order,

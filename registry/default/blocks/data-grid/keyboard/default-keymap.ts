@@ -1,7 +1,7 @@
 import type { GridAction, Keymap } from "../types";
 
 /**
- * Default keyboard bindings (see research/glide-behavior-spec.md §2). `mod` resolves to Cmd on
+ * Default keyboard bindings. `mod` resolves to Cmd on
  * macOS, Ctrl elsewhere; `ctrl` is the literal physical Ctrl key on every platform (used where
  * Cmd is reserved by the OS, e.g. Ctrl+Space vs. macOS Spotlight). Consumers may
  * override/extend via the `keymap` prop.
@@ -11,12 +11,12 @@ export const DEFAULT_KEYMAP: Keymap = {
   moveDown: ["ArrowDown"],
   moveLeft: ["ArrowLeft"],
   moveRight: ["ArrowRight"],
-  // glide spec :41 — Alt+Arrow moves the active cell but retains the selection.
+  // Alt+Arrow moves the active cell but retains the selection.
   retainMoveUp: ["alt+ArrowUp"],
   retainMoveDown: ["alt+ArrowDown"],
   retainMoveLeft: ["alt+ArrowLeft"],
   retainMoveRight: ["alt+ArrowRight"],
-  // glide spec :46 — primary+Enter scrolls the active cell into view without moving it.
+  // primary+Enter scrolls the active cell into view without moving it.
   scrollActiveIntoView: ["mod+Enter"],
   moveRowStart: ["Home"],
   moveRowEnd: ["End"],
@@ -39,7 +39,7 @@ export const DEFAULT_KEYMAP: Keymap = {
   extendFirstCell: ["mod+shift+Home"],
   extendLastCell: ["mod+shift+End"],
   selectRow: ["shift+ "],
-  // literal ctrl (not mod): Cmd+Space is Spotlight on macOS, so glide/Excel bind the physical Ctrl key here
+  // literal ctrl (not mod): Cmd+Space is Spotlight on macOS, so the physical Ctrl key is bound here
   selectColumn: ["ctrl+ "],
   selectAll: ["mod+a"],
   edit: ["Enter", "F2", " "],

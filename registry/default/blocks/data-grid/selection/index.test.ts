@@ -196,7 +196,7 @@ describe("extendSelection", () => {
     let sel = selectCell({ col: 2, row: 5 });
     sel = extendSelection(sel, "down", { ...opts, toEdge: true });
     expect(sel.current?.range).toEqual({ x: 2, y: 5, width: 1, height: opts.rowCount - 5 });
-    // toEdge unconditionally sets near edge = anchor, far edge = boundary (glide/Excel: the
+    // toEdge unconditionally sets near edge = anchor, far edge = boundary (as in Excel: the
     // moving end jumps to the opposite boundary, crossing over the anchor)
     sel = extendSelection(sel, "up", { ...opts, toEdge: true });
     expect(sel.current?.range).toEqual({ x: 2, y: 0, width: 1, height: 6 }); // rows 0-5
@@ -263,7 +263,7 @@ describe("pushRange", () => {
     expect(sel.current?.range).toEqual({ x: 2, y: 2, width: 1, height: 1 });
   });
 
-  it("ctrl-clicking the already-active 1x1 cell still pushes it onto the stack (glide's unconditional push)", () => {
+  it("ctrl-clicking the already-active 1x1 cell still pushes it onto the stack (unconditional push)", () => {
     const sel = pushRange(selectCell({ col: 0, row: 0 }), { col: 0, row: 0 });
     expect(sel.current?.rangeStack).toEqual([{ x: 0, y: 0, width: 1, height: 1 }]);
   });

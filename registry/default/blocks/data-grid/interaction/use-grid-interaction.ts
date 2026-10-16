@@ -305,7 +305,7 @@ export function dispatchGridAction(args: {
       break;
     }
     // Outside an active edit (the caller guards that), Tab/Shift+Tab behave as plain
-    // right/left navigation (glide-behavior-spec.md §2); only the editor's own
+    // right/left navigation; only the editor's own
     // onKeyDown gives them their commit-and-move contract while editing.
     case "commitRight":
     case "commitLeft": {
@@ -625,7 +625,7 @@ const JUMP_DIRECTION: Record<JumpAction, JumpDirection> = {
   extendJumpRight: "right",
 };
 
-/** Handlers + drag state wiring for keyboard nav, mouse selection, and editing lifecycle (see research/glide-behavior-spec.md §2-3). */
+/** Handlers + drag state wiring for keyboard nav, mouse selection, and editing lifecycle. */
 export type GridInteractionHandlers = {
   onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void;
   /** Attach to each rendered cell's pointerdown. */
@@ -636,14 +636,14 @@ export type GridInteractionHandlers = {
   onCellDoubleClick: (coord: ViewCoord, event: ReactMouseEvent<HTMLElement>) => void;
   /**
    * Attach to a header cell's pointerdown: resolves the plain/shift/ctrl click-select gesture
-   * immediately (glide-behavior-spec.md §3 "Header clicks") and starts a column-range drag so a
-   * press+drag across headers selects the contiguous range (§3 "Drag"). Entirely a no-op —
+   * immediately and starts a column-range drag so a
+   * press+drag across headers selects the contiguous range. Entirely a no-op —
    * including no drag/capture — when `enableColumnSelection` is false.
    */
   onHeaderPointerDown: (columnIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
   /**
    * Attach to a marker cell's pointerdown: same plain/shift/ctrl resolution + drag-start as
-   * {@link onHeaderPointerDown}, on the rows channel (glide-behavior-spec.md §3 "Row-marker clicks").
+   * {@link onHeaderPointerDown}, on the rows channel.
    * No-op when `enableRowSelection` is false.
    */
    onMarkerPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;

@@ -1,5 +1,5 @@
 /**
- * The public {@link SelectionState} <-> internal {@link GridSelection} bridge (W5-11): structural
+ * The public {@link SelectionState} <-> internal {@link GridSelection} bridge: structural
  * equality for the fire guard and the `_syncProps` apply check, derivation (view space -> stable
  * refs) for `onSelectionChange`/`getSelection`, and resolution (stable refs -> view space) for
  * the `selection`/`defaultSelection` props and `actions.setSelection`. All refs resolve through

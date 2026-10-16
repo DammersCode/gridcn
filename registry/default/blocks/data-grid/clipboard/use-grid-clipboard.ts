@@ -21,7 +21,7 @@ export type UseGridClipboardOptions = {
 };
 
 /**
- * Copy scope per glide-behavior-spec.md §4: the primary range if one exists (ignoring the range
+ * Copy scope: the primary range if one exists (ignoring the range
  * stack — multi-rect copy is document-scoped to the primary range only), else the selected rows
  * (full width) or selected columns (full height) as their disjoint member lists — a CompactSelection
  * from Ctrl-click is RLE and may hold non-contiguous members, so this must not collapse to a
@@ -188,8 +188,7 @@ function writeClipboardEvent(event: ClipboardEvent, cells: string[][], sanitizeF
 }
 
 /**
- * Single pasted row tiles down to fill a taller target selection height (react-datasheet-grid
- * nicety, research/react-datasheet-grid-study.md §4); otherwise the parsed grid is used as-is.
+ * Single pasted row tiles down to fill a taller target selection height ; otherwise the parsed grid is used as-is.
  * Exported for direct unit testing; not part of the public hook surface.
  */
 export function tileToHeight(cells: string[][], height: number): string[][] {
@@ -217,7 +216,7 @@ export function truncatePasteGrid(cells: string[][], maxCells: number): string[]
 }
 
 /**
- * Resolves the paste target per glide-behavior-spec.md §4: top-left of `current.range`, else the
+ * Resolves the paste target: top-left of `current.range`, else the
  * lowest selected column at row 0, else the lowest selected row at col 0. `activeCell` alone isn't
  * enough — selectRow/selectColumn (row-marker/header click) never set it, so a column- or
  * row-only selection needs its own fallback here rather than silently no-op'ing the paste.
@@ -381,7 +380,7 @@ function ownsClipboardEvent(event: ClipboardEvent): boolean {
 
 /**
  * Wires native `copy`/`cut`/`paste` events to the grid root so OS-native shortcuts and menu
- * actions work (glide-behavior-spec.md §2, §4). Attached to the root element (not `document`) so
+ * actions work. Attached to the root element (not `document`) so
  * multiple grids on one page each own their own clipboard traffic, gated on focus being inside the
  * grid via roving tabindex; inactive while a cell is being edited (the editor owns its own
  * clipboard then), for events from an input or `contenteditable` that a cell renders, and for

@@ -177,8 +177,7 @@ describe("RTL — scroll geometry (the probe scenario)", () => {
   });
 
   it("scrolls content: an unpinned column moves toward the inline start as scrollLeft grows (columns narrower than the viewport)", async () => {
-    // MUI X shipped a regression test for exactly this class after an RTL clamping bug skipped
-    // columns; our min(viewportWidth, contentWidth) pin anchor makes us susceptible to the same.
+    // The min(viewportWidth, contentWidth) pin anchor is prone to RTL clamping bugs that skip columns.
     await renderGrid({ direction: "rtl", columns: makeColumns(5), rowCount: 20, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 

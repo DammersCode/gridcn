@@ -8,8 +8,7 @@ export type { KeyBinding };
 
 /**
  * Vendored from `@standard-schema/spec` v1 (https://github.com/standard-schema/standard-schema) so
- * shipped registry code has zero runtime/type dependency on the package — the same choice TanStack
- * Form makes for the identical reason (references/form's standardSchemaValidator.ts). The spec is
+ * shipped registry code has zero runtime/type dependency on the package — the spec is
  * frozen at version 1, so drift risk is ~nil; a type-level conformance test (data-grid.type-test.ts)
  * asserts this vendored copy stays assignable to/from the real package's type in both directions,
  * so any future drift fails `tsc` instead of silently diverging. `@standard-schema/spec` is still a
@@ -140,7 +139,7 @@ export type RowMarkersMode = "none" | RowMarkersContent | "reorder" | `reorder-$
 export type GridRect = { x: number; y: number; width: number; height: number };
 
 /**
- * Selection model (see research/glide-behavior-spec.md §1).
+ * Selection model.
  * `cell` is the anchor (Excel's white cell) and is always inside `range`.
  * `rangeStack` holds additional rectangles from ctrl-click multi-range; never contains `range`.
  * `rows`/`columns` are whole-row/column selection channels, distinct from `current`.
@@ -375,7 +374,7 @@ export type CellEditorProps<TData, TValue, TOptions = unknown> = {
 
 /**
  * A cell type implements rendering plus the value pipeline that powers copy, paste, fill,
- * delete, and import/export (see research/react-datasheet-grid-study.md §8). The pipelines read
+ * delete, and import/export. The pipelines read
  * the value through DIFFERENT surfaces, so one override does not reach all of them:
  *
  * - display (the cell's rendered text) = `toDisplayText` when present, else `toText`.

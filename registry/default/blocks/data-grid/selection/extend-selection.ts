@@ -35,7 +35,7 @@ export function extendSelection(
 
   // Each direction either grows the far edge (anchor sits on the opposite edge)
   // or shrinks the near edge back toward the anchor (anchor sits on this edge already).
-  // toEdge is unconditional on both edges (glide/Excel: the moving end jumps to the
+  // toEdge is unconditional on both edges (the moving end jumps to the
   // boundary, crossing the anchor, rather than only collapsing the near edge).
   switch (direction) {
     case "up": {

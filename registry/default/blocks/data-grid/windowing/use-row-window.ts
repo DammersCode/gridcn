@@ -86,8 +86,7 @@ function computeWindow(
  * scroll position + size. The header is in-flow inside the scroll container, so data row `i`
  * sits at `dataRowTop + i * rowHeight`.
  *
- * Commit timing replicates TanStack Virtual's anti-blank mechanism (research/tanstack-virtual-study.md):
- * the store listener recomputes the row window and only triggers a re-render when `{start,end}`
+ * Commit timing avoids blank frames: the store listener recomputes the row window and only triggers a re-render when `{start,end}`
  * actually changed (scrolling within the overscan buffer is a no-op). A changed window is queued
  * via {@link ElementStore.requestFlush} rather than flushed here directly — the store drains every
  * listener's queued update (this hook's + {@link useColumnWindow}'s) into a single `flushSync` once
