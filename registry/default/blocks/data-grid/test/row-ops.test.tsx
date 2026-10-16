@@ -203,6 +203,21 @@ describe("insertRows", () => {
   });
 });
 
+describe("deleteRowsById", () => {
+  it("deletes the rows with the given ids as one row-op DataChange and skips unknown ids", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
+
+    act(() => result.current.deleteRowsById(["3", "1", "missing"]));
+
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["2"]);
+    expect(change.source).toBe("row-op");
+  });
+});
+
 describe("deleteRows", () => {
   it("deletes the given view rows as one row-op DataChange with id-keyed delete ops", () => {
     const onDataChange = vi.fn();

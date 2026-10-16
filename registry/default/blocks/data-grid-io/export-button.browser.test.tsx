@@ -20,10 +20,10 @@ const columns = defineColumns<Row>()([
   { id: "note", header: "Note", accessorKey: "note", type: "text", width: 200 },
 ] as const);
 
-function renderGrid() {
+function renderGrid(formats?: readonly ("xlsx" | "csv")[]) {
   return render(
     <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
-      <DataGridExportButton />
+      <DataGridExportButton formats={formats} />
       <DataGridRoot className="h-[200px]">
         <DataGridHeader />
         <DataGridBody />
@@ -33,6 +33,25 @@ function renderGrid() {
 }
 
 describe("DataGridExportButton (browser)", () => {
+  it("formats={['csv']} exports on click without opening a menu", async () => {
+    const createObjectURL = vi.fn(() => "blob:mock-url");
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    URL.createObjectURL = createObjectURL as typeof URL.createObjectURL;
+    URL.revokeObjectURL = vi.fn();
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    try {
+      await renderGrid(["csv"]);
+      await page.getByRole("button", { name: /export/i }).click();
+      await vi.waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(1));
+      expect(document.querySelector('[role="menuitem"]')).toBeNull();
+    } finally {
+      anchorClick.mockRestore();
+      URL.createObjectURL = originalCreateObjectURL;
+      URL.revokeObjectURL = originalRevokeObjectURL;
+    }
+  });
+
   it("csv export click triggers a DOM-attached download anchor with the right filename and RFC4180 content, revoke deferred", async () => {
     let capturedBlob: Blob | null = null;
     const createObjectURL = vi.fn((blob: Blob) => {

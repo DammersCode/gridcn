@@ -139,6 +139,9 @@ export { DataGridSortIndicator, type DataGridSortIndicatorProps } from "./column
 
 export { DEFAULT_KEYMAP } from "./keyboard";
 
+/** A `SelectionState` with nothing selected: the initial value for a controlled `selection` prop. */
+export { EMPTY_SELECTION_STATE } from "./store/selection-state";
+
 export { applyChange, invertChange } from "./interaction/history";
 
 export {

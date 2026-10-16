@@ -149,6 +149,13 @@ value/defaultValue convention as `sortState` and `filterState`. Omit both for un
 - `defaultSelection`: seeds the store once at the first render, then is ignored. With
   `selection` set too, `selection` wins and dev mode warns once.
 
+`EMPTY_SELECTION_STATE` is a `SelectionState` with nothing selected. Use it as the initial state
+for a controlled `selection`:
+
+```tsx
+const [selection, setSelection] = useState(EMPTY_SELECTION_STATE);
+```
+
 When a value applies, the grid resolves every ref against its current view. A range with a
 corner that does not resolve (its row filtered out, or its column hidden) is dropped, as are
 unresolvable `rowIds` and `columnIds`. An `anchor` outside its range resets to `range.start`.
@@ -192,6 +199,9 @@ Unlike the payload's `rowIds` (the row channel only), `getRowIds()` covers **eve
 row: the rows checked through the marker checkboxes plus every row under `range` and
 `rangeStack`. That matches what the checkmarks on screen show, so a bulk action never disagrees
 with the UI.
+
+`getRowIds()` returns row ids. Pass them to `actions.deleteRowsById(ids)` to delete the selected
+rows. `deleteRows` and `duplicateRows` take view indices instead.
 
 If you need the same values OUTSIDE an `onSelectionChange` fire, for example a toolbar button
 that reads the current selection on click, not from the last change notification, use

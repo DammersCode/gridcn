@@ -941,6 +941,8 @@ export type DataGridActions = {
   insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): void;
   /** Deletes the rows at `viewRowIndexes` (view-space) as one `{source: 'row-op'}` DataChange with id-keyed `delete` ops. */
   deleteRows(viewRowIndexes: number[]): void;
+  /** Deletes the rows with the given ids (the shape `getRowIds()` returns) as one `{source: 'row-op'}` DataChange; ids that match no row are skipped. */
+  deleteRowsById(rowIds: readonly string[]): void;
   /**
    * Duplicates the rows at `viewRowIndexes` (view-space), inserting each copy directly after its
    * source row, as one `{source: 'row-op'}` DataChange with id-keyed `insert` ops. Dev-warning

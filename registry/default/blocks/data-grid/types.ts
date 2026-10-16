@@ -565,7 +565,10 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   reorderable?: boolean;
   /** Disables pin/unpin for this column; default true. */
   pinnable?: boolean;
-  /** Display-only override that keeps the column's type pipeline; method-shorthand for the same bivariance reason as `validate`. */
+  /**
+   * Display-only override that keeps the column's type pipeline; method-shorthand for the same bivariance reason as `validate`.
+   * `props` is a {@link CellRenderProps}: `value`, `row`, `rowId`, `columnId`, `viewRowIndex`, `column`, `options`, and `isActive`.
+   */
   renderCell?(props: CellRenderProps<TData, TValue>): ReactNode;
   /**
    * Per-column cell class, merged via `cn()` after the built-in cell classes so it wins on
@@ -610,6 +613,8 @@ export type FilterOperator =
 export type FilterJoinOperator = "and" | "or";
 
 /**
+ * One filter row: `{ columnId: "age", operator: "gt", value: "30" }`. `value` holds text for every operator,
+ * numbers and dates included (`"30"`, `"2025-01-31"`); the operators `empty` and `notEmpty` take no value.
  * `value` is a single string for most operators. `isBetween` carries an inclusive `[min, max]`
  * tuple (either bound may be `""` for an open-ended range); `isAnyOf` carries a `string[]` of
  * accepted values and matches when the cell text equals any of them. `filterId` is a stable
@@ -896,7 +901,12 @@ export interface GridCellTypes {
   select: {
     value: string | null;
     options: {
-      /** Lookups are cached per array: pass a new array to change the choices, never mutate it in place. */
+      /**
+       * The cell stores `value`; the grid shows `label`. Display, search, sort, filter text, and copy resolve a
+       * stored value to its label here (a value with no choice shows as is). Resolve the label in your own code
+       * with `choices.find((choice) => choice.value === value)?.label`.
+       * Lookups are cached per array: pass a new array to change the choices, never mutate it in place.
+       */
       choices: readonly { value: string; label: string }[];
     };
   };

@@ -279,6 +279,11 @@ const [layout, setLayout] = useState<Partial<ColumnLayout>>();
 
 useEffect(() => {
   const saved = localStorage.getItem(LAYOUT_KEY);
+
+const [layout, setLayout] = useState<Partial<ColumnLayout>>({});
+
+useEffect(() => {
+  const saved = localStorage.getItem("my-grid-layout");
   if (saved) setLayout(JSON.parse(saved) as ColumnLayout);
 }, []);
 
@@ -289,11 +294,16 @@ useEffect(() => {
   onColumnLayoutChange={(next) => {
     setLayout(next);
     localStorage.setItem(LAYOUT_KEY, JSON.stringify(next));
+
+    localStorage.setItem("my-grid-layout", JSON.stringify(next));
   }}
 >
 ```
 
 The grid shows the default widths for one frame before the saved layout arrives.
+
+`localStorage` does not exist on the server, so the effect reads it after mount. The grid renders
+the default layout first, then applies the saved one.
 
 `onColumnLayoutChange` fires once per committed change: a resize commit (a drag release, or an
 autosize from a double-click or the header menu, never per drag frame), a width reset, a
