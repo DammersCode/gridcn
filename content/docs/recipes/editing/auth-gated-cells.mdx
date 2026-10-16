@@ -35,3 +35,8 @@ function useOrderColumns(): ColumnDef<Order>[] {
 `price` composes two conditions: a role gate (only `admin` can edit it) and a per-row gate
 (a `locked` order is read-only for everyone). `internalNote` is hidden outright for `guest`,
 computed once per render from the same session hook, not per row.
+
+## Related
+
+- [Editing & cell types: Read-only](/docs/editing-cell-types#read-only): the `readOnly` forms.
+- [Columns: Visibility](/docs/columns#visibility): hidden columns.
