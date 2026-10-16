@@ -379,6 +379,11 @@ button[data-search],
   padding: 0 8px;
 }
 
+:is(#nd-sidebar, #nd-sidebar-mobile) .nav-title > [aria-hidden] {
+  display: inline-block;
+  vertical-align: middle;
+}
+
 :is(#nd-sidebar, #nd-sidebar-mobile) .nav-title {
   min-width: 0;
   white-space: nowrap;
