@@ -20,13 +20,13 @@ describe("useDataGridLazyRows", () => {
     expect(fetchRows).not.toHaveBeenCalled();
   });
 
-  it("fetches an expanded range (overscan + batchSize rounding) on the first onRowWindowChange", async () => {
+  it("fetches an expanded range (overscan + batchSize rounding) on the first onRenderedRowsChange", async () => {
     const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
     const { result } = renderHook(() =>
       useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 10, batchSize: 50 }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 100, end: 130 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 100, end: 130 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(fetchRows).toHaveBeenCalledTimes(1);
@@ -43,12 +43,12 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 50 }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 50 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 50 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(fetchRows).toHaveBeenCalledTimes(1);
 
     // fully inside the already-loaded [0,50) range.
-    act(() => result.current.gridProps.onRowWindowChange({ start: 10, end: 40 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 10, end: 40 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(fetchRows).toHaveBeenCalledTimes(1);
   });
@@ -59,10 +59,10 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 50 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 50 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 25, end: 75 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 25, end: 75 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(fetchRows).toHaveBeenCalledTimes(2);
@@ -81,9 +81,9 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 50 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 50 }));
     // same range again while the first fetch is still in flight — must not trigger a second call.
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 50 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 50 }));
     expect(fetchRows).toHaveBeenCalledTimes(1);
 
     await act(async () => {
@@ -99,7 +99,7 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 50 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 50 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.gridProps.data[49]).toEqual({ id: "row-49", name: "Person 49" });
@@ -117,7 +117,7 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 50 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 50 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.gridProps.data[9]).toEqual({ id: "row-9", name: "Person 9" });
@@ -140,7 +140,7 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, onError }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(onError).toHaveBeenCalledTimes(1);
@@ -149,7 +149,7 @@ describe("useDataGridLazyRows", () => {
     expect(result.current.gridProps.data[5]).toBeUndefined();
 
     // same range requested again (e.g. scrolled back into view) -> refetches, this time succeeding.
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(fetchRows).toHaveBeenCalledTimes(2);
@@ -168,11 +168,11 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, onError }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
     expect(onError).toHaveBeenCalledTimes(1);
     expect(result.current.isLoading).toBe(false);
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(fetchRows).toHaveBeenCalledTimes(2);
     expect(result.current.gridProps.data[5]).toEqual({ id: "row-5", name: "Person 5" });
@@ -197,7 +197,7 @@ describe("useDataGridLazyRows", () => {
       });
     });
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
     expect(capturedSignal?.aborted).toBe(false);
 
     unmount();
@@ -210,13 +210,13 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 25 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 25 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    act(() => result.current.gridProps.onRowWindowChange({ start: 25, end: 50 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 25, end: 50 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     // now request a window that spans across both merged loaded ranges plus a small gap.
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 60 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 60 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(fetchRows).toHaveBeenCalledTimes(3);
@@ -231,7 +231,7 @@ describe("useDataGridLazyRows", () => {
       { initialProps: { total: 1000 } },
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.unloadedCount).toBe(980);
 
@@ -246,7 +246,7 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 10 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 10 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     const edited = result.current.gridProps.data.slice();
@@ -263,7 +263,7 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 10 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 10 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.gridProps.data[7]).toEqual({ id: "row-7", name: "Person 7" });
 
@@ -290,7 +290,7 @@ describe("useDataGridLazyRows", () => {
     const { result } = renderHook(() =>
       useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
     );
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 10 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 10 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     act(() => result.current.evict({ start: 0, end: 5 }));
 
@@ -312,7 +312,7 @@ describe("useDataGridLazyRows", () => {
     const { result } = renderHook(() =>
       useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
     );
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 10 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 10 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     act(() => {
@@ -333,7 +333,7 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 10 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 10 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     const next = [
@@ -393,7 +393,7 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
     expect(result.current.isLoading).toBe(true);
 
     act(() => result.current.reset());
@@ -407,7 +407,7 @@ describe("useDataGridLazyRows", () => {
     });
     expect(result.current.gridProps.data[5]).toBeUndefined();
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
     expect(fetchRows).toHaveBeenCalledTimes(2);
     await act(async () => {
       resolveFetch?.(makeRows(0, 20));
@@ -422,7 +422,7 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(fetchRows).toHaveBeenCalledTimes(1);
 
@@ -448,7 +448,7 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
     act(() => result.current.reset());
     // reset aborted the first fetch, and the post-reset effect re-requested the same window (call 2).
     expect(fetchRows).toHaveBeenCalledTimes(2);
@@ -480,7 +480,7 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, onLoaded }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(onLoaded).toHaveBeenCalledTimes(1);
@@ -495,7 +495,7 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 50 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 50 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.unloadedCount).toBe(50);
 
@@ -504,7 +504,7 @@ describe("useDataGridLazyRows", () => {
     expect(result.current.gridProps.data[5]).toEqual({ id: "row-5", name: "Person 5" });
     expect(result.current.unloadedCount).toBe(60);
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 12, end: 18 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 12, end: 18 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(fetchRows).toHaveBeenCalledTimes(2);
     expect(fetchRows).toHaveBeenNthCalledWith(2, 12, 18, expect.any(AbortSignal));
@@ -522,7 +522,7 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
     act(() => result.current.evict({ start: 0, end: 20 }));
     expect(result.current.gridProps.data[5]).toBeUndefined();
 
@@ -540,7 +540,7 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     act(() => result.current.evict({ start: 50, end: 60 }));
@@ -563,9 +563,9 @@ describe("useDataGridLazyRows", () => {
 
     expect(result.current.getLoadedRanges()).toEqual([]);
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 10 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 10 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    act(() => result.current.gridProps.onRowWindowChange({ start: 10, end: 20 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 10, end: 20 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.getLoadedRanges()).toEqual([{ start: 0, end: 20 }]);
 
@@ -584,7 +584,7 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, onLoaded }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(onLoaded).toHaveBeenCalledTimes(1);
@@ -599,12 +599,12 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, onLoaded }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(onLoaded).toHaveBeenCalledTimes(1);
     expect(onLoaded).toHaveBeenCalledWith({ start: 0, end: 5 });
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 30, end: 40 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 30, end: 40 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(onLoaded).toHaveBeenCalledTimes(1);
     warn.mockRestore();
@@ -621,7 +621,7 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, onLoaded }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
     unmount();
     expect(onLoaded).not.toHaveBeenCalled();
 
@@ -638,7 +638,7 @@ describe("useDataGridLazyRows", () => {
         onLoaded,
       }),
     );
-    act(() => result2.current.gridProps.onRowWindowChange({ start: 0, end: 20 }));
+    act(() => result2.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
     await waitFor(() => expect(result2.current.isLoading).toBe(false));
     expect(onLoaded).not.toHaveBeenCalled();
   });
@@ -649,7 +649,7 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, maxFetchRows: 20 }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 45 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 45 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(fetchRows).toHaveBeenCalledTimes(3);
@@ -666,15 +666,15 @@ describe("useDataGridLazyRows", () => {
       useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, maxFetchRows: 20 }),
     );
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 0, end: 45 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 45 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(fetchRows).toHaveBeenCalledTimes(3);
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 5, end: 40 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 5, end: 40 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(fetchRows).toHaveBeenCalledTimes(3);
 
-    act(() => result.current.gridProps.onRowWindowChange({ start: 40, end: 60 }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 40, end: 60 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(fetchRows).toHaveBeenCalledTimes(4);
     expect(fetchRows).toHaveBeenNthCalledWith(4, 45, 60, expect.any(AbortSignal));

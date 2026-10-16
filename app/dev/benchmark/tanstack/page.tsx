@@ -22,7 +22,7 @@ export default function TanstackBenchmarkPage(): ReactNode {
     <BenchmarkPageShell
       title="TanStack assembled baseline"
       gridId="tanstack"
-      caveat="Not a finished grid product — @tanstack/react-table (row model, no rendering) + @tanstack/react-virtual (windowing) + a hand-rolled single-range drag selection, built thin for this benchmark. Read-only (no editing): this is what raw TanStack gives you before building a spreadsheet layer, per docs/agent-work/2026-07-18-core-strategy-decision.md."
+      caveat="Not a finished grid product — @tanstack/react-table (row model, no rendering) + @tanstack/react-virtual (virtualization) + a hand-rolled single-range drag selection, built thin for this benchmark. Read-only (no editing): this is what raw TanStack gives you before building a spreadsheet layer, per docs/agent-work/2026-07-18-core-strategy-decision.md."
       rowCount={rowCount}
       onRowCountChange={setRowCount}
     >

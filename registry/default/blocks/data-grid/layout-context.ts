@@ -6,7 +6,7 @@ import { encodeTemplate } from "./columns/column-format-helpers";
 import { pinLeftOffsets, pinRightOffsets } from "./columns/pin-offsets";
 import { markerWidth } from "./rows/marker-width";
 import type { GridInteractionHandlers } from "./interaction/use-grid-interaction";
-import type { GridDirection } from "./windowing/direction";
+import type { GridDirection } from "./virtualization/direction";
 
 /** Cumulative left edge (px) of each column's track within the full grid template. */
 function trackLefts(widths: number[]): number[] {
@@ -83,8 +83,8 @@ export function useColumnLayout(columns: readonly AnyColumnDef[], availableWidth
   }, [columns, overrides, rowMarkers, availableWidth]);
 }
 
-/** A visible column paired with its real (unwindowed) index, used for grid placement + pin var lookup. */
-export type WindowedColumn = { column: AnyColumnDef; index: number };
+/** A visible column paired with its real (unvirtualized) index, used for grid placement + pin var lookup. */
+export type RenderedColumn = { column: AnyColumnDef; index: number };
 
 /**
  * Context passed to a plugin's {@link PluginRowBands.render} for one band — exactly what root.tsx
@@ -98,7 +98,7 @@ export type RowBandRenderCtx = {
   rows: readonly unknown[];
   /** The rows that earlier plugins put in this plugin's band position, before this plugin's rows. */
   rowOffset: number;
-  windowedColumns: readonly WindowedColumn[];
+  renderedColumns: readonly RenderedColumn[];
   layout: ColumnLayout;
   rowHeight: number;
   template: string;
@@ -150,7 +150,7 @@ export type DataGridRootContextValue = {
   viewportRef: RefObject<HTMLDivElement | null>;
   columns: readonly AnyColumnDef[];
   /** Columns in the current column window, in display order, each tagged with its real index. */
-  windowedColumns: readonly WindowedColumn[];
+  renderedColumns: readonly RenderedColumn[];
   layout: ColumnLayout;
   rowHeight: number;
   /** The sticky header track's own height — header.tsx's literal row height, NOT including any pinned band. Consumers computing "where data row 0 starts" need `headerHeight + pinnedTopHeight`; body.tsx does this itself for `useRowWindow`/the canvas transform. */

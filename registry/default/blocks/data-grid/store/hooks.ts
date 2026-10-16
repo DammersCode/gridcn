@@ -120,7 +120,7 @@ export function useDataGridActiveCell(): ViewCoord | null {
  * roving-tabindex bootstrap (tabIndex 0 before any cell is active, -1 after): subscribing to the full
  * `activeCell` there instead would re-render the root (and thus every context consumer, since its
  * context value is a fresh object literal every render) on every single cell move, defeating the
- * "only windowedColumns/activeColumn changes re-render the tree" invariant the perf suite checks.
+ * "only renderedColumns/activeColumn changes re-render the tree" invariant the perf suite checks.
  */
 export function useDataGridHasActiveCell(): boolean {
   return useDataGridStore((s) => s.activeCell !== null);

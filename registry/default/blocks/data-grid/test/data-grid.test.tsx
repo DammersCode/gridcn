@@ -46,10 +46,10 @@ describe("DataGrid ARIA structure", () => {
     expect(content.style.height).toBe("360036px"); // 36 header + 10000*36
   });
 
-  it("renders only the windowed rows for 10k rows, not all of them", () => {
+  it("renders only the virtualized rows for 10k rows, not all of them", () => {
     render(<DataGrid data={makeRows(10000)} columns={columns} getRowId={(r) => r.id} />);
     const rows = screen.getAllByRole("row");
-    // header row (display:contents, role=row) + a small windowed subset, never 10000
+    // header row (display:contents, role=row) + a small virtualized subset, never 10000
     expect(rows.length).toBeGreaterThan(1);
     expect(rows.length).toBeLessThan(50);
   });
@@ -1138,7 +1138,7 @@ describe("row prop identity survives a scroll that keeps the same rows in view",
     fireEvent.scroll(grid, { target: { scrollTop: 720 } }); // settle on a fixed window first
     const rowsBefore = screen.getAllByRole("row").filter((r) => r.getAttribute("aria-rowindex"));
 
-    // same scrollTop again: the row window ({start,end}) is unchanged, so windowedColumns/layout/
+    // same scrollTop again: the row window ({start,end}) is unchanged, so renderedColumns/layout/
     // readOnly/rowMarkers passed to every DataGridRow are the same references as last render —
     // DataGridRow's memo must bail and React must reuse every existing row node.
     fireEvent.scroll(grid, { target: { scrollTop: 720 } });
@@ -1200,8 +1200,8 @@ describe("DataGridCell memo prop-stability audit", () => {
     const { getPerRowCounts } = await renderCountingGrid(3);
     const grid = screen.getByRole("grid");
     // activating the FIRST cell moves `activeColumn` null -> 0, which recomputes root.tsx's
-    // columnIndices/windowedColumns (deps include activeColumn) to a new array reference — every
-    // row legitimately re-renders once for that (documented in row.tsx: "windowedColumns prop
+    // columnIndices/renderedColumns (deps include activeColumn) to a new array reference — every
+    // row legitimately re-renders once for that (documented in row.tsx: "renderedColumns prop
     // changes" is an inherent, accepted cost). Settle past that one-time cost before measuring.
     fireEvent.pointerDown(screen.getAllByRole("gridcell")[0]!, { button: 0 }); // activates row 0, col 0
     const before = getPerRowCounts();

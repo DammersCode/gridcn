@@ -147,7 +147,7 @@ export type DataGridPaginationPagesProps = {
   windowSize?: number;
 };
 
-/** The windowed numbered page buttons — the only source of page numbers in the composable layout. */
+/** The sliding numbered page buttons — the only source of page numbers in the composable layout. */
 export function DataGridPaginationPages(props: DataGridPaginationPagesProps): ReactNode {
   const { windowSize = DEFAULT_PAGE_WINDOW_SIZE } = props;
   const { controls, labels } = usePaginationBarContext("DataGridPaginationPages");

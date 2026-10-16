@@ -48,12 +48,12 @@ export function useDataGridPinnedRows(options: UseDataGridPinnedRowsOptions = {}
 }
 
 function renderPinnedRowBand(ctx: RowBandRenderCtx) {
-  const { position, rows, windowedColumns, layout, rowHeight, template, headerHeight, ariaRowIndexBase } = ctx;
+  const { position, rows, renderedColumns, layout, rowHeight, template, headerHeight, ariaRowIndexBase } = ctx;
   return (
     <DataGridPinnedRowBand
       position={position}
       rows={rows}
-      windowedColumns={windowedColumns}
+      renderedColumns={renderedColumns}
       layout={layout}
       rowHeight={rowHeight}
       template={template}

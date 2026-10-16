@@ -20,7 +20,7 @@ for these ranges too, wire it through `fetchRows` with a per-range query key:
   This is a snippet for your own app, not part of `data-grid-lazy`. The add-on has no React Query
   dependency, and installing it through `shadcn add` never pulls React Query in. Add
   `@tanstack/react-query` to your own app first if you want this pattern. For a NON-lazy grid
-  (a plain fetched array, no windowed loading), see
+  (a plain fetched array, no on-demand loading), see
   [Recipes: TanStack Query wiring](/docs/recipes/data-fetching/tanstack-query) for the `useQuery` +
   `useMutation` shape instead.
 </Callout>
@@ -77,9 +77,9 @@ get for a transient one:
 - The range's rows revert to holes and render as skeleton cells again. They never left the
   "unloaded" state, because a failed range is never marked loaded.
 - `onError(error, range)` fires once per failed attempt.
-- The next time `onRowWindowChange` reports a window that covers that range, gridcn requests it
+- The next time `onRenderedRowsChange` reports a range that covers the failed one, gridcn requests it
   again. This happens whether you scroll away and back, or the very first fetch failed and the
-  window covers the initial mount range. If the cause is still there, the request fails again.
+  range covers the initial mount range. If the cause is still there, the request fails again.
 
 The consumer-side pattern for this is a retry UI driven by `onError`, so a permanently-failing
 range does not retry silently forever every time it is scrolled past. Surface it, and let
@@ -109,9 +109,9 @@ function OrdersGrid() {
           <button
             type="button"
             onClick={() => {
-              // re-fires onRowWindowChange for the same range so useDataGridLazyRows retries it —
+              // re-fires onRenderedRowsChange for the same range so useDataGridLazyRows retries it —
               // there's no separate imperative "retry" call, scrolling into it again is the retry.
-              lazy.gridProps.onRowWindowChange(failedRange);
+              lazy.gridProps.onRenderedRowsChange(failedRange);
               setFailedRange(null);
             }}
           >
@@ -125,7 +125,7 @@ function OrdersGrid() {
 }
 ```
 
-Calling `lazy.gridProps.onRowWindowChange(failedRange)` directly, rather than waiting for a real
+Calling `lazy.gridProps.onRenderedRowsChange(failedRange)` directly, rather than waiting for a real
 scroll, is the whole retry. The hook has no separate retry method, because re-requesting an
 uncovered range is already its normal, automatic behavior. A manual retry button only triggers
 that same path on demand, instead of waiting for the user to scroll there again.

@@ -20,7 +20,7 @@
 
 ---
 
-Range selection, spreadsheet clipboard, typed cell editors, validation, and windowed rendering at 100k+ rows. The code lands in your project, so you own every line. The core grid is the engine; every other feature is an add-on that depends only on the core.
+Range selection, spreadsheet clipboard, typed cell editors, validation, and virtualized rendering at 100k+ rows. The code lands in your project, so you own every line. The core grid is the engine; every other feature is an add-on that depends only on the core.
 
 ## Features
 
@@ -31,7 +31,7 @@ Range selection, spreadsheet clipboard, typed cell editors, validation, and wind
 - **Validation.** A function or any [Standard Schema](https://standardschema.dev) library (Zod, Valibot, ArkType). Sync and async, on single edits and on bulk paste, fill, and import.
 - **Server errors.** `setCellErrors` paints an API rejection on the exact cell. The error clears when the user commits a fix.
 - **Streaming updates.** `updateCells` applies live value patches without a full re-render. An incremental sort keeps sorted grids correct and fast at 100k rows.
-- **Virtualization.** CSS Grid with windowed row rendering. A real-browser test suite enforces the no-blank-rows guarantee at 100k rows.
+- **Virtualization.** CSS Grid with virtualized row rendering. A real-browser test suite enforces the no-blank-rows guarantee at 100k rows.
 - **Row operations.** Insert above or below, duplicate, and delete, each with a default key binding. Insert and duplicate need the `createRow` / `duplicateRow` props; the `data-grid-context-menu` add-on adds the menu entries.
 - **Global shortcuts.** The opt-in `DataGridGlobalShortcuts` layer (inside `DataGridRoot`) keeps key bindings active while focus is outside the grid. Undo and redo by default; per-action flags enable more.
 - **Controlled or uncontrolled.** Data, sort, and filter are uncontrolled by default. Pass `data`, `sortState`, or `filterState` with the matching `on*Change` callback to control them. Selection and column layout stay store-owned; `onSelectionChange` and `onColumnLayoutChange` observe them.

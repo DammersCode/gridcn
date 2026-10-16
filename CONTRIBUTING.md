@@ -44,7 +44,7 @@ actually find their way around in.
    exists, e.g. `data-grid.tsx`/`data-grid-url-state.tsx`, so there's no separate `-index` file),
    the provider/store, root/header/body/row/cell/overlays components, `types.ts`,
    `layout-context.ts`, and `labels.ts`. Everything else lives in a domain folder (`selection/`,
-   `clipboard/`, `columns/`, `cell-types/`, `keyboard/`, `windowing/`, `sort-filter/`,
+   `clipboard/`, `columns/`, `cell-types/`, `keyboard/`, `virtualization/`, `sort-filter/`,
    `rows/`, `interaction/`, …).
 2. **No single-file directories.** A folder must contain 2+ files or it doesn't exist — if a
    domain would only ever hold one file, that file stays at the block root instead.

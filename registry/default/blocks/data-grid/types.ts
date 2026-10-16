@@ -750,7 +750,7 @@ export type DataGridReadState = Omit<
   | "onCellDoubleClick"
   | "onCellContextMenu"
   | "onCellClick"
-  | "onRowWindowChange"
+  | "onRenderedRowsChange"
   | "scrollToCellImpl"
   | "focusImpl"
   | "measureFonts"

@@ -1,13 +1,13 @@
 ---
 title: TanStack Query
-description: Lazy windows through queryClient.fetchQuery, which dedupes requests and caches each window for the session, so scrolling back never refetches.
+description: Lazy ranges through queryClient.fetchQuery, which dedupes requests and caches each range for the session, so scrolling back never refetches.
 icon: Zap
 ---
 
-Each scrolled window becomes a `fetchQuery`: TanStack Query dedupes concurrent windows,
-keeps every fetched window in the cache (`staleTime: Infinity`), and the hook's abort signal
-still cancels the network call when a window leaves view. Scrolling back never refetches.
-The "windows in the query cache" counter in the demo bar makes that visible.
+Each scrolled range becomes a `fetchQuery`: TanStack Query dedupes concurrent ranges,
+keeps every fetched range in the cache (`staleTime: Infinity`), and the hook's abort signal
+still cancels the network call when a range leaves view. Scrolling back never refetches.
+The "ranges in the query cache" counter in the demo bar makes that visible.
 
 <ComponentPreview name="data-grid-lazy-react-query-demo" />
 
@@ -30,14 +30,14 @@ const lazy = useDataGridLazyRows<Row>({
 });
 ```
 
-The flow in words: viewport → window (`[start, end)`) → query key → sparse rows. The query
-key **is** the window, so two overlapping scrolls to the same range share one fetch, and
+The flow in words: viewport → range (`[start, end)`) → query key → sparse rows. The query
+key **is** the range, so two overlapping scrolls to the same range share one fetch, and
 the cache entry survives for the session. `staleTime: Infinity` is what keeps a revisited
-window from refetching, because the default (`0`) marks data stale immediately.
+range from refetching, because the default (`0`) marks data stale immediately.
 
 <Callout type="info" title="Why not useInfiniteQuery">
 `useInfiniteQuery` fetches pages sequentially from page 0. A virtualized grid asks for
-arbitrary windows. Row 9,000 before row 50 exists. So the imperative `fetchQuery` is the
+arbitrary ranges. Row 9,000 before row 50 exists. So the imperative `fetchQuery` is the
 fitting seam: same cache, same dedupe, no page-ordering constraint.
 </Callout>
 

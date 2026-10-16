@@ -96,7 +96,7 @@ Every scope emits all visible columns, so an exported row always lines up with i
 cell range that covers part of a row still exports that row in full.
 
 Export covers only loaded rows: on a [lazy](/docs/lazy-loading) grid, unloaded rows are skipped
-in every scope. Export after the window you need is loaded.
+in every scope. Export after the range you need is loaded.
 
 `DataGridExportButton` forwards its `options` prop to `exportGrid`, so
 `<DataGridExportButton options={{ scope: "selection" }} />` makes its menu export the selection.
@@ -133,7 +133,7 @@ rows" note.
 
 <Callout type="warn" title="A lazy grid prints its loaded rows only">
 Print reads the grid's data, like export. A lazy grid prints the rows it has loaded, not the rows
-it has not loaded yet. Load the window you need first, then print.
+it has not loaded yet. Load the range you need first, then print.
 </Callout>
 
 `DataGridPrintButton` forwards its `options` prop to `printGrid`, so

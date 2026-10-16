@@ -1,12 +1,12 @@
 ---
 title: Lazy loading
-description: Fetch row windows on demand for datasets too large (or too expensive) to load up front.
+description: Fetch row ranges on demand for datasets too large (or too expensive) to load up front.
 icon: CloudDownload
 status: updated
 ---
 
 `data-grid-lazy` gives the grid a `total` and a `fetchRows(start, end)` function, and
-`useDataGridLazyRows` fetches whatever window the grid actually scrolls into.
+`useDataGridLazyRows` fetches whatever range the grid actually scrolls into.
 
 <ComponentPreview name="data-grid-lazy-demo" />
 
@@ -22,11 +22,11 @@ Neither add-on exists for rendering performance. Using both together is not supp
   The `loading` prop of the core (see [Styling & theming](/docs/styling-theming#loading-state))
   is a whole-grid flag with one skeleton look, for an ordinary fully-controlled fetch, with no
   per-row granularity and no partial data. Reach for `data-grid-lazy` instead when individual row
-  *windows* load independently as the user scrolls. Its skeleton cells are per-row, not
+  *ranges* load independently as the user scrolls. Its skeleton cells are per-row, not
   grid-wide.
 
   `loading` and `lazy.isLoading` are not combined for you. `lazy.isLoading` is `true` while any
-  window fetch is in flight. Pass it as `loading` on `DataGridRoot` to show the slim progress bar
+  range fetch is in flight. Pass it as `loading` on `DataGridRoot` to show the slim progress bar
   under the header. The unloaded rows keep their skeleton cells.
 </Callout>
 
@@ -62,7 +62,7 @@ shimmer with plain CSS instead of a class override.
           columns={columns}
           getRowId={lazy.gridProps.getRowId}
           onDataChange={lazy.onDataChange}
-          onRowWindowChange={lazy.gridProps.onRowWindowChange}
+          onRenderedRowsChange={lazy.gridProps.onRenderedRowsChange}
         >
           <DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />
           <DataGridRoot loading={lazy.isLoading}>
@@ -84,7 +84,7 @@ shimmer with plain CSS instead of a class override.
     return total === undefined ? <Spinner /> : <OrdersGrid total={total} />;
     ```
 
-    `onRowWindowChange` is a core `DataGridProvider` or `DataGrid` prop (see
+    `onRenderedRowsChange` is a core `DataGridProvider` or `DataGrid` prop (see
     [Virtualization](/docs/virtualization)). This add-on is the first consumer of it, but the prop
     is generic and available even without this add-on, for example for analytics or prefetch.
 
@@ -108,14 +108,14 @@ shimmer with plain CSS instead of a class override.
     - **Gaps wider than `maxFetchRows` split into chunks.** Each chunk is a separate request of
       at most `maxFetchRows` rows, with its own dedup, abort, and failure. The default is no
       cap.
-    - **Already-loaded and in-flight ranges are never re-requested.** A window that partially
+    - **Already-loaded and in-flight ranges are never re-requested.** A range that partially
       overlaps what is already loaded only fetches the remaining gap. Adjacent loaded ranges are
       merged, so later gap calculations see one covered span, not several.
     - **Fetches are aborted on unmount**, through the `AbortSignal` passed to `fetchRows`. Any
       fetch still in flight for an old dataset is also aborted if `total` changes out from under
       it.
     - **A failed fetch reverts its range to unloaded** (never marked loaded) and calls
-      `onError(error, range)`. The next time that range comes back into view, `onRowWindowChange`
+      `onError(error, range)`. The next time that range comes back into view, `onRenderedRowsChange`
       naturally re-requests it. There is no separate retry mechanism to wire up. A successful
       fetch calls `onLoaded(range)` with the range actually written; the rows commit on the next
       render, and `getLoadedRanges()` already includes the range.
@@ -157,13 +157,13 @@ shimmer with plain CSS instead of a class override.
   </Tab>
 </Tabs>
 
-## Tuning the fetch window
+## Tuning the fetch range
 
 `overscan`, `batchSize`, and `maxFetchRows` control the size of the ranges that reach
 `fetchRows`:
 
-- `overscan` pads the visible window on both sides (default about one viewport of rows).
-- `batchSize` rounds both edges of the padded window outward to the nearest multiple, so a
+- `overscan` pads the visible range on both sides (default about one viewport of rows).
+- `batchSize` rounds both edges of the padded range outward to the nearest multiple, so a
   small scroll reuses the same batch.
 - `maxFetchRows` caps the rows of one `fetchRows` call. A wider gap splits into consecutive
   chunks of at most the cap. The default is no cap.
@@ -192,7 +192,7 @@ Loaded rows stay in the sparse array until a `total` change, a remount, or an ex
 removes them:
 
 - `lazy.reset()` aborts every in-flight fetch and drops all loaded rows. It is the same reset a
-  `total` change performs. It also re-requests the last reported window, so the visible rows
+  `total` change performs. It also re-requests the last reported range, so the visible rows
   refetch instead of sitting as skeletons. Use it when the dataset behind the same `total` is
   invalidated in place, for example after a server-side refresh.
 - `lazy.evict(range)` drops the loaded rows inside `range`. A partial overlap drops the
@@ -201,7 +201,7 @@ removes them:
 - `lazy.getLoadedRanges()` returns the loaded ranges, merged and sorted. The result never
   triggers a render. Call it in effects or event handlers.
 
-An eviction policy is a consumer decision. A distance from the visible window is a starting
+An eviction policy is a consumer decision. A distance from the visible range is a starting
 point:
 
 ```tsx
@@ -211,8 +211,8 @@ const MIN_DISTANCE = 500;
   data={lazy.gridProps.data}
   columns={columns}
   getRowId={lazy.gridProps.getRowId}
-  onRowWindowChange={(range) => {
-    lazy.gridProps.onRowWindowChange(range);
+  onRenderedRowsChange={(range) => {
+    lazy.gridProps.onRenderedRowsChange(range);
     for (const loaded of lazy.getLoadedRanges()) {
       if (range.start - loaded.end > MIN_DISTANCE || loaded.start - range.end > MIN_DISTANCE) {
         lazy.evict(loaded);
@@ -258,7 +258,7 @@ const lazy = useDataGridLazyRows<Order>({
 });
 
 const onSortChange = (next: SortSpec[]) => {
-  // a sort change invalidates every fetched window, so drop them before the refetch runs
+  // a sort change invalidates every fetched range, so drop them before the refetch runs
   lazy.reset();
   setSorts(next);
 };
@@ -279,7 +279,7 @@ Three details make this work:
   allowed: the spec shows in the headers, and the fetched rows keep the order the server sent.
 - **A header click sorts only with `headerClickBehavior="sort"`.** The default, `"select"`, selects
   the column and never calls `onSortChange`.
-- **A sort change discards loaded rows.** Already-fetched windows hold the *old* order, so
+- **A sort change discards loaded rows.** Already-fetched ranges hold the *old* order, so
   `onSortChange` calls `lazy.reset()` before the refetch runs. Remounting the provider on a key
   derived from the spec clears them too. It also resets the core store (selection, edit state,
   scroll position), so it is the heavier alternative.

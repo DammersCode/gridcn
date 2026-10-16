@@ -546,7 +546,7 @@ function LazySortedGrid({
       sortState={NO_CLIENT_SORT}
       onSortChange={onSortsChange}
       enableRowReorder={controls.enableRowReorder}
-      onRowWindowChange={lazy.gridProps.onRowWindowChange}
+      onRenderedRowsChange={lazy.gridProps.onRenderedRowsChange}
       readOnly={controls.readOnly}
     >
       <DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />

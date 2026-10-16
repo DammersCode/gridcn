@@ -573,44 +573,44 @@
                "target": "components/data-grid/validation/index.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/windowing/direction.ts",
+               "path": "registry/default/blocks/data-grid/virtualization/direction.ts",
                "type": "registry:component",
-               "target": "components/data-grid/windowing/direction.ts"
+               "target": "components/data-grid/virtualization/direction.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/windowing/index.ts",
+               "path": "registry/default/blocks/data-grid/virtualization/index.ts",
                "type": "registry:component",
-               "target": "components/data-grid/windowing/index.ts"
+               "target": "components/data-grid/virtualization/index.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/windowing/use-column-window.ts",
+               "path": "registry/default/blocks/data-grid/virtualization/use-column-window.ts",
                "type": "registry:component",
-               "target": "components/data-grid/windowing/use-column-window.ts"
+               "target": "components/data-grid/virtualization/use-column-window.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/windowing/use-pin-shadow-edges.ts",
+               "path": "registry/default/blocks/data-grid/virtualization/use-pin-shadow-edges.ts",
                "type": "registry:component",
-               "target": "components/data-grid/windowing/use-pin-shadow-edges.ts"
+               "target": "components/data-grid/virtualization/use-pin-shadow-edges.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/windowing/use-row-window.ts",
+               "path": "registry/default/blocks/data-grid/virtualization/use-row-window.ts",
                "type": "registry:component",
-               "target": "components/data-grid/windowing/use-row-window.ts"
+               "target": "components/data-grid/virtualization/use-row-window.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/windowing/use-scroll-snapshot.ts",
+               "path": "registry/default/blocks/data-grid/virtualization/use-scroll-snapshot.ts",
                "type": "registry:component",
-               "target": "components/data-grid/windowing/use-scroll-snapshot.ts"
+               "target": "components/data-grid/virtualization/use-scroll-snapshot.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/windowing/use-scrolled-edges.ts",
+               "path": "registry/default/blocks/data-grid/virtualization/use-scrolled-edges.ts",
                "type": "registry:component",
-               "target": "components/data-grid/windowing/use-scrolled-edges.ts"
+               "target": "components/data-grid/virtualization/use-scrolled-edges.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/windowing/velocity-estimator.ts",
+               "path": "registry/default/blocks/data-grid/virtualization/velocity-estimator.ts",
                "type": "registry:component",
-               "target": "components/data-grid/windowing/velocity-estimator.ts"
+               "target": "components/data-grid/virtualization/velocity-estimator.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/LICENSE.md",
@@ -1179,7 +1179,7 @@
          "name": "data-grid-lazy",
          "type": "registry:block",
          "title": "Data Grid Lazy",
-         "description": "Virtual data fetching add-on for the gridcn data grid: useDataGridLazyRows maintains a sparse data array and fetches row windows on demand from onRowWindowChange, with range coalescing, in-flight dedup, abort-on-unmount, and error revert/refetch. A dev-only DataGridLazyGuard warns when uncontrolled sort/filter/search fires while rows are still unloaded.",
+         "description": "Virtual data fetching add-on for the gridcn data grid: useDataGridLazyRows maintains a sparse data array and fetches row windows on demand from onRenderedRowsChange, with range coalescing, in-flight dedup, abort-on-unmount, and error revert/refetch. A dev-only DataGridLazyGuard warns when uncontrolled sort/filter/search fires while rows are still unloaded.",
          "author": "gridcn",
          "dependencies": [],
          "registryDependencies": [
@@ -1912,7 +1912,7 @@
          "name": "data-grid-large-data-demo",
          "type": "registry:example",
          "title": "Data Grid Large Data Demo",
-         "description": "100k generated rows proving row virtualization: only the windowed rows around the viewport ever mount.",
+         "description": "100k generated rows proving row virtualization: only the virtualized rows around the viewport ever mount.",
          "author": "gridcn",
          "registryDependencies": [
             "DammersCode/gridcn/data-grid"
@@ -2181,7 +2181,7 @@
          "name": "data-grid-events-demo",
          "type": "registry:example",
          "title": "Data Grid Events Demo",
-         "description": "Grid with a live inspector panel pretty-printing the latest payload per event: onDataChange, onSelectionChange, onSortChange, onFilterChange/join, onFill, onRowWindowChange, onColumnLayoutChange, and a presence read-back button.",
+         "description": "Grid with a live inspector panel pretty-printing the latest payload per event: onDataChange, onSelectionChange, onSortChange, onFilterChange/join, onFill, onRenderedRowsChange, onColumnLayoutChange, and a presence read-back button.",
          "author": "gridcn",
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",

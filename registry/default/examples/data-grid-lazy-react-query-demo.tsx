@@ -87,7 +87,7 @@ function LazyReactQueryGrid(): ReactNode {
           columns={columns}
           getRowId={lazy.gridProps.getRowId}
           onDataChange={lazy.onDataChange}
-          onRowWindowChange={lazy.gridProps.onRowWindowChange}
+          onRenderedRowsChange={lazy.gridProps.onRenderedRowsChange}
         >
           <DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />
           <DataGridRoot className="h-full rounded-none border-none">

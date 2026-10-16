@@ -41,10 +41,10 @@ function PaginatedGrid() {
   );
 }
 
-const windowedRows = makeRows(251);
+const slidingRows = makeRows(251);
 
-function WindowedPaginatedGrid({ windowSize }: { windowSize?: number }) {
-  const pager = useDataGridPagination({ data: windowedRows, pageSize: 25 });
+function SlidingPaginatedGrid({ windowSize }: { windowSize?: number }) {
+  const pager = useDataGridPagination({ data: slidingRows, pageSize: 25 });
   return (
     <div style={{ height: 360, width: 400 }}>
       <DataGrid data={pager.pageData!} columns={columns} getRowId={(r) => r.id} className="h-72" />
@@ -134,12 +134,12 @@ describe("DataGridPaginationBar: first/last", () => {
 
 describe("DataGridPaginationBar: windowSize", () => {
   it("the default layout's page buttons follow the bar's windowSize", async () => {
-    const screen = await render(<WindowedPaginatedGrid />);
+    const screen = await render(<SlidingPaginatedGrid />);
     // 251 rows / 25 per page = 11 pages; default window of 5 on page 1 shows pages 1-5
     await expect.element(page.getByRole("button", { name: "Go to page 5" })).toBeInTheDocument();
     expect(page.getByRole("button", { name: "Go to page 6" }).elements()).toHaveLength(0);
 
-    await screen.rerender(<WindowedPaginatedGrid windowSize={3} />);
+    await screen.rerender(<SlidingPaginatedGrid windowSize={3} />);
     await expect.element(page.getByRole("button", { name: "Go to page 3" })).toBeInTheDocument();
     expect(page.getByRole("button", { name: "Go to page 4" }).elements()).toHaveLength(0);
   });

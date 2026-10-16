@@ -31,7 +31,7 @@ export { useSeedFocus } from "./interaction/use-seed-focus";
 export { useCommitGuard } from "./interaction/use-commit-guard";
 export { useCellEditor, type CellEditorCodec } from "./interaction/use-cell-editor";
 /** The `direction` prop's value space (add-ons' direction math lives in `./data-grid-sdk`). */
-export type { GridDirection } from "./windowing/direction";
+export type { GridDirection } from "./virtualization/direction";
 /** The `plugins` prop's surface: one entry per add-on that reaches into the grid — overlay painter, row-band contribution, data-change observer, commands/keymap, and root mount. `DataGridReadState` is what `api.store` exposes. */
 export type { DataGridPlugin, PluginRowBands, DataGridPluginCtx, DataGridReadState, DataGridStoreWrapper } from "./types";
 export { type RowBandRenderCtx } from "./layout-context";

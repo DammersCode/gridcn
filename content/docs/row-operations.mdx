@@ -29,7 +29,7 @@ drop](/docs/examples/rows/drag-reorder) · [Action buttons](/docs/examples/rows/
 copy a distinct id (a spread copy with a fresh `id`), so a duplicate never collides with its
 source row's React key. `createRow` receives the data-space insertion index. Row ops apply
 while an edit session is open: the op lands and the open edit re-anchors to its row's new view
-position, keeping the typed draft while the row stays in the rendered window. An op that
+position, keeping the typed draft while the row stays in the rendered rows. An op that
 removes the edited row cancels the session, drops the draft, and fires `onEditEnd` with
 `result: "cancel"`.
 

@@ -51,7 +51,7 @@ The grid follows the WAI-ARIA APG roving-tabindex pattern for a single active ce
 cell becomes active, the grid root itself is the one tabbable entry point (`tabIndex={0}`).
 Once a cell becomes active, that cell alone carries `tabIndex={0}`, every other cell carries
 `tabIndex={-1}`, and the root reverts to `tabIndex={-1}`. Real DOM focus follows the active
-cell, including when it scrolls out of the rendered window and back in. Focus never gets lost.
+cell, including when it scrolls out of the rendered rows and back in. Focus never gets lost.
 
 Pinned rows and skeleton (not-yet-loaded) cells carry no `tabindex` at all. They sit outside
 roving-tabindex navigation, since neither is ever the active cell.

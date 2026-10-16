@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import type { AnyColumnDef } from "../store";
 import type { AutosizeOptions } from "../types";
-import { inlineDelta, type GridDirection } from "../windowing/direction";
+import { inlineDelta, type GridDirection } from "../virtualization/direction";
 import { clampColumnWidth } from "./resolve-column-width";
 import { safeSetPointerCapture } from "../interaction/safe-set-pointer-capture";
 

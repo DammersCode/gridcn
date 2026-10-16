@@ -15,8 +15,8 @@ import {
   useDataGridStoreApi,
   type AnyColumnDef,
 } from "./store";
-import { useRowWindow } from "./windowing/use-row-window";
-import { useDataGridRootContext, type WindowedColumn } from "./layout-context";
+import { useRowWindow } from "./virtualization/use-row-window";
+import { useDataGridRootContext, type RenderedColumn } from "./layout-context";
 import { DataGridRow } from "./row";
 import { DataGridOverlays } from "./overlays";
 import { predictReorderTarget, useRowReorder } from "./rows/use-row-reorder";
@@ -31,12 +31,12 @@ import { isDev } from "./is-dev";
  * Overlay segmentation clamps its unpinned segment to this, so it never reaches off-screen track
  * positions the virtualized window did not render. An empty window collapses to a zero-width range. */
 function unpinnedWindowRange(
-  windowedColumns: readonly WindowedColumn[],
+  renderedColumns: readonly RenderedColumn[],
   pins: readonly (AnyColumnDef["pin"] | undefined)[],
 ): { start: number; end: number } {
   let min = Infinity;
   let max = -Infinity;
-  for (const { index } of windowedColumns) {
+  for (const { index } of renderedColumns) {
     if (pins[index] !== undefined) continue;
     if (index < min) min = index;
     if (index > max) max = index;
@@ -46,7 +46,7 @@ function unpinnedWindowRange(
 
 let warnedRowCountMismatch = false;
 
-/** Dev-only: warn once when the rendered row set is not exactly the windowed range plus the off-window active row. */
+/** Dev-only: warn once when the rendered row set is not exactly the virtualized range plus the off-window active row. */
 function warnRowCountMismatch(indicesLength: number, expected: number, start: number, end: number, activeRowOffWindow: boolean): void {
   if (indicesLength === expected || warnedRowCountMismatch) return;
   warnedRowCountMismatch = true;
@@ -57,15 +57,15 @@ function warnRowCountMismatch(indicesLength: number, expected: number, start: nu
 
 /** Props for {@link DataGridBody}. */
 export type DataGridBodyProps = {
-  /** Merged onto the rows-canvas element (the transformed canvas holding the windowed rows and overlays, not the scroll root). */
+  /** Merged onto the rows-canvas element (the transformed canvas holding the virtualized rows and overlays, not the scroll root). */
   className?: string;
 };
 
-/** Renders only the windowed rows for the current scroll position, plus the active row so focus survives scrolling it out of view. */
+/** Renders only the virtualized rows for the current scroll position, plus the active row so focus survives scrolling it out of view. */
 export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   const {
     scrollRef,
-    windowedColumns,
+    renderedColumns,
     rowHeight,
     headerHeight,
     pinnedTopHeight,
@@ -110,7 +110,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
     const last = lastFiredRangeRef.current;
     if (last && last.start === start && last.end === end) return;
     lastFiredRangeRef.current = { start, end };
-    storeApi.getState().onRowWindowChange?.({ start, end });
+    storeApi.getState().onRenderedRowsChange?.({ start, end });
   }, [start, end, measured, storeApi]);
 
   // A naive "clear then repopulate" would blank the body for a frame on every window shift.
@@ -261,7 +261,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
               key={key}
               viewRowIndex={viewRowIndex}
               rowId={rowIds[i]}
-              windowedColumns={windowedColumns}
+              renderedColumns={renderedColumns}
               layout={layout}
               readOnly={readOnly}
               rowMarkers={rowMarkers}
@@ -291,7 +291,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
             pins: layout.pins,
             trackLefts: layout.trackLefts,
             trackRights: layout.trackRights,
-            renderedUnpinnedRange: unpinnedWindowRange(windowedColumns, layout.pins),
+            renderedUnpinnedRange: unpinnedWindowRange(renderedColumns, layout.pins),
           }}
         />
         {rowDropIndicator && <div data-grid-drop-indicator="" aria-hidden="true" style={rowDropIndicator} />}

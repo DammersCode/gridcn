@@ -116,7 +116,7 @@ function PresenceReadBackButton({
  * pretty-printing the latest payload per event source, most recent first. Wires every event source
  * from the page's numbered sections — onDataChange, onSelectionChange (with details.getValues()),
  * onSortChange, onFilterChange + join, onCellClick, onFill (the `data-grid-fill`
- * add-on's hook option), onRowWindowChange, onColumnLayoutChange + onColumnResizing,
+ * add-on's hook option), onRenderedRowsChange, onColumnLayoutChange + onColumnResizing,
  * onEditStart/onEditEnd, onActiveCellChange, onValidationError, onCellDoubleClick/onCellContextMenu,
  * and presence read-back as the two-sided contrast.
  */
@@ -170,8 +170,8 @@ export default function DataGridEventsDemo(): ReactNode {
     );
   }, []);
 
-  const onRowWindowChange = useCallback((range: { start: number; end: number }) => {
-    setLog((prev) => pushLog(prev, { source: "onRowWindowChange", at: Date.now(), payload: range }));
+  const onRenderedRowsChange = useCallback((range: { start: number; end: number }) => {
+    setLog((prev) => pushLog(prev, { source: "onRenderedRowsChange", at: Date.now(), payload: range }));
   }, []);
 
   const onColumnLayoutChange = useCallback((next: ColumnLayout) => {
@@ -262,7 +262,7 @@ export default function DataGridEventsDemo(): ReactNode {
             onCellDoubleClick={onCellDoubleClick}
             onCellContextMenu={onCellContextMenu}
             onCellClick={onCellClick}
-            onRowWindowChange={onRowWindowChange}
+            onRenderedRowsChange={onRenderedRowsChange}
             headerClickBehavior="sort"
             plugins={plugins}
           >

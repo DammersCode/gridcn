@@ -15,7 +15,7 @@ export type UseDataGridLazyRowsOptions<TData> = {
   /** Total row count across the whole dataset, loaded or not — sizes the sparse `data` array. */
   total: number;
   /**
-   * Fetches rows `[start, end)` (inclusive-exclusive, matching `onRowWindowChange`'s convention).
+   * Fetches rows `[start, end)` (inclusive-exclusive, matching `onRenderedRowsChange`'s convention).
    * Must resolve with EXACTLY `end - start` rows, positionally aligned to `[start, end)` (the row
    * at index `start + i` at result index `i`). A short response leaves the unwritten rows unloaded
    * (only actually written rows are marked loaded, so the gap refetches on next visibility); an
@@ -58,7 +58,7 @@ export type UseDataGridLazyRowsResult<TData> = {
   gridProps: {
     data: readonly TData[];
     getRowId: (row: TData, index: number) => string;
-    onRowWindowChange: (range: Range) => void;
+    onRenderedRowsChange: (range: Range) => void;
   };
   /**
    * Pass as `DataGrid`'s `onDataChange` to let edits on already-loaded rows flow back into the
@@ -78,7 +78,7 @@ export type UseDataGridLazyRowsResult<TData> = {
   reset: () => void;
   /**
    * Unloads the loaded rows inside `range`; a partial overlap evicts the intersection only, the
-   * rest stays loaded. The next `onRowWindowChange` covering the evicted rows re-fetches them.
+   * rest stays loaded. The next `onRenderedRowsChange` covering the evicted rows re-fetches them.
    * In-flight fetches are not aborted — one started before the evict still lands and marks its
    * range loaded. Evicted rows are lost from the sparse array,
    * including edits merged through `onDataChange` (this hook does not own persistence). Clamped
@@ -107,7 +107,7 @@ function guardCallback(fn: (() => void) | undefined): void {
 /**
  * Virtual data fetching for `DataGrid`: maintains a sparse
  * `data` array (length `total`, holes = unloaded rows) and fetches windows on demand as
- * `onRowWindowChange` reports the rendered range. Loaded rows are addressed by `getRowId`, so an
+ * `onRenderedRowsChange` reports the rendered range. Loaded rows are addressed by `getRowId`, so an
  * edit/sort of a loaded row behaves exactly like a normal controlled grid; unloaded rows use an
  * index-derived placeholder id purely so React has a key to render a skeleton row under.
  *
@@ -135,7 +135,7 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
   const [rows, setRows] = useState<(TData | undefined)[]>(() => Array<TData | undefined>(total));
 
   // Loaded + in-flight ranges, kept OUTSIDE React state: consulted synchronously inside the
-  // onRowWindowChange handler (dedup must see the effect of the fetch it just started, same tick,
+  // onRenderedRowsChange handler (dedup must see the effect of the fetch it just started, same tick,
   // not next render) and mutated from fetch completion callbacks that must not themselves trigger
   // extra renders beyond the one `setRows` already causes.
   const loadedRangesRef = useRef<Range[]>([]);
@@ -240,7 +240,7 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
     const handleRejected = (error: unknown) => {
       if (controller.signal.aborted) return;
       // failed ranges revert to unloaded (never entered loadedRangesRef) so the next
-      // onRowWindowChange covering them naturally retries — "refetch on next visibility".
+      // onRenderedRowsChange covering them naturally retries — "refetch on next visibility".
       guardCallback(() => onErrorRef.current?.(error, range));
     };
 
@@ -255,7 +255,7 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
     }
   }, []);
 
-  const onRowWindowChange = useCallback(
+  const onRenderedRowsChange = useCallback(
     (range: Range) => {
       lastWindowRef.current = range;
       const expanded = expandRange(range, { overscan, batchSize, total: totalRef.current });
@@ -274,7 +274,7 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
     if (!pendingWindowRef.current) return;
     pendingWindowRef.current = false;
     const last = lastWindowRef.current;
-    if (last) onRowWindowChange(last);
+    if (last) onRenderedRowsChange(last);
   });
 
   const gridGetRowId = useCallback(
@@ -318,9 +318,9 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
     () => ({
       data: rows as TData[],
       getRowId: gridGetRowId,
-      onRowWindowChange,
+      onRenderedRowsChange,
     }),
-    [rows, gridGetRowId, onRowWindowChange],
+    [rows, gridGetRowId, onRenderedRowsChange],
   );
 
   // Derived from the loaded-ranges bookkeeping, not a rows.reduce scan: `rows` is a genuinely

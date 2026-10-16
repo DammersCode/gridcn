@@ -137,7 +137,7 @@ describe("multiplayer presence — window-edge clamping", () => {
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     // a range far larger than the rendered window (rows 0..198 of 200) — virtualization only
-    // mounts a small windowed subset + overscan, so the overlay must stop at the LAST actually
+    // mounts a small virtualized subset + overscan, so the overlay must stop at the LAST actually
     // rendered row, not paint down to row 198's would-be (unrendered) position.
     setPresenceHighlights([{ id: "u1", color: "rgb(0,0,255)", range: { x: 0, y: 0, width: 1, height: 199 } }]);
     await new Promise((r) => setTimeout(r, 50));

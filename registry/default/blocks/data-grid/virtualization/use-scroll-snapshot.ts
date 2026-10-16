@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useState, type RefObject } from "react";
 import { flushSync } from "react-dom";
 import { normalizeScrollLeft } from "./direction";
 
-/** Live scroll geometry of a scroll element, shared by row- and (future) column-windowing hooks. */
+/** Live scroll geometry of a scroll element, shared by row- and (future) column-virtualization hooks. */
 export type ScrollSnapshot = {
   scrollTop: number;
   scrollLeft: number;
@@ -117,7 +117,7 @@ const elementStores = new WeakMap<HTMLElement, ElementStore>();
 /**
  * One shared snapshot + listener Set per element (adazzle useScrollState pattern) so every
  * subscriber is notified, not just the first, and isScrolling state isn't duplicated per hook.
- * Exported so other windowing hooks (e.g. {@link useColumnWindow}) share the same element store
+ * Exported so other virtualization hooks (e.g. {@link useColumnWindow}) share the same element store
  * instead of double-subscribing to scroll/resize.
  */
 export function getElementStore(element: HTMLElement): ElementStore {
@@ -169,7 +169,7 @@ export function getElementStore(element: HTMLElement): ElementStore {
   // first write (a style mutation on an ancestor of `viewportElement`'s layout-affecting insets)
   // had already dirtied layout, forcing a reflow on the second read. Hoisting one `readGeometry`
   // call to the top removes that forced reflow; the write still runs before `notify()` (the
-  // transform/pinned insets must reflect the new position before any listener re-renders windowed
+  // transform/pinned insets must reflect the new position before any listener re-renders virtualized
   // content — moving it past `notify()` would reintroduce tearing).
   const commit = (isScrolling: boolean, forceSync = false) => {
     const geometry = readGeometry(element);

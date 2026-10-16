@@ -14,7 +14,7 @@ export type RowWindow = {
    * False only for the one render before the scroll element is attached and its mount effect has
    * measured it (`computeWindow`'s `!element` fallback) — that render's `{start,end}` is a fixed
    * guess (`[0, min(rowCount,30))`), not a real layout observation, and is always immediately
-   * superseded by a real one in the same effect flush. Consumers gating `onRowWindowChange` on this
+   * superseded by a real one in the same effect flush. Consumers gating `onRenderedRowsChange` on this
    * (see body.tsx) skip notifying for it, so a fresh mount fires the callback once (the real window),
    * not twice (guess, then correction) — same data either way, just the transient guess suppressed.
    */
@@ -82,7 +82,7 @@ function computeWindow(
 }
 
 /**
- * Computes the windowed data-row range `[start, end)` to render, driven by an element's live
+ * Computes the virtualized data-row range `[start, end)` to render, driven by an element's live
  * scroll position + size. The header is in-flow inside the scroll container, so data row `i`
  * sits at `dataRowTop + i * rowHeight`.
  *

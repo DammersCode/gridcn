@@ -72,7 +72,7 @@ function createSimulatedApi() {
 
 /**
  * 100k rows, only whatever's been scrolled into view actually fetched. `useDataGridLazyRows`
- * supplies `data`/`getRowId`/`onRowWindowChange`; core renders skeleton rows for the holes and
+ * supplies `data`/`getRowId`/`onRenderedRowsChange`; core renders skeleton rows for the holes and
  * flips them to real content once each simulated fetch resolves. `DataGridLazyGuard` is mounted
  * inside the provider to dev-warn if sort/filter/search fires uncontrolled while rows are still
  * unloaded (this demo has neither wired up, so it stays uncontrolled on purpose — see the docs page).
@@ -162,9 +162,9 @@ export default function DataGridLazyDemo(): ReactNode {
               type="button"
               className="rounded-sm border border-border px-2 py-0.5 hover:bg-accent"
               onClick={() => {
-                // re-fires onRowWindowChange for the failed range — the same path a real scroll
+                // re-fires onRenderedRowsChange for the failed range — the same path a real scroll
                 // into it would take; there's no separate imperative retry call (see docs).
-                lazy.gridProps.onRowWindowChange(failedRange);
+                lazy.gridProps.onRenderedRowsChange(failedRange);
                 setLastError(null);
                 setFailedRange(null);
               }}
@@ -180,7 +180,7 @@ export default function DataGridLazyDemo(): ReactNode {
           columns={columns}
           getRowId={lazy.gridProps.getRowId}
           onDataChange={lazy.onDataChange}
-          onRowWindowChange={lazy.gridProps.onRowWindowChange}
+          onRenderedRowsChange={lazy.gridProps.onRenderedRowsChange}
         >
           <DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />
           <DataGridRoot className="h-full rounded-none border-none">

@@ -32,7 +32,7 @@ const columns = defineColumns<DemoRow>()([
 ] as const);
 
 /**
- * 100k generated rows: only the windowed rows around the viewport ever mount (row virtualization
+ * 100k generated rows: only the virtualized rows around the viewport ever mount (row virtualization
  * is always on), so scroll performance and mount cost stay independent of row count.
  */
 export default function DataGridLargeDataDemo(): ReactNode {

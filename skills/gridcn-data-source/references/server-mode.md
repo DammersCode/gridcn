@@ -45,7 +45,7 @@ function OrdersGrid() {
       columns={columns}
       getRowId={lazy.gridProps.getRowId}
       onDataChange={lazy.onDataChange}
-      onRowWindowChange={lazy.gridProps.onRowWindowChange}
+      onRenderedRowsChange={lazy.gridProps.onRenderedRowsChange}
       sortState={EMPTY_SORT}
       onSortChange={onSortChange}
       headerClickBehavior="sort"

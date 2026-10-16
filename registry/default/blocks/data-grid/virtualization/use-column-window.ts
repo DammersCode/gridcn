@@ -134,7 +134,7 @@ function indicesEqual(a: number[], b: number[]): boolean {
 }
 
 /**
- * Computes the windowed column-index set (display order) to render, driven by the scroll
+ * Computes the virtualized column-index set (display order) to render, driven by the scroll
  * element's live horizontal scroll position + width. Mirrors {@link useRowWindow}'s
  * SSR-safe-initial / binary-search / requestFlush-while-scrolling machinery, on the column axis:
  * all pinned-left indices, then the contiguous unpinned window intersecting the visible

@@ -12,7 +12,7 @@ import {
 } from "../data-grid";
 import { StoreProbe } from "./store-probe.test-helper";
 import { type DataGridStoreState } from "../data-grid-sdk";
-// real stylesheet — windowing/layout must be real for these numbers to mean anything
+// real stylesheet — virtualization/layout must be real for these numbers to mean anything
 import "@/app/global.css";
 
 type Row = { id: string; name: string; email: string; age: number; score: number; price: number };

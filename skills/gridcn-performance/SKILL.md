@@ -89,7 +89,7 @@ Zero `[data-grid]`-prefixed warnings and no `gridcn: the grid viewport shows mor
 ## Docs
 
 - `https://gridcn.vercel.app/docs/performance.md` — identity-stability rules, scroll model.
-- `https://gridcn.vercel.app/docs/virtualization.md` — bounded-height requirement, windowing model.
+- `https://gridcn.vercel.app/docs/virtualization.md` — bounded-height requirement, virtualization model.
 - `https://gridcn.vercel.app/docs/plugins.md` — plugin identity rules (entry-wise list comparison, one plugin per grid).
 - `https://gridcn.vercel.app/docs/styling-theming.md` — `getRowClassName`/`getCellClassName` stability.
 - `https://gridcn.vercel.app/docs/custom-cell-types.md` — formatter caching, allocation-free `Cell`.

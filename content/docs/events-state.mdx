@@ -29,7 +29,7 @@ sort or filter a column, drag-fill, scroll, resize, pin, or hide a column) to se
 | React to the active cell moving | `onActiveCellChange` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
 | React to cells a bulk paste, fill, or `updateCells` rejected | `onValidationError` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
 | React to a double-click or right-click on a cell | `onCellDoubleClick` + `onCellContextMenu` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
-| Fetch rows for the rendered window on demand | `onRowWindowChange` | [7. `onRowWindowChange`](#7-onrowwindowchange) |
+| Fetch rows for the rendered rows on demand | `onRenderedRowsChange` | [7. `onRenderedRowsChange`](#7-onrenderedrowschange) |
 | Save and restore a user's column layout | `columnLayout` + `defaultColumnLayout` + `onColumnLayoutChange` + `onColumnResizing` | [8. `columnLayout` + `defaultColumnLayout` + `onColumnLayoutChange` + `onColumnResizing`](#8-columnlayout--defaultcolumnlayout--oncolumnlayoutchange--oncolumnresizing) |
 | Broadcast or receive a remote user's selection | `setPresenceHighlights` / `useDataGridPresenceHighlights` | [9. Presence read-back](#9-presence-read-back--the-two-sided-contrast) |
 
@@ -314,13 +314,13 @@ omit the generic (every existing untyped call site is unaffected). See `data-gri
 for the compile-time proof and `data-grid-events-demo.tsx` for a worked example with
 `onCellClick`.
 
-## 7. `onRowWindowChange`
+## 7. `onRenderedRowsChange`
 
 ```ts
-onRowWindowChange?: (range: { start: number; end: number }) => void;
+onRenderedRowsChange?: (range: { start: number; end: number }) => void;
 ```
 
-This fires after a row-window commit, including once for the initial mount, with the rendered
+This fires after a render, including once for the initial mount, with the rendered
 data-row range. This is the mechanism that `useDataGridLazyRows` of `data-grid-lazy` uses to
 fetch only scrolled-into-view rows. It is a prop on `DataGridProvider` and `DataGrid`. See
 [Lazy loading](/docs/lazy-loading).
@@ -469,5 +469,5 @@ for anything deeper.
 - **Clipboard notification (`onCopy`/`onPaste`)**: `onDataChange` already fires for a paste
   (`change.source === 'paste'`). `onValidationError` reports a paste's rejected cells. There is
   no separate copy event.
-- **Raw scroll-position callback**: `onRowWindowChange` already reports the rendered row range on
+- **Raw scroll-position callback**: `onRenderedRowsChange` already reports the rendered row range on
   every scroll-driven change. There is no lower-level pixel-position callback.

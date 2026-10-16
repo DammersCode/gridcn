@@ -24,13 +24,13 @@ export const GRID_ATTR = {
   checkboxBox: "data-grid-checkbox",
   /** rows/marker-cell.tsx: present (`""`) on a rows-channel selected row's marker cell. */
   selected: "data-row-selected",
-  /** windowing/use-scrolled-edges.ts: present (`""`) on the viewport while scrolled away from its inline-start edge. */
+  /** virtualization/use-scrolled-edges.ts: present (`""`) on the viewport while scrolled away from its inline-start edge. */
   scrolledLeft: "data-scrolled-left",
-  /** windowing/use-scrolled-edges.ts: present (`""`) on the viewport while there's more to scroll toward its inline-end edge. */
+  /** virtualization/use-scrolled-edges.ts: present (`""`) on the viewport while there's more to scroll toward its inline-end edge. */
   scrolledRight: "data-scrolled-right",
-  /** windowing/use-scrolled-edges.ts: present (`""`) on the viewport while scrolled away from its top edge. */
+  /** virtualization/use-scrolled-edges.ts: present (`""`) on the viewport while scrolled away from its top edge. */
   scrolledTop: "data-scrolled-top",
-  /** windowing/use-scrolled-edges.ts: present (`""`) on the viewport while there's more to scroll toward its bottom edge. */
+  /** virtualization/use-scrolled-edges.ts: present (`""`) on the viewport while there's more to scroll toward its bottom edge. */
   scrolledBottom: "data-scrolled-bottom",
 
   /** body.tsx: the scrolling row-canvas container. */

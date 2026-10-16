@@ -133,7 +133,7 @@ const CONFIG_KEYS = [
   "onCellDoubleClick",
   "onCellContextMenu",
   "onCellClick",
-  "onRowWindowChange",
+  "onRenderedRowsChange",
 ] as const satisfies readonly (keyof DataGridSyncProps)[];
 
 /** Fails the compile when a new sync prop lands in no slice list (a silently-unsynced prop). */

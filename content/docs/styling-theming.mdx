@@ -503,7 +503,7 @@ const [loading, setLoading] = useState(true);
 
 The default is `false`, so existing consumers who never pass it see no change in behavior.
 
-<Callout type="idea" title="data-grid-lazy has its own per-window skeletons">
+<Callout type="idea" title="data-grid-lazy has its own per-range skeletons">
   `loading` is a whole-grid flag with one look. It is unrelated to the per-row skeleton cells of
   `data-grid-lazy` for individually unloaded rows (see [Lazy loading](/docs/lazy-loading)). Use
   `loading` for an ordinary fully-controlled fetch, and the lazy add-on when you stream in row

@@ -30,9 +30,9 @@ import {
   useDataGridStoreApi,
   useDataGridVisibleColumns,
 } from "./store";
-import { useElementDimensions, useViewportElement } from "./windowing/use-scroll-snapshot";
-import { directionSign, readResolvedDirection, type GridDirection } from "./windowing/direction";
-import { useColumnWindow } from "./windowing/use-column-window";
+import { useElementDimensions, useViewportElement } from "./virtualization/use-scroll-snapshot";
+import { directionSign, readResolvedDirection, type GridDirection } from "./virtualization/direction";
+import { useColumnWindow } from "./virtualization/use-column-window";
 import { useGridInteraction, type InteractionLayout } from "./interaction/use-grid-interaction";
 import { useGridClipboard } from "./clipboard/use-grid-clipboard";
 import {
@@ -43,8 +43,8 @@ import {
   type MarkerHeaderRenderer,
 } from "./layout-context";
 import { resolveRowHeight } from "./rows/density";
-import { useScrolledEdges } from "./windowing/use-scrolled-edges";
-import { usePinShadowEdges } from "./windowing/use-pin-shadow-edges";
+import { useScrolledEdges } from "./virtualization/use-scrolled-edges";
+import { usePinShadowEdges } from "./virtualization/use-pin-shadow-edges";
 import { GRID_LAYER } from "./layers";
 import { DataGridLoadingSkeleton, DataGridLoadingBar, DataGridLoadingProgress } from "./rows/loading-skeleton";
 import { isDev } from "./is-dev";
@@ -409,7 +409,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const contentHeight = effectiveHeaderHeight + rowCount * rowHeight + pinnedBottomHeight;
 
   // loading+empty: enough skeleton rows to fill the viewport below the header, plus
-  // one so a partial row is visible at the bottom edge like the real windowed body would show.
+  // one so a partial row is visible at the bottom edge like the real virtualized body would show.
   const showLoadingSkeleton = loading && rowCount === 0;
   const skeletonRowCount = showLoadingSkeleton
     ? Math.max(1, Math.ceil((dimensions.clientHeight - effectiveHeaderHeight) / rowHeight) + 1)
@@ -457,23 +457,23 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     viewportStyle[`--grid-track-right-${i}`] = `${rights[i]}px`;
   });
 
-  // Windowed columns, in display order, with their real index preserved for grid placement.
+  // Virtualized columns, in display order, with their real index preserved for grid placement.
   // columnIndices are indices into visibleColumns by useColumnWindow's contract.
-  const windowedColumns = useMemo(
+  const renderedColumns = useMemo(
     () => columnIndices.map((index) => ({ column: visibleColumns[index]!, index })),
     [columnIndices, visibleColumns],
   );
 
   // Stable context value on real deps (mustFix): DataGridRoot re-renders on every activeCell move
   // (the activeColumn subscription above), and cell.tsx/header.tsx read this context directly —
-  // a fresh object literal here would bust every context consumer (all windowed cells, header
+  // a fresh object literal here would bust every context consumer (all virtualized cells, header
   // cells) on every click/arrow-key move even though most of these fields didn't actually change.
   const contextValue = useMemo(
     () => ({
       scrollRef,
       viewportRef,
       columns: visibleColumns,
-      windowedColumns,
+      renderedColumns,
       layout,
       rowHeight,
       headerHeight,
@@ -496,7 +496,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       scrollRef,
       viewportRef,
       visibleColumns,
-      windowedColumns,
+      renderedColumns,
       layout,
       rowHeight,
       headerHeight,
@@ -568,7 +568,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                   position: "top",
                   rows: segment.rows,
                   rowOffset: offset,
-                  windowedColumns,
+                  renderedColumns,
                   layout,
                   rowHeight,
                   template,
@@ -583,7 +583,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                   position: "bottom",
                   rows: segment.rows,
                   rowOffset: offset,
-                  windowedColumns,
+                  renderedColumns,
                   layout,
                   rowHeight,
                   template,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { AUTO_SCROLL_STEP, AUTO_SCROLL_ZONE } from "../windowing/direction";
+import { AUTO_SCROLL_STEP, AUTO_SCROLL_ZONE } from "../virtualization/direction";
 import { safeSetPointerCapture } from "../interaction/safe-set-pointer-capture";
 
 /** px of vertical pointer movement off the origin row before a marker press commits to a reorder drag. */

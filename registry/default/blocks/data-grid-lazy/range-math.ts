@@ -1,4 +1,4 @@
-/** A half-open row range `[start, end)`, matching `onRowWindowChange`'s convention. */
+/** A half-open row range `[start, end)`, matching `onRenderedRowsChange`'s convention. */
 export type Range = { start: number; end: number };
 
 /** `end - start`, clamped to 0 for an inverted/empty range. */

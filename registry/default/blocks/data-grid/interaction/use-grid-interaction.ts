@@ -34,7 +34,7 @@ import {
   normalizeScrollLeft,
   visualArrowKey,
   type GridDirection,
-} from "../windowing/direction";
+} from "../virtualization/direction";
 import { gridAttrSelector } from "../data-attributes";
 import { getSelectedViewRows, isSelectionEmpty } from "../selection";
 import { warnDev } from "../store/commit";

@@ -10,7 +10,7 @@ import { useColumnResize } from "./columns/use-column-resize";
 import { DataGridSortIndicator, ariaSortFor } from "./columns/sort-indicator";
 import type { ColumnReorderState } from "./columns/use-column-reorder";
 import type { HeaderMenuRenderer } from "./layout-context";
-import type { GridDirection } from "./windowing/direction";
+import type { GridDirection } from "./virtualization/direction";
 import { useDataGridLabels, type AnyColumnDef } from "./store";
 import { columnLabelText as headerLabelText } from "./columns/column-format-helpers";
 import { gridAttrSelector } from "./data-attributes";

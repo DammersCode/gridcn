@@ -14,7 +14,7 @@ import { DataGridHeaderCell, type HeaderCellRenderer } from "./header-cell";
 import { useColumnReorder } from "./columns/use-column-reorder";
 import { pinnedInsetStyle } from "./columns/pinned-inset-style";
 import { GRID_LAYER } from "./layers";
-import { isInlineStartHalf } from "./windowing/direction";
+import { isInlineStartHalf } from "./virtualization/direction";
 
 export type { HeaderCellRenderCtx, HeaderCellRenderer } from "./header-cell";
 
@@ -29,7 +29,7 @@ export type DataGridHeaderProps = {
 /**
  * Header layer: absolutely positioned inside the sticky Viewport, counter-translated
  * horizontally by the live scroll var so it tracks the canvas 1:1 without ever moving via native
- * scroll. Renders only the windowed column set (same window the body consumes).
+ * scroll. Renders only the virtualized column set (same window the body consumes).
  *
  * Data-column grid placement is `index + markerColOffset` (1-based `gridColumnStart`): the marker
  * column (when present) occupies track 1, so every data column shifts one track right. `index`
@@ -38,7 +38,7 @@ export type DataGridHeaderProps = {
  * count (chosen over shifting every data cell's aria-colindex by one).
  */
 export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderProps): ReactNode {
-  const { windowedColumns, template, layout, headerHeight, interaction, direction, renderHeaderMenu } = useDataGridRootContext();
+  const { renderedColumns, template, layout, headerHeight, interaction, direction, renderHeaderMenu } = useDataGridRootContext();
   const rowMarkers = useDataGridRowMarkers();
   const actions = useDataGridActions();
   const sortState = useDataGridSortState();
@@ -63,8 +63,8 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
   );
 
   const isColumnReorderable = useCallback(
-    (columnId: string) => windowedColumns.some(({ column }) => column.id === columnId && column.reorderable !== false),
-    [windowedColumns],
+    (columnId: string) => renderedColumns.some(({ column }) => column.id === columnId && column.reorderable !== false),
+    [renderedColumns],
   );
 
   const { onHeaderDragPointerDown, dragState } = useColumnReorder({
@@ -83,7 +83,7 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
    */
   const dropIndicator = useMemo<{ index: number; style: CSSProperties } | null>(() => {
     if (!dragState?.overId) return null;
-    const over = windowedColumns.find(({ column }) => column.id === dragState.overId);
+    const over = renderedColumns.find(({ column }) => column.id === dragState.overId);
     if (!over) return null;
     const { column, index } = over;
     const width = layout.widths[index];
@@ -111,7 +111,7 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
       backgroundColor: "var(--color-primary)",
     };
     return { index, style };
-  }, [dragState, windowedColumns, layout.widths, markerColOffset]);
+  }, [dragState, renderedColumns, layout.widths, markerColOffset]);
 
   const layerStyle: CSSProperties = {
     position: "absolute",
@@ -130,7 +130,7 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
   return (
     <div role="row" style={layerStyle} className={className} data-grid-header-layer="">
       {layout.markerWidth > 0 && <DataGridMarkerHeader mode={rowMarkers} headerHeight={headerHeight} />}
-      {windowedColumns.map(({ column, index }) => (
+      {renderedColumns.map(({ column, index }) => (
         <DataGridHeaderCell
           key={column.id}
           column={column}

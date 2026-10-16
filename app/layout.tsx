@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://gridcn.vercel.app"),
   title: { default: "gridcn", template: "%s - gridcn" },
   description:
-    "A composable, high-performance data grid: range selection, spreadsheet clipboard, typed cell editors, validation, and windowed rendering at 100k+ rows.",
+    "A composable, high-performance data grid: range selection, spreadsheet clipboard, typed cell editors, validation, and virtualized rendering at 100k+ rows.",
 };
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});

@@ -67,13 +67,13 @@ function renderedDataRowCount(): number {
 }
 
 describe("DataGrid in a real browser", () => {
-  it("renders 1k rows quickly and windowed", async () => {
+  it("renders 1k rows quickly and virtualized", async () => {
     await renderGrid(1_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     expect(renderedDataRowCount()).toBeLessThan(80);
   });
 
-  it("renders 10k rows quickly and windowed", async () => {
+  it("renders 10k rows quickly and virtualized", async () => {
     await renderGrid(10_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     expect(renderedDataRowCount()).toBeLessThan(80);
@@ -101,7 +101,7 @@ describe("DataGrid in a real browser", () => {
     expect(renderedDataRowCount()).toBeLessThanOrEqual(200);
   });
 
-  it("renders 10k rows x 100 columns windowed without stalling", { timeout: 15_000 }, async () => {
+  it("renders 10k rows x 100 columns virtualized without stalling", { timeout: 15_000 }, async () => {
     const wide = [
       ...columns,
       ...Array.from({ length: 95 }, (_, i) => ({
@@ -121,7 +121,7 @@ describe("DataGrid in a real browser", () => {
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     expect(performance.now() - start).toBeLessThan(5_000);
     expect(renderedDataRowCount()).toBeLessThan(80);
-    // column virtualization: only a windowed subset of the 100 columns render per row
+    // column virtualization: only a virtualized subset of the 100 columns render per row
     expect(document.querySelectorAll('[role="columnheader"]').length).toBeLessThan(40);
   });
 
@@ -454,7 +454,7 @@ describe("DataGrid in a real browser", () => {
     it("plain press+drag from an inactive cell paints a range from the press origin", async () => {
       await renderGrid(20);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
-      // select by aria coords — immune to DOM ordering (windowing, force-rendered rows)
+      // select by aria coords — immune to DOM ordering (virtualization, force-rendered rows)
       const cellAt = (rowIndex: number, colIndex: number) =>
         document.querySelector<HTMLElement>(`[aria-rowindex="${rowIndex}"] [aria-colindex="${colIndex}"]`)!;
       const origin = cellAt(3, 2); // view row 1, col 1 — nothing active yet

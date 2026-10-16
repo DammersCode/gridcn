@@ -63,7 +63,7 @@ describe("DataGridHeader composition props", () => {
     );
     const { container } = render(compose({ headerProps: { renderHeaderCell } }));
 
-    // Every visible column is custom-rendered. The mount heal render (the windowing element
+    // Every visible column is custom-rendered. The mount heal render (the virtualization element
     // attaches in a pre-paint layout-effect flush) may render the header a second time, so
     // count per column rather than in total.
     const renderedColumns = new Set(renderHeaderCell.mock.calls.map(([ctx]) => ctx.column.id));

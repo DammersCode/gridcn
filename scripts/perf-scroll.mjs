@@ -31,7 +31,7 @@ const DEFAULTS = {
 
 // Burst-then-settle fling (12 frames decaying from the peak, 12 idle frames), repeated: a steady
 // max-speed drag is a different cost profile than a real fling, and the settle frames let the
-// windowing estimator recover between bursts.
+// virtualization estimator recover between bursts.
 function parseArgs(argv) {
   const opts = { ...DEFAULTS, css: [] };
   for (let i = 0; i < argv.length; i++) {

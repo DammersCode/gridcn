@@ -155,7 +155,7 @@ See [Undo & redo](/docs/addons/undo-redo).
 A `updateCells` batch without `reorder: "immediate"` does not move the selection, the active
 cell, or an open editor. An immediate re-sort is the exception: it re-sorts the view and
 re-anchors the open edit to its row's new view position, keeping the typed draft while the row
-stays in the rendered window. A feed cannot pull the grid away from a user who is editing a
+stays in the rendered rows. A feed cannot pull the grid away from a user who is editing a
 cell.
 
 Values are checked with each column's `validate` function. A value that fails is skipped, and the

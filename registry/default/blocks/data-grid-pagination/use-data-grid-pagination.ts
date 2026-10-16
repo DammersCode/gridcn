@@ -31,7 +31,7 @@ export type UseDataGridPaginationClientOptions<TData> = {
   onPageSizeChange?: (pageSize: number) => void;
 };
 
-/** Server-mode options: consumer owns `page`/`pageSize`/`total` and fetches `pageData` itself — this hook is just the windowing math + controls shape. */
+/** Server-mode options: consumer owns `page`/`pageSize`/`total` and fetches `pageData` itself — this hook is just the page-window math + controls shape. */
 export type UseDataGridPaginationServerOptions = {
   page: number;
   pageSize: number;
@@ -67,7 +67,7 @@ function isServerOptions<TData>(
  * uncontrolled unless you pass `page`/`onPageChange` yourself.
  *
  * Server mode (`{ page, pageSize, total, onPageChange }`): fully controlled — you own the page
- * index and fetch each page's rows yourself; this hook only computes `pageCount`/windowing and
+ * index and fetch each page's rows yourself; this hook only computes `pageCount`/page numbers and
  * hands back the same `controls` shape so `<DataGridPaginationBar />` doesn't need to know which mode
  * it's rendering for.
  */

@@ -22,7 +22,7 @@ export {
   normalizeScrollLeft,
   visualArrowKey,
   type GridDirection,
-} from "./windowing/direction";
+} from "./virtualization/direction";
 
 export { GRID_LAYER, cellLayer, type GridLayer } from "./layers";
 export { hasAnyPin } from "./overlays";
@@ -34,7 +34,7 @@ export {
   useDataGridRootContext,
   type DataGridRootContextValue,
   type ColumnLayout as GridColumnLayout,
-  type WindowedColumn,
+  type RenderedColumn,
 } from "./layout-context";
 
 export {

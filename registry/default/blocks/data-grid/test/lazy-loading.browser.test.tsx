@@ -117,8 +117,8 @@ describe("skeleton rows for undefined data holes", () => {
   });
 });
 
-describe("onRowWindowChange", () => {
-  function renderGrid(rowCount: number, onRowWindowChange: (range: { start: number; end: number }) => void) {
+describe("onRenderedRowsChange", () => {
+  function renderGrid(rowCount: number, onRenderedRowsChange: (range: { start: number; end: number }) => void) {
     const rows: Row[] = [];
     for (let i = 0; i < rowCount; i++) rows.push({ id: `row-${i}`, name: `Person ${i}` });
     return render(
@@ -128,15 +128,15 @@ describe("onRowWindowChange", () => {
           columns={columns}
           getRowId={(r) => r.id}
           className="h-90 w-150"
-          onRowWindowChange={onRowWindowChange}
+          onRenderedRowsChange={onRenderedRowsChange}
         />
       </div>,
     );
   }
 
   it("fires exactly once on mount, with the real measured range (not the pre-measurement fallback)", async () => {
-    const onRowWindowChange = vi.fn();
-    await renderGrid(10_000, onRowWindowChange);
+    const onRenderedRowsChange = vi.fn();
+    await renderGrid(10_000, onRenderedRowsChange);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     await new Promise((r) => requestAnimationFrame(r));
     await new Promise((r) => setTimeout(r, 0));
@@ -147,19 +147,19 @@ describe("onRowWindowChange", () => {
     // {start,end} values differ, so a naive "only when the range changed" guard fired for both).
     // useRowWindow now reports `measured: false` for that fallback render and body.tsx skips
     // notifying for it, so only the real, measured window ever reaches the consumer.
-    expect(onRowWindowChange).toHaveBeenCalledTimes(1);
-    const [range] = onRowWindowChange.mock.calls[0]! as [{ start: number; end: number }];
+    expect(onRenderedRowsChange).toHaveBeenCalledTimes(1);
+    const [range] = onRenderedRowsChange.mock.calls[0]! as [{ start: number; end: number }];
     expect(range.start).toBe(0);
     expect(range.end).toBeGreaterThan(0);
   });
 
   it("fires again after a scroll that shifts the window, with the new range", async () => {
-    const onRowWindowChange = vi.fn();
-    await renderGrid(10_000, onRowWindowChange);
+    const onRenderedRowsChange = vi.fn();
+    await renderGrid(10_000, onRenderedRowsChange);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     await new Promise((r) => requestAnimationFrame(r));
     await new Promise((r) => setTimeout(r, 0));
-    onRowWindowChange.mockClear();
+    onRenderedRowsChange.mockClear();
 
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
     grid.scrollTop = 500 * ROW_HEIGHT;
@@ -167,8 +167,8 @@ describe("onRowWindowChange", () => {
     await new Promise((r) => requestAnimationFrame(r));
     await new Promise((r) => setTimeout(r, 0));
 
-    expect(onRowWindowChange).toHaveBeenCalled();
-    const lastCall = onRowWindowChange.mock.calls.at(-1) as [{ start: number; end: number }];
+    expect(onRenderedRowsChange).toHaveBeenCalled();
+    const lastCall = onRenderedRowsChange.mock.calls.at(-1) as [{ start: number; end: number }];
     const [range] = lastCall;
     const expectedStart = Math.floor((500 * ROW_HEIGHT - HEADER_HEIGHT) / ROW_HEIGHT);
     // allow for overscan slack either side rather than pinning the exact overscanned value.
@@ -177,8 +177,8 @@ describe("onRowWindowChange", () => {
   });
 
   it("does NOT fire again on a same-window scroll tick within an ongoing drag", async () => {
-    const onRowWindowChange = vi.fn();
-    await renderGrid(10_000, onRowWindowChange);
+    const onRenderedRowsChange = vi.fn();
+    await renderGrid(10_000, onRenderedRowsChange);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     await new Promise((r) => requestAnimationFrame(r));
     await new Promise((r) => setTimeout(r, 0));
@@ -204,7 +204,7 @@ describe("onRowWindowChange", () => {
       grid.dispatchEvent(new Event("scroll"));
     }
     await new Promise((r) => requestAnimationFrame(r));
-    onRowWindowChange.mockClear();
+    onRenderedRowsChange.mockClear();
 
     // Same-DIRECTION sub-pixel deltas while already isScrolling (mid-drag, no settle in between)
     // stay inside the now-settled overscan buffer and never flip deltaTop's sign — {start,end}
@@ -218,6 +218,6 @@ describe("onRowWindowChange", () => {
     await new Promise((r) => requestAnimationFrame(r));
     await new Promise((r) => setTimeout(r, 0));
 
-    expect(onRowWindowChange).not.toHaveBeenCalled();
+    expect(onRenderedRowsChange).not.toHaveBeenCalled();
   });
 });

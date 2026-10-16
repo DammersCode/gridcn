@@ -326,7 +326,7 @@ export type DataGridSyncProps<TData = unknown> = {
      * scroll tick that stays within the current window's overscan buffer does not re-fire it.
      * Useful for lazy-loading/prefetch/analytics add-ons; core has no fetching logic of its own.
      */
-    onRowWindowChange?: (range: { start: number; end: number }) => void;
+    onRenderedRowsChange?: (range: { start: number; end: number }) => void;
     /**
      * Fires on every live width write during a resize drag (`actions.setColumnWidth`, per drag
     * frame) — the in-progress counterpart to `onColumnLayoutChange`'s once-per-commit snapshot.

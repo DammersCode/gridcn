@@ -26,7 +26,7 @@ Record which strategy was picked and why (one sentence) before writing code — 
 ## 2. Wire the chosen strategy
 
 - Plain data: pass `data`/`onDataChange` as usual. No further steps here.
-- `data-grid-lazy`: install per https://gridcn.vercel.app/docs/lazy-loading.md, wire `useDataGridLazyRows` + `DataGridLazyGuard` + `onRowWindowChange`.
+- `data-grid-lazy`: install per https://gridcn.vercel.app/docs/lazy-loading.md, wire `useDataGridLazyRows` + `DataGridLazyGuard` + `onRenderedRowsChange`.
 - `data-grid-pagination`: install per https://gridcn.vercel.app/docs/pagination.md. Decide client mode (`useDataGridPagination({ data, pageSize })`, hook slices) vs. server mode (`{ page, pageSize, total, onPageChange }` fully controlled, you fetch).
 - Streaming on top of either: wire `useDataGridActions().updateCells`/`updateRows` per https://gridcn.vercel.app/docs/streaming-updates.md. Skip this step if nothing needs live value pushes.
 
@@ -39,7 +39,7 @@ A lazy or paged grid's uncontrolled sort/filter/search only ever sees the rows c
 Decide per gesture, for the chosen strategy:
 
 - **Full dataset must be searchable/sortable/filterable** → move that gesture server-side: hold the spec in your own state, send it to your fetch call, pass `sortState={EMPTY_SORT}` (a stable empty array) plus `onSortChange`, in lazy and paged server mode alike, and set `headerClickBehavior="sort"` so header clicks reach `onSortChange`. Never echo the spec back into `sortState`. Full wiring, including the exact controlled-prop rules and reset-on-spec-change requirement, is in `references/server-mode.md` — read it before writing this code.
-- **Page/window-local result is acceptable and disclosed to the user** → leave it uncontrolled, but say so in the completion record (step 5) rather than leaving it undecided.
+- **Page-local or range-local result is acceptable and disclosed to the user** → leave it uncontrolled, but say so in the completion record (step 5) rather than leaving it undecided.
 
 For `data-grid-lazy` specifically, mount `<DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />` inside `<DataGridProvider>` regardless of which path is chosen. It only dev-warns (`[data-grid-lazy] sort/filter/search changed while rows are still unloaded...`) when an uncontrolled gesture fires over holes — it does not block the gesture or fix production behavior, so step 3's server-side decision still has to be made by hand for the paths that need full coverage.
 
@@ -47,7 +47,7 @@ For `data-grid-lazy` specifically, mount `<DataGridLazyGuard hasHoles={lazy.unlo
 
 Applies to `data-grid-lazy`:
 
-- A sort/filter spec change must call `lazy.reset()` before the refetch runs, or already-fetched windows keep serving the old order/set.
+- A sort/filter spec change must call `lazy.reset()` before the refetch runs, or already-fetched ranges keep serving the old order/set.
 - `DataGridUrlState` (from `data-grid-url-state`) cannot mount on a lazy grid — it writes URL sort/filter/search into the store on mount, which re-sorts the partial `data` client-side. Keep that spec in your own state instead.
 - With `sortState` controlled empty, the header's sort indicator and `aria-sort` go blank and `DataGridSortList` shows nothing active — render the active sort from your own state, and re-derive the asc/desc/none cycle yourself since `toggleSort` reads the (empty) store state.
 
@@ -67,7 +67,7 @@ Applies to streaming on top of either:
 ## 5. Done when
 
 - The picked strategy (plus streaming, if used) is written down with its one-sentence reason, and lazy+pagination are not both mounted on the same grid.
-- Every sort/filter/search path either runs server-side against the full dataset (spec held outside the store, grid's `sortState`/`filterState` controlled per `references/server-mode.md`) or is a deliberate, disclosed page/window-local result — never an accidental partial one.
+- Every sort/filter/search path either runs server-side against the full dataset (spec held outside the store, grid's `sortState`/`filterState` controlled per `references/server-mode.md`) or is a deliberate, disclosed page/range-local result — never an accidental partial one.
 - `DataGridLazyGuard` is mounted on every `data-grid-lazy` grid.
 - Pagination's stale-response race, `onPageChange(1)` on filter/search change, and id-keyed edit merge are all handled if pagination is in play; `lazy.reset()` on spec change is handled if lazy loading is in play.
 
@@ -82,5 +82,5 @@ Applies to streaming on top of either:
 - Do not echo the sort spec back into `sortState`. Pass the stable empty array and render the active sort from your own state.
 - Do not write `onSortChange={setSorts}` alone. The store sort stays empty, so every click arrives as `"asc"`. Re-derive the asc → desc → none cycle (`cycleSort` in `references/server-mode.md`).
 - Do not hard-code `total` for a lazy grid. Fetch the count first and render the grid once it is known.
-- Do not build your own spinner for window fetches. `lazy.isLoading` is true while any window fetch runs; pass it as `loading` on `DataGridRoot` for the slim progress bar.
+- Do not build your own spinner for range fetches. `lazy.isLoading` is true while any range fetch runs; pass it as `loading` on `DataGridRoot` for the slim progress bar.
 - Do not rely on `searchText` to search server-side. It only highlights rows already in `data`.

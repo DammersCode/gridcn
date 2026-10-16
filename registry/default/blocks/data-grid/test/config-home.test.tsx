@@ -158,7 +158,7 @@ describe("config home: onCellClick", () => {
   // The callback is read off the store at click time (no prop threading), so a changed identity
   // reaches the next click without any cell prop changing. The no-re-render half of the spec item
   // is verified by the browser wasted-render suites, not here: under jsdom the column window's
-  // scroll-settle timers can recompute the windowed set between commits, which re-renders cells
+  // scroll-settle timers can recompute the virtualized set between commits, which re-renders cells
   // for a reason unrelated to the config sync.
   it("the next click calls the new onCellClick after an identity change, and never the old one", () => {
     const first = vi.fn();

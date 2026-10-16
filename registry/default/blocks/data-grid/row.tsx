@@ -6,14 +6,14 @@ import { useDataGridRow, useDataGridRowCellState } from "./store";
 import { colRangesContain } from "./selection/selected-col-ranges-for-row";
 import { DataGridCell } from "./cell";
 import { DataGridMarkerCell } from "./rows/marker-cell";
-import type { ColumnLayout, WindowedColumn } from "./layout-context";
+import type { ColumnLayout, RenderedColumn } from "./layout-context";
 import type { GetCellClassName, GetRowClassName, RowMarkersMode } from "./types";
 
 export type DataGridRowProps = {
   viewRowIndex: number;
   /** The row's `getRowId()` value (a hole's placeholder id); `undefined` only for a view index past the end. */
   rowId: string | undefined;
-  windowedColumns: readonly WindowedColumn[];
+  renderedColumns: readonly RenderedColumn[];
   layout: ColumnLayout;
   readOnly?: boolean;
   /** 'none' renders no marker cell for this row. */
@@ -53,7 +53,7 @@ export type DataGridRowProps = {
 export const DataGridRow = memo(function DataGridRow({
   viewRowIndex,
   rowId,
-  windowedColumns,
+  renderedColumns,
   layout,
   readOnly,
   rowMarkers,
@@ -109,7 +109,7 @@ export const DataGridRow = memo(function DataGridRow({
           isReorderDragging={isRowReorderDragging}
         />
       )}
-      {windowedColumns.map(({ column, index }) => {
+      {renderedColumns.map(({ column, index }) => {
         const isActive = cellState.activeCol === index;
         const isEditing = cellState.editingCol === index;
         return (

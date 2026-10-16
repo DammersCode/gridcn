@@ -69,7 +69,7 @@ const coreTraits = [
     icon: LayoutGrid,
     title: "Real DOM, real virtualization",
     description:
-      "CSS Grid + subgrid, windowed row rendering, smooth at 100k rows.",
+      "CSS Grid + subgrid, virtualized row rendering, smooth at 100k rows.",
     href: "/docs/performance",
   },
   {
@@ -113,7 +113,7 @@ const perfStats = [
     value: "0 renders",
     title: "React re-renders on scroll",
     description:
-      "Row and column windowing moves one CSS transform per tick; the store never invalidates during a scroll.",
+      "Row and column virtualization moves one CSS transform per tick; the store never invalidates during a scroll.",
   },
   {
     value: "0.3–7.6 ms",
@@ -225,7 +225,7 @@ export const metadata: Metadata = {
     siteName: "gridcn",
     title: "gridcn",
     description:
-      "A composable, high-performance data grid: range selection, spreadsheet clipboard, typed cell editors, validation, and windowed rendering at 100k+ rows.",
+      "A composable, high-performance data grid: range selection, spreadsheet clipboard, typed cell editors, validation, and virtualized rendering at 100k+ rows.",
   },
 };
 
@@ -243,7 +243,7 @@ export default function HomePage() {
         <p className="text-lg text-muted-foreground">
           A composable, high-performance data grid for the shadcn ecosystem —
           range selection, spreadsheet clipboard, typed cell editors,
-          validation, and windowed rendering at 100k+ rows.
+          validation, and virtualized rendering at 100k+ rows.
         </p>
         <p className="text-sm text-muted-foreground">
           Works in Next.js, Vite, and any React 19 app with Tailwind v4 —{" "}
