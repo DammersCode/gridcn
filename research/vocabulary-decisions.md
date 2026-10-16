@@ -23,3 +23,14 @@ Counts: matches in `content`, `README.md`, `skills`, `registry/default`, `app` (
 | ctx | context | kept in identifiers | ~390 | `ctx` params | Convention in the repo API. Not used in prose. |
 | stream, hydrate, headless, sentinel, standard schema | | kept | | | Known terms or internal comments. |
 | quick search | search | quick search | 31 | `toSearchText` | Distinguishes the highlighting search from filter. |
+
+## Pass 2: unclear names
+
+| Name | Problem | Decision |
+|---|---|---|
+| `id-keyed` | Coined compound | Prose: "by row id" or "row-id-based" |
+| `source: "row-op"` | Abbreviation | Renamed `"row-operation"` |
+| `deleteContents` | UI says "Clear contents" | Renamed `clearContents` |
+| `editReplace` | Docs say "type-to-replace" | Renamed `typeToReplace` |
+| `retainMove*` | "retain" hides what is kept | Renamed `move*KeepSelection` |
+| `rowBands`, `viewStale`, `extendJump*`, `rowIdentityVersion`, `dataControlled` | Odd but short, and renaming touches many files | Kept; `band` is defined in the glossary. Rename later if readers trip on them. |

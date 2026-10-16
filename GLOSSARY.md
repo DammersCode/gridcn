@@ -12,6 +12,7 @@ mirror the change there.
 | Use | Meaning | Do not use |
 |---|---|---|
 | operation (`ops` in code) | One record of a change to one row: `insert`, `update`, `delete`, or `move`. `DataChange.ops` holds a batch. Write "operations (`ops`)" at first use on a page. | op, ops (in prose) |
+| row operation | The `source` value `"row-operation"` marks a change from an insert, duplicate, delete, or move of rows. | row-op |
 | change | One `onDataChange` call: a batch of operations plus its `source`. | |
 | row id | The stable id from `getRowId`. Selection, editing, undo, and redo address rows by it. | id-keyed (write "by row id") |
 | view index | A row's position in the sorted and filtered list the user sees. | view space, display index |
@@ -19,6 +20,14 @@ mirror the change there.
 | commit | Check a value with `validate` and write it to the data. | |
 | controlled / uncontrolled | `data` puts the state in your code. `defaultData` seeds the grid once. | |
 | seed | The initial value a `default*` prop gives once, at mount. | |
+
+## Keyboard actions
+
+| Use | Meaning | Do not use |
+|---|---|---|
+| `clearContents` | Empties the selected cells. | deleteContents |
+| `typeToReplace` | Typing over a cell replaces its value. | editReplace |
+| `moveUpKeepSelection` (and Down, Left, Right) | Moves the active cell and keeps the selection. | retainMove* |
 
 ## Rendering
 
