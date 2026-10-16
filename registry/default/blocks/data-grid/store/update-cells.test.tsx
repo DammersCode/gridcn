@@ -1451,7 +1451,7 @@ describe("row operations under sortMode server", () => {
           sortMode="server"
           sortState={serverSort}
           enableRowReorder
-          createRow={(index: number) => ({ id: `new-${index}`, name: "Aaa", price: 0 })}
+          createRow={(index: number): Row => ({ id: `new-${index}`, name: "Aaa", price: 0 })}
           duplicateRow={(row: Row, index: number) => ({ ...row, id: `${row.id}-copy${index}` })}
         >
           {children}
