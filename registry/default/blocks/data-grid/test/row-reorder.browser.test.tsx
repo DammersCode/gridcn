@@ -449,4 +449,27 @@ describe("row reorder (marker drag)", () => {
     await expect.poll(() => document.querySelectorAll(gridAttrSelector("dropIndicator")).length, { timeout: 2000 }).toBe(0);
     expect(visualOrder()[0]).toBe("Person 0");
   });
+
+  it("a cancelled pointer (pointercancel) ends the drag in flight without reordering", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const dragged = markerCell(0);
+    const rect = dragged.getBoundingClientRect();
+    const target = rows().find((r) => dataCell(r).textContent === "Person 3")!;
+    const targetRect = target.getBoundingClientRect();
+
+    await dragged.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1, clientX: rect.left + 2, clientY: rect.top + rect.height / 2 }));
+    document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: rect.left + 2, clientY: targetRect.top + 4 }));
+    await new Promise((r) => requestAnimationFrame(r));
+    await expect.poll(() => document.querySelectorAll(gridAttrSelector("dropIndicator")).length, { timeout: 2000 }).toBe(1);
+
+    document.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerId: 1 }));
+    await new Promise((r) => requestAnimationFrame(r));
+    await expect.poll(() => document.querySelectorAll(gridAttrSelector("dropIndicator")).length, { timeout: 2000 }).toBe(0);
+    expect(visualOrder()[0]).toBe("Person 0");
+  });
 });
