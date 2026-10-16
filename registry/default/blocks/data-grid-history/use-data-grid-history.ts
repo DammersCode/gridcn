@@ -62,16 +62,30 @@ function buildRollback<TData>(change: DataChange<TData>, s: ReturnType<DataGridA
   const columnsById = new Map(s.columns.map((c) => [c.id, c] as const));
   const working = new Map<string, TData>();
   const ops: DataChange<TData>["ops"] = [];
+  const reinsertedAt = new Map<string, number>();
+  const pushUpdate = (update: Extract<DataChange<TData>["ops"][number], { type: "update" }>) => {
+    const at = reinsertedAt.get(update.rowId);
+    const insert = at === undefined ? undefined : ops[at];
+    // a batch applies an update before the insert that creates its row, so the update folds into the insert
+    if (at !== undefined && insert?.type === "insert") ops[at] = { ...insert, row: update.row };
+    else ops.push(update);
+  };
   for (const op of [...change.ops].reverse()) {
     if (op.type !== "update") {
-      ops.push(...invertChange({ ops: [op], source: "rollback" }, "rollback").ops);
+      const inverse = invertChange({ ops: [op], source: "rollback" }, "rollback").ops;
+      for (const inverted of inverse) {
+        if (inverted.type !== "insert") continue;
+        working.set(inverted.rowId, inverted.row);
+        reinsertedAt.set(inverted.rowId, ops.length + inverse.indexOf(inverted));
+      }
+      ops.push(...inverse);
       continue;
     }
     const current = working.get(op.rowId) ?? rowById.get(op.rowId);
     if (current === undefined) continue;
     if (!op.cells) {
       if (!shallowEqualRows(current, op.row)) continue;
-      ops.push({ type: "update", rowId: op.rowId, row: op.prev, prev: current });
+      pushUpdate({ type: "update", rowId: op.rowId, row: op.prev, prev: current });
       working.set(op.rowId, op.prev);
       continue;
     }
@@ -84,7 +98,7 @@ function buildRollback<TData>(change: DataChange<TData>, s: ReturnType<DataGridA
       cells.push({ columnId: cell.columnId, value: cell.prev, prev: cell.value });
     }
     if (cells.length > 0) {
-      ops.push({ type: "update", rowId: op.rowId, row, prev: current, cells });
+      pushUpdate({ type: "update", rowId: op.rowId, row, prev: current, cells });
       working.set(op.rowId, row);
     }
   }
@@ -109,7 +123,7 @@ export type UseDataGridHistoryResult<TData> = {
    * Reverts `change` (the object an `onDataChange` handler received) after its save failed: applies the
    * inverse with `source: "rollback"` and drops the entry from the stacks, so no dead undo step remains.
    * A cell reverts only while it still holds the change's value, so later edits survive. A change the
-   * user already undid is dropped without a write. No-op when the grid is not mounted yet or is read-only.
+   * user already undid is dropped without a write. A whole-row update reverts only while the row is shallow-equal to the change's row. No-op when the grid is not mounted yet or is read-only.
    */
   rollback: (change: DataChange<TData>) => void;
   /**

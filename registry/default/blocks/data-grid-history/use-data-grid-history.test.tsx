@@ -465,6 +465,25 @@ describe("useDataGridHistory readOnly", () => {
     expect(h.history().historySize).toBe(0);
     expect(h.history().canRedo).toBe(false);
   });
+  it("rollback of [update, delete] re-inserts the row as it was before the update", () => {
+    const seen: DataChange<Row>[] = [];
+    const h = setupHarness({}, { onDataChange: (_next, change) => seen.push(change) });
+    const a = initialRows[0]!;
+    const renamed = { ...a, name: "Alicia" };
+    h.commit({
+      source: "edit",
+      ops: [
+        { type: "update", rowId: "a", row: renamed, prev: a },
+        { type: "delete", rowId: "a", row: renamed, index: 0 },
+      ],
+    });
+    expect(h.data().some((row) => row.id === "a")).toBe(false);
+
+    act(() => h.history().rollback(seen[0]!));
+
+    expect(h.data()[0]).toEqual(a);
+  });
+
   it("rollback keeps later edits to other cells of the same row", () => {
     const seen: DataChange<Row>[] = [];
     const h = setupHarness({}, { onDataChange: (_next, change) => seen.push(change) });
