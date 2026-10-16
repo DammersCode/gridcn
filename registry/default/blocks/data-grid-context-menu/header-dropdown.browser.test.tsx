@@ -234,7 +234,7 @@ describe("DataGridHeaderDropdown", () => {
     );
     await vi.waitFor(() => expect(document.querySelector('[role="gridcell"]')).toBeTruthy());
     await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"]')!);
-    await userEvent.keyboard("{Shift>}{Alt>}{ArrowDown}{/Alt}{/Shift}");
+    document.activeElement!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", shiftKey: true, altKey: true, bubbles: true }));
     await view.unmount();
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(warn.mock.calls.some(([message]) => String(message).includes("column menu"))).toBe(false);
