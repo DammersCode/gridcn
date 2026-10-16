@@ -78,7 +78,7 @@ export type UseGridInteractionOptions = {
 };
 
 /**
- * Resolves the view-space column index under `inlineX` — the pointer's distance from the viewport's
+ * Resolves the view-index column index under `inlineX` — the pointer's distance from the viewport's
  * INLINE-START edge (the left edge in LTR, the right edge in RTL), not a physical screen x. Pinned
  * columns render at a fixed inline offset independent of scrollLeft (see pinnedInsetStyle), so
  * they're hit-tested directly in that space; only the unpinned middle band needs the content-space
@@ -129,14 +129,14 @@ function columnAtX(
   return contentX < trackLefts[0]! ? 0 : trackLefts.length - 1;
 }
 
-/** Resolves the view-space row index at content-space `y` (already offset by scrollTop, header-relative). */
+/** Resolves the view-index row index at content-space `y` (already offset by scrollTop, header-relative). */
 function rowAtY(y: number, rowHeight: number, rowCount: number): number {
   const row = Math.floor(y / rowHeight);
   return Math.max(0, Math.min(row, Math.max(0, rowCount - 1)));
 }
 
 /**
- * Maps a pointer event's viewport-relative position to a view-space cell coord using the current
+ * Maps a pointer event's viewport-relative position to a view-index cell coord using the current
  * scroll offsets. Exported for direct unit testing of the pinned-column hit-testing math; not part
  * of the public hook surface.
  */
@@ -661,7 +661,7 @@ export type GridInteractionHandlers = {
    */
    cancelColumnSelectDrag: () => void;
   /**
-   * Imperatively scrolls the container so `coord` (view-space) is visible, honoring the
+   * Imperatively scrolls the container so `coord` (view-index) is visible, honoring the
    * pinned-left/right bands. Public extension point for add-ons that move the active cell
    * programmatically, e.g. `data-grid-toolbar`'s search next/prev — never `scrollIntoView`
    * (see {@link scrollCellIntoView}'s own doc for why).

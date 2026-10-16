@@ -35,7 +35,7 @@ export type DataGridToolbarLabels = {
   /** aria-label for the `isBetween` range's maximum-value input. */
   filterValueToAriaLabel: string;
   removeFilterAriaLabel: string;
-  /** aria-label for a filter row's drag-handle grip (also moved via ArrowUp/ArrowDown while focused). */
+  /** aria-label for a filter row's drag-handle drag handle (also moved via ArrowUp/ArrowDown while focused). */
   reorderFilterAriaLabel: string;
   /** Polite live-region announcement after a filter row moves; `column` is the filter's column label, `position`/`total` are 1-based. */
   filterReorderAnnouncement: (column: string, position: number, total: number) => string;
@@ -61,7 +61,7 @@ export type DataGridSortLabels = {
   ascending: string;
   descending: string;
   removeSortAriaLabel: string;
-  /** aria-label for a sort row's drag-handle grip (also moved via ArrowUp/ArrowDown while focused). */
+  /** aria-label for a sort row's drag-handle drag handle (also moved via ArrowUp/ArrowDown while focused). */
   reorderSortAriaLabel: string;
   /** Polite live-region announcement after a sort row moves; `column` is the sort's column label, `position`/`total` are 1-based. */
   sortReorderAnnouncement: (column: string, position: number, total: number) => string;

@@ -97,17 +97,17 @@ presence highlight or a fill-drag frame cost zero row or cell renders.
   row range and `[0, colCount)`, or returns `null` when it falls fully outside. Call this before
   `splitRectByPinZones`.
 
-### Coordinate space: view-space, not rowId
+### Coordinate space: view-index, not rowId
 
 Every rect an overlay paints (`highlight.range`, a fill-drag preview, and so on) is in
-**view-space**: row indices into the current sorted or filtered display order, the same
+**view-index**: row indices into the current sorted or filtered display order, the same
 coordinate system as `GridSelection.current.range`. It is not an index into your raw `data`
 array, and it is not a `rowId`.
 
 This matters the moment two independent grids, or a grid and a remote peer, disagree about sort
 or filter state. A view-row index computed on one side goes stale the instant the other side's
 view changes. The fix, worked through in full with a `rowId`-to-view-row lookup helper, lives on
-[Multiplayer presence](/docs/addons/presence#coordinates-rowid-native-or-view-space).
+[Multiplayer presence](/docs/addons/presence#coordinates-rowid-native-or-view-index).
 Any overlay that receives coordinates from outside the grid (a network peer, a URL parameter,
 anywhere but the grid's own current selection) needs the same rowId-to-view-row mapping step
 before it paints.

@@ -91,7 +91,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * read `state.keymap` via {@link useDataGridKeymap}.
    */
   keymap?: Keymap;
-  /** Fired once per user gesture with the next data array and an id-keyed delta batch, after the grid stores that array. */
+  /** Fired once per user gesture with the next data array and a row-id-based delta batch, after the grid stores that array. */
   onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
   /**
    * Row-level cross-field validation, run once per touched row after a write gesture commits
@@ -139,7 +139,7 @@ export type DataGridSyncProps<TData = unknown> = {
   /**
    * Enables drag-to-reorder rows grid-wide; default true. The gesture is zone-based: it lives on
    * the marker's `reorder`-family modes only (`reorder`, `reorder-number`, `reorder-checkbox`,
-   * `reorder-both`) and only from the grip zone (the grip handle + cell background, or the whole
+   * `reorder-both`) and only from the drag handle zone (the drag handle + cell background, or the whole
    * cell in `reorder` mode) — plain `number`/`checkbox`/`both` markers stay pure row-select
    * surfaces, and within the reorder family the number/checkbox glyphs and Shift+drag always
    * stay the row-select gesture, so a selection drag never reorders.
@@ -522,7 +522,7 @@ export type UpdateCellsSkip = {
  *
  * `pending` is `true` when the batch is HELD for async validation — the verdict then reports
  * nothing about its outcome, and a held batch that is later superseded (a newer `updateCells`, or
- * a row-moving op) is dropped silently by design; track supersession on your own feed.
+ * a row-moving operation) is dropped silently by design; track supersession on your own feed.
  */
 export type UpdateCellsVerdict = {
   /** Cell writes applied (0 when nothing applied or the batch is `pending`). */
@@ -586,7 +586,7 @@ export type DataGridStoreState = Omit<
    * Two-stage Ctrl+A progression (select-all-progression.ts): which stage the last `selectAll`
    * produced, plus the exact `selection`/`activeCell` object identities it produced them against.
    * Any other action that replaces `selection` or `activeCell` (selectCell/extendTo/pushRange/
-   * selectRow/selectColumn/_moveActiveCell/edits/row ops) changes that identity, so `selectAll`
+   * selectRow/selectColumn/_moveActiveCell/edits/row operations) changes that identity, so `selectAll`
    * detects the mismatch and restarts from stage 1 — no need to instrument every reset site.
    */
   selectAllStage: { stage: "region" | "all"; selection: GridSelection; activeCell: ViewCoord | null } | null;
@@ -662,7 +662,7 @@ export type DataGridStoreState = Omit<
   /**
    * Whether `sortState`/`filterState`/`joinOperator`/`searchText` are controlled (their sync prop
    * was defined on the last `_syncProps`), set once per sync and read by `toggleSort`/`setSorts`/
-   * `setFilters`/`setJoinOperator`/`setSearch` (server escape hatch). Controlled mode:
+   * `setFilters`/`setJoinOperator`/`setSearch` (server override). Controlled mode:
    * the action still fires its `onXChange` callback but does NOT write the corresponding state
    * field itself — `_syncProps` is the only writer once the consumer's prop (and thus the store)
    * actually changes, standard controlled-input semantics (a callback-ignoring consumer's grid
@@ -672,7 +672,7 @@ export type DataGridStoreState = Omit<
   filterControlled: boolean;
   joinOperatorControlled: boolean;
   searchControlled: boolean;
-  /** Every cell matching `searchText`, view-space row-major order; computed once per `setSearch`/`_syncProps`/`setSorts`/`setFilters`, capped at 1000 hits with early exit. */
+  /** Every cell matching `searchText`, view-index row-major order; computed once per `setSearch`/`_syncProps`/`setSorts`/`setFilters`, capped at 1000 hits with early exit. */
   searchMatches: SearchMatch[];
   /** `searchMatches` as a `"${viewRow}:${columnId}"` Set for O(1) per-cell highlight lookup ({@link useDataGridIsSearchMatch}). */
   searchMatchSet: ReadonlySet<string>;
@@ -758,20 +758,20 @@ export type DataGridActions = {
    */
    /** Moves the active cell to the cell named by the stable {@link CellRef}; `null` clears it. */
    setActiveCell(ref: CellRef | null): void;
-   /** View-space variant of {@link DataGridActions.setActiveCell} for callers that hold a {@link ViewCoord}. */
+   /** View-index variant of {@link DataGridActions.setActiveCell} for callers that hold a {@link ViewCoord}. */
    setActiveCellAt(coord: ViewCoord | null): void;
    /** Selects the cell named by the stable {@link CellRef} as a single-cell selection. */
    selectCell(ref: CellRef): void;
-   /** View-space variant of {@link DataGridActions.selectCell} for callers that hold a {@link ViewCoord}. */
+   /** View-index variant of {@link DataGridActions.selectCell} for callers that hold a {@link ViewCoord}. */
    selectCellAt(coord: ViewCoord): void;
    /** Extends the selection to the cell named by the stable {@link CellRef}. */
    extendTo(ref: CellRef): void;
-   /** View-space variant of {@link DataGridActions.extendTo} for callers that hold a {@link ViewCoord}. */
+   /** View-index variant of {@link DataGridActions.extendTo} for callers that hold a {@link ViewCoord}. */
    extendToAt(coord: ViewCoord): void;
    extendSelection(direction: ExtendDirection, opts?: { toEdge?: boolean }): void;
    /** Pushes a ctrl-click range to the cell named by the stable {@link CellRef}. */
    pushRange(ref: CellRef): void;
-   /** View-space variant of {@link DataGridActions.pushRange} for callers that hold a {@link ViewCoord}. */
+   /** View-index variant of {@link DataGridActions.pushRange} for callers that hold a {@link ViewCoord}. */
    pushRangeAt(coord: ViewCoord): void;
   selectRow(index: number, opts?: SelectLineActionOptions): void;
   selectColumn(index: number, opts?: SelectLineActionOptions): void;
@@ -858,7 +858,7 @@ export type DataGridActions = {
   setSearch(text: string): void;
   /** Enters edit mode at the cell named by the stable {@link CellRef}, cancelling an open session first; no-op when the grid or column is readOnly, or its type is unregistered or declares `activate`. */
   startEditing(ref: CellRef, initialText?: string): void;
-  /** View-space variant of {@link DataGridActions.startEditing} for callers that hold a {@link ViewCoord}. */
+  /** View-index variant of {@link DataGridActions.startEditing} for callers that hold a {@link ViewCoord}. */
   startEditingAt(coord: ViewCoord, initialText?: string): void;
   /** Discards the in-progress edit without emitting a change. */
   cancelEditing(): void;
@@ -872,7 +872,7 @@ export type DataGridActions = {
   commitCellEdit(value: unknown, movement?: { dx: number; dy: number }, rejection?: string): void;
   /** Direct-write path for types with no edit mode (checkbox): validates and commits `value` at the cell named by the stable {@link CellRef} without requiring `startEditing` first, and never moves the active cell. No-op in a read-only grid. */
   commitCellValue(ref: CellRef, value: unknown): void;
-  /** View-space variant of {@link DataGridActions.commitCellValue} for callers that hold a {@link ViewCoord}. */
+  /** View-index variant of {@link DataGridActions.commitCellValue} for callers that hold a {@link ViewCoord}. */
   commitCellValueAt(coord: ViewCoord, value: unknown): void;
   /**
    * Sets `editingError` and bumps `editingRejectionCount` (the editors' commit-guard re-arm
@@ -902,7 +902,7 @@ export type DataGridActions = {
   /** Clears every non-readOnly cell in the current selection to its type's clearValue(), as one batch DataChange. */
   deleteSelection(): void;
   /**
-   * The one generic multi-cell write path: applies `updates` (view-space coords via `viewRow`) as
+   * The one generic multi-cell write path: applies `updates` (view-index coords via `viewRow`) as
    * a single `source`-tagged DataChange batch. Dedupes multiple updates to the same row/column
    * (last write wins), skips readOnly cells and no-op writes, preserves identity of untouched rows,
    * suppresses an empty batch entirely, and moves the selection to cover the touched view rect.
@@ -910,7 +910,7 @@ export type DataGridActions = {
    */
   applyCellUpdates(updates: { viewRowIndex: number; columnId: string; value: unknown }[], source: DataChange<unknown>["source"], rejected?: readonly GridBulkValidationError[]): void;
   /**
-   * The streaming write path: applies id-keyed {@link CellPatch}es in ONE `set()` and skips the
+   * The streaming write path: applies row-id-based {@link CellPatch}es in ONE `set()` and skips the
    * `computeViewIndex`/`computeSearchMatches` rebuild that a `data` prop replacement forces. This is
    * what makes streaming under an active sort viable — a controlled `data` replacement costs ~56 ms
    * per tick at 100k rows with one sort column, against ~0.15 ms here.
@@ -926,7 +926,7 @@ export type DataGridActions = {
   /** Rebuilds the view index that a deferred `updateCells` postponed, and clears `viewStale`. No-op when the view is not stale. */
   reconcileView(): void;
   /**
-   * Inserts one row built by the `createRow` sync prop above/below `viewRowIndex` (view-space).
+   * Inserts one row built by the `createRow` sync prop above/below `viewRowIndex` (view-index).
    * External name that maps to the single internal batch path - it runs
    * {@link insertRows} with count 1, so both share one implementation, one `onDataChange`,
    * and one undo step.
@@ -934,18 +934,18 @@ export type DataGridActions = {
   insertRow(viewRowIndex: number, position: "above" | "below"): void;
   /**
    * Inserts `count` rows built by the `createRow` sync prop (called with `dataRowIndex + i`)
-   * above/below `viewRowIndex` (view-space) as ONE `{source: 'row-op'}` DataChange with one
-   * id-keyed `insert` op per row - a single undo entry. Dev-warning no-op when `createRow` is
+   * above/below `viewRowIndex` (view-index) as ONE `{source: 'row-op'}` DataChange with one
+   * row-id-based `insert` operation per row - a single undo entry. Dev-warning no-op when `createRow` is
    * absent; silent no-op for `count <= 0`.
    */
   insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): void;
-  /** Deletes the rows at `viewRowIndexes` (view-space) as one `{source: 'row-op'}` DataChange with id-keyed `delete` ops. */
+  /** Deletes the rows at `viewRowIndexes` (view-index) as one `{source: 'row-op'}` DataChange with row-id-based `delete` operations. */
   deleteRows(viewRowIndexes: number[]): void;
   /** Deletes the rows with the given ids (the shape `getRowIds()` returns) as one `{source: 'row-op'}` DataChange; ids that match no row are skipped. */
   deleteRowsById(rowIds: readonly string[]): void;
   /**
-   * Duplicates the rows at `viewRowIndexes` (view-space), inserting each copy directly after its
-   * source row, as one `{source: 'row-op'}` DataChange with id-keyed `insert` ops. Dev-warning
+   * Duplicates the rows at `viewRowIndexes` (view-index), inserting each copy directly after its
+   * source row, as one `{source: 'row-op'}` DataChange with row-id-based `insert` operations. Dev-warning
    * no-op when the `duplicateRow` sync prop is absent — required so
    * every duplicated row gets a distinct id, never colliding with its source's React key.
    */
@@ -953,7 +953,7 @@ export type DataGridActions = {
   /**
    * Moves the row at view index `from` so it lands at view index `to` (final position — arrayMove
    * semantics: `from < to` shifts rows `from+1..to` up one, `from > to` shifts rows `to..from-1`
-   * down one). One `{source: 'row-op'}` DataChange with a single id-keyed `move` op (one undo
+   * down one). One `{source: 'row-op'}` DataChange with a single row-id-based `move` operation (one undo
    * entry). No-ops (silent, dev-warned where the cause is a misconfiguration): `enableRowReorder`
    * off, readOnly, an open edit session (the editor pins a view coordinate the move would
    * invalidate), an active sort/filter (the view order is owned by the sort/filter, not the data),
@@ -963,11 +963,11 @@ export type DataGridActions = {
    */
   reorderRows(from: number, to: number): boolean;
   /**
-   * The single generic data-write action: applies a whole {@link DataChange} (a consumer-built op
+   * The single generic data-write action: applies a whole {@link DataChange} (a consumer-built operation
    * batch or a history-inverted one) in ONE write and emits `onDataChange` EXACTLY ONCE - one undo
-   * entry in the history add-on - like a gesture. Ops resolve by row id through `applyChange`: an
-   * op whose row is gone is skipped silently, and a batch where no op applies writes and emits
-   * nothing. Row-moving ops (insert, delete, move) run the row-op view bookkeeping - full view
+   * entry in the history add-on - like a gesture. Operations resolve by row id through `applyChange`: an
+   * operation whose row is gone is skipped silently, and a batch where no operation applies writes and emits
+   * nothing. Row-moving operations (insert, delete, move) run the row-op view bookkeeping - full view
    * rebuild, `rowIdentityVersion` bump, and the row channel and the active cell follow their
    * records - while an update-only batch keeps the selection and cursor as-is (the rebuild only
    * re-orders rows under an active sort). Cell errors clear for the written cells, and errors of
@@ -987,7 +987,7 @@ export type DataGridInternalActions = {
    * cleared cells. Not part of the public hook surface.
    */
   _deleteCellsById(rowIds: readonly string[], columnIds: readonly string[]): void;
-  /** @internal keyboard nav helper: moves/extends the active cell by a view-space delta, clamped to view bounds. */
+  /** @internal keyboard nav helper: moves/extends the active cell by a view-index delta, clamped to view bounds. */
   _moveActiveCell(d: { dx: number; dy: number }, opts?: { extend?: boolean; retain?: boolean }): void;
   /** @internal syncs live consumer props and recomputes derived state; not part of the public hook surface. */
   _syncProps(props: InternalSyncProps): void;

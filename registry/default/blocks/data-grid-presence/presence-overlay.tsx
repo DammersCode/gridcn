@@ -101,7 +101,7 @@ const PresenceLabelChip = memo(function PresenceLabelChip({
 });
 
 /**
- * Resolves rowId-native entries to view-space {@link PresenceHighlight}s via the caller's
+ * Resolves rowId-native entries to view-index {@link PresenceHighlight}s via the caller's
  * `rowId -> view row` map. A single-cell entry resolves to a 1×1 rect; a range entry paints one
  * rect per contiguous run of resolved rows × resolved columns.
  *
@@ -197,7 +197,7 @@ function contiguousRuns(values: number[]): { min: number; length: number }[] {
  * segmentation pipeline core's own built-in overlays use (via `ctx`), so a highlight spanning a
  * pinned column splits into pinned/unpinned segments and paints at the pinned cell's actual screen
  * position exactly like a selection range does. This is the function registered as `OverlayPlugin`.
- * `highlights` must already be resolved to view-space (see {@link resolveHighlights}) — the caller
+ * `highlights` must already be resolved to view-index (see {@link resolveHighlights}) — the caller
  * (`makePresencePlugin`) does that resolution itself since it's the one already subscribed to core
  * hooks inside `DataGridOverlays`'s render, keeping this function a plain (hook-free) renderer.
  */

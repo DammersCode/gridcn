@@ -436,7 +436,7 @@ describe("pruning on row-shape changes", () => {
     const initialRows = rows();
     // renderHook's `rerender(props)` only re-invokes the hook callback, never the wrapper (RTL only
     // forwards `initialProps` to the FIRST render) — a stateful host component with an imperative
-    // "replace data" escape hatch is what actually drives a controlled `data` prop change here.
+    // "replace data" override is what actually drives a controlled `data` prop change here.
     let setData: ((rows: Row[]) => void) | null = null;
     let harness: ReturnType<typeof useHarness> | null = null;
     function Host() {

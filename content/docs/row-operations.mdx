@@ -5,7 +5,7 @@ icon: Rows3
 status: updated
 ---
 
-Inserting, duplicating, deleting, and reordering whole rows. All four act on **view-space**
+Inserting, duplicating, deleting, and reordering whole rows. All four act on **view-index**
 indices (the sorted/filtered positions the user sees), emit one `onDataChange` with
 `source: "row-op"` each, and work in both controlled and uncontrolled grids.
 
@@ -27,9 +27,9 @@ drop](/docs/examples/rows/drag-reorder) · [Action buttons](/docs/examples/rows/
 
 `duplicateRow` receives the source row and the data index the copy lands at, and must give the
 copy a distinct id (a spread copy with a fresh `id`), so a duplicate never collides with its
-source row's React key. `createRow` receives the data-space insertion index. Row ops apply
-while an edit session is open: the op lands and the open edit re-anchors to its row's new view
-position, keeping the typed draft while the row stays in the rendered rows. An op that
+source row's React key. `createRow` receives the data-space insertion index. Row operations apply
+while an edit session is open: the operation lands and the open edit re-anchors to its row's new view
+position, keeping the typed draft while the row stays in the rendered rows. An operation that
 removes the edited row cancels the session, drops the draft, and fires `onEditEnd` with
 `result: "cancel"`.
 
@@ -52,7 +52,7 @@ prop like every other binding (see [Keybindings](/docs/addons/keybindings#remapp
 Drag a row marker vertically to reorder rows. A thin line marks the drop target, and the row
 moves on release. The gesture is zone-based. The press location decides the behavior, not later
 movement. In the `reorder`-family marker modes (`reorder`, `reorder-number`, `reorder-checkbox`,
-`reorder-both`), the **grip zone**, a 20px column at the start of the marker cell (the whole cell in
+`reorder-both`), the **drag handle zone**, a 20px column at the start of the marker cell (the whole cell in
 `reorder` mode), is the only reorder entry. A press there never changes the selection or the
 checkbox, and a vertical drag that leaves the row reorders it. The **number
 and checkbox glyphs stay pure row-select surfaces**: a press on them selects (click) or drags a
@@ -61,12 +61,12 @@ surfaces across the cell. A selection drag can never accidentally reorder.
 
 | Prop | Role | Default |
 |---|---|---|
-| `rowMarkers` (`reorder` family) | supplies the grip zone (drag handle) | `none` has nothing to grab |
+| `rowMarkers` (`reorder` family) | supplies the drag handle zone | `none` has nothing to grab |
 | `enableRowReorder` | grid-wide switch | `true` |
 
 The programmatic form is `reorderRows(from, to)` from `useDataGridActions`, where `to` is the
 **final** landing position (arrayMove semantics: moving row 0 to index 3 shifts rows 1–3 up).
-It emits one id-keyed `move` op, so undo/redo restores the previous order in a single step.
+It emits one row-id-based `move` operation, so undo/redo restores the previous order in a single step.
 Row-channel selection remaps by row id (the moved row keeps its selection state) and the active
 cell follows its row, and the open edit's editor does too. Each completed move is announced
 through the grid's `aria-live` region (`labels.markers.reorderAnnouncement`).
@@ -83,7 +83,7 @@ through the grid's `aria-live` region (`labels.markers.reorderAnnouncement`).
 </Callout>
 
 <Callout type="warn" title="Position-based data goes stale">
-  Search match counts and presence highlights in the original view-space `range` form reference
+  Search match counts and presence highlights in the original view-index `range` form reference
   positions, not row ids, so they go stale after a move (the same parity as `insertRows`).
   Presence's rowId-native range form ([Multiplayer presence](/docs/addons/presence)) tracks
   its rows through the move.
@@ -156,7 +156,7 @@ function MyToolbar() {
 
 Selection behavior: insert and duplicate keep the selection, offsetting it around the inserted
 rows. Delete clears the entire selection and the active cell. All three fire `onDataChange` with
-`source: "row-op"` and id-keyed `insert`/`delete` ops, which is what undo/redo and export consume.
+`source: "row-op"` and row-id-based `insert`/`delete` operations, which is what undo/redo and export consume.
 
 ## Row markers
 
@@ -176,8 +176,8 @@ from the `columns` array, and reorder and resize do not affect it. Set `rowMarke
 | `"number"` | The 1-based view row index, non-interactive. |
 | `"checkbox"` | A per-row checkbox that drives the rows selection channel, plus a select-all checkbox in the marker header. |
 | `"both"` | The row number, replaced by the checkbox on hover or when the row is selected (a group-hover pattern). The number is never gone. The checkbox only sits in front of it at the moment the checkbox is actionable. |
-| `"reorder"` | A grip handle. The whole cell is the grip zone that drag-reorders the row. No number or checkbox. |
-| `"reorder-number"` / `"reorder-checkbox"` / `"reorder-both"` | The grip zone (a 20px column with the grip handle) plus the number and/or checkbox content, which stay row-select surfaces. |
+| `"reorder"` | A drag handle. The whole cell is the drag handle zone that drag-reorders the row. No number or checkbox. |
+| `"reorder-number"` / `"reorder-checkbox"` / `"reorder-both"` | The drag handle zone (a 20px column with the drag handle) plus the number and/or checkbox content, which stay row-select surfaces. |
 
 Only the `reorder` family arms the [drag-to-reorder gesture](#reorder). The plain modes are pure
 row-select surfaces. Marker press and drag, in the plain modes, selects a contiguous multi-row

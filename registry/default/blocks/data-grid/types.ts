@@ -82,13 +82,13 @@ export namespace StandardSchemaV1 {
 // case, else `accessorKey` collapses to an uninhabited `undefined` field.
 export type AccessorKeyOf<TData> = unknown extends TData ? string : keyof TData & string;
 
-/** Cell coordinate in view space: 0-based view row (sorted/filtered, not a data index) and 0-based visible-column index (marker columns excluded). It reshuffles under sort and filter — never persist it or compare it across a reorder; address cells by {@link CellRef} instead. */
+/** Cell coordinate in view-index: 0-based view row (sorted/filtered, not a data index) and 0-based visible-column index (marker columns excluded). It reshuffles under sort and filter — never persist it or compare it across a reorder; address cells by {@link CellRef} instead. */
 export type ViewCoord = { col: number; row: number };
 
 /** Stable cell identity: the row's `getRowId()` value plus the column's id. Survives sort, filter, and reorder — the coordinate for actions and the identity the cell ctx hands out. A ref whose row is not in the current data (filtered out, paged away, deleted) or whose column is hidden does not resolve: the action is a no-op, and dev mode warns once per grid. */
 export type CellRef = { rowId: string; columnId: string };
 
-/** A {@link CellRef} plus the view-space position the cell occupied when the event fired. */
+/** A {@link CellRef} plus the view-index position the cell occupied when the event fired. */
 export type ViewCellRef = CellRef & {
   /** The view (display) row index at fire time. */
   viewRowIndex: number;
@@ -128,9 +128,9 @@ export type RowMarkersContent = "number" | "checkbox" | "both";
  * column index space (ViewCoord.col / aria-colindex / aria-colcount are all untouched by it).
  * The plain modes (`number`/`checkbox`/`both`) render the selection chrome only and keep the
  * marker a pure row-select surface — a drag there is always the row-range select. The
- * `reorder`-prefixed family renders the grip handle on top of the suffix's content and is the
+ * `reorder`-prefixed family renders the drag handle on top of the suffix's content and is the
  * ONLY family that arms the drag-to-reorder gesture (still gated grid-wide by `enableRowReorder`),
- * and the press ZONE decides the gesture: the grip zone reorders on drag and never changes the selection, while the checkbox glyph and the number/rest of the cell stay pure row-select.
+ * and the press ZONE decides the gesture: the drag handle zone reorders on drag and never changes the selection, while the checkbox glyph and the number/rest of the cell stay pure row-select.
  */
 export type RowMarkersMode = "none" | RowMarkersContent | "reorder" | `reorder-${RowMarkersContent}`;
 
@@ -175,7 +175,7 @@ export type SelectionConfig = {
   enableMultiRange: boolean;
 };
 
-/** One data mutation. Ops are id-keyed so history survives sort/filter (never index-keyed). */
+/** One data mutation. Operations are row-id-based so history survives sort/filter (never index-keyed). */
 export type DataOp<TData> =
   | {
       type: "update";
@@ -223,7 +223,7 @@ export type CellRenderProps<TData, TValue, TOptions = unknown> = {
   rowId: string;
   /** The column's id. With `rowId`, addresses this cell stably. */
   columnId: string;
-  /** Display (view-space) row index: the sorted/filtered position, matching what the user sees. NOT a stable index into `data` — it reshuffles under sort and filter. */
+  /** Display (view-index) row index: the sorted/filtered position, matching what the user sees. NOT a stable index into `data` — it reshuffles under sort and filter. */
   viewRowIndex: number;
   /** The column's `options`, typed through `TOptions` (your declared options type) when the cell type is parameterized with it. */
   options?: TOptions;
@@ -248,7 +248,7 @@ export type CellClassNameCtx<TData, TValue> = {
   // TValue itself is erased to `unknown` at the array-common-type boundary — see types.ts's
   // ColumnDef.validate doc and store.tsx's AnyColumnDef doc for the full reasoning.
   column: ColumnDef<TData, TValue, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
-  /** Display (view-space) row index — the sorted/filtered position, matching what the user sees. */
+  /** Display (view-index) row index — the sorted/filtered position, matching what the user sees. */
   viewRowIndex: number;
 };
 
@@ -272,7 +272,7 @@ export type CellClickCtx<TData, TValue> = {
   rowId: string;
   /** The column's id. With `rowId`, addresses this cell stably. */
   columnId: string;
-  /** Display (view-space) row index — matches {@link CellClassNameCtx.viewRowIndex}. */
+  /** Display (view-index) row index — matches {@link CellClassNameCtx.viewRowIndex}. */
   viewRowIndex: number;
   /** Data-column index (not the marker column) — matches `ViewCoord.col`. */
   viewColumnIndex: number;

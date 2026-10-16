@@ -200,7 +200,7 @@ The dialog never writes to the grid directly. `onImport(rows)` hands you the ful
 array, and you decide how to apply it: replace all data, append it, or run it through your own
 `onDataChange` for history or audit purposes. See the demo above, which routes imported rows
 through `actions.commitChange` as one `source: "import"` change with an explicit `delete` and
-`insert` ops batch, so the replace lands on the undo stack as a single entry.
+`insert` operations batch, so the replace lands on the undo stack as a single entry.
 
 ### Excel files
 

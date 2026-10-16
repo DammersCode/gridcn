@@ -34,21 +34,21 @@ export type RowReorderHandlers = {
 };
 
 /**
- * Drag-to-reorder rows. The marker cell routes presses to this hook from the grip zone only
+ * Drag-to-reorder rows. The marker cell routes presses to this hook from the drag handle zone only
  * (see DataGridMarkerCell's zone routing), so the gesture never shares a press with the
  * row-select range-drag — no coexistence disambiguation is needed. The caller passes `enabled`
- * only for the marker's `reorder` family (see RowMarkersMode). Within an armed grip press:
+ * only for the marker's `reorder` family (see RowMarkersMode). Within an armed drag handle press:
  * **a vertical drag that leaves the origin row becomes a reorder drag** (mirrors
  * {@link import("../columns/use-column-reorder").useColumnReorder}); a press+drag that never leaves
- * the origin row (or moves before `REORDER_THRESHOLD`) is a no-op: a grip press never changes the
- * selection. The grip zone is never armed on <kbd>Shift</kbd>.
+ * the origin row (or moves before `REORDER_THRESHOLD`) is a no-op: a drag handle press never changes the
+ * selection. The drag handle zone is never armed on <kbd>Shift</kbd>.
  *
  * While armed, the hook auto-scrolls the grid's scroll element (same zone/step as the interaction
  * layer's select-drag) when the pointer sits beyond a viewport edge, and re-resolves the drop
  * boundary after each scrolled frame so a stationary pointer keeps tracking the scrolling content
  * — rows outside the rendered window stay reachable through that auto-scroll. When the drag
- * arms, the hook takes pointer capture on the scroll element, never the grip: a touch pointer's
- * implicit capture on the grip releases when the grip's row unmounts mid-auto-scroll, which would
+ * arms, the hook takes pointer capture on the scroll element, never the drag handle: a touch pointer's
+ * implicit capture on the drag handle releases when the drag handle's row unmounts mid-auto-scroll, which would
  * sever the gesture's document-level tracking. <kbd>Escape</kbd> cancels the gesture in flight.
  */
 export function useRowReorder(args: {
@@ -149,7 +149,7 @@ export function useRowReorder(args: {
           if (dy < REORDER_THRESHOLD) return;
           const hit = argsRef.current.hitTestRow(e.clientX, e.clientY);
           if (!hit || hit.row === pending.row) return;
-          // the grip can unmount mid-auto-scroll; the scroll element's capture outlives the drag
+          // the drag handle can unmount mid-auto-scroll; the scroll element's capture outlives the drag
           const captureEl = argsRef.current.getScrollElement();
           safeSetPointerCapture(captureEl, pending.pointerId);
           captureRef.current = captureEl ? { el: captureEl, pointerId: pending.pointerId } : null;

@@ -1,7 +1,7 @@
 import { GRID_ATTR, gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /**
- * Which surface a `contextmenu` event landed on, in view-space coordinates: a data cell (`row`
+ * Which surface a `contextmenu` event landed on, in view-index coordinates: a data cell (`row`
  * from `[role=row]`'s `data-grid-row-index`, `col` from the gridcell's `aria-colindex`), a header
  * (`col` from the columnheader's `aria-colindex`), or neither (e.g. empty-state, scrollbar gutter).
  */

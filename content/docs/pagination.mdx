@@ -51,7 +51,7 @@ rendering performance, and using the two together is not supported. When to pick
       editable, merge the edited slice back into your full dataset by row id. Do not pass the
       page-sliced array straight into a setter that owns the whole dataset. That silently drops
       every row outside the current page. See [Recipes: server round-trip](/docs/recipes/data-fetching/server-round-trip) for the same
-      id-keyed merge pattern applied to a real API instead of local state.
+      row-id-based merge pattern applied to a real API instead of local state.
     </Callout>
 
     <Callout type="warn" title="In client mode, everything the grid sees is page-local">

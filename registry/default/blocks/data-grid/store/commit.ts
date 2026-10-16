@@ -210,7 +210,7 @@ export function resolveEditTarget(
  * Applies `writes` (view-row + column-id + already-resolved value) against `s`, deduping multiple
  * writes to the same row/column (last one wins), skipping readOnly cells, unresolvable rows/columns,
  * and no-op values (`Object.is` against the current value). Shared by `deleteSelection` and
- * `applyCellUpdates` so both funnel through one row-edit accumulation + op-building path.
+ * `applyCellUpdates` so both funnel through one row-edit accumulation + operation-building path.
  */
 export function computeRowEditsBatch(
   s: DataGridStoreState,
@@ -262,7 +262,7 @@ export function computeRowEditsBatch(
 }
 
 /**
- * Applies id-keyed {@link CellPatch}es against `s` — the direct-update path's counterpart to
+ * Applies row-id-based {@link CellPatch}es against `s` — the direct-update path's counterpart to
  * {@link computeRowEditsBatch}. Differences, all deliberate: rows are addressed by STABLE ROW ID
  * through the caller-supplied `rowIndex` map (never a view index, so a patch survives an active
  * sort), and every column is resolvable, not only visible ones (a streaming producer must be able
@@ -429,7 +429,7 @@ function keepAccepted(patches: readonly CellPatch[], results: readonly ValidateR
   return out;
 }
 
-/** Builds a multi-row insert batch: `rows` spliced into `s.data` at `dataRowIndex`, plus one id-keyed insert op per row (snapshot indices `dataRowIndex + i`, ascending). */
+/** Builds a multi-row insert batch: `rows` spliced into `s.data` at `dataRowIndex`, plus one row-id-based insert operation per row (snapshot indices `dataRowIndex + i`, ascending). */
 export function computeInsertRowsBatch(
   s: DataGridStoreState,
   dataRowIndex: number,
@@ -447,7 +447,7 @@ export function computeInsertRowsBatch(
 
 /**
  * Builds a multi-row delete batch: `dataRowIndexes` (deduped, descending so earlier splices don't
- * shift later indexes) removed from `s.data`, plus their id-keyed delete ops in the original
+ * shift later indexes) removed from `s.data`, plus their row-id-based delete operations in the original
  * (ascending) row order.
  */
 export function computeDeleteBatch(
@@ -472,8 +472,8 @@ export function computeDeleteBatch(
 /**
  * Builds a multi-row duplicate batch: each of `dataRowIndexes` (deduped, ascending) is copied via
  * the required `s.duplicateRow` and spliced immediately after its source row. Processed descending
- * so earlier splices don't shift the still-pending source indexes; ops are returned in ascending
- * source order for a stable, predictable id-keyed batch. Caller (`duplicateRows`) guarantees
+ * so earlier splices don't shift the still-pending source indexes; operations are returned in ascending
+ * source order for a stable, predictable row-id-based batch. Caller (`duplicateRows`) guarantees
   * `duplicateRow` is present — a shallow-spread fallback would keep the source's `getRowId()`,
   * colliding two sibling rows' React key.
  */

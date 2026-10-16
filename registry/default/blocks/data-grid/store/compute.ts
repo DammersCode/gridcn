@@ -225,7 +225,7 @@ export const EMPTY_FLASHING_CELLS: ReadonlySet<string> = new Set();
 /** Shared empty-Map identity for the no-search-active state; mirrors {@link EMPTY_SEARCH_MATCH_SET}. */
 export const EMPTY_SEARCH_MATCH_ROWS: ReadonlyMap<number, ReadonlySet<number>> = new Map();
 
-/** Stable key for {@link DataGridStoreState.cellErrors}: `"${rowId}:${columnId}"` — row-id-space, unlike {@link searchMatchKey}'s view-space, so an error survives a sort/filter that moves its row. */
+/** Stable key for {@link DataGridStoreState.cellErrors}: `"${rowId}:${columnId}"` — row-id-space, unlike {@link searchMatchKey}'s view-index, so an error survives a sort/filter that moves its row. */
 export function cellErrorKey(rowId: string, columnId: string): string {
   return `${rowId}:${columnId}`;
 }
@@ -247,7 +247,7 @@ function cellErrorKeyIsLive(key: string, liveRowIds: ReadonlySet<string>): boole
 export const EMPTY_CELL_ERRORS: ReadonlyMap<string, string> = new Map();
 
 /**
- * Auto-clear (a stale error must not linger after the user fixed the cell): every `update` op's
+ * Auto-clear (a stale error must not linger after the user fixed the cell): every `update` operation's
  * `cells` names the exact rowId+columnId pairs a write path just committed a new value to, so this
  * drops exactly those keys from `cellErrors` and returns the SAME map identity when none of them
  * were present — the common case (no server errors active) never allocates.

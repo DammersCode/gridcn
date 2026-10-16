@@ -234,7 +234,7 @@ describe("multiplayer presence: setPresenceHighlights renders ONLY the highlight
 
 /**
  * rowId-native entries (2026-08-02 optimization audit, "rowId-native presence adapter"): the plugin
- * resolves `{ rowId, columnId }` to a view-space cell using the SAME `useDataGridRowIdToViewRow()`
+ * resolves `{ rowId, columnId }` to a view-index cell using the SAME `useDataGridRowIdToViewRow()`
  * core hook the docs now point consumers at, instead of a manual `useShallow`-over-`useDataGridRowIds`
  * map that cost O(n) per store change. These tests exercise resolution through the real overlay
  * plugin pipeline (`DataGridRoot`/`DataGridBody` mounted), unlike the zero-render probes above which
@@ -851,8 +851,8 @@ function ActionsCapture({ onReady }: { onReady: (actions: ReturnType<typeof useD
   return null;
 }
 /**
- * Stale view-space entry warning: a view-space highlight follows its rect, not its rows, so a
- * row-moving or column-moving store write while a view-space entry is active leaves it pointing
+ * Stale view-index entry warning: a view-index highlight follows its rect, not its rows, so a
+ * row-moving or column-moving store write while a view-index entry is active leaves it pointing
  * at the wrong cells. The plugin's Mount (core no longer has a presence seam) dev-warns once per
  * grid when it detects the move.
  */

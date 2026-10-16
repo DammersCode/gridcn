@@ -101,7 +101,7 @@ status: updated
       `getRowId` returns each row's id. It defaults to the row's `id` field and throws for a row
       without one, so the example above omits the prop. Pass `getRowId` when the id lives
       elsewhere. The id must be stable and unique for each row. Two rows that share an id corrupt
-      selection, editing, and undo and redo, because every internal lookup is id-keyed (it finds
+      selection, editing, and undo and redo, because every internal lookup is row-id-based (it finds
       a row by its id, not by its position). When you
       change what `getRowId` returns, pass a new `data` array in the same render. In development,
       the grid warns when `getRowId` returns other ids while `data` keeps its array.
@@ -209,8 +209,8 @@ The current data is the data you hold. After each change, call `onDataChange(nex
 `next`. The grid reads the array you pass back in.
 
 `onDataChange` fires once per user gesture (one edit, one paste, one fill, or one delete-range).
-It passes the next array and an id-keyed ops batch. See [Recipes](/docs/recipes) for how to use
-the ops batch directly, for example to sync to a server. `onDataChange` also fires in
+It passes the next array and a row-id-based operations batch. See [Recipes](/docs/recipes) for how to use
+the operations batch directly, for example to sync to a server. `onDataChange` also fires in
 uncontrolled (`defaultData`) mode, as an optional notification. The grid applies the change
 internally either way.
 

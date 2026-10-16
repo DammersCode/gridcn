@@ -26,7 +26,7 @@ export type UseDataGridPresenceOptions = {
 
 /** Return value of {@link useDataGridPresence}. */
 export type UseDataGridPresenceResult = {
-  /** One entry of the grid's `plugins` prop — the plugin's `Overlay` paints the highlights, its `Mount` dev-warns once when rows/columns move under an active view-space entry. Stable for the component's lifetime. An inline `plugins={[plugin]}` is fine: re-resolution is gated on entry identity (name + member references), not on the array's. */
+  /** One entry of the grid's `plugins` prop — the plugin's `Overlay` paints the highlights, its `Mount` dev-warns once when rows/columns move under an active view-index entry. Stable for the component's lifetime. An inline `plugins={[plugin]}` is fine: re-resolution is gated on entry identity (name + member references), not on the array's. */
   plugin: DataGridPlugin<unknown>;
   /** The real (imperative) mechanism: call directly from your websocket/CRDT handler. */
   setPresenceHighlights(highlights: readonly PresenceHighlightEntry[]): void;
@@ -129,7 +129,7 @@ function createPresenceOverlay(
   return PresenceOverlay;
 }
 
-/** The plugin's mount component: dev-warns once when a row-moving or column-moving store write lands while a view-space entry is active — that entry's highlight position is now stale (view-space entries follow their rect, not their rows). */
+/** The plugin's mount component: dev-warns once when a row-moving or column-moving store write lands while a view-index entry is active — that entry's highlight position is now stale (view-index entries follow their rect, not their rows). */
 function createPresenceMount(store: PresenceStoreApi): ComponentType {
   function PresenceMount(): ReactNode {
     const gridStoreApi = useDataGridStoreApi();

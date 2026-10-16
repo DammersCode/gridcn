@@ -66,7 +66,7 @@ export type UseDataGridHistoryResult<TData> = {
    */
   rollback: (change: DataChange<TData>) => void;
   /**
-   * Applies a programmatic change (the consumer-built op batch) to the grid as one write AND
+   * Applies a programmatic change (the consumer-built operation batch) to the grid as one write AND
    * registers it as one undo entry — `commitChange` with `source: "app"`, which the observer
    * records like any user gesture. No-op when the grid is not mounted yet or is read-only.
    * `label` is an optional human-readable entry label.
@@ -75,9 +75,9 @@ export type UseDataGridHistoryResult<TData> = {
 };
 
 /**
- * Op-based undo/redo as a grid plugin. Records the grid's own `onDataChange` stream (the observer
+ * Operation-based undo/redo as a grid plugin. Records the grid's own `onDataChange` stream (the observer
  * runs after the store write and after the consumer's `onDataChange`), and undoes/redoes by
- * applying the inverted op batch back through the grid's `commitChange` — one write, one emit,
+ * applying the inverted operation batch back through the grid's `commitChange` — one write, one emit,
  * so a controlled `data` prop sees the same change the user made.
  *
  * Design: the plugin does not take `data`/`setData` — the grid's store is the write target, and
@@ -125,7 +125,7 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
     if (!warnedSparseData && isDev() && hasSparseHoles(api.store.getState().data)) {
       warnedSparseData = true;
       console.warn(
-        "[data-grid-history] undo ran over a sparse (lazy) data array: unloaded rows are holes and their ops are skipped. Use a hole-tolerant getRowId and pass a datasetKey (or call clear()) on lazy.reset() or a dataset swap.",
+        "[data-grid-history] undo ran over a sparse (lazy) data array: unloaded rows are holes and their operations are skipped. Use a hole-tolerant getRowId and pass a datasetKey (or call clear()) on lazy.reset() or a dataset swap.",
       );
     }
     api.actions.commitChange(change);

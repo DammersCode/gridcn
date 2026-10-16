@@ -24,7 +24,7 @@ export function snapshotBulkBatch(s: DataGridReadState, rowIds: readonly string[
   return { rowIds, sortState: s.sortState, filterState: s.filterState };
 }
 
-/** The distinct row ids a view-space bulk batch targets — resolved NOW, so a later reorder can still find them. */
+/** The distinct row ids a view-index bulk batch targets — resolved NOW, so a later reorder can still find them. */
 export function candidateRowIds(s: DataGridReadState, candidates: readonly { viewRowIndex: number }[]): string[] {
   const rowIds = new Set<string>();
   for (const candidate of candidates) {

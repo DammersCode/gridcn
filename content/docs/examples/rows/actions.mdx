@@ -49,7 +49,7 @@ actions.duplicateRows([rowIndex]);
 actions.deleteRows([rowIndex]);
 ```
 
-`viewRowIndex` is the **view-space** position, exactly what the row-op actions expect (no
+`viewRowIndex` is the **view-index** position, exactly what the row-op actions expect (no
 index translation needed). Cell actions like `startEditing` take a stable `CellRef`
 (`{ rowId, columnId }`) by default; the `*At` variants take the `viewRowIndex`/column position
 instead. Target the row by identity through `rowId` (in `renderCell`'s props) whenever the

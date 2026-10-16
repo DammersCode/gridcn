@@ -131,7 +131,7 @@ function RowOpsControls({
 /**
  * Row operations from two surfaces: the toolbar (acting on the current row selection) and the
  * right-click context menu (acting on the clicked row). The panel on the right shows the last
- * `onDataChange` payload so the op-shape contract (source + id-keyed ops) stays visible.
+ * `onDataChange` payload so the operation contract (source + row-id-based operations) stays visible.
  */
 export default function DataGridRowOpsDemo(): ReactNode {
   const rows = useMemo(() => generateDemoRows(8), []);

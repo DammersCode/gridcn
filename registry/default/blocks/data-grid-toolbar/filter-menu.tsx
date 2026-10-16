@@ -60,11 +60,11 @@ function moveItem<T>(list: T[], fromIndex: number, toIndex: number): T[] {
 /**
  * Popover listing active filters as one aligned grid row per filter — anatomy ported from tablecn's
  * `DataTableFilterList` (a join cell: "Where" on row 1, an And/Or select on row 2, static join text
- * on rows 3+; field select; operator select; typed value input; trash icon-button; grip drag
+ * on rows 3+; field select; operator select; typed value input; trash icon-button; drag handle drag
  * handle; footer "Add filter"/"Reset filters" buttons) but built from this repo's own Base UI
  * components/conventions rather than transliterated from tablecn's Radix markup. Reordering uses
  * `@dnd-kit/react`'s sortable primitives (handle-initiated pointer drag with a lifted-row overlay
- * feel via `isDragSource`), plus a plain ArrowUp/ArrowDown-on-grip fallback that always wins over
+ * feel via `isDragSource`), plus a plain ArrowUp/ArrowDown-on-drag handle fallback that always wins over
  * the library's own keyboard sensor (see {@link FilterRow}'s `onKeyDown`). Rows are keyed by
  * `FilterSpec.filterId` (stable identity independent of array position) since multiple filter rows
  * on the same column are allowed and meaningful; row order is array order in `FilterSpec[]`,
@@ -110,7 +110,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const pendingFocusFilterIdRef = useRef<string | null>(null);
 
-  // ponytail: lock root scroll during a drag - at drag end the browser re-focuses the grip and natively re-centers it in the viewport, jumping the page
+  // ponytail: lock root scroll during a drag - at drag end the browser re-focuses the drag handle and natively re-centers it in the viewport, jumping the page
   const rootScrollLockRef = useRef<(() => void) | null>(null);
   const lockRootScroll = useCallback(() => {
     if (rootScrollLockRef.current) return;
@@ -145,7 +145,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   const removeFilter = useCallback(
     (filterId: string | undefined, index: number) => {
       actions.setFilters(filters.filter((f) => f.filterId !== filterId));
-      // focus follows deletion: the next row's grip, or the Add button once the list empties.
+      // focus follows deletion: the next row's drag handle, or the Add button once the list empties.
       const nextFocusId = filters[index + 1]?.filterId ?? filters[index - 1]?.filterId;
       if (nextFocusId) pendingFocusFilterIdRef.current = nextFocusId;
       else requestAnimationFrame(() => addButtonRef.current?.focus({ preventScroll: true }));
@@ -288,7 +288,7 @@ type FilterRowProps = {
   gripRef: (el: HTMLButtonElement | null) => void;
 };
 
-/** One filter row: `useSortable` wires pointer-drag reorder via `@dnd-kit/react`; the grip's `onKeyDown` implements the ArrowUp/ArrowDown fallback, which always takes precedence over dnd-kit's own keyboard sensor (checked first, `stopPropagation`'d). */
+/** One filter row: `useSortable` wires pointer-drag reorder via `@dnd-kit/react`; the drag handle's `onKeyDown` implements the ArrowUp/ArrowDown fallback, which always takes precedence over dnd-kit's own keyboard sensor (checked first, `stopPropagation`'d). */
 function FilterRow(props: FilterRowProps): ReactNode {
   const { filter, index, total, column, joinOperator, columns, filterableColumns, operatorsFor, labels, onJoinOperatorChange, onUpdate, onRemove, onArrowReorder, gripRef } = props;
   const operators = operatorsFor(column);
@@ -421,7 +421,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
         }}
         className={cn("size-8 shrink-0 cursor-grab touch-none", isDragSource && "cursor-grabbing")}
         aria-label={labels.toolbar.reorderFilterAriaLabel}
-        // prevent native mousedown focus: Chromium re-centers the focused grip in the viewport mid-drag and the page jumps
+        // prevent native mousedown focus: Chromium re-centers the focused drag handle in the viewport mid-drag and the page jumps
         onMouseDown={(e) => e.preventDefault()}
         onKeyDown={onGripKeyDown}
       >

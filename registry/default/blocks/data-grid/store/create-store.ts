@@ -266,7 +266,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
    * column and clamps only when one of them left the view. The row channel follows its records, the
    * column channel its column ids. A range that now covers other records or columns collapses onto
    * the followed active cell; a clamp that moves the cursor collapses onto it, and a clamp in place
-   * drops the range, so a row op never reaches a record nobody selected.
+   * drops the range, so a row operation never reaches a record nobody selected.
    */
   const followView = (
     s: DataGridStoreState,
@@ -1286,7 +1286,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         endEditSession(s.editing, () => set({ editing: null, editingError: null }));
         s.onEditEnd?.({ rowId: s.editing.rowId, columnId: s.editing.columnId, viewRowIndex: s.editing.coord.row, viewColumnIndex: s.editing.coord.col, result: "cancel" });
       },
-      // The data-write cluster (see data-write.ts): the edit commits, the bulk writers, and the row ops.
+      // The data-write cluster (see data-write.ts): the edit commits, the bulk writers, and the row operations.
       ...publicWriteActions,
       setEditingError(message) {
         const s = get();

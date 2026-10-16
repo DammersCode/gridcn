@@ -1,7 +1,7 @@
 import { CompactSelection } from "./compact-selection";
 import type { ViewCoord, GridRect, GridSelection } from "../types";
 
-/** View-space index remap for a single-row reorder: row `from` lands at `to`, every row between the two shifts one slot toward `from`. */
+/** View-index index remap for a single-row reorder: row `from` lands at `to`, every row between the two shifts one slot toward `from`. */
 export function rowReorderMap(from: number, to: number): (index: number) => number {
   if (to > from) return (i) => (i === from ? to : i > from && i <= to ? i - 1 : i);
   if (to < from) return (i) => (i === from ? to : i >= to && i < from ? i + 1 : i);

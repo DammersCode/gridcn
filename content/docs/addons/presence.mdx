@@ -50,12 +50,12 @@ type RowIdRangePresenceHighlight = {
 `setPresenceHighlights` takes an array of any of the three forms, mixed freely. The `id` must be
 unique per entry. A user with a multi-range selection sends one entry per range, each with its
 own id (each entry paints one rect, or one rect per contiguous fragment for the range form). See
-[Coordinates](#coordinates-rowid-native-or-view-space) below.
+[Coordinates](#coordinates-rowid-native-or-view-index) below.
 
 ## Wiring it up
 
 The add-on is one plugin: its `Overlay` paints the highlights, its `Mount` dev-warns once when
-rows or columns move under an active view-space entry. The plugin renders into the same overlay
+rows or columns move under an active view-index entry. The plugin renders into the same overlay
 layer that selection and the fill preview use, and receives a `ctx` with the same window-clamp
 and pin-zone segmentation helpers that the built-in overlays of the core use. See
 [Plugins](/docs/plugins) for the full seam, including every `ctx` field and a worked example of
@@ -120,7 +120,7 @@ Calling `setPresenceHighlights` re-renders `DataGridOverlays` and nothing else: 
 and no `aria-selected` change. If you need a read-back subscription elsewhere, pass `storeApi`
 into `useDataGridPresenceHighlights(storeApi)`. It re-renders only the component that calls it.
 
-## Coordinates: rowId-native, or view-space
+## Coordinates: rowId-native, or view-index
 
 A remote peer's cell is identified by `{ rowId, columnId }`, not a view position:
 
@@ -164,8 +164,8 @@ const { plugin, ...rest } = useDataGridPresence({
 });
 ```
 
-`PresenceHighlight`'s original `range` form (view-space, the same coordinate system as
-`GridSelection.current.range`) still works side by side with the rowId entries in the same array (at the cost of one caveat): `range` is in the SENDER's view space, so a receiver with a
+`PresenceHighlight`'s original `range` form (view-index, the same coordinate system as
+`GridSelection.current.range`) still works side by side with the rowId entries in the same array (at the cost of one caveat): `range` is in the SENDER's view-index, so a receiver with a
 different local sort or filter paints it on the wrong cells. A receiver-side live feed with
 `reorder: "immediate"` (see [Streaming updates](/docs/streaming-updates)) moves rows in the same
 call. The `range` entry then points at the wrong rows on the receiver itself. Use the rowId-native
@@ -173,7 +173,7 @@ forms whenever sender and receiver views can diverge, or when the receiver's own
 rows while entries are active. The stable `onSelectionChange` payload (`SelectionState`) is
 rowId-native, so the rowId entries build straight from it. In development, the grid warns once
 when a row move, sort, filter,
-join operator change, or data replacement moves rows while a view-space entry is active.
+join operator change, or data replacement moves rows while a view-index entry is active.
 
 The two entry shapes:
 
@@ -218,5 +218,5 @@ Building the map yourself (e.g. to resolve a rowId outside the plugin) uses the 
 ## Broadcasting your selection
 
 Sending your own selection to peers (a real websocket sketch, the `onSelectionChange` wiring,
-and the view-space-vs-rowId payload trade-off) is on the
+and the view-index-vs-rowId payload trade-off) is on the
 [Broadcasting your selection](/docs/addons/broadcasting-presence) page.

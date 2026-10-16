@@ -28,7 +28,7 @@ function delay(signal?: AbortSignal): Promise<void> {
 /**
  * Fake "database" of 1,000 rows behind a 300 ms round trip for the server-side examples:
  * `fetchPage` applies search/filter/sort on the "server" and returns one page plus the total;
- * `applyOps` writes the grid's committed ops back into the store (a stand-in for your API route),
+ * `applyOps` writes the grid's committed operations back into the store (a stand-in for your API route),
  * so edits survive a refetch.
  */
 export function createRemoteServer() {

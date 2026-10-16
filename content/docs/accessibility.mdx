@@ -95,10 +95,10 @@ popover each carry a `role="status"` `aria-live="polite"` region that announces 
 for example "Name filter moved to position 2 of 3" or "Age sort moved to position 1 of 2"
 (`labels.toolbar.filterReorderAnnouncement` / `labels.sort.sortReorderAnnouncement`).
 
-Reordering itself is fully keyboard-operable. Each row's drag grip is focusable. A plain
-<kbd>ArrowUp</kbd> or <kbd>ArrowDown</kbd> on a focused grip moves that row exactly one position,
+Reordering itself is fully keyboard-operable. Each row's drag handle is focusable. A plain
+<kbd>ArrowUp</kbd> or <kbd>ArrowDown</kbd> on a focused drag handle moves that row exactly one position,
 and always wins over `@dnd-kit/react`'s own keyboard-drag gesture on the same key. Focus stays
-on the moved row's grip after a reorder, and moves to the next row's grip (or the "Add
+on the moved row's drag handle after a reorder, and moves to the next row's drag handle (or the "Add
 filter"/"Add sort" button once the list is empty) after a delete. See the per-key tables for
 both popovers: [Toolbar add-on: filter menu keyboard &
 accessibility](/docs/addons/toolbar#filter-menu-keyboard--accessibility) and
@@ -127,7 +127,7 @@ What the automated Chromium suite verifies, area by area:
 | Keyboard navigation & roving tabindex | Verified: `data-grid.browser.test.tsx`: arrow keys move the active cell and scroll at the viewport edge. A real Tab enters the grid. The next Tab leaves it. Shift+Tab leaves backward |
 | Editor open/close focus flow | Verified: `a11y.browser.test.tsx` (zero violations with an editor open). `data-grid.browser.test.tsx` (caret lands at the end of existing content, never select-all) |
 | Multi-cell selection (`aria-selected`, `aria-multiselectable`) | Verified: `a11y.browser.test.tsx` (aria-selected on every range member) |
-| Toolbar popovers + keyboard reorder | Verified: `toolbar.browser.test.tsx`, `sort-list.browser.test.tsx`: grip keeps focus on the moved row, announces the new position, full remove/refocus paths |
+| Toolbar popovers + keyboard reorder | Verified: `toolbar.browser.test.tsx`, `sort-list.browser.test.tsx`: drag handle keeps focus on the moved row, announces the new position, full remove/refocus paths |
 | Live regions (search count, reorder announcements) | Verified structurally. The `aria-live` regions are in the fixture's axe tree and the reorder tests assert the announcement text. Whether a screen reader speaks it aloud is out of scope |
 
 <Callout type="warn" title="What axe-core does and does not prove">

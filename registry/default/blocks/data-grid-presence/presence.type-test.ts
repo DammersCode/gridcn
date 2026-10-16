@@ -64,7 +64,7 @@ void both;
 
 // --- foreign/malformed payloads are rejected -------------------------------------
 
-// @ts-expect-error - a view-space entry whose range is a string, not a GridRect
+// @ts-expect-error - a view-index entry whose range is a string, not a GridRect
 const badRange: PresenceHighlightEntry = { id: "u1", color: "red", range: "not-a-rect" };
 void badRange;
 

@@ -72,7 +72,7 @@ export function useDataGridInstanceId(): string {
  * Mounts one store instance per grid (multiple grids per page each get their
  * own instance) and keeps it in sync with the consumer's live props.
  *
- * The public escape hatch for code OUTSIDE the provider's subtree: an `onDataChange` closure,
+ * The public override for code OUTSIDE the provider's subtree: an `onDataChange` closure,
  * a WebSocket handler, or a sibling control can hold the returned `actions` (stable for the
  * store's lifetime) and the full zustand `StoreApi` without rendering a capture component inside
  * the provider. Pass the returned `store` to `DataGridProvider`'s `store` prop to feed the grid;
@@ -298,7 +298,7 @@ export function createDataGridSelector<TData>() {
 }
 
 /**
- * Escape hatch for internal engine components that need imperative `getState()`
+ * Override for internal engine components that need imperative `getState()`
  * access in event handlers. Not for consumer use.
  * @internal
  */

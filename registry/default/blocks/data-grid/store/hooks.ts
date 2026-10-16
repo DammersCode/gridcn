@@ -67,7 +67,7 @@ export function useDataGridScrollToCell(): (ref: CellRef) => void {
   );
 }
 
-/** View-space variant of {@link useDataGridScrollToCell} for callers that hold a {@link ViewCoord}. */
+/** View-index variant of {@link useDataGridScrollToCell} for callers that hold a {@link ViewCoord}. */
 export function useDataGridScrollToCellAt(): (coord: ViewCoord) => void {
   const storeApi = useDataGridStoreApi();
   return useCallback((coord: ViewCoord) => storeApi.getState().scrollToCellImpl?.(coord), [storeApi]);
@@ -162,7 +162,7 @@ export function useDataGridSelection(): GridSelection {
 }
 
 /**
- * Standalone escape hatch for reading a grid's current selection values OUTSIDE an
+ * Standalone override for reading a grid's current selection values OUTSIDE an
  * `onSelectionChange` fire — e.g. a toolbar "copy as JSON" button that needs the live values on
  * click, not from the last change notification. Returns a stable callback (identical across
  * renders); calling it reads the store fresh each time, same lazy-per-call, primary-range-only
@@ -319,7 +319,7 @@ export function useDataGridSearchText(): string {
 }
 
 /**
- * Every cell matching the current `searchText`, in view-space row-major order, capped at 1000 hits.
+ * Every cell matching the current `searchText`, in view-index row-major order, capped at 1000 hits.
  * Reads the store's precomputed slice — `setSearch`/`setSorts`/`setFilters`/`_syncProps` are the
  * only places that (re)run `findSearchMatches`, exactly once each, never per-subscriber.
  */
@@ -332,7 +332,7 @@ export function useDataGridSearchCapped(): boolean {
   return useDataGridStore((s) => s.searchMatchesCapped);
 }
 
-/** Whether `coord` (view-space) is a search-match highlight target — an O(1) Set lookup, never a per-cell scan ({@link DataGridCell}'s `data-search-match`). */
+/** Whether `coord` (view-index) is a search-match highlight target — an O(1) Set lookup, never a per-cell scan ({@link DataGridCell}'s `data-search-match`). */
 export function useDataGridIsSearchMatch(coord: ViewCoord): boolean {
   const column = useDataGridStore((s) => s.visibleColumns[coord.col]);
   return useDataGridStore((s) => (column ? s.searchMatchSet.has(searchMatchKey(coord.row, column.id)) : false));
@@ -415,7 +415,7 @@ function isRowInRangeChannel(selection: GridSelection, viewRowIndex: number): bo
   return inRect(range) || rangeStack.some(inRect);
 }
 
-/** Whether the row at a given view row index is selected via any selection channel (selection state is view-space, so no viewIndex mapping here). */
+/** Whether the row at a given view row index is selected via any selection channel (selection state is view-index, so no viewIndex mapping here). */
 export function useDataGridIsRowSelected(viewRowIndex: number): boolean {
   return useDataGridStore((s) => s.selection.rows.hasIndex(viewRowIndex) || isRowInRangeChannel(s.selection, viewRowIndex));
 }

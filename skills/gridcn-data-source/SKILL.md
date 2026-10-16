@@ -69,7 +69,7 @@ Applies to streaming on top of either:
 - The picked strategy (plus streaming, if used) is written down with its one-sentence reason, and lazy+pagination are not both mounted on the same grid.
 - Every sort/filter/search path either runs server-side against the full dataset (spec held outside the store, grid's `sortState`/`filterState` controlled per `references/server-mode.md`) or is a deliberate, disclosed page/range-local result — never an accidental partial one.
 - `DataGridLazyGuard` is mounted on every `data-grid-lazy` grid.
-- Pagination's stale-response race, `onPageChange(1)` on filter/search change, and id-keyed edit merge are all handled if pagination is in play; `lazy.reset()` on spec change is handled if lazy loading is in play.
+- Pagination's stale-response race, `onPageChange(1)` on filter/search change, and row-id-based edit merge are all handled if pagination is in play; `lazy.reset()` on spec change is handled if lazy loading is in play.
 
 ## Reference
 

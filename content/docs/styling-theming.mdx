@@ -27,7 +27,7 @@ in your `:root` / `.dark` blocks). The map below is the complete token-to-surfac
 | `background` | The root frame and every data cell's base fill, and the marker cells. |
 | `border` | The root frame border, the bottom border of every cell, header, and marker cell, the pinned-row band separator, and skeleton row separators. |
 | `muted` | Header cells and the marker header, the row hover tint (50% over `background`), the selected marker cell, the pinned-row band tint (30%), and the loading skeleton bars. |
-| `muted-foreground` | The empty-state text, marker row numbers, the sort indicator, the row-reorder grip, and the column-menu trigger. |
+| `muted-foreground` | The empty-state text, marker row numbers, the sort indicator, the row-reorder drag handle, and the column-menu trigger. |
 | `accent` / `accent-foreground` | The column-menu trigger hover. |
 | `primary` | The selection fill (10%) and border (40%), the active-cell ring, the resize-handle indicator line, the column-reorder drop indicator, the fill preview and handle, the loading bar, and the post-commit flash pulse (24%). |
 | `destructive` | Invalid cells (tint + inset ring) and the validation error tooltip. |
@@ -50,7 +50,7 @@ light and dark, with no grid-specific configuration:
 
 `--muted` re-tints every header and the hover/selection banding in one move. `--destructive`
 re-tints validation errors. `--background` / `--border` re-skin the grid body. When one surface
-needs to differ from its token, the escape hatches are per-surface: data-attribute CSS
+needs to differ from its token, the overrides are per-surface: data-attribute CSS
 ([below](#data-attribute-contract)), class merges
 ([below](#programmatic-per-rowper-cell-styling)), or the root `className`.
 
@@ -185,12 +185,12 @@ The grid also stamps one attribute per structural element, as a selector for the
 | `data-grid-rows-canvas` | The scrolling row-canvas container. |
 | `data-grid-marker-header` | The row-marker column's header (select-all checkbox). |
 | `data-grid-marker-cell` / `data-grid-marker-number` | The marker column's per-row cell / its row number. |
-| `data-grid-marker-checkbox` / `data-grid-reorder-handle` | The checkbox glyph / grip handle inside a marker cell. |
+| `data-grid-marker-checkbox` / `data-grid-reorder-handle` | The checkbox glyph / drag handle inside a marker cell. |
 | `data-grid-resize-handle` / `data-grid-header-menu-trigger` | A column's resize handle / column-menu trigger. |
 | `data-grid-header-menu-popup` / `data-grid-header-dropdown` / `data-grid-context-menu` | The header-menu portal / dropdown / cell context-menu content. |
 | `data-grid-sort-indicator="asc" \| "desc"` | A header's own sort-direction arrow. |
 | `data-grid-drop-indicator` | The row- and column-reorder drop-position line. |
-| `data-grid-row-index` | Every data row (its view-space index). |
+| `data-grid-row-index` | Every data row (its view index). |
 | `data-grid-pin-shadow="left" \| "right" \| "top" \| "bottom"` | The edge shadow of that side, visible while more content lies beyond it. See [Scroll shadows](#scroll-shadows). |
 | `data-scrolled-left` / `-right` / `-top` / `-bottom` | The viewport, while scrolled away from (or still able to scroll toward) that edge. |
 | `data-grid-selection-overlay` / `data-grid-active-cell-overlay` | The selection-range overlay(s) / the active-cell focus ring. |

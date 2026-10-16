@@ -36,7 +36,7 @@ function TickerFeed() {
 ```
 
 One call is one batch. The grid applies all patches together and fires `onDataChange` once, with
-one `update` op per touched row. Rows you do not patch keep their identity and do not render again.
+one `update` operation per touched row. Rows you do not patch keep their identity and do not render again.
 
 A patch with an unknown `rowId` or `columnId` is skipped. A patch to a read-only column, or a
 patch whose value equals the current value, is also skipped. A hidden column can be patched. On a

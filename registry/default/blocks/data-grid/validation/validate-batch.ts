@@ -97,7 +97,7 @@ async function settle(pending: Promise<StandardSchemaV1Result<unknown>>): Promis
   }
 }
 
-/** One view-space cell a bulk path wants to write, before validation: the parsed value plus what validates it. */
+/** One view-index cell a bulk path wants to write, before validation: the parsed value plus what validates it. */
 export type BulkCandidate = {
   viewRowIndex: number;
   columnId: string;
@@ -117,7 +117,7 @@ export type BulkResolution = { writes: BulkWrite[]; rejected: GridBulkValidation
 
 /**
  * Validates `candidates` and splits them into accepted writes and rejected cells — the shared tail
- * of every view-space bulk path (paste, fill). One bad cell never fails the batch; the rejected
+ * of every view-index bulk path (paste, fill). One bad cell never fails the batch; the rejected
  * list is the payload for the consumer's `onValidationError` (the paths apply `writes` first and
  * fire the event with `rejected` only when it is non-empty).
  *

@@ -154,7 +154,7 @@ for most:
   operations
   `insertRow`, `duplicateRows`, `deleteRows`. See [Row operations](/docs/row-operations)). The
   complete list is the `DataGridActions` type. `commitChange(change)` applies a whole
-  `DataChange` op batch in one write and emits `onDataChange` once, so it lands on the undo
+  `DataChange` operation batch in one write and emits `onDataChange` once, so it lands on the undo
   stack as a single entry; it is a no-op on a `readOnly` grid and does not revalidate values.
 - `useDataGridViewStale()`: true when a write left the sorted order stale: a deferred
   `updateCells` batch, or an edit, paste, fill, or cleared selection that touched a column the
@@ -281,14 +281,14 @@ a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
   prop value, and the `setSelection`/`getSelection` arguments. The active cell is deliberately
   not part of it. See
   [Events & state](/docs/events-state#2-onselectionchange).
-- `ViewCoord` (`{ col, row }`): view space: the sorted/filtered row position, not a `data`
+- `ViewCoord` (`{ col, row }`): view-index: the sorted/filtered row position, not a `data`
   index. It moves when the view changes.
 - `ViewCellRef` (`{ rowId, columnId, viewRowIndex, viewColumnIndex }`): a `CellRef` plus the
   view position the cell occupied when an event fired. `onActiveCellChange`, `onEditStart`, and
   `onEditEnd` deliver it.
 - `GridRect` (`{ x, y, width, height }`, half-open).
 - `GridSelection` (`{ current: {cell, range, rangeStack} | null, rows, columns }`).
-- `DataOp<TData>` (`update`, `insert`, `delete`, or `move`, id-keyed) and `DataChange<TData>`
+- `DataOp<TData>` (`update`, `insert`, `delete`, or `move`, row-id-based) and `DataChange<TData>`
   (`{ ops, source }`).
 - `SortSpec` (`{ columnId, direction }`), `FilterSpec`, and `FilterOperator`.
 - `CellTypeFilter` (`{ operators?, match?, valueInput? }`),
@@ -329,25 +329,25 @@ a `DeepPartialLabels` override to the `labels` prop of `DataGridProvider`. See
 and returns a reusable `(text: string) => boolean` matcher. This has the same semantics as
 `matchesFilter`, but without re-parsing the filter's value on every row.
 
-## Op engine
+## Operation engine
 
 The core applies every `DataChange` batch through one engine. The `data-grid` barrel exports it
-for consumers who apply ops to their own copy of the data:
+for consumers who apply operations to their own copy of the data:
 
 - **`applyChange(data, change, getRowId)`**: applies a batch to a row array and returns a new
-  array, in O(n + k log(n + k)) for `n` rows and `k` ops. A `move` op applies as a delete plus
+  array, in O(n + k log(n + k)) for `n` rows and `k` operations. A `move` operation applies as a delete plus
   an insert at `to`.
-- **Id-keyed, missing-id skip.** `update` and `delete` ops locate the row by `rowId`, never by
-  the op's stored index. If the row id is no longer present, that op is skipped, not an error.
-- **Snapshot indices.** Each op's `index` is the row's position in the array as it stood before
-  the whole batch, not a running position updated op-by-op. `insert` ops apply in ascending
+- **Row-id-based, missing-id skip.** `update` and `delete` operations locate the row by `rowId`, never by
+  the operation's stored index. If the row id is no longer present, that operation is skipped, not an error.
+- **Snapshot indices.** Each operation's `index` is the row's position in the array as it stood before
+  the whole batch, not a running position updated one operation at a time. `insert` operations apply in ascending
   index order, so a multi-row batch round-trips through `invertChange`.
-- **`invertChange(change)`**: returns the change that undoes a batch. Each op is inverted:
+- **`invertChange(change)`**: returns the change that undoes a batch. Each operation is inverted:
   `update` swaps `row`/`prev`, `insert` becomes `delete` and back, `move` swaps `from`/`to`.
-  The op order is reversed, so a batch unwinds in the correct dependency order.
+  The operation order is reversed, so a batch unwinds in the correct dependency order.
 
 The grid's `onDataChange` and the `data-grid-history` add-on run this same engine. A consumer
-cache that applies ops with `applyChange` stays in step with the grid and with undo.
+cache that applies operations with `applyChange` stays in step with the grid and with undo.
 
 ## Add-on option types
 

@@ -166,7 +166,7 @@ assertEqual<(next: SelectionState | null) => void, typeof wActions.setSelection>
 assertEqual<(parts: Partial<ColumnLayout>) => void, typeof wActions.setColumnLayout>(true);
 
 // --- W6-05: the generic write action ----------------------------------------------------------
-// commitChange takes a DataChange; typed consumer ops (DataChange<Row>) are assignable to the
+// commitChange takes a DataChange; typed consumer operations (DataChange<Row>) are assignable to the
 // unknown-based action signature. One call is one write and one onDataChange emit (one undo
 // entry); source "history" passes through without a second history entry (stack-level rule).
 
@@ -404,7 +404,7 @@ const onCellClickWrongShape: DataGridSyncProps<Row>["onCellClick"] = (ctx: CellC
 void onCellClickWrongShape;
 
 // --- updateCells: patch shape + options -------------------------------------------------------
-// The patch is id-keyed by construction: `rowId` is the only row address, so a coordinate cannot be
+// The patch is row-id-based by construction: `rowId` is the only row address, so a coordinate cannot be
 // passed by mistake, and the value stays `unknown` (a stream carries any cell type's value).
 assertEqual<string, CellPatch["rowId"]>(true);
 assertEqual<string, CellPatch["columnId"]>(true);

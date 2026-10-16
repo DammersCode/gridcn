@@ -38,7 +38,7 @@ function markerCell(viewRowIndex: number): HTMLElement {
 
 async function markerDrag(viewRowIndex: number, toX: number, toY: number, opts?: { steps?: number; shift?: boolean; pointerId?: number }) {
   const pointerId = opts?.pointerId ?? 1;
-  // the grip is the reorder zone; plain modes have no grip element and fall back to the cell
+  // the drag handle is the reorder zone; plain modes have no drag handle element and fall back to the cell
   const from = markerCell(viewRowIndex).querySelector<HTMLElement>(gridAttrSelector("reorderHandle")) ?? markerCell(viewRowIndex);
   const rect = from.getBoundingClientRect();
   await from.dispatchEvent(

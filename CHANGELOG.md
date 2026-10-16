@@ -470,7 +470,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
-- **Breaking:** a press on the row-marker grip (`reorder`, `reorder-number`, `reorder-checkbox`, `reorder-both`) no longer selects or checks the row. Dragging reorders and leaves the selection as it was; a stationary press does nothing. Shift and Ctrl/Cmd on the grip no longer select. The grip zone is now a fixed 20px column (the whole cell in `reorder`) with a `grab` cursor, and the checkbox's extended hit area no longer overlaps it.
+- **Breaking: vocabulary pass (`data-grid`, `data-grid-lazy`, docs):** the prop `onRowWindowChange` is now `onRenderedRowsChange`, the plugin context field `windowedColumns` is `renderedColumns`, the type `WindowedColumn` is `RenderedColumn`, and the install path `components/data-grid/windowing/` is `components/data-grid/virtualization/`. Update imports and re-run `npx shadcn add @gridcn/data-grid`. Docs, skills, and comments say "virtualization" instead of "windowing", "operation" instead of "op", "drag handle" instead of "grip", and "override" instead of "escape hatch". `GLOSSARY.md` lists the words, and `pnpm lint` rejects the old ones.
+- **Breaking:** a press on the row-marker drag handle (`reorder`, `reorder-number`, `reorder-checkbox`, `reorder-both`) no longer selects or checks the row. Dragging reorders and leaves the selection as it was; a stationary press does nothing. Shift and Ctrl/Cmd on the drag handle no longer select. The drag handle zone is now a fixed 20px column (the whole cell in `reorder`) with a `grab` cursor, and the checkbox's extended hit area no longer overlaps it.
 
 
 - **Small API gaps closed (`data-grid`, `data-grid-io`):** `EMPTY_SELECTION_STATE` is exported for a controlled `selection`; `actions.deleteRowsById(ids)` deletes rows by the ids `getRowIds()` returns; `DataGridExportButton` takes `formats` (a single format exports on click); `ColumnDef.renderCell`, `FilterSpec`, and the `select` choices have fuller JSDoc. The `columnLayout` persistence snippet in the columns docs reads `localStorage` in an effect, so it no longer crashes server rendering.
@@ -517,7 +518,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   stays `actions.selectCell(ref)`. `getSelection()` returns the derived `SelectionState`
   (empty fields when nothing is selected), not a view-space snapshot.
 - **Breaking:** one config home (`data-grid`): `readOnly`, `keymap`, `onCellClick`,
-  `onRowClick`, and `onRowWindowChange` move from `DataGridRoot` to `DataGridProvider`. They
+  `onRowClick`, and `onRenderedRowsChange` move from `DataGridRoot` to `DataGridProvider`. They
   are sync props: the provider (or `useDataGridStoreProps` for an external store) feeds them to
   the store, and every reader reads the store - the root's `aria-readonly` and keymap through
   `useDataGridReadOnly()` and `useDataGridKeymap()`, interaction and clipboard at event time,
@@ -711,7 +712,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `DataGridFilterOperatorLabels`, the validation engine (`runValidateSync`,
   `runValidatePending`, `runValidateBatch`, `resolveBulkWrites`, `useBulkGeneration` and the bulk
   types), `combineRects`, `getSelectedViewRows`, `measureColumnAutosizeWidth`,
-  `GridColumnLayout`, and `WindowedColumn`. Add-ons import them from `data-grid-sdk`; consumer
+  `GridColumnLayout`, and `RenderedColumn`. Add-ons import them from `data-grid-sdk`; consumer
   code that imported any of these from `data-grid` must switch to `data-grid-sdk`.
   `useDataGridStoreProps` stays on `data-grid`.
 - **`useDataGridRowIdToViewRow` keeps its map across streaming ticks:** the `rowId -> view row`
@@ -772,10 +773,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   the `reorder`-family marker modes (`rowMarkers="reorder"`, `"reorder-number"`,
   `"reorder-checkbox"`, `"reorder-both"`) — plain `number`/`checkbox`/`both` markers are pure
   row-select surfaces, so a selection drag can never reorder by accident. Within the reorder
-  family the press location decides the behavior: a drag from the grip zone (grip handle plus
+  family the press location decides the behavior: a drag from the drag handle zone (drag handle handle plus
   cell background; the whole cell in `reorder` mode) reorders the row; the number and checkbox
   glyphs stay row-select surfaces (click selects/toggles, drag selects a range); a stationary
-  grip press selects the row without arming a reorder; Shift+drag from the grip always selects.
+  drag handle press selects the row without arming a reorder; Shift+drag from the drag handle always selects.
   Custom-rendered markers (a `renderMarker` without the built-in marker attributes) are
   selection-only and never reorder.
 - **Toolbar on narrow screens:** `DataGridToolbar` now scrolls horizontally when its controls
@@ -810,7 +811,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `readOnly: (row) => row.locked` pattern no longer throws while scrolling into an unloaded
   window.
 - **Row operations:** `insertRows` / `deleteRows` / `duplicateRows` now rebuild the view
-  (row count, windowing, `aria-rowcount`) immediately and respect the active sort/filter, so a
+  (row count, virtualization, `aria-rowcount`) immediately and respect the active sort/filter, so a
   sorted grid no longer shows a stale row set after an insert/delete/duplicate. The three ops
   are now no-ops with a development warning while an edit session is open (matching
   `reorderRows`), and the keyboard `duplicateRow` binding duplicates the selected rows — falling
@@ -922,7 +923,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `useDataGridPinnedRows({ top?, bottom? })` hook instead, passing its `rowBands` result straight
   into `rowBands`. v1 semantics are unchanged (separate arrays from `data`, readOnly by default, not
   navigable, excluded from sort/filter/selection). Core also now exports `DataGridCell` and
-  `WindowedColumn` from its barrel, since the add-on's moved `DataGridPinnedRow` needs both.
+  `RenderedColumn` from its barrel, since the add-on's moved `DataGridPinnedRow` needs both.
 
 - **Breaking:** the `data-grid-io` `maxDecompressedBytes` default drops from 512 MiB to 256 MiB
   (`DEFAULT_IMPORT_LIMITS`), and an xlsx part is also capped at `maxCells` times 10 bytes plus
@@ -1002,7 +1003,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   existing click-based path is untouched.
 - **Touch row-reorder drags survive auto-scroll past the rendered window (`data-grid`):** a
   browser implicitly captures a touch pointer on the pressed element and releases it when that
-  element unmounts — the grip's row unmounts the moment auto-scroll moves it out of the window,
+  element unmounts — the drag handle's row unmounts the moment auto-scroll moves it out of the window,
   which silently killed the drag's document-level tracking. The gesture now takes pointer capture
   on the grid's scroll element the instant it arms, so the drag reaches rows past the initial
   window on touch as on mouse.
@@ -1232,14 +1233,14 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   size list (10/25/50/100) even when `pageSizeOptions` is omitted, and a URL `page` beyond
   1,000,000 falls back to 1 — an unbounded `?pageSize=` or `?page=` can no longer force a huge
   fetch.
-- **Drag listener leaks:** a second pointer pressing a reorder grip, row-reorder marker, or resize
+- **Drag listener leaks:** a second pointer pressing a reorder drag handle, row-reorder marker, or resize
   handle while a gesture is in flight no longer arms a second document listener set, and an
   unmounted column-resize drag drops its document listeners.
 - **Import dialog race conditions:** an aborted or superseded file load no longer clears the
   parsing state of a newer load, and `setDelimiter` re-parses with the parsing state, a generation
   guard against stale results, and a surfaced error instead of an unhandled rejection.
 - **Missing documented keybindings:** `Backspace` and `Delete` on a focused `DataGridSortList` /
-  `DataGridFilterMenu` row grip now remove that row, as the docs already stated.
+  `DataGridFilterMenu` row drag handle now remove that row, as the docs already stated.
 - **Sort list row remounted on a column change:** `DataGridSortList` rows are keyed by their
   index, so changing a row's column updates it in place instead of remounting it and dropping the
   select's focus.

@@ -1,7 +1,7 @@
 /**
  * The public {@link SelectionState} <-> internal {@link GridSelection} bridge: structural
- * equality for the fire guard and the `_syncProps` apply check, derivation (view space -> stable
- * refs) for `onSelectionChange`/`getSelection`, and resolution (stable refs -> view space) for
+ * equality for the fire guard and the `_syncProps` apply check, derivation (view-index -> stable
+ * refs) for `onSelectionChange`/`getSelection`, and resolution (stable refs -> view-index) for
  * the `selection`/`defaultSelection` props and `actions.setSelection`. All refs resolve through
  * the row-index cache's single-id scan plus the lazy view inverse; a lazy-hole placeholder that
  * no longer resolves falls back to its data index, so it stays positional.
@@ -54,7 +54,7 @@ export function selectionStatesEqual(a: SelectionState, b: SelectionState): bool
   return true;
 }
 
-/** Whether two view-space {@link GridSelection}s cover the same cells (structural). */
+/** Whether two view-index {@link GridSelection}s cover the same cells (structural). */
 export function gridSelectionsEqual(a: GridSelection, b: GridSelection): boolean {
   const ca = a.current;
   const cb = b.current;
@@ -107,7 +107,7 @@ const WARM_INDEX_LOOKUPS = 8;
 export type ResolveWarnFlag = { value: boolean };
 
 /**
- * Resolves a public {@link SelectionState} into the store's view-space {@link GridSelection}:
+ * Resolves a public {@link SelectionState} into the store's view-index {@link GridSelection}:
  * corner refs through the row-index cache plus the view inverse (a placeholder that no longer
  * resolves falls back to its data index), a range with an unresolvable corner is dropped,
  * unresolvable `rowIds`/`columnIds` are dropped, and an unresolvable or outside anchor resets to

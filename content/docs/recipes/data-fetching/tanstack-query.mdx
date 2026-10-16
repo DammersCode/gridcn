@@ -13,7 +13,7 @@ icon: DatabaseZap
   for the same rule applied to `data-grid-lazy`.
 </Callout>
 
-`useQuery` fetches the rows, and one `useMutation` handles every op from `onDataChange`, keyed
+`useQuery` fetches the rows, and one `useMutation` handles every operation from `onDataChange`, keyed
 off the same `queryKey` so its cache and the grid stay in sync:
 
 ```tsx
@@ -50,8 +50,8 @@ function OrdersGrid() {
 }
 ```
 
-`applyChange` is the core's op engine, exported from the `data-grid` barrel. It applies the
-whole batch in one pass: id-keyed updates and deletes, inserts at their snapshot positions,
+`applyChange` is the core's operation engine, exported from the `data-grid` barrel. It applies the
+whole batch in one pass: row-id-based updates and deletes, inserts at their snapshot positions,
 missing row ids skipped. The `onMutate`/`onError` pair is the same optimistic-vs-rollback shape
 as [Strategy A](/docs/recipes/data-fetching/server-round-trip#strategy-a-optimistic-roll-back-on-failure), expressed through TanStack Query's
 cache.

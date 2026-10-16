@@ -1,15 +1,15 @@
 ---
 title: Drag & drop reorder
-description: Reorder rows with the drag grip or reorderRows - one move op, selection follows the row, one undo step.
+description: Reorder rows with the drag handle or reorderRows - one move operation, selection follows the row, one undo step.
 icon: GripVertical
 status: updated
 ---
 
-Row reorder from two paths: drag a row by its grip zone (any `reorder`-family marker mode:
+Row reorder from two paths: drag a row by its drag handle zone (any `reorder`-family marker mode:
 `reorder`, `reorder-number`, `reorder-checkbox`, `reorder-both`. In the content modes the
-number and checkbox glyphs stay row-select surfaces, only the grip zone reorders, and a press
-on the grip never changes the selection) or call
-`reorderRows(from, to)` programmatically. Both emit **one id-keyed `move` op**, so
+number and checkbox glyphs stay row-select surfaces, only the drag handle zone reorders, and a press
+on the drag handle never changes the selection) or call
+`reorderRows(from, to)` programmatically. Both emit **one row-id-based `move` operation**, so
 undo/redo restores the previous order in a single step. Selection and the active cell remap by
 row id, so the rows that were selected stay selected at their new positions, and the dragged row
 keeps the selected state it had.
@@ -20,22 +20,22 @@ keeps the selected state it had.
 
 ## What's in the demo
 
-- `rowMarkers="reorder"`: a grip handle in the marker column, no numbers or checkboxes
+- `rowMarkers="reorder"`: a drag handle in the marker column, no numbers or checkboxes
 - `enableRowReorder` on the provider (on by default): the grid-wide switch for the drag gesture
 - A thin line marks the drop target while dragging. The row moves on release
 - **Move selection down** toolbar button: `reorderRows(activeCell.row, activeCell.row + 1)` -
   the programmatic path
 - **Undo** button (the `data-grid-history` add-on): one click restores the pre-move order
-- The panel prints the last `move` op: `rowId`, from/to indices, and the change `source`
+- The panel prints the last `move` operation: `rowId`, from/to indices, and the change `source`
   (`"row-op"`)
 
 ## Marker drag vs programmatic
 
 | | Marker drag | `reorderRows(from, to)` |
 |---|---|---|
-| Input | grip handle, mouse/touch | view-space indices (`to` is the **final** landing position, arrayMove semantics) |
+| Input | drag handle, mouse/touch | view-index indices (`to` is the **final** landing position, arrayMove semantics) |
 | Guard checks | same as programmatic | same - see the no-op guards below |
-| Emitted op | one `move` op | one `move` op |
+| Emitted operation | one `move` operation | one `move` operation |
 
 `to` is the final position, not an offset: moving row 0 to index 3 shifts rows 1-3 up. Both
 paths are equivalent - use the drag for the interactive UX and `reorderRows` for keyboard
@@ -52,7 +52,7 @@ shortcuts, buttons, or an external "sort by drag" API.
 
 See [Row operations - Reorder](/docs/row-operations#reorder) for the full reference, including
 the stale-position warning for position-based data (search match counts, presence highlights in
-view-space form).
+view-index form).
 
 ## Related
 

@@ -66,10 +66,10 @@ Paste semantics:
   present. An invalid cell in the pasted block is rejected the same way as a manual edit.
 - readOnly cells are skipped. Both the column's static `readOnly` and its per-row function form
   apply.
-- One paste produces one `onDataChange` call with a single ops batch, regardless of how many
+- One paste produces one `onDataChange` call with a single operations batch, regardless of how many
   cells it touched.
 
-## Escape hatches
+## Overrides
 
 Three `DataGridProvider` props let you intercept the pipeline without forking it.
 

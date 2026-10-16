@@ -4,7 +4,7 @@ import { rectContains } from "./rects";
 import { selectLine, type SelectLineOptions } from "./select-line-options";
 
 /**
- * Whole-row selection channel op (row-marker click). Always clears the primary range/rangeStack;
+ * Whole-row selection channel operation (row-marker click). Always clears the primary range/rangeStack;
  * clears the column channel too unless `additive`, `extendFromLast`, or `replaceFromLast` (which preserve it).
  */
 export function selectRow(selection: GridSelection, index: number, opts: SelectLineOptions = {}): GridSelection {
@@ -16,7 +16,7 @@ export function selectRow(selection: GridSelection, index: number, opts: SelectL
 }
 
 /**
- * Whole-column selection channel op (header click). Always clears the primary range/rangeStack;
+ * Whole-column selection channel operation (header click). Always clears the primary range/rangeStack;
  * clears the row channel too unless `additive`, `extendFromLast`, or `replaceFromLast` (which preserve it).
  */
 export function selectColumn(selection: GridSelection, index: number, opts: SelectLineOptions = {}): GridSelection {

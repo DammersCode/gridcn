@@ -128,7 +128,7 @@ describe("DataGridSortList", () => {
     // precedence: name asc, then age desc -> alphabetical order wins (no ties on name here)
     await expect.poll(() => nameCellsInOrder()).toEqual(["Alice", "Bob", "Carol"]);
 
-    // move the age-desc row (2nd grip) up so it takes precedence over name-asc
+    // move the age-desc row (2nd drag handle) up so it takes precedence over name-asc
     const grips = document.querySelectorAll<HTMLElement>('[aria-label="Reorder sort"]');
     expect(grips.length).toBe(2);
     grips[1]!.focus();
@@ -155,7 +155,7 @@ describe("DataGridSortList", () => {
     ageGrip.focus();
     await userEvent.keyboard("{ArrowUp}");
 
-    // focus follows the moved row: the same logical (age) row's grip is now first and still focused.
+    // focus follows the moved row: the same logical (age) row's drag handle is now first and still focused.
     await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Reorder sort");
     const gripsAfter = document.querySelectorAll<HTMLElement>('[aria-label="Reorder sort"]');
     expect(document.activeElement).toBe(gripsAfter[0]);

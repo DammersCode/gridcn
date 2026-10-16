@@ -1,13 +1,13 @@
 ---
 title: Row operations
-description: Insert, duplicate, and delete rows from the toolbar or the context menu, with the onDataChange op payload visible.
+description: Insert, duplicate, and delete rows from the toolbar or the context menu, with the onDataChange operation payload visible.
 icon: ListPlus
 ---
 
 Row operations from two surfaces at once: the toolbar acts on the **current row selection**
 (falling back to the active cell's row), and the right-click context menu acts on the clicked
-row. The side panel prints the last `onDataChange` payload. Every row op emits one change with
-`source: "row-op"` and id-keyed `insert`/`delete` ops, which is what undo/redo and export
+row. The side panel prints the last `onDataChange` payload. Every row operation emits one change with
+`source: "row-op"` and row-id-based `insert`/`delete` operations, which is what undo/redo and export
 consume.
 
 <ComponentPreview name="data-grid-row-ops-demo" />
@@ -21,9 +21,9 @@ consume.
 - Right-click a row for the context menu's Insert/Duplicate/Delete items (needs
   `createRow`/`duplicateRow` on the provider, or those items are hidden)
 - The **Read-only** toggle flips the provider's `readOnly`: every mutating surface disables
-- Side panel: the last change's `source` and one line per op (`type → rowId`)
+- Side panel: the last change's `source` and one line per operation (`type → rowId`)
 
-## The op-shape contract
+## The operation-shape contract
 
 ```tsx
 onDataChange={(next, change) => {
@@ -32,7 +32,7 @@ onDataChange={(next, change) => {
 }}
 ```
 
-Ops are keyed by **row id, not index**, so the same change stays valid across sorts and
+Operations are keyed by **row id, not index**, so the same change stays valid across sorts and
 filters. That's what makes undo/redo restore the exact previous state in one step.
 
 ## Behavior reference

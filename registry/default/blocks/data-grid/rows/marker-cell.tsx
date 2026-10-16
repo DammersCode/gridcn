@@ -29,7 +29,7 @@ export type DataGridMarkerCellProps = {
   onPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLDivElement>) => void;
   /** Arms the same row-range drag from a press on the checkbox glyph itself, without pre-empting its own click->toggle (see use-grid-interaction.ts' onMarkerCheckboxPointerDown). */
   onCheckboxPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
-  /** Arms the row-reorder drag from a press on the grip zone; a stable callback from the body's useRowReorder instance. */
+  /** Arms the row-reorder drag from a press on the drag handle zone; a stable callback from the body's useRowReorder instance. */
   onReorderPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
   /** True while this row is the reorder-drag source (dims the marker, like the column reorder does to its header cell). */
   isReorderDragging: boolean;
@@ -38,13 +38,13 @@ export type DataGridMarkerCellProps = {
 /**
  * The marker column's per-row cell: row number (modes whose content includes number), a row-select
  * checkbox (content includes checkbox), both with the number hidden on hover/selected via
- * group-hover (content 'both'), and — for the `reorder` family — a grip handle that drags the row
+ * group-hover (content 'both'), and — for the `reorder` family — a drag handle that drags the row
  * to a new position on top of the suffix's content. Always pinned-left
  * at grid track 1 with a fixed zero offset (nothing pins before it) — outside the data column's
  * aria-colindex space (see {@link DataGridMarkerHeader} for why it carries no `aria-colindex`).
  *
  * Hit registration is zone-based so the press location — not later pointer movement — decides the
- * gesture: the checkbox glyph is a pure row-select toggle/range, the grip zone (reorder family, a
+ * gesture: the checkbox glyph is a pure row-select toggle/range, the drag handle zone (reorder family, a
  * fixed 20px column at the inline start, the whole cell for pure `reorder`) is the only zone that
  * arms the row-reorder drag and never changes the selection, and the number/rest of the cell is
  * the plain row-select surface.
@@ -73,7 +73,7 @@ export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
   const content = markerContent(mode);
   const showNumber = content === "number" || content === "both";
   const showCheckbox = content === "checkbox" || content === "both";
-  // the grip renders (and the grab cursor + reorder aria-label apply) only in the reorder family
+  // the drag handle renders (and the grab cursor + reorder aria-label apply) only in the reorder family
   // — plain modes keep the marker a pure row-select surface.
   const showGrip = isReorderMarkerMode(mode);
   const swapOnHover = content === "both";
@@ -107,7 +107,7 @@ export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
           return;
         }
         if (showGrip && (content === "none" || target?.closest(gridAttrSelector("reorderHandle")))) {
-          // grip zone: arms the reorder drag only; the press never touches the selection
+          // drag handle zone: arms the reorder drag only; the press never touches the selection
           onReorderPointerDown(viewRowIndex, event);
           return;
         }
@@ -139,7 +139,7 @@ export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
                 <Checkbox
                   data-grid-marker-checkbox=""
                   className={cn(
-                    // the default 12px-wide ::after hit extension would overlap the neighbouring grip zone
+                    // the default 12px-wide ::after hit extension would overlap the neighbouring drag handle zone
                     "after:inset-x-0",
                     showGrip && "cursor-pointer",
                     swapOnHover && "hidden group-hover:flex data-checked:flex",

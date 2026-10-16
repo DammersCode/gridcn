@@ -28,7 +28,7 @@ export type PresenceHighlight = {
 };
 
 /**
- * rowId-native alternative to {@link PresenceHighlight}: a single cell keyed by stable rowId + columnId instead of a view-space rect.
+ * rowId-native alternative to {@link PresenceHighlight}: a single cell keyed by stable rowId + columnId instead of a view-index rect.
  * The plugin resolves `rowId` -> view row itself at paint time via `useDataGridRowIdToViewRow()`, so
  * a locally-active sort/filter never mispaints it; an entry whose `rowId` fell out of the current
  * view (filtered out) is dropped silently, same contract as the manual mapping it replaces.
@@ -46,7 +46,7 @@ export type RowIdPresenceHighlight = {
 
 /**
  * rowId-native alternative to {@link PresenceHighlight}: a multi-cell selection keyed by stable
- * rowIds × columnIds instead of a view-space rect. The plugin resolves every id against the
+ * rowIds × columnIds instead of a view-index rect. The plugin resolves every id against the
  * receiver's current view at paint time, so a local sort or filter never mispaints it. Ids that
  * fell out of the view are dropped; the surviving cells paint one rect per contiguous run.
  */
@@ -63,13 +63,13 @@ export type RowIdRangePresenceHighlight = {
   label?: string;
 };
 
-/** Any coordinate form a highlight entry can take — {@link PresenceHighlight} (view-space rect), {@link RowIdPresenceHighlight} (rowId-native single cell), or {@link RowIdRangePresenceHighlight} (rowId-native range), distinguished by `rowId` / `rowIds`. When an entry carries BOTH `rowId` and `rowIds`, the single-cell form wins. */
+/** Any coordinate form a highlight entry can take — {@link PresenceHighlight} (view-index rect), {@link RowIdPresenceHighlight} (rowId-native single cell), or {@link RowIdRangePresenceHighlight} (rowId-native range), distinguished by `rowId` / `rowIds`. When an entry carries BOTH `rowId` and `rowIds`, the single-cell form wins. */
 export type PresenceHighlightEntry = PresenceHighlight | RowIdPresenceHighlight | RowIdRangePresenceHighlight;
 
 /**
  * True when `entry` is the rowId-native form — the discriminant used by the plugin to route to the
  * right resolution path. `rowId` must be a non-empty STRING: a missing/null `rowId` (foreign JSON
- * that lost it) is NOT the rowId-native form and falls through to the view-space `range` check
+ * that lost it) is NOT the rowId-native form and falls through to the view-index `range` check
  * instead of being silently misrouted to the rowId path.
  */
 export function isRowIdPresenceHighlight(entry: PresenceHighlightEntry): entry is RowIdPresenceHighlight {
@@ -79,7 +79,7 @@ export function isRowIdPresenceHighlight(entry: PresenceHighlightEntry): entry i
 
 /**
  * True when `entry` is the rowId-native RANGE form — the discriminant that routes it away from the
- * single-cell and view-space paths. `rowIds` must be an ARRAY of strings: a missing/foreign
+ * single-cell and view-index paths. `rowIds` must be an ARRAY of strings: a missing/foreign
  * `rowIds` is NOT the range form and falls through to the `rowId`/`range` checks instead of being
  * misrouted.
  */
@@ -88,7 +88,7 @@ export function isRowIdRangePresenceHighlight(entry: PresenceHighlightEntry): en
   return Array.isArray(rowIds) && rowIds.every((id) => typeof id === "string");
 }
 
-/** A well-formed view-space `range`: all four coordinates finite (catches missing, null, and NaN). */
+/** A well-formed view-index `range`: all four coordinates finite (catches missing, null, and NaN). */
 function isValidRange(range: unknown): range is GridRect {
   if (typeof range !== "object" || range === null) return false;
   const r = range as Partial<GridRect>;

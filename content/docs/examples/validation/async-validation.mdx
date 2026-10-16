@@ -34,7 +34,7 @@ Paste, fill, CSV/XLSX import, and `updateCells` hold the batch while the schema 
 - The grid validates a **maximum of 32 cells at the same time**. A paste of 10,000 cells makes
   32 concurrent calls, not 10,000.
 - Nothing changes until every verdict is in. The accepted cells then commit together as one
-  `onDataChange` ops batch.
+  `onDataChange` operations batch.
 - A rejected cell **drops**. One bad value never fails the batch. Paste and fill report it
   through `onValidationError` when you pass one.
 - A newer operation supersedes a held batch: a second paste over the same area, a data change,
@@ -45,7 +45,7 @@ Paste, fill, CSV/XLSX import, and `updateCells` hold the batch while the schema 
 <Callout type="warn" title="A slow schema makes a slow batch">
   A held batch is only as fast as your schema: 200 ms per cell across 10,000 cells takes about
   60 s at 32 concurrent calls, and the grid gives no per-cell progress. For a large paste
-  against a remote check, validate the block yourself with the `processPaste` escape hatch
+  against a remote check, validate the block yourself with the `processPaste` override
   ([Clipboard](/docs/clipboard#escape-hatches)): one request for the whole block.
 </Callout>
 

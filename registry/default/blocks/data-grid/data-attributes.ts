@@ -16,7 +16,7 @@ export const GRID_ATTR = {
   editing: "data-editing",
   /** cell.tsx: present (`""`) when the cell matches the current quick-search text. */
   searchMatch: "data-search-match",
-  /** row.tsx: the row's view-space index (number), immune to pinned-top band shifting `aria-rowindex`; read back by `resolve-context-menu-target.ts`. */
+  /** row.tsx: the row's view index (number), immune to pinned-top band shifting `aria-rowindex`; read back by `resolve-context-menu-target.ts`. */
   rowIndex: "data-grid-row-index",
   /** header-cell.tsx: present (`""`) while that column's resize handle is being dragged. */
   resizing: "data-resizing",
@@ -41,7 +41,7 @@ export const GRID_ATTR = {
   dropIndicator: "data-grid-drop-indicator",
   /** rows/marker-cell.tsx: the checkbox glyph inside a marker cell (`'checkbox'`/`'both'` modes) — its press keeps the row-select gesture and never arms a reorder. */
   markerCheckbox: "data-grid-marker-checkbox",
-  /** rows/marker-cell.tsx: the grip handle inside a marker cell (`'reorder'` mode). */
+  /** rows/marker-cell.tsx: the drag handle inside a marker cell (`'reorder'` mode). */
   reorderHandle: "data-grid-reorder-handle",
   /** header-cell.tsx: the column-menu trigger button. */
   headerMenuTrigger: "data-grid-header-menu-trigger",

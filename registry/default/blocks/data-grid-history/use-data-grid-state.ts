@@ -39,7 +39,7 @@ export type UseDataGridStateResult<TData> = {
     redo: () => void;
     clear: () => void;
     /**
-     * Applies a programmatic change (the consumer-built op batch) to the grid AND registers it as
+     * Applies a programmatic change (the consumer-built operation batch) to the grid AND registers it as
      * one undo entry — one `commitChange` write, recorded by the history plugin's observer.
      */
     record: (change: DataChange<TData>, label?: string) => void;

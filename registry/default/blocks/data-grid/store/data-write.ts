@@ -215,7 +215,7 @@ export function reconcileAfterWrite(s: DataGridStoreState, nextData: readonly un
 }
 
 /**
- * The view bookkeeping a row-shifting op (`insertRows`/`deleteRows`/`duplicateRows`) owes: the
+ * The view bookkeeping a row-shifting operation (`insertRows`/`deleteRows`/`duplicateRows`) owes: the
  * row count changed, so `computeViewIndex` always returns a fresh array (the content-equality
  * reuse cannot apply), `searchMatches` is recomputed against it, and `viewStale` is cleared —
  * the full rebuild reconciles whatever a deferred `updateCells` batch left stale, mirroring
@@ -290,7 +290,7 @@ export type DataWriteDeps = {
   endEditSession: (session: NonNullable<DataGridStoreState["editing"]>, write: () => void) => void;
 };
 
-/** Every data-writing action of the store, extracted as one cluster: the edit commits, the bulk writers, and the row ops; `_deleteCellsById` is the internal clipboard seam, split out by the store factory. */
+/** Every data-writing action of the store, extracted as one cluster: the edit commits, the bulk writers, and the row operations; `_deleteCellsById` is the internal clipboard seam, split out by the store factory. */
 export type DataWriteActions = Pick<
   DataGridActions,
   | "commitCellEdit"

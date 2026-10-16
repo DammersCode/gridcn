@@ -29,7 +29,7 @@ const columns = defineColumns<Row>()([
   { id: "age", header: "Age", accessorKey: "age", type: "number", width: 100 },
 ] as const);
 
-/** Grabs the live store API from inside the provider (row ops are driven exactly like a real consumer toolbar would). */
+/** Grabs the live store API from inside the provider (row operations are driven exactly like a real consumer toolbar would). */
 function StoreCapture({ onReady }: { onReady: (store: StoreApi<DataGridStoreState>) => void }) {
   const store = useDataGridStoreApi();
   const firedRef = useRef(false);

@@ -1,6 +1,6 @@
 /**
  * Compile-time-only assertions for the keymap binding-string types (key-syntax.ts): the strict
- * sub-unions reject typos, `KeyBinding`'s `(string & {})` escape hatch keeps arbitrary strings
+ * sub-unions reject typos, `KeyBinding`'s `(string & {})` override keeps arbitrary strings
  * assignable, and `Keymap` accepts typed overrides. Named so vitest's *.test.ts glob does not
  * pick it up (tsc gate typechecks it, matching data-grid.type-test.ts).
  */

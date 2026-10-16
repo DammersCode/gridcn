@@ -38,10 +38,10 @@ function OrdersGrid() {
 }
 ```
 
-## Translate ops into API calls
+## Translate operations into API calls
 
-`change.ops` is an array of `DataOp<Order>`. Each op names its own shape, so a `switch` on
-`op.type` maps to one API call per op. The `move` ops of a batch go in one request:
+`change.ops` is an array of `DataOp<Order>`. Each operation names its own shape, so a `switch` on
+`op.type` maps to one API call per operation. The `move` operations of a batch go in one request:
 
 ```ts
 function opsToRequests(ops: DataOp<Order>[]) {

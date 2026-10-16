@@ -70,7 +70,7 @@ function FillHandle({
  */
 export type FillOverlayState = {
   fillPreview: GridRect | null;
-  /** Primary selection range (view-space), or `null` when there's no current range (row/column-channel-only selection, or a clear). */
+  /** Primary selection range (view-index), or `null` when there's no current range (row/column-channel-only selection, or a clear). */
   primaryRange: GridRect | null;
   /** True while a cell is being edited — hides the handle. */
   editing: boolean;

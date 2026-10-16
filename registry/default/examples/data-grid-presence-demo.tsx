@@ -41,7 +41,7 @@ function nextWalkStep(current: number, max: number, seed: number): number {
 /**
  * Drives the 3 simulated users' selections on a timer, calling the real (imperative) mechanism
  * `setPresenceHighlights` directly — exactly what a websocket/CRDT handler would do on each remote
- * update. Ada and Grace use the view-space `range` form; Linus uses the rowId-native RANGE form
+ * update. Ada and Grace use the view-index `range` form; Linus uses the rowId-native RANGE form
  * `{ rowIds, columnIds }` (a real peer would send this after a local sort or filter), so his
  * highlight keeps tracking the same rows even as `headerClickBehavior="sort"` reorders the view
  * underneath it. If a local filter or hidden column splits his range, it paints one rect — and

@@ -268,7 +268,7 @@ describe("useDataGridLazyRows", () => {
     expect(result.current.gridProps.data[7]).toEqual({ id: "row-7", name: "Person 7" });
 
     // The store's snapshot predates the rows just landed in [5,10): its `next` still has holes
-    // there, but the ops apply to the same row ids, so the merge must keep the landed rows.
+    // there, but the operations apply to the same row ids, so the merge must keep the landed rows.
     const staleNext: (Row | undefined)[] = result.current.gridProps.data.slice();
     for (let i = 5; i < 10; i++) staleNext[i] = undefined;
     staleNext[2] = { id: "row-2", name: "Edited Name" };

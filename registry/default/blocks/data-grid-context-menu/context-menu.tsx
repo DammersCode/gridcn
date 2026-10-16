@@ -130,7 +130,7 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
   const onContextMenu = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
       const resolved = resolveContextMenuTarget(event.target);
-      // the DOM carries only view-space coords; the stable row id and the selection both come off
+      // the DOM carries only view-index coords; the stable row id and the selection both come off
       // the store at event time.
       const s = storeApi.getState();
       let next: MenuTarget | null = resolved?.kind === "header" ? resolved : null;

@@ -1,4 +1,4 @@
-/** Domain barrel — selection math (rects, compact-selection, range ops). */
+/** Domain barrel — selection math (rects, compact-selection, range operations). */
 export { CompactSelection } from "./compact-selection";
 export {
   rectFromCorners,
