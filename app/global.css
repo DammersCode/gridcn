@@ -289,7 +289,7 @@ button[data-search],
 
 /* docs sidebar grid canvas: one continuous table, 36px rows, 1px line at every boundary,
    every element its own bordered cell. The cell structure (chevron/gutter/content, ghost
-   cells, group band) is built by components/sidebar-grid.tsx; this only styles it.
+   cells, group band) is rendered by components/docs-sidebar.tsx; this only styles it.
    Row and wrapper selectors match fumadocs-ui 16.15 utility classes (no data attributes exist).
    No :has() here (repo policy). */
 
@@ -299,19 +299,6 @@ button[data-search],
   #nd-docs-layout[data-sidebar-collapsed] {
     --fd-sidebar-width: 312px;
   }
-}
-
-/* Hide the rows until sidebar-grid.tsx has built the cells, so the unstyled markup never shows.
-   The animation reveals them after 2s if scripts fail. */
-@keyframes sidebar-reveal {
-  to {
-    visibility: visible;
-  }
-}
-
-:is(#nd-sidebar, #nd-sidebar-mobile):not([data-grid-ready]) [data-radix-scroll-area-viewport] {
-  visibility: hidden;
-  animation: sidebar-reveal 0s 2s forwards;
 }
 
 :is(#nd-sidebar, #nd-sidebar-mobile) > div.flex.flex-col {
@@ -417,10 +404,24 @@ button[data-search],
   color: var(--color-muted-foreground);
 }
 
-:is(#nd-sidebar, #nd-sidebar-mobile) .chev-cell svg {
-  width: 14px;
-  height: 14px;
+/* the folder chevron is fumadocs' own svg: it is the cell, with the divider drawn beside it */
+:is(#nd-sidebar, #nd-sidebar-mobile) :is(a, button).nd-nav-band > svg[data-icon] {
+  flex: none;
+  box-sizing: border-box;
+  width: 28px;
+  height: 36px;
+  padding: 11px 7px;
   margin: 0;
+  color: var(--color-muted-foreground);
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) :is(a, button).nd-nav-band::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 28px;
+  border-left: 1px solid var(--color-border);
+  pointer-events: none;
 }
 
 :is(#nd-sidebar, #nd-sidebar-mobile) a[data-active="true"] {

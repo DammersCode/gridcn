@@ -3,7 +3,7 @@ import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import { baseOptions } from '@/lib/layout.shared';
 import { GitHubStarsLive } from '@/components/github-stars-live';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { SidebarGrid } from '@/components/sidebar-grid';
+import { DocsSidebarFolder, DocsSidebarItem } from '@/components/docs-sidebar';
 import { gitConfig } from '@/lib/shared';
 
 export default function Layout({ children }: LayoutProps<'/docs'>) {
@@ -14,6 +14,7 @@ export default function Layout({ children }: LayoutProps<'/docs'>) {
       githubUrl={undefined}
       themeSwitch={{ enabled: false }}
       sidebar={{
+        components: { Item: DocsSidebarItem, Folder: DocsSidebarFolder },
         // githubUrl/themeSwitch are suppressed above so fumadocs' toolbar pill stays empty and
         // hidden; everything lives in this single footer row instead.
         footer: (
@@ -33,7 +34,6 @@ export default function Layout({ children }: LayoutProps<'/docs'>) {
         ),
       }}
     >
-      <SidebarGrid />
       {children}
     </DocsLayout>
   );
