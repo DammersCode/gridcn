@@ -72,7 +72,7 @@ function LazySwrGrid(): ReactNode {
     <div className="w-full flex flex-col gap-2">
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          {(TOTAL_COUNT - lazy.unloadedCount).toLocaleString()} / {TOTAL_COUNT.toLocaleString()} rows loaded
+          {(TOTAL_COUNT - lazy.unloadedCount).toLocaleString("en-US")} / {TOTAL_COUNT.toLocaleString("en-US")} rows loaded
           {lazy.isLoading && " · fetching…"}
         </span>
         <span>each window cached globally by SWR</span>

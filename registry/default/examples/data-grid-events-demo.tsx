@@ -74,7 +74,7 @@ function EventLogPanel({ entries }: { entries: LogEntry[] }): ReactNode {
               <li key={entry.id} className="rounded-sm border border-border bg-background p-2">
                 <div className="mb-1 flex items-center justify-between gap-2 text-xs">
                   <span className="font-medium text-foreground">{entry.source}</span>
-                  <span className="text-muted-foreground">{new Date(entry.at).toLocaleTimeString()}</span>
+                  <span className="text-muted-foreground">{new Date(entry.at).toLocaleTimeString("en-US")}</span>
                 </div>
                 <pre className="overflow-x-auto text-[11px] leading-snug text-muted-foreground">
                   {JSON.stringify(entry.payload, null, 2)}

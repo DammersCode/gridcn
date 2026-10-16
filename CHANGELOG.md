@@ -948,6 +948,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Demos render the same text on server and client:** the lazy-loading, events, and related demos format numbers and times with an explicit `en-US` locale, which removes the hydration mismatch (React error #418) on servers whose default locale differs from the browser.
 - **Text, URL, and select cells tolerate non-string values:** `toText`, `toDisplayText`, and `href` convert a number or boolean from a JSON API with `String()` instead of throwing, and strings behave as before.
 - **Presence validates remote colors:** a peer's `color` that the browser does not parse as a CSS color falls back to a default instead of reaching the overlay styles unchecked.
 - **XLSX export cuts oversized cell text:** `buildXlsx` and `exportGrid` cut cell text to Excel's 32,767-character limit, so Excel no longer offers to repair the file. Print already cut at the same limit.
