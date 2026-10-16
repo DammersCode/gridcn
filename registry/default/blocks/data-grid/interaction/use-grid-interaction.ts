@@ -415,11 +415,29 @@ export function dispatchGridAction(args: {
     }
     case "openColumnMenu": {
       preventDefault();
-      const column = state.activeCell && state.visibleColumns[state.activeCell.col];
-      const trigger = column && scrollRef.current?.querySelector<HTMLElement>(`[data-column-id="${CSS.escape(column.id)}"] ${gridAttrSelector("headerMenuTrigger")}`);
-      trigger?.setAttribute(GRID_ATTR.keyboardOpen, "");
-      trigger?.click();
-      trigger?.removeAttribute(GRID_ATTR.keyboardOpen);
+      const active = state.activeCell;
+      const column = active && state.visibleColumns[active.col];
+      if (!active || !column) break;
+      const findTrigger = () => scrollRef.current?.querySelector<HTMLElement>(`[data-column-id="${CSS.escape(column.id)}"] ${gridAttrSelector("headerMenuTrigger")}`);
+      const open = (trigger: HTMLElement) => {
+        trigger.setAttribute(GRID_ATTR.keyboardOpen, "");
+        trigger.click();
+        trigger.removeAttribute(GRID_ATTR.keyboardOpen);
+      };
+      scrollCellIntoView(active);
+      const mounted = findTrigger();
+      if (mounted) {
+        open(mounted);
+        break;
+      }
+      // the header is virtualized out until the scroll lands and a frame renders it
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          const trigger = findTrigger();
+          if (trigger) open(trigger);
+          else warnDev(`openColumnMenu found no column menu trigger for "${column.id}"; wire renderHeaderMenu to enable it`);
+        }),
+      );
       break;
     }
     case "edit": {

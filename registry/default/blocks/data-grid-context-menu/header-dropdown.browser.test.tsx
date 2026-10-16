@@ -152,4 +152,44 @@ describe("DataGridHeaderDropdown", () => {
     await new Promise((r) => setTimeout(r, 100));
     expect(grid.scrollTop).toBe(before);
   });
+
+  it("Shift+Alt+ArrowDown scrolls a scrolled-away active column into view and opens its menu", async () => {
+    const wideColumns = defineColumns<Row>()(
+      Array.from({ length: 30 }, (_, i) => ({ id: "c" + i, header: "Col " + i, accessorFn: (r: Row) => r.name, type: "text", width: 160 })) as never,
+    );
+    await render(
+      <DataGridProvider data={makeRows()} columns={wideColumns} getRowId={(r) => r.id}>
+        <DataGridRoot className="h-75 w-100" renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}>
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await vi.waitFor(() => expect(document.querySelector('[data-column-id="c0"]')).toBeTruthy());
+    await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"][aria-colindex="1"]')!);
+    const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+    grid.scrollLeft = grid.scrollWidth;
+    await vi.waitFor(() => expect(grid.scrollLeft).toBeGreaterThan(4000));
+
+    await userEvent.keyboard("{Shift>}{Alt>}{ArrowDown}{/Alt}{/Shift}");
+    await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeTruthy());
+    expect(grid.scrollLeft).toBeLessThan(200);
+  });
+
+  it("Shift+Alt+ArrowDown warns in development when no header menu is wired", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridRoot className="h-75">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await vi.waitFor(() => expect(document.querySelector('[role="gridcell"]')).toBeTruthy());
+    await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"]')!);
+    await userEvent.keyboard("{Shift>}{Alt>}{ArrowDown}{/Alt}{/Shift}");
+    await vi.waitFor(() => expect(warn.mock.calls.some(([message]) => String(message).includes("column menu"))).toBe(true));
+    warn.mockRestore();
+  });
 });
