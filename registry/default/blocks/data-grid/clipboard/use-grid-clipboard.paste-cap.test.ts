@@ -110,3 +110,21 @@ describe("parse-time paste cap", () => {
     expect(parseClipboard({ html, text: "from-text" })).toEqual([["from-html"]]);
   });
 });
+
+describe("hostile paste input", () => {
+  it("parseClipboardText stops inside one over-wide row", () => {
+    const parsed = parseClipboardText("a\t".repeat(3_000_000), 200_000);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]!.length).toBeLessThanOrEqual(200_001);
+  });
+
+  it("parseClipboard stops an HTML table at the cap", () => {
+    const html = `<table><tr>${"<td>x</td>".repeat(50)}</tr><tr>${"<td>y</td>".repeat(50)}</tr></table>`;
+    const parsed = parseClipboard({ html }, 60);
+    expect(parsed.flat().length).toBeLessThanOrEqual(61);
+  });
+
+  it("truncatePasteGrid crops a first row wider than the cap instead of dropping the paste", () => {
+    expect(truncatePasteGrid([["a", "b", "c", "d"]], 3)).toEqual([["a", "b", "c"]]);
+  });
+});

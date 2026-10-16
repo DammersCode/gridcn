@@ -46,16 +46,26 @@ function cellNodeToText(cell: Element): string {
  * Parses a clipboard `text/html` payload into a 2D string grid using the first `<table>` found.
  * Prefers each cell's `data-gridcn-raw` attribute — trusted only when it is the grid's own
  * serialization of the cell (it renders back to the cell's exact innerHTML) — falling back to
- * text content with `<br>` treated as a newline. Returns null when no table is present.
+ * text content with `<br>` treated as a newline. With `maxCells`, parsing stops once the cell total passes it. Returns null when no table is present.
  */
-export function parseClipboardHtml(html: string): string[][] | null {
+export function parseClipboardHtml(html: string, maxCells?: number): string[][] | null {
   const doc = new DOMParser().parseFromString(html, "text/html");
   const table = doc.querySelector("table");
   if (!table) return null;
 
-  return Array.from(table.rows).map((row) =>
-    Array.from(row.cells).map((cell) => cellNodeToText(cell)),
-  );
+  const rows: string[][] = [];
+  let cellCount = 0;
+  for (const tableRow of Array.from(table.rows)) {
+    const cells: string[] = [];
+    for (const cell of Array.from(tableRow.cells)) {
+      cells.push(cellNodeToText(cell));
+      if (maxCells !== undefined && cellCount + cells.length > maxCells) break;
+    }
+    rows.push(cells);
+    cellCount += cells.length;
+    if (maxCells !== undefined && cellCount > maxCells) break;
+  }
+  return rows;
 }
 
 /**
@@ -89,6 +99,7 @@ export function parseClipboardText(text: string, maxCells?: number): string[][] 
     row.push(field);
     field = "";
     fieldPending = false;
+    if (maxCells !== undefined && cellCount + row.length > maxCells) full = true;
   };
   const endRow = () => {
     endField();
@@ -145,8 +156,13 @@ export function parseClipboardText(text: string, maxCells?: number): string[][] 
     i += 1;
   }
 
+  if (full) {
+    if (row.length > 0) rows.push(row);
+    return rows;
+  }
+
   // final field/row, unless the input ended exactly on a row separator (trailing newline)
-  if (!full && (fieldPending || row.length > 0)) {
+  if (fieldPending || row.length > 0) {
     endRow();
   }
 
@@ -163,7 +179,7 @@ const HTML_CHARS_PER_CELL = 80;
  */
 export function parseClipboard(data: { html?: string; text?: string }, maxCells?: number): string[][] {
   if (data.html && (maxCells === undefined || data.html.length <= maxCells * HTML_CHARS_PER_CELL)) {
-    const fromHtml = parseClipboardHtml(data.html);
+    const fromHtml = parseClipboardHtml(data.html, maxCells);
     if (fromHtml && fromHtml.length > 0) return fromHtml;
   }
   if (data.text !== undefined) {

@@ -203,13 +203,13 @@ export const MAX_PASTE_CELLS = 200_000;
 /**
  * Truncates a paste grid to the first rows that fit under `maxCells` (row-summed). The paste anchor
  * is the target's top-left, so the HEAD rows are kept — dropping them would silently skip the rows
- * the user intended to paste first. Below the cap the input is returned unchanged.
+ * the user intended to paste first. A first row wider than the cap is cropped to it. Below the cap the input is returned unchanged.
  */
 export function truncatePasteGrid(cells: string[][], maxCells: number): string[][] {
   let total = 0;
   for (let i = 0; i < cells.length; i++) {
     const row = cells[i]!; // i < cells.length by loop condition
-    if (total + row.length > maxCells) return cells.slice(0, i);
+    if (total + row.length > maxCells) return i === 0 ? [row.slice(0, maxCells)] : cells.slice(0, i);
     total += row.length;
   }
   return cells;
