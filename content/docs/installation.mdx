@@ -93,23 +93,47 @@ hard floor, plus the Node and TypeScript floors.
   Tailwind v3, the grid renders without its styles.
 </Callout>
 
-The table below lists the npm dependencies of every item, the core included.
+The table below lists, for every item, the npm packages it installs and the shadcn/ui components
+the CLI adds with it. The core is the only item with a hard `tooltip` component dependency.
 
-| Item | Runtime dependency | Dev dependency |
-|---|---|---|
-| Core (`data-grid`) | `zustand`, `use-sync-external-store`, `lucide-react`, `@base-ui/react` | none |
-| `data-grid-toolbar` | `@dnd-kit/dom`, `@dnd-kit/react`, `lucide-react` | none |
-| `data-grid-sort-list` | `@dnd-kit/dom`, `@dnd-kit/react`, `lucide-react` | none |
-| `data-grid-context-menu` | `lucide-react`, `@base-ui/react`, `zustand` | none |
-| `data-grid-pagination` | `lucide-react` | none |
-| `data-grid-io` | `hucre@1.1.0` (lazy-loaded), `papaparse` (loaded with the item) | `@types/papaparse` |
-| `data-grid-url-state` | `nuqs` | none |
-| `data-grid-presence`, `data-grid-fill`, `data-grid-pinned-rows` | `zustand` | none |
-| `dropzone` | `lucide-react` | none |
-| All other add-ons | none beyond the core | none |
+| Item | Runtime dependency | Dev dependency | shadcn components added |
+|---|---|---|---|
+| Core (`data-grid`) | `zustand`, `use-sync-external-store`, `lucide-react`, `@base-ui/react` | none | `button`, `input`, `select`, `checkbox`, `popover`, `calendar`, `dropdown-menu`, `context-menu`, `separator`, `tooltip` |
+| `data-grid-toolbar` | `@dnd-kit/dom`, `@dnd-kit/react`, `lucide-react` | none | `dropdown-menu`, `popover`, `input`, `button`, `badge`, `select` |
+| `data-grid-sort-list` | `@dnd-kit/dom`, `@dnd-kit/react`, `lucide-react` | none | `popover`, `button`, `badge`, `select` |
+| `data-grid-context-menu` | `lucide-react`, `@base-ui/react`, `zustand` | none | `context-menu`, `dropdown-menu`, `tooltip` |
+| `data-grid-keybindings` | none beyond the core | none | `dialog` |
+| `data-grid-pagination` | `lucide-react` | none | `button`, `select` |
+| `data-grid-io` | `hucre@1.1.0` (lazy-loaded), `papaparse` (loaded with the item), `lucide-react` | `@types/papaparse` | `dialog`, `select`, `dropdown-menu`, `button` (plus `dropzone`) |
+| `data-grid-url-state` | `nuqs` | none | none (installs `data-grid-pagination`) |
+| `data-grid-presence`, `data-grid-fill`, `data-grid-pinned-rows` | `zustand` | none | none |
+| `dropzone` | `lucide-react` | none | none |
+| `data-grid-history`, `data-grid-lazy`, `data-grid-status-bar` | none beyond the core | none | none |
 
 The registry pins `hucre` to an exact version. `hucre` limits the unpacked size and the cell
 count of an untrusted spreadsheet before it allocates the cells.
+
+## Tooltips
+
+The CLI prints a hint to wrap your app in `TooltipProvider`. The grid works without it. The core
+uses a tooltip for the message of an invalid cell, and the context menu uses one for a disabled
+item. A tooltip without a provider opens after the default hover delay. A provider sets one
+shared delay for all tooltips of the app. The `tooltip` component of shadcn/ui sets that delay
+to zero. Wrap your app once in the root layout if you want instant tooltips:
+
+```tsx title="app/layout.tsx"
+import { TooltipProvider } from "@/components/ui/tooltip";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <TooltipProvider>{children}</TooltipProvider>
+      </body>
+    </html>
+  );
+}
+```
 
 ## Where files land
 
