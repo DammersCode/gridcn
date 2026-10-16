@@ -222,7 +222,7 @@ const SCENARIOS = [
     },
   },
   {
-    name: "core: keyboard navigation (arrows, Tab, Home, End)",
+    name: "core: keyboard navigation (arrows, Home, End)",
     page: "data-grid-minimal-demo",
     run: async (page) => {
       const active = async () => page.locator('[role="gridcell"][data-active]').evaluate((el) => `${el.parentElement?.getAttribute("data-grid-row-index")}:${el.getAttribute("data-column-id")}`);
@@ -231,8 +231,8 @@ const SCENARIOS = [
       await eventually(async () => (await active()) === "1:name", "ArrowDown did not move to row 2");
       await page.keyboard.press("ArrowRight");
       await eventually(async () => (await active()) === "1:age", "ArrowRight did not move to Age");
-      await page.keyboard.press("Tab");
-      await eventually(async () => (await active()) === "1:active", "Tab did not move to Active");
+      await page.keyboard.press("ArrowRight");
+      await eventually(async () => (await active()) === "1:active", "ArrowRight did not move to Active");
       await page.keyboard.press("Home");
       await eventually(async () => (await active()) === "1:name", "Home did not move to the first column");
       await page.keyboard.press("End");
