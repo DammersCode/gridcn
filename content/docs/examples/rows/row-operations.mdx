@@ -7,7 +7,7 @@ icon: ListPlus
 Row operations from two surfaces at once: the toolbar acts on the **current row selection**
 (falling back to the active cell's row), and the right-click context menu acts on the clicked
 row. The side panel prints the last `onDataChange` payload. Every row operation emits one change with
-`source: "row-op"` and row-id-based `insert`/`delete` operations, which is what undo/redo and export
+`source: "row-operation"` and row-id-based `insert`/`delete` operations, which is what undo/redo and export
 consume.
 
 <ComponentPreview name="data-grid-row-ops-demo" />
@@ -27,7 +27,7 @@ consume.
 
 ```tsx
 onDataChange={(next, change) => {
-  // change.source === "row-op" for insert/duplicate/delete
+  // change.source === "row-operation" for insert/duplicate/delete
   // change.ops: id-keyed { type: "insert" | "delete", rowId, row, index }
 }}
 ```

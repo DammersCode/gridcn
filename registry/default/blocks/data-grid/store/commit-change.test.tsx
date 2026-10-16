@@ -84,7 +84,7 @@ describe("commitChange (uncontrolled)", () => {
   it("reorders data with a move op and bumps rowIdentityVersion once", () => {
     const { state, commit } = mount({ defaultData: [...ROWS] });
     const before = state().rowIdentityVersion;
-    commit({ source: "row-op", ops: [{ type: "move", rowId: "c", row: row("c"), from: 2, to: 0 }] });
+    commit({ source: "row-operation", ops: [{ type: "move", rowId: "c", row: row("c"), from: 2, to: 0 }] });
     const s = state();
     expect(s.data.map((r) => (r as Row).id)).toEqual(["c", "a", "b"]);
     expect(s.rowIdentityVersion).toBe(before + 1);
@@ -157,7 +157,7 @@ describe("commitChange (uncontrolled)", () => {
       state().actions.setSelection({ anchor: null, range: null, rangeStack: [], rowIds: ["a", "b"], columnIds: [] });
     });
     expect(derived().rowIds).toEqual(["a", "b"]);
-    commit({ source: "row-op", ops: [{ type: "delete", rowId: "b", row: row("b"), index: 1 }] });
+    commit({ source: "row-operation", ops: [{ type: "delete", rowId: "b", row: row("b"), index: 1 }] });
     expect(derived().rowIds).toEqual(["a"]);
   });
 

@@ -233,7 +233,7 @@ describe("useDataGridHistory", () => {
   });
 
   it("recordSources can also drop a source that is recorded by default", () => {
-    const h = setupHarness({ recordSources: ["row-op"] });
+    const h = setupHarness({ recordSources: ["row-operation"] });
     const prev = initialRows[0]!;
     const next = { ...prev, name: "Changed" };
     h.commit(editChange("a", next, prev));

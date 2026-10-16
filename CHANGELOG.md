@@ -70,7 +70,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   and the grid applies all of its ops — `update`, `insert`, `delete`, `move` — in one write and
   fires `onDataChange` exactly once, so a history add-on records one undo entry per call. Ops
   resolve by row id through `applyChange`: an op whose row is gone is skipped, and a batch where
-  no op applies writes and fires nothing. Row-moving ops run the row-op view bookkeeping (view
+  no op applies writes and fires nothing. Row-moving ops run the row-operation view bookkeeping (view
   rebuild; the row channel and the cursor follow their records); update-only batches keep the
   selection and the cursor. Cell errors clear for the written cells, and errors of removed rows
   are pruned. No-op on a `readOnly` grid; a `source: "history"` change passes through without a
@@ -470,6 +470,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking: `source: "row-op"` is now `"row-operation"` (`data-grid`).** Update any `DataChange.source` check or `recordSources` list that names it.
 - **Breaking: vocabulary pass (`data-grid`, `data-grid-lazy`, docs):** the prop `onRowWindowChange` is now `onRenderedRowsChange`, the plugin context field `windowedColumns` is `renderedColumns`, the type `WindowedColumn` is `RenderedColumn`, and the install path `components/data-grid/windowing/` is `components/data-grid/virtualization/`. Update imports and re-run `npx shadcn add @gridcn/data-grid`. Docs, skills, and comments say "virtualization" instead of "windowing", "operation" instead of "op", "drag handle" instead of "grip", and "override" instead of "escape hatch". `GLOSSARY.md` lists the words, and `pnpm lint` rejects the old ones.
 - **Breaking:** a press on the row-marker drag handle (`reorder`, `reorder-number`, `reorder-checkbox`, `reorder-both`) no longer selects or checks the row. Dragging reorders and leaves the selection as it was; a stationary press does nothing. Shift and Ctrl/Cmd on the drag handle no longer select. The drag handle zone is now a fixed 20px column (the whole cell in `reorder`) with a `grab` cursor, and the checkbox's extended hit area no longer overlaps it.
 

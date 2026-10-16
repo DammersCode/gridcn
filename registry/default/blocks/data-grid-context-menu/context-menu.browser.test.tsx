@@ -172,7 +172,7 @@ describe("DataGridContextMenu — cell surface", () => {
     await expect.poll(() => onDataChange.mock.calls.length).toBe(1);
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["r0", "r1", "new-0", "r2"]);
-    expect(change.source).toBe("row-op");
+    expect(change.source).toBe("row-operation");
   });
 
   it("hides Insert row above/below when no createRow prop is given", async () => {
@@ -204,7 +204,7 @@ describe("DataGridContextMenu — cell surface", () => {
     await expect.poll(() => onDataChange.mock.calls.length).toBe(1);
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["r0", "r1", "copy-0", "r2"]);
-    expect(change.source).toBe("row-op");
+    expect(change.source).toBe("row-operation");
   });
 
   it("disables every mutating item and Insert row/Duplicate row items on a readOnly grid", async () => {

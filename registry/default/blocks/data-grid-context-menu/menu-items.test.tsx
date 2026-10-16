@@ -77,7 +77,7 @@ function renderProbe(props: ProbeProps) {
 const ids = (specs: GridMenuItemSpec[]) => specs.map((s) => s.id);
 
 describe("useDefaultCellMenuItems", () => {
-  it("builds the full built-in set with stable ids when both row-op props are given", () => {
+  it("builds the full built-in set with stable ids when both row-operation props are given", () => {
     let cell: GridMenuItemSpec[] = [];
     renderProbe({
       createRow: () => rows[0]!,

@@ -209,7 +209,7 @@ export type DataChange<TData> = {
    * change whose save failed. Neither is recorded, so a server-sync handler can skip undo and redo
    * and still send a rollback (or the reverse).
    */
-  source: "edit" | "paste" | "fill" | "delete" | "row-op" | "import" | "history" | "rollback" | "stream" | "app";
+  source: "edit" | "paste" | "fill" | "delete" | "row-operation" | "import" | "history" | "rollback" | "stream" | "app";
   /** Optional human-readable label for this entry (e.g. "Batch save rollback"); carried through the undo/redo stack as-is. */
   label?: string;
 };

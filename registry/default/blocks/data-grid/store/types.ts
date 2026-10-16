@@ -934,18 +934,18 @@ export type DataGridActions = {
   insertRow(viewRowIndex: number, position: "above" | "below"): void;
   /**
    * Inserts `count` rows built by the `createRow` sync prop (called with `dataRowIndex + i`)
-   * above/below `viewRowIndex` (view-index) as ONE `{source: 'row-op'}` DataChange with one
+   * above/below `viewRowIndex` (view-index) as ONE `{source: 'row-operation'}` DataChange with one
    * row-id-based `insert` operation per row - a single undo entry. Dev-warning no-op when `createRow` is
    * absent; silent no-op for `count <= 0`.
    */
   insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): void;
-  /** Deletes the rows at `viewRowIndexes` (view-index) as one `{source: 'row-op'}` DataChange with row-id-based `delete` operations. */
+  /** Deletes the rows at `viewRowIndexes` (view-index) as one `{source: 'row-operation'}` DataChange with row-id-based `delete` operations. */
   deleteRows(viewRowIndexes: number[]): void;
-  /** Deletes the rows with the given ids (the shape `getRowIds()` returns) as one `{source: 'row-op'}` DataChange; ids that match no row are skipped. */
+  /** Deletes the rows with the given ids (the shape `getRowIds()` returns) as one `{source: 'row-operation'}` DataChange; ids that match no row are skipped. */
   deleteRowsById(rowIds: readonly string[]): void;
   /**
    * Duplicates the rows at `viewRowIndexes` (view-index), inserting each copy directly after its
-   * source row, as one `{source: 'row-op'}` DataChange with row-id-based `insert` operations. Dev-warning
+   * source row, as one `{source: 'row-operation'}` DataChange with row-id-based `insert` operations. Dev-warning
    * no-op when the `duplicateRow` sync prop is absent — required so
    * every duplicated row gets a distinct id, never colliding with its source's React key.
    */
@@ -953,7 +953,7 @@ export type DataGridActions = {
   /**
    * Moves the row at view index `from` so it lands at view index `to` (final position — arrayMove
    * semantics: `from < to` shifts rows `from+1..to` up one, `from > to` shifts rows `to..from-1`
-   * down one). One `{source: 'row-op'}` DataChange with a single row-id-based `move` operation (one undo
+   * down one). One `{source: 'row-operation'}` DataChange with a single row-id-based `move` operation (one undo
    * entry). No-ops (silent, dev-warned where the cause is a misconfiguration): `enableRowReorder`
    * off, readOnly, an open edit session (the editor pins a view coordinate the move would
    * invalidate), an active sort/filter (the view order is owned by the sort/filter, not the data),
@@ -967,7 +967,7 @@ export type DataGridActions = {
    * batch or a history-inverted one) in ONE write and emits `onDataChange` EXACTLY ONCE - one undo
    * entry in the history add-on - like a gesture. Operations resolve by row id through `applyChange`: an
    * operation whose row is gone is skipped silently, and a batch where no operation applies writes and emits
-   * nothing. Row-moving operations (insert, delete, move) run the row-op view bookkeeping - full view
+   * nothing. Row-moving operations (insert, delete, move) run the row-operation view bookkeeping - full view
    * rebuild, `rowIdentityVersion` bump, and the row channel and the active cell follow their
    * records - while an update-only batch keeps the selection and cursor as-is (the rebuild only
    * re-orders rows under an active sort). Cell errors clear for the written cells, and errors of

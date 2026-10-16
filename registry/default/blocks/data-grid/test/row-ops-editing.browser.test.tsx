@@ -142,7 +142,7 @@ describe("row ops under an open edit session", () => {
     expect(store!.getState().editing).toBeNull();
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
-    expect(change.source).toBe("row-op");
+    expect(change.source).toBe("row-operation");
     expect(next.map((r) => r.id)).toEqual(["row-0", "row-2", "row-3", "row-4"]);
   });
 

@@ -191,10 +191,10 @@ describe("useDataGridClipboard.pasteFromClipboard with an async schema", () => {
       await settled;
     });
 
-    // deleteRows itself fires one onDataChange (the row-op); the held paste must NOT add a second.
+    // deleteRows itself fires one onDataChange (the row-operation); the held paste must NOT add a second.
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
-    expect(change.source).toBe("row-op");
+    expect(change.source).toBe("row-operation");
   });
 
   it("commits a held paste onto the row id it targeted after a pure reorder", async () => {

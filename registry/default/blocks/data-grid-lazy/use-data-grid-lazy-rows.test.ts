@@ -349,7 +349,7 @@ describe("useDataGridLazyRows", () => {
     ];
     act(() =>
       result.current.onDataChange(next, {
-        source: "row-op",
+        source: "row-operation",
         ops: [{ type: "delete", rowId: "row-2", row: { id: "row-2", name: "Person 2" }, index: 2 }],
       }),
     );

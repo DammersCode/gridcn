@@ -7,7 +7,7 @@ status: updated
 
 Inserting, duplicating, deleting, and reordering whole rows. All four act on **view-index**
 indices (the sorted/filtered positions the user sees), emit one `onDataChange` with
-`source: "row-op"` each, and work in both controlled and uncontrolled grids.
+`source: "row-operation"` each, and work in both controlled and uncontrolled grids.
 
 Search, sort, and filter act on the same view. See [Sorting, filtering &
 search](/docs/sorting-filtering-search) and the [toolbar](/docs/addons/toolbar) for the controls.
@@ -156,7 +156,7 @@ function MyToolbar() {
 
 Selection behavior: insert and duplicate keep the selection, offsetting it around the inserted
 rows. Delete clears the entire selection and the active cell. All three fire `onDataChange` with
-`source: "row-op"` and row-id-based `insert`/`delete` operations, which is what undo/redo and export consume.
+`source: "row-operation"` and row-id-based `insert`/`delete` operations, which is what undo/redo and export consume.
 
 ## Row markers
 

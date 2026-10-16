@@ -17,7 +17,7 @@ export type UseDataGridHistoryOptions<TData> = {
    * Which `DataChange.source` values go on the undo stack. Defaults to every source except
    * `"stream"` — a 100-updates/s `updateCells` feed would otherwise evict the user's whole undo
    * stack within seconds. Pass a list to change the set, for example
-   * `["edit", "paste", "fill", "delete", "row-op", "import", "stream", "app"]` to record
+   * `["edit", "paste", "fill", "delete", "row-operation", "import", "stream", "app"]` to record
    * streams too. `source: "history"` and `"rollback"` (undo, redo, and rollback applied through the grid) are never recorded,
    * whatever the list says — that is what keeps an undo from pushing a second entry.
    */
@@ -40,7 +40,7 @@ const DEFAULT_RECORD_SOURCES: readonly DataChange<unknown>["source"][] = [
   "paste",
   "fill",
   "delete",
-  "row-op",
+  "row-operation",
   "import",
   "app",
 ];

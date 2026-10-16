@@ -389,7 +389,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     const cursor = survivingEdit
       ? { selection: selectCellPure(survivingEdit.coord), activeCell: survivingEdit.coord }
       : { selection: emptySelection(), activeCell: null };
-    writeThenEmit(ctx, s, batch.nextData, { source: "row-op", ops: batch.ops }, () =>
+    writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
       set({
         data: batch.nextData,
         rowIdentityVersion: s.rowIdentityVersion + 1,
@@ -705,7 +705,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
       if (s.sortState.length > 0 || s.filterState.length > 0) {
         pruneRowValidationKeys(batch.nextData, s.getRowId);
-        writeThenEmit(ctx, s, batch.nextData, { source: "row-op", ops: batch.ops }, () =>
+        writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
           set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view, ...editRemap }),
         );
         return;
@@ -713,7 +713,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       // unsorted and unfiltered, the new rows land at this view index; shift selection/activeCell to follow them.
       const viewInsertAt = position === "above" ? viewRowIndex : viewRowIndex + 1;
       pruneRowValidationKeys(batch.nextData, s.getRowId);
-      writeThenEmit(ctx, s, batch.nextData, { source: "row-op", ops: batch.ops }, () =>
+      writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
         set({
           data: batch.nextData,
           rowIdentityVersion: s.rowIdentityVersion + 1,
@@ -753,7 +753,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
       if (s.sortState.length > 0 || s.filterState.length > 0) {
         pruneRowValidationKeys(batch.nextData, s.getRowId);
-        writeThenEmit(ctx, s, batch.nextData, { source: "row-op", ops: batch.ops }, () =>
+        writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
           set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view, ...editRemap }),
         );
         return;
@@ -768,7 +768,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         if (activeCell && activeCell.row >= insertAt) activeCell = { ...activeCell, row: activeCell.row + 1 };
       });
       pruneRowValidationKeys(batch.nextData, s.getRowId);
-      writeThenEmit(ctx, s, batch.nextData, { source: "row-op", ops: batch.ops }, () =>
+      writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
         set({
           data: batch.nextData,
           rowIdentityVersion: s.rowIdentityVersion + 1,
@@ -812,7 +812,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const f = rowReorderMap(from, to);
       // no view rebuild: unsorted and unfiltered, the identity `viewIndex` content is unchanged
       const editRemap = remapEditing(s, s.viewIndex, s.visibleColumns, nextData, s.getRowId);
-      writeThenEmit(ctx, s, nextData, { source: "row-op", ops }, () =>
+      writeThenEmit(ctx, s, nextData, { source: "row-operation", ops }, () =>
         set({
           data: nextData,
           rowIdentityVersion: s.rowIdentityVersion + 1,

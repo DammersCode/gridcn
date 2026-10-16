@@ -120,10 +120,10 @@ function renderInteraction(
   const { readOnly = false, createRow, duplicateRow, keymap = DEFAULT_KEYMAP, columns: testColumns = columns } = options;
   const scrollRef = { current: makeScrollElement() };
   const data = makeRows(rowCount);
-  // row-op tests (createRow/duplicateRow provided, or deleteRows explicitly) mutate the store's own
+  // row-operation tests (createRow/duplicateRow provided, or deleteRows explicitly) mutate the store's own
   // row count — uncontrolled (defaultData) so the mutation persists instead of being overwritten by
   // the next _syncProps sync of an unchanging `data` prop, matching store/update-cells.test.tsx's own
-  // row-op harness.
+  // row-operation harness.
   const uncontrolled = options.uncontrolled ?? Boolean(createRow || duplicateRow);
   function Wrapper({ children }: { children: ReactNode }) {
     return (
@@ -153,7 +153,7 @@ function renderInteraction(
   return { hook, scrollRef };
 }
 
-// insertRow/duplicateRows commit into the store's own `data` array (the row-op actions rebuild
+// insertRow/duplicateRows commit into the store's own `data` array (the row-operation actions rebuild
 // `viewIndex` too, so the uncontrolled harness survives a later `_syncProps` sync) — reading
 // `data.length` off the store directly is what the dispatcher itself is responsible for and
 // needs no consumer round-trip to observe.

@@ -58,7 +58,7 @@ describe("insertRow", () => {
     warn.mockRestore();
   });
 
-  it("inserts above the target view row as one row-op DataChange with a correct insert index", () => {
+  it("inserts above the target view row as one row-operation DataChange with a correct insert index", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange, { createRow });
     const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
@@ -68,7 +68,7 @@ describe("insertRow", () => {
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["1", "new", "2", "3"]);
-    expect(change.source).toBe("row-op");
+    expect(change.source).toBe("row-operation");
     expect(change.ops).toEqual([{ type: "insert", rowId: "new", row: createRow(), index: 1 }]);
   });
 
@@ -142,7 +142,7 @@ describe("insertRows", () => {
     warn.mockRestore();
   });
 
-  it("inserts count rows below the target as ONE row-op DataChange with one op per row", () => {
+  it("inserts count rows below the target as ONE row-operation DataChange with one op per row", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange, { createRow: indexedCreateRow });
     const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
@@ -152,7 +152,7 @@ describe("insertRows", () => {
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["1", "2", "new-2", "new-3", "new-4", "3"]);
-    expect(change.source).toBe("row-op");
+    expect(change.source).toBe("row-operation");
     expect(change.ops).toEqual([
       { type: "insert", rowId: "new-2", row: { id: "new-2", name: "New", age: 0 }, index: 2 },
       { type: "insert", rowId: "new-3", row: { id: "new-3", name: "New", age: 0 }, index: 3 },
@@ -204,7 +204,7 @@ describe("insertRows", () => {
 });
 
 describe("deleteRowsById", () => {
-  it("deletes the rows with the given ids as one row-op DataChange and skips unknown ids", () => {
+  it("deletes the rows with the given ids as one row-operation DataChange and skips unknown ids", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange);
     const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
@@ -214,12 +214,12 @@ describe("deleteRowsById", () => {
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["2"]);
-    expect(change.source).toBe("row-op");
+    expect(change.source).toBe("row-operation");
   });
 });
 
 describe("deleteRows", () => {
-  it("deletes the given view rows as one row-op DataChange with id-keyed delete ops", () => {
+  it("deletes the given view rows as one row-operation DataChange with id-keyed delete ops", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange);
     const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
@@ -229,7 +229,7 @@ describe("deleteRows", () => {
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["2"]);
-    expect(change.source).toBe("row-op");
+    expect(change.source).toBe("row-operation");
     expect(change.ops).toEqual([
       { type: "delete", rowId: "1", row: rows()[0], index: 0 },
       { type: "delete", rowId: "3", row: rows()[2], index: 2 },
@@ -286,7 +286,7 @@ describe("duplicateRows", () => {
     warn.mockRestore();
   });
 
-  it("inserts duplicateRow's copy (a distinct id, never the source's) directly after the source row, id-keyed via getRowId, in one row-op DataChange", () => {
+  it("inserts duplicateRow's copy (a distinct id, never the source's) directly after the source row, id-keyed via getRowId, in one row-operation DataChange", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange, { duplicateRow });
     const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
@@ -301,7 +301,7 @@ describe("duplicateRows", () => {
       { id: "2", name: "Alice", age: 25 },
       { id: "3", name: "Bob", age: 40 },
     ]);
-    expect(change.source).toBe("row-op");
+    expect(change.source).toBe("row-operation");
     expect(change.ops).toEqual([{ type: "insert", rowId: "1-copy", row: duplicateRow(rows()[0]!), index: 1 }]);
   });
 
@@ -355,7 +355,7 @@ describe("reorderRows", () => {
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["2", "3", "1"]);
-    expect(change.source).toBe("row-op");
+    expect(change.source).toBe("row-operation");
     expect(change.ops).toEqual([{ type: "move", rowId: "1", row: rows()[0], from: 0, to: 2 }]);
   });
 
@@ -464,7 +464,7 @@ describe("reorderRows", () => {
 
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["2", "3", "1"]);
-    expect(change.source).toBe("row-op");
+    expect(change.source).toBe("row-operation");
     expect(result.current.editing).toEqual({
       coord: { col: 0, row: 2 },
       rowId: "1",

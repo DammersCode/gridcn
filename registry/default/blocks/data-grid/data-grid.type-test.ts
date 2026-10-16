@@ -177,7 +177,7 @@ const commitUpdate: DataChange<Row> = {
   label: "batch save",
   ops: [{ type: "update", rowId: "1", row: commitAfter, prev: commitBefore, cells: [{ columnId: "name", value: "After", prev: "Before" }] }],
 };
-const commitMove: DataChange<Row> = { source: "row-op", ops: [{ type: "move", rowId: "1", row: commitBefore, from: 0, to: 1 }] };
+const commitMove: DataChange<Row> = { source: "row-operation", ops: [{ type: "move", rowId: "1", row: commitBefore, from: 0, to: 1 }] };
 wActions.commitChange(commitUpdate);
 wActions.commitChange(commitMove);
 assertEqual<(change: DataChange<unknown>) => void, typeof wActions.commitChange>(true);
