@@ -965,6 +965,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Unstable `columns` identity warning sees nested values (`data-grid`):** an inline `columns` literal with `options.choices` or a JSX `header` now triggers the dev warning; the comparison goes up to four levels deep into plain objects, arrays, and elements.
 - **`useDataGridState` matches `DataGrid` (`data-grid-history`):** `getRowId` and the options argument are optional (the grid default applies), and `history.rollback` is exposed next to `undo`, `redo`, and `record`.
 - **`DataGridLazyGuard` respects `sortMode="server"` (`data-grid-lazy`):** a sort change no longer warns when the server owns the order, and the warning points to `sortMode="server"` instead of controlled `sortState`.
 - **Streamed writes under `sortMode="server"` no longer flag the view stale (`data-grid`):** `updateCells` into the server-sorted column left `viewStale` true and offered a re-sort the grid cannot perform.

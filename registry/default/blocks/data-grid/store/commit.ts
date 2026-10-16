@@ -76,10 +76,23 @@ export function checkDuplicateColumnIds(columns: readonly AnyColumnDef[], warned
   }
 }
 
-// Inline callbacks are rebuilt with each array, so functions compare by source text.
-function sameColumnValue(a: unknown, b: unknown): boolean {
+const MAX_COLUMN_COMPARE_DEPTH = 4;
+
+function isPlainContainer(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === Array.prototype;
+}
+
+// Inline callbacks are rebuilt with each array, so functions compare by source text; plain objects, arrays, and JSX elements compare by content up to a depth cap (a deeper difference reads as unequal, so no false warning).
+function sameColumnValue(a: unknown, b: unknown, depth = 0): boolean {
   if (Object.is(a, b)) return true;
-  return typeof a === "function" && typeof b === "function" && String(a) === String(b);
+  if (typeof a === "function" && typeof b === "function") return String(a) === String(b);
+  if (depth >= MAX_COLUMN_COMPARE_DEPTH || !isPlainContainer(a) || !isPlainContainer(b)) return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((key) => sameColumnValue(a[key], b[key], depth + 1));
 }
 
 function columnsStructurallyEqual(a: readonly AnyColumnDef[], b: readonly AnyColumnDef[]): boolean {

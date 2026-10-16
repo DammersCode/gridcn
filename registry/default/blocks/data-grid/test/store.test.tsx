@@ -1029,6 +1029,27 @@ describe("dev-mode guardrails", () => {
     warn.mockRestore();
   });
 
+  it("warns when an inline columns literal rebuilds options.choices or a JSX header every render", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const freshColumns = (): readonly ColumnDef<Row, unknown>[] => [
+      { id: "name", header: <b>Name</b>, accessorKey: "name", type: "select", options: { choices: [{ value: "a", label: "A" }] } },
+    ];
+
+    function Harness({ columns }: { columns: readonly ColumnDef<Row, unknown>[] }) {
+      return (
+        <DataGridProvider data={rows()} columns={columns} getRowId={(r) => r.id}>
+          <div />
+        </DataGridProvider>
+      );
+    }
+
+    const { rerender } = render(<Harness columns={freshColumns()} />);
+    rerender(<Harness columns={freshColumns()} />);
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("columns array identity changed"));
+    warn.mockRestore();
+  });
+
   it("does NOT warn when the columns array changes on purpose (different header or ids) or stays stable", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const stable: readonly ColumnDef<Row, unknown>[] = [{ id: "name", header: "Name", accessorKey: "name" }];
