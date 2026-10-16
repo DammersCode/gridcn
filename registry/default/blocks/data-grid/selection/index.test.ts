@@ -610,12 +610,34 @@ describe("removeRowFromSelection", () => {
     expect(isRowChecked(next, 3)).toBe(false);
   });
 
-  it("splits a range that spans the row and keeps the cell inside a piece", () => {
+  it("splits a range that spans the row and makes the piece holding the anchor primary", () => {
     const next = removeRowFromSelection(sel(at(1, 5)), 3);
     expect(isRowChecked(next, 3)).toBe(false);
     expect([1, 2, 4, 5].every((r) => isRowChecked(next, r))).toBe(true);
+    expect(next.current!.range).toEqual(at(1, 2));
+    expect(next.current!.cell).toEqual({ col: 0, row: 1 });
+    expect(next.current!.rangeStack).toEqual([at(4, 2)]);
+  });
+
+  it("keeps the anchor in the lower piece when the anchor sits below the removed row", () => {
+    const selection: GridSelection = { ...sel(at(1, 5)), current: { cell: { col: 1, row: 5 }, range: at(1, 5), rangeStack: [] } };
+    const next = removeRowFromSelection(selection, 3);
     expect(next.current!.range).toEqual(at(4, 2));
+    expect(next.current!.cell).toEqual({ col: 1, row: 5 });
     expect(next.current!.rangeStack).toEqual([at(1, 2)]);
+  });
+
+  it("keeps the anchor column and clamps only the row when the anchor row itself is removed", () => {
+    const selection: GridSelection = { ...sel(at(1, 5)), current: { cell: { col: 1, row: 3 }, range: at(1, 5), rangeStack: [] } };
+    const next = removeRowFromSelection(selection, 3);
+    expect(next.current!.range).toEqual(at(4, 2));
+    expect(next.current!.cell).toEqual({ col: 1, row: 4 });
+  });
+
+  it("keeps only the piece holding the anchor when multiRange is false", () => {
+    const next = removeRowFromSelection(sel(at(1, 5)), 3, { multiRange: false });
+    expect(next.current!.range).toEqual(at(1, 2));
+    expect(next.current!.rangeStack).toEqual([]);
   });
 
   it("removes the row from the rows channel and returns the same object when the row is in neither", () => {

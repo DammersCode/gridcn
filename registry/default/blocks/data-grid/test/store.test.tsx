@@ -2316,6 +2316,22 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
     expect(result.current.selection.rows.toArray()).toEqual([]);
   });
 
+  it("unchecking a row inside a drag range with enableMultiRange false leaves a single range around the anchor", () => {
+    const data = Array.from({ length: 10 }, (_, i) => ({ id: String(i), name: "n" + i, age: i }));
+    const wrapper = makeConfigWrapper({ rowMarkers: "checkbox", enableMultiRange: false }, data);
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }), { wrapper });
+
+    act(() => {
+      result.current.actions.selectCellAt({ col: 0, row: 1 });
+      result.current.actions.extendToAt({ col: 1, row: 5 });
+    });
+    act(() => result.current.actions.setRowSelected(3, false));
+
+    expect(result.current.selection.current?.range).toEqual({ x: 0, y: 1, width: 2, height: 2 });
+    expect(result.current.selection.current?.rangeStack).toEqual([]);
+    expect(result.current.selection.current?.cell).toEqual({ col: 0, row: 1 });
+  });
+
   it("setRowSelected is additive: toggling a second row keeps the first", () => {
     const wrapper = makeConfigWrapper({ rowMarkers: "checkbox" });
     const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }), { wrapper });

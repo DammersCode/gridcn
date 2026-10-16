@@ -1057,10 +1057,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         set({ selection: result.selection, selectAllStage: { stage: result.stage, selection: result.selection, activeCell: active } });
       },
       setRowSelected(index, checked) {
-        const { selection, enableRowSelection } = get();
+        const { selection, enableRowSelection, enableMultiRange } = get();
         if (!enableRowSelection) return;
         if (!checked) {
-          const next = removeRowFromSelection(selection, index);
+          const next = removeRowFromSelection(selection, index, { multiRange: enableMultiRange });
           if (next !== selection) set({ selection: next });
           return;
         }

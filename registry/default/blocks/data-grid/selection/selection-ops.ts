@@ -41,8 +41,9 @@ export function isRowChecked(selection: GridSelection, row: number): boolean {
   return selection.rows.hasIndex(row) || (!!current && (covers(current.range) || current.rangeStack.some(covers)));
 }
 
-/** Removes `row` from the rows channel and from every cell range, splitting a range that spans it; `selection` itself comes back when the row is in neither channel. */
-export function removeRowFromSelection(selection: GridSelection, row: number): GridSelection {
+/** Removes `row` from the rows channel and from every cell range, splitting a range that spans it; the piece holding the anchor stays primary. `selection` itself comes back when the row is in neither channel. */
+export function removeRowFromSelection(selection: GridSelection, row: number, options: { multiRange?: boolean } = {}): GridSelection {
+  const { multiRange = true } = options;
   const rows = selection.rows.hasIndex(row) ? CompactSelection.fromArray(selection.rows.toArray()).remove(row) : selection.rows;
   const current = selection.current;
   const covers = (r: GridRect) => row >= r.y && row < r.y + r.height;
@@ -58,13 +59,18 @@ export function removeRowFromSelection(selection: GridSelection, row: number): G
       ...(below > 0 ? [{ ...r, y: row + 1, height: below }] : []),
     ];
   };
-  const rangePieces = without(current.range);
-  const pieces = [...current.rangeStack.flatMap(without), ...rangePieces];
-  const range = rangePieces.at(-1) ?? pieces.at(-1);
+  const { cell } = current;
+  const holdsCell = (r: GridRect) => cell.col >= r.x && cell.col < r.x + r.width && cell.row >= r.y && cell.row < r.y + r.height;
+  const primaryPieces = without(current.range);
+  const stackPieces = multiRange ? current.rangeStack.flatMap(without) : [];
+  const range = primaryPieces.find(holdsCell) ?? primaryPieces.at(-1) ?? stackPieces.at(-1);
   if (!range) return { ...selection, current: null, rows };
-  const rangeStack = pieces.filter((piece) => piece !== range);
-  const cellInRange = current.cell.col >= range.x && current.cell.col < range.x + range.width && current.cell.row >= range.y && current.cell.row < range.y + range.height;
-  return { ...selection, rows, current: { cell: cellInRange ? current.cell : { col: range.x, row: range.y }, range, rangeStack } };
+  const anchor =
+    primaryPieces.length === 0
+      ? { col: range.x, row: range.y }
+      : { col: cell.col, row: Math.min(Math.max(cell.row, range.y), range.y + range.height - 1) };
+  const rangeStack = multiRange ? [...stackPieces, ...primaryPieces].filter((piece) => piece !== range) : [];
+  return { ...selection, rows, current: { cell: anchor, range, rangeStack } };
 }
 
 /** Ctrl-click: pushes the current primary range onto the stack and starts a new 1x1 range at `coord`. */
