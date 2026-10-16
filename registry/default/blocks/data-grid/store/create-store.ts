@@ -1064,7 +1064,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           if (next !== selection) set({ selection: next });
           return;
         }
-        const rows = CompactSelection.fromArray(selection.rows.toArray()).add(index);
+        const rows = CompactSelection.adopt(selection.rows).add(index);
         set({ selection: { ...selection, rows } });
       },
       armRowDragAnchor(index) {

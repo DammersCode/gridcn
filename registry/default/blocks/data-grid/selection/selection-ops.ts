@@ -44,7 +44,7 @@ export function isRowChecked(selection: GridSelection, row: number): boolean {
 /** Removes `row` from the rows channel and from every cell range, splitting a range that spans it; the piece holding the anchor stays primary. `selection` itself comes back when the row is in neither channel. */
 export function removeRowFromSelection(selection: GridSelection, row: number, options: { multiRange?: boolean } = {}): GridSelection {
   const { multiRange = true } = options;
-  const rows = selection.rows.hasIndex(row) ? CompactSelection.fromArray(selection.rows.toArray()).remove(row) : selection.rows;
+  const rows = selection.rows.hasIndex(row) ? CompactSelection.adopt(selection.rows).remove(row) : selection.rows;
   const current = selection.current;
   const covers = (r: GridRect) => row >= r.y && row < r.y + r.height;
   if (!current || (!covers(current.range) && !current.rangeStack.some(covers))) {
