@@ -357,12 +357,31 @@ const SCENARIOS = [
     },
   },
   {
-    name: "recipe: clicking a cell opens that row in a dialog",
+    name: "recipe: side panel follows the active row without taking focus",
     page: "data-grid-detail-panel-demo",
     run: async (page) => {
-      const name = await textOf(cell(page, 1, "name"));
+      const panel = page.locator('aside[aria-label="Row details"]');
+      const isOpen = () => panel.evaluate((el) => !el.inert);
+      const shows = async (text) => ((await panel.textContent()) ?? "").includes(text);
+      const focusInGrid = () => page.evaluate(() => !!document.activeElement?.closest('[role="grid"]'));
+      check(!(await isOpen()), "panel is open before any gesture");
+      const first = await textOf(cell(page, 1, "name"));
       await cell(page, 1, "name").click();
-      await eventually(async () => ((await page.getByRole("dialog").textContent()) ?? "").includes(name), `dialog does not show ${name}`);
+      await eventually(isOpen, "click did not open the panel");
+      await eventually(() => shows(first), `panel does not show ${first}`);
+      const second = await textOf(cell(page, 2, "name"));
+      await page.keyboard.press("ArrowDown");
+      await eventually(() => shows(second), `panel did not follow ArrowDown to ${second}`);
+      check(await isOpen(), "panel closed on ArrowDown");
+      check(await focusInGrid(), "focus left the grid");
+      await page.getByRole("button", { name: "Close details" }).focus();
+      await page.keyboard.press("Escape");
+      await eventually(async () => !(await isOpen()), "Escape in the panel did not close it");
+      check(await focusInGrid(), "focus did not return to the grid");
+      await page.keyboard.press("Control+Shift+Enter");
+      await eventually(isOpen, "Ctrl+Shift+Enter did not reopen the panel");
+      await panel.getByRole("button", { name: "Close details" }).click();
+      await eventually(async () => !(await isOpen()), "close button did not close the panel");
     },
   },
 ];
