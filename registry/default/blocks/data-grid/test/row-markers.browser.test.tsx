@@ -232,6 +232,25 @@ describe("row markers", () => {
     for (const i of [0, 1, 2]) await expect.element(checkboxAt(i)).toHaveAttribute("aria-checked", "true");
   });
 
+  it("a checkbox drag that ends on another row swallows the retargeted click, and a stationary press does not", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="checkbox" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const markers = markerCells();
+    const fromCheckbox = markers[0]!.querySelector<HTMLElement>('[role="checkbox"]')!;
+    const addSpy = vi.spyOn(document, "addEventListener");
+    const swallowArmed = () => addSpy.mock.calls.some(([type, , options]) => type === "click" && typeof options === "object" && options.capture === true);
+
+    await dispatchPointerDrag(fromCheckbox, markers[0]!);
+    expect(swallowArmed()).toBe(false);
+    await dispatchPointerDrag(fromCheckbox, markers[2]!);
+    expect(swallowArmed()).toBe(true);
+    addSpy.mockRestore();
+  });
+
   it("a stationary press+release on the checkbox glyph still toggles it (no drag)", async () => {
     await render(
       <div style={{ height: 400 }}>
