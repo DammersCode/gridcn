@@ -66,7 +66,7 @@ type DataOp<TData> =
 
 type DataChange<TData> = {
   ops: DataOp<TData>[];
-  source: "edit" | "paste" | "fill" | "delete" | "row-operation" | "import" | "history" | "stream" | "app";
+  source: "edit" | "paste" | "fill" | "delete" | "row-operation" | "import" | "history" | "rollback" | "stream" | "app";
   label?: string;
 };
 ```
@@ -81,6 +81,7 @@ The `"stream"` source tags a batch from `updateCells`. See [Streaming updates](/
 The `"app"` source tags a programmatic change the consumer applied to its own array and
 registered with the `data-grid-history` add-on's `record()`. See
 [Undo & redo](/docs/addons/undo-redo#programmatic-changes-record).
+The `"rollback"` source tags the revert that `rollback(change)` applies after a failed save. See [Undo & redo](/docs/addons/undo-redo).
 
 Row deletion is a selection surprise to plan for: `deleteRows` clears the grid's entire selection
 and active cell after the deletion. `insertRow` and `duplicateRows` keep the selection, offsetting

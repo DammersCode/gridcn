@@ -307,7 +307,7 @@ Paste, fill, CSV/XLSX import, and `updateCells` hold the batch while the schema 
   A held batch is only as fast as your schema. A network call of 200 ms across 10,000 cells takes
   about 60 s at 32 concurrent calls. The grid gives no per-cell progress. For a large paste
   against a remote check, validate the block yourself with the `processPaste` override of
-  [Clipboard](/docs/clipboard#escape-hatches), which lets you make one request for the whole
+  [Clipboard](/docs/clipboard#overrides), which lets you make one request for the whole
   block.
 </Callout>
 

@@ -287,11 +287,6 @@ const [layout, setLayout] = useState<Partial<ColumnLayout>>();
 
 useEffect(() => {
   const saved = localStorage.getItem(LAYOUT_KEY);
-
-const [layout, setLayout] = useState<Partial<ColumnLayout>>({});
-
-useEffect(() => {
-  const saved = localStorage.getItem("my-grid-layout");
   if (saved) setLayout(JSON.parse(saved) as ColumnLayout);
 }, []);
 
@@ -302,8 +297,6 @@ useEffect(() => {
   onColumnLayoutChange={(next) => {
     setLayout(next);
     localStorage.setItem(LAYOUT_KEY, JSON.stringify(next));
-
-    localStorage.setItem("my-grid-layout", JSON.stringify(next));
   }}
 >
 ```
