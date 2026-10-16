@@ -63,7 +63,10 @@ function setupHarness(historyOpts: UseDataGridHistoryOptions<Row> = {}, gridOpts
         columns={columns}
         getRowId={currentGridOpts.getRowId ?? getRowId}
         plugins={[h.plugin]}
-        onDataChange={setData}
+        onDataChange={(next, change) => {
+          setData(next);
+          currentGridOpts.onDataChange?.(next, change);
+        }}
         readOnly={currentGridOpts.readOnly}
       >
         <DataGridRoot>
@@ -446,5 +449,20 @@ describe("useDataGridHistory readOnly", () => {
     act(() => h.history().undo());
     expect(h.data()[0]!.name).toBe("Alice");
     expect(h.history().canUndo).toBe(false);
+  });
+
+  it("rollback reverts a failed change with source 'rollback' and leaves no dead undo entry", () => {
+    const seen: DataChange<Row>[] = [];
+    const h = setupHarness({}, { onDataChange: (_next, change) => seen.push(change) });
+    const change = editChange("a", { id: "a", name: "Alicia", age: 30 }, initialRows[0]!);
+    h.commit(change);
+    expect(h.history().historySize).toBe(1);
+
+    act(() => h.history().rollback(seen[0]!));
+
+    expect(h.data()[0]!.name).toBe("Alice");
+    expect(seen.map((c) => c.source)).toEqual(["edit", "rollback"]);
+    expect(h.history().historySize).toBe(0);
+    expect(h.history().canRedo).toBe(false);
   });
 });

@@ -139,6 +139,30 @@ const history = useDataGridHistory({ recordSources: ["edit", "paste", "stream"] 
 An undo or redo reaches `onDataChange` with `source: "history"`. If `onDataChange` saves to a
 server, that handler sees the undo as a normal change and saves it.
 
+## Rolling back a failed save
+
+An `onDataChange` handler that saves to a server sees undo and redo as changes with
+`source: "history"`. When a save fails, call `rollback(change)` with the change the handler
+received:
+
+```tsx
+const history = useDataGridHistory<Row>();
+
+const onDataChange = async (_next: readonly Row[], change: DataChange<Row>) => {
+  if (change.source === "rollback") return; // the server never saw the failed change
+  try {
+    await api.save(change);
+  } catch {
+    history.rollback(change);
+  }
+};
+```
+
+`rollback` applies the inverse change with `source: "rollback"` and removes the entry from the
+undo stack, so no dead <kbd>Ctrl</kbd>+<kbd>Z</kbd> step remains. Neither `"history"` nor
+`"rollback"` changes are recorded. `createHistory` exposes the same removal as
+`discard(change)`.
+
 ## Capped stack
 
 Pass `capacity` to either hook to bound memory on long editing sessions. The oldest entries drop

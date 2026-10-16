@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
-import { useDataGridApi, type DataChange, type DataGridApi, type DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
+import { invertChange, useDataGridApi, type DataChange, type DataGridApi, type DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
 import { isDev, createHistory } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Options for {@link useDataGridHistory}. */
@@ -18,7 +18,7 @@ export type UseDataGridHistoryOptions<TData> = {
    * `"stream"` — a 100-updates/s `updateCells` feed would otherwise evict the user's whole undo
    * stack within seconds. Pass a list to change the set, for example
    * `["edit", "paste", "fill", "delete", "row-op", "import", "stream", "app"]` to record
-   * streams too. `source: "history"` (undo/redo applied through the grid) is never recorded,
+   * streams too. `source: "history"` and `"rollback"` (undo, redo, and rollback applied through the grid) are never recorded,
    * whatever the list says — that is what keeps an undo from pushing a second entry.
    */
   recordSources?: readonly DataChange<TData>["source"][];
@@ -59,6 +59,12 @@ export type UseDataGridHistoryResult<TData> = {
   historySize: number;
   /** Clears both stacks. A dataset change clears them itself when `datasetKey` changes; use `clear` for an imperative reset. */
   clear: () => void;
+  /**
+   * Reverts `change` (the object an `onDataChange` handler received) after its save failed: applies the
+   * inverse with `source: "rollback"` and drops the entry from the stacks, so no dead undo step remains.
+   * No-op when the grid is not mounted yet or is read-only.
+   */
+  rollback: (change: DataChange<TData>) => void;
   /**
    * Applies a programmatic change (the consumer-built op batch) to the grid as one write AND
    * registers it as one undo entry — `commitChange` with `source: "app"`, which the observer
@@ -141,6 +147,17 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
     forceUpdate((n) => n + 1);
   }, [history]);
 
+  const rollback = useCallback(
+    (change: DataChange<TData>) => {
+      const api = apiRef.current;
+      if (!api || api.store.getState().readOnly) return;
+      history.discard(change);
+      api.actions.commitChange(invertChange(change, "rollback"));
+      forceUpdate((n) => n + 1);
+    },
+    [history],
+  );
+
   const record = useCallback(
     (change: DataChange<TData>, label?: string) => {
       const api = apiRef.current;
@@ -167,7 +184,7 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
     () => ({
       name: "history",
       onDataChange: (_next, change) => {
-        if (change.source === "history") return;
+        if (change.source === "history" || change.source === "rollback") return;
         if (recordedRef.current.has(change.source)) history.push(change);
         forceUpdate((n) => n + 1);
       },
@@ -200,6 +217,7 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
     canRedo: history.canRedo,
     historySize: history.size,
     clear,
+    rollback,
     record,
   };
 }

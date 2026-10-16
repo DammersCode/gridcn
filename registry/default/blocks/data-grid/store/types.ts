@@ -969,8 +969,8 @@ export type DataGridActions = {
    * rebuild, `rowIdentityVersion` bump, and the row channel and the active cell follow their
    * records - while an update-only batch keeps the selection and cursor as-is (the rebuild only
    * re-orders rows under an active sort). Cell errors clear for the written cells, and errors of
-   * removed rows are pruned. No-op on a `readOnly` grid. A `source: "history"` change is a
-   * pass-through: the history stack ignores it, so an undo or redo applied through this action
+   * removed rows are pruned. No-op on a `readOnly` grid. A `source: "history"` or `"rollback"` change is a
+   * pass-through: the history stack ignores it, so an undo, redo, or rollback applied through this action
    * records no second entry. Values are NOT revalidated - that is `updateCells`' job; build import
    * rows validated (the io add-on does it) and undo/redo reverts to previously applied states.
    */

@@ -205,8 +205,11 @@ export type DataChange<TData> = {
    * `updateCells`/`updateRows` batch; `useDataGridHistory` drops it by default, because a
    * 100-updates/s feed would evict the user's whole undo stack in seconds. `"app"` tags an
    * imperative `record()` entry (a programmatic change the consumer applied itself).
+   * `"history"` tags an undo or redo; `"rollback"` tags `useDataGridHistory().rollback`, which reverts a
+   * change whose save failed. Neither is recorded, so a server-sync handler can skip undo and redo
+   * and still send a rollback (or the reverse).
    */
-  source: "edit" | "paste" | "fill" | "delete" | "row-op" | "import" | "history" | "stream" | "app";
+  source: "edit" | "paste" | "fill" | "delete" | "row-op" | "import" | "history" | "rollback" | "stream" | "app";
   /** Optional human-readable label for this entry (e.g. "Batch save rollback"); carried through the undo/redo stack as-is. */
   label?: string;
 };

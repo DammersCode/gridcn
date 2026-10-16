@@ -245,6 +245,17 @@ describe("applyChange", () => {
   });
 });
 
+describe("createHistory discard", () => {
+  it("removes a recorded change so it can no longer be undone", () => {
+    const history = createHistory<Row>();
+    const change = { source: "edit" as const, ops: [] };
+    history.push(change);
+    expect(history.discard(change)).toBe(true);
+    expect(history.canUndo).toBe(false);
+    expect(history.discard(change)).toBe(false);
+  });
+});
+
 describe("createHistory", () => {
   it("round-trips undo/redo restoring deep-equal data", () => {
     const history = createHistory<Row>();

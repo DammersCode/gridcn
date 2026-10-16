@@ -27,12 +27,13 @@ function invertOp<TData>(op: DataOp<TData>): DataOp<TData> {
 
 /**
  * Produces the change that undoes `change`: each op is inverted and the op
- * order is reversed (so a batch unwinds in the correct dependency order).
+ * order is reversed (so a batch unwinds in the correct dependency order). `source` tags the result;
+ * pass `"rollback"` to revert a failed optimistic save so an `onDataChange` handler can tell it from an undo.
  */
-export function invertChange<TData>(change: DataChange<TData>): DataChange<TData> {
+export function invertChange<TData>(change: DataChange<TData>, source: "history" | "rollback" = "history"): DataChange<TData> {
   return {
     ops: [...change.ops].reverse().map(invertOp),
-    source: "history",
+    source,
     label: change.label,
   };
 }
@@ -196,8 +197,10 @@ export type HistoryOptions = {
  * applied gesture, and `undo`/`redo` to get the change to apply back to data.
  */
 export type History<TData> = {
-  /** Records a change; discards any redo branch. Changes with source "history" are ignored. */
+  /** Records a change; discards any redo branch. Changes with source "history" or "rollback" are ignored. */
   push(change: DataChange<TData>): void;
+  /** Removes a recorded change (matched by identity) from both stacks; true when it was found. Use it to drop a change whose save failed. */
+  discard(change: DataChange<TData>): boolean;
   /** Returns the inverted top-of-undo-stack change to apply, or null if nothing to undo. */
   undo(): DataChange<TData> | null;
   /** Returns the original change, re-tagged source "history", to re-apply; or null if nothing to redo. */
@@ -220,10 +223,16 @@ export function createHistory<TData>(opts: HistoryOptions = {}): History<TData> 
 
   return {
     push(change) {
-      if (change.source === "history") return;
+      if (change.source === "history" || change.source === "rollback") return;
       undoStack.push(change);
       if (undoStack.length > capacity) undoStack.shift();
       redoStack = [];
+    },
+    discard(change) {
+      const before = undoStack.length + redoStack.length;
+      undoStack = undoStack.filter((entry) => entry !== change);
+      redoStack = redoStack.filter((entry) => entry !== change);
+      return undoStack.length + redoStack.length !== before;
     },
     undo() {
       const change = undoStack.pop();
