@@ -703,7 +703,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       ctx.lastEmittedData = batch.nextData;
       const view = rebuildRowOpView(s, batch.nextData);
       const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
-      if (s.sortState.length > 0 || s.filterState.length > 0) {
+      if (viewSorts(s.sortMode, s.sortState).length > 0 || s.filterState.length > 0) {
         pruneRowValidationKeys(batch.nextData, s.getRowId);
         writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
           set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view, ...editRemap }),
@@ -751,7 +751,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       ctx.lastEmittedData = batch.nextData;
       const view = rebuildRowOpView(s, batch.nextData);
       const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
-      if (s.sortState.length > 0 || s.filterState.length > 0) {
+      if (viewSorts(s.sortMode, s.sortState).length > 0 || s.filterState.length > 0) {
         pruneRowValidationKeys(batch.nextData, s.getRowId);
         writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
           set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view, ...editRemap }),
@@ -784,7 +784,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const s = get();
       if (!s.enableRowReorder) return false;
       if (s.readOnly) return false;
-      if (s.sortState.length > 0 || s.filterState.length > 0) {
+      if (viewSorts(s.sortMode, s.sortState).length > 0 || s.filterState.length > 0) {
         warnDev("reorderRows is a no-op while a sort or filter is active (the view order is owned by the sort/filter)");
         return false;
       }

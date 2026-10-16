@@ -1438,3 +1438,45 @@ describe("updateCells — verdict", () => {
     });
   });
 });
+
+describe("row operations under sortMode server", () => {
+  const serverSort: SortSpec[] = [{ columnId: "name", direction: "asc" }];
+  function renderServer() {
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider
+          defaultData={rows()}
+          columns={columns}
+          getRowId={getRowId}
+          sortMode="server"
+          sortState={serverSort}
+          enableRowReorder
+          createRow={(index: number) => ({ id: `new-${index}`, name: "Aaa", price: 0 })}
+          duplicateRow={(row: Row, index: number) => ({ ...row, id: `${row.id}-copy${index}` })}
+        >
+          {children}
+        </DataGridProvider>
+      );
+    }
+    return renderHook(() => ({ ...useHarness(), store: useDataGridStoreApi() }), { wrapper: Wrapper });
+  }
+
+  it("insertRow moves the active cell like an unsorted grid", () => {
+    const { result } = renderServer();
+    act(() => result.current.store.getState().actions.setActiveCellAt({ col: 0, row: 2 }));
+    act(() => result.current.actions.insertRow(0, "above"));
+    expect(result.current.store.getState().activeCell?.row).toBe(3);
+  });
+
+  it("duplicateRows moves the active cell like an unsorted grid", () => {
+    const { result } = renderServer();
+    act(() => result.current.store.getState().actions.setActiveCellAt({ col: 0, row: 2 }));
+    act(() => result.current.actions.duplicateRows([0]));
+    expect(result.current.store.getState().activeCell?.row).toBe(3);
+  });
+
+  it("reorderRows moves a row", () => {
+    const { result } = renderServer();
+    expect(result.current.actions.reorderRows(0, 2)).toBe(true);
+  });
+});

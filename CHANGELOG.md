@@ -965,6 +965,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **`reorderRows` under `sortMode="server"`:** a server sort no longer blocks row reordering; insert and duplicate follow the same rule.
 - **History rollback restores re-created rows and multi-op rows:** `rollback(change)` reverts a whole-row update when the consumer re-created the row objects, and reverts every update op a change holds for one row.
 - **Unstable `columns` identity warning sees nested values (`data-grid`):** an inline `columns` literal with `options.choices` or a JSX `header` now triggers the dev warning; the comparison goes up to four levels deep into plain objects, arrays, and elements.
 - **`useDataGridState` matches `DataGrid` (`data-grid-history`):** `getRowId` and the options argument are optional (the grid default applies), and `history.rollback` is exposed next to `undo`, `redo`, and `record`.
