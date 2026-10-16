@@ -257,6 +257,8 @@ matcher · **fill** = raw value.
   with `data-grid-cell-editor=""` for exactly this reason. Skip the attribute, and picking a date
   or opening the select's dropdown looks like a click-away. It commits or cancels the edit before
   the user can interact with it.
+  The attribute also decides where focus goes after the commit: without it, focus does not return
+  to the cell.
 - **Popover editors: an explicit pick commits, and closing without one cancels.** `date` and
   `select` commit on an explicit pick (a calendar day, an option). Closing the popover any other
   way (outside click, focus loss, Tab away) calls `onOpenChange(false)`, which runs `cancel()`
