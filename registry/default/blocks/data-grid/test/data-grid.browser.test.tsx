@@ -2178,6 +2178,40 @@ describe("DataGrid a11y — roving tabindex bootstrap (real keyboard Tab)", () =
   });
 });
 
+describe("DataGrid a11y: Tab is not a keyboard trap", () => {
+  async function renderBetweenButtons(keymap?: React.ComponentProps<typeof DataGrid>["keymap"]) {
+    await render(
+      <div>
+        <button type="button">before</button>
+        <DataGrid data={makeRows(3)} columns={columns} getRowId={(r) => r.id} className="h-[300px]" keymap={keymap} />
+        <button type="button">after</button>
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const cells = () => [...document.querySelectorAll<HTMLElement>('[role="gridcell"]')];
+    await userEvent.click(cells()[0]!);
+    return cells;
+  }
+
+  it("Tab from a cell moves focus to the next focusable element and keeps the active cell", async () => {
+    await renderBetweenButtons();
+    await userEvent.keyboard("{Tab}");
+    expect(document.activeElement).toBe(page.getByRole("button", { name: "after" }).element());
+  });
+
+  it("Shift+Tab from the first cell moves focus to the previous focusable element", async () => {
+    await renderBetweenButtons();
+    await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+    expect(document.activeElement).toBe(page.getByRole("button", { name: "before" }).element());
+  });
+
+  it("binding Tab to moveRight keeps Tab navigating cells", async () => {
+    const cells = await renderBetweenButtons({ moveRight: ["ArrowRight", "Tab"], moveLeft: ["ArrowLeft", "shift+Tab"] });
+    await userEvent.keyboard("{Tab}");
+    expect(document.activeElement).toBe(cells()[1]);
+  });
+});
+
 describe("controlled selection and layout: the controlled loop adds no extra work", () => {
   const EMPTY_SELECTION: SelectionState = { anchor: null, range: null, rangeStack: [], rowIds: [], columnIds: [] };
 

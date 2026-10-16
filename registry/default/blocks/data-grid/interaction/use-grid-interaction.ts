@@ -304,15 +304,10 @@ export function dispatchGridAction(args: {
       if (active) scrollCellIntoView(active);
       break;
     }
-    // Outside an active edit (the caller guards that), Tab/Shift+Tab behave as plain
-    // right/left navigation; only the editor's own
-    // onKeyDown gives them their commit-and-move contract while editing.
+    // ARIA grid practice: outside an edit Tab leaves the grid. Bind Tab to moveRight/moveLeft to navigate cells with it.
     case "commitRight":
-    case "commitLeft": {
-      preventDefault();
-      moveAndScroll({ dx: action === "commitRight" ? 1 : -1, dy: 0 });
+    case "commitLeft":
       break;
-    }
     case "extendUp":
     case "extendDown":
     case "extendLeft":

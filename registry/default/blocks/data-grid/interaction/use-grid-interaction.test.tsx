@@ -429,18 +429,14 @@ describe("useGridInteraction onKeyDown", () => {
     expect(hook.result.current.activeCell).toEqual({ col: 0, row: 0 });
   });
 
-  it("Tab/Shift+Tab move the active cell right/left outside of editing", () => {
-    const { hook } = renderInteraction();
-    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
-    hook.rerender();
-
+  function pressTab(hook: ReturnType<typeof renderInteraction>["hook"], shiftKey: boolean): boolean {
     let prevented = false;
     act(() => {
       hook.result.current.interaction.onKeyDown({
         key: "Tab",
         ctrlKey: false,
         metaKey: false,
-        shiftKey: false,
+        shiftKey,
         altKey: false,
         nativeEvent: { isComposing: false } as unknown as KeyboardEvent,
         preventDefault: () => {
@@ -449,22 +445,29 @@ describe("useGridInteraction onKeyDown", () => {
       } as unknown as React.KeyboardEvent<HTMLElement>);
     });
     hook.rerender();
-    expect(prevented).toBe(true);
-    expect(hook.result.current.activeCell).toEqual({ col: 1, row: 0 });
-    expect(hook.result.current.selection.current?.range).toEqual({ x: 1, y: 0, width: 1, height: 1 });
+    return prevented;
+  }
 
-    act(() => {
-      hook.result.current.interaction.onKeyDown({
-        key: "Tab",
-        ctrlKey: false,
-        metaKey: false,
-        shiftKey: true,
-        altKey: false,
-        nativeEvent: { isComposing: false } as unknown as KeyboardEvent,
-        preventDefault: () => {},
-      } as unknown as React.KeyboardEvent<HTMLElement>);
-    });
+  it("Tab/Shift+Tab leave the grid with the default keymap: no preventDefault, active cell stays", () => {
+    const { hook } = renderInteraction();
+    act(() => hook.result.current.actions.selectCellAt({ col: 1, row: 0 }));
     hook.rerender();
+
+    expect(pressTab(hook, false)).toBe(false);
+    expect(pressTab(hook, true)).toBe(false);
+    expect(hook.result.current.activeCell).toEqual({ col: 1, row: 0 });
+  });
+
+  it("Tab/Shift+Tab navigate cells when bound to moveRight/moveLeft", () => {
+    const { hook } = renderInteraction(20, {
+      keymap: { ...DEFAULT_KEYMAP, moveRight: ["ArrowRight", "Tab"], moveLeft: ["ArrowLeft", "shift+Tab"] },
+    });
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    hook.rerender();
+
+    expect(pressTab(hook, false)).toBe(true);
+    expect(hook.result.current.activeCell).toEqual({ col: 1, row: 0 });
+    expect(pressTab(hook, true)).toBe(true);
     expect(hook.result.current.activeCell).toEqual({ col: 0, row: 0 });
   });
 });

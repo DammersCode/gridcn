@@ -20,8 +20,8 @@ This removes any ambiguity between a plain drag-to-select gesture and the start 
 
 To commit a value, the built-in editors follow one keyboard contract. While an editor is open,
 the grid's keymap is **ignored** and the editor owns every key, so the keymap's
-`commitRight`/`commitLeft` (Tab / Shift+Tab) and `commitUp` (Shift+Enter) bindings never fire
-during an edit. The actual per-editor behavior:
+`commitUp` (Shift+Enter) binding never fires during an edit, and Tab / Shift+Tab keep their
+native focus move. The actual per-editor behavior:
 
 | Key | `text` / `number` | `select` | `date` |
 |---|---|---|---|

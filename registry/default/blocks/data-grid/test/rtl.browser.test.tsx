@@ -288,7 +288,7 @@ describe("RTL — keyboard semantics (visual movement)", () => {
     expect(Number(active?.getAttribute("aria-colindex")) - 1).toBe(4);
   });
 
-  it("does NOT flip Tab — it stays reading-order logical under RTL", async () => {
+  it("does not move the active cell on Tab under RTL: Tab leaves the grid", async () => {
     await renderGrid({ direction: "rtl", columns: makeColumns(10), rowCount: 20, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
@@ -296,7 +296,7 @@ describe("RTL — keyboard semantics (visual movement)", () => {
     await userEvent.keyboard("{Tab}");
 
     const active = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("active")}`);
-    expect(Number(active?.getAttribute("aria-colindex")) - 1).toBe(4);
+    expect(Number(active?.getAttribute("aria-colindex")) - 1).toBe(3);
   });
 
   it("keeps Home logical under RTL: it lands on column 0, not the visually-first column", async () => {
