@@ -6,7 +6,8 @@ import { useDataGridHistory } from "./use-data-grid-history";
 
 /** Options for {@link useDataGridState}. */
 export type UseDataGridStateOptions<TData> = {
-  getRowId: (row: TData, index: number) => string;
+  /** Row identity; defaults to the row's `id` field, like `DataGrid`'s `getRowId`. */
+  getRowId?: (row: TData, index: number) => string;
   /** Maximum number of entries kept on the undo stack; oldest entries are dropped past this. */
   capacity?: number;
   /**
@@ -19,7 +20,7 @@ export type UseDataGridStateOptions<TData> = {
 /** Return value of {@link useDataGridState}, spreadable straight onto `<DataGrid {...grid} />`. */
 export type UseDataGridStateResult<TData> = {
   data: readonly TData[];
-  getRowId: (row: TData, index: number) => string;
+  getRowId?: (row: TData, index: number) => string;
   /** Writes the grid's next array back into the hook-owned state — the controlled-data echo the undo/redo flow relies on. */
   onDataChange: (next: readonly TData[], change: DataChange<TData>) => void;
   /** The grid's `plugins` prop: the history plugin (observer + `undo`/`redo` commands + api stash). Combine with other plugins explicitly after the spread, e.g. `plugins={[fillPlugin, ...grid.plugins]}`. */
@@ -43,6 +44,8 @@ export type UseDataGridStateResult<TData> = {
      * one undo entry — one `commitChange` write, recorded by the history plugin's observer.
      */
     record: (change: DataChange<TData>, label?: string) => void;
+    /** Reverts a change whose save failed; see `useDataGridHistory`'s `rollback`. */
+    rollback: (change: DataChange<TData>) => void;
   };
 };
 
@@ -62,13 +65,14 @@ export type UseDataGridStateResult<TData> = {
  */
 export function useDataGridState<TData>(
   defaultRows: readonly TData[],
-  opts: UseDataGridStateOptions<TData>,
+  opts: UseDataGridStateOptions<TData> = {},
 ): UseDataGridStateResult<TData> {
   const { getRowId, capacity, datasetKey } = opts;
   const [data, setData] = useState<readonly TData[]>(defaultRows);
   const history = useDataGridHistory<TData>({ capacity, datasetKey });
   // stable identity: useDataGridRowIdToViewRow keys its O(n) Map build on getRowId identity.
-  const gridGetRowId = useCallback((row: TData, index: number) => getRowId(row, index), [getRowId]);
+  const wrappedGetRowId = useCallback((row: TData, index: number) => getRowId!(row, index), [getRowId]);
+  const gridGetRowId = getRowId ? wrappedGetRowId : undefined;
 
   const onDataChange = useCallback((next: readonly TData[]) => {
     setData(next);
@@ -92,6 +96,7 @@ export function useDataGridState<TData>(
       redo: history.redo,
       clear: history.clear,
       record: history.record,
+      rollback: history.rollback,
     },
   };
 }

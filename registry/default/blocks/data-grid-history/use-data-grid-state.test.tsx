@@ -72,6 +72,12 @@ describe("useDataGridState", () => {
     expect(result.current.history.canUndo).toBe(false);
   });
 
+  it("works without options: getRowId stays unset so the grid default applies, and rollback is exposed", () => {
+    const { result } = renderHook(() => useDataGridState(defaultRows));
+    expect(result.current.getRowId).toBeUndefined();
+    expect(typeof result.current.history.rollback).toBe("function");
+  });
+
   it("onDataChange updates data and history.undo/redo round-trip through the grid", () => {
     const h = setup();
     const prev = defaultRows[0]!;

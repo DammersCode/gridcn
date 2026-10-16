@@ -965,6 +965,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **`useDataGridState` matches `DataGrid` (`data-grid-history`):** `getRowId` and the options argument are optional (the grid default applies), and `history.rollback` is exposed next to `undo`, `redo`, and `record`.
 - **`DataGridLazyGuard` respects `sortMode="server"` (`data-grid-lazy`):** a sort change no longer warns when the server owns the order, and the warning points to `sortMode="server"` instead of controlled `sortState`.
 - **Streamed writes under `sortMode="server"` no longer flag the view stale (`data-grid`):** `updateCells` into the server-sorted column left `viewStale` true and offered a re-sort the grid cannot perform.
 - **`useDataGridHistory().rollback` is cell-level (`data-grid-history`):** a rollback reverts only the cells that still hold the failed change's value, so later edits to other cells of the same row survive. Rolling back a change the user already undid writes nothing, and a `rollback` called synchronously inside `onDataChange` leaves no undo entry.
