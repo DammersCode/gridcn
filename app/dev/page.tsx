@@ -305,7 +305,7 @@ export default function DevPage(): ReactNode {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // ponytail: dev-only render-highlighting; page is a scratchpad, not a docs demo
+    if (process.env.NODE_ENV === "production") return;
     import("react-scan")
       .then(({ scan }) => scan({ enabled: true, showToolbar: true }))
       .catch(() => {});

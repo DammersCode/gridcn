@@ -11,3 +11,5 @@ export const gitConfig = {
   repo: 'gridcn',
   branch: 'main',
 };
+
+export const siteUrl = 'https://gridcn.vercel.app';
