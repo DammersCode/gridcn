@@ -839,3 +839,37 @@ describe("marker column stays painted above scrolled cells", () => {
     expect(background, `marker hover background must be opaque, got ${background}`).not.toMatch(/\/\s*0?\.\d/);
   });
 });
+
+describe("row checking by keyboard", () => {
+  const checked = () => [...document.querySelectorAll<HTMLElement>('[data-grid-marker-checkbox]')].map((el) => el.getAttribute("aria-checked") === "true");
+
+  async function renderCheckboxGrid() {
+    await render(
+      <div style={{ height: 300 }}>
+        <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} rowMarkers="checkbox" className="h-[300px]" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+  }
+
+  it("Ctrl+Shift+Space toggles the active row without replacing the checked rows", async () => {
+    await renderCheckboxGrid();
+    await userEvent.click(gridCells()[0]!);
+    await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
+    await userEvent.keyboard("{Alt>}{ArrowDown}{ArrowDown}{/Alt}");
+    await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
+    await vi.waitFor(() => expect(checked()).toEqual([true, false, true, false, false]));
+    await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
+    await vi.waitFor(() => expect(checked()).toEqual([true, false, false, false, false]));
+  });
+
+  it("Ctrl+Alt+Space checks every row, then unchecks them, like the header checkbox", async () => {
+    await renderCheckboxGrid();
+    await userEvent.click(gridCells()[0]!);
+    await userEvent.keyboard("{Control>}{Alt>} {/Alt}{/Control}");
+    await vi.waitFor(() => expect(checked()).toEqual([true, true, true, true, true]));
+    await userEvent.keyboard("{Control>}{Alt>} {/Alt}{/Control}");
+    // the clicked cell's own range still reads as row 0 selected, exactly like the header checkbox
+    await vi.waitFor(() => expect(checked()).toEqual([true, false, false, false, false]));
+  });
+});

@@ -119,4 +119,21 @@ describe("DataGridHeaderDropdown", () => {
     await expect.poll(() => header.getAttribute(GRID_ATTR.pinned)).toBe("left");
     expect(header).toHaveAttribute("aria-sort", "none");
   });
+
+  it("Shift+Alt+ArrowDown opens the active column's menu, arrows reach its items, Escape returns focus to the cell", async () => {
+    await renderGrid();
+    await vi.waitFor(() => expect(document.querySelector('[data-column-id="email"]')).toBeTruthy());
+    const emailCell = () => document.querySelector<HTMLElement>('[role="gridcell"][aria-colindex="2"]')!;
+    await userEvent.click(emailCell());
+
+    await userEvent.keyboard("{Shift>}{Alt>}{ArrowDown}{/Alt}{/Shift}");
+    await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeTruthy());
+    await vi.waitFor(() => expect(document.activeElement).toBe(menuItem("Sort ascending")));
+    await userEvent.keyboard("{ArrowDown}");
+    expect(document.activeElement).toBe(menuItem("Sort descending"));
+
+    await userEvent.keyboard("{Escape}");
+    await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeUndefined());
+    await vi.waitFor(() => expect(document.activeElement).toBe(emailCell()));
+  });
 });

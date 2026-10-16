@@ -374,7 +374,7 @@ describe("GridAction coverage", () => {
     extendUp: true, extendDown: true, extendLeft: true, extendRight: true,
     extendJumpUp: true, extendJumpDown: true, extendJumpLeft: true, extendJumpRight: true,
     extendFirstCell: true, extendLastCell: true,
-    selectRow: true, selectColumn: true, selectAll: true,
+    selectRow: true, selectColumn: true, selectAll: true, toggleRow: true, toggleAllRows: true, openColumnMenu: true,
     edit: true, typeToReplace: true, commitDown: true, commitUp: true, commitRight: true, commitLeft: true,
     cancel: true, clearContents: true,
     undo: true, redo: true,

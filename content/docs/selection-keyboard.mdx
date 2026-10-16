@@ -114,6 +114,20 @@ The in-grid undo and redo bindings above work only while focus is inside the gri
 anywhere else on the page: mount `DataGridGlobalShortcuts` inside `DataGridRoot` and the same
 bindings reach the grid while focus is outside.
 
+## Checking rows by keyboard <NewBadge />
+
+The marker checkboxes are not tab stops, so the keyboard has its own actions:
+
+- <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> (`toggleRow`) checks or unchecks the active
+  row. The other checked rows stay checked.
+- <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Space</kbd> (`toggleAllRows`) checks every row, or unchecks
+  them when every row is checked. It does what the header checkbox does.
+- <kbd>Shift</kbd>+<kbd>Space</kbd> (`selectRow`) replaces the selection with the active row.
+
+To check rows that are not next to each other, move with <kbd>Alt</kbd>+<kbd>Arrow</kbd>, which
+keeps the selection, and press `toggleRow` on each row. <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+A
+(`selectAll`) selects cells, not checked rows.
+
 ## Two-stage Ctrl+A
 
 <Callout title="Two-stage select-all">

@@ -42,6 +42,11 @@ export const DEFAULT_KEYMAP: Keymap = {
   // literal ctrl (not mod): Cmd+Space is Spotlight on macOS, so the physical Ctrl key is bound here
   selectColumn: ["ctrl+ "],
   selectAll: ["mod+a"],
+  // shift+ArrowDown/Space and alt+ArrowDown are taken; ctrl+alt+Space avoids AltGr and the Windows window menu (alt+Space)
+  toggleRow: ["ctrl+shift+ "],
+  toggleAllRows: ["ctrl+alt+ "],
+  // alt+ArrowDown is moveDownKeepSelection and Shift+F10 opens the cell context menu
+  openColumnMenu: ["shift+alt+ArrowDown"],
   edit: ["Enter", "F2", " "],
   commitDown: ["Enter"],
   commitUp: ["shift+Enter"],

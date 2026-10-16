@@ -393,6 +393,9 @@ export const DEFAULT_LABELS: DataGridLabels = {
       selectRow: "Select row",
       selectColumn: "Select column",
       selectAll: "Select all",
+      toggleRow: "Check or uncheck row",
+      toggleAllRows: "Check or uncheck all rows",
+      openColumnMenu: "Open column menu",
 
       edit: "Edit cell",
       typeToReplace: "Type to replace",

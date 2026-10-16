@@ -674,6 +674,9 @@ export interface GridActions {
   selectRow: true;
   selectColumn: true;
   selectAll: true;
+  toggleRow: true;
+  toggleAllRows: true;
+  openColumnMenu: true;
   edit: true;
   typeToReplace: true;
   commitDown: true;

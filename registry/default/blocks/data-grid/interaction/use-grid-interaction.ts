@@ -38,6 +38,7 @@ import {
 import { gridAttrSelector } from "../data-attributes";
 import { getSelectedViewRows, isSelectionEmpty } from "../selection";
 import { warnDev } from "../store/commit";
+import { allRowsSelectedState } from "../store/hooks";
 import { apiHandleOf } from "../store/api";
 import { getInternalActions } from "../store/internal-actions";
 import { holeRowId } from "../store/compute";
@@ -399,6 +400,24 @@ export function dispatchGridAction(args: {
     case "selectAll": {
       preventDefault();
       actions.selectAll();
+      break;
+    }
+    case "toggleRow": {
+      preventDefault();
+      const active = state.activeCell;
+      if (active) actions.setRowSelected(active.row, !state.selection.rows.hasIndex(active.row));
+      break;
+    }
+    case "toggleAllRows": {
+      preventDefault();
+      actions.setAllRowsSelected(allRowsSelectedState(state) !== "checked");
+      break;
+    }
+    case "openColumnMenu": {
+      preventDefault();
+      const column = state.activeCell && state.visibleColumns[state.activeCell.col];
+      const trigger = column && scrollRef.current?.querySelector<HTMLElement>(`[data-column-id="${CSS.escape(column.id)}"] ${gridAttrSelector("headerMenuTrigger")}`);
+      trigger?.click();
       break;
     }
     case "edit": {

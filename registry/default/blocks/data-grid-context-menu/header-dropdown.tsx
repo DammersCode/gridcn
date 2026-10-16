@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridContainer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { useDataGridApi } from "@/registry/default/blocks/data-grid/data-grid";
 import {
   DataGridHeaderMenuItemsContext,
   renderDropdownMenuItems,
@@ -57,6 +58,7 @@ export function DataGridHeaderDropdown(props: DataGridHeaderDropdownProps): Reac
   // container is reachable directly via the shared hook instead of a contextmenu-time ref capture.
   const scrollRoot = useDataGridContainer();
   const inheritedResolver = useContext(DataGridHeaderMenuItemsContext);
+  const api = useDataGridApi();
 
   return (
     <DropdownMenu>
@@ -64,7 +66,16 @@ export function DataGridHeaderDropdown(props: DataGridHeaderDropdownProps): Reac
       {/* data-grid-header-menu-popup marks this a portal (React-tree-only bubble target) so
           header-cell.tsx's own pointerdown/click handlers can ignore events that originate here
           (its label press otherwise reassigns e.g. a "Hide column" click into a column-select). */}
-      <DropdownMenuContent data-grid-header-dropdown="" data-grid-header-menu-popup="" align="end">
+      <DropdownMenuContent
+        data-grid-header-dropdown=""
+        data-grid-header-menu-popup=""
+        align="end"
+        // the trigger is not a tab stop; the keyboard path (openColumnMenu) opens from the active cell
+        finalFocus={() => {
+          api.focus();
+          return false;
+        }}
+      >
         <HeaderDropdownItems columnId={column.id} scrollRoot={scrollRoot.current} getHeaderMenuItems={getHeaderMenuItems} inheritedResolver={inheritedResolver} />
       </DropdownMenuContent>
     </DropdownMenu>

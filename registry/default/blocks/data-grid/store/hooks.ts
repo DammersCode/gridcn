@@ -669,39 +669,43 @@ function mergeRowRange(ranges: RowRange[], start: number, end: number): void {
  * "is this whole span selected" via `CompactSelection.hasAll` in O(its own run count) rather than by
  * scanning every row.
  */
+export function allRowsSelectedState(s: DataGridStoreState): "checked" | "indeterminate" | "unchecked" {
+  const rowCount = s.viewIndex.length;
+  if (rowCount === 0) return "unchecked";
+  const { selection } = s;
+  const rowsChannelEmpty = selection.rows.length === 0;
+  if (rowsChannelEmpty && !selection.current) return "unchecked";
+  if (selection.rows.hasAll([0, rowCount])) return "checked";
+
+  const rangeCoverage: RowRange[] = [];
+  if (selection.current) {
+    const { range, rangeStack } = selection.current;
+    mergeRowRange(rangeCoverage, Math.max(0, range.y), Math.min(rowCount, range.y + range.height));
+    for (const rect of rangeStack) {
+      mergeRowRange(rangeCoverage, Math.max(0, rect.y), Math.min(rowCount, rect.y + rect.height));
+    }
+  }
+
+  // Gaps left by the range channel must each be fully covered by the rows channel for the union
+  // to reach every row — anything less is indeterminate (some selected, not all).
+  let cursor = 0;
+  let fullyCovered = true;
+  for (const [start, end] of rangeCoverage) {
+    if (start > cursor && !selection.rows.hasAll([cursor, start])) {
+      fullyCovered = false;
+      break;
+    }
+    cursor = Math.max(cursor, end);
+  }
+  if (fullyCovered && cursor < rowCount && !selection.rows.hasAll([cursor, rowCount])) fullyCovered = false;
+  if (fullyCovered) return "checked";
+
+  if (!rowsChannelEmpty || rangeCoverage.length > 0) return "indeterminate";
+  return "unchecked";
+
+}
+
+/** Reactive {@link allRowsSelectedState}. */
 export function useDataGridAllRowsSelected(): "checked" | "indeterminate" | "unchecked" {
-  return useDataGridStore((s) => {
-    const rowCount = s.viewIndex.length;
-    if (rowCount === 0) return "unchecked";
-    const { selection } = s;
-    const rowsChannelEmpty = selection.rows.length === 0;
-    if (rowsChannelEmpty && !selection.current) return "unchecked";
-    if (selection.rows.hasAll([0, rowCount])) return "checked";
-
-    const rangeCoverage: RowRange[] = [];
-    if (selection.current) {
-      const { range, rangeStack } = selection.current;
-      mergeRowRange(rangeCoverage, Math.max(0, range.y), Math.min(rowCount, range.y + range.height));
-      for (const rect of rangeStack) {
-        mergeRowRange(rangeCoverage, Math.max(0, rect.y), Math.min(rowCount, rect.y + rect.height));
-      }
-    }
-
-    // Gaps left by the range channel must each be fully covered by the rows channel for the union
-    // to reach every row — anything less is indeterminate (some selected, not all).
-    let cursor = 0;
-    let fullyCovered = true;
-    for (const [start, end] of rangeCoverage) {
-      if (start > cursor && !selection.rows.hasAll([cursor, start])) {
-        fullyCovered = false;
-        break;
-      }
-      cursor = Math.max(cursor, end);
-    }
-    if (fullyCovered && cursor < rowCount && !selection.rows.hasAll([cursor, rowCount])) fullyCovered = false;
-    if (fullyCovered) return "checked";
-
-    if (!rowsChannelEmpty || rangeCoverage.length > 0) return "indeterminate";
-    return "unchecked";
-  });
+  return useDataGridStore(allRowsSelectedState);
 }
