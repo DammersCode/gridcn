@@ -122,7 +122,7 @@ function RowOpsControls({
       </Button>
       <div className="ml-auto flex items-center gap-2">
         <span className="text-sm text-muted-foreground">Read-only</span>
-        <Switch checked={readOnly} onCheckedChange={onReadOnlyChange} />
+        <Switch aria-label="Read-only" checked={readOnly} onCheckedChange={onReadOnlyChange} />
       </div>
     </DataGridToolbar>
   );

@@ -98,7 +98,7 @@ export default function DataGridStylingPatternsDemo(): ReactNode {
   return (
     <div className="w-full flex h-[420px] flex-col gap-2">
       <Select value={density} onValueChange={(value) => setDensity(value as DensityMode)}>
-        <SelectTrigger className="w-40">
+        <SelectTrigger aria-label="Density" className="w-40">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

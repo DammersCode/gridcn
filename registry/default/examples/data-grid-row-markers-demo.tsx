@@ -59,7 +59,7 @@ export default function DataGridRowMarkersDemo(): ReactNode {
         selected.
       </p>
       <Select value={rowMarkers} onValueChange={(value) => setRowMarkers(value as RowMarkersMode)}>
-        <SelectTrigger className="w-40">
+        <SelectTrigger aria-label="Row markers mode" className="w-40">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

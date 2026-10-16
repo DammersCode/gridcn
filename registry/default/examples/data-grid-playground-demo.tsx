@@ -630,7 +630,7 @@ export default function DataGridPlaygroundDemo(): ReactNode {
         <label className="flex items-center gap-2">
           Mode
           <Select value={mode} onValueChange={(value) => setMode(value as RowSupplyMode)}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger aria-label="Mode" className="w-32">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -645,7 +645,7 @@ export default function DataGridPlaygroundDemo(): ReactNode {
         <label className="flex items-center gap-2">
           Row markers
           <Select value={rowMarkers} onValueChange={(value) => setRowMarkers(value as RowMarkersMode)}>
-            <SelectTrigger className="w-28">
+            <SelectTrigger aria-label="Row markers" className="w-28">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -660,7 +660,7 @@ export default function DataGridPlaygroundDemo(): ReactNode {
         <label className="flex items-center gap-2">
           Header click
           <Select value={headerClickBehavior} onValueChange={(value) => setHeaderClickBehaviorState(value as HeaderClickBehavior)}>
-            <SelectTrigger className="w-24">
+            <SelectTrigger aria-label="Header click" className="w-24">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -675,7 +675,7 @@ export default function DataGridPlaygroundDemo(): ReactNode {
         <label className="flex items-center gap-2">
           Density
           <Select value={density} onValueChange={(value) => setDensity(value as DensityMode)}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger aria-label="Density" className="w-32">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -690,48 +690,48 @@ export default function DataGridPlaygroundDemo(): ReactNode {
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
         <label className="flex items-center gap-2">
-          <Switch checked={validation} onCheckedChange={setValidation} />
+          <Switch aria-label="Validation" checked={validation} onCheckedChange={setValidation} />
           Validation
         </label>
         <label className="flex items-center gap-2">
-          <Switch checked={customHeaders} onCheckedChange={setCustomHeaders} />
+          <Switch aria-label="Custom headers" checked={customHeaders} onCheckedChange={setCustomHeaders} />
           Custom headers
         </label>
         <ToggleLabel disabled={rowMarkers === "none"}>
-          <Switch checked={customMarker} onCheckedChange={setCustomMarker} disabled={rowMarkers === "none"} />
+          <Switch aria-label="Custom marker" checked={customMarker} onCheckedChange={setCustomMarker} disabled={rowMarkers === "none"} />
           Custom marker{rowMarkers === "none" ? " (needs a row-markers mode)" : ""}
         </ToggleLabel>
         <label className="flex items-center gap-2">
-          <Switch checked={readOnly} onCheckedChange={setReadOnly} />
+          <Switch aria-label="Read-only" checked={readOnly} onCheckedChange={setReadOnly} />
           Read-only
         </label>
         <ToggleLabel disabled={rowMarkers === "none"}>
-          <Switch checked={enableRowReorder} onCheckedChange={setEnableRowReorder} disabled={rowMarkers === "none"} />
+          <Switch aria-label="Row reorder" checked={enableRowReorder} onCheckedChange={setEnableRowReorder} disabled={rowMarkers === "none"} />
           Row reorder{rowMarkers === "none" ? " (needs a row-markers mode)" : ""}
         </ToggleLabel>
         <label className="flex items-center gap-2">
-          <Switch checked={loading} onCheckedChange={setLoading} />
+          <Switch aria-label="Loading" checked={loading} onCheckedChange={setLoading} />
           Loading
         </label>
         <label className="flex items-center gap-2">
-          <Switch checked={rtl} onCheckedChange={setRtl} />
+          <Switch aria-label="RTL" checked={rtl} onCheckedChange={setRtl} />
           RTL
         </label>
         <ToggleLabel disabled={isLazy}>
-          <Switch checked={pinnedTotals && !isLazy} onCheckedChange={setPinnedTotals} disabled={isLazy} />
+          <Switch aria-label="Pinned totals" checked={pinnedTotals && !isLazy} onCheckedChange={setPinnedTotals} disabled={isLazy} />
           Pinned totals{isLazy ? " (disabled in lazy mode)" : ""}
         </ToggleLabel>
         <label className="flex items-center gap-2">
-          <Switch checked={presence} onCheckedChange={setPresence} />
+          <Switch aria-label="Presence" checked={presence} onCheckedChange={setPresence} />
           Presence
         </label>
         <ToggleLabel disabled={isLazy}>
-          <Switch checked={streaming && !isLazy} onCheckedChange={setStreaming} disabled={isLazy} />
+          <Switch aria-label="Streaming" checked={streaming && !isLazy} onCheckedChange={setStreaming} disabled={isLazy} />
           Streaming{isLazy ? " (disabled in lazy mode)" : ""}
         </ToggleLabel>
         {streaming && !isLazy && (
           <label className="flex items-center gap-2">
-            <Switch checked={streamingReorder === "immediate"} onCheckedChange={(checked) => setStreamingReorder(checked ? "immediate" : "defer")} />
+            <Switch aria-label="Auto-sort while streaming" checked={streamingReorder === "immediate"} onCheckedChange={(checked) => setStreamingReorder(checked ? "immediate" : "defer")} />
             Auto-sort while streaming
           </label>
         )}

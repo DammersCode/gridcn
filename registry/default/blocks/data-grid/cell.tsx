@@ -381,7 +381,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         // the error tooltip) — positioned below the cell so it never clips the editor input.
         <span
           role="alert"
-          className="absolute inset-x-0 top-full z-10 mt-0.5 truncate rounded-sm border border-destructive/20 bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive dark:bg-destructive/20"
+          className="absolute inset-x-0 top-full z-10 mt-0.5 truncate rounded-sm border border-destructive/30 bg-background px-1.5 py-0.5 text-xs text-destructive"
         >
           {errorMessage}
         </span>
