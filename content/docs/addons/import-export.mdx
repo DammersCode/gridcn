@@ -111,7 +111,9 @@ download, for uploads to a server. The xlsx file is compressed.
 `DataGridExportButton` takes an `onError` callback for a failed export. Without one, a failure
 logs a dev-only warning.
 
-## Print <NewBadge />
+## Print
+
+<NewBadge />
 
 `printGrid(state, options)` prints the grid's rows as a plain paged table. The browser's print
 dialog opens, and its "Save as PDF" produces the PDF file. Inside the grid's tree, use
@@ -201,7 +203,9 @@ array, and you decide how to apply it: replace all data, append it, or run it th
 through `actions.commitChange` as one `source: "import"` change with an explicit `delete` and
 `insert` operations batch, so the replace lands on the undo stack as a single entry.
 
-### Excel files <NewBadge />
+### Excel files
+
+<NewBadge />
 
 The import reads the file content, not the extension, to find the format. It accepts two Excel
 formats:
@@ -217,7 +221,9 @@ Some programs save other content with an `.xls` extension: an HTML table, Excel 
 Excel 5.0/95 workbook. The import rejects these files with the `errorUnsupportedExcelFormat`
 message. Save such a file as `.xlsx` in Excel, then import it again.
 
-## Import limits <NewBadge />
+## Import limits
+
+<NewBadge />
 
 Every import is bounded, so an oversized or crafted file cannot stall the tab. A file over a
 limit is rejected with an error message in the dialog. The import never truncates a file.

@@ -27,7 +27,9 @@ writes two formats to the system clipboard:
   as a locale date string, never leaks into the clipboard.
 </Callout>
 
-## Formula sanitizing <NewBadge />
+## Formula sanitizing
+
+<NewBadge />
 
 Excel, LibreOffice, and Sheets run a pasted cell that starts with `=`, `+`, `-`, `@`, TAB, or CR
 as a formula. To paste such cells into those apps as text, set `sanitizeClipboardFormulas`:
