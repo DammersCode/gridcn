@@ -1,6 +1,6 @@
 ---
 title: Recipes
-description: Worked patterns for server round-trips, row detail panels, custom cell types, and more.
+description: Worked patterns for server round-trips, row panels, bulk actions, saved views, and row forms.
 icon: ChefHat
 ---
 
@@ -30,7 +30,7 @@ Send edits to a server and feed server state into the grid.
 
 ## UI patterns
 
-Dialogs, panels, and page layouts around the grid.
+Panels, bars, and saved state around the grid.
 
 <Cards>
   <Card
@@ -39,9 +39,14 @@ Dialogs, panels, and page layouts around the grid.
     description="Show the active row in a side panel that stays open while you move through the grid."
   />
   <Card
-    title="Edit a row with a form"
-    href="/docs/recipes/ui-patterns/edit-row-with-form"
-    description="Commit several fields of one row from a form as one validated, undoable change."
+    title="Act on the selected rows"
+    href="/docs/recipes/ui-patterns/bulk-actions"
+    description="Show a bar for the checked rows that deletes, updates, or exports them as one undoable step."
+  />
+  <Card
+    title="Remember the user's view"
+    href="/docs/recipes/ui-patterns/remember-view"
+    description="Save sort, filters, search, and column layout, and restore them on the next visit."
   />
   <Card
     title="Multiple grids on one page"
@@ -52,13 +57,18 @@ Dialogs, panels, and page layouts around the grid.
 
 ## Editing & access
 
-Custom cell types and per-user edit rules.
+Row forms, cell formats, and per-user edit rules.
 
 <Cards>
   <Card
+    title="Edit a row with a form"
+    href="/docs/recipes/editing/edit-row-with-form"
+    description="Commit several fields of one row from a form as one validated, undoable change."
+  />
+  <Card
     title="Custom cell type"
     href="/docs/recipes/editing/custom-cell-type"
-    description="A minimal currency cell type with a renderer and an editor."
+    description="Pick the lightest way to change how a column shows and edits its values."
   />
   <Card
     title="Auth-gated cells"

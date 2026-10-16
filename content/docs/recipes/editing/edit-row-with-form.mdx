@@ -90,7 +90,7 @@ function saveOrder(rowId: string, changes: Partial<Order>) {
   gridRef.current?.actions.updateRows([{ rowId, changes }], { source: "edit", reorder: "immediate" });
 }
 
-<DataGrid ref={gridRef} data={orders} columns={columns} getRowId={(row) => row.id} onDataChange={setOrders} />;
+<DataGrid ref={gridRef} data={orders} columns={columns} onDataChange={setOrders} />;
 ```
 
 `onDataChange` receives the change, so the [server round-trip](/docs/recipes/data-fetching/server-round-trip) sees the form save like any inline edit. A rejected value is not written. The batch applies the other fields, and the grid reports each rejected cell through `onValidationError`. Use the same rules in the form so a rejected value does not reach the grid.
