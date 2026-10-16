@@ -2233,6 +2233,40 @@ describe("DataGrid a11y: Tab is not a keyboard trap", () => {
     },
   );
 
+  it("Tab during a text edit commits in place and moves focus to the next control after the grid", async () => {
+    const onDataChange = mockDataChangeFn<Row>();
+    await render(
+      <div>
+        <button type="button">before</button>
+        <DataGrid data={makeRows(3)} columns={columns} getRowId={(r) => r.id} className="h-[300px]" onDataChange={onDataChange} />
+        <button type="button">after</button>
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"][aria-colindex="2"]')!);
+    await userEvent.keyboard("{Enter}X{Tab}");
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    await expect.poll(() => document.activeElement).toBe(page.getByRole("button", { name: "after" }).element());
+  });
+
+  it("Tab during a select edit moves focus to the next control after the grid", async () => {
+    type SelectRow = { id: string; role: string | null };
+    const selectColumns: readonly ColumnDef<SelectRow, unknown>[] = [
+      { id: "role", header: "Role", accessorKey: "role", type: "select", options: { choices: [{ value: "admin", label: "Admin" }, { value: "user", label: "User" }] } },
+    ];
+    await render(
+      <div>
+        <button type="button">before</button>
+        <DataGrid data={[{ id: "1", role: "admin" }]} columns={selectColumns} getRowId={(r) => r.id} className="h-[300px]" />
+        <button type="button">after</button>
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"]')!);
+    await userEvent.keyboard("{Enter}{Tab}");
+    await expect.poll(() => document.activeElement).toBe(page.getByRole("button", { name: "after" }).element());
+  });
+
   it("binding Tab to moveRight keeps Tab navigating cells", async () => {
     const cells = await renderBetweenButtons({ moveRight: ["ArrowRight", "Tab"], moveLeft: ["ArrowLeft", "shift+Tab"] });
     await userEvent.keyboard("{Tab}");

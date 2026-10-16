@@ -3,6 +3,7 @@
 import {
   memo,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -159,8 +160,23 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   // Focus the active cell imperatively (never scrollIntoView — cells live in the transformed
   // canvas layer) once it becomes active, unless the editor owns focus. errorMessage re-triggers
   // because the tooltip mount remounts this div, dropping DOM focus.
+  const focusLeftGridRef = useRef(false);
+  useEffect(() => {
+    if (!isEditing) return;
+    const onFocusOut = (event: FocusEvent) => {
+      const target = event.relatedTarget;
+      focusLeftGridRef.current =
+        target instanceof Element && !cellRef.current?.closest('[role="grid"]')?.contains(target) && !target.closest(gridAttrSelector("cellEditor"));
+    };
+    document.addEventListener("focusout", onFocusOut, true);
+    return () => document.removeEventListener("focusout", onFocusOut, true);
+  }, [isEditing]);
+
+  // A commit caused by focus moving to a control outside the grid (Tab) must not pull focus back.
   useLayoutEffect(() => {
-    if (isActive && !isEditing) cellRef.current?.focus({ preventScroll: true });
+    const focusLeftGrid = focusLeftGridRef.current;
+    focusLeftGridRef.current = false;
+    if (isActive && !isEditing && !focusLeftGrid) cellRef.current?.focus({ preventScroll: true });
   }, [isActive, isEditing, errorMessage]);
 
   // Pinned rows are not navigable in v1 (documented) — no selection/edit gestures, so no handlers.
