@@ -52,6 +52,8 @@ To pin a tag, branch, or commit, use the GitHub registry path:
 npx shadcn add DammersCode/gridcn/data-grid#v1.0.0
 ```
 
+The ref applies to the item you name only. The CLI resolves its `registryDependencies` without the ref, so a pinned add-on still installs the core from the default branch. To pin the whole install, install the core with the same ref first. An `@gridcn` add-on install fetches the core through `git ls-remote` and `raw.githubusercontent.com`, so it needs `git` and access to GitHub.
+
 The [installation docs](https://gridcn.vercel.app/docs/installation) cover prerequisites, framework notes, and known problems.
 
 ## Example
@@ -108,6 +110,7 @@ Each add-on is a separate registry item that depends only on the core `data-grid
 | `data-grid-url-state` | Sort, filter, search, and pagination state synced to the URL | [URL state](https://gridcn.vercel.app/docs/addons/url-state) |
 | `data-grid-lazy` | Lazy row loading: fetch rows on demand as the viewport scrolls | [Lazy loading](https://gridcn.vercel.app/docs/lazy-loading) |
 | `data-grid-pagination` | Composable pagination footer (`DataGridPaginationBar` plus parts) | [Pagination](https://gridcn.vercel.app/docs/pagination) |
+| `data-grid-status-bar` | Status bar: row count, selection summary, and custom segments | [Status bar](https://gridcn.vercel.app/docs/addons/status-bar) |
 
 ## Agent skills
 

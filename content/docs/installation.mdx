@@ -62,6 +62,14 @@ branch, or commit, use the GitHub registry path and append `#<ref>` after the it
 
 Without a ref, the CLI uses the repository's default branch.
 
+The ref applies to the item you name only. The CLI resolves that item's `registryDependencies`
+(for example `DammersCode/gridcn/data-grid`) without the ref. So a pinned add-on still installs
+the core from the default branch. To pin the whole install, install the core first with the same
+ref, then the add-on.
+
+An `@gridcn` add-on install fetches the core through `git ls-remote` and
+`raw.githubusercontent.com`. It needs `git` on the PATH and access to GitHub.
+
 ## Alternative: GitHub registry (no setup)
 
 The same items are available directly from this repository's GitHub registry: no namespace
@@ -89,13 +97,14 @@ The table below lists the npm dependencies of every item, the core included.
 
 | Item | Runtime dependency | Dev dependency |
 |---|---|---|
-| Core (`data-grid`) | `zustand`, `lucide-react` | none |
+| Core (`data-grid`) | `zustand`, `use-sync-external-store`, `lucide-react`, `@base-ui/react` | none |
 | `data-grid-toolbar` | `@dnd-kit/dom`, `@dnd-kit/react`, `lucide-react` | none |
 | `data-grid-sort-list` | `@dnd-kit/dom`, `@dnd-kit/react`, `lucide-react` | none |
-| `data-grid-context-menu` | `lucide-react` | none |
+| `data-grid-context-menu` | `lucide-react`, `@base-ui/react`, `zustand` | none |
 | `data-grid-pagination` | `lucide-react` | none |
 | `data-grid-io` | `hucre@1.1.0` (lazy-loaded), `papaparse` (loaded with the item) | `@types/papaparse` |
 | `data-grid-url-state` | `nuqs` | none |
+| `data-grid-presence`, `data-grid-fill`, `data-grid-pinned-rows` | `zustand` | none |
 | `dropzone` | `lucide-react` | none |
 | All other add-ons | none beyond the core | none |
 
@@ -106,7 +115,7 @@ count of an untrusted spreadsheet before it allocates the cells.
 
 `registry:component` and `registry:block` files install under the `aliases.components` path in
 your `components.json` (`@/components` by default). So the `data-grid` item lands at
-`components/data-grid/*`, with one file per exported symbol, and a single public barrel at
+`components/data-grid/*`, with a single public barrel at
 `components/data-grid/data-grid.tsx`. Import from that barrel, not from individual files.
 
 ```tsx

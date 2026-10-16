@@ -221,7 +221,7 @@ limit is rejected with an error message in the dialog. The import never truncate
 
 | Field | Default | Meaning |
 |---|---|---|
-| `maxFileBytes` | 50 MB | Maximum file size. The check runs before the file is read. The dialog's drop zone uses this value as its `maxSize` and shows it as the size limit (`labels.io.maxFileSize`). |
+| `maxFileBytes` | 50 MiB | Maximum file size. The check runs before the file is read. The dialog's drop zone uses this value as its `maxSize` and shows it as the size limit (`labels.io.maxFileSize`). |
 | `maxRows` | 1,000,000 | Maximum rows, header row included. |
 | `maxColumns` | 1,000 | Maximum columns. |
 | `maxCells` | 5,000,000 | Maximum rows times columns. |
@@ -323,6 +323,8 @@ import { Dropzone, DropzoneEmptyState, DropzoneContent } from "@/components/drop
 | `onError` | `(error: Error) => void` | none | Called when the native file read itself fails. |
 | `src` | `File[]` | none | The files the dropzone holds, read by the default `DropzoneContent`. |
 | `className` | `string` | none | Merged onto the drop-surface root after the built-in classes. |
+| `children` | `ReactNode` | `DropzoneEmptyState` and `DropzoneContent` | Content of the drop surface. |
+| `aria-label` | `string` | none | Accessible name for the drop surface. |
 
 ### Styling hooks
 

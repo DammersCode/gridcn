@@ -8,6 +8,7 @@ import type { Metadata } from "next";
 import { Analytics } from '@vercel/analytics/next';
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://gridcn.vercel.app"),
   title: { default: "gridcn", template: "%s - gridcn" },
   description:
     "A composable, high-performance data grid: range selection, spreadsheet clipboard, typed cell editors, validation, and windowed rendering at 100k+ rows.",

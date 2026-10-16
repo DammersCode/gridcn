@@ -17,8 +17,8 @@ pnpm dev            # docs site + demos at http://localhost:3000
 Useful pages while developing: `/dev` (configurable 100k-row grid), `/docs` (every demo).
 
 ```bash
-pnpm test -- --project=unit      # jsdom suite
-pnpm test -- --project=browser   # real-Chromium suite (Playwright provider)
+npx vitest run --project unit      # jsdom suite
+npx vitest run --project browser   # real-Chromium suite
 pnpm types:check
 pnpm types:check:ts5             # consumer TypeScript 5.9 baseline
 pnpm lint
@@ -73,8 +73,8 @@ actually find their way around in.
    a server-rendered tree. Leave a one-line comment explaining why when you do this — see
    `components/keymap-table.tsx` for the existing example.
 7. **Registry target paths mirror the repo structure.** `registry.json`'s `files[].path` entries
-   for a block always match that block's on-disk tree exactly; there's no separate flat
-   `target` override. Item names never change when files move.
+   for a block always match that block's on-disk tree exactly. Each file's `target`
+   field sets where it installs; update it together with the path. Item names never change when files move.
 8. **Kebab-case filenames.** Soft caps of ~200 lines for component files and ~100 lines for
    function files apply to *new* code; a merged file (rule 5) is allowed to exceed these since
    it's still several small, distinct concerns living together, not one sprawling one.

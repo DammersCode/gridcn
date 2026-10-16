@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import type { ComponentProps } from "react";
 import {
   ArrowUpDown,
@@ -215,6 +216,17 @@ const comparison = {
       values: ["One line", "—", "—", "Examples only"],
     },
   ],
+};
+
+export const metadata: Metadata = {
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "gridcn",
+    title: "gridcn",
+    description:
+      "A composable, high-performance data grid: range selection, spreadsheet clipboard, typed cell editors, validation, and windowed rendering at 100k+ rows.",
+  },
 };
 
 export default function HomePage() {
