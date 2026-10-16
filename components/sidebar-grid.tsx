@@ -79,6 +79,7 @@ function build(sidebar: HTMLElement) {
     }
   };
   process(root, 0);
+  sidebar.dataset.gridReady = "";
 }
 
 const SIDEBARS = "#nd-sidebar, #nd-sidebar-mobile";
