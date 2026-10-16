@@ -41,7 +41,7 @@ const columns = defineColumns<SeriesRow>()([
  */
 export default function DataGridFillPatternsDemo(): ReactNode {
   const rows = useMemo(() => ROWS, []);
-  const { plugin } = useDataGridFill({});
+  const { plugin } = useDataGridFill();
   const plugins = useMemo(() => [plugin], [plugin]);
 
   return (

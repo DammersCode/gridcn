@@ -28,7 +28,7 @@ export type SelectLineOptions = {
 export function selectLine(
   channelLike: CompactSelectionLike,
   index: number,
-  opts: SelectLineOptions,
+  opts: SelectLineOptions = {},
 ): CompactSelection {
   // only a structural CompactSelectionLike needs the fromArray materialization; a compact channel is used in place
   const channel = channelLike instanceof CompactSelection ? channelLike : CompactSelection.fromArray(channelLike.toArray());

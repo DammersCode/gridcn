@@ -322,7 +322,7 @@ function PlaygroundToolbar({
 /** The virtualized (default, no row-supply add-on) subtree: plain in-memory data via `useDataGridState`, full control set live. */
 function VirtualizedGrid({ controls }: { controls: PlaygroundControls }): ReactNode {
   const grid = useDataGridState(useMemo(() => generateDemoRows(60), []), { getRowId: (row) => row.id });
-  const { plugin: fillPlugin } = useDataGridFill({});
+  const { plugin: fillPlugin } = useDataGridFill();
   const { plugin: presencePlugin, setPresenceHighlights } = useDataGridPresence();
   const [keybindingsOpen, setKeybindingsOpen] = useState(false);
   const { pinnedRowsPlugin, onTotalsChange } = useTotalsBand(controls.pinnedTotals);
@@ -367,7 +367,7 @@ function VirtualizedGrid({ controls }: { controls: PlaygroundControls }): ReactN
 function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNode {
   const [rows, setRows] = useState(() => generateDemoRows(120));
   const pager = useDataGridPagination({ data: rows, pageSize: 20 });
-  const { plugin: fillPlugin } = useDataGridFill({});
+  const { plugin: fillPlugin } = useDataGridFill();
   const { plugin: presencePlugin, setPresenceHighlights } = useDataGridPresence();
   const [keybindingsOpen, setKeybindingsOpen] = useState(false);
   const { pinnedRowsPlugin, onTotalsChange } = useTotalsBand(controls.pinnedTotals);
@@ -527,7 +527,7 @@ function LazySortedGrid({
     fetchRows: fetchSorted,
     getRowId: (row) => row.id,
   });
-  const { plugin: fillPlugin } = useDataGridFill({});
+  const { plugin: fillPlugin } = useDataGridFill();
   const { plugin: presencePlugin, setPresenceHighlights } = useDataGridPresence();
   const plugins = useMemo(() => [fillPlugin, presencePlugin], [fillPlugin, presencePlugin]);
   const [keybindingsOpen, setKeybindingsOpen] = useState(false);

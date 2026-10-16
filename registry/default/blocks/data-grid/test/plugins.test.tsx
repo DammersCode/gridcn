@@ -691,7 +691,7 @@ describe("fill plugin commands (mod+D / mod+R)", () => {
   ];
 
   function FillGrid({ readOnly = false, withPlugin = true }: { readOnly?: boolean; withPlugin?: boolean }) {
-    const { plugin } = useDataGridFill({});
+    const { plugin } = useDataGridFill();
     store = null;
     function Inner() {
       return (

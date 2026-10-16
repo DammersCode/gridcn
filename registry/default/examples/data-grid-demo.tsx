@@ -64,7 +64,7 @@ const columns = defineColumns<DemoRow>()([
  */
 export default function DataGridDemo(): ReactNode {
   const rows = useMemo(() => generateDemoRows(12), []);
-  const { plugin } = useDataGridFill({});
+  const { plugin } = useDataGridFill();
   const plugins = useMemo(() => [plugin], [plugin]);
 
   return (

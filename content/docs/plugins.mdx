@@ -12,8 +12,8 @@ or a mount component for engine work. Every first-party add-on (fill, history, p
 rows) is one of these objects.
 
 ```tsx
-const fill = useDataGridFill({});
-const history = useDataGridHistory({});
+const fill = useDataGridFill();
+const history = useDataGridHistory();
 
 <DataGridProvider data={data} columns={columns} getRowId={getRowId} plugins={[fill.plugin, history.plugin]}>
   <DataGridRoot>

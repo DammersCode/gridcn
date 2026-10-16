@@ -12,7 +12,7 @@ export type UseDataGridFillOptions = Pick<UseFillHandleOptions, "disabled" | "on
 
 /** Return value of {@link useDataGridFill}. */
 export type UseDataGridFillResult = {
-  /** One entry of the grid's `plugins` prop — the plugin's `Overlay` paints the fill preview/handle, its `Mount` runs the pointer engine inside `DataGridRoot`, and its `fillDown`/`fillRight` commands back mod+D/mod+R. Stable for the component's lifetime; put it in a memoized `plugins` array (e.g. `useMemo(() => [plugin], [plugin])`) — an inline `[plugin]` literal re-resolves the grid's plugins on every render. */
+  /** One entry of the grid's `plugins` prop — the plugin's `Overlay` paints the fill preview/handle, its `Mount` runs the pointer engine inside `DataGridRoot`, and its `fillDown`/`fillRight` commands back mod+D/mod+R. Stable for the component's lifetime. An inline `plugins={[plugin]}` is fine: re-resolution is gated on entry identity (name + member references), not on the array's. */
   plugin: DataGridPlugin<unknown>;
 };
 
@@ -24,7 +24,7 @@ export type UseDataGridFillResult = {
  * available inside `DataGridRoot`'s own subtree, a level below where `plugins` is wired, on
  * `DataGridProvider`) both read/write that local store, which is what bridges the two ends.
  */
-export function useDataGridFill(options: UseDataGridFillOptions): UseDataGridFillResult {
+export function useDataGridFill(options: UseDataGridFillOptions = {}): UseDataGridFillResult {
   const [fillStore] = useState(() => createFillStore());
 
   // Kept live via a ref (not hook args) so the plugin's Overlay/Mount components keep a fixed

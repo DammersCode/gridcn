@@ -79,7 +79,7 @@ export type UseDataGridHistoryResult<TData> = {
  * stays exactly where it always was. `undo`/`redo` applied through the grid carry
  * `source: "history"`, which the observer skips, so each undo or redo records no second entry.
  */
-export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>): UseDataGridHistoryResult<TData> {
+export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData> = {}): UseDataGridHistoryResult<TData> {
   const { capacity, datasetKey, recordSources } = opts;
   const history = useMemo(() => createHistory<TData>({ capacity }), [capacity]);
   // history's canUndo/canRedo are getters on a mutable object; this forces a re-render

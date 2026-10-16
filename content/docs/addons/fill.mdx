@@ -40,7 +40,7 @@ import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody } from "@/
 import { useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";
 
 function MyGrid() {
-  const { plugin } = useDataGridFill({});
+  const { plugin } = useDataGridFill();
 
   return (
     <DataGridProvider data={data} columns={columns} getRowId={getRowId} plugins={[plugin]}>

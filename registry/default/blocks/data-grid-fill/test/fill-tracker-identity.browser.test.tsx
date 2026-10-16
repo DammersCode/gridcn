@@ -60,7 +60,7 @@ describe("useDataGridFill: plugin component identity across parent re-renders", 
       // change, anything besides disabled/onFill themselves).
       const [tick, setTick] = useState(0);
       bumpUnrelatedState = () => setTick((t) => t + 1);
-      const { plugin } = useDataGridFill({});
+      const { plugin } = useDataGridFill();
       return (
         <DataGridProvider data={makeRows(4)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
           <ActionsCapture />

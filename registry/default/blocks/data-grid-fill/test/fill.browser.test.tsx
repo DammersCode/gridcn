@@ -355,7 +355,7 @@ describe("data-grid-fill add-on", () => {
     ] as const);
 
     function Harness() {
-      const { plugin } = useDataGridFill({});
+      const { plugin } = useDataGridFill();
       return (
         <DataGridProvider data={data} columns={pinnedColumns} getRowId={(r) => r.id} plugins={[plugin]}>
           <DataGridRoot className="h-[600px] w-[400px]">
@@ -394,7 +394,7 @@ describe("data-grid-fill add-on", () => {
     data[1]!.value = 4;
 
     function Harness() {
-      const { plugin } = useDataGridFill({});
+      const { plugin } = useDataGridFill();
       return (
         <DataGridProvider data={data} columns={fillColumns} getRowId={(r) => r.id} onDataChange={onDataChange} plugins={[plugin]} readOnly>
           <DataGridRoot className="h-[600px]">
@@ -486,7 +486,7 @@ const asyncFillColumns = defineColumns<NumRow>()([
 
 function renderAsyncFillGrid(data: NumRow[], onDataChange: ReturnType<typeof mockDataChangeFn>) {
   function Harness() {
-    const { plugin } = useDataGridFill({});
+    const { plugin } = useDataGridFill();
     return (
       <DataGridProvider data={data} columns={asyncFillColumns} getRowId={(r) => r.id} onDataChange={onDataChange} plugins={[plugin]}>
         <DataGridRoot className="h-[600px]">
