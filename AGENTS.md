@@ -73,7 +73,7 @@ Design every public hook, function, and component from the caller's side.
 - An `options` parameter whose fields are all optional defaults to `{}`: `useX(opts: XOptions = {})`, so `useX()` compiles. `scripts/verify-optional-options.mjs` (run by `pnpm lint`) enforces this; add a `no-arg.type-test.ts` that calls the API with no arguments.
 - The common case needs no arguments and no wrapper: a sensible default beats a required field.
 - One options object per concern. Positional parameters are for the data a function acts on (`exportGrid(state, options)`), never for settings.
-- A new callback with more than one value takes one ctx object: `onFoo({ columnId, width })`, not `onFoo(columnId, width)`. Existing positional callbacks are grandfathered.
+- A callback with several values of equal rank takes one ctx object: `onFoo({ columnId, width })`. The primary value first with trailing extras (`createRow(index)`, `validateRow(row, rowId)`) is fine.
 - Controlled pairs follow React: `value` / `onValueChange` plus a one-shot `defaultValue` seed.
 - Boolean options are positive and default `false` (`disabled`, `readOnly`); feature gates are `enableX` and default `true`.
 - A hook that mounts a grid plugin returns `{ plugin }`; spreadable state hooks return `plugins`. Both work inline in `plugins={[...]}`.
