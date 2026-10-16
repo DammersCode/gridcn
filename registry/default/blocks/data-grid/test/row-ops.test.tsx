@@ -216,6 +216,62 @@ describe("deleteRowsById", () => {
     expect(next.map((r) => r.id)).toEqual(["2"]);
     expect(change.source).toBe("row-operation");
   });
+
+  it("is a no-op with an empty id list", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
+
+    act(() => result.current.deleteRowsById([]));
+
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("is a no-op when every id is unknown", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
+
+    act(() => result.current.deleteRowsById(["missing", "absent"]));
+
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("deletes a row listed twice only once", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
+
+    act(() => result.current.deleteRowsById(["1", "1"]));
+
+    const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["2", "3"]);
+    expect(change.ops).toHaveLength(1);
+  });
+
+  it("emits delete ops with the rowId, row, and original index in ascending index order", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
+
+    act(() => result.current.deleteRowsById(["3", "1"]));
+
+    const [, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(change.ops).toEqual([
+      { type: "delete", rowId: "1", row: rows()[0], index: 0 },
+      { type: "delete", rowId: "3", row: rows()[2], index: 2 },
+    ]);
+  });
+
+  it("is a no-op while readOnly", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange, { readOnly: true });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
+
+    act(() => result.current.deleteRowsById(["1"]));
+
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
 });
 
 describe("deleteRows", () => {
