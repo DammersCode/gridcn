@@ -149,13 +149,13 @@ the `?` shortcut resolution, and the opt-in [global shortcuts](/docs/global-shor
 layer.
 When you remap an action, every surface uses the new binding.
 
-The type-to-replace trigger (`editReplace`) is remapped the same way. By default it has no
+The type-to-replace trigger (`typeToReplace`) is remapped the same way. By default it has no
 binding: any unbound printable key on the active cell dispatches it and opens the editor seeded
 with the typed character (Excel behavior). Defining it in `keymap` takes the action over
-exclusively. ANY `editReplace` binding suppresses the implicit printable-key fallback entirely,
-there is no additive mode: `keymap={{ editReplace: ["F3"] }}` means type-to-replace only happens
-on F3 (a plain edit start), and `keymap={{ editReplace: [] }}` disables it entirely. A printable
-key bound to `editReplace` (e.g. `"a"`) starts the edit seeded with that character, Excel-style.
+exclusively. ANY `typeToReplace` binding suppresses the implicit printable-key fallback entirely,
+there is no additive mode: `keymap={{ typeToReplace: ["F3"] }}` means type-to-replace only happens
+on F3 (a plain edit start), and `keymap={{ typeToReplace: [] }}` disables it entirely. A printable
+key bound to `typeToReplace` (e.g. `"a"`) starts the edit seeded with that character, Excel-style.
 
 Action labels in the dialog (and the per-`GridAction` label map) come from
 `labels.keybindings` (see [Internationalization: coverage by group](/docs/i18n#coverage-by-group)).

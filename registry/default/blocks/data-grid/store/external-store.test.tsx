@@ -100,14 +100,14 @@ describe("useDataGridStoreProps (external store ownership)", () => {
     warn.mockRestore();
   });
 
-  it("dev-warns when a command shadows editReplace, which has no default binding", () => {
+  it("dev-warns when a command shadows typeToReplace, which has no default binding", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     renderHook(() =>
-      useDataGridStoreProps({ data: rows(3), columns, getRowId, commands: { editReplace: { run: () => {} } } }),
+      useDataGridStoreProps({ data: rows(3), columns, getRowId, commands: { typeToReplace: { run: () => {} } } }),
     );
     const shadow = warn.mock.calls.map((c) => String(c[0])).filter((m) => m.includes("shadows"));
     expect(shadow).toHaveLength(1);
-    expect(shadow[0]).toContain("editReplace");
+    expect(shadow[0]).toContain("typeToReplace");
     warn.mockRestore();
   });
 

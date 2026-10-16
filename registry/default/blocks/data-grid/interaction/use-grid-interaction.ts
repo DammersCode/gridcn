@@ -223,7 +223,7 @@ export function dispatchGridAction(args: {
   scrollCellIntoView: (coord: ViewCoord) => void;
   /** The grid's resolved data-row height (px) — `pageUp`/`pageDown`'s visible-row math. */
   rowHeight: number;
-  /** The printable seed char for `editReplace`, when the trigger was a printable key; undefined otherwise. */
+  /** The printable seed char for `typeToReplace`, when the trigger was a printable key; undefined otherwise. */
   triggerKey?: string;
   preventDefault: () => void;
 }): void {
@@ -408,7 +408,7 @@ export function dispatchGridAction(args: {
       else actions.startEditingAt(state.activeCell);
       break;
     }
-    case "editReplace": {
+    case "typeToReplace": {
       if (state.readOnly || !state.activeCell) break;
       preventDefault();
       if (hasActivateCell(state, state.activeCell)) break; // checkbox cells have no edit mode; the edit action toggles them, type-to-replace ignores them
@@ -940,10 +940,10 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
 
       const commands = state.commands;
       const notEditorOnly = commands ? (a: GridAction) => commands[a]?.scope !== "editing" : undefined;
-      // unbound printable key = implicit editReplace trigger (Excel behavior); a consumer keymap that DEFINES editReplace (even []) takes it over and disables the fallback
+      // unbound printable key = implicit typeToReplace trigger (Excel behavior); a consumer keymap that DEFINES typeToReplace (even []) takes it over and disables the fallback
       const action =
         matchKeymap(keymapEvent, keymap, isMacRef.current, notEditorOnly) ??
-        (isPrintableKey(keymapEvent) && keymap.editReplace === undefined ? "editReplace" : null);
+        (isPrintableKey(keymapEvent) && keymap.typeToReplace === undefined ? "typeToReplace" : null);
 
       if (action) dispatch(action);
     },

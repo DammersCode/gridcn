@@ -3,8 +3,8 @@ import type { KeymapEvent } from "./match-keymap";
 /**
  * True when the event represents a single printable Unicode character with no
  * modifier held. Gates the implicit type-to-replace
- * fallback (`editReplace`'s default trigger, see the GridAction doc) and seeds the
- * typed char when a printable binding dispatches `editReplace`.
+ * fallback (`typeToReplace`'s default trigger, see the GridAction doc) and seeds the
+ * typed char when a printable binding dispatches `typeToReplace`.
  */
 export function isPrintableKey(event: KeymapEvent): boolean {
   if (event.ctrlKey || event.metaKey) return false;

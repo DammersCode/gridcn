@@ -558,7 +558,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       _syncConfig(props) {
         if (props.commands && !warnedCommandShadow && isDev()) {
-          // BUILTIN_ACTIONS includes editReplace, which has no default binding; the four pluggable
+          // BUILTIN_ACTIONS includes typeToReplace, which has no default binding; the four pluggable
           // actions are the sanctioned shadow (their built-in bodies are hollow).
           const shadowed = Object.keys(props.commands).filter((name) =>
             (BUILTIN_ACTIONS as readonly string[]).includes(name) && !PLUGGABLE_ACTIONS.includes(name),

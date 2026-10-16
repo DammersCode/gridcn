@@ -287,14 +287,14 @@ describe("custom keymap commands through <DataGrid commands keymap>", () => {
     expect(outerRun).toHaveBeenCalledTimes(1);
   });
 
-  it("a commands entry named editReplace dev-warns the shadow and takes over an explicit binding", () => {
+  it("a commands entry named typeToReplace dev-warns the shadow and takes over an explicit binding", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const run = vi.fn();
     const { grid, focusCell, press } = renderGrid({
-      commands: { editReplace: { run } },
-      keymap: { editReplace: ["F3"] } as Keymap,
+      commands: { typeToReplace: { run } },
+      keymap: { typeToReplace: ["F3"] } as Keymap,
     });
-    const shadow = warn.mock.calls.map((c) => String(c[0])).filter((m) => m.includes("editReplace"));
+    const shadow = warn.mock.calls.map((c) => String(c[0])).filter((m) => m.includes("typeToReplace"));
     expect(shadow.length).toBeGreaterThanOrEqual(1);
     focusCell(0);
     press(grid, { key: "F3" });

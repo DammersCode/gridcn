@@ -65,10 +65,10 @@ export const DEFAULT_KEYMAP: Keymap = {
 };
 
 /**
- * Every built-in action name — the `DEFAULT_KEYMAP` keys plus `editReplace`, which has no default
+ * Every built-in action name — the `DEFAULT_KEYMAP` keys plus `typeToReplace`, which has no default
  * binding (the implicit printable-key fallback) but is still shadowable by a `commands` entry.
  */
-export const BUILTIN_ACTIONS: readonly GridAction[] = [...(Object.keys(DEFAULT_KEYMAP) as GridAction[]), "editReplace"];
+export const BUILTIN_ACTIONS: readonly GridAction[] = [...(Object.keys(DEFAULT_KEYMAP) as GridAction[]), "typeToReplace"];
 
 /**
  * The built-in actions a `commands` entry or a plugin command may implement: their built-in bodies

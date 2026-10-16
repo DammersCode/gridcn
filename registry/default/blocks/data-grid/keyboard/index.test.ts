@@ -359,7 +359,7 @@ describe("GridAction coverage", () => {
   // Actions with a dispatch handler but no DEFAULT_KEYMAP binding: triggered through the implicit
   // printable-key fallback in use-grid-interaction unless the consumer's keymap defines the action
   // (even `[]`, which disables the fallback).
-  const IMPLICIT_FALLBACK_ACTIONS: readonly GridAction[] = ["editReplace"];
+  const IMPLICIT_FALLBACK_ACTIONS: readonly GridAction[] = ["typeToReplace"];
 
   // Record<GridAction, true> makes this exhaustive at compile time: adding a new GridAction member
   // without adding it here is a tsc error, not a silently-passing test.
@@ -375,7 +375,7 @@ describe("GridAction coverage", () => {
     extendJumpUp: true, extendJumpDown: true, extendJumpLeft: true, extendJumpRight: true,
     extendFirstCell: true, extendLastCell: true,
     selectRow: true, selectColumn: true, selectAll: true,
-    edit: true, editReplace: true, commitDown: true, commitUp: true, commitRight: true, commitLeft: true,
+    edit: true, typeToReplace: true, commitDown: true, commitUp: true, commitRight: true, commitLeft: true,
     cancel: true, clearContents: true,
     undo: true, redo: true,
     fillDown: true, fillRight: true,

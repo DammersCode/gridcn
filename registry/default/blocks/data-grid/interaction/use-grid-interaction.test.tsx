@@ -325,8 +325,8 @@ describe("useGridInteraction onKeyDown", () => {
     expect(editing).toEqual({ coord: { col: 0, row: 0 }, rowId: "0", columnId: "name", initialText: "x", session: expect.any(Number) });
   });
 
-  it("dispatches editReplace when a keymap binding matches (remappable)", () => {
-    const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, editReplace: ["F3"] } });
+  it("dispatches typeToReplace when a keymap binding matches (remappable)", () => {
+    const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, typeToReplace: ["F3"] } });
     act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 2 }));
     hook.rerender();
     pressKey(hook, "F3");
@@ -334,7 +334,7 @@ describe("useGridInteraction onKeyDown", () => {
     expect(state.editing).toEqual({ coord: { col: 0, row: 2 }, rowId: "2", columnId: "name", initialText: undefined, session: expect.any(Number) });
   });
 
-  it("a printable key bound to nothing else still type-to-replaces while editReplace is unbound", () => {
+  it("a printable key bound to nothing else still type-to-replaces while typeToReplace is unbound", () => {
     const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, edit: ["F2"] } });
     act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
@@ -343,8 +343,8 @@ describe("useGridInteraction onKeyDown", () => {
     expect(editing?.initialText).toBe("k");
   });
 
-  it("disables implicit type-to-replace when the keymap defines editReplace (even empty)", () => {
-    const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, editReplace: [] } });
+  it("disables implicit type-to-replace when the keymap defines typeToReplace (even empty)", () => {
+    const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, typeToReplace: [] } });
     act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     let prevented = false;
@@ -355,8 +355,8 @@ describe("useGridInteraction onKeyDown", () => {
     expect(prevented).toBe(false);
   });
 
-  it("a keymap remap of editReplace suppresses the implicit printable-key fallback", () => {
-    const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, editReplace: ["F3"] } });
+  it("a keymap remap of typeToReplace suppresses the implicit printable-key fallback", () => {
+    const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, typeToReplace: ["F3"] } });
     act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     pressKey(hook, "x");

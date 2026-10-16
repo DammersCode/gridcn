@@ -59,7 +59,7 @@ export const ACTION_CATEGORY: Partial<Record<GridAction, KeybindingCategory>> = 
   selectAll: "selection",
 
   edit: "editing",
-  editReplace: "editing",
+  typeToReplace: "editing",
   commitDown: "editing",
   commitUp: "editing",
   commitRight: "editing",

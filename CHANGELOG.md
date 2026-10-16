@@ -167,7 +167,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   `"editing"` while an edit session is open (any editor, including the select list and the date
   calendar), `"always"` both. An `"editing"` command never takes over a grid binding. `label`
   and `group` set the command's row in the keybindings dialog. A command name shadowing any
-  built-in action (including `editReplace`, which has no default binding) wins over the
+  built-in action (including `typeToReplace`, which has no default binding) wins over the
   built-in; an unbound-and-unhandled name is a no-op (each case warns once in dev).
   `GridActions` is now an interface you can extend by declaration merging (like
   `GridCellTypes`), `GridAction` is `keyof GridActions`, and `useDataGridCommands`
@@ -464,12 +464,13 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Type-to-replace (Excel parity): typing a printable key on an active cell now starts an edit
   seeded with the typed character (replace mode — the first character replaces the value, like
   Excel). Behavior change: printable keys without a keymap binding used to be no-ops; define
-  `keymap.editReplace` (even `[]`) to take the action over and suppress the implicit fallback.
-  `editReplace` is a first-class remappable keymap action — a printable binding (e.g. a letter)
+  `keymap.typeToReplace` (even `[]`) to take the action over and suppress the implicit fallback.
+  `typeToReplace` is a first-class remappable keymap action — a printable binding (e.g. a letter)
   seeds the typed char, a non-printable binding (e.g. F3) starts a plain edit.
 
 ### Changed
 
+- **Breaking: `editReplace` keymap action is now `typeToReplace` (`data-grid`, `data-grid-keybindings`).** It matches the name the docs use. Rename it in any `keymap` override.
 - **Breaking: `deleteContents` keymap action is now `clearContents` (`data-grid`).** It matches the "Clear contents" menu item. Rename it in any `keymap` override.
 - **Breaking: `source: "row-op"` is now `"row-operation"` (`data-grid`).** Update any `DataChange.source` check or `recordSources` list that names it.
 - **Breaking: vocabulary pass (`data-grid`, `data-grid-lazy`, docs):** the prop `onRowWindowChange` is now `onRenderedRowsChange`, the plugin context field `windowedColumns` is `renderedColumns`, the type `WindowedColumn` is `RenderedColumn`, and the install path `components/data-grid/windowing/` is `components/data-grid/virtualization/`. Update imports and re-run `npx shadcn add @gridcn/data-grid`. Docs, skills, and comments say "virtualization" instead of "windowing", "operation" instead of "op", "drag handle" instead of "grip", and "override" instead of "escape hatch". `GLOSSARY.md` lists the words, and `pnpm lint` rejects the old ones.

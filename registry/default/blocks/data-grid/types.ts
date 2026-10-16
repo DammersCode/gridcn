@@ -636,9 +636,9 @@ export type FilterSpec = { filterId?: string; columnId: string; operator: Filter
  * }
  * ```
  * A merged name binds through the `keymap` prop and resolves to a `commands` entry
- * ({@link GridCommand}). `editReplace` (type-to-replace) has no `DEFAULT_KEYMAP` binding: by
+ * ({@link GridCommand}). `typeToReplace` (type-to-replace) has no `DEFAULT_KEYMAP` binding: by
  * default any unbound printable key on an active cell dispatches it (Excel behavior, starting an
- * edit seeded with the typed char). Defining `keymap.editReplace` takes the action over
+ * edit seeded with the typed char). Defining `keymap.typeToReplace` takes the action over
  * exclusively — `["F3"]` remaps the trigger (plain edit start, no char seed); `[]` disables it.
  */
 export interface GridActions {
@@ -675,7 +675,7 @@ export interface GridActions {
   selectColumn: true;
   selectAll: true;
   edit: true;
-  editReplace: true;
+  typeToReplace: true;
   commitDown: true;
   commitUp: true;
   commitRight: true;
