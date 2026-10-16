@@ -23,6 +23,7 @@ import { getCellValue } from "../columns/column-helpers";
 import { clampColumnWidth } from "../columns/resolve-column-width";
 import { selectCell } from "../selection/selection-ops";
 import { CompactSelection } from "../selection/compact-selection";
+import { toSafeText } from "../cell-types/safe-text";
 import { isDev } from "../is-dev";
 import type {
   AnyColumnDef,
@@ -363,9 +364,9 @@ function searchTextFor(column: AnyColumnDef, cellTypes: Record<string, CellType>
   return (value) => {
     // a value that does not match the declared type may throw in its toText; search must not crash the view
     try {
-      return String(toText(value, options));
+      return toSafeText(toText(value, options));
     } catch {
-      return String(value);
+      return toSafeText(value);
     }
   };
 }
@@ -392,7 +393,7 @@ export function textAccessorFor(
       const row = data[rowIndex];
       if (!column || row === undefined) return "";
       const value = rawCellValue(column, row);
-      return value == null ? "" : String(value);
+      return toSafeText(value);
     },
     getSearchText(rowIndex, columnId) {
       const entry = searchById.get(columnId);
@@ -400,7 +401,7 @@ export function textAccessorFor(
       if (!entry || row === undefined) return "";
       const value = rawCellValue(entry.column, row);
       if (value == null) return "";
-      return entry.toSearchText ? entry.toSearchText(value) : String(value);
+      return entry.toSearchText ? entry.toSearchText(value) : toSafeText(value);
     },
     getValue(rowIndex, columnId) {
       const column = byId.get(columnId);
@@ -464,7 +465,7 @@ export function textAccessorFor(
       } catch {
         // fall through to the text comparator below
       }
-      return defaultCompareText(valueA == null ? "" : String(valueA), valueB == null ? "" : String(valueB));
+      return defaultCompareText(toSafeText(valueA), toSafeText(valueB));
     };
   };
 
@@ -475,7 +476,7 @@ export function textAccessorFor(
     const value = rawCellValue(column, row);
     // `isEmpty` is per-type semantics (number treats 0 as non-empty); fall back to the text rule.
     const cellType = declaredType(column);
-    return cellType ? cellType.isEmpty(value) : value == null || String(value) === "";
+    return cellType ? cellType.isEmpty(value) : value == null || toSafeText(value) === "";
   };
 
   return accessor;

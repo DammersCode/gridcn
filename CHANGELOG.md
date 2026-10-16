@@ -967,7 +967,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 - **Duplicate column ids warn once per grid instance:** the development warning for duplicate column ids no longer fires on every render.
 - **Consumer TypeScript infers `closest`'s type parameter:** the parameter is explicit, so TypeScript 5.9 infers it in consumer code.
-- **Cell values that cannot be stringified no longer unmount the grid:** the `text`, `url`, and `select` cell types render an empty string for a null-prototype object or a deeply nested array instead of throwing.
+- **Cell values that cannot be stringified no longer unmount the grid:** the `text`, `url`, `select`, `number`, `longText`, and `date` cell types, and the view pipeline behind filter, sort, empty check, and quick search, read an empty string for a null-prototype object or a deeply nested array instead of throwing.
 - **URL state keeps sort and filter for a column the user shows again:** a URL spec is dropped only while its column is currently hidden, not for every column defined with `hidden: true`.
 - **Paste cell cap applies inside one row:** a clipboard row wider than the 200,000-cell paste cap stops parsing at the cap, in both the plain-text and HTML parsers, and a first row over the cap is cropped instead of dropping the whole paste.
 - **`reorderRows` under `sortMode="server"`:** a server sort no longer blocks row reordering; insert and duplicate follow the same rule.

@@ -1,3 +1,4 @@
+import { toSafeText } from "./safe-text";
 import type { KeyboardEvent } from "react";
 import { Input } from "@/components/ui/input";
 import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "../types";
@@ -134,7 +135,7 @@ export const numberCellType: CellType<unknown, number | null, GridCellTypes["num
   filter: { operators: [...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS], valueInput: "number" },
   toText: (value, options) => {
     if (value == null) return "";
-    return String(options?.decimals !== undefined ? roundToDecimals(value, options) : value);
+    return toSafeText(options?.decimals !== undefined ? roundToDecimals(value, options) : value);
   },
   toDisplayText: (value, options) => {
     if (value == null) return "";

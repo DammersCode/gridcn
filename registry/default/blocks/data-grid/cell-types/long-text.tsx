@@ -1,3 +1,4 @@
+import { toSafeText } from "./safe-text";
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "../types";
@@ -125,12 +126,12 @@ export const longTextCellType: CellType<unknown, string, GridCellTypes["longText
   Cell: LongTextCell,
   Editor: LongTextEditor,
   filter: { operators: TEXT_FILTER_OPERATORS, valueInput: "text" },
-  toText: (value) => value ?? "",
-  toDisplayText: (value) => (value ?? "").slice(0, LONG_TEXT_DISPLAY_LIMIT).replace(/\r\n|\r|\n/g, " "),
+  toText: (value) => toSafeText(value),
+  toDisplayText: (value) => toSafeText(value).slice(0, LONG_TEXT_DISPLAY_LIMIT).replace(/\r\n|\r|\n/g, " "),
   fromText: (text) => text,
   clearValue: () => "",
   isEmpty: (value) => value == null || value === "",
-  compare: (a, b) => (a ?? "").localeCompare(b ?? ""),
+  compare: (a, b) => toSafeText(a).localeCompare(toSafeText(b)),
   validate: (value) =>
-    (value ?? "").length > LONG_TEXT_DEFAULT_MAX_LENGTH ? `Too long: max ${LONG_TEXT_DEFAULT_MAX_LENGTH} characters` : null,
+    toSafeText(value).length > LONG_TEXT_DEFAULT_MAX_LENGTH ? `Too long: max ${LONG_TEXT_DEFAULT_MAX_LENGTH} characters` : null,
 };

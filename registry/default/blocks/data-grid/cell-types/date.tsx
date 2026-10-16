@@ -1,3 +1,4 @@
+import { toSafeText } from "./safe-text";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -222,7 +223,7 @@ export const dateCellType: CellType<unknown, string | null, GridCellTypes["date"
   Editor: DateEditor,
   numeric: true,
   filter: { operators: [...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS], valueInput: "date" },
-  toText: (value) => value ?? "",
+  toText: (value) => toSafeText(value),
   toDisplayText: (value, options) => formatDateDisplay(value, options),
   fromText: (text, options) => toIsoDatePart(text, options),
   clearValue: () => null,
