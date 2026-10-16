@@ -8,6 +8,9 @@ const config = {
   // the app runs COMPILED here, matching what the unit-compiled/browser-compiled projects test
   reactCompiler: true,
   // fumadocs LLMs integration: /docs/<page>.md serves the page as raw markdown for AI agents.
+  async redirects() {
+    return [{ source: "/docs/windowing", destination: "/docs/virtualization", permanent: true }];
+  },
   async rewrites() {
     return [
       {
