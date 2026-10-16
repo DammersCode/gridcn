@@ -1,16 +1,22 @@
 ---
 title: Open a detail panel from a row
-description: Open a drawer or dialog for a row with a click, a key, or the active cell.
+description: Show the active row in a side panel that stays open while you move through the grid.
 icon: PanelRight
 ---
 
-A drawer or dialog that shows one record needs two things: a gesture that picks the row and state that holds it. The demo wires both gestures to one dialog. Click a cell, or press `Ctrl+Shift+Enter` on the active cell:
+A side panel that shows one record needs two things: a gesture that opens it and state that holds the row. The panel in the demo does not block the grid. It slides in from the right and shows the active row. Keyboard focus stays in the grid, so the arrow keys keep moving the cursor and the panel follows. Click a cell, or press `Ctrl+Shift+Enter` on the active cell:
 
 <ComponentPreview name="data-grid-detail-panel-demo" />
 
+## Open the panel
+
+The panel is an `aside` beside the grid. It has `role="complementary"` and an `aria-label`, and it carries no modal semantics: no overlay, no focus trap, no scroll lock. A CSS transform slides it in. While it is closed, the `inert` attribute removes it from the tab order and the accessibility tree.
+
+Use a dialog only when the task must stop until the user answers. A dialog traps focus and blocks the grid, so it breaks the flow of moving down a list.
+
 ## Mouse
 
-`onCellClick` fires for a click on any data cell. Read the row from `ctx.row`, or the row id from `ctx.rowId`. The checkbox toggle fires `onCellClick` too, so compare `ctx.columnId` to skip the checkbox column:
+`onCellClick` fires for a click on any data cell. The checkbox toggle fires `onCellClick` too, so compare `ctx.columnId` to skip the checkbox column:
 
 ```tsx
 <DataGrid
@@ -18,7 +24,7 @@ A drawer or dialog that shows one record needs two things: a gesture that picks 
   columns={columns}
   getRowId={(row) => row.id}
   onCellClick={(ctx) => {
-    if (ctx.columnId !== "selected") setOpenOrder(ctx.row);
+    if (ctx.columnId !== "selected") setPanelOpen(true);
   }}
 />
 ```
@@ -34,7 +40,7 @@ const commands = {
   openRow: {
     label: "Open row",
     when: (ctx) => ctx.row !== undefined,
-    run: (ctx) => setOpenOrder(ctx.row ?? null),
+    run: () => setPanelOpen(true),
   },
 };
 
@@ -47,11 +53,11 @@ const commands = {
 />
 ```
 
-`when` runs the command only while a cell is active. After Escape the selection is empty, but the active cell stays, so the command still opens its row.
+`when` runs the command only while a cell is active. After Escape the selection is empty, but the active cell stays, so the command still opens the panel.
 
-## Follow the cursor
+## Follow the active row
 
-`onActiveCellChange` fires each time the active cell moves. A side panel that tracks the active row reads `next.rowId` and clears itself on `null`:
+`onActiveCellChange` fires each time the active cell moves. The panel reads `next.rowId` and clears itself on `null`:
 
 ```tsx
 <DataGrid
@@ -63,3 +69,7 @@ const commands = {
 ```
 
 Look the row up by id in your own data. The event carries the cell reference, not the row.
+
+## Focus and Escape
+
+Focus stays in the grid while the panel is open, so Escape in the grid keeps its grid meaning. Escape closes the panel when focus is inside it, for example after Tab onto the close button. Closing the panel returns focus to the grid.
