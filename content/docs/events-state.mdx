@@ -264,6 +264,9 @@ reads `ctx.row`, `ctx.rowId`, and `ctx.viewRowIndex`. It is not a veto point (co
 already does (select the cell, toggle a checkbox). It attaches to the cell's own existing DOM
 click handler, with no new per-cell subscription, so leaving it unset costs nothing.
 
+To open a drawer or dialog for the clicked row, see
+[Open a detail panel from a row](/docs/recipes#open-a-detail-panel-from-a-row).
+
 <Callout type="warn" title="Not the same as selection">
   A click always updates `selection` and `activeCell` too (see `onSelectionChange` above).
   `onCellClick` is for "I clicked THIS cell" as a discrete event, not for tracking the resulting

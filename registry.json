@@ -2127,6 +2127,32 @@
          ]
       },
       {
+         "name": "data-grid-detail-panel-demo",
+         "type": "registry:example",
+         "title": "Data Grid Detail Panel Demo",
+         "description": "Open a dialog with the clicked row from onCellClick, or with a custom Ctrl+Shift+Enter command on the active cell.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "dialog"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-detail-panel-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-detail-panel-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
          "name": "data-grid-presence-demo",
          "type": "registry:example",
          "title": "Data Grid Presence Demo",

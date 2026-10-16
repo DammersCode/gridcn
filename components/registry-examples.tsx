@@ -56,6 +56,7 @@ const EXAMPLES = {
   "data-grid-server-side-demo": dynamic(() => import("@/registry/default/examples/data-grid-server-side-demo")),
   "data-grid-row-reorder-demo": dynamic(() => import("@/registry/default/examples/data-grid-row-reorder-demo")),
   "data-grid-status-bar-demo": dynamic(() => import("@/registry/default/examples/data-grid-status-bar-demo")),
+  "data-grid-detail-panel-demo": dynamic(() => import("@/registry/default/examples/data-grid-detail-panel-demo")),
 } satisfies Record<string, ComponentType>;
 
 export type RegistryExampleName = keyof typeof EXAMPLES;

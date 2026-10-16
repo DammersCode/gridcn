@@ -17,6 +17,7 @@ export const SMOKE_ITEMS = [
   "data-grid-io-demo",
   "data-grid-status-bar-demo",
   "data-grid-context-menu-demo",
+  "data-grid-detail-panel-demo",
 ];
 const REMOUNT_PAGE = "smoke-remount";
 
@@ -353,6 +354,15 @@ const SCENARIOS = [
       await cell(page, 1, "name").click({ button: "right" });
       await page.getByRole("menu").waitFor();
       check((await page.getByRole("menuitem", { name: /copy/i }).count()) > 0, "context menu has no Copy item");
+    },
+  },
+  {
+    name: "recipe: clicking a cell opens that row in a dialog",
+    page: "data-grid-detail-panel-demo",
+    run: async (page) => {
+      const name = await textOf(cell(page, 1, "name"));
+      await cell(page, 1, "name").click();
+      await eventually(async () => ((await page.getByRole("dialog").textContent()) ?? "").includes(name), `dialog does not show ${name}`);
     },
   },
 ];
