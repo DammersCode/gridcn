@@ -45,6 +45,7 @@ type HarnessProps = {
   data?: Row[];
   defaultData?: Row[];
   sortState?: SortSpec[];
+  sortMode?: "client" | "server";
   filterState?: FilterSpec[];
   onDataChange?: (next: readonly Row[], change: DataChange<Row>) => void;
   columnsOverride?: readonly ColumnDef<Row, unknown>[];
@@ -411,6 +412,12 @@ describe("updateCells — sort/filter reconciliation", () => {
     expect(result.current.viewStale).toBe(false);
     act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
     expect(result.current.viewStale).toBe(true);
+  });
+
+  it("does not flip viewStale for a streamed sort-column write under sortMode server", () => {
+    const { result } = renderHarness({ sortMode: "server", sortState: [{ columnId: "name", direction: "asc" }] });
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
+    expect(result.current.viewStale).toBe(false);
   });
 
   it("flips viewStale when a touched column feeds the active filter", () => {

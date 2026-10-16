@@ -616,7 +616,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       }
       const applied = batch.ops.reduce((n, op) => (op.type === "update" ? n + (op.cells?.length ?? 0) : n), 0);
 
-      const reorder = resolveReorder(options?.reorder, patches, s.sortState, s.filterState);
+      const reorder = resolveReorder(options?.reorder, patches, viewSorts(s.sortMode, s.sortState), s.filterState);
       ctx.rowIndexCache.rebase(nextData);
       ctx.lastEmittedData = nextData;
       const change = { source: options?.source ?? "stream", ops: batch.ops };
