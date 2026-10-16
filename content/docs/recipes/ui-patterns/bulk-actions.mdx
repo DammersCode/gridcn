@@ -1,0 +1,86 @@
+---
+title: Act on the selected rows
+description: Show a bar for the checked rows that deletes, updates, or exports them as one undoable step.
+icon: ListChecks
+---
+
+A bulk bar needs the checked rows and one write per button. Turn on the checkbox row markers (`rowMarkers="checkbox"`), show the bar while `selection.rowIds` is not empty, and read the ids when a button is clicked. The marker checkboxes fill `rowIds`. A cell range does not.
+
+```tsx
+"use client";
+
+function OrdersGrid() {
+  const gridRef = useRef<DataGridApi<Order> | null>(null);
+  const [data, setData] = useState<readonly Order[]>(initialOrders);
+  const [checkedCount, setCheckedCount] = useState(0);
+
+  const checkedIds = () => gridRef.current?.getSelection().rowIds ?? [];
+
+  return (
+    <>
+      {checkedCount > 0 && (
+        <BulkBar
+          count={checkedCount}
+          onShip={() => markShipped(gridRef, checkedIds())}
+          onDelete={() => deleteChecked(gridRef, checkedIds())}
+          onExport={() => exportChecked(gridRef)}
+        />
+      )}
+      <DataGrid
+        ref={gridRef}
+        data={data}
+        columns={columns}
+        rowMarkers="checkbox"
+        onDataChange={setData}
+        onSelectionChange={(next) => setCheckedCount(next.rowIds.length)}
+      />
+    </>
+  );
+}
+```
+
+`onSelectionChange` fires once per cell during a drag, so the callback keeps only a count. The ids are read on the click, when they are needed.
+
+## One write per button
+
+`updateRows` writes all rows in one change. `onDataChange` fires once and [undo](/docs/addons/undo-redo) records one entry. Pass `source: "edit"`, because the default `"stream"` source stays out of the undo stack:
+
+```ts
+function markShipped(gridRef: RefObject<DataGridApi<Order> | null>, rowIds: readonly string[]) {
+  gridRef.current?.actions.updateRows(
+    rowIds.map((rowId) => ({ rowId, changes: { status: "shipped" } })),
+    { source: "edit", reorder: "immediate" },
+  );
+}
+```
+
+`deleteRows` takes view indices, so map the ids through `getViewRowIds()`:
+
+```ts
+function deleteChecked(gridRef: RefObject<DataGridApi<Order> | null>, rowIds: readonly string[]) {
+  const api = gridRef.current;
+  if (!api) return;
+  const checked = new Set(rowIds);
+  const indices = api.getViewRowIds().flatMap((id, index) => (checked.has(id) ? [index] : []));
+  api.actions.deleteRows(indices);
+}
+```
+
+A delete clears the selection, so the bar hides itself.
+
+## Export only the checked rows
+
+`exportGrid` takes the grid state and `scope: "selection"`. It needs [`data-grid-io`](/docs/addons/import-export#export):
+
+```ts
+function exportChecked(gridRef: RefObject<DataGridApi<Order> | null>) {
+  const api = gridRef.current;
+  if (api) void exportGrid(api.store.getState(), { scope: "selection", format: "csv" });
+}
+```
+
+## Related
+
+- [Events & state: Reading the selected rows](/docs/events-state#reading-the-selected-rows): `getRowIds()` covers marker checks and ranges.
+- [Row operations](/docs/row-operations#programmatic-actions): the row actions behind `deleteRows`.
+- [Server round-trip](/docs/recipes/data-fetching/server-round-trip): send the bulk change to an API.
