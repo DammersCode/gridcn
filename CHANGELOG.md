@@ -967,6 +967,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **`EMPTY_SELECTION_STATE` is frozen:** the exported shared default (and its arrays) can no longer be mutated by a consumer, which used to corrupt the grid's own cleared-selection value.
+
 - **Dragging from a row marker checkbox keeps the first row selected:** a drag that starts on the checkbox (`checkbox`, `both`, and their `reorder-` variants) and ends on another row no longer toggles the first row off on release.
 - **Columns identity warning fires only for a rebuilt array:** the dev-mode "columns array identity changed" warning now fires only when the new array equals the previous one (same ids and values) — a locale switch or a toggle that swaps the column list no longer warns.
 - **Cell error message meets contrast:** the error popup under an invalid cell uses the page background instead of a tinted one, which lifts the text above the 4.5:1 minimum.

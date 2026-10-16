@@ -25,8 +25,10 @@ type SelectionStateSource = {
   visibleColumns: readonly AnyColumnDef[];
 };
 
-/** The shared empty {@link SelectionState}: the cleared / no-selection value. */
-export const EMPTY_SELECTION_STATE: SelectionState = { anchor: null, range: null, rangeStack: [], rowIds: [], columnIds: [] };
+const frozen = <T extends object>(value: T): T => Object.freeze(value) as T;
+
+/** The shared empty {@link SelectionState}: the cleared / no-selection value. Frozen, so a consumer cannot corrupt the shared default. */
+export const EMPTY_SELECTION_STATE: SelectionState = frozen({ anchor: null, range: null, rangeStack: frozen([]), rowIds: frozen([]), columnIds: frozen([]) });
 
 /** Whether two {@link CellRef}s name the same cell. */
 export function cellRefsEqual(a: CellRef | null, b: CellRef | null): boolean {
