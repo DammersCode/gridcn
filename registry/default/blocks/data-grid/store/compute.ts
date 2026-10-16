@@ -642,6 +642,13 @@ export function sameElements(a: readonly number[], b: readonly number[]): boolea
  * applied sort) — Zustand subscribers keyed on `viewIndex` identity then skip re-rendering on a
  * no-op update. Every call site funnels through this one wrapper so the reuse applies everywhere.
  */
+const NO_SORTS: SortSpec[] = [];
+
+/** The sorts a view rebuild applies: none in `"server"` mode, where the consumer's rows arrive pre-ordered. */
+export function viewSorts(mode: "client" | "server", sorts: SortSpec[]): SortSpec[] {
+  return mode === "server" ? NO_SORTS : sorts;
+}
+
 export function computeViewIndex(
   data: readonly unknown[],
   allColumns: readonly AnyColumnDef[],

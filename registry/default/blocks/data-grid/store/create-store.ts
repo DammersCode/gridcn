@@ -30,6 +30,7 @@ import {
   computeVisibleColumns,
   clampCursor,
   computeViewIndex,
+  viewSorts,
   defHiddenColumnIds,
   flashCellKey,
   flashKeyRowId,
@@ -143,6 +144,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const initData: readonly unknown[] = init.data ?? init.defaultData ?? [];
   // Seeded at init, so the first real sync has a previous value to compare against.
   const initSortState = init.sortState ?? init.defaultSortState ?? [];
+  const initSortMode = init.sortMode ?? "client";
   const initFilterState = withFilterIds(init.filterState ?? init.defaultFilterState ?? []);
   const initJoinOperator = init.joinOperator ?? init.defaultJoinOperator ?? "and";
   const initSearchText = init.searchText ?? init.defaultSearchText ?? "";
@@ -154,7 +156,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     data: initData,
     cellTypes: initCellTypes,
     columns: effectiveLayout.columns,
-    sortState: initSortState,
+    sortState: viewSorts(initSortMode, initSortState),
     filterState: initFilterState,
     joinOperator: initJoinOperator,
     searchText: initSearchText,
@@ -392,7 +394,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // refs only, and the rowIds/columnIds arrays keep their identity.
   let rowIdsDerivation: { rows: CompactSelectionLike; viewIndex: readonly number[]; data: readonly unknown[]; getRowId: (row: unknown, index: number) => string; rowIds: string[] } | null = null;
   let columnIdsDerivation: { columns: CompactSelectionLike; visibleColumns: readonly AnyColumnDef[]; columnIds: string[] } | null = null;
-  const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, initSortState, initFilterState, initJoinOperator, undefined, initCellTypes);
+  const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, viewSorts(initSortMode, initSortState), initFilterState, initJoinOperator, undefined, initCellTypes);
   // `selection` wins over `defaultSelection`, and both resolve here (not in the provider), so the
   // server render and the first client paint already show them.
   const initSelectionValue = init.selection ?? init.defaultSelection;
@@ -641,6 +643,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           lastPropsFilterState = props.filterState;
           const nextFilterState =
             props.filterState === undefined || !propsFilterStateChanged ? s.filterState : withFilterIds(props.filterState);
+          const nextSortMode = props.sortMode ?? "client";
+          const nextViewSorts = viewSorts(nextSortMode, nextSortState);
           const nextJoinOperator = props.joinOperator ?? s.joinOperator;
           const nextSearchText = props.searchText ?? s.searchText;
           // Controlled data mirrors the prop; uncontrolled keeps the store's array, and `defaultData` is init-only.
@@ -677,7 +681,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             data: nextData,
             cellTypes: nextCellTypes,
             columns: nextColumns,
-            sortState: nextSortState,
+            sortState: nextViewSorts,
             filterState: nextFilterState,
             joinOperator: nextJoinOperator,
             searchText: nextSearchText,
@@ -693,7 +697,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const nextVisibleColumns = unchanged ? s.visibleColumns : computeVisibleColumns(nextColumns, s.columnOrder, nextHiddenColumns);
           const nextViewIndex = unchanged
             ? s.viewIndex
-            : computeViewIndex(nextData, nextColumns, nextSortState, nextFilterState, nextJoinOperator, s.viewIndex, nextCellTypes);
+            : computeViewIndex(nextData, nextColumns, nextViewSorts, nextFilterState, nextJoinOperator, s.viewIndex, nextCellTypes);
           // Controlled columnLayout (decision 8): the same echo/structural-equal rule as selection,
           // merged over the incoming column state; a new `columns` array re-applies the controlled
           // parts over the new defs (normalize re-seeds def-hidden and drops unpinnable pins).
@@ -773,6 +777,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           // pays zero store work per drag step (decision 4).
           const flagsChanged =
             s.sortControlled !== (props.sortState !== undefined) ||
+            s.sortMode !== nextSortMode ||
+            s.sortState !== nextSortState ||
             s.filterControlled !== (props.filterState !== undefined) ||
             s.joinOperatorControlled !== (props.joinOperator !== undefined) ||
             s.searchControlled !== (props.searchText !== undefined);
@@ -800,6 +806,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
               layoutApply?.columnLayout ??
               (propsColumnsChanged ? computeColumnLayout(nextColumns, s.columnOrder, s.columnWidths, nextHiddenColumns) : s.columnLayout),
             sortState: nextSortState,
+            sortMode: nextSortMode,
             filterState: nextFilterState,
             joinOperator: nextJoinOperator,
             searchText: nextSearchText,
@@ -905,6 +912,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     hiddenColumns: effectiveLayout.hiddenColumns,
     columnLayout: computeColumnLayout(effectiveLayout.columns, effectiveLayout.columnOrder, effectiveLayout.columnWidths, effectiveLayout.hiddenColumns),
     sortState: initSortState,
+    sortMode: initSortMode,
     filterState: initFilterState,
     joinOperator: initJoinOperator,
     searchText: initSearchText,
@@ -1183,7 +1191,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         // Controlled: _syncProps writes the consumer's next `sortState` prop.
         if (s.sortControlled) return;
         set((s2) => {
-          const viewIndex = computeViewIndex(s2.data, s2.columns, sorts, s2.filterState, s2.joinOperator, s2.viewIndex, s2.cellTypes);
+          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, sorts), s2.filterState, s2.joinOperator, s2.viewIndex, s2.cellTypes);
           resetDeferredRows(dataWrite);
           return {
             sortState: sorts,
@@ -1199,7 +1207,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         s.onSortChange?.(sorts);
         if (s.sortControlled) return;
         set((s2) => {
-          const viewIndex = computeViewIndex(s2.data, s2.columns, sorts, s2.filterState, s2.joinOperator, s2.viewIndex, s2.cellTypes);
+          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, sorts), s2.filterState, s2.joinOperator, s2.viewIndex, s2.cellTypes);
           resetDeferredRows(dataWrite);
           return {
             sortState: sorts,
@@ -1217,7 +1225,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         s.onFilterChange?.(withIds);
         if (s.filterControlled) return;
         set((s2) => {
-          const viewIndex = computeViewIndex(s2.data, s2.columns, s2.sortState, withIds, s2.joinOperator, s2.viewIndex, s2.cellTypes);
+          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), withIds, s2.joinOperator, s2.viewIndex, s2.cellTypes);
           resetDeferredRows(dataWrite);
           return {
             filterState: withIds,
@@ -1233,7 +1241,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         s.onJoinOperatorChange?.(joinOperator);
         if (s.joinOperatorControlled) return;
         set((s2) => {
-          const viewIndex = computeViewIndex(s2.data, s2.columns, s2.sortState, s2.filterState, joinOperator, s2.viewIndex, s2.cellTypes);
+          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), s2.filterState, joinOperator, s2.viewIndex, s2.cellTypes);
           resetDeferredRows(dataWrite);
           return {
             joinOperator,

@@ -175,6 +175,12 @@ export type DataGridSyncProps<TData = unknown> = {
    * itself changes — a controlled grid whose consumer ignores the callback stays visually fixed.
    */
   sortState?: SortSpec[];
+  /**
+   * Who orders the rows. `"client"` (default): the grid sorts `data` by `sortState`. `"server"`:
+   * the grid only tracks the spec (header click cycle, `aria-sort`, sort indicator, `onSortChange`)
+   * and never reorders `data`; the consumer fetches rows in that order, e.g. with `useDataGridLazyRows`.
+   */
+  sortMode?: "client" | "server";
   /** Seeds the sort ONCE at store creation (uncontrolled, like `defaultData`); later changes are ignored. `sortState` wins when both are given. */
   defaultSortState?: SortSpec[];
   /** Fires whenever the user (or `actions.toggleSort`/`setSorts`) would change the sort, controlled or not; see `sortState`. */
@@ -646,6 +652,8 @@ export type DataGridStoreState = Omit<
    */
   columnLayout: ColumnLayout;
   sortState: SortSpec[];
+  /** Mirrors the `sortMode` sync prop; `"server"` keeps `sortState` out of every view rebuild. */
+  sortMode: "client" | "server";
   filterState: FilterSpec[];
   /** How `filterState`'s rows combine; default `"and"`. See `FilterJoinOperator`. */
   joinOperator: FilterJoinOperator;

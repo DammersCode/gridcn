@@ -243,8 +243,10 @@ page.
 
 ## Sorting a lazy grid
 
-The sort must run on the server. Hold the spec in your own state, keep the grid's `sortState`
-permanently empty, and send the spec to `fetchRows`:
+The sort must run on the server. Set `sortMode="server"`: the grid tracks the sort spec (the
+asc → desc → none header cycle, `aria-sort`, the sort indicator, `DataGridSortList`) and calls
+`onSortChange`, but never reorders `data`. Hold the spec in your own state and send it to
+`fetchRows`:
 
 ```tsx
 const [sorts, setSorts] = useState<SortSpec[]>([]);
@@ -265,7 +267,7 @@ const onSortChange = (next: SortSpec[]) => {
   data={lazy.gridProps.data}
   getRowId={lazy.gridProps.getRowId}
   onDataChange={lazy.onDataChange}
-  sortState={EMPTY_SORT}
+  sortMode="server"
   onSortChange={onSortChange}
   headerClickBehavior="sort"
 >
@@ -273,10 +275,8 @@ const onSortChange = (next: SortSpec[]) => {
 
 Three details make this work:
 
-- **`sortState` stays `[]`.** Passing it at all is what puts sorting in controlled mode, so a
-  header click reports through `onSortChange` instead of sorting locally. Echoing the spec back
-  into the prop makes the grid sort `data` by it. That re-orders the fetched window among itself
-  and hides the server's order.
+- **`sortMode="server"` leaves the order to the server.** Passing `sortState={sorts}` as well is
+  allowed: the spec shows in the headers, and the fetched rows keep the order the server sent.
 - **A header click sorts only with `headerClickBehavior="sort"`.** The default, `"select"`, selects
   the column and never calls `onSortChange`.
 - **A sort change discards loaded rows.** Already-fetched windows hold the *old* order, so
@@ -284,10 +284,8 @@ Three details make this work:
   derived from the spec clears them too. It also resets the core store (selection, edit state,
   scroll position), so it is the heavier alternative.
 
-Because the store's `sortState` is empty, the header's sort indicator and `aria-sort` stay blank
-and `DataGridSortList` shows no active sorts. Render the active sort from your own state instead.
-`toggleSort` also derives its next direction from the store, so re-derive the
-asc → desc → none cycle against your own spec, as `data-grid-playground-demo` does.
+Use `lazy.isLoading` to show a busy state while the refetch is in flight, for example to dim
+the grid.
 
 Filtering follows the same rule for the same reason: `filterState` narrows `data` locally when
 set. `searchText` never narrows anything. It only highlights and navigates matches over the

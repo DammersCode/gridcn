@@ -8,6 +8,7 @@ import {
   pruneCellErrors,
   remapRowChannel,
   sameElements,
+  viewSorts,
 } from "./compute";
 import {
   computeCellPatchBatch,
@@ -186,10 +187,10 @@ export function pendingRows(ctx: DataWriteContext, touchedRows: readonly number[
  */
 export function resolveViewIndex(s: DataGridStoreState, data: readonly unknown[], pending: readonly number[] | null): number[] {
   const incremental = pending
-    ? incrementalViewIndex(data, s.columns, s.sortState, s.filterState, s.joinOperator, s.viewIndex, pending, s.cellTypes)
+    ? incrementalViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), s.filterState, s.joinOperator, s.viewIndex, pending, s.cellTypes)
     : null;
   if (incremental) return sameElements(incremental, s.viewIndex) ? s.viewIndex : incremental;
-  return computeViewIndex(data, s.columns, s.sortState, s.filterState, s.joinOperator, s.viewIndex, s.cellTypes);
+  return computeViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), s.filterState, s.joinOperator, s.viewIndex, s.cellTypes);
 }
 
 /**
@@ -205,7 +206,7 @@ export function reconcileAfterWrite(s: DataGridStoreState, nextData: readonly un
     if (op.type !== "update" || !op.cells) continue;
     for (const cell of op.cells) written.push({ rowId: op.rowId, columnId: cell.columnId, value: cell.value });
   }
-  const viewStale = s.viewStale || touchesViewInputs(written, s.sortState, s.filterState);
+  const viewStale = s.viewStale || touchesViewInputs(written, viewSorts(s.sortMode, s.sortState), s.filterState);
   if (s.searchText.trim() === "") return viewStale === s.viewStale ? {} : { viewStale };
   return {
     ...(viewStale === s.viewStale ? {} : { viewStale }),
@@ -221,7 +222,7 @@ export function reconcileAfterWrite(s: DataGridStoreState, nextData: readonly un
  * `setColumnHidden`. The caller owns `activeCell` (it follows or clears the cursor itself).
  */
 export function rebuildRowOpView(s: DataGridStoreState, nextData: readonly unknown[]): Partial<DataGridStoreState> {
-  const viewIndex = computeViewIndex(nextData, s.columns, s.sortState, s.filterState, s.joinOperator, s.viewIndex, s.cellTypes);
+  const viewIndex = computeViewIndex(nextData, s.columns, viewSorts(s.sortMode, s.sortState), s.filterState, s.joinOperator, s.viewIndex, s.cellTypes);
   return {
     viewIndex,
     viewStale: false,

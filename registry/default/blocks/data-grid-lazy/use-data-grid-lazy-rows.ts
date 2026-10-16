@@ -67,7 +67,7 @@ export type UseDataGridLazyRowsResult<TData> = {
   onDataChange: (next: readonly TData[], change: DataChange<TData>) => void;
   /** Count of indices with no loaded row yet — mainly for the sort/filter dev-warn guard and diagnostics. */
   unloadedCount: number;
-  /** True while any range fetch is in flight. */
+  /** True while any range fetch is in flight. Use it for a busy state, e.g. `aria-busy` or a dimmed grid while a server-side sort refetches. */
   isLoading: boolean;
   /**
    * Aborts every in-flight fetch, drops all loaded rows, and re-requests the last reported
