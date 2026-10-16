@@ -227,8 +227,10 @@ export function dispatchGridAction(args: {
   /** The printable seed char for `typeToReplace`, when the trigger was a printable key; undefined otherwise. */
   triggerKey?: string;
   preventDefault: () => void;
+  /** Holds the pending animation frame of a deferred action so the caller can cancel it on unmount. */
+  pendingFrameRef?: RefObject<number | null>;
 }): void {
-  const { action, actions, storeApi, scrollRef, scrollCellIntoView, rowHeight, triggerKey, preventDefault } = args;
+  const { action, actions, storeApi, scrollRef, scrollCellIntoView, rowHeight, triggerKey, preventDefault, pendingFrameRef } = args;
   const state = storeApi.getState();
   const rowCount = state.viewIndex.length;
   const colCount = state.visibleColumns.length;
@@ -431,13 +433,17 @@ export function dispatchGridAction(args: {
         break;
       }
       // the header is virtualized out until the scroll lands and a frame renders it
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => {
-          const trigger = findTrigger();
-          if (trigger) open(trigger);
-          else warnDev(`openColumnMenu found no column menu trigger for "${column.id}"; wire renderHeaderMenu to enable it`);
-        }),
-      );
+      const retry = () => {
+        if (!scrollRef.current) return;
+        const trigger = findTrigger();
+        if (trigger) open(trigger);
+        else warnDev(`openColumnMenu found no column menu trigger for "${column.id}"; wire renderHeaderMenu to enable it`);
+      };
+      const frame = requestAnimationFrame(() => {
+        const second = requestAnimationFrame(retry);
+        if (pendingFrameRef) pendingFrameRef.current = second;
+      });
+      if (pendingFrameRef) pendingFrameRef.current = frame;
       break;
     }
     case "edit": {
@@ -731,6 +737,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   // exactly anchor..current (it can grow AND shrink as the pointer moves).
   const dragRef = useRef<{ pointerId: number; mode: "range" | "row" | "column"; anchor?: number; pendingOffAnchor?: boolean; leftAnchor?: boolean } | null>(null);
   const rafRef = useRef<number | null>(null);
+  const pendingActionFrameRef = useRef<number | null>(null);
   const lastPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
 
   // Active-cell click deferred to native `click` — pointerdown alone can't distinguish it from a drag.
@@ -921,6 +928,12 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
 
   // safety net: tear down a still-active drag's listeners/rAF if the component unmounts mid-drag
   useEffect(() => () => documentListenersRef.current?.(), []);
+  useEffect(
+    () => () => {
+      if (pendingActionFrameRef.current !== null) cancelAnimationFrame(pendingActionFrameRef.current);
+    },
+    [],
+  );
 
   const scrollActiveCellIntoView = useCallback(
     (coord: ViewCoord) => {
@@ -976,6 +989,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
           rowHeight: layoutRef.current.rowHeight,
           triggerKey: isPrintableKey(keymapEvent) ? keymapEvent.key : undefined,
           preventDefault: () => event.preventDefault(),
+          pendingFrameRef: pendingActionFrameRef,
         });
 
       // While a session is open the editor owns the built-in keys; only editor-scoped commands dispatch.

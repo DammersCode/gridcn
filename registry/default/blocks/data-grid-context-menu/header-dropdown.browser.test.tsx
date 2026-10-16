@@ -221,4 +221,23 @@ describe("DataGridHeaderDropdown", () => {
     await vi.waitFor(() => expect(warn.mock.calls.some(([message]) => String(message).includes("column menu"))).toBe(true));
     warn.mockRestore();
   });
+
+  it("Shift+Alt+ArrowDown stays silent when the grid unmounts before the header renders", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const view = await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridRoot className="h-75">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await vi.waitFor(() => expect(document.querySelector('[role="gridcell"]')).toBeTruthy());
+    await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"]')!);
+    await userEvent.keyboard("{Shift>}{Alt>}{ArrowDown}{/Alt}{/Shift}");
+    await view.unmount();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(warn.mock.calls.some(([message]) => String(message).includes("column menu"))).toBe(false);
+    warn.mockRestore();
+  });
 });
