@@ -718,7 +718,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   // Active-cell click deferred to native `click` — pointerdown alone can't distinguish it from a drag.
   const pendingActiveClickRef = useRef<ViewCoord | null>(null);
   // Pointer capture retargets the click onto the cell, so the anchor is only known at pointerdown.
-  const linkPressRef = useRef(false);
+  const linkPressRef = useRef<ViewCoord | null>(null);
   // Coord a single click just resolved, so the following dblclick (same gesture) doesn't re-resolve it.
   const resolvedByClickRef = useRef<ViewCoord | null>(null);
 
@@ -848,10 +848,12 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
           lastPointerRef.current = { clientX: event.clientX, clientY: event.clientY };
           // Pointer capture still fires `click` on the pressed cell after a drag, even one that ends back there.
           const pending = pendingActiveClickRef.current;
+          const linkPress = linkPressRef.current;
           const scrollElement = scrollRef.current;
-          if (pending && scrollElement) {
+          if ((pending || linkPress) && scrollElement) {
             const coord = pointerToCoord(event.clientX, event.clientY, scrollElement, layoutRef.current, storeApi.getState().viewIndex.length);
-            if (coord.col !== pending.col || coord.row !== pending.row) pendingActiveClickRef.current = null;
+            if (pending && (coord.col !== pending.col || coord.row !== pending.row)) pendingActiveClickRef.current = null;
+            if (linkPress && (coord.col !== linkPress.col || coord.row !== linkPress.row)) linkPressRef.current = null;
           }
           // the frame loop kills itself when no move has arrived yet (slow press-then-drag) —
           // restart it here or a drag whose first move lands after frame 1 never paints (user QA).
@@ -864,6 +866,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
           // the pending active-cell press anymore, so resolve (or discard) it here, on the true
           // pointerup coordinate. Without the handoff the cell's own `click` resolves it as usual.
           const scrollElement = scrollRef.current;
+          if (event.type === "pointercancel" || (scrollElement && captureElementRef.current === scrollElement)) linkPressRef.current = null;
           if (scrollElement && captureElementRef.current === scrollElement) {
             const pending = pendingActiveClickRef.current;
             pendingActiveClickRef.current = null;
@@ -992,7 +995,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       if ((event.target as HTMLElement | null)?.closest(gridAttrSelector("cellEditor"))) return;
       const state = storeApi.getState();
       const isMultiKey = isMacRef.current ? event.metaKey : event.ctrlKey;
-      linkPressRef.current = isMultiKey && !!(event.target as HTMLElement | null)?.closest("a");
+      linkPressRef.current = isMultiKey && (event.target as HTMLElement | null)?.closest("a") ? coord : null;
 
       // Excel activation model: a click NEVER starts editing — it only
       // selects; dblclick/Enter/F2/typing edit. Only checkbox cells resolve a stationary
@@ -1028,7 +1031,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   const onCellClick = useCallback(
     (coord: ViewCoord, event: ReactMouseEvent<HTMLElement>) => {
       const linkPress = linkPressRef.current;
-      linkPressRef.current = false;
+      linkPressRef.current = null;
       const pending = pendingActiveClickRef.current;
       pendingActiveClickRef.current = null;
       if (linkPress && event.detail < 2 && !storeApi.getState().editing) {

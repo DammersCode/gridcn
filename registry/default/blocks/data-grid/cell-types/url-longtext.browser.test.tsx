@@ -91,6 +91,16 @@ describe("url cell type (browser)", () => {
     await userEvent.dragAndDrop(linkLocator(), page.getByRole("gridcell", { name: "plain" }));
     await expect.poll(() => document.querySelectorAll('[role="gridcell"][aria-selected="true"]').length).toBe(4);
   });
+
+  it("ctrl+dragging from a link to another cell selects the range and opens nothing", async () => {
+    await renderGrid();
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    await userEvent.keyboard("{Control>}");
+    await userEvent.dragAndDrop(linkLocator(), page.getByRole("gridcell", { name: "plain" }));
+    await userEvent.keyboard("{/Control}");
+    await expect.poll(() => document.querySelectorAll('[role="gridcell"][aria-selected="true"]').length).toBeGreaterThan(1);
+    expect(open).not.toHaveBeenCalled();
+  });
 });
 
 describe("longText cell type (browser)", () => {
