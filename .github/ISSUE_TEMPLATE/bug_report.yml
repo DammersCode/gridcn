@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for the report. This tracker is for reproducible bugs. For help with building something, use the [question template](https://github.com/DammersCode/gridcn/issues/new?template=question.yml).
+        Thanks for the report. This tracker is for reproducible bugs. For help with building something, use the [Q&A discussions](https://github.com/DammersCode/gridcn/discussions/new?category=q-a).
         Search the [open and closed issues](https://github.com/DammersCode/gridcn/issues?q=is%3Aissue) first. A report we can reproduce gets fixed fastest.
   - type: checkboxes
     id: checks
