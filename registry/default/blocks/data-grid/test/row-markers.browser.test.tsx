@@ -872,12 +872,12 @@ describe("row checking by keyboard", () => {
     await vi.waitFor(() => expect(checked()[0]).toBe(true));
   });
 
-  it("Ctrl+Alt+Space checks every row, then unchecks them, like the header checkbox", async () => {
+  it("Mod+Shift+E checks every row, then unchecks them, like the header checkbox", async () => {
     await renderCheckboxGrid();
     await userEvent.click(gridCells()[0]!);
-    await userEvent.keyboard("{Control>}{Alt>} {/Alt}{/Control}");
+    await userEvent.keyboard("{Control>}{Shift>}e{/Shift}{/Control}");
     await vi.waitFor(() => expect(checked()).toEqual([true, true, true, true, true]));
-    await userEvent.keyboard("{Control>}{Alt>} {/Alt}{/Control}");
+    await userEvent.keyboard("{Control>}{Shift>}e{/Shift}{/Control}");
     // the clicked cell's own range still reads as row 0 selected, exactly like the header checkbox
     await vi.waitFor(() => expect(checked()).toEqual([true, false, false, false, false]));
   });
