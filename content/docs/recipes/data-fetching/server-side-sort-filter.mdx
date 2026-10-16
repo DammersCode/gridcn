@@ -5,7 +5,7 @@ icon: ListFilter
 ---
 
 `sortState`, `filterState`, and `searchText` each have a controlled prop pair on
-`DataGridProvider` (and `DataGrid`): `sortState`/`onSortChange`, `filterState`/`onFilterChange`,
+`DataGrid` (and `DataGridProvider`): `sortState`/`onSortChange`, `filterState`/`onFilterChange`,
 and `searchText`/`onSearchTextChange` (see [the three shapes](/docs/events-state#the-three-shapes-an-event-follows)
 for how the prop, the callback, and the uncontrolled fallback interact). The callback fires on every
 user gesture, and the prop you feed back in is what the grid displays:
@@ -14,29 +14,27 @@ user gesture, and the prop you feed back in is what the grid displays:
 "use client";
 
 function ServerSyncedGrid() {
-  const [data, setData] = useState<Row[]>([]);
+  const [data, setData] = useState<readonly Row[]>([]);
   const [sortState, setSortState] = useState<SortSpec[]>([]);
   const [filterState, setFilterState] = useState<FilterSpec[]>([]);
-  const grid = useDataGridState(data, { getRowId: (r) => r.id });
+  const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
-    fetchRows({ sortState, filterState }).then(setData);
-  }, [sortState, filterState]);
+    fetchRows({ sortState, filterState, searchText }).then(setData);
+  }, [sortState, filterState, searchText]);
 
   return (
-    <DataGridProvider
-      {...grid}
+    <DataGrid
+      data={data}
       columns={columns}
+      onDataChange={setData}
       sortState={sortState}
       onSortChange={setSortState}
       filterState={filterState}
       onFilterChange={setFilterState}
-    >
-      <DataGridRoot>
-        <DataGridHeader />
-        <DataGridBody />
-      </DataGridRoot>
-    </DataGridProvider>
+      searchText={searchText}
+      onSearchTextChange={setSearchText}
+    />
   );
 }
 ```
@@ -61,3 +59,9 @@ function ServerSyncedGrid() {
   `filterState`, `onSortChange`, and `onFilterChange`, and let the grid own the state
   uncontrolled, as the quick-start of `useDataGridState` already does.
 </Callout>
+
+## Related
+
+- [Lazy loading](/docs/lazy-loading#sorting-a-lazy-grid): a server-sorted grid that loads rows by window.
+- [Pagination](/docs/pagination): page the server result.
+- [Remember the user's view](/docs/recipes/ui-patterns/remember-view): save the same state between visits.

@@ -44,7 +44,6 @@ function OrdersGrid() {
     <DataGrid
       data={ordersQuery.data ?? []}
       columns={columns}
-      getRowId={(row) => row.id}
       onDataChange={(_next, change) => mutation.mutate(change)}
     />
   );

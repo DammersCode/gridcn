@@ -32,7 +32,6 @@ function OrdersGrid() {
     <DataGrid
       data={data}
       columns={columns}
-      getRowId={(row) => row.id}
       onDataChange={(next, change) => handleDataChange(next, change, setData)}
     />
   );
@@ -131,15 +130,20 @@ function handleDataChange(_next: readonly Order[], change: DataChange<Order>, se
 ## The failure path
 
 A rejected write is common: a 422 with field-level errors is the typical shape from a REST or
-GraphQL backend. `actions.setCellErrors` paints the rejection on the exact cell it names, so the
+GraphQL backend. `actions.setCellErrors` (on the grid's `ref` handle) paints the rejection on the exact cell it names, so the
 user sees which value is wrong and can fix it in place:
 
 ```ts
-function handleDataChange(next: readonly Order[], change: DataChange<Order>, setData: (rows: Order[]) => void) {
+function handleDataChange(
+  next: readonly Order[],
+  change: DataChange<Order>,
+  setData: (rows: Order[]) => void,
+  gridRef: RefObject<DataGridApi<Order> | null>,
+) {
   setData(next as Order[]);
 
   Promise.all(opsToRequests(change.ops)).catch((error) => {
-    actions.setCellErrors(parseFieldErrors(error, change.ops)); // [{ rowId, columnId, message }]
+    gridRef.current?.actions.setCellErrors(parseFieldErrors(error, change.ops)); // [{ rowId, columnId, message }]
   });
 }
 ```
