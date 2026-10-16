@@ -1,13 +1,13 @@
 "use client";
 
-import { useContext, type ReactElement, type ReactNode } from "react";
+import { useContext, useRef, type ReactElement, type ReactNode } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridContainer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { GRID_ATTR, useDataGridContainer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useDataGridApi } from "@/registry/default/blocks/data-grid/data-grid";
 import {
   DataGridHeaderMenuItemsContext,
@@ -59,9 +59,14 @@ export function DataGridHeaderDropdown(props: DataGridHeaderDropdownProps): Reac
   const scrollRoot = useDataGridContainer();
   const inheritedResolver = useContext(DataGridHeaderMenuItemsContext);
   const api = useDataGridApi();
+  const keyboardOpenedRef = useRef(false);
 
   return (
-    <DropdownMenu>
+    <DropdownMenu
+      onOpenChange={(open, details) => {
+        if (open) keyboardOpenedRef.current = (details.event?.target as HTMLElement | null)?.hasAttribute(GRID_ATTR.keyboardOpen) ?? false;
+      }}
+    >
       <DropdownMenuTrigger render={trigger} />
       {/* data-grid-header-menu-popup marks this a portal (React-tree-only bubble target) so
           header-cell.tsx's own pointerdown/click handlers can ignore events that originate here
@@ -72,6 +77,7 @@ export function DataGridHeaderDropdown(props: DataGridHeaderDropdownProps): Reac
         align="end"
         // the trigger is not a tab stop; the keyboard path (openColumnMenu) opens from the active cell
         finalFocus={() => {
+          if (!keyboardOpenedRef.current) return true;
           api.focus();
           return false;
         }}

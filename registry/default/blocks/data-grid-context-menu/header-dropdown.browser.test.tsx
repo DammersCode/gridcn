@@ -15,11 +15,8 @@ import "@/app/global.css";
 
 type Row = { id: string; name: string; email: string };
 
-function makeRows(): Row[] {
-  return [
-    { id: "r0", name: "Alice", email: "alice@example.com" },
-    { id: "r1", name: "Bob", email: "bob@example.com" },
-  ];
+function makeRows(count = 2): Row[] {
+  return Array.from({ length: count }, (_, i) => ({ id: "r" + i, name: "Name " + i, email: "n" + i + "@example.com" }));
 }
 
 const columns = defineColumns<Row>()([
@@ -27,9 +24,9 @@ const columns = defineColumns<Row>()([
   { id: "email", header: "Email", accessorKey: "email", type: "text", width: 200 },
 ] as const);
 
-function renderGrid() {
+function renderGrid(rowCount?: number) {
   return render(
-    <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+    <DataGridProvider data={makeRows(rowCount)} columns={columns} getRowId={(r) => r.id}>
       <DataGridRoot className="h-75" renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}>
         <DataGridHeader />
         <DataGridBody />
@@ -135,5 +132,24 @@ describe("DataGridHeaderDropdown", () => {
     await userEvent.keyboard("{Escape}");
     await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeUndefined());
     await vi.waitFor(() => expect(document.activeElement).toBe(emailCell()));
+  });
+
+  it("closing a mouse-opened menu leaves a scrolled-away grid where it is", async () => {
+    await renderGrid(400);
+    await vi.waitFor(() => expect(document.querySelector('[data-column-id="email"]')).toBeTruthy());
+    await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"][aria-colindex="2"]')!);
+    const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+    await vi.waitFor(() => expect(grid.scrollHeight).toBeGreaterThan(5000));
+    grid.scrollTop = 4000;
+    await new Promise((r) => setTimeout(r, 100));
+    const before = grid.scrollTop;
+    expect(before).toBeGreaterThan(1000);
+
+    document.querySelector<HTMLElement>(`[data-column-id="email"] ${gridAttrSelector("headerMenuTrigger")}`)!.click();
+    await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeTruthy());
+    await userEvent.keyboard("{Escape}");
+    await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeUndefined());
+    await new Promise((r) => setTimeout(r, 100));
+    expect(grid.scrollTop).toBe(before);
   });
 });

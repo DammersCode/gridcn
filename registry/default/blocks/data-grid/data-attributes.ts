@@ -45,6 +45,8 @@ export const GRID_ATTR = {
   reorderHandle: "data-grid-reorder-handle",
   /** header-cell.tsx: the column-menu trigger button. */
   headerMenuTrigger: "data-grid-header-menu-trigger",
+  /** use-grid-interaction.ts: set on a menu trigger while the keyboard action programmatically clicks it. */
+  keyboardOpen: "data-grid-keyboard-open",
   /** header-cell.tsx: the column resize handle. */
   resizeHandle: "data-grid-resize-handle",
   /** columns/sort-indicator.tsx: `"asc" | "desc"`, the header's own sort-direction arrow. */

@@ -35,7 +35,7 @@ import {
   visualArrowKey,
   type GridDirection,
 } from "../virtualization/direction";
-import { gridAttrSelector } from "../data-attributes";
+import { GRID_ATTR, gridAttrSelector } from "../data-attributes";
 import { getSelectedViewRows, isSelectionEmpty } from "../selection";
 import { warnDev } from "../store/commit";
 import { allRowsSelectedState } from "../store/hooks";
@@ -417,7 +417,9 @@ export function dispatchGridAction(args: {
       preventDefault();
       const column = state.activeCell && state.visibleColumns[state.activeCell.col];
       const trigger = column && scrollRef.current?.querySelector<HTMLElement>(`[data-column-id="${CSS.escape(column.id)}"] ${gridAttrSelector("headerMenuTrigger")}`);
+      trigger?.setAttribute(GRID_ATTR.keyboardOpen, "");
       trigger?.click();
+      trigger?.removeAttribute(GRID_ATTR.keyboardOpen);
       break;
     }
     case "edit": {
