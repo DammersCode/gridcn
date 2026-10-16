@@ -123,7 +123,7 @@ history.record(
   back.
 </Callout>
 
-## Which changes are recorded
+## Which changes are recorded <NewBadge />
 
 History records the changes a user made on purpose: `edit`, `paste`, `fill`, `delete`, `row-operation`,
 `import`, and `app` (see the `source` field in
@@ -139,7 +139,7 @@ const history = useDataGridHistory({ recordSources: ["edit", "paste", "stream"] 
 An undo or redo reaches `onDataChange` with `source: "history"`. If `onDataChange` saves to a
 server, that handler sees the undo as a normal change and saves it.
 
-## Rolling back a failed save
+## Rolling back a failed save <NewBadge />
 
 An `onDataChange` handler that saves to a server sees undo and redo as changes with
 `source: "history"`. When a save fails, call `rollback(change)` with the change the handler
@@ -190,7 +190,7 @@ setDatasetKey((key) => key + 1);
 A dataset id or a version counter both work. The key only needs to differ between datasets.
 Use `clear()` for a reset with no key, for example a "reset to defaults" button.
 
-## Read-only grids
+## Read-only grids <NewBadge />
 
 A `readOnly` grid refuses writes at the store. History follows that rule end to end: nothing new
 records, and `undo` and `redo` are no-ops that keep their entries (popping an unapplied entry
