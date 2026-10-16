@@ -37,7 +37,7 @@ sort or filter a column, drag-fill, scroll, resize, pin, or hide a column) to se
 
 | Shape | Example | Controlled prop? | Restore path |
 |---|---|---|---|
-| Controlled pair | `sortState` / `onSortChange`; `selection` / `onSelectionChange` (one-shot seed `defaultSelection`); `columnLayout` / `onColumnLayoutChange` (one-shot seed `defaultColumnLayout`) | Yes. Prop omitted keeps uncontrolled (store-owned) state; `columnLayout` is per-part, an omitted part stays uncontrolled. Gestures are first: the gesture writes the store and fires the event at once, and a re-render that feeds the fired value back applies nothing | Pass the value back in (`sortState`, `selection`, or `columnLayout`) |
+| Controlled pair | `sortState` / `onSortChange` (one-shot seed `defaultSortState`); `selection` / `onSelectionChange` (one-shot seed `defaultSelection`); `columnLayout` / `onColumnLayoutChange` (one-shot seed `defaultColumnLayout`) | Yes. Prop omitted keeps uncontrolled (store-owned) state; `columnLayout` is per-part, an omitted part stays uncontrolled. Gestures are first: the gesture writes the store and fires the event at once, and a re-render that feeds the fired value back applies nothing | Pass the value back in (`sortState`, `selection`, or `columnLayout`) |
 | Data: controlled or uncontrolled opt-in | `data` (controlled) vs `defaultData` (uncontrolled) / `onDataChange` | Either. `data` makes it a controlled pair, `defaultData` seeds once and the store owns the array | Controlled: pass `data` back in. Uncontrolled: nothing to restore. The store already has it |
 | Setter + read hook | `useDataGridPresence().setPresenceHighlights` / `useDataGridPresenceHighlights(storeApi)` | N/A: imperative in, hook out | Call the setter again with saved state |
 
@@ -321,7 +321,7 @@ type ColumnLayout = {
 columnLayout?: Partial<ColumnLayout>;
 defaultColumnLayout?: Partial<ColumnLayout>;
 onColumnLayoutChange?: (next: ColumnLayout) => void;
-onColumnResizing?: (columnId: string, width: number) => void;
+onColumnResizing?: (ctx: { columnId: string; width: number }) => void;
 ```
 
 These props expose width, order, pin, and hidden with the same controlled-pair convention as

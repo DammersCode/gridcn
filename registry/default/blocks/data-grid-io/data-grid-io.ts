@@ -16,6 +16,7 @@ export {
   type ImportFileState,
   type ImportTargetColumn,
   type ImportErrorKey,
+  type UseDataGridImportPreviewOptions,
   type UseDataGridImportPreviewResult,
 } from "./use-data-grid-import";
 export { DataGridImportDialog, type DataGridImportDialogProps } from "./import-dialog";

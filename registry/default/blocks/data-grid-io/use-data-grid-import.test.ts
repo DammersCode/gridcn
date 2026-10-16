@@ -37,7 +37,7 @@ describe("useDataGridImportPreview — stale sheet parse after the file changed"
       return { rows: [["Name"], ["B-row"]], delimiter: "," };
     });
 
-    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
 
     await act(async () => {
       await result.current.loadFile(FILE_A, TARGETS);
@@ -73,7 +73,7 @@ describe("useDataGridImportPreview — stale sheet parse after the file changed"
       return call === 1 ? a.promise : b.promise;
     });
 
-    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
 
     let loadB: Promise<void> | undefined;
     await act(async () => {
@@ -106,7 +106,7 @@ describe("useDataGridImportPreview — stale sheet parse after the file changed"
       return csvCalls === 1 ? Promise.resolve({ rows: [["Name"], ["B-row"]], delimiter: "," }) : deferred.promise;
     });
 
-    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
     await act(async () => {
       await result.current.loadFile(FILE_B, TARGETS);
     });
@@ -137,7 +137,7 @@ describe("useDataGridImportPreview — stale sheet parse after the file changed"
     });
     const FILE_C = new File([], "c.csv", { type: "text/csv" });
 
-    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
     await act(async () => {
       await result.current.loadFile(FILE_B, TARGETS);
     });
@@ -168,7 +168,7 @@ describe("useDataGridImportPreview — stale sheet parse after the file changed"
     });
     const FILE_C = new File([], "c.csv", { type: "text/csv" });
 
-    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
     await act(async () => {
       await result.current.loadFile(FILE_B, TARGETS);
     });
@@ -195,7 +195,7 @@ describe("useDataGridImportPreview — stale sheet parse after the file changed"
     const a = makeDeferredParse();
     mockedParse.mockImplementation((file) => (file.name === "a.xlsx" ? a.promise : Promise.resolve({ rows: [["Name"], ["B-row"]], delimiter: "," })));
 
-    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
     const { loadA, loadB } = await act(async () => ({
       loadA: result.current.loadFile(FILE_A, TARGETS), // slow, past its file read
       loadB: result.current.loadFile(FILE_B, TARGETS),
@@ -219,7 +219,7 @@ describe("useDataGridImportPreview — stale sheet parse after the file changed"
       return csvCalls === 1 ? Promise.resolve({ rows: [["Name"], ["B-row"]], delimiter: "," }) : Promise.reject(new Error("boom"));
     });
 
-    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
     await act(async () => {
       await result.current.loadFile(FILE_B, TARGETS);
     });
@@ -243,7 +243,7 @@ describe("useDataGridImportPreview — stale sheet parse after the file changed"
 describe("useDataGridImportPreview — limit errors map to their own keys", () => {
   it("surfaces errorFileTooLarge for a file-too-large parse", async () => {
     mockedParse.mockRejectedValue(new Error("file-too-large"));
-    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
     await act(async () => {
       await result.current.loadFile(FILE_B, TARGETS);
     });
@@ -254,7 +254,7 @@ describe("useDataGridImportPreview — limit errors map to their own keys", () =
 
   it("surfaces errorPartTooLarge for a part-too-large parse", async () => {
     mockedParse.mockRejectedValue(new Error("part-too-large"));
-    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
     await act(async () => {
       await result.current.loadFile(FILE_B, TARGETS);
     });
@@ -265,7 +265,7 @@ describe("useDataGridImportPreview — limit errors map to their own keys", () =
 
   it("surfaces errorTooManyCells for an over-dimension parse", async () => {
     mockedParse.mockRejectedValue(new Error("import-too-many-cells"));
-    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
     await act(async () => {
       await result.current.loadFile(FILE_B, TARGETS);
     });
@@ -277,7 +277,7 @@ describe("useDataGridImportPreview — limit errors map to their own keys", () =
 describe("useDataGridImportPreview — unsupported Excel formats", () => {
   it("surfaces errorUnsupportedExcelFormat for an .xls that is not a BIFF8 workbook", async () => {
     mockedParse.mockRejectedValue(new Error("unsupported-excel-format"));
-    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
     await act(async () => {
       await result.current.loadFile(FILE_A, TARGETS);
     });
@@ -290,7 +290,7 @@ describe("useDataGridImportPreview — limits", () => {
   it("passes every import limit, maxDecompressedBytes included, to the parser", async () => {
     mockedParse.mockResolvedValue({ rows: [["Name"], ["A-row"]], delimiter: "," });
     const limits = { maxFileBytes: 1, maxRows: 2, maxColumns: 3, maxCells: 4, maxDecompressedBytes: 5 };
-    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`, {}, limits));
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}`, limits }));
     await act(async () => {
       await result.current.loadFile(FILE_B, TARGETS);
     });

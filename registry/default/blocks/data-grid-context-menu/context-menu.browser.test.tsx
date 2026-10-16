@@ -74,7 +74,7 @@ function renderGrid(
     columns?: typeof columns;
     enableColumnResize?: boolean;
     onColumnLayoutChange?: (next: ColumnLayout) => void;
-    onColumnResizing?: (columnId: string, width: number) => void;
+    onColumnResizing?: (ctx: { columnId: string; width: number }) => void;
     getCellMenuItems?: DataGridContextMenuProps["getCellMenuItems"];
     getHeaderMenuItems?: DataGridContextMenuProps["getHeaderMenuItems"];
     /** Wires `renderHeaderMenu` to the add-on's `DataGridHeaderDropdown` (header-surface resolver coverage). */

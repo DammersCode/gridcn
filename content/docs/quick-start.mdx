@@ -82,15 +82,16 @@ status: updated
         <DataGrid
           defaultData={initialRows}
           columns={columns}
-          getRowId={(row) => row.id}
           className="h-[400px]"
         />
       );
     }
     ```
 
-    <Callout title="getRowId is mandatory">
-      `getRowId` must return a stable, unique id for each row. Two rows that share an id corrupt
+    <Callout title="Every row needs a stable id">
+      `getRowId` returns each row's id. It defaults to the row's `id` field and throws for a row
+      without one, so the example above omits the prop. Pass `getRowId` when the id lives
+      elsewhere. The id must be stable and unique for each row. Two rows that share an id corrupt
       selection, editing, and undo and redo, because every internal lookup is id-keyed. When you
       change what `getRowId` returns, pass a new `data` array in the same render. In development,
       the grid warns when `getRowId` returns other ids while `data` keeps its array.

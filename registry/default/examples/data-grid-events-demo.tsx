@@ -178,7 +178,7 @@ export default function DataGridEventsDemo(): ReactNode {
     setLog((prev) => pushLog(prev, { source: "onColumnLayoutChange", at: Date.now(), payload: next }));
   }, []);
 
-  const onColumnResizing = useCallback((columnId: string, width: number) => {
+  const onColumnResizing = useCallback(({ columnId, width }: { columnId: string; width: number }) => {
     setLog((prev) => pushLog(prev, { source: "onColumnResizing", at: Date.now(), payload: { columnId, width } }));
   }, []);
 

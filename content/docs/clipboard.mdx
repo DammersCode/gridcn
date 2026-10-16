@@ -87,7 +87,7 @@ function processCellFromClipboard(text: string, { row, column }: { row: Row; col
   return text.trim();
 }
 
-function processPaste(cells: string[][], target: ViewCoord) {
+function processPaste({ cells, target }: { cells: string[][]; target: ViewCoord }) {
   // runs after tiling and before the paste cap; return false to veto entirely
   return cells;
 }

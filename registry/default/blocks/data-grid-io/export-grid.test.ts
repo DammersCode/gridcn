@@ -414,6 +414,21 @@ describe("exportGrid — xlsx builds the table once", () => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
+
+  it("exports a CSV named export.csv when called with no options", async () => {
+    const createObjectURL = vi.fn(() => "blob:mock-url");
+    vi.stubGlobal("URL", { ...URL, createObjectURL, revokeObjectURL: vi.fn() });
+    const anchor = document.createElement("a");
+    anchor.click = vi.fn();
+    vi.spyOn(document, "createElement").mockReturnValue(anchor);
+
+    await exportGrid(makeState());
+
+    expect(anchor.download).toBe("export.csv");
+
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
 });
 
 describe("buildXlsx", () => {

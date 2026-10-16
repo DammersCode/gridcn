@@ -2699,11 +2699,11 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
 
       act(() => result.current.actions.setColumnWidth("name", 240));
       expect(onColumnResizing).toHaveBeenCalledTimes(1);
-      expect(onColumnResizing).toHaveBeenLastCalledWith("name", 240);
+      expect(onColumnResizing).toHaveBeenLastCalledWith({ columnId: "name", width: 240 });
 
       act(() => result.current.actions.setColumnWidth("name", 260));
       expect(onColumnResizing).toHaveBeenCalledTimes(2);
-      expect(onColumnResizing).toHaveBeenLastCalledWith("name", 260);
+      expect(onColumnResizing).toHaveBeenLastCalledWith({ columnId: "name", width: 260 });
     });
 
     it("clamps the written width to the column's [max(32, minWidth), maxWidth] bounds, like the resize gesture", () => {
@@ -2725,7 +2725,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
 
       act(() => result.current.actions.setColumnWidth("name", 10)); // below minWidth
       expect(result.current.nameWidth).toBe(80);
-      expect(onColumnResizing).toHaveBeenLastCalledWith("name", 80);
+      expect(onColumnResizing).toHaveBeenLastCalledWith({ columnId: "name", width: 80 });
 
       act(() => result.current.actions.setColumnWidth("name", 500)); // above maxWidth
       expect(result.current.nameWidth).toBe(200);

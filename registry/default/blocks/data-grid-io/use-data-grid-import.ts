@@ -95,20 +95,24 @@ function resolveDelimiterOverride(options: ImportDefaults): CsvDelimiter | undef
   return options.defaultDelimiter;
 }
 
+/** Options for {@link useDataGridImportPreview}. */
+export type UseDataGridImportPreviewOptions = {
+  /** `labels.io.columnFallback` — builds the header shown for column N when the file has no header row. */
+  columnFallback: (index: number) => string;
+  /** Preselection defaults (see {@link ImportDefaults}). */
+  defaults?: ImportDefaults;
+  /** Size, row, column, cell, and unpacked-size bounds for every parse; omitted fields use `DEFAULT_IMPORT_LIMITS`. */
+  limits?: ImportLimits;
+};
+
 /**
  * Owns the parse -> preview -> column-mapping state for the import dialog. File I/O and header
  * matching are pure functions ({@link parseImportFile}, {@link applyImportOptions}); this hook only
  * sequences them and exposes editable dialog state (header-row toggle, delimiter, per-column mapping).
  *
- * @param columnFallback `labels.io.columnFallback` — builds the header shown for column N when the file has no header row.
- * @param options Consumer-configurable preselection defaults (see {@link ImportDefaults}); omit for today's behavior unchanged.
- * @param limits Size, row, column, cell, and unpacked-size bounds for every parse; omitted fields use `DEFAULT_IMPORT_LIMITS`.
  */
-export function useDataGridImportPreview(
-  columnFallback: (index: number) => string,
-  options: ImportDefaults = {},
-  limits: ImportLimits = {},
-): UseDataGridImportPreviewResult {
+export function useDataGridImportPreview(options: UseDataGridImportPreviewOptions): UseDataGridImportPreviewResult {
+  const { columnFallback, defaults = {}, limits = {} } = options;
   const [preview, setPreview] = useState<ImportFileState | null>(null);
   const [error, setError] = useState<ImportErrorKey | null>(null);
   const [isParsing, setIsParsing] = useState(false);
@@ -119,7 +123,7 @@ export function useDataGridImportPreview(
   const parseControllerRef = useRef<AbortController | null>(null);
   // generation guard for every async parse (file load, sheet switch, delimiter override): a newer parse or reset wins over a slower older one.
   const parseGenerationRef = useRef(0);
-  const { defaultHeaderRow = true, defaultSkipColumns, mapColumn } = options;
+  const { defaultHeaderRow = true, defaultSkipColumns, mapColumn } = defaults;
   const { maxFileBytes, maxRows, maxColumns, maxCells, maxDecompressedBytes } = limits;
   const limitOptions = useMemo(
     () => ({ maxFileBytes, maxRows, maxColumns, maxCells, maxDecompressedBytes }),
@@ -146,7 +150,7 @@ export function useDataGridImportPreview(
     setError(null);
     setIsParsing(true);
     try {
-      const parsed = await parseImportFile(file, { ...limitOptions, csvDelimiter: resolveDelimiterOverride(options) }, controller.signal);
+      const parsed = await parseImportFile(file, { ...limitOptions, csvDelimiter: resolveDelimiterOverride(defaults) }, controller.signal);
       if (generation !== parseGenerationRef.current) return; // superseded by a newer file load or a reset
       if (parsed.rows.length === 0) {
         setError("errorNoRows");
@@ -177,7 +181,7 @@ export function useDataGridImportPreview(
       // a superseded (aborted) load must not clear the newer load's parsing state
       if (parseControllerRef.current === controller) setIsParsing(false);
     }
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- destructured option fields are the real deps; `options` itself may be a fresh object each render.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- destructured option fields are the real deps; `defaults` itself may be a fresh object each render.
   }, [columnFallback, defaultHeaderRow, defaultSkipColumns, mapColumn, limitOptions]);
 
   const setHasHeaderRow = useCallback(

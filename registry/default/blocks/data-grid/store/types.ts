@@ -69,7 +69,11 @@ export type DataGridSyncProps<TData = unknown> = {
   // this file: `validate`'s function-or-schema union can't stay bivariant as a plain property, so
   // a defineColumns literal's narrow-TValue `validate` needs this documented widening to fit here.
   columns: readonly ColumnDefOf<TData>[];
-  getRowId: (row: TData, index: number) => string;
+  /**
+   * Stable, unique id of a row. Defaults to the row's `id` field (string or number) and throws
+   * for a row without one. Pass it when rows have no `id` or the id lives elsewhere.
+   */
+  getRowId?: (row: TData, index: number) => string;
   /**
    * Disables editing and delete grid-wide, independent of any per-column `readOnly`. The store is
    * the home of this flag: it is seeded from these init props (so SSR and the first client paint
@@ -111,7 +115,7 @@ export type DataGridSyncProps<TData = unknown> = {
   /** Overrides parsing pasted text into a cell value; falls back to the cell type's `fromText`. */
   processCellFromClipboard?: (text: string, ctx: ClipboardProcessCtx<TData>) => unknown;
   /** Runs on the parsed paste grid before it's applied; returning `false` vetoes the paste entirely. */
-  processPaste?: (cells: string[][], target: ViewCoord) => string[][] | false;
+  processPaste?: (ctx: { cells: string[][]; target: ViewCoord }) => string[][] | false;
   /**
    * Prefixes formula-like copied cells (leading `=`, `+`, `-`, `@`, TAB, or CR; plain numbers
    * exempt) with `'` in the clipboard text and HTML, for Ctrl+C/Ctrl+X and the context menu's
@@ -171,18 +175,26 @@ export type DataGridSyncProps<TData = unknown> = {
    * itself changes — a controlled grid whose consumer ignores the callback stays visually fixed.
    */
   sortState?: SortSpec[];
+  /** Seeds the sort ONCE at store creation (uncontrolled, like `defaultData`); later changes are ignored. `sortState` wins when both are given. */
+  defaultSortState?: SortSpec[];
   /** Fires whenever the user (or `actions.toggleSort`/`setSorts`) would change the sort, controlled or not; see `sortState`. */
   onSortChange?: (next: SortSpec[]) => void;
   /** Controlled filter spec; same controlled/uncontrolled semantics as `sortState`. */
   filterState?: FilterSpec[];
+  /** Seeds the filters ONCE at store creation; see `defaultSortState`. */
+  defaultFilterState?: FilterSpec[];
   /** Fires whenever the user (or `actions.setFilters`) would change the filters, controlled or not; see `filterState`. */
   onFilterChange?: (next: FilterSpec[]) => void;
   /** Controlled join operator combining `filterState`'s rows; same controlled/uncontrolled semantics as `sortState`. Default `"and"`. */
   joinOperator?: FilterJoinOperator;
+  /** Seeds the join operator ONCE at store creation; see `defaultSortState`. */
+  defaultJoinOperator?: FilterJoinOperator;
   /** Fires whenever the user (or `actions.setJoinOperator`) would change the join operator, controlled or not; see `joinOperator`. */
   onJoinOperatorChange?: (next: FilterJoinOperator) => void;
   /** Controlled quick-search text; same controlled/uncontrolled semantics as `sortState`. */
   searchText?: string;
+  /** Seeds the quick-search text ONCE at store creation; see `defaultSortState`. */
+  defaultSearchText?: string;
   /** Fires whenever the user (or `actions.setSearch`) would change the search text, controlled or not; see `searchText`. */
   onSearchTextChange?: (next: string) => void;
   /**
@@ -315,7 +327,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * Fired from the store actions layer, no React-render dependency. Not called for the commit
    * itself (drag release/autosize) — pair with `onColumnLayoutChange` if you need that too.
    */
-  onColumnResizing?: (columnId: string, width: number) => void;
+  onColumnResizing?: (ctx: { columnId: string; width: number }) => void;
 };
 
 /**
@@ -342,7 +354,7 @@ export type SelectionChangeDetails = {
 // useDataGridVisibleColumns/useDataGridAllColumns return, so a consumer building custom column UI can
 // call those same fields without a cast either.
 /** `DataGridSyncProps` cast to the store's internal row-agnostic shape; the one unsafe cast, applied once at the boundary. */
-export type InternalSyncProps = DataGridSyncProps<unknown>;
+export type InternalSyncProps = Omit<DataGridSyncProps<unknown>, "getRowId"> & { getRowId: (row: unknown, index: number) => string };
 
 /** The overlay contribution of one resolved plugin: the component plus its `name` (the React key). */
 export type ResolvedPluginOverlay = { name: string; Overlay: ComponentType<OverlayPluginCtx> };
@@ -404,8 +416,15 @@ export type ClipboardProcessCtx<TData> = { row: TData; column: ColumnDefOf<TData
  */
 export type AnyCellType = CellType<any, any, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
+/** Row id used when `getRowId` is omitted: the row's `id` field. */
+export function defaultGetRowId(row: unknown): string {
+  const id = (row as { id?: unknown } | null | undefined)?.id;
+  if (typeof id === "string" || typeof id === "number") return String(id);
+  throw new Error("gridcn: a row has no string or number `id` field. Pass `getRowId` to identify rows.");
+}
+
 export function toInternalSyncProps<TData>(props: DataGridSyncProps<TData>): InternalSyncProps {
-  return props as unknown as InternalSyncProps;
+  return (props.getRowId ? props : { ...props, getRowId: defaultGetRowId }) as unknown as InternalSyncProps;
 }
 
 /**
@@ -529,6 +548,10 @@ export type DataGridStoreState = Omit<
   | "plugins"
   | "defaultColumnLayout"
   | "defaultSelection"
+  | "defaultSortState"
+  | "defaultFilterState"
+  | "defaultJoinOperator"
+  | "defaultSearchText"
   | "selection"
   | "columnLayout"
   | "readOnly"

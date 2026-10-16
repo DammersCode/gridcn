@@ -72,8 +72,8 @@ takes:
 </Callout>
 
 ```tsx
-// export exactly what's on screen (default)
-exportGrid(state, { format: "csv" });
+// export exactly what's on screen as CSV (default)
+exportGrid(state);
 
 // export every row regardless of the current sort/filter
 exportGrid(state, { format: "csv", scope: "all" });

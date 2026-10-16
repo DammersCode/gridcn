@@ -88,10 +88,6 @@ export function checkDevGuardrails(
 ): void {
   if (!isDev()) return;
 
-  if (typeof props.getRowId !== "function") {
-    warnDev("getRowId is required and must be a function");
-  }
-
   if (props.data !== undefined && props.defaultData !== undefined) {
     warnBothDataPropsOnce();
   }

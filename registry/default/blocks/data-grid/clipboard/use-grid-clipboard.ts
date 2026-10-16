@@ -318,7 +318,7 @@ function applyParsedPaste(
   if (!target) return false;
 
   const tiled = tileToHeight(cells, targetHeight(s));
-  const finalCells = s.processPaste ? s.processPaste(tiled, target) : tiled;
+  const finalCells = s.processPaste ? s.processPaste({ cells: tiled, target }) : tiled;
   if (finalCells === false) return false;
 
   // Cap AFTER processPaste so a consumer hook cannot re-expand a truncated grid past the bound.

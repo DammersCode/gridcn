@@ -11,6 +11,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Default seeds for sort, filter, and search:** `defaultSortState`, `defaultFilterState`, `defaultJoinOperator`, and `defaultSearchText` seed the uncontrolled store once, so an initial sort no longer needs controlled state plus a callback.
+- **`getRowId` is optional:** it defaults to the row's `id` field (string or number) and throws for a row without one.
+- **`exportGrid` defaults to CSV:** `format` and the whole options argument are optional, as is the argument of `useDataGridExport().exportGrid`.
 - **Options parameters are optional when every field is:** `useDataGridHistory()`, `useDataGridFill()`, and `filterFiles(files)` no longer need an empty `{}` argument.
 - **Registry dependencies declare version ranges:** every npm package in `registry.json` now carries a range (caret for stable packages, tilde for `@dnd-kit/*`), so a fresh install no longer picks up a future major or a 0.x breaking minor.
 - **`use-sync-external-store` declared by the `data-grid` item:** the store's selector hook
@@ -465,6 +468,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking:** `onColumnResizing` and `processPaste` take one ctx object (`data-grid`): `onColumnResizing({ columnId, width })` and `processPaste({ cells, target })` replace the positional arguments.
+- **Breaking:** `useDataGridImportPreview` takes one options object (`data-grid-io`): `useDataGridImportPreview({ columnFallback, defaults, limits })` replaces the three positional arguments. `UseDataGridImportPreviewOptions` is exported.
 - **Breaking:** `DataGridCell`'s view-index props are renamed (`data-grid`): `rowIndex` is
   `viewRowIndex` and `columnIndex` is `viewColumnIndex`, the view-space names every cell ctx
   already uses. Custom compositions that render `DataGridCell` pass the new names.

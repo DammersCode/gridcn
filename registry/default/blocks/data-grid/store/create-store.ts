@@ -142,8 +142,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const dataControlled = init.data !== undefined;
   const initData: readonly unknown[] = init.data ?? init.defaultData ?? [];
   // Seeded at init, so the first real sync has a previous value to compare against.
-  const initFilterState = withFilterIds(init.filterState ?? []);
-  const initJoinOperator = init.joinOperator ?? "and";
+  const initSortState = init.sortState ?? init.defaultSortState ?? [];
+  const initFilterState = withFilterIds(init.filterState ?? init.defaultFilterState ?? []);
+  const initJoinOperator = init.joinOperator ?? init.defaultJoinOperator ?? "and";
+  const initSearchText = init.searchText ?? init.defaultSearchText ?? "";
   // storage widens each per-column CellType<TData, TValue, TOptions> to the untyped registry shape; narrowed back per column at lookup (cell.tsx/store's column-op helpers).
   const initCellTypes = resolveCellTypes(init.cellTypes as unknown as ProvidedCellTypes);
   // A new registry identity is a sync-input change: reuse the resolved one while the prop's entries are unchanged.
@@ -152,10 +154,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     data: initData,
     cellTypes: initCellTypes,
     columns: effectiveLayout.columns,
-    sortState: init.sortState ?? [],
+    sortState: initSortState,
     filterState: initFilterState,
     joinOperator: initJoinOperator,
-    searchText: init.searchText ?? "",
+    searchText: initSearchText,
     columnOrder: effectiveLayout.columnOrder,
     hiddenColumns: effectiveLayout.hiddenColumns,
   };
@@ -390,7 +392,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // refs only, and the rowIds/columnIds arrays keep their identity.
   let rowIdsDerivation: { rows: CompactSelectionLike; viewIndex: readonly number[]; data: readonly unknown[]; getRowId: (row: unknown, index: number) => string; rowIds: string[] } | null = null;
   let columnIdsDerivation: { columns: CompactSelectionLike; visibleColumns: readonly AnyColumnDef[]; columnIds: string[] } | null = null;
-  const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, init.sortState ?? [], initFilterState, initJoinOperator, undefined, initCellTypes);
+  const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, initSortState, initFilterState, initJoinOperator, undefined, initCellTypes);
   // `selection` wins over `defaultSelection`, and both resolve here (not in the provider), so the
   // server render and the first client paint already show them.
   const initSelectionValue = init.selection ?? init.defaultSelection;
@@ -902,15 +904,15 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     columnOrder: effectiveLayout.columnOrder,
     hiddenColumns: effectiveLayout.hiddenColumns,
     columnLayout: computeColumnLayout(effectiveLayout.columns, effectiveLayout.columnOrder, effectiveLayout.columnWidths, effectiveLayout.hiddenColumns),
-    sortState: init.sortState ?? [],
+    sortState: initSortState,
     filterState: initFilterState,
     joinOperator: initJoinOperator,
-    searchText: init.searchText ?? "",
+    searchText: initSearchText,
     sortControlled: init.sortState !== undefined,
     filterControlled: init.filterState !== undefined,
     joinOperatorControlled: init.joinOperator !== undefined,
     searchControlled: init.searchText !== undefined,
-    ...computeSearchMatches(initData, effectiveLayout.columns, initViewIndex, visibleColumns, init.searchText ?? "", initCellTypes),
+    ...computeSearchMatches(initData, effectiveLayout.columns, initViewIndex, visibleColumns, initSearchText, initCellTypes),
     viewIndex: initViewIndex,
     rowIdentityVersion: 0,
     viewStale: false,
@@ -1086,7 +1088,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (!column) return;
         const next = clampColumnWidth(column, width);
         set((s) => ({ columnWidths: { ...s.columnWidths, [id]: next } }));
-        get().onColumnResizing?.(id, next);
+        get().onColumnResizing?.({ columnId: id, width: next });
       },
       commitColumnWidth(id, width) {
         const s = get();

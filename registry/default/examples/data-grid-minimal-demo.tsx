@@ -17,15 +17,12 @@ const initialRows: Person[] = [
   { id: "3", name: "Margaret Hamilton", age: 31, active: false },
 ];
 
-const getRowId = (row: Person) => row.id;
-
 /** The quick-start minimum: the core item alone, `defaultData`, zero app-side state. */
 export default function DataGridMinimalDemo(): ReactNode {
   return (
     <DataGrid
       defaultData={initialRows}
       columns={columns}
-      getRowId={getRowId}
       className="w-full h-[240px]"
     />
   );

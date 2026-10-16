@@ -7,8 +7,8 @@ export const MAX_CELL_TEXT = 32_767;
 
 /** Options for {@link exportGrid}. */
 export type ExportGridOptions = {
-  /** 'xlsx' via lazily-imported hucre, or hand-rolled RFC4180 'csv'. */
-  format: "xlsx" | "csv";
+  /** 'xlsx' via lazily-imported hucre, or hand-rolled RFC4180 'csv' (default). */
+  format?: "xlsx" | "csv";
   /** 'view' (default) exports the current sort/filter order; 'all' ignores view order and exports every row in `data` order; 'selection' exports only the selected rows, in view order. */
   scope?: "view" | "all" | "selection";
   /** Whether to emit a header row; default true. */
@@ -166,8 +166,8 @@ export async function buildXlsx(state: DataGridReadState, options: BuildXlsxOpti
  * column's cell type `toText` (never raw values), so clipboard/export fidelity matches. hucre is
  * loaded lazily (dynamic `import()`) so the dependency never loads for CSV-only consumers.
  */
-export async function exportGrid(state: DataGridReadState, options: ExportGridOptions): Promise<void> {
-  const { format, scope = "view", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true, fileName = "export", workbookName, maxRows } = options;
+export async function exportGrid(state: DataGridReadState, options: ExportGridOptions = {}): Promise<void> {
+  const { format = "csv", scope = "view", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true, fileName = "export", workbookName, maxRows } = options;
   if (format === "csv") {
     const rows = buildCappedExportRows(state, scope, maxRows);
     const table = includeHeaders ? [buildExportHeaders(state), ...rows] : rows;
