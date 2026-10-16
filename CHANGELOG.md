@@ -470,6 +470,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking: `retainMoveUp`, `retainMoveDown`, `retainMoveLeft`, and `retainMoveRight` keymap actions are now `moveUpKeepSelection`, `moveDownKeepSelection`, `moveLeftKeepSelection`, and `moveRightKeepSelection` (`data-grid`).** They move the active cell and keep the selection. Rename them in any `keymap` override.
 - **Breaking: `editReplace` keymap action is now `typeToReplace` (`data-grid`, `data-grid-keybindings`).** It matches the name the docs use. Rename it in any `keymap` override.
 - **Breaking: `deleteContents` keymap action is now `clearContents` (`data-grid`).** It matches the "Clear contents" menu item. Rename it in any `keymap` override.
 - **Breaking: `source: "row-op"` is now `"row-operation"` (`data-grid`).** Update any `DataChange.source` check or `recordSources` list that names it.

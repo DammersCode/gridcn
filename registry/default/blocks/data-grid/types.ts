@@ -646,10 +646,10 @@ export interface GridActions {
   moveDown: true;
   moveLeft: true;
   moveRight: true;
-  retainMoveUp: true;
-  retainMoveDown: true;
-  retainMoveLeft: true;
-  retainMoveRight: true;
+  moveUpKeepSelection: true;
+  moveDownKeepSelection: true;
+  moveLeftKeepSelection: true;
+  moveRightKeepSelection: true;
   scrollActiveIntoView: true;
   moveRowStart: true;
   moveRowEnd: true;

@@ -290,10 +290,10 @@ export function dispatchGridAction(args: {
       moveAndScroll(MOVE_DELTA[action]);
       break;
     }
-    case "retainMoveUp":
-    case "retainMoveDown":
-    case "retainMoveLeft":
-    case "retainMoveRight": {
+    case "moveUpKeepSelection":
+    case "moveDownKeepSelection":
+    case "moveLeftKeepSelection":
+    case "moveRightKeepSelection": {
       preventDefault();
       moveAndScroll(MOVE_DELTA[action], { retain: true });
       break;
@@ -588,7 +588,7 @@ export function jumpToDataBoundary(state: DataGridStoreState, active: ViewCoord,
 }
 
 /** Move/extend actions that resolve through {@link MOVE_DELTA} — kept as its own union so the map is total (no `!` needed at the call site). */
-type MoveAction = "moveUp" | "moveDown" | "moveLeft" | "moveRight" | "retainMoveUp" | "retainMoveDown" | "retainMoveLeft" | "retainMoveRight" | "extendUp" | "extendDown" | "extendLeft" | "extendRight";
+type MoveAction = "moveUp" | "moveDown" | "moveLeft" | "moveRight" | "moveUpKeepSelection" | "moveDownKeepSelection" | "moveLeftKeepSelection" | "moveRightKeepSelection" | "extendUp" | "extendDown" | "extendLeft" | "extendRight";
 
 /** Jump/extend-jump actions that resolve through {@link JUMP_DIRECTION} — kept as its own union so the map is total (no `!` needed at the call site). */
 type JumpAction = "jumpUp" | "jumpDown" | "jumpLeft" | "jumpRight" | "extendJumpUp" | "extendJumpDown" | "extendJumpLeft" | "extendJumpRight";
@@ -599,10 +599,10 @@ const MOVE_DELTA: Record<MoveAction, { dx: number; dy: number }> = {
   moveDown: { dx: 0, dy: 1 },
   moveLeft: { dx: -1, dy: 0 },
   moveRight: { dx: 1, dy: 0 },
-  retainMoveUp: { dx: 0, dy: -1 },
-  retainMoveDown: { dx: 0, dy: 1 },
-  retainMoveLeft: { dx: -1, dy: 0 },
-  retainMoveRight: { dx: 1, dy: 0 },
+  moveUpKeepSelection: { dx: 0, dy: -1 },
+  moveDownKeepSelection: { dx: 0, dy: 1 },
+  moveLeftKeepSelection: { dx: -1, dy: 0 },
+  moveRightKeepSelection: { dx: 1, dy: 0 },
   extendUp: { dx: 0, dy: -1 },
   extendDown: { dx: 0, dy: 1 },
   extendLeft: { dx: -1, dy: 0 },

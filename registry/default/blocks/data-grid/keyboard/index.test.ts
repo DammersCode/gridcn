@@ -249,10 +249,10 @@ describe("matchKeymap - other actions", () => {
   });
 
   it("matches retain-move and scroll-active-into-view bindings", () => {
-    expect(matchKeymap(makeEvent({ key: "ArrowUp", altKey: true }), DEFAULT_KEYMAP, false)).toBe("retainMoveUp");
-    expect(matchKeymap(makeEvent({ key: "ArrowDown", altKey: true }), DEFAULT_KEYMAP, false)).toBe("retainMoveDown");
-    expect(matchKeymap(makeEvent({ key: "ArrowLeft", altKey: true }), DEFAULT_KEYMAP, false)).toBe("retainMoveLeft");
-    expect(matchKeymap(makeEvent({ key: "ArrowRight", altKey: true }), DEFAULT_KEYMAP, false)).toBe("retainMoveRight");
+    expect(matchKeymap(makeEvent({ key: "ArrowUp", altKey: true }), DEFAULT_KEYMAP, false)).toBe("moveUpKeepSelection");
+    expect(matchKeymap(makeEvent({ key: "ArrowDown", altKey: true }), DEFAULT_KEYMAP, false)).toBe("moveDownKeepSelection");
+    expect(matchKeymap(makeEvent({ key: "ArrowLeft", altKey: true }), DEFAULT_KEYMAP, false)).toBe("moveLeftKeepSelection");
+    expect(matchKeymap(makeEvent({ key: "ArrowRight", altKey: true }), DEFAULT_KEYMAP, false)).toBe("moveRightKeepSelection");
     expect(matchKeymap(makeEvent({ key: "Enter", ctrlKey: true }), DEFAULT_KEYMAP, false)).toBe("scrollActiveIntoView");
     expect(matchKeymap(makeEvent({ key: "Enter", metaKey: true }), DEFAULT_KEYMAP, true)).toBe("scrollActiveIntoView");
   });
@@ -365,7 +365,7 @@ describe("GridAction coverage", () => {
   // without adding it here is a tsc error, not a silently-passing test.
   const ALL_ACTIONS: Record<GridAction, true> = {
     moveUp: true, moveDown: true, moveLeft: true, moveRight: true,
-    retainMoveUp: true, retainMoveDown: true, retainMoveLeft: true, retainMoveRight: true,
+    moveUpKeepSelection: true, moveDownKeepSelection: true, moveLeftKeepSelection: true, moveRightKeepSelection: true,
     scrollActiveIntoView: true,
     moveRowStart: true, moveRowEnd: true,
     jumpUp: true, jumpDown: true, jumpLeft: true, jumpRight: true,

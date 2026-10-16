@@ -12,10 +12,10 @@ export const DEFAULT_KEYMAP: Keymap = {
   moveLeft: ["ArrowLeft"],
   moveRight: ["ArrowRight"],
   // Alt+Arrow moves the active cell but retains the selection.
-  retainMoveUp: ["alt+ArrowUp"],
-  retainMoveDown: ["alt+ArrowDown"],
-  retainMoveLeft: ["alt+ArrowLeft"],
-  retainMoveRight: ["alt+ArrowRight"],
+  moveUpKeepSelection: ["alt+ArrowUp"],
+  moveDownKeepSelection: ["alt+ArrowDown"],
+  moveLeftKeepSelection: ["alt+ArrowLeft"],
+  moveRightKeepSelection: ["alt+ArrowRight"],
   // primary+Enter scrolls the active cell into view without moving it.
   scrollActiveIntoView: ["mod+Enter"],
   moveRowStart: ["Home"],
