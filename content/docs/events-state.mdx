@@ -134,7 +134,11 @@ The active cell is a separate store field from the selection. `actions.setActive
 Alt+Arrow movement keys change only the active cell, so `onSelectionChange` does not fire for
 them. There is no callback that observes active-cell-only changes.
 
-### Controlling the selection <NewBadge />
+### Controlling the selection
+
+
+
+<NewBadge />
 
 `onSelectionChange` pairs with the `selection` and `defaultSelection` props, the same
 value/defaultValue convention as `sortState` and `filterState`. Omit both for uncontrolled
@@ -214,7 +218,11 @@ const getValues = useDataGridGetSelectionValues();
 const values = getValues();
 ```
 
-### Clearing the selection <NewBadge />
+### Clearing the selection
+
+
+
+<NewBadge />
 
 An empty `next` (`range: null` and both channels empty) is the cleared signal.
 `onSelectionChange` fires exactly once on the non-empty-to-empty transition, so one clear from
@@ -384,7 +392,11 @@ reads it back (outbound), with zero grid-owned network code in between. It lives
 core event source. See [Multiplayer presence](/docs/addons/presence) for the full
 write-up, including how to broadcast your own selection with `onSelectionChange`.
 
-## 10. Edit lifecycle and cell events <NewBadge />
+## 10. Edit lifecycle and cell events
+
+
+
+<NewBadge />
 
 ```ts
 onActiveCellChange?: (next: ViewCellRef | null) => void;
