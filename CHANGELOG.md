@@ -17,7 +17,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **`getRowId` is optional:** it defaults to the row's `id` field (string or number) and throws for a row without one.
 - **`exportGrid` defaults to CSV:** `format` and the whole options argument are optional, as is the argument of `useDataGridExport().exportGrid`.
 - **Options parameters are optional when every field is:** `useDataGridHistory()`, `useDataGridFill()`, and `filterFiles(files)` no longer need an empty `{}` argument.
-- **Registry dependencies declare version ranges:** every npm package in `registry.json` now carries a range (caret for stable packages, tilde for `@dnd-kit/*`), so a fresh install no longer picks up a future major or a 0.x breaking minor.
+- **Registry dependencies declare version ranges:** every npm package in `registry.json` now carries a range (caret for stable packages, tilde for `@dnd-kit/*`), so a fresh install no longer picks up a future major or a 0.x breaking minor. The exception is `hucre`, pinned exactly.
 - **`use-sync-external-store` declared by the `data-grid` item:** the store's selector hook
   uses `zustand/traditional`, which imports `use-sync-external-store/shim` — a package the
   item now declares so strict package managers (pnpm) resolve it on a fresh install.
@@ -470,14 +470,12 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
-- **Breaking: `retainMoveUp`, `retainMoveDown`, `retainMoveLeft`, and `retainMoveRight` keymap actions are now `moveUpKeepSelection`, `moveDownKeepSelection`, `moveLeftKeepSelection`, and `moveRightKeepSelection` (`data-grid`).** They move the active cell and keep the selection. Rename them in any `keymap` override.
-- **Breaking: `editReplace` keymap action is now `typeToReplace` (`data-grid`, `data-grid-keybindings`).** It matches the name the docs use. Rename it in any `keymap` override.
-- **Breaking: `deleteContents` keymap action is now `clearContents` (`data-grid`).** It matches the "Clear contents" menu item. Rename it in any `keymap` override.
+- **Breaking: `retainMoveUp`, `retainMoveDown`, `retainMoveLeft`, and `retainMoveRight` keymap actions are now `moveUpKeepSelection`, `moveDownKeepSelection`, `moveLeftKeepSelection`, and `moveRightKeepSelection` (`data-grid`).** They move the active cell and keep the selection. Rename them in any `keymap` override. The matching `labels.keymap` keys are renamed the same way (`moveUpKeepSelection`, `moveDownKeepSelection`, `moveLeftKeepSelection`, `moveRightKeepSelection`).
+- **Breaking: `editReplace` keymap action is now `typeToReplace` (`data-grid`, `data-grid-keybindings`).** It matches the name the docs use. Rename it in any `keymap` override. Rename the matching key in a `labels` override too.
+- **Breaking: `deleteContents` keymap action is now `clearContents` (`data-grid`).** It matches the "Clear contents" menu item. Rename it in any `keymap` override. Rename the matching key in a `labels` override too.
 - **Breaking: `source: "row-op"` is now `"row-operation"` (`data-grid`).** Update any `DataChange.source` check or `recordSources` list that names it.
 - **Breaking: vocabulary pass (`data-grid`, `data-grid-lazy`, docs):** the prop `onRowWindowChange` is now `onRenderedRowsChange`, the plugin context field `windowedColumns` is `renderedColumns`, the type `WindowedColumn` is `RenderedColumn`, and the install path `components/data-grid/windowing/` is `components/data-grid/virtualization/`. Update imports and re-run `npx shadcn add @gridcn/data-grid`. Docs, skills, and comments say "virtualization" instead of "windowing", "operation" instead of "op", "drag handle" instead of "grip", and "override" instead of "escape hatch". `GLOSSARY.md` lists the words, and `pnpm lint` rejects the old ones.
 - **Breaking:** a press on the row-marker drag handle (`reorder`, `reorder-number`, `reorder-checkbox`, `reorder-both`) no longer selects or checks the row. Dragging reorders and leaves the selection as it was; a stationary press does nothing. Shift and Ctrl/Cmd on the drag handle no longer select. The drag handle zone is now a fixed 20px column (the whole cell in `reorder`) with a `grab` cursor, and the checkbox's extended hit area no longer overlaps it.
-
-
 - **Small API gaps closed (`data-grid`, `data-grid-io`):** `EMPTY_SELECTION_STATE` is exported for a controlled `selection`; `actions.deleteRowsById(ids)` deletes rows by the ids `getRowIds()` returns; `DataGridExportButton` takes `formats` (a single format exports on click); `ColumnDef.renderCell`, `FilterSpec`, and the `select` choices have fuller JSDoc. The `columnLayout` persistence snippet in the columns docs reads `localStorage` in an effect, so it no longer crashes server rendering.
 - **Breaking: `DataChange.source` gains `"rollback"` (`data-grid`, `data-grid-history`):** `useDataGridHistory().rollback(change)` reverts a failed optimistic save with `source: "rollback"` (distinct from `"history"`, which marks undo and redo) and drops the entry from the undo stack. `invertChange(change, source?)` takes the tag, and `createHistory` gains `discard(change)`. An exhaustive `switch` over `DataChange.source` needs the new case.
 - **`sortMode="server"` for server-side sorting (`data-grid`):** the grid tracks the sort spec (header click cycle, `aria-sort`, sort indicator, `onSortChange`) and never reorders `data`, so a lazy grid no longer keeps `sortState` empty and reimplements the cycle. Default `"client"` is unchanged.
@@ -777,10 +775,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   the `reorder`-family marker modes (`rowMarkers="reorder"`, `"reorder-number"`,
   `"reorder-checkbox"`, `"reorder-both"`) — plain `number`/`checkbox`/`both` markers are pure
   row-select surfaces, so a selection drag can never reorder by accident. Within the reorder
-  family the press location decides the behavior: a drag from the drag handle zone (drag handle handle plus
+  family the press location decides the behavior: a drag from the drag handle zone (drag handle plus
   cell background; the whole cell in `reorder` mode) reorders the row; the number and checkbox
   glyphs stay row-select surfaces (click selects/toggles, drag selects a range); a stationary
-  drag handle press selects the row without arming a reorder; Shift+drag from the drag handle always selects.
+  drag handle press does nothing, and Shift or Ctrl/Cmd on the drag handle no longer selects.
   Custom-rendered markers (a `renderMarker` without the built-in marker attributes) are
   selection-only and never reorder.
 - **Toolbar on narrow screens:** `DataGridToolbar` now scrolls horizontally when its controls
@@ -1342,6 +1340,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   the import limit can be raised. `ImportErrorKey` gains `"errorPartTooLarge"`, `parseImportFile`
   throws the error code `part-too-large`, and `labels.io` gains the key.
   `errorFileTooLarge` stays for a file over `maxFileBytes`.
+- **A duplicate row id resolves to its first row (`data-grid`):** the row index map keeps the first row for an id that appears twice, so lookups by id no longer land on the last duplicate.
+- **Clipboard parsing stops at the paste cell cap (`data-grid`):** the text parse ends once the cap is passed, and an HTML payload too large for the cap skips the DOM parse and falls back to the text, instead of building the whole grid before truncating.
+- **Plugins re-resolve after a claim (`data-grid`):** when the resolved plugin list differs from the store state after a claim, the store takes the new list.
+
 
 ## 0.1.0
 
