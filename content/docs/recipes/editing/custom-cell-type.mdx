@@ -1,89 +1,48 @@
 ---
 title: Custom cell type
-description: A minimal currency cell type with a renderer and an editor.
+description: Pick the lightest way to change how a column shows and edits its values.
 icon: Shapes
 ---
 
-<Callout type="idea" title="Looking for the full guide?">
-  This is a short, minimal sketch. [Build your own cell type](/docs/custom-cell-types) has the
-  complete contract walk-through, a keypoint checklist (performance caching, SSR-safe formatting,
-  editor commit semantics, the merge semantics of `cellTypes`, popover outside-click handling), a
-  runnable worked `currency` example, and a testing pattern.
-</Callout>
+Most column needs end before a custom cell type. Take the first step that fits.
 
-A cell type is `{ Cell, Editor, toText, fromText, clearValue, isEmpty, compare?, align? }`. Here
-is a minimal `currency` type modeled on the built-in `number` type:
+## Format the display
 
-```tsx
-import type { CellEditorProps, CellRenderProps, CellType } from "@/components/data-grid/types";
-import { useCellEditor } from "@/components/data-grid/data-grid";
-import { Input } from "@/components/ui/input";
-
-type CurrencyOptions = { currency: string; locale?: string };
-
-// Keyed on serialized options, not object identity — a column's `options` literal is re-created
-// every render. The locale is pinned (not the runtime's), so server and client agree.
-const currencyFormatterCache = new Map<string, Intl.NumberFormat>();
-function getCurrencyFormatter(locale: string, currency: string): Intl.NumberFormat {
-  const key = `${locale}|${currency}`;
-  let formatter = currencyFormatterCache.get(key);
-  if (!formatter) {
-    formatter = new Intl.NumberFormat(locale, { style: "currency", currency });
-    currencyFormatterCache.set(key, formatter);
-  }
-  return formatter;
-}
-
-function CurrencyCell({ value, options }: CellRenderProps<unknown, number | null, CurrencyOptions>) {
-  if (value == null) return null;
-  return (
-    <span className="tabular-nums">
-      {getCurrencyFormatter(options?.locale ?? "en-US", options?.currency ?? "USD").format(value)}
-    </span>
-  );
-}
-
-// useCellEditor owns the draft state, the end-caret focus, the one-shot commit guard, and the
-// Enter/Escape/blur bindings; the codec adapts the plain input to the value pipeline
-function CurrencyEditor(props: CellEditorProps<unknown, number | null, CurrencyOptions>) {
-  const { ref, ...bindings } = useCellEditor(props, {
-    toDraft: (value) => String(value ?? ""),
-    toValue: (draft) => (draft.trim() === "" || Number.isNaN(Number(draft.trim())) ? null : Number(draft.trim())),
-  });
-  return <Input ref={ref} {...bindings} />;
-}
-
-export const currencyCellType: CellType<unknown, number | null, CurrencyOptions> = {
-  Cell: CurrencyCell,
-  Editor: CurrencyEditor,
-  toText: (value) => (value == null ? "" : String(value)),
-  fromText: (text) => (text.trim() === "" || Number.isNaN(Number(text.trim())) ? null : Number(text.trim())),
-  clearValue: () => null,
-  isEmpty: (value) => value == null,
-  compare: (a, b) => (a ?? 0) - (b ?? 0),
-  align: "right",
-};
-```
-
-Register it, and optionally give it compile-time inference through `defineColumns`:
-
-```tsx
-declare module "@/components/data-grid/types" {
-  interface GridCellTypes {
-    currency: { value: number | null; options: CurrencyOptions };
-  }
-}
-
-// only the custom entry — `cellTypes` merges over the built-ins, which keep working unnamed
-<DataGridProvider cellTypes={{ currency: currencyCellType }} {...grid} columns={columns}>
-```
+A `number` column formats its value with `options.format` (any `Intl.NumberFormat` options) and `options.locale`. Copy, export, sort, and the editor keep the raw number:
 
 ```tsx
 const columns = defineColumns<Product>()([
-  { id: "price", header: "Price", accessorKey: "price", type: "currency", options: { currency: "EUR" } },
+  {
+    id: "price",
+    header: "Price",
+    accessorKey: "price",
+    type: "number",
+    options: { format: { style: "currency", currency: "EUR" }, locale: "de-DE" },
+  },
+  {
+    id: "margin",
+    header: "Margin",
+    accessorKey: "margin",
+    type: "number",
+    options: { format: { style: "percent", maximumFractionDigits: 1 } },
+  },
 ] as const);
 ```
 
-See [Editing & cell types](/docs/editing-cell-types) for how editing activation and commit work
-across the grid, and [API reference](/docs/api-reference#celltypetdata-tvalue-toptions) for
-every field's exact type.
+## Use a built-in type
+
+- `url` shows a safe link. `options.label` maps the URL to the shown text.
+- `longText` stores multi-line text and edits it in a popover.
+- `select`, `date`, and `checkbox` cover choices, dates, and booleans.
+
+See [Editing & cell types](/docs/editing-cell-types) for every built-in type and its options.
+
+## Write a cell type
+
+Write your own type when the stored value, the editor, or the text round-trip differs from every built-in. A type is `{ Cell, Editor, toText, fromText, clearValue, isEmpty, compare?, align? }`. Pass it to the grid through `cellTypes`, keyed by the name a column uses in `type`:
+
+```tsx
+<DataGrid cellTypes={{ rating: ratingCellType }} data={data} columns={columns} />
+```
+
+[Build your own cell type](/docs/custom-cell-types) has the full contract, typed columns through `GridCellTypes`, and a worked `currency` example. [Editing & cell types](/docs/editing-cell-types) explains how editing and commits work across the grid.
