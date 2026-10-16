@@ -1,0 +1,64 @@
+name: Bug report
+description: Something in gridcn does not work as documented.
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: Describe the bug and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Steps, or a link to a minimal repository or sandbox. A column definition and a few rows are often enough.
+    validations:
+      required: true
+  - type: input
+    id: items
+    attributes:
+      label: gridcn items
+      description: The registry items you installed.
+      placeholder: data-grid, data-grid-toolbar, data-grid-io
+    validations:
+      required: true
+  - type: input
+    id: gridcn-version
+    attributes:
+      label: gridcn version or commit
+      description: The tag or commit you installed from, or "latest hosted registry" with the date.
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Chrome 140, Firefox 142, Safari 18
+    validations:
+      required: true
+  - type: input
+    id: react
+    attributes:
+      label: React version
+      placeholder: 19.2.0
+    validations:
+      required: true
+  - type: input
+    id: tailwind
+    attributes:
+      label: Tailwind CSS version
+      placeholder: 4.1.0
+    validations:
+      required: true
+  - type: input
+    id: package-manager
+    attributes:
+      label: Package manager and framework
+      placeholder: pnpm 10, Next.js 16
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console output or screenshots
+      render: shell

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://gridcn.vercel.app/docs
+    about: Guides, API reference, and recipes. Check them before you open an issue.
+  - name: Report a security vulnerability
+    url: https://github.com/DammersCode/gridcn/security/advisories/new
+    about: Report a vulnerability privately. Do not open a public issue.
