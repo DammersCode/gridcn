@@ -14,15 +14,16 @@ export const source = loader({
   plugins: [
     lucideIconsPlugin(),
     statusBadgesPlugin({
-      renderBadge: (status) => (
-        <>
-          <span
-            aria-hidden
-            className={`ml-2 size-1.5 shrink-0 rounded-full ${status === 'new' ? 'bg-status-new' : 'bg-status-updated'}`}
-          />
-          <span className="sr-only">{status === 'new' ? 'New' : 'Updated'}</span>
-        </>
-      ),
+      renderBadge: (status) =>
+        status === 'none' ? null : (
+          <>
+            <span
+              aria-hidden
+              className={`ml-2 size-1.5 shrink-0 rounded-full ${status === 'new' ? 'bg-status-new' : 'bg-status-updated'}`}
+            />
+            <span className="sr-only">{status === 'new' ? 'New' : 'Updated'}</span>
+          </>
+        ),
     }),
   ],
 });

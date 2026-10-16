@@ -14,6 +14,7 @@ export const CONVERTED_COMPONENTS = [
   "InstallCommand",
   "ComponentPreview",
   "SkillInstall",
+  "NewBadge",
   "KeymapTable",
   "ManualInstall",
   "Callout",
@@ -114,7 +115,7 @@ function dedent(lines: string[]): string[] {
 }
 
 function inlineSkillInstall(line: string): string {
-  return line.replace(/<SkillInstall\s+skill="([^"]+)"\s*\/>/g, (_, skill: string) => `\`npx skills add DammersCode/gridcn@${skill}\``);
+  return line.replace(/\s*<NewBadge\s*\/>/g, " (new)").replace(/<SkillInstall\s+skill="([^"]+)"\s*\/>/g, (_, skill: string) => `\`npx skills add DammersCode/gridcn@${skill}\``);
 }
 
 function calloutMarkdown(props: Props, body: string[]): string[] {

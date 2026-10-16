@@ -9,7 +9,7 @@
     "start": "next start",
     "test": "vitest run --project=unit --project=browser",
     "test:compiler": "vitest run --project=unit-compiled --project=browser-compiled",
-    "lint": "oxlint . && node scripts/verify-import-boundaries.mjs && node scripts/verify-optional-options.mjs && node scripts/verify-no-internal-refs.mjs && node scripts/verify-vocabulary.mjs && node scripts/verify-registry-dependencies.mjs && node scripts/verify-payload-content.mjs && node scripts/check-compiler-bailouts.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verify-llms-markdown.mjs && node scripts/verify-skills.mjs && node scripts/sync-skills.mjs --check",
+    "lint": "oxlint . && node scripts/verify-import-boundaries.mjs && node scripts/verify-optional-options.mjs && node scripts/verify-no-internal-refs.mjs && node scripts/verify-vocabulary.mjs && node scripts/verify-registry-dependencies.mjs && node scripts/verify-payload-content.mjs && node scripts/check-compiler-bailouts.mjs && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/verify-llms-markdown.mjs && node scripts/verify-skills.mjs && node scripts/sync-skills.mjs --check && node scripts/verify-doc-status.mjs",
     "lint:typed": "oxlint --type-aware -c .oxlintrc.typed.json registry",
     "registry:build": "shadcn build && node scripts/fix-registry-imports.mjs",
     "registry:verify": "node scripts/verify-payload-content.mjs && node scripts/verify-no-internal-refs.mjs && node scripts/verify-registry.mjs && node scripts/verify-demo-install.mjs",

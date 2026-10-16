@@ -66,6 +66,14 @@ Component and addon page structure (match the existing pages):
 6. Warnings as `<Callout type="warn">`: command or condition first, then the risk.
 7. `## Related` links at the end.
 
+### Page status and "New" badges
+
+The sidebar dot comes from the page's `status` frontmatter. The baseline is `origin/main` (the published docs); `scripts/verify-doc-status.mjs` (run by `pnpm lint`) enforces it.
+
+- A page added since the baseline gets `status: new`. A page changed in substance gets `status: updated`. A wording-only edit (the script ignores punctuation and link targets) that still alters words gets `status: none`: no dot. A page without changes has no `status`.
+- A section, paragraph, props-table row, or list item added to an existing page gets `<NewBadge />` after the heading text, the first inline term, or in the first cell of the row. Pages with `status: new` need no section badges.
+- Release procedure: when a release is cut, remove every `status` line and every `<NewBadge />` from `content/docs`, so the next release starts clean. `origin/main` then equals the published docs and the script passes.
+
 ## API design (registry/default/blocks/**)
 
 Design every public hook, function, and component from the caller's side.
