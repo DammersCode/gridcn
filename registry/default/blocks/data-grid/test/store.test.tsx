@@ -2435,7 +2435,7 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
     expect(latest!.allRowsState).toBe("unchecked");
   });
 
-  it("setRowSelected(index, false) visually unchecks a row even while it remains inside an active range", () => {
+  it("setRowSelected(index, false) unchecks a row that an active range covered, splitting the range", () => {
     const wrapper = makeConfigWrapper({ rowMarkers: "checkbox" });
     const { result } = renderHook(
       () => ({ actions: useDataGridInternalActions(), row1Selected: useDataGridIsRowSelected(1) }),
@@ -2450,9 +2450,7 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
     expect(result.current.row1Selected).toBe(true);
 
     act(() => result.current.actions.setRowSelected(1, false));
-    // still true: row 1 remains inside the active range channel, independent of the rows channel —
-    // documented behavior (useDataGridIsRowSelected is a channel union, not rows-channel-only).
-    expect(result.current.row1Selected).toBe(true);
+    expect(result.current.row1Selected).toBe(false);
   });
 
   it("useDataGridAllRowsSelected does not scan every row (O(1) per store write)", () => {

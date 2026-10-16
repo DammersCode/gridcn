@@ -776,7 +776,7 @@ export type DataGridActions = {
   selectRow(index: number, opts?: SelectLineActionOptions): void;
   selectColumn(index: number, opts?: SelectLineActionOptions): void;
   selectAll(): void;
-  /** Checkbox marker: sets one row's membership in the rows channel absolutely (add if `checked`, remove otherwise) — never a toggle — independent of the last-highlighted/range mechanics `selectRow` uses for click gestures. No-op when `enableRowSelection` is false. */
+  /** Checkbox marker: sets one row's checked state absolutely — never a toggle — independent of the last-highlighted/range mechanics `selectRow` uses for click gestures. Checking adds the row to the rows channel; unchecking removes it from the rows channel and from every cell range that covers it. No-op when `enableRowSelection` is false. */
   setRowSelected(index: number, checked: boolean): void;
   /** Sets the row-drag anchor without touching the rows/columns selection channel — lets a checkbox-marker press arm a potential row-range drag while leaving a stationary click's own toggle untouched. No-op when `enableRowSelection` is false. */
   armRowDragAnchor(index: number): void;
