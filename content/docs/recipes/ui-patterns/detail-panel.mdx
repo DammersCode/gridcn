@@ -1,0 +1,65 @@
+---
+title: Open a detail panel from a row
+description: Open a drawer or dialog for a row with a click, a key, or the active cell.
+icon: PanelRight
+---
+
+A drawer or dialog that shows one record needs two things: a gesture that picks the row and state that holds it. The demo wires both gestures to one dialog. Click a cell, or press `Ctrl+Shift+Enter` on the active cell:
+
+<ComponentPreview name="data-grid-detail-panel-demo" />
+
+## Mouse
+
+`onCellClick` fires for a click on any data cell. Read the row from `ctx.row`, or the row id from `ctx.rowId`. The checkbox toggle fires `onCellClick` too, so compare `ctx.columnId` to skip the checkbox column:
+
+```tsx
+<DataGrid
+  data={orders}
+  columns={columns}
+  getRowId={(row) => row.id}
+  onCellClick={(ctx) => {
+    if (ctx.columnId !== "selected") setOpenOrder(ctx.row);
+  }}
+/>
+```
+
+A click on the row marker selects the row and fires no click callback. Read `onSelectionChange` with `details.getRowIds()` to react to it.
+
+## Keyboard
+
+Enter, F2, and a double-click edit the cell, so the open gesture needs its own key. A custom command reads the active row from `ctx.row`, and `keymap` binds it. `Ctrl+Enter` is taken by `scrollActiveIntoView`, so the example binds `mod+shift+Enter`:
+
+```tsx
+const commands = {
+  openRow: {
+    label: "Open row",
+    when: (ctx) => ctx.row !== undefined,
+    run: (ctx) => setOpenOrder(ctx.row ?? null),
+  },
+};
+
+<DataGrid
+  data={orders}
+  columns={columns}
+  getRowId={(row) => row.id}
+  commands={commands}
+  keymap={{ openRow: ["mod+shift+Enter"] }}
+/>
+```
+
+`when` runs the command only while a cell is active. After Escape the selection is empty, but the active cell stays, so the command still opens its row.
+
+## Follow the cursor
+
+`onActiveCellChange` fires each time the active cell moves. A side panel that tracks the active row reads `next.rowId` and clears itself on `null`:
+
+```tsx
+<DataGrid
+  data={orders}
+  columns={columns}
+  getRowId={(row) => row.id}
+  onActiveCellChange={(next) => setPanelRowId(next?.rowId ?? null)}
+/>
+```
+
+Look the row up by id in your own data. The event carries the cell reference, not the row.

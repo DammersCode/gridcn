@@ -1,0 +1,8 @@
+{
+  "title": "Editing & access",
+  "icon": "Pencil",
+  "pages": [
+    "custom-cell-type",
+    "auth-gated-cells"
+  ]
+}

@@ -1,0 +1,25 @@
+---
+title: Multiple grids on one page
+description: Mount more than one grid on a page with no extra setup.
+icon: Columns2
+---
+
+Each `<DataGridProvider>` mounts its own Zustand store instance (`createStore` in a `useState`
+factory). There is no module-level singleton, so multiple grids on one page work with no
+configuration:
+
+```tsx
+<div className="grid grid-cols-2 gap-4">
+  <DataGridProvider {...gridA} columns={columnsA}>
+    <DataGridRoot><DataGridHeader /><DataGridBody /></DataGridRoot>
+  </DataGridProvider>
+  <DataGridProvider {...gridB} columns={columnsB}>
+    <DataGridRoot><DataGridHeader /><DataGridBody /></DataGridRoot>
+  </DataGridProvider>
+</div>
+```
+
+<Callout type="warn" title="data-grid-url-state needs a distinct prefix per grid">
+  Without a distinct prefix, two grids syncing to the URL collide on the same `sort`, `filter`,
+  `join`, and `q` keys. See [URL state](/docs/addons/url-state#prefix).
+</Callout>

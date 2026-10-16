@@ -1,0 +1,61 @@
+---
+title: TanStack Query wiring
+description: Wire onDataChange to useQuery and useMutation with an optimistic cache update.
+icon: DatabaseZap
+---
+
+<Callout type="idea" title="Grid-side parts are the contract. TanStack Query parts are illustrative">
+  gridcn does not install `@tanstack/react-query`. The snippet is written against its stable
+  public API (`useQuery`/`useMutation`/`onMutate`/`onError`), the same illustrative-snippet
+  convention as the Standard Schema example in
+  [Editing & cell types](/docs/editing-cell-types#validation). See also
+  [Lazy loading: data fetching & failure recovery](/docs/lazy-loading-advanced#wiring-a-fetchcache-library-react-query)
+  for the same rule applied to `data-grid-lazy`.
+</Callout>
+
+`useQuery` fetches the rows, and one `useMutation` handles every op from `onDataChange`, keyed
+off the same `queryKey` so its cache and the grid stay in sync:
+
+```tsx
+"use client";
+
+function OrdersGrid() {
+  const queryClient = useQueryClient();
+  const ordersQuery = useQuery({ queryKey: ["orders"], queryFn: api.orders.list });
+
+  const mutation = useMutation({
+    mutationFn: (change: DataChange<Order>) => Promise.all(opsToRequests(change.ops)),
+    onMutate: async (change) => {
+      await queryClient.cancelQueries({ queryKey: ["orders"] });
+      const previous = queryClient.getQueryData<Order[]>(["orders"]);
+      queryClient.setQueryData<Order[]>(["orders"], (rows) => applyChange(rows ?? [], change, (row) => row.id));
+      return { previous };
+    },
+    onError: (_error, _change, context) => {
+      if (context?.previous) queryClient.setQueryData(["orders"], context.previous);
+      toast.error("Could not save your change. It has been reverted.");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
+
+  return (
+    <DataGrid
+      data={ordersQuery.data ?? []}
+      columns={columns}
+      getRowId={(row) => row.id}
+      onDataChange={(_next, change) => mutation.mutate(change)}
+    />
+  );
+}
+```
+
+`applyChange` is the core's op engine, exported from the `data-grid` barrel. It applies the
+whole batch in one pass: id-keyed updates and deletes, inserts at their snapshot positions,
+missing row ids skipped. The `onMutate`/`onError` pair is the same optimistic-vs-rollback shape
+as [Strategy A](/docs/recipes/data-fetching/server-round-trip#strategy-a-optimistic-roll-back-on-failure), expressed through TanStack Query's
+cache.
+
+For a socket or poll that pushes new values many times per second, write them with `updateCells`
+instead of a new `data` array. See [Streaming updates](/docs/streaming-updates).

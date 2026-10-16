@@ -1,0 +1,9 @@
+{
+  "title": "UI patterns",
+  "icon": "LayoutPanelLeft",
+  "pages": [
+    "detail-panel",
+    "edit-dialog",
+    "multiple-grids"
+  ]
+}

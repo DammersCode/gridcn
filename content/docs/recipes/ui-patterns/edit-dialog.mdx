@@ -1,0 +1,79 @@
+---
+title: Dialog editing with react-hook-form
+description: Edit several fields of one row in a dialog form.
+icon: SquarePen
+---
+
+<Callout type="idea" title="The escape hatch for multi-field edits">
+  Inline cell editors are single-value, single-column. Reach for a dialog form when an edit needs
+  MULTIPLE fields at once or a layout the grid's inline editors cannot express. For a single
+  value in one column, the built-in cell types (see
+  [Editing & cell types](/docs/editing-cell-types)) are simpler and stay in place. Do not reach
+  for a dialog by default. For cross-field RULES on inline paths (paste, fill, bulk update), use
+  [`validateRow`](/docs/editing-cell-types#cross-field-rules-validaterow). Those paths never
+  open a dialog.
+</Callout>
+
+<Callout type="idea" title="Illustrative — react-hook-form is not installed">
+  gridcn does not install `react-hook-form`. The snippet is written against its stable public
+  API (`useForm`/`register`/`handleSubmit`), the same illustrative-snippet convention as the
+  [TanStack Query recipe](/docs/recipes/data-fetching/tanstack-query).
+</Callout>
+
+A row action (for example, a context menu item or a button column) opens a shadcn `Dialog`. The
+form seeds from the clicked row, and submit builds one `update` op through the grid's normal
+controlled `onDataChange` path, so undo, history, and the [server round-trip](/docs/recipes/data-fetching/server-round-trip) all see it the
+same way as an inline edit:
+
+```tsx
+"use client";
+
+function EditOrderDialog({
+  row,
+  open,
+  onOpenChange,
+  onSave,
+}: {
+  row: Order;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (row: Order) => void;
+}) {
+  const form = useForm<Order>({ defaultValues: row });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <form
+          onSubmit={form.handleSubmit((values) => {
+            onSave(values);
+            onOpenChange(false);
+          })}
+        >
+          <Input {...form.register("customerName")} />
+          <Input type="number" {...form.register("price", { valueAsNumber: true })} />
+          <Input type="number" {...form.register("discount", { valueAsNumber: true })} />
+          <DialogFooter>
+            <Button type="submit">Save</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+```
+
+`onSave` writes the edited row back through the grid's own controlled state, the same
+`setData`/`onDataChange` path as any other edit:
+
+```ts
+function saveOrder(edited: Order) {
+  setData((rows) => rows.map((row) => (row.id === edited.id ? edited : row)));
+}
+```
+
+<Callout type="warn" title="This bypasses per-column validate">
+  A dialog form's own validation (RHF resolvers, or plain field checks) runs instead of each
+  column's `validate`, not alongside it. Re-run the same rules in the form if a column has a
+  `validate` you still need enforced here.
+</Callout>

@@ -1,0 +1,68 @@
+---
+title: Recipes
+description: Worked patterns for server round-trips, row detail panels, custom cell types, and more.
+icon: ChefHat
+---
+
+Each recipe wires the grid into a common app need with short, copyable code.
+
+## Data fetching
+
+Send edits to a server and feed server state into the grid.
+
+<Cards>
+  <Card
+    title="Server round-trip"
+    href="/docs/recipes/data-fetching/server-round-trip"
+    description="Send each edit to an API, then roll back, refetch, or show the server error."
+  />
+  <Card
+    title="TanStack Query wiring"
+    href="/docs/recipes/data-fetching/tanstack-query"
+    description="Wire onDataChange to useQuery and useMutation with an optimistic cache update."
+  />
+  <Card
+    title="Server-side sort and filter"
+    href="/docs/recipes/data-fetching/server-side-sort-filter"
+    description="Feed sort, filter, and search state to your API and show what it returns."
+  />
+</Cards>
+
+## UI patterns
+
+Dialogs, panels, and page layouts around the grid.
+
+<Cards>
+  <Card
+    title="Open a detail panel from a row"
+    href="/docs/recipes/ui-patterns/detail-panel"
+    description="Open a drawer or dialog for a row with a click, a key, or the active cell."
+  />
+  <Card
+    title="Dialog editing with react-hook-form"
+    href="/docs/recipes/ui-patterns/edit-dialog"
+    description="Edit several fields of one row in a dialog form."
+  />
+  <Card
+    title="Multiple grids on one page"
+    href="/docs/recipes/ui-patterns/multiple-grids"
+    description="Mount more than one grid on a page with no extra setup."
+  />
+</Cards>
+
+## Editing & access
+
+Custom cell types and per-user edit rules.
+
+<Cards>
+  <Card
+    title="Custom cell type"
+    href="/docs/recipes/editing/custom-cell-type"
+    description="A minimal currency cell type with a renderer and an editor."
+  />
+  <Card
+    title="Auth-gated cells"
+    href="/docs/recipes/editing/auth-gated-cells"
+    description="Derive read-only rows and hidden columns from the user session."
+  />
+</Cards>

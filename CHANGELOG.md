@@ -11,7 +11,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
-- **Detail panel recipe and demo (docs example):** `data-grid-detail-panel-demo` opens a dialog for the clicked row through `onCellClick` or a custom `openRow` command; [Recipes](/docs/recipes#open-a-detail-panel-from-a-row) covers the mouse, keyboard, and follow-the-cursor variants.
+- **Detail panel recipe and demo (docs example):** `data-grid-detail-panel-demo` opens a dialog for the clicked row through `onCellClick` or a custom `openRow` command; [Recipes](/docs/recipes/ui-patterns/detail-panel) covers the mouse, keyboard, and follow-the-cursor variants.
 - **Default seeds for sort, filter, and search:** `defaultSortState`, `defaultFilterState`, `defaultJoinOperator`, and `defaultSearchText` seed the uncontrolled store once, so an initial sort no longer needs controlled state plus a callback.
 - **`getRowId` is optional:** it defaults to the row's `id` field (string or number) and throws for a row without one.
 - **`exportGrid` defaults to CSV:** `format` and the whole options argument are optional, as is the argument of `useDataGridExport().exportGrid`.
