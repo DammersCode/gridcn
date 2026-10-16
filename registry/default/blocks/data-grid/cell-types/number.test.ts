@@ -90,4 +90,10 @@ describe("number fromText input validation", () => {
   ])("accepts %s", (text, expected) => {
     expect(fromText(text, undefined)).toBe(expected);
   });
+
+  it("rejects a long digit run with a trailing letter in linear time", () => {
+    const start = performance.now();
+    expect(fromText(`${"1".repeat(200_000)}x`, undefined)).toBeNull();
+    expect(performance.now() - start).toBeLessThan(500);
+  });
 });

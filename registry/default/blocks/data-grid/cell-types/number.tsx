@@ -8,7 +8,7 @@ import { isComposingKey } from "../interaction/is-composing-key";
 import { displayText } from "./display-text";
 import { warnDev } from "../store/commit";
 
-const DECIMAL_NUMBER = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;
+const DECIMAL_NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i;
 
 /** Normalizes a comma decimal separator to a dot so `Number()` can parse locales pasted verbatim. */
 function normalizeNumberText(text: string): string {
