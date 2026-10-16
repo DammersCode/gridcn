@@ -9,6 +9,75 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+## 1.0.0 - 2026-10-16
+
+### Upgrading from 0.1.0
+
+Re-run `npx shadcn add @gridcn/data-grid` (and each add-on you use) to replace the installed source. The list below names every **Breaking** entry of this release by area, with the replacement. The full entries stay under the sections that follow.
+
+#### Core props and callbacks
+
+- `overlayPlugins`, `rowBands`, `onUndo`, `onRedo`: removed. Pass add-ons, overlays, bands, observers, commands, and keymap entries through the `plugins` prop.
+- `readOnly`, `keymap`, `onCellClick`, `onRenderedRowsChange`: on a manual `DataGridProvider` composition, set them on `<DataGridProvider>` instead of `DataGridRoot`. `DataGrid` prop names are unchanged. `DataGridCellProps` loses `onCellClick`; `DataGridRootContextValue` loses these props.
+- `onRowClick` and `RowClickCtx`: removed. Use `onCellClick`, whose ctx carries `row`, `rowId`, and `viewRowIndex`.
+- `onRowWindowChange`: now `onRenderedRowsChange`. The plugin ctx field `windowedColumns` is `renderedColumns`, the type `WindowedColumn` is `RenderedColumn`, and `components/data-grid/windowing/` is `components/data-grid/virtualization/`.
+- `onColumnResizing` and `processPaste`: take one ctx object, `onColumnResizing({ columnId, width })` and `processPaste({ cells, target })`, instead of positional arguments.
+- `onSelectionChange`: delivers `SelectionState` (`{ anchor, range, rangeStack, rowIds, columnIds }` in `CellRef` terms). Read `next.range.start`/`end` and `next.rowIds`/`next.columnIds`. `onSelectionCleared` is removed; an empty `next` is the cleared signal.
+- `setSelection` takes a `SelectionState | null` and `getSelection` returns one. Selecting one cell stays `actions.selectCell(ref)`.
+- `onDataChange`: fires after the grid stores the data. A write inside the handler starts from that data. Events arrive as `onActiveCellChange` and `onSelectionChange`, then `onDataChange`, then `onEditEnd`.
+- `onColumnLayoutChange`: fires only on a real change. Calls that keep the current pin, visibility, order, or width no longer fire it.
+- `cellTypes`: merges over the built-ins. Drop the `...cellTypes` spread; set a key to `null` to remove a type.
+- `renderHeaderCell`: replaces only the contents of the grid-owned header cell. Its ctx is `{ column, index, width, headerClickBehavior, sortState }`. Remove your own `role` and `aria-colindex` handling.
+- `renderCellMenuItems` and `renderHeaderMenuItems` on `DataGridContextMenu`: removed. Pass `getCellMenuItems` and `getHeaderMenuItems`, which return a `GridMenuItemSpec[]`.
+- `CellEditorProps`: `rowId` and `columnId` are required. Pass both when you render an editor directly.
+- `DataGridCell`: `rowIndex` is `viewRowIndex`, `columnIndex` is `viewColumnIndex`, and `rowId` is required.
+
+#### Cell coordinates and contexts
+
+- `CellCoord`: now `ViewCoord`. The actions `selectCell`, `setActiveCell`, `extendTo`, `pushRange`, `startEditing`, and `commitCellValue` take a `CellRef` (`{ rowId, columnId }`). Use the `*At` variants (`selectCellAt` and so on) for a `ViewCoord`. `useDataGridScrollToCell` takes a `CellRef`; `useDataGridScrollToCellAt` takes a `ViewCoord`.
+- `renderCell`, `Cell` components, `onCellClick`, `onCellDoubleClick`, `onCellContextMenu`: `rowIndex` and `columnIndex` are `viewRowIndex` and `viewColumnIndex`, and the ctx adds `rowId` and `columnId`. `getCellClassName` adds `rowId` and `columnId`. `getCellMenuItems` renames `row` to `viewRowIndex` and adds `rowId`. `GridBulkValidationError`, `applyCellUpdates` entries, `BulkCandidate`, and `BulkWrite` rename `viewRow` to `viewRowIndex` and add `rowId`.
+- `useDataGridRowId` and `useDataGridRowIds` return `__lazy-unloaded-<index>` for an unloaded lazy row, never `undefined`. `DataGridPinnedRow` takes a required `position`.
+- `flashCells` takes `CellRef[]`. `flashCellKey` is removed. `rowIdAtViewRow(state, viewRow)` comes from `data-grid-sdk`.
+- `useDataGridActions()` and `useDataGridStoreProps().actions` return only public actions. The `_`-prefixed internal actions are gone.
+
+#### Hooks and exports
+
+- `data-grid` splits into a consumer API and `data-grid-sdk`. Import `GRID_LAYER`, `cellLayer`, `pointerToCoord`, `useDataGridRootContext`, `useDataGridStoreApi`, `useDataGridCommands`, `createHistory`, `setCellValue`, the validation engine (`runValidateSync`, `resolveBulkWrites`, and related), `useDataGridInstanceId`, and the other add-on seams from `data-grid-sdk`.
+- Removed from the `data-grid` barrel: `useDataGridEditingError`, `useDataGridRowHasError`, `useDataGridIsCellActive`, `useDataGridIsCellEditing`, `useDataGridCellInitialText`. Use `useDataGridCellState`, `useDataGridCellEditingError`, and `useDataGridRowCellState`.
+- `data-grid-keybindings` no longer exports `bindingTokens`. Use `formatShortcut` from `data-grid`.
+- `data-grid-fill` exports only `useDataGridFill`, `detectSeries`, `FillArgs`, and `SeriesDescriptor`. `useDataGridFill` returns `{ plugin }`: put it in `plugins` and drop `<FillHandleTracker />`.
+- `data-grid-url-state` exports only the hooks and their option and result types. The URL param codecs are internal.
+- `useDataGridHistory` takes `{ capacity?, datasetKey?, recordSources? }`. Remove `data`, `setData`, `getRowId`, and `readOnly`. `record(change, label?)` applies the change through the grid and registers it, so do not apply it to your own array first. `useDataGridState` takes `{ getRowId, capacity?, datasetKey? }` and returns `plugins`.
+- `useDataGridImportPreview({ columnFallback, defaults, limits })` replaces the three positional arguments.
+- `buildExportRows(state, scope, { text?, maxRows? })` replaces the positional `maxRows`. `text: "display"` exports display text.
+- `buildImportedRows` returns `{ rows, rejected }`. `resolveBulkWrites` returns `{ writes, rejected }`, as do `buildPasteWrites` and `buildFillWrites` (`{ resolution, filled }`).
+- `DataGridPagination` is replaced by `DataGridPaginationBar` plus `DataGridPaginationRange`, `DataGridPaginationPageSize`, `DataGridPaginationFirst`, `DataGridPaginationPrev`, `DataGridPaginationPages`, `DataGridPaginationNext`, and `DataGridPaginationLast`.
+
+#### Add-on extractions
+
+- Presence: `presenceHighlights`, `setPresenceHighlights`, `useDataGridHighlights`, and `PresenceHighlight` leave core. Install `@gridcn/data-grid-presence` and put `useDataGridPresence()` in `plugins`.
+- Fill handle: `useFillHandle`, `FillHandleHandlers`, `FillPatternArgs`, and the `onFillPattern` prop leave core. Install `@gridcn/data-grid-fill`. `onFillPattern` is an option of `useDataGridFill()`.
+- Pinned rows: `pinnedTopRows` and `pinnedBottomRows` leave core. Install `@gridcn/data-grid-pinned-rows` and put `useDataGridPinnedRows({ top?, bottom? })` in `plugins`.
+- `data-grid-io` reads and writes Excel with `hucre` instead of SheetJS. Re-add the item to replace the dependency. `.xls` accepts only Excel 97-2003 workbooks, and an oversized sheet is rejected, never truncated.
+
+#### Behavior changes
+
+- Tab leaves the grid. Outside an edit, `Tab` and `Shift+Tab` move focus to the next or previous control. To keep cell navigation on Tab, set `keymap={{ moveRight: ["ArrowRight", "Tab"], moveLeft: ["ArrowLeft", "shift+Tab"] }}`.
+- Keymap action renames: `retainMoveUp`, `retainMoveDown`, `retainMoveLeft`, and `retainMoveRight` are `moveUpKeepSelection`, `moveDownKeepSelection`, `moveLeftKeepSelection`, and `moveRightKeepSelection`. `editReplace` is `typeToReplace`. `deleteContents` is `clearContents`. Rename the keys in `keymap` and in `labels.keymap`.
+- `DataChange.source`: `"row-op"` is `"row-operation"`, and `"rollback"` is a new value. Update `source` checks, `recordSources`, and exhaustive `switch` statements. `invertChange(change, source?)` takes the tag.
+- A press on a `reorder` row-marker drag handle no longer selects or checks the row.
+- Row operations and immediate re-sorts apply while an edit is open. The edit re-anchors, or cancels if its row is removed.
+- The active cell, selected columns, and checked rows follow their record or column through sorts, filters, `data` swaps, and column changes. Selection changes fire only on real changes. A custom selection channel implements `CompactSelectionLike.equals`.
+- `select` columns sort and quick-search by choice label. Quick search matches display text; filters match the stored value.
+- Keymap ties resolve per binding: a binding that is not a default wins over a default one.
+- `useDataGridClipboard().cut()` awaits the write and clears the selection only on success.
+- CSV export prefixes formula-like cells with a single quote (`sanitizeFormulas: false` restores raw output) and starts with a UTF-8 BOM (`csvBom: false` removes it).
+- `data-grid-io` `maxDecompressedBytes` defaults to 256 MiB, and an xlsx part is capped at `maxCells` times 10 bytes plus 1 MiB.
+- Filter and pagination selects show labels, not raw values.
+- `mod+F` in one grid no longer moves focus into another grid's search.
+- A URL `pageSize` must be one of the pager's size options (10, 25, 50, 100 by default), and a URL `page` above 1,000,000 falls back to 1.
+- Docs and comments say "virtualization" for "windowing", "operation" for "op", "drag handle" for "grip", and "override" for "escape hatch".
+
 ### Added
 
 - **`url` cell links open with the mouse:** Ctrl+click (Cmd+click on macOS) and middle-click on the link open it in a new tab. A plain click selects the cell only.

@@ -2,7 +2,7 @@
 name: gridcn-performance
 description: "gridcn performance audit: finds and fixes what makes a gridcn grid slow. Use when a grid janks on scroll, typing, or edits, or when writing or reviewing code that passes props, callbacks, or data into DataGridProvider or DataGridRoot."
 metadata:
-  gridcn-version: "0.1.0"
+  gridcn-version: "1.0.0"
 ---
 
 Almost every gridcn slowdown traces to one cause: an unstable prop or callback identity defeats row or cell memoization grid-wide, or the grid lacks a bounded height so virtualization never activates. Both fail silently in production — dev-mode console warnings are the only signal. Work the whole checklist top to bottom, cheapest check first; fix every hit, then remeasure.
