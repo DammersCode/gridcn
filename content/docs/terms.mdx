@@ -1,0 +1,24 @@
+---
+title: Terms
+description: One-line definitions of the words these docs use for grid concepts.
+icon: BookA
+---
+
+Each term links to the page that explains it in full.
+
+| Term | Meaning |
+|---|---|
+| Controlled / uncontrolled | A controlled prop (`data`) puts the state in your code: you hold the value and take every change through a callback. An uncontrolled prop (`defaultData`) seeds the grid once, and the grid holds the value after that. See [Quick start](/docs/quick-start#going-controlled). |
+| Accessor (`accessorKey`) | The part of a column that reads its value from a row. `accessorKey` names a field of the row. `accessorFn` computes the value. See [Columns](/docs/columns). |
+| Cell type | The built-in or custom kind of value that a column holds, for example `text` or `number`. It sets how the cell renders, edits, copies, sorts, and filters. See [Editing & cell types](/docs/editing-cell-types). |
+| Plugin | An object in the `plugins` prop that adds one feature to the grid, for example undo and redo. Every add-on that works inside the grid is one. See [Plugins](/docs/plugins). |
+| Op | One id-keyed record of a change to one row: `insert`, `update`, `delete`, or `move`. `onDataChange` reports a batch of ops. See [Events & state](/docs/events-state#1-ondatachange--the-flagship-shape). |
+| Commit | The moment a value is checked by `validate` and written to the data. Pressing <kbd>Enter</kbd> in an editor commits it. See [Editing & cell types](/docs/editing-cell-types). |
+| View index | The position of a row in the sorted and filtered list that the user sees. It differs from the row's position in your `data` array. Row actions such as `deleteRows` take view indices. See [Row operations](/docs/row-operations). |
+| Id-keyed | Addressed by the row id from `getRowId` instead of by array position. Selection, editing, and undo and redo are id-keyed, so they stay correct when the rows move. |
+| Row marker | The narrow column at the left edge of each row. It shows a row number or a checkbox, or holds a drag handle. See [Row operations](/docs/row-operations). |
+| Active cell | The one cell that has focus and receives typing. |
+| Anchor | The cell where a selection started. The active cell is the anchor. <kbd>Shift</kbd>+click extends the range from it. |
+| Range | A rectangle of selected cells. See [Selection & keyboard](/docs/selection-keyboard). |
+| Windowing | Drawing only the rows that are in view. A grid of 100,000 rows keeps a few dozen rows in the DOM. Also called virtualization. See [Virtualization](/docs/virtualization). |
+| Standard Schema | A shared interface that validation libraries such as Zod and Valibot implement. A column's `validate` option accepts any object that implements it. See [Editing & cell types](/docs/editing-cell-types). |
