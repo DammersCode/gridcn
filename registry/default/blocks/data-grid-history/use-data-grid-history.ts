@@ -45,6 +45,13 @@ const DEFAULT_RECORD_SOURCES: readonly DataChange<unknown>["source"][] = [
   "app",
 ];
 
+function shallowEqualRows(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((k) => Object.is((a as never)[k], (b as never)[k]));
+}
+
 /**
  * Builds the inverse of `change` against the current data: a cell reverts only while it still holds
  * the change's value, so later edits to the same row (or the same cell) survive the rollback.
@@ -53,16 +60,19 @@ function buildRollback<TData>(change: DataChange<TData>, s: ReturnType<DataGridA
   const rowById = new Map<string, TData>();
   (s.data as readonly TData[]).forEach((row, i) => rowById.set(s.getRowId(row, i), row));
   const columnsById = new Map(s.columns.map((c) => [c.id, c] as const));
+  const working = new Map<string, TData>();
   const ops: DataChange<TData>["ops"] = [];
   for (const op of [...change.ops].reverse()) {
     if (op.type !== "update") {
       ops.push(...invertChange({ ops: [op], source: "rollback" }, "rollback").ops);
       continue;
     }
-    const current = rowById.get(op.rowId);
+    const current = working.get(op.rowId) ?? rowById.get(op.rowId);
     if (current === undefined) continue;
     if (!op.cells) {
-      if (current === op.row) ops.push({ type: "update", rowId: op.rowId, row: op.prev, prev: op.row });
+      if (!shallowEqualRows(current, op.row)) continue;
+      ops.push({ type: "update", rowId: op.rowId, row: op.prev, prev: current });
+      working.set(op.rowId, op.prev);
       continue;
     }
     let row: TData = current;
@@ -73,7 +83,10 @@ function buildRollback<TData>(change: DataChange<TData>, s: ReturnType<DataGridA
       row = setCellValue<TData, never>(row, column as never, cell.prev as never);
       cells.push({ columnId: cell.columnId, value: cell.prev, prev: cell.value });
     }
-    if (cells.length > 0) ops.push({ type: "update", rowId: op.rowId, row, prev: current, cells });
+    if (cells.length > 0) {
+      ops.push({ type: "update", rowId: op.rowId, row, prev: current, cells });
+      working.set(op.rowId, row);
+    }
   }
   return { ops, source: "rollback", label: change.label };
 }

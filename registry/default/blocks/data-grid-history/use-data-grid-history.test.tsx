@@ -496,6 +496,38 @@ describe("useDataGridHistory readOnly", () => {
     expect(h.data()[0]!.name).toBe("Ali");
   });
 
+  it("rollback reverts a whole-row update after the consumer re-created the row objects", () => {
+    const seen: DataChange<Row>[] = [];
+    const h = setupHarness({}, { onDataChange: (_next, change) => seen.push(change) });
+    const a = initialRows[0]!;
+    const next = { ...a, name: "Alicia" };
+    h.commit({ source: "edit", ops: [{ type: "update", rowId: "a", row: next, prev: a }] });
+    h.consumerSwap(h.data().map((r) => ({ ...r })));
+
+    act(() => h.history().rollback(seen[0]!));
+
+    expect(h.data()[0]).toEqual(a);
+  });
+
+  it("rollback reverts every update op of one row, not only the last", () => {
+    const seen: DataChange<Row>[] = [];
+    const h = setupHarness({}, { onDataChange: (_next, change) => seen.push(change) });
+    const a = initialRows[0]!;
+    const renamed = { ...a, name: "Alicia" };
+    const aged = { ...renamed, age: 31 };
+    h.commit({
+      source: "edit",
+      ops: [
+        { type: "update", rowId: "a", row: renamed, prev: a, cells: [{ columnId: "name", value: "Alicia", prev: "Alice" }] },
+        { type: "update", rowId: "a", row: aged, prev: renamed, cells: [{ columnId: "age", value: 31, prev: 30 }] },
+      ],
+    });
+
+    act(() => h.history().rollback(seen[0]!));
+
+    expect(h.data()[0]).toEqual(a);
+  });
+
   it("rollback of a change the user already undid does not apply the inverse twice", () => {
     const seen: DataChange<Row>[] = [];
     const h = setupHarness({}, { onDataChange: (_next, change) => seen.push(change) });
