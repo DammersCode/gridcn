@@ -189,6 +189,26 @@ describe("row markers", () => {
     }
   });
 
+  it.each([["checkbox"], ["both"], ["reorder-both"], ["reorder-checkbox"]] as const)(
+    "a real mouse drag from row 1's checkbox glyph to row 3 leaves rows 1..3 selected in '%s' mode",
+    async (mode) => {
+      await render(
+        <div style={{ height: 400 }}>
+          <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers={mode} />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      const markers = markerCells();
+      const fromCheckbox = markers[0]!.querySelector<HTMLElement>('[role="checkbox"]')!;
+      await userEvent.hover(markers[0]!);
+      await userEvent.dragAndDrop(fromCheckbox, markers[2]!);
+
+      const after = markerCells();
+      for (const i of [0, 1, 2]) expect(after[i]).toHaveAttribute(GRID_ATTR.selected, "true");
+      expect(after[3]).not.toHaveAttribute(GRID_ATTR.selected, "true");
+    },
+  );
+
   it("a stationary press+release on the checkbox glyph still toggles it (no drag)", async () => {
     await render(
       <div style={{ height: 400 }}>

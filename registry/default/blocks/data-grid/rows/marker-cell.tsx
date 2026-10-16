@@ -142,9 +142,7 @@ export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
               )}
               checked={isSelected}
               onCheckedChange={(checked) => actions.setRowSelected(viewRowIndex, checked === true)}
-              // a stationary press+release still resolves via onCheckedChange's additive toggle above
-              // (native click, unaffected by this); a press that moves arms a row-range drag instead —
-              // see DataGridMarkerCellProps.onCheckboxPointerDown for why this can't just stopPropagation.
+              // a stationary press toggles via onCheckedChange; a press that drags to another row selects a range and its click is swallowed (see use-grid-interaction.ts).
               onPointerDown={(event) => onCheckboxPointerDown(viewRowIndex, event)}
               aria-label={labels.markers.selectRow(viewRowIndex + 1)}
             />

@@ -954,6 +954,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Dragging from a row marker checkbox keeps the first row selected:** a drag that starts on the checkbox (`checkbox`, `both`, and their `reorder-` variants) and ends on another row no longer toggles the first row off on release.
 - **Cell error message meets contrast:** the error popup under an invalid cell uses the page background instead of a tinted one, which lifts the text above the 4.5:1 minimum.
 - **Marker column header has an accessible name:** it renders a visually hidden label, set by the new `labels.markers.columnHeader` (default "Row markers"). The actions demo labels its header cell too.
 - **Loading bar sits outside the grid element:** the visual bar is `aria-hidden` and a visually hidden `role="progressbar"` renders next to the grid, so axe no longer reports `aria-required-children` on `role="grid"` while `loading` is true.

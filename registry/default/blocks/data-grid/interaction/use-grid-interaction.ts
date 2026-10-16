@@ -793,6 +793,17 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   // always-on subscription.
   const documentListenersRef = useRef<(() => void) | null>(null);
 
+  // Pointer capture retargets the click that follows a drag onto the pressed control; a range drag
+  // must not also toggle it.
+  const swallowNextClick = useCallback(() => {
+    const swallow = (event: MouseEvent) => {
+      event.stopPropagation();
+      event.preventDefault();
+    };
+    document.addEventListener("click", swallow, { capture: true, once: true });
+    setTimeout(() => document.removeEventListener("click", swallow, true), 0);
+  }, []);
+
   const endDrag = useCallback(() => {
     const pointerId = dragRef.current?.pointerId;
     const captureEl = captureElementRef.current as (Element & { hasPointerCapture?: (id: number) => boolean; releasePointerCapture?: (id: number) => void }) | null;
@@ -849,6 +860,11 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
               }
             }
           }
+          const drag = dragRef.current;
+          if (event.type === "pointerup" && drag.mode === "row" && drag.anchor !== undefined && scrollElement) {
+            const endRow = pointerToCoord(event.clientX, event.clientY, scrollElement, layoutRef.current, storeApi.getState().viewIndex.length).row;
+            if (endRow !== drag.anchor) swallowNextClick();
+          }
           endDrag();
         };
         document.addEventListener("pointermove", onMove);
@@ -861,7 +877,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         };
       }
     },
-    [actions, runDragFrame, endDrag, scrollRef, storeApi],
+    [actions, runDragFrame, endDrag, scrollRef, storeApi, swallowNextClick],
   );
 
   // safety net: tear down a still-active drag's listeners/rAF if the component unmounts mid-drag
