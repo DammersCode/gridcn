@@ -130,8 +130,7 @@ export type RowMarkersContent = "number" | "checkbox" | "both";
  * marker a pure row-select surface — a drag there is always the row-range select. The
  * `reorder`-prefixed family renders the grip handle on top of the suffix's content and is the
  * ONLY family that arms the drag-to-reorder gesture (still gated grid-wide by `enableRowReorder`),
- * and the press ZONE decides the gesture: the grip reorders on drag (selects on a stationary
- * press), while the checkbox glyph and the number/rest of the cell stay pure row-select.
+ * and the press ZONE decides the gesture: the grip zone reorders on drag and never changes the selection, while the checkbox glyph and the number/rest of the cell stay pure row-select.
  */
 export type RowMarkersMode = "none" | RowMarkersContent | "reorder" | `reorder-${RowMarkersContent}`;
 

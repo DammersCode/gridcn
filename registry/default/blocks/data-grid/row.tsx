@@ -19,8 +19,6 @@ export type DataGridRowProps = {
   /** 'none' renders no marker cell for this row. */
   rowMarkers: RowMarkersMode;
   onMarkerPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
-  /** Attach to the marker's grip pointerdown ('reorder' family only) — see use-grid-interaction.ts' onMarkerGripPointerDown. */
-  onMarkerGripPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
   /** Attach to the marker's checkbox pointerdown ('checkbox'/'both' modes) — see use-grid-interaction.ts' onMarkerCheckboxPointerDown. */
   onMarkerCheckboxPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
   /** Attach to the marker cell's reorder-drag pointerdown — see rows/use-row-reorder.ts. Stable identity (body's hook instance). */
@@ -60,7 +58,6 @@ export const DataGridRow = memo(function DataGridRow({
   readOnly,
   rowMarkers,
   onMarkerPointerDown,
-  onMarkerGripPointerDown,
   onMarkerCheckboxPointerDown,
   onMarkerReorderPointerDown,
   isRowReorderDragging,
@@ -107,7 +104,6 @@ export const DataGridRow = memo(function DataGridRow({
           viewRowIndex={viewRowIndex}
           rowId={rowId}
           onPointerDown={onMarkerPointerDown}
-          onGripPointerDown={onMarkerGripPointerDown}
           onCheckboxPointerDown={onMarkerCheckboxPointerDown}
           onReorderPointerDown={onMarkerReorderPointerDown}
           isReorderDragging={isRowReorderDragging}

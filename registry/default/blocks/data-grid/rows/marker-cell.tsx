@@ -27,8 +27,6 @@ export type DataGridMarkerCellProps = {
   rowId: string;
   /** Number/rest zone of the cell: resolves the plain/shift/ctrl click-select gesture and starts a row-range drag (see use-grid-interaction.ts' onMarkerPointerDown). */
   onPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLDivElement>) => void;
-  /** Grip zone of the cell (reorder family): click-select without a row-range drag (see use-grid-interaction.ts' onMarkerGripPointerDown). */
-  onGripPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLDivElement>) => void;
   /** Arms the same row-range drag from a press on the checkbox glyph itself, without pre-empting its own click->toggle (see use-grid-interaction.ts' onMarkerCheckboxPointerDown). */
   onCheckboxPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
   /** Arms the row-reorder drag from a press on the grip zone; a stable callback from the body's useRowReorder instance. */
@@ -46,12 +44,13 @@ export type DataGridMarkerCellProps = {
  * aria-colindex space (see {@link DataGridMarkerHeader} for why it carries no `aria-colindex`).
  *
  * Hit registration is zone-based so the press location — not later pointer movement — decides the
- * gesture: the checkbox glyph is a pure row-select toggle/range, the grip (reorder family) is the
- * only zone that arms the row-reorder drag (and click-selects on a stationary press), and the
- * number/rest of the cell is the plain row-select surface.
+ * gesture: the checkbox glyph is a pure row-select toggle/range, the grip zone (reorder family, a
+ * fixed 20px column at the inline start, the whole cell for pure `reorder`) is the only zone that
+ * arms the row-reorder drag and never changes the selection, and the number/rest of the cell is
+ * the plain row-select surface.
  */
 export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
-  const { mode, viewRowIndex, rowId, onPointerDown, onGripPointerDown, onCheckboxPointerDown, onReorderPointerDown, isReorderDragging } = props;
+  const { mode, viewRowIndex, rowId, onPointerDown, onCheckboxPointerDown, onReorderPointerDown, isReorderDragging } = props;
   const actions = useDataGridActions();
   // chrome (wrapper tint/data-row-selected) and the built-in checkbox keep the any-channel union
   const isSelected = useDataGridIsRowSelected(viewRowIndex);
@@ -87,16 +86,14 @@ export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
       data-dragging={isReorderDragging || undefined}
       aria-label={showGrip ? labels.markers.reorderRow(viewRowIndex + 1) : undefined}
       className={cn(
-        "group flex items-center justify-center border-b border-border bg-background transition-colors group-hover/row:transition-none",
+        "group flex items-center border-b border-border bg-background transition-colors group-hover/row:transition-none",
         COLUMN_BORDER,
         // Same rule as a pinned-column cell (see cell.tsx): this sits opaque above the scrolled
         // canvas, so a translucent tint would let the scrolled content show through it.
         // color-mix() pre-composites the identical tint as an OPAQUE color, in both themes.
         "group-hover/row:bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
         isSelected && "bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
-        // the grip zone (everything but the number/checkbox) is the reorder handle
-        showGrip && reorderEnabled && "cursor-grab",
-        showGrip && (showNumber || showCheckbox) && "gap-1",
+        !showGrip && "justify-center",
         isReorderDragging && "opacity-50",
       )}
       style={style}
@@ -109,11 +106,8 @@ export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
           // selectRow here too would clobber an existing multi-row selection.
           return;
         }
-        if (showGrip && (content === "none" || !target?.closest(gridAttrSelector("markerNumber")))) {
-          // grip zone — a pure 'reorder' cell is grip across the whole cell; in the content modes
-          // it is everything except the number/checkbox glyphs. A stationary press selects the
-          // row; a vertical drag that leaves the origin row reorders
-          onGripPointerDown(viewRowIndex, event);
+        if (showGrip && (content === "none" || target?.closest(gridAttrSelector("reorderHandle")))) {
+          // grip zone: arms the reorder drag only; the press never touches the selection
           onReorderPointerDown(viewRowIndex, event);
           return;
         }
@@ -127,38 +121,50 @@ export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
       ) : (
         <>
           {showGrip && (
-            <span data-grid-reorder-handle="" aria-hidden="true" className="touch-none text-muted-foreground select-none">
+            <span
+              data-grid-reorder-handle=""
+              aria-hidden="true"
+              className={cn(
+                "flex h-full touch-none items-center justify-center text-muted-foreground select-none",
+                showNumber || showCheckbox ? "w-5 shrink-0" : "flex-1",
+                reorderEnabled && (isReorderDragging ? "cursor-grabbing" : "cursor-grab"),
+              )}
+            >
               <GripVertical className="size-3.5" />
             </span>
           )}
-          {showCheckbox && (
-            <Checkbox
-              data-grid-marker-checkbox=""
-              className={cn(
-                // row-select zone — override the wrapper's grab cursor in the reorder family
-                showGrip && "cursor-pointer",
-                swapOnHover && "hidden group-hover:flex data-checked:flex",
-                isSelected && "flex",
+          {(showNumber || showCheckbox) && (
+            <span className={cn("flex h-full items-center justify-center", showGrip ? "min-w-0 flex-1" : "flex-1")}>
+              {showCheckbox && (
+                <Checkbox
+                  data-grid-marker-checkbox=""
+                  className={cn(
+                    // the default 12px-wide ::after hit extension would overlap the neighbouring grip zone
+                    "after:inset-x-0",
+                    showGrip && "cursor-pointer",
+                    swapOnHover && "hidden group-hover:flex data-checked:flex",
+                    isSelected && "flex",
+                  )}
+                  checked={isSelected}
+                  onCheckedChange={(checked) => actions.setRowSelected(viewRowIndex, checked === true)}
+                  // a stationary press toggles via onCheckedChange; a press that drags to another row selects a range and its click is swallowed (see use-grid-interaction.ts).
+                  onPointerDown={(event) => onCheckboxPointerDown(viewRowIndex, event)}
+                  aria-label={labels.markers.selectRow(viewRowIndex + 1)}
+                />
               )}
-              checked={isSelected}
-              onCheckedChange={(checked) => actions.setRowSelected(viewRowIndex, checked === true)}
-              // a stationary press toggles via onCheckedChange; a press that drags to another row selects a range and its click is swallowed (see use-grid-interaction.ts).
-              onPointerDown={(event) => onCheckboxPointerDown(viewRowIndex, event)}
-              aria-label={labels.markers.selectRow(viewRowIndex + 1)}
-            />
-          )}
-          {showNumber && (
-            <span
-              data-grid-marker-number=""
-              className={cn(
-                "select-none text-xs tabular-nums text-muted-foreground",
-                // the number is a row-select zone — override the wrapper's grab cursor
-                showGrip && "cursor-default",
-                swapOnHover && "group-hover:hidden",
-                swapOnHover && isSelected && "hidden",
+              {showNumber && (
+                <span
+                  data-grid-marker-number=""
+                  className={cn(
+                    "select-none text-xs tabular-nums text-muted-foreground",
+                    showGrip && "cursor-default",
+                    swapOnHover && "group-hover:hidden",
+                    swapOnHover && isSelected && "hidden",
+                  )}
+                >
+                  {viewRowIndex + 1}
+                </span>
               )}
-            >
-              {viewRowIndex + 1}
             </span>
           )}
         </>

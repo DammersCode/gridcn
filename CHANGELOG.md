@@ -470,6 +470,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Changed
 
+- **Breaking:** a press on the row-marker grip (`reorder`, `reorder-number`, `reorder-checkbox`, `reorder-both`) no longer selects or checks the row. Dragging reorders and leaves the selection as it was; a stationary press does nothing. Shift and Ctrl/Cmd on the grip no longer select. The grip zone is now a fixed 20px column (the whole cell in `reorder`) with a `grab` cursor, and the checkbox's extended hit area no longer overlaps it.
 - **Breaking:** `onColumnResizing` and `processPaste` take one ctx object (`data-grid`): `onColumnResizing({ columnId, width })` and `processPaste({ cells, target })` replace the positional arguments.
 - **Breaking:** `useDataGridImportPreview` takes one options object (`data-grid-io`): `useDataGridImportPreview({ columnFallback, defaults, limits })` replaces the three positional arguments. `UseDataGridImportPreviewOptions` is exported.
 - **Breaking:** `DataGridCell`'s view-index props are renamed (`data-grid`): `rowIndex` is

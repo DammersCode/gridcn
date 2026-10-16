@@ -52,13 +52,12 @@ prop like every other binding (see [Keybindings](/docs/addons/keybindings#remapp
 Drag a row marker vertically to reorder rows. A thin line marks the drop target, and the row
 moves on release. The gesture is zone-based. The press location decides the behavior, not later
 movement. In the `reorder`-family marker modes (`reorder`, `reorder-number`, `reorder-checkbox`,
-`reorder-both`), the **grip zone**, the grip handle plus everything in the marker cell except
-the number and checkbox glyphs (the whole cell in `reorder` mode), is the only reorder entry:
-a press there selects the row, and a vertical drag that leaves the row reorders it. The **number
+`reorder-both`), the **grip zone**, a 20px column at the start of the marker cell (the whole cell in
+`reorder` mode), is the only reorder entry. A press there never changes the selection or the
+checkbox, and a vertical drag that leaves the row reorders it. The **number
 and checkbox glyphs stay pure row-select surfaces**: a press on them selects (click) or drags a
 row range (drag), never reorders. Plain `number`, `checkbox`, and `both` markers are selection
 surfaces across the cell. A selection drag can never accidentally reorder.
-<kbd>Shift</kbd>+drag from the grip is always the row-select range gesture.
 
 | Prop | Role | Default |
 |---|---|---|
@@ -176,7 +175,7 @@ from the `columns` array, and reorder and resize do not affect it. Set `rowMarke
 | `"checkbox"` | A per-row checkbox that drives the rows selection channel, plus a select-all checkbox in the marker header. |
 | `"both"` | The row number, replaced by the checkbox on hover or when the row is selected (a group-hover pattern). The number is never gone. The checkbox only sits in front of it at the moment the checkbox is actionable. |
 | `"reorder"` | A grip handle. The whole cell is the grip zone that drag-reorders the row. No number or checkbox. |
-| `"reorder-number"` / `"reorder-checkbox"` / `"reorder-both"` | The grip zone (grip handle + cell background) plus the number and/or checkbox content, which stay row-select surfaces. |
+| `"reorder-number"` / `"reorder-checkbox"` / `"reorder-both"` | The grip zone (a 20px column with the grip handle) plus the number and/or checkbox content, which stay row-select surfaces. |
 
 Only the `reorder` family arms the [drag-to-reorder gesture](#reorder). The plain modes are pure
 row-select surfaces. Marker press and drag, in the plain modes, selects a contiguous multi-row

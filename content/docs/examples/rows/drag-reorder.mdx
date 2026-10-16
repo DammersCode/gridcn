@@ -7,11 +7,12 @@ status: updated
 
 Row reorder from two paths: drag a row by its grip zone (any `reorder`-family marker mode:
 `reorder`, `reorder-number`, `reorder-checkbox`, `reorder-both`. In the content modes the
-number and checkbox glyphs stay row-select surfaces, only the grip zone reorders) or call
+number and checkbox glyphs stay row-select surfaces, only the grip zone reorders, and a press
+on the grip never changes the selection) or call
 `reorderRows(from, to)` programmatically. Both emit **one id-keyed `move` op**, so
 undo/redo restores the previous order in a single step. Selection and the active cell remap by
-row id, so the row you drag ends up selected at its new position, and a multi-row selection
-stays anchored to its rows through the move.
+row id, so the rows that were selected stay selected at their new positions, and the dragged row
+keeps the selected state it had.
 
 <ComponentPreview name="data-grid-row-reorder-demo" />
 

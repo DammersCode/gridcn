@@ -648,15 +648,6 @@ export type GridInteractionHandlers = {
    */
    onMarkerPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
   /**
-   * Attach to the marker's grip pointerdown (the reorder family's reorder zone). Resolves the
-   * plain/ctrl click-select immediately (a stationary press selects the row) but NEVER starts
-   * the row-range drag — the row-reorder hook owns the pointer movement, so a press that moves
-   * reorders and a stationary release leaves exactly this press's selection. A <kbd>Shift</kbd>
-   * press takes the full {@link onMarkerPointerDown} gesture instead (shift+drag is always the
-   * row-select range). No-op selection-wise when `enableRowSelection` is false.
-   */
-  onMarkerGripPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
-  /**
    * Attach to the marker's checkbox pointerdown ('checkbox'/'both' modes). Arms the same row-range
    * drag as {@link onMarkerPointerDown} (anchor + auto-scroll), but never touches the rows channel
    * itself on pointerdown — a stationary press still resolves as the checkbox's own native `click`
@@ -1083,27 +1074,6 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
     [actions, beginDrag, storeApi],
   );
 
-  const onMarkerGripPointerDown = useCallback(
-    (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => {
-      if (event.button !== 0) return;
-      if (event.shiftKey) {
-        // shift+drag from the grip is the row-select range gesture, like any other marker press
-        onMarkerPointerDown(viewRowIndex, event);
-        return;
-      }
-      if (!storeApi.getState().enableRowSelection) return;
-      const isMultiKey = isMacRef.current ? event.metaKey : event.ctrlKey;
-      if (isMultiKey) {
-        actions.selectRow(viewRowIndex, { additive: true });
-      } else {
-        actions.selectRow(viewRowIndex);
-      }
-      // deliberately NO beginDrag: the row-reorder hook owns the pointer from this press (see the
-      // grip zone's JSDoc), so the two gestures can never both apply to one press.
-    },
-    [actions, isMacRef, onMarkerPointerDown, storeApi],
-  );
-
   const onMarkerCheckboxPointerDown = useCallback(
     (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
@@ -1177,7 +1147,6 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       onCellDoubleClick,
       onHeaderPointerDown,
       onMarkerPointerDown,
-      onMarkerGripPointerDown,
       onMarkerCheckboxPointerDown,
       onRootPointerDown,
       cancelColumnSelectDrag,
@@ -1190,7 +1159,6 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       onCellDoubleClick,
       onHeaderPointerDown,
       onMarkerPointerDown,
-      onMarkerGripPointerDown,
       onMarkerCheckboxPointerDown,
       onRootPointerDown,
       cancelColumnSelectDrag,

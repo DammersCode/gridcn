@@ -266,7 +266,6 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
               readOnly={readOnly}
               rowMarkers={rowMarkers}
               onMarkerPointerDown={interaction.onMarkerPointerDown}
-              onMarkerGripPointerDown={interaction.onMarkerGripPointerDown}
               onMarkerCheckboxPointerDown={interaction.onMarkerCheckboxPointerDown}
               onMarkerReorderPointerDown={rowReorder.onMarkerDragPointerDown}
               isRowReorderDragging={rowReorder.dragState?.draggingRow === viewRowIndex}

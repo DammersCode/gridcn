@@ -40,9 +40,8 @@ export type RowReorderHandlers = {
  * only for the marker's `reorder` family (see RowMarkersMode). Within an armed grip press:
  * **a vertical drag that leaves the origin row becomes a reorder drag** (mirrors
  * {@link import("../columns/use-column-reorder").useColumnReorder}); a press+drag that never leaves
- * the origin row (or moves before `REORDER_THRESHOLD`) resolves as a click — the grip's own
- * pointerdown handler already resolved it as a row selection. The grip zone is never armed on
- * <kbd>Shift</kbd> (the caller routes shift presses to the row-select gesture instead).
+ * the origin row (or moves before `REORDER_THRESHOLD`) is a no-op: a grip press never changes the
+ * selection. The grip zone is never armed on <kbd>Shift</kbd>.
  *
  * While armed, the hook auto-scrolls the grid's scroll element (same zone/step as the interaction
  * layer's select-drag) when the pointer sits beyond a viewport edge, and re-resolves the drop
@@ -112,11 +111,12 @@ export function useRowReorder(args: {
   }, []);
 
   const teardown = useCallback(() => {
-    const captureEl = captureRef.current?.el as (Element & { hasPointerCapture?: (id: number) => boolean; releasePointerCapture?: (id: number) => void }) | null;
+    const captureEl = captureRef.current?.el as (Element & { hasPointerCapture?: (id: number) => boolean; releasePointerCapture?: (id: number) => void; style?: CSSStyleDeclaration }) | null;
     const captureId = captureRef.current?.pointerId;
     if (captureEl && captureId !== undefined && captureEl.hasPointerCapture?.(captureId)) {
       captureEl.releasePointerCapture?.(captureId);
     }
+    if (captureEl?.style) captureEl.style.cursor = "";
     captureRef.current = null;
     cleanupRef.current?.();
     cleanupRef.current = null;
@@ -153,6 +153,7 @@ export function useRowReorder(args: {
           const captureEl = argsRef.current.getScrollElement();
           safeSetPointerCapture(captureEl, pending.pointerId);
           captureRef.current = captureEl ? { el: captureEl, pointerId: pending.pointerId } : null;
+          if (captureEl?.style) captureEl.style.cursor = "grabbing";
           setDrag({ draggingRow: pending.row, overRow: hit.row, position: hit.position });
           if (rafRef.current === null) rafRef.current = requestAnimationFrame(runFrame);
           return;
