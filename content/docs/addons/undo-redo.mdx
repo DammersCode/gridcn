@@ -123,6 +123,22 @@ history.record(
   back.
 </Callout>
 
+## Which changes are recorded
+
+History records the changes a user made on purpose: `edit`, `paste`, `fill`, `delete`, `row-op`,
+`import`, and `app` (see the `source` field in
+[Events & state](/docs/events-state#1-ondatachange--the-flagship-shape)). It never records
+`history` (an undo or redo itself). It does not record `stream` by default, so a live feed of
+`updateCells` batches never fills the stack or gets undone by accident. Pass `recordSources` to
+either hook to change the list:
+
+```tsx
+const history = useDataGridHistory({ recordSources: ["edit", "paste", "stream"] });
+```
+
+An undo or redo reaches `onDataChange` with `source: "history"`. If `onDataChange` saves to a
+server, that handler sees the undo as a normal change and saves it.
+
 ## Capped stack
 
 Pass `capacity` to either hook to bound memory on long editing sessions. The oldest entries drop

@@ -47,6 +47,26 @@ the grip, or reorder through the keyboard
 ([toolbar add-on: filter menu keyboard & accessibility](/docs/addons/toolbar#filter-menu-keyboard--accessibility)),
 to change it.
 
+To set filters from code, pass `FilterSpec` entries to `useDataGridActions().setFilters()`:
+
+```tsx
+actions.setFilters([
+  { columnId: "age", operator: "gte", value: "30" },
+  { columnId: "age", operator: "isBetween", value: ["20", "40"] },
+  { columnId: "status", operator: "isAnyOf", value: ["active", "paused"] },
+  { columnId: "email", operator: "notEmpty" },
+]);
+```
+
+A `FilterSpec` has these fields:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `columnId` | `string` | The `id` of the column to filter. |
+| `operator` | `FilterOperator` | One of the operator names listed above. |
+| `value` | `string`, `[string, string]`, or `string[]` | The text to compare, even for number and date columns. `isBetween` takes `[from, to]`. `isAnyOf` takes the choice values. `empty` and `notEmpty` take none. |
+| `filterId` | `string` | Optional. A stable key for the filter row. |
+
 `DataGridFilterMenu` and `DataGridSortList` offer the grid's visible columns by default. Pass
 `allColumns` to include hidden columns. A filter on a hidden column keeps applying. Without
 `allColumns`, the menu shows that row as a raw column id and logs a dev-time warning.
@@ -80,6 +100,8 @@ const columns = defineColumns<Invoice>()([
 and the filter menu's keyboard & accessibility table.
 
 ## Search
+
+Search highlights matches and jumps to them. It never hides rows. A filter hides rows.
 
 `DataGridSearch` is a quick-search input across visible columns, with match highlighting and
 next and previous navigation that shows a `current/total` counter. Navigating to a match moves
@@ -120,6 +142,9 @@ term. To actually remove rows, use a filter.
   If you have your own search UI elsewhere on the page, you do not need to do anything to keep
   it safe.
 </Callout>
+
+<kbd>Enter</kbd> in the input moves to the next match, and <kbd>Shift</kbd>+<kbd>Enter</kbd> moves to
+the previous one. <kbd>Escape</kbd> clears the text.
 
 Pressing <kbd>Mod</kbd>+<kbd>F</kbd> again while the input is already focused selects its text,
 matching how browser find-bars behave when re-triggered.

@@ -16,25 +16,46 @@ order.
 
 ## Wiring
 
+The toolbar sits between the provider and the root, so it needs the split form of the grid
+(`DataGridProvider`, `DataGridRoot`, `DataGridHeader`, `DataGridBody`) instead of `<DataGrid>`.
+`useDataGridState` comes from the [undo & redo add-on](/docs/addons/undo-redo). Any
+controlled `data` plus `onDataChange` works in its place:
+
 ```tsx
+"use client";
+
+import {
+  DataGridProvider,
+  DataGridRoot,
+  DataGridHeader,
+  DataGridBody,
+} from "@/components/data-grid/data-grid";
+import { useDataGridState } from "@/components/data-grid-history/data-grid-history";
 import {
   DataGridToolbar,
   DataGridSearch,
   DataGridFilterMenu,
   DataGridColumnsMenu,
 } from "@/components/data-grid-toolbar/data-grid-toolbar";
+import { columns, initialRows } from "./columns";
 
-<DataGridProvider {...grid} columns={columns}>
-  <DataGridToolbar>
-    <DataGridSearch />
-    <DataGridFilterMenu />
-    <DataGridColumnsMenu />
-  </DataGridToolbar>
-  <DataGridRoot>
-    <DataGridHeader />
-    <DataGridBody />
-  </DataGridRoot>
-</DataGridProvider>;
+export function PeopleGrid() {
+  const grid = useDataGridState(initialRows, { getRowId: (row) => row.id });
+
+  return (
+    <DataGridProvider {...grid} columns={columns}>
+      <DataGridToolbar>
+        <DataGridSearch />
+        <DataGridFilterMenu />
+        <DataGridColumnsMenu />
+      </DataGridToolbar>
+      <DataGridRoot className="h-[400px]">
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
 ```
 
 <Callout type="info" title="Standard toolbar order">

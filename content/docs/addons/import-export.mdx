@@ -38,7 +38,9 @@ function onImport(rows: Row[]) {
 
 ## Export
 
-`DataGridExportButton` opens a dropdown for xlsx or CSV. Internally, `exportGrid(state, options)`
+`DataGridExportButton` opens a dropdown for xlsx or CSV. Both formats export the text of each
+cell, the same text that clipboard copy gives. An xlsx file has text cells only: numbers and dates
+open in Excel as text. Internally, `exportGrid(state, options)`
 takes:
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-io/export-grid.ts" name="ExportGridOptions" />

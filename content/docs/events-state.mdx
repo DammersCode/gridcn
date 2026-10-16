@@ -67,8 +67,12 @@ type DataOp<TData> =
 type DataChange<TData> = {
   ops: DataOp<TData>[];
   source: "edit" | "paste" | "fill" | "delete" | "row-op" | "import" | "history" | "stream" | "app";
+  label?: string;
 };
 ```
+
+`label` is a human-readable name for the entry, for example `"Add row"`. It is set by
+`record(change, label)` and carried through undo and redo.
 
 An `update` op carries `cells` only when the change is cell-level, for example an edit, a paste,
 or a fill. A whole-row update has no `cells` field.

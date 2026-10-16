@@ -23,7 +23,11 @@ Neither add-on exists for rendering performance. Using both together is not supp
   is a whole-grid flag with one skeleton look, for an ordinary fully-controlled fetch, with no
   per-row granularity and no partial data. Reach for `data-grid-lazy` instead when individual row
   *windows* load independently as the user scrolls. Its skeleton cells are per-row, not
-  grid-wide, and the two are not meant to be combined.
+  grid-wide.
+
+  `loading` and `lazy.isLoading` are not combined for you. `lazy.isLoading` is `true` while any
+  window fetch is in flight. Pass it as `loading` on `DataGridRoot` to show the slim progress bar
+  under the header. The unloaded rows keep their skeleton cells.
 </Callout>
 
 Every unloaded-row skeleton cell carries `data-skeleton` (see
@@ -45,9 +49,9 @@ shimmer with plain CSS instead of a class override.
     } from "@/components/data-grid/data-grid";
     import { useDataGridLazyRows, DataGridLazyGuard } from "@/components/data-grid-lazy/data-grid-lazy";
 
-    function OrdersGrid() {
+    function OrdersGrid({ total }: { total: number }) {
       const lazy = useDataGridLazyRows<Order>({
-        total: 100_000,
+        total,
         fetchRows: (start, end, signal) => api.orders({ start, end, signal }), // inclusive-exclusive
         getRowId: (row) => row.id,
       });
@@ -61,13 +65,23 @@ shimmer with plain CSS instead of a class override.
           onRowWindowChange={lazy.gridProps.onRowWindowChange}
         >
           <DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />
-          <DataGridRoot>
+          <DataGridRoot loading={lazy.isLoading}>
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
         </DataGridProvider>
       );
     }
+    ```
+
+    `total` is the length of the whole dataset and must be known before the first render. Read it
+    from your server first, for example from a count endpoint or from a `X-Total-Count` response
+    header on a first request of one row. Render the grid when the number has arrived:
+
+    ```tsx
+    const { data: total } = useQuery({ queryKey: ["orders-count"], queryFn: api.orderCount });
+
+    return total === undefined ? <Spinner /> : <OrdersGrid total={total} />;
     ```
 
     `onRowWindowChange` is a core `DataGridProvider` or `DataGrid` prop (see
