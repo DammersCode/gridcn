@@ -1,0 +1,68 @@
+---
+title: Remember the user's view
+description: Save sort, filters, search, and column layout, and restore them on the next visit.
+icon: Bookmark
+---
+
+Four default props seed the view once: `defaultSortState`, `defaultFilterState`, `defaultSearchText`, and `defaultColumnLayout`. Each has a change callback. Save from the callbacks and seed from the saved value.
+
+Read `localStorage` after mount, so the server and the first client render match. Render the grid once the saved view is known:
+
+```tsx
+"use client";
+
+type SavedView = {
+  sort: SortSpec[];
+  filters: FilterSpec[];
+  joinOperator: FilterJoinOperator;
+  search: string;
+  layout: ColumnLayout;
+};
+
+const VIEW_KEY = "orders-view";
+
+function readView(): Partial<SavedView> {
+  try {
+    return JSON.parse(localStorage.getItem(VIEW_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveView(patch: Partial<SavedView>) {
+  localStorage.setItem(VIEW_KEY, JSON.stringify({ ...readView(), ...patch }));
+}
+
+function OrdersGrid() {
+  const [view, setView] = useState<Partial<SavedView>>();
+  useEffect(() => setView(readView()), []);
+  if (!view) return null;
+
+  return (
+    <DataGrid
+      data={orders}
+      columns={columns}
+      defaultSortState={view.sort}
+      defaultFilterState={view.filters}
+      defaultJoinOperator={view.joinOperator}
+      defaultSearchText={view.search}
+      defaultColumnLayout={view.layout}
+      onSortChange={(sort) => saveView({ sort })}
+      onFilterChange={(filters) => saveView({ filters })}
+      onJoinOperatorChange={(joinOperator) => saveView({ joinOperator })}
+      onSearchTextChange={(search) => saveView({ search })}
+      onColumnLayoutChange={(layout) => saveView({ layout })}
+    />
+  );
+}
+```
+
+An `undefined` default leaves that part at its normal start state. The grid reads each default once at mount and ignores later changes.
+
+To share a view as a link instead, use [URL state](/docs/addons/url-state). To save the view on the server per user, send the same patches from the callbacks to your API.
+
+## Related
+
+- [Columns: Persisting a user's layout](/docs/columns#persisting-a-users-layout): the layout part alone.
+- [Sorting, filtering & search](/docs/sorting-filtering-search): the state these defaults seed.
+- [URL state](/docs/addons/url-state): the same view in the address bar.

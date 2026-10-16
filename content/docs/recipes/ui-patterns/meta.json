@@ -3,7 +3,8 @@
   "icon": "LayoutPanelLeft",
   "pages": [
     "detail-panel",
-    "edit-row-with-form",
+    "bulk-actions",
+    "remember-view",
     "multiple-grids"
   ]
 }
