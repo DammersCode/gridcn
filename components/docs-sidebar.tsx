@@ -21,13 +21,24 @@ function Gutters({ count }: { count: number }) {
   return Array.from({ length: count }, (_, i) => <span key={i} className="gutter-cell" />);
 }
 
-function Content({ icon, name }: { icon: ReactNode; name: ReactNode }) {
+function StatusBadge({ status }: { status?: string }) {
+  if (!status || status === "none") return null;
+  return (
+    <span className="nav-badge">
+      <span aria-hidden className={`size-1.5 shrink-0 rounded-full ${status === "new" ? "bg-status-new" : "bg-status-updated"}`} />
+      <span className="sr-only">{status === "new" ? "New" : "Updated"}</span>
+    </span>
+  );
+}
+
+function Content({ icon, name, status }: { icon: ReactNode; name: ReactNode; status?: string }) {
   return (
     <span className="nav-content">
       {icon}
       <span className="nav-title" title={typeof name === "string" ? name : undefined}>
         {name}
       </span>
+      <StatusBadge status={status} />
     </span>
   );
 }
@@ -36,9 +47,9 @@ export function DocsSidebarItem({ item }: { item: PageTree.Item }) {
   const depth = useFolderDepth();
   const pathname = usePathname();
   return (
-    <SidebarItem href={item.url} external={item.external} active={isActive(item.url, pathname)} className={ROW}>
+    <SidebarItem href={item.url} external={item.external} icon={<></>} active={isActive(item.url, pathname)} className={ROW}>
       <Gutters count={depth} />
-      <Content icon={item.icon} name={item.name} />
+      <Content icon={item.icon} name={item.name} status={(item as { status?: string }).status} />
       {depth > 0 && <span className="chev-cell" />}
     </SidebarItem>
   );

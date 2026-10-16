@@ -1,7 +1,6 @@
 import { docs } from 'collections/server';
 import { loader } from 'fumadocs-core/source';
 import { lucideIconsPlugin } from 'fumadocs-core/source/lucide-icons';
-import { statusBadgesPlugin } from 'fumadocs-core/source/plugins/status-badges';
 import { toAgentMarkdown, type LlmsMarkdownResolvers } from './llms-markdown';
 import { groupDefaultKeymap } from './default-keymap-groups';
 import { getTypeGenerator } from './type-generator';
@@ -13,18 +12,18 @@ export const source = loader({
   source: docs.toFumadocsSource(),
   plugins: [
     lucideIconsPlugin(),
-    statusBadgesPlugin({
-      renderBadge: (status) =>
-        status === 'none' ? null : (
-          <>
-            <span
-              aria-hidden
-              className={`ml-2 size-1.5 shrink-0 rounded-full ${status === 'new' ? 'bg-status-new' : 'bg-status-updated'}`}
-            />
-            <span className="sr-only">{status === 'new' ? 'New' : 'Updated'}</span>
-          </>
-        ),
-    }),
+    {
+      name: 'gridcn:page-status',
+      transformPageTree: {
+        file(node, filePath) {
+          const file = filePath ? this.storage.read(filePath) : undefined;
+          if (file?.format === 'page' && 'status' in file.data && typeof file.data.status === 'string') {
+            (node as { status?: string }).status = file.data.status;
+          }
+          return node;
+        },
+      },
+    },
   ],
 });
 
