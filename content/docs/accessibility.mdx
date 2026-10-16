@@ -7,7 +7,9 @@ status: updated
 
 ## Conformance target
 
-The target is **WCAG 2.1 AA**. No conformance audit has been performed against gridcn.
+The target is **WCAG 2.1 AA**. gridcn makes no conformance claim. No conformance audit has been
+performed. The automated checks are axe-core on one fixture in Chromium. Manual passes with NVDA
+(Windows) and VoiceOver (macOS and iOS) are pending, so no screen reader has been tested.
 
 ## Semantics
 
@@ -154,5 +156,7 @@ What the automated Chromium suite verifies, area by area:
 - **Color contrast is not covered by the automated suite.** The a11y test suite disables axe's
   `color-contrast` rule, because headless-Chromium font metrics make that rule unreliable in that
   environment, not because contrast does not matter.
+- **No screen reader has been tested.** The NVDA and VoiceOver passes are pending. Test your own
+  grid with the screen readers your users run. <NewBadge />
 - **Announcement timing is not covered.** The tests assert the announcement text and the
   `aria-live` structure, not what a screen reader speaks aloud or when.

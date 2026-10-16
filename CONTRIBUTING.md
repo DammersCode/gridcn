@@ -15,18 +15,22 @@ Contributions are licensed under the Apache License 2.0 — see LICENSE §5.
 
 ```bash
 pnpm install        # deps (pnpm 10+)
+git config core.hooksPath .githooks   # once per clone: commit-msg hook rejects AI attribution
 pnpm dev            # docs site + demos at http://localhost:3000
 ```
 
 Useful pages while developing: `/dev` (configurable 100k-row grid), `/docs` (every demo).
 
 ```bash
-npx vitest run --project unit      # jsdom suite
-npx vitest run --project browser   # real-Chromium suite
 pnpm types:check
 pnpm types:check:ts5             # consumer TypeScript 5.9 baseline
 pnpm lint
+pnpm lint:typed
+npx vitest run registry --exclude "**/*.browser.test.*" --project unit --coverage   # jsdom suite
+npx vitest run --project browser --bail=1   # real-Chromium suite
 ```
+
+[DEVELOPMENT.md](DEVELOPMENT.md) and `AGENTS.md` list the full gate order and the extra CI steps to mirror before a push.
 
 After changing anything under `registry/` or `registry.json`:
 

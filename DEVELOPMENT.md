@@ -6,7 +6,7 @@ How to run, test, and consume this repo on your own machine. Structure/code rule
 ## Prerequisites
 
 - Node 24+ and **pnpm** (this repo is pnpm — `pnpm-lock.yaml` is the lockfile; never `npm install`).
-- One-time: `pnpm install`.
+- One-time: `pnpm install`, then `git config core.hooksPath .githooks`. The `commit-msg` hook rejects AI attribution in commit messages.
 
 ## Run the docs site
 

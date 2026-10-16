@@ -2,30 +2,49 @@
 title: Project status & compatibility
 description: Version, changelog discipline, browser and framework support, and how to update installed code.
 icon: BadgeCheck
-status: none
+status: updated
 ---
 
 ## Version
 
-gridcn is at **0.1.0**. Before 1.0, a breaking change can land in a minor step. Each one is
-marked **Breaking** in the [changelog](#changelog) with a migration note. Three add-on
-extractions already happened this way (fill handle, multiplayer presence, pinned rows). After
-1.0, breaking changes wait for the next major.
+gridcn is at **1.0.0**. A breaking change to a public prop, hook, export, or behavior waits for
+the next major version. Minor and patch versions add features and fix bugs without breaking an
+existing install. Each breaking change is marked **Breaking** in the [changelog](#changelog) and
+names the exact replacement.
+
+The registry has no npm semver. A release is a git tag. The hosted registry serves the current
+source with `npx shadcn add @gridcn/data-grid`. To pin a release, run
+`npx shadcn add DammersCode/gridcn/data-grid#v1.0.0`. The
+[installation guide](/docs/installation) explains the pinning rules.
+
+## What 1.0 promises <NewBadge />
+
+- The props, hooks, and exports that the docs name are the public API. The `data-grid-sdk`
+  module is the API for add-on authors and follows the same rule.
+- Each release lists its breaking changes in the changelog, grouped by area, with the
+  replacement for each.
+- Installed files are your source. The `shadcn` CLI shows a diff and asks before it overwrites a
+  file you edited.
+
+It does not promise Firefox or Safari automation, a screen-reader pass, or a WCAG conformance
+level. The [browser support](#browser-support) and [accessibility](/docs/accessibility) pages
+say what is tested.
 
 ## Changelog
 
 Every notable change lives in
 [`CHANGELOG.md`](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) at the root
 of the repository, grouped under `Added`, `Changed`, and `Fixed`. A `Changed` entry that breaks a
-public prop or hook is marked **Breaking** and states the exact replacement. Read it before you
+public prop or hook is marked **Breaking** and states the exact replacement. Each release opens
+with an **Upgrading** section that groups its breaking changes by area. Read it before you
 upgrade installed files, and check it again after every `npx shadcn add` re-run.
 
 ## Browser support
 
 <Callout title="Built and tested on evergreen browsers">
   gridcn targets evergreen Chromium, Firefox, and Safari. The regression suite runs real
-  Chromium through Playwright. It does not run Firefox or Safari, so treat those two as
-  supported by design and by manual spot-checks, not by an automated gate.
+  Chromium through Playwright. Firefox and Safari are not in the automated suite, so no gate
+  covers them. Test your own flows in each engine you ship to.
 </Callout>
 
 Known engine-specific caveats, found in source and tests:
@@ -88,10 +107,13 @@ For heavily edited files, install the item into a scratch branch and diff the tw
 File bugs, feature requests, and questions in [the project repository](https://github.com/DammersCode/gridcn)'s
 issue tracker.
 
-To report a security vulnerability, open a private security advisory on the repository instead of
-a public issue, so a fix can ship before the details become public.
+To report a security vulnerability, open a
+[private security advisory](https://github.com/DammersCode/gridcn/security/advisories/new)
+instead of a public issue, so a fix can ship before the details become public. Version 1.x
+receives security fixes. [`SECURITY.md`](https://github.com/DammersCode/gridcn/blob/main/SECURITY.md)
+has the scope and the response time.
 
-See [Accessibility](/docs/accessibility) for the conformance target and the test status matrix.
+See [Accessibility](/docs/accessibility) for the test status matrix and the checks still pending.
 
 ## Next steps
 
