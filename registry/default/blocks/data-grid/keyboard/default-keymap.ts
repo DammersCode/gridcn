@@ -48,7 +48,7 @@ export const DEFAULT_KEYMAP: Keymap = {
   commitRight: ["Tab"],
   commitLeft: ["shift+Tab"],
   cancel: ["Escape"],
-  deleteContents: ["Delete", "Backspace"],
+  clearContents: ["Delete", "Backspace"],
   undo: ["mod+z"],
   redo: ["mod+y", "mod+shift+z"],
   fillDown: ["mod+d"],

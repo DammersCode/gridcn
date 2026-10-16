@@ -421,7 +421,7 @@ export function dispatchGridAction(args: {
       actions.clearSelection();
       break;
     }
-    case "deleteContents": {
+    case "clearContents": {
       preventDefault();
       if (!state.readOnly) actions.deleteSelection();
       break;

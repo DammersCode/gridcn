@@ -198,9 +198,9 @@ describe("matchKeymap - other actions", () => {
 
   it("matches cancel, delete, undo, redo, fill", () => {
     expect(matchKeymap(makeEvent({ key: "Escape" }), DEFAULT_KEYMAP, false)).toBe("cancel");
-    expect(matchKeymap(makeEvent({ key: "Delete" }), DEFAULT_KEYMAP, false)).toBe("deleteContents");
+    expect(matchKeymap(makeEvent({ key: "Delete" }), DEFAULT_KEYMAP, false)).toBe("clearContents");
     expect(matchKeymap(makeEvent({ key: "Backspace" }), DEFAULT_KEYMAP, false)).toBe(
-      "deleteContents",
+      "clearContents",
     );
     expect(matchKeymap(makeEvent({ key: "z", ctrlKey: true }), DEFAULT_KEYMAP, false)).toBe("undo");
     expect(matchKeymap(makeEvent({ key: "y", ctrlKey: true }), DEFAULT_KEYMAP, false)).toBe("redo");
@@ -376,7 +376,7 @@ describe("GridAction coverage", () => {
     extendFirstCell: true, extendLastCell: true,
     selectRow: true, selectColumn: true, selectAll: true,
     edit: true, editReplace: true, commitDown: true, commitUp: true, commitRight: true, commitLeft: true,
-    cancel: true, deleteContents: true,
+    cancel: true, clearContents: true,
     undo: true, redo: true,
     fillDown: true, fillRight: true,
     insertRowBelow: true, insertRowAbove: true, duplicateRow: true, deleteRows: true,

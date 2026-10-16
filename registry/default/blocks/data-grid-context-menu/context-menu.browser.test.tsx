@@ -232,7 +232,7 @@ describe("DataGridContextMenu — cell surface", () => {
 // (DEFAULT_KEYMAP merged with the `keymap` prop), not a hardcoded DEFAULT_KEYMAP read.
 describe("DataGridContextMenu — shortcut hints follow the consumer's keymap", () => {
   it("shows the remapped binding for Clear contents, not the default", async () => {
-    await renderGrid({ keymap: { deleteContents: ["mod+shift+k"] } });
+    await renderGrid({ keymap: { clearContents: ["mod+shift+k"] } });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     rightClick(gridCell("Alice", "name"));
     await vi.waitFor(() => expect(menuItem("Clear contents")).toBeTruthy());

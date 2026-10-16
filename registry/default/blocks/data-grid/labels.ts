@@ -402,7 +402,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
       commitRight: "Leave the grid forward (Tab)",
       commitLeft: "Leave the grid backward (Shift+Tab)",
       cancel: "Cancel edit",
-      deleteContents: "Delete contents",
+      clearContents: "Delete contents",
       insertRowBelow: "Insert row below",
       insertRowAbove: "Insert row above",
       duplicateRow: "Duplicate row",

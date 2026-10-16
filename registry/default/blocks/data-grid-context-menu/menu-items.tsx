@@ -158,7 +158,7 @@ export function useDefaultCellMenuItems(args: {
       onClick: onPaste,
     },
     { id: "sep-clipboard", separator: true },
-    { id: "clear-contents", label: labels.contextMenu.clearContents, icon: <Eraser className="size-4 text-muted-foreground" />, shortcut: keymap.deleteContents?.[0], disabled: readOnly, onClick: () => actions.deleteSelection() },
+    { id: "clear-contents", label: labels.contextMenu.clearContents, icon: <Eraser className="size-4 text-muted-foreground" />, shortcut: keymap.clearContents?.[0], disabled: readOnly, onClick: () => actions.deleteSelection() },
     { id: "sep-rows", separator: true },
   ];
   if (canInsertRow) {

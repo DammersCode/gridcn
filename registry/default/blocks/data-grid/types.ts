@@ -681,7 +681,7 @@ export interface GridActions {
   commitRight: true;
   commitLeft: true;
   cancel: true;
-  deleteContents: true;
+  clearContents: true;
   undo: true;
   redo: true;
   fillDown: true;
