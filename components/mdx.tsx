@@ -1,9 +1,10 @@
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { File, Files, Folder } from 'fumadocs-ui/components/files';
-import { Tab, Tabs, TabsContent, TabsList, TabsTrigger } from 'fumadocs-ui/components/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from 'fumadocs-ui/components/tabs';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import type { MDXComponents } from 'mdx/types';
+import { DocsTab } from '@/components/docs-tab';
 import { AutoTypeTable } from '@/components/auto-type-table';
 import { ComponentPreview } from '@/components/component-preview';
 import { InstallCommand } from '@/components/install-command';
@@ -26,7 +27,7 @@ export function getMDXComponents(components?: MDXComponents) {
     Files,
     Folder,
     Tabs,
-    Tab,
+    Tab: DocsTab,
     TabsList,
     TabsTrigger,
     TabsContent,
