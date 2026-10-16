@@ -1,9 +1,16 @@
-// Fails when a docs page changed in substance since origin/main has no `status`, or has one without a change.
+// Fails when a docs page changed in substance since the last release (tag v*, else origin/main) has no `status`, or has one without a change.
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 
-const BASE = "origin/main";
 const git = (...args) => execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+const lastRelease = () => {
+  try {
+    return git("describe", "--tags", "--abbrev=0", "--match", "v*").trim();
+  } catch {
+    return "origin/main";
+  }
+};
+const BASE = lastRelease();
 
 try {
   git("rev-parse", "--verify", BASE);
