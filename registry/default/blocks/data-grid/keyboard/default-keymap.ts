@@ -43,7 +43,7 @@ export const DEFAULT_KEYMAP: Keymap = {
   selectColumn: ["ctrl+ "],
   selectAll: ["mod+a"],
   toggleRow: ["ctrl+shift+ "],
-  // Ctrl+Alt is AltGr on Windows and Ctrl+Option+Space is a VoiceOver chord; mod+shift+e is unreserved in the major browsers
+  // Ctrl+Alt is AltGr on Windows; mod+shift+e is free in Chrome but opens DevTools in Firefox and Edge, so rebind it via keymap there
   toggleAllRows: ["mod+shift+e"],
   // alt+ArrowDown is moveDownKeepSelection and Shift+F10 opens the cell context menu
   openColumnMenu: ["shift+alt+ArrowDown"],
