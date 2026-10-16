@@ -102,6 +102,10 @@ Grid data and imported files are untrusted input.
 - Add no dependency without a reason in the commit message. `pnpm audit --prod` must show no HIGH finding.
 - Never put secrets, tokens, or personal data into code, tests, fixtures, or docs.
 
+## Vocabulary
+
+`GLOSSARY.md` is the source of the ubiquitous language. Use its words in code, comments, docs, skills, messages, and commit messages. Add a new term there before you introduce it. `scripts/verify-vocabulary.mjs` (run by `pnpm lint`) rejects the words the glossary replaces; write identifiers such as `ops` in code spans.
+
 ## Workflow
 
 ### Gates

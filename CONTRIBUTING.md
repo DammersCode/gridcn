@@ -5,6 +5,10 @@
 All content in this repository — code, comments, documentation, plans, changelog, commit
 messages, and pull-request text — is written in English.
 
+## Vocabulary
+
+Use the words in [GLOSSARY.md](GLOSSARY.md) in code, comments, docs, and commit messages. Add a term there before you introduce it. `pnpm lint` rejects the words the glossary replaces.
+
 ## Development
 
 Contributions are licensed under the Apache License 2.0 — see LICENSE §5.
