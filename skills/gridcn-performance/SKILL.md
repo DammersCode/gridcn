@@ -1,6 +1,8 @@
 ---
 name: gridcn-performance
 description: "gridcn performance audit: finds and fixes what makes a gridcn grid slow. Use when a grid janks on scroll, typing, or edits, or when writing or reviewing code that passes props, callbacks, or data into DataGridProvider or DataGridRoot."
+metadata:
+  gridcn-version: "0.1.0"
 ---
 
 Almost every gridcn slowdown traces to one cause: an unstable prop or callback identity defeats row or cell memoization grid-wide, or the grid lacks a bounded height so virtualization never activates. Both fail silently in production — dev-mode console warnings are the only signal. Work the whole checklist top to bottom, cheapest check first; fix every hit, then remeasure.
@@ -92,3 +94,11 @@ Zero `[data-grid]`-prefixed warnings and no `gridcn: the grid viewport shows mor
 - `https://gridcn.vercel.app/docs/styling-theming.md` — `getRowClassName`/`getCellClassName` stability.
 - `https://gridcn.vercel.app/docs/custom-cell-types.md` — formatter caching, allocation-free `Cell`.
 - `https://gridcn.vercel.app/docs/streaming-updates.md` — `updateCells`/`updateRows`, `skipValidation`.
+
+## Do not
+
+- Do not wrap `columns`, `data`, or a callback prop in a fresh literal per render.
+- Do not copy, `map`, or `filter` the array that `onDataChange` hands over before storing it.
+- Do not replace `data` wholesale on every live tick. Use `actions.updateCells` / `actions.updateRows`.
+- Do not pass `data` without `onDataChange`.
+- Do not give the grid an unbounded height.

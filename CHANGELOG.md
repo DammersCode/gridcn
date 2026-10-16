@@ -11,6 +11,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **Agent-readable docs (site):** `/docs/<page>.md` and `llms-full.txt` render props tables, install commands, callouts, and tabs as plain markdown instead of raw MDX components. `llms.txt` opens with a task index and lists the Add-ons overview and the skills. Each skill is served at `/skills/<name>/SKILL.md`, carries a `gridcn-version` stamp, and ends with a "Do not" list.
 - **Detail panel recipe and demo (docs example):** `data-grid-detail-panel-demo` opens a non-modal side panel through `onCellClick` or a custom `openRow` command and keeps it on the active row through `onActiveCellChange`; focus stays in the grid. [Recipes](/docs/recipes/ui-patterns/detail-panel) covers the mouse, keyboard, and follow-the-active-row variants.
 - **Default seeds for sort, filter, and search:** `defaultSortState`, `defaultFilterState`, `defaultJoinOperator`, and `defaultSearchText` seed the uncontrolled store once, so an initial sort no longer needs controlled state plus a callback.
 - **`getRowId` is optional:** it defaults to the row's `id` field (string or number) and throws for a row without one.

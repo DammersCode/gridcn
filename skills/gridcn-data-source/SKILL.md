@@ -1,6 +1,8 @@
 ---
 name: gridcn-data-source
 description: "gridcn data sources: pick plain data, pagination, lazy loading, or streaming, and wire it. Use when connecting a grid to a backend or to a dataset too large for one payload, or when sort, filter, or search must run on the server."
+metadata:
+  gridcn-version: "0.1.0"
 ---
 
 Pick exactly one loading strategy for the dataset, then make every sort/filter/search path see the full dataset, not just what happened to load.
@@ -73,3 +75,12 @@ Applies to streaming on top of either:
 
 - `references/server-mode.md` — server-mode wiring for lazy loading and pagination, side by side.
 - Full docs: `https://gridcn.vercel.app/docs/lazy-loading.md`, `/docs/lazy-loading-advanced.md`, `/docs/pagination.md`, `/docs/streaming-updates.md`, `/docs/events-state.md`.
+
+## Do not
+
+- Do not mount `data-grid-lazy` and `data-grid-pagination` on one grid.
+- Do not echo the sort spec back into `sortState`. Pass the stable empty array and render the active sort from your own state.
+- Do not write `onSortChange={setSorts}` alone. The store sort stays empty, so every click arrives as `"asc"`. Re-derive the asc → desc → none cycle (`cycleSort` in `references/server-mode.md`).
+- Do not hard-code `total` for a lazy grid. Fetch the count first and render the grid once it is known.
+- Do not build your own spinner for window fetches. `lazy.isLoading` is true while any window fetch runs; pass it as `loading` on `DataGridRoot` for the slim progress bar.
+- Do not rely on `searchText` to search server-side. It only highlights rows already in `data`.
