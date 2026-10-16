@@ -1029,6 +1029,29 @@ describe("dev-mode guardrails", () => {
     warn.mockRestore();
   });
 
+  it("does NOT warn when the columns array changes on purpose (different header or ids) or stays stable", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const stable: readonly ColumnDef<Row, unknown>[] = [{ id: "name", header: "Name", accessorKey: "name" }];
+    const translated: readonly ColumnDef<Row, unknown>[] = [{ id: "name", header: "Nom", accessorKey: "name" }];
+    const renamed: readonly ColumnDef<Row, unknown>[] = [{ id: "label", header: "Nom", accessorKey: "name" }];
+
+    function Harness({ columns }: { columns: readonly ColumnDef<Row, unknown>[] }) {
+      return (
+        <DataGridProvider data={rows()} columns={columns} getRowId={(r) => r.id}>
+          <div />
+        </DataGridProvider>
+      );
+    }
+
+    const { rerender } = render(<Harness columns={stable} />);
+    rerender(<Harness columns={stable} />);
+    rerender(<Harness columns={translated} />);
+    rerender(<Harness columns={renamed} />);
+
+    expect(warn).not.toHaveBeenCalledWith(expect.stringContaining("columns array identity changed"));
+    warn.mockRestore();
+  });
+
   it("does NOT warn on a legitimate immutable single-row edit (new array, one row replaced)", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const cols: readonly ColumnDef<Row, unknown>[] = [{ id: "name", header: "Name", accessorKey: "name" }];

@@ -76,6 +76,24 @@ export function checkDuplicateColumnIds(columns: readonly AnyColumnDef[], warned
   }
 }
 
+// Inline callbacks are rebuilt with each array, so functions compare by source text.
+function sameColumnValue(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  return typeof a === "function" && typeof b === "function" && String(a) === String(b);
+}
+
+function columnsStructurallyEqual(a: readonly AnyColumnDef[], b: readonly AnyColumnDef[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i] as Record<string, unknown>;
+    const y = b[i] as Record<string, unknown>;
+    const keys = Object.keys(x);
+    if (keys.length !== Object.keys(y).length) return false;
+    for (const key of keys) if (!sameColumnValue(x[key], y[key])) return false;
+  }
+  return true;
+}
+
 /**
  * Dev-only guardrails for the recompute-slice props (the `_syncProps` inputs): missing getRowId,
  * the data/defaultData combo, unstable columns/data identity across renders. The config-slice
@@ -92,7 +110,7 @@ export function checkDevGuardrails(
     warnBothDataPropsOnce();
   }
 
-  if (prevColumns !== undefined && prevColumns !== props.columns) {
+  if (prevColumns !== undefined && prevColumns !== props.columns && columnsStructurallyEqual(prevColumns, props.columns)) {
     warnDev(
       "columns array identity changed since the last render; pass a stable reference (e.g. useMemo) or every row re-renders",
     );
