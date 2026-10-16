@@ -52,14 +52,17 @@ export function DataGridMarkerHeader(props: DataGridMarkerHeaderProps): ReactNod
       {renderMarkerHeader ? (
         renderMarkerHeader({ allSelected: state })
       ) : (
-        (markerContent(mode) === "checkbox" || markerContent(mode) === "both") && (
-          <Checkbox
-            checked={state === "checked"}
-            indeterminate={state === "indeterminate"}
-            onCheckedChange={(checked) => actions.setAllRowsSelected(checked === true)}
-            aria-label={labels.markers.selectAll}
-          />
-        )
+        <>
+          <span className="sr-only">{labels.markers.columnHeader}</span>
+          {(markerContent(mode) === "checkbox" || markerContent(mode) === "both") && (
+            <Checkbox
+              checked={state === "checked"}
+              indeterminate={state === "indeterminate"}
+              onCheckedChange={(checked) => actions.setAllRowsSelected(checked === true)}
+              aria-label={labels.markers.selectAll}
+            />
+          )}
+        </>
       )}
     </div>
   );

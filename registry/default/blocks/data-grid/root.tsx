@@ -46,7 +46,7 @@ import { resolveRowHeight } from "./rows/density";
 import { useScrolledEdges } from "./windowing/use-scrolled-edges";
 import { usePinShadowEdges } from "./windowing/use-pin-shadow-edges";
 import { GRID_LAYER } from "./layers";
-import { DataGridLoadingSkeleton, DataGridLoadingBar } from "./rows/loading-skeleton";
+import { DataGridLoadingSkeleton, DataGridLoadingBar, DataGridLoadingProgress } from "./rows/loading-skeleton";
 import { isDev } from "./is-dev";
 import { GRID_ATTR, gridAttrSelector } from "./data-attributes";
 import { closestGridRoot } from "./interaction/closest-grid-root";
@@ -632,7 +632,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                   {typeof loadingState === "function" ? loadingState({ reason: "rows-present" }) : loadingState}
                 </div>
               ) : (
-                <DataGridLoadingBar headerHeight={effectiveHeaderHeight} ariaLabel={gridLabels.loading} />
+                <DataGridLoadingBar headerHeight={effectiveHeaderHeight} />
               ))}
             <div
               data-grid-pin-shadow="left"
@@ -698,6 +698,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
           </div>
         </div>
       </div>
+      {showLoadingBar && loadingState === undefined && <DataGridLoadingProgress ariaLabel={gridLabels.loading} />}
     </DataGridRootContext>
     </DirectionProvider>
   );

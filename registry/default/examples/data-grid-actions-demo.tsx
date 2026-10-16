@@ -98,7 +98,7 @@ const columns = defineColumns<DemoRow>()([
   },
   {
     id: "actions",
-    header: "",
+    header: <span className="sr-only">Actions</span>,
     // accessorFn (no accessorKey) keeps the column readable but read-only by construction; the
     // value is unused — renderCell renders the buttons instead.
     accessorFn: () => "",

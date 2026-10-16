@@ -140,6 +140,8 @@ export type DataGridKeybindingsLabels = {
 
 /** Row-marker column strings (select-all header checkbox, per-row checkbox, reorder handle). */
 export type DataGridMarkerLabels = {
+  /** Accessible name of the marker column header. */
+  columnHeader: string;
   selectAll: string;
   /** `rowNumber` is 1-based (matches the visible row-number marker). */
   selectRow: (rowNumber: number) => string;
@@ -416,6 +418,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     },
   },
   markers: {
+    columnHeader: "Row markers",
     selectAll: "Select all rows",
     selectRow: (rowNumber) => `Select row ${rowNumber}`,
     reorderRow: (rowNumber) => `Reorder row ${rowNumber}`,

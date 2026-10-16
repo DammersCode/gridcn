@@ -68,8 +68,11 @@ describe("loading + rows present: indeterminate bar", () => {
     expect(document.querySelector(gridAttrSelector("loadingSkeleton"))).toBeNull();
     const bar = document.querySelector(gridAttrSelector("loadingBar"));
     expect(bar).not.toBeNull();
-    expect(bar!.getAttribute("role")).toBe("progressbar");
-    expect(bar!.getAttribute("aria-label")).toBe("Loading…");
+    expect(bar!.getAttribute("aria-hidden")).toBe("true");
+    const progress = document.querySelector("[role=progressbar]");
+    expect(progress).not.toBeNull();
+    expect(progress!.getAttribute("aria-label")).toBe("Loading…");
+    expect(progress!.closest("[role=grid]")).toBeNull();
 
     // real data rows still render underneath the bar.
     const cells = document.querySelectorAll('[role="gridcell"][data-column-id="name"]');

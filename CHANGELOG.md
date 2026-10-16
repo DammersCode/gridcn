@@ -948,6 +948,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Fixed
 
+- **Marker column header has an accessible name:** it renders a visually hidden label, set by the new `labels.markers.columnHeader` (default "Row markers"). The actions demo labels its header cell too.
+- **Loading bar sits outside the grid element:** the visual bar is `aria-hidden` and a visually hidden `role="progressbar"` renders next to the grid, so axe no longer reports `aria-required-children` on `role="grid"` while `loading` is true.
 - **Demos render the same text on server and client:** the lazy-loading, events, and related demos format numbers and times with an explicit `en-US` locale, which removes the hydration mismatch (React error #418) on servers whose default locale differs from the browser.
 - **Text, URL, and select cells tolerate non-string values:** `toText`, `toDisplayText`, and `href` convert a number or boolean from a JSON API with `String()` instead of throwing, and strings behave as before.
 - **Presence validates remote colors:** a peer's `color` that the browser does not parse as a CSS color falls back to a default instead of reaching the overlay styles unchecked.

@@ -84,7 +84,7 @@ Three separate elements carry `aria-busy` or an equivalent progress role:
   `aria-busy="true"` per row, plus `role="presentation"` and an `aria-label` (from
   `labels.grid.loading`) on the skeleton block as a whole.
 - A background refresh (`loading` true with rows already present) shows a slim progress bar
-  instead, `role="progressbar"` with an `aria-label` and matching `aria-valuetext`.
+  instead. A visually hidden `role="progressbar"` sibling of the grid element announces it, with an `aria-label` and matching `aria-valuetext`.
 - A custom `loadingState` node replaces the skeleton or the bar. It carries no built-in role or
   label. The node owns its own accessibility.
 ## Live regions
