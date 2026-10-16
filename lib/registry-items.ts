@@ -28,6 +28,7 @@ export type RegistryItemName =
   | "data-grid-custom-headers-demo"
   | "data-grid-custom-markers-demo"
   | "data-grid-demo"
+  | "data-grid-detail-panel-demo"
   | "data-grid-events-demo"
   | "data-grid-fill-patterns-demo"
   | "data-grid-filter-operators-demo"
