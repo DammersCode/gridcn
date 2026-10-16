@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input";
 import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "../types";
+import { toSafeText } from "./safe-text";
 import { CellSpan } from "./cell-span";
 import { useCellEditor } from "../interaction/use-cell-editor";
 
@@ -16,7 +17,7 @@ function TextEditor(props: CellEditorProps<unknown, string>) {
 export const textCellType: CellType<unknown, string, GridCellTypes["text"]["options"]> = {
   Cell: TextCell,
   Editor: TextEditor,
-  toText: (value) => String(value ?? ""),
+  toText: (value) => toSafeText(value),
   fromText: (text) => text,
   clearValue: () => "",
   isEmpty: (value) => value == null || value === "",

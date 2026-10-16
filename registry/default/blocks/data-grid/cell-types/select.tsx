@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { toSafeText } from "./safe-text";
 import {
   Select,
   SelectContent,
@@ -110,13 +111,13 @@ export const selectCellType: CellType<unknown, string | null, GridCellTypes["sel
   Editor: SelectEditor,
   toText: (value, options) => {
     if (value == null) return "";
-    const key = String(value);
+    const key = toSafeText(value);
     return findChoice(options?.choices, key)?.label ?? key;
   },
   // search the label, like toText — the stored value is an opaque choice id
   toSearchText: (value, options) => {
     if (value == null) return "";
-    const key = String(value);
+    const key = toSafeText(value);
     return findChoice(options?.choices, key)?.label ?? key;
   },
   filter: { operators: [...TEXT_FILTER_OPERATORS, "isAnyOf"], valueInput: "choices" },

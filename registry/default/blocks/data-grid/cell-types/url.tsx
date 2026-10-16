@@ -4,6 +4,7 @@ import { CellSpan } from "./cell-span";
 import { TEXT_FILTER_OPERATORS } from "./capabilities";
 import { safeHref } from "./safe-href";
 import { displayText } from "./display-text";
+import { toSafeText } from "./safe-text";
 import { useCellEditor } from "../interaction/use-cell-editor";
 
 // One window.open-style opening context for every cell link; the same attributes the `openLink`
@@ -36,13 +37,13 @@ export const urlCellType: CellType<unknown, string | null, GridCellTypes["url"][
   Cell: UrlCell,
   Editor: UrlEditor,
   filter: { operators: TEXT_FILTER_OPERATORS, valueInput: "text" },
-  toText: (value) => String(value ?? "").trim(),
+  toText: (value) => toSafeText(value).trim(),
   toDisplayText: (value, options) => {
-    const url = String(value ?? "").trim();
+    const url = toSafeText(value).trim();
     return options?.label ? options.label(url) : url;
   },
   href: (value) => {
-    const url = String(value ?? "").trim();
+    const url = toSafeText(value).trim();
     return url === "" ? null : safeHref(url);
   },
   fromText: (text) => text.trim(),
