@@ -75,7 +75,7 @@ function FolderRow({ item, className, active }: { item: PageTree.Folder; classNa
   const body = (
     <>
       <Gutters count={depth - 1} />
-      <Content icon={item.icon} name={item.name} />
+      <Content icon={item.icon} name={item.name} status={(item.index as { status?: string } | undefined)?.status} />
     </>
   );
   if (item.index) {
