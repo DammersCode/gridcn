@@ -146,6 +146,7 @@ export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
                     isSelected && "flex",
                   )}
                   checked={isSelected}
+                  tabIndex={-1}
                   onCheckedChange={(checked) => actions.setRowSelected(viewRowIndex, checked === true)}
                   // a stationary press toggles via onCheckedChange; a press that drags to another row selects a range and its click is swallowed (see use-grid-interaction.ts).
                   onPointerDown={(event) => onCheckboxPointerDown(viewRowIndex, event)}

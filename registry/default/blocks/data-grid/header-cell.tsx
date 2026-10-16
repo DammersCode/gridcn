@@ -156,6 +156,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
             <button
               type="button"
               data-grid-header-menu-trigger=""
+              tabIndex={-1}
               aria-label={labels.contextMenu.columnMenuAriaLabel(headerLabelText(column))}
               className="ms-auto shrink-0 rounded p-0.5 text-muted-foreground opacity-0 outline-none transition-opacity hover:bg-accent hover:text-accent-foreground focus:opacity-100 group-hover:opacity-100"
               onPointerDown={(event) => event.stopPropagation()}

@@ -970,6 +970,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **`DataGridLazyGuard` respects `sortMode="server"` (`data-grid-lazy`):** a sort change no longer warns when the server owns the order, and the warning points to `sortMode="server"` instead of controlled `sortState`.
 - **Streamed writes under `sortMode="server"` no longer flag the view stale (`data-grid`):** `updateCells` into the server-sorted column left `viewStale` true and offered a re-sort the grid cannot perform.
 - **`useDataGridHistory().rollback` is cell-level (`data-grid-history`):** a rollback reverts only the cells that still hold the failed change's value, so later edits to other cells of the same row survive. Rolling back a change the user already undid writes nothing, and a `rollback` called synchronously inside `onDataChange` leaves no undo entry.
+- **Marker checkboxes and the header menu trigger are not tab stops:** with `rowMarkers` checkbox modes, Tab from a cell now leaves the grid instead of landing on the next row's checkbox, and Shift+Tab no longer lands on "Select all rows".
 - **Number cell parsing runs in linear time:** a long digit run followed by a letter in an imported or pasted number cell no longer freezes the page.
 - **`EMPTY_SELECTION_STATE` is frozen:** the exported shared default (and its arrays) can no longer be mutated by a consumer, which used to corrupt the grid's own cleared-selection value.
 

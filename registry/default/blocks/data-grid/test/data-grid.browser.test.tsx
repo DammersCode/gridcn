@@ -2205,6 +2205,34 @@ describe("DataGrid a11y: Tab is not a keyboard trap", () => {
     expect(document.activeElement).toBe(page.getByRole("button", { name: "before" }).element());
   });
 
+  it.each([["checkbox"], ["reorder-checkbox"]] as const)(
+    "marker checkboxes, select-all and the header menu trigger are not tab stops in '%s' mode",
+    async (mode) => {
+      await render(
+        <div>
+          <button type="button">before</button>
+          <DataGrid
+            data={makeRows(3)}
+            columns={columns}
+            getRowId={(r) => r.id}
+            className="h-[300px]"
+            rowMarkers={mode}
+            renderHeaderMenu={({ trigger }) => trigger}
+          />
+          <button type="button">after</button>
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      const dataCell = () => document.querySelector<HTMLElement>(`[role="gridcell"]:not(${gridAttrSelector("markerCell")})`)!;
+      await userEvent.click(dataCell());
+      await userEvent.keyboard("{Tab}");
+      expect(document.activeElement).toBe(page.getByRole("button", { name: "after" }).element());
+      await userEvent.click(dataCell());
+      await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+      expect(document.activeElement).toBe(page.getByRole("button", { name: "before" }).element());
+    },
+  );
+
   it("binding Tab to moveRight keeps Tab navigating cells", async () => {
     const cells = await renderBetweenButtons({ moveRight: ["ArrowRight", "Tab"], moveLeft: ["ArrowLeft", "shift+Tab"] });
     await userEvent.keyboard("{Tab}");
