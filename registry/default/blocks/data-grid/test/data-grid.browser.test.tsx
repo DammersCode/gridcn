@@ -2263,7 +2263,9 @@ describe("DataGrid a11y: Tab is not a keyboard trap", () => {
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"]')!);
-    await userEvent.keyboard("{Enter}{Tab}");
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => document.querySelector(gridAttrSelector("cellEditor"))).not.toBeNull();
+    await userEvent.keyboard("{Tab}");
     await expect.poll(() => document.activeElement).toBe(page.getByRole("button", { name: "after" }).element());
   });
 
