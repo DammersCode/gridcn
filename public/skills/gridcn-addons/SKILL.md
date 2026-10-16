@@ -31,7 +31,7 @@ npx shadcn add @gridcn/<item>
 | Keybindings dialog | `data-grid-keybindings` | none |
 | Sort list | `data-grid-sort-list` | `@dnd-kit/react` |
 | URL state | `data-grid-url-state` | `nuqs` |
-| Import / export | `data-grid-io` (installs `dropzone` too) | `xlsx`, `papaparse` (lazy-loaded) |
+| Import / export | `data-grid-io` (installs `dropzone` too) | `hucre` (lazy-loaded), `papaparse` |
 | Lazy loading | `data-grid-lazy` | none |
 | Pagination | `data-grid-pagination` | none |
 
@@ -162,8 +162,8 @@ plugins, global-shortcuts) — read the relevant one before writing non-trivial 
 
 ## Do not
 
-- Do not put `format` in `DataGridExportButton`'s `options`. The type omits it and the button always offers xlsx and CSV. For one format, call `useDataGridExport().exportGrid({ format: "csv" })` from your own button.
-- Do not call `deleteRows` with row ids. It takes view row indices (`deleteRows(viewRowIndexes)`). <!-- TODO: point to deleteRowsById once the grid code ships it. -->
+- Do not put `format` in `DataGridExportButton`'s `options`. The type omits it. Pass `formats` (default `["xlsx", "csv"]`); with one format, such as `formats={["csv"]}`, a click exports at once.
+- Do not call `deleteRows` with row ids. It takes view row indices (`deleteRows(viewRowIndexes)`). To delete by id, call `actions.deleteRowsById(ids)`.
 - Do not mount `DataGridUrlState` on a `data-grid-lazy` grid, or nest a second `NuqsAdapter`.
 - Do not call `useDataGridPresence()` twice for one grid.
 - Do not pass a fresh `topRows`/`bottomRows` array per render to `useDataGridPinnedRows`.
