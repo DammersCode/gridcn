@@ -3,7 +3,7 @@
   "icon": "LayoutPanelLeft",
   "pages": [
     "detail-panel",
-    "edit-dialog",
+    "edit-row-with-form",
     "multiple-grids"
   ]
 }
