@@ -64,9 +64,13 @@ export function safeHref(raw: string): string | null;
 - **url.** `toText`/`fromText` are the trimmed string; `href = safeHref(value)`. A value that fails
   the allow-list renders as plain text (no link, no error). The link has `target="_blank"`,
   `rel="noopener noreferrer nofollow"`, `referrerPolicy="no-referrer"`. `options.label` maps the
-  stored URL to the shown text; `toText` stays the URL. A press on the link selects the cell
-  (pointerdown bubbles to `onCellPointerDown`, `use-grid-interaction.ts:911`) and the click opens
-  the link; a press elsewhere in the cell only selects. `openLink` is a no-op when the active
+  stored URL to the shown text; `toText` stays the URL. A plain left-click on the link
+  selects the cell only. Ctrl+click (Cmd+click on macOS) opens it like `openLink`; middle-click
+  opens it natively in a new tab (`onCellPointerDown` returns before pointer capture for
+  button 1). Pointer capture retargets the click onto the cell, so the pointerdown records
+  whether the press hit an anchor and `onCellClick` resolves the open. The additive press
+  (`pushRangeAt`) makes the clicked cell active first, so `openLink` opens that cell's link.
+  `openLink` is a no-op when the active
   cell's type has no `href` or `safeHref` returns `null`; on a lazy hole it is a no-op.
 - **longText.** The cell renders `CellSpan` with the first 500 characters and line breaks shown
   as spaces. Editor keys: Enter commits and moves down, Shift+Enter and Alt+Enter insert a line

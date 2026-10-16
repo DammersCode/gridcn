@@ -1,5 +1,5 @@
 import { page, userEvent } from "vitest/browser";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGrid, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply
@@ -25,6 +25,8 @@ async function renderGrid() {
 const linkLocator = () => page.getByRole("link", { name: "https://example.com/a" });
 
 describe("url cell type (browser)", () => {
+  afterEach(() => vi.restoreAllMocks());
+
   it("renders safe values as safe links and unsafe values as plain text", async () => {
     await renderGrid();
     const link = linkLocator();
@@ -40,16 +42,47 @@ describe("url cell type (browser)", () => {
     expect(document.querySelector("a[href^='javascript:']")).toBeNull();
   });
 
-  it("a press on the link selects the cell; the link opens a separate tab without an opener", async () => {
+  it("a plain click on the link selects the cell and opens nothing", async () => {
     await renderGrid();
     const link = linkLocator();
-    await expect.element(link).toHaveAttribute("target", "_blank");
-    await expect.element(link).toHaveAttribute("rel", "noopener noreferrer nofollow");
+    const open = vi.spyOn(window, "open");
     await link.click();
 
-    // the pointerdown bubbles to the grid (the cell is selected), the link keeps its open context
     await expect.poll(() => document.querySelectorAll('[role="gridcell"][aria-selected="true"]').length).toBe(1);
     expect(document.querySelector('a[href="https://example.com/a"]')!.closest('[role="gridcell"]')?.getAttribute("aria-selected")).toBe("true");
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it("ctrl+click on the link opens it in a new tab without an opener and selects the cell", async () => {
+    await renderGrid();
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    await userEvent.keyboard("{Control>}");
+    await linkLocator().click();
+    await userEvent.keyboard("{/Control}");
+
+    expect(open).toHaveBeenCalledExactlyOnceWith("https://example.com/a", "_blank", "noopener,noreferrer");
+    await expect.poll(() => document.querySelectorAll('[role="gridcell"][aria-selected="true"]').length).toBe(1);
+  });
+
+  it("ctrl+click on a second link opens that cell's link, not the previous active cell's", async () => {
+    await renderGrid();
+    await page.getByRole("gridcell", { name: "plain" }).click();
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    await userEvent.keyboard("{Control>}");
+    await page.getByRole("link", { name: "mailto:user@example.com" }).click();
+    await userEvent.keyboard("{/Control}");
+
+    expect(open).toHaveBeenCalledExactlyOnceWith("mailto:user@example.com", "_blank", "noopener,noreferrer");
+  });
+
+  it("a middle press on the link is left to the browser: no selection, default not prevented", async () => {
+    await renderGrid();
+    const anchor = linkLocator().element();
+    const press = new PointerEvent("pointerdown", { bubbles: true, cancelable: true, button: 1, pointerId: 7 });
+    anchor.dispatchEvent(press);
+
+    expect(press.defaultPrevented).toBe(false);
+    expect(document.querySelectorAll('[role="gridcell"][aria-selected="true"]').length).toBe(0);
   });
 
   it("dragging from a link extends a range instead of a native link drag", async () => {

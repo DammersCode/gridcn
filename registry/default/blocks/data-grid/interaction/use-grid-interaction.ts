@@ -715,6 +715,8 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
 
   // Active-cell click deferred to native `click` — pointerdown alone can't distinguish it from a drag.
   const pendingActiveClickRef = useRef<ViewCoord | null>(null);
+  // Pointer capture retargets the click onto the cell, so the anchor is only known at pointerdown.
+  const linkPressRef = useRef(false);
   // Coord a single click just resolved, so the following dblclick (same gesture) doesn't re-resolve it.
   const resolvedByClickRef = useRef<ViewCoord | null>(null);
 
@@ -988,6 +990,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       if ((event.target as HTMLElement | null)?.closest(gridAttrSelector("cellEditor"))) return;
       const state = storeApi.getState();
       const isMultiKey = isMacRef.current ? event.metaKey : event.ctrlKey;
+      linkPressRef.current = isMultiKey && !!(event.target as HTMLElement | null)?.closest("a");
 
       // Excel activation model: a click NEVER starts editing — it only
       // selects; dblclick/Enter/F2/typing edit. Only checkbox cells resolve a stationary
@@ -1022,8 +1025,22 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
 
   const onCellClick = useCallback(
     (coord: ViewCoord, event: ReactMouseEvent<HTMLElement>) => {
+      const linkPress = linkPressRef.current;
+      linkPressRef.current = false;
       const pending = pendingActiveClickRef.current;
       pendingActiveClickRef.current = null;
+      if (linkPress && event.detail < 2 && !storeApi.getState().editing) {
+        dispatchGridAction({
+          action: "openLink",
+          actions,
+          storeApi,
+          scrollRef,
+          scrollCellIntoView: scrollActiveCellIntoView,
+          rowHeight: layoutRef.current.rowHeight,
+          preventDefault: () => event.preventDefault(),
+        });
+        return;
+      }
       if (!pending || pending.col !== coord.col || pending.row !== coord.row) return;
       // detail >= 2 is a dblclick's second click — onCellDoubleClick resolves that case instead.
       if (event.detail >= 2) return;
@@ -1034,7 +1051,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         resolvedByClickRef.current = coord;
       }
     },
-    [actions, storeApi],
+    [actions, scrollActiveCellIntoView, scrollRef, storeApi],
   );
 
   const onCellDoubleClick = useCallback(

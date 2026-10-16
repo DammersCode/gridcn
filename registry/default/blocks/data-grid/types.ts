@@ -425,7 +425,7 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   /**
    * Link target for a stored value. The grid routes every result through `safeHref` (http/https/
    * mailto only) before it renders or opens; a type cannot widen the allow-list. `url` declares
-   * it; the `openLink` action (alt+Enter) opens the active cell's safe href.
+   * it; the `openLink` action (alt+Enter), Ctrl+click (Cmd+click on macOS), and middle-click open the safe href.
    */
   href?(value: TValue, options?: TOptions): string | null;
   /** Filter capabilities for this type; each member falls back to the name-derived default when absent. */

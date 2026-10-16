@@ -11,6 +11,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ### Added
 
+- **`url` cell links open with the mouse:** Ctrl+click (Cmd+click on macOS) and middle-click on the link open it in a new tab. A plain click selects the cell only.
 - **Keyboard access to the column menu and row checking:** `openColumnMenu` (Shift+Alt+ArrowDown) opens the active cell's column menu and returns focus to the cell on close. `toggleRow` (Ctrl+Shift+Space) checks or unchecks the active row without replacing the other checked rows. `toggleAllRows` (Ctrl+Alt+Space) does what the header checkbox does. The marker checkboxes and the menu trigger stay out of the Tab order.
 - **Agent-readable docs (site):** `/docs/<page>.md` and `llms-full.txt` render props tables, install commands, callouts, and tabs as plain markdown instead of raw MDX components. `llms.txt` opens with a task index and lists the Add-ons overview and the skills. Each skill is served at `/skills/<name>/SKILL.md`, carries a `gridcn-version` stamp, and ends with a "Do not" list.
 - **Detail panel recipe and demo (docs example):** `data-grid-detail-panel-demo` opens a non-modal side panel through `onCellClick` or a custom `openRow` command and keeps it on the active row through `onActiveCellChange`; focus stays in the grid. [Recipes](/docs/recipes/ui-patterns/detail-panel) covers the mouse, keyboard, and follow-the-active-row variants.

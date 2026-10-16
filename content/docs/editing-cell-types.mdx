@@ -65,7 +65,7 @@ filter match values, is on [custom cell types](/docs/custom-cell-types#value-pip
 | `checkbox` | `boolean` | No edit mode: direct toggle. |
 | `select` | `string \| null` | `options.choices: { value, label }[]`. |
 | `date` | `string \| null` (ISO `yyyy-mm-dd`) | See below. |
-| `url` | `string \| null` | The value is a URL. Renders a safe link (http, https, mailto only); other values stay plain text. alt+Enter opens the active cell's link. `options.label` maps the URL to the shown text. |
+| `url` | `string \| null` | The value is a URL. Renders a safe link (http, https, mailto only); other values stay plain text. alt+Enter opens the active cell's link; so do Ctrl+click (Cmd+click on macOS) and middle-click on the link. `options.label` maps the URL to the shown text. |
 | `longText` | `string` | Multi-line value. The cell shows the first 500 characters with line breaks as spaces; the editor is a popover textarea. `options.maxLength` (default 100,000), `options.placeholder`. |
 
 ```tsx
@@ -133,8 +133,8 @@ value and log a one-time dev warning.
 <NewBadge />
 
 The value is a URL. The cell renders a safe link that opens in a new tab without a referrer and is
-not a tab stop. A click on the link selects the cell and opens it; alt+Enter (`openLink`) opens
-the link of the active cell. Only values with an `http`, `https`, or `mailto` protocol render as a
+not a tab stop. A plain click on the link selects the cell only. Ctrl+click (Cmd+click on macOS) and
+middle-click open the link in a new tab. alt+Enter (`openLink`) opens the link of the active cell. Only values with an `http`, `https`, or `mailto` protocol render as a
 link; every other value renders as plain text. `options.label` maps the stored URL to the shown
 link text. `toText` and copy stay the URL.
 
