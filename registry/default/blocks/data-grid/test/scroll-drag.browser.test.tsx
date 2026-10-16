@@ -558,7 +558,7 @@ describe("scroll-drag: wasted-render regression", () => {
   });
 });
 
-describe("scroll-drag: idle DOM row count returns to baseline after settle (tablecn comparison report, 2026-07-17)", () => {
+describe("scroll-drag: idle DOM row count returns to baseline after settle", () => {
   function countRenderedRows(): number {
     return document.querySelectorAll('[role="row"]').length;
   }

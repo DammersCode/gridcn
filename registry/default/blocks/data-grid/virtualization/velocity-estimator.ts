@@ -14,7 +14,7 @@
  * kind from a mid-scroll pause: the user has stopped, not paused, so it hard-resets the estimate to 0
  * (see the `!isScrolling` branch below) instead of relying on decay-while-scrolling, which never runs
  * again once no further scroll tick arrives — the original design left the window stuck at its
- * fling-time size indefinitely at rest (tablecn comparison report, 2026-07-17: measured 59 rows
+ * fling-time size indefinitely at rest (measured 59 rows
  * mounted and unchanged after scroll stop). A new scroll right after settle starts this estimator
  * fresh via {@link createVelocityEstimator}'s same `{estimate: 0}` shape, so it ramps normally again.
  */

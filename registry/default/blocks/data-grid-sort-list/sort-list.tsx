@@ -44,10 +44,9 @@ function moveItem<T>(list: T[], fromIndex: number, toIndex: number): T[] {
 }
 
 /**
- * Popover listing active sorts as one aligned grid row per sort — anatomy ported from tablecn's
- * `DataTableSortList` (field select, direction select, trash icon-button, drag handle; footer
- * "Add sort"/"Reset sorting" buttons) but built from this repo's own Base UI components/conventions
- * rather than transliterated from tablecn's Radix markup. Reordering uses `@dnd-kit/react`'s
+ * Popover listing active sorts as one aligned grid row per sort (field select, direction select,
+ * trash icon-button, drag handle; footer "Add sort"/"Reset sorting" buttons), built from this
+ * repo's own Base UI components. Reordering uses `@dnd-kit/react`'s
  * sortable primitives (handle-initiated pointer drag with a lifted-row feel via `isDragSource`),
  * plus a plain ArrowUp/ArrowDown-on-drag handle fallback that always wins over the library's own keyboard
  * sensor (see {@link SortRow}'s `onKeyDown`). Precedence is array order in `SortSpec[]`; a

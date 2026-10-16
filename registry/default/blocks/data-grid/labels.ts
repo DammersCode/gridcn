@@ -42,7 +42,7 @@ export type DataGridToolbarLabels = {
   addFilter: string;
   clearFilters: string;
   noFiltersApplied: string;
-  /** Static "Where" label shown in the first filter row's join cell (tablecn parity). */
+  /** Static "Where" label shown in the first filter row's join cell. */
   filterWhere: string;
   /** aria-label for the AND/OR join-operator select, shown once 2+ filters are active. */
   joinOperatorAriaLabel: string;

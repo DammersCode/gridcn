@@ -58,11 +58,10 @@ function moveItem<T>(list: T[], fromIndex: number, toIndex: number): T[] {
 }
 
 /**
- * Popover listing active filters as one aligned grid row per filter — anatomy ported from tablecn's
- * `DataTableFilterList` (a join cell: "Where" on row 1, an And/Or select on row 2, static join text
+ * Popover listing active filters as one aligned grid row per filter (a join cell: "Where" on row 1, an And/Or select on row 2, static join text
  * on rows 3+; field select; operator select; typed value input; trash icon-button; drag handle drag
- * handle; footer "Add filter"/"Reset filters" buttons) but built from this repo's own Base UI
- * components/conventions rather than transliterated from tablecn's Radix markup. Reordering uses
+ * handle; footer "Add filter"/"Reset filters" buttons), built from this repo's own Base UI
+ * components. Reordering uses
  * `@dnd-kit/react`'s sortable primitives (handle-initiated pointer drag with a lifted-row overlay
  * feel via `isDragSource`), plus a plain ArrowUp/ArrowDown-on-drag handle fallback that always wins over
  * the library's own keyboard sensor (see {@link FilterRow}'s `onKeyDown`). Rows are keyed by
