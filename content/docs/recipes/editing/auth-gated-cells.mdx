@@ -13,7 +13,7 @@ or both. `readOnly` accepts a function of the row (see
 function useOrderColumns(): ColumnDef<Order>[] {
   const { role } = useSession();
 
-  return defineColumns<Order>()([
+  const columns = defineColumns<Order>()([
     { id: "customerName", header: "Customer", accessorKey: "customerName", type: "text" },
     {
       id: "price",
@@ -30,6 +30,7 @@ function useOrderColumns(): ColumnDef<Order>[] {
       hidden: role === "guest",
     },
   ]);
+  return [...columns];
 }
 ```
 

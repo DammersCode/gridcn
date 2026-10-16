@@ -73,7 +73,7 @@ Docs follow the same discipline as the changelog: every added or substantively c
 The sidebar dot comes from the page's `status` frontmatter. The baseline is `origin/main` (the published docs); `scripts/verify-doc-status.mjs` (run by `pnpm lint`) enforces it.
 
 - A page added since the baseline gets `status: new`. A page changed in substance gets `status: updated`. A wording-only edit (the script ignores punctuation and link targets) that still alters words gets `status: none`: no dot. A page without changes has no `status`.
-- A section, paragraph, props-table row, or list item added to an existing page gets `<NewBadge />` after the heading text, the first inline term, or in the first cell of the row. Pages with `status: new` need no section badges.
+- A section, paragraph, props-table row, or list item added to an existing page gets `<NewBadge />`: on its own line under a heading, after the first inline term of a paragraph or list item, or in the first cell of a table row. Pages with `status: new` need no section badges.
 - Release procedure: when a release is cut, remove every `status` line and every `<NewBadge />` from `content/docs`, so the next release starts clean. `origin/main` then equals the published docs and the script passes.
 
 ## API design (registry/default/blocks/**)

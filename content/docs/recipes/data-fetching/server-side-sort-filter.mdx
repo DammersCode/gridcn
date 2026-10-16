@@ -47,11 +47,11 @@ function ServerSyncedGrid() {
 </Callout>
 
 <Callout type="warn" title="A non-empty `sortState` is still applied to `data`">
-  The grid sorts `data` by whatever `sortState` holds. That is harmless above, because the server
+  The grid sorts `data` by whatever `sortState` holds, unless `sortMode="server"` is set. That is harmless above, because the server
   returns the whole result set and re-applying the same order changes nothing. It is *not* harmless
   when `data` holds only part of the result set, as under
   [lazy loading](/docs/lazy-loading#sorting-a-lazy-grid): sorting a partial array re-orders the
-  fetched rows among themselves and hides the true server order. `sortable: false` does not change
+  fetched rows among themselves and hides the true server order. `sortMode="server"` stops the re-sort. `sortable: false` does not change
   this. It only removes the header's click and indicator, never the comparator.
 </Callout>
 

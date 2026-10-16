@@ -280,7 +280,7 @@ On a single-cell edit, when you type a value and press Enter or Tab, or move awa
 - If the schema resolves with issues, the rejection message appears exactly like a sync
   rejection, and editing continues.
 - If the schema resolves successfully, the committed value is the schema's `result.value`. The
-  grid then applies the pending cell-to-cell movement, the delta from Enter or Tab.
+  grid then applies the pending cell-to-cell movement, the delta from Enter.
 - Escape, the start of a newer commit, or the unmount of the cell invalidates an in-flight
   validation. Its resolution is dropped silently, and never applied late.
 

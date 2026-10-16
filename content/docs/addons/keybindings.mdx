@@ -159,7 +159,7 @@ with the typed character (Excel behavior). Defining it in `keymap` takes the act
 exclusively. ANY `typeToReplace` binding suppresses the implicit printable-key fallback entirely,
 there is no additive mode: `keymap={{ typeToReplace: ["F3"] }}` means type-to-replace only happens
 on F3 (a plain edit start), and `keymap={{ typeToReplace: [] }}` disables it entirely. A printable
-key bound to `typeToReplace` (e.g. `"a"`) starts the edit seeded with that character, Excel-style.
+key bound to `typeToReplace` (e.g. `"a"`) starts the edit seeded with that character.
 
 Action labels in the dialog (and the per-`GridAction` label map) come from
 `labels.keybindings` (see [Internationalization: coverage by group](/docs/i18n#coverage-by-group)).

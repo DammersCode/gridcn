@@ -150,7 +150,7 @@ value/defaultValue convention as `sortState` and `filterState`. Omit both for un
   that feeds the fired value back applies nothing. The store recognizes its own emission, so a
   consumer lagging several drag steps behind never snaps the selection back to an older step.
   Any other value applies to the store without firing; a value with an `anchor` moves the
-  cursor to the anchor (a normal cursor move, which fires `onActiveCellChange`).
+  active cell to the anchor (a normal active-cell move, which fires `onActiveCellChange`).
 - `defaultSelection`: seeds the store once at the first render, then is ignored. With
   `selection` set too, `selection` wins and dev mode warns once.
 
@@ -415,9 +415,9 @@ zero-re-render guarantee as the other callbacks on this page.
   (`null`). The active cell follows its record and its column. When a sort, a filter, a data
   change, or a column hide, reorder, or pin moves them, the active cell moves with them, and the
   event fires with the new view position. The event also fires when another record comes under
-  the same cursor: a lazy row that loads, or a clamp. Re-selecting the same cell on the same
+  the same active cell: a lazy row that loads, or a clamp. Re-selecting the same cell on the same
   record and column does not fire. A rebuild that keeps the record and the column at their view
-  position does not fire. A value-only write to the record under the cursor does not fire. The payload is a `ViewCellRef`: the cell's stable `rowId` and `columnId` plus
+  position does not fire. A value-only write to the record under the active cell does not fire. The payload is a `ViewCellRef`: the cell's stable `rowId` and `columnId` plus
   the `viewRowIndex`/`viewColumnIndex` it occupied when the event fired.
 - `onEditStart` fires right before an edit session opens, from Enter or F2, type-to-replace,
   or a double-click, with the target cell's `ViewCellRef`. Return `false` to veto the edit.
@@ -447,7 +447,7 @@ zero-re-render guarantee as the other callbacks on this page.
   row outside the view, `viewRowIndex` is `-1`. Single-cell edits do not use this event.
   `onEditEnd` with `result: "rejected"` covers that surface.
 
-A commit's events arrive in this order: `onActiveCellChange` (when the cursor moves) and
+A commit's events arrive in this order: `onActiveCellChange` (when the active cell moves) and
 `onSelectionChange`, then `onDataChange`, then `onEditEnd`. With an async `validate` schema, `onEditEnd` waits for the
 schema to settle. The editor stays open while `pending` is true.
 

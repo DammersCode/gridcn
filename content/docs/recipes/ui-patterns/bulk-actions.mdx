@@ -55,15 +55,11 @@ function markShipped(gridRef: RefObject<DataGridApi<Order> | null>, rowIds: read
 }
 ```
 
-`deleteRows` takes view indices, so map the ids through `getViewRowIds()`:
+`deleteRowsById` deletes the rows by id:
 
 ```ts
 function deleteChecked(gridRef: RefObject<DataGridApi<Order> | null>, rowIds: readonly string[]) {
-  const api = gridRef.current;
-  if (!api) return;
-  const checked = new Set(rowIds);
-  const indices = api.getViewRowIds().flatMap((id, index) => (checked.has(id) ? [index] : []));
-  api.actions.deleteRows(indices);
+  gridRef.current?.actions.deleteRowsById([...rowIds]);
 }
 ```
 

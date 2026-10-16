@@ -198,3 +198,5 @@ back as the view" mode. This follows the same controlled-input convention as a p
 [Events & state](/docs/events-state#the-three-shapes-an-event-follows) three-shapes table for
 the canonical definition, and [Recipes](/docs/recipes/data-fetching/server-side-sort-filter) for the full
 server-side pattern.
+
+When `data` holds only part of the result set, set `sortMode="server"` <NewBadge />: the grid tracks the sort spec and never reorders `data`. See [Lazy loading](/docs/lazy-loading#sorting-a-lazy-grid).
