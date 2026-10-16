@@ -690,7 +690,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   // overlay/active-cell subscribers that selection changes already touch. `anchor` is the
   // press-row for the row-marker drag: the pointer is the moving edge, so the range is always
   // exactly anchor..current (it can grow AND shrink as the pointer moves).
-  const dragRef = useRef<{ pointerId: number; mode: "range" | "row" | "column"; anchor?: number } | null>(null);
+  const dragRef = useRef<{ pointerId: number; mode: "range" | "row" | "column"; anchor?: number; pendingOffAnchor?: boolean; leftAnchor?: boolean } | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
 
@@ -760,6 +760,15 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       row: Math.max(0, Math.min(coord.row, Math.max(0, rowCount - 1))),
     };
 
+    if (drag.pendingOffAnchor) {
+      if (clamped.row === drag.anchor) {
+        rafRef.current = requestAnimationFrame(() => dragFrameRef.current?.());
+        return;
+      }
+      drag.pendingOffAnchor = false;
+      drag.leftAnchor = true;
+    }
+
     if (drag.mode === "range") actions.extendToAt(clamped);
     else if (drag.mode === "row") {
       // A plain marker drag (anchor set) replaces the row channel with exactly anchor..current, so
@@ -805,8 +814,8 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   }, [stopAutoScrollLoop]);
 
   const beginDrag = useCallback(
-    (mode: "range" | "row" | "column", pointerId: number, captureElement?: Element, anchor?: number) => {
-      dragRef.current = { pointerId, mode, anchor };
+    (mode: "range" | "row" | "column", pointerId: number, captureElement?: Element, anchor?: number, pendingOffAnchor?: boolean) => {
+      dragRef.current = { pointerId, mode, anchor, pendingOffAnchor };
       captureElementRef.current = captureElement ?? null;
       if (rafRef.current === null) rafRef.current = requestAnimationFrame(runDragFrame);
 
@@ -849,7 +858,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
           const drag = dragRef.current;
           if (event.type === "pointerup" && drag.mode === "row" && drag.anchor !== undefined && scrollElement) {
             const endRow = pointerToCoord(event.clientX, event.clientY, scrollElement, layoutRef.current, storeApi.getState().viewIndex.length).row;
-            if (endRow !== drag.anchor) swallowNextClick();
+            if (endRow !== drag.anchor || drag.leftAnchor) swallowNextClick();
           }
           endDrag();
         };
@@ -1081,7 +1090,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       safeSetPointerCapture(event.currentTarget, event.pointerId);
       // the checkbox press is the range gesture's anchor: dragging makes the row channel exactly
       // pressRow..current (grow AND shrink), matching the plain marker drag.
-      beginDrag("row", event.pointerId, event.currentTarget, viewRowIndex);
+      beginDrag("row", event.pointerId, event.currentTarget, viewRowIndex, true);
     },
     [actions, beginDrag, storeApi],
   );

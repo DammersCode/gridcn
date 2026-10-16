@@ -209,6 +209,29 @@ describe("row markers", () => {
     },
   );
 
+  it("a checkbox press with a 1px move inside the same row keeps the selection and toggles the row on click", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="checkbox" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const checkboxAt = (i: number) => markerCells()[i]!.querySelector<HTMLElement>('[role="checkbox"]')!;
+    await userEvent.click(checkboxAt(0));
+    await userEvent.click(checkboxAt(1));
+
+    const target = checkboxAt(2);
+    const rect = target.getBoundingClientRect();
+    target.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1, clientX: rect.left + 3, clientY: rect.top + 3 }));
+    document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: rect.left + 4, clientY: rect.top + 3 }));
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => requestAnimationFrame(r));
+    document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 1 }));
+    await userEvent.click(target);
+
+    for (const i of [0, 1, 2]) await expect.element(checkboxAt(i)).toHaveAttribute("aria-checked", "true");
+  });
+
   it("a stationary press+release on the checkbox glyph still toggles it (no drag)", async () => {
     await render(
       <div style={{ height: 400 }}>
