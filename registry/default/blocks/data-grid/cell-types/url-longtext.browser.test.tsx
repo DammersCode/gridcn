@@ -75,6 +75,17 @@ describe("url cell type (browser)", () => {
     expect(open).toHaveBeenCalledExactlyOnceWith("mailto:user@example.com", "_blank", "noopener,noreferrer");
   });
 
+  it("releasing Ctrl before the button does not open the link", async () => {
+    await renderGrid();
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    const anchor = linkLocator().element();
+    anchor.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, button: 0, pointerId: 3, ctrlKey: true }));
+    anchor.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, cancelable: true, button: 0, pointerId: 3 }));
+    anchor.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0, detail: 1 }));
+
+    expect(open).not.toHaveBeenCalled();
+  });
+
   it("a middle press on the link is left to the browser: no selection, default not prevented", async () => {
     await renderGrid();
     const anchor = linkLocator().element();

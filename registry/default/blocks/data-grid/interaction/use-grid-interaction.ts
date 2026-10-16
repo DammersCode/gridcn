@@ -1066,7 +1066,8 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       linkPressRef.current = null;
       const pending = pendingActiveClickRef.current;
       pendingActiveClickRef.current = null;
-      if (linkPress && event.detail < 2 && !storeApi.getState().editing) {
+      const isMultiKey = isMacRef.current ? event.metaKey : event.ctrlKey;
+      if (linkPress && isMultiKey && event.detail < 2 && !storeApi.getState().editing) {
         dispatchGridAction({
           action: "openLink",
           actions,
