@@ -7,6 +7,12 @@
       "skillPath": "skills/agent-browser/SKILL.md",
       "computedHash": "ecc7641aea05f85ca3b11e7759d32aaf52fe05946ab4b63739c7bf78a41237a2"
     },
+    "ccc": {
+      "source": "cocoindex-io/cocoindex-code",
+      "sourceType": "github",
+      "skillPath": "skills/ccc/SKILL.md",
+      "computedHash": "4a296f49394451a1a6e505394f23b6232b130b872b218fa65d68c3dc49cecae9"
+    },
     "find-skills": {
       "source": "vercel-labs/skills",
       "sourceType": "github",

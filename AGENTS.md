@@ -170,6 +170,15 @@ Bugs that shipped or reached review more than once. Check each against your chan
 
 `GLOSSARY.md` is the source of the ubiquitous language. Use its words in code, comments, docs, skills, messages, and commit messages. Add a new term there before you introduce it. `scripts/verify-vocabulary.mjs` (run by `pnpm lint`) rejects the words the glossary replaces; write identifiers such as `ops` in code spans.
 
+## Optional search tools
+
+No setup is required; grep and glob always work. When the tools are installed, use them for the question they answer best:
+
+- cocoindex-code (MCP tool `search` or the `ccc` skill) for vague questions such as "where is X done?".
+- Serena for exact symbol questions such as a definition or its callers.
+
+Setup is in `DEVELOPMENT.md`.
+
 ## Workflow
 
 ### Gates

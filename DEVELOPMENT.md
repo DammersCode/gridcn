@@ -184,6 +184,44 @@ would, into a project you start yourself. The repository is public, so the CLI n
    For a bigger sweep (all items, two consumer flavors, typecheck + build), run
    `pwsh scripts/registry-smoke.ps1` (hosted flow via the local dev server).
 
+## Optional: code search for coding agents
+
+This is optional. The project builds, tests, and works without it.
+
+Two tools help coding agents find code faster: cocoindex-code (semantic search for vague questions) and Serena (symbol lookup: definitions and callers).
+
+1. Install [uv](https://docs.astral.sh/uv/).
+2. Install both tools:
+
+   ```bash
+   uv tool install -p 3.13 'cocoindex-code[full]'
+   uv tool install -p 3.13 serena-agent
+   ```
+
+3. In the repo, create the index:
+
+   ```bash
+   ccc init
+   ccc index
+   ```
+
+4. Connect them to your agent.
+   - Claude Code:
+
+     ```bash
+     claude mcp add --scope user cocoindex-code -- ccc mcp
+     claude mcp add --scope user serena -- serena start-mcp-server --context claude-code --project-from-cwd
+     ```
+
+   - OpenCode: add the same commands as local MCP servers in its config. Start Serena there with `--context ide`.
+
+Notes:
+
+- cocoindex-code collects usage data. Turn it off with `COCOINDEX_DISABLE_USAGE_TRACKING=1`.
+- Serena is licensed under GPL-3.0. This only affects using it as a tool; none of its code ships in this repo.
+- Windows: when the Claude desktop app runs as a Store package, `uv` can install tools into a redirected AppData folder. Set `UV_TOOL_DIR` to a path outside AppData, for example `C:\Users\<name>\.uv-tools`.
+- The index and Serena's cache live in `.cocoindex_code/` and `.serena/`. Both are ignored by git.
+
 ## Benchmarking
 
 Interactive stress test: `pnpm dev`, then `/dev` (100k-row playground — fling the scrollbar,

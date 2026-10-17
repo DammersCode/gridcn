@@ -25,3 +25,7 @@ references/
 
 # pnpm probe artifact - must never be committed
 .pnpm-store/
+# CocoIndex Code (ccc)
+/.cocoindex_code/
+# Serena
+/.serena/
