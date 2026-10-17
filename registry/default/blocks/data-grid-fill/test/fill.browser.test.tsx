@@ -237,6 +237,32 @@ describe("data-grid-fill add-on", () => {
     expect(onDataChange).not.toHaveBeenCalled();
   });
 
+  it("a cancelled pointer (pointercancel) mid-drag discards the fill", async () => {
+    const onDataChange = mockDataChangeFn();
+    const data = makeFillRows(6);
+    data[0]!.value = 2;
+    data[1]!.value = 4;
+    await renderFillGrid(data, onDataChange);
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    await selectValueColumn(2);
+    const handle = document.querySelector<HTMLElement>(gridAttrSelector("fillHandle"))!;
+    const targetRect = fillCells()[1 + 4 * fillColumns.length]!.getBoundingClientRect();
+
+    await handle.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1 }));
+    document.dispatchEvent(
+      new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: targetRect.left + 5, clientY: targetRect.top + 5 }),
+    );
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => requestAnimationFrame(r));
+    expect(document.querySelector(gridAttrSelector("fillPreview"))).not.toBeNull();
+
+    document.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerId: 1 }));
+    await new Promise((r) => requestAnimationFrame(r));
+    expect(document.querySelector(gridAttrSelector("fillPreview"))).toBeNull();
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
   it("pulses exactly the written cells after a committed fill, and lifts the pulse on its own", async () => {
     const data = makeFillRows(6);
     data[0]!.value = 2;

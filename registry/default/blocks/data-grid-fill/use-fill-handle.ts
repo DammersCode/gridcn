@@ -325,17 +325,21 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
           if (lastPointerRef.current) lastPointerRef.current.altKey = event.altKey;
           endDrag();
         };
+        const onCancel = (event: PointerEvent) => {
+          if (!dragRef.current || dragRef.current.pointerId !== event.pointerId) return;
+          cancelFillDrag();
+        };
         document.addEventListener("pointermove", onMove);
         document.addEventListener("pointerup", onUp);
-        document.addEventListener("pointercancel", onUp);
+        document.addEventListener("pointercancel", onCancel);
         documentListenersRef.current = () => {
           document.removeEventListener("pointermove", onMove);
           document.removeEventListener("pointerup", onUp);
-          document.removeEventListener("pointercancel", onUp);
+          document.removeEventListener("pointercancel", onCancel);
         };
       }
     },
-    [runFrame, endDrag],
+    [runFrame, endDrag, cancelFillDrag],
   );
 
   useEffect(() => () => documentListenersRef.current?.(), []);
