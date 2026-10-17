@@ -84,7 +84,7 @@ export function useColumnResize(args: {
         setIsResizing(false);
         cleanup();
         // drag-release commit point for onColumnLayoutChange — fires once here, not per handleMove frame.
-        argsRef.current.commitColumnWidth(column.id, lastWidth);
+        if (e.type === "pointerup") argsRef.current.commitColumnWidth(column.id, lastWidth);
       };
       // lostpointercapture fires even when pointerup is missed (alt-tab); the document fallbacks cover environments without capture semantics
       document.addEventListener("pointermove", handleMove);
