@@ -245,6 +245,27 @@ describe("useGridInteraction onKeyDown", () => {
     expect(hook.result.current.activeCell).toEqual({ col: 0, row: 0 });
   });
 
+  it("ignores the key when Safari sends it with keyCode 229 and isComposing false", () => {
+    const { hook } = renderInteraction();
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    hook.rerender();
+    act(() => {
+      hook.result.current.interaction.onKeyDown({
+        key: "ArrowDown",
+        ctrlKey: false,
+        metaKey: false,
+        shiftKey: false,
+        altKey: false,
+        nativeEvent: { isComposing: false, keyCode: 229 } as unknown as KeyboardEvent,
+        preventDefault: () => {
+          throw new Error("should not preventDefault while composing");
+        },
+      } as unknown as React.KeyboardEvent<HTMLElement>);
+    });
+    hook.rerender();
+    expect(hook.result.current.activeCell).toEqual({ col: 0, row: 0 });
+  });
+
   it("does not dispatch grid-level actions while editing (the editor owns the key)", () => {
     const { hook } = renderInteraction();
     act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));

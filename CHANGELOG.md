@@ -1034,6 +1034,7 @@ Re-run `npx shadcn add @gridcn/data-grid` (and each add-on you use) to replace t
 
 ### Fixed
 
+- **Grid key handling skips the Safari IME confirming key:** a keydown with `keyCode` 229 and `isComposing` false no longer reaches grid-level commands and navigation, matching the editors.
 - **Hostile cell values no longer crash display, copy, or export:** a value whose string conversion throws (a null-prototype object, a proxy with a throwing `toString`) renders as empty text in `text`, `select`, and `date` cells. Copy and export use that value's safe text when a cell type's `toText` throws.
 - **Duplicate column ids warn once per grid instance:** the development warning for duplicate column ids no longer fires on every render.
 - **Consumer TypeScript infers `closest`'s type parameter:** the parameter is explicit, so TypeScript 5.9 infers it in consumer code.

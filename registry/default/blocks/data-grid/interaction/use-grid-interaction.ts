@@ -42,6 +42,7 @@ import { allRowsSelectedState } from "../store/hooks";
 import { apiHandleOf } from "../store/api";
 import { getInternalActions } from "../store/internal-actions";
 import { holeRowId } from "../store/compute";
+import { isComposingKey } from "./is-composing-key";
 
 /** Action names already dev-warned as bound-but-unwired (dev-only, process-wide). */
 const warnedUnwiredActions = new Set<string>();
@@ -947,7 +948,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   const lastKeyEvent = useRef<Event | null>(null);
   const onKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLElement>) => {
-      if (event.nativeEvent.isComposing) return;
+      if (isComposingKey(event)) return;
       // Base UI mounts its popup container through a React portal, so React dispatches a popup keydown twice.
       if (lastKeyEvent.current === event.nativeEvent) return;
       lastKeyEvent.current = event.nativeEvent;
