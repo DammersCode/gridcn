@@ -172,10 +172,14 @@ export function parseClipboardText(text: string, maxCells?: number): string[][] 
 /** Upper bound for the markup one cell takes in a clipboard table; a larger payload skips the HTML parse. */
 const HTML_CHARS_PER_CELL = 80;
 
+/** Upper bound for the text one cell takes; a plain-text payload above the total is not parsed. */
+const TEXT_CHARS_PER_CELL = 256;
+const MIN_TEXT_CHARS = 1024 * 1024;
+
 /**
  * Produces a 2D string grid from clipboard data, preferring the HTML table representation
  * and falling back to TSV plain text. With `maxCells`, an HTML payload too large for that many cells
- * is skipped and the text parse stops early. Returns an empty array when neither is usable.
+ * is skipped, a text payload too large for them yields no cells, and the text parse stops early. Returns an empty array when neither is usable.
  */
 export function parseClipboard(data: { html?: string; text?: string }, maxCells?: number): string[][] {
   if (data.html && (maxCells === undefined || data.html.length <= maxCells * HTML_CHARS_PER_CELL)) {
@@ -183,6 +187,7 @@ export function parseClipboard(data: { html?: string; text?: string }, maxCells?
     if (fromHtml && fromHtml.length > 0) return fromHtml;
   }
   if (data.text !== undefined) {
+    if (maxCells !== undefined && data.text.length > Math.max(maxCells * TEXT_CHARS_PER_CELL, MIN_TEXT_CHARS)) return [];
     return parseClipboardText(data.text, maxCells);
   }
   return [];

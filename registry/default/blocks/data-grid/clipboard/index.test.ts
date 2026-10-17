@@ -251,6 +251,18 @@ describe("parseClipboardText", () => {
   });
 });
 
+describe("parseClipboard text bound", () => {
+  it("returns no cells for a text payload far larger than maxCells cells can hold", () => {
+    const giantField = "x".repeat(2 * 1024 * 1024);
+    expect(parseClipboard({ text: giantField }, 10)).toEqual([]);
+  });
+
+  it("parses a long cell below the bound", () => {
+    const longField = "x".repeat(50_000);
+    expect(parseClipboard({ text: `${longField}\tb` }, 10)).toEqual([[longField, "b"]]);
+  });
+});
+
 describe("parseClipboard", () => {
   it("prefers html when it yields a table", () => {
     const { html } = serializeCells([["from-html"]]);
