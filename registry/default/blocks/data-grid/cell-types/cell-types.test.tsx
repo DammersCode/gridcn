@@ -371,7 +371,7 @@ function editorSpies() {
 }
 
 describe("textCellType.Editor lifecycle", () => {
-  it("seeds from toText(value) when no initialText, with caret at the end — never select-all (diceui caret policy)", async () => {
+  it("seeds from toText(value) when no initialText, with caret at the end — never select-all", async () => {
     const { onChange, commit, cancel } = editorSpies();
     render(
       <textCellType.Editor

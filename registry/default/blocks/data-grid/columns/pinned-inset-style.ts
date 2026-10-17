@@ -16,7 +16,7 @@ export function pinnedInsetStyle(
     };
   }
   // Pin-right: the cell's right edge must sit `staticRightOffset` from the viewport's right edge,
-  // but only floats to that edge once content actually overflows it — diceui's rule — via
+  // but only floats to that edge once content actually overflows it, via
   // min(viewportWidth, contentWidth), else it hugs the content's own right edge (no dead gap).
   // rendered_left = trackLeft - scrollLeft + insetInlineStart (canvas transform + this cell's own inset).
   // Solve rendered_left = min(viewportWidth, contentWidth) - staticRightOffset - cellWidth for

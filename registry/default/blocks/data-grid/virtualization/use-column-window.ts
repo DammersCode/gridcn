@@ -91,7 +91,7 @@ function computeIndices(snapshot: ScrollSnapshot, opts: Required<UseColumnWindow
   }
 
   // dir="rtl" scroll containers report scrollLeft <= 0 growing negative as the user scrolls;
-  // normalize to the same rightward-positive axis the cumulative widths are built on (adazzle rdg).
+  // normalize to the same rightward-positive axis the cumulative widths are built on.
   const scrollLeft = Math.abs(snapshot.scrollLeft);
 
   // Mirrors pinnedInsetStyle's min(viewportWidth, contentWidth) anchor: when content is

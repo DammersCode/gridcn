@@ -13,7 +13,7 @@ const FORBIDDEN = [
   [/design spec/i, "design spec reference"],
   [/§\s*\d/, "section reference"],
   [/\((?:W\d+-\d+|G\d+)\)/, "plan or finding id"],
-  [/\b(?:glide|datasheet-grid|tanstack|MUI|ag-grid|handsontable)\b/i, "other product name"],
+  [/\b(?:glide|datasheet-grid|tanstack|MUI|ag-grid|handsontable|adazzle|diceui)\b/i, "other product name"],
 ];
 
 const problems = [];

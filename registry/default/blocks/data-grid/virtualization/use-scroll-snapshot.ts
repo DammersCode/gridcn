@@ -115,7 +115,7 @@ function writeScrollVars(viewport: HTMLElement, geometry: ScrollGeometry): void 
 const elementStores = new WeakMap<HTMLElement, ElementStore>();
 
 /**
- * One shared snapshot + listener Set per element (adazzle useScrollState pattern) so every
+ * One shared snapshot + listener Set per element so every
  * subscriber is notified, not just the first, and isScrolling state isn't duplicated per hook.
  * Exported so other virtualization hooks (e.g. {@link useColumnWindow}) share the same element store
  * instead of double-subscribing to scroll/resize.

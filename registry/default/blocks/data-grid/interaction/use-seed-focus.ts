@@ -1,6 +1,6 @@
 import { useEffect, type RefObject } from "react";
 
-/** Focuses an input on mount with the caret at the end of its content — never select-all (diceui caret policy). */
+/** Focuses an input on mount with the caret at the end of its content — never select-all. */
 export function useSeedFocus(ref: RefObject<HTMLInputElement | null>, _initialText: string | undefined) {
   useEffect(() => {
     const el = ref.current;
