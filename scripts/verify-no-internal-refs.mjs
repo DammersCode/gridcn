@@ -12,7 +12,7 @@ const FORBIDDEN = [
   [/\b[\w-]+-(?:spec|study)\.md\b/, "internal document name"],
   [/design spec/i, "design spec reference"],
   [/§\s*\d/, "section reference"],
-  [/\((?:W\d+-\d+|G\d+)\)/, "plan or finding id"],
+  [/\((?:W\d+-\d+|G\d+)\)|\b(?:R|NEW|PERF|BUG|SEC|ARCH|API)-\d+\b/, "plan or finding id"],
   [/\b(?:glide|datasheet-grid|tanstack|MUI|ag-grid|handsontable|adazzle|diceui)\b/i, "other product name"],
 ];
 
