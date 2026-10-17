@@ -36,10 +36,9 @@ Double-click the handle to size the column to its content. The header menu's "Au
 and "Autosize all columns" items do the same for one or every visible column (both from the
 [context menu add-on](/docs/addons/context-menu)).
 
-Autosize samples the view, not the mounted rows: it measures `sampleRows` view rows (default
-1000, clamped to [1, 10000]) evenly strided across the sorted and filtered view, plus every row
-in the currently mounted window, and sizes the column to the widest measured display text and
-the header. A column whose widest value sits off-screen still fits it through the sample.
+Autosize measures `sampleRows` view rows (default 1000, clamped to [1, 10000]) evenly strided
+across the sorted and filtered view, plus every rendered row. It sizes the column to the widest
+measured display text and the header. A column whose widest value sits off-screen still fits it through the sample.
 Sampled texts are cut to 1000 characters.
 
 `actions.autosizeColumns(options)` runs the pass programmatically; it commits every changed

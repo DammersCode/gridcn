@@ -227,7 +227,7 @@ matcher · **fill** = raw value.
   blur that follows it, or React StrictMode's mount-cleanup-mount double-invoke in dev. Without
   a guard, the second path fires `commit` or `onChange` again on an edit that already committed.
   The guard is one `useRef` flag: `tryCommit()` returns `true` once, and `false` after that.
-- **Honor `pending` and `rejectionCount` if your column type can carry an async Standard Schema
+- **Honor `pending` and `rejectionCount` if your cell type can carry an async Standard Schema
   `validate`.** `CellEditorProps.pending` is true while an async schema is resolving. Set your
   input `readOnly`, never `disabled` (a disabled input cannot receive Escape or blur, which
   silently blocks cancellation). `rejectionCount` increments on every rejected commit attempt
