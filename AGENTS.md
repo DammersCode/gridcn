@@ -112,6 +112,22 @@ Grid data and imported files are untrusted input.
 - Add no dependency without a reason in the commit message. `pnpm audit --prod` must show no HIGH finding.
 - Never put secrets, tokens, or personal data into code, tests, fixtures, or docs.
 
+## Review lessons
+
+Bugs found in review. Check each against your change.
+
+- A gesture that can be cancelled (`pointercancel`, `lostpointercapture`, blur) tears down and never commits.
+- A removed tab stop gets a keyboard path in the same commit.
+- Focus returns to the grid only when the grid opened the thing.
+- Every string conversion of a cell value goes through `toSafeText`, never bare `String(value)`.
+- Parser regexes run in linear time, and their inputs are length-bounded.
+- Check a new keyboard chord against browser and OS reservations: Ctrl+Alt is AltGr on Windows, Ctrl+Option+Space is VoiceOver, Ctrl+Shift+E opens DevTools in Firefox and Edge. Give it a docs row.
+- Honor `sortMode="server"` in every view and row-operation path. Read `viewSorts`, not raw `sortState`.
+- Keep `<NewBadge />` out of heading text. It breaks the build.
+- A test that races animation frames dispatches its input synchronously.
+- A fix to unreleased behavior needs no changelog line. A fix to shipped behavior does.
+- A registry change rebuilds the payloads in the same series of commits.
+
 ## Vocabulary
 
 `GLOSSARY.md` is the source of the ubiquitous language. Use its words in code, comments, docs, skills, messages, and commit messages. Add a new term there before you introduce it. `scripts/verify-vocabulary.mjs` (run by `pnpm lint`) rejects the words the glossary replaces; write identifiers such as `ops` in code spans.
