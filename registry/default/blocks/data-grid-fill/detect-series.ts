@@ -53,7 +53,7 @@ function detectArithmetic(values: readonly string[]): SeriesDescriptor | null {
   for (let i = 2; i < numbers.length; i++) {
     if (Math.abs(numbers[i]! - numbers[i - 1]! - delta) > EPSILON) return null;
   }
-  const precision = Math.max(...trimmed.map(decimalPlaces));
+  const precision = trimmed.reduce((max, v) => Math.max(max, decimalPlaces(v)), 0);
   return {
     extrapolate: (index: number) => {
       const formatted = (first + delta * index).toFixed(precision);

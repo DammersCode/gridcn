@@ -1033,6 +1033,7 @@ Re-run `npx shadcn add @gridcn/data-grid` (and each add-on you use) to replace t
 
 ### Fixed
 
+- **Fill detects a series over a very large selection:** series detection no longer spreads every value into `Math.max`, which threw `RangeError` for selections of about 100k cells or more.
 - **Global shortcuts skip the Safari IME confirming key:** `useDataGridGlobalShortcuts` no longer runs undo or redo for a keydown with `keyCode` 229 and `isComposing` false.
 - **Pasting after a select-all of a very large grid no longer fails:** the paste target reads the first selected row or column instead of spreading every index into `Math.min`, which threw `RangeError` at around a million selected rows.
 - **Paste ignores a plain-text clipboard payload far too large for the paste cap:** text above about 256 characters per allowed cell (at least 1 MiB) yields no cells, like an oversized HTML payload, instead of being scanned in full.

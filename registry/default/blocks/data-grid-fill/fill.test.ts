@@ -151,6 +151,11 @@ describe("detectSeries", () => {
     expect(detectSeries(["1", "2", "4"])).toBeNull();
   });
 
+  it("detects an arithmetic progression over 2M values without spreading the array", () => {
+    const values = Array.from({ length: 2_000_000 }, (_, i) => String(i));
+    expect(detectSeries(values)?.extrapolate(2_000_000)).toBe("2000000");
+  });
+
   it("detects a descending arithmetic progression", () => {
     const series = detectSeries(["12", "10"]);
     expect(series).not.toBeNull();
