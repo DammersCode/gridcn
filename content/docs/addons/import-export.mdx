@@ -360,6 +360,8 @@ build custom UI instead of using the provided buttons and dialog. `parseImportFi
 `matchImportColumns`, `applyImportOptions`, and `buildImportedRows` are the pure functions
 underneath, for when you need to parse or map outside a React component entirely.
 
+`BuildExportRowsOptions` types the `options` of `buildExportRows`. `UseDataGridImportPreviewOptions` types the options of `useDataGridImportPreview`.
+
 `parseImportFile` takes a `sheetName` option for multi-sheet workbooks (first sheet by default.
 An unknown `sheetName` rejects), and the result's `sheetNames`/`sheetName` report what was in the
 workbook and which one you got. Switching sheets re-parses and recomputes the column mapping from

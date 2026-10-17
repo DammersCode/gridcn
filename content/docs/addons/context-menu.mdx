@@ -85,6 +85,8 @@ it, extend it, or build a fully custom set.
 | `getCellMenuItems` <NewBadge /> | the right-click cell menu | `(ctx, defaults)`. `ctx` is `{ rowId, viewRowIndex, columnId, canInsertRow, canDuplicateRow }`: the right-clicked cell's stable row id, its view row, its column id, and the `createRow`/`duplicateRow` availability flags the built-in set gates its Insert/Duplicate items on |
 | `getHeaderMenuItems` <NewBadge /> | the right-click header menu AND every `DataGridHeaderDropdown` inside the wrapper | `(ctx, defaults)`. `ctx` is `{ columnId, scrollRoot }`: the right-clicked column's id and the grid's scroll-container element (`null` when the right-clicked element has no grid ancestor) |
 
+`CellMenuItemsResolver` and `HeaderMenuItemsResolver` are the function types of `getCellMenuItems` and `getHeaderMenuItems`.
+
 The built-in entries carry stable `id`s <NewBadge />, so a resolver keeps or drops them by id:
 
 | Surface | Built-in ids, in order |

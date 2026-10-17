@@ -182,7 +182,8 @@ for most:
   once at module scope and name it `use…`, for example
   `const useOrderSelector = createDataGridSelector<Order>()`. `TData` types `state.data`, so a
   selector that reads rows gets them back typed. The hook takes `(selector, eq?)`; `eq` (default
-  `Object.is`) controls re-renders.
+  `Object.is`) controls re-renders. `DataGridStoreStateOf<TData>` is the state type the selector
+  receives.
 - `useDataGridRow<TData>(viewRowIndex)`: the typed row at a view (display) index. Omit
   `TData` for `unknown`, the previous shape.
 
