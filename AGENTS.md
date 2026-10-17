@@ -114,19 +114,57 @@ Grid data and imported files are untrusted input.
 
 ## Review lessons
 
-Bugs found in review. Check each against your change.
+Bugs that shipped or reached review more than once. Check each against your change. `scripts/verify-source-rules.mjs` (run by `pnpm lint`) enforces the ones a pattern can catch.
 
-- A gesture that can be cancelled (`pointercancel`, `lostpointercapture`, blur) tears down and never commits.
-- A removed tab stop gets a keyboard path in the same commit.
-- Focus returns to the grid only when the grid opened the thing.
-- Every string conversion of a cell value goes through `toSafeText`, never bare `String(value)`.
-- Parser regexes run in linear time, and their inputs are length-bounded.
+### Input and gestures
+
+- End a gesture on `pointercancel`, `lostpointercapture`, or blur with teardown only. Commit only on `pointerup`: four drag hooks committed cancelled drags.
+- Capture a long drag with `safeSetPointerCapture` on the scroll element. A row that leaves the rendered rows drops its capture, and a refused capture throws.
+- Remove every document listener, timer, and deferred retry at gesture end, on a second pointer, and on unmount. Leaked ones fired on dead grids.
+- Decide a press at click time: start a drag only after the pointer leaves the pressed target, and cancel the click after a drag or a released modifier. Presses changed the selection and opened links.
+- Leave events from inputs, cell editors, portaled popups, and interactive header contents to them, and skip global shortcuts during an edit session. Grid handlers stole their keys, clicks, and clipboard events.
+- Scope document-level handlers to the grid that owns the focus or the event. Nested and sibling grids doubled or stole keys, clipboard events, and Mod+F.
+
+### Keyboard and focus
+
+- A removed tab stop gets a keyboard path in the same commit. Taking row marker checkboxes and the header menu trigger out of the Tab order removed their keyboard access.
+- Return focus to the grid only when the keyboard opened the thing from the grid, and never over a control the user clicked in the meantime.
+- Outside an edit, leave Tab and Shift+Tab to the browser. A Tab commit keeps the browser's focus move: the grid trapped Tab twice.
+- Gate a keydown with `isComposingKey`, never with bare `isComposing`. Safari confirms an IME composition with keyCode 229.
 - Check a new keyboard chord against browser and OS reservations: Ctrl+Alt is AltGr on Windows, Ctrl+Option+Space is VoiceOver, Ctrl+Shift+E opens DevTools in Firefox and Edge. Give it a docs row.
-- Honor `sortMode="server"` in every view and row-operation path. Read `viewSorts`, not raw `sortState`.
-- Keep `<NewBadge />` out of heading text. It breaks the build.
+
+### State and data
+
+- Honor `sortMode="server"` in every view, row-operation, streaming, and warning path. Read `viewSorts`, not raw `sortState`: three paths reordered or warned on server-sorted data.
+- Anchor state that outlives a view rebuild (active cell, checked rows, ranges, edit session, cut, flashes) to row id and column id, never to a view index. Seven fixes moved such state onto other records.
+- Change the selection through the compact channel operations, and update every channel that a gesture touches. Never spread or materialize a channel: `Math.min(...rows)` throws at 100k rows.
+- Handle lazy holes and band rows in every view-row reader. They have no data index and no row object, and readers threw or passed `undefined` row ids.
+- After an `await`, read the store again. Drop the result if a newer request, `readOnly`, or a changed selection or row set replaced it: late parses, cuts, fills, and fetches overwrote newer state.
+- Check `readOnly` on every write path: commit, edit start, paste, fill, cut, undo, and redo. Six fixes added the check to paths that lacked it.
+- Fire consumer callbacks after the outermost store write, and isolate each call so that one throw cannot drop the rest.
+- Skip a controlled-prop sync when the value is unchanged, not only when the reference is. An equal `filterState` rebuilt the view on every sync.
+- Warn in development only (`isDev`), once per instance, and only on a proven misuse. False identity and presence warnings took five fixes.
+- Render display cells as plain elements with `role` and `aria-*`. A mounted control in every cell doubled the scroll cost.
+
+### Security and untrusted data
+
+- Convert a cell value to text through `toSafeText`, never bare `String(value)`. A null-prototype value crashed display, copy, and export.
+- Parse in linear time with anchored regexes, and bound the input length. The number, date, and fill-series parsers froze on hostile digit runs.
+- Bound every import, paste, URL value, and export on each dimension before the parse or the build: bytes, rows, cells per row, sheets, list lengths. Each missing dimension shipped as its own fix.
+- Validate URL state against the live columns, their visibility, and their choices. Specs for hidden or removed columns reached the view.
+
+### Docs and release
+
+- Put `<NewBadge />` on its own line under a heading, never in the heading text. A badge in a heading broke the build.
+- A fix to shipped behavior gets its changelog entry in the fix commit. A fix to unreleased behavior needs none. A release audit found nine fixes without an entry.
+- A registry change rebuilds the payloads and declares every import of the item in the same series of commits. A new demo also gets an entry in `components/registry-examples.tsx`.
+- Render docs and demos the same on the server and the client: pin locales, read the platform from a server snapshot, and check the server HTML. Hydration mismatches and sidebar flashes took six fixes.
+
+### Process
+
+- Fix a bug class in every sibling in the same series: grep the other drag hooks, cell types, editors, and handlers. Column reorder kept the cancel bug that row reorder had fixed.
+- Make sure that each docs and JSDoc claim matches the code or a test. The docs said that a duplicate row id resolves to the last row, but the code takes the first.
 - A test that races animation frames dispatches its input synchronously.
-- A fix to unreleased behavior needs no changelog line. A fix to shipped behavior does.
-- A registry change rebuilds the payloads in the same series of commits.
 
 ## Vocabulary
 
