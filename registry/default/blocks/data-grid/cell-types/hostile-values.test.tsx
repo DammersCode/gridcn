@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import type { ComponentType } from "react";
 import { cleanup, render } from "@testing-library/react";
 import { dateCellType, numberCellType, selectCellType, textCellType } from "./cell-types";
 import { displayText } from "./display-text";
@@ -27,7 +28,7 @@ describe.each(Object.entries(hostileValues))("hostile value: %s", (_label, make)
   });
 
   it.each(cases)("%s: the cell renders without throwing", (_name, cellType, options) => {
-    const Cell = cellType.Cell as never as (props: unknown) => React.JSX.Element;
+    const Cell = cellType.Cell as unknown as ComponentType<Record<string, unknown>>;
     expect(() => render(<Cell value={make()} options={options} />)).not.toThrow();
   });
 });

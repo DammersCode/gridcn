@@ -90,7 +90,7 @@ describe("buildExportRows with a throwing cell type", () => {
   it("exports the safe value text instead of throwing", () => {
     const throwing = { ...textCellType, toText: () => { throw new Error("hostile"); } };
     const state = makeState({ cellTypes: { text: throwing as never } });
-    expect(buildExportRows(state)[0]).toEqual(["Alice", 'has "quotes"']);
+    expect(buildExportRows(state, "view")[0]).toEqual(["Alice", 'has "quotes"']);
   });
 });
 

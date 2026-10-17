@@ -224,9 +224,9 @@ export function truncatePasteGrid(cells: string[][], maxCells: number): string[]
  */
 export function resolvePasteTarget(s: DataGridStoreState): ViewCoord | null {
   if (s.selection.current) return { col: s.selection.current.range.x, row: s.selection.current.range.y };
-  const firstColumn = s.selection.columns.first();
+  const [firstColumn] = s.selection.columns.toArray();
   if (firstColumn !== undefined) return { col: firstColumn, row: 0 };
-  const firstRow = s.selection.rows.first();
+  const [firstRow] = s.selection.rows.toArray();
   if (firstRow !== undefined) return { col: 0, row: firstRow };
   return s.activeCell;
 }
