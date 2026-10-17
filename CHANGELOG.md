@@ -1428,7 +1428,10 @@ Re-run `npx shadcn add @gridcn/data-grid` (and each add-on you use) to replace t
 - **A duplicate row id resolves to its first row (`data-grid`):** the row index map keeps the first row for an id that appears twice, so lookups by id no longer land on the last duplicate.
 - **Clipboard parsing stops at the paste cell cap (`data-grid`):** the text parse ends once the cap is passed, and an HTML payload too large for the cap skips the DOM parse and falls back to the text, instead of building the whole grid before truncating.
 - **Plugins re-resolve after a claim (`data-grid`):** when the resolved plugin list differs from the store state after a claim, the store takes the new list.
-
+- **Links open only on a plain modifier-click:** a `url` cell opens its link only while the modifier is still held at click time, and a Ctrl+drag that starts on a link no longer opens it.
+- **The keyboard-opened column menu behaves at the edges:** it scrolls the active column into view first, returns focus to the grid only when the keyboard opened it, and leaves focus on another control that you click while it closes.
+- **Unchecking a row clears it from the cell range:** the range no longer shows the row as checked, and when the uncheck splits a range, the anchor's piece stays primary.
+- **A cancelled pointer ends a drag without applying it:** `pointercancel` now cancels a column reorder and a fill drag, and ends a column resize without firing `onColumnLayoutChange`.
 
 ## 0.1.0
 
