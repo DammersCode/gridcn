@@ -102,7 +102,6 @@ export {
   type DataGridProviderProps,
   type AnyColumnDef,
   createDataGridSelector,
-  useDataGridSelector,
 } from "./store";
 export type { AnyCellType, ColumnDefOf, ClipboardProcessCtx } from "./store";
 

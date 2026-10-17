@@ -29,7 +29,6 @@ import {
   useDataGridSelection,
   useDataGridSelectionConfig,
   useDataGridGetSelectionValues,
-  useDataGridSelector,
   useDataGridSortState,
   useDataGridStore,
   useDataGridStoreApi,
@@ -37,6 +36,7 @@ import {
   useDataGridViewStale,
   useDataGridVisibleColumns,
   type DataGridStoreState,
+  useDataGridSelector,
 } from "../store";
 import type { FilterSpec, SortSpec } from "../types";
 

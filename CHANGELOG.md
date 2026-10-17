@@ -224,8 +224,7 @@ Re-run `npx shadcn add @gridcn/data-grid` (and each add-on you use) to replace t
   store selector hook. Create it once at module scope and name it `use…`, like any hook. `TData`
   types `state.data`, and the hook infers the result type from the selector, so the call takes no
   type argument. The hook takes `(selector, eq?)`; `eq` (default `Object.is`) controls
-  re-renders. `useDataGridSelector<TData, TResult>(selector, eq?)` is the direct form and takes
-  both type arguments. `useDataGridRow<TData>(viewRowIndex)` returns the typed row at a view index
+  re-renders. `useDataGridRow<TData>(viewRowIndex)` returns the typed row at a view index
   (unannotated it stays `unknown`, as before). Exported from the `data-grid` barrel.
 - **Custom keymap commands (`data-grid`):** the `DataGridProvider`/`DataGrid` `commands` prop
   accepts `Record<string, GridCommand>` — consumer actions behind `keymap` bindings that name

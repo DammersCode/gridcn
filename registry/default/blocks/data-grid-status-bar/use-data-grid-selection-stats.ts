@@ -5,12 +5,11 @@ import {
   getCellValue,
   useDataGridCellTypes,
   useDataGridSelection,
-  useDataGridSelector,
   useDataGridViewIndex,
   useDataGridVisibleColumns,
   type AnyColumnDef,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { selectionRects } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { selectionRects, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { computeSelectionStats, EMPTY_SELECTION_STATS, type SelectionStats } from "./compute-selection-stats";
 
 /** Total rect area up to which the walk runs at once; above it, the settle timer defers it. */

@@ -4,10 +4,9 @@ import { useEffect, useRef, type ReactNode } from "react";
 import {
   useDataGridFilterState,
   useDataGridSearchText,
-  useDataGridSelector,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isDev, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Props for {@link DataGridLazyGuard}. */
 export type DataGridLazyGuardProps = {

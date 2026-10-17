@@ -47,7 +47,8 @@ import type {
   SortSpec,
   ColumnLayout,
 } from "./data-grid";
-import { createDataGridSelector, useDataGridSelector, useDataGridCellTypes, useDataGridVisibleColumns, useDataGridAllColumns } from "./data-grid";
+import { useDataGridSelector } from "./store";
+import { createDataGridSelector, useDataGridCellTypes, useDataGridVisibleColumns, useDataGridAllColumns } from "./data-grid";
 import { DATA_GRID_ROOT_PROP_KEYS } from "./root";
 import type { DataGridStoreState } from "./store";
 
