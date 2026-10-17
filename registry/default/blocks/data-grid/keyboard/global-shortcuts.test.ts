@@ -15,6 +15,7 @@ function makeEvent(overrides: Partial<GlobalShortcutEvent> = {}): GlobalShortcut
     shiftKey: false,
     altKey: false,
     isComposing: false,
+    keyCode: 0,
     defaultPrevented: false,
     ...overrides,
   };
@@ -86,6 +87,10 @@ describe("resolveGlobalShortcut - gate rules", () => {
 
   it("skips IME composition (rule 1)", () => {
     expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true, isComposing: true }), makeCtx())).toBe(null);
+  });
+
+  it("ignores the Safari IME confirming key (keyCode 229, isComposing false)", () => {
+    expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true, keyCode: 229 }), makeCtx())).toBe(null);
   });
 
   it("skips events another handler already handled (rule 2)", () => {

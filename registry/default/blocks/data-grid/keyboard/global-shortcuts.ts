@@ -1,4 +1,5 @@
 import type { GridAction, Keymap } from "../types";
+import { isComposingKey } from "../interaction/is-composing-key";
 import { matchKeymap } from "./match-keymap";
 import { isMacPlatform } from "./platform";
 
@@ -57,6 +58,7 @@ export type GlobalShortcutEvent = {
   shiftKey: boolean;
   altKey: boolean;
   isComposing: boolean;
+  keyCode: number;
   defaultPrevented: boolean;
 };
 
@@ -92,7 +94,7 @@ export function resolveGlobalShortcut(
   event: GlobalShortcutEvent,
   ctx: GlobalShortcutContext,
 ): GlobalShortcutAction | null {
-  if (event.isComposing) return null;
+  if (isComposingKey(event)) return null;
   if (event.defaultPrevented) return null;
   if (ctx.targetIsEditable) return null;
   if (ctx.targetInAnyGrid) return null;
