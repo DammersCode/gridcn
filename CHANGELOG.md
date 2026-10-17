@@ -1033,6 +1033,7 @@ Re-run `npx shadcn add @gridcn/data-grid` (and each add-on you use) to replace t
 
 ### Fixed
 
+- **A refused pointer capture no longer breaks a fill-handle drag:** the handle captures the pointer through `safeSetPointerCapture`, so an unknown or already released pointer id degrades to a document-level drag instead of throwing.
 - **Fill detects a series over a very large selection:** series detection no longer spreads every value into `Math.max`, which threw `RangeError` for selections of about 100k cells or more.
 - **Global shortcuts skip the Safari IME confirming key:** `useDataGridGlobalShortcuts` no longer runs undo or redo for a keydown with `keyCode` 229 and `isComposing` false.
 - **Pasting after a select-all of a very large grid no longer fails:** the paste target reads the first selected row or column instead of spreading every index into `Math.min`, which threw `RangeError` at around a million selected rows.

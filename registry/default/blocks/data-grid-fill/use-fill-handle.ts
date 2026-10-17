@@ -10,6 +10,7 @@ import {
   candidateRowIds,
   pointerToCoord,
   rowIdAtViewRow,
+  safeSetPointerCapture,
   resolveBulkWrites,
   resolveColumnValidate,
   snapshotBulkBatch,
@@ -353,7 +354,7 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
       event.preventDefault();
       event.stopPropagation();
       lastPointerRef.current = { clientX: event.clientX, clientY: event.clientY, altKey: event.altKey };
-      event.currentTarget.setPointerCapture?.(event.pointerId);
+      safeSetPointerCapture(event.currentTarget, event.pointerId);
       beginDrag(s.selection.current.range, event.pointerId, event.currentTarget);
     },
     [beginDrag, disabled, storeApi],

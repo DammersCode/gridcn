@@ -115,6 +115,27 @@ describe("data-grid-fill add-on", () => {
     expect(nextData.map((r) => r.value)).toEqual([2, 4, 6, 8, 10, 5]);
   });
 
+  it("a refused pointer capture does not break the drag", async () => {
+    const refuse = vi.spyOn(Element.prototype, "setPointerCapture").mockImplementation(() => {
+      throw new DOMException("refused", "NotFoundError");
+    });
+    try {
+      const onDataChange = mockDataChangeFn();
+      const data = makeFillRows(6);
+      data[0]!.value = 2;
+      data[1]!.value = 4;
+      await renderFillGrid(data, onDataChange);
+      await selectValueColumn(2);
+
+      await dragHandleToRow(4);
+
+      expect(refuse).toHaveBeenCalled();
+      expect(onDataChange.mock.calls[0]![0].map((r) => r.value)).toEqual([2, 4, 6, 8, 10, 5]);
+    } finally {
+      refuse.mockRestore();
+    }
+  });
+
   it("onFill's values is the computed fill pattern, not the destination's stale content", async () => {
     const onDataChange = mockDataChangeFn();
     const onFill = vi.fn<(args: FillArgs) => void>();
