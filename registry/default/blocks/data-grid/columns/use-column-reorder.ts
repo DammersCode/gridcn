@@ -112,13 +112,13 @@ export function useColumnReorder(args: {
 
       document.addEventListener("pointermove", handleMove);
       document.addEventListener("pointerup", handleUp);
-      document.addEventListener("pointercancel", handleUp);
+      document.addEventListener("pointercancel", handleLost);
       document.addEventListener("lostpointercapture", handleLost);
       window.addEventListener("blur", handleLost);
       cleanupRef.current = () => {
         document.removeEventListener("pointermove", handleMove);
         document.removeEventListener("pointerup", handleUp);
-        document.removeEventListener("pointercancel", handleUp);
+        document.removeEventListener("pointercancel", handleLost);
         document.removeEventListener("lostpointercapture", handleLost);
         window.removeEventListener("blur", handleLost);
       };
