@@ -263,7 +263,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   /**
    * The cursor, the open edit, and the selection carried into a rebuilt view. `sameRecords` keeps
    * data indices as identity (no `data` swap, or our own echo); otherwise records map by rowId, and
-   * a duplicated rowId resolves to the last row with that id. The active cell follows its record and
+   * a duplicated rowId resolves to the first row with that id. The active cell follows its record and
    * column and clamps only when one of them left the view. The row channel follows its records, the
    * column channel its column ids. A range that now covers other records or columns collapses onto
    * the followed active cell; a clamp that moves the cursor collapses onto it, and a clamp in place

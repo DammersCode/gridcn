@@ -14,7 +14,7 @@ channels, through marker-column checkbox clicks and header clicks, independent o
 
 Checked rows follow their records when a sort, filter, or new `data` array rebuilds the view.
 When a row leaves the view, the grid unchecks it. Row ids must be unique: when two rows share an
-id, the check follows the last row with that id. The active cell follows its record and its column
+id, the check follows the first row with that id. The active cell follows its record and its column
 when the view rebuilds and when columns move, hide, or pin. When its row or its column leaves the
 view, the active cell keeps its view position, clamped into the view. When a rebuild puts other
 records or other columns under the range, the grid collapses the range onto the active cell. A
