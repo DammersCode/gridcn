@@ -87,10 +87,10 @@ describe("rowsToCsv round-trip", () => {
 });
 
 describe("buildExportRows with a throwing cell type", () => {
-  it("exports the safe value text instead of throwing", () => {
+  it("lets the error reach the caller so exportGrid reports it through onError", () => {
     const throwing = { ...textCellType, toText: () => { throw new Error("hostile"); } };
     const state = makeState({ cellTypes: { text: throwing as never } });
-    expect(buildExportRows(state, "view")[0]).toEqual(["Alice", 'has "quotes"']);
+    expect(() => buildExportRows(state, "view")).toThrow("hostile");
   });
 });
 

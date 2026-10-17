@@ -18,8 +18,7 @@ export type ColumnResizeHandlers = {
 /**
  * Pointer-capture column resize: drag the handle to live-update the column's
  * width via `setColumnWidth`, clamped to `[minWidth ?? 32, maxWidth ?? Infinity]`; ends on
- * `lostpointercapture` (not `pointerup` — pointerup can be missed on alt-tab, per the adazzle
- * study). Double-click sizes this column to its content over the whole view via the store's
+ * `lostpointercapture` (not `pointerup` — pointerup can be missed on alt-tab). Double-click sizes this column to its content over the whole view via the store's
  * `autosizeColumns` action (one commit, one `onColumnLayoutChange`).
  */
 export function useColumnResize(args: {
