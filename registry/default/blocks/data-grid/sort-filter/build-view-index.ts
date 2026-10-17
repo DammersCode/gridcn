@@ -13,7 +13,10 @@ import { createFilterMatcher } from "./matches-filter";
  * order under it instead of re-deriving it.
  */
 export type CellAccessor = {
+  /** The raw text the filter matcher, the empty check, and the default sort read. */
   getText(rowIndex: number, columnId: string): string;
+  /** The quick-search text; defaults to `getText`. */
+  getSearchText?: (rowIndex: number, columnId: string) => string;
   compare?(columnId: string): ((a: number, b: number) => number) | undefined;
   /** Whether a row's cell in `columnId` is empty for sort placement; defaults to `getText() === ""`. */
   isEmpty?(rowIndex: number, columnId: string): boolean;
@@ -43,6 +46,11 @@ export function makeFilterTest(accessor: CellAccessor, filter: FilterSpec): (row
   }
   const test = createFilterMatcher(filter);
   return (row: number) => test(accessor.getText(row, filter.columnId));
+}
+
+/** The accessor's quick-search reader: `getSearchText` when present, else `getText`. */
+export function searchTextReader(accessor: CellAccessor): (rowIndex: number, columnId: string) => string {
+  return accessor.getSearchText ?? ((rowIndex, columnId) => accessor.getText(rowIndex, columnId));
 }
 
 /** Whether `row`'s cell in `columnId` counts as empty for sort placement — empty sorts last in BOTH directions. */
@@ -100,8 +108,9 @@ export function buildViewIndex(
   if (search && opts.searchColumnIds) {
     const needle = search.toLowerCase();
     const columnIds = opts.searchColumnIds;
+    const readSearchText = searchTextReader(accessor);
     indices = indices.filter((row) =>
-      columnIds.some((columnId) => accessor.getText(row, columnId).toLowerCase().includes(needle)),
+      columnIds.some((columnId) => readSearchText(row, columnId).toLowerCase().includes(needle)),
     );
   }
 
@@ -122,8 +131,8 @@ export function buildViewIndex(
       // Same empty-last-in-both-directions rule as the default path, so a typed column's blanks
       // don't flip sides on a direction change while a text column's stay put.
       return (a: number, b: number) => {
-        const emptyA = empties.get(a) ?? false;
-        const emptyB = empties.get(b) ?? false;
+        const emptyA = empties.get(a)!;
+        const emptyB = empties.get(b)!;
         if (emptyA && emptyB) return 0;
         if (emptyA) return 1;
         if (emptyB) return -1;
@@ -138,8 +147,8 @@ export function buildViewIndex(
 
     // Empty must sort last for both directions, so only the non-empty ordering flips.
     return (a: number, b: number) => {
-      const textA = keys.get(a) ?? "";
-      const textB = keys.get(b) ?? "";
+      const textA = keys.get(a)!;
+      const textB = keys.get(b)!;
       if (textA === "" || textB === "") return defaultCompareText(textA, textB, collator);
       return dir * defaultCompareText(textA, textB, collator);
     };

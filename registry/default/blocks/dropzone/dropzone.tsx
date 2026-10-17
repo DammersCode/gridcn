@@ -41,7 +41,7 @@ export type FilterFilesResult = { accepted: File[]; rejections: DropzoneRejectio
  * Splits `files` into accepted and rejected by `accept` (MIME or extension), `minSize`/`maxSize`
  * (bytes), and `maxFiles` (a count over the limit rejects the excess files, keeping file order).
  */
-export function filterFiles(files: readonly File[], options: FilterFilesOptions): FilterFilesResult {
+export function filterFiles(files: readonly File[], options: FilterFilesOptions = {}): FilterFilesResult {
   const { accept, maxSize, minSize, maxFiles } = options;
   const accepted: File[] = [];
   const rejections: DropzoneRejection[] = [];

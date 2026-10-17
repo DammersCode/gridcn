@@ -3,8 +3,11 @@ import type { StandardSchemaV1, StandardSchemaV1Issue, StandardSchemaV1Result } 
 /** A column's resolved `validate` field: the sync function form or any Standard Schema for the value. */
 export type CellValidate = ((value: unknown, row: unknown) => string | null) | StandardSchemaV1 | undefined;
 
-/** `error`: rejected, message to show. `value`: accepted — the value to COMMIT (a schema may transform it, so this may differ from the input). */
-export type ValidateResult = { error: string } | { value: unknown };
+/**
+ * `error`: rejected, message to show; `thrown` marks a validator that threw, which blocks even an
+ * `onInvalid: "warn"` column. `value`: accepted — the value to COMMIT (a schema may transform it).
+ */
+export type ValidateResult = { error: string; thrown?: true } | { value: unknown };
 
 /** Structural detection per the spec — never `instanceof`, so any library's schema object qualifies. */
 export function isStandardSchema(validate: unknown): validate is StandardSchemaV1 {
@@ -33,10 +36,16 @@ export function resolveSchemaResult(result: StandardSchemaV1Result<unknown>): Va
  * A schema whose `~standard.validate` returns a Promise cannot be awaited here, so the value passes
  * UNCHANGED — the awaiting happens one layer up: single-cell edits in
  * `interaction/use-async-validate.ts`, bulk batches in `validation/validate-batch.ts`, both of which
- * hand `computeCommit`/`computeCellPatchBatch` an already-resolved `result.value`.
+ * hand `computeCommit`/`computeCellPatchBatch` an already-resolved `result.value`. A validator
+ * that throws rejects the value with the thrown message and `thrown: true`.
  */
 export function runValidateSync(validate: CellValidate, value: unknown, row: unknown): ValidateResult {
-  const pending = runValidatePending(validate, value, row);
+  let pending: ReturnType<typeof runValidatePending>;
+  try {
+    pending = runValidatePending(validate, value, row);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error), thrown: true };
+  }
   return pending instanceof Promise ? { value } : pending;
 }
 

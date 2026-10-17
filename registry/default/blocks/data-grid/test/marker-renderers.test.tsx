@@ -4,12 +4,11 @@ import type { ReactNode } from "react";
 import type { ColumnDef } from "../types";
 import {
   DataGrid,
-  GRID_ATTR,
-  gridAttrSelector,
   useDataGridActions,
   type MarkerCellRenderCtx,
   type MarkerHeaderRenderCtx,
 } from "../data-grid";
+import { GRID_ATTR, gridAttrSelector } from "../data-grid-sdk";
 
 type Row = { id: string; name: string; qty: number };
 
@@ -108,6 +107,20 @@ describe("renderMarker (custom row marker cell content)", () => {
     expect(customs[0]).toHaveAttribute("data-row", "0");
     expect(document.querySelector(gridAttrSelector("markerNumber"))).toBeNull();
     expect(markers[0]!.querySelector('[role="checkbox"]')).toBeNull();
+  });
+
+  it("passes a placeholder rowId for an unloaded (lazy) hole and the row's own id otherwise", () => {
+    const rows: Row[] = new Array(3);
+    rows[0] = { id: "0", name: "Row 0", qty: 0 };
+    rows[2] = { id: "2", name: "Row 2", qty: 2 };
+    const withRowId = ({ rowId, viewRowIndex }: MarkerCellRenderCtx): ReactNode => (
+      <span data-testid="custom-row-marker" data-row={viewRowIndex} data-row-id={rowId} />
+    );
+    render(<DataGrid data={rows} columns={columns} getRowId={(r) => r.id} rowMarkers="checkbox" renderMarker={withRowId} />);
+    const markers = screen.getAllByTestId("custom-row-marker");
+    expect(markers[0]).toHaveAttribute("data-row-id", "0");
+    expect(markers[1]).toHaveAttribute("data-row-id", "__lazy-unloaded-1");
+    expect(markers[2]).toHaveAttribute("data-row-id", "2");
   });
 
   it("reflects isRowChannelSelected in the ctx as the row selection changes", () => {

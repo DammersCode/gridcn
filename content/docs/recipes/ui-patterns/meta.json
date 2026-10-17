@@ -1,0 +1,10 @@
+{
+  "title": "UI patterns",
+  "icon": "LayoutPanelLeft",
+  "pages": [
+    "detail-panel",
+    "bulk-actions",
+    "remember-view",
+    "multiple-grids"
+  ]
+}

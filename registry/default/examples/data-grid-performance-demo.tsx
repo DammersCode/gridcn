@@ -37,7 +37,7 @@ const columns = defineColumns<DemoRow>()([
   { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90 },
 ] as const);
 
-/** rAF-loop FPS readout, adapted from diceui's Fps primitive (https://diceui.com/docs/components/base/fps). */
+/** rAF-loop FPS readout. */
 function FpsMeter(): ReactNode {
   // update interval is 500ms, not per-frame, so this state write is ~2/s regardless of grid fps
   const [fps, setFps] = useState(0);

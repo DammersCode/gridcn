@@ -1,7 +1,8 @@
 ---
 title: Undo & redo
-description: Op-based, id-keyed history that survives sort and filter.
+description: Operation-based, row-id-based history that survives sort and filter.
 icon: Undo2
+status: updated
 ---
 
 Undo and redo live in the separate `data-grid-history` add-on.
@@ -12,14 +13,14 @@ Undo and redo live in the separate `data-grid-history` add-on.
 
 ## How it works
 
-History is **op-based and id-keyed**, not a snapshot stack. Each entry is the ops batch from one
+History is **operation-based and row-id-based**, not a snapshot stack. Each entry is the operations batch from one
 `onDataChange` call (an edit, paste, fill, or delete-range), addressed by row id rather than
 array index. So undo and redo keep working correctly across sorts and filters. Undoing an edit
 made before a sort still finds and reverts the right row, wherever it sits in the view.
 
 <Callout title="A vanished row id is skipped, not an error">
   If a row's id has since disappeared, for example because an external data refresh removed it,
-  history skips that op on undo and redo rather than raising an error. This is documented
+  history skips that operation on undo and redo rather than raising an error. This is documented
   behavior, not a silent surprise.
 </Callout>
 
@@ -27,7 +28,7 @@ made before a sort still finds and reverts the right row, wherever it sits in th
 
 <Callout title="How this differs from defaultData">
   `useDataGridState` owns the array in your component and passes it as the CONTROLLED `data` prop,
-  re-feeding the grid every render — undo and redo work precisely because of that echo. It is NOT
+  re-feeding the grid every render. Undo and redo work precisely because of that echo. It is NOT
   the core's `defaultData` semantics (set once, then grid-owned with later props ignored). Reach
   for it only when you actually want history. Otherwise, `defaultData` alone means one less add-on
   to install. See the three-shapes table in
@@ -50,30 +51,33 @@ const grid = useDataGridState(initialRows, { getRowId: (row) => row.id });
 </DataGridProvider>;
 ```
 
-`grid.history` exposes `{ canUndo, canRedo, historySize, undo, redo, clear }` for wiring your
-own toolbar buttons. `historySize` counts the entries on the undo stack. `clear` empties both
-stacks; for a dataset change, pass `datasetKey` instead of calling `clear` by hand (see
-[Dataset changes](#dataset-changes)).
+`grid.history` exposes `{ canUndo, canRedo, historySize, undo, redo, clear, record }` for wiring
+your own toolbar buttons. `historySize` counts the entries on the undo stack. `clear` empties
+both stacks; for a dataset change, pass `datasetKey` instead of calling `clear` by hand (see
+[Dataset changes](#dataset-changes)). `record` applies a programmatic change and registers it as
+one entry (see [Programmatic changes](#programmatic-changes-record)).
 <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Y</kbd>, and
 <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> work automatically while focus is in
-the grid.
+the grid. The history plugin provides the `undo`/`redo` commands behind those keys.
 With the opt-in [`DataGridGlobalShortcuts`](/docs/global-shortcuts) component, undo and
 redo also work while focus is on a custom toolbar or anywhere else on the page.
+In a `readOnly` grid, the keys do nothing. Your own toolbar buttons call `undo` and `redo`
+directly. Those are also no-ops on a `readOnly` grid, so bind their `disabled` to the grid's
+`readOnly` flag (see [Read-only grids](#read-only-grids)).
 
 ## Composable: `useDataGridHistory`
 
 When you already own the data array through your own state, not the internal `useState` of
-`useDataGridState`, wire the history hook directly. It takes `data` and `setData`, mirroring the
-tuple of `useState`, so it composes with any state source:
+`useDataGridState`, wire the history hook directly. It returns one plugin. The grid's store is
+the write target, and your controlled-data echo (your `onDataChange` calling your own state
+setter) stays exactly where it always was:
 
 ```tsx
+import { useState } from "react";
 import { useDataGridHistory } from "@/components/data-grid-history/data-grid-history";
 
-const [data, setData] = useState(initialRows);
-const { onDataChange, undo, redo, canUndo, canRedo } = useDataGridHistory({
-  data,
-  setData,
-  getRowId: (row) => row.id,
+const [data, setData] = useState<readonly Order[]>(initialRows);
+const history = useDataGridHistory({
   capacity: 100, // optional; caps the undo stack, default is generous
 });
 
@@ -81,28 +85,28 @@ const { onDataChange, undo, redo, canUndo, canRedo } = useDataGridHistory({
   data={data}
   columns={columns}
   getRowId={(row) => row.id}
-  onDataChange={onDataChange}
-  onUndo={undo}
-  onRedo={redo}
+  onDataChange={setData}
+  plugins={[history.plugin]}
 >
 ```
 
+The plugin's observer records every change the grid applies (after your own `onDataChange`
+runs). The plugin's `undo`/`redo` commands back the keyboard bindings. `history.undo`,
+`history.redo`, `history.canUndo`, and `history.canRedo` are the imperative and toolbar-facing
+forms of the same history.
+
 ## Programmatic changes: `record`
 
-Changes your own app makes — setting the row count, adding a column, rolling back a batch save —
+Changes your own app makes (setting the row count, adding a column, rolling back a batch save)
 are not gestures, so they never reach `onDataChange`. Register them as a single undo entry with
-`record`, passing the id-keyed op batch for the change:
+`record`, passing the row-id-based operation batch for the change. `record` applies the batch to the grid
+as one write AND registers it as one entry:
 
 ```tsx
-const { onDataChange, undo, redo, canUndo, canRedo, record } = useDataGridHistory({
-  data,
-  setData,
-  getRowId: (row) => row.id,
-});
+const history = useDataGridHistory();
 
-// the app applies its own change, then registers it as ONE undo step:
-setData((rows) => [...rows, extraRow]);
-record(
+// one call: the change lands in the grid and registers as ONE undo step
+history.record(
   {
     source: "app",
     ops: [{ type: "insert", rowId: extraRow.id, row: extraRow, index: data.length }],
@@ -111,20 +115,63 @@ record(
 );
 ```
 
-<Callout type="warn" title="Two `record`s, one caveat">
-  The same name behaves differently per hook: `useDataGridHistory.record` is register-only (you
-  applied the change to your own array), while `useDataGridState.history.record` applies the batch
-  to the hook-owned data AND registers it. If you let the hook own the data, the plain
-  `onDataChange(next, { source: "app", ops })` call already records the change — `record()` is
-   only needed when the consumer wrote the array itself first. The `label` is write-only. It
-   survives undo/redo with the entry, and there is no API to read stack entries back.
+<Callout type="warn" title="Do not write the array yourself first">
+  `record` applies the change through the grid's `commitChange`. If you also apply it to your
+  own array, the grid's write and your state land out of order and the echo re-feeds a stale
+  array. Call `record` alone, and let the grid's `onDataChange` echo update your state. `label`
+  is write-only. It survives undo/redo with the entry, and there is no API to read stack entries
+  back.
 </Callout>
+
+## Which changes are recorded
+
+<NewBadge />
+
+History records the changes a user made on purpose: `edit`, `paste`, `fill`, `delete`, `row-operation`,
+`import`, and `app` (see the `source` field in
+[Events & state](/docs/events-state#1-ondatachange--the-flagship-shape)). It never records
+`history` (an undo or redo itself). It does not record `stream` by default, so a live feed of
+`updateCells` batches never fills the stack or gets undone by accident. Pass `recordSources` to
+either hook to change the list:
+
+```tsx
+const history = useDataGridHistory({ recordSources: ["edit", "paste", "stream"] });
+```
+
+An undo or redo reaches `onDataChange` with `source: "history"`. If `onDataChange` saves to a
+server, that handler sees the undo as a normal change and saves it.
+
+## Rolling back a failed save
+
+<NewBadge />
+
+An `onDataChange` handler that saves to a server sees undo and redo as changes with
+`source: "history"`. When a save fails, call `rollback(change)` with the change the handler
+received:
+
+```tsx
+const history = useDataGridHistory<Row>();
+
+const onDataChange = async (_next: readonly Row[], change: DataChange<Row>) => {
+  if (change.source === "rollback") return; // the server never saw the failed change
+  try {
+    await api.save(change);
+  } catch {
+    history.rollback(change);
+  }
+};
+```
+
+`rollback` applies the inverse change with `source: "rollback"` and removes the entry from the
+undo stack, so no dead <kbd>Ctrl</kbd>+<kbd>Z</kbd> step remains. Neither `"history"` nor
+`"rollback"` changes are recorded. `createHistory` exposes the same removal as
+`discard(change)`.
 
 ## Capped stack
 
 Pass `capacity` to either hook to bound memory on long editing sessions. The oldest entries drop
 once the stack exceeds it. Omit `capacity` for a generous default. `capacity` counts ENTRIES, not
-ops: a `record()`/`insertRows` batch of 10k ops is one entry.
+operations: a `record()`/`insertRows` batch of 10k operations is one entry.
 
 ## Dataset changes
 
@@ -147,40 +194,59 @@ setDatasetKey((key) => key + 1);
 A dataset id or a version counter both work. The key only needs to differ between datasets.
 Use `clear()` for a reset with no key, for example a "reset to defaults" button.
 
+## Read-only grids
+
+<NewBadge />
+
+A `readOnly` grid refuses writes at the store. History follows that rule end to end: nothing new
+records, and `undo` and `redo` are no-ops that keep their entries (popping an unapplied entry
+would lose it). Entries recorded before the grid turned read-only keep `canUndo` true while
+`undo` does nothing, so gate your toolbar buttons on the grid's `readOnly` flag as well:
+
+```tsx
+<DataGrid {...grid} columns={columns} readOnly={readOnly} />
+
+<button disabled={readOnly || !grid.history.canUndo} onClick={grid.history.undo}>
+  Undo
+</button>
+```
+
+The keyboard bindings are gated the same way: on a `readOnly` grid, mod+Z and mod+Y do nothing.
+
 ## With data-grid-lazy
 
 `useDataGridLazyRows` owns the `data` array. That array is sparse: loaded indices hold rows, and
-unloaded indices hold `undefined` holes. Pass the lazy hook's merge function as history's
-`setData`, and history's `onDataChange` as the grid's `onDataChange`:
+unloaded indices hold `undefined` holes. Pass the lazy hook's own `onDataChange` echo as the
+grid's `onDataChange`, and the history plugin as a `plugins` entry. Every grid write (and
+history's own undo/redo writes) flows through the grid's single write path, so the lazy hook
+sees every next array through that one echo:
 
 ```tsx
 const lazy = useDataGridLazyRows<Order>({ total, fetchRows, getRowId });
 
-const { onDataChange, undo, redo, clear } = useDataGridHistory({
-  data: lazy.gridProps.data,
-  setData: lazy.onDataChange,
-  getRowId: (row, index) => (row === undefined ? `__lazy-unloaded-${index}` : row.id),
-});
+const history = useDataGridHistory({ datasetKey });
 
-<DataGridProvider
-  {...lazy.gridProps}
+<DataGrid
+  data={lazy.gridProps.data}
   columns={columns}
-  onDataChange={onDataChange}
-  onUndo={undo}
-  onRedo={redo}
->
+  getRowId={lazy.gridProps.getRowId}
+  onDataChange={lazy.onDataChange}
+  plugins={[history.plugin]}
+/>
 ```
 
-The grid calls history's `onDataChange` on every change. It records the change, then hands the
-next array to the lazy hook. The lazy hook merges the array back into the sparse rows.
+The grid applies a change, emits it, and the lazy hook merges the next array back into its
+sparse rows. The history observer records the change from the same emission.
 
 Three rules make the combination safe:
 
-- **`getRowId` must tolerate holes.** History runs `getRowId` on every element of the sparse
-  array, including the `undefined` holes. The plain `(row) => row.id` form throws on a hole. Use
-  the hole-tolerant form from the example.
+- **The grid's `getRowId` must tolerate holes.** The grid runs `getRowId` on every element of
+  the sparse array, including the `undefined` holes. The plain `(row) => row.id` form throws on a
+  hole. The lazy hook's own `getRowId` option only sees loaded rows, and
+  `lazy.gridProps.getRowId` is already wrapped to answer a placeholder id for a hole. Pass the
+  plain form to the hook and `lazy.gridProps.getRowId` to the grid, as in the example.
 - **Evicted rows are silent no-ops.** An entry whose rows were evicted or reset out skips those
-  ops and keeps the rest, so `canUndo` can stay true on an entry that changes nothing. This is
+  operations and keeps the rest, so `canUndo` can stay true on an entry that changes nothing. This is
   the same rule as the vanished row id skip above.
 - **Clear the stack when the dataset changes.** `lazy.reset()` and a dataset swap drop the
   loaded rows the stack references. Pass the dataset's identity as `datasetKey`, so the stack
@@ -191,6 +257,6 @@ Three rules make the combination safe:
 
 ## Related
 
-- [Global shortcuts](/docs/global-shortcuts) — undo and redo while focus is outside the
+- [Global shortcuts](/docs/global-shortcuts): undo and redo while focus is outside the
   grid
-- [Keybindings](/docs/addons/keybindings) — the default-keymap undo and redo bindings
+- [Keybindings](/docs/addons/keybindings): the default-keymap undo and redo bindings

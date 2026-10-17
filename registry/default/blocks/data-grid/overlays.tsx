@@ -1,14 +1,14 @@
 "use client";
 
-import { Fragment, type CSSProperties, type ReactNode } from "react";
+import { type CSSProperties, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { GRID_LAYER } from "./layers";
-import type { CellCoord, CompactSelectionLike, GridRect } from "./types";
+import type { ViewCoord, CompactSelectionLike, GridRect } from "./types";
 import { intersectRect } from "./selection";
 import { pinnedInsetStyle } from "./columns/pinned-inset-style";
 import {
   useDataGridActiveCell,
-  useDataGridOverlayPlugins,
+  useDataGridPluginOverlays,
   useDataGridSelection,
   type AnyColumnDef,
 } from "./store";
@@ -151,7 +151,7 @@ export type DataGridOverlaysProps = {
 };
 
 /**
- * Context passed to every registered {@link OverlayPlugin}: the window-clamp + pin-zone
+ * Context passed to every plugin `Overlay` component: the window-clamp + pin-zone
  * segmentation helpers and layout vars a plugin needs to reproduce the built-in layers'
  * "clamp to rendered window, split by pin zone, place by grid line" pipeline.
  */
@@ -166,17 +166,8 @@ export type OverlayPluginCtx = {
   clampRectToWindow: typeof clampRectToWindow;
 };
 
-/**
- * One overlay-plugin slot: registered via `overlayPlugins` on `DataGridProvider`, rendered by
- * {@link DataGridOverlays} after the range/band layers but BEFORE the local active-cell ring —
- * plugin content (e.g. a fill drag preview, multiplayer presence) loses visually to local focus.
- * The only new core surface for add-ons that paint into the overlay layer: core supplies
- * geometry, the plugin supplies content.
- */
-export type OverlayPlugin = (ctx: OverlayPluginCtx) => ReactNode;
-
 /** True when any column is pinned — segmentation is a no-op (and skippable) otherwise. */
-function hasAnyPin(pinTrack: PinTrackData | undefined): pinTrack is PinTrackData {
+export function hasAnyPin(pinTrack: PinTrackData | undefined): pinTrack is PinTrackData {
   return Boolean(pinTrack && pinTrack.pins.some((p) => p === "left" || p === "right"));
 }
 
@@ -186,14 +177,17 @@ function hasAnyPin(pinTrack: PinTrackData | undefined): pinTrack is PinTrackData
  * Subscribes to selection/active-cell via atomic selectors: a change re-renders only this
  * component (never rows). When any column is pinned, every rect splits into pinned-left/unpinned/
  * pinned-right segments so pinned segments paint at their cell's actual screen position, above
- * pinned cells' own z-index. Registered `overlayPlugins` render after the built-in layers but
+ * pinned cells' own z-index. Plugin overlays render after the built-in layers but
  * BEFORE the active-cell ring, so local focus always wins visually over plugin content.
  */
 export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
-  const { windowStart, rowCount, clampRowStart = windowStart, clampRowEnd = windowStart + rowCount, colCount, colOffset = 1, pinTrack } = props;
+  const { windowStart, rowCount, clampRowStart, clampRowEnd, colCount, colOffset = 1, pinTrack } = props;
+  // The compiler can't lower a binary expression as a destructure default; resolve the defaults here.
+  const clampedRowStart = clampRowStart ?? windowStart;
+  const clampedRowEnd = clampRowEnd ?? windowStart + rowCount;
   const selection = useDataGridSelection();
   const activeCell = useDataGridActiveCell();
-  const overlayPlugins = useDataGridOverlayPlugins();
+  const overlays = useDataGridPluginOverlays();
   const pinned = hasAnyPin(pinTrack) ? pinTrack : undefined;
 
   /** Splits into pin-zone segments when the grid has pinned columns, else the rect as a single "segment". */
@@ -211,18 +205,18 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
   // or shift these bands past the real rendered bottom.
   const columnBands: GridRect[] = membershipRuns(selection.columns, 0, colCount).map((run) => ({
     x: run.start,
-    y: clampRowStart,
+    y: clampedRowStart,
     width: run.length,
-    height: clampRowEnd - clampRowStart,
+    height: clampedRowEnd - clampedRowStart,
   }));
-  const rowBands: GridRect[] = membershipRuns(selection.rows, clampRowStart, clampRowEnd).map((run) => ({
+  const rowBands: GridRect[] = membershipRuns(selection.rows, clampedRowStart, clampedRowEnd).map((run) => ({
     x: 0,
     y: run.start,
     width: colCount,
     height: run.length,
   }));
 
-  const activeInWindow: CellCoord | null =
+  const activeInWindow: ViewCoord | null =
     activeCell && activeCell.row >= windowStart && activeCell.row < windowStart + rowCount ? activeCell : null;
   const activePinStyle = activeInWindow && pinned ? pinned.pins[activeInWindow.col] && pinnedInsetStyle(
     pinned.pins[activeInWindow.col],
@@ -232,7 +226,7 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
   return (
     <>
       {rangeRects.map((rect, i) => {
-        const clamped = clampRectToWindow(rect, clampRowStart, clampRowEnd, colCount);
+        const clamped = clampRectToWindow(rect, clampedRowStart, clampedRowEnd, colCount);
         if (!clamped) return null;
         return segment(clamped).map((seg, j) => (
           <RangeOverlay key={`${i}-${j}`} rect={seg.rect} windowStart={windowStart} colOffset={colOffset} pinStyle={seg.pinStyle} />
@@ -248,14 +242,22 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
           <RangeOverlay key={`row-band-${i}-${j}`} rect={seg.rect} windowStart={windowStart} colOffset={colOffset} pinStyle={seg.pinStyle} />
         )),
       )}
-      {overlayPlugins.length > 0 &&
-        overlayPlugins.map((plugin, i) => (
+      {overlays.length > 0 &&
+        overlays.map(({ name, Overlay }) => (
           // rendered here (after range/band layers, BEFORE the active-cell ring) so a plugin like
           // data-grid-fill's fill-preview/handle or presence keeps painting below local focus —
           // the ring must always win visually.
-          <Fragment key={i}>
-            {plugin({ windowStart, clampRowStart, clampRowEnd, colCount, colOffset, pinTrack, splitRectByPinZones, clampRectToWindow })}
-          </Fragment>
+          <Overlay
+            key={name}
+            windowStart={windowStart}
+            clampRowStart={clampedRowStart}
+            clampRowEnd={clampedRowEnd}
+            colCount={colCount}
+            colOffset={colOffset}
+            pinTrack={pinTrack}
+            splitRectByPinZones={splitRectByPinZones}
+            clampRectToWindow={clampRectToWindow}
+          />
         ))}
       {activeInWindow && (
         <div

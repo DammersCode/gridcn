@@ -1,9 +1,21 @@
-import type { DataGridLabels, GridAction } from "@/registry/default/blocks/data-grid/data-grid";
+import type { CommandGroup, DataGridLabels, GridAction } from "@/registry/default/blocks/data-grid/data-grid";
 
 /** Section order for the dialog; 'other' catches consumer-added actions not in this map. Display strings live in `labels.keybindings.categories` (i18n). */
-export const KEYBINDING_CATEGORIES = ["navigation", "selection", "editing", "clipboardFill", "history", "other"] as const;
+export const KEYBINDING_CATEGORIES = [
+  "navigation",
+  "selection",
+  "editing",
+  "clipboardFill",
+  "history",
+  "other",
+] as const satisfies readonly CommandGroup[];
 
-export type KeybindingCategory = (typeof KEYBINDING_CATEGORIES)[number];
+// Fails to compile when a CommandGroup has no dialog section.
+const everyGroupHasASection: [Exclude<CommandGroup, (typeof KEYBINDING_CATEGORIES)[number]>] extends [never] ? true : never = true;
+void everyGroupHasASection;
+
+/** The dialog's section set — core's {@link CommandGroup} (a custom command's `group` must name one of these). */
+export type KeybindingCategory = CommandGroup;
 
 /** Display label for `category`, from {@link DataGridLabels.keybindings.categories}. */
 export function categoryLabel(category: KeybindingCategory, labels: DataGridLabels): string {
@@ -16,10 +28,10 @@ export const ACTION_CATEGORY: Partial<Record<GridAction, KeybindingCategory>> = 
   moveDown: "navigation",
   moveLeft: "navigation",
   moveRight: "navigation",
-  retainMoveUp: "navigation",
-  retainMoveDown: "navigation",
-  retainMoveLeft: "navigation",
-  retainMoveRight: "navigation",
+  moveUpKeepSelection: "navigation",
+  moveDownKeepSelection: "navigation",
+  moveLeftKeepSelection: "navigation",
+  moveRightKeepSelection: "navigation",
   scrollActiveIntoView: "navigation",
   moveRowStart: "navigation",
   moveRowEnd: "navigation",
@@ -45,19 +57,23 @@ export const ACTION_CATEGORY: Partial<Record<GridAction, KeybindingCategory>> = 
   selectRow: "selection",
   selectColumn: "selection",
   selectAll: "selection",
+  toggleRow: "selection",
+  toggleAllRows: "selection",
+  openColumnMenu: "selection",
 
   edit: "editing",
-  editReplace: "editing",
+  typeToReplace: "editing",
   commitDown: "editing",
   commitUp: "editing",
   commitRight: "editing",
   commitLeft: "editing",
   cancel: "editing",
-  deleteContents: "editing",
+  clearContents: "editing",
   insertRowBelow: "editing",
   insertRowAbove: "editing",
   duplicateRow: "editing",
   deleteRows: "editing",
+  openLink: "editing",
 
   fillDown: "clipboardFill",
   fillRight: "clipboardFill",

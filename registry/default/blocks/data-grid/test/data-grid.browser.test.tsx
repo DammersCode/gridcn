@@ -1,9 +1,20 @@
 import { page, userEvent } from "vitest/browser";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
-import type { ColumnDef, DataChange } from "../types";
-import { defineColumns, DataGrid, GRID_ATTR, gridAttrSelector } from "../data-grid";
+import { useEffect, useRef, useState } from "react";
+import type { ColumnDef, ColumnLayout, DataChange, Keymap, SelectionState } from "../types";
+import {
+  defineColumns,
+  DataGrid,
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  useDataGridApi,
+  type DataGridApi,
+} from "../data-grid";
 import { useDataGridState } from "@/registry/default/blocks/data-grid-history/data-grid-history";
+import { GRID_ATTR, gridAttrSelector } from "../data-grid-sdk";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply — without it the layout bug can't reproduce
 import "@/app/global.css";
 
@@ -56,13 +67,13 @@ function renderedDataRowCount(): number {
 }
 
 describe("DataGrid in a real browser", () => {
-  it("renders 1k rows quickly and windowed", async () => {
+  it("renders 1k rows quickly and virtualized", async () => {
     await renderGrid(1_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     expect(renderedDataRowCount()).toBeLessThan(80);
   });
 
-  it("renders 10k rows quickly and windowed", async () => {
+  it("renders 10k rows quickly and virtualized", async () => {
     await renderGrid(10_000);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     expect(renderedDataRowCount()).toBeLessThan(80);
@@ -90,7 +101,7 @@ describe("DataGrid in a real browser", () => {
     expect(renderedDataRowCount()).toBeLessThanOrEqual(200);
   });
 
-  it("renders 10k rows x 100 columns windowed without stalling", { timeout: 15_000 }, async () => {
+  it("renders 10k rows x 100 columns virtualized without stalling", { timeout: 15_000 }, async () => {
     const wide = [
       ...columns,
       ...Array.from({ length: 95 }, (_, i) => ({
@@ -110,7 +121,7 @@ describe("DataGrid in a real browser", () => {
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     expect(performance.now() - start).toBeLessThan(5_000);
     expect(renderedDataRowCount()).toBeLessThan(80);
-    // column virtualization: only a windowed subset of the 100 columns render per row
+    // column virtualization: only a virtualized subset of the 100 columns render per row
     expect(document.querySelectorAll('[role="columnheader"]').length).toBeLessThan(40);
   });
 
@@ -228,6 +239,61 @@ describe("DataGrid in a real browser", () => {
     const min = Math.min(...indices);
     expect(min).toBeGreaterThan(4_000);
     expect(renderedDataRowCount()).toBeLessThan(80);
+  });
+
+  describe("the imperative handle's DOM gestures", () => {
+    function rowIsVisible(ariaRowIndex: number): boolean {
+      const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+      const rowEl = document.querySelector<HTMLElement>(`[aria-rowindex="${ariaRowIndex}"]`);
+      if (!rowEl) return false;
+      const rowRect = rowEl.getBoundingClientRect();
+      const gridRect = grid.getBoundingClientRect();
+      return rowRect.top >= gridRect.top && rowRect.bottom <= gridRect.bottom + 1;
+    }
+
+    it("scrollTo from a toolbar sibling of DataGridRoot scrolls an off-window row into view", async () => {
+      const handle = { current: null as DataGridApi<Row> | null };
+      function Toolbar() {
+        handle.current = useDataGridApi<Row>();
+        return null;
+      }
+      await render(
+        <div style={{ height: 600 }}>
+          <DataGridProvider data={makeRows(1_000)} columns={columns} getRowId={(r) => r.id}>
+            <Toolbar />
+            <DataGridRoot className="h-[600px]">
+              <DataGridHeader />
+              <DataGridBody />
+            </DataGridRoot>
+          </DataGridProvider>
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+      expect(grid.scrollTop).toBe(0);
+
+      handle.current!.scrollTo({ rowId: "row-500", columnId: "name" });
+
+      await expect.poll(() => rowIsVisible(502)).toBe(true);
+      expect(grid.scrollTop).toBeGreaterThan(0);
+    });
+
+    it("focus() scrolls an off-window active cell into view and focuses it", async () => {
+      const apiRef = { current: null as DataGridApi<Row> | null };
+      await render(
+        <div style={{ height: 600 }}>
+          <DataGrid ref={apiRef} data={makeRows(1_000)} columns={columns} getRowId={(r) => r.id} className="h-[600px]" />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      apiRef.current!.actions.setActiveCell({ rowId: "row-700", columnId: "name" });
+      expect(document.querySelector("[data-active]")).toBeNull();
+
+      apiRef.current!.focus();
+
+      await expect.poll(() => (document.activeElement as HTMLElement | null)?.textContent).toBe("Person 700");
+      await expect.poll(() => rowIsVisible(702)).toBe(true);
+    });
   });
 
   describe("sticky-viewport transform architecture (zero-blank guarantee)", () => {
@@ -388,7 +454,7 @@ describe("DataGrid in a real browser", () => {
     it("plain press+drag from an inactive cell paints a range from the press origin", async () => {
       await renderGrid(20);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
-      // select by aria coords — immune to DOM ordering (windowing, force-rendered rows)
+      // select by aria coords — immune to DOM ordering (virtualization, force-rendered rows)
       const cellAt = (rowIndex: number, colIndex: number) =>
         document.querySelector<HTMLElement>(`[aria-rowindex="${rowIndex}"] [aria-colindex="${colIndex}"]`)!;
       const origin = cellAt(3, 2); // view row 1, col 1 — nothing active yet
@@ -411,6 +477,26 @@ describe("DataGrid in a real browser", () => {
       expect(overlayRect.top).toBeCloseTo(originRect.top, 0);
       expect(overlayRect.right).toBeCloseTo(targetRect.right, 0);
       expect(overlayRect.bottom).toBeCloseTo(targetRect.bottom, 0);
+    });
+
+    it("a drag with a synthetic pointer id (capture refused) still paints the range", async () => {
+      await renderGrid(20);
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      const cellAt = (rowIndex: number, colIndex: number) =>
+        document.querySelector<HTMLElement>(`[aria-rowindex="${rowIndex}"] [aria-colindex="${colIndex}"]`)!;
+      const origin = cellAt(3, 2);
+      const target = cellAt(4, 3);
+      const originRect = origin.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      await origin.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 4242, clientX: originRect.left + 5, clientY: originRect.top + 5 }));
+      document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 4242, clientX: targetRect.left + 5, clientY: targetRect.top + 5 }));
+      await new Promise((r) => requestAnimationFrame(r));
+      await new Promise((r) => requestAnimationFrame(r));
+      document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 4242 }));
+
+      const overlay = document.querySelector<HTMLElement>(gridAttrSelector("selectionOverlay"));
+      expect(overlay).not.toBeNull();
+      expect(overlay!.getBoundingClientRect().bottom).toBeCloseTo(targetRect.bottom, 0);
     });
 
     // regression (user QA): the drag frame-loop died when the first pointermove arrived after
@@ -524,8 +610,8 @@ describe("DataGrid in a real browser", () => {
       expect(activeCell).not.toBeNull();
     });
 
-    it("gutter and page-area pointerdowns clear the selection, fire onSelectionCleared once, and detach the outside-click listener", async () => {
-      const onSelectionCleared = vi.fn();
+    it("gutter and page-area pointerdowns clear the selection, fire onSelectionChange with an empty selection once, and detach the outside-click listener", async () => {
+      const onSelectionChange = vi.fn();
       const addSpy = vi.spyOn(document, "addEventListener");
       const removeSpy = vi.spyOn(document, "removeEventListener");
       const adds = () => addSpy.mock.calls.filter((args) => args[0] === "pointerdown" && args[2] === true).length;
@@ -534,7 +620,7 @@ describe("DataGrid in a real browser", () => {
         <>
           <button type="button" data-testid="outside-target" />
           <div style={{ height: 600 }}>
-            <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[600px]" onSelectionCleared={onSelectionCleared} />
+            <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} className="h-[600px]" onSelectionChange={onSelectionChange} />
           </div>
         </>,
       );
@@ -550,11 +636,12 @@ describe("DataGrid in a real browser", () => {
       expect(removes()).toBe(removesBefore);
 
       grid.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerType: "mouse" }));
-      expect(onSelectionCleared).toHaveBeenCalledTimes(1);
+      expect(onSelectionChange).toHaveBeenCalledTimes(2);
+      expect(onSelectionChange.mock.calls.at(-1)![0].range).toBeNull();
       expect(adds()).toBe(addsBefore + 1);
       expect(removes()).toBe(removesBefore + 1);
 
-      onSelectionCleared.mockClear();
+      onSelectionChange.mockClear();
       await userEvent.click(gridCells()[0]!);
       expect(adds()).toBe(addsBefore + 2);
       expect(removes()).toBe(removesBefore + 1);
@@ -562,7 +649,8 @@ describe("DataGrid in a real browser", () => {
       const outside = document.querySelector<HTMLButtonElement>("[data-testid='outside-target']")!;
       await outside.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerType: "mouse" }));
 
-      expect(onSelectionCleared).toHaveBeenCalledTimes(1);
+      expect(onSelectionChange).toHaveBeenCalledTimes(2);
+      expect(onSelectionChange.mock.calls.at(-1)![0].range).toBeNull();
       expect(adds()).toBe(addsBefore + 2);
       expect(removes()).toBe(removesBefore + 2);
 
@@ -668,12 +756,89 @@ describe("DataGrid in a real browser", () => {
       expect(gridCells()[1]!.textContent).toBe("");
     });
 
+    it("Delete typed in a contenteditable inside a cell leaves the grid's cells unchanged", async () => {
+      const onDataChange = mockDataChangeFn<Row>();
+      const editableColumns = defineColumns<Row>()([
+        { id: "id", header: "ID", accessorKey: "id", type: "text" },
+        {
+          id: "name",
+          header: "Name",
+          accessorKey: "name",
+          type: "text",
+          renderCell: () => <div data-testid="host-editable" contentEditable suppressContentEditableWarning />,
+        },
+      ]);
+      await render(
+        <div style={{ height: 600 }}>
+          <DataGrid
+            data={makeRows(5)}
+            columns={editableColumns}
+            getRowId={(r) => r.id}
+            className="h-[600px]"
+            onDataChange={onDataChange}
+          />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      await userEvent.click(gridCells()[0]!);
+      const editable = document.querySelector<HTMLElement>('[data-testid="host-editable"]')!;
+      editable.focus();
+      expect(document.activeElement).toBe(editable);
+      await userEvent.keyboard("{Delete}{Backspace}");
+
+      expect(onDataChange).not.toHaveBeenCalled();
+    });
+
     it("double-click opens the editor", async () => {
       await renderGrid(5);
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
       const cell = gridCells()[0]!;
       await userEvent.dblClick(cell);
       expect(cell).toHaveAttribute(GRID_ATTR.editing, "true");
+    });
+
+    it("Enter and Escape during IME composition leave the text, number, and date editors open", async () => {
+      type Dated = { id: string; name: string; age: number; joined: string };
+      const onDataChange = mockDataChangeFn<Dated>();
+      const datedColumns = defineColumns<Dated>()([
+        { id: "name", header: "Name", accessorKey: "name", type: "text" },
+        { id: "age", header: "Age", accessorKey: "age", type: "number" },
+        { id: "joined", header: "Joined", accessorKey: "joined", type: "date" },
+      ]);
+      await render(
+        <div style={{ height: 600 }}>
+          <DataGrid
+            data={[{ id: "1", name: "Ann", age: 30, joined: "2026-01-02" }]}
+            columns={datedColumns}
+            getRowId={(r) => r.id}
+            className="h-[600px]"
+            onDataChange={onDataChange}
+          />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+      for (const col of [0, 1, 2]) {
+        const cell = gridCells()[col]!;
+        await userEvent.dblClick(cell);
+        await expect.poll(() => document.querySelector(`${gridAttrSelector("cellEditor")} input, [${GRID_ATTR.editing}="true"] input`)).not.toBeNull();
+        const input = document.querySelector<HTMLInputElement>(`${gridAttrSelector("cellEditor")} input, [${GRID_ATTR.editing}="true"] input`)!;
+        input.focus();
+        const composing = [
+          { key: "Enter", isComposing: true },
+          { key: "Escape", isComposing: true },
+          { key: "Enter", keyCode: 229 },
+          { key: "Escape", keyCode: 229 },
+        ];
+        for (const init of composing) {
+          input.dispatchEvent(new KeyboardEvent("keydown", { ...init, bubbles: true, cancelable: true }));
+          await new Promise((resolve) => setTimeout(resolve, 0));
+          expect(cell, `${JSON.stringify(init)} on column ${col}`).toHaveAttribute(GRID_ATTR.editing, "true");
+        }
+        await userEvent.keyboard("{Escape}");
+        await expect.poll(() => cell.getAttribute(GRID_ATTR.editing)).not.toBe("true");
+      }
+      expect(onDataChange).not.toHaveBeenCalled();
     });
 
     describe("async Standard Schema validate", () => {
@@ -759,6 +924,25 @@ describe("DataGrid in a real browser", () => {
         expect(document.querySelector(gridAttrSelector("editing", "true"))).toBeNull();
         const [next] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
         expect(next[0]!.age).toBe(42); // the schema's own result.value (a transform), not the raw 41.6
+      });
+
+      it("ArrowUp while pending leaves the draft untouched", async () => {
+        const onDataChange = mockDataChangeFn<Row>();
+        const { schema, resolvers } = makeControlledAsyncSchema();
+        await renderAsyncSchemaGrid(onDataChange, schema);
+        await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+        const cell = document.querySelectorAll<HTMLElement>('[role="gridcell"][data-type="number"]')[0]!;
+        await userEvent.dblClick(cell);
+        const input = document.querySelector<HTMLInputElement>(`[role="gridcell"]${gridAttrSelector("editing", "true")} input`)!;
+        await userEvent.clear(input);
+        await userEvent.type(input, "7");
+        await userEvent.keyboard("{Enter}");
+        await vi.waitFor(() => expect(input.readOnly).toBe(true));
+
+        await userEvent.keyboard("{ArrowUp}");
+        expect(input.value).toBe("7");
+        expect(resolvers).toHaveLength(1);
       });
 
       it("Escape while pending cancels the edit with no commit, even after the schema later resolves", async () => {
@@ -1127,10 +1311,10 @@ describe("DataGrid in a real browser", () => {
       });
 
       it("a pointerdown inside the portaled select editor does not clear the selection", async () => {
-        const onSelectionCleared = vi.fn();
+        const onSelectionChange = vi.fn();
         await render(
           <div style={{ height: 300 }}>
-            <DataGrid data={[{ id: "1", role: "admin" }]} columns={roleColumns} getRowId={(r) => r.id} className="h-[300px]" onSelectionCleared={onSelectionCleared} />
+            <DataGrid data={[{ id: "1", role: "admin" }]} columns={roleColumns} getRowId={(r) => r.id} className="h-[300px]" onSelectionChange={onSelectionChange} />
           </div>,
         );
         await expect.element(page.getByRole("grid")).toBeInTheDocument();
@@ -1141,7 +1325,7 @@ describe("DataGrid in a real browser", () => {
         const editor = document.querySelector<HTMLElement>(gridAttrSelector("cellEditor"))!;
         await editor.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerType: "mouse" }));
 
-        expect(onSelectionCleared).not.toHaveBeenCalled();
+        expect(onSelectionChange.mock.calls.at(-1)![0].range).not.toBeNull();
         expect(document.querySelector(gridAttrSelector("cellEditor"))).toBe(editor);
       });
 
@@ -1273,6 +1457,301 @@ describe("DataGrid in a real browser", () => {
     });
   });
 
+  describe("Enter inside a popup editor commits once", () => {
+    type PopupRow = { id: string; role: string | null; joined: string | null };
+    const popupColumns: readonly ColumnDef<PopupRow, unknown>[] = [
+      {
+        id: "role",
+        header: "Role",
+        accessorKey: "role",
+        type: "select",
+        options: { choices: [{ value: "admin", label: "Admin" }, { value: "user", label: "User" }] },
+      },
+      { id: "joined", header: "Joined", accessorKey: "joined", type: "date" },
+    ];
+
+    async function renderPopupGrid(onEditStart: () => void, onDataChange: () => void) {
+      await render(
+        <div style={{ height: 300 }}>
+          <DataGrid
+            data={[{ id: "1", role: "admin", joined: "2026-07-03" }]}
+            columns={popupColumns}
+            getRowId={(r) => r.id}
+            className="h-[300px]"
+            onEditStart={onEditStart}
+            onDataChange={onDataChange}
+          />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    }
+
+    it("commits the select option and does not reopen the editor", async () => {
+      const onEditStart = vi.fn();
+      const onDataChange = vi.fn();
+      await renderPopupGrid(onEditStart, onDataChange);
+      await userEvent.click(document.querySelectorAll<HTMLElement>('[role="gridcell"]')[0]!);
+      await userEvent.keyboard("{Enter}");
+      expect(onEditStart).toHaveBeenCalledTimes(1);
+      (page.getByRole("option", { name: "User" }).element() as HTMLElement).focus();
+      await userEvent.keyboard("{Enter}");
+      expect(onDataChange).toHaveBeenCalledTimes(1);
+      expect(onEditStart).toHaveBeenCalledTimes(1);
+      expect(document.querySelector(gridAttrSelector("editing", "true"))).toBeNull();
+    });
+
+    it("commits the calendar day and does not reopen the editor", async () => {
+      const onEditStart = vi.fn();
+      const onDataChange = vi.fn();
+      await renderPopupGrid(onEditStart, onDataChange);
+      await userEvent.click(document.querySelectorAll<HTMLElement>('[role="gridcell"]')[1]!);
+      await userEvent.keyboard("{Enter}");
+      expect(onEditStart).toHaveBeenCalledTimes(1);
+      const editor = document.querySelector<HTMLElement>(gridAttrSelector("cellEditor"))!;
+      editor.querySelector<HTMLElement>('[data-day="2026-07-15"] button')!.focus();
+      await userEvent.keyboard("{Enter}");
+      expect(onDataChange).toHaveBeenCalledTimes(1);
+      expect(onEditStart).toHaveBeenCalledTimes(1);
+      expect(document.querySelector(gridAttrSelector("editing", "true"))).toBeNull();
+    });
+  });
+
+  describe("editor-scoped commands in popup editors", () => {
+    type PopupRow = { id: string; role: string | null; joined: string | null };
+    const popupColumns: readonly ColumnDef<PopupRow, unknown>[] = [
+      {
+        id: "role",
+        header: "Role",
+        accessorKey: "role",
+        type: "select",
+        options: { choices: [{ value: "admin", label: "Admin" }, { value: "user", label: "User" }] },
+      },
+      { id: "joined", header: "Joined", accessorKey: "joined", type: "date" },
+    ];
+
+    async function renderPopupGrid(run: () => void) {
+      await render(
+        <div style={{ height: 300 }}>
+          <DataGrid
+            data={[{ id: "1", role: "admin", joined: "2026-07-03" }]}
+            columns={popupColumns}
+            getRowId={(r) => r.id}
+            className="h-[300px]"
+            commands={{ logEdit: { run, scope: "editing" } }}
+            keymap={{ logEdit: ["mod+shift+e"] } as Keymap}
+          />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    }
+
+    it("dispatches an editing command while the select popup has focus", async () => {
+      const run = vi.fn();
+      await renderPopupGrid(run);
+      await userEvent.click(document.querySelectorAll<HTMLElement>('[role="gridcell"]')[0]!);
+      await userEvent.keyboard("{Enter}");
+      const option = page.getByRole("option", { name: "User" }).element() as HTMLElement;
+      option.focus();
+      await userEvent.keyboard("{Control>}{Shift>}e{/Shift}{/Control}");
+      expect(run).toHaveBeenCalledTimes(1);
+      expect(document.querySelector(gridAttrSelector("editing", "true"))).not.toBeNull();
+    });
+
+    it("dispatches an editing command while the date calendar has focus", async () => {
+      const run = vi.fn();
+      await renderPopupGrid(run);
+      await userEvent.click(document.querySelectorAll<HTMLElement>('[role="gridcell"]')[1]!);
+      await userEvent.keyboard("{Enter}");
+      const editor = document.querySelector<HTMLElement>(gridAttrSelector("cellEditor"))!;
+      const dayButton = editor.querySelector<HTMLElement>('[data-day="2026-07-15"] button')!;
+      dayButton.focus();
+      expect(document.activeElement).toBe(dayButton);
+      await userEvent.keyboard("{Control>}{Shift>}e{/Shift}{/Control}");
+      expect(run).toHaveBeenCalledTimes(1);
+      expect(document.querySelector(gridAttrSelector("editing", "true"))).not.toBeNull();
+    });
+  });
+
+  describe("number editor stepping (options.step)", () => {
+    type StepRow = { id: string; qty: number | null };
+
+    function stepColumns(min?: number, max?: number, step?: number, decimals?: number) {
+      return defineColumns<StepRow>()([
+        { id: "qty", header: "Qty", accessorKey: "qty", type: "number", options: { min, max, step, decimals }, width: 100 },
+      ] as const);
+    }
+
+    function renderStepGrid(
+      onDataChange: (next: readonly StepRow[], change: DataChange<StepRow>) => void,
+      cols: ReturnType<typeof stepColumns>,
+      qty: number | null,
+    ) {
+      return render(
+        <div style={{ height: 300 }}>
+          <DataGrid data={[{ id: "1", qty }]} columns={cols} getRowId={(r) => r.id} className="h-[300px]" onDataChange={onDataChange} />
+        </div>,
+      );
+    }
+
+    async function openNumberEditor(): Promise<HTMLInputElement> {
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      const cell = document.querySelector<HTMLElement>('[role="gridcell"][data-type="number"]')!;
+      await userEvent.dblClick(cell);
+      expect(cell).toHaveAttribute(GRID_ATTR.editing, "true");
+      // the number editor is inline (no data-grid-cell-editor popup like date/select)
+      return document.querySelector<HTMLInputElement>(`[role="gridcell"]${gridAttrSelector("editing", "true")} input`)!;
+    }
+
+    it("ArrowUp/ArrowDown step the draft by options.step and commit the stepped value", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(undefined, undefined, 0.5, 1), 2);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowUp}");
+      expect(input.value).toBe("2.5");
+      await userEvent.keyboard("{ArrowDown}{ArrowDown}");
+      expect(input.value).toBe("1.5");
+
+      await userEvent.keyboard("{Enter}");
+      expect(onDataChange).toHaveBeenCalledTimes(1);
+      expect(onDataChange.mock.calls[0]![0][0]!.qty).toBe(1.5);
+    });
+
+    it("clamps the stepped value at max", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(0, 10, 1, undefined), 10);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowUp}");
+      expect(input.value).toBe("10");
+      await userEvent.keyboard("{ArrowDown}");
+      expect(input.value).toBe("9");
+    });
+
+    it("clamps the stepped value at min", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(0, 10, 1, undefined), 0);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowDown}");
+      expect(input.value).toBe("0");
+    });
+
+    it("rounds repeated fractional steps to the configured decimals", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(0, undefined, 0.1, 2), 2);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowUp}{ArrowUp}{ArrowUp}");
+      expect(input.value).toBe("2.3");
+    });
+
+    it("rounds fractional steps without decimals to the step's own precision", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(undefined, undefined, 0.1, undefined), 0.2);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowUp}");
+      expect(input.value).toBe("0.3");
+      await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}");
+      expect(input.value).toBe("0");
+    });
+
+    it("steps by one unit of the column's decimals when the step is finer", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(undefined, undefined, 0.5, 0), 6);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowDown}");
+      expect(input.value).toBe("5");
+      await userEvent.keyboard("{ArrowDown}");
+      expect(input.value).toBe("4");
+    });
+
+    it("never steps past a max that has more decimals than the column", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(undefined, 0.99, 0.1, 1), 0.9);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowUp}");
+      expect(input.value).toBe("0.9");
+    });
+
+    it("steps into a max bound that already sits on the decimals grid", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(undefined, 0.29, 0.01, 2), 0.28);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowUp}");
+      expect(input.value).toBe("0.29");
+    });
+
+    it("steps into a min bound that already sits on the decimals grid", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(0.28, undefined, 0.01, 2), 0.29);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowDown}");
+      expect(input.value).toBe("0.28");
+    });
+
+    it("steps into a negative min bound that already sits on the decimals grid", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(-0.29, undefined, 0.01, 2), -0.28);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowDown}");
+      expect(input.value).toBe("-0.29");
+    });
+
+    it("keeps the precision of a draft that is finer than the step", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(undefined, undefined, 0.1, undefined), 2.35);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowUp}");
+      expect(input.value).toBe("2.45");
+    });
+
+    it("steps by 1 when the column declares no step", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(undefined, undefined, undefined, undefined), 5);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowUp}{ArrowUp}{ArrowDown}");
+      expect(input.value).toBe("6");
+    });
+
+    it("ignores ArrowUp while an IME composition is active", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(undefined, undefined, 1, undefined), 5);
+      const input = await openNumberEditor();
+
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", isComposing: true, bubbles: true, cancelable: true }));
+      await userEvent.keyboard("{ArrowUp}");
+      expect(input.value).toBe("6");
+    });
+
+    it("steps from the committed value when the draft was cleared", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(0, undefined, 1, undefined), 3);
+      const input = await openNumberEditor();
+
+      await userEvent.clear(input);
+      await userEvent.keyboard("{ArrowUp}");
+      expect(input.value).toBe("4");
+    });
+
+    it("does not step when the draft and the committed value are both empty", async () => {
+      const onDataChange = mockDataChangeFn<StepRow>();
+      await renderStepGrid(onDataChange, stepColumns(undefined, undefined, 1, undefined), null);
+      const input = await openNumberEditor();
+
+      await userEvent.keyboard("{ArrowUp}");
+      expect(input.value).toBe("");
+    });
+  });
+
   describe("Excel clipboard (copy/cut/paste)", () => {
     function gridCells(): HTMLElement[] {
       return [...document.querySelectorAll<HTMLElement>('[role="gridcell"]')];
@@ -1310,6 +1789,166 @@ describe("DataGrid in a real browser", () => {
       expect(dataTransfer.getData("text/plain")).toBe("Person 0");
       expect(dataTransfer.getData("text/html")).toContain("<table>");
       expect(dataTransfer.getData("text/html")).toContain("Person 0");
+    });
+
+    it("leaves copy, cut, and paste from an editable element inside a cell to that element", async () => {
+      const onDataChange = mockDataChangeFn<Row>();
+      const hostColumns = defineColumns<Row>()([
+        { id: "id", header: "ID", accessorKey: "id", type: "text" },
+        {
+          id: "name",
+          header: "Name",
+          accessorKey: "name",
+          type: "text",
+          renderCell: () => (
+            <div>
+              <div data-testid="host-editable" contentEditable suppressContentEditableWarning />
+              <input data-testid="host-input" />
+            </div>
+          ),
+        },
+      ]);
+      await render(
+        <div style={{ height: 600 }}>
+          <DataGrid data={makeRows(5)} columns={hostColumns} getRowId={(r) => r.id} className="h-[600px]" onDataChange={onDataChange} />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      await userEvent.click(gridCells()[0]!);
+
+      for (const testId of ["host-editable", "host-input"]) {
+        const target = document.querySelector<HTMLElement>(`[data-testid="${testId}"]`)!;
+        for (const type of ["copy", "cut", "paste"] as const) {
+          const dataTransfer = new DataTransfer();
+          if (type === "paste") dataTransfer.setData("text/plain", "Pasted");
+          const event = new ClipboardEvent(type, { bubbles: true, cancelable: true, clipboardData: dataTransfer });
+          target.dispatchEvent(event);
+          await new Promise((r) => setTimeout(r, 0));
+          expect(event.defaultPrevented, `${type} from ${testId}`).toBe(false);
+        }
+      }
+      expect(onDataChange).not.toHaveBeenCalled();
+      expect(gridCells()[0]!.textContent).toBe("row-0");
+    });
+
+    it("leaves a paste from an input in a cell's shadow root to that input", async () => {
+      const onDataChange = mockDataChangeFn<Row>();
+      function ShadowInput() {
+        const hostRef = useRef<HTMLDivElement>(null);
+        useEffect(() => {
+          const host = hostRef.current;
+          if (!host || host.shadowRoot) return;
+          host.attachShadow({ mode: "open" }).append(document.createElement("input"));
+        }, []);
+        return <div ref={hostRef} data-testid="shadow-host" />;
+      }
+      const shadowColumns = defineColumns<Row>()([
+        { id: "id", header: "ID", accessorKey: "id", type: "text" },
+        { id: "name", header: "Name", accessorKey: "name", type: "text", renderCell: () => <ShadowInput /> },
+      ]);
+      await render(
+        <div style={{ height: 600 }}>
+          <DataGrid data={makeRows(5)} columns={shadowColumns} getRowId={(r) => r.id} className="h-[600px]" onDataChange={onDataChange} />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      await userEvent.click(gridCells()[0]!);
+      await expect.poll(() => document.querySelector('[data-testid="shadow-host"]')?.shadowRoot?.querySelector("input")).toBeTruthy();
+      const input = document.querySelector('[data-testid="shadow-host"]')!.shadowRoot!.querySelector("input")!;
+
+      const dataTransfer = new DataTransfer();
+      dataTransfer.setData("text/plain", "Pasted");
+      const event = new ClipboardEvent("paste", { bubbles: true, cancelable: true, composed: true, clipboardData: dataTransfer });
+      input.dispatchEvent(event);
+      await new Promise((r) => setTimeout(r, 0));
+
+      expect(event.defaultPrevented).toBe(false);
+      expect(onDataChange).not.toHaveBeenCalled();
+    });
+
+    describe("a grid nested in a cell", () => {
+      const innerRows = makeRows(1);
+      const outerRows = makeRows(2);
+      const innerColumns = defineColumns<Row>()([{ id: "name", header: "Inner", accessorKey: "name", type: "text" }]);
+
+      function cellSelection(rowId: string, columnId: string): SelectionState {
+        const ref = { rowId, columnId };
+        return { anchor: ref, range: { start: ref, end: ref }, rangeStack: [], rowIds: [], columnIds: [] };
+      }
+
+      async function renderNested(onOuterChange = mockDataChangeFn<Row>(), onInnerChange = mockDataChangeFn<Row>()) {
+        const apis = { outer: null as DataGridApi<Row> | null, inner: null as DataGridApi<Row> | null };
+        const outerColumns = defineColumns<Row>()([
+          { id: "name", header: "Name", accessorKey: "name", type: "text" },
+          {
+            id: "email",
+            header: "Nested",
+            accessorKey: "email",
+            type: "text",
+            width: 300,
+            renderCell: ({ rowId }) =>
+              rowId !== "row-0" ? null : (
+                <DataGrid
+                  ref={(api) => {
+                    apis.inner = api;
+                  }}
+                  data={innerRows}
+                  columns={innerColumns}
+                  getRowId={(r) => r.id}
+                  className="h-[120px]"
+                  onDataChange={onInnerChange}
+                />
+              ),
+          },
+        ]);
+        await render(
+          <div style={{ height: 600 }}>
+            <DataGrid
+              ref={(api) => {
+                apis.outer = api;
+              }}
+              data={outerRows}
+              columns={outerColumns}
+              getRowId={(r) => r.id}
+              className="h-[600px]"
+              onDataChange={onOuterChange}
+            />
+          </div>,
+        );
+        await expect.poll(() => apis.inner !== null && apis.outer !== null).toBe(true);
+        return apis;
+      }
+
+      it("writes a paste inside the nested grid into the nested grid only", async () => {
+        const onOuterChange = mockDataChangeFn<Row>();
+        const onInnerChange = mockDataChangeFn<Row>();
+        const apis = await renderNested(onOuterChange, onInnerChange);
+        apis.outer!.setSelection(cellSelection("row-0", "email"));
+        apis.inner!.setSelection(cellSelection("row-0", "name"));
+        await expect.poll(() => document.querySelectorAll("[data-active]").length).toBe(2);
+        const innerRoot = document.querySelectorAll<HTMLElement>('[role="grid"]')[1]!;
+        const innerActive = innerRoot.querySelector<HTMLElement>("[data-active]")!;
+
+        const dataTransfer = new DataTransfer();
+        dataTransfer.setData("text/plain", "Pasted");
+        innerActive.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: dataTransfer }));
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(onInnerChange).toHaveBeenCalledTimes(1);
+        expect(onOuterChange).not.toHaveBeenCalled();
+      });
+
+      it("focus() lands on the host grid's active cell, not on the nested grid's", async () => {
+        const apis = await renderNested();
+        apis.inner!.setSelection(cellSelection("row-0", "name"));
+        apis.outer!.setSelection(cellSelection("row-1", "name"));
+        await expect.poll(() => document.querySelectorAll("[data-active]").length).toBe(2);
+        (document.activeElement as HTMLElement | null)?.blur();
+
+        apis.outer!.focus();
+
+        await expect.poll(() => (document.activeElement as HTMLElement | null)?.textContent).toBe("Person 1");
+      });
     });
 
     it("copy scope for a selected row copies the full row width", async () => {
@@ -1400,6 +2039,29 @@ describe("DataGrid in a real browser", () => {
       const [nextData] = onDataChange.mock.calls[0]!;
       expect(nextData[0]!.id).toBe("1"); // readOnly column untouched
       expect(gridCells()[1]!.textContent).toBe("ShouldWrite"); // sibling writable column still updated
+    });
+
+    it("sanitizeClipboardFormulas neutralizes the native copy's text and HTML", async () => {
+      type Row = { id: string; label: string };
+      const formulaColumns: readonly ColumnDef<Row, unknown>[] = [{ id: "label", header: "Label", accessorKey: "label" }];
+      await render(
+        <div style={{ height: 300 }}>
+          <DataGrid
+            data={[{ id: "1", label: "+1+cmd|' /C calc'!A0" }]}
+            columns={formulaColumns}
+            getRowId={(r) => r.id}
+            className="h-[300px]"
+            sanitizeClipboardFormulas
+          />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      await userEvent.click(gridCells()[0]!);
+
+      const dataTransfer = await dispatchClipboardEvent("copy");
+
+      expect(dataTransfer.getData("text/plain")).toBe("'+1+cmd|' /C calc'!A0");
+      expect(dataTransfer.getData("text/html")).toContain(">'+1+cmd|' /C calc'!A0</td>");
     });
 
     it("cut copies then clears the selection", async () => {
@@ -1513,5 +2175,201 @@ describe("DataGrid a11y — roving tabindex bootstrap (real keyboard Tab)", () =
     expect(firstCell).toHaveAttribute("tabindex", "0");
     // roving tabindex has taken over: the root itself reverts to -1, no longer a tab stop.
     expect(grid).toHaveAttribute("tabindex", "-1");
+  });
+});
+
+describe("DataGrid a11y: Tab is not a keyboard trap", () => {
+  async function renderBetweenButtons(keymap?: React.ComponentProps<typeof DataGrid>["keymap"]) {
+    await render(
+      <div>
+        <button type="button">before</button>
+        <DataGrid data={makeRows(3)} columns={columns} getRowId={(r) => r.id} className="h-[300px]" keymap={keymap} />
+        <button type="button">after</button>
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const cells = () => [...document.querySelectorAll<HTMLElement>('[role="gridcell"]')];
+    await userEvent.click(cells()[0]!);
+    return cells;
+  }
+
+  it("Tab from a cell moves focus to the next focusable element and keeps the active cell", async () => {
+    await renderBetweenButtons();
+    await userEvent.keyboard("{Tab}");
+    expect(document.activeElement).toBe(page.getByRole("button", { name: "after" }).element());
+  });
+
+  it("Shift+Tab from the first cell moves focus to the previous focusable element", async () => {
+    await renderBetweenButtons();
+    await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+    expect(document.activeElement).toBe(page.getByRole("button", { name: "before" }).element());
+  });
+
+  it.each([["checkbox"], ["reorder-checkbox"]] as const)(
+    "marker checkboxes, select-all and the header menu trigger are not tab stops in '%s' mode",
+    async (mode) => {
+      await render(
+        <div>
+          <button type="button">before</button>
+          <DataGrid
+            data={makeRows(3)}
+            columns={columns}
+            getRowId={(r) => r.id}
+            className="h-[300px]"
+            rowMarkers={mode}
+            renderHeaderMenu={({ trigger }) => trigger}
+          />
+          <button type="button">after</button>
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      const dataCell = () => document.querySelector<HTMLElement>(`[role="gridcell"]:not(${gridAttrSelector("markerCell")})`)!;
+      await userEvent.click(dataCell());
+      await userEvent.keyboard("{Tab}");
+      expect(document.activeElement).toBe(page.getByRole("button", { name: "after" }).element());
+      await userEvent.click(dataCell());
+      await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+      expect(document.activeElement).toBe(page.getByRole("button", { name: "before" }).element());
+    },
+  );
+
+  it("Tab during a text edit commits in place and moves focus to the next control after the grid", async () => {
+    const onDataChange = mockDataChangeFn<Row>();
+    await render(
+      <div>
+        <button type="button">before</button>
+        <DataGrid data={makeRows(3)} columns={columns} getRowId={(r) => r.id} className="h-[300px]" onDataChange={onDataChange} />
+        <button type="button">after</button>
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"][aria-colindex="2"]')!);
+    await userEvent.keyboard("{Enter}X{Tab}");
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    await expect.poll(() => document.activeElement).toBe(page.getByRole("button", { name: "after" }).element());
+  });
+
+  it("Tab during a select edit moves focus to the next control after the grid", async () => {
+    type SelectRow = { id: string; role: string | null };
+    const selectColumns: readonly ColumnDef<SelectRow, unknown>[] = [
+      { id: "role", header: "Role", accessorKey: "role", type: "select", options: { choices: [{ value: "admin", label: "Admin" }, { value: "user", label: "User" }] } },
+    ];
+    await render(
+      <div>
+        <button type="button">before</button>
+        <DataGrid data={[{ id: "1", role: "admin" }]} columns={selectColumns} getRowId={(r) => r.id} className="h-[300px]" />
+        <button type="button">after</button>
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"]')!);
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => document.querySelector(gridAttrSelector("cellEditor"))).not.toBeNull();
+    await userEvent.keyboard("{Tab}");
+    await expect.poll(() => document.activeElement).toBe(page.getByRole("button", { name: "after" }).element());
+  });
+
+  it("binding Tab to moveRight keeps Tab navigating cells", async () => {
+    const cells = await renderBetweenButtons({ moveRight: ["ArrowRight", "Tab"], moveLeft: ["ArrowLeft", "shift+Tab"] });
+    await userEvent.keyboard("{Tab}");
+    expect(document.activeElement).toBe(cells()[1]);
+  });
+});
+
+describe("controlled selection and layout: the controlled loop adds no extra work", () => {
+  const EMPTY_SELECTION: SelectionState = { anchor: null, range: null, rangeStack: [], rowIds: [], columnIds: [] };
+
+  it("a 20-step controlled drag renders the same probe cells as the uncontrolled baseline", { timeout: 30_000 }, async () => {
+    async function drag(controlled: boolean): Promise<number> {
+      let renderCount = 0;
+      const probed = columns.map((column) => (column.id === "name" ? { ...column, renderCell: () => { renderCount++; return null; } } : column));
+      function Consumer() {
+        const [selection, setSelection] = useState<SelectionState>(EMPTY_SELECTION);
+        return (
+          <DataGrid
+            data={makeRows(100)}
+            columns={probed}
+            getRowId={(r) => r.id}
+            className="h-[360px]"
+            selection={controlled ? selection : undefined}
+            onSelectionChange={(next) => setSelection(next)}
+          />
+        );
+      }
+      const view = await render(
+        <div style={{ height: 360, width: 1200 }}>
+          <Consumer />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      const stride = probed.length;
+      const cells = [...document.querySelectorAll<HTMLElement>('[role="gridcell"]')];
+      await userEvent.click(cells[3 * stride]!);
+      await new Promise((r) => requestAnimationFrame(r));
+      renderCount = 0;
+      for (let i = 0; i < 19; i++) {
+        await userEvent.keyboard("{Shift>}{ArrowDown}{/Shift}");
+        await new Promise((r) => requestAnimationFrame(r));
+      }
+      await new Promise((r) => setTimeout(r, 100));
+      const count = renderCount;
+      await view.unmount();
+      return count;
+    }
+
+    const baseline = await drag(false);
+    const controlled = await drag(true);
+    // The echo-sync early return keeps the controlled loop at baseline cost: no extra cell renders.
+    expect(controlled).toBe(baseline);
+  });
+
+  it("controlled resize: onColumnResizing per frame, one onColumnLayoutChange at release, no snap-back after the echo", { timeout: 30_000 }, async () => {
+    const onColumnResizing = vi.fn();
+    const onColumnLayoutChange = vi.fn();
+    function Consumer() {
+      const [layout, setLayout] = useState<ColumnLayout | undefined>(undefined);
+      return (
+        <DataGrid
+          data={makeRows(20)}
+          columns={columns}
+          getRowId={(r) => r.id}
+          className="h-[400px]"
+          columnLayout={layout}
+          onColumnLayoutChange={(next) => {
+            onColumnLayoutChange(next);
+            setLayout(next);
+          }}
+          onColumnResizing={onColumnResizing}
+        />
+      );
+    }
+    const view = await render(
+      <div style={{ height: 400 }}>
+        <Consumer />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const header = document.querySelector<HTMLElement>('[role="columnheader"]')!;
+    const before = header.getBoundingClientRect().width;
+    const handle = header.querySelector<HTMLElement>(gridAttrSelector("resizeHandle"))!;
+    const rect = handle.getBoundingClientRect();
+
+    await handle.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1, clientX: rect.left, clientY: rect.top }));
+    for (let i = 1; i <= 3; i++) {
+      document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: rect.left + 20 * i, clientY: rect.top }));
+      await new Promise((r) => requestAnimationFrame(r));
+    }
+    expect(onColumnResizing).toHaveBeenCalled();
+    expect(onColumnLayoutChange).not.toHaveBeenCalled(); // live frames are not commits
+
+    document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 1 }));
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => setTimeout(r, 100));
+
+    expect(onColumnLayoutChange).toHaveBeenCalledTimes(1); // one commit at release
+    // The consumer feeds the fired snapshot back (echo): the width holds, no snap-back, no second commit.
+    expect(header.getBoundingClientRect().width).toBeGreaterThan(before + 20);
+    await view.unmount();
   });
 });

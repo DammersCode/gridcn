@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { userEvent } from "vitest/browser";
 import DataGridDemo from "@/registry/default/examples/data-grid-demo";
-import { GRID_ATTR, gridAttrSelector } from "../data-grid";
+import { GRID_ATTR, gridAttrSelector } from "../data-grid-sdk";
 
 function cellAt(row: number, col: number): HTMLElement {
   const el = document.querySelector(`[role="row"][${GRID_ATTR.rowIndex}="${row}"] [role="gridcell"][aria-colindex="${col + 2}"]`);

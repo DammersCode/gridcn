@@ -1,4 +1,5 @@
 import type { GridRect, GridSelection } from "../types";
+import { rectsEqual } from "./rects";
 
 /** Direction for shift+arrow selection growth. */
 export type ExtendDirection = "up" | "down" | "left" | "right";
@@ -34,7 +35,7 @@ export function extendSelection(
 
   // Each direction either grows the far edge (anchor sits on the opposite edge)
   // or shrinks the near edge back toward the anchor (anchor sits on this edge already).
-  // toEdge is unconditional on both edges (glide/Excel: the moving end jumps to the
+  // toEdge is unconditional on both edges (the moving end jumps to the
   // boundary, crossing the anchor, rather than only collapsing the near edge).
   switch (direction) {
     case "up": {
@@ -84,6 +85,8 @@ export function extendSelection(
   }
 
   const newRange: GridRect = { x: left, y: top, width: right - left + 1, height: bottom - top + 1 };
+  // clamped growth at a grid edge leaves the range identical: keep the input's identity
+  if (rectsEqual(newRange, range)) return selection;
   return {
     current: { cell, range: newRange, rangeStack },
     rows: selection.rows,

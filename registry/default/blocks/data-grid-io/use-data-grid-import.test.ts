@@ -3,9 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 import { useDataGridImportPreview, type ImportTargetColumn } from "./use-data-grid-import";
 import { parseImportFile, type ParsedImportFile } from "./parse-import-file";
 
-vi.mock("./parse-import-file", () => ({
-  parseImportFile: vi.fn(),
-}));
+vi.mock("./parse-import-file", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./parse-import-file")>();
+  return { ...actual, parseImportFile: vi.fn() };
+});
 
 const mockedParse = vi.mocked(parseImportFile);
 
@@ -13,14 +14,17 @@ const TARGETS: ImportTargetColumn[] = [{ id: "name", header: "Name" }];
 const FILE_A = new File(["unused"], "a.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 const FILE_B = new File(["unused"], "b.csv", { type: "text/csv" });
 
-/** A parse that never resolves until the test drives it — the slow in-flight sheet parse. */
+/** A parse that never settles until the test drives it — the slow in-flight parse. */
 function makeDeferredParse() {
   let resolve: (value: ParsedImportFile) => void = () => {};
+  let reject: (error: unknown) => void = () => {};
   return {
-    promise: new Promise<ParsedImportFile>((r) => {
-      resolve = r;
+    promise: new Promise<ParsedImportFile>((res, rej) => {
+      resolve = res;
+      reject = rej;
     }),
     resolve,
+    reject,
   };
 }
 
@@ -33,7 +37,7 @@ describe("useDataGridImportPreview — stale sheet parse after the file changed"
       return { rows: [["Name"], ["B-row"]], delimiter: "," };
     });
 
-    const { result } = renderHook(() => useDataGridImportPreview((index) => `Column ${index}`));
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
 
     await act(async () => {
       await result.current.loadFile(FILE_A, TARGETS);
@@ -58,5 +62,239 @@ describe("useDataGridImportPreview — stale sheet parse after the file changed"
     expect(result.current.preview?.rows).toEqual([["Name"], ["B-row"]]);
     expect(result.current.preview?.sheetName).toBeUndefined();
     expect(result.current.isParsing).toBe(false);
+  });
+
+  it("an aborted, superseded file load does not clear the newer load's isParsing", async () => {
+    const a = makeDeferredParse();
+    const b = makeDeferredParse();
+    let call = 0;
+    mockedParse.mockImplementation(() => {
+      call += 1;
+      return call === 1 ? a.promise : b.promise;
+    });
+
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
+
+    let loadB: Promise<void> | undefined;
+    await act(async () => {
+      result.current.loadFile(FILE_A, TARGETS); // slow, in flight
+      loadB = result.current.loadFile(FILE_B, TARGETS); // supersedes the first
+    });
+    expect(result.current.isParsing).toBe(true);
+
+    // the slow first read aborts (as real file I/O does) while the second is still parsing
+    await act(async () => {
+      a.reject(new DOMException("Aborted", "AbortError"));
+    });
+    expect(result.current.isParsing).toBe(true);
+
+    await act(async () => {
+      b.resolve({ rows: [["Name"], ["B-row"]], delimiter: "," });
+      await loadB;
+    });
+    expect(result.current.isParsing).toBe(false);
+    expect(result.current.preview?.fileName).toBe("b.csv");
+  });
+
+  it("setDelimiter shows the parsing state while the re-parse is in flight", async () => {
+    const deferred = makeDeferredParse();
+    // the re-parse reuses the same file: the first call (the load) is fast, the second (the re-parse) is slow
+    let csvCalls = 0;
+    mockedParse.mockImplementation((file) => {
+      if (file.name !== "b.csv") return deferred.promise;
+      csvCalls += 1;
+      return csvCalls === 1 ? Promise.resolve({ rows: [["Name"], ["B-row"]], delimiter: "," }) : deferred.promise;
+    });
+
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
+    await act(async () => {
+      await result.current.loadFile(FILE_B, TARGETS);
+    });
+
+    let reparse: Promise<void> | undefined;
+    await act(async () => {
+      reparse = result.current.setDelimiter(";"); // suspends on the deferred parse
+    });
+    expect(result.current.isParsing).toBe(true);
+
+    await act(async () => {
+      deferred.resolve({ rows: [["Name"], ["B2"]], delimiter: ";" });
+      await reparse;
+    });
+    expect(result.current.isParsing).toBe(false);
+    expect(result.current.preview?.delimiter).toBe(";");
+  });
+
+  it("a superseded delimiter re-parse cannot clobber the preview of a newer file", async () => {
+    const deferred = makeDeferredParse();
+    let csvCalls = 0;
+    mockedParse.mockImplementation((file) => {
+      if (file.name === "b.csv") {
+          csvCalls += 1;
+          return csvCalls === 1 ? Promise.resolve({ rows: [["Name"], ["B1"]], delimiter: "," }) : deferred.promise;
+      }
+      return Promise.resolve({ rows: [["Name"], ["C-row"]], delimiter: ";" });
+    });
+    const FILE_C = new File([], "c.csv", { type: "text/csv" });
+
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
+    await act(async () => {
+      await result.current.loadFile(FILE_B, TARGETS);
+    });
+
+    const { reparse, loadC } = await act(async () => ({
+      reparse: result.current.setDelimiter(";"), // slow, in flight
+      loadC: result.current.loadFile(FILE_C, TARGETS), // supersedes the re-parse
+    }));
+    await act(async () => {
+      deferred.resolve({ rows: [["Name"], ["B2"]], delimiter: ";" });
+      await loadC;
+      await reparse;
+    });
+
+    expect(result.current.preview?.fileName).toBe("c.csv");
+    expect(result.current.preview?.rows).toEqual([["Name"], ["C-row"]]);
+    expect(result.current.isParsing).toBe(false);
+  });
+
+  it("a delimiter re-parse started while a newer file loads cannot overwrite that file's preview", async () => {
+    const reparseB = makeDeferredParse();
+    const loadC = makeDeferredParse();
+    let csvCalls = 0;
+    mockedParse.mockImplementation((file) => {
+      if (file.name === "c.csv") return loadC.promise;
+      csvCalls += 1;
+      return csvCalls === 1 ? Promise.resolve({ rows: [["Name"], ["B1"]], delimiter: "," }) : reparseB.promise;
+    });
+    const FILE_C = new File([], "c.csv", { type: "text/csv" });
+
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
+    await act(async () => {
+      await result.current.loadFile(FILE_B, TARGETS);
+    });
+
+    const { loading, reparse } = await act(async () => {
+      const loading = result.current.loadFile(FILE_C, TARGETS); // the newer file, still parsing
+      return { loading, reparse: result.current.setDelimiter(";") }; // started after it
+    });
+    await act(async () => {
+      loadC.resolve({ rows: [["Name"], ["C-row"]], delimiter: "," });
+      await loading;
+    });
+    await act(async () => {
+      reparseB.resolve({ rows: [["Name"], ["B2"]], delimiter: ";" });
+      await reparse;
+    });
+
+    expect(result.current.preview?.fileName).toBe("c.csv");
+    expect(result.current.preview?.rows).toEqual([["Name"], ["C-row"]]);
+    expect(result.current.isParsing).toBe(false);
+  });
+
+  it("a superseded file load that still resolves cannot overwrite the newer file's preview", async () => {
+    const a = makeDeferredParse();
+    mockedParse.mockImplementation((file) => (file.name === "a.xlsx" ? a.promise : Promise.resolve({ rows: [["Name"], ["B-row"]], delimiter: "," })));
+
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
+    const { loadA, loadB } = await act(async () => ({
+      loadA: result.current.loadFile(FILE_A, TARGETS), // slow, past its file read
+      loadB: result.current.loadFile(FILE_B, TARGETS),
+    }));
+    await act(async () => {
+      await loadB;
+      a.resolve({ rows: [["Name"], ["A-row"]], sheetNames: ["S1"], sheetName: "S1" });
+      await loadA;
+    });
+
+    expect(result.current.preview?.fileName).toBe("b.csv");
+    expect(result.current.preview?.rows).toEqual([["Name"], ["B-row"]]);
+  });
+
+  it("a failed delimiter re-parse sets the error instead of throwing and keeps the preview", async () => {
+    // the re-parse uses the SAME file as the initial load: the mock fails only the second call
+    let csvCalls = 0;
+    mockedParse.mockImplementation((file) => {
+      if (file.name !== "b.csv") throw new Error("boom");
+      csvCalls += 1;
+      return csvCalls === 1 ? Promise.resolve({ rows: [["Name"], ["B-row"]], delimiter: "," }) : Promise.reject(new Error("boom"));
+    });
+
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
+    await act(async () => {
+      await result.current.loadFile(FILE_B, TARGETS);
+    });
+
+    let threw = false;
+    await act(async () => {
+      try {
+        await result.current.setDelimiter(";");
+      } catch {
+        threw = true;
+      }
+    });
+
+    expect(threw).toBe(false);
+    expect(result.current.error).toBe("errorParseFailed");
+    expect(result.current.isParsing).toBe(false);
+    expect(result.current.preview?.fileName).toBe("b.csv");
+  });
+});
+
+describe("useDataGridImportPreview — limit errors map to their own keys", () => {
+  it("surfaces errorFileTooLarge for a file-too-large parse", async () => {
+    mockedParse.mockRejectedValue(new Error("file-too-large"));
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
+    await act(async () => {
+      await result.current.loadFile(FILE_B, TARGETS);
+    });
+    expect(result.current.error).toBe("errorFileTooLarge");
+    expect(result.current.preview).toBeNull();
+    vi.restoreAllMocks();
+  });
+
+  it("surfaces errorPartTooLarge for a part-too-large parse", async () => {
+    mockedParse.mockRejectedValue(new Error("part-too-large"));
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
+    await act(async () => {
+      await result.current.loadFile(FILE_B, TARGETS);
+    });
+    expect(result.current.error).toBe("errorPartTooLarge");
+    expect(result.current.preview).toBeNull();
+    vi.restoreAllMocks();
+  });
+
+  it("surfaces errorTooManyCells for an over-dimension parse", async () => {
+    mockedParse.mockRejectedValue(new Error("import-too-many-cells"));
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
+    await act(async () => {
+      await result.current.loadFile(FILE_B, TARGETS);
+    });
+    expect(result.current.error).toBe("errorTooManyCells");
+    vi.restoreAllMocks();
+  });
+});
+
+describe("useDataGridImportPreview — unsupported Excel formats", () => {
+  it("surfaces errorUnsupportedExcelFormat for an .xls that is not a BIFF8 workbook", async () => {
+    mockedParse.mockRejectedValue(new Error("unsupported-excel-format"));
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
+    await act(async () => {
+      await result.current.loadFile(FILE_A, TARGETS);
+    });
+    expect(result.current.error).toBe("errorUnsupportedExcelFormat");
+    vi.restoreAllMocks();
+  });
+});
+
+describe("useDataGridImportPreview — limits", () => {
+  it("passes every import limit, maxDecompressedBytes included, to the parser", async () => {
+    mockedParse.mockResolvedValue({ rows: [["Name"], ["A-row"]], delimiter: "," });
+    const limits = { maxFileBytes: 1, maxRows: 2, maxColumns: 3, maxCells: 4, maxDecompressedBytes: 5 };
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}`, limits }));
+    await act(async () => {
+      await result.current.loadFile(FILE_B, TARGETS);
+    });
+    expect(mockedParse).toHaveBeenLastCalledWith(FILE_B, expect.objectContaining(limits), expect.anything());
+    vi.restoreAllMocks();
   });
 });

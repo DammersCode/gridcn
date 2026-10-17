@@ -7,20 +7,16 @@ import {
   DataGridHeader,
   DataGridBody,
   defineColumns,
-  GRID_ATTR,
-  gridAttrSelector,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridHeaderDropdown } from "./data-grid-context-menu";
+import { GRID_ATTR, gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 // real stylesheet so Tailwind's `grid`/`group-hover` utilities actually apply
 import "@/app/global.css";
 
 type Row = { id: string; name: string; email: string };
 
-function makeRows(): Row[] {
-  return [
-    { id: "r0", name: "Alice", email: "alice@example.com" },
-    { id: "r1", name: "Bob", email: "bob@example.com" },
-  ];
+function makeRows(count = 2): Row[] {
+  return Array.from({ length: count }, (_, i) => ({ id: "r" + i, name: "Name " + i, email: "n" + i + "@example.com" }));
 }
 
 const columns = defineColumns<Row>()([
@@ -28,9 +24,9 @@ const columns = defineColumns<Row>()([
   { id: "email", header: "Email", accessorKey: "email", type: "text", width: 200 },
 ] as const);
 
-function renderGrid() {
+function renderGrid(rowCount?: number) {
   return render(
-    <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+    <DataGridProvider data={makeRows(rowCount)} columns={columns} getRowId={(r) => r.id}>
       <DataGridRoot className="h-75" renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}>
         <DataGridHeader />
         <DataGridBody />
@@ -119,5 +115,129 @@ describe("DataGridHeaderDropdown", () => {
     const header = document.querySelector('[data-column-id="name"]')!;
     await expect.poll(() => header.getAttribute(GRID_ATTR.pinned)).toBe("left");
     expect(header).toHaveAttribute("aria-sort", "none");
+  });
+
+  it("Shift+Alt+ArrowDown opens the active column's menu, arrows reach its items, Escape returns focus to the cell", async () => {
+    await renderGrid();
+    await vi.waitFor(() => expect(document.querySelector('[data-column-id="email"]')).toBeTruthy());
+    const emailCell = () => document.querySelector<HTMLElement>('[role="gridcell"][aria-colindex="2"]')!;
+    await userEvent.click(emailCell());
+
+    await userEvent.keyboard("{Shift>}{Alt>}{ArrowDown}{/Alt}{/Shift}");
+    await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeTruthy());
+    await vi.waitFor(() => expect(document.activeElement).toBe(menuItem("Sort ascending")));
+    await userEvent.keyboard("{ArrowDown}");
+    expect(document.activeElement).toBe(menuItem("Sort descending"));
+
+    await userEvent.keyboard("{Escape}");
+    await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeUndefined());
+    await vi.waitFor(() => expect(document.activeElement).toBe(emailCell()));
+  });
+
+  it("an outside click on another focusable element closes a keyboard-opened menu without stealing focus back", async () => {
+    await renderGrid();
+    await vi.waitFor(() => expect(document.querySelector('[data-column-id="email"]')).toBeTruthy());
+    const outside = document.createElement("input");
+    document.body.append(outside);
+    const listeners = new AbortController();
+    try {
+      await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"][aria-colindex="2"]')!);
+      await userEvent.keyboard("{Shift>}{Alt>}{ArrowDown}{/Alt}{/Shift}");
+      await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeTruthy());
+
+      outside.focus();
+      const focusedAfterOutsidePress: Element[] = [];
+      const record = (e: FocusEvent) => {
+        if (e.target !== outside) focusedAfterOutsidePress.push(e.target as Element);
+      };
+      document.addEventListener("focusin", record, { signal: listeners.signal });
+      outside.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "mouse" }));
+      outside.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeUndefined());
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(focusedAfterOutsidePress).toEqual([]);
+      expect(document.activeElement).toBe(outside);
+    } finally {
+      listeners.abort();
+      outside.remove();
+    }
+  });
+
+  it("closing a mouse-opened menu leaves a scrolled-away grid where it is", async () => {
+    await renderGrid(400);
+    await vi.waitFor(() => expect(document.querySelector('[data-column-id="email"]')).toBeTruthy());
+    await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"][aria-colindex="2"]')!);
+    const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+    await vi.waitFor(() => expect(grid.scrollHeight).toBeGreaterThan(5000));
+    grid.scrollTop = 4000;
+    await new Promise((r) => setTimeout(r, 100));
+    const before = grid.scrollTop;
+    expect(before).toBeGreaterThan(1000);
+
+    document.querySelector<HTMLElement>(`[data-column-id="email"] ${gridAttrSelector("headerMenuTrigger")}`)!.click();
+    await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeTruthy());
+    await userEvent.keyboard("{Escape}");
+    await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeUndefined());
+    await new Promise((r) => setTimeout(r, 100));
+    expect(grid.scrollTop).toBe(before);
+  });
+
+  it("Shift+Alt+ArrowDown scrolls a scrolled-away active column into view and opens its menu", async () => {
+    const wideColumns = defineColumns<Row>()(
+      Array.from({ length: 30 }, (_, i) => ({ id: "c" + i, header: "Col " + i, accessorFn: (r: Row) => r.name, type: "text", width: 160 })) as never,
+    );
+    await render(
+      <DataGridProvider data={makeRows()} columns={wideColumns} getRowId={(r) => r.id}>
+        <DataGridRoot className="h-75 w-100" renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}>
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await vi.waitFor(() => expect(document.querySelector('[data-column-id="c0"]')).toBeTruthy());
+    await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"][aria-colindex="1"]')!);
+    const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+    grid.scrollLeft = grid.scrollWidth;
+    await vi.waitFor(() => expect(grid.scrollLeft).toBeGreaterThan(4000));
+
+    await userEvent.keyboard("{Shift>}{Alt>}{ArrowDown}{/Alt}{/Shift}");
+    await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeTruthy());
+    expect(grid.scrollLeft).toBeLessThan(200);
+  });
+
+  it("Shift+Alt+ArrowDown warns in development when no header menu is wired", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridRoot className="h-75">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await vi.waitFor(() => expect(document.querySelector('[role="gridcell"]')).toBeTruthy());
+    await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"]')!);
+    await userEvent.keyboard("{Shift>}{Alt>}{ArrowDown}{/Alt}{/Shift}");
+    await vi.waitFor(() => expect(warn.mock.calls.some(([message]) => String(message).includes("column menu"))).toBe(true));
+    warn.mockRestore();
+  });
+
+  it("Shift+Alt+ArrowDown stays silent when the grid unmounts before the header renders", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const view = await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridRoot className="h-75">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await vi.waitFor(() => expect(document.querySelector('[role="gridcell"]')).toBeTruthy());
+    await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"]')!);
+    document.activeElement!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", shiftKey: true, altKey: true, bubbles: true }));
+    await view.unmount();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(warn.mock.calls.some(([message]) => String(message).includes("column menu"))).toBe(false);
+    warn.mockRestore();
   });
 });

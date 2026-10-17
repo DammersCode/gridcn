@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CompactSelection } from "./compact-selection";
 import { selectLine } from "./select-line-options";
 
@@ -66,5 +66,28 @@ describe("selectLine", () => {
   it("replaceFromLast falls back to the channel's last member when `from` is omitted", () => {
     const result = selectLine(CompactSelection.fromArray([2, 3]), 5, { replaceFromLast: true });
     expect(result.toArray()).toEqual([3, 4, 5]);
+  });
+
+  it("never materializes a CompactSelection input (plain, additive, and extend paths)", () => {
+    const channel = CompactSelection.fromArray([1, 2, 3]);
+    const toArraySpy = vi.spyOn(channel, "toArray");
+    selectLine(channel, 7, {});
+    selectLine(channel, 4, { additive: true });
+    selectLine(channel, 5, { extendFromLast: true });
+    selectLine(channel, 0, { replaceFromLast: true, from: 3 });
+    expect(toArraySpy).not.toHaveBeenCalled();
+    toArraySpy.mockRestore();
+  });
+
+  it("still materializes a structural CompactSelectionLike through the fallback", () => {
+    const like = {
+      length: 2,
+      hasIndex: (i: number) => i === 1 || i === 2,
+      hasAll: () => false,
+      toArray: () => [1, 2],
+      equals: () => false,
+    };
+    const result = selectLine(like, 5, { extendFromLast: true });
+    expect(result.toArray()).toEqual([1, 2, 3, 4, 5]);
   });
 });

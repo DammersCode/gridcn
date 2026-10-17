@@ -155,11 +155,11 @@ export type MetricRow = {
  *
  * Why not v1's constant delta (2026-07-18 fairness audit): a permanent 800px/frame teleport is not
  * a fling, it is a scrollbar being dragged forever. gridcn sizes its leading-edge overscan from a
- * decaying-max velocity estimator (registry .../windowing/use-row-window.ts), which ramps to its
+ * decaying-max velocity estimator (registry .../virtualization/use-row-window.ts), which ramps to its
  * 1600px cap after 3 consecutive >=72px ticks and only resets after 150ms of genuine idle — so a
  * constant-delta driver pins it at maximum overscan for every frame of the run, mounting ~44 extra
  * rows per commit that a real gesture would only pay for during the burst. Competitors' fixed
- * windowing has no velocity term, so it costs them nothing. That made the tier a measurement of
+ * virtualization has no velocity term, so it costs them nothing. That made the tier a measurement of
  * gridcn's anti-blank insurance premium rather than of scrolling. Bursts + a real settle (longer
  * than the estimator's 150ms idle gate at 60fps) exercise the ramp AND the decay, which is what a
  * wheel flick or thumb-drag actually does, and matches the gesture shape scroll-drag.browser.test.tsx

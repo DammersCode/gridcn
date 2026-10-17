@@ -122,7 +122,7 @@ function RowOpsControls({
       </Button>
       <div className="ml-auto flex items-center gap-2">
         <span className="text-sm text-muted-foreground">Read-only</span>
-        <Switch checked={readOnly} onCheckedChange={onReadOnlyChange} />
+        <Switch aria-label="Read-only" checked={readOnly} onCheckedChange={onReadOnlyChange} />
       </div>
     </DataGridToolbar>
   );
@@ -131,7 +131,7 @@ function RowOpsControls({
 /**
  * Row operations from two surfaces: the toolbar (acting on the current row selection) and the
  * right-click context menu (acting on the clicked row). The panel on the right shows the last
- * `onDataChange` payload so the op-shape contract (source + id-keyed ops) stays visible.
+ * `onDataChange` payload so the operation contract (source + row-id-based operations) stays visible.
  */
 export default function DataGridRowOpsDemo(): ReactNode {
   const rows = useMemo(() => generateDemoRows(8), []);
@@ -151,6 +151,7 @@ export default function DataGridRowOpsDemo(): ReactNode {
         getRowId={(row) => row.id}
         createRow={createRow}
         duplicateRow={duplicateRow}
+        readOnly={readOnly}
         onDataChange={(_, change) =>
           setLast({
             source: change.source,
@@ -162,10 +163,7 @@ export default function DataGridRowOpsDemo(): ReactNode {
         <div className="flex gap-3">
           <div className="h-[300px] min-w-0 flex-1 overflow-hidden rounded-md border border-border">
             <DataGridContextMenu className="flex h-full flex-col">
-              <DataGridRoot
-                className="h-full rounded-none border-none"
-                readOnly={readOnly}
-              >
+              <DataGridRoot className="h-full rounded-none border-none">
                 <DataGridHeader />
                 <DataGridBody />
               </DataGridRoot>

@@ -73,6 +73,22 @@ describe("useDataGridPagination: client mode", () => {
     expect(onPageChange).toHaveBeenCalledWith(5);
   });
 
+  it("keeps a controlled page while data is empty (loading) without rewriting it, and shows it again once data arrives", () => {
+    const onPageChange = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ data }: { data: { id: number }[] }) => useDataGridPagination({ data, pageSize: 25, page: 3, onPageChange }),
+      { initialProps: { data: [] as { id: number }[] } },
+    );
+    // empty data (a fetch in flight): the controls show a valid page, and the consumer's page is never rewritten
+    expect(result.current.controls.page).toBe(1);
+    expect(result.current.pageData).toEqual([]);
+    expect(onPageChange).not.toHaveBeenCalled();
+
+    rerender({ data: makeData(101) });
+    expect(result.current.controls.page).toBe(3);
+    expect(result.current.pageData?.[0]).toEqual({ id: 50 });
+  });
+
   it("supports a fully controlled page prop", () => {
     const onPageChange = vi.fn();
     const { result, rerender } = renderHook(
@@ -169,6 +185,18 @@ describe("useDataGridPagination: server mode, reconcilePage", () => {
     );
     rerender({ total: 100 }); // 5 pages, page 3 still in range
     expect(onPageChange).not.toHaveBeenCalled();
+  });
+
+  it("does not rewrite a deep link while total is 0 (data still loading)", () => {
+    const onPageChange = vi.fn();
+    const { rerender } = renderHook(
+      ({ total }: { total: number }) =>
+        useDataGridPagination({ page: 5, pageSize: 20, total, onPageChange, reconcilePage: true }),
+      { initialProps: { total: 0 } },
+    );
+    expect(onPageChange).not.toHaveBeenCalled();
+    rerender({ total: 40 });
+    expect(onPageChange).toHaveBeenCalledExactlyOnceWith(2);
   });
 
   it("stays silent for an out-of-range page unless reconcilePage is set", () => {

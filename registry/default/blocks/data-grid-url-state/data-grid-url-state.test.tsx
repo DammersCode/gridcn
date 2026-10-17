@@ -48,6 +48,19 @@ function UrlStateProbe(props: { prefix?: string; onResult: (result: UseDataGridU
   return null;
 }
 
+type StatusRow = { id: string; status: string };
+
+const statusColumns = defineColumns<StatusRow>()([
+  {
+    id: "status",
+    header: "Status",
+    accessorKey: "status",
+    type: "select",
+    width: 80,
+    options: { choices: [{ value: "new", label: "New" }, { value: "open", label: "Open" }] },
+  },
+] as const);
+
 function renderGrid(options: {
   searchParams?: string;
   prefix?: string;
@@ -71,6 +84,53 @@ function renderGrid(options: {
   );
   return { ...utils, getState: () => latestState!, getActions: () => actions! };
 }
+
+describe("DataGridUrlState isAnyOf bound", () => {
+  it("bounds a URL isAnyOf list by the column's own choices", () => {
+    const values = Array.from({ length: 100 }, (_, i) => `v${i}`).join("|");
+    let filter: unknown;
+    const Probe = () => {
+      filter = useDataGridFilterState();
+      return null;
+    };
+    render(
+      <NuqsTestingAdapter searchParams={`?filter=status%3AisAnyOf%3A${values}`}>
+        <DataGridProvider data={[{ id: "r0", status: "new" }]} columns={statusColumns} getRowId={(r) => r.id}>
+          <DataGridUrlState />
+          <Probe />
+        </DataGridProvider>
+      </NuqsTestingAdapter>,
+    );
+    expect(filter).toEqual([{ filterId: expect.any(String), columnId: "status", operator: "isAnyOf", value: Array.from({ length: 64 }, (_, i) => `v${i}`) }]);
+  });
+
+  it("keeps a deep link on a select column whose choices have not loaded yet", () => {
+    let filter: unknown;
+    const Probe = () => {
+      filter = useDataGridFilterState();
+      return null;
+    };
+    render(
+      <NuqsTestingAdapter searchParams="?filter=status%3AisAnyOf%3Anew%7Copen">
+        <DataGridProvider
+          data={[{ id: "r0", status: "new" }]}
+          columns={defineColumns<StatusRow>()([{ id: "status", header: "Status", accessorKey: "status", type: "select", width: 80, options: { choices: [] } }] as const)}
+          getRowId={(r) => r.id}
+        >
+          <DataGridUrlState />
+          <Probe />
+        </DataGridProvider>
+      </NuqsTestingAdapter>,
+    );
+    expect(filter).toEqual([{ filterId: expect.any(String), columnId: "status", operator: "isAnyOf", value: ["new", "open"] }]);
+  });
+
+  it("keeps a long isAnyOf list for a column without choices", () => {
+    const values = Array.from({ length: 100 }, (_, i) => `v${i}`).join("|");
+    const { getState } = renderGrid({ searchParams: `?filter=name%3AisAnyOf%3A${values}` });
+    expect((getState().filter as { value: string[] }[])[0]!.value).toHaveLength(100);
+  });
+});
 
 describe("DataGridUrlState mount-apply", () => {
   it("applies sort/filter/search from the URL on mount", () => {
@@ -109,6 +169,61 @@ describe("DataGridUrlState mount-apply", () => {
       searchParams: "?sort=name%3Aasc&orders_sort=age%3Adesc",
     });
     expect(getState().sort).toEqual([{ columnId: "age", direction: "desc" }]);
+  });
+});
+
+describe("DataGridUrlState excluded columns", () => {
+  const guardedColumns = defineColumns<Row>()([
+    { id: "name", header: "Name", accessorKey: "name", type: "text", width: 100 },
+    { id: "age", header: "Age", accessorKey: "age", type: "number", width: 80, sortable: false },
+    { id: "id", header: "Id", accessorKey: "id", type: "text", width: 80, filterable: false, hidden: true },
+  ] as const);
+
+  function renderGuarded(searchParams: string) {
+    let latest: { sort: unknown; filter: unknown; search: string } | undefined;
+    render(
+      <NuqsTestingAdapter searchParams={searchParams}>
+        <DataGridProvider data={rows} columns={guardedColumns} getRowId={(r) => r.id}>
+          <DataGridUrlState />
+          <StateProbe onState={(s) => (latest = s)} />
+        </DataGridProvider>
+      </NuqsTestingAdapter>,
+    );
+    return () => latest!;
+  }
+
+  it("drops URL sort specs for a sortable:false or hidden column and dev-warns", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const getState = renderGuarded("?sort=age%3Aasc,id%3Adesc,name%3Aasc");
+    expect(getState().sort).toEqual([{ columnId: "name", direction: "asc" }]);
+    expect(warn.mock.calls.length).toBe(2);
+    warn.mockRestore();
+  });
+
+  it("keeps a URL sort for a def-hidden column the user shows again", async () => {
+    let result: UseDataGridUrlStateResult | undefined;
+    let actions: ReturnType<typeof useDataGridActions> | undefined;
+    let latest: { sort: unknown } | undefined;
+    render(
+      <NuqsTestingAdapter searchParams="?sort=id%3Adesc">
+        <DataGridProvider data={rows} columns={guardedColumns} getRowId={(r) => r.id}>
+          <UrlStateProbe onResult={(r) => (result = r)} />
+          <ActionsProbe onActions={(a) => (actions = a)} />
+          <StateProbe onState={(s) => (latest = s)} />
+        </DataGridProvider>
+      </NuqsTestingAdapter>,
+    );
+    act(() => actions!.setColumnHidden("id", false));
+    act(() => actions!.setSorts([{ columnId: "id", direction: "desc" }]));
+    await act(async () => result!.applyFromUrl());
+    expect(latest!.sort).toEqual([{ columnId: "id", direction: "desc" }]);
+  });
+
+  it("drops URL filter specs for a filterable:false or hidden column", () => {
+    const getState = renderGuarded("?filter=id%3Aequals%3Ar0,name%3Aequals%3AAlice");
+    expect(getState().filter).toEqual([
+      { filterId: expect.any(String), columnId: "name", operator: "equals", value: "Alice" },
+    ]);
   });
 });
 

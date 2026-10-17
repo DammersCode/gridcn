@@ -1,7 +1,8 @@
 import { page } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { defineColumns, DataGrid, gridAttrSelector } from "../data-grid";
+import { defineColumns, DataGrid } from "../data-grid";
+import { gridAttrSelector } from "../data-grid-sdk";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply (same convention as column-ux.browser.test.tsx)
 import "@/app/global.css";
 
@@ -35,15 +36,16 @@ function markerCell(viewRowIndex: number): HTMLElement {
   return row.querySelector<HTMLElement>(gridAttrSelector("markerCell"))!;
 }
 
-async function markerDrag(viewRowIndex: number, toX: number, toY: number, opts?: { steps?: number; shift?: boolean }) {
-  // the grip is the reorder zone; plain modes have no grip element and fall back to the cell
+async function markerDrag(viewRowIndex: number, toX: number, toY: number, opts?: { steps?: number; shift?: boolean; pointerId?: number }) {
+  const pointerId = opts?.pointerId ?? 1;
+  // the drag handle is the reorder zone; plain modes have no drag handle element and fall back to the cell
   const from = markerCell(viewRowIndex).querySelector<HTMLElement>(gridAttrSelector("reorderHandle")) ?? markerCell(viewRowIndex);
   const rect = from.getBoundingClientRect();
   await from.dispatchEvent(
     new PointerEvent("pointerdown", {
       bubbles: true,
       button: 0,
-      pointerId: 1,
+      pointerId,
       shiftKey: opts?.shift ?? false,
       clientX: rect.left + 2,
       clientY: rect.top + rect.height / 2,
@@ -51,11 +53,15 @@ async function markerDrag(viewRowIndex: number, toX: number, toY: number, opts?:
   );
   const steps = opts?.steps ?? 1;
   for (let i = 1; i <= steps; i++) {
-    document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, shiftKey: opts?.shift ?? false, clientX: toX, clientY: toY }));
+    document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId, shiftKey: opts?.shift ?? false, clientX: toX, clientY: toY }));
     await new Promise((r) => requestAnimationFrame(r));
   }
-  document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 1, shiftKey: opts?.shift ?? false }));
+  document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId, shiftKey: opts?.shift ?? false }));
   await new Promise((r) => requestAnimationFrame(r));
+}
+
+function selectedMarkerCount(): number {
+  return rows().filter((r) => r.querySelector(gridAttrSelector("markerCell"))!.hasAttribute("data-row-selected")).length;
 }
 
 describe("row reorder (marker drag)", () => {
@@ -85,6 +91,19 @@ describe("row reorder (marker drag)", () => {
     expect(dataCell(draggedNode).textContent).toBe("Person 0");
   });
 
+  it("reorders with a synthetic pointer id the browser refuses to capture", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const target = rows().find((r) => dataCell(r).textContent === "Person 3")!;
+    const targetRect = target.getBoundingClientRect();
+    await markerDrag(0, markerCell(0).getBoundingClientRect().left + 2, targetRect.top + targetRect.height - 5, { steps: 3, pointerId: 4242 });
+    await expect.poll(() => visualOrder(), { timeout: 2000 }).toEqual(["Person 1", "Person 2", "Person 3", "Person 0", "Person 4", "Person 5", "Person 6", "Person 7"]);
+  });
+
   it("a plain click on the marker still selects the row and never reorders", async () => {
     await render(
       <div style={{ height: 400 }}>
@@ -104,7 +123,7 @@ describe("row reorder (marker drag)", () => {
     expect(document.querySelectorAll(gridAttrSelector("dropIndicator"))).toHaveLength(0);
   });
 
-  it("shift+drag from the marker always extends the row selection, never reorders", async () => {
+  it("shift+drag from the grip never reorders and never selects", async () => {
     await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder" />
@@ -119,10 +138,7 @@ describe("row reorder (marker drag)", () => {
 
     // order must be unchanged — shift+drag never reorders regardless of movement
     expect(visualOrder()[0]).toBe("Person 0");
-    // the shift+drag extended the row selection over rows 0..3
-    await expect
-      .poll(() => rows().filter((r) => r.querySelector<HTMLElement>(gridAttrSelector("markerCell"))!.hasAttribute("data-row-selected")).length, { timeout: 2000 })
-      .toBe(4);
+    expect(selectedMarkerCount()).toBe(0);
   });
 
   it("a drag from the checkbox glyph stays the row-select gesture (no reorder)", async () => {
@@ -291,52 +307,93 @@ describe("row reorder (marker drag)", () => {
       .toBe(4);
   });
 
-  // Zone model: the grip is the reorder entry — a grip drag in 'reorder-checkbox' reorders, and
-  // the grip press's row selection follows the row to its new position.
-  it("a grip drag in 'reorder-checkbox' reorders and the dragged row ends up the only selected row", async () => {
+  it("a grip drag in 'reorder-checkbox' reorders and leaves the selection as it was", async () => {
     await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder-checkbox" />
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
-    const grip = markerCell(0).querySelector<HTMLElement>(gridAttrSelector("reorderHandle"))!;
-    const gripRect = grip.getBoundingClientRect();
-    const target = rows().find((r) => dataCell(r).textContent === "Person 3")!;
-    const targetRect = target.getBoundingClientRect();
-
-    await grip.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1, clientX: gripRect.left + 2, clientY: gripRect.top + 2 }));
-    for (let i = 1; i <= 3; i++) {
-      document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: gripRect.left + 2, clientY: targetRect.top + targetRect.height - 5 }));
-      await new Promise((r) => requestAnimationFrame(r));
-    }
-    document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 1 }));
-    await new Promise((r) => requestAnimationFrame(r));
-
+    expect(selectedMarkerCount()).toBe(0);
+    await markerDrag(0, markerCell(0).getBoundingClientRect().left + 2, rows().find((r) => dataCell(r).textContent === "Person 3")!.getBoundingClientRect().bottom - 5, { steps: 3 });
     await expect.poll(() => visualOrder(), { timeout: 2000 }).toEqual(["Person 1", "Person 2", "Person 3", "Person 0", "Person 4", "Person 5", "Person 6", "Person 7"]);
-    await expect
-      .poll(() => rows().filter((r) => r.querySelector<HTMLElement>(gridAttrSelector("markerCell"))!.hasAttribute("data-row-selected")).length, { timeout: 2000 })
-      .toBe(1);
+    expect(selectedMarkerCount()).toBe(0);
   });
 
-  it("a stationary press on the grip selects the row without reordering", async () => {
+  it("a stationary press on the grip leaves selection and checkbox untouched", async () => {
     await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder-checkbox" />
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
-    const grip = markerCell(2).querySelector<HTMLElement>(gridAttrSelector("reorderHandle"))!;
-    const gripRect = grip.getBoundingClientRect();
-
-    await grip.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1, clientX: gripRect.left + 2, clientY: gripRect.top + 2 }));
-    await new Promise((r) => requestAnimationFrame(r));
-    document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 1, clientX: gripRect.left + 2, clientY: gripRect.top + 2 }));
-    await new Promise((r) => requestAnimationFrame(r));
-
-    await expect.poll(() => markerCell(2).hasAttribute("data-row-selected"), { timeout: 2000 }).toBe(true);
+    await markerDrag(2, 0, 0, { steps: 0 });
+    expect(selectedMarkerCount()).toBe(0);
     expect(visualOrder()[0]).toBe("Person 0");
     expect(document.querySelectorAll(gridAttrSelector("dropIndicator"))).toHaveLength(0);
+  });
+
+  for (const mode of ["reorder", "reorder-number", "reorder-checkbox", "reorder-both"] as const) {
+    it(`'${mode}': the whole grip icon area (center and ±6px) is a grab handle that reorders without selecting`, async () => {
+      for (const dx of [-6, 0, 6]) {
+        const view = await render(
+          <div style={{ height: 400 }}>
+            <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers={mode} />
+          </div>,
+        );
+        await expect.element(page.getByRole("grid")).toBeInTheDocument();
+        const cell = markerCell(0);
+        const grip = cell.querySelector<HTMLElement>(gridAttrSelector("reorderHandle"))!;
+        const gripRect = grip.getBoundingClientRect();
+        const x = gripRect.left + gripRect.width / 2 + dx;
+        const y = gripRect.top + gripRect.height / 2;
+        const hit = document.elementFromPoint(x, y)!;
+        expect(grip.contains(hit)).toBe(true);
+        expect(getComputedStyle(hit).cursor).toBe("grab");
+
+        const targetRect = rows().find((r) => dataCell(r).textContent === "Person 3")!.getBoundingClientRect();
+        hit.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1, clientX: x, clientY: y }));
+        for (let i = 0; i < 3; i++) {
+          document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: x, clientY: targetRect.bottom - 5 }));
+          await new Promise((r) => requestAnimationFrame(r));
+        }
+        document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 1 }));
+        await new Promise((r) => requestAnimationFrame(r));
+
+        await expect.poll(() => visualOrder().indexOf("Person 0"), { timeout: 2000 }).toBe(3);
+        expect(selectedMarkerCount()).toBe(0);
+        await view.unmount();
+      }
+    });
+  }
+
+  it("a grip drag keeps an existing selection mapped by row id", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder-checkbox" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    markerCell(5).querySelector<HTMLElement>(gridAttrSelector("markerCheckbox"))!.click();
+    await expect.poll(() => selectedMarkerCount(), { timeout: 2000 }).toBe(1);
+    await markerDrag(0, markerCell(0).getBoundingClientRect().left + 2, rows().find((r) => dataCell(r).textContent === "Person 3")!.getBoundingClientRect().bottom - 5, { steps: 3 });
+    await expect.poll(() => visualOrder().indexOf("Person 0"), { timeout: 2000 }).toBe(3);
+    const selected = rows().filter((r) => r.querySelector(gridAttrSelector("markerCell"))!.hasAttribute("data-row-selected"));
+    expect(selected.map((r) => dataCell(r).textContent)).toEqual(["Person 5"]);
+  });
+
+  it("the checkbox hit area stays out of the grip zone", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder-checkbox" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const grip = markerCell(0).querySelector<HTMLElement>(gridAttrSelector("reorderHandle"))!.getBoundingClientRect();
+    const box = markerCell(0).querySelector<HTMLElement>(gridAttrSelector("markerCheckbox"))!.getBoundingClientRect();
+    expect(box.left).toBeGreaterThanOrEqual(grip.right);
+    const justRight = document.elementFromPoint(grip.right + 1, grip.top + grip.height / 2)!;
+    expect(justRight.closest(gridAttrSelector("reorderHandle"))).toBeNull();
   });
 
   it("auto-scrolls the grid while the drag pointer sits in a viewport edge zone", { timeout: 20_000 }, async () => {
@@ -388,6 +445,29 @@ describe("row reorder (marker drag)", () => {
     await expect.poll(() => document.querySelectorAll(gridAttrSelector("dropIndicator")).length, { timeout: 2000 }).toBe(1);
 
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await new Promise((r) => requestAnimationFrame(r));
+    await expect.poll(() => document.querySelectorAll(gridAttrSelector("dropIndicator")).length, { timeout: 2000 }).toBe(0);
+    expect(visualOrder()[0]).toBe("Person 0");
+  });
+
+  it("a cancelled pointer (pointercancel) ends the drag in flight without reordering", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const dragged = markerCell(0);
+    const rect = dragged.getBoundingClientRect();
+    const target = rows().find((r) => dataCell(r).textContent === "Person 3")!;
+    const targetRect = target.getBoundingClientRect();
+
+    await dragged.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1, clientX: rect.left + 2, clientY: rect.top + rect.height / 2 }));
+    document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: rect.left + 2, clientY: targetRect.top + 4 }));
+    await new Promise((r) => requestAnimationFrame(r));
+    await expect.poll(() => document.querySelectorAll(gridAttrSelector("dropIndicator")).length, { timeout: 2000 }).toBe(1);
+
+    document.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerId: 1 }));
     await new Promise((r) => requestAnimationFrame(r));
     await expect.poll(() => document.querySelectorAll(gridAttrSelector("dropIndicator")).length, { timeout: 2000 }).toBe(0);
     expect(visualOrder()[0]).toBe("Person 0");

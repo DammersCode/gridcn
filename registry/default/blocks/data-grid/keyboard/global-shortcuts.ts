@@ -1,4 +1,5 @@
 import type { GridAction, Keymap } from "../types";
+import { isComposingKey } from "../interaction/is-composing-key";
 import { matchKeymap } from "./match-keymap";
 import { isMacPlatform } from "./platform";
 
@@ -57,6 +58,7 @@ export type GlobalShortcutEvent = {
   shiftKey: boolean;
   altKey: boolean;
   isComposing: boolean;
+  keyCode: number;
   defaultPrevented: boolean;
 };
 
@@ -71,6 +73,10 @@ export type GlobalShortcutContext = {
   targetInAnyGrid: boolean;
   /** This grid is the last focused opted-in grid (the multi-grid tie-break). */
   ownsFocus: boolean;
+  /** An edit session is open; its editor, including a portaled popup, owns the keys. */
+  editing?: boolean;
+  /** Limits the keymap match to the actions it accepts. */
+  include?: (action: GridAction) => boolean;
 };
 
 /**
@@ -81,18 +87,20 @@ export type GlobalShortcutContext = {
  * 3. `targetIsEditable` — the field's native undo/redo wins; never hijack it.
  * 4. `targetInAnyGrid` — a grid's in-grid handler owns the key (this also excludes other grids).
  * 5. `ownsFocus` — multi-grid: only the last focused opted-in grid proceeds.
- * 6. The keymap resolves to one of the enabled actions.
+ * 6. `editing` — an open edit session owns the keys, even from a popup outside the grid.
+ * 7. The keymap resolves to one of the enabled actions.
  */
 export function resolveGlobalShortcut(
   event: GlobalShortcutEvent,
   ctx: GlobalShortcutContext,
 ): GlobalShortcutAction | null {
-  if (event.isComposing) return null;
+  if (isComposingKey(event)) return null;
   if (event.defaultPrevented) return null;
   if (ctx.targetIsEditable) return null;
   if (ctx.targetInAnyGrid) return null;
   if (!ctx.ownsFocus) return null;
-  const action = matchKeymap(event, ctx.keymap, ctx.isMac);
+  if (ctx.editing) return null;
+  const action = matchKeymap(event, ctx.keymap, ctx.isMac, ctx.include);
   if (action === null) return null;
   return ctx.actions.includes(action) ? action : null;
 }

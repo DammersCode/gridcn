@@ -1,6 +1,8 @@
-import type { Keymap } from "../types";
+import type { GridAction, Keymap } from "../types";
 import { isDev } from "../is-dev";
 import { warnDev } from "../store/commit";
+import { bindingSignature, isDefaultBinding } from "./match-keymap";
+import { isMacPlatform } from "./platform";
 
 /**
  * Key tokens for keymap binding strings (the last `+`-separated part). Letters are lowercase
@@ -126,5 +128,57 @@ export function validateKeymap(keymap: Keymap): void {
       warnedBindings.add(dedupe);
       warnDev(`keymap binding "${binding}" for action "${action}": ${issues.join("; ")}`);
     }
+  }
+}
+
+/** One combo (modifier set + key) that two or more distinct actions bind. */
+export type SharedKeymapBinding = {
+  /** The first-seen binding string of the combo (modifier order as written). */
+  binding: string;
+  /** The distinct actions bound to the combo, in keymap entry order. */
+  actions: readonly GridAction[];
+  /** True when at least one binding of the combo is not a default binding of its action. */
+  consumerInvolved: boolean;
+};
+
+/**
+ * The combos of `keymap` bound to two or more distinct actions. The matcher resolves a shared
+ * combo to ONE action, so the other bindings are dead; this list is what the dev warning reports.
+ * Off macOS `ctrl` and `mod` both mean the Ctrl key, so they form one combo.
+ */
+export function sharedKeymapBindings(keymap: Keymap, isMac: boolean = isMacPlatform()): SharedKeymapBinding[] {
+  const bySignature = new Map<string, { binding: string; actions: GridAction[]; consumerInvolved: boolean }>();
+  for (const [action, bindings] of Object.entries(keymap) as [GridAction, string[] | undefined][]) {
+    if (!bindings) continue;
+    for (const binding of bindings) {
+      const signature = bindingSignature(binding, !isMac);
+      const entry = bySignature.get(signature) ?? { binding, actions: [], consumerInvolved: false };
+      if (!entry.actions.includes(action)) entry.actions.push(action);
+      if (!isDefaultBinding(action, binding)) entry.consumerInvolved = true;
+      bySignature.set(signature, entry);
+    }
+  }
+  return [...bySignature.values()]
+    .filter((e) => e.actions.length >= 2)
+    .map((e) => ({ binding: e.binding, actions: e.actions, consumerInvolved: e.consumerInvolved }));
+}
+
+const warnedSharedBindings = new Set<string>();
+
+/**
+ * Warns in development for every combo shared across two or more distinct actions that involves
+ * at least one non-default binding, once per unique combo and action set. Shares between default
+ * bindings stay silent (Enter: `edit` and `commitDown` are contextually exclusive).
+ */
+export function validateSharedBindings(keymap: Keymap, isMac: boolean = isMacPlatform()): void {
+  if (!isDev()) return;
+  for (const shared of sharedKeymapBindings(keymap, isMac)) {
+    if (!shared.consumerInvolved) continue;
+    const dedupe = `${shared.binding}:${[...shared.actions].sort().join(",")}`;
+    if (warnedSharedBindings.has(dedupe)) continue;
+    warnedSharedBindings.add(dedupe);
+    warnDev(
+      `keymap binding "${shared.binding}" is bound to multiple actions (${shared.actions.join(", ")}); the most specific binding wins; on a tie a keymap binding beats a default. Assign distinct combos to keep every action reachable.`,
+    );
   }
 }

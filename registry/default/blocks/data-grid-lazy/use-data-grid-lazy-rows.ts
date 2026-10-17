@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { isDev, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
+import { applyChange, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
+import { holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes, type Range } from "./range-math";
 
 /** Default extra rows fetched per range beyond the visible window — ~1 viewport (spec: "default ~1 viewport of rows"). */
@@ -14,7 +15,7 @@ export type UseDataGridLazyRowsOptions<TData> = {
   /** Total row count across the whole dataset, loaded or not — sizes the sparse `data` array. */
   total: number;
   /**
-   * Fetches rows `[start, end)` (inclusive-exclusive, matching `onRowWindowChange`'s convention).
+   * Fetches rows `[start, end)` (inclusive-exclusive, matching `onRenderedRowsChange`'s convention).
    * Must resolve with EXACTLY `end - start` rows, positionally aligned to `[start, end)` (the row
    * at index `start + i` at result index `i`). A short response leaves the unwritten rows unloaded
    * (only actually written rows are marked loaded, so the gap refetches on next visibility); an
@@ -57,7 +58,7 @@ export type UseDataGridLazyRowsResult<TData> = {
   gridProps: {
     data: readonly TData[];
     getRowId: (row: TData, index: number) => string;
-    onRowWindowChange: (range: Range) => void;
+    onRenderedRowsChange: (range: Range) => void;
   };
   /**
    * Pass as `DataGrid`'s `onDataChange` to let edits on already-loaded rows flow back into the
@@ -66,7 +67,7 @@ export type UseDataGridLazyRowsResult<TData> = {
   onDataChange: (next: readonly TData[], change: DataChange<TData>) => void;
   /** Count of indices with no loaded row yet — mainly for the sort/filter dev-warn guard and diagnostics. */
   unloadedCount: number;
-  /** True while any range fetch is in flight. */
+  /** True while any range fetch is in flight. Use it for a busy state, e.g. `aria-busy` or a dimmed grid while a server-side sort refetches. */
   isLoading: boolean;
   /**
    * Aborts every in-flight fetch, drops all loaded rows, and re-requests the last reported
@@ -77,7 +78,7 @@ export type UseDataGridLazyRowsResult<TData> = {
   reset: () => void;
   /**
    * Unloads the loaded rows inside `range`; a partial overlap evicts the intersection only, the
-   * rest stays loaded. The next `onRowWindowChange` covering the evicted rows re-fetches them.
+   * rest stays loaded. The next `onRenderedRowsChange` covering the evicted rows re-fetches them.
    * In-flight fetches are not aborted — one started before the evict still lands and marks its
    * range loaded. Evicted rows are lost from the sparse array,
    * including edits merged through `onDataChange` (this hook does not own persistence). Clamped
@@ -94,11 +95,6 @@ export type UseDataGridLazyRowsResult<TData> = {
   getLoadedRanges: () => readonly Range[];
 };
 
-/** Index-derived placeholder id for an unloaded row — unstable across loads, but unloaded rows carry no state (documented: unstable identity for unloaded rows is fine). */
-function placeholderId(index: number): string {
-  return `__lazy-unloaded-${index}`;
-}
-
 /** A consumer callback throwing must not escape the fetch's promise chain as an unhandled rejection. */
 function guardCallback(fn: (() => void) | undefined): void {
   try {
@@ -111,7 +107,7 @@ function guardCallback(fn: (() => void) | undefined): void {
 /**
  * Virtual data fetching for `DataGrid`: maintains a sparse
  * `data` array (length `total`, holes = unloaded rows) and fetches windows on demand as
- * `onRowWindowChange` reports the rendered range. Loaded rows are addressed by `getRowId`, so an
+ * `onRenderedRowsChange` reports the rendered range. Loaded rows are addressed by `getRowId`, so an
  * edit/sort of a loaded row behaves exactly like a normal controlled grid; unloaded rows use an
  * index-derived placeholder id purely so React has a key to render a skeleton row under.
  *
@@ -139,7 +135,7 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
   const [rows, setRows] = useState<(TData | undefined)[]>(() => Array<TData | undefined>(total));
 
   // Loaded + in-flight ranges, kept OUTSIDE React state: consulted synchronously inside the
-  // onRowWindowChange handler (dedup must see the effect of the fetch it just started, same tick,
+  // onRenderedRowsChange handler (dedup must see the effect of the fetch it just started, same tick,
   // not next render) and mutated from fetch completion callbacks that must not themselves trigger
   // extra renders beyond the one `setRows` already causes.
   const loadedRangesRef = useRef<Range[]>([]);
@@ -147,6 +143,7 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
   const [isLoading, setIsLoading] = useState(false);
   // per-instance once-flag: a persistently broken fetchRows must not re-warn on every fetch
   const lengthMismatchWarnedRef = useRef(false);
+  const droppedEditWarnedRef = useRef(false);
   const lastWindowRef = useRef<Range | null>(null);
   const pendingWindowRef = useRef(false);
 
@@ -243,7 +240,7 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
     const handleRejected = (error: unknown) => {
       if (controller.signal.aborted) return;
       // failed ranges revert to unloaded (never entered loadedRangesRef) so the next
-      // onRowWindowChange covering them naturally retries — "refetch on next visibility".
+      // onRenderedRowsChange covering them naturally retries — "refetch on next visibility".
       guardCallback(() => onErrorRef.current?.(error, range));
     };
 
@@ -258,7 +255,7 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
     }
   }, []);
 
-  const onRowWindowChange = useCallback(
+  const onRenderedRowsChange = useCallback(
     (range: Range) => {
       lastWindowRef.current = range;
       const expanded = expandRange(range, { overscan, batchSize, total: totalRef.current });
@@ -277,26 +274,53 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
     if (!pendingWindowRef.current) return;
     pendingWindowRef.current = false;
     const last = lastWindowRef.current;
-    if (last) onRowWindowChange(last);
+    if (last) onRenderedRowsChange(last);
   });
 
-  const onDataChange = useCallback((next: readonly TData[], _change: DataChange<TData>) => {
-    // `next` is DataGrid's own post-edit array, itself sparse at runtime (see gridProps.data's doc).
-    setRows(next.slice() as (TData | undefined)[]);
-  }, []);
-
   const gridGetRowId = useCallback(
-    (row: TData, index: number) => (row === undefined ? placeholderId(index) : getRowId(row, index)),
+    (row: TData, index: number) => (row === undefined ? holeRowId(index) : getRowId(row, index)),
     [getRowId],
+  );
+
+  const warnDroppedEdit = useCallback(
+    (prev: readonly (TData | undefined)[], change: DataChange<TData>) => {
+      const loadedIds = new Set<string>();
+      prev.forEach((row, index) => {
+        if (row !== undefined) loadedIds.add(getRowId(row, index));
+      });
+      const dropped = change.ops.find((op) => op.type !== "insert" && !loadedIds.has(op.rowId));
+      if (!dropped) return;
+      droppedEditWarnedRef.current = true;
+      console.warn(
+        `[data-grid-lazy] an edit to row "${dropped.rowId}" was dropped because the row was evicted before the change merged; this hook does not own persistence, so keep the edit in your own cache`,
+      );
+    },
+    [getRowId],
+  );
+
+  const onDataChange = useCallback(
+    (next: readonly TData[], change: DataChange<TData>) => {
+      // `next` is DataGrid's own post-op snapshot, itself sparse at runtime (see gridProps.data's
+      // doc) — and it can predate rows a just-resolved fetch already wrote into state, so replacing
+      // the array with it drops those rows. With operations, re-apply them to the latest state instead
+      // (ids-keyed, so the fetch's extra rows survive untouched); without operations, `next` is authoritative.
+      setRows((prev) => {
+        if (isDev() && !droppedEditWarnedRef.current) warnDroppedEdit(prev, change);
+        return change.ops.length > 0
+          ? (applyChange(prev as TData[], change, gridGetRowId) as (TData | undefined)[])
+          : (next.slice() as (TData | undefined)[]);
+      });
+    },
+    [gridGetRowId, warnDroppedEdit],
   );
 
   const gridProps = useMemo(
     () => ({
       data: rows as TData[],
       getRowId: gridGetRowId,
-      onRowWindowChange,
+      onRenderedRowsChange,
     }),
-    [rows, gridGetRowId, onRowWindowChange],
+    [rows, gridGetRowId, onRenderedRowsChange],
   );
 
   // Derived from the loaded-ranges bookkeeping, not a rows.reduce scan: `rows` is a genuinely

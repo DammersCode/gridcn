@@ -41,8 +41,8 @@ describe("deleteSelection perf (100k rows × 20 columns)", () => {
     } as InternalSyncProps);
 
     const actions = store.getState().actions;
-    actions.selectCell({ col: 0, row: 0 });
-    actions.extendTo({ col: COLUMN_COUNT - 1, row: ROW_COUNT - 1 });
+    actions.selectCellAt({ col: 0, row: 0 });
+    actions.extendToAt({ col: COLUMN_COUNT - 1, row: ROW_COUNT - 1 });
 
     const start = performance.now();
     actions.deleteSelection();

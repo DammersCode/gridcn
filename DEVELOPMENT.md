@@ -6,7 +6,7 @@ How to run, test, and consume this repo on your own machine. Structure/code rule
 ## Prerequisites
 
 - Node 24+ and **pnpm** (this repo is pnpm — `pnpm-lock.yaml` is the lockfile; never `npm install`).
-- One-time: `pnpm install`.
+- One-time: `pnpm install`, then `git config core.hooksPath .githooks`. The `commit-msg` hook rejects AI attribution in commit messages.
 
 ## Run the docs site
 
@@ -23,17 +23,19 @@ pnpm dev            # Next.js (Turbopack) on http://localhost:3000
 
 ## Tests & gates
 
-The full gate set (run all of these before considering a change done — every lane in this
-repo's history was held to them):
+All gates must be green before you commit. Run them in order:
 
 ```powershell
-npx tsc --noEmit                        # type-check, must be clean
-pnpm lint                               # oxlint + import-boundary script (fast, <1s)
-pnpm lint:typed                         # type-checked no-unsafe-* on registry source (slow)
-npx vitest run --project=unit           # jsdom unit tests
-npx vitest run --project=browser        # real-Chromium browser tests (Vitest Browser Mode)
-node scripts/verify-registry.mjs        # registry.json <-> filesystem consistency
+pnpm types:check && pnpm types:check:ts5                       # repo TypeScript, then consumer TypeScript 5.9
+pnpm lint                                                      # oxlint + import-boundary script
+pnpm lint:typed                                                # type-checked no-unsafe-* on registry source (slow)
+npx vitest run registry --exclude "**/*.browser.test.*" --project unit --coverage
+npx vitest run --project browser --bail=1                      # real-Chromium tests, about 2 minutes
 ```
+
+Before you push, also mirror the rest of `.github/workflows/ci.yml`: `pnpm test:compiler`,
+`pnpm build`, `pnpm registry:build`, `node scripts/normalize-payload-eol.mjs`, `git add public/r`,
+and `pnpm registry:verify`. If a registry payload changed, run `pnpm test:e2e-install` too.
 
 Single file: `npx vitest run --project=browser sort-list` (substring-matches the path).
 
@@ -86,8 +88,6 @@ Rules that bite if forgotten:
   npx shadcn@latest registry validate DammersCode/gridcn#<branch>
   ```
 
-  (while the repository is private the CLI needs `gh auth login` or a `GH_TOKEN` with read access)
-
 ## Testing the registry install on your own PC
 
 The dev server serves the payloads at `http://localhost:3000/r/<item>.json`. To install into a
@@ -131,9 +131,7 @@ cross-item import rewriting, and the declared dependencies exactly as a consumer
 ## Testing the GitHub registry locally (your own React project)
 
 The honest test of the GitHub registry is to install from `github.com` exactly like a consumer
-would, into a project you start yourself. While the repository is private the CLI needs
-credentials: `gh auth login` once (GitHub CLI), or a `GH_TOKEN` environment variable with read
-access. Public repository: no credentials at all.
+would, into a project you start yourself. The repository is public, so the CLI needs no credentials.
 
 1. Push the branch you want to test, then note the ref (`<branch>`, a tag, or a commit SHA).
    Quick checks without any app:
@@ -185,6 +183,44 @@ access. Public repository: no credentials at all.
 
    For a bigger sweep (all items, two consumer flavors, typecheck + build), run
    `pwsh scripts/registry-smoke.ps1` (hosted flow via the local dev server).
+
+## Optional: code search for coding agents
+
+This is optional. The project builds, tests, and works without it.
+
+Two tools help coding agents find code faster: cocoindex-code (semantic search for vague questions) and Serena (symbol lookup: definitions and callers).
+
+1. Install [uv](https://docs.astral.sh/uv/).
+2. Install both tools:
+
+   ```bash
+   uv tool install -p 3.13 'cocoindex-code[full]'
+   uv tool install -p 3.13 serena-agent
+   ```
+
+3. In the repo, create the index:
+
+   ```bash
+   ccc init
+   ccc index
+   ```
+
+4. Connect them to your agent.
+   - Claude Code:
+
+     ```bash
+     claude mcp add --scope user cocoindex-code -- ccc mcp
+     claude mcp add --scope user serena -- serena start-mcp-server --context claude-code --project-from-cwd
+     ```
+
+   - OpenCode: add the same commands as local MCP servers in its config. Start Serena there with `--context ide`.
+
+Notes:
+
+- cocoindex-code collects usage data. Turn it off with `COCOINDEX_DISABLE_USAGE_TRACKING=1`.
+- Serena is licensed under GPL-3.0. This only affects using it as a tool; none of its code ships in this repo.
+- Windows: when the Claude desktop app runs as a Store package, `uv` can install tools into a redirected AppData folder. Set `UV_TOOL_DIR` to a path outside AppData, for example `C:\Users\<name>\.uv-tools`.
+- The index and Serena's cache live in `.cocoindex_code/` and `.serena/`. Both are ignored by git.
 
 ## Benchmarking
 

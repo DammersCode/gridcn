@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import DataGridValidationDemo from "../../../examples/data-grid-validation-demo";
 import DataGridCellErrorsDemo from "../../../examples/data-grid-cell-errors-demo";
-import { GRID_ATTR, gridAttrSelector } from "../data-grid";
+import { GRID_ATTR, gridAttrSelector } from "../data-grid-sdk";
 // real stylesheet so Tailwind's ring/tint utilities actually apply
 import "@/app/global.css";
 

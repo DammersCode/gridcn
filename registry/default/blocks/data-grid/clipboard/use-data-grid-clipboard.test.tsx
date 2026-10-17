@@ -2,7 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { ColumnDef, DataChange } from "../types";
-import { DataGridProvider, useDataGridActions, useDataGridStoreApi, type DataGridProviderProps } from "../store";
+import { DataGridProvider, getInternalActions, useDataGridActions, useDataGridStoreApi, type DataGridSyncProps } from "../store";
 import { useDataGridClipboard } from "./use-data-grid-clipboard";
 
 type Row = { id: string; name: string };
@@ -16,7 +16,7 @@ function rows(): Row[] {
   ];
 }
 
-function makeWrapper(overrides: Partial<DataGridProviderProps<Row>> = {}) {
+function makeWrapper(overrides: Partial<DataGridSyncProps<Row>> = {}) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <DataGridProvider data={rows()} columns={columns} getRowId={(r) => r.id} {...overrides}>
@@ -31,15 +31,15 @@ function makeWrapper(overrides: Partial<DataGridProviderProps<Row>> = {}) {
  * `DataGridProvider` (a fresh `renderHook` per hook would each mount its own provider instance,
  * i.e. its own store — selecting a cell on one would never be visible to another). Selects the
  * whole first cell so `pasteFromClipboard`/`cut` have a resolvable target/scope, and optionally
- * flips the store's `readOnly` flag the same way `DataGridRoot` registers it.
+ * flips the store's `readOnly` flag (the field the provider's config sync writes).
  */
 function setUpGrid(wrapper: ReturnType<typeof makeWrapper>, opts: { readOnly?: boolean } = {}) {
   const { result } = renderHook(
     () => ({ actions: useDataGridActions(), storeApi: useDataGridStoreApi(), clipboard: useDataGridClipboard() }),
     { wrapper },
   );
-  act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
-  if (opts.readOnly) act(() => result.current.storeApi.getState().actions._registerReadOnly(true));
+  act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
+  if (opts.readOnly) act(() => result.current.storeApi.setState({ readOnly: true }));
   return result;
 }
 
@@ -191,10 +191,10 @@ describe("useDataGridClipboard.pasteFromClipboard with an async schema", () => {
       await settled;
     });
 
-    // deleteRows itself fires one onDataChange (the row-op); the held paste must NOT add a second.
+    // deleteRows itself fires one onDataChange (the row-operation); the held paste must NOT add a second.
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
-    expect(change.source).toBe("row-op");
+    expect(change.source).toBe("row-operation");
   });
 
   it("commits a held paste onto the row id it targeted after a pure reorder", async () => {
@@ -208,7 +208,7 @@ describe("useDataGridClipboard.pasteFromClipboard with an async schema", () => {
     // setUpGrid selects { col: 0, row: 0 } — the paste targets row id "1" ({ id: "1", name: "a" }).
     await act(() => result.current.clipboard.pasteFromClipboard());
     act(() =>
-      result.current.storeApi.getState().actions._syncProps({
+      getInternalActions(result.current.storeApi)._syncProps({
         data: reordered,
         columns: heldColumns as never,
         getRowId: ((r: Row) => r.id) as never,
@@ -235,6 +235,45 @@ describe("useDataGridClipboard.cut on a readOnly grid", () => {
 
     expect(outcome).toBe("ok");
     expect(onDataChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("sanitizeClipboardFormulas grid prop", () => {
+  /** Captures the text/plain and text/html blobs of the one ClipboardItem the copy writes. */
+  function captureClipboardItem() {
+    const items: Record<string, Blob>[] = [];
+    vi.stubGlobal("navigator", { clipboard: { write: vi.fn().mockResolvedValue(undefined) } });
+    vi.stubGlobal(
+      "ClipboardItem",
+      class {
+        constructor(item: Record<string, Blob>) {
+          items.push(item);
+        }
+      },
+    );
+    return async () => ({ text: await items[0]!["text/plain"]!.text(), html: await items[0]!["text/html"]!.text() });
+  }
+
+  it("neutralizes the menu copy's text and HTML when the grid prop is on", async () => {
+    const read = captureClipboardItem();
+    const wrapper = makeWrapper({ data: [{ id: "1", name: "=HYPERLINK(\"x\")" }], sanitizeClipboardFormulas: true });
+    const result = setUpGrid(wrapper);
+
+    await act(async () => result.current.clipboard.copy());
+
+    const { text, html } = await read();
+    expect(text).toBe(`"'=HYPERLINK(""x"")"`);
+    expect(html).toContain(`>'=HYPERLINK("x")</td>`);
+  });
+
+  it("keeps the menu copy raw by default", async () => {
+    const read = captureClipboardItem();
+    const wrapper = makeWrapper({ data: [{ id: "1", name: "=1+1" }] });
+    const result = setUpGrid(wrapper);
+
+    await act(async () => result.current.clipboard.copy());
+
+    expect((await read()).text).toBe("=1+1");
   });
 });
 
@@ -288,5 +327,180 @@ describe("useDataGridClipboard.copy/cut outcomes", () => {
 
     expect(await act(async () => result.current.clipboard.copy())).toBe("no-selection");
     expect(await act(async () => result.current.clipboard.cut())).toBe("no-selection");
+  });
+
+  it("copy resolves 'failed' when the async write rejects and execCommand also fails", async () => {
+    document.execCommand = vi.fn(() => false);
+    vi.stubGlobal("navigator", { clipboard: { write: vi.fn().mockRejectedValue(new Error("denied")) } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const wrapper = makeWrapper();
+    const result = setUpGrid(wrapper);
+
+    const outcome = await act(async () => result.current.clipboard.copy());
+    expect(outcome).toBe("failed");
+  });
+
+  it("copy resolves 'failed' instead of rejecting when execCommand throws", async () => {
+    document.execCommand = vi.fn(() => {
+      throw new Error("blocked");
+    });
+    vi.stubGlobal("navigator", { clipboard: { write: vi.fn().mockRejectedValue(new Error("denied")) } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const wrapper = makeWrapper();
+    const result = setUpGrid(wrapper);
+
+    const outcome = await act(async () => result.current.clipboard.copy());
+    expect(outcome).toBe("failed");
+    expect(document.querySelector("textarea")).toBeNull();
+  });
+
+  it("cut resolves 'failed' when both write paths fail and never deletes the selection", async () => {
+    document.execCommand = vi.fn(() => false);
+    vi.stubGlobal("navigator", { clipboard: { write: vi.fn().mockRejectedValue(new Error("denied")) } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper({ onDataChange });
+    const result = setUpGrid(wrapper);
+
+    const outcome = await act(async () => result.current.clipboard.cut());
+    expect(outcome).toBe("failed");
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("cut deletes the selection on the legacy fallback when execCommand reports success", async () => {
+    document.execCommand = vi.fn(() => true);
+    vi.stubGlobal("navigator", { clipboard: { write: vi.fn().mockRejectedValue(new Error("denied")) } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper({ onDataChange });
+    const result = setUpGrid(wrapper);
+
+    const outcome = await act(async () => result.current.clipboard.cut());
+    expect(outcome).toBe("fallback");
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    expect((onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>])[1].source).toBe("delete");
+  });
+
+  it("cut still clears a whole-column range when a sort during the write keeps its records", async () => {
+    let resolveWrite!: () => void;
+    const write = vi.fn(() => new Promise<void>((resolve) => (resolveWrite = resolve)));
+    vi.stubGlobal("navigator", { clipboard: { write } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const onDataChange = vi.fn();
+    const data: Row[] = [
+      { id: "1", name: "c" },
+      { id: "2", name: "b" },
+      { id: "3", name: "a" },
+    ];
+    const result = setUpGrid(makeWrapper({ data, onDataChange }));
+    act(() => result.current.actions.extendToAt({ col: 0, row: 2 }));
+
+    await act(async () => {
+      const pending = result.current.clipboard.cut();
+      act(() => result.current.actions.toggleSort("name", false));
+      resolveWrite();
+      await pending;
+    });
+
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    const [, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(change.ops.map((op) => op.rowId).sort()).toEqual(["1", "2", "3"]);
+  });
+
+  it("cut clears the copied cells by row identity when a sort moves the rows while the write is in flight", async () => {
+    let resolveWrite!: () => void;
+    const write = vi.fn(() => new Promise<void>((resolve) => (resolveWrite = resolve)));
+    vi.stubGlobal("navigator", { clipboard: { write } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const onDataChange = vi.fn();
+    const data: Row[] = [
+      { id: "1", name: "c" },
+      { id: "2", name: "a" },
+      { id: "3", name: "b" },
+    ];
+    const wrapper = makeWrapper({ data, onDataChange });
+    const result = setUpGrid(wrapper);
+    act(() => result.current.actions.extendToAt({ col: 0, row: 1 }));
+
+    await act(async () => {
+      const pending = result.current.clipboard.cut();
+      // ids 1 and 2 were copied; ascending by name puts them at view rows 2 and 0
+      act(() => result.current.actions.toggleSort("name", false));
+      resolveWrite();
+      await pending;
+    });
+
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(change.ops.map((op) => op.rowId).sort()).toEqual(["1", "2"]);
+    expect(next).toEqual([
+      { id: "1", name: "" },
+      { id: "2", name: "" },
+      { id: "3", name: "b" },
+    ]);
+  });
+
+  it("cut leaves a copied row that a filter hid during the write untouched", async () => {
+    let resolveWrite!: () => void;
+    const write = vi.fn(() => new Promise<void>((resolve) => (resolveWrite = resolve)));
+    vi.stubGlobal("navigator", { clipboard: { write } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper({ onDataChange });
+    const result = setUpGrid(wrapper);
+    act(() => result.current.actions.extendToAt({ col: 0, row: 1 }));
+
+    await act(async () => {
+      const pending = result.current.clipboard.cut();
+      act(() => result.current.actions.setFilters([{ columnId: "name", operator: "equals", value: "b" }]));
+      resolveWrite();
+      await pending;
+    });
+
+    const [next] = onDataChange.mock.calls[0] as [readonly Row[]];
+    expect(next).toEqual([
+      { id: "1", name: "a" },
+      { id: "2", name: "" },
+    ]);
+  });
+
+  it("cut does not delete when the selection is cleared while the write is in flight", async () => {
+    let resolveWrite!: () => void;
+    const write = vi.fn(() => new Promise<void>((resolve) => (resolveWrite = resolve)));
+    vi.stubGlobal("navigator", { clipboard: { write } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper({ onDataChange });
+    const result = setUpGrid(wrapper);
+
+    await act(async () => {
+      const pending = result.current.clipboard.cut();
+      act(() => result.current.actions.clearSelection());
+      resolveWrite();
+      await pending;
+    });
+
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("cut does not delete when the selection changes while the write is in flight", async () => {
+    let resolveWrite!: () => void;
+    const write = vi.fn(() => new Promise<void>((resolve) => (resolveWrite = resolve)));
+    vi.stubGlobal("navigator", { clipboard: { write } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper({ onDataChange });
+    const result = setUpGrid(wrapper);
+
+    let outcome!: string;
+    await act(async () => {
+      const p = result.current.clipboard.cut();
+      act(() => result.current.actions.selectCellAt({ col: 0, row: 1 }));
+      resolveWrite();
+      outcome = await p;
+    });
+
+    expect(outcome).toBe("ok");
+    expect(onDataChange).not.toHaveBeenCalled();
   });
 });

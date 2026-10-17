@@ -1,0 +1,49 @@
+name: Accessibility report
+description: A keyboard or screen reader problem in a gridcn component.
+title: "[a11y]: "
+labels: [accessibility]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Keyboard and screen reader access is a core promise of gridcn. Report a problem here even if you are not sure it is a bug. The [accessibility page](https://gridcn.vercel.app/docs/accessibility) lists the intended behavior.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you cannot do or hear
+      description: Describe the task you tried, what the screen reader announced or what the keyboard did, and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps, including every key you pressed. Add a link to a minimal repository or sandbox if you have one.
+    validations:
+      required: true
+  - type: input
+    id: assistive-technology
+    attributes:
+      label: Assistive technology
+      description: Screen reader or other tool, with version. Write "keyboard only" if you used none.
+      placeholder: NVDA 2025.3, VoiceOver on macOS 15, JAWS 2025
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser, version, and operating system
+      placeholder: Firefox 142 on Windows 11
+    validations:
+      required: true
+  - type: input
+    id: gridcn-version
+    attributes:
+      label: gridcn version or commit
+    validations:
+      required: true
+  - type: input
+    id: items
+    attributes:
+      label: gridcn items
+      placeholder: data-grid, data-grid-toolbar

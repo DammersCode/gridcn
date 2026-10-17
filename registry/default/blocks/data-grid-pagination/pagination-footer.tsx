@@ -5,9 +5,10 @@ import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-r
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DEFAULT_LABELS, GRID_ATTR, type DataGridPaginationLabels } from "@/registry/default/blocks/data-grid/data-grid";
+import { DEFAULT_LABELS, type DataGridPaginationLabels } from "@/registry/default/blocks/data-grid/data-grid";
 import type { DataGridPaginationControls } from "./use-data-grid-pagination";
 import { pageWindow } from "./pagination-math";
+import { GRID_ATTR } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Default window size for {@link DataGridPaginationPages} when its `windowSize` prop is omitted. */
 const DEFAULT_PAGE_WINDOW_SIZE = 5;
@@ -102,7 +103,8 @@ export function DataGridPaginationPageSize(): ReactNode {
   return (
     <Select value={String(pageSize)} onValueChange={(value) => onPageSizeChange(Number(value))}>
       <SelectTrigger className="h-8 w-fit" aria-label={labels.pageSizeAriaLabel}>
-        <SelectValue />
+        {/* explicit label lookup: SelectValue only resolves a mounted SelectItem's label, which the popup content isn't until first opened. */}
+        <SelectValue>{(value: string) => labels.pageSizeOption(Number(value))}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {pageSizeOptions.map((size) => (
@@ -145,7 +147,7 @@ export type DataGridPaginationPagesProps = {
   windowSize?: number;
 };
 
-/** The windowed numbered page buttons — the only source of page numbers in the composable layout. */
+/** The sliding numbered page buttons — the only source of page numbers in the composable layout. */
 export function DataGridPaginationPages(props: DataGridPaginationPagesProps): ReactNode {
   const { windowSize = DEFAULT_PAGE_WINDOW_SIZE } = props;
   const { controls, labels } = usePaginationBarContext("DataGridPaginationPages");

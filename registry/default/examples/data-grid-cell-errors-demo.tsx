@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
 import {
   DataGridBody,
   DataGridHeader,
@@ -9,8 +9,8 @@ import {
   defineColumns,
   useDataGridActions,
   useDataGridCellErrors,
-  useDataGridStoreProps,
   type DataChange,
+  type DataGridApi,
   type DataOp,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridState } from "@/registry/default/blocks/data-grid-history/data-grid-history";
@@ -83,27 +83,22 @@ function CellErrorsBar(): ReactNode {
  * after ~600ms, and the `.catch()` handler calls `actions.setCellErrors` to paint the exact cell —
  * the same ring/tint/aria-invalid a pre-commit `validate` rejection uses, but after the value already
  * committed. Editing that cell again, with any value, clears its error on the next successful commit.
+ * The handler reaches the actions through the imperative handle — the rejection lands long after
+ * mount, so no lifted store is needed.
  */
 export default function DataGridCellErrorsDemo(): ReactNode {
   const grid = useDataGridState(initialRows(), { getRowId });
-  const { store, actions } = useDataGridStoreProps({
-    data: grid.data,
-    getRowId: grid.getRowId,
-    onUndo: grid.onUndo,
-    onRedo: grid.onRedo,
-    columns,
-    onDataChange: handleDataChange,
-  });
+  const gridRef = useRef<DataGridApi<Order> | null>(null);
 
   function handleDataChange(next: readonly Order[], change: DataChange<Order>): void {
     grid.onDataChange(next, change);
     saveOrders(change.ops).catch((tooMany: RejectedCell[]) => {
-      actions.setCellErrors(tooMany.map((cell) => ({ ...cell, message: "Quantity cannot exceed 100" })));
+      gridRef.current?.actions.setCellErrors(tooMany.map((cell) => ({ ...cell, message: "Quantity cannot exceed 100" })));
     });
   }
 
   return (
-    <DataGridProvider store={store} columns={columns} getRowId={grid.getRowId}>
+    <DataGridProvider ref={gridRef} data={grid.data} getRowId={grid.getRowId} plugins={grid.plugins} columns={columns} onDataChange={handleDataChange}>
       <div className="w-full flex flex-col gap-3">
         <p className="text-sm text-muted-foreground">
           Set a Quantity above 100 and press Enter: the fake server rejects it after ~600ms and the

@@ -1,12 +1,10 @@
-import type { CellCoord, CellType, DataChange, DataOp } from "../types";
-import type { OverlayPlugin } from "../overlays";
-import type { RowBandsSpec } from "../layout-context";
+import type { ViewCoord, CellType, DataChange, DataOp } from "../types";
 import { getCellValue, setCellValue } from "../columns/column-helpers";
 import { isDev } from "../is-dev";
 import { isStandardSchema, runValidateSync, type ValidateResult } from "../validation/validate-cell";
 import { runValidateBatch, type ValidateBatchItem } from "../validation/validate-batch";
 import { isColumnReadOnly } from "./compute";
-import { cellTypes as defaultCellTypes } from "../cell-types/cell-types";
+import { resolveColumnValidate } from "../cell-types/capabilities";
 import type { AnyColumnDef, CellPatch, CommitResult, DataGridStoreState, InternalSyncProps, RowEdit, UpdateCellsSkip } from "./types";
 
 export function warnDev(message: string): void {
@@ -15,29 +13,28 @@ export function warnDev(message: string): void {
 
 /**
  * Warns once per instance (per passed Set) for every column whose `type` resolves to nothing in
- * the effective cellTypes registry (the passed registry, or the built-ins when none was passed) —
- * a typo silently degrades the column to text rendering, and its edit/paste/delete paths go dead
- * (see `resolveEditTarget`). The single warn site for the cellTypes replace-semantics footgun
- * (a custom registry omitting a used type); do not add a second one.
+ * `registry`, the store's resolved (built-ins merged with the `cellTypes` prop) registry — a typo
+ * or a `null` removal silently degrades the column to text rendering, and its edit/paste/delete
+ * paths go dead (see `resolveEditTarget`). The single warn site for it; do not add a second one.
  */
 export function checkUnresolvableColumnTypes(
   columns: readonly AnyColumnDef[],
-  cellTypes: Readonly<Record<string, unknown>> | undefined,
+  registry: Readonly<Record<string, unknown>>,
   warned: Set<string>,
 ): void {
   if (!isDev()) return;
-  const registry: Record<string, unknown> = cellTypes ?? defaultCellTypes;
   for (const column of columns) {
     if (column.type === undefined || registry[column.type] !== undefined) continue;
     const key = `${column.id}:${column.type}`;
     if (warned.has(key)) continue;
     warned.add(key);
-    warnDev(`column "${column.id}" has type "${column.type}" which resolves to nothing in the cellTypes registry (typo or a custom registry without it); it renders as text and its edits, pastes, and deletes are dropped`);
+    warnDev(`column "${column.id}" has type "${column.type}" which resolves to nothing in the cellTypes registry (a typo, or a null entry removed it); it renders as text and its edits, pastes, and deletes are dropped`);
   }
 }
 
 /** Fires `warnDev` at most once per session — for guardrails whose cause (a mistaken prop combo) doesn't change across re-renders, so repeating it every render would just be noise. */
 let warnedBothDataProps = false;
+let warnedExternalStoreSyncProps = false;
 
 /** `data` + `defaultData` are mutually exclusive (React value/defaultValue semantics); `data` wins. */
 export function warnBothDataPropsOnce(): void {
@@ -46,43 +43,89 @@ export function warnBothDataPropsOnce(): void {
   warnDev("both `data` and `defaultData` were provided; `data` wins (controlled) and `defaultData` is ignored");
 }
 
-/** Dev-only guardrails: duplicate column ids, missing getRowId, unstable columns/data/overlayPlugins/rowBands identity across renders. */
+let warnedBothSelectionProps = false;
+
+/** `selection` + `defaultSelection` are mutually exclusive (React value/defaultValue semantics); `selection` wins. */
+export function warnBothSelectionPropsOnce(): void {
+  if (warnedBothSelectionProps || !isDev()) return;
+  warnedBothSelectionProps = true;
+  warnDev("both `selection` and `defaultSelection` were provided; `selection` wins (controlled) and `defaultSelection` is ignored");
+}
+
+/** `store` next to a sync prop is a type error for typed callers; this catches a cast/untyped one. */
+export function warnExternalStoreSyncPropsOnce(): void {
+  if (warnedExternalStoreSyncProps || !isDev()) return;
+  warnedExternalStoreSyncProps = true;
+  warnDev("<DataGridProvider store={…}> ignores the sync props next to it; pass them to useDataGridStoreProps instead");
+}
+
+/**
+ * Warns once per instance (per passed Set) for every duplicated column id — the dev guardrails
+ * run on every render, so without dedup a static duplicate id would warn on every render.
+ */
+export function checkDuplicateColumnIds(columns: readonly AnyColumnDef[], warned: Set<string>): void {
+  if (!isDev()) return;
+  const seen = new Set<string>();
+  for (const column of columns) {
+    if (seen.has(column.id)) {
+      if (warned.has(column.id)) continue;
+      warned.add(column.id);
+      warnDev(`duplicate column id "${column.id}"`);
+    }
+    seen.add(column.id);
+  }
+}
+
+const MAX_COLUMN_COMPARE_DEPTH = 4;
+
+function isPlainContainer(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null) return false;
+  const proto: unknown = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === Array.prototype;
+}
+
+// Inline callbacks are rebuilt with each array, so functions compare by source text; plain objects, arrays, and JSX elements compare by content up to a depth cap (a deeper difference reads as unequal, so no false warning).
+function sameColumnValue(a: unknown, b: unknown, depth = 0): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a === "function" && typeof b === "function") return String(a) === String(b);
+  if (depth >= MAX_COLUMN_COMPARE_DEPTH || !isPlainContainer(a) || !isPlainContainer(b)) return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((key) => sameColumnValue(a[key], b[key], depth + 1));
+}
+
+function columnsStructurallyEqual(a: readonly AnyColumnDef[], b: readonly AnyColumnDef[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i] as Record<string, unknown>;
+    const y = b[i] as Record<string, unknown>;
+    const keys = Object.keys(x);
+    if (keys.length !== Object.keys(y).length) return false;
+    for (const key of keys) if (!sameColumnValue(x[key], y[key])) return false;
+  }
+  return true;
+}
+
+/**
+ * Dev-only guardrails for the recompute-slice props (the `_syncProps` inputs): missing getRowId,
+ * the data/defaultData combo, unstable columns/data identity across renders. The config-slice
+ * identity warnings (overlayPlugins, rowBands) live in the provider's config-phase effect.
+ */
 export function checkDevGuardrails(
   props: InternalSyncProps,
   prevColumns: readonly AnyColumnDef[] | undefined,
   prevData: readonly unknown[] | undefined,
-  prevOverlayPlugins: readonly OverlayPlugin[] | undefined,
-  prevRowBands: RowBandsSpec | undefined,
 ): void {
   if (!isDev()) return;
-
-  const seen = new Set<string>();
-  for (const column of props.columns) {
-    if (seen.has(column.id)) warnDev(`duplicate column id "${column.id}"`);
-    seen.add(column.id);
-  }
-
-  if (typeof props.getRowId !== "function") {
-    warnDev("getRowId is required and must be a function");
-  }
 
   if (props.data !== undefined && props.defaultData !== undefined) {
     warnBothDataPropsOnce();
   }
 
-  if (prevColumns !== undefined && prevColumns !== props.columns) {
+  if (prevColumns !== undefined && prevColumns !== props.columns && columnsStructurallyEqual(prevColumns, props.columns)) {
     warnDev(
       "columns array identity changed since the last render; pass a stable reference (e.g. useMemo) or every row re-renders",
-    );
-  }
-  if (prevOverlayPlugins !== undefined && prevOverlayPlugins !== props.overlayPlugins) {
-    warnDev(
-      "overlayPlugins array identity changed since the last render; pass a stable reference (module scope or useMemo) or every render re-syncs the provider props into the store",
-    );
-  }
-  if (prevRowBands !== undefined && prevRowBands !== props.rowBands) {
-    warnDev(
-      "rowBands identity changed since the last render; pass a stable reference (the add-on's hook already returns one) or every render recomputes band heights/aria-rowcount",
     );
   }
   // Controlled mode only: in uncontrolled mode props.data is undefined (data lives in the store),
@@ -112,19 +155,19 @@ export function checkDevGuardrails(
  * is unchanged and a direct `commitCellValue` call always gets checked.
  *
  * `onInvalid: "warn"` columns commit a rejected value (raw — a rejection carries no transformed
- * value) and report it in `warnings` so the store can flag the cell in `cellErrors`; `rejection`
- * is the async layer's awaited schema rejection, which the sync re-run here cannot see (a schema
- * Promise passes `runValidateSync` untouched).
+ * value) and report it in `warnings` so the store can flag the cell in `cellErrors`; a validator
+ * that threw blocks there too. `rejection` is the async layer's awaited schema rejection, which the
+ * sync re-run here cannot see (a schema Promise passes `runValidateSync` untouched).
  */
-export function computeCommit(s: DataGridStoreState, coord: CellCoord, value: unknown, rejection?: string): CommitResult {
+export function computeCommit(s: DataGridStoreState, coord: ViewCoord, value: unknown, rejection?: string): CommitResult {
   const target = resolveEditTarget(s, coord);
   if (!target) return { noop: true };
-  const { column, dataRowIndex, row } = target;
-  const validated = runValidateSync(column.validate, value, row);
+  const { column, dataRowIndex, row, cellType } = target;
+  const validated = runValidateSync(resolveColumnValidate(column, cellType), value, row);
   let nextValue: unknown;
   let warning: string | undefined;
   if ("error" in validated) {
-    if (column.onInvalid !== "warn") return { error: validated.error };
+    if (column.onInvalid !== "warn" || validated.thrown) return { error: validated.error };
     nextValue = value;
     warning = validated.error;
   } else {
@@ -163,7 +206,7 @@ export function computeCommit(s: DataGridStoreState, coord: CellCoord, value: un
 /** Looks up the column, data row, and cell type at a view coord; null when any part is unresolvable. */
 export function resolveEditTarget(
   s: DataGridStoreState,
-  coord: CellCoord,
+  coord: ViewCoord,
 ): { column: AnyColumnDef; dataRowIndex: number; row: unknown; cellType: CellType } | null {
   const column = s.visibleColumns[coord.col];
   if (!column) return null;
@@ -180,17 +223,17 @@ export function resolveEditTarget(
  * Applies `writes` (view-row + column-id + already-resolved value) against `s`, deduping multiple
  * writes to the same row/column (last one wins), skipping readOnly cells, unresolvable rows/columns,
  * and no-op values (`Object.is` against the current value). Shared by `deleteSelection` and
- * `applyCellUpdates` so both funnel through one row-edit accumulation + op-building path.
+ * `applyCellUpdates` so both funnel through one row-edit accumulation + operation-building path.
  */
 export function computeRowEditsBatch(
   s: DataGridStoreState,
-  writes: { viewRow: number; columnId: string; value: unknown }[],
+  writes: { viewRowIndex: number; columnId: string; value: unknown }[],
 ): { nextData: readonly unknown[]; ops: DataOp<unknown>[] } | null {
   const rowEdits = new Map<number, RowEdit>();
   const columnById = new Map(s.visibleColumns.map((column) => [column.id, column] as const));
 
   for (const write of writes) {
-    const dataRowIndex = s.viewIndex[write.viewRow];
+    const dataRowIndex = s.viewIndex[write.viewRowIndex];
     if (dataRowIndex === undefined) continue;
     const column = columnById.get(write.columnId);
     if (!column) continue;
@@ -232,7 +275,7 @@ export function computeRowEditsBatch(
 }
 
 /**
- * Applies id-keyed {@link CellPatch}es against `s` — the direct-update path's counterpart to
+ * Applies row-id-based {@link CellPatch}es against `s` — the direct-update path's counterpart to
  * {@link computeRowEditsBatch}. Differences, all deliberate: rows are addressed by STABLE ROW ID
  * through the caller-supplied `rowIndex` map (never a view index, so a patch survives an active
  * sort), and every column is resolvable, not only visible ones (a streaming producer must be able
@@ -244,17 +287,25 @@ export function computeRowEditsBatch(
  * producer that already validated; otherwise a cell whose value fails validation is skipped,
  * matching {@link computeRowEditsBatch}'s bulk contract (a stream has no UI surface to reject a
  * batch on and must never drop a whole batch for one bad value). Every skipped patch is named in
- * the returned `skipped` list for the action's verdict.
+ * the returned `skipped` list for the action's verdict, and every rejected value in `rejected`
+ * with its validator's message.
  */
 export function computeCellPatchBatch(
   s: DataGridStoreState,
   patches: readonly CellPatch[],
   rowIndex: ReadonlyMap<string, number>,
   skipValidation: boolean,
-): { nextData: readonly unknown[] | null; ops: DataOp<unknown>[]; touchedRows: number[]; skipped: UpdateCellsSkip[] } {
+): {
+  nextData: readonly unknown[] | null;
+  ops: DataOp<unknown>[];
+  touchedRows: number[];
+  skipped: UpdateCellsSkip[];
+  rejected: PatchRejection[];
+} {
   const columnsById = new Map(s.columns.map((c) => [c.id, c] as const));
   const rowEdits = new Map<number, RowEdit>();
   const skipped: UpdateCellsSkip[] = [];
+  const rejected: PatchRejection[] = [];
 
   for (let patchIndex = 0; patchIndex < patches.length; patchIndex++) {
     const patch = patches[patchIndex]!;
@@ -282,9 +333,10 @@ export function computeCellPatchBatch(
 
     let value = patch.value;
     if (!skipValidation) {
-      const validated = runValidateSync(column.validate, value, baseRow);
+      const validated = runValidateSync(resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]), value, baseRow);
       if ("error" in validated) {
         skipped.push({ patchIndex, reason: "invalid" });
+        rejected.push({ patchIndex, message: validated.error });
         continue;
       }
       value = validated.value;
@@ -303,7 +355,7 @@ export function computeCellPatchBatch(
     rowEdits.set(dataRowIndex, { row, cells });
   }
 
-  if (rowEdits.size === 0) return { nextData: null, ops: [], touchedRows: [], skipped };
+  if (rowEdits.size === 0) return { nextData: null, ops: [], touchedRows: [], skipped, rejected };
 
   const nextData = s.data.slice();
   const ops: DataOp<unknown>[] = [];
@@ -321,7 +373,7 @@ export function computeCellPatchBatch(
       cells: Array.from(cells.values()),
     });
   }
-  return { nextData, ops, touchedRows, skipped };
+  return { nextData, ops, touchedRows, skipped, rejected };
 }
 
 /**
@@ -333,7 +385,9 @@ export function computeCellPatchBatch(
 export function patchesNeedAsyncCheck(s: DataGridStoreState, patches: readonly CellPatch[]): boolean {
   const columnsById = new Map(s.columns.map((c) => [c.id, c] as const));
   for (const patch of patches) {
-    if (isStandardSchema(columnsById.get(patch.columnId)?.validate)) return true;
+    const column = columnsById.get(patch.columnId);
+    if (!column) continue;
+    if (isStandardSchema(resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]))) return true;
   }
   return false;
 }
@@ -355,8 +409,9 @@ export function prevalidatePatches(
   const columnsById = new Map(s.columns.map((c) => [c.id, c] as const));
   const items: ValidateBatchItem[] = patches.map((patch) => {
     const dataRowIndex = rowIndex.get(patch.rowId);
+    const column = columnsById.get(patch.columnId);
     return {
-      validate: columnsById.get(patch.columnId)?.validate,
+      validate: column ? resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]) : undefined,
       value: patch.value,
       row: dataRowIndex === undefined ? undefined : s.data[dataRowIndex],
     };
@@ -367,15 +422,18 @@ export function prevalidatePatches(
   return keepAccepted(patches, results);
 }
 
-/** Accepted patches with their index in the caller's array, and the caller's indexes of rejected ones. */
-export type PrevalidatedPatches = { accepted: CellPatch[]; acceptedIndexes: number[]; rejectedIndexes: number[] };
+/** A patch the column's validator refused: its index in the caller's array and the validator's message. */
+export type PatchRejection = { patchIndex: number; message: string };
+
+/** Accepted patches with their index in the caller's array, and the rejected ones. */
+export type PrevalidatedPatches = { accepted: CellPatch[]; acceptedIndexes: number[]; rejected: PatchRejection[] };
 
 function keepAccepted(patches: readonly CellPatch[], results: readonly ValidateResult[]): PrevalidatedPatches {
-  const out: PrevalidatedPatches = { accepted: [], acceptedIndexes: [], rejectedIndexes: [] };
+  const out: PrevalidatedPatches = { accepted: [], acceptedIndexes: [], rejected: [] };
   for (let i = 0; i < patches.length; i++) {
     const result = results[i];
     if (!result || "error" in result) {
-      out.rejectedIndexes.push(i);
+      out.rejected.push({ patchIndex: i, message: result?.error ?? "" });
       continue;
     }
     out.accepted.push({ ...patches[i]!, value: result.value }); // i < patches.length by loop condition
@@ -384,7 +442,7 @@ function keepAccepted(patches: readonly CellPatch[], results: readonly ValidateR
   return out;
 }
 
-/** Builds a multi-row insert batch: `rows` spliced into `s.data` at `dataRowIndex`, plus one id-keyed insert op per row (snapshot indices `dataRowIndex + i`, ascending). */
+/** Builds a multi-row insert batch: `rows` spliced into `s.data` at `dataRowIndex`, plus one row-id-based insert operation per row (snapshot indices `dataRowIndex + i`, ascending). */
 export function computeInsertRowsBatch(
   s: DataGridStoreState,
   dataRowIndex: number,
@@ -402,7 +460,7 @@ export function computeInsertRowsBatch(
 
 /**
  * Builds a multi-row delete batch: `dataRowIndexes` (deduped, descending so earlier splices don't
- * shift later indexes) removed from `s.data`, plus their id-keyed delete ops in the original
+ * shift later indexes) removed from `s.data`, plus their row-id-based delete operations in the original
  * (ascending) row order.
  */
 export function computeDeleteBatch(
@@ -427,8 +485,8 @@ export function computeDeleteBatch(
 /**
  * Builds a multi-row duplicate batch: each of `dataRowIndexes` (deduped, ascending) is copied via
  * the required `s.duplicateRow` and spliced immediately after its source row. Processed descending
- * so earlier splices don't shift the still-pending source indexes; ops are returned in ascending
- * source order for a stable, predictable id-keyed batch. Caller (`duplicateRows`) guarantees
+ * so earlier splices don't shift the still-pending source indexes; operations are returned in ascending
+ * source order for a stable, predictable row-id-based batch. Caller (`duplicateRows`) guarantees
   * `duplicateRow` is present — a shallow-spread fallback would keep the source's `getRowId()`,
   * colliding two sibling rows' React key.
  */

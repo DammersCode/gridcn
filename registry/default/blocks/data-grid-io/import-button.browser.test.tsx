@@ -17,6 +17,23 @@ const columns = defineColumns<Row>()([
   { id: "age", header: "Age", accessorKey: "age", type: "number", width: 80 },
 ] as const);
 
+// the import size limit is shrunk (above every other test file's size, incl. the ~17 KB workbooks)
+// so the over-limit test needs no 50 MB file — the browser tab keeps it for the whole suite.
+// parseImportFile is wrapped because the real function's default reads the module-internal constant,
+// which re-exporting DEFAULT_IMPORT_LIMITS cannot change.
+vi.mock("./parse-import-file", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./parse-import-file")>();
+  const limit = 100_000;
+  return {
+    ...actual,
+    DEFAULT_IMPORT_LIMITS: { ...actual.DEFAULT_IMPORT_LIMITS, maxFileBytes: limit },
+    parseImportFile: (file: File, options?: Parameters<typeof actual.parseImportFile>[1], signal?: AbortSignal) =>
+      file.size > limit
+        ? Promise.reject(new Error("file-too-large"))
+        : actual.parseImportFile(file, options, signal),
+  };
+});
+
 function makeCsvFile(content: string): File {
   return new File([content], "people.csv", { type: "text/csv" });
 }
@@ -99,6 +116,107 @@ describe("DataGridImportButton (browser)", () => {
 
     await userEvent.click(page.getByRole("button", { name: "Import", exact: true }));
     expect(imported).toEqual([{ id: "imported-0", name: "Alice", age: 30 }]);
+  });
+
+  it("dropping a file over the import size limit shows the too-large error instead of parsing", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton createRow={(): Row => ({ id: "imported-0", name: "", age: null })} onImport={() => {}} />
+        <DataGridRoot className="h-[200px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    const dropzone = document.querySelector<HTMLElement>('[role="button"][aria-label="Choose file"]')!;
+    // this file is over the mocked 100 KB limit; the content is never read (the size check runs first)
+    const hugeFile = new File(["x".repeat(150_000)], "huge.csv", { type: "text/csv" });
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(hugeFile);
+    dropzone.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer }));
+
+    await expect.element(page.getByText("This file is too large to import.")).toBeInTheDocument();
+    await expect.element(page.getByText("Import", { exact: true })).toBeDisabled();
+  });
+
+  it("importLimits.maxFileBytes sets the drop zone's maxSize, so of two dropped files the one within the limit loads", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton
+          createRow={(): Row => ({ id: "imported-0", name: "", age: null })}
+          onImport={() => {}}
+          importLimits={{ maxFileBytes: 1024 }}
+        />
+      </DataGridProvider>,
+    );
+
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    const dropzone = document.querySelector<HTMLElement>('[role="button"][aria-label="Choose file"]')!;
+    // Without the drop zone's maxSize, both files pass its filter and maxFiles keeps the first (oversized) one.
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(new File([`Name,Age\n${"x".repeat(2_000)},1`], "big.csv", { type: "text/csv" }));
+    dataTransfer.items.add(makeCsvFile("Name,Age\nAlice,30"));
+    dropzone.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer }));
+
+    await expect.element(page.getByText("Alice")).toBeInTheDocument();
+    await expect.element(page.getByText("This file is too large to import.")).not.toBeInTheDocument();
+  });
+
+  it("the empty drop zone shows the size limit, from importLimits.maxFileBytes or the default", async () => {
+    const { rerender } = await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton createRow={(): Row => ({ id: "imported-0", name: "", age: null })} onImport={() => {}} />
+      </DataGridProvider>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    // this file mocks the default limit down to 100,000 bytes
+    await expect.element(page.getByText("No file chosen — up to 98 KB")).toBeInTheDocument();
+
+    await rerender(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton
+          createRow={(): Row => ({ id: "imported-0", name: "", age: null })}
+          onImport={() => {}}
+          importLimits={{ maxFileBytes: 512 * 1024 }}
+        />
+      </DataGridProvider>,
+    );
+    await expect.element(page.getByText("No file chosen — up to 512 KB")).toBeInTheDocument();
+  });
+
+  it("the delimiter and mapping selects show their labels, not the raw values", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton createRow={(): Row => ({ id: "imported-0", name: "", age: null })} onImport={() => {}} />
+      </DataGridProvider>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    const tsv = new File(["Name\tAge\tExtra\nAlice\t30\tx"], "people.tsv", { type: "text/tab-separated-values" });
+    await userEvent.upload(document.querySelector<HTMLInputElement>('input[type="file"]')!, tsv);
+
+    await expect.element(page.getByRole("combobox", { name: "Delimiter" })).toHaveTextContent("Tab");
+    await expect.element(page.getByRole("combobox", { name: 'Map "Name" to grid column' })).toHaveTextContent("Name");
+    await expect.element(page.getByRole("combobox", { name: 'Map "Extra" to grid column' })).toHaveTextContent("— Skip —");
+  });
+
+  it("importLimits reaches the parser: a file over maxCells shows the too-many-cells error", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton
+          createRow={(): Row => ({ id: "imported-0", name: "", age: null })}
+          onImport={() => {}}
+          importLimits={{ maxCells: 3 }}
+        />
+      </DataGridProvider>,
+    );
+
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    await userEvent.upload(document.querySelector<HTMLInputElement>('input[type="file"]')!, makeCsvFile("Name,Age\nAlice,30"));
+
+    await expect.element(page.getByText("This file has too many rows or columns to import.")).toBeInTheDocument();
+    await expect.element(page.getByText("Alice")).not.toBeInTheDocument();
   });
 
   it("dropping a second CSV in the mapping step replaces the preview with the new file's headers", async () => {
@@ -291,9 +409,9 @@ describe("DataGridImportButton (browser)", () => {
 
     await userEvent.click(quickSkipButtons[0]!);
 
-    // the Select for the first column now shows the skip sentinel value.
+    // the Select for the first column now shows the skip label.
     const firstTrigger = document.querySelectorAll<HTMLElement>('[role="columnheader"] button')[0]!;
-    expect(firstTrigger.textContent).toContain("__skip__");
+    expect(firstTrigger.textContent).toContain("— Skip —");
 
     // once skipped, its own quick-skip X button disappears (only the still-mapped "Age" column keeps one).
     expect(document.querySelectorAll('[aria-label="Skip column"]').length).toBe(1);
@@ -321,7 +439,7 @@ describe("DataGridImportButton (browser)", () => {
     await userEvent.upload(fileInput!, file);
 
     const delimiterTrigger = page.getByRole("combobox", { name: "Delimiter" });
-    await expect.element(delimiterTrigger).toHaveTextContent(";");
+    await expect.element(delimiterTrigger).toHaveTextContent("Semicolon (;)");
   });
 
   it("autoDetectDelimiter: false suppresses detection and uses defaultDelimiter (or comma)", async () => {
@@ -347,7 +465,7 @@ describe("DataGridImportButton (browser)", () => {
     await userEvent.upload(fileInput!, file);
 
     const delimiterTrigger = page.getByRole("combobox", { name: "Delimiter" });
-    await expect.element(delimiterTrigger).toHaveTextContent(",");
+    await expect.element(delimiterTrigger).toHaveTextContent("Comma (,)");
     await expect.element(page.getByText("Name;Age")).toBeInTheDocument();
   });
 
@@ -380,9 +498,9 @@ describe("DataGridImportButton (browser)", () => {
     // (quick-skip X) button, so query per-header rather than flattening all buttons across headers.
     const selectTriggers = Array.from(headers, (header) => header.querySelector<HTMLElement>("button")!);
     // "Name" (index 0) still auto-matches to the "name" grid column; "Age" (index 1, named in
-    // defaultSkipColumns) is forced to the skip sentinel instead of auto-matching "age".
-    expect(selectTriggers[0]!.textContent).toContain("name");
-    expect(selectTriggers[1]!.textContent).toContain("__skip__");
+    // defaultSkipColumns) is forced to Skip instead of auto-matching "age".
+    expect(selectTriggers[0]!.textContent).toContain("Name");
+    expect(selectTriggers[1]!.textContent).toContain("— Skip —");
   });
 
   it("mapColumn override wins over both the built-in matcher and defaultSkipColumns", async () => {
@@ -518,13 +636,9 @@ describe("DataGridImportButton with a rejecting onImport", () => {
 // A multi-sheet workbook opens on its first sheet rather than silently.
 describe("multi-sheet workbook sheet picker", () => {
   async function makeWorkbookFile(sheets: Record<string, string[][]>): Promise<File> {
-    const XLSX = await import("xlsx");
-    const book = XLSX.utils.book_new();
-    for (const [name, rows] of Object.entries(sheets)) {
-      XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(rows), name);
-    }
-    const buffer = XLSX.write(book, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
-    return new File([buffer], "book.xlsx", {
+    const { writeXlsx } = await import("hucre/xlsx");
+    const bytes = await writeXlsx({ sheets: Object.entries(sheets).map(([name, rows]) => ({ name, rows })) });
+    return new File([bytes.slice()], "book.xlsx", {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
   }

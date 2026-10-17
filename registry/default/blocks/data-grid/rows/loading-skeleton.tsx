@@ -52,7 +52,6 @@ export function DataGridLoadingSkeleton(props: DataGridLoadingSkeletonProps): Re
 /** Props for {@link DataGridLoadingBar}. */
 export type DataGridLoadingBarProps = {
   headerHeight: number;
-  ariaLabel: string;
 };
 
 /** Scoped keyframes (not a `@theme` global.css addition) so this file stays self-contained as a registry item — no consumer build-config step beyond installing the component. */
@@ -65,7 +64,7 @@ const SWEEP_KEYFRAMES = "@keyframes grid-loading-sweep{0%{transform:translateX(-
  * `motion-reduce` falls back to a static full-width bar, no JS/rAF involved either way.
  */
 export function DataGridLoadingBar(props: DataGridLoadingBarProps): ReactNode {
-  const { headerHeight, ariaLabel } = props;
+  const { headerHeight } = props;
   const style: CSSProperties = {
     position: "absolute",
     insetInlineStart: 0,
@@ -74,9 +73,7 @@ export function DataGridLoadingBar(props: DataGridLoadingBarProps): ReactNode {
   };
   return (
     <div
-      role="progressbar"
-      aria-label={ariaLabel}
-      aria-valuetext={ariaLabel}
+      aria-hidden="true"
       data-grid-loading-bar=""
       className="pointer-events-none absolute h-0.5 w-full overflow-hidden bg-primary/20"
       style={style}
@@ -86,4 +83,9 @@ export function DataGridLoadingBar(props: DataGridLoadingBarProps): ReactNode {
       <div className="h-full w-1/3 bg-primary motion-safe:animate-[grid-loading-sweep_var(--grid-loading-sweep-duration,1.2s)_ease-in-out_infinite] motion-reduce:w-full" />
     </div>
   );
+}
+
+/** Screen-reader progress announcement, rendered outside the grid element because a `progressbar` is not a valid child of `grid`. */
+export function DataGridLoadingProgress(props: { ariaLabel: string }): ReactNode {
+  return <div role="progressbar" aria-label={props.ariaLabel} aria-valuetext={props.ariaLabel} className="sr-only" />;
 }

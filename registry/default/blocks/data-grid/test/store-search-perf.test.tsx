@@ -65,8 +65,8 @@ describe("search performance", () => {
 
     // "stepping" here is the store-level equivalent: reading the precomputed matches slice and
     // moving the active cell — the toolbar's goToMatch does the same pure index arithmetic.
-    act(() => result.current.actions.setActiveCell({ col: 0, row: result.current.matches[1]?.row ?? 0 }));
-    act(() => result.current.actions.setActiveCell({ col: 0, row: result.current.matches[2]?.row ?? 0 }));
+    act(() => result.current.actions.setActiveCellAt({ col: 0, row: result.current.matches[1]?.row ?? 0 }));
+    act(() => result.current.actions.setActiveCellAt({ col: 0, row: result.current.matches[2]?.row ?? 0 }));
 
     expect(spy).not.toHaveBeenCalled();
   });

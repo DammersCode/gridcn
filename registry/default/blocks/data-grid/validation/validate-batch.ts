@@ -1,4 +1,4 @@
-import type { StandardSchemaV1Result } from "../types";
+import type { GridBulkValidationError, StandardSchemaV1Result } from "../types";
 import { resolveSchemaResult, runValidatePending, type CellValidate, type ValidateResult } from "./validate-cell";
 
 /** How many async cell validations may be in flight at once. A 10k-cell paste against a network-backed schema must not open 10k requests. */
@@ -97,54 +97,58 @@ async function settle(pending: Promise<StandardSchemaV1Result<unknown>>): Promis
   }
 }
 
-/** One view-space cell a bulk path wants to write, before validation: the parsed value plus what validates it. */
+/** One view-index cell a bulk path wants to write, before validation: the parsed value plus what validates it. */
 export type BulkCandidate = {
-  viewRow: number;
+  viewRowIndex: number;
   columnId: string;
   value: unknown;
   validate: CellValidate;
   /** The row the value is validated against — the function form's second argument. */
   row: unknown;
   /** The target row's stable id, so a held batch can re-resolve its position after a reorder. */
-  rowId?: string;
+  rowId: string;
 };
 
 /** One accepted cell, in `applyCellUpdates`' write shape. `value` is the validator's OUTPUT, so a transforming schema's result is what commits. */
-export type BulkWrite = { viewRow: number; columnId: string; value: unknown; rowId?: string };
+export type BulkWrite = { viewRowIndex: number; columnId: string; value: unknown; rowId?: string };
+
+/** The settled answer of {@link resolveBulkWrites}: the accepted writes plus every rejected cell (the `onValidationError` payload). */
+export type BulkResolution = { writes: BulkWrite[]; rejected: GridBulkValidationError[] };
 
 /**
- * Validates `candidates` and keeps only the ones that pass — the shared tail of every view-space bulk
- * path (paste, fill). Rejected cells drop SILENTLY, one bad cell never failing the batch, matching
- * what those paths have always done with a sync rejection.
+ * Validates `candidates` and splits them into accepted writes and rejected cells — the shared tail
+ * of every view-index bulk path (paste, fill). One bad cell never fails the batch; the rejected
+ * list is the payload for the consumer's `onValidationError` (the paths apply `writes` first and
+ * fire the event with `rejected` only when it is non-empty).
  *
- * Returns the write array directly when nothing was async, so a sync-only paste keeps its current
- * straight-line behavior; returns a Promise for it when at least one column's schema was async, and
- * the caller holds the batch until it resolves.
+ * Returns the resolution directly when nothing was async, so a sync-only paste keeps its current
+ * straight-line behavior; returns a Promise for it when at least one column's schema was async,
+ * and the caller holds the batch until it resolves.
  */
-export function resolveBulkWrites(candidates: readonly BulkCandidate[]): BulkWrite[] | Promise<BulkWrite[]> {
+export function resolveBulkWrites(candidates: readonly BulkCandidate[]): BulkResolution | Promise<BulkResolution> {
   const results = runValidateBatch(candidates);
-  if (results instanceof Promise) return results.then((resolved) => keepPassing(candidates, resolved, true));
-  return keepPassing(candidates, results, false);
+  if (results instanceof Promise) return results.then((resolved) => toResolution(candidates, resolved, true));
+  return toResolution(candidates, results, false);
 }
 
 /**
  * `carryRowId` only on the async branch: a sync batch applies in the caller's own tick, where no
- * reorder can intervene, so its writes stay the exact `{ viewRow, columnId, value }` shape they
+ * reorder can intervene, so its writes stay the exact `{ viewRowIndex, columnId, value }` shape they
  * have always had — the apply-time re-resolution is a held batch's concern alone.
  */
-function keepPassing(
-  candidates: readonly BulkCandidate[],
-  results: readonly ValidateResult[],
-  carryRowId: boolean,
-): BulkWrite[] {
+function toResolution(candidates: readonly BulkCandidate[], results: readonly ValidateResult[], carryRowId: boolean): BulkResolution {
   const writes: BulkWrite[] = [];
+  const rejected: GridBulkValidationError[] = [];
   for (let i = 0; i < candidates.length; i++) {
     const result = results[i];
-    if (!result || "error" in result) continue;
     const candidate = candidates[i]!; // i < candidates.length by loop condition
-    const write: BulkWrite = { viewRow: candidate.viewRow, columnId: candidate.columnId, value: result.value };
-    if (carryRowId && candidate.rowId !== undefined) write.rowId = candidate.rowId;
+    if (!result || "error" in result) {
+      if (result && "error" in result) rejected.push({ rowId: candidate.rowId, viewRowIndex: candidate.viewRowIndex, columnId: candidate.columnId, value: candidate.value, message: result.error });
+      continue;
+    }
+    const write: BulkWrite = { viewRowIndex: candidate.viewRowIndex, columnId: candidate.columnId, value: result.value };
+    if (carryRowId) write.rowId = candidate.rowId;
     writes.push(write);
   }
-  return writes;
+  return { writes, rejected };
 }

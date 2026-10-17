@@ -47,6 +47,11 @@ export class CompactSelection {
     return new CompactSelection(slices);
   }
 
+  /** The selection itself when it is a `CompactSelection`; otherwise a copy rebuilt from its indices. */
+  static adopt(selection: Pick<CompactSelection, "toArray">): CompactSelection {
+    return selection instanceof CompactSelection ? selection : CompactSelection.fromArray(selection.toArray());
+  }
+
   /** Merges a normalized (sorted, non-overlapping) slice into the sorted slice list. */
   private static mergeSlice(slices: readonly Slice[], toAdd: Slice): Slice[] {
     const [addStart, addEnd] = toAdd;

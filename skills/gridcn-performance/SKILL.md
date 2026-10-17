@@ -1,6 +1,8 @@
 ---
 name: gridcn-performance
 description: "gridcn performance audit: finds and fixes what makes a gridcn grid slow. Use when a grid janks on scroll, typing, or edits, or when writing or reviewing code that passes props, callbacks, or data into DataGridProvider or DataGridRoot."
+metadata:
+  gridcn-version: "1.0.0"
 ---
 
 Almost every gridcn slowdown traces to one cause: an unstable prop or callback identity defeats row or cell memoization grid-wide, or the grid lacks a bounded height so virtualization never activates. Both fail silently in production — dev-mode console warnings are the only signal. Work the whole checklist top to bottom, cheapest check first; fix every hit, then remeasure.
@@ -40,25 +42,24 @@ Grep the `data`/`onDataChange` (controlled mode) call sites. If `data` is rebuil
 - Fix: keep row references stable across renders that don't touch them; update immutably (swap only the changed row's reference), don't rebuild the whole array. This warning does not fire in uncontrolled mode (no `data` prop) — the store's own array legitimately gets a new reference on every mutation there.
 - In controlled mode, store the array `onDataChange` hands over unchanged: `onDataChange={(next) => setData(next as Row[])}`. A copy (`[...next]`), `map`, or `filter` defeats the store's echo check, so every edit or `updateCells` tick rebuilds the row-id map and the view index.
 
-## 4. Unstable `getRowClassName` / `getCellClassName` / `onCellClick` / `onRowClick`
+## 4. Unstable `getRowClassName` / `getCellClassName` / `onCellClick`
 
-Grep for these four props on `DataGridRoot`/`DataGrid`. An inline arrow function or closure passed directly in JSX is a fresh identity every render, breaking row/cell memoization the same way unstable `columns` does.
+Grep for these three props on `DataGridRoot`/`DataGrid`. An inline arrow function or closure passed directly in JSX is a fresh identity every render, breaking row/cell memoization the same way unstable `columns` does.
 
 - Symptoms (each independent):
   - `[data-grid] getRowClassName identity changed since the last render; pass a stable reference (e.g. useCallback) or every row re-renders`
   - `[data-grid] getCellClassName identity changed since the last render; pass a stable reference (e.g. useCallback) or every cell re-renders`
   - `[data-grid] onCellClick identity changed since the last render; pass a stable reference (e.g. useCallback) or every cell re-renders`
-  - `[data-grid] onRowClick identity changed since the last render; pass a stable reference (e.g. useCallback) or every row re-renders`
 - Fix: module scope if the function needs no closure state, otherwise `useCallback` with a stable dependency list.
 
-## 5. Unstable `overlayPlugins` / `rowBands`
+## 5. Unstable plugin members in `plugins`
 
-Grep any add-on hook output (`useDataGridFill`, `useDataGridPresence`, `useDataGridPinnedRows`) and how its result reaches the provider. Passing `overlayPlugins={[plugin]}` or a `topRows`/`bottomRows` literal inline in JSX allocates a fresh array every render, even though the individual `plugin` or row array inside it is stable.
+The grid compares the `plugins` array entry-wise — same length, same `name`, every member identity-equal — so an inline `plugins={[fill.plugin]}` is harmless while the `plugin` objects are stable, which every first-party hook's result is. The trap is a plugin MEMBER that churns: a rebuilt `Overlay` or `Mount` component, a fresh `onDataChange` closure, or a fresh `topRows`/`bottomRows` literal passed to `useDataGridPinnedRows` every render. A changed member re-resolves the grid's plugin list and remounts the plugin components whose type changed, dropping their state.
 
 - Symptoms:
-  - `[data-grid] overlayPlugins array identity changed since the last render; pass a stable reference (module scope or useMemo) or every render re-syncs the provider props into the store`
-  - `[data-grid] rowBands identity changed since the last render; pass a stable reference (the add-on's hook already returns one) or every render recomputes band heights/aria-rowcount`
-- Fix: wrap the array in `useMemo`, e.g. `useMemo(() => [fill.plugin, presence.plugin], [fill.plugin, presence.plugin])`. `rowBands` from `useDataGridPinnedRows` is already stable — only re-wrapping it in a new literal breaks it.
+  - `[data-grid] plugin "X"'s Overlay component identity changed; the overlay remounts and loses its state`
+  - `[data-grid] plugin "X"'s Mount component identity changed; the mount remounts and loses its state`
+- Fix: keep the add-on hook's `plugin` as-is (its members are stable). For a custom plugin, hoist `Overlay`/`Mount` to module scope or memoize them on the data they close over. For pinned rows, memoize `topRows`/`bottomRows` so the hook's `plugin` changes only when the band contents change.
 
 ## 6. Custom `Cell`/`renderCell` allocating per render
 
@@ -66,6 +67,8 @@ Grep any custom cell type or `renderCell` for `new Intl.DateTimeFormat(...)`, `n
 
 - Fix: hoist the formatter to module scope for a fixed configuration, or cache it in a `Map` keyed by a serialized options string (`` `${locale}|${JSON.stringify(format)}` ``), never by object identity — a column's `options` literal is commonly re-created every render, so an identity-keyed cache (`Map<object, ...>`) never hits.
 - Also flag: any other allocation (object literal, array, closure) inside `Cell` beyond what's unavoidable — treat it like a `shouldComponentUpdate`-sensitive component.
+- Also flag: a `Cell` that mounts a full UI control (a shadcn/base-ui root) for its look instead of rendering the visual on a plain element (a `span` with `role`/`aria-*`). The control's state machine, effects, and a11y DOM queries are paid per row per window commit; the built-in `checkbox` display control measured ~2x the scroll cost of a text column until it became a plain `span`.
+- Also flag: per-cell work that grows with the dataset (a scan of `data`, a `find` or `filter` over rows, a sort). `Cell` runs for every visible cell on every scroll commit, so keep it O(1) per cell and precompute lookups outside the render path.
 - Note: React Compiler does not fix this. It optimizes gridcn's own compiled components; it cannot memoize a fresh literal a consumer constructs inside their own `Cell`/`renderCell` function on every call.
 
 ## 7. High-rate live data replacing `data` wholesale
@@ -87,8 +90,16 @@ Zero `[data-grid]`-prefixed warnings and no `gridcn: the grid viewport shows mor
 ## Docs
 
 - `https://gridcn.vercel.app/docs/performance.md` — identity-stability rules, scroll model.
-- `https://gridcn.vercel.app/docs/virtualization.md` — bounded-height requirement, windowing model.
-- `https://gridcn.vercel.app/docs/overlay-plugins.md` — `overlayPlugins`/`rowBands` identity rules.
+- `https://gridcn.vercel.app/docs/virtualization.md` — bounded-height requirement, virtualization model.
+- `https://gridcn.vercel.app/docs/plugins.md` — plugin identity rules (entry-wise list comparison, one plugin per grid).
 - `https://gridcn.vercel.app/docs/styling-theming.md` — `getRowClassName`/`getCellClassName` stability.
 - `https://gridcn.vercel.app/docs/custom-cell-types.md` — formatter caching, allocation-free `Cell`.
 - `https://gridcn.vercel.app/docs/streaming-updates.md` — `updateCells`/`updateRows`, `skipValidation`.
+
+## Do not
+
+- Do not wrap `columns`, `data`, or a callback prop in a fresh literal per render.
+- Do not copy, `map`, or `filter` the array that `onDataChange` hands over before storing it.
+- Do not replace `data` wholesale on every live tick. Use `actions.updateCells` / `actions.updateRows`.
+- Do not pass `data` without `onDataChange`.
+- Do not give the grid an unbounded height.

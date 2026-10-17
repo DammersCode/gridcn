@@ -2,6 +2,7 @@
 title: Selection & keyboard
 description: Range selection, mouse gestures, and the full keyboard shortcut reference.
 icon: MousePointer2
+status: updated
 ---
 
 ## Selection model
@@ -10,6 +11,18 @@ A selection has an **anchor cell** (the active cell, Excel's white cell) and a r
 **range** around it. With multi-range enabled, it also has a **stack** of additional
 ctrl-clicked ranges. Rows and columns also have their own whole-row and whole-column selection
 channels, through marker-column checkbox clicks and header clicks, independent of the range.
+
+Checked rows follow their records when a sort, filter, or new `data` array rebuilds the view.
+When a row leaves the view, the grid unchecks it. Row ids must be unique: when two rows share an
+id, the check follows the first row with that id. The active cell follows its record and its column
+when the view rebuilds and when columns move, hide, or pin. When its row or its column leaves the
+view, the active cell keeps its view position, clamped into the view. When a rebuild puts other
+records or other columns under the range, the grid collapses the range onto the active cell. A
+clamp that moves the active cell also collapses the selection onto it. A clamp that keeps the
+active cell in place drops the range. A row operation never reaches a record that you did not select.
+Without checked rows or a range, a row operation acts on the active cell's row. Selected columns
+follow their column when columns move, hide, or pin, and a column that leaves the view leaves the
+selection.
 
 Selection overlays are placed on grid lines and render with zero cell re-renders. Dragging a
 selection never re-renders a single cell.
@@ -23,9 +36,8 @@ selection never re-renders a single cell.
   selects the whole column, or sorts it if `headerClickBehavior="sort"`.
 - **Marker press and drag**, with `rowMarkers` enabled, selects multiple rows. The range follows
   the pointer from the press row, so dragging back over selected rows de-selects them again. In
-  the `reorder`-family marker modes only a drag that starts on the grip zone (everything in the
-  cell except the number and checkbox glyphs) reorders the row — Shift+drag from the grip and
-  drags from the number or checkbox glyph still select.
+  the `reorder`-family marker modes only a drag that starts on the drag handle zone reorders the row, and
+  it leaves the selection as it was. Drags from the number or checkbox glyph still select.
 - **Ctrl/Cmd-click** adds a new range to the stack (`enableMultiRange`, on by default).
 
 The grid body suppresses native browser text selection during these gestures. Editors remain
@@ -78,7 +90,7 @@ under `headerClickBehavior="sort"`. You can still sort it programmatically throu
 ## Keyboard map
 
 The keymap is a plain data table, the `keymap` prop, merged over `DEFAULT_KEYMAP`. You can remap
-or extend any binding without touching the engine — the remapping surface and the in-app
+or extend any binding without touching the engine. The remapping surface and the in-app
 shortcuts dialog are on the [Keybindings](/docs/addons/keybindings) page. The table below is generated
 from the shipped defaults.
 
@@ -101,6 +113,22 @@ The in-grid undo and redo bindings above work only while focus is inside the gri
 [Global shortcuts](/docs/global-shortcuts) extends them to a custom toolbar or
 anywhere else on the page: mount `DataGridGlobalShortcuts` inside `DataGridRoot` and the same
 bindings reach the grid while focus is outside.
+
+## Checking rows by keyboard
+
+<NewBadge />
+
+The marker checkboxes are not tab stops, so the keyboard has its own actions:
+
+- <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> (`toggleRow`) checks or unchecks the active
+  row. The other checked rows stay checked.
+- <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> (`toggleAllRows`) checks every row, or unchecks
+  them when every row is checked. It does what the header checkbox does.
+- <kbd>Shift</kbd>+<kbd>Space</kbd> (`selectRow`) replaces the selection with the active row.
+
+To check rows that are not next to each other, move with <kbd>Alt</kbd>+<kbd>Arrow</kbd>, which
+keeps the selection, and press `toggleRow` on each row. <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+A
+(`selectAll`) selects cells, not checked rows.
 
 ## Two-stage Ctrl+A
 

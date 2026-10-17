@@ -1,7 +1,8 @@
 ---
 title: Client mode
-description: useDataGridPagination slicing a full dataset — when the whole table already fits in the browser.
+description: useDataGridPagination slicing a full dataset, for a table that already fits in the browser.
 icon: Table
+status: none
 ---
 
 Client mode: the demo holds all 240 rows and the hook slices the current page out of them.
@@ -31,8 +32,8 @@ const pager = useDataGridPagination({
 ```
 
 Both return the same `controls` shape, so `<DataGridPaginationBar {...pager.controls} />`
-doesn't need to know which mode it's in. The footer sits outside the provider in both cases
-— it reads no store.
+doesn't need to know which mode it's in. The footer sits outside the provider in both cases,
+so it reads no store.
 
 Use client mode when the dataset already fits in memory (a few hundred to a few thousand
 rows). Switch to server mode when a page is a real API call. See
@@ -41,9 +42,9 @@ rows). Switch to server mode when a page is a real API call. See
 
 ## Behavior reference
 
-- [Pagination](/docs/pagination) — the add-on reference, including the composable footer
+- [Pagination](/docs/pagination): the add-on reference, including the composable footer
   parts
 
 ## Related
 
-- [Server side](/docs/examples/data/server-side) — the full remote contract, not just pages
+- [Server side](/docs/examples/data/server-side): the full remote contract, not just pages

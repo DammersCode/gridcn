@@ -2,11 +2,13 @@
 title: Import & export
 description: xlsx and CSV, in and out, mapped through your cell types.
 icon: FileSpreadsheet
+status: updated
 ---
 
 Import and export live in the `data-grid-io` add-on, kept separate so the core stays free of the
-`xlsx` and `papaparse` dependencies. gridcn lazily imports SheetJS (`xlsx`) only when an xlsx
-export or import actually happens.
+spreadsheet and CSV dependencies. The add-on depends on `hucre` (pinned to 1.1.0) and `papaparse`.
+gridcn imports `hucre` lazily: it loads only when an xlsx or xls file is read or written.
+gridcn imports `papaparse` statically, so it loads with the add-on.
 
 <ComponentPreview name="data-grid-io-demo" />
 
@@ -36,8 +38,11 @@ function onImport(rows: Row[]) {
 
 ## Export
 
-`DataGridExportButton` opens a dropdown for xlsx or CSV. Internally, `exportGrid(state, options)`
-takes:
+`DataGridExportButton` opens a dropdown for xlsx or CSV. Both formats export the text of each
+cell, the same text that clipboard copy gives. An xlsx file has text cells only: numbers and dates
+open in Excel as text.
+
+The `formats` prop <NewBadge /> lists the offered formats. With one format, such as `formats={["csv"]}`, a click exports at once. Internally, `exportGrid(state, options)` takes:
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-io/export-grid.ts" name="ExportGridOptions" />
 
@@ -47,18 +52,31 @@ takes:
   `JSON.stringify`.
 </Callout>
 
+<Callout title="Formula sanitizing">
+  CSV exports prefix formula-like cells with a single quote. The affected cells start with `=`,
+  `+`, `-`, `@`, TAB, or CR. Plain numbers stay untouched. External spreadsheets treat that quote as a
+  hidden text marker. A cell holding `=HYPERLINK("http://x")` opens as literal text in Excel,
+  LibreOffice, and Sheets, not as a running formula. If a downstream consumer expects the raw
+  string, pass `sanitizeFormulas: false` to `exportGrid`. `rowsToCsv` sanitizes the same way by
+  default; pass `false` as its third argument for raw fields. `data-grid` also exports
+  `sanitizeFormulaCell(value)` for your own CSV or TSV writers. Clipboard copy and cut stay raw
+  unless the grid's `sanitizeClipboardFormulas` prop is set, see
+  [Clipboard: Formula sanitizing](/docs/clipboard#formula-sanitizing). XLSX exports are
+  unaffected: string cells never run as formulas there.
+</Callout>
+
 <Callout title="Encodings and Excel">
-  CSV exports are UTF-8 and carry a UTF-8 BOM by default — Excel only detects UTF-8 when the file
+  CSV exports are UTF-8 and carry a UTF-8 BOM by default. Excel only detects UTF-8 when the file
   starts with a BOM, so without it umlauts and other non-ASCII characters open as mojibake. Pass
   `csvBom: false` to `exportGrid` when a downstream consumer chokes on a leading BOM character.
-  XLSX exports write every cell as text (SheetJS's `aoa_to_sheet` from `toText` strings): a
+  XLSX exports write every cell as a text cell that holds its `toText` string: a
   `number` column opens in Excel as text, not as a number, so it must be re-converted there if
   Excel arithmetic on it matters.
 </Callout>
 
 ```tsx
-// export exactly what's on screen (default)
-exportGrid(state, { format: "csv" });
+// export exactly what's on screen as CSV (default)
+exportGrid(state);
 
 // export every row regardless of the current sort/filter
 exportGrid(state, { format: "csv", scope: "all" });
@@ -69,7 +87,7 @@ exportGrid(state, { format: "csv", scope: "selection" });
 
 `scope` controls which rows get exported. The default, `'view'`, follows whatever the user
 sees, the active sort and filter, by walking `viewIndex` (quick search never narrows
-`viewIndex` — see [Sorting, filtering & search](/docs/sorting-filtering-search#search)). `'all'`
+`viewIndex`; see [Sorting, filtering & search](/docs/sorting-filtering-search#search)). `'all'`
 ignores view order entirely and exports every row of the raw `data` array as-is.
 `'selection'` walks only the selected rows, counting both the marker checkboxes and any cell range.
 
@@ -77,7 +95,7 @@ Every scope emits all visible columns, so an exported row always lines up with i
 cell range that covers part of a row still exports that row in full.
 
 Export covers only loaded rows: on a [lazy](/docs/lazy-loading) grid, unloaded rows are skipped
-in every scope. Export after the window you need is loaded.
+in every scope. Export after the range you need is loaded.
 
 `DataGridExportButton` forwards its `options` prop to `exportGrid`, so
 `<DataGridExportButton options={{ scope: "selection" }} />` makes its menu export the selection.
@@ -85,11 +103,42 @@ in every scope. Export after the window you need is loaded.
 `maxRows` caps the number of data rows in the export. The header row is not counted. When the
 scope holds more rows, the export keeps the first `maxRows` rows and the dev console warns.
 
-XLSX exports name their single sheet `workbookName` (default `'Sheet1'`). `buildXlsx(state, options)`
-builds the workbook as a `Blob` without triggering a download, for uploads to a server.
+XLSX exports name their single sheet `workbookName` (default `'Sheet1'`). A name that Excel does not
+accept as a sheet name rejects the export: more than 31 characters, one of `[ ] : * ? / \`, or
+`History`. `buildXlsx(state, options)` builds the workbook as a `Blob` without triggering a
+download, for uploads to a server. The xlsx file is compressed.
 
 `DataGridExportButton` takes an `onError` callback for a failed export. Without one, a failure
 logs a dev-only warning.
+
+## Print
+
+<NewBadge />
+
+`printGrid(state, options)` prints the grid's rows as a plain paged table. The browser's print
+dialog opens, and its "Save as PDF" produces the PDF file. Inside the grid's tree, use
+`useDataGridPrint()`, or place `<DataGridPrintButton />` in the toolbar.
+
+Print takes the same `scope` as export: `"view"` (the current sort and filter order), `"all"`, or
+`"selection"`. The table holds the visible columns in view order. Hidden columns never print.
+Cell text is the cell type's display text (`toDisplayText ?? toText`), not the export text, so a
+formatted value prints the way it reads on screen.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/print-grid.ts" name="PrintGridOptions" />
+
+`options.title` prints a heading and sets the document title. `options.orientation` defaults to
+`landscape` above 6 visible columns and `portrait` below. `options.maxRows` caps the printed rows
+at 10,000 by default, further cut to fit a hard ceiling of 500,000 cells. Cell text longer than
+32,767 characters is cut. When the cap reduces the output, the table ends with a "Printed N of M
+rows" note.
+
+<Callout type="warn" title="A lazy grid prints its loaded rows only">
+Print reads the grid's data, like export. A lazy grid prints the rows it has loaded, not the rows
+it has not loaded yet. Load the range you need first, then print.
+</Callout>
+
+`DataGridPrintButton` forwards its `options` prop to `printGrid`, so
+`<DataGridPrintButton options={{ scope: "selection" }} />` prints the selection.
 
 ## Import
 
@@ -151,7 +200,81 @@ than once, `matchImportColumns` keeps the first match and leaves the rest on "�
 The dialog never writes to the grid directly. `onImport(rows)` hands you the fully-built row
 array, and you decide how to apply it: replace all data, append it, or run it through your own
 `onDataChange` for history or audit purposes. See the demo above, which routes imported rows
-through `grid.onDataChange` with an explicit `delete` and `insert` ops batch.
+through `actions.commitChange` as one `source: "import"` change with an explicit `delete` and
+`insert` operations batch, so the replace lands on the undo stack as a single entry.
+
+### Excel files
+
+<NewBadge />
+
+The import reads the file content, not the extension, to find the format. It accepts two Excel
+formats:
+
+- `.xlsx` workbooks. Each cell comes in as its display text in Excel: the cell's number format
+  applies to dates, currency, and percentages. A number without a format shows at most 15
+  significant digits, so `0.1 + 0.2` comes in as `0.3`. Error cells come in as their code, for
+  example `#DIV/0!`.
+- Excel 97-2003 `.xls` workbooks (BIFF8). Their cells come in without number formats: a date comes
+  in as an ISO date (`2024-01-15`), and a number comes in as its value.
+
+Some programs save other content with an `.xls` extension: an HTML table, Excel 2003 XML, or an
+Excel 5.0/95 workbook. The import rejects these files with the `errorUnsupportedExcelFormat`
+message. Save such a file as `.xlsx` in Excel, then import it again.
+
+## Import limits
+
+<NewBadge />
+
+Every import is bounded, so an oversized or crafted file cannot stall the tab. A file over a
+limit is rejected with an error message in the dialog. The import never truncates a file.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `maxFileBytes` | 50 MiB | Maximum file size. The check runs before the file is read. The dialog's drop zone uses this value as its `maxSize` and shows it as the size limit (`labels.io.maxFileSize`). |
+| `maxRows` | 1,000,000 | Maximum rows, header row included. |
+| `maxColumns` | 1,000 | Maximum columns. |
+| `maxCells` | 5,000,000 | Maximum rows times columns. |
+| `maxDecompressedBytes` | 256 MiB | Maximum unpacked size of one part of an xlsx file, for example a worksheet. A zip bomb stops at this size. The cap per part is the lower of this value and `maxCells` times 10 bytes plus 1 MiB. |
+
+For an xlsx or xls file, the rows and columns come from the real cells of the selected sheet.
+The check runs before the cells are converted. For an xlsx file, the other sheets of the workbook
+are not parsed. For an xls file, the reader pads every sheet to a full rectangle and builds one
+object per record. The sheets together count against `maxCells`, so a workbook over it is rejected
+even when you select a small sheet. A workbook with more than half of `maxCells` plus 100,000
+records is rejected too. The check reads the workbook's records in time linear in the file size, and it rejects
+a workbook it cannot follow. A single xls sheet at the default `maxCells` peaks near 0.2 GB. For a
+CSV file, the check runs before the parse: the import counts the rows and the fields of each row
+without building them, and the widest row sets the column count.
+
+The reader inflates every part of an xlsx file, so each part has a cap: `maxCells` times 10
+bytes plus 1 MiB, or `maxDecompressedBytes` when that is lower. Ten bytes is the smallest cell
+the reader stores, a styled empty cell. At the default `maxCells`, the cap is about 51 MiB. A part
+over the cap rejects the file with `labels.io.errorPartTooLarge` before it is read. The message
+tells the user that a part of the file is too large to read safely. To accept such a file, raise
+`maxCells` or `maxDecompressedBytes`. The shared strings count as a part, so a text-heavy sheet
+with few cells can need a higher `maxCells`.
+
+The reader keeps every cell it finds in memory. A sheet of styled empty cells at the default cap
+peaks near 0.9 GB. A sheet of about 1.9 million cells with values, the most the default cap
+admits, peaks near 0.5 GB. When you raise `maxCells`, the cap and the peak rise with it.
+
+An xlsx cell comes in as its General text, not its formatted text, when its number format is over
+255 characters long, has a fraction denominator of four or more placeholders, or throws when
+applied. Such a format would otherwise cost seconds per cell.
+
+To change the limits, pass `importLimits` to `DataGridImportButton` or `DataGridImportDialog`. An
+omitted field keeps its default:
+
+```tsx
+<DataGridImportButton
+  createRow={createImportedRow}
+  onImport={onImport}
+  importLimits={{ maxFileBytes: 5 * 1024 * 1024, maxRows: 10_000 }}
+/>
+```
+
+`parseImportFile` takes the same five fields as options. `DEFAULT_IMPORT_LIMITS` holds the
+defaults.
 
 ## Import options
 
@@ -185,7 +308,7 @@ one step. The button hides once the column is already skipped.
 
 ## Dropzone
 
-The import dialog's drop target is its own registry item, `dropzone` — installing `data-grid-io`
+The import dialog's drop target is its own registry item, `dropzone`. Installing `data-grid-io`
 installs it too. Use it standalone for any file-drop surface:
 
 ```tsx
@@ -205,10 +328,12 @@ import { Dropzone, DropzoneEmptyState, DropzoneContent } from "@/components/drop
 | `minSize` | `number` | none | Minimum file size in bytes. |
 | `disabled` | `boolean` | `false` | Ignores drop, click, and keyboard activation. |
 | `compact` | `boolean` | `false` | Single-row layout (icon + content inline) instead of the tall centered box. |
-| `onDrop` | `(accepted: File[], rejections: DropzoneRejection[]) => void` | — | Called after a drop or file-picker selection, win or lose. |
-| `onError` | `(error: Error) => void` | — | Called when the native file read itself fails. |
-| `src` | `File[]` | — | Currently held files, read by the default `DropzoneContent`. |
-| `className` | `string` | — | Merged onto the drop-surface root after the built-in classes. |
+| `onDrop` | `(accepted: File[], rejections: DropzoneRejection[]) => void` | none | Called after a drop or file-picker selection, win or lose. |
+| `onError` | `(error: Error) => void` | none | Called when the native file read itself fails. |
+| `src` | `File[]` | none | The files the dropzone holds, read by the default `DropzoneContent`. |
+| `className` | `string` | none | Merged onto the drop-surface root after the built-in classes. |
+| `children` <NewBadge /> | `ReactNode` | `DropzoneEmptyState` and `DropzoneContent` | Content of the drop surface. |
+| `aria-label` <NewBadge /> | `string` | none | Accessible name for the drop surface. |
 
 ### Styling hooks
 
@@ -216,7 +341,7 @@ import { Dropzone, DropzoneEmptyState, DropzoneContent } from "@/components/drop
 |---|---|
 | `data-drag-active` | Present on the zone root while a file is dragged over it. |
 | `data-disabled` | Present on the zone root while `disabled` is true. |
-| `className` | Merges after the built-in classes — a conflicting utility wins. |
+| `className` | Merges after the built-in classes. A conflicting utility wins. |
 
 ```css
 [data-drag-active] {
@@ -234,6 +359,8 @@ import { Dropzone, DropzoneEmptyState, DropzoneContent } from "@/components/drop
 build custom UI instead of using the provided buttons and dialog. `parseImportFile`,
 `matchImportColumns`, `applyImportOptions`, and `buildImportedRows` are the pure functions
 underneath, for when you need to parse or map outside a React component entirely.
+
+`BuildExportRowsOptions` types the `options` of `buildExportRows`. `UseDataGridImportPreviewOptions` types the options of `useDataGridImportPreview`.
 
 `parseImportFile` takes a `sheetName` option for multi-sheet workbooks (first sheet by default.
 An unknown `sheetName` rejects), and the result's `sheetNames`/`sheetName` report what was in the
@@ -257,7 +384,7 @@ const { rows, rejected } = await buildImportedRows({ dataRows, mapping, columns,
 `buildImportedRows` resolves to `{ rows, rejected }`, where `rejected` lists every cell that failed
 its column's `validate` and was cleared. It returns the object directly for a synchronous import of
 5,000 rows or fewer. Above that (or with an async Standard Schema `validate` on a mapped column) it
-returns a Promise — await the result either way. Large imports run in chunks that yield to the event
+returns a Promise. Await the result either way. Large imports run in chunks that yield to the event
 loop, and an `AbortSignal` passed as `signal` cancels between chunks, rejecting with
 `"import-cancelled"`.
 

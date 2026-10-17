@@ -4,18 +4,22 @@ import type { ReactNode } from "react";
 import type { CellPatch, ColumnDef, DataChange, FilterSpec, SortSpec } from "../data-grid";
 import {
   DataGridProvider,
-  useDataGridActions,
+  useDataGridInternalActions,
   useDataGridActiveCell,
   useDataGridEditing,
   useDataGridRow,
   useDataGridSearchMatches,
   useDataGridSelection,
+  useDataGridStore,
+  useDataGridStoreApi,
   useDataGridViewIndex,
   useDataGridViewStale,
 } from "../store";
 import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
+import { cellTypes } from "../cell-types/cell-types";
 import { INCREMENTAL_VIEW_ASSERT_RATE, setIncrementalAssertRate } from "./compute";
-import { createRowIndexCache, diffRowIndex, resolveReorder, touchesViewInputs } from "./row-index";
+import * as compute from "./compute";
+import { createRowIndexCache, diffRowIndex, resolveReorder, touchesViewInputs, viewRowOfDataIndex } from "./row-index";
 import * as sortFilter from "../sort-filter";
 
 type Row = { id: string; name: string; price: number; note?: string };
@@ -41,6 +45,7 @@ type HarnessProps = {
   data?: Row[];
   defaultData?: Row[];
   sortState?: SortSpec[];
+  sortMode?: "client" | "server";
   filterState?: FilterSpec[];
   onDataChange?: (next: readonly Row[], change: DataChange<Row>) => void;
   columnsOverride?: readonly ColumnDef<Row, unknown>[];
@@ -51,7 +56,7 @@ type HarnessProps = {
 /** Everything the streaming tests read, in one hook so a single `act()` sees a consistent snapshot. */
 function useHarness() {
   return {
-    actions: useDataGridActions(),
+    actions: useDataGridInternalActions(),
     viewIndex: useDataGridViewIndex(),
     viewStale: useDataGridViewStale(),
     searchMatches: useDataGridSearchMatches(),
@@ -342,6 +347,26 @@ describe("updateCells — async validation", () => {
     expect(lastData(onDataChange)[0]!.price).toBe(22);
   });
 
+  it("a consumer data swap supersedes a held batch — the held values never land on the swapped data", async () => {
+    const onDataChange = vi.fn();
+    const { result } = renderHarness({ onDataChange, columnsOverride: asyncColumns });
+    let pending = false;
+    act(() => {
+      pending = result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 11 }]).pending;
+    });
+    expect(pending).toBe(true); // held against the async schema
+    // the consumer replaces the data array before the schema resolves
+    const swapped: Row[] = [
+      { id: "a", name: "Charlie", price: 30, note: "swapped" },
+      { id: "x", name: "New", price: 1 },
+    ];
+    act(() => result.current.actions._syncProps({ data: swapped, columns: asyncColumns, getRowId } as never));
+    // sized to the real async dependency, not a guessed tick count
+    await act(() => asyncPrice["~standard"].validate(11) as Promise<unknown>);
+    expect(onDataChange).not.toHaveBeenCalled(); // the held write was dropped, not replayed onto the swap
+    expect(result.current.firstRow!.price).toBe(30);
+  });
+
   it("a sync column in the same grid keeps the fully synchronous path", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange, columnsOverride: asyncColumns });
@@ -387,6 +412,12 @@ describe("updateCells — sort/filter reconciliation", () => {
     expect(result.current.viewStale).toBe(false);
     act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
     expect(result.current.viewStale).toBe(true);
+  });
+
+  it("does not flip viewStale for a streamed sort-column write under sortMode server", () => {
+    const { result } = renderHarness({ sortMode: "server", sortState: [{ columnId: "name", direction: "asc" }] });
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
+    expect(result.current.viewStale).toBe(false);
   });
 
   it("flips viewStale when a touched column feeds the active filter", () => {
@@ -534,7 +565,7 @@ describe("updateCells — incremental view maintenance", () => {
     act(() => result.current.actions.setSorts(sortByName));
     act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Yankee" }]));
     // commitCellValue writes a value outside updateCells, so the pending set can no longer be trusted.
-    act(() => result.current.actions.commitCellValue({ col: 0, row: 0 }, "Xray"));
+    act(() => result.current.actions.commitCellValueAt({ col: 0, row: 0 }, "Xray"));
     act(() => result.current.actions.reconcileView());
     // b is now Xray: Bob(c), Xray(b), Yankee(a)
     expect(result.current.viewIndex).toEqual([2, 1, 0]);
@@ -623,7 +654,7 @@ describe("updateCells — interaction state is never moved", () => {
   /** Adds the interaction-state subscriptions the contrast with `applyCellUpdates` needs. */
   function useInteractionHarness() {
     return {
-      actions: useDataGridActions(),
+      actions: useDataGridInternalActions(),
       activeCell: useDataGridActiveCell(),
       selection: useDataGridSelection(),
       editing: useDataGridEditing(),
@@ -643,8 +674,8 @@ describe("updateCells — interaction state is never moved", () => {
 
   it("leaves selection, activeCell, and editing untouched", () => {
     const { result } = renderInteraction();
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
-    act(() => result.current.actions.startEditing({ col: 0, row: 0 }, "typed"));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }, "typed"));
     const selection = result.current.selection;
     const activeCell = result.current.activeCell;
     const editing = result.current.editing;
@@ -658,8 +689,8 @@ describe("updateCells — interaction state is never moved", () => {
 
   it("contrasts with applyCellUpdates, which moves the selection to the touched rect by design", () => {
     const { result } = renderInteraction();
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
-    act(() => result.current.actions.applyCellUpdates([{ viewRow: 2, columnId: "price", value: 2 }], "paste"));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    act(() => result.current.actions.applyCellUpdates([{ viewRowIndex: 2, columnId: "price", value: 2 }], "paste"));
     expect(result.current.activeCell).toEqual({ col: 1, row: 2 });
   });
 });
@@ -753,7 +784,7 @@ describe("rowId index maintenance — one case per mutation path", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange, defaultData: rows() });
     warm(result);
-    act(() => result.current.actions.commitCellValue({ col: 0, row: 1 }, "Renamed"));
+    act(() => result.current.actions.commitCellValueAt({ col: 0, row: 1 }, "Renamed"));
     act(() => result.current.actions.updateCells([{ rowId: "b", columnId: "price", value: 100 }]));
     const next = lastData(onDataChange);
     expect(next.find((r) => r.id === "b")).toMatchObject({ name: "Renamed", price: 100 });
@@ -763,7 +794,7 @@ describe("rowId index maintenance — one case per mutation path", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange, defaultData: rows() });
     warm(result);
-    act(() => result.current.actions.applyCellUpdates([{ viewRow: 2, columnId: "name", value: "Pasted" }], "paste"));
+    act(() => result.current.actions.applyCellUpdates([{ viewRowIndex: 2, columnId: "name", value: "Pasted" }], "paste"));
     act(() => result.current.actions.updateCells([{ rowId: "c", columnId: "price", value: 100 }]));
     const next = lastData(onDataChange);
     expect(next.find((r) => r.id === "c")).toMatchObject({ name: "Pasted", price: 100 });
@@ -773,7 +804,7 @@ describe("rowId index maintenance — one case per mutation path", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange, defaultData: rows() });
     warm(result);
-    act(() => result.current.actions.selectCell({ col: 0, row: 1 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 1 }));
     act(() => result.current.actions.deleteSelection());
     act(() => result.current.actions.updateCells([{ rowId: "b", columnId: "price", value: 100 }]));
     expect(lastData(onDataChange).find((r) => r.id === "b")!.price).toBe(100);
@@ -881,6 +912,132 @@ describe("controlled echo detection", () => {
     expect(result.current.viewIndex).toEqual([0, 1, 2]);
   });
 
+  it("a stable controlled filterState with ids keeps viewIndex identity across an echo rerender", () => {
+    let data = rows();
+    const onDataChange = vi.fn((next: readonly Row[]) => {
+      data = next as Row[];
+    });
+    // every filter already carries an id: withFilterIds must keep the array identity, so the
+    // reference-equal prop leaves the sync inputs unchanged and the echo skip applies.
+    const stableFilters: FilterSpec[] = [{ filterId: "f1", columnId: "price", operator: "gt", value: "0" }];
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider
+          data={data}
+          columns={columns}
+          getRowId={getRowId}
+          onDataChange={onDataChange}
+          filterState={stableFilters}
+        >
+          {children}
+        </DataGridProvider>
+      );
+    }
+    const { result, rerender } = renderHook(() => useHarness(), { wrapper: Wrapper });
+    const viewSpy = vi.spyOn(compute, "computeViewIndex");
+    const before = result.current.viewIndex;
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "note", value: "x" }]));
+    const rebuildsAfterEdit = viewSpy.mock.calls.length;
+    rerender();
+    // the reference-equal filterState prop must not force a view rebuild on the echo sync
+    expect(result.current.viewIndex).toBe(before);
+    expect(viewSpy.mock.calls.length).toBe(rebuildsAfterEdit);
+    viewSpy.mockRestore();
+  });
+
+  it("a reference-stable controlled filterState without ids keeps viewIndex and the backfilled filterIds", () => {
+    let data = rows();
+    const onDataChange = vi.fn((next: readonly Row[]) => {
+      data = next as Row[];
+    });
+    // the store backfills the missing ids once; a same-reference prop re-sync must reuse the
+    // backfilled array, not re-mint ids (which would churn sync inputs and rebuild the view)
+    const stableFilters: FilterSpec[] = [{ columnId: "price", operator: "gt", value: "0" }];
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider
+          data={data}
+          columns={columns}
+          getRowId={getRowId}
+          onDataChange={onDataChange}
+          filterState={stableFilters}
+        >
+          {children}
+        </DataGridProvider>
+      );
+    }
+    const { result, rerender } = renderHook(
+      () => ({ ...useHarness(), filterState: useDataGridStore((s) => s.filterState) }),
+      { wrapper: Wrapper },
+    );
+    const viewSpy = vi.spyOn(compute, "computeViewIndex");
+    const before = result.current.viewIndex;
+    const filterId = result.current.filterState[0]!.filterId;
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "note", value: "x" }]));
+    const rebuildsAfterEdit = viewSpy.mock.calls.length;
+    rerender();
+    expect(result.current.viewIndex).toBe(before);
+    expect(viewSpy.mock.calls.length).toBe(rebuildsAfterEdit);
+    expect(result.current.filterState[0]!.filterId).toBe(filterId);
+    viewSpy.mockRestore();
+  });
+
+  it("an inline cellTypes literal with the same entries keeps the deferred order and viewIndex identity on echo", () => {
+    let data = rows();
+    const onDataChange = vi.fn((next: readonly Row[]) => {
+      data = next as Row[];
+    });
+    const stableSort: SortSpec[] = [{ columnId: "name", direction: "asc" }];
+    const noteType = { ...cellTypes.text };
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider
+          data={data}
+          columns={columns}
+          getRowId={getRowId}
+          onDataChange={onDataChange}
+          sortState={stableSort}
+          cellTypes={{ note: noteType } as never}
+        >
+          {children}
+        </DataGridProvider>
+      );
+    }
+    const { result, rerender } = renderHook(() => ({ ...useHarness(), store: useDataGridStoreApi() }), { wrapper: Wrapper });
+    const registry = result.current.store.getState().cellTypes;
+    const before = result.current.viewIndex;
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
+    rerender();
+    expect(result.current.viewIndex).toBe(before);
+    expect(result.current.viewIndex).toEqual([1, 2, 0]);
+    expect(result.current.store.getState().cellTypes).toBe(registry);
+  });
+
+  it("a cellTypes prop with a changed entry resolves a new registry and rebuilds the view", () => {
+    const byPriceDesc = { ...cellTypes.number, compare: (a: number, b: number) => b - a };
+    let registryProp: Record<string, unknown> = { price: cellTypes.number };
+    const stableSort: SortSpec[] = [{ columnId: "price", direction: "asc" }];
+    const priceColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      { id: "price", header: "Price", accessorKey: "price", type: "price" as never },
+    ];
+    const data = rows();
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider data={data} columns={priceColumns} getRowId={getRowId} sortState={stableSort} cellTypes={registryProp as never}>
+          {children}
+        </DataGridProvider>
+      );
+    }
+    const { result, rerender } = renderHook(() => ({ ...useHarness(), store: useDataGridStoreApi() }), { wrapper: Wrapper });
+    expect(result.current.viewIndex).toEqual([1, 0, 2]);
+    const registry = result.current.store.getState().cellTypes;
+    registryProp = { price: byPriceDesc };
+    rerender();
+    expect(result.current.store.getState().cellTypes).not.toBe(registry);
+    expect(result.current.viewIndex).toEqual([2, 0, 1]);
+  });
+
   it("an echo sync that also changes the sort still recomputes", () => {
     let data = rows();
     let sortState: SortSpec[] = [{ columnId: "name", direction: "asc" }];
@@ -906,6 +1063,28 @@ describe("controlled echo detection", () => {
     rerender();
     // desc by name: Charlie->Aaron so order is Bob(c), Alice(b), Aaron(a)
     expect(result.current.viewIndex).toEqual([2, 1, 0]);
+  });
+});
+
+describe("withFilterIds", () => {
+  it("returns the input array itself when every filter has an id", () => {
+    const filters: FilterSpec[] = [
+      { filterId: "f1", columnId: "name", operator: "equals", value: "x" },
+      { filterId: "f2", columnId: "price", operator: "gt", value: "0" },
+    ];
+    expect(compute.withFilterIds(filters)).toBe(filters);
+  });
+
+  it("backfills only the missing ids and keeps the existing ones", () => {
+    const filters: FilterSpec[] = [
+      { filterId: "f1", columnId: "name", operator: "equals", value: "x" },
+      { columnId: "price", operator: "gt", value: "0" },
+    ];
+    const out = compute.withFilterIds(filters);
+    expect(out).not.toBe(filters);
+    expect(out[0]).toBe(filters[0]);
+    expect(out[0]!.filterId).toBe("f1");
+    expect(out[1]!.filterId).toEqual(expect.any(String));
   });
 });
 
@@ -941,6 +1120,32 @@ describe("row-index helpers", () => {
     cache.rebase(rows());
     const map = cache.resolve(rows(), getRowId as (row: unknown, i: number) => string);
     expect(map.size).toBe(3);
+  });
+
+  it("resolveOne finds the id on a cold cache and a later resolve stays consistent", () => {
+    const cache = createRowIndexCache();
+    const data = rows();
+    expect(cache.resolveOne(data, getRowId as (row: unknown, i: number) => string, "c")).toBe(2);
+    expect(cache.resolveOne(data, getRowId as (row: unknown, i: number) => string, "missing")).toBeUndefined();
+    expect(cache.resolve(data, getRowId as (row: unknown, i: number) => string).get("a")).toBe(0);
+  });
+
+  it("resolveOne reads the warm map and invalidate makes it scan again", () => {
+    const cache = createRowIndexCache();
+    const data = rows();
+    cache.resolve(data, getRowId as (row: unknown, i: number) => string);
+    expect(cache.resolveOne(data, getRowId as (row: unknown, i: number) => string, "b")).toBe(1);
+    expect(cache.resolveOne(data, getRowId as (row: unknown, i: number) => string, "missing")).toBeUndefined();
+    cache.invalidate();
+    expect(cache.resolveOne(data, getRowId as (row: unknown, i: number) => string, "b")).toBe(1);
+  });
+
+  it("viewRowOfDataIndex maps a data row to its view row and misses unknown rows", () => {
+    const viewIndex = [2, 0];
+    expect(viewRowOfDataIndex(viewIndex, 0)).toBe(1);
+    expect(viewRowOfDataIndex(viewIndex, 2)).toBe(0);
+    expect(viewRowOfDataIndex(viewIndex, 1)).toBe(-1);
+    expect(viewRowOfDataIndex([2, 0], 0)).toBe(1);
   });
 
   it("diffRowIndex reports rows whose index moved and rows that vanished", () => {
@@ -999,14 +1204,14 @@ describe("direct write paths — viewStale and searchMatches", () => {
     const { result } = renderHarness({ sortState: sortByName });
     expect(result.current.viewStale).toBe(false);
     // view order under name-asc is [Alice(b), Bob(c), Charlie(a)]; viewRow 0 is row "b".
-    act(() => result.current.actions.applyCellUpdates([{ viewRow: 0, columnId: "name", value: "Zulu" }], "paste"));
+    act(() => result.current.actions.applyCellUpdates([{ viewRowIndex: 0, columnId: "name", value: "Zulu" }], "paste"));
     expect(result.current.viewStale).toBe(true);
     expect(result.current.viewIndex).toEqual([1, 2, 0]);
   });
 
   it("reconcileView recovers the order applyCellUpdates deferred", () => {
     const { result } = renderHarness({ sortState: sortByName });
-    act(() => result.current.actions.applyCellUpdates([{ viewRow: 0, columnId: "name", value: "Zulu" }], "paste"));
+    act(() => result.current.actions.applyCellUpdates([{ viewRowIndex: 0, columnId: "name", value: "Zulu" }], "paste"));
     act(() => result.current.actions.reconcileView());
     expect(result.current.viewIndex).toEqual([2, 0, 1]);
     expect(result.current.viewStale).toBe(false);
@@ -1016,27 +1221,27 @@ describe("direct write paths — viewStale and searchMatches", () => {
     const { result } = renderHarness({
       filterState: [{ columnId: "name", operator: "contains", value: "a" }],
     });
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
     act(() => result.current.actions.deleteSelection());
     expect(result.current.viewStale).toBe(true);
   });
 
   it("commitCellValue flips viewStale when it writes a sort column", () => {
     const { result } = renderHarness({ sortState: sortByName });
-    act(() => result.current.actions.commitCellValue({ col: 0, row: 0 }, "Zulu"));
+    act(() => result.current.actions.commitCellValueAt({ col: 0, row: 0 }, "Zulu"));
     expect(result.current.viewStale).toBe(true);
   });
 
   it("commitCellEdit flips viewStale when it writes a sort column", () => {
     const { result } = renderHarness({ sortState: sortByName });
-    act(() => result.current.actions.startEditing({ col: 0, row: 0 }));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
     act(() => result.current.actions.commitCellEdit("Zulu"));
     expect(result.current.viewStale).toBe(true);
   });
 
   it("leaves viewStale false when the written column feeds neither sort nor filter", () => {
     const { result } = renderHarness({ sortState: sortByName });
-    act(() => result.current.actions.applyCellUpdates([{ viewRow: 0, columnId: "price", value: 999 }], "paste"));
+    act(() => result.current.actions.applyCellUpdates([{ viewRowIndex: 0, columnId: "price", value: 999 }], "paste"));
     expect(result.current.viewStale).toBe(false);
   });
 
@@ -1045,7 +1250,7 @@ describe("direct write paths — viewStale and searchMatches", () => {
     act(() => result.current.actions.setSearch("Zulu"));
     expect(result.current.searchMatches).toHaveLength(0);
 
-    act(() => result.current.actions.applyCellUpdates([{ viewRow: 0, columnId: "name", value: "Zulu" }], "paste"));
+    act(() => result.current.actions.applyCellUpdates([{ viewRowIndex: 0, columnId: "name", value: "Zulu" }], "paste"));
 
     expect(result.current.searchMatches).toHaveLength(1);
     expect(result.current.searchMatches[0]).toMatchObject({ row: 0, columnId: "name" });
@@ -1056,7 +1261,7 @@ describe("direct write paths — viewStale and searchMatches", () => {
     act(() => result.current.actions.setSearch("Charlie"));
     expect(result.current.searchMatches).toHaveLength(1);
 
-    act(() => result.current.actions.applyCellUpdates([{ viewRow: 0, columnId: "name", value: "Zulu" }], "paste"));
+    act(() => result.current.actions.applyCellUpdates([{ viewRowIndex: 0, columnId: "name", value: "Zulu" }], "paste"));
 
     expect(result.current.searchMatches).toHaveLength(0);
   });
@@ -1064,7 +1269,7 @@ describe("direct write paths — viewStale and searchMatches", () => {
   it("deleteSelection drops the searchMatch on the cleared cell", () => {
     const { result } = renderHarness();
     act(() => result.current.actions.setSearch("Charlie"));
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
     act(() => result.current.actions.deleteSelection());
     expect(result.current.searchMatches).toHaveLength(0);
   });
@@ -1072,14 +1277,14 @@ describe("direct write paths — viewStale and searchMatches", () => {
   it("commitCellValue recomputes searchMatches", () => {
     const { result } = renderHarness();
     act(() => result.current.actions.setSearch("Zulu"));
-    act(() => result.current.actions.commitCellValue({ col: 0, row: 0 }, "Zulu"));
+    act(() => result.current.actions.commitCellValueAt({ col: 0, row: 0 }, "Zulu"));
     expect(result.current.searchMatches).toHaveLength(1);
   });
 
   it("commitCellEdit recomputes searchMatches", () => {
     const { result } = renderHarness();
     act(() => result.current.actions.setSearch("Zulu"));
-    act(() => result.current.actions.startEditing({ col: 0, row: 0 }));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
     act(() => result.current.actions.commitCellEdit("Zulu"));
     expect(result.current.searchMatches).toHaveLength(1);
   });
@@ -1087,7 +1292,7 @@ describe("direct write paths — viewStale and searchMatches", () => {
   it("allocates no new search state when no search is active", () => {
     const { result } = renderHarness();
     const before = result.current.searchMatches;
-    act(() => result.current.actions.applyCellUpdates([{ viewRow: 0, columnId: "name", value: "Zulu" }], "paste"));
+    act(() => result.current.actions.applyCellUpdates([{ viewRowIndex: 0, columnId: "name", value: "Zulu" }], "paste"));
     expect(result.current.searchMatches).toBe(before);
   });
 });
@@ -1136,9 +1341,7 @@ describe("updateCells — verdict", () => {
   });
 
   it("reports a grid-level readOnly as an empty verdict", () => {
-    // the store's grid-level flag is what DataGridRoot syncs via _registerReadOnly; the provider prop alone does not set it
-    const { result } = renderHarness();
-    act(() => result.current.actions._registerReadOnly(true));
+    const { result } = renderHarness({ readOnly: true });
     expect(result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 1 }])).toEqual({
       applied: 0,
       skipped: [],
@@ -1233,5 +1436,47 @@ describe("updateCells — verdict", () => {
         { patchIndex: 2, reason: "no-op" },
       ],
     });
+  });
+});
+
+describe("row operations under sortMode server", () => {
+  const serverSort: SortSpec[] = [{ columnId: "name", direction: "asc" }];
+  function renderServer() {
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider
+          defaultData={rows()}
+          columns={columns}
+          getRowId={getRowId}
+          sortMode="server"
+          sortState={serverSort}
+          enableRowReorder
+          createRow={(index: number): Row => ({ id: `new-${index}`, name: "Aaa", price: 0 })}
+          duplicateRow={(row: Row, index: number) => ({ ...row, id: `${row.id}-copy${index}` })}
+        >
+          {children}
+        </DataGridProvider>
+      );
+    }
+    return renderHook(() => ({ ...useHarness(), store: useDataGridStoreApi() }), { wrapper: Wrapper });
+  }
+
+  it("insertRow moves the active cell like an unsorted grid", () => {
+    const { result } = renderServer();
+    act(() => result.current.store.getState().actions.setActiveCellAt({ col: 0, row: 2 }));
+    act(() => result.current.actions.insertRow(0, "above"));
+    expect(result.current.store.getState().activeCell?.row).toBe(3);
+  });
+
+  it("duplicateRows moves the active cell like an unsorted grid", () => {
+    const { result } = renderServer();
+    act(() => result.current.store.getState().actions.setActiveCellAt({ col: 0, row: 2 }));
+    act(() => result.current.actions.duplicateRows([0]));
+    expect(result.current.store.getState().activeCell?.row).toBe(3);
+  });
+
+  it("reorderRows moves a row", () => {
+    const { result } = renderServer();
+    expect(result.current.actions.reorderRows(0, 2)).toBe(true);
   });
 });

@@ -1,0 +1,79 @@
+---
+title: Recipes
+description: Worked patterns for server round-trips, row panels, bulk actions, saved views, and row forms.
+icon: ChefHat
+status: new
+---
+
+Each recipe wires the grid into a common app need with short, copyable code.
+
+## Data fetching
+
+Send edits to a server and feed server state into the grid.
+
+<Cards>
+  <Card
+    title="Server round-trip"
+    href="/docs/recipes/data-fetching/server-round-trip"
+    description="Send each edit to an API, then roll back, refetch, or show the server error."
+  />
+  <Card
+    title="TanStack Query wiring"
+    href="/docs/recipes/data-fetching/tanstack-query"
+    description="Wire onDataChange to useQuery and useMutation with an optimistic cache update."
+  />
+  <Card
+    title="Server-side sort and filter"
+    href="/docs/recipes/data-fetching/server-side-sort-filter"
+    description="Feed sort, filter, and search state to your API and show what it returns."
+  />
+</Cards>
+
+## UI patterns
+
+Panels, bars, and saved state around the grid.
+
+<Cards>
+  <Card
+    title="Open a detail panel from a row"
+    href="/docs/recipes/ui-patterns/detail-panel"
+    description="Show the active row in a side panel that stays open while you move through the grid."
+  />
+  <Card
+    title="Act on the selected rows"
+    href="/docs/recipes/ui-patterns/bulk-actions"
+    description="Show a bar for the checked rows that deletes, updates, or exports them as one undoable step."
+  />
+  <Card
+    title="Remember the user's view"
+    href="/docs/recipes/ui-patterns/remember-view"
+    description="Save sort, filters, search, and column layout, and restore them on the next visit."
+  />
+  <Card
+    title="Multiple grids on one page"
+    href="/docs/recipes/ui-patterns/multiple-grids"
+    description="Mount more than one grid on a page with no extra setup."
+  />
+</Cards>
+
+## Editing & access
+
+Row forms, cell formats, and per-user edit rules.
+
+<Cards>
+  <Card
+    title="Edit a row with a form"
+    href="/docs/recipes/editing/edit-row-with-form"
+    description="Commit several fields of one row from a form as one validated, undoable change."
+  />
+  <Card
+    title="Custom cell type"
+    href="/docs/recipes/editing/custom-cell-type"
+    description="Pick the lightest way to change how a column shows and edits its values."
+  />
+  <Card
+    title="Auth-gated cells"
+    href="/docs/recipes/editing/auth-gated-cells"
+    description="Derive read-only rows and hidden columns from the user session."
+  />
+</Cards>

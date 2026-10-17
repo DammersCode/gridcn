@@ -1,13 +1,14 @@
 ---
 title: SWR
-description: Lazy windows through SWR's preload — one fetch per window key, shared with any useSWR consumer.
+description: Lazy ranges through SWR's preload. One fetch per range key, shared with any useSWR consumer.
 icon: RefreshCw
+status: none
 ---
 
 SWR has no `queryClient.fetchQuery`. `preload(key, fetcher)` is its imperative entry point.
 It runs the fetcher once per key, hands back its promise, and stores the result in the
-global cache — so a second grid or a detail panel on the same page that calls `useSWR` with
-the same key gets the window for free.
+global cache. So a second grid or a detail panel on the same page that calls `useSWR` with
+the same key gets the range for free.
 
 <ComponentPreview name="data-grid-lazy-swr-demo" />
 
@@ -26,25 +27,25 @@ const lazy = useDataGridLazyRows<Row>({
 });
 ```
 
-The fetcher receives the key itself as its argument (the SWR 2.x convention — `useSWR`
+The fetcher receives the key itself as its argument (the SWR 2.x convention. `useSWR`
 works the same way), hence the tuple cast rather than destructured parameters. Concurrent
-requests for the same window share one fetch, and the cached window survives for the
-session — scrolling back never refetches.
+requests for the same range share one fetch, and the cached range survives for the
+session. Scrolling back never refetches.
 
 <Callout type="info" title="Revalidate on focus">
-`useSWR` components revalidate on window focus and reconnect by default. The lazy windows
-here are plain cache entries consumed through the hook, so they stay put for the session —
-no focus-time churn while you scroll. If you also mount `useSWR` consumers on the same keys,
+`useSWR` components revalidate on window focus and reconnect by default. The lazy ranges
+here are plain cache entries consumed through the hook, so they stay put for the session (
+no focus-time churn while you scroll). If you also mount `useSWR` consumers on the same keys,
 decide once whether you want that focus revalidation (`revalidateOnFocus: false`) or rely on
 it as a cheap freshness check.
 </Callout>
 
 ## Behavior reference
 
-- [Lazy loading](/docs/lazy-loading) — the `useDataGridLazyRows` contract
+- [Lazy loading](/docs/lazy-loading): the `useDataGridLazyRows` contract
 
 ## Related
 
-- [Plain fetcher](/docs/examples/data/lazy/plain) — the baseline without a cache
-- [TanStack Query](/docs/examples/data/lazy/react-query) — the same pattern through a
+- [Plain fetcher](/docs/examples/data/lazy/plain): the baseline without a cache
+- [TanStack Query](/docs/examples/data/lazy/react-query): the same pattern through a
   `fetchQuery`

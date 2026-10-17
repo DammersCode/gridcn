@@ -121,10 +121,22 @@ describe("detectSeries", () => {
     expect(series!.extrapolate(2)).toBe("003");
   });
 
+  it("keeps a consistent three-plus value padded-numeric series (every step checked, not just the first)", () => {
+    const series = detectSeries(["001", "002", "003"]);
+    expect(series).not.toBeNull();
+    expect(series!.extrapolate(3)).toBe("004");
+  });
+
   it("detects prefix+number sequences", () => {
     const series = detectSeries(["Item 9", "Item 10"]);
     expect(series).not.toBeNull();
     expect(series!.extrapolate(2)).toBe("Item 11");
+  });
+
+  it("keeps a consistent three-plus value prefix/suffix series (every step checked, not just the first)", () => {
+    const series = detectSeries(["Item 1", "Item 2", "Item 3"]);
+    expect(series).not.toBeNull();
+    expect(series!.extrapolate(3)).toBe("Item 4");
   });
 
   it("returns null for a single value (copy, not a series)", () => {
@@ -137,6 +149,11 @@ describe("detectSeries", () => {
 
   it("returns null when the delta is inconsistent", () => {
     expect(detectSeries(["1", "2", "4"])).toBeNull();
+  });
+
+  it("detects an arithmetic progression over 2M values without spreading the array", () => {
+    const values = Array.from({ length: 2_000_000 }, (_, i) => String(i));
+    expect(detectSeries(values)?.extrapolate(2_000_000)).toBe("2000000");
   });
 
   it("detects a descending arithmetic progression", () => {
@@ -204,6 +221,51 @@ describe("detectSeries", () => {
     const series = detectSeries(["Item 08", "Item 09"]);
     expect(series).not.toBeNull();
     expect(series!.extrapolate(2)).toBe("Item 10");
+  });
+
+  it("extrapolates a 15-digit id exactly", () => {
+    const series = detectSeries(["ID 100000000000000", "ID 100000000000001"]);
+    expect(series!.extrapolate(2)).toBe("ID 100000000000002");
+  });
+
+  it.each([
+    ["a prefixed id", ["ID 1234567890123456789", "ID 1234567890123456790"]],
+    ["a 400-digit prefixed id", ["x" + "1".repeat(400), "x" + "1".repeat(399) + "2"]],
+    ["a bare integer", ["1234567890123456789", "1234567890123456790"]],
+    ["a zero-padded integer", ["0000000000000001", "0000000000000002"]],
+  ])("returns no series for %s above 15 digits, so the fill tiles", (_name, values) => {
+    expect(detectSeries(values)).toBeNull();
+  });
+
+  it.each([
+    ["an arithmetic series", ["100000000000001", "200000000000002"]],
+    ["a padded series", ["000000000000001", "100000000000001"]],
+    ["a prefixed series", ["ID 100000000000000", "ID 200000000000000"]],
+  ])("tiles %s once an extrapolated value leaves the safe integer range", (_name, values) => {
+    const series = detectSeries(values)!;
+    expect(series).not.toBeNull();
+    expect(series.extrapolate(2)).not.toBe(values[0]);
+    expect(series.extrapolate(100)).toBe(values[0]);
+    expect(series.extrapolate(101)).toBe(values[1]);
+    expect(series.extrapolate(-100)).toBe(values[0]);
+  });
+
+  it("tiles a decimal series once an extrapolated value needs more than 15 digits", () => {
+    const series = detectSeries(["0.1", "10000000000000.1"])!;
+    expect(series.extrapolate(1)).toBe("10000000000000.1");
+    expect(series.extrapolate(500)).toBe("0.1");
+    expect(series.extrapolate(501)).toBe("10000000000000.1");
+  });
+
+  it("detects a prefix series on a 20k-char value in linear time", () => {
+    // attack input: a long digit run, a non-digit, then a trailing digit — quadratic for a capture regex, under a ms for a linear scan
+    const prefix = "1".repeat(20_000);
+    const start = performance.now();
+    const series = detectSeries([prefix + "a1", prefix + "a2"]);
+    const elapsed = performance.now() - start;
+    expect(series).not.toBeNull();
+    expect(series!.extrapolate(2)).toBe(prefix + "a3");
+    expect(elapsed).toBeLessThan(100);
   });
 });
 
@@ -306,9 +368,7 @@ describe("generateFill", () => {
   });
 
   it("uses a custom detect over the built-in one", () => {
-    // the built-in detectSeries does not detect dates; a custom detector (e.g. ISO dates) can.
-    // the year rollover keeps the built-in prefix+number detector honest (prefixes differ, day
-    // delta is not arithmetic), so the no-detect assertion below really is a tiling fallback.
+    // the year rollover defeats the built-in prefix+number detector (prefixes differ, day delta is not arithmetic), so the no-detect assertion below is a tiling fallback
     const detect = (values: readonly string[]) => {
       if (values.length < 2) return null;
       const d0 = Date.parse(values[0]!);

@@ -71,7 +71,8 @@ export default function DataGridPinnedRowsDemo(): ReactNode {
 
   const top = useMemo(() => [averagesRow], [averagesRow]);
   const bottom = useMemo(() => [totalsRow], [totalsRow]);
-  const { rowBands } = useDataGridPinnedRows({ topRows: top, bottomRows: bottom });
+  const { plugin: pinnedRowsPlugin } = useDataGridPinnedRows({ topRows: top, bottomRows: bottom });
+  const plugins = useMemo(() => [...grid.plugins, pinnedRowsPlugin], [grid.plugins, pinnedRowsPlugin]);
 
   return (
     <div className="w-full flex flex-col gap-3">
@@ -80,7 +81,7 @@ export default function DataGridPinnedRowsDemo(): ReactNode {
         the rows the filter leaves visible, not the full dataset.
       </p>
       <div className="flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
-        <DataGridProvider {...grid} columns={columns} rowBands={rowBands}>
+        <DataGridProvider {...grid} columns={columns} plugins={plugins}>
           <DataGridAggregateReporter specs={AVERAGES_SPECS} onChange={onAveragesChange} />
           <DataGridAggregateReporter specs={TOTALS_SPECS} onChange={onTotalsChange} />
           <DataGridToolbar>

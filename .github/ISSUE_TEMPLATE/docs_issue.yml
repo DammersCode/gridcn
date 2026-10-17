@@ -1,0 +1,31 @@
+name: Docs issue
+description: A docs page is wrong, unclear, or missing something.
+title: "[docs]: "
+labels: [documentation]
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Page
+      description: The URL of the docs page.
+      placeholder: https://gridcn.vercel.app/docs/columns
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong or missing
+      description: Quote the sentence or code sample. A code sample that does not compile or does not behave as written is a docs bug.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested fix
+      description: Optional. Write the text you would expect to read.
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I would send a pull request for this.

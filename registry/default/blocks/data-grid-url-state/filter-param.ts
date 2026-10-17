@@ -1,11 +1,27 @@
 import type { FilterOperator, FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { isFilterOperator } from "./filter-operators";
+import { safeDecode } from "./sort-param";
 
 /** In-value separator for `isBetween`'s two-part value. `encodeURIComponent` leaves `~` in its unreserved set untouched, so a literal `~` inside a bound must be escaped separately (see {@link encodeRangePart}) to stay unambiguous against the separator. */
 const RANGE_SEPARATOR = "~";
 
 /** In-value separator for `isAnyOf`'s choice list. `encodeURIComponent` escapes a literal `|` inside a choice to `%7C`, so the raw separator can never collide with a choice's own characters. */
 const ANYOF_SEPARATOR = "|";
+
+/** A hand-edited URL must not express an unbounded view state; filter segments beyond the cap are dropped. */
+const MAX_URL_FILTERS = 64;
+
+/** Raw comma-separated segments read before parsing stops; bounds the work a URL of empty segments can cost. */
+const MAX_URL_FILTER_SEGMENTS = MAX_URL_FILTERS * 4;
+
+/** Bound for one `isAnyOf` list parsed from a URL when the caller names no per-column limit. */
+const DEFAULT_MAX_ANYOF_CHOICES = 1000;
+
+/** Options for {@link parseFilterState}. */
+export type ParseFilterStateOptions = {
+  /** Most entries an `isAnyOf` list of this column may hold, usually its number of `choices`. Returns `undefined` for the 1000 default. */
+  maxChoices?: (columnId: string) => number | undefined;
+};
 
 /** `encodeURIComponent` plus escaping the one character it doesn't (`~`), so a literal tilde in a bound never collides with {@link RANGE_SEPARATOR}. */
 function encodeRangePart(part: string): string {
@@ -41,24 +57,16 @@ export function serializeFilterState(filters: readonly FilterSpec[]): string {
   return filters.map((f) => `${encodeURIComponent(f.columnId)}:${f.operator}:${encodeFilterValue(f.operator, f.value)}`).join(",");
 }
 
-/** `decodeURIComponent` throws on malformed `%` sequences a hand-edited URL can contain — never let that surface. */
-function safeDecode(value: string): string | null {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return null;
-  }
-}
-
 /** Sentinel distinguishing "decode failed, drop the segment" from a legitimately-empty decoded value (`""`). */
 const DECODE_FAILED = Symbol("decode-failed");
 
 /** Decodes a segment's value part per `operator`: `isBetween` splits on {@link RANGE_SEPARATOR} into a tuple, `isAnyOf` splits on {@link ANYOF_SEPARATOR} into a choice list (empty value = empty list), everything else stays a plain string. Malformed input (wrong tuple arity, bad percent-encoding) returns {@link DECODE_FAILED}. */
-function decodeFilterValue(operator: string, raw: string): FilterSpec["value"] | typeof DECODE_FAILED {
+function decodeFilterValue(operator: string, raw: string, maxChoices: number): FilterSpec["value"] | typeof DECODE_FAILED {
   if (operator === "isAnyOf") {
     if (raw === "") return [];
     const parts: string[] = [];
     for (const rawPart of raw.split(ANYOF_SEPARATOR)) {
+      if (parts.length >= maxChoices) break;
       const decoded = safeDecode(rawPart);
       if (decoded === null) return DECODE_FAILED;
       parts.push(decoded);
@@ -80,6 +88,9 @@ function decodeFilterValue(operator: string, raw: string): FilterSpec["value"] |
  * Inverse of {@link serializeFilterState}. Malformed segments (unknown operator, empty/undecodable
  * column id, wrong field count, malformed `isBetween` range or `isAnyOf` list) are dropped silently
  * rather than throwing — a corrupt/hand-edited URL degrades to fewer filters, never an error.
+ * Parsing stops after 256 raw segments. The parsed list is capped at 64 filters, and each `isAnyOf`
+ * list at `options.maxChoices(columnId)` entries (1000 by default); the first segments win, so a
+ * hand-edited URL cannot express an unbounded filter set.
  * Every filter parses without a `filterId`; the store backfills a fresh stable one on the next sync.
  *
  * @example parseFilterState("age:gt:30") // => [{ columnId: "age", operator: "gt", value: "30" }]
@@ -88,17 +99,22 @@ function decodeFilterValue(operator: string, raw: string): FilterSpec["value"] |
  * @example parseFilterState("status:isAnyOf:new|open") // => [{ columnId: "status", operator: "isAnyOf", value: ["new", "open"] }]
  * @example parseFilterState("garbage") // => []
  */
-export function parseFilterState(raw: string): FilterSpec[] {
+export function parseFilterState(raw: string, options: ParseFilterStateOptions = {}): FilterSpec[] {
   if (!raw) return [];
   const filters: FilterSpec[] = [];
-  for (const segment of raw.split(",")) {
+  let start = 0;
+  for (let read = 0; read < MAX_URL_FILTER_SEGMENTS && start <= raw.length && filters.length < MAX_URL_FILTERS; read++) {
+    const comma = raw.indexOf(",", start);
+    const end = comma === -1 ? raw.length : comma;
+    const segment = raw.slice(start, end);
+    start = end + 1;
     const parts = segment.split(":");
     if (parts.length !== 3) continue;
     const [columnId, operator, rawValue] = parts;
     if (!columnId || operator === undefined || rawValue === undefined || !isFilterOperator(operator)) continue;
     const decodedId = safeDecode(columnId);
     if (decodedId === null || decodedId === "") continue;
-    const value = decodeFilterValue(operator, rawValue);
+    const value = decodeFilterValue(operator, rawValue, options.maxChoices?.(decodedId) ?? DEFAULT_MAX_ANYOF_CHOICES);
     if (value === DECODE_FAILED) continue;
     filters.push({ columnId: decodedId, operator, value });
   }

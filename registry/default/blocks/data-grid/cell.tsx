@@ -3,6 +3,7 @@
 import {
   memo,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -13,13 +14,15 @@ import {
 } from "react";
 import { cn } from "@/lib/utils";
 import { COLUMN_BORDER } from "./columns/column-border";
-import type { GetCellClassName, OnCellClick, OnRowClick } from "./types";
+import { gridAttrSelector } from "./data-attributes";
+import type { CellType, GetCellClassName } from "./types";
 import { getCellValue } from "./columns/column-helpers";
-import { useDataGridActions, useDataGridCellTypes, useDataGridCellEditingError, useDataGridCellRejectionCount, type AnyColumnDef } from "./store";
+import { useDataGridActions, useDataGridCellTypes, useDataGridCellEditingError, useDataGridCellRejectionCount, useDataGridStoreApi, type AnyColumnDef } from "./store";
 import { useDataGridRootContext } from "./layout-context";
 import { pinnedInsetStyle } from "./columns/pinned-inset-style";
 import { cellLayer } from "./layers";
 import { cellTypes as defaultCellTypes } from "./cell-types/cell-types";
+import { resolveColumnValidate } from "./cell-types/capabilities";
 import { useAsyncValidate } from "./interaction/use-async-validate";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -30,28 +33,26 @@ export const FLASH_KEYFRAMES =
   "@keyframes grid-cell-flash{0%{background-color:color-mix(in oklab, var(--grid-flash-color, var(--color-primary)) var(--grid-flash-intensity, 24%), transparent)}100%{background-color:transparent}}";
 
 // This component is generic-erased (row: unknown, column: AnyColumnDef) since it renders arbitrary
-// consumer row shapes through one shared runtime — see store.tsx's InternalSyncProps comment for why
-// TData=unknown makes every ColumnDef-API call below directly callable with no cast. The two
-// `as unknown as` casts further down are a separate, narrower need: a cell type's own
-// `FC<CellRenderProps<TData, TValue>>`/`FC<CellEditorProps<TData, TValue>>` is per-cell-type generic,
-// widened once here to this erased prop shape (same invariant, different call surface).
+// consumer row shapes through one shared runtime — TData=unknown makes every ColumnDef-API call
+// below directly callable with no cast. The two `as unknown as` casts further down are a separate,
+// narrower need: a cell type's own `FC<CellRenderProps<TData, TValue>>`/`FC<CellEditorProps<TData, TValue>>`
+// is per-cell-type generic, widened once here to this erased prop shape (same invariant, different
+// call surface).
 
 export type DataGridCellProps = {
   row: unknown;
-  rowIndex: number;
+  viewRowIndex: number;
+  /** The row's stable id: its `getRowId()` value, a placeholder id on an unloaded (lazy) hole, or a band id on a pinned row without one. */
+  rowId: string;
   column: AnyColumnDef;
-  /** Pure data-column index — drives `CellCoord.col`, `aria-colindex`, and pin-var lookup. Never touched by the marker column (it lives outside the data index space). */
-  columnIndex: number;
-  /** Grid-level readOnly (from `DataGridRoot`), independent of the column's own `readOnly`. */
+  /** Pure data-column index — drives `ViewCoord.col`, `aria-colindex`, and pin-var lookup. Never touched by the marker column (it lives outside the data index space). */
+  viewColumnIndex: number;
+  /** Grid-level readOnly (from the store), independent of the column's own `readOnly`. */
   gridReadOnly?: boolean;
-  /** 1-based `gridColumnStart` offset added to `columnIndex`; 2 when a marker column occupies track 1, else 1. Presentation-only — never affects `coord`/`aria-colindex`. */
+  /** 1-based `gridColumnStart` offset added to `viewColumnIndex`; 2 when a marker column occupies track 1, else 1. Presentation-only — never affects `coord`/`aria-colindex`. */
   gridColOffset?: number;
   /** Forwarded from row.tsx (stable identity, root's dev guardrail) rather than read from context here, so this memoized cell's props stay shallow-equal across ticks. */
   getCellClassName?: GetCellClassName<unknown>;
-  /** Forwarded from row.tsx, same stable-identity guidance as `getCellClassName`. Fired from this cell's own existing click handler — see {@link OnCellClick}. */
-  onCellClick?: OnCellClick<unknown>;
-  /** Forwarded alongside `onCellClick`, fired from the same click — see {@link OnRowClick}. */
-  onRowClick?: OnRowClick<unknown>;
   /**
    * True for a pinned top/bottom row cell (the `data-grid-pinned-rows` add-on's row-bands):
    * display-only, so this skips every pointer/focus handler — pinned rows aren't part of
@@ -69,8 +70,10 @@ export type DataGridCellProps = {
   isEditing?: boolean;
   /** Only meaningful when `isEditing` is true. */
   initialText?: string;
+  /** The open edit session's id; a new id remounts the editor and drops the old session's draft and pending validation. */
+  editSession?: number;
   isSearchMatch?: boolean;
-  /** True when `row` is a hole in `data` (lazy loading) — renders a static shimmer block instead of cell content and skips every pointer/focus handler, same as a pinned-row cell. */
+  /** True when `row` is a hole in `data` (lazy loading) — renders a static shimmer block instead of cell content and skips every pointer/focus handler. */
   isSkeleton?: boolean;
   /**
    * True while this cell is inside the transient `flashCells` write-pulse (a fill/paste/move just
@@ -86,38 +89,45 @@ export type DataGridCellProps = {
   cellError?: string | null;
 };
 
+// True when a cell DOM event originates from the cell's own editor: inline editors' form controls
+// bubble through the DOM, and the portaled popovers (date/select/long-text) bubble up the React
+// tree from outside the cell's div.
+function isEditorEvent(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  return el !== null && el.closest(`${gridAttrSelector("cellEditor")}, input, textarea, select, [contenteditable]`) !== null;
+}
+
 /** Renders via the column's cell type (`Cell`/`Editor`), or `column.renderCell` for a display-only override. */
 function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   const {
     row,
-    rowIndex,
+    viewRowIndex,
+    rowId,
     column,
-    columnIndex,
+    viewColumnIndex,
     gridReadOnly,
     gridColOffset = 1,
     getCellClassName,
-    onCellClick,
-    onRowClick,
     pinnedRow: isPinnedRow,
     isActive = false,
     isSelected = false,
     isEditing = false,
     initialText,
+    editSession,
     isSearchMatch = false,
     isSkeleton = false,
     isFlashing = false,
     cellError = null,
   } = props;
   const { interaction } = useDataGridRootContext();
-  const coord = useMemo(() => ({ col: columnIndex, row: rowIndex }), [columnIndex, rowIndex]);
+  const coord = useMemo(() => ({ col: viewColumnIndex, row: viewRowIndex }), [viewColumnIndex, viewRowIndex]);
   const actions = useDataGridActions();
   const cellRef = useRef<HTMLDivElement | null>(null);
-  // Atomic per-cell read (see its doc comment) — a live sync/async `validate` rejection on THIS
-  // cell's in-progress edit takes priority over its persisted `cellError` (more current: the user
-  // is actively looking at why the fresh value they typed was rejected). Opening the editor on an
-  // ALREADY-errored cell falls back to `cellError` until a rejection of its own supersedes it, so
-  // the message stays visible the instant the editor opens (spec: "editor open on an errored cell
-  // shows the message like editingError"). A non-editing cell's `liveEditingError` is always null,
+  // Atomic per-cell read — a live sync/async `validate` rejection on THIS cell's in-progress edit
+  // takes priority over its persisted `cellError` (more current: the user is actively looking at
+  // why the fresh value they typed was rejected). Opening the editor on an ALREADY-errored cell
+  // falls back to `cellError` until a rejection of its own supersedes it, so the message stays
+  // visible the instant the editor opens. A non-editing cell's `liveEditingError` is always null,
   // so `errorMessage` there is exactly `cellError`, unaffected by any OTHER cell's edit session.
   const liveEditingError = useDataGridCellEditingError(coord);
   const rejectionCount = useDataGridCellRejectionCount(coord);
@@ -136,11 +146,10 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   // Pinned top/bottom rows are readOnly by default — they're usually derived aggregates,
   // not editable data — unless the column's own readOnly explicitly says otherwise.
   const readOnly = isPinnedRow ? (columnReadOnly ?? true) : Boolean(gridReadOnly || columnReadOnly);
-  const isNumberOrDate = column.type === "number" || column.type === "date";
 
   const style: CSSProperties = {
-    gridColumnStart: columnIndex + gridColOffset,
-    ...pinnedInsetStyle(pinned, columnIndex),
+    gridColumnStart: viewColumnIndex + gridColOffset,
+    ...pinnedInsetStyle(pinned, viewColumnIndex),
   };
   // pinned outranks active-unpinned: pinning is a spatial guarantee, active is a focus state.
   style.zIndex = cellLayer(Boolean(pinned), isActive);
@@ -151,8 +160,23 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   // Focus the active cell imperatively (never scrollIntoView — cells live in the transformed
   // canvas layer) once it becomes active, unless the editor owns focus. errorMessage re-triggers
   // because the tooltip mount remounts this div, dropping DOM focus.
+  const focusLeftGridRef = useRef(false);
+  useEffect(() => {
+    if (!isEditing) return;
+    const onFocusOut = (event: FocusEvent) => {
+      const target = event.relatedTarget;
+      focusLeftGridRef.current =
+        target instanceof Element && !cellRef.current?.closest('[role="grid"]')?.contains(target) && !target.closest(gridAttrSelector("cellEditor"));
+    };
+    document.addEventListener("focusout", onFocusOut, true);
+    return () => document.removeEventListener("focusout", onFocusOut, true);
+  }, [isEditing]);
+
+  // A commit caused by focus moving to a control outside the grid (Tab) must not pull focus back.
   useLayoutEffect(() => {
-    if (isActive && !isEditing) cellRef.current?.focus({ preventScroll: true });
+    const focusLeftGrid = focusLeftGridRef.current;
+    focusLeftGridRef.current = false;
+    if (isActive && !isEditing && !focusLeftGrid) cellRef.current?.focus({ preventScroll: true });
   }, [isActive, isEditing, errorMessage]);
 
   // Pinned rows are not navigable in v1 (documented) — no selection/edit gestures, so no handlers.
@@ -164,6 +188,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   // explicit TData=unknown: row's `undefined`-narrowed type ({} | null) would otherwise drive inference instead of column's own already-unknown TData.
   const value = row === undefined ? undefined : getCellValue<unknown, typeof column>(row, column);
 
+  const storeApi = useDataGridStoreApi();
   const onPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => interaction.onCellPointerDown(coord, event),
     [interaction, coord],
@@ -172,27 +197,40 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     (event: ReactMouseEvent<HTMLDivElement>) => {
       interaction.onCellClick(coord, event);
       // Pure notification, fired alongside whatever the click already resolved to (select/toggle) —
-      // never gated on it. Skeleton/pinned-row cells don't reach here (this handler isn't attached
-      // for them below), so `row`/`value` are always real by construction.
-      if (onCellClick || onRowClick) {
-        onCellClick?.({ value, row, column, rowIndex, columnIndex }, event.nativeEvent);
-        onRowClick?.({ row, rowIndex }, event.nativeEvent);
-      }
+      // never gated on it. Read off the store at click time (no prop threading), so a callback
+      // identity change re-renders no cell. Skeleton/pinned-row cells don't reach here (this handler
+      // isn't attached for them below), so `row`/`value` are always real by construction.
+      const s = storeApi.getState();
+      s.onCellClick?.({ value, row, column, rowId, columnId: column.id, viewRowIndex: viewRowIndex, viewColumnIndex: viewColumnIndex }, event.nativeEvent);
     },
-    [interaction, coord, onCellClick, onRowClick, value, row, column, rowIndex, columnIndex],
+    [interaction, coord, storeApi, value, row, column, rowId, viewRowIndex, viewColumnIndex],
   );
+  // Pure notifications, read off the store at event time (no prop threading, no re-render
+  // sensitivity) — fired regardless of readOnly and of whatever the gesture also does.
   const onDoubleClick = useCallback(
-    (event: ReactMouseEvent<HTMLDivElement>) => interaction.onCellDoubleClick(coord, event),
-    [interaction, coord],
+    (event: ReactMouseEvent<HTMLDivElement>) => {
+      if (isEditorEvent(event.target)) return;
+      interaction.onCellDoubleClick(coord, event);
+      storeApi.getState().onCellDoubleClick?.({ value, row, column, rowId, columnId: column.id, viewRowIndex: viewRowIndex, viewColumnIndex: viewColumnIndex }, event.nativeEvent);
+    },
+    [interaction, coord, storeApi, value, row, column, rowId, viewRowIndex, viewColumnIndex],
+  );
+  const onContextMenu = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>) => {
+      if (isEditorEvent(event.target)) return;
+      storeApi.getState().onCellContextMenu?.({ value, row, column, rowId, columnId: column.id, viewRowIndex: viewRowIndex, viewColumnIndex: viewColumnIndex }, event.nativeEvent);
+    },
+    [storeApi, value, row, column, rowId, viewRowIndex, viewColumnIndex],
   );
 
   const cellTypesRegistry = useDataGridCellTypes();
   const cellType = cellTypesRegistry[column.type ?? "text"] ?? cellTypesRegistry["text"] ?? defaultCellTypes.text;
   const align = cellType.align ?? "left";
+  const isNumberOrDate = cellType.numeric === true;
 
   // Grid-level hook first, then the column's own override — later cn() args win on conflicting
   // utilities, so a per-column override can still beat a grid-wide default.
-  const classNameCtx = { value, row, column, viewRowIndex: rowIndex };
+  const classNameCtx = { value, row, column, rowId, columnId: column.id, viewRowIndex: viewRowIndex };
   const gridCellClassName = row === undefined ? undefined : getCellClassName?.(classNameCtx);
   const columnCellClassName =
     typeof column.cellClassName === "function"
@@ -202,16 +240,26 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       : column.cellClassName;
 
   // The editor contract calls onChange(nextValue) then commit(movement) synchronously (see
-  // cell-types/index.ts); stash the pending value in a ref for commit, re-seeding only while
-  // not editing so a mid-edit re-render (stream tick, cellError) never resets the typed draft.
+  // cell-types/index.ts); commit reads the ref onChange last wrote. Seeding (not editing or a new
+  // session) runs in a layout effect, not render — a render-time ref write bails the compiler —
+  // and the layout phase flushes before the checkbox editor's on-mount commit; mid-edit
+  // re-renders never re-seed, so a typed draft is never reset.
   const pendingValueRef = useRef<unknown>(value);
-  if (!isEditing) pendingValueRef.current = value;
+  const pendingSessionRef = useRef(editSession);
+  useLayoutEffect(() => {
+    if (!isEditing || pendingSessionRef.current !== editSession) {
+      pendingValueRef.current = value;
+      pendingSessionRef.current = editSession;
+    }
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing, editSession]);
   const onChange = useCallback((nextValue: unknown) => {
     pendingValueRef.current = nextValue;
   }, []);
   // Async Standard Schema interception (see use-async-validate.ts doc) — a sync validate/schema
   // forwards to commitCellEdit immediately, zero behavior change from before this hook existed.
-  const asyncValidate = useAsyncValidate(actions, column);
+  // The type's own `validate` is the fallback the column didn't declare.
+  const asyncValidate = useAsyncValidate(actions, column, resolveColumnValidate(column as AnyColumnDef, cellType as CellType | undefined), editSession);
   const commit = useCallback(
     (movement?: { dx: number; dy: number }) => asyncValidate.commit(pendingValueRef.current, movement),
     [asyncValidate],
@@ -232,7 +280,10 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       value: unknown;
       initialText?: string;
       row: unknown;
+      rowId: string;
+      columnId: string;
       column: AnyColumnDef;
+      options: unknown;
       onChange: (v: unknown) => void;
       commit: (movement?: { dx: number; dy: number }) => void;
       cancel: () => void;
@@ -241,10 +292,14 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     }) => ReactNode;
     content = (
       <Editor
+        key={editSession}
         value={value}
         initialText={initialText}
         row={row}
+        rowId={rowId}
+        columnId={column.id}
         column={column}
+        options={column.options}
         onChange={onChange}
         commit={commit}
         cancel={cancel}
@@ -253,23 +308,26 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       />
     );
   } else if (column.renderCell) {
-    content = column.renderCell({ value, row, rowIndex, column, isActive });
+    content = column.renderCell({ value, row, rowId, columnId: column.id, viewRowIndex: viewRowIndex, column, isActive });
   } else {
     const Cell = cellType.Cell as unknown as (p: {
       value: unknown;
       row: unknown;
-      rowIndex: number;
+      rowId: string;
+      columnId: string;
+      viewRowIndex: number;
       column: AnyColumnDef;
+      options: unknown;
       isActive: boolean;
     }) => ReactNode;
-    content = <Cell value={value} row={row} rowIndex={rowIndex} column={column} isActive={isActive} />;
+    content = <Cell value={value} row={row} rowId={rowId} columnId={column.id} viewRowIndex={viewRowIndex} column={column} options={column.options} isActive={isActive} />;
   }
 
   const cell = (
     <div
       ref={cellRef}
       role="gridcell"
-      aria-colindex={columnIndex + 1}
+      aria-colindex={viewColumnIndex + 1}
       aria-selected={isSelected || undefined}
       aria-busy={isSkeleton || undefined}
       aria-invalid={Boolean(errorMessage) || undefined}
@@ -305,7 +363,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         align === "center" && "justify-center",
         align === "right" && "justify-end",
         isNumberOrDate && !isEditing && "tabular-nums",
-        // One visual language for "this value is wrong" (design spec), whether a live sync/async
+        // One visual language for "this value is wrong", whether a live sync/async
         // `validate` rejection or a persisted post-commit `cellErrors` entry set the message — same
         // aria-invalid:ring-destructive/20 convention every shadcn form control in this repo already
         // uses (input.tsx/button.tsx/select.tsx), inset + z-1 so it wins over the search-match tint.
@@ -315,10 +373,11 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       )}
       style={style}
       onPointerDown={isPinnedRow ? undefined : onPointerDown}
-      onClick={isPinnedRow ? undefined : onClick}
+      onClick={isPinnedRow || isSkeleton ? undefined : onClick}
       // dblclick opens the editor (startEditing) — pointless on a row with nothing to edit yet,
       // and skipping it avoids the guaranteed no-op round-trip through resolveEditTarget.
       onDoubleClick={isPinnedRow || isSkeleton ? undefined : onDoubleClick}
+      onContextMenu={isPinnedRow || isSkeleton ? undefined : onContextMenu}
     >
       {isEditing ? (
         content
@@ -338,7 +397,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         // the error tooltip) — positioned below the cell so it never clips the editor input.
         <span
           role="alert"
-          className="absolute inset-x-0 top-full z-10 mt-0.5 truncate rounded-sm border border-destructive/20 bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive dark:bg-destructive/20"
+          className="absolute inset-x-0 top-full z-10 mt-0.5 truncate rounded-sm border border-destructive/30 bg-background px-1.5 py-0.5 text-xs text-destructive"
         >
           {errorMessage}
         </span>

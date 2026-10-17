@@ -1,0 +1,9 @@
+{
+  "title": "Data fetching",
+  "icon": "Database",
+  "pages": [
+    "server-round-trip",
+    "tanstack-query",
+    "server-side-sort-filter"
+  ]
+}

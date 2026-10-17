@@ -1,25 +1,30 @@
 import type {
   CellType,
   ColumnLayout,
+  CompactSelectionLike,
   DataOp,
   FilterJoinOperator,
   FilterSpec,
   GridRect,
   SortSpec,
+  ViewCoord,
 } from "../types";
 import { DEFAULT_LABELS, deepMergeLabels, type DataGridLabels, type DeepPartialLabels } from "../labels";
 import {
   buildViewIndex,
   defaultCompareText,
   findSearchMatches,
+  searchTextReader,
   updateViewIndex,
   type CellAccessor,
   type SearchMatch,
 } from "../sort-filter";
 import { getCellValue } from "../columns/column-helpers";
+import { clampColumnWidth } from "../columns/resolve-column-width";
+import { selectCell } from "../selection/selection-ops";
+import { CompactSelection } from "../selection/compact-selection";
+import { toSafeText } from "../cell-types/safe-text";
 import { isDev } from "../is-dev";
-import type { OverlayPlugin } from "../overlays";
-import type { RowBandsSpec } from "../layout-context";
 import type {
   AnyColumnDef,
   CellErrorEntry,
@@ -36,9 +41,183 @@ export function searchMatchKey(viewRow: number, columnId: string): string {
 /** Shared empty-Set identity for the no-search-active state, so `useDataGridIsSearchMatch` never allocates on the hot path. */
 export const EMPTY_SEARCH_MATCH_SET: ReadonlySet<string> = new Set();
 
-/** Stable key for {@link DataGridStoreState.flashingCells}: `"${viewRow}:${columnId}"` — view-space like `searchMatchKey` (a flash is a transient pulse on the cell currently on screen, never row identity). */
-export function flashCellKey(viewRow: number, columnId: string): string {
-  return `${viewRow}:${columnId}`;
+const FLASH_KEY_SEPARATOR = "\u0000";
+
+/** Key for {@link DataGridStoreState.flashingCells}: row id plus column id, so a sort or reorder moves the pulse with its row. */
+export function flashCellKey(rowId: string, columnId: string): string {
+  return `${rowId}${FLASH_KEY_SEPARATOR}${columnId}`;
+}
+
+/** True when a loaded row in the old view no longer sits at its position in the next view; holes and appended rows do not count. */
+export function viewRowsMoved(
+  s: Pick<DataGridStoreState, "viewIndex" | "data" | "getRowId">,
+  nextViewIndex: readonly number[],
+  nextData: readonly unknown[],
+  nextGetRowId: DataGridStoreState["getRowId"],
+): boolean {
+  if (nextViewIndex.length < s.viewIndex.length) return true;
+  for (let viewRow = 0; viewRow < s.viewIndex.length; viewRow++) {
+    const oldId = rowIdAtViewRow(s, viewRow);
+    if (oldId === undefined) continue;
+    const nextRowId = rowIdAtViewRow({ viewIndex: nextViewIndex, data: nextData, getRowId: nextGetRowId }, viewRow);
+    if (nextRowId !== oldId) return true;
+  }
+  return false;
+}
+
+/** True when a visible column moves or disappears; a column appended at the end moves nothing. */
+export function visibleColumnsMoved(oldColumns: readonly AnyColumnDef[], nextColumns: readonly AnyColumnDef[]): boolean {
+  if (oldColumns === nextColumns) return false;
+  if (nextColumns.length < oldColumns.length) return true;
+  for (let i = 0; i < oldColumns.length; i++) {
+    if (oldColumns[i]!.id !== nextColumns[i]!.id) return true;
+  }
+  return false;
+}
+
+/** The row id portion of a {@link flashCellKey}. */
+export function flashKeyRowId(key: string): string {
+  return key.slice(0, key.indexOf(FLASH_KEY_SEPARATOR));
+}
+
+const HOLE_ROW_ID_PREFIX = "__lazy-unloaded-";
+
+/** Placeholder row id for a hole in `data` (an unloaded lazy row) — index-derived, stable only while the hole keeps its index. */
+export function holeRowId(dataRowIndex: number): string {
+  return `${HOLE_ROW_ID_PREFIX}${dataRowIndex}`;
+}
+
+/** The data index a {@link holeRowId} placeholder encodes, or -1 when `rowId` is not a placeholder. */
+export function holeRowIndex(rowId: string): number {
+  if (!rowId.startsWith(HOLE_ROW_ID_PREFIX)) return -1;
+  const index = Number(rowId.slice(HOLE_ROW_ID_PREFIX.length));
+  return Number.isInteger(index) && index >= 0 ? index : -1;
+}
+
+/** The active cell fitted into a rebuilt view: an out-of-range coord clamps to the nearest edge, and an empty view or column set clears it. */
+export function clampActiveCell(activeCell: ViewCoord | null, viewLength: number, columnCount: number): ViewCoord | null {
+  if (activeCell === null) return null;
+  if (viewLength === 0 || columnCount === 0) return null;
+  const row = Math.min(activeCell.row, viewLength - 1);
+  const col = Math.min(activeCell.col, columnCount - 1);
+  return row === activeCell.row && col === activeCell.col ? activeCell : { row, col };
+}
+
+/** The cursor fitted into a rebuilt view: a move collapses the selection onto the clamped cell, a clear drops its current range. */
+export function clampCursor(
+  s: Pick<DataGridStoreState, "activeCell" | "selection">,
+  viewLength: number,
+  columnCount: number,
+): Pick<DataGridStoreState, "activeCell"> & Partial<Pick<DataGridStoreState, "selection">> {
+  const activeCell = clampActiveCell(s.activeCell, viewLength, columnCount);
+  if (activeCell === s.activeCell) return { activeCell };
+  if (activeCell === null) return s.selection.current === null ? { activeCell } : { activeCell, selection: { ...s.selection, current: null } };
+  return { activeCell, selection: { ...selectCell(activeCell), rows: s.selection.rows, columns: s.selection.columns } };
+}
+
+/**
+ * The row channel carried into a rebuilt view by record identity: each checked view row maps to its
+ * data row, through `toNextDataRow` when `data` was replaced, and back into `nextViewIndex`. A
+ * record that left the view leaves the channel. Returns `rows` itself when nothing moved.
+ */
+export function remapRowChannel(
+  rows: CompactSelectionLike,
+  prevViewIndex: readonly number[],
+  nextViewIndex: readonly number[],
+  toNextDataRow?: (prevDataRow: number) => number | undefined,
+): CompactSelectionLike {
+  if (rows.length === 0 || (prevViewIndex === nextViewIndex && !toNextDataRow)) return rows;
+  const wanted = new Set<number>();
+  for (const viewRow of rows.toArray()) {
+    const prevDataRow = prevViewIndex[viewRow];
+    if (prevDataRow === undefined) continue;
+    const nextDataRow = toNextDataRow ? toNextDataRow(prevDataRow) : prevDataRow;
+    if (nextDataRow !== undefined) wanted.add(nextDataRow);
+  }
+  const found: number[] = [];
+  for (let viewRow = 0; viewRow < nextViewIndex.length && found.length < wanted.size; viewRow++) {
+    if (wanted.has(nextViewIndex[viewRow]!)) found.push(viewRow);
+  }
+  const next = CompactSelection.fromArray(found);
+  return rows.equals(next) ? rows : next;
+}
+
+/** The column channel carried into rebuilt visible columns by column id; a column that left the view leaves the channel. */
+export function remapColumnChannel(
+  columns: CompactSelectionLike,
+  prevVisibleColumns: readonly AnyColumnDef[],
+  nextVisibleColumns: readonly AnyColumnDef[],
+): CompactSelectionLike {
+  if (columns.length === 0 || prevVisibleColumns === nextVisibleColumns) return columns;
+  const nextIndexById = new Map(nextVisibleColumns.map((column, index) => [column.id, index] as const));
+  const found: number[] = [];
+  for (const col of columns.toArray()) {
+    const id = prevVisibleColumns[col]?.id;
+    const next = id === undefined ? undefined : nextIndexById.get(id);
+    if (next !== undefined) found.push(next);
+  }
+  const next = CompactSelection.fromArray(found);
+  return columns.equals(next) ? columns : next;
+}
+
+/**
+ * Whether `rects` cover the same set of records after a view rebuild. Each covered view row maps to
+ * its data row, through `toNextDataRow` when `data` was replaced, and is compared with the data row
+ * the rebuilt view shows at that position. `sameRecordAt` is a cheap per-position check that
+ * answers before any mapping when every covered position still shows its record.
+ */
+export function rectsKeepRecords(
+  rects: readonly GridRect[],
+  prevViewIndex: readonly number[],
+  nextViewIndex: readonly number[],
+  toNextDataRow?: (prevDataRow: number) => number | undefined,
+  sameRecordAt?: (viewRow: number) => boolean,
+): boolean {
+  if (prevViewIndex === nextViewIndex && !toNextDataRow) return true;
+  if (sameRecordAt && rects.every((rect) => allRowsSame(rect, sameRecordAt))) return true;
+  const prevRecords = new Set<number | undefined>();
+  const nextRecords = new Set<number | undefined>();
+  for (const rect of rects) {
+    for (let viewRow = rect.y; viewRow < rect.y + rect.height; viewRow++) {
+      const prevDataRow = prevViewIndex[viewRow];
+      prevRecords.add(prevDataRow === undefined || !toNextDataRow ? prevDataRow : toNextDataRow(prevDataRow));
+      nextRecords.add(nextViewIndex[viewRow]);
+    }
+  }
+  if (prevRecords.size !== nextRecords.size) return false;
+  for (const record of prevRecords) if (!nextRecords.has(record)) return false;
+  return true;
+}
+
+/** Whether every column a range covers still shows the same column id at its position. */
+export function rectsKeepColumns(
+  rects: readonly GridRect[],
+  prevVisibleColumns: readonly AnyColumnDef[],
+  nextVisibleColumns: readonly AnyColumnDef[],
+): boolean {
+  if (prevVisibleColumns === nextVisibleColumns) return true;
+  for (const rect of rects) {
+    for (let col = rect.x; col < rect.x + rect.width; col++) {
+      if (prevVisibleColumns[col]?.id !== nextVisibleColumns[col]?.id) return false;
+    }
+  }
+  return true;
+}
+
+function allRowsSame(rect: GridRect, sameRecordAt: (viewRow: number) => boolean): boolean {
+  for (let viewRow = rect.y; viewRow < rect.y + rect.height; viewRow++) if (!sameRecordAt(viewRow)) return false;
+  return true;
+}
+
+/** Row id shown at `viewRow`, or `undefined` for a missing or unloaded row. */
+export function rowIdAtViewRow(
+  s: { viewIndex: readonly number[]; data: readonly unknown[]; getRowId: DataGridStoreState["getRowId"] },
+  viewRow: number,
+): string | undefined {
+  const dataRowIndex = s.viewIndex[viewRow];
+  if (dataRowIndex === undefined) return undefined;
+  const row = s.data[dataRowIndex];
+  return row === undefined ? undefined : s.getRowId(row, dataRowIndex);
 }
 
 /** Shared empty-Set identity for the no-flash-active state, so per-row flash derivation never allocates on the common path. */
@@ -47,13 +226,7 @@ export const EMPTY_FLASHING_CELLS: ReadonlySet<string> = new Set();
 /** Shared empty-Map identity for the no-search-active state; mirrors {@link EMPTY_SEARCH_MATCH_SET}. */
 export const EMPTY_SEARCH_MATCH_ROWS: ReadonlyMap<number, ReadonlySet<number>> = new Map();
 
-/** Shared empty-array identity for the no-overlay-plugins state, so a grid with none never allocates a fresh `[]` per render. */
-export const EMPTY_OVERLAY_PLUGINS: readonly OverlayPlugin[] = [];
-
-/** Shared empty-bands identity for the no-`rowBands` state — zero-length arrays make root.tsx's height/aria-rowcount math a no-op; `renderBand` is never called since root only calls it when a band's own length is > 0. */
-export const EMPTY_ROW_BANDS: RowBandsSpec = { topRows: [], bottomRows: [], renderBand: () => null };
-
-/** Stable key for {@link DataGridStoreState.cellErrors}: `"${rowId}:${columnId}"` — row-id-space, unlike {@link searchMatchKey}'s view-space, so an error survives a sort/filter that moves its row. */
+/** Stable key for {@link DataGridStoreState.cellErrors}: `"${rowId}:${columnId}"` — row-id-space, unlike {@link searchMatchKey}'s view-index, so an error survives a sort/filter that moves its row. */
 export function cellErrorKey(rowId: string, columnId: string): string {
   return `${rowId}:${columnId}`;
 }
@@ -75,7 +248,7 @@ function cellErrorKeyIsLive(key: string, liveRowIds: ReadonlySet<string>): boole
 export const EMPTY_CELL_ERRORS: ReadonlyMap<string, string> = new Map();
 
 /**
- * Auto-clear (a stale error must not linger after the user fixed the cell): every `update` op's
+ * Auto-clear (a stale error must not linger after the user fixed the cell): every `update` operation's
  * `cells` names the exact rowId+columnId pairs a write path just committed a new value to, so this
  * drops exactly those keys from `cellErrors` and returns the SAME map identity when none of them
  * were present — the common case (no server errors active) never allocates.
@@ -104,8 +277,7 @@ export function mergeCellErrors(cellErrors: ReadonlyMap<string, string>, entries
 }
 
 /**
- * Prunes any `cellErrors` entry whose rowId no longer exists in `data` (spec: "pruned on row
- * deletion, audited like the rowId-index cache") — called from every row-shape-changing path
+ * Prunes any `cellErrors` entry whose rowId no longer exists in `data` — called from every row-shape-changing path
  * (`deleteRows`, `duplicateRows`, `insertRow`) and from `_syncProps` on a genuine consumer `data`
  * replacement. Returns the SAME map identity when nothing needed pruning.
  */
@@ -158,10 +330,15 @@ export function genFilterId(): string {
  * may still pass plain `{columnId, operator, value}` via the controlled `filterState` prop) while
  * preserving the id of every filter that already has one — so identity stays stable across recomputes
  * for filters the consumer/store already assigned one to, and list rendering keyed on `filterId` never
- * jitters just because `_syncProps` ran again with the same logical filters.
+ * jitters just because `_syncProps` ran again with the same logical filters. Returns the input array
+ * itself when every filter already has an id, so a stable prop reference stays a stable sync input.
  */
 export function withFilterIds(filters: readonly FilterSpec[]): FilterSpec[] {
-  return filters.map((f) => (f.filterId ? f : { ...f, filterId: genFilterId() }));
+  for (const f of filters) {
+    if (!f.filterId) return filters.map((f) => (f.filterId ? f : { ...f, filterId: genFilterId() }));
+  }
+  // the input is never mutated in place by the store (every update builds a new array)
+  return filters as FilterSpec[];
 }
 
 /**
@@ -176,7 +353,28 @@ function rawCellValue(column: AnyColumnDef, row: unknown): unknown {
 }
 
 /**
- * The `CellAccessor` the view pipeline reads through. A column's `sortCompare` and (when
+ * The column's quick-search text function: its declared type's `toSearchText`, else its `toText`.
+ * Null when the column declares no registered type; such a column searches the raw `String(value)`.
+ */
+function searchTextFor(column: AnyColumnDef, cellTypes: Record<string, CellType> | undefined): ((value: unknown) => string) | null {
+  const cellType = column.type ? cellTypes?.[column.type] : undefined;
+  const toText = cellType?.toSearchText ?? cellType?.toText;
+  if (!toText) return null;
+  const options = column.options;
+  return (value) => {
+    // a value that does not match the declared type may throw in its toText; search must not crash the view
+    try {
+      return toSafeText(toText(value, options));
+    } catch {
+      return toSafeText(value);
+    }
+  };
+}
+
+/**
+ * The `CellAccessor` the view pipeline reads through. `getText` is the raw `String(value)` the
+ * filter matcher, the empty check, and the default sort read; `getSearchText` is the quick-search
+ * text (the declared type's `toSearchText`, else its `toText`). A column's `sortCompare` and (when
  * `cellTypes` is wired) its cell type's `compare` supply the sort comparators, so a
  * `number`/`date`/`select` column sorts by its own semantics instead of collating `String(value)` —
  * the collator segments digit runs, so it orders 1.5 before 1.25 and all negatives backwards.
@@ -188,13 +386,22 @@ export function textAccessorFor(
   cellTypes?: Record<string, CellType>,
 ): CellAccessor {
   const byId = new Map(columns.map((c) => [c.id, c] as const));
+  const searchById = new Map(columns.map((c) => [c.id, { column: c, toSearchText: searchTextFor(c, cellTypes) }] as const));
   const accessor: CellAccessor = {
     getText(rowIndex, columnId) {
       const column = byId.get(columnId);
       const row = data[rowIndex];
       if (!column || row === undefined) return "";
       const value = rawCellValue(column, row);
-      return value == null ? "" : String(value);
+      return toSafeText(value);
+    },
+    getSearchText(rowIndex, columnId) {
+      const entry = searchById.get(columnId);
+      const row = data[rowIndex];
+      if (!entry || row === undefined) return "";
+      const value = rawCellValue(entry.column, row);
+      if (value == null) return "";
+      return entry.toSearchText ? entry.toSearchText(value) : toSafeText(value);
     },
     getValue(rowIndex, columnId) {
       const column = byId.get(columnId);
@@ -203,7 +410,10 @@ export function textAccessorFor(
       return rawCellValue(column, row);
     },
     filterMatch(columnId) {
-      return byId.get(columnId)?.filterMatch;
+      const column = byId.get(columnId);
+      if (!column) return undefined;
+      const cellType = column.type ? cellTypes?.[column.type] : undefined;
+      return column.filterMatch ?? cellType?.filter?.match;
     },
   };
 
@@ -250,12 +460,12 @@ export function textAccessorFor(
       // string in a `number` one) makes a comparator throw or return NaN. Neither may take the grid
       // down or make the order non-transitive, so fall back to the text ordering for that pair.
       try {
-        const result = compare(valueA, valueB);
+        const result = compare(valueA, valueB, column.options);
         if (Number.isFinite(result)) return result;
       } catch {
         // fall through to the text comparator below
       }
-      return defaultCompareText(valueA == null ? "" : String(valueA), valueB == null ? "" : String(valueB));
+      return defaultCompareText(toSafeText(valueA), toSafeText(valueB));
     };
   };
 
@@ -266,7 +476,7 @@ export function textAccessorFor(
     const value = rawCellValue(column, row);
     // `isEmpty` is per-type semantics (number treats 0 as non-empty); fall back to the text rule.
     const cellType = declaredType(column);
-    return cellType ? cellType.isEmpty(value) : value == null || String(value) === "";
+    return cellType ? cellType.isEmpty(value) : value == null || toSafeText(value) === "";
   };
 
   return accessor;
@@ -275,6 +485,22 @@ export function textAccessorFor(
 /** Column ids with `hidden: true` in their def; seeds `hiddenColumns` at creation and re-seeds it when a new `columns` array is passed. */
 export function defHiddenColumnIds(columns: readonly AnyColumnDef[]): string[] {
   return columns.filter((c) => c.hidden).map((c) => c.id);
+}
+
+/** `columnOrder` completed for `columns`: unknown ids drop out, and def ids it lacks follow in def order. */
+export function completeColumnOrder(columns: readonly AnyColumnDef[], columnOrder: readonly string[] | null): string[] {
+  const defIds = columns.map((c) => c.id);
+  if (!columnOrder) return defIds;
+  const known = new Set(defIds);
+  const ordered: string[] = [];
+  const seen = new Set<string>();
+  for (const id of columnOrder) {
+    if (!known.has(id) || seen.has(id)) continue;
+    seen.add(id);
+    ordered.push(id);
+  }
+  for (const id of defIds) if (!seen.has(id)) ordered.push(id);
+  return ordered;
 }
 
 /**
@@ -289,11 +515,10 @@ export function computeVisibleColumns(
   hiddenColumns: readonly string[],
 ): readonly AnyColumnDef[] {
   const byId = new Map(columns.map((c) => [c.id, c] as const));
-  const orderedIds = columnOrder ?? columns.map((c) => c.id);
   const hidden = new Set(hiddenColumns);
-  const ordered = orderedIds
-    .map((id) => byId.get(id))
-    .filter((c): c is AnyColumnDef => c != null && !hidden.has(c.id));
+  const ordered = completeColumnOrder(columns, columnOrder)
+    .map((id) => byId.get(id)!)
+    .filter((c) => !hidden.has(c.id));
   const left = ordered.filter((c) => c.pin === "left");
   const right = ordered.filter((c) => c.pin === "right");
   const middle = ordered.filter((c) => c.pin !== "left" && c.pin !== "right");
@@ -313,32 +538,94 @@ export function computeColumnLayout(
   }
   return {
     widths: { ...columnWidths },
-    order: columnOrder ?? columns.map((c) => c.id),
+    order: completeColumnOrder(columns, columnOrder),
     pins,
     hidden: [...hiddenColumns],
   };
 }
 
 /**
+ * The parts a layout write-back can supply: `order: null` means "follow the def order" (the
+ * store's `columnOrder` state), and the lists may be readonly (the store's `hiddenColumns` state).
+ */
+export type ColumnLayoutParts = {
+  widths?: Record<string, number>;
+  order?: string[] | null;
+  pins?: Record<string, "left" | "right">;
+  hidden?: readonly string[];
+};
+
+/**
+ * Normalizes a (partial) layout against `columns`: unknown column ids are dropped from every part,
+ * `order` gets missing ids appended in def order (a layout from before a column was added still
+ * renders that column), widths pass through `clampColumnWidth`, and a pin on a `pinnable: false`
+ * column is dropped. Size is bounded by the column count, so a hostile input cannot allocate past
+ * it. Runs for `defaultColumnLayout`, `columnLayout`, `setColumnLayout`, and URL input.
+ */
+export function normalizeColumnLayout(
+  columns: readonly AnyColumnDef[],
+  parts: ColumnLayoutParts,
+  hiddenColumns: string[],
+): { columns: readonly AnyColumnDef[]; columnWidths: Record<string, number>; columnOrder: string[] | null; hiddenColumns: string[] } {
+  const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
+  const stringList = (value: unknown): string[] | null => (Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : null);
+  const pins = isRecord(parts.pins) ? parts.pins : null;
+  const nextColumns = pins
+    ? columns.map((c) => {
+        const pin = pins[c.id];
+        // The given pins map is authoritative: a column it does not pin drops a stale pin.
+        return (pin === "left" || pin === "right") && columnFlag(c, "pinnable") ? { ...c, pin } : c.pin ? { ...c, pin: undefined } : c;
+      })
+    : columns;
+  const columnWidths: Record<string, number> = {};
+  const widths = isRecord(parts.widths) ? parts.widths : null;
+  if (widths) {
+    for (const column of columns) {
+      const width = widths[column.id];
+      if (typeof width === "number" && Number.isFinite(width)) columnWidths[column.id] = clampColumnWidth(column, width);
+    }
+  }
+  const known = new Set(columns.map((c) => c.id));
+  const order = stringList(parts.order);
+  const savedHidden = stringList(parts.hidden);
+  const nextHidden = savedHidden ? savedHidden.filter((id) => known.has(id)) : [...hiddenColumns];
+  // A def-hidden column the saved order does not list was added after the save; its def flag wins.
+  if (order) for (const id of hiddenColumns) if (!order.includes(id) && !nextHidden.includes(id)) nextHidden.push(id);
+  return {
+    columns: nextColumns,
+    columnWidths,
+    columnOrder: order ? completeColumnOrder(columns, order) : null,
+    hiddenColumns: nextHidden,
+  };
+}
+
+/**
  * Seeds `columnWidths`/`columnOrder`/`hiddenColumns`/per-column `pin` from `defaultColumnLayout` at
- * store-creation time only (never re-applied — see the sync prop's doc comment). Partial layouts
+ * store-creation time only (never re-applied - see the sync prop's doc comment). Partial layouts
  * are fine: any field omitted keeps today's def-derived default.
  */
 export function applyDefaultColumnLayout(
   columns: readonly AnyColumnDef[],
   hiddenColumns: string[],
-  layout: ColumnLayout | undefined,
+  layout: Partial<ColumnLayout> | undefined,
 ): { columns: readonly AnyColumnDef[]; columnWidths: Record<string, number>; columnOrder: string[] | null; hiddenColumns: string[] } {
-  if (!layout) return { columns, columnWidths: {}, columnOrder: null, hiddenColumns };
-  const nextColumns = layout.pins
-    ? columns.map((c) => (layout.pins[c.id] ? { ...c, pin: layout.pins[c.id] } : c))
-    : columns;
-  return {
-    columns: nextColumns,
-    columnWidths: layout.widths ? { ...layout.widths } : {},
-    columnOrder: layout.order ?? null,
-    hiddenColumns: layout.hidden ?? hiddenColumns,
-  };
+  if (!layout || typeof layout !== "object") return { columns, columnWidths: {}, columnOrder: null, hiddenColumns };
+  return normalizeColumnLayout(columns, layout, hiddenColumns);
+}
+
+/** Whether two {@link ColumnLayout} snapshots hold the same widths, order, pins, and hidden ids (structural). */
+export function layoutSnapshotsEqual(a: ColumnLayout, b: ColumnLayout): boolean {
+  const aWidthIds = Object.keys(a.widths);
+  if (aWidthIds.length !== Object.keys(b.widths).length) return false;
+  for (const id of aWidthIds) if (a.widths[id] !== b.widths[id]) return false;
+  if (a.order.length !== b.order.length) return false;
+  for (let i = 0; i < a.order.length; i++) if (a.order[i] !== b.order[i]) return false;
+  const aPinIds = Object.keys(a.pins);
+  if (aPinIds.length !== Object.keys(b.pins).length) return false;
+  for (const id of aPinIds) if (a.pins[id] !== b.pins[id]) return false;
+  if (a.hidden.length !== b.hidden.length) return false;
+  for (let i = 0; i < a.hidden.length; i++) if (a.hidden[i] !== b.hidden[i]) return false;
+  return true;
 }
 
 /** True when `a`/`b` have the same length and every element is `===`-equal at each position. */
@@ -356,6 +643,13 @@ export function sameElements(a: readonly number[], b: readonly number[]): boolea
  * applied sort) — Zustand subscribers keyed on `viewIndex` identity then skip re-rendering on a
  * no-op update. Every call site funnels through this one wrapper so the reuse applies everywhere.
  */
+const NO_SORTS: SortSpec[] = [];
+
+/** The sorts a view rebuild applies: none in `"server"` mode, where the consumer's rows arrive pre-ordered. */
+export function viewSorts(mode: "client" | "server", sorts: SortSpec[]): SortSpec[] {
+  return mode === "server" ? NO_SORTS : sorts;
+}
+
 export function computeViewIndex(
   data: readonly unknown[],
   allColumns: readonly AnyColumnDef[],
@@ -446,14 +740,17 @@ export function computeSearchMatches(
   viewIndex: number[],
   visibleColumns: readonly AnyColumnDef[],
   searchText: string,
+  cellTypes?: Record<string, CellType>,
 ): Pick<DataGridStoreState, "searchMatches" | "searchMatchSet" | "searchMatchRows" | "searchMatchesCapped"> {
   if (searchText.trim() === "") {
     return { searchMatches: [], searchMatchSet: EMPTY_SEARCH_MATCH_SET, searchMatchRows: EMPTY_SEARCH_MATCH_ROWS, searchMatchesCapped: false };
   }
-  const dataAccessor = textAccessorFor(columns, data);
+  const dataAccessor = textAccessorFor(columns, data, cellTypes);
   // viewRow is always < viewIndex.length (findSearchMatches iterates 0..viewIndex.length)
+  const readSearchText = searchTextReader(dataAccessor);
   const viewAccessor: CellAccessor = {
     getText: (viewRow, columnId) => dataAccessor.getText(viewIndex[viewRow]!, columnId),
+    getSearchText: (viewRow, columnId) => readSearchText(viewIndex[viewRow]!, columnId),
     getValue: (viewRow, columnId) => dataAccessor.getValue?.(viewIndex[viewRow]!, columnId),
     filterMatch: (columnId) => dataAccessor.filterMatch?.(columnId),
   };

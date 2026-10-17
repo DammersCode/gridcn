@@ -63,7 +63,10 @@ describe("currencyCellType.Editor focus", () => {
       <currencyCellType.Editor
         value={1234.5}
         row={{}}
+        rowId="r"
+        columnId="priceUsd"
         column={{ id: "priceUsd", header: "USD", options: { currency: "USD" } } as ColumnDef<unknown, number | null>}
+        options={{ currency: "USD" }}
         onChange={onChange}
         commit={commit}
         cancel={cancel}

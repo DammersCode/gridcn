@@ -1,9 +1,5 @@
 #!/usr/bin/env node
-// Asserts every `public/r/<item>.json` file entry's `content` still equals its source file on disk,
-// after applying the same alias rewrite `fix-registry-imports.mjs` performs. verify-registry.mjs
-// only checks the MANIFEST (which paths are listed, and their targets) — it never opens the built
-// payloads, so a source edit without a rebuild ships stale code to consumers silently.
-// Fix drift with: npx shadcn build && node scripts/fix-registry-imports.mjs
+// Fails when a public/r payload file's content differs from its source after the import rewrite. Fix: pnpm registry:build
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
-import { DEFAULT_KEYMAP, matchKeymap, parseBinding, isPrintableKey, type KeymapEvent } from ".";
-import type { GridAction } from "../types";
+import { describe, it, expect, vi } from "vitest";
+import { isDefaultBinding } from "./match-keymap";
+import { DEFAULT_KEYMAP, keymapContentEqual, matchKeymap, parseBinding, isPrintableKey, sharedKeymapBindings, validateSharedBindings, type KeymapEvent } from ".";
+import type { GridAction, Keymap } from "../types";
 
 function makeEvent(overrides: Partial<KeymapEvent> & { key: string }): KeymapEvent {
   return {
@@ -197,9 +198,9 @@ describe("matchKeymap - other actions", () => {
 
   it("matches cancel, delete, undo, redo, fill", () => {
     expect(matchKeymap(makeEvent({ key: "Escape" }), DEFAULT_KEYMAP, false)).toBe("cancel");
-    expect(matchKeymap(makeEvent({ key: "Delete" }), DEFAULT_KEYMAP, false)).toBe("deleteContents");
+    expect(matchKeymap(makeEvent({ key: "Delete" }), DEFAULT_KEYMAP, false)).toBe("clearContents");
     expect(matchKeymap(makeEvent({ key: "Backspace" }), DEFAULT_KEYMAP, false)).toBe(
-      "deleteContents",
+      "clearContents",
     );
     expect(matchKeymap(makeEvent({ key: "z", ctrlKey: true }), DEFAULT_KEYMAP, false)).toBe("undo");
     expect(matchKeymap(makeEvent({ key: "y", ctrlKey: true }), DEFAULT_KEYMAP, false)).toBe("redo");
@@ -248,10 +249,10 @@ describe("matchKeymap - other actions", () => {
   });
 
   it("matches retain-move and scroll-active-into-view bindings", () => {
-    expect(matchKeymap(makeEvent({ key: "ArrowUp", altKey: true }), DEFAULT_KEYMAP, false)).toBe("retainMoveUp");
-    expect(matchKeymap(makeEvent({ key: "ArrowDown", altKey: true }), DEFAULT_KEYMAP, false)).toBe("retainMoveDown");
-    expect(matchKeymap(makeEvent({ key: "ArrowLeft", altKey: true }), DEFAULT_KEYMAP, false)).toBe("retainMoveLeft");
-    expect(matchKeymap(makeEvent({ key: "ArrowRight", altKey: true }), DEFAULT_KEYMAP, false)).toBe("retainMoveRight");
+    expect(matchKeymap(makeEvent({ key: "ArrowUp", altKey: true }), DEFAULT_KEYMAP, false)).toBe("moveUpKeepSelection");
+    expect(matchKeymap(makeEvent({ key: "ArrowDown", altKey: true }), DEFAULT_KEYMAP, false)).toBe("moveDownKeepSelection");
+    expect(matchKeymap(makeEvent({ key: "ArrowLeft", altKey: true }), DEFAULT_KEYMAP, false)).toBe("moveLeftKeepSelection");
+    expect(matchKeymap(makeEvent({ key: "ArrowRight", altKey: true }), DEFAULT_KEYMAP, false)).toBe("moveRightKeepSelection");
     expect(matchKeymap(makeEvent({ key: "Enter", ctrlKey: true }), DEFAULT_KEYMAP, false)).toBe("scrollActiveIntoView");
     expect(matchKeymap(makeEvent({ key: "Enter", metaKey: true }), DEFAULT_KEYMAP, true)).toBe("scrollActiveIntoView");
   });
@@ -358,13 +359,13 @@ describe("GridAction coverage", () => {
   // Actions with a dispatch handler but no DEFAULT_KEYMAP binding: triggered through the implicit
   // printable-key fallback in use-grid-interaction unless the consumer's keymap defines the action
   // (even `[]`, which disables the fallback).
-  const IMPLICIT_FALLBACK_ACTIONS: readonly GridAction[] = ["editReplace"];
+  const IMPLICIT_FALLBACK_ACTIONS: readonly GridAction[] = ["typeToReplace"];
 
   // Record<GridAction, true> makes this exhaustive at compile time: adding a new GridAction member
   // without adding it here is a tsc error, not a silently-passing test.
   const ALL_ACTIONS: Record<GridAction, true> = {
     moveUp: true, moveDown: true, moveLeft: true, moveRight: true,
-    retainMoveUp: true, retainMoveDown: true, retainMoveLeft: true, retainMoveRight: true,
+    moveUpKeepSelection: true, moveDownKeepSelection: true, moveLeftKeepSelection: true, moveRightKeepSelection: true,
     scrollActiveIntoView: true,
     moveRowStart: true, moveRowEnd: true,
     jumpUp: true, jumpDown: true, jumpLeft: true, jumpRight: true,
@@ -373,12 +374,13 @@ describe("GridAction coverage", () => {
     extendUp: true, extendDown: true, extendLeft: true, extendRight: true,
     extendJumpUp: true, extendJumpDown: true, extendJumpLeft: true, extendJumpRight: true,
     extendFirstCell: true, extendLastCell: true,
-    selectRow: true, selectColumn: true, selectAll: true,
-    edit: true, editReplace: true, commitDown: true, commitUp: true, commitRight: true, commitLeft: true,
-    cancel: true, deleteContents: true,
+    selectRow: true, selectColumn: true, selectAll: true, toggleRow: true, toggleAllRows: true, openColumnMenu: true,
+    edit: true, typeToReplace: true, commitDown: true, commitUp: true, commitRight: true, commitLeft: true,
+    cancel: true, clearContents: true,
     undo: true, redo: true,
     fillDown: true, fillRight: true,
     insertRowBelow: true, insertRowAbove: true, duplicateRow: true, deleteRows: true,
+    openLink: true,
   };
 
   it("every GridAction is either bound in DEFAULT_KEYMAP, implicit-fallback, or explicitly allowlisted", () => {
@@ -391,5 +393,127 @@ describe("GridAction coverage", () => {
         `"${action}" is neither bound in DEFAULT_KEYMAP, an implicit fallback, nor in CONSUMER_ONLY_ACTIONS`,
       ).toBe(true);
     }
+  });
+});
+
+describe("matchKeymap - tie-break", () => {
+  it("a consumer binding wins a specificity tie against the default binding of the same combo", () => {
+    const keymap = { ...DEFAULT_KEYMAP, saveAll: ["mod+z"] } as Keymap;
+    expect(matchKeymap(makeEvent({ key: "z", ctrlKey: true }), keymap, false)).toBe("saveAll");
+  });
+
+  it("keeps the earlier entry on a tie between two default bindings (Enter: edit before commitDown)", () => {
+    expect(matchKeymap(makeEvent({ key: "Enter" }), DEFAULT_KEYMAP, false)).toBe("edit");
+  });
+
+  it("treats a keymap entry that repeats a default binding as a default (commitDown: [Enter] keeps edit)", () => {
+    const keymap = { ...DEFAULT_KEYMAP, commitDown: ["Enter"] } as Keymap;
+    expect(matchKeymap(makeEvent({ key: "Enter" }), keymap, false)).toBe("edit");
+  });
+
+  it("treats a JSON-cloned default keymap as defaults, so a keymap binding still wins the tie", () => {
+    const keymap = { ...(JSON.parse(JSON.stringify(DEFAULT_KEYMAP)) as Keymap), saveAll: ["Enter"] } as Keymap;
+    expect(matchKeymap(makeEvent({ key: "Enter" }), keymap, false)).toBe("saveAll");
+  });
+
+  it("counts a restated default as a default regardless of modifier order or key case", () => {
+    expect(isDefaultBinding("redo", "shift+mod+z")).toBe(true);
+    expect(isDefaultBinding("redo", "mod+shift+Z")).toBe(true);
+    expect(isDefaultBinding("redo", "mod+alt+z")).toBe(false);
+    expect(isDefaultBinding("undo", "ctrl+z")).toBe(false);
+  });
+});
+
+describe("matchKeymap - include filter", () => {
+  it("skips actions the filter excludes, so a lower-ranked binding of the combo wins", () => {
+    const keymap = { ...DEFAULT_KEYMAP, logEdit: ["mod+a"] } as Keymap;
+    const event = makeEvent({ key: "a", ctrlKey: true });
+    expect(matchKeymap(event, keymap, false)).toBe("logEdit");
+    expect(matchKeymap(event, keymap, false, (action: string) => action !== "logEdit")).toBe("selectAll");
+    expect(matchKeymap(event, keymap, false, (action: string) => action === "logEdit")).toBe("logEdit");
+  });
+});
+
+describe("sharedKeymapBindings", () => {
+  it("reports each combo bound to two or more distinct actions, once per combo", () => {
+    const keymap = { undo: ["mod+z"], saveAll: ["mod+z", "F9"], moveUp: ["ArrowUp", "shift+z"] } as Keymap;
+    expect(sharedKeymapBindings(keymap)).toEqual([
+      { binding: "mod+z", actions: ["undo", "saveAll"], consumerInvolved: true },
+    ]);
+  });
+
+  it("the same action repeating a combo is not shared", () => {
+    expect(sharedKeymapBindings({ moveUp: ["ArrowUp", "mod+ArrowUp"] } as Keymap)).toEqual([]);
+  });
+
+  it("modifier order in the binding string does not matter", () => {
+    expect(sharedKeymapBindings({ undo: ["shift+mod+z"], saveAll: ["mod+shift+z"] } as Keymap)).toHaveLength(1);
+  });
+
+  it("treats ctrl and mod as one combo off macOS and as two combos on macOS", () => {
+    const keymap = { undo: ["mod+z"], saveAll: ["ctrl+z"] } as Keymap;
+    expect(sharedKeymapBindings(keymap, false)).toHaveLength(1);
+    expect(sharedKeymapBindings(keymap, true)).toEqual([]);
+  });
+});
+
+describe("validateSharedBindings", () => {
+  it("dev-warns once per shared combo, naming the combo and both actions", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    validateSharedBindings({ undo: ["mod+z"], saveAll: ["mod+z"] } as Keymap);
+    validateSharedBindings({ undo: ["mod+z"], saveAll: ["mod+z"] } as Keymap);
+    const shared = warn.mock.calls.filter((c) => String(c[0]).includes("mod+z"));
+    expect(shared.length).toBe(1);
+    expect(String(shared[0]![0])).toContain("undo");
+    expect(String(shared[0]![0])).toContain("saveAll");
+    warn.mockRestore();
+  });
+
+  it("is silent when no combo is shared", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    validateSharedBindings(DEFAULT_KEYMAP);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("is silent for a JSON-cloned default keymap", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    validateSharedBindings(JSON.parse(JSON.stringify(DEFAULT_KEYMAP)) as Keymap);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("names the tie rule in the warning", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    validateSharedBindings({ undo: ["mod+x"], saveAll: ["mod+x"] } as Keymap);
+    const message = warn.mock.calls.map((c) => String(c[0])).find((m) => m.includes("mod+x"));
+    expect(message).toContain("the most specific binding wins; on a tie a keymap binding beats a default");
+    warn.mockRestore();
+  });
+});
+
+describe("keymapContentEqual", () => {
+  it("is true for equal content and for two undefineds", () => {
+    expect(keymapContentEqual(undefined, undefined)).toBe(true);
+    expect(keymapContentEqual({ selectAll: ["mod+a"] }, { selectAll: ["mod+a"] })).toBe(true);
+  });
+
+  it("is false when the action-key sets differ in size", () => {
+    expect(keymapContentEqual({ selectAll: ["mod+a"] }, { selectAll: ["mod+a"], cancel: ["Escape"] })).toBe(false);
+  });
+
+  it("is false when the same keys appear in a different order", () => {
+    expect(
+      keymapContentEqual({ selectAll: ["mod+a"], cancel: ["Escape"] }, { cancel: ["Escape"], selectAll: ["mod+a"] }),
+    ).toBe(false);
+  });
+
+  it("is false when a binding list differs in length or in a binding string", () => {
+    expect(keymapContentEqual({ selectAll: ["mod+a"] }, { selectAll: ["mod+a", "mod+shift+a"] })).toBe(false);
+    expect(keymapContentEqual({ selectAll: ["mod+a"] }, { selectAll: ["mod+x"] })).toBe(false);
+  });
+
+  it("treats an explicit undefined binding as empty", () => {
+    expect(keymapContentEqual({ moveLeft: undefined }, { moveLeft: undefined })).toBe(true);
   });
 });

@@ -15,14 +15,14 @@ import { useDataGridPinnedRows } from "@/registry/default/blocks/data-grid-pinne
 // layout-dependent rules are meaningless (and noisy) without real computed styles.
 import "@/app/global.css";
 
-type Row = { id: string; name: string; email: string; age: number };
+type Row = { id: string; name: string; email: string; age: number; active: boolean };
 
 function makeRows(): Row[] {
   return [
-    { id: "r0", name: "Alice", email: "alice@example.com", age: 30 },
-    { id: "r1", name: "Bob", email: "bob@example.com", age: 40 },
-    { id: "r2", name: "Carol", email: "carol@example.com", age: 25 },
-    { id: "r3", name: "Dave", email: "dave@example.com", age: 50 },
+    { id: "r0", name: "Alice", email: "alice@example.com", age: 30, active: true },
+    { id: "r1", name: "Bob", email: "bob@example.com", age: 40, active: false },
+    { id: "r2", name: "Carol", email: "carol@example.com", age: 25, active: true },
+    { id: "r3", name: "Dave", email: "dave@example.com", age: 50, active: false },
   ];
 }
 
@@ -30,9 +30,10 @@ const columns = defineColumns<Row>()([
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140 },
   { id: "email", header: "Email", accessorKey: "email", type: "text", width: 200 },
   { id: "age", header: "Age", accessorKey: "age", type: "number", width: 80 },
+  { id: "active", header: "Active", accessorKey: "active", type: "checkbox", width: 80 },
 ] as const);
 
-const totals: Row = { id: "totals", name: "Total", email: "", age: 145 };
+const totals: Row = { id: "totals", name: "Total", email: "", age: 145, active: false };
 
 /**
  * Representative fixture: toolbar (search/filter/columns) + row markers (checkbox mode,
@@ -43,7 +44,7 @@ const totals: Row = { id: "totals", name: "Total", email: "", age: 145 };
  * for that so the rule checks what it's meant to.
  */
 function Fixture() {
-  const { rowBands } = useDataGridPinnedRows({ topRows: [totals] });
+  const { plugin: pinnedPlugin } = useDataGridPinnedRows({ topRows: [totals] });
   return (
     <main data-testid="fixture-root">
       <DataGridProvider
@@ -52,7 +53,7 @@ function Fixture() {
         getRowId={(r) => r.id}
         sortState={[{ columnId: "name", direction: "asc" }]}
         rowMarkers="checkbox"
-        rowBands={rowBands}
+        plugins={[pinnedPlugin]}
       >
         <DataGridToolbar>
           <DataGridSearch />

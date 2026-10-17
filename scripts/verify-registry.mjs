@@ -1,37 +1,30 @@
 #!/usr/bin/env node
-// Diffs registry.json `files` arrays against the filesystem per item, and asserts every file
-// entry's `target` matches the derived value (scripts/add-registry-targets.mjs) — without it
-// the shadcn CLI flattens nested source into components/ and domain index.ts files collide
-// (the #60 install-layout defect). Run `node scripts/add-registry-targets.mjs` to fix drift.
-// Excludes test files (*.test.*, *.browser.test.*, *.type-test.*, *.test-helper.*) and __screenshots__ — those must never ship.
+// Fails when registry.json files[] or their targets drift from the filesystem; tests and screenshots never ship.
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deriveTarget } from "./add-registry-targets.mjs";
+import { isTestFile } from "./_lib.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const registryPath = join(root, "registry.json");
 const registry = JSON.parse(readFileSync(registryPath, "utf8"));
 
-const isTestFile = (p) => /\.(test|browser\.test|type-test|test-helper)\.[^./]+$/.test(p);
 const isScreenshot = (p) => p.split(/[/\\]/).includes("__screenshots__");
 const isShippable = (p) => !isTestFile(p) && !isScreenshot(p);
 
-function walk(dir, base = dir, out = []) {
+function walk(dir) {
   let entries;
   try {
-    entries = readdirSync(dir, { withFileTypes: true });
+    entries = readdirSync(dir, { recursive: true, withFileTypes: true });
   } catch {
-    return out;
+    return [];
   }
+  const out = [];
   for (const entry of entries) {
-    const full = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      walk(full, base, out);
-    } else if (entry.isFile()) {
-      const rel = relative(base, full).split("\\").join("/");
-      if (isShippable(rel)) out.push(rel);
-    }
+    if (!entry.isFile()) continue;
+    const rel = relative(dir, join(entry.parentPath, entry.name)).split("\\").join("/");
+    if (isShippable(rel)) out.push(rel);
   }
   return out;
 }
@@ -53,7 +46,7 @@ for (const item of registry.items) {
   let onDisk;
   try {
     statSync(ownFolderAbs);
-    onDisk = walk(ownFolderAbs, ownFolderAbs).map((p) => `${ownFolder}/${p}`).sort();
+    onDisk = walk(ownFolderAbs).map((p) => `${ownFolder}/${p}`).sort();
   } catch {
     onDisk = [];
   }

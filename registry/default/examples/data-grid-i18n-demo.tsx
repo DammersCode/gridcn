@@ -100,7 +100,7 @@ export default function DataGridI18nDemo(): ReactNode {
     <div className="w-full flex h-[420px] flex-col gap-3" dir={dir}>
       <div className="flex flex-wrap items-center gap-4">
         <Select value={locale} onValueChange={(value) => setLocale(value as Locale)}>
-          <SelectTrigger className="w-36">
+          <SelectTrigger aria-label="Locale" className="w-36">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { parseImportFile, type CsvDelimiter, type ParsedImportFile } from "./parse-import-file";
+import { FILE_TOO_LARGE_MESSAGE, IMPORT_TOO_MANY_CELLS_MESSAGE, PART_TOO_LARGE_MESSAGE, UNSUPPORTED_EXCEL_FORMAT_MESSAGE, parseImportFile, type CsvDelimiter, type ImportLimits } from "./parse-import-file";
 import { applyImportOptions, type ImportTargetColumn, type ImportDefaults } from "./match-import-column";
 import type { ImportColumnMapping } from "./build-imported-rows";
 
@@ -11,7 +11,7 @@ export type { ImportTargetColumn, ImportDefaults };
 export const IMPORT_PREVIEW_ROW_COUNT = 10;
 
 /** Keys into `labels.io` for the parse-failure messages {@link useDataGridImportPreview} can surface. */
-export type ImportErrorKey = "errorParseFailed" | "errorNoRows" | "errorUnsupportedFile";
+export type ImportErrorKey = "errorParseFailed" | "errorNoRows" | "errorUnsupportedFile" | "errorUnsupportedExcelFormat" | "errorFileTooLarge" | "errorPartTooLarge" | "errorTooManyCells";
 
 /** Error thrown by {@link parseImportFile} for extensions outside csv/xlsx/xls. */
 const UNSUPPORTED_FILE_TYPE_MESSAGE = "unsupported-file-type";
@@ -19,6 +19,26 @@ const UNSUPPORTED_FILE_TYPE_MESSAGE = "unsupported-file-type";
 /** True when a parse was aborted (new file chosen, dialog closed) — the caller drops the result instead of surfacing an error. */
 function isAbortError(err: unknown): boolean {
   return err instanceof Error && err.name === "AbortError";
+}
+
+/** Maps a parse failure to its dialog error key; null for aborts the caller drops silently. */
+function importErrorKey(err: unknown): ImportErrorKey | null {
+  if (isAbortError(err)) return null;
+  if (err instanceof Error) {
+    switch (err.message) {
+      case UNSUPPORTED_FILE_TYPE_MESSAGE:
+        return "errorUnsupportedFile";
+      case UNSUPPORTED_EXCEL_FORMAT_MESSAGE:
+        return "errorUnsupportedExcelFormat";
+      case FILE_TOO_LARGE_MESSAGE:
+        return "errorFileTooLarge";
+      case PART_TOO_LARGE_MESSAGE:
+        return "errorPartTooLarge";
+      case IMPORT_TOO_MANY_CELLS_MESSAGE:
+        return "errorTooManyCells";
+    }
+  }
+  return "errorParseFailed";
 }
 
 /** Parsed-and-ready import state, once a file has been chosen and parsed successfully. */
@@ -46,7 +66,7 @@ export type UseDataGridImportPreviewResult = {
   /** Parses `file`; on success populates `preview` with column mapping prefilled by header-text match. */
   loadFile: (file: File, gridColumns: readonly ImportTargetColumn[]) => Promise<void>;
   setHasHeaderRow: (hasHeaderRow: boolean) => void;
-  /** Re-parses the current CSV file with the given delimiter override; no-op for xlsx/xls files or before a file is loaded. */
+  /** Re-parses the current CSV file with the given delimiter override; no-op for xlsx/xls files or before a file is loaded. A failed re-parse sets `error` instead of throwing. */
   setDelimiter: (delimiter: CsvDelimiter) => Promise<void>;
   /**
    * Re-parses the current xlsx/xls workbook with the given sheet; no-op for CSV or before a file
@@ -75,18 +95,24 @@ function resolveDelimiterOverride(options: ImportDefaults): CsvDelimiter | undef
   return options.defaultDelimiter;
 }
 
+/** Options for {@link useDataGridImportPreview}. */
+export type UseDataGridImportPreviewOptions = {
+  /** `labels.io.columnFallback` — builds the header shown for column N when the file has no header row. */
+  columnFallback: (index: number) => string;
+  /** Preselection defaults (see {@link ImportDefaults}). */
+  defaults?: ImportDefaults;
+  /** Size, row, column, cell, and unpacked-size bounds for every parse; omitted fields use `DEFAULT_IMPORT_LIMITS`. */
+  limits?: ImportLimits;
+};
+
 /**
  * Owns the parse -> preview -> column-mapping state for the import dialog. File I/O and header
  * matching are pure functions ({@link parseImportFile}, {@link applyImportOptions}); this hook only
  * sequences them and exposes editable dialog state (header-row toggle, delimiter, per-column mapping).
  *
- * @param columnFallback `labels.io.columnFallback` — builds the header shown for column N when the file has no header row.
- * @param options Consumer-configurable preselection defaults (see {@link ImportDefaults}); omit for today's behavior unchanged.
  */
-export function useDataGridImportPreview(
-  columnFallback: (index: number) => string,
-  options: ImportDefaults = {},
-): UseDataGridImportPreviewResult {
+export function useDataGridImportPreview(options: UseDataGridImportPreviewOptions): UseDataGridImportPreviewResult {
+  const { columnFallback, defaults = {}, limits = {} } = options;
   const [preview, setPreview] = useState<ImportFileState | null>(null);
   const [error, setError] = useState<ImportErrorKey | null>(null);
   const [isParsing, setIsParsing] = useState(false);
@@ -95,12 +121,17 @@ export function useDataGridImportPreview(
   const gridColumnsRef = useRef<readonly ImportTargetColumn[]>([]);
   // aborts an in-flight file read when a newer load starts or the dialog resets.
   const parseControllerRef = useRef<AbortController | null>(null);
-  // generation guard for async sheet re-parses: a newer sheet switch, file load, or reset must win over a slower older one.
-  const sheetGenerationRef = useRef(0);
-  const { defaultHeaderRow = true, defaultSkipColumns, mapColumn } = options;
+  // generation guard for every async parse (file load, sheet switch, delimiter override): a newer parse or reset wins over a slower older one.
+  const parseGenerationRef = useRef(0);
+  const { defaultHeaderRow = true, defaultSkipColumns, mapColumn } = defaults;
+  const { maxFileBytes, maxRows, maxColumns, maxCells, maxDecompressedBytes } = limits;
+  const limitOptions = useMemo(
+    () => ({ maxFileBytes, maxRows, maxColumns, maxCells, maxDecompressedBytes }),
+    [maxFileBytes, maxRows, maxColumns, maxCells, maxDecompressedBytes],
+  );
 
   const reset = useCallback(() => {
-    sheetGenerationRef.current += 1;
+    parseGenerationRef.current += 1;
     parseControllerRef.current?.abort();
     setPreview(null);
     setError(null);
@@ -110,14 +141,17 @@ export function useDataGridImportPreview(
   }, []);
 
   const loadFile = useCallback(async (file: File, gridColumns: readonly ImportTargetColumn[]) => {
-    sheetGenerationRef.current += 1;
+    const generation = ++parseGenerationRef.current;
+    // a re-parse started while this file loads has no file to re-parse, so it cannot outlive this load
+    currentFileRef.current = null;
     parseControllerRef.current?.abort();
     const controller = new AbortController();
     parseControllerRef.current = controller;
     setError(null);
     setIsParsing(true);
     try {
-      const parsed = await parseImportFile(file, { csvDelimiter: resolveDelimiterOverride(options) }, controller.signal);
+      const parsed = await parseImportFile(file, { ...limitOptions, csvDelimiter: resolveDelimiterOverride(defaults) }, controller.signal);
+      if (generation !== parseGenerationRef.current) return; // superseded by a newer file load or a reset
       if (parsed.rows.length === 0) {
         setError("errorNoRows");
         setPreview(null);
@@ -139,15 +173,16 @@ export function useDataGridImportPreview(
         sheetName: parsed.sheetName,
       });
     } catch (err) {
-      if (isAbortError(err)) return; // superseded by a newer file or a dialog reset
-      const isUnsupportedType = err instanceof Error && err.message === UNSUPPORTED_FILE_TYPE_MESSAGE;
-      setError(isUnsupportedType ? "errorUnsupportedFile" : "errorParseFailed");
+      const key = importErrorKey(err);
+      if (key === null || generation !== parseGenerationRef.current) return; // superseded by a newer file or a dialog reset
+      setError(key);
       setPreview(null);
     } finally {
-      setIsParsing(false);
+      // a superseded (aborted) load must not clear the newer load's parsing state
+      if (parseControllerRef.current === controller) setIsParsing(false);
     }
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- destructured option fields are the real deps; `options` itself may be a fresh object each render.
-  }, [columnFallback, defaultHeaderRow, defaultSkipColumns, mapColumn]);
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- destructured option fields are the real deps; `defaults` itself may be a fresh object each render.
+  }, [columnFallback, defaultHeaderRow, defaultSkipColumns, mapColumn, limitOptions]);
 
   const setHasHeaderRow = useCallback(
     (hasHeaderRow: boolean) => {
@@ -164,40 +199,46 @@ export function useDataGridImportPreview(
     async (delimiter: CsvDelimiter) => {
       const file = currentFileRef.current;
       if (!file) return;
-      let parsed: ParsedImportFile;
+      const generation = ++parseGenerationRef.current;
+      setError(null);
+      setIsParsing(true);
       try {
-        parsed = await parseImportFile(file, { csvDelimiter: delimiter }, parseControllerRef.current?.signal);
+        const parsed = await parseImportFile(file, { ...limitOptions, csvDelimiter: delimiter }, parseControllerRef.current?.signal);
+        if (generation !== parseGenerationRef.current) return; // superseded by a newer file load, sheet switch, or reset
+        if (parsed.rows.length === 0) return;
+        setPreview((prev) => {
+          if (!prev) return prev;
+          const importHeaders = computeImportHeaders(parsed.rows, prev.hasHeaderRow, columnFallback);
+          const matched = applyImportOptions(importHeaders, gridColumnsRef.current, { defaultSkipColumns, mapColumn });
+          return {
+            ...prev,
+            rows: parsed.rows,
+            importHeaders,
+            delimiter,
+            mapping: matched.map((gridColumnId, importColumnIndex) => ({ importColumnIndex, gridColumnId })),
+          };
+        });
       } catch (err) {
-        if (isAbortError(err)) return;
-        throw err;
+        const key = importErrorKey(err);
+        if (key === null) return;
+        if (generation === parseGenerationRef.current) setError(key);
+      } finally {
+        if (generation === parseGenerationRef.current) setIsParsing(false);
       }
-      if (parsed.rows.length === 0) return;
-      setPreview((prev) => {
-        if (!prev) return prev;
-        const importHeaders = computeImportHeaders(parsed.rows, prev.hasHeaderRow, columnFallback);
-        const matched = applyImportOptions(importHeaders, gridColumnsRef.current, { defaultSkipColumns, mapColumn });
-        return {
-          ...prev,
-          rows: parsed.rows,
-          importHeaders,
-          delimiter,
-          mapping: matched.map((gridColumnId, importColumnIndex) => ({ importColumnIndex, gridColumnId })),
-        };
-      });
     },
-    [columnFallback, defaultSkipColumns, mapColumn],
+    [columnFallback, defaultSkipColumns, mapColumn, limitOptions],
   );
 
   const setSheetName = useCallback(
     async (sheetName: string) => {
       const file = currentFileRef.current;
       if (!file) return;
-      const generation = ++sheetGenerationRef.current;
+      const generation = ++parseGenerationRef.current;
       setError(null);
       setIsParsing(true);
       try {
-        const parsed = await parseImportFile(file, { sheetName }, parseControllerRef.current?.signal);
-        if (generation !== sheetGenerationRef.current) return; // superseded by a newer sheet switch, file load, or reset
+        const parsed = await parseImportFile(file, { ...limitOptions, sheetName }, parseControllerRef.current?.signal);
+        if (generation !== parseGenerationRef.current) return; // superseded by a newer sheet switch, file load, or reset
         if (parsed.rows.length === 0) {
           // empty sheet: the picker keeps the chosen name honest, the preview clears, Import stays disabled
           setPreview((prev) =>
@@ -219,13 +260,14 @@ export function useDataGridImportPreview(
           };
         });
       } catch (err) {
-        if (isAbortError(err)) return;
-        if (generation === sheetGenerationRef.current) setError("errorParseFailed");
+        const key = importErrorKey(err);
+        if (key === null) return;
+        if (generation === parseGenerationRef.current) setError(key);
       } finally {
-        if (generation === sheetGenerationRef.current) setIsParsing(false);
+        if (generation === parseGenerationRef.current) setIsParsing(false);
       }
     },
-    [columnFallback, defaultSkipColumns, mapColumn],
+    [columnFallback, defaultSkipColumns, mapColumn, limitOptions],
   );
 
   const setMapping = useCallback((importColumnIndex: number, gridColumnId: string | null) => {

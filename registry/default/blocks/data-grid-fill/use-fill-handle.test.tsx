@@ -6,17 +6,26 @@ import {
   cellTypes,
   DataGridProvider,
   useDataGridActions,
-  useDataGridStoreApi,
   type ColumnDef,
   type DataChange,
-  type DataGridProviderProps,
-  type DataGridStoreState,
+  type DataGridSyncProps,
   type GridRect,
   type GridSelection,
-  type InteractionLayout,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import {
+  type BulkResolution,
+  type InteractionLayout,
+  type DataGridStoreState,
+} from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { getInternalActions, useDataGridStoreApi as useRawStoreApi } from "@/registry/default/blocks/data-grid/store";
 import { createFillStore } from "./fill-store";
 import { buildFillWrites, readRectAsText, useFillHandle } from "./use-fill-handle";
+
+/** Asserts the sync contract while calling: a sync-only column set must never return a Promise. */
+function syncResolution(resolution: BulkResolution | Promise<BulkResolution>): BulkResolution {
+  if (resolution instanceof Promise) throw new Error("expected a synchronous result");
+  return resolution;
+}
 
 /** A fresh 1x1 selection anchored at `coord` — inlined (not imported) since `selectCell` is core-internal (selection/select-cell.ts), not part of the public barrel. */
 function selectCellPure(coord: { col: number; row: number }): GridSelection {
@@ -70,10 +79,10 @@ describe("buildFillWrites", () => {
     const s = fakeState();
     const source: GridRect = { x: 1, y: 0, width: 1, height: 2 }; // qty column, "2","4"
     const strip: GridRect = { x: 1, y: 2, width: 1, height: 2 };
-    const { writes, filled } = buildFillWrites(s, source, strip);
-    expect(writes).toEqual([
-      { viewRow: 2, columnId: "qty", value: 6 },
-      { viewRow: 3, columnId: "qty", value: 8 },
+    const { resolution, filled } = buildFillWrites(s, source, strip);
+    expect(syncResolution(resolution).writes).toEqual([
+      { viewRowIndex: 2, columnId: "qty", value: 6 },
+      { viewRowIndex: 3, columnId: "qty", value: 8 },
     ]);
     expect(filled).toEqual([["6"], ["8"]]);
   });
@@ -82,10 +91,10 @@ describe("buildFillWrites", () => {
     const s = fakeState();
     const source: GridRect = { x: 1, y: 0, width: 1, height: 2 };
     const strip: GridRect = { x: 1, y: 2, width: 1, height: 2 };
-    const { writes } = buildFillWrites(s, source, strip, { forceCopy: true });
-    expect(writes).toEqual([
-      { viewRow: 2, columnId: "qty", value: 2 },
-      { viewRow: 3, columnId: "qty", value: 4 },
+    const { resolution } = buildFillWrites(s, source, strip, { forceCopy: true });
+    expect(syncResolution(resolution).writes).toEqual([
+      { viewRowIndex: 2, columnId: "qty", value: 2 },
+      { viewRowIndex: 3, columnId: "qty", value: 4 },
     ]);
   });
 
@@ -100,10 +109,10 @@ describe("buildFillWrites", () => {
     // single source cell "x" tiles rightward (no series on non-numeric single value)
     const source: GridRect = { x: 0, y: 0, width: 1, height: 1 };
     const strip: GridRect = { x: 1, y: 0, width: 2, height: 1 };
-    const { writes } = buildFillWrites(s, source, strip);
-    expect(writes).toEqual([
-      { viewRow: 0, columnId: "b", value: "x" },
-      { viewRow: 0, columnId: "c", value: "x" },
+    const { resolution } = buildFillWrites(s, source, strip);
+    expect(syncResolution(resolution).writes).toEqual([
+      { viewRowIndex: 0, columnId: "b", value: "x" },
+      { viewRowIndex: 0, columnId: "c", value: "x" },
     ]);
   });
 
@@ -115,7 +124,7 @@ describe("buildFillWrites", () => {
     const s = fakeState({ columns: roColumns, visibleColumns: roColumns });
     const source: GridRect = { x: 1, y: 0, width: 1, height: 2 };
     const strip: GridRect = { x: 1, y: 2, width: 1, height: 1 };
-    expect(buildFillWrites(s, source, strip).writes).toEqual([]);
+    expect(syncResolution(buildFillWrites(s, source, strip).resolution).writes).toEqual([]);
   });
 
   it("skips a destination value rejected by validate", () => {
@@ -132,7 +141,12 @@ describe("buildFillWrites", () => {
     const s = fakeState({ columns: validated, visibleColumns: validated });
     const source: GridRect = { x: 1, y: 0, width: 1, height: 2 }; // "2","4"
     const strip: GridRect = { x: 1, y: 2, width: 1, height: 2 }; // would extrapolate to 6, 8 — both rejected
-    expect(buildFillWrites(s, source, strip).writes).toEqual([]);
+    const settled = syncResolution(buildFillWrites(s, source, strip).resolution);
+    expect(settled.writes).toEqual([]);
+    expect(settled.rejected).toEqual([
+      { rowId: "3", viewRowIndex: 2, columnId: "qty", value: 6, message: "too big" },
+      { rowId: "4", viewRowIndex: 3, columnId: "qty", value: 8, message: "too big" },
+    ]);
   });
 
   it("extends a horizontal series rightward", () => {
@@ -146,7 +160,7 @@ describe("buildFillWrites", () => {
     const s = fakeState({ data: data as unknown as Row[], columns: wideColumns as never, visibleColumns: wideColumns as never });
     const source: GridRect = { x: 0, y: 0, width: 2, height: 1 };
     const strip: GridRect = { x: 2, y: 0, width: 1, height: 1 };
-    expect(buildFillWrites(s, source, strip).writes).toEqual([{ viewRow: 0, columnId: "c2", value: "6" }]);
+    expect(syncResolution(buildFillWrites(s, source, strip).resolution).writes).toEqual([{ viewRowIndex: 0, columnId: "c2", value: "6" }]);
   });
 });
 
@@ -161,8 +175,8 @@ describe("buildFillWrites over a lazy (sparse) grid", () => {
     const s = fakeState({ data: sparse, viewIndex: [0, 1, 2, 3] });
     const source: GridRect = { x: 1, y: 0, width: 1, height: 2 }; // qty column, "2","4"
     const strip: GridRect = { x: 1, y: 2, width: 1, height: 2 }; // both rows are holes
-    const { writes } = buildFillWrites(s, source, strip);
-    expect(writes).toEqual([]);
+    const { resolution } = buildFillWrites(s, source, strip);
+    expect(syncResolution(resolution).writes).toEqual([]);
     // one warn per fill gesture, not one per skipped cell
     expect(warn).toHaveBeenCalledTimes(1);
     warn.mockRestore();
@@ -188,33 +202,42 @@ describe("buildFillWrites with an async schema", () => {
     const s = fakeState({ columns: asyncColumns as never, visibleColumns: asyncColumns as never });
     const source: GridRect = { x: 1, y: 0, width: 1, height: 2 };
     const strip: GridRect = { x: 1, y: 2, width: 1, height: 2 };
-    const { writes, filled } = buildFillWrites(s, source, strip);
+    const { resolution, filled } = buildFillWrites(s, source, strip);
 
     expect(filled).toEqual([["6"], ["8"]]); // the 2,4 series continues, before any validation
-    expect(writes).toBeInstanceOf(Promise);
-    // both continued values exceed the schema's limit, so the batch resolves to nothing
-    await expect(writes).resolves.toEqual([]);
+    expect(resolution).toBeInstanceOf(Promise);
+    // both continued values exceed the schema's limit, so the batch resolves to nothing rejected
+    await expect(resolution).resolves.toEqual({
+      writes: [],
+      rejected: [
+        { rowId: "3", viewRowIndex: 2, columnId: "qty", value: 6, message: "too big" },
+        { rowId: "4", viewRowIndex: 3, columnId: "qty", value: 8, message: "too big" },
+      ],
+    });
   });
 
   it("commits only the cells that pass", async () => {
     const s = fakeState({ columns: asyncColumns as never, visibleColumns: asyncColumns as never });
     const source: GridRect = { x: 1, y: 0, width: 1, height: 1 };
     const strip: GridRect = { x: 1, y: 1, width: 1, height: 3 };
-    const { writes } = buildFillWrites(s, source, strip, { forceCopy: true });
+    const { resolution } = buildFillWrites(s, source, strip, { forceCopy: true });
     // forceCopy tiles the source value 2 down the strip; 2 passes the "> 5" check every time.
     // a HELD batch carries rowId so the apply can re-resolve its view position after a reorder (#90)
-    await expect(writes).resolves.toEqual([
-      { viewRow: 1, columnId: "qty", value: 2, rowId: "2" },
-      { viewRow: 2, columnId: "qty", value: 2, rowId: "3" },
-      { viewRow: 3, columnId: "qty", value: 2, rowId: "4" },
-    ]);
+    await expect(resolution).resolves.toEqual({
+      writes: [
+        { viewRowIndex: 1, columnId: "qty", value: 2, rowId: "2" },
+        { viewRowIndex: 2, columnId: "qty", value: 2, rowId: "3" },
+        { viewRowIndex: 3, columnId: "qty", value: 2, rowId: "4" },
+      ],
+      rejected: [],
+    });
   });
 
   it("a fill that touches only sync columns stays synchronous", () => {
     const s = fakeState({ columns: asyncColumns as never, visibleColumns: asyncColumns as never });
     const source: GridRect = { x: 0, y: 0, width: 1, height: 1 };
     const strip: GridRect = { x: 0, y: 1, width: 1, height: 1 };
-    expect(buildFillWrites(s, source, strip).writes).not.toBeInstanceOf(Promise);
+    expect(buildFillWrites(s, source, strip).resolution).not.toBeInstanceOf(Promise);
   });
 });
 
@@ -236,7 +259,7 @@ describe("useFillHandle staleness guard — async fill held against a real store
     return { columns, release: (value: unknown) => resolveFn({ value }) };
   }
 
-  function makeWrapper(columns: readonly ColumnDef<Row, unknown>[], overrides: Partial<DataGridProviderProps<Row>> = {}) {
+  function makeWrapper(columns: readonly ColumnDef<Row, unknown>[], overrides: Partial<DataGridSyncProps<Row>> = {}) {
     return function Wrapper({ children }: { children: ReactNode }) {
       return (
         <DataGridProvider data={rows()} columns={columns} getRowId={(r) => r.id} {...overrides}>
@@ -257,26 +280,108 @@ describe("useFillHandle staleness guard — async fill held against a real store
     const { result } = renderHook(
       () => {
         const actions = useDataGridActions();
-        const storeApi = useDataGridStoreApi();
+        const storeApi = useRawStoreApi();
+        const internal = getInternalActions(storeApi);
         const scrollRef = useRef<HTMLElement | null>(null);
         const fill = useFillHandle({
           scrollRef,
           layout: {} as InteractionLayout,
           fillStore: createFillStore(),
         });
-        return { actions, storeApi, fill };
+        return { actions, storeApi, internal, fill };
       },
       { wrapper },
     );
     act(() => {
-      result.current.actions.selectCell({ col: 1, row: 0 }); // qty, row 0
-      result.current.actions.extendTo({ col: 1, row: 1 }); // qty, row 1 — source row 0, strip row 1
+      result.current.actions.selectCellAt({ col: 1, row: 0 }); // qty, row 0
+      result.current.actions.extendToAt({ col: 1, row: 1 }); // qty, row 1 — source row 0, strip row 1
     });
     return result;
   }
 
   /** Lets every queued microtask drain, which is all a held batch needs to resolve. */
   const settle = () => act(async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); });
+
+  it("fires onValidationError with source fill after the accepted cells apply", () => {
+    const order: string[] = [];
+    const onDataChange = vi.fn(() => order.push("data"));
+    const onValidationError = vi.fn(() => order.push("validation"));
+    const rowAwareColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      { id: "qty", header: "Qty", accessorKey: "qty", type: "number", validate: (_value, row) => (row.id === "3" ? "row 3 is locked" : null) },
+    ];
+    const result = setUpFill(makeWrapper(rowAwareColumns, { onDataChange, onValidationError }));
+    act(() => result.current.actions.extendToAt({ col: 1, row: 2 }));
+
+    act(() => result.current.fill.fillDown());
+
+    expect(order).toEqual(["data", "validation"]);
+    expect(onValidationError).toHaveBeenCalledWith({
+      source: "fill",
+      rejected: [{ rowId: "3", columnId: "qty", viewRowIndex: 2, value: 2, message: "row 3 is locked" }],
+    });
+  });
+
+  it("rejects a fill value through the cell type's validate when the column declares none", () => {
+    const onValidationError = vi.fn();
+    const typedColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      { id: "qty", header: "Qty", accessorKey: "qty", type: "noTwos" as never },
+    ];
+    const noTwos = { ...cellTypes.number, validate: (value: unknown) => (value === 2 ? "no twos" : null) };
+    const result = setUpFill(makeWrapper(typedColumns, { onValidationError, cellTypes: { noTwos } as never }));
+
+    act(() => result.current.fill.fillDown());
+
+    expect(onValidationError).toHaveBeenCalledWith({
+      source: "fill",
+      rejected: [{ rowId: "2", columnId: "qty", viewRowIndex: 1, value: 2, message: "no twos" }],
+    });
+  });
+
+  it("fires onValidationError with source fill once a held fill settles", async () => {
+    const onValidationError = vi.fn();
+    const rejectingColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      {
+        id: "qty",
+        header: "Qty",
+        accessorKey: "qty",
+        type: "number",
+        validate: { "~standard": { version: 1, vendor: "mock", validate: async () => ({ issues: [{ message: "bad" }] }) } } as never,
+      },
+    ];
+    const result = setUpFill(makeWrapper(rejectingColumns, { onValidationError }));
+
+    act(() => result.current.fill.fillDown());
+    expect(onValidationError).not.toHaveBeenCalled();
+    await settle();
+
+    expect(onValidationError).toHaveBeenCalledWith({
+      source: "fill",
+      rejected: [{ rowId: "2", columnId: "qty", viewRowIndex: 1, value: 2, message: "bad" }],
+    });
+  });
+
+  it("drops a held fill and its rejections when the grid turns read-only before it settles", async () => {
+    const onDataChange = vi.fn();
+    const onValidationError = vi.fn();
+    let reject!: () => void;
+    const gate = new Promise<{ issues: { message: string }[] }>((resolve) => (reject = () => resolve({ issues: [{ message: "bad" }] })));
+    const rejectingColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      { id: "qty", header: "Qty", accessorKey: "qty", type: "number", validate: { "~standard": { version: 1, vendor: "mock", validate: () => gate } } as never },
+    ];
+    const result = setUpFill(makeWrapper(rejectingColumns, { onDataChange, onValidationError }));
+
+    act(() => result.current.fill.fillDown());
+    act(() => result.current.storeApi.setState({ readOnly: true }));
+    reject();
+    await settle();
+
+    expect(onDataChange).not.toHaveBeenCalled();
+    expect(onValidationError).not.toHaveBeenCalled();
+  });
 
   it("drops a held fill when the sort changes before it settles", async () => {
     const onDataChange = vi.fn();
@@ -304,10 +409,10 @@ describe("useFillHandle staleness guard — async fill held against a real store
     release(2);
     await settle();
 
-    // deleteRows itself fires one onDataChange (the row-op); the held fill must NOT add a second.
+    // deleteRows itself fires one onDataChange (the row-operation); the held fill must NOT add a second.
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
-    expect(change.source).toBe("row-op");
+    expect(change.source).toBe("row-operation");
   });
 
   it("commits a held fill onto the row id it targeted after a pure reorder", async () => {
@@ -320,7 +425,7 @@ describe("useFillHandle staleness guard — async fill held against a real store
     // source is row 0 (id "1", qty 2), strip targets row 1 (id "2", qty 4 -> overwritten by fill).
     act(() => result.current.fill.fillDown());
     act(() =>
-      result.current.storeApi.getState().actions._syncProps({
+      result.current.internal._syncProps({
         data: reordered,
         columns: heldColumns as never,
         getRowId: ((r: Row) => r.id) as never,
@@ -368,8 +473,8 @@ describe("useFillHandle callback identity", () => {
 
     rerender({ tag: "second" });
     act(() => {
-      result.current.actions.selectCell({ col: 1, row: 0 });
-      result.current.actions.extendTo({ col: 1, row: 1 });
+      result.current.actions.selectCellAt({ col: 1, row: 0 });
+      result.current.actions.extendToAt({ col: 1, row: 1 });
     });
     act(() => result.current.fill.fillDown());
 

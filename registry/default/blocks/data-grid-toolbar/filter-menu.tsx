@@ -11,9 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  isDev,
   useDataGridActions,
   useDataGridAllColumns,
+  useDataGridCellTypes,
   useDataGridFilterState,
   useDataGridJoinOperator,
   useDataGridLabels,
@@ -24,7 +24,8 @@ import {
   type FilterOperator,
   type FilterSpec,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { operatorHasValue, operatorLabel, operatorsForColumnType } from "./operators-for-column-type";
+import { columnLabelText, isDev, operatorsForColumnType, resolveFilterOperators } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { emptyValueFor, operatorHasValue, operatorLabel } from "./operators-for-column-type";
 import { DataGridFilterValueInput } from "./filter-value-input";
 
 /** Props for {@link DataGridFilterMenu}. */
@@ -47,11 +48,6 @@ export type DataGridFilterMenuProps = {
 /** dnd-kit drag payload for a filter row: compiler-checked in place of `Record<string, any>`. */
 type FilterRowDragData = { index: number; filterId: string };
 
-/** Column label for a select item/trigger: `headerText`, else the string `header`, else the id. */
-function columnLabel(column: AnyColumnDef): string {
-  return column.headerText ?? (typeof column.header === "string" ? column.header : column.id);
-}
-
 /** Moves the item at `fromIndex` to `toIndex`, returning a new array (no mutation of `list`). */
 function moveItem<T>(list: T[], fromIndex: number, toIndex: number): T[] {
   const next = list.slice();
@@ -62,13 +58,12 @@ function moveItem<T>(list: T[], fromIndex: number, toIndex: number): T[] {
 }
 
 /**
- * Popover listing active filters as one aligned grid row per filter — anatomy ported from tablecn's
- * `DataTableFilterList` (a join cell: "Where" on row 1, an And/Or select on row 2, static join text
- * on rows 3+; field select; operator select; typed value input; trash icon-button; grip drag
- * handle; footer "Add filter"/"Reset filters" buttons) but built from this repo's own Base UI
- * components/conventions rather than transliterated from tablecn's Radix markup. Reordering uses
+ * Popover listing active filters as one aligned grid row per filter (a join cell: "Where" on row 1, an And/Or select on row 2, static join text
+ * on rows 3+; field select; operator select; typed value input; trash icon-button; drag handle drag
+ * handle; footer "Add filter"/"Reset filters" buttons), built from this repo's own Base UI
+ * components. Reordering uses
  * `@dnd-kit/react`'s sortable primitives (handle-initiated pointer drag with a lifted-row overlay
- * feel via `isDragSource`), plus a plain ArrowUp/ArrowDown-on-grip fallback that always wins over
+ * feel via `isDragSource`), plus a plain ArrowUp/ArrowDown-on-drag handle fallback that always wins over
  * the library's own keyboard sensor (see {@link FilterRow}'s `onKeyDown`). Rows are keyed by
  * `FilterSpec.filterId` (stable identity independent of array position) since multiple filter rows
  * on the same column are allowed and meaningful; row order is array order in `FilterSpec[]`,
@@ -83,13 +78,16 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   const gridColumns = useDataGridAllColumns();
   const columns = allColumns ? gridColumns : visibleColumns;
   const labels = useDataGridLabels();
+  const cellTypes = useDataGridCellTypes();
   const filterableColumns = columns.filter((c) => c.filterable !== false);
 
-  // per-column operator list: this prop > the column's filterOperators > the built-in type default
+  // per-column operator list: this prop > the column's filterOperators > the cell type's declared operators > the name-based type default
   const operatorsFor = useCallback(
-    (column: AnyColumnDef | undefined): readonly FilterOperator[] =>
-      (column && operatorsForColumn ? operatorsForColumn(column) : undefined) ?? column?.filterOperators ?? operatorsForColumnType(column?.type),
-    [operatorsForColumn],
+    (column: AnyColumnDef | undefined): readonly FilterOperator[] => {
+      if (!column) return operatorsForColumnType(undefined);
+      return operatorsForColumn?.(column) ?? resolveFilterOperators(column, column.type ? cellTypes[column.type] : undefined);
+    },
+    [operatorsForColumn, cellTypes],
   );
 
   // A filter on a column outside the menu's option list (a hidden column by default, or one no
@@ -111,7 +109,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const pendingFocusFilterIdRef = useRef<string | null>(null);
 
-  // ponytail: lock root scroll during a drag - at drag end the browser re-focuses the grip and natively re-centers it in the viewport, jumping the page
+  // ponytail: lock root scroll during a drag - at drag end the browser re-focuses the drag handle and natively re-centers it in the viewport, jumping the page
   const rootScrollLockRef = useRef<(() => void) | null>(null);
   const lockRootScroll = useCallback(() => {
     if (rootScrollLockRef.current) return;
@@ -146,7 +144,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   const removeFilter = useCallback(
     (filterId: string | undefined, index: number) => {
       actions.setFilters(filters.filter((f) => f.filterId !== filterId));
-      // focus follows deletion: the next row's grip, or the Add button once the list empties.
+      // focus follows deletion: the next row's drag handle, or the Add button once the list empties.
       const nextFocusId = filters[index + 1]?.filterId ?? filters[index - 1]?.filterId;
       if (nextFocusId) pendingFocusFilterIdRef.current = nextFocusId;
       else requestAnimationFrame(() => addButtonRef.current?.focus({ preventScroll: true }));
@@ -158,7 +156,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
     const first = filterableColumns[0];
     if (!first) return;
     const operator = operatorsFor(first)[0]!; // always non-empty (TEXT_OPERATORS is the floor)
-    actions.setFilters([...filters, { columnId: first.id, operator, value: "" }]);
+    actions.setFilters([...filters, { columnId: first.id, operator, value: emptyValueFor(operator) }]);
   }, [actions, filterableColumns, filters, operatorsFor]);
 
   const resetFilters = useCallback(() => {
@@ -170,7 +168,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
     (filterId: string, toIndex: number, total: number) => {
       const filter = filters.find((f) => f.filterId === filterId);
       const column = columns.find((c) => c.id === filter?.columnId);
-      const label = column ? columnLabel(column) : (filter?.columnId ?? "");
+      const label = column ? columnLabelText(column) : (filter?.columnId ?? "");
       setAnnouncement(labels.toolbar.filterReorderAnnouncement(label, toIndex + 1, total));
     },
     [filters, columns, labels],
@@ -289,16 +287,17 @@ type FilterRowProps = {
   gripRef: (el: HTMLButtonElement | null) => void;
 };
 
-/** One filter row: `useSortable` wires pointer-drag reorder via `@dnd-kit/react`; the grip's `onKeyDown` implements the ArrowUp/ArrowDown fallback, which always takes precedence over dnd-kit's own keyboard sensor (checked first, `stopPropagation`'d). */
+/** One filter row: `useSortable` wires pointer-drag reorder via `@dnd-kit/react`; the drag handle's `onKeyDown` implements the ArrowUp/ArrowDown fallback, which always takes precedence over dnd-kit's own keyboard sensor (checked first, `stopPropagation`'d). */
 function FilterRow(props: FilterRowProps): ReactNode {
   const { filter, index, total, column, joinOperator, columns, filterableColumns, operatorsFor, labels, onJoinOperatorChange, onUpdate, onRemove, onArrowReorder, gripRef } = props;
   const operators = operatorsFor(column);
-  // dnd-kit's default plugins include OptimisticSortingPlugin, which physically moves DOM nodes
-  // mid-drag — that fights React's own re-render once `onDragEnd` commits the new `filters` order
-  // via setFilters, leaving rows with the wrong join-cell content after a drop. Passing an empty
-  // plugins array drops it (and the default keyboard plugin); this row's own `onGripKeyDown` below
-  // is the only keyboard reorder path, so nothing is lost. The DOM then only ever reorders once,
-  // driven by React itself from the committed store order.
+  const joinOperatorItems = [
+    { value: "and", label: labels.toolbar.joinOperatorAnd },
+    { value: "or", label: labels.toolbar.joinOperatorOr },
+  ];
+  const columnItems = filterableColumns.map((c) => ({ value: c.id, label: columnLabelText(c) }));
+  const operatorItems = operators.map((op) => ({ value: op, label: operatorLabel(op, labels.filterOperators) }));
+  // No plugins: dnd-kit's optimistic DOM moves fight React's re-render after a drop; `onGripKeyDown` is the keyboard path.
   const { ref, handleRef, isDragSource } = useSortable<FilterRowDragData>({
     id: filter.filterId!,
     index,
@@ -308,6 +307,12 @@ function FilterRow(props: FilterRowProps): ReactNode {
 
   const onGripKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLButtonElement>) => {
+      if (event.key === "Backspace" || event.key === "Delete") {
+        event.preventDefault();
+        event.stopPropagation(); // wins over dnd-kit's keyboard sensor regardless of library support
+        onRemove(filter.filterId, index);
+        return;
+      }
       if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
       event.preventDefault();
       event.stopPropagation(); // wins over dnd-kit's keyboard sensor regardless of library support
@@ -315,7 +320,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
       if (target < 0 || target >= total) return;
       onArrowReorder(target);
     },
-    [index, total, onArrowReorder],
+    [filter.filterId, index, total, onArrowReorder, onRemove],
   );
 
   return (
@@ -333,6 +338,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
           <span className="text-sm text-muted-foreground">{labels.toolbar.filterWhere}</span>
         ) : index === 1 ? (
           <Select
+            items={joinOperatorItems}
             value={joinOperator}
             onValueChange={(value) => {
               if (value === null) return;
@@ -340,10 +346,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
             }}
           >
             <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.joinOperatorAriaLabel}>
-              {/* explicit label lookup: SelectValue only resolves a mounted SelectItem's label, which
-                  the popup content isn't until first opened — this control's own trigger text must be
-                  correct on first render (no open required) since it appears the moment 2+ filters exist. */}
-              <SelectValue>{(value: FilterJoinOperator) => (value === "or" ? labels.toolbar.joinOperatorOr : labels.toolbar.joinOperatorAnd)}</SelectValue>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="and">{labels.toolbar.joinOperatorAnd}</SelectItem>
@@ -355,42 +358,39 @@ function FilterRow(props: FilterRowProps): ReactNode {
         )}
       </div>
       <Select
+        items={columnItems}
         value={filter.columnId}
         onValueChange={(value) => {
           if (value === null) return;
           const nextColumn = columns.find((c) => c.id === value);
           const nextOperators = operatorsFor(nextColumn);
           const nextOperator = nextOperators.includes(filter.operator) ? filter.operator : nextOperators[0];
-          onUpdate(filter.filterId, { columnId: value, operator: nextOperator, value: "" });
+          onUpdate(filter.filterId, { columnId: value, operator: nextOperator, value: emptyValueFor(nextOperator) });
         }}
       >
         <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.filterColumnAriaLabel}>
-          {/* explicit label lookup, same rationale as the join-operator select above. */}
-          <SelectValue className="truncate">{(value: string) => { const c = filterableColumns.find((col) => col.id === value); return c ? columnLabel(c) : value; }}</SelectValue>
+          <SelectValue className="truncate" />
         </SelectTrigger>
         <SelectContent>
           {filterableColumns.map((c) => (
             <SelectItem key={c.id} value={c.id}>
-              {columnLabel(c)}
+              {columnLabelText(c)}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
       <Select
+        items={operatorItems}
         value={filter.operator}
         onValueChange={(value) => {
           if (value === null) return;
           const nextOperator = value as FilterOperator;
-          onUpdate(filter.filterId, {
-            operator: nextOperator,
-            // isBetween's value shape differs from every other operator's; reset rather than carry a mismatched shape.
-            value: nextOperator === "isBetween" ? ["", ""] : "",
-          });
+          // each operator family has its own value shape; reset rather than carry a mismatched one
+          onUpdate(filter.filterId, { operator: nextOperator, value: emptyValueFor(nextOperator) });
         }}
       >
         <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.filterOperatorAriaLabel}>
-          {/* explicit label lookup, same rationale as the join-operator select above. */}
-          <SelectValue className="truncate">{(value: FilterOperator) => operatorLabel(value, labels.filterOperators)}</SelectValue>
+          <SelectValue className="truncate" />
         </SelectTrigger>
         <SelectContent>
           {operators.map((op) => (
@@ -420,7 +420,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
         }}
         className={cn("size-8 shrink-0 cursor-grab touch-none", isDragSource && "cursor-grabbing")}
         aria-label={labels.toolbar.reorderFilterAriaLabel}
-        // prevent native mousedown focus: Chromium re-centers the focused grip in the viewport mid-drag and the page jumps
+        // prevent native mousedown focus: Chromium re-centers the focused drag handle in the viewport mid-drag and the page jumps
         onMouseDown={(e) => e.preventDefault()}
         onKeyDown={onGripKeyDown}
       >

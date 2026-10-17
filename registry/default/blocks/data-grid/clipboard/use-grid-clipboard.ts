@@ -1,23 +1,28 @@
 "use client";
 
 import { useCallback, useEffect, type RefObject } from "react";
-import type { CellCoord, GridRect } from "../types";
+import type { ViewCoord, GridRect } from "../types";
 import { getCellValue } from "../columns/column-helpers";
 import { isDev } from "../is-dev";
+import { gridAttrSelector } from "../data-attributes";
+import { closestGridRoot } from "../interaction/closest-grid-root";
 import { serializeCells } from "./serialize-cells";
 import { parseClipboard } from "./parse-clipboard";
-import { useDataGridActions, useDataGridStoreApi, type DataGridActions, type DataGridStoreState } from "../store";
-import { resolveBulkWrites, type BulkCandidate, type BulkWrite } from "../validation/validate-batch";
+import { useDataGridActions, useDataGridInternalActions, useDataGridStoreApi, type DataGridActions, type DataGridStoreState } from "../store";
+import { resolveBulkWrites, type BulkCandidate, type BulkResolution } from "../validation/validate-batch";
+import { exportText } from "../cell-types/display-text";
+import { resolveColumnValidate } from "../cell-types/capabilities";
 import { candidateRowIds, reresolveBulkWrites, snapshotBulkBatch, useBulkGeneration, type BulkGeneration } from "../validation/bulk-generation";
 
 /** Options for {@link useGridClipboard}. */
 export type UseGridClipboardOptions = {
   rootRef: RefObject<HTMLElement | null>;
-  readOnly?: boolean;
+  /** Prefix formula-like cells with `'` in the copied text/plain payload (same opt-in as {@link serializeCells}); default `false` so the grid's own paste round-trip stays byte-identical. */
+  sanitizeFormulas?: boolean;
 };
 
 /**
- * Copy scope per glide-behavior-spec.md §4: the primary range if one exists (ignoring the range
+ * Copy scope: the primary range if one exists (ignoring the range
  * stack — multi-rect copy is document-scoped to the primary range only), else the selected rows
  * (full width) or selected columns (full height) as their disjoint member lists — a CompactSelection
  * from Ctrl-click is RLE and may hold non-contiguous members, so this must not collapse to a
@@ -51,7 +56,7 @@ function serializeRowSlice(s: DataGridStoreState, viewRow: number, colStart: num
     const value = getCellValue<unknown, typeof column>(row, column);
     const text = s.processCellForClipboard
       ? s.processCellForClipboard(value, { row, column })
-      : (cellType?.toText(value, column.options) ?? "");
+      : (cellType ? exportText(cellType, value, column.options) : "");
     cells.push(text);
   }
   return cells;
@@ -69,7 +74,7 @@ export function serializeRect(s: DataGridStoreState, rect: GridRect): string[][]
 /**
  * A copy above this many cells is truncated to the rows that fit — no spreadsheet accepts a
  * clipboard payload this large anyway, and below this cap output is byte-identical to the
- * uncapped path (2026-08-02 optimization audit, confirmed medium; same precedent as
+ * uncapped path (same precedent as
  * `MAX_SEARCH_MATCHES` in store/compute.ts). 200k cells is generously above any realistic manual
  * copy while still bounding the worst case (a Ctrl+A copy on a 100k-row grid) to a few seconds.
  */
@@ -81,8 +86,7 @@ export const MAX_COPY_CELLS = 200_000;
  * indices) copy-scope branches. Column + cellType resolution happens once per selected column,
  * hoisted OUTSIDE the row loop, instead of `serializeRowSlice`'s per-(row,col) re-resolution — the
  * columns branch used to call `serializeRowSlice(s, viewRow, col, 1)` once per cell, re-reading
- * `visibleColumns`/`cellTypes` and allocating a throwaway 1-element array every time (2026-08-02
- * optimization audit, confirmed medium). Truncates at {@link MAX_COPY_CELLS}.
+ * `visibleColumns`/`cellTypes` and allocating a throwaway 1-element array every time. Truncates at {@link MAX_COPY_CELLS}.
  */
 function serializeDisjointRows(s: DataGridStoreState, rows: readonly number[], cols: readonly number[]): string[][] {
   const resolved = cols.map((col) => {
@@ -113,7 +117,7 @@ function serializeDisjointRows(s: DataGridStoreState, rows: readonly number[], c
       const value = getCellValue<unknown, typeof column>(row, column);
       const text = s.processCellForClipboard
         ? s.processCellForClipboard(value, { row, column })
-        : (cellType?.toText(value, column.options) ?? "");
+        : (cellType ? exportText(cellType, value, column.options) : "");
       cells.push(text);
     }
     out.push(cells);
@@ -151,16 +155,41 @@ export function serializeCopyScope(s: DataGridStoreState, scope: CopyScope): str
   return serializeDisjointRows(s, allViewRows(s), scope.columns);
 }
 
+/**
+ * The row and column ids {@link serializeCopyScope} serializes for `scope`, truncation included:
+ * cut clears exactly these cells, by identity, never the view positions they had at copy time.
+ */
+export function copyScopeCellIds(s: DataGridStoreState, scope: CopyScope): { rowIds: string[]; columnIds: string[] } {
+  const span = (start: number, count: number): number[] => Array.from({ length: count }, (_, i) => start + i);
+  const viewCols: readonly number[] =
+    scope.kind === "rect" ? span(scope.rect.x, scope.rect.width) : scope.kind === "rows" ? span(0, s.visibleColumns.length) : scope.columns;
+  const maxRows = Math.max(1, Math.floor(MAX_COPY_CELLS / Math.max(1, viewCols.length)));
+  const viewRows: readonly number[] =
+    scope.kind === "rect"
+      ? span(scope.rect.y, Math.min(scope.rect.height, maxRows))
+      : (scope.kind === "rows" ? scope.rows : allViewRows(s)).slice(0, maxRows);
+  const rowIds: string[] = [];
+  for (const viewRow of viewRows) {
+    const dataRowIndex = s.viewIndex[viewRow];
+    const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
+    if (row !== undefined) rowIds.push(s.getRowId(row, dataRowIndex!));
+  }
+  const columnIds = viewCols.flatMap((col) => {
+    const column = s.visibleColumns[col];
+    return column ? [column.id] : [];
+  });
+  return { rowIds, columnIds };
+}
+
 /** Writes both `text/plain` (TSV) and `text/html` (table) to a clipboard event's DataTransfer. */
-function writeClipboardEvent(event: ClipboardEvent, cells: string[][]): void {
-  const { text, html } = serializeCells(cells);
+function writeClipboardEvent(event: ClipboardEvent, cells: string[][], sanitizeFormulas?: boolean): void {
+  const { text, html } = serializeCells(cells, { sanitizeFormulas });
   event.clipboardData?.setData("text/plain", text);
   event.clipboardData?.setData("text/html", html);
 }
 
 /**
- * Single pasted row tiles down to fill a taller target selection height (react-datasheet-grid
- * nicety, research/react-datasheet-grid-study.md §4); otherwise the parsed grid is used as-is.
+ * Single pasted row tiles down to fill a taller target selection height ; otherwise the parsed grid is used as-is.
  * Exported for direct unit testing; not part of the public hook surface.
  */
 export function tileToHeight(cells: string[][], height: number): string[][] {
@@ -175,30 +204,30 @@ export const MAX_PASTE_CELLS = 200_000;
 /**
  * Truncates a paste grid to the first rows that fit under `maxCells` (row-summed). The paste anchor
  * is the target's top-left, so the HEAD rows are kept — dropping them would silently skip the rows
- * the user intended to paste first. Below the cap the input is returned unchanged.
+ * the user intended to paste first. A first row wider than the cap is cropped to it. Below the cap the input is returned unchanged.
  */
 export function truncatePasteGrid(cells: string[][], maxCells: number): string[][] {
   let total = 0;
   for (let i = 0; i < cells.length; i++) {
     const row = cells[i]!; // i < cells.length by loop condition
-    if (total + row.length > maxCells) return cells.slice(0, i);
+    if (total + row.length > maxCells) return i === 0 ? [row.slice(0, maxCells)] : cells.slice(0, i);
     total += row.length;
   }
   return cells;
 }
 
 /**
- * Resolves the paste target per glide-behavior-spec.md §4: top-left of `current.range`, else the
+ * Resolves the paste target: top-left of `current.range`, else the
  * lowest selected column at row 0, else the lowest selected row at col 0. `activeCell` alone isn't
  * enough — selectRow/selectColumn (row-marker/header click) never set it, so a column- or
  * row-only selection needs its own fallback here rather than silently no-op'ing the paste.
  */
-export function resolvePasteTarget(s: DataGridStoreState): CellCoord | null {
+export function resolvePasteTarget(s: DataGridStoreState): ViewCoord | null {
   if (s.selection.current) return { col: s.selection.current.range.x, row: s.selection.current.range.y };
-  const cols = s.selection.columns.toArray();
-  if (cols.length > 0) return { col: Math.min(...cols), row: 0 };
-  const rows = s.selection.rows.toArray();
-  if (rows.length > 0) return { col: 0, row: Math.min(...rows) };
+  const [firstColumn] = s.selection.columns.toArray();
+  if (firstColumn !== undefined) return { col: firstColumn, row: 0 };
+  const [firstRow] = s.selection.rows.toArray();
+  if (firstRow !== undefined) return { col: 0, row: firstRow };
   return s.activeCell;
 }
 
@@ -215,7 +244,7 @@ export function targetHeight(s: DataGridStoreState): number {
  * the caller's next step ({@link buildPasteWrites} for the sync answer, `resolveBulkWrites` when a
  * column's schema is async). Exported for direct unit testing; not part of the public hook surface.
  */
-export function buildPasteCandidates(s: DataGridStoreState, cells: string[][], target: CellCoord): BulkCandidate[] {
+export function buildPasteCandidates(s: DataGridStoreState, cells: string[][], target: ViewCoord): BulkCandidate[] {
   const candidates: BulkCandidate[] = [];
   const rowCount = s.viewIndex.length;
   const colCount = s.visibleColumns.length;
@@ -245,22 +274,23 @@ export function buildPasteCandidates(s: DataGridStoreState, cells: string[][], t
         ? s.processCellFromClipboard(text, { row, column })
         : cellType.fromText(text, column.options);
 
-      candidates.push({ viewRow, columnId: column.id, value, validate: column.validate, row, rowId });
+      candidates.push({ viewRowIndex: viewRow, columnId: column.id, value, validate: resolveColumnValidate(column, cellType), row, rowId });
     }
   }
   return candidates;
 }
 
 /**
- * The paste-write list: {@link buildPasteCandidates} validated through {@link resolveBulkWrites}, so
- * an array when every touched column validates synchronously and a Promise for it when one does not.
- * Kept as a named export for consumers and tests that want the pure answer without the store.
+ * The paste resolution: {@link buildPasteCandidates} validated through {@link resolveBulkWrites}, so
+ * the accepted writes plus the rejected cells — synchronously when every touched column validates
+ * synchronously, a Promise for the same when one does not. Kept as a named export for consumers and
+ * tests that want the pure answer without the store.
  */
 export function buildPasteWrites(
   s: DataGridStoreState,
   cells: string[][],
-  target: CellCoord,
-): BulkWrite[] | Promise<BulkWrite[]> {
+  target: ViewCoord,
+): BulkResolution | Promise<BulkResolution> {
   return resolveBulkWrites(buildPasteCandidates(s, cells, target));
 }
 
@@ -289,7 +319,7 @@ function applyParsedPaste(
   if (!target) return false;
 
   const tiled = tileToHeight(cells, targetHeight(s));
-  const finalCells = s.processPaste ? s.processPaste(tiled, target) : tiled;
+  const finalCells = s.processPaste ? s.processPaste({ cells: tiled, target }) : tiled;
   if (finalCells === false) return false;
 
   // Cap AFTER processPaste so a consumer hook cannot re-expand a truncated grid past the bound.
@@ -299,18 +329,20 @@ function applyParsedPaste(
   }
 
   const candidates = buildPasteCandidates(s, cappedCells, target);
-  const writes = resolveBulkWrites(candidates);
-  if (!(writes instanceof Promise)) {
-    actions.applyCellUpdates(writes, "paste");
+  const resolution = resolveBulkWrites(candidates);
+  if (!(resolution instanceof Promise)) {
+    // rejected cells are reported by the write itself (same source, after the write's emit)
+    actions.applyCellUpdates(resolution.writes, "paste", resolution.rejected);
     return true;
   }
 
   const token = guard?.begin();
   const snapshot = snapshotBulkBatch(s, candidateRowIds(s, candidates));
-  void writes.then((resolved) => {
+  void resolution.then((resolved) => {
     const current = storeApi?.getState() ?? s;
+    if (current.readOnly) return;
     if (guard && token !== undefined && !guard.isCurrent(token, current, snapshot)) return;
-    actions.applyCellUpdates(reresolveBulkWrites(current, resolved), "paste");
+    actions.applyCellUpdates(reresolveBulkWrites(current, resolved.writes), "paste", resolved.rejected);
   });
   return true;
 }
@@ -331,19 +363,34 @@ export function pasteText(
   storeApi?: { getState: () => DataGridStoreState },
 ): boolean {
   if (s.editing || s.readOnly) return false;
-  return applyParsedPaste(s, actions, parseClipboard({ text }), guard, storeApi);
+  return applyParsedPaste(s, actions, parseClipboard({ text }, MAX_PASTE_CELLS), guard, storeApi);
+}
+
+/**
+ * Whether the listening grid root owns a clipboard event: its origin (read through shadow roots)
+ * sits in this grid, not in a nested grid, and is not an editable element a cell renders.
+ */
+function ownsClipboardEvent(event: ClipboardEvent): boolean {
+  const origin = event.composedPath()[0] ?? null;
+  const target = origin instanceof Element ? origin : origin instanceof Node ? origin.parentElement : null;
+  if (!target || closestGridRoot(target) !== event.currentTarget) return false;
+  if (!(target instanceof HTMLElement)) return true;
+  const editable = /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName) || target.isContentEditable;
+  return !editable || target.closest(gridAttrSelector("cellEditor")) !== null;
 }
 
 /**
  * Wires native `copy`/`cut`/`paste` events to the grid root so OS-native shortcuts and menu
- * actions work (glide-behavior-spec.md §2, §4). Attached to the root element (not `document`) so
+ * actions work. Attached to the root element (not `document`) so
  * multiple grids on one page each own their own clipboard traffic, gated on focus being inside the
  * grid via roving tabindex; inactive while a cell is being edited (the editor owns its own
- * clipboard then).
+ * clipboard then), for events from an input or `contenteditable` that a cell renders, and for
+ * events from a grid nested in a cell.
  */
 export function useGridClipboard(options: UseGridClipboardOptions): void {
-  const { rootRef, readOnly } = options;
+  const { rootRef, sanitizeFormulas } = options;
   const actions = useDataGridActions();
+  const internalActions = useDataGridInternalActions();
   const storeApi = useDataGridStoreApi();
   // One counter for this grid's paste surface: a second paste supersedes a still-validating first.
   const guard = useBulkGeneration();
@@ -351,43 +398,45 @@ export function useGridClipboard(options: UseGridClipboardOptions): void {
   const onCopy = useCallback(
     (event: ClipboardEvent) => {
       const s = storeApi.getState();
-      if (s.editing) return;
+      if (s.editing || !ownsClipboardEvent(event)) return;
       const scope = resolveCopyScope(s);
       if (!scope) return;
       event.preventDefault();
-      writeClipboardEvent(event, serializeCopyScope(s, scope));
+      writeClipboardEvent(event, serializeCopyScope(s, scope), sanitizeFormulas ?? s.sanitizeClipboardFormulas);
     },
-    [storeApi],
+    [storeApi, sanitizeFormulas],
   );
 
   const onCut = useCallback(
     (event: ClipboardEvent) => {
       const s = storeApi.getState();
-      if (s.editing) return;
+      if (s.editing || !ownsClipboardEvent(event)) return;
       const scope = resolveCopyScope(s);
       if (!scope) return;
       event.preventDefault();
-      writeClipboardEvent(event, serializeCopyScope(s, scope));
-      if (!readOnly) actions.deleteSelection();
+      writeClipboardEvent(event, serializeCopyScope(s, scope), sanitizeFormulas ?? s.sanitizeClipboardFormulas);
+      if (s.readOnly) return;
+      const { rowIds, columnIds } = copyScopeCellIds(s, scope);
+      internalActions._deleteCellsById(rowIds, columnIds);
     },
-    [storeApi, actions, readOnly],
+    [storeApi, internalActions, sanitizeFormulas],
   );
 
   const onPaste = useCallback(
     (event: ClipboardEvent) => {
       const s = storeApi.getState();
-      if (s.editing || readOnly) return;
+      if (s.editing || s.readOnly || !ownsClipboardEvent(event)) return;
       // resolvePasteTarget gates BEFORE parsing/preventDefault, so a no-target paste (nothing
       // selected/active) leaves the native paste behavior (e.g. into an unrelated focused input) intact.
       if (!resolvePasteTarget(s)) return;
       const html = event.clipboardData?.getData("text/html");
       const text = event.clipboardData?.getData("text/plain");
-      const parsed = parseClipboard({ html: html || undefined, text });
+      const parsed = parseClipboard({ html: html || undefined, text }, MAX_PASTE_CELLS);
       if (parsed.length === 0) return;
       event.preventDefault();
       applyParsedPaste(s, actions, parsed, guard, storeApi);
     },
-    [storeApi, actions, readOnly, guard],
+    [storeApi, actions, guard],
   );
 
   useEffect(() => {

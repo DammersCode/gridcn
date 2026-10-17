@@ -2,6 +2,7 @@
 title: Clipboard
 description: Native copy/cut/paste with spreadsheet-compatible TSV and HTML formats.
 icon: Clipboard
+status: updated
 ---
 
 Clipboard support uses native browser copy, cut, and paste events.
@@ -14,10 +15,10 @@ Copy, cut, and paste use the native browser clipboard events, so no `clipboard-w
 prompt appears for copy or cut. Selecting a range and pressing <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+C
 writes two formats to the system clipboard:
 
-- **`text/plain`** — tab-separated values (TSV), one row per line. A cell that contains a tab,
+- **`text/plain`**: tab-separated values (TSV), one row per line. A cell that contains a tab,
   newline, or quote is quoted, with the quote doubled internally, matching the TSV quoting of
   Excel and Sheets.
-- **`text/html`** — an HTML `<table>` with the raw value of each cell stashed in `data-*`
+- **`text/html`**: an HTML `<table>` with the raw value of each cell stashed in `data-*`
   attributes. So a paste back into gridcn recovers the exact typed values, not only their display
   text, while a paste into a real spreadsheet app still gets a normal table.
 
@@ -25,6 +26,31 @@ writes two formats to the system clipboard:
   The copied text of each cell comes from the `toText` of its cell type. Display formatting, such
   as a locale date string, never leaks into the clipboard.
 </Callout>
+
+## Formula sanitizing
+
+<NewBadge />
+
+Excel, LibreOffice, and Sheets run a pasted cell that starts with `=`, `+`, `-`, `@`, TAB, or CR
+as a formula. To paste such cells into those apps as text, set `sanitizeClipboardFormulas`:
+
+```tsx
+<DataGrid {...grid} columns={columns} sanitizeClipboardFormulas />
+```
+
+When the prop is set, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+C, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+X, and the
+context menu's Copy and Cut add a single quote in front of each formula-like cell. The quote goes
+into both the `text/plain` and the `text/html` payload. Plain numbers such as `-5` and `+5` stay
+unchanged. A paste back into gridcn restores the raw value. In a browser that lacks or denies the
+async Clipboard API, the copy falls back to a plain-text-only write. A paste back from that copy
+keeps the quote.
+
+| Prop | Type | Default |
+|---|---|---|
+| `sanitizeClipboardFormulas` <NewBadge /> | `boolean` | `false` |
+
+`DataGridProvider` takes the same prop. A custom copy UI on `useDataGridClipboard` follows the
+prop; its `sanitizeFormulas` option overrides it.
 
 ## Paste
 
@@ -34,23 +60,23 @@ parser for plain-text sources, handling tabs, newlines, and quotes inside quoted
 
 Paste semantics:
 
-- **Anchored expand** — pasting an N×M block starting at the active cell overwrites that N×M
+- **Anchored expand**: pasting an N×M block starting at the active cell overwrites that N×M
   region.
-- **Single-row tiling down a selection** — pasting one row into a taller selected range repeats
+- **Single-row tiling down a selection**: pasting one row into a taller selected range repeats
   it down every row.
 - Pasted text runs through the `fromText` of each target cell type, then through `validate` if
   present. An invalid cell in the pasted block is rejected the same way as a manual edit.
 - readOnly cells are skipped. Both the column's static `readOnly` and its per-row function form
   apply.
-- One paste produces one `onDataChange` call with a single ops batch, regardless of how many
+- One paste produces one `onDataChange` call with a single operations batch, regardless of how many
   cells it touched.
 
-## Escape hatches
+## Overrides
 
 Three `DataGridProvider` props let you intercept the pipeline without forking it.
 
 ```tsx
-import type { CellCoord, ColumnDef } from "@/components/data-grid/data-grid";
+import type { ViewCoord, ColumnDef } from "@/components/data-grid/data-grid";
 
 // Module scope (or useCallback) so identity stays stable across renders.
 function processCellForClipboard(value: unknown, { row, column }: { row: Row; column: ColumnDef<Row, unknown> }) {
@@ -63,7 +89,7 @@ function processCellFromClipboard(text: string, { row, column }: { row: Row; col
   return text.trim();
 }
 
-function processPaste(cells: string[][], target: CellCoord) {
+function processPaste({ cells, target }: { cells: string[][]; target: ViewCoord }) {
   // runs after tiling and before the paste cap; return false to veto entirely
   return cells;
 }
@@ -103,7 +129,8 @@ with a "press Ctrl+V" hint when the browser withholds it.
 
 <Callout type="idea" title="An async schema holds the paste">
   A paste against a column with an async Standard Schema `validate` waits for the schema and
-  commits the accepted cells as one batch. A rejected cell drops silently. The full contract,
+  commits the accepted cells as one batch. A rejected cell drops from the batch, and the paste
+  reports it through `onValidationError` when you pass one. The full contract,
   shared by fill and import, is on [Editing & cell types: async schemas](/docs/editing-cell-types#on-bulk-paths).
   For a large paste against a remote check, `processPaste` above validates the whole block in one
   request instead.

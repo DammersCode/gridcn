@@ -1,6 +1,8 @@
 ---
 name: gridcn-upgrade
 description: "gridcn upgrades: update gridcn source installed in this project to a newer upstream release. Use when pulling a newer gridcn version or one upstream fix, or when installed files carry local edits that must survive."
+metadata:
+  gridcn-version: "1.0.0"
 ---
 
 gridcn ships no npm package and no semver: `npm update` touches nothing, and a breaking change can
@@ -120,3 +122,8 @@ value, press Enter, confirm the grid renders styled) passes.
 - Install commands, aliases, barrel import paths, non-default alias pitfalls, and the Verify smoke
   test: `https://gridcn.vercel.app/docs/installation.md`
 - Full changelog: `https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md`
+
+## Do not
+
+- Do not reinstall over files with local edits before committing or backing them up.
+- Do not pin only the add-on to a ref. The CLI resolves its core dependency from the default branch; pin the core first with the same ref.

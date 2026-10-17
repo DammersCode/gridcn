@@ -2,6 +2,7 @@
 title: Streaming updates
 description: Push live values into cells by row id, without a full data replacement.
 icon: Radio
+status: updated
 ---
 
 `updateCells` writes values straight into the grid by row id, for live feeds that update many cells per second.
@@ -35,7 +36,7 @@ function TickerFeed() {
 ```
 
 One call is one batch. The grid applies all patches together and fires `onDataChange` once, with
-one `update` op per touched row. Rows you do not patch keep their identity and do not render again.
+one `update` operation per touched row. Rows you do not patch keep their identity and do not render again.
 
 A patch with an unknown `rowId` or `columnId` is skipped. A patch to a read-only column, or a
 patch whose value equals the current value, is also skipped. A hidden column can be patched. On a
@@ -80,7 +81,7 @@ actions.updateCells(patches, { reorder: "immediate" });
 | --- | --- | --- |
 | `"defer"` (default) | The value changes, the row holds its position, and `viewStale` becomes true. | When a row that jumps position mid-read is worse than a stale order the user clears on demand. |
 | `"immediate"` | The grid moves the patched rows to their new positions in the same call. | When the displayed order must always match the sort. |
-| `"never"` | The value changes and `viewStale` stays false. | — |
+| `"never"` | The value changes and `viewStale` stays false. | |
 
 If no patched column feeds the active sort or filter, `"defer"` becomes `"never"` automatically, so
 `viewStale` stays false for a feed that writes only non-sorted columns.
@@ -100,7 +101,7 @@ At 100,000 rows with one sort column, a production build measures:
 Above 256 rows in one batch, the grid rebuilds the full order instead. It also rebuilds when the
 sort or filter changed in the same tick, or when a column supplies its own comparator.
 
-The demo's auto-sort switch toggles `reorder` between the modes on every tick — on, rows on the
+The demo's auto-sort switch toggles `reorder` between the modes on every tick. On, rows on the
 sorted column stay in the correct order without a re-sort click.
 
 ## Controlled mode
@@ -143,10 +144,7 @@ To record streams as well, list the sources you want:
 
 ```tsx
 useDataGridHistory({
-  data,
-  setData,
-  getRowId,
-  recordSources: ["edit", "paste", "fill", "delete", "row-op", "import", "stream"],
+  recordSources: ["edit", "paste", "fill", "delete", "row-operation", "import", "stream", "app"],
 });
 ```
 
@@ -154,8 +152,11 @@ See [Undo & redo](/docs/addons/undo-redo).
 
 ## What does not change
 
-`updateCells` does not move the selection, the active cell, or an open editor. A feed cannot pull
-the grid away from a user who is editing a cell.
+A `updateCells` batch without `reorder: "immediate"` does not move the selection, the active
+cell, or an open editor. An immediate re-sort is the exception: it re-sorts the view and
+re-anchors the open edit to its row's new view position, keeping the typed draft while the row
+stays in the rendered rows. A feed cannot pull the grid away from a user who is editing a
+cell.
 
 Values are checked with each column's `validate` function. A value that fails is skipped, and the
 rest of the batch is applied. Set `skipValidation: true` when the producer already checked the

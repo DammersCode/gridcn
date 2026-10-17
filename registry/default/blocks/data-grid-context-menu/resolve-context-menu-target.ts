@@ -1,7 +1,7 @@
-import { GRID_ATTR, gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid";
+import { GRID_ATTR, gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /**
- * Which surface a `contextmenu` event landed on, in view-space coordinates: a data cell (`row`
+ * Which surface a `contextmenu` event landed on, in view-index coordinates: a data cell (`row`
  * from `[role=row]`'s `data-grid-row-index`, `col` from the gridcell's `aria-colindex`), a header
  * (`col` from the columnheader's `aria-colindex`), or neither (e.g. empty-state, scrollbar gutter).
  */
@@ -31,10 +31,11 @@ function resolveViewRow(rowEl: Element): number | null {
 
 /**
  * Resolves the logical grid surface under `eventTarget`. Marker cells (`data-grid-marker-cell`)
- * carry no `aria-colindex` by design (outside the data column index space) and pinned
- * top/bottom row cells (`data-grid-pinned-row`, from the `data-grid-pinned-rows` add-on) aren't
- * part of `data`/the selection model — both are excluded and resolve to `null` (no cell/header
- * menu; add a marker- or pinned-row-specific menu separately if ever needed).
+ * carry no `aria-colindex` by design (outside the data column index space), pinned top/bottom row
+ * cells (`data-grid-pinned-row`, from the `data-grid-pinned-rows` add-on) aren't part of
+ * `data`/the selection model, and skeleton cells (`data-skeleton`) carry no row data — all are
+ * excluded and resolve to `null` (no cell/header menu; add a marker- or pinned-row-specific menu
+ * separately if ever needed).
  */
 export function resolveContextMenuTarget(eventTarget: EventTarget | null): ContextMenuTarget | null {
   if (!(eventTarget instanceof Element)) return null;
@@ -48,7 +49,7 @@ export function resolveContextMenuTarget(eventTarget: EventTarget | null): Conte
   }
 
   const gridCell = eventTarget.closest(
-    `[role="gridcell"]:not(${gridAttrSelector("markerCell")}):not(${gridAttrSelector("pinnedRow")})`,
+    `[role="gridcell"]:not(${gridAttrSelector("markerCell")}):not(${gridAttrSelector("pinnedRow")}):not(${gridAttrSelector("skeleton")})`,
   );
   if (gridCell) {
     const col = ariaIndex(gridCell, "aria-colindex");

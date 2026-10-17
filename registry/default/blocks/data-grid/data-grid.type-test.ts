@@ -7,8 +7,10 @@
  * columns/column-helpers.type-test.ts). `PresenceHighlight`'s own type-test lives in the
  * `data-grid-presence` add-on with the rest of presence.
  */
+import type { StoreApi } from "zustand/vanilla";
 import type {
   DataGrid,
+  DataGridProviderProps,
   DataGridRootProps,
   defineColumns,
   ColumnDef,
@@ -17,8 +19,12 @@ import type {
   CellClickCtx,
   CellType,
   CellPatch,
+  CellRef,
+  DataChange,
   DataGridActions,
+  DataGridApi,
   DataGridProps,
+  useDataGridActions,
   DataGridSyncProps,
   GlobalShortcutsConfig,
   RowPatch,
@@ -29,13 +35,22 @@ import type {
   FilterJoinOperator,
   FilterSpec,
   GetRowClassName,
+  GridActions,
   GridCellTypes,
+  GridCommand,
+  GridCommandCtx,
+  HeaderMenuRenderer,
+  Keymap,
   MarkerCellRenderer,
   MarkerHeaderRenderer,
-  RowClickCtx,
+  SelectionState,
   SortSpec,
+  ColumnLayout,
 } from "./data-grid";
-import { useDataGridCellTypes, useDataGridVisibleColumns, useDataGridAllColumns, type GRID_ATTR } from "./data-grid";
+import { useDataGridSelector } from "./store";
+import { createDataGridSelector, useDataGridCellTypes, useDataGridVisibleColumns, useDataGridAllColumns } from "./data-grid";
+import { DATA_GRID_ROOT_PROP_KEYS } from "./root";
+import type { DataGridStoreState } from "./store";
 
 /** Compile-only check: `Actual` must be identical to `Expected` (both directions assignable). */
 type Equal<Expected, Actual> = (<T>() => T extends Expected ? 1 : 2) extends <T>() => T extends Actual ? 1 : 2
@@ -102,12 +117,91 @@ void badSortState;
 const badJoinOperator: Pick<DataGridProps<Row>, "joinOperator"> = { joinOperator: "xor" };
 void badJoinOperator;
 
-// --- DataGrid wrapper prop-surface drift guard ------------------------------------------------
-// DataGridProps must forward every DataGridSyncProps sync prop into DataGridProvider.
-// Pin the "intentionally absent from the wrapper" set explicitly (currently empty) so a sync prop
-// added to the provider without a matching DataGridProps field fails this file's compile.
-type IntentionallyAbsentFromWrapper = never;
-assertEqual<IntentionallyAbsentFromWrapper, Exclude<keyof DataGridSyncProps<Row>, keyof DataGridProps<Row>>>(true);
+// --- W5-11: controlled selection and column layout, in stable CellRef terms ---------------------
+// `selection`/`defaultSelection` are mutually exclusive (selection wins), `onSelectionChange`
+// receives the public SelectionState (the active cell is NOT part of it), and `columnLayout` is
+// Partial: each provided part replaces that part, omitted parts stay uncontrolled.
+
+const cellRef: CellRef = { rowId: "1", columnId: "name" };
+const selectionValue: SelectionState = {
+  anchor: cellRef,
+  range: { start: cellRef, end: { rowId: "3", columnId: "age" } },
+  rangeStack: [],
+  rowIds: [],
+  columnIds: [],
+};
+const controlledSelection: Pick<DataGridProps<Row>, "selection" | "defaultSelection" | "onSelectionChange"> = {
+  selection: selectionValue,
+  defaultSelection: selectionValue,
+  onSelectionChange: (next: SelectionState) => {
+    const rowIds: readonly string[] = next.rowIds;
+    const anchor: CellRef | null = next.anchor;
+    void rowIds;
+    void anchor;
+  },
+};
+void controlledSelection;
+
+// every part of a layout is independently optional; a width-only control leaves the rest uncontrolled
+const partialLayout: Pick<DataGridProps<Row>, "columnLayout" | "defaultColumnLayout" | "onColumnLayoutChange"> = {
+  columnLayout: { widths: { name: 220 } },
+  defaultColumnLayout: { order: ["age", "name", "id"] },
+  onColumnLayoutChange: (layout: ColumnLayout) => {
+    const order: string[] = layout.order;
+    void order;
+  },
+};
+void partialLayout;
+
+// @ts-expect-error - onSelectionCleared was removed with W5-11 (a clear arrives as an empty onSelectionChange)
+const clearedProp: DataGridSyncProps<Row> = { onSelectionCleared: () => {} };
+void clearedProp;
+
+// the api handle reads/writes the public selection value; a single cell stays actions.selectCell
+declare const gridApi: DataGridApi<Row>;
+assertEqual<() => SelectionState, typeof gridApi.getSelection>(true);
+assertEqual<(next: SelectionState | null) => void, typeof gridApi.setSelection>(true);
+
+declare const wActions: DataGridActions;
+assertEqual<(next: SelectionState | null) => void, typeof wActions.setSelection>(true);
+assertEqual<(parts: Partial<ColumnLayout>) => void, typeof wActions.setColumnLayout>(true);
+
+// --- W6-05: the generic write action ----------------------------------------------------------
+// commitChange takes a DataChange; typed consumer operations (DataChange<Row>) are assignable to the
+// unknown-based action signature. One call is one write and one onDataChange emit (one undo
+// entry); source "history" passes through without a second history entry (stack-level rule).
+
+const commitBefore: Row = { id: "1", name: "Before", age: 30 };
+const commitAfter: Row = { id: "1", name: "After", age: 31 };
+const commitUpdate: DataChange<Row> = {
+  source: "app",
+  label: "batch save",
+  ops: [{ type: "update", rowId: "1", row: commitAfter, prev: commitBefore, cells: [{ columnId: "name", value: "After", prev: "Before" }] }],
+};
+const commitMove: DataChange<Row> = { source: "row-operation", ops: [{ type: "move", rowId: "1", row: commitBefore, from: 0, to: 1 }] };
+wActions.commitChange(commitUpdate);
+wActions.commitChange(commitMove);
+assertEqual<(change: DataChange<unknown>) => void, typeof wActions.commitChange>(true);
+
+// --- DataGrid wrapper prop surface: one home per prop ------------------------------------------
+// DataGridProps is built as (ExternalStoreProps | OwnedStoreProps) & DataGridRootProps & { ref }, so
+// a prop cannot exist on one home and be forgotten on the wrapper. These guards pin the split itself.
+
+// Disjoint: a sync prop that also exists on the root would be ambiguous about which home reads it.
+assertEqual<never, Extract<keyof DataGridSyncProps<Row>, keyof DataGridRootProps<Row>>>(true);
+
+// Exhaustive: a new root prop missing from DATA_GRID_ROOT_PROP_KEYS would leak to the provider
+// instead of the root (the wrapper forwards the list to the root and spreads the rest).
+assertEqual<never, Exclude<keyof DataGridRootProps<Row>, (typeof DATA_GRID_ROOT_PROP_KEYS)[number]>>(true);
+
+// @ts-expect-error - `readOnly` is a sync prop (the store's home), not a root prop
+const rootReadOnly: DataGridRootProps<Row> = { readOnly: true };
+void rootReadOnly;
+
+declare const externalStore: StoreApi<DataGridStoreState>;
+// @ts-expect-error - a sync prop next to `store` is a type error (the union types it as never)
+const externalWithSync: DataGridProviderProps<Row> = { store: externalStore, readOnly: true, children: null };
+void externalWithSync;
 
 // --- DeepPartialLabels: nested plain objects become deep-partial; arrays/functions stay whole ---
 
@@ -201,9 +295,11 @@ assertEqual<false, IsAny<ReturnType<typeof useDataGridAllColumns<Row>>>>(true);
 // The registry prop is deliberately untyped (a spread of built-ins plus a consumer's typed
 // entry must compile cast-free — see AnyCellType's doc). Per-key safety comes from
 // defineColumns + GridCellTypes augmentation, never from the registry; pin the erased shapes
-// so a future change to either the prop or the tooling hook's return fails this file.
+// so a future change to either the prop or the tooling hook's return fails this file. The
+// `| null` in the value type is the remove-a-built-in entry (merged over the built-ins at the
+// store boundary).
 assertEqual<CellType<any, any, any>, AnyCellType>(true); // eslint-disable-line @typescript-eslint/no-explicit-any
-assertEqual<Record<string, AnyCellType> | undefined, DataGridProps<Row>["cellTypes"]>(true);
+assertEqual<Record<string, AnyCellType | null> | undefined, DataGridProps<Row>["cellTypes"]>(true);
 assertEqual<Record<string, CellType>, ReturnType<typeof useDataGridCellTypes>>(true);
 
 // --- GlobalShortcutsConfig: flags ---------------------------------------------------
@@ -223,6 +319,7 @@ assertEqual<true | undefined, GlobalShortcutsConfig["deleteRows"]>(true);
 
 import type { StandardSchemaV1 as OfficialStandardSchemaV1 } from "@standard-schema/spec";
 import type { StandardSchemaV1 } from "./types";
+import { type GRID_ATTR } from "./data-grid-sdk";
 
 function assertVendoredMatchesOfficial<Input, Output>(
   _vendoredToOfficial: (v: StandardSchemaV1<Input, Output>) => OfficialStandardSchemaV1<Input, Output>,
@@ -292,27 +389,23 @@ assertEqual<MarkerCellRenderer | undefined, TypedRootProps["renderMarker"]>(true
 assertEqual<MarkerHeaderRenderer | undefined, TypedRootProps["renderMarkerHeader"]>(true);
 assertEqual<MarkerCellRenderer | undefined, DataGridProps<Row>["renderMarker"]>(true);
 assertEqual<MarkerHeaderRenderer | undefined, DataGridProps<Row>["renderMarkerHeader"]>(true);
+assertEqual<HeaderMenuRenderer | undefined, DataGridRootProps["renderHeaderMenu"]>(true);
+assertEqual<HeaderMenuRenderer | undefined, DataGridProps<Row>["renderHeaderMenu"]>(true);
 
-const onCellClick: TypedRootProps["onCellClick"] = (ctx: CellClickCtx<Row, unknown>) => {
+const onCellClick: DataGridSyncProps<Row>["onCellClick"] = (ctx: CellClickCtx<Row, unknown>) => {
   const name: string = ctx.row.name; // Row, no cast
   void name;
 };
 void onCellClick;
 
-const onRowClick: TypedRootProps["onRowClick"] = (ctx: RowClickCtx<Row>) => {
-  const age: number = ctx.row.age;
-  void age;
-};
-void onRowClick;
-
-const onCellClickWrongShape: TypedRootProps["onCellClick"] = (ctx: CellClickCtx<Row, unknown>) => {
+const onCellClickWrongShape: DataGridSyncProps<Row>["onCellClick"] = (ctx: CellClickCtx<Row, unknown>) => {
   // @ts-expect-error - Row has no `totallyDifferentShape` field
   void ctx.row.totallyDifferentShape;
 };
 void onCellClickWrongShape;
 
 // --- updateCells: patch shape + options -------------------------------------------------------
-// The patch is id-keyed by construction: `rowId` is the only row address, so a coordinate cannot be
+// The patch is row-id-based by construction: `rowId` is the only row address, so a coordinate cannot be
 // passed by mistake, and the value stays `unknown` (a stream carries any cell type's value).
 assertEqual<string, CellPatch["rowId"]>(true);
 assertEqual<string, CellPatch["columnId"]>(true);
@@ -349,6 +442,11 @@ declare const _actions: DataGridActions;
 assertEqual<(patches: readonly CellPatch[], options?: UpdateCellsOptions) => UpdateCellsVerdict, typeof _actions.updateCells>(true);
 assertEqual<(updates: readonly RowPatch[], options?: UpdateCellsOptions) => UpdateCellsVerdict, typeof _actions.updateRows>(true);
 assertEqual<() => void, typeof _actions.reconcileView>(true);
+
+// The public actions hook carries no internal `_` actions.
+declare const publicActions: ReturnType<typeof useDataGridActions>;
+// @ts-expect-error `_registerReadOnly` is internal and absent from the public actions
+void publicActions._registerReadOnly;
 
 // TValue typing flows through the usual ColumnDef conventions: a consumer builds patches from a
 // typed column's own id, while the patch value stays erased at the store boundary (one runtime
@@ -390,5 +488,73 @@ assertEqual<"data-scrolled-left", typeof GRID_ATTR.scrolledLeft>(true);
 assertEqual<"data-scrolled-right", typeof GRID_ATTR.scrolledRight>(true);
 assertEqual<"data-scrolled-top", typeof GRID_ATTR.scrolledTop>(true);
 assertEqual<"data-scrolled-bottom", typeof GRID_ATTR.scrolledBottom>(true);
+
+// --- Custom commands (GridActions consumer augmentation) -----------------------
+// GridActions is an interface so a consumer adds actions by declaration-merging it
+// (`declare module ".../types" { interface GridActions { saveAll: true } }`) — the same path as
+// GridCellTypes. That real augmentation can't run inside this tsc program: it would merge into
+// every file and break keyboard/index.test.ts's exhaustive Record<GridAction, true>. So the
+// mechanism is asserted structurally: a merged-in key is a GridAction, keymap/commands accept it,
+// and the command's run ctx keeps the grid's row type.
+type FakeAugmentedGridActions = GridActions & { saveAll: true };
+type FakeGridAction = keyof FakeAugmentedGridActions;
+assertEqual<true, "saveAll" extends FakeGridAction ? true : false>(true);
+assertEqual<true, "moveUp" extends FakeGridAction ? true : false>(true);
+
+const customKeymap: Partial<Record<FakeGridAction, string[]>> = { saveAll: ["mod+s"], moveUp: ["ArrowUp"] };
+function saveAllRun(ctx: GridCommandCtx<Row>): void {
+  void ctx.api;
+  void ctx.cell;
+  assertEqual<number | null, typeof ctx.viewRowIndex>(true);
+  assertEqual<Row | undefined, typeof ctx.row>(true);
+  assertEqual<boolean, typeof ctx.readOnly>(true);
+}
+const saveAllCommand: GridCommand<Row> = {
+  run: saveAllRun,
+  when: (ctx) => ctx.cell !== null,
+  label: "Save all",
+  group: "editing",
+  scope: "always",
+};
+// @ts-expect-error - scope is one of "grid" | "editing" | "always"
+const badCommandScope: GridCommand<Row> = { run: saveAllRun, scope: "both" };
+void badCommandScope;
+const commandProps: Pick<DataGridProps<Row>, "commands" | "keymap"> = {
+  commands: { saveAll: saveAllCommand },
+  keymap: customKeymap as Keymap,
+};
+void commandProps;
+
+// @ts-expect-error - group is a CommandGroup member, not an arbitrary string
+const badCommandGroup: GridCommand<Row> = { run: saveAllRun, group: "nope" };
+void badCommandGroup;
+
+// --- createDataGridSelector: TData fixed at factory time, TResult inferred ---------------------
+// One type argument at the factory; the call site infers the result type.
+
+const useRowSelector = createDataGridSelector<Row>();
+
+function useTypedGridSelector() {
+  const data = useRowSelector((s) => s.data);
+  assertEqual<readonly Row[], typeof data>(true);
+
+  const names = useRowSelector((s) => s.data.map((r) => r.name));
+  assertEqual<string[], typeof names>(true);
+
+  const len = useRowSelector((s) => s.data.length);
+  assertEqual<number, typeof len>(true);
+
+  void names;
+  void len;
+  return data;
+}
+void useTypedGridSelector;
+
+function useDirectGridSelector() {
+  const names = useDataGridSelector<Row, string[]>((s) => s.data.map((r) => r.name));
+  assertEqual<string[], typeof names>(true);
+  return names;
+}
+void useDirectGridSelector;
 
 export {};

@@ -1,9 +1,10 @@
 import { page, userEvent } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { DataGrid, gridAttrSelector } from "../data-grid";
-import { VELOCITY_OVERSCAN_CAP_PX } from "../windowing/velocity-estimator";
+import { DataGrid } from "../data-grid";
+import { VELOCITY_OVERSCAN_CAP_PX } from "../virtualization/velocity-estimator";
 import type { ColumnDef } from "../types";
+import { gridAttrSelector } from "../data-grid-sdk";
 // real stylesheet — layout/scroll must be real for these probes to mean anything
 import "@/app/global.css";
 
@@ -557,7 +558,7 @@ describe("scroll-drag: wasted-render regression", () => {
   });
 });
 
-describe("scroll-drag: idle DOM row count returns to baseline after settle (tablecn comparison report, 2026-07-17)", () => {
+describe("scroll-drag: idle DOM row count returns to baseline after settle", () => {
   function countRenderedRows(): number {
     return document.querySelectorAll('[role="row"]').length;
   }
@@ -633,7 +634,7 @@ describe("click-cell: active-column change must not re-render the whole visible 
   // object literal — every DataGridCellImpl (cell.tsx reads `interaction` straight off context,
   // bypassing DataGridRow's memo boundary) and every DataGridHeaderCell re-rendered as a result.
   // Fix: root.tsx's context value is `useMemo`'d on real deps, so a click that doesn't change
-  // windowedColumns/layout/interaction/etc hands out the identical reference and these bail.
+  // renderedColumns/layout/interaction/etc hands out the identical reference and these bail.
   async function renderCountingGrid360(rowCount: number) {
     const perCellCounts = new Map<string, number>();
     const bump = (rowIndex: number, colId: string) => {
@@ -642,8 +643,8 @@ describe("click-cell: active-column change must not re-render the whole visible 
     };
     const probeColumns: readonly ColumnDef<Row, unknown>[] = columns.map((c) => ({
       ...c,
-      renderCell: ({ value, rowIndex }: { value: unknown; rowIndex: number }) => {
-        bump(rowIndex, c.id);
+    renderCell: ({ value, viewRowIndex }: { value: unknown; viewRowIndex: number }) => {
+      bump(viewRowIndex, c.id);
         return String(value);
       },
     }));
@@ -675,7 +676,7 @@ describe("click-cell: active-column change must not re-render the whole visible 
 
     const cells = () => Array.from(gridEl.querySelectorAll<HTMLElement>('[role="gridcell"]'));
     // seed an active cell first (this one-time null -> non-null activeColumn transition legitimately
-    // touches windowedColumns per the existing unit-test suite's documented cost) and let it settle.
+    // touches renderedColumns per the existing unit-test suite's documented cost) and let it settle.
     await userEvent.click(cells()[0]!); // row 0, col 0 ("id")
     await new Promise((r) => requestAnimationFrame(r));
 

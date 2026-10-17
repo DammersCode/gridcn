@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { useDataGridInstanceId, GRID_ATTR } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Props for {@link DataGridToolbar}. */
 export type DataGridToolbarProps = {
@@ -14,8 +15,10 @@ export type DataGridToolbarProps = {
  */
 export function DataGridToolbar(props: DataGridToolbarProps): ReactNode {
   const { className, children } = props;
+  const instanceId = useDataGridInstanceId();
   return (
     <div
+      {...{ [GRID_ATTR.instance]: instanceId }}
       data-grid-toolbar=""
       className={cn("flex items-center gap-2 overflow-x-auto border-b border-border bg-background px-2 py-1.5", className)}
     >

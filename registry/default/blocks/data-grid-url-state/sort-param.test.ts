@@ -23,6 +23,13 @@ describe("serializeSortState / parseSortState", () => {
     expect(parseSortState(encoded)).toEqual(sorts);
   });
 
+  it("caps the parsed sort count at 64", () => {
+    const raw = Array.from({ length: 100 }, (_, i) => `c${i}:asc`).join(",");
+    const sorts = parseSortState(raw);
+    expect(sorts).toHaveLength(64);
+    expect(sorts[63]).toEqual({ columnId: "c63", direction: "asc" });
+  });
+
   it("serializes an empty list to an empty string", () => {
     expect(serializeSortState([])).toBe("");
   });
@@ -47,6 +54,13 @@ describe("serializeSortState / parseSortState", () => {
     expect(parseSortState("name:asc,garbage,age:desc")).toEqual([
       { columnId: "name", direction: "asc" },
       { columnId: "age", direction: "desc" },
+    ]);
+  });
+
+  it("dedupes repeated column ids, keeping the first segment", () => {
+    expect(parseSortState("name:desc,name:asc,age:asc")).toEqual([
+      { columnId: "name", direction: "desc" },
+      { columnId: "age", direction: "asc" },
     ]);
   });
 

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { CellType, ColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
+import * as sdk from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   buildImportedRows as buildImportedRowsRaw,
   IMPORT_CANCELLED_MESSAGE,
@@ -106,6 +107,30 @@ describe("buildImportedRows", () => {
     expect(rows).toEqual([{ id: "row-0", name: "Alice", age: null }]);
   });
 
+  it("clears a value that fails the cell type's validate when the column declares none", () => {
+    const cappedCellType: CellType<Row, number | null> = { ...numberCellType, validate: (value) => (value !== null && value > 100 ? "too old" : null) };
+    const result = buildImportedRowsRaw<Row>({
+      dataRows: [["Alice", "130"], ["Bob", "40"]],
+      mapping: [
+        { importColumnIndex: 0, gridColumnId: "name" },
+        { importColumnIndex: 1, gridColumnId: "age" },
+      ],
+      columns: [
+        { id: "name", header: "Name", accessorKey: "name", type: "text" },
+        { id: "age", header: "Age", accessorKey: "age", type: "capped" as never },
+      ],
+      cellTypes: { text: textCellType, capped: cappedCellType } as never,
+      createRow: makeRow,
+    });
+    if (result instanceof Promise) throw new Error("expected a synchronous result");
+
+    expect(result.rows).toEqual([
+      { id: "row-0", name: "Alice", age: null },
+      { id: "row-1", name: "Bob", age: 40 },
+    ]);
+    expect(result.rejected).toEqual([{ rowIndex: 0, importColumnIndex: 1, gridColumnId: "age" }]);
+  });
+
   it("lists every rejected cell in `rejected` with its row and source column, and still builds all rows", () => {
     const columns: ColumnDef<Row, unknown>[] = [
       { id: "name", header: "Name", accessorKey: "name", type: "text", validate: (value) => (value === "bad" ? "invalid name" : null) },
@@ -181,6 +206,56 @@ describe("buildImportedRows", () => {
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("is mapped by more than one import column"));
     warn.mockRestore();
+  });
+
+  it("applies the later-mapping-wins rule without the dev warning when NODE_ENV is production", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.stubEnv("NODE_ENV", "production");
+    try {
+      const rows = buildImportedRows({
+        dataRows: [["Alice", "Bob"]],
+        mapping: [
+          { importColumnIndex: 0, gridColumnId: "name" },
+          { importColumnIndex: 1, gridColumnId: "name" },
+        ],
+        columns: makeColumns(),
+        cellTypes: { text: textCellType, number: numberCellType } as never,
+        createRow: makeRow,
+      });
+      expect(rows).toEqual([{ id: "row-0", name: "Bob", age: null }]);
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+      warn.mockRestore();
+    }
+  });
+
+  it("skips a cell whose verdict is missing from the batch result", () => {
+    const spy = vi.spyOn(sdk, "runValidateBatch").mockImplementation(
+      (items: readonly sdk.ValidateBatchItem[]) => items.slice(0, -1).map((item) => ({ value: item.value })),
+    );
+    try {
+      const rows = buildImportedRows({
+        dataRows: [
+          ["Alice", "30"],
+          ["Bob", "40"],
+        ],
+        mapping: [
+          { importColumnIndex: 0, gridColumnId: "name" },
+          { importColumnIndex: 1, gridColumnId: "age" },
+        ],
+        columns: makeColumns(),
+        cellTypes: { text: textCellType, number: numberCellType } as never,
+        createRow: makeRow,
+      });
+      // the last cell (row-1's age) has no verdict, so it keeps createRow's default
+      expect(rows).toEqual([
+        { id: "row-0", name: "Alice", age: 30 },
+        { id: "row-1", name: "Bob", age: null },
+      ]);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("defaults a column with no `type` to the 'text' cell type", () => {
@@ -378,6 +453,26 @@ describe("buildImportedRows — chunked path for large imports (B5b)", () => {
     // before the whole (3-chunk) import finishes, not just as a same-tick no-op.
     await new Promise((resolve) => setTimeout(resolve));
     controller.abort();
+    await expect(result).rejects.toThrow(IMPORT_CANCELLED_MESSAGE);
+  });
+
+  it("rejects on the post-loop check when the signal aborts after the final chunk's work", async () => {
+    const controller = new AbortController();
+    const dataRows = manyDataRows(IMPORT_CHUNK_THRESHOLD_ROWS + 1); // 3 chunks
+    // the final row's fromText runs during the last chunk — after its top-of-loop abort check — so an
+    // abort scheduled here can only be observed by the post-loop check, not by the per-chunk one
+    const abortingTextType = {
+      ...textCellType,
+      fromText: (text: string) => {
+        if (text === `name-${dataRows.length - 1}`) setTimeout(() => controller.abort(), 0);
+        return text;
+      },
+    };
+    const result = buildImportedRowsRaw<Row>({
+      ...chunkOptions(dataRows, controller.signal),
+      cellTypes: { text: abortingTextType, number: numberCellType } as never,
+    });
+    expect(result).toBeInstanceOf(Promise);
     await expect(result).rejects.toThrow(IMPORT_CANCELLED_MESSAGE);
   });
 });

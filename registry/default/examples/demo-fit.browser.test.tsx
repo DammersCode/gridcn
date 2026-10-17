@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import CellErrorsDemo from "@/registry/default/examples/data-grid-cell-errors-demo";
-import CellTypesDemo from "@/registry/default/examples/data-grid-cell-types-demo";
 import ConditionalStylingDemo from "@/registry/default/examples/data-grid-conditional-styling-demo";
 import ContextMenuDemo from "@/registry/default/examples/data-grid-context-menu-demo";
 import CustomCellDemo from "@/registry/default/examples/data-grid-custom-cell-demo";
@@ -37,7 +36,6 @@ const DEMOS = [
   ["cell-errors", <CellErrorsDemo key="cell-errors" />],
   ["loading", <LoadingDemo key="loading" />],
   ["i18n", <I18nDemo key="i18n" />],
-  ["cell-types", <CellTypesDemo key="cell-types" />],
   ["conditional-styling", <ConditionalStylingDemo key="conditional-styling" />],
   ["context-menu", <ContextMenuDemo key="context-menu" />],
   ["custom-cell", <CustomCellDemo key="custom-cell" />],
@@ -69,6 +67,7 @@ const ALLOWED_OVERFLOW = [
   ["performance", "100k-row FPS demo: shares large-data's column set on purpose, to show the same scale under a live FPS readout"],
   ["pinning", "pin-left/right demo: the lesson is columns pinned across a scrolled middle region, so a scrollable body is required"],
   ["playground", "kitchen-sink demo: every feature toggle live at once, deliberately more columns than a single preview width"],
+  ["cell-types", "kitchen-sink demo: every built-in cell type live in one preview, deliberately more columns than a single preview width; the grid body scrolls"],
   ["url-state", "nuqs's app-router NuqsAdapter needs Next's router context, unavailable in this isolated harness — unrelated to column fit"],
 ] as const;
 

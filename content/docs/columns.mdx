@@ -2,6 +2,7 @@
 title: Columns
 description: Resize, reorder, pin, and show/hide columns.
 icon: Columns3
+status: updated
 ---
 
 Resize and drag-to-reorder are built into the core, with no add-on needed. Pin, unpin, and
@@ -24,12 +25,33 @@ element. Double-click the handle to autosize the column to its content. Per-colu
 `resizable: false`, or grid-wide `enableColumnResize={false}` on `DataGridProvider`, disables
 resize.
 
-<Callout type="warn" title="Autosize measures the visible window only">
-  Autosize (double-click and the header menu's "Autosize column") measures only the rendered,
-  windowed cells. On a virtualized grid that is the visible window, not the whole
-  column: a column whose widest value sits off-screen fits the visible rows, and a long dataset
-  can make it shrink. It is a viewport fit, not a global-content width.
-</Callout>
+A column without `width` renders at the 150px default. A resize clamps to the column's
+`minWidth`, with a 32px absolute floor that no `minWidth` can lower.
+
+## Autosize
+
+<NewBadge />
+
+Double-click the handle to size the column to its content. The header menu's "Autosize column"
+and "Autosize all columns" items do the same for one or every visible column (both from the
+[context menu add-on](/docs/addons/context-menu)).
+
+Autosize measures `sampleRows` view rows (default 1000, clamped to [1, 10000]) evenly strided
+across the sorted and filtered view, plus every rendered row. It sizes the column to the widest
+measured display text and the header. A column whose widest value sits off-screen still fits it through the sample.
+Sampled texts are cut to 1000 characters.
+
+`actions.autosizeColumns(options)` runs the pass programmatically; it commits every changed
+width in one write, fires `onColumnLayoutChange` once, and returns the measured widths:
+
+- `columnIds`: the columns to size; default is every visible column while column resizing is
+  enabled. Hidden, non-resizable, and unknown ids are skipped.
+- `sampleRows`: view rows to sample; default 1000.
+- `includeHeader`: measure the header text too; default true.
+
+Pass `autosizeOnMount` on `DataGridProvider` (or `true` for the defaults) to run one pass
+automatically when the view first has rows; a lazy grid waits for its first page. It runs once
+per mount, and columns with a saved width keep it. A saved layout wins.
 
 ## Reorder
 
@@ -40,7 +62,7 @@ zone. Dragging a left-pinned column onto the unpinned band does nothing. It neve
 ## Pin left/right
 
 Set `pin: 'left' | 'right'` per column as an initial value, or change it at runtime through the
-header dropdown menu or the right-click header context menu — both installed by the
+header dropdown menu or the right-click header context menu, both installed by the
 [context menu add-on](/docs/addons/context-menu), which owns the menu wiring and its items (sort,
 pin, autosize, hide).
 
@@ -50,8 +72,9 @@ pin, autosize, hide).
   even when the user did not select the cell first.
 </Callout>
 
-The `renderHeaderMenu` slot of `DataGridRoot` renders at the inline-end of each header cell, as a ghost
-chevron button on hover, and opens the same menu that a right-click gives you. Per-column
+The `renderHeaderMenu` slot of `DataGridRoot` renders at the inline-end of each header cell. The
+`DataGrid` wrapper forwards it. It shows as a ghost chevron button on hover and opens the same
+menu as a right-click. Per-column
 `pinnable: false`, or grid-wide `enableColumnPinning={false}`, disables pin and unpin.
 
 A soft directional shadow marks the pinned boundary: the last left-pinned column casts a shadow
@@ -157,6 +180,34 @@ renders nothing while the column is unsorted). For an icon-only or component hea
 `headerText` is required: without it, the screen-reader label and the header menu fall back
 to the raw column id. `headerClassName` styles the whole header cell.
 
+### Header cell contents
+
+<NewBadge />
+
+`ColumnDef.header` replaces the label inside the built-in cell. The `renderHeaderCell` slot on
+`DataGridHeader` replaces the contents of the cell. The grid keeps the cell element itself: its
+placement, pinned offset, `role`, `aria-colindex`, sort and select gestures, and resize handle.
+The slot is called once per visible column with `ctx` and `Default`. `ctx` is
+`{ column, index, width, headerClickBehavior, sortState }`. `Default` is the built-in contents:
+the label, the sort indicator, and the header menu trigger. Return `Default` to keep them; a
+custom node replaces them:
+
+```tsx
+<DataGridRoot className="h-[400px]">
+  <DataGridHeader
+    renderHeaderCell={(ctx, Default) => (ctx.column.id === "name" ? <MyNameHeader column={ctx.column} /> : Default)}
+  />
+  <DataGridBody />
+</DataGridRoot>
+```
+
+Interactive content in the slot keeps its own clicks. When a press starts on a button, a link, a
+form control, a `role="button"` element, or a `contenteditable` element, the header cell does not
+sort, select, or start a column reorder.
+
+The slot mounts inside `DataGridRoot`, so it needs the composed parts. `DataGrid` (the
+convenience wrapper) does not forward it.
+
 ## Visibility
 
 The `DataGridColumnsMenu` of `data-grid-toolbar` is show and hide only. Pin controls live in the
@@ -208,31 +259,64 @@ State hooks let you build your own UI around any of the features above:
 on the next visit, use the dedicated pair below instead of subscribing to the actions:
 
 ```ts
-defaultColumnLayout?: ColumnLayout; // seeds widths/order/pins/hidden ONCE at mount
+defaultColumnLayout?: Partial<ColumnLayout>; // seeds widths/order/pins/hidden ONCE at mount
+columnLayout?: Partial<ColumnLayout>; // controlled, per part; an omitted part stays uncontrolled
 onColumnLayoutChange?: (next: ColumnLayout) => void; // fires once per committed change
 ```
 
+`defaultColumnLayout` seeds the layout once, when the grid mounts. Later changes to the prop are
+ignored. Use it when the saved layout is known at the first render, for example when it comes
+from props or a cookie. `localStorage` does not exist on the server, so a layout read from it is
+not known at the first render in Next.js. Use the controlled `columnLayout` prop instead, and
+load the saved value in an effect:
+
 ```tsx
-const [layout, setLayout] = useState(() => {
-  const saved = localStorage.getItem("my-grid-layout");
-  return saved ? (JSON.parse(saved) as ColumnLayout) : undefined;
-});
+"use client";
+
+import { useEffect, useState } from "react";
+import type { ColumnLayout } from "@/components/data-grid/data-grid";
+
+const LAYOUT_KEY = "my-grid-layout";
+
+const [layout, setLayout] = useState<Partial<ColumnLayout>>();
+
+useEffect(() => {
+  const saved = localStorage.getItem(LAYOUT_KEY);
+  if (saved) setLayout(JSON.parse(saved) as ColumnLayout);
+}, []);
 
 <DataGridProvider
   {...grid}
   columns={columns}
-  defaultColumnLayout={layout}
-  onColumnLayoutChange={(next) => localStorage.setItem("my-grid-layout", JSON.stringify(next))}
+  columnLayout={layout}
+  onColumnLayoutChange={(next) => {
+    setLayout(next);
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(next));
+  }}
 >
 ```
 
+The grid shows the default widths for one frame before the saved layout arrives.
+
+`localStorage` does not exist on the server, so the effect reads it after mount. The grid renders
+the default layout first, then applies the saved one.
+
 `onColumnLayoutChange` fires once per committed change: a resize commit (a drag release, or an
-autosize from a double-click or the header menu — never per drag frame), a width reset, a
+autosize from a double-click or the header menu, never per drag frame), a width reset, a
 reorder drop, a pin or unpin, or a show or hide. See
-[Events & state](/docs/events-state#8-oncolumnlayoutchange--defaultcolumnlayout--oncolumnresizing)
-for the full payload shape and the live, per-drag-frame `onColumnResizing`. `defaultColumnLayout`
+[Events & state](/docs/events-state#8-columnlayout--defaultcolumnlayout--oncolumnlayoutchange--oncolumnresizing)
+for the full payload shape, the controlled `columnLayout` prop, and the live, per-drag-frame
+`onColumnResizing`. `defaultColumnLayout`
 is not a controlled prop: the grid reads it once at mount and ignores later changes, so always
-pair it with `onColumnLayoutChange`.
+pair it with `onColumnLayoutChange`. An app that owns the layout state instead passes
+`columnLayout`: each given part replaces that part, and an omitted part keeps the store's
+current value, so `columnLayout={{ widths }}` controls widths only and a user reorder survives.
+A column that the layout `order` does not list, such as a
+column added after the layout was saved, follows the listed columns in `columns` order. The
+grid drops layout entries for unknown column ids, clamps each width to the column's
+`minWidth`/`maxWidth`, and ignores a pin on a `pinnable: false` column. A `hidden: true` column
+that the layout `order` does not list stays hidden. The grid ignores a layout part with the wrong
+shape, such as an `order` that is not an array, so a damaged saved layout never breaks the grid.
 
 `useDataGridVisibleColumns()` and `useDataGridAllColumns()` return the full `ColumnDef` of each
 column. So a custom column UI can call `accessorFn`, `setValue`, or a function-form `readOnly`

@@ -1,7 +1,8 @@
 "use client";
 
 import { Fragment, memo, type CSSProperties, type ReactNode } from "react";
-import { GRID_LAYER, type GridRect, type OverlayPluginCtx } from "@/registry/default/blocks/data-grid/data-grid";
+import type { GridRect, OverlayPluginCtx } from "@/registry/default/blocks/data-grid/data-grid";
+import { GRID_LAYER, hasAnyPin } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   isRowIdPresenceHighlight,
   isRowIdRangePresenceHighlight,
@@ -13,6 +14,14 @@ import {
 
 /** Default cap on the rects ONE range entry may paint (per contiguous fragment): a remote selection of scattered rows must not turn the overlay layer into thousands of divs. Override it with `useDataGridPresence({ maxRects })`; excess fragments are dropped and reported via the `onExcessRects` option. */
 export const MAX_RESOLVED_RECTS = 1024;
+
+export const DEFAULT_PRESENCE_COLOR = "oklch(0.6 0.2 260)";
+
+/** Returns `color` when the browser parses it as a CSS color, else the default; passes through where `CSS.supports` is missing (SSR, jsdom). */
+export function safePresenceColor(color: string): string {
+  if (typeof CSS === "undefined" || typeof CSS.supports !== "function") return color;
+  return CSS.supports("color", color) ? color : DEFAULT_PRESENCE_COLOR;
+}
 
 /** One remote user's selection-range fill + border, grid-line placed like core's own RangeOverlay; color comes from the highlight itself via `--presence-color`, not a shadcn token. Memoized: the resolved rects keep identity across overlay renders (see `makePresencePlugin`'s memo), so an unchanged highlight never re-renders its divs on a local keystroke. */
 const PresenceHighlightOverlay = memo(function PresenceHighlightOverlay({
@@ -28,6 +37,7 @@ const PresenceHighlightOverlay = memo(function PresenceHighlightOverlay({
   colOffset: number;
   pinStyle?: CSSProperties;
 }) {
+  const safeColor = safePresenceColor(color);
   return (
     <div
       data-grid-presence-overlay=""
@@ -37,7 +47,7 @@ const PresenceHighlightOverlay = memo(function PresenceHighlightOverlay({
       style={{
         // positioned: cells are position:relative, so a static overlay would paint below them
         position: "relative",
-        "--presence-color": color,
+        "--presence-color": safeColor,
         gridColumnStart: rect.x + colOffset,
         gridColumnEnd: rect.x + rect.width + colOffset,
         gridRowStart: rect.y - windowStart + 1,
@@ -65,6 +75,7 @@ const PresenceLabelChip = memo(function PresenceLabelChip({
   colOffset: number;
   pinStyle?: CSSProperties;
 }) {
+  const safeColor = safePresenceColor(color);
   return (
     <div
       data-grid-presence-label=""
@@ -81,7 +92,7 @@ const PresenceLabelChip = memo(function PresenceLabelChip({
     >
       <span
         className="-translate-y-1/2 rounded-sm px-1.5 py-0.5 text-xs font-medium whitespace-nowrap shadow-sm"
-        style={{ backgroundColor: color, color: "var(--presence-label-foreground, white)" }}
+        style={{ backgroundColor: safeColor, color: "var(--presence-label-foreground, white)" }}
       >
         {label}
       </span>
@@ -90,7 +101,7 @@ const PresenceLabelChip = memo(function PresenceLabelChip({
 });
 
 /**
- * Resolves rowId-native entries to view-space {@link PresenceHighlight}s via the caller's
+ * Resolves rowId-native entries to view-index {@link PresenceHighlight}s via the caller's
  * `rowId -> view row` map. A single-cell entry resolves to a 1×1 rect; a range entry paints one
  * rect per contiguous run of resolved rows × resolved columns.
  *
@@ -186,13 +197,13 @@ function contiguousRuns(values: number[]): { min: number; length: number }[] {
  * segmentation pipeline core's own built-in overlays use (via `ctx`), so a highlight spanning a
  * pinned column splits into pinned/unpinned segments and paints at the pinned cell's actual screen
  * position exactly like a selection range does. This is the function registered as `OverlayPlugin`.
- * `highlights` must already be resolved to view-space (see {@link resolveHighlights}) — the caller
+ * `highlights` must already be resolved to view-index (see {@link resolveHighlights}) — the caller
  * (`makePresencePlugin`) does that resolution itself since it's the one already subscribed to core
  * hooks inside `DataGridOverlays`'s render, keeping this function a plain (hook-free) renderer.
  */
 export function renderPresenceOverlay(highlights: readonly PresenceHighlight[], ctx: OverlayPluginCtx): ReactNode {
   const { windowStart, clampRowStart, clampRowEnd, colCount, colOffset, pinTrack, splitRectByPinZones, clampRectToWindow } = ctx;
-  const pinned = pinTrack && pinTrack.pins.some((p) => p === "left" || p === "right") ? pinTrack : undefined;
+  const pinned = hasAnyPin(pinTrack) ? pinTrack : undefined;
   const segment = (rect: GridRect) => (pinned ? splitRectByPinZones(rect, pinned) : [{ rect, pinStyle: undefined }]);
 
   return (

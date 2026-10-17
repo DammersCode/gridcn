@@ -265,4 +265,75 @@ describe("global keyboard shortcuts (focus outside the grid)", () => {
     await userEvent.keyboard("{Control>}z{/Control}");
     expect(gridCells()[1]!.textContent).toBe(originalText);
   });
+
+  it("stays out of the way while a popup edit session is open (Ctrl+Z in the select list undoes nothing)", async () => {
+    type RoleRow = { id: string; name: string; role: string };
+    const roleColumns: readonly ColumnDef<RoleRow, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name", type: "text", width: 160 },
+      {
+        id: "role",
+        header: "Role",
+        accessorKey: "role",
+        type: "select",
+        width: 120,
+        options: { choices: [{ value: "admin", label: "Admin" }, { value: "user", label: "User" }] },
+      },
+    ];
+    function RoleGrid(): ReactNode {
+      const grid = useDataGridState<RoleRow>([{ id: "1", name: "Ada", role: "admin" }], { getRowId: (r) => r.id });
+      return (
+        <div style={{ height: 300 }}>
+          <DataGrid {...grid} columns={roleColumns} className="h-[300px]">
+            <>
+              <DataGridGlobalShortcuts />
+              <DataGridHeader />
+              <DataGridBody />
+            </>
+          </DataGrid>
+        </div>
+      );
+    }
+    await render(<RoleGrid />);
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    await userEvent.click(gridCells()[0]!);
+    await userEvent.keyboard("Edited");
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByText("Edited")).toBeInTheDocument();
+
+    await userEvent.click(gridCells()[1]!);
+    await userEvent.keyboard("{Enter}");
+    (page.getByRole("option", { name: "User" }).element() as HTMLElement).focus();
+    await userEvent.keyboard("{Control>}z{/Control}");
+    expect(gridCells()[0]!.textContent).toBe("Edited");
+  });
+});
+
+describe("global keyboard shortcuts in a read-only grid", () => {
+  function ReadOnlyGrid() {
+    const grid = useDataGridState(makeRows(3), { getRowId: (r) => r.id });
+    return (
+      <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+        <button id="ro-toolbar">toolbar</button>
+        <div style={{ height: 300 }}>
+          <DataGrid {...grid} columns={columns} readOnly className="h-[300px]">
+            <DataGridGlobalShortcuts />
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGrid>
+        </div>
+      </div>
+    );
+  }
+
+  it("Ctrl+Z outside the grid is a no-op when readOnly (the history command is gated off)", async () => {
+    await render(<ReadOnlyGrid />);
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const cell = gridCells()[1]!;
+    const before = cell.textContent;
+
+    await userEvent.click(document.getElementById("ro-toolbar")!);
+    await userEvent.keyboard("{Control>}z{/Control}");
+
+    expect(cell.textContent).toBe(before);
+  });
 });

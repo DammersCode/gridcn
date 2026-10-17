@@ -1,32 +1,7 @@
-import type { DataGridFilterOperatorLabels, FilterOperator } from "@/registry/default/blocks/data-grid/data-grid";
+import type { FilterOperator } from "@/registry/default/blocks/data-grid/data-grid";
+import type { DataGridFilterOperatorLabels } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
-/** Text/general operators offered for every column type. */
-const TEXT_OPERATORS: FilterOperator[] = [
-  "contains",
-  "notContains",
-  "equals",
-  "notEquals",
-  "startsWith",
-  "endsWith",
-  "empty",
-  "notEmpty",
-];
-
-/** Comparison operators added only for orderable types (gt/lt only for number/date). */
-const COMPARISON_OPERATORS: FilterOperator[] = ["gt", "gte", "lt", "lte", "isBetween"];
-
-/**
- * Sensible {@link FilterOperator} choices for a column's cell type: comparisons only apply to
- * number/date, and `isAnyOf` only to select columns, whose `options.choices` are what the
- * multi-value input offers.
- */
-export function operatorsForColumnType(columnType: string | undefined): FilterOperator[] {
-  if (columnType === "number" || columnType === "date") {
-    return [...TEXT_OPERATORS, ...COMPARISON_OPERATORS];
-  }
-  if (columnType === "select") return [...TEXT_OPERATORS, "isAnyOf"];
-  return TEXT_OPERATORS;
-}
+export { operatorsForColumnType } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Human-readable label for a {@link FilterOperator}, for the operator select — reads from {@link useDataGridLabels}'s `filterOperators` group. */
 export function operatorLabel(operator: FilterOperator, labels: DataGridFilterOperatorLabels): string {
@@ -41,6 +16,13 @@ export function operatorHasValue(operator: FilterOperator): boolean {
 /** Whether `operator` needs the two-input `isBetween` range layout instead of a single value input. */
 export function operatorIsBetween(operator: FilterOperator): boolean {
   return operator === "isBetween";
+}
+
+/** The empty filter value for `operator`: a list for `isAnyOf`, a from/to pair for `isBetween`, otherwise text. */
+export function emptyValueFor(operator: FilterOperator | undefined): string | [string, string] | string[] {
+  if (operator === "isAnyOf") return [];
+  if (operator === "isBetween") return ["", ""];
+  return "";
 }
 
 /** Whether `operator` takes a multi-value choice list (`isAnyOf`) rather than a single text input. */

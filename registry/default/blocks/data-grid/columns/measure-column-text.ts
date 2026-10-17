@@ -1,5 +1,5 @@
 /** Extra horizontal padding (px) added around measured text: cell's own inline padding (px-2 = 8px each side) plus a small buffer. */
-const CELL_PADDING = 20;
+export const CELL_PADDING = 20;
 
 let sharedCanvas: HTMLCanvasElement | null = null;
 

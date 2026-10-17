@@ -1,7 +1,8 @@
 import { page, userEvent } from "vitest/browser";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
-import { defineColumns, DataGrid, DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot, GRID_ATTR, gridAttrSelector } from "../data-grid";
+import { defineColumns, DataGrid, DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot } from "../data-grid";
+import { GRID_ATTR, gridAttrSelector } from "../data-grid-sdk";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply — without it the layout bug can't reproduce
 import "@/app/global.css";
 
@@ -86,7 +87,56 @@ describe("column resize", () => {
     expect(after).toBeGreaterThan(before + 40);
   });
 
-  it("double-clicking the resize handle autosizes the column to fit its widest rendered content", async () => {
+  it("a cancelled pointer (pointercancel) ends the resize without committing the layout", async () => {
+    const onColumnLayoutChange = vi.fn();
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" onColumnLayoutChange={onColumnLayoutChange} />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const handle = headerCells()[0]!.querySelector<HTMLElement>(gridAttrSelector("resizeHandle"))!;
+    const handleRect = handle.getBoundingClientRect();
+
+    await handle.dispatchEvent(
+      new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1, clientX: handleRect.left, clientY: handleRect.top }),
+    );
+    document.dispatchEvent(
+      new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: handleRect.left + 60, clientY: handleRect.top }),
+    );
+    await new Promise((r) => requestAnimationFrame(r));
+    document.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerId: 1 }));
+    await new Promise((r) => requestAnimationFrame(r));
+
+    expect(onColumnLayoutChange).not.toHaveBeenCalled();
+  });
+
+  it("a resize drag with a synthetic pointer id (capture refused) still changes the width", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const header = headerCells()[0]!;
+    const before = header.getBoundingClientRect().width;
+    const handle = header.querySelector<HTMLElement>(gridAttrSelector("resizeHandle"))!;
+    const handleRect = handle.getBoundingClientRect();
+
+    await handle.dispatchEvent(
+      new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 4242, clientX: handleRect.left, clientY: handleRect.top }),
+    );
+    document.dispatchEvent(
+      new PointerEvent("pointermove", { bubbles: true, pointerId: 4242, clientX: handleRect.left + 60, clientY: handleRect.top }),
+    );
+    await new Promise((r) => requestAnimationFrame(r));
+    document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 4242 }));
+    await new Promise((r) => requestAnimationFrame(r));
+
+    expect(headerCells()[0]!.getBoundingClientRect().width).toBeGreaterThan(before + 40);
+  });
+
+  it("double-clicking the resize handle autosizes the column to fit its widest view content", async () => {
     const wideRows = makeRows(5);
     wideRows[0]!.name = "A Very Very Long Name That Needs Room";
     await render(
@@ -103,6 +153,26 @@ describe("column resize", () => {
 
     const after = headerCells()[1]!.getBoundingClientRect().width;
     expect(after).toBeGreaterThan(before);
+  });
+
+  it("double-clicking the handle sizes the column to a long value that sits outside the mounted window", async () => {
+    const rows = makeRows(60);
+    rows[59]!.name = "A Very Very Long Name That Sits Far Below The Fold And Needs Room";
+    await render(
+      <div style={{ height: 160 }}>
+        <DataGrid data={rows} columns={columns} getRowId={(r) => r.id} className="h-[160px]" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    // row 59 is not mounted: the on-screen name values are all short ("Person i")
+    const header = headerCells()[1]!; // "name" column, width 100
+    const before = header.getBoundingClientRect().width;
+    const handle = header.querySelector<HTMLElement>(gridAttrSelector("resizeHandle"))!;
+
+    await userEvent.dblClick(handle);
+
+    // the off-window 58-char value must drive the width far past the 100px def
+    expect(headerCells()[1]!.getBoundingClientRect().width).toBeGreaterThan(before + 150);
   });
 
   it("resizable: false on a column omits its resize handle", async () => {
@@ -134,6 +204,46 @@ describe("column reorder", () => {
 
     const newOrder = headerCells().map((h) => h.getAttribute("data-column-id"));
     expect(newOrder.indexOf("id")).toBeGreaterThan(newOrder.indexOf("name"));
+  });
+
+  it("real mouse input dragging a header onto another reorders with default column selection", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" enableColumnReorder />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    await userEvent.dragAndDrop(headerCells()[0]!, headerCells()[2]!);
+
+    const newOrder = headerCells().map((h) => h.getAttribute("data-column-id"));
+    expect(newOrder.indexOf("id")).toBeGreaterThan(newOrder.indexOf("name"));
+  });
+
+  it("a cancelled pointer (pointercancel) ends the header drag without reordering", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" enableColumnReorder />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const before = headerCells().map((h) => h.getAttribute("data-column-id"));
+    const emailRect = headerCells()[2]!.getBoundingClientRect();
+    const idRect = headerCells()[0]!.getBoundingClientRect();
+
+    await headerCells()[0]!.dispatchEvent(
+      new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1, clientX: idRect.left + 2, clientY: idRect.top + idRect.height / 2 }),
+    );
+    for (let i = 0; i < 3; i++) {
+      document.dispatchEvent(
+        new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: emailRect.right - 5, clientY: emailRect.top + emailRect.height / 2 }),
+      );
+      await new Promise((r) => requestAnimationFrame(r));
+    }
+    document.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerId: 1 }));
+    await new Promise((r) => requestAnimationFrame(r));
+
+    expect(headerCells().map((h) => h.getAttribute("data-column-id"))).toEqual(before);
   });
 
   it("a plain click on a header still selects the column (no drag = no reorder)", async () => {
@@ -514,7 +624,7 @@ describe("resize handle position + hover affordance", () => {
     expect(handle).not.toHaveAttribute(GRID_ATTR.resizing);
   });
 
-  it("resize drag and dblclick autosize still work with the fixed handle position", async () => {
+  it("resize drag still works with the fixed handle position", async () => {
     await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />

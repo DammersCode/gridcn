@@ -1,0 +1,6 @@
+#!/bin/sh
+# Rejects AI attribution in commit messages (AGENTS.md: Push and commits).
+if grep -qiE 'co-authored-by|generated with|🤖' "$1"; then
+  echo "commit-msg: remove AI attribution (Co-Authored-By, 'Generated with', robot emoji) and commit again." >&2
+  exit 1
+fi

@@ -1,10 +1,11 @@
 ---
 title: I18n & RTL
-description: Every string through typed labels, with per-locale direction — English, Deutsch, and Arabic in one grid.
+description: Every string through typed labels, with per-locale direction (English, Deutsch, and Arabic in one grid).
 icon: Languages
+status: updated
 ---
 
-The demo carries three locales — English, Deutsch, and Arabic. Each locale brings its strings
+The demo carries three locales: English, Deutsch, and Arabic. Each locale brings its strings
 and its text direction: labels, column headers, and hint text translate through deep-merged
 `labels` overrides, and the Arabic locale flips the grid to RTL through the `direction` prop.
 Pick a language and the direction follows it.
@@ -30,7 +31,7 @@ Pass a partial override to `DataGridProvider` (or `DataGrid`). It deep-merges ov
 />
 ```
 
-Interpolated strings are **functions, not templates** — they receive real arguments:
+Interpolated strings are functions that receive real arguments:
 
 ```ts
 searchMatches: (current: number, total: number) => `${current}/${total}`,
@@ -46,8 +47,8 @@ and pass it to the root:
 ```
 
 The grid's inline-axis math (scroll normalization, pointer-to-cell translation, arrow-key
-mirroring, pin zones) runs through the direction utilities, so RTL is not a mirrored screenshot
-— pinning, selection, and keyboard navigation all follow the flipped axis. Set `dir` on the
+mirroring, pin zones) runs through the direction utilities, so RTL flips the interaction axis too:
+pinning, selection, and keyboard navigation follow it. Set `dir` on the
 wrapping element as well, so the surrounding page chrome matches.
 
 ## Which i18n library?
@@ -61,7 +62,9 @@ and pass it:
 const { labels } = useTranslations("grid"); // next-intl
 // or: const t = useTranslation().t; build the DeepPartialLabels from t("grid.*")
 
-<DataGridProvider labels={labelsForLocale(locale)} direction={dirForLocale(locale)} />
+<DataGridProvider labels={labelsForLocale(locale)}>
+  <DataGridRoot direction={dirForLocale(locale)} />
+</DataGridProvider>;
 ```
 
 The full merge model (which keys replace vs merge, function labels, `DeepPartialLabels`) is
@@ -70,5 +73,5 @@ on the [i18n guide](/docs/i18n), and the per-group coverage table is under
 
 ## Related
 
-- [I18n](/docs/i18n) — the `DataGridLabels` reference and a full German example
-- [Styling](/docs/examples/appearance/styling) — appearance when the theme changes instead
+- [I18n](/docs/i18n): the `DataGridLabels` reference and a full German example
+- [Styling](/docs/examples/appearance/styling): appearance when the theme changes instead

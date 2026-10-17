@@ -1,11 +1,12 @@
 ---
 title: Keybindings
-description: The data-grid-keybindings add-on — an in-app shortcuts dialog that always reflects the effective keymap, plus binding chips for your own UI.
+description: "The data-grid-keybindings add-on: an in-app shortcuts dialog that always reflects the effective keymap, plus binding chips for your own UI."
 icon: Keyboard
+status: updated
 ---
 
-`data-grid-keybindings` displays the grid's effective keymap as an in-app dialog — always
-reflecting the actual bindings of your grid, including `keymap` overrides. The core keyboard
+`data-grid-keybindings` displays the grid's effective keymap as an in-app dialog (always
+reflecting the actual bindings of your grid, including `keymap` overrides). The core keyboard
 model and the default binding table live on [Selection & keyboard](/docs/selection-keyboard#keyboard-map).
 This page covers the add-on's display surface.
 
@@ -50,13 +51,13 @@ function OrdersGrid() {
   character.
 </Callout>
 
-`mod` resolves to <kbd>Cmd</kbd> on macOS and <kbd>Ctrl</kbd> elsewhere. Copy, Cut, and Paste
-(<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+C/X/V) are native browser clipboard events, not part of the
-keymap, but the dialog lists them together for completeness.
+`mod` resolves to <kbd>Cmd</kbd> on macOS, iOS, and iPadOS, and to <kbd>Ctrl</kbd> elsewhere.
+Copy, Cut, and Paste (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+C/X/V) are native browser clipboard events,
+not part of the keymap, but the dialog lists them together for completeness.
 
 ## Binding chips
 
-`BindingChips` renders one binding string ("mod+c") as a row of `Kbd` chips ("⌘" "C") — the
+`BindingChips` renders one binding string ("mod+c") as a row of `Kbd` chips ("⌘" "C"), the
 same tokens the dialog uses, for your own tooltips or legend rows:
 
 ```tsx
@@ -65,11 +66,33 @@ import { BindingChips } from "@/components/data-grid-keybindings/data-grid-keybi
 <BindingChips binding="mod+shift+ArrowUp" />
 ```
 
-For plain text, `bindingTokens(binding)` from the same entry point returns the tokens as an array
-(`["⌘", "C"]`).
+For plain text, the core's `formatShortcut(binding)` (the `data-grid` entry point, below)
+returns the same tokens as an array (`["⌘", "C"]`).
 
-Tokens are platform-aware (`mod` → ⌘ on macOS, Ctrl elsewhere), and a binding renders as one
-keycap per token.
+Tokens are platform-aware (`mod` → ⌘ on macOS, iOS, and iPadOS, Ctrl elsewhere), and a binding
+renders as one keycap per token.
+
+## Shortcut labels for your own UI
+
+<NewBadge />
+
+The core exports the same token logic for labels outside the add-on.
+`formatShortcut(binding)` returns the display tokens for a binding string.
+`formatShortcut("mod+shift+z")` is `["⌘", "⇧", "Z"]` on macOS and `["Ctrl", "Shift", "Z"]`
+elsewhere. `isMacPlatform()` reports the platform check the labels use. Both come from the
+`data-grid` entry point:
+
+```tsx
+import { formatShortcut, isMacPlatform } from "@/components/data-grid/data-grid";
+```
+
+Modifier tokens render as glyphs (⌘ ⇧ ⌥) on macOS and iOS, and as word names (Ctrl, Shift, Alt)
+everywhere else. `ctrl` always renders as `Ctrl`, including on macOS.
+
+The platform check reads `navigator`, which does not exist during server rendering. There the
+labels render as word names. `BindingChips` renders word names on the server and switches to
+glyphs after hydration. For your own labels, compute them after mount, or pass the platform as
+the second argument: `formatShortcut(binding, isMac)`.
 
 ## Remapping
 
@@ -77,25 +100,25 @@ The keymap is a plain data table, the `keymap` prop, merged over `DEFAULT_KEYMAP
 remap or extend any binding without touching the engine:
 
 ```tsx
-<DataGridProvider {...grid} columns={columns}>
-  <DataGridRoot keymap={{ selectAll: ["mod+shift+a"] }} />
+<DataGridProvider {...grid} columns={columns} keymap={{ selectAll: ["mod+shift+a"] }}>
+  <DataGridRoot />
 </DataGridProvider>
 ```
 
-`keymap` lives on `DataGridRoot` (or the `DataGrid` wrapper), not on `DataGridProvider`. This
+`keymap` lives on `DataGridProvider` (or the `DataGrid` wrapper), not on `DataGridRoot`. This
 overrides only the actions you specify. Everything else falls back to `DEFAULT_KEYMAP`.
 
 ```tsx
 // extend the default set: keep mod+a, add a second binding on top
-<DataGridRoot keymap={{ selectAll: ["mod+a", "mod+shift+a"] }} />
+<DataGrid keymap={{ selectAll: ["mod+a", "mod+shift+a"] }} />
 
 // disable an action entirely (empty list = unbound, its keys become no-ops)
-<DataGridRoot keymap={{ selectColumn: [] }} />
+<DataGrid keymap={{ selectColumn: [] }} />
 ```
 
 A binding string is a modifier prefix plus a key. Combine the modifiers `mod`, `ctrl`,
 `shift`, and `alt` in that order (`"mod+shift+ArrowUp"`). `mod` resolves to <kbd>Cmd</kbd> on
-macOS and <kbd>Ctrl</kbd> elsewhere. `ctrl` matches the literal physical <kbd>Ctrl</kbd> on
+macOS, iOS, and iPadOS, and to <kbd>Ctrl</kbd> elsewhere. `ctrl` matches the literal physical <kbd>Ctrl</kbd> on
 every platform. Use it where <kbd>Cmd</kbd> is reserved by the OS, for example `selectColumn`
 on <kbd>Ctrl</kbd>+<kbd>Space</kbd>.
 
@@ -128,21 +151,105 @@ the `?` shortcut resolution, and the opt-in [global shortcuts](/docs/global-shor
 layer.
 When you remap an action, every surface uses the new binding.
 
-The type-to-replace trigger (`editReplace`) is remapped the same way. By default it has no
+The type-to-replace trigger (`typeToReplace`) is remapped the same way. By default it has no
 binding: any unbound printable key on the active cell dispatches it and opens the editor seeded
 with the typed character (Excel behavior). Defining it in `keymap` takes the action over
-exclusively — ANY `editReplace` binding suppresses the implicit printable-key fallback entirely,
-there is no additive mode: `keymap={{ editReplace: ["F3"] }}` means type-to-replace only happens
-on F3 (a plain edit start), and `keymap={{ editReplace: [] }}` disables it entirely. A printable
-key bound to `editReplace` (e.g. `"a"`) starts the edit seeded with that character, Excel-style.
+exclusively. ANY `typeToReplace` binding suppresses the implicit printable-key fallback entirely,
+there is no additive mode: `keymap={{ typeToReplace: ["F3"] }}` means type-to-replace only happens
+on F3 (a plain edit start), and `keymap={{ typeToReplace: [] }}` disables it entirely. A printable
+key bound to `typeToReplace` (e.g. `"a"`) starts the edit seeded with that character.
 
 Action labels in the dialog (and the per-`GridAction` label map) come from
-`labels.keybindings` — see [Internationalization: coverage by group](/docs/i18n#coverage-by-group).
+`labels.keybindings` (see [Internationalization: coverage by group](/docs/i18n#coverage-by-group)).
+
+## Custom commands
+
+<NewBadge />
+
+A `keymap` binding that names no built-in action resolves to the provider's `commands` prop.
+Each entry is a `GridCommand` with `run`, an optional `when` gate, an optional `scope`, and
+optional `label`/`group` for the dialog:
+
+```tsx
+<DataGridProvider
+  {...grid}
+  columns={columns}
+  keymap={{ saveRow: ["mod+s"] }}
+  commands={{
+    saveRow: {
+      run: (ctx) => save(ctx.row),
+      when: (ctx) => ctx.cell !== null,
+      label: "Save row",
+      group: "editing",
+    },
+  }}
+>
+  <DataGridRoot />
+</DataGridProvider>
+```
+
+`GridCommand` has these members:
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `run` | `(ctx: GridCommandCtx) => void` | required | Runs when a bound key fires. |
+| `when` | `(ctx: GridCommandCtx) => boolean` | none | Return `false` to ignore the key entirely. |
+| `scope` | `"grid" \| "editing" \| "always"` | `"grid"` | When the command dispatches. See below. |
+| `label` | `string` | humanized name | The command's row label in the dialog. |
+| `group` | `CommandGroup` | `"other"` | The command's section in the dialog. |
+
+`run` and `when` receive a `GridCommandCtx`:
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `api` | `DataGridApi` | An equivalent handle with the methods `useDataGridApi` returns. |
+| `cell` | `CellRef \| null` | The active cell as a stable `{ rowId, columnId }` ref, or `null`. |
+| `viewRowIndex` | `number \| null` | The view row index of the active cell, or `null`. |
+| `viewColumnIndex` | `number \| null` | The view column index of the active cell, or `null`. |
+| `row` | `TData \| undefined` | The data row of the active cell, or `undefined`. |
+| `readOnly` | `boolean` | The grid's effective `readOnly` flag. |
+
+On an unloaded row of a lazy grid, `cell` is a placeholder ref. `api` cannot resolve it.
+
+`scope` selects when the command dispatches:
+
+- `"grid"` dispatches while no edit session is open.
+- `"editing"` dispatches while an edit session is open. This includes editors without a text
+  input, such as the select list and the date calendar.
+- `"always"` dispatches in both cases.
+
+An `"editing"` command never takes over a grid binding. While no edit session is open, the grid
+keeps its built-in bindings and type-to-edit on that key.
+
+An `"editing"` command bound to Enter, Escape, or Tab never runs from the built-in editors. The
+editor commits or cancels on that key first.
+
+Other rules:
+
+- A name that shadows a built-in action (`selectAll`, for example) wins over it. Dev mode
+  warns once.
+- A key combo bound to two or more actions resolves to one action. The most specific binding
+  wins. On a tie, a `keymap` binding beats a default binding. A `keymap` entry that repeats a
+  default binding counts as the default. Dev mode warns once per shared combo.
+- A bound name with neither a built-in handler nor a `commands` entry is a no-op. Dev mode
+  warns once.
+
+Name the action by declaration-merging the `GridActions` interface (the same path as
+`GridCellTypes`): the merged name becomes a valid `GridAction`, so your IDE lists it in
+`keymap`, and `commands` accepts it as a plain key:
+
+```tsx
+declare module "@/components/data-grid/types" {
+  interface GridActions {
+    saveRow: true;
+  }
+}
+```
 
 ## Related
 
-- [Selection & keyboard](/docs/selection-keyboard) — the selection model and the default
+- [Selection & keyboard](/docs/selection-keyboard): the selection model and the default
   keymap table
-- [Two-stage Ctrl+A](/docs/selection-keyboard#two-stage-ctrla) — the select-all nuance
-- [Global shortcuts](/docs/global-shortcuts) — the opt-in layer that also follows the
+- [Two-stage Ctrl+A](/docs/selection-keyboard#two-stage-ctrla): the select-all nuance
+- [Global shortcuts](/docs/global-shortcuts): the opt-in layer that also follows the
   remapped undo and redo bindings outside the grid

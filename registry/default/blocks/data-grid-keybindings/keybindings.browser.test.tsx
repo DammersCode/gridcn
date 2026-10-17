@@ -8,6 +8,7 @@ import {
   DataGridHeader,
   DataGridBody,
   defineColumns,
+  type Keymap,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridKeybindingsDialog } from "./keybindings-dialog";
 import { DataGridKeybindingsShortcut } from "./keybindings-shortcut";
@@ -80,6 +81,32 @@ describe("DataGridKeybindingsShortcut + DataGridKeybindingsDialog", () => {
     const copyRow = document.querySelector('[data-keybindings-action="Copy"]');
     expect(copyRow?.textContent).toContain("Copy");
     expect(copyRow?.textContent).toContain("C");
+  });
+
+  it("lists a custom command with its label and group", async () => {
+    // a real consumer augments GridActions via declaration merging; the repo's tsc program can't
+    // host that (it would break the exhaustive GridAction test), so the demo binding is asserted
+    const keymap = { saveRow: ["mod+s"] } as Keymap;
+    await render(
+      <DataGridProvider
+        data={ROWS}
+        columns={columns}
+        getRowId={(r) => r.id}
+        commands={{ saveRow: { label: "Save row", group: "editing", run: () => {} } }}
+        keymap={keymap}
+      >
+        <DataGridKeybindingsDialog open />
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+
+    const row = document.querySelector('[data-keybindings-action="saveRow"]');
+    expect(row?.textContent).toContain("Save row");
+    expect(row?.textContent).toContain("S");
+    expect(row?.closest('[data-keybindings-category="editing"]')).not.toBeNull();
   });
 
   it("Escape closes the dialog", async () => {

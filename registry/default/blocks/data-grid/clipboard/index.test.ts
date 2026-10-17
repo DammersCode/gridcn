@@ -1,10 +1,6 @@
 import { describe, it, expect } from "vitest";
-import {
-  serializeCells,
-  parseClipboardHtml,
-  parseClipboardText,
-  parseClipboard,
-} from ".";
+import { serializeCells, sanitizeFormulaCell } from "./serialize-cells";
+import { parseClipboardHtml, parseClipboardText, parseClipboard } from "./parse-clipboard";
 
 describe("serializeCells", () => {
   it("joins rows with \\n and cells with \\t", () => {
@@ -68,6 +64,54 @@ describe("serializeCells", () => {
     const { html } = serializeCells([["c d"]]);
     expect(html).toContain("<td data-gridcn-raw=\"c d\">c d</td>");
   });
+
+  it("keeps the text payload byte-identical by default (the grid's own copy/paste round-trip)", () => {
+    expect(serializeCells([["=HYPERLINK()", "-5"]]).text).toBe('=HYPERLINK()\t-5');
+  });
+
+  it("prefixes formula-like cells with a single quote when sanitizeFormulas is on", () => {
+    const { text } = serializeCells([["=HYPERLINK()", "-5", "-5abc", "\tx"]], { sanitizeFormulas: true });
+    // the tab field is TSV-quoted by quoteTsvField
+    expect(text).toBe("'=HYPERLINK()\t-5\t'-5abc\t\"'\tx\"");
+  });
+});
+
+describe("serializeCells with sanitizeFormulas", () => {
+  it("neutralizes the HTML cell text too, and a grid paste still reads back the raw value", () => {
+    const { html } = serializeCells([['=HYPERLINK("x")', "+A1", "-5"]], { sanitizeFormulas: true });
+    const cells = new DOMParser().parseFromString(html, "text/html").querySelectorAll("td");
+
+    expect(Array.from(cells, (cell) => cell.textContent)).toEqual([`'=HYPERLINK("x")`, "'+A1", "-5"]);
+    expect(parseClipboardHtml(html)).toEqual([['=HYPERLINK("x")', "+A1", "-5"]]);
+  });
+
+  it("still rejects a raw attribute whose cell text is neither the value nor its sanitized form", () => {
+    const html = `<table><tbody><tr><td data-gridcn-raw="=EVIL()">'=SAFE()</td></tr></tbody></table>`;
+    expect(parseClipboardHtml(html)).toEqual([["'=SAFE()"]]);
+  });
+});
+
+describe("sanitizeFormulaCell", () => {
+  it("prefixes a leading formula character with a single quote", () => {
+    expect(sanitizeFormulaCell('=HYPERLINK("http://x")')).toBe("'=HYPERLINK(\"http://x\")");
+    expect(sanitizeFormulaCell("@SUM(A1)")).toBe("'@SUM(A1)");
+    expect(sanitizeFormulaCell("-5abc")).toBe("'-5abc");
+    expect(sanitizeFormulaCell("\tx")).toBe("'" + "\tx");
+    expect(sanitizeFormulaCell("\rx")).toBe("'" + "\rx");
+  });
+
+  it("prefixes a leading plus, which Excel also runs as a formula", () => {
+    expect(sanitizeFormulaCell('+HYPERLINK("x")')).toBe(`'+HYPERLINK("x")`);
+    expect(sanitizeFormulaCell("+1+cmd|' /C calc'!A0")).toBe("'+1+cmd|' /C calc'!A0");
+  });
+
+  it("leaves plain numbers and other text untouched", () => {
+    expect(sanitizeFormulaCell("-5")).toBe("-5");
+    expect(sanitizeFormulaCell("+5")).toBe("+5");
+    expect(sanitizeFormulaCell("1.5")).toBe("1.5");
+    expect(sanitizeFormulaCell("text")).toBe("text");
+    expect(sanitizeFormulaCell("")).toBe("");
+  });
 });
 
 describe("parseClipboardHtml", () => {
@@ -75,10 +119,38 @@ describe("parseClipboardHtml", () => {
     expect(parseClipboardHtml("<div>no table here</div>")).toBeNull();
   });
 
-  it("prefers data-gridcn-raw over textContent", () => {
+  it("ignores a data-gridcn-raw that disagrees with the node text", () => {
     const html =
       '<table><tbody><tr><td data-gridcn-raw="raw-value">Display Value</td></tr></tbody></table>';
-    expect(parseClipboardHtml(html)).toEqual([["raw-value"]]);
+    expect(parseClipboardHtml(html)).toEqual([["Display Value"]]);
+  });
+
+  it("ignores a data-gridcn-raw hiding a formula-looking value behind plain text", () => {
+    const html = '<table><tr><td data-gridcn-raw="=HYPERLINK(&quot;http://x&quot;)">1</td></tr></table>';
+    expect(parseClipboardHtml(html)).toEqual([["1"]]);
+  });
+
+  it("trusts a data-gridcn-raw that is the grid's own serialization (round-trip)", () => {
+    const { html } = serializeCells([["a\nb"], ["a\tb"], ["c  d"], ["plain"]]);
+    expect(parseClipboardHtml(html)).toEqual([
+      ["a\nb"],
+      ["a\tb"],
+      ["c  d"],
+      ["plain"],
+    ]);
+  });
+
+  it.each([
+    ["a non-breaking space", "a\u00a0b"],
+    ["a lone carriage return", "a\rb"],
+    ["a CRLF pair", "a\r\nb"],
+    ["a tab next to a non-breaking space", "a\t\u00a0b"],
+    ["a formula-looking value with a carriage return", "=1\r+2"],
+  ])("round-trips %s through the grid's own serialization", (_name, value) => {
+    const plain = serializeCells([[value]]).html;
+    expect(parseClipboardHtml(plain)).toEqual([[value]]);
+    const sanitized = serializeCells([[value]], { sanitizeFormulas: true }).html;
+    expect(parseClipboardHtml(sanitized)).toEqual([[value]]);
   });
 
   it("falls back to textContent with <br> as newline when no data attrs (real Excel paste)", () => {
@@ -179,9 +251,21 @@ describe("parseClipboardText", () => {
   });
 });
 
+describe("parseClipboard text bound", () => {
+  it("returns no cells for a text payload far larger than maxCells cells can hold", () => {
+    const giantField = "x".repeat(2 * 1024 * 1024);
+    expect(parseClipboard({ text: giantField }, 10)).toEqual([]);
+  });
+
+  it("parses a long cell below the bound", () => {
+    const longField = "x".repeat(50_000);
+    expect(parseClipboard({ text: `${longField}\tb` }, 10)).toEqual([[longField, "b"]]);
+  });
+});
+
 describe("parseClipboard", () => {
   it("prefers html when it yields a table", () => {
-    const html = '<table><tr><td data-gridcn-raw="from-html">x</td></tr></table>';
+    const { html } = serializeCells([["from-html"]]);
     const text = "from-text";
     expect(parseClipboard({ html, text })).toEqual([["from-html"]]);
   });

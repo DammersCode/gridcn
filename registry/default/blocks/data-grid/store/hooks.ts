@@ -1,29 +1,36 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type {
-  CellCoord,
+  CellRef,
+  ViewCoord,
   CellType,
   FilterJoinOperator,
   FilterSpec,
+  GridCommand,
   GridSelection,
   HeaderClickBehavior,
   Keymap,
   RowMarkersMode,
   SortSpec,
 } from "../types";
-import type { OverlayPlugin } from "../overlays";
-import type { RowBandsSpec } from "../layout-context";
 import type { DataGridLabels } from "../labels";
 import type { SearchMatch } from "../sort-filter";
 import { isSelectionEmpty, selectionContainsCell } from "../selection";
 import { colRangesEqual, selectedColRangesForRow, type ColRange } from "../selection/selected-col-ranges-for-row";
-import { cellErrorKey, flashCellKey, getRangeValues, searchMatchKey } from "./compute";
+import { cellErrorKey, flashCellKey, getRangeValues, holeRowId, rowIdAtViewRow, searchMatchKey } from "./compute";
+import { resolveRefOrWarn } from "./data-write";
+import { getInternalActions } from "./internal-actions";
 import { useDataGridStore, useDataGridStoreApi } from "./provider";
-import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridRowCellState, DataGridStoreState } from "./types";
+import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridInternalActions, DataGridRowCellState, DataGridStoreState, ResolvedPlugins } from "./types";
 
 /** The stable actions object for the current grid; never changes identity, so this hook never re-renders. */
 export function useDataGridActions(): DataGridActions {
   return useDataGridStore((s) => s.actions);
+}
+
+/** @internal {@link useDataGridActions} plus the `_`-prefixed actions the core wiring calls — one stable object (the public table merged with the store-private internals table). */
+export function useDataGridInternalActions(): DataGridInternalActions & DataGridActions {
+  return getInternalActions(useDataGridStoreApi());
 }
 
 /**
@@ -42,45 +49,53 @@ export function useDataGridCellTypes(): Record<string, CellType> {
 }
 
 /**
- * Imperative scroll-into-view for a view-space cell coord, honoring pinned bands — the same
- * mechanism keyboard nav uses internally, exposed as a public extension point for add-ons that
- * move the active cell from outside `DataGridRoot`'s subtree (e.g. `data-grid-toolbar`'s
- * search next/prev). No-op before `DataGridRoot` mounts or after it unmounts.
+ * Imperative scroll-into-view for the cell named by a stable {@link CellRef}, honoring pinned
+ * bands — the same mechanism keyboard nav uses internally, exposed as a public extension point for
+ * add-ons that move the active cell from outside `DataGridRoot`'s subtree. No-op before
+ * `DataGridRoot` mounts or after it unmounts, and a no-op (dev-warned) when the ref no longer
+ * resolves.
  */
-export function useDataGridScrollToCell(): (coord: CellCoord) => void {
+export function useDataGridScrollToCell(): (ref: CellRef) => void {
   const storeApi = useDataGridStoreApi();
-  return useCallback((coord: CellCoord) => storeApi.getState().scrollToCellImpl?.(coord), [storeApi]);
+  return useCallback(
+    (ref: CellRef) => {
+      const s = storeApi.getState();
+      const coord = resolveRefOrWarn(s.dataWrite, s, ref);
+      if (coord) s.scrollToCellImpl?.(coord);
+    },
+    [storeApi],
+  );
+}
+
+/** View-index variant of {@link useDataGridScrollToCell} for callers that hold a {@link ViewCoord}. */
+export function useDataGridScrollToCellAt(): (coord: ViewCoord) => void {
+  const storeApi = useDataGridStoreApi();
+  return useCallback((coord: ViewCoord) => storeApi.getState().scrollToCellImpl?.(coord), [storeApi]);
 }
 
 /**
- * Fill-handle keymap handlers registered by the `data-grid-fill` add-on's tracker component (see
- * `fillHandlers`'s doc comment) — read by `DataGridRoot` itself on every render and forwarded to
- * `useGridInteraction`'s optional `fillDown`/`fillRight`/`cancelFillDrag` params. `null` before the
- * add-on's tracker mounts (or when it's absent entirely), matching every other registration slot's
-  * no-op-by-default contract. Not part of the public API; consumers should not import it.
-  * @internal
-  */
-export function useDataGridFillHandlers(): DataGridStoreState["fillHandlers"] {
-  return useDataGridStore((s) => s.fillHandlers);
-}
-
-/**
- * Mirrors the mounted `DataGridRoot`'s `readOnly` prop — for add-on
- * mutation surfaces outside the root's subtree (e.g. the context-menu add-on) that need to hide or
- * disable their own actions on a read-only grid. `false` before mount/after unmount.
+ * The grid-wide `readOnly` flag (the provider's `readOnly` prop) — for add-on mutation surfaces
+ * outside the root's subtree (e.g. the context-menu add-on) that need to hide or disable their own
+ * actions on a read-only grid. Seeded from the provider's props, so it is live from the first
+ * render, SSR included.
  */
 export function useDataGridReadOnly(): boolean {
   return useDataGridStore((s) => s.readOnly);
 }
 
 /**
- * The mounted `DataGridRoot`'s effective keymap — `DEFAULT_KEYMAP` merged over with its `keymap`
- * prop — the single source of truth for every bound action (backs the `data-grid-keybindings`
- * add-on's dialog so it never hardcodes a shortcut list). `DEFAULT_KEYMAP`
- * before mount/after unmount.
+ * The grid's effective keymap — `DEFAULT_KEYMAP` merged with the plugins' keymaps, then the
+ * provider's `keymap` prop over everything — the single source of truth for every bound action
+ * (backs the `data-grid-keybindings` add-on's dialog so it never hardcodes a shortcut list).
+ * Seeded from the provider's props, so it is live from the first render, SSR included.
  */
 export function useDataGridKeymap(): Keymap {
   return useDataGridStore((s) => s.keymap);
+}
+
+/** The grid's effective commands — the consumer's `commands` merged over the plugins' commands — `null` when none; backs the keybindings dialog's label/group overrides. */
+export function useDataGridCommands(): Record<string, GridCommand> | null {
+  return useDataGridStore((s) => s.commands);
 }
 
 /**
@@ -94,18 +109,18 @@ export function useDataGridLabels(): DataGridLabels {
 }
 
 /** The currently active (focused) cell, or null when nothing is active. */
-export function useDataGridActiveCell(): CellCoord | null {
+export function useDataGridActiveCell(): ViewCoord | null {
   return useDataGridStore((s) => s.activeCell);
 }
 
 /**
  * Whether ANY cell is currently active — a primitive boolean, unlike {@link useDataGridActiveCell}'s
- * `CellCoord | null`, so it only re-renders its subscriber on the null <-> non-null transition (once,
+ * `ViewCoord | null`, so it only re-renders its subscriber on the null <-> non-null transition (once,
  * on first activation), never on every subsequent row/column move. `DataGridRoot` uses this for its
  * roving-tabindex bootstrap (tabIndex 0 before any cell is active, -1 after): subscribing to the full
  * `activeCell` there instead would re-render the root (and thus every context consumer, since its
  * context value is a fresh object literal every render) on every single cell move, defeating the
- * "only windowedColumns/activeColumn changes re-render the tree" invariant the perf suite checks.
+ * "only renderedColumns/activeColumn changes re-render the tree" invariant the perf suite checks.
  */
 export function useDataGridHasActiveCell(): boolean {
   return useDataGridStore((s) => s.activeCell !== null);
@@ -122,7 +137,7 @@ export function useDataGridHasActiveCell(): boolean {
  * not part of the public API; consumers should not import it.
  * @internal
  */
-export function getFocusCell(state: DataGridStoreState): CellCoord | null {
+export function getFocusCell(state: DataGridStoreState): ViewCoord | null {
   const current = state.selection.current;
   if (!current) return state.activeCell;
   const { cell, range } = current;
@@ -147,7 +162,7 @@ export function useDataGridSelection(): GridSelection {
 }
 
 /**
- * Standalone escape hatch for reading a grid's current selection values OUTSIDE an
+ * Standalone override for reading a grid's current selection values OUTSIDE an
  * `onSelectionChange` fire — e.g. a toolbar "copy as JSON" button that needs the live values on
  * click, not from the last change notification. Returns a stable callback (identical across
  * renders); calling it reads the store fresh each time, same lazy-per-call, primary-range-only
@@ -163,34 +178,37 @@ export function useDataGridGetSelectionValues(): () => unknown[][] {
     return range ? getRangeValues(s, range) : [];
   }, [storeApi]);
 }
+/**
+ * The resolved row-band segments (every plugin's `rowBands`, in plugin array order); consumed
+ * ONLY by {@link DataGridRoot} — reads the segment lengths for its height/aria-rowcount math and
+ * calls each segment's `render`. Not part of the public API; consumers should not import it.
+ * @internal
+ */
+export function useDataGridPluginBands(): ResolvedPlugins["bands"] {
+  return useDataGridStore((s) => s.plugins.bands);
+}
 
 /**
- * Registered overlay plugins; consumed ONLY by {@link DataGridOverlays} — never by row/cell
+ * The resolved plugin mounts (the `Mount` components); consumed ONLY by {@link DataGridRoot},
+ * which renders them after its children. Not part of the public API; consumers should not import it.
+ * @internal
+ */
+export function useDataGridPluginMounts(): ResolvedPlugins["mounts"] {
+  return useDataGridStore((s) => s.plugins.mounts);
+}
+
+/**
+ * The resolved overlay components; consumed ONLY by {@link DataGridOverlays} — never by row/cell
  * subscriptions. Not part of the public API; consumers should not import it.
  * @internal
  */
-export function useDataGridOverlayPlugins(): readonly OverlayPlugin[] {
-  return useDataGridStore(useShallow((s) => s.overlayPlugins));
+export function useDataGridPluginOverlays(): ResolvedPlugins["overlays"] {
+  return useDataGridStore((s) => s.plugins.overlays);
 }
 
-/**
- * Registered row-bands spec; consumed ONLY by {@link DataGridRoot} — reads `topRows`/`bottomRows.length`
- * for its own height/aria-rowcount math and calls `renderBand`. Not part of the public API;
- * consumers should not import it.
- * @internal
- */
-export function useDataGridRowBands(): RowBandsSpec {
-  return useDataGridStore((s) => s.rowBands);
-}
-
-/** The in-progress cell edit, or null when no cell is being edited. */
-export function useDataGridEditing(): { coord: CellCoord; initialText?: string } | null {
+/** The in-progress cell edit with the `rowId`/`columnId` it is anchored to, or null when no cell is being edited. */
+export function useDataGridEditing(): DataGridStoreState["editing"] {
   return useDataGridStore((s) => s.editing);
-}
-
-/** The transient rejection message from the last failed commitCellEdit, or null. */
-export function useDataGridEditingError(): string | null {
-  return useDataGridStore((s) => s.editingError);
 }
 
 /**
@@ -202,21 +220,6 @@ export function useDataGridEditingError(): string | null {
  */
 export function useDataGridCellErrors(): ReadonlyMap<string, string> {
   return useDataGridStore((s) => s.cellErrors);
-}
-
-/**
- * Whether `rowId` has ANY cell error, for a row-level indicator (e.g. a row-marker badge) that
- * doesn't need atomic per-cell scoping. Probes one exact key per column rather than prefix-matching
- * the map: both ids may contain colons, so `"a"` prefix-matches row `"a:b"`'s keys (see #85).
- */
-export function useDataGridRowHasError(rowId: string | undefined): boolean {
-  return useDataGridStore((s) => {
-    if (rowId === undefined || s.cellErrors.size === 0) return false;
-    for (const column of s.columns) {
-      if (s.cellErrors.has(cellErrorKey(rowId, column.id))) return true;
-    }
-    return false;
-  });
 }
 
 /** The sorted/filtered/searched row-index view, in display order. */
@@ -316,7 +319,7 @@ export function useDataGridSearchText(): string {
 }
 
 /**
- * Every cell matching the current `searchText`, in view-space row-major order, capped at 1000 hits.
+ * Every cell matching the current `searchText`, in view-index row-major order, capped at 1000 hits.
  * Reads the store's precomputed slice — `setSearch`/`setSorts`/`setFilters`/`_syncProps` are the
  * only places that (re)run `findSearchMatches`, exactly once each, never per-subscriber.
  */
@@ -329,27 +332,27 @@ export function useDataGridSearchCapped(): boolean {
   return useDataGridStore((s) => s.searchMatchesCapped);
 }
 
-/** Whether `coord` (view-space) is a search-match highlight target — an O(1) Set lookup, never a per-cell scan ({@link DataGridCell}'s `data-search-match`). */
-export function useDataGridIsSearchMatch(coord: CellCoord): boolean {
+/** Whether `coord` (view-index) is a search-match highlight target — an O(1) Set lookup, never a per-cell scan ({@link DataGridCell}'s `data-search-match`). */
+export function useDataGridIsSearchMatch(coord: ViewCoord): boolean {
   const column = useDataGridStore((s) => s.visibleColumns[coord.col]);
   return useDataGridStore((s) => (column ? s.searchMatchSet.has(searchMatchKey(coord.row, column.id)) : false));
 }
 
-/** The data row at a given view (display) row index; re-renders only when that row's identity changes. */
-export function useDataGridRow(viewRowIndex: number): unknown {
+/** The data row at a given view (display) row index; re-renders only when that row's identity changes. Annotate `TData` with the grid's row type (or let the return type infer it). */
+export function useDataGridRow<TData = unknown>(viewRowIndex: number): TData | undefined {
   return useDataGridStore((s) => {
     const dataRowIndex = s.viewIndex[viewRowIndex];
     return dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
-  });
+  }) as TData | undefined;
 }
 
-/** Stable `getRowId` result for the row at a given view row index; used as the React key so rows survive sort/filter/insert/delete. */
+/** Stable `getRowId` result for the row at a given view row index — a hole in `data` resolves to the index-derived placeholder id. Used as the React key so rows survive sort/filter/insert/delete. */
 export function useDataGridRowId(viewRowIndex: number): string | undefined {
   return useDataGridStore((s) => {
     const dataRowIndex = s.viewIndex[viewRowIndex];
     if (dataRowIndex === undefined) return undefined;
     const row = s.data[dataRowIndex];
-    return row === undefined ? undefined : s.getRowId(row, dataRowIndex);
+    return row === undefined ? holeRowId(dataRowIndex) : s.getRowId(row, dataRowIndex);
   });
 }
 
@@ -361,41 +364,42 @@ export function useDataGridRowIds(viewRowIndices: readonly number[]): (string | 
         const dataRowIndex = s.viewIndex[viewRowIndex];
         if (dataRowIndex === undefined) return undefined;
         const row = s.data[dataRowIndex];
-        return row === undefined ? undefined : s.getRowId(row, dataRowIndex);
+        return row === undefined ? holeRowId(dataRowIndex) : s.getRowId(row, dataRowIndex);
       }),
     ),
   );
 }
 
+type RowIdToViewRowEntry = { version: number; getRowId: DataGridStoreState["getRowId"]; map: ReadonlyMap<string, number> };
+
+// keyed on the viewIndex array so one map survives every store write that keeps the view and row identity
+const rowIdToViewRowCache = new WeakMap<readonly number[], RowIdToViewRowEntry>();
+
+function selectRowIdToViewRow(s: DataGridStoreState): ReadonlyMap<string, number> {
+  const cached = rowIdToViewRowCache.get(s.viewIndex);
+  if (cached && cached.version === s.rowIdentityVersion && cached.getRowId === s.getRowId) return cached.map;
+  const map = new Map<string, number>();
+  for (let viewRow = 0; viewRow < s.viewIndex.length; viewRow++) {
+    const rowId = rowIdAtViewRow(s, viewRow);
+    if (rowId !== undefined) map.set(rowId, viewRow);
+  }
+  rowIdToViewRowCache.set(s.viewIndex, { version: s.rowIdentityVersion, getRowId: s.getRowId, map });
+  return map;
+}
+
 /**
- * Full `rowId -> view row index` map for the current view (2026-08-02 optimization audit,
- * "rowId-native presence adapter" — confirmed medium: the docs' DIY mapping built this with
- * `useDataGridRowIds` under `useShallow`, which re-runs its full-array `.map()` PLUS an n-element
- * `shallow()` compare on every store write, not just view changes). Subscribes to `viewIndex`,
- * `data`, and `getRowId` identity ONLY — three atomic primitive-reference reads, cheap on every
- * store change — and builds the Map lazily in `useMemo` keyed on those identities, so the O(n)
- * build cost is paid once per actual view change (sort/filter/insert/delete) or `getRowId` swap,
- * never per keystroke, selection step, or streaming tick. `data` is in the memo key (not just
- * `viewIndex`) because `getRowId` reads row objects out of it; a `data` replacement with the same
- * `viewIndex` (e.g. a value-only edit) must still rebuild since row identities may have changed.
- * Consumers needing view -> rowId (the other direction) already have
- * {@link useDataGridRowId}/{@link useDataGridRowIds}.
+ * Full `rowId -> view row index` map for the current view. The map is cached per `viewIndex`
+ * array, `rowIdentityVersion`, and `getRowId` identity, so the O(n) build cost is paid once per
+ * actual row-identity change (sort/filter/insert/delete/reorder or a consumer `data`
+ * replacement) or `getRowId` swap, never per streaming tick: a value-only write replaces `data`
+ * (immutability) without moving any row, so the map keeps its reference and the host does not
+ * re-render. Relies on `getRowId` returning stable ids across value-only writes (ids are
+ * identity, not content) — the same invariant the store's rowId index cache holds. Consumers
+ * needing view -> rowId (the other direction) already have {@link useDataGridRowId}/
+ * {@link useDataGridRowIds}.
  */
 export function useDataGridRowIdToViewRow(): ReadonlyMap<string, number> {
-  const viewIndex = useDataGridStore((s) => s.viewIndex);
-  const data = useDataGridStore((s) => s.data);
-  const getRowId = useDataGridStore((s) => s.getRowId);
-  return useMemo(() => {
-    const map = new Map<string, number>();
-    for (let viewRow = 0; viewRow < viewIndex.length; viewRow++) {
-      const dataRowIndex = viewIndex[viewRow];
-      if (dataRowIndex === undefined) continue;
-      const row = data[dataRowIndex];
-      if (row === undefined) continue;
-      map.set(getRowId(row, dataRowIndex), viewRow);
-    }
-    return map;
-  }, [viewIndex, data, getRowId]);
+  return useDataGridStore(selectRowIdToViewRow);
 }
 
 /** Total number of rows currently in view (after filter/search). */
@@ -411,7 +415,7 @@ function isRowInRangeChannel(selection: GridSelection, viewRowIndex: number): bo
   return inRect(range) || rangeStack.some(inRect);
 }
 
-/** Whether the row at a given view row index is selected via any selection channel (selection state is view-space, so no viewIndex mapping here). */
+/** Whether the row at a given view row index is selected via any selection channel (selection state is view-index, so no viewIndex mapping here). */
 export function useDataGridIsRowSelected(viewRowIndex: number): boolean {
   return useDataGridStore((s) => s.selection.rows.hasIndex(viewRowIndex) || isRowInRangeChannel(s.selection, viewRowIndex));
 }
@@ -426,33 +430,13 @@ export function useDataGridIsRowCellSelected(viewRowIndex: number): boolean {
   return useDataGridStore((s) => s.selection.columns.length > 0 || isRowInRangeChannel(s.selection, viewRowIndex));
 }
 
-/** Whether `coord` is the active (focused) cell — an atomic per-cell subscription so an active-cell move re-renders only the two affected cells, never every cell or any row. */
-export function useDataGridIsCellActive(coord: CellCoord): boolean {
-  return useDataGridStore((s) => s.activeCell !== null && s.activeCell.col === coord.col && s.activeCell.row === coord.row);
-}
-
-/** Whether `coord` is the cell currently being edited — same atomic-subscription rationale as {@link useDataGridIsCellActive}. */
-export function useDataGridIsCellEditing(coord: CellCoord): boolean {
-  return useDataGridStore((s) => s.editing !== null && s.editing.coord.col === coord.col && s.editing.coord.row === coord.row);
-}
-
-/** The initial-text seed for `coord`'s edit session (type-to-replace), or undefined; null when `coord` isn't the editing cell. Atomic per-cell, like {@link useDataGridIsCellEditing}. */
-export function useDataGridCellInitialText(coord: CellCoord): string | undefined {
-  return useDataGridStore((s) =>
-    s.editing !== null && s.editing.coord.col === coord.col && s.editing.coord.row === coord.row
-      ? s.editing.initialText
-      : undefined,
-  );
-}
-
 /**
  * `editingError` scoped to whether `coord` is the currently-editing cell — null for every other
- * cell. Deliberately NOT a plain `useDataGridEditingError()` read inside `DataGridCell`: that would
- * select the same raw string for every mounted cell, so a rejection would re-render the whole
- * visible window instead of only the editing cell — same atomic-subscription rationale as
- * {@link useDataGridIsCellEditing}/{@link useDataGridCellInitialText}.
+ * cell. A plain store read of `s.editingError` inside `DataGridCell` would select the same raw
+ * string for every mounted cell, so a rejection would re-render the whole visible window instead
+ * of only the editing cell.
  */
-export function useDataGridCellEditingError(coord: CellCoord): string | null {
+export function useDataGridCellEditingError(coord: ViewCoord): string | null {
   return useDataGridStore((s) =>
     s.editing !== null && s.editing.coord.col === coord.col && s.editing.coord.row === coord.row ? s.editingError : null,
   );
@@ -464,7 +448,7 @@ export function useDataGridCellEditingError(coord: CellCoord): string | null {
  * atomic-subscription rationale as {@link useDataGridCellEditingError}: a rejection re-renders the
  * editing cell only, never the whole visible window.
  */
-export function useDataGridCellRejectionCount(coord: CellCoord): number {
+export function useDataGridCellRejectionCount(coord: ViewCoord): number {
   return useDataGridStore((s) =>
     s.editing !== null && s.editing.coord.col === coord.col && s.editing.coord.row === coord.row
       ? s.editingRejectionCount
@@ -478,11 +462,11 @@ export function useDataGridCellRejectionCount(coord: CellCoord): number {
  * The 5-tuple object is genuinely fresh per relevant state change, so `useShallow` is the correct
  * tool here: it still bails when none of the 5 values changed.
  */
-export function useDataGridCellState(coord: CellCoord): DataGridCellState {
+export function useDataGridCellState(coord: ViewCoord): DataGridCellState {
   return useDataGridStore(
     useShallow((s) => {
       const isActive = s.activeCell !== null && s.activeCell.col === coord.col && s.activeCell.row === coord.row;
-      const isSelected = isActive || selectionContainsCell(s.selection, coord, s.viewIndex.length, s.visibleColumns.length);
+      const isSelected = isActive || selectionContainsCell(s.selection, coord);
       const editing = s.editing;
       const editingHere = editing !== null && editing.coord.col === coord.col && editing.coord.row === coord.row;
       const column = s.visibleColumns[coord.col];
@@ -493,6 +477,7 @@ export function useDataGridCellState(coord: CellCoord): DataGridCellState {
         isSelected,
         isEditing: editingHere,
         initialText: editingHere ? editing.initialText : undefined,
+        editSession: editingHere ? editing.session : undefined,
         isSearchMatch,
         cellError,
       };
@@ -542,11 +527,13 @@ function rowErrorCols(s: DataGridStoreState, viewRow: number): ReadonlyMap<numbe
 /** This row's currently-flashing columns (view-col index set), or null when no flash key covers the row — same null-not-empty-Set convention as `searchMatchRows`. */
 function flashingColsForRow(s: DataGridStoreState, viewRow: number): ReadonlySet<number> | null {
   if (s.flashingCells.size === 0) return null;
+  const rowId = rowIdAtViewRow(s, viewRow);
+  if (rowId === undefined) return null;
   let cols: Set<number> | null = null;
   for (let col = 0; col < s.visibleColumns.length; col++) {
     const column = s.visibleColumns[col];
     if (!column) continue;
-    if (!s.flashingCells.has(flashCellKey(viewRow, column.id))) continue;
+    if (!s.flashingCells.has(flashCellKey(rowId, column.id))) continue;
     if (!cols) cols = new Set();
     cols.add(col);
   }
@@ -559,9 +546,9 @@ function computeRowCellState(s: DataGridStoreState, viewRow: number): DataGridRo
   const editingHere = editing !== null && editing.coord.row === viewRow;
   const editingCol = editingHere ? editing.coord.col : null;
   const editingInitialText = editingHere ? editing.initialText : undefined;
+  const editingSession = editingHere ? editing.session : undefined;
 
-  // O(1) map lookup instead of an O(visibleColumns) scan + string-key Set.has per column (perf
-  // audit 2026-07-17: measured 29x faster at 100k rows/8 cols — see searchMatchRows' doc comment).
+  // One map lookup per row instead of a per-column Set scan: 29x faster at 100k rows by 8 columns.
   const searchMatchCols: ReadonlySet<number> | null = s.searchMatchRows.get(viewRow) ?? null;
 
   const errorCols = rowErrorCols(s, viewRow);
@@ -573,7 +560,7 @@ function computeRowCellState(s: DataGridStoreState, viewRow: number): DataGridRo
     ? EMPTY_COL_RANGES
     : selectedColRangesForRow(s.selection, viewRow, s.visibleColumns.length);
 
-  return { activeCol, editingCol, editingInitialText, searchMatchCols, errorCols, flashingCols, selectedColRanges };
+  return { activeCol, editingCol, editingInitialText, editingSession, searchMatchCols, errorCols, flashingCols, selectedColRanges };
 }
 
 /** Content equality for two nullable `Set<number>`s — {@link computeRowCellState} allocates a fresh Set per call, so `searchMatchCols` needs content (not reference) comparison to stay referentially stable across unrelated store updates. */
@@ -599,6 +586,7 @@ function rowCellStateEqual(a: DataGridRowCellState, b: DataGridRowCellState): bo
     a.activeCol === b.activeCol &&
     a.editingCol === b.editingCol &&
     a.editingInitialText === b.editingInitialText &&
+    a.editingSession === b.editingSession &&
     searchMatchColsEqual(a.searchMatchCols, b.searchMatchCols) &&
     errorColsEqual(a.errorCols, b.errorCols) &&
     searchMatchColsEqual(a.flashingCols, b.flashingCols) &&
@@ -675,45 +663,49 @@ function mergeRowRange(ranges: RowRange[], start: number, end: number): void {
  *
  * O(rangeStack) instead of O(rowCount): the old implementation looped every view row calling
  * `hasIndex`/range-membership per row — a six-figure loop at the 100k-row floor, on every store
- * write, in any grid with marker columns (2026-08-02 optimization audit, confirmed high). Coverage
+ * write, in any grid with marker columns. Coverage
  * is derived from the range channel's rectangles (merged into row intervals, same technique
  * `selectedColRangesForRow` uses on the column axis) unioned against the rows channel, which answers
  * "is this whole span selected" via `CompactSelection.hasAll` in O(its own run count) rather than by
  * scanning every row.
  */
+export function allRowsSelectedState(s: DataGridStoreState): "checked" | "indeterminate" | "unchecked" {
+  const rowCount = s.viewIndex.length;
+  if (rowCount === 0) return "unchecked";
+  const { selection } = s;
+  const rowsChannelEmpty = selection.rows.length === 0;
+  if (rowsChannelEmpty && !selection.current) return "unchecked";
+  if (selection.rows.hasAll([0, rowCount])) return "checked";
+
+  const rangeCoverage: RowRange[] = [];
+  if (selection.current) {
+    const { range, rangeStack } = selection.current;
+    mergeRowRange(rangeCoverage, Math.max(0, range.y), Math.min(rowCount, range.y + range.height));
+    for (const rect of rangeStack) {
+      mergeRowRange(rangeCoverage, Math.max(0, rect.y), Math.min(rowCount, rect.y + rect.height));
+    }
+  }
+
+  // Gaps left by the range channel must each be fully covered by the rows channel for the union
+  // to reach every row — anything less is indeterminate (some selected, not all).
+  let cursor = 0;
+  let fullyCovered = true;
+  for (const [start, end] of rangeCoverage) {
+    if (start > cursor && !selection.rows.hasAll([cursor, start])) {
+      fullyCovered = false;
+      break;
+    }
+    cursor = Math.max(cursor, end);
+  }
+  if (fullyCovered && cursor < rowCount && !selection.rows.hasAll([cursor, rowCount])) fullyCovered = false;
+  if (fullyCovered) return "checked";
+
+  if (!rowsChannelEmpty || rangeCoverage.length > 0) return "indeterminate";
+  return "unchecked";
+
+}
+
+/** Reactive {@link allRowsSelectedState}. */
 export function useDataGridAllRowsSelected(): "checked" | "indeterminate" | "unchecked" {
-  return useDataGridStore((s) => {
-    const rowCount = s.viewIndex.length;
-    if (rowCount === 0) return "unchecked";
-    const { selection } = s;
-    const rowsChannelEmpty = selection.rows.length === 0;
-    if (rowsChannelEmpty && !selection.current) return "unchecked";
-    if (selection.rows.hasAll([0, rowCount])) return "checked";
-
-    const rangeCoverage: RowRange[] = [];
-    if (selection.current) {
-      const { range, rangeStack } = selection.current;
-      mergeRowRange(rangeCoverage, Math.max(0, range.y), Math.min(rowCount, range.y + range.height));
-      for (const rect of rangeStack) {
-        mergeRowRange(rangeCoverage, Math.max(0, rect.y), Math.min(rowCount, rect.y + rect.height));
-      }
-    }
-
-    // Gaps left by the range channel must each be fully covered by the rows channel for the union
-    // to reach every row — anything less is indeterminate (some selected, not all).
-    let cursor = 0;
-    let fullyCovered = true;
-    for (const [start, end] of rangeCoverage) {
-      if (start > cursor && !selection.rows.hasAll([cursor, start])) {
-        fullyCovered = false;
-        break;
-      }
-      cursor = Math.max(cursor, end);
-    }
-    if (fullyCovered && cursor < rowCount && !selection.rows.hasAll([cursor, rowCount])) fullyCovered = false;
-    if (fullyCovered) return "checked";
-
-    if (!rowsChannelEmpty || rangeCoverage.length > 0) return "indeterminate";
-    return "unchecked";
-  });
+  return useDataGridStore(allRowsSelectedState);
 }

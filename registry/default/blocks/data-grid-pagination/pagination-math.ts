@@ -17,7 +17,7 @@ export function pageRange(page: number, pageSize: number, total: number): { star
 }
 
 /**
- * Windowed page numbers for the footer, e.g. page 7 of 20 with windowSize 5 -> [5,6,7,8,9].
+ * Sliding page numbers for the footer, e.g. page 7 of 20 with windowSize 5 -> [5,6,7,8,9].
  * The window slides to stay centered on `page` but clamps at both ends so it never runs past
  * `[1, pageCount]` or shows fewer than `windowSize` numbers when there's room for that many.
  */

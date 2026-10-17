@@ -1,7 +1,8 @@
 import { page } from "vitest/browser";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
-import { DataGrid, defineColumns, GRID_LAYER } from "../data-grid";
+import { DataGrid, defineColumns } from "../data-grid";
+import { GRID_LAYER } from "../data-grid-sdk";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 // real stylesheet so z-50 on the dialog and the grid's own layers actually apply
 import "@/app/global.css";

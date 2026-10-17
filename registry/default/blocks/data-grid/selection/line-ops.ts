@@ -1,10 +1,10 @@
-import type { CellCoord, GridRect, GridSelection } from "../types";
+import type { ViewCoord, GridRect, GridSelection } from "../types";
 import { CompactSelection } from "./compact-selection";
 import { rectContains } from "./rects";
 import { selectLine, type SelectLineOptions } from "./select-line-options";
 
 /**
- * Whole-row selection channel op (row-marker click). Always clears the primary range/rangeStack;
+ * Whole-row selection channel operation (row-marker click). Always clears the primary range/rangeStack;
  * clears the column channel too unless `additive`, `extendFromLast`, or `replaceFromLast` (which preserve it).
  */
 export function selectRow(selection: GridSelection, index: number, opts: SelectLineOptions = {}): GridSelection {
@@ -16,7 +16,7 @@ export function selectRow(selection: GridSelection, index: number, opts: SelectL
 }
 
 /**
- * Whole-column selection channel op (header click). Always clears the primary range/rangeStack;
+ * Whole-column selection channel operation (header click). Always clears the primary range/rangeStack;
  * clears the row channel too unless `additive`, `extendFromLast`, or `replaceFromLast` (which preserve it).
  */
 export function selectColumn(selection: GridSelection, index: number, opts: SelectLineOptions = {}): GridSelection {
@@ -47,17 +47,8 @@ export function selectionRects(selection: GridSelection, rowCount: number, colCo
   return rects;
 }
 
-/**
- * Whether `coord` is selected via any channel: primary range, range stack, whole-row, or whole-column.
- * rowCount/colCount are accepted for a stable signature across callers but unused: row/column
- * channels already store data-space indices, and range containment needs no grid bounds.
- */
-export function selectionContainsCell(
-  selection: GridSelection,
-  coord: CellCoord,
-  _rowCount: number,
-  _colCount: number,
-): boolean {
+/** Whether `coord` is selected via any channel: primary range, range stack, whole-row, or whole-column. */
+export function selectionContainsCell(selection: GridSelection, coord: ViewCoord): boolean {
   if (selection.rows.hasIndex(coord.row)) return true;
   if (selection.columns.hasIndex(coord.col)) return true;
   if (selection.current) {

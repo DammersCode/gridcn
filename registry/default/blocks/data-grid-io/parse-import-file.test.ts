@@ -1,5 +1,7 @@
+import Papa from "papaparse";
 import { describe, expect, it, vi } from "vitest";
-import { parseImportFile } from "./parse-import-file";
+import { DEFAULT_IMPORT_LIMITS, parseImportFile } from "./parse-import-file";
+import { workbookFile, XLSX_TYPE } from "./xlsx-fixtures.test-helper";
 
 function makeCsvFile(content: string, name = "data.csv"): File {
   return new File([content], name, { type: "text/csv" });
@@ -65,87 +67,50 @@ describe("parseImportFile — csv", () => {
 });
 
 describe("parseImportFile — xlsx edge cases", () => {
-  it("returns an empty grid for a workbook with no sheets", async () => {
-    vi.resetModules();
-    vi.doMock("xlsx", () => ({
-      read: vi.fn(() => ({ SheetNames: [], Sheets: {} })),
-      utils: { sheet_to_json: vi.fn() },
-    }));
-
-    const { parseImportFile: freshParse } = await import("./parse-import-file");
-    const xlsxFile = new File([new ArrayBuffer(8)], "empty.xlsx", {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
-    const result = await freshParse(xlsxFile);
+  it("returns an empty grid for an empty sheet", async () => {
+    const result = await parseImportFile(await workbookFile({ Empty: [] }));
     expect(result.rows).toEqual([]);
-
-    vi.doUnmock("xlsx");
-    vi.restoreAllMocks();
+    expect(result.sheetNames).toEqual(["Empty"]);
   });
 
-  it("stringifies null/undefined xlsx cells as empty strings", async () => {
-    vi.resetModules();
-    vi.doMock("xlsx", () => ({
-      read: vi.fn(() => ({ SheetNames: ["Sheet1"], Sheets: { Sheet1: {} } })),
-      utils: { sheet_to_json: vi.fn(() => [["Alice", null], ["Bob", undefined]]) },
-    }));
-
-    const { parseImportFile: freshParse } = await import("./parse-import-file");
-    const xlsxFile = new File([new ArrayBuffer(8)], "data.xlsx", {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
-    const result = await freshParse(xlsxFile);
+  it("fills empty cells inside the grid with empty strings", async () => {
+    const result = await parseImportFile(await workbookFile({ Sheet1: [["Alice", null, "x"], ["Bob"]] }));
     expect(result.rows).toEqual([
-      ["Alice", ""],
-      ["Bob", ""],
+      ["Alice", "", "x"],
+      ["Bob", "", ""],
     ]);
+  });
 
-    vi.doUnmock("xlsx");
-    vi.restoreAllMocks();
+  it("reads a workbook by its content even when the extension says .xls", async () => {
+    const xlsx = await workbookFile({ Sheet1: [["name"], ["Alice"]] });
+    const renamed = new File([await xlsx.arrayBuffer()], "renamed.xls", { type: "application/vnd.ms-excel" });
+    await expect(parseImportFile(renamed)).resolves.toMatchObject({ rows: [["name"], ["Alice"]] });
+  });
+
+  it("rejects an .xlsx file that is not a zip or OLE2 container", async () => {
+    const file = new File(["name,age\nAlice,30"], "data.xlsx", { type: XLSX_TYPE });
+    await expect(parseImportFile(file)).rejects.toThrow("unsupported-excel-format");
+  });
+
+  it("surfaces a corrupt workbook as the reader's own error", async () => {
+    const file = new File([new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0, 0, 0, 0])], "broken.xlsx", { type: XLSX_TYPE });
+    await expect(parseImportFile(file)).rejects.toThrow();
+    await expect(parseImportFile(file)).rejects.not.toThrow(/import-too-many-cells|file-too-large|unsupported-excel-format/);
   });
 });
 
 // `sheetNames` exposes every sheet so a caller avoids the first-sheet-only default.
 describe("parseImportFile — xlsx sheetNames", () => {
   it("returns every sheet name alongside the first sheet's rows, for a multi-sheet workbook", async () => {
-    vi.resetModules();
-    vi.doMock("xlsx", () => ({
-      read: vi.fn(() => ({
-        SheetNames: ["Summary", "Q3 Data"],
-        Sheets: { Summary: {}, "Q3 Data": {} },
-      })),
-      utils: { sheet_to_json: vi.fn(() => [["summary-row"]]) },
-    }));
-
-    const { parseImportFile: freshParse } = await import("./parse-import-file");
-    const xlsxFile = new File([new ArrayBuffer(8)], "workbook.xlsx", {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
-    const result = await freshParse(xlsxFile);
+    const result = await parseImportFile(await workbookFile({ Summary: [["summary-row"]], "Q3 Data": [["q3-row"]] }));
     expect(result.rows).toEqual([["summary-row"]]);
     expect(result.sheetNames).toEqual(["Summary", "Q3 Data"]);
     expect(result.sheetName).toBe("Summary");
-
-    vi.doUnmock("xlsx");
-    vi.restoreAllMocks();
   });
 
   it("returns a single-entry sheetNames for a single-sheet workbook", async () => {
-    vi.resetModules();
-    vi.doMock("xlsx", () => ({
-      read: vi.fn(() => ({ SheetNames: ["Sheet1"], Sheets: { Sheet1: {} } })),
-      utils: { sheet_to_json: vi.fn(() => [["Alice"]]) },
-    }));
-
-    const { parseImportFile: freshParse } = await import("./parse-import-file");
-    const xlsxFile = new File([new ArrayBuffer(8)], "data.xlsx", {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
-    const result = await freshParse(xlsxFile);
+    const result = await parseImportFile(await workbookFile({ Sheet1: [["Alice"]] }));
     expect(result.sheetNames).toEqual(["Sheet1"]);
-
-    vi.doUnmock("xlsx");
-    vi.restoreAllMocks();
   });
 
   it("csv results carry no sheetNames", async () => {
@@ -156,53 +121,17 @@ describe("parseImportFile — xlsx sheetNames", () => {
 
 // A multi-sheet workbook selects its sheet instead of importing the first.
 describe("parseImportFile — xlsx sheet selection", () => {
-  function mockWorkbook(sheetNames: string[], rowsBySheet: Record<string, string[][]>): void {
-    vi.resetModules();
-    const sheets: Record<string, { tag: string }> = {};
-    for (const name of sheetNames) sheets[name] = { tag: name };
-    vi.doMock("xlsx", () => ({
-      read: vi.fn(() => ({ SheetNames: sheetNames, Sheets: sheets })),
-      utils: { sheet_to_json: vi.fn((sheet: { tag: string }) => rowsBySheet[sheet.tag]) },
-    }));
-  }
-
-  function xlsxFile(): File {
-    return new File([new ArrayBuffer(8)], "workbook.xlsx", {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
-  }
-
-  it("reports the first sheet's name as sheetName by default", async () => {
-    mockWorkbook(["Summary", "Q3 Data"], { Summary: [["summary-row"]], "Q3 Data": [["q3-row"]] });
-    const { parseImportFile: freshParse } = await import("./parse-import-file");
-    const result = await freshParse(xlsxFile());
-    expect(result.rows).toEqual([["summary-row"]]);
-    expect(result.sheetName).toBe("Summary");
-    expect(result.sheetNames).toEqual(["Summary", "Q3 Data"]);
-
-    vi.doUnmock("xlsx");
-    vi.restoreAllMocks();
-  });
+  const twoSheets = () => workbookFile({ Summary: [["summary-row"]], "Q3 Data": [["q3-row"]] });
 
   it("parses the sheet named by the sheetName option", async () => {
-    mockWorkbook(["Summary", "Q3 Data"], { Summary: [["summary-row"]], "Q3 Data": [["q3-row"]] });
-    const { parseImportFile: freshParse } = await import("./parse-import-file");
-    const result = await freshParse(xlsxFile(), { sheetName: "Q3 Data" });
+    const result = await parseImportFile(await twoSheets(), { sheetName: "Q3 Data" });
     expect(result.rows).toEqual([["q3-row"]]);
     expect(result.sheetName).toBe("Q3 Data");
     expect(result.sheetNames).toEqual(["Summary", "Q3 Data"]);
-
-    vi.doUnmock("xlsx");
-    vi.restoreAllMocks();
   });
 
   it("rejects when the sheetName option names a sheet the workbook doesn't have", async () => {
-    mockWorkbook(["Summary"], { Summary: [["summary-row"]] });
-    const { parseImportFile: freshParse } = await import("./parse-import-file");
-    await expect(freshParse(xlsxFile(), { sheetName: "Missing" })).rejects.toThrow('unknown sheet "Missing"');
-
-    vi.doUnmock("xlsx");
-    vi.restoreAllMocks();
+    await expect(parseImportFile(await twoSheets(), { sheetName: "Missing" })).rejects.toThrow('unknown sheet "Missing"');
   });
 
   it("ignores the sheetName option for csv files", async () => {
@@ -262,31 +191,168 @@ describe("parseImportFile — unsupported types", () => {
   });
 });
 
-describe("parseImportFile — xlsx lazy loading", () => {
-  it("loads xlsx only for an .xlsx file, not for .csv files", async () => {
-    vi.resetModules();
-    const xlsxModuleSpy = vi.fn();
-    vi.doMock("xlsx", () => {
-      xlsxModuleSpy();
-      return {
-        read: vi.fn(() => ({ SheetNames: ["Sheet1"], Sheets: { Sheet1: {} } })),
-        utils: { sheet_to_json: vi.fn(() => [["name"], ["Alice"]]) },
-      };
+describe("parseImportFile — size and dimension limits", () => {
+  it("rejects a file over maxFileBytes before touching the file contents", async () => {
+    const arrayBufferSpy = vi.spyOn(File.prototype, "arrayBuffer");
+    const textSpy = vi.spyOn(File.prototype, "text");
+    try {
+      await expect(parseImportFile(makeCsvFile("a,b\n1,2"), { maxFileBytes: 1 })).rejects.toThrow("file-too-large");
+      expect(arrayBufferSpy).not.toHaveBeenCalled();
+      expect(textSpy).not.toHaveBeenCalled();
+    } finally {
+      arrayBufferSpy.mockRestore();
+      textSpy.mockRestore();
+    }
+  });
+
+  it("rejects a csv with more rows than maxRows", async () => {
+    await expect(parseImportFile(makeCsvFile("a,b\n1,2\n3,4"), { maxRows: 2 })).rejects.toThrow("import-too-many-cells");
+  });
+
+  it("rejects a csv wider than maxColumns", async () => {
+    await expect(parseImportFile(makeCsvFile("a,b,c"), { maxColumns: 2 })).rejects.toThrow("import-too-many-cells");
+  });
+
+  it("rejects a csv whose rows times its widest row exceed maxCells", async () => {
+    const csv = "a,b,c\n1\n2";
+    await expect(parseImportFile(makeCsvFile(csv), { maxCells: 8 })).rejects.toThrow("import-too-many-cells");
+    await expect(parseImportFile(makeCsvFile(csv), { maxCells: 9 })).resolves.toMatchObject({ rows: [["a", "b", "c"], ["1"], ["2"]] });
+  });
+
+  it("defaults to 50 MB, 1M rows, 1000 columns, 5M cells, and 256 MiB per inflated xlsx part, and small files pass", async () => {
+    expect(DEFAULT_IMPORT_LIMITS).toEqual({
+      maxFileBytes: 50 * 1024 * 1024,
+      maxRows: 1_000_000,
+      maxColumns: 1_000,
+      maxCells: 5_000_000,
+      maxDecompressedBytes: 256 * 1024 * 1024,
     });
+    const result = await parseImportFile(makeCsvFile("a,b\n1,2"));
+    expect(result.rows).toEqual([
+      ["a", "b"],
+      ["1", "2"],
+    ]);
+  });
+});
+
+// papaparse builds a whole row before any callback runs, so a line of millions of delimiters must be rejected before it parses
+describe("parseImportFile — csv limits before the parse", () => {
+  // the delimiter guess reads a bounded preview; a full parse is any call without `preview`
+  function fullParses(parse: { mock: { calls: unknown[][] } }, text: string): number {
+    return parse.mock.calls.filter(([input, config]) => input === text && (config as { preview?: number } | undefined)?.preview === undefined).length;
+  }
+
+  it("rejects a single line of 5,000,000 delimiters without parsing it", async () => {
+    const text = ",".repeat(5_000_000);
+    const parse = vi.spyOn(Papa, "parse");
+    try {
+      await expect(parseImportFile(makeCsvFile(text))).rejects.toThrow("import-too-many-cells");
+      await expect(parseImportFile(makeCsvFile(text), { csvDelimiter: "," })).rejects.toThrow("import-too-many-cells");
+      expect(fullParses(parse, text)).toBe(0);
+      for (const [input] of parse.mock.calls) expect(String(input).length).toBeLessThanOrEqual(1024 * 1024);
+    } finally {
+      parse.mockRestore();
+    }
+  });
+
+  it("rejects a file over maxRows or maxCells without parsing it", async () => {
+    const rows = "a,b\n".repeat(1_000);
+    const parse = vi.spyOn(Papa, "parse");
+    try {
+      await expect(parseImportFile(makeCsvFile(rows), { maxRows: 999 })).rejects.toThrow("import-too-many-cells");
+      await expect(parseImportFile(makeCsvFile(rows), { maxCells: 1_999 })).rejects.toThrow("import-too-many-cells");
+      expect(fullParses(parse, rows)).toBe(0);
+    } finally {
+      parse.mockRestore();
+    }
+  });
+
+  it("counts a quoted field with delimiters and line breaks as one cell", async () => {
+    const quoted = `${",".repeat(5_000)}\n${";".repeat(10)}`;
+    const result = await parseImportFile(makeCsvFile(`"${quoted}",b\nc,d`), { maxColumns: 2, maxRows: 2 });
+    expect(result.rows).toEqual([
+      [quoted, "b"],
+      ["c", "d"],
+    ]);
+  });
+
+  it("splits rows on a CR-only newline the same way the limits count them", async () => {
+    const result = await parseImportFile(makeCsvFile("a,b\rc,d\re,f"), { maxRows: 3, maxColumns: 2 });
+    expect(result.rows).toEqual([
+      ["a", "b"],
+      ["c", "d"],
+      ["e", "f"],
+    ]);
+    await expect(parseImportFile(makeCsvFile("a,b\rc,d\re,f"), { maxRows: 2 })).rejects.toThrow("import-too-many-cells");
+  });
+
+  it("counts CRLF rows once and an escaped quote as part of its field", async () => {
+    const result = await parseImportFile(makeCsvFile('a,"say ""hi"", ok"\r\nc,d\r\n'), { maxRows: 2, maxColumns: 2 });
+    expect(result.rows).toEqual([
+      ["a", 'say "hi", ok'],
+      ["c", "d"],
+    ]);
+  });
+});
+
+describe("parseImportFile — xlsx lazy loading", () => {
+  it("loads hucre only for an .xlsx file, not for .csv files", async () => {
+    const file = await workbookFile({ Sheet1: [["name"], ["Alice"]] }, "data.xlsx");
+    vi.resetModules();
+    const hucreLoaded = vi.fn();
+    for (const id of ["hucre", "hucre/xlsx"]) {
+      vi.doMock(id, async (importOriginal) => {
+        hucreLoaded(id);
+        return importOriginal();
+      });
+    }
 
     const { parseImportFile: freshParse } = await import("./parse-import-file");
 
     await freshParse(makeCsvFile("name\nAlice"));
-    expect(xlsxModuleSpy).not.toHaveBeenCalled();
+    expect(hucreLoaded).not.toHaveBeenCalled();
 
-    const xlsxFile = new File([new ArrayBuffer(8)], "data.xlsx", {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
-    const result = await freshParse(xlsxFile);
-    expect(xlsxModuleSpy).toHaveBeenCalledTimes(1);
+    const result = await freshParse(file);
+    expect(hucreLoaded).toHaveBeenCalledWith("hucre");
+    expect(hucreLoaded).toHaveBeenCalledWith("hucre/xlsx");
     expect(result.rows).toEqual([["name"], ["Alice"]]);
 
-    vi.doUnmock("xlsx");
+    vi.doUnmock("hucre");
+    vi.doUnmock("hucre/xlsx");
     vi.restoreAllMocks();
+  });
+});
+
+describe("parseImportFile — csv pre-scan agrees with papaparse", () => {
+  const fixtures: Record<string, string> = {
+    "quoted newline": 'a,"b\nc",d\ne,f,g',
+    "escaped quotes": 'a,"say ""hi"", ok",c\nd,e,f',
+    "quote inside an unquoted field": 'a,b"c,d\ne,f"g,h',
+    "quote after the opening quote": 'a,""",x\ny,z',
+    "unterminated quote": 'a,"b,c\nd,e,f',
+    "empty lines": "a,b\n\n\nc,d\n\n",
+    "trailing delimiters": "a,b,,,\nc,d,,,",
+    "lone quoted empty field": '"",""\n"",""',
+    "wide and narrow rows": "a\nb,c,d,e,f\ng,h",
+  };
+
+  it.each(Object.entries(fixtures))("%s: row and field counts match", async (_name, text) => {
+    const parsed = Papa.parse<string[]>(text, { delimiter: ",", newline: "\n", skipEmptyLines: true });
+    const rows = parsed.data.length;
+    const columns = Math.max(...parsed.data.map((row) => row.length));
+    const file = () => makeCsvFile(text);
+    await expect(parseImportFile(file(), { csvDelimiter: ",", maxRows: rows, maxColumns: columns })).resolves.toBeDefined();
+    await expect(parseImportFile(file(), { csvDelimiter: ",", maxRows: rows - 1 })).rejects.toThrow("import-too-many-cells");
+    await expect(parseImportFile(file(), { csvDelimiter: ",", maxColumns: columns - 1 })).rejects.toThrow("import-too-many-cells");
+  });
+});
+
+describe("parseImportFile — csv pre-scan errs on the safe side", () => {
+  it("counts a quote closed before text as a field boundary papaparse does not see, so it rejects at papaparse's own counts", async () => {
+    const text = 'a,"b"c,d\ne,f,g';
+    const parsed = Papa.parse<string[]>(text, { delimiter: ",", newline: "\n", skipEmptyLines: true });
+    const columns = Math.max(...parsed.data.map((row) => row.length));
+    expect(columns).toBeLessThan(3);
+    await expect(parseImportFile(makeCsvFile(text), { csvDelimiter: ",", maxColumns: columns })).rejects.toThrow("import-too-many-cells");
   });
 });

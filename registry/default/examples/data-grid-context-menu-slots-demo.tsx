@@ -1,17 +1,14 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
-import { ArrowUp, Copy, Plus } from "lucide-react";
 import {
   DataGridProvider,
   DataGridRoot,
   DataGridHeader,
   DataGridBody,
   defineColumns,
-  useDataGridActions,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridContextMenu, DataGridHeaderDropdown } from "@/registry/default/blocks/data-grid-context-menu/data-grid-context-menu";
-import { ContextMenuItem } from "@/components/ui/context-menu";
 import { generateDemoRows, type DemoRow } from "./demo-data";
 
 const columns = defineColumns<DemoRow>()([
@@ -28,43 +25,15 @@ function duplicateRow(row: DemoRow): DemoRow {
   return { ...row, id: `${row.id}-copy-${Date.now()}` };
 }
 
-function DuplicateRowItem({ row }: { row: number }) {
-  const actions = useDataGridActions();
-  return (
-    <ContextMenuItem onClick={() => actions.duplicateRows([row])}>
-      <Copy className="size-4 text-muted-foreground" />
-      Duplicate row
-    </ContextMenuItem>
-  );
-}
-
-function SortAscendingItem({ columnId }: { columnId: string }) {
-  const actions = useDataGridActions();
-  return (
-    <ContextMenuItem onClick={() => actions.setSorts([{ columnId, direction: "asc" }])}>
-      <ArrowUp className="size-4 text-muted-foreground" />
-      Sort ascending
-    </ContextMenuItem>
-  );
-}
-
-function InsertRowItem({ row }: { row: number }) {
-  const actions = useDataGridActions();
-  return (
-    <ContextMenuItem onClick={() => actions.insertRow(row, "below")}>
-      <Plus className="size-4 text-muted-foreground" />
-      Insert row below
-    </ContextMenuItem>
-  );
-}
-
 export default function DataGridContextMenuSlotsDemo(): ReactNode {
   const rows = useMemo(() => generateDemoRows(10), []);
 
   return (
     <div className="w-full flex flex-col gap-3">
       <p className="text-sm text-muted-foreground">
-        Right-click a cell for a two-item row menu. Right-click a header for a one-item column menu.
+        The menus are data: each resolver receives the built-in item set and returns the kept
+        entries by id. Right-click a cell for the two kept row items; the header dropdown and the
+        right-click header menu both keep only Sort ascending.
       </p>
       <div className="h-[360px] overflow-hidden rounded-md border border-border">
         <DataGridProvider
@@ -76,13 +45,10 @@ export default function DataGridContextMenuSlotsDemo(): ReactNode {
         >
           <DataGridContextMenu
             className="flex h-full flex-col"
-            renderCellMenuItems={({ row, canInsertRow, canDuplicateRow }) => (
-              <>
-                {canInsertRow && <InsertRowItem row={row} />}
-                {canDuplicateRow && <DuplicateRowItem row={row} />}
-              </>
-            )}
-            renderHeaderMenuItems={({ columnId }) => <SortAscendingItem columnId={columnId} />}
+            getCellMenuItems={(_ctx, defaults) =>
+              defaults.filter((s) => s.id === "insert-row-below" || s.id === "duplicate-rows")
+            }
+            getHeaderMenuItems={(_ctx, defaults) => defaults.filter((s) => s.id === "sort-asc")}
           >
             <DataGridRoot
               className="h-full rounded-none border-none"

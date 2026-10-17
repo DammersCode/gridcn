@@ -1,12 +1,14 @@
-import type { FC, ReactNode } from "react";
+import type { ComponentType, FC, ReactNode } from "react";
 import type { KeyBinding } from "./keyboard/key-syntax";
+import type { AnyColumnDef, DataGridActions, DataGridStoreState } from "./store/types";
+import type { RowBandRenderCtx } from "./layout-context";
+import type { OverlayPluginCtx } from "./overlays";
 
 export type { KeyBinding };
 
 /**
  * Vendored from `@standard-schema/spec` v1 (https://github.com/standard-schema/standard-schema) so
- * shipped registry code has zero runtime/type dependency on the package — the same choice TanStack
- * Form makes for the identical reason (references/form's standardSchemaValidator.ts). The spec is
+ * shipped registry code has zero runtime/type dependency on the package — the spec is
  * frozen at version 1, so drift risk is ~nil; a type-level conformance test (data-grid.type-test.ts)
  * asserts this vendored copy stays assignable to/from the real package's type in both directions,
  * so any future drift fails `tsc` instead of silently diverging. `@standard-schema/spec` is still a
@@ -80,21 +82,55 @@ export namespace StandardSchemaV1 {
 // case, else `accessorKey` collapses to an uninhabited `undefined` field.
 export type AccessorKeyOf<TData> = unknown extends TData ? string : keyof TData & string;
 
-/** Cell coordinate in data space: col/row are 0-based data indices (marker columns excluded). */
-export type CellCoord = { col: number; row: number };
+/** Cell coordinate in view-index: 0-based view row (sorted/filtered, not a data index) and 0-based visible-column index (marker columns excluded). It reshuffles under sort and filter — never persist it or compare it across a reorder; address cells by {@link CellRef} instead. */
+export type ViewCoord = { col: number; row: number };
+
+/** Stable cell identity: the row's `getRowId()` value plus the column's id. Survives sort, filter, and reorder — the coordinate for actions and the identity the cell ctx hands out. A ref whose row is not in the current data (filtered out, paged away, deleted) or whose column is hidden does not resolve: the action is a no-op, and dev mode warns once per grid. */
+export type CellRef = { rowId: string; columnId: string };
+
+/** A {@link CellRef} plus the view-index position the cell occupied when the event fired. */
+export type ViewCellRef = CellRef & {
+  /** The view (display) row index at fire time. */
+  viewRowIndex: number;
+  /** The view (display) column index at fire time. */
+  viewColumnIndex: number;
+};
+
+/** The two opposite corners of a rectangular selection; either diagonal order is accepted on resolve. */
+export type CellRange = { start: CellRef; end: CellRef };
+
+/**
+ * The grid's selection in stable {@link CellRef} terms: the primary range with its anchor, the
+ * ctrl-click range stack, and the whole-row/whole-column channels. The active cell is
+ * deliberately not part of it — it moves on every arrow key, and controlling it would push every
+ * keystroke through the consumer's render; it stays uncontrolled with `onActiveCellChange`.
+ * `anchor` may lie inside the range (Ctrl+A puts the active cell as the anchor inside the
+ * region); a resolved anchor outside its range resets to `range.start`.
+ */
+export type SelectionState = {
+  /** The primary range's anchor (Excel's white cell), or `null` when there is no primary range. */
+  anchor: CellRef | null;
+  /** The primary range; `null` when only the row/column channels (or nothing) are selected. */
+  range: CellRange | null;
+  /** Earlier ctrl-click ranges, oldest first. */
+  rangeStack: readonly CellRange[];
+  /** Row ids of the row channel, in view order. */
+  rowIds: readonly string[];
+  /** Column ids of the column channel, in view order. */
+  columnIds: readonly string[];
+};
 
 /** What a marker mode renders: the 1-based view row index, the row-select checkbox, or both (number swapped for the checkbox on hover/selected). */
 export type RowMarkersContent = "number" | "checkbox" | "both";
 
 /**
  * Marker column mode: a pinned-left column rendered BEFORE all data columns, outside the data
- * column index space (CellCoord.col / aria-colindex / aria-colcount are all untouched by it).
+ * column index space (ViewCoord.col / aria-colindex / aria-colcount are all untouched by it).
  * The plain modes (`number`/`checkbox`/`both`) render the selection chrome only and keep the
  * marker a pure row-select surface — a drag there is always the row-range select. The
- * `reorder`-prefixed family renders the grip handle on top of the suffix's content and is the
+ * `reorder`-prefixed family renders the drag handle on top of the suffix's content and is the
  * ONLY family that arms the drag-to-reorder gesture (still gated grid-wide by `enableRowReorder`),
- * and the press ZONE decides the gesture: the grip reorders on drag (selects on a stationary
- * press), while the checkbox glyph and the number/rest of the cell stay pure row-select.
+ * and the press ZONE decides the gesture: the drag handle zone reorders on drag and never changes the selection, while the checkbox glyph and the number/rest of the cell stay pure row-select.
  */
 export type RowMarkersMode = "none" | RowMarkersContent | "reorder" | `reorder-${RowMarkersContent}`;
 
@@ -102,14 +138,14 @@ export type RowMarkersMode = "none" | RowMarkersContent | "reorder" | `reorder-$
 export type GridRect = { x: number; y: number; width: number; height: number };
 
 /**
- * Selection model (see research/glide-behavior-spec.md §1).
+ * Selection model.
  * `cell` is the anchor (Excel's white cell) and is always inside `range`.
  * `rangeStack` holds additional rectangles from ctrl-click multi-range; never contains `range`.
  * `rows`/`columns` are whole-row/column selection channels, distinct from `current`.
  */
 export type GridSelection = {
   current: {
-    cell: CellCoord;
+    cell: ViewCoord;
     range: GridRect;
     rangeStack: GridRect[];
   } | null;
@@ -121,12 +157,14 @@ export type GridSelection = {
 export type CompactSelectionLike = {
   readonly length: number;
   hasIndex(index: number): boolean;
+  /** Content equality over both members' runs, independent of internal slice layout. */
+  equals(other: CompactSelectionLike): boolean;
   hasAll(range: [number, number]): boolean;
   toArray(): number[];
 };
 
 /**
- * Selection-gesture configuration (PLAN §3 "Selection configurability"). All default `true`.
+ * Selection-gesture configuration. All default `true`.
  * Disabling a channel removes both its gestures (header/marker click, drag) AND its selection
  * channel: e.g. `enableColumnSelection: false` makes header clicks a no-op, not just un-rendered.
  */
@@ -137,7 +175,7 @@ export type SelectionConfig = {
   enableMultiRange: boolean;
 };
 
-/** One data mutation. Ops are id-keyed so history survives sort/filter (never index-keyed). */
+/** One data mutation. Operations are row-id-based so history survives sort/filter (never index-keyed). */
 export type DataOp<TData> =
   | {
       type: "update";
@@ -167,19 +205,28 @@ export type DataChange<TData> = {
    * `updateCells`/`updateRows` batch; `useDataGridHistory` drops it by default, because a
    * 100-updates/s feed would evict the user's whole undo stack in seconds. `"app"` tags an
    * imperative `record()` entry (a programmatic change the consumer applied itself).
+   * `"history"` tags an undo or redo; `"rollback"` tags `useDataGridHistory().rollback`, which reverts a
+   * change whose save failed. Neither is recorded, so a server-sync handler can skip undo and redo
+   * and still send a rollback (or the reverse).
    */
-  source: "edit" | "paste" | "fill" | "delete" | "row-op" | "import" | "history" | "stream" | "app";
+  source: "edit" | "paste" | "fill" | "delete" | "row-operation" | "import" | "history" | "rollback" | "stream" | "app";
   /** Optional human-readable label for this entry (e.g. "Batch save rollback"); carried through the undo/redo stack as-is. */
   label?: string;
 };
 
-export type CellRenderProps<TData, TValue> = {
+export type CellRenderProps<TData, TValue, TOptions = unknown> = {
   /** The resolved cell value (through the column's `accessorKey`/`accessorFn`). */
   value: TValue;
   /** The full data row this cell belongs to. */
   row: TData;
-  /** Display (view-space) row index: the sorted/filtered position, matching what the user sees. NOT a stable index into `data` — it reshuffles under sort and filter. Use `getRowId` for stable row identity. */
-  rowIndex: number;
+  /** The row's `getRowId()` value — stable row identity (see {@link CellRef}). */
+  rowId: string;
+  /** The column's id. With `rowId`, addresses this cell stably. */
+  columnId: string;
+  /** Display (view-index) row index: the sorted/filtered position, matching what the user sees. NOT a stable index into `data` — it reshuffles under sort and filter. */
+  viewRowIndex: number;
+  /** The column's `options`, typed through `TOptions` (your declared options type) when the cell type is parameterized with it. */
+  options?: TOptions;
   // `column`'s own validate erases independently (3rd param `any`) — same reasoning as
   // CellClassNameCtx.column below; without it, renderCell's own bivariance gets re-poisoned by
   // validate's union whenever TValue is erased to `unknown` at the array-common-type boundary.
@@ -192,17 +239,21 @@ export type CellRenderProps<TData, TValue> = {
 export type CellClassNameCtx<TData, TValue> = {
   value: TValue;
   row: TData;
+  /** The row's `getRowId()` value — stable row identity (see {@link CellRef}). */
+  rowId: string;
+  /** The column's id. With `rowId`, addresses this cell stably. */
+  columnId: string;
   // `column`'s own validate erases independently (3rd param `any`) so THIS type's bivariance
   // (recovered via CellClassNameFnHolder below) doesn't get re-poisoned by validate's union when
   // TValue itself is erased to `unknown` at the array-common-type boundary — see types.ts's
   // ColumnDef.validate doc and store.tsx's AnyColumnDef doc for the full reasoning.
   column: ColumnDef<TData, TValue, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
-  /** Display (view-space) row index — the sorted/filtered position, matching what the user sees. */
+  /** Display (view-index) row index — the sorted/filtered position, matching what the user sees. */
   viewRowIndex: number;
 };
 
 /**
- * Grid-level row class callback (PLAN §6 "Programmatic style API"); merged via `cn()` after the
+ * Grid-level row class callback; merged via `cn()` after the
  * built-in row classes. `viewRowIndex` is the display (sorted/filtered) position. Pass a stable
  * function identity (module scope, or memoized) — like `columns`/`data`, its identity is a dev-mode
  * guardrail (unstable identity defeats row memoization) rather than a fresh per-render prop.
@@ -217,10 +268,14 @@ export type CellClickCtx<TData, TValue> = {
   value: TValue;
   row: TData;
   column: ColumnDef<TData, TValue>;
-  /** Display (view-space) row index — matches {@link CellClassNameCtx.viewRowIndex}. */
-  rowIndex: number;
-  /** Data-column index (not the marker column) — matches `CellCoord.col`. */
-  columnIndex: number;
+  /** The row's `getRowId()` value — stable row identity (see {@link CellRef}). */
+  rowId: string;
+  /** The column's id. With `rowId`, addresses this cell stably. */
+  columnId: string;
+  /** Display (view-index) row index — matches {@link CellClassNameCtx.viewRowIndex}. */
+  viewRowIndex: number;
+  /** Data-column index (not the marker column) — matches `ViewCoord.col`. */
+  viewColumnIndex: number;
 };
 
 /**
@@ -231,15 +286,32 @@ export type CellClickCtx<TData, TValue> = {
  */
 export type OnCellClick<TData> = (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
 
-/** Context passed to `onRowClick` — the row is display-index only; map to a stable id via `getRowId` yourself if you need one. */
-export type RowClickCtx<TData> = {
-  row: TData;
-  /** Display (view-space) row index — matches {@link CellClassNameCtx.viewRowIndex}. */
-  rowIndex: number;
-};
+/**
+ * Fired by `onEditEnd` when an edit session ends or a commit attempt is refused: `commit` after the
+ * session closes (data written or no-op), `cancel` when the draft is discarded (Escape, the cell
+ * leaving the view, or a new `startEditing` replacing the session), `rejected` when a commit
+ * attempt failed validation and the session STAYS OPEN (fired per attempt, alongside the
+ * `editingRejectionCount` bump). Each session ends with exactly one `commit` or `cancel`. The
+ * committed value is not included — `onDataChange` carries it.
+ */
+export type GridEditEndEvent = ViewCellRef & { result: "commit" | "cancel" | "rejected" };
 
-/** Same firing site as {@link OnCellClick}, once per click regardless of which column was clicked. */
-export type OnRowClick<TData> = (ctx: RowClickCtx<TData>, event: MouseEvent) => void;
+/** One cell a bulk write (paste, fill, `updateCells`) refused after validation: the target (stable id plus view position, `-1` outside the view) plus the value that failed and the validator's message. */
+export type GridBulkValidationError = { rowId: string; columnId: string; viewRowIndex: number; value: unknown; message: string };
+
+/**
+ * Fired by `onValidationError` after a bulk paste, a fill, or an `updateCells` call (`"stream"`)
+ * settles, ONLY when at least one cell was rejected — the accepted cells are already applied
+ * (their `onDataChange`/`onSelectionChange` fire first). `rejected` lists every refused cell with
+ * its validator's message.
+ */
+export type GridValidationErrorEvent = { source: "paste" | "fill" | "stream"; rejected: GridBulkValidationError[] };
+
+/** Fired on a double-click on any non-pinned, non-skeleton cell — a pure notification in the {@link OnCellClick} sense (no veto), fired regardless of readOnly. */
+export type OnCellDoubleClick<TData> = (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
+
+/** Fired when the user right-clicks any non-pinned, non-skeleton cell — a pure notification; the `data-grid-context-menu` add-on listens at the root and is unaffected. */
+export type OnCellContextMenu<TData> = (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
 
 /**
  * Method-shorthand holder purely so {@link ColumnDef.cellClassName}'s function branch can pull its
@@ -261,13 +333,19 @@ type CellClassNameFnHolder<TData, TValue> = { fn(ctx: CellClassNameCtx<TData, TV
  * built-in editors' `commitText(movement)` helper shows the canonical order: guard, `onChange`,
  * `commit`.
  */
-export type CellEditorProps<TData, TValue> = {
+export type CellEditorProps<TData, TValue, TOptions = unknown> = {
   /** The last-COMMITTED value, as it was when the editor opened (seed for your initial draft). NOT your in-progress draft — that lives in your editor's local state. */
   value: TValue;
   /** Initial text seed when editing started by typing (type-to-replace); undefined for Enter/F2. */
   initialText?: string;
   /** The full data row this cell belongs to. */
   row: TData;
+  /** The row's `getRowId()` value — stable row identity. */
+  rowId: string;
+  /** The id of the column being edited. */
+  columnId: string;
+  /** The column's `options`, typed through `TOptions` (your declared options type) when the cell type is parameterized with it. */
+  options?: TOptions;
   // `column`'s own validate erases independently (3rd param `any`) — same reasoning as
   // CellRenderProps.column above.
   column: ColumnDef<TData, TValue, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -298,23 +376,25 @@ export type CellEditorProps<TData, TValue> = {
 
 /**
  * A cell type implements rendering plus the value pipeline that powers copy, paste, fill,
- * delete, and import/export (see research/react-datasheet-grid-study.md §8). The pipelines read
+ * delete, and import/export. The pipelines read
  * the value through DIFFERENT surfaces, so one override does not reach all of them:
  *
  * - display (the cell's rendered text) = `toDisplayText` when present, else `toText`.
  * - clipboard copy and export = `toText`, always.
  * - sort = `compare` when the column declares this type, else a numeric-aware locale collation of
  *   the RAW `String(value)` — not of `toText` output.
- * - search and filter = `String(rawValue)`: the view pipeline is built WITHOUT cellTypes, so a
- *   custom `toText` never changes what search or filter see (a `select` column searches the
- *   stored VALUE, not the displayed label; a `number` with `decimals` searches the unrounded
- *   value; a `date` with a `displayFormat` matches the ISO string).
+ * - quick search = `toSearchText` when the type declares it, else `toText`; a column without a
+ *   declared type searches `String(rawValue)` (a `select` column searches the choice LABEL; a
+ *   `number` with `decimals` searches the rounded value; a `date` with a `displayFormat` searches
+ *   the ISO string).
+ * - filter = the raw-value predicate (`filter.match`, or the column's own `filterMatch`), else the
+ *   built-in text matcher over `String(rawValue)`.
  * - fill (series inference) works on the raw value, not on any text form.
  */
 export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
-  Cell: FC<CellRenderProps<TData, TValue>>;
-  Editor: FC<CellEditorProps<TData, TValue>>;
-  /** Serialize for clipboard/export. Search and filter do NOT use this — they match on the raw `String(value)`. */
+  Cell: FC<CellRenderProps<TData, TValue, TOptions>>;
+  Editor: FC<CellEditorProps<TData, TValue, TOptions>>;
+  /** Serialize for clipboard/export; quick search uses it when the type declares no `toSearchText`. Filter never uses it — it matches the raw value. */
   toText(value: TValue, options?: TOptions): string;
   /** Optional display-only rendering (e.g. locale-formatted dates); the cell renders `toDisplayText ?? toText`. Clipboard/export always use `toText`. */
   toDisplayText?(value: TValue, options?: TOptions): string;
@@ -322,9 +402,60 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   fromText(text: string, options?: TOptions): TValue;
   clearValue(options?: TOptions): TValue;
   isEmpty(value: TValue): boolean;
-  /** Sort comparator for this type; when absent, sorting falls back to a numeric-aware locale collation of the raw `String(value)` — not of `toText` output. */
-  compare?(a: TValue, b: TValue): number;
+  /** Sort comparator for this type, given the column's `options`; when absent, sorting falls back to a numeric-aware locale collation of the raw `String(value)` — not of `toText` output. */
+  compare?(a: TValue, b: TValue, options?: TOptions): number;
   align?: "left" | "right" | "center";
+  /** Tabular-nums cell rendering for the right-aligned digits; number and date declare it. */
+  numeric?: boolean;
+  /** The quick-search text for a stored value; the default is `toText`. select declares the choice label. */
+  toSearchText?(value: TValue, options?: TOptions): string;
+  /**
+   * Default validation for columns of this type when the column declares no `validate` of its
+   * own; same shape as {@link ColumnDef.validate}. Every validation path resolves
+   * `column.validate ?? cellType.validate` (single-cell commit, paste, fill, updateCells, import).
+   */
+  validate?: ((value: TValue, row: TData) => string | null) | StandardSchemaV1<TValue>;
+  /**
+   * The edit gestures ACTIVATE this cell in place instead of opening an editor: Enter/F2, a
+   * stationary click, and double-click commit `activate(value, options)` through `commitCellValue`
+   * (no edit session, so `onEditStart`/`onEditEnd` never fire). checkbox declares
+   * `(value) => !value`. Absent, the gestures open the editor.
+   */
+  activate?: (value: TValue, options?: TOptions) => TValue;
+  /**
+   * Link target for a stored value. The grid routes every result through `safeHref` (http/https/
+   * mailto only) before it renders or opens; a type cannot widen the allow-list. `url` declares
+   * it; the `openLink` action (alt+Enter), Ctrl+click (Cmd+click on macOS), and middle-click open the safe href.
+   */
+  href?(value: TValue, options?: TOptions): string | null;
+  /** Filter capabilities for this type; each member falls back to the name-derived default when absent. */
+  filter?: CellTypeFilter;
+};
+
+/** Which built-in value-input widget the filter row renders for a cell type. */
+export type CellTypeValueInput = "text" | "number" | "date" | "boolean" | "choices";
+
+/**
+ * Props of a custom filter value input (a component in `CellTypeFilter.valueInput`). `value` is a
+ * string, an `isBetween` pair, or an `isAnyOf` list, depending on `operator`.
+ */
+export type FilterValueInputProps = {
+  column: AnyColumnDef;
+  operator: FilterOperator;
+  value: string | [string, string] | string[] | undefined;
+  onValueChange: (value: string | [string, string] | string[]) => void;
+};
+
+/**
+ * Filter capabilities a cell type declares instead of the toolbar's name-derived defaults:
+ * `operators` beats the type-name operator table, `match` replaces the built-in text matcher
+ * (same raw-value contract as {@link ColumnDef.filterMatch}), and `valueInput` picks the filter
+ * row's widget: a built-in one by name, or a component that renders for every operator with a value.
+ */
+export type CellTypeFilter = {
+  operators?: readonly FilterOperator[];
+  match?: (value: unknown, filter: FilterSpec) => boolean;
+  valueInput?: CellTypeValueInput | ComponentType<FilterValueInputProps>;
 };
 
 /**
@@ -390,6 +521,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    * computeCellPatchBatch/prevalidatePatches — add when a soft paste/fill is actually wanted.
    */
   onInvalid?: "block" | "warn";
+  /** Rendered width in px; default 150. A resize clamps to `minWidth` and the 32px absolute floor. */
   width?: number;
   minWidth?: number;
   maxWidth?: number;
@@ -433,11 +565,14 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   reorderable?: boolean;
   /** Disables pin/unpin for this column; default true. */
   pinnable?: boolean;
-  /** Display-only override that keeps the column's type pipeline; method-shorthand for the same bivariance reason as `validate`. */
+  /**
+   * Display-only override that keeps the column's type pipeline; method-shorthand for the same bivariance reason as `validate`.
+   * `props` is a {@link CellRenderProps}: `value`, `row`, `rowId`, `columnId`, `viewRowIndex`, `column`, `options`, and `isActive`.
+   */
   renderCell?(props: CellRenderProps<TData, TValue>): ReactNode;
   /**
-   * Per-column cell class, merged via `cn()` after the built-in cell classes (PLAN §6 "Programmatic
-   * style API") so it wins on conflicting utilities. A plain string applies to every cell in the
+   * Per-column cell class, merged via `cn()` after the built-in cell classes so it wins on
+   * conflicting utilities. A plain string applies to every cell in the
    * column; the function form gets the same per-cell context as the grid-level `getCellClassName`
    * prop (see `CellClassNameFnHolder` for why it's spelled via indexed access, not inline).
    */
@@ -450,7 +585,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
 export type DensityMode = "compact" | "default" | "comfortable";
 
 /**
- * How a plain header click behaves (PLAN §3 item 4). `'select'` (default) selects the whole
+ * How a plain header click behaves. `'select'` (default) selects the whole
  * column, matching the marker/row-selection model. `'sort'` cycles asc->desc->none on the
  * clicked column instead (shift+click adds it to a multi-sort); `'none'` disables both.
  */
@@ -478,6 +613,8 @@ export type FilterOperator =
 export type FilterJoinOperator = "and" | "or";
 
 /**
+ * One filter row: `{ columnId: "age", operator: "gt", value: "30" }`. `value` holds text for every operator,
+ * numbers and dates included (`"30"`, `"2025-01-31"`); the operators `empty` and `notEmpty` take no value.
  * `value` is a single string for most operators. `isBetween` carries an inclusive `[min, max]`
  * tuple (either bound may be `""` for an open-ended range); `isAnyOf` carries a `string[]` of
  * accepted values and matches when the cell text equals any of them. `filterId` is a stable
@@ -488,29 +625,234 @@ export type FilterJoinOperator = "and" | "or";
 export type FilterSpec = { filterId?: string; columnId: string; operator: FilterOperator; value?: string | [string, string] | string[] };
 
 /**
- * Named keyboard actions; bindings map keys to these (see `DEFAULT_KEYMAP` in
- * `keyboard/default-keymap.ts`). `editReplace` (type-to-replace) has no `DEFAULT_KEYMAP` binding:
- * by default any unbound printable key on an active cell dispatches it (Excel behavior, starting
- * an edit seeded with the typed char). Defining `keymap.editReplace` takes the action over
+ * Named keyboard actions, as an interface so consumers can ADD actions by declaration-merging
+ * this interface in their own module (the same path as `GridCellTypes` — the module is
+ * `@/components/data-grid/types` for the default install layout):
+ * ```ts
+ * declare module "@/components/data-grid/types" {
+ *   interface GridActions {
+ *     saveAll: true;
+ *   }
+ * }
+ * ```
+ * A merged name binds through the `keymap` prop and resolves to a `commands` entry
+ * ({@link GridCommand}). `typeToReplace` (type-to-replace) has no `DEFAULT_KEYMAP` binding: by
+ * default any unbound printable key on an active cell dispatches it (Excel behavior, starting an
+ * edit seeded with the typed char). Defining `keymap.typeToReplace` takes the action over
  * exclusively — `["F3"]` remaps the trigger (plain edit start, no char seed); `[]` disables it.
  */
-export type GridAction =
-  | "moveUp" | "moveDown" | "moveLeft" | "moveRight"
-  | "retainMoveUp" | "retainMoveDown" | "retainMoveLeft" | "retainMoveRight"
-  | "scrollActiveIntoView"
-  | "moveRowStart" | "moveRowEnd"
-  | "jumpUp" | "jumpDown" | "jumpLeft" | "jumpRight"
-  | "moveFirstCell" | "moveLastCell"
-  | "pageUp" | "pageDown"
-  | "extendUp" | "extendDown" | "extendLeft" | "extendRight"
-  | "extendJumpUp" | "extendJumpDown" | "extendJumpLeft" | "extendJumpRight"
-  | "extendFirstCell" | "extendLastCell"
-  | "selectRow" | "selectColumn" | "selectAll"
-  | "edit" | "editReplace" | "commitDown" | "commitUp" | "commitRight" | "commitLeft"
-  | "cancel" | "deleteContents"
-  | "undo" | "redo"
-  | "fillDown" | "fillRight"
-  | "insertRowBelow" | "insertRowAbove" | "duplicateRow" | "deleteRows";
+export interface GridActions {
+  moveUp: true;
+  moveDown: true;
+  moveLeft: true;
+  moveRight: true;
+  moveUpKeepSelection: true;
+  moveDownKeepSelection: true;
+  moveLeftKeepSelection: true;
+  moveRightKeepSelection: true;
+  scrollActiveIntoView: true;
+  moveRowStart: true;
+  moveRowEnd: true;
+  jumpUp: true;
+  jumpDown: true;
+  jumpLeft: true;
+  jumpRight: true;
+  moveFirstCell: true;
+  moveLastCell: true;
+  pageUp: true;
+  pageDown: true;
+  extendUp: true;
+  extendDown: true;
+  extendLeft: true;
+  extendRight: true;
+  extendJumpUp: true;
+  extendJumpDown: true;
+  extendJumpLeft: true;
+  extendJumpRight: true;
+  extendFirstCell: true;
+  extendLastCell: true;
+  selectRow: true;
+  selectColumn: true;
+  selectAll: true;
+  toggleRow: true;
+  toggleAllRows: true;
+  openColumnMenu: true;
+  edit: true;
+  typeToReplace: true;
+  commitDown: true;
+  commitUp: true;
+  commitRight: true;
+  commitLeft: true;
+  cancel: true;
+  clearContents: true;
+  undo: true;
+  redo: true;
+  fillDown: true;
+  fillRight: true;
+  insertRowBelow: true;
+  insertRowAbove: true;
+  duplicateRow: true;
+  deleteRows: true;
+  openLink: true;
+}
+
+/** Every named keyboard action — the built-ins of {@link GridActions} plus any the consumer merged in. */
+export type GridAction = keyof GridActions;
+
+/** The dialog sections a custom command's `group` places it in (the same sections the keybindings dialog renders; i18n labels live in `labels.keybindings.categories`). */
+export type CommandGroup = "navigation" | "selection" | "editing" | "clipboardFill" | "history" | "other";
+
+/**
+ * The imperative handle of one grid: the stable actions object, the read-only store, non-reactive
+ * state reads, and the two DOM gestures (scroll, focus). Obtain it from `<DataGrid ref>`, from
+ * `<DataGridProvider ref>`, or from {@link useDataGridApi} anywhere under the provider.
+ */
+export type DataGridApi<TData> = {
+  /** The same stable object `useDataGridActions` returns (public actions only). */
+  actions: DataGridActions;
+  /** The read-only store view {@link useDataGridStoreApi} returns: no `setState` — the consumer's writable store is `useDataGridStoreProps` (row-agnostic — `getRow` is the typed read). */
+  store: DataGridStoreWrapper;
+  /** Scrolls the cell named by the ref into view; a ref that no longer resolves no-ops (dev-warned once per grid). */
+  scrollTo(ref: CellRef): void;
+  /** Focuses the active cell's element, first scrolling an off-window active cell into view; with no active cell it focuses the grid (whose focus onboarding seeds (0,0)). No-ops while an edit session is open — focusing would blur the editor and commit it. */
+  focus(): void;
+  /** Starts an edit session at the ref's cell — the same guards as `actions.startEditing`. */
+  startEditing(ref: CellRef): void;
+  /** Discards the in-progress edit without emitting a change (`actions.cancelEditing`). */
+  stopEditing(): void;
+  /** A non-reactive snapshot of the current selection in stable {@link CellRef} terms. */
+  getSelection(): SelectionState;
+  /** Applies the named selection as a whole, emitting like a gesture; `null` clears the whole selection. A single cell stays `actions.selectCell(ref)`. */
+  setSelection(next: SelectionState | null): void;
+  /** The data row at a view (display) row index — the same read `useDataGridRow` performs, without a subscription. */
+  getRow(viewRowIndex: number): TData | undefined;
+  /** The row id of every view row, in view order; an unloaded row (a lazy hole) gets its placeholder id, like `useDataGridRowIds`. */
+  getViewRowIds(): readonly string[];
+};
+
+/**
+ * The store state as plugins and the `api.store` handle see it: every state field except the
+ * consumer's `on*` event callbacks and the core's internal impl slots. State reads return the
+ * store's live objects (`data`, `selection`, `columns`) — they must not be mutated (no copy is
+ * made; a copy per read would cost O(n) on the hot path).
+ */
+export type DataGridReadState = Omit<
+  DataGridStoreState,
+  | "onDataChange"
+  | "onValidationError"
+  | "onEditStart"
+  | "onEditEnd"
+  | "onSortChange"
+  | "onFilterChange"
+  | "onJoinOperatorChange"
+  | "onSearchTextChange"
+  | "onColumnLayoutChange"
+  | "onColumnResizing"
+  | "onSelectionChange"
+  | "onActiveCellChange"
+  | "onCellDoubleClick"
+  | "onCellContextMenu"
+  | "onCellClick"
+  | "onRenderedRowsChange"
+  | "scrollToCellImpl"
+  | "focusImpl"
+  | "measureFonts"
+  | "dataWrite"
+>;
+
+/**
+ * The read-only store view behind `DataGridApi.store` and `useDataGridStoreApi`: `getState` and
+ * `subscribe` only — `setState` does not exist on it. The consumer's writable store (the
+ * store-ownership path) is `useDataGridStoreProps`.
+ */
+export type DataGridStoreWrapper = {
+  getState(): DataGridReadState;
+  getInitialState(): DataGridReadState;
+  subscribe(listener: (state: DataGridReadState, prevState: DataGridReadState) => void): () => void;
+};
+
+/**
+ * One entry of the `plugins` prop: an add-on that reaches into the grid. Members are optional;
+ * `name` is the React key of the plugin's components and its identity — unique per grid (a dev
+ * error when two plugins share a name). `Overlay` renders into the overlay layer (after the
+ * built-in range layers, before the active-cell ring); `rowBands` contributes to the top/bottom
+ * row bands; `onDataChange` observes every data change AFTER the store write and the consumer's
+ * `onDataChange`; `commands`/`keymap` join the grid's command and keymap merges; `Mount` renders
+ * inside `DataGridRoot` after its children for engine work (pointer handlers, listeners). Array
+ * order is precedence and visual order. A plugin object attaches to ONE grid.
+ */
+export type DataGridPlugin<TData = unknown> = {
+  /** Unique per grid: the React key of the plugin's components and its identity in the store. */
+  name: string;
+  /** A component rendered by `DataGridOverlays` with the overlay ctx (window clamp + pin-zone helpers). */
+  Overlay?: ComponentType<OverlayPluginCtx>;
+  /** Row-band contribution: which rows land in which band plus the painter. */
+  rowBands?: PluginRowBands;
+  /** Observes every data change after the store write and the consumer's `onDataChange`; a throwing observer logs and does not stop the others. */
+  onDataChange?(next: readonly TData[], change: DataChange<TData>, ctx: DataGridPluginCtx<TData>): void;
+  /** This plugin's commands, merged into the grid's command map (the consumer's `commands` win; a built-in action name is dropped unless pluggable). */
+  commands?: Record<string, GridCommand<TData>>;
+  /** Binds THIS plugin's commands only: an entry naming a command the plugin does not define is dropped, dev-warned; a binding the grid's default keymap or the consumer's `keymap` already uses is dropped, dev-warned. */
+  keymap?: Keymap;
+  /** A component rendered inside `DataGridRoot` after its children (no props — read the grid through {@link useDataGridApi}). */
+  Mount?: ComponentType;
+};
+
+/** The row-band contribution of a {@link DataGridPlugin}. */
+export type PluginRowBands = {
+  /** Rows for the top band (above the first data row); omit for no top band. */
+  top?: readonly unknown[];
+  /** Rows for the bottom band (below the last data row); omit for no bottom band. */
+  bottom?: readonly unknown[];
+  /** Paints this plugin's rows of one band; called as a plain function during the root's render — a band that needs state renders a component inside the returned node. */
+  render(ctx: RowBandRenderCtx): ReactNode;
+};
+
+/** What a {@link DataGridPlugin} `onDataChange` observer receives besides the change. */
+export type DataGridPluginCtx<TData = unknown> = {
+  /** The grid's imperative handle for the grid the change belongs to. */
+  api: DataGridApi<TData>;
+};
+
+/** The context a custom command's `run`/`when` receives, built fresh from the live store at dispatch time. */
+export type GridCommandCtx<TData = unknown> = {
+  /** The grid's imperative handle ({@link DataGridApi}) for the grid being dispatched on. */
+  api: DataGridApi<TData>;
+  /**
+   * The active cell as a stable {@link CellRef}, or `null` when no cell is active. On an unloaded
+   * lazy row it is a placeholder ref that `api` cannot resolve.
+   */
+  cell: CellRef | null;
+  /** The view (display) row index of the active cell, or `null` when no cell is active. */
+  viewRowIndex: number | null;
+  /** The view (display) column index of the active cell, or `null` when no cell is active. */
+  viewColumnIndex: number | null;
+  /** The data row of the active cell, or `undefined` when none. */
+  row: TData | undefined;
+  /** The grid's effective `readOnly` flag. */
+  readOnly: boolean;
+};
+
+/**
+ * One consumer-defined keyboard command, bound through the `keymap` prop by name
+ * (`commands: { saveAll: {...} }` + `keymap: { saveAll: ["mod+s"] }`). Method-style `run`/`when`
+ * keep a consumer's `GridCommand<TData>` assignable to the store's row-agnostic field.
+ */
+export type GridCommand<TData = unknown> = {
+  /** Runs the command when a bound key fires. */
+  run(ctx: GridCommandCtx<TData>): void;
+  /** Gate: return `false` to ignore the key entirely (no `preventDefault`, no `run`). */
+  when?(ctx: GridCommandCtx<TData>): boolean;
+  /**
+   * When the command dispatches: `"grid"` (default) while no edit session is open; `"editing"`
+   * while an edit session is open; `"always"` in both cases. The grid keeps its built-in bindings.
+   */
+  scope?: "grid" | "editing" | "always";
+  /** Keybindings-dialog label; default: `labels.keybindings.actions[name]` or the humanized name. */
+  label?: string;
+  /** Keybindings-dialog section; default: `"other"`. */
+  group?: CommandGroup;
+};
 
 /**
  * Key binding string: `mod` = Ctrl (win/linux) / Cmd (mac), `ctrl` = the LITERAL physical Ctrl key
@@ -549,26 +891,53 @@ export interface GridCellTypes {
     options: {
       min?: number;
       max?: number;
-      /** @reserved — accepted but a no-op for now: stepping is editor-keyboard behavior and gets decided after P4 lands; do not rely on it. */
+      /** Step applied by ArrowUp/ArrowDown in the editor; default 1. */
       step?: number;
       decimals?: number;
+      /** Display-only locale format (currency, percent, compact); `toText`, copy, export, and the editor stay on the raw value. */
+      format?: Intl.NumberFormatOptions;
+      /** Locale for `format`; default `"en-US"` — an explicit default keeps SSR and client HTML identical. */
+      locale?: string;
     };
   };
   checkbox: { value: boolean; options: object };
   select: {
     value: string | null;
-    options: { choices: readonly { value: string; label: string }[] };
+    options: {
+      /**
+       * The cell stores `value`; the grid shows `label`. Display, search, sort, filter text, and copy resolve a
+       * stored value to its label here (a value with no choice shows as is). Resolve the label in your own code
+       * with `choices.find((choice) => choice.value === value)?.label`.
+       * Lookups are cached per array: pass a new array to change the choices, never mutate it in place.
+       */
+      choices: readonly { value: string; label: string }[];
+    };
   };
   date: {
     value: string | null;
     /** `locale` defaults to `"en-US"` — an explicit default keeps SSR and client HTML identical. */
     options: { min?: string; max?: string; displayFormat?: Intl.DateTimeFormatOptions; locale?: string };
   };
+  url: {
+    value: string | null;
+    options: {
+      /** Maps the stored URL to the shown link text; `toText`, copy, and export stay the URL. */
+      label?: (value: string) => string;
+    };
+  };
+  longText: {
+    value: string;
+    options: {
+      /** Max stored length (the editor textarea's `maxLength`); default 100,000. */
+      maxLength?: number;
+      placeholder?: string;
+    };
+  };
 }
 
 /**
  * Plain JSON-serializable snapshot of a grid's column layout (widths/order/pins/hidden) — the save
- * payload for `onColumnLayoutChange`/`defaultColumnLayout` (PLAN events-state gap fix 1). `widths`
+ * payload for `onColumnLayoutChange`/`defaultColumnLayout`. `widths`
  * holds only columns the user has actually resized (a def's own `width` isn't duplicated in here);
  * `order` is always the full current column-id order, not just the moved one.
  */
@@ -577,6 +946,16 @@ export type ColumnLayout = {
   order: string[];
   pins: Record<string, "left" | "right">;
   hidden: string[];
+};
+
+/** Options for `actions.autosizeColumns` and the `autosizeOnMount` prop. */
+export type AutosizeOptions = {
+  /** Column ids to size; hidden, unknown, or non-resizable ids are skipped (unknown ids dev-warn). Default: every visible resizable column. */
+  columnIds?: readonly string[];
+  /** View rows to sample, evenly strided across the view; the mounted window's rows are always included. Default 1000, clamped to [1, 10000]. */
+  sampleRows?: number;
+  /** Measure the header text (plus its sort-indicator and header-menu affordances) alongside the cells. Default true. */
+  includeHeader?: boolean;
 };
 
 /** Registered cell-type keys (built-in + consumer-augmented). */

@@ -2,11 +2,12 @@
 
 import { useState, type ReactNode } from "react";
 import { Tabs } from "@base-ui/react/tabs";
-import { Check, Copy } from "lucide-react";
+import { Copy } from "lucide-react";
 import { PACKAGE_MANAGERS, RUNNERS, usePackageManager, type PackageManager } from "@/lib/package-manager";
 import type { RegistryItemName } from "@/lib/registry-items";
 import { DocsTabs, type DocsTabItem } from "@/components/docs-tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { CopyAnnouncer, CopyIcon, useCopyText } from "@/components/copy-status";
 
 // Client component — keep the addresses literal here (lib/read-registry-item uses node:fs).
 const GRIDCN_REGISTRY = "@gridcn";
@@ -41,7 +42,7 @@ const MANUAL_TABS: readonly DocsTabItem[] = [
 /** Package-manager-tabbed install command (diceui pattern): persisted choice, synced across all instances, copy button. */
 export function InstallCommand({ item, items, command, manual = false, manualSlot }: InstallCommandProps): ReactNode {
   const [manager, setManager] = usePackageManager();
-  const [copied, setCopied] = useState(false);
+  const { status, copy } = useCopyText();
   const [selected, setSelected] = useState(() => new Set((items ?? []).filter((i) => i.defaultChecked).map((i) => i.value)));
 
   const addresses = item
@@ -53,24 +54,19 @@ export function InstallCommand({ item, items, command, manual = false, manualSlo
   const target = command ?? (addresses && `shadcn@latest add ${addresses}`);
   const full = target ? `${RUNNERS[manager]} ${target}` : "";
 
-  const copy = () => {
-    if (!full) return;
-    void navigator.clipboard.writeText(full).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
-  };
-
   const copyButton = (
-    <button
-      type="button"
-      aria-label="Copy install command"
-      disabled={!full}
-      onClick={copy}
-      className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
-    >
-      {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-    </button>
+    <>
+      <button
+        type="button"
+        aria-label="Copy install command"
+        disabled={!full}
+        onClick={() => void copy(full)}
+        className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+      >
+        <CopyIcon status={status} idle={<Copy className="size-3.5" />} className="size-3.5" />
+      </button>
+      <CopyAnnouncer status={status} />
+    </>
   );
 
   const picker = items ? (

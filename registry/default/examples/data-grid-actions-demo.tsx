@@ -22,7 +22,7 @@ import { generateDemoRows, type DemoRow } from "./demo-data";
 function RowActions({ rowIndex }: { rowIndex: number }): ReactNode {
   const actions = useDataGridActions();
   // The row's first editable cell (Name, col 0) is where Edit drops the user.
-  const editRow = () => actions.startEditing({ row: rowIndex, col: 0 });
+  const editRow = () => actions.startEditingAt({ row: rowIndex, col: 0 });
 
   return (
     <div className="flex items-center justify-end gap-1">
@@ -98,14 +98,14 @@ const columns = defineColumns<DemoRow>()([
   },
   {
     id: "actions",
-    header: "",
+    header: <span className="sr-only">Actions</span>,
     // accessorFn (no accessorKey) keeps the column readable but read-only by construction; the
     // value is unused — renderCell renders the buttons instead.
     accessorFn: () => "",
     pin: "right",
     readOnly: true,
     width: 110,
-    renderCell: ({ rowIndex }) => <RowActions rowIndex={rowIndex} />,
+    renderCell: ({ viewRowIndex }) => <RowActions rowIndex={viewRowIndex} />,
   },
 ] as const);
 

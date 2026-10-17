@@ -129,6 +129,8 @@ button[data-search],
   --color-chart-1: var(--chart-1);
   --color-warning: var(--warning);
   --color-search-highlight: var(--search-highlight);
+  --color-status-new: var(--status-new);
+  --color-status-updated: var(--status-updated);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -186,6 +188,9 @@ button[data-search],
   --warning: oklch(66.6% 0.179 58.318);
   /* gridcn search highlight: deliberate amber, distinct convention from selection/active tokens — amber-200 */
   --search-highlight: oklch(92.4% 0.12 95.746);
+  /* docs sidebar status markers (green dot = new page, orange dot = updated page) */
+  --status-new: oklch(0.696 0.17 162.48);
+  --status-updated: oklch(0.705 0.213 47.604);
   /* grid schema: sharp corners throughout — a data grid is a lattice of cells, not a stack of soft cards */
   --radius: 0rem;
   --sidebar: oklch(0.97 0.008 65);
@@ -233,6 +238,9 @@ button[data-search],
   --warning: oklch(76.9% 0.188 70.08);
   /* gridcn search highlight in dark: amber-400 */
   --search-highlight: oklch(82.8% 0.189 84.429);
+  /* docs sidebar status markers in dark: lighter to read on charcoal */
+  --status-new: oklch(0.765 0.177 163.94);
+  --status-updated: oklch(0.778 0.186 52.93);
   --sidebar: oklch(0.21 0.009 55);
   --sidebar-foreground: oklch(0.94 0.006 65);
   --sidebar-primary: oklch(0.6 0.09 55);
@@ -269,7 +277,7 @@ button[data-search],
   --color-fd-ring: var(--ring);
 }
 
-#nd-sidebar {
+:is(#nd-sidebar, #nd-sidebar-mobile) {
   background-color: var(--sidebar);
   color: var(--sidebar-foreground);
   border-color: var(--sidebar-border);
@@ -277,6 +285,165 @@ button[data-search],
   --color-fd-accent-foreground: var(--sidebar-accent-foreground);
   --color-fd-ring: var(--sidebar-ring);
   --color-fd-primary-foreground: var(--sidebar-primary-foreground);
+}
+
+/* docs sidebar grid canvas: one continuous table, 36px rows, 1px line at every boundary,
+   every element its own bordered cell. The cell structure (chevron/gutter/content, ghost
+   cells, group band) is rendered by components/docs-sidebar.tsx; this only styles it.
+   Row and wrapper selectors match fumadocs-ui 16.15 utility classes (no data attributes exist).
+   No :has() here (repo policy). */
+
+/* 312px sidebar (fumadocs default is 268px). Ties fumadocs' #nd-docs-layout:has(...) width
+   rule at (1,1,0) and wins on source order: this sheet loads after fumadocs'. */
+@media (width >= 48rem) {
+  #nd-docs-layout[data-sidebar-collapsed] {
+    --fd-sidebar-width: 312px;
+  }
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) > div.flex.flex-col {
+  position: relative;
+  z-index: 10;
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: 0 1px 0 0 var(--color-border), 0 6px 16px -6px rgb(0 0 0 / 0.5);
+}
+
+/* Layered !important beats unlayered !important, so this rule sits in @layer base to outrank
+   the viewport's *:gap-0.5! utility (utilities layer) in the server-rendered HTML. */
+@layer base {
+  :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div {
+    gap: 0 !important;
+  }
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div {
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+}
+
+/* nested content wrappers ship pt-0.5: without zeroing both, the first child of every folder
+   sits 2px below its trigger (breaks the chevron-column line at folder boundaries) */
+:is(#nd-sidebar, #nd-sidebar-mobile) .flex.flex-col.gap-0\.5 {
+  gap: 0 !important;
+  padding: 0 !important;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) :is(a, button, div).relative.flex.flex-row {
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: transparent;
+  padding: 0 !important;
+  gap: 0;
+  height: 36px;
+  overflow: hidden;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) :is(a, button, div).relative.flex.flex-row:hover {
+  background: color-mix(in oklab, var(--color-muted) 40%, transparent);
+}
+
+/* Data-Grid-style selection ring on click/keyboard focus and on the active page (so a reload or a shared link shows it too): 2px inset primary (ring-2 ring-inset
+   ring-primary). Drawn on the content cell so it wraps the title/icon only, not the gutter
+   (nesting offset) or the chevron column. */
+:is(#nd-sidebar, #nd-sidebar-mobile) :is(a, button, div).relative.flex.flex-row:focus .nav-content,
+:is(#nd-sidebar, #nd-sidebar-mobile) a[data-active="true"] .nav-content {
+  box-shadow: inset 0 0 0 2px var(--color-primary);
+}
+
+/* section headers styled as Data Grid header cells (header-cell.tsx): bg-muted, border-b
+   border-border, px-2, font-medium, 36px (HEADER_HEIGHT), default foreground. */
+:is(#nd-sidebar, #nd-sidebar-mobile) p.inline-flex.items-center {
+  margin: 0;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-muted);
+  height: 36px;
+  font-weight: 500;
+  color: var(--color-foreground);
+  user-select: none;
+}
+
+/* folder trigger rows carry the group band (class assigned by the builder) */
+:is(#nd-sidebar, #nd-sidebar-mobile) :is(a, button).nd-nav-band {
+  background: color-mix(in oklab, var(--color-muted) 30%, transparent);
+  font-weight: 600;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .nav-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-self: stretch;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .nav-badge {
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .nav-title {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .gutter-cell {
+  flex: none;
+  width: 22px;
+  align-self: stretch;
+  border-right: 1px solid var(--color-border);
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) .chev-cell {
+  flex: none;
+  width: 28px;
+  align-self: stretch;
+  border-left: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted-foreground);
+}
+
+/* the folder chevron is fumadocs' own svg: it is the cell, with the divider drawn beside it */
+:is(#nd-sidebar, #nd-sidebar-mobile) :is(a, button).nd-nav-band > svg[data-icon] {
+  flex: none;
+  box-sizing: border-box;
+  width: 28px;
+  height: 36px;
+  padding: 11px 7px;
+  margin: 0;
+  color: var(--color-muted-foreground);
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) :is(a, button).nd-nav-band::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 28px;
+  border-left: 1px solid var(--color-border);
+  pointer-events: none;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) a[data-active="true"] {
+  background: color-mix(in oklab, var(--color-primary) 12%) !important;
+}
+
+/* fumadocs ships a 1px left indicator line on the active item via ::before; suppress it so
+   the selection ring on .nav-content is the only active marker. */
+:is(#nd-sidebar, #nd-sidebar-mobile) a[data-active="true"]::before {
+  display: none;
+}
+
+/* fumadocs also draws a depth-1 "tree connector" line via ::before on each top-level folder's
+   collapsible content. The gutter columns already encode nesting, so suppress it too. */
+:is(#nd-sidebar, #nd-sidebar-mobile) div[data-state] > div.overflow-hidden::before {
+  display: none;
 }
 
 /* paper card/callout/code-block shadows: retint Tailwind's shadow-sm/md/lg so docs chrome gets soft warm elevation */

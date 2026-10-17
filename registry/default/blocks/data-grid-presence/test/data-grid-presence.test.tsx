@@ -10,11 +10,11 @@ import {
   useDataGridActions,
   useDataGridCellState,
   useDataGridRow,
-  gridAttrSelector,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPresence, useDataGridPresenceHighlights, type PresenceHighlightEntry, type PresenceStoreApi } from "../data-grid-presence";
-import { MAX_RESOLVED_RECTS, resolveHighlights } from "../presence-overlay";
+import { DEFAULT_PRESENCE_COLOR, MAX_RESOLVED_RECTS, resolveHighlights, safePresenceColor } from "../presence-overlay";
 import type { GridRect } from "@/registry/default/blocks/data-grid/data-grid";
+import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 type Row = { id: string; name: string; qty: number };
 
@@ -172,7 +172,7 @@ describe("multiplayer presence: setPresenceHighlights renders ONLY the highlight
       const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
       setPresenceHighlights = setHighlights;
       return (
-        <DataGridProvider data={makeRows(3)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+        <DataGridProvider data={makeRows(3)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
           <DataGridRoot>
             <DataGridHeader />
             <DataGridBody />
@@ -213,7 +213,7 @@ describe("multiplayer presence: setPresenceHighlights renders ONLY the highlight
       const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
       setPresenceHighlights = setHighlights;
       return (
-        <DataGridProvider data={makeRows(3)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+        <DataGridProvider data={makeRows(3)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
           <DataGridRoot>
             <DataGridHeader />
             <DataGridBody />
@@ -234,7 +234,7 @@ describe("multiplayer presence: setPresenceHighlights renders ONLY the highlight
 
 /**
  * rowId-native entries (2026-08-02 optimization audit, "rowId-native presence adapter"): the plugin
- * resolves `{ rowId, columnId }` to a view-space cell using the SAME `useDataGridRowIdToViewRow()`
+ * resolves `{ rowId, columnId }` to a view-index cell using the SAME `useDataGridRowIdToViewRow()`
  * core hook the docs now point consumers at, instead of a manual `useShallow`-over-`useDataGridRowIds`
  * map that cost O(n) per store change. These tests exercise resolution through the real overlay
  * plugin pipeline (`DataGridRoot`/`DataGridBody` mounted), unlike the zero-render probes above which
@@ -247,7 +247,7 @@ describe("multiplayer presence: rowId-native highlight resolution", () => {
       const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
       setPresenceHighlights = setHighlights;
       return (
-        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
           <DataGridRoot>
             <DataGridHeader />
             <DataGridBody />
@@ -274,7 +274,7 @@ describe("multiplayer presence: rowId-native highlight resolution", () => {
       const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
       setPresenceHighlights = setHighlights;
       return (
-        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
           <ActionsCapture onReady={(actions) => (actionsRef = actions)} />
           <DataGridRoot>
             <DataGridHeader />
@@ -302,7 +302,7 @@ describe("multiplayer presence: rowId-native highlight resolution", () => {
       const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
       setPresenceHighlights = setHighlights;
       return (
-        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
           <DataGridRoot>
             <DataGridHeader />
             <DataGridBody />
@@ -330,7 +330,7 @@ describe("multiplayer presence: rowId-native range highlight resolution", () => 
       const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
       setPresenceHighlights = setHighlights;
       return (
-        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
           <DataGridRoot>
             <DataGridHeader />
             <DataGridBody />
@@ -359,7 +359,7 @@ describe("multiplayer presence: rowId-native range highlight resolution", () => 
       const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
       setPresenceHighlights = setHighlights;
       return (
-        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
           <DataGridRoot>
             <DataGridHeader />
             <DataGridBody />
@@ -386,7 +386,7 @@ describe("multiplayer presence: rowId-native range highlight resolution", () => 
       const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
       setPresenceHighlights = setHighlights;
       return (
-        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
           <ActionsCapture onReady={(actions) => (actionsRef = actions)} />
           <DataGridRoot>
             <DataGridHeader />
@@ -415,7 +415,7 @@ describe("multiplayer presence: rowId-native range highlight resolution", () => 
       const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
       setPresenceHighlights = setHighlights;
       return (
-        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
           <DataGridRoot>
             <DataGridHeader />
             <DataGridBody />
@@ -445,7 +445,7 @@ describe("multiplayer presence: rowId-native range highlight resolution", () => 
       const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
       setPresenceHighlights = setHighlights;
       return (
-        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
           <DataGridRoot>
             <DataGridHeader />
             <DataGridBody />
@@ -553,7 +553,7 @@ describe("multiplayer presence: rowId-native range highlight resolution", () => 
       const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
       setPresenceHighlights = setHighlights;
       return (
-        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
           <DataGridRoot>
             <DataGridHeader />
             <DataGridBody />
@@ -580,7 +580,7 @@ describe("multiplayer presence: entry hardening", () => {
       const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
       setPresenceHighlights = setHighlights;
       return (
-        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
           <DataGridRoot>
             <DataGridHeader />
             <DataGridBody />
@@ -660,7 +660,7 @@ describe("multiplayer presence: entry hardening", () => {
       const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
       setPresenceHighlights = setHighlights;
       return (
-        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
           <ActionsCapture onReady={(actions) => (actionsRef = actions)} />
           <DataGridRoot>
             <DataGridHeader />
@@ -825,7 +825,7 @@ describe("multiplayer presence: rect budget (maxRects / onExcessRects)", () => {
       const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence({ maxRects: 1, onExcessRects: onExcess });
       setPresenceHighlights = setHighlights;
       return (
-        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+        <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
           <DataGridRoot>
             <DataGridHeader />
             <DataGridBody />
@@ -850,3 +850,242 @@ function ActionsCapture({ onReady }: { onReady: (actions: ReturnType<typeof useD
   onReady(useDataGridActions());
   return null;
 }
+/**
+ * Stale view-index entry warning: a view-index highlight follows its rect, not its rows, so a
+ * row-moving or column-moving store write while a view-index entry is active leaves it pointing
+ * at the wrong cells. The plugin's Mount (core no longer has a presence seam) dev-warns once per
+ * grid when it detects the move.
+ */
+describe("stale view-space entry warning (plugin Mount)", () => {
+  const viewEntry = { id: "user-1", color: "#f00", range: { x: 0, y: 0, width: 1, height: 1 } };
+  const rowIdEntry = { id: "user-2", color: "#0f0", rowId: "1", columnId: "name" };
+  const STALE = "view-space presence";
+  // reversed so a name-asc sort (the toggle's default direction) actually moves rows
+  const REVERSED = [...makeRows(3)].reverse();
+
+  let setPresenceHighlights: ReturnType<typeof useDataGridPresence>["setPresenceHighlights"] | null = null;
+  let actions: ReturnType<typeof useDataGridActions> | null = null;
+  function Harness({ data = makeRows(3) }: { data?: Row[] }) {
+    const presence = useDataGridPresence();
+    setPresenceHighlights = presence.setPresenceHighlights;
+    return (
+      <DataGridProvider data={data} columns={columns} getRowId={(r) => r.id} plugins={[presence.plugin]}>
+        <DataGridRoot>
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+        <ActionsCapture onReady={(a) => (actions = a)} />
+      </DataGridProvider>
+    );
+  }
+
+  it("does not warn while only rowId-native entries are active", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(<Harness />);
+    act(() => {
+      setPresenceHighlights!([rowIdEntry]);
+    });
+    act(() => actions!.reorderRows(0, 2));
+    act(() => actions!.updateCells([{ rowId: "1", columnId: "qty", value: 31 }]));
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("warns exactly once across repeated row-moving ops, not per op", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(<Harness />);
+    act(() => {
+      setPresenceHighlights!([viewEntry]);
+    });
+    act(() => actions!.reorderRows(0, 2));
+    act(() => actions!.reorderRows(2, 0));
+    act(() => actions!.updateCells([{ rowId: "1", columnId: "qty", value: 31 }]));
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain(STALE);
+    warn.mockRestore();
+  });
+
+  it("warns when a sort, filter, or join change rebuilds the view", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const first = render(<Harness data={REVERSED} />);
+    act(() => setPresenceHighlights!([viewEntry]));
+    act(() => actions!.toggleSort("name", false));
+    expect(warn).toHaveBeenCalledTimes(1);
+    first.unmount();
+
+    const second = render(<Harness data={REVERSED} />);
+    act(() => setPresenceHighlights!([viewEntry]));
+    act(() => actions!.setFilters([{ columnId: "name", operator: "equals", value: "Row 1" }]));
+    expect(warn).toHaveBeenCalledTimes(2);
+    second.unmount();
+
+    render(<Harness data={REVERSED} />);
+    act(() =>
+      actions!.setFilters([
+        { columnId: "name", operator: "equals", value: "Row 1" },
+        { columnId: "qty", operator: "gt", value: "0" },
+      ]),
+    );
+    act(() => setPresenceHighlights!([viewEntry]));
+    act(() => actions!.setJoinOperator("or"));
+    expect(warn).toHaveBeenCalledTimes(3);
+    warn.mockRestore();
+  });
+
+  it("does not warn when a consumer swap keeps every row at its position, or a lazy page fills holes", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const lazyId = (r: Row | undefined, index: number) => (r === undefined ? `hole-${index}` : r.id);
+    function SparseHarness({ data }: { data: (Row | undefined)[] }) {
+      const presence = useDataGridPresence();
+      setPresenceHighlights = presence.setPresenceHighlights;
+      return (
+        <DataGridProvider data={data as Row[]} columns={columns} getRowId={lazyId as never} plugins={[presence.plugin]}>
+          <DataGridRoot>
+            <DataGridHeader />
+            <DataGridBody />
+            <ActionsCapture onReady={(a) => (actions = a)} />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    const sparse: (Row | undefined)[] = makeRows(3);
+    sparse[1] = undefined;
+    const view = render(<SparseHarness data={sparse} />);
+    act(() => setPresenceHighlights!([viewEntry]));
+    view.rerender(<SparseHarness data={makeRows(3)} />);
+    view.rerender(<SparseHarness data={makeRows(3).map((r) => ({ ...r, qty: r.qty + 1 }))} />);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("does not install the move watcher outside development", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const first = render(<Harness />);
+    act(() => setPresenceHighlights!([viewEntry]));
+    act(() => actions!.reorderRows(0, 2));
+    expect(warn).toHaveBeenCalledTimes(1); // dev sanity: the watcher works
+    first.unmount();
+    vi.stubEnv("NODE_ENV", "production");
+    render(<Harness />);
+    act(() => setPresenceHighlights!([viewEntry]));
+    act(() => actions!.reorderRows(0, 2));
+    expect(warn).toHaveBeenCalledTimes(1); // production: watcher never installed
+    vi.unstubAllEnvs();
+    warn.mockRestore();
+  });
+
+  it("warns when a consumer data swap replaces the rows", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const view = render(<Harness data={makeRows(3)} />);
+    act(() => setPresenceHighlights!([viewEntry]));
+    view.rerender(<Harness data={[...makeRows(3)].reverse()} />);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain(STALE);
+    warn.mockRestore();
+  });
+
+  it("warns once per grid instance, including on deleteRows", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const first = render(<Harness />);
+    act(() => setPresenceHighlights!([viewEntry]));
+    act(() => actions!.deleteRows([0]));
+    expect(warn).toHaveBeenCalledTimes(1);
+    first.unmount();
+
+    render(<Harness />);
+    act(() => setPresenceHighlights!([viewEntry]));
+    act(() => actions!.deleteRows([0]));
+    expect(warn).toHaveBeenCalledTimes(2);
+    warn.mockRestore();
+  });
+
+  it("warns when a column reorder, hide, or pin moves the view columns", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const first = render(<Harness />);
+    act(() => setPresenceHighlights!([viewEntry]));
+    act(() => actions!.setColumnOrder("qty", "name", "before"));
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain(STALE);
+    first.unmount();
+
+    const second = render(<Harness />);
+    act(() => setPresenceHighlights!([viewEntry]));
+    act(() => actions!.setColumnHidden("name", true));
+    expect(warn).toHaveBeenCalledTimes(2);
+    second.unmount();
+
+    render(<Harness />);
+    act(() => setPresenceHighlights!([viewEntry]));
+    act(() => actions!.setColumnPin("qty", "left"));
+    expect(warn).toHaveBeenCalledTimes(3);
+    warn.mockRestore();
+  });
+
+  it("does not warn when unhiding a trailing column appends it to the view columns", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(<Harness />);
+    act(() => actions!.setColumnHidden("qty", true));
+    act(() => setPresenceHighlights!([viewEntry]));
+    act(() => actions!.setColumnHidden("qty", false));
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("does not warn when a width change or a same-position reorder leaves the view columns in place", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(<Harness />);
+    act(() => setPresenceHighlights!([viewEntry]));
+    act(() => actions!.setColumnWidth("name", 200));
+    act(() => actions!.setColumnOrder("name", "qty", "before"));
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("warns when a consumer columns swap reorders the view columns", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const first = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
+    ] as const;
+    const second = [
+      { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
+      { id: "name", header: "Name", accessorKey: "name" },
+    ] as const;
+    function ColHarness({ cols }: { cols: readonly ColumnDef<Row, unknown>[] }) {
+      const presence = useDataGridPresence();
+      setPresenceHighlights = presence.setPresenceHighlights;
+      return (
+        <DataGridProvider data={makeRows(3)} columns={cols} getRowId={(r) => r.id} plugins={[presence.plugin]}>
+          <DataGridRoot>
+            <DataGridHeader />
+            <DataGridBody />
+            <ActionsCapture onReady={(a) => (actions = a)} />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    const view = render(<ColHarness cols={first} />);
+    act(() => setPresenceHighlights!([viewEntry]));
+    view.rerender(<ColHarness cols={second} />);
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes(STALE))).toHaveLength(1);
+    warn.mockRestore();
+  });
+});
+
+
+describe("safePresenceColor", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("falls back to the default color when the browser rejects the value", () => {
+    vi.stubGlobal("CSS", { supports: (_property: string, value: string) => value !== "url(https://example.test/x)" });
+    expect(safePresenceColor("url(https://example.test/x)")).toBe(DEFAULT_PRESENCE_COLOR);
+    expect(safePresenceColor("rebeccapurple")).toBe("rebeccapurple");
+  });
+
+  it("passes the value through where CSS.supports is unavailable", () => {
+    vi.stubGlobal("CSS", undefined);
+    expect(safePresenceColor("anything")).toBe("anything");
+  });
+});

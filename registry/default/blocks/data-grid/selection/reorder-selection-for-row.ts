@@ -1,7 +1,7 @@
 import { CompactSelection } from "./compact-selection";
-import type { CellCoord, GridRect, GridSelection } from "../types";
+import type { ViewCoord, GridRect, GridSelection } from "../types";
 
-/** View-space index remap for a single-row reorder: row `from` lands at `to`, every row between the two shifts one slot toward `from`. */
+/** View-index index remap for a single-row reorder: row `from` lands at `to`, every row between the two shifts one slot toward `from`. */
 export function rowReorderMap(from: number, to: number): (index: number) => number {
   if (to > from) return (i) => (i === from ? to : i > from && i <= to ? i - 1 : i);
   if (to < from) return (i) => (i === from ? to : i >= to && i < from ? i + 1 : i);
@@ -24,7 +24,7 @@ export function reorderSelectionForRow(selection: GridSelection, from: number, t
     const bottom = f(rect.y + rect.height - 1);
     return { ...rect, y: Math.min(top, bottom), height: Math.abs(bottom - top) + 1 };
   };
-  const shiftCell = (cell: CellCoord): CellCoord => ({ ...cell, row: f(cell.row) });
+  const shiftCell = (cell: ViewCoord): ViewCoord => ({ ...cell, row: f(cell.row) });
   return {
     current: selection.current
       ? {

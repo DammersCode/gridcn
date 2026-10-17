@@ -2,12 +2,13 @@
 title: Fill handle
 description: Drag to tile a selection, with series inference for numeric and text runs.
 icon: PaintBucket
+status: updated
 ---
 
 The fill handle is the small square at the bottom-right corner of a selection. Drag it up, down,
 left, or right to extend the selection and fill the new cells from the source range. The drag
 snaps to whichever axis you move further on. Once a fill commits, the cells it wrote play a brief
-fade pulse so the changed values stand out — the pulse only plays for cells in the viewport and
+fade pulse so the changed values stand out. The pulse only plays for cells in the viewport and
 never replays when a cell scrolls back into view.
 
 <ComponentPreview name="data-grid-demo" />
@@ -27,34 +28,25 @@ inference on its own:
 
 ## Wiring it up
 
-The fill handle lives in the separate `data-grid-fill` add-on: it registers into the core's
-**overlay-plugin seam** for its preview and handle painting (see
-[Overlay plugins](/docs/overlay-plugins) for the full seam) and adds the keymap callbacks for the
-keyboard fill shortcuts.
-
-`useDataGridFill()` is a single hook. Call it in your own component above where you render
-`<DataGridProvider>`. The `overlayPlugins` prop lives on the provider, so the plugin must exist
-before it. The hook returns the plugin plus a `FillHandleTracker` component. Render
-`FillHandleTracker` as a child anywhere inside `<DataGridRoot>`. That component needs the root's
-own scroll and column layout to track the drag, and this layout exists only inside that subtree:
+The fill handle lives in the separate `data-grid-fill` add-on. `useDataGridFill()` builds one
+plugin: its `Overlay` paints the drag preview and the handle, and its `Mount` runs the pointer
+engine (see [Plugins](/docs/plugins) for the seam). The keyboard fill shortcuts arrive as the
+plugin's `fillDown`/`fillRight` commands.
 
 ```tsx
 "use client";
 
 import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody } from "@/components/data-grid/data-grid";
-import { useMemo } from "react";
 import { useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";
 
 function MyGrid() {
-  const { plugin, FillHandleTracker } = useDataGridFill({});
-  const overlayPlugins = useMemo(() => [plugin], [plugin]);
+  const { plugin } = useDataGridFill();
 
   return (
-    <DataGridProvider data={data} columns={columns} getRowId={getRowId} overlayPlugins={overlayPlugins}>
+    <DataGridProvider data={data} columns={columns} getRowId={getRowId} plugins={[plugin]}>
       <DataGridRoot>
         <DataGridHeader />
         <DataGridBody />
-        <FillHandleTracker />
       </DataGridRoot>
     </DataGridProvider>
   );
@@ -62,10 +54,8 @@ function MyGrid() {
 ```
 
 <Callout title="Composing with core's DataGrid convenience wrapper">
-  `<DataGrid>` does not wire fill in automatically. Pass the plugin in a memoized `overlayPlugins` array and render
-  `<FillHandleTracker />` as a `children` element alongside your own header and body composition
-  (see the hero demo above for the full pattern). This is the same way you compose any other
-  add-on.
+  `<DataGrid>` does not wire fill in automatically. Pass the plugin through `plugins` (see the
+  hero demo above for the full pattern). This is the same way you compose any other add-on.
 </Callout>
 
 ## Tiling vs. series inference
@@ -77,10 +67,13 @@ repeats, a 2-row pattern repeats every 2 rows, and so on.
 
 If the source cells form a detectable series, the fill extrapolates it instead of tiling:
 
-- **Arithmetic runs** — `1, 2, 3` becomes `4, 5, 6`. `10, 20, 30` becomes `40, 50, 60`. This also
+- **Arithmetic runs**. `1, 2, 3` becomes `4, 5, 6`. `10, 20, 30` becomes `40, 50, 60`. This also
   works with a single-column decimal step.
-- **Zero-padded numbers** — `001, 002` becomes `003, 004`, with width preserved.
-- **Text plus trailing number** — `Item 1` becomes `Item 2`, `Item 3`, and so on.
+- **Zero-padded numbers**. `001, 002` becomes `003, 004`, with width preserved.
+- **Text plus trailing number**. `Item 1` becomes `Item 2`, `Item 3`, and so on.
+
+A number with more than 15 digits <NewBadge /> is an identifier, not a count. The fill tiles such a value and
+does not extrapolate it.
 
 <Callout title="Series detection needs two source cells">
   A single source cell always tiles, that is, copies, rather than extrapolating. There is no
@@ -117,7 +110,7 @@ const detectDates = (values: readonly string[]): SeriesDescriptor | null => {
 };
 
 function MyGrid() {
-  const { plugin, FillHandleTracker } = useDataGridFill({ detectSeries: detectDates });
+  const { plugin } = useDataGridFill({ detectSeries: detectDates });
   // ...
 }
 ```
@@ -131,21 +124,22 @@ import { detectSeries, useDataGridFill } from "@/components/data-grid-fill/data-
 const detectDatesOrBuiltIn = (values: readonly string[]) => detectDates(values) ?? detectSeries(values);
 
 function MyGrid() {
-  const { plugin, FillHandleTracker } = useDataGridFill({ detectSeries: detectDatesOrBuiltIn });
+  const { plugin } = useDataGridFill({ detectSeries: detectDatesOrBuiltIn });
   // ...
 }
 ```
 
 ## Keyboard fill
 
-- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>D</kbd> — fill down. This copies the top row of the current
+- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>D</kbd>: fill down. This copies the top row of the current
   selection into every row below it.
-- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>R</kbd> — fill right. This copies the left column into
+- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>R</kbd>: fill right. This copies the left column into
   every column to its right.
 
-Both go through the same tiling and series pipeline as a drag. The `fillDown` and `fillRight`
-entries of `GridAction`, and their `DEFAULT_KEYMAP` bindings, stay in the core. Without the add-on
-installed, both keys do nothing, because no handler is registered for them.
+Both go through the same tiling and series pipeline as a drag. The keys are core bindings: their
+`preventDefault` runs with or without the add-on (mod+R never reloads the page). Without the
+add-on installed, both keys do nothing. The add-on's `fillDown`/`fillRight` commands give them
+their body. See [Pluggable built-ins](/docs/plugins#pluggable-built-ins).
 
 ## Turning fill off
 
@@ -176,10 +170,10 @@ function onFill({ source, target, values, preventDefault }: FillArgs) {
 }
 
 function MyGrid() {
-  const { plugin, FillHandleTracker } = useDataGridFill({ onFill });
+  const { plugin } = useDataGridFill({ onFill });
   // ...
 }
 ```
 
-A fill, like a paste, is exactly one `onDataChange` call with a single ops batch, regardless of
+A fill, like a paste, is exactly one `onDataChange` call with a single operations batch, regardless of
 how many cells it touched.

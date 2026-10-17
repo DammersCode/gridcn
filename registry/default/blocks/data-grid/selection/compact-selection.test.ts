@@ -245,4 +245,19 @@ describe("CompactSelection", () => {
       expect(offsetted.toArray()).toEqual([2, 3, 4]);
     });
   });
+
+  describe("adopt", () => {
+    it("returns a CompactSelection unchanged, so add/remove match a rebuild from its indices", () => {
+      const base = CompactSelection.fromArray([1, 2, 3, 7, 8, 20]);
+      expect(CompactSelection.adopt(base)).toBe(base);
+      expect(CompactSelection.adopt(base).add(5).toArray()).toEqual(CompactSelection.fromArray(base.toArray()).add(5).toArray());
+      expect(CompactSelection.adopt(base).remove(2).toArray()).toEqual(CompactSelection.fromArray(base.toArray()).remove(2).toArray());
+    });
+
+    it("rebuilds a foreign index source into a CompactSelection", () => {
+      const adopted = CompactSelection.adopt({ toArray: () => [4, 5, 9] });
+      expect(adopted).toBeInstanceOf(CompactSelection);
+      expect(adopted.toArray()).toEqual([4, 5, 9]);
+    });
+  });
 });

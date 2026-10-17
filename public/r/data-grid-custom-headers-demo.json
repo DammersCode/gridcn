@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "Column header as a React component: a three-state sort icon (minus / up / down) driven by useDataGridSortState(); header click sorts in sort mode, and a custom header owns its display.",
   "dependencies": [
-    "lucide-react"
+    "lucide-react@^1.46.0"
   ],
   "registryDependencies": [
     "DammersCode/gridcn/data-grid"

@@ -35,7 +35,7 @@ const columns = defineColumns<DemoRow>()([
 ] as const);
 
 /**
- * `useDataGridState` quick start: wires data + op-based history + `onDataChange` together.
+ * `useDataGridState` quick start: wires data + operation-based history + `onDataChange` together.
  * Edit a cell, then use the buttons (or Ctrl+Z / Ctrl+Y) to undo/redo.
  */
 export default function DataGridHistoryDemo(): ReactNode {

@@ -1,11 +1,12 @@
 ---
 title: Drizzle
-description: The grid's server fetch contract with Drizzle — a route handler that maps sorts, filters, and page onto a query.
+description: The grid's server fetch contract with Drizzle. A route handler that maps sorts, filters, and page onto a query.
 icon: Database
+status: none
 ---
 
 <Callout type="info" title="Recipe">
-Recipe — not a shadcn registry example. It requires a server.
+Recipe: not a shadcn registry example. It requires a server.
 </Callout>
 
 The grid sends the whole view state. The handler maps it onto the ORM. For a `users`
@@ -77,7 +78,7 @@ export async function POST(req: Request) {
 }
 ```
 
-The client is the [server-side example](/docs/examples/data/server-side) unchanged — the
+The client is the [server-side example](/docs/examples/data/server-side) unchanged. The
 `queryFn` points at this route, and the demo's fake `applyOps` becomes your `UPDATE`/
 `INSERT`/`DELETE` handler.
 
@@ -89,8 +90,8 @@ resolves to `undefined`. It must throw a 400, and never reach the query builder.
 
 ## Shareable state
 
-Wrap the client in [DataGridUrlState](/docs/addons/url-state) and the view state — sort, filters,
-search, page, page size — moves to the URL. The route above then reads the same values from
+Wrap the client in [DataGridUrlState](/docs/addons/url-state) and the view state (sort, filters,
+search, page, page size) moves to the URL. The route above then reads the same values from
 the query string instead of a JSON body, and a shared link rebuilds the exact request.
 
 ## Kysely

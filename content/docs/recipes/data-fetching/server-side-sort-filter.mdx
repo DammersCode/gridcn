@@ -1,0 +1,68 @@
+---
+title: Server-side sort and filter
+description: Feed sort, filter, and search state to your API and show what it returns.
+icon: ListFilter
+status: new
+---
+
+`sortState`, `filterState`, and `searchText` each have a controlled prop pair on
+`DataGrid` (and `DataGridProvider`): `sortState`/`onSortChange`, `filterState`/`onFilterChange`,
+and `searchText`/`onSearchTextChange` (see [the three shapes](/docs/events-state#the-three-shapes-an-event-follows)
+for how the prop, the callback, and the uncontrolled fallback interact). The callback fires on every
+user gesture, and the prop you feed back in is what the grid displays:
+
+```tsx
+"use client";
+
+function ServerSyncedGrid() {
+  const [data, setData] = useState<readonly Row[]>([]);
+  const [sortState, setSortState] = useState<SortSpec[]>([]);
+  const [filterState, setFilterState] = useState<FilterSpec[]>([]);
+  const [searchText, setSearchText] = useState("");
+
+  useEffect(() => {
+    fetchRows({ sortState, filterState, searchText }).then(setData);
+  }, [sortState, filterState, searchText]);
+
+  return (
+    <DataGrid
+      data={data}
+      columns={columns}
+      onDataChange={setData}
+      sortState={sortState}
+      onSortChange={setSortState}
+      filterState={filterState}
+      onFilterChange={setFilterState}
+      searchText={searchText}
+      onSearchTextChange={setSearchText}
+    />
+  );
+}
+```
+
+<Callout type="warn" title="Add request cancellation for production use">
+  A fast second sort click before the first fetch resolves can land results out of order. The
+  grid's contract ends at "the prop you feed back in is what is displayed", not at
+  de-duplicating your own fetches.
+</Callout>
+
+<Callout type="warn" title="A non-empty `sortState` is still applied to `data`">
+  The grid sorts `data` by whatever `sortState` holds, unless `sortMode="server"` is set. That is harmless above, because the server
+  returns the whole result set and re-applying the same order changes nothing. It is *not* harmless
+  when `data` holds only part of the result set, as under
+  [lazy loading](/docs/lazy-loading#sorting-a-lazy-grid): sorting a partial array re-orders the
+  fetched rows among themselves and hides the true server order. `sortMode="server"` stops the re-sort. `sortable: false` does not change
+  this. It only removes the header's click and indicator, never the comparator.
+</Callout>
+
+<Callout type="idea" title="Client-side sort/filter needs none of this">
+  This is the common case, which works well up to the 100k-row comfort target. Omit `sortState`,
+  `filterState`, `onSortChange`, and `onFilterChange`, and let the grid own the state
+  uncontrolled, as the quick-start of `useDataGridState` already does.
+</Callout>
+
+## Related
+
+- [Lazy loading](/docs/lazy-loading#sorting-a-lazy-grid): a server-sorted grid that loads rows by window.
+- [Pagination](/docs/pagination): page the server result.
+- [Remember the user's view](/docs/recipes/ui-patterns/remember-view): save the same state between visits.

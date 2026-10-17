@@ -2,6 +2,7 @@
 title: Installation
 description: Install the core grid from the @gridcn registry. No npm package.
 icon: Download
+status: updated
 ---
 
 The [shadcn CLI](https://ui.shadcn.com/docs/cli) distributes gridcn entirely from the hosted
@@ -16,7 +17,7 @@ package: the source files are copied into your project.
     <InstallCommand item="data-grid" manual manualSlot={<ManualInstall item="data-grid" tree />} />
 
     The CLI resolves the `@gridcn` registry from the hosted site
-    ([gridcn.vercel.app](https://gridcn.vercel.app)) — no namespace registration needed. To pin
+    ([gridcn.vercel.app](https://gridcn.vercel.app)). No namespace registration needed. To pin
     a tag, branch, or commit, use the
     [GitHub registry path](#alternative-github-registry-no-setup) instead:
     `npx shadcn add DammersCode/gridcn/data-grid#v1.0.0`.
@@ -28,7 +29,7 @@ package: the source files are copied into your project.
   <Step>
     ### Add optional pieces
 
-    Each add-on is independently installable and depends only on the core — check the ones you
+    Each add-on is independently installable and depends only on the core. Check the ones you
     want and the command joins them in one call:
 
     <InstallCommand
@@ -61,9 +62,17 @@ branch, or commit, use the GitHub registry path and append `#<ref>` after the it
 
 Without a ref, the CLI uses the repository's default branch.
 
+The ref applies to the item you name only. The CLI resolves that item's `registryDependencies`
+(for example `DammersCode/gridcn/data-grid`) without the ref. So a pinned add-on still installs
+the core from the default branch. To pin the whole install, install the core first with the same
+ref, then the add-on.
+
+An `@gridcn` add-on install fetches the core through `git ls-remote` and
+`raw.githubusercontent.com`. It needs `git` on the PATH and access to GitHub.
+
 ## Alternative: GitHub registry (no setup)
 
-The same items are available directly from this repository's GitHub registry — no namespace
+The same items are available directly from this repository's GitHub registry: no namespace
 registration, and the only path that supports ref pinning:
 
 <InstallCommand command="shadcn add DammersCode/gridcn/data-grid" />
@@ -84,23 +93,55 @@ hard floor, plus the Node and TypeScript floors.
   Tailwind v3, the grid renders without its styles.
 </Callout>
 
-The core item of gridcn has exactly one npm dependency: `zustand`. The table below lists the
-dependency of each add-on.
+The table below lists, for every item, the npm packages it installs and the shadcn/ui components
+the CLI adds with it. The core is the only item with a hard `tooltip` component dependency.
 
-| Add-on | Runtime dependency | Dev dependency |
-|---|---|---|
-| Core (`data-grid`) | `zustand` | none |
-| `data-grid-toolbar` | `@dnd-kit/react` | none |
-| `data-grid-sort-list` | `@dnd-kit/react` | none |
-| `data-grid-io` | `xlsx`, `papaparse` (lazy-loaded) | `@types/papaparse` |
-| `data-grid-url-state` | `nuqs` | none |
-| All other add-ons | none beyond the core | none |
+| Item | Runtime dependency | Dev dependency | shadcn components added |
+|---|---|---|---|
+| Core (`data-grid`) | `zustand`, `use-sync-external-store`, `lucide-react`, `@base-ui/react` | none | `button`, `input`, `select`, `checkbox`, `popover`, `calendar`, `dropdown-menu`, `context-menu`, `separator`, `tooltip` |
+| `data-grid-toolbar` | `@dnd-kit/dom`, `@dnd-kit/react`, `lucide-react` | none | `dropdown-menu`, `popover`, `input`, `button`, `badge`, `select` |
+| `data-grid-sort-list` | `@dnd-kit/dom`, `@dnd-kit/react`, `lucide-react` | none | `popover`, `button`, `badge`, `select` |
+| `data-grid-context-menu` | `lucide-react`, `@base-ui/react`, `zustand` | none | `context-menu`, `dropdown-menu`, `tooltip` |
+| `data-grid-keybindings` | none beyond the core | none | `dialog` |
+| `data-grid-pagination` | `lucide-react` | none | `button`, `select` |
+| `data-grid-io` | `hucre@1.1.0` (lazy-loaded), `papaparse` (loaded with the item), `lucide-react` | `@types/papaparse` | `dialog`, `select`, `dropdown-menu`, `button` (plus `dropzone`) |
+| `data-grid-url-state` | `nuqs` | none | none (installs `data-grid-pagination`) |
+| `data-grid-presence`, `data-grid-fill`, `data-grid-pinned-rows` | `zustand` | none | none |
+| `dropzone` | `lucide-react` | none | none |
+| `data-grid-history`, `data-grid-lazy`, `data-grid-status-bar` <NewBadge /> | none beyond the core | none | none |
+
+The registry pins `hucre` to an exact version. `hucre` limits the unpacked size and the cell
+count of an untrusted spreadsheet before it allocates the cells.
+
+## Tooltips
+
+<NewBadge />
+
+The CLI prints a hint to wrap your app in `TooltipProvider`. The grid works without it. The core
+uses a tooltip for the message of an invalid cell, and the context menu uses one for a disabled
+item. A tooltip without a provider opens after the default hover delay. A provider sets one
+shared delay for all tooltips of the app. The `tooltip` component of shadcn/ui sets that delay
+to zero. Wrap your app once in the root layout if you want instant tooltips:
+
+```tsx title="app/layout.tsx"
+import { TooltipProvider } from "@/components/ui/tooltip";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <TooltipProvider>{children}</TooltipProvider>
+      </body>
+    </html>
+  );
+}
+```
 
 ## Where files land
 
 `registry:component` and `registry:block` files install under the `aliases.components` path in
 your `components.json` (`@/components` by default). So the `data-grid` item lands at
-`components/data-grid/*`, with one file per exported symbol, and a single public barrel at
+`components/data-grid/*`, with a single public barrel at
 `components/data-grid/data-grid.tsx`. Import from that barrel, not from individual files.
 
 ```tsx
@@ -108,7 +149,7 @@ import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
 ```
 
 Add-ons follow the same pattern (`components/data-grid-history/data-grid-history.ts`, etc.). The
-`data-grid` install also writes `components/data-grid/LICENSE.md` — the text of the Apache
+`data-grid` install also writes `components/data-grid/LICENSE.md`: the text of the Apache
 License 2.0, which applies to the installed files.
 
 ## Framework notes

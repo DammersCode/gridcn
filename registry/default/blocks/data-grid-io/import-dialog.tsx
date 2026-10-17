@@ -2,14 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Paperclip, X } from "lucide-react";
-import {
-  isDev,
-  useDataGridActions,
-  useDataGridAllColumns,
-  useDataGridLabels,
-  useDataGridStoreApi,
-  type AnyColumnDef,
-} from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridActions, useDataGridAllColumns, useDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid";
+import { columnLabelText, isDev, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   Dialog,
   DialogContent,
@@ -23,8 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { buildImportedRows, type ImportRejectedCell } from "./build-imported-rows";
 import { useDataGridImportPreview, type ImportTargetColumn, type ImportDefaults } from "./use-data-grid-import";
-import type { CsvDelimiter } from "./parse-import-file";
-import { Dropzone, DropzoneEmptyState, type DropzoneAccept } from "@/registry/default/blocks/dropzone/dropzone";
+import { DEFAULT_IMPORT_LIMITS, type CsvDelimiter, type ImportLimits } from "./parse-import-file";
+import { Dropzone, DropzoneEmptyState, type DropzoneAccept, type DropzoneRejection } from "@/registry/default/blocks/dropzone/dropzone";
 
 /** Accepted import file types, shared by the file input and the {@link Dropzone}. */
 const IMPORT_ACCEPT: DropzoneAccept = {
@@ -42,10 +36,8 @@ const DELIMITER_OPTIONS: { value: CsvDelimiter; labelKey: "delimiterComma" | "de
   { value: "\t", labelKey: "delimiterTab" },
 ];
 
-/** Column display header: `headerText`, else the string `header`, else the id. */
-function columnLabel(column: Pick<AnyColumnDef, "id" | "header" | "headerText">): string {
-  return column.headerText ?? (typeof column.header === "string" ? column.header : column.id);
-}
+/** Mapping-select value for a source column that maps to no grid column. */
+const SKIP_VALUE = "__skip__";
 
 /** Props for {@link DataGridImportDialog}. */
 export type DataGridImportDialogProps<TData> = {
@@ -57,6 +49,8 @@ export type DataGridImportDialogProps<TData> = {
   onImport: (rows: TData[]) => void | Promise<void>;
   /** Consumer-configurable preselection defaults (delimiter, header row, skip columns, mapping). Omit for today's behavior unchanged. */
   importDefaults?: ImportDefaults;
+  /** Size, row, column, cell, and unpacked-size bounds for the file; omitted fields use `DEFAULT_IMPORT_LIMITS`. `maxFileBytes` also sets the drop zone's `maxSize`. */
+  importLimits?: ImportLimits;
 };
 
 /**
@@ -68,7 +62,8 @@ export type DataGridImportDialogProps<TData> = {
  * rejected cells are listed in {@link buildImportedRows}'s `rejected` result.
  */
 export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TData>): ReactNode {
-  const { open, onOpenChange, createRow, onImport, importDefaults } = props;
+  const { open, onOpenChange, createRow, onImport, importDefaults, importLimits } = props;
+  const maxFileBytes = importLimits?.maxFileBytes ?? DEFAULT_IMPORT_LIMITS.maxFileBytes;
   const labels = useDataGridLabels();
   const actions = useDataGridActions();
   const storeApi = useDataGridStoreApi();
@@ -79,7 +74,10 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   /** Aborts the in-flight chunked build (large sync imports and async-schema imports alike) when Cancel is clicked or the dialog closes. */
   const abortControllerRef = useRef<AbortController | null>(null);
   const { preview, error, isParsing, loadFile, setHasHeaderRow, setDelimiter, setSheetName, setMapping, reset, previewRows, importRows } =
-    useDataGridImportPreview(labels.io.columnFallback, importDefaults);
+    useDataGridImportPreview({ columnFallback: labels.io.columnFallback, defaults: importDefaults, limits: importLimits });
+  // Base UI's SelectValue shows the raw value until the popup mounts its items, unless the root gets `items`
+  const delimiterItems = DELIMITER_OPTIONS.map((option) => ({ value: option.value, label: labels.io[option.labelKey] }));
+  const mappingItems = [{ value: SKIP_VALUE, label: labels.io.skipColumn }, ...allColumns.map((column) => ({ value: column.id, label: columnLabelText(column) }))];
 
   useEffect(() => {
     if (open) return;
@@ -102,8 +100,9 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   );
 
   const onDropFiles = useCallback(
-    (acceptedFiles: File[]) => {
-      const file = acceptedFiles[0];
+    (acceptedFiles: File[], rejections: DropzoneRejection[]) => {
+      // a maxSize rejection is re-routed through loadFile so the parse's own size check surfaces the dialog's too-large error
+      const file = acceptedFiles[0] ?? (rejections.some((r) => r.reasons.includes("maxSize")) ? rejections[0]?.file : undefined);
       if (file) onFile(file);
     },
     [onFile],
@@ -193,14 +192,14 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
 
         <div className="flex min-w-0 flex-col gap-3">
           {preview ? (
-            <Dropzone compact accept={IMPORT_ACCEPT} maxFiles={1} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
+            <Dropzone compact accept={IMPORT_ACCEPT} maxFiles={1} maxSize={maxFileBytes} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
               <Paperclip className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               <span className="min-w-0 flex-1 truncate text-sm text-foreground">{preview.fileName}</span>
               <span className="shrink-0 text-xs text-muted-foreground">{labels.io.replaceFile}</span>
             </Dropzone>
           ) : (
-            <Dropzone accept={IMPORT_ACCEPT} maxFiles={1} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
-              <DropzoneEmptyState title={labels.io.chooseFile} description={labels.io.noFileChosen} />
+            <Dropzone accept={IMPORT_ACCEPT} maxFiles={1} maxSize={maxFileBytes} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
+              <DropzoneEmptyState title={labels.io.chooseFile} description={`${labels.io.noFileChosen} — ${labels.io.maxFileSize(maxFileBytes)}`} />
             </Dropzone>
           )}
 
@@ -224,14 +223,14 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
                 {preview.delimiter !== undefined && (
                   <label className="flex items-center gap-2 text-sm text-foreground">
                     {labels.io.delimiter}
-                    <Select value={preview.delimiter} onValueChange={(value) => void setDelimiter(value as CsvDelimiter)}>
+                    <Select items={delimiterItems} value={preview.delimiter} onValueChange={(value) => void setDelimiter(value as CsvDelimiter)}>
                       <SelectTrigger className="w-36" size="sm" aria-label={labels.io.delimiter}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {DELIMITER_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {labels.io[option.labelKey]}
+                        {delimiterItems.map((item) => (
+                          <SelectItem key={item.value} value={item.value}>
+                            {item.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -285,19 +284,19 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
                           </div>
                           <div className="flex items-center gap-1">
                             <Select
-                              value={currentGridColumnId ?? "__skip__"}
+                              items={mappingItems}
+                              value={currentGridColumnId ?? SKIP_VALUE}
                               onValueChange={(value) =>
-                                setMapping(importColumnIndex, value === "__skip__" || value === null ? null : value)
+                                setMapping(importColumnIndex, value === SKIP_VALUE || value === null ? null : value)
                               }
                             >
                               <SelectTrigger className="w-full" size="sm" aria-label={labels.io.mapColumnAriaLabel(header)}>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="__skip__">{labels.io.skipColumn}</SelectItem>
-                                {allColumns.map((column) => (
-                                  <SelectItem key={column.id} value={column.id} disabled={takenElsewhere.has(column.id)}>
-                                    {columnLabel(column)}
+                                {mappingItems.map((item) => (
+                                  <SelectItem key={item.value} value={item.value} disabled={takenElsewhere.has(item.value)}>
+                                    {item.label}
                                   </SelectItem>
                                 ))}
                               </SelectContent>

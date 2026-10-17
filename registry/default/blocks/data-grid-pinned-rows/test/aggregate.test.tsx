@@ -307,7 +307,7 @@ describe("useDataGridAggregate — memoization", () => {
     // A re-render triggered by an unrelated store write (selection) must not recompute the reducer:
     // same data/specs identity, viewIndex untouched by selection.
     act(() => {
-      actions.selectCell({ row: 0, col: 0 });
+      actions.selectCellAt({ row: 0, col: 0 });
     });
     rerender(<Capture data={data} specs={stableSpecs} onResult={(r) => results.push(r)} onActions={(a) => (actions = a)} />);
     expect(results.at(-1)).toBe(first);

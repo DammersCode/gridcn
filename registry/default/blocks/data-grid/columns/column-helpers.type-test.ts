@@ -166,7 +166,7 @@ defineColumns<Row>()([
 
 // Callback params stay contextually typed inside defineColumns (TypeScript 5.x lost them).
 defineColumns<Row>()([
-  { id: "name", header: "Name", accessorKey: "name", renderCell: ({ value, rowIndex }) => `${value}:${rowIndex.toFixed(0)}` },
+  { id: "name", header: "Name", accessorKey: "name", renderCell: ({ value, viewRowIndex }) => `${value}:${viewRowIndex.toFixed(0)}` },
   { id: "age", header: "Age", type: "number", accessorKey: "age", renderCell: ({ value }) => (value ?? 0).toFixed(0) },
 ] as const);
 

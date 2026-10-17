@@ -2,11 +2,14 @@
 title: Accessibility
 description: The WAI-ARIA grid model, roving tabindex, live regions, the honest test matrix, and known gaps.
 icon: Accessibility
+status: updated
 ---
 
 ## Conformance target
 
-The target is **WCAG 2.1 AA**. No conformance audit has been performed against gridcn.
+The target is **WCAG 2.1 AA**. gridcn makes no conformance claim. No conformance audit has been
+performed. The automated checks are axe-core on one fixture in Chromium. Manual passes with NVDA
+(Windows) and VoiceOver (macOS and iOS) are pending, so no screen reader has been tested.
 
 ## Semantics
 
@@ -39,7 +42,7 @@ carries no `aria-colindex`, and no data column's `aria-colindex` shifts to make 
 
 ### Sort and read-only state
 
-Every sortable header cell carries `aria-sort` — `ascending`, `descending`, or `none` —
+Every sortable header cell carries `aria-sort` (`ascending`, `descending`, or `none`)
 regardless of `headerClickBehavior`. The visual sort arrow renders only when
 `headerClickBehavior` is `"sort"`; the attribute renders in every mode. The grid root carries
 `aria-readonly` when the grid's `readOnly` prop is set.
@@ -50,7 +53,7 @@ The grid follows the WAI-ARIA APG roving-tabindex pattern for a single active ce
 cell becomes active, the grid root itself is the one tabbable entry point (`tabIndex={0}`).
 Once a cell becomes active, that cell alone carries `tabIndex={0}`, every other cell carries
 `tabIndex={-1}`, and the root reverts to `tabIndex={-1}`. Real DOM focus follows the active
-cell, including when it scrolls out of the rendered window and back in. Focus never gets lost.
+cell, including when it scrolls out of the rendered rows and back in. Focus never gets lost.
 
 Pinned rows and skeleton (not-yet-loaded) cells carry no `tabindex` at all. They sit outside
 roving-tabindex navigation, since neither is ever the active cell.
@@ -64,7 +67,7 @@ more than one cell can be selected at once, true whenever any multi-cell selecti
 (range, row, column, or multi-range) is enabled.
 
 Selection paint goes through an overlay layer. Membership changes update `aria-selected` on the
-affected cells (a bounded, guarded re-render — see [Performance](/docs/performance) for the
+affected cells (a bounded, guarded re-render. See [Performance](/docs/performance) for the
 invariant wording). The `aria-selected` attribute is the accessibility-tree signal a screen
 reader reads. The overlay is the visual signal for sighted users. The two agree on the same state.
 
@@ -83,7 +86,9 @@ Three separate elements carry `aria-busy` or an equivalent progress role:
   `aria-busy="true"` per row, plus `role="presentation"` and an `aria-label` (from
   `labels.grid.loading`) on the skeleton block as a whole.
 - A background refresh (`loading` true with rows already present) shows a slim progress bar
-  instead, `role="progressbar"` with an `aria-label` and matching `aria-valuetext`.
+  instead. A visually hidden `role="progressbar"` sibling of the grid element announces it, with an `aria-label` and matching `aria-valuetext`.
+- A custom `loadingState` node replaces the skeleton or the bar. It carries no built-in role or
+  label. The node owns its own accessibility.
 ## Live regions
 
 The `data-grid-toolbar` search box announces its match count through `role="status"` with
@@ -92,10 +97,10 @@ popover each carry a `role="status"` `aria-live="polite"` region that announces 
 for example "Name filter moved to position 2 of 3" or "Age sort moved to position 1 of 2"
 (`labels.toolbar.filterReorderAnnouncement` / `labels.sort.sortReorderAnnouncement`).
 
-Reordering itself is fully keyboard-operable. Each row's drag grip is focusable. A plain
-<kbd>ArrowUp</kbd> or <kbd>ArrowDown</kbd> on a focused grip moves that row exactly one position,
+Reordering itself is fully keyboard-operable. Each row's drag handle is focusable. A plain
+<kbd>ArrowUp</kbd> or <kbd>ArrowDown</kbd> on a focused drag handle moves that row exactly one position,
 and always wins over `@dnd-kit/react`'s own keyboard-drag gesture on the same key. Focus stays
-on the moved row's grip after a reorder, and moves to the next row's grip (or the "Add
+on the moved row's drag handle after a reorder, and moves to the next row's drag handle (or the "Add
 filter"/"Add sort" button once the list is empty) after a delete. See the per-key tables for
 both popovers: [Toolbar add-on: filter menu keyboard &
 accessibility](/docs/addons/toolbar#filter-menu-keyboard--accessibility) and
@@ -106,23 +111,31 @@ accessibility](/docs/addons/toolbar#filter-menu-keyboard--accessibility) and
 [Selection & keyboard](/docs/selection-keyboard#keyboard-map) is the canonical shortcut reference
 for cell navigation, selection, and editing. This page does not repeat that table.
 
+<kbd>Tab</kbd> <NewBadge /> and <kbd>Shift+Tab</kbd> move focus out of the grid to the next or previous
+focusable element, so the grid is never a keyboard trap. To navigate cells with Tab instead, bind
+it on the movement actions:
+
+```tsx
+<DataGrid keymap={{ moveRight: ["ArrowRight", "Tab"], moveLeft: ["ArrowLeft", "shift+Tab"] }} />
+```
+
 ## Test status matrix
 
 What the automated Chromium suite verifies, area by area:
 
 | Area | Automated Chromium suite |
 |---|---|
-| Grid semantics (roles, aria counts/indices) | Verified — `a11y.browser.test.tsx`, zero axe violations on the base fixture (toolbar + markers + pinned row + sorted column) |
-| Keyboard navigation & roving tabindex | Verified — `data-grid.browser.test.tsx`: arrow keys move the active cell and scroll at the viewport edge. A real Tab enters, and a second Tab leaves |
-| Editor open/close focus flow | Verified — `a11y.browser.test.tsx` (zero violations with an editor open). `data-grid.browser.test.tsx` (caret lands at the end of existing content, never select-all) |
-| Multi-cell selection (`aria-selected`, `aria-multiselectable`) | Verified — `a11y.browser.test.tsx` (aria-selected on every range member) |
-| Toolbar popovers + keyboard reorder | Verified — `toolbar.browser.test.tsx`, `sort-list.browser.test.tsx`: grip keeps focus on the moved row, announces the new position, full remove/refocus paths |
-| Live regions (search count, reorder announcements) | Verified structurally — the `aria-live` regions are in the fixture's axe tree and the reorder tests assert the announcement text. Whether a screen reader speaks it aloud is out of scope |
+| Grid semantics (roles, aria counts/indices) | Verified: `a11y.browser.test.tsx`, zero axe violations on the base fixture (toolbar + markers + pinned row + checkbox column + sorted column) |
+| Keyboard navigation & roving tabindex | Verified: `data-grid.browser.test.tsx`: arrow keys move the active cell and scroll at the viewport edge. A real Tab enters the grid. The next Tab leaves it. Shift+Tab leaves backward |
+| Editor open/close focus flow | Verified: `a11y.browser.test.tsx` (zero violations with an editor open). `data-grid.browser.test.tsx` (caret lands at the end of existing content, never select-all) |
+| Multi-cell selection (`aria-selected`, `aria-multiselectable`) | Verified: `a11y.browser.test.tsx` (aria-selected on every range member) |
+| Toolbar popovers + keyboard reorder | Verified: `toolbar.browser.test.tsx`, `sort-list.browser.test.tsx`: drag handle keeps focus on the moved row, announces the new position, full remove/refocus paths |
+| Live regions (search count, reorder announcements) | Verified structurally. The `aria-live` regions are in the fixture's axe tree and the reorder tests assert the announcement text. Whether a screen reader speaks it aloud is out of scope |
 
 <Callout type="warn" title="What axe-core does and does not prove">
   The suite runs [axe-core](https://github.com/dequelabs/axe-core) against the real rendered DOM in
   headless Chromium (Vitest Browser Mode) with a fixture carrying a toolbar, row markers, a
-  pinned-top row, and a sorted column — zero violations (run 2026-08-01). axe-core is a static,
+  pinned-top row, a checkbox column, and a sorted column: zero violations. axe-core is a static,
   structural checker: it does not confirm that a screen reader announces the right thing at the
   right moment.
 </Callout>
@@ -143,5 +156,7 @@ What the automated Chromium suite verifies, area by area:
 - **Color contrast is not covered by the automated suite.** The a11y test suite disables axe's
   `color-contrast` rule, because headless-Chromium font metrics make that rule unreliable in that
   environment, not because contrast does not matter.
+- **No screen reader has been tested.** The NVDA and VoiceOver passes are pending. Test your own
+  grid with the screen readers your users run. <NewBadge />
 - **Announcement timing is not covered.** The tests assert the announcement text and the
   `aria-live` structure, not what a screen reader speaks aloud or when.

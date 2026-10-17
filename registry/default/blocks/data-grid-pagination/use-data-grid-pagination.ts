@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isDev } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { clampPage, pageCount, pageRange } from "./pagination-math";
 
 /** Default page-size choices offered by `<DataGridPaginationBar />`'s select, and the initial `pageSize` when none is given. */
@@ -31,7 +31,7 @@ export type UseDataGridPaginationClientOptions<TData> = {
   onPageSizeChange?: (pageSize: number) => void;
 };
 
-/** Server-mode options: consumer owns `page`/`pageSize`/`total` and fetches `pageData` itself — this hook is just the windowing math + controls shape. */
+/** Server-mode options: consumer owns `page`/`pageSize`/`total` and fetches `pageData` itself — this hook is just the page-window math + controls shape. */
 export type UseDataGridPaginationServerOptions = {
   page: number;
   pageSize: number;
@@ -41,7 +41,7 @@ export type UseDataGridPaginationServerOptions = {
   onPageSizeChange?: (pageSize: number) => void;
   /**
    * Fires your `onPageChange` with the clamped page exactly once when `page` falls outside
-   * `[1, pageCount]` (e.g. `total` shrank). The hook never sets your page state. Default `false`.
+   * `[1, pageCount]` (e.g. `total` shrank), never while `total` is 0. The hook never sets your page state. Default `false`.
    */
   reconcilePage?: boolean;
 };
@@ -67,7 +67,7 @@ function isServerOptions<TData>(
  * uncontrolled unless you pass `page`/`onPageChange` yourself.
  *
  * Server mode (`{ page, pageSize, total, onPageChange }`): fully controlled — you own the page
- * index and fetch each page's rows yourself; this hook only computes `pageCount`/windowing and
+ * index and fetch each page's rows yourself; this hook only computes `pageCount`/page numbers and
  * hands back the same `controls` shape so `<DataGridPaginationBar />` doesn't need to know which mode
  * it's rendering for.
  */
@@ -114,7 +114,7 @@ function useServerPagination(options: UseDataGridPaginationServerOptions): DataG
   // ignores the callback or passes an unstable onPageChange.
   const firedRef = useRef<{ page: number; clamped: number } | null>(null);
   useEffect(() => {
-    if (!reconcilePage) return;
+    if (!reconcilePage || total <= 0) return;
     const clamped = clampPage(page, total, pageSize);
     if (clamped === page) {
       firedRef.current = null;

@@ -1,9 +1,10 @@
 import { page, userEvent } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns, gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid";
+import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridToolbar, DataGridColumnsMenu } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
 import { DataGridSortList } from "./data-grid-sort-list";
+import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply
 import "@/app/global.css";
 
@@ -78,6 +79,40 @@ describe("DataGridSortList", () => {
     await expect.poll(() => nameCellsInOrder()).toEqual(["Carol", "Bob", "Alice"]);
   });
 
+  it("Backspace and Delete on the focused grip remove that sort row", async () => {
+    await renderGrid();
+    await openSortMenu(); // row 0: name
+    await page.getByRole("button", { name: "Add sort" }).click(); // row 1: age
+    let grips = document.querySelectorAll<HTMLElement>('[aria-label="Reorder sort"]');
+    expect(grips.length).toBe(2);
+
+    grips[0]!.focus();
+    await userEvent.keyboard("{Backspace}");
+    await expect.poll(() => document.querySelectorAll('[aria-label="Reorder sort"]').length).toBe(1);
+    await expect
+      .poll(() => document.querySelector<HTMLElement>('[aria-label="Sort column"]')?.textContent)
+      .toContain("Age"); // the name row is gone, age remains
+
+    grips = document.querySelectorAll<HTMLElement>('[aria-label="Reorder sort"]');
+    grips[0]!.focus();
+    await userEvent.keyboard("{Delete}");
+    await expect.poll(() => document.querySelectorAll('[aria-label="Reorder sort"]').length).toBe(0);
+  });
+
+  it("switching a row's column is a prop update, not a remount: the trigger keeps its DOM node and focus", async () => {
+    await renderGrid();
+    await openSortMenu();
+    const trigger = document.querySelector<HTMLElement>('[aria-label="Sort column"]')!;
+    await userEvent.click(trigger);
+    await page.getByRole("option", { name: "Age" }).click();
+
+    const after = document.querySelector<HTMLElement>('[aria-label="Sort column"]')!;
+    // a key that changes with the column (e.g. columnId) remounts the row and drops the select's focus
+    expect(after).toBe(trigger);
+    await expect.poll(() => after.textContent).toContain("Age");
+    await expect.poll(() => document.activeElement === after).toBe(true);
+  });
+
   it("reordering two sorts via ArrowUp on the grip changes precedence and the view order", async () => {
     await renderGrid();
     await openSortMenu();
@@ -93,7 +128,7 @@ describe("DataGridSortList", () => {
     // precedence: name asc, then age desc -> alphabetical order wins (no ties on name here)
     await expect.poll(() => nameCellsInOrder()).toEqual(["Alice", "Bob", "Carol"]);
 
-    // move the age-desc row (2nd grip) up so it takes precedence over name-asc
+    // move the age-desc row (2nd drag handle) up so it takes precedence over name-asc
     const grips = document.querySelectorAll<HTMLElement>('[aria-label="Reorder sort"]');
     expect(grips.length).toBe(2);
     grips[1]!.focus();
@@ -120,7 +155,7 @@ describe("DataGridSortList", () => {
     ageGrip.focus();
     await userEvent.keyboard("{ArrowUp}");
 
-    // focus follows the moved row: the same logical (age) row's grip is now first and still focused.
+    // focus follows the moved row: the same logical (age) row's drag handle is now first and still focused.
     await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Reorder sort");
     const gripsAfter = document.querySelectorAll<HTMLElement>('[aria-label="Reorder sort"]');
     expect(document.activeElement).toBe(gripsAfter[0]);

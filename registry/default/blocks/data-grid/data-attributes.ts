@@ -16,7 +16,7 @@ export const GRID_ATTR = {
   editing: "data-editing",
   /** cell.tsx: present (`""`) when the cell matches the current quick-search text. */
   searchMatch: "data-search-match",
-  /** row.tsx: the row's view-space index (number), immune to pinned-top band shifting `aria-rowindex`; read back by `resolve-context-menu-target.ts`. */
+  /** row.tsx: the row's view index (number), immune to pinned-top band shifting `aria-rowindex`; read back by `resolve-context-menu-target.ts`. */
   rowIndex: "data-grid-row-index",
   /** header-cell.tsx: present (`""`) while that column's resize handle is being dragged. */
   resizing: "data-resizing",
@@ -24,13 +24,13 @@ export const GRID_ATTR = {
   checkboxBox: "data-grid-checkbox",
   /** rows/marker-cell.tsx: present (`""`) on a rows-channel selected row's marker cell. */
   selected: "data-row-selected",
-  /** windowing/use-scrolled-edges.ts: present (`""`) on the viewport while scrolled away from its inline-start edge. */
+  /** virtualization/use-scrolled-edges.ts: present (`""`) on the viewport while scrolled away from its inline-start edge. */
   scrolledLeft: "data-scrolled-left",
-  /** windowing/use-scrolled-edges.ts: present (`""`) on the viewport while there's more to scroll toward its inline-end edge. */
+  /** virtualization/use-scrolled-edges.ts: present (`""`) on the viewport while there's more to scroll toward its inline-end edge. */
   scrolledRight: "data-scrolled-right",
-  /** windowing/use-scrolled-edges.ts: present (`""`) on the viewport while scrolled away from its top edge. */
+  /** virtualization/use-scrolled-edges.ts: present (`""`) on the viewport while scrolled away from its top edge. */
   scrolledTop: "data-scrolled-top",
-  /** windowing/use-scrolled-edges.ts: present (`""`) on the viewport while there's more to scroll toward its bottom edge. */
+  /** virtualization/use-scrolled-edges.ts: present (`""`) on the viewport while there's more to scroll toward its bottom edge. */
   scrolledBottom: "data-scrolled-bottom",
 
   /** body.tsx: the scrolling row-canvas container. */
@@ -41,10 +41,12 @@ export const GRID_ATTR = {
   dropIndicator: "data-grid-drop-indicator",
   /** rows/marker-cell.tsx: the checkbox glyph inside a marker cell (`'checkbox'`/`'both'` modes) — its press keeps the row-select gesture and never arms a reorder. */
   markerCheckbox: "data-grid-marker-checkbox",
-  /** rows/marker-cell.tsx: the grip handle inside a marker cell (`'reorder'` mode). */
+  /** rows/marker-cell.tsx: the drag handle inside a marker cell (`'reorder'` mode). */
   reorderHandle: "data-grid-reorder-handle",
   /** header-cell.tsx: the column-menu trigger button. */
   headerMenuTrigger: "data-grid-header-menu-trigger",
+  /** use-grid-interaction.ts: set on a menu trigger while the keyboard action programmatically clicks it. */
+  keyboardOpen: "data-grid-keyboard-open",
   /** header-cell.tsx: the column resize handle. */
   resizeHandle: "data-grid-resize-handle",
   /** columns/sort-indicator.tsx: `"asc" | "desc"`, the header's own sort-direction arrow. */
@@ -55,12 +57,16 @@ export const GRID_ATTR = {
   markerNumber: "data-grid-marker-number",
   /** rows/marker-header.tsx: the row-marker column's header cell (select-all checkbox). */
   markerHeader: "data-grid-marker-header",
+  /** cell.tsx: present (`""`) on a cell of an unloaded (lazy) hole row — the shimmer block standing in for the row's content. */
+  skeleton: "data-skeleton",
   /** rows/loading-skeleton.tsx: the empty-data loading skeleton (`loading && rowCount === 0`). */
   loadingSkeleton: "data-grid-loading-skeleton",
   /** rows/loading-skeleton.tsx: the data-present loading indicator bar (`loading && rowCount > 0`). */
   loadingBar: "data-grid-loading-bar",
   /** root.tsx: the empty-state container (rendered when there are zero rows in view and not loading). */
   emptyState: "data-grid-empty-state",
+  /** root.tsx: the consumer `loadingState` node's container (rendered while `loading` is true, in place of the built-in skeleton/bar). */
+  loadingState: "data-grid-loading-state",
   /** root.tsx: `"left" | "right" | "top" | "bottom"`, a frozen-edge shadow shown while scrolled past that edge. */
   pinShadow: "data-grid-pin-shadow",
   /** cell-types/date.tsx, cell-types/select.tsx: a cell-type's own editor popup/portal content — `use-grid-interaction.ts` ignores pointer/click events that land inside one. */
@@ -94,8 +100,10 @@ export const GRID_ATTR = {
   sortList: "data-grid-sort-list",
   /** data-grid-sort-list/sort-list.tsx: one reorderable row within the sort list. */
   sortRow: "data-grid-sort-row",
-  /** data-grid-toolbar/toolbar.tsx: the toolbar container; also used by `data-grid-toolbar/search.tsx` to test whether an event target sits inside the grid's own scope. */
+  /** data-grid-toolbar/toolbar.tsx: the toolbar container. `search.tsx` matches it on custom toolbars, so their mod+F capture works without the instance attribute. */
   toolbar: "data-grid-toolbar",
+  /** root.tsx and data-grid-toolbar/toolbar.tsx: this provider instance's id (a React `useId` value); scopes `data-grid-toolbar/search.tsx`'s mod+F capture to this grid, never a sibling grid. */
+  instance: "data-grid-instance",
   /** data-grid-toolbar/columns-menu.tsx: the show/hide-columns dropdown menu content. */
   columnsMenu: "data-grid-columns-menu",
   /** data-grid-toolbar/filter-menu.tsx: the active-filter-count badge on the filter trigger button. */

@@ -1,7 +1,8 @@
 import { page, userEvent } from "vitest/browser";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
-import { defineColumns, DataGrid, GRID_ATTR, gridAttrSelector } from "../data-grid";
+import { defineColumns, DataGrid } from "../data-grid";
+import { GRID_ATTR, gridAttrSelector } from "../data-grid-sdk";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply — without it the layout bug can't reproduce
 import "@/app/global.css";
 
@@ -186,6 +187,68 @@ describe("row markers", () => {
     for (const i of [1, 2, 3]) {
       expect(after[i]!.querySelector('[role="checkbox"]')).toHaveAttribute("aria-checked", "true");
     }
+  });
+
+  it.each([["checkbox"], ["both"], ["reorder-both"], ["reorder-checkbox"]] as const)(
+    "a real mouse drag from row 1's checkbox glyph to row 3 leaves rows 1..3 selected in '%s' mode",
+    async (mode) => {
+      await render(
+        <div style={{ height: 400 }}>
+          <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers={mode} />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      const markers = markerCells();
+      const fromCheckbox = markers[0]!.querySelector<HTMLElement>('[role="checkbox"]')!;
+      await userEvent.hover(markers[0]!);
+      await userEvent.dragAndDrop(fromCheckbox, markers[2]!);
+
+      const after = markerCells();
+      for (const i of [0, 1, 2]) expect(after[i]).toHaveAttribute(GRID_ATTR.selected, "true");
+      expect(after[3]).not.toHaveAttribute(GRID_ATTR.selected, "true");
+    },
+  );
+
+  it("a checkbox press with a 1px move inside the same row keeps the selection and toggles the row on click", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="checkbox" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const checkboxAt = (i: number) => markerCells()[i]!.querySelector<HTMLElement>('[role="checkbox"]')!;
+    await userEvent.click(checkboxAt(0));
+    await userEvent.click(checkboxAt(1));
+
+    const target = checkboxAt(2);
+    const rect = target.getBoundingClientRect();
+    target.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1, clientX: rect.left + 3, clientY: rect.top + 3 }));
+    document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: rect.left + 4, clientY: rect.top + 3 }));
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => requestAnimationFrame(r));
+    document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 1 }));
+    await userEvent.click(target);
+
+    for (const i of [0, 1, 2]) await expect.element(checkboxAt(i)).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("a checkbox drag that ends on another row swallows the retargeted click, and a stationary press does not", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="checkbox" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const markers = markerCells();
+    const fromCheckbox = markers[0]!.querySelector<HTMLElement>('[role="checkbox"]')!;
+    const addSpy = vi.spyOn(document, "addEventListener");
+    const swallowArmed = () => addSpy.mock.calls.some(([type, , options]) => type === "click" && typeof options === "object" && options.capture === true);
+
+    await dispatchPointerDrag(fromCheckbox, markers[0]!);
+    expect(swallowArmed()).toBe(false);
+    await dispatchPointerDrag(fromCheckbox, markers[2]!);
+    expect(swallowArmed()).toBe(true);
+    addSpy.mockRestore();
   });
 
   it("a stationary press+release on the checkbox glyph still toggles it (no drag)", async () => {
@@ -600,6 +663,76 @@ describe("mouse-selection hardening matrix (regression: drag-select must never e
     expect(selectedCount()).toBe(3);
   });
 
+  it("a column header select drag with a synthetic pointer id (capture refused) still selects columns", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(10)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const headers = [...document.querySelectorAll<HTMLElement>('[role="columnheader"]')];
+    const second = headers[1]!.getBoundingClientRect();
+    const below = gridCells()[1]!.getBoundingClientRect();
+
+    await headers[0]!.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 4242 }));
+    document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 4242, clientX: below.left + 5, clientY: below.top + 5 }));
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => requestAnimationFrame(r));
+    document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 4242 }));
+
+    const overlay = document.querySelector<HTMLElement>(gridAttrSelector("selectionOverlay"));
+    expect(overlay).not.toBeNull();
+    expect(overlay!.getBoundingClientRect().right).toBeCloseTo(second.right, 0);
+  });
+
+  it("a checkbox press+drag with a synthetic pointer id (capture refused) still selects the row range", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(10)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="checkbox" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const checkbox = (row: number) => [...document.querySelectorAll<HTMLElement>(gridAttrSelector("markerCheckbox"))][row]!;
+    const target = checkbox(3).getBoundingClientRect();
+
+    await checkbox(0).dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 4242 }));
+    document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 4242, clientX: target.left + 5, clientY: target.top + 5 }));
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => requestAnimationFrame(r));
+    document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 4242 }));
+
+    await expect.poll(() => markerCells().filter((m) => m.hasAttribute("data-row-selected")).length, { timeout: 2000 }).toBe(4);
+  });
+
+  it("edge auto-scroll hands the capture to the scroll element, even when the browser refuses it", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(200)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const captureTargets: Element[] = [];
+    const spy = vi.spyOn(Element.prototype, "setPointerCapture").mockImplementation(function (this: Element) {
+      captureTargets.push(this);
+      throw new DOMException("refused", "NotFoundError");
+    });
+    try {
+      const origin = gridCells()[0]!;
+      const gridRect = document.querySelector<HTMLElement>('[role="grid"]')!.getBoundingClientRect();
+      await origin.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 4242 }));
+      document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 4242, clientX: gridRect.left + 20, clientY: gridRect.bottom - 2 }));
+      await new Promise((r) => setTimeout(r, 200));
+      document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 4242 }));
+
+      const handoff = captureTargets.at(-1)!;
+      expect(handoff).not.toBe(origin);
+      expect(handoff.contains(origin) || !origin.isConnected).toBe(true);
+      expect((handoff as HTMLElement).scrollTop).toBeGreaterThan(0);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   // Excel model: clicks never edit — this guards that pointer jitter neither
   // misreads as a range drag nor (per the model) opens the editor.
   it("a slow click (press, tiny sub-3px jitter, release) on the active cell neither edits nor paints a range", async () => {
@@ -704,5 +837,48 @@ describe("marker column stays painted above scrolled cells", () => {
     const background = getComputedStyle(marker).backgroundColor;
     // any alpha < 1 renders as a "/ 0.x" component in the computed color
     expect(background, `marker hover background must be opaque, got ${background}`).not.toMatch(/\/\s*0?\.\d/);
+  });
+});
+
+describe("row checking by keyboard", () => {
+  const checked = () => [...document.querySelectorAll<HTMLElement>('[data-grid-marker-checkbox]')].map((el) => el.getAttribute("aria-checked") === "true");
+
+  async function renderCheckboxGrid() {
+    await render(
+      <div style={{ height: 300 }}>
+        <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} rowMarkers="checkbox" className="h-[300px]" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+  }
+
+  it("Ctrl+Shift+Space toggles the active row without replacing the checked rows", async () => {
+    await renderCheckboxGrid();
+    await userEvent.click(gridCells()[0]!);
+    await userEvent.keyboard("{Alt>}{ArrowDown}{ArrowDown}{/Alt}");
+    await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
+    await vi.waitFor(() => expect(checked()).toEqual([true, false, true, false, false]));
+    await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
+    await vi.waitFor(() => expect(checked()).toEqual([true, false, false, false, false]));
+  });
+
+  it("Ctrl+Shift+Space unchecks a row that a plain click checked through the cell range, then checks it again", async () => {
+    await renderCheckboxGrid();
+    await userEvent.click(gridCells()[0]!);
+    await vi.waitFor(() => expect(checked()[0]).toBe(true));
+    await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
+    await vi.waitFor(() => expect(checked()[0]).toBe(false));
+    await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
+    await vi.waitFor(() => expect(checked()[0]).toBe(true));
+  });
+
+  it("Mod+Shift+E checks every row, then unchecks them, like the header checkbox", async () => {
+    await renderCheckboxGrid();
+    await userEvent.click(gridCells()[0]!);
+    await userEvent.keyboard("{Control>}{Shift>}e{/Shift}{/Control}");
+    await vi.waitFor(() => expect(checked()).toEqual([true, true, true, true, true]));
+    await userEvent.keyboard("{Control>}{Shift>}e{/Shift}{/Control}");
+    // the clicked cell's own range still reads as row 0 selected, exactly like the header checkbox
+    await vi.waitFor(() => expect(checked()).toEqual([true, false, false, false, false]));
   });
 });

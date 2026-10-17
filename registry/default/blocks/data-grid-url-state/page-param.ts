@@ -1,6 +1,9 @@
 /** Default `pageSize` when {@link UseDataGridUrlPaginationOptions.defaultPageSize} is not given. */
 export const DEFAULT_URL_PAGE_SIZE = 25;
 
+/** Absolute ceiling for the URL `page` param: a page number beyond it is a typo or an attack, and parses as 1 like any other invalid value. */
+export const MAX_URL_PAGE = 1_000_000;
+
 /**
  * URL encoding for the 1-based `page` number: the plain decimal string, omitted entirely when
  * `page` is 1 (the default), matching `join`'s omit-at-default convention.
@@ -22,7 +25,7 @@ export function serializePage(page: number): string {
  */
 export function parsePage(raw: string): number {
   const n = Number(raw);
-  return raw !== "" && Number.isInteger(n) && n >= 1 ? n : 1;
+  return raw !== "" && Number.isInteger(n) && n >= 1 && n <= MAX_URL_PAGE ? n : 1;
 }
 
 /**

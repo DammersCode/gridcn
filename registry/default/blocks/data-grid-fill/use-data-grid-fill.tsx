@@ -1,89 +1,83 @@
 "use client";
 
-import { useMemo, useRef, useState, type ReactNode } from "react";
-import { useDataGridEditing, useDataGridReadOnly, useDataGridSelection, type OverlayPlugin } from "@/registry/default/blocks/data-grid/data-grid";
+import { useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
+import { useDataGridEditing, useDataGridReadOnly, useDataGridSelection, type DataGridPlugin, type OverlayPluginCtx } from "@/registry/default/blocks/data-grid/data-grid";
 import { createFillStore, useFillOnPointerDown, useFillPreview, type FillStoreApi } from "./fill-store";
 import { renderFillOverlay } from "./fill-overlay";
-import { FillHandleTracker as FillHandleTrackerImpl } from "./fill-tracker";
+import { FillMount } from "./fill-mount";
 import type { FillArgs, UseFillHandleOptions } from "./use-fill-handle";
 
-/** Options for {@link useDataGridFill} — the parts of `useFillHandle`'s options that don't need `scrollRef`/`layout` (only available inside `DataGridRoot`'s own subtree, see fill-tracker.tsx). */
+/** Options for {@link useDataGridFill} — the parts of `useFillHandle`'s options that don't need `scrollRef`/`layout` (only available inside `DataGridRoot`'s own subtree, where the plugin's `Mount` reads them). */
 export type UseDataGridFillOptions = Pick<UseFillHandleOptions, "disabled" | "onFill" | "detectSeries">;
 
 /** Return value of {@link useDataGridFill}. */
 export type UseDataGridFillResult = {
-  /** Stable for the component's lifetime. Put it in a memoized `overlayPlugins` array, e.g. `useMemo(() => [plugin], [plugin])`; an inline `[plugin]` literal trips the identity dev warning. */
-  plugin: OverlayPlugin;
-  /**
-   * Render this as a child ANYWHERE inside `<DataGridRoot>`, alongside `DataGridHeader`/
-   * `DataGridBody` — it needs `scrollRef`/column layout, which only exist inside that subtree.
-   * Renders nothing itself; `plugin` (above) paints the actual preview/handle DOM. Stable identity
-    * for the hook's lifetime (a fresh component type per render would remount the tracker subtree,
-     * dropping an in-progress drag — see fill-tracker-identity.test.tsx); `disabled`/`onFill`
-    * still stay live via a ref this closure writes to on every render.
-   */
-  FillHandleTracker: () => ReactNode;
+  /** One entry of the grid's `plugins` prop — the plugin's `Overlay` paints the fill preview/handle, its `Mount` runs the pointer engine inside `DataGridRoot`, and its `fillDown`/`fillRight` commands back mod+D/mod+R. Stable for the component's lifetime. An inline `plugins={[plugin]}` is fine: re-resolution is gated on entry identity (name + member references), not on the array's. */
+  plugin: DataGridPlugin<unknown>;
 };
 
 /**
  * The fill handle, as a single hook. Owns its own store — a plain Zustand vanilla store local to
  * this hook instance, NOT part of the grid's own store, for the in-progress drag-preview rect and
- * the live pointerdown handler: core stays entirely unaware of fill past the generic
- * `overlayPlugins` seam it renders through and the `fillHandlers` registration slot
- * `FillHandleTracker` writes into (mirroring `scrollToCellImpl`).
- *
- * Two pieces, not one, because fill (unlike `data-grid-presence`) needs real pointer/scroll
- * coordinates: `plugin` is pure rendering (paints from the store, works from anywhere `overlayPlugins`
- * reaches) but `FillHandleTracker` needs `scrollRef` and column layout, which only exist inside
- * `DataGridRoot`'s own subtree — a level below where `overlayPlugins` must already be wired (on
- * `DataGridProvider`, ABOVE `DataGridRoot`). Consumer API is otherwise the same hook-first shape as
- * `useDataGridPresence`.
+ * the live handlers: the plugin's `Overlay` (pure rendering, painted by the core overlay layer)
+ * and the plugin's `Mount` (the pointer engine, which needs `scrollRef` and column layout — only
+ * available inside `DataGridRoot`'s own subtree, a level below where `plugins` is wired, on
+ * `DataGridProvider`) both read/write that local store, which is what bridges the two ends.
  */
-export function useDataGridFill(options: UseDataGridFillOptions): UseDataGridFillResult {
+export function useDataGridFill(options: UseDataGridFillOptions = {}): UseDataGridFillResult {
   const [fillStore] = useState(() => createFillStore());
 
-  // Kept live via a ref (not hook args) so FillHandleTracker below can stay a component with a
-  // fixed identity for the hook's lifetime — reading options.current on every render instead of
-  // closing over disabled/onFill directly, which would force a fresh closure per call.
+  // Kept live via a ref (not hook args) so the plugin's Overlay/Mount components keep a fixed
+  // identity for the hook's lifetime — reading options.current on every render instead of
+  // closing over disabled/onFill directly, which would force a fresh component per call.
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
-  // The plugin calls `useFillPreview`/`useFillOnPointerDown`/`useDataGridSelection`/
-  // `useDataGridEditing` ITSELF when invoked (inside DataGridOverlays's own render, see
-  // overlays.tsx) — a plain function call still runs its hooks against the calling component's
-  // fiber, so this is what subscribes DataGridOverlays (and ONLY DataGridOverlays) to fill state —
-   // exactly the same atomic selectors the built-in overlay layer reads. This hook's
-  // OWN component never subscribes to any of them, preserving the zero-cell-render contract:
-  // re-rendering here would re-render everything under it, including DataGridProvider, on every drag frame.
-  const plugin = useMemo<OverlayPlugin>(() => makeFillPlugin(fillStore, optionsRef), [fillStore]);
+  const plugin = useMemo<DataGridPlugin<unknown>>(
+    () => ({
+      name: "fill",
+      Overlay: createFillOverlay(fillStore, optionsRef),
+      Mount: createFillMount(fillStore, optionsRef),
+      commands: {
+        fillDown: {
+          when: (ctx) => !ctx.readOnly,
+          run: () => fillStore.getState().fillDown?.(),
+        },
+        fillRight: {
+          when: (ctx) => !ctx.readOnly,
+          run: () => fillStore.getState().fillRight?.(),
+        },
+      },
+    }),
+    [fillStore],
+  );
 
-  // Stable across the hook's lifetime — see UseDataGridFillResult.FillHandleTracker's doc for why
-  // a fresh component type per render is a bug (React remounts on type-reference change).
-  const trackerComponent = useMemo<() => ReactNode>(() => {
-    return function BoundFillHandleTracker() {
-      const { disabled, onFill, detectSeries } = optionsRef.current;
-      return <FillHandleTrackerImpl fillStore={fillStore} disabled={disabled} onFill={onFill} detectSeries={detectSeries} />;
-    };
-  }, [fillStore]);
-
-  return {
-    plugin,
-    FillHandleTracker: trackerComponent,
-  };
+  return { plugin };
 }
 
-function makeFillPlugin(fillStore: FillStoreApi, optionsRef: { current: UseDataGridFillOptions }): OverlayPlugin {
-  return (ctx) => {
+/** The plugin's overlay component, closed over the add-on's local store (the hooks run inside `DataGridOverlays`' own fiber — a separate component, so only it re-renders on fill state). */
+function createFillOverlay(fillStore: FillStoreApi, optionsRef: { current: UseDataGridFillOptions }): ComponentType<OverlayPluginCtx> {
+  function FillOverlay(ctx: OverlayPluginCtx): ReactNode {
     const fillPreview = useFillPreview(fillStore);
     const onPointerDown = useFillOnPointerDown(fillStore);
     const selection = useDataGridSelection();
     const editing = useDataGridEditing();
     // either disable source vetoes the fill, so the handle must vanish with it (live via
-    // optionsRef.current, the same pattern FillHandleTracker uses for its handler).
+    // optionsRef.current, the same pattern FillMount uses for its handlers).
     const disabled = useDataGridReadOnly() || optionsRef.current.disabled === true;
     const state = { fillPreview, onPointerDown, primaryRange: selection.current?.range ?? null, editing: editing !== null, disabled };
     return renderFillOverlay(state, ctx);
-  };
+  }
+  return FillOverlay;
+}
+
+/** The plugin's mount component: a fixed-identity wrapper over {@link FillMount} that reads the live options from the ref on every render. */
+function createFillMount(fillStore: FillStoreApi, optionsRef: { current: UseDataGridFillOptions }): ComponentType {
+  function FillMountComponent(): ReactNode {
+    const { disabled, onFill, detectSeries } = optionsRef.current;
+    return <FillMount fillStore={fillStore} disabled={disabled} onFill={onFill} detectSeries={detectSeries} />;
+  }
+  return FillMountComponent;
 }
 
 export type { FillArgs, UseFillHandleOptions };

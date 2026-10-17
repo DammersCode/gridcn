@@ -4,7 +4,7 @@ import type { GridSelection } from "../types";
  * Every view row index covered by `selection`: the union of the primary range, the ctrl-click
  * `rangeStack`, and the whole-row channel (`rows`), deduped and sorted ascending. The core's
  * single derivation of the selected row set — add-ons acting on selected rows (cell-menu row
- * ops, selection-scope export) consume this instead of re-reading `GridSelection`'s channels.
+ * operations, selection-scope export) consume this instead of re-reading `GridSelection`'s channels.
  * The result is view indices, not row ids.
  */
 export function getSelectedViewRows(selection: GridSelection): number[] {

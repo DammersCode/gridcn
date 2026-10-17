@@ -60,8 +60,9 @@ type RejectExcessColumnKeys<TData, T extends readonly unknown[]> = [ExcessColumn
 /**
  * Identity helper that gives each column literal in the array its own
  * `TValue`/`options` inference (via `type`) while returning `columns`
- * unchanged at runtime. In dev mode it warns on duplicate column ids and on
- * columns missing both `accessorKey` and `accessorFn`.
+ * unchanged at runtime. In dev mode it warns on columns missing both
+ * `accessorKey` and `accessorFn` (duplicate ids are warned once per instance
+ * by the provider instead).
  */
 export function defineColumns<TData>(): <const T extends readonly AnyTypedColumn<TData>[]>(
   columns: T,
@@ -70,12 +71,7 @@ export function defineColumns<TData>(): <const T extends readonly AnyTypedColumn
 ) => T {
   return (columns, ..._excessKeyCheck) => {
     if (isDev()) {
-      const seen = new Set<string>();
       for (const column of columns) {
-        if (seen.has(column.id)) {
-          console.warn(`[data-grid] duplicate column id "${column.id}"`);
-        }
-        seen.add(column.id);
         if (!column.accessorKey && !column.accessorFn) {
           console.warn(`[data-grid] column "${column.id}" has neither accessorKey nor accessorFn`);
         }

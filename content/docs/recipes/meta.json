@@ -1,0 +1,10 @@
+{
+  "title": "Recipes",
+  "icon": "ChefHat",
+  "defaultOpen": true,
+  "pages": [
+    "data-fetching",
+    "ui-patterns",
+    "editing"
+  ]
+}

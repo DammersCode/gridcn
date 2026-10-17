@@ -1,0 +1,165 @@
+---
+title: Server round-trip
+description: Send each edit to an API, then roll back, refetch, or show the server error.
+icon: ArrowLeftRight
+status: new
+---
+
+Builds on [Events & state's `onDataChange` section](/docs/events-state#1-ondatachange--the-flagship-shape),
+which shows the exact `DataOp`/`DataChange` shape referenced below.
+
+## Initial fetch
+
+Go controlled (see [Quick start](/docs/quick-start#going-controlled)). Fetch once, then hold
+`data` in state:
+
+```tsx
+"use client";
+
+function OrdersGrid() {
+  const [data, setData] = useState<Order[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.orders.list().then((rows) => {
+      if (!cancelled) setData(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <DataGrid
+      data={data}
+      columns={columns}
+      onDataChange={(next, change) => handleDataChange(next, change, setData)}
+    />
+  );
+}
+```
+
+## Translate operations into API calls
+
+`change.ops` is an array of `DataOp<Order>`. Each operation names its own shape, so a `switch` on
+`op.type` maps to one API call per operation. The `move` operations of a batch go in one request:
+
+```ts
+function opsToRequests(ops: DataOp<Order>[]) {
+  const requests = ops.flatMap((op) => {
+    switch (op.type) {
+      case "update":
+        // op.cells is present for a cell edit/paste/fill; absent for a whole-row update.
+        // Send a patch keyed by rowId, not an index — indices don't survive sort or filter.
+        return [api.orders.patch(op.rowId, op.cells ? cellsToPatch(op.cells) : op.row)];
+      case "insert":
+        return [api.orders.create(op.row)];
+      case "delete":
+        return [api.orders.remove(op.rowId)];
+      case "move":
+        return [];
+    }
+  });
+  const moves = ops.filter((op) => op.type === "move");
+  if (moves.length > 0) requests.push(api.orders.reorder(moves.map(({ rowId, to }) => ({ rowId, to }))));
+  return requests;
+}
+
+type UpdateOp<TData> = Extract<DataOp<TData>, { type: "update" }>;
+
+function cellsToPatch(cells: NonNullable<UpdateOp<Order>["cells"]>) {
+  return Object.fromEntries(cells.map((cell) => [cell.columnId, cell.value]));
+}
+```
+
+Each move's `to` is the row's final index after the whole batch. The server removes all moved rows,
+then inserts them in ascending `to` order, as `applyChange` does. Moves applied one at a time end
+in the wrong order.
+
+## Strategy A: optimistic, roll back on failure
+
+Apply the edit locally right away (the grid is controlled, so `setData(next)` is what makes it
+visible), fire the API calls, and revert to the previous array if any of them reject:
+
+```ts
+function handleDataChange(
+  next: readonly Order[],
+  change: DataChange<Order>,
+  setData: (rows: Order[]) => void,
+) {
+  const prev = dataRef.current; // keep a ref in sync with `data` for the rollback snapshot
+  setData(next as Order[]);
+
+  Promise.all(opsToRequests(change.ops)).catch((error) => {
+    setData(prev);
+    toast.error("Could not save your change. It has been reverted.");
+    reportError(error);
+  });
+}
+```
+
+<Callout type="warn" title="Keep a ref, not just the state variable">
+  The rollback needs the array from BEFORE this change, not the current one. A plain closure over
+  `data` in a `useCallback` captures a stale snapshot across renders. Mirror `data` into a `ref`
+  on every render, and roll back to `ref.current` as it stood at the start of this handler.
+</Callout>
+
+## Strategy B: refetch-on-settle
+
+Do not apply `next` at all. Send the request first, then replace `data` with a fresh fetch once
+the server confirms the write. The grid shows the old value until the round-trip completes:
+
+```ts
+function handleDataChange(_next: readonly Order[], change: DataChange<Order>, setData: (rows: Order[]) => void) {
+  Promise.all(opsToRequests(change.ops))
+    .then(() => api.orders.list())
+    .then(setData)
+    .catch((error) => {
+      toast.error("Could not save your change.");
+      reportError(error);
+    });
+}
+```
+
+<Callout type="idea" title="Optimistic vs refetch-on-settle">
+  Optimistic feels instant but needs a correct rollback path. Refetch-on-settle is simpler and
+  always shows server-confirmed data, at the cost of a visible delay per edit. Pick optimistic for
+  frequent, low-risk edits (a status toggle). Pick refetch-on-settle for edits a server can
+  reject or recompute (a price that triggers server-side discounts).
+</Callout>
+
+## The failure path
+
+A rejected write is common: a 422 with field-level errors is the typical shape from a REST or
+GraphQL backend. `actions.setCellErrors` (on the grid's `ref` handle) paints the rejection on the exact cell it names, so the
+user sees which value is wrong and can fix it in place:
+
+```ts
+function handleDataChange(
+  next: readonly Order[],
+  change: DataChange<Order>,
+  setData: (rows: Order[]) => void,
+  gridRef: RefObject<DataGridApi<Order> | null>,
+) {
+  setData(next as Order[]);
+
+  Promise.all(opsToRequests(change.ops)).catch((error) => {
+    gridRef.current?.actions.setCellErrors(parseFieldErrors(error, change.ops)); // [{ rowId, columnId, message }]
+  });
+}
+```
+
+`parseFieldErrors` is your own mapping from the server's error shape to `{ rowId, columnId,
+message }` entries, matched against `change.ops` to recover each op's `rowId`. The cell gets the
+same ring, tint, and `aria-invalid` treatment as a rejected `validate` call, and the message shows
+when the user opens the cell to edit it. The error clears the moment the user commits a fixed
+value, through any write path. See
+[Editing & cell types: Server errors](/docs/editing-cell-types#server-errors) for the full
+contract, including `clearCellErrors` and the read hook.
+
+<Callout type="idea" title="Toast and revert, or history undo, still apply">
+  `setCellErrors` does not roll back the value on its own. Pair it with
+  [Strategy A](#strategy-a-optimistic-roll-back-on-failure)'s rollback, or
+  [`data-grid-history`](/docs/addons/undo-redo)'s `undo()`, when leaving the rejected
+  value showing is the wrong choice.
+</Callout>

@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useQueryState } from "nuqs";
 import {
-  isDev,
   useDataGridActions,
   useDataGridAllColumns,
   useDataGridFilterState,
@@ -11,10 +10,14 @@ import {
   useDataGridSearchText,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { serializeSortState, parseSortState } from "./sort-param";
 import { serializeFilterState, parseFilterState } from "./filter-param";
 import { serializeJoinOperator, parseJoinOperator } from "./join-param";
 import { prefixedKey } from "./prefixed-key";
+
+/** Smallest `isAnyOf` list bound for a column with choices, so a link written before a choice was removed still parses. */
+const MIN_CHOICE_BOUND = 64;
 
 /** Debounce (ms) between typing in the quick-search box and writing `searchText` to the URL. */
 const SEARCH_WRITE_DEBOUNCE_MS = 300;
@@ -58,6 +61,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   const { prefix } = options;
   const actions = useDataGridActions();
   const allColumns = useDataGridAllColumns();
+  const storeApi = useDataGridStoreApi();
   const sortState = useDataGridSortState();
   const filterState = useDataGridFilterState();
   const joinOperator = useDataGridJoinOperator();
@@ -107,18 +111,27 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   // appliedRef guard below) and is exposed as applyFromUrl so a consumer can re-apply after an
   // external URL change (back/forward, setSearchParams, query-only route change).
   const applyUrl = useCallback((keepMountDefaults: boolean) => {
-    // Drop specs referencing a column no longer in the grid (a shared link outlived a removal) and dev-warn each one.
-    const liveColumnIds = new Set(allColumns.map((c) => c.id));
+    // Drop specs a shared link must not apply: a removed column, or one the integrator excluded from sorting/filtering or currently hides. Each drop dev-warns.
+    const hidden = new Set(storeApi.getState().hiddenColumns);
+    const usable = (c: (typeof allColumns)[number]) => !hidden.has(c.id);
+    const sortableIds = new Set(allColumns.filter((c) => usable(c) && c.sortable !== false).map((c) => c.id));
+    const filterableIds = new Set(allColumns.filter((c) => usable(c) && c.filterable !== false).map((c) => c.id));
     const parsedSorts = parseSortState(sortParam);
     const sorts = parsedSorts.filter((spec) => {
-      if (liveColumnIds.has(spec.columnId)) return true;
-      warnDev(`dropped URL sort spec for removed column "${spec.columnId}"`);
+      if (sortableIds.has(spec.columnId)) return true;
+      warnDev(`dropped URL sort spec for removed, hidden, or unsortable column "${spec.columnId}"`);
       return false;
     });
-    const parsedFilters = parseFilterState(filterParam);
+    const choiceBounds = new Map(
+      allColumns.map((c) => {
+        const choices = (c.options as { choices?: unknown } | undefined)?.choices;
+        return [c.id, Array.isArray(choices) && choices.length > 0 ? Math.max(choices.length, MIN_CHOICE_BOUND) : undefined];
+      }),
+    );
+    const parsedFilters = parseFilterState(filterParam, { maxChoices: (columnId) => choiceBounds.get(columnId) });
     const filters = parsedFilters.filter((spec) => {
-      if (liveColumnIds.has(spec.columnId)) return true;
-      warnDev(`dropped URL filter spec for removed column "${spec.columnId}"`);
+      if (filterableIds.has(spec.columnId)) return true;
+      warnDev(`dropped URL filter spec for removed, hidden, or unfilterable column "${spec.columnId}"`);
       return false;
     });
     const join = parseJoinOperator(joinParam);
@@ -127,7 +140,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     if (filters.length > 0 || !keepMountDefaults) actions.setFilters(filters);
     if (join !== "and" || !keepMountDefaults) actions.setJoinOperator(join);
     if (searchParam || !keepMountDefaults) actions.setSearch(searchParam);
-  }, [actions, allColumns, sortParam, filterParam, joinParam, searchParam]);
+  }, [actions, allColumns, storeApi, sortParam, filterParam, joinParam, searchParam]);
   const applyFromUrl = useCallback(() => applyUrl(false), [applyUrl]);
 
   // apply URL -> store exactly once on mount; afterwards the store is the source of truth and

@@ -1,25 +1,51 @@
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode, Ref } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type {
-  CellCoord,
+  CellRef,
+  ViewCellRef,
+  ViewCoord,
+  AutosizeOptions,
   CellType,
   ColumnDef,
   ColumnLayout,
   DataChange,
+  DataGridApi,
+  DataGridPlugin,
   FilterJoinOperator,
   FilterSpec,
+  GridCommand,
+  GridEditEndEvent,
   GridSelection,
+  GridValidationErrorEvent,
+  GridBulkValidationError,
   HeaderClickBehavior,
   Keymap,
+  OnCellClick,
+  OnCellContextMenu,
+  OnCellDoubleClick,
   RowMarkersMode,
+  SelectionState,
   SortSpec,
 } from "../types";
-import type { OverlayPlugin } from "../overlays";
-import type { RowBandsSpec } from "../layout-context";
+import type { RowBandRenderCtx } from "../layout-context";
+import type { OverlayPluginCtx } from "../overlays";
 import type { DataGridLabels, DeepPartialLabels } from "../labels";
 import type { SearchMatch } from "../sort-filter";
 import type { ExtendDirection, SelectLineOptions } from "../selection";
 import type { ColRange } from "../selection/selected-col-ranges-for-row";
+import type { DataWriteContext } from "./data-write";
+
+/** The lazily-read context `DataGridRoot` registers for {@link DataGridActions.autosizeColumns}. */
+export type AutosizeMeasureContext = {
+  /** The computed `font` of one mounted body cell (canvas `measureText` font). */
+  cellFont: string;
+  /** The computed `font` of one mounted header cell (headers render `font-medium`). */
+  headerFont: string;
+  /** The currently mounted view-row window `[start, end)`, or `null` when no rows are mounted. */
+  window: { start: number; end: number } | null;
+  /** The consumer renders a per-column header-menu trigger (adds its fixed width allowance). */
+  hasHeaderMenu: boolean;
+};
 
 /** Live props synced from the consumer's render into the store on every change, typed over the consumer's row shape. */
 export type DataGridSyncProps<TData = unknown> = {
@@ -43,8 +69,29 @@ export type DataGridSyncProps<TData = unknown> = {
   // this file: `validate`'s function-or-schema union can't stay bivariant as a plain property, so
   // a defineColumns literal's narrow-TValue `validate` needs this documented widening to fit here.
   columns: readonly ColumnDefOf<TData>[];
-  getRowId: (row: TData, index: number) => string;
-  /** Fired once per user gesture with the next data array and an id-keyed delta batch. */
+  /**
+   * Stable, unique id of a row. Defaults to the row's `id` field (string or number) and throws
+   * for a row without one. Pass it when rows have no `id` or the id lives elsewhere.
+   */
+  getRowId?: (row: TData, index: number) => string;
+  /**
+   * Disables editing and delete grid-wide, independent of any per-column `readOnly`. The store is
+   * the home of this flag: it is seeded from these init props (so SSR and the first client paint
+   * already see it) and kept in sync by the provider's config phase — `DataGridRoot`,
+   * interaction, and clipboard read `state.readOnly` at event/render time, so a flip to `true`
+   * blocks the next keydown before any passive effect runs and cancels an open edit session.
+   * Default `false`.
+   */
+  readOnly?: boolean;
+  /**
+   * Merged over `DEFAULT_KEYMAP` at the store (per-action bindings here take precedence; an
+   * action mapped to `[]` unbinds it). `state.keymap` holds the merged result and keeps its
+   * reference while this prop's entries are content-equal, so an inline `keymap={{ … }}` literal
+   * does not churn the interaction memos. Surfaces outside `DataGridRoot` (the keybindings dialog)
+   * read `state.keymap` via {@link useDataGridKeymap}.
+   */
+  keymap?: Keymap;
+  /** Fired once per user gesture with the next data array and a row-id-based delta batch, after the grid stores that array. */
   onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
   /**
    * Row-level cross-field validation, run once per touched row after a write gesture commits
@@ -55,22 +102,26 @@ export type DataGridSyncProps<TData = unknown> = {
    * insert/duplicate/delete or on consumer `data` replacement. Sync only.
    */
   validateRow?: (row: TData, rowId: string) => Record<string, string> | null;
-  /** Undo keymap action (mod+Z); the `data-grid-history` add-on plugs its `undo()` in here. */
-  onUndo?: () => void;
-  /** Redo keymap action (mod+Y / mod+shift+Z); the `data-grid-history` add-on plugs its `redo()` in here. */
-  onRedo?: () => void;
   /**
-   * Cell-type registry keyed by `ColumnDef.type`; defaults to the built-in registry. Providing a
-   * registry REPLACES the built-ins, it is not merged over them: to extend the built-ins, spread
-   * the exported `cellTypes` in (`cellTypes={{ ...cellTypes, myType }}`).
+   * Custom cell types keyed by `ColumnDef.type`, merged OVER the built-in registry — built-ins
+   * you do not name keep working. A `null` entry removes a built-in (or a previously provided
+   * type); the grid then renders its columns with the `text` fallback and dev-warns about the
+   * unresolvable type. An inline object literal is fine: the grid rebuilds the registry only
+   * when an entry changes identity, so define each type once, outside render.
    */
-  cellTypes?: Record<string, AnyCellType>;
+  cellTypes?: Record<string, AnyCellType | null>;
   /** Overrides a cell's clipboard-copy text; falls back to the cell type's `toText`. */
   processCellForClipboard?: (value: unknown, ctx: ClipboardProcessCtx<TData>) => string;
   /** Overrides parsing pasted text into a cell value; falls back to the cell type's `fromText`. */
   processCellFromClipboard?: (text: string, ctx: ClipboardProcessCtx<TData>) => unknown;
   /** Runs on the parsed paste grid before it's applied; returning `false` vetoes the paste entirely. */
-  processPaste?: (cells: string[][], target: CellCoord) => string[][] | false;
+  processPaste?: (ctx: { cells: string[][]; target: ViewCoord }) => string[][] | false;
+  /**
+   * Prefixes formula-like copied cells (leading `=`, `+`, `-`, `@`, TAB, or CR; plain numbers
+   * exempt) with `'` in the clipboard text and HTML, for Ctrl+C/Ctrl+X and the context menu's
+   * Copy/Cut. A paste back into gridcn still restores the raw value. Default `false`.
+   */
+  sanitizeClipboardFormulas?: boolean;
   /** Marker column mode; default 'none'. See {@link RowMarkersMode}. */
   rowMarkers?: RowMarkersMode;
   /** Whole-row selection channel gestures (marker click, Shift+Space); default true. */
@@ -88,7 +139,7 @@ export type DataGridSyncProps<TData = unknown> = {
   /**
    * Enables drag-to-reorder rows grid-wide; default true. The gesture is zone-based: it lives on
    * the marker's `reorder`-family modes only (`reorder`, `reorder-number`, `reorder-checkbox`,
-   * `reorder-both`) and only from the grip zone (the grip handle + cell background, or the whole
+   * `reorder-both`) and only from the drag handle zone (the drag handle + cell background, or the whole
    * cell in `reorder` mode) — plain `number`/`checkbox`/`both` markers stay pure row-select
    * surfaces, and within the reorder family the number/checkbox glyphs and Shift+drag always
    * stay the row-select gesture, so a selection drag never reorders.
@@ -110,6 +161,12 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   duplicateRow?: (row: TData, index: number) => TData;
   /**
+   * Consumer-defined keyboard commands keyed by name — the dispatch target of keymap bindings
+   * that name no built-in action (see {@link GridCommand}). A name that shadows a built-in action
+   * wins over it (dev-warned once). Pass a stable reference.
+   */
+  commands?: Record<string, GridCommand<TData>>;
+  /**
    * Controlled multi-sort spec. Standard controlled-input
    * semantics: omitted (undefined) keeps today's uncontrolled behavior — the store owns
    * `sortState`. Provided (even `[]`) makes this prop the source of truth every `_syncProps` sync
@@ -118,85 +175,175 @@ export type DataGridSyncProps<TData = unknown> = {
    * itself changes — a controlled grid whose consumer ignores the callback stays visually fixed.
    */
   sortState?: SortSpec[];
+  /**
+   * Who orders the rows. `"client"` (default): the grid sorts `data` by `sortState`. `"server"`:
+   * the grid only tracks the spec (header click cycle, `aria-sort`, sort indicator, `onSortChange`)
+   * and never reorders `data`; the consumer fetches rows in that order, e.g. with `useDataGridLazyRows`.
+   */
+  sortMode?: "client" | "server";
+  /** Seeds the sort ONCE at store creation (uncontrolled, like `defaultData`); later changes are ignored. `sortState` wins when both are given. */
+  defaultSortState?: SortSpec[];
   /** Fires whenever the user (or `actions.toggleSort`/`setSorts`) would change the sort, controlled or not; see `sortState`. */
   onSortChange?: (next: SortSpec[]) => void;
   /** Controlled filter spec; same controlled/uncontrolled semantics as `sortState`. */
   filterState?: FilterSpec[];
+  /** Seeds the filters ONCE at store creation; see `defaultSortState`. */
+  defaultFilterState?: FilterSpec[];
   /** Fires whenever the user (or `actions.setFilters`) would change the filters, controlled or not; see `filterState`. */
   onFilterChange?: (next: FilterSpec[]) => void;
   /** Controlled join operator combining `filterState`'s rows; same controlled/uncontrolled semantics as `sortState`. Default `"and"`. */
   joinOperator?: FilterJoinOperator;
+  /** Seeds the join operator ONCE at store creation; see `defaultSortState`. */
+  defaultJoinOperator?: FilterJoinOperator;
   /** Fires whenever the user (or `actions.setJoinOperator`) would change the join operator, controlled or not; see `joinOperator`. */
   onJoinOperatorChange?: (next: FilterJoinOperator) => void;
   /** Controlled quick-search text; same controlled/uncontrolled semantics as `sortState`. */
   searchText?: string;
+  /** Seeds the quick-search text ONCE at store creation; see `defaultSortState`. */
+  defaultSearchText?: string;
   /** Fires whenever the user (or `actions.setSearch`) would change the search text, controlled or not; see `searchText`. */
   onSearchTextChange?: (next: string) => void;
   /**
-   * Overlay-plugin registration: each plugin renders into the overlay layer
-   * after the fill preview but before the local active-cell ring, receiving `OverlayPluginCtx`
-   * (window-clamp + pin-zone helpers, layout vars). The `data-grid-presence` add-on is the
-   * motivating consumer. Pass a stable array reference (e.g. module scope or `useMemo`) — same
-   * dev-mode guardrail as `columns`/`getRowClassName`: an unstable identity here re-renders
-   * `DataGridOverlays` every tick for nothing.
+   * Installed plugins (add-ons that reach into the grid): overlay layers, row bands, data-change
+   * observers, commands, keymap bindings, and root mounts — one seam instead of one per add-on.
+   * Resolved at store creation (so SSR has band heights and `aria-rowcount`) and re-resolved in
+   * the config phase only when the list actually changes: an entry is unchanged when its `name`
+   * and every member keep their identity, so an inline `plugins={[fill.plugin, …]}` array is fine.
+   * Array order is precedence and visual order (overlays paint in order, later on top; top bands
+   * stack from the header down; bottom bands stack top to bottom; `Mount`s and observers run in
+   * order). A plugin object attaches to ONE grid — a second grid resolving the same object is a
+   * dev error. The list is row-shape-agnostic: a typed `DataGridPlugin<TData>` is assignable to it,
+   * and an inline plugin's `onDataChange` observer sees `unknown` rows. See {@link DataGridPlugin}.
    */
-  overlayPlugins?: readonly OverlayPlugin[];
-  /**
-   * Row-bands registration: a spec object so root.tsx can compute band heights/`aria-rowcount`
-   * SYNCHRONOUSLY at first render (no SSR/first-paint layout shift) while the actual pinned-row
-   * semantics live in the `data-grid-pinned-rows` add-on's `useDataGridPinnedRows()`. Same
-   * dev-mode identity guardrail as `overlayPlugins` — pass a stable reference (the hook already
-   * returns one).
-   */
-  rowBands?: RowBandsSpec;
+  plugins?: readonly DataGridPlugin<unknown>[];
   /**
    * Seeds `columnWidths`/`columnOrder`/`hiddenColumns`/per-column `pin` ONCE at store creation,
    * over the `columns` prop's own def defaults (`resolveColumnWidth` precedence: layout beats def).
-   * Deliberately NOT a controlled prop — later changes to this value are ignored (uncontrolled-
-   * with-events, PLAN events-state gap fix 1); pair it with `onColumnLayoutChange` to save/restore
+   * Deliberately NOT a controlled prop — later changes to this value are ignored (uncontrolled
+   * with events); pair it with `onColumnLayoutChange` to save/restore
    * a user's layout (e.g. to localStorage) without a fully-controlled overlay fighting the defs.
+   * Partial layouts are normalized the same way `columnLayout` is: unknown column ids are dropped,
+   * `order` gets missing ids appended in def order, widths are clamped, and pins on
+   * `pinnable: false` columns are dropped.
    */
-  defaultColumnLayout?: ColumnLayout;
+  defaultColumnLayout?: Partial<ColumnLayout>;
+  /**
+   * Controlled column layout (React `value` semantics, gesture-first like `selection`): each
+   * provided part (`widths`, `order`, `pins`, `hidden`) replaces that part, and an omitted part
+   * stays uncontrolled — the store keeps its current value for it, so
+   * `columnLayout={{ widths }}` controls only widths and a user reorder survives. A gesture
+   * writes the store at once and fires `onColumnLayoutChange`; a `columnLayout` prop that changes
+   * identity, is not an echo of a value the grid just fired, and differs from the grid's current
+   * snapshot then overrides the store. Omitted (undefined) keeps the uncontrolled behavior
+   * (store-owned, with events).
+   */
+  columnLayout?: Partial<ColumnLayout>;
+  /**
+   * Runs one {@link DataGridActions.autosizeColumns} pass after mount, when the view first has
+   * rows (a lazy grid waits for its first page); it runs once per mount. Columns with a saved
+   * width (`columnWidths`) keep it — a saved layout wins. `true` uses the action's defaults;
+   * an options object narrows the pass.
+   */
+  autosizeOnMount?: boolean | AutosizeOptions;
   /**
    * Fires once per committed column-layout change (resize drag release/autosize, reorder drop,
-   * pin/unpin, show/hide) with the full current `ColumnLayout` snapshot — never per drag frame.
-   * Fired from the store actions layer, no React-render dependency. See `defaultColumnLayout` for
-   * the matching restore path.
+   * pin/unpin, show/hide, `setColumnLayout`) with the full current `ColumnLayout` snapshot -
+   * never per drag frame, and never when nothing changed. Fired from the store actions layer, no
+   * React-render dependency. See `defaultColumnLayout` for the seed path and `columnLayout` for
+   * the controlled one.
    */
   onColumnLayoutChange?: (next: ColumnLayout) => void;
   /**
+   * Controlled selection (React `value` semantics, gesture-first): a gesture writes the store at
+   * once and fires this callback; a `selection` prop that changes identity, is not an echo of a
+   * value the grid just fired, and differs structurally from the grid's current value then
+   * overrides the store. An applied value with an `anchor` moves the active cell to the anchor
+   * (a normal cursor move: `onActiveCellChange` fires); without an anchor the cursor stays.
+   * Omitted (undefined) keeps the uncontrolled behavior (store-owned, with events). Mutually
+   * exclusive with `defaultSelection`; when both are given, `selection` wins (dev-mode warns once).
+   */
+  selection?: SelectionState;
+  /**
+   * Seeds the selection ONCE at store creation (React `defaultValue` semantics): the value
+   * resolves against the initial data/columns, and a resolved `anchor` also seeds the initial
+   * active cell. Later changes to this value are ignored (uncontrolled, like `defaultData`),
+   * which also means a consumer `data` swap never re-applies it. Mutually exclusive with
+   * `selection` - see that prop's doc for precedence.
+   */
+  defaultSelection?: SelectionState;
+  /**
    * Fires on every committed selection change (click, extend step, range push, row/column/all
-   * selection, clear) with the current `GridSelection` plus a lazy `details.getValues()` accessor.
-   * A drag-extend gesture fires once per step (intended — the presence/broadcast use case wants
-   * live updates, not just the final drop) — `getValues()` is a function, not a materialized array,
-   * specifically so that hot path never pays for building a value matrix on steps nobody reads.
+   * selection, clear) with the current selection in stable {@link SelectionState} terms plus a
+   * lazy `details.getValues()` accessor. Fires only when the derived `SelectionState` differs
+   * structurally from the grid's last known value, so a view rebuild that re-projects the same
+   * records (a sort that keeps the selection's rows) fires nothing. A drag-extend gesture fires
+   * once per step (intended - the presence/broadcast use case wants live updates, not just the
+   * final drop) - `getValues()` is a function, not a materialized array, specifically so that
+   * hot path never pays for building a value matrix on steps nobody reads.
    */
-  onSelectionChange?: (next: GridSelection, details: SelectionChangeDetails) => void;
-  /**
-   * Fired exactly once when the selection transitions from non-empty to empty, from ANY path
-   * (outside-click, clearSelection, a cleared range, etc.). `onSelectionChange` also fires on that
-   * transition (with an empty selection) — this is the dedicated signal for UI resets. Does not
-   * fire when the selection is already empty.
-   */
-  onSelectionCleared?: () => void;
-  /**
-   * Fires on every live width write during a resize drag (`actions.setColumnWidth`, per drag
-   * frame) — the in-progress counterpart to `onColumnLayoutChange`'s once-per-commit snapshot.
+  onSelectionChange?: (next: SelectionState, details: SelectionChangeDetails) => void;
+   /**
+    * Fires when the active cell changes to a different cell, when it follows its record or column to
+    * another view position (a sort, filter, data change, column hide, reorder, or pin), when another
+    * record comes under it (a lazy row load, or a clamp after its row or column left the view), or
+    * when it is cleared (`null`). Re-selecting the same cell on the same record and column does not fire.
+    */
+   onActiveCellChange?: (next: ViewCellRef | null) => void;
+   /**
+    * Fired when an edit session is about to start (Enter/F2, type-to-replace, double-click) with
+    * the target cell's ids and view position. Return `false` to VETO the edit — `startEditing`
+    * then makes no state change at all (no session, no cursor move). Checkbox cells never start an
+    * edit session, so the veto never applies to them.
+    */
+   onEditStart?: (cell: ViewCellRef) => boolean | void;
+   /**
+    * Fired when an edit session ends or a commit attempt is refused — `commit` after the session
+    * closes, `cancel` when the draft is discarded (including a remap that drops the edited cell),
+    * `rejected` when validation refused a commit and the session stays open (fires per attempt).
+    * See {@link GridEditEndEvent}.
+    */
+   onEditEnd?: (event: GridEditEndEvent) => void;
+   /**
+    * Fires after a bulk paste, a fill, or an `updateCells` call settles, only when at least one cell
+    * was rejected by validation — the accepted cells are applied first. See {@link GridValidationErrorEvent}.
+    */
+   onValidationError?: (event: GridValidationErrorEvent) => void;
+   /** Fired on a double-click on any non-pinned, non-skeleton cell — pure notification, no veto. See {@link OnCellDoubleClick}. */
+   onCellDoubleClick?: OnCellDoubleClick<TData>;
+   /** Fired when the user right-clicks any non-pinned, non-skeleton cell — pure notification. See {@link OnCellContextMenu}. */
+   onCellContextMenu?: OnCellContextMenu<TData>;
+    /**
+     * Fired on a plain click on any cell — see {@link OnCellClick}. Fired from the cell's own
+     * existing click handler (no new subscription); the cell reads it from the store at click
+     * time, so an identity change re-renders no cell. Pass a stable identity (e.g. `useCallback`)
+     * to keep the store's config sync from running once per render with a new callback.
+     */
+    onCellClick?: OnCellClick<TData>;
+    /**
+     * Fired after a row-window commit with the rendered data-row range `[start, end)` (inclusive
+     * start, exclusive end — same convention as `useRowWindow`'s `RowWindow`). Only fires when the
+     * range actually changed since the last call, including once for the initial mount commit; a
+     * scroll tick that stays within the current window's overscan buffer does not re-fire it.
+     * Useful for lazy-loading/prefetch/analytics add-ons; core has no fetching logic of its own.
+     */
+    onRenderedRowsChange?: (range: { start: number; end: number }) => void;
+    /**
+     * Fires on every live width write during a resize drag (`actions.setColumnWidth`, per drag
+    * frame) — the in-progress counterpart to `onColumnLayoutChange`'s once-per-commit snapshot.
    * Fired from the store actions layer, no React-render dependency. Not called for the commit
    * itself (drag release/autosize) — pair with `onColumnLayoutChange` if you need that too.
    */
-  onColumnResizing?: (columnId: string, width: number) => void;
+  onColumnResizing?: (ctx: { columnId: string; width: number }) => void;
 };
 
 /**
- * Second argument to `onSelectionChange` (PLAN events-state gap fix 2). `getValues()` reads the
- * CURRENT `selection.current.range` only — a multi-range selection (ctrl-click stack) is not
- * flattened or concatenated, matching clipboard copy's own "primary range only" scope
- * (`resolveCopyScope`) — call it once per range in `selection.current.rangeStack` yourself if you
- * need the others. Returns `[]` when there's no active range (row/column-channel-only selection,
- * or a clear). Deliberately lazy: built fresh from the store snapshot only when called, so a
- * consumer that ignores it (the common case) never pays for reading/allocating a value matrix on
- * every drag step.
+ * Second argument to `onSelectionChange`. `getValues()` reads the CURRENT `next.range` only — a
+ * multi-range selection (ctrl-click stack) is not flattened or concatenated, matching clipboard
+ * copy's own "primary range only" scope (`resolveCopyScope`) — call it once per range in
+ * `next.rangeStack` yourself if you need the others. Returns `[]` when there's no active range
+ * (row/column-channel-only selection, or a clear). Deliberately lazy: built fresh from the store
+ * snapshot only when called, so a consumer that ignores it (the common case) never pays for
+ * reading/allocating a value matrix on every drag step.
  */
 export type SelectionChangeDetails = {
   /** Raw cell VALUES (not clipboard text) over the primary range, view-row-major: `values[0][0]` is the range's top-left cell. */
@@ -213,7 +360,36 @@ export type SelectionChangeDetails = {
 // useDataGridVisibleColumns/useDataGridAllColumns return, so a consumer building custom column UI can
 // call those same fields without a cast either.
 /** `DataGridSyncProps` cast to the store's internal row-agnostic shape; the one unsafe cast, applied once at the boundary. */
-export type InternalSyncProps = DataGridSyncProps<unknown>;
+export type InternalSyncProps = Omit<DataGridSyncProps<unknown>, "getRowId"> & { getRowId: (row: unknown, index: number) => string };
+
+/** The overlay contribution of one resolved plugin: the component plus its `name` (the React key). */
+export type ResolvedPluginOverlay = { name: string; Overlay: ComponentType<OverlayPluginCtx> };
+
+/** The root-mount contribution of one resolved plugin: the component plus its `name` (the React key). */
+export type ResolvedPluginMount = { name: string; Mount: ComponentType };
+
+/** One band segment of the resolved row bands: one plugin's rows plus its painter. Segments stack in plugin array order (top: header down; bottom: top to bottom). */
+export type ResolvedBandSegment = {
+  name: string;
+  rows: readonly unknown[];
+  render: (ctx: RowBandRenderCtx) => ReactNode;
+};
+
+/** A data-change observer resolved from a plugin's `onDataChange`: runs after the store write and the consumer's `onDataChange`, each in its own try/catch. */
+export type PluginDataChangeObserver = (next: readonly unknown[], change: DataChange<unknown>, ctx: { api: DataGridApi<unknown> }) => void;
+
+/**
+ * The `plugins` sync prop resolved into what core consumes, written as ONE store field so the
+ * config phase can keep its reference (and the merged `commands`/`keymap` that feed from it)
+ * while the list is unchanged. `list` is the raw prop array (entry-identity compare baseline).
+ */
+export type ResolvedPlugins = {
+  list: readonly DataGridPlugin[];
+  overlays: readonly ResolvedPluginOverlay[];
+  bands: { top: readonly ResolvedBandSegment[]; bottom: readonly ResolvedBandSegment[] };
+  mounts: readonly ResolvedPluginMount[];
+  observers: readonly PluginDataChangeObserver[];
+};
 
 /**
  * `ColumnDef` widened to the store's internal row-agnostic shape (see the erasure comment above).
@@ -246,8 +422,15 @@ export type ClipboardProcessCtx<TData> = { row: TData; column: ColumnDefOf<TData
  */
 export type AnyCellType = CellType<any, any, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
+/** Row id used when `getRowId` is omitted: the row's `id` field. */
+export function defaultGetRowId(row: unknown): string {
+  const id = (row as { id?: unknown } | null | undefined)?.id;
+  if (typeof id === "string" || typeof id === "number") return String(id);
+  throw new Error("gridcn: a row has no string or number `id` field. Pass `getRowId` to identify rows.");
+}
+
 export function toInternalSyncProps<TData>(props: DataGridSyncProps<TData>): InternalSyncProps {
-  return props as unknown as InternalSyncProps;
+  return (props.getRowId ? props : { ...props, getRowId: defaultGetRowId }) as unknown as InternalSyncProps;
 }
 
 /**
@@ -339,7 +522,7 @@ export type UpdateCellsSkip = {
  *
  * `pending` is `true` when the batch is HELD for async validation — the verdict then reports
  * nothing about its outcome, and a held batch that is later superseded (a newer `updateCells`, or
- * a row-moving op) is dropped silently by design; track supersession on your own feed.
+ * a row-moving operation) is dropped silently by design; track supersession on your own feed.
  */
 export type UpdateCellsVerdict = {
   /** Cell writes applied (0 when nothing applied or the batch is `pending`). */
@@ -356,6 +539,7 @@ export type DataGridStoreState = Omit<
   | "data"
   | "defaultData"
   | "cellTypes"
+  | "commands"
   | "rowMarkers"
   | "enableRowSelection"
   | "enableColumnSelection"
@@ -367,9 +551,17 @@ export type DataGridStoreState = Omit<
   | "enableColumnPinning"
   | "headerClickBehavior"
   | "labels"
-  | "overlayPlugins"
-  | "rowBands"
+  | "plugins"
   | "defaultColumnLayout"
+  | "defaultSelection"
+  | "defaultSortState"
+  | "defaultFilterState"
+  | "defaultJoinOperator"
+  | "defaultSearchText"
+  | "selection"
+  | "columnLayout"
+  | "readOnly"
+  | "keymap"
 > & {
   /** Always defined: controlled mode mirrors the `data` prop every sync; uncontrolled mode seeds from `defaultData` once and the store owns it thereafter (mutated in place by the commit actions). */
   data: readonly unknown[];
@@ -388,17 +580,24 @@ export type DataGridStoreState = Omit<
   enableRowReorder: boolean;
   enableColumnPinning: boolean;
   headerClickBehavior: HeaderClickBehavior;
-  activeCell: CellCoord | null;
+  activeCell: ViewCoord | null;
   selection: GridSelection;
   /**
    * Two-stage Ctrl+A progression (select-all-progression.ts): which stage the last `selectAll`
    * produced, plus the exact `selection`/`activeCell` object identities it produced them against.
    * Any other action that replaces `selection` or `activeCell` (selectCell/extendTo/pushRange/
-   * selectRow/selectColumn/_moveActiveCell/edits/row ops) changes that identity, so `selectAll`
+   * selectRow/selectColumn/_moveActiveCell/edits/row operations) changes that identity, so `selectAll`
    * detects the mismatch and restarts from stage 1 — no need to instrument every reset site.
    */
-  selectAllStage: { stage: "region" | "all"; selection: GridSelection; activeCell: CellCoord | null } | null;
-  editing: { coord: CellCoord; initialText?: string } | null;
+  selectAllStage: { stage: "region" | "all"; selection: GridSelection; activeCell: ViewCoord | null } | null;
+  /**
+   * `coord` is the view anchor, remapped by every viewIndex/visibleColumns rebuild so the editor
+   * follows its row; `rowId`/`columnId` are the identity anchor the commit resolves against, so a
+   * missed remap can never write the draft into a different row. When the row (or column) leaves
+   * the view the session is cancelled and the draft dropped. `session` is unique per started
+   * session, so a restart on the same cell still gets a fresh editor.
+   */
+  editing: { coord: ViewCoord; rowId: string; columnId: string; initialText?: string; session: number } | null;
   /** Transient rejection message from the last failed commitCellEdit; cleared on the next startEditing/commit/cancel. */
   editingError: string | null;
   /**
@@ -427,24 +626,34 @@ export type DataGridStoreState = Omit<
    */
    cellErrors: ReadonlyMap<string, string>;
    /**
-    * Transient "highlight-what-changed" keys ({@link flashCellKey}, view-space) currently flashing,
+    * Transient "highlight-what-changed" keys (row id plus column id) currently flashing,
     * auto-cleared per key after `flashCells`'s duration (default 1400 ms — the 1.2 s fade pulse
     * finishes before the key lifts, so the cell never visibly snaps back). NOT a data change: no
     * `DataChange`, no history entry. Always {@link EMPTY_FLASHING_CELLS} identity when empty.
     */
    flashingCells: ReadonlySet<string>;
-   /** Always defined: defaults to {@link EMPTY_OVERLAY_PLUGINS} so `useDataGridOverlayPlugins` never returns undefined. See `overlayPlugins`'s doc comment (DataGridSyncProps). */
-  overlayPlugins: readonly OverlayPlugin[];
-  /** Always defined: defaults to {@link EMPTY_ROW_BANDS} (zero-length top/bottom, `render` never called) so `useDataGridRowBands` never returns undefined. See `rowBands`'s doc comment (DataGridSyncProps). */
-  rowBands: RowBandsSpec;
+    /** The `plugins` sync prop resolved (see {@link ResolvedPlugins}); always defined — an absent list resolves to empty members, so overlays/bands/mounts/observers never read undefined. */
+  plugins: ResolvedPlugins;
   lastHighlightedRow: number | null;
   lastHighlightedCol: number | null;
   columnWidths: Record<string, number>;
+  /** `autosizeOnMount` as passed to the provider; the mounted root consumes it once. */
+  autosizeOnMount?: boolean | AutosizeOptions;
   /** null = follow the `columns` prop order. */
   columnOrder: string[] | null;
   /** Single source of truth for visibility; seeded with the def-level `hidden` ids at creation and re-seeded when a new `columns` array is passed. */
   hiddenColumns: readonly string[];
+  /**
+   * The current column-layout snapshot (`widths`/`order`/`pins`/`hidden`), recomputed at every
+   * commit point (resize release, reorder, pin, hide, `setColumnLayout`) and at every `columns`
+   * swap — never on live resize frames. Its identity is the echo token of the controlled
+   * `columnLayout` prop: a prop that is the same object a commit just fired is an echo and
+   * applies nothing.
+   */
+  columnLayout: ColumnLayout;
   sortState: SortSpec[];
+  /** Mirrors the `sortMode` sync prop; `"server"` keeps `sortState` out of every view rebuild. */
+  sortMode: "client" | "server";
   filterState: FilterSpec[];
   /** How `filterState`'s rows combine; default `"and"`. See `FilterJoinOperator`. */
   joinOperator: FilterJoinOperator;
@@ -453,7 +662,7 @@ export type DataGridStoreState = Omit<
   /**
    * Whether `sortState`/`filterState`/`joinOperator`/`searchText` are controlled (their sync prop
    * was defined on the last `_syncProps`), set once per sync and read by `toggleSort`/`setSorts`/
-   * `setFilters`/`setJoinOperator`/`setSearch` (server escape hatch). Controlled mode:
+   * `setFilters`/`setJoinOperator`/`setSearch` (server override). Controlled mode:
    * the action still fires its `onXChange` callback but does NOT write the corresponding state
    * field itself — `_syncProps` is the only writer once the consumer's prop (and thus the store)
    * actually changes, standard controlled-input semantics (a callback-ignoring consumer's grid
@@ -463,13 +672,13 @@ export type DataGridStoreState = Omit<
   filterControlled: boolean;
   joinOperatorControlled: boolean;
   searchControlled: boolean;
-  /** Every cell matching `searchText`, view-space row-major order; computed once per `setSearch`/`_syncProps`/`setSorts`/`setFilters`, capped at 1000 hits with early exit. */
+  /** Every cell matching `searchText`, view-index row-major order; computed once per `setSearch`/`_syncProps`/`setSorts`/`setFilters`, capped at 1000 hits with early exit. */
   searchMatches: SearchMatch[];
   /** `searchMatches` as a `"${viewRow}:${columnId}"` Set for O(1) per-cell highlight lookup ({@link useDataGridIsSearchMatch}). */
   searchMatchSet: ReadonlySet<string>;
   /**
    * `searchMatches` grouped by view row -> matched column indices, for {@link computeRowCellState}'s
-   * per-row derivation (perf audit 2026-07-17: the previous per-row `for` loop over every visible
+   * per-row derivation (the previous per-row `for` loop over every visible
    * column, each doing a `searchMatchSet.has(`${row}:${columnId}`)` string-key lookup, cost ~44ms/2000
    * ticks at 100k rows/8 cols with an active search — measured 29x faster building this map once per
    * search-text change and doing an O(1) `Map.get` per row per tick instead).
@@ -479,6 +688,14 @@ export type DataGridStoreState = Omit<
   searchMatchesCapped: boolean;
   /** Recomputed by _syncProps/toggleSort/setSorts/setFilters only — search no longer affects it. */
   viewIndex: number[];
+  /**
+   * Bumped at every row-moving or row-replacing write (insert/delete/duplicate/reorder, a
+   * consumer `data` replacement) — the rowId↔dataIndex mapping changed; value-only writes never
+   * bump. `useDataGridRowIdToViewRow` keys on this instead of `data` so a streaming tick skips the
+   * O(n) map rebuild. Relies on `getRowId` returning stable ids across value-only writes (ids are
+   * identity, not content) — the same invariant the rowId index cache holds.
+   */
+  rowIdentityVersion: number;
   /**
    * True when at least one deferred `updateCells`/`updateRows` batch changed a value that the active
    * sort or filter reads, so the displayed order no longer matches the data. Drives a "re-sort"
@@ -494,44 +711,42 @@ export type DataGridStoreState = Omit<
    * as a `DataGridRoot` sibling) move the viewport without reaching into
    * root-internal refs. See {@link useDataGridScrollToCell}.
    */
-  scrollToCellImpl: ((coord: CellCoord) => void) | null;
+  scrollToCellImpl: ((coord: ViewCoord) => void) | null;
+  /** DOM focus for the active cell's element, or the grid when that element is not rendered; registered by the mounted `DataGridRoot`, like `scrollToCellImpl`. */
+  focusImpl: (() => void) | null;
   /**
-   * Fill-handle keymap handlers, registered by the `data-grid-fill` add-on's tracker
-   * component — which must render somewhere inside `DataGridRoot`'s subtree to reach `scrollRef`/
-   * layout via `useDataGridRootContext()`, a level `DataGridRoot`'s OWN `useGridInteraction` call
-   * (which needs these three callbacks) sits above. Registering through the store the same way
-   * `scrollToCellImpl` does resolves that ordering: `DataGridRoot` reads this slot and forwards it
-   * to `useGridInteraction` on every render; `null` (pre-mount, post-unmount, or add-on absent)
-   * makes mod+D/mod+R/Escape-mid-drag the documented no-ops.
+   * The autosize measure context the mounted `DataGridRoot` registers (fonts, mounted row
+   * window, header-menu flag) — `null` before mount/after unmount, when
+   * {@link DataGridActions.autosizeColumns} measures nothing.
    */
-  fillHandlers: { fillDown: () => void; fillRight: () => void; cancelFillDrag: () => void } | null;
+  measureFonts: (() => AutosizeMeasureContext | null) | null;
+  /** @internal The data-write cluster's mutable context box (see `data-write.ts`); exposed here so the `useDataGridScrollToCell` ref resolution shares its row-index cache and stale-ref warn flag. */
+  dataWrite: DataWriteContext;
   /**
-   * The `data-grid-presence` add-on's view-space activeness predicate, registered on mount and
-   * cleared on unmount (same registration pattern as `fillHandlers`): answers "is any VIEW-space
-   * (range-form) presence entry active right now". View-space entries pin to a display position,
-   * so a row-moving op (`reorderRows`, `insertRows`, `deleteRows`, `duplicateRows`, `updateCells`
-   * with `reorder: "immediate"`) dev-warns once per grid when it runs while the predicate reports true; rowId-native entries track their rows through
-   * reorders and never trip it. `null` before mount/after unmount, or when the add-on is absent.
-   */
-  presenceViewSpaceActive: (() => boolean) | null;
-  /**
-   * Mirrors `DataGridRoot`'s `readOnly` prop, registered on mount, so
-   * mutation surfaces outside the root's subtree (context menu, `useDataGridClipboard`) can see it
-   * too — the root prop alone only reached its own local `useGridInteraction`/`useGridClipboard`.
-   * `false` before mount/after unmount.
+   * The `readOnly` sync prop, defaulted to `false`: editing and delete are disabled grid-wide,
+   * independent of any per-column `readOnly`. Seeded from the provider's init props (SSR and the
+   * first client paint already see it) and kept in sync by the config phase, so a flip to `true`
+   * is live before the next event; every reader (root `aria-readonly`, interaction, clipboard,
+   * context menu) goes through this field.
    */
   readOnly: boolean;
   /**
-   * Mirrors `DataGridRoot`'s effective keymap — `DEFAULT_KEYMAP` merged with its `keymap` prop —
-   * registered on mount (backing the `data-grid-keybindings` add-on) so surfaces outside
-   * the root's subtree (e.g. the keybindings dialog) can read the single source of truth for
-   * bindings instead of re-deriving it. `DEFAULT_KEYMAP` before mount/after unmount.
+   * The effective keymap — `DEFAULT_KEYMAP` merged with the `keymap` sync prop — seeded at store
+   * creation and kept in sync by the config phase, the single source of truth for bindings
+   * (backing the `data-grid-keybindings` add-on). Keeps its reference while the prop's entries
+   * are content-equal (see `keymapContentEqual`). `DEFAULT_KEYMAP` when no prop is passed.
    */
   keymap: Keymap;
+  /** The merged command map: `DEFAULT_KEYMAP`'s pluggable bodies replaced by the plugins' and the consumer's `commands` (plugins in array order, the consumer last and silently winning). `null` when no plugin or consumer command exists. */
+  commands: Record<string, GridCommand<unknown>> | null;
   /** {@link DEFAULT_LABELS} deep-merged with the `labels` sync prop; see {@link useDataGridLabels}. */
   labels: DataGridLabels;
+  /** The public actions only — the `_`-prefixed internals live in the store-private table ({@link getInternalActions}), never in state. */
   actions: DataGridActions;
 };
+
+/** `DataGridStoreState` with `data` typed as `readonly TData[]` — the state view {@link useDataGridSelector} hands its selector. Every row in `data` originated from the grid's own `TData`-typed `data`/`defaultData` prop, so the widening is safe. */
+export type DataGridStoreStateOf<TData> = Omit<DataGridStoreState, "data"> & { data: readonly TData[] };
 
 /** Mutations for a single grid instance, nested under the stable `actions` key. */
 export type DataGridActions = {
@@ -541,15 +756,27 @@ export type DataGridActions = {
    * and fires it). After Escape/`clearSelection`, `selection.current` is `null` while `activeCell`
    * still exists — read the active cell from `activeCell`, not from `selection.current.cell`.
    */
-  setActiveCell(coord: CellCoord | null): void;
-  selectCell(coord: CellCoord): void;
-  extendTo(coord: CellCoord): void;
-  extendSelection(direction: ExtendDirection, opts?: { toEdge?: boolean }): void;
-  pushRange(coord: CellCoord): void;
+   /** Moves the active cell to the cell named by the stable {@link CellRef}; `null` clears it. */
+   setActiveCell(ref: CellRef | null): void;
+   /** View-index variant of {@link DataGridActions.setActiveCell} for callers that hold a {@link ViewCoord}. */
+   setActiveCellAt(coord: ViewCoord | null): void;
+   /** Selects the cell named by the stable {@link CellRef} as a single-cell selection. */
+   selectCell(ref: CellRef): void;
+   /** View-index variant of {@link DataGridActions.selectCell} for callers that hold a {@link ViewCoord}. */
+   selectCellAt(coord: ViewCoord): void;
+   /** Extends the selection to the cell named by the stable {@link CellRef}. */
+   extendTo(ref: CellRef): void;
+   /** View-index variant of {@link DataGridActions.extendTo} for callers that hold a {@link ViewCoord}. */
+   extendToAt(coord: ViewCoord): void;
+   extendSelection(direction: ExtendDirection, opts?: { toEdge?: boolean }): void;
+   /** Pushes a ctrl-click range to the cell named by the stable {@link CellRef}. */
+   pushRange(ref: CellRef): void;
+   /** View-index variant of {@link DataGridActions.pushRange} for callers that hold a {@link ViewCoord}. */
+   pushRangeAt(coord: ViewCoord): void;
   selectRow(index: number, opts?: SelectLineActionOptions): void;
   selectColumn(index: number, opts?: SelectLineActionOptions): void;
   selectAll(): void;
-  /** Checkbox marker: sets one row's membership in the rows channel absolutely (add if `checked`, remove otherwise) — never a toggle — independent of the last-highlighted/range mechanics `selectRow` uses for click gestures. No-op when `enableRowSelection` is false. */
+  /** Checkbox marker: sets one row's checked state absolutely — never a toggle — independent of the last-highlighted/range mechanics `selectRow` uses for click gestures. Checking adds the row to the rows channel; unchecking removes it from the rows channel and from every cell range that covers it. No-op when `enableRowSelection` is false. */
   setRowSelected(index: number, checked: boolean): void;
   /** Sets the row-drag anchor without touching the rows/columns selection channel — lets a checkbox-marker press arm a potential row-range drag while leaving a stationary click's own toggle untouched. No-op when `enableRowSelection` is false. */
   armRowDragAnchor(index: number): void;
@@ -557,18 +784,39 @@ export type DataGridActions = {
   setAllRowsSelected(checked: boolean): void;
   clearSelection(): void;
   /**
+   * Applies a whole selection in stable {@link CellRef} terms, emitting like a gesture (`onSelectionChange`
+   * fires when the result differs from the grid's current value): corner refs resolve through the
+   * row-index cache plus the view inverse, a range with an unresolvable corner is dropped,
+   * unresolvable `rowIds`/`columnIds` are dropped, and an unresolvable or outside anchor resets to
+   * `range.start` (dev mode warns once per grid). A value with an `anchor` also moves the active
+   * cell to the anchor; `null` clears the whole selection. A single cell stays `selectCell(ref)`.
+   */
+  setSelection(next: SelectionState | null): void;
+  /**
    * Live per-frame width write during a resize drag; fires `onColumnResizing` (not
-   * `onColumnLayoutChange` — see `commitColumnWidth` for the commit point). The width is clamped
+   * `onColumnLayoutChange` - see `commitColumnWidth` for the commit point). The width is clamped
    * to the column's legal range (`[max(32, minWidth), maxWidth]`, the same bounds the resize
-   * gesture enforces); a callback-observed width is the clamped one.
+   * gesture enforces); a callback-observed width is the clamped one. An unknown column id is a no-op.
    */
   setColumnWidth(id: string, width: number): void;
   /**
    * Sets the column's width AND fires `onColumnLayoutChange` once — the resize-drag-release/autosize
    * commit point. The width is clamped exactly as {@link setColumnWidth} clamps, and the fired
-   * snapshot carries the clamped value.
+   * snapshot carries the clamped value. Fires only when the width differs from the last committed
+   * one; an unknown column id is a no-op.
    */
   commitColumnWidth(id: string, width: number): void;
+  /**
+   * Sizes columns to their content over the whole view, not the mounted window: samples
+   * `options.sampleRows` view rows (default 1000, clamped to [1, 10000]) evenly strided across
+   * the view plus the mounted window's rows, measures each column's cell-type display text with
+   * canvas `measureText`, and commits every changed width in ONE write with ONE
+   * `onColumnLayoutChange`. Default targets: every visible column while column resizing is
+   * enabled and `resizable !== false`; a named hidden, non-resizable, or unknown (dev-warned)
+   * column is skipped. Unchanged widths commit nothing and fire no event. Returns the measured
+   * widths; `{}` when the grid has no mounted root (nothing measured, nothing written).
+   */
+  autosizeColumns(options?: AutosizeOptions): Record<string, number>;
   /**
    * Drops a column's width override, restoring its def `width` (and re-joining `flex` distribution
    * — a manually resized flex column leaves it while an override is set). No-op without an
@@ -579,19 +827,28 @@ export type DataGridActions = {
    * Reorders visible columns. `id` moves to sit immediately before/after `targetId` (per `position`).
    * Pinned columns only reorder within their own pin zone (left/right/unpinned) — a cross-zone
    * request is a no-op recompute (dropping a left-pinned column onto the unpinned band does nothing).
-   * No-op when the column's own `reorderable: false` or the grid-wide `enableColumnReorder` is false.
-   * Fires `onColumnLayoutChange` once on an actual move.
+   * No-op when the column's own `reorderable: false`, the grid-wide `enableColumnReorder` is false,
+   * an id is unknown, or the drop keeps the order. Fires `onColumnLayoutChange` once on an actual move.
    */
   setColumnOrder(id: string, targetId: string, position: "before" | "after"): void;
-  /** Pins/unpins a column (`null` = unpinned). No-op when the column's `pinnable: false` or grid-wide `enableColumnPinning` is false. Fires `onColumnLayoutChange` once. */
+  /** Pins/unpins a column (`null` = unpinned). No-op when the id is unknown, the column's `pinnable: false`, grid-wide `enableColumnPinning` is false, or the pin already matches. Fires `onColumnLayoutChange` once on a real change. */
   setColumnPin(id: string, pin: "left" | "right" | null): void;
   /**
    * Shows/hides a column via the `hiddenColumns` set; works on a def-level `hidden: true` column
    * — `setColumnHidden(id, false)` re-shows it, and the def's flag re-applies only when a NEW
    * `columns` array is passed (a same-reference re-render keeps the user's choice).
-   * Fires `onColumnLayoutChange` once.
+   * No-op when the id is unknown or the visibility already matches; otherwise fires
+   * `onColumnLayoutChange` once.
    */
   setColumnHidden(id: string, hidden: boolean): void;
+  /**
+   * Applies a partial column layout as ONE commit (the imperative twin of the `columnLayout`
+   * prop): each given part (`widths`, `order`, `pins`, `hidden`) replaces that part, omitted
+   * parts keep the current value. Normalized like `columnLayout` (unknown ids dropped, missing
+   * order ids appended in def order, widths clamped, unpinnable pins dropped), and fires
+   * `onColumnLayoutChange` once only when the layout actually changed.
+   */
+  setColumnLayout(parts: Partial<ColumnLayout>): void;
   toggleSort(columnId: string, additive: boolean): void;
   setSorts(sorts: SortSpec[]): void;
   setFilters(filters: FilterSpec[]): void;
@@ -599,19 +856,24 @@ export type DataGridActions = {
   setJoinOperator(joinOperator: FilterJoinOperator): void;
   /** Sets quick-search text and recomputes `searchMatches`/`searchMatchSet`/`searchMatchesCapped` once; never touches `viewIndex`. */
   setSearch(text: string): void;
-  /** Enters edit mode at `coord` (view-space); no-op when the column is readOnly or its type is unregistered. */
-  startEditing(coord: CellCoord, initialText?: string): void;
+  /** Enters edit mode at the cell named by the stable {@link CellRef}, cancelling an open session first; no-op when the grid or column is readOnly, or its type is unregistered or declares `activate`. */
+  startEditing(ref: CellRef, initialText?: string): void;
+  /** View-index variant of {@link DataGridActions.startEditing} for callers that hold a {@link ViewCoord}. */
+  startEditingAt(coord: ViewCoord, initialText?: string): void;
   /** Discards the in-progress edit without emitting a change. */
   cancelEditing(): void;
   /**
    * Validates and commits the in-progress edit; rejects (keeps editing, sets editingError) or emits
    * one DataChange and moves activeCell by `movement`. `rejection` is the async validation layer's
    * awaited schema rejection for an `onInvalid: "warn"` column: the commit's sync re-run cannot see
-   * a schema Promise's issues, so the layer forwards the message to flag the cell.
+   * a schema Promise's issues, so the layer forwards the message to flag the cell. No-op in a
+   * read-only grid.
    */
   commitCellEdit(value: unknown, movement?: { dx: number; dy: number }, rejection?: string): void;
-  /** Direct-write path for types with no edit mode (checkbox): validates and commits `value` at `coord` without requiring `startEditing` first, and never moves the active cell. */
-  commitCellValue(coord: CellCoord, value: unknown): void;
+  /** Direct-write path for types with no edit mode (checkbox): validates and commits `value` at the cell named by the stable {@link CellRef} without requiring `startEditing` first, and never moves the active cell. No-op in a read-only grid. */
+  commitCellValue(ref: CellRef, value: unknown): void;
+  /** View-index variant of {@link DataGridActions.commitCellValue} for callers that hold a {@link ViewCoord}. */
+  commitCellValueAt(coord: ViewCoord, value: unknown): void;
   /**
    * Sets `editingError` and bumps `editingRejectionCount` (the editors' commit-guard re-arm
    * nonce) without touching `editing`/`data` — used by the async Standard Schema commit path (see
@@ -631,23 +893,24 @@ export type DataGridActions = {
   /** Clears `cellErrors` for `targets`, or every entry when `targets` is omitted. Same non-data-change contract as `setCellErrors`. */
   clearCellErrors(targets?: readonly CellErrorTarget[]): void;
   /**
-   * Puts the given {@link flashCellKey} keys into a transient ~1.2 s fade pulse (the
+   * Puts the given cells into a transient ~1.2 s fade pulse (the
    * "highlight-what-changed" effect a fill/paste/move gesture plays on the cells it just wrote).
-   * A key already flashing gets its timer RESET, so overlapping gestures each get the full pulse.
+   * A cell already flashing gets its timer RESET, so overlapping gestures each get the full pulse.
    * NOT a data change — no `DataChange`, no history, no selection movement.
    */
-  flashCells(keys: readonly string[], durationMs?: number): void;
+  flashCells(cells: readonly CellRef[], durationMs?: number): void;
   /** Clears every non-readOnly cell in the current selection to its type's clearValue(), as one batch DataChange. */
   deleteSelection(): void;
   /**
-   * The one generic multi-cell write path: applies `updates` (view-space coords via `viewRow`) as
+   * The one generic multi-cell write path: applies `updates` (view-index coords via `viewRow`) as
    * a single `source`-tagged DataChange batch. Dedupes multiple updates to the same row/column
    * (last write wins), skips readOnly cells and no-op writes, preserves identity of untouched rows,
    * suppresses an empty batch entirely, and moves the selection to cover the touched view rect.
+   * With `rejected` present, fires `onValidationError` (same `source`) after the write settles.
    */
-  applyCellUpdates(updates: { viewRow: number; columnId: string; value: unknown }[], source: DataChange<unknown>["source"]): void;
+  applyCellUpdates(updates: { viewRowIndex: number; columnId: string; value: unknown }[], source: DataChange<unknown>["source"], rejected?: readonly GridBulkValidationError[]): void;
   /**
-   * The streaming write path: applies id-keyed {@link CellPatch}es in ONE `set()` and skips the
+   * The streaming write path: applies row-id-based {@link CellPatch}es in ONE `set()` and skips the
    * `computeViewIndex`/`computeSearchMatches` rebuild that a `data` prop replacement forces. This is
    * what makes streaming under an active sort viable — a controlled `data` replacement costs ~56 ms
    * per tick at 100k rows with one sort column, against ~0.15 ms here.
@@ -663,7 +926,7 @@ export type DataGridActions = {
   /** Rebuilds the view index that a deferred `updateCells` postponed, and clears `viewStale`. No-op when the view is not stale. */
   reconcileView(): void;
   /**
-   * Inserts one row built by the `createRow` sync prop above/below `viewRowIndex` (view-space).
+   * Inserts one row built by the `createRow` sync prop above/below `viewRowIndex` (view-index).
    * External name that maps to the single internal batch path - it runs
    * {@link insertRows} with count 1, so both share one implementation, one `onDataChange`,
    * and one undo step.
@@ -671,16 +934,18 @@ export type DataGridActions = {
   insertRow(viewRowIndex: number, position: "above" | "below"): void;
   /**
    * Inserts `count` rows built by the `createRow` sync prop (called with `dataRowIndex + i`)
-   * above/below `viewRowIndex` (view-space) as ONE `{source: 'row-op'}` DataChange with one
-   * id-keyed `insert` op per row - a single undo entry. Dev-warning no-op when `createRow` is
+   * above/below `viewRowIndex` (view-index) as ONE `{source: 'row-operation'}` DataChange with one
+   * row-id-based `insert` operation per row - a single undo entry. Dev-warning no-op when `createRow` is
    * absent; silent no-op for `count <= 0`.
    */
   insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): void;
-  /** Deletes the rows at `viewRowIndexes` (view-space) as one `{source: 'row-op'}` DataChange with id-keyed `delete` ops. */
+  /** Deletes the rows at `viewRowIndexes` (view-index) as one `{source: 'row-operation'}` DataChange with row-id-based `delete` operations. */
   deleteRows(viewRowIndexes: number[]): void;
+  /** Deletes the rows with the given ids (the shape `getRowIds()` returns) as one `{source: 'row-operation'}` DataChange; ids that match no row are skipped. */
+  deleteRowsById(rowIds: readonly string[]): void;
   /**
-   * Duplicates the rows at `viewRowIndexes` (view-space), inserting each copy directly after its
-   * source row, as one `{source: 'row-op'}` DataChange with id-keyed `insert` ops. Dev-warning
+   * Duplicates the rows at `viewRowIndexes` (view-index), inserting each copy directly after its
+   * source row, as one `{source: 'row-operation'}` DataChange with row-id-based `insert` operations. Dev-warning
    * no-op when the `duplicateRow` sync prop is absent — required so
    * every duplicated row gets a distinct id, never colliding with its source's React key.
    */
@@ -688,7 +953,7 @@ export type DataGridActions = {
   /**
    * Moves the row at view index `from` so it lands at view index `to` (final position — arrayMove
    * semantics: `from < to` shifts rows `from+1..to` up one, `from > to` shifts rows `to..from-1`
-   * down one). One `{source: 'row-op'}` DataChange with a single id-keyed `move` op (one undo
+   * down one). One `{source: 'row-operation'}` DataChange with a single row-id-based `move` operation (one undo
    * entry). No-ops (silent, dev-warned where the cause is a misconfiguration): `enableRowReorder`
    * off, readOnly, an open edit session (the editor pins a view coordinate the move would
    * invalidate), an active sort/filter (the view order is owned by the sort/filter, not the data),
@@ -697,26 +962,77 @@ export type DataGridActions = {
    * no-op — the drag gesture uses the verdict for its a11y announcement.
    */
   reorderRows(from: number, to: number): boolean;
-  /** @internal keyboard nav helper: moves/extends the active cell by a view-space delta, clamped to view bounds. */
+  /**
+   * The single generic data-write action: applies a whole {@link DataChange} (a consumer-built operation
+   * batch or a history-inverted one) in ONE write and emits `onDataChange` EXACTLY ONCE - one undo
+   * entry in the history add-on - like a gesture. Operations resolve by row id through `applyChange`: an
+   * operation whose row is gone is skipped silently, and a batch where no operation applies writes and emits
+   * nothing. Row-moving operations (insert, delete, move) run the row-operation view bookkeeping - full view
+   * rebuild, `rowIdentityVersion` bump, and the row channel and the active cell follow their
+   * records - while an update-only batch keeps the selection and cursor as-is (the rebuild only
+   * re-orders rows under an active sort). Cell errors clear for the written cells, and errors of
+   * removed rows are pruned. No-op on a `readOnly` grid. A `source: "history"` or `"rollback"` change is a
+   * pass-through: the history stack ignores it, so an undo, redo, or rollback applied through this action
+   * records no second entry. Values are NOT revalidated - that is `updateCells`' job; build import
+   * rows validated (the io add-on does it) and undo/redo reverts to previously applied states.
+   */
+  commitChange(change: DataChange<unknown>): void;
+};
+
+/** @internal The `_`-prefixed store actions that the core and add-on wiring call; `useDataGridActions` never returns them. */
+export type DataGridInternalActions = {
+  /**
+   * @internal Clears every `rowIds` x `columnIds` cell still in view, as one `delete` batch. Cut
+   * captures the ids at copy time, so a view change during the clipboard write never shifts the
+   * cleared cells. Not part of the public hook surface.
+   */
+  _deleteCellsById(rowIds: readonly string[], columnIds: readonly string[]): void;
+  /** @internal keyboard nav helper: moves/extends the active cell by a view-index delta, clamped to view bounds. */
   _moveActiveCell(d: { dx: number; dy: number }, opts?: { extend?: boolean; retain?: boolean }): void;
   /** @internal syncs live consumer props and recomputes derived state; not part of the public hook surface. */
   _syncProps(props: InternalSyncProps): void;
-  /** @internal `DataGridRoot` registers/clears its scroll-into-view on mount/unmount; not part of the public hook surface. */
-  _registerScrollToCell(impl: ((coord: CellCoord) => void) | null): void;
-  /** @internal `DataGridRoot` syncs its `readOnly` prop into the store on every render/unmount; not part of the public hook surface. */
-  _registerReadOnly(readOnly: boolean): void;
-  /** @internal `DataGridRoot` syncs its effective (merged) keymap into the store on every render/unmount; not part of the public hook surface. */
-  _registerKeymap(keymap: Keymap): void;
-  /** @internal the `data-grid-fill` add-on's tracker component registers/clears its keymap handlers on mount/unmount; not part of the public hook surface. */
-  _registerFillHandlers(handlers: { fillDown: () => void; fillRight: () => void; cancelFillDrag: () => void } | null): void;
   /**
-   * @internal the `data-grid-presence` add-on registers/clears its view-space-activeness predicate
-   * (see `presenceViewSpaceActive`) on mount/unmount; row-moving ops dev-warn once when they run
-   * while it reports true. Not part of the public hook surface.
+   * @internal Syncs the config slice (every sync prop that feeds no derived state: `readOnly`,
+   * `keymap`, the `enable*` flags, `rowMarkers`, `headerClickBehavior`, `labels`, `plugins`,
+   * `commands`, `autosizeOnMount`, and every `on*`/`process*`/`validateRow`/
+   * `createRow`/`duplicateRow` callback) into the store, run from the provider's layout effect so
+   * a `readOnly` flip is live before the browser paints or dispatches the next event. A changed
+   * `plugins` list or `keymap` re-resolves and re-merges (the keymap then runs the dev-only binding
+   * validation); a `readOnly` flip on cancels an open edit session. Not part of the public hook
+   * surface.
    */
-  _registerPresenceViewSpaceActive(impl: (() => boolean) | null): void;
+  _syncConfig(props: InternalSyncProps): void;
   /**
-   * @internal Drops the flash keys whose view row left `keptViewRows` (the body's rendered window),
+   * @internal Claims the current `plugins` list for this store from a mount effect (a plugin
+   * instance attaches to one live grid; a plugin another grid holds is dropped and dev-warned) and
+   * re-claims when the list changes. Not part of the public hook surface.
+   */
+  _syncPluginClaims(): void;
+  /** @internal Frees this store's plugin claims on unmount. Not part of the public hook surface. */
+  _releasePluginClaims(): void;
+  /**
+   * @internal The provider subscribes after its `onActiveCellChange` wiring: fires `onEditEnd`
+   * `cancel` when a session ends outside commit/cancel (remap, stale-anchor discard, direct store
+   * write). Returns the unsubscribe. Not part of the public hook surface.
+   */
+  _subscribeEditEnd(): () => void;
+  /**
+   * @internal The provider subscribes after its `onActiveCellChange` wiring: fires
+   * `onSelectionChange` with the derived {@link SelectionState} when `state.selection`'s identity
+   * changes and the derived value differs structurally from the last emitted/applied value.
+   * Returns the unsubscribe. Not part of the public hook surface.
+   */
+  _subscribeSelection(): () => void;
+  /** @internal Derives the current selection's public {@link SelectionState} on demand (`api.getSelection()`). Not part of the public hook surface. */
+  _deriveSelection(): SelectionState;
+  /** @internal `DataGridRoot` registers/clears its scroll-into-view on mount/unmount; not part of the public hook surface. */
+  _registerScrollToCell(impl: ((coord: ViewCoord) => void) | null): void;
+  /** @internal `DataGridRoot` registers/clears its DOM focus on mount/unmount; not part of the public hook surface. */
+  _registerFocus(impl: (() => void) | null): void;
+  /** @internal `DataGridRoot` registers/clears its autosize measure context (fonts, mounted row window, header-menu flag) on mount/unmount; `autosizeColumns` reads it lazily. Not part of the public hook surface. */
+  _registerMeasureFonts(impl: (() => AutosizeMeasureContext | null) | null): void;
+  /**
+   * @internal Drops the flash keys whose row left `keptViewRows` (the body's rendered window),
    * so a cell that scrolls out and back in never replays its one-shot pulse. Not part of the
    * public hook surface.
    */
@@ -774,14 +1090,29 @@ export type CommitResult =
 /** Per-row accumulator: the row as edited so far, plus its per-column cell deltas (columnId -> entry). */
 export type RowEdit = { row: unknown; cells: Map<string, { columnId: string; value: unknown; prev: unknown }> };
 
+/**
+ * The `store` branch of {@link DataGridProviderProps}/{@link DataGridProps}: a consumer-created
+ * store is passed ALONE — any sync prop next to it would be silently ignored (the owner's
+ * `useDataGridStoreProps` call drives the store), so the mapped-`never` makes it a type error.
+ * Dev mode warns once when an untyped (cast) caller passes both anyway.
+ */
+export type ExternalStoreProps = { store: StoreApi<DataGridStoreState> } & {
+  [K in keyof DataGridSyncProps<unknown>]?: never;
+};
+/** The owned-store branch of {@link DataGridProviderProps}/{@link DataGridProps}: this instance self-creates and syncs the store from the sync props. */
+export type OwnedStoreProps<TData> = DataGridSyncProps<TData> & { store?: undefined };
+
 /** Props for {@link DataGridProvider}. */
-export type DataGridProviderProps<TData = unknown> = DataGridSyncProps<TData> & {
+export type DataGridProviderProps<TData = unknown> = (ExternalStoreProps | OwnedStoreProps<TData>) & {
   children: ReactNode;
+  /** Receives the grid's imperative handle ({@link DataGridApi}), the same object `useDataGridApi` returns under this provider. */
+  ref?: Ref<DataGridApi<TData>>;
   /**
    * A consumer-created store (from `useDataGridStoreProps`) to serve to the subtree instead
    * of self-creating one. When set, the provider becomes a pure context shell: no store
    * creation, no prop sync, no subscription wiring — the owner's `useDataGridStoreProps` call
-   * drives the store and must pass the same live props.
+   * drives the store and must pass the same live props; pass the store ALONE (see
+   * {@link ExternalStoreProps} for why sync props next to it are a type error).
    */
   store?: StoreApi<DataGridStoreState>;
 };
@@ -793,6 +1124,8 @@ export type DataGridCellState = {
   isSelected: boolean;
   isEditing: boolean;
   initialText: string | undefined;
+  /** The open edit session's id when `isEditing`; a new id means a new session, even on the same cell. */
+  editSession: number | undefined;
   isSearchMatch: boolean;
   /** This cell's `cellErrors` message, or null when it has none — same visual language as a sync `validate` rejection. */
   cellError: string | null;
@@ -809,8 +1142,10 @@ export type DataGridRowCellState = {
   activeCol: number | null;
   /** The editing cell's column in this row, or null if editing isn't happening in this row. */
   editingCol: number | null;
-  /** Only set when `editingCol` is non-null (mirrors {@link useDataGridCellInitialText}'s per-cell scoping). */
+  /** Only set when `editingCol` is non-null (mirrors {@link useDataGridCellState}'s per-cell scoping). */
   editingInitialText: string | undefined;
+  /** The open edit session's id; only set when `editingCol` is non-null. */
+  editingSession: number | undefined;
   /** Every column index in this row matching the current search, or null when search is inactive/no row match — null (not an empty Set) lets a row with no matches skip allocating one. */
   searchMatchCols: ReadonlySet<number> | null;
   /** This row's errored columns (column index -> message), or null when this row has none — same zero-render contract as `searchMatchCols`. */

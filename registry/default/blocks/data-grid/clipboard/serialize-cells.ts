@@ -6,12 +6,36 @@ function quoteTsvField(cell: string): string {
   return `"${cell.replace(/"/g, '""')}"`;
 }
 
-/** Escapes text and preserves whitespace fidelity for Excel/Sheets: tabs -> 4 spaces, runs of >=2 spaces wrapped in a span. */
-function escapeHtmlText(value: string): string {
+/** A leading one of these makes a CSV/TSV cell a formula in Excel, LibreOffice, and Sheets. */
+const FORMULA_LEAD_CHARS = new Set(["=", "+", "-", "@", "\t", "\r"]);
+
+/** Values where a leading `+` or `-` is still a plain number. */
+const PLAIN_NUMBER_RE = /^[+-]?\d+(\.\d+)?$/;
+
+/**
+ * Prefixes a formula-like cell (leading `=`, `+`, `-`, `@`, TAB, or CR; plain numbers exempt) with a
+ * single quote. External spreadsheets treat that quote as a hidden text marker, so a CSV export or
+ * clipboard paste cannot run `=HYPERLINK(...)`-style formulas in another sheet.
+ */
+export function sanitizeFormulaCell(value: string): string {
+  const lead = value[0];
+  if (lead === undefined || !FORMULA_LEAD_CHARS.has(lead) || PLAIN_NUMBER_RE.test(value)) return value;
+  return `'${value}`;
+}
+
+/** Options for {@link serializeCells}. */
+export type SerializeCellsOptions = {
+  /** Prefix formula-like cells with `'` in the text/plain payload and the HTML cell text so external spreadsheets read them as text; `data-gridcn-raw` keeps the raw value for a paste back into gridcn. Default `false`. */
+  sanitizeFormulas?: boolean;
+};
+
+/** Escapes text and preserves whitespace fidelity for Excel/Sheets: tabs -> 4 spaces, runs of >=2 spaces wrapped in a span. Also the round-trip check `parse-clipboard.ts` applies to `data-gridcn-raw`. */
+export function escapeHtmlText(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
+    .replace(/\r/g, "&#13;")
     .replace(/\t/g, "    ")
     .replace(/  +/g, (run) => `<span>${" ".repeat(run.length)}</span>`)
     .replace(/\n/g, "<br>");
@@ -22,20 +46,23 @@ function escapeHtmlAttr(value: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/\r/g, "&#13;");
 }
 
 /**
  * Serializes a rectangular block of display strings into clipboard `text/plain` (quoted TSV)
  * and `text/html` (a `<table>` carrying the raw value in `data-gridcn-raw` per cell).
  */
-export function serializeCells(cells: string[][]): { text: string; html: string } {
-  const text = cells.map((row) => row.map(quoteTsvField).join("\t")).join("\n");
+export function serializeCells(cells: string[][], options: SerializeCellsOptions = {}): { text: string; html: string } {
+  const { sanitizeFormulas = false } = options;
+  const shown = (cell: string): string => (sanitizeFormulas ? sanitizeFormulaCell(cell) : cell);
+  const text = cells.map((row) => row.map((cell) => quoteTsvField(shown(cell))).join("\t")).join("\n");
 
   const rowsHtml = cells
     .map((row) => {
       const cellsHtml = row
-        .map((cell) => `<td data-gridcn-raw="${escapeHtmlAttr(cell)}">${escapeHtmlText(cell)}</td>`)
+        .map((cell) => `<td data-gridcn-raw="${escapeHtmlAttr(cell)}">${escapeHtmlText(shown(cell))}</td>`)
         .join("");
       return `<tr>${cellsHtml}</tr>`;
     })

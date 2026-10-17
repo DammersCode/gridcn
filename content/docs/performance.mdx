@@ -2,9 +2,10 @@
 title: Performance
 description: 100,000 rows, instant rendering, zero blank cells while scrolling.
 icon: Gauge
+status: none
 ---
 
-The demo below renders **100,000 rows × 5 columns** instantly — scroll it, fling the scrollbar, or
+The demo below renders **100,000 rows × 5 columns** instantly. Scroll it, fling the scrollbar, or
 hold <kbd>Shift</kbd>+<kbd>ArrowDown</kbd>.
 
 <ComponentPreview name="data-grid-performance-demo" />
@@ -20,7 +21,7 @@ hold <kbd>Shift</kbd>+<kbd>ArrowDown</kbd>.
 
 gridcn windows rows by scroll velocity. The scroll surface uses CSS transforms, so the browser
 never reveals an unrendered area. A one-row scroll step re-renders only the cells of the entering
-row. See [Virtualization](/docs/virtualization) for the row and column windowing model.
+row. See [Virtualization](/docs/virtualization) for the row and column virtualization model.
 
 <Callout type="warn" title="Keep data/columns references stable">
   A dev-mode guardrail shows a warning when a reference is not stable. Also keep scroll-visible
@@ -53,5 +54,5 @@ under randomized scrollbar-drag deltas, an FPS regression gate, and a wasted-ren
 <Callout title="Is your dataset too large to load, not just too large to render?">
   Virtualization solves rendering. Everything above is about scroll performance once the data
   exists on the client. If you cannot fetch the whole dataset up front, see
-  [Lazy loading](/docs/lazy-loading) to fetch row windows on demand instead.
+  [Lazy loading](/docs/lazy-loading) to fetch row ranges on demand instead.
 </Callout>

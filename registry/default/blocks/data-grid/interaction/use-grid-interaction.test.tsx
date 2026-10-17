@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { ColumnDef } from "../types";
 import { DEFAULT_KEYMAP } from "../keyboard";
@@ -9,11 +9,16 @@ import { DataGridProvider, useDataGridActions, useDataGridActiveCell, useDataGri
 import { jumpToDataBoundary, pointerToCoord, useGridInteraction, type InteractionLayout } from "./use-grid-interaction";
 import type { DataGridStoreState } from "../store";
 
-type Row = { id: string; name: string; qty: number | null };
+type Row = { id: string; name: string; qty: number | null; flag?: boolean };
 
 const columns: readonly ColumnDef<Row, unknown>[] = [
   { id: "name", header: "Name", accessorKey: "name" },
   { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
+];
+
+const checkboxColumns: readonly ColumnDef<Row, unknown>[] = [
+  { id: "name", header: "Name", accessorKey: "name" },
+  { id: "flag", header: "Flag", accessorKey: "flag", type: "checkbox" },
 ];
 
 /** Minimal fake store state — jumpToDataBoundary only reads viewIndex/visibleColumns/data/cellTypes. */
@@ -115,10 +120,10 @@ function renderInteraction(
   const { readOnly = false, createRow, duplicateRow, keymap = DEFAULT_KEYMAP, columns: testColumns = columns } = options;
   const scrollRef = { current: makeScrollElement() };
   const data = makeRows(rowCount);
-  // row-op tests (createRow/duplicateRow provided, or deleteRows explicitly) mutate the store's own
+  // row-operation tests (createRow/duplicateRow provided, or deleteRows explicitly) mutate the store's own
   // row count — uncontrolled (defaultData) so the mutation persists instead of being overwritten by
   // the next _syncProps sync of an unchanging `data` prop, matching store/update-cells.test.tsx's own
-  // row-op harness.
+  // row-operation harness.
   const uncontrolled = options.uncontrolled ?? Boolean(createRow || duplicateRow);
   function Wrapper({ children }: { children: ReactNode }) {
     return (
@@ -129,6 +134,7 @@ function renderInteraction(
         getRowId={(r) => r.id}
         createRow={createRow}
         duplicateRow={duplicateRow}
+        readOnly={readOnly}
       >
         {children}
       </DataGridProvider>
@@ -136,7 +142,7 @@ function renderInteraction(
   }
   const hook = renderHook(
     () => ({
-      interaction: useGridInteraction({ scrollRef, layout: LAYOUT, keymap, readOnly }),
+      interaction: useGridInteraction({ scrollRef, layout: LAYOUT, keymap }),
       actions: useDataGridActions(),
       activeCell: useDataGridActiveCell(),
       selection: useDataGridSelection(),
@@ -147,7 +153,7 @@ function renderInteraction(
   return { hook, scrollRef };
 }
 
-// insertRow/duplicateRows commit into the store's own `data` array (the row-op actions rebuild
+// insertRow/duplicateRows commit into the store's own `data` array (the row-operation actions rebuild
 // `viewIndex` too, so the uncontrolled harness survives a later `_syncProps` sync) — reading
 // `data.length` off the store directly is what the dispatcher itself is responsible for and
 // needs no consumer round-trip to observe.
@@ -180,7 +186,7 @@ function pressKey(
 describe("useGridInteraction onKeyDown", () => {
   it("moves the active cell on ArrowDown", () => {
     const { hook } = renderInteraction();
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     act(() => {
       hook.result.current.interaction.onKeyDown({
@@ -200,7 +206,7 @@ describe("useGridInteraction onKeyDown", () => {
 
   it("extends the selection on Shift+ArrowDown instead of moving the anchor", () => {
     const { hook } = renderInteraction();
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     act(() => {
       hook.result.current.interaction.onKeyDown({
@@ -220,7 +226,7 @@ describe("useGridInteraction onKeyDown", () => {
 
   it("ignores the key entirely when event.isComposing (IME)", () => {
     const { hook } = renderInteraction();
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     act(() => {
       hook.result.current.interaction.onKeyDown({
@@ -239,10 +245,31 @@ describe("useGridInteraction onKeyDown", () => {
     expect(hook.result.current.activeCell).toEqual({ col: 0, row: 0 });
   });
 
+  it("ignores the key when Safari sends it with keyCode 229 and isComposing false", () => {
+    const { hook } = renderInteraction();
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    hook.rerender();
+    act(() => {
+      hook.result.current.interaction.onKeyDown({
+        key: "ArrowDown",
+        ctrlKey: false,
+        metaKey: false,
+        shiftKey: false,
+        altKey: false,
+        nativeEvent: { isComposing: false, keyCode: 229 } as unknown as KeyboardEvent,
+        preventDefault: () => {
+          throw new Error("should not preventDefault while composing");
+        },
+      } as unknown as React.KeyboardEvent<HTMLElement>);
+    });
+    hook.rerender();
+    expect(hook.result.current.activeCell).toEqual({ col: 0, row: 0 });
+  });
+
   it("does not dispatch grid-level actions while editing (the editor owns the key)", () => {
     const { hook } = renderInteraction();
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
-    act(() => hook.result.current.actions.startEditing({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.startEditingAt({ col: 0, row: 0 }));
     hook.rerender();
     act(() => {
       hook.result.current.interaction.onKeyDown({
@@ -266,7 +293,7 @@ describe("useGridInteraction onKeyDown", () => {
   // sparse-data region/whole-grid staging itself).
   it("selectAll (dense data) selects the whole grid on the first press", () => {
     const { hook } = renderInteraction(5);
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     const ctrlA = () =>
       act(() => {
@@ -291,7 +318,7 @@ describe("useGridInteraction onKeyDown", () => {
 
   it("a printable key with no bound action starts editing seeded with the typed char", () => {
     const { hook } = renderInteraction();
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     let prevented = false;
     act(() => {
@@ -312,34 +339,34 @@ describe("useGridInteraction onKeyDown", () => {
 
   it("seeds the editor with the typed char (replace mode) on implicit type-to-replace", () => {
     const { hook } = renderInteraction();
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     pressKey(hook, "x");
     const editing = hook.result.current.storeApi.getState().editing;
-    expect(editing).toEqual({ coord: { col: 0, row: 0 }, initialText: "x" });
+    expect(editing).toEqual({ coord: { col: 0, row: 0 }, rowId: "0", columnId: "name", initialText: "x", session: expect.any(Number) });
   });
 
-  it("dispatches editReplace when a keymap binding matches (remappable)", () => {
-    const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, editReplace: ["F3"] } });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 2 }));
+  it("dispatches typeToReplace when a keymap binding matches (remappable)", () => {
+    const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, typeToReplace: ["F3"] } });
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 2 }));
     hook.rerender();
     pressKey(hook, "F3");
     const state = hook.result.current.storeApi.getState();
-    expect(state.editing).toEqual({ coord: { col: 0, row: 2 }, initialText: undefined });
+    expect(state.editing).toEqual({ coord: { col: 0, row: 2 }, rowId: "2", columnId: "name", initialText: undefined, session: expect.any(Number) });
   });
 
-  it("a printable key bound to nothing else still type-to-replaces while editReplace is unbound", () => {
+  it("a printable key bound to nothing else still type-to-replaces while typeToReplace is unbound", () => {
     const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, edit: ["F2"] } });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     pressKey(hook, "k");
     const editing = hook.result.current.storeApi.getState().editing;
     expect(editing?.initialText).toBe("k");
   });
 
-  it("disables implicit type-to-replace when the keymap defines editReplace (even empty)", () => {
-    const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, editReplace: [] } });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+  it("disables implicit type-to-replace when the keymap defines typeToReplace (even empty)", () => {
+    const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, typeToReplace: [] } });
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     let prevented = false;
     pressKey(hook, "x", {}, () => {
@@ -349,9 +376,9 @@ describe("useGridInteraction onKeyDown", () => {
     expect(prevented).toBe(false);
   });
 
-  it("a keymap remap of editReplace suppresses the implicit printable-key fallback", () => {
-    const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, editReplace: ["F3"] } });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+  it("a keymap remap of typeToReplace suppresses the implicit printable-key fallback", () => {
+    const { hook } = renderInteraction(5, { keymap: { ...DEFAULT_KEYMAP, typeToReplace: ["F3"] } });
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     pressKey(hook, "x");
     expect(hook.result.current.storeApi.getState().editing).toBeNull();
@@ -363,7 +390,7 @@ describe("useGridInteraction onKeyDown", () => {
       { id: "qty", header: "Qty", accessorKey: "qty", type: "checkbox" },
     ];
     const { hook } = renderInteraction(3, { columns: checkboxColumns });
-    act(() => hook.result.current.actions.selectCell({ col: 1, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 1, row: 0 }));
     hook.rerender();
     const before = hook.result.current.storeApi.getState().data[0];
     pressKey(hook, "x");
@@ -374,7 +401,7 @@ describe("useGridInteraction onKeyDown", () => {
 
   it("cancel (Escape) clears the selection", () => {
     const { hook } = renderInteraction();
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
     act(() => {
       hook.result.current.interaction.onKeyDown({
@@ -408,7 +435,7 @@ describe("useGridInteraction onKeyDown", () => {
 
   it("grows the range from the anchor's far edge on repeated Shift+ArrowDown, instead of resetting to height 2", () => {
     const { hook } = renderInteraction();
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
 
     pressShiftArrowDown(hook);
@@ -423,18 +450,14 @@ describe("useGridInteraction onKeyDown", () => {
     expect(hook.result.current.activeCell).toEqual({ col: 0, row: 0 });
   });
 
-  it("Tab/Shift+Tab move the active cell right/left outside of editing", () => {
-    const { hook } = renderInteraction();
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
-    hook.rerender();
-
+  function pressTab(hook: ReturnType<typeof renderInteraction>["hook"], shiftKey: boolean): boolean {
     let prevented = false;
     act(() => {
       hook.result.current.interaction.onKeyDown({
         key: "Tab",
         ctrlKey: false,
         metaKey: false,
-        shiftKey: false,
+        shiftKey,
         altKey: false,
         nativeEvent: { isComposing: false } as unknown as KeyboardEvent,
         preventDefault: () => {
@@ -443,22 +466,29 @@ describe("useGridInteraction onKeyDown", () => {
       } as unknown as React.KeyboardEvent<HTMLElement>);
     });
     hook.rerender();
-    expect(prevented).toBe(true);
-    expect(hook.result.current.activeCell).toEqual({ col: 1, row: 0 });
-    expect(hook.result.current.selection.current?.range).toEqual({ x: 1, y: 0, width: 1, height: 1 });
+    return prevented;
+  }
 
-    act(() => {
-      hook.result.current.interaction.onKeyDown({
-        key: "Tab",
-        ctrlKey: false,
-        metaKey: false,
-        shiftKey: true,
-        altKey: false,
-        nativeEvent: { isComposing: false } as unknown as KeyboardEvent,
-        preventDefault: () => {},
-      } as unknown as React.KeyboardEvent<HTMLElement>);
-    });
+  it("Tab/Shift+Tab leave the grid with the default keymap: no preventDefault, active cell stays", () => {
+    const { hook } = renderInteraction();
+    act(() => hook.result.current.actions.selectCellAt({ col: 1, row: 0 }));
     hook.rerender();
+
+    expect(pressTab(hook, false)).toBe(false);
+    expect(pressTab(hook, true)).toBe(false);
+    expect(hook.result.current.activeCell).toEqual({ col: 1, row: 0 });
+  });
+
+  it("Tab/Shift+Tab navigate cells when bound to moveRight/moveLeft", () => {
+    const { hook } = renderInteraction(20, {
+      keymap: { ...DEFAULT_KEYMAP, moveRight: ["ArrowRight", "Tab"], moveLeft: ["ArrowLeft", "shift+Tab"] },
+    });
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    hook.rerender();
+
+    expect(pressTab(hook, false)).toBe(true);
+    expect(hook.result.current.activeCell).toEqual({ col: 1, row: 0 });
+    expect(pressTab(hook, true)).toBe(true);
     expect(hook.result.current.activeCell).toEqual({ col: 0, row: 0 });
   });
 });
@@ -467,7 +497,7 @@ describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
   it("insertRowBelow inserts a new row below the active cell when createRow is provided", () => {
     const createRow = (index: number): Row => ({ id: `new-${index}`, name: "new", qty: 0 });
     const { hook } = renderInteraction(3, { createRow });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
 
     pressKey(hook, "f", { ctrlKey: true, shiftKey: true });
@@ -477,7 +507,7 @@ describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
 
   it("insertRowBelow is a no-op when createRow is absent", () => {
     const { hook } = renderInteraction(3);
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
 
     pressKey(hook, "f", { ctrlKey: true, shiftKey: true });
@@ -488,7 +518,7 @@ describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
   it("insertRowBelow is a no-op on a readOnly grid even with createRow provided", () => {
     const createRow = (index: number): Row => ({ id: `new-${index}`, name: "new", qty: 0 });
     const { hook } = renderInteraction(3, { readOnly: true, createRow });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
 
     pressKey(hook, "f", { ctrlKey: true, shiftKey: true });
@@ -499,7 +529,7 @@ describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
   it("duplicateRow duplicates the active row when duplicateRow is provided", () => {
     const duplicateRow = (row: Row, index: number): Row => ({ ...row, id: `dup-${index}` });
     const { hook } = renderInteraction(3, { duplicateRow });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 1 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 1 }));
     hook.rerender();
 
     pressKey(hook, "x", { ctrlKey: true, shiftKey: true });
@@ -509,7 +539,7 @@ describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
 
   it("duplicateRow is a no-op when the duplicateRow prop is absent", () => {
     const { hook } = renderInteraction(3);
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 1 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 1 }));
     hook.rerender();
 
     pressKey(hook, "x", { ctrlKey: true, shiftKey: true });
@@ -520,7 +550,7 @@ describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
   it("duplicateRow is a no-op on a readOnly grid even with the duplicateRow prop provided", () => {
     const duplicateRow = (row: Row, index: number): Row => ({ ...row, id: `dup-${index}` });
     const { hook } = renderInteraction(3, { readOnly: true, duplicateRow });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 1 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 1 }));
     hook.rerender();
 
     pressKey(hook, "x", { ctrlKey: true, shiftKey: true });
@@ -532,8 +562,8 @@ describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
     const duplicateRow = (row: Row, index: number): Row => ({ ...row, id: `dup-${index}` });
     const { hook } = renderInteraction(3, { duplicateRow });
     act(() => {
-      hook.result.current.actions.selectCell({ col: 0, row: 0 });
-      hook.result.current.actions.extendTo({ col: 0, row: 2 });
+      hook.result.current.actions.selectCellAt({ col: 0, row: 0 });
+      hook.result.current.actions.extendToAt({ col: 0, row: 2 });
     });
     hook.rerender();
     expect(hook.result.current.selection.current?.range).toEqual({ x: 0, y: 0, width: 1, height: 3 });
@@ -547,7 +577,7 @@ describe("useGridInteraction: insertRowBelow/duplicateRow dispatch", () => {
     const duplicateRow = (row: Row, index: number): Row => ({ ...row, id: `dup-${index}` });
     const { hook } = renderInteraction(3, { duplicateRow });
     act(() => {
-      hook.result.current.actions.selectCell({ col: 0, row: 1 });
+      hook.result.current.actions.selectCellAt({ col: 0, row: 1 });
       hook.result.current.actions.clearSelection();
     });
     hook.rerender();
@@ -562,7 +592,7 @@ describe("useGridInteraction: insertRowAbove/deleteRows dispatch", () => {
   it("insertRowAbove inserts a new row above the active cell when createRow is provided", () => {
     const createRow = (index: number): Row => ({ id: `new-${index}`, name: "new", qty: 0 });
     const { hook } = renderInteraction(3, { createRow });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 1 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 1 }));
     hook.rerender();
 
     pressKey(hook, "u", { ctrlKey: true, shiftKey: true });
@@ -573,7 +603,7 @@ describe("useGridInteraction: insertRowAbove/deleteRows dispatch", () => {
 
   it("insertRowAbove is a no-op when createRow is absent", () => {
     const { hook } = renderInteraction(3);
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
 
     pressKey(hook, "u", { ctrlKey: true, shiftKey: true });
@@ -584,7 +614,7 @@ describe("useGridInteraction: insertRowAbove/deleteRows dispatch", () => {
   it("insertRowAbove is a no-op on a readOnly grid even with createRow provided", () => {
     const createRow = (index: number): Row => ({ id: `new-${index}`, name: "new", qty: 0 });
     const { hook } = renderInteraction(3, { readOnly: true, createRow });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
 
     pressKey(hook, "u", { ctrlKey: true, shiftKey: true });
@@ -595,8 +625,8 @@ describe("useGridInteraction: insertRowAbove/deleteRows dispatch", () => {
   it("deleteRows deletes every view row covered by the selection", () => {
     const { hook } = renderInteraction(3, { uncontrolled: true });
     act(() => {
-      hook.result.current.actions.selectCell({ col: 0, row: 0 });
-      hook.result.current.actions.extendTo({ col: 0, row: 1 });
+      hook.result.current.actions.selectCellAt({ col: 0, row: 0 });
+      hook.result.current.actions.extendToAt({ col: 0, row: 1 });
     });
     hook.rerender();
 
@@ -607,7 +637,7 @@ describe("useGridInteraction: insertRowAbove/deleteRows dispatch", () => {
 
   it("deleteRows falls back to the active row when nothing is selected", () => {
     const { hook } = renderInteraction(3, { uncontrolled: true });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 1 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 1 }));
     hook.rerender();
 
     pressKey(hook, "Backspace", { ctrlKey: true, shiftKey: true });
@@ -617,7 +647,7 @@ describe("useGridInteraction: insertRowAbove/deleteRows dispatch", () => {
 
   it("deleteRows is a no-op on a readOnly grid", () => {
     const { hook } = renderInteraction(3, { readOnly: true });
-    act(() => hook.result.current.actions.selectCell({ col: 0, row: 0 }));
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
     hook.rerender();
 
     pressKey(hook, "Backspace", { ctrlKey: true, shiftKey: true });
@@ -665,5 +695,174 @@ describe("pointerToCoord pinned-column hit-testing", () => {
     // fall through to the clamp — meanwhile a plain unscrolled unpinned hit still resolves directly.
     const unscrolled = scrolledElement(0, 300);
     expect(pointerToCoord(150, 50, unscrolled, PINNED_LAYOUT, 10).col).toBe(1);
+  });
+});
+
+describe("select-drag pointer capture", () => {
+  // The drag frame loop is rAF-driven; a stubbed queue drives it deterministically.
+  let rafId = 0;
+  let rafPending: Map<number, FrameRequestCallback>;
+
+  function driveFrame() {
+    const id = [...rafPending.keys()].pop();
+    expect(id).not.toBeUndefined();
+    const cb = rafPending.get(id!)!;
+    rafPending.delete(id!);
+    act(() => {
+      cb(0);
+    });
+  }
+
+  /** A DOM Event carrying the fields the handlers read (dispatched to `document`). */
+  function pointerEvent(type: string, fields: Record<string, unknown>): Event {
+    return Object.assign(new Event(type), fields);
+  }
+
+  /** Plain stand-in for the React pointer event of a DIRECT handler call (`currentTarget` is getter-only on a real Event). */
+  function pressEvent(fields: Record<string, unknown>): React.PointerEvent<HTMLElement> {
+    return fields as unknown as React.PointerEvent<HTMLElement>;
+  }
+
+  function makePressElement() {
+    return {
+      setPointerCapture: vi.fn(),
+      releasePointerCapture: vi.fn(),
+      hasPointerCapture: vi.fn(() => true),
+      querySelector: () => null,
+    } as unknown as HTMLElement;
+  }
+
+  // Rect sized so the bottom auto-scroll zone (y > bottom - 24) overlaps row 1's band
+  // (y in [72, 108)): a pointer at y 90 is in the zone AND on row 1.
+  function zoneScroll(el: HTMLElement) {
+    el.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 300, bottom: 100, width: 300, height: 100, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+    el.setPointerCapture = vi.fn();
+    el.releasePointerCapture = vi.fn();
+    el.hasPointerCapture = vi.fn(() => true);
+    return el;
+  }
+
+  beforeEach(() => {
+    rafId = 0;
+    rafPending = new Map();
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      rafId += 1;
+      rafPending.set(rafId, cb);
+      return rafId;
+    });
+    vi.stubGlobal("cancelAnimationFrame", (id: number) => {
+      rafPending.delete(id);
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("takes capture on the pressed cell, hands it to the scroll element when auto-scroll engages, and releases it there", () => {
+    const { hook, scrollRef } = renderInteraction(20);
+    const scroll = zoneScroll(scrollRef.current);
+    const cell = makePressElement();
+
+    act(() => {
+      hook.result.current.interaction.onCellPointerDown(
+        { col: 0, row: 5 },
+        pressEvent({ button: 0, pointerId: 7, currentTarget: cell, clientX: 60, clientY: 230 }),
+      );
+    });
+    expect(cell.setPointerCapture).toHaveBeenCalledWith(7);
+
+    act(() => {
+      document.dispatchEvent(pointerEvent("pointermove", { pointerId: 7, clientX: 60, clientY: 90 }));
+    });
+    driveFrame();
+    expect(scroll.setPointerCapture).toHaveBeenCalledWith(7);
+
+    act(() => {
+      document.dispatchEvent(pointerEvent("pointerup", { pointerId: 7, clientX: 60, clientY: 90, detail: 1 }));
+    });
+    expect(scroll.releasePointerCapture).toHaveBeenCalledWith(7);
+    expect(cell.releasePointerCapture).not.toHaveBeenCalled();
+  });
+
+  it("keeps capture on the pressed cell while the pointer never enters an edge zone", () => {
+    const { hook, scrollRef } = renderInteraction(20);
+    const scroll = zoneScroll(scrollRef.current);
+    const cell = makePressElement();
+
+    act(() => {
+      hook.result.current.interaction.onCellPointerDown(
+        { col: 0, row: 0 },
+        pressEvent({ button: 0, pointerId: 7, currentTarget: cell, clientX: 60, clientY: 50 }),
+      );
+    });
+
+    act(() => {
+      document.dispatchEvent(pointerEvent("pointermove", { pointerId: 7, clientX: 60, clientY: 50 }));
+    });
+    driveFrame();
+    expect(scroll.setPointerCapture).not.toHaveBeenCalled();
+
+    act(() => {
+      document.dispatchEvent(pointerEvent("pointerup", { pointerId: 7, clientX: 60, clientY: 50, detail: 1 }));
+    });
+    expect(cell.releasePointerCapture).toHaveBeenCalledWith(7);
+    expect(scroll.releasePointerCapture).not.toHaveBeenCalled();
+  });
+
+  it("does not resolve the pending press on pointerup while capture stays on the pressed cell (the cell click owns it)", () => {
+    const { hook, scrollRef } = renderInteraction(20, { columns: checkboxColumns, uncontrolled: true });
+    zoneScroll(scrollRef.current);
+    const cell = makePressElement();
+
+    act(() => {
+      hook.result.current.actions.selectCellAt({ col: 1, row: 1 });
+    });
+    // y 74 is on row 1's band but outside both edge zones (top zone ends at 24, bottom starts at 76)
+    act(() => {
+      hook.result.current.interaction.onCellPointerDown({ col: 1, row: 1 }, pressEvent({ button: 0, pointerId: 7, currentTarget: cell, clientX: 180, clientY: 74 }));
+    });
+
+    act(() => {
+      document.dispatchEvent(pointerEvent("pointermove", { pointerId: 7, clientX: 180, clientY: 74 }));
+    });
+    driveFrame();
+    expect(cell.setPointerCapture).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      document.dispatchEvent(pointerEvent("pointerup", { pointerId: 7, clientX: 180, clientY: 74, detail: 1 }));
+    });
+    const row = hook.result.current.storeApi.getState().data[1] as Row;
+    expect(row.flag).toBeUndefined();
+  });
+
+  it("still toggles a checkbox press on release when auto-scroll has handed the capture off", () => {
+    const { hook, scrollRef } = renderInteraction(20, { columns: checkboxColumns, uncontrolled: true });
+    const scroll = zoneScroll(scrollRef.current);
+    const cell = makePressElement();
+
+    act(() => {
+      hook.result.current.actions.selectCellAt({ col: 1, row: 1 });
+    });
+    act(() => {
+      hook.result.current.interaction.onCellPointerDown(
+        { col: 1, row: 1 },
+        pressEvent({ button: 0, pointerId: 7, currentTarget: cell, clientX: 180, clientY: 90 }),
+      );
+    });
+    expect(cell.setPointerCapture).toHaveBeenCalledWith(7);
+
+    act(() => {
+      document.dispatchEvent(pointerEvent("pointermove", { pointerId: 7, clientX: 180, clientY: 90 }));
+    });
+    driveFrame();
+    expect(scroll.setPointerCapture).toHaveBeenCalledWith(7);
+
+    act(() => {
+      document.dispatchEvent(pointerEvent("pointerup", { pointerId: 7, clientX: 180, clientY: 90, detail: 1 }));
+    });
+    const row = hook.result.current.storeApi.getState().data[1] as Row;
+    expect(row.flag).toBe(true);
   });
 });

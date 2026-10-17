@@ -6,19 +6,19 @@ import { useDataGridRow, useDataGridRowCellState } from "./store";
 import { colRangesContain } from "./selection/selected-col-ranges-for-row";
 import { DataGridCell } from "./cell";
 import { DataGridMarkerCell } from "./rows/marker-cell";
-import type { ColumnLayout, WindowedColumn } from "./layout-context";
-import type { GetCellClassName, GetRowClassName, OnCellClick, OnRowClick, RowMarkersMode } from "./types";
+import type { ColumnLayout, RenderedColumn } from "./layout-context";
+import type { GetCellClassName, GetRowClassName, RowMarkersMode } from "./types";
 
 export type DataGridRowProps = {
   viewRowIndex: number;
-  windowedColumns: readonly WindowedColumn[];
+  /** The row's `getRowId()` value (a hole's placeholder id); `undefined` only for a view index past the end. */
+  rowId: string | undefined;
+  renderedColumns: readonly RenderedColumn[];
   layout: ColumnLayout;
   readOnly?: boolean;
   /** 'none' renders no marker cell for this row. */
   rowMarkers: RowMarkersMode;
   onMarkerPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
-  /** Attach to the marker's grip pointerdown ('reorder' family only) — see use-grid-interaction.ts' onMarkerGripPointerDown. */
-  onMarkerGripPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
   /** Attach to the marker's checkbox pointerdown ('checkbox'/'both' modes) — see use-grid-interaction.ts' onMarkerCheckboxPointerDown. */
   onMarkerCheckboxPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
   /** Attach to the marker cell's reorder-drag pointerdown — see rows/use-row-reorder.ts. Stable identity (body's hook instance). */
@@ -33,10 +33,6 @@ export type DataGridRowProps = {
   getRowClassName?: GetRowClassName<unknown>;
   /** Forwarded to each cell; see {@link DataGridRowProps.getRowClassName}. */
   getCellClassName?: GetCellClassName<unknown>;
-  /** Forwarded to each cell's click handler; stable identity, same guidance as `getCellClassName`. */
-  onCellClick?: OnCellClick<unknown>;
-  /** Forwarded to each cell; fired alongside `onCellClick` once per click. */
-  onRowClick?: OnRowClick<unknown>;
 };
 
 /**
@@ -56,12 +52,12 @@ export type DataGridRowProps = {
  */
 export const DataGridRow = memo(function DataGridRow({
   viewRowIndex,
-  windowedColumns,
+  rowId,
+  renderedColumns,
   layout,
   readOnly,
   rowMarkers,
   onMarkerPointerDown,
-  onMarkerGripPointerDown,
   onMarkerCheckboxPointerDown,
   onMarkerReorderPointerDown,
   isRowReorderDragging,
@@ -69,8 +65,6 @@ export const DataGridRow = memo(function DataGridRow({
   ariaRowIndexOffset,
   getRowClassName,
   getCellClassName,
-  onCellClick,
-  onRowClick,
 }: DataGridRowProps) {
   const row = useDataGridRow(viewRowIndex);
   // ONE subscription for the whole row's interactive cell state (not one per cell). Referentially
@@ -84,6 +78,8 @@ export const DataGridRow = memo(function DataGridRow({
   // existing memo/subscription contract (useDataGridRow re-renders on that identity change like
   // any other row edit) — no extra state or subscription needed for the transition itself.
   const isSkeleton = row === undefined;
+  // Only a view index past the end has no id; a lazy hole has a placeholder id.
+  if (rowId === undefined) return null;
   return (
     <div
       ref={rowRef}
@@ -106,31 +102,31 @@ export const DataGridRow = memo(function DataGridRow({
         <DataGridMarkerCell
           mode={rowMarkers}
           viewRowIndex={viewRowIndex}
+          rowId={rowId}
           onPointerDown={onMarkerPointerDown}
-          onGripPointerDown={onMarkerGripPointerDown}
           onCheckboxPointerDown={onMarkerCheckboxPointerDown}
           onReorderPointerDown={onMarkerReorderPointerDown}
           isReorderDragging={isRowReorderDragging}
         />
       )}
-      {windowedColumns.map(({ column, index }) => {
+      {renderedColumns.map(({ column, index }) => {
         const isActive = cellState.activeCol === index;
         const isEditing = cellState.editingCol === index;
         return (
           <DataGridCell
             key={column.id}
             row={row}
-            rowIndex={viewRowIndex}
+            rowId={rowId}
+            viewRowIndex={viewRowIndex}
             column={column}
-            columnIndex={index}
+            viewColumnIndex={index}
             gridColOffset={markerColOffset}
             gridReadOnly={readOnly}
             getCellClassName={getCellClassName}
-            onCellClick={onCellClick}
-            onRowClick={onRowClick}
             isActive={isActive}
             isEditing={isEditing}
             initialText={isEditing ? cellState.editingInitialText : undefined}
+            editSession={isEditing ? cellState.editingSession : undefined}
             isSearchMatch={cellState.searchMatchCols?.has(index) ?? false}
             isSelected={isActive || colRangesContain(cellState.selectedColRanges, index)}
             isSkeleton={isSkeleton}

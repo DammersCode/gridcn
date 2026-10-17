@@ -2,9 +2,10 @@ import { page } from "vitest/browser";
 import { Component, type ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { DataGrid, defineColumns, GRID_ATTR } from "@/registry/default/blocks/data-grid/data-grid";
+import { DataGrid, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPagination } from "./use-data-grid-pagination";
 import { DataGridPaginationBar, DataGridPaginationPrev, DataGridPaginationNext } from "./pagination-footer";
+import { GRID_ATTR } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 // real stylesheet so Select/Button layout is real, matching other block browser tests
 import "@/app/global.css";
 
@@ -40,10 +41,10 @@ function PaginatedGrid() {
   );
 }
 
-const windowedRows = makeRows(251);
+const slidingRows = makeRows(251);
 
-function WindowedPaginatedGrid({ windowSize }: { windowSize?: number }) {
-  const pager = useDataGridPagination({ data: windowedRows, pageSize: 25 });
+function SlidingPaginatedGrid({ windowSize }: { windowSize?: number }) {
+  const pager = useDataGridPagination({ data: slidingRows, pageSize: 25 });
   return (
     <div style={{ height: 360, width: 400 }}>
       <DataGrid data={pager.pageData!} columns={columns} getRowId={(r) => r.id} className="h-72" />
@@ -101,6 +102,11 @@ describe("DataGridPaginationBar: default layout", () => {
     await expect.element(page.getByRole("button", { name: "Next page" })).toBeDisabled();
   });
 
+  it("the page-size trigger shows the label without opening, not the raw value", async () => {
+    await render(<PaginatedGrid />);
+    await expect.element(page.getByRole("combobox", { name: "Rows per page" })).toHaveTextContent("25 / page");
+  });
+
   it("changing the page-size select re-slices the grid and resets the visible range", async () => {
     await render(<PaginatedGrid />);
     await page.getByRole("combobox", { name: "Rows per page" }).click();
@@ -128,12 +134,12 @@ describe("DataGridPaginationBar: first/last", () => {
 
 describe("DataGridPaginationBar: windowSize", () => {
   it("the default layout's page buttons follow the bar's windowSize", async () => {
-    const screen = await render(<WindowedPaginatedGrid />);
+    const screen = await render(<SlidingPaginatedGrid />);
     // 251 rows / 25 per page = 11 pages; default window of 5 on page 1 shows pages 1-5
     await expect.element(page.getByRole("button", { name: "Go to page 5" })).toBeInTheDocument();
     expect(page.getByRole("button", { name: "Go to page 6" }).elements()).toHaveLength(0);
 
-    await screen.rerender(<WindowedPaginatedGrid windowSize={3} />);
+    await screen.rerender(<SlidingPaginatedGrid windowSize={3} />);
     await expect.element(page.getByRole("button", { name: "Go to page 3" })).toBeInTheDocument();
     expect(page.getByRole("button", { name: "Go to page 4" }).elements()).toHaveLength(0);
   });

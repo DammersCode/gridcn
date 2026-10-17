@@ -1,14 +1,14 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { GRID_LAYER, type GridColumnLayout, type WindowedColumn } from "@/registry/default/blocks/data-grid/data-grid";
+import { GRID_LAYER, type GridColumnLayout, type RenderedColumn } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { DataGridPinnedRow } from "./pinned-row";
 
 /** Props for {@link DataGridPinnedRowBand}. */
 export type DataGridPinnedRowBandProps = {
   position: "top" | "bottom";
   rows: readonly unknown[];
-  windowedColumns: readonly WindowedColumn[];
+  renderedColumns: readonly RenderedColumn[];
   layout: GridColumnLayout;
   rowHeight: number;
   template: string;
@@ -33,7 +33,7 @@ export type DataGridPinnedRowBandProps = {
  * `useDataGridPinnedRows`'s `rowBands.renderBand` calls this once per non-empty band.
  */
 export function DataGridPinnedRowBand(props: DataGridPinnedRowBandProps): ReactNode {
-  const { position, rows, windowedColumns, layout, rowHeight, template, headerHeight, ariaRowIndexBase } = props;
+  const { position, rows, renderedColumns, layout, rowHeight, template, headerHeight, ariaRowIndexBase } = props;
   if (rows.length === 0) return null;
 
   const bandHeight = rows.length * rowHeight;
@@ -57,11 +57,12 @@ export function DataGridPinnedRowBand(props: DataGridPinnedRowBandProps): ReactN
     <div role="rowgroup" data-grid-pinned-row-band={position} style={layerStyle}>
       {rows.map((row, i) => (
         <DataGridPinnedRow
-          // oxlint-disable-next-line react/no-array-index-key -- pinned rows have no getRowId; band position is a stable-enough key for a small, consumer-controlled array (documented v1 scope).
+          // oxlint-disable-next-line react/no-array-index-key -- a pinned row id can be a band id; band position is a stable key for a small consumer array.
           key={i}
+          position={position}
           row={row}
           bandIndex={i}
-          windowedColumns={windowedColumns}
+          renderedColumns={renderedColumns}
           layout={layout}
           gridRowStart={i + 1}
           ariaRowIndex={ariaRowIndexBase + i}

@@ -1,0 +1,44 @@
+---
+title: Auth-gated cells
+description: Derive read-only rows and hidden columns from the user session.
+icon: Lock
+status: new
+---
+
+Derive `readOnly` and column visibility from your own session or auth hook, per column, per row,
+or both. `readOnly` accepts a function of the row (see
+[Editing & cell types](/docs/editing-cell-types#read-only)), so a role check reads naturally:
+
+```tsx
+function useOrderColumns(): ColumnDef<Order>[] {
+  const { role } = useSession();
+
+  const columns = defineColumns<Order>()([
+    { id: "customerName", header: "Customer", accessorKey: "customerName", type: "text" },
+    {
+      id: "price",
+      header: "Price",
+      accessorKey: "price",
+      type: "number",
+      readOnly: (row) => role !== "admin" || row.locked,
+    },
+    {
+      id: "internalNote",
+      header: "Internal note",
+      accessorKey: "internalNote",
+      type: "text",
+      hidden: role === "guest",
+    },
+  ]);
+  return [...columns];
+}
+```
+
+`price` composes two conditions: a role gate (only `admin` can edit it) and a per-row gate
+(a `locked` order is read-only for everyone). `internalNote` is hidden outright for `guest`,
+computed once per render from the same session hook, not per row.
+
+## Related
+
+- [Editing & cell types: Read-only](/docs/editing-cell-types#read-only): the `readOnly` forms.
+- [Columns: Visibility](/docs/columns#visibility): hidden columns.

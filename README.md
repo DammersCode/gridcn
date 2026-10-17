@@ -20,23 +20,25 @@
 
 ---
 
-Range selection, spreadsheet clipboard, typed cell editors, validation, and windowed rendering at 100k+ rows. The code lands in your project, so you own every line. The core grid is the engine; every other feature is an add-on that depends only on the core.
+Range selection, spreadsheet clipboard, typed cell editors, validation, and virtualized rendering at 100k+ rows. The code lands in your project, so you own every line. The core grid is the engine; every other feature is an add-on that depends only on the core.
 
 ## Features
 
 - **Range selection.** Anchor plus rectangular range, ctrl-click multi-range, row and column selection, and keyboard extension (Shift+Arrow, Shift+Ctrl+Arrow, Ctrl+A).
 - **Spreadsheet clipboard.** Native copy, cut, and paste in TSV and HTML table formats, to and from Excel, Google Sheets, Apple Numbers, and LibreOffice.
-- **Typed editing.** Text, number, checkbox, date, and select editors, plus custom cell types. The fill-handle add-on adds series fill.
-- **Typed columns.** `defineColumns<TData>()` infers value types and per-cell-type `options` from your data shape. A typo in a column id is a compile error.
+- **Typed editing.** Text, long text, number, checkbox, date, select, and safe-link (`url`) cells, plus custom cell types. The fill-handle add-on adds series fill.
+- **Typed columns.** `defineColumns<TData>()` infers value types and per-cell-type `options` from your data shape. A typo in an accessor key is a compile error.
 - **Validation.** A function or any [Standard Schema](https://standardschema.dev) library (Zod, Valibot, ArkType). Sync and async, on single edits and on bulk paste, fill, and import.
 - **Server errors.** `setCellErrors` paints an API rejection on the exact cell. The error clears when the user commits a fix.
 - **Streaming updates.** `updateCells` applies live value patches without a full re-render. An incremental sort keeps sorted grids correct and fast at 100k rows.
-- **Virtualization.** CSS Grid with windowed row rendering. A real-browser test suite enforces the no-blank-rows guarantee at 100k rows.
+- **Virtualization.** CSS Grid with virtualized row rendering. A real-browser test suite enforces the no-blank-rows guarantee at 100k rows.
 - **Row operations.** Insert above or below, duplicate, and delete, each with a default key binding. Insert and duplicate need the `createRow` / `duplicateRow` props; the `data-grid-context-menu` add-on adds the menu entries.
 - **Global shortcuts.** The opt-in `DataGridGlobalShortcuts` layer (inside `DataGridRoot`) keeps key bindings active while focus is outside the grid. Undo and redo by default; per-action flags enable more.
 - **Controlled or uncontrolled.** Data, sort, and filter are uncontrolled by default. Pass `data`, `sortState`, or `filterState` with the matching `on*Change` callback to control them. Selection and column layout stay store-owned; `onSelectionChange` and `onColumnLayoutChange` observe them.
 - **RTL and i18n.** A `direction` prop (or `dir="rtl"` on the page) mirrors layout, pinning, pointer math, and keyboard semantics. Every user-facing string lives in one typed `labels` object with English defaults.
 - **Your theme.** Styled through your shadcn CSS tokens plus a few `--grid-*` variables, for example `--grid-column-border`. See the [styling guide](https://gridcn.vercel.app/docs/styling-theming).
+- **Plugins.** A single `plugins` prop mounts add-ons and your own overlays, row bands, observers, commands, and keymap entries. See the [plugin guide](https://gridcn.vercel.app/docs/plugins).
+- **Accessibility.** WAI-ARIA grid roles, roving tabindex, and live regions. axe-core reports zero violations on the test fixture in Chromium. No screen reader and no WCAG conformance audit has been run yet; see the [accessibility page](https://gridcn.vercel.app/docs/accessibility).
 
 ## Install
 
@@ -51,6 +53,8 @@ To pin a tag, branch, or commit, use the GitHub registry path:
 ```bash
 npx shadcn add DammersCode/gridcn/data-grid#v1.0.0
 ```
+
+The ref applies to the item you name only. The CLI resolves its `registryDependencies` without the ref, so a pinned add-on still installs the core from the default branch. To pin the whole install, install the core with the same ref first. An `@gridcn` add-on install fetches the core through `git ls-remote` and `raw.githubusercontent.com`, so it needs `git` and access to GitHub.
 
 The [installation docs](https://gridcn.vercel.app/docs/installation) cover prerequisites, framework notes, and known problems.
 
@@ -104,10 +108,11 @@ Each add-on is a separate registry item that depends only on the core `data-grid
 | `data-grid-keybindings` | Keyboard-shortcuts reference dialog | [Keybindings](https://gridcn.vercel.app/docs/addons/keybindings) |
 | `data-grid-pinned-rows` | Pinned top and bottom row bands, for example a totals row | [Pinned rows](https://gridcn.vercel.app/docs/addons/pinned-rows) |
 | `data-grid-presence` | Multiplayer presence: remote users' live selections as named, colored highlights | [Presence](https://gridcn.vercel.app/docs/addons/presence) |
-| `data-grid-io` | CSV and XLSX import and export | [Import & export](https://gridcn.vercel.app/docs/addons/import-export) |
+| `data-grid-io` | CSV and XLSX import and export, plus print and Save as PDF | [Import & export](https://gridcn.vercel.app/docs/addons/import-export) |
 | `data-grid-url-state` | Sort, filter, search, and pagination state synced to the URL | [URL state](https://gridcn.vercel.app/docs/addons/url-state) |
 | `data-grid-lazy` | Lazy row loading: fetch rows on demand as the viewport scrolls | [Lazy loading](https://gridcn.vercel.app/docs/lazy-loading) |
 | `data-grid-pagination` | Composable pagination footer (`DataGridPaginationBar` plus parts) | [Pagination](https://gridcn.vercel.app/docs/pagination) |
+| `data-grid-status-bar` | Status bar: row count, selection summary, and custom segments | [Status bar](https://gridcn.vercel.app/docs/addons/status-bar) |
 
 ## Agent skills
 

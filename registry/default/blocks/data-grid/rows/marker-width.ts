@@ -1,11 +1,11 @@
 import type { RowMarkersContent, RowMarkersMode } from "../types";
 
-/** True for the `reorder` family — the only modes that render the grip and arm the drag-to-reorder gesture. */
+/** True for the `reorder` family — the only modes that render the drag handle and arm the drag-to-reorder gesture. */
 export function isReorderMarkerMode(mode: RowMarkersMode): boolean {
   return mode === "reorder" || mode.startsWith("reorder-");
 }
 
-/** The marker content a mode renders — the reorder family renders its suffix's content under the grip. */
+/** The marker content a mode renders — the reorder family renders its suffix's content under the drag handle. */
 export function markerContent(mode: RowMarkersMode): RowMarkersContent | "none" {
   switch (mode) {
     case "none":
@@ -24,7 +24,7 @@ export function markerContent(mode: RowMarkersMode): RowMarkersContent | "none" 
   }
 }
 
-/** Marker column px width per mode (number 44 / checkbox 36 / both 56 / reorder 32; the reorder family widens for the grip); 0 for 'none' (no track at all). */
+/** Marker column px width per mode (number 44 / checkbox 36 / both 56 / reorder 32; the reorder family widens for the drag handle); 0 for 'none' (no track at all). */
 export function markerWidth(mode: RowMarkersMode): number {
   switch (mode) {
     case "number":

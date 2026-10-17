@@ -1,6 +1,6 @@
 import type { DataChange, DataOp } from "../types";
 
-/** Inverts a single op: update swaps row/prev, insert becomes delete, delete becomes insert. */
+/** Inverts a single operation: update swaps row/prev, insert becomes delete, delete becomes insert. */
 function invertOp<TData>(op: DataOp<TData>): DataOp<TData> {
   switch (op.type) {
     case "update":
@@ -26,29 +26,30 @@ function invertOp<TData>(op: DataOp<TData>): DataOp<TData> {
 }
 
 /**
- * Produces the change that undoes `change`: each op is inverted and the op
- * order is reversed (so a batch unwinds in the correct dependency order).
+ * Produces the change that undoes `change`: each operation is inverted and the operation
+ * order is reversed (so a batch unwinds in the correct dependency order). `source` tags the result;
+ * pass `"rollback"` to revert a failed optimistic save so an `onDataChange` handler can tell it from an undo.
  */
-export function invertChange<TData>(change: DataChange<TData>): DataChange<TData> {
+export function invertChange<TData>(change: DataChange<TData>, source: "history" | "rollback" = "history"): DataChange<TData> {
   return {
     ops: [...change.ops].reverse().map(invertOp),
-    source: "history",
+    source,
     label: change.label,
   };
 }
 
 /**
  * Applies a change to `data` immutably in O(n + k log(n + k)), returning a new array.
- * Rows are located by id (never by the op's stored index, which is only a
+ * Rows are located by id (never by the operation's stored index, which is only a
  * hint for where an insert should land). If an id referenced by an
- * update/delete op is no longer present (row was deleted by a later change),
- * that op is skipped silently rather than throwing.
+ * update/delete operation is no longer present (row was deleted by a later change),
+ * that operation is skipped silently rather than throwing.
  *
- * `index` convention: op indices are snapshot positions — each op's index
+ * `index` convention: operation indices are snapshot positions — each operation's index
  * is that row's position in the array as it stood before the whole batch
  * was applied (the natural output of a delete-range/insert-range emitter),
- * not a running "log-time" position updated op-by-op. update/delete ops
- * are id-keyed so their index is informational only; insert ops (including
+ * not a running "log-time" position updated one operation at a time. update/delete operations
+ * are row-id-based so their index is informational only; insert operations (including
  * ones produced by inverting a delete batch) are therefore applied in
  * ascending-index order regardless of the order they appear in `ops`, so a
  * multi-row batch round-trips through invertChange correctly.
@@ -192,12 +193,14 @@ export type HistoryOptions = {
 };
 
 /**
- * Op-based undo/redo stack, UI-free. Consumers call `push` after each
+ * Operation-based undo/redo stack, UI-free. Consumers call `push` after each
  * applied gesture, and `undo`/`redo` to get the change to apply back to data.
  */
 export type History<TData> = {
-  /** Records a change; discards any redo branch. Changes with source "history" are ignored. */
+  /** Records a change; discards any redo branch. Changes with source "history" or "rollback" are ignored. */
   push(change: DataChange<TData>): void;
+  /** Removes a recorded change (matched by identity) from both stacks; true when it was found. Use it to drop a change whose save failed. */
+  discard(change: DataChange<TData>): boolean;
   /** Returns the inverted top-of-undo-stack change to apply, or null if nothing to undo. */
   undo(): DataChange<TData> | null;
   /** Returns the original change, re-tagged source "history", to re-apply; or null if nothing to redo. */
@@ -212,7 +215,7 @@ export type History<TData> = {
   readonly size: number;
 };
 
-/** Creates an id-keyed undo/redo history. */
+/** Creates a row-id-based undo/redo history. */
 export function createHistory<TData>(opts: HistoryOptions = {}): History<TData> {
   const capacity = opts.capacity ?? 100;
   let undoStack: DataChange<TData>[] = [];
@@ -220,10 +223,16 @@ export function createHistory<TData>(opts: HistoryOptions = {}): History<TData> 
 
   return {
     push(change) {
-      if (change.source === "history") return;
+      if (change.source === "history" || change.source === "rollback") return;
       undoStack.push(change);
       if (undoStack.length > capacity) undoStack.shift();
       redoStack = [];
+    },
+    discard(change) {
+      const before = undoStack.length + redoStack.length;
+      undoStack = undoStack.filter((entry) => entry !== change);
+      redoStack = redoStack.filter((entry) => entry !== change);
+      return undoStack.length + redoStack.length !== before;
     },
     undo() {
       const change = undoStack.pop();

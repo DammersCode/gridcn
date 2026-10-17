@@ -5,23 +5,32 @@
 All content in this repository — code, comments, documentation, plans, changelog, commit
 messages, and pull-request text — is written in English.
 
+## Vocabulary
+
+Use the words in [GLOSSARY.md](GLOSSARY.md) in code, comments, docs, and commit messages. Add a term there before you introduce it. `pnpm lint` rejects the words the glossary replaces.
+
 ## Development
 
 Contributions are licensed under the Apache License 2.0 — see LICENSE §5.
 
 ```bash
 pnpm install        # deps (pnpm 10+)
+git config core.hooksPath .githooks   # once per clone: commit-msg hook rejects AI attribution
 pnpm dev            # docs site + demos at http://localhost:3000
 ```
 
 Useful pages while developing: `/dev` (configurable 100k-row grid), `/docs` (every demo).
 
 ```bash
-pnpm test -- --project=unit      # jsdom suite
-pnpm test -- --project=browser   # real-Chromium suite (Playwright provider)
 pnpm types:check
+pnpm types:check:ts5             # consumer TypeScript 5.9 baseline
 pnpm lint
+pnpm lint:typed
+npx vitest run registry --exclude "**/*.browser.test.*" --project unit --coverage   # jsdom suite
+npx vitest run --project browser --bail=1   # real-Chromium suite
 ```
+
+[DEVELOPMENT.md](DEVELOPMENT.md) and `AGENTS.md` list the full gate order and the extra CI steps to mirror before a push.
 
 After changing anything under `registry/` or `registry.json`:
 
@@ -43,7 +52,7 @@ actually find their way around in.
    exists, e.g. `data-grid.tsx`/`data-grid-url-state.tsx`, so there's no separate `-index` file),
    the provider/store, root/header/body/row/cell/overlays components, `types.ts`,
    `layout-context.ts`, and `labels.ts`. Everything else lives in a domain folder (`selection/`,
-   `clipboard/`, `columns/`, `cell-types/`, `keyboard/`, `windowing/`, `sort-filter/`,
+   `clipboard/`, `columns/`, `cell-types/`, `keyboard/`, `virtualization/`, `sort-filter/`,
    `rows/`, `interaction/`, …).
 2. **No single-file directories.** A folder must contain 2+ files or it doesn't exist — if a
    domain would only ever hold one file, that file stays at the block root instead.
@@ -72,8 +81,8 @@ actually find their way around in.
    a server-rendered tree. Leave a one-line comment explaining why when you do this — see
    `components/keymap-table.tsx` for the existing example.
 7. **Registry target paths mirror the repo structure.** `registry.json`'s `files[].path` entries
-   for a block always match that block's on-disk tree exactly; there's no separate flat
-   `target` override. Item names never change when files move.
+   for a block always match that block's on-disk tree exactly. Each file's `target`
+   field sets where it installs; update it together with the path. Item names never change when files move.
 8. **Kebab-case filenames.** Soft caps of ~200 lines for component files and ~100 lines for
    function files apply to *new* code; a merged file (rule 5) is allowed to exceed these since
    it's still several small, distinct concerns living together, not one sprawling one.

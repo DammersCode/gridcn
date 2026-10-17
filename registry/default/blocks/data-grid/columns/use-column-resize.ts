@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import type { AnyColumnDef } from "../store";
-import { inlineDelta, type GridDirection } from "../windowing/direction";
-import { measureColumnAutosizeWidth } from "./measure-column-text";
-import { MIN_COLUMN_WIDTH, clampColumnWidth } from "./resolve-column-width";
+import type { AutosizeOptions } from "../types";
+import { inlineDelta, type GridDirection } from "../virtualization/direction";
+import { clampColumnWidth } from "./resolve-column-width";
+import { safeSetPointerCapture } from "../interaction/safe-set-pointer-capture";
 
 /** Handlers returned by {@link useColumnResize}, wired onto each header cell's resize handle. */
 export type ColumnResizeHandlers = {
@@ -17,11 +18,8 @@ export type ColumnResizeHandlers = {
 /**
  * Pointer-capture column resize: drag the handle to live-update the column's
  * width via `setColumnWidth`, clamped to `[minWidth ?? 32, maxWidth ?? Infinity]`; ends on
- * `lostpointercapture` (not `pointerup` — pointerup can be missed on alt-tab, per the adazzle
- * study). Double-click autosizes: measures the header text + every rendered cell's text in that
- * column via `measure-column-text.ts`'s canvas helper, using `fontSourceRef`'s computed font
- * (an element inside the grid root, since the grid sets its own `text-sm` and may differ from
- * `document.body`).
+ * `lostpointercapture` (not `pointerup` — pointerup can be missed on alt-tab). Double-click sizes this column to its content over the whole view via the store's
+ * `autosizeColumns` action (one commit, one `onColumnLayoutChange`).
  */
 export function useColumnResize(args: {
   column: AnyColumnDef;
@@ -29,10 +27,8 @@ export function useColumnResize(args: {
   setColumnWidth: (id: string, width: number) => void;
   /** Fires once at drag-release/autosize — the `onColumnLayoutChange` commit point (not per drag frame). */
   commitColumnWidth: (id: string, width: number) => void;
-  /** Reads the currently-rendered cell text for this column from the DOM (windowed rows only). */
-  getRenderedCellTexts: (columnId: string) => string[];
-  /** Element whose computed font is used for autosize measurement — must be inside the grid root, not document.body. */
-  fontSourceRef: RefObject<Element | null>;
+  /** The store's `autosizeColumns` action; double-click calls it for this column. */
+  autosizeColumns: (options?: AutosizeOptions) => void;
   /**
    * Layout direction. The handle sits at the column's inline-END edge in both directions (the
    * logical `end-0` class places it), so dragging toward the inline end must always widen the
@@ -41,7 +37,7 @@ export function useColumnResize(args: {
    */
   direction?: GridDirection;
 }): ColumnResizeHandlers {
-  const { column, getRenderedCellTexts } = args;
+  const { column } = args;
   const argsRef = useRef(args);
   argsRef.current = args;
   const [isResizing, setIsResizing] = useState(false);
@@ -49,24 +45,23 @@ export function useColumnResize(args: {
   const clamp = useCallback((width: number) => clampColumnWidth(column, width), [column]);
 
   const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
   const onPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
       event.stopPropagation();
       event.preventDefault();
-      // React pools synthetic events — event.currentTarget is nulled once this handler returns, so
-      // the native listeners below (which outlive it) must close over the real element directly.
+      // a second pointer must not arm a second listener set (the first would outlive its release and leak)
+      if (dragRef.current) return;
+      // React nulls event.currentTarget when this handler returns; the document listeners below outlive it
       const target = event.currentTarget;
       const pointerId = event.pointerId;
       dragRef.current = { startX: event.clientX, startWidth: argsRef.current.currentWidth };
-      target.setPointerCapture?.(pointerId);
+      safeSetPointerCapture(target, pointerId);
       setIsResizing(true);
 
-      // Listeners on `document`, not the handle element (checklist-consistent with use-grid-interaction.ts's
-      // drag machinery): pointer capture retargets real hardware pointer events to the captured element, but
-      // that retargeting doesn't apply to events dispatched directly on `document` (incl. in tests), so a
-      // handle-scoped listener alone would miss every move once the pointer leaves the handle's own bounds.
+      // document-level listeners: pointer capture retargets hardware events to the handle, not events dispatched on document (tests)
       let lastWidth = argsRef.current.currentWidth;
       const handleMove = (e: PointerEvent) => {
         if (e.pointerId !== pointerId) return;
@@ -75,48 +70,47 @@ export function useColumnResize(args: {
         lastWidth = clamp(drag.startWidth + inlineDelta(e.clientX - drag.startX, argsRef.current.direction ?? "ltr"));
         argsRef.current.setColumnWidth(column.id, lastWidth);
       };
-      const handleEnd = (e: PointerEvent) => {
-        if (e.pointerId !== pointerId) return;
-        dragRef.current = null;
-        setIsResizing(false);
+      const cleanup = () => {
         document.removeEventListener("pointermove", handleMove);
         document.removeEventListener("pointerup", handleEnd);
         document.removeEventListener("pointercancel", handleEnd);
         target.removeEventListener("lostpointercapture", handleEnd);
-        // drag-release commit point for onColumnLayoutChange — fires once here, not per handleMove frame.
-        argsRef.current.commitColumnWidth(column.id, lastWidth);
+        cleanupRef.current = null;
       };
-      // lostpointercapture (not pointerup) fires reliably even when the pointerup is missed (alt-tab, etc);
-      // pointerup/pointercancel on document are the fallback for environments without real capture semantics.
+      const handleEnd = (e: PointerEvent) => {
+        if (e.pointerId !== pointerId) return;
+        dragRef.current = null;
+        setIsResizing(false);
+        cleanup();
+        // drag-release commit point for onColumnLayoutChange — fires once here, not per handleMove frame.
+        if (e.type === "pointerup") argsRef.current.commitColumnWidth(column.id, lastWidth);
+      };
+      // lostpointercapture fires even when pointerup is missed (alt-tab); the document fallbacks cover environments without capture semantics
       document.addEventListener("pointermove", handleMove);
       document.addEventListener("pointerup", handleEnd);
       document.addEventListener("pointercancel", handleEnd);
       target.addEventListener("lostpointercapture", handleEnd);
+      cleanupRef.current = cleanup;
     },
     [clamp, column.id],
   );
 
-  const onDoubleClick = useCallback(() => {
-    const fontSource = argsRef.current.fontSourceRef.current;
-    const font = fontSource ? getComputedStyle(fontSource).font : "";
-    const headerText = column.headerText ?? (typeof column.header === "string" ? column.header : "");
-    const cellTexts = getRenderedCellTexts(column.id);
-    const width = measureColumnAutosizeWidth({
-      headerText,
-      cellTexts,
-      font,
-      minWidth: Math.max(MIN_COLUMN_WIDTH, column.minWidth ?? 0),
-      maxWidth: column.maxWidth,
-    });
-    argsRef.current.commitColumnWidth(column.id, width);
-  }, [column, getRenderedCellTexts]);
+  // an unmount mid-drag (handle gone, capture lost with it) must drop the document listeners
+  useEffect(
+    () => () => {
+      cleanupRef.current?.();
+      cleanupRef.current = null;
+      dragRef.current = null;
+    },
+    [],
+  );
+
+  const onDoubleClick = useCallback(
+    () => {
+      argsRef.current.autosizeColumns({ columnIds: [column.id] });
+    },
+    [column.id],
+  );
 
   return { onPointerDown, onDoubleClick, isResizing };
-}
-
-/** Reads the rendered text of every currently-mounted gridcell for `columnId` from the DOM, scoped to `root`. */
-export function readRenderedCellTexts(root: Element | null, columnId: string): string[] {
-  if (!root) return [];
-  const cells = root.querySelectorAll(`[role="gridcell"][data-column-id="${CSS.escape(columnId)}"]`);
-  return Array.from(cells, (cell) => cell.textContent ?? "");
 }

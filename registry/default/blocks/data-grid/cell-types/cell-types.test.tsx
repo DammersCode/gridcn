@@ -5,13 +5,14 @@ import { DataGridProvider } from "../store";
 import userEvent from "@testing-library/user-event";
 import {
   cellTypes,
+  defineCellType,
   textCellType,
   numberCellType,
   checkboxCellType,
   selectCellType,
   dateCellType,
 } from "./cell-types";
-import type { ColumnDef } from "../types";
+import type { ColumnDef, GridCellTypes } from "../types";
 
 afterEach(cleanup);
 
@@ -35,8 +36,13 @@ function selectColumn(): ColumnDef<unknown, string | null> {
 }
 
 describe("cellTypes registry", () => {
-  it("exports all five built-in keys", () => {
-    expect(Object.keys(cellTypes).sort()).toEqual(["checkbox", "date", "number", "select", "text"]);
+  it("exports all seven built-in keys", () => {
+    expect(Object.keys(cellTypes).sort()).toEqual(["checkbox", "date", "longText", "number", "select", "text", "url"]);
+  });
+
+  it("defineCellType returns the entry as-is (the check is type-only, zero runtime)", () => {
+    const defined = defineCellType("text", textCellType);
+    expect(defined).toBe(textCellType);
   });
 });
 
@@ -92,6 +98,21 @@ describe("numberCellType value pipeline", () => {
     expect(numberCellType.fromText("100", { min: 0, max: 10 })).toBe(10);
     expect(numberCellType.fromText("-5", { min: 0, max: 10 })).toBe(0);
     expect(numberCellType.fromText("5", { min: 0, max: 10 })).toBe(5);
+  });
+
+  it("fromText rounds on the decimal representation and never stores -0", () => {
+    expect(numberCellType.fromText("1.005", { decimals: 2 })).toBe(1.01);
+    expect(numberCellType.fromText("2.675", { decimals: 2 })).toBe(2.68);
+    expect(Object.is(numberCellType.fromText("-0.4", { decimals: 0 }), 0)).toBe(true);
+    expect(numberCellType.fromText("-1.25", { decimals: 1 })).toBe(-1.2);
+    expect(numberCellType.toText(1.005, { decimals: 2 })).toBe("1.01");
+    expect(numberCellType.toText(Infinity, { decimals: 2 })).toBe("Infinity");
+  });
+
+  it("fromText with decimals never lands outside min/max after rounding", () => {
+    expect(numberCellType.fromText("0.2", { max: 0.125, decimals: 2 })).toBe(0.12);
+    expect(numberCellType.fromText("0", { min: 0.125, decimals: 2 })).toBe(0.13);
+    expect(numberCellType.fromText("0.29", { max: 0.29, decimals: 2 })).toBe(0.29);
   });
 
   it("toText uses plain String(), no locale formatting", () => {
@@ -223,9 +244,89 @@ describe("dateCellType value pipeline", () => {
     expect(dateCellType.fromText("2026-07-03")).toBe("2026-07-03");
   });
 
+  it("fromText rejects ISO-shaped but calendar-invalid dates, and keeps a real leap day", () => {
+    expect(dateCellType.fromText("2026-02-30")).toBeNull();
+    expect(dateCellType.fromText("2026-13-45")).toBeNull();
+    expect(dateCellType.fromText("2026-02-29")).toBeNull(); // 2026 is not a leap year
+    expect(dateCellType.fromText("2026-00-10")).toBeNull();
+    expect(dateCellType.fromText("2026-01-00")).toBeNull();
+    expect(dateCellType.fromText("2024-02-29")).toBe("2024-02-29"); // 2024 is a leap year
+  });
+
   it("fromText normalizes Date.parse-able input to the ISO date part", () => {
     expect(dateCellType.fromText("2026-07-03T10:00:00Z")).toBe("2026-07-03");
     expect(dateCellType.fromText("July 3, 2026")).toBe("2026-07-03");
+  });
+
+  it("fromText rejects non-ISO dates that Date.parse would roll into the next month", () => {
+    expect(dateCellType.fromText("Feb 30, 2026")).toBeNull();
+    expect(dateCellType.fromText("02/30/2026")).toBeNull();
+    expect(dateCellType.fromText("2026/02/30")).toBeNull();
+    expect(dateCellType.fromText("2026-02-30T10:00Z")).toBeNull();
+    expect(dateCellType.fromText("Feb 29, 2026")).toBeNull();
+    expect(dateCellType.fromText("31 April 2026")).toBeNull();
+  });
+
+  it.each([
+    "Feb 30, 2026 10:00",
+    "02/30/2026 1:00",
+    "2026-02-30 10:00",
+    "2026-02-30t10:00z",
+    "2026/02/30 10:00",
+    "Feb 30, 2026, 10:00 AM",
+    "Thu Feb 30 2026 10:00:00 GMT+0000",
+    "Jul 2026",
+    "2026",
+  ])("fromText rejects %s", (text) => {
+    expect(dateCellType.fromText(text)).toBeNull();
+  });
+
+  it.each([
+    ["a run of spaces", () => "a" + " ".repeat(1e5) + "a"],
+    ["repeated time starts", () => " 1:11".repeat(2e4) + "\na"],
+  ])("fromText parses %s in linear time", (_name, make) => {
+    const text = make();
+    const start = performance.now();
+    expect(dateCellType.fromText(text)).toBeNull();
+    expect(performance.now() - start).toBeLessThan(50);
+  });
+
+  it.each([
+    "Mar 30, 2026 10:00 Feb",
+    "Jan 31, 2026 10:00 Feb",
+    "Mar 5, 2026 10:00 Feb 30",
+    "Feb 5 Mar 5 2026",
+  ])("fromText rejects %s, which names a second month", (text) => {
+    expect(dateCellType.fromText(text)).toBeNull();
+  });
+
+  it.each([
+    ["2026-07-03T00:00", "2026-07-03"],
+    ["Feb 29, 2024 10:00", "2024-02-29"],
+    ["7/3/26", "2026-07-03"],
+    ["2026-7-3", "2026-07-03"],
+    ["Sept 3, 2026", "2026-09-03"],
+    ["Tue Jul 03 2026", "2026-07-03"],
+    ["Jul 3, 2026 11:59 PM", "2026-07-03"],
+    ["Feb 26, 2026", "2026-02-26"],
+    ["7/26/2026", "2026-07-26"],
+    ["Jul 26, 2026 10:00", "2026-07-26"],
+    ["Dec 24, 2024", "2024-12-24"],
+    ["Mar 3, 2003", "2003-03-03"],
+  ])("fromText keeps %s", (text, expected) => {
+    expect(dateCellType.fromText(text)).toBe(expected);
+  });
+
+  it("fromText keeps a datetime with an offset as a date", () => {
+    expect(dateCellType.fromText("2026-03-01T01:00+05:00")).toMatch(/^2026-0(2-28|3-01)$/);
+  });
+
+  it("fromText keeps real non-ISO dates", () => {
+    expect(dateCellType.fromText("Feb 29, 2024")).toBe("2024-02-29");
+    expect(dateCellType.fromText("Mar 2, 2026")).toBe("2026-03-02");
+    expect(dateCellType.fromText("12/31/2026")).toBe("2026-12-31");
+    expect(dateCellType.fromText("1/1/2026")).toBe("2026-01-01");
+    expect(dateCellType.fromText("30 January 2026")).toBe("2026-01-30");
   });
 
   it("fromText returns null for unparseable/empty input, never throws", () => {
@@ -270,12 +371,14 @@ function editorSpies() {
 }
 
 describe("textCellType.Editor lifecycle", () => {
-  it("seeds from toText(value) when no initialText, with caret at the end — never select-all (diceui caret policy)", async () => {
+  it("seeds from toText(value) when no initialText, with caret at the end — never select-all", async () => {
     const { onChange, commit, cancel } = editorSpies();
     render(
       <textCellType.Editor
         value="hello"
         row={{}}
+        rowId="r"
+        columnId="col"
         column={noopColumnOf<string>()}
         onChange={onChange}
         commit={commit}
@@ -295,6 +398,8 @@ describe("textCellType.Editor lifecycle", () => {
         value="hello"
         initialText="x"
         row={{}}
+        rowId="r"
+        columnId="col"
         column={noopColumnOf<string>()}
         onChange={onChange}
         commit={commit}
@@ -313,6 +418,8 @@ describe("textCellType.Editor lifecycle", () => {
         value="hello"
         initialText=""
         row={{}}
+        rowId="r"
+        columnId="col"
         column={noopColumnOf<string>()}
         onChange={onChange}
         commit={commit}
@@ -335,6 +442,8 @@ describe("textCellType.Editor lifecycle", () => {
         value="hello"
         initialText=""
         row={{}}
+        rowId="r"
+        columnId="col"
         column={noopColumnOf<string>()}
         onChange={onChange}
         commit={commit}
@@ -356,6 +465,8 @@ describe("textCellType.Editor lifecycle", () => {
         value="hello"
         initialText=""
         row={{}}
+        rowId="r"
+        columnId="col"
         column={noopColumnOf<string>()}
         onChange={onChange}
         commit={commit}
@@ -377,6 +488,8 @@ describe("textCellType.Editor lifecycle", () => {
         value="hello"
         initialText=""
         row={{}}
+        rowId="r"
+        columnId="col"
         column={noopColumnOf<string>()}
         onChange={onChange}
         commit={commit}
@@ -400,7 +513,10 @@ describe("numberCellType.Editor lifecycle", () => {
       <numberCellType.Editor
         value={1.2345}
         row={{}}
+        rowId="r"
+        columnId="col"
         column={column}
+        options={{ decimals: 2 }}
         onChange={onChange}
         commit={commit}
         cancel={cancel}
@@ -419,7 +535,10 @@ describe("numberCellType.Editor lifecycle", () => {
         value={null}
         initialText=""
         row={{}}
+        rowId="r"
+        columnId="col"
         column={column}
+        options={{ min: 0, max: 10 }}
         onChange={onChange}
         commit={commit}
         cancel={cancel}
@@ -440,6 +559,8 @@ describe("numberCellType.Editor lifecycle", () => {
         value={null}
         initialText=""
         row={{}}
+        rowId="r"
+        columnId="col"
         column={noopColumnOf<number | null>()}
         onChange={onChange}
         commit={commit}
@@ -461,6 +582,8 @@ describe("numberCellType.Editor lifecycle", () => {
         value={null}
         initialText=""
         row={{}}
+        rowId="r"
+        columnId="col"
         column={noopColumnOf<number | null>()}
         onChange={onChange}
         commit={commit}
@@ -481,6 +604,8 @@ describe("numberCellType.Editor lifecycle", () => {
         value={null}
         initialText=""
         row={{}}
+        rowId="r"
+        columnId="col"
         column={noopColumnOf<number | null>()}
         onChange={onChange}
         commit={commit}
@@ -517,6 +642,8 @@ describe("dateCellType.Editor lifecycle", () => {
         <dateCellType.Editor
           value={null}
           row={{}}
+          rowId="r"
+          columnId="col"
           column={noopColumnOf<string | null>()}
           onChange={onChange}
           commit={commit}
@@ -536,6 +663,8 @@ describe("dateCellType.Editor lifecycle", () => {
         <dateCellType.Editor
           value={null}
           row={{}}
+          rowId="r"
+          columnId="col"
           column={noopColumnOf<string | null>()}
           onChange={onChange}
           commit={commit}
@@ -559,6 +688,8 @@ describe("dateCellType.Editor lifecycle", () => {
         <dateCellType.Editor
           value={null}
           row={{}}
+          rowId="r"
+          columnId="col"
           column={noopColumnOf<string | null>()}
           onChange={onChange}
           commit={commit}
@@ -582,6 +713,8 @@ describe("dateCellType.Editor lifecycle", () => {
         <dateCellType.Editor
           value="2026-07-03"
           row={{}}
+          rowId="r"
+          columnId="col"
           column={noopColumnOf<string | null>()}
           onChange={onChange}
           commit={commit}
@@ -598,15 +731,16 @@ describe("dateCellType.Editor lifecycle", () => {
 });
 
 describe("checkboxCellType.Editor lifecycle", () => {
-  // checkbox has no edit mode (diceui-editing-spec.md item 6): the interaction layer toggles
-  // and commits directly via commitCellValue, never calling startEditing. This editor only
-  // guards a stray startEditing call by bailing out (cancel) without writing anything.
+  // checkbox has no edit mode: startEditing skips `activate` types, so this editor mounts only
+  // for a session opened directly through the store, and cancels it without writing anything.
   it("renders nothing and cancels immediately without calling onChange/commit", () => {
     const { onChange, commit, cancel } = editorSpies();
     const { container } = render(
       <checkboxCellType.Editor
         value={false}
         row={{}}
+        rowId="r"
+        columnId="col"
         column={noopColumnOf<boolean>()}
         onChange={onChange}
         commit={commit}
@@ -626,6 +760,8 @@ describe("checkboxCellType.Editor lifecycle", () => {
         <checkboxCellType.Editor
           value={false}
           row={{}}
+          rowId="r"
+          columnId="col"
           column={noopColumnOf<boolean>()}
           onChange={onChange}
           commit={commit}
@@ -702,7 +838,10 @@ describe("selectCellType.Editor lifecycle", () => {
       <selectCellType.Editor
         value={null}
         row={{}}
+        rowId="r"
+        columnId="opt"
         column={selectColumn()}
+        options={selectColumn().options as GridCellTypes["select"]["options"]}
         onChange={onChange}
         commit={commit}
         cancel={cancel}
@@ -722,7 +861,10 @@ describe("selectCellType.Editor lifecycle", () => {
       <selectCellType.Editor
         value={null}
         row={{}}
+        rowId="r"
+        columnId="opt"
         column={selectColumn()}
+        options={selectColumn().options as GridCellTypes["select"]["options"]}
         onChange={onChange}
         commit={commit}
         cancel={cancel}

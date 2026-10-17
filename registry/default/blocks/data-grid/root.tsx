@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Fragment,
   useEffect,
   useMemo,
   useRef,
@@ -10,22 +11,28 @@ import {
 } from "react";
 import { DirectionProvider } from "@base-ui/react/direction-provider";
 import { cn } from "@/lib/utils";
-import type { DensityMode, GetCellClassName, GetRowClassName, Keymap, OnCellClick, OnRowClick } from "./types";
-import { DEFAULT_KEYMAP, validateKeymap } from "./keyboard";
+import type { DensityMode, GetCellClassName, GetRowClassName } from "./types";
 import {
   useDataGridActions,
+  useDataGridInternalActions,
   useDataGridActiveColumn,
-  useDataGridFillHandlers,
   useDataGridHasActiveCell,
+  useDataGridInstanceId,
+  useDataGridKeymap,
   useDataGridLabels,
-  useDataGridRowBands,
+  useDataGridPluginBands,
+  useDataGridPluginMounts,
+  useDataGridReadOnly,
   useDataGridRowCount,
   useDataGridSelectionConfig,
+  useDataGridSelector,
+  useDataGridStore,
+  useDataGridStoreApi,
   useDataGridVisibleColumns,
 } from "./store";
-import { useElementDimensions, useViewportElement } from "./windowing/use-scroll-snapshot";
-import { directionSign, readResolvedDirection, type GridDirection } from "./windowing/direction";
-import { useColumnWindow } from "./windowing/use-column-window";
+import { useElementDimensions, useViewportElement } from "./virtualization/use-scroll-snapshot";
+import { directionSign, readResolvedDirection, type GridDirection } from "./virtualization/direction";
+import { useColumnWindow } from "./virtualization/use-column-window";
 import { useGridInteraction, type InteractionLayout } from "./interaction/use-grid-interaction";
 import { useGridClipboard } from "./clipboard/use-grid-clipboard";
 import {
@@ -36,11 +43,13 @@ import {
   type MarkerHeaderRenderer,
 } from "./layout-context";
 import { resolveRowHeight } from "./rows/density";
-import { useScrolledEdges } from "./windowing/use-scrolled-edges";
-import { usePinShadowEdges } from "./windowing/use-pin-shadow-edges";
+import { useScrolledEdges } from "./virtualization/use-scrolled-edges";
+import { usePinShadowEdges } from "./virtualization/use-pin-shadow-edges";
 import { GRID_LAYER } from "./layers";
-import { DataGridLoadingSkeleton, DataGridLoadingBar } from "./rows/loading-skeleton";
+import { DataGridLoadingSkeleton, DataGridLoadingBar, DataGridLoadingProgress } from "./rows/loading-skeleton";
 import { isDev } from "./is-dev";
+import { GRID_ATTR, gridAttrSelector } from "./data-attributes";
+import { closestGridRoot } from "./interaction/closest-grid-root";
 
 /** Default sticky header track height (px); density/rowHeight only affect data rows, never the header. */
 const HEADER_HEIGHT = 36;
@@ -50,6 +59,18 @@ const PIN_SHADOW = "var(--grid-pin-shadow, oklch(0 0 0 / 10%))";
 const SCROLL_SHADOW = `var(--grid-scroll-shadow, ${PIN_SHADOW})`;
 const SHADOW_SIZE = "var(--grid-shadow-size, 8px)";
 const shadowColor = (pinned: boolean) => (pinned ? PIN_SHADOW : SCROLL_SHADOW);
+
+/** Why the empty state shows: no rows in the data at all, or rows exist but none are in view. */
+export type EmptyStateReason = "no-data" | "filtered";
+
+/** Function form of {@link DataGridRootProps.emptyState} — receives why the view is empty. */
+export type EmptyStateRenderer = (ctx: { reason: EmptyStateReason }) => ReactNode;
+
+/** Which built-in loading presentation the slot is replacing: the skeleton (zero rows in view) or the header bar (rows present). */
+export type LoadingStateReason = "no-data" | "rows-present";
+
+/** Function form of {@link DataGridRootProps.loadingState} — receives which built-in presentation the node replaces. */
+export type LoadingStateRenderer = (ctx: { reason: LoadingStateReason }) => ReactNode;
 
 /** Props for {@link DataGridRoot}. `TData` (default `unknown`) types the callback props below — annotate explicitly (e.g. `DataGridRoot<Person>`), there's no `data` prop here to infer it from. */
 export type DataGridRootProps<TData = unknown> = {
@@ -62,8 +83,6 @@ export type DataGridRootProps<TData = unknown> = {
   headerHeight?: number;
   /** Extra unpinned columns rendered beyond the visible viewport on each side. Default 1. */
   columnOverscan?: number;
-  /** Merged over `DEFAULT_KEYMAP`; per-action bindings here take precedence. */
-  keymap?: Keymap;
   /**
    * Layout direction. Omitted, the grid reads the direction it inherits from the page (the `dir`
    * attribute on an ancestor, or the document default) once at mount — so a grid inside
@@ -75,10 +94,12 @@ export type DataGridRootProps<TData = unknown> = {
    * screen, which is the previous column index. `Tab` keeps its reading order.
    */
   direction?: GridDirection;
-  /** Disables editing and delete grid-wide, independent of any per-column `readOnly`. */
-  readOnly?: boolean;
-  /** Rendered centered in place of the body when there are zero rows in view. Never shown while `loading` is true. */
-  emptyState?: ReactNode;
+  /**
+   * Rendered centered in place of the body when there are zero rows in view. Accepts a node or a
+   * function receiving `{ reason }` — `"no-data"` when the data array is empty, `"filtered"` when
+   * rows exist but none are in view. Never shown while `loading` is true.
+   */
+  emptyState?: ReactNode | EmptyStateRenderer;
   /**
    * Presentational loading flag: zero rows renders viewport-filling
    * skeleton rows instead of the empty state; rows present keeps them visible and adds a slim
@@ -86,6 +107,14 @@ export type DataGridRootProps<TData = unknown> = {
    * own (that's `data-grid-lazy`'s job for per-window skeletons). Default `false`.
    */
   loading?: boolean;
+  /**
+   * Replaces the built-in loading presentation while `loading` is true: the viewport-filling
+   * skeleton (zero rows in view) or the slim indeterminate bar under the header (rows present).
+   * Rendered positioned directly under the header at full width, in place of the built-in it
+   * replaces. The node owns its own accessibility — the built-ins' progressbar semantics do not
+   * apply to it.
+   */
+  loadingState?: ReactNode | LoadingStateRenderer;
   /**
    * Per-column header menu slot: rendered inline-end in each header cell as a ghost chevron
    * trigger, only when provided. The context-menu add-on's `DataGridHeaderDropdown` is the
@@ -105,29 +134,37 @@ export type DataGridRootProps<TData = unknown> = {
   getRowClassName?: GetRowClassName<TData>;
   /** Cell class hook, merged via `cn()` after the built-in cell classes. Pass a stable identity — see {@link GetCellClassName}. */
   getCellClassName?: GetCellClassName<TData>;
-  /** Fired on a plain click on any cell — see {@link OnCellClick}. Attached to the cell's own existing click handler, no new subscription. Pass a stable identity, same guidance as `getCellClassName`. */
-  onCellClick?: OnCellClick<TData>;
-  /** Fired alongside `onCellClick` once per click regardless of column — see {@link OnRowClick}. */
-  onRowClick?: OnRowClick<TData>;
-  /**
-   * Fired after a row-window commit with the rendered data-row range `[start, end)` (inclusive
-   * start, exclusive end — same convention as `useRowWindow`'s `RowWindow`). Only fires when the
-   * range actually changed since the last call, including once for the initial mount commit; a
-   * scroll tick that stays within the current window's overscan buffer does not re-fire it. Useful
-   * for lazy-loading/prefetch/analytics add-ons; core has no fetching logic of its own.
-   */
-  onRowWindowChange?: (range: { start: number; end: number }) => void;
+  /** Composition parts: header + body, or your own. The `DataGrid` wrapper defaults to header + body when omitted. */
   children?: ReactNode;
 };
+
+/** Every `DataGridRootProps` key the `DataGrid` wrapper keeps for the root; the rest (the sync props plus `store`) goes to the provider. */
+export const DATA_GRID_ROOT_PROP_KEYS = [
+  "className",
+  "rowHeight",
+  "density",
+  "headerHeight",
+  "columnOverscan",
+  "direction",
+  "emptyState",
+  "loading",
+  "loadingState",
+  "renderHeaderMenu",
+  "renderMarker",
+  "renderMarkerHeader",
+  "getRowClassName",
+  "getCellClassName",
+  "children",
+] as const satisfies readonly (keyof DataGridRootProps)[];
 
 /**
  * The scroll container: a plain `overflow:auto` div (real scroll element, native scrollbar) with
  * an in-flow Content div that provides the full virtual scroll extent, and inside it a
- * `position:sticky` Viewport that is pinned to the scrollport (MUI "controlled virtualizer"
- * pattern, research/mui-controlled-virtualizer.md). Native scroll only moves the Content div under
+ * `position:sticky` Viewport that is pinned to the scrollport (controlled-virtualizer
+ * pattern). Native scroll only moves the Content div under
  * the sticky Viewport; 100% of visible row/header motion is the JS-written transform on the two
  * layers inside — the compositor can never reveal unrendered rows because rows never move via
- * native scroll (see research/scroll-blanking.md).
+ * native scroll.
  */
 export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): ReactNode {
   const {
@@ -136,23 +173,20 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     density,
     headerHeight: headerHeightProp,
     columnOverscan,
-    keymap,
     direction: directionProp,
-    readOnly,
     emptyState,
     loading = false,
+    loadingState,
     renderHeaderMenu,
     renderMarker,
     renderMarkerHeader,
     getRowClassName,
     getCellClassName,
-    onCellClick,
-    onRowClick,
-    onRowWindowChange,
     children,
   } = props;
   const rowHeight = resolveRowHeight(density, rowHeightProp);
   const headerHeight = headerHeightProp ?? HEADER_HEIGHT;
+  const instanceId = useDataGridInstanceId();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   // Roving-tabindex bootstrap (see the root's onFocus below) must only fire for a genuine
@@ -173,17 +207,28 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const isRtl = direction === "rtl";
   const visibleColumns = useDataGridVisibleColumns();
   const rowCount = useDataGridRowCount();
-  // labels.grid.emptyState is the translatable default; the emptyState prop (ReactNode) still wins when provided.
+  const dataLength = useDataGridStore((s) => s.data.length);
+  // labels.grid.emptyState is the translatable default; the emptyState prop (node or function) still wins when provided.
   const gridLabels = useDataGridLabels().grid;
   const emptyStateLabel = gridLabels.emptyState;
-  // Provider-level seam: defaults to EMPTY_ROW_BANDS (store.tsx) when no add-on registered one —
-  // same identity-guardrailed sync-prop pattern as overlayPlugins, read here (not via a
-  // DataGridRootProps prop) so it's available before DataGridRoot even mounts.
-  const rowBands = useDataGridRowBands();
-  const pinnedTopRows = rowBands.topRows;
-  const pinnedBottomRows = rowBands.bottomRows;
-  const pinnedTopHeight = pinnedTopRows.length * rowHeight;
-  const pinnedBottomHeight = pinnedBottomRows.length * rowHeight;
+  // The resolved row-band segments (every plugin's `rowBands`, in plugin array order); an empty
+  // shared identity when no plugin contributes bands.
+  const bands = useDataGridPluginBands();
+  const topBandRowCount = bands.top.reduce((n, seg) => n + seg.rows.length, 0);
+  const bottomBandRowCount = bands.bottom.reduce((n, seg) => n + seg.rows.length, 0);
+  const mounts = useDataGridPluginMounts();
+  // A band's segments stack in plugin array order; a segment's ARIA row offset is the rows the earlier segments take.
+  // No render-scope accumulator: the compiler bails on a `let` reassigned inside the map callback.
+  const topSegments = bands.top.map((segment, index) => ({
+    segment,
+    offset: bands.top.slice(0, index).reduce((n, seg) => n + seg.rows.length, 0),
+  }));
+  const bottomSegments = bands.bottom.map((segment, index) => ({
+    segment,
+    offset: bands.bottom.slice(0, index).reduce((n, seg) => n + seg.rows.length, 0),
+  }));
+  const pinnedTopHeight = topBandRowCount * rowHeight;
+  const pinnedBottomHeight = bottomBandRowCount * rowHeight;
   // Effective header height: the sticky header track PLUS any pinned-top band — every "data row 0
   // starts here" computation (row window, scroll-into-view, canvas transform) uses this, not
   // HEADER_HEIGHT alone, so the pinned-top band is treated as part of the fixed chrome above the
@@ -193,22 +238,24 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // (force-render-active-column below), never on row-only moves — vertical arrows stay cheap.
   const activeColumn = useDataGridActiveColumn();
   // primitive boolean, not the full activeCell — see useDataGridHasActiveCell's doc for why this
-  // matters (a full CellCoord subscription here would re-render the root, and thus the whole tree
+  // matters (a full ViewCoord subscription here would re-render the root, and thus the whole tree
   // via its context value, on every single row/column move).
   const hasActiveCell = useDataGridHasActiveCell();
+  const storeApi = useDataGridStoreApi();
   // WAI-ARIA grid pattern: aria-multiselectable reflects whether more than one cell can be
   // selected at once — true whenever any multi-cell channel (range/row/column/multi-range) is on.
   const { enableRangeSelection, enableRowSelection, enableColumnSelection, enableMultiRange } = useDataGridSelectionConfig();
   const ariaMultiselectable = enableRangeSelection || enableRowSelection || enableColumnSelection || enableMultiRange;
-  // Dimensions-only (resize-rate), not the full scroll snapshot — a plain useScrollSnapshot here
-  // would re-render this whole tree on every scroll pixel, negating row memoization (mustFix).
+  // Dimensions-only (resize-rate), not the full scroll snapshot — subscribing to every scroll tick
+  // here would re-render this whole tree on every scroll pixel, negating row memoization (mustFix).
   // Read before useColumnLayout: clientWidth drives flex-column distribution below.
   const dimensions = useElementDimensions(scrollRef);
   const layout = useColumnLayout(visibleColumns, dimensions.clientWidth);
   const { template, leftOffsets, rightOffsets, trackLefts: lefts, trackRights: rights, widths, pins, totalWidth } =
     layout;
 
-  const effectiveKeymap = useMemo(() => ({ ...DEFAULT_KEYMAP, ...keymap }), [keymap]);
+  const keymap = useDataGridKeymap();
+  const readOnly = useDataGridReadOnly();
   const interactionLayout: InteractionLayout = useMemo(() => {
     // the marker column (when present) is always pinned-left before every data column, so it's
     // part of the static-pinned-left band for pointer hit-testing (pointerToCoord's columnAtX).
@@ -233,45 +280,82 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   }, [lefts, rights, rowHeight, pins, widths, layout.markerWidth, effectiveHeaderHeight, pinnedBottomHeight, direction]);
   const hasPinnedLeft = interactionLayout.pinnedLeftWidth > 0;
   const hasPinnedRight = interactionLayout.pinnedRightWidth > 0;
-  // Registered by the `data-grid-fill` add-on's tracker component — it must render
-  // somewhere inside THIS subtree to reach scrollRef/layout via useDataGridRootContext, a level
-  // below this very hook call, so it reaches back up through the store rather than a prop (see
-  // `fillHandlers`'s doc comment in store.tsx). `null` (add-on absent, or not yet mounted) makes
-  // mod+D/mod+R/Escape-mid-drag no-ops — useGridInteraction already treats each as optional.
-  const fillHandlers = useDataGridFillHandlers();
   const interaction = useGridInteraction({
     scrollRef,
     layout: interactionLayout,
-    keymap: effectiveKeymap,
-    readOnly,
-    fillDown: fillHandlers?.fillDown,
-    fillRight: fillHandlers?.fillRight,
-    cancelFillDrag: fillHandlers?.cancelFillDrag,
+    keymap,
   });
-  useGridClipboard({ rootRef: scrollRef, readOnly });
+  useGridClipboard({ rootRef: scrollRef });
 
   // Registers this mount's scroll-into-view on the store so add-ons outside this subtree (e.g.
   // data-grid-toolbar's search, a DataGridRoot sibling) can reach it; cleared on unmount.
   const actions = useDataGridActions();
+  const internalActions = useDataGridInternalActions();
   useEffect(() => {
-    actions._registerScrollToCell(interaction.scrollCellIntoView);
-    return () => actions._registerScrollToCell(null);
-  }, [actions, interaction.scrollCellIntoView]);
+    internalActions._registerScrollToCell(interaction.scrollCellIntoView);
+    return () => internalActions._registerScrollToCell(null);
+  }, [internalActions, interaction.scrollCellIntoView]);
 
-  // Mirrors `readOnly` into the store so add-on mutation surfaces outside this subtree (context
-  // menu, useDataGridClipboard) honor it too — false on unmount, matching the prop's own default.
   useEffect(() => {
-    actions._registerReadOnly(Boolean(readOnly));
-    return () => actions._registerReadOnly(false);
-  }, [actions, readOnly]);
+    internalActions._registerFocus(() => {
+      const root = scrollRef.current;
+      if (!root) return;
+      const active = Array.from(root.querySelectorAll<HTMLElement>(gridAttrSelector("active"))).find((el) => closestGridRoot(el) === root);
+      (active ?? root).focus();
+    });
+    return () => internalActions._registerFocus(null);
+  }, [internalActions]);
 
-  // Mirrors the effective (merged) keymap into the store so surfaces outside this subtree (the
-  // data-grid-keybindings add-on's dialog) read the same single source of truth as interaction handling.
+  // Registers the autosize measure context (fonts, mounted row window, header-menu flag) so
+  // store actions can size columns with canvas `measureText` without their own DOM query;
+  // cleared on unmount. Declared before the autosizeOnMount effect below so a same-mount run
+  // already finds the getter registered.
   useEffect(() => {
-    actions._registerKeymap(effectiveKeymap);
-    validateKeymap(effectiveKeymap);
-    return () => actions._registerKeymap(DEFAULT_KEYMAP);
-  }, [actions, effectiveKeymap]);
+    internalActions._registerMeasureFonts(() => {
+      const root = scrollRef.current;
+      if (!root) return null;
+      const canvas = root.querySelector<HTMLElement>("[data-grid-rows-canvas]");
+      const cell = root.querySelector<HTMLElement>('[role="gridcell"]');
+      const header = root.querySelector<HTMLElement>('[role="columnheader"]');
+      return {
+        cellFont: cell ? getComputedStyle(cell).font : "",
+        headerFont: header ? getComputedStyle(header).font : "",
+        window: canvas
+          ? {
+              start: Number(canvas.dataset["gridWindowStart"] ?? 0),
+              end: Number(canvas.dataset["gridWindowEnd"] ?? 0),
+            }
+          : null,
+        hasHeaderMenu: Boolean(renderHeaderMenu),
+      };
+    });
+    return () => internalActions._registerMeasureFonts(null);
+  }, [internalActions, renderHeaderMenu]);
+
+  // autosizeOnMount: one autosize pass once the view first has rows (a lazy grid waits for its
+  // first page). Runs once per mount. A saved layout wins: columns with a saved width
+  // (`columnWidths`, e.g. from `defaultColumnLayout`) keep it and are left out of the pass. The
+  // one-shot store subscription avoids re-rendering this tree per view change.
+  const autosizeOnMount = useDataGridSelector((s) => s.autosizeOnMount);
+  const autoSizedOnMount = useRef(false);
+  useEffect(() => {
+    if (!autosizeOnMount || autoSizedOnMount.current) return;
+    const base = typeof autosizeOnMount === "object" ? autosizeOnMount : undefined;
+    let unsubscribe: () => void = () => {};
+    const run = () => {
+      if (autoSizedOnMount.current) return;
+      const s = storeApi.getState();
+      if (s.viewIndex.length === 0) return;
+      autoSizedOnMount.current = true;
+      unsubscribe();
+      const saved = new Set(Object.keys(s.columnWidths));
+      const columnIds = (base?.columnIds ?? s.visibleColumns.map((column) => column.id)).filter((id) => !saved.has(id));
+      actions.autosizeColumns({ ...base, columnIds });
+    };
+    unsubscribe = storeApi.subscribe(run);
+    run();
+    return unsubscribe;
+  }, [autosizeOnMount, actions, storeApi]);
 
   useViewportElement(scrollRef, viewportRef);
   // Imperative data-scrolled-left/right writer (for the pinned-edge shadows) — no React re-render per tick.
@@ -285,13 +369,11 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
 
   // Dev-only guardrail: getRowClassName/getCellClassName reach
   // row.tsx/cell.tsx through this root's context value rather than a per-row prop specifically so a
-  // DataGridRoot re-render (rare — structural only, see the useScrollSnapshot comment above) doesn't
+  // DataGridRoot re-render (rare — structural only, see the useElementDimensions comment above) doesn't
   // reach the memoized row/cell hot path; an unstable identity here would still bust the CONTEXT
   // consumers on every DataGridRoot render, same anti-pattern as unstable `columns`/`data`.
   const prevGetRowClassName = useRef(getRowClassName);
   const prevGetCellClassName = useRef(getCellClassName);
-  const prevOnCellClick = useRef(onCellClick);
-  const prevOnRowClick = useRef(onRowClick);
   useEffect(() => {
     if (isDev()) {
       if (prevGetRowClassName.current !== undefined && prevGetRowClassName.current !== getRowClassName) {
@@ -300,18 +382,10 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       if (prevGetCellClassName.current !== undefined && prevGetCellClassName.current !== getCellClassName) {
         console.warn("[data-grid] getCellClassName identity changed since the last render; pass a stable reference (e.g. useCallback) or every cell re-renders");
       }
-      if (prevOnCellClick.current !== undefined && prevOnCellClick.current !== onCellClick) {
-        console.warn("[data-grid] onCellClick identity changed since the last render; pass a stable reference (e.g. useCallback) or every cell re-renders");
-      }
-      if (prevOnRowClick.current !== undefined && prevOnRowClick.current !== onRowClick) {
-        console.warn("[data-grid] onRowClick identity changed since the last render; pass a stable reference (e.g. useCallback) or every row re-renders");
-      }
     }
     prevGetRowClassName.current = getRowClassName;
     prevGetCellClassName.current = getCellClassName;
-    prevOnCellClick.current = onCellClick;
-    prevOnRowClick.current = onRowClick;
-  }, [getRowClassName, getCellClassName, onCellClick, onRowClick]);
+  }, [getRowClassName, getCellClassName]);
 
   const { indices: columnWindowIndices } = useColumnWindow(scrollRef, {
     widths,
@@ -335,7 +409,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const contentHeight = effectiveHeaderHeight + rowCount * rowHeight + pinnedBottomHeight;
 
   // loading+empty: enough skeleton rows to fill the viewport below the header, plus
-  // one so a partial row is visible at the bottom edge like the real windowed body would show.
+  // one so a partial row is visible at the bottom edge like the real virtualized body would show.
   const showLoadingSkeleton = loading && rowCount === 0;
   const skeletonRowCount = showLoadingSkeleton
     ? Math.max(1, Math.ceil((dimensions.clientHeight - effectiveHeaderHeight) / rowHeight) + 1)
@@ -383,33 +457,32 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     viewportStyle[`--grid-track-right-${i}`] = `${rights[i]}px`;
   });
 
-  // Windowed columns, in display order, with their real index preserved for grid placement.
+  // Virtualized columns, in display order, with their real index preserved for grid placement.
   // columnIndices are indices into visibleColumns by useColumnWindow's contract.
-  const windowedColumns = useMemo(
+  const renderedColumns = useMemo(
     () => columnIndices.map((index) => ({ column: visibleColumns[index]!, index })),
     [columnIndices, visibleColumns],
   );
 
   // Stable context value on real deps (mustFix): DataGridRoot re-renders on every activeCell move
   // (the activeColumn subscription above), and cell.tsx/header.tsx read this context directly —
-  // a fresh object literal here would bust every context consumer (all windowed cells, header
+  // a fresh object literal here would bust every context consumer (all virtualized cells, header
   // cells) on every click/arrow-key move even though most of these fields didn't actually change.
   const contextValue = useMemo(
     () => ({
       scrollRef,
       viewportRef,
       columns: visibleColumns,
-      windowedColumns,
+      renderedColumns,
       layout,
       rowHeight,
       headerHeight,
       pinnedTopHeight,
       pinnedBottomHeight,
-      pinnedTopCount: pinnedTopRows.length,
+      pinnedTopCount: topBandRowCount,
       template,
       interaction,
       direction,
-      readOnly,
       renderHeaderMenu,
       renderMarker,
       renderMarkerHeader,
@@ -418,33 +491,26 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       // every row they ever receive at runtime came from this same subtree's DataGridProvider.
       getRowClassName: getRowClassName as GetRowClassName<unknown> | undefined,
       getCellClassName: getCellClassName as GetCellClassName<unknown> | undefined,
-      onCellClick: onCellClick as OnCellClick<unknown> | undefined,
-      onRowClick: onRowClick as OnRowClick<unknown> | undefined,
-      onRowWindowChange,
     }),
     [
       scrollRef,
       viewportRef,
       visibleColumns,
-      windowedColumns,
+      renderedColumns,
       layout,
       rowHeight,
       headerHeight,
       pinnedTopHeight,
       pinnedBottomHeight,
-      pinnedTopRows.length,
+      topBandRowCount,
       template,
       interaction,
       direction,
-      readOnly,
       renderHeaderMenu,
       renderMarker,
       renderMarkerHeader,
       getRowClassName,
       getCellClassName,
-      onCellClick,
-      onRowClick,
-      onRowWindowChange,
     ],
   );
 
@@ -459,12 +525,13 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
         ref={scrollRef}
         role="grid"
         dir={direction}
+        {...{ [GRID_ATTR.instance]: instanceId }}
         // Roving-tabindex bootstrap (WAI-ARIA APG grid pattern): before any cell has been made
         // active, every cell renders tabIndex=-1, so the root itself must be the one tabbable
         // entry point or a keyboard user can never reach the grid at all. Once a cell becomes
         // active it takes over as the sole tab stop (see cell.tsx), and the root reverts to -1.
         tabIndex={!hasActiveCell && rowCount > 0 ? 0 : -1}
-        aria-rowcount={rowCount + 1 + pinnedTopRows.length + pinnedBottomRows.length}
+        aria-rowcount={rowCount + 1 + topBandRowCount + bottomBandRowCount}
         aria-colcount={visibleColumns.length}
         aria-multiselectable={ariaMultiselectable || undefined}
         aria-readonly={readOnly || undefined}
@@ -481,8 +548,9 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
           // outside, the only case tabIndex=0 is reachable in) seeds the first cell — a header/
           // marker click's own row/column-channel selection must not be clobbered back to (0,0),
           // and focus bubbling up from a cell that already made itself active must not re-seed either.
-          if (event.target === event.currentTarget && !pointerInteractionRef.current && !hasActiveCell && rowCount > 0) {
-            actions.selectCell({ col: 0, row: 0 });
+          // The store, not the render, holds the cursor: an api call may set it in the same tick.
+          if (event.target === event.currentTarget && !pointerInteractionRef.current && storeApi.getState().activeCell === null && rowCount > 0) {
+            actions.selectCellAt({ col: 0, row: 0 });
           }
           pointerInteractionRef.current = false;
         }}
@@ -491,28 +559,39 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
         <div style={contentStyle}>
           <div ref={viewportRef} style={viewportStyle}>
             {children}
-            {pinnedTopRows.length > 0 &&
-              rowBands.renderBand({
-                position: "top",
-                rows: pinnedTopRows,
-                windowedColumns,
-                layout,
-                rowHeight,
-                template,
-                headerHeight,
-                ariaRowIndexBase: 2,
-              })}
-            {pinnedBottomRows.length > 0 &&
-              rowBands.renderBand({
-                position: "bottom",
-                rows: pinnedBottomRows,
-                windowedColumns,
-                layout,
-                rowHeight,
-                template,
-                headerHeight,
-                ariaRowIndexBase: 2 + pinnedTopRows.length + rowCount,
-              })}
+            {mounts.map(({ name, Mount }) => (
+              <Mount key={name} />
+            ))}
+            {topSegments.map(({ segment, offset }) => (
+              <Fragment key={segment.name}>
+                {segment.render({
+                  position: "top",
+                  rows: segment.rows,
+                  rowOffset: offset,
+                  renderedColumns,
+                  layout,
+                  rowHeight,
+                  template,
+                  headerHeight,
+                  ariaRowIndexBase: 2 + offset,
+                })}
+              </Fragment>
+            ))}
+            {bottomSegments.map(({ segment, offset }) => (
+              <Fragment key={segment.name}>
+                {segment.render({
+                  position: "bottom",
+                  rows: segment.rows,
+                  rowOffset: offset,
+                  renderedColumns,
+                  layout,
+                  rowHeight,
+                  template,
+                  headerHeight,
+                  ariaRowIndexBase: 2 + topBandRowCount + rowCount + offset,
+                })}
+              </Fragment>
+            ))}
             {/* the empty state never shows while loading — a zero-row loading grid renders the skeleton below instead */}
             {rowCount === 0 && !loading && (
               <div
@@ -520,19 +599,41 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground"
                 style={{ insetBlockStart: effectiveHeaderHeight }}
               >
-                {emptyState ?? emptyStateLabel}
+                {(typeof emptyState === "function"
+                  ? emptyState({ reason: dataLength === 0 ? "no-data" : "filtered" })
+                  : emptyState) ?? emptyStateLabel}
               </div>
             )}
-            {showLoadingSkeleton && (
-              <DataGridLoadingSkeleton
-                rowCount={skeletonRowCount}
-                columnCount={visibleColumns.length}
-                rowHeight={rowHeight}
-                headerHeight={effectiveHeaderHeight}
-                ariaLabel={gridLabels.loading}
-              />
-            )}
-            {showLoadingBar && <DataGridLoadingBar headerHeight={effectiveHeaderHeight} ariaLabel={gridLabels.loading} />}
+            {showLoadingSkeleton &&
+              (loadingState !== undefined ? (
+                <div
+                  data-grid-loading-state=""
+                  className="absolute"
+                  style={{ insetInlineStart: 0, insetBlockStart: effectiveHeaderHeight, width: "100%" }}
+                >
+                  {typeof loadingState === "function" ? loadingState({ reason: "no-data" }) : loadingState}
+                </div>
+              ) : (
+                <DataGridLoadingSkeleton
+                  rowCount={skeletonRowCount}
+                  columnCount={visibleColumns.length}
+                  rowHeight={rowHeight}
+                  headerHeight={effectiveHeaderHeight}
+                  ariaLabel={gridLabels.loading}
+                />
+              ))}
+            {showLoadingBar &&
+              (loadingState !== undefined ? (
+                <div
+                  data-grid-loading-state=""
+                  className="absolute"
+                  style={{ insetInlineStart: 0, insetBlockStart: effectiveHeaderHeight, width: "100%" }}
+                >
+                  {typeof loadingState === "function" ? loadingState({ reason: "rows-present" }) : loadingState}
+                </div>
+              ) : (
+                <DataGridLoadingBar headerHeight={effectiveHeaderHeight} />
+              ))}
             <div
               data-grid-pin-shadow="left"
               data-pinned={hasPinnedLeft ? "" : undefined}
@@ -568,7 +669,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
             />
             <div
               data-grid-pin-shadow="top"
-              data-pinned={pinnedTopRows.length > 0 ? "" : undefined}
+              data-pinned={topBandRowCount > 0 ? "" : undefined}
               aria-hidden="true"
               className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-top:opacity-100"
               style={{
@@ -576,13 +677,13 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 insetInlineStart: `var(--grid-pin-shadow-left-x, ${interactionLayout.pinnedLeftWidth}px)`,
                 insetInlineEnd: `var(--grid-pin-shadow-right-x, ${interactionLayout.pinnedRightWidth}px)`,
                 height: SHADOW_SIZE,
-                backgroundImage: `linear-gradient(to bottom, ${shadowColor(pinnedTopRows.length > 0)}, transparent)`,
+                backgroundImage: `linear-gradient(to bottom, ${shadowColor(topBandRowCount > 0)}, transparent)`,
                 zIndex: GRID_LAYER.pinShadow,
               }}
             />
             <div
               data-grid-pin-shadow="bottom"
-              data-pinned={pinnedBottomRows.length > 0 ? "" : undefined}
+              data-pinned={bottomBandRowCount > 0 ? "" : undefined}
               aria-hidden="true"
               className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-bottom:opacity-100"
               style={{
@@ -590,13 +691,14 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 insetInlineStart: `var(--grid-pin-shadow-left-x, ${interactionLayout.pinnedLeftWidth}px)`,
                 insetInlineEnd: `var(--grid-pin-shadow-right-x, ${interactionLayout.pinnedRightWidth}px)`,
                 height: SHADOW_SIZE,
-                backgroundImage: `linear-gradient(to top, ${shadowColor(pinnedBottomRows.length > 0)}, transparent)`,
+                backgroundImage: `linear-gradient(to top, ${shadowColor(bottomBandRowCount > 0)}, transparent)`,
                 zIndex: GRID_LAYER.pinShadow,
               }}
             />
           </div>
         </div>
       </div>
+      {showLoadingBar && loadingState === undefined && <DataGridLoadingProgress ariaLabel={gridLabels.loading} />}
     </DataGridRootContext>
     </DirectionProvider>
   );

@@ -124,7 +124,7 @@ describe("invertChange", () => {
 
   it("turns insert into delete and vice versa, preserving rowId/index", () => {
     const insert: DataChange<Row> = {
-      source: "row-op",
+      source: "row-operation",
       ops: [{ type: "insert", rowId: "d", row: { id: "d", name: "Dana", age: 22 }, index: 1 }],
     };
     expect(invertChange(insert).ops).toEqual([
@@ -132,7 +132,7 @@ describe("invertChange", () => {
     ]);
 
     const del: DataChange<Row> = {
-      source: "row-op",
+      source: "row-operation",
       ops: [{ type: "delete", rowId: "b", row: rows[1]!, index: 1 }],
     };
     expect(invertChange(del).ops).toEqual([{ type: "insert", rowId: "b", row: rows[1], index: 1 }]);
@@ -140,7 +140,7 @@ describe("invertChange", () => {
 
   it("swaps from/to for move ops (the row sits at `to` after the batch)", () => {
     const move: DataChange<Row> = {
-      source: "row-op",
+      source: "row-operation",
       ops: [{ type: "move", rowId: "a", row: rows[0]!, from: 0, to: 2 }],
     };
     expect(invertChange(move).ops).toEqual([{ type: "move", rowId: "a", row: rows[0], from: 2, to: 0 }]);
@@ -190,7 +190,7 @@ describe("applyChange", () => {
 
   it("inserts at min(index, length)", () => {
     const change: DataChange<Row> = {
-      source: "row-op",
+      source: "row-operation",
       ops: [{ type: "insert", rowId: "d", row: { id: "d", name: "Dana", age: 22 }, index: 99 }],
     };
     const result = applyChange(rows, change, getRowId);
@@ -199,7 +199,7 @@ describe("applyChange", () => {
 
   it("applies move ops as a delete-by-id + insert at the post-move slot", () => {
     const change: DataChange<Row> = {
-      source: "row-op",
+      source: "row-operation",
       ops: [{ type: "move", rowId: "a", row: rows[0]!, from: 0, to: 2 }],
     };
     const result = applyChange(rows, change, getRowId);
@@ -208,7 +208,7 @@ describe("applyChange", () => {
 
   it("round-trips a move batch through applyChange/invertChange", () => {
     const change: DataChange<Row> = {
-      source: "row-op",
+      source: "row-operation",
       ops: [{ type: "move", rowId: "c", row: rows[2]!, from: 2, to: 0 }],
     };
     const moved = applyChange(rows, change, getRowId);
@@ -242,6 +242,17 @@ describe("applyChange", () => {
     };
     applyChange(rows, change, getRowId);
     expect(rows).toEqual(original);
+  });
+});
+
+describe("createHistory discard", () => {
+  it("removes a recorded change so it can no longer be undone", () => {
+    const history = createHistory<Row>();
+    const change = { source: "edit" as const, ops: [] };
+    history.push(change);
+    expect(history.discard(change)).toBe(true);
+    expect(history.canUndo).toBe(false);
+    expect(history.discard(change)).toBe(false);
   });
 });
 
@@ -396,7 +407,7 @@ describe("createHistory", () => {
   it("round-trips an insert through push/undo/redo (undo removes by id, redo re-inserts)", () => {
     const history = createHistory<Row>();
     const change: DataChange<Row> = {
-      source: "row-op",
+      source: "row-operation",
       ops: [{ type: "insert", rowId: "d", row: { id: "d", name: "Dana", age: 22 }, index: 3 }],
     };
     history.push(change);

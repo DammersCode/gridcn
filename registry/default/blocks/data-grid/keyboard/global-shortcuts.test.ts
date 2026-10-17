@@ -15,6 +15,7 @@ function makeEvent(overrides: Partial<GlobalShortcutEvent> = {}): GlobalShortcut
     shiftKey: false,
     altKey: false,
     isComposing: false,
+    keyCode: 0,
     defaultPrevented: false,
     ...overrides,
   };
@@ -64,6 +65,17 @@ describe("resolveGlobalShortcut - gate rules", () => {
     expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true }), makeCtx({ isMac: true }))).toBe(null);
   });
 
+  it("skips actions the include filter rejects, so an editor-only command keeps undo working", () => {
+    const keymap = { ...DEFAULT_KEYMAP, logEdit: ["mod+z"] } as GlobalShortcutContext["keymap"];
+    const include = (action: string) => action !== "logEdit";
+    expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true }), makeCtx({ keymap }))).toBe(null);
+    expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true }), makeCtx({ keymap, include }))).toBe("undo");
+  });
+
+  it("returns null while an edit session is open", () => {
+    expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true }), makeCtx({ editing: true }))).toBe(null);
+  });
+
   it("rejects both platform modifiers held at once", () => {
     expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true, metaKey: true }), makeCtx())).toBe(null);
   });
@@ -75,6 +87,10 @@ describe("resolveGlobalShortcut - gate rules", () => {
 
   it("skips IME composition (rule 1)", () => {
     expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true, isComposing: true }), makeCtx())).toBe(null);
+  });
+
+  it("ignores the Safari IME confirming key (keyCode 229, isComposing false)", () => {
+    expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true, keyCode: 229 }), makeCtx())).toBe(null);
   });
 
   it("skips events another handler already handled (rule 2)", () => {

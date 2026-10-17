@@ -1,8 +1,8 @@
 import { userEvent } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid";
 import DataGridCustomMarkersDemo from "./data-grid-custom-markers-demo";
+import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import "@/app/global.css";
 
 /** Finds the demo's own grid among any others the harness may have mounted. */

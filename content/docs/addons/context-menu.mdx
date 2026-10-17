@@ -1,7 +1,8 @@
 ---
 title: Context menu
-description: The data-grid-context-menu add-on — header dropdown and right-click menus for sort, pin, autosize, hide, and row operations.
+description: "The data-grid-context-menu add-on: header dropdown and right-click menus for sort, pin, autosize, hide, and row operations."
 icon: Ellipsis
+status: updated
 ---
 
 `data-grid-context-menu` installs two menus: a header dropdown (and a right-click header menu)
@@ -40,70 +41,75 @@ import {
   it outside `DataGridProvider` throws immediately.
 </Callout>
 
+The header dropdown <NewBadge /> opens by keyboard too. <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowDown</kbd> (the
+`openColumnMenu` action) opens the menu of the active cell's column. Arrow keys move through
+the items, and <kbd>Escape</kbd> returns focus to the cell.
+
 ## Cell surface: row-operation items
 
 The row-operation items act on **every view row covered by the current selection**, falling
 back to the right-clicked row when nothing is selected, so a range selection duplicates or
 deletes all of its rows at once. Every mutating item (everything but Copy) is disabled on a
 `readOnly` grid. Right-clicking a cell makes it the active cell with a single-cell selection
-before the menu opens, so the items always act on a known target.
+before the menu opens, so the items always act on a known target. If a Cut or Copy write
+fails, the next time the menu opens it disables both items with the
+`labels.contextMenu.clipboardFailed` tooltip. After that menu closes, the items are enabled again.
 
 The cell-surface items, in order:
 
-1. **Cut** / **Copy** / **Paste** — the native clipboard pipeline (see [Clipboard](/docs/clipboard)).
-2. **Clear contents** — empties the selection to each type's `clearValue()` (the `deleteContents`
+1. **Cut** / **Copy** / **Paste**: the native clipboard pipeline (see [Clipboard](/docs/clipboard)).
+2. **Clear contents**. Empties the selection to each type's `clearValue()` (the `clearContents`
    action, <kbd>Delete</kbd>/<kbd>Backspace</kbd>).
 3. **Insert row above** (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd>) / **Insert
-   row below** (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>) — anchored at the
+   row below** (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>). Anchored at the
    right-clicked row. Hidden without `createRow`.
-4. **Duplicate row(s)** — <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>. Hidden
+4. **Duplicate row(s)**: <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>. Hidden
    without `duplicateRow`.
-5. **Delete row(s)** — <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Backspace</kbd>,
+5. **Delete row(s)**: <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Backspace</kbd>,
    destructive item.
 
 Surfaces with no menu: row markers, the empty grid space below the last row, and the scrollbar
-gutter right-click to nothing at all — no menu and no browser context menu either, matching the
+gutter right-click to nothing at all: no menu and no browser context menu either, matching the
 quiet no-op of a plain click on empty space. The full operation contract (when items appear
 under which props) lives on [Row operations](/docs/row-operations#context-menu).
 
 ## Custom menu items
 
-`DataGridContextMenu` accepts two render slots that replace the built-in item set — one per
-surface. Without a slot, the built-in items show. The slots apply to the right-click menus; the
-header dropdown (`DataGridHeaderDropdown`) keeps its built-in items.
+The menus are data. Each surface resolves its items through a resolver prop on
+`DataGridContextMenu` that receives the built-in set as a `GridMenuItemSpec[]` array
+(`defaults`) and returns the complete item set. Return `defaults` unchanged, filter it, reorder
+it, extend it, or build a fully custom set.
 
-| Prop | Replaces | Called with |
+| Prop | Surface | Called with |
 |---|---|---|
-| `renderCellMenuItems` | the cell-surface items | `{ row, columnId, canInsertRow, canDuplicateRow }` — the right-clicked cell's view row, its column id, and the `createRow`/`duplicateRow` availability flags the built-in set gates its Insert/Duplicate items on |
-| `renderHeaderMenuItems` | the header-surface items | `{ columnId, scrollRoot }` — the right-clicked column's id and the grid's scroll-container element (`null` when the right-clicked element has no grid ancestor) |
+| `getCellMenuItems` <NewBadge /> | the right-click cell menu | `(ctx, defaults)`. `ctx` is `{ rowId, viewRowIndex, columnId, canInsertRow, canDuplicateRow }`: the right-clicked cell's stable row id, its view row, its column id, and the `createRow`/`duplicateRow` availability flags the built-in set gates its Insert/Duplicate items on |
+| `getHeaderMenuItems` <NewBadge /> | the right-click header menu AND every `DataGridHeaderDropdown` inside the wrapper | `(ctx, defaults)`. `ctx` is `{ columnId, scrollRoot }`: the right-clicked column's id and the grid's scroll-container element (`null` when the right-clicked element has no grid ancestor) |
 
-The slot's output is the complete item set — it owns the items, their order, and their gating.
-Compose items from `ContextMenuItem` in `@/components/ui/context-menu`.
+`CellMenuItemsResolver` and `HeaderMenuItemsResolver` are the function types of `getCellMenuItems` and `getHeaderMenuItems`.
+
+The built-in entries carry stable `id`s <NewBadge />, so a resolver keeps or drops them by id:
+
+| Surface | Built-in ids, in order |
+|---|---|
+| Cell | `cut`, `copy`, `paste`, `sep-clipboard`, `clear-contents`, `sep-rows`, `insert-row-above`, `insert-row-below`, `duplicate-rows`, `delete-rows` (the Insert entries appear only with `createRow`, the Duplicate entry only with `duplicateRow`) |
+| Header | `sort-asc`, `sort-desc`, `clear-sort`, `sep-sort`, `pin-left`, `pin-right`, `unpin`, `hide-column`, `sep-autosize`, `autosize`, `autosize-all` (`clear-sort` only while the column is sorted, `unpin` only while it is pinned, the autosize items only while resizing is enabled) |
+
+`GridMenuItemSpec` is an item or a separator. An item carries `id`, `label`, `icon` (a React
+node), `shortcut` (a keymap binding rendered as keycaps), `disabled`, `destructive`, `tooltip`
+(hover hint while disabled), and `onClick`. A separator is `{ id, separator: true }`.
 
 <ComponentPreview name="data-grid-context-menu-slots-demo" />
 
-A custom cell menu with a single hook-using item:
+Keep two row items for the cell surface, and one sort item for both header surfaces:
 
 ```tsx
-import { Plus } from "lucide-react";
-import { ContextMenuItem } from "@/components/ui/context-menu";
-import { useDataGridActions } from "@/components/data-grid/data-grid";
 import { DataGridContextMenu } from "@/components/data-grid-context-menu/data-grid-context-menu";
 
-function InsertRowItem({ row }: { row: number }) {
-  const actions = useDataGridActions();
-  return (
-    <ContextMenuItem onClick={() => actions.insertRow(row, "below")}>
-      <Plus className="size-4 text-muted-foreground" />
-      Insert row below
-    </ContextMenuItem>
-  );
-}
-
 <DataGridContextMenu
-  renderCellMenuItems={({ row, canInsertRow }) => (
-    <>{canInsertRow && <InsertRowItem row={row} />}</>
-  )}
+  getCellMenuItems={(_ctx, defaults) =>
+    defaults.filter((s) => s.id === "insert-row-below" || s.id === "duplicate-rows")
+  }
+  getHeaderMenuItems={(_ctx, defaults) => defaults.filter((s) => s.id === "sort-asc")}
 >
   <DataGridRoot>
     <DataGridHeader />
@@ -112,9 +118,40 @@ function InsertRowItem({ row }: { row: number }) {
 </DataGridContextMenu>
 ```
 
-<Callout type="warn" title="The slot body runs during the wrapper's render">
-  The slot is a plain function call, not a component. Do not call hooks in the slot body — wrap
-  hook-using items in a component of their own, as `InsertRowItem` above.
+Extend the built-in set with a custom item. The resolver closes over hook values that a
+component above it already holds:
+
+```tsx
+import { Plus } from "lucide-react";
+import { useDataGridActions } from "@/components/data-grid/data-grid";
+import { DataGridContextMenu } from "@/components/data-grid-context-menu/data-grid-context-menu";
+
+function GridWithExtraItem() {
+  const actions = useDataGridActions();
+  return (
+    <DataGridContextMenu
+      getCellMenuItems={(ctx, defaults) => [
+        ...defaults,
+        {
+          id: "new-row-here",
+          label: "New row here",
+          icon: <Plus className="size-4 text-muted-foreground" />,
+          onClick: () => actions.insertRow(ctx.viewRowIndex, "below"),
+        },
+      ]}
+    >
+      <DataGridRoot>
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridContextMenu>
+  );
+}
+```
+
+<Callout type="warn" title="The resolver runs during the wrapper's render">
+  The resolver is a plain function call, not a component. Do not call hooks in the resolver
+  body. Capture hook values in the enclosing component and close over them, as above.
 </Callout>
 
 ## Paste permission
@@ -130,12 +167,12 @@ The paste semantics themselves (TSV/HTML formats, anchored expand, tiling) are d
 
 ## Internationalization
 
-All menu item labels come from the `labels` prop — `labels.contextMenu` carries the header
+All menu item labels come from the `labels` prop. `labels.contextMenu` carries the header
 items and the row-operation items, shared verbatim between the right-click menu and the header
 dropdown. See [Internationalization: coverage by group](/docs/i18n#coverage-by-group).
 
 ## Related
 
-- [Columns: pin left/right](/docs/columns#pin-leftright) — the pin behavior the menus control
-- [Row operations](/docs/row-operations) — the operations behind the cell-surface items
-- [Clipboard](/docs/clipboard) — the Cut/Copy/Paste pipeline
+- [Columns: pin left/right](/docs/columns#pin-leftright): the pin behavior the menus control
+- [Row operations](/docs/row-operations): the operations behind the cell-surface items
+- [Clipboard](/docs/clipboard): the Cut/Copy/Paste pipeline

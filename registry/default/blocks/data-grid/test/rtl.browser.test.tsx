@@ -7,9 +7,9 @@ import {
   DataGridProvider,
   DataGridRoot,
   useDataGridActions,
-  gridAttrSelector,
   type GridDirection,
 } from "../data-grid";
+import { gridAttrSelector } from "../data-grid-sdk";
 // real stylesheet so Tailwind's `grid`/`overflow-auto`/CSS vars actually apply — direction geometry is unverifiable without real layout
 import "@/app/global.css";
 
@@ -177,8 +177,7 @@ describe("RTL — scroll geometry (the probe scenario)", () => {
   });
 
   it("scrolls content: an unpinned column moves toward the inline start as scrollLeft grows (columns narrower than the viewport)", async () => {
-    // MUI X shipped a regression test for exactly this class after an RTL clamping bug skipped
-    // columns; our min(viewportWidth, contentWidth) pin anchor makes us susceptible to the same.
+    // The min(viewportWidth, contentWidth) pin anchor is prone to RTL clamping bugs that skip columns.
     await renderGrid({ direction: "rtl", columns: makeColumns(5), rowCount: 20, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
@@ -289,7 +288,7 @@ describe("RTL — keyboard semantics (visual movement)", () => {
     expect(Number(active?.getAttribute("aria-colindex")) - 1).toBe(4);
   });
 
-  it("does NOT flip Tab — it stays reading-order logical under RTL", async () => {
+  it("does not move the active cell on Tab under RTL: Tab leaves the grid", async () => {
     await renderGrid({ direction: "rtl", columns: makeColumns(10), rowCount: 20, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
@@ -297,7 +296,7 @@ describe("RTL — keyboard semantics (visual movement)", () => {
     await userEvent.keyboard("{Tab}");
 
     const active = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("active")}`);
-    expect(Number(active?.getAttribute("aria-colindex")) - 1).toBe(4);
+    expect(Number(active?.getAttribute("aria-colindex")) - 1).toBe(3);
   });
 
   it("keeps Home logical under RTL: it lands on column 0, not the visually-first column", async () => {
@@ -317,8 +316,8 @@ describe("RTL — selection overlay alignment", () => {
     const { actions } = await renderGrid({ direction: "rtl", columns: makeColumns(10), rowCount: 20, width: 800 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
-    actions().selectCell({ col: 2, row: 1 });
-    actions().extendTo({ col: 4, row: 3 });
+    actions().selectCellAt({ col: 2, row: 1 });
+    actions().extendToAt({ col: 4, row: 3 });
 
     const c2 = cellAt(2)!.getBoundingClientRect();
     const c4 = cellAt(4)!.getBoundingClientRect();

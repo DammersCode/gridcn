@@ -1,11 +1,12 @@
 ---
 title: Large data
-description: 100k rows fully loaded — virtualization keeps only the windowed rows mounted.
+description: 100k rows fully loaded. Virtualization keeps only the virtualized rows mounted.
 icon: Gauge
+status: none
 ---
 
 The opposite of lazy loading: the whole dataset is in memory from the start, and
-virtualization does the work — only the rows around the viewport ever mount, no matter the
+virtualization does the work. Only the rows around the viewport ever mount, no matter the
 row count.
 
 ## 100k rows
@@ -23,7 +24,7 @@ Scrolling is a flat line regardless of size.
 
 <InstallCommand item="data-grid-performance-demo" />
 
-The same 100k rows with a top-left FPS overlay — the scroll-performance claim is checkable
+The same 100k rows with a top-left FPS overlay. The scroll-performance claim is checkable
 live.
 
 ## How it works
@@ -40,5 +41,5 @@ If the dataset is bigger than a browser can hold, stop loading it all:
 
 ## Behavior reference
 
-- [Virtualization](/docs/virtualization) — the mechanics
-- [Performance](/docs/performance) — the profiling guide
+- [Virtualization](/docs/virtualization): the mechanics
+- [Performance](/docs/performance): the profiling guide

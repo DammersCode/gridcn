@@ -16,13 +16,16 @@ import { Button } from "@/components/ui/button";
 import {
   useDataGridActions,
   useDataGridLabels,
-  useDataGridScrollToCell,
-  useDataGridSearchCapped,
-  useDataGridSearchMatches,
+  useDataGridScrollToCellAt,
   useDataGridSearchText,
   useDataGridVisibleColumns,
-  gridAttrSelector,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import {
+  useDataGridInstanceId,
+  GRID_ATTR,
+  useDataGridSearchCapped,
+  useDataGridSearchMatches,
+} from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Default debounce (ms) between typing and updating the store's `searchText`. */
 const SEARCH_DEBOUNCE_MS = 200;
@@ -36,23 +39,26 @@ export type DataGridSearchProps = {
    */
   debounceMs?: number;
   /**
-   * "Feels native" bridge: mod+F (Ctrl+F / Cmd+F) with focus inside the grid or its
+   * "Feels native" bridge: mod+F (Ctrl+F / Cmd+F) with focus inside this grid or its
    * toolbar focuses/selects this input instead of opening the browser's find bar. Native
    * find-in-page can't work over virtualized rows (only the window's rendered rows exist in the
    * DOM), and our search already scrolls to matches — this makes mod+F reach for it directly.
-   * Default `true` — when this component is mounted and focus is inside the grid, mod+F
-   * unambiguously means "search this grid". The listener is grid-scoped (never window/document
-   * globally): focus anywhere else on the page is completely untouched, so a page's own search UI
+   * Default `true` — when this component is mounted and focus is inside this grid, mod+F
+   * unambiguously means "search this grid"; with several grids on one page, mod+F always reaches
+   * the grid that holds focus, never a sibling grid's search. The listener is grid-scoped (never
+   * window/document globally): focus anywhere else on the page is completely untouched, so a page's own search UI
    * or the browser's native find behave exactly as if this prop didn't exist. Pass `false` to
    * disable and always defer to the browser's native find.
    */
   captureFindShortcut?: boolean;
 };
 
-/** True when `target` sits inside the grid's own DOM (the scroll/root container or the toolbar), never outside it. */
-function isInsideGridScope(target: EventTarget | null): boolean {
+/** True when `target` sits in this grid's DOM, or in a `[data-grid-toolbar]` that holds `input`; never in a sibling grid. */
+function isInsideGridScope(target: EventTarget | null, instanceId: string, input: HTMLElement | null): boolean {
   if (!(target instanceof Element)) return false;
-  return target.closest(`[role="grid"], ${gridAttrSelector("toolbar")}`) !== null;
+  if (target.closest(`[${GRID_ATTR.instance}="${instanceId}"]`) !== null) return true;
+  const toolbar = target.closest(`[${GRID_ATTR.toolbar}]`);
+  return toolbar !== null && input !== null && toolbar.contains(input);
 }
 
 /**
@@ -69,7 +75,8 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
   const matches = useDataGridSearchMatches();
   const capped = useDataGridSearchCapped();
   const visibleColumns = useDataGridVisibleColumns();
-  const scrollToCell = useDataGridScrollToCell();
+  const scrollToCell = useDataGridScrollToCellAt();
+  const instanceId = useDataGridInstanceId();
 
   // local input value decoupled from the store's debounced searchText, so typing never stalls.
   const [inputValue, setInputValue] = useState(searchText);
@@ -82,25 +89,24 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
     setInputValue(searchText);
   }, [searchText]);
 
-  // the match list changes shape (new search, data change) — restart navigation at the first hit.
-  useEffect(() => {
+  // restart navigation at the first hit during render, not in an effect: a shrinking list must not paint an out-of-range index
+  const [lastMatches, setLastMatches] = useState(matches);
+  if (lastMatches !== matches) {
+    setLastMatches(matches);
     setMatchIndex(0);
-  }, [matches]);
+  }
 
   useEffect(() => () => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
   }, []);
 
-  // Grid-scoped mod+F capture: no DOM ancestor spans both the toolbar and DataGridRoot (siblings
-  // under DataGridProvider, which renders no wrapper element), so this listens on `document` and
-  // gates on isInsideGridScope — same closest('[role="grid"]') resolution context-menu.tsx uses
-  // for reaching outside DataGridRoot's own subtree. Native find is left untouched outside the grid.
+  // No DOM ancestor spans toolbar and root, so listen on document and gate by instance id or the toolbar holding this input.
   useEffect(() => {
     if (!captureFindShortcut) return;
 
     function onKeyDown(event: KeyboardEvent) {
       const isFind = (event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === "f";
-      if (!isFind || !isInsideGridScope(event.target)) return;
+      if (!isFind || !isInsideGridScope(event.target, instanceId, inputRef.current)) return;
       event.preventDefault();
       const input = inputRef.current;
       if (!input) return;
@@ -113,7 +119,7 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
 
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [captureFindShortcut]);
+  }, [captureFindShortcut, instanceId]);
 
   const commitSearch = useCallback(
     (value: string) => {
@@ -132,7 +138,7 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
       const col = visibleColumns.findIndex((c) => c.id === match.columnId);
       if (col === -1) return;
       const coord = { col, row: match.row };
-      actions.setActiveCell(coord);
+      actions.setActiveCellAt(coord);
       scrollToCell(coord);
     },
     [actions, scrollToCell, matches, visibleColumns],

@@ -2,12 +2,14 @@
 title: Introduction
 description: A composable, high-performance data grid for the shadcn ecosystem.
 icon: Sparkles
+status: updated
 ---
 
 gridcn is an editable, high-performance data grid for the shadcn/ui ecosystem: range selection,
 clipboard paste to and from spreadsheet apps, and a typed column model, using real DOM cells
-styled entirely with shadcn tokens. Windowed row rendering keeps it smooth at 100k+ rows — see
-the [performance benchmarks](/docs/performance).
+styled entirely with shadcn tokens. Virtualized row rendering (drawing only the rows in view) keeps
+it smooth at 100k+ rows. See the [performance benchmarks](/docs/performance). The
+[Terms](/docs/terms) page defines the words these docs use for grid concepts.
 
 <ComponentPreview name="data-grid-demo" />
 
@@ -35,28 +37,28 @@ code.
 
 gridcn builds on and learns from several open-source projects. Thank you.
 
-- [shadcn/ui](https://ui.shadcn.com) — the registry distribution system (`registry.json`, the
+- [shadcn/ui](https://ui.shadcn.com): the registry distribution system (`registry.json`, the
   `shadcn` CLI) that ships gridcn. gridcn's chrome also composes its UI primitives: `button`,
   `input`, `select`, `popover`, `dropdown-menu`, `context-menu`, `calendar`, and more.
-- [Base UI](https://base-ui.com) — the headless, accessible primitives underneath the shadcn
+- [Base UI](https://base-ui.com): the headless, accessible primitives underneath the shadcn
   components gridcn builds on, `@base-ui/react`.
-- [diceui](https://diceui.com) (MIT, (c) 2024 Sadman Sakib) — gridcn adapts its toolbar, filter,
+- [diceui](https://diceui.com) (MIT, (c) 2024 Sadman Sakib). gridcn adapts its toolbar, filter,
   and sort-list UX patterns, and its FPS meter (on the [Performance](/docs/performance) page).
-- [tablecn](https://github.com/sadmann7/tablecn) (MIT, (c) Sadman Sakib) — gridcn adapts the
+- [tablecn](https://github.com/sadmann7/tablecn) (MIT, (c) Sadman Sakib). gridcn adapts the
   aligned-row layout of its filter and sort popovers, and its join-column pattern.
-- [@dnd-kit](https://dndkit.com) — drag-to-reorder in the filter and sort-list popovers
+- [@dnd-kit](https://dndkit.com): drag-to-reorder in the filter and sort-list popovers
   (`data-grid-toolbar`, `data-grid-sort-list`). Column drag-to-reorder in the core grid uses
   native pointer events instead, with no dependency.
-- [lucide](https://lucide.dev) (ISC) — the icon set of the grid's chrome: menus, sort indicators,
+- [lucide](https://lucide.dev) (ISC): the icon set of the grid's chrome: menus, sort indicators,
   pagination, markers, and dialogs.
-- [PapaParse](https://www.papaparse.com) (MIT) — the CSV parsing behind `data-grid-io`'s import.
-- [nuqs](https://nuqs.dev) (MIT) — the searchParams-based URL sync that
+- [PapaParse](https://www.papaparse.com) (MIT): the CSV parsing behind `data-grid-io`'s import.
+- [nuqs](https://nuqs.dev) (MIT): the searchParams-based URL sync that
   `data-grid-url-state` builds on.
-- [Standard Schema](https://standardschema.dev) (MIT) — the vendor-neutral validation interface a
+- [Standard Schema](https://standardschema.dev) (MIT): the vendor-neutral validation interface a
   cell's `validate` option accepts: any validator that implements it (zod, valibot, and more).
-- [Zustand](https://zustand.docs.pmnd.rs) — the state store underneath the core grid and every
+- [Zustand](https://zustand.docs.pmnd.rs): the state store underneath the core grid and every
   add-on that needs its own local store, for example `data-grid-presence`.
-- [Fumadocs](https://fumadocs.dev) — this documentation site: the content layer, search, and page
+- [Fumadocs](https://fumadocs.dev): this documentation site: the content layer, search, and page
   layout.
 
 ## Next steps

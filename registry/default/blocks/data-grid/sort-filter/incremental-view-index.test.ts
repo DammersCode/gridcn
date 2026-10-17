@@ -73,7 +73,7 @@ function step(rows: Row[], view: readonly number[], state: State, touched: numbe
   return { next, result };
 }
 
-describe("updateViewIndex — targeted cases from the design spec", () => {
+describe("updateViewIndex: targeted cases", () => {
   const base: Row[] = [
     { name: "Charlie", city: "Berlin", score: 30, note: "x" },
     { name: "alice", city: "Oslo", score: 25, note: "y" },

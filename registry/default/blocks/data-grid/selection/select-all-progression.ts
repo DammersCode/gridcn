@@ -1,11 +1,11 @@
 import { CompactSelection } from "./compact-selection";
-import type { CellCoord, GridRect, GridSelection } from "../types";
+import type { ViewCoord, GridRect, GridSelection } from "../types";
 
 /** Two-stage progression tracked by the caller (interaction layer): which stage the last `selectAllProgression` call produced. */
 export type SelectAllStage = "region" | "all" | null;
 
 /** Probes whether the cell at `coord` is empty, via the cell type's `isEmpty` — same contract as `jumpToDataBoundary`'s local helper. */
-export type IsEmptyAt = (coord: CellCoord) => boolean;
+export type IsEmptyAt = (coord: ViewCoord) => boolean;
 
 function wholeGridRect(rowCount: number, colCount: number): GridRect {
   return { x: 0, y: 0, width: colCount, height: rowCount };
@@ -17,7 +17,7 @@ function wholeGridRect(rowCount: number, colCount: number): GridRect {
  * just outside the rect is entirely empty. An empty `active` cell's region is itself (Excel parity).
  * O(perimeter × rows/cols touched) — only called on an explicit Ctrl+A, never a hot path.
  */
-export function computeDataRegion(active: CellCoord, rowCount: number, colCount: number, isEmptyAt: IsEmptyAt): GridRect {
+export function computeDataRegion(active: ViewCoord, rowCount: number, colCount: number, isEmptyAt: IsEmptyAt): GridRect {
   if (isEmptyAt(active)) return { x: active.col, y: active.row, width: 1, height: 1 };
 
   let left = active.col;
@@ -34,26 +34,30 @@ export function computeDataRegion(active: CellCoord, rowCount: number, colCount:
     return false;
   };
 
-  // grow each edge outward while the next row/column just past it still has data; a pass with no
-  // growth on any edge means the rect is stable (Excel's flood-fill-by-line, not per-cell).
-  let grew = true;
-  while (grew) {
-    grew = false;
-    if (top > 0 && rowHasData(top - 1, left, right)) {
-      top--;
-      grew = true;
+  const growRows = (): boolean => {
+    const before = bottom - top;
+    while (top > 0 && rowHasData(top - 1, left, right)) top--;
+    while (bottom < rowCount - 1 && rowHasData(bottom + 1, left, right)) bottom++;
+    return bottom - top > before;
+  };
+  const growColumns = (): boolean => {
+    const before = right - left;
+    while (left > 0 && colHasData(left - 1, top, bottom)) left--;
+    while (right < colCount - 1 && colHasData(right + 1, top, bottom)) right++;
+    return right - left > before;
+  };
+
+  // Each axis grows to its limit; the other axis is re-checked only after this one grew.
+  let rowsDirty = true;
+  let columnsDirty = true;
+  while (rowsDirty || columnsDirty) {
+    if (rowsDirty) {
+      rowsDirty = false;
+      if (growRows()) columnsDirty = true;
     }
-    if (bottom < rowCount - 1 && rowHasData(bottom + 1, left, right)) {
-      bottom++;
-      grew = true;
-    }
-    if (left > 0 && colHasData(left - 1, top, bottom)) {
-      left--;
-      grew = true;
-    }
-    if (right < colCount - 1 && colHasData(right + 1, top, bottom)) {
-      right++;
-      grew = true;
+    if (columnsDirty) {
+      columnsDirty = false;
+      if (growColumns()) rowsDirty = true;
     }
   }
 
@@ -64,7 +68,7 @@ function isRect(rect: GridRect, other: GridRect): boolean {
   return rect.x === other.x && rect.y === other.y && rect.width === other.width && rect.height === other.height;
 }
 
-function selectionForRect(rect: GridRect, anchor: CellCoord): GridSelection {
+function selectionForRect(rect: GridRect, anchor: ViewCoord): GridSelection {
   return {
     current: { cell: anchor, range: rect, rangeStack: [] },
     rows: CompactSelection.empty(),
@@ -73,7 +77,7 @@ function selectionForRect(rect: GridRect, anchor: CellCoord): GridSelection {
 }
 
 /**
- * Two-stage Ctrl+A (Excel/Sheets parity, docs/agent-work/specs/2026-07-18-two-stage-select-all-design.md):
+ * Two-stage Ctrl+A (Excel/Sheets parity):
  * stage 1 selects the active cell's data region, stage 2 (an immediate repeat, tracked by the
  * caller via `stage`) selects the whole grid. When the region already equals the whole grid
  * (dense data), stage 1 already lands on `"all"` so a repeated press stays a no-op rather than
@@ -84,7 +88,7 @@ export function selectAllProgression(
   selection: GridSelection,
   rowCount: number,
   colCount: number,
-  active: CellCoord,
+  active: ViewCoord,
   isEmptyAt: IsEmptyAt,
   stage: SelectAllStage,
 ): { selection: GridSelection; stage: "region" | "all" } {

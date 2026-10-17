@@ -72,15 +72,21 @@ function LazySwrGrid(): ReactNode {
     <div className="w-full flex flex-col gap-2">
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          {(TOTAL_COUNT - lazy.unloadedCount).toLocaleString()} / {TOTAL_COUNT.toLocaleString()} rows loaded
+          {(TOTAL_COUNT - lazy.unloadedCount).toLocaleString("en-US")} / {TOTAL_COUNT.toLocaleString("en-US")} rows loaded
           {lazy.isLoading && " · fetching…"}
         </span>
         <span>each window cached globally by SWR</span>
       </div>
       <div className="h-[420px] overflow-hidden rounded-md border border-border">
-        <DataGridProvider data={lazy.gridProps.data} columns={columns} getRowId={lazy.gridProps.getRowId} onDataChange={lazy.onDataChange}>
+        <DataGridProvider
+          data={lazy.gridProps.data}
+          columns={columns}
+          getRowId={lazy.gridProps.getRowId}
+          onDataChange={lazy.onDataChange}
+          onRenderedRowsChange={lazy.gridProps.onRenderedRowsChange}
+        >
           <DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />
-          <DataGridRoot className="h-full rounded-none border-none" onRowWindowChange={lazy.gridProps.onRowWindowChange}>
+          <DataGridRoot className="h-full rounded-none border-none">
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>

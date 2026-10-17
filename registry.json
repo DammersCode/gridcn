@@ -19,7 +19,10 @@
             }
          },
          "dependencies": [
-            "zustand"
+            "zustand@^5.0.15",
+            "use-sync-external-store@^1.6.0",
+            "lucide-react@^1.46.0",
+            "@base-ui/react@^1.8.0"
          ],
          "registryDependencies": [
             "button",
@@ -33,14 +36,19 @@
             "separator",
             "tooltip"
          ],
-         "files": [
-            {
-               "path": "registry/default/blocks/data-grid/body.tsx",
-               "type": "registry:component",
-               "target": "components/data-grid/body.tsx"
-            },
-            {
-               "path": "registry/default/blocks/data-grid/cell-types/cell-span.tsx",
+          "files": [
+             {
+                "path": "registry/default/blocks/data-grid/body.tsx",
+                "type": "registry:component",
+                "target": "components/data-grid/body.tsx"
+             },
+             {
+                "path": "registry/default/blocks/data-grid/cell-types/capabilities.ts",
+                "type": "registry:component",
+                "target": "components/data-grid/cell-types/capabilities.ts"
+             },
+             {
+                "path": "registry/default/blocks/data-grid/cell-types/cell-span.tsx",
                "type": "registry:component",
                "target": "components/data-grid/cell-types/cell-span.tsx"
             },
@@ -60,9 +68,29 @@
                "target": "components/data-grid/cell-types/date.tsx"
             },
             {
+               "path": "registry/default/blocks/data-grid/cell-types/safe-href.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/cell-types/safe-href.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/cell-types/url.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid/cell-types/url.tsx"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/cell-types/long-text.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid/cell-types/long-text.tsx"
+            },
+            {
                "path": "registry/default/blocks/data-grid/cell-types/display-text.ts",
                "type": "registry:component",
                "target": "components/data-grid/cell-types/display-text.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/cell-types/safe-text.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/cell-types/safe-text.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/cell-types/index.ts",
@@ -88,11 +116,6 @@
                "path": "registry/default/blocks/data-grid/cell.tsx",
                "type": "registry:component",
                "target": "components/data-grid/cell.tsx"
-            },
-            {
-               "path": "registry/default/blocks/data-grid/clipboard/index.ts",
-               "type": "registry:component",
-               "target": "components/data-grid/clipboard/index.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/clipboard/parse-clipboard.ts",
@@ -128,6 +151,11 @@
                "path": "registry/default/blocks/data-grid/columns/index.ts",
                "type": "registry:component",
                "target": "components/data-grid/columns/index.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/columns/autosize-columns.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/columns/autosize-columns.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/columns/measure-column-text.ts",
@@ -175,9 +203,14 @@
                "target": "components/data-grid/data-attributes.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/data-grid.tsx",
-               "type": "registry:component",
-               "target": "components/data-grid/data-grid.tsx"
+                "path": "registry/default/blocks/data-grid/data-grid.tsx",
+                "type": "registry:component",
+                "target": "components/data-grid/data-grid.tsx"
+            },
+            {
+                "path": "registry/default/blocks/data-grid/data-grid-sdk.ts",
+                "type": "registry:component",
+                "target": "components/data-grid/data-grid-sdk.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/header-cell.tsx",
@@ -205,6 +238,16 @@
                "target": "components/data-grid/interaction/use-async-validate.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/interaction/safe-set-pointer-capture.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/interaction/safe-set-pointer-capture.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/interaction/use-cell-editor.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/interaction/use-cell-editor.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/interaction/use-commit-guard.ts",
                "type": "registry:component",
                "target": "components/data-grid/interaction/use-commit-guard.ts"
@@ -218,6 +261,16 @@
                "path": "registry/default/blocks/data-grid/interaction/use-grid-interaction.ts",
                "type": "registry:component",
                "target": "components/data-grid/interaction/use-grid-interaction.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/interaction/closest-grid-root.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/interaction/closest-grid-root.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/interaction/is-composing-key.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/interaction/is-composing-key.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/interaction/use-seed-focus.ts",
@@ -265,6 +318,11 @@
                "target": "components/data-grid/keyboard/platform.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/keyboard/shortcut-label.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/keyboard/shortcut-label.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/keyboard/use-data-grid-global-shortcuts.ts",
                "type": "registry:component",
                "target": "components/data-grid/keyboard/use-data-grid-global-shortcuts.ts"
@@ -288,6 +346,11 @@
                "path": "registry/default/blocks/data-grid/root.tsx",
                "type": "registry:component",
                "target": "components/data-grid/root.tsx"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/row-element-registry.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/row-element-registry.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/row.tsx",
@@ -420,6 +483,11 @@
                "target": "components/data-grid/sort-filter/matches-filter.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/store/api.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/api.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/store/commit.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/commit.ts"
@@ -429,13 +497,18 @@
                "type": "registry:component",
                "target": "components/data-grid/store/compute.ts"
             },
-            {
-               "path": "registry/default/blocks/data-grid/store/create-store.ts",
-               "type": "registry:component",
-               "target": "components/data-grid/store/create-store.ts"
-            },
-            {
-               "path": "registry/default/blocks/data-grid/store/hooks.ts",
+             {
+                "path": "registry/default/blocks/data-grid/store/create-store.ts",
+                "type": "registry:component",
+                "target": "components/data-grid/store/create-store.ts"
+             },
+             {
+                "path": "registry/default/blocks/data-grid/store/data-write.ts",
+                "type": "registry:component",
+                "target": "components/data-grid/store/data-write.ts"
+             },
+             {
+                "path": "registry/default/blocks/data-grid/store/hooks.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/hooks.ts"
             },
@@ -445,14 +518,29 @@
                "target": "components/data-grid/store/index.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/store/internal-actions.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/internal-actions.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/store/row-index.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/row-index.ts"
             },
+    {
+               "path": "registry/default/blocks/data-grid/store/selection-state.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/selection-state.ts"
+    },
             {
                "path": "registry/default/blocks/data-grid/store/provider.tsx",
                "type": "registry:component",
                "target": "components/data-grid/store/provider.tsx"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/store/plugins.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/plugins.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/store/types.ts",
@@ -490,44 +578,44 @@
                "target": "components/data-grid/validation/index.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/windowing/direction.ts",
+               "path": "registry/default/blocks/data-grid/virtualization/direction.ts",
                "type": "registry:component",
-               "target": "components/data-grid/windowing/direction.ts"
+               "target": "components/data-grid/virtualization/direction.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/windowing/index.ts",
+               "path": "registry/default/blocks/data-grid/virtualization/index.ts",
                "type": "registry:component",
-               "target": "components/data-grid/windowing/index.ts"
+               "target": "components/data-grid/virtualization/index.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/windowing/use-column-window.ts",
+               "path": "registry/default/blocks/data-grid/virtualization/use-column-window.ts",
                "type": "registry:component",
-               "target": "components/data-grid/windowing/use-column-window.ts"
+               "target": "components/data-grid/virtualization/use-column-window.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/windowing/use-pin-shadow-edges.ts",
+               "path": "registry/default/blocks/data-grid/virtualization/use-pin-shadow-edges.ts",
                "type": "registry:component",
-               "target": "components/data-grid/windowing/use-pin-shadow-edges.ts"
+               "target": "components/data-grid/virtualization/use-pin-shadow-edges.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/windowing/use-row-window.ts",
+               "path": "registry/default/blocks/data-grid/virtualization/use-row-window.ts",
                "type": "registry:component",
-               "target": "components/data-grid/windowing/use-row-window.ts"
+               "target": "components/data-grid/virtualization/use-row-window.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/windowing/use-scroll-snapshot.ts",
+               "path": "registry/default/blocks/data-grid/virtualization/use-scroll-snapshot.ts",
                "type": "registry:component",
-               "target": "components/data-grid/windowing/use-scroll-snapshot.ts"
+               "target": "components/data-grid/virtualization/use-scroll-snapshot.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/windowing/use-scrolled-edges.ts",
+               "path": "registry/default/blocks/data-grid/virtualization/use-scrolled-edges.ts",
                "type": "registry:component",
-               "target": "components/data-grid/windowing/use-scrolled-edges.ts"
+               "target": "components/data-grid/virtualization/use-scrolled-edges.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/windowing/velocity-estimator.ts",
+               "path": "registry/default/blocks/data-grid/virtualization/velocity-estimator.ts",
                "type": "registry:component",
-               "target": "components/data-grid/windowing/velocity-estimator.ts"
+               "target": "components/data-grid/virtualization/velocity-estimator.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/LICENSE.md",
@@ -546,7 +634,7 @@
          "description": "Multiplayer presence add-on for the gridcn data grid: useDataGridPresence registers an overlay plugin that paints remote users' live selections as named, colored highlights, with zero core re-renders.",
          "author": "gridcn",
          "dependencies": [
-            "zustand"
+            "zustand@^5.0.15"
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid"
@@ -584,7 +672,7 @@
          "description": "Fill-handle add-on for the gridcn data grid: drag-to-tile with series inference (arithmetic runs, zero-padded numbers, prefix+number sequences), mod+D/mod+R keyboard fill, via the overlay-plugin seam, with zero core re-renders.",
          "author": "gridcn",
          "dependencies": [
-            "zustand"
+            "zustand@^5.0.15"
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid"
@@ -621,9 +709,9 @@
                "target": "components/data-grid-fill/fill-store.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid-fill/fill-tracker.tsx",
+               "path": "registry/default/blocks/data-grid-fill/fill-mount.tsx",
                "type": "registry:component",
-               "target": "components/data-grid-fill/fill-tracker.tsx"
+               "target": "components/data-grid-fill/fill-mount.tsx"
             },
             {
                "path": "registry/default/blocks/data-grid-fill/fill.ts",
@@ -657,7 +745,7 @@
          "description": "Pinned top/bottom row bands add-on for the gridcn data grid: useDataGridPinnedRows registers a rowBands spec (e.g. a totals row) that stays sticky under the header or at the viewport's bottom edge, pixel-aligned with data rows and pinned columns. useDataGridAggregate computes filter-aware sum/avg/min/max/count for those bands.",
          "author": "gridcn",
          "dependencies": [
-            "zustand"
+            "zustand@^5.0.15"
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid"
@@ -731,8 +819,9 @@
          "description": "Toolbar add-on for the gridcn data grid: quick-search with match navigation, a per-column filter menu (aligned rows, join column, drag-to-reorder via @dnd-kit/react), and a column visibility/pin menu.",
          "author": "gridcn",
          "dependencies": [
-            "@dnd-kit/dom",
-            "@dnd-kit/react"
+            "@dnd-kit/dom@~0.5.0",
+            "@dnd-kit/react@~0.5.0",
+            "lucide-react@^1.46.0"
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
@@ -790,7 +879,11 @@
          "title": "Data Grid Context Menu",
          "description": "Right-click context menus for the gridcn data grid: cut/copy/paste/clear/row operations on cells, sort/pin/hide/autosize on headers.",
          "author": "gridcn",
-         "dependencies": [],
+         "dependencies": [
+            "lucide-react@^1.46.0",
+            "@base-ui/react@^1.8.0",
+            "zustand@^5.0.15"
+         ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
             "context-menu",
@@ -809,24 +902,14 @@
                "target": "components/data-grid-context-menu/context-menu.tsx"
             },
             {
-               "path": "registry/default/blocks/data-grid-context-menu/cell-menu-content.tsx",
-               "type": "registry:component",
-               "target": "components/data-grid-context-menu/cell-menu-content.tsx"
-            },
-            {
-               "path": "registry/default/blocks/data-grid-context-menu/header-menu-content.tsx",
-               "type": "registry:component",
-               "target": "components/data-grid-context-menu/header-menu-content.tsx"
-            },
-            {
                "path": "registry/default/blocks/data-grid-context-menu/header-dropdown.tsx",
                "type": "registry:component",
                "target": "components/data-grid-context-menu/header-dropdown.tsx"
             },
             {
-               "path": "registry/default/blocks/data-grid-context-menu/autosize-column.ts",
+               "path": "registry/default/blocks/data-grid-context-menu/menu-items.tsx",
                "type": "registry:component",
-               "target": "components/data-grid-context-menu/autosize-column.ts"
+               "target": "components/data-grid-context-menu/menu-items.tsx"
             },
             {
                "path": "registry/default/blocks/data-grid-context-menu/menu-shortcut.tsx",
@@ -917,10 +1000,11 @@
          "description": "Syncs the gridcn data grid's sort/filter/search state with the URL via nuqs (router-agnostic — requires a NuqsAdapter above it). Mount <DataGridUrlState prefix?> inside the provider; the prefix option namespaces the URL keys for multiple grids on one page.",
          "author": "gridcn",
          "dependencies": [
-            "nuqs"
+            "nuqs@^2.10.1"
          ],
          "registryDependencies": [
-            "DammersCode/gridcn/data-grid"
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-pagination"
          ],
          "files": [
             {
@@ -980,7 +1064,7 @@
          "description": "Dependency-free file dropzone: drag and drop or click to choose, with accept, size, and count checks and a compact variant. Used by the data-grid-io import dialog.",
          "author": "gridcn",
          "dependencies": [
-            "lucide-react"
+            "lucide-react@^1.46.0"
          ],
          "files": [
             {
@@ -999,12 +1083,13 @@
          "title": "Data Grid IO",
          "description": "Import/export add-on for the gridcn data grid: xlsx and csv, with delimiter detection and preview. New user-facing strings live under `labels.io` (see lib/labels.ts DataGridIOLabels) — export button/menu, import dialog (file picker, header-row toggle, delimiter select, column mapping, preview, errors).",
          "author": "gridcn",
-         "dependencies": [
-            "xlsx",
-            "papaparse"
-         ],
+          "dependencies": [
+             "hucre@1.1.0",
+             "papaparse@^5.7.0",
+             "lucide-react@^1.46.0"
+          ],
          "devDependencies": [
-            "@types/papaparse"
+            "@types/papaparse@^5.5.2"
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
@@ -1026,6 +1111,11 @@
                "target": "components/data-grid-io/export-grid.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid-io/xlsx-writer.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-io/xlsx-writer.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid-io/use-data-grid-export.ts",
                "type": "registry:component",
                "target": "components/data-grid-io/use-data-grid-export.ts"
@@ -1036,9 +1126,29 @@
                "target": "components/data-grid-io/export-button.tsx"
             },
             {
+               "path": "registry/default/blocks/data-grid-io/print-grid.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-io/print-grid.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-io/use-data-grid-print.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-io/use-data-grid-print.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-io/print-button.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid-io/print-button.tsx"
+            },
+            {
                "path": "registry/default/blocks/data-grid-io/parse-import-file.ts",
                "type": "registry:component",
                "target": "components/data-grid-io/parse-import-file.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-io/xlsx-reader.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-io/xlsx-reader.ts"
             },
             {
                "path": "registry/default/blocks/data-grid-io/match-import-column.ts",
@@ -1074,7 +1184,7 @@
          "name": "data-grid-lazy",
          "type": "registry:block",
          "title": "Data Grid Lazy",
-         "description": "Virtual data fetching add-on for the gridcn data grid: useDataGridLazyRows maintains a sparse data array and fetches row windows on demand from onRowWindowChange, with range coalescing, in-flight dedup, abort-on-unmount, and error revert/refetch. A dev-only DataGridLazyGuard warns when uncontrolled sort/filter/search fires while rows are still unloaded.",
+         "description": "Virtual data fetching add-on for the gridcn data grid: useDataGridLazyRows maintains a sparse data array and fetches row windows on demand from onRenderedRowsChange, with range coalescing, in-flight dedup, abort-on-unmount, and error revert/refetch. A dev-only DataGridLazyGuard warns when uncontrolled sort/filter/search fires while rows are still unloaded.",
          "author": "gridcn",
          "dependencies": [],
          "registryDependencies": [
@@ -1112,7 +1222,9 @@
          "title": "Data Grid Pagination",
          "description": "Pagination add-on for the gridcn data grid: useDataGridPagination (client mode slices data; server mode is fully controlled) plus a composable <DataGridPaginationBar /> footer (range, page-size select, first/prev/pages/next/last parts) — shadcn-Pagination style, renders a default layout with no children or a custom composition of parts. New user-facing strings live under labels.pagination (see data-grid/labels.ts DataGridPaginationLabels). Zero core changes — purely additive.",
          "author": "gridcn",
-         "dependencies": [],
+         "dependencies": [
+            "lucide-react@^1.46.0"
+         ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
             "button",
@@ -1151,8 +1263,9 @@
          "description": "Toolbar sort add-on for the gridcn data grid: a sort button + popover listing applied sorts as editable, aligned rows (column / direction / remove / drag handle), with add/clear-all and precedence reordering via @dnd-kit/react drag or ArrowUp/ArrowDown on the grip (array order in SortSpec[]). New user-facing strings live under labels.sort (see data-grid/labels.ts DataGridSortLabels). Zero core changes — purely additive.",
          "author": "gridcn",
          "dependencies": [
-            "@dnd-kit/dom",
-            "@dnd-kit/react"
+            "@dnd-kit/dom@~0.5.0",
+            "@dnd-kit/react@~0.5.0",
+            "lucide-react@^1.46.0"
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
@@ -1171,6 +1284,40 @@
                "path": "registry/default/blocks/data-grid-sort-list/sort-list.tsx",
                "type": "registry:component",
                "target": "components/data-grid-sort-list/sort-list.tsx"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },      {
+         "name": "data-grid-status-bar",
+         "type": "registry:block",
+         "title": "Data Grid Status Bar",
+         "description": "Status-bar add-on for the gridcn data grid: <DataGridStatusBar /> shows count, sum, avg, min, and max of the selected cells under the grid (useDataGridSelectionStats is the headless hook). Numbers are detected by value (finite numbers), sums use Neumaier-compensated summation, a single-column selection formats through that column's toDisplayText, and above 200,000 cells the walk caps and flags the values with ≈. New user-facing strings live under labels.statusBar (see data-grid/labels.ts DataGridStatusBarLabels). Zero core changes — purely additive.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid"
+         ],
+         "files": [
+            {
+               "path": "registry/default/blocks/data-grid-status-bar/data-grid-status-bar.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-status-bar/data-grid-status-bar.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-status-bar/status-bar.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid-status-bar/status-bar.tsx"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-status-bar/use-data-grid-selection-stats.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-status-bar/use-data-grid-selection-stats.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-status-bar/compute-selection-stats.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-status-bar/compute-selection-stats.ts"
             }
          ],
          "categories": [
@@ -1277,7 +1424,8 @@
          "description": "A worked custom cell type: currency storage as a plain number, cached locale-formatted display, and a symbol-stripping fromText, registered via the cellTypes prop.",
          "author": "gridcn",
          "registryDependencies": [
-            "DammersCode/gridcn/data-grid"
+            "DammersCode/gridcn/data-grid",
+            "input"
          ],
          "files": [
             {
@@ -1351,7 +1499,8 @@
          "author": "gridcn",
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
-            "DammersCode/gridcn/data-grid-history"
+            "DammersCode/gridcn/data-grid-history",
+            "button"
          ],
          "files": [
             {
@@ -1399,10 +1548,10 @@
          "name": "data-grid-context-menu-slots-demo",
          "type": "registry:example",
          "title": "Data Grid Context Menu Slots Demo",
-         "description": "Custom context menu items via renderCellMenuItems and renderHeaderMenuItems, replacing the built-in item sets.",
+         "description": "Custom context menu items via getCellMenuItems and getHeaderMenuItems, replacing the built-in item sets.",
          "author": "gridcn",
          "dependencies": [
-            "lucide-react"
+            "lucide-react@^1.46.0"
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
@@ -1432,7 +1581,8 @@
          "author": "gridcn",
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
-            "DammersCode/gridcn/data-grid-keybindings"
+            "DammersCode/gridcn/data-grid-keybindings",
+            "button"
          ],
          "files": [
             {
@@ -1485,7 +1635,7 @@
          "description": "Sort/filter/search/pagination state synced to the URL via nuqs; wrapped in the Next.js app-router NuqsAdapter (swap for your framework's adapter).",
          "author": "gridcn",
          "dependencies": [
-            "nuqs"
+            "nuqs@^2.10.1"
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
@@ -1560,7 +1710,7 @@
             "data"
          ],
          "dependencies": [
-            "lucide-react"
+            "lucide-react@^1.46.0"
          ]
       },
       {
@@ -1589,7 +1739,7 @@
             "data"
          ],
          "dependencies": [
-            "lucide-react"
+            "lucide-react@^1.46.0"
          ]
       },
       {
@@ -1653,7 +1803,9 @@
          "description": "Drag a header to reorder columns within its pin zone (enableColumnReorder, per-column reorderable opt-out, pinned-right column), plus a column picker wired to the programmatic setColumnOrder(id, targetId, position) path.",
          "author": "gridcn",
          "registryDependencies": [
-            "DammersCode/gridcn/data-grid"
+            "DammersCode/gridcn/data-grid",
+            "button",
+            "select"
          ],
          "files": [
             {
@@ -1671,7 +1823,7 @@
             "data"
          ],
          "dependencies": [
-            "lucide-react"
+            "lucide-react@^1.46.0"
          ]
       },
       {
@@ -1683,7 +1835,8 @@
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
             "DammersCode/gridcn/data-grid-context-menu",
-            "DammersCode/gridcn/data-grid-toolbar"
+            "DammersCode/gridcn/data-grid-toolbar",
+            "button"
          ],
          "files": [
             {
@@ -1708,7 +1861,9 @@
          "description": "Action-buttons column pattern: a pinned-right readOnly column whose renderCell composes shadcn Buttons over store actions (startEditing on the row's first editable cell, deleteRows/duplicateRows by view index) plus a more dropdown (Edit, Duplicate, Delete).",
          "author": "gridcn",
          "registryDependencies": [
-            "DammersCode/gridcn/data-grid"
+            "DammersCode/gridcn/data-grid",
+            "button",
+            "dropdown-menu"
          ],
          "files": [
             {
@@ -1726,7 +1881,7 @@
             "data"
          ],
          "dependencies": [
-            "lucide-react"
+            "lucide-react@^1.46.0"
          ]
       },
       {
@@ -1739,7 +1894,8 @@
             "DammersCode/gridcn/data-grid",
             "DammersCode/gridcn/data-grid-context-menu",
             "DammersCode/gridcn/data-grid-toolbar",
-            "switch"
+            "switch",
+            "button"
          ],
          "files": [
             {
@@ -1761,7 +1917,7 @@
          "name": "data-grid-large-data-demo",
          "type": "registry:example",
          "title": "Data Grid Large Data Demo",
-         "description": "100k generated rows proving row virtualization: only the windowed rows around the viewport ever mount.",
+         "description": "100k generated rows proving row virtualization: only the virtualized rows around the viewport ever mount.",
          "author": "gridcn",
          "registryDependencies": [
             "DammersCode/gridcn/data-grid"
@@ -1862,7 +2018,8 @@
          "description": "A fully-styled brand column (per-column cellClassName/headerClassName), a fully-styled at-risk row (getRowClassName beyond a bg tint), and a live density/rowHeight toggle.",
          "author": "gridcn",
          "registryDependencies": [
-            "DammersCode/gridcn/data-grid"
+            "DammersCode/gridcn/data-grid",
+            "select"
          ],
          "files": [
             {
@@ -1948,6 +2105,56 @@
          "categories": [
             "data"
          ]
+      },      {
+         "name": "data-grid-status-bar-demo",
+         "type": "registry:example",
+         "title": "Data Grid Status Bar Demo",
+         "description": "Select a range, a row, or a column — the status bar below the grid aggregates count, sum, avg, min, and max of the selection in real time.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-status-bar"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-status-bar-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-status-bar-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-detail-panel-demo",
+         "type": "registry:example",
+         "title": "Data Grid Detail Panel Demo",
+         "description": "Show the active row in a non-modal side panel opened from onCellClick or a custom Ctrl+Shift+Enter command.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-detail-panel-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-detail-panel-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
       },
       {
          "name": "data-grid-presence-demo",
@@ -1979,7 +2186,7 @@
          "name": "data-grid-events-demo",
          "type": "registry:example",
          "title": "Data Grid Events Demo",
-         "description": "Grid with a live inspector panel pretty-printing the latest payload per event: onDataChange, onSelectionChange, onSortChange, onFilterChange/join, onFill, onRowWindowChange, onColumnLayoutChange, and a presence read-back button.",
+         "description": "Grid with a live inspector panel pretty-printing the latest payload per event: onDataChange, onSelectionChange, onSortChange, onFilterChange/join, onFill, onRenderedRowsChange, onColumnLayoutChange, and a presence read-back button.",
          "author": "gridcn",
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
@@ -2011,10 +2218,10 @@
          "description": "Nine rejection paths in one grid: a sync function (Age), hand-rolled sync/async/coercing Standard Schemas (Email, SKU, Price), a soft onInvalid rule (Notes), and one column per major library that implements Standard Schema natively — Zod (Score), Joi (Code), Valibot (Tag). Pasting mixed valid/invalid values shows the bulk-rejection path.",
          "author": "gridcn",
          "dependencies": [
-            "joi",
-            "sonner",
-            "valibot",
-            "zod"
+            "joi@^18.2.9",
+            "sonner@^2.0.8",
+            "valibot@^1.5.0",
+            "zod@^4.6.5"
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
@@ -2065,7 +2272,8 @@
          "author": "gridcn",
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
-            "DammersCode/gridcn/data-grid-history"
+            "DammersCode/gridcn/data-grid-history",
+            "button"
          ],
          "files": [
             {
@@ -2191,7 +2399,7 @@
             "data"
          ],
          "dependencies": [
-            "lucide-react"
+            "lucide-react@^1.46.0"
          ]
       },
       {
@@ -2201,7 +2409,7 @@
          "description": "10k rows fetched through a TanStack Query cache: each scrolled window becomes a fetchQuery (deduped, cached for the session, scrolling back never refetches).",
          "author": "gridcn",
          "dependencies": [
-            "@tanstack/react-query"
+            "@tanstack/react-query@^5.103.2"
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
@@ -2225,7 +2433,7 @@
          "description": "10k rows fetched through SWR's global cache via preload: each scrolled window is fetched once per key and shared with any useSWR consumer.",
          "author": "gridcn",
          "dependencies": [
-            "swr"
+            "swr@^2.5.1"
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
@@ -2249,7 +2457,7 @@
          "description": "Server-mode pagination backed by useQuery: the current page/pageSize is the query key, edits write through to the fake server then invalidate the cached pages.",
          "author": "gridcn",
          "dependencies": [
-            "@tanstack/react-query"
+            "@tanstack/react-query@^5.103.2"
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
@@ -2283,7 +2491,7 @@
          "description": "Server-mode pagination backed by useSWR: the page is cached by key so paging back is instant, and edits revalidate the current key after writing through.",
          "author": "gridcn",
          "dependencies": [
-            "swr"
+            "swr@^2.5.1"
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
@@ -2317,7 +2525,7 @@
          "description": "The full remote contract: header-click sort, filter menu, quick search and pagination are all sent to the fake server in one useQuery per view state; edits write through and refetch.",
          "author": "gridcn",
          "dependencies": [
-            "@tanstack/react-query"
+            "@tanstack/react-query@^5.103.2"
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
@@ -2353,7 +2561,9 @@
          "author": "gridcn",
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
-            "DammersCode/gridcn/data-grid-history"
+            "DammersCode/gridcn/data-grid-history",
+            "button",
+            "input"
          ],
          "files": [
             {
@@ -2381,7 +2591,8 @@
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
             "DammersCode/gridcn/data-grid-toolbar",
-            "DammersCode/gridcn/data-grid-history"
+            "DammersCode/gridcn/data-grid-history",
+            "button"
          ],
          "files": [
             {

@@ -1,0 +1,97 @@
+{
+  "registry/default/blocks/data-grid/columns/use-column-reorder.ts": {
+    "useColumnReorder": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid/columns/use-column-resize.ts": {
+    "useColumnResize": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid/keyboard/use-data-grid-global-shortcuts.ts": {
+    "useDataGridGlobalShortcuts": [
+      "Todo: (BuildHIR::lowerExpression) Support UpdateExpression where argument is a global"
+    ]
+  },
+  "registry/default/blocks/data-grid/rows/use-row-reorder.ts": {
+    "useRowReorder": [
+      "Immutability: Cannot access variable before it is declared"
+    ]
+  },
+  "registry/default/blocks/data-grid/validation/bulk-generation.ts": {
+    "useBulkGeneration": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid-fill/fill-mount.tsx": {
+    "FillMount": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid-fill/use-data-grid-fill.tsx": {
+    "useDataGridFill": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid-fill/use-fill-handle.ts": {
+    "useFillHandle": [
+      "Immutability: Cannot access variable before it is declared"
+    ]
+  },
+  "registry/default/blocks/data-grid-history/use-data-grid-history.ts": {
+    "useDataGridHistory": [
+      "Hooks: Hooks must be called at the top level in the body of a function component or custom hook, and may not be called within function expressions. See the Rules of Hooks (https://react.dev/warnings/invalid-hook-call-warning)"
+    ]
+  },
+  "registry/default/blocks/data-grid-io/import-dialog.tsx": {
+    "DataGridImportDialog": [
+      "Immutability: Cannot access variable before it is declared"
+    ]
+  },
+  "registry/default/blocks/data-grid-io/use-data-grid-import.ts": {
+    "useDataGridImportPreview": [
+      "Todo: (BuildHIR::lowerStatement) Handle TryStatement with a finalizer ('finally') clause"
+    ]
+  },
+  "registry/default/blocks/data-grid-lazy/use-data-grid-lazy-rows.ts": {
+    "useDataGridLazyRows": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid-pinned-rows/use-data-grid-aggregate.ts": {
+    "DataGridAggregateReporter": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid-presence/use-data-grid-presence.ts": {
+    "useDataGridPresence": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid-toolbar/filter-value-input.tsx": {
+    "BetweenValueInput": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/data-grid-url-state/use-data-grid-url-state.ts": {
+    "useDataGridUrlState": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/blocks/dropzone/dropzone.tsx": {
+    "Dropzone": [
+      "Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement"
+    ]
+  },
+  "registry/default/examples/data-grid-playground-demo.tsx": {
+    "useLatestRef": [
+      "Refs: Cannot access refs during render"
+    ]
+  },
+  "registry/default/examples/data-grid-streaming-demo.tsx": {
+    "TickerFeed": [
+      "Refs: Cannot access refs during render"
+    ]
+  }
+}

@@ -2,7 +2,8 @@ import { page } from "vitest/browser";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
 import { render } from "vitest-browser-react";
-import { DataGrid, defineColumns, gridAttrSelector } from "../data-grid";
+import { DataGrid, defineColumns } from "../data-grid";
+import { gridAttrSelector } from "../data-grid-sdk";
 // real stylesheet: the bug this file guards against is a CSS box-shadow painting its visible pixels
 // away from the element it's attached to — invisible unless Tailwind's real cascade is loaded.
 import "@/app/global.css";

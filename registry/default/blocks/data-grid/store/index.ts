@@ -1,6 +1,8 @@
 /** Domain barrel — every symbol previously exported from the monolithic store.tsx, re-exported at the same paths so `from "./store"` / `from "../store"` call sites are unaffected by the split. */
 export type {
   DataGridSyncProps,
+  ExternalStoreProps,
+  OwnedStoreProps,
   SelectionChangeDetails,
   AnyColumnDef,
   AnyCellType,
@@ -16,34 +18,38 @@ export type {
   CellErrorTarget,
   CellErrorEntry,
   DataGridStoreState,
+  DataGridStoreStateOf,
   DataGridActions,
+  DataGridInternalActions,
   DataGridStore,
   DataGridProviderProps,
   DataGridCellState,
   DataGridRowCellState,
 } from "./types";
-export { DataGridProvider, useDataGridStoreApi, useDataGridStoreProps } from "./provider";
-export { cellErrorKey, flashCellKey } from "./compute";
+export { DataGridProvider, createDataGridSelector, useDataGridInstanceId, useDataGridSelector, useDataGridStore, useDataGridStoreApi, useDataGridStoreProps } from "./provider";
+export { cellErrorKey } from "./compute";
 export { getFocusCell } from "./hooks";
+export { getInternalActions } from "./internal-actions";
 export {
   useDataGridActions,
+  useDataGridInternalActions,
   useDataGridCellTypes,
   useDataGridScrollToCell,
-  useDataGridFillHandlers,
+  useDataGridScrollToCellAt,
   useDataGridReadOnly,
   useDataGridKeymap,
+  useDataGridCommands,
   useDataGridLabels,
   useDataGridActiveCell,
   useDataGridHasActiveCell,
   useDataGridActiveColumn,
   useDataGridSelection,
   useDataGridGetSelectionValues,
-  useDataGridOverlayPlugins,
-  useDataGridRowBands,
+  useDataGridPluginBands,
+  useDataGridPluginMounts,
+  useDataGridPluginOverlays,
   useDataGridEditing,
-  useDataGridEditingError,
   useDataGridCellErrors,
-  useDataGridRowHasError,
   useDataGridViewIndex,
   useDataGridViewStale,
   useDataGridVisibleColumns,
@@ -68,9 +74,6 @@ export {
   useDataGridIsRowSelected,
   useDataGridIsRowChannelSelected,
   useDataGridIsRowCellSelected,
-  useDataGridIsCellActive,
-  useDataGridIsCellEditing,
-  useDataGridCellInitialText,
   useDataGridCellEditingError,
   useDataGridCellRejectionCount,
   useDataGridCellState,

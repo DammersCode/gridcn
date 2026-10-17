@@ -172,6 +172,65 @@ describe("useAsyncValidate", () => {
     expect(actions.commitCellEdit).toHaveBeenCalledWith(222, { dx: 1, dy: 0 });
   });
 
+  it("a synchronously throwing validator rejects the edit with its message, never commits", () => {
+    const actions = mockActions();
+    const schema = {
+      "~standard": { version: 1, vendor: "mock", validate: () => { throw new Error("validator crashed"); } },
+    } as unknown as StandardSchemaV1<number, number>;
+    const column = { id: "c", header: "C", validate: schema } as unknown as AnyColumnDef;
+    const { result } = renderHook(() => useAsyncValidate(actions, column));
+
+    expect(() => act(() => result.current.commit(5))).not.toThrow();
+
+    expect(result.current.pending).toBe(false);
+    expect(actions.commitCellEdit).not.toHaveBeenCalled();
+    expect(actions.setEditingError).toHaveBeenCalledWith("validator crashed");
+  });
+
+  it("a rejecting schema rejects the edit with its message and clears pending", async () => {
+    const actions = mockActions();
+    let rejectFn: (error: Error) => void = () => {};
+    const schema = mockAsyncSchema<number>(
+      () => new Promise((_resolve, reject) => (rejectFn = reject as (error: Error) => void)),
+    );
+    const column = { id: "c", header: "C", validate: schema } as unknown as AnyColumnDef;
+    const { result } = renderHook(() => useAsyncValidate(actions, column));
+
+    act(() => result.current.commit(5));
+    expect(result.current.pending).toBe(true);
+
+    await act(async () => {
+      rejectFn(new Error("validator rejected"));
+      await Promise.resolve();
+    });
+
+    expect(result.current.pending).toBe(false);
+    expect(actions.commitCellEdit).not.toHaveBeenCalled();
+    expect(actions.setEditingError).toHaveBeenCalledWith("validator rejected");
+  });
+
+  it("race guard: a stale rejection (superseded by cancelPending) is dropped silently", async () => {
+    const actions = mockActions();
+    let rejectFn: (error: Error) => void = () => {};
+    const schema = mockAsyncSchema<number>(
+      () => new Promise((_resolve, reject) => (rejectFn = reject as (error: Error) => void)),
+    );
+    const column = { id: "c", header: "C", validate: schema } as unknown as AnyColumnDef;
+    const { result } = renderHook(() => useAsyncValidate(actions, column));
+
+    act(() => result.current.commit(5));
+    act(() => result.current.cancelPending());
+
+    await act(async () => {
+      rejectFn(new Error("too late"));
+      await Promise.resolve();
+    });
+
+    expect(actions.commitCellEdit).not.toHaveBeenCalled();
+    expect(actions.setEditingError).not.toHaveBeenCalled();
+    expect(result.current.pending).toBe(false);
+  });
+
   it("race guard: unmount invalidates a pending resolution", async () => {
     const actions = mockActions();
     let resolveFn: (r: { value: number }) => void = () => {};

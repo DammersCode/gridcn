@@ -4,11 +4,13 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent, type ReactN
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+  useDataGridCellTypes,
   useDataGridLabels,
   type AnyColumnDef,
   type FilterOperator,
   type GridCellTypes,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { resolveFilterValueInput } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -18,19 +20,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { operatorIsAnyOf, operatorIsBetween } from "./operators-for-column-type";
 
-/** Debounce (ms) between typing and committing a filter value, matching {@link DataGridSearch}. */
+/** Debounce (ms) between typing and committing a filter value. */
 const FILTER_VALUE_DEBOUNCE_MS = 200;
 
 /** Props for {@link DataGridFilterValueInput}. */
 export type DataGridFilterValueInputProps = {
-  /** The filtered column, for choosing a typed input (number/date/checkbox/select) over the plain-text default. */
+  /** The filtered column; its cell type's `filter.valueInput` (or the type-name default) picks the widget. */
   column: AnyColumnDef | undefined;
   operator: FilterOperator;
   value: string | [string, string] | string[] | undefined;
   onValueChange: (value: string | [string, string] | string[]) => void;
 };
 
-/** Debounces a single text/number/date input's keystrokes into one commit, matching {@link DataGridSearch}. */
+/** Debounces a single text/number/date input's keystrokes into one commit. */
 function useDebouncedInput(value: string, onValueChange: (value: string) => void) {
   const [inputValue, setInputValue] = useState(value);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -160,16 +162,23 @@ function AnyOfValueInput(props: {
 }
 
 /**
- * Filter-row value input: renders a typed input per the filtered column's cell type — number columns
- * get `<Input type="number">`, date columns a date input, checkbox columns a true/false select, select
- * columns a select of their own choices, everything else plain text — and debounces text/number/date
- * keystrokes so typing never triggers a `setFilters` view-index rebuild per character.
- * `isBetween` renders two of the column's typed input side by side instead of one.
+ * Filter-row value input: renders the widget the filtered column's cell type declares in
+ * `filter.valueInput` (a number, date, true/false, choices, or text input, or the type's own
+ * component), with a type-name default, and debounces text/number/date keystrokes so typing never
+ * triggers a `setFilters` view-index rebuild per character. `isBetween` renders two of the
+ * column's typed input side by side instead of one.
  */
 export function DataGridFilterValueInput(props: DataGridFilterValueInputProps): ReactNode {
   const { column, operator, value, onValueChange } = props;
   const labels = useDataGridLabels();
-  const columnType = column?.type;
+  const cellTypes = useDataGridCellTypes();
+  const valueInput = column ? resolveFilterValueInput(column, column.type ? cellTypes[column.type] : undefined) : "text";
+
+  if (typeof valueInput !== "string" && column) {
+    const CustomInput = valueInput;
+    return <CustomInput column={column} operator={operator} value={value} onValueChange={onValueChange} />;
+  }
+  const inputType = valueInput === "number" ? "number" : valueInput === "date" ? "date" : "text";
 
   if (operatorIsAnyOf(operator)) {
     const choices = (column?.options as GridCellTypes["select"]["options"] | undefined)?.choices ?? [];
@@ -187,7 +196,6 @@ export function DataGridFilterValueInput(props: DataGridFilterValueInputProps): 
 
   if (operatorIsBetween(operator)) {
     const [from = "", to = ""] = Array.isArray(value) ? value : ["", ""];
-    const inputType = columnType === "number" ? "number" : columnType === "date" ? "date" : "text";
     return (
       <BetweenValueInput
         type={inputType}
@@ -202,24 +210,31 @@ export function DataGridFilterValueInput(props: DataGridFilterValueInputProps): 
 
   const textValue = typeof value === "string" ? value : "";
 
-  if (columnType === "checkbox") {
+  if (valueInput === "boolean") {
+    const booleanItems = [
+      { value: "true", label: labels.toolbar.filterValueTrue },
+      { value: "false", label: labels.toolbar.filterValueFalse },
+    ];
     return (
-      <Select value={textValue} onValueChange={(next) => onValueChange(next ?? "")}>
+      <Select items={booleanItems} value={textValue || null} onValueChange={(next) => onValueChange(next ?? "")}>
         <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.filterValueAriaLabel}>
           <SelectValue placeholder={labels.toolbar.filterValuePlaceholder} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="true">{labels.toolbar.filterValueTrue}</SelectItem>
-          <SelectItem value="false">{labels.toolbar.filterValueFalse}</SelectItem>
+          {booleanItems.map((item) => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
     );
   }
 
-  if (columnType === "select") {
+  if (valueInput === "choices") {
     const choices = (column?.options as GridCellTypes["select"]["options"] | undefined)?.choices ?? [];
     return (
-      <Select value={textValue} onValueChange={(next) => onValueChange(next ?? "")}>
+      <Select items={choices} value={textValue || null} onValueChange={(next) => onValueChange(next ?? "")}>
         <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.filterValueAriaLabel}>
           <SelectValue placeholder={labels.toolbar.filterValuePlaceholder} />
         </SelectTrigger>
@@ -234,7 +249,6 @@ export function DataGridFilterValueInput(props: DataGridFilterValueInputProps): 
     );
   }
 
-  const inputType = columnType === "number" ? "number" : columnType === "date" ? "date" : "text";
   return (
     <SingleValueInput
       type={inputType}

@@ -25,53 +25,9 @@ import { DataGridContextMenu, DataGridHeaderDropdown } from "@/registry/default/
 import { DataGridKeybindingsDialog, DataGridKeybindingsShortcut } from "@/registry/default/blocks/data-grid-keybindings/data-grid-keybindings";
 import { DataGridExportButton, DataGridImportButton } from "@/registry/default/blocks/data-grid-io/data-grid-io";
 import { Button } from "@/components/ui/button";
+import { generateBenchmarkRows, type BenchmarkRow } from "./benchmark/_lib/dataset";
 
-interface Row {
-  id: string;
-  n: number;
-  name: string;
-  email: string;
-  age: number;
-  active: boolean;
-  role: string;
-  joined: string;
-  score: number;
-}
-
-/** Deterministic LCG so SSR/CSR markup match without Math.random(). */
-function createSeededLCG(seed: number) {
-  let state = seed;
-  return {
-    next() {
-      state = (state * 1103515245 + 12345) & 0x7fffffff;
-      return state / 0x7fffffff;
-    },
-  };
-}
-
-function generateRows(count: number): Row[] {
-  const rng = createSeededLCG(42);
-  const roles = ["Admin", "User", "Editor", "Viewer", "Manager"];
-  const adjectives = ["Eager", "Quick", "Silent", "Bold", "Swift"];
-  const nouns = ["Eagle", "Lion", "Tiger", "Bear", "Wolf"];
-  const rows: Row[] = [];
-  for (let i = 0; i < count; i++) {
-    rows.push({
-      id: `row-${i}`,
-      n: i,
-      name: `${adjectives[Math.floor(rng.next() * 5)]} ${nouns[Math.floor(rng.next() * 5)]}`,
-      email: `user${i}@example.com`,
-      age: Math.floor(rng.next() * 50) + 18,
-      active: rng.next() > 0.5,
-      role: roles[Math.floor(rng.next() * 5)]!, // roles is a fixed non-empty literal array
-      joined: `${2020 + Math.floor(rng.next() * 5)}-${String(Math.floor(rng.next() * 12) + 1).padStart(2, "0")}-${String(Math.floor(rng.next() * 28) + 1).padStart(2, "0")}`,
-      score: Math.floor(rng.next() * 100),
-    });
-  }
-  return rows;
-}
-
-const baseColumns = defineColumns<Row>()([
+const baseColumns = defineColumns<BenchmarkRow>()([
   {
     id: "id",
     header: "ID",
@@ -140,11 +96,11 @@ const baseColumns = defineColumns<Row>()([
 ] as const);
 
 /** Extra numeric columns computed from the row index — no extra row memory. */
-function makeExtraColumns(count: number): ColumnDef<Row, unknown>[] {
+function makeExtraColumns(count: number): ColumnDef<BenchmarkRow, unknown>[] {
   return Array.from({ length: count }, (_, i) => ({
     id: `extra-${i}`,
     header: `Col ${i + 9}`,
-    accessorFn: (row: Row) => (row.n * 31 + i * 17) % 1000,
+    accessorFn: (row: BenchmarkRow) => (row.n * 31 + i * 17) % 1000,
     type: "number",
     width: 90,
   }));
@@ -250,19 +206,19 @@ function DevGrid({
   keybindingsOpen,
   setKeybindingsOpen,
 }: DevGridProps): ReactNode {
-  const rows = useMemo(() => generateRows(rowCount), [rowCount]);
+  const rows = useMemo(() => generateBenchmarkRows(rowCount), [rowCount]);
   const grid = useDataGridState(rows, { getRowId: (row) => row.id });
   const columns = useMemo(
     () =>
       [
         ...baseColumns,
         ...makeExtraColumns(Math.max(0, colCount - baseColumns.length)),
-      ] as readonly ColumnDef<Row, unknown>[],
+      ] as readonly ColumnDef<BenchmarkRow, unknown>[],
     [colCount],
   );
 
   /** Replaces the grid data through the existing onDataChange setter path (delete-all + insert-all, one `import` batch). */
-  const onImport = (importedRows: Row[]) => {
+  const onImport = (importedRows: BenchmarkRow[]) => {
     const { data } = grid;
     grid.onDataChange(importedRows, {
       source: "import",
@@ -276,7 +232,7 @@ function DevGrid({
   return (
     <>
       <p className="mt-1 text-sm text-muted-foreground">
-        {rows.length.toLocaleString()} rows × {columns.length} columns
+        {rows.length.toLocaleString("en-US")} rows × {columns.length} columns
       </p>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-border">
         <DataGridProvider
@@ -285,7 +241,7 @@ function DevGrid({
           rowMarkers={rowMarkers}
           headerClickBehavior={headerClickBehavior}
           labels={germanLabels ? GERMAN_LABELS : undefined}
-          createRow={(): Row => ({
+          createRow={(): BenchmarkRow => ({
             id: `inserted-${nextInsertedRowId++}`,
             n: 0,
             name: "New row",
@@ -296,7 +252,7 @@ function DevGrid({
             joined: "",
             score: 0,
           })}
-          duplicateRow={(row: Row): Row => ({ ...row, id: `${row.id}-copy-${nextDuplicatedRowId++}` })}
+          duplicateRow={(row: BenchmarkRow): BenchmarkRow => ({ ...row, id: `${row.id}-copy-${nextDuplicatedRowId++}` })}
         >
           <DataGridKeybindingsDialog open={keybindingsOpen} onOpenChange={setKeybindingsOpen} />
           <DataGridToolbar>
@@ -305,7 +261,7 @@ function DevGrid({
             <DataGridSortList />
             <DataGridColumnsMenu />
             <DataGridImportButton
-              createRow={(index): Row => ({
+              createRow={(index): BenchmarkRow => ({
                 id: `imported-${nextImportedRowId++}`,
                 n: index,
                 name: "",
@@ -349,7 +305,7 @@ export default function DevPage(): ReactNode {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // ponytail: dev-only render-highlighting; page is a scratchpad, not a docs demo
+    if (process.env.NODE_ENV === "production") return;
     import("react-scan")
       .then(({ scan }) => scan({ enabled: true, showToolbar: true }))
       .catch(() => {});
@@ -371,7 +327,7 @@ export default function DevPage(): ReactNode {
             >
               {ROW_OPTIONS.map((n) => (
                 <option key={n} value={n}>
-                  {n.toLocaleString()}
+                  {n.toLocaleString("en-US")}
                 </option>
               ))}
             </select>

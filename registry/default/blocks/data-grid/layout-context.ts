@@ -1,12 +1,12 @@
 import { createContext, use, useMemo, type ReactElement, type ReactNode, type RefObject } from "react";
-import type { GetCellClassName, GetRowClassName, OnCellClick, OnRowClick } from "./types";
+import type { GetCellClassName, GetRowClassName } from "./types";
 import { useDataGridColumnWidths, useDataGridRowMarkers, type AnyColumnDef } from "./store";
 import { resolveColumnWidth, distributeFlexWidths } from "./columns/resolve-column-width";
 import { encodeTemplate } from "./columns/column-format-helpers";
 import { pinLeftOffsets, pinRightOffsets } from "./columns/pin-offsets";
 import { markerWidth } from "./rows/marker-width";
 import type { GridInteractionHandlers } from "./interaction/use-grid-interaction";
-import type { GridDirection } from "./windowing/direction";
+import type { GridDirection } from "./virtualization/direction";
 
 /** Cumulative left edge (px) of each column's track within the full grid template. */
 function trackLefts(widths: number[]): number[] {
@@ -30,7 +30,7 @@ function trackRights(widths: number[], lefts: number[]): number[] {
  * The marker column (when `markerWidth > 0`) is grid-template-column 1, BEFORE every data
  * column and before any pinned-left data column — data columns render at
  * `gridColumnStart: index + (markerWidth > 0 ? 2 : 1)`. `trackLefts`/`trackRights`/`leftOffsets`
- * are already shifted by `markerWidth` so callers never add it themselves; `CellCoord.col` and
+ * are already shifted by `markerWidth` so callers never add it themselves; `ViewCoord.col` and
  * this array's own `index` stay pure data-column indices throughout (the marker lives
  * outside the data index space).
  */
@@ -83,39 +83,28 @@ export function useColumnLayout(columns: readonly AnyColumnDef[], availableWidth
   }, [columns, overrides, rowMarkers, availableWidth]);
 }
 
-/** A visible column paired with its real (unwindowed) index, used for grid placement + pin var lookup. */
-export type WindowedColumn = { column: AnyColumnDef; index: number };
+/** A visible column paired with its real (unvirtualized) index, used for grid placement + pin var lookup. */
+export type RenderedColumn = { column: AnyColumnDef; index: number };
 
 /**
- * Context passed to {@link RowBandsSpec.renderBand} for one band — exactly what root.tsx computes
- * for the band's render. `ariaRowIndexBase` is root's own aria index-layout math (header=1, top
- * band next, then data rows, bottom band last), so the add-on never has to know rowCount or the
- * other band's length.
+ * Context passed to a plugin's {@link PluginRowBands.render} for one band — exactly what root.tsx
+ * computes for the band's render. `ariaRowIndexBase` is root's own aria index-layout math
+ * (header=1, top bands next, then data rows, bottom bands last), so the add-on never has to know
+ * rowCount or the other band's length. `rowOffset` is the number of rows earlier plugins put in
+ * the same band (bands stack: top from the header down, bottom top to bottom, in plugin order).
  */
 export type RowBandRenderCtx = {
   position: "top" | "bottom";
   rows: readonly unknown[];
-  windowedColumns: readonly WindowedColumn[];
+  /** The rows that earlier plugins put in this plugin's band position, before this plugin's rows. */
+  rowOffset: number;
+  renderedColumns: readonly RenderedColumn[];
   layout: ColumnLayout;
   rowHeight: number;
   template: string;
   /** The sticky header track's own height (not including either band). */
   headerHeight: number;
   ariaRowIndexBase: number;
-};
-
-/**
- * Provider-level row-bands seam: unlike `overlayPlugins` (pure paint, no layout impact), bands
- * affect band heights and `aria-rowcount`, which root.tsx must know SYNCHRONOUSLY at first render
- * (SSR + no one-frame layout shift) — so this is a spec object, not a mount-effect registration
- * like `fillHandlers`. Core only reads `topRows.length`/`bottomRows.length` for its own arithmetic
- * and calls `renderBand`; it never inspects the row contents. `data-grid-pinned-rows`'s
- * `useDataGridPinnedRows` is the motivating (and so far only) producer.
- */
-export type RowBandsSpec = {
-  topRows: readonly unknown[];
-  bottomRows: readonly unknown[];
-  renderBand: (ctx: RowBandRenderCtx) => ReactNode;
 };
 
 /**
@@ -129,6 +118,8 @@ export type HeaderMenuRenderer = (ctx: { column: AnyColumnDef; index: number; tr
 
 /** Context passed to {@link MarkerCellRenderer} for one row's marker cell. */
 export type MarkerCellRenderCtx = {
+  /** The row's `getRowId()` value — stable row identity. The marker column is not a data column, so there is no `columnId` here. */
+  rowId: string;
   /** 0-based view row index (the marker column's own numbering space, minus one). */
   viewRowIndex: number;
   /** The ROWS channel only: this row is selected as a whole (marker press/drag, Shift+Space). Cell or column selection never flips it — mirrors `useDataGridIsRowChannelSelected`. */
@@ -159,7 +150,7 @@ export type DataGridRootContextValue = {
   viewportRef: RefObject<HTMLDivElement | null>;
   columns: readonly AnyColumnDef[];
   /** Columns in the current column window, in display order, each tagged with its real index. */
-  windowedColumns: readonly WindowedColumn[];
+  renderedColumns: readonly RenderedColumn[];
   layout: ColumnLayout;
   rowHeight: number;
   /** The sticky header track's own height — header.tsx's literal row height, NOT including any pinned band. Consumers computing "where data row 0 starts" need `headerHeight + pinnedTopHeight`; body.tsx does this itself for `useRowWindow`/the canvas transform. */
@@ -175,7 +166,6 @@ export type DataGridRootContextValue = {
   interaction: GridInteractionHandlers;
   /** Resolved layout direction for this grid — the single value every direction-aware seam inside the root reads (header reorder half-test, resize delta, pin-shadow measurement). */
   direction: GridDirection;
-  readOnly?: boolean;
   /** Optional per-column header menu slot (ghost chevron trigger); undefined renders nothing. */
   renderHeaderMenu?: HeaderMenuRenderer;
   /** Optional custom row-marker cell renderer; undefined renders the built-in number/checkbox. */
@@ -193,12 +183,6 @@ export type DataGridRootContextValue = {
    */
   getRowClassName?: GetRowClassName<unknown>;
   getCellClassName?: GetCellClassName<unknown>;
-  /** Forwarded to each cell's click handler; see {@link DataGridRootProps.onCellClick} in root.tsx. */
-  onCellClick?: OnCellClick<unknown>;
-  /** Forwarded alongside `onCellClick`; see {@link DataGridRootProps.onRowClick} in root.tsx. */
-  onRowClick?: OnRowClick<unknown>;
-  /** Fired by `DataGridBody` after a row-window commit; see {@link DataGridRootProps.onRowWindowChange} in root.tsx. */
-  onRowWindowChange?: (range: { start: number; end: number }) => void;
 };
 
 export const DataGridRootContext = createContext<DataGridRootContextValue | null>(null);

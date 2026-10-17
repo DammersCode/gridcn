@@ -35,14 +35,14 @@ export type DataGridToolbarLabels = {
   /** aria-label for the `isBetween` range's maximum-value input. */
   filterValueToAriaLabel: string;
   removeFilterAriaLabel: string;
-  /** aria-label for a filter row's drag-handle grip (also moved via ArrowUp/ArrowDown while focused). */
+  /** aria-label for a filter row's drag-handle drag handle (also moved via ArrowUp/ArrowDown while focused). */
   reorderFilterAriaLabel: string;
   /** Polite live-region announcement after a filter row moves; `column` is the filter's column label, `position`/`total` are 1-based. */
   filterReorderAnnouncement: (column: string, position: number, total: number) => string;
   addFilter: string;
   clearFilters: string;
   noFiltersApplied: string;
-  /** Static "Where" label shown in the first filter row's join cell (tablecn parity). */
+  /** Static "Where" label shown in the first filter row's join cell. */
   filterWhere: string;
   /** aria-label for the AND/OR join-operator select, shown once 2+ filters are active. */
   joinOperatorAriaLabel: string;
@@ -61,7 +61,7 @@ export type DataGridSortLabels = {
   ascending: string;
   descending: string;
   removeSortAriaLabel: string;
-  /** aria-label for a sort row's drag-handle grip (also moved via ArrowUp/ArrowDown while focused). */
+  /** aria-label for a sort row's drag-handle drag handle (also moved via ArrowUp/ArrowDown while focused). */
   reorderSortAriaLabel: string;
   /** Polite live-region announcement after a sort row moves; `column` is the sort's column label, `position`/`total` are 1-based. */
   sortReorderAnnouncement: (column: string, position: number, total: number) => string;
@@ -95,6 +95,8 @@ export type DataGridContextMenuLabels = {
   paste: string;
   /** Tooltip shown on a blocked paste item (no clipboard-read permission granted). */
   pasteBlocked: string;
+  /** Tooltip shown on Cut and Copy after the clipboard write failed (no clipboard-write permission, or no secure context). */
+  clipboardFailed: string;
   clearContents: string;
   insertRowAbove: string;
   insertRowBelow: string;
@@ -110,6 +112,8 @@ export type DataGridContextMenuLabels = {
   unpin: string;
   hideColumn: string;
   autosize: string;
+  /** "Autosize all columns" — sizes every visible resizable column to its content. */
+  autosizeAll: string;
   /** aria-label for the per-column header dropdown's ghost chevron trigger; `column` is the header text. */
   columnMenuAriaLabel: (column: string) => string;
 };
@@ -136,6 +140,8 @@ export type DataGridKeybindingsLabels = {
 
 /** Row-marker column strings (select-all header checkbox, per-row checkbox, reorder handle). */
 export type DataGridMarkerLabels = {
+  /** Accessible name of the marker column header. */
+  columnHeader: string;
   selectAll: string;
   /** `rowNumber` is 1-based (matches the visible row-number marker). */
   selectRow: (rowNumber: number) => string;
@@ -165,6 +171,8 @@ export type DataGridIOLabels = {
   importDialogDescription: string;
   chooseFile: string;
   noFileChosen: string;
+  /** Size limit shown next to `noFileChosen` in the empty drop zone; `bytes` is the import's `maxFileBytes`. */
+  maxFileSize: (bytes: number) => string;
   /** Caption on the compact drop zone shown once a file is already chosen, in the column-mapping step. */
   replaceFile: string;
   /** Fallback column header in the mapping table when "First row is a header" is unchecked; `index` is 1-based. */
@@ -190,10 +198,22 @@ export type DataGridIOLabels = {
   errorParseFailed: string;
   errorNoRows: string;
   errorUnsupportedFile: string;
+  /** Shown for an Excel file that is neither xlsx nor Excel 97-2003 (BIFF8) xls, e.g. an HTML table or Excel 2003 XML saved as .xls. */
+  errorUnsupportedExcelFormat: string;
+  /** Shown when a chosen file exceeds the import size limit. */
+  errorFileTooLarge: string;
+  /** Shown when one part of an xlsx file (a worksheet, the shared strings) is too large to read safely; the app owner raises `importLimits.maxCells` or `maxDecompressedBytes`. */
+  errorPartTooLarge: string;
+  /** Shown when a file exceeds the import row, column, or cell limit. */
+  errorTooManyCells: string;
   /** Shown under the mapping grid when the import build rejected cells; `count` is the rejected-cell count. */
   importRejectedCells: (count: number) => string;
   /** Shown when the `onImport` callback rejected; the dialog stays open and the import can be retried. */
   importMergeFailed: string;
+  /** aria-label for the print toolbar button. */
+  printButtonAriaLabel: string;
+  /** Note shown under the printed table when the row cap cut the output; `printed` is the table's rows, `total` the scope rows. */
+  printTruncated: (printed: number, total: number) => string;
 };
 
 /** Pagination add-on strings (`data-grid-pagination`): footer prev/next, page numbers, page-size select, range label. */
@@ -212,6 +232,17 @@ export type DataGridPaginationLabels = {
   rangeEmpty: string;
 };
 
+/** Status-bar add-on strings (`data-grid-status-bar`): aggregate labels and the capped-walk `title`. */
+export type DataGridStatusBarLabels = {
+  count: string;
+  sum: string;
+  avg: string;
+  min: string;
+  max: string;
+  /** `title` while the walk stopped at the cell cap; `count` is the cap. */
+  approximate: (count: number) => string;
+};
+
 /** Every user-facing default string across core + every add-on, grouped by owning surface. */
 export interface DataGridLabels {
   toolbar: DataGridToolbarLabels;
@@ -223,6 +254,7 @@ export interface DataGridLabels {
   grid: DataGridGridLabels;
   io: DataGridIOLabels;
   pagination: DataGridPaginationLabels;
+  statusBar: DataGridStatusBarLabels;
 }
 
 /** English defaults — every string in the shipped UI today, verbatim (so adopting `labels` never changes visible copy without an explicit override). */
@@ -294,6 +326,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     copy: "Copy",
     paste: "Paste",
     pasteBlocked: "requires clipboard permission — use Ctrl+V",
+    clipboardFailed: "clipboard access failed — use Ctrl+C or Ctrl+X",
     clearContents: "Clear contents",
     insertRowAbove: "Insert row above",
     insertRowBelow: "Insert row below",
@@ -309,6 +342,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     unpin: "Unpin",
     hideColumn: "Hide column",
     autosize: "Autosize column",
+    autosizeAll: "Autosize all columns",
     columnMenuAriaLabel: (column) => `${column} column menu`,
   },
   keybindings: {
@@ -330,10 +364,10 @@ export const DEFAULT_LABELS: DataGridLabels = {
       moveDown: "Move down",
       moveLeft: "Move left",
       moveRight: "Move right",
-      retainMoveUp: "Move up (keep selection)",
-      retainMoveDown: "Move down (keep selection)",
-      retainMoveLeft: "Move left (keep selection)",
-      retainMoveRight: "Move right (keep selection)",
+      moveUpKeepSelection: "Move up (keep selection)",
+      moveDownKeepSelection: "Move down (keep selection)",
+      moveLeftKeepSelection: "Move left (keep selection)",
+      moveRightKeepSelection: "Move right (keep selection)",
       scrollActiveIntoView: "Scroll active cell into view",
       moveRowStart: "Move to row start",
       moveRowEnd: "Move to row end",
@@ -359,16 +393,19 @@ export const DEFAULT_LABELS: DataGridLabels = {
       selectRow: "Select row",
       selectColumn: "Select column",
       selectAll: "Select all",
+      toggleRow: "Check or uncheck row",
+      toggleAllRows: "Check or uncheck all rows",
+      openColumnMenu: "Open column menu",
 
       edit: "Edit cell",
-      editReplace: "Type to replace",
+      typeToReplace: "Type to replace",
       // "(editor)": these fire only while a cell editor is open (the keymap is ignored during an edit)
       commitDown: "Commit and move down (editor)",
       commitUp: "Commit and move up (editor)",
-      commitRight: "Commit and move right (editor)",
-      commitLeft: "Commit and move left (editor)",
+      commitRight: "Leave the grid forward (Tab)",
+      commitLeft: "Leave the grid backward (Shift+Tab)",
       cancel: "Cancel edit",
-      deleteContents: "Delete contents",
+      clearContents: "Delete contents",
       insertRowBelow: "Insert row below",
       insertRowAbove: "Insert row above",
       duplicateRow: "Duplicate row",
@@ -379,9 +416,12 @@ export const DEFAULT_LABELS: DataGridLabels = {
 
       undo: "Undo",
       redo: "Redo",
+
+      openLink: "Open link",
     },
   },
   markers: {
+    columnHeader: "Row markers",
     selectAll: "Select all rows",
     selectRow: (rowNumber) => `Select row ${rowNumber}`,
     reorderRow: (rowNumber) => `Reorder row ${rowNumber}`,
@@ -401,6 +441,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     importDialogDescription: "Choose a CSV or Excel file, then map its columns to the grid.",
     chooseFile: "Choose file",
     noFileChosen: "No file chosen",
+    maxFileSize: (bytes) => `up to ${formatFileSize(bytes)}`,
     replaceFile: "Drop or click to replace",
     columnFallback: (index) => `Column ${index}`,
     delimiter: "Delimiter",
@@ -421,8 +462,14 @@ export const DEFAULT_LABELS: DataGridLabels = {
     errorParseFailed: "Could not read this file.",
     errorNoRows: "No rows found in this file.",
     errorUnsupportedFile: "Unsupported file type — choose a .csv, .xlsx, or .xls file.",
+    errorUnsupportedExcelFormat: "This Excel format can't be imported — save the file as .xlsx and try again.",
+    errorFileTooLarge: "This file is too large to import.",
+    errorPartTooLarge: "A part of this file is too large to read safely. Save a smaller file, or ask the app owner to raise the import limit.",
+    errorTooManyCells: "This file has too many rows or columns to import.",
     importRejectedCells: (count) => `${count} cell${count === 1 ? "" : "s"} failed validation and ${count === 1 ? "was" : "were"} left empty.`,
     importMergeFailed: "The import could not be completed. Try again.",
+    printButtonAriaLabel: "Print",
+    printTruncated: (printed, total) => `Printed ${printed} of ${total} rows`,
   },
   pagination: {
     firstPage: "First page",
@@ -434,6 +481,14 @@ export const DEFAULT_LABELS: DataGridLabels = {
     pageSizeOption: (size) => `${size} / page`,
     range: (from, to, total) => `${from}–${to} of ${total}`,
     rangeEmpty: "0 of 0",
+  },
+  statusBar: {
+    count: "Count",
+    sum: "Sum",
+    avg: "Avg",
+    min: "Min",
+    max: "Max",
+    approximate: (count) => `From the first ${count.toLocaleString("en-US")} cells`,
   },
 };
 
@@ -447,6 +502,19 @@ export type DeepPartialLabels<T = DataGridLabels> = {
         ? DeepPartialLabels<T[K]>
         : T[K];
 };
+
+/** A byte count as "512 KB" or "1.5 MB": one decimal below 10, whole numbers above. */
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KB", "MB", "GB"];
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value.toFixed(value < 10 ? 1 : 0)} ${units[unit]}`;
+}
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

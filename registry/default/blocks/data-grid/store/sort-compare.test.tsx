@@ -1,9 +1,11 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { CellType, ColumnDef } from "../types";
 import { DataGridProvider, useDataGridActions, useDataGridViewIndex } from "../store";
 import { cellTypes as builtinCellTypes } from "../cell-types/cell-types";
+import { createDataGridStore } from "./create-store";
+import type { InternalSyncProps } from "./types";
 
 /**
  * A cell type's `compare` is resolved into the sort path: the collator over `String(value)`
@@ -222,5 +224,81 @@ describe("column-level sortCompare", () => {
     const { result } = derivedHarness(rows, typedColumns);
     act(() => result.current.actions.setSorts([{ columnId: "label", direction: "asc" }]));
     expect(result.current.viewIndex.map((row) => rows[row]!.label)).toEqual(["zeta", "mid", "alpha"]);
+  });
+});
+
+describe("select sort order", () => {
+  type Pick = { id: string; fruit: string };
+  const choices = [
+    { value: "z", label: "apple" },
+    { value: "a", label: "Cherry" },
+    { value: "m", label: "banana" },
+  ];
+
+  it("sorts by the choice label, case-insensitively, not by the stored value", () => {
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider
+          data={[{ id: "1", fruit: "a" }, { id: "2", fruit: "m" }, { id: "3", fruit: "z" }]}
+          columns={[{ id: "fruit", header: "Fruit", accessorKey: "fruit", type: "select", options: { choices } }] as readonly ColumnDef<Pick, unknown>[]}
+          getRowId={(r) => r.id}
+        >
+          {children}
+        </DataGridProvider>
+      );
+    }
+    const { result } = renderHook(() => ({ actions: useDataGridActions(), viewIndex: useDataGridViewIndex() }), { wrapper: Wrapper });
+
+    act(() => result.current.actions.setSorts([{ columnId: "fruit", direction: "asc" }]));
+
+    expect(result.current.viewIndex).toEqual([2, 1, 0]);
+  });
+
+  it("passes the column's options to a type's compare", () => {
+    const compare = vi.fn((a: unknown, b: unknown) => String(a).localeCompare(String(b)));
+    const withOptions: CellType = { ...(builtinCellTypes.text as unknown as CellType), compare };
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider
+          data={[{ id: "1", fruit: "b" }, { id: "2", fruit: "a" }]}
+          columns={[{ id: "fruit", header: "Fruit", accessorKey: "fruit", type: "ordered" as never, options: { rank: 1 } }] as readonly ColumnDef<Pick, unknown>[]}
+          getRowId={(r) => r.id}
+          cellTypes={{ ordered: withOptions } as never}
+        >
+          {children}
+        </DataGridProvider>
+      );
+    }
+    const { result } = renderHook(() => useDataGridActions(), { wrapper: Wrapper });
+
+    act(() => result.current.setSorts([{ columnId: "fruit", direction: "asc" }]));
+
+    expect(compare).toHaveBeenCalledWith(expect.anything(), expect.anything(), { rank: 1 });
+  });
+});
+
+describe("select sort cost", () => {
+  it("sorts 100k select rows by label in about the time of a number sort", () => {
+    const choices = Array.from({ length: 50 }, (_, i) => ({ value: `v${i}`, label: `Label ${(i * 37) % 50}` }));
+    const rows = Array.from({ length: 100_000 }, (_, i) => ({ id: `r${i}`, fruit: `v${(i * 7919) % 50}`, qty: (i * 7919) % 100_000 }));
+    function time(columnId: "fruit" | "qty"): number {
+      const store = createDataGridStore({
+        data: rows,
+        columns: [
+          { id: "fruit", header: "Fruit", accessorKey: "fruit", type: "select", options: { choices } },
+          { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
+        ],
+        getRowId: (row: unknown) => (row as { id: string }).id,
+        cellTypes: builtinCellTypes,
+      } as unknown as InternalSyncProps);
+      const start = performance.now();
+      store.getState().actions.setSorts([{ columnId, direction: "asc" }]);
+      return performance.now() - start;
+    }
+    time("fruit");
+    const numberSort = time("qty");
+    const selectSort = time("fruit");
+    // label collation per comparison measured about 1.6x the number sort; integer ranks stay below it
+    expect(selectSort).toBeLessThan(numberSort * 1.25);
   });
 });

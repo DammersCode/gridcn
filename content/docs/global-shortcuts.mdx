@@ -2,6 +2,7 @@
 title: Global shortcuts
 description: Opt-in undo, redo, and other grid actions for focus positions outside the grid.
 icon: Command
+status: updated
 ---
 
 The keyboard shortcuts of the grid work only while DOM focus is inside the grid.
@@ -20,7 +21,7 @@ active at every focus position.
 It renders nothing.
 Mount it inside `DataGridRoot`.
 The component listens for `keydown` on the window.
-A gate of six rules decides whether an event reaches the grid:
+A gate of seven rules decides whether an event reaches the grid:
 
 1. While IME composition is in progress, the gate skips the event.
 2. When the event is already `defaultPrevented`, the gate skips it. (The page or the grid handled
@@ -31,10 +32,14 @@ A gate of six rules decides whether an event reaches the grid:
    the key.
 5. The gate requires this grid to be the last focused grid with the component. This rule breaks
    ties between grids.
-6. The key must resolve to an enabled action through the effective keymap.
+6. While an edit session is open, the gate skips the event. The editor owns the key, also in a
+   popup such as the select list.
+7. The key must resolve to an enabled action through the effective keymap.
 
 When the gate passes, the component dispatches the action through the in-grid keymap. For undo
-and redo, that is the `onUndo` or `onRedo` seam.
+and redo, that is the `undo`/`redo` command of the
+[data-grid-history](/docs/addons/undo-redo) plugin. The global shortcut behaves exactly like the
+in-grid mod+Z binding.
 With the `data-grid-history` add-on, undo reverses grid edits.
 Without the add-on the layer is a no-op, like in-grid undo.
 
@@ -73,10 +78,10 @@ default set with exactly the flags you pass.
 
 | Prop | Description | Default |
 |---|---|---|
-| `undo` | enables the effective keymap's undo binding on window keydown — requires the [Undo & redo](/docs/addons/undo-redo) add-on | enabled when no flag is set |
-| `redo` | enables the effective keymap's redo bindings on window keydown — requires the [Undo & redo](/docs/addons/undo-redo) add-on | enabled when no flag is set |
-| `fillDown` | enables the fill-down binding on window keydown — requires the [Fill](/docs/addons/fill) add-on | off |
-| `fillRight` | enables the fill-right binding on window keydown — requires the [Fill](/docs/addons/fill) add-on | off |
+| `undo` | enables the effective keymap's undo binding on window keydown. Requires the [Undo & redo](/docs/addons/undo-redo) add-on | enabled when no flag is set |
+| `redo` | enables the effective keymap's redo bindings on window keydown. Requires the [Undo & redo](/docs/addons/undo-redo) add-on | enabled when no flag is set |
+| `fillDown` | enables the fill-down binding on window keydown. Requires the [Fill](/docs/addons/fill) add-on | off |
+| `fillRight` | enables the fill-right binding on window keydown. Requires the [Fill](/docs/addons/fill) add-on | off |
 | `selectAll` | enables the select-all binding on window keydown | off |
 | `insertRowAbove` | enables the insert-row-above binding on window keydown | off |
 | `insertRowBelow` | enables the insert-row-below binding on window keydown | off |
@@ -87,7 +92,7 @@ Each flagged action runs the same dispatch as its in-grid binding, with the same
 example, `insertRowBelow` does nothing without `createRow`.
 
 The listener reads the effective keymap from the store.
-When you remap `undo`, the global binding follows (see [Keybindings — Remapping](/docs/addons/keybindings#remapping)).
+When you remap `undo`, the global binding follows (see [Keybindings: Remapping](/docs/addons/keybindings#remapping)).
 
 Only actions whose every binding includes <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> (`mod`) are available as
 flags. A key without it types into the page, and a `ctrl`-only or `alt`-only chord collides with
@@ -120,6 +125,6 @@ This protects the layer from your listener and your listener from the layer.
 
 ## Related
 
-- [Undo & redo](/docs/addons/undo-redo) — the `onUndo`/`onRedo` seam of this component
-- [Keybindings](/docs/addons/keybindings) — the effective keymap and remapping
-- [Selection & keyboard](/docs/selection-keyboard) — the in-grid keymap table
+- [Undo & redo](/docs/addons/undo-redo): the `undo`/`redo` commands this component reaches
+- [Keybindings](/docs/addons/keybindings): the effective keymap and remapping
+- [Selection & keyboard](/docs/selection-keyboard): the in-grid keymap table

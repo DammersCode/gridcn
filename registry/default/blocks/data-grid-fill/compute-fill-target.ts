@@ -1,6 +1,6 @@
-import type { CellCoord, GridRect } from "@/registry/default/blocks/data-grid/data-grid";
+import type { ViewCoord, GridRect } from "@/registry/default/blocks/data-grid/data-grid";
 
-/** Which axes a fill-handle drag is permitted to snap to (see glide-behavior-spec.md §3). */
+/** Which axes a fill-handle drag is permitted to snap to. */
 export type AllowedFillDirections = "orthogonal" | "horizontal" | "vertical" | "any";
 
 /** Options for {@link computeFillTarget}. */
@@ -25,15 +25,14 @@ function clampRect(rect: GridRect, colCount: number, rowCount: number): GridRect
 
 /**
  * Computes the fill-handle drag highlight: the strip extending `source` toward
- * `cursor` on a single axis (glide's `getClosestRect`, see glide-behavior-spec.md
- * §3). For `allowedDirections: "any"` this is instead the combined rect
- * (including `source`), matching glide's diagonal behavior. Returns `null`
+ * `cursor` on a single axis (see `getClosestRect`). For `allowedDirections: "any"` this is instead the combined rect
+ * (including `source`), covering the diagonal. Returns `null`
  * when the cursor is inside `source` (no fill) or when the resulting rect
  * clamps to nothing at the grid bounds.
  */
 export function computeFillTarget(
   source: GridRect,
-  cursor: CellCoord,
+  cursor: ViewCoord,
   opts: ComputeFillTargetOptions
 ): GridRect | null {
   let px = cursor.col;

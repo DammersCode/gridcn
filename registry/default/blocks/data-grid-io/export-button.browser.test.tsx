@@ -20,10 +20,10 @@ const columns = defineColumns<Row>()([
   { id: "note", header: "Note", accessorKey: "note", type: "text", width: 200 },
 ] as const);
 
-function renderGrid() {
+function renderGrid(formats?: readonly ("xlsx" | "csv")[]) {
   return render(
     <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
-      <DataGridExportButton />
+      <DataGridExportButton formats={formats} />
       <DataGridRoot className="h-[200px]">
         <DataGridHeader />
         <DataGridBody />
@@ -33,6 +33,25 @@ function renderGrid() {
 }
 
 describe("DataGridExportButton (browser)", () => {
+  it("formats={['csv']} exports on click without opening a menu", async () => {
+    const createObjectURL = vi.fn(() => "blob:mock-url");
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    URL.createObjectURL = createObjectURL as typeof URL.createObjectURL;
+    URL.revokeObjectURL = vi.fn();
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    try {
+      await renderGrid(["csv"]);
+      await page.getByRole("button", { name: /export/i }).click();
+      await vi.waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(1));
+      expect(document.querySelector('[role="menuitem"]')).toBeNull();
+    } finally {
+      anchorClick.mockRestore();
+      URL.createObjectURL = originalCreateObjectURL;
+      URL.revokeObjectURL = originalRevokeObjectURL;
+    }
+  });
+
   it("csv export click triggers a DOM-attached download anchor with the right filename and RFC4180 content, revoke deferred", async () => {
     let capturedBlob: Blob | null = null;
     const createObjectURL = vi.fn((blob: Blob) => {
@@ -104,17 +123,15 @@ const boomCellType: CellType<unknown, string> = {
 };
 
 describe("DataGridExportButton export failures (browser)", () => {
-  /** Renders the button with the lazily-imported `xlsx` module mocked to fail on first use. */
+  /** Renders the button with the lazily-imported `hucre/xlsx` module mocked to fail on first use. */
   async function renderWithFailingXlsx(onError?: (error: unknown, format: "xlsx" | "csv") => void): Promise<Error> {
     vi.resetModules();
     const loadError = new Error("xlsx failed to load");
     // the browser mocker rejects mock factories that throw, so the failure is placed on first use
-    // (aoa_to_sheet runs right after the import) — the rejection reaches the same exportGrid catch
-    vi.doMock("xlsx", () => ({
-      utils: {
-        aoa_to_sheet: () => {
-          throw loadError;
-        },
+    // (writeXlsx runs right after the import) — the rejection reaches the same exportGrid catch
+    vi.doMock("hucre/xlsx", () => ({
+      writeXlsx: () => {
+        throw loadError;
       },
     }));
     const freshDataGrid = await import("@/registry/default/blocks/data-grid/data-grid");
@@ -141,7 +158,7 @@ describe("DataGridExportButton export failures (browser)", () => {
     await vi.waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
     expect(onError).toHaveBeenCalledWith(loadError, "xlsx");
 
-    vi.doUnmock("xlsx");
+    vi.doUnmock("hucre/xlsx");
   });
 
   it("logs a dev warning instead of invoking onError when none is provided", async () => {
@@ -157,7 +174,7 @@ describe("DataGridExportButton export failures (browser)", () => {
       );
     } finally {
       warnSpy.mockRestore();
-      vi.doUnmock("xlsx");
+      vi.doUnmock("hucre/xlsx");
     }
   });
 

@@ -7,7 +7,7 @@ import {
   useDataGridActions,
   useDataGridCellErrors,
   useDataGridStoreApi,
-  type DataGridProviderProps,
+  type DataGridSyncProps,
 } from "../store";
 
 type Row = { id: string; name: string; note: string };
@@ -27,7 +27,7 @@ function rows(): Row[] {
 
 function makeWrapper(
   onDataChange?: (next: readonly Row[], change: DataChange<Row>) => void,
-  overrides: Partial<DataGridProviderProps<Row>> = {},
+  overrides: Partial<DataGridSyncProps<Row>> = {},
 ) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
@@ -51,7 +51,7 @@ describe("onInvalid: 'warn' — commit + flag instead of block", () => {
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper(onDataChange) });
 
     act(() => {
-      result.current.actions.startEditing({ row: 0, col: 1 });
+      result.current.actions.startEditingAt({ row: 0, col: 1 });
       result.current.actions.commitCellEdit("way too long");
     });
 
@@ -69,7 +69,7 @@ describe("onInvalid: 'warn' — commit + flag instead of block", () => {
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper(onDataChange) });
 
     act(() => {
-      result.current.actions.startEditing({ row: 0, col: 0 });
+      result.current.actions.startEditingAt({ row: 0, col: 0 });
       result.current.actions.commitCellEdit("x".repeat(10));
     });
 
@@ -83,7 +83,7 @@ describe("onInvalid: 'warn' — commit + flag instead of block", () => {
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
 
     act(() => {
-      result.current.actions.commitCellValue({ row: 1, col: 1 }, "also too long");
+      result.current.actions.commitCellValueAt({ row: 1, col: 1 }, "also too long");
     });
 
     expect(result.current.store.getState().data[1]).toEqual(expect.objectContaining({ note: "also too long" }));
@@ -94,13 +94,13 @@ describe("onInvalid: 'warn' — commit + flag instead of block", () => {
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
 
     act(() => {
-      result.current.actions.startEditing({ row: 0, col: 1 });
+      result.current.actions.startEditingAt({ row: 0, col: 1 });
       result.current.actions.commitCellEdit("way too long");
     });
     expect(result.current.cellErrors.get("1:note")).toBe("Too long");
 
     act(() => {
-      result.current.actions.startEditing({ row: 0, col: 1 });
+      result.current.actions.startEditingAt({ row: 0, col: 1 });
       result.current.actions.commitCellEdit("fine");
     });
     expect(result.current.cellErrors.size).toBe(0);
@@ -111,12 +111,12 @@ describe("onInvalid: 'warn' — commit + flag instead of block", () => {
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
 
     act(() => {
-      result.current.actions.startEditing({ row: 0, col: 1 });
+      result.current.actions.startEditingAt({ row: 0, col: 1 });
       result.current.actions.commitCellEdit("way too long");
     });
 
     act(() => {
-      result.current.actions.startEditing({ row: 0, col: 1 });
+      result.current.actions.startEditingAt({ row: 0, col: 1 });
       result.current.actions.commitCellEdit("way too long"); // same value: no data change, deliberate keep
     });
 
@@ -130,7 +130,7 @@ describe("onInvalid: 'warn' — commit + flag instead of block", () => {
       result.current.actions.setCellErrors([{ rowId: "1", columnId: "name", message: "Server rejected" }]);
     });
     act(() => {
-      result.current.actions.startEditing({ row: 0, col: 1 });
+      result.current.actions.startEditingAt({ row: 0, col: 1 });
       result.current.actions.commitCellEdit("way too long");
     });
 

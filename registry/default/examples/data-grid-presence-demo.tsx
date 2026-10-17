@@ -41,7 +41,7 @@ function nextWalkStep(current: number, max: number, seed: number): number {
 /**
  * Drives the 3 simulated users' selections on a timer, calling the real (imperative) mechanism
  * `setPresenceHighlights` directly — exactly what a websocket/CRDT handler would do on each remote
- * update. Ada and Grace use the view-space `range` form; Linus uses the rowId-native RANGE form
+ * update. Ada and Grace use the view-index `range` form; Linus uses the rowId-native RANGE form
  * `{ rowIds, columnIds }` (a real peer would send this after a local sort or filter), so his
  * highlight keeps tracking the same rows even as `headerClickBehavior="sort"` reorders the view
  * underneath it. If a local filter or hidden column splits his range, it paints one rect — and
@@ -107,7 +107,7 @@ function useSimulatedPresenceDriver(rows: readonly DemoRow[], setPresenceHighlig
 export default function DataGridPresenceDemo(): ReactNode {
   const rows = useMemo(() => generateDemoRows(ROW_COUNT), []);
   const { plugin, setPresenceHighlights } = useDataGridPresence();
-  const overlayPlugins = useMemo(() => [plugin], [plugin]);
+  const plugins = useMemo(() => [plugin], [plugin]);
   useSimulatedPresenceDriver(rows, setPresenceHighlights);
 
   return (
@@ -122,7 +122,7 @@ export default function DataGridPresenceDemo(): ReactNode {
           defaultData={rows}
           columns={columns}
           getRowId={(row) => row.id}
-          overlayPlugins={overlayPlugins}
+          plugins={plugins}
           headerClickBehavior="sort"
         >
           <DataGridRoot className="h-full rounded-none border-none">

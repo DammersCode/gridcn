@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { AUTO_SCROLL_STEP, AUTO_SCROLL_ZONE } from "../windowing/direction";
+import { AUTO_SCROLL_STEP, AUTO_SCROLL_ZONE } from "../virtualization/direction";
+import { safeSetPointerCapture } from "../interaction/safe-set-pointer-capture";
 
 /** px of vertical pointer movement off the origin row before a marker press commits to a reorder drag. */
 const REORDER_THRESHOLD = 5;
@@ -33,21 +34,22 @@ export type RowReorderHandlers = {
 };
 
 /**
- * Drag-to-reorder rows. The marker cell routes presses to this hook from the grip zone only
+ * Drag-to-reorder rows. The marker cell routes presses to this hook from the drag handle zone only
  * (see DataGridMarkerCell's zone routing), so the gesture never shares a press with the
  * row-select range-drag — no coexistence disambiguation is needed. The caller passes `enabled`
- * only for the marker's `reorder` family (see RowMarkersMode). Within an armed grip press:
+ * only for the marker's `reorder` family (see RowMarkersMode). Within an armed drag handle press:
  * **a vertical drag that leaves the origin row becomes a reorder drag** (mirrors
  * {@link import("../columns/use-column-reorder").useColumnReorder}); a press+drag that never leaves
- * the origin row (or moves before `REORDER_THRESHOLD`) resolves as a click — the grip's own
- * pointerdown handler already resolved it as a row selection. The grip zone is never armed on
- * <kbd>Shift</kbd> (the caller routes shift presses to the row-select gesture instead).
+ * the origin row (or moves before `REORDER_THRESHOLD`) is a no-op: a drag handle press never changes the
+ * selection. The drag handle zone is never armed on <kbd>Shift</kbd>.
  *
  * While armed, the hook auto-scrolls the grid's scroll element (same zone/step as the interaction
  * layer's select-drag) when the pointer sits beyond a viewport edge, and re-resolves the drop
  * boundary after each scrolled frame so a stationary pointer keeps tracking the scrolling content
- * — rows outside the rendered window stay reachable through that auto-scroll. <kbd>Escape</kbd>
- * cancels the gesture in flight.
+ * — rows outside the rendered window stay reachable through that auto-scroll. When the drag
+ * arms, the hook takes pointer capture on the scroll element, never the drag handle: a touch pointer's
+ * implicit capture on the drag handle releases when the drag handle's row unmounts mid-auto-scroll, which would
+ * sever the gesture's document-level tracking. <kbd>Escape</kbd> cancels the gesture in flight.
  */
 export function useRowReorder(args: {
   enabled: boolean;
@@ -62,22 +64,20 @@ export function useRowReorder(args: {
   argsRef.current = args;
 
   const [dragState, setDragState] = useState<RowReorderState | null>(null);
-  // mirrors dragState synchronously — the document pointermove listener closes over stale React
-  // state otherwise (it's attached once per gesture, not re-subscribed on every setDragState).
+  // attached once per gesture, the document listener would close over stale React state without this ref
   const dragStateRef = useRef<RowReorderState | null>(null);
   const pendingRef = useRef<{ row: number; startX: number; startY: number; pointerId: number } | null>(null);
   const pointerPointRef = useRef<{ x: number; y: number } | null>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
   const rafRef = useRef<number | null>(null);
+  const captureRef = useRef<{ el: Element; pointerId: number } | null>(null);
 
   const setDrag = useCallback((next: RowReorderState | null) => {
     dragStateRef.current = next;
     setDragState(next);
   }, []);
 
-  // Edge auto-scroll while armed: one rAF per frame scrolls a fixed step while the pointer sits in
-  // an edge zone, then re-runs the hit test at the (stationary) pointer so the indicator tracks the
-  // content scrolling underneath it. Mirrors the interaction layer's select-drag auto-scroll.
+  // one rAF per frame scrolls a fixed step in an edge zone, then re-runs the hit test so the indicator tracks the scrolling content
   const runFrame = useCallback(() => {
     const drag = dragStateRef.current;
     const point = pointerPointRef.current;
@@ -111,6 +111,13 @@ export function useRowReorder(args: {
   }, []);
 
   const teardown = useCallback(() => {
+    const captureEl = captureRef.current?.el as (Element & { hasPointerCapture?: (id: number) => boolean; releasePointerCapture?: (id: number) => void; style?: CSSStyleDeclaration }) | null;
+    const captureId = captureRef.current?.pointerId;
+    if (captureEl && captureId !== undefined && captureEl.hasPointerCapture?.(captureId)) {
+      captureEl.releasePointerCapture?.(captureId);
+    }
+    if (captureEl?.style) captureEl.style.cursor = "";
+    captureRef.current = null;
     cleanupRef.current?.();
     cleanupRef.current = null;
     pendingRef.current = null;
@@ -125,6 +132,8 @@ export function useRowReorder(args: {
       // Shift+drag is always row-select (disambiguation rule above) — never arm the reorder path.
       if (event.shiftKey) return;
       if (!enabled) return;
+      // a second pointer must not arm a second listener set (the first cleanup would be overwritten, listeners leak)
+      if (pendingRef.current) return;
 
       pendingRef.current = { row: viewRowIndex, startX: event.clientX, startY: event.clientY, pointerId: event.pointerId };
       pointerPointRef.current = { x: event.clientX, y: event.clientY };
@@ -135,12 +144,16 @@ export function useRowReorder(args: {
         pointerPointRef.current = { x: e.clientX, y: e.clientY };
 
         if (!dragStateRef.current) {
-          // not yet armed: only commit to reorder once the vertical move exceeds the threshold
-          // AND has left the origin row (hitTest resolves to a different row).
+          // not yet armed: commit to reorder only past the threshold AND off the origin row (hitTest says a different row)
           const dy = Math.abs(e.clientY - pending.startY);
           if (dy < REORDER_THRESHOLD) return;
           const hit = argsRef.current.hitTestRow(e.clientX, e.clientY);
           if (!hit || hit.row === pending.row) return;
+          // the drag handle can unmount mid-auto-scroll; the scroll element's capture outlives the drag
+          const captureEl = argsRef.current.getScrollElement();
+          safeSetPointerCapture(captureEl, pending.pointerId);
+          captureRef.current = captureEl ? { el: captureEl, pointerId: pending.pointerId } : null;
+          if (captureEl?.style) captureEl.style.cursor = "grabbing";
           setDrag({ draggingRow: pending.row, overRow: hit.row, position: hit.position });
           if (rafRef.current === null) rafRef.current = requestAnimationFrame(runFrame);
           return;
@@ -166,15 +179,25 @@ export function useRowReorder(args: {
         if (e.key === "Escape") teardown();
       };
 
+      const handleLost = (e: Event) => {
+        if (e.type === "lostpointercapture" && e.target !== document) return;
+        if ("pointerId" in e && e.pointerId !== pendingRef.current?.pointerId) return;
+        teardown();
+      };
+
       document.addEventListener("pointermove", handleMove);
       document.addEventListener("pointerup", handleUp);
-      document.addEventListener("pointercancel", handleUp);
+      document.addEventListener("pointercancel", handleLost);
       document.addEventListener("keydown", handleKey);
+      document.addEventListener("lostpointercapture", handleLost);
+      window.addEventListener("blur", handleLost);
       cleanupRef.current = () => {
         document.removeEventListener("pointermove", handleMove);
         document.removeEventListener("pointerup", handleUp);
-        document.removeEventListener("pointercancel", handleUp);
+        document.removeEventListener("pointercancel", handleLost);
         document.removeEventListener("keydown", handleKey);
+        document.removeEventListener("lostpointercapture", handleLost);
+        window.removeEventListener("blur", handleLost);
       };
     },
     [enabled, runFrame, setDrag, teardown],

@@ -1,23 +1,21 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
-import type { CellCoord, CellType, DataOp } from "../types";
-import { DEFAULT_KEYMAP } from "../keyboard";
+import type { ColumnLayout, CompactSelectionLike, DataGridPlugin, GridCommand, GridRect, SelectionState, ViewCoord, CellType, DataOp, FilterSpec, Keymap } from "../types";
+import { BUILTIN_ACTIONS, keymapContentEqual, PLUGGABLE_ACTIONS, validateKeymap, validateSharedBindings } from "../keyboard";
 import { CompactSelection } from "../selection/compact-selection";
 import { getCellValue } from "../columns/column-helpers";
-import { clampColumnWidth } from "../columns/resolve-column-width";
+import { clampColumnWidth, resolveColumnWidth } from "../columns/resolve-column-width";
+import { computeAutosizeWidths } from "../columns/autosize-columns";
 import { cellTypes as defaultCellTypes } from "../cell-types/cell-types";
 import {
   emptySelection,
   extendTo,
   extendSelection,
-  offsetSelectionForRows,
+  isSelectionEmpty,
   pushRange,
-  rectFromCorners,
-  reorderSelectionForRow,
-  rowReorderMap,
+  removeRowFromSelection,
   selectAllProgression,
   selectCell as selectCellPure,
   selectColumn as selectColumnPure,
-  selectionRects,
   selectRow as selectRowPure,
   type ExtendDirection,
 } from "../selection";
@@ -25,46 +23,95 @@ import {
   applyDefaultColumnLayout,
   cellErrorKey,
   clampIndex,
-  clearErrorsForOps,
+  type ColumnLayoutParts,
   columnFlag,
+  completeColumnOrder,
   computeColumnLayout,
   computeSearchMatches,
   computeVisibleColumns,
+  clampCursor,
   computeViewIndex,
+  viewSorts,
   defHiddenColumnIds,
-  incrementalViewIndex,
+  flashCellKey,
+  flashKeyRowId,
   isColumnReadOnly,
+  layoutSnapshotsEqual,
+  makeSelectionChangeDetails,
   memoizedMergeLabels,
   mergeCellErrors,
   nextDirection,
+  normalizeColumnLayout,
   pruneCellErrors,
+  rectsKeepColumns,
+  rectsKeepRecords,
+  remapColumnChannel,
+  remapRowChannel,
   reorderColumnIds,
   resolveSelectionConfig,
-  sameElements,
+  rowIdAtViewRow,
   toggleSortAdditive,
   withFilterIds,
   EMPTY_CELL_ERRORS,
   EMPTY_FLASHING_CELLS,
-  EMPTY_OVERLAY_PLUGINS,
-  EMPTY_ROW_BANDS,
 } from "./compute";
+import { isDev } from "../is-dev";
+import { resolveEditTarget, warnBothSelectionPropsOnce, warnDev } from "./commit";
+import { apiHandleOf } from "./api";
+import { createDataWriteActions, createDataWriteContext, forgetDeferredRows, resetDeferredRows, resolveRefOrWarn } from "./data-write";
+import { registerInternalActions } from "./internal-actions";
+import { claimPluginAttachments, mergePluginCommands, mergePluginKeymaps, pluginsListEqual, resolvePluginsList, warnPluginComponentRemounts } from "./plugins";
+import { createRowIndexCache, viewRowOfDataIndex } from "./row-index";
 import {
-  computeCellPatchBatch,
-  computeCommit,
-  computeDeleteBatch,
-  computeDuplicateBatch,
-  computeInsertRowsBatch,
-  computeRowEditsBatch,
-  patchesNeedAsyncCheck,
-  prevalidatePatches,
-  type PrevalidatedPatches,
-  resolveEditTarget,
-  warnDev,
-} from "./commit";
-import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
-import { createRowIndexCache, resolveReorder, touchesViewInputs } from "./row-index";
-import type { AnyColumnDef, CellPatch, DataGridStoreState, InternalSyncProps, SyncInputs, UpdateCellsVerdict } from "./types";
+  EMPTY_SELECTION_STATE,
+  cellRefAtViewCoord,
+  deriveColumnIds,
+  deriveRowIds,
+  resolveSelectionState,
+  selectionStatesEqual,
+  type ResolveWarnFlag,
+} from "./selection-state";
+import type { AnyColumnDef, DataGridInternalActions, DataGridStoreState, InternalSyncProps, ResolvedPlugins, SyncInputs } from "./types";
 import { syncInputsEqual } from "./types";
+
+/**
+ * Resolves the `cellTypes` prop against the built-ins: entries merge OVER the built-ins, and a
+ * `null` entry removes a built-in (or a previously provided type). Built-ins stay available when
+ * the consumer provides only custom types.
+ */
+function resolveCellTypes(provided: Record<string, CellType | null> | undefined): Record<string, CellType> {
+  if (provided === undefined) return defaultCellTypes as unknown as Record<string, CellType>;
+  const out: Record<string, CellType> = { ...(defaultCellTypes as unknown as Record<string, CellType>) };
+  for (const [key, value] of Object.entries(provided)) {
+    if (value === null) delete out[key];
+    else out[key] = value;
+  }
+  return out;
+}
+
+type ProvidedCellTypes = Record<string, CellType | null> | undefined;
+
+/** Whether two `getRowId` functions disagree on the first or the last loaded row (lazy holes are skipped). */
+function sampledRowIdsDiffer(
+  data: readonly unknown[],
+  before: (row: unknown, index: number) => string,
+  after: (row: unknown, index: number) => string,
+): boolean {
+  const differs = (index: number) => before(data[index], index) !== after(data[index], index);
+  const first = data.findIndex((row) => row !== undefined);
+  if (first === -1) return false;
+  const last = data.findLastIndex((row) => row !== undefined);
+  return differs(first) || differs(last);
+}
+
+/** True when both `cellTypes` props hold the same keys with `===` entries (an inline literal re-created per render). */
+function sameCellTypeEntries(a: ProvidedCellTypes, b: ProvidedCellTypes): boolean {
+  if (a === b) return true;
+  if (a === undefined || b === undefined) return false;
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((key) => key in b && a[key] === b[key]);
+}
 
 /**
  * Creates one grid's vanilla store instance. Module-private: never export this
@@ -73,152 +120,212 @@ import { syncInputsEqual } from "./types";
 export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridStoreState> {
   const defHidden = defHiddenColumnIds(init.columns);
   const seeded = applyDefaultColumnLayout(init.columns, defHidden, init.defaultColumnLayout);
-  const visibleColumns = computeVisibleColumns(seeded.columns, seeded.columnOrder, seeded.hiddenColumns);
+  // `columnLayout` wins over `defaultColumnLayout`, and both resolve here (not in the provider),
+  // so the server render and the first client paint already show the controlled layout. Omitted
+  // parts fall back to the seeded values (there is no store state yet).
+  const seededPins: Record<string, "left" | "right"> = {};
+  for (const column of seeded.columns) if (column.pin === "left" || column.pin === "right") seededPins[column.id] = column.pin;
+  const effectiveLayout =
+    init.columnLayout !== undefined
+      ? normalizeColumnLayout(
+          init.columns,
+          {
+            widths: init.columnLayout.widths ?? seeded.columnWidths,
+            order: init.columnLayout.order !== undefined ? init.columnLayout.order : seeded.columnOrder,
+            pins: init.columnLayout.pins ?? seededPins,
+            hidden: init.columnLayout.hidden ?? seeded.hiddenColumns,
+          },
+          defHidden,
+        )
+      : seeded;
+  const visibleColumns = computeVisibleColumns(effectiveLayout.columns, effectiveLayout.columnOrder, effectiveLayout.hiddenColumns);
   const mergeLabels = memoizedMergeLabels();
-  // `data` wins when both are given (React value/defaultValue precedence; checkDevGuardrails warns).
-  // `dataControlled` latches this decision for the store's lifetime — later renders can't flip
-  // uncontrolled-to-controlled or back, matching `<input>`'s own value/defaultValue semantics.
+  // `data` wins over `defaultData`, and the decision latches for the store's lifetime, like `<input>` value/defaultValue.
   const dataControlled = init.data !== undefined;
   const initData: readonly unknown[] = init.data ?? init.defaultData ?? [];
-  // Set on every _syncProps call (including the implicit init-time seed below) so the very first
-  // real sync has something to compare against instead of special-casing "no previous sync yet".
-  const initFilterState = withFilterIds(init.filterState ?? []);
-  const initJoinOperator = init.joinOperator ?? "and";
+  // Seeded at init, so the first real sync has a previous value to compare against.
+  const initSortState = init.sortState ?? init.defaultSortState ?? [];
+  const initSortMode = init.sortMode ?? "client";
+  const initFilterState = withFilterIds(init.filterState ?? init.defaultFilterState ?? []);
+  const initJoinOperator = init.joinOperator ?? init.defaultJoinOperator ?? "and";
+  const initSearchText = init.searchText ?? init.defaultSearchText ?? "";
   // storage widens each per-column CellType<TData, TValue, TOptions> to the untyped registry shape; narrowed back per column at lookup (cell.tsx/store's column-op helpers).
-  const initCellTypes =
-    (init.cellTypes as unknown as Record<string, CellType> | undefined) ?? (defaultCellTypes as unknown as Record<string, CellType>);
+  const initCellTypes = resolveCellTypes(init.cellTypes as unknown as ProvidedCellTypes);
+  // A new registry identity is a sync-input change: reuse the resolved one while the prop's entries are unchanged.
+  let lastPropsCellTypes = init.cellTypes as unknown as ProvidedCellTypes;
   let lastSyncInputs: SyncInputs = {
     data: initData,
     cellTypes: initCellTypes,
-    columns: seeded.columns,
-    sortState: init.sortState ?? [],
+    columns: effectiveLayout.columns,
+    sortState: viewSorts(initSortMode, initSortState),
     filterState: initFilterState,
     joinOperator: initJoinOperator,
-    searchText: init.searchText ?? "",
-    columnOrder: seeded.columnOrder,
-    hiddenColumns: seeded.hiddenColumns,
+    searchText: initSearchText,
+    columnOrder: effectiveLayout.columnOrder,
+    hiddenColumns: effectiveLayout.hiddenColumns,
   };
-  // The raw `columns` prop reference last seen by _syncProps — separate from `s.columns`, which may
-  // carry runtime column-pin mutations (setColumnPin / the initial-layout seed). Only a genuine
-  // change of the consumer's own prop should reset `s.columns`; re-syncing with the SAME prop
-  // reference (e.g. an unrelated parent re-render) must not silently discard those pin mutations.
+  // The last raw `columns` prop; `s.columns` also carries runtime pin changes that a same-reference re-sync keeps.
   let lastPropsColumns: readonly AnyColumnDef[] = init.columns;
-  // `rowId -> dataIndex` for updateCells. Every path that inserts, deletes, duplicates, or replaces
-  // rows invalidates it; a pure value patch never moves a row, so a streaming tick keeps it warm.
+  // The raw `keymap`/`commands`/`plugins` props last seen by _syncConfig: content-equal re-renders
+  // (inline literals) keep `s.keymap`/`s.commands`/`s.plugins`'s references. Seeded with the init
+  // values (the creation-time resolution already validated and merged them), so the first config
+  // sync re-resolves nothing.
+  let lastKeymapProp: Keymap | undefined = init.keymap;
+  let lastCommandsProp: Record<string, GridCommand<unknown>> | null | undefined = init.commands;
+  let lastPluginsProp: readonly DataGridPlugin[] | undefined = init.plugins;
+  // The raw `filterState` prop ref last seen by _syncProps — a same-reference re-sync skips withFilterIds, which would churn the sync input.
+  let lastPropsFilterState: FilterSpec[] | undefined = init.filterState;
+  // A `commands` entry named after a built-in action silently disables the built-in — warn once about it.
+  let warnedCommandShadow = false;
+  // Plugin-conflict dev warnings, once per key per store (resolution re-runs on list changes; a static conflict must not re-warn).
+  const pluginWarnedKeys = new Set<string>();
+  const pluginWarnOnce = (key: string, message: string): void => {
+    if (pluginWarnedKeys.has(key)) return;
+    pluginWarnedKeys.add(key);
+    warnDev(message);
+  };
+  let claimedPlugins: readonly DataGridPlugin[] | undefined;
+  let releasePluginClaims: (() => void) | null = null;
+  // A getRowId swap on the same data array keeps ids, errors, and the row index of the old function.
+  let warnedGetRowIdSwap = false;
+  // `rowId -> dataIndex` for updateCells: row moves invalidate it, value patches keep it warm.
   const rowIndexCache = createRowIndexCache();
+  /** Per-key auto-clear timers for `flashCells`; a re-flash of a live key clears its old timer so the pulse restarts. */
+  const flashTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  // The data-write cluster's streaming bookkeeping (see data-write.ts) — the write actions and _syncProps share it by reference.
+  const dataWrite = createDataWriteContext(rowIndexCache);
+
   /**
-   * The last `data` array this store handed to `onDataChange`. A controlled consumer that stores it
-   * and re-renders feeds that same array back through `_syncProps`; recognizing it as our own echo
-   * is what keeps `computeViewIndex` off the controlled streaming path (design spec §3.3 — without
-   * this the 56 ms cliff returns for every controlled consumer).
+   * Runs after every viewIndex/visibleColumns rebuild: re-anchor an open edit to the new view
+   * position of its rowId/columnId (the draft survives the move), and move `activeCell` and the
+   * selection with it when they sat on the edit cell (a multi-cell range collapses to that cell).
+   * When the row or column left the view, cancel — the typed value is dropped, never written into
+   * a hidden row. Keeps object identity when nothing moved.
+   * `data` must be the array `viewIndex` indexes; a consumer swap passes the incoming array.
    */
-   let lastEmittedData: readonly unknown[] | null = null;
-   /** Per-key auto-clear timers for `flashCells`; a re-flash of a live key clears its old timer so the pulse restarts. */
-   const flashTimers = new Map<string, ReturnType<typeof setTimeout>>();
-  /**
-   * Data indices whose values changed since `viewIndex` was last rebuilt, so `reconcileView` and the
-   * next `"immediate"` batch can take the same incremental path instead of a full re-sort. `null`
-   * means "no longer trackable" — the limit was passed, or a path that moves rows (insert/delete/
-   * duplicate/a consumer `data` replacement) or writes values outside `updateCells` ran — and the
-   * caller falls back to the full rebuild.
-   */
-  /**
-   * Generation counter for a HELD async `updateCells` batch — the streaming surface's counterpart to
-   * the per-hook `useBulkGeneration` the paste/fill/import surfaces use. Bumped by every path that
-   * replaces rows or writes values outside the held batch, so a verdict that resolves against a grid
-   * that has moved on is dropped instead of landing late on top of newer data.
-   */
-  let streamGeneration = 0;
-  let deferredRows: Set<number> | null = new Set();
-  const forgetDeferredRows = () => {
-    streamGeneration += 1;
-    deferredRows = null;
-  };
-  const resetDeferredRows = () => {
-    streamGeneration += 1;
-    deferredRows = new Set();
-  };
-  /** Records a non-reordering batch's rows, giving up once the set is bigger than the incremental path serves. */
-  const rememberDeferredRows = (touchedRows: readonly number[]) => {
-    if (!deferredRows) return;
-    for (const row of touchedRows) deferredRows.add(row);
-    if (deferredRows.size > INCREMENTAL_PATCH_LIMIT) forgetDeferredRows();
-  };
-  /** This batch's touched rows plus anything an earlier batch left unreconciled; `null` when untrackable. */
-  const pendingRows = (touchedRows: readonly number[]): readonly number[] | null => {
-    if (!deferredRows) return null;
-    if (deferredRows.size === 0) return touchedRows;
-    const union = new Set(deferredRows);
-    for (const row of touchedRows) union.add(row);
-    return Array.from(union);
-  };
-  /**
-   * The next `viewIndex` for a reorder: incremental when `pending` is known and provably equivalent
-   * to the rebuild, the full rebuild otherwise. Returns the PREVIOUS array identity when no row
-   * moved, so a tick that changes no position re-renders nothing downstream of `viewIndex`.
-   */
-  const resolveViewIndex = (
+  const remapEditing = (
     s: DataGridStoreState,
-    data: readonly unknown[],
-    pending: readonly number[] | null,
-  ): number[] => {
-    const incremental = pending
-      ? incrementalViewIndex(data, s.columns, s.sortState, s.filterState, s.joinOperator, s.viewIndex, pending, s.cellTypes)
-      : null;
-    if (incremental) return sameElements(incremental, s.viewIndex) ? s.viewIndex : incremental;
-    return computeViewIndex(data, s.columns, s.sortState, s.filterState, s.joinOperator, s.viewIndex, s.cellTypes);
-  };
-  /**
-   * The view bookkeeping every direct write path (edit/paste/fill/delete) owes after committing
-   * `nextData`, mirroring what `updateCells` does for a `"defer"` batch: `viewIndex` deliberately
-   * stays put (no auto-resort), but `viewStale` has to flip so the re-sort affordance and
-   * `reconcileView()` can recover, and `searchMatches` has no deferred contract at all so it is
-   * recomputed in place. Both halves no-op unless a search or a view-feeding column is involved.
-   */
-  const reconcileAfterWrite = (
-    s: DataGridStoreState,
-    nextData: readonly unknown[],
-    ops: readonly DataOp<unknown>[],
+    viewIndex: readonly number[],
+    visibleColumns: readonly AnyColumnDef[],
+    data: readonly unknown[] = s.data,
+    getRowId: (row: unknown, index: number) => string = s.getRowId,
   ): Partial<DataGridStoreState> => {
-    const written: CellPatch[] = [];
-    for (const op of ops) {
-      if (op.type !== "update" || !op.cells) continue;
-      for (const cell of op.cells) written.push({ rowId: op.rowId, columnId: cell.columnId, value: cell.value });
+    const editing = s.editing;
+    if (!editing) return {};
+    const dataRowIndex = rowIndexCache.resolveOne(data, getRowId, editing.rowId);
+    const viewRow = dataRowIndex === undefined ? -1 : viewRowOfDataIndex(viewIndex, dataRowIndex);
+    const viewCol = visibleColumns.findIndex((column) => column.id === editing.columnId);
+    const onEditCell =
+      s.activeCell !== null && s.activeCell.row === editing.coord.row && s.activeCell.col === editing.coord.col;
+    const anchor = s.selection.current?.cell;
+    const anchoredOnEditCell = onEditCell && anchor !== undefined && anchor.row === editing.coord.row && anchor.col === editing.coord.col;
+    if (viewRow === -1 || viewCol === -1) {
+      return {
+        editing: null,
+        editingError: null,
+        ...(onEditCell ? { activeCell: null } : {}),
+        ...(anchoredOnEditCell ? { selection: { ...s.selection, current: null } } : {}),
+      };
     }
-    const viewStale = s.viewStale || touchesViewInputs(written, s.sortState, s.filterState);
-    if (s.searchText.trim() === "") return viewStale === s.viewStale ? {} : { viewStale };
+    if (viewRow === editing.coord.row && viewCol === editing.coord.col) return {};
+    const moved = { col: viewCol, row: viewRow };
     return {
-      ...(viewStale === s.viewStale ? {} : { viewStale }),
-      ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText),
+      editing: { ...editing, coord: moved },
+      ...(onEditCell ? { activeCell: moved } : {}),
+      ...(anchoredOnEditCell ? { selection: { ...selectCellPure(moved), rows: s.selection.rows, columns: s.selection.columns } } : {}),
     };
   };
   /**
-   * The view bookkeeping a row-shifting op (`insertRows`/`deleteRows`/`duplicateRows`) owes: the
-   * row count changed, so `computeViewIndex` always returns a fresh array (the content-equality
-   * reuse cannot apply), `searchMatches` is recomputed against it, and `viewStale` is cleared —
-   * the full rebuild reconciles whatever a deferred `updateCells` batch left stale, mirroring
-   * `setColumnHidden`.
+   * The active cell's coord in a rebuilt view: it follows its record and its column id. Returns
+   * `undefined` when its row or column left the view, so the caller clamps instead.
    */
-  /** With a sort or filter active, inserted rows land anywhere: follow the active row by identity and collapse the selection onto it. */
-  const followActiveRow = (s: DataGridStoreState, nextData: readonly unknown[], viewIndex: readonly number[]): Pick<DataGridStoreState, "selection" | "activeCell"> => {
-    const dataRow = s.activeCell ? s.viewIndex[s.activeCell.row] : undefined;
-    const row = dataRow === undefined || s.data[dataRow] === undefined ? -1 : viewIndex.indexOf(nextData.indexOf(s.data[dataRow]));
-    if (!s.activeCell || row === -1) return { selection: emptySelection(), activeCell: null };
-    const cell = { col: s.activeCell.col, row };
-    return { selection: { ...emptySelection(), current: { cell, range: rectFromCorners(cell, cell), rangeStack: [] } }, activeCell: cell };
+  const followActiveCell = (
+    s: DataGridStoreState,
+    viewIndex: readonly number[],
+    visibleColumns: readonly AnyColumnDef[],
+    toNextDataRow: ((prevDataRow: number) => number | undefined) | undefined,
+    sameRecordAt: ((viewRow: number) => boolean) | undefined,
+  ): DataGridStoreState["activeCell"] | undefined => {
+    const active = s.activeCell;
+    if (active === null) return null;
+    const prevDataRow = s.viewIndex[active.row];
+    const columnId = s.visibleColumns[active.col]?.id;
+    if (prevDataRow === undefined || columnId === undefined) return undefined;
+    let row = active.row;
+    if (sameRecordAt ? !sameRecordAt(active.row) : viewIndex[active.row] !== prevDataRow) {
+      const nextDataRow = toNextDataRow ? toNextDataRow(prevDataRow) : prevDataRow;
+      row = nextDataRow === undefined ? -1 : viewRowOfDataIndex(viewIndex, nextDataRow);
+    }
+    const col = visibleColumns[active.col]?.id === columnId ? active.col : visibleColumns.findIndex((column) => column.id === columnId);
+    if (row === -1 || col === -1) return undefined;
+    return row === active.row && col === active.col ? active : { row, col };
   };
-  const rebuildRowOpView = (s: DataGridStoreState, nextData: readonly unknown[]): Partial<DataGridStoreState> => {
-    const viewIndex = computeViewIndex(nextData, s.columns, s.sortState, s.filterState, s.joinOperator, s.viewIndex, s.cellTypes);
-    return {
-      viewIndex,
-      viewStale: false,
-      ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText),
-    };
+  /**
+   * The cursor, the open edit, and the selection carried into a rebuilt view. `sameRecords` keeps
+   * data indices as identity (no `data` swap, or our own echo); otherwise records map by rowId, and
+   * a duplicated rowId resolves to the first row with that id. The active cell follows its record and
+   * column and clamps only when one of them left the view. The row channel follows its records, the
+   * column channel its column ids. A range that now covers other records or columns collapses onto
+   * the followed active cell; a clamp that moves the cursor collapses onto it, and a clamp in place
+   * drops the range, so a row operation never reaches a record nobody selected.
+   */
+  const followView = (
+    s: DataGridStoreState,
+    viewIndex: readonly number[],
+    visibleColumns: readonly AnyColumnDef[],
+    data: readonly unknown[] = s.data,
+    getRowId: (row: unknown, index: number) => string = s.getRowId,
+    sameRecords = data === s.data,
+  ): Partial<DataGridStoreState> => {
+    const toNextDataRow = sameRecords
+      ? undefined
+      : (prevDataRow: number) => {
+          const row = s.data[prevDataRow];
+          // An unloaded row has no record yet; a page load fills the same index.
+          if (row === undefined) return prevDataRow < data.length ? prevDataRow : undefined;
+          return rowIndexCache.resolve(data, getRowId).get(s.getRowId(row, prevDataRow));
+        };
+    const current = s.selection.current;
+    const sameRecordAt = toNextDataRow
+      ? (viewRow: number) => {
+          const prevDataRow = s.viewIndex[viewRow];
+          const nextDataRow = viewIndex[viewRow];
+          if (prevDataRow === undefined || nextDataRow === undefined) return false;
+          const prevRow = s.data[prevDataRow];
+          const nextRow = data[nextDataRow];
+          return prevRow !== undefined && nextRow !== undefined && s.getRowId(prevRow, prevDataRow) === getRowId(nextRow, nextDataRow);
+        }
+      : undefined;
+    const followed = followActiveCell(s, viewIndex, visibleColumns, toNextDataRow, sameRecordAt);
+    const clamped = followed === undefined ? clampCursor(s, viewIndex.length, visibleColumns.length) : undefined;
+    const clampedSelection = clamped?.selection;
+    const editRemap = remapEditing(s, viewIndex, visibleColumns, data, getRowId);
+    let base: DataGridStoreState["selection"] = editRemap.selection ?? clampedSelection ?? s.selection;
+    const rects = current ? [current.range, ...current.rangeStack] : [];
+    if (!editRemap.selection && !clampedSelection && current) {
+      const rangeKept =
+        rectsKeepRecords(rects, s.viewIndex, viewIndex, toNextDataRow, sameRecordAt) && rectsKeepColumns(rects, s.visibleColumns, visibleColumns);
+      const anchorOnCursor = s.activeCell !== null && current.cell.row === s.activeCell.row && current.cell.col === s.activeCell.col;
+      if (!rangeKept) {
+        base = followed ? { ...selectCellPure(followed), rows: base.rows, columns: base.columns } : { ...base, current: null };
+      } else if (followed && followed !== s.activeCell && anchorOnCursor) {
+        base = { ...base, current: { ...current, cell: followed } };
+      }
+    }
+    const rows = remapRowChannel(base.rows, s.viewIndex, viewIndex, toNextDataRow);
+    const columns = remapColumnChannel(base.columns, s.visibleColumns, visibleColumns);
+    const selection = rows === base.rows && columns === base.columns ? base : { ...base, rows, columns };
+    return { ...(clamped ?? { activeCell: followed ?? null }), ...editRemap, ...(selection === s.selection ? {} : { selection }) };
   };
-  // cellErrors keys owned by each row's last validateRow verdict, so a re-run clears exactly its
-  // own stale messages and never a consumer's setCellErrors entries on other cells of that row.
-  // Stale entries for deleted rows are harmless: their keys are already pruned, deleting is a no-op.
+  // cellErrors keys of each row's last validateRow verdict, so a re-run clears only its own messages.
   const rowValidationKeys = new Map<string, string[]>();
+  // An unpruned entry for a deleted rowId lets the next validateRow wipe a reused row's consumer errors.
+  const pruneRowValidationKeys = (data: readonly unknown[], getRowId: (row: unknown, index: number) => string): void => {
+    if (rowValidationKeys.size === 0) return;
+    const live = new Set<string>();
+    for (let i = 0; i < data.length; i++) live.add(getRowId(data[i], i));
+    for (const rowId of rowValidationKeys.keys()) if (!live.has(rowId)) rowValidationKeys.delete(rowId);
+  };
   /**
    * Runs `validateRow` once per touched row of a committed write gesture, AFTER `clearErrorsForOps`
    * — the row in `nextData` already has every cell of the gesture applied, which is the whole
@@ -260,775 +367,168 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     }
     return next ?? cellErrors;
   };
-  // View-space presence entries pin to a display position a row move invalidates (rowId-native
-  // entries track their rows and never trip this): warn once when a row-moving op runs while one
-  // is active. The predicate is registered by the `data-grid-presence` add-on; null when absent.
-  let warnedPresenceReorder = false;
-  const warnViewSpacePresenceStale = (s: DataGridStoreState) => {
-    if (warnedPresenceReorder || !s.presenceViewSpaceActive?.()) return;
-    warnedPresenceReorder = true;
-    warnDev("rows moved while a view-space presence entry is active — its highlight position is now stale; use rowId-native presence entries for a live feed");
+  // The session whose end commit/cancel report themselves; the edit-end subscription skips it.
+  let selfReportedSession: DataGridStoreState["editing"] = null;
+  let editSessionCount = 0;
+  const endEditSession = (session: NonNullable<DataGridStoreState["editing"]>, write: () => void): void => {
+    selfReportedSession = session;
+    try {
+      write();
+    } finally {
+      selfReportedSession = null;
+    }
   };
-  const initViewIndex = computeViewIndex(initData, seeded.columns, init.sortState ?? [], initFilterState, initJoinOperator, undefined, initCellTypes);
-  return createStore<DataGridStoreState>((set, get) => ({
-    ...init,
-    ...resolveSelectionConfig(init),
-    // storage widens each per-column CellType<TData, TValue, TOptions> to the untyped registry shape; narrowed back per column at lookup (cell.tsx/store's column-op helpers).
-    cellTypes: initCellTypes,
-    columns: seeded.columns,
-    data: initData,
-    dataControlled,
-    activeCell: null,
-    selection: emptySelection(),
-    selectAllStage: null,
-    editing: null,
-    editingError: null,
-    editingRejectionCount: 0,
-    cellErrors: EMPTY_CELL_ERRORS,
-    flashingCells: EMPTY_FLASHING_CELLS,
-    overlayPlugins: init.overlayPlugins ?? EMPTY_OVERLAY_PLUGINS,
-    rowBands: init.rowBands ?? EMPTY_ROW_BANDS,
-    lastHighlightedRow: null,
-    lastHighlightedCol: null,
-    columnWidths: seeded.columnWidths,
-    columnOrder: seeded.columnOrder,
-    hiddenColumns: seeded.hiddenColumns,
-    sortState: init.sortState ?? [],
-    filterState: initFilterState,
-    joinOperator: initJoinOperator,
-    searchText: init.searchText ?? "",
-    sortControlled: init.sortState !== undefined,
-    filterControlled: init.filterState !== undefined,
-    joinOperatorControlled: init.joinOperator !== undefined,
-    searchControlled: init.searchText !== undefined,
-    ...computeSearchMatches(initData, seeded.columns, initViewIndex, visibleColumns, init.searchText ?? ""),
-    viewIndex: initViewIndex,
-    viewStale: false,
-    visibleColumns,
-    scrollToCellImpl: null,
-    fillHandlers: null,
-    presenceViewSpaceActive: null,
-    readOnly: false,
-    keymap: DEFAULT_KEYMAP,
-    labels: mergeLabels(init.labels),
-    actions: {
-      setActiveCell(coord) {
-        set({ activeCell: coord });
-      },
-      selectCell(coord) {
-        set({ activeCell: coord, selection: selectCellPure(coord) });
-      },
-      extendTo(coord) {
-        set((s) => {
-          // enableRangeSelection: false collapses any drag/shift-extend gesture to single-cell active only.
-          if (!s.enableRangeSelection) return { selection: selectCellPure(coord), activeCell: coord };
-          const selection = extendTo(s.selection, coord);
-          // extendTo falls back to a fresh anchor at `coord` when there was no prior selection.
-          const activeCell = s.selection.current ? s.activeCell : coord;
-          return { selection, activeCell };
-        });
-      },
-      extendSelection(direction, opts) {
-        // rowCount is the VIEW row count (viewIndex.length), not data.length, so growth stays
-        // within the visible display order under an active filter.
-        const { viewIndex, visibleColumns, selection, enableRangeSelection } = get();
-        if (!enableRangeSelection) return;
-        set({
-          selection: extendSelection(selection, direction, {
-            toEdge: opts?.toEdge,
-            rowCount: viewIndex.length,
-            colCount: visibleColumns.length,
-          }),
-        });
-      },
-      pushRange(coord) {
-        set((s) => {
-          // enableMultiRange: false makes ctrl-click behave as a plain click (no stack push).
-          if (!s.enableMultiRange) return { selection: selectCellPure(coord), activeCell: coord };
-          // pushRange moves the anchor to `coord`; keep activeCell in sync with it.
-          return { selection: pushRange(s.selection, coord), activeCell: coord };
-        });
-      },
-      selectRow(index, opts = {}) {
-        const { lastHighlightedRow, selection, enableRowSelection, enableMultiRange, enableRangeSelection } = get();
-        if (!enableRowSelection) return;
-        // enableMultiRange: false demotes ctrl-click to a plain toggle-select of just this row.
-        // enableRangeSelection: false demotes shift-click to a plain toggle-select too (no row range).
-        const additive = opts.additive && enableMultiRange;
-        const extendFromLast = opts.extendFromLast && enableRangeSelection;
-        const replaceFromLast = opts.replaceFromLast && enableRangeSelection;
-        set({
-          selection: selectRowPure(selection, index, {
-            additive,
-            extendFromLast,
-            replaceFromLast,
-            from: opts.from ?? lastHighlightedRow ?? undefined,
-          }),
-          lastHighlightedRow: index,
-        });
-      },
-      selectColumn(index, opts = {}) {
-        const { lastHighlightedCol, selection, enableColumnSelection, enableMultiRange, enableRangeSelection } = get();
-        if (!enableColumnSelection) return;
-        const additive = opts.additive && enableMultiRange;
-        const extendFromLast = opts.extendFromLast && enableRangeSelection;
-        set({
-          selection: selectColumnPure(selection, index, { additive, extendFromLast, from: lastHighlightedCol ?? undefined }),
-          lastHighlightedCol: index,
-        });
-      },
-      selectAll() {
-        const s = get();
-        if (!s.enableRangeSelection) return;
-        const active = s.activeCell ?? { col: 0, row: 0 };
-        // stage carries over only if the last selectAll's own output (selection/activeCell identity)
-        // is still exactly what's in the store now — any intervening action replaced one of them.
-        const priorStage =
-          s.selectAllStage &&
-          s.selectAllStage.selection === s.selection &&
-          s.selectAllStage.activeCell === s.activeCell
-            ? s.selectAllStage.stage
-            : null;
-        const isEmptyAt = (coord: CellCoord): boolean => {
-          const column = s.visibleColumns[coord.col];
-          if (!column) return true;
-          const dataRowIndex = s.viewIndex[coord.row];
-          const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
-          if (row === undefined) return true;
-          const cellType = s.cellTypes[column.type ?? "text"];
-          if (!cellType) return true;
-          const value = getCellValue<unknown, typeof column>(row, column);
-          return cellType.isEmpty(value);
-        };
-        const result = selectAllProgression(s.selection, s.viewIndex.length, s.visibleColumns.length, active, isEmptyAt, priorStage);
-        set({ selection: result.selection, selectAllStage: { stage: result.stage, selection: result.selection, activeCell: active } });
-      },
-      setRowSelected(index, checked) {
-        const { selection, enableRowSelection } = get();
-        if (!enableRowSelection) return;
-        const current = CompactSelection.fromArray(selection.rows.toArray());
-        const rows = checked ? current.add(index) : current.remove(index);
-        // additive membership change only — never touches the primary range/rangeStack/column channel.
-        set({ selection: { ...selection, rows } });
-      },
-      armRowDragAnchor(index) {
-        if (!get().enableRowSelection) return;
-        set({ lastHighlightedRow: index });
-      },
-      setAllRowsSelected(checked) {
-        const { selection, viewIndex, enableRowSelection } = get();
-        if (!enableRowSelection) return;
-        const rows = checked ? CompactSelection.fromSingleSelection([0, viewIndex.length]) : CompactSelection.empty();
-        set({ selection: { ...selection, rows } });
-      },
-      clearSelection() {
-        set({ selection: emptySelection() });
-      },
-      setColumnWidth(id, width) {
-        const column = get().columns.find((c) => c.id === id);
-        const next = column ? clampColumnWidth(column, width) : width;
-        set((s) => ({ columnWidths: { ...s.columnWidths, [id]: next } }));
-        get().onColumnResizing?.(id, next);
-      },
-      commitColumnWidth(id, width) {
-        const s = get();
-        const column = s.columns.find((c) => c.id === id);
-        const next = column ? clampColumnWidth(column, width) : width;
-        const columnWidths = { ...s.columnWidths, [id]: next };
-        set({ columnWidths });
-        s.onColumnLayoutChange?.(computeColumnLayout(s.columns, s.columnOrder, columnWidths, s.hiddenColumns));
-      },
-      resetColumnWidth(id) {
-        const s = get();
-        if (s.columnWidths[id] === undefined) return;
-        const { [id]: _dropped, ...columnWidths } = s.columnWidths;
-        set({ columnWidths });
-        s.onColumnLayoutChange?.(computeColumnLayout(s.columns, s.columnOrder, columnWidths, s.hiddenColumns));
-      },
-      setColumnOrder(id, targetId, position) {
-        const s = get();
-        if (!s.enableColumnReorder) return;
-        const byId = new Map(s.columns.map((c) => [c.id, c] as const));
-        if (!columnFlag(byId.get(id), "reorderable") || !columnFlag(byId.get(targetId), "reorderable")) return;
-        const currentIds = s.columnOrder ?? s.columns.map((c) => c.id);
-        const nextIds = reorderColumnIds(currentIds, s.columns, id, targetId, position);
-        if (nextIds === currentIds) return;
-        set({ columnOrder: nextIds, visibleColumns: computeVisibleColumns(s.columns, nextIds, s.hiddenColumns) });
-        s.onColumnLayoutChange?.(computeColumnLayout(s.columns, nextIds, s.columnWidths, s.hiddenColumns));
-      },
-      setColumnPin(id, pin) {
-        const s = get();
-        if (!s.enableColumnPinning) return;
-        const column = s.columns.find((c) => c.id === id);
-        if (!column || !columnFlag(column, "pinnable")) return;
-        const nextColumns = s.columns.map((c) => (c.id === id ? { ...c, pin: pin ?? undefined } : c));
-        set({
-          columns: nextColumns,
-          visibleColumns: computeVisibleColumns(nextColumns, s.columnOrder, s.hiddenColumns),
-        });
-        s.onColumnLayoutChange?.(computeColumnLayout(nextColumns, s.columnOrder, s.columnWidths, s.hiddenColumns));
-      },
-      setColumnHidden(id, hidden) {
-        const s = get();
-        const current = new Set(s.hiddenColumns);
-        if (hidden) current.add(id);
-        else current.delete(id);
-        const nextHidden = Array.from(current);
-        const nextVisibleColumns = computeVisibleColumns(s.columns, s.columnOrder, nextHidden);
-        const viewIndex = computeViewIndex(s.data, s.columns, s.sortState, s.filterState, s.joinOperator, s.viewIndex, s.cellTypes);
-        resetDeferredRows();
-        set({
-          hiddenColumns: nextHidden,
-          visibleColumns: nextVisibleColumns,
-          viewIndex,
-          viewStale: false,
-          ...computeSearchMatches(s.data, s.columns, viewIndex, nextVisibleColumns, s.searchText),
-        });
-        s.onColumnLayoutChange?.(computeColumnLayout(s.columns, s.columnOrder, s.columnWidths, nextHidden));
-      },
-      toggleSort(columnId, additive) {
-        const s = get();
-        const existing = s.sortState.find((sort) => sort.columnId === columnId);
-        const direction = nextDirection(existing?.direction);
-        const sorts = additive
-          ? toggleSortAdditive(s.sortState, columnId, direction)
-          : direction === null
-            ? []
-            : [{ columnId, direction }];
-        s.onSortChange?.(sorts);
-        // controlled: `sortState` prop is the source of truth — _syncProps writes it once the
-        // consumer's prop actually changes; a callback-ignoring consumer's grid stays fixed.
-        if (s.sortControlled) return;
-        set((s2) => {
-          const viewIndex = computeViewIndex(s2.data, s2.columns, sorts, s2.filterState, s2.joinOperator, s2.viewIndex, s2.cellTypes);
-          resetDeferredRows();
-          return {
-            sortState: sorts,
-            viewIndex,
-            viewStale: false,
-            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText),
-          };
-        });
-      },
-      setSorts(sorts) {
-        const s = get();
-        s.onSortChange?.(sorts);
-        if (s.sortControlled) return;
-        set((s2) => {
-          const viewIndex = computeViewIndex(s2.data, s2.columns, sorts, s2.filterState, s2.joinOperator, s2.viewIndex, s2.cellTypes);
-          resetDeferredRows();
-          return {
-            sortState: sorts,
-            viewIndex,
-            viewStale: false,
-            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText),
-          };
-        });
-      },
-      setFilters(filters) {
-        const s = get();
-        // backfills a filterId for any row the caller added without one (e.g. hand-built controlled updates).
-        const withIds = withFilterIds(filters);
-        s.onFilterChange?.(withIds);
-        if (s.filterControlled) return;
-        set((s2) => {
-          const viewIndex = computeViewIndex(s2.data, s2.columns, s2.sortState, withIds, s2.joinOperator, s2.viewIndex, s2.cellTypes);
-          resetDeferredRows();
-          return {
-            filterState: withIds,
-            viewIndex,
-            viewStale: false,
-            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText),
-          };
-        });
-      },
-      setJoinOperator(joinOperator) {
-        const s = get();
-        s.onJoinOperatorChange?.(joinOperator);
-        if (s.joinOperatorControlled) return;
-        set((s2) => {
-          const viewIndex = computeViewIndex(s2.data, s2.columns, s2.sortState, s2.filterState, joinOperator, s2.viewIndex, s2.cellTypes);
-          resetDeferredRows();
-          return {
-            joinOperator,
-            viewIndex,
-            viewStale: false,
-            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText),
-          };
-        });
-      },
-      setSearch(text) {
-        const s = get();
-        s.onSearchTextChange?.(text);
-        if (s.searchControlled) return;
-        // viewIndex is untouched: quick-search highlights + navigates, it never filters.
-        set((s2) => ({ searchText: text, ...computeSearchMatches(s2.data, s2.columns, s2.viewIndex, s2.visibleColumns, text) }));
-      },
-      startEditing(coord, initialText) {
-        const s = get();
-        const target = resolveEditTarget(s, coord);
-        if (!target || isColumnReadOnly(target.column, target.row)) return;
-        set({ editing: { coord, initialText }, editingError: null, editingRejectionCount: 0, activeCell: coord });
-      },
-      cancelEditing() {
-        set({ editing: null, editingError: null });
-      },
-      commitCellEdit(value, movement, rejection) {
-        const s = get();
-        const editing = s.editing;
-        if (!editing) return;
-        const maxRow = Math.max(0, s.viewIndex.length - 1);
-        const maxCol = Math.max(0, s.visibleColumns.length - 1);
-        const nextActiveCell = movement
+  // Controlled selection: the flag mirrors the `selection` prop's presence on the last
+  // sync; lastKnownSelection is the last emitted value, or the last applied controlled/default
+  // value, in public SelectionState form - the fire guard and the _syncProps structural compare
+  // both read it. The queue holds every emitted value no prop has confirmed yet, in emit order,
+  // so a consumer lagging several drag steps behind never snaps the selection back.
+  let selectionControlled = init.selection !== undefined;
+  let lastKnownSelection: SelectionState = EMPTY_SELECTION_STATE;
+  let selectionEchoQueue: SelectionState[] = [];
+  // The resolver's once-per-grid dev-warn flag (the resolveRefOrWarn convention).
+  const warnedControlledSelection: ResolveWarnFlag = { value: false };
+  // Partial-typed: the echo check is an identity match, and a consumer may feed back either a
+  // fired snapshot (full) or its own partial value.
+  let layoutEchoQueue: Partial<ColumnLayout>[] = [];
+  // Derivation is cached per channel identity: a range-drag step re-derives the three corner
+  // refs only, and the rowIds/columnIds arrays keep their identity.
+  let rowIdsDerivation: { rows: CompactSelectionLike; viewIndex: readonly number[]; data: readonly unknown[]; getRowId: (row: unknown, index: number) => string; rowIds: string[] } | null = null;
+  let columnIdsDerivation: { columns: CompactSelectionLike; visibleColumns: readonly AnyColumnDef[]; columnIds: string[] } | null = null;
+  const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, viewSorts(initSortMode, initSortState), initFilterState, initJoinOperator, undefined, initCellTypes);
+  // `selection` wins over `defaultSelection`, and both resolve here (not in the provider), so the
+  // server render and the first client paint already show them.
+  const initSelectionValue = init.selection ?? init.defaultSelection;
+  if (init.selection !== undefined && init.defaultSelection !== undefined) warnBothSelectionPropsOnce();
+  let initialSelection = emptySelection();
+  let initialActiveCell: ViewCoord | null = null;
+  if (initSelectionValue) {
+    const resolved = resolveSelectionState(
+      { data: initData, getRowId: init.getRowId, viewIndex: initViewIndex, visibleColumns, selection: initialSelection },
+      rowIndexCache,
+      initSelectionValue,
+      warnedControlledSelection,
+    );
+    initialSelection = resolved.grid;
+    initialActiveCell = resolved.activeCell ?? null;
+    lastKnownSelection = resolved.selection;
+  }
+  const store = createStore<DataGridStoreState>((set, get, api) => {
+    /**
+     * Derives the public SelectionState with per-channel caches (decision 4): a range-drag step
+     * re-derives the three corner refs only, and the rowIds/columnIds arrays keep their identity
+     * while their channels keep theirs.
+     */
+    const deriveCurrentSelection = (s: DataGridStoreState): SelectionState => {
+      let rowIds: string[];
+      const rowCache = rowIdsDerivation;
+      if (rowCache && rowCache.rows === s.selection.rows && rowCache.viewIndex === s.viewIndex && rowCache.data === s.data && rowCache.getRowId === s.getRowId) {
+        rowIds = rowCache.rowIds;
+      } else {
+        rowIds = deriveRowIds(s);
+        rowIdsDerivation = { rows: s.selection.rows, viewIndex: s.viewIndex, data: s.data, getRowId: s.getRowId, rowIds };
+      }
+      let columnIds: string[];
+      const columnCache = columnIdsDerivation;
+      if (columnCache && columnCache.columns === s.selection.columns && columnCache.visibleColumns === s.visibleColumns) {
+        columnIds = columnCache.columnIds;
+      } else {
+        columnIds = deriveColumnIds(s);
+        columnIdsDerivation = { columns: s.selection.columns, visibleColumns: s.visibleColumns, columnIds };
+      }
+      const current = s.selection.current;
+      if (!current) return { anchor: null, range: null, rangeStack: [], rowIds, columnIds };
+      const refAt = (coord: ViewCoord) => cellRefAtViewCoord(s, coord);
+      const rangeRef = (rect: GridRect): { start: { rowId: string; columnId: string }; end: { rowId: string; columnId: string } } => ({
+        start: refAt({ row: rect.y, col: rect.x }),
+        end: refAt({ row: rect.y + rect.height - 1, col: rect.x + rect.width - 1 }),
+      });
+      return {
+        anchor: refAt(current.cell),
+        range: rangeRef(current.range),
+        rangeStack: current.rangeStack.map(rangeRef),
+        rowIds,
+        columnIds,
+      };
+    };
+    /**
+     * The one layout write-back point (decision 10): merges `changedParts` over the current
+     * layout, normalizes it, and structurally compares the result with the always-current
+     * s.columnLayout snapshot - equal: no set, no event; else one set (pins/widths/order/hidden/
+     * visible columns/snapshot) plus one onColumnLayoutChange. Live resize frames never run
+     * through here (setColumnWidth).
+     */
+    const commitLayout = (changedParts: Partial<ColumnLayout>): void => {
+      const s = get();
+      const pins: Record<string, "left" | "right"> = {};
+      for (const column of s.columns) if (column.pin === "left" || column.pin === "right") pins[column.id] = column.pin;
+      const merged: ColumnLayoutParts = {
+        widths: changedParts.widths ?? s.columnWidths,
+        order: changedParts.order !== undefined ? changedParts.order : s.columnOrder,
+        pins: changedParts.pins !== undefined ? changedParts.pins : pins,
+        hidden: changedParts.hidden ?? [...s.hiddenColumns],
+      };
+      const normalized = normalizeColumnLayout(s.columns, merged, defHiddenColumnIds(s.columns));
+      const snapshot = computeColumnLayout(normalized.columns, normalized.columnOrder, normalized.columnWidths, normalized.hiddenColumns);
+      if (layoutSnapshotsEqual(snapshot, s.columnLayout)) return;
+      const nextVisibleColumns = computeVisibleColumns(normalized.columns, normalized.columnOrder, normalized.hiddenColumns);
+      const columnsChanged = changedParts.order !== undefined || changedParts.pins !== undefined || changedParts.hidden !== undefined;
+      set({
+        columns: normalized.columns,
+        columnWidths: normalized.columnWidths,
+        columnOrder: normalized.columnOrder,
+        hiddenColumns: normalized.hiddenColumns,
+        visibleColumns: nextVisibleColumns,
+        columnLayout: snapshot,
+        ...(columnsChanged
           ? {
-              col: clampIndex(editing.coord.col + movement.dx, maxCol),
-              row: clampIndex(editing.coord.row + movement.dy, maxRow),
+              // A columns-moving commit re-runs the cursor/selection remap and the search-match
+              // row map.
+              ...followView(s, s.viewIndex, nextVisibleColumns),
+              ...computeSearchMatches(s.data, normalized.columns, s.viewIndex, nextVisibleColumns, s.searchText, s.cellTypes),
             }
-          : editing.coord;
-
-        const result = computeCommit(s, editing.coord, value, rejection);
-        // Stale session: while a (possibly async) validation was pending the user moved
-        // activeCell off the editing cell (a click-away). The data commit is still the user's own
-        // value — but restoring `activeCell`/`selection` from the stale editing coord would drag
-        // their cursor back, so it is skipped.
-        const stale =
-          s.activeCell !== null && (s.activeCell.row !== editing.coord.row || s.activeCell.col !== editing.coord.col);
-        const restoreSelection = stale ? {} : { activeCell: nextActiveCell, selection: selectCellPure(nextActiveCell) };
-        if ("error" in result) {
-          set({ editingError: result.error, editingRejectionCount: s.editingRejectionCount + 1 });
-          return;
-        }
-        if ("noop" in result) {
-          set({
-            editing: null,
-            editingError: null,
-            ...restoreSelection,
-            // an `onInvalid: "warn"` re-commit of the same value still lands its flag
-            ...(result.warnings ? { cellErrors: mergeCellErrors(s.cellErrors, result.warnings) } : {}),
-          });
-          return;
-        }
-        rowIndexCache.rebase(result.data);
-        forgetDeferredRows();
-        lastEmittedData = result.data;
-        s.onDataChange?.(result.data, result.change);
-        const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, result.change.ops), result.data, result.change.ops);
-        set({
-          data: result.data,
-          editing: null,
-          editingError: null,
-          // warn rejections commit AND flag — merged after the auto-clear + validateRow verdict so the freshest signal wins
-          cellErrors: result.warnings ? mergeCellErrors(cellErrors, result.warnings) : cellErrors,
-          ...restoreSelection,
-          ...reconcileAfterWrite(s, result.data, result.change.ops),
-        });
-      },
-      commitCellValue(coord, value) {
-        const s = get();
-        const result = computeCommit(s, coord, value);
-        if ("error" in result) return;
-        if ("noop" in result) {
-          if (result.warnings) set({ cellErrors: mergeCellErrors(s.cellErrors, result.warnings) });
-          return;
-        }
-        rowIndexCache.rebase(result.data);
-        forgetDeferredRows();
-        lastEmittedData = result.data;
-        s.onDataChange?.(result.data, result.change);
-        const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, result.change.ops), result.data, result.change.ops);
-        set({
-          data: result.data,
-          cellErrors: result.warnings ? mergeCellErrors(cellErrors, result.warnings) : cellErrors,
-          ...reconcileAfterWrite(s, result.data, result.change.ops),
-        });
-      },
-      setEditingError(message) {
-        const s = get();
-        if (!s.editing) return;
-        set({ editingError: message, editingRejectionCount: s.editingRejectionCount + 1 });
-      },
-      setCellErrors(errors) {
-        if (errors.length === 0) return;
-        set({ cellErrors: mergeCellErrors(get().cellErrors, errors) });
-      },
-      clearCellErrors(targets) {
-        const s = get();
-        if (s.cellErrors.size === 0) return;
-        if (!targets) {
-          set({ cellErrors: EMPTY_CELL_ERRORS });
-          return;
-        }
-        if (targets.length === 0) return;
-        const next = new Map(s.cellErrors);
-        let changed = false;
-        for (const target of targets) {
-          if (next.delete(cellErrorKey(target.rowId, target.columnId))) changed = true;
-        }
-        if (changed) set({ cellErrors: next });
-      },
-      flashCells(keys, durationMs = 1400) {
-        if (keys.length === 0) return;
-        const next = new Set(get().flashingCells);
-        for (const key of keys) {
-          next.add(key);
-          const existing = flashTimers.get(key);
-          if (existing !== undefined) clearTimeout(existing);
-          flashTimers.set(
-            key,
-            setTimeout(() => {
-              flashTimers.delete(key);
-              const current = get();
-              if (!current.flashingCells.has(key)) return;
-              const lifted = new Set(current.flashingCells);
-              lifted.delete(key);
-              set({ flashingCells: lifted });
-            }, durationMs),
-          );
-        }
-        set({ flashingCells: next });
-      },
+          : {}),
+      });
+      // Keep the sync baseline current: the controlled echo re-render that follows the commit
+      // must early-return instead of paying a one-time view recompute.
+      lastSyncInputs = { ...lastSyncInputs, columns: normalized.columns, columnOrder: normalized.columnOrder, hiddenColumns: normalized.hiddenColumns };
+      if (s.onColumnLayoutChange) layoutEchoQueue.push(snapshot);
+      s.onColumnLayoutChange?.(snapshot);
+    };
+    // Resolved at creation so the server render has the band heights, `aria-rowcount`, and the
+    // merged keymap/commands (spec: resolution); the config phase re-resolves on change only.
+    const initPlugins = resolvePluginsList(init.plugins, api, pluginWarnOnce);
+    const initKeymap = mergePluginKeymaps(initPlugins.list, init.keymap, pluginWarnOnce);
+    const initCommands = mergePluginCommands(initPlugins.list, init.commands, pluginWarnOnce);
+    if (isDev()) {
+      validateKeymap(initKeymap);
+      validateSharedBindings(initKeymap);
+    }
+    const dataWriteActions = createDataWriteActions(set, get, {
+      ctx: dataWrite,
+      applyRowValidation,
+      pruneRowValidationKeys,
+      followView,
+      remapEditing,
+      endEditSession,
+    });
+    const { _deleteCellsById, ...publicWriteActions } = dataWriteActions;
+    const internal: DataGridInternalActions = {
+      _deleteCellsById,
       _pruneFlashingCells(keptViewRows) {
         const s = get();
         if (s.flashingCells.size === 0) return;
-        const kept = new Set(keptViewRows);
+        const keptRowIds = new Set<string>();
+        for (const viewRow of keptViewRows) {
+          const rowId = rowIdAtViewRow(s, viewRow);
+          if (rowId !== undefined) keptRowIds.add(rowId);
+        }
         const next = new Set(s.flashingCells);
         for (const key of next) {
-          // flashCellKey is `${viewRow}:${columnId}` — the view row is always a plain integer up to the first colon.
-          const viewRow = Number(key.slice(0, key.indexOf(":")));
-          if (kept.has(viewRow)) continue;
-          next.delete(key);
+          if (!keptRowIds.has(flashKeyRowId(key))) next.delete(key);
         }
         if (next.size === s.flashingCells.size) return;
         set({ flashingCells: next });
-      },
-      deleteSelection() {
-        const s = get();
-        if (s.readOnly) return;
-        const rects = selectionRects(s.selection, s.viewIndex.length, s.visibleColumns.length);
-        if (rects.length === 0) return;
-
-        const resolvedCols = s.visibleColumns.map((column) => {
-          const cellType = s.cellTypes[column.type ?? "text"];
-          return cellType ? { columnId: column.id, value: cellType.clearValue(column.options) } : null;
-        });
-        const writes: { viewRow: number; columnId: string; value: unknown }[] = [];
-        for (const rect of rects) {
-          for (let viewRow = rect.y; viewRow < rect.y + rect.height; viewRow++) {
-            for (let col = rect.x; col < rect.x + rect.width; col++) {
-              const resolved = resolvedCols[col];
-              if (!resolved) continue;
-              writes.push({ viewRow, columnId: resolved.columnId, value: resolved.value });
-            }
-          }
-        }
-
-        const batch = computeRowEditsBatch(s, writes);
-        if (!batch) return;
-        rowIndexCache.rebase(batch.nextData);
-        forgetDeferredRows();
-        lastEmittedData = batch.nextData;
-        s.onDataChange?.(batch.nextData, { source: "delete", ops: batch.ops });
-        set({
-          data: batch.nextData,
-          cellErrors: applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops),
-          ...reconcileAfterWrite(s, batch.nextData, batch.ops),
-        });
-      },
-      applyCellUpdates(updates, source) {
-        const s = get();
-        if (s.readOnly || updates.length === 0) return;
-        const batch = computeRowEditsBatch(s, updates);
-        if (!batch) return;
-        rowIndexCache.rebase(batch.nextData);
-        forgetDeferredRows();
-        lastEmittedData = batch.nextData;
-        s.onDataChange?.(batch.nextData, { source, ops: batch.ops });
-        const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops);
-
-        // move selection to cover the touched view rect (paste's anchored-expand result).
-        let minRow = Infinity, maxRow = -Infinity, minCol = Infinity, maxCol = -Infinity;
-        const idByCol = new Map(s.visibleColumns.map((c, i) => [c.id, i] as const));
-        for (const u of updates) {
-          const col = idByCol.get(u.columnId);
-          if (col === undefined) continue;
-          minRow = Math.min(minRow, u.viewRow);
-          maxRow = Math.max(maxRow, u.viewRow);
-          minCol = Math.min(minCol, col);
-          maxCol = Math.max(maxCol, col);
-        }
-        if (minRow === Infinity) {
-          set({ data: batch.nextData, cellErrors, ...reconcileAfterWrite(s, batch.nextData, batch.ops) });
-          return;
-        }
-        const range = rectFromCorners({ col: minCol, row: minRow }, { col: maxCol, row: maxRow });
-        set({
-          data: batch.nextData,
-          cellErrors,
-          selection: { ...emptySelection(), current: { cell: { col: minCol, row: minRow }, range, rangeStack: [] } },
-          activeCell: { col: minCol, row: minRow },
-          ...reconcileAfterWrite(s, batch.nextData, batch.ops),
-        });
-      },
-      updateCells(patches, options) {
-        const s = get();
-        if (s.readOnly || patches.length === 0) return { applied: 0, skipped: [], pending: false };
-        const skipValidation = options?.skipValidation ?? false;
-
-        // Re-enters with skipValidation once accepted, so the incremental view path only ever sees validated values.
-        if (!skipValidation && patchesNeedAsyncCheck(s, patches)) {
-          const rowIndex = rowIndexCache.resolve(s.data, s.getRowId);
-          const validated = prevalidatePatches(s, patches, rowIndex);
-          // Skips report indexes into the caller's `patches`, not into the accepted subset.
-          const apply = ({ accepted, acceptedIndexes, rejectedIndexes }: PrevalidatedPatches): UpdateCellsVerdict => {
-            const invalid = rejectedIndexes.map((patchIndex) => ({ patchIndex, reason: "invalid" as const }));
-            if (accepted.length === 0) return { applied: 0, skipped: invalid, pending: false };
-            const verdict = get().actions.updateCells(accepted, { ...options, skipValidation: true });
-            const remapped = verdict.skipped.map((skip) => ({ ...skip, patchIndex: acceptedIndexes[skip.patchIndex]! }));
-            return { ...verdict, skipped: [...invalid, ...remapped].sort((a, b) => a.patchIndex - b.patchIndex) };
-          };
-          if (validated instanceof Promise) {
-            const token = ++streamGeneration;
-            void validated.then((accepted) => {
-              // A newer updateCells, or any path that moved rows, supersedes this batch silently.
-              if (streamGeneration !== token) return;
-              void apply(accepted);
-            });
-            // the held batch's outcome (accepted, dropped, or superseded) is not reportable here
-            return { applied: 0, skipped: [], pending: true };
-          }
-          return apply(validated);
-        }
-
-        const rowIndex = rowIndexCache.resolve(s.data, s.getRowId);
-        const batch = computeCellPatchBatch(s, patches, rowIndex, skipValidation);
-        if (batch.nextData === null) return { applied: 0, skipped: batch.skipped, pending: false };
-        const applied = batch.ops.reduce((n, op) => (op.type === "update" ? n + (op.cells?.length ?? 0) : n), 0);
-
-        let reorder = resolveReorder(options?.reorder, patches, s.sortState, s.filterState);
-        // an open editor pins a view coordinate an immediate re-sort would silently remount (the
-        // commit path re-reads the shifted viewIndex for the same coord), so the batch defers
-        if (reorder === "immediate" && s.editing) reorder = "defer";
-        rowIndexCache.rebase(batch.nextData);
-        lastEmittedData = batch.nextData;
-        s.onDataChange?.(batch.nextData, { source: options?.source ?? "stream", ops: batch.ops });
-        // clearErrorsForOps returns the SAME map identity when `s.cellErrors` is empty (the common
-        // streaming case), so this costs nothing extra on the hot path this action exists for.
-        const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops);
-
-        // The fast path, and the whole point of the action: one set() writing `data` alone. Row
-        // identities changed only for touched rows, so their per-row subscriptions re-render and
-        // every other row's memo holds. viewIndex/searchMatches/visibleColumns keep their identity,
-        // so no comparator downstream of them re-runs.
-        if (reorder !== "immediate") {
-          // Recorded for `"never"` too: that mode is a caller ASSERTION that no touched column feeds
-          // the view, and a later reconcile has to stay correct even when the assertion was wrong.
-          rememberDeferredRows(batch.touchedRows);
-          set(
-            reorder === "defer" && !s.viewStale
-              ? { data: batch.nextData, viewStale: true, cellErrors }
-              : { data: batch.nextData, cellErrors },
-          );
-          return { applied, skipped: batch.skipped, pending: false };
-        }
-        warnViewSpacePresenceStale(s);
-        // Incremental maintenance: a full rebuild re-sorts all n rows every tick, and a patch of a
-        // few rows can only move those rows. Rows an earlier non-reordering batch left unreconciled
-        // move in this pass too, since the rest of the order is what the binary search trusts.
-        const viewIndex = resolveViewIndex(s, batch.nextData, pendingRows(batch.touchedRows));
-        resetDeferredRows();
-        set({
-          data: batch.nextData,
-          cellErrors,
-          viewIndex,
-          viewStale: false,
-          ...computeSearchMatches(batch.nextData, s.columns, viewIndex, s.visibleColumns, s.searchText),
-        });
-        return { applied, skipped: batch.skipped, pending: false };
-      },
-      updateRows(updates, options) {
-        if (updates.length === 0) return { applied: 0, skipped: [], pending: false };
-        const patches: CellPatch[] = [];
-        for (const update of updates) {
-          for (const columnId of Object.keys(update.changes)) {
-            patches.push({ rowId: update.rowId, columnId, value: update.changes[columnId] });
-          }
-        }
-        return get().actions.updateCells(patches, options);
-      },
-      reconcileView() {
-        const s = get();
-        if (!s.viewStale) return;
-        // Same incremental path an `"immediate"` batch takes, over whatever the deferred batches touched.
-        const viewIndex = resolveViewIndex(s, s.data, pendingRows([]));
-        resetDeferredRows();
-        set({
-          viewIndex,
-          viewStale: false,
-          ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText),
-        });
-      },
-      insertRow(viewRowIndex, position) {
-        // single implementation path: the 1-row case of the batch action (same one undo step).
-        get().actions.insertRows(viewRowIndex, 1, position);
-      },
-      insertRows(viewRowIndex, count, position = "below") {
-        const s = get();
-        if (s.readOnly) return;
-        // an open editor pins a view coordinate the shift would silently invalidate (the commit
-        // path re-reads the shifted viewIndex for the same coord)
-        if (s.editing) {
-          warnDev("insertRows is a no-op while an edit session is open");
-          return;
-        }
-        if (!s.createRow) {
-          warnDev("row insertion is a no-op because no `createRow` prop was provided");
-          return;
-        }
-        if (count <= 0 || !Number.isInteger(count)) {
-          if (count > 0) warnDev(`insertRows: count must be an integer (got ${count})`);
-          return;
-        }
-        const dataRowIndex = clampIndex(
-          position === "above" ? (s.viewIndex[viewRowIndex] ?? s.data.length) : (s.viewIndex[viewRowIndex] ?? s.data.length - 1) + 1,
-          s.data.length,
-        );
-        const rows: unknown[] = [];
-        for (let i = 0; i < count; i++) rows.push(s.createRow(dataRowIndex + i));
-        const batch = computeInsertRowsBatch(s, dataRowIndex, rows);
-        warnViewSpacePresenceStale(s);
-        rowIndexCache.invalidate();
-        forgetDeferredRows();
-        lastEmittedData = batch.nextData;
-        s.onDataChange?.(batch.nextData, { source: "row-op", ops: batch.ops });
-        const view = rebuildRowOpView(s, batch.nextData);
-        if (s.sortState.length > 0 || s.filterState.length > 0) {
-          set({ data: batch.nextData, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view });
-          return;
-        }
-        // unsorted and unfiltered, the new rows land at this view index; shift selection/activeCell to follow them.
-        const viewInsertAt = position === "above" ? viewRowIndex : viewRowIndex + 1;
-        set({
-          data: batch.nextData,
-          cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
-          selection: offsetSelectionForRows(s.selection, viewInsertAt, count),
-          activeCell: s.activeCell && s.activeCell.row >= viewInsertAt
-            ? { ...s.activeCell, row: s.activeCell.row + count }
-            : s.activeCell,
-          ...view,
-        });
-      },
-      deleteRows(viewRowIndexes) {
-        const s = get();
-        if (s.readOnly) return;
-        // an open editor pins a view coordinate the shift would silently invalidate (the commit
-        // path re-reads the shifted viewIndex for the same coord)
-        if (s.editing) {
-          warnDev("deleteRows is a no-op while an edit session is open");
-          return;
-        }
-        const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
-        const batch = computeDeleteBatch(s, dataRowIndexes);
-        if (!batch) return;
-        warnViewSpacePresenceStale(s);
-        rowIndexCache.invalidate();
-        forgetDeferredRows();
-        lastEmittedData = batch.nextData;
-        s.onDataChange?.(batch.nextData, { source: "row-op", ops: batch.ops });
-        set({
-          data: batch.nextData,
-          cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
-          selection: emptySelection(),
-          activeCell: null,
-          ...rebuildRowOpView(s, batch.nextData),
-        });
-      },
-      duplicateRows(viewRowIndexes) {
-        const s = get();
-        if (s.readOnly) return;
-        // an open editor pins a view coordinate the shift would silently invalidate (the commit
-        // path re-reads the shifted viewIndex for the same coord)
-        if (s.editing) {
-          warnDev("duplicateRows is a no-op while an edit session is open");
-          return;
-        }
-        if (!s.duplicateRow) {
-          warnDev("duplicateRows is a no-op because no `duplicateRow` prop was provided");
-          return;
-        }
-        const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
-        const batch = computeDuplicateBatch(s, dataRowIndexes);
-        if (!batch) return;
-        warnViewSpacePresenceStale(s);
-        rowIndexCache.invalidate();
-        forgetDeferredRows();
-        lastEmittedData = batch.nextData;
-        s.onDataChange?.(batch.nextData, { source: "row-op", ops: batch.ops });
-        const view = rebuildRowOpView(s, batch.nextData);
-        if (s.sortState.length > 0 || s.filterState.length > 0) {
-          set({ data: batch.nextData, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view });
-          return;
-        }
-        // unsorted and unfiltered, each duplicate lands directly after its source view row; fold one
-        // offset per source, ascending, so earlier insertions shift later sources' view indices too.
-        const uniqueAscendingViewRows = Array.from(new Set(viewRowIndexes)).sort((a, b) => a - b);
-        let selection = s.selection;
-        let activeCell = s.activeCell;
-        uniqueAscendingViewRows.forEach((viewRow, i) => {
-          const insertAt = viewRow + 1 + i;
-          selection = offsetSelectionForRows(selection, insertAt, 1);
-          if (activeCell && activeCell.row >= insertAt) activeCell = { ...activeCell, row: activeCell.row + 1 };
-        });
-        set({
-          data: batch.nextData,
-          cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
-          selection,
-          activeCell,
-          ...view,
-        });
-      },
-      reorderRows(from, to) {
-        const s = get();
-        if (!s.enableRowReorder) return false;
-        if (s.readOnly) return false;
-        // an open editor pins a view coordinate the move would silently invalidate (the commit
-        // path re-reads the shifted viewIndex for the same coord)
-        if (s.editing) return false;
-        if (s.sortState.length > 0 || s.filterState.length > 0) {
-          warnDev("reorderRows is a no-op while a sort or filter is active (the view order is owned by the sort/filter)");
-          return false;
-        }
-        const n = s.data.length;
-        if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || from >= n || to < 0 || to >= n || from === to) return false;
-        // viewIndex is the identity permutation here (sort/filter gated above), so view == data indices
-        const fromData = s.viewIndex[from]!;
-        const toData = s.viewIndex[to]!;
-        if (toData === fromData) return false;
-        for (let i = 0; i < n; i++) {
-          // indexed access (not .some/forEach, which skip sparse holes): a reorder would shift
-          // the lazy add-on's index-keyed loaded-range bookkeeping out from under in-flight fetches
-          if (s.data[i] === undefined) {
-            warnDev("reorderRows is a no-op while rows are still unloaded (useDataGridLazyRows): load the range first");
-            return false;
-          }
-        }
-        const moved = s.data[fromData]!;
-        const nextData = s.data.slice();
-        nextData.splice(fromData, 1);
-        nextData.splice(toData, 0, moved);
-        const ops: DataOp<unknown>[] = [{ type: "move", rowId: s.getRowId(moved, fromData), row: moved, from: fromData, to: toData }];
-        warnViewSpacePresenceStale(s);
-        rowIndexCache.invalidate();
-        forgetDeferredRows();
-        lastEmittedData = nextData;
-        s.onDataChange?.(nextData, { source: "row-op", ops });
-        const f = rowReorderMap(from, to);
-        set({
-          data: nextData,
-          selection: reorderSelectionForRow(s.selection, from, to),
-          activeCell: s.activeCell ? { ...s.activeCell, row: f(s.activeCell.row) } : null,
-          lastHighlightedRow: s.lastHighlightedRow === null ? null : f(s.lastHighlightedRow),
-        });
-        return true;
       },
       _moveActiveCell(d, opts) {
         const s = get();
@@ -1036,8 +536,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const maxRow = Math.max(0, s.viewIndex.length - 1);
         const maxCol = Math.max(0, s.visibleColumns.length - 1);
         if (opts?.extend && s.enableRangeSelection) {
-          // Grow from the anchor's far edge (Excel-correct contraction), never re-deriving
-          // `next` from activeCell — the anchor stays put for the whole extend gesture.
+          // Grow from the anchor's far edge; the anchor stays put for the whole extend gesture.
           const direction: ExtendDirection = d.dy < 0 ? "up" : d.dy > 0 ? "down" : d.dx < 0 ? "left" : "right";
           const selection = extendSelection(s.selection.current ? s.selection : selectCellPure(active), direction, {
             rowCount: s.viewIndex.length,
@@ -1058,69 +557,139 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           }
         }
       },
+      _syncConfig(props) {
+        if (props.commands && !warnedCommandShadow && isDev()) {
+          // BUILTIN_ACTIONS includes typeToReplace, which has no default binding; the four pluggable
+          // actions are the sanctioned shadow (their built-in bodies are hollow).
+          const shadowed = Object.keys(props.commands).filter((name) =>
+            (BUILTIN_ACTIONS as readonly string[]).includes(name) && !PLUGGABLE_ACTIONS.includes(name),
+          );
+          if (shadowed.length > 0) {
+            warnedCommandShadow = true;
+            warnDev(`commands shadows built-in action(s) ${shadowed.join(", ")}; the command wins and the built-in no longer dispatches`);
+          }
+        }
+        // An entry-equal `plugins` re-render (an inline array with stable members) keeps
+        // `s.plugins`, `s.commands`, and `s.keymap`'s references (spec decision 7); only a real
+        // change re-resolves and re-merges (the keymap then re-runs the dev-only binding validation).
+        const pluginsChanged = !pluginsListEqual(props.plugins, lastPluginsProp);
+        const keymapChanged = !keymapContentEqual(props.keymap, lastKeymapProp);
+        const commandsChanged = props.commands !== lastCommandsProp;
+        let nextPlugins: ResolvedPlugins | null = null;
+        let nextKeymap: Keymap | null = null;
+        let nextCommands: Record<string, GridCommand<unknown>> | null = null;
+        let commandsUpdated = false;
+        if (pluginsChanged || keymapChanged || commandsChanged) {
+          if (pluginsChanged) {
+            warnPluginComponentRemounts(get().plugins.list, props.plugins ?? [], pluginWarnOnce);
+            nextPlugins = resolvePluginsList(props.plugins, api, pluginWarnOnce);
+          }
+          if (pluginsChanged || keymapChanged) {
+            nextKeymap = mergePluginKeymaps((nextPlugins ?? get().plugins).list, props.keymap, pluginWarnOnce);
+            if (isDev()) {
+              validateKeymap(nextKeymap);
+              validateSharedBindings(nextKeymap);
+            }
+          }
+          if (pluginsChanged || commandsChanged) {
+            nextCommands = mergePluginCommands((nextPlugins ?? get().plugins).list, props.commands, pluginWarnOnce);
+            commandsUpdated = true;
+          }
+          lastPluginsProp = props.plugins;
+          lastKeymapProp = props.keymap;
+          lastCommandsProp = props.commands;
+        }
+        set((s) => ({
+          ...resolveSelectionConfig(props),
+          labels: mergeLabels(props.labels),
+          plugins: nextPlugins ?? s.plugins,
+          commands: commandsUpdated ? nextCommands : s.commands,
+          autosizeOnMount: props.autosizeOnMount,
+          onDataChange: props.onDataChange,
+          validateRow: props.validateRow,
+          processCellForClipboard: props.processCellForClipboard,
+          processCellFromClipboard: props.processCellFromClipboard,
+          processPaste: props.processPaste,
+          sanitizeClipboardFormulas: props.sanitizeClipboardFormulas,
+          createRow: props.createRow,
+          duplicateRow: props.duplicateRow,
+          onSortChange: props.onSortChange,
+          onFilterChange: props.onFilterChange,
+          onJoinOperatorChange: props.onJoinOperatorChange,
+          onSearchTextChange: props.onSearchTextChange,
+          onColumnLayoutChange: props.onColumnLayoutChange,
+          onColumnResizing: props.onColumnResizing,
+          onSelectionChange: props.onSelectionChange,
+          onActiveCellChange: props.onActiveCellChange,
+          onEditStart: props.onEditStart,
+          onEditEnd: props.onEditEnd,
+          onValidationError: props.onValidationError,
+          onCellDoubleClick: props.onCellDoubleClick,
+          onCellContextMenu: props.onCellContextMenu,
+          onCellClick: props.onCellClick,
+          onRenderedRowsChange: props.onRenderedRowsChange,
+          readOnly: Boolean(props.readOnly),
+          keymap: nextKeymap ?? s.keymap,
+        }));
+        // A flip to readOnly cancels an open edit session (so onEditEnd fires with `cancel`); an
+        // already-closed session has nothing to cancel.
+        if (props.readOnly && get().editing) get().actions.cancelEditing();
+      },
       _syncProps(props) {
         set((s) => {
-          // controlled sort/filter/join/search: the prop (when defined) is the source of truth this
-          // sync writes into the store; uncontrolled: keep whatever the store's own actions last set.
+          // A defined controlled prop is the source of truth; otherwise the store keeps its own state.
           const nextSortState = props.sortState ?? s.sortState;
-          // backfill: a controlled filterState prop may omit filterId (backward-compat input boundary).
-          const nextFilterState = props.filterState ? withFilterIds(props.filterState) : s.filterState;
+          // A controlled filterState may omit filterId; the same prop reference reuses s.filterState.
+          const propsFilterStateChanged = props.filterState !== lastPropsFilterState;
+          lastPropsFilterState = props.filterState;
+          const nextFilterState =
+            props.filterState === undefined || !propsFilterStateChanged ? s.filterState : withFilterIds(props.filterState);
+          const nextSortMode = props.sortMode ?? "client";
+          const nextViewSorts = viewSorts(nextSortMode, nextSortState);
           const nextJoinOperator = props.joinOperator ?? s.joinOperator;
           const nextSearchText = props.searchText ?? s.searchText;
-          // data: controlled (props.data defined) mirrors the prop every sync, byte-identical to
-          // pre-defaultData behavior; uncontrolled keeps the store's own array — every commit action
-          // (edit/paste/fill/delete/row-ops) already wrote it there directly, and `defaultData` itself
-          // is init-only (never re-read past store creation, matching `<input defaultValue>`).
+          // Controlled data mirrors the prop; uncontrolled keeps the store's array, and `defaultData` is init-only.
           const nextData = s.dataControlled && props.data !== undefined ? props.data : s.data;
-          // Echo detection: a controlled consumer that stores what onDataChange handed it and
-          // re-renders feeds that exact array back here. `data` then differs from the last sync by
-          // identity, so syncInputsEqual fails and computeViewIndex runs — the ~56 ms cliff at 100k
-          // rows with a sort active. Recognizing our own array skips it, which is what makes
-          // updateCells fast for controlled consumers too (design spec §3.3). A consumer who maps,
-          // filters, or otherwise rebuilds the array before storing it falls back to the slow path.
-          const isEcho = nextData === lastEmittedData;
-          // A `data` array we did not produce reordered or replaced rows as far as this store knows,
-          // so the id map must be rebuilt. Our own echo never moved a row (updateCells patches
-          // values in place), so it keeps the map — rebuilding it per tick is the O(n) cost the API
-          // exists to remove.
-          // A genuine consumer-driven replacement (not our own echo) may have dropped rows (e.g. an
-          // import replacing the whole array) — prune any cellErrors entry whose rowId no longer
-          // exists, same discipline as the rowId-index cache invalidation right below.
-          const nextCellErrors =
-            nextData !== s.data && !isEcho ? pruneCellErrors(s.cellErrors, nextData, s.getRowId) : s.cellErrors;
-          if (nextData !== s.data && !isEcho) {
-            rowIndexCache.invalidate();
-            forgetDeferredRows();
+          // Our own onDataChange array fed back is an echo; skipping its view rebuild saves ~56 ms at 100k sorted rows.
+          // A foreign sync in between replaced s.data, so a late-adopted emitted array is foreign too.
+          const isEcho = nextData === dataWrite.lastEmittedData && nextData === s.data;
+          const foreignData = nextData !== s.data;
+          if (!foreignData && !warnedGetRowIdSwap && props.getRowId !== s.getRowId && isDev() && sampledRowIdsDiffer(nextData, s.getRowId, props.getRowId)) {
+            warnedGetRowIdSwap = true;
+            warnDev("getRowId returns other ids but data kept its array; pass a new data array together with a new getRowId");
           }
-          // A genuine consumer-driven `columns` prop change replaces `s.columns` outright; syncing
-          // again with the SAME prop reference (any unrelated re-render) keeps `s.columns` as-is so
-          // runtime column-pin mutations (setColumnPin / the initial-layout seed) survive it.
+          // A foreign array may move or drop rows, so prune errors and rebuild the id map; our own echo keeps both.
+          const nextCellErrors = foreignData ? pruneCellErrors(s.cellErrors, nextData, props.getRowId) : s.cellErrors;
+          if (foreignData) {
+            rowIndexCache.invalidate();
+            forgetDeferredRows(dataWrite);
+            pruneRowValidationKeys(nextData, props.getRowId);
+          }
+          // Only a new `columns` reference replaces `s.columns`, so runtime pin changes survive re-renders.
           const propsColumnsChanged = props.columns !== lastPropsColumns;
           lastPropsColumns = props.columns;
           const nextColumns = propsColumnsChanged ? props.columns : s.columns;
-          // A replaced `columns` array re-asserts its def-level hidden flags into `hiddenColumns`;
-          // a same-reference re-render must not re-hide a column the user re-showed via
-          // `setColumnHidden` (user intent wins over the def until the def itself changes).
+          // A new `columns` array re-asserts def-level hidden flags; a re-render keeps a column the user re-showed.
           const reseededHidden = propsColumnsChanged
             ? defHiddenColumnIds(props.columns).filter((id) => !s.hiddenColumns.includes(id))
             : [];
           const nextHiddenColumns = reseededHidden.length > 0 ? [...s.hiddenColumns, ...reseededHidden] : s.hiddenColumns;
-          // same registry-widening cast as createDataGridStore's init — see that comment.
-          const nextCellTypes =
-            (props.cellTypes as unknown as Record<string, CellType> | undefined) ?? (defaultCellTypes as unknown as Record<string, CellType>);
+          // Widens each typed CellType to the untyped registry shape.
+          const propsCellTypes = props.cellTypes as unknown as ProvidedCellTypes;
+          const nextCellTypes = sameCellTypeEntries(propsCellTypes, lastPropsCellTypes) ? s.cellTypes : resolveCellTypes(propsCellTypes);
+          lastPropsCellTypes = propsCellTypes;
           const nextSyncInputs: SyncInputs = {
             data: nextData,
             cellTypes: nextCellTypes,
             columns: nextColumns,
-            sortState: nextSortState,
+            sortState: nextViewSorts,
             filterState: nextFilterState,
             joinOperator: nextJoinOperator,
             searchText: nextSearchText,
             columnOrder: s.columnOrder,
             hiddenColumns: nextHiddenColumns,
           };
-          // An echo only licenses skipping the recompute when `data` is the ONLY input that moved —
-          // a sync that also changed sort/filter/search/columns still has to rebuild for those.
+          // An echo skips the recompute only when `data` is the only input that moved.
           const echoOnly =
             isEcho && syncInputsEqual({ ...nextSyncInputs, data: lastSyncInputs.data }, lastSyncInputs);
           const unchanged = syncInputsEqual(nextSyncInputs, lastSyncInputs) || echoOnly;
@@ -1129,28 +698,116 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const nextVisibleColumns = unchanged ? s.visibleColumns : computeVisibleColumns(nextColumns, s.columnOrder, nextHiddenColumns);
           const nextViewIndex = unchanged
             ? s.viewIndex
-            : computeViewIndex(nextData, nextColumns, nextSortState, nextFilterState, nextJoinOperator, s.viewIndex, nextCellTypes);
+            : computeViewIndex(nextData, nextColumns, nextViewSorts, nextFilterState, nextJoinOperator, s.viewIndex, nextCellTypes);
+          // Controlled columnLayout (decision 8): the same echo/structural-equal rule as selection,
+          // merged over the incoming column state; a new `columns` array re-applies the controlled
+          // parts over the new defs (normalize re-seeds def-hidden and drops unpinnable pins).
+          if (props.columnLayout === undefined) layoutEchoQueue = [];
+          let layoutApply: Partial<DataGridStoreState> | null = null;
+          if (props.columnLayout !== undefined) {
+            const echoIndex = layoutEchoQueue.indexOf(props.columnLayout);
+            if (echoIndex !== -1) {
+              // The echo and every older entry leave the queue (decision 4); newer entries stay.
+              layoutEchoQueue.splice(0, echoIndex + 1);
+            } else {
+              const pins: Record<string, "left" | "right"> = {};
+              for (const column of nextColumns) if (column.pin === "left" || column.pin === "right") pins[column.id] = column.pin;
+              const normalized = normalizeColumnLayout(
+                nextColumns,
+                {
+                  widths: props.columnLayout.widths ?? s.columnWidths,
+                  order: props.columnLayout.order !== undefined ? props.columnLayout.order : s.columnOrder,
+                  pins: props.columnLayout.pins ?? pins,
+                  hidden: props.columnLayout.hidden ?? nextHiddenColumns,
+                },
+                defHiddenColumnIds(nextColumns),
+              );
+              const snapshot = computeColumnLayout(normalized.columns, normalized.columnOrder, normalized.columnWidths, normalized.hiddenColumns);
+              if (!layoutSnapshotsEqual(snapshot, s.columnLayout)) {
+                layoutApply = {
+                  columns: normalized.columns,
+                  columnWidths: normalized.columnWidths,
+                  columnOrder: normalized.columnOrder,
+                  hiddenColumns: normalized.hiddenColumns,
+                  visibleColumns: computeVisibleColumns(normalized.columns, normalized.columnOrder, normalized.hiddenColumns),
+                  columnLayout: snapshot,
+                };
+              }
+            }
+          }
+          // Controlled selection (decision 4): an echo or a structurally-equal value applies
+          // nothing; any other new identity resolves against the incoming view and overrides the
+          // store. Resolving against the incoming view (not `s`) keeps an applied value positional
+          // when a foreign data swap lands in the same sync.
+          if (props.selection !== undefined) selectionControlled = true;
+          else {
+            selectionControlled = false;
+            selectionEchoQueue = [];
+          }
+          const finalColumns = layoutApply?.columns ?? nextColumns;
+          const finalVisibleColumns = layoutApply?.visibleColumns ?? nextVisibleColumns;
+          let selectionApply: Partial<DataGridStoreState> | null = null;
+          if (props.selection !== undefined) {
+            const echoIndex = selectionEchoQueue.indexOf(props.selection);
+            if (echoIndex !== -1) {
+              // The echo and every older entry leave the queue (decision 4); newer entries stay.
+              selectionEchoQueue.splice(0, echoIndex + 1);
+              lastKnownSelection = props.selection;
+            } else if (selectionStatesEqual(props.selection, lastKnownSelection)) {
+              lastKnownSelection = props.selection;
+            } else {
+              const resolved = resolveSelectionState(
+                { data: nextData, getRowId: props.getRowId, viewIndex: nextViewIndex, visibleColumns: finalVisibleColumns, selection: s.selection },
+                rowIndexCache,
+                props.selection,
+                warnedControlledSelection,
+              );
+              lastKnownSelection = resolved.selection;
+              if (resolved.grid !== s.selection) {
+                selectionApply = {
+                  selection: resolved.grid,
+                  ...(resolved.activeCell !== undefined ? { activeCell: resolved.activeCell } : {}),
+                };
+              }
+            }
+          }
           // A full rebuild leaves nothing pending for the incremental path to replay.
-          if (!unchanged) resetDeferredRows();
-          // If viewIndex is unchanged (same reference either from the guard above or from
-          // computeViewIndex's own content-equality reuse), no row fell out of view, so this
-          // clamp is a no-op — filtering against nextViewIndex.length still runs but keeps every row.
-          const rows = s.selection.rows.length === 0
-            ? s.selection.rows
-            : CompactSelection.fromArray(s.selection.rows.toArray().filter((row) => row < nextViewIndex.length));
+          if (!unchanged) resetDeferredRows(dataWrite);
+          // An echo-only sync (every recompute input unchanged, selection/layout no-ops, flags
+          // stable) returns the same state so zustand skips every listener: the controlled loop
+          // pays zero store work per drag step (decision 4).
+          const flagsChanged =
+            s.sortControlled !== (props.sortState !== undefined) ||
+            s.sortMode !== nextSortMode ||
+            s.sortState !== nextSortState ||
+            s.filterControlled !== (props.filterState !== undefined) ||
+            s.joinOperatorControlled !== (props.joinOperator !== undefined) ||
+            s.searchControlled !== (props.searchText !== undefined);
+          if (unchanged && props.getRowId === s.getRowId && layoutApply === null && selectionApply === null && !flagsChanged) return s;
+          // A layout-only apply still remaps the selection's column channel (its visible columns
+          // moved), so the remap runs whenever a layout apply is in flight.
+          const followed =
+            unchanged && layoutApply === null
+              ? {}
+              : followView(s, nextViewIndex, finalVisibleColumns, nextData, props.getRowId, !foreignData);
+          // Only the recompute slice is written here: the config slice (callbacks, enable* flags,
+          // readOnly, keymap, …) is owned by _syncConfig, so a data/sort/filter sync never rewrites it.
           return {
-            ...props,
-            ...resolveSelectionConfig(props),
             data: nextData,
+            getRowId: props.getRowId,
             cellErrors: nextCellErrors,
-            columns: nextColumns,
-            hiddenColumns: nextHiddenColumns,
+            columns: finalColumns,
+            hiddenColumns: layoutApply?.hiddenColumns ?? nextHiddenColumns,
             cellTypes: nextCellTypes,
-            labels: mergeLabels(props.labels),
-            overlayPlugins: props.overlayPlugins ?? EMPTY_OVERLAY_PLUGINS,
-            rowBands: props.rowBands ?? EMPTY_ROW_BANDS,
-            visibleColumns: nextVisibleColumns,
+            visibleColumns: finalVisibleColumns,
+            columnWidths: layoutApply?.columnWidths ?? s.columnWidths,
+            columnOrder: layoutApply?.columnOrder ?? s.columnOrder,
+            // A `columns` swap re-seeds the snapshot even uncontrolled (decision 10).
+            columnLayout:
+              layoutApply?.columnLayout ??
+              (propsColumnsChanged ? computeColumnLayout(nextColumns, s.columnOrder, s.columnWidths, nextHiddenColumns) : s.columnLayout),
             sortState: nextSortState,
+            sortMode: nextSortMode,
             filterState: nextFilterState,
             joinOperator: nextJoinOperator,
             searchText: nextSearchText,
@@ -1159,31 +816,534 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             joinOperatorControlled: props.joinOperator !== undefined,
             searchControlled: props.searchText !== undefined,
             viewIndex: nextViewIndex,
-            // A real recompute reconciles whatever a deferred updateCells left stale; an echo or an
-            // unchanged sync recomputed nothing, so the flag has to survive it.
+            // A real recompute reconciles a deferred updateCells; an echo or unchanged sync keeps the flag.
             viewStale: unchanged ? s.viewStale : false,
-            ...(unchanged
+            // Rows move only on a foreign data replacement, never on our own echo.
+            rowIdentityVersion: foreignData ? s.rowIdentityVersion + 1 : s.rowIdentityVersion,
+            ...followed,
+            // A layout-only apply moves visible columns, so the search-match row map re-runs with it.
+            ...(unchanged && layoutApply === null
               ? { searchMatches: s.searchMatches, searchMatchSet: s.searchMatchSet, searchMatchRows: s.searchMatchRows, searchMatchesCapped: s.searchMatchesCapped }
-              : computeSearchMatches(nextData, nextColumns, nextViewIndex, nextVisibleColumns, nextSearchText)),
-            selection: rows === s.selection.rows ? s.selection : { ...s.selection, rows },
+              : computeSearchMatches(nextData, finalColumns, nextViewIndex, finalVisibleColumns, nextSearchText, nextCellTypes)),
+            // The controlled values win over the remapped ones.
+            ...selectionApply,
           };
         });
+      },
+      _syncPluginClaims() {
+        const list = lastPluginsProp;
+        if (releasePluginClaims && pluginsListEqual(list, claimedPlugins)) return;
+        releasePluginClaims?.();
+        const claim = claimPluginAttachments(list ?? [], api, pluginWarnOnce);
+        releasePluginClaims = claim.release;
+        claimedPlugins = list;
+        const resolved = resolvePluginsList(claim.kept, api, pluginWarnOnce);
+        if (pluginsListEqual(resolved.list, get().plugins.list)) return;
+        set({
+          plugins: resolved,
+          keymap: mergePluginKeymaps(resolved.list, lastKeymapProp, pluginWarnOnce),
+          commands: mergePluginCommands(resolved.list, lastCommandsProp ?? undefined, pluginWarnOnce),
+        });
+      },
+      _releasePluginClaims() {
+        releasePluginClaims?.();
+        releasePluginClaims = null;
+      },
+      _subscribeEditEnd() {
+        return api.subscribe((state, prev) => {
+          if (prev.editing === null || state.editing !== null || prev.editing === selfReportedSession) return;
+          state.onEditEnd?.({ rowId: prev.editing.rowId, columnId: prev.editing.columnId, viewRowIndex: prev.editing.coord.row, viewColumnIndex: prev.editing.coord.col, result: "cancel" });
+        });
+      },
+      _subscribeSelection() {
+        return api.subscribe((state, prev) => {
+          if (state.selection === prev.selection) return;
+          // Decision 3: derive only when someone reads the value - a callback or the controlled
+          // prop (which keeps lastKnownSelection fresh for the _syncProps structural compare).
+          if (!state.onSelectionChange && !selectionControlled) return;
+          const derived = deriveCurrentSelection(state);
+          if (selectionStatesEqual(derived, lastKnownSelection)) return;
+          // Updated BEFORE the callback so a gesture fired from inside onSelectionChange compares
+          // against the value it just read, and an applied controlled value re-derives equal and
+          // stays silent (decisions 3 and 4).
+          lastKnownSelection = derived;
+          if (state.onSelectionChange) {
+            selectionEchoQueue.push(derived);
+            if (selectionEchoQueue.length > 128) selectionEchoQueue.shift();
+          }
+          state.onSelectionChange?.(derived, makeSelectionChangeDetails(() => api.getState()));
+        });
+      },
+      _deriveSelection() {
+        return deriveCurrentSelection(get());
       },
       _registerScrollToCell(impl) {
         set({ scrollToCellImpl: impl });
       },
-      _registerReadOnly(readOnly) {
-        set({ readOnly });
+      _registerFocus(impl) {
+        set({ focusImpl: impl });
       },
-      _registerKeymap(keymap) {
-        set({ keymap });
+      _registerMeasureFonts(impl) {
+        set({ measureFonts: impl });
       },
-      _registerFillHandlers(handlers) {
-        set({ fillHandlers: handlers });
+    };
+    registerInternalActions(api, internal);
+
+    return {
+    ...init,
+    ...resolveSelectionConfig(init),
+    // storage widens each per-column CellType<TData, TValue, TOptions> to the untyped registry shape; narrowed back per column at lookup (cell.tsx/store's column-op helpers).
+    cellTypes: initCellTypes,
+    columns: effectiveLayout.columns,
+    data: initData,
+    dataControlled,
+    // A resolved `selection`/`defaultSelection` seeds both the selection and the initial cursor.
+    activeCell: initialActiveCell,
+    selection: initialSelection,
+    selectAllStage: null,
+    editing: null,
+    editingError: null,
+    editingRejectionCount: 0,
+    cellErrors: EMPTY_CELL_ERRORS,
+    flashingCells: EMPTY_FLASHING_CELLS,
+    lastHighlightedRow: null,
+    lastHighlightedCol: null,
+    columnWidths: effectiveLayout.columnWidths,
+    columnOrder: effectiveLayout.columnOrder,
+    hiddenColumns: effectiveLayout.hiddenColumns,
+    columnLayout: computeColumnLayout(effectiveLayout.columns, effectiveLayout.columnOrder, effectiveLayout.columnWidths, effectiveLayout.hiddenColumns),
+    sortState: initSortState,
+    sortMode: initSortMode,
+    filterState: initFilterState,
+    joinOperator: initJoinOperator,
+    searchText: initSearchText,
+    sortControlled: init.sortState !== undefined,
+    filterControlled: init.filterState !== undefined,
+    joinOperatorControlled: init.joinOperator !== undefined,
+    searchControlled: init.searchText !== undefined,
+    ...computeSearchMatches(initData, effectiveLayout.columns, initViewIndex, visibleColumns, initSearchText, initCellTypes),
+    viewIndex: initViewIndex,
+    rowIdentityVersion: 0,
+    viewStale: false,
+    visibleColumns,
+    scrollToCellImpl: null,
+    focusImpl: null,
+    measureFonts: null,
+    dataWrite,
+    plugins: initPlugins,
+    // Seeded from the sync props so SSR and the first client paint already see them.
+    readOnly: Boolean(init.readOnly),
+    keymap: initKeymap,
+    commands: initCommands,
+    labels: mergeLabels(init.labels),
+    actions: {
+      setActiveCell(ref) {
+        if (ref === null) {
+          set({ activeCell: null });
+          return;
+        }
+        const coord = resolveRefOrWarn(dataWrite, get(), ref);
+        if (coord) set({ activeCell: coord });
       },
-      _registerPresenceViewSpaceActive(impl) {
-        set({ presenceViewSpaceActive: impl });
+      setActiveCellAt(coord) {
+        set({ activeCell: coord });
+      },
+      selectCell(ref) {
+        const coord = resolveRefOrWarn(dataWrite, get(), ref);
+        if (coord) set({ activeCell: coord, selection: selectCellPure(coord) });
+      },
+      selectCellAt(coord) {
+        set({ activeCell: coord, selection: selectCellPure(coord) });
+      },
+      extendTo(ref) {
+        const coord = resolveRefOrWarn(dataWrite, get(), ref);
+        if (coord) get().actions.extendToAt(coord);
+      },
+      extendToAt(coord) {
+        set((s) => {
+          // enableRangeSelection: false collapses any drag/shift-extend gesture to single-cell active only.
+          if (!s.enableRangeSelection) return { selection: selectCellPure(coord), activeCell: coord };
+          const selection = extendTo(s.selection, coord);
+          // extendTo falls back to a fresh anchor at `coord` when there was no prior selection.
+          const activeCell = s.selection.current ? s.activeCell : coord;
+          return { selection, activeCell };
+        });
+      },
+      extendSelection(direction, opts) {
+        // Bounded by the view row count, so growth stays inside the filtered display order.
+        const { viewIndex, visibleColumns, selection, enableRangeSelection } = get();
+        if (!enableRangeSelection) return;
+        set({
+          selection: extendSelection(selection, direction, {
+            toEdge: opts?.toEdge,
+            rowCount: viewIndex.length,
+            colCount: visibleColumns.length,
+          }),
+        });
+      },
+      pushRange(ref) {
+        const coord = resolveRefOrWarn(dataWrite, get(), ref);
+        if (coord) get().actions.pushRangeAt(coord);
+      },
+      pushRangeAt(coord) {
+        set((s) => {
+          // enableMultiRange: false makes ctrl-click behave as a plain click (no stack push).
+          if (!s.enableMultiRange) return { selection: selectCellPure(coord), activeCell: coord };
+          // pushRange moves the anchor to `coord`; keep activeCell in sync with it.
+          return { selection: pushRange(s.selection, coord), activeCell: coord };
+        });
+      },
+      selectRow(index, opts = {}) {
+        const { lastHighlightedRow, selection, enableRowSelection, enableMultiRange, enableRangeSelection } = get();
+        if (!enableRowSelection) return;
+        // Without multi-range or range selection, ctrl-click and shift-click toggle only this row.
+        const additive = opts.additive && enableMultiRange;
+        const extendFromLast = opts.extendFromLast && enableRangeSelection;
+        const replaceFromLast = opts.replaceFromLast && enableRangeSelection;
+        const next = selectRowPure(selection, index, {
+          additive,
+          extendFromLast,
+          replaceFromLast,
+          from: opts.from ?? lastHighlightedRow ?? undefined,
+        });
+        // A stationary marker drag re-fires the same span; compare content so onSelectionChange stays quiet.
+        if (
+          next.rows.equals(selection.rows) &&
+          next.columns.equals(selection.columns) &&
+          next.current === selection.current &&
+          lastHighlightedRow === index
+        )
+          return;
+        set({ selection: next, lastHighlightedRow: index });
+      },
+      selectColumn(index, opts = {}) {
+        const { lastHighlightedCol, selection, enableColumnSelection, enableMultiRange, enableRangeSelection } = get();
+        if (!enableColumnSelection) return;
+        const additive = opts.additive && enableMultiRange;
+        const extendFromLast = opts.extendFromLast && enableRangeSelection;
+        const next = selectColumnPure(selection, index, { additive, extendFromLast, from: lastHighlightedCol ?? undefined });
+        if (
+          next.columns.equals(selection.columns) &&
+          next.rows.equals(selection.rows) &&
+          next.current === selection.current &&
+          lastHighlightedCol === index
+        )
+          return;
+        set({ selection: next, lastHighlightedCol: index });
+      },
+      selectAll() {
+        const s = get();
+        if (!s.enableRangeSelection) return;
+        const active = s.activeCell ?? { col: 0, row: 0 };
+        // The stage carries over only while the last selectAll's selection and activeCell are still in the store.
+        const priorStage =
+          s.selectAllStage &&
+          s.selectAllStage.selection === s.selection &&
+          s.selectAllStage.activeCell === s.activeCell
+            ? s.selectAllStage.stage
+            : null;
+        const isEmptyAt = (coord: ViewCoord): boolean => {
+          const column = s.visibleColumns[coord.col];
+          if (!column) return true;
+          const dataRowIndex = s.viewIndex[coord.row];
+          const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
+          if (row === undefined) return true;
+          const cellType = s.cellTypes[column.type ?? "text"];
+          if (!cellType) return true;
+          const value = getCellValue<unknown, typeof column>(row, column);
+          return cellType.isEmpty(value);
+        };
+        const result = selectAllProgression(s.selection, s.viewIndex.length, s.visibleColumns.length, active, isEmptyAt, priorStage);
+        set({ selection: result.selection, selectAllStage: { stage: result.stage, selection: result.selection, activeCell: active } });
+      },
+      setRowSelected(index, checked) {
+        const { selection, enableRowSelection, enableMultiRange } = get();
+        if (!enableRowSelection) return;
+        if (!checked) {
+          const next = removeRowFromSelection(selection, index, { multiRange: enableMultiRange });
+          if (next !== selection) set({ selection: next });
+          return;
+        }
+        const rows = CompactSelection.adopt(selection.rows).add(index);
+        set({ selection: { ...selection, rows } });
+      },
+      armRowDragAnchor(index) {
+        if (!get().enableRowSelection) return;
+        set({ lastHighlightedRow: index });
+      },
+      setAllRowsSelected(checked) {
+        const { selection, viewIndex, enableRowSelection } = get();
+        if (!enableRowSelection) return;
+        const rows = checked ? CompactSelection.fromSingleSelection([0, viewIndex.length]) : CompactSelection.empty();
+        set({ selection: { ...selection, rows } });
+      },
+      clearSelection() {
+        if (isSelectionEmpty(get().selection)) return;
+        set({ selection: emptySelection() });
+      },
+      setSelection(next) {
+        const s = get();
+        if (next === null) {
+          if (isSelectionEmpty(s.selection)) return;
+          set({ selection: emptySelection() });
+          return;
+        }
+        const resolved = resolveSelectionState(s, rowIndexCache, next, warnedControlledSelection);
+        if (resolved.grid === s.selection) return;
+        set({
+          selection: resolved.grid,
+          ...(resolved.activeCell !== undefined ? { activeCell: resolved.activeCell } : {}),
+        });
+      },
+      setColumnWidth(id, width) {
+        const column = get().columns.find((c) => c.id === id);
+        if (!column) return;
+        const next = clampColumnWidth(column, width);
+        set((s) => ({ columnWidths: { ...s.columnWidths, [id]: next } }));
+        get().onColumnResizing?.({ columnId: id, width: next });
+      },
+      commitColumnWidth(id, width) {
+        const s = get();
+        const column = s.columns.find((c) => c.id === id);
+        if (!column) return;
+        const next = clampColumnWidth(column, width);
+        commitLayout({ widths: { ...s.columnWidths, [id]: next } });
+      },
+      autosizeColumns(options) {
+        const s = get();
+        const context = s.measureFonts ? s.measureFonts() : null;
+        if (!context) return {};
+        const measured = computeAutosizeWidths(
+          {
+            columns: s.columns,
+            visibleColumns: s.visibleColumns,
+            hiddenColumns: s.hiddenColumns,
+            columnWidths: s.columnWidths,
+            viewIndex: s.viewIndex,
+            data: s.data,
+            cellTypes: s.cellTypes,
+            sortState: s.sortState,
+            enableColumnResize: s.enableColumnResize,
+            hasHeaderMenu: context.hasHeaderMenu,
+          },
+          { cellFont: context.cellFont, headerFont: context.headerFont },
+          context.window,
+          options,
+        );
+        const changed: Record<string, number> = {};
+        for (const id of Object.keys(measured)) {
+          const column = s.columns.find((c) => c.id === id);
+          if (!column) continue;
+          if (resolveColumnWidth(column, s.columnWidths[id]) !== measured[id]!) changed[id] = measured[id]!;
+        }
+        if (Object.keys(changed).length > 0) {
+          commitLayout({ widths: { ...s.columnWidths, ...changed } });
+        }
+        return measured;
+      },
+      resetColumnWidth(id) {
+        const s = get();
+        if (s.columnWidths[id] === undefined) return;
+        const { [id]: _dropped, ...columnWidths } = s.columnWidths;
+        commitLayout({ widths: columnWidths });
+      },
+      setColumnOrder(id, targetId, position) {
+        const s = get();
+        if (!s.enableColumnReorder) return;
+        const byId = new Map(s.columns.map((c) => [c.id, c] as const));
+        const column = byId.get(id);
+        const target = byId.get(targetId);
+        if (!column || !target || !columnFlag(column, "reorderable") || !columnFlag(target, "reorderable")) return;
+        const currentIds = completeColumnOrder(s.columns, s.columnOrder);
+        const nextIds = reorderColumnIds(currentIds, s.columns, id, targetId, position);
+        if (nextIds.length === currentIds.length && nextIds.every((columnId, index) => columnId === currentIds[index])) return;
+        commitLayout({ order: nextIds });
+      },
+      setColumnPin(id, pin) {
+        const s = get();
+        if (!s.enableColumnPinning) return;
+        const column = s.columns.find((c) => c.id === id);
+        if (!column || !columnFlag(column, "pinnable") || (column.pin ?? null) === pin) return;
+        const nextColumns = s.columns.map((c) => (c.id === id ? { ...c, pin: pin ?? undefined } : c));
+        const pins: Record<string, "left" | "right"> = {};
+        for (const column of nextColumns) if (column.pin === "left" || column.pin === "right") pins[column.id] = column.pin;
+        commitLayout({ pins });
+      },
+      setColumnHidden(id, hidden) {
+        const s = get();
+        if (!s.columns.some((c) => c.id === id) || s.hiddenColumns.includes(id) === hidden) return;
+        const current = new Set(s.hiddenColumns);
+        if (hidden) current.add(id);
+        else current.delete(id);
+        const nextHidden = Array.from(current);
+        resetDeferredRows(dataWrite);
+        commitLayout({ hidden: nextHidden });
+      },
+      setColumnLayout(parts) {
+        commitLayout(parts);
+      },
+      toggleSort(columnId, additive) {
+        const s = get();
+        const existing = s.sortState.find((sort) => sort.columnId === columnId);
+        const direction = nextDirection(existing?.direction);
+        const sorts = additive
+          ? toggleSortAdditive(s.sortState, columnId, direction)
+          : direction === null
+            ? []
+            : [{ columnId, direction }];
+        s.onSortChange?.(sorts);
+        // Controlled: _syncProps writes the consumer's next `sortState` prop.
+        if (s.sortControlled) return;
+        set((s2) => {
+          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, sorts), s2.filterState, s2.joinOperator, s2.viewIndex, s2.cellTypes);
+          resetDeferredRows(dataWrite);
+          return {
+            sortState: sorts,
+            viewIndex,
+            viewStale: false,
+            ...followView(s2, viewIndex, s2.visibleColumns),
+            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
+          };
+        });
+      },
+      setSorts(sorts) {
+        const s = get();
+        s.onSortChange?.(sorts);
+        if (s.sortControlled) return;
+        set((s2) => {
+          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, sorts), s2.filterState, s2.joinOperator, s2.viewIndex, s2.cellTypes);
+          resetDeferredRows(dataWrite);
+          return {
+            sortState: sorts,
+            viewIndex,
+            viewStale: false,
+            ...followView(s2, viewIndex, s2.visibleColumns),
+            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
+          };
+        });
+      },
+      setFilters(filters) {
+        const s = get();
+        // backfills a filterId for any row the caller added without one (e.g. hand-built controlled updates).
+        const withIds = withFilterIds(filters);
+        s.onFilterChange?.(withIds);
+        if (s.filterControlled) return;
+        set((s2) => {
+          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), withIds, s2.joinOperator, s2.viewIndex, s2.cellTypes);
+          resetDeferredRows(dataWrite);
+          return {
+            filterState: withIds,
+            viewIndex,
+            viewStale: false,
+            ...followView(s2, viewIndex, s2.visibleColumns),
+            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
+          };
+        });
+      },
+      setJoinOperator(joinOperator) {
+        const s = get();
+        s.onJoinOperatorChange?.(joinOperator);
+        if (s.joinOperatorControlled) return;
+        set((s2) => {
+          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), s2.filterState, joinOperator, s2.viewIndex, s2.cellTypes);
+          resetDeferredRows(dataWrite);
+          return {
+            joinOperator,
+            viewIndex,
+            viewStale: false,
+            ...followView(s2, viewIndex, s2.visibleColumns),
+            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
+          };
+        });
+      },
+      setSearch(text) {
+        const s = get();
+        s.onSearchTextChange?.(text);
+        if (s.searchControlled) return;
+        // viewIndex is untouched: quick-search highlights + navigates, it never filters.
+        set((s2) => ({ searchText: text, ...computeSearchMatches(s2.data, s2.columns, s2.viewIndex, s2.visibleColumns, text, s2.cellTypes) }));
+      },
+      startEditing(ref, initialText) {
+        const coord = resolveRefOrWarn(dataWrite, get(), ref);
+        if (coord) get().actions.startEditingAt(coord, initialText);
+      },
+      startEditingAt(coord, initialText) {
+        const s = get();
+        if (s.readOnly) return;
+        const target = resolveEditTarget(s, coord);
+        if (!target || target.cellType.activate || isColumnReadOnly(target.column, target.row)) return;
+        if (s.onEditStart?.({ rowId: s.getRowId(target.row, target.dataRowIndex), columnId: target.column.id, viewRowIndex: coord.row, viewColumnIndex: coord.col }) === false) return;
+        if (s.editing) get().actions.cancelEditing();
+        set({
+          editing: { coord, rowId: s.getRowId(target.row, target.dataRowIndex), columnId: target.column.id, initialText, session: ++editSessionCount },
+          editingError: null,
+          editingRejectionCount: 0,
+          activeCell: coord,
+        });
+      },
+      cancelEditing() {
+        const s = get();
+        if (!s.editing) {
+          set({ editingError: null });
+          return;
+        }
+        endEditSession(s.editing, () => set({ editing: null, editingError: null }));
+        s.onEditEnd?.({ rowId: s.editing.rowId, columnId: s.editing.columnId, viewRowIndex: s.editing.coord.row, viewColumnIndex: s.editing.coord.col, result: "cancel" });
+      },
+      // The data-write cluster (see data-write.ts): the edit commits, the bulk writers, and the row operations.
+      ...publicWriteActions,
+      setEditingError(message) {
+        const s = get();
+        if (!s.editing) return;
+        set({ editingError: message, editingRejectionCount: s.editingRejectionCount + 1 });
+        s.onEditEnd?.({ rowId: s.editing.rowId, columnId: s.editing.columnId, viewRowIndex: s.editing.coord.row, viewColumnIndex: s.editing.coord.col, result: "rejected" });
+      },
+      setCellErrors(errors) {
+        if (errors.length === 0) return;
+        set({ cellErrors: mergeCellErrors(get().cellErrors, errors) });
+      },
+      clearCellErrors(targets) {
+        const s = get();
+        if (s.cellErrors.size === 0) return;
+        if (!targets) {
+          set({ cellErrors: EMPTY_CELL_ERRORS });
+          return;
+        }
+        if (targets.length === 0) return;
+        const next = new Map(s.cellErrors);
+        let changed = false;
+        for (const target of targets) {
+          if (next.delete(cellErrorKey(target.rowId, target.columnId))) changed = true;
+        }
+        if (changed) set({ cellErrors: next });
+      },
+      flashCells(cells, durationMs = 1400) {
+        if (cells.length === 0) return;
+        const next = new Set(get().flashingCells);
+        for (const { rowId, columnId } of cells) {
+          const key = flashCellKey(rowId, columnId);
+          next.add(key);
+          const existing = flashTimers.get(key);
+          if (existing !== undefined) clearTimeout(existing);
+          flashTimers.set(
+            key,
+            setTimeout(() => {
+              flashTimers.delete(key);
+              const current = get();
+              if (!current.flashingCells.has(key)) return;
+              const lifted = new Set(current.flashingCells);
+              lifted.delete(key);
+              set({ flashingCells: lifted });
+            }, durationMs),
+          );
+        }
+        set({ flashingCells: next });
       },
     },
-  }));
+    };
+  });
+  // Handed to the plugin onDataChange observers (writeThenEmit); after creation, so the handle's
+  // eager state read resolves.
+  dataWrite.pluginApi = apiHandleOf(store);
+  return store;
 }

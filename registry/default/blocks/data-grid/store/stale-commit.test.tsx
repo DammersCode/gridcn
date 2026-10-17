@@ -46,8 +46,8 @@ describe("commitCellEdit with a stale edit session (user moved away mid-validati
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper(onDataChange) });
 
     act(() => {
-      result.current.actions.startEditing({ row: 0, col: 0 });
-      result.current.actions.selectCell({ row: 1, col: 0 }); // the click-away while validation is pending
+      result.current.actions.startEditingAt({ row: 0, col: 0 });
+      result.current.actions.selectCellAt({ row: 1, col: 0 }); // the click-away while validation is pending
       result.current.actions.commitCellEdit("New Charlie", { dx: 0, dy: 0 }); // the late resolution
     });
 
@@ -65,7 +65,7 @@ describe("commitCellEdit with a stale edit session (user moved away mid-validati
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
 
     act(() => {
-      result.current.actions.startEditing({ row: 0, col: 0 });
+      result.current.actions.startEditingAt({ row: 0, col: 0 });
       result.current.actions.commitCellEdit("New Charlie", { dx: 0, dy: 1 });
     });
 
@@ -78,8 +78,8 @@ describe("commitCellEdit with a stale edit session (user moved away mid-validati
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
 
     act(() => {
-      result.current.actions.startEditing({ row: 0, col: 0 });
-      result.current.actions.selectCell({ row: 1, col: 1 });
+      result.current.actions.startEditingAt({ row: 0, col: 0 });
+      result.current.actions.selectCellAt({ row: 1, col: 1 });
       result.current.actions.commitCellEdit("Charlie", { dx: 0, dy: 1 }); // same value: noop
     });
 

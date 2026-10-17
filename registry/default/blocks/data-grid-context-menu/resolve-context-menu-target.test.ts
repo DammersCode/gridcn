@@ -102,6 +102,19 @@ describe("resolveContextMenuTarget", () => {
     document.body.removeChild(container);
   });
 
+  it("excludes skeleton cells (data-skeleton) from cell resolution", () => {
+    const container = document.createElement("div");
+    container.innerHTML = `
+      <div role="row" aria-rowindex="2" data-grid-row-index="0">
+        <div role="gridcell" aria-colindex="1" data-column-id="name" data-skeleton></div>
+      </div>
+    `;
+    document.body.appendChild(container);
+    const cell = container.querySelector('[role="gridcell"]') as Element;
+    expect(resolveContextMenuTarget(cell)).toBeNull();
+    document.body.removeChild(container);
+  });
+
   it("returns null for a gridcell missing a containing [role=row]", () => {
     const cell = document.createElement("div");
     cell.setAttribute("role", "gridcell");

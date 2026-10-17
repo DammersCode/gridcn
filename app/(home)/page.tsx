@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import type { ComponentProps } from "react";
 import {
   ArrowUpDown,
@@ -68,14 +69,14 @@ const coreTraits = [
     icon: LayoutGrid,
     title: "Real DOM, real virtualization",
     description:
-      "CSS Grid + subgrid, windowed row rendering, smooth at 100k rows.",
+      "CSS Grid + subgrid, virtualized row rendering, smooth at 100k rows.",
     href: "/docs/performance",
   },
   {
     icon: Keyboard,
     title: "Typed columns",
     description:
-      "defineColumns<TData>() infers value types and per-cell-type options; typos are compile errors.",
+      "defineColumns<TData>() infers value types and per-cell-type options; accessor key typos are compile errors.",
     href: "/docs/quick-start#define-columns",
   },
   {
@@ -112,7 +113,7 @@ const perfStats = [
     value: "0 renders",
     title: "React re-renders on scroll",
     description:
-      "Row and column windowing moves one CSS transform per tick; the store never invalidates during a scroll.",
+      "Row and column virtualization moves one CSS transform per tick; the store never invalidates during a scroll.",
   },
   {
     value: "0.3–7.6 ms",
@@ -217,6 +218,17 @@ const comparison = {
   ],
 };
 
+export const metadata: Metadata = {
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "gridcn",
+    title: "gridcn",
+    description:
+      "A composable, high-performance data grid: range selection, spreadsheet clipboard, typed cell editors, validation, and virtualized rendering at 100k+ rows.",
+  },
+};
+
 export default function HomePage() {
   return (
     <div className="relative flex flex-1 flex-col items-center">
@@ -231,7 +243,7 @@ export default function HomePage() {
         <p className="text-lg text-muted-foreground">
           A composable, high-performance data grid for the shadcn ecosystem —
           range selection, spreadsheet clipboard, typed cell editors,
-          validation, and windowed rendering at 100k+ rows.
+          validation, and virtualized rendering at 100k+ rows.
         </p>
         <p className="text-sm text-muted-foreground">
           Works in Next.js, Vite, and any React 19 app with Tailwind v4 —{" "}

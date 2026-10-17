@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useDataGridRowIdToViewRow, useDataGridStoreApi, useDataGridVisibleColumns, type OverlayPlugin } from "@/registry/default/blocks/data-grid/data-grid";
+import { useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
+import { useDataGridRowIdToViewRow, useDataGridVisibleColumns, type DataGridPlugin, type OverlayPluginCtx } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev, useDataGridStoreApi, viewRowsMoved, visibleColumnsMoved } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   createPresenceStore,
   isRowIdPresenceHighlight,
@@ -25,8 +26,8 @@ export type UseDataGridPresenceOptions = {
 
 /** Return value of {@link useDataGridPresence}. */
 export type UseDataGridPresenceResult = {
-  /** Stable for the component's lifetime. Put it in a memoized `overlayPlugins` array, e.g. `useMemo(() => [plugin], [plugin])`; an inline `[plugin]` literal trips the identity dev warning. */
-  plugin: OverlayPlugin;
+  /** One entry of the grid's `plugins` prop — the plugin's `Overlay` paints the highlights, its `Mount` dev-warns once when rows/columns move under an active view-index entry. Stable for the component's lifetime. An inline `plugins={[plugin]}` is fine: re-resolution is gated on entry identity (name + member references), not on the array's. */
+  plugin: DataGridPlugin<unknown>;
   /** The real (imperative) mechanism: call directly from your websocket/CRDT handler. */
   setPresenceHighlights(highlights: readonly PresenceHighlightEntry[]): void;
   /** Removes one entry by `id` (a peer's range closed) — prefer this over resending the whole snapshot. */
@@ -40,36 +41,36 @@ export type UseDataGridPresenceResult = {
 /**
  * Multiplayer presence, as a single hook. Owns its own store — a plain Zustand vanilla store local
  * to this hook instance, NOT part of the grid's own store, so core stays entirely unaware of
- * presence past the generic `overlayPlugins` seam it renders through.
+ * presence past the generic `plugins` seam.
  *
  * Zero-cell-render contract preserved: `plugin`'s identity never changes across renders (returned
- * from a one-time `useState` initializer), and its internal `usePresenceHighlights` subscription
- * only re-renders `DataGridOverlays` (the component that calls `plugin(ctx)` during its own render)
- * — never rows or cells. See the render-count probe in `data-grid-presence.test.tsx`.
+ * from a one-time `useState` initializer), and the plugin's `Overlay` component's own
+ * `usePresenceHighlights` subscription only re-renders `DataGridOverlays` (the component that
+ * renders the `Overlay` inside its own tree) — never rows or cells.
  *
  * A hook (not a `<DataGridPresence>` component) is the simplest wiring here: the plugin must be
- * threaded into `overlayPlugins` on `DataGridProvider`, which sits ABOVE anywhere a child component
+ * threaded into `plugins` on `DataGridProvider`, which sits ABOVE anywhere a child component
  * could register it — a hook called once in the consumer's own component (before rendering the
  * provider) avoids that inversion entirely, with no new context needed.
  */
 export function useDataGridPresence(options: UseDataGridPresenceOptions = {}): UseDataGridPresenceResult {
   const [store] = useState(() => createPresenceStore());
 
-  // the plugin closure is memoized once; option callbacks read through refs so a new callback
+  // the plugin closures are memoized once; option callbacks read through refs so a new callback
   // identity (a re-rendering consumer) never re-creates the plugin
   const maxRectsRef = useRef(options.maxRects);
   maxRectsRef.current = options.maxRects;
   const onExcessRectsRef = useRef(options.onExcessRects);
   onExcessRectsRef.current = options.onExcessRects;
 
-  // The plugin calls `usePresenceHighlights` ITSELF when invoked (inside DataGridOverlays's own
-  // render, see overlays.tsx) — a plain function call still runs its hooks against the calling
-  // component's fiber, so this is what subscribes DataGridOverlays (and only DataGridOverlays) to
-  // this store; a plugin that just read `store.getState()` once would never trigger a re-render.
-  // This component itself does NOT subscribe (no `usePresenceHighlights(store)` call here) — calling
-  // it would re-render THIS component (and everything under it, including DataGridProvider) on every
-  // highlight change, which is exactly the per-row/per-cell cascade the zero-cell-render contract rules out.
-  const plugin = useMemo<OverlayPlugin>(() => makePresencePlugin(store, maxRectsRef, onExcessRectsRef), [store]);
+  const plugin = useMemo<DataGridPlugin<unknown>>(
+    () => ({
+      name: "presence",
+      Overlay: createPresenceOverlay(store, maxRectsRef, onExcessRectsRef),
+      Mount: createPresenceMount(store),
+    }),
+    [store],
+  );
 
   return {
     plugin,
@@ -80,12 +81,13 @@ export function useDataGridPresence(options: UseDataGridPresenceOptions = {}): U
   };
 }
 
-function makePresencePlugin(
+/** The plugin's overlay component, closed over the add-on's local store; its hooks subscribe only `DataGridOverlays` (the component rendering it). */
+function createPresenceOverlay(
   store: PresenceStoreApi,
   maxRectsRef: { current: number | undefined },
   onExcessRectsRef: { current: ((entry: RowIdRangePresenceHighlight, kept: number, total: number) => void) | undefined },
-): OverlayPlugin {
-  // per-instance (per plugin closure) once-warns: the plugin re-runs on every DataGridOverlays
+): ComponentType<OverlayPluginCtx> {
+  // per-instance (per plugin closure) once-warns: the overlay re-runs on every DataGridOverlays
   // render, so a persistently hidden/unknown column must not re-warn on every render
   const warnedColumns = new Set<string>();
   const warnedRangeIssues = new Set<string>();
@@ -108,25 +110,11 @@ function makePresencePlugin(
     warnedRangeIssues.add(key);
     warnDev(`presence entry "${entry.id}" resolves to ${total} fragments, above the ${kept}-rect budget; the excess is not painted (downsample the remote selection or filter it)`);
   };
-  const viewSpaceActive = () =>
-    store.getState().highlights.some((entry) => !isRowIdPresenceHighlight(entry) && !isRowIdRangePresenceHighlight(entry));
-  return (ctx) => {
-    // all four run once per DataGridOverlays render, same call order every time (see doc comment
-    // above) — rowId resolution piggybacks on the same call site rather than adding a second
-    // hook-calling layer, since this closure is already the one place that's safe to do so.
+
+  function PresenceOverlay(ctx: OverlayPluginCtx): ReactNode {
     const highlights = usePresenceHighlights(store);
     const rowIdToViewRow = useDataGridRowIdToViewRow();
     const visibleColumns = useDataGridVisibleColumns();
-    const gridStoreApi = useDataGridStoreApi();
-    // core dev-warns once when a row-moving op runs while a view-space entry is active; the
-    // predicate reads the live entry list so registration happens once per plugin mount.
-    useEffect(() => {
-      const actions = gridStoreApi.getState().actions;
-      actions._registerPresenceViewSpaceActive(viewSpaceActive);
-      return () => {
-        actions._registerPresenceViewSpaceActive(null);
-      };
-    }, [gridStoreApi, viewSpaceActive]);
     // memoized on the inputs' identity: local selection/keystroke re-renders of DataGridOverlays
     // must not re-run the resolve math or re-allocate the rect objects the memoized overlay nodes
     // compare. maxRects is read through the ref but placed in the deps so a live change re-resolves
@@ -137,7 +125,31 @@ function makePresencePlugin(
       [highlights, rowIdToViewRow, visibleColumns, warnDroppedColumn, warnUnresolvedColumns, warnExcessRects, maxRects],
     );
     return renderPresenceOverlay(resolved, ctx);
-  };
+  }
+  return PresenceOverlay;
+}
+
+/** The plugin's mount component: dev-warns once when a row-moving or column-moving store write lands while a view-index entry is active — that entry's highlight position is now stale (view-index entries follow their rect, not their rows). */
+function createPresenceMount(store: PresenceStoreApi): ComponentType {
+  function PresenceMount(): ReactNode {
+    const gridStoreApi = useDataGridStoreApi();
+    useEffect(() => {
+      if (!isDev()) return;
+      let warned = false;
+      const viewSpaceActive = () =>
+        store.getState().highlights.some((entry) => !isRowIdPresenceHighlight(entry) && !isRowIdRangePresenceHighlight(entry));
+      const unsubscribe = gridStoreApi.subscribe((s, prev) => {
+        if (warned || !viewSpaceActive()) return;
+        if (viewRowsMoved(prev, s.viewIndex, s.data, s.getRowId) || visibleColumnsMoved(prev.visibleColumns, s.visibleColumns)) {
+          warned = true;
+          warnDev("rows or columns moved while a view-space presence entry is active — its highlight position is now stale; use rowId-native presence entries for a live feed");
+        }
+      });
+      return unsubscribe;
+    }, [gridStoreApi, store]);
+    return null;
+  }
+  return PresenceMount;
 }
 
 /** Read-back subscription (opt-in): re-renders ONLY the calling component on highlight changes — pass `storeApi` from {@link useDataGridPresence}'s return value. Mirrors core's old `useDataGridHighlights` for consumers building their own UI (e.g. an inspector panel) off the same state the grid paints. */

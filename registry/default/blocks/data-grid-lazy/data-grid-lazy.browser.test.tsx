@@ -44,8 +44,14 @@ function LazyGrid(props: {
   });
   return (
     <div style={{ height: 360, width: 400 }}>
-      <DataGridProvider data={lazy.gridProps.data} columns={columns} getRowId={lazy.gridProps.getRowId} onDataChange={lazy.onDataChange}>
-        <DataGridRoot className="h-90 w-100" onRowWindowChange={lazy.gridProps.onRowWindowChange}>
+      <DataGridProvider
+        data={lazy.gridProps.data}
+        columns={columns}
+        getRowId={lazy.gridProps.getRowId}
+        onDataChange={lazy.onDataChange}
+        onRenderedRowsChange={lazy.gridProps.onRenderedRowsChange}
+      >
+        <DataGridRoot className="h-90 w-100">
           <DataGridHeader />
           <DataGridBody />
         </DataGridRoot>
@@ -178,7 +184,7 @@ describe("data-grid-lazy: scroll into a hole -> skeletons -> data fills in", () 
     expect(document.querySelectorAll('[role="gridcell"][data-skeleton]').length).toBe(0);
   });
 
-  it("a failed fetch reverts the range to unloaded and refetches it the next time onRowWindowChange covers it", async () => {
+  it("a failed fetch reverts the range to unloaded and refetches it the next time onRenderedRowsChange covers it", async () => {
     let callCount = 0;
     const resolvers: Array<() => void> = [];
     const fetchRows = vi.fn(
@@ -258,10 +264,10 @@ function CallbacksLazyGrid(props: {
         columns={callbackColumns}
         getRowId={lazy.gridProps.getRowId}
         onDataChange={lazy.onDataChange}
+        onRenderedRowsChange={lazy.gridProps.onRenderedRowsChange}
       >
         <DataGridRoot
           className="h-90 w-100"
-          onRowWindowChange={lazy.gridProps.onRowWindowChange}
           getRowClassName={callbackRowClassName}
         >
           <DataGridHeader />

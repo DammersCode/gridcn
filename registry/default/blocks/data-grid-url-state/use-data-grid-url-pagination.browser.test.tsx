@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { page } from "vitest/browser";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
@@ -25,6 +26,18 @@ function renderGrid(options: { searchParams?: string; onUrlUpdate?: (event: UrlU
       <UrlPaginatedGrid />
     </NuqsTestingAdapter>,
   );
+}
+
+/** A server-mode pager whose `total` starts at 0 (a fetch in flight) and arrives 30ms later — one hook instance across the transition. */
+function TotalFlipper() {
+  const [total, setTotal] = useState(0);
+  useEffect(() => {
+    const timer = setTimeout(() => setTotal(TOTAL_ROWS), 30);
+    return () => clearTimeout(timer);
+  }, []);
+  const url = useDataGridUrlPagination({ total });
+  const pager = useDataGridPagination({ total, ...url });
+  return <DataGridPaginationBar {...pager.controls} />;
 }
 
 describe("useDataGridUrlPagination + useDataGridPagination: composition", () => {
@@ -62,6 +75,33 @@ describe("useDataGridUrlPagination + useDataGridPagination: composition", () => 
       expect(last?.searchParams.get("pageSize")).toBe("50");
       expect(last?.searchParams.get("page")).toBeNull();
     });
+  });
+
+  it("keeps a deep-linked ?page= while total is 0 (loading), and honors it once the total arrives", async () => {
+    const onUrlUpdate = vi.fn();
+    await render(
+      <NuqsTestingAdapter searchParams="?page=3" onUrlUpdate={onUrlUpdate} hasMemory>
+        <TotalFlipper />
+      </NuqsTestingAdapter>,
+    );
+    await expect.element(page.getByText("51–75 of 101")).toBeInTheDocument();
+    // a total of 0 must not trigger the write-back that rewrites ?page= to 1
+    expect(onUrlUpdate).not.toHaveBeenCalled();
+  });
+
+  it("an out-of-range ?page= waits for the total and clamps only once it arrives", async () => {
+    await render(
+      <NuqsTestingAdapter searchParams="?page=999" hasMemory>
+        <TotalFlipper />
+      </NuqsTestingAdapter>,
+    );
+    await expect.element(page.getByText("101–101 of 101")).toBeInTheDocument();
+  });
+
+  it("falls back to the default page size for an unbounded ?pageSize=", async () => {
+    // no pageSizeOptions passed to the hook: the default list must still gate the URL value
+    await renderGrid({ searchParams: "?pageSize=100000000" });
+    await expect.element(page.getByText("1–25 of 101")).toBeInTheDocument();
   });
 
   it("omits page and pageSize from the URL when both are at their defaults", async () => {

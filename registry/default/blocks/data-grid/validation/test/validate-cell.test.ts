@@ -98,7 +98,7 @@ describe("runValidateSync", () => {
       expect(runValidateSync(schema, 5, {})).toEqual({ value: 5 });
     });
 
-    it("no longer warns: async on a bulk path is supported (workplan #79)", () => {
+    it("does not warn: async on a bulk path is supported", () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       const schema = mockSchema<number>(() => Promise.resolve({ value: 1 }) as never);
       runValidateSync(schema, 1, {});

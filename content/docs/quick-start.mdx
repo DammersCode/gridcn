@@ -2,6 +2,7 @@
 title: Quick start
 description: An editable grid in a few lines, with zero state wiring.
 icon: Rocket
+status: updated
 ---
 
 <Steps>
@@ -26,16 +27,21 @@ icon: Rocket
       ]}
     />
 
-    Check the pieces you want — the command joins them in one call. The package-manager tab
+    Check the pieces you want. The command joins them in one call. The package-manager tab
     (pnpm, npm, yarn, bun) is a choice: it is remembered across the whole docs site.
 
     The CLI resolves the `@gridcn` registry from the hosted site
-    ([gridcn.vercel.app](https://gridcn.vercel.app)) — no setup step. To pin a specific tag,
+    ([gridcn.vercel.app](https://gridcn.vercel.app)). No setup step. To pin a specific tag,
     branch, or commit, use the GitHub registry path:
     `npx shadcn add DammersCode/gridcn/data-grid#v1.0.0`.
   </Step>
   <Step>
     ### Define columns
+
+    A column maps one field of your row to one grid column. `accessorKey` (the accessor) names the
+    row field the column reads, and `accessorFn` computes the value instead. `type` names the
+    cell type: the built-in kind of value the column holds, such as `text`, `number`, or
+    `checkbox`. It sets how the cell renders, edits, sorts, and filters.
 
     `defineColumns<TData>()` infers the value type of each column from `accessorKey` (or
     `accessorFn`). It narrows `options` and `validate` through the cell type named in `type`.
@@ -62,8 +68,11 @@ icon: Rocket
   <Step>
     ### Render the grid
 
-    `defaultData` seeds the grid once. After that, the grid owns the array: editing, pasting,
-    filling, and deleting all apply internally, and you do not need state of your own.
+    `defaultData` seeds the grid once. This is the uncontrolled form, the same as
+    `<input defaultValue>`: after the first render, the grid owns the array. Editing, pasting,
+    filling, and deleting all apply internally, and you do not need state of your own. The
+    controlled form passes `data` and takes the changes back, see [Going
+    controlled](#going-controlled).
 
     ```tsx title="people-grid.tsx"
     "use client";
@@ -74,6 +83,7 @@ icon: Rocket
     const initialRows = [
       { id: "1", name: "Ada Lovelace", age: 28, active: true },
       { id: "2", name: "Grace Hopper", age: 34, active: true },
+      { id: "3", name: "Margaret Hamilton", age: 31, active: false },
     ];
 
     export function PeopleGrid() {
@@ -81,23 +91,95 @@ icon: Rocket
         <DataGrid
           defaultData={initialRows}
           columns={columns}
-          getRowId={(row) => row.id}
           className="h-[400px]"
         />
       );
     }
     ```
 
-    <Callout title="getRowId is mandatory">
-      `getRowId` must return a stable, unique id for each row. Two rows that share an id corrupt
-      selection, editing, and undo and redo, because every internal lookup is id-keyed.
+    <Callout title="Every row needs a stable id">
+      `getRowId` returns each row's id. It defaults to the row's `id` field and throws for a row
+      without one, so the example above omits the prop. Pass `getRowId` when the id lives
+      elsewhere. The id must be stable and unique for each row. Two rows that share an id corrupt
+      selection, editing, and undo and redo, because every internal lookup is row-id-based (it finds
+      a row by its id, not by its position). When you
+      change what `getRowId` returns, pass a new `data` array in the same render. In development,
+      the grid warns when `getRowId` returns other ids while `data` keeps its array.
     </Callout>
 
     <ComponentPreview name="data-grid-minimal-demo" />
 
     Try it: click a cell and type to replace its value, double-click or press <kbd>F2</kbd> to
     edit in place, <kbd>Enter</kbd> to commit and move down (or <kbd>Tab</kbd> to commit in
-    place), drag to select a range.
+    place), drag to select a range. A click on a column header selects the whole column. It does
+    not sort. To sort on a header click, set `headerClickBehavior="sort"` (see the next step).
+  </Step>
+  <Step>
+    ### Add search, sorting and selection
+
+    <NewBadge />
+
+    A toolbar has to sit between the provider and the root. `<DataGrid>` has no slot for it, so
+    use the split form: `DataGridProvider` holds the state and the options, `DataGridRoot` is the
+    scrolling box, and `DataGridHeader` and `DataGridBody` draw the rows. Add-ons such as the
+    toolbar work the same way.
+
+    <InstallCommand item="data-grid-toolbar" />
+
+    The file below is complete. It adds quick search, a filter menu, a columns menu, sorting on
+    header click, and a checkbox on each row. A click on a row checkbox selects that row.
+    Press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Backspace</kbd> to delete the
+    selected rows.
+
+    ```tsx title="people-grid.tsx"
+    "use client";
+
+    import {
+      DataGridProvider,
+      DataGridRoot,
+      DataGridHeader,
+      DataGridBody,
+    } from "@/components/data-grid/data-grid";
+    import {
+      DataGridToolbar,
+      DataGridSearch,
+      DataGridFilterMenu,
+      DataGridColumnsMenu,
+    } from "@/components/data-grid-toolbar/data-grid-toolbar";
+    import { columns } from "./columns";
+
+    const initialRows = [
+      { id: "1", name: "Ada Lovelace", age: 28, active: true },
+      { id: "2", name: "Grace Hopper", age: 34, active: true },
+      { id: "3", name: "Margaret Hamilton", age: 31, active: false },
+    ];
+
+    export function PeopleGrid() {
+      return (
+        <DataGridProvider
+          defaultData={initialRows}
+          columns={columns}
+          headerClickBehavior="sort"
+          rowMarkers="checkbox"
+        >
+          <DataGridToolbar>
+            <DataGridSearch />
+            <DataGridFilterMenu />
+            <DataGridColumnsMenu />
+          </DataGridToolbar>
+          <DataGridRoot className="h-[400px]">
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    ```
+
+    A click on a header cycles that column through ascending, descending, and no sort.
+    Shift-click adds a second sort column. Search highlights matches and jumps to them. It never
+    hides rows. A filter hides rows. See [Sorting, filtering & search](/docs/sorting-filtering-search)
+    and [Row operations](/docs/row-operations).
   </Step>
 </Steps>
 
@@ -115,7 +197,7 @@ round-trip, a store, or derived data. `data` and `defaultData` are mutually excl
 give both, `data` wins.
 
 ```tsx
-const [data, setData] = useState(initialRows);
+const [data, setData] = useState<readonly Person[]>(initialRows);
 
 <DataGrid
   data={data}
@@ -125,9 +207,12 @@ const [data, setData] = useState(initialRows);
 />;
 ```
 
+The current data is the data you hold. After each change, call `onDataChange(next)` and store
+`next`. The grid reads the array you pass back in.
+
 `onDataChange` fires once per user gesture (one edit, one paste, one fill, or one delete-range).
-It passes the next array and an id-keyed ops batch. See [Recipes](/docs/recipes) for how to use
-the ops batch directly, for example to sync to a server. `onDataChange` also fires in
+It passes the next array and a row-id-based operations batch. See [Recipes](/docs/recipes) for how to use
+the operations batch directly, for example to sync to a server. `onDataChange` also fires in
 uncontrolled (`defaultData`) mode, as an optional notification. The grid applies the change
 internally either way.
 
@@ -154,7 +239,7 @@ capped stacks, and toolbar wiring.
 
 `<DataGrid>` is a convenience wrapper around four pieces: `DataGridProvider`, `DataGridRoot`,
 `DataGridHeader`, and `DataGridBody`. Every add-on on this site composes those four pieces
-directly, because a toolbar, a context menu, or an overlay plugin needs to sit between them. See
+directly, because a toolbar or a context menu needs to sit between them. See
 the [API reference](/docs/api-reference#datagrid) for the expanded form and what each piece owns.
 
 ## What's next

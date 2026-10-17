@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
-import { useDataGridContainer, useDataGridEditing } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridEditing } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridContainer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Props for {@link DataGridKeybindingsShortcut}. */
 export type DataGridKeybindingsShortcutProps = {

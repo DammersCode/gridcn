@@ -1,24 +1,65 @@
+import { toSafeText } from "./safe-text";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "../types";
 import { CellSpan } from "./cell-span";
+import { COMPARISON_FILTER_OPERATORS, TEXT_FILTER_OPERATORS } from "./capabilities";
 import { displayText } from "./display-text";
 import { useCommitGuard } from "../interaction/use-commit-guard";
+import { isComposingKey } from "../interaction/is-composing-key";
 import { useDataGridLabels } from "../store";
 import { columnLabelText } from "../columns/column-format-helpers";
 
-/** Normalizes any Date-parseable input to its ISO `yyyy-mm-dd` date part; null when unparseable or out of range. */
+/** Calendar-validity probe for an ISO-shaped `yyyy-mm-dd`: UTC so no time-zone can shift a day; `setUTCFullYear` (unlike the `Date.UTC` constructor) maps 0-99 to themselves, so `0026-01-01` stays 0026. */
+function isRealIsoDate(iso: string): boolean {
+  const [year, month, day] = iso.split("-").map(Number) as [number, number, number];
+  const probe = new Date(0);
+  probe.setUTCFullYear(year, month - 1, day);
+  return probe.getUTCFullYear() === year && probe.getUTCMonth() === month - 1 && probe.getUTCDate() === day;
+}
+
+const MONTH_NAME_PREFIXES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+/** True when the input itself names the parsed year, month, and day, so `Date` did not roll an invalid day into the next month. */
+function inputNamesDate(input: string, year: number, month: number, day: number): boolean {
+  const numbers = (input.match(/\d+/g) ?? []).map(Number);
+  const take = (matches: (n: number) => boolean): boolean => {
+    const at = numbers.findIndex(matches);
+    if (at === -1) return false;
+    numbers.splice(at, 1);
+    return true;
+  };
+  if (!take((n) => n === year) && !take((n) => n < 100 && n === year % 100)) return false;
+  if (!take((n) => n === day)) return false;
+  const namedMonths = new Set((input.toLowerCase().match(/[a-z]+/g) ?? []).map((word) => word.slice(0, 3)).filter((prefix) => MONTH_NAME_PREFIXES.includes(prefix)));
+  if (namedMonths.size > 1) return false;
+  return take((n) => n === month) || namedMonths.has(MONTH_NAME_PREFIXES[month - 1]!);
+}
+
+// anchored time grammar: hh:mm[:ss[.f]] [AM|PM] [Z | [GMT|UTC]+hh[:]mm] [(zone name)]; the lookbehind keeps whitespace runs linear
+const TIME_PART_RE = /(?:[Tt]|(?<![\s,]),?\s+)\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:\s*[AaPp][Mm])?(?:\s*(?:[Zz]|(?:GMT|UTC)?[+-]\d{2}:?\d{2}))?(?:\s*\([^()]*\))?$/;
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Normalizes any Date-parseable input to its ISO `yyyy-mm-dd` date part; null when unparseable, calendar-invalid, or out of range. A datetime stores its local calendar day. */
 function toIsoDatePart(input: string, options?: GridCellTypes["date"]["options"]): string | null {
   const trimmed = input.trim();
   if (trimmed === "") return null;
+  // the written date, without its time part, is what must be a real calendar day
+  const written = trimmed.replace(TIME_PART_RE, "");
   let isoDate: string;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+  if (ISO_DATE_RE.test(written) && written === trimmed) {
+    // the shape check is not a calendar check — 2026-02-30 matches it and must not commit
+    if (!isRealIsoDate(trimmed)) return null;
     isoDate = trimmed;
   } else {
+    if (ISO_DATE_RE.test(written) && !isRealIsoDate(written)) return null;
     const parsed = new Date(trimmed);
     if (Number.isNaN(parsed.getTime())) return null;
+    const writtenDate = new Date(written);
+    if (Number.isNaN(writtenDate.getTime())) return null;
+    if (!inputNamesDate(written, writtenDate.getFullYear(), writtenDate.getMonth() + 1, writtenDate.getDate())) return null;
     // use local getters, not toISOString(), so a locale-parsed date (local midnight) doesn't shift a day across UTC
     const year = String(parsed.getFullYear()).padStart(4, "0");
     const month = String(parsed.getMonth() + 1).padStart(2, "0");
@@ -46,10 +87,7 @@ function localDateToIsoDatePart(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-/** Constructing an `Intl.DateTimeFormat` costs ~38us against ~0.7us to reuse one (measured) — at
- * fling speed that ran once per date cell per newly-mounted row, so formatters are cached by their
- * resolved locale + format options instead. Keyed on the serialized options rather than the options
- * object's identity: a column literal re-created each render is the common case and must still hit. */
+/** Formatters keyed by serialized options, so a re-created column literal reuses one (build ~38us, reuse ~0.7us). */
 const dateFormatterCache = new Map<string, Intl.DateTimeFormat>();
 
 function getDateFormatter(locale: string, format: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
@@ -64,30 +102,29 @@ function getDateFormatter(locale: string, format: Intl.DateTimeFormatOptions): I
 
 /** Formats an ISO date part per the column's `displayFormat`/`locale`, falling back to the raw ISO text. */
 function formatDateDisplay(value: string | null, options?: GridCellTypes["date"]["options"]): string {
-  if (value == null) return "";
-  if (!options?.displayFormat) return value;
-  const date = isoDatePartToLocalDate(value);
-  if (!date) return value;
+  const text = toSafeText(value);
+  if (!options?.displayFormat) return text;
+  const date = isoDatePartToLocalDate(text);
+  if (!date) return text;
   // pinned default: server and browser Intl defaults can differ -> SSR hydration mismatch
   return getDateFormatter(options.locale ?? "en-US", options.displayFormat).format(date);
 }
 
-function DateCell({ value, column }: CellRenderProps<unknown, string | null>) {
-  const options = column.options as GridCellTypes["date"]["options"] | undefined;
+function DateCell({ value, options }: CellRenderProps<unknown, string | null, GridCellTypes["date"]["options"]>) {
   return <CellSpan text={displayText(dateCellType, value, options)} align="right" />;
 }
 
 /** Popover + Calendar (shadcn date-picker pattern): opens on edit start; picking a date commits and stays; a small typed-input above the calendar accepts ISO or Date.parse-able text with Enter to commit. */
 function DateEditor({
   value,
+  options,
   onChange,
   commit,
   cancel,
   column,
   pending,
   rejectionCount,
-}: CellEditorProps<unknown, string | null>) {
-  const options = column.options as GridCellTypes["date"]["options"] | undefined;
+}: CellEditorProps<unknown, string | null, GridCellTypes["date"]["options"]>) {
   const labels = useDataGridLabels();
   const inputRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState(dateCellType.toText(value));
@@ -118,7 +155,11 @@ function DateEditor({
   return (
     <Popover
       open={open}
-      onOpenChange={(next) => {
+      onOpenChange={(next, details) => {
+        if (!next && details.reason === "escape-key" && isComposingKey(details.event)) {
+          details.cancel();
+          return;
+        }
         setOpen(next);
         if (!next && committed.tryCommit()) cancel();
       }}
@@ -134,7 +175,7 @@ function DateEditor({
         align="start"
         className="w-auto p-0"
         onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-          if (e.key === "Escape") {
+          if (e.key === "Escape" && !isComposingKey(e)) {
             if (committed.tryCommit()) cancel();
           }
         }}
@@ -143,16 +184,15 @@ function DateEditor({
           <Input
             ref={inputRef}
             value={text}
-            // readOnly, not disabled: a disabled input can't receive focus/keyboard events at all, which
-            // would silently swallow Escape while an async validation is pending — readOnly blocks typing
-            // but keeps Escape/Tab/blur working.
+            // readOnly, not disabled: a disabled input swallows Escape while an async validation is pending.
             readOnly={pending}
-            // ISO date text is direction-neutral; see the number editor for why `auto` beats the
-            // grid's inherited layout direction on a value-carrying input.
+            // ISO date text is direction-neutral, so it must not inherit the grid's layout direction.
             dir="auto"
             placeholder={labels.grid.datePlaceholder}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+              // Enter or Escape during IME composition confirms or cancels the composition, not the edit.
+              if (isComposingKey(e)) return;
               if (e.key === "Enter") {
                 commitValue(dateCellType.fromText(text, options), { dx: 0, dy: 1 });
               } else if (e.key === "Escape") {
@@ -181,7 +221,9 @@ function DateEditor({
 export const dateCellType: CellType<unknown, string | null, GridCellTypes["date"]["options"]> = {
   Cell: DateCell,
   Editor: DateEditor,
-  toText: (value) => value ?? "",
+  numeric: true,
+  filter: { operators: [...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS], valueInput: "date" },
+  toText: (value) => toSafeText(value),
   toDisplayText: (value, options) => formatDateDisplay(value, options),
   fromText: (text, options) => toIsoDatePart(text, options),
   clearValue: () => null,

@@ -22,7 +22,10 @@ export function ThemeToggle({ className }: { className?: string }): ReactNode {
       setTheme(next);
       return;
     }
-    document.startViewTransition(() => setTheme(next));
+    const transition = document.startViewTransition(() => setTheme(next));
+    // An overlapping click skips the running transition and rejects both promises with AbortError.
+    transition.ready.catch(() => {});
+    transition.finished.catch(() => {});
   };
 
   const isDark = mounted && resolvedTheme === "dark";

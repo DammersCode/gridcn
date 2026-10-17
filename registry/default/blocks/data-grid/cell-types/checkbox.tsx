@@ -1,20 +1,30 @@
 import { useEffect } from "react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { CheckIcon } from "lucide-react";
 import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "../types";
 import { useCommitGuard } from "../interaction/use-commit-guard";
 import { GRID_ATTR } from "../data-attributes";
 
-function CheckboxCell({ value }: CellRenderProps<unknown, boolean>) {
+function CheckboxCell({ value, column }: CellRenderProps<unknown, boolean>) {
   if (value == null) return null;
-  // display-only: the interaction layer toggles via commitCellValue, so the control never receives events
+  // display-only: the interaction layer toggles via commitCellValue, so the box never receives events
+  // plain span, not the base-ui control: one mounts per row per window commit, and its state machine and effects cost more than the visual
   return (
     <span className="flex size-full items-center justify-center">
-      <Checkbox checked={value} tabIndex={-1} className="pointer-events-none" {...{ [GRID_ATTR.checkboxBox]: "" }} />
+      <span
+        role="checkbox"
+        aria-checked={value ? "true" : "false"}
+        aria-label={column.headerText ?? (typeof column.header === "string" ? column.header : column.id)}
+        data-checked={value || undefined}
+        className="pointer-events-none flex size-4 shrink-0 items-center justify-center rounded-none border border-input dark:bg-input/30 data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground dark:data-checked:bg-primary"
+        {...{ [GRID_ATTR.checkboxBox]: "" }}
+      >
+        {value ? <CheckIcon className="size-3.5" /> : null}
+      </span>
     </span>
   );
 }
 
-/** Checkbox has no edit mode (interaction layer toggles+commits directly via `commitCellValue`); this only guards a stray `startEditing` call by bailing out immediately. */
+/** `CellType` requires an `Editor`, but `startEditing` skips `activate` types: this one only cancels a session opened directly through the store. */
 function CheckboxEditor({ cancel }: CellEditorProps<unknown, boolean>) {
   const committed = useCommitGuard();
   useEffect(() => {
@@ -38,4 +48,7 @@ export const checkboxCellType: CellType<unknown, boolean, GridCellTypes["checkbo
   isEmpty: (value) => value == null,
   compare: (a, b) => Number(a) - Number(b),
   align: "center",
+  // the edit gestures toggle in place instead of opening an editor (the type owns the gesture, not the name)
+  activate: (value) => !value,
+  filter: { valueInput: "boolean" },
 };

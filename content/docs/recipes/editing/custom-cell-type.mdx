@@ -1,0 +1,49 @@
+---
+title: Custom cell type
+description: Pick the lightest way to change how a column shows and edits its values.
+icon: Shapes
+status: new
+---
+
+Most column needs end before a custom cell type. Take the first step that fits.
+
+## Format the display
+
+A `number` column formats its value with `options.format` (any `Intl.NumberFormat` options) and `options.locale`. Copy, export, sort, and the editor keep the raw number:
+
+```tsx
+const columns = defineColumns<Product>()([
+  {
+    id: "price",
+    header: "Price",
+    accessorKey: "price",
+    type: "number",
+    options: { format: { style: "currency", currency: "EUR" }, locale: "de-DE" },
+  },
+  {
+    id: "margin",
+    header: "Margin",
+    accessorKey: "margin",
+    type: "number",
+    options: { format: { style: "percent", maximumFractionDigits: 1 } },
+  },
+] as const);
+```
+
+## Use a built-in type
+
+- `url` shows a safe link. `options.label` maps the URL to the shown text.
+- `longText` stores multi-line text and edits it in a popover.
+- `select`, `date`, and `checkbox` cover choices, dates, and booleans.
+
+See [Editing & cell types](/docs/editing-cell-types) for every built-in type and its options.
+
+## Write a cell type
+
+Write your own type when the stored value, the editor, or the text round-trip differs from every built-in. A type is `{ Cell, Editor, toText, fromText, clearValue, isEmpty, compare?, align? }`. Pass it to the grid through `cellTypes`, keyed by the name a column uses in `type`:
+
+```tsx
+<DataGrid cellTypes={{ rating: ratingCellType }} data={data} columns={columns} />
+```
+
+[Build your own cell type](/docs/custom-cell-types) has the full contract, typed columns through `GridCellTypes`, and a worked `currency` example. [Editing & cell types](/docs/editing-cell-types) explains how editing and commits work across the grid.

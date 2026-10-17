@@ -4,11 +4,12 @@ import { useState, type ReactNode } from "react";
 import type { ColumnDef, DataChange } from "../types";
 import {
   DataGridProvider,
+  cellErrorKey,
   useDataGridActions,
   useDataGridCellErrors,
   useDataGridRowCellState,
-  useDataGridRowHasError,
-  type DataGridProviderProps,
+  useDataGridStore,
+  type DataGridSyncProps,
 } from "../store";
 
 type Row = { id: string; name: string; age: number; active: boolean };
@@ -29,7 +30,7 @@ function rows(): Row[] {
 
 function makeWrapper(
   onDataChange?: (next: readonly Row[], change: DataChange<Row>) => void,
-  overrides: Partial<DataGridProviderProps<Row>> = {},
+  overrides: Partial<DataGridSyncProps<Row>> = {},
   data: Row[] = rows(),
 ) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -225,7 +226,7 @@ describe("auto-clear on successful commit", () => {
     expect(result.current.cellErrors.has("1:name")).toBe(true);
 
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
       result.current.actions.commitCellEdit("Charlotte");
     });
 
@@ -242,7 +243,7 @@ describe("auto-clear on successful commit", () => {
     });
 
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
       result.current.actions.commitCellEdit("Charlotte");
     });
 
@@ -257,7 +258,7 @@ describe("auto-clear on successful commit", () => {
     });
 
     act(() => {
-      result.current.actions.startEditing({ col: 0, row: 0 });
+      result.current.actions.startEditingAt({ col: 0, row: 0 });
       result.current.actions.commitCellEdit("Charlie"); // same as the existing value
     });
 
@@ -278,7 +279,7 @@ describe("auto-clear on successful commit", () => {
     });
 
     act(() => {
-      result.current.actions.startEditing({ col: 1, row: 0 });
+      result.current.actions.startEditingAt({ col: 1, row: 0 });
       result.current.actions.commitCellEdit(-5);
     });
 
@@ -292,7 +293,7 @@ describe("auto-clear on successful commit", () => {
     });
 
     act(() => {
-      result.current.actions.commitCellValue({ col: 2, row: 0 }, true);
+      result.current.actions.commitCellValueAt({ col: 2, row: 0 }, true);
     });
 
     expect(result.current.cellErrors.has("1:active")).toBe(false);
@@ -308,8 +309,8 @@ describe("auto-clear on successful commit", () => {
     });
 
     act(() => {
-      result.current.actions.selectCell({ col: 0, row: 0 });
-      result.current.actions.extendTo({ col: 1, row: 0 });
+      result.current.actions.selectCellAt({ col: 0, row: 0 });
+      result.current.actions.extendToAt({ col: 1, row: 0 });
     });
     act(() => {
       result.current.actions.deleteSelection();
@@ -325,7 +326,7 @@ describe("auto-clear on successful commit", () => {
     });
 
     act(() => {
-      result.current.actions.applyCellUpdates([{ viewRow: 1, columnId: "name", value: "Allison" }], "paste");
+      result.current.actions.applyCellUpdates([{ viewRowIndex: 1, columnId: "name", value: "Allison" }], "paste");
     });
 
     expect(result.current.cellErrors.has("2:name")).toBe(false);
@@ -338,7 +339,7 @@ describe("auto-clear on successful commit", () => {
     });
 
     act(() => {
-      result.current.actions.applyCellUpdates([{ viewRow: 1, columnId: "name", value: "Allison" }], "paste");
+      result.current.actions.applyCellUpdates([{ viewRowIndex: 1, columnId: "name", value: "Allison" }], "paste");
     });
 
     expect(result.current.cellErrors.get("3:name")).toBe("stale");
@@ -435,7 +436,7 @@ describe("pruning on row-shape changes", () => {
     const initialRows = rows();
     // renderHook's `rerender(props)` only re-invokes the hook callback, never the wrapper (RTL only
     // forwards `initialProps` to the FIRST render) — a stateful host component with an imperative
-    // "replace data" escape hatch is what actually drives a controlled `data` prop change here.
+    // "replace data" override is what actually drives a controlled `data` prop change here.
     let setData: ((rows: Row[]) => void) | null = null;
     let harness: ReturnType<typeof useHarness> | null = null;
     function Host() {
@@ -566,9 +567,9 @@ describe("pruning on row-shape changes", () => {
       expect(result.current.cellErrors.has("t1:o8:meta:sku")).toBe(false);
     });
 
-    it("useDataGridRowHasError does not report a colon-prefix rowId's error as its own", () => {
+    it("an exact-key row probe does not report a colon-prefix rowId's error as its own", () => {
       const { result } = renderHook(
-        () => ({ ...useHarness(), t1HasError: useDataGridRowHasError("t1") }),
+        () => ({ ...useHarness(), t1HasError: useDataGridStore((s) => s.cellErrors.has(cellErrorKey("t1", "meta:sku"))) }),
         { wrapper: joinedWrapper() },
       );
       act(() => {
@@ -579,9 +580,9 @@ describe("pruning on row-shape changes", () => {
       expect(result.current.t1HasError).toBe(false);
     });
 
-    it("useDataGridRowHasError still reports the colon-bearing row's own error", () => {
+    it("an exact-key row probe still reports the colon-bearing row's own error", () => {
       const { result } = renderHook(
-        () => ({ ...useHarness(), hasError: useDataGridRowHasError("t1:o9") }),
+        () => ({ ...useHarness(), hasError: useDataGridStore((s) => s.cellErrors.has(cellErrorKey("t1:o9", "meta:sku"))) }),
         { wrapper: joinedWrapper() },
       );
       act(() => {

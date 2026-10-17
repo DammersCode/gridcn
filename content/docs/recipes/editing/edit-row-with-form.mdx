@@ -1,0 +1,112 @@
+---
+title: Edit a row with a form
+description: Commit several fields of one row from a form as one validated, undoable change.
+icon: SquarePen
+status: new
+---
+
+<Callout type="idea" title="TanStack Form parts are illustrative">
+  gridcn does not install `@tanstack/react-form`. The form snippet is written against its stable
+  public API (`useForm`, `form.Field`, field validators), the same illustrative-snippet
+  convention as the [TanStack Query recipe](/docs/recipes/data-fetching/tanstack-query). The grid
+  side is the contract.
+</Callout>
+
+Inline editors change one cell. A form changes several fields of one row at once. `actions.updateRows` commits the whole form as one grid write: each column's `validate` runs, `validateRow` runs on the row, `onDataChange` fires once, and [undo](/docs/addons/undo-redo) records one entry. Pass `source: "edit"`, because the default `"stream"` source stays out of the undo stack.
+
+Put the column rules in one place and use them in both the column and the form field:
+
+```tsx
+const rules = {
+  price: (value: unknown) =>
+    typeof value === "number" && value < 0 ? "Price cannot be negative" : null,
+};
+
+const columns = defineColumns<Order>()([
+  { id: "customerName", header: "Customer", accessorKey: "customerName", type: "text" },
+  { id: "price", header: "Price", accessorKey: "price", type: "number", validate: rules.price },
+]);
+```
+
+The form seeds from the clicked row. Each field validator calls the same rule, so the form shows the error before the grid sees the value:
+
+```tsx
+"use client";
+
+import { useForm } from "@tanstack/react-form";
+
+function EditOrderForm({
+  order,
+  onSubmit,
+}: {
+  order: Order;
+  onSubmit: (changes: Pick<Order, "customerName" | "price">) => void;
+}) {
+  const form = useForm({
+    defaultValues: { customerName: order.customerName, price: order.price },
+    onSubmit: ({ value }) => onSubmit(value),
+  });
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void form.handleSubmit();
+      }}
+    >
+      <form.Field name="customerName">
+        {(field) => (
+          <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />
+        )}
+      </form.Field>
+      <form.Field
+        name="price"
+        validators={{ onChange: ({ value }) => rules.price(value) ?? undefined }}
+      >
+        {(field) => (
+          <>
+            <Input
+              type="number"
+              value={field.state.value}
+              onChange={(e) => field.handleChange(e.target.valueAsNumber)}
+            />
+            {field.state.meta.errors.map((error) => (
+              <p key={String(error)}>{String(error)}</p>
+            ))}
+          </>
+        )}
+      </form.Field>
+      <Button type="submit">Save</Button>
+    </form>
+  );
+}
+```
+
+Wire the submit to the grid through the `ref` handle:
+
+```tsx
+const gridRef = useRef<DataGridApi<Order> | null>(null);
+
+function saveOrder(rowId: string, changes: Partial<Order>) {
+  gridRef.current?.actions.updateRows([{ rowId, changes }], { source: "edit", reorder: "immediate" });
+}
+
+<DataGrid ref={gridRef} data={orders} columns={columns} onDataChange={setOrders} />;
+```
+
+`onDataChange` receives the change, so the [server round-trip](/docs/recipes/data-fetching/server-round-trip) sees the form save like any inline edit. A rejected value is not written. The batch applies the other fields, and the grid reports each rejected cell through `onValidationError`. Use the same rules in the form so a rejected value does not reach the grid.
+
+For a side-sheet layout around the form, see [Open a detail panel from a row](/docs/recipes/ui-patterns/detail-panel).
+
+<Callout type="warn" title="updateRows skips fields that fail validate">
+  `updateRows` checks every field with the column's `validate`. If one field fails, the form
+  saves the rest, and the failed field keeps its old value. Use the same rules in the form
+  validators to stop the submit instead. An async `validate` holds the batch, and the call returns
+  `pending: true` before the grid applies it.
+</Callout>
+
+## Related
+
+- [Editing & cell types](/docs/editing-cell-types#cross-field-rules-validaterow): `validate` and `validateRow`.
+- [Undo & redo](/docs/addons/undo-redo): one entry per `updateRows` call with `source: "edit"`.
+- [Streaming updates](/docs/streaming-updates): the full `updateRows` verdict and options.

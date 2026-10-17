@@ -60,7 +60,7 @@ describe("useDataGridStoreProps (external store ownership)", () => {
     const consumer = renderHook(() => ({ actions: useDataGridActions(), api: useDataGridStoreApi() }), {
       wrapper: function Wrapper({ children }: { children: ReactNode }) {
         return (
-          <DataGridProvider store={external ?? undefined} data={rows(3)} columns={columns} getRowId={getRowId}>
+          <DataGridProvider store={external!}>
             {children}
           </DataGridProvider>
         );
@@ -69,10 +69,46 @@ describe("useDataGridStoreProps (external store ownership)", () => {
 
     expect(consumer.result.current.api).toBe(external);
     act(() => {
-      consumer.result.current.actions.selectCell({ col: 0, row: 1 });
+      consumer.result.current.actions.selectCellAt({ col: 0, row: 1 });
     });
     // The owner's hook owns the selection subscription; the provider shell must not subscribe again.
     expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("syncs the commands prop into the store state (and back to null when removed)", () => {
+    const cmd = { run: () => {} };
+    let props: { data: Row[]; columns: typeof columns; getRowId: typeof getRowId; commands?: Record<string, { run: () => void }> } = {
+      data: rows(3),
+      columns,
+      getRowId,
+      commands: { myCmd: cmd },
+    };
+    const { result, rerender } = renderHook(() => useDataGridStoreProps(props));
+    expect(result.current.store.getState().commands).toEqual({ myCmd: cmd });
+    props = { data: rows(3), columns, getRowId };
+    rerender();
+    expect(result.current.store.getState().commands).toBeNull();
+  });
+
+  it("dev-warns once when a command shadows a built-in action name", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    renderHook(() =>
+      useDataGridStoreProps({ data: rows(3), columns, getRowId, commands: { selectAll: { run: () => {} } } }),
+    );
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]![0])).toContain("shadows");
+    warn.mockRestore();
+  });
+
+  it("dev-warns when a command shadows typeToReplace, which has no default binding", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    renderHook(() =>
+      useDataGridStoreProps({ data: rows(3), columns, getRowId, commands: { typeToReplace: { run: () => {} } } }),
+    );
+    const shadow = warn.mock.calls.map((c) => String(c[0])).filter((m) => m.includes("shadows"));
+    expect(shadow).toHaveLength(1);
+    expect(shadow[0]).toContain("typeToReplace");
+    warn.mockRestore();
   });
 
   it("self-creating provider (no store prop) still owns the sync and subscriptions", () => {
@@ -87,7 +123,7 @@ describe("useDataGridStoreProps (external store ownership)", () => {
       },
     });
     act(() => {
-      result.current.selectCell({ col: 1, row: 0 });
+      result.current.selectCellAt({ col: 1, row: 0 });
     });
     expect(spy).toHaveBeenCalledTimes(1);
     expect(result.current.setCellErrors).toBeDefined();

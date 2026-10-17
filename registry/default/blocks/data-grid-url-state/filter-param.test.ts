@@ -55,6 +55,38 @@ describe("serializeFilterState / parseFilterState", () => {
     ]);
   });
 
+  it("caps the parsed filter count at 64", () => {
+    const raw = Array.from({ length: 70 }, (_, i) => `c${i}:contains:x`).join(",");
+    const filters = parseFilterState(raw);
+    expect(filters).toHaveLength(64);
+    expect(filters[0]).toEqual({ columnId: "c0", operator: "contains", value: "x" });
+  });
+
+  describe("isAnyOf list bound", () => {
+    const list = (length: number) => "status:isAnyOf:" + Array.from({ length }, (_, i) => `v${i}`).join("|");
+
+    it("keeps a list longer than 64 when the column has that many choices", () => {
+      const filters = parseFilterState(list(200), { maxChoices: () => 200 });
+      expect(filters[0]!.value).toHaveLength(200);
+    });
+
+    it("bounds a list by the column's own number of choices", () => {
+      const filters = parseFilterState(list(100), { maxChoices: (columnId) => (columnId === "status" ? 3 : 1000) });
+      expect(filters[0]!.value).toEqual(["v0", "v1", "v2"]);
+    });
+
+    it("bounds a list at 1000 entries when no limit is given", () => {
+      expect(parseFilterState(list(1500))[0]!.value).toHaveLength(1000);
+      expect(parseFilterState(list(200))[0]!.value).toHaveLength(200);
+    });
+  });
+
+  it("stops reading raw segments after 256, so empty segments cannot exhaust the parse", () => {
+    const raw = `${",".repeat(300)}age:gt:30`;
+    expect(parseFilterState(raw)).toEqual([]);
+    expect(parseFilterState(`${",".repeat(200)}age:gt:30`)).toHaveLength(1);
+  });
+
   it("never throws on malformed percent-encoding", () => {
     expect(() => parseFilterState("age:gt:%E0%A4%A")).not.toThrow();
     expect(parseFilterState("age:gt:%E0%A4%A")).toEqual([]);

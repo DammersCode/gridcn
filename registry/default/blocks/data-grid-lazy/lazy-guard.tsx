@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import {
-  isDev,
   useDataGridFilterState,
   useDataGridSearchText,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Props for {@link DataGridLazyGuard}. */
 export type DataGridLazyGuardProps = {
@@ -24,26 +24,27 @@ let warned = false;
  * `useDataGridLazyRows` runs OUTSIDE the provider and has no access to whether sort/filter is
  * controlled. A change to any of the three while holes still exist means either an uncontrolled
  * header-click/filter-menu/search gesture fired (client-side, over incomplete data) or the
- * consumer's controlled `sortState`/`filterState`/`searchText` changed (the supported
- * server-driven path). This guard can't tell those apart, so it warns either way and leaves it
- * to the consumer to recognize which case applies. Zero cost in production (isDev() short-circuits).
+ * consumer's controlled `filterState`/`searchText` changed. This guard can't tell those apart, so
+ * it warns either way. Sort changes are ignored under `sortMode="server"`, where the server owns
+ * the order. Zero cost in production (isDev() short-circuits).
  */
 export function DataGridLazyGuard({ hasHoles }: DataGridLazyGuardProps): ReactNode {
   const sortState = useDataGridSortState();
   const filterState = useDataGridFilterState();
   const searchText = useDataGridSearchText();
+  const serverSort = useDataGridSelector((s) => s.sortMode === "server");
 
   const prevRef = useRef({ sortState, filterState, searchText });
   useEffect(() => {
     const prev = prevRef.current;
-    const changed = prev.sortState !== sortState || prev.filterState !== filterState || prev.searchText !== searchText;
+    const changed = (!serverSort && prev.sortState !== sortState) || prev.filterState !== filterState || prev.searchText !== searchText;
     prevRef.current = { sortState, filterState, searchText };
     if (!isDev() || !changed || !hasHoles || warned) return;
     warned = true;
     console.warn(
-      "[data-grid-lazy] sort/filter/search changed while rows are still unloaded. Client-side sort/filter/search cannot see rows it hasn't fetched — pass DataGrid's sortState/filterState/searchText as controlled props (the server escape hatch) when using useDataGridLazyRows.",
+      "[data-grid-lazy] sort/filter/search changed while rows are still unloaded. Client-side sort/filter/search cannot see rows it hasn't fetched — use sortMode=\"server\" with onSortChange for sorting, and hand filterState/searchText to your backend, when using useDataGridLazyRows.",
     );
-  }, [sortState, filterState, searchText, hasHoles]);
+  }, [sortState, filterState, searchText, serverSort, hasHoles]);
 
   return null;
 }

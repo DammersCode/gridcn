@@ -8,11 +8,11 @@ import {
   DataGridProvider,
   DataGridRoot,
   type CellPatch,
-  type DataGridStoreState,
   type SortSpec,
 } from "../data-grid";
 import { StoreProbe } from "./store-probe.test-helper";
-// real stylesheet — windowing/layout must be real for these numbers to mean anything
+import { type DataGridStoreState } from "../data-grid-sdk";
+// real stylesheet — virtualization/layout must be real for these numbers to mean anything
 import "@/app/global.css";
 
 type Row = { id: string; name: string; email: string; age: number; score: number; price: number };
@@ -201,7 +201,7 @@ describe("updateCells: per-tick cost at 100k rows", () => {
     );
     console.log(`[streaming] 20 cells/tick @100k — sorted ${sorted.toFixed(3)} ms, unsorted ${unsorted.toFixed(3)} ms`);
 
-    // Design spec §5: ≤3 ms/tick sorted, ≤2 ms unsorted. These are dev-build browser-mode numbers,
+    // Budget: ≤3 ms/tick sorted, ≤2 ms unsorted. These are dev-build browser-mode numbers,
     // so they sit well inside those bars; the production headline lives in the report.
     expect(sorted).toBeLessThan(3);
     expect(unsorted).toBeLessThan(2);
@@ -241,8 +241,7 @@ describe("updateCells: per-tick cost at 100k rows", () => {
 
 describe("updateCells: wasted-render bar", () => {
   /**
-   * The research measured 4 DOM mutations per single-cell tick and named that the regression bar
-   * (design spec §5: ≤6). Only the touched visible cell may change; every other mounted row must be
+   * The regression bar is 6 DOM mutations per single-cell tick. Only the touched visible cell may change; every other mounted row must be
    * dropped by its own memo without a DOM write.
    */
   it("mutates at most 6 DOM nodes per single-cell tick", { timeout: 120_000 }, async () => {
@@ -266,7 +265,7 @@ describe("updateCells: wasted-render bar", () => {
 });
 
 describe("updateCells: concurrent scroll", () => {
-  /** Design spec §5: 20 updates/s alongside a slow scroll must not cost more than 15 % of the scroll-only arm. */
+  /** 20 updates/s alongside a slow scroll must not cost more than 15 % of the scroll-only arm. */
   it("costs under 15% extra against a scroll-only arm, paired in one launch", { timeout: 180_000 }, async () => {
     const api = await mountGrid({ sorted: true });
     const grid = document.querySelector<HTMLElement>("[role='grid']");
@@ -369,8 +368,8 @@ describe("updateCells: controlled echo path", () => {
 describe("updateCells: editing is never disturbed", () => {
   it("keeps an open editor's focus and content while a stream runs", { timeout: 120_000 }, async () => {
     const api = await mountGrid({ sorted: false });
-    api.getState().actions.selectCell({ col: 1, row: 2 });
-    api.getState().actions.startEditing({ col: 1, row: 2 }, "typed-so-far");
+    api.getState().actions.selectCellAt({ col: 1, row: 2 });
+    api.getState().actions.startEditingAt({ col: 1, row: 2 }, "typed-so-far");
     await new Promise((r) => setTimeout(r, 60));
 
     const editorBefore = document.activeElement;

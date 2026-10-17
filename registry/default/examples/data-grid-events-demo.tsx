@@ -8,12 +8,14 @@ import {
   DataGridBody,
   defineColumns,
   type CellClickCtx,
+  type ViewCellRef,
   type ColumnLayout,
   type DataChange,
   type FilterJoinOperator,
   type FilterSpec,
-  type GridSelection,
-  type RowClickCtx,
+  type GridEditEndEvent,
+  type GridValidationErrorEvent,
+  type SelectionState,
   type SelectionChangeDetails,
   type SortSpec,
 } from "@/registry/default/blocks/data-grid/data-grid";
@@ -72,7 +74,7 @@ function EventLogPanel({ entries }: { entries: LogEntry[] }): ReactNode {
               <li key={entry.id} className="rounded-sm border border-border bg-background p-2">
                 <div className="mb-1 flex items-center justify-between gap-2 text-xs">
                   <span className="font-medium text-foreground">{entry.source}</span>
-                  <span className="text-muted-foreground">{new Date(entry.at).toLocaleTimeString()}</span>
+                  <span className="text-muted-foreground">{new Date(entry.at).toLocaleTimeString("en-US")}</span>
                 </div>
                 <pre className="overflow-x-auto text-[11px] leading-snug text-muted-foreground">
                   {JSON.stringify(entry.payload, null, 2)}
@@ -113,9 +115,10 @@ function PresenceReadBackButton({
  * Events & state showcase (docs/events-state): grid on the left, live inspector on the right
  * pretty-printing the latest payload per event source, most recent first. Wires every event source
  * from the page's numbered sections — onDataChange, onSelectionChange (with details.getValues()),
- * onSortChange, onFilterChange + join, onCellClick/onRowClick, onFill (the `data-grid-fill`
- * add-on's hook option), onRowWindowChange,
- * onColumnLayoutChange + onColumnResizing, and presence read-back as the two-sided contrast.
+ * onSortChange, onFilterChange + join, onCellClick, onFill (the `data-grid-fill`
+ * add-on's hook option), onRenderedRowsChange, onColumnLayoutChange + onColumnResizing,
+ * onEditStart/onEditEnd, onActiveCellChange, onValidationError, onCellDoubleClick/onCellContextMenu,
+ * and presence read-back as the two-sided contrast.
  */
 export default function DataGridEventsDemo(): ReactNode {
   const [data, setData] = useState<readonly DemoRow[]>(() => generateDemoRows(60));
@@ -126,16 +129,17 @@ export default function DataGridEventsDemo(): ReactNode {
     setLog((prev) => pushLog(prev, { source: "onDataChange", at: Date.now(), payload: change }));
   }, []);
 
-  const onSelectionChange = useCallback((selection: GridSelection, details: SelectionChangeDetails) => {
+  const onSelectionChange = useCallback((selection: SelectionState, details: SelectionChangeDetails) => {
     setLog((prev) =>
       pushLog(prev, {
         source: "onSelectionChange",
         at: Date.now(),
         payload: {
-          cell: selection.current?.cell ?? null,
-          range: selection.current?.range ?? null,
-          rows: selection.rows.toArray(),
-          columns: selection.columns.toArray(),
+          anchor: selection.anchor,
+          range: selection.range,
+          rangeStack: [...selection.rangeStack],
+          rowIds: [...selection.rowIds],
+          columnIds: [...selection.columnIds],
           // details.getValues() is lazy — only materialized here because the inspector displays it;
           // truncated to MAX_VALUES_PREVIEW_ROWS so a large drag-selected range doesn't dump a huge payload.
           values: truncateValuesPreview(details.getValues()),
@@ -166,31 +170,63 @@ export default function DataGridEventsDemo(): ReactNode {
     );
   }, []);
 
-  const onRowWindowChange = useCallback((range: { start: number; end: number }) => {
-    setLog((prev) => pushLog(prev, { source: "onRowWindowChange", at: Date.now(), payload: range }));
+  const onRenderedRowsChange = useCallback((range: { start: number; end: number }) => {
+    setLog((prev) => pushLog(prev, { source: "onRenderedRowsChange", at: Date.now(), payload: range }));
   }, []);
 
   const onColumnLayoutChange = useCallback((next: ColumnLayout) => {
     setLog((prev) => pushLog(prev, { source: "onColumnLayoutChange", at: Date.now(), payload: next }));
   }, []);
 
-  const onColumnResizing = useCallback((columnId: string, width: number) => {
+  const onColumnResizing = useCallback(({ columnId, width }: { columnId: string; width: number }) => {
     setLog((prev) => pushLog(prev, { source: "onColumnResizing", at: Date.now(), payload: { columnId, width } }));
   }, []);
 
-  // <DataGridRoot<DemoRow>> below types ctx.row directly — no cast (see events-state.mdx).
+  // The provider infers DemoRow from its own data prop, so the click callbacks are typed without a cast (see events-state.mdx).
   const onCellClick = useCallback((ctx: CellClickCtx<DemoRow, unknown>) => {
     setLog((prev) =>
       pushLog(prev, {
         source: "onCellClick",
         at: Date.now(),
-        payload: { columnId: ctx.column.id, rowIndex: ctx.rowIndex, columnIndex: ctx.columnIndex, value: ctx.value, rowId: ctx.row.id },
+        payload: { rowId: ctx.rowId, columnId: ctx.columnId, viewRowIndex: ctx.viewRowIndex, viewColumnIndex: ctx.viewColumnIndex, value: ctx.value },
       }),
     );
   }, []);
 
-  const onRowClick = useCallback((ctx: RowClickCtx<DemoRow>) => {
-    setLog((prev) => pushLog(prev, { source: "onRowClick", at: Date.now(), payload: { rowIndex: ctx.rowIndex, rowId: ctx.row.id } }));
+  const onCellDoubleClick = useCallback((ctx: CellClickCtx<DemoRow, unknown>) => {
+    setLog((prev) =>
+      pushLog(prev, {
+        source: "onCellDoubleClick",
+        at: Date.now(),
+        payload: { rowId: ctx.rowId, columnId: ctx.columnId, viewRowIndex: ctx.viewRowIndex, viewColumnIndex: ctx.viewColumnIndex, value: ctx.value },
+      }),
+    );
+  }, []);
+
+  const onCellContextMenu = useCallback((ctx: CellClickCtx<DemoRow, unknown>) => {
+    setLog((prev) =>
+      pushLog(prev, {
+        source: "onCellContextMenu",
+        at: Date.now(),
+        payload: { rowId: ctx.rowId, columnId: ctx.columnId, viewRowIndex: ctx.viewRowIndex, viewColumnIndex: ctx.viewColumnIndex },
+      }),
+    );
+  }, []);
+
+  const onActiveCellChange = useCallback((next: ViewCellRef | null) => {
+    setLog((prev) => pushLog(prev, { source: "onActiveCellChange", at: Date.now(), payload: next }));
+  }, []);
+
+  const onEditStart = useCallback((cell: ViewCellRef) => {
+    setLog((prev) => pushLog(prev, { source: "onEditStart", at: Date.now(), payload: cell }));
+  }, []);
+
+  const onEditEnd = useCallback((event: GridEditEndEvent) => {
+    setLog((prev) => pushLog(prev, { source: "onEditEnd", at: Date.now(), payload: event }));
+  }, []);
+
+  const onValidationError = useCallback((event: GridValidationErrorEvent) => {
+    setLog((prev) => pushLog(prev, { source: "onValidationError", at: Date.now(), payload: event }));
   }, []);
 
   const onPresenceFired = useCallback((payload: unknown) => {
@@ -198,14 +234,14 @@ export default function DataGridEventsDemo(): ReactNode {
   }, []);
 
   const { plugin: presencePlugin, setPresenceHighlights } = useDataGridPresence();
-  const { plugin: fillPlugin, FillHandleTracker } = useDataGridFill({ onFill });
-  const overlayPlugins = useMemo(() => [presencePlugin, fillPlugin], [presencePlugin, fillPlugin]);
+  const { plugin: fillPlugin } = useDataGridFill({ onFill });
+  const plugins = useMemo(() => [presencePlugin, fillPlugin], [presencePlugin, fillPlugin]);
 
   return (
     <div className="w-full flex h-[480px] gap-4">
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <p className="text-xs text-muted-foreground">
-          Click or edit a cell, drag-select, sort/filter a column, drag-fill, scroll, resize/pin/hide a column.
+          Click, double-click, right-click, or edit a cell, drag-select, sort/filter, drag-fill, scroll, resize/pin/hide a column.
         </p>
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-border">
           <DataGridProvider
@@ -219,8 +255,16 @@ export default function DataGridEventsDemo(): ReactNode {
             onJoinOperatorChange={onJoinOperatorChange}
             onColumnLayoutChange={onColumnLayoutChange}
             onColumnResizing={onColumnResizing}
+            onActiveCellChange={onActiveCellChange}
+            onEditStart={onEditStart}
+            onEditEnd={onEditEnd}
+            onValidationError={onValidationError}
+            onCellDoubleClick={onCellDoubleClick}
+            onCellContextMenu={onCellContextMenu}
+            onCellClick={onCellClick}
+            onRenderedRowsChange={onRenderedRowsChange}
             headerClickBehavior="sort"
-            overlayPlugins={overlayPlugins}
+            plugins={plugins}
           >
             <DataGridToolbar>
               <DataGridSearch />
@@ -231,13 +275,9 @@ export default function DataGridEventsDemo(): ReactNode {
               <DataGridRoot<DemoRow>
                 className="h-full rounded-none border-none"
                 renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}
-                onRowWindowChange={onRowWindowChange}
-                onCellClick={onCellClick}
-                onRowClick={onRowClick}
               >
                 <DataGridHeader />
                 <DataGridBody />
-                <FillHandleTracker />
               </DataGridRoot>
             </DataGridContextMenu>
           </DataGridProvider>

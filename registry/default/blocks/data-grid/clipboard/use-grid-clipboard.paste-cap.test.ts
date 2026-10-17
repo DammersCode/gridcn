@@ -3,6 +3,7 @@ import type { ColumnDef } from "../types";
 import { createDataGridStore } from "../store/create-store";
 import type { InternalSyncProps } from "../store/types";
 import { MAX_PASTE_CELLS, pasteText, truncatePasteGrid } from "./use-grid-clipboard";
+import { parseClipboard, parseClipboardText } from "./parse-clipboard";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -76,8 +77,8 @@ describe("pasteText cap", () => {
       getRowId: (row: WideRow) => row.id,
     } as InternalSyncProps);
     const actions = store.getState().actions;
-    actions.selectCell({ col: 0, row: 0 });
-    actions.extendTo({ col: columnCount - 1, row: rowCount - 1 });
+    actions.selectCellAt({ col: 0, row: 0 });
+    actions.extendToAt({ col: columnCount - 1, row: rowCount - 1 });
 
     const text = Array.from({ length: columnCount }, (_, column) => `p${column}`).join("\t");
     const applied = pasteText(store.getState(), actions, text, undefined, store);
@@ -88,5 +89,42 @@ describe("pasteText cap", () => {
     expect(next[expectedRows - 1]!["c19"]).toBe("p19");
     expect(next[expectedRows]!["c0"]).toBe(`row-${expectedRows}-c0`);
     expect(warn).toHaveBeenCalledWith(`gridcn: paste truncated to ${expectedRows} of ${rowCount} rows (MAX_PASTE_CELLS)`);
+  });
+});
+
+describe("parse-time paste cap", () => {
+  it("stops parsing text once the cell cap is passed", () => {
+    const text = Array.from({ length: 1000 }, (_, row) => `a${row}\tb${row}`).join("\n");
+    const rows = parseClipboardText(text, 10);
+    expect(rows.length).toBeLessThan(10);
+    expect(rows[0]).toEqual(["a0", "b0"]);
+  });
+
+  it("parses the whole text without a cap", () => {
+    expect(parseClipboardText("a\tb\nc\td")).toHaveLength(2);
+  });
+
+  it("skips an HTML payload too large for the cell cap and falls back to the text", () => {
+    const html = `<table><tr><td>from-html</td></tr></table>${" ".repeat(10_000)}`;
+    expect(parseClipboard({ html, text: "from-text" }, 10)).toEqual([["from-text"]]);
+    expect(parseClipboard({ html, text: "from-text" })).toEqual([["from-html"]]);
+  });
+});
+
+describe("hostile paste input", () => {
+  it("parseClipboardText stops inside one over-wide row", () => {
+    const parsed = parseClipboardText("a\t".repeat(3_000_000), 200_000);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]!.length).toBeLessThanOrEqual(200_001);
+  });
+
+  it("parseClipboard stops an HTML table at the cap", () => {
+    const html = `<table><tr>${"<td>x</td>".repeat(50)}</tr><tr>${"<td>y</td>".repeat(50)}</tr></table>`;
+    const parsed = parseClipboard({ html }, 60);
+    expect(parsed.flat().length).toBeLessThanOrEqual(61);
+  });
+
+  it("truncatePasteGrid crops a first row wider than the cap instead of dropping the paste", () => {
+    expect(truncatePasteGrid([["a", "b", "c", "d"]], 3)).toEqual([["a", "b", "c"]]);
   });
 });

@@ -22,7 +22,6 @@ export {
 } from "./use-column-reorder";
 export {
   useColumnResize,
-  readRenderedCellTexts,
   type ColumnResizeHandlers,
 } from "./use-column-resize";
 export {

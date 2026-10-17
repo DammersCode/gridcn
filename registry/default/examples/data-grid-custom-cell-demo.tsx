@@ -1,15 +1,13 @@
 "use client";
 
-import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import {
   DataGridProvider,
   DataGridRoot,
   DataGridHeader,
   DataGridBody,
   defineColumns,
-  cellTypes,
-  useSeedFocus,
-  useCommitGuard,
+  useCellEditor,
   type CellEditorProps,
   type CellRenderProps,
   type CellType,
@@ -65,8 +63,7 @@ function formatCurrencyDisplay(value: number | null, options?: CurrencyOptions):
   return getCurrencyFormatter(options?.locale ?? "en-US", options?.currency ?? "USD").format(value);
 }
 
-function CurrencyCell({ value, column }: CellRenderProps<unknown, number | null>) {
-  const options = column.options as CurrencyOptions | undefined;
+function CurrencyCell({ value, options }: CellRenderProps<unknown, number | null, CurrencyOptions>) {
   return (
     <span className="block w-full truncate tabular-nums">
       {formatCurrencyDisplay(value, options)}
@@ -74,44 +71,14 @@ function CurrencyCell({ value, column }: CellRenderProps<unknown, number | null>
   );
 }
 
-function CurrencyEditor({
-  value,
-  initialText,
-  onChange,
-  commit,
-  cancel,
-  column,
-}: CellEditorProps<unknown, number | null>) {
-  const options = column.options as CurrencyOptions | undefined;
-  const ref = useRef<HTMLInputElement>(null);
-  const [text, setText] = useState(initialText ?? currencyCellType.toText(value, options));
-  // the grid's own editor primitives: effect-based seed-focus (caret at the end) and the one-shot
-  // commit guard — the same pair every built-in editor uses, so a custom editor behaves identically
-  useSeedFocus(ref, initialText);
-  const committed = useCommitGuard();
-
-  const commitText = (movement?: { dx: number; dy: number }) => {
-    if (!committed.tryCommit()) return;
-    onChange(currencyCellType.fromText(text, options));
-    commit(movement);
-  };
-
-  return (
-    <Input
-      ref={ref}
-      value={text}
-      onChange={(e) => setText(e.target.value)}
-      onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") {
-          commitText({ dx: 0, dy: 1 });
-        } else if (e.key === "Escape") {
-          cancel();
-        }
-      }}
-      onBlur={() => commitText({ dx: 0, dy: 0 })}
-      className="h-full w-full border-none bg-transparent p-0 text-end shadow-none outline-none focus-visible:ring-0"
-    />
-  );
+// `useCellEditor` owns the draft state, the seed-focus, the one-shot commit guard and the
+// Enter/Escape/blur bindings — the same pair of primitives every built-in editor uses.
+function CurrencyEditor(props: CellEditorProps<unknown, number | null, CurrencyOptions>) {
+  const { ref, ...bindings } = useCellEditor(props, {
+    toDraft: (value) => currencyCellType.toText(value),
+    toValue: (draft) => currencyCellType.fromText(draft, props.options),
+  });
+  return <Input ref={ref} {...bindings} className="h-full w-full border-none bg-transparent p-0 text-end shadow-none outline-none focus-visible:ring-0" />;
 }
 
 /** `currency`: number storage, cached locale-formatted display, symbol-stripping fromText (never throws). */
@@ -152,8 +119,10 @@ const typedColumns = defineColumns<Product>()([
 ] as const);
 
 // With the guide's real `declare module` augmentation in a consumer app, `defineColumns` narrows
-// `type: "currency"` / `options: CurrencyOptions` the same way it does for the built-ins above —
-// written by hand here only because this repo's shared tsconfig can't carry that augmentation.
+// `type: "currency"` / `options: CurrencyOptions` the same way it does for the built-ins above,
+// and `defineCellType("currency", currencyCellType)` gains a compile-time key/value/options
+// check — written by hand here only because this repo's shared tsconfig can't carry the
+// augmentation.
 const currencyColumns: ColumnDef<Product, number | null>[] = [
   {
     id: "priceUsd",
@@ -192,12 +161,12 @@ export default function DataGridCustomCellDemo(): ReactNode {
         plain number before it commits.
       </p>
       <div className="h-[220px] overflow-hidden rounded-md border border-border">
-        {/* spread the built-ins in: `cellTypes` REPLACES the whole registry, it does not merge — omitting `...cellTypes` here would silently break every `text`/`number`/etc. column too */}
+        {/* only the custom type is named — `cellTypes` merges over the built-ins, so the `text` Product column keeps working */}
         <DataGridProvider
           defaultData={PRODUCTS}
           columns={columns}
           getRowId={(row) => row.id}
-          cellTypes={{ ...cellTypes, currency: currencyCellType }}
+          cellTypes={{ currency: currencyCellType }}
         >
           <DataGridRoot className="h-full rounded-none border-none">
             <DataGridHeader />

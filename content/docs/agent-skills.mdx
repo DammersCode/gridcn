@@ -2,6 +2,7 @@
 title: Agent Skills
 description: Five installable skills that teach Claude Code, Cursor, Codex, and other coding agents how to build with gridcn.
 icon: Bot
+status: updated
 ---
 
 gridcn ships five agent skills for tasks that cross many docs pages. Each skill gives the agent
@@ -12,13 +13,19 @@ done.
 
 ## Skills
 
-| Skill | What it does | Reach for it when |
-| --- | --- | --- |
-| [`gridcn-performance`](#gridcn-performance) | Audits the grid integration against the memoization and virtualization traps. | The grid is slow to scroll, type, or edit, or a code review touches grid props. |
-| [`gridcn-custom-cell-type`](#gridcn-custom-cell-type) | Builds a cell type that pastes, sorts, and edits like the built-in types. | You build a cell type, or a custom type renders as plain text. |
-| [`gridcn-data-source`](#gridcn-data-source) | Selects plain data, pagination, lazy loading, or streaming, and moves sort and filter to the server. | You connect the grid to a backend or to a dataset too large for one payload. |
-| [`gridcn-addons`](#gridcn-addons) | Installs add-ons and wires each output to the correct place. | You add one or more add-ons, or an add-on has no effect. |
-| [`gridcn-upgrade`](#gridcn-upgrade) | Merges a newer gridcn release into your installed source and keeps your edits. | You pull a newer gridcn release into source that you already installed. |
+| Skill | What it does | Reach for it when | Install |
+| --- | --- | --- | --- |
+| [`gridcn-performance`](#gridcn-performance) | Audits the grid integration against the memoization and virtualization traps. | The grid is slow to scroll, type, or edit, or a code review touches grid props. | <SkillInstall skill="gridcn-performance" /> |
+| [`gridcn-custom-cell-type`](#gridcn-custom-cell-type) | Builds a cell type that pastes, sorts, and edits like the built-in types. | You build a cell type, or a custom type renders as plain text. | <SkillInstall skill="gridcn-custom-cell-type" /> |
+| [`gridcn-data-source`](#gridcn-data-source) | Selects plain data, pagination, lazy loading, or streaming, and moves sort and filter to the server. | You connect the grid to a backend or to a dataset too large for one payload. | <SkillInstall skill="gridcn-data-source" /> |
+| [`gridcn-addons`](#gridcn-addons) | Installs add-ons and wires each output to the correct place. | You add one or more add-ons, or an add-on has no effect. | <SkillInstall skill="gridcn-addons" /> |
+| [`gridcn-upgrade`](#gridcn-upgrade) | Merges a newer gridcn release into your installed source and keeps your edits. | You pull a newer gridcn release into source that you already installed. | <SkillInstall skill="gridcn-upgrade" /> |
+
+The copy button in the Install column copies the command for that one skill. The command above
+the table installs all five.
+
+Each skill is also served as raw markdown <NewBadge /> at `https://gridcn.vercel.app/skills/<name>/SKILL.md`.
+The `gridcn-version` field in its frontmatter names the gridcn release the skill targets.
 
 ## gridcn-performance
 
@@ -28,7 +35,7 @@ come first:
 - bounded grid height, so virtualization can start
 - stable `columns` and `data` references
 - stable class-name functions and click handlers
-- stable `overlayPlugins` and `rowBands`
+- stable plugin objects in `plugins`
 - no formatter allocation inside a custom `Cell`
 - `updateCells` for high-rate feeds
 
@@ -48,7 +55,8 @@ edit, and the React DevTools Profiler shows only the rows that enter the viewpor
 registration and the `GridCellTypes` type augmentation. It also covers the failures that show no
 error:
 
-- A `cellTypes` object without the built-in types replaces them all.
+- A `cellTypes` entry set to `null` removes that type. The prop merges over the built-ins and
+  never replaces them wholesale.
 - An unknown `type` key renders the column as plain text.
 - A `fromText` that throws stops the paste.
 - A portaled editor without `data-grid-cell-editor` closes on the first click.
@@ -77,12 +85,11 @@ states that it covers only the loaded rows.
 
 **What it does.** The skill installs each add-on and puts each output where it belongs:
 
-- `overlayPlugins` and `rowBands` on the provider, from a hook above it
-- `keymap` on the root
+- the add-on's `plugin` into the `plugins` array on the provider, and `keymap` on the provider
 - toolbar pieces inside `DataGridToolbar`
 
-It merges all overlay plugins into one stable array. It also checks the rules that apply when you
-combine add-ons: one `NuqsAdapter`, one `useDataGridPresence()` call, and no URL state on a lazy
+It combines every add-on's plugin into one `plugins` array. It also checks the rules that apply when
+you combine add-ons: one `NuqsAdapter`, one `useDataGridPresence()` call, and no URL state on a lazy
 grid.
 
 **When to reach for it.** You add an add-on, you combine several add-ons in one grid, or an

@@ -17,8 +17,7 @@ export type DataGridMarkerHeaderProps = {
 
 /**
  * The marker column's header cell: a select-all checkbox for the modes whose content includes a
- * checkbox ('checkbox'/'both' and their `reorder-` variants; checked/indeterminate/unchecked against the rows channel vs. view row count — glide-behavior-spec.md
- * §3 "corner marker"), otherwise blank chrome. `role="columnheader"` with no `aria-colindex` (its
+ * checkbox ('checkbox'/'both' and their `reorder-` variants; checked/indeterminate/unchecked against the rows channel vs. view row count), otherwise blank chrome. `role="columnheader"` with no `aria-colindex` (its
  * position is then inferred from DOM order, per the WAI-ARIA grid pattern) — it's a real structural
  * child of the header `row`, just outside the DATA header's aria-colindex/aria-colcount space (see
  * marker-cell.tsx's doc comment). `role="presentation"` was tried first but axe's
@@ -53,14 +52,18 @@ export function DataGridMarkerHeader(props: DataGridMarkerHeaderProps): ReactNod
       {renderMarkerHeader ? (
         renderMarkerHeader({ allSelected: state })
       ) : (
-        (markerContent(mode) === "checkbox" || markerContent(mode) === "both") && (
-          <Checkbox
-            checked={state === "checked"}
-            indeterminate={state === "indeterminate"}
-            onCheckedChange={(checked) => actions.setAllRowsSelected(checked === true)}
-            aria-label={labels.markers.selectAll}
-          />
-        )
+        <>
+          <span className="sr-only">{labels.markers.columnHeader}</span>
+          {(markerContent(mode) === "checkbox" || markerContent(mode) === "both") && (
+            <Checkbox
+              checked={state === "checked"}
+              tabIndex={-1}
+              indeterminate={state === "indeterminate"}
+              onCheckedChange={(checked) => actions.setAllRowsSelected(checked === true)}
+              aria-label={labels.markers.selectAll}
+            />
+          )}
+        </>
       )}
     </div>
   );

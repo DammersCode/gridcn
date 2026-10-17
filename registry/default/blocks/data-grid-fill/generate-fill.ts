@@ -50,7 +50,7 @@ function fillCell(
  * `direction`. Vertical fills detect a series per source column; horizontal
  * fills detect a series per source row. `forceCopy` or an undetected series
  * falls back to modulo tiling, wrapping so an upward/leftward fill tiles from
- * the far edge of the source (glide-behavior-spec.md §6).
+ * the far edge of the source.
  */
 export function generateFill(
   source: string[][],

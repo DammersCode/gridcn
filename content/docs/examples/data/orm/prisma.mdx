@@ -1,11 +1,12 @@
 ---
 title: Prisma
-description: The grid's server fetch contract with Prisma — the same shape as a Prisma query, operator mapping included.
+description: The grid's server fetch contract with Prisma. The same shape as a Prisma query, operator mapping included.
 icon: Boxes
+status: none
 ---
 
 <Callout type="info" title="Recipe">
-Recipe — not a shadcn registry example. It requires a server.
+Recipe: not a shadcn registry example. It requires a server.
 </Callout>
 
 Prisma's `where` delegates line up almost one-to-one with the grid's filter operators, so
@@ -72,7 +73,7 @@ Notes:
 
 - `mode: "insensitive"` gives the case-insensitive `contains` the grid's quick search
   implies. Drop it for exact semantics.
-- `isAnyOf` maps to `in: f.value` — add it to the table above when you need it.
+- `isAnyOf` maps to `in: f.value`. Add it to the table above when you need it.
 - The client is the [server-side example](/docs/examples/data/server-side) unchanged.
   Edits become `prisma.user.update` in the same write-through handler.
 

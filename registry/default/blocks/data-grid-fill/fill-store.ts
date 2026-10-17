@@ -6,19 +6,23 @@ import type { GridRect } from "@/registry/default/blocks/data-grid/data-grid";
 import type { FillHandleHandlers } from "./use-fill-handle";
 
 /**
- * This add-on's own state slice: the in-progress drag preview rect, plus the live pointerdown
- * handler the overlay plugin wires onto its rendered handle square. Deliberately NOT part of the
- * core store — core knows nothing about fill past the generic `overlayPlugins` seam and the
- * optional interaction callbacks it renders/dispatches through. `onPointerDown` is registered
- * here (not read directly by the plugin closure) because the plugin is created by `useDataGridFill`
- * ABOVE `DataGridProvider`, while the real handler comes from `FillHandleTracker`, which must
- * render INSIDE `DataGridRoot`'s subtree (see fill-tracker.tsx) — the store is what bridges them.
+ * This add-on's own state slice: the in-progress drag preview rect, plus the live handlers the
+ * plugin's `Overlay` and `commands` wire on (the pointerdown for the rendered handle square, the
+ * mod+D/mod+R fill runs). Deliberately NOT part of the core store — core knows nothing about fill
+ * past the generic `plugins` seam. The handlers are registered here (not read directly by the
+ * plugin closures) because the plugin is created by `useDataGridFill` ABOVE `DataGridProvider`,
+ * while the real handlers come from the plugin's `Mount`, which renders INSIDE `DataGridRoot`'s
+ * own subtree (see fill-mount.tsx) — the store is what bridges them.
  */
 export type FillStoreState = {
   fillPreview: GridRect | null;
   setFillPreview(rect: GridRect | null): void;
   onPointerDown: FillHandleHandlers["onPointerDown"] | null;
   setOnPointerDown(handler: FillHandleHandlers["onPointerDown"] | null): void;
+  /** The mod+D/mod+R fill runs, registered by the plugin's `Mount`; `null` before it mounts. */
+  fillDown: (() => void) | null;
+  fillRight: (() => void) | null;
+  setFillShortcuts(shortcuts: { fillDown: () => void; fillRight: () => void } | null): void;
 };
 
 export type FillStoreApi = StoreApi<FillStoreState>;
@@ -34,6 +38,11 @@ export function createFillStore(): FillStoreApi {
     setOnPointerDown(handler) {
       set({ onPointerDown: handler });
     },
+    fillDown: null,
+    fillRight: null,
+    setFillShortcuts(shortcuts) {
+      set(shortcuts ? { fillDown: shortcuts.fillDown, fillRight: shortcuts.fillRight } : { fillDown: null, fillRight: null });
+    },
   }));
 }
 
@@ -42,7 +51,7 @@ export function useFillPreview(store: FillStoreApi): GridRect | null {
   return useStore(store, (s) => s.fillPreview);
 }
 
-/** The live pointerdown handler for the rendered fill handle, or `null` before `FillHandleTracker` mounts. */
+/** The live pointerdown handler for the rendered fill handle, or `null` before the plugin's `Mount` mounts. */
 export function useFillOnPointerDown(store: FillStoreApi): FillHandleHandlers["onPointerDown"] | null {
   return useStore(store, (s) => s.onPointerDown);
 }

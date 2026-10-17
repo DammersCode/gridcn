@@ -19,6 +19,7 @@ import {
   type DataGridLabels,
   type SortSpec,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { columnLabelText } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Props for {@link DataGridSortList}. */
 export type DataGridSortListProps = {
@@ -33,11 +34,6 @@ export type DataGridSortListProps = {
 /** dnd-kit drag payload for a sort row: compiler-checked in place of `Record<string, any>`. */
 type SortRowDragData = { index: number; columnId: string };
 
-/** Column label for a select item/trigger: `headerText`, else the string `header`, else the id. */
-function columnLabel(column: { header: string | ReactNode; headerText?: string; id: string }): string {
-  return column.headerText ?? (typeof column.header === "string" ? column.header : column.id);
-}
-
 /** Moves the item at `fromIndex` to `toIndex`, returning a new array (no mutation of `list`). */
 function moveItem<T>(list: T[], fromIndex: number, toIndex: number): T[] {
   const next = list.slice();
@@ -48,12 +44,11 @@ function moveItem<T>(list: T[], fromIndex: number, toIndex: number): T[] {
 }
 
 /**
- * Popover listing active sorts as one aligned grid row per sort — anatomy ported from tablecn's
- * `DataTableSortList` (field select, direction select, trash icon-button, grip drag handle; footer
- * "Add sort"/"Reset sorting" buttons) but built from this repo's own Base UI components/conventions
- * rather than transliterated from tablecn's Radix markup. Reordering uses `@dnd-kit/react`'s
+ * Popover listing active sorts as one aligned grid row per sort (field select, direction select,
+ * trash icon-button, drag handle; footer "Add sort"/"Reset sorting" buttons), built from this
+ * repo's own Base UI components. Reordering uses `@dnd-kit/react`'s
  * sortable primitives (handle-initiated pointer drag with a lifted-row feel via `isDragSource`),
- * plus a plain ArrowUp/ArrowDown-on-grip fallback that always wins over the library's own keyboard
+ * plus a plain ArrowUp/ArrowDown-on-drag handle fallback that always wins over the library's own keyboard
  * sensor (see {@link SortRow}'s `onKeyDown`). Precedence is array order in `SortSpec[]`; a
  * reorder round-trips through `setSorts` in the new order. Rows are keyed by index (not a stable
  * id, unlike `FilterSpec`) since a column can appear at most once in the list.
@@ -74,7 +69,7 @@ export function DataGridSortList(props: DataGridSortListProps): ReactNode {
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const pendingFocusColumnIdRef = useRef<string | null>(null);
 
-  // ponytail: lock root scroll during a drag - at drag end the browser re-focuses the grip and natively re-centers it in the viewport, jumping the page
+  // ponytail: lock root scroll during a drag - at drag end the browser re-focuses the drag handle and natively re-centers it in the viewport, jumping the page
   const rootScrollLockRef = useRef<(() => void) | null>(null);
   const lockRootScroll = useCallback(() => {
     if (rootScrollLockRef.current) return;
@@ -119,7 +114,7 @@ export function DataGridSortList(props: DataGridSortListProps): ReactNode {
   const announceMove = useCallback(
     (columnId: string, toIndex: number, total: number) => {
       const column = columns.find((c) => c.id === columnId);
-      const label = column ? columnLabel(column) : columnId;
+      const label = column ? columnLabelText(column) : columnId;
       setAnnouncement(labels.sort.sortReorderAnnouncement(label, toIndex + 1, total));
     },
     [columns, labels],
@@ -195,7 +190,7 @@ export function DataGridSortList(props: DataGridSortListProps): ReactNode {
                   const availableColumns = sortableColumns.filter((c) => c.id === sort.columnId || !sortedColumnIds.has(c.id));
                   return (
                     <SortRow
-                      key={sort.columnId}
+                      key={index}
                       sort={sort}
                       index={index}
                       total={sorts.length}
@@ -241,15 +236,10 @@ type SortRowProps = {
   gripRef: (el: HTMLButtonElement | null) => void;
 };
 
-/** One sort row: `useSortable` wires pointer-drag reorder via `@dnd-kit/react`; the grip's `onKeyDown` implements the ArrowUp/ArrowDown fallback, which always takes precedence over dnd-kit's own keyboard sensor (checked first, `stopPropagation`'d). */
+/** One sort row: `useSortable` wires pointer-drag reorder via `@dnd-kit/react`; the drag handle's `onKeyDown` implements the ArrowUp/ArrowDown fallback, which always takes precedence over dnd-kit's own keyboard sensor (checked first, `stopPropagation`'d). */
 function SortRow(props: SortRowProps): ReactNode {
   const { sort, index, total, availableColumns, labels, onUpdate, onRemove, onArrowReorder, gripRef } = props;
-  // dnd-kit's default plugins include OptimisticSortingPlugin, which physically moves DOM nodes
-  // mid-drag — that fights React's own re-render once `onDragEnd` commits the new sort order via
-  // setSorts, leaving rows with stale content after a drop. Passing an empty plugins array drops it
-  // (and the default keyboard plugin); this row's own `onGripKeyDown` below is the only keyboard
-  // reorder path, so nothing is lost. The DOM then only ever reorders once, driven by React itself
-  // from the committed store order.
+  // No plugins: dnd-kit's optimistic DOM moves fight React's re-render after a drop; `onGripKeyDown` is the keyboard path.
   const { ref, handleRef, isDragSource } = useSortable<SortRowDragData>({
     id: sort.columnId,
     index,
@@ -259,6 +249,12 @@ function SortRow(props: SortRowProps): ReactNode {
 
   const onGripKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLButtonElement>) => {
+      if (event.key === "Backspace" || event.key === "Delete") {
+        event.preventDefault();
+        event.stopPropagation(); // wins over dnd-kit's keyboard sensor regardless of library support
+        onRemove(index);
+        return;
+      }
       if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
       event.preventDefault();
       event.stopPropagation(); // wins over dnd-kit's keyboard sensor regardless of library support
@@ -266,7 +262,7 @@ function SortRow(props: SortRowProps): ReactNode {
       if (target < 0 || target >= total) return;
       onArrowReorder(target);
     },
-    [index, total, onArrowReorder],
+    [index, total, onArrowReorder, onRemove],
   );
 
   return (
@@ -291,12 +287,12 @@ function SortRow(props: SortRowProps): ReactNode {
           {/* explicit label lookup: SelectValue only resolves a mounted SelectItem's label, which
               the popup content isn't until first opened — this control's own trigger text must be
               correct on first render (no open required), same rationale as the filter menu's join-operator select. */}
-          <SelectValue className="truncate">{(value: string) => { const c = availableColumns.find((col) => col.id === value); return c ? columnLabel(c) : value; }}</SelectValue>
+          <SelectValue className="truncate">{(value: string) => { const c = availableColumns.find((col) => col.id === value); return c ? columnLabelText(c) : value; }}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           {availableColumns.map((c) => (
             <SelectItem key={c.id} value={c.id}>
-              {columnLabel(c)}
+              {columnLabelText(c)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -330,7 +326,7 @@ function SortRow(props: SortRowProps): ReactNode {
         }}
         className={cn("size-8 shrink-0 cursor-grab touch-none", isDragSource && "cursor-grabbing")}
         aria-label={labels.sort.reorderSortAriaLabel}
-        // prevent native mousedown focus: Chromium re-centers the focused grip in the viewport mid-drag and the page jumps
+        // prevent native mousedown focus: Chromium re-centers the focused drag handle in the viewport mid-drag and the page jumps
         onMouseDown={(e) => e.preventDefault()}
         onKeyDown={onGripKeyDown}
       >

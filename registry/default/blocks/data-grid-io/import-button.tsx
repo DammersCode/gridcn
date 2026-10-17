@@ -5,6 +5,7 @@ import { Upload } from "lucide-react";
 import { useDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid";
 import { Button } from "@/components/ui/button";
 import { DataGridImportDialog, type ImportDefaults } from "./import-dialog";
+import type { ImportLimits } from "./parse-import-file";
 
 export type { ImportDefaults };
 
@@ -17,6 +18,8 @@ export type DataGridImportButtonProps<TData> = {
   onImport: (rows: TData[]) => void | Promise<void>;
   /** Consumer-configurable preselection defaults (delimiter, header row, skip columns, mapping). Omit for today's behavior unchanged. */
   importDefaults?: ImportDefaults;
+  /** Size, row, column, cell, and unpacked-size bounds for the file; omitted fields use `DEFAULT_IMPORT_LIMITS`. `maxFileBytes` also sets the drop zone's `maxSize`. */
+  importLimits?: ImportLimits;
 };
 
 /**
@@ -24,7 +27,7 @@ export type DataGridImportButtonProps<TData> = {
  * `size-8` + ghost variant matches the toolbar's other icon buttons.
  */
 export function DataGridImportButton<TData>(props: DataGridImportButtonProps<TData>): ReactNode {
-  const { className, createRow, onImport, importDefaults } = props;
+  const { className, createRow, onImport, importDefaults, importLimits } = props;
   const labels = useDataGridLabels();
   const [open, setOpen] = useState(false);
 
@@ -33,7 +36,7 @@ export function DataGridImportButton<TData>(props: DataGridImportButtonProps<TDa
       <Button type="button" variant="ghost" size="icon" className={className} aria-label={labels.io.importButton} onClick={() => setOpen(true)}>
         <Upload />
       </Button>
-      <DataGridImportDialog open={open} onOpenChange={setOpen} createRow={createRow} onImport={onImport} importDefaults={importDefaults} />
+      <DataGridImportDialog open={open} onOpenChange={setOpen} createRow={createRow} onImport={onImport} importDefaults={importDefaults} importLimits={importLimits} />
     </>
   );
 }

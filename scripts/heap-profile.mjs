@@ -1,11 +1,5 @@
 #!/usr/bin/env node
-// Opt-in retained-heap profiler (workplan item 9, PLAN §4.6 method) — NOT wired into CI. Drives
-// the ALREADY-RUNNING dev server's /dev page via Playwright + raw CDP HeapProfiler (no snapshot
-// diffing lib: `takeHeapSnapshot` streams chunks we concat, then sum `node.self_size` ourselves —
-// good enough for "did retained heap grow" without a full snapshot-graph parser dependency).
-//
-// Usage: npm run perf:heap  (dev server must already be running on :3000 — this script never
-// starts/stops it, so the user's own dev session survives).
+// Opt-in retained-heap profiler for the running dev server's /dev page (npm run perf:heap); not part of CI.
 import { chromium } from "playwright";
 
 const BASE_URL = process.env.GRIDCN_DEV_URL ?? "http://localhost:3000/dev";

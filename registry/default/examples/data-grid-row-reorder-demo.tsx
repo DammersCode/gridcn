@@ -45,9 +45,9 @@ function MoveDownButton({ rowCount }: { rowCount: number }): ReactNode {
 }
 
 /**
- * Drag a row by its grip (`rowMarkers="reorder"`) or press the toolbar button — both paths emit
- * one id-keyed `move` op, so a single Ctrl/Cmd+Z restores the previous order. The panel shows the
- * last emitted op; selection remaps by row id, so the row you drag ends up selected at its new
+ * Drag a row by its drag handle (`rowMarkers="reorder"`) or press the toolbar button — both paths emit
+ * one row-id-based `move` operation, so a single Ctrl/Cmd+Z restores the previous order. The panel shows the
+ * last emitted operation; selection remaps by row id, so the row you drag ends up selected at its new
  * position and an active cell follows its row.
  */
 export default function DataGridRowReorderDemo(): ReactNode {
@@ -84,7 +84,7 @@ export default function DataGridRowReorderDemo(): ReactNode {
       <div className="rounded-md border border-border px-3 py-2 text-sm">
         {moveOp ? (
           <span className="text-muted-foreground">
-            Last change: <code className="font-mono text-xs">move</code> op —{" "}
+            Last change: <code className="font-mono text-xs">move</code> operation —{" "}
             <strong className="text-foreground">{moveOp.row.name}</strong> ({moveOp.rowId}) from
             index {moveOp.from} to {moveOp.to} · source <code className="font-mono text-xs">{lastChange?.source}</code>{" "}
             · one undo step

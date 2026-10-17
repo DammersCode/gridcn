@@ -1,7 +1,8 @@
 import { page } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { DataGrid, DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, gridAttrSelector, type DeepPartialLabels } from "../data-grid";
+import { DataGrid, DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, type DeepPartialLabels } from "../data-grid";
+import { gridAttrSelector } from "../data-grid-sdk";
 // real stylesheet — layout/viewport-fill assertions need the real cascade.
 import "@/app/global.css";
 
@@ -67,8 +68,11 @@ describe("loading + rows present: indeterminate bar", () => {
     expect(document.querySelector(gridAttrSelector("loadingSkeleton"))).toBeNull();
     const bar = document.querySelector(gridAttrSelector("loadingBar"));
     expect(bar).not.toBeNull();
-    expect(bar!.getAttribute("role")).toBe("progressbar");
-    expect(bar!.getAttribute("aria-label")).toBe("Loading…");
+    expect(bar!.getAttribute("aria-hidden")).toBe("true");
+    const progress = document.querySelector("[role=progressbar]");
+    expect(progress).not.toBeNull();
+    expect(progress!.getAttribute("aria-label")).toBe("Loading…");
+    expect(progress!.closest("[role=grid]")).toBeNull();
 
     // real data rows still render underneath the bar.
     const cells = document.querySelectorAll('[role="gridcell"][data-column-id="name"]');

@@ -72,7 +72,7 @@ function createSimulatedApi() {
 
 /**
  * 100k rows, only whatever's been scrolled into view actually fetched. `useDataGridLazyRows`
- * supplies `data`/`getRowId`/`onRowWindowChange`; core renders skeleton rows for the holes and
+ * supplies `data`/`getRowId`/`onRenderedRowsChange`; core renders skeleton rows for the holes and
  * flips them to real content once each simulated fetch resolves. `DataGridLazyGuard` is mounted
  * inside the provider to dev-warn if sort/filter/search fires uncontrolled while rows are still
  * unloaded (this demo has neither wired up, so it stays uncontrolled on purpose — see the docs page).
@@ -105,7 +105,7 @@ export default function DataGridLazyDemo(): ReactNode {
     <div className="w-full flex flex-col gap-2">
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          {(TOTAL_COUNT - lazy.unloadedCount).toLocaleString()} / {TOTAL_COUNT.toLocaleString()} rows loaded
+          {(TOTAL_COUNT - lazy.unloadedCount).toLocaleString("en-US")} / {TOTAL_COUNT.toLocaleString("en-US")} rows loaded
           {lazy.isLoading && " · fetching…"}
         </span>
         <div className="flex gap-2">
@@ -162,9 +162,9 @@ export default function DataGridLazyDemo(): ReactNode {
               type="button"
               className="rounded-sm border border-border px-2 py-0.5 hover:bg-accent"
               onClick={() => {
-                // re-fires onRowWindowChange for the failed range — the same path a real scroll
+                // re-fires onRenderedRowsChange for the failed range — the same path a real scroll
                 // into it would take; there's no separate imperative retry call (see docs).
-                lazy.gridProps.onRowWindowChange(failedRange);
+                lazy.gridProps.onRenderedRowsChange(failedRange);
                 setLastError(null);
                 setFailedRange(null);
               }}
@@ -175,9 +175,15 @@ export default function DataGridLazyDemo(): ReactNode {
         </div>
       )}
       <div className="h-[420px] overflow-hidden rounded-md border border-border">
-        <DataGridProvider data={lazy.gridProps.data} columns={columns} getRowId={lazy.gridProps.getRowId} onDataChange={lazy.onDataChange}>
+        <DataGridProvider
+          data={lazy.gridProps.data}
+          columns={columns}
+          getRowId={lazy.gridProps.getRowId}
+          onDataChange={lazy.onDataChange}
+          onRenderedRowsChange={lazy.gridProps.onRenderedRowsChange}
+        >
           <DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />
-          <DataGridRoot className="h-full rounded-none border-none" onRowWindowChange={lazy.gridProps.onRowWindowChange}>
+          <DataGridRoot className="h-full rounded-none border-none">
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>

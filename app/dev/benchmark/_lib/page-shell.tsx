@@ -34,7 +34,7 @@ export function BenchmarkPageShell({ title, caveat, gridId, rowCount, onRowCount
           >
             {ROW_SIZE_OPTIONS.map((n) => (
               <option key={n} value={n}>
-                {n.toLocaleString()}
+                {n.toLocaleString("en-US")}
               </option>
             ))}
           </select>
@@ -55,6 +55,6 @@ function readRowCountFromUrl(fallback: BenchmarkRowSize): BenchmarkRowSize {
 }
 
 /** Hook for the row-count picker so every per-grid page shares the same default/state shape; `?rows=` in the URL (set by the runner's iframe) overrides the default. */
-export function useBenchmarkRowCount(initial: BenchmarkRowSize = ROW_SIZE_OPTIONS[0]) {
-  return useState<BenchmarkRowSize>(() => readRowCountFromUrl(initial));
+export function useBenchmarkRowCount() {
+  return useState<BenchmarkRowSize>(() => readRowCountFromUrl(ROW_SIZE_OPTIONS[0]));
 }

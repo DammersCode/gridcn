@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
-import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot, gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid";
+import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPresence } from "../data-grid-presence";
 import type { PresenceHighlight } from "../data-grid-presence";
+import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 // real stylesheet so Tailwind's `grid`/color-mix()/CSS vars actually apply — paint placement is unverifiable without real layout
 import "@/app/global.css";
 
@@ -43,7 +44,7 @@ async function renderEngine(opts: {
     const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
     setPresenceHighlights = setHighlights;
     return (
-      <DataGridProvider data={makeRows(opts.rowCount ?? 200)} columns={opts.columns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+      <DataGridProvider data={makeRows(opts.rowCount ?? 200)} columns={opts.columns} getRowId={(r) => r.id} plugins={[plugin]}>
         <DataGridRoot className={`h-[${opts.height ?? 300}px] w-[${opts.width ?? 400}px]`}>
           <DataGridHeader />
           <DataGridBody />
@@ -136,7 +137,7 @@ describe("multiplayer presence — window-edge clamping", () => {
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     // a range far larger than the rendered window (rows 0..198 of 200) — virtualization only
-    // mounts a small windowed subset + overscan, so the overlay must stop at the LAST actually
+    // mounts a small virtualized subset + overscan, so the overlay must stop at the LAST actually
     // rendered row, not paint down to row 198's would-be (unrendered) position.
     setPresenceHighlights([{ id: "u1", color: "rgb(0,0,255)", range: { x: 0, y: 0, width: 1, height: 199 } }]);
     await new Promise((r) => setTimeout(r, 50));

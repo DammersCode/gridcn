@@ -7,11 +7,11 @@ import {
   DataGridProvider,
   DataGridRoot,
   defineColumns,
-  gridAttrSelector,
   type DataChange,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridFill } from "../data-grid-fill";
 import type { FillArgs } from "../data-grid-fill";
+import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply — without it the layout bug can't reproduce
 import "@/app/global.css";
 
@@ -31,20 +31,19 @@ function mockDataChangeFn() {
   return vi.fn<(next: readonly NumRow[], change: DataChange<NumRow>) => void>();
 }
 
-/** Composes the fill add-on's hook with a real provider/root, mirroring the `data-grid-presence` test's harness pattern — plugin registered on the provider, `FillHandleTracker` rendered inside the root's subtree where scrollRef/layout live. */
+/** Composes the fill add-on's hook with a real provider/root, mirroring the `data-grid-presence` test's harness pattern — the fill plugin's Mount runs the pointer engine inside the root's subtree where scrollRef/layout live. */
 function renderFillGrid(
   data: NumRow[],
   onDataChange?: (next: readonly NumRow[], change: DataChange<NumRow>) => void,
   onFill?: (args: FillArgs) => void,
 ) {
   function Harness() {
-    const { plugin, FillHandleTracker } = useDataGridFill({ onFill });
+    const { plugin } = useDataGridFill({ onFill });
     return (
-      <DataGridProvider data={data} columns={fillColumns} getRowId={(r) => r.id} onDataChange={onDataChange} overlayPlugins={[plugin]}>
+      <DataGridProvider data={data} columns={fillColumns} getRowId={(r) => r.id} onDataChange={onDataChange} plugins={[plugin]}>
         <DataGridRoot className="h-[600px]">
           <DataGridHeader />
           <DataGridBody />
-          <FillHandleTracker />
         </DataGridRoot>
       </DataGridProvider>
     );
@@ -114,6 +113,27 @@ describe("data-grid-fill add-on", () => {
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [nextData] = onDataChange.mock.calls[0]!;
     expect(nextData.map((r) => r.value)).toEqual([2, 4, 6, 8, 10, 5]);
+  });
+
+  it("a refused pointer capture does not break the drag", async () => {
+    const refuse = vi.spyOn(Element.prototype, "setPointerCapture").mockImplementation(() => {
+      throw new DOMException("refused", "NotFoundError");
+    });
+    try {
+      const onDataChange = mockDataChangeFn();
+      const data = makeFillRows(6);
+      data[0]!.value = 2;
+      data[1]!.value = 4;
+      await renderFillGrid(data, onDataChange);
+      await selectValueColumn(2);
+
+      await dragHandleToRow(4);
+
+      expect(refuse).toHaveBeenCalled();
+      expect(onDataChange.mock.calls[0]![0].map((r) => r.value)).toEqual([2, 4, 6, 8, 10, 5]);
+    } finally {
+      refuse.mockRestore();
+    }
   });
 
   it("onFill's values is the computed fill pattern, not the destination's stale content", async () => {
@@ -238,6 +258,32 @@ describe("data-grid-fill add-on", () => {
     expect(onDataChange).not.toHaveBeenCalled();
   });
 
+  it("a cancelled pointer (pointercancel) mid-drag discards the fill", async () => {
+    const onDataChange = mockDataChangeFn();
+    const data = makeFillRows(6);
+    data[0]!.value = 2;
+    data[1]!.value = 4;
+    await renderFillGrid(data, onDataChange);
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    await selectValueColumn(2);
+    const handle = document.querySelector<HTMLElement>(gridAttrSelector("fillHandle"))!;
+    const targetRect = fillCells()[1 + 4 * fillColumns.length]!.getBoundingClientRect();
+
+    await handle.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1 }));
+    document.dispatchEvent(
+      new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: targetRect.left + 5, clientY: targetRect.top + 5 }),
+    );
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => requestAnimationFrame(r));
+    expect(document.querySelector(gridAttrSelector("fillPreview"))).not.toBeNull();
+
+    document.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerId: 1 }));
+    await new Promise((r) => requestAnimationFrame(r));
+    expect(document.querySelector(gridAttrSelector("fillPreview"))).toBeNull();
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
   it("pulses exactly the written cells after a committed fill, and lifts the pulse on its own", async () => {
     const data = makeFillRows(6);
     data[0]!.value = 2;
@@ -265,6 +311,25 @@ describe("data-grid-fill add-on", () => {
     expect(styleTags.some((t) => t.includes("--grid-flash-color") && t.includes("--grid-flash-intensity"))).toBe(true);
 
     await expect.poll(() => flashed().length, { timeout: 5000 }).toBe(0);
+  });
+
+  it("keeps the pulse on the filled rows when a re-sort moves them", async () => {
+    const data = makeFillRows(6);
+    data[0]!.value = 2;
+    data[1]!.value = 4;
+    await renderFillGrid(data);
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    await selectValueColumn(2);
+    await dragHandleToRow(4);
+    const flashed = () => [...document.querySelectorAll<HTMLElement>('[role="gridcell"][data-flash]')];
+    await expect.poll(() => flashed().length, { timeout: 2000 }).toBe(3);
+
+    const labelHeader = page.getByRole("columnheader", { name: "Label" });
+    await labelHeader.click();
+    await labelHeader.click();
+
+    const rowLabels = () => flashed().map((c) => c.closest('[role="row"]')!.querySelector('[data-column-id="label"]')!.textContent).sort();
+    expect(rowLabels()).toEqual(["L2", "L3", "L4"]);
   });
 
   it("a flashed cell that scrolls out of the viewport never replays its pulse on scroll-back", async () => {
@@ -337,13 +402,12 @@ describe("data-grid-fill add-on", () => {
     ] as const);
 
     function Harness() {
-      const { plugin, FillHandleTracker } = useDataGridFill({});
+      const { plugin } = useDataGridFill();
       return (
-        <DataGridProvider data={data} columns={pinnedColumns} getRowId={(r) => r.id} overlayPlugins={[plugin]}>
+        <DataGridProvider data={data} columns={pinnedColumns} getRowId={(r) => r.id} plugins={[plugin]}>
           <DataGridRoot className="h-[600px] w-[400px]">
             <DataGridHeader />
             <DataGridBody />
-            <FillHandleTracker />
           </DataGridRoot>
         </DataGridProvider>
       );
@@ -377,13 +441,12 @@ describe("data-grid-fill add-on", () => {
     data[1]!.value = 4;
 
     function Harness() {
-      const { plugin, FillHandleTracker } = useDataGridFill({});
+      const { plugin } = useDataGridFill();
       return (
-        <DataGridProvider data={data} columns={fillColumns} getRowId={(r) => r.id} onDataChange={onDataChange} overlayPlugins={[plugin]}>
-          <DataGridRoot className="h-[600px]" readOnly>
+        <DataGridProvider data={data} columns={fillColumns} getRowId={(r) => r.id} onDataChange={onDataChange} plugins={[plugin]} readOnly>
+          <DataGridRoot className="h-[600px]">
             <DataGridHeader />
             <DataGridBody />
-            <FillHandleTracker />
           </DataGridRoot>
         </DataGridProvider>
       );
@@ -470,13 +533,12 @@ const asyncFillColumns = defineColumns<NumRow>()([
 
 function renderAsyncFillGrid(data: NumRow[], onDataChange: ReturnType<typeof mockDataChangeFn>) {
   function Harness() {
-    const { plugin, FillHandleTracker } = useDataGridFill({});
+    const { plugin } = useDataGridFill();
     return (
-      <DataGridProvider data={data} columns={asyncFillColumns} getRowId={(r) => r.id} onDataChange={onDataChange} overlayPlugins={[plugin]}>
+      <DataGridProvider data={data} columns={asyncFillColumns} getRowId={(r) => r.id} onDataChange={onDataChange} plugins={[plugin]}>
         <DataGridRoot className="h-[600px]">
           <DataGridHeader />
           <DataGridBody />
-          <FillHandleTracker />
         </DataGridRoot>
       </DataGridProvider>
     );

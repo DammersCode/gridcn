@@ -5,11 +5,11 @@ import type { ColumnDef, DataChange } from "../types";
 import {
   DataGridProvider,
   useDataGridActiveCell,
-  useDataGridActions,
+  useDataGridInternalActions,
   useDataGridEditing,
   useDataGridSelection,
   useDataGridViewIndex,
-  type DataGridProviderProps,
+  type DataGridSyncProps,
 } from "../store";
 
 type Row = { id: string; name: string; age: number };
@@ -29,7 +29,7 @@ function rows(): Row[] {
 
 function makeWrapper(
   onDataChange: (next: readonly Row[], change: DataChange<Row>) => void,
-  overrides: Partial<DataGridProviderProps<Row>> = {},
+  overrides: Partial<DataGridSyncProps<Row>> = {},
   data: Row[] = rows(),
 ) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -49,7 +49,7 @@ describe("insertRow", () => {
     const onDataChange = vi.fn();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.insertRow(0, "above"));
 
@@ -58,24 +58,24 @@ describe("insertRow", () => {
     warn.mockRestore();
   });
 
-  it("inserts above the target view row as one row-op DataChange with a correct insert index", () => {
+  it("inserts above the target view row as one row-operation DataChange with a correct insert index", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange, { createRow });
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.insertRow(1, "above"));
 
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["1", "new", "2", "3"]);
-    expect(change.source).toBe("row-op");
+    expect(change.source).toBe("row-operation");
     expect(change.ops).toEqual([{ type: "insert", rowId: "new", row: createRow(), index: 1 }]);
   });
 
   it("inserts below the target view row", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange, { createRow });
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.insertRow(1, "below"));
 
@@ -87,7 +87,7 @@ describe("insertRow", () => {
   it("inserts at the id-keyed data index, not the view index, when the view is sorted", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange, { createRow });
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     // sort by name ascending: view order becomes Alice(2), Bob(3), Charlie(1).
     act(() => result.current.setSorts([{ columnId: "name", direction: "asc" }]));
@@ -106,7 +106,7 @@ describe("insertRows", () => {
     const onDataChange = vi.fn();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.insertRows(0, 3));
 
@@ -119,7 +119,7 @@ describe("insertRows", () => {
     const onDataChange = vi.fn();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const wrapper = makeWrapper(onDataChange, { createRow: indexedCreateRow });
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.insertRows(0, 0));
     act(() => result.current.insertRows(0, -2));
@@ -133,7 +133,7 @@ describe("insertRows", () => {
     const onDataChange = vi.fn();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const wrapper = makeWrapper(onDataChange, { createRow: indexedCreateRow });
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.insertRows(0, 1.5));
 
@@ -142,17 +142,17 @@ describe("insertRows", () => {
     warn.mockRestore();
   });
 
-  it("inserts count rows below the target as ONE row-op DataChange with one op per row", () => {
+  it("inserts count rows below the target as ONE row-operation DataChange with one op per row", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange, { createRow: indexedCreateRow });
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.insertRows(1, 3));
 
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["1", "2", "new-2", "new-3", "new-4", "3"]);
-    expect(change.source).toBe("row-op");
+    expect(change.source).toBe("row-operation");
     expect(change.ops).toEqual([
       { type: "insert", rowId: "new-2", row: { id: "new-2", name: "New", age: 0 }, index: 2 },
       { type: "insert", rowId: "new-3", row: { id: "new-3", name: "New", age: 0 }, index: 3 },
@@ -163,7 +163,7 @@ describe("insertRows", () => {
   it("inserts above the target view row when position is 'above'", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange, { createRow: indexedCreateRow });
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.insertRows(1, 2, "above"));
 
@@ -181,7 +181,7 @@ describe("insertRows", () => {
       vi.fn(),
       { createRow: (index: number) => { created.push(index); return { id: `new-${index}`, name: "New", age: 0 }; } },
     );
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.insertRows(1, 3));
 
@@ -191,7 +191,7 @@ describe("insertRows", () => {
   it("round-trips through the history apply/invert path (undo removes exactly the batch)", async () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange, { createRow: indexedCreateRow });
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.insertRows(1, 3));
     const [, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
@@ -203,18 +203,89 @@ describe("insertRows", () => {
   });
 });
 
-describe("deleteRows", () => {
-  it("deletes the given view rows as one row-op DataChange with id-keyed delete ops", () => {
+describe("deleteRowsById", () => {
+  it("deletes the rows with the given ids as one row-operation DataChange and skips unknown ids", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
+
+    act(() => result.current.deleteRowsById(["3", "1", "missing"]));
+
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["2"]);
+    expect(change.source).toBe("row-operation");
+  });
+
+  it("is a no-op with an empty id list", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
+
+    act(() => result.current.deleteRowsById([]));
+
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("is a no-op when every id is unknown", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
+
+    act(() => result.current.deleteRowsById(["missing", "absent"]));
+
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("deletes a row listed twice only once", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
+
+    act(() => result.current.deleteRowsById(["1", "1"]));
+
+    const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["2", "3"]);
+    expect(change.ops).toHaveLength(1);
+  });
+
+  it("emits delete ops with the rowId, row, and original index in ascending index order", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
+
+    act(() => result.current.deleteRowsById(["3", "1"]));
+
+    const [, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(change.ops).toEqual([
+      { type: "delete", rowId: "1", row: rows()[0], index: 0 },
+      { type: "delete", rowId: "3", row: rows()[2], index: 2 },
+    ]);
+  });
+
+  it("is a no-op while readOnly", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange, { readOnly: true });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
+
+    act(() => result.current.deleteRowsById(["1"]));
+
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("deleteRows", () => {
+  it("deletes the given view rows as one row-operation DataChange with id-keyed delete ops", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.deleteRows([0, 2]));
 
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["2"]);
-    expect(change.source).toBe("row-op");
+    expect(change.source).toBe("row-operation");
     expect(change.ops).toEqual([
       { type: "delete", rowId: "1", row: rows()[0], index: 0 },
       { type: "delete", rowId: "3", row: rows()[2], index: 2 },
@@ -224,7 +295,7 @@ describe("deleteRows", () => {
   it("deletes the correct id-keyed rows under an active sort (view index != data index)", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     // sort by name ascending: view order becomes Alice(2), Bob(3), Charlie(1); view row 0 is data row 1 (Alice).
     act(() => result.current.setSorts([{ columnId: "name", direction: "asc" }]));
@@ -238,7 +309,7 @@ describe("deleteRows", () => {
   it("dedupes repeated view row indexes", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.deleteRows([0, 0]));
 
@@ -249,7 +320,7 @@ describe("deleteRows", () => {
   it("is a no-op with an empty list", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.deleteRows([]));
 
@@ -262,7 +333,7 @@ describe("duplicateRows", () => {
     const onDataChange = vi.fn();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.duplicateRows([0]));
 
@@ -271,10 +342,10 @@ describe("duplicateRows", () => {
     warn.mockRestore();
   });
 
-  it("inserts duplicateRow's copy (a distinct id, never the source's) directly after the source row, id-keyed via getRowId, in one row-op DataChange", () => {
+  it("inserts duplicateRow's copy (a distinct id, never the source's) directly after the source row, id-keyed via getRowId, in one row-operation DataChange", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange, { duplicateRow });
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.duplicateRows([0]));
 
@@ -286,14 +357,14 @@ describe("duplicateRows", () => {
       { id: "2", name: "Alice", age: 25 },
       { id: "3", name: "Bob", age: 40 },
     ]);
-    expect(change.source).toBe("row-op");
+    expect(change.source).toBe("row-operation");
     expect(change.ops).toEqual([{ type: "insert", rowId: "1-copy", row: duplicateRow(rows()[0]!), index: 1 }]);
   });
 
   it("duplicates multiple rows, each copy landing after its own source with a distinct id, ops in ascending source order", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange, { duplicateRow });
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.duplicateRows([0, 2]));
 
@@ -306,7 +377,7 @@ describe("duplicateRows", () => {
   it("duplicates the correct id-keyed row under an active sort", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange, { duplicateRow });
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     // sort by name ascending: view row 0 is data row 1 (Alice, id "2").
     act(() => result.current.setSorts([{ columnId: "name", direction: "asc" }]));
@@ -320,7 +391,7 @@ describe("duplicateRows", () => {
   it("is a no-op with an empty list", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange, { duplicateRow });
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.duplicateRows([]));
 
@@ -332,7 +403,7 @@ describe("reorderRows", () => {
   it("moves a row down (final-position semantics) as one id-keyed move op", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     // view [1 Charlie, 2 Alice, 3 Bob]: Charlie (view 0) lands at final view index 2.
     act(() => result.current.reorderRows(0, 2));
@@ -340,14 +411,14 @@ describe("reorderRows", () => {
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["2", "3", "1"]);
-    expect(change.source).toBe("row-op");
+    expect(change.source).toBe("row-operation");
     expect(change.ops).toEqual([{ type: "move", rowId: "1", row: rows()[0], from: 0, to: 2 }]);
   });
 
   it("moves a row up", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.reorderRows(2, 0));
 
@@ -359,7 +430,7 @@ describe("reorderRows", () => {
   it("one slot down is a real move, not a no-op", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.reorderRows(0, 1));
 
@@ -369,7 +440,7 @@ describe("reorderRows", () => {
 
   it("keeps viewIndex the identity permutation (no resort)", () => {
     const wrapper = makeWrapper(vi.fn());
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), viewIndex: useDataGridViewIndex() }), {
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), viewIndex: useDataGridViewIndex() }), {
       wrapper,
     });
 
@@ -381,7 +452,7 @@ describe("reorderRows", () => {
   it("is a no-op when from === to", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.reorderRows(1, 1));
 
@@ -392,7 +463,7 @@ describe("reorderRows", () => {
     const onDataChange = vi.fn();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.reorderRows(0, 3));
     act(() => result.current.reorderRows(-1, 1));
@@ -405,7 +476,7 @@ describe("reorderRows", () => {
   it("is a no-op when enableRowReorder is false", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange, { enableRowReorder: false });
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.reorderRows(0, 2));
 
@@ -414,31 +485,57 @@ describe("reorderRows", () => {
 
   it("is a no-op while readOnly", () => {
     const onDataChange = vi.fn();
-    const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
-
-    act(() => result.current._registerReadOnly(true));
+    // Read directly in the wrapper body: a factory-built component type is compiler-cached at
+    // first render and would keep its initial props forever.
+    const flags = { readOnly: false };
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider data={rows()} columns={columns} getRowId={(r) => r.id} onDataChange={onDataChange} readOnly={flags.readOnly}>
+          {children}
+        </DataGridProvider>
+      );
+    }
+    const { result, rerender } = renderHook(() => useDataGridInternalActions(), { wrapper: Wrapper });
+    flags.readOnly = true;
+    rerender();
     act(() => result.current.reorderRows(0, 2));
 
     expect(onDataChange).not.toHaveBeenCalled();
   });
 
-  it("is a no-op while an edit session is open (the editor pins a view coordinate)", () => {
+  it("applies the move live under an open edit session and remaps the edit onto the moved row", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(
+      () => ({
+        actions: useDataGridInternalActions(),
+        editing: useDataGridEditing(),
+        activeCell: useDataGridActiveCell(),
+      }),
+      { wrapper },
+    );
 
-    act(() => result.current.startEditing({ col: 0, row: 0 }));
-    act(() => result.current.reorderRows(0, 2));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
+    act(() => result.current.actions.reorderRows(0, 2));
 
-    expect(onDataChange).not.toHaveBeenCalled();
+    const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["2", "3", "1"]);
+    expect(change.source).toBe("row-operation");
+    expect(result.current.editing).toEqual({
+      coord: { col: 0, row: 2 },
+      rowId: "1",
+      columnId: "name",
+      initialText: undefined,
+      session: expect.any(Number),
+    });
+    expect(result.current.activeCell).toEqual({ col: 0, row: 2 });
   });
 
   it("is a no-op with a dev warning while a sort is active", () => {
     const onDataChange = vi.fn();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.setSorts([{ columnId: "name", direction: "asc" }]));
     act(() => result.current.reorderRows(0, 2));
@@ -452,7 +549,7 @@ describe("reorderRows", () => {
     const onDataChange = vi.fn();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.setFilters([{ columnId: "name", operator: "contains", value: "li" }]));
     act(() => result.current.reorderRows(0, 2));
@@ -474,7 +571,7 @@ describe("reorderRows", () => {
         </DataGridProvider>
       );
     };
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.reorderRows(0, 2));
 
@@ -485,7 +582,7 @@ describe("reorderRows", () => {
 
   it("remaps the row-selection channel by row identity", () => {
     const wrapper = makeWrapper(vi.fn());
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), selection: useDataGridSelection() }), {
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }), {
       wrapper,
     });
 
@@ -501,11 +598,11 @@ describe("reorderRows", () => {
 
   it("remaps the active cell by row identity", () => {
     const wrapper = makeWrapper(vi.fn());
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), activeCell: useDataGridActiveCell() }), {
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), activeCell: useDataGridActiveCell() }), {
       wrapper,
     });
 
-    act(() => result.current.actions.selectCell({ col: 0, row: 0 })); // Charlie at view 0
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 })); // Charlie at view 0
     act(() => result.current.actions.reorderRows(0, 2)); // Charlie lands at view 2
 
     expect(result.current.activeCell).toEqual({ col: 0, row: 2 });
@@ -513,13 +610,13 @@ describe("reorderRows", () => {
 
   it("remaps a cell range that does not contain the moved row", () => {
     const wrapper = makeWrapper(vi.fn());
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), selection: useDataGridSelection() }), {
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }), {
       wrapper,
     });
 
     // range over rows 1..2 (Alice, Bob), cols 0..1
-    act(() => result.current.actions.selectCell({ col: 0, row: 1 }));
-    act(() => result.current.actions.extendTo({ col: 1, row: 2 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 1 }));
+    act(() => result.current.actions.extendToAt({ col: 1, row: 2 }));
 
     // move Charlie (row 0) to final view 2: rows 1,2 shift to 0,1
     act(() => result.current.actions.reorderRows(0, 2));
@@ -531,7 +628,7 @@ describe("reorderRows", () => {
   it("round-trips through the history apply/invert path (undo restores the original order)", async () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
     act(() => result.current.reorderRows(0, 2));
     const [, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
@@ -547,7 +644,7 @@ describe("row ops rebuild the view index", () => {
 
   it("insertRows updates viewIndex immediately when unsorted (row count changes in place)", () => {
     const wrapper = makeWrapper(vi.fn(), { createRow: indexedCreateRow });
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), viewIndex: useDataGridViewIndex() }), {
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), viewIndex: useDataGridViewIndex() }), {
       wrapper,
     });
 
@@ -558,7 +655,7 @@ describe("row ops rebuild the view index", () => {
 
   it("deleteRows updates viewIndex immediately when unsorted", () => {
     const wrapper = makeWrapper(vi.fn());
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), viewIndex: useDataGridViewIndex() }), {
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), viewIndex: useDataGridViewIndex() }), {
       wrapper,
     });
 
@@ -569,7 +666,7 @@ describe("row ops rebuild the view index", () => {
 
   it("duplicateRows updates viewIndex immediately when unsorted", () => {
     const wrapper = makeWrapper(vi.fn(), { duplicateRow });
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), viewIndex: useDataGridViewIndex() }), {
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), viewIndex: useDataGridViewIndex() }), {
       wrapper,
     });
 
@@ -581,13 +678,13 @@ describe("row ops rebuild the view index", () => {
   it("insertRows under an active sort keeps the active cell on the same row object (follows by identity)", () => {
     const wrapper = makeWrapper(vi.fn(), { createRow: indexedCreateRow });
     const { result } = renderHook(
-      () => ({ actions: useDataGridActions(), activeCell: useDataGridActiveCell(), viewIndex: useDataGridViewIndex() }),
+      () => ({ actions: useDataGridInternalActions(), activeCell: useDataGridActiveCell(), viewIndex: useDataGridViewIndex() }),
       { wrapper },
     );
 
     // name ascending: view is Alice(1), Bob(2), Charlie(0); active cell on Bob at view row 1.
     act(() => result.current.actions.setSorts([{ columnId: "name", direction: "asc" }]));
-    act(() => result.current.actions.selectCell({ col: 0, row: 1 }));
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 1 }));
     expect(result.current.viewIndex).toEqual([1, 2, 0]);
 
     // insert above view row 0 (Alice): the new row lands at data index 1, ahead of Bob in the data array.
@@ -602,7 +699,7 @@ describe("row ops rebuild the view index", () => {
 
   it("a row inserted under an active sort lands in its sorted position in the rebuilt view", () => {
     const wrapper = makeWrapper(vi.fn(), { createRow: indexedCreateRow });
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), viewIndex: useDataGridViewIndex() }), {
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), viewIndex: useDataGridViewIndex() }), {
       wrapper,
     });
 
@@ -617,7 +714,7 @@ describe("row ops rebuild the view index", () => {
 
   it("a deleted row is gone from the rebuilt view under an active sort", () => {
     const wrapper = makeWrapper(vi.fn());
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), viewIndex: useDataGridViewIndex() }), {
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), viewIndex: useDataGridViewIndex() }), {
       wrapper,
     });
 
@@ -630,7 +727,7 @@ describe("row ops rebuild the view index", () => {
 
   it("a duplicated row's copy lands in the rebuilt sorted view under an active sort", () => {
     const wrapper = makeWrapper(vi.fn(), { duplicateRow });
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), viewIndex: useDataGridViewIndex() }), {
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), viewIndex: useDataGridViewIndex() }), {
       wrapper,
     });
 
@@ -664,7 +761,7 @@ describe("row ops rebuild the view index", () => {
       );
     }
     const { result, rerender } = renderHook(
-      () => ({ actions: useDataGridActions(), viewIndex: useDataGridViewIndex() }),
+      () => ({ actions: useDataGridInternalActions(), viewIndex: useDataGridViewIndex() }),
       { wrapper: Wrapper },
     );
 
@@ -682,56 +779,101 @@ describe("row ops rebuild the view index", () => {
 });
 
 describe("row ops with an open edit session", () => {
-  const editSession = { coord: { col: 0, row: 0 }, initialText: undefined };
-
-  it("insertRows is a no-op with a dev warning (editor state untouched)", () => {
+  it("insertRows above the edited row applies live and remaps the edit and cursor down", () => {
     const onDataChange = vi.fn();
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const wrapper = makeWrapper(onDataChange, { createRow });
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), editing: useDataGridEditing() }), {
-      wrapper,
+    const { result } = renderHook(
+      () => ({
+        actions: useDataGridInternalActions(),
+        editing: useDataGridEditing(),
+        activeCell: useDataGridActiveCell(),
+      }),
+      { wrapper },
+    );
+
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 1 })); // Alice (rowId "2", data 1)
+    act(() => result.current.actions.insertRows(1, 1, "above"));
+
+    const [next] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["1", "new", "2", "3"]);
+    expect(result.current.editing).toEqual({
+      coord: { col: 0, row: 2 },
+      rowId: "2",
+      columnId: "name",
+      initialText: undefined,
+      session: expect.any(Number),
     });
-
-    act(() => result.current.actions.startEditing({ col: 0, row: 0 }));
-    act(() => result.current.actions.insertRows(0, 1));
-
-    expect(onDataChange).not.toHaveBeenCalled();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("edit session"));
-    expect(result.current.editing).toEqual(editSession);
-    warn.mockRestore();
+    expect(result.current.activeCell).toEqual({ col: 0, row: 2 });
   });
 
-  it("deleteRows is a no-op with a dev warning (editor state untouched)", () => {
+  it("deleteRows of the edited row cancels the session and reports onEditEnd", () => {
     const onDataChange = vi.fn();
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const wrapper = makeWrapper(onDataChange);
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), editing: useDataGridEditing() }), {
-      wrapper,
-    });
+    const onEditEnd = vi.fn();
+    const wrapper = makeWrapper(onDataChange, { onEditEnd });
+    const { result } = renderHook(
+      () => ({
+        actions: useDataGridInternalActions(),
+        editing: useDataGridEditing(),
+        activeCell: useDataGridActiveCell(),
+      }),
+      { wrapper },
+    );
 
-    act(() => result.current.actions.startEditing({ col: 0, row: 0 }));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 })); // Charlie (rowId "1")
     act(() => result.current.actions.deleteRows([0]));
 
-    expect(onDataChange).not.toHaveBeenCalled();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("edit session"));
-    expect(result.current.editing).toEqual(editSession);
-    warn.mockRestore();
+    const [next] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["2", "3"]);
+    expect(result.current.editing).toBeNull();
+    expect(result.current.activeCell).toBeNull();
+    expect(onEditEnd).toHaveBeenCalledWith(expect.objectContaining({ rowId: "1", columnId: "name", result: "cancel" }));
   });
 
-  it("duplicateRows is a no-op with a dev warning (editor state untouched)", () => {
+  it("deleteRows of another row keeps the open edit on its record", () => {
     const onDataChange = vi.fn();
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const wrapper = makeWrapper(onDataChange, { duplicateRow });
-    const { result } = renderHook(() => ({ actions: useDataGridActions(), editing: useDataGridEditing() }), {
+    const wrapper = makeWrapper(onDataChange);
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), editing: useDataGridEditing() }), {
       wrapper,
     });
 
-    act(() => result.current.actions.startEditing({ col: 0, row: 0 }));
-    act(() => result.current.actions.duplicateRows([0]));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 })); // Charlie (rowId "1")
+    act(() => result.current.actions.deleteRows([1])); // Alice leaves
 
-    expect(onDataChange).not.toHaveBeenCalled();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("edit session"));
-    expect(result.current.editing).toEqual(editSession);
-    warn.mockRestore();
+    const [next] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["1", "3"]);
+    expect(result.current.editing).toEqual({
+      coord: { col: 0, row: 0 },
+      rowId: "1",
+      columnId: "name",
+      initialText: undefined,
+      session: expect.any(Number),
+    });
+  });
+
+  it("duplicateRows of the row above the edited row applies live and remaps the edit down", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange, { duplicateRow });
+    const { result } = renderHook(
+      () => ({
+        actions: useDataGridInternalActions(),
+        editing: useDataGridEditing(),
+        activeCell: useDataGridActiveCell(),
+      }),
+      { wrapper },
+    );
+
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 1 })); // Alice (rowId "2", data 1)
+    act(() => result.current.actions.duplicateRows([0])); // Charlie's copy lands below him
+
+    const [next] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["1", "1-copy", "2", "3"]);
+    expect(result.current.editing).toEqual({
+      coord: { col: 0, row: 2 },
+      rowId: "2",
+      columnId: "name",
+      initialText: undefined,
+      session: expect.any(Number),
+    });
+    expect(result.current.activeCell).toEqual({ col: 0, row: 2 });
   });
 });

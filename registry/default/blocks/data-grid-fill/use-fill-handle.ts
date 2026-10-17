@@ -1,28 +1,36 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
+import { getCellValue, useDataGridActions, type CellRef, type GridRect } from "@/registry/default/blocks/data-grid/data-grid";
 import {
   applyInlineScrollDelta,
   combineRects,
-  getCellValue,
   isDev,
   inlineAutoScrollStep,
   candidateRowIds,
   pointerToCoord,
-  flashCellKey,
+  rowIdAtViewRow,
+  safeSetPointerCapture,
   resolveBulkWrites,
+  resolveColumnValidate,
   snapshotBulkBatch,
   useBulkGeneration,
-  useDataGridActions,
   useDataGridStoreApi,
   type BulkCandidate,
-  type BulkWrite,
-  type DataGridStoreState,
-  type GridRect,
+  type BulkResolution,
   type InteractionLayout,
-} from "@/registry/default/blocks/data-grid/data-grid";
+  type DataGridReadState,
+} from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { computeFillTarget, fillDirection, generateFill, rectRelativeTo, type SeriesDescriptor } from "./fill";
 import type { FillStoreApi } from "./fill-store";
+
+/** Cells a fill is about to write, resolved before the write so a re-sort cannot shift them. */
+function flashCellsFor(s: DataGridReadState, writes: readonly { viewRowIndex: number; columnId: string }[]): CellRef[] {
+  return writes.flatMap((w) => {
+    const rowId = rowIdAtViewRow(s, w.viewRowIndex);
+    return rowId === undefined ? [] : [{ rowId, columnId: w.columnId }];
+  });
+}
 
 /** rAF-throttled auto-scroll step (px), matching `useGridInteraction`'s drag auto-scroll. */
 const AUTO_SCROLL_STEP = 16;
@@ -52,7 +60,7 @@ export type UseFillHandleOptions = {
 };
 
 /** Reads one cell's text value via its column's cell type `toText`, for use as a fill source. */
-function cellText(s: DataGridStoreState, viewRow: number, colIndex: number): string {
+function cellText(s: DataGridReadState, viewRow: number, colIndex: number): string {
   const column = s.visibleColumns[colIndex];
   if (!column) return "";
   const dataRowIndex = s.viewIndex[viewRow];
@@ -66,7 +74,7 @@ function cellText(s: DataGridStoreState, viewRow: number, colIndex: number): str
 }
 
 /** Reads `rect` as a 2D string grid via each cell type's `toText` — the fill algorithm's raw input. */
-export function readRectAsText(s: DataGridStoreState, rect: GridRect): string[][] {
+export function readRectAsText(s: DataGridReadState, rect: GridRect): string[][] {
   const out: string[][] = [];
   for (let row = rect.y; row < rect.y + rect.height; row++) {
     const line: string[] = [];
@@ -85,7 +93,7 @@ export function readRectAsText(s: DataGridStoreState, rect: GridRect): string[][
  * testing; not part of the public hook surface.
  */
 export function buildFillCandidates(
-  s: DataGridStoreState,
+  s: DataGridReadState,
   source: GridRect,
   strip: GridRect,
   opts: { forceCopy?: boolean; detect?: (values: readonly string[]) => SeriesDescriptor | null } = {},
@@ -120,7 +128,7 @@ export function buildFillCandidates(
 
       // filled is generateFill's strip.height x strip.width output; row/col loop bounds match exactly
       const value = cellType.fromText(filled[row]![col]!, column.options);
-      candidates.push({ viewRow, columnId: column.id, value, validate: column.validate, row: dataRow, rowId });
+      candidates.push({ viewRowIndex: viewRow, columnId: column.id, value, validate: resolveColumnValidate(column, cellType), row: dataRow, rowId });
     }
   }
   if (skippedHoleRows > 0 && isDev()) {
@@ -132,18 +140,18 @@ export function buildFillCandidates(
 }
 
 /**
- * The fill write list plus `generateFill`'s raw text grid. `writes` is a Promise when a filled
- * column's schema validates asynchronously — the hook holds the batch until it resolves, then
- * applies the passing cells as one `applyCellUpdates`.
+ * The fill resolution (accepted writes plus rejected cells) plus `generateFill`'s raw text grid.
+ * `resolution` is a Promise when a filled column's schema validates asynchronously — the hook holds
+ * the batch until it resolves, then applies the passing cells as one `applyCellUpdates`.
  */
 export function buildFillWrites(
-  s: DataGridStoreState,
+  s: DataGridReadState,
   source: GridRect,
   strip: GridRect,
   opts: { forceCopy?: boolean; detect?: (values: readonly string[]) => SeriesDescriptor | null } = {},
-): { writes: BulkWrite[] | Promise<BulkWrite[]>; filled: string[][] } {
+): { resolution: BulkResolution | Promise<BulkResolution>; filled: string[][] } {
   const { candidates, filled } = buildFillCandidates(s, source, strip, opts);
-  return { writes: resolveBulkWrites(candidates), filled };
+  return { resolution: resolveBulkWrites(candidates), filled };
 }
 
 /** Handlers for the fill-handle drag gesture (see fill-overlay.tsx's handle square) and the fillDown/fillRight shortcuts. */
@@ -159,7 +167,7 @@ export type FillHandleHandlers = {
 
 /**
  * Drives the fill-handle drag: pointerdown on the handle starts a document-level drag (capture +
- * rAF-throttled move + auto-scroll, mirroring `useGridInteraction`'s range drag), live-updates
+ * rAF-throttled move + auto-scroll), live-updates
  * the add-on's local `fillStore` via `computeFillTarget` (orthogonal axis snap), and on release
  * runs the shared fill pipeline (`buildFillWrites`) as one `applyCellUpdates` batch, expanding the
  * selection to `combineRects(source, strip)`. Alt held at release forces plain-copy tiling over
@@ -203,7 +211,6 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
 
     if (pointer.clientY < rect.top + AUTO_SCROLL_ZONE) scrollElement.scrollTop -= AUTO_SCROLL_STEP;
     else if (pointer.clientY > rect.bottom - AUTO_SCROLL_ZONE) scrollElement.scrollTop += AUTO_SCROLL_STEP;
-    // Inline-axis edge test + step, mirroring core's own drag auto-scroll (use-grid-interaction.ts).
     const direction = layoutRef.current.direction ?? "ltr";
     const inlineStep = inlineAutoScrollStep(pointer.clientX, rect, AUTO_SCROLL_ZONE, direction);
     if (inlineStep !== 0) applyInlineScrollDelta(scrollElement, inlineStep * AUTO_SCROLL_STEP, direction);
@@ -239,28 +246,31 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
       onFill?.({ source, target: strip, values: filled, preventDefault: () => (prevented = true) });
       if (prevented) return;
 
-      const writes = resolveBulkWrites(candidates);
-      if (writes instanceof Promise) {
+      const resolution = resolveBulkWrites(candidates);
+      if (resolution instanceof Promise) {
         const token = guard.begin();
         const snapshot = snapshotBulkBatch(s, candidateRowIds(s, candidates));
-        void writes.then((resolved) => {
+        void resolution.then((resolved) => {
           const current = storeApi.getState();
-          if (!guard.isCurrent(token, current, snapshot)) return;
-          const applied = guard.reresolve(current, resolved);
-          actions.applyCellUpdates(applied, "fill");
+          if (current.readOnly || !guard.isCurrent(token, current, snapshot)) return;
+          const applied = guard.reresolve(current, resolved.writes);
+          const flashed = flashCellsFor(current, applied);
+          // rejected cells are reported by the write itself (same source, after the write's emit)
+          actions.applyCellUpdates(applied, "fill", resolved.rejected);
           // Pulse the cells that actually landed — the re-resolved batch, not the held one.
-          actions.flashCells(applied.map((w) => flashCellKey(w.viewRow, w.columnId)));
+          actions.flashCells(flashed);
         });
       } else {
-        actions.applyCellUpdates(writes, "fill");
-        actions.flashCells(writes.map((w) => flashCellKey(w.viewRow, w.columnId)));
+        const flashed = flashCellsFor(storeApi.getState(), resolution.writes);
+        actions.applyCellUpdates(resolution.writes, "fill", resolution.rejected);
+        actions.flashCells(flashed);
       }
 
       // expand selection to combineRects(source, strip): re-derive via the plain selectCell/extendTo
       // primitives (anchor at source's top-left corner, extend to the combined rect's far corner).
       const combined = combineRects(source, strip);
-      actions.selectCell({ col: combined.x, row: combined.y });
-      actions.extendTo({ col: combined.x + combined.width - 1, row: combined.y + combined.height - 1 });
+      actions.selectCellAt({ col: combined.x, row: combined.y });
+      actions.extendToAt({ col: combined.x + combined.width - 1, row: combined.y + combined.height - 1 });
     },
     [actions, guard, storeApi],
   );
@@ -316,17 +326,21 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
           if (lastPointerRef.current) lastPointerRef.current.altKey = event.altKey;
           endDrag();
         };
+        const onCancel = (event: PointerEvent) => {
+          if (!dragRef.current || dragRef.current.pointerId !== event.pointerId) return;
+          cancelFillDrag();
+        };
         document.addEventListener("pointermove", onMove);
         document.addEventListener("pointerup", onUp);
-        document.addEventListener("pointercancel", onUp);
+        document.addEventListener("pointercancel", onCancel);
         documentListenersRef.current = () => {
           document.removeEventListener("pointermove", onMove);
           document.removeEventListener("pointerup", onUp);
-          document.removeEventListener("pointercancel", onUp);
+          document.removeEventListener("pointercancel", onCancel);
         };
       }
     },
-    [runFrame, endDrag],
+    [runFrame, endDrag, cancelFillDrag],
   );
 
   useEffect(() => () => documentListenersRef.current?.(), []);
@@ -340,7 +354,7 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
       event.preventDefault();
       event.stopPropagation();
       lastPointerRef.current = { clientX: event.clientX, clientY: event.clientY, altKey: event.altKey };
-      event.currentTarget.setPointerCapture?.(event.pointerId);
+      safeSetPointerCapture(event.currentTarget, event.pointerId);
       beginDrag(s.selection.current.range, event.pointerId, event.currentTarget);
     },
     [beginDrag, disabled, storeApi],

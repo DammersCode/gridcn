@@ -70,6 +70,69 @@ function Wait-ForHttp200([string]$url, [int]$timeoutSec = 20) {
   return $false
 }
 
+# One template for both consumers; only the client directive, alias (@/ vs ~/), and signature differ.
+function Write-SmokePage([string]$path, [string]$clientLine, [string]$alias, [string]$signature, [string]$exportLine) {
+@"
+$clientLine
+import {
+  DataGridProvider,
+  DataGridRoot,
+  DataGridHeader,
+  DataGridBody,
+  defineColumns,
+} from "$alias/components/data-grid/data-grid";
+import { DataGridToolbar, DataGridSearch } from "$alias/components/data-grid-toolbar/data-grid-toolbar";
+import { useDataGridState } from "$alias/components/data-grid-history/data-grid-history";
+
+interface Row {
+  id: string;
+  name: string;
+  age: number;
+}
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name", type: "text" },
+  { id: "age", header: "Age", accessorKey: "age", type: "number" },
+]);
+
+const initialRows: Row[] = [
+  { id: "1", name: "Ada Lovelace", age: 36 },
+  { id: "2", name: "Alan Turing", age: 41 },
+  { id: "3", name: "Grace Hopper", age: 85 },
+];
+
+$signature {
+  const { data, getRowId, onDataChange, onUndo, onRedo } = useDataGridState(initialRows, {
+    getRowId: (row: Row) => row.id,
+  });
+
+  return (
+    <div className="p-8">
+      <h1 className="mb-4 text-xl font-semibold">gridcn smoke test</h1>
+      <DataGridProvider
+        data={data}
+        columns={columns}
+        getRowId={getRowId}
+        onDataChange={onDataChange}
+        onUndo={onUndo}
+        onRedo={onRedo}
+      >
+        <DataGridToolbar>
+          <DataGridSearch />
+        </DataGridToolbar>
+        <DataGridRoot>
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>
+    </div>
+  );
+}
+
+$exportLine
+"@ | Set-Content -Path $path -Encoding utf8
+}
+
 # 1. Verify + build the registry -------------------------------------------------------------
 Write-Step "Verifying registry.json matches the filesystem"
 Push-Location $repoRoot
@@ -132,64 +195,7 @@ try {
   if ($LASTEXITCODE -ne 0) { throw "shadcn add failed (Next)." }
 
   Write-Host "Writing smoke page (src/app/page.tsx)"
-  @'
-"use client";
-
-import {
-  DataGridProvider,
-  DataGridRoot,
-  DataGridHeader,
-  DataGridBody,
-  defineColumns,
-} from "@/components/data-grid/data-grid";
-import { DataGridToolbar, DataGridSearch } from "@/components/data-grid-toolbar/data-grid-toolbar";
-import { useDataGridState } from "@/components/data-grid-history/data-grid-history";
-
-interface Row {
-  id: string;
-  name: string;
-  age: number;
-}
-
-const columns = defineColumns<Row>()([
-  { id: "name", header: "Name", accessorKey: "name", type: "text" },
-  { id: "age", header: "Age", accessorKey: "age", type: "number" },
-]);
-
-const initialRows: Row[] = [
-  { id: "1", name: "Ada Lovelace", age: 36 },
-  { id: "2", name: "Alan Turing", age: 41 },
-  { id: "3", name: "Grace Hopper", age: 85 },
-];
-
-export default function Home() {
-  const { data, getRowId, onDataChange, onUndo, onRedo } = useDataGridState(initialRows, {
-    getRowId: (row: Row) => row.id,
-  });
-
-  return (
-    <div className="p-8">
-      <h1 className="mb-4 text-xl font-semibold">gridcn smoke test</h1>
-      <DataGridProvider
-        data={data}
-        columns={columns}
-        getRowId={getRowId}
-        onDataChange={onDataChange}
-        onUndo={onUndo}
-        onRedo={onRedo}
-      >
-        <DataGridToolbar>
-          <DataGridSearch />
-        </DataGridToolbar>
-        <DataGridRoot>
-          <DataGridHeader />
-          <DataGridBody />
-        </DataGridRoot>
-      </DataGridProvider>
-    </div>
-  );
-}
-'@ | Set-Content -Path "src/app/page.tsx" -Encoding utf8
+  Write-SmokePage -path "src/app/page.tsx" -clientLine ('"use client";' + "`r`n") -alias "@" -signature "export default function Home()" -exportLine ""
 
   Write-Host "Typechecking (tsc --noEmit)"
   npx tsc --noEmit
@@ -361,64 +367,7 @@ export default defineConfig({
   if ($LASTEXITCODE -ne 0) { throw "shadcn add failed (Vite)." }
 
   Write-Host "Writing smoke component (src/App.tsx)"
-  @'
-import {
-  DataGridProvider,
-  DataGridRoot,
-  DataGridHeader,
-  DataGridBody,
-  defineColumns,
-} from "~/components/data-grid/data-grid";
-import { DataGridToolbar, DataGridSearch } from "~/components/data-grid-toolbar/data-grid-toolbar";
-import { useDataGridState } from "~/components/data-grid-history/data-grid-history";
-
-interface Row {
-  id: string;
-  name: string;
-  age: number;
-}
-
-const columns = defineColumns<Row>()([
-  { id: "name", header: "Name", accessorKey: "name", type: "text" },
-  { id: "age", header: "Age", accessorKey: "age", type: "number" },
-]);
-
-const initialRows: Row[] = [
-  { id: "1", name: "Ada Lovelace", age: 36 },
-  { id: "2", name: "Alan Turing", age: 41 },
-  { id: "3", name: "Grace Hopper", age: 85 },
-];
-
-function App() {
-  const { data, getRowId, onDataChange, onUndo, onRedo } = useDataGridState(initialRows, {
-    getRowId: (row: Row) => row.id,
-  });
-
-  return (
-    <div className="p-8">
-      <h1 className="mb-4 text-xl font-semibold">gridcn smoke test</h1>
-      <DataGridProvider
-        data={data}
-        columns={columns}
-        getRowId={getRowId}
-        onDataChange={onDataChange}
-        onUndo={onUndo}
-        onRedo={onRedo}
-      >
-        <DataGridToolbar>
-          <DataGridSearch />
-        </DataGridToolbar>
-        <DataGridRoot>
-          <DataGridHeader />
-          <DataGridBody />
-        </DataGridRoot>
-      </DataGridProvider>
-    </div>
-  );
-}
-
-export default App
-'@ | Set-Content -Path "src/App.tsx" -Encoding utf8
+  Write-SmokePage -path "src/App.tsx" -clientLine "" -alias "~" -signature "function App()" -exportLine "export default App"
 
   Write-Host "Typechecking (tsc --noEmit -p tsconfig.app.json)"
   npx tsc --noEmit -p tsconfig.app.json

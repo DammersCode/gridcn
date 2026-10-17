@@ -1,7 +1,8 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { GRID_LAYER, type GridRect, type OverlayPluginCtx } from "@/registry/default/blocks/data-grid/data-grid";
+import type { GridRect, OverlayPluginCtx } from "@/registry/default/blocks/data-grid/data-grid";
+import { GRID_LAYER, hasAnyPin } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { FillHandleHandlers } from "./use-fill-handle";
 
 /** The dashed fill-drag preview rect, window-relative, grid-line placed like core's own RangeOverlay; pinned segments add their zone's counter-offset + z-index 2 (above pinned cells' z1). */
@@ -63,39 +64,38 @@ function FillHandle({
 
 /**
  * Everything {@link renderFillOverlay} needs beyond the plugin `ctx` — the live selection/editing
- * state and drag preview the built-in overlay layer used to read directly from core's own store,
- * plus `onPointerDown` itself (sourced from the add-on's `fillStore`, since the real handler is
- * produced by `FillHandleTracker`, which renders in a different part of the tree than this plugin
- * — see fill-store.ts's doc comment on `onPointerDown`).
+ * state and drag preview, plus `onPointerDown` itself (sourced from the add-on's `fillStore`,
+ * since the real handler is produced by the plugin's `Mount`, which renders in a different part of
+ * the tree than this overlay — see fill-store.ts's doc comment on `onPointerDown`).
  */
 export type FillOverlayState = {
   fillPreview: GridRect | null;
-  /** Primary selection range (view-space), or `null` when there's no current range (row/column-channel-only selection, or a clear). */
+  /** Primary selection range (view-index), or `null` when there's no current range (row/column-channel-only selection, or a clear). */
   primaryRange: GridRect | null;
   /** True while a cell is being edited — hides the handle. */
   editing: boolean;
   /** Fill is disabled (grid readOnly or the add-on's `disabled: true` option), so the handle would be dead UI — hidden. */
   disabled: boolean;
-  /** `null` before `FillHandleTracker` mounts (or if it's never rendered) — hides the handle. */
+  /** `null` before the plugin's `Mount` mounts — hides the handle. */
   onPointerDown: FillHandleHandlers["onPointerDown"] | null;
 };
 
 /**
  * Renders the fill-preview strip and the fill handle into the overlay layer using the SAME
  * window-clamp + pin-zone segmentation pipeline core's own built-in overlays use (via `ctx`).
- * This is the function registered as `OverlayPlugin`: preview before the plugin slot, handle
- * after the active-cell ring (the ring is core's own concern — see the ctx's doc comment on
- * plugin placement), so DOM order matches the built-in layers.
+ * The fill plugin's `Overlay` component is this render: preview before the active-cell ring (the
+ * ring is core's own concern — see the ctx's doc comment on plugin placement), so DOM order
+ * matches the built-in layers.
  */
 export function renderFillOverlay(state: FillOverlayState, ctx: OverlayPluginCtx): ReactNode {
   const { windowStart, clampRowStart, clampRowEnd, colCount, colOffset, pinTrack, splitRectByPinZones, clampRectToWindow } = ctx;
-  const pinned = pinTrack && pinTrack.pins.some((p) => p === "left" || p === "right") ? pinTrack : undefined;
+  const pinned = hasAnyPin(pinTrack) ? pinTrack : undefined;
   const segment = (rect: GridRect) => (pinned ? splitRectByPinZones(rect, pinned) : [{ rect, pinStyle: undefined }]);
 
   const clampedFillPreview = state.fillPreview ? clampRectToWindow(state.fillPreview, clampRowStart, clampRowEnd, colCount) : null;
 
   // hidden while editing, when disabled (the fill would be dead UI), when selection is
-  // rows/columns-channel only (no `current` range), or before FillHandleTracker has registered a
+  // rows/columns-channel only (no `current` range), or before the plugin's `Mount` has registered a
   // handler — the same guard the built-in layer uses.
   const onPointerDown = state.onPointerDown;
   const showFillHandle = onPointerDown && !state.editing && state.primaryRange && !state.disabled;

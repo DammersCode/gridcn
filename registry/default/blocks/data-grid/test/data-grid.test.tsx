@@ -1,8 +1,12 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, beforeAll, vi } from "vitest";
-import { memo, useState } from "react";
+import { createRef, memo, useLayoutEffect, useState } from "react";
 import type { CellType, ColumnDef } from "../types";
-import { DataGrid, DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, useDataGridActions, useDataGridCellState, useDataGridRow, GRID_ATTR, gridAttrSelector } from "../data-grid";
+import { textCellType } from "../cell-types/cell-types";
+import { DataGrid, DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, useDataGridActions, useDataGridApi, useDataGridCellState, useDataGridRow, useDataGridScrollToCell, type DataGridApi } from "../data-grid";
+import { useDataGridStoreApi, GRID_ATTR, gridAttrSelector, type DataGridStoreState } from "../data-grid-sdk";
+import { useDataGridInternalActions, useDataGridStoreApi as useRawStoreApi } from "../store";
+import type { StoreApi } from "zustand/vanilla";
 
 type Row = { id: string; name: string; qty: number };
 
@@ -42,10 +46,10 @@ describe("DataGrid ARIA structure", () => {
     expect(content.style.height).toBe("360036px"); // 36 header + 10000*36
   });
 
-  it("renders only the windowed rows for 10k rows, not all of them", () => {
+  it("renders only the virtualized rows for 10k rows, not all of them", () => {
     render(<DataGrid data={makeRows(10000)} columns={columns} getRowId={(r) => r.id} />);
     const rows = screen.getAllByRole("row");
-    // header row (display:contents, role=row) + a small windowed subset, never 10000
+    // header row (display:contents, role=row) + a small virtualized subset, never 10000
     expect(rows.length).toBeGreaterThan(1);
     expect(rows.length).toBeLessThan(50);
   });
@@ -442,7 +446,7 @@ describe("aria-sort under the default headerClickBehavior", () => {
   });
 });
 
-describe("onCellClick / onRowClick", () => {
+describe("onCellClick", () => {
   it("onCellClick fires with the clicked cell's value/row/column/indices", () => {
     const onCellClick = vi.fn();
     render(<DataGrid data={makeRows(2)} columns={columns} getRowId={(r) => r.id} onCellClick={onCellClick} />);
@@ -451,36 +455,13 @@ describe("onCellClick / onRowClick", () => {
 
     expect(onCellClick).toHaveBeenCalledTimes(1);
     const [ctx] = onCellClick.mock.calls[0]!;
-    expect(ctx).toMatchObject({ value: "Row 1", rowIndex: 1, columnIndex: 0 });
+    expect(ctx).toMatchObject({ value: "Row 1", rowId: "1", columnId: "name", viewRowIndex: 1, viewColumnIndex: 0 });
     expect(ctx.row).toEqual({ id: "1", name: "Row 1", qty: 1 });
     expect(ctx.column.id).toBe("name");
   });
 
-  it("onRowClick fires alongside onCellClick, once per click regardless of column", () => {
-    const onRowClick = vi.fn();
-    render(<DataGrid data={makeRows(2)} columns={columns} getRowId={(r) => r.id} onRowClick={onRowClick} />);
-    const cells = screen.getAllByRole("gridcell");
-    fireEvent.click(cells[3]!); // row 1, "qty" column
-
-    expect(onRowClick).toHaveBeenCalledTimes(1);
-    expect(onRowClick.mock.calls[0]![0]).toEqual({ row: { id: "1", name: "Row 1", qty: 1 }, rowIndex: 1 });
-  });
-
-  it("both fire together from the same click when both props are supplied", () => {
-    const onCellClick = vi.fn();
-    const onRowClick = vi.fn();
-    render(
-      <DataGrid data={makeRows(1)} columns={columns} getRowId={(r) => r.id} onCellClick={onCellClick} onRowClick={onRowClick} />,
-    );
-    fireEvent.click(screen.getAllByRole("gridcell")[0]!);
-
-    expect(onCellClick).toHaveBeenCalledTimes(1);
-    expect(onRowClick).toHaveBeenCalledTimes(1);
-  });
-
-  it("neither fires without the corresponding prop (no cost when unused)", () => {
+  it("a click without an onCellClick prop does not throw", () => {
     render(<DataGrid data={makeRows(1)} columns={columns} getRowId={(r) => r.id} />);
-    // no assertion needed beyond "doesn't throw" — this documents the props are fully optional.
     expect(() => fireEvent.click(screen.getAllByRole("gridcell")[0]!)).not.toThrow();
   });
 });
@@ -661,6 +642,76 @@ describe("DataGrid cell-type-driven rendering and editing lifecycle", () => {
     const [nextData] = onDataChange.mock.calls[0]!;
     expect(nextData[0]!.active).toBe(true);
   });
+
+  it("a session opened on a checkbox cell directly through the store closes as a cancel, without a write", () => {
+    type BoolRow = { id: string; active: boolean };
+    const boolColumns: readonly ColumnDef<BoolRow, unknown>[] = [
+      { id: "active", header: "Active", accessorKey: "active", type: "checkbox" },
+    ];
+    const onDataChange = vi.fn();
+    const onEditEnd = vi.fn();
+    const ref = createRef<DataGridApi<BoolRow>>();
+    let rawStore: StoreApi<DataGridStoreState> | null = null;
+    function RawStoreCapture() {
+      rawStore = useRawStoreApi();
+      return null;
+    }
+    render(
+      <DataGrid ref={ref} data={[{ id: "1", active: false }]} columns={boolColumns} getRowId={(r) => r.id} onDataChange={onDataChange} onEditEnd={onEditEnd}>
+        <RawStoreCapture />
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGrid>,
+    );
+
+    act(() => {
+      rawStore!.setState({ editing: { coord: { col: 0, row: 0 }, rowId: "1", columnId: "active", session: 1 } });
+    });
+
+    expect(ref.current!.store.getState().editing).toBeNull();
+    expect(onEditEnd).toHaveBeenCalledWith(expect.objectContaining({ result: "cancel" }));
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("a custom type's `activate` runs in place on Enter — no editor opens (the type owns the gesture, not the name)", () => {
+    type CountRow = { id: string; count: number };
+    const counterCellType: CellType<unknown, number> = {
+      Cell: ({ value }) => <span>{String(value)}</span>,
+      Editor: () => null,
+      toText: (value) => (value == null ? "" : String(value)),
+      fromText: (text) => Number(text) || 0,
+      clearValue: () => 0,
+      isEmpty: (value) => value == null,
+      activate: (value) => value + 1,
+    };
+    const counterColumns: readonly ColumnDef<CountRow, unknown>[] = [
+      { id: "count", header: "Count", accessorKey: "count", type: "counter" },
+    ];
+    const onDataChange = vi.fn<(next: readonly CountRow[]) => void>();
+    render(
+      <DataGrid
+        data={[{ id: "1", count: 5 }]}
+        columns={counterColumns}
+        getRowId={(r) => r.id}
+        cellTypes={{ counter: counterCellType }}
+        onDataChange={onDataChange}
+      />,
+    );
+    const grid = screen.getByRole("grid");
+    const cell = screen.getAllByRole("gridcell")[0]!;
+    fireEvent.pointerDown(cell, { button: 0 });
+    fireEvent.keyDown(grid, { key: "Enter" });
+
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    const [nextData] = onDataChange.mock.calls[0]!;
+    expect(nextData[0]!.count).toBe(6);
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    // a second press toggles again — the gesture repeats through the same path
+    fireEvent.pointerDown(cell, { button: 0 });
+    fireEvent.keyDown(grid, { key: "Enter" });
+    expect(onDataChange).toHaveBeenCalledTimes(2);
+    expect(onDataChange.mock.calls[1]![0][0]!.count).toBe(7);
+  });
 });
 
 describe("edit stash is seeded at editor open, not re-seeded on every render", () => {
@@ -756,6 +807,36 @@ describe("edit stash is seeded at editor open, not re-seeded on every render", (
     expect(onDataChange).not.toHaveBeenCalled();
     expect(screen.getByText("Row 0")).toBeInTheDocument();
   });
+
+  it("hands the editor the cell's rowId and columnId", () => {
+    const seen: { rowId?: string; columnId?: string }[] = [];
+    function RecordingEditor({ rowId, columnId }: { rowId?: string; columnId?: string }) {
+      useLayoutEffect(() => {
+        seen.push({ rowId, columnId });
+      });
+      return null;
+    }
+    const recordingCellType: CellType<unknown, string> = {
+      Cell: ({ value }) => <span>{value}</span>,
+      Editor: RecordingEditor,
+      toText: (value) => (value == null ? "" : String(value)),
+      fromText: (text) => text,
+      clearValue: () => "",
+      isEmpty: (value) => value == null || value === "",
+    };
+    render(
+      <DataGrid
+        data={makeRows(2)}
+        columns={[{ id: "name", header: "Name", accessorKey: "name", type: "recording" }]}
+        getRowId={(r) => r.id}
+        cellTypes={{ recording: recordingCellType }}
+      />,
+    );
+    const grid = screen.getByRole("grid");
+    fireEvent.pointerDown(screen.getAllByRole("gridcell")[1]!, { button: 0 });
+    fireEvent.keyDown(grid, { key: "F2" });
+    expect(seen).toEqual([{ rowId: "1", columnId: "name" }]);
+  });
 });
 
 describe("date editor placeholder (labels.grid.datePlaceholder)", () => {
@@ -799,9 +880,9 @@ describe("DataGrid selection changes re-render only overlays + the two affected 
     }
     const MemoCountingRow = memo(CountingRow);
 
-    let actionsRef: ReturnType<typeof useDataGridActions> | null = null;
+    let actionsRef: ReturnType<typeof useDataGridInternalActions> | null = null;
     function ActionsCapture() {
-      actionsRef = useDataGridActions();
+      actionsRef = useDataGridInternalActions();
       return null;
     }
 
@@ -817,10 +898,10 @@ describe("DataGrid selection changes re-render only overlays + the two affected 
     const before = [...rowRenderCounts];
 
     act(() => {
-      actionsRef!.selectCell({ col: 0, row: 0 });
+      actionsRef!.selectCellAt({ col: 0, row: 0 });
     });
     act(() => {
-      actionsRef!.selectCell({ col: 1, row: 0 });
+      actionsRef!.selectCellAt({ col: 1, row: 0 });
     });
     act(() => {
       actionsRef!._moveActiveCell({ dx: 0, dy: 1 });
@@ -885,7 +966,7 @@ describe("onSelectionChange / onColumnLayoutChange fire from store actions witho
     const cellsBefore = cellRenderCount;
 
     act(() => {
-      actionsRef!.selectCell({ col: 0, row: 0 });
+      actionsRef!.selectCellAt({ col: 0, row: 0 });
     });
 
     expect(onSelectionChange).toHaveBeenCalledTimes(1);
@@ -927,8 +1008,8 @@ describe("onSelectionChange / onColumnLayoutChange fire from store actions witho
     const rowsBefore = [...rowRenderCounts];
 
     act(() => {
-      actionsRef!.selectCell({ col: 0, row: 0 });
-      actionsRef!.extendTo({ col: 1, row: 1 });
+      actionsRef!.selectCellAt({ col: 0, row: 0 });
+      actionsRef!.extendToAt({ col: 1, row: 1 });
     });
 
     expect(onSelectionChange).toHaveBeenCalledTimes(2);
@@ -1005,14 +1086,14 @@ describe("useDataGridCellState consolidates 6 store reads into 1 subscription", 
 
     // activating this cell flips exactly one of the 4 tracked primitives (isActive) once.
     act(() => {
-      actionsRef!.selectCell({ col: 0, row: 0 });
+      actionsRef!.selectCellAt({ col: 0, row: 0 });
     });
     expect(renderCount).toBe(before + 1);
 
     // moving the active cell elsewhere flips isActive back — one more render, not a burst of 4+
     // (one per formerly-separate atomic hook) from a single logical state transition.
     act(() => {
-      actionsRef!.selectCell({ col: 1, row: 0 });
+      actionsRef!.selectCellAt({ col: 1, row: 0 });
     });
     expect(renderCount).toBe(before + 2);
   });
@@ -1041,10 +1122,10 @@ describe("useDataGridCellState consolidates 6 store reads into 1 subscription", 
 
     const before = renderCount;
     act(() => {
-      actionsRef!.selectCell({ col: 0, row: 0 });
+      actionsRef!.selectCellAt({ col: 0, row: 0 });
     });
     act(() => {
-      actionsRef!.selectCell({ col: 0, row: 1 });
+      actionsRef!.selectCellAt({ col: 0, row: 1 });
     });
     expect(renderCount).toBe(before);
   });
@@ -1057,7 +1138,7 @@ describe("row prop identity survives a scroll that keeps the same rows in view",
     fireEvent.scroll(grid, { target: { scrollTop: 720 } }); // settle on a fixed window first
     const rowsBefore = screen.getAllByRole("row").filter((r) => r.getAttribute("aria-rowindex"));
 
-    // same scrollTop again: the row window ({start,end}) is unchanged, so windowedColumns/layout/
+    // same scrollTop again: the row window ({start,end}) is unchanged, so renderedColumns/layout/
     // readOnly/rowMarkers passed to every DataGridRow are the same references as last render —
     // DataGridRow's memo must bail and React must reuse every existing row node.
     fireEvent.scroll(grid, { target: { scrollTop: 720 } });
@@ -1098,9 +1179,9 @@ describe("DataGridCell memo prop-stability audit", () => {
         id: "name",
         header: "Name",
         accessorKey: "name",
-        renderCell: ({ value, rowIndex }) => {
+        renderCell: ({ value, viewRowIndex }) => {
           renderCount++;
-          perRowCounts[rowIndex] = (perRowCounts[rowIndex] ?? 0) + 1;
+          perRowCounts[viewRowIndex] = (perRowCounts[viewRowIndex] ?? 0) + 1;
           return String(value);
         },
       },
@@ -1119,8 +1200,8 @@ describe("DataGridCell memo prop-stability audit", () => {
     const { getPerRowCounts } = await renderCountingGrid(3);
     const grid = screen.getByRole("grid");
     // activating the FIRST cell moves `activeColumn` null -> 0, which recomputes root.tsx's
-    // columnIndices/windowedColumns (deps include activeColumn) to a new array reference — every
-    // row legitimately re-renders once for that (documented in row.tsx: "windowedColumns prop
+    // columnIndices/renderedColumns (deps include activeColumn) to a new array reference — every
+    // row legitimately re-renders once for that (documented in row.tsx: "renderedColumns prop
     // changes" is an inherent, accepted cost). Settle past that one-time cost before measuring.
     fireEvent.pointerDown(screen.getAllByRole("gridcell")[0]!, { button: 0 }); // activates row 0, col 0
     const before = getPerRowCounts();
@@ -1157,19 +1238,42 @@ describe("DataGridCell memo prop-stability audit", () => {
     expect(renderCount).toBeGreaterThan(before);
   });
 
-  it("readOnly: flipping grid-level readOnly re-renders cells (gridReadOnly prop genuinely changes)", () => {
-    let renderCount = 0;
+  it("readOnly: flipping grid-level readOnly reaches every cell's render (gridReadOnly genuinely changes)", () => {
     const probeColumns: readonly ColumnDef<Row, unknown>[] = [
-      { id: "name", header: "Name", accessorKey: "name", renderCell: ({ value }) => { renderCount++; return String(value); } },
+      { id: "name", header: "Name", accessorKey: "name" },
       { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
     ];
     const rows = makeRows(2); // stable reference across rerenders — isolates readOnly as the only changed input
     const { rerender } = render(<DataGrid data={rows} columns={probeColumns} getRowId={(r) => r.id} readOnly={false} />);
-    const before = renderCount;
+    const cell = screen.getAllByRole("gridcell")[0]!; // row 0, name col
+    expect(cell.hasAttribute("data-readonly")).toBe(false);
     rerender(<DataGrid data={rows} columns={probeColumns} getRowId={(r) => r.id} readOnly={true} />);
-    // `gridReadOnly` genuinely flips for every rendered cell — a memo that dropped it from its
-    // comparator would swallow this entirely (renderCount unchanged); it must fire again.
-    expect(renderCount).toBeGreaterThan(before);
+    // The cell's own `data-readonly` hook (see styling-theming docs) reads the resolved readOnly,
+    // so its appearance proves the flip reached the cell's render — a memo/comparator that dropped
+    // gridReadOnly would keep it absent. (Content re-invocation is not asserted: the React Compiler
+    // legitimately skips re-invoking a cell type's render when none of its inputs changed.)
+    expect(cell.hasAttribute("data-readonly")).toBe(true);
+  });
+
+  it("cellTypes: a fresh literal with the same entries does not re-render cells", () => {
+    let renderCount = 0;
+    const counting: CellType<unknown, unknown> = {
+      ...(textCellType as unknown as CellType<unknown, unknown>),
+      Cell: ({ value }) => {
+        renderCount++;
+        return <span>{String(value)}</span>;
+      },
+    };
+    const probeColumns: readonly ColumnDef<Row, unknown>[] = [{ id: "name", header: "Name", accessorKey: "name", type: "counting" as never }];
+    const rows = makeRows(2);
+    const getRowId = (r: Row) => r.id;
+    const { rerender } = render(<DataGrid data={rows} columns={probeColumns} getRowId={getRowId} cellTypes={{ counting }} />);
+    // the first re-render settles the viewport measurement, which re-renders cells once with any props
+    rerender(<DataGrid data={rows} columns={probeColumns} getRowId={getRowId} cellTypes={{ counting }} />);
+    const before = renderCount;
+    expect(before).toBeGreaterThan(0);
+    rerender(<DataGrid data={rows} columns={probeColumns} getRowId={getRowId} cellTypes={{ counting }} />);
+    expect(renderCount).toBe(before);
   });
 
   it("density: a rowHeight/density change does not require the cell's own props to differ (layout-only, template-level)", () => {
@@ -1281,8 +1385,8 @@ describe("selection membership flips re-render only the affected cells (2026-09-
       id: `c${col}`,
       header: `C${col}`,
       accessorKey: "name",
-      renderCell: ({ value, rowIndex }: { value: unknown; rowIndex: number }) => {
-        cellCounts[rowIndex * colCount + col] = (cellCounts[rowIndex * colCount + col] ?? 0) + 1;
+      renderCell: ({ value, viewRowIndex }: { value: unknown; viewRowIndex: number }) => {
+        cellCounts[viewRowIndex * colCount + col] = (cellCounts[viewRowIndex * colCount + col] ?? 0) + 1;
         return String(value);
       },
     }));
@@ -1318,8 +1422,8 @@ describe("selection membership flips re-render only the affected cells (2026-09-
     const { actions, totalCellRenders, rowRenders } = await renderCountingSelectionGrid();
 
     act(() => {
-      actions().selectCell({ col: 0, row: 0 });
-      actions().extendTo({ col: 1, row: 0 });
+      actions().selectCellAt({ col: 0, row: 0 });
+      actions().extendToAt({ col: 1, row: 0 });
     });
     await act(async () => {});
 
@@ -1327,7 +1431,7 @@ describe("selection membership flips re-render only the affected cells (2026-09-
     const rowsBefore = rowRenders();
 
     act(() => {
-      actions().extendTo({ col: 1, row: 1 });
+      actions().extendToAt({ col: 1, row: 1 });
     });
     await act(async () => {});
 
@@ -1347,13 +1451,13 @@ describe("selection membership flips re-render only the affected cells (2026-09-
     const { actions, totalCellRenders } = await renderCountingSelectionGrid();
 
     act(() => {
-      actions().selectCell({ col: 0, row: 0 });
+      actions().selectCellAt({ col: 0, row: 0 });
     });
     await act(async () => {});
 
     const cellsBefore = totalCellRenders();
     act(() => {
-      actions().extendTo({ col: 1, row: 2 });
+      actions().extendToAt({ col: 1, row: 2 });
     });
     await act(async () => {});
 
@@ -1372,6 +1476,244 @@ describe("selection membership flips re-render only the affected cells (2026-09-
     });
     await act(async () => {});
     expect(totalCellRenders() - cellsAfterJump).toBe(0);
+  });
+});
+
+describe("DataGrid wrapper render slots", () => {
+  it("forwards renderHeaderMenu to the root, one trigger per column", () => {
+    render(
+      <DataGrid
+        data={makeRows(3)}
+        columns={columns}
+        getRowId={(r) => r.id}
+        renderHeaderMenu={(ctx) => (
+          <span>
+            {ctx.trigger}
+            <span>menu-slot</span>
+          </span>
+        )}
+      />,
+    );
+    const triggers = document.querySelectorAll(gridAttrSelector("headerMenuTrigger"));
+    expect(triggers.length).toBe(2);
+    expect(document.body.textContent).toContain("menu-slot");
+  });
+
+  it("renders no header-menu trigger when renderHeaderMenu is omitted", () => {
+    render(<DataGrid data={makeRows(3)} columns={columns} getRowId={(r) => r.id} />);
+    expect(document.querySelector(gridAttrSelector("headerMenuTrigger"))).toBeNull();
+  });
+});
+
+describe("DataGridApi (imperative handle)", () => {
+  const unsorted: Row[] = [
+    { id: "2", name: "Charlie", qty: 30 },
+    { id: "1", name: "Bob", qty: 20 },
+    { id: "0", name: "Alice", qty: 10 },
+  ];
+
+  function renderWithHandle(props: { data: Row[] } = { data: makeRows(5) }) {
+    const ref = { current: null as DataGridApi<Row> | null };
+    const utils = render(
+      <DataGrid ref={(api) => { ref.current = api; }} data={props.data} columns={columns} getRowId={(r) => r.id} />,
+    );
+    return { ref, ...utils };
+  }
+
+  it("assigns one stable handle to the ref across re-renders", () => {
+    const seen: DataGridApi<Row>[] = [];
+    function Harness({ count }: { count: number }) {
+      return (
+        <DataGrid
+          ref={(api) => {
+            if (api) seen.push(api);
+          }}
+          data={makeRows(count)}
+          columns={columns}
+          getRowId={(r) => r.id}
+        />
+      );
+    }
+    const { rerender } = render(<Harness count={5} />);
+    rerender(<Harness count={3} />);
+    // the callback ref re-fires on re-render (new callback identity), but with the SAME object
+    expect(new Set(seen).size).toBe(1);
+    expect(seen[0]!.getRow(0)?.name).toBe("Row 0");
+  });
+
+  it("keeps one stable object across re-renders when called under the root (manual composition)", () => {
+    const seen: DataGridApi<Row>[] = [];
+    // A new `pass` re-renders Capture instead of letting React bail out.
+    function Capture({ pass }: { pass: number }) {
+      const api = useDataGridApi<Row>();
+      seen.push(api);
+      return <span data-pass={pass} />;
+    }
+    function Harness({ pass }: { pass: number }) {
+      return (
+        <DataGridProvider data={makeRows(3)} columns={columns} getRowId={(r) => r.id}>
+          <DataGridRoot>
+            <Capture pass={pass} />
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    const { rerender } = render(<Harness pass={1} />);
+    rerender(<Harness pass={2} />);
+    expect(seen.length).toBe(2);
+    expect(seen[1]).toBe(seen[0]);
+  });
+
+  it("works in a sibling of DataGridRoot and hands the same handle to the provider's ref", () => {
+    let sibling: DataGridApi<Row> | null = null;
+    const providerRef = createRef<DataGridApi<Row>>();
+    function Toolbar() {
+      sibling = useDataGridApi<Row>();
+      return null;
+    }
+    render(
+      <DataGridProvider ref={providerRef} data={makeRows(3)} columns={columns} getRowId={(r) => r.id}>
+        <Toolbar />
+        <DataGridRoot>
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    expect(sibling!.getViewRowIds()).toEqual(["0", "1", "2"]);
+    expect(providerRef.current).toBe(sibling);
+    expect(Object.keys(sibling!.actions).some((name) => name.startsWith("_"))).toBe(false);
+    act(() =>
+      sibling!.setSelection({
+        anchor: { rowId: "1", columnId: "name" },
+        range: { start: { rowId: "1", columnId: "name" }, end: { rowId: "1", columnId: "name" } },
+        rangeStack: [],
+        rowIds: [],
+        columnIds: [],
+      }),
+    );
+    act(() => sibling!.focus());
+    expect((document.activeElement as HTMLElement).textContent).toContain("Row 1");
+  });
+
+  it("exposes the shared actions, store, and scroll closure", () => {
+    let probe: { actions: unknown; store: unknown; scrollTo: unknown; api: DataGridApi<Row> } | null = null;
+    function Capture() {
+      probe = { actions: useDataGridActions(), store: useDataGridStoreApi(), scrollTo: useDataGridScrollToCell(), api: useDataGridApi() };
+      return null;
+    }
+    render(
+      <DataGridProvider data={makeRows(3)} columns={columns} getRowId={(r) => r.id}>
+        <DataGridRoot>
+          <Capture />
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    // actions and store are store-owned: the same objects the shared hooks return
+    expect(probe!.api.actions).toBe(probe!.actions);
+    expect(probe!.api.store).toBe(probe!.store);
+    expect(typeof probe!.api.scrollTo).toBe("function");
+  });
+
+  it("getRow and getViewRowIds read the current (sorted) view", () => {
+    const { ref } = renderWithHandle({ data: unsorted });
+    act(() => ref.current!.actions.setSorts([{ columnId: "name", direction: "asc" }]));
+    // name-asc: Alice(0) view 0, Bob(1) view 1, Charlie(2) view 2 — data order is Charlie first
+    expect(ref.current!.getViewRowIds()).toEqual(["0", "1", "2"]);
+    expect(ref.current!.getRow(0)?.id).toBe("0");
+    expect(ref.current!.getRow(2)?.id).toBe("2");
+    expect(ref.current!.getRow(99)).toBeUndefined();
+  });
+
+  it("getViewRowIds maps an unloaded row (lazy hole) to its placeholder id without calling getRowId on it", () => {
+    const rows = makeRows(3);
+    const sparse = [rows[0]!, undefined, rows[2]!] as Row[];
+    const ref = { current: null as DataGridApi<Row> | null };
+    render(<DataGrid ref={(api) => { ref.current = api; }} data={sparse} columns={columns} getRowId={(r) => r.id} />);
+    expect(ref.current!.getViewRowIds()).toEqual(["0", "__lazy-unloaded-1", "2"]);
+  });
+
+  it("setSelection applies the named selection at its resolved view cells; null clears", () => {
+    const { ref } = renderWithHandle({ data: unsorted });
+    act(() => ref.current!.actions.setSorts([{ columnId: "name", direction: "asc" }]));
+    act(() =>
+      ref.current!.setSelection({
+        anchor: { rowId: "2", columnId: "qty" },
+        range: { start: { rowId: "2", columnId: "qty" }, end: { rowId: "2", columnId: "qty" } },
+        rangeStack: [],
+        rowIds: [],
+        columnIds: [],
+      }),
+    );
+    expect(ref.current!.getSelection().anchor).toEqual({ rowId: "2", columnId: "qty" });
+    act(() => ref.current!.setSelection(null));
+    expect(ref.current!.getSelection().range).toBeNull();
+  });
+
+  it("startEditing opens a session at the ref's cell; stopEditing discards it", () => {
+    const { ref } = renderWithHandle();
+    act(() => ref.current!.startEditing({ rowId: "0", columnId: "name" }));
+    expect(ref.current!.store.getState().editing).toMatchObject({ rowId: "0", columnId: "name" });
+    act(() => ref.current!.stopEditing());
+    expect(ref.current!.store.getState().editing).toBeNull();
+  });
+
+  it("startEditing is a no-op on a readOnly grid: no editor opens and a commit writes nothing", () => {
+    const ref = { current: null as DataGridApi<Row> | null };
+    const onDataChange = vi.fn();
+    render(
+      <DataGrid ref={(api) => { ref.current = api; }} data={makeRows(3)} columns={columns} getRowId={(r) => r.id} onDataChange={onDataChange} readOnly />,
+    );
+    act(() => ref.current!.startEditing({ rowId: "0", columnId: "name" }));
+    expect(ref.current!.store.getState().editing).toBeNull();
+    expect(document.querySelector(gridAttrSelector("cellEditor"))).toBeNull();
+    // the editor's Enter path
+    act(() => ref.current!.actions.commitCellEdit("changed", { dx: 0, dy: 1 }));
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("startEditing opens no session on a cell whose type declares activate", () => {
+    type CheckRow = Row & { done: boolean };
+    const ref = { current: null as DataGridApi<CheckRow> | null };
+    const onEditStart = vi.fn();
+    const rows: CheckRow[] = makeRows(2).map((r) => ({ ...r, done: false }));
+    const checkColumns: readonly ColumnDef<CheckRow, unknown>[] = [{ id: "done", header: "Done", accessorKey: "done", type: "checkbox" }];
+    render(
+      <DataGrid ref={(api) => { ref.current = api; }} data={rows} columns={checkColumns} getRowId={(r) => r.id} onEditStart={onEditStart} />,
+    );
+    act(() => ref.current!.startEditing({ rowId: "0", columnId: "done" }));
+    expect(ref.current!.store.getState().editing).toBeNull();
+    expect(onEditStart).not.toHaveBeenCalled();
+  });
+
+  it("focus() seeds (0,0) and lands focus there when nothing is active, then follows the active cell", () => {
+    const { ref } = renderWithHandle();
+    act(() => ref.current!.focus());
+    // the grid's focus onboarding seeds (0,0) as the active cell; the seeded cell takes DOM focus
+    expect(document.activeElement).toBe(document.querySelector("[data-active]"));
+    expect((document.activeElement as HTMLElement).textContent).toContain("Row 0");
+    act(() =>
+      ref.current!.setSelection({
+        anchor: { rowId: "2", columnId: "name" },
+        range: { start: { rowId: "2", columnId: "name" }, end: { rowId: "2", columnId: "name" } },
+        rangeStack: [],
+        rowIds: [],
+        columnIds: [],
+      }),
+    );
+    act(() => ref.current!.focus());
+    expect((document.activeElement as HTMLElement).textContent).toContain("Row 2");
+  });
+
+  it("focus() is a no-op while an edit session is open", () => {
+    const { ref } = renderWithHandle();
+    act(() => ref.current!.startEditing({ rowId: "0", columnId: "name" }));
+    act(() => ref.current!.focus());
+    expect(document.activeElement).not.toBe(document.querySelector("[data-active]"));
   });
 });
 

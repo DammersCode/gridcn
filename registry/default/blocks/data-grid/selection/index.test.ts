@@ -5,7 +5,6 @@ import {
   rectFromCorners,
   combineRects,
   rectContains,
-  pointInRect,
   intersectRect,
   emptySelection,
   selectCell,
@@ -13,6 +12,8 @@ import {
   extendTo,
   extendSelection,
   pushRange,
+  removeRowFromSelection,
+  isRowChecked,
   selectionContainsCell,
   selectionRects,
   selectRow,
@@ -39,14 +40,12 @@ describe("rect helpers", () => {
     expect(combineRects(a, b)).toEqual({ x: 0, y: 0, width: 5, height: 5 });
   });
 
-  it("rectContains / pointInRect agree and respect the half-open far edge", () => {
+  it("rectContains respects the half-open far edge", () => {
     const rect = { x: 1, y: 1, width: 2, height: 2 }; // cols 1-2, rows 1-2
     expect(rectContains(rect, { col: 1, row: 1 })).toBe(true);
     expect(rectContains(rect, { col: 2, row: 2 })).toBe(true);
     expect(rectContains(rect, { col: 3, row: 1 })).toBe(false);
     expect(rectContains(rect, { col: 1, row: 3 })).toBe(false);
-    expect(pointInRect({ col: 1, row: 1 }, rect)).toBe(true);
-    expect(pointInRect({ col: 3, row: 1 }, rect)).toBe(false);
   });
 
   it("intersectRect returns overlap or null when disjoint", () => {
@@ -116,10 +115,24 @@ describe("extendTo", () => {
     const extended = extendTo(emptySelection(), { col: 2, row: 2 });
     expect(extended.current?.cell).toEqual({ col: 2, row: 2 });
   });
+
+  it("returns its input unchanged when the resulting range equals the current one", () => {
+    const start = selectCell({ col: 2, row: 2 });
+    const extended = extendTo(start, { col: 5, row: 4 });
+    // a stationary drag re-fires extendTo at the same far corner: same content, same identity
+    expect(extendTo(extended, { col: 5, row: 4 })).toBe(extended);
+  });
 });
 
 describe("extendSelection", () => {
   const opts = { rowCount: 20, colCount: 20 };
+
+  it("returns its input unchanged when the range cannot grow (anchor on the edge)", () => {
+    const atBottom = selectCell({ col: 2, row: 19 });
+    expect(extendSelection(atBottom, "down", opts)).toBe(atBottom);
+    const atRight = selectCell({ col: 19, row: 2 });
+    expect(extendSelection(atRight, "right", opts)).toBe(atRight);
+  });
 
   it("grows the far edge downward when anchor is at the top", () => {
     let sel = selectCell({ col: 2, row: 5 });
@@ -185,7 +198,7 @@ describe("extendSelection", () => {
     let sel = selectCell({ col: 2, row: 5 });
     sel = extendSelection(sel, "down", { ...opts, toEdge: true });
     expect(sel.current?.range).toEqual({ x: 2, y: 5, width: 1, height: opts.rowCount - 5 });
-    // toEdge unconditionally sets near edge = anchor, far edge = boundary (glide/Excel: the
+    // toEdge unconditionally sets near edge = anchor, far edge = boundary (as in Excel: the
     // moving end jumps to the opposite boundary, crossing over the anchor)
     sel = extendSelection(sel, "up", { ...opts, toEdge: true });
     expect(sel.current?.range).toEqual({ x: 2, y: 0, width: 1, height: 6 }); // rows 0-5
@@ -252,7 +265,7 @@ describe("pushRange", () => {
     expect(sel.current?.range).toEqual({ x: 2, y: 2, width: 1, height: 1 });
   });
 
-  it("ctrl-clicking the already-active 1x1 cell still pushes it onto the stack (glide's unconditional push)", () => {
+  it("ctrl-clicking the already-active 1x1 cell still pushes it onto the stack (unconditional push)", () => {
     const sel = pushRange(selectCell({ col: 0, row: 0 }), { col: 0, row: 0 });
     expect(sel.current?.rangeStack).toEqual([{ x: 0, y: 0, width: 1, height: 1 }]);
   });
@@ -267,31 +280,31 @@ describe("pushRange", () => {
 describe("selectionContainsCell", () => {
   it("checks the primary range", () => {
     const sel = selectCell({ col: 2, row: 2 });
-    expect(selectionContainsCell(sel, { col: 2, row: 2 }, 10, 10)).toBe(true);
-    expect(selectionContainsCell(sel, { col: 3, row: 3 }, 10, 10)).toBe(false);
+    expect(selectionContainsCell(sel, { col: 2, row: 2 })).toBe(true);
+    expect(selectionContainsCell(sel, { col: 3, row: 3 })).toBe(false);
   });
 
   it("checks the range stack", () => {
     const sel = pushRange(selectCell({ col: 0, row: 0 }), { col: 5, row: 5 });
-    expect(selectionContainsCell(sel, { col: 0, row: 0 }, 10, 10)).toBe(true);
-    expect(selectionContainsCell(sel, { col: 5, row: 5 }, 10, 10)).toBe(true);
+    expect(selectionContainsCell(sel, { col: 0, row: 0 })).toBe(true);
+    expect(selectionContainsCell(sel, { col: 5, row: 5 })).toBe(true);
   });
 
   it("is false for a coord that misses the primary range and every stacked range", () => {
     const sel = pushRange(selectCell({ col: 0, row: 0 }), { col: 5, row: 5 });
-    expect(selectionContainsCell(sel, { col: 9, row: 9 }, 10, 10)).toBe(false);
+    expect(selectionContainsCell(sel, { col: 9, row: 9 })).toBe(false);
   });
 
   it("checks the rows channel (full width)", () => {
     const sel: GridSelection = { current: null, rows: CompactSelection.fromSingleSelection(3), columns: CompactSelection.empty() };
-    expect(selectionContainsCell(sel, { col: 99, row: 3 }, 10, 100)).toBe(true);
-    expect(selectionContainsCell(sel, { col: 0, row: 4 }, 10, 100)).toBe(false);
+    expect(selectionContainsCell(sel, { col: 99, row: 3 })).toBe(true);
+    expect(selectionContainsCell(sel, { col: 0, row: 4 })).toBe(false);
   });
 
   it("checks the columns channel (full height)", () => {
     const sel: GridSelection = { current: null, rows: CompactSelection.empty(), columns: CompactSelection.fromSingleSelection(2) };
-    expect(selectionContainsCell(sel, { col: 2, row: 99 }, 100, 10)).toBe(true);
-    expect(selectionContainsCell(sel, { col: 3, row: 0 }, 100, 10)).toBe(false);
+    expect(selectionContainsCell(sel, { col: 2, row: 99 })).toBe(true);
+    expect(selectionContainsCell(sel, { col: 3, row: 0 })).toBe(false);
   });
 });
 
@@ -508,6 +521,22 @@ describe("computeDataRegion", () => {
   });
 });
 
+describe("computeDataRegion at scale", () => {
+  const ROWS = 100_000;
+  const budgetMs = process.env["CI"] ? 400 : 200;
+
+  it("grows through 100k rows next to an empty column within the budget", () => {
+    const isEmptyAt: IsEmptyAt = (c) => c.col !== 0;
+
+    const start = performance.now();
+    const region = computeDataRegion({ col: 0, row: ROWS / 2 }, ROWS, 3, isEmptyAt);
+    const ms = performance.now() - start;
+
+    expect(region).toEqual({ x: 0, y: 0, width: 1, height: ROWS });
+    expect(ms).toBeLessThan(budgetMs);
+  });
+});
+
 describe("selectAllProgression", () => {
   it("dense data: stage 1 already selects the whole grid, keeping the anchor", () => {
     const sel = selectCell({ col: 4, row: 4 });
@@ -564,5 +593,56 @@ describe("selectAllProgression", () => {
     const { selection, stage } = selectAllProgression(sel, 10, 10, { col: 1, row: 1 }, isEmptyAt, "all");
     expect(selection.current?.range).toEqual({ x: 0, y: 0, width: 3, height: 3 });
     expect(stage).toBe("region");
+  });
+});
+
+describe("removeRowFromSelection", () => {
+  const at = (row: number, height = 1) => ({ x: 0, y: row, width: 2, height });
+  const sel = (range: ReturnType<typeof at>, rangeStack: ReturnType<typeof at>[] = []): GridSelection => ({
+    current: { cell: { col: 0, row: range.y }, range, rangeStack },
+    rows: CompactSelection.empty(),
+    columns: CompactSelection.empty(),
+  });
+
+  it("drops a single-row range and clears current", () => {
+    const next = removeRowFromSelection(sel(at(3)), 3);
+    expect(next.current).toBeNull();
+    expect(isRowChecked(next, 3)).toBe(false);
+  });
+
+  it("splits a range that spans the row and makes the piece holding the anchor primary", () => {
+    const next = removeRowFromSelection(sel(at(1, 5)), 3);
+    expect(isRowChecked(next, 3)).toBe(false);
+    expect([1, 2, 4, 5].every((r) => isRowChecked(next, r))).toBe(true);
+    expect(next.current!.range).toEqual(at(1, 2));
+    expect(next.current!.cell).toEqual({ col: 0, row: 1 });
+    expect(next.current!.rangeStack).toEqual([at(4, 2)]);
+  });
+
+  it("keeps the anchor in the lower piece when the anchor sits below the removed row", () => {
+    const selection: GridSelection = { ...sel(at(1, 5)), current: { cell: { col: 1, row: 5 }, range: at(1, 5), rangeStack: [] } };
+    const next = removeRowFromSelection(selection, 3);
+    expect(next.current!.range).toEqual(at(4, 2));
+    expect(next.current!.cell).toEqual({ col: 1, row: 5 });
+    expect(next.current!.rangeStack).toEqual([at(1, 2)]);
+  });
+
+  it("keeps the anchor column and clamps only the row when the anchor row itself is removed", () => {
+    const selection: GridSelection = { ...sel(at(1, 5)), current: { cell: { col: 1, row: 3 }, range: at(1, 5), rangeStack: [] } };
+    const next = removeRowFromSelection(selection, 3);
+    expect(next.current!.range).toEqual(at(4, 2));
+    expect(next.current!.cell).toEqual({ col: 1, row: 4 });
+  });
+
+  it("keeps only the piece holding the anchor when multiRange is false", () => {
+    const next = removeRowFromSelection(sel(at(1, 5)), 3, { multiRange: false });
+    expect(next.current!.range).toEqual(at(1, 2));
+    expect(next.current!.rangeStack).toEqual([]);
+  });
+
+  it("removes the row from the rows channel and returns the same object when the row is in neither", () => {
+    const withRow: GridSelection = { ...emptySelection(), rows: CompactSelection.fromSingleSelection(2) };
+    expect(removeRowFromSelection(withRow, 2).rows.hasIndex(2)).toBe(false);
+    expect(removeRowFromSelection(withRow, 4)).toBe(withRow);
   });
 });

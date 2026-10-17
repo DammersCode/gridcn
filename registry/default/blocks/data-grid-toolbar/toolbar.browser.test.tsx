@@ -8,11 +8,13 @@ import {
   DataGridBody,
   defineColumns,
   useDataGridActiveCell,
-  GRID_ATTR,
-  gridAttrSelector,
+  cellTypes,
+  type CellType,
   type ColumnDef,
+  type FilterValueInputProps,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridToolbar, DataGridSearch, DataGridFilterMenu, DataGridColumnsMenu } from "./data-grid-toolbar";
+import { GRID_ATTR, gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply
 import "@/app/global.css";
 
@@ -159,6 +161,35 @@ describe("DataGridSearch", () => {
     cellsAfter.forEach((cell, i) => expect(cell).toBe(cellsBefore[i]));
     expect(cellsAfter.some((c) => c.hasAttribute(GRID_ATTR.searchMatch))).toBe(true);
   });
+  it("a shrinking match list never shows an out-of-range index (e.g. 2/1) in the badge", async () => {
+    const shrinkingRows = [
+      { id: "r0", name: "alpha", email: "x1@example.com", age: 30 },
+      { id: "r1", name: "alphabet", email: "x2@example.com", age: 40 },
+      { id: "r2", name: "beta", email: "x3@example.com", age: 50 },
+    ];
+    await renderGrid(shrinkingRows);
+    await expect.element(page.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
+    const input = page.getByRole("textbox", { name: "Search grid" });
+
+    await input.fill("alp");
+    await expect.element(page.getByText("1/2")).toBeInTheDocument();
+
+    // record every badge text from here on — an out-of-range index (2/1) must never paint
+    const badge = document.querySelector<HTMLElement>("[data-grid-search-count]")!;
+    const observed: string[] = [];
+    const mo = new MutationObserver(() => observed.push(badge.textContent ?? ""));
+    mo.observe(badge, { childList: true, characterData: true, subtree: true });
+
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByText("2/2")).toBeInTheDocument();
+
+    // one match left: the badge must go straight to 1/1
+    await input.fill("alphab");
+    await expect.element(page.getByText("1/1")).toBeInTheDocument();
+
+    mo.disconnect();
+    expect(observed).not.toContain("2/1");
+  });
 });
 
 describe("DataGridSearch captureFindShortcut", () => {
@@ -218,6 +249,72 @@ describe("DataGridSearch captureFindShortcut", () => {
     expect(event.defaultPrevented).toBe(false);
   });
 
+  it("two grids on one page: mod+F focuses the search input of the grid that holds focus", async () => {
+    await render(
+      <>
+        <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id} labels={{ toolbar: { searchAriaLabel: "Search grid A" } }}>
+          <DataGridToolbar>
+            <DataGridSearch />
+          </DataGridToolbar>
+          <DataGridRoot className="h-[200px]">
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+        <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id} labels={{ toolbar: { searchAriaLabel: "Search grid B" } }}>
+          <DataGridToolbar>
+            <DataGridSearch />
+          </DataGridToolbar>
+          <DataGridRoot className="h-[200px]">
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      </>,
+    );
+    const [gridA, gridB] = document.querySelectorAll<HTMLElement>('[role="grid"]');
+    expect(gridA).not.toBeNull();
+    expect(gridB).not.toBeNull();
+    const inputA = page.getByRole("textbox", { name: "Search grid A" });
+    const inputB = page.getByRole("textbox", { name: "Search grid B" });
+    gridA!.querySelector<HTMLElement>('[role="gridcell"]')!.focus();
+    const eventA = dispatchModF(document.activeElement ?? document.body);
+    expect(eventA.defaultPrevented).toBe(true);
+    await expect.element(inputA).toHaveFocus();
+    await expect.element(inputB).not.toHaveFocus();
+    gridB!.querySelector<HTMLElement>('[role="gridcell"]')!.focus();
+    const eventB = dispatchModF(document.activeElement ?? document.body);
+    expect(eventB.defaultPrevented).toBe(true);
+    await expect.element(inputB).toHaveFocus();
+    await expect.element(inputA).not.toHaveFocus();
+  });
+
+  it("a custom [data-grid-toolbar] without an instance id still scopes mod+F to the search it holds", async () => {
+    const gridWithCustomToolbar = (name: string) => (
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id} labels={{ toolbar: { searchAriaLabel: `Search grid ${name}` } }}>
+        <div data-grid-toolbar="">
+          <button type="button">{`tool ${name}`}</button>
+          <DataGridSearch />
+        </div>
+        <DataGridRoot className="h-[200px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>
+    );
+    await render(
+      <>
+        {gridWithCustomToolbar("A")}
+        {gridWithCustomToolbar("B")}
+      </>,
+    );
+    page.getByRole("button", { name: "tool B" }).element().focus();
+    const event = dispatchModF(document.activeElement ?? document.body);
+    expect(event.defaultPrevented).toBe(true);
+    await expect.element(page.getByRole("textbox", { name: "Search grid B" })).toHaveFocus();
+    await expect.element(page.getByRole("textbox", { name: "Search grid A" })).not.toHaveFocus();
+  });
+
   it("captureFindShortcut={false} opts out: mod+F is never intercepted regardless of focus", async () => {
     await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
@@ -242,6 +339,48 @@ describe("DataGridSearch i18n labels", () => {
   it("a partial labels override replaces the search placeholder", async () => {
     await renderGridWithLabels({ toolbar: { searchPlaceholder: "Suchen…" } });
     await expect.element(page.getByPlaceholder("Suchen…")).toBeInTheDocument();
+  });
+});
+
+describe("DataGridFilterMenu value reset", () => {
+  function TierInput({ value }: FilterValueInputProps) {
+    return <span data-testid="tier-value">{JSON.stringify(value)}</span>;
+  }
+  const tierType: CellType = {
+    ...(cellTypes.text as unknown as CellType),
+    filter: { operators: ["isAnyOf", "equals", "isBetween"], valueInput: TierInput },
+  };
+  const tierColumns = defineColumns<Row>()([
+    { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140 },
+    { id: "email", header: "Tier", accessorKey: "email", type: "tier" as never, width: 200 },
+  ]);
+
+  it("gives a custom value input the empty value of the operator after a column or operator change", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={tierColumns} getRowId={(r) => r.id} cellTypes={{ tier: tierType } as never}>
+        <DataGridToolbar>
+          <DataGridFilterMenu />
+        </DataGridToolbar>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await page.getByRole("button", { name: "Filters" }).click();
+    await page.getByRole("button", { name: "Add filter" }).click();
+
+    await page.getByRole("combobox", { name: "Filter column" }).click();
+    await page.getByRole("option", { name: "Tier" }).click();
+    await expect.poll(() => document.querySelector('[data-testid="tier-value"]')?.textContent).toBe("[]");
+
+    await page.getByRole("combobox", { name: "Filter operator" }).click();
+    await page.getByRole("option", { name: "is between" }).click();
+    await expect.poll(() => document.querySelector('[data-testid="tier-value"]')?.textContent).toBe('["",""]');
+
+    await page.getByRole("combobox", { name: "Filter operator" }).click();
+    await page.getByRole("option", { name: "is any of" }).click();
+    await expect.poll(() => document.querySelector('[data-testid="tier-value"]')?.textContent).toBe("[]");
   });
 });
 
@@ -490,6 +629,15 @@ describe("DataGridFilterMenu typed value inputs", () => {
     await expect.element(page.getByRole("option", { name: "false" })).toBeInTheDocument();
   });
 
+  it("an empty checkbox or select filter value shows the placeholder", async () => {
+    await renderRichGrid();
+    await openFilterMenu();
+    await switchFilterColumn("Active");
+    await expect.element(page.getByRole("combobox", { name: "Filter value" })).toHaveTextContent("Value");
+    await switchFilterColumn("Role");
+    await expect.element(page.getByRole("combobox", { name: "Filter value" })).toHaveTextContent("Value");
+  });
+
   it("a select column gets a select of its own choices", async () => {
     await renderRichGrid();
     await openFilterMenu();
@@ -547,6 +695,51 @@ describe("DataGridFilterMenu typed value inputs", () => {
     await page.getByRole("menuitemcheckbox", { name: "User" }).click();
     // adding User widens to all three rows
     await expect.poll(() => document.querySelectorAll('[role="row"]').length - 1).toBe(3);
+  });
+
+  it("a checkbox filter trigger shows the label for a stored value, not the raw value", async () => {
+    await render(
+      <DataGridProvider
+        data={makeRichRows()}
+        columns={richColumns}
+        getRowId={(r) => r.id}
+        filterState={[{ columnId: "active", operator: "equals", value: "true" }]}
+        onFilterChange={() => {}}
+        labels={{ toolbar: { filterValueTrue: "Yes", filterValueFalse: "No" } }}
+      >
+        <DataGridToolbar>
+          <DataGridFilterMenu />
+        </DataGridToolbar>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await page.getByRole("button", { name: "Filters" }).click();
+    await expect.element(page.getByRole("combobox", { name: "Filter value" })).toHaveTextContent("Yes");
+  });
+
+  it("a select filter trigger shows the choice label for a stored value, not the raw value", async () => {
+    await render(
+      <DataGridProvider
+        data={makeRichRows()}
+        columns={richColumns}
+        getRowId={(r) => r.id}
+        filterState={[{ columnId: "role", operator: "equals", value: "admin" }]}
+        onFilterChange={() => {}}
+      >
+        <DataGridToolbar>
+          <DataGridFilterMenu />
+        </DataGridToolbar>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await page.getByRole("button", { name: "Filters" }).click();
+    await expect.element(page.getByRole("combobox", { name: "Filter value" })).toHaveTextContent("Admin");
   });
 
   it("isAnyOf is offered only for select columns", async () => {
@@ -729,6 +922,31 @@ describe("DataGridFilterMenu reorder", () => {
 
     await expect.poll(() => document.querySelectorAll('[aria-label="Filter column"]').length).toBe(1);
     await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Reorder filter");
+  });
+
+  it("Backspace and Delete on the focused grip remove that filter row", async () => {
+    await renderRichGrid();
+    await openFilterMenu(); // row 0: name
+    await page.getByRole("button", { name: "Add filter" }).click();
+    // second row targets "age" so the rows are distinguishable
+    const columnTriggers = document.querySelectorAll<HTMLElement>('[aria-label="Filter column"]');
+    columnTriggers[1]!.click();
+    await page.getByRole("option", { name: "Age" }).click();
+
+    let grips = document.querySelectorAll<HTMLElement>('[aria-label="Reorder filter"]');
+    expect(grips.length).toBe(2);
+
+    grips[0]!.focus();
+    await userEvent.keyboard("{Backspace}");
+    await expect.poll(() => document.querySelectorAll('[aria-label="Reorder filter"]').length).toBe(1);
+    await expect
+      .poll(() => document.querySelector<HTMLElement>('[aria-label="Filter column"]')?.textContent)
+      .toContain("Age"); // the name row is gone, age remains
+
+    grips = document.querySelectorAll<HTMLElement>('[aria-label="Reorder filter"]');
+    grips[0]!.focus();
+    await userEvent.keyboard("{Delete}");
+    await expect.poll(() => document.querySelectorAll('[aria-label="Reorder filter"]').length).toBe(0);
   });
 
   it("removing the only filter moves focus to the Add filter button", async () => {

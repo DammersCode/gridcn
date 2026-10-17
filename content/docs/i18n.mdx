@@ -2,6 +2,7 @@
 title: i18n
 description: Translate every user-facing string via the typed labels object. No i18n library required.
 icon: Languages
+status: updated
 ---
 
 Every user-facing string lives in one typed `DataGridLabels` object with English defaults.
@@ -78,6 +79,7 @@ group entirely, and it stays fully English.
 | `grid` | Core strings not owned by an add-on: the empty-state message and the loading-skeleton and progress-bar aria-label | core |
 | `io` | Export dropdown, import dialog (file picker, delimiter, column mapping, preview, errors) | `data-grid-io` |
 | `pagination` | Footer first, prev, next, last, page-number aria-labels, page-size select, "x-y of z" range label | `data-grid-pagination` |
+| `statusBar` <NewBadge /> | Aggregate labels (count, sum, avg, min, max) and the capped-walk title | `data-grid-status-bar` |
 
 <Callout title="Full shape lives in API reference">
   The exact type of every field of every group is generated from source in
@@ -87,7 +89,7 @@ group entirely, and it stays fully English.
 
 ## Full German example
 
-A representative override — omit any group or key you do not need to change, and see the API
+A representative override. Omit any group or key you do not need to change, and see the API
 reference for the full field-by-field shape:
 
 ```tsx
@@ -135,7 +137,7 @@ const de: DeepPartialLabels = {
 ## Wiring a real i18n library
 
 gridcn has no i18n library dependency. `labels` is a plain object, so it composes with whatever
-i18n library your app already uses — react-i18next, next-intl, or anything else. Build it from
+i18n library your app already uses, such as react-i18next or next-intl. Build it from
 your translation function instead of hardcoding strings:
 
 ```tsx
@@ -202,7 +204,7 @@ resize, and column reorder are correct in both directions.
 Arrow keys move **visually**: under `rtl`, `ArrowRight` moves to the next column on the screen,
 which is the previous column index. This matches spreadsheet behavior on right-to-left systems.
 
-`Tab` and `Shift+Tab` keep their reading order and do not flip. `Home` and `End` stay logical:
+`Tab` and `Shift+Tab` leave the grid in both directions. `Home` and `End` stay logical:
 `Home` goes to the first column in both directions.
 
 Cell values render inside `<bdi>`, so each value's own script reads in its own direction
@@ -213,7 +215,7 @@ value being typed.
 
 `DataGridRoot` sets `dir` on the grid element and wraps its subtree in Base UI's
 `DirectionProvider`, which drives Base UI's own positioning and keyboard navigation. Menus,
-popovers, and dialogs from the add-ons need no extra setup — portaled content that you render
+popovers, and dialogs from the add-ons need no extra setup. Portaled content that you render
 yourself, outside the grid subtree, needs `dir` passed to it explicitly.
 
 <Callout type="warn" title="Set `dir` on the document too">

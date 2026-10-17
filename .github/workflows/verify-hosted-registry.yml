@@ -8,13 +8,16 @@ on:
 permissions:
   contents: read
 
+# Pinned: ubuntu-latest rolls to 26.04 automatically (GitHub migration, from 2026-10-19); test 26.04 here before switching.
 jobs:
   verify-hosted-registry:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 24
           # No pnpm here (stdlib-only script), so skip the pnpm store cache lookup.

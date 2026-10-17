@@ -28,7 +28,7 @@ assertEqual<() => void, LazyResult["reset"]>(true);
 assertEqual<(range: Range) => void, LazyResult["evict"]>(true);
 assertEqual<() => readonly Range[], LazyResult["getLoadedRanges"]>(true);
 assertEqual<
-  { data: readonly Row[]; getRowId: (row: Row, index: number) => string; onRowWindowChange: (range: Range) => void },
+  { data: readonly Row[]; getRowId: (row: Row, index: number) => string; onRenderedRowsChange: (range: Range) => void },
   LazyResult["gridProps"]
 >(true);
 

@@ -1,6 +1,8 @@
 ---
 name: gridcn-addons
 description: "gridcn add-ons (fill, undo/redo, pinned rows, presence, toolbar, context menu, keybindings, sort list, URL state, import/export): install and wiring. Use when adding an add-on, combining several in one grid, or when an installed add-on renders nothing."
+metadata:
+  gridcn-version: "1.0.0"
 ---
 
 Each gridcn add-on is a separate registry item that installs into your own project paths (default
@@ -29,7 +31,7 @@ npx shadcn add @gridcn/<item>
 | Keybindings dialog | `data-grid-keybindings` | none |
 | Sort list | `data-grid-sort-list` | `@dnd-kit/react` |
 | URL state | `data-grid-url-state` | `nuqs` |
-| Import / export | `data-grid-io` (installs `dropzone` too) | `xlsx`, `papaparse` (lazy-loaded) |
+| Import / export | `data-grid-io` (installs `dropzone` too) | `hucre` (lazy-loaded), `papaparse` |
 | Lazy loading | `data-grid-lazy` | none |
 | Pagination | `data-grid-pagination` | none |
 
@@ -43,15 +45,15 @@ copies remote source into your code and rewrites existing files.
 
 ## 2. Wire the output at the right seam
 
-Four add-ons return a value a **provider prop** needs, so their hook must run in the component that
-renders `<DataGridProvider>`, above it, not inside it:
+Add-ons hand you a `DataGridPlugin` object; it goes on the provider's `plugins` prop, so the hook
+must run in the component that renders `<DataGridProvider>`, above it, not inside it:
 
 | Add-on | Hook | Returns | Goes on |
 |---|---|---|---|
-| Fill | `useDataGridFill({})` | `{ plugin, FillHandleTracker }` | `plugin` → `overlayPlugins` on the provider; `FillHandleTracker` renders as a child inside `DataGridRoot` |
-| Presence | `useDataGridPresence()` | `{ plugin, setPresenceHighlights, ... }` | `plugin` → `overlayPlugins` on the provider |
-| Pinned rows | `useDataGridPinnedRows({ topRows?, bottomRows? })` | `{ rowBands }` | `rowBands` prop on the provider |
-| Undo & redo | `useDataGridState(rows, { getRowId })`, or `useDataGridHistory` to compose with your own `data`/`setData` | provider props | spread onto the provider (`data`, `onDataChange`, `onUndo`, `onRedo`) |
+| Fill | `useDataGridFill()` | `{ plugin }` | `plugin` → `plugins` on the provider (the `Mount` member runs the drag engine inside the root) |
+| Presence | `useDataGridPresence()` | `{ plugin, setPresenceHighlights, ... }` | `plugin` → `plugins` on the provider |
+| Pinned rows | `useDataGridPinnedRows({ topRows?, bottomRows? })` | `{ plugin }` | `plugin` → `plugins` on the provider |
+| Undo & redo | `useDataGridState(rows, { getRowId })`, or `useDataGridHistory({ capacity?, datasetKey?, recordSources? })` to compose with your own `data`/`setData` | spreadable `{ data, getRowId, onDataChange, plugins, history }`, or `{ plugin, undo, redo, ... }` | spread the state result onto the provider; put the history `plugin` in `plugins` and keep your own `data` + `onDataChange` echo (the grid's `getRowId` prop addresses the operations) |
 
 Everything else mounts as a plain child component, inside the provider:
 
@@ -66,18 +68,20 @@ Everything else mounts as a plain child component, inside the provider:
 | Lazy loading | `useDataGridLazyRows` (owns `data`) + `DataGridLazyGuard` | hook above the provider; `DataGridLazyGuard` inside the provider |
 | Pagination | `useDataGridPagination` + `DataGridPaginationBar` | standalone — does not read the store, works inside or outside the provider |
 
-`keymap` (remapping or the keybindings dialog's source of truth) is a prop of `DataGridRoot` (or the
-`DataGrid` wrapper), never of `DataGridProvider`.
+`keymap` (remapping or the keybindings dialog's source of truth) is a prop of `DataGridProvider` (or
+the `DataGrid` wrapper), never of `DataGridRoot`.
 
 ## 3. Combine multiple add-ons in one grid
 
-- **One `overlayPlugins` array for everything.** Fill and presence (and any custom overlay plugin)
-  each hand you a `plugin`. Put every plugin in a single array with a stable identity:
+- **One `plugins` array for everything.** Fill, presence, pinned rows, and history (and any custom
+  plugin) each hand you a `plugin`. Put every plugin in one array:
   ```tsx
-  const overlayPlugins = useMemo(() => [fill.plugin, presence.plugin], [fill.plugin, presence.plugin]);
+  <DataGridProvider data={data} columns={columns} getRowId={getRowId} plugins={[fill.plugin, presence.plugin, pinnedRows.plugin, history.plugin]}>
   ```
-  A fresh array literal on every render trips a dev-mode guardrail (see step 4). The guardrail
-  compares identity, so a shallow-equal new array still warns.
+  An inline array literal is fine: the grid compares the list entry-wise (same length, same `name`,
+  every member identity-equal), so a fresh array with stable members re-resolves nothing.
+  `useDataGridState` returns its own `plugins` (the history plugin) — combine explicitly after the
+  spread, e.g. `plugins={[...grid.plugins, fill.plugin]}`.
 - **Toolbar child order** (the gridcn convention — matters for consistency, not correctness):
   `DataGridSearch` → `DataGridFilterMenu` → `DataGridSortList` → `DataGridColumnsMenu` →
   `DataGridImportButton` → `DataGridExportButton` → your own utility buttons, in that order.
@@ -93,23 +97,36 @@ Everything else mounts as a plain child component, inside the provider:
   store whose `setPresenceHighlights` writes into nothing the grid reads; share the first call's
   return values as props instead.
 - **Pinned rows**: keep `topRows`/`bottomRows` referentially stable (`useMemo`/`useState`, not a
-  fresh `[value]` literal per render) — an unstable array makes the returned `rowBands` churn every
-  render and the grid dev-warns on it.
-- **Totals row**: `rowBands` is needed above the provider, but the aggregate is read inside it. Hold
-  the totals in `useState`, render `<DataGridAggregateReporter specs={...} onChange={setTotals} />`
+  fresh `[value]` literal per render) — a fresh array per render rebuilds the returned `plugin`
+  every render, and the grid re-resolves its plugin list on every render.
+- **Totals row**: the `plugin` is needed above the provider, but the aggregate is read inside it.
+  Hold the totals in `useState`, render `<DataGridAggregateReporter specs={...} onChange={setTotals} />`
   inside the provider, and pass `useMemo(() => [totals], [totals])` as `bottomRows`.
 - **Undo/redo choice**: reach for `useDataGridState` only when you actually want history — it
   replaces the core's uncontrolled `defaultData` with a controlled echo loop. If nothing needs undo,
-  skip the add-on. Already own the array via your own state? Use `useDataGridHistory` instead — it
-  takes `data`/`setData` like `useState`'s tuple and composes with any state source.
+  skip the add-on. Already own the array via your own state? Use `useDataGridHistory` instead — its
+  plugin observes the grid's changes (your `onDataChange` echo stays the single write target) and
+  `undo`/`redo` apply the inverted batch through the grid's `commitChange`.
+
+## Bounds and failure reporting
+
+- A paste or copy is capped at 200,000 cells (`MAX_PASTE_CELLS`, `MAX_COPY_CELLS`). Do not parse unbounded clipboard input in `processPaste`.
+- An import is bounded by `importLimits` (`maxFileBytes`, `maxRows`, `maxCells`, and more). Lower the limits to fit your data. Do not raise them without a memory budget: a raised `maxCells` raises the peak memory of a workbook parse.
+- Pass `onError` to `DataGridExportButton`. A throwing export is reported there. Without it, only a dev warning appears.
+- History `rollback(change)` is cell-level. It reverts only the cells that still hold the change's value and skips cells edited since.
 
 ## 4. When an add-on renders nothing or has no effect
 
-- Check the browser console first. Two dev-only warnings name most silent failures:
-  - `overlayPlugins array identity changed since the last render; pass a stable reference...` — an
-    inline `[plugin]` array literal in JSX; wrap it in `useMemo`.
-  - `useDataGridAggregate` (and the reporter) warns once for a spec key that matches no column or for
-    a sparse (lazy) `data` array, rather than throwing.
+- Check the browser console first. Dev-only warnings name most silent failures:
+  - `plugin "X" is already attached to another grid; a plugin instance attaches to one grid — pass a
+    fresh plugin object (the add-on hook's result) to each grid` — the same plugin object on two
+    grids; the second grid drops it and keeps the rest of its list.
+  - `two plugins named "X"; the later one is ignored — the name is the plugin's React key and its
+    identity` — a duplicate `name` in one `plugins` array.
+  - `plugin "A" and "B" both define command "C"; the later plugin wins` — a command-name conflict
+    between two plugins.
+  - `useDataGridAggregate` (and the reporter) warns once for a spec key that matches no column or
+    for a sparse (lazy) `data` array, rather than throwing.
 - **Fill/keyboard fill does nothing**: without the add-on installed, `Ctrl/Cmd+D`/`+R` are genuine
   no-ops (the actions exist in core's keymap, but nothing handles them). A `readOnly` grid also
   disables fill entirely, regardless of `disabled`.
@@ -122,8 +139,8 @@ Everything else mounts as a plain child component, inside the provider:
 - **URL param has no visible effect**: a URL-applied sort with no visible arrow is expected in the
   default `headerClickBehavior` config — the sync still works; add `data-grid-sort-list` or
   `headerClickBehavior="sort"` for a visible affordance.
-- **Fill, pinned rows, or presence inert**: confirm the hook's `plugin`/`rowBands` actually reaches
-  the provider prop. Nothing errors when it does not.
+- **Fill, pinned rows, or presence inert**: confirm the hook's `plugin` actually reaches the
+  provider's `plugins` prop. Nothing errors when it does not.
 
 ## Done when
 
@@ -138,7 +155,7 @@ export a file, scroll a lazy grid past the first window, or change pages).
 
 Each add-on's full reference (props, edge cases, worked examples) is at
 `https://gridcn.vercel.app/docs/addons/<page>.md` (or `/docs/<page>.md` for lazy-loading, pagination,
-overlay-plugins, global-shortcuts) — read the relevant one before writing non-trivial wiring:
+plugins, global-shortcuts) — read the relevant one before writing non-trivial wiring:
 
 - Fill: `/docs/addons/fill.md` · Pinned rows: `/docs/addons/pinned-rows.md`
 - Presence: `/docs/addons/presence.md`, `/docs/addons/broadcasting-presence.md`
@@ -146,6 +163,15 @@ overlay-plugins, global-shortcuts) — read the relevant one before writing non-
 - Context menu: `/docs/addons/context-menu.md` · Keybindings: `/docs/addons/keybindings.md`
 - Sort list: `/docs/addons/sort-list.md` · URL state: `/docs/addons/url-state.md`
 - Import/export: `/docs/addons/import-export.md` · Lazy loading: `/docs/lazy-loading.md`
-- Pagination: `/docs/pagination.md` · Overlay plugin seam: `/docs/overlay-plugins.md`
+- Pagination: `/docs/pagination.md` · Plugin seam: `/docs/plugins.md`
 - Global shortcuts (undo/redo outside the grid): `/docs/global-shortcuts.md`
 - Install & dependency table: `/docs/installation.md`
+
+## Do not
+
+- Do not put `format` in `DataGridExportButton`'s `options`. The type omits it. Pass `formats` (default `["xlsx", "csv"]`); with one format, such as `formats={["csv"]}`, a click exports at once.
+- Do not call `deleteRows` with row ids. It takes view row indices (`deleteRows(viewRowIndexes)`). To delete by id, call `actions.deleteRowsById(ids)`.
+- Do not mount `DataGridUrlState` on a `data-grid-lazy` grid, or nest a second `NuqsAdapter`.
+- Do not call `useDataGridPresence()` twice for one grid.
+- Do not pass a fresh `topRows`/`bottomRows` array per render to `useDataGridPinnedRows`.
+- Do not combine `data-grid-lazy` and `data-grid-pagination`.
