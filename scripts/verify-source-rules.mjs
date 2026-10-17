@@ -28,6 +28,8 @@ function scan(dirs, filePattern, linePattern, message, skip = () => false) {
 }
 
 scan(["registry/default/blocks"], /\.tsx?$/, /process\.env\.NODE_ENV/, "read the environment through isDev", (file) => basename(file) === "is-dev.ts");
+scan(["registry/default/blocks"], /\.tsx?$/, /\.isComposing\b/, "read IME state through isComposingKey, which also covers the Safari keyCode 229 confirm key", (file) => basename(file) === "is-composing-key.ts");
+scan(["registry/default/blocks"], /\.tsx?$/, /Math\.(?:min|max)\(\.\.\./, "reduce or loop instead of spreading into Math.min or Math.max; a large array throws RangeError");
 scan(["content/docs"], /\.mdx$/, /^#+ .*<NewBadge/, "put <NewBadge /> on its own line under the heading");
 scan(["registry/default/examples", "components", "app"], /\.tsx?$/, /toLocale(?:Date|Time)?String\(\)|Intl\.(?:NumberFormat|DateTimeFormat)\((?:undefined)?\)/, "pin the locale so server and client render the same text");
 
