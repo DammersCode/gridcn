@@ -322,3 +322,37 @@ describe("parseImportFile — xlsx lazy loading", () => {
     vi.restoreAllMocks();
   });
 });
+
+describe("parseImportFile — csv pre-scan agrees with papaparse", () => {
+  const fixtures: Record<string, string> = {
+    "quoted newline": 'a,"b\nc",d\ne,f,g',
+    "escaped quotes": 'a,"say ""hi"", ok",c\nd,e,f',
+    "quote inside an unquoted field": 'a,b"c,d\ne,f"g,h',
+    "quote after the opening quote": 'a,""",x\ny,z',
+    "unterminated quote": 'a,"b,c\nd,e,f',
+    "empty lines": "a,b\n\n\nc,d\n\n",
+    "trailing delimiters": "a,b,,,\nc,d,,,",
+    "lone quoted empty field": '"",""\n"",""',
+    "wide and narrow rows": "a\nb,c,d,e,f\ng,h",
+  };
+
+  it.each(Object.entries(fixtures))("%s: row and field counts match", async (_name, text) => {
+    const parsed = Papa.parse<string[]>(text, { delimiter: ",", newline: "\n", skipEmptyLines: true });
+    const rows = parsed.data.length;
+    const columns = Math.max(...parsed.data.map((row) => row.length));
+    const file = () => makeCsvFile(text);
+    await expect(parseImportFile(file(), { csvDelimiter: ",", maxRows: rows, maxColumns: columns })).resolves.toBeDefined();
+    await expect(parseImportFile(file(), { csvDelimiter: ",", maxRows: rows - 1 })).rejects.toThrow("import-too-many-cells");
+    await expect(parseImportFile(file(), { csvDelimiter: ",", maxColumns: columns - 1 })).rejects.toThrow("import-too-many-cells");
+  });
+});
+
+describe("parseImportFile — csv pre-scan errs on the safe side", () => {
+  it("counts a quote closed before text as a field boundary papaparse does not see, so it rejects at papaparse's own counts", async () => {
+    const text = 'a,"b"c,d\ne,f,g';
+    const parsed = Papa.parse<string[]>(text, { delimiter: ",", newline: "\n", skipEmptyLines: true });
+    const columns = Math.max(...parsed.data.map((row) => row.length));
+    expect(columns).toBeLessThan(3);
+    await expect(parseImportFile(makeCsvFile(text), { csvDelimiter: ",", maxColumns: columns })).rejects.toThrow("import-too-many-cells");
+  });
+});

@@ -102,6 +102,8 @@ function detectNewline(sample: string): "\n" | "\r\n" | "\r" {
 /**
  * Checks the rows and the widest row against the limits without building a field. The counts
  * are upper bounds of papaparse's: it leaves a quoted field only at a quote before a delimiter or newline.
+ * This mirrors the parser on purpose: papaparse has no row or cell limit option, and its parse
+ * materializes a whole row at once. A regression test pins the counts against papaparse.
  */
 function assertCsvWithinLimits(text: string, delimiter: string, newline: string, limits: GridLimits): void {
   const delimiterCode = delimiter.charCodeAt(0);
