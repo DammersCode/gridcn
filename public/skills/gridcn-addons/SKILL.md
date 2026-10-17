@@ -108,6 +108,13 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
   plugin observes the grid's changes (your `onDataChange` echo stays the single write target) and
   `undo`/`redo` apply the inverted batch through the grid's `commitChange`.
 
+## Bounds and failure reporting
+
+- A paste or copy is capped at 200,000 cells (`MAX_PASTE_CELLS`, `MAX_COPY_CELLS`). Do not parse unbounded clipboard input in `processPaste`.
+- An import is bounded by `importLimits` (`maxFileBytes`, `maxRows`, `maxCells`, and more). Lower the limits to fit your data. Do not raise them without a memory budget: a raised `maxCells` raises the peak memory of a workbook parse.
+- Pass `onError` to `DataGridExportButton`. A throwing export is reported there. Without it, only a dev warning appears.
+- History `rollback(change)` is cell-level. It reverts only the cells that still hold the change's value and skips cells edited since.
+
 ## 4. When an add-on renders nothing or has no effect
 
 - Check the browser console first. Dev-only warnings name most silent failures:

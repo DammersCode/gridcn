@@ -68,6 +68,7 @@ Grep any custom cell type or `renderCell` for `new Intl.DateTimeFormat(...)`, `n
 - Fix: hoist the formatter to module scope for a fixed configuration, or cache it in a `Map` keyed by a serialized options string (`` `${locale}|${JSON.stringify(format)}` ``), never by object identity — a column's `options` literal is commonly re-created every render, so an identity-keyed cache (`Map<object, ...>`) never hits.
 - Also flag: any other allocation (object literal, array, closure) inside `Cell` beyond what's unavoidable — treat it like a `shouldComponentUpdate`-sensitive component.
 - Also flag: a `Cell` that mounts a full UI control (a shadcn/base-ui root) for its look instead of rendering the visual on a plain element (a `span` with `role`/`aria-*`). The control's state machine, effects, and a11y DOM queries are paid per row per window commit; the built-in `checkbox` display control measured ~2x the scroll cost of a text column until it became a plain `span`.
+- Also flag: per-cell work that grows with the dataset (a scan of `data`, a `find` or `filter` over rows, a sort). `Cell` runs for every visible cell on every scroll commit, so keep it O(1) per cell and precompute lookups outside the render path.
 - Note: React Compiler does not fix this. It optimizes gridcn's own compiled components; it cannot memoize a fresh literal a consumer constructs inside their own `Cell`/`renderCell` function on every call.
 
 ## 7. High-rate live data replacing `data` wholesale
