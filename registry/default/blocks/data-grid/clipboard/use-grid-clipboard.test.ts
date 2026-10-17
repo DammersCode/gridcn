@@ -109,6 +109,14 @@ describe("serializeRect", () => {
   });
 });
 
+describe("serializeRect with a throwing cell type", () => {
+  it("copies the safe value text instead of throwing", () => {
+    const throwing = { ...cellTypes.text, toText: () => { throw new Error("hostile"); } };
+    const s = fakeState({ cellTypes: { ...cellTypes, text: throwing } as never });
+    expect(serializeRect(s, { x: 0, y: 0, width: 1, height: 2 })).toEqual([["a"], ["b"]]);
+  });
+});
+
 describe("serializeCopyScope", () => {
   it("serializes a rect scope like serializeRect", () => {
     const s = fakeState();

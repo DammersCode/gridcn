@@ -102,10 +102,10 @@ function getDateFormatter(locale: string, format: Intl.DateTimeFormatOptions): I
 
 /** Formats an ISO date part per the column's `displayFormat`/`locale`, falling back to the raw ISO text. */
 function formatDateDisplay(value: string | null, options?: GridCellTypes["date"]["options"]): string {
-  if (value == null) return "";
-  if (!options?.displayFormat) return value;
-  const date = isoDatePartToLocalDate(value);
-  if (!date) return value;
+  const text = toSafeText(value);
+  if (!options?.displayFormat) return text;
+  const date = isoDatePartToLocalDate(text);
+  if (!date) return text;
   // pinned default: server and browser Intl defaults can differ -> SSR hydration mismatch
   return getDateFormatter(options.locale ?? "en-US", options.displayFormat).format(date);
 }

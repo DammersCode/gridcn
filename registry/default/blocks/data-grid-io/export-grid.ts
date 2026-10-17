@@ -1,5 +1,5 @@
 import { getCellValue, sanitizeFormulaCell, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
-import { columnLabelText, displayText, getSelectedViewRows, isDev, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { columnLabelText, displayText, exportText, getSelectedViewRows, isDev, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { CsvDelimiter } from "./parse-import-file";
 
 /** Longest cell text an Excel worksheet holds; XLSX export and print cut longer text to it. */
@@ -98,7 +98,7 @@ function buildRowsAt(state: DataGridReadState, dataIndices: readonly number[], t
     return state.visibleColumns.map((column) => {
       const cellType = state.cellTypes[column.type ?? "text"];
       const value = getCellValue<unknown, AnyColumnDef>(row, column);
-      return cellType ? (text === "display" ? displayText(cellType, value, column.options) : cellType.toText(value, column.options)) : "";
+      return cellType ? (text === "display" ? displayText(cellType, value, column.options) : exportText(cellType, value, column.options)) : "";
     });
   });
 }

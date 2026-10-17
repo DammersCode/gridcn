@@ -10,6 +10,7 @@ import { serializeCells } from "./serialize-cells";
 import { parseClipboard } from "./parse-clipboard";
 import { useDataGridActions, useDataGridInternalActions, useDataGridStoreApi, type DataGridActions, type DataGridStoreState } from "../store";
 import { resolveBulkWrites, type BulkCandidate, type BulkResolution } from "../validation/validate-batch";
+import { exportText } from "../cell-types/display-text";
 import { resolveColumnValidate } from "../cell-types/capabilities";
 import { candidateRowIds, reresolveBulkWrites, snapshotBulkBatch, useBulkGeneration, type BulkGeneration } from "../validation/bulk-generation";
 
@@ -55,7 +56,7 @@ function serializeRowSlice(s: DataGridStoreState, viewRow: number, colStart: num
     const value = getCellValue<unknown, typeof column>(row, column);
     const text = s.processCellForClipboard
       ? s.processCellForClipboard(value, { row, column })
-      : (cellType?.toText(value, column.options) ?? "");
+      : (cellType ? exportText(cellType, value, column.options) : "");
     cells.push(text);
   }
   return cells;
@@ -116,7 +117,7 @@ function serializeDisjointRows(s: DataGridStoreState, rows: readonly number[], c
       const value = getCellValue<unknown, typeof column>(row, column);
       const text = s.processCellForClipboard
         ? s.processCellForClipboard(value, { row, column })
-        : (cellType?.toText(value, column.options) ?? "");
+        : (cellType ? exportText(cellType, value, column.options) : "");
       cells.push(text);
     }
     out.push(cells);

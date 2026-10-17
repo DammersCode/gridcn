@@ -5,7 +5,7 @@ import { CellSpan } from "./cell-span";
 import { useCellEditor } from "../interaction/use-cell-editor";
 
 function TextCell({ value }: CellRenderProps<unknown, string>) {
-  return <CellSpan text={value} />;
+  return <CellSpan text={toSafeText(value)} />;
 }
 
 function TextEditor(props: CellEditorProps<unknown, string>) {

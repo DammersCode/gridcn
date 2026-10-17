@@ -56,12 +56,12 @@ function choiceRank(choices: readonly Choice[]): Map<string, number> {
 function findChoice(choices: readonly Choice[] | undefined, raw: string): Choice | undefined {
   if (!choices) return undefined;
   const index = choiceIndex(choices);
-  return index.byValue.get(raw) ?? index.byLowerLabel.get(String(raw).toLowerCase());
+  return index.byValue.get(raw) ?? index.byLowerLabel.get(toSafeText(raw).toLowerCase());
 }
 
 function SelectCell({ value, options }: CellRenderProps<unknown, string | null, GridCellTypes["select"]["options"]>) {
-  const choice = value == null ? undefined : findChoice(options?.choices, value);
-  return <CellSpan text={choice?.label ?? value ?? ""} />;
+  const key = toSafeText(value);
+  return <CellSpan text={findChoice(options?.choices, key)?.label ?? key} />;
 }
 
 /** Opens on mount; picking an option commits immediately (no separate confirm step). */
