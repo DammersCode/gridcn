@@ -151,6 +151,14 @@ describe("serializeCopyScope", () => {
   });
 });
 
+describe("resolvePasteTarget with a huge row selection", () => {
+  it("resolves the lowest selected row without spreading the whole channel", () => {
+    const everyRow = Array.from({ length: 1_000_000 }, (_, i) => i + 5);
+    const s = fakeState({ selection: { ...emptySelection(), rows: CompactSelection.fromArray(everyRow) } });
+    expect(resolvePasteTarget(s)).toEqual({ col: 0, row: 5 });
+  });
+});
+
 describe("resolvePasteTarget", () => {
   it("uses the top-left of current.range when a range selection exists", () => {
     const base = selectCellPure({ col: 0, row: 0 });
