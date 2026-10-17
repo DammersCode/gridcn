@@ -223,10 +223,12 @@ const values = getValues();
 
 An empty `next` (`range: null` and both channels empty) is the cleared signal.
 `onSelectionChange` fires exactly once on the non-empty-to-empty transition, so one clear from
-any path (outside click, gutter click, `clearSelection()`, a cleared range) delivers one empty
+any path (outside click, row marker click, `clearSelection()`, a cleared range) delivers one empty
 payload. Use it to reset an "N cells selected" chip.
 
 ## 3. `onSortChange`
+
+<NewBadge />
 
 ```ts
 sortState?: SortSpec[];
