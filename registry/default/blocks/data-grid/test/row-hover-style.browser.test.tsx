@@ -31,6 +31,7 @@ async function mount() {
 describe("row hover tint stays cheap while scrolling", () => {
   it("tints the hovered row itself and leaves unpinned cells without hover rules or transitions", async () => {
     const { row, plainCell } = await mount();
+    await userEvent.hover(document.body);
     expect(getComputedStyle(row).backgroundColor).toBe(TRANSPARENT);
     await userEvent.hover(row);
     expect(getComputedStyle(row).backgroundColor).not.toBe(TRANSPARENT);

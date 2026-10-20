@@ -61,7 +61,7 @@ describe("full-window-swap vs near-idle scroll FPS ratio", () => {
 
     console.log(`perf ratio: idle=${bestIdle.toFixed(1)}fps full-swap=${bestSwap.toFixed(1)}fps bestRatio=${bestRatio.toFixed(3)}`);
     // Warn below the measured band (0.15-0.19) so a drift toward its low end is visible without
-    // failing the suite on a loaded machine; the hard floor (0.06, a fast machine idles near 900fps and lowers the ratio) catches a genuine
+    // failing the suite on a loaded machine; the hard floor (0.06) catches a genuine
     // collapse back toward the pre-fix ~0.145. bestSwap's absolute floor (15fps, below the observed
     // 19.5-32.3fps band) is the real regression guard on a fast reference machine — a ratio alone
     // can't tell "idle got faster" from "full-swap got slower," but an absolute fps drop can only
