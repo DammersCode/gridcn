@@ -83,7 +83,7 @@ function snapshotsEqual(a: ScrollSnapshot, b: ScrollSnapshot): boolean {
 type ElementStore = {
   subscribe: (onChange: () => void) => () => void;
   getSnapshot: () => ScrollSnapshot;
-  /** Registers the sticky Viewport element that receives the imperative `--grid-scroll-*` var writes on every tick. */
+  /** Registers the sticky Viewport element that receives the imperative `--grid-scroll-left` var write. */
   setViewportElement: (el: HTMLElement | null) => void;
   /** Registers the rows canvas, which sits `baseOffset` px below the viewport top and is translated up by the live scrollTop on every tick. */
   setCanvasOffset: (el: HTMLElement | null, baseOffset: number) => void;
@@ -321,9 +321,8 @@ export function useElementDimensions(scrollRef: RefObject<HTMLElement | null>): 
 
 /**
  * Registers the sticky Viewport element as the target of the scroll element's imperative
- * `--grid-scroll-top`/`--grid-scroll-left` var writes (checklist step 3). One write per scroll
- * tick moves the rows canvas, header layer, and pinned-cell insets atomically, with zero React
- * involvement between row/column window changes.
+ * `--grid-scroll-left` var write. One write per horizontal scroll tick moves the header layer and
+ * pinned-cell insets atomically, with zero React involvement between row/column window changes.
  */
 export function useViewportElement(
   scrollRef: RefObject<HTMLElement | null>,

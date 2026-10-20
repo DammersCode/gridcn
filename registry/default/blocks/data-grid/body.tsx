@@ -232,7 +232,8 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
       const viewRowIndex = viewRowIndices[i]!;
       const key = rowIds[i] ?? viewRowIndex;
       const el = rowRegistry.elements.get(key);
-      if (el) el.style.gridRowStart = String(viewRowIndex - gridOrigin + 1);
+      const value = String(viewRowIndex - gridOrigin + 1);
+      if (el && el.style.gridRowStart !== value) el.style.gridRowStart = value;
     }
   });
 
@@ -254,7 +255,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
     display: "grid",
     gridTemplateColumns: template,
     gridAutoRows: `${rowHeight}px`,
-    // Horizontal only: the vertical offset is the imperative `translate` (see useCanvasOffset),
+    // Horizontal only: the vertical offset is the imperative `translate`,
     // because a per-tick change of an inherited custom property restyles every cell.
     translate: `0 ${canvasBaseOffset}px`,
     // --grid-dir signs the X term: transforms are physical while RTL tracks mirror.
