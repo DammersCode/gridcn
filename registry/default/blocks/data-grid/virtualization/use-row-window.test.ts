@@ -8,7 +8,7 @@ import { useColumnWindow } from "./use-column-window";
 
 const ROW_HEIGHT = 36;
 const HEADER_HEIGHT = 36;
-const VIEWPORT_PX = 1200;
+const VIEWPORT_PX = 360;
 
 function makeScrollElement(scrollTop: number, clientHeight: number): HTMLDivElement {
   const el = document.createElement("div");
@@ -427,7 +427,7 @@ describe("useRowWindow velocity-aware overscan (Phase 4)", () => {
     expect(result.current.start).toBe(522 - 1);
   });
 
-  it("adds no velocity overscan after a teleport jump larger than the viewport", () => {
+  it("adds no velocity overscan after a teleport jump beyond viewport + cap", () => {
     const el = makeScrollElement(HEADER_HEIGHT + 500 * ROW_HEIGHT, VIEWPORT_PX);
     const ref = { current: el };
     const { result } = renderHook(() =>
@@ -491,7 +491,7 @@ describe("useRowWindow velocity-aware overscan (Phase 4)", () => {
     expect(result.current.end).toBeLessThan(widenedEnd);
   });
 
-  it("caps the leading overscan at VELOCITY_OVERSCAN_CAP_PX worth of rows even for a huge single-tick jump", () => {
+  it("caps the leading overscan at VELOCITY_OVERSCAN_CAP_PX worth of rows over a ramp of thumb-drag ticks", () => {
     const el = makeScrollElement(0, VIEWPORT_PX);
     const ref = { current: el };
     const { result } = renderHook(() =>
@@ -499,13 +499,17 @@ describe("useRowWindow velocity-aware overscan (Phase 4)", () => {
     );
 
     act(() => {
-      Object.defineProperty(el, "scrollTop", { value: HEADER_HEIGHT + 50_000 * ROW_HEIGHT, writable: true, configurable: true });
-      el.dispatchEvent(new Event("scroll"));
+      for (let i = 1; i <= 5; i++) {
+        Object.defineProperty(el, "scrollTop", { value: i * 1500, writable: true, configurable: true });
+        el.dispatchEvent(new Event("scroll"));
+      }
     });
 
     const maxLeadingRows = Math.ceil(VELOCITY_OVERSCAN_CAP_PX / ROW_HEIGHT);
     const viewportRows = Math.ceil(VIEWPORT_PX / ROW_HEIGHT);
-    expect(result.current.end - result.current.start).toBeLessThanOrEqual(viewportRows + 1 + maxLeadingRows + 1);
+    const windowRows = result.current.end - result.current.start;
+    expect(windowRows).toBeGreaterThan(viewportRows + maxLeadingRows - 3);
+    expect(windowRows).toBeLessThanOrEqual(viewportRows + 1 + maxLeadingRows + 1);
   });
 
   it("shrinks the window back to baseline overscan on scroll settle (scrollend)", () => {
