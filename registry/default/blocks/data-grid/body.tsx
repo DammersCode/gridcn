@@ -76,6 +76,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
     interaction,
     getRowClassName,
     getCellClassName,
+    renderMarker,
   } = useDataGridRootContext();
   const readOnly = useDataGridReadOnly();
   const storeApi = useDataGridStoreApi();
@@ -268,6 +269,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
               onMarkerPointerDown={interaction.onMarkerPointerDown}
               onMarkerCheckboxPointerDown={interaction.onMarkerCheckboxPointerDown}
               onMarkerReorderPointerDown={rowReorder.onMarkerDragPointerDown}
+              renderMarker={renderMarker}
               isRowReorderDragging={rowReorder.dragState?.draggingRow === viewRowIndex}
               rowRef={rowRegistry.getCallback(key)}
               ariaRowIndexOffset={pinnedTopCount}

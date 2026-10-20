@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from "react";
+import { memo, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { COLUMN_BORDER } from "../columns/column-border";
@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import type { RowMarkersMode } from "../types";
 import { GRID_LAYER } from "../layers";
 import { gridAttrSelector } from "../data-attributes";
-import { useDataGridRootContext } from "../layout-context";
+import type { MarkerCellRenderer } from "../layout-context";
 import { isReorderMarkerMode, markerContent } from "./marker-width";
 import {
   useDataGridActions,
@@ -31,6 +31,8 @@ export type DataGridMarkerCellProps = {
   onCheckboxPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
   /** Arms the row-reorder drag from a press on the drag handle zone; a stable callback from the body's useRowReorder instance. */
   onReorderPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
+  /** Custom marker renderer from the root; replaces the built-in number, checkbox, and drag handle content. */
+  renderMarker?: MarkerCellRenderer;
   /** True while this row is the reorder-drag source (dims the marker, like the column reorder does to its header cell). */
   isReorderDragging: boolean;
 };
@@ -49,8 +51,8 @@ export type DataGridMarkerCellProps = {
  * arms the row-reorder drag and never changes the selection, and the number/rest of the cell is
  * the plain row-select surface.
  */
-export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
-  const { mode, viewRowIndex, rowId, onPointerDown, onCheckboxPointerDown, onReorderPointerDown, isReorderDragging } = props;
+export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
+  const { mode, viewRowIndex, rowId, onPointerDown, onCheckboxPointerDown, onReorderPointerDown, renderMarker, isReorderDragging } = props;
   const actions = useDataGridActions();
   // chrome (wrapper tint/data-row-selected) and the built-in checkbox keep the any-channel union
   const isSelected = useDataGridIsRowSelected(viewRowIndex);
@@ -59,7 +61,6 @@ export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
   const isCellSelected = useDataGridIsRowCellSelected(viewRowIndex);
   const labels = useDataGridLabels();
   const reorderEnabled = useDataGridRowReorderEnabled();
-  const { renderMarker } = useDataGridRootContext();
 
   const style: CSSProperties = {
     gridColumnStart: 1,
@@ -172,4 +173,4 @@ export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
       )}
     </div>
   );
-}
+});

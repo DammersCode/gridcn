@@ -6,7 +6,7 @@ import { useDataGridRow, useDataGridRowCellState } from "./store";
 import { colRangesContain } from "./selection/selected-col-ranges-for-row";
 import { DataGridCell } from "./cell";
 import { DataGridMarkerCell } from "./rows/marker-cell";
-import type { ColumnLayout, RenderedColumn } from "./layout-context";
+import type { ColumnLayout, MarkerCellRenderer, RenderedColumn } from "./layout-context";
 import type { GetCellClassName, GetRowClassName, RowMarkersMode } from "./types";
 
 export type DataGridRowProps = {
@@ -23,6 +23,8 @@ export type DataGridRowProps = {
   onMarkerCheckboxPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
   /** Attach to the marker cell's reorder-drag pointerdown — see rows/use-row-reorder.ts. Stable identity (body's hook instance). */
   onMarkerReorderPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
+  /** Custom marker renderer; passed down so the memoized marker cell never reads the column-window-sensitive root context. */
+  renderMarker?: MarkerCellRenderer;
   /** True while this row is the reorder-drag source (dims the marker cell). Flips at most twice per gesture. */
   isRowReorderDragging: boolean;
   /** Forwarded to the row's own root div — body.tsx uses it to write `gridRowStart` imperatively (see below). */
@@ -60,6 +62,7 @@ export const DataGridRow = memo(function DataGridRow({
   onMarkerPointerDown,
   onMarkerCheckboxPointerDown,
   onMarkerReorderPointerDown,
+  renderMarker,
   isRowReorderDragging,
   rowRef,
   ariaRowIndexOffset,
@@ -106,6 +109,7 @@ export const DataGridRow = memo(function DataGridRow({
           onPointerDown={onMarkerPointerDown}
           onCheckboxPointerDown={onMarkerCheckboxPointerDown}
           onReorderPointerDown={onMarkerReorderPointerDown}
+          renderMarker={renderMarker}
           isReorderDragging={isRowReorderDragging}
         />
       )}
