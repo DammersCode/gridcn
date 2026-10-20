@@ -1,15 +1,28 @@
-import { useEffect, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import { GRID_ATTR, gridAttrSelector } from "../data-attributes";
 import { getElementStore } from "./use-scroll-snapshot";
 
-const ROW_SELECTOR = `[role="row"]${gridAttrSelector("rowIndex")}`;
+const ROW_SELECTOR = `[role="row"]:is(${gridAttrSelector("rowIndex")}, ${gridAttrSelector("pinnedRowIndex")})`;
 
 /**
  * Marks the body row under the pointer with `data-hovered`. A CSS `:hover` rule on rows makes Chrome
  * restyle the rows that move under a resting pointer on every scroll tick; an attribute that only
- * moves between scroll bursts costs nothing per tick.
+ * moves between scroll bursts costs nothing per tick. `viewIndex` or `rowHeight` changes when the rows under a resting
+ * pointer change (sort, filter, data, row height); the tint is then re-read from the pointer position.
  */
-export function useRowHover(scrollRef: RefObject<HTMLElement | null>): void {
+export function useRowHover(scrollRef: RefObject<HTMLElement | null>, viewIndex: unknown, rowHeight: number): void {
+  const reevaluateRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    let frame = 0;
+    const schedule = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => reevaluateRef.current?.());
+    };
+    schedule();
+    return () => cancelAnimationFrame(frame);
+  }, [viewIndex, rowHeight]);
+
   useEffect(() => {
     const scrollElement = scrollRef.current;
     if (!scrollElement) return;
@@ -41,11 +54,16 @@ export function useRowHover(scrollRef: RefObject<HTMLElement | null>): void {
       setHovered(null);
     };
 
+    const reevaluate = () => {
+      if (pointer && !store.getSnapshot().isScrolling) setHovered(rowOf(document.elementFromPoint(pointer.x, pointer.y)));
+    };
+    reevaluateRef.current = reevaluate;
+
     const onSnapshot = () => {
       const { isScrolling } = store.getSnapshot();
       const settled = wasScrolling && !isScrolling;
       wasScrolling = isScrolling;
-      if (settled && pointer) setHovered(rowOf(document.elementFromPoint(pointer.x, pointer.y)));
+      if (settled) reevaluate();
     };
 
     scrollElement.addEventListener("pointermove", onPointerMove, { passive: true });
@@ -55,6 +73,7 @@ export function useRowHover(scrollRef: RefObject<HTMLElement | null>): void {
       scrollElement.removeEventListener("pointermove", onPointerMove);
       scrollElement.removeEventListener("pointerleave", onPointerLeave);
       unsubscribe();
+      reevaluateRef.current = null;
       setHovered(null);
     };
   }, [scrollRef]);

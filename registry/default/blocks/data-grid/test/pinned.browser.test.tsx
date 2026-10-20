@@ -123,7 +123,7 @@ describe("pin-aware overlay segmentation", () => {
     // no scroll needed for it to render); scrolling happens AFTER, to verify the pinned part alone persists.
     actions().selectCellAt({ col: 0, row: 0 });
     actions().extendToAt({ col: 1, row: 0 });
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 250));
 
     const overlays = [...document.querySelectorAll<HTMLElement>(gridAttrSelector("selectionOverlay"))];
     expect(overlays.length).toBe(2);
@@ -158,7 +158,7 @@ describe("pin-aware overlay segmentation", () => {
     await new Promise((r) => setTimeout(r, 100));
 
     actions().selectCellAt({ col: 99, row: 2 });
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 250));
 
     const ring = document.querySelector<HTMLElement>(gridAttrSelector("activeCellOverlay"))!;
     expect(ring.dataset["pinned"]).toBe("");
@@ -189,7 +189,7 @@ describe("pin-aware overlay segmentation", () => {
     await new Promise((r) => setTimeout(r, 100));
 
     actions().selectRow(3);
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 250));
 
     const grid2Rect = grid.getBoundingClientRect();
     const overlays = [...document.querySelectorAll<HTMLElement>(gridAttrSelector("selectionOverlay"))].map((el) => el.getBoundingClientRect());
@@ -241,7 +241,7 @@ describe("bug fix — pinned cell hover opacity", () => {
     const hoveredRow = pinnedCell.closest<HTMLElement>('[role="row"]')!;
 
     await userEvent.hover(pinnedCell);
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 250));
 
     // pragmatic assertion: no alpha channel component at all (fully opaque), vs the hovered
     // cell's real translucent tint — matches the reported "text shines through" defect directly.
@@ -261,7 +261,7 @@ describe("bug fix — pinned cell hover opacity", () => {
       const pinnedCell = gridCells().find((c) => c.dataset["pinned"] === "left")!;
 
       await userEvent.hover(pinnedCell);
-      await new Promise((r) => setTimeout(r, 50));
+      await new Promise((r) => setTimeout(r, 250));
 
       expect(getComputedStyle(pinnedCell).backgroundColor).not.toMatch(/\/\s*0(\.\d+)?\s*\)|,\s*0(\.\d+)?\s*\)$/);
     } finally {

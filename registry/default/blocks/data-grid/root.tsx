@@ -361,7 +361,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   useViewportElement(scrollRef, viewportRef);
   // Imperative data-scrolled-left/right writer (for the pinned-edge shadows) — no React re-render per tick.
   useScrolledEdges(scrollRef, viewportRef);
-  useRowHover(scrollRef);
+  const viewIndex = useDataGridSelector((s) => s.viewIndex);
+  useRowHover(scrollRef, viewIndex, rowHeight);
   // Measures the pin-shadow's real anchor from the boundary header cell's own rendered edge,
   // instead of a JS-summed width total that can drift a subpixel from CSS Grid's own track
   // rounding (see the hook's doc comment) — no React re-render, imperative CSS var write.

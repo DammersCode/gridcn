@@ -416,4 +416,25 @@ describe("bug fix — pinned-row band opacity", () => {
 
     expect(getComputedStyle(pinnedCell).backgroundColor).not.toMatch(/\/\s*0(\.\d+)?\s*\)|,\s*0(\.\d+)?\s*\)$/);
   });
+
+  it("tints a pinned row band while the pointer is over it and clears the tint on leave", async () => {
+    await render(
+      <div style={{ height: 300, width: 300 }}>
+        <PinnedGrid data={makeRows(10)} cols={pinnedRowColumns} className="h-75 w-75" topRows={[totals]} />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinnedRow")}`)!;
+    await userEvent.hover(document.body);
+    await new Promise((r) => setTimeout(r, 200));
+    const resting = getComputedStyle(pinnedCell).backgroundColor;
+
+    await userEvent.hover(pinnedCell);
+    await new Promise((r) => setTimeout(r, 200));
+    expect(getComputedStyle(pinnedCell).backgroundColor).not.toBe(resting);
+
+    await userEvent.hover(document.body);
+    await new Promise((r) => setTimeout(r, 200));
+    expect(getComputedStyle(pinnedCell).backgroundColor).toBe(resting);
+  });
 });
