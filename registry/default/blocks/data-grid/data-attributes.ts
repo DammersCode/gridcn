@@ -24,6 +24,8 @@ export const GRID_ATTR = {
   checkboxBox: "data-grid-checkbox",
   /** rows/marker-cell.tsx: present (`""`) on a rows-channel selected row's marker cell. */
   selected: "data-row-selected",
+  /** use-row-hover.ts: on the scroll element while it scrolls. */
+  scrolling: "data-grid-scrolling",
   /** virtualization/use-row-hover.ts: present (`""`) on the body row under the pointer. */
   hovered: "data-hovered",
   /** virtualization/use-scrolled-edges.ts: present (`""`) on the viewport while scrolled away from its inline-start edge. */

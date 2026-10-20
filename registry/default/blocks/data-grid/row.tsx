@@ -91,7 +91,7 @@ export const DataGridRow = memo(function DataGridRow({
       data-grid-row-index={viewRowIndex}
       aria-busy={isSkeleton || undefined}
       // Named group: pinned and marker cells follow the row hover via CSS only, never React state.
-      className={cn("group/row transition-colors duration-150 motion-reduce:transition-none data-hovered:bg-muted/50", row === undefined ? undefined : getRowClassName?.(row, viewRowIndex))}
+      className={cn("group/row not-in-[[data-grid-scrolling]]:transition-colors not-in-[[data-grid-scrolling]]:duration-150 motion-reduce:transition-none data-hovered:bg-muted/50", row === undefined ? undefined : getRowClassName?.(row, viewRowIndex))}
       style={{
         display: "grid",
         gridTemplateColumns: "subgrid",
