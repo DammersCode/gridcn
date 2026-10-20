@@ -2,9 +2,11 @@ import { page } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGrid } from "../data-grid";
-import { columns, makeRows, measureScrollFps, measureScrollLongTasks } from "./perf-probe.test-helper";
+import { columns, JUMP_FRACTIONS, makeRows, measureJumpSequence, measureScrollFps, measureScrollLongTasks } from "./perf-probe.test-helper";
 // real stylesheet — layout/scroll must be real for a frame-timing probe to mean anything
 import "@/app/global.css";
+
+const JUMP_BUDGET = { longestFrameMs: 1000, framesOver50: 20, longTaskTotalMs: 2000 };
 
 describe("full-window-swap vs near-idle scroll FPS ratio", () => {
   // Tradeoff (2026-07-16): velocity-aware overscan (use-row-window.ts) trades full-swap FPS
@@ -109,5 +111,25 @@ describe("long tasks during rAF-paced fling scroll", () => {
     // binding guard (same precedent as CI_FACTOR in stream-validation-error.test.ts).
     const budgetMs = import.meta.env.CI ? 20_000 : 200;
     expect(totalMs).toBeLessThan(budgetMs);
+  });
+});
+
+describe("jump sequence scroll", () => {
+  it("survives 0/75/50/90/10/100 % jumps", { timeout: 120_000 }, async ({ annotate }) => {
+    await render(
+      <div style={{ height: 600, width: 1200 }}>
+        <DataGrid data={makeRows(100_000)} columns={columns} getRowId={(r) => r.id} className="h-150 w-300" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+
+    await measureJumpSequence(grid, JUMP_FRACTIONS, 250);
+    const result = await measureJumpSequence(grid, JUMP_FRACTIONS, 250);
+
+    await annotate(`jump-sequence ${JSON.stringify({ ...result, longTaskMs: result.longTaskMs.map(Math.round) })}`);
+    expect(result.longestFrameMs).toBeLessThan(JUMP_BUDGET.longestFrameMs);
+    expect(result.framesOver50).toBeLessThanOrEqual(JUMP_BUDGET.framesOver50);
+    expect(result.longTaskMs.reduce((a, b) => a + b, 0)).toBeLessThan(JUMP_BUDGET.longTaskTotalMs);
   });
 });

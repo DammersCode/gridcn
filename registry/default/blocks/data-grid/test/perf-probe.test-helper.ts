@@ -89,3 +89,61 @@ export function measureScrollLongTasks(
     requestAnimationFrame(step);
   });
 }
+
+export type JumpSequenceResult = {
+  longestFrameMs: number;
+  framesOver33: number;
+  framesOver50: number;
+  longTaskMs: number[];
+  maxRowsRendered: number;
+};
+
+export const JUMP_FRACTIONS = [0, 0.75, 0.5, 0.9, 0.1, 1];
+
+/** Sets scrollTop to each fraction of the scrollable height, `gapMs` apart, while an rAF loop records frame gaps and long tasks. */
+export function measureJumpSequence(grid: HTMLElement, fractions: number[], gapMs: number): Promise<JumpSequenceResult> {
+  return new Promise((resolve) => {
+    const longTaskMs: number[] = [];
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) longTaskMs.push(entry.duration);
+    });
+    observer.observe({ entryTypes: ["longtask"] });
+    const maxScrollTop = grid.scrollHeight - grid.clientHeight;
+    const deltas: number[] = [];
+    let maxRowsRendered = 0;
+    let last = performance.now();
+    let running = true;
+    const tick = (now: number) => {
+      deltas.push(now - last);
+      last = now;
+      maxRowsRendered = Math.max(maxRowsRendered, grid.querySelectorAll('[role="row"]').length);
+      if (running) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    let index = 0;
+    const jump = () => {
+      grid.scrollTop = Math.round(maxScrollTop * fractions[index]!);
+      grid.dispatchEvent(new Event("scroll"));
+      index += 1;
+      if (index < fractions.length) {
+        setTimeout(jump, gapMs);
+        return;
+      }
+      setTimeout(() => {
+        running = false;
+        requestAnimationFrame(() => {
+          for (const entry of observer.takeRecords()) longTaskMs.push(entry.duration);
+          observer.disconnect();
+          resolve({
+            longestFrameMs: deltas.reduce((a, b) => Math.max(a, b), 0),
+            framesOver33: deltas.filter((d) => d > 33).length,
+            framesOver50: deltas.filter((d) => d > 50).length,
+            longTaskMs,
+            maxRowsRendered,
+          });
+        });
+      }, gapMs);
+    };
+    jump();
+  });
+}
