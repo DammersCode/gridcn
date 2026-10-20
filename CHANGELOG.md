@@ -9,7 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
-- Row hover tints the row itself instead of every cell, and cells no longer fade their background with a transition, so a wheel scroll under a resting pointer drops far fewer frames. Unpinned cells are transparent, so a `bg-*` class from `getRowClassName` now shows through them. Pinned and marker cells stay opaque and do not show the row background, and a `bg-*` class on an unpinned cell (`getCellClassName`, `cellClassName`) hides the row hover tint.
+- Row hover tints the row itself instead of every cell, and cells no longer fade their background with a transition, so a wheel scroll under a resting pointer drops far fewer frames. Unpinned cells are transparent, so a `bg-*` class from `getRowClassName` now shows through them. The row hover tint follows a `data-hovered` attribute instead of the CSS `:hover` state, and it moves to the row under the pointer once a scroll settles. Pinned and marker cells stay opaque and do not show the row background, and a `bg-*` class on an unpinned cell (`getCellClassName`, `cellClassName`) hides the row hover tint.
 - Scroll jumps farther than the overscan cap can cover no longer mount a leading overscan buffer, so the row window stays small and commits once.
 - Vertical scroll ticks write one `translate` on the rows canvas instead of two inherited CSS variables, and a small window shift no longer rewrites the `gridRowStart` of every mounted row, which cuts style work on fast wheel flings.
 

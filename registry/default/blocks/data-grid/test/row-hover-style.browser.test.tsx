@@ -55,3 +55,45 @@ describe("row hover tint stays cheap while scrolling", () => {
     expect(getComputedStyle(marker).transitionDuration).toBe("0s");
   });
 });
+
+const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+const rowAt = (grid: HTMLElement, index: number) => grid.querySelector<HTMLElement>(`[role="row"][data-grid-row-index="${index}"]`)!;
+const hoveredRows = (grid: HTMLElement) => [...grid.querySelectorAll<HTMLElement>("[data-hovered]")];
+
+function styleRuleSelectors(): string[] {
+  const collect = (rules: CSSRuleList): string[] =>
+    [...rules].flatMap((rule) => (rule instanceof CSSStyleRule ? [rule.selectorText, ...collect(rule.cssRules)] : "cssRules" in rule ? collect((rule as CSSGroupingRule).cssRules) : []));
+  return [...document.styleSheets].flatMap((sheet) => collect(sheet.cssRules));
+}
+
+describe("row hover tint follows the pointer through an attribute", () => {
+  it("moves with the pointer, clears on leave, and renders no hover utility classes", async () => {
+    await mount();
+    const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+    await userEvent.hover(rowAt(grid, 2));
+    expect(hoveredRows(grid)).toEqual([rowAt(grid, 2)]);
+    await userEvent.hover(rowAt(grid, 3));
+    expect(hoveredRows(grid)).toEqual([rowAt(grid, 3)]);
+    expect(getComputedStyle(rowAt(grid, 3)).backgroundColor).not.toBe(TRANSPARENT);
+    await userEvent.hover(document.body);
+    expect(hoveredRows(grid)).toEqual([]);
+
+    const selectors = styleRuleSelectors();
+    expect(grid.innerHTML).not.toMatch(/(group-hover|(^|[ "])hover:)[^"]*bg-muted/);
+    expect(selectors.some((text) => text.includes("data-hovered"))).toBe(true);
+  });
+
+  it("freezes the tint during a scroll burst and lands it on the row under the pointer after settle", async () => {
+    await mount();
+    const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+    grid.addEventListener("scrollend", (event) => event.stopImmediatePropagation(), { capture: true });
+    await userEvent.hover(rowAt(grid, 2));
+    grid.scrollTop += 3;
+    await nextFrame();
+    await userEvent.hover(rowAt(grid, 4));
+    expect(hoveredRows(grid)).toEqual([rowAt(grid, 2)]);
+    await wait(400);
+    expect(hoveredRows(grid)).toEqual([rowAt(grid, 4)]);
+  });
+});

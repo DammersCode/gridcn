@@ -33,6 +33,7 @@ import {
 import { useElementDimensions, useViewportElement } from "./virtualization/use-scroll-snapshot";
 import { directionSign, readResolvedDirection, type GridDirection } from "./virtualization/direction";
 import { useColumnWindow } from "./virtualization/use-column-window";
+import { useRowHover } from "./virtualization/use-row-hover";
 import { useGridInteraction, type InteractionLayout } from "./interaction/use-grid-interaction";
 import { useGridClipboard } from "./clipboard/use-grid-clipboard";
 import {
@@ -360,6 +361,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   useViewportElement(scrollRef, viewportRef);
   // Imperative data-scrolled-left/right writer (for the pinned-edge shadows) — no React re-render per tick.
   useScrolledEdges(scrollRef, viewportRef);
+  useRowHover(scrollRef);
   // Measures the pin-shadow's real anchor from the boundary header cell's own rendered edge,
   // instead of a JS-summed width total that can drift a subpixel from CSS Grid's own track
   // rounding (see the hook's doc comment) — no React re-render, imperative CSS var write.
