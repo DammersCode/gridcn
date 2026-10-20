@@ -9,6 +9,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- Jump scrolling (scrollbar teleports larger than the viewport) no longer mounts a leading overscan buffer, so the row window stays small and commits once.
+
 ## 1.0.0 - 2026-10-16
 
 ### Upgrading from 0.1.0

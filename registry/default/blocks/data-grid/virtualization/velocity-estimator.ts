@@ -33,6 +33,9 @@ export const VELOCITY_OVERSCAN_CAP_PX = 1600;
 /** Below this, a delta is sub-row jitter (e.g. a 1px scroll-position correction), not drag signal — must not itself trigger the ramp. */
 const VELOCITY_TRIGGER_PX = 72;
 
+/** A tick that jumps farther than this many viewports is a teleport: the whole window is replaced, so a leading buffer would only mount rows that are shrunk away at settle. */
+export const TELEPORT_VIEWPORT_FACTOR = 1;
+
 export type VelocityEstimator = { estimate: number; lastTickAt: number; retryTimer: ReturnType<typeof setTimeout> | null };
 
 export function createVelocityEstimator(): VelocityEstimator {
@@ -69,6 +72,7 @@ export function updateVelocityEstimate(
   delta: number,
   isScrolling: boolean,
   onIdleReset?: () => void,
+  viewportPx = Infinity,
 ): number {
   const now = typeof performance !== "undefined" ? performance.now() : Date.now();
   if (!isScrolling) {
@@ -112,7 +116,9 @@ export function updateVelocityEstimate(
     }
   }, SETTLE_RESET_MIN_IDLE_MS);
   const magnitude = Math.abs(delta);
-  if (magnitude >= VELOCITY_TRIGGER_PX) {
+  if (magnitude > viewportPx * TELEPORT_VIEWPORT_FACTOR) {
+    estimator.estimate = 0;
+  } else if (magnitude >= VELOCITY_TRIGGER_PX) {
     const rampStep = VELOCITY_OVERSCAN_CAP_PX / VELOCITY_RAMP_TICKS;
     // Cap applies to the OBSERVED magnitude too — an outsized single jump (e.g. a scrollbar
     // teleport far bigger than any real drag tick) must still clamp, not blow straight past it.

@@ -28,6 +28,16 @@ describe("velocity estimator (Phase 4)", () => {
     expect(estimate).toBe(VELOCITY_OVERSCAN_CAP_PX);
   });
 
+  it("keeps the estimate at 0 for a teleport delta larger than the viewport", () => {
+    const estimator = createVelocityEstimator();
+    expect(updateVelocityEstimate(estimator, 100_000, true, undefined, 400)).toBe(0);
+  });
+
+  it("still ramps for a fling delta within the viewport", () => {
+    const estimator = createVelocityEstimator();
+    expect(updateVelocityEstimate(estimator, 300, true, undefined, 400)).toBeGreaterThan(0);
+  });
+
   it("decays the estimate on a small delta while still scrolling", () => {
     const estimator = createVelocityEstimator();
     updateVelocityEstimate(estimator, 1500, true);

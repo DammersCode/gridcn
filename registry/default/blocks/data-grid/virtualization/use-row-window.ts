@@ -169,7 +169,7 @@ export function useRowWindow(scrollRef: RefObject<HTMLElement | null>, opts: Use
 
     const recompute = () => {
       const snap = store.getSnapshot();
-      const est = updateVelocityEstimate(velocityRef.current, snap.deltaTop, snap.isScrolling, onIdleReset);
+      const est = updateVelocityEstimate(velocityRef.current, snap.deltaTop, snap.isScrolling, onIdleReset, Math.max(0, snap.clientHeight - resolvedOpts.bottomInset));
       const next = computeWindow(element, snap, resolvedOpts, est);
       const prev = windowRef.current;
       if (prev && prev.start === next.start && prev.end === next.end) return;
