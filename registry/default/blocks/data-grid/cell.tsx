@@ -344,20 +344,15 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       data-flash={isFlashing || undefined}
       data-invalid={Boolean(errorMessage) || undefined}
       className={cn(
-        "relative flex items-center overflow-hidden border-b border-border bg-background px-2 outline-none group-hover/row:bg-muted/50 transition-colors group-hover/row:transition-none",
+        "relative flex items-center overflow-hidden border-b border-border px-2 outline-none",
         COLUMN_BORDER,
-        // Pinned-column cells and pinned-row cells both sit opaque above the scrolled canvas
-        // (z-index 1 / 3) — a translucent bg-muted/50 hover tint would let the scrolled content
-        // underneath show through. color-mix() pre-composites the same tint as an OPAQUE color (same
-        // visual result, no transparency) so both stay fully opaque on hover in both themes;
-        // unpinned, non-banded cells keep the plain translucent utility.
-        "data-pinned:group-hover/row:bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
-        "data-grid-pinned-row:group-hover/row:bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
+        // Pinned cells sit opaque above the scrolled canvas, so they carry their own hover tint
+        // (pre-composited with color-mix). Every other cell stays transparent and shows the row's tint:
+        // a hover rule on each cell restyles the whole row on every hover change, which costs a scroll frame.
+        (pinned || isPinnedRow) && "bg-background group-hover/row:bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
         // own token, not accent/muted: search-highlight is a distinct convention from selection/active colors.
         "data-[search-match]:bg-search-highlight/60 dark:data-[search-match]:bg-search-highlight/25",
-        // Same reasoning as the pinned-cell hover tint above: pinned-row bands sit opaque (z-index 3)
-        // above the scrolled rows canvas, so a translucent bg-muted/30 would let scrolled content
-        // bleed through — color-mix() pre-composites the same tint as an opaque color instead.
+        // Pinned-row bands are opaque too; color-mix() keeps their 30% tint opaque.
         isPinnedRow && "bg-[color-mix(in_oklch,var(--color-muted)_30%,var(--color-background))] font-medium",
         align === "left" && "justify-start",
         align === "center" && "justify-center",

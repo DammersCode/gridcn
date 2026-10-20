@@ -87,7 +87,7 @@ export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGr
       data-dragging={isReorderDragging || undefined}
       aria-label={showGrip ? labels.markers.reorderRow(viewRowIndex + 1) : undefined}
       className={cn(
-        "group flex items-center border-b border-border bg-background transition-colors group-hover/row:transition-none",
+        "group flex items-center border-b border-border bg-background",
         COLUMN_BORDER,
         // Same rule as a pinned-column cell (see cell.tsx): this sits opaque above the scrolled
         // canvas, so a translucent tint would let the scrolled content show through it.

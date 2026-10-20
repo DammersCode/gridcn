@@ -238,15 +238,15 @@ describe("bug fix — pinned cell hover opacity", () => {
 
     const cells = gridCells();
     const pinnedCell = cells.find((c) => c.dataset["pinned"] === "left")!;
-    const unpinnedCell = cells.find((c) => !c.dataset["pinned"])!;
+    const hoveredRow = pinnedCell.closest<HTMLElement>('[role="row"]')!;
 
     await userEvent.hover(pinnedCell);
     await new Promise((r) => setTimeout(r, 50));
 
-    // pragmatic assertion: no alpha channel component at all (fully opaque), vs the unpinned
+    // pragmatic assertion: no alpha channel component at all (fully opaque), vs the hovered
     // cell's real translucent tint — matches the reported "text shines through" defect directly.
     expect(getComputedStyle(pinnedCell).backgroundColor).not.toMatch(/\/\s*0(\.\d+)?\s*\)|,\s*0(\.\d+)?\s*\)$/);
-    expect(getComputedStyle(unpinnedCell).backgroundColor).toMatch(/0\.5\s*\)$/);
+    expect(getComputedStyle(hoveredRow).backgroundColor).toMatch(/0\.5\s*\)$/);
   });
 
   it("resolves to the same opaque tint in dark mode", async () => {
