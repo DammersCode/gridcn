@@ -129,7 +129,7 @@ function RangeOverlay({ rect, windowStart, colOffset, pinStyle }: { rect: GridRe
 
 /** Props for {@link DataGridOverlays}. */
 export type DataGridOverlaysProps = {
-  /** First rendered (data-space) row index — overlays place window-relative like the rows canvas. May sit below `clampRowStart` when an off-window active row pulls it down (see body.tsx effectiveStart). */
+  /** Data-space row index of the rows canvas's first grid line — overlays place relative to it. Sits at or below `clampRowStart`. */
   windowStart: number;
   /** Number of rows currently in view (post sort/filter). May include a disjoint off-window active row appended past the contiguous span — NOT a safe range-overlay clamp bound on its own, see `clampRowStart`/`clampRowEnd`. */
   rowCount: number;
@@ -217,7 +217,7 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
   }));
 
   const activeInWindow: ViewCoord | null =
-    activeCell && activeCell.row >= windowStart && activeCell.row < windowStart + rowCount ? activeCell : null;
+    activeCell && activeCell.row >= windowStart && activeCell.row < clampedRowEnd ? activeCell : null;
   const activePinStyle = activeInWindow && pinned ? pinned.pins[activeInWindow.col] && pinnedInsetStyle(
     pinned.pins[activeInWindow.col],
     activeInWindow.col,

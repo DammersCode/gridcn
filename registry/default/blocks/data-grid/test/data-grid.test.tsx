@@ -1147,7 +1147,7 @@ describe("row prop identity survives a scroll that keeps the same rows in view",
     expect(rowsAfter).toEqual(rowsBefore);
   });
 
-  it("a 1-row window shift repositions the same DOM nodes to new gridRowStart values in place", () => {
+  it("a 1-row window shift keeps the same DOM nodes and leaves their gridRowStart untouched", () => {
     render(<DataGrid data={makeRows(10000)} columns={columns} getRowId={(r) => r.id} />);
     const grid = screen.getByRole("grid");
     fireEvent.scroll(grid, { target: { scrollTop: 720 } });
@@ -1160,11 +1160,10 @@ describe("row prop identity survives a scroll that keeps the same rows in view",
 
     const rowsAfter = screen.getAllByRole("row").filter((r) => r.getAttribute("aria-rowindex"));
     // the SAME row (by aria-rowindex, i.e. same underlying data row) is still the SAME DOM node —
-    // not remounted — but its gridRowStart moved up by one slot (window-relative placement).
+    // not remounted — and its gridRowStart stays put (the grid origin trails the window).
     const survivorAfter = rowsAfter.find((r) => r.getAttribute("aria-rowindex") === survivorAriaIndex)!;
     expect(survivorAfter).toBe(rowsBefore[1]!);
-    expect(survivorAfter.style.gridRowStart).not.toBe(survivorGridRowStartBefore);
-    expect(Number(survivorAfter.style.gridRowStart)).toBe(Number(survivorGridRowStartBefore) - 1);
+    expect(survivorAfter.style.gridRowStart).toBe(survivorGridRowStartBefore);
   });
 });
 

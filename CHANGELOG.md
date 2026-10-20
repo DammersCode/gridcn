@@ -10,6 +10,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 ## Unreleased
 
 - Scroll jumps farther than the overscan cap can cover no longer mount a leading overscan buffer, so the row window stays small and commits once.
+- Vertical scroll ticks write one `translate` on the rows canvas instead of two inherited CSS variables, and a small window shift no longer rewrites the `gridRowStart` of every mounted row, which cuts style work on fast wheel flings.
 
 ## 1.0.0 - 2026-10-16
 

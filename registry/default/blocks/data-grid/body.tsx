@@ -16,6 +16,7 @@ import {
   type AnyColumnDef,
 } from "./store";
 import { useRowWindow } from "./virtualization/use-row-window";
+import { useCanvasOffset } from "./virtualization/use-scroll-snapshot";
 import { useDataGridRootContext, type RenderedColumn } from "./layout-context";
 import { DataGridRow } from "./row";
 import { DataGridOverlays } from "./overlays";
@@ -60,6 +61,8 @@ export type DataGridBodyProps = {
   /** Merged onto the rows-canvas element (the transformed canvas holding the virtualized rows and overlays, not the scroll root). */
   className?: string;
 };
+
+const GRID_ORIGIN_MARGIN_ROWS = 96;
 
 /** Renders only the virtualized rows for the current scroll position, plus the active row so focus survives scrolling it out of view. */
 export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
@@ -143,13 +146,19 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   // a ref read in render bails the React Compiler (see row-element-registry.ts).
   const rowRegistry = useMemo(() => createRowElementRegistry(), []);
 
-  // When the active row sits ABOVE the window, gridRowStart (viewRowIndex - windowStart + 1) would
-  // be <= 0 — an invalid <integer> (dropped, falls back to auto placement) or a negative index
-  // (counts from the end of the explicit grid) — either way it corrupts canvas layout. Extend the
-  // effective window start down to the active row and shift the canvas transform by the same
-  // amount, so every rendered row keeps a valid (>=1) gridRowStart with no visual change.
-  const effectiveStart = activeCell ? Math.min(start, activeCell.row) : start;
-  const effectiveWindowTop = windowTop - (start - effectiveStart) * rowHeight;
+  // Rows place at gridRowStart = viewRowIndex - gridOrigin + 1. The origin trails the window and
+  // only rebases once the window drifts out of its band, so a small window shift leaves surviving
+  // rows untouched (an inline-style write restyles the whole row). The canvas translate absorbs the offset.
+  const [originBase, setOriginBase] = useState(0);
+  const rebaseOrigin = start < originBase || start - originBase > 2 * GRID_ORIGIN_MARGIN_ROWS;
+  const rebasedOrigin = Math.max(0, start - GRID_ORIGIN_MARGIN_ROWS);
+  if (rebaseOrigin) setOriginBase(rebasedOrigin);
+  const trailingOrigin = rebaseOrigin ? rebasedOrigin : originBase;
+
+  // An active row above the origin would get gridRowStart <= 0 (invalid, or counted from the end of
+  // the explicit grid), so the origin extends down to it; the canvas translate absorbs that too.
+  const gridOrigin = activeCell ? Math.min(trailingOrigin, activeCell.row) : trailingOrigin;
+  const effectiveWindowTop = windowTop - (start - gridOrigin) * rowHeight;
 
   // Drag-to-reorder rows: one shared instance for the whole body (one indicator, one gesture),
   // mirroring how DataGridHeader owns useColumnReorder for its headers.
@@ -203,7 +212,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
     if (!drag || drag.overRow === null) return null;
     const boundary = drag.position === "before" ? drag.overRow : drag.overRow + 1;
     return {
-      gridRowStart: boundary - effectiveStart + 1,
+      gridRowStart: boundary - gridOrigin + 1,
       gridColumn: "1 / -1",
       position: "relative",
       alignSelf: "start",
@@ -212,7 +221,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
       pointerEvents: "none",
       backgroundColor: "var(--color-primary)",
     };
-  }, [rowReorder.dragState, effectiveStart]);
+  }, [rowReorder.dragState, gridOrigin]);
 
   // Writes gridRowStart straight into each row's DOM node, bypassing React for this value.
   // The body re-renders every window tick anyway, so the write costs nothing extra, and
@@ -223,7 +232,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
       const viewRowIndex = viewRowIndices[i]!;
       const key = rowIds[i] ?? viewRowIndex;
       const el = rowRegistry.elements.get(key);
-      if (el) el.style.gridRowStart = String(viewRowIndex - effectiveStart + 1);
+      if (el) el.style.gridRowStart = String(viewRowIndex - gridOrigin + 1);
     }
   });
 
@@ -234,25 +243,27 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
     internalActions._pruneFlashingCells(viewRowIndices);
   }, [measured, viewRowIndices, internalActions]);
 
-  const canvasStyle: CSSProperties & Record<string, string | number> = {
+  const canvasBaseOffset = effectiveWindowTop + effectiveHeaderHeight;
+  const canvasRef = useRef<HTMLDivElement>(null);
+  useCanvasOffset(scrollRef, canvasRef, canvasBaseOffset);
+
+  const canvasStyle: CSSProperties = {
     position: "absolute",
     insetBlockStart: 0,
     insetInlineStart: 0,
     display: "grid",
     gridTemplateColumns: template,
     gridAutoRows: `${rowHeight}px`,
-    "--grid-window-top": `${effectiveWindowTop}px`,
-    // X: cancel native scroll like the header. Y: place the canvas at effectiveHeaderHeight +
-    // windowTop (below the header AND any pinned-top band), then cancel native scroll's vertical
-    // component too — one transform, both axes, every tick.
-    // --grid-dir (-1 in LTR, 1 in RTL) signs the horizontal term: transforms are always physical
-    // while the grid tracks under them mirror themselves, so the sign is the only difference.
-    transform: `translate3d(calc(var(--grid-dir, -1) * var(--grid-scroll-left, 0px)), calc(var(--grid-window-top) - var(--grid-scroll-top, 0px) + ${effectiveHeaderHeight}px), 0)`,
+    // Horizontal only: the vertical offset is the imperative `translate` (see useCanvasOffset),
+    // because a per-tick change of an inherited custom property restyles every cell.
+    translate: `0 ${canvasBaseOffset}px`,
+    // --grid-dir signs the X term: transforms are physical while RTL tracks mirror.
+    transform: "translate3d(calc(var(--grid-dir, -1) * var(--grid-scroll-left, 0px)), 0, 0)",
   };
 
   return (
     <>
-      <div style={canvasStyle} className={className} data-grid-rows-canvas="" data-grid-window-start={start} data-grid-window-end={end}>
+      <div ref={canvasRef} style={canvasStyle} className={className} data-grid-rows-canvas="" data-grid-window-start={start} data-grid-window-end={end}>
         {/* self-scoped keyframes for the flashCells write-pulse (loading-skeleton's own <style> pattern — registry item, no global.css edit) */}
         <style>{FLASH_KEYFRAMES}</style>
         {viewRowIndices.map((viewRowIndex, i) => {
@@ -279,10 +290,9 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
           );
         })}
         <DataGridOverlays
-          windowStart={effectiveStart}
+          windowStart={gridOrigin}
           rowCount={viewRowIndices.length}
-          // contiguous rendered span for clamping: [effectiveStart, effectiveStart + length) is
-          // disjoint whenever the active row was appended off-window
+          // contiguous rendered span for clamping; an appended off-window active row lies outside it
           clampRowStart={start}
           clampRowEnd={end}
           // total visible columns (real index space), not the rendered window size — bands and
