@@ -70,7 +70,7 @@ describe("browser height limit warning", () => {
     );
     expect(heightWarnings(warn)).toHaveLength(1);
     expect(String(heightWarnings(warn)[0]?.[0])).toContain("900000 rows");
-    expect(String(heightWarnings(warn)[0]?.[0])).toContain("Rows past about 490,000 are unreachable");
+    expect(String(heightWarnings(warn)[0]?.[0])).toContain("Firefox shows no scroll range above about 490,000 rows at this row height. Chromium cannot reach the rows past about 930,000");
   });
 
   it("stays silent at 480,000 rows with the default row height", () => {

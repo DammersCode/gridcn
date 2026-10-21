@@ -33,7 +33,7 @@ the regression suite that enforces them.
 
 <NewBadge />
 
-Browsers cap or ignore tall elements: Firefox at about 17.9 million pixels, Chromium at about 33.5 million. To work in every browser, keep the row count times the row height below 17.8 million pixels. This limits one grid to about 490,000 rows at the default row height of 36 px. A smaller row height allows more rows. A larger row height allows fewer. If the row count times the row height passes the limit, the rows past it cannot be reached by scrolling, and Firefox shows no scroll range at all. A development build logs a warning when the grid crosses the limit.
+Browsers cap or ignore tall elements: Firefox at about 17.9 million pixels, Chromium at about 33.5 million. To work in every browser, keep the row count times the row height below 17.8 million pixels. This limits one grid to about 490,000 rows at the default row height of 36 px. A smaller row height allows more rows. A larger row height allows fewer. If the row count times the row height passes 17.8 million pixels, Firefox shows no scroll range at all. If it passes 33.5 million pixels, Chromium cannot reach the rows past about 930,000 at 36 px. A development build logs a warning when the grid crosses the limit.
 
 ## How it works
 

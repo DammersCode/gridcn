@@ -58,11 +58,14 @@ function warnRowCountMismatch(indicesLength: number, expected: number, start: nu
 
 // Firefox gives an element taller than about 17.9 million px a height of 0; Chromium clamps at 33.5 million.
 const BROWSER_HEIGHT_LIMIT_WARN_PX = 17_800_000;
+const CHROMIUM_HEIGHT_LIMIT_PX = 33_554_400;
 
 function warnHeightLimit(rowCount: number, rowHeight: number): void {
-  const reachableRows = Math.floor(BROWSER_HEIGHT_LIMIT_WARN_PX / rowHeight / 10_000) * 10_000;
+  const roundDown = (px: number) => Math.floor(px / rowHeight / 10_000) * 10_000;
+  const firefoxRows = roundDown(BROWSER_HEIGHT_LIMIT_WARN_PX);
+  const chromiumRows = roundDown(CHROMIUM_HEIGHT_LIMIT_PX);
   console.warn(
-    `gridcn: ${rowCount} rows at ${rowHeight}px need ${rowCount * rowHeight}px of scroll height, which is above the browser height limit (about 17.9 million px in Firefox, 33.5 million px in Chromium). Rows past about ${reachableRows.toLocaleString("en-US")} are unreachable. See the virtualization docs page.`,
+    `gridcn: ${rowCount} rows at ${rowHeight}px need ${rowCount * rowHeight}px of scroll height, which is above the browser height limit (about 17.9 million px in Firefox, 33.5 million px in Chromium). Firefox shows no scroll range above about ${firefoxRows.toLocaleString("en-US")} rows at this row height. Chromium cannot reach the rows past about ${chromiumRows.toLocaleString("en-US")}. See the virtualization docs page.`,
   );
 }
 
@@ -291,7 +294,6 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   return (
     <>
       <div style={canvasStyle} className={className} data-grid-rows-canvas="" data-grid-window-start={start} data-grid-window-end={end}>
-        {/* self-scoped keyframes for the flashCells write-pulse (loading-skeleton's own <style> pattern — registry item, no global.css edit) */}
         <CanvasOffsetAnchor scrollRef={scrollRef} baseOffset={canvasBaseOffset} />
         {viewRowIndices.map((viewRowIndex, i) => {
           const key = rowIds[i] ?? viewRowIndex;

@@ -285,6 +285,11 @@ export function dispatchGridAction(args: {
     scrollCellIntoView(target);
   };
 
+  const startEditingAndReveal = (coord: ViewCoord, initialText?: string) => {
+    actions.startEditingAt(coord, initialText);
+    if (storeApi.getState().editing) scrollCellIntoView(coord);
+  };
+
   switch (action) {
     case "moveUp":
     case "moveDown":
@@ -451,7 +456,7 @@ export function dispatchGridAction(args: {
       preventDefault();
       if (state.readOnly || !state.activeCell) break;
       if (hasActivateCell(state, state.activeCell)) activateCell(state, actions, state.activeCell);
-      else actions.startEditingAt(state.activeCell);
+      else startEditingAndReveal(state.activeCell);
       break;
     }
     case "typeToReplace": {
@@ -459,7 +464,7 @@ export function dispatchGridAction(args: {
       preventDefault();
       if (hasActivateCell(state, state.activeCell)) break; // checkbox cells have no edit mode; the edit action toggles them, type-to-replace ignores them
       // printable trigger seeds the typed char (Excel replace mode); a non-printable binding (e.g. F3) starts a plain edit
-      actions.startEditingAt(state.activeCell, triggerKey);
+      startEditingAndReveal(state.activeCell, triggerKey);
       break;
     }
     case "cancel": {
