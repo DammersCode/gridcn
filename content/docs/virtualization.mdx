@@ -41,7 +41,7 @@ Browsers cap the height of one element at about 33.5 million pixels. This limits
 
 The scrollable area is a sticky viewport. The rows and columns you see are absolutely positioned
 inside a full-size canvas, sized to the *total* row and column extent, so the scrollbar's length
-and thumb position are always correct. One CSS transform on the rows canvas slides the rendered rows to track the scroll position. It
+and thumb position are always correct. One `translate` on the rows canvas slides the rendered rows to track the scroll position. It
 updates on every tick, not on the next React commit. The browser never reveals a strip of
 unrendered area between a scroll event and the window catching up, even during a hard
 scrollbar-drag fling.
@@ -59,8 +59,8 @@ the grid tracks recent scroll velocity. It grows the overscan on the leading edg
 
 A jump is a scroll farther than the viewport plus the largest velocity buffer. After a jump, the
 grid mounts only the base overscan. The velocity buffer applies to fling and drag deltas below that
-distance. A jump from the top to the middle of 100,000 rows therefore mounts one window of rows,
-not a window plus a large buffer.
+distance. A jump from the top to the middle of 100,000 rows therefore mounts one set of rendered rows,
+not that set plus a large buffer.
 
 ### What's virtualized
 

@@ -26,7 +26,7 @@ row. A jump farther than the viewport plus the velocity buffer mounts only the b
 Row hover is an attribute on the hovered row. It does not use a `:hover` rule or a transition. The
 attribute stays on its row while the grid scrolls, so scrolling causes no style recalculation for
 hover. The grid reads the row under the pointer again when the scroll settles and after the view
-changes. Marker cells re-render only when their own props change.
+changes. Marker cells re-render only when their own props or the selection state of their row change.
 
 <NewBadge />
 
