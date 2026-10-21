@@ -349,7 +349,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         // Pinned cells sit opaque above the scrolled canvas, so they carry their own hover tint
         // (pre-composited with color-mix). Every other cell stays transparent and shows the row's tint:
         // a hover rule on each cell restyles the whole row on every hover change, which costs a scroll frame.
-        (pinned || isPinnedRow) && "bg-background not-in-[[data-grid-scrolling]]:transition-colors not-in-[[data-grid-scrolling]]:duration-150 motion-reduce:transition-none group-data-hovered/row:bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
+        (pinned || isPinnedRow) && "bg-background group-data-hovered/row:bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
         // own token, not accent/muted: search-highlight is a distinct convention from selection/active colors.
         "data-[search-match]:bg-search-highlight/60 dark:data-[search-match]:bg-search-highlight/25",
         // Pinned-row bands are opaque too; color-mix() keeps their 30% tint opaque.

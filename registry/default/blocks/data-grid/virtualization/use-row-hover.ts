@@ -63,11 +63,7 @@ export function useRowHover(scrollRef: RefObject<HTMLElement | null>, viewIndex:
       const { isScrolling } = store.getSnapshot();
       if (isScrolling === wasScrolling) return;
       wasScrolling = isScrolling;
-      if (isScrolling) scrollElement.setAttribute(GRID_ATTR.scrolling, "");
-      else {
-        scrollElement.removeAttribute(GRID_ATTR.scrolling);
-        reevaluate();
-      }
+      if (!isScrolling) reevaluate();
     };
 
     scrollElement.addEventListener("pointermove", onPointerMove, { passive: true });
@@ -78,7 +74,6 @@ export function useRowHover(scrollRef: RefObject<HTMLElement | null>, viewIndex:
       scrollElement.removeEventListener("pointerleave", onPointerLeave);
       unsubscribe();
       reevaluateRef.current = null;
-      scrollElement.removeAttribute(GRID_ATTR.scrolling);
       setHovered(null);
     };
   }, [scrollRef]);

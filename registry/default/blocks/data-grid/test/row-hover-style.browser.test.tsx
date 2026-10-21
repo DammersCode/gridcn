@@ -30,7 +30,7 @@ async function mount() {
 }
 
 describe("row hover tint stays cheap while scrolling", () => {
-  it("tints the hovered row itself and fades only the row, leaving unpinned cells without hover rules or transitions", async () => {
+  it("tints the hovered row itself, leaving unpinned cells without hover rules or transitions", async () => {
     const { row, plainCell } = await mount();
     await hoverAndSettle(document.body);
     expect(getComputedStyle(row).backgroundColor).toBe(TRANSPARENT);
@@ -38,7 +38,7 @@ describe("row hover tint stays cheap while scrolling", () => {
     expect(getComputedStyle(row).backgroundColor).not.toBe(TRANSPARENT);
     expect(getComputedStyle(plainCell).backgroundColor).toBe(TRANSPARENT);
     expect(getComputedStyle(plainCell).transitionDuration).toBe("0s");
-    expect(getComputedStyle(row).transitionDuration).not.toBe("0s");
+    expect(getComputedStyle(row).transitionDuration).toBe("0s");
     expect(plainCell.className).not.toContain("group-hover/row");
   });
 
@@ -53,8 +53,8 @@ describe("row hover tint stays cheap while scrolling", () => {
     await hoverAndSettle(row);
     expect(getComputedStyle(pinnedCell).backgroundColor).not.toBe(restingPinned);
     expect(getComputedStyle(marker).backgroundColor).not.toBe(restingMarker);
-    expect(getComputedStyle(pinnedCell).transitionDuration).not.toBe("0s");
-    expect(getComputedStyle(marker).transitionDuration).not.toBe("0s");
+    expect(getComputedStyle(pinnedCell).transitionDuration).toBe("0s");
+    expect(getComputedStyle(marker).transitionDuration).toBe("0s");
   });
 });
 
@@ -123,32 +123,19 @@ describe("row hover tint follows the pointer through an attribute", () => {
     expect(after[0]!.contains(document.elementFromPoint(x + width / 2, y + height / 2))).toBe(true);
   });
 
-  it("freezes the tint and the fade during a scroll burst and restores both after settle", async () => {
+  it("freezes the tint during a scroll burst and restores it after settle", async () => {
     await mount();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
-    const pinnedIn = (index: number) => rowAt(grid, index).querySelector<HTMLElement>('[role="gridcell"][data-column-id="name"]')!;
-    const plainIn = (index: number) => rowAt(grid, index).querySelector<HTMLElement>('[role="gridcell"][data-column-id="email"]')!;
     await userEvent.hover(rowAt(grid, 2));
     await wait(200);
-    expect(getComputedStyle(rowAt(grid, 2)).transitionDuration).not.toBe("0s");
-    expect(getComputedStyle(pinnedIn(2)).transitionDuration).not.toBe("0s");
-    expect(getComputedStyle(plainIn(2)).transitionDuration).toBe("0s");
 
     grid.addEventListener("scrollend", (event) => event.stopImmediatePropagation(), { capture: true });
     grid.scrollTop += 3;
     await nextFrame();
-    expect(grid.hasAttribute("data-grid-scrolling")).toBe(true);
     await userEvent.hover(rowAt(grid, 4));
     expect(hoveredRows(grid)).toEqual([rowAt(grid, 2)]);
-    expect(getComputedStyle(rowAt(grid, 2)).transitionDuration).toBe("0s");
-    expect(getComputedStyle(pinnedIn(2)).transitionDuration).toBe("0s");
-    expect(getComputedStyle(rowAt(grid, 2).querySelector<HTMLElement>("[data-grid-marker-cell]")!).transitionDuration).toBe("0s");
 
     await wait(400);
-    expect(grid.hasAttribute("data-grid-scrolling")).toBe(false);
     expect(hoveredRows(grid)).toEqual([rowAt(grid, 4)]);
-    expect(getComputedStyle(rowAt(grid, 4)).transitionDuration).not.toBe("0s");
-    expect(getComputedStyle(pinnedIn(4)).transitionDuration).not.toBe("0s");
-    expect(getComputedStyle(plainIn(4)).transitionDuration).toBe("0s");
   });
 });
