@@ -2,7 +2,6 @@
 title: Lazy loading
 description: Fetch row ranges on demand for datasets too large (or too expensive) to load up front.
 icon: CloudDownload
-status: updated
 ---
 
 `data-grid-lazy` gives the grid a `total` and a `fetchRows(start, end)` function, and
@@ -243,7 +242,7 @@ page.
 
 ## Sorting a lazy grid
 
-The sort must run on the server. <NewBadge /> Set `sortMode="server"`: the grid tracks the sort spec (the
+The sort must run on the server. Set `sortMode="server"`: the grid tracks the sort spec (the
 asc → desc → none header cycle, `aria-sort`, the sort indicator, `DataGridSortList`) and calls
 `onSortChange`, but never reorders `data`. Hold the spec in your own state and send it to
 `fetchRows`:

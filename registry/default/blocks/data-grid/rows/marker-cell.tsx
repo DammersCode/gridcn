@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from "react";
+import { memo, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { COLUMN_BORDER } from "../columns/column-border";
@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import type { RowMarkersMode } from "../types";
 import { GRID_LAYER } from "../layers";
 import { gridAttrSelector } from "../data-attributes";
-import { useDataGridRootContext } from "../layout-context";
+import type { MarkerCellRenderer } from "../layout-context";
 import { isReorderMarkerMode, markerContent } from "./marker-width";
 import {
   useDataGridActions,
@@ -31,6 +31,8 @@ export type DataGridMarkerCellProps = {
   onCheckboxPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
   /** Arms the row-reorder drag from a press on the drag handle zone; a stable callback from the body's useRowReorder instance. */
   onReorderPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
+  /** Custom marker renderer from the root; replaces the built-in number, checkbox, and drag handle content. */
+  renderMarker?: MarkerCellRenderer;
   /** True while this row is the reorder-drag source (dims the marker, like the column reorder does to its header cell). */
   isReorderDragging: boolean;
 };
@@ -49,8 +51,8 @@ export type DataGridMarkerCellProps = {
  * arms the row-reorder drag and never changes the selection, and the number/rest of the cell is
  * the plain row-select surface.
  */
-export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
-  const { mode, viewRowIndex, rowId, onPointerDown, onCheckboxPointerDown, onReorderPointerDown, isReorderDragging } = props;
+export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
+  const { mode, viewRowIndex, rowId, onPointerDown, onCheckboxPointerDown, onReorderPointerDown, renderMarker, isReorderDragging } = props;
   const actions = useDataGridActions();
   // chrome (wrapper tint/data-row-selected) and the built-in checkbox keep the any-channel union
   const isSelected = useDataGridIsRowSelected(viewRowIndex);
@@ -59,7 +61,6 @@ export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
   const isCellSelected = useDataGridIsRowCellSelected(viewRowIndex);
   const labels = useDataGridLabels();
   const reorderEnabled = useDataGridRowReorderEnabled();
-  const { renderMarker } = useDataGridRootContext();
 
   const style: CSSProperties = {
     gridColumnStart: 1,
@@ -86,12 +87,10 @@ export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
       data-dragging={isReorderDragging || undefined}
       aria-label={showGrip ? labels.markers.reorderRow(viewRowIndex + 1) : undefined}
       className={cn(
-        "group flex items-center border-b border-border bg-background transition-colors group-hover/row:transition-none",
+        "group flex items-center border-b border-border bg-background",
         COLUMN_BORDER,
-        // Same rule as a pinned-column cell (see cell.tsx): this sits opaque above the scrolled
-        // canvas, so a translucent tint would let the scrolled content show through it.
-        // color-mix() pre-composites the identical tint as an OPAQUE color, in both themes.
-        "group-hover/row:bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
+        // Opaque over scrolled content: color-mix() pre-composites the tint instead of a translucent overlay.
+        "group-data-hovered/row:bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
         isSelected && "bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
         !showGrip && "justify-center",
         isReorderDragging && "opacity-50",
@@ -172,4 +171,4 @@ export function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
       )}
     </div>
   );
-}
+});

@@ -2,7 +2,6 @@
 title: Accessibility
 description: The WAI-ARIA grid model, roving tabindex, live regions, the honest test matrix, and known gaps.
 icon: Accessibility
-status: updated
 ---
 
 ## Conformance target
@@ -111,7 +110,7 @@ accessibility](/docs/addons/toolbar#filter-menu-keyboard--accessibility) and
 [Selection & keyboard](/docs/selection-keyboard#keyboard-map) is the canonical shortcut reference
 for cell navigation, selection, and editing. This page does not repeat that table.
 
-<kbd>Tab</kbd> <NewBadge /> and <kbd>Shift+Tab</kbd> move focus out of the grid to the next or previous
+<kbd>Tab</kbd> and <kbd>Shift+Tab</kbd> move focus out of the grid to the next or previous
 focusable element, so the grid is never a keyboard trap. To navigate cells with Tab instead, bind
 it on the movement actions:
 
@@ -157,6 +156,6 @@ What the automated Chromium suite verifies, area by area:
   `color-contrast` rule, because headless-Chromium font metrics make that rule unreliable in that
   environment, not because contrast does not matter.
 - **No screen reader has been tested.** The NVDA and VoiceOver passes are pending. Test your own
-  grid with the screen readers your users run. <NewBadge />
+  grid with the screen readers your users run.
 - **Announcement timing is not covered.** The tests assert the announcement text and the
   `aria-live` structure, not what a screen reader speaks aloud or when.

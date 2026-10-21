@@ -2,7 +2,6 @@
 title: Events & state
 description: Every callback the grid fires, what it's for, and how it's shaped.
 icon: Radio
-status: updated
 ---
 
 Every writable slice of the grid's API has a matching read hook or change callback, following
@@ -25,10 +24,10 @@ sort or filter a column, drag-fill, scroll, resize, pin, or hide a column) to se
 | Control or observe the quick-search text | `searchText` / `onSearchTextChange` | Same controlled-pair convention as [3. `onSortChange`](#3-onsortchange) |
 | Intercept or veto a fill-handle drag | `onFill` | [5. `onFill`](#5-onfill) |
 | React to a plain click on a cell or its row | `onCellClick` | [6. `onCellClick`](#6-oncellclick) |
-| Veto or react to an edit starting or ending <NewBadge /> | `onEditStart` + `onEditEnd` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
-| React to the active cell moving <NewBadge /> | `onActiveCellChange` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
-| React to cells a bulk paste, fill, or `updateCells` rejected <NewBadge /> | `onValidationError` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
-| React to a double-click or right-click on a cell <NewBadge /> | `onCellDoubleClick` + `onCellContextMenu` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
+| Veto or react to an edit starting or ending | `onEditStart` + `onEditEnd` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
+| React to the active cell moving | `onActiveCellChange` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
+| React to cells a bulk paste, fill, or `updateCells` rejected | `onValidationError` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
+| React to a double-click or right-click on a cell | `onCellDoubleClick` + `onCellContextMenu` | [10. Edit lifecycle and cell events](#10-edit-lifecycle-and-cell-events) |
 | Fetch rows for the rendered rows on demand | `onRenderedRowsChange` | [7. `onRenderedRowsChange`](#7-onrenderedrowschange) |
 | Save and restore a user's column layout | `columnLayout` + `defaultColumnLayout` + `onColumnLayoutChange` + `onColumnResizing` | [8. `columnLayout` + `defaultColumnLayout` + `onColumnLayoutChange` + `onColumnResizing`](#8-columnlayout--defaultcolumnlayout--oncolumnlayoutchange--oncolumnresizing) |
 | Broadcast or receive a remote user's selection | `setPresenceHighlights` / `useDataGridPresenceHighlights` | [9. Presence read-back](#9-presence-read-back--the-two-sided-contrast) |
@@ -137,8 +136,6 @@ them. There is no callback that observes active-cell-only changes.
 
 ### Controlling the selection
 
-<NewBadge />
-
 `onSelectionChange` pairs with the `selection` and `defaultSelection` props, the same
 value/defaultValue convention as `sortState` and `filterState`. Omit both for uncontrolled
 (store-owned) behavior.
@@ -219,16 +216,12 @@ const values = getValues();
 
 ### Clearing the selection
 
-<NewBadge />
-
 An empty `next` (`range: null` and both channels empty) is the cleared signal.
 `onSelectionChange` fires exactly once on the non-empty-to-empty transition, so one clear from
 any path (outside click, row marker click, `clearSelection()`, a cleared range) delivers one empty
 payload. Use it to reset an "N cells selected" chip.
 
 ## 3. `onSortChange`
-
-<NewBadge />
 
 ```ts
 sortState?: SortSpec[];
@@ -392,8 +385,6 @@ core event source. See [Multiplayer presence](/docs/addons/presence) for the ful
 write-up, including how to broadcast your own selection with `onSelectionChange`.
 
 ## 10. Edit lifecycle and cell events
-
-<NewBadge />
 
 ```ts
 onActiveCellChange?: (next: ViewCellRef | null) => void;

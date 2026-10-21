@@ -2,7 +2,6 @@
 title: API reference
 description: DataGrid, DataGridProvider, ColumnDef, and the CellType contract.
 icon: FileCode
-status: updated
 ---
 
 This page is generated from the real TypeScript source at build time through
@@ -31,8 +30,6 @@ need a toolbar, overlays, or a context menu (see the [Quick start](/docs/quick-s
 </Callout>
 
 ### Imperative handle
-
-<NewBadge />
 
 The `ref` prop receives the grid's `DataGridApi`: `actions`, `store`, `scrollTo`, `focus`,
 `startEditing`, `stopEditing`, `getSelection`, `setSelection`, `getRow`, and `getViewRowIds`. The
@@ -123,8 +120,6 @@ return (
   is mounted.
 
 ### `plugins`
-
-<NewBadge />
 
 `readonly DataGridPlugin[]`, optional, on both `DataGridProvider` and `DataGrid`. Each entry is
 an add-on (or your own code) that reaches into the grid through six optional members: an
@@ -245,15 +240,11 @@ Adjust the module path to wherever your `components.json` aliases actually place
 
 ### `defineCellType(key, type)`
 
-<NewBadge />
-
 A compile-time gate for a custom cell type: `key` must be a cell-type key of `GridCellTypes`
 (including your augmentation), and `type` must match that key's declared `value` and `options`.
 It costs nothing at runtime and returns the entry unchanged, ready for the `cellTypes` registry.
 
 ### `useCellEditor(props, codec)`
-
-<NewBadge />
 
 The text-input editor primitive the built-in `text` and `number` editors are built from. It owns
 the draft state (seeded from `props.initialText`, or `codec.toDraft(value)` when there is
@@ -339,8 +330,6 @@ and returns a reusable `(text: string) => boolean` matcher. This has the same se
 `matchesFilter`, but without re-parsing the filter's value on every row.
 
 ## Operation engine
-
-<NewBadge />
 
 The core applies every `DataChange` batch through one engine. The `data-grid` barrel exports it
 for consumers who apply operations to their own copy of the data:

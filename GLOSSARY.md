@@ -36,6 +36,8 @@ mirror the change there.
 | virtualization | Draw only the rows and columns in view, plus overscan. | windowing, windowed, row window |
 | rendered rows | The rows currently in the DOM. `onRenderedRowsChange` reports their range. | visible window |
 | overscan | Extra rows or columns drawn beyond the viewport edge. | |
+| grid origin | The row line the rows canvas is positioned from. It trails the first rendered row. | |
+| jump | A scroll farther than the viewport plus the largest velocity buffer. | |
 
 ## Structure
 

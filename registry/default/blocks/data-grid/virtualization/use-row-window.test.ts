@@ -8,6 +8,7 @@ import { useColumnWindow } from "./use-column-window";
 
 const ROW_HEIGHT = 36;
 const HEADER_HEIGHT = 36;
+const VIEWPORT_PX = 360;
 
 function makeScrollElement(scrollTop: number, clientHeight: number): HTMLDivElement {
   const el = document.createElement("div");
@@ -23,7 +24,7 @@ describe("useRowWindow", () => {
     const { result } = renderHook(() =>
       useRowWindow(ref, { rowCount: 10000, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
     );
-    expect(result.current).toEqual({ start: 0, end: 30, windowTop: 0, measured: false });
+    expect(result.current).toEqual({ start: 0, end: 30, windowTop: 0, measured: false, element: null });
   });
 
   it("caps the initial window to rowCount when fewer rows than the default preview", () => {
@@ -31,7 +32,7 @@ describe("useRowWindow", () => {
     const { result } = renderHook(() =>
       useRowWindow(ref, { rowCount: 5, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
     );
-    expect(result.current).toEqual({ start: 0, end: 5, windowTop: 0, measured: false });
+    expect(result.current).toEqual({ start: 0, end: 5, windowTop: 0, measured: false, element: null });
   });
 
   it("computes start/end from scrollTop with header offset and default overscan", () => {
@@ -99,7 +100,7 @@ describe("useRowWindow", () => {
     const { result } = renderHook(() =>
       useRowWindow(ref, { rowCount: 0, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
     );
-    expect(result.current).toEqual({ start: 0, end: 0, windowTop: 0, measured: true });
+    expect(result.current).toEqual({ start: 0, end: 0, windowTop: 0, measured: true, element: expect.any(HTMLElement) });
   });
 
   it("heals the no-element fallback window once the ref attaches at commit (tall viewport)", () => {
@@ -109,7 +110,7 @@ describe("useRowWindow", () => {
     const { result, rerender } = renderHook(() =>
       useRowWindow(ref, { rowCount: 10000, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
     );
-    expect(result.current).toEqual({ start: 0, end: 30, windowTop: 0, measured: false });
+    expect(result.current).toEqual({ start: 0, end: 30, windowTop: 0, measured: false, element: null });
 
     ref.current = makeScrollElement(0, 1440);
     rerender();
@@ -124,7 +125,7 @@ describe("useRowWindow", () => {
     const { result, rerender } = renderHook(() =>
       useRowWindow(ref, { rowCount: 10000, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
     );
-    expect(result.current).toEqual({ start: 0, end: 30, windowTop: 0, measured: false });
+    expect(result.current).toEqual({ start: 0, end: 30, windowTop: 0, measured: false, element: null });
 
     ref.current = makeScrollElement(HEADER_HEIGHT + 5000 * ROW_HEIGHT, 360);
     rerender();
@@ -404,7 +405,7 @@ describe("useRowWindow + useColumnWindow single-commit-per-tick", () => {
 
 describe("useRowWindow velocity-aware overscan (Phase 4)", () => {
   it("widens the leading (downward) edge after a fast downward tick, without widening the trailing edge", () => {
-    const el = makeScrollElement(HEADER_HEIGHT + 500 * ROW_HEIGHT, 360);
+    const el = makeScrollElement(HEADER_HEIGHT + 500 * ROW_HEIGHT, VIEWPORT_PX);
     const ref = { current: el };
     const { result } = renderHook(() =>
       useRowWindow(ref, { rowCount: 10000, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
@@ -426,8 +427,25 @@ describe("useRowWindow velocity-aware overscan (Phase 4)", () => {
     expect(result.current.start).toBe(522 - 1);
   });
 
+  it("adds no velocity overscan after a teleport jump beyond viewport + cap", () => {
+    const el = makeScrollElement(HEADER_HEIGHT + 500 * ROW_HEIGHT, VIEWPORT_PX);
+    const ref = { current: el };
+    const { result } = renderHook(() =>
+      useRowWindow(ref, { rowCount: 10000, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
+    );
+
+    act(() => {
+      Object.defineProperty(el, "scrollTop", { value: HEADER_HEIGHT + 5000 * ROW_HEIGHT, writable: true, configurable: true });
+      el.dispatchEvent(new Event("scroll"));
+    });
+
+    const scrollTop = HEADER_HEIGHT + 5000 * ROW_HEIGHT;
+    expect(result.current.start).toBe(5000 - 1);
+    expect(result.current.end).toBe(Math.ceil((scrollTop + VIEWPORT_PX - HEADER_HEIGHT) / ROW_HEIGHT) + 1);
+  });
+
   it("widens the leading (upward) edge, not the trailing edge, after a fast upward tick", () => {
-    const el = makeScrollElement(HEADER_HEIGHT + 500 * ROW_HEIGHT, 360);
+    const el = makeScrollElement(HEADER_HEIGHT + 500 * ROW_HEIGHT, VIEWPORT_PX);
     const ref = { current: el };
     const { result } = renderHook(() =>
       useRowWindow(ref, { rowCount: 10000, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
@@ -446,11 +464,11 @@ describe("useRowWindow velocity-aware overscan (Phase 4)", () => {
     expect(widened.start).toBeLessThanOrEqual(478 - 22); // leading (upward) edge widened well past base overscan
     // trailing (downward) edge kept at base overscan (1), same formula as the un-widened case.
     const scrollTop = HEADER_HEIGHT + 478 * ROW_HEIGHT;
-    expect(widened.end).toBe(Math.ceil((scrollTop + 360 - HEADER_HEIGHT) / ROW_HEIGHT) + 1);
+    expect(widened.end).toBe(Math.ceil((scrollTop + VIEWPORT_PX - HEADER_HEIGHT) / ROW_HEIGHT) + 1);
   });
 
   it("decays the widened window back toward the base overscan over a few slow ticks", () => {
-    const el = makeScrollElement(HEADER_HEIGHT + 500 * ROW_HEIGHT, 360);
+    const el = makeScrollElement(HEADER_HEIGHT + 500 * ROW_HEIGHT, VIEWPORT_PX);
     const ref = { current: el };
     const { result } = renderHook(() =>
       useRowWindow(ref, { rowCount: 10000, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
@@ -473,21 +491,25 @@ describe("useRowWindow velocity-aware overscan (Phase 4)", () => {
     expect(result.current.end).toBeLessThan(widenedEnd);
   });
 
-  it("caps the leading overscan at VELOCITY_OVERSCAN_CAP_PX worth of rows even for a huge single-tick jump", () => {
-    const el = makeScrollElement(0, 360);
+  it("caps the leading overscan at VELOCITY_OVERSCAN_CAP_PX worth of rows over a ramp of thumb-drag ticks", () => {
+    const el = makeScrollElement(0, VIEWPORT_PX);
     const ref = { current: el };
     const { result } = renderHook(() =>
       useRowWindow(ref, { rowCount: 100_000, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
     );
 
     act(() => {
-      Object.defineProperty(el, "scrollTop", { value: HEADER_HEIGHT + 50_000 * ROW_HEIGHT, writable: true, configurable: true });
-      el.dispatchEvent(new Event("scroll"));
+      for (let i = 1; i <= 5; i++) {
+        Object.defineProperty(el, "scrollTop", { value: i * 1500, writable: true, configurable: true });
+        el.dispatchEvent(new Event("scroll"));
+      }
     });
 
     const maxLeadingRows = Math.ceil(VELOCITY_OVERSCAN_CAP_PX / ROW_HEIGHT);
-    const viewportRows = Math.ceil(360 / ROW_HEIGHT);
-    expect(result.current.end - result.current.start).toBeLessThanOrEqual(viewportRows + 1 + maxLeadingRows + 1);
+    const viewportRows = Math.ceil(VIEWPORT_PX / ROW_HEIGHT);
+    const windowRows = result.current.end - result.current.start;
+    expect(windowRows).toBeGreaterThan(viewportRows + maxLeadingRows - 3);
+    expect(windowRows).toBeLessThanOrEqual(viewportRows + 1 + maxLeadingRows + 1);
   });
 
   it("shrinks the window back to baseline overscan on scroll settle (scrollend)", () => {
@@ -495,7 +517,7 @@ describe("useRowWindow velocity-aware overscan (Phase 4)", () => {
     // arrives immediately after the last tick (0ms elapsed) is exactly the "spurious settle" shape
     // (a single discrete write looking like its own complete gesture) the idle gate exists to reject.
     vi.useFakeTimers();
-    const el = makeScrollElement(HEADER_HEIGHT + 500 * ROW_HEIGHT, 360);
+    const el = makeScrollElement(HEADER_HEIGHT + 500 * ROW_HEIGHT, VIEWPORT_PX);
     const ref = { current: el };
     const { result } = renderHook(() =>
       useRowWindow(ref, { rowCount: 10000, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
@@ -506,7 +528,7 @@ describe("useRowWindow velocity-aware overscan (Phase 4)", () => {
       el.dispatchEvent(new Event("scroll"));
     });
     const widenedEnd = result.current.end;
-    const viewportRows = Math.ceil(360 / ROW_HEIGHT);
+    const viewportRows = Math.ceil(VIEWPORT_PX / ROW_HEIGHT);
     expect(widenedEnd - result.current.start).toBeGreaterThan(viewportRows + 4); // sanity: really did balloon
 
     act(() => {
@@ -517,7 +539,7 @@ describe("useRowWindow velocity-aware overscan (Phase 4)", () => {
     // baseline: overscan=1 on both edges, no velocity buffer left.
     const scrollTop = HEADER_HEIGHT + 522 * ROW_HEIGHT;
     const expectedStart = Math.max(0, Math.floor((scrollTop - HEADER_HEIGHT) / ROW_HEIGHT) - 1);
-    const expectedEnd = Math.ceil((scrollTop + 360 - HEADER_HEIGHT) / ROW_HEIGHT) + 1;
+    const expectedEnd = Math.ceil((scrollTop + VIEWPORT_PX - HEADER_HEIGHT) / ROW_HEIGHT) + 1;
     expect(result.current.start).toBe(expectedStart);
     expect(result.current.end).toBe(expectedEnd);
     expect(result.current.end).toBeLessThan(widenedEnd);
@@ -526,7 +548,7 @@ describe("useRowWindow velocity-aware overscan (Phase 4)", () => {
 
   it("a scrollend that arrives immediately (0ms since the last tick) does not zero the estimate outright, but a retry within the idle window still shrinks it", () => {
     vi.useFakeTimers();
-    const el = makeScrollElement(HEADER_HEIGHT + 500 * ROW_HEIGHT, 360);
+    const el = makeScrollElement(HEADER_HEIGHT + 500 * ROW_HEIGHT, VIEWPORT_PX);
     const ref = { current: el };
     const { result } = renderHook(() =>
       useRowWindow(ref, { rowCount: 10000, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
@@ -552,7 +574,7 @@ describe("useRowWindow velocity-aware overscan (Phase 4)", () => {
 
   it("shrinks to baseline via the 150ms debounce fallback settle when no scrollend ever fires", () => {
     vi.useFakeTimers();
-    const el = makeScrollElement(HEADER_HEIGHT + 500 * ROW_HEIGHT, 360);
+    const el = makeScrollElement(HEADER_HEIGHT + 500 * ROW_HEIGHT, VIEWPORT_PX);
     const ref = { current: el };
     const { result } = renderHook(() =>
       useRowWindow(ref, { rowCount: 10000, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
@@ -569,14 +591,14 @@ describe("useRowWindow velocity-aware overscan (Phase 4)", () => {
     });
 
     expect(result.current.end).toBeLessThan(widenedEnd);
-    const viewportRows = Math.ceil(360 / ROW_HEIGHT);
+    const viewportRows = Math.ceil(VIEWPORT_PX / ROW_HEIGHT);
     expect(result.current.end - result.current.start).toBeLessThanOrEqual(viewportRows + 3);
     vi.useRealTimers();
   });
 
   it("ramps normally again on a new scroll immediately after a settle reset (no stuck-at-zero regression)", () => {
     vi.useFakeTimers();
-    const el = makeScrollElement(HEADER_HEIGHT + 500 * ROW_HEIGHT, 360);
+    const el = makeScrollElement(HEADER_HEIGHT + 500 * ROW_HEIGHT, VIEWPORT_PX);
     const ref = { current: el };
     const { result } = renderHook(() =>
       useRowWindow(ref, { rowCount: 100_000, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),

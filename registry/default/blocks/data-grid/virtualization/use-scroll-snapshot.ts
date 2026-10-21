@@ -34,6 +34,8 @@ export const INITIAL_SNAPSHOT: ScrollSnapshot = {
 
 /** Debounced isScrolling reset, re-armed every scroll tick — the safety net when `scrollend` doesn't fire (Safari has no support; jsdom declares the IDL attribute but never dispatches it). */
 const ISSCROLLING_DEBOUNCE_MS = 150;
+/** Largest distance (px) between the sticky track's top and the scroll position. */
+const STICKY_TRACK_RANGE_PX = 4_000_000;
 
 /** Raw scroll-element geometry, all six properties read once. */
 type ScrollGeometry = {
@@ -45,7 +47,7 @@ type ScrollGeometry = {
   scrollHeight: number;
 };
 
-/** One read pass over every geometry property `commit()` needs — called once per tick, before any style write, so nothing downstream forces a reflow by reading after `writeScrollVars` has already dirtied layout. */
+/** One read pass over every geometry property `commit()` needs — called once per tick, before any style write, so nothing downstream forces a reflow by reading after a style write has already dirtied layout. */
 function readGeometry(element: HTMLElement): ScrollGeometry {
   return {
     scrollTop: element.scrollTop,
@@ -83,8 +85,10 @@ function snapshotsEqual(a: ScrollSnapshot, b: ScrollSnapshot): boolean {
 type ElementStore = {
   subscribe: (onChange: () => void) => () => void;
   getSnapshot: () => ScrollSnapshot;
-  /** Registers the sticky Viewport element that receives the imperative `--grid-scroll-*` var writes on every tick. */
+  /** Registers the sticky Viewport element that receives the imperative `--grid-scroll-left` var write. */
   setViewportElement: (el: HTMLElement | null) => void;
+  /** Registers the rows canvas, which sits `baseOffset` px below the viewport top and is translated up by the live scrollTop on every tick. */
+  setCanvasOffset: (el: HTMLElement | null, baseOffset: number) => void;
   /**
    * Queues a window-change `forceUpdate` to commit once, after every listener in this tick's
    * `notify()` has run — the mechanism that collapses row- and column-window flushSync into a
@@ -95,20 +99,16 @@ type ElementStore = {
   requestFlush: (fn: () => void) => void;
 };
 
-/** Writes the two live-scroll CSS vars (clamped for rubber-band) onto the Viewport element — one write moves canvas + pinned cells atomically. Takes pre-read geometry so the hot per-tick call site never re-reads the (by-then-dirtied) element after this write. */
-function writeScrollVars(viewport: HTMLElement, geometry: ScrollGeometry): void {
+/** Scroll offsets clamped to the scrollable range, so rubber-band overscroll never moves the canvas past its edges. */
+function clampedOffsets(geometry: ScrollGeometry): { top: number; left: number } {
   const maxTop = Math.max(0, geometry.scrollHeight - geometry.clientHeight);
   const maxLeft = Math.max(0, geometry.scrollWidth - geometry.clientWidth);
-  const top = Math.min(Math.max(geometry.scrollTop, 0), maxTop);
-  // One positive inline-start-relative axis for both directions: `dir="rtl"` containers report
-  // scrollLeft as 0 at the inline start growing negative toward the inline end, so the magnitude is
-  // the shared axis every offset here and in use-column-window.ts is built on. abs() also still
-  // pins rubber-band overscroll to 0 via the clamp below, which is what the old signed clamp did.
-  // The transform's SIGN is not applied here at all — it lives in the --grid-dir var the viewport
-  // carries, so this hot per-tick write is identical in both directions (no branch, no extra work).
-  const left = Math.min(normalizeScrollLeft(geometry.scrollLeft), maxLeft);
-  viewport.style.setProperty("--grid-scroll-top", `${top}px`);
-  viewport.style.setProperty("--grid-scroll-left", `${left}px`);
+  return {
+    top: Math.min(Math.max(geometry.scrollTop, 0), maxTop),
+    // One positive inline-start-relative axis for both directions (`dir="rtl"` reports scrollLeft
+    // growing negative); the transform's sign lives in the --grid-dir var, so this write is direction-free.
+    left: Math.min(normalizeScrollLeft(geometry.scrollLeft), maxLeft),
+  };
 }
 
 /** Per-element cached subscribe/getSnapshot so repeated hook calls (row window, column window, …) share one store. */
@@ -131,6 +131,13 @@ export function getElementStore(element: HTMLElement): ElementStore {
   const listeners = new Set<() => void>();
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let viewportElement: HTMLElement | null = null;
+  let canvasElement: HTMLElement | null = null;
+  let canvasBaseOffset = 0;
+  let canvasScrollTop = 0;
+  let stickyTrackTop = 0;
+  let stickyTrackTopWritten = "";
+  let scrollLeftWritten = "";
+  let offsetsKnown = false;
 
   // Row/column window listeners enqueue here instead of flushing individually (task: one commit
   // per tick) — drained by a single flushSync/batch right after notify() finishes this tick.
@@ -143,10 +150,39 @@ export function getElementStore(element: HTMLElement): ElementStore {
 
   const notify = () => listeners.forEach((listener) => listener());
 
-  // Standalone call site (setViewportElement, outside commit()'s hoisted-read tick) — not on the
-  // hot per-tick path, so a fresh direct read here is fine (checklist step 3 caveat b).
-  const syncViewportVars = () => {
-    if (viewportElement) writeScrollVars(viewportElement, readGeometry(element));
+  // Only the horizontal offset is a CSS var (pinned cells read it); a changed inherited var restyles
+  // the whole subtree, so a vertical tick must not rewrite it.
+  const writeScrollLeft = (left: number) => {
+    const value = `${left}px`;
+    if (!viewportElement || value === scrollLeftWritten) return;
+    scrollLeftWritten = value;
+    viewportElement.style.setProperty("--grid-scroll-left", value);
+  };
+
+  // `translate` on the canvas only: no inherited property changes, so no subtree restyle per tick.
+  const writeCanvasOffset = () => {
+    if (canvasElement) canvasElement.style.translate = `0 ${canvasBaseOffset - canvasScrollTop}px`;
+  };
+
+  // Firefox places a sticky box at most about 8.9M px below its containing block, so the track follows the scroll position.
+  const writeStickyTrackTop = () => {
+    const track = viewportElement?.parentElement;
+    if (!track) return;
+    const offset = canvasScrollTop - stickyTrackTop;
+    if (track.style.top === stickyTrackTopWritten && offset >= 0 && offset <= STICKY_TRACK_RANGE_PX) return;
+    stickyTrackTop = Math.max(0, canvasScrollTop - STICKY_TRACK_RANGE_PX / 2);
+    track.style.top = `${stickyTrackTop}px`;
+    // Read back: browsers reserialize large lengths (Chromium writes 1.32792e+07px).
+    stickyTrackTopWritten = track.style.top;
+  };
+
+  const syncOffsets = () => {
+    const { top, left } = clampedOffsets(readGeometry(element));
+    canvasScrollTop = top;
+    offsetsKnown = true;
+    writeStickyTrackTop();
+    writeCanvasOffset();
+    writeScrollLeft(left);
   };
 
   /** Drains this tick's queued window-change updates into exactly one React commit. */
@@ -173,7 +209,12 @@ export function getElementStore(element: HTMLElement): ElementStore {
   // content — moving it past `notify()` would reintroduce tearing).
   const commit = (isScrolling: boolean, forceSync = false) => {
     const geometry = readGeometry(element);
-    if (viewportElement) writeScrollVars(viewportElement, geometry);
+    const { top, left } = clampedOffsets(geometry);
+    canvasScrollTop = top;
+    offsetsKnown = true;
+    writeStickyTrackTop();
+    writeCanvasOffset();
+    writeScrollLeft(left);
     const next = toSnapshot(geometry, isScrolling, snapshot);
     if (!snapshotsEqual(next, snapshot)) {
       snapshot = next;
@@ -240,7 +281,16 @@ export function getElementStore(element: HTMLElement): ElementStore {
     },
     setViewportElement(el) {
       viewportElement = el;
-      syncViewportVars();
+      scrollLeftWritten = "";
+      stickyTrackTopWritten = "";
+      if (el) syncOffsets();
+    },
+    setCanvasOffset(el, baseOffset) {
+      canvasElement = el;
+      canvasBaseOffset = baseOffset;
+      if (!el) return;
+      if (offsetsKnown) writeCanvasOffset();
+      else syncOffsets();
     },
     requestFlush,
   };
@@ -290,9 +340,8 @@ export function useElementDimensions(scrollRef: RefObject<HTMLElement | null>): 
 
 /**
  * Registers the sticky Viewport element as the target of the scroll element's imperative
- * `--grid-scroll-top`/`--grid-scroll-left` var writes (checklist step 3). One write per scroll
- * tick moves the rows canvas, header layer, and pinned-cell insets atomically, with zero React
- * involvement between row/column window changes.
+ * `--grid-scroll-left` var write. One write per horizontal scroll tick moves the header layer and
+ * pinned-cell insets atomically, with zero React involvement between row/column window changes.
  */
 export function useViewportElement(
   scrollRef: RefObject<HTMLElement | null>,
@@ -314,4 +363,16 @@ export function useViewportElement(
     store.setViewportElement(viewport);
     return () => store.setViewportElement(null);
   }, [element, viewport]);
+}
+
+/** Keeps the parent of `anchorRef` (the rows canvas) `baseOffset` px below the viewport top and translated up by the live scrollTop; the scroll element's store writes it on every tick. */
+export function useCanvasOffset(element: HTMLElement | null, anchorRef: RefObject<HTMLElement | null>, baseOffset: number): void {
+  // Layout effect: the base offset changes in the same commit that moves the rows, so the write must land before paint.
+  useLayoutEffect(() => {
+    const canvas = anchorRef.current?.parentElement;
+    if (!element || !canvas) return;
+    const store = getElementStore(element);
+    store.setCanvasOffset(canvas, baseOffset);
+    return () => store.setCanvasOffset(null, 0);
+  }, [element, anchorRef, baseOffset]);
 }

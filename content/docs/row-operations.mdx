@@ -151,7 +151,7 @@ function MyToolbar() {
 - `duplicateRows(viewRowIndexes)` inserts each copy directly after its source row (a duplicate of
   a range lands interleaved, each after its own source).
 - `deleteRows(viewRowIndexes)` deletes the named rows in one batch.
-- `deleteRowsById(rowIds)` <NewBadge /> deletes the rows with the given ids in one batch, for example the ids
+- `deleteRowsById(rowIds)` deletes the rows with the given ids in one batch, for example the ids
   from `getRowIds()`. An id that matches no row is skipped.
 
 Selection behavior: insert and duplicate keep the selection, offsetting it around the inserted
@@ -194,12 +194,12 @@ Try all four modes alongside every other toggle in the [playground](/docs/playgr
 `DataGridRoot` and `DataGrid` accept two render slots that replace the marker column's content
 while keeping its chrome and gestures:
 
-- `renderMarker` replaces the built-in row number/checkbox in every marker cell. It receives the
+- `renderMarker` <NewBadge /> replaces the built-in row number/checkbox in every marker cell. It receives the
   row's `rowId`, the 0-based `viewRowIndex`, and two independent selection signals:
   `isRowChannelSelected` (the rows channel only, so a cell click never flips it) and
   `isCellSelected` (the cell or column channel covers at least one cell of the row). A renderer
   can therefore tell "this row is selected" apart from "cells in this row are selected" and
-  render them differently.
+  render them differently. Pass a function with a stable identity (`useCallback` or a module-level function). A new function on every render re-renders every row.
 - `renderMarkerHeader` replaces the select-all checkbox in the marker header. It receives the
   `allSelected` state (`"checked"`, `"indeterminate"`, `"unchecked"`). In `"number"` mode there is no
   select-all checkbox, so the renderer replaces the blank header cell instead.

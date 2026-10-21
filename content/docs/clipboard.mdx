@@ -2,7 +2,6 @@
 title: Clipboard
 description: Native copy/cut/paste with spreadsheet-compatible TSV and HTML formats.
 icon: Clipboard
-status: updated
 ---
 
 Clipboard support uses native browser copy, cut, and paste events.
@@ -29,8 +28,6 @@ writes two formats to the system clipboard:
 
 ## Formula sanitizing
 
-<NewBadge />
-
 Excel, LibreOffice, and Sheets run a pasted cell that starts with `=`, `+`, `-`, `@`, TAB, or CR
 as a formula. To paste such cells into those apps as text, set `sanitizeClipboardFormulas`:
 
@@ -47,7 +44,7 @@ keeps the quote.
 
 | Prop | Type | Default |
 |---|---|---|
-| `sanitizeClipboardFormulas` <NewBadge /> | `boolean` | `false` |
+| `sanitizeClipboardFormulas` | `boolean` | `false` |
 
 `DataGridProvider` takes the same prop. A custom copy UI on `useDataGridClipboard` follows the
 prop; its `sanitizeFormulas` option overrides it.

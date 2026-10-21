@@ -2,7 +2,6 @@
 title: Undo & redo
 description: Operation-based, row-id-based history that survives sort and filter.
 icon: Undo2
-status: updated
 ---
 
 Undo and redo live in the separate `data-grid-history` add-on.
@@ -125,8 +124,6 @@ history.record(
 
 ## Which changes are recorded
 
-<NewBadge />
-
 History records the changes a user made on purpose: `edit`, `paste`, `fill`, `delete`, `row-operation`,
 `import`, and `app` (see the `source` field in
 [Events & state](/docs/events-state#1-ondatachange--the-flagship-shape)). It never records
@@ -142,8 +139,6 @@ An undo or redo reaches `onDataChange` with `source: "history"`. If `onDataChang
 server, that handler sees the undo as a normal change and saves it.
 
 ## Rolling back a failed save
-
-<NewBadge />
 
 An `onDataChange` handler that saves to a server sees undo and redo as changes with
 `source: "history"`. When a save fails, call `rollback(change)` with the change the handler
@@ -195,8 +190,6 @@ A dataset id or a version counter both work. The key only needs to differ betwee
 Use `clear()` for a reset with no key, for example a "reset to defaults" button.
 
 ## Read-only grids
-
-<NewBadge />
 
 A `readOnly` grid refuses writes at the store. History follows that rule end to end: nothing new
 records, and `undo` and `redo` are no-ops that keep their entries (popping an unapplied entry

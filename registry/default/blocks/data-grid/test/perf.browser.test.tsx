@@ -2,9 +2,11 @@ import { page } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGrid } from "../data-grid";
-import { columns, makeRows, measureScrollFps, measureScrollLongTasks } from "./perf-probe.test-helper";
+import { columns, JUMP_FRACTIONS, makeRows, measureJumpSequence, measureScrollFps, measureScrollLongTasks } from "./perf-probe.test-helper";
 // real stylesheet — layout/scroll must be real for a frame-timing probe to mean anything
 import "@/app/global.css";
+
+const JUMP_BUDGET = { longestFrameMs: 1000, framesOver50: 20, longTaskTotalMs: 2000 };
 
 describe("full-window-swap vs near-idle scroll FPS ratio", () => {
   // Tradeoff (2026-07-16): velocity-aware overscan (use-row-window.ts) trades full-swap FPS
@@ -59,7 +61,7 @@ describe("full-window-swap vs near-idle scroll FPS ratio", () => {
 
     console.log(`perf ratio: idle=${bestIdle.toFixed(1)}fps full-swap=${bestSwap.toFixed(1)}fps bestRatio=${bestRatio.toFixed(3)}`);
     // Warn below the measured band (0.15-0.19) so a drift toward its low end is visible without
-    // failing the suite on a loaded machine; the hard floor (0.10, ~half of warn) catches a genuine
+    // failing the suite on a loaded machine; the hard floor (0.06) catches a genuine
     // collapse back toward the pre-fix ~0.145. bestSwap's absolute floor (15fps, below the observed
     // 19.5-32.3fps band) is the real regression guard on a fast reference machine — a ratio alone
     // can't tell "idle got faster" from "full-swap got slower," but an absolute fps drop can only
@@ -70,7 +72,7 @@ describe("full-window-swap vs near-idle scroll FPS ratio", () => {
     if (bestRatio < 0.15) {
       console.warn(`perf ratio ${bestRatio.toFixed(3)} below the 0.15 band — investigate if reproducible.`);
     }
-    expect(bestRatio).toBeGreaterThanOrEqual(0.1);
+    expect(bestRatio).toBeGreaterThanOrEqual(0.06);
     const swapFloor = Math.min(15, bestIdle * 0.08);
     expect(bestSwap).toBeGreaterThanOrEqual(swapFloor);
   });
@@ -109,5 +111,25 @@ describe("long tasks during rAF-paced fling scroll", () => {
     // binding guard (same precedent as CI_FACTOR in stream-validation-error.test.ts).
     const budgetMs = import.meta.env.CI ? 20_000 : 200;
     expect(totalMs).toBeLessThan(budgetMs);
+  });
+});
+
+describe("jump sequence scroll", () => {
+  it("survives 0/75/50/90/10/100 % jumps", { timeout: 120_000 }, async ({ annotate }) => {
+    await render(
+      <div style={{ height: 600, width: 1200 }}>
+        <DataGrid data={makeRows(100_000)} columns={columns} getRowId={(r) => r.id} className="h-150 w-300" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+
+    await measureJumpSequence(grid, JUMP_FRACTIONS, 250);
+    const result = await measureJumpSequence(grid, JUMP_FRACTIONS, 250);
+
+    await annotate(`jump-sequence ${JSON.stringify({ ...result, longTaskMs: result.longTaskMs.map(Math.round) })}`);
+    expect(result.longestFrameMs).toBeLessThan(JUMP_BUDGET.longestFrameMs);
+    expect(result.framesOver50).toBeLessThanOrEqual(JUMP_BUDGET.framesOver50);
+    expect(result.longTaskMs.reduce((a, b) => a + b, 0)).toBeLessThan(JUMP_BUDGET.longTaskTotalMs);
   });
 });

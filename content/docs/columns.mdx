@@ -2,7 +2,6 @@
 title: Columns
 description: Resize, reorder, pin, and show/hide columns.
 icon: Columns3
-status: updated
 ---
 
 Resize and drag-to-reorder are built into the core, with no add-on needed. Pin, unpin, and
@@ -29,8 +28,6 @@ A column without `width` renders at the 150px default. A resize clamps to the co
 `minWidth`, with a 32px absolute floor that no `minWidth` can lower.
 
 ## Autosize
-
-<NewBadge />
 
 Double-click the handle to size the column to its content. The header menu's "Autosize column"
 and "Autosize all columns" items do the same for one or every visible column (both from the
@@ -181,8 +178,6 @@ renders nothing while the column is unsorted). For an icon-only or component hea
 to the raw column id. `headerClassName` styles the whole header cell.
 
 ### Header cell contents
-
-<NewBadge />
 
 `ColumnDef.header` replaces the label inside the built-in cell. The `renderHeaderCell` slot on
 `DataGridHeader` replaces the contents of the cell. The grid keeps the cell element itself: its

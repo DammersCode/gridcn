@@ -2,7 +2,6 @@
 title: Keybindings
 description: "The data-grid-keybindings add-on: an in-app shortcuts dialog that always reflects the effective keymap, plus binding chips for your own UI."
 icon: Keyboard
-status: updated
 ---
 
 `data-grid-keybindings` displays the grid's effective keymap as an in-app dialog (always
@@ -73,8 +72,6 @@ Tokens are platform-aware (`mod` → ⌘ on macOS, iOS, and iPadOS, Ctrl elsewhe
 renders as one keycap per token.
 
 ## Shortcut labels for your own UI
-
-<NewBadge />
 
 The core exports the same token logic for labels outside the add-on.
 `formatShortcut(binding)` returns the display tokens for a binding string.
@@ -163,8 +160,6 @@ Action labels in the dialog (and the per-`GridAction` label map) come from
 `labels.keybindings` (see [Internationalization: coverage by group](/docs/i18n#coverage-by-group)).
 
 ## Custom commands
-
-<NewBadge />
 
 A `keymap` binding that names no built-in action resolves to the provider's `commands` prop.
 Each entry is a `GridCommand` with `run`, an optional `when` gate, an optional `scope`, and

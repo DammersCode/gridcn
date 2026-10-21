@@ -46,7 +46,7 @@ function LongTextEditor({
   const setTextareaRef = useCallback((el: HTMLTextAreaElement | null) => {
     textareaRef.current = el;
     if (!el) return;
-    el.focus();
+    el.focus({ preventScroll: true });
     const end = el.value.length;
     el.setSelectionRange(end, end);
   }, []);

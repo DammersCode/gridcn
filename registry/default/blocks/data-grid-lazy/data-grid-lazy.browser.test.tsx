@@ -10,6 +10,7 @@ import {
   defineColumns,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridLazyRows, type UseDataGridLazyRowsResult } from "./use-data-grid-lazy-rows";
+import { firstRowHeight, gridElement, mountedRows, originRebased, scrollByTicks } from "@/registry/default/blocks/data-grid/test/scroll-origin.test-helper";
 // real stylesheet — layout/scroll must be real for skeleton/scroll assertions to mean anything
 import "@/app/global.css";
 
@@ -314,5 +315,50 @@ describe("data-grid-lazy: function-form callbacks on skeleton rows", () => {
     for (const skeletonRow of skeletonRows) {
       expect(skeletonRow.className).not.toContain("row-");
     }
+  });
+});
+
+describe("data-grid-lazy: after a scroll beyond the origin rebase", () => {
+  const offsetsFromScroll = () => {
+    const gridTop = gridElement().getBoundingClientRect().top;
+    return mountedRows().map((row) => {
+      const rect = row.getBoundingClientRect();
+      return rect.top - gridTop + gridElement().scrollTop - Number(row.dataset["gridRowIndex"]) * ROW_HEIGHT;
+    });
+  };
+  const expectAllRowsAt = (offset: number) => {
+    const offsets = offsetsFromScroll();
+    expect(offsets.length).toBeGreaterThan(5);
+    for (const value of offsets) expect(Math.abs(value - offset)).toBeLessThanOrEqual(1);
+  };
+
+  it("keeps skeleton rows and the rows that replace them at their scroll offset, and restores them at the top", async () => {
+    const pending: Array<() => void> = [];
+    const fetchRows = vi.fn(
+      (start: number, end: number) =>
+        new Promise<Row[]>((resolve) => {
+          pending.push(() => resolve(makeRows(start, end)));
+        }),
+    );
+    await render(<LazyGrid fetchRows={fetchRows} />);
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const headerOffset = offsetsFromScroll()[0]!;
+    expect(firstRowHeight()).toBe(ROW_HEIGHT);
+
+    await scrollByTicks(600, ROW_HEIGHT);
+    expect(originRebased()).toBe(true);
+    expect(document.querySelectorAll('[role="row"][aria-busy="true"]').length).toBeGreaterThan(0);
+    expectAllRowsAt(headerOffset);
+
+    pending.splice(0).forEach((resolveFetch) => resolveFetch());
+    await new Promise((r) => setTimeout(r, 100));
+    await expect.element(page.getByText(/Person 6\d\d/).first()).toBeInTheDocument();
+    expect(document.querySelectorAll('[role="gridcell"][data-skeleton]').length).toBe(0);
+    expectAllRowsAt(headerOffset);
+
+    await scrollByTicks(0, ROW_HEIGHT);
+    pending.splice(0).forEach((resolveFetch) => resolveFetch());
+    await new Promise((r) => setTimeout(r, 100));
+    expectAllRowsAt(headerOffset);
   });
 });

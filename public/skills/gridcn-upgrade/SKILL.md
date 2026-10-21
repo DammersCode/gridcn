@@ -2,7 +2,7 @@
 name: gridcn-upgrade
 description: "gridcn upgrades: update gridcn source installed in this project to a newer upstream release. Use when pulling a newer gridcn version or one upstream fix, or when installed files carry local edits that must survive."
 metadata:
-  gridcn-version: "1.0.0"
+  gridcn-version: "1.1.0"
 ---
 
 gridcn ships no npm package and no semver: `npm update` touches nothing, and a breaking change can

@@ -110,9 +110,9 @@ the DOM and what you can beat. Where a surface lists a merge point, the built-in
 |---|---|---|
 | Grid root (`[role="grid"]`) | `relative select-none overflow-auto rounded-md border border-border bg-background text-sm` | `className` on `DataGridRoot` / `DataGrid`. |
 | Header cell (`[role="columnheader"]`) | `group relative flex items-center border-b border-border bg-muted px-2 font-medium select-none` plus the column line | Per-column `headerClassName`. |
-| Data cell (`[role="gridcell"]`) | `relative flex items-center overflow-hidden border-b border-border bg-background px-2 outline-none group-hover/row:bg-muted/50 transition-colors` plus the column line and conditionals: opaque hover tint on pinned cells, `bg-search-highlight/60` on `[data-search-match]`, `tabular-nums` for number/date, the alignment class, the invalid-cell tint + inset ring | `getRowClassName`/`getCellClassName` (grid level) then `cellClassName` (per column), merged after the built-ins. |
-| Row (`[role="row"]`) | `group/row` | `getRowClassName`. |
-| Marker cell (`[data-grid-marker-cell]`) | `group flex items-center justify-center border-b border-border bg-background transition-colors`, the column line, `cursor-grab` when row reorder is on, the selected-row tint | `renderMarker` replaces the content. For the cell chrome itself, see [Override recipes](#override-recipes). |
+| Data cell (`[role="gridcell"]`) | `relative flex items-center overflow-hidden border-b border-border px-2 outline-none` plus the column line and conditionals: an opaque background with an opaque hover tint on pinned cells, `bg-search-highlight/60` on `[data-search-match]`, `tabular-nums` for number/date, the alignment class, the invalid-cell tint + inset ring | `getRowClassName`/`getCellClassName` (grid level) then `cellClassName` (per column), merged after the built-ins. |
+| Row (`[role="row"]`) | `group/row data-hovered:bg-muted/50`; the row under the pointer carries `data-hovered`, and the tint waits for the scroll to settle. Pinned and marker cells stay opaque, so they do not show a background set here. | `getRowClassName`. |
+| Marker cell (`[data-grid-marker-cell]`) | `group flex items-center justify-center border-b border-border bg-background`, the column line, `cursor-grab` when row reorder is on, the selected-row tint | `renderMarker` replaces the content. For the cell chrome itself, see [Override recipes](#override-recipes). |
 | Marker header (`[data-grid-marker-header]`) | `flex items-center justify-center border-b border-border bg-muted` plus the column line | Internal. |
 | Selection overlay (`[data-grid-selection-overlay]`) | `pointer-events-none border border-primary/40 bg-primary/10` | `--primary`. A plugin `Overlay` for your own layer. |
 | Active-cell ring (`[data-grid-active-cell-overlay]`) | `pointer-events-none z-10 ring-2 ring-inset ring-primary` | `--primary` or `--ring`. |
@@ -121,7 +121,7 @@ the DOM and what you can beat. Where a surface lists a merge point, the built-in
 | Empty state (`[data-grid-empty-state]`) | `pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground` | The `emptyState` prop (node or function) or `labels.emptyState`. |
 | Loading skeleton (`[data-grid-loading-skeleton]`) | One `h-4 animate-pulse rounded bg-muted` bar per column per row, rows separated by `border-b border-border` | The `loading` flag. The skeleton renders only while `loading` is true. |
 | Loading bar (`[data-grid-loading-bar]`) | 2px track `bg-primary/20` with a `bg-primary` sweep (static under `prefers-reduced-motion`) | `--primary`. `--grid-loading-sweep-duration` for the sweep speed. |
-| Custom loading state (`[data-grid-loading-state]`) <NewBadge /> | A full-width container positioned directly under the header | The `loadingState` prop replaces the skeleton (zero rows) or the bar (rows present) while `loading` is true. |
+| Custom loading state (`[data-grid-loading-state]`) | A full-width container positioned directly under the header | The `loadingState` prop replaces the skeleton (zero rows) or the bar (rows present) while `loading` is true. |
 | Cell error tooltip | `rounded-sm border border-destructive/20 bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive`, placed below the cell while editing | `--destructive`. |
 | Resize handle (`[data-grid-resize-handle]`) | 8px column, a 3px `after` line in `bg-primary` revealed on hover and while `[data-resizing]` | `--primary`. |
 | Column drop indicator (`[data-grid-drop-indicator]`) | 2px line in `var(--color-primary)` at the drag boundary | `--primary`. |
@@ -156,6 +156,7 @@ The attributes do not.
 | Attribute | Where | Meaning |
 |---|---|---|
 | `data-active` | cell | The active (focused) cell. |
+| `data-hovered` <NewBadge /> | row | The row under the pointer. It stays on its row while the grid scrolls and moves to the row under the pointer when the scroll settles. |
 | `data-editing` | cell | Currently in edit mode. |
 | `data-pinned="left" \| "right"` | cell, header, overlay | Which pin zone the element belongs to. |
 | `data-readonly` | cell | Not editable (column or grid-wide `readOnly`). |
@@ -406,8 +407,6 @@ a stylesheet rule:
 ```
 
 ## Small screens
-
-<NewBadge />
 
 The grid scrolls sideways inside its own box, so a wide table never widens the page. Give the
 box a width of `100%` and a height, and the columns keep their widths. The toolbar is a single

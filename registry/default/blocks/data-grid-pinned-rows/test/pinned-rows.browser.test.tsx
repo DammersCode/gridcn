@@ -12,6 +12,7 @@ import {
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPinnedRows, type UseDataGridPinnedRowsOptions } from "../use-data-grid-pinned-rows";
 import { GRID_ATTR, gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { cellAt, firstRowHeight, originRebased, rowAt, scrollByTicks } from "@/registry/default/blocks/data-grid/test/scroll-origin.test-helper";
 // real stylesheet — pin/sticky geometry is unverifiable without real layout
 import "@/app/global.css";
 
@@ -415,5 +416,74 @@ describe("bug fix — pinned-row band opacity", () => {
     await new Promise((r) => setTimeout(r, 50));
 
     expect(getComputedStyle(pinnedCell).backgroundColor).not.toMatch(/\/\s*0(\.\d+)?\s*\)|,\s*0(\.\d+)?\s*\)$/);
+  });
+
+  it("tints a pinned row band while the pointer is over it and clears the tint on leave", async () => {
+    await render(
+      <div style={{ height: 300, width: 300 }}>
+        <PinnedGrid data={makeRows(10)} cols={pinnedRowColumns} className="h-75 w-75" topRows={[totals]} />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinnedRow")}`)!;
+    await userEvent.hover(document.body);
+    await new Promise((r) => setTimeout(r, 200));
+    const resting = getComputedStyle(pinnedCell).backgroundColor;
+
+    await userEvent.hover(pinnedCell);
+    await new Promise((r) => setTimeout(r, 200));
+    expect(getComputedStyle(pinnedCell).backgroundColor).not.toBe(resting);
+
+    await userEvent.hover(document.body);
+    await new Promise((r) => setTimeout(r, 200));
+    expect(getComputedStyle(pinnedCell).backgroundColor).toBe(resting);
+  });
+});
+
+describe("pinned rows — after a scroll beyond the origin rebase", () => {
+  const band = (edge: "top" | "bottom") => document.querySelector<HTMLElement>(gridAttrSelector("pinnedRowBand", edge))!;
+  const pinnedCell = (edge: "top" | "bottom") => band(edge).querySelector<HTMLElement>('[role="gridcell"]')!;
+  const settle = (ms = 200) => new Promise((r) => setTimeout(r, ms));
+  const expectBandsAt = (top: DOMRect, bottom: DOMRect) => {
+    expect(Math.abs(band("top").getBoundingClientRect().top - top.top)).toBeLessThanOrEqual(1);
+    expect(Math.abs(band("top").getBoundingClientRect().bottom - top.bottom)).toBeLessThanOrEqual(1);
+    expect(Math.abs(band("bottom").getBoundingClientRect().top - bottom.top)).toBeLessThanOrEqual(1);
+    expect(Math.abs(band("bottom").getBoundingClientRect().bottom - bottom.bottom)).toBeLessThanOrEqual(1);
+  };
+
+  it("keeps both bands in place and tinting on hover 600 rows deep, with data rows tinting too, and restores at the top", async () => {
+    await render(
+      <div style={{ height: 360, width: 800 }}>
+        <PinnedGrid data={makeRows(5000)} className="h-90 w-200" topRows={[totals]} bottomRows={[{ ...totals, id: "totals-bottom" }]} />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const rowHeight = firstRowHeight();
+    const topAtRest = band("top").getBoundingClientRect();
+    const bottomAtRest = band("bottom").getBoundingClientRect();
+
+    await scrollByTicks(600, rowHeight);
+    expect(originRebased()).toBe(true);
+    expectBandsAt(topAtRest, bottomAtRest);
+
+    await userEvent.hover(document.body);
+    await settle();
+    const restingTop = getComputedStyle(pinnedCell("top")).backgroundColor;
+    const restingBottom = getComputedStyle(pinnedCell("bottom")).backgroundColor;
+    const restingData = getComputedStyle(rowAt(603)).backgroundColor;
+    await userEvent.hover(pinnedCell("top"));
+    await settle();
+    expect(getComputedStyle(pinnedCell("top")).backgroundColor).not.toBe(restingTop);
+    await userEvent.hover(pinnedCell("bottom"));
+    await settle();
+    expect(getComputedStyle(pinnedCell("bottom")).backgroundColor).not.toBe(restingBottom);
+    await userEvent.hover(cellAt(603, "name"));
+    await settle();
+    expect(getComputedStyle(rowAt(603)).backgroundColor).not.toBe(restingData);
+    expect(getComputedStyle(pinnedCell("top")).backgroundColor).toBe(restingTop);
+
+    await scrollByTicks(0, rowHeight);
+    expectBandsAt(topAtRest, bottomAtRest);
+    expect(rowAt(0).getBoundingClientRect().top).toBeGreaterThanOrEqual(topAtRest.bottom - 1);
   });
 });

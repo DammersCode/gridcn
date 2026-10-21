@@ -28,9 +28,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 /** The "highlight-what-changed" fade pulse `flashCells` plays on the cells it just wrote; the keyframes `DataGridBody` injects once per grid (self-contained, no app global.css step). Duration reads `--grid-flash-duration` (default 1.2s; `0s` disables the pulse). */
 export const FLASH_ANIMATION = "grid-cell-flash var(--grid-flash-duration, 1.2s) ease-out";
-/** One-shot pulse: a background fading to transparent, tinted by `--grid-flash-color` (default `--color-primary`) at `--grid-flash-intensity` (default 24%) — the exact visual the `flashCells` consumers (fill, paste, move) promise. */
+/** One-shot pulse: a background fading to the cell's own background, tinted by `--grid-flash-color` (default `--color-primary`) at `--grid-flash-intensity` (default 24%) — the exact visual the `flashCells` consumers (fill, paste, move) promise. */
 export const FLASH_KEYFRAMES =
-  "@keyframes grid-cell-flash{0%{background-color:color-mix(in oklab, var(--grid-flash-color, var(--color-primary)) var(--grid-flash-intensity, 24%), transparent)}100%{background-color:transparent}}";
+  "@keyframes grid-cell-flash{0%{background-color:color-mix(in oklab, var(--grid-flash-color, var(--color-primary)) var(--grid-flash-intensity, 24%), var(--grid-flash-base, transparent))}}";
 
 // This component is generic-erased (row: unknown, column: AnyColumnDef) since it renders arbitrary
 // consumer row shapes through one shared runtime — TData=unknown makes every ColumnDef-API call
@@ -146,6 +146,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   // Pinned top/bottom rows are readOnly by default — they're usually derived aggregates,
   // not editable data — unless the column's own readOnly explicitly says otherwise.
   const readOnly = isPinnedRow ? (columnReadOnly ?? true) : Boolean(gridReadOnly || columnReadOnly);
+  const opaque = pinned || isPinnedRow;
 
   const style: CSSProperties = {
     gridColumnStart: viewColumnIndex + gridColOffset,
@@ -344,20 +345,17 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       data-flash={isFlashing || undefined}
       data-invalid={Boolean(errorMessage) || undefined}
       className={cn(
-        "relative flex items-center overflow-hidden border-b border-border bg-background px-2 outline-none group-hover/row:bg-muted/50 transition-colors group-hover/row:transition-none",
+        "relative flex items-center overflow-hidden border-b border-border px-2 outline-none",
         COLUMN_BORDER,
-        // Pinned-column cells and pinned-row cells both sit opaque above the scrolled canvas
-        // (z-index 1 / 3) — a translucent bg-muted/50 hover tint would let the scrolled content
-        // underneath show through. color-mix() pre-composites the same tint as an OPAQUE color (same
-        // visual result, no transparency) so both stay fully opaque on hover in both themes;
-        // unpinned, non-banded cells keep the plain translucent utility.
-        "data-pinned:group-hover/row:bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
-        "data-grid-pinned-row:group-hover/row:bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
+        // Pinned cells sit opaque above the scrolled canvas, so they carry their own hover tint
+        // (pre-composited with color-mix). Every other cell stays transparent and shows the row's tint:
+        // a hover rule on each cell restyles the whole row on every hover change, which costs a scroll frame.
+        opaque && "bg-background [--grid-flash-base:var(--color-background)] group-data-hovered/row:bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
         // own token, not accent/muted: search-highlight is a distinct convention from selection/active colors.
-        "data-[search-match]:bg-search-highlight/60 dark:data-[search-match]:bg-search-highlight/25",
-        // Same reasoning as the pinned-cell hover tint above: pinned-row bands sit opaque (z-index 3)
-        // above the scrolled rows canvas, so a translucent bg-muted/30 would let scrolled content
-        // bleed through — color-mix() pre-composites the same tint as an opaque color instead.
+        opaque
+          ? "data-[search-match]:bg-[color-mix(in_oklch,var(--color-search-highlight)_60%,var(--color-background))] dark:data-[search-match]:bg-[color-mix(in_oklch,var(--color-search-highlight)_25%,var(--color-background))]"
+          : "data-[search-match]:bg-search-highlight/60 dark:data-[search-match]:bg-search-highlight/25",
+        // Pinned-row bands are opaque too; color-mix() keeps their 30% tint opaque.
         isPinnedRow && "bg-[color-mix(in_oklch,var(--color-muted)_30%,var(--color-background))] font-medium",
         align === "left" && "justify-start",
         align === "center" && "justify-center",
@@ -367,7 +365,11 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         // `validate` rejection or a persisted post-commit `cellErrors` entry set the message — same
         // aria-invalid:ring-destructive/20 convention every shadcn form control in this repo already
         // uses (input.tsx/button.tsx/select.tsx), inset + z-1 so it wins over the search-match tint.
-        errorMessage && "z-1 aria-invalid:bg-destructive/10 aria-invalid:ring-3 aria-invalid:ring-inset aria-invalid:ring-destructive/20 dark:aria-invalid:bg-destructive/15 dark:aria-invalid:ring-destructive/40",
+        errorMessage && "z-1 aria-invalid:ring-3 aria-invalid:ring-inset aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40",
+        errorMessage &&
+          (opaque
+            ? "aria-invalid:bg-[color-mix(in_oklch,var(--color-destructive)_10%,var(--color-background))] dark:aria-invalid:bg-[color-mix(in_oklch,var(--color-destructive)_15%,var(--color-background))]"
+            : "aria-invalid:bg-destructive/10 dark:aria-invalid:bg-destructive/15"),
         gridCellClassName,
         columnCellClassName,
       )}

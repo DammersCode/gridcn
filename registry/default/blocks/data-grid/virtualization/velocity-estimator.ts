@@ -63,12 +63,15 @@ const SETTLE_RESET_MIN_IDLE_MS = 150;
  * `onIdleReset` fires when the retry actually zeroes the estimate with no caller re-observing it —
  * the hook uses it to trigger one more window recompute, since otherwise a reset with no further
  * scroll tick would update the estimate but never repaint the (now too-large) DOM window to match.
+ *
+ * @param viewportPx Viewport height in px; a single-tick jump beyond `viewportPx` plus the overscan cap is a teleport and resets the estimate to 0.
  */
 export function updateVelocityEstimate(
   estimator: VelocityEstimator,
   delta: number,
   isScrolling: boolean,
   onIdleReset?: () => void,
+  viewportPx = Infinity,
 ): number {
   const now = typeof performance !== "undefined" ? performance.now() : Date.now();
   if (!isScrolling) {
@@ -112,10 +115,11 @@ export function updateVelocityEstimate(
     }
   }, SETTLE_RESET_MIN_IDLE_MS);
   const magnitude = Math.abs(delta);
-  if (magnitude >= VELOCITY_TRIGGER_PX) {
+  if (magnitude > viewportPx + VELOCITY_OVERSCAN_CAP_PX) {
+    estimator.estimate = 0;
+  } else if (magnitude >= VELOCITY_TRIGGER_PX) {
     const rampStep = VELOCITY_OVERSCAN_CAP_PX / VELOCITY_RAMP_TICKS;
-    // Cap applies to the OBSERVED magnitude too — an outsized single jump (e.g. a scrollbar
-    // teleport far bigger than any real drag tick) must still clamp, not blow straight past it.
+    // Jumps below viewport + cap clamp to the cap; larger jumps reset the estimate above.
     estimator.estimate = Math.min(VELOCITY_OVERSCAN_CAP_PX, Math.max(magnitude, estimator.estimate + rampStep));
   } else {
     estimator.estimate *= VELOCITY_DECAY_FACTOR;
