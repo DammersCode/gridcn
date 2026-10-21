@@ -123,12 +123,44 @@ describe("vertical scroll offset", () => {
       const headerOffset = rowsOffsetFromScroll()[0]!;
       apiRef.current!.actions.setActiveCell({ rowId: "row-2", columnId: "c0" });
       const grid = gridEl();
-      grid.scrollTop = 3000 * mountedRows()[0]!.getBoundingClientRect().height;
+      grid.scrollTop = 150 * mountedRows()[0]!.getBoundingClientRect().height;
       await settle();
       expectAllRowsAt(headerOffset);
       grid.scrollTop = 0;
       await settle();
       expectAllRowsAt(headerOffset);
+    });
+
+    // Firefox clamps grid lines above 10,000 onto one line: the window rows then stack off-screen.
+    it("keeps every grid line small and the window rows in place with a far off-window active row", async () => {
+      const apiRef = { current: null as DataGridApi<Row> | null };
+      await renderGrid({ apiRef, rows: 30_000 });
+      const headerOffset = rowsOffsetFromScroll()[0]!;
+      const rowHeight = mountedRows()[0]!.getBoundingClientRect().height;
+      const grid = gridEl();
+      const windowRows = (activeIndex: number) => mountedRows().filter((row) => Number(row.dataset["gridRowIndex"]) !== activeIndex);
+      const expectFarActiveRow = (activeIndex: number) => {
+        const lines = mountedRows().map((row) => Number(row.style.gridRowStart));
+        expect(Math.max(...lines)).toBeLessThan(1000);
+        expect(Math.min(...lines)).toBeGreaterThanOrEqual(1);
+        const offsets = rowsOffsetFromScroll().filter((_, i) => Number(mountedRows()[i]!.dataset["gridRowIndex"]) !== activeIndex);
+        for (const offset of offsets) expect(offset).toBeCloseTo(headerOffset, 0);
+        const windowLines = new Set(windowRows(activeIndex).map((row) => row.style.gridRowStart));
+        expect(windowLines.size).toBe(windowRows(activeIndex).length);
+        const activeRect = rowAt(activeIndex).getBoundingClientRect();
+        const gridRect = grid.getBoundingClientRect();
+        expect(activeRect.bottom <= gridRect.top || activeRect.top >= gridRect.bottom).toBe(true);
+      };
+
+      apiRef.current!.actions.setActiveCell({ rowId: "row-0", columnId: "c0" });
+      grid.scrollTop = 22_500 * rowHeight;
+      await settle();
+      expectFarActiveRow(0);
+
+      apiRef.current!.actions.setActiveCell({ rowId: "row-22510", columnId: "c0" });
+      grid.scrollTop = 100 * rowHeight;
+      await settle();
+      expectFarActiveRow(22_510);
     });
 
     it("rebases when a filter pulls the window below the origin", async () => {

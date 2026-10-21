@@ -9,6 +9,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- In Firefox, rows no longer disappear or stack on one line after scrolling more than 10,000 rows away from the active cell. An active row far outside the rendered rows is placed off-screen near them, and the plugin context `windowStart` trails the first rendered row by up to 288 rows.
+
 ## 1.0.1 - 2026-10-21
 
 - A development build logs a warning once per grid when the row count times the row height passes 33,000,000 px. Browsers cap element height at about 33.5 million px, so rows past the limit (about 930,000 rows at 36 px) cannot be reached by scrolling.

@@ -156,7 +156,7 @@ export type DataGridOverlaysProps = {
  * "clamp to rendered window, split by pin zone, place by grid line" pipeline.
  */
 export type OverlayPluginCtx = {
-  /** Grid line origin of the rows canvas. Place with `rect.y - windowStart + 1`; clamp only with `clampRowStart` and `clampRowEnd`. Trails the first rendered row by up to 192 rows. */
+  /** Grid line origin of the rows canvas. Place with `rect.y - windowStart + 1`; clamp only with `clampRowStart` and `clampRowEnd`. Trails the first rendered row by up to 288 rows. */
   windowStart: number;
   clampRowStart: number;
   clampRowEnd: number;

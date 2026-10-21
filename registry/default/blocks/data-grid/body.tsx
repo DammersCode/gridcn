@@ -172,10 +172,13 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   if (rebaseOrigin) setOriginBase(rebasedOrigin);
   const trailingOrigin = rebaseOrigin ? rebasedOrigin : originBase;
 
-  // An active row above the origin would get gridRowStart <= 0 (invalid, or counted from the end of
-  // the explicit grid), so the origin extends down to it; the canvas translate absorbs that too.
-  const gridOrigin = activeCell ? Math.min(trailingOrigin, activeCell.row) : trailingOrigin;
+  // An active row just above the origin extends the origin down to it; the canvas translate absorbs that.
+  const gridOrigin = activeCell ? Math.max(Math.min(trailingOrigin, activeCell.row), trailingOrigin - GRID_ORIGIN_MARGIN_ROWS) : trailingOrigin;
   const effectiveWindowTop = windowTop - (start - gridOrigin) * rowHeight;
+  // Firefox clamps grid lines to 10,000, so a far off-window active row parks at an off-screen line
+  // at least a margin away from the window instead of its true one.
+  const lastGridLine = end - gridOrigin + GRID_ORIGIN_MARGIN_ROWS;
+  const gridLine = (viewRowIndex: number) => Math.min(Math.max(viewRowIndex - gridOrigin + 1, 1), lastGridLine);
 
   // Drag-to-reorder rows: one shared instance for the whole body (one indicator, one gesture),
   // mirroring how DataGridHeader owns useColumnReorder for its headers.
@@ -249,7 +252,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
       const viewRowIndex = viewRowIndices[i]!;
       const key = rowIds[i] ?? viewRowIndex;
       const el = rowRegistry.elements.get(key);
-      const value = String(viewRowIndex - gridOrigin + 1);
+      const value = String(gridLine(viewRowIndex));
       if (el && el.style.gridRowStart !== value) el.style.gridRowStart = value;
     }
   });

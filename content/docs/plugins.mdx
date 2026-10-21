@@ -81,7 +81,7 @@ presence highlight or a fill-drag frame cost zero row or cell renders.
 <AutoTypeTable path="./registry/default/blocks/data-grid/overlays.tsx" name="OverlayPluginCtx" />
 
 - **`windowStart`**: <NewBadge /> the grid origin, the row line the rows canvas is positioned from.
-  It trails the first rendered row by up to 192 rows. Place a rect with `rect.y - windowStart + 1`.
+  It trails the first rendered row by up to 288 rows. Place a rect with `rect.y - windowStart + 1`.
   Clamp only with `clampRowStart` and `clampRowEnd`.
 - **`clampRowStart` / `clampRowEnd`**: the true contiguous `[start, end)` rendered row span.
   Clamp any painted rect to this range (it differs from `windowStart` plus the row count).
