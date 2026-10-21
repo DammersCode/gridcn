@@ -430,6 +430,9 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     position: "relative",
     width: totalWidth,
     height: contentHeight,
+    // The clipped track spans this box, so it must cover the viewport of a short or narrow grid.
+    minWidth: dimensions.clientWidth,
+    minHeight: dimensions.clientHeight,
   };
 
   // Clipped so a track top below shrunken content never extends the scroll range.
