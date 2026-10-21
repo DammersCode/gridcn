@@ -373,10 +373,14 @@ export function useCanvasOffset(
 ): void {
   const [element, setElement] = useState<HTMLElement | null>(null);
 
-  useLayoutEffect(() => {
+  const syncElement = () => {
     const el = scrollRef.current;
     if (el !== element) setElement(el);
-  });
+  };
+  useLayoutEffect(syncElement);
+  // A child's layout effect runs before its ancestors attach their refs, and a memoized caller
+  // never re-renders this hook to retry; the passive pass runs after every ref of the commit.
+  useEffect(syncElement);
 
   // Layout effect: the base offset changes in the same commit that moves the rows, so the write must land before paint.
   useLayoutEffect(() => {
