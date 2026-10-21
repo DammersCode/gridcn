@@ -71,7 +71,7 @@ const { plugin } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows: [
     subgrid column tracks. So a pinned row lines up with its columns pixel-for-pixel, including
     pinned-left and pinned-right columns and column resize.
 
-    Pinned rows <NewBadge /> go through the grid's `getRowId`, so `ctx.rowId` in a pinned cell is that id. If
+    Pinned rows go through the grid's `getRowId`, so `ctx.rowId` in a pinned cell is that id. If
     `getRowId` throws on a pinned row or returns an empty or non-string value, the row gets a band
     id instead. The band id is `__pinned-top-<index>` or `__pinned-bottom-<index>`, where
     `<index>` is the row's position in its band.

@@ -64,10 +64,10 @@ A `FilterSpec` has these fields:
 
 | Field | Type | Meaning |
 |---|---|---|
-| `columnId` <NewBadge /> | `string` | The `id` of the column to filter. |
-| `operator` <NewBadge /> | `FilterOperator` | One of the operator names listed above. |
-| `value` <NewBadge /> | `string`, `[string, string]`, or `string[]` | The text to compare, even for number and date columns. `isBetween` takes `[from, to]`. `isAnyOf` takes the choice values. `empty` and `notEmpty` take none. |
-| `filterId` <NewBadge /> | `string` | Optional. A stable key for the filter row. |
+| `columnId` | `string` | The `id` of the column to filter. |
+| `operator` | `FilterOperator` | One of the operator names listed above. |
+| `value` | `string`, `[string, string]`, or `string[]` | The text to compare, even for number and date columns. `isBetween` takes `[from, to]`. `isAnyOf` takes the choice values. `empty` and `notEmpty` take none. |
+| `filterId` | `string` | Optional. A stable key for the filter row. |
 
 `DataGridFilterMenu` and `DataGridSortList` offer the grid's visible columns by default. Pass
 `allColumns` to include hidden columns. A filter on a hidden column keeps applying. Without
@@ -165,8 +165,6 @@ and reorder sorts without touching the headers, see the
 
 ## Initial sort, filter, and search
 
-<NewBadge />
-
 `defaultSortState`, `defaultFilterState`, `defaultJoinOperator`, and `defaultSearchText` seed the
 store once at creation. The store owns the state afterwards, and later changes to these props are
 ignored:
@@ -196,4 +194,4 @@ back as the view" mode. This follows the same controlled-input convention as a p
 the canonical definition, and [Recipes](/docs/recipes/data-fetching/server-side-sort-filter) for the full
 server-side pattern.
 
-When `data` holds only part of the result set, set `sortMode="server"` <NewBadge />: the grid tracks the sort spec and never reorders `data`. See [Lazy loading](/docs/lazy-loading#sorting-a-lazy-grid).
+When `data` holds only part of the result set, set `sortMode="server"`: the grid tracks the sort spec and never reorders `data`. See [Lazy loading](/docs/lazy-loading#sorting-a-lazy-grid).

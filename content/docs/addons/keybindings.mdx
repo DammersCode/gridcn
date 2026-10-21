@@ -73,8 +73,6 @@ renders as one keycap per token.
 
 ## Shortcut labels for your own UI
 
-<NewBadge />
-
 The core exports the same token logic for labels outside the add-on.
 `formatShortcut(binding)` returns the display tokens for a binding string.
 `formatShortcut("mod+shift+z")` is `["⌘", "⇧", "Z"]` on macOS and `["Ctrl", "Shift", "Z"]`
@@ -162,8 +160,6 @@ Action labels in the dialog (and the per-`GridAction` label map) come from
 `labels.keybindings` (see [Internationalization: coverage by group](/docs/i18n#coverage-by-group)).
 
 ## Custom commands
-
-<NewBadge />
 
 A `keymap` binding that names no built-in action resolves to the provider's `commands` prop.
 Each entry is a `GridCommand` with `run`, an optional `when` gate, an optional `scope`, and

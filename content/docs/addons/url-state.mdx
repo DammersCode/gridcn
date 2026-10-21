@@ -97,14 +97,14 @@ toggle existed still parses identically.
   filter does not pollute the browser's back and forward history.
 - The core stays router-agnostic. `data-grid-url-state` is the only piece that knows about a
   router, and it is entirely optional.
-- A URL <NewBadge /> cannot express an unbounded view state. The `filter` param parses at most 64 filters and
+- A URL cannot express an unbounded view state. The `filter` param parses at most 64 filters and
   reads at most 256 segments. Each `isAnyOf` list holds at most `max(number of choices, 64)`
   values for a column with `choices`. A column with missing or empty `choices` allows 1000
   values. The `sort` param keeps one direction per column (the first
   segment wins) and parses at most 64 sorts. A hand-edited URL beyond these limits degrades to
   fewer filters and sorts.
 
-The `useDataGridUrlState` <NewBadge /> hook reads the store, so a small child component inside the provider owns the wiring:
+The `useDataGridUrlState` hook reads the store, so a small child component inside the provider owns the wiring:
 
 ```tsx
 "use client";
@@ -182,7 +182,7 @@ function OrdersGrid({ rows, total }: { rows: Order[]; total: number }) {
 }
 ```
 
-`page` <NewBadge /> (1-based) is omitted from the URL at 1, and a `page` beyond 1,000,000 falls back to 1
+`page` (1-based) is omitted from the URL at 1, and a `page` beyond 1,000,000 falls back to 1
 like any other invalid value. `pageSize` is omitted when it equals the configured default. Both
 writes use `history: "replace"`, same as this add-on's other params. Options: `prefix` (namespaces
 `page`/`pageSize` the same way as `sort`/`filter`/`q`), `defaultPageSize` (default 25),

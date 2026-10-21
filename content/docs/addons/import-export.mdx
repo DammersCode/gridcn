@@ -41,7 +41,7 @@ function onImport(rows: Row[]) {
 cell, the same text that clipboard copy gives. An xlsx file has text cells only: numbers and dates
 open in Excel as text.
 
-The `formats` prop <NewBadge /> lists the offered formats. With one format, such as `formats={["csv"]}`, a click exports at once. Internally, `exportGrid(state, options)` takes:
+The `formats` prop lists the offered formats. With one format, such as `formats={["csv"]}`, a click exports at once. Internally, `exportGrid(state, options)` takes:
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-io/export-grid.ts" name="ExportGridOptions" />
 
@@ -111,8 +111,6 @@ download, for uploads to a server. The xlsx file is compressed.
 logs a dev-only warning.
 
 ## Print
-
-<NewBadge />
 
 `printGrid(state, options)` prints the grid's rows as a plain paged table. The browser's print
 dialog opens, and its "Save as PDF" produces the PDF file. Inside the grid's tree, use
@@ -204,8 +202,6 @@ through `actions.commitChange` as one `source: "import"` change with an explicit
 
 ### Excel files
 
-<NewBadge />
-
 The import reads the file content, not the extension, to find the format. It accepts two Excel
 formats:
 
@@ -221,8 +217,6 @@ Excel 5.0/95 workbook. The import rejects these files with the `errorUnsupported
 message. Save such a file as `.xlsx` in Excel, then import it again.
 
 ## Import limits
-
-<NewBadge />
 
 Every import is bounded, so an oversized or crafted file cannot stall the tab. A file over a
 limit is rejected with an error message in the dialog. The import never truncates a file.
@@ -331,8 +325,8 @@ import { Dropzone, DropzoneEmptyState, DropzoneContent } from "@/components/drop
 | `onError` | `(error: Error) => void` | none | Called when the native file read itself fails. |
 | `src` | `File[]` | none | The files the dropzone holds, read by the default `DropzoneContent`. |
 | `className` | `string` | none | Merged onto the drop-surface root after the built-in classes. |
-| `children` <NewBadge /> | `ReactNode` | `DropzoneEmptyState` and `DropzoneContent` | Content of the drop surface. |
-| `aria-label` <NewBadge /> | `string` | none | Accessible name for the drop surface. |
+| `children` | `ReactNode` | `DropzoneEmptyState` and `DropzoneContent` | Content of the drop surface. |
+| `aria-label` | `string` | none | Accessible name for the drop surface. |
 
 ### Styling hooks
 

@@ -242,7 +242,7 @@ page.
 
 ## Sorting a lazy grid
 
-The sort must run on the server. <NewBadge /> Set `sortMode="server"`: the grid tracks the sort spec (the
+The sort must run on the server. Set `sortMode="server"`: the grid tracks the sort spec (the
 asc → desc → none header cycle, `aria-sort`, the sort indicator, `DataGridSortList`) and calls
 `onSortChange`, but never reorders `data`. Hold the spec in your own state and send it to
 `fetchRows`:

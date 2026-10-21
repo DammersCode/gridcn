@@ -107,14 +107,12 @@ the CLI adds with it. The core is the only item with a hard `tooltip` component 
 | `data-grid-url-state` | `nuqs` | none | none (installs `data-grid-pagination`) |
 | `data-grid-presence`, `data-grid-fill`, `data-grid-pinned-rows` | `zustand` | none | none |
 | `dropzone` | `lucide-react` | none | none |
-| `data-grid-history`, `data-grid-lazy`, `data-grid-status-bar` <NewBadge /> | none beyond the core | none | none |
+| `data-grid-history`, `data-grid-lazy`, `data-grid-status-bar` | none beyond the core | none | none |
 
 The registry pins `hucre` to an exact version. `hucre` limits the unpacked size and the cell
 count of an untrusted spreadsheet before it allocates the cells.
 
 ## Tooltips
-
-<NewBadge />
 
 The CLI prints a hint to wrap your app in `TooltipProvider`. The grid works without it. The core
 uses a tooltip for the message of an invalid cell, and the context menu uses one for a disabled
