@@ -2,7 +2,7 @@
 title: Performance
 description: 100,000 rows, instant rendering, zero blank cells while scrolling.
 icon: Gauge
-status: none
+status: updated
 ---
 
 The demo below renders **100,000 rows × 5 columns** instantly. Scroll it, fling the scrollbar, or
@@ -21,7 +21,18 @@ hold <kbd>Shift</kbd>+<kbd>ArrowDown</kbd>.
 
 gridcn windows rows by scroll velocity. The scroll surface uses CSS transforms, so the browser
 never reveals an unrendered area. A one-row scroll step re-renders only the cells of the entering
-row. See [Virtualization](/docs/virtualization) for the row and column virtualization model.
+row. A jump farther than the viewport plus the velocity buffer mounts only the base overscan. See [Virtualization](/docs/virtualization) for the row and column virtualization model.
+
+Row hover is an attribute on the hovered row. It does not use a `:hover` rule or a transition. The
+attribute stays on its row while the grid scrolls, so scrolling causes no style recalculation for
+hover. The grid reads the row under the pointer again when the scroll settles and after the view
+changes. Marker cells re-render only when their own props change.
+
+<NewBadge />
+
+In our headless test on 100,000 rows, a sequence of jumps had a median longest frame of 16.8 ms,
+down from 91.7 ms. The number of frames over 33 ms fell from 4 to 0. These numbers come from the
+regression suite in this repository. Your hardware and cells change them.
 
 <Callout type="warn" title="Keep data/columns references stable">
   A dev-mode guardrail shows a warning when a reference is not stable. Also keep scroll-visible

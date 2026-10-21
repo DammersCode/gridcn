@@ -35,17 +35,26 @@ the regression suite that enforces them.
 
 The scrollable area is a sticky viewport. The rows and columns you see are absolutely positioned
 inside a full-size canvas, sized to the *total* row and column extent, so the scrollbar's length
-and thumb position are always correct. A single CSS transform slides the rendered rows to track
-scroll position (on every tick, not on the next React commit) so the browser can never reveal a
-strip of unrendered area between a scroll event and the window catching up, even during a hard
+and thumb position are always correct. One CSS transform on the rows canvas slides the rendered rows to track the scroll position. It
+updates on every tick, not on the next React commit. The browser never reveals a strip of
+unrendered area between a scroll event and the window catching up, even during a hard
 scrollbar-drag fling.
+
+Rows that stay in the window keep their grid position. The grid origin trails the window and moves
+only after the window drifts far from it, so a scroll step does not rewrite every row.
 
 ### Overscan
 
 A small fixed overscan, rows and columns rendered past the visible edge, absorbs the normal
-gap between one scroll tick and the next window recompute. During a fast fling the grid also
-tracks recent scroll velocity and grows the overscan on the leading edge only, so a fast fling
-never exposes blank space without permanent over-rendering while scrolling slowly or sitting still.
+gap between one scroll tick and the next window recompute. During a fast fling or a scrollbar drag,
+the grid tracks recent scroll velocity. It grows the overscan on the leading edge only.
+
+<NewBadge />
+
+A jump is a scroll farther than the viewport plus the largest velocity buffer. After a jump, the
+grid mounts only the base overscan. The velocity buffer applies to fling and drag deltas below that
+distance. A jump from the top to the middle of 100,000 rows therefore mounts one window of rows,
+not a window plus a large buffer.
 
 ### What's virtualized
 
