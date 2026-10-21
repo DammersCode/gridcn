@@ -5,6 +5,7 @@ import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot } from "@/
 import { useDataGridPresence } from "../data-grid-presence";
 import type { PresenceHighlight } from "../data-grid-presence";
 import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { cellAt, expectEdgesWithin, firstRowHeight, originRebased, scrollByTicks, unionRect } from "@/registry/default/blocks/data-grid/test/scroll-origin.test-helper";
 // real stylesheet so Tailwind's `grid`/color-mix()/CSS vars actually apply — paint placement is unverifiable without real layout
 import "@/app/global.css";
 
@@ -241,5 +242,31 @@ describe("multiplayer presence — overlapping highlights", () => {
       expect(el.getAttribute("aria-hidden")).toBe("true");
       expect(el.className).toContain("pointer-events-none");
     });
+  });
+});
+
+describe("multiplayer presence — after a scroll beyond the origin rebase", () => {
+  it("keeps another user's selection on its cells 600 rows deep, and again back at the top", async () => {
+    const { setPresenceHighlights } = await renderEngine({ columns: makeColumns(4), rowCount: 2000 });
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const rowHeight = firstRowHeight();
+    const expectCovers = (firstRow: number, lastRow: number) => {
+      const overlays = [...document.querySelectorAll(gridAttrSelector("presenceOverlay"))];
+      expect(overlays.length).toBeGreaterThan(0);
+      const cells = [];
+      for (let row = firstRow; row <= lastRow; row++) cells.push(cellAt(row, "c1"), cellAt(row, "c2"));
+      expectEdgesWithin(unionRect(overlays), unionRect(cells));
+    };
+
+    await scrollByTicks(600, rowHeight);
+    expect(originRebased()).toBe(true);
+    setPresenceHighlights([{ id: "u1", color: "rgb(255, 0, 0)", range: { x: 1, y: 602, width: 2, height: 3 }, label: "Ada" }]);
+    await new Promise((r) => setTimeout(r, 100));
+    expectCovers(602, 604);
+
+    await scrollByTicks(0, rowHeight);
+    setPresenceHighlights([{ id: "u1", color: "rgb(255, 0, 0)", range: { x: 1, y: 2, width: 2, height: 3 }, label: "Ada" }]);
+    await new Promise((r) => setTimeout(r, 100));
+    expectCovers(2, 4);
   });
 });

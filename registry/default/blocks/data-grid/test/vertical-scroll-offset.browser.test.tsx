@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGrid, type DataGridApi } from "../data-grid";
 import { makeRows, type Row } from "./perf-probe.test-helper";
+import { cellAt, expectEdgesWithin, firstRowHeight, gridElement, originRebased, rowAt, scrollByTicks, unionRect } from "./scroll-origin.test-helper";
+import { gridAttrSelector } from "../data-grid-sdk";
 import "@/app/global.css";
 
 const columns = Array.from({ length: 5 }, (_, i) => ({
@@ -148,6 +150,51 @@ describe("vertical scroll offset", () => {
       await settle();
       expect(mountedRows()[0]!.getBoundingClientRect().height).toBe(44);
       expectAllRowsAt(headerOffset);
+    });
+  });
+  describe("range selection overlay after the origin rebased", () => {
+    const selectRange = (api: DataGridApi<Row>, fromRow: number, toRow: number) =>
+      api.setSelection({
+        anchor: { rowId: `row-${fromRow}`, columnId: "c1" },
+        range: { start: { rowId: `row-${fromRow}`, columnId: "c1" }, end: { rowId: `row-${toRow}`, columnId: "c3" } },
+        rangeStack: [],
+        rowIds: [],
+        columnIds: [],
+      });
+    const expectOverlayCovers = (fromRow: number, toRow: number) => {
+      const cells = [];
+      for (let row = fromRow; row <= toRow; row++) cells.push(cellAt(row, "c1"), cellAt(row, "c3"));
+      const overlays = [...gridElement().querySelectorAll(gridAttrSelector("selectionOverlay"))];
+      expect(overlays.length).toBeGreaterThan(0);
+      expectEdgesWithin(unionRect(overlays), unionRect(cells));
+    };
+
+    it("covers its cells after incremental scrolling past 192 rows, and again after scrolling back to the top", async () => {
+      const apiRef = { current: null as DataGridApi<Row> | null };
+      await render(
+        <div style={{ height: 400, width: 800 }}>
+          <DataGrid ref={apiRef} data={makeRows(5000)} columns={columns} getRowId={(r) => r.id} className="h-100 w-200" />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      const rowHeight = firstRowHeight();
+
+      await scrollByTicks(600, rowHeight);
+      expect(originRebased()).toBe(true);
+      selectRange(apiRef.current!, 603, 607);
+      await nextFrames();
+      expectOverlayCovers(603, 607);
+
+      await scrollByTicks(620, rowHeight, 5);
+      selectRange(apiRef.current!, 622, 625);
+      await nextFrames();
+      expectOverlayCovers(622, 625);
+
+      await scrollByTicks(0, rowHeight);
+      selectRange(apiRef.current!, 2, 4);
+      await nextFrames();
+      expectOverlayCovers(2, 4);
+      expect(rowAt(2).getBoundingClientRect().top).toBeGreaterThan(gridElement().getBoundingClientRect().top);
     });
   });
 });

@@ -12,6 +12,15 @@ import {
 import { useDataGridFill } from "../data-grid-fill";
 import type { FillArgs } from "../data-grid-fill";
 import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import {
+  cellAt,
+  expectEdgesWithin,
+  firstRowHeight,
+  gridElement,
+  originRebased,
+  scrollByTicks,
+  unionRect,
+} from "@/registry/default/blocks/data-grid/test/scroll-origin.test-helper";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply — without it the layout bug can't reproduce
 import "@/app/global.css";
 
@@ -598,5 +607,50 @@ describe("data-grid-fill with an async schema", () => {
     // the pulse starts at the LATE commit (after the schema resolved), covering the 3 landed cells.
     await expect.poll(() => flashed().length, { timeout: 2000 }).toBe(3);
     await expect.poll(() => flashed().length, { timeout: 5000 }).toBe(0);
+  });
+});
+
+describe("data-grid-fill after a scroll beyond the origin rebase", () => {
+  const nextFrames = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  async function selectValueRows(first: number, last: number) {
+    await userEvent.click(cellAt(first, "value"));
+    await userEvent.keyboard("{Shift>}");
+    cellAt(last, "value").dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, shiftKey: true, pointerId: 1 }));
+    await userEvent.keyboard("{/Shift}");
+  }
+
+  it("places the fill handle and the drag preview on the right cells at 600 rows deep, and again back at the top", async () => {
+    await renderFillGrid(makeFillRows(2000));
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const rowHeight = firstRowHeight();
+
+    await scrollByTicks(600, rowHeight);
+    expect(originRebased()).toBe(true);
+    await selectValueRows(603, 604);
+
+    const handle = document.querySelector<HTMLElement>(gridAttrSelector("fillHandle"))!;
+    expect(handle).not.toBeNull();
+    const corner = cellAt(604, "value").getBoundingClientRect();
+    const handleRect = handle.getBoundingClientRect();
+    expect(Math.abs(handleRect.right - corner.right)).toBeLessThanOrEqual(1);
+    expect(Math.abs(handleRect.bottom - corner.bottom)).toBeLessThanOrEqual(1);
+
+    const target = cellAt(608, "value").getBoundingClientRect();
+    await handle.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1 }));
+    document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: target.left + 5, clientY: target.top + 5 }));
+    await nextFrames();
+    const preview = document.querySelector(gridAttrSelector("fillPreview"))!;
+    expect(preview).not.toBeNull();
+    expectEdgesWithin(preview.getBoundingClientRect(), unionRect([605, 606, 607, 608].map((row) => cellAt(row, "value"))));
+    document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 1 }));
+    await nextFrames();
+
+    await scrollByTicks(0, rowHeight);
+    await selectValueRows(2, 3);
+    const topHandle = document.querySelector<HTMLElement>(gridAttrSelector("fillHandle"))!;
+    const topCorner = cellAt(3, "value").getBoundingClientRect();
+    expect(Math.abs(topHandle.getBoundingClientRect().bottom - topCorner.bottom)).toBeLessThanOrEqual(1);
+    expect(gridElement().scrollTop).toBe(0);
   });
 });
