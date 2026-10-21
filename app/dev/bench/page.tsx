@@ -6,16 +6,16 @@ import { DataGrid, defineColumns } from "@/registry/default/blocks/data-grid/dat
 const ROW_COUNT = 100_000;
 const SEED = 12345;
 
-const DEPARTMENTS = ["Engineering", "Marketing", "Sales", "HR", "Finance"] as const;
-const STATUSES = ["Active", "On Leave", "Remote", "In Office"] as const;
-const SKILLS = ["JavaScript", "TypeScript", "React", "Node.js", "Python", "SQL", "AWS", "Docker", "Git", "Agile"] as const;
+const DEPARTMENTS = ["Alpha", "Bravo", "Charlie", "Delta", "Echo"] as const;
+const STATUSES = ["Open", "Paused", "Done", "Queued"] as const;
+const SKILLS = ["Skill A", "Skill B", "Skill C", "Skill D", "Skill E", "Skill F", "Skill G", "Skill H"] as const;
 const FEEDBACK = [
-  "Excellent team player with strong communication skills. Consistently meets deadlines and delivers high-quality work.",
-  "Currently working on the Q4 project initiative. Requires additional training in advanced analytics tools.",
-  "Relocated from the Seattle office last month. Adjusting well to the new team dynamics and company culture.",
-  "Submitted request for professional development courses. Shows great initiative in learning new technologies.",
-  "Outstanding performance in the last quarter. Recommended for leadership training program next year.",
-  "Needs improvement in time management. Working with mentor to develop better organizational skills.",
+  "A short sample note for the benchmark grid.",
+  "This text exists only to give the cell some width.",
+  "Sample content that wraps over a few words in a cell.",
+  "Placeholder remark used to fill the long text column.",
+  "A neutral sentence of moderate length for scrolling tests.",
+  "One more filler line so the rows differ from each other.",
 ] as const;
 
 type BenchRow = {
