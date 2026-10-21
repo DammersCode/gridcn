@@ -12,6 +12,10 @@ export type RowElementRegistry = {
   elements: Map<string | number, HTMLDivElement>;
   /** The stable ref callback for a key (created once per key). */
   getCallback: (key: string | number) => (el: HTMLDivElement | null) => void;
+  /** Records the grid origin and last line of the current render, for {@link RowElementRegistry.gridLine}. */
+  setLineBounds: (origin: number, lastLine: number) => void;
+  /** The grid line the current render gives a view row; a stable function, so a mounting row can start on its line. */
+  gridLine: (viewRowIndex: number) => number;
 };
 
 // Rows churn through unique getRowId keys during a long scroll session (e.g. 100k rows) — the
@@ -24,9 +28,16 @@ const PRUNE_THRESHOLD = 500;
 export function createRowElementRegistry(): RowElementRegistry {
   const elements = new Map<string | number, HTMLDivElement>();
   const callbacks = new Map<string | number, (el: HTMLDivElement | null) => void>();
+  let origin = 0;
+  let lastLine = 1;
 
   return {
     elements,
+    setLineBounds(nextOrigin, nextLastLine) {
+      origin = nextOrigin;
+      lastLine = nextLastLine;
+    },
+    gridLine: (viewRowIndex) => Math.min(Math.max(viewRowIndex - origin + 1, 1), lastLine),
     getCallback(key) {
       let cb = callbacks.get(key);
       if (!cb) {

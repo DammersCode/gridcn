@@ -346,10 +346,10 @@ export function useViewportElement(
   }, [element, viewport]);
 }
 
-/** Keeps the rows canvas `baseOffset` px below the viewport top and translated up by the live scrollTop; the scroll element's store writes it on every tick. */
+/** Keeps the parent of `anchorRef` (the rows canvas) `baseOffset` px below the viewport top and translated up by the live scrollTop; the scroll element's store writes it on every tick. */
 export function useCanvasOffset(
   scrollRef: RefObject<HTMLElement | null>,
-  canvasRef: RefObject<HTMLElement | null>,
+  anchorRef: RefObject<HTMLElement | null>,
   baseOffset: number,
 ): void {
   const [element, setElement] = useState<HTMLElement | null>(null);
@@ -361,10 +361,10 @@ export function useCanvasOffset(
 
   // Layout effect: the base offset changes in the same commit that moves the rows, so the write must land before paint.
   useLayoutEffect(() => {
-    const canvas = canvasRef.current;
+    const canvas = anchorRef.current?.parentElement;
     if (!element || !canvas) return;
     const store = getElementStore(element);
     store.setCanvasOffset(canvas, baseOffset);
     return () => store.setCanvasOffset(null, 0);
-  }, [element, canvasRef, baseOffset]);
+  }, [element, anchorRef, baseOffset]);
 }

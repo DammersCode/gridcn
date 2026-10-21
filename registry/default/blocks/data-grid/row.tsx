@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, type PointerEvent as ReactPointerEvent, type Ref } from "react";
+import { memo, useState, type PointerEvent as ReactPointerEvent, type Ref } from "react";
 import { cn } from "@/lib/utils";
 import { useDataGridRow, useDataGridRowCellState } from "./store";
 import { colRangesContain } from "./selection/selected-col-ranges-for-row";
@@ -29,6 +29,8 @@ export type DataGridRowProps = {
   isRowReorderDragging: boolean;
   /** Forwarded to the row's own root div — body.tsx uses it to write `gridRowStart` imperatively (see below). */
   rowRef: Ref<HTMLDivElement>;
+  /** Stable lookup of the grid line a mounting row starts on, so its cells' layout effects already see it placed. */
+  getGridLine: (viewRowIndex: number) => number;
   /** Pinned-top row count (a11y index layout: header=1, pinned-top next, then data, pinned-bottom last) — shifts `aria-rowindex` past the pinned-top band; 0 when there is none. */
   ariaRowIndexOffset: number;
   /** Row class hook; stable identity (root's dev guardrail) so this memoized row's props stay shallow-equal across ticks. */
@@ -45,8 +47,8 @@ export type DataGridRowProps = {
  * Subgrid (`gridTemplateColumns: "subgrid"`, rows as direct grid children) also rules out
  * absolute-positioning — a positioning wrapper around the row breaks the subgrid column tracks.
  *
- * Fix: `windowStart` doesn't reach this component at all anymore. It never renders `gridRowStart`
- * itself — body.tsx (which already re-renders every window tick regardless) collects each row's DOM
+ * Fix: `windowStart` doesn't reach this component at all anymore. It renders `gridRowStart` only once,
+ * at mount — body.tsx (which already re-renders every window tick regardless) collects each row's DOM
  * node via `rowRef` and writes `gridRowStart` straight into `style.gridRowStart` in a `useLayoutEffect`
  * that runs after every body render, entirely outside React's props/state for this component. That
  * keeps `DataGridRow`'s memo props limited to things that only change when the row's actual content
@@ -65,10 +67,12 @@ export const DataGridRow = memo(function DataGridRow({
   renderMarker,
   isRowReorderDragging,
   rowRef,
+  getGridLine,
   ariaRowIndexOffset,
   getRowClassName,
   getCellClassName,
 }: DataGridRowProps) {
+  const [initialGridLine] = useState(() => getGridLine(viewRowIndex));
   const row = useDataGridRow(viewRowIndex);
   // ONE subscription for the whole row's interactive cell state (not one per cell). Referentially
   // stable across ticks that don't touch this row (see useDataGridRowCellState's comparator), so
@@ -96,8 +100,8 @@ export const DataGridRow = memo(function DataGridRow({
         display: "grid",
         gridTemplateColumns: "subgrid",
         gridColumn: "1 / -1",
-        // gridRowStart is intentionally absent here — body.tsx writes it imperatively (see doc
-        // comment above) so a window shift never touches this component's render inputs.
+        // Mount-time line only; body.tsx rewrites it imperatively (see doc comment above).
+        gridRowStart: initialGridLine,
       }}
     >
       {rowMarkers !== "none" && (
