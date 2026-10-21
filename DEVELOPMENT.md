@@ -238,7 +238,25 @@ npx vitest run registry/default/blocks/data-grid/test/scroll-drag.browser.test.t
 npx vitest run registry/default/blocks/data-grid/test/perf.browser.test.tsx --project=browser
 ```
 
-Both log their measured numbers (`[scroll-drag baseline] ...`, `spec 6c-8 perf ratio ...`) so you
+More scroll suites, each runnable on its own with `--project=browser`:
+
+```bash
+# jump sequence (0 -> 75 -> 50 -> 90 -> 10 -> 100 % of 100k rows): longest frame, frames over 33/50 ms, long tasks
+npx vitest run registry/default/blocks/data-grid/test/perf.browser.test.tsx --project=browser --reporter=verbose
+
+# canvas offset and origin rebase after 192 rows, range overlay (fill, presence, pinned rows and lazy holes run the same check in their own test folders)
+npx vitest run registry/default/blocks/data-grid/test/vertical-scroll-offset.browser.test.tsx --project=browser
+
+# render counts: marker cells stay still during horizontal scroll; row hover has no transition and no :hover rule
+npx vitest run registry/default/blocks/data-grid/test/marker-cell-render.browser.test.tsx registry/default/blocks/data-grid/test/row-hover-style.browser.test.tsx --project=browser
+```
+
+For a manual frame measurement in a headed browser, run `pnpm dev`, open `/dev/bench` (100k rows, 13 columns,
+no docs chrome, 36 px rows, 1216 px wide), and run `node scripts/perf-scroll.mjs --url http://localhost:3000/dev/bench`.
+The dev route returns 404 in production builds. Measure on a 60 Hz display: a remote desktop session can run at
+32 Hz, which doubles every frame time. Compare two builds back to back on the same machine; one run varies by about two fps.
+
+The perf suites log their measured numbers (`[scroll-drag baseline] ...`, `spec 6c-8 perf ratio ...`) so you
 can compare machines or changes without touching assertions. Thresholds and their history live in
 comment blocks inside the test files — read them before changing anything. Enforced invariants: no
 observable blank rows after a 3-tick velocity warm-up, a full-swap FPS floor, and a one-row scroll
