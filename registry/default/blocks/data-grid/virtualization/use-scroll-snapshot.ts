@@ -34,6 +34,8 @@ export const INITIAL_SNAPSHOT: ScrollSnapshot = {
 
 /** Debounced isScrolling reset, re-armed every scroll tick — the safety net when `scrollend` doesn't fire (Safari has no support; jsdom declares the IDL attribute but never dispatches it). */
 const ISSCROLLING_DEBOUNCE_MS = 150;
+/** Largest distance (px) between the sticky track's top and the scroll position. */
+const STICKY_TRACK_RANGE_PX = 4_000_000;
 
 /** Raw scroll-element geometry, all six properties read once. */
 type ScrollGeometry = {
@@ -132,6 +134,8 @@ export function getElementStore(element: HTMLElement): ElementStore {
   let canvasElement: HTMLElement | null = null;
   let canvasBaseOffset = 0;
   let canvasScrollTop = 0;
+  let stickyTrackTop = 0;
+  let stickyTrackWritten = false;
   let scrollLeftWritten = "";
   let offsetsKnown = false;
 
@@ -160,10 +164,23 @@ export function getElementStore(element: HTMLElement): ElementStore {
     if (canvasElement) canvasElement.style.translate = `0 ${canvasBaseOffset - canvasScrollTop}px`;
   };
 
+  // Firefox places a sticky box at most 2^29 app units (about 8.9M px) below its containing block's top,
+  // so the track follows the scroll position in large steps and the sticky offset stays within the range.
+  const writeStickyTrackTop = () => {
+    const track = viewportElement?.parentElement;
+    if (!track) return;
+    const offset = canvasScrollTop - stickyTrackTop;
+    if (stickyTrackWritten && offset >= 0 && offset <= STICKY_TRACK_RANGE_PX) return;
+    stickyTrackTop = Math.max(0, canvasScrollTop - STICKY_TRACK_RANGE_PX / 2);
+    stickyTrackWritten = true;
+    track.style.top = `${stickyTrackTop}px`;
+  };
+
   const syncOffsets = () => {
     const { top, left } = clampedOffsets(readGeometry(element));
     canvasScrollTop = top;
     offsetsKnown = true;
+    writeStickyTrackTop();
     writeCanvasOffset();
     writeScrollLeft(left);
   };
@@ -195,6 +212,7 @@ export function getElementStore(element: HTMLElement): ElementStore {
     const { top, left } = clampedOffsets(geometry);
     canvasScrollTop = top;
     offsetsKnown = true;
+    writeStickyTrackTop();
     writeCanvasOffset();
     writeScrollLeft(left);
     const next = toSnapshot(geometry, isScrolling, snapshot);
@@ -264,6 +282,7 @@ export function getElementStore(element: HTMLElement): ElementStore {
     setViewportElement(el) {
       viewportElement = el;
       scrollLeftWritten = "";
+      stickyTrackWritten = false;
       if (el) syncOffsets();
     },
     setCanvasOffset(el, baseOffset) {
