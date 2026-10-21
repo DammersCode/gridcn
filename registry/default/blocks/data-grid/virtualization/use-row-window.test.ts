@@ -24,7 +24,7 @@ describe("useRowWindow", () => {
     const { result } = renderHook(() =>
       useRowWindow(ref, { rowCount: 10000, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
     );
-    expect(result.current).toEqual({ start: 0, end: 30, windowTop: 0, measured: false });
+    expect(result.current).toEqual({ start: 0, end: 30, windowTop: 0, measured: false, element: null });
   });
 
   it("caps the initial window to rowCount when fewer rows than the default preview", () => {
@@ -32,7 +32,7 @@ describe("useRowWindow", () => {
     const { result } = renderHook(() =>
       useRowWindow(ref, { rowCount: 5, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
     );
-    expect(result.current).toEqual({ start: 0, end: 5, windowTop: 0, measured: false });
+    expect(result.current).toEqual({ start: 0, end: 5, windowTop: 0, measured: false, element: null });
   });
 
   it("computes start/end from scrollTop with header offset and default overscan", () => {
@@ -100,7 +100,7 @@ describe("useRowWindow", () => {
     const { result } = renderHook(() =>
       useRowWindow(ref, { rowCount: 0, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
     );
-    expect(result.current).toEqual({ start: 0, end: 0, windowTop: 0, measured: true });
+    expect(result.current).toEqual({ start: 0, end: 0, windowTop: 0, measured: true, element: expect.any(HTMLElement) });
   });
 
   it("heals the no-element fallback window once the ref attaches at commit (tall viewport)", () => {
@@ -110,7 +110,7 @@ describe("useRowWindow", () => {
     const { result, rerender } = renderHook(() =>
       useRowWindow(ref, { rowCount: 10000, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
     );
-    expect(result.current).toEqual({ start: 0, end: 30, windowTop: 0, measured: false });
+    expect(result.current).toEqual({ start: 0, end: 30, windowTop: 0, measured: false, element: null });
 
     ref.current = makeScrollElement(0, 1440);
     rerender();
@@ -125,7 +125,7 @@ describe("useRowWindow", () => {
     const { result, rerender } = renderHook(() =>
       useRowWindow(ref, { rowCount: 10000, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
     );
-    expect(result.current).toEqual({ start: 0, end: 30, windowTop: 0, measured: false });
+    expect(result.current).toEqual({ start: 0, end: 30, windowTop: 0, measured: false, element: null });
 
     ref.current = makeScrollElement(HEADER_HEIGHT + 5000 * ROW_HEIGHT, 360);
     rerender();

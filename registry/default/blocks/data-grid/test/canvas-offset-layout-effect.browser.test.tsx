@@ -50,4 +50,23 @@ describe("rows canvas offset", () => {
       expect(Math.abs(sample.top - sample.row.getBoundingClientRect().top)).toBeLessThanOrEqual(1);
     }
   });
+
+  it("follows the scroll position from the first mount without a parent re-render", async () => {
+    await render(
+      <div style={{ height: 400, width: 800 }}>
+        <DataGrid data={makeRows(2_000)} columns={columns} getRowId={(r) => r.id} className="h-100 w-200" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const grid = gridElement();
+    const canvas = grid.querySelector<HTMLElement>("[data-grid-rows-canvas]")!;
+    const translateY = () => Number.parseFloat(canvas.style.translate.split(" ")[1] ?? "");
+    const base = translateY();
+
+    for (const scrollTop of [37, 1203]) {
+      grid.scrollTop = scrollTop;
+      await settle();
+      expect(translateY()).toBe(base - scrollTop);
+    }
+  });
 });

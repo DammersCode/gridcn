@@ -366,22 +366,7 @@ export function useViewportElement(
 }
 
 /** Keeps the parent of `anchorRef` (the rows canvas) `baseOffset` px below the viewport top and translated up by the live scrollTop; the scroll element's store writes it on every tick. */
-export function useCanvasOffset(
-  scrollRef: RefObject<HTMLElement | null>,
-  anchorRef: RefObject<HTMLElement | null>,
-  baseOffset: number,
-): void {
-  const [element, setElement] = useState<HTMLElement | null>(null);
-
-  const syncElement = () => {
-    const el = scrollRef.current;
-    if (el !== element) setElement(el);
-  };
-  useLayoutEffect(syncElement);
-  // A child's layout effect runs before its ancestors attach their refs, and a memoized caller
-  // never re-renders this hook to retry; the passive pass runs after every ref of the commit.
-  useEffect(syncElement);
-
+export function useCanvasOffset(element: HTMLElement | null, anchorRef: RefObject<HTMLElement | null>, baseOffset: number): void {
   // Layout effect: the base offset changes in the same commit that moves the rows, so the write must land before paint.
   useLayoutEffect(() => {
     const canvas = anchorRef.current?.parentElement;

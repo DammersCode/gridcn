@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
   useDataGridActions,
@@ -75,9 +75,10 @@ function warnHeightLimit(rowCount: number, rowHeight: number): void {
 }
 
 /** First child of the rows canvas: its layout effect runs before the row cells', so child effects and measurements see the canvas at its final offset. */
-function CanvasOffsetAnchor({ scrollRef, baseOffset }: { scrollRef: RefObject<HTMLElement | null>; baseOffset: number }): ReactNode {
+// The scroll element arrives as a prop: a memoized anchor re-renders when it attaches.
+function CanvasOffsetAnchor({ scrollElement, baseOffset }: { scrollElement: HTMLElement | null; baseOffset: number }): ReactNode {
   const anchorRef = useRef<HTMLStyleElement>(null);
-  useCanvasOffset(scrollRef, anchorRef, baseOffset);
+  useCanvasOffset(scrollElement, anchorRef, baseOffset);
   return <style ref={anchorRef}>{FLASH_KEYFRAMES}</style>;
 }
 
@@ -114,7 +115,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   // Data row 0 starts below the header AND any pinned-top band (shrunken effective viewport);
   // the pinned-bottom band shrinks the window's bottom edge the same way.
   const effectiveHeaderHeight = headerHeight + pinnedTopHeight;
-  const { start, end, windowTop, measured } = useRowWindow(scrollRef, {
+  const { start, end, windowTop, measured, element: scrollElement } = useRowWindow(scrollRef, {
     rowCount,
     rowHeight,
     dataRowTop: effectiveHeaderHeight,
@@ -299,7 +300,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   return (
     <>
       <div style={canvasStyle} className={className} data-grid-rows-canvas="" data-grid-window-start={start} data-grid-window-end={end}>
-        <CanvasOffsetAnchor scrollRef={scrollRef} baseOffset={canvasBaseOffset} />
+        <CanvasOffsetAnchor scrollElement={scrollElement} baseOffset={canvasBaseOffset} />
         {viewRowIndices.map((viewRowIndex, i) => {
           const key = rowIds[i] ?? viewRowIndex;
           return (

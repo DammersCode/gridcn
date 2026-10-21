@@ -19,6 +19,8 @@ export type RowWindow = {
    * not twice (guess, then correction) — same data either way, just the transient guess suppressed.
    */
   measured: boolean;
+  /** The scroll element this window is measured against; null until it attaches. */
+  element: HTMLElement | null;
 };
 
 /** {@link useRowWindow} options. */
@@ -46,7 +48,7 @@ function computeWindow(
 ): RowWindow {
   const { rowCount, rowHeight, dataRowTop, bottomInset, overscan } = opts;
   if (!element) {
-    return { start: 0, end: Math.min(rowCount, 30), windowTop: 0, measured: false };
+    return { start: 0, end: Math.min(rowCount, 30), windowTop: 0, measured: false, element: null };
   }
   const { scrollTop, clientHeight: rawClientHeight, deltaTop } = snapshot;
   const clientHeight = Math.max(0, rawClientHeight - bottomInset);
@@ -78,7 +80,7 @@ function computeWindow(
       );
     }
   }
-  return { start, end: Math.max(start, end), windowTop: start * rowHeight, measured: true };
+  return { start, end: Math.max(start, end), windowTop: start * rowHeight, measured: true, element };
 }
 
 /**
