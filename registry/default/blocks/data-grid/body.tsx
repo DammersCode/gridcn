@@ -56,6 +56,15 @@ function warnRowCountMismatch(indicesLength: number, expected: number, start: nu
   );
 }
 
+const BROWSER_HEIGHT_LIMIT_WARN_PX = 33_000_000;
+
+function warnHeightLimit(rowCount: number, rowHeight: number): void {
+  const reachableRows = Math.floor(BROWSER_HEIGHT_LIMIT_WARN_PX / rowHeight);
+  console.warn(
+    `gridcn: ${rowCount} rows at ${rowHeight}px need ${rowCount * rowHeight}px of scroll height, which is above the browser height limit (about 33.5 million px). Rows past about ${reachableRows} are unreachable. See the virtualization docs page.`,
+  );
+}
+
 /** Props for {@link DataGridBody}. */
 export type DataGridBodyProps = {
   /** Merged onto the rows-canvas element (the transformed canvas holding the virtualized rows and overlays, not the scroll root). */
@@ -95,6 +104,13 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
     dataRowTop: effectiveHeaderHeight,
     bottomInset: pinnedBottomHeight,
   });
+
+  const warnedHeightLimitRef = useRef(false);
+  useEffect(() => {
+    if (warnedHeightLimitRef.current || !isDev() || rowCount * rowHeight <= BROWSER_HEIGHT_LIMIT_WARN_PX) return;
+    warnedHeightLimitRef.current = true;
+    warnHeightLimit(rowCount, rowHeight);
+  }, [rowCount, rowHeight]);
 
   // Fires post-commit, never during render — DataGridBody already re-renders every window tick
   // regardless (it calls useRowWindow directly), so this adds no extra subscription and can't

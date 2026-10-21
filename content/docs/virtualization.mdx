@@ -29,6 +29,12 @@ the regression suite that enforces them.
   `className="h-150"` or `h-full` inside a container with its own bounded height.
 </Callout>
 
+## Row limit
+
+<NewBadge />
+
+Browsers cap the height of one element at about 33.5 million pixels. This limits one grid to about 930,000 rows at the default row height of 36 px. A smaller row height allows more rows. A larger row height allows fewer. If the row count times the row height passes this limit, the rows past it cannot be reached by scrolling. A development build logs a warning when the grid crosses the limit.
+
 ## How it works
 
 ### The model, in consumer terms
