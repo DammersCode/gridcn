@@ -2,7 +2,7 @@
 name: gridcn-addons
 description: "gridcn add-ons (fill, undo/redo, pinned rows, presence, toolbar, context menu, keybindings, sort list, URL state, import/export): install and wiring. Use when adding an add-on, combining several in one grid, or when an installed add-on renders nothing."
 metadata:
-  gridcn-version: "1.0.1"
+  gridcn-version: "1.1.0"
 ---
 
 Each gridcn add-on is a separate registry item that installs into your own project paths (default
