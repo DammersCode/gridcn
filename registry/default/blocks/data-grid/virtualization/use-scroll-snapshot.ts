@@ -135,7 +135,7 @@ export function getElementStore(element: HTMLElement): ElementStore {
   let canvasBaseOffset = 0;
   let canvasScrollTop = 0;
   let stickyTrackTop = 0;
-  let stickyTrackWritten = false;
+  let stickyTrackTopWritten = "";
   let scrollLeftWritten = "";
   let offsetsKnown = false;
 
@@ -164,16 +164,16 @@ export function getElementStore(element: HTMLElement): ElementStore {
     if (canvasElement) canvasElement.style.translate = `0 ${canvasBaseOffset - canvasScrollTop}px`;
   };
 
-  // Firefox places a sticky box at most 2^29 app units (about 8.9M px) below its containing block's top,
-  // so the track follows the scroll position in large steps and the sticky offset stays within the range.
+  // Firefox places a sticky box at most about 8.9M px below its containing block, so the track follows the scroll position.
   const writeStickyTrackTop = () => {
     const track = viewportElement?.parentElement;
     if (!track) return;
     const offset = canvasScrollTop - stickyTrackTop;
-    if (stickyTrackWritten && offset >= 0 && offset <= STICKY_TRACK_RANGE_PX) return;
+    if (track.style.top === stickyTrackTopWritten && offset >= 0 && offset <= STICKY_TRACK_RANGE_PX) return;
     stickyTrackTop = Math.max(0, canvasScrollTop - STICKY_TRACK_RANGE_PX / 2);
-    stickyTrackWritten = true;
     track.style.top = `${stickyTrackTop}px`;
+    // Read back: browsers reserialize large lengths (Chromium writes 1.32792e+07px).
+    stickyTrackTopWritten = track.style.top;
   };
 
   const syncOffsets = () => {
@@ -282,7 +282,7 @@ export function getElementStore(element: HTMLElement): ElementStore {
     setViewportElement(el) {
       viewportElement = el;
       scrollLeftWritten = "";
-      stickyTrackWritten = false;
+      stickyTrackTopWritten = "";
       if (el) syncOffsets();
     },
     setCanvasOffset(el, baseOffset) {

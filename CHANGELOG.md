@@ -11,7 +11,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## 1.0.1 - 2026-10-21
 
-- In Firefox, rows stay visible after scrolling more than about 8.9 million px (about 248,000 rows at 36 px). Before, the grid showed an empty area there. The viewport now sits in a track that follows the scroll position in steps of up to 4 million px.
+- In Firefox, lists longer than about 248,600 rows at 36 px no longer lose the end of the list. Rows stay visible after scrolling past about 8.9 million px.
 - In Firefox, rows no longer disappear or stack on one line after scrolling more than 10,000 rows away from the active cell. An active row far outside the rendered rows is placed off-screen near them.
 - A development build logs a warning once per grid when the row count times the row height passes 17,800,000 px. Firefox gives an element taller than about 17.9 million px a height of 0 and Chromium caps it at about 33.5 million px, so Firefox shows no scroll range above about 490,000 rows at 36 px, and Chromium cannot reach the rows past about 930,000.
 - Typing into an active cell that is scrolled far out of view no longer jumps the grid to another scroll position. Editors and `api.focus()` focus without scrolling.

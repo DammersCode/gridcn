@@ -432,8 +432,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     height: contentHeight,
   };
 
-  // The scroll store moves the track's top behind the scroll position: Firefox caps sticky offsets at about 8.9M px.
-  const stickyTrackStyle: CSSProperties = { position: "absolute", inset: 0 };
+  // Clipped so a track top below shrunken content never extends the scroll range.
+  const stickyTrackStyle: CSSProperties = { position: "absolute", inset: 0, overflow: "clip" };
 
   const viewportStyle: CSSProperties & Record<string, string | number> = {
     position: "sticky",
