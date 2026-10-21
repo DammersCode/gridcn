@@ -2,7 +2,7 @@
 name: gridcn-data-source
 description: "gridcn data sources: pick plain data, pagination, lazy loading, or streaming, and wire it. Use when connecting a grid to a backend or to a dataset too large for one payload, or when sort, filter, or search must run on the server."
 metadata:
-  gridcn-version: "1.0.0"
+  gridcn-version: "1.0.1"
 ---
 
 Pick exactly one loading strategy for the dataset, then make every sort/filter/search path see the full dataset, not just what happened to load.

@@ -9,6 +9,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+## 1.0.1 - 2026-10-21
+
 - A development build logs a warning once per grid when the row count times the row height passes 33,000,000 px. Browsers cap element height at about 33.5 million px, so rows past the limit (about 930,000 rows at 36 px) cannot be reached by scrolling.
 - Pinned cells keep an opaque background under search-match, invalid and flash tints, so scrolled content no longer shows through.
 - **Breaking:** data cells are transparent. The `bg-background`, `group-hover/row:bg-muted/50` and `transition-colors` classes of the data cell are gone. A `bg-*` class from `getCellClassName` or `cellClassName` hides the row hover tint. A root with `bg-card` or `bg-transparent` shows through unpinned cells. A `bg-*` class from `getRowClassName` is now visible on unpinned cells. Pinned and marker cells stay opaque.
