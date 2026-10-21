@@ -302,7 +302,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       const root = scrollRef.current;
       if (!root) return;
       const active = Array.from(root.querySelectorAll<HTMLElement>(gridAttrSelector("active"))).find((el) => closestGridRoot(el) === root);
-      (active ?? root).focus();
+      (active ?? root).focus({ preventScroll: true });
     });
     return () => internalActions._registerFocus(null);
   }, [internalActions]);

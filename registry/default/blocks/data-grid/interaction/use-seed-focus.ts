@@ -5,7 +5,7 @@ export function useSeedFocus(ref: RefObject<HTMLInputElement | null>, _initialTe
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    el.focus();
+    el.focus({ preventScroll: true });
     const end = el.value.length;
     el.setSelectionRange(end, end);
     // seed-once on mount; re-running on every value change would fight the user's cursor

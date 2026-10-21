@@ -141,7 +141,7 @@ function DateEditor({
   useEffect(() => {
     const el = inputRef.current;
     if (!el) return;
-    el.focus();
+    el.focus({ preventScroll: true });
     const end = el.value.length;
     el.setSelectionRange(end, end);
   }, []);
