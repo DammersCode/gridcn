@@ -2,6 +2,7 @@
 title: Row operations
 description: Insert, duplicate, delete, and reorder rows through props, keyboard shortcuts, the context menu, and a marker drag.
 icon: Rows3
+status: updated
 ---
 
 Inserting, duplicating, deleting, and reordering whole rows. All four act on **view-index**
@@ -198,7 +199,7 @@ while keeping its chrome and gestures:
   `isRowChannelSelected` (the rows channel only, so a cell click never flips it) and
   `isCellSelected` (the cell or column channel covers at least one cell of the row). A renderer
   can therefore tell "this row is selected" apart from "cells in this row are selected" and
-  render them differently.
+  render them differently. Pass a function with a stable identity (`useCallback` or a module-level function). A new function on every render re-renders every row. <NewBadge />
 - `renderMarkerHeader` replaces the select-all checkbox in the marker header. It receives the
   `allSelected` state (`"checked"`, `"indeterminate"`, `"unchecked"`). In `"number"` mode there is no
   select-all checkbox, so the renderer replaces the blank header cell instead.

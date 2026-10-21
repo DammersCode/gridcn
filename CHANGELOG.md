@@ -10,6 +10,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 ## Unreleased
 
 - A development build logs a warning once per grid when the row count times the row height passes 33,000,000 px. Browsers cap element height at about 33.5 million px, so rows past the limit (about 930,000 rows at 36 px) cannot be reached by scrolling.
+- Pinned cells keep an opaque background under search-match, invalid and flash tints, so scrolled content no longer shows through.
 - **Breaking:** data cells are transparent. The `bg-background`, `group-hover/row:bg-muted/50` and `transition-colors` classes of the data cell are gone. A `bg-*` class from `getCellClassName` or `cellClassName` hides the row hover tint. A root with `bg-card` or `bg-transparent` shows through unpinned cells. A `bg-*` class from `getRowClassName` is now visible on unpinned cells. Pinned and marker cells stay opaque.
 - **Breaking:** the row hover tint follows the `data-hovered` attribute on the hovered row instead of the CSS `:hover` state. A pointer listener sets it, it stays frozen while the grid scrolls, and it moves to the row under the pointer when the scroll settles. Override the tint with `data-hovered:bg-*` instead of `hover:bg-*`. There is no hover fade.
 - Scroll jumps farther than the overscan cap can cover no longer mount a leading overscan buffer, so the rendered rows stay few and commit once.
