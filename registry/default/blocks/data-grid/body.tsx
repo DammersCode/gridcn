@@ -56,13 +56,13 @@ function warnRowCountMismatch(indicesLength: number, expected: number, start: nu
   );
 }
 
-const BROWSER_HEIGHT_LIMIT_WARN_PX = 33_000_000;
-const BROWSER_HEIGHT_LIMIT_PX = 33_554_400;
+// Firefox gives an element taller than about 17.9 million px a height of 0; Chromium clamps at 33.5 million.
+const BROWSER_HEIGHT_LIMIT_WARN_PX = 17_800_000;
 
 function warnHeightLimit(rowCount: number, rowHeight: number): void {
-  const reachableRows = Math.floor(BROWSER_HEIGHT_LIMIT_PX / rowHeight / 10_000) * 10_000;
+  const reachableRows = Math.floor(BROWSER_HEIGHT_LIMIT_WARN_PX / rowHeight / 10_000) * 10_000;
   console.warn(
-    `gridcn: ${rowCount} rows at ${rowHeight}px need ${rowCount * rowHeight}px of scroll height, which is above the browser height limit (about 33.5 million px). Rows past about ${reachableRows.toLocaleString("en-US")} are unreachable. See the virtualization docs page.`,
+    `gridcn: ${rowCount} rows at ${rowHeight}px need ${rowCount * rowHeight}px of scroll height, which is above the browser height limit (about 17.9 million px in Firefox, 33.5 million px in Chromium). Rows past about ${reachableRows.toLocaleString("en-US")} are unreachable. See the virtualization docs page.`,
   );
 }
 

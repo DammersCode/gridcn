@@ -55,10 +55,10 @@ function mount(rowCount: number) {
 describe("browser height limit warning", () => {
   it("warns once per instance when rows x rowHeight exceeds the limit", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const view = mount(1_000_000);
+    const view = mount(900_000);
     view.rerender(
       <DataGrid
-        defaultData={makeRows(1_000_000)}
+        defaultData={makeRows(900_000)}
         columns={columns}
         getRowId={(row) => row.id}
       >
@@ -69,20 +69,20 @@ describe("browser height limit warning", () => {
       </DataGrid>,
     );
     expect(heightWarnings(warn)).toHaveLength(1);
-    expect(String(heightWarnings(warn)[0]?.[0])).toContain("1000000 rows");
-    expect(String(heightWarnings(warn)[0]?.[0])).toContain("Rows past about 930,000 are unreachable");
+    expect(String(heightWarnings(warn)[0]?.[0])).toContain("900000 rows");
+    expect(String(heightWarnings(warn)[0]?.[0])).toContain("Rows past about 490,000 are unreachable");
   });
 
-  it("stays silent at 900,000 rows with the default row height", () => {
+  it("stays silent at 480,000 rows with the default row height", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    mount(900_000);
+    mount(480_000);
     expect(heightWarnings(warn)).toHaveLength(0);
   });
 
   it("stays silent in production", () => {
     vi.stubEnv("NODE_ENV", "production");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    mount(1_000_000);
+    mount(900_000);
     expect(heightWarnings(warn)).toHaveLength(0);
   });
 });

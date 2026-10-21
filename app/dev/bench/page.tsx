@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { Suspense, useMemo, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
 import { DataGrid, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
 
-const ROW_COUNT = 100_000;
+const DEFAULT_ROW_COUNT = 100_000;
+const MAX_ROW_COUNT = 2_000_000;
 const SEED = 12345;
 
 const DEPARTMENTS = ["Alpha", "Bravo", "Charlie", "Delta", "Echo"] as const;
@@ -84,11 +86,25 @@ function generateRows(count: number): BenchRow[] {
   return rows;
 }
 
-export default function BenchPage(): ReactNode {
-  const rows = useMemo(() => generateRows(ROW_COUNT), []);
+function parseRowCount(value: string | null): number {
+  const count = Number(value);
+  return Number.isInteger(count) && count >= 1 && count <= MAX_ROW_COUNT ? count : DEFAULT_ROW_COUNT;
+}
+
+function Bench(): ReactNode {
+  const rowCount = parseRowCount(useSearchParams().get("rows"));
+  const rows = useMemo(() => generateRows(rowCount), [rowCount]);
   return (
     <div className="mx-auto" style={{ width: "min(1216px, 100vw)", height: "max(400px, calc(100vh - 150px))" }}>
       <DataGrid defaultData={rows} columns={columns} getRowId={(row) => row.id} rowMarkers="checkbox" className="h-full" />
     </div>
+  );
+}
+
+export default function BenchPage(): ReactNode {
+  return (
+    <Suspense>
+      <Bench />
+    </Suspense>
   );
 }
