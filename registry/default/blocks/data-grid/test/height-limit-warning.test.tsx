@@ -37,14 +37,14 @@ function heightWarnings(warn: { mock: { calls: unknown[][] } }): unknown[][] {
   );
 }
 
-function mount(rowCount: number) {
+function mount(rowCount: number, rowHeight?: number) {
   return render(
     <DataGrid
       defaultData={makeRows(rowCount)}
       columns={columns}
       getRowId={(row) => row.id}
     >
-      <DataGridRoot>
+      <DataGridRoot rowHeight={rowHeight}>
         <DataGridHeader />
         <DataGridBody />
       </DataGridRoot>
@@ -71,6 +71,12 @@ describe("browser height limit warning", () => {
     expect(heightWarnings(warn)).toHaveLength(1);
     expect(String(heightWarnings(warn)[0]?.[0])).toContain("900000 rows");
     expect(String(heightWarnings(warn)[0]?.[0])).toContain("Firefox shows no scroll range above about 490,000 rows at this row height. Chromium cannot reach the rows past about 930,000");
+  });
+
+  it("names a nonzero row count for a large row height", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mount(10_000, 2_000);
+    expect(String(heightWarnings(warn)[0]?.[0])).toContain("above about 8,900 rows at this row height. Chromium cannot reach the rows past about 16,000");
   });
 
   it("stays silent at 480,000 rows with the default row height", () => {

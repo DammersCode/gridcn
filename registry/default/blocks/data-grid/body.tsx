@@ -61,7 +61,12 @@ const BROWSER_HEIGHT_LIMIT_WARN_PX = 17_800_000;
 const CHROMIUM_HEIGHT_LIMIT_PX = 33_554_400;
 
 function warnHeightLimit(rowCount: number, rowHeight: number): void {
-  const roundDown = (px: number) => Math.floor(px / rowHeight / 10_000) * 10_000;
+  // Two significant digits, so a large row height still names a nonzero row count.
+  const roundDown = (px: number) => {
+    const rows = Math.floor(px / rowHeight);
+    const step = 10 ** Math.max(0, Math.floor(Math.log10(Math.max(rows, 1))) - 1);
+    return Math.floor(rows / step) * step;
+  };
   const firefoxRows = roundDown(BROWSER_HEIGHT_LIMIT_WARN_PX);
   const chromiumRows = roundDown(CHROMIUM_HEIGHT_LIMIT_PX);
   console.warn(
