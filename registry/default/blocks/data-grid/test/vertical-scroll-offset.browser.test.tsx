@@ -117,18 +117,21 @@ describe("vertical scroll offset", () => {
       expect(startingPlacement).not.toBe("");
     });
 
-    it("keeps rows and the off-window active row in place after the active cell sits below the origin", async () => {
+    it("extends the origin down to an off-window active row just above the trailing origin", async () => {
       const apiRef = { current: null as DataGridApi<Row> | null };
       await renderGrid({ apiRef });
       const headerOffset = rowsOffsetFromScroll()[0]!;
-      apiRef.current!.actions.setActiveCell({ rowId: "row-2", columnId: "c0" });
+      apiRef.current!.actions.setActiveCell({ rowId: "row-250", columnId: "c0" });
       const grid = gridEl();
-      grid.scrollTop = 150 * mountedRows()[0]!.getBoundingClientRect().height;
+      grid.scrollTop = 400 * mountedRows()[0]!.getBoundingClientRect().height;
       await settle();
       expectAllRowsAt(headerOffset);
-      grid.scrollTop = 0;
-      await settle();
-      expectAllRowsAt(headerOffset);
+      const placements = mountedRows()
+        .map((row) => ({ index: Number(row.dataset["gridRowIndex"]), line: Number(row.style.gridRowStart) }))
+        .sort((a, b) => a.index - b.index);
+      expect(placements[0]).toEqual({ index: 250, line: 1 });
+      expect(placements[1]!.index).toBeGreaterThan(300);
+      for (const { index, line } of placements) expect(line).toBe(index - 250 + 1);
     });
 
     // Firefox clamps grid lines above 10,000 onto one line: the window rows then stack off-screen.

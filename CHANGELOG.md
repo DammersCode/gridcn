@@ -9,16 +9,15 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
-- In Firefox, rows no longer disappear or stack on one line after scrolling more than 10,000 rows away from the active cell. An active row far outside the rendered rows is placed off-screen near them, and the plugin context `windowStart` trails the first rendered row by up to 288 rows.
-
 ## 1.0.1 - 2026-10-21
 
+- In Firefox, rows no longer disappear or stack on one line after scrolling more than 10,000 rows away from the active cell. An active row far outside the rendered rows is placed off-screen near them.
 - A development build logs a warning once per grid when the row count times the row height passes 33,000,000 px. Browsers cap element height at about 33.5 million px, so rows past the limit (about 930,000 rows at 36 px) cannot be reached by scrolling.
 - Pinned cells keep an opaque background under search-match, invalid and flash tints, so scrolled content no longer shows through.
 - **Breaking:** data cells are transparent. The `bg-background`, `group-hover/row:bg-muted/50` and `transition-colors` classes of the data cell are gone. A `bg-*` class from `getCellClassName` or `cellClassName` hides the row hover tint. A root with `bg-card` or `bg-transparent` shows through unpinned cells. A `bg-*` class from `getRowClassName` is now visible on unpinned cells. Pinned and marker cells stay opaque.
 - **Breaking:** the row hover tint follows the `data-hovered` attribute on the hovered row instead of the CSS `:hover` state. A pointer listener sets it, it stays frozen while the grid scrolls, and it moves to the row under the pointer when the scroll settles. Override the tint with `data-hovered:bg-*` instead of `hover:bg-*`. There is no hover fade.
 - Scroll jumps farther than the overscan cap can cover no longer mount a leading overscan buffer, so the rendered rows stay few and commit once.
-- **Breaking:** the plugin context field `windowStart` is now the grid origin, the row line the rows canvas is positioned from. It trails the first rendered row by up to 192 rows. Place a rect with `rect.y - windowStart + 1` and clamp only with `clampRowStart` and `clampRowEnd`.
+- **Breaking:** the plugin context field `windowStart` is now the grid origin, the row line the rows canvas is positioned from. It trails the first rendered row by up to 288 rows. Place a rect with `rect.y - windowStart + 1` and clamp only with `clampRowStart` and `clampRowEnd`.
 - Vertical scroll ticks write one `translate` on the rows canvas instead of two inherited CSS variables, and a small window shift no longer rewrites the `gridRowStart` of every mounted row, which cuts style work on fast wheel flings.
 
 ## 1.0.0 - 2026-10-16
