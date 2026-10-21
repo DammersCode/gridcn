@@ -89,9 +89,7 @@ export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGr
       className={cn(
         "group flex items-center border-b border-border bg-background",
         COLUMN_BORDER,
-        // Same rule as a pinned-column cell (see cell.tsx): this sits opaque above the scrolled
-        // canvas, so a translucent tint would let the scrolled content show through it.
-        // color-mix() pre-composites the identical tint as an OPAQUE color, in both themes.
+        // Opaque over scrolled content: color-mix() pre-composites the tint instead of a translucent overlay.
         "group-data-hovered/row:bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
         isSelected && "bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
         !showGrip && "justify-center",

@@ -137,8 +137,8 @@ export type DataGridOverlaysProps = {
    * True contiguous `[start, end)` rendered row span for clamping range/band overlays — distinct
    * from `windowStart`/`rowCount` because body.tsx appends a single off-window active row outside
    * the contiguous window, which would otherwise make `[windowStart, windowStart+rowCount)` either
-   * overshoot or undershoot the real rendered bottom. Defaults to `[windowStart, windowStart+rowCount)`
-   * when omitted (no disjoint window in play).
+   * overshoot or undershoot the real rendered bottom. Each bound falls back to `windowStart` and
+   * `windowStart + rowCount` when omitted.
    */
   clampRowStart?: number;
   clampRowEnd?: number;
@@ -156,6 +156,7 @@ export type DataGridOverlaysProps = {
  * "clamp to rendered window, split by pin zone, place by grid line" pipeline.
  */
 export type OverlayPluginCtx = {
+  /** Grid line origin of the rows canvas. Place with `rect.y - windowStart + 1`; clamp only with `clampRowStart` and `clampRowEnd`. Trails the first rendered row by up to 192 rows. */
   windowStart: number;
   clampRowStart: number;
   clampRowEnd: number;
