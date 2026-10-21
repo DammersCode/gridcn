@@ -70,6 +70,7 @@ describe("browser height limit warning", () => {
     );
     expect(heightWarnings(warn)).toHaveLength(1);
     expect(String(heightWarnings(warn)[0]?.[0])).toContain("1000000 rows");
+    expect(String(heightWarnings(warn)[0]?.[0])).toContain("Rows past about 930,000 are unreachable");
   });
 
   it("stays silent at 900,000 rows with the default row height", () => {

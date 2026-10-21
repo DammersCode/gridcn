@@ -57,11 +57,12 @@ function warnRowCountMismatch(indicesLength: number, expected: number, start: nu
 }
 
 const BROWSER_HEIGHT_LIMIT_WARN_PX = 33_000_000;
+const BROWSER_HEIGHT_LIMIT_PX = 33_554_400;
 
 function warnHeightLimit(rowCount: number, rowHeight: number): void {
-  const reachableRows = Math.floor(BROWSER_HEIGHT_LIMIT_WARN_PX / rowHeight);
+  const reachableRows = Math.floor(BROWSER_HEIGHT_LIMIT_PX / rowHeight / 10_000) * 10_000;
   console.warn(
-    `gridcn: ${rowCount} rows at ${rowHeight}px need ${rowCount * rowHeight}px of scroll height, which is above the browser height limit (about 33.5 million px). Rows past about ${reachableRows} are unreachable. See the virtualization docs page.`,
+    `gridcn: ${rowCount} rows at ${rowHeight}px need ${rowCount * rowHeight}px of scroll height, which is above the browser height limit (about 33.5 million px). Rows past about ${reachableRows.toLocaleString("en-US")} are unreachable. See the virtualization docs page.`,
   );
 }
 
