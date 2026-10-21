@@ -63,7 +63,6 @@ const hoverAndSettle = async (target: Element) => {
   await userEvent.hover(target);
   await wait(200);
 };
-const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 const rowAt = (grid: HTMLElement, index: number) => grid.querySelector<HTMLElement>(`[role="row"][data-grid-row-index="${index}"]`)!;
 const hoveredRows = (grid: HTMLElement) => [...grid.querySelectorAll<HTMLElement>("[data-hovered]")];
 
@@ -123,19 +122,44 @@ describe("row hover tint follows the pointer through an attribute", () => {
     expect(after[0]!.contains(document.elementFromPoint(x + width / 2, y + height / 2))).toBe(true);
   });
 
+  it("re-reads the hovered row after a lazy hole is filled and its row element is replaced", async () => {
+    let fill: () => void = () => {};
+    function LazyHarness() {
+      const [filled, setFilled] = useState(false);
+      fill = () => setFilled(true);
+      const data = rows.map((row, i) => (i === 2 && !filled ? undefined : row)) as Row[];
+      return (
+        <div style={{ height: 300, width: 400 }}>
+          <DataGrid data={data} columns={columns} getRowId={(r) => r.id} className="h-75 w-100" />
+        </div>
+      );
+    }
+    await render(<LazyHarness />);
+    const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+    await hoverAndSettle(rowAt(grid, 2));
+    const before = hoveredRows(grid)[0]!;
+    expect(before).toBe(rowAt(grid, 2));
+
+    fill();
+    await expect.poll(() => hoveredRows(grid).length === 1 && hoveredRows(grid)[0]!.isConnected).toBe(true);
+    expect(hoveredRows(grid)[0]).toBe(rowAt(grid, 2));
+  });
+
   it("freezes the tint during a scroll burst and restores it after settle", async () => {
     await mount();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
     await userEvent.hover(rowAt(grid, 2));
-    await wait(200);
+    await expect.poll(() => hoveredRows(grid)).toEqual([rowAt(grid, 2)]);
 
-    grid.addEventListener("scrollend", (event) => event.stopImmediatePropagation(), { capture: true });
+    const blockScrollEnd = (event: Event) => event.stopImmediatePropagation();
+    grid.addEventListener("scrollend", blockScrollEnd, { capture: true });
     grid.scrollTop += 3;
-    await nextFrame();
-    await userEvent.hover(rowAt(grid, 4));
+    grid.dispatchEvent(new Event("scroll"));
+    const target = rowAt(grid, 4);
+    const { x, y, height } = target.getBoundingClientRect();
+    target.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerType: "mouse", clientX: x + 20, clientY: y + height / 2 }));
     expect(hoveredRows(grid)).toEqual([rowAt(grid, 2)]);
 
-    await wait(400);
-    expect(hoveredRows(grid)).toEqual([rowAt(grid, 4)]);
+    await expect.poll(() => hoveredRows(grid), { timeout: 3000 }).toEqual([rowAt(grid, 4)]);
   });
 });

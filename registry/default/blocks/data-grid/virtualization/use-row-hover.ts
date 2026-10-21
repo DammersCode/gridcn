@@ -1,5 +1,6 @@
 import { useEffect, useRef, type RefObject } from "react";
 import { GRID_ATTR, gridAttrSelector } from "../data-attributes";
+import { useDataGridStoreApi } from "../store";
 import { getElementStore } from "./use-scroll-snapshot";
 
 const ROW_SELECTOR = `[role="row"]:is(${gridAttrSelector("rowIndex")}, ${gridAttrSelector("pinnedRowIndex")})`;
@@ -7,27 +8,40 @@ const ROW_SELECTOR = `[role="row"]:is(${gridAttrSelector("rowIndex")}, ${gridAtt
 /**
  * Marks the body row under the pointer with `data-hovered`. A CSS `:hover` rule on rows makes Chrome
  * restyle the rows that move under a resting pointer on every scroll tick; an attribute that only
- * moves between scroll bursts costs nothing per tick. `viewIndex` or `rowHeight` changes when the rows under a resting
- * pointer change (sort, filter, data, row height); the tint is then re-read from the pointer position.
+ * moves between scroll bursts costs nothing per tick. A `viewIndex` or `rowHeight` change moves the rows under a
+ * resting pointer (sort, filter, data, row height); the tint is then re-read from the pointer position. The store
+ * subscription detects the change without a React render.
  */
-export function useRowHover(scrollRef: RefObject<HTMLElement | null>, viewIndex: unknown, rowHeight: number): void {
+export function useRowHover(scrollRef: RefObject<HTMLElement | null>, rowHeight: number): void {
+  const storeApi = useDataGridStoreApi();
   const reevaluateRef = useRef<(() => void) | null>(null);
+  const hoveredRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let frame = 0;
+    let previousViewIndex = storeApi.getState().viewIndex;
     const schedule = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => reevaluateRef.current?.());
     };
     schedule();
-    return () => cancelAnimationFrame(frame);
-  }, [viewIndex, rowHeight]);
+    const unsubscribe = storeApi.subscribe(() => {
+      const { viewIndex } = storeApi.getState();
+      const hoveredDetached = hoveredRef.current !== null && !hoveredRef.current.isConnected;
+      if (viewIndex === previousViewIndex && !hoveredDetached) return;
+      previousViewIndex = viewIndex;
+      schedule();
+    });
+    return () => {
+      unsubscribe();
+      cancelAnimationFrame(frame);
+    };
+  }, [storeApi, rowHeight]);
 
   useEffect(() => {
     const scrollElement = scrollRef.current;
     if (!scrollElement) return;
     const store = getElementStore(scrollElement);
-    let hovered: HTMLElement | null = null;
     let pointer: { x: number; y: number } | null = null;
     let wasScrolling = false;
 
@@ -37,10 +51,10 @@ export function useRowHover(scrollRef: RefObject<HTMLElement | null>, viewIndex:
     };
 
     const setHovered = (row: HTMLElement | null) => {
-      if (row === hovered) return;
-      hovered?.removeAttribute(GRID_ATTR.hovered);
+      if (row === hoveredRef.current) return;
+      hoveredRef.current?.removeAttribute(GRID_ATTR.hovered);
       row?.setAttribute(GRID_ATTR.hovered, "");
-      hovered = row;
+      hoveredRef.current = row;
     };
 
     const onPointerMove = (event: PointerEvent) => {
@@ -55,6 +69,7 @@ export function useRowHover(scrollRef: RefObject<HTMLElement | null>, viewIndex:
     };
 
     const reevaluate = () => {
+      if (hoveredRef.current && !hoveredRef.current.isConnected) hoveredRef.current = null;
       if (pointer && !store.getSnapshot().isScrolling) setHovered(rowOf(document.elementFromPoint(pointer.x, pointer.y)));
     };
     reevaluateRef.current = reevaluate;
