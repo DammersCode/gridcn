@@ -2,7 +2,6 @@
 title: Row operations
 description: Insert, duplicate, delete, and reorder rows through props, keyboard shortcuts, the context menu, and a marker drag.
 icon: Rows3
-status: updated
 ---
 
 Inserting, duplicating, deleting, and reordering whole rows. All four act on **view-index**
@@ -194,7 +193,7 @@ Try all four modes alongside every other toggle in the [playground](/docs/playgr
 `DataGridRoot` and `DataGrid` accept two render slots that replace the marker column's content
 while keeping its chrome and gestures:
 
-- `renderMarker` <NewBadge /> replaces the built-in row number/checkbox in every marker cell. It receives the
+- `renderMarker` replaces the built-in row number/checkbox in every marker cell. It receives the
   row's `rowId`, the 0-based `viewRowIndex`, and two independent selection signals:
   `isRowChannelSelected` (the rows channel only, so a cell click never flips it) and
   `isCellSelected` (the cell or column channel covers at least one cell of the row). A renderer

@@ -2,7 +2,6 @@
 title: Plugins
 description: The grid's extension seam. One `plugins` prop carries overlays, row bands, change observers, commands, keymap entries, and mount components.
 icon: Puzzle
-status: updated
 ---
 
 Plugins are how add-ons (and your own code) reach into the grid. The `plugins` prop on
@@ -80,7 +79,7 @@ presence highlight or a fill-drag frame cost zero row or cell renders.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid/overlays.tsx" name="OverlayPluginCtx" />
 
-- **`windowStart`**: <NewBadge /> the grid origin, the row line the rows canvas is positioned from.
+- **`windowStart`**: the grid origin, the row line the rows canvas is positioned from.
   It trails the first rendered row by up to 288 rows. Place a rect with `rect.y - windowStart + 1`.
   Clamp only with `clampRowStart` and `clampRowEnd`.
 - **`clampRowStart` / `clampRowEnd`**: the true contiguous `[start, end)` rendered row span.
