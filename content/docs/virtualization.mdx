@@ -2,7 +2,6 @@
 title: Virtualization
 description: "Row and column virtualization: what renders, what stays fixed, and what you get for free."
 icon: LayoutGrid
-status: updated
 ---
 
 Both axes are virtualized. Only the rows and columns that actually intersect the viewport, plus a
@@ -31,7 +30,6 @@ the regression suite that enforces them.
 
 ## Row limit
 
-<NewBadge />
 
 Browsers cap or ignore tall elements: Firefox at about 17.9 million pixels, Chromium at about 33.5 million. To work in every browser, keep the row count times the row height below 17.8 million pixels. This limits one grid to about 490,000 rows at the default row height of 36 px. A smaller row height allows more rows. A larger row height allows fewer. If the row count times the row height passes 17.8 million pixels, Firefox shows no scroll range at all. If it passes 33.5 million pixels, Chromium cannot reach the rows past about 930,000 at 36 px. A development build logs a warning when the grid crosses the limit.
 
@@ -55,7 +53,6 @@ A small fixed overscan, rows and columns rendered past the visible edge, absorbs
 gap between one scroll tick and the next window recompute. During a fast fling or a scrollbar drag,
 the grid tracks recent scroll velocity. It grows the overscan on the leading edge only.
 
-<NewBadge />
 
 A jump is a scroll farther than the viewport plus the largest velocity buffer. After a jump, the
 grid mounts only the base overscan. The velocity buffer applies to fling and drag deltas below that
