@@ -9,6 +9,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- Starting an edit no longer moves the cell text. The date and long text editors keep the text where it was (it jumped up by 7.5 px at the default row height), and the text, number and url inputs use the cell font size on narrow screens and have no tint in dark mode.
+- The long text editor opens as a larger popover (400 px wide, 150 to 300 px high) over the cell, with its top-left corner on the cell's corner. The date popover starts at the cell's start edge. Neither plays an open animation.
+
 ## 1.1.0 - 2026-10-21
 
 - In Firefox, lists longer than about 248,600 rows at 36 px no longer lose the end of the list. Rows stay visible after scrolling past about 8.9 million px.

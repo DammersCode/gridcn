@@ -1,9 +1,31 @@
-import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import type { CellEditorProps } from "../types";
 import { useCommitGuard } from "./use-commit-guard";
 import { useSeedFocus } from "./use-seed-focus";
 import { columnLabelText } from "../columns/column-format-helpers";
 import { isComposingKey } from "./is-composing-key";
+
+/** Class set that makes a text input look like the cell text it replaces: no box, no tint, inherited font size. Other classes merge on top. */
+export const CELL_INPUT_CLASS =
+  "h-full w-full min-w-0 rounded-none border-0 bg-transparent p-0 text-[length:inherit] shadow-none outline-none focus-visible:border-0 focus-visible:ring-0 md:text-[length:inherit] dark:bg-transparent";
+
+/** Distances from the cell box to its display text, in px; `start` follows the writing direction. */
+export type CellTextInsets = { start: number; top: number; textBottomToCellTop: number; textBottomToCellBottom: number };
+
+/** Measures the display text (the popover trigger) against its cell, so a popover editor can open over the cell with its text on the display text. */
+export function useCellTextInsets() {
+  const triggerRef = useRef<HTMLElement | null>(null);
+  const measure = useCallback((): CellTextInsets => {
+    const trigger = triggerRef.current;
+    const cell = trigger?.closest<HTMLElement>('[role="gridcell"]');
+    if (!trigger || !cell) return { start: 0, top: 0, textBottomToCellTop: 0, textBottomToCellBottom: 0 };
+    const text = trigger.getBoundingClientRect();
+    const box = cell.getBoundingClientRect();
+    const rtl = getComputedStyle(cell).direction === "rtl";
+    return { start: rtl ? box.right - text.right : text.left - box.left, top: text.top - box.top, textBottomToCellTop: text.bottom - box.top, textBottomToCellBottom: box.bottom - text.bottom };
+  }, []);
+  return { triggerRef, measure };
+}
 
 /** The text-form codec that adapts a plain text input to a cell type's value pipeline. */
 export type CellEditorCodec<TValue> = {

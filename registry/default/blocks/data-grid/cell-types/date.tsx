@@ -8,6 +8,7 @@ import { CellSpan } from "./cell-span";
 import { COMPARISON_FILTER_OPERATORS, TEXT_FILTER_OPERATORS } from "./capabilities";
 import { displayText } from "./display-text";
 import { useCommitGuard } from "../interaction/use-commit-guard";
+import { useCellTextInsets } from "../interaction/use-cell-editor";
 import { isComposingKey } from "../interaction/is-composing-key";
 import { useDataGridLabels } from "../store";
 import { columnLabelText } from "../columns/column-format-helpers";
@@ -127,6 +128,7 @@ function DateEditor({
 }: CellEditorProps<unknown, string | null, GridCellTypes["date"]["options"]>) {
   const labels = useDataGridLabels();
   const inputRef = useRef<HTMLInputElement>(null);
+  const { triggerRef, measure } = useCellTextInsets();
   const [text, setText] = useState(dateCellType.toText(value));
   const [open, setOpen] = useState(true);
   const committed = useCommitGuard();
@@ -166,14 +168,16 @@ function DateEditor({
     >
       <PopoverTrigger
         nativeButton={false}
-        render={<span className="block size-full truncate text-end" />}
+        render={<span ref={triggerRef} className="block w-full min-w-0 truncate text-end" />}
       >
         {displayText(dateCellType, value, options)}
       </PopoverTrigger>
       <PopoverContent
         data-grid-cell-editor=""
         align="start"
-        className="w-auto p-0"
+        alignOffset={() => -measure().start}
+        sideOffset={() => measure().textBottomToCellBottom}
+        className="w-auto p-0 data-open:animate-none data-closed:animate-none"
         onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
           if (e.key === "Escape" && !isComposingKey(e)) {
             if (committed.tryCommit()) cancel();
