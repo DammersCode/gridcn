@@ -12,9 +12,9 @@ export function createTextMatcher(search: string, options: SearchOptions = {}): 
   const trimmed = search.trim();
   if (trimmed === "") return null;
   const { matchCase = false, wholeCell = false } = options;
-  const needle = matchCase ? trimmed : trimmed.toLowerCase();
-  const fold = (text: string): string => (matchCase ? text : text.toLowerCase());
-  return wholeCell ? (text) => fold(text) === needle : (text) => fold(text).includes(needle);
+  if (matchCase) return wholeCell ? (text) => text === trimmed : (text) => text.includes(trimmed);
+  const needle = trimmed.toLowerCase();
+  return wholeCell ? (text) => text.toLowerCase() === needle : (text) => text.toLowerCase().includes(needle);
 }
 
 /**
