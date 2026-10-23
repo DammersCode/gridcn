@@ -28,6 +28,11 @@ function compareTextTo(text: string, bound: string): number {
  * This is the correctness reference (re-parses `filter.value` on every call) — {@link createFilterMatcher}
  * is the same semantics with the bound(s) parsed once, for a hot per-row loop over many rows.
  */
+/** The string entries of a list filter; a controlled `filterState` can carry other JSON values. */
+function stringChoices(filter: FilterSpec): string[] {
+  return Array.isArray(filter.value) ? filter.value.filter((choice): choice is string => typeof choice === "string") : [];
+}
+
 export function matchesFilter(text: string, filter: FilterSpec): boolean {
   const op: FilterOperator = filter.operator;
   if (op === "empty") return text === "";
@@ -35,15 +40,13 @@ export function matchesFilter(text: string, filter: FilterSpec): boolean {
 
   if (op === "isAnyOf") {
     // an empty choice list matches nothing, so a half-built filter row hides every row rather than being a no-op
-    const choices = Array.isArray(filter.value) ? filter.value : [];
     const textLower = text.toLowerCase();
-    return choices.some((choice) => choice.toLowerCase() === textLower);
+    return stringChoices(filter).some((choice) => choice.toLowerCase() === textLower);
   }
 
   if (op === "isNoneOf") {
-    const choices = Array.isArray(filter.value) ? filter.value : [];
     const textLower = text.toLowerCase();
-    return !choices.some((choice) => choice.toLowerCase() === textLower);
+    return !stringChoices(filter).some((choice) => choice.toLowerCase() === textLower);
   }
 
   if (op === "isBetween") {
@@ -121,13 +124,12 @@ export function createFilterMatcher(filter: FilterSpec): (text: string) => boole
   if (op === "notEmpty") return (text) => text !== "";
 
   if (op === "isAnyOf") {
-    const choices = (Array.isArray(filter.value) ? filter.value : []).map((choice) => choice.toLowerCase());
-    const set = new Set(choices);
+    const set = new Set(stringChoices(filter).map((choice) => choice.toLowerCase()));
     return (text) => set.has(text.toLowerCase());
   }
 
   if (op === "isNoneOf") {
-    const set = new Set((Array.isArray(filter.value) ? filter.value : []).map((choice) => choice.toLowerCase()));
+    const set = new Set(stringChoices(filter).map((choice) => choice.toLowerCase()));
     return (text) => !set.has(text.toLowerCase());
   }
 

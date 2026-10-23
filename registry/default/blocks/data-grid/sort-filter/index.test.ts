@@ -177,6 +177,17 @@ describe("matchesFilter", () => {
       expect(matchesFilter("active", noneOf(["ACTIVE"]))).toBe(false);
     });
 
+    it("ignores list entries that are not strings", () => {
+      const mixed = { columnId: "c", operator: "isNoneOf" as const, value: [1, "active"] as unknown as string[] };
+      const anyOf = { ...mixed, operator: "isAnyOf" as const };
+      for (const test of [(text: string, f: FilterSpec) => matchesFilter(text, f), (text: string, f: FilterSpec) => createFilterMatcher(f)(text)]) {
+        expect(test("active", mixed)).toBe(false);
+        expect(test("other", mixed)).toBe(true);
+        expect(test("active", anyOf)).toBe(true);
+        expect(test("other", anyOf)).toBe(false);
+      }
+    });
+
     it("matches every row when the choice list is empty", () => {
       expect(matchesFilter("active", noneOf([]))).toBe(true);
       expect(matchesFilter("", noneOf([]))).toBe(true);
