@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- The `data-grid-find-replace` panel opens with `Mod+F` and shows Find only. A chevron button shows and hides the Replace field, and `Ctrl+H` still opens it with Replace. `GridActions` has the action `openFind`, and `labels.findReplace` has the new `toggleReplace` label. With `DataGridSearch` mounted, `Mod+F` in the grid opens the panel; the toolbar capture skips an event that a grid binding already handled.
 - The header filter popover shows the hint "From loaded rows" when the grid holds unloaded lazy rows or sorts on the server. Change the text with the new `toolbar.headerFilterLoadedRowsOnly` label
 - Fix: a click outside the grid, or in the empty space of the grid, no longer clears the checked rows. It clears the cell range and the column selection only. Before, a toolbar button outside the grid, such as Delete, ran after the checks were gone and acted on the active cell. Escape and the checkboxes still clear them. The store action `clearCellSelection` does the same clear.
 - New grid prop `keepCheckedRows`, default `false`. A cell click, an arrow key, and a Shift or Ctrl click keep the checked rows. While any row is checked, Delete rows, Duplicate row, Move rows, and the cell context menu row items act only on the checked rows, not on the union with the range. Copy, cut, fill, and Delete stay on the cell range. `getSelectedViewRows` takes the option `checkedRowsOnly`. `useDataGridSelectionConfig` returns `keepCheckedRows`.

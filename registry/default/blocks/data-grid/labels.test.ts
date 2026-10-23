@@ -71,6 +71,13 @@ describe("deepMergeLabels", () => {
     expect(merged.keybindings).toBe(DEFAULT_LABELS.keybindings);
   });
 
+  it("has an overridable findReplace.toggleReplace label", () => {
+    expect(DEFAULT_LABELS.findReplace.toggleReplace).toBe("Toggle replace");
+    const merged = deepMergeLabels(DEFAULT_LABELS, { findReplace: { toggleReplace: "Ersetzen umschalten" } });
+    expect(merged.findReplace.toggleReplace).toBe("Ersetzen umschalten");
+    expect(merged.findReplace.findLabel).toBe(DEFAULT_LABELS.findReplace.findLabel);
+  });
+
   it("merges nested groups two levels deep (keybindings.categories)", () => {
     const merged = deepMergeLabels(DEFAULT_LABELS, { keybindings: { categories: { navigation: "Navigation (DE)" } } });
     expect(merged.keybindings.categories.navigation).toBe("Navigation (DE)");

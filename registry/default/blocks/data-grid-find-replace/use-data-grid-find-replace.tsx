@@ -8,9 +8,9 @@ import type { ReplaceOptions } from "./plan-replace";
 export type UseDataGridFindReplaceOptions = Pick<ReplaceOptions, "scope" | "replaceAllLimit">;
 
 export type UseDataGridFindReplaceResult = {
-  /** One entry of the grid's `plugins` prop: the panel, the `openFindReplace` command, and its `ctrl+h` binding. */
+  /** One entry of the grid's `plugins` prop: the panel, the `openFindReplace` and `openFind` commands, and their `ctrl+h` and `mod+f` bindings. */
   plugin: DataGridPlugin<unknown>;
-  /** Opens the panel; `"replace"` (default) shows the Replace field, `"find"` hides it. */
+  /** Opens the panel; `"replace"` (default) shows the Replace field, `"find"` hides it until the user expands it. */
   open: (mode?: "find" | "replace") => void;
   close: () => void;
 };
@@ -33,6 +33,11 @@ function createPanelStore(): PanelStore {
       state = { open: true, mode, openCount: state.openCount + 1 };
       listeners.forEach((listener) => listener());
     },
+    setMode(mode) {
+      if (!state.open || state.mode === mode) return;
+      state = { ...state, mode };
+      listeners.forEach((listener) => listener());
+    },
     close() {
       if (!state.open) return;
       state = { ...state, open: false };
@@ -44,7 +49,7 @@ function createPanelStore(): PanelStore {
 /**
  * Find and replace for a grid: a panel with Find and Replace fields that shares the quick search
  * (highlights, next/previous) and writes through each column's text codec as one undoable change.
- * Pass `plugin` in the grid's `plugins`; `ctrl+h` opens the panel.
+ * Pass `plugin` in the grid's `plugins`; `ctrl+h` opens it with Replace and `mod+f` opens it with Find only.
  */
 export function useDataGridFindReplace(options: UseDataGridFindReplaceOptions = {}): UseDataGridFindReplaceResult {
   const [panelStore] = useState(createPanelStore);
@@ -65,8 +70,13 @@ export function useDataGridFindReplace(options: UseDataGridFindReplaceOptions = 
           group: "other",
           run: (ctx) => panelStore.open(ctx.readOnly ? "find" : "replace"),
         },
+        openFind: {
+          label: "Find",
+          group: "other",
+          run: () => panelStore.open("find"),
+        },
       },
-      keymap: { openFindReplace: ["ctrl+h"] },
+      keymap: { openFindReplace: ["ctrl+h"], openFind: ["mod+f"] },
     };
   }, [panelStore]);
 

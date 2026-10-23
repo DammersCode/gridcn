@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useId,
   useRef,
   useState,
   useSyncExternalStore,
@@ -11,7 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -36,6 +37,7 @@ export type PanelStore = {
   getState(): { open: boolean; mode: "find" | "replace"; openCount: number };
   subscribe(listener: () => void): () => void;
   open(mode: "find" | "replace"): void;
+  setMode(mode: "find" | "replace"): void;
   close(): void;
 };
 
@@ -56,12 +58,14 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const labels = useDataGridLabels().findReplace;
   const readOnly = useDataGridReadOnly();
   const instanceId = useDataGridInstanceId();
+  const replaceRowId = useId();
   const matches = useDataGridSearchMatches();
   const capped = useDataGridSearchCapped();
   const searchedText = useDataGridSearchText();
   const scrollToCell = useDataGridScrollToCellAt();
 
   const [find, setFind] = useState(() => api.store.getState().searchText);
+  const pushedTextRef = useRef(find);
   const [replacement, setReplacement] = useState("");
   const [searchOptions, setSearchOptions] = useState(() => api.store.getState().searchOptions);
   const [cursor, setCursor] = useState(0);
@@ -84,6 +88,15 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
       applyTokenRef.current++;
     };
   }, []);
+
+  useEffect(() => {
+    if (searchedText === pushedTextRef.current) return;
+    pushedTextRef.current = searchedText;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    replacedRef.current.clear();
+    setFind(searchedText);
+    setStatus(null);
+  }, [searchedText]);
 
   const closePanel = () => {
     panelStore.close();
@@ -111,6 +124,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const runSearch = useCallback(
     (text: string, options: { matchCase: boolean; wholeCell: boolean }) => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      pushedTextRef.current = text;
       api.actions.setSearch(text, options);
     },
     [api],
@@ -245,6 +259,19 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
       className="flex w-80 flex-col gap-2 rounded-md border border-border bg-popover p-2 text-sm text-popover-foreground shadow-md"
     >
       <div className="flex items-center gap-1">
+        {!readOnly && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={labels.toggleReplace}
+            aria-expanded={showReplace}
+            aria-controls={replaceRowId}
+            onClick={() => panelStore.setMode(showReplace ? "find" : "replace")}
+          >
+            <ChevronRight className={showReplace ? "rotate-90" : undefined} />
+          </Button>
+        )}
         <Input
           ref={findRef}
           value={find}
@@ -266,7 +293,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
         </Button>
       </div>
       {showReplace && (
-        <div className="flex items-center gap-1">
+        <div id={replaceRowId} className="flex items-center gap-1">
           <Input
             value={replacement}
             maxLength={MAX_REPLACE_INPUT_LENGTH}

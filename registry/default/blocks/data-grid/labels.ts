@@ -274,6 +274,7 @@ export type DataGridFindReplaceLabels = {
   next: string;
   replace: string;
   replaceAll: string;
+  toggleReplace: string;
   close: string;
   noMatches: string;
   /** `capped` is true while the highlight list stopped at its cap, so `total` is a lower bound. */
@@ -558,6 +559,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     next: "Next match",
     replace: "Replace",
     replaceAll: "Replace all",
+    toggleReplace: "Toggle replace",
     close: "Close",
     noMatches: "No matches",
     position: (index, total, capped) => `${index} of ${total.toLocaleString("en-US")}${capped ? "+" : ""}`,

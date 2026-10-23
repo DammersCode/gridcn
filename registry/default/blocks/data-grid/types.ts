@@ -705,6 +705,7 @@ export interface GridActions {
   moveRowsDown: true;
   openLink: true;
   openFindReplace: true;
+  openFind: true;
 }
 
 /** Every named keyboard action — the built-ins of {@link GridActions} plus any the consumer merged in. */

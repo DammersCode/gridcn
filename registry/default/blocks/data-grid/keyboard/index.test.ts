@@ -369,7 +369,7 @@ describe("GridAction coverage", () => {
   const IMPLICIT_FALLBACK_ACTIONS: readonly GridAction[] = ["typeToReplace"];
 
   // Bound only through the keymap of the add-on that implements them.
-  const PLUGIN_BOUND_ACTIONS: readonly GridAction[] = ["openFindReplace"];
+  const PLUGIN_BOUND_ACTIONS: readonly GridAction[] = ["openFindReplace", "openFind"];
 
   // Record<GridAction, true> makes this exhaustive at compile time: adding a new GridAction member
   // without adding it here is a tsc error, not a silently-passing test.
@@ -393,6 +393,7 @@ describe("GridAction coverage", () => {
     moveRowsUp: true, moveRowsDown: true,
     openLink: true,
     openFindReplace: true,
+    openFind: true,
   };
 
   it("every GridAction is either bound in DEFAULT_KEYMAP, implicit-fallback, or explicitly allowlisted", () => {

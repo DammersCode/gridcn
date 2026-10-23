@@ -156,7 +156,7 @@ export function mergePluginCommands(
       if (builtin && !PLUGGABLE_ACTIONS.includes(name)) {
         warn(
           `cmd-builtin:${plugin.name}:${name}`,
-          `plugin "${plugin.name}"'s command "${name}" names a built-in action and is dropped — plugins cannot replace core behavior (undo, redo, fillDown, fillRight, openFindReplace are the pluggable exceptions)`,
+          `plugin "${plugin.name}"'s command "${name}" names a built-in action and is dropped — plugins cannot replace core behavior (undo, redo, fillDown, fillRight, openFindReplace, openFind are the pluggable exceptions)`,
         );
         continue;
       }

@@ -77,16 +77,16 @@ export const DEFAULT_KEYMAP: Keymap = {
 /**
  * Every built-in action name — the `DEFAULT_KEYMAP` keys plus `typeToReplace`, which has no default
  * binding (the implicit printable-key fallback) but is still shadowable by a `commands` entry, and
- * `openFindReplace`, which only the find-and-replace add-on binds.
+ * `openFindReplace` and `openFind`, which only the find-and-replace add-on binds.
  */
-export const BUILTIN_ACTIONS: readonly GridAction[] = [...(Object.keys(DEFAULT_KEYMAP) as GridAction[]), "typeToReplace", "openFindReplace"];
+export const BUILTIN_ACTIONS: readonly GridAction[] = [...(Object.keys(DEFAULT_KEYMAP) as GridAction[]), "typeToReplace", "openFindReplace", "openFind"];
 
 /**
  * The built-in actions a `commands` entry or a plugin command may implement: their built-in bodies
  * are hollow (the key stays bound and preventDefaults, but nothing runs without a command). The
  * shadow warning exempts these names.
  */
-export const PLUGGABLE_ACTIONS: readonly string[] = ["undo", "redo", "fillDown", "fillRight", "openFindReplace"];
+export const PLUGGABLE_ACTIONS: readonly string[] = ["undo", "redo", "fillDown", "fillRight", "openFindReplace", "openFind"];
 
 /**
  * Content equality for `keymap` props: the same action keys and the same binding strings in the

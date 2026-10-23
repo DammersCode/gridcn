@@ -139,4 +139,48 @@ describe("useDataGridFindReplace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Replace all" }));
     expect(harness.data().map((r) => r.name)).toEqual(["foobar one", "two", "foobar three"]);
   });
+
+  it("binds ctrl+h to openFindReplace and mod+f to openFind", () => {
+    const harness = setup();
+    const { plugin } = harness.findReplace();
+    expect(plugin.keymap).toEqual({ openFindReplace: ["ctrl+h"], openFind: ["mod+f"] });
+    expect(Object.keys(plugin.commands ?? {}).sort()).toEqual(["openFind", "openFindReplace"]);
+  });
+
+  it("open('find') hides the Replace field and the toggle switches it on and off", () => {
+    const harness = setup();
+    act(() => harness.findReplace().open("find"));
+    expect(screen.queryByLabelText("Replace with")).toBeNull();
+    const toggle = screen.getByRole("button", { name: "Toggle replace" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(toggle);
+    expect(screen.getByLabelText("Replace with")).toBeTruthy();
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(document.getElementById(toggle.getAttribute("aria-controls")!)).toBeTruthy();
+    fireEvent.click(toggle);
+    expect(screen.queryByLabelText("Replace with")).toBeNull();
+  });
+
+  it("keeps the Find text when the toggle expands the panel", () => {
+    const harness = setup();
+    act(() => harness.findReplace().open("find"));
+    fireEvent.change(screen.getByLabelText("Find"), { target: { value: "foo" } });
+    fireEvent.click(screen.getByRole("button", { name: "Toggle replace" }));
+    expect((screen.getByLabelText("Find") as HTMLInputElement).value).toBe("foo");
+  });
+
+  it("re-opening sets the mode of the opener", () => {
+    const harness = setup();
+    act(() => harness.findReplace().open("find"));
+    fireEvent.click(screen.getByRole("button", { name: "Toggle replace" }));
+    act(() => harness.findReplace().open("find"));
+    expect(screen.queryByLabelText("Replace with")).toBeNull();
+  });
+
+  it("shows no toggle in a read-only grid", () => {
+    const harness = setup({ readOnly: true });
+    act(() => harness.findReplace().open("find"));
+    expect(screen.queryByRole("button", { name: "Toggle replace" })).toBeNull();
+    expect(screen.queryByLabelText("Replace with")).toBeNull();
+  });
 });
