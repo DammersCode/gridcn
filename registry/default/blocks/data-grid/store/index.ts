@@ -39,6 +39,7 @@ export {
   useDataGridReadOnly,
   useDataGridKeymap,
   useDataGridCommands,
+  useDataGridSelectionPointer,
   useDataGridLabels,
   useDataGridRowMoveAnnouncement,
   useDataGridActiveCell,

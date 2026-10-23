@@ -29,6 +29,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import {
   useDataGridActions,
   useDataGridAllColumns,
+  useDataGridApi,
   useDataGridClipboard,
   useDataGridKeymap,
   useDataGridLabels,
@@ -36,6 +37,7 @@ import {
   useDataGridSelection,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridCommands, useDataGridSelectionPointer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MenuShortcut } from "./menu-shortcut";
 import { selectedViewRows } from "./selection-queries";
 import { useDataGridColumnFeatureFlags } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -122,6 +124,9 @@ export function useDefaultCellMenuItems(args: {
   const readOnly = useDataGridReadOnly();
   const labels = useDataGridLabels();
   const keymap = useDataGridKeymap();
+  const commands = useDataGridCommands();
+  const selectionPointer = useDataGridSelectionPointer();
+  const api = useDataGridApi();
 
   // Row-op items act on every view row covered by the current selection, falling back to the
   // right-clicked row (same rule as the keyboard/native-clipboard gating).
@@ -161,6 +166,19 @@ export function useDefaultCellMenuItems(args: {
     { id: "clear-contents", label: labels.contextMenu.clearContents, icon: <Eraser className="size-4 text-muted-foreground" />, shortcut: keymap.clearContents?.[0], disabled: readOnly, onClick: () => actions.deleteSelection() },
     { id: "sep-rows", separator: true },
   ];
+  const runCommand = (name: "fillDown" | "fillRight") => {
+    const ctx = { api, cell: null, viewRowIndex: null, viewColumnIndex: null, row: undefined, readOnly };
+    const command = commands?.[name];
+    if (command && command.when?.(ctx) !== false) command.run(ctx);
+  };
+  if (selectionPointer === "touch" && commands?.["fillDown"] && commands["fillRight"]) {
+    specs.splice(
+      specs.findIndex((spec) => spec.id === "clear-contents") + 1,
+      0,
+      { id: "fill-down", label: labels.contextMenu.fillDown, disabled: readOnly, onClick: () => runCommand("fillDown") },
+      { id: "fill-right", label: labels.contextMenu.fillRight, disabled: readOnly, onClick: () => runCommand("fillRight") },
+    );
+  }
   if (canInsertRow) {
     specs.push(
       { id: "insert-row-above", label: labels.contextMenu.insertRowAbove, icon: <Plus className="size-4 text-muted-foreground" />, shortcut: keymap.insertRowAbove?.[0], disabled: readOnly, onClick: () => actions.insertRow(row, "above") },

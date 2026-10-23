@@ -8,10 +8,14 @@ import { intersectRect } from "./selection";
 import { pinnedInsetStyle } from "./columns/pinned-inset-style";
 import {
   useDataGridActiveCell,
+  useDataGridEditing,
   useDataGridPluginOverlays,
   useDataGridSelection,
+  useDataGridSelectionPointer,
   type AnyColumnDef,
 } from "./store";
+import type { SelectionPointer } from "./store/types";
+import { GRID_ATTR } from "./data-attributes";
 
 /** Per-real-column-index pin/track data an overlay segment needs to reproduce a pinned cell's own offset. */
 export type PinTrackData = {
@@ -127,6 +131,46 @@ function RangeOverlay({ rect, windowStart, colOffset, pinStyle }: { rect: GridRe
   );
 }
 
+/** One touch selection handle: a 24 px hit circle on a corner of the primary range; dragging it extends the range from the opposite corner. */
+function SelectionHandle({
+  corner,
+  coord,
+  windowStart,
+  colOffset,
+  pinStyle,
+}: {
+  corner: "start" | "end";
+  coord: ViewCoord;
+  windowStart: number;
+  colOffset: number;
+  pinStyle?: CSSProperties;
+}) {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none relative"
+      style={{
+        gridColumnStart: coord.col + colOffset,
+        gridColumnEnd: coord.col + colOffset + 1,
+        gridRowStart: coord.row - windowStart + 1,
+        gridRowEnd: coord.row - windowStart + 2,
+        zIndex: pinStyle ? GRID_LAYER.pinnedOverlaySegment : GRID_LAYER.activeCell,
+        ...pinStyle,
+      }}
+    >
+      <span
+        {...{ [GRID_ATTR.selectionHandle]: corner }}
+        className={cn(
+          "pointer-events-auto absolute flex size-6 touch-none items-center justify-center",
+          corner === "start" ? "start-0 top-0 -ms-3 -mt-3" : "end-0 bottom-0 -me-3 -mb-3",
+        )}
+      >
+        <span className="size-3 rounded-full border-2 border-background bg-primary shadow-sm" />
+      </span>
+    </div>
+  );
+}
+
 /** Props for {@link DataGridOverlays}. */
 export type DataGridOverlaysProps = {
   /** Data-space row index of the rows canvas's first grid line — overlays place relative to it. Sits at or below `clampRowStart`. */
@@ -163,6 +207,8 @@ export type OverlayPluginCtx = {
   colCount: number;
   colOffset: number;
   pinTrack?: PinTrackData;
+  /** The input that wrote the current selection. A touch selection shows selection handles at the range corners. */
+  selectionPointer: SelectionPointer;
   splitRectByPinZones: typeof splitRectByPinZones;
   clampRectToWindow: typeof clampRectToWindow;
 };
@@ -189,6 +235,8 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
   const selection = useDataGridSelection();
   const activeCell = useDataGridActiveCell();
   const overlays = useDataGridPluginOverlays();
+  const selectionPointer = useDataGridSelectionPointer();
+  const editing = useDataGridEditing();
   const pinned = hasAnyPin(pinTrack) ? pinTrack : undefined;
 
   /** Splits into pin-zone segments when the grid has pinned columns, else the rect as a single "segment". */
@@ -216,6 +264,13 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
     width: colCount,
     height: run.length,
   }));
+
+  const handleRange = selectionPointer === "touch" && !editing && selection.current ? selection.current.range : null;
+  const handleCorners: Array<{ corner: "start" | "end"; coord: ViewCoord }> = [];
+  if (handleRange) {
+    handleCorners.push({ corner: "start", coord: { col: handleRange.x, row: handleRange.y } });
+    handleCorners.push({ corner: "end", coord: { col: handleRange.x + handleRange.width - 1, row: handleRange.y + handleRange.height - 1 } });
+  }
 
   const activeInWindow: ViewCoord | null =
     activeCell && activeCell.row >= windowStart && activeCell.row < clampedRowEnd ? activeCell : null;
@@ -256,10 +311,25 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
             colCount={colCount}
             colOffset={colOffset}
             pinTrack={pinTrack}
+            selectionPointer={selectionPointer}
             splitRectByPinZones={splitRectByPinZones}
             clampRectToWindow={clampRectToWindow}
           />
         ))}
+      {handleCorners.map(({ corner, coord }) => {
+        if (!clampRectToWindow({ x: coord.col, y: coord.row, width: 1, height: 1 }, clampedRowStart, clampedRowEnd, colCount)) return null;
+        const pin = pinned?.pins[coord.col];
+        return (
+          <SelectionHandle
+            key={corner}
+            corner={corner}
+            coord={coord}
+            windowStart={windowStart}
+            colOffset={colOffset}
+            pinStyle={pin ? pinnedInsetStyle(pin, coord.col) : undefined}
+          />
+        );
+      })}
       {activeInWindow && (
         <div
           data-grid-active-cell-overlay=""

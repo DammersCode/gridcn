@@ -45,6 +45,10 @@ export const GRID_ATTR = {
   markerCheckbox: "data-grid-marker-checkbox",
   /** rows/marker-cell.tsx: the drag handle inside a marker cell (`'reorder'` mode). */
   reorderHandle: "data-grid-reorder-handle",
+  /** overlays.tsx: a touch selection handle; `start` or `end` names the corner it drags. */
+  selectionHandle: "data-grid-selection-handle",
+  /** header-cell.tsx: the drag handle that arms a column reorder under a coarse pointer. */
+  columnReorderHandle: "data-grid-column-reorder-handle",
   /** header-cell.tsx: the column-menu trigger button. */
   headerMenuTrigger: "data-grid-header-menu-trigger",
   /** header-cell.tsx: the container of the header filter slot (`renderHeaderFilter`). */

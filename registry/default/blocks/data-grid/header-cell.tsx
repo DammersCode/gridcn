@@ -2,7 +2,8 @@
 
 import { useCallback, useRef, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { COLUMN_BORDER } from "./columns/column-border";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, GripVertical } from "lucide-react";
+import { GRID_ATTR } from "./data-attributes";
 import { cn } from "@/lib/utils";
 import type { AutosizeOptions, HeaderClickBehavior, SortSpec } from "./types";
 import { pinnedInsetStyle } from "./columns/pinned-inset-style";
@@ -172,11 +173,25 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
       {showHeaderFilter && renderHeaderFilter && (
         <span
           data-grid-header-filter-slot=""
-          className="ms-auto shrink-0 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 group-data-[filtered]:opacity-100 has-[[data-popup-open]]:opacity-100"
+          className="ms-auto shrink-0 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 group-data-[filtered]:opacity-100 has-[[data-popup-open]]:opacity-100 pointer-coarse:opacity-100"
           onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}
         >
           {renderHeaderFilter({ column, index })}
+        </span>
+      )}
+      {reorder.enabled && (
+        <span
+          {...{ [GRID_ATTR.columnReorderHandle]: "" }}
+          aria-hidden="true"
+          className="hidden size-6 shrink-0 touch-none items-center justify-center text-muted-foreground pointer-coarse:flex"
+          style={{ touchAction: "none" }}
+          onPointerDown={(event) => {
+            event.stopPropagation();
+            reorder.onPointerDown(column.id, event);
+          }}
+        >
+          <GripVertical className="size-3.5" />
         </span>
       )}
       {renderHeaderMenu &&
@@ -189,7 +204,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
               data-grid-header-menu-trigger=""
               tabIndex={-1}
               aria-label={labels.contextMenu.columnMenuAriaLabel(headerLabelText(column))}
-              className={cn("shrink-0 rounded p-0.5 text-muted-foreground opacity-0 outline-none transition-opacity hover:bg-accent hover:text-accent-foreground focus:opacity-100 group-hover:opacity-100", !showHeaderFilter && "ms-auto")}
+              className={cn("shrink-0 rounded p-0.5 text-muted-foreground opacity-0 outline-none transition-opacity hover:bg-accent hover:text-accent-foreground focus:opacity-100 group-hover:opacity-100 pointer-coarse:p-[5px] pointer-coarse:opacity-100", !showHeaderFilter && "ms-auto")}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => event.stopPropagation()}
             >
@@ -229,7 +244,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
           data-grid-resize-handle=""
           data-resizing={resize.isResizing || undefined}
           role="presentation"
-          className="absolute end-0 top-0 z-10 h-full w-2 cursor-col-resize touch-none after:absolute after:inset-y-1.5 after:end-[2px] after:w-[3px] after:rounded-full after:bg-primary after:opacity-0 after:transition-opacity hover:after:opacity-60 data-[resizing]:after:opacity-100"
+          className="absolute end-0 top-0 z-10 h-full w-2 cursor-col-resize touch-none pointer-coarse:w-6 after:absolute after:inset-y-1.5 after:end-[2px] after:w-[3px] after:rounded-full after:bg-primary after:opacity-0 after:transition-opacity hover:after:opacity-60 data-[resizing]:after:opacity-100"
           style={{ touchAction: "none" }}
           onPointerDown={resize.onPointerDown}
           onDoubleClick={resize.onDoubleClick}

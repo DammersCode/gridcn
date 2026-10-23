@@ -113,6 +113,8 @@ export type DataGridContextMenuLabels = {
   /** Tooltip shown on Cut and Copy after the clipboard write failed (no clipboard-write permission, or no secure context). */
   clipboardFailed: string;
   clearContents: string;
+  fillDown: string;
+  fillRight: string;
   insertRowAbove: string;
   insertRowBelow: string;
   duplicateRow: string;
@@ -376,6 +378,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
     pasteBlocked: "requires clipboard permission — use Ctrl+V",
     clipboardFailed: "clipboard access failed — use Ctrl+C or Ctrl+X",
     clearContents: "Clear contents",
+    fillDown: "Fill down",
+    fillRight: "Fill right",
     insertRowAbove: "Insert row above",
     insertRowBelow: "Insert row below",
     duplicateRow: "Duplicate row",

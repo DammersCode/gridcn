@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
 } from "react";
 import { DirectionProvider } from "@base-ui/react/direction-provider";
@@ -177,6 +178,12 @@ export const DATA_GRID_ROOT_PROP_KEYS = [
  * layers inside — the compositor can never reveal unrendered rows because rows never move via
  * native scroll.
  */
+function suppressNativeTouchContextMenu(event: ReactMouseEvent<HTMLElement>) {
+  if ((event.nativeEvent as PointerEvent).pointerType !== "touch") return;
+  event.preventDefault();
+  event.stopPropagation();
+}
+
 export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): ReactNode {
   const {
     className,
@@ -570,10 +577,11 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
         aria-multiselectable={ariaMultiselectable || undefined}
         aria-readonly={readOnly || undefined}
         aria-busy={loading || undefined}
-        className={cn("relative select-none overflow-auto rounded-md border border-border bg-background text-sm", className)}
+        className={cn("relative touch-manipulation select-none overflow-auto rounded-md border border-border bg-background text-sm", className)}
         style={rootStyle}
         onKeyDown={interaction.onKeyDown}
         onPointerDown={interaction.onRootPointerDown}
+        onContextMenuCapture={suppressNativeTouchContextMenu}
         onPointerDownCapture={() => {
           pointerInteractionRef.current = true;
         }}

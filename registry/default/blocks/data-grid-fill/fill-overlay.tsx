@@ -88,7 +88,7 @@ export type FillOverlayState = {
  * matches the built-in layers.
  */
 export function renderFillOverlay(state: FillOverlayState, ctx: OverlayPluginCtx): ReactNode {
-  const { windowStart, clampRowStart, clampRowEnd, colCount, colOffset, pinTrack, splitRectByPinZones, clampRectToWindow } = ctx;
+  const { windowStart, clampRowStart, clampRowEnd, colCount, colOffset, pinTrack, selectionPointer, splitRectByPinZones, clampRectToWindow } = ctx;
   const pinned = hasAnyPin(pinTrack) ? pinTrack : undefined;
   const segment = (rect: GridRect) => (pinned ? splitRectByPinZones(rect, pinned) : [{ rect, pinStyle: undefined }]);
 
@@ -98,7 +98,7 @@ export function renderFillOverlay(state: FillOverlayState, ctx: OverlayPluginCtx
   // rows/columns-channel only (no `current` range), or before the plugin's `Mount` has registered a
   // handler — the same guard the built-in layer uses.
   const onPointerDown = state.onPointerDown;
-  const showFillHandle = onPointerDown && !state.editing && state.primaryRange && !state.disabled;
+  const showFillHandle = onPointerDown && !state.editing && state.primaryRange && !state.disabled && selectionPointer !== "touch";
   const clampedPrimary = state.primaryRange ? clampRectToWindow(state.primaryRange, clampRowStart, clampRowEnd, colCount) : null;
   const cornerCol = state.primaryRange ? state.primaryRange.x + state.primaryRange.width - 1 : null;
   const fillHandlePinStyle =

@@ -945,6 +945,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     editingRejectionCount: 0,
     cellErrors: EMPTY_CELL_ERRORS,
     flashingCells: EMPTY_FLASHING_CELLS,
+    selectionPointer: "keyboard",
     lastHighlightedRow: null,
     lastHighlightedCol: null,
     columnWidths: effectiveLayout.columnWidths,

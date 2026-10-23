@@ -39,6 +39,9 @@ import type { ColRange } from "../selection/selected-col-ranges-for-row";
 import type { DataWriteContext } from "./data-write";
 
 /** The lazily-read context `DataGridRoot` registers for {@link DataGridActions.autosizeColumns}. */
+/** The input that wrote the current selection. */
+export type SelectionPointer = "touch" | "mouse" | "pen" | "keyboard";
+
 export type AutosizeMeasureContext = {
   /** The computed `font` of one mounted body cell (canvas `measureText` font). */
   cellFont: string;
@@ -647,6 +650,8 @@ export type DataGridStoreState = Omit<
    flashingCells: ReadonlySet<string>;
     /** The `plugins` sync prop resolved (see {@link ResolvedPlugins}); always defined — an absent list resolves to empty members, so overlays/bands/mounts/observers never read undefined. */
   plugins: ResolvedPlugins;
+  /** Which input wrote the current selection; touch selections show the selection handles. */
+  selectionPointer: SelectionPointer;
   lastHighlightedRow: number | null;
   lastHighlightedCol: number | null;
   columnWidths: Record<string, number>;

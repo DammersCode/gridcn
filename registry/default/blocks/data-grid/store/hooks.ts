@@ -22,6 +22,7 @@ import { cellErrorKey, flashCellKey, getRangeValues, holeRowId, rowIdAtViewRow, 
 import { resolveRefOrWarn } from "./data-write";
 import { getInternalActions } from "./internal-actions";
 import { useDataGridStore, useDataGridStoreApi } from "./provider";
+import type { SelectionPointer } from "./types";
 import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridInternalActions, DataGridRowCellState, DataGridStoreState, ResolvedPlugins } from "./types";
 
 /** The stable actions object for the current grid; never changes identity, so this hook never re-renders. */
@@ -92,6 +93,11 @@ export function useDataGridReadOnly(): boolean {
  */
 export function useDataGridKeymap(): Keymap {
   return useDataGridStore((s) => s.keymap);
+}
+
+/** The input that wrote the current selection. */
+export function useDataGridSelectionPointer(): SelectionPointer {
+  return useDataGridStore((s) => s.selectionPointer);
 }
 
 /** The grid's effective commands — the consumer's `commands` merged over the plugins' commands — `null` when none; backs the keybindings dialog's label/group overrides. */

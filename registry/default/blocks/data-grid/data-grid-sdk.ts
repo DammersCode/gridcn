@@ -87,6 +87,7 @@ export { createTextMatcher } from "./sort-filter";
 export {
   useDataGridColumnFeatureFlags,
   useDataGridCommands,
+  useDataGridSelectionPointer,
   useDataGridInstanceId,
   useDataGridIsColumnFiltered,
   useDataGridSearchCapped,
