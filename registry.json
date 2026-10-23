@@ -398,6 +398,11 @@
                "target": "components/data-grid/rows/marker-width.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/rows/plan-row-moves.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/rows/plan-row-moves.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/rows/use-row-reorder.ts",
                "type": "registry:component",
                "target": "components/data-grid/rows/use-row-reorder.ts"
@@ -433,9 +438,9 @@
                "target": "components/data-grid/selection/rects.ts"
             },
             {
-               "path": "registry/default/blocks/data-grid/selection/reorder-selection-for-row.ts",
+               "path": "registry/default/blocks/data-grid/selection/remap-selection-rows.ts",
                "type": "registry:component",
-               "target": "components/data-grid/selection/reorder-selection-for-row.ts"
+               "target": "components/data-grid/selection/remap-selection-rows.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/selection/select-all-progression.ts",
