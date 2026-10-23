@@ -50,6 +50,18 @@ export type DataGridToolbarLabels = {
   joinOperatorOr: string;
   columns: string;
   columnsAriaLabel: string;
+  /** aria-label of the header filter button; `filtered` is true while the column has a set filter. */
+  headerFilterAriaLabel: (column: string, filtered: boolean) => string;
+  headerFilterSearchPlaceholder: string;
+  /** Status line under the search; `visible` values match the search out of `total` distinct values. */
+  headerFilterValueCount: (visible: number, total: number) => string;
+  /** Label of the value for empty cells. */
+  headerFilterBlanks: string;
+  /** Shown when the selection would store more than `max` entries. */
+  headerFilterTooManySelected: (max: number) => string;
+  headerFilterSelectAll: string;
+  headerFilterApply: string;
+  headerFilterClear: string;
 };
 
 /** Sort-list add-on strings (`data-grid-sort-list`): toolbar sort button + popover of applied sorts. */
@@ -86,6 +98,7 @@ export type DataGridFilterOperatorLabels = {
   lte: string;
   isBetween: string;
   isAnyOf: string;
+  isNoneOf: string;
 };
 
 /** Cell/header right-click context menu + header dropdown menu strings (shared verbatim between the two surfaces). */
@@ -290,6 +303,14 @@ export const DEFAULT_LABELS: DataGridLabels = {
     joinOperatorOr: "Or",
     columns: "Columns",
     columnsAriaLabel: "Columns",
+    headerFilterAriaLabel: (column, filtered) => (filtered ? `Filter ${column}, filtered` : `Filter ${column}`),
+    headerFilterSearchPlaceholder: "Search values…",
+    headerFilterValueCount: (visible, total) => (visible === total ? `${total} values` : `${visible} of ${total} values`),
+    headerFilterBlanks: "(Blanks)",
+    headerFilterTooManySelected: (max) => `Too many values selected. Select at most ${max}.`,
+    headerFilterSelectAll: "Select all",
+    headerFilterApply: "Apply",
+    headerFilterClear: "Clear",
   },
   sort: {
     sort: "Sort",
@@ -320,6 +341,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     lte: "less than or equal",
     isBetween: "is between",
     isAnyOf: "is any of",
+    isNoneOf: "is none of",
   },
   contextMenu: {
     cut: "Cut",

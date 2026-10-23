@@ -16,7 +16,7 @@ import { serializeFilterState, parseFilterState } from "./filter-param";
 import { serializeJoinOperator, parseJoinOperator } from "./join-param";
 import { prefixedKey } from "./prefixed-key";
 
-/** Smallest `isAnyOf` list bound for a column with choices, so a link written before a choice was removed still parses. */
+/** Smallest `isAnyOf` / `isNoneOf` list bound for a column with choices, so a link written before a choice was removed still parses. */
 const MIN_CHOICE_BOUND = 64;
 
 /** Debounce (ms) between typing in the quick-search box and writing `searchText` to the URL. */

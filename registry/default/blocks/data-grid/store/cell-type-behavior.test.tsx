@@ -164,6 +164,16 @@ describe("select filters match the stored value, not the label", () => {
     expect(result.current.store.getState().viewIndex).toEqual([1]);
   });
 
+  it("isNoneOf excludes by stored value", () => {
+    const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
+
+    act(() => {
+      result.current.actions.setFilters([{ filterId: "f", columnId: "fruit", operator: "isNoneOf", value: ["v2"] }]);
+    });
+    expect(result.current.store.getState().viewIndex).not.toContain(1);
+    expect(result.current.store.getState().viewIndex).toContain(0);
+  });
+
   it("equals matches by stored value and not by label", () => {
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
 

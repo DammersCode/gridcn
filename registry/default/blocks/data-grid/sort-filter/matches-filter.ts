@@ -22,7 +22,8 @@ function compareTextTo(text: string, bound: string): number {
  * satisfies these comparisons. `empty`/`notEmpty` ignore `filter.value`.
  * `isBetween` is inclusive on both ends; an empty bound (`""`) leaves that
  * side open (e.g. `["", "10"]` means "<= 10"). `isAnyOf` matches when the cell
- * text equals any entry of its `string[]`, compared case-insensitively like `equals`.
+ * text equals any entry of its `string[]`, compared case-insensitively like `equals`;
+ * `isNoneOf` is the complement (an empty list matches every row).
  *
  * This is the correctness reference (re-parses `filter.value` on every call) — {@link createFilterMatcher}
  * is the same semantics with the bound(s) parsed once, for a hot per-row loop over many rows.
@@ -37,6 +38,12 @@ export function matchesFilter(text: string, filter: FilterSpec): boolean {
     const choices = Array.isArray(filter.value) ? filter.value : [];
     const textLower = text.toLowerCase();
     return choices.some((choice) => choice.toLowerCase() === textLower);
+  }
+
+  if (op === "isNoneOf") {
+    const choices = Array.isArray(filter.value) ? filter.value : [];
+    const textLower = text.toLowerCase();
+    return !choices.some((choice) => choice.toLowerCase() === textLower);
   }
 
   if (op === "isBetween") {
@@ -117,6 +124,11 @@ export function createFilterMatcher(filter: FilterSpec): (text: string) => boole
     const choices = (Array.isArray(filter.value) ? filter.value : []).map((choice) => choice.toLowerCase());
     const set = new Set(choices);
     return (text) => set.has(text.toLowerCase());
+  }
+
+  if (op === "isNoneOf") {
+    const set = new Set((Array.isArray(filter.value) ? filter.value : []).map((choice) => choice.toLowerCase()));
+    return (text) => !set.has(text.toLowerCase());
   }
 
   if (op === "isBetween") {

@@ -162,6 +162,36 @@ describe("matchesFilter", () => {
     });
   });
 
+  describe("isNoneOf", () => {
+    const noneOf = (value: string[]) => ({ columnId: "c", operator: "isNoneOf" as const, value });
+
+    it("matches when the text equals none of the listed choices", () => {
+      const filter = noneOf(["active", "pending"]);
+      expect(matchesFilter("archived", filter)).toBe(true);
+      expect(matchesFilter("active", filter)).toBe(false);
+      expect(matchesFilter("pending", filter)).toBe(false);
+    });
+
+    it("compares case-insensitively, like equals", () => {
+      expect(matchesFilter("ACTIVE", noneOf(["active"]))).toBe(false);
+      expect(matchesFilter("active", noneOf(["ACTIVE"]))).toBe(false);
+    });
+
+    it("matches every row when the choice list is empty", () => {
+      expect(matchesFilter("active", noneOf([]))).toBe(true);
+      expect(matchesFilter("", noneOf([]))).toBe(true);
+    });
+
+    it("excludes an empty cell only when the empty string is a listed choice", () => {
+      expect(matchesFilter("", noneOf(["active"]))).toBe(true);
+      expect(matchesFilter("", noneOf([""]))).toBe(false);
+    });
+
+    it("requires an exact match, not a substring", () => {
+      expect(matchesFilter("act", noneOf(["active"]))).toBe(true);
+    });
+  });
+
   describe("isBetween", () => {
     it("matches inclusive numeric range, both bounds", () => {
       expect(matchesFilter("10", { columnId: "c", operator: "isBetween", value: ["5", "15"] })).toBe(true);
@@ -232,6 +262,11 @@ describe("createFilterMatcher", () => {
     { columnId: "c", operator: "gt", value: "apple" },
     { columnId: "c", operator: "gte", value: "APPLE" },
     { columnId: "c", operator: "gt", value: "  " },
+    { columnId: "c", operator: "isAnyOf", value: ["hello", "x", "10"] },
+    { columnId: "c", operator: "isNoneOf", value: ["hello", "x", "10"] },
+    { columnId: "c", operator: "isNoneOf", value: [] },
+    { columnId: "c", operator: "isNoneOf", value: [""] },
+    { columnId: "c", operator: "isNoneOf" },
     { columnId: "c", operator: "isBetween", value: ["5", "15"] },
     { columnId: "c", operator: "isBetween", value: ["2024-01-01", "2024-06-30"] },
     { columnId: "c", operator: "isBetween", value: ["", "10"] },

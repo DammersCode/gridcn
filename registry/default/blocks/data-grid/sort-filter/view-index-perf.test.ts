@@ -108,6 +108,16 @@ describe("view-index pipeline perf (100k rows)", () => {
     expect(ms).toBeLessThan(400);
   });
 
+  it("(d2) isAnyOf and isNoneOf on number and date columns", () => {
+    const filters: FilterSpec[] = [
+      { columnId: "score", operator: "isAnyOf", value: ["10", "20", "30", "40", "50"] },
+      { columnId: "joined", operator: "isNoneOf", value: ["2017-03-03", "2019-05-05", "2021-07-07"] },
+    ];
+    const ms = measure(() => buildViewIndex(ROW_COUNT, accessor, { sorts: [], filters }), 10);
+    console.log(`view-index (d2) isAnyOf/isNoneOf number+date: ${ms.toFixed(2)}ms`);
+    expect(ms).toBeLessThan(400 * CI_FACTOR);
+  });
+
   it("(e) 3-column sort", () => {
     const sorts: SortSpec[] = [
       { columnId: "score", direction: "asc" },

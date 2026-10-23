@@ -16,6 +16,7 @@ export const FILTER_OPERATORS: ReadonlySet<FilterOperator> = new Set([
   "lte",
   "isBetween",
   "isAnyOf",
+  "isNoneOf",
 ] satisfies FilterOperator[]);
 
 /** Narrows an untrusted (URL-decoded) string to {@link FilterOperator}. */

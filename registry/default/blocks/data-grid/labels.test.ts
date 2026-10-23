@@ -99,7 +99,7 @@ describe("deepMergeLabels", () => {
     const customFilterOperators: DataGridLabels["filterOperators"] = {
       contains: "x", notContains: "x", equals: "x", notEquals: "x",
       startsWith: "x", endsWith: "x", empty: "x", notEmpty: "x",
-      gt: "x", gte: "x", lt: "x", lte: "x", isBetween: "x", isAnyOf: "x",
+      gt: "x", gte: "x", lt: "x", lte: "x", isBetween: "x", isAnyOf: "x", isNoneOf: "x",
     };
     const merged = deepMergeLabels(DEFAULT_LABELS, { filterOperators: customFilterOperators });
     expect(merged.filterOperators).toEqual(customFilterOperators);

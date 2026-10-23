@@ -437,7 +437,7 @@ export type CellTypeValueInput = "text" | "number" | "date" | "boolean" | "choic
 
 /**
  * Props of a custom filter value input (a component in `CellTypeFilter.valueInput`). `value` is a
- * string, an `isBetween` pair, or an `isAnyOf` list, depending on `operator`.
+ * string, an `isBetween` pair, or an `isAnyOf` / `isNoneOf` list, depending on `operator`.
  */
 export type FilterValueInputProps = {
   column: AnyColumnDef;
@@ -607,7 +607,8 @@ export type FilterOperator =
   | "lt"
   | "lte"
   | "isBetween"
-  | "isAnyOf";
+  | "isAnyOf"
+  | "isNoneOf";
 
 /** Combines multiple `FilterSpec`s: `"and"` (default) requires every filter to match, `"or"` requires any one. */
 export type FilterJoinOperator = "and" | "or";
@@ -617,7 +618,9 @@ export type FilterJoinOperator = "and" | "or";
  * numbers and dates included (`"30"`, `"2025-01-31"`); the operators `empty` and `notEmpty` take no value.
  * `value` is a single string for most operators. `isBetween` carries an inclusive `[min, max]`
  * tuple (either bound may be `""` for an open-ended range); `isAnyOf` carries a `string[]` of
- * accepted values and matches when the cell text equals any of them. `filterId` is a stable
+ * accepted values and matches when the cell text equals any of them; `isNoneOf` carries a
+ * `string[]` of excluded values and matches when the cell text equals none of them (an empty list
+ * matches every row). `filterId` is a stable
  * identity for list rendering/updates independent of array position (multiple filter rows on the
  * same column are allowed and meaningful under `"or"`/mixed joins); optional at the input boundary
  * for backward compatibility — the store auto-assigns one when absent (see `genFilterId`).
