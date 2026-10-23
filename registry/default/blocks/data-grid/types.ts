@@ -957,6 +957,20 @@ export type ColumnLayout = {
   hidden: string[];
 };
 
+/**
+ * A shared header above a run of columns. `children` lists column ids and nested groups; a group
+ * keeps its columns next to each other under reorder, hide, pin, and restored layouts. A group id
+ * is unique across all groups and columns.
+ */
+export type ColumnGroupDef = {
+  id: string;
+  header: string | ReactNode;
+  /** Plain text for assistive technology and menus when `header` is a node. */
+  headerText?: string;
+  children: readonly (string | ColumnGroupDef)[];
+  headerClassName?: string;
+};
+
 /** Options for `actions.autosizeColumns` and the `autosizeOnMount` prop. */
 export type AutosizeOptions = {
   /** Column ids to size; hidden, unknown, or non-resizable ids are skipped (unknown ids dev-warn). Default: every visible resizable column. */

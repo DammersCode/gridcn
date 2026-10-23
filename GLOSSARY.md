@@ -50,6 +50,8 @@ mirror the change there.
 | cell type | The kind of value a column holds, for example `text` or `number`. | column type |
 | accessor | The `accessorKey` or `accessorFn` that reads a column's value from a row. | |
 | band | A fixed strip of rows above or below the body, such as pinned rows. | |
+| column group | A named set of columns, or of other groups, that share one header above their own headers. `columnGroups` defines it. | column span, super header |
+| header row | One level of the header block. Group levels come first, and the column headers fill the last row. | |
 
 ## Selection and input
 
