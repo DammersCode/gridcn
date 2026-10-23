@@ -39,6 +39,7 @@ const EXAMPLES = {
   "data-grid-lazy-demo": dynamic(() => import("@/registry/default/examples/data-grid-lazy-demo")),
   "data-grid-pagination-demo": dynamic(() => import("@/registry/default/examples/data-grid-pagination-demo")),
   "data-grid-sort-list-demo": dynamic(() => import("@/registry/default/examples/data-grid-sort-list-demo")),
+  "data-grid-header-filter-demo": dynamic(() => import("@/registry/default/examples/data-grid-header-filter-demo")),
   "data-grid-presence-demo": dynamic(() => import("@/registry/default/examples/data-grid-presence-demo")),
   "data-grid-events-demo": dynamic(() => import("@/registry/default/examples/data-grid-events-demo")),
   "data-grid-custom-cell-demo": dynamic(() => import("@/registry/default/examples/data-grid-custom-cell-demo")),

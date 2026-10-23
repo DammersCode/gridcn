@@ -81,6 +81,7 @@ export { combineRects, getSelectedViewRows, selectionRects } from "./selection";
 export { holeRowId, rowIdAtViewRow, viewRowsMoved, visibleColumnsMoved } from "./store/compute";
 export { measureColumnAutosizeWidth } from "./columns/measure-column-text";
 export { isDev } from "./is-dev";
+export { isComposingKey } from "./interaction/is-composing-key";
 export {
   useDataGridColumnFeatureFlags,
   useDataGridCommands,

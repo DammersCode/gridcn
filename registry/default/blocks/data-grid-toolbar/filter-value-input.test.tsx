@@ -64,4 +64,24 @@ describe("DataGridFilterValueInput", () => {
     fireEvent.click(await screen.findByRole("menuitemcheckbox", { name: "B" }));
     expect(onValueChange).toHaveBeenCalledWith(["a", "b", "outside"]);
   });
+
+  it("lists the distinct column values for isAnyOf on a column without choices and keeps outside values", async () => {
+    const columns: readonly ColumnDef<{ id: string; city: string }, unknown>[] = [{ id: "city", header: "City", accessorKey: "city", type: "text" }];
+    const data = [
+      { id: "1", city: "Berlin" },
+      { id: "2", city: "berlin" },
+      { id: "3", city: "Bonn" },
+    ];
+    const onValueChange = vi.fn();
+    render(
+      <DataGridProvider data={data} columns={columns} getRowId={(r) => r.id}>
+        <DataGridFilterValueInput column={columns[0] as AnyColumnDef} operator="isAnyOf" value={["berlin", "gone"]} onValueChange={onValueChange} />
+      </DataGridProvider>,
+    );
+    fireEvent.click(screen.getByRole("button"));
+    const options = await screen.findAllByRole("option");
+    expect(options.map((o) => o.getAttribute("aria-selected"))).toEqual(["true", "false"]);
+    fireEvent.click(options[1]!);
+    expect(onValueChange).toHaveBeenCalledWith(["berlin", "bonn", "gone"]);
+  });
 });

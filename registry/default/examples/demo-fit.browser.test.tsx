@@ -20,6 +20,7 @@ import PaginationDemo from "@/registry/default/examples/data-grid-pagination-dem
 import PinnedRowsDemo from "@/registry/default/examples/data-grid-pinned-rows-demo";
 import PresenceDemo from "@/registry/default/examples/data-grid-presence-demo";
 import RowMarkersDemo from "@/registry/default/examples/data-grid-row-markers-demo";
+import HeaderFilterDemo from "@/registry/default/examples/data-grid-header-filter-demo";
 import SortListDemo from "@/registry/default/examples/data-grid-sort-list-demo";
 import SortingFilteringDemo from "@/registry/default/examples/data-grid-sorting-filtering-demo";
 import StreamingDemo from "@/registry/default/examples/data-grid-streaming-demo";
@@ -52,6 +53,7 @@ const DEMOS = [
   ["pinned-rows", <PinnedRowsDemo key="pinned-rows" />],
   ["presence", <PresenceDemo key="presence" />],
   ["row-markers", <RowMarkersDemo key="row-markers" />],
+  ["header-filter", <HeaderFilterDemo key="header-filter" />],
   ["sort-list", <SortListDemo key="sort-list" />],
   ["sorting-filtering", <SortingFilteringDemo key="sorting-filtering" />],
   ["streaming", <StreamingDemo key="streaming" />],

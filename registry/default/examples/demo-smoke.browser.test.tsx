@@ -38,6 +38,7 @@ import RowMarkersDemo from "./data-grid-row-markers-demo";
 import RowOpsDemo from "./data-grid-row-ops-demo";
 import RowReorderDemo from "./data-grid-row-reorder-demo";
 import ServerSideDemo from "./data-grid-server-side-demo";
+import HeaderFilterDemo from "./data-grid-header-filter-demo";
 import SortListDemo from "./data-grid-sort-list-demo";
 import SortingFilteringDemo from "./data-grid-sorting-filtering-demo";
 import StreamingDemo from "./data-grid-streaming-demo";
@@ -98,6 +99,7 @@ const DEMOS: readonly [string, ReactNode][] = [
   ["row-ops", <RowOpsDemo key="row-ops" />],
   ["row-reorder", <RowReorderDemo key="row-reorder" />],
   ["server-side", <ServerSideDemo key="server-side" />],
+  ["header-filter", <HeaderFilterDemo key="header-filter" />],
   ["sort-list", <SortListDemo key="sort-list" />],
   ["sorting-filtering", <SortingFilteringDemo key="sorting-filtering" />],
   ["streaming", <StreamingDemo key="streaming" />],
