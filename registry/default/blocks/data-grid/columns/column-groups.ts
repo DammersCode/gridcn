@@ -37,7 +37,7 @@ type Frame = { def: ColumnGroupDef; parentId: string | null; depth: number; path
  * model without groups (only its `issues`) when no group keeps a column.
  */
 export function buildColumnGroupModel(defs: readonly ColumnGroupDef[] | undefined, columnIds: readonly string[]): ColumnGroupModel | null {
-  if (!Array.isArray(defs) || defs.length === 0) return null;
+  if (!defs || !Array.isArray(defs as unknown) || defs.length === 0) return null;
   const known = new Set(columnIds);
   const issues: string[] = [];
   const nodes = new Map<string, GroupNode>();
@@ -52,7 +52,7 @@ export function buildColumnGroupModel(defs: readonly ColumnGroupDef[] | undefine
       issues.push(`columnGroups is larger than ${MAX_GROUP_NODES} entries; the rest is ignored`);
       break;
     }
-    if (typeof def !== "object" || def === null || typeof def.id !== "string" || def.id === "" || !Array.isArray(def.children)) {
+    if (typeof def !== "object" || def === null || typeof def.id !== "string" || def.id === "" || !Array.isArray(def.children as unknown)) {
       issues.push("a columnGroups entry needs a string id and a children array; it is ignored");
       continue;
     }
