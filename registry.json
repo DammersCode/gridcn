@@ -1053,6 +1053,11 @@
                "target": "components/data-grid-url-state/join-param.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid-url-state/layout-param.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-url-state/layout-param.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid-url-state/page-param.ts",
                "type": "registry:component",
                "target": "components/data-grid-url-state/page-param.ts"

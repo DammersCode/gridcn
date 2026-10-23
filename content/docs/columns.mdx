@@ -269,7 +269,8 @@ onColumnLayoutChange?: (next: ColumnLayout) => void; // fires once per committed
 ignored. Use it when the saved layout is known at the first render, for example when it comes
 from props or a cookie. `localStorage` does not exist on the server, so a layout read from it is
 not known at the first render in Next.js. Use the controlled `columnLayout` prop instead, and
-load the saved value in an effect:
+load the saved value in an effect. (To keep the order and the hidden columns in a shareable link
+instead, use the [URL state add-on](/docs/addons/url-state#column-layout).) Example:
 
 ```tsx
 "use client";

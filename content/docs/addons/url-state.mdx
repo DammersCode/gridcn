@@ -1,6 +1,6 @@
 ---
 title: URL state
-description: Sync sort, filter, search, and pagination to the URL via nuqs.
+description: Sync sort, filter, search, column layout, and pagination to the URL via nuqs.
 status: updated
 icon: Link2
 ---
@@ -71,7 +71,7 @@ The [nuqs adapter docs](https://nuqs.dev/docs/adapters) list every adapter and i
 
 ## `prefix`
 
-This namespaces the `sort`, `filter`, `join`, and `q` URL keys, so multiple grids can coexist on
+This namespaces the `sort`, `filter`, `join`, `q`, `cols`, `hide`, `widths`, and `pins` URL keys, so multiple grids can coexist on
 one page without colliding:
 
 ```tsx
@@ -104,7 +104,7 @@ toggle existed still parses identically.
   values. An `isNoneOf` <NewBadge /> list has the same bound, but a longer list drops the whole filter
   segment instead of shortening it. An empty list entry (the blank value) is written as a single
   `%`. The `sort` param keeps one direction per column (the first
-  segment wins) and parses at most 64 sorts. A hand-edited URL beyond these limits degrades to
+  segment wins), reads at most 256 segments, and parses at most 64 sorts. A hand-edited URL beyond these limits degrades to
   fewer filters and sorts.
 
 The `useDataGridUrlState` hook reads the store, so a small child component inside the provider owns the wiring:
@@ -147,18 +147,43 @@ needed. A framework router that exposes its own navigation event (for example
   or install `data-grid-sort-list` for a toolbar sort list.
 </Callout>
 
-<Callout type="warn" title="Column layout is not synced to the URL">
-  Column widths, order, pins, and hidden state are not part of this add-on. Use
-  `defaultColumnLayout` and `onColumnLayoutChange` instead. See
-  [Columns: persisting a user's layout](/docs/columns#persisting-a-users-layout).
-</Callout>
-
 <Callout type="warn" title="Incompatible with data-grid-lazy">
   `DataGridUrlState` applies the URL's sort, filter, and search into the store on mount. A lazy
   grid keeps that view state out of the store, because the server applies the spec. Mounting the
   add-on on a lazy grid re-sorts the partial `data` client-side. Keep the spec in your own state
   instead. See [Sorting a lazy grid](/docs/lazy-loading#sorting-a-lazy-grid).
 </Callout>
+
+## Column layout
+
+<NewBadge />
+
+The `layout` option picks which parts of the column layout go into the URL. The default is
+`["order", "hidden"]`: a shared link restores the column order and the hidden columns. Widths
+depend on the screen of the viewer, so `widths` and `pins` are opt-in. `layout={[]}` turns layout
+sync off:
+
+```tsx
+<DataGridUrlState layout={["order", "hidden", "widths"]} />
+// -> ?cols=city,name,age&hide=age&widths=name:240
+```
+
+| Part | Key | Format |
+| --- | --- | --- |
+| `order` | `cols` | Column ids, comma-separated. |
+| `hidden` | `hide` | Column ids, comma-separated. `-` means no hidden column. |
+| `widths` | `widths` | `id:px` pairs, whole pixels. |
+| `pins` | `pins` | `id:l` or `id:r` pairs. `-` means no pinned column. |
+
+- A part is in the URL only while it differs from the layout the grid started with. The grid
+  starts with the column defs and `defaultColumnLayout`. A layout equal to it removes the key.
+- The URL changes once per committed gesture: a drop, a resize release, a pin, or a hide. A resize
+  drag does not write the URL while the pointer moves.
+- On mount, a missing key keeps the grid's initial layout. `applyFromUrl()` resets a part whose key
+  is gone.
+- Ids that match no column are dropped, and a column missing from `cols` keeps its place at the end.
+  In development, one warning names the number of dropped entries.
+- A key longer than 16,384 characters is ignored. At most 1,024 entries of a key are read.
 
 ## Pagination
 
