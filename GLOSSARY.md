@@ -59,6 +59,7 @@ mirror the change there.
 | anchor | The cell where a selection started. | |
 | range | A rectangle of selected cells. | |
 | quick search | The toolbar search that highlights matches and never filters rows. | |
+| find and replace | The add-on panel that finds text through the quick search and replaces it in one match or in all matches. A replace writes one change with the source `"replace"`. | search and replace |
 | set filter | A filter that keeps or drops rows by a list of values. It uses the `isAnyOf` or `isNoneOf` operator. | value filter |
 | header filter | The filter button in a column header. It opens a popover with the set filter of that column. `renderHeaderFilter` places it, and `DataGridHeaderFilter` is the built-in one. | column filter popup |
 

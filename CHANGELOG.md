@@ -9,6 +9,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- New add-on `data-grid-find-replace`. `useDataGridFindReplace` returns a `plugin` that mounts a find and replace panel. `Ctrl+H` opens it. Replace and Replace all write through each column type's `fromText` and `validate` as one change that one undo reverts. `planReplace` is the pure planner behind the buttons.
+- **Breaking:** `DataChange.source` and the `onValidationError` event `source` have the new member `"replace"`. A `switch` on `change.source` without a default branch needs a case. `useDataGridHistory` records `"replace"` by default.
+- `actions.setSearch(text, options)` takes `{ matchCase, wholeCell }`, and the store holds them as `searchOptions`. Both default to `false`.
+- `GridActions` has the action `openFindReplace`. A plugin binds it, and no default key is bound.
 - The playground demo shows the header filter on every column that offers a set filter.
 - `isAnyOf` and `isNoneOf` are filter operators of the `text`, `number`, `date` and `select` cell types. `SET_FILTER_OPERATORS` (from `data-grid-sdk`) lists them. The toolbar filter menu offers them for those columns. `long-text`, `url` and `checkbox` do not get them.
 - **Breaking:** `FilterOperator` has the new member `isNoneOf`. It takes a `string[]` and matches rows whose cell text equals none of the entries, case-insensitively. An empty list matches every row. The URL codec writes it like `isAnyOf` (`status:isNoneOf:new|open`). An `isNoneOf` list over its bound (1,000 entries, or the column's number of choices) drops the whole filter segment instead of shortening it. An exhaustive `switch` over `FilterOperator` needs a new case.

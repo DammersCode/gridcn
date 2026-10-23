@@ -131,6 +131,13 @@ Its filters match the stored value. Full semantics on
 It debounces typing before it writes the store's search text. Pass `debounceMs` to change the
 200 ms default.
 
+<NewBadge />
+
+`actions.setSearch(text, { matchCase, wholeCell })` sets the search options. `matchCase` respects
+letter case and `wholeCell` matches only cells that equal the search text. Both default to
+`false`, and they stay set across later searches. The [find & replace](/docs/addons/find-replace)
+panel uses them.
+
 It never narrows the row set. Search highlights and navigates matches over the rows already in
 `data`. `viewIndex` is untouched, so everything that walks `viewIndex` (export with
 `scope: "view"`, select-all, pinned-row aggregates) sees the same rows with or without a search

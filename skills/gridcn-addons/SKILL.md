@@ -34,6 +34,7 @@ npx shadcn add @gridcn/<item>
 | Import / export | `data-grid-io` (installs `dropzone` too) | `hucre` (lazy-loaded), `papaparse` |
 | Lazy loading | `data-grid-lazy` | none |
 | Pagination | `data-grid-pagination` | none |
+| Find & replace | `data-grid-find-replace` | none |
 
 The `@gridcn` registry serves the current deploy of the public repository `DammersCode/gridcn`;
 the same items install from its GitHub registry path (`DammersCode/gridcn/<item>`), the source
@@ -53,6 +54,7 @@ must run in the component that renders `<DataGridProvider>`, above it, not insid
 | Fill | `useDataGridFill()` | `{ plugin }` | `plugin` → `plugins` on the provider (the `Mount` member runs the drag engine inside the root) |
 | Presence | `useDataGridPresence()` | `{ plugin, setPresenceHighlights, ... }` | `plugin` → `plugins` on the provider |
 | Pinned rows | `useDataGridPinnedRows({ topRows?, bottomRows? })` | `{ plugin }` | `plugin` → `plugins` on the provider |
+| Find & replace | `useDataGridFindReplace({ scope?, replaceAllLimit? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`Ctrl+H` opens the panel) |
 | Undo & redo | `useDataGridState(rows, { getRowId })`, or `useDataGridHistory({ capacity?, datasetKey?, recordSources? })` to compose with your own `data`/`setData` | spreadable `{ data, getRowId, onDataChange, plugins, history }`, or `{ plugin, undo, redo, ... }` | spread the state result onto the provider; put the history `plugin` in `plugins` and keep your own `data` + `onDataChange` echo (the grid's `getRowId` prop addresses the operations) |
 
 Everything else mounts as a plain child component, inside the provider:
@@ -162,6 +164,7 @@ plugins, global-shortcuts) — read the relevant one before writing non-trivial 
 - Presence: `/docs/addons/presence.md`, `/docs/addons/broadcasting-presence.md`
 - Undo & redo: `/docs/addons/undo-redo.md` · Toolbar: `/docs/addons/toolbar.md`
 - Context menu: `/docs/addons/context-menu.md` · Keybindings: `/docs/addons/keybindings.md`
+- Find & replace: `/docs/addons/find-replace.md`
 - Sort list: `/docs/addons/sort-list.md` · URL state: `/docs/addons/url-state.md`
 - Import/export: `/docs/addons/import-export.md` · Lazy loading: `/docs/lazy-loading.md`
 - Pagination: `/docs/pagination.md` · Plugin seam: `/docs/plugins.md`

@@ -5,7 +5,7 @@ import type { DataGridPlugin } from "@/registry/default/blocks/data-grid/data-gr
 import { FindReplacePanel, type PanelStore } from "./find-replace-panel";
 import type { ReplaceOptions } from "./plan-replace";
 
-export type UseDataGridFindReplaceOptions = ReplaceOptions;
+export type UseDataGridFindReplaceOptions = Pick<ReplaceOptions, "scope" | "replaceAllLimit">;
 
 export type UseDataGridFindReplaceResult = {
   /** One entry of the grid's `plugins` prop: the panel, the `openFindReplace` command, and its `ctrl+h` binding. */
