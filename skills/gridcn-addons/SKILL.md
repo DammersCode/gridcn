@@ -60,6 +60,7 @@ Everything else mounts as a plain child component, inside the provider:
 | Add-on | Component(s) | Mounts |
 |---|---|---|
 | Toolbar | `DataGridToolbar` + children | sibling of `DataGridRoot`, inside the provider |
+| Header filter | `DataGridHeaderFilter` (passed to `DataGridRoot`'s `renderHeaderFilter`: `renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}`) | inside the provider; part of `data-grid-toolbar`, no `DataGridToolbar` needed |
 | Context menu | `DataGridContextMenu` (wraps `DataGridRoot`), `DataGridHeaderDropdown` (passed to `DataGridRoot`'s `renderHeaderMenu`) | inside the provider; `DataGridContextMenu` throws if mounted outside it |
 | Keybindings | `DataGridKeybindingsDialog` (inside provider), `DataGridKeybindingsShortcut` (inside `DataGridRoot`) | see split — the `?` shortcut needs the root's container |
 | Sort list | `DataGridSortList` | inside `DataGridToolbar` |

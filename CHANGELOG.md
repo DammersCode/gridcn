@@ -15,6 +15,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - The `data-grid-toolbar` add-on exports `DataGridHeaderFilter`. Wire it with `renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}`. Its button opens a popover with a search box, a select-all row, and a virtual list of the column's distinct values with row counts. The list counts the rows that pass every other filter. Apply replaces the column's `isAnyOf` and `isNoneOf` entries with the shorter of the checked and unchecked lists, using only operators the column offers, and keeps all other filters. Apply is disabled while nothing is checked or the stored list would pass 1,000 entries. Clear removes every filter of the column. Escape or a press outside discards the selection. `Shift+Alt+ArrowUp` opens the popover from the active cell and returns focus to the grid on close. `labels.toolbar` has the new `headerFilter*` strings.
 - The toolbar `isAnyOf` and `isNoneOf` value input of a column without `choices` (text, number, date) opens the same value list instead of an empty dropdown.
 - The toolbar `isAnyOf` value input keeps checked values that are not in the column's `choices` when you toggle a choice. Before, a toggle dropped them.
+- The `fake-remote-server` example matches `isAnyOf` without regard to case, like the grid, and supports `isNoneOf`. Before, any operator it did not know matched every row. The Drizzle and Prisma recipes map `isNoneOf` to `notInArray` and `notIn`.
 
 ## 1.1.0 - 2026-10-21
 
