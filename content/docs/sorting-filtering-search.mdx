@@ -2,6 +2,7 @@
 title: Sorting, filtering & search
 description: Client-side multi-column sort on header click, per-column filters that hide rows, and quick search that highlights matches.
 icon: ArrowUpDown
+status: updated
 ---
 
 <ComponentPreview name="data-grid-sorting-filtering-demo" />
@@ -36,12 +37,23 @@ through `useDataGridActions().setSorts()` or `.toggleSort()`.
 
 Per-column operators include `contains`, `notContains`, `equals`, `notEquals`, `startsWith`,
 `endsWith`, `empty`, and `notEmpty`, plus `gt`, `gte`, `lt`, `lte`, and `isBetween` for numeric and
-date columns, and `isAnyOf` for select columns. A cell type can declare its own operator list
+date columns, and `isAnyOf` and `isNoneOf` for text, number, date, and select columns. A cell type can declare its own operator list
 through `filter.operators`, which the menu offers when the column declares none. The value input
 follows the cell type's `filter.valueInput`. `isBetween`
 renders two typed inputs (from and to) side by side instead of one. `isAnyOf` renders a checkbox
-list of the select column's own `choices` and keeps a row when its value equals any checked one.
-Its `value` is a `string[]`, and an empty list matches no rows.
+list of the column's own `choices` and keeps a row when its value equals any checked one.
+Its `value` is a `string[]`, and an empty list matches no rows. On a column without `choices`,
+the checkbox list holds the distinct values of the column.
+
+The `isNoneOf` <NewBadge /> operator is the complement of `isAnyOf`. It keeps a row when its value equals none of
+the listed ones. An empty list matches every row. Both operators compare the cell text and ignore
+case. A number or date column compares its stored value as text, for example `42`.`long-text`, `url`, and
+`checkbox` columns do not offer them, unless the column lists them in `filterOperators`.
+
+The header filter <NewBadge /> puts a set filter in each column header. See
+[the toolbar add-on](/docs/addons/toolbar#header-filter). It writes `isAnyOf` or `isNoneOf`,
+whichever list is shorter.
+
 `DataGridFilterMenu` is a popover that lists active filters as aligned rows (join cell, column,
 operator, value, trash, drag handle) with add and reset controls. Per-column `filterable: false`
 excludes a column from the menu's column picker. Row order is array order in `FilterSpec[]`. Drag
@@ -56,6 +68,7 @@ actions.setFilters([
   { columnId: "age", operator: "gte", value: "30" },
   { columnId: "age", operator: "isBetween", value: ["20", "40"] },
   { columnId: "status", operator: "isAnyOf", value: ["active", "paused"] },
+  { columnId: "status", operator: "isNoneOf", value: ["archived"] },
   { columnId: "email", operator: "notEmpty" },
 ]);
 ```
@@ -66,7 +79,7 @@ A `FilterSpec` has these fields:
 |---|---|---|
 | `columnId` | `string` | The `id` of the column to filter. |
 | `operator` | `FilterOperator` | One of the operator names listed above. |
-| `value` | `string`, `[string, string]`, or `string[]` | The text to compare, even for number and date columns. `isBetween` takes `[from, to]`. `isAnyOf` takes the choice values. `empty` and `notEmpty` take none. |
+| `value` | `string`, `[string, string]`, or `string[]` | The text to compare, even for number and date columns. `isBetween` takes `[from, to]`. `isAnyOf` and `isNoneOf` take a list of cell texts. `empty` and `notEmpty` take none. |
 | `filterId` | `string` | Optional. A stable key for the filter row. |
 
 `DataGridFilterMenu` and `DataGridSortList` offer the grid's visible columns by default. Pass

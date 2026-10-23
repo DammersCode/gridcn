@@ -1,6 +1,7 @@
 ---
 title: Columns
 description: Resize, reorder, pin, and show/hide columns.
+status: updated
 icon: Columns3
 ---
 
@@ -73,6 +74,11 @@ The `renderHeaderMenu` slot of `DataGridRoot` renders at the inline-end of each 
 `DataGrid` wrapper forwards it. It shows as a ghost chevron button on hover and opens the same
 menu as a right-click. Per-column
 `pinnable: false`, or grid-wide `enableColumnPinning={false}`, disables pin and unpin.
+
+The `renderHeaderFilter` <NewBadge /> slot of `DataGridRoot` renders a filter button in each header cell
+whose column offers a set filter. It receives `{ column, index }`. The `DataGridHeaderFilter`
+component of the [toolbar add-on](/docs/addons/toolbar#header-filter) fills it. A header cell
+carries `data-filtered` while its column has a filter.
 
 A soft directional shadow marks the pinned boundary: the last left-pinned column casts a shadow
 to the right, and the first right-pinned column casts one to the left, whenever content is
