@@ -10,8 +10,10 @@ import {
   useDataGridSearchText,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isDev, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import type { ColumnLayout } from "@/registry/default/blocks/data-grid/data-grid";
 import { serializeSortState, parseSortState } from "./sort-param";
+import { parseLayoutPart, serializeLayoutPart, type UrlLayoutPart } from "./layout-param";
 import { serializeFilterState, parseFilterState } from "./filter-param";
 import { serializeJoinOperator, parseJoinOperator } from "./join-param";
 import { prefixedKey } from "./prefixed-key";
@@ -22,6 +24,15 @@ const MIN_CHOICE_BOUND = 64;
 /** Debounce (ms) between typing in the quick-search box and writing `searchText` to the URL. */
 const SEARCH_WRITE_DEBOUNCE_MS = 300;
 
+const DEFAULT_LAYOUT_PARTS: readonly UrlLayoutPart[] = ["order", "hidden"];
+
+const LAYOUT_KEYS: Record<UrlLayoutPart, string> = { order: "cols", hidden: "hide", widths: "widths", pins: "pins" };
+
+function countUnknownLayoutIds(part: Partial<ColumnLayout>, known: ReadonlySet<string>): number {
+  const ids = part.order ?? part.hidden ?? Object.keys(part.widths ?? part.pins ?? {});
+  return ids.filter((id) => !known.has(id)).length;
+}
+
 /** Dev-only warning, core's `warnDev` pattern with this add-on's own prefix (import-boundary rule: add-ons import only from core's block-root barrel). */
 function warnDev(message: string): void {
   if (isDev()) console.warn(`[data-grid-url-state] ${message}`);
@@ -31,6 +42,12 @@ function warnDev(message: string): void {
 export type UseDataGridUrlStateOptions = {
   /** Namespaces the `sort`/`filter`/`join`/`q` URL keys so multiple grids can coexist on one page. */
   prefix?: string;
+  /**
+   * Layout parts synced to the URL under `cols` (`order`), `hide` (`hidden`), `widths`, and `pins`.
+   * A part is written only while it differs from the layout the grid started with. `[]` turns
+   * layout sync off. Default `["order", "hidden"]`.
+   */
+  layout?: readonly UrlLayoutPart[];
 };
 
 /** Result of {@link useDataGridUrlState}. */
@@ -58,7 +75,8 @@ export type UseDataGridUrlStateResult = {
  * re-runs the mount apply when the URL changed outside the grid's own writes.
  */
 export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): UseDataGridUrlStateResult {
-  const { prefix } = options;
+  const { prefix, layout = DEFAULT_LAYOUT_PARTS } = options;
+  const layoutParts = layout.join(",");
   const actions = useDataGridActions();
   const allColumns = useDataGridAllColumns();
   const storeApi = useDataGridStoreApi();
@@ -66,6 +84,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   const filterState = useDataGridFilterState();
   const joinOperator = useDataGridJoinOperator();
   const searchText = useDataGridSearchText();
+  const columnLayout = useDataGridSelector((s) => s.columnLayout);
 
   const [sortParam, setSortParam] = useQueryState(prefixedKey(prefix, "sort"), {
     defaultValue: "",
@@ -91,6 +110,12 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     serialize: (v) => v,
     history: "replace",
   });
+  const layoutQueryOptions = { defaultValue: "", parse: (v: string) => v, serialize: (v: string) => v, history: "replace" } as const;
+  const [orderParam, setOrderParam] = useQueryState(prefixedKey(prefix, LAYOUT_KEYS.order), layoutQueryOptions);
+  const [hiddenParam, setHiddenParam] = useQueryState(prefixedKey(prefix, LAYOUT_KEYS.hidden), layoutQueryOptions);
+  const [widthsParam, setWidthsParam] = useQueryState(prefixedKey(prefix, LAYOUT_KEYS.widths), layoutQueryOptions);
+  const [pinsParam, setPinsParam] = useQueryState(prefixedKey(prefix, LAYOUT_KEYS.pins), layoutQueryOptions);
+  const layoutParams: Record<UrlLayoutPart, string> = { order: orderParam, hidden: hiddenParam, widths: widthsParam, pins: pinsParam };
 
   // The nuqs setters are NOT stable across external URL changes (back/forward, setSearchParams,
   // the testing adapter's searchParams prop) — the adapter re-renders and the query hook rebuilds
@@ -106,6 +131,8 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   setJoinParamRef.current = setJoinParam;
   const setSearchParamRef = useRef(setSearchParam);
   setSearchParamRef.current = setSearchParam;
+  const layoutSettersRef = useRef({ order: setOrderParam, hidden: setHiddenParam, widths: setWidthsParam, pins: setPinsParam });
+  layoutSettersRef.current = { order: setOrderParam, hidden: setHiddenParam, widths: setWidthsParam, pins: setPinsParam };
 
   // Reads the current URL params and applies them to the store. Runs once on mount (via the
   // appliedRef guard below) and is exposed as applyFromUrl so a consumer can re-apply after an
@@ -140,7 +167,23 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     if (filters.length > 0 || !keepMountDefaults) actions.setFilters(filters);
     if (join !== "and" || !keepMountDefaults) actions.setJoinOperator(join);
     if (searchParam || !keepMountDefaults) actions.setSearch(searchParam);
-  }, [actions, allColumns, storeApi, sortParam, filterParam, joinParam, searchParam]);
+
+    const initialLayout = storeApi.getInitialState().columnLayout;
+    const knownIds = new Set(allColumns.map((c) => c.id));
+    const layoutPatch: Partial<ColumnLayout> = {};
+    let unknownLayoutIds = 0;
+    for (const part of layoutParts ? (layoutParts.split(",") as UrlLayoutPart[]) : []) {
+      const parsed = parseLayoutPart(part, layoutParams[part]);
+      if (parsed[part] !== undefined) {
+        unknownLayoutIds += countUnknownLayoutIds(parsed, knownIds);
+        Object.assign(layoutPatch, parsed);
+      } else if (!keepMountDefaults) {
+        Object.assign(layoutPatch, { [part]: initialLayout[part] });
+      }
+    }
+    if (unknownLayoutIds > 0) warnDev(`dropped ${unknownLayoutIds} URL layout entries for removed columns`);
+    if (Object.keys(layoutPatch).length > 0) actions.setColumnLayout(layoutPatch);
+  }, [actions, allColumns, storeApi, sortParam, filterParam, joinParam, searchParam, layoutParts, orderParam, hiddenParam, widthsParam, pinsParam]);
   const applyFromUrl = useCallback(() => applyUrl(false), [applyUrl]);
 
   // apply URL -> store exactly once on mount; afterwards the store is the source of truth and
@@ -170,6 +213,21 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     void setJoinParamRef.current(serializeJoinOperator(joinOperator) || null);
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [joinOperator]);
+
+  const lastWrittenLayoutRef = useRef<Partial<Record<UrlLayoutPart, string>> | null>(null);
+  useEffect(() => {
+    if (!appliedRef.current) return;
+    const initialLayout = storeApi.getInitialState().columnLayout;
+    const previous = lastWrittenLayoutRef.current;
+    const next: Partial<Record<UrlLayoutPart, string>> = {};
+    for (const part of layoutParts ? (layoutParts.split(",") as UrlLayoutPart[]) : []) {
+      const value = serializeLayoutPart(part, columnLayout);
+      next[part] = value === serializeLayoutPart(part, initialLayout) ? "" : value;
+      if (previous && previous[part] !== next[part]) void layoutSettersRef.current[part](next[part] || null);
+    }
+    lastWrittenLayoutRef.current = next;
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [columnLayout, layoutParts]);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
