@@ -1,8 +1,9 @@
-import { page } from "vitest/browser";
-import { describe, expect, it } from "vitest";
+import { page, userEvent } from "vitest/browser";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { defineColumns, DataGrid } from "../data-grid";
 import { gridAttrSelector } from "../data-grid-sdk";
+import type { DataChange } from "../types";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply (same convention as column-ux.browser.test.tsx)
 import "@/app/global.css";
 
@@ -463,6 +464,88 @@ describe("row reorder (marker drag)", () => {
       await expect.poll(draggedMarkerCount, { timeout: 2000 }).toBe(0);
       expect(visualOrder().slice(0, 2)).toEqual(["Person 0", "Person 1"]);
       expect(selectedLabels()).toEqual(["Person 1", "Person 2", "Person 3"]);
+    });
+  });
+
+  describe("keyboard move", () => {
+    const moveDown = "{Shift>}{Alt>}{PageDown}{/Alt}{/Shift}";
+    const moveUp = "{Shift>}{Alt>}{PageUp}{/Alt}{/Shift}";
+
+    async function renderGrid(props: { rowMarkers?: "reorder-checkbox" | "checkbox"; readOnly?: boolean; onDataChange?: (data: readonly Row[], change: DataChange<Row>) => void } = {}) {
+      await render(
+        <div style={{ height: 400 }}>
+          <DataGrid
+            data={makeRows(8)}
+            columns={columns}
+            getRowId={(r) => r.id}
+            className="h-[400px]"
+            rowMarkers={props.rowMarkers ?? "reorder-checkbox"}
+            readOnly={props.readOnly}
+            onDataChange={props.onDataChange}
+          />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    }
+
+    function clickCell(label: string) {
+      return userEvent.click(rows().find((r) => dataCell(r).textContent === label)!.querySelector(`[role="gridcell"]:not(${gridAttrSelector("markerCell")})`)!);
+    }
+
+    it("moves the active row down and up one slot, announcing each move", async () => {
+      await renderGrid();
+      await clickCell("Person 2");
+      await userEvent.keyboard(moveDown);
+      await expect.poll(() => visualOrder().slice(0, 4), { timeout: 2000 }).toEqual(["Person 0", "Person 1", "Person 3", "Person 2"]);
+      await expect.poll(() => document.querySelector('[role="status"]')?.textContent, { timeout: 2000 }).toBe("Row 3 moved to position 4 of 8");
+      await userEvent.keyboard(moveUp);
+      await expect.poll(() => visualOrder().slice(0, 4), { timeout: 2000 }).toEqual(["Person 0", "Person 1", "Person 2", "Person 3"]);
+    });
+
+    it("moves every checked row and keeps the gaps", async () => {
+      await renderGrid();
+      await clickCell("Person 5");
+      markerCell(1).querySelector<HTMLElement>(gridAttrSelector("markerCheckbox"))!.click();
+      markerCell(3).querySelector<HTMLElement>(gridAttrSelector("markerCheckbox"))!.click();
+      await expect.poll(() => selectedMarkerCount(), { timeout: 2000 }).toBe(3);
+      await userEvent.keyboard(moveDown);
+      await expect
+        .poll(() => visualOrder(), { timeout: 2000 })
+        .toEqual(["Person 0", "Person 2", "Person 1", "Person 4", "Person 3", "Person 5", "Person 6", "Person 7"]);
+    });
+
+    it("does nothing at the edge", async () => {
+      const onDataChange = vi.fn();
+      await renderGrid({ onDataChange });
+      await clickCell("Person 0");
+      await userEvent.keyboard(moveUp);
+      expect(onDataChange).not.toHaveBeenCalled();
+      expect(visualOrder()[0]).toBe("Person 0");
+    });
+
+    it("is inert in a readOnly grid", async () => {
+      const onDataChange = vi.fn();
+      await renderGrid({ readOnly: true, onDataChange });
+      await clickCell("Person 2");
+      await userEvent.keyboard(moveDown);
+      expect(onDataChange).not.toHaveBeenCalled();
+    });
+
+    it("is inert without the reorder markers", async () => {
+      const onDataChange = vi.fn();
+      await renderGrid({ rowMarkers: "checkbox", onDataChange });
+      await clickCell("Person 2");
+      await userEvent.keyboard(moveDown);
+      expect(onDataChange).not.toHaveBeenCalled();
+    });
+
+    it("one undo-able change per press", async () => {
+      const changes: DataChange<Row>[] = [];
+      await renderGrid({ onDataChange: (_, change) => void changes.push(change) });
+      await clickCell("Person 2");
+      await userEvent.keyboard(moveDown + moveDown);
+      await expect.poll(() => changes.length, { timeout: 2000 }).toBe(2);
+      expect(changes.map((change) => change.ops.length)).toEqual([1, 1]);
     });
   });
 

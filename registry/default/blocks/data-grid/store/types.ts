@@ -758,6 +758,8 @@ export type DataGridStoreState = Omit<
   commands: Record<string, GridCommand<unknown>> | null;
   /** {@link DEFAULT_LABELS} deep-merged with the `labels` sync prop; see {@link useDataGridLabels}. */
   labels: DataGridLabels;
+  /** The live-region text of the latest row move (drag, keyboard, or `reorderRows`); empty before the first. */
+  rowMoveAnnouncement: string;
   /** The public actions only — the `_`-prefixed internals live in the store-private table ({@link getInternalActions}), never in state. */
   actions: DataGridActions;
 };

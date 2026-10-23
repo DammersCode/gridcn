@@ -701,6 +701,8 @@ export interface GridActions {
   insertRowAbove: true;
   duplicateRow: true;
   deleteRows: true;
+  moveRowsUp: true;
+  moveRowsDown: true;
   openLink: true;
   openFindReplace: true;
 }

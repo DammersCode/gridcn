@@ -109,6 +109,11 @@ export function useDataGridLabels(): DataGridLabels {
   return useDataGridStore((s) => s.labels);
 }
 
+/** The polite live-region text of the latest row move. */
+export function useDataGridRowMoveAnnouncement(): string {
+  return useDataGridStore((s) => s.rowMoveAnnouncement);
+}
+
 /** The currently active (focused) cell, or null when nothing is active. */
 export function useDataGridActiveCell(): ViewCoord | null {
   return useDataGridStore((s) => s.activeCell);

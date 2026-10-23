@@ -6,11 +6,11 @@ import {
   useDataGridActions,
   useDataGridInternalActions,
   useDataGridActiveCell,
-  useDataGridLabels,
   useDataGridReadOnly,
   useDataGridRowCount,
   useDataGridRowIds,
   useDataGridRowMarkers,
+  useDataGridRowMoveAnnouncement,
   useDataGridRowReorderEnabled,
   useDataGridStoreApi,
   type AnyColumnDef,
@@ -204,12 +204,11 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   // mirroring how DataGridHeader owns useColumnReorder for its headers.
   const actions = useDataGridActions();
   const internalActions = useDataGridInternalActions();
-  const labels = useDataGridLabels();
   const rowReorderEnabled = useDataGridRowReorderEnabled();
   // the gesture lives on the marker's reorder family only — plain number/checkbox/both markers
   // stay pure row-select surfaces (see RowMarkersMode), so a selection drag never reorders.
   const rowReorderArmed = rowReorderEnabled && isReorderMarkerMode(rowMarkers);
-  const [reorderAnnouncement, setReorderAnnouncement] = useState("");
+  const reorderAnnouncement = useDataGridRowMoveAnnouncement();
   // A `role="status"` region may not live inside role="grid" (only row/rowgroup are allowed
   // children — axe's aria-required-children), so the announcement portals to <body> after mount;
   // the gate keeps SSR output free of the portal node.
@@ -232,15 +231,9 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   const onRowReorder = useCallback(
     (dragged: CompactSelectionLike, over: number, position: "before" | "after") => {
       const rows = dragged.toArray();
-      const to = predictBlockTarget(rows, over, position);
-      if (!actions.reorderRows(rows, to)) return;
-      setReorderAnnouncement(
-        rows.length === 1
-          ? labels.markers.reorderAnnouncement(rows[0]! + 1, to + 1, rowCount)
-          : labels.markers.reorderRowsAnnouncement(rows.length, to + 1, rowCount),
-      );
+      actions.reorderRows(rows, predictBlockTarget(rows, over, position));
     },
-    [actions, labels, rowCount],
+    [actions],
   );
 
   const getDragRows = useCallback(

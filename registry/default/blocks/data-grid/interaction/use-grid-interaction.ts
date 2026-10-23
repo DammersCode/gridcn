@@ -44,6 +44,7 @@ import { apiHandleOf } from "../store/api";
 import { getInternalActions } from "../store/internal-actions";
 import { holeRowId } from "../store/compute";
 import { isComposingKey } from "./is-composing-key";
+import { isReorderMarkerMode } from "../rows/marker-width";
 
 /** Action names already dev-warned as bound-but-unwired (dev-only, process-wide). */
 const warnedUnwiredActions = new Set<string>();
@@ -512,6 +513,16 @@ export function dispatchGridAction(args: {
       }
       break;
     }
+    case "moveRowsUp":
+    case "moveRowsDown": {
+      preventDefault();
+      if (state.readOnly || !state.enableRowReorder || !isReorderMarkerMode(state.rowMarkers)) break;
+      const rows = rowsToMove(state);
+      if (rows.length === 0 || !actions.moveRowsBy(rows, action === "moveRowsUp" ? -1 : 1)) break;
+      const active = storeApi.getState().activeCell;
+      if (active) scrollCellIntoView(active);
+      break;
+    }
     case "insertRowAbove": {
       preventDefault();
       if (!state.readOnly && state.createRow && state.activeCell) actions.insertRow(state.activeCell.row, "above");
@@ -678,6 +689,14 @@ const JUMP_DIRECTION: Record<JumpAction, JumpDirection> = {
   extendJumpLeft: "left",
   extendJumpRight: "right",
 };
+
+/** The rows a keyboard move acts on: the checked rows, else the rows of the primary range, else the active row. */
+function rowsToMove(state: DataGridStoreState): number[] {
+  if (state.selection.rows.length > 0) return state.selection.rows.toArray();
+  const range = state.selection.current?.range;
+  if (range) return Array.from({ length: range.height }, (_, i) => range.y + i);
+  return state.activeCell ? [state.activeCell.row] : [];
+}
 
 /** Handlers + drag state wiring for keyboard nav, mouse selection, and editing lifecycle. */
 export type GridInteractionHandlers = {

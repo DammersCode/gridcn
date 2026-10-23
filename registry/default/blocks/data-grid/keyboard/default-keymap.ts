@@ -67,6 +67,9 @@ export const DEFAULT_KEYMAP: Keymap = {
   // Sheets/Excel chords (Ctrl+Alt+=/-, Ctrl+Shift+=, Ctrl+-) hit AltGr or non-preventable browser zoom; u/Backspace don't.
   insertRowAbove: ["mod+shift+u"],
   deleteRows: ["mod+shift+Backspace"],
+  // shift+alt+Arrow opens the header menu and filter; PageUp/PageDown with shift+alt is unbound in the browsers and OSes, and Alt alone never forms AltGr
+  moveRowsUp: ["shift+alt+PageUp"],
+  moveRowsDown: ["shift+alt+PageDown"],
   // Enter is edit/commitDown; alt+Enter was free
   openLink: ["alt+Enter"],
 };

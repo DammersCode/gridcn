@@ -239,6 +239,13 @@ describe("matchKeymap - other actions", () => {
     ).toBe("duplicateRow");
   });
 
+  it("matches moveRowsUp and moveRowsDown on shift+alt+PageUp/PageDown without touching the header chords", () => {
+    expect(matchKeymap(makeEvent({ key: "PageUp", shiftKey: true, altKey: true }), DEFAULT_KEYMAP, false)).toBe("moveRowsUp");
+    expect(matchKeymap(makeEvent({ key: "PageDown", shiftKey: true, altKey: true }), DEFAULT_KEYMAP, false)).toBe("moveRowsDown");
+    expect(matchKeymap(makeEvent({ key: "ArrowDown", shiftKey: true, altKey: true }), DEFAULT_KEYMAP, false)).toBe("openColumnMenu");
+    expect(matchKeymap(makeEvent({ key: "PageDown", ctrlKey: true, altKey: true }), DEFAULT_KEYMAP, false)).not.toBe("moveRowsDown");
+  });
+
   it("matches insertRowAbove and deleteRows", () => {
     expect(
       matchKeymap(makeEvent({ key: "u", ctrlKey: true, shiftKey: true }), DEFAULT_KEYMAP, false),
@@ -383,6 +390,7 @@ describe("GridAction coverage", () => {
     undo: true, redo: true,
     fillDown: true, fillRight: true,
     insertRowBelow: true, insertRowAbove: true, duplicateRow: true, deleteRows: true,
+    moveRowsUp: true, moveRowsDown: true,
     openLink: true,
     openFindReplace: true,
   };

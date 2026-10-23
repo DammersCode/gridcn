@@ -411,6 +411,14 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     return true;
   };
 
+  const announceRowMove = (s: DataGridStoreState, plan: RowMovePlan): string => {
+    const { markers } = s.labels;
+    const total = s.data.length;
+    return plan.sources.length === 1
+      ? markers.reorderAnnouncement(plan.sources[0]! + 1, plan.targets[0]! + 1, total)
+      : markers.reorderRowsAnnouncement(plan.sources.length, plan.targets[0]! + 1, total);
+  };
+
   /** Applies a plan as one write: one `move` operation per moved row, one emit, one permutation for the selection. Unsorted and unfiltered, view and data indices coincide. */
   const applyRowMoves = (s: DataGridStoreState, plan: RowMovePlan | null): boolean => {
     if (!plan) return false;
@@ -438,6 +446,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         selection: remapSelectionRows(s.selection, newIndexOf),
         activeCell: s.activeCell ? { ...s.activeCell, row: follow(s.activeCell.row) } : null,
         lastHighlightedRow: s.lastHighlightedRow === null ? null : follow(s.lastHighlightedRow),
+        rowMoveAnnouncement: announceRowMove(s, plan),
         ...editRemap,
       }),
     );

@@ -977,6 +977,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     keymap: initKeymap,
     commands: initCommands,
     labels: mergeLabels(init.labels),
+    rowMoveAnnouncement: "",
     actions: {
       setActiveCell(ref) {
         if (ref === null) {

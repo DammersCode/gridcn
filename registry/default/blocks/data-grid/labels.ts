@@ -459,6 +459,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
       insertRowAbove: "Insert row above",
       duplicateRow: "Duplicate row",
       deleteRows: "Delete row(s)",
+      moveRowsUp: "Move rows up",
+      moveRowsDown: "Move rows down",
 
       fillDown: "Fill down",
       fillRight: "Fill right",

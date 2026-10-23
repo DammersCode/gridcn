@@ -40,6 +40,7 @@ export {
   useDataGridKeymap,
   useDataGridCommands,
   useDataGridLabels,
+  useDataGridRowMoveAnnouncement,
   useDataGridActiveCell,
   useDataGridHasActiveCell,
   useDataGridActiveColumn,
