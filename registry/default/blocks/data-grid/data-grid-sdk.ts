@@ -82,6 +82,7 @@ export { holeRowId, rowIdAtViewRow, viewRowsMoved, visibleColumnsMoved } from ".
 export { measureColumnAutosizeWidth } from "./columns/measure-column-text";
 export { isDev } from "./is-dev";
 export { isComposingKey } from "./interaction/is-composing-key";
+export { createTextMatcher } from "./sort-filter";
 export {
   useDataGridColumnFeatureFlags,
   useDataGridCommands,

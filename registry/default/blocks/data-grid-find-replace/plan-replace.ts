@@ -1,6 +1,5 @@
 import { type AnyColumnDef, type CellPatch, type CellRef, type SearchOptions } from "@/registry/default/blocks/data-grid/data-grid";
-import { selectionContainsCell, toSafeText, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { createTextMatcher } from "@/registry/default/blocks/data-grid/sort-filter";
+import { createTextMatcher, selectionContainsCell, toSafeText, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Longest find or replacement text; longer input is cut. */
 export const MAX_REPLACE_INPUT_LENGTH = 1_000;

@@ -258,6 +258,26 @@ export type DataGridStatusBarLabels = {
   approximate: (count: number) => string;
 };
 
+/** Find-and-replace panel strings. */
+export type DataGridFindReplaceLabels = {
+  dialogLabel: string;
+  findLabel: string;
+  replaceLabel: string;
+  matchCase: string;
+  wholeCell: string;
+  previous: string;
+  next: string;
+  replace: string;
+  replaceAll: string;
+  close: string;
+  noMatches: string;
+  /** `capped` is true while the highlight list stopped at its cap, so `total` is a lower bound. */
+  position: (index: number, total: number, capped: boolean) => string;
+  replaced: (replaced: number, skipped: number) => string;
+  moreRemain: string;
+  validating: string;
+};
+
 /** Every user-facing default string across core + every add-on, grouped by owning surface. */
 export interface DataGridLabels {
   toolbar: DataGridToolbarLabels;
@@ -270,6 +290,7 @@ export interface DataGridLabels {
   io: DataGridIOLabels;
   pagination: DataGridPaginationLabels;
   statusBar: DataGridStatusBarLabels;
+  findReplace: DataGridFindReplaceLabels;
 }
 
 /** English defaults — every string in the shipped UI today, verbatim (so adopting `labels` never changes visible copy without an explicit override). */
@@ -515,6 +536,23 @@ export const DEFAULT_LABELS: DataGridLabels = {
     min: "Min",
     max: "Max",
     approximate: (count) => `From the first ${count.toLocaleString("en-US")} cells`,
+  },
+  findReplace: {
+    dialogLabel: "Find and replace",
+    findLabel: "Find",
+    replaceLabel: "Replace with",
+    matchCase: "Match case",
+    wholeCell: "Whole cell",
+    previous: "Previous match",
+    next: "Next match",
+    replace: "Replace",
+    replaceAll: "Replace all",
+    close: "Close",
+    noMatches: "No matches",
+    position: (index, total, capped) => `${index} of ${total.toLocaleString("en-US")}${capped ? "+" : ""}`,
+    replaced: (replaced, skipped) => (skipped > 0 ? `${replaced} replaced, ${skipped} skipped` : `${replaced} replaced`),
+    moreRemain: "More matches remain. Run Replace all again.",
+    validating: "Validating…",
   },
 };
 
