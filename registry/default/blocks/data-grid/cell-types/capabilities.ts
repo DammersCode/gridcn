@@ -31,12 +31,16 @@ export function operatorsForColumnType(columnType: string | undefined): FilterOp
   return [...TEXT_FILTER_OPERATORS];
 }
 
-/** `column.filterOperators ?? cellType.filter.operators ??` the type-name default. */
+/** `column.filterOperators ?? cellType.filter.operators ??` the type-name default, without set operators when a custom `filterMatch` cannot evaluate them. */
 export function resolveFilterOperators<TData = unknown, TValue = unknown, TOptions = unknown>(
   column: AnyColumnDef,
   cellType: CellType<TData, TValue, TOptions> | undefined,
 ): readonly FilterOperator[] {
-  return column.filterOperators ?? cellType?.filter?.operators ?? operatorsForColumnType(column.type);
+  const declared = column.filterOperators ?? cellType?.filter?.operators;
+  if (declared) return declared;
+  const defaults = operatorsForColumnType(column.type);
+  const hasCustomMatcher = Boolean(column.filterMatch ?? cellType?.filter?.match);
+  return hasCustomMatcher ? defaults.filter((operator) => !SET_FILTER_OPERATORS.includes(operator)) : defaults;
 }
 
 /** Whether the column is filterable and offers a set operator, which is what the header filter needs. */

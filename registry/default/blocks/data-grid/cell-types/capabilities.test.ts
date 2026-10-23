@@ -3,6 +3,7 @@ import type { ColumnDef } from "../types";
 import { cellTypes } from "./cell-types";
 import {
   COMPARISON_FILTER_OPERATORS,
+  offersSetFilter,
   resolveColumnValidate,
   resolveFilterOperators,
   resolveFilterValueInput,
@@ -111,6 +112,21 @@ describe("resolveFilterOperators", () => {
     expect(resolveFilterOperators(noopColumn, undefined)).toEqual([...TEXT_FILTER_OPERATORS, ...SET_FILTER_OPERATORS]);
     expect(resolveFilterOperators({ ...noopColumn, type: "url" }, undefined)).toEqual(TEXT_FILTER_OPERATORS);
     expect(resolveFilterOperators({ ...noopColumn, type: "checkbox" }, undefined)).toEqual(TEXT_FILTER_OPERATORS);
+  });
+});
+
+describe("set operators with a custom filterMatch", () => {
+  const filterMatch = () => true;
+
+  it("drops the set operators of the default list", () => {
+    const column = { ...noopColumn, type: "text", filterMatch } as AnyColumnDef;
+    expect(resolveFilterOperators(column, cellTypes.text)).toEqual(TEXT_FILTER_OPERATORS);
+    expect(offersSetFilter(column, cellTypes.text)).toBe(false);
+  });
+
+  it("keeps explicitly declared operators", () => {
+    const column = { ...noopColumn, type: "text", filterMatch, filterOperators: ["isAnyOf"] } as AnyColumnDef;
+    expect(offersSetFilter(column, cellTypes.text)).toBe(true);
   });
 });
 
