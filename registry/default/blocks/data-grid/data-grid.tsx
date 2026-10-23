@@ -179,6 +179,7 @@ export type {
   FilterValueInputProps,
   ColumnDef,
   SortSpec,
+  SearchOptions,
   FilterOperator,
   FilterSpec,
   FilterJoinOperator,

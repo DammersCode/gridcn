@@ -489,7 +489,8 @@ export function dispatchGridAction(args: {
     case "fillDown":
     case "fillRight":
     case "undo":
-    case "redo": {
+    case "redo":
+    case "openFindReplace": {
       preventDefault();
       break;
     }

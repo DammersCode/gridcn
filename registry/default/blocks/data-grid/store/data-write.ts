@@ -317,7 +317,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   const { ctx, applyRowValidation, pruneRowValidationKeys, followView, remapEditing, endEditSession } = deps;
 
   /** Reports the patches a validator refused through `onValidationError`; a row outside the view reports `viewRowIndex: -1`. */
-  const emitStreamRejections = (patches: readonly CellPatch[], rejected: readonly PatchRejection[]): void => {
+  const emitStreamRejections = (patches: readonly CellPatch[], rejected: readonly PatchRejection[], batchSource?: DataChange<unknown>["source"]): void => {
     const s = get();
     const onValidationError = s.onValidationError;
     if (rejected.length === 0 || !onValidationError || s.readOnly) return;
@@ -337,7 +337,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       });
     }
     const event: GridValidationErrorEvent = {
-      source: "stream",
+      source: batchSource === "replace" ? "replace" : "stream",
       rejected: rejected.map(({ patchIndex, message }) => {
         const { rowId, columnId, value } = patches[patchIndex]!;
         const dataRowIndex = rowIndex.get(rowId);
@@ -589,7 +589,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         const apply = ({ accepted, acceptedIndexes, rejected }: PrevalidatedPatches): UpdateCellsVerdict => {
           const invalid = rejected.map(({ patchIndex }) => ({ patchIndex, reason: "invalid" as const }));
           const verdict = accepted.length === 0 ? null : get().actions.updateCells(accepted, { ...options, skipValidation: true });
-          emitStreamRejections(patches, rejected);
+          emitStreamRejections(patches, rejected, options?.source);
           if (!verdict) return { applied: 0, skipped: invalid, pending: false };
           const remapped = verdict.skipped.map((skip) => ({ ...skip, patchIndex: acceptedIndexes[skip.patchIndex]! }));
           return { ...verdict, skipped: [...invalid, ...remapped].sort((a, b) => a.patchIndex - b.patchIndex) };
@@ -611,7 +611,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const batch = computeCellPatchBatch(s, patches, rowIndex, skipValidation);
       const nextData = batch.nextData;
       if (nextData === null) {
-        emitStreamRejections(patches, batch.rejected);
+        emitStreamRejections(patches, batch.rejected, options?.source);
         return { applied: 0, skipped: batch.skipped, pending: false };
       }
       const applied = batch.ops.reduce((n, op) => (op.type === "update" ? n + (op.cells?.length ?? 0) : n), 0);
@@ -634,7 +634,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
               : { data: nextData, cellErrors },
           ),
         );
-        emitStreamRejections(patches, batch.rejected);
+        emitStreamRejections(patches, batch.rejected, options?.source);
         return { applied, skipped: batch.skipped, pending: false };
       }
       // Re-place only touched and earlier deferred rows; the binary search trusts the rest of the order.
@@ -650,7 +650,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
         }),
       );
-      emitStreamRejections(patches, batch.rejected);
+      emitStreamRejections(patches, batch.rejected, options?.source);
       return { applied, skipped: batch.skipped, pending: false };
     },
     updateRows(updates, options) {
