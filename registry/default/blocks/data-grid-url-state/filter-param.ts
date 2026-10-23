@@ -8,6 +8,9 @@ const RANGE_SEPARATOR = "~";
 /** In-value separator for the `isAnyOf` and `isNoneOf` choice lists. `encodeURIComponent` escapes a literal `|` inside a choice to `%7C`, so the raw separator can never collide with a choice's own characters. */
 const ANYOF_SEPARATOR = "|";
 
+/** Token for an empty list entry (the "(Blanks)" value). `encodeURIComponent` never emits a lone `%`, so no encoded value collides with it, and a sole empty entry stays distinct from an empty list. */
+const EMPTY_ENTRY_TOKEN = "%";
+
 /** A hand-edited URL must not express an unbounded view state; filter segments beyond the cap are dropped. */
 const MAX_URL_FILTERS = 64;
 
@@ -31,7 +34,7 @@ function encodeRangePart(part: string): string {
 function encodeFilterValue(operator: FilterOperator, value: FilterSpec["value"]): string {
   if (value === undefined) return "";
   if (Array.isArray(value) && operator === "isBetween") return `${encodeRangePart(value[0])}${RANGE_SEPARATOR}${encodeRangePart(value[1])}`;
-  if (Array.isArray(value)) return value.map(encodeURIComponent).join(ANYOF_SEPARATOR);
+  if (Array.isArray(value)) return value.map((entry) => (entry === "" ? EMPTY_ENTRY_TOKEN : encodeURIComponent(entry))).join(ANYOF_SEPARATOR);
   return encodeURIComponent(value);
 }
 
@@ -41,7 +44,8 @@ function encodeFilterValue(operator: FilterOperator, value: FilterSpec["value"])
  * percent-encoded. `isBetween`'s two-value range encodes as `min~max`, the `isAnyOf` and `isNoneOf` choice lists as
  * `a|b|c` (each choice percent-encoded, so the raw `|` separator can never collide) — both still
  * one `value` field, so every other operator's format — and any URL generated before those
- * operators existed — round-trips unchanged. `filterId` is never serialized — it's a transient
+ * operators existed — round-trips unchanged. An empty list entry encodes as the lone token `%`
+ * (`a|%`), so `[""]` differs from `[]`; a part left empty by hand-editing still reads as an empty entry. `filterId` is never serialized — it's a transient
  * list-rendering identity the store re-derives on parse, not part of the filter's meaning.
  *
  * @example serializeFilterState([{ columnId: "age", operator: "gt", value: "30" }])
@@ -71,7 +75,7 @@ function decodeFilterValue(operator: string, raw: string, maxChoices: number): F
         if (operator === "isNoneOf") return DECODE_FAILED;
         break;
       }
-      const decoded = safeDecode(rawPart);
+      const decoded = rawPart === EMPTY_ENTRY_TOKEN ? "" : safeDecode(rawPart);
       if (decoded === null) return DECODE_FAILED;
       parts.push(decoded);
     }

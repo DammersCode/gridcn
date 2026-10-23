@@ -163,6 +163,36 @@ describe("serializeFilterState / parseFilterState", () => {
       expect(parseFilterState(serializeFilterState(filters))).toEqual(filters);
     });
 
+    it.each([
+      { value: [], encoded: "" },
+      { value: [""], encoded: "%" },
+      { value: ["a", ""], encoded: "a|%" },
+      { value: ["", "b"], encoded: "%|b" },
+    ])("round-trips the list $value, with the empty entry as one token", ({ value, encoded }) => {
+      for (const operator of ["isAnyOf", "isNoneOf"] as const) {
+        const filters = [{ columnId: "city", operator, value }];
+        expect(serializeFilterState(filters)).toBe(`city:${operator}:${encoded}`);
+        expect(parseFilterState(serializeFilterState(filters))).toEqual(filters);
+      }
+    });
+
+    it("still reads an empty entry written as an empty part", () => {
+      expect(parseFilterState("city:isAnyOf:a|")[0]!.value).toEqual(["a", ""]);
+      expect(parseFilterState("city:isAnyOf:|b")[0]!.value).toEqual(["", "b"]);
+    });
+
+    it("counts the empty-entry token against the list bound", () => {
+      expect(parseFilterState("city:isAnyOf:%|%|%", { maxChoices: () => 2 })[0]!.value).toEqual(["", ""]);
+      expect(parseFilterState("city:isNoneOf:%|%|%", { maxChoices: () => 2 })).toEqual([]);
+    });
+
+    it("parses a long run of empty-entry tokens in linear time", () => {
+      const started = performance.now();
+      const parsed = parseFilterState(`city:isAnyOf:${"%|".repeat(200_000)}%`);
+      expect(parsed[0]!.value).toHaveLength(1000);
+      expect(performance.now() - started).toBeLessThan(1000);
+    });
+
     it("drops a choice list with malformed percent-encoding", () => {
       expect(parseFilterState("status:isAnyOf:new|%E0%A4%A")).toEqual([]);
     });
