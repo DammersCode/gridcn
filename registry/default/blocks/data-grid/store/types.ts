@@ -968,17 +968,24 @@ export type DataGridActions = {
    */
   duplicateRows(viewRowIndexes: number[]): void;
   /**
-   * Moves the row at view index `from` so it lands at view index `to` (final position — arrayMove
-   * semantics: `from < to` shifts rows `from+1..to` up one, `from > to` shifts rows `to..from-1`
-   * down one). One `{source: 'row-operation'}` DataChange with a single row-id-based `move` operation (one undo
-   * entry). No-ops (silent, dev-warned where the cause is a misconfiguration): `enableRowReorder`
+   * Moves the rows at view indices `rows` (a number or a list) as one block: they keep their
+   * relative order and land contiguous, the first at view index `to` (final position — arrayMove
+   * semantics for one row). Duplicate indices count once. One `{source: 'row-operation'}` DataChange with one
+   * row-id-based `move` operation per moved row, each `from` the index before the batch and each `to` the
+   * final index (one undo entry; apply the ops together, never one by one). No-ops (silent, dev-warned where the cause is a misconfiguration): `enableRowReorder`
    * off, readOnly, an open edit session (the editor pins a view coordinate the move would
    * invalidate), an active sort/filter (the view order is owned by the sort/filter, not the data),
    * unloaded (lazy) rows (a reorder would shift the lazy add-on's index bookkeeping), and a drop
-   * that leaves the row where it already is. Returns `true` when the row moved, `false` for any
-   * no-op — the drag gesture uses the verdict for its a11y announcement.
+   * that leaves the rows where they already are, an empty list, and an out-of-range index or `to`.
+   * Returns `true` when rows moved, `false` for any no-op — the drag gesture uses the verdict for its a11y announcement.
    */
-  reorderRows(from: number, to: number): boolean;
+  reorderRows(rows: number | readonly number[], to: number): boolean;
+  /**
+   * Shifts every row at view indices `rows` by `delta` and keeps the gaps between them (the keyboard
+   * move). Same change shape, guards, and return value as {@link reorderRows}; the whole batch stays put
+   * when any row would leave the grid.
+   */
+  moveRowsBy(rows: readonly number[], delta: number): boolean;
   /**
    * The single generic data-write action: applies a whole {@link DataChange} (a consumer-built operation
    * batch or a history-inverted one) in ONE write and emits `onDataChange` EXACTLY ONCE - one undo

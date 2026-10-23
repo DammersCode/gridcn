@@ -25,13 +25,13 @@ import {
 } from "./commit";
 import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
 import { applyChange } from "../interaction/history";
+import { planBlockMove, planShiftMove, type RowMovePlan } from "../rows/plan-row-moves";
 import { resolveCellRef, resolveReorder, touchesViewInputs, type RowIndexCache } from "./row-index";
 import {
   emptySelection,
   offsetSelectionForRows,
   rectFromCorners,
-  reorderSelectionForRow,
-  rowReorderMap,
+  remapSelectionRows,
   selectCell as selectCellPure,
   selectionRects,
 } from "../selection";
@@ -307,6 +307,7 @@ export type DataWriteActions = Pick<
   | "deleteRowsById"
   | "duplicateRows"
   | "reorderRows"
+  | "moveRowsBy"
   | "commitChange"
 > & {
   /** Clears every `rowIds` x `columnIds` cell still in view, as one `delete` batch (the cut-capture seam). */
@@ -399,6 +400,48 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         ...editRemap,
       }),
     );
+  };
+
+  const canMoveRows = (s: DataGridStoreState): boolean => {
+    if (!s.enableRowReorder || s.readOnly) return false;
+    if (viewSorts(s.sortMode, s.sortState).length > 0 || s.filterState.length > 0) {
+      warnDev("reorderRows is a no-op while a sort or filter is active (the view order is owned by the sort/filter)");
+      return false;
+    }
+    return true;
+  };
+
+  /** Applies a plan as one write: one `move` op per moved row, one emit, one permutation for the selection. Unsorted and unfiltered, view and data indices coincide. */
+  const applyRowMoves = (s: DataGridStoreState, plan: RowMovePlan | null): boolean => {
+    if (!plan) return false;
+    const { data, getRowId } = s;
+    const { newIndexOf } = plan;
+    for (let i = 0; i < data.length; i++) {
+      // Indexed access sees sparse holes; a reorder would shift the lazy add-on's in-flight index bookkeeping.
+      if (data[i] === undefined) {
+        warnDev("reorderRows is a no-op while rows are still unloaded (useDataGridLazyRows): load the range first");
+        return false;
+      }
+    }
+    const nextData = new Array<unknown>(data.length);
+    for (let i = 0; i < data.length; i++) nextData[newIndexOf[i]!] = data[i];
+    const ops = plan.sources.map<DataOp<unknown>>((from, i) => ({ type: "move", rowId: getRowId(data[from]!, from), row: data[from]!, from, to: plan.targets[i]! }));
+    ctx.rowIndexCache.invalidate();
+    forgetDeferredRows(ctx);
+    ctx.lastEmittedData = nextData;
+    const editRemap = remapEditing(s, s.viewIndex, s.visibleColumns, nextData, getRowId);
+    const follow = (row: number) => newIndexOf[row] ?? row;
+    writeThenEmit(ctx, s, nextData, { source: "row-operation", ops }, () =>
+      set({
+        data: nextData,
+        rowIdentityVersion: s.rowIdentityVersion + 1,
+        selection: remapSelectionRows(s.selection, newIndexOf),
+        activeCell: s.activeCell ? { ...s.activeCell, row: follow(s.activeCell.row) } : null,
+        lastHighlightedRow: s.lastHighlightedRow === null ? null : follow(s.lastHighlightedRow),
+        ...editRemap,
+      }),
+    );
+    return true;
   };
 
   return {
@@ -780,49 +823,15 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         }),
       );
     },
-    reorderRows(from, to) {
+    reorderRows(rows, to) {
       const s = get();
-      if (!s.enableRowReorder) return false;
-      if (s.readOnly) return false;
-      if (viewSorts(s.sortMode, s.sortState).length > 0 || s.filterState.length > 0) {
-        warnDev("reorderRows is a no-op while a sort or filter is active (the view order is owned by the sort/filter)");
-        return false;
-      }
-      const n = s.data.length;
-      if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || from >= n || to < 0 || to >= n || from === to) return false;
-      // viewIndex is the identity permutation here (sort/filter gated above), so view == data indices
-      const fromData = s.viewIndex[from]!;
-      const toData = s.viewIndex[to]!;
-      if (toData === fromData) return false;
-      for (let i = 0; i < n; i++) {
-        // Indexed access sees sparse holes; a reorder would shift the lazy add-on's in-flight index bookkeeping.
-        if (s.data[i] === undefined) {
-          warnDev("reorderRows is a no-op while rows are still unloaded (useDataGridLazyRows): load the range first");
-          return false;
-        }
-      }
-      const moved = s.data[fromData]!;
-      const nextData = s.data.slice();
-      nextData.splice(fromData, 1);
-      nextData.splice(toData, 0, moved);
-      const ops: DataOp<unknown>[] = [{ type: "move", rowId: s.getRowId(moved, fromData), row: moved, from: fromData, to: toData }];
-      ctx.rowIndexCache.invalidate();
-      forgetDeferredRows(ctx);
-      ctx.lastEmittedData = nextData;
-      const f = rowReorderMap(from, to);
-      // no view rebuild: unsorted and unfiltered, the identity `viewIndex` content is unchanged
-      const editRemap = remapEditing(s, s.viewIndex, s.visibleColumns, nextData, s.getRowId);
-      writeThenEmit(ctx, s, nextData, { source: "row-operation", ops }, () =>
-        set({
-          data: nextData,
-          rowIdentityVersion: s.rowIdentityVersion + 1,
-          selection: reorderSelectionForRow(s.selection, from, to),
-          activeCell: s.activeCell ? { ...s.activeCell, row: f(s.activeCell.row) } : null,
-          lastHighlightedRow: s.lastHighlightedRow === null ? null : f(s.lastHighlightedRow),
-          ...editRemap,
-        }),
-      );
-      return true;
+      if (!canMoveRows(s)) return false;
+      return applyRowMoves(s, planBlockMove(s.data.length, typeof rows === "number" ? [rows] : rows, to));
+    },
+    moveRowsBy(rows, delta) {
+      const s = get();
+      if (!canMoveRows(s)) return false;
+      return applyRowMoves(s, planShiftMove(s.data.length, rows, delta));
     },
     commitChange(change) {
       const s = get();
