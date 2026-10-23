@@ -44,14 +44,15 @@ type GridOptions = {
   cols?: typeof columns;
   width?: number;
   onFilterChange?: (next: FilterSpec[]) => void;
+  onContextMenu?: () => void;
 };
 
-async function renderGrid({ rows = makeRows(), headerClickBehavior, defaultFilterState, cols = columns, width, onFilterChange }: GridOptions = {}) {
+async function renderGrid({ rows = makeRows(), headerClickBehavior, defaultFilterState, cols = columns, width, onFilterChange, onContextMenu }: GridOptions = {}) {
   let api!: StoreApi<DataGridStoreState>;
   await render(
     <DataGridProvider data={rows} columns={cols} getRowId={(r) => r.id} headerClickBehavior={headerClickBehavior} defaultFilterState={defaultFilterState} onFilterChange={onFilterChange}>
       <StoreProbe onReady={(a) => (api = a)} />
-      <div style={width ? { width } : undefined}>
+      <div style={width ? { width } : undefined} onContextMenu={onContextMenu}>
         <DataGridRoot className="h-75" renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}>
           <DataGridHeader />
           <DataGridBody />
@@ -171,6 +172,22 @@ describe("DataGridHeaderFilter", () => {
     await vi.waitFor(() => expect(popup()).toBeNull());
     expect(getApi().getState().filterState).toEqual([expect.objectContaining({ columnId: "city", operator: "isNoneOf", value: ["bonn"] })]);
     await vi.waitFor(() => expect(document.activeElement?.closest('[role="grid"]')).toBeTruthy());
+  });
+
+  it("moves from the search box into the list with ArrowDown", async () => {
+    await renderGrid();
+    await openFilter("city");
+    popup()!.querySelector("input")!.focus();
+    await userEvent.keyboard("{ArrowDown}");
+    expect(document.activeElement).toBe(popup()!.querySelector('[role="listbox"]'));
+  });
+
+  it("keeps a context menu request in the popup away from the grid", async () => {
+    const onContextMenu = vi.fn();
+    await renderGrid({ onContextMenu });
+    await openFilter("city");
+    options()[0]!.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
+    expect(onContextMenu).not.toHaveBeenCalled();
   });
 
   it("Home and End move the active option", async () => {

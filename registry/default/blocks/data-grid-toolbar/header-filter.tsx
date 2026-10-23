@@ -33,6 +33,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void }):
   const actions = useDataGridActions();
   const filtered = useDataGridIsColumnFiltered(column.id);
   const listId = useId();
+  const listRef = useRef<HTMLDivElement>(null);
 
   const [loaded] = useState(() => {
     const state = storeApi.getState();
@@ -88,9 +89,14 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void }):
   };
 
   const onSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key !== "Enter" || isComposingKey(event)) return;
-    event.preventDefault();
-    apply();
+    if (isComposingKey(event)) return;
+    if (event.key === "ArrowDown" && visible.length > 0) {
+      event.preventDefault();
+      listRef.current?.focus();
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      apply();
+    }
   };
 
   const status = tooMany ? labels.headerFilterTooManySelected(MAX_SET_FILTER_ENTRIES) : loaded.capped ? labels.headerFilterCapped : labels.headerFilterValueCount(visible.length, options.length);
@@ -118,7 +124,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void }):
         </span>
         {labels.headerFilterSelectAll}
       </button>
-      <SetFilterList key={query} options={visible} checked={checked} onToggle={toggle} onEnter={apply} idPrefix={listId} ariaLabel={columnLabelText(column)} />
+      <SetFilterList key={query} options={visible} checked={checked} onToggle={toggle} onEnter={apply} idPrefix={listId} ariaLabel={columnLabelText(column)} listRef={listRef} />
       <div aria-live="polite" className={cn("text-xs text-muted-foreground", tooMany && "text-destructive")}>
         {status}
       </div>
@@ -174,6 +180,7 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
         align="start"
         aria-label={labels.headerFilterAriaLabel(columnLabel, false)}
         className="w-64"
+        onContextMenu={(event) => event.stopPropagation()}
         finalFocus={() => {
           if (!keyboardOpenedRef.current) return true;
           const active = document.activeElement;

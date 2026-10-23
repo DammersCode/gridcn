@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -43,11 +43,12 @@ export type SetFilterListProps = {
   idPrefix: string;
   ariaLabel: string;
   className?: string;
+  listRef?: Ref<HTMLDivElement>;
 };
 
 /** Virtualized multi-select listbox with fixed-height rows; only the rows near the viewport mount. */
 export function SetFilterList(props: SetFilterListProps): ReactNode {
-  const { options, checked, onToggle, onEnter, idPrefix, ariaLabel, className } = props;
+  const { options, checked, onToggle, onEnter, idPrefix, ariaLabel, className, listRef } = props;
   const [scrollTop, setScrollTop] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const lastIndex = options.length - 1;
@@ -124,11 +125,12 @@ export function SetFilterList(props: SetFilterListProps): ReactNode {
 
   return (
     <div
+      ref={listRef}
       role="listbox"
       tabIndex={0}
       aria-label={ariaLabel}
       aria-multiselectable="true"
-      aria-activedescendant={options.length > 0 ? optionId(active) : undefined}
+      aria-activedescendant={active >= first && active <= last ? optionId(active) : undefined}
       className={cn("relative overflow-y-auto rounded-md border border-input outline-none focus-visible:ring-2 focus-visible:ring-ring/50", className)}
       style={{ height: VIEWPORT_HEIGHT }}
       onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
