@@ -154,7 +154,8 @@ The filter menu uses the same list for `isAnyOf` and `isNoneOf` on a column with
 <Callout type="warn">
   With server-side or lazy data, the list shows only the values of the loaded rows. A value
   that exists only on the server is missing from the list. Your server decides which rows the
-  grid loads, so it decides which values the list can show.
+  grid loads, so it decides which values the list can show. The popover then shows the hint
+  "From loaded rows". Set the text with the `toolbar.headerFilterLoadedRowsOnly` label.
 </Callout>
 
 ## Related

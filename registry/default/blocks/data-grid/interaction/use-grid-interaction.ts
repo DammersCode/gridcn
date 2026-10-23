@@ -214,6 +214,16 @@ function scrollCellIntoView(scrollElement: HTMLElement, coord: ViewCoord, layout
   }
 }
 
+const warnedMissingTriggers = new WeakMap<object, Set<string>>();
+
+function warnMissingTriggerOnce(storeApi: object, slotProp: string, message: string): void {
+  const warned = warnedMissingTriggers.get(storeApi) ?? new Set<string>();
+  warnedMissingTriggers.set(storeApi, warned);
+  if (warned.has(slotProp)) return;
+  warned.add(slotProp);
+  warnDev(message);
+}
+
 /**
  * Executes one already-resolved keymap action against the store — the dispatch shared by the
  * in-grid keydown handler and the global-shortcut window layer, so a globally registered action
@@ -318,7 +328,7 @@ export function dispatchGridAction(args: {
       if (!scrollRef.current) return;
       const trigger = findTrigger();
       if (trigger) open(trigger);
-      else warnDev(`${action} found no ${triggerLabel} for "${column.id}"; wire ${slotProp} to enable it`);
+      else warnMissingTriggerOnce(storeApi, slotProp, `${action} found no ${triggerLabel} for "${column.id}"; wire ${slotProp} to enable it`);
     };
     const frame = requestAnimationFrame(() => {
       const second = requestAnimationFrame(retry);

@@ -71,6 +71,11 @@ describe("distinctColumnValues", () => {
     expect(result.values.find((v) => v.key === "c0")?.count).toBe(2);
   });
 
+  it("reports holes only when the data has unloaded rows", () => {
+    expect(distinctColumnValues(input([{ city: "Bonn" }, undefined]), "city").hasHoles).toBe(true);
+    expect(distinctColumnValues(input([{ city: "Bonn" }]), "city").hasHoles).toBe(false);
+  });
+
   it("skips lazy holes instead of counting them as blanks", () => {
     const data: unknown[] = [{ city: "Bonn" }, undefined, { city: "" }];
     expect(summary(distinctColumnValues(input(data), "city"))).toEqual([["", "", 1], ["bonn", "Bonn", 1]]);

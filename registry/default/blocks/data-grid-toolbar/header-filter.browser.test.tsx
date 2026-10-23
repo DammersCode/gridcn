@@ -45,12 +45,13 @@ type GridOptions = {
   width?: number;
   onFilterChange?: (next: FilterSpec[]) => void;
   onContextMenu?: () => void;
+  sortMode?: "client" | "server";
 };
 
-async function renderGrid({ rows = makeRows(), headerClickBehavior, defaultFilterState, cols = columns, width, onFilterChange, onContextMenu }: GridOptions = {}) {
+async function renderGrid({ rows = makeRows(), headerClickBehavior, defaultFilterState, cols = columns, width, onFilterChange, onContextMenu, sortMode }: GridOptions = {}) {
   let api!: StoreApi<DataGridStoreState>;
   await render(
-    <DataGridProvider data={rows} columns={cols} getRowId={(r) => r.id} headerClickBehavior={headerClickBehavior} defaultFilterState={defaultFilterState} onFilterChange={onFilterChange}>
+    <DataGridProvider data={rows} columns={cols} getRowId={(r) => r.id} headerClickBehavior={headerClickBehavior} defaultFilterState={defaultFilterState} onFilterChange={onFilterChange} sortMode={sortMode}>
       <StoreProbe onReady={(a) => (api = a)} />
       <div style={width ? { width } : undefined} onContextMenu={onContextMenu}>
         <DataGridRoot className="h-75" renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}>
@@ -72,6 +73,26 @@ async function openFilter(columnId: string) {
 const settle = () => new Promise((r) => setTimeout(r, 250));
 
 describe("DataGridHeaderFilter", () => {
+  it("hides the loaded-rows hint for plain client data", async () => {
+    await renderGrid();
+    await openFilter("city");
+    expect(popup()!.textContent).not.toContain("From loaded rows");
+  });
+
+  it("shows the loaded-rows hint when rows are unloaded", async () => {
+    const rows: (Row | undefined)[] = makeRows();
+    delete rows[3];
+    await renderGrid({ rows: rows as Row[] });
+    await openFilter("city");
+    expect(popup()!.textContent).toContain("From loaded rows");
+  });
+
+  it("shows the loaded-rows hint under server sorting", async () => {
+    await renderGrid({ sortMode: "server" });
+    await openFilter("city");
+    expect(popup()!.textContent).toContain("From loaded rows");
+  });
+
   it("lists the distinct values with counts and a labelled dialog", async () => {
     await renderGrid();
     await openFilter("city");

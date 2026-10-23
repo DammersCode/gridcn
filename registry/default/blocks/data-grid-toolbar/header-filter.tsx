@@ -39,7 +39,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void }):
     const state = storeApi.getState();
     const distinct = distinctColumnValues(state, column.id);
     const keys = distinct.values.map((value) => value.key);
-    return { ...distinct, keys, openFilters: state.filterState, initiallyChecked: checkedKeysFromFilters(state.filterState, column.id, keys) };
+    return { ...distinct, partial: distinct.hasHoles || state.sortMode === "server", keys, openFilters: state.filterState, initiallyChecked: checkedKeysFromFilters(state.filterState, column.id, keys) };
   });
   const options = useMemo<SetFilterOption[]>(
     () => loaded.values.map((value) => (value.key === "" ? { ...value, label: labels.headerFilterBlanks } : value)),
@@ -128,6 +128,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void }):
       <div aria-live="polite" className={cn("text-xs text-muted-foreground", tooMany && "text-destructive")}>
         {status}
       </div>
+      {loaded.partial && <div className="text-xs text-muted-foreground">{labels.headerFilterLoadedRowsOnly}</div>}
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" size="sm" disabled={!filtered} onClick={clear}>
           {labels.headerFilterClear}

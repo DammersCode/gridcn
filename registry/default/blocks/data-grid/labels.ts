@@ -59,6 +59,7 @@ export type DataGridToolbarLabels = {
   headerFilterBlanks: string;
   /** Status line when the value list stopped collecting at its limit. */
   headerFilterCapped: string;
+  headerFilterLoadedRowsOnly: string;
   /** Shown when the selection would store more than `max` entries. */
   headerFilterTooManySelected: (max: number) => string;
   headerFilterSelectAll: string;
@@ -335,6 +336,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     headerFilterValueCount: (visible, total) => (visible === total ? `${total} values` : `${visible} of ${total} values`),
     headerFilterBlanks: "(Blanks)",
     headerFilterCapped: "Too many values. Showing the first values only.",
+    headerFilterLoadedRowsOnly: "From loaded rows",
     headerFilterTooManySelected: (max) => `Too many values selected. Select at most ${max}.`,
     headerFilterSelectAll: "Select all",
     headerFilterApply: "Apply",
