@@ -1,6 +1,7 @@
 ---
 title: Plugins
 description: The grid's extension seam. One `plugins` prop carries overlays, row bands, change observers, commands, keymap entries, and mount components.
+status: updated
 icon: Puzzle
 ---
 
@@ -137,10 +138,10 @@ array order. `RowBandRenderCtx` carries the segment's data:
 - **`rows`**: this plugin's rows for this band.
 - **`rowOffset`**: how many rows earlier plugins put in this band before this segment. Top bands
   stack from the header down; bottom bands stack top to bottom.
-- **`ariaRowIndexBase`**: the `aria-rowindex` of this segment's first row. Header is 1, then
+- **`ariaRowIndexBase`**: the `aria-rowindex` of this segment's first row. Header rows come first (one row, or one more per column group level), then
   pinned-top rows, then data rows, then pinned-bottom rows.
 - **`rowHeight`**, **`renderedColumns`**, **`layout`**, **`template`**, **`headerHeight`**: the
-  root's layout values, so a segment lines up pixel-for-pixel with the cell grid.
+  root's layout values (`headerHeight` is the whole header block), so a segment lines up pixel-for-pixel with the cell grid.
 
 The band's row counts feed the root's `aria-rowcount` and its sticky-height arithmetic. Bands
 render during server-side rendering, so an SSR render of a grid with pinned rows carries the band

@@ -1907,6 +1907,32 @@
          ]
       },
       {
+         "name": "data-grid-column-groups-demo",
+         "type": "registry:example",
+         "title": "Data Grid Column Groups Demo",
+         "description": "Column groups: Contact, Work with a nested History group, and Standing sit above their columns. Click a group header to select its columns, drag a group header to move the block, and use the columns menu to hide members.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-toolbar"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-column-groups-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-column-groups-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
          "name": "data-grid-column-layout-demo",
          "type": "registry:example",
          "title": "Data Grid Column Layout Demo",

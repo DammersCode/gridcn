@@ -68,6 +68,7 @@ const ALLOWED_OVERFLOW = [
   ["large-data", "100k-row demo: the lesson is virtualization at scale, its 7-column, real-world-width table is the point"],
   ["performance", "100k-row FPS demo: shares large-data's column set on purpose, to show the same scale under a live FPS readout"],
   ["pinning", "pin-left/right demo: the lesson is columns pinned across a scrolled middle region, so a scrollable body is required"],
+  ["column-groups", "column-group demo: the lesson is group headers over a pinned column and a scrolled middle region, so a scrollable body is required"],
   ["playground", "kitchen-sink demo: every feature toggle live at once, deliberately more columns than a single preview width"],
   ["cell-types", "kitchen-sink demo: every built-in cell type live in one preview, deliberately more columns than a single preview width; the grid body scrolls"],
   ["url-state", "nuqs's app-router NuqsAdapter needs Next's router context, unavailable in this isolated harness — unrelated to column fit"],

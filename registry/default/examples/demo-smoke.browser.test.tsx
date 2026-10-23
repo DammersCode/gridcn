@@ -6,6 +6,7 @@ import ActionsDemo from "./data-grid-actions-demo";
 import CellErrorsDemo from "./data-grid-cell-errors-demo";
 import CellTypesDemo from "./data-grid-cell-types-demo";
 import ColumnDragDemo from "./data-grid-column-drag-demo";
+import ColumnGroupsDemo from "./data-grid-column-groups-demo";
 import ColumnLayoutDemo from "./data-grid-column-layout-demo";
 import ConditionalStylingDemo from "./data-grid-conditional-styling-demo";
 import ContextMenuDemo from "./data-grid-context-menu-demo";
@@ -67,6 +68,7 @@ const DEMOS: readonly [string, ReactNode][] = [
   ["cell-errors", <CellErrorsDemo key="cell-errors" />],
   ["cell-types", <CellTypesDemo key="cell-types" />],
   ["column-drag", <ColumnDragDemo key="column-drag" />],
+  ["column-groups", <ColumnGroupsDemo key="column-groups" />],
   ["column-layout", <ColumnLayoutDemo key="column-layout" />],
   ["conditional-styling", <ConditionalStylingDemo key="conditional-styling" />],
   ["context-menu", <ContextMenuDemo key="context-menu" />],

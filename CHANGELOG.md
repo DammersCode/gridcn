@@ -24,6 +24,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - The toolbar `isAnyOf` value input keeps checked values that are not in the column's `choices` when you toggle a choice. Before, a toggle dropped them.
 - The `fake-remote-server` example matches `isAnyOf` without regard to case, like the grid, and supports `isNoneOf`. Before, any operator it did not know matched every row. The Drizzle and Prisma recipes map `isNoneOf` to `notInArray` and `notIn`.
 
+- `DataGridProvider` takes a `columnGroups` prop. Each `ColumnGroupDef` has an `id`, a `header`, and `children` (column ids and nested groups). The header gets one row per group level, and a column outside a group spans all rows. A group keeps its columns together: reorder moves a column inside its group and moves a group as one block (`setColumnOrder` accepts a group id), and a saved, URL, or default `order` that splits a group is repaired. Pinning stays per column, so a group with columns in two pin zones shows one header cell per zone. A press on a group header selects its visible columns. Export and print write the column headers only.
+- **Breaking:** the root context `headerHeight` is the height of the whole header block (`headerRowHeight` times `headerRowCount`). It stays the same without `columnGroups`. With groups, `aria-rowindex` of data rows and pinned rows grows by the number of group levels, and `aria-rowcount` includes the header rows. The context has the new fields `headerRowHeight`, `headerRowCount`, `headerRows`, and `columnGroupModel`.
+- The `DataGridColumnsMenu` of `data-grid-toolbar` lists the members of a group under a heading with the group label.
+
 ## 1.1.0 - 2026-10-21
 
 - In Firefox, lists longer than about 248,600 rows at 36 px no longer lose the end of the list. Rows stay visible after scrolling past about 8.9 million px.

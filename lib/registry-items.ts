@@ -22,6 +22,7 @@ export type RegistryItemName =
   | "data-grid-cell-types-demo"
   | "data-grid-conditional-styling-demo"
   | "data-grid-column-drag-demo"
+  | "data-grid-column-groups-demo"
   | "data-grid-column-layout-demo"
   | "data-grid-context-menu-demo"
   | "data-grid-context-menu-slots-demo"

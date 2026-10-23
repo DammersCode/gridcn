@@ -29,6 +29,7 @@ const EXAMPLES = {
   "data-grid-pinning-demo": dynamic(() => import("@/registry/default/examples/data-grid-pinning-demo")),
   "data-grid-column-drag-demo": dynamic(() => import("@/registry/default/examples/data-grid-column-drag-demo")),
   "data-grid-column-layout-demo": dynamic(() => import("@/registry/default/examples/data-grid-column-layout-demo")),
+  "data-grid-column-groups-demo": dynamic(() => import("@/registry/default/examples/data-grid-column-groups-demo")),
   "data-grid-actions-demo": dynamic(() => import("@/registry/default/examples/data-grid-actions-demo")),
   "data-grid-row-ops-demo": dynamic(() => import("@/registry/default/examples/data-grid-row-ops-demo")),
   "data-grid-large-data-demo": dynamic(() => import("@/registry/default/examples/data-grid-large-data-demo")),
