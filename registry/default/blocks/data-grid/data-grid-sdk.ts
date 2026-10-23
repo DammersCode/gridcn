@@ -85,6 +85,7 @@ export {
   useDataGridColumnFeatureFlags,
   useDataGridCommands,
   useDataGridInstanceId,
+  useDataGridIsColumnFiltered,
   useDataGridSearchCapped,
   useDataGridSearchMatches,
   useDataGridSelector,
