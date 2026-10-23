@@ -69,6 +69,12 @@ describe("serializeSortState / parseSortState", () => {
     expect(parseSortState("%E0%A4%A:asc")).toEqual([]);
   });
 
+  it("reads only the first 256 raw segments", () => {
+    const raw = `${",".repeat(256)}name:asc`;
+    expect(parseSortState(raw)).toEqual([]);
+    expect(parseSortState(`${",".repeat(255)}name:asc`)).toEqual([{ columnId: "name", direction: "asc" }]);
+  });
+
   it("ignores arbitrary garbage input", () => {
     expect(parseSortState("!!!not-valid!!!")).toEqual([]);
   });

@@ -3,6 +3,9 @@ import type { SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 /** A hand-edited URL must not express an unbounded sort list; segments beyond the cap are dropped. */
 const MAX_URL_SORTS = 64;
 
+/** Raw segments read from the param, so a forged link of millions of commas allocates nothing past this. */
+const MAX_URL_SORT_SEGMENTS = 256;
+
 /**
  * Compact URL encoding for {@link SortSpec}[]: comma-separated `columnId:direction` pairs,
  * column id percent-encoded (ids are consumer-controlled and may contain `,`/`:`).
@@ -38,7 +41,7 @@ export function parseSortState(raw: string): SortSpec[] {
   const sorts: SortSpec[] = [];
   // one sort entry per column (the grid's sort model) — a repeated column id keeps its first segment
   const seenColumns = new Set<string>();
-  for (const segment of raw.split(",")) {
+  for (const segment of raw.split(",", MAX_URL_SORT_SEGMENTS)) {
     if (sorts.length >= MAX_URL_SORTS) break;
     const [columnId, direction] = segment.split(":");
     if (!columnId || (direction !== "asc" && direction !== "desc")) continue;
