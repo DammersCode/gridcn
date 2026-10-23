@@ -65,6 +65,22 @@ describe("DataGridFilterValueInput", () => {
     expect(onValueChange).toHaveBeenCalledWith(["a", "b", "outside"]);
   });
 
+  it("matches stored choice values case-insensitively when showing and toggling", async () => {
+    const columns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "amount", header: "Amount", accessorKey: "amount", type: "select", options: { choices: [{ value: "Open", label: "Open" }, { value: "Closed", label: "Closed" }] } } as never,
+    ];
+    const onValueChange = vi.fn();
+    render(
+      <DataGridProvider data={[]} columns={columns} getRowId={(r) => r.id}>
+        <DataGridFilterValueInput column={columns[0] as AnyColumnDef} operator="isAnyOf" value={["open", "gone"]} onValueChange={onValueChange} />
+      </DataGridProvider>,
+    );
+    fireEvent.click(screen.getByRole("button"));
+    expect((await screen.findByRole("menuitemcheckbox", { name: "Open" })).getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "Open" }));
+    expect(onValueChange).toHaveBeenCalledWith(["gone"]);
+  });
+
   it("lists the distinct column values for isAnyOf on a column without choices and keeps outside values", async () => {
     const columns: readonly ColumnDef<{ id: string; city: string }, unknown>[] = [{ id: "city", header: "City", accessorKey: "city", type: "text" }];
     const data = [

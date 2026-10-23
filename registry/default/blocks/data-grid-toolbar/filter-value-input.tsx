@@ -132,13 +132,14 @@ function AnyOfValueInput(props: {
   summary: string;
 }) {
   const { choices, selected, onValueChange, ariaLabel, summary } = props;
+  const selectedLower = new Set(selected.map((value) => value.toLowerCase()));
   const toggle = (choice: string, checked: boolean) => {
-    const next = new Set(selected);
-    if (checked) next.add(choice);
-    else next.delete(choice);
-    const choiceValues = new Set(choices.map((c) => c.value));
+    const next = new Set(selectedLower);
+    if (checked) next.add(choice.toLowerCase());
+    else next.delete(choice.toLowerCase());
+    const choiceValues = new Set(choices.map((c) => c.value.toLowerCase()));
     // committed order is the column's own, not click order; values outside `choices` stay last
-    onValueChange([...choices.map((c) => c.value).filter((v) => next.has(v)), ...selected.filter((v) => !choiceValues.has(v))]);
+    onValueChange([...choices.map((c) => c.value).filter((v) => next.has(v.toLowerCase())), ...selected.filter((v) => !choiceValues.has(v.toLowerCase()))]);
   };
 
   return (
@@ -154,7 +155,7 @@ function AnyOfValueInput(props: {
         {choices.map((choice) => (
           <DropdownMenuCheckboxItem
             key={choice.value}
-            checked={selected.includes(choice.value)}
+            checked={selectedLower.has(choice.value.toLowerCase())}
             onCheckedChange={(checked) => toggle(choice.value, checked)}
           >
             {choice.label}
