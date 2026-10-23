@@ -5,6 +5,7 @@ import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "
 import { CellSpan } from "./cell-span";
 import { TEXT_FILTER_OPERATORS } from "./capabilities";
 import { useCommitGuard } from "../interaction/use-commit-guard";
+import { useCellTextInsets } from "../interaction/use-cell-editor";
 import { isComposingKey } from "../interaction/is-composing-key";
 import { columnLabelText } from "../columns/column-format-helpers";
 import { displayText } from "./display-text";
@@ -31,6 +32,7 @@ function LongTextEditor({
   rejectionCount,
 }: CellEditorProps<unknown, string, GridCellTypes["longText"]["options"]>) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { triggerRef, measure } = useCellTextInsets();
   const [text, setText] = useState(longTextCellType.toText(value));
   const [open, setOpen] = useState(true);
   const committed = useCommitGuard();
@@ -46,10 +48,13 @@ function LongTextEditor({
   const setTextareaRef = useCallback((el: HTMLTextAreaElement | null) => {
     textareaRef.current = el;
     if (!el) return;
+    // first line sits on the display text, so opening the editor moves nothing
+    const { start, top } = measure();
+    el.style.padding = `${top}px ${start}px`;
     el.focus({ preventScroll: true });
     const end = el.value.length;
     el.setSelectionRange(end, end);
-  }, []);
+  }, [measure]);
 
   const commitValue = (nextValue: string, movement?: { dx: number; dy: number }) => {
     if (!committed.tryCommit()) return;
@@ -83,7 +88,7 @@ function LongTextEditor({
         }
       }}
     >
-      <PopoverTrigger nativeButton={false} render={<span className="block size-full truncate" />}>
+      <PopoverTrigger nativeButton={false} render={<span ref={triggerRef} className="block w-full min-w-0 truncate" />}>
         {displayText(longTextCellType, value, options)}
       </PopoverTrigger>
       <PopoverContent
@@ -91,7 +96,9 @@ function LongTextEditor({
         // Base UI's open-focus wins the rAF race and resets the caret; the mount effect owns focus.
         initialFocus={false}
         align="start"
-        className="w-auto p-0"
+        alignOffset={() => -measure().start}
+        sideOffset={() => -measure().textBottomToCellTop}
+        className="w-100 rounded-none p-0 data-open:animate-none data-closed:animate-none"
         onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
           if (e.key === "Escape" && !isComposingKey(e) && committed.tryCommit()) cancel();
         }}
@@ -114,7 +121,7 @@ function LongTextEditor({
             if (e.shiftKey || e.altKey) insertLineBreak();
             else commitValue(longTextCellType.fromText(text), { dx: 0, dy: 1 });
           }}
-          className="h-24 w-40 resize-none border-none bg-transparent p-2 text-sm shadow-none outline-none"
+          className="block max-h-75 min-h-37.5 w-full resize-none overflow-y-auto border-none bg-transparent text-[length:inherit] shadow-none outline-none"
         />
       </PopoverContent>
     </Popover>

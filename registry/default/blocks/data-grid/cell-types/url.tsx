@@ -5,7 +5,7 @@ import { TEXT_FILTER_OPERATORS } from "./capabilities";
 import { safeHref } from "./safe-href";
 import { displayText } from "./display-text";
 import { toSafeText } from "./safe-text";
-import { useCellEditor } from "../interaction/use-cell-editor";
+import { CELL_INPUT_CLASS, useCellEditor } from "../interaction/use-cell-editor";
 
 // One window.open-style opening context for every cell link; the same attributes the `openLink`
 // action passes to window.open.
@@ -29,7 +29,7 @@ function UrlCell({ value, options }: CellRenderProps<unknown, string | null, Gri
 
 function UrlEditor(props: CellEditorProps<unknown, string | null, GridCellTypes["url"]["options"]>) {
   const { ref, ...bindings } = useCellEditor(props, { toDraft: urlCellType.toText, toValue: urlCellType.fromText });
-  return <Input ref={ref} {...bindings} className="h-full w-full border-none bg-transparent p-0 shadow-none outline-none focus-visible:ring-0" />;
+  return <Input ref={ref} {...bindings} className={CELL_INPUT_CLASS} />;
 }
 
 /** `url`: the stored value IS the URL — toText/copy/export/edit stay the URL; a value failing the safeHref allow-list renders as plain text. `options.label` maps the URL to the shown link text only. */

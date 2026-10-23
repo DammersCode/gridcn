@@ -42,6 +42,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - `GridActions` has the actions `moveRowsUp` and `moveRowsDown`, bound to `Shift+Alt+PageUp` and `Shift+Alt+PageDown`. They move the checked rows one place, or the rows of the selected range, or the active row. They need `enableRowReorder` and a `reorder`-family `rowMarkers` mode, and do nothing on a `readOnly` grid or at the edge. The keybindings dialog lists both under editing.
 - The live region announces a block move with `labels.markers.reorderRowsAnnouncement(count, position, total)`. The store holds the text as `rowMoveAnnouncement`, and `useDataGridRowMoveAnnouncement` reads it, so a key press and a `reorderRows` call announce like a drag.
 - A move that leaves a selected range with its rows next to each other keeps the range. Otherwise the range collapses onto the active cell. The `reorderSelectionForRow` and `rowReorderMap` helpers are gone, replaced by `remapSelectionRows(selection, newIndexOf)`.
+- Starting an edit no longer moves the cell text. The date and long text editors keep the text where it was (it jumped up by 7.5 px at the default row height), and the text, number and url inputs use the cell font size on narrow screens and have no tint in dark mode.
+- The long text editor opens as a larger popover (400 px wide, 150 to 300 px high) over the cell, with its top-left corner on the cell's corner. The date popover starts at the cell's start edge. Neither plays an open animation.
 
 ## 1.1.0 - 2026-10-21
 
