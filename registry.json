@@ -138,6 +138,11 @@
                "target": "components/data-grid/clipboard/use-grid-clipboard.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/columns/column-groups.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/columns/column-groups.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/columns/column-format-helpers.ts",
                "type": "registry:component",
                "target": "components/data-grid/columns/column-format-helpers.ts"
@@ -171,6 +176,11 @@
                "path": "registry/default/blocks/data-grid/columns/column-border.ts",
                "type": "registry:component",
                "target": "components/data-grid/columns/column-border.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/columns/group-header-cell.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid/columns/group-header-cell.tsx"
             },
             {
                "path": "registry/default/blocks/data-grid/columns/pinned-inset-style.ts",
