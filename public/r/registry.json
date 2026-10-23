@@ -821,7 +821,7 @@
       "name": "data-grid-toolbar",
       "type": "registry:block",
       "title": "Data Grid Toolbar",
-      "description": "Toolbar add-on for the gridcn data grid: quick-search with match navigation, a per-column filter menu (aligned rows, join column, drag-to-reorder via @dnd-kit/react), and a column visibility/pin menu.",
+      "description": "Toolbar add-on for the gridcn data grid: quick-search with match navigation, a per-column filter menu (aligned rows, join column, drag-to-reorder via @dnd-kit/react), a header value filter (searchable distinct-values list with counts), and a column visibility/pin menu.",
       "author": "gridcn",
       "dependencies": [
         "@dnd-kit/dom@~0.5.0",
@@ -872,6 +872,26 @@
           "path": "registry/default/blocks/data-grid-toolbar/operators-for-column-type.ts",
           "type": "registry:component",
           "target": "components/data-grid-toolbar/operators-for-column-type.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-toolbar/header-filter.tsx",
+          "type": "registry:component",
+          "target": "components/data-grid-toolbar/header-filter.tsx"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-toolbar/set-filter-list.tsx",
+          "type": "registry:component",
+          "target": "components/data-grid-toolbar/set-filter-list.tsx"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-toolbar/apply-set-filter.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-toolbar/apply-set-filter.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-toolbar/distinct-values.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-toolbar/distinct-values.ts"
         }
       ],
       "categories": [
@@ -2101,6 +2121,32 @@
           "path": "registry/default/examples/data-grid-sort-list-demo.tsx",
           "type": "registry:example",
           "target": "components/data-grid-sort-list-demo.tsx"
+        },
+        {
+          "path": "registry/default/examples/demo-data.ts",
+          "type": "registry:example",
+          "target": "components/demo-data.ts"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
+      "name": "data-grid-header-filter-demo",
+      "type": "registry:example",
+      "title": "Data Grid Header Filter Demo",
+      "description": "Header filter button on each column: search the distinct values, check the ones to keep, and apply.",
+      "author": "gridcn",
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/data-grid-toolbar"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-header-filter-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-header-filter-demo.tsx"
         },
         {
           "path": "registry/default/examples/demo-data.ts",
