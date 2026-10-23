@@ -9,9 +9,10 @@ import { pinnedInsetStyle } from "./columns/pinned-inset-style";
 import { useColumnResize } from "./columns/use-column-resize";
 import { DataGridSortIndicator, ariaSortFor } from "./columns/sort-indicator";
 import type { ColumnReorderState } from "./columns/use-column-reorder";
-import type { HeaderMenuRenderer } from "./layout-context";
+import type { HeaderFilterRenderer, HeaderMenuRenderer } from "./layout-context";
 import type { GridDirection } from "./virtualization/direction";
-import { useDataGridLabels, type AnyColumnDef } from "./store";
+import { useDataGridCellTypes, useDataGridIsColumnFiltered, useDataGridLabels, type AnyColumnDef } from "./store";
+import { offersSetFilter } from "./cell-types/capabilities";
 import { columnLabelText as headerLabelText } from "./columns/column-format-helpers";
 import { gridAttrSelector } from "./data-attributes";
 
@@ -21,6 +22,13 @@ const INTERACTIVE_CONTENT = 'button, a, input, select, textarea, [role="button"]
 function fromInteractiveContent(event: { target: EventTarget; currentTarget: EventTarget }): boolean {
   const target = event.target instanceof Element ? event.target.closest(INTERACTIVE_CONTENT) : null;
   return target !== null && target !== event.currentTarget && (event.currentTarget as Element).contains(target);
+}
+
+const POPUP_SELECTOR = `${gridAttrSelector("headerMenuPopup")}, ${gridAttrSelector("headerFilterPopup")}`;
+
+/** Whether an event bubbled through the React tree out of a header menu or header filter portal. */
+function fromPopup(event: { target: EventTarget }): boolean {
+  return event.target instanceof Element && event.target.closest(POPUP_SELECTOR) !== null;
 }
 
 /** What a {@link HeaderCellRenderer} receives for one column. */
@@ -69,6 +77,8 @@ export type DataGridHeaderCellProps = {
   onSort: (columnId: string, additive: boolean) => void;
   /** Optional per-column header menu slot (root `renderHeaderMenu` prop) — renders a ghost chevron trigger when provided. */
   renderHeaderMenu?: HeaderMenuRenderer;
+  /** Optional per-column header filter slot (root `renderHeaderFilter` prop) — rendered for columns that offer a set filter. */
+  renderHeaderFilter?: HeaderFilterRenderer;
   /** Replaces the cell's contents; see {@link HeaderCellRenderer}. */
   renderHeaderCell?: HeaderCellRenderer;
 };
@@ -91,10 +101,14 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
     onSelect,
     onSort,
     renderHeaderMenu,
+    renderHeaderFilter,
     renderHeaderCell,
   } = props;
 
   const labels = useDataGridLabels();
+  const cellTypes = useDataGridCellTypes();
+  const filtered = useDataGridIsColumnFiltered(column.id);
+  const showHeaderFilter = Boolean(renderHeaderFilter) && offersSetFilter(column, cellTypes[column.type ?? "text"]);
   const pinned = column.pin;
   const cellRef = useRef<HTMLDivElement | null>(null);
   const columnResizable = resizeProps.enabled && (column.resizable ?? true);
@@ -122,7 +136,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
       // the header menu's popup is a React portal: its events still bubble through the REACT tree
       // (not the DOM tree) up to this handler, so a click on e.g. "Hide column" would otherwise also
       // fire the column-select gesture here — bail out for any event actually targeting the popup.
-      if ((event.target as HTMLElement).closest(gridAttrSelector("headerMenuPopup")) || fromInteractiveContent(event)) return;
+      if (fromPopup(event) || fromInteractiveContent(event)) return;
       // 'sort' mode reassigns the plain click to sorting (handleClick below); the column-select
       // gesture (and its press+drag range-select) only applies in the default 'select' mode.
       if (headerClickBehavior === "select") onSelect(index, event);
@@ -133,7 +147,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
 
   const handleClick = useCallback(
     (event: ReactMouseEvent<HTMLElement>) => {
-      if ((event.target as HTMLElement).closest(gridAttrSelector("headerMenuPopup")) || fromInteractiveContent(event)) return;
+      if (fromPopup(event) || fromInteractiveContent(event)) return;
       if (headerClickBehavior !== "sort" || column.sortable === false) return;
       onSort(column.id, event.shiftKey);
     },
@@ -148,6 +162,16 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
       {headerClickBehavior === "sort" && column.sortable !== false && typeof column.header === "string" && (
         <DataGridSortIndicator columnId={column.id} sortState={sortState} />
       )}
+      {showHeaderFilter && renderHeaderFilter && (
+        <span
+          data-grid-header-filter-slot=""
+          className="ms-auto shrink-0 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 group-data-[filtered]:opacity-100 has-[[data-popup-open]]:opacity-100"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
+        >
+          {renderHeaderFilter({ column, index })}
+        </span>
+      )}
       {renderHeaderMenu &&
         renderHeaderMenu({
           column,
@@ -158,7 +182,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
               data-grid-header-menu-trigger=""
               tabIndex={-1}
               aria-label={labels.contextMenu.columnMenuAriaLabel(headerLabelText(column))}
-              className="ms-auto shrink-0 rounded p-0.5 text-muted-foreground opacity-0 outline-none transition-opacity hover:bg-accent hover:text-accent-foreground focus:opacity-100 group-hover:opacity-100"
+              className={cn("shrink-0 rounded p-0.5 text-muted-foreground opacity-0 outline-none transition-opacity hover:bg-accent hover:text-accent-foreground focus:opacity-100 group-hover:opacity-100", !showHeaderFilter && "ms-auto")}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => event.stopPropagation()}
             >
@@ -178,6 +202,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
       aria-sort={column.sortable !== false ? ariaSortFor(column.id, sortState) : undefined}
       data-column-id={column.id}
       data-pinned={pinned || undefined}
+      data-filtered={filtered || undefined}
       data-dragging={isDragging || undefined}
       className={cn(
         "group relative flex items-center border-b border-border bg-muted px-2 font-medium select-none",

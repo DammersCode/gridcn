@@ -1125,6 +1125,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             sortState: s.sortState,
             enableColumnResize: s.enableColumnResize,
             hasHeaderMenu: context.hasHeaderMenu,
+            hasHeaderFilter: context.hasHeaderFilter,
           },
           { cellFont: context.cellFont, headerFont: context.headerFont },
           context.window,

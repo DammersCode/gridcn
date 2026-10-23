@@ -255,6 +255,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
     loading,
     loadingState,
     renderHeaderMenu,
+    renderHeaderFilter,
     renderMarker,
     renderMarkerHeader,
     getRowClassName,
@@ -275,6 +276,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
         loading={loading}
         loadingState={loadingState}
         renderHeaderMenu={renderHeaderMenu}
+        renderHeaderFilter={renderHeaderFilter}
         renderMarker={renderMarker}
         renderMarkerHeader={renderMarkerHeader}
         getRowClassName={getRowClassName}

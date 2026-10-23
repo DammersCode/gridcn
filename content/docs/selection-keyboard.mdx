@@ -2,6 +2,7 @@
 title: Selection & keyboard
 description: Range selection, mouse gestures, and the full keyboard shortcut reference.
 icon: MousePointer2
+status: updated
 ---
 
 ## Selection model
@@ -126,6 +127,14 @@ The marker checkboxes are not tab stops, so the keyboard has its own actions:
 To check rows that are not next to each other, move with <kbd>Alt</kbd>+<kbd>Arrow</kbd>, which
 keeps the selection, and press `toggleRow` on each row. <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+A
 (`selectAll`) selects cells, not checked rows.
+
+## Opening the column filter
+
+<NewBadge />
+
+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowUp</kbd> (`openColumnFilter`) opens the header filter of the
+active cell's column. It does nothing unless the root has a `renderHeaderFilter` slot and the column offers a set filter.
+The <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowDown</kbd> chord opens the column menu.
 
 ## Two-stage Ctrl+A
 

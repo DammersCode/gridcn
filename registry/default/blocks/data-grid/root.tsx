@@ -39,6 +39,7 @@ import { useGridClipboard } from "./clipboard/use-grid-clipboard";
 import {
   useColumnLayout,
   DataGridRootContext,
+  type HeaderFilterRenderer,
   type HeaderMenuRenderer,
   type MarkerCellRenderer,
   type MarkerHeaderRenderer,
@@ -123,6 +124,12 @@ export type DataGridRootProps<TData = unknown> = {
    */
   renderHeaderMenu?: HeaderMenuRenderer;
   /**
+   * Per-column header filter slot: rendered inline-end in each header cell, only for columns that offer a
+   * set filter (`isAnyOf` or `isNoneOf`) and are not `filterable: false`. The toolbar add-on's
+   * `DataGridHeaderFilter` is the intended renderer.
+   */
+  renderHeaderFilter?: HeaderFilterRenderer;
+  /**
    * Custom row-marker cell renderer: replaces the built-in row number/checkbox content inside the
    * marker column. Requires a non-`'none'` `rowMarkers` mode (the mode still drives the track width,
    * and the cell's own press/drag row-selection gesture stays on the wrapper); an interactive element
@@ -151,6 +158,7 @@ export const DATA_GRID_ROOT_PROP_KEYS = [
   "loading",
   "loadingState",
   "renderHeaderMenu",
+  "renderHeaderFilter",
   "renderMarker",
   "renderMarkerHeader",
   "getRowClassName",
@@ -179,6 +187,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     loading = false,
     loadingState,
     renderHeaderMenu,
+    renderHeaderFilter,
     renderMarker,
     renderMarkerHeader,
     getRowClassName,
@@ -328,10 +337,11 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
             }
           : null,
         hasHeaderMenu: Boolean(renderHeaderMenu),
+        hasHeaderFilter: Boolean(renderHeaderFilter),
       };
     });
     return () => internalActions._registerMeasureFonts(null);
-  }, [internalActions, renderHeaderMenu]);
+  }, [internalActions, renderHeaderMenu, renderHeaderFilter]);
 
   // autosizeOnMount: one autosize pass once the view first has rows (a lazy grid waits for its
   // first page). Runs once per mount. A saved layout wins: columns with a saved width
@@ -492,6 +502,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       interaction,
       direction,
       renderHeaderMenu,
+      renderHeaderFilter,
       renderMarker,
       renderMarkerHeader,
       // Erasure boundary: DataGridRootContextValue is one shared non-generic context for every
@@ -515,6 +526,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       interaction,
       direction,
       renderHeaderMenu,
+      renderHeaderFilter,
       renderMarker,
       renderMarkerHeader,
       getRowClassName,

@@ -1,6 +1,7 @@
 import type { AnyColumnDef } from "../store";
 import type { AutosizeOptions, CellType, SortSpec } from "../types";
 import { isDev } from "../is-dev";
+import { offersSetFilter } from "../cell-types/capabilities";
 import { displayText } from "../cell-types/display-text";
 import { getCellValue } from "./column-helpers";
 import { CELL_PADDING, measureTextWidths } from "./measure-column-text";
@@ -16,6 +17,8 @@ const MAX_SAMPLE_TEXT_LENGTH = 1_000;
 const SORTED_HEADER_AFFORDANCE = 30;
 /** Fixed header allowance for the per-column header-menu trigger: `p-0.5` (2px per side) + a size-3.5 (14px) chevron. */
 const HEADER_MENU_AFFORDANCE = 18;
+/** Fixed header allowance for the header-filter button, the same size as the header-menu trigger. */
+const HEADER_FILTER_AFFORDANCE = 18;
 
 /** The view-shaped subset of store state the engine measures over. */
 export type AutosizeState = {
@@ -32,6 +35,8 @@ export type AutosizeState = {
   enableColumnResize: boolean;
   /** A consumer header-menu trigger is rendered (adds the trigger allowance to every measured header). */
   hasHeaderMenu: boolean;
+  /** A header-filter button is rendered (adds its allowance to the headers of columns with a set filter). */
+  hasHeaderFilter: boolean;
 };
 
 /** The mounted view-row window `[start, end)` (the rows the user sees), `null` when nothing is mounted. */
@@ -54,7 +59,7 @@ export function computeAutosizeWidths(
   window: AutosizeWindow,
   options?: AutosizeOptions,
 ): Record<string, number> {
-  const { columns, visibleColumns, hiddenColumns, viewIndex, data, cellTypes, sortState, enableColumnResize, hasHeaderMenu } = state;
+  const { columns, visibleColumns, hiddenColumns, viewIndex, data, cellTypes, sortState, enableColumnResize, hasHeaderMenu, hasHeaderFilter } = state;
   const sampleRows = Math.min(Math.max(options?.sampleRows ?? DEFAULT_AUTOSIZE_SAMPLE_ROWS, 1), MAX_AUTOSIZE_SAMPLE_ROWS);
   const includeHeader = options?.includeHeader ?? true;
 
@@ -104,7 +109,7 @@ export function computeAutosizeWidths(
       ? (column.headerText ?? (typeof column.header === "string" ? column.header : "")).slice(0, MAX_SAMPLE_TEXT_LENGTH)
       : "";
     const headerWidth = headerText
-      ? measureTextWidths([headerText], fonts.headerFont) + (sortedColumnIds.has(column.id) ? SORTED_HEADER_AFFORDANCE : 0) + (hasHeaderMenu ? HEADER_MENU_AFFORDANCE : 0)
+      ? measureTextWidths([headerText], fonts.headerFont) + (sortedColumnIds.has(column.id) ? SORTED_HEADER_AFFORDANCE : 0) + (hasHeaderMenu ? HEADER_MENU_AFFORDANCE : 0) + (hasHeaderFilter && offersSetFilter(column, cellType) ? HEADER_FILTER_AFFORDANCE : 0)
       : 0;
     const cellWidth = measureTextWidths([...cellTexts], fonts.cellFont);
     result[column.id] = clampColumnWidth(column, Math.max(headerWidth, cellWidth) + CELL_PADDING);

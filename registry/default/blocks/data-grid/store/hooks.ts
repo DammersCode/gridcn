@@ -308,6 +308,11 @@ export function useDataGridFilterState(): FilterSpec[] {
   return useDataGridStore(useShallow((s) => s.filterState));
 }
 
+/** Whether the column has an active filter. Subscribes to the boolean only, so a header re-renders when its own column starts or stops being filtered. */
+export function useDataGridIsColumnFiltered(columnId: string): boolean {
+  return useDataGridStore((s) => s.filterState.some((spec) => spec.columnId === columnId));
+}
+
 /** How `filterState`'s rows combine; default `"and"`. See {@link FilterJoinOperator}. */
 export function useDataGridJoinOperator(): FilterJoinOperator {
   return useDataGridStore((s) => s.joinOperator);

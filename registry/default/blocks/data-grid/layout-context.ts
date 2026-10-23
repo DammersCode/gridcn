@@ -116,6 +116,14 @@ export type RowBandRenderCtx = {
  */
 export type HeaderMenuRenderer = (ctx: { column: AnyColumnDef; index: number; trigger: ReactElement }) => ReactNode;
 
+/**
+ * Render-prop for the per-column header filter slot, shown only for columns that offer a set filter.
+ * The renderer owns its button and popover. The button carries `data-grid-header-filter-trigger` so
+ * the `openColumnFilter` key action can find it, and the popover carries `data-grid-header-filter-popup`
+ * so the header cell ignores events that bubble out of the portal.
+ */
+export type HeaderFilterRenderer = (ctx: { column: AnyColumnDef; index: number }) => ReactNode;
+
 /** Context passed to {@link MarkerCellRenderer} for one row's marker cell. */
 export type MarkerCellRenderCtx = {
   /** The row's `getRowId()` value — stable row identity. The marker column is not a data column, so there is no `columnId` here. */
@@ -168,6 +176,8 @@ export type DataGridRootContextValue = {
   direction: GridDirection;
   /** Optional per-column header menu slot (ghost chevron trigger); undefined renders nothing. */
   renderHeaderMenu?: HeaderMenuRenderer;
+  /** Optional per-column header filter slot; undefined renders nothing. */
+  renderHeaderFilter?: HeaderFilterRenderer;
   /** Optional custom row-marker cell renderer; undefined renders the built-in number/checkbox. */
   renderMarker?: MarkerCellRenderer;
   /** Optional custom marker-header renderer; undefined renders the built-in select-all checkbox. */

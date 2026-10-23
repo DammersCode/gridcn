@@ -47,6 +47,8 @@ export const DEFAULT_KEYMAP: Keymap = {
   toggleAllRows: ["mod+shift+e"],
   // alt+ArrowDown is moveDownKeepSelection and Shift+F10 opens the cell context menu
   openColumnMenu: ["shift+alt+ArrowDown"],
+  // mirrors openColumnMenu; Alt+Arrow produces no character on any layout, so it never collides with AltGr
+  openColumnFilter: ["shift+alt+ArrowUp"],
   edit: ["Enter", "F2", " "],
   commitDown: ["Enter"],
   commitUp: ["shift+Enter"],

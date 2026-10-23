@@ -39,6 +39,13 @@ export function resolveFilterOperators<TData = unknown, TValue = unknown, TOptio
   return column.filterOperators ?? cellType?.filter?.operators ?? operatorsForColumnType(column.type);
 }
 
+/** Whether the column is filterable and offers a set operator, which is what the header filter needs. */
+export function offersSetFilter(column: AnyColumnDef, cellType: CellType | undefined): boolean {
+  if (column.filterable === false) return false;
+  const operators = resolveFilterOperators(column, cellType);
+  return SET_FILTER_OPERATORS.some((operator) => operators.includes(operator));
+}
+
 /** The filter row's value widget: `cellType.filter.valueInput`, else the type-name default. */
 export function resolveFilterValueInput<TData = unknown, TValue = unknown, TOptions = unknown>(
   column: AnyColumnDef,

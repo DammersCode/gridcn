@@ -290,6 +290,37 @@ export function dispatchGridAction(args: {
     if (storeApi.getState().editing) scrollCellIntoView(coord);
   };
 
+  const openActiveColumnTrigger = (triggerAttr: "headerMenuTrigger" | "headerFilterTrigger", triggerLabel: string, slotProp: string) => {
+    preventDefault();
+    const active = state.activeCell;
+    const column = active && state.visibleColumns[active.col];
+    if (!active || !column) return;
+    const findTrigger = () => scrollRef.current?.querySelector<HTMLElement>(`[data-column-id="${CSS.escape(column.id)}"] ${gridAttrSelector(triggerAttr)}`);
+    const open = (trigger: HTMLElement) => {
+      trigger.setAttribute(GRID_ATTR.keyboardOpen, "");
+      trigger.click();
+      trigger.removeAttribute(GRID_ATTR.keyboardOpen);
+    };
+    scrollCellIntoView(active);
+    const mounted = findTrigger();
+    if (mounted) {
+      open(mounted);
+      return;
+    }
+    // the header is virtualized out until the scroll lands and a frame renders it
+    const retry = () => {
+      if (!scrollRef.current) return;
+      const trigger = findTrigger();
+      if (trigger) open(trigger);
+      else warnDev(`${action} found no ${triggerLabel} for "${column.id}"; wire ${slotProp} to enable it`);
+    };
+    const frame = requestAnimationFrame(() => {
+      const second = requestAnimationFrame(retry);
+      if (pendingFrameRef) pendingFrameRef.current = second;
+    });
+    if (pendingFrameRef) pendingFrameRef.current = frame;
+  };
+
   switch (action) {
     case "moveUp":
     case "moveDown":
@@ -421,37 +452,12 @@ export function dispatchGridAction(args: {
       actions.setAllRowsSelected(allRowsSelectedState(state) !== "checked");
       break;
     }
-    case "openColumnMenu": {
-      preventDefault();
-      const active = state.activeCell;
-      const column = active && state.visibleColumns[active.col];
-      if (!active || !column) break;
-      const findTrigger = () => scrollRef.current?.querySelector<HTMLElement>(`[data-column-id="${CSS.escape(column.id)}"] ${gridAttrSelector("headerMenuTrigger")}`);
-      const open = (trigger: HTMLElement) => {
-        trigger.setAttribute(GRID_ATTR.keyboardOpen, "");
-        trigger.click();
-        trigger.removeAttribute(GRID_ATTR.keyboardOpen);
-      };
-      scrollCellIntoView(active);
-      const mounted = findTrigger();
-      if (mounted) {
-        open(mounted);
-        break;
-      }
-      // the header is virtualized out until the scroll lands and a frame renders it
-      const retry = () => {
-        if (!scrollRef.current) return;
-        const trigger = findTrigger();
-        if (trigger) open(trigger);
-        else warnDev(`openColumnMenu found no column menu trigger for "${column.id}"; wire renderHeaderMenu to enable it`);
-      };
-      const frame = requestAnimationFrame(() => {
-        const second = requestAnimationFrame(retry);
-        if (pendingFrameRef) pendingFrameRef.current = second;
-      });
-      if (pendingFrameRef) pendingFrameRef.current = frame;
+    case "openColumnMenu":
+      openActiveColumnTrigger("headerMenuTrigger", "column menu trigger", "renderHeaderMenu");
       break;
-    }
+    case "openColumnFilter":
+      openActiveColumnTrigger("headerFilterTrigger", "column filter trigger", "renderHeaderFilter");
+      break;
     case "edit": {
       preventDefault();
       if (state.readOnly || !state.activeCell) break;

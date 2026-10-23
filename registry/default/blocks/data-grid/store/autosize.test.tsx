@@ -62,6 +62,7 @@ function registerFonts(store: StoreApi<DataGridStoreState>) {
       headerFont: "14px Arial",
       window: { start: 0, end: 3 },
       hasHeaderMenu: false,
+      hasHeaderFilter: false,
     }));
   });
 }

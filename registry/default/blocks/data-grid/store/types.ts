@@ -45,6 +45,8 @@ export type AutosizeMeasureContext = {
   window: { start: number; end: number } | null;
   /** The consumer renders a per-column header-menu trigger (adds its fixed width allowance). */
   hasHeaderMenu: boolean;
+  /** The consumer renders a per-column header-filter button (adds its fixed width allowance to columns with a set filter). */
+  hasHeaderFilter: boolean;
 };
 
 /** Live props synced from the consumer's render into the store on every change, typed over the consumer's row shape. */

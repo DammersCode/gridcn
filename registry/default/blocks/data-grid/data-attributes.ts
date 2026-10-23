@@ -47,6 +47,14 @@ export const GRID_ATTR = {
   reorderHandle: "data-grid-reorder-handle",
   /** header-cell.tsx: the column-menu trigger button. */
   headerMenuTrigger: "data-grid-header-menu-trigger",
+  /** header-cell.tsx: the container of the header filter slot (`renderHeaderFilter`). */
+  headerFilterSlot: "data-grid-header-filter-slot",
+  /** Carried by the header-filter add-on's button; use-grid-interaction.ts looks it up for the `openColumnFilter` action. */
+  headerFilterTrigger: "data-grid-header-filter-trigger",
+  /** Carried by the header-filter add-on's popup portal, so header-cell.tsx's own pointer handlers can ignore events that bubble out of it. */
+  headerFilterPopup: "data-grid-header-filter-popup",
+  /** header-cell.tsx: present (`""`) on a column header whose column has an active filter. */
+  filtered: "data-filtered",
   /** use-grid-interaction.ts: set on a menu trigger while the keyboard action programmatically clicks it. */
   keyboardOpen: "data-grid-keyboard-open",
   /** header-cell.tsx: the column resize handle. */
