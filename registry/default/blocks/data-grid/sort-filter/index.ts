@@ -2,7 +2,7 @@
 export { defaultCompareText } from "./default-compare-text";
 export { matchesFilter, createFilterMatcher } from "./matches-filter";
 export { buildViewIndex, isEmptyCell, makeFilterTest, searchTextReader, type CellAccessor, type ViewIndexOptions } from "./build-view-index";
-export { findSearchMatches, type SearchMatch } from "./find-search-matches";
+export { createTextMatcher, findSearchMatches, type SearchMatch } from "./find-search-matches";
 export {
   updateViewIndex,
   makeViewComparator,

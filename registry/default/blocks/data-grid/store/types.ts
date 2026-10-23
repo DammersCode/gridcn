@@ -25,6 +25,7 @@ import type {
   OnCellDoubleClick,
   RowMarkersMode,
   SelectionState,
+  SearchOptions,
   SortSpec,
 } from "../types";
 import type { RowBandRenderCtx } from "../layout-context";
@@ -661,6 +662,8 @@ export type DataGridStoreState = Omit<
   joinOperator: FilterJoinOperator;
   /** Quick-search text; never affects `viewIndex` (search highlights + navigates, it doesn't filter). */
   searchText: string;
+  /** How `searchText` matches; set through `actions.setSearch` and kept across searches. */
+  searchOptions: Required<SearchOptions>;
   /**
    * Whether `sortState`/`filterState`/`joinOperator`/`searchText` are controlled (their sync prop
    * was defined on the last `_syncProps`), set once per sync and read by `toggleSort`/`setSorts`/
@@ -856,8 +859,8 @@ export type DataGridActions = {
   setFilters(filters: FilterSpec[]): void;
   /** Sets how `filterState`'s rows combine ("and" every filter must match, "or" any one does). */
   setJoinOperator(joinOperator: FilterJoinOperator): void;
-  /** Sets quick-search text and recomputes `searchMatches`/`searchMatchSet`/`searchMatchesCapped` once; never touches `viewIndex`. */
-  setSearch(text: string): void;
+  /** Sets quick-search text (and, when given, the search options) and recomputes `searchMatches`/`searchMatchSet`/`searchMatchesCapped` once; never touches `viewIndex`. Omitted options keep the current ones. */
+  setSearch(text: string, options?: SearchOptions): void;
   /** Enters edit mode at the cell named by the stable {@link CellRef}, cancelling an open session first; no-op when the grid or column is readOnly, or its type is unregistered or declares `activate`. */
   startEditing(ref: CellRef, initialText?: string): void;
   /** View-index variant of {@link DataGridActions.startEditing} for callers that hold a {@link ViewCoord}. */

@@ -96,6 +96,9 @@ export type ViewCellRef = CellRef & {
   viewColumnIndex: number;
 };
 
+/** How the quick search compares text: `matchCase` (default `false`) respects letter case, `wholeCell` (default `false`) matches only cells equal to the search text. */
+export type SearchOptions = { matchCase?: boolean; wholeCell?: boolean };
+
 /** The two opposite corners of a rectangular selection; either diagonal order is accepted on resolve. */
 export type CellRange = { start: CellRef; end: CellRef };
 

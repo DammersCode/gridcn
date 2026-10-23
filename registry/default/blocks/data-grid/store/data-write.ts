@@ -210,7 +210,7 @@ export function reconcileAfterWrite(s: DataGridStoreState, nextData: readonly un
   if (s.searchText.trim() === "") return viewStale === s.viewStale ? {} : { viewStale };
   return {
     ...(viewStale === s.viewStale ? {} : { viewStale }),
-    ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
+    ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
   };
 }
 
@@ -226,7 +226,7 @@ export function rebuildRowOpView(s: DataGridStoreState, nextData: readonly unkno
   return {
     viewIndex,
     viewStale: false,
-    ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
+    ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
   };
 }
 
@@ -647,7 +647,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           viewIndex,
           viewStale: false,
           ...followView(s, viewIndex, s.visibleColumns, nextData, s.getRowId, true),
-          ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
+          ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
         }),
       );
       emitStreamRejections(patches, batch.rejected);
@@ -673,7 +673,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         viewIndex,
         viewStale: false,
         ...followView(s, viewIndex, s.visibleColumns),
-        ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
+        ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
       });
     },
     insertRow(viewRowIndex, position) {
