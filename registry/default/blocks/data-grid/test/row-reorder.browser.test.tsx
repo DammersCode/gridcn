@@ -382,6 +382,90 @@ describe("row reorder (marker drag)", () => {
     expect(selected.map((r) => dataCell(r).textContent)).toEqual(["Person 5"]);
   });
 
+  describe("multi-row drag", () => {
+    async function renderChecked(checkedRows: number[]) {
+      await render(
+        <div style={{ height: 400 }}>
+          <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="reorder-checkbox" />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      for (const row of checkedRows) markerCell(row).querySelector<HTMLElement>(gridAttrSelector("markerCheckbox"))!.click();
+      await expect.poll(() => selectedMarkerCount(), { timeout: 2000 }).toBe(checkedRows.length);
+    }
+
+    function bottomOf(label: string): number {
+      return rows().find((r) => dataCell(r).textContent === label)!.getBoundingClientRect().bottom - 5;
+    }
+
+    function selectedLabels(): string[] {
+      return rows()
+        .filter((r) => r.querySelector(gridAttrSelector("markerCell"))!.hasAttribute("data-row-selected"))
+        .map((r) => dataCell(r).textContent!);
+    }
+
+    function draggedMarkerCount(): number {
+      return document.querySelectorAll(`${gridAttrSelector("markerCell")}[data-dragging]`).length;
+    }
+
+    function pressGrip(viewRow: number) {
+      const rect = markerCell(viewRow).querySelector<HTMLElement>(gridAttrSelector("reorderHandle"))!.getBoundingClientRect();
+      const x = rect.left + 2;
+      markerCell(viewRow)
+        .querySelector<HTMLElement>(gridAttrSelector("reorderHandle"))!
+        .dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1, clientX: x, clientY: rect.top + 3 }));
+      return x;
+    }
+
+    it("dragging a checked row moves every checked row as a block", async () => {
+      await renderChecked([1, 2, 3]);
+      await markerDrag(2, markerCell(2).getBoundingClientRect().left + 2, bottomOf("Person 6"), { steps: 3 });
+      await expect
+        .poll(() => visualOrder(), { timeout: 2000 })
+        .toEqual(["Person 0", "Person 4", "Person 5", "Person 6", "Person 1", "Person 2", "Person 3", "Person 7"]);
+      expect(selectedLabels()).toEqual(["Person 1", "Person 2", "Person 3"]);
+    });
+
+    it("closes the gaps of a disjoint selection into one block", async () => {
+      await renderChecked([1, 3, 5]);
+      await markerDrag(3, markerCell(3).getBoundingClientRect().left + 2, bottomOf("Person 7"), { steps: 3 });
+      await expect
+        .poll(() => visualOrder(), { timeout: 2000 })
+        .toEqual(["Person 0", "Person 2", "Person 4", "Person 6", "Person 7", "Person 1", "Person 3", "Person 5"]);
+    });
+
+    it("a press on an unchecked row drags that row alone and keeps the checks", async () => {
+      await renderChecked([1, 2]);
+      const top = rows().find((r) => dataCell(r).textContent === "Person 0")!.getBoundingClientRect().top + 3;
+      await markerDrag(6, markerCell(6).getBoundingClientRect().left + 2, top, { steps: 3 });
+      await expect
+        .poll(() => visualOrder(), { timeout: 2000 })
+        .toEqual(["Person 6", "Person 0", "Person 1", "Person 2", "Person 3", "Person 4", "Person 5", "Person 7"]);
+      expect(selectedLabels()).toEqual(["Person 1", "Person 2"]);
+    });
+
+    it("dims every dragged row and announces the batch", async () => {
+      await renderChecked([1, 2, 3]);
+      const x = pressGrip(2);
+      document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: x, clientY: bottomOf("Person 6") }));
+      await expect.poll(draggedMarkerCount, { timeout: 2000 }).toBe(3);
+      document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 1 }));
+      await expect.poll(() => document.querySelector('[role="status"]')?.textContent, { timeout: 2000 }).toBe("3 rows moved to position 5 of 8");
+      await expect.poll(draggedMarkerCount, { timeout: 2000 }).toBe(0);
+    });
+
+    it("a cancelled pointer ends a multi-row drag without moving anything", async () => {
+      await renderChecked([1, 2, 3]);
+      const x = pressGrip(2);
+      document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: x, clientY: bottomOf("Person 6") }));
+      await expect.poll(draggedMarkerCount, { timeout: 2000 }).toBe(3);
+      document.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerId: 1 }));
+      await expect.poll(draggedMarkerCount, { timeout: 2000 }).toBe(0);
+      expect(visualOrder().slice(0, 2)).toEqual(["Person 0", "Person 1"]);
+      expect(selectedLabels()).toEqual(["Person 1", "Person 2", "Person 3"]);
+    });
+  });
+
   it("the checkbox hit area stays out of the grip zone", async () => {
     await render(
       <div style={{ height: 400 }}>

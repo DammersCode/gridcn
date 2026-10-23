@@ -972,7 +972,7 @@ export type DataGridActions = {
    * relative order and land contiguous, the first at view index `to` (final position — arrayMove
    * semantics for one row). Duplicate indices count once. One `{source: 'row-operation'}` DataChange with one
    * row-id-based `move` operation per moved row, each `from` the index before the batch and each `to` the
-   * final index (one undo entry; apply the ops together, never one by one). No-ops (silent, dev-warned where the cause is a misconfiguration): `enableRowReorder`
+   * final index (one undo entry; apply the operations together, never one by one). No-ops (silent, dev-warned where the cause is a misconfiguration): `enableRowReorder`
    * off, readOnly, an open edit session (the editor pins a view coordinate the move would
    * invalidate), an active sort/filter (the view order is owned by the sort/filter, not the data),
    * unloaded (lazy) rows (a reorder would shift the lazy add-on's index bookkeeping), and a drop

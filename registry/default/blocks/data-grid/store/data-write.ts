@@ -411,7 +411,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     return true;
   };
 
-  /** Applies a plan as one write: one `move` op per moved row, one emit, one permutation for the selection. Unsorted and unfiltered, view and data indices coincide. */
+  /** Applies a plan as one write: one `move` operation per moved row, one emit, one permutation for the selection. Unsorted and unfiltered, view and data indices coincide. */
   const applyRowMoves = (s: DataGridStoreState, plan: RowMovePlan | null): boolean => {
     if (!plan) return false;
     const { data, getRowId } = s;

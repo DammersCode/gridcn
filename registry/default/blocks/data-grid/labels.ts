@@ -164,6 +164,8 @@ export type DataGridMarkerLabels = {
   reorderRow: (rowNumber: number) => string;
   /** Polite live-region announcement after a row move; `rowNumber` is the dragged row's 1-based number BEFORE the move, `position`/`total` are 1-based. */
   reorderAnnouncement: (rowNumber: number, position: number, total: number) => string;
+  /** Polite live-region announcement after several rows move as a block; `position` is the 1-based number of the block's first row after the move. */
+  reorderRowsAnnouncement: (count: number, position: number, total: number) => string;
 };
 
 /** Core grid strings not owned by a specific add-on. */
@@ -473,6 +475,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     selectRow: (rowNumber) => `Select row ${rowNumber}`,
     reorderRow: (rowNumber) => `Reorder row ${rowNumber}`,
     reorderAnnouncement: (rowNumber, position, total) => `Row ${rowNumber} moved to position ${position} of ${total}`,
+    reorderRowsAnnouncement: (count, position, total) => `${count} rows moved to position ${position} of ${total}`,
   },
   grid: {
     emptyState: "No rows",

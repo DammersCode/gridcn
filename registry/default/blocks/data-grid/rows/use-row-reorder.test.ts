@@ -1,7 +1,8 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { useRowReorder } from "./use-row-reorder";
+import { CompactSelection } from "../selection";
+import { predictBlockTarget, useRowReorder } from "./use-row-reorder";
 
 function pointerDown(overrides: { pointerId?: number; clientX?: number; clientY?: number } = {}) {
   return {
@@ -19,6 +20,7 @@ function makeArgs() {
     enabled: true,
     hitTestRow: () => null,
     onReorder: vi.fn(),
+    getDragRows: (row: number) => CompactSelection.fromSingleSelection(row),
     getScrollElement: () => null,
   };
 }
@@ -149,5 +151,70 @@ describe("useRowReorder pointer capture", () => {
     expect(capture.releasePointerCapture).toHaveBeenCalledWith(7);
 
     unmount();
+  });
+  it("drops the rows that getDragRows returned when the drag armed", () => {
+    const el = { scrollTop: 0, getBoundingClientRect: () => ({ top: 0, bottom: 1000, left: 0, right: 800 }) } as unknown as HTMLElement;
+    const checked = CompactSelection.fromArray([1, 2, 5]);
+    const args = {
+      ...makeArgs(),
+      getScrollElement: () => el,
+      getDragRows: vi.fn(() => checked),
+      hitTestRow: (_x: number, y: number) => (y > 5 ? { row: 8, position: "after" as const } : null),
+    };
+    const { result, unmount } = renderHook(() => useRowReorder(args));
+
+    act(() => {
+      result.current.onMarkerDragPointerDown(2, pointerDown({ pointerId: 3 }));
+    });
+    act(() => {
+      document.dispatchEvent(Object.assign(new Event("pointermove"), { pointerId: 3, clientX: 0, clientY: 20 }));
+    });
+    expect(args.getDragRows).toHaveBeenCalledWith(2);
+    expect(result.current.dragState?.rows).toBe(checked);
+    act(() => {
+      document.dispatchEvent(Object.assign(new Event("pointerup"), { pointerId: 3 }));
+    });
+    expect(args.onReorder).toHaveBeenCalledWith(checked, 8, "after");
+    unmount();
+  });
+
+  it("a cancelled pointer ends the multi-row drag without a reorder", () => {
+    const el = { scrollTop: 0, getBoundingClientRect: () => ({ top: 0, bottom: 1000, left: 0, right: 800 }) } as unknown as HTMLElement;
+    const args = {
+      ...makeArgs(),
+      getScrollElement: () => el,
+      getDragRows: () => CompactSelection.fromArray([1, 2]),
+      hitTestRow: (_x: number, y: number) => (y > 5 ? { row: 8, position: "after" as const } : null),
+    };
+    const { result, unmount } = renderHook(() => useRowReorder(args));
+
+    act(() => {
+      result.current.onMarkerDragPointerDown(1, pointerDown({ pointerId: 4 }));
+    });
+    act(() => {
+      document.dispatchEvent(Object.assign(new Event("pointermove"), { pointerId: 4, clientX: 0, clientY: 20 }));
+    });
+    expect(result.current.dragState).not.toBeNull();
+    act(() => {
+      document.dispatchEvent(Object.assign(new Event("pointercancel"), { pointerId: 4 }));
+    });
+    expect(result.current.dragState).toBeNull();
+    expect(args.onReorder).not.toHaveBeenCalled();
+    unmount();
+  });
+});
+
+describe("predictBlockTarget", () => {
+  it("matches the single-row prediction for one row", () => {
+    expect(predictBlockTarget([2], 5, "before")).toBe(4);
+    expect(predictBlockTarget([2], 5, "after")).toBe(5);
+    expect(predictBlockTarget([5], 2, "before")).toBe(2);
+    expect(predictBlockTarget([5], 2, "after")).toBe(3);
+  });
+
+  it("shifts the boundary up by the dragged rows above it", () => {
+    expect(predictBlockTarget([1, 2, 6], 8, "before")).toBe(5);
+    expect(predictBlockTarget([1, 2, 6], 0, "before")).toBe(0);
+    expect(predictBlockTarget([3, 4], 7, "after")).toBe(6);
   });
 });

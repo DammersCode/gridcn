@@ -20,7 +20,9 @@ import { useCanvasOffset } from "./virtualization/use-scroll-snapshot";
 import { useDataGridRootContext, type RenderedColumn } from "./layout-context";
 import { DataGridRow } from "./row";
 import { DataGridOverlays } from "./overlays";
-import { predictReorderTarget, useRowReorder } from "./rows/use-row-reorder";
+import { predictBlockTarget, useRowReorder } from "./rows/use-row-reorder";
+import { CompactSelection } from "./selection";
+import type { CompactSelectionLike } from "./types";
 import { isReorderMarkerMode } from "./rows/marker-width";
 import { FLASH_KEYFRAMES } from "./cell";
 import { createRowElementRegistry } from "./row-element-registry";
@@ -228,18 +230,32 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   }, []);
 
   const onRowReorder = useCallback(
-    (from: number, over: number, position: "before" | "after") => {
-      const to = predictReorderTarget(from, over, position);
-      if (!actions.reorderRows(from, to)) return;
-      setReorderAnnouncement(labels.markers.reorderAnnouncement(from + 1, to + 1, rowCount));
+    (dragged: CompactSelectionLike, over: number, position: "before" | "after") => {
+      const rows = dragged.toArray();
+      const to = predictBlockTarget(rows, over, position);
+      if (!actions.reorderRows(rows, to)) return;
+      setReorderAnnouncement(
+        rows.length === 1
+          ? labels.markers.reorderAnnouncement(rows[0]! + 1, to + 1, rowCount)
+          : labels.markers.reorderRowsAnnouncement(rows.length, to + 1, rowCount),
+      );
     },
     [actions, labels, rowCount],
+  );
+
+  const getDragRows = useCallback(
+    (pressedRow: number) => {
+      const checked = storeApi.getState().selection.rows;
+      return checked.hasIndex(pressedRow) ? checked : CompactSelection.fromSingleSelection(pressedRow);
+    },
+    [storeApi],
   );
 
   const rowReorder = useRowReorder({
     enabled: rowReorderArmed,
     hitTestRow,
     onReorder: onRowReorder,
+    getDragRows,
     getScrollElement: () => scrollRef.current,
   });
 
@@ -317,7 +333,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
               onMarkerCheckboxPointerDown={interaction.onMarkerCheckboxPointerDown}
               onMarkerReorderPointerDown={rowReorder.onMarkerDragPointerDown}
               renderMarker={renderMarker}
-              isRowReorderDragging={rowReorder.dragState?.draggingRow === viewRowIndex}
+              isRowReorderDragging={rowReorder.dragState?.rows.hasIndex(viewRowIndex) ?? false}
               rowRef={rowRegistry.getCallback(key)}
               getGridLine={rowRegistry.gridLine}
               ariaRowIndexOffset={pinnedTopCount + headerRowCount - 1}
