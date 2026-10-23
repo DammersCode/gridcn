@@ -50,6 +50,7 @@ import {
   remapColumnChannel,
   remapRowChannel,
   reorderColumnIds as reorderColumnIdsBase,
+  reorderGroupBlock,
   resolveSelectionConfig,
   rowIdAtViewRow,
   toggleSortAdditive,
@@ -1194,6 +1195,15 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const byId = new Map(s.columns.map((c) => [c.id, c] as const));
         const column = byId.get(id);
         const target = byId.get(targetId);
+        if (groupModel?.groups.has(id)) {
+          const blockMembers = s.columns.filter((c) => groupModel?.paths.get(c.id)?.includes(id));
+          if (!target || !columnFlag(target, "reorderable") || blockMembers.some((c) => !columnFlag(c, "reorderable"))) return;
+          const currentIds = completeColumnOrder(s.columns, s.columnOrder);
+          const nextIds = reorderGroupBlock(currentIds, s.columns, groupModel, id, targetId, position);
+          if (nextIds.length === currentIds.length && nextIds.every((columnId, index) => columnId === currentIds[index])) return;
+          commitLayout({ order: nextIds });
+          return;
+        }
         if (!column || !target || !columnFlag(column, "reorderable") || !columnFlag(target, "reorderable")) return;
         const currentIds = completeColumnOrder(s.columns, s.columnOrder);
         const nextIds = reorderColumnIds(currentIds, s.columns, id, targetId, position);

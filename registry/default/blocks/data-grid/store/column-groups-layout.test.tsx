@@ -103,6 +103,27 @@ describe("column groups and the column layout", () => {
     expect(visibleIds(store())).toEqual(["d", "b", "a", "c", "e"]);
   });
 
+  it("moves a whole group when setColumnOrder gets a group id", () => {
+    const { store } = mount({ columnGroups: groups });
+    const { setColumnOrder } = store().getState().actions;
+
+    act(() => setColumnOrder("ab", "d", "after"));
+    expect(visibleIds(store())).toEqual(["c", "d", "a", "b", "e"]);
+
+    act(() => setColumnOrder("ab", "b", "before"));
+    expect(visibleIds(store())).toEqual(["c", "d", "a", "b", "e"]);
+  });
+
+  it("refuses a group move when a member is not reorderable or the pin zones differ", () => {
+    const locked = mount({ columns: [col("a", { reorderable: false }), col("b"), col("c")], columnGroups: [{ id: "ab", header: "AB", children: ["a", "b"] }] });
+    act(() => locked.store().getState().actions.setColumnOrder("ab", "c", "after"));
+    expect(visibleIds(locked.store())).toEqual(["a", "b", "c"]);
+
+    const pinned = mount({ columns: [col("a"), col("b"), col("c", { pin: "right" })], columnGroups: [{ id: "ab", header: "AB", children: ["a", "b"] }] });
+    act(() => pinned.store().getState().actions.setColumnOrder("ab", "c", "after"));
+    expect(visibleIds(pinned.store())).toEqual(["a", "b", "c"]);
+  });
+
   it("warns once in development for an unknown column id", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const bad: readonly ColumnGroupDef[] = [{ id: "g", header: "G", children: ["a", "ghost"] }];

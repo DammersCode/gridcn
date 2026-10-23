@@ -179,3 +179,87 @@ describe("column groups: pinned columns", () => {
     expect(Math.abs(rect(pinnedRight).right - rect(leaf("c29")!).right)).toBeLessThan(1.5);
   });
 });
+
+const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
+async function press(el: HTMLElement, init: PointerEventInit = {}) {
+  const r = rect(el);
+  el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1, clientX: r.left + 4, clientY: r.top + r.height / 2, ...init }));
+  document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 1 }));
+  await frame();
+}
+
+async function dragTo(from: HTMLElement, toX: number, toY: number) {
+  const r = rect(from);
+  from.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1, clientX: r.left + 4, clientY: r.top + r.height / 2 }));
+  for (let i = 0; i < 3; i++) {
+    document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: toX, clientY: toY }));
+    await frame();
+  }
+  document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 1 }));
+  await frame();
+  await frame();
+}
+
+const selectedColumns = () => new Set([...document.querySelectorAll<HTMLElement>('[role="gridcell"][aria-selected="true"]')].map((c) => c.dataset["columnId"]));
+const headerOrder = () =>
+  [...document.querySelectorAll<HTMLElement>("[role=columnheader][data-column-id]")].sort((a, b) => rect(a).left - rect(b).left).map((e) => e.dataset["columnId"]);
+
+const neighbours: ColumnGroupDef[] = [
+  { id: "left", header: "Left", children: range(0, 4) },
+  { id: "right", header: "Right", children: range(4, 8) },
+];
+
+describe("column groups: gestures", () => {
+  it("selects the group's visible columns on a press", async () => {
+    await renderGroups();
+    await press(groupCells("g1a")[0]!);
+    expect([...selectedColumns()].sort()).toEqual(["c2", "c3", "c4", "c5"]);
+  });
+
+  it("adds a second group with the multi-select key", async () => {
+    await renderGroups({ groups: neighbours });
+    await press(groupCells("left")[0]!);
+    await press(groupCells("right")[0]!, { ctrlKey: true });
+    expect([...selectedColumns()].sort()).toEqual(["c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7"]);
+  });
+
+  it("does nothing on a group press when a header press sorts", async () => {
+    function Sorting() {
+      return (
+        <DataGridProvider data={rows} columns={makeColumns(12)} columnGroups={[{ id: "g", header: "Group", children: range(0, 4) }]} getRowId={(r) => r.id} headerClickBehavior="sort">
+          <DataGridRoot className="h-[400px] w-[900px]">
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    await render(<Sorting />);
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    await press(groupCells("g")[0]!);
+    expect(selectedColumns().size).toBe(0);
+    expect(leaf("c0")!.getAttribute("aria-sort")).toBe("none");
+  });
+
+  it("drags a nested group as a block within its parent", async () => {
+    await renderGroups();
+    const t = rect(leaf("c0")!);
+    await dragTo(groupCells("g1a")[0]!, t.left + 10, t.top + t.height / 2);
+    expect(headerOrder().slice(0, 6)).toEqual(["c2", "c3", "c4", "c5", "c0", "c1"]);
+  });
+
+  it("ignores a column dropped into another group", async () => {
+    await renderGroups({ groups: neighbours });
+    const t = rect(leaf("c5")!);
+    await dragTo(leaf("c0")!, t.left + 10, t.top + t.height / 2);
+    expect(headerOrder().slice(0, 8)).toEqual(range(0, 8));
+  });
+
+  it("keeps a dragged column inside its group", async () => {
+    await renderGroups();
+    const t = rect(leaf("c1")!);
+    await dragTo(leaf("c0")!, t.right - 10, t.top + t.height / 2);
+    expect(headerOrder().slice(0, 4)).toEqual(["c1", "c0", "c2", "c3"]);
+  });
+});

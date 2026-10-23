@@ -696,6 +696,11 @@ export type GridInteractionHandlers = {
    */
   onHeaderPointerDown: (columnIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
   /**
+   * Attach to a group header cell's pointerdown: selects the visible columns `[start, end)` in the
+   * column channel (shift extends, ctrl/cmd adds). No drag. No-op when `enableColumnSelection` is false.
+   */
+  onGroupHeaderPointerDown: (start: number, end: number, event: ReactPointerEvent<HTMLElement>) => void;
+  /**
    * Attach to a marker cell's pointerdown: same plain/shift/ctrl resolution + drag-start as
    * {@link onHeaderPointerDown}, on the rows channel.
    * No-op when `enableRowSelection` is false.
@@ -1143,6 +1148,25 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
     [actions, beginDrag, storeApi],
   );
 
+  const onGroupHeaderPointerDown = useCallback(
+    (start: number, end: number, event: ReactPointerEvent<HTMLElement>) => {
+      if (event.button !== 0) return;
+      const state = storeApi.getState();
+      if (!state.enableColumnSelection) return;
+      const last = end - 1;
+      const isMultiKey = isMacRef.current ? event.metaKey : event.ctrlKey;
+      const anchor = state.lastHighlightedCol;
+      if (event.shiftKey && anchor !== null) {
+        actions.selectColumn(anchor < start ? last : start, { extendFromLast: true });
+        return;
+      }
+      if (isMultiKey) actions.selectColumn(start, { additive: true });
+      else actions.selectColumn(start);
+      if (last > start) actions.selectColumn(last, { extendFromLast: true });
+    },
+    [actions, storeApi],
+  );
+
   const onMarkerPointerDown = useCallback(
     (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
@@ -1238,6 +1262,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       onCellClick,
       onCellDoubleClick,
       onHeaderPointerDown,
+      onGroupHeaderPointerDown,
       onMarkerPointerDown,
       onMarkerCheckboxPointerDown,
       onRootPointerDown,
@@ -1250,6 +1275,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       onCellClick,
       onCellDoubleClick,
       onHeaderPointerDown,
+      onGroupHeaderPointerDown,
       onMarkerPointerDown,
       onMarkerCheckboxPointerDown,
       onRootPointerDown,

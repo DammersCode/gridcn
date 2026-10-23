@@ -968,6 +968,34 @@ describe("DataGridColumnsMenu", () => {
     await expect.element(page.getByRole("columnheader", { name: "Email" })).not.toBeInTheDocument();
   });
 
+  it("lists the members of a column group under a non-interactive heading", async () => {
+    await render(
+      <div style={{ height: 400, width: 900 }}>
+        <DataGridProvider
+          data={makeRows()}
+          columns={columns}
+          columnGroups={[{ id: "contact", header: "Contact", children: ["email", "age"] }]}
+          getRowId={(r) => r.id}
+        >
+          <DataGridToolbar>
+            <DataGridColumnsMenu />
+          </DataGridToolbar>
+          <DataGridRoot className="h-[300px] w-[900px]">
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      </div>,
+    );
+    await page.getByRole("button", { name: "Columns" }).click();
+    const menu = document.querySelector(gridAttrSelector("columnsMenu"))!;
+    const group = menu.querySelector('[role="group"]')!;
+    expect(group.textContent).toContain("Contact");
+    expect([...group.querySelectorAll('[role="menuitemcheckbox"]')].map((el) => el.textContent)).toEqual(["Email", "Age"]);
+    expect(group.querySelector('[role="menuitemcheckbox"]')?.textContent).not.toContain("Contact");
+    expect(menu.querySelectorAll('[role="menuitemcheckbox"]')).toHaveLength(3);
+  });
+
   it("renders show/hide rows only — no pin controls", async () => {
     await renderGrid();
     await page.getByRole("button", { name: "Columns" }).click();

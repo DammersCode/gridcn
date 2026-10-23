@@ -16,10 +16,13 @@ import { useColumnReorder } from "./columns/use-column-reorder";
 import { pinnedInsetStyle } from "./columns/pinned-inset-style";
 import { GRID_LAYER } from "./layers";
 import { isInlineStartHalf } from "./virtualization/direction";
-import { groupPathOf, type HeaderSegment } from "./columns/column-groups";
+import { dropUnit, groupPathOf, type HeaderSegment } from "./columns/column-groups";
 import { DataGridGroupHeaderCell } from "./columns/group-header-cell";
 
 export type { HeaderCellRenderCtx, HeaderCellRenderer } from "./header-cell";
+
+const GROUP_CELL_SELECTOR = "[data-grid-group-header]";
+const LAYER_SELECTOR = "[data-grid-header-layer]";
 
 /** Props for {@link DataGridHeader}. */
 export type DataGridHeaderProps = {
@@ -41,7 +44,7 @@ export type DataGridHeaderProps = {
  * count (chosen over shifting every data cell's aria-colindex by one).
  */
 export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderProps): ReactNode {
-  const { renderedColumns, template, layout, headerHeight, headerRowHeight, headerRowCount, headerRows, columnGroupModel, interaction, direction, renderHeaderMenu, renderHeaderFilter } =
+  const { columns, renderedColumns, template, layout, headerHeight, headerRowHeight, headerRowCount, headerRows, columnGroupModel, interaction, direction, renderHeaderMenu, renderHeaderFilter } =
     useDataGridRootContext();
   const rowMarkers = useDataGridRowMarkers();
   const actions = useDataGridActions();
@@ -53,7 +56,13 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
   /** Resolves the header cell (and before/after half) under a client point, for the reorder drag's live drop target. */
   const hitTestHeader = useCallback(
     (clientX: number, clientY: number) => {
-      const el = document.elementFromPoint(clientX, clientY)?.closest<HTMLElement>("[role='columnheader'][data-column-id]");
+      const hit = document.elementFromPoint(clientX, clientY);
+      let el = hit?.closest<HTMLElement>("[role='columnheader'][data-column-id]") ?? null;
+      const groupCell = el ? null : hit?.closest<HTMLElement>(GROUP_CELL_SELECTOR);
+      if (groupCell) {
+        const layerTop = groupCell.closest(LAYER_SELECTOR)?.getBoundingClientRect().top;
+        if (layerTop !== undefined) el = document.elementFromPoint(clientX, layerTop + headerHeight - headerRowHeight / 2)?.closest<HTMLElement>("[role='columnheader'][data-column-id]") ?? null;
+      }
       if (!el) return null;
       const rect = el.getBoundingClientRect();
       // guaranteed present: the closest() selector above only matches elements with [data-column-id]
@@ -63,12 +72,15 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
       const position: "before" | "after" = isInlineStartHalf(clientX, rect, direction) ? "before" : "after";
       return { columnId, position };
     },
-    [direction],
+    [direction, headerHeight, headerRowHeight],
   );
 
   const isColumnReorderable = useCallback(
-    (columnId: string) => renderedColumns.some(({ column }) => column.id === columnId && column.reorderable !== false),
-    [renderedColumns],
+    (columnId: string) => {
+      if (columnGroupModel?.groups.has(columnId)) return columns.every((column) => !groupPathOf(columnGroupModel, column.id).includes(columnId) || column.reorderable !== false);
+      return renderedColumns.some(({ column }) => column.id === columnId && column.reorderable !== false);
+    },
+    [renderedColumns, columns, columnGroupModel],
   );
 
   const { onHeaderDragPointerDown, dragState } = useColumnReorder({
@@ -87,7 +99,13 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
    */
   const dropIndicator = useMemo<{ index: number; style: CSSProperties } | null>(() => {
     if (!dragState?.overId) return null;
-    const over = renderedColumns.find(({ column }) => column.id === dragState.overId);
+    let boundaryId = dragState.overId;
+    if (columnGroupModel) {
+      const unit = dropUnit(columns.map((c) => c.id), columnGroupModel, dragState.draggingId, dragState.overId);
+      if (!unit) return null;
+      boundaryId = dragState.position === "before" ? unit[0]! : unit[unit.length - 1]!;
+    }
+    const over = renderedColumns.find(({ column }) => column.id === boundaryId);
     if (!over) return null;
     const { column, index } = over;
     const width = layout.widths[index];
@@ -117,7 +135,7 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
       backgroundColor: "var(--color-primary)",
     };
     return { index, style };
-  }, [dragState, renderedColumns, layout.widths, markerColOffset, columnGroupModel, headerRowCount]);
+  }, [dragState, columns, renderedColumns, layout.widths, markerColOffset, columnGroupModel, headerRowCount]);
 
   const layerStyle: CSSProperties = {
     position: "absolute",
@@ -195,6 +213,9 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
                   width={layout.trackRights[segment.end - 1]! - layout.trackLefts[segment.start]!} // segment ranges are real column indices
                   trackLeft={layout.trackLefts[segment.start]!}
                   pinnedStartEdge={pinnedStartEdge}
+                  headerClickBehavior={headerClickBehavior}
+                  onSelect={interaction.onGroupHeaderPointerDown}
+                  reorder={{ enabled: enableColumnReorder, draggingId: dragState?.draggingId ?? null, onPointerDown: onHeaderDragPointerDown }}
                 />
               );
             })}

@@ -184,18 +184,36 @@ function commonPrefix(a: readonly string[], b: readonly string[]): number {
  * when the move would take the column out of its group.
  */
 export function moveWithinGroups(orderedIds: readonly string[], model: ColumnGroupModel, id: string, targetId: string, position: "before" | "after"): string[] | null {
-  const idPath = groupPathOf(model, id);
-  const targetPath = groupPathOf(model, targetId);
-  const k = commonPrefix(idPath, targetPath);
-  if (idPath.length > k) return null;
-  const unitGroup = targetPath[k];
-  const unit = unitGroup === undefined ? [targetId] : orderedIds.filter((c) => model.paths.get(c)?.[k] === unitGroup);
+  const unit = dropUnit(orderedIds, model, id, targetId);
+  if (!unit) return null;
   return insertAtUnit(
     orderedIds.filter((c) => c !== id),
     [id],
     unit,
     position,
   );
+}
+
+/**
+ * The columns a drop next to `targetId` lands beside when `id` (a column id or a group id) moves:
+ * the whole sibling group, or the target column itself. `null` when the move would leave the
+ * moving column's group, drop a group onto itself, or leave the group's parent.
+ */
+export function dropUnit(orderedIds: readonly string[], model: ColumnGroupModel, id: string, targetId: string): string[] | null {
+  const node = model.groups.get(id);
+  const targetPath = groupPathOf(model, targetId);
+  let k: number;
+  if (node) {
+    if (targetPath.includes(id)) return null;
+    k = node.depth;
+    if (k > 0 && targetPath[k - 1] !== node.parentId) return null;
+  } else {
+    const idPath = groupPathOf(model, id);
+    k = commonPrefix(idPath, targetPath);
+    if (idPath.length > k) return null;
+  }
+  const unitGroup = targetPath[k];
+  return unitGroup === undefined ? [targetId] : orderedIds.filter((c) => model.paths.get(c)?.[k] === unitGroup);
 }
 
 /** Whether `columnId` sits inside group `groupId`, at any depth. */
@@ -208,14 +226,9 @@ export function isInGroup(model: ColumnGroupModel | null, columnId: string, grou
  * `null` when the target lies inside the moving group or outside the parent group.
  */
 export function moveGroupBlock(orderedIds: readonly string[], model: ColumnGroupModel, groupId: string, targetId: string, position: "before" | "after"): string[] | null {
-  const node = model.groups.get(groupId);
-  if (!node || isInGroup(model, targetId, groupId)) return null;
-  const k = node.depth;
-  const targetPath = groupPathOf(model, targetId);
-  const parentOk = k === 0 || (targetPath.length >= k && targetPath[k - 1] === node.parentId);
-  if (!parentOk) return null;
-  const unitGroup = targetPath[k];
-  const unit = unitGroup === undefined ? [targetId] : orderedIds.filter((c) => model.paths.get(c)?.[k] === unitGroup);
+  if (!model.groups.has(groupId)) return null;
+  const unit = dropUnit(orderedIds, model, groupId, targetId);
+  if (!unit) return null;
   const block = orderedIds.filter((c) => isInGroup(model, c, groupId));
   return insertAtUnit(
     orderedIds.filter((c) => !isInGroup(model, c, groupId)),

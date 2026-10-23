@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -8,16 +8,19 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   useDataGridActions,
   useDataGridAllColumns,
+  useDataGridColumnGroupModel,
   useDataGridIsColumnHidden,
   useDataGridLabels,
   type AnyColumnDef,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { columnLabelText } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { columnLabelText, groupPathOf, type ColumnGroupModel } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Props for {@link DataGridColumnsMenu}. */
 export type DataGridColumnsMenuProps = {
@@ -40,6 +43,33 @@ function ColumnRow(props: { column: AnyColumnDef }): ReactNode {
   );
 }
 
+type MenuSection = { key: string; heading: string | null; columns: AnyColumnDef[] };
+
+/** Consecutive columns of the same innermost group form one section, headed by the group path. */
+function menuSections(columns: readonly AnyColumnDef[], model: ColumnGroupModel | null): MenuSection[] {
+  const sections: MenuSection[] = [];
+  for (const column of columns) {
+    const path = groupPathOf(model, column.id);
+    const key = path.join("/");
+    const last = sections.at(-1);
+    if (last && last.key === key) {
+      last.columns.push(column);
+      continue;
+    }
+    const heading =
+      path.length === 0
+        ? null
+        : path
+            .map((id) => {
+              const def = model?.groups.get(id)?.def;
+              return def?.headerText ?? (typeof def?.header === "string" ? def.header : id);
+            })
+            .join(" / ");
+    sections.push({ key, heading, columns: [column] });
+  }
+  return sections;
+}
+
 /**
  * Show/hide-only column visibility dropdown — pin controls live in the header dropdown /
  * context menu instead. Each row is a
@@ -48,6 +78,8 @@ function ColumnRow(props: { column: AnyColumnDef }): ReactNode {
 export function DataGridColumnsMenu(props: DataGridColumnsMenuProps): ReactNode {
   const { className } = props;
   const columns = useDataGridAllColumns();
+  const model = useDataGridColumnGroupModel();
+  const sections = useMemo(() => menuSections(columns, model), [columns, model]);
   const labels = useDataGridLabels();
 
   return (
@@ -61,9 +93,18 @@ export function DataGridColumnsMenu(props: DataGridColumnsMenuProps): ReactNode 
         }
       />
       <DropdownMenuContent data-grid-columns-menu="" align="start" className="w-56">
-        {columns.map((column) => (
-          <ColumnRow key={column.id} column={column} />
-        ))}
+        {sections.map((section) =>
+          section.heading === null ? (
+            section.columns.map((column) => <ColumnRow key={column.id} column={column} />)
+          ) : (
+            <DropdownMenuGroup key={`${section.key}:${section.columns[0]!.id}`}>
+              <DropdownMenuLabel>{section.heading}</DropdownMenuLabel>
+              {section.columns.map((column) => (
+                <ColumnRow key={column.id} column={column} />
+              ))}
+            </DropdownMenuGroup>
+          ),
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

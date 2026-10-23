@@ -25,7 +25,7 @@ import { clampColumnWidth } from "../columns/resolve-column-width";
 import { selectCell } from "../selection/selection-ops";
 import { CompactSelection } from "../selection/compact-selection";
 import { toSafeText } from "../cell-types/safe-text";
-import { moveWithinGroups, repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
+import { moveGroupBlock, moveWithinGroups, repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
 import { isDev } from "../is-dev";
 import type {
   AnyColumnDef,
@@ -874,6 +874,26 @@ export function reorderColumnIds(
   if (targetIndex === -1) return orderedIds as string[];
   const insertAt = position === "before" ? targetIndex : targetIndex + 1;
   return [...withoutId.slice(0, insertAt), id, ...withoutId.slice(insertAt)];
+}
+
+/**
+ * Moves group `groupId` as one block next to `targetId`. Returns `orderedIds` unchanged when the
+ * move leaves the group's parent, drops onto the group itself, or its members and the target sit
+ * in different pin zones.
+ */
+export function reorderGroupBlock(
+  orderedIds: readonly string[],
+  columns: readonly AnyColumnDef[],
+  groups: ColumnGroupModel,
+  groupId: string,
+  targetId: string,
+  position: "before" | "after",
+): string[] {
+  const byId = new Map(columns.map((c) => [c.id, c] as const));
+  const zone = pinZone(byId.get(targetId));
+  const members = orderedIds.filter((id) => groups.paths.get(id)?.includes(groupId));
+  if (members.length === 0 || members.some((id) => pinZone(byId.get(id)) !== zone)) return orderedIds as string[];
+  return moveGroupBlock(orderedIds, groups, groupId, targetId, position) ?? (orderedIds as string[]);
 }
 
 /**

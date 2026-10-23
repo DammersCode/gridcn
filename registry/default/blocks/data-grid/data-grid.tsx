@@ -60,6 +60,7 @@ export {
   useDataGridViewStale,
   useDataGridVisibleColumns,
   useDataGridAllColumns,
+  useDataGridColumnGroupModel,
   useDataGridIsColumnHidden,
   useDataGridColumnWidth,
   useDataGridColumnWidths,
