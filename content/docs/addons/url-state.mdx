@@ -102,7 +102,8 @@ toggle existed still parses identically.
   reads at most 256 segments. Each `isAnyOf` list holds at most `max(number of choices, 64)`
   values for a column with `choices`. A column with missing or empty `choices` allows 1000
   values. An `isNoneOf` <NewBadge /> list has the same bound, but a longer list drops the whole filter
-  segment instead of shortening it. The `sort` param keeps one direction per column (the first
+  segment instead of shortening it. An empty list entry (the blank value) is written as a single
+  `%`. The `sort` param keeps one direction per column (the first
   segment wins) and parses at most 64 sorts. A hand-edited URL beyond these limits degrades to
   fewer filters and sorts.
 
