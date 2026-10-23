@@ -142,6 +142,22 @@ What the automated Chromium suite verifies, area by area:
   right moment.
 </Callout>
 
+## Touch targets
+
+<NewBadge />
+
+Under a coarse pointer (`@media (pointer: coarse)`), every control a finger must hit is at least
+24 by 24 CSS px (WCAG 2.2, SC 2.5.8):
+
+- The selection handles.
+- The column resize area.
+- The column drag handle, which appears only when column reorder is on.
+- The checkbox of a checkbox cell.
+- The header menu button and the header filter button. Both stay visible.
+
+Every touch gesture has another way to do the same thing. The context menu offers the clipboard,
+row, and fill items. A hardware keyboard extends a range with <kbd>Shift</kbd>+arrow.
+
 ## Known gaps
 
 - **The fill handle is mouse-only and hidden from assistive tech.** Dragging it has no keyboard

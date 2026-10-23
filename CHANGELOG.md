@@ -9,6 +9,14 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- Touch input. A touch press selects on release, not on press, so a scroll or a pan selects nothing. A tap selects a cell, a column header, or a row marker. A double-tap edits a cell. Pressing and holding for 500 ms opens the context menu of a cell or a header. The grid takes no pointer capture for a touch press and registers no non-passive touch or wheel listener.
+- After a touch selection, two selection handles at the corners of the range extend it. The grid scrolls at the edges while a handle is dragged. Any key press hides the handles.
+- **Breaking:** a touch press no longer selects on `pointerdown`. Code that reads the selection inside its own `pointerdown` handler sees it one event later.
+- `DataGridRoot` sets `touch-action: manipulation`, so a double-tap does not zoom the page. The native touch `contextmenu` event is suppressed in favor of the grid's own long-press.
+- A `click` that reaches a cell without a `pointerdown` on it, such as a screen reader activation, selects that cell.
+- Under `@media (pointer: coarse)`, the column resize area, the header menu button, and the header filter button grow to at least 24 px and stay visible. A column drag handle appears in the header when column reorder is on.
+- The `data-grid-fill` handle hides after a touch selection. The cell context menu lists Fill down and Fill right for a touch selection when the fill add-on is mounted. `labels.contextMenu` has the new keys `fillDown` and `fillRight`.
+- `OverlayPluginCtx` has the new field `selectionPointer`. The `data-grid-sdk` entry exports `useDataGridSelectionPointer`.
 - `useDataGridUrlState` and `<DataGridUrlState>` take a `layout` option and sync the column layout to the URL. The default `["order", "hidden"]` writes `cols` and `hide`; `"widths"` and `"pins"` add `widths` and `pins`; `[]` turns it off. A part is in the URL only while it differs from the layout the grid started with. The URL changes once per committed gesture, never per resize frame. A layout key over 16,384 characters is ignored, and at most 1,024 entries are read. Ids of removed columns are dropped. The `data-grid-url-state` item ships a new `layout-param.ts`.
 - The URL `sort` param reads at most 256 raw segments. Before, a forged link with millions of commas was split in full.
 - New add-on `data-grid-find-replace`. `useDataGridFindReplace` returns a `plugin` that mounts a find and replace panel. `Ctrl+H` opens it. Replace and Replace all write through each column type's `fromText` and `validate` as one change that one undo reverts. `planReplace` is the pure planner behind the buttons.

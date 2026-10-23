@@ -45,6 +45,30 @@ normally text-selectable.
 
 <ComponentPreview name="data-grid-demo" />
 
+## Touch gestures
+
+<NewBadge />
+
+A touch screen scrolls the grid natively. The grid reads the input type of each press, so a laptop
+with a touch screen and a trackpad gets touch gestures from the screen and mouse gestures from the
+trackpad.
+
+| Gesture | Result |
+|---|---|
+| Tap a cell | Selects the cell. A scroll or a pan selects nothing. |
+| Double-tap a cell | Starts editing, or toggles a checkbox cell. A read-only grid does not edit. |
+| Tap a header | Selects the column, or sorts it with `headerClickBehavior="sort"`. |
+| Tap a row marker | Selects the row. |
+| Press and hold for 500 ms | Opens the context menu on the cell or the header. |
+| Drag a selection handle | Extends the range from the opposite corner. The grid scrolls at the edges. |
+
+After a touch selection, two selection handles appear at the top-start and bottom-end corners of
+the range. Any key press hides them. A press must stay within 10 px to count as a tap or a
+press and hold.
+
+The grid sets `touch-action: manipulation`. A double-tap does not zoom the page, and pinch zoom
+stays available. Use `density="comfortable"` for rows that are easier to hit with a finger.
+
 ## Configurability
 
 You can disable each selection channel independently through `DataGridProvider` props. All
