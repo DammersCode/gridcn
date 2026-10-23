@@ -74,6 +74,10 @@ type DataChange<TData> = {
 `label` is a human-readable name for the entry, for example `"Add row"`. It is set by
 `record(change, label)` and carried through undo and redo.
 
+A `move` operation of a batch (`reorderRows` with a list, `moveRowsBy`) has `from` as the row's
+index before the whole batch and `to` as its index after it. Apply the operations of one change
+together, for example with `applyChange`. <NewBadge />
+
 An `update` operation carries `cells` only when the change is cell-level, for example an edit, a paste,
 or a fill. A whole-row update has no `cells` field.
 

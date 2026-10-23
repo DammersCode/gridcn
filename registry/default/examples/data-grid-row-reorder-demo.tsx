@@ -9,6 +9,7 @@ import {
   defineColumns,
   useDataGridActions,
   useDataGridActiveCell,
+  useDataGridSelection,
   type DataChange,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridToolbar } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
@@ -25,36 +26,30 @@ const columns = defineColumns<DemoRow>()([
 
 type MoveOp = { type: "move"; rowId: string; row: DemoRow; from: number; to: number };
 
-/** Toolbar button for the programmatic path: moves the active cell's row one position down. */
-function MoveDownButton({ rowCount }: { rowCount: number }): ReactNode {
+/** Toolbar button for the programmatic path: moves the checked rows, or the active row, one position down. */
+function MoveDownButton(): ReactNode {
   const actions = useDataGridActions();
   const activeCell = useDataGridActiveCell();
-  const canMove = activeCell !== null && activeCell.row < rowCount - 1;
+  const checkedRows = useDataGridSelection().rows.toArray();
+  const rows = checkedRows.length > 0 ? checkedRows : activeCell ? [activeCell.row] : [];
   return (
-    <Button
-      variant="outline"
-      size="xs"
-      disabled={!canMove}
-      onClick={() => {
-        if (activeCell) actions.reorderRows(activeCell.row, activeCell.row + 1);
-      }}
-    >
-      Move selection down
+    <Button variant="outline" size="xs" disabled={rows.length === 0} onClick={() => actions.moveRowsBy(rows, 1)}>
+      Move down
     </Button>
   );
 }
 
 /**
- * Drag a row by its drag handle (`rowMarkers="reorder"`) or press the toolbar button — both paths emit
- * one row-id-based `move` operation, so a single Ctrl/Cmd+Z restores the previous order. The panel shows the
- * last emitted operation; selection remaps by row id, so the row you drag ends up selected at its new
- * position and an active cell follows its row.
+ * Drag a row by its drag handle (a checked row drags every checked row), press Shift+Alt+PageDown, or press the
+ * toolbar button. Each path emits one change with a row-id-based `move` operation per moved row, so a single
+ * Ctrl/Cmd+Z restores the previous order. The panel shows the last emitted change; selection remaps by row id.
  */
 export default function DataGridRowReorderDemo(): ReactNode {
   const grid = useDataGridState(generateDemoRows(12), { getRowId: (row) => row.id });
   const [lastChange, setLastChange] = useState<DataChange<DemoRow> | null>(null);
 
   const moveOp = lastChange?.ops.find((op): op is MoveOp => op.type === "move");
+  const moveCount = lastChange?.ops.filter((op) => op.type === "move").length ?? 0;
 
   return (
     <div className="w-full flex flex-col gap-2">
@@ -62,7 +57,7 @@ export default function DataGridRowReorderDemo(): ReactNode {
         <DataGridProvider
           {...grid}
           columns={columns}
-          rowMarkers="reorder"
+          rowMarkers="reorder-checkbox"
           enableRowReorder
           onDataChange={(next, change) => {
             grid.onDataChange(next, change);
@@ -70,7 +65,7 @@ export default function DataGridRowReorderDemo(): ReactNode {
           }}
         >
           <DataGridToolbar>
-            <MoveDownButton rowCount={grid.data.length} />
+            <MoveDownButton />
             <Button variant="outline" size="xs" disabled={!grid.history.canUndo} onClick={grid.history.undo}>
               Undo
             </Button>
@@ -84,15 +79,15 @@ export default function DataGridRowReorderDemo(): ReactNode {
       <div className="rounded-md border border-border px-3 py-2 text-sm">
         {moveOp ? (
           <span className="text-muted-foreground">
-            Last change: <code className="font-mono text-xs">move</code> operation —{" "}
-            <strong className="text-foreground">{moveOp.row.name}</strong> ({moveOp.rowId}) from
+            Last change: {moveCount} <code className="font-mono text-xs">move</code> {moveCount === 1 ? "operation" : "operations"} —{" "}
+            first <strong className="text-foreground">{moveOp.row.name}</strong> ({moveOp.rowId}) from
             index {moveOp.from} to {moveOp.to} · source <code className="font-mono text-xs">{lastChange?.source}</code>{" "}
             · one undo step
           </span>
         ) : (
           <span className="text-muted-foreground">
-            Drag a row by its grip or press Move selection down — the emitted <code className="font-mono text-xs">move</code> op
-            shows up here.
+            Check some rows, then drag one by its drag handle or press Move down — the emitted{" "}
+            <code className="font-mono text-xs">move</code> operations show up here.
           </span>
         )}
       </div>

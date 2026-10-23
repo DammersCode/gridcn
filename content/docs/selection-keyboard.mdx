@@ -128,6 +128,15 @@ To check rows that are not next to each other, move with <kbd>Alt</kbd>+<kbd>Arr
 keeps the selection, and press `toggleRow` on each row. <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+A
 (`selectAll`) selects cells, not checked rows.
 
+## Moving rows
+
+<NewBadge />
+
+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> (`moveRowsUp`) and
+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> (`moveRowsDown`) move the checked rows one place.
+When no row is checked, they move the rows of the selected range, or the active row. They need a
+`reorder`-family `rowMarkers` mode. See [Row operations](/docs/row-operations#reorder).
+
 ## Opening the column filter
 
 <NewBadge />

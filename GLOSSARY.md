@@ -17,6 +17,8 @@ mirror the change there.
 | row id | The stable id from `getRowId`. Selection, editing, undo, and redo address rows by it. | id-keyed (write "by row id") |
 | view index | A row's position in the sorted and filtered list the user sees. | view space, display index |
 | data index | A row's position in your `data` array. | |
+| checked row | A row whose marker checkbox is on, kept in the row channel of the selection. | ticked row |
+| block move | Moving several rows so they land next to each other in their current order: `reorderRows(rows, to)`. `moveRowsBy(rows, delta)` shifts each row and keeps the gaps. | bulk move |
 | commit | Check a value with `validate` and write it to the data. | |
 | controlled / uncontrolled | `data` puts the state in your code. `defaultData` seeds the grid once. | |
 | seed | The initial value a `default*` prop gives once, at mount. | |
