@@ -65,6 +65,9 @@ export {
   resolveFilterValueInput,
 } from "./cell-types/capabilities";
 export { displayText, exportText } from "./cell-types/display-text";
+export { textAccessorFor as rowAccessorFor } from "./store/compute";
+export { makeFilterPredicate } from "./sort-filter/incremental-view-index";
+export { toSafeText } from "./cell-types/safe-text";
 export {
   useBulkGeneration,
   snapshotBulkBatch,
