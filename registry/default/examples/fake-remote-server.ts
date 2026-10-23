@@ -75,7 +75,9 @@ export function createRemoteServer() {
         return (min === "" || text >= min) && (max === "" || text <= max);
       }
       case "isAnyOf":
-        return (v as string[]).includes(text);
+        return (v as string[]).some((entry) => entry.toLowerCase() === text.toLowerCase());
+      case "isNoneOf":
+        return !(v as string[]).some((entry) => entry.toLowerCase() === text.toLowerCase());
       default:
         return true;
     }
