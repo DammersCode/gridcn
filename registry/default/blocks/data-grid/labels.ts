@@ -50,7 +50,7 @@ export type DataGridToolbarLabels = {
   joinOperatorOr: string;
   columns: string;
   columnsAriaLabel: string;
-  /** aria-label of the header filter button; `filtered` is true while the column has a set filter. */
+  /** aria-label of the header filter button; `filtered` is true while the column has any filter, including a condition filter. */
   headerFilterAriaLabel: (column: string, filtered: boolean) => string;
   headerFilterSearchPlaceholder: string;
   /** Status line under the search; `visible` values match the search out of `total` distinct values. */

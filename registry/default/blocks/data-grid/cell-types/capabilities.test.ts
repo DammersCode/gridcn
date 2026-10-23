@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ColumnDef } from "../types";
+import type { CellType, ColumnDef } from "../types";
 import { cellTypes } from "./cell-types";
 import {
   COMPARISON_FILTER_OPERATORS,
@@ -121,12 +121,12 @@ describe("set operators with a custom filterMatch", () => {
   it("drops the set operators of the default list", () => {
     const column = { ...noopColumn, type: "text", filterMatch } as AnyColumnDef;
     expect(resolveFilterOperators(column, cellTypes.text)).toEqual(TEXT_FILTER_OPERATORS);
-    expect(offersSetFilter(column, cellTypes.text)).toBe(false);
+    expect(offersSetFilter(column, cellTypes.text as unknown as CellType)).toBe(false);
   });
 
   it("keeps explicitly declared operators", () => {
     const column = { ...noopColumn, type: "text", filterMatch, filterOperators: ["isAnyOf"] } as AnyColumnDef;
-    expect(offersSetFilter(column, cellTypes.text)).toBe(true);
+    expect(offersSetFilter(column, cellTypes.text as unknown as CellType)).toBe(true);
   });
 });
 
