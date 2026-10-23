@@ -40,7 +40,21 @@ function chooseOperator(checkedCount: number, uncheckedCount: number, allowed: r
   return existing ?? "isAnyOf";
 }
 
-const sameList = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((v) => b.includes(v));
+const sameList = (a: readonly string[], b: readonly string[]) => {
+  const left = new Set(a.map((v) => v.toLowerCase()));
+  const right = new Set(b.map((v) => v.toLowerCase()));
+  return left.size === right.size && [...left].every((v) => right.has(v));
+};
+
+const outsideValues = (entries: readonly FilterSpec[], known: ReadonlySet<string>): string[] => entries.flatMap(listOf).filter((v) => !known.has(v.toLowerCase()));
+
+/** The entry that keeps hiding values outside the list when every listed value is checked, or none. */
+function keepOutsideValues(existing: readonly FilterSpec[], columnId: string, keys: readonly string[], known: ReadonlySet<string>): FilterSpec | undefined {
+  const anyOutside = outsideValues(existing.filter((f) => f.operator === "isAnyOf"), known);
+  if (anyOutside.length > 0) return { columnId, operator: "isAnyOf", value: [...keys, ...anyOutside] };
+  const noneOutside = outsideValues(existing.filter((f) => f.operator === "isNoneOf"), known);
+  return noneOutside.length > 0 ? { columnId, operator: "isNoneOf", value: noneOutside } : undefined;
+}
 
 /**
  * Plans the `setFilters` write for one column's set filter: replaces every `isAnyOf`/`isNoneOf`
@@ -55,11 +69,14 @@ export function planSetFilter(input: SetFilterPlanInput): SetFilterPlan {
 
   if (checkedKeys.length === 0) return { status: "blocked", reason: "none-checked" };
 
+  const known = new Set(keys);
   let entry: FilterSpec | undefined;
-  if (uncheckedKeys.length > 0) {
+  if (uncheckedKeys.length === 0) {
+    entry = keepOutsideValues(existing, columnId, keys, known);
+    if (entry && entry.value!.length > MAX_SET_FILTER_ENTRIES) return { status: "blocked", reason: "too-many" };
+  } else {
     const operator = chooseOperator(checkedKeys.length, uncheckedKeys.length, allowed, existing[0]?.operator as SetOperator | undefined);
-    const known = new Set(keys);
-    const outside = existing.length === 1 && existing[0]!.operator === operator ? listOf(existing[0]!).filter((v) => !known.has(v)) : [];
+    const outside = existing.length === 1 && existing[0]!.operator === operator ? outsideValues(existing, known) : [];
     const value = [...(operator === "isAnyOf" ? checkedKeys : uncheckedKeys), ...outside];
     if (value.length > MAX_SET_FILTER_ENTRIES) return { status: "blocked", reason: "too-many" };
     entry = { columnId, operator, value };

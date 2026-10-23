@@ -91,6 +91,48 @@ describe("planSetFilter", () => {
   });
 });
 
+describe("planSetFilter with stored values of another case", () => {
+  const keys2 = ["open", "closed"];
+
+  it("treats a stored value as known regardless of case", () => {
+    const existing: FilterSpec[] = [{ columnId: "city", operator: "isAnyOf", value: ["Open"] }];
+    expect(plan(["closed"], existing, BOTH, keys2)).toEqual({ status: "apply", filters: [{ columnId: "city", operator: "isAnyOf", value: ["closed"] }] });
+  });
+
+  it("reports unchanged when the stored list differs only in case", () => {
+    const existing: FilterSpec[] = [{ columnId: "city", operator: "isAnyOf", value: ["Open"] }];
+    expect(plan(["open"], existing, BOTH, keys2)).toEqual({ status: "unchanged" });
+  });
+});
+
+describe("planSetFilter with values outside the list", () => {
+  it("reduces an isNoneOf to its outside values when every listed value is checked", () => {
+    const existing: FilterSpec[] = [{ columnId: "city", operator: "isNoneOf", value: ["a", "paris"] }];
+    expect(plan(keys, existing)).toEqual({ status: "apply", filters: [{ columnId: "city", operator: "isNoneOf", value: ["paris"] }] });
+  });
+
+  it("reports unchanged when an isNoneOf holds only outside values", () => {
+    const existing: FilterSpec[] = [{ columnId: "city", operator: "isNoneOf", value: ["paris"] }];
+    expect(plan(keys, existing)).toEqual({ status: "unchanged" });
+  });
+
+  it("removes an isNoneOf without outside values", () => {
+    const existing: FilterSpec[] = [{ columnId: "city", operator: "isNoneOf", value: ["a"] }];
+    expect(plan(keys, existing)).toEqual({ status: "apply", filters: [] });
+  });
+
+  it("writes an explicit list for an isAnyOf with outside values", () => {
+    const existing: FilterSpec[] = [{ columnId: "city", operator: "isAnyOf", value: ["a", "paris"] }];
+    expect(plan(keys, existing)).toEqual({ status: "apply", filters: [{ columnId: "city", operator: "isAnyOf", value: [...keys, "paris"] }] });
+  });
+
+  it("blocks the explicit list above the entry cap", () => {
+    const many = Array.from({ length: MAX_SET_FILTER_ENTRIES }, (_, i) => `v${i}`);
+    const existing: FilterSpec[] = [{ columnId: "city", operator: "isAnyOf", value: [many[0]!, "paris"] }];
+    expect(plan(many, existing, BOTH, many)).toEqual({ status: "blocked", reason: "too-many" });
+  });
+});
+
 describe("checkedKeysFromFilters", () => {
   it("checks every key without a set entry", () => {
     expect([...checkedKeysFromFilters([{ columnId: "city", operator: "contains", value: "x" }], "city", keys)]).toEqual(keys);
