@@ -1,0 +1,134 @@
+---
+title: Find & replace
+description: "The data-grid-find-replace add-on: a panel that finds text in the grid and replaces one match or all matches as one undoable change."
+icon: Replace
+status: new
+---
+
+Users fix the same typo in many cells without editing each cell. `data-grid-find-replace` adds a
+panel with a Find field and a Replace field. `useDataGridFindReplace` returns the `plugin` that
+mounts the panel and binds <kbd>Ctrl</kbd>+<kbd>H</kbd> to open it.
+
+<ComponentPreview name="data-grid-find-replace-demo" />
+
+<InstallCommand item="data-grid-find-replace" manual manualSlot={<ManualInstall item="data-grid-find-replace" />} />
+
+Pass the plugin to the grid:
+
+```tsx
+import { useDataGridFindReplace } from "@/components/data-grid-find-replace/data-grid-find-replace";
+
+const findReplace = useDataGridFindReplace();
+
+<DataGridProvider {...grid} columns={columns} plugins={[findReplace.plugin]}>
+  <DataGridRoot>
+    <DataGridHeader />
+    <DataGridBody />
+  </DataGridRoot>
+</DataGridProvider>;
+```
+
+`findReplace.open()` opens the panel from your own button. `findReplace.close()` closes it.
+
+## Find
+
+The Find field writes the grid's quick search. The highlights, the next and previous buttons, and
+the cells that Replace changes are always the same cells. The toolbar search shows the same text.
+
+The search is a literal text match. It never reads the text as a pattern. Two toggles change the
+match:
+
+- **Match case** matches letter case. It is off by default.
+- **Whole cell** matches only cells that equal the Find text. It is off by default.
+
+Find ignores leading and trailing spaces in the Find text. Pass the same options to the store with
+`actions.setSearch(text, { matchCase, wholeCell })`. The options stay set until the next call that
+sets them.
+
+## Replace
+
+A cell is matched on its search text. This is the text the user sees, for example the label of a
+`select` choice. Replace swaps the Find text in that text and then converts the result with the
+column type's `fromText`. A `select` label maps back to its value. A `number` cell parses again.
+
+- **Replace** changes the current match, then moves to the next match. When the active cell is a
+  match, Replace changes that cell.
+- **Replace all** changes every matching cell in the view.
+
+Each click writes one change with the source `"replace"`. One undo reverts it. Selection and
+active cell stay where they are.
+
+Replace skips a cell when:
+
+- the column or the row is read-only,
+- the replaced text cannot become a value of the type (replacing `5` with `x` in a `number` column
+  leaves the cell as it is),
+- the replaced text is longer than 100,000 characters,
+- the column's `validate` rejects the new value. `onValidationError` receives these cells with the
+  source `"replace"`.
+
+The status line under the buttons shows how many cells changed and how many were skipped. With an
+async `validate`, it shows `Validating…` until the batch settles.
+
+## Where Replace works
+
+Replace covers the visible columns of the rows in the view. Hidden columns, filtered-out rows,
+pinned rows, and unloaded lazy rows never change. With `scope: "selection"`, it covers only the
+selected cells.
+
+One Replace all changes at most `replaceAllLimit` cells. When more cells match, the status line
+says so. Click Replace all again to continue.
+
+When the grid is `readOnly`, the Find field works and Replace stays disabled. While a cell editor
+is open, Replace does nothing.
+
+A sort or filter on a replaced column does not move rows while the panel is open. The view
+reconciles on the next sort or filter change. See `reorder` in
+[Streaming updates](/docs/streaming-updates).
+
+## Keyboard
+
+| Key | Where | Action |
+|---|---|---|
+| <kbd>Ctrl</kbd>+<kbd>H</kbd> | grid | Opens the panel with the cursor in Find. |
+| <kbd>Enter</kbd> | Find | Goes to the next match. |
+| <kbd>Shift</kbd>+<kbd>Enter</kbd> | Find | Goes to the previous match. |
+| <kbd>Enter</kbd> | Replace | Replaces the current match. |
+| <kbd>Mod</kbd>+<kbd>Enter</kbd> | Replace | Replaces all matches. |
+| <kbd>Escape</kbd> | panel | Closes the panel and returns focus to the grid. |
+
+<kbd>Ctrl</kbd> is the physical Ctrl key on every platform. <kbd>Cmd</kbd>+<kbd>H</kbd> hides the
+app on macOS, and a page cannot take it. To change the key, bind `openFindReplace` in the grid's
+`keymap`.
+
+## Options
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `"view" \| "selection"` | `"view"` | Which cells Replace covers. |
+| `replaceAllLimit` | `number` | `10000` | Most cells one Replace all changes. Clamped to 1 to 100,000. |
+
+## planReplace
+
+`planReplace(state, find, replacement, options)` is the pure function behind the buttons. Its
+`options` are `scope`, `replaceAllLimit`, `matchCase`, `wholeCell`, and `only`. It
+returns `{ patches, skipped, remaining }` and writes nothing. Pass `patches` to
+`actions.updateCells(patches, { source: "replace" })` to write them. `options.only` limits the plan
+to one `{ rowId, columnId }` cell. Find and replacement text longer than 1,000 characters is cut.
+
+## Labels
+
+The panel strings live under `labels.findReplace`. See [Internationalization](/docs/i18n).
+
+<Callout type="warn" title="Ctrl+H opens the browser history in some browsers">
+  The panel calls `preventDefault` on <kbd>Ctrl</kbd>+<kbd>H</kbd> while the grid has focus. A
+  browser that reserves the key still opens its history. Bind another key in `keymap`, or use
+  `findReplace.open()` from a button.
+</Callout>
+
+## Related
+
+- [Sorting, filtering & search](/docs/sorting-filtering-search): the quick search that Find shares
+- [Undo & redo](/docs/addons/undo-redo): records the `"replace"` source by default
+- [Events & state](/docs/events-state): the `source` field and `onValidationError`
+- [Keybindings](/docs/addons/keybindings): remap `openFindReplace`

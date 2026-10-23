@@ -96,6 +96,9 @@ export type ViewCellRef = CellRef & {
   viewColumnIndex: number;
 };
 
+/** How the quick search compares text: `matchCase` (default `false`) respects letter case, `wholeCell` (default `false`) matches only cells equal to the search text. */
+export type SearchOptions = { matchCase?: boolean; wholeCell?: boolean };
+
 /** The two opposite corners of a rectangular selection; either diagonal order is accepted on resolve. */
 export type CellRange = { start: CellRef; end: CellRef };
 
@@ -205,11 +208,12 @@ export type DataChange<TData> = {
    * `updateCells`/`updateRows` batch; `useDataGridHistory` drops it by default, because a
    * 100-updates/s feed would evict the user's whole undo stack in seconds. `"app"` tags an
    * imperative `record()` entry (a programmatic change the consumer applied itself).
+   * `"replace"` tags a find-and-replace batch (an `updateCells` call the `data-grid-find-replace` add-on makes); `useDataGridHistory` records it.
    * `"history"` tags an undo or redo; `"rollback"` tags `useDataGridHistory().rollback`, which reverts a
    * change whose save failed. Neither is recorded, so a server-sync handler can skip undo and redo
    * and still send a rollback (or the reverse).
    */
-  source: "edit" | "paste" | "fill" | "delete" | "row-operation" | "import" | "history" | "rollback" | "stream" | "app";
+  source: "edit" | "paste" | "fill" | "delete" | "row-operation" | "import" | "history" | "rollback" | "stream" | "replace" | "app";
   /** Optional human-readable label for this entry (e.g. "Batch save rollback"); carried through the undo/redo stack as-is. */
   label?: string;
 };
@@ -300,12 +304,12 @@ export type GridEditEndEvent = ViewCellRef & { result: "commit" | "cancel" | "re
 export type GridBulkValidationError = { rowId: string; columnId: string; viewRowIndex: number; value: unknown; message: string };
 
 /**
- * Fired by `onValidationError` after a bulk paste, a fill, or an `updateCells` call (`"stream"`)
+ * Fired by `onValidationError` after a bulk paste, a fill, or an `updateCells` call (`"stream"`, or `"replace"` for a find-and-replace batch)
  * settles, ONLY when at least one cell was rejected — the accepted cells are already applied
  * (their `onDataChange`/`onSelectionChange` fire first). `rejected` lists every refused cell with
  * its validator's message.
  */
-export type GridValidationErrorEvent = { source: "paste" | "fill" | "stream"; rejected: GridBulkValidationError[] };
+export type GridValidationErrorEvent = { source: "paste" | "fill" | "stream" | "replace"; rejected: GridBulkValidationError[] };
 
 /** Fired on a double-click on any non-pinned, non-skeleton cell — a pure notification in the {@link OnCellClick} sense (no veto), fired regardless of readOnly. */
 export type OnCellDoubleClick<TData> = (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
@@ -698,6 +702,7 @@ export interface GridActions {
   duplicateRow: true;
   deleteRows: true;
   openLink: true;
+  openFindReplace: true;
 }
 
 /** Every named keyboard action — the built-ins of {@link GridActions} plus any the consumer merged in. */

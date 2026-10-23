@@ -28,6 +28,7 @@ import {
   completeColumnOrder,
   computeColumnLayout,
   computeSearchMatches,
+  DEFAULT_SEARCH_OPTIONS,
   computeVisibleColumns,
   clampCursor,
   computeViewIndex,
@@ -149,6 +150,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const initFilterState = withFilterIds(init.filterState ?? init.defaultFilterState ?? []);
   const initJoinOperator = init.joinOperator ?? init.defaultJoinOperator ?? "and";
   const initSearchText = init.searchText ?? init.defaultSearchText ?? "";
+  const initSearchOptions = DEFAULT_SEARCH_OPTIONS;
   // storage widens each per-column CellType<TData, TValue, TOptions> to the untyped registry shape; narrowed back per column at lookup (cell.tsx/store's column-op helpers).
   const initCellTypes = resolveCellTypes(init.cellTypes as unknown as ProvidedCellTypes);
   // A new registry identity is a sync-input change: reuse the resolved one while the prop's entries are unchanged.
@@ -485,7 +487,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
               // A columns-moving commit re-runs the cursor/selection remap and the search-match
               // row map.
               ...followView(s, s.viewIndex, nextVisibleColumns),
-              ...computeSearchMatches(s.data, normalized.columns, s.viewIndex, nextVisibleColumns, s.searchText, s.cellTypes),
+              ...computeSearchMatches(s.data, normalized.columns, s.viewIndex, nextVisibleColumns, s.searchText, s.cellTypes, s.searchOptions),
             }
           : {}),
       });
@@ -824,7 +826,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             // A layout-only apply moves visible columns, so the search-match row map re-runs with it.
             ...(unchanged && layoutApply === null
               ? { searchMatches: s.searchMatches, searchMatchSet: s.searchMatchSet, searchMatchRows: s.searchMatchRows, searchMatchesCapped: s.searchMatchesCapped }
-              : computeSearchMatches(nextData, finalColumns, nextViewIndex, finalVisibleColumns, nextSearchText, nextCellTypes)),
+              : computeSearchMatches(nextData, finalColumns, nextViewIndex, finalVisibleColumns, nextSearchText, nextCellTypes, s.searchOptions)),
             // The controlled values win over the remapped ones.
             ...selectionApply,
           };
@@ -917,11 +919,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     filterState: initFilterState,
     joinOperator: initJoinOperator,
     searchText: initSearchText,
+    searchOptions: initSearchOptions,
     sortControlled: init.sortState !== undefined,
     filterControlled: init.filterState !== undefined,
     joinOperatorControlled: init.joinOperator !== undefined,
     searchControlled: init.searchText !== undefined,
-    ...computeSearchMatches(initData, effectiveLayout.columns, initViewIndex, visibleColumns, initSearchText, initCellTypes),
+    ...computeSearchMatches(initData, effectiveLayout.columns, initViewIndex, visibleColumns, initSearchText, initCellTypes, initSearchOptions),
     viewIndex: initViewIndex,
     rowIdentityVersion: 0,
     viewStale: false,
@@ -1203,7 +1206,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             viewIndex,
             viewStale: false,
             ...followView(s2, viewIndex, s2.visibleColumns),
-            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
+            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
           };
         });
       },
@@ -1219,7 +1222,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             viewIndex,
             viewStale: false,
             ...followView(s2, viewIndex, s2.visibleColumns),
-            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
+            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
           };
         });
       },
@@ -1237,7 +1240,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             viewIndex,
             viewStale: false,
             ...followView(s2, viewIndex, s2.visibleColumns),
-            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
+            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
           };
         });
       },
@@ -1253,16 +1256,23 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             viewIndex,
             viewStale: false,
             ...followView(s2, viewIndex, s2.visibleColumns),
-            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes),
+            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
           };
         });
       },
-      setSearch(text) {
+      setSearch(text, options) {
         const s = get();
         s.onSearchTextChange?.(text);
-        if (s.searchControlled) return;
+        const searchOptions = options ? { ...s.searchOptions, ...options } : s.searchOptions;
+        const optionsChanged = searchOptions.matchCase !== s.searchOptions.matchCase || searchOptions.wholeCell !== s.searchOptions.wholeCell;
+        if (s.searchControlled && !optionsChanged) return;
+        const nextText = s.searchControlled ? s.searchText : text;
         // viewIndex is untouched: quick-search highlights + navigates, it never filters.
-        set((s2) => ({ searchText: text, ...computeSearchMatches(s2.data, s2.columns, s2.viewIndex, s2.visibleColumns, text, s2.cellTypes) }));
+        set((s2) => ({
+          searchText: nextText,
+          searchOptions,
+          ...computeSearchMatches(s2.data, s2.columns, s2.viewIndex, s2.visibleColumns, nextText, s2.cellTypes, searchOptions),
+        }));
       },
       startEditing(ref, initialText) {
         const coord = resolveRefOrWarn(dataWrite, get(), ref);

@@ -6,6 +6,7 @@ import type {
   FilterJoinOperator,
   FilterSpec,
   GridRect,
+  SearchOptions,
   SortSpec,
   ViewCoord,
 } from "../types";
@@ -715,6 +716,9 @@ export function incrementalViewIndex(
   return result.viewIndex;
 }
 
+/** The search options a store starts with: case-insensitive substring. */
+export const DEFAULT_SEARCH_OPTIONS: Required<SearchOptions> = { matchCase: false, wholeCell: false };
+
 /** Max search hits collected before {@link findSearchMatches} early-exits; bounds worst-case work at 100k+ rows. */
 export const MAX_SEARCH_MATCHES = 1000;
 
@@ -740,7 +744,8 @@ export function computeSearchMatches(
   viewIndex: number[],
   visibleColumns: readonly AnyColumnDef[],
   searchText: string,
-  cellTypes?: Record<string, CellType>,
+  cellTypes: Record<string, CellType> | undefined,
+  searchOptions: Required<SearchOptions>,
 ): Pick<DataGridStoreState, "searchMatches" | "searchMatchSet" | "searchMatchRows" | "searchMatchesCapped"> {
   if (searchText.trim() === "") {
     return { searchMatches: [], searchMatchSet: EMPTY_SEARCH_MATCH_SET, searchMatchRows: EMPTY_SEARCH_MATCH_ROWS, searchMatchesCapped: false };
@@ -760,6 +765,7 @@ export function computeSearchMatches(
     searchText,
     visibleColumns.map((c) => c.id),
     MAX_SEARCH_MATCHES,
+    searchOptions,
   );
   const searchMatchSet = new Set(searchMatches.map((m) => searchMatchKey(m.row, m.columnId)));
   const searchMatchRows = buildSearchMatchRows(searchMatches, visibleColumns);

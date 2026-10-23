@@ -361,6 +361,9 @@ describe("GridAction coverage", () => {
   // (even `[]`, which disables the fallback).
   const IMPLICIT_FALLBACK_ACTIONS: readonly GridAction[] = ["typeToReplace"];
 
+  // Bound only through the keymap of the add-on that implements them.
+  const PLUGIN_BOUND_ACTIONS: readonly GridAction[] = ["openFindReplace"];
+
   // Record<GridAction, true> makes this exhaustive at compile time: adding a new GridAction member
   // without adding it here is a tsc error, not a silently-passing test.
   const ALL_ACTIONS: Record<GridAction, true> = {
@@ -381,6 +384,7 @@ describe("GridAction coverage", () => {
     fillDown: true, fillRight: true,
     insertRowBelow: true, insertRowAbove: true, duplicateRow: true, deleteRows: true,
     openLink: true,
+    openFindReplace: true,
   };
 
   it("every GridAction is either bound in DEFAULT_KEYMAP, implicit-fallback, or explicitly allowlisted", () => {
@@ -388,8 +392,9 @@ describe("GridAction coverage", () => {
       const isBound = Boolean(DEFAULT_KEYMAP[action]?.length);
       const isAllowlisted = CONSUMER_ONLY_ACTIONS.includes(action);
       const isImplicitFallback = IMPLICIT_FALLBACK_ACTIONS.includes(action);
+      const isPluginBound = PLUGIN_BOUND_ACTIONS.includes(action);
       expect(
-        isBound || isAllowlisted || isImplicitFallback,
+        isBound || isAllowlisted || isImplicitFallback || isPluginBound,
         `"${action}" is neither bound in DEFAULT_KEYMAP, an implicit fallback, nor in CONSUMER_ONLY_ACTIONS`,
       ).toBe(true);
     }
