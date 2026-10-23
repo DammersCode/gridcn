@@ -6,6 +6,7 @@ import {
   defineColumns,
   useDataGridActions,
   useDataGridAllColumns,
+  type ColumnGroupDef,
   type ColumnLayout,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridUrlState, type UseDataGridUrlStateOptions, type UseDataGridUrlStateResult } from "./data-grid-url-state";
@@ -39,7 +40,12 @@ type Harness = {
   setSearchParams: (searchParams: string) => void;
 };
 
-function renderGrid(options: { searchParams?: string; urlOptions?: UseDataGridUrlStateOptions; columns?: typeof columns | typeof pinnedColumns }): Harness {
+function renderGrid(options: {
+  searchParams?: string;
+  urlOptions?: UseDataGridUrlStateOptions;
+  columns?: typeof columns | typeof pinnedColumns;
+  columnGroups?: readonly ColumnGroupDef[];
+}): Harness {
   let actions: ReturnType<typeof useDataGridActions> | undefined;
   let all: readonly { id: string }[] = [];
   let urlState: UseDataGridUrlStateResult | undefined;
@@ -56,6 +62,7 @@ function renderGrid(options: { searchParams?: string; urlOptions?: UseDataGridUr
       <DataGridProvider
         data={rows}
         columns={(options.columns ?? columns) as typeof columns}
+        columnGroups={options.columnGroups}
         getRowId={(r) => r.id}
         onColumnLayoutChange={(layout) => layoutEvents.push(layout)}
       >
@@ -163,6 +170,23 @@ describe("column layout URL sync", () => {
     await flush();
     expect(lastParam(h, "orders_hide")).toBe("age");
     expect(lastParam(h, "hide")).toBeNull();
+  });
+
+  it("repairs a cols param that splits a column group before it writes the URL back", async () => {
+    const columnGroups: ColumnGroupDef[] = [{ id: "ends", header: "Ends", children: ["name", "city"] }];
+    const h = renderGrid({ columnGroups, searchParams: "?cols=name,age,city" });
+    await flush();
+    expect(h.visibleOrder()).toEqual(["name", "city", "age"]);
+    expect(h.layoutEvents.every((layout) => layout.order.join() === "name,city,age")).toBe(true);
+
+    const eventsBefore = h.layoutEvents.length;
+    const updatesBefore = h.updates.length;
+    h.setSearchParams("?cols=name,age,city");
+    await act(async () => h.urlState().applyFromUrl());
+    await flush();
+    expect(h.visibleOrder()).toEqual(["name", "city", "age"]);
+    expect(h.layoutEvents.length).toBe(eventsBefore);
+    expect(h.updates.length).toBe(updatesBefore);
   });
 
   it("applyFromUrl resets a part whose param is gone", async () => {

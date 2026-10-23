@@ -33,7 +33,8 @@ type Frame = { def: ColumnGroupDef; parentId: string | null; depth: number; path
  * Validates `defs` against the grid's column ids. Unknown column ids drop, a column listed twice
  * keeps its first group, a repeated or column-colliding group id drops the later group, nesting
  * deeper than {@link MAX_GROUP_DEPTH} drops, and a cyclic object graph is walked once. The walk is
- * iterative and bounded by {@link MAX_GROUP_NODES}. Returns `null` when no group keeps a column.
+ * iterative and bounded by {@link MAX_GROUP_NODES}. Returns `null` when `defs` is empty, and a
+ * model without groups (only its `issues`) when no group keeps a column.
  */
 export function buildColumnGroupModel(defs: readonly ColumnGroupDef[] | undefined, columnIds: readonly string[]): ColumnGroupModel | null {
   if (!Array.isArray(defs) || defs.length === 0) return null;
@@ -88,7 +89,7 @@ export function buildColumnGroupModel(defs: readonly ColumnGroupDef[] | undefine
     }
     for (let i = frames.length - 1; i >= 0; i--) stack.push(frames[i]!);
   }
-  if (paths.size === 0) return null;
+  if (paths.size === 0) return issues.length > 0 ? { groups: new Map(), paths, depth: 0, issues } : null;
   const used = new Set<string>();
   let depth = 0;
   for (const path of paths.values()) {
@@ -155,6 +156,73 @@ export function repairGroupOrder(ids: readonly string[], model: ColumnGroupModel
   const repaired = gather(ids, model, 0);
   for (let i = 0; i < ids.length; i++) if (repaired[i] !== ids[i]) return repaired;
   return ids;
+}
+
+function insertAtUnit(rest: string[], moving: readonly string[], unit: readonly string[], position: "before" | "after"): string[] | null {
+  const unitSet = new Set(unit);
+  let first = -1;
+  let last = -1;
+  for (let i = 0; i < rest.length; i++) {
+    if (!unitSet.has(rest[i]!)) continue;
+    if (first === -1) first = i;
+    last = i;
+  }
+  if (first === -1) return null;
+  const at = position === "before" ? first : last + 1;
+  return [...rest.slice(0, at), ...moving, ...rest.slice(at)];
+}
+
+function commonPrefix(a: readonly string[], b: readonly string[]): number {
+  let k = 0;
+  while (k < a.length && k < b.length && a[k] === b[k]) k++;
+  return k;
+}
+
+/**
+ * Moves column `id` next to `targetId` without leaving its group: a column moves among the members
+ * of its own group, or next to a whole sibling group or column of the same parent. Returns `null`
+ * when the move would take the column out of its group.
+ */
+export function moveWithinGroups(orderedIds: readonly string[], model: ColumnGroupModel, id: string, targetId: string, position: "before" | "after"): string[] | null {
+  const idPath = groupPathOf(model, id);
+  const targetPath = groupPathOf(model, targetId);
+  const k = commonPrefix(idPath, targetPath);
+  if (idPath.length > k) return null;
+  const unitGroup = targetPath[k];
+  const unit = unitGroup === undefined ? [targetId] : orderedIds.filter((c) => model.paths.get(c)?.[k] === unitGroup);
+  return insertAtUnit(
+    orderedIds.filter((c) => c !== id),
+    [id],
+    unit,
+    position,
+  );
+}
+
+/** Whether `columnId` sits inside group `groupId`, at any depth. */
+export function isInGroup(model: ColumnGroupModel | null, columnId: string, groupId: string): boolean {
+  return groupPathOf(model, columnId).includes(groupId);
+}
+
+/**
+ * Moves the whole block of group `groupId` next to `targetId`, inside the group's parent. Returns
+ * `null` when the target lies inside the moving group or outside the parent group.
+ */
+export function moveGroupBlock(orderedIds: readonly string[], model: ColumnGroupModel, groupId: string, targetId: string, position: "before" | "after"): string[] | null {
+  const node = model.groups.get(groupId);
+  if (!node || isInGroup(model, targetId, groupId)) return null;
+  const k = node.depth;
+  const targetPath = groupPathOf(model, targetId);
+  const parentOk = k === 0 || (targetPath.length >= k && targetPath[k - 1] === node.parentId);
+  if (!parentOk) return null;
+  const unitGroup = targetPath[k];
+  const unit = unitGroup === undefined ? [targetId] : orderedIds.filter((c) => model.paths.get(c)?.[k] === unitGroup);
+  const block = orderedIds.filter((c) => isInGroup(model, c, groupId));
+  return insertAtUnit(
+    orderedIds.filter((c) => !isInGroup(model, c, groupId)),
+    block,
+    unit,
+    position,
+  );
 }
 
 /**

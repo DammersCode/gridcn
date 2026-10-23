@@ -200,6 +200,7 @@ export type {
   DensityMode,
   HeaderClickBehavior,
   AutosizeOptions,
+  ColumnGroupDef,
   ColumnLayout,
   GetRowClassName,
   GetCellClassName,

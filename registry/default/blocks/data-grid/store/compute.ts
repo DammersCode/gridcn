@@ -25,6 +25,7 @@ import { clampColumnWidth } from "../columns/resolve-column-width";
 import { selectCell } from "../selection/selection-ops";
 import { CompactSelection } from "../selection/compact-selection";
 import { toSafeText } from "../cell-types/safe-text";
+import { moveWithinGroups, repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
 import { isDev } from "../is-dev";
 import type {
   AnyColumnDef,
@@ -488,8 +489,12 @@ export function defHiddenColumnIds(columns: readonly AnyColumnDef[]): string[] {
   return columns.filter((c) => c.hidden).map((c) => c.id);
 }
 
-/** `columnOrder` completed for `columns`: unknown ids drop out, and def ids it lacks follow in def order. */
-export function completeColumnOrder(columns: readonly AnyColumnDef[], columnOrder: readonly string[] | null): string[] {
+/** `columnOrder` completed for `columns`: unknown ids drop out, def ids it lacks follow in def order, and `groups` stay contiguous. */
+export function completeColumnOrder(columns: readonly AnyColumnDef[], columnOrder: readonly string[] | null, groups?: ColumnGroupModel | null): string[] {
+  return repairGroupOrder(completeUngroupedOrder(columns, columnOrder), groups ?? null);
+}
+
+function completeUngroupedOrder(columns: readonly AnyColumnDef[], columnOrder: readonly string[] | null): string[] {
   const defIds = columns.map((c) => c.id);
   if (!columnOrder) return defIds;
   const known = new Set(defIds);
@@ -514,10 +519,11 @@ export function computeVisibleColumns(
   columns: readonly AnyColumnDef[],
   columnOrder: string[] | null,
   hiddenColumns: readonly string[],
+  groups?: ColumnGroupModel | null,
 ): readonly AnyColumnDef[] {
   const byId = new Map(columns.map((c) => [c.id, c] as const));
   const hidden = new Set(hiddenColumns);
-  const ordered = completeColumnOrder(columns, columnOrder)
+  const ordered = completeColumnOrder(columns, columnOrder, groups)
     .map((id) => byId.get(id)!)
     .filter((c) => !hidden.has(c.id));
   const left = ordered.filter((c) => c.pin === "left");
@@ -532,6 +538,7 @@ export function computeColumnLayout(
   columnOrder: string[] | null,
   columnWidths: Record<string, number>,
   hiddenColumns: readonly string[],
+  groups?: ColumnGroupModel | null,
 ): ColumnLayout {
   const pins: Record<string, "left" | "right"> = {};
   for (const c of columns) {
@@ -539,7 +546,7 @@ export function computeColumnLayout(
   }
   return {
     widths: { ...columnWidths },
-    order: completeColumnOrder(columns, columnOrder),
+    order: completeColumnOrder(columns, columnOrder, groups),
     pins,
     hidden: [...hiddenColumns],
   };
@@ -567,6 +574,7 @@ export function normalizeColumnLayout(
   columns: readonly AnyColumnDef[],
   parts: ColumnLayoutParts,
   hiddenColumns: string[],
+  groups?: ColumnGroupModel | null,
 ): { columns: readonly AnyColumnDef[]; columnWidths: Record<string, number>; columnOrder: string[] | null; hiddenColumns: string[] } {
   const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
   const stringList = (value: unknown): string[] | null => (Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : null);
@@ -595,7 +603,7 @@ export function normalizeColumnLayout(
   return {
     columns: nextColumns,
     columnWidths,
-    columnOrder: order ? completeColumnOrder(columns, order) : null,
+    columnOrder: order ? completeColumnOrder(columns, order, groups) : null,
     hiddenColumns: nextHidden,
   };
 }
@@ -609,9 +617,10 @@ export function applyDefaultColumnLayout(
   columns: readonly AnyColumnDef[],
   hiddenColumns: string[],
   layout: Partial<ColumnLayout> | undefined,
+  groups?: ColumnGroupModel | null,
 ): { columns: readonly AnyColumnDef[]; columnWidths: Record<string, number>; columnOrder: string[] | null; hiddenColumns: string[] } {
   if (!layout || typeof layout !== "object") return { columns, columnWidths: {}, columnOrder: null, hiddenColumns };
-  return normalizeColumnLayout(columns, layout, hiddenColumns);
+  return normalizeColumnLayout(columns, layout, hiddenColumns, groups);
 }
 
 /** Whether two {@link ColumnLayout} snapshots hold the same widths, order, pins, and hidden ids (structural). */
@@ -853,10 +862,12 @@ export function reorderColumnIds(
   id: string,
   targetId: string,
   position: "before" | "after",
+  groups?: ColumnGroupModel | null,
 ): string[] {
   if (id === targetId) return orderedIds as string[];
   const byId = new Map(columns.map((c) => [c.id, c] as const));
   if (pinZone(byId.get(id)) !== pinZone(byId.get(targetId))) return orderedIds as string[];
+  if (groups) return moveWithinGroups(orderedIds, groups, id, targetId, position) ?? (orderedIds as string[]);
 
   const withoutId = orderedIds.filter((c) => c !== id);
   const targetIndex = withoutId.indexOf(targetId);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ColumnGroupDef } from "../types";
-import { MAX_GROUP_DEPTH, buildColumnGroupModel, columnGroupModelsEqual, computeHeaderRows, groupPathOf, repairGroupOrder } from "./column-groups";
+import { MAX_GROUP_DEPTH, buildColumnGroupModel, columnGroupModelsEqual, computeHeaderRows, groupPathOf, moveGroupBlock, moveWithinGroups, repairGroupOrder } from "./column-groups";
 
 const CI_FACTOR = process.env["CI"] ? 2 : 1;
 const ids = (...list: string[]) => list;
@@ -60,8 +60,9 @@ describe("buildColumnGroupModel", () => {
   it("truncates nesting above the depth cap", () => {
     let node: ColumnGroupDef = { id: "g0", header: "0", children: ["a"] };
     for (let i = 1; i < MAX_GROUP_DEPTH + 3; i++) node = { id: `g${i}`, header: String(i), children: [node] };
-    const model = buildColumnGroupModel([node], ids("a"));
-    expect(model).toBeNull();
+    const model = buildColumnGroupModel([node], ids("a"))!;
+    expect(groupPathOf(model, "a")).toEqual([]);
+    expect(model.issues.some((m) => m.includes("deeper"))).toBe(true);
   });
 
   it("survives a cyclic object graph", () => {
@@ -75,7 +76,9 @@ describe("buildColumnGroupModel", () => {
 
   it("ignores malformed definitions", () => {
     const bad = [null, 3, { id: 1, header: "x", children: [] }, { id: "g", header: "G", children: "a" }] as unknown as ColumnGroupDef[];
-    expect(buildColumnGroupModel(bad, ids("a"))).toBeNull();
+    const model = buildColumnGroupModel(bad, ids("a"))!;
+    expect(model.paths.size).toBe(0);
+    expect(model.issues.length).toBe(4);
   });
 
   it("bounds the number of visited nodes", () => {
@@ -122,6 +125,46 @@ describe("repairGroupOrder", () => {
   it("returns the input without a model", () => {
     const order = ids("b", "a");
     expect(repairGroupOrder(order, null)).toBe(order);
+  });
+});
+
+describe("moving columns and groups", () => {
+  const model = buildColumnGroupModel(
+    [
+      { id: "g", header: "G", children: ["a", "b", { id: "h", header: "H", children: ["c", "d"] }] },
+      { id: "k", header: "K", children: ["e", "f"] },
+    ],
+    ids("a", "b", "c", "d", "e", "f", "z"),
+  )!;
+  const order = ids("a", "b", "c", "d", "e", "f", "z");
+
+  it("moves a column among its group members", () => {
+    expect(moveWithinGroups(order, model, "a", "b", "after")).toEqual(ids("b", "a", "c", "d", "e", "f", "z"));
+  });
+
+  it("moves a column next to a whole nested sibling group", () => {
+    expect(moveWithinGroups(order, model, "a", "d", "after")).toEqual(ids("b", "c", "d", "a", "e", "f", "z"));
+    expect(moveWithinGroups(order, model, "b", "c", "before")).toEqual(ids("a", "b", "c", "d", "e", "f", "z"));
+  });
+
+  it("ignores a drop that takes a column out of its group", () => {
+    expect(moveWithinGroups(order, model, "a", "e", "before")).toBeNull();
+    expect(moveWithinGroups(order, model, "c", "a", "before")).toBeNull();
+  });
+
+  it("moves an ungrouped column next to a whole group", () => {
+    expect(moveWithinGroups(order, model, "z", "c", "before")).toEqual(ids("z", "a", "b", "c", "d", "e", "f"));
+    expect(moveWithinGroups(order, model, "z", "f", "after")).toEqual(order);
+  });
+
+  it("moves a group as a block", () => {
+    expect(moveGroupBlock(order, model, "k", "a", "before")).toEqual(ids("e", "f", "a", "b", "c", "d", "z"));
+    expect(moveGroupBlock(order, model, "h", "a", "before")).toEqual(ids("c", "d", "a", "b", "e", "f", "z"));
+  });
+
+  it("ignores a block drop inside the group itself or outside the parent", () => {
+    expect(moveGroupBlock(order, model, "g", "c", "before")).toBeNull();
+    expect(moveGroupBlock(order, model, "h", "e", "before")).toBeNull();
   });
 });
 

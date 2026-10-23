@@ -3,6 +3,7 @@ import type { ColumnLayout, CompactSelectionLike, DataGridPlugin, GridCommand, G
 import { BUILTIN_ACTIONS, keymapContentEqual, PLUGGABLE_ACTIONS, validateKeymap, validateSharedBindings } from "../keyboard";
 import { CompactSelection } from "../selection/compact-selection";
 import { getCellValue } from "../columns/column-helpers";
+import { buildColumnGroupModel, columnGroupModelsEqual, type ColumnGroupModel } from "../columns/column-groups";
 import { clampColumnWidth, resolveColumnWidth } from "../columns/resolve-column-width";
 import { computeAutosizeWidths } from "../columns/autosize-columns";
 import { cellTypes as defaultCellTypes } from "../cell-types/cell-types";
@@ -20,16 +21,16 @@ import {
   type ExtendDirection,
 } from "../selection";
 import {
-  applyDefaultColumnLayout,
+  applyDefaultColumnLayout as applyDefaultColumnLayoutBase,
   cellErrorKey,
   clampIndex,
   type ColumnLayoutParts,
   columnFlag,
-  completeColumnOrder,
-  computeColumnLayout,
+  completeColumnOrder as completeColumnOrderBase,
+  computeColumnLayout as computeColumnLayoutBase,
   computeSearchMatches,
   DEFAULT_SEARCH_OPTIONS,
-  computeVisibleColumns,
+  computeVisibleColumns as computeVisibleColumnsBase,
   clampCursor,
   computeViewIndex,
   viewSorts,
@@ -42,13 +43,13 @@ import {
   memoizedMergeLabels,
   mergeCellErrors,
   nextDirection,
-  normalizeColumnLayout,
+  normalizeColumnLayout as normalizeColumnLayoutBase,
   pruneCellErrors,
   rectsKeepColumns,
   rectsKeepRecords,
   remapColumnChannel,
   remapRowChannel,
-  reorderColumnIds,
+  reorderColumnIds as reorderColumnIdsBase,
   resolveSelectionConfig,
   rowIdAtViewRow,
   toggleSortAdditive,
@@ -119,6 +120,27 @@ function sameCellTypeEntries(a: ProvidedCellTypes, b: ProvidedCellTypes): boolea
  * factory's result or a bound hook from this module — only the hooks below.
  */
 export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridStoreState> {
+  let groupModel: ColumnGroupModel | null = buildColumnGroupModel(init.columnGroups, init.columns.map((c) => c.id));
+  const warnedGroupIssues = new Set<string>();
+  const warnGroupIssues = (model: ColumnGroupModel | null): void => {
+    if (!model || !isDev()) return;
+    for (const issue of model.issues) {
+      if (warnedGroupIssues.has(issue)) continue;
+      warnedGroupIssues.add(issue);
+      warnDev(issue);
+    }
+  };
+  warnGroupIssues(groupModel);
+  const applyDefaultColumnLayout = (columns: readonly AnyColumnDef[], hidden: string[], layout: Partial<ColumnLayout> | undefined) =>
+    applyDefaultColumnLayoutBase(columns, hidden, layout, groupModel);
+  const completeColumnOrder = (columns: readonly AnyColumnDef[], order: readonly string[] | null) => completeColumnOrderBase(columns, order, groupModel);
+  const computeColumnLayout = (columns: readonly AnyColumnDef[], order: string[] | null, widths: Record<string, number>, hidden: readonly string[]) =>
+    computeColumnLayoutBase(columns, order, widths, hidden, groupModel);
+  const computeVisibleColumns = (columns: readonly AnyColumnDef[], order: string[] | null, hidden: readonly string[]) =>
+    computeVisibleColumnsBase(columns, order, hidden, groupModel);
+  const normalizeColumnLayout = (columns: readonly AnyColumnDef[], parts: ColumnLayoutParts, hidden: string[]) => normalizeColumnLayoutBase(columns, parts, hidden, groupModel);
+  const reorderColumnIds = (ids: readonly string[], columns: readonly AnyColumnDef[], id: string, targetId: string, position: "before" | "after") =>
+    reorderColumnIdsBase(ids, columns, id, targetId, position, groupModel);
   const defHidden = defHiddenColumnIds(init.columns);
   const seeded = applyDefaultColumnLayout(init.columns, defHidden, init.defaultColumnLayout);
   // `columnLayout` wins over `defaultColumnLayout`, and both resolve here (not in the provider),
@@ -165,7 +187,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     searchText: initSearchText,
     columnOrder: effectiveLayout.columnOrder,
     hiddenColumns: effectiveLayout.hiddenColumns,
+    columnGroupModel: groupModel,
   };
+  let lastPropsColumnGroups = init.columnGroups;
   // The last raw `columns` prop; `s.columns` also carries runtime pin changes that a same-reference re-sync keeps.
   let lastPropsColumns: readonly AnyColumnDef[] = init.columns;
   // The raw `keymap`/`commands`/`plugins` props last seen by _syncConfig: content-equal re-renders
@@ -676,6 +700,16 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             ? defHiddenColumnIds(props.columns).filter((id) => !s.hiddenColumns.includes(id))
             : [];
           const nextHiddenColumns = reseededHidden.length > 0 ? [...s.hiddenColumns, ...reseededHidden] : s.hiddenColumns;
+          // An inline `columnGroups` literal rebuilds the model; the old model stays while structure and headers are equal.
+          if (props.columnGroups !== lastPropsColumnGroups || propsColumnsChanged) {
+            lastPropsColumnGroups = props.columnGroups;
+            const candidate = buildColumnGroupModel(props.columnGroups, nextColumns.map((c) => c.id));
+            if (!columnGroupModelsEqual(candidate, groupModel)) {
+              groupModel = candidate;
+              warnGroupIssues(candidate);
+            }
+          }
+          const groupsChanged = groupModel !== s.columnGroupModel;
           // Widens each typed CellType to the untyped registry shape.
           const propsCellTypes = props.cellTypes as unknown as ProvidedCellTypes;
           const nextCellTypes = sameCellTypeEntries(propsCellTypes, lastPropsCellTypes) ? s.cellTypes : resolveCellTypes(propsCellTypes);
@@ -690,6 +724,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             searchText: nextSearchText,
             columnOrder: s.columnOrder,
             hiddenColumns: nextHiddenColumns,
+            columnGroupModel: groupModel,
           };
           // An echo skips the recompute only when `data` is the only input that moved.
           const echoOnly =
@@ -803,11 +838,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             cellTypes: nextCellTypes,
             visibleColumns: finalVisibleColumns,
             columnWidths: layoutApply?.columnWidths ?? s.columnWidths,
-            columnOrder: layoutApply?.columnOrder ?? s.columnOrder,
-            // A `columns` swap re-seeds the snapshot even uncontrolled (decision 10).
+            columnOrder: layoutApply?.columnOrder ?? (groupsChanged && s.columnOrder ? completeColumnOrder(nextColumns, s.columnOrder) : s.columnOrder),
+            columnGroupModel: groupModel,
+            // A `columns` or group swap re-seeds the snapshot even uncontrolled (decision 10).
             columnLayout:
               layoutApply?.columnLayout ??
-              (propsColumnsChanged ? computeColumnLayout(nextColumns, s.columnOrder, s.columnWidths, nextHiddenColumns) : s.columnLayout),
+              (propsColumnsChanged || groupsChanged ? computeColumnLayout(nextColumns, s.columnOrder, s.columnWidths, nextHiddenColumns) : s.columnLayout),
             sortState: nextSortState,
             sortMode: nextSortMode,
             filterState: nextFilterState,
@@ -914,6 +950,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     columnOrder: effectiveLayout.columnOrder,
     hiddenColumns: effectiveLayout.hiddenColumns,
     columnLayout: computeColumnLayout(effectiveLayout.columns, effectiveLayout.columnOrder, effectiveLayout.columnWidths, effectiveLayout.hiddenColumns),
+    columnGroupModel: groupModel,
     sortState: initSortState,
     sortMode: initSortMode,
     filterState: initFilterState,

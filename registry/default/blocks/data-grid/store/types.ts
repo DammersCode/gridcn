@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode, Ref } from "react";
 import type { StoreApi } from "zustand/vanilla";
+import type { ColumnGroupModel } from "../columns/column-groups";
 import type {
   CellRef,
   ViewCellRef,
@@ -7,6 +8,7 @@ import type {
   AutosizeOptions,
   CellType,
   ColumnDef,
+  ColumnGroupDef,
   ColumnLayout,
   DataChange,
   DataGridApi,
@@ -241,6 +243,14 @@ export type DataGridSyncProps<TData = unknown> = {
    * (store-owned, with events).
    */
   columnLayout?: Partial<ColumnLayout>;
+  /**
+   * Shared headers above runs of columns, by column id; groups nest. The columns stay flat. A group
+   * keeps its columns next to each other: reorder moves a column inside its group and a group as a
+   * block, and a saved or restored `order` that splits a group is repaired. Unknown ids, a column
+   * listed twice, a repeated group id, and nesting deeper than 8 levels are dropped. Pass a stable
+   * identity for `header` nodes.
+   */
+  columnGroups?: readonly ColumnGroupDef[];
   /**
    * Runs one {@link DataGridActions.autosizeColumns} pass after mount, when the view first has
    * rows (a lazy grid waits for its first page); it runs once per mount. Columns with a saved
@@ -654,6 +664,8 @@ export type DataGridStoreState = Omit<
    * applies nothing.
    */
   columnLayout: ColumnLayout;
+  /** The validated `columnGroups` prop; null when no group keeps a column. */
+  columnGroupModel: ColumnGroupModel | null;
   sortState: SortSpec[];
   /** Mirrors the `sortMode` sync prop; `"server"` keeps `sortState` out of every view rebuild. */
   sortMode: "client" | "server";
@@ -1065,6 +1077,7 @@ export type SyncInputs = {
   searchText: string;
   columnOrder: string[] | null;
   hiddenColumns: readonly string[];
+  columnGroupModel: ColumnGroupModel | null;
 };
 
 export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
@@ -1077,7 +1090,8 @@ export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
     a.joinOperator === b.joinOperator &&
     a.searchText === b.searchText &&
     a.columnOrder === b.columnOrder &&
-    a.hiddenColumns === b.hiddenColumns
+    a.hiddenColumns === b.hiddenColumns &&
+    a.columnGroupModel === b.columnGroupModel
   );
 }
 

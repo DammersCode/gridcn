@@ -1,5 +1,6 @@
 import { useCallback, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
+import { repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
 import type {
   CellRef,
   ViewCoord,
@@ -256,11 +257,16 @@ export function useDataGridVisibleColumns<TData = unknown>(): readonly ColumnDef
 export function useDataGridAllColumns<TData = unknown>(): readonly ColumnDefOf<TData>[] {
   return useDataGridStore(
     useShallow((s) => {
-      const orderedIds = s.columnOrder ?? s.columns.map((c) => c.id);
+      const orderedIds = repairGroupOrder(s.columnOrder ?? s.columns.map((c) => c.id), s.columnGroupModel);
       const byId = new Map(s.columns.map((c) => [c.id, c] as const));
       return orderedIds.map((id) => byId.get(id)).filter((c): c is AnyColumnDef => c != null);
     }),
   ) as readonly ColumnDefOf<TData>[];
+}
+
+/** The validated `columnGroups` model; null when the grid has no groups. */
+export function useDataGridColumnGroupModel(): ColumnGroupModel | null {
+  return useDataGridStore((s) => s.columnGroupModel);
 }
 
 /** Whether a column id is currently hidden (def-level `hidden: true` seeds this set; `setColumnHidden` wins until the `columns` prop identity changes). */
