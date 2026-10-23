@@ -142,6 +142,18 @@ describe("renderHeaderFilter", () => {
     await vi.waitFor(() => expect(warn.mock.calls.some(([message]) => String(message).includes("column filter"))).toBe(true));
     warn.mockRestore();
   });
+
+  it("Shift+Alt+ArrowUp stays silent on a column that offers no set filter", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const markers: boolean[] = [];
+    await renderGrid({ onTriggerClick: (el) => markers.push(el.hasAttribute(GRID_ATTR.keyboardOpen)) });
+    await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"][aria-colindex="3"]')!);
+    await userEvent.keyboard("{Shift>}{Alt>}{ArrowUp}{/Alt}{/Shift}");
+    await new Promise((r) => setTimeout(r, 100));
+    expect(markers).toEqual([]);
+    expect(warn.mock.calls.some(([message]) => String(message).includes("column filter"))).toBe(false);
+    warn.mockRestore();
+  });
 });
 
 describe("useDataGridIsColumnFiltered", () => {

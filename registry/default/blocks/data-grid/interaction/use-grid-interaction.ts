@@ -37,6 +37,7 @@ import {
 } from "../virtualization/direction";
 import { GRID_ATTR, gridAttrSelector } from "../data-attributes";
 import { getSelectedViewRows, isRowChecked, isSelectionEmpty } from "../selection";
+import { offersSetFilter } from "../cell-types/capabilities";
 import { warnDev } from "../store/commit";
 import { allRowsSelectedState } from "../store/hooks";
 import { apiHandleOf } from "../store/api";
@@ -290,11 +291,11 @@ export function dispatchGridAction(args: {
     if (storeApi.getState().editing) scrollCellIntoView(coord);
   };
 
-  const openActiveColumnTrigger = (triggerAttr: "headerMenuTrigger" | "headerFilterTrigger", triggerLabel: string, slotProp: string) => {
+  const openActiveColumnTrigger = (triggerAttr: "headerMenuTrigger" | "headerFilterTrigger", triggerLabel: string, slotProp: string, offered: (column: (typeof state.visibleColumns)[number]) => boolean = () => true) => {
     preventDefault();
     const active = state.activeCell;
     const column = active && state.visibleColumns[active.col];
-    if (!active || !column) return;
+    if (!active || !column || !offered(column)) return;
     const findTrigger = () => scrollRef.current?.querySelector<HTMLElement>(`[data-column-id="${CSS.escape(column.id)}"] ${gridAttrSelector(triggerAttr)}`);
     const open = (trigger: HTMLElement) => {
       trigger.setAttribute(GRID_ATTR.keyboardOpen, "");
@@ -456,7 +457,7 @@ export function dispatchGridAction(args: {
       openActiveColumnTrigger("headerMenuTrigger", "column menu trigger", "renderHeaderMenu");
       break;
     case "openColumnFilter":
-      openActiveColumnTrigger("headerFilterTrigger", "column filter trigger", "renderHeaderFilter");
+      openActiveColumnTrigger("headerFilterTrigger", "column filter trigger", "renderHeaderFilter", (column) => offersSetFilter(column, state.cellTypes[column.type ?? "text"]));
       break;
     case "edit": {
       preventDefault();
