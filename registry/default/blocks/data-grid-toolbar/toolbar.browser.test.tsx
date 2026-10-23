@@ -748,8 +748,8 @@ describe("DataGridFilterMenu typed value inputs", () => {
     await switchFilterColumn("Age");
     await page.getByRole("combobox", { name: "Filter operator" }).click();
     await expect.element(page.getByRole("option", { name: "is between" })).toBeInTheDocument();
-    expect(document.querySelector('[role="option"][data-value="isAnyOf"]')).not.toBeNull();
-    expect(document.querySelector('[role="option"][data-value="isNoneOf"]')).not.toBeNull();
+    await expect.element(page.getByRole("option", { name: "is any of" })).toBeInTheDocument();
+    await expect.element(page.getByRole("option", { name: "is none of" })).toBeInTheDocument();
   });
 });
 
