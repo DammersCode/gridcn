@@ -34,6 +34,11 @@ describe("DEFAULT_LABELS", () => {
     expect(DEFAULT_LABELS.toolbar.filterValueAnyOfSummary(0)).toBe("Any value");
     expect(DEFAULT_LABELS.toolbar.filterValueAnyOfSummary(2)).toBe("2 selected");
     expect(DEFAULT_LABELS.toolbar.filterReorderAnnouncement("Name", 2, 3)).toBe("Name filter moved to position 2 of 3");
+    expect(DEFAULT_LABELS.toolbar.headerFilterAriaLabel("Name", false)).toBe("Filter Name");
+    expect(DEFAULT_LABELS.toolbar.headerFilterAriaLabel("Name", true)).toBe("Filter Name, filtered");
+    expect(DEFAULT_LABELS.toolbar.headerFilterValueCount(5, 5)).toBe("5 values");
+    expect(DEFAULT_LABELS.toolbar.headerFilterValueCount(2, 5)).toBe("2 of 5 values");
+    expect(DEFAULT_LABELS.toolbar.headerFilterTooManySelected(1000)).toBe("Too many values selected. Select at most 1000.");
     expect(DEFAULT_LABELS.sort.sortReorderAnnouncement("Age", 1, 4)).toBe("Age sort moved to position 1 of 4");
     expect(DEFAULT_LABELS.io.columnFallback(3)).toBe("Column 3");
     expect(DEFAULT_LABELS.io.mapColumnAriaLabel("Email")).toBe('Map "Email" to grid column');
