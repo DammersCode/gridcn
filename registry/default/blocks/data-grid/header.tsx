@@ -3,6 +3,7 @@
 import { useCallback, useMemo, type CSSProperties, type ReactNode } from "react";
 import { useDataGridRootContext } from "./layout-context";
 import {
+  type AnyColumnDef,
   useDataGridActions,
   useDataGridColumnFeatureFlags,
   useDataGridHeaderClickBehavior,
@@ -15,6 +16,8 @@ import { useColumnReorder } from "./columns/use-column-reorder";
 import { pinnedInsetStyle } from "./columns/pinned-inset-style";
 import { GRID_LAYER } from "./layers";
 import { isInlineStartHalf } from "./virtualization/direction";
+import { groupPathOf, type HeaderSegment } from "./columns/column-groups";
+import { DataGridGroupHeaderCell } from "./columns/group-header-cell";
 
 export type { HeaderCellRenderCtx, HeaderCellRenderer } from "./header-cell";
 
@@ -38,7 +41,8 @@ export type DataGridHeaderProps = {
  * count (chosen over shifting every data cell's aria-colindex by one).
  */
 export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderProps): ReactNode {
-  const { renderedColumns, template, layout, headerHeight, interaction, direction, renderHeaderMenu, renderHeaderFilter } = useDataGridRootContext();
+  const { renderedColumns, template, layout, headerHeight, headerRowHeight, headerRowCount, headerRows, columnGroupModel, interaction, direction, renderHeaderMenu, renderHeaderFilter } =
+    useDataGridRootContext();
   const rowMarkers = useDataGridRowMarkers();
   const actions = useDataGridActions();
   const sortState = useDataGridSortState();
@@ -98,8 +102,10 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
         : pinStyle.insetInlineStart
           ? `calc(${pinStyle.insetInlineStart} + ${width}px)`
           : width;
+    const rowStart = groupPathOf(columnGroupModel, column.id).length + 1;
     const style: CSSProperties = {
-      gridRowStart: 1,
+      gridRowStart: rowStart,
+      gridRowEnd: headerRowCount + 1,
       gridColumnStart: index + markerColOffset,
       position: "relative",
       insetBlockStart: 0,
@@ -111,7 +117,7 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
       backgroundColor: "var(--color-primary)",
     };
     return { index, style };
-  }, [dragState, renderedColumns, layout.widths, markerColOffset]);
+  }, [dragState, renderedColumns, layout.widths, markerColOffset, columnGroupModel, headerRowCount]);
 
   const layerStyle: CSSProperties = {
     position: "absolute",
@@ -119,7 +125,7 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
     insetInlineStart: 0,
     display: "grid",
     gridTemplateColumns: template,
-    gridAutoRows: headerHeight,
+    gridAutoRows: headerRowHeight,
     // stacking context (transform) painted after the rows canvas in DOM order; without an explicit
     // z-index the canvas's own stacking context wins paint order and buries the header on scroll.
     zIndex: GRID_LAYER.pinnedHeader,
@@ -127,38 +133,89 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
     // --grid-dir signs it for RTL (see body.tsx's canvas transform for the full reasoning).
     transform: "translate3d(calc(var(--grid-dir, -1) * var(--grid-scroll-left, 0px)), 0, 0)",
   };
+  const renderLeaf = ({ column, index }: { column: AnyColumnDef; index: number }, rowStart: number) => (
+    <DataGridHeaderCell
+      key={column.id}
+      column={column}
+      index={index}
+      width={layout.widths[index]!} // index is a real index into columns; layout.widths is columns.map(...), same length
+      gridColOffset={markerColOffset}
+      rowStart={rowStart}
+      rowSpan={headerRowCount - rowStart + 1}
+      headerClickBehavior={headerClickBehavior}
+      sortState={sortState}
+      resize={{
+        enabled: enableColumnResize,
+        setColumnWidth: actions.setColumnWidth,
+        commitColumnWidth: actions.commitColumnWidth,
+        autosizeColumns: actions.autosizeColumns,
+        direction,
+      }}
+      reorder={{
+        enabled: enableColumnReorder,
+        state: dragState,
+        onPointerDown: onHeaderDragPointerDown,
+      }}
+      onSelect={interaction.onHeaderPointerDown}
+      onSort={actions.toggleSort}
+      renderHeaderMenu={renderHeaderMenu}
+      renderHeaderFilter={renderHeaderFilter}
+      renderHeaderCell={renderHeaderCell}
+    />
+  );
+  const marker = layout.markerWidth > 0 && <DataGridMarkerHeader mode={rowMarkers} headerHeight={headerHeight} rowSpan={headerRowCount} />;
+  const indicator = dragState && dropIndicator && <div data-grid-drop-indicator="" aria-hidden="true" style={dropIndicator.style} />;
+
+  if (headerRows.length === 0) {
+    return (
+      <div role="row" style={layerStyle} className={className} data-grid-header-layer="">
+        {marker}
+        {renderedColumns.map((rendered) => renderLeaf(rendered, 1))}
+        {indicator}
+      </div>
+    );
+  }
+
+  const pinnedStartEdge = layout.pins.reduce((edge, pin, i) => (pin === "left" ? edge + layout.widths[i]! : edge), layout.markerWidth);
   return (
-    <div role="row" style={layerStyle} className={className} data-grid-header-layer="">
-      {layout.markerWidth > 0 && <DataGridMarkerHeader mode={rowMarkers} headerHeight={headerHeight} />}
-      {renderedColumns.map(({ column, index }) => (
-        <DataGridHeaderCell
-          key={column.id}
-          column={column}
-          index={index}
-          width={layout.widths[index]!} // index is a real index into columns; layout.widths is columns.map(...), same length
-          gridColOffset={markerColOffset}
-          headerClickBehavior={headerClickBehavior}
-          sortState={sortState}
-          resize={{
-            enabled: enableColumnResize,
-            setColumnWidth: actions.setColumnWidth,
-            commitColumnWidth: actions.commitColumnWidth,
-            autosizeColumns: actions.autosizeColumns,
-            direction,
-          }}
-          reorder={{
-            enabled: enableColumnReorder,
-            state: dragState,
-            onPointerDown: onHeaderDragPointerDown,
-          }}
-          onSelect={interaction.onHeaderPointerDown}
-          onSort={actions.toggleSort}
-          renderHeaderMenu={renderHeaderMenu}
-          renderHeaderFilter={renderHeaderFilter}
-          renderHeaderCell={renderHeaderCell}
-        />
+    <div role="rowgroup" style={layerStyle} className={className} data-grid-header-layer="">
+      {Array.from({ length: headerRowCount }, (_, level) => (
+        <div key={level} role="row" aria-rowindex={level + 1} style={{ display: "contents" }}>
+          {level === 0 && marker}
+          {level < headerRows.length &&
+            renderedSegments(headerRows[level]!, renderedColumns).map((segment) => {
+              const group = columnGroupModel?.groups.get(segment.groupId);
+              if (!group) return null;
+              return (
+                <DataGridGroupHeaderCell
+                  key={`${segment.groupId}:${segment.start}`}
+                  segment={segment}
+                  group={group.def}
+                  gridColOffset={markerColOffset}
+                  width={layout.trackRights[segment.end - 1]! - layout.trackLefts[segment.start]!} // segment ranges are real column indices
+                  trackLeft={layout.trackLefts[segment.start]!}
+                  pinnedStartEdge={pinnedStartEdge}
+                />
+              );
+            })}
+          {renderedColumns.filter(({ column }) => groupPathOf(columnGroupModel, column.id).length === level).map((rendered) => renderLeaf(rendered, level + 1))}
+          {level === headerRowCount - 1 && indicator}
+        </div>
       ))}
-      {dragState && dropIndicator && <div data-grid-drop-indicator="" aria-hidden="true" style={dropIndicator.style} />}
     </div>
   );
+}
+
+/** The segments that touch at least one rendered column. Rendered indices ascend, so each segment needs one binary search. */
+function renderedSegments(segments: readonly HeaderSegment[], rendered: readonly { index: number }[]): HeaderSegment[] {
+  return segments.filter(({ start, end }) => {
+    let lo = 0;
+    let hi = rendered.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (rendered[mid]!.index < start) lo = mid + 1; // mid is in [lo, hi), inside rendered
+      else hi = mid;
+    }
+    return lo < rendered.length && rendered[lo]!.index < end;
+  });
 }

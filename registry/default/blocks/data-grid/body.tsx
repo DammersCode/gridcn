@@ -97,6 +97,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
     renderedColumns,
     rowHeight,
     headerHeight,
+    headerRowCount,
     pinnedTopHeight,
     pinnedBottomHeight,
     pinnedTopCount,
@@ -319,7 +320,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
               isRowReorderDragging={rowReorder.dragState?.draggingRow === viewRowIndex}
               rowRef={rowRegistry.getCallback(key)}
               getGridLine={rowRegistry.gridLine}
-              ariaRowIndexOffset={pinnedTopCount}
+              ariaRowIndexOffset={pinnedTopCount + headerRowCount - 1}
               getRowClassName={getRowClassName}
               getCellClassName={getCellClassName}
             />

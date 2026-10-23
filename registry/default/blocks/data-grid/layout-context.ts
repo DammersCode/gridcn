@@ -4,6 +4,7 @@ import { useDataGridColumnWidths, useDataGridRowMarkers, type AnyColumnDef } fro
 import { resolveColumnWidth, distributeFlexWidths } from "./columns/resolve-column-width";
 import { encodeTemplate } from "./columns/column-format-helpers";
 import { pinLeftOffsets, pinRightOffsets } from "./columns/pin-offsets";
+import type { ColumnGroupModel, HeaderSegment } from "./columns/column-groups";
 import { markerWidth } from "./rows/marker-width";
 import type { GridInteractionHandlers } from "./interaction/use-grid-interaction";
 import type { GridDirection } from "./virtualization/direction";
@@ -89,7 +90,7 @@ export type RenderedColumn = { column: AnyColumnDef; index: number };
 /**
  * Context passed to a plugin's {@link PluginRowBands.render} for one band — exactly what root.tsx
  * computes for the band's render. `ariaRowIndexBase` is root's own aria index-layout math
- * (header=1, top bands next, then data rows, bottom bands last), so the add-on never has to know
+ * (header rows first, top bands next, then data rows, bottom bands last), so the add-on never has to know
  * rowCount or the other band's length. `rowOffset` is the number of rows earlier plugins put in
  * the same band (bands stack: top from the header down, bottom top to bottom, in plugin order).
  */
@@ -102,7 +103,7 @@ export type RowBandRenderCtx = {
   layout: ColumnLayout;
   rowHeight: number;
   template: string;
-  /** The sticky header track's own height (not including either band). */
+  /** The whole sticky header block's height (not including either band). */
   headerHeight: number;
   ariaRowIndexBase: number;
 };
@@ -161,8 +162,16 @@ export type DataGridRootContextValue = {
   renderedColumns: readonly RenderedColumn[];
   layout: ColumnLayout;
   rowHeight: number;
-  /** The sticky header track's own height — header.tsx's literal row height, NOT including any pinned band. Consumers computing "where data row 0 starts" need `headerHeight + pinnedTopHeight`; body.tsx does this itself for `useRowWindow`/the canvas transform. */
+  /** The whole sticky header block (every header row, group rows included), NOT including any pinned band. Consumers computing "where data row 0 starts" need `headerHeight + pinnedTopHeight`; body.tsx does this itself for `useRowWindow`/the canvas transform. */
   headerHeight: number;
+  /** The height of one header row: the `headerHeight` prop. `headerHeight` is this times `headerRowCount`. */
+  headerRowHeight: number;
+  /** Group levels plus the column header row; 1 when the grid has no column groups. */
+  headerRowCount: number;
+  /** The group header segments of the visible columns, one array per level, top first. Empty without groups. */
+  headerRows: readonly (readonly HeaderSegment[])[];
+  /** The validated `columnGroups`; null without groups. */
+  columnGroupModel: ColumnGroupModel | null;
   /** Pinned-top row band height (px); 0 when `rowBands` is unset or its `topRows` is empty. */
   pinnedTopHeight: number;
   /** Pinned-bottom row band height (px); 0 when `rowBands` is unset or its `bottomRows` is empty. */

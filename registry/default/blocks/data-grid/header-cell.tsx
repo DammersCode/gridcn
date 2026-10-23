@@ -57,6 +57,10 @@ export type DataGridHeaderCellProps = {
   index: number;
   width: number;
   gridColOffset: number;
+  /** First header row the cell sits in (1-based). Default 1. */
+  rowStart?: number;
+  /** Header rows the cell spans, so a column outside a group (or in a shallower one) reaches the bottom row. Default 1. */
+  rowSpan?: number;
   headerClickBehavior: HeaderClickBehavior;
   sortState: readonly SortSpec[];
   resize: {
@@ -94,6 +98,8 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
     index,
     width,
     gridColOffset,
+    rowStart = 1,
+    rowSpan = 1,
     headerClickBehavior,
     sortState,
     resize: resizeProps,
@@ -123,7 +129,8 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
   });
 
   const style: CSSProperties = {
-    gridRowStart: 1,
+    gridRowStart: rowStart,
+    ...(rowSpan > 1 ? { gridRowEnd: `span ${rowSpan}` } : {}),
     gridColumnStart: index + gridColOffset,
     zIndex: pinned ? 3 : 2,
     ...pinnedInsetStyle(pinned, index),
@@ -198,6 +205,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
       ref={cellRef}
       role="columnheader"
       aria-colindex={index + 1}
+      aria-rowspan={rowSpan > 1 ? rowSpan : undefined}
       // sort state is announced to AT in every click behavior — only the visual arrow below is click-gated
       aria-sort={column.sortable !== false ? ariaSortFor(column.id, sortState) : undefined}
       data-column-id={column.id}

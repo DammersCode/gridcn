@@ -16,7 +16,7 @@ export type DataGridPinnedRowProps = {
   renderedColumns: readonly RenderedColumn[];
   layout: GridColumnLayout;
   gridRowStart: number;
-  /** Root's aria index layout: header=1, pinned-top next, then data rows, pinned-bottom last. */
+  /** Root's aria index layout: header rows, pinned-top next, then data rows, pinned-bottom last. */
   ariaRowIndex: number;
   className?: string;
 };

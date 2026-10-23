@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { DirectionProvider } from "@base-ui/react/direction-provider";
+import { computeHeaderRows } from "./columns/column-groups";
 import { cn } from "@/lib/utils";
 import type { DensityMode, GetCellClassName, GetRowClassName } from "./types";
 import {
@@ -29,6 +30,7 @@ import {
   useDataGridStore,
   useDataGridStoreApi,
   useDataGridVisibleColumns,
+  useDataGridColumnGroupModel,
 } from "./store";
 import { useElementDimensions, useViewportElement } from "./virtualization/use-scroll-snapshot";
 import { directionSign, readResolvedDirection, type GridDirection } from "./virtualization/direction";
@@ -195,7 +197,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     children,
   } = props;
   const rowHeight = resolveRowHeight(density, rowHeightProp);
-  const headerHeight = headerHeightProp ?? HEADER_HEIGHT;
+  const headerRowHeight = headerHeightProp ?? HEADER_HEIGHT;
   const instanceId = useDataGridInstanceId();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -216,6 +218,10 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const direction = directionProp ?? domDirection;
   const isRtl = direction === "rtl";
   const visibleColumns = useDataGridVisibleColumns();
+  const columnGroupModel = useDataGridColumnGroupModel();
+  const headerRows = useMemo(() => computeHeaderRows(visibleColumns, columnGroupModel), [visibleColumns, columnGroupModel]);
+  const headerRowCount = headerRows.length + 1;
+  const headerHeight = headerRowHeight * headerRowCount;
   const rowCount = useDataGridRowCount();
   const dataLength = useDataGridStore((s) => s.data.length);
   // labels.grid.emptyState is the translatable default; the emptyState prop (node or function) still wins when provided.
@@ -495,6 +501,10 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       layout,
       rowHeight,
       headerHeight,
+      headerRowHeight,
+      headerRowCount,
+      headerRows,
+      columnGroupModel,
       pinnedTopHeight,
       pinnedBottomHeight,
       pinnedTopCount: topBandRowCount,
@@ -519,6 +529,10 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       layout,
       rowHeight,
       headerHeight,
+      headerRowHeight,
+      headerRowCount,
+      headerRows,
+      columnGroupModel,
       pinnedTopHeight,
       pinnedBottomHeight,
       topBandRowCount,
@@ -551,7 +565,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
         // entry point or a keyboard user can never reach the grid at all. Once a cell becomes
         // active it takes over as the sole tab stop (see cell.tsx), and the root reverts to -1.
         tabIndex={!hasActiveCell && rowCount > 0 ? 0 : -1}
-        aria-rowcount={rowCount + 1 + topBandRowCount + bottomBandRowCount}
+        aria-rowcount={rowCount + headerRowCount + topBandRowCount + bottomBandRowCount}
         aria-colcount={visibleColumns.length}
         aria-multiselectable={ariaMultiselectable || undefined}
         aria-readonly={readOnly || undefined}
@@ -594,7 +608,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                     rowHeight,
                     template,
                     headerHeight,
-                    ariaRowIndexBase: 2 + offset,
+                    ariaRowIndexBase: 1 + headerRowCount + offset,
                   })}
                 </Fragment>
               ))}
@@ -609,7 +623,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                     rowHeight,
                     template,
                     headerHeight,
-                    ariaRowIndexBase: 2 + topBandRowCount + rowCount + offset,
+                    ariaRowIndexBase: 1 + headerRowCount + topBandRowCount + rowCount + offset,
                   })}
                 </Fragment>
               ))}

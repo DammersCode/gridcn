@@ -12,7 +12,10 @@ import { useDataGridActions, useDataGridAllRowsSelected, useDataGridLabels } fro
 /** Props for {@link DataGridMarkerHeader}. */
 export type DataGridMarkerHeaderProps = {
   mode: RowMarkersMode;
+  /** The whole header block's height. */
   headerHeight: number;
+  /** Header rows the cell spans. Default 1. */
+  rowSpan?: number;
 };
 
 /**
@@ -27,7 +30,7 @@ export type DataGridMarkerHeaderProps = {
  * level — it just left the cell unlabeled.
  */
 export function DataGridMarkerHeader(props: DataGridMarkerHeaderProps): ReactNode {
-  const { mode, headerHeight } = props;
+  const { mode, headerHeight, rowSpan = 1 } = props;
   const actions = useDataGridActions();
   const state = useDataGridAllRowsSelected();
   const labels = useDataGridLabels();
@@ -35,6 +38,7 @@ export function DataGridMarkerHeader(props: DataGridMarkerHeaderProps): ReactNod
 
   const style: CSSProperties = {
     gridRowStart: 1,
+    ...(rowSpan > 1 ? { gridRowEnd: `span ${rowSpan}` } : {}),
     gridColumnStart: 1,
     position: "relative",
     insetInlineStart: "var(--grid-scroll-left, 0px)",
