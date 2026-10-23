@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cellTypes,
@@ -48,5 +48,20 @@ describe("DataGridFilterValueInput", () => {
   it("falls back to a text input for a custom type without filter.valueInput", () => {
     renderInput(textType);
     expect(screen.getByRole("textbox")).toBeTruthy();
+  });
+
+  it("keeps isAnyOf values outside the column choices when toggling a choice", async () => {
+    const columns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "amount", header: "Amount", accessorKey: "amount", type: "select", options: { choices: [{ value: "a", label: "A" }, { value: "b", label: "B" }] } } as never,
+    ];
+    const onValueChange = vi.fn();
+    render(
+      <DataGridProvider data={[]} columns={columns} getRowId={(r) => r.id}>
+        <DataGridFilterValueInput column={columns[0] as AnyColumnDef} operator="isAnyOf" value={["outside", "a"]} onValueChange={onValueChange} />
+      </DataGridProvider>,
+    );
+    fireEvent.click(screen.getByRole("button"));
+    fireEvent.click(await screen.findByRole("menuitemcheckbox", { name: "B" }));
+    expect(onValueChange).toHaveBeenCalledWith(["a", "b", "outside"]);
   });
 });

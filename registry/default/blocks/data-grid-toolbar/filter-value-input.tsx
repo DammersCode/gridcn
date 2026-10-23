@@ -130,11 +130,12 @@ function AnyOfValueInput(props: {
 }) {
   const { choices, selected, onValueChange, ariaLabel, summary } = props;
   const toggle = (choice: string, checked: boolean) => {
-    // rebuild from `choices` so the committed order is the column's own, not click order
     const next = new Set(selected);
     if (checked) next.add(choice);
     else next.delete(choice);
-    onValueChange(choices.map((c) => c.value).filter((v) => next.has(v)));
+    const choiceValues = new Set(choices.map((c) => c.value));
+    // committed order is the column's own, not click order; values outside `choices` stay last
+    onValueChange([...choices.map((c) => c.value).filter((v) => next.has(v)), ...selected.filter((v) => !choiceValues.has(v))]);
   };
 
   return (

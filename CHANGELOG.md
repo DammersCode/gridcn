@@ -9,6 +9,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- The toolbar `isAnyOf` value input keeps checked values that are not in the column's `choices` when you toggle a choice. Before, a toggle dropped them.
+
 ## 1.1.0 - 2026-10-21
 
 - In Firefox, lists longer than about 248,600 rows at 36 px no longer lose the end of the list. Rows stay visible after scrolling past about 8.9 million px.
