@@ -248,6 +248,11 @@
                "target": "components/data-grid/interaction/use-async-validate.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/interaction/touch-gestures.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/interaction/touch-gestures.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/interaction/safe-set-pointer-capture.ts",
                "type": "registry:component",
                "target": "components/data-grid/interaction/safe-set-pointer-capture.ts"

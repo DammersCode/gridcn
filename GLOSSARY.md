@@ -66,6 +66,10 @@ mirror the change there.
 | find and replace | The add-on panel that finds text through the quick search and replaces it in one match or in all matches. A replace writes one change with the source `"replace"`. | search and replace |
 | set filter | A filter that keeps or drops rows by a list of values. It uses the `isAnyOf` or `isNoneOf` operator. | value filter |
 | header filter | The filter button in a column header. It opens a popover with the set filter of that column. `renderHeaderFilter` places it, and `DataGridHeaderFilter` is the built-in one. | column filter popup |
+| tap | A touch press that lifts within 10 px and under 500 ms. A tap selects; two taps on one cell edit. | click (for touch) |
+| long-press | A touch press held for 500 ms without moving more than 10 px. It opens the context menu. | press and hold, tap and hold |
+| selection handle | One of the two circles at the corners of a touch selection. Dragging one extends the range. | range handle, drag handle |
+| coarse pointer | An input whose `(pointer: coarse)` media query matches, such as a finger. Hit areas grow under it. | touch mode |
 
 ## Writing
 
