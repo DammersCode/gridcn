@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "../types";
 import { CellSpan } from "./cell-span";
-import { COMPARISON_FILTER_OPERATORS, TEXT_FILTER_OPERATORS } from "./capabilities";
+import { COMPARISON_FILTER_OPERATORS, SET_FILTER_OPERATORS, TEXT_FILTER_OPERATORS } from "./capabilities";
 import { displayText } from "./display-text";
 import { useCommitGuard } from "../interaction/use-commit-guard";
 import { isComposingKey } from "../interaction/is-composing-key";
@@ -222,7 +222,7 @@ export const dateCellType: CellType<unknown, string | null, GridCellTypes["date"
   Cell: DateCell,
   Editor: DateEditor,
   numeric: true,
-  filter: { operators: [...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS], valueInput: "date" },
+  filter: { operators: [...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS, ...SET_FILTER_OPERATORS], valueInput: "date" },
   toText: (value) => toSafeText(value),
   toDisplayText: (value, options) => formatDateDisplay(value, options),
   fromText: (text, options) => toIsoDatePart(text, options),

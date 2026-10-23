@@ -57,6 +57,7 @@ export {
 } from "./validation/validate-batch";
 export {
   COMPARISON_FILTER_OPERATORS,
+  SET_FILTER_OPERATORS,
   TEXT_FILTER_OPERATORS,
   operatorsForColumnType,
   resolveColumnValidate,

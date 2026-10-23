@@ -15,16 +15,19 @@ export const TEXT_FILTER_OPERATORS: readonly FilterOperator[] = [
   "notEmpty",
 ];
 
+/** Set-membership operators for types with a bounded set of distinct values. */
+export const SET_FILTER_OPERATORS: readonly FilterOperator[] = ["isAnyOf", "isNoneOf"];
+
 /** Comparison operators added only for orderable types (gt/lt only for number/date). */
 export const COMPARISON_FILTER_OPERATORS: readonly FilterOperator[] = ["gt", "gte", "lt", "lte", "isBetween"];
 
 /**
  * The operator list for a type name whose cell type declares no `filter.operators`: comparisons
- * for number and date, `isAnyOf` for select, text operators otherwise.
+ * and set operators for number and date, set operators for select and text, text operators otherwise.
  */
 export function operatorsForColumnType(columnType: string | undefined): FilterOperator[] {
-  if (columnType === "number" || columnType === "date") return [...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS];
-  if (columnType === "select") return [...TEXT_FILTER_OPERATORS, "isAnyOf"];
+  if (columnType === "number" || columnType === "date") return [...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS, ...SET_FILTER_OPERATORS];
+  if (columnType === "select" || columnType === "text" || columnType === undefined) return [...TEXT_FILTER_OPERATORS, ...SET_FILTER_OPERATORS];
   return [...TEXT_FILTER_OPERATORS];
 }
 

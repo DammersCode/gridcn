@@ -31,6 +31,7 @@ it("moves the add-on-only store, attribute, history, and operator names to `data
     "useDataGridSearchCapped",
     "TEXT_FILTER_OPERATORS",
     "COMPARISON_FILTER_OPERATORS",
+    "SET_FILTER_OPERATORS",
   ];
   for (const name of moved) {
     expect(dataGrid, name).not.toHaveProperty(name);

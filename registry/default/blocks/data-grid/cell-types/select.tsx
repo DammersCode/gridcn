@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/select";
 import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "../types";
 import { CellSpan } from "./cell-span";
-import { TEXT_FILTER_OPERATORS } from "./capabilities";
+import { SET_FILTER_OPERATORS, TEXT_FILTER_OPERATORS } from "./capabilities";
 import { useCommitGuard } from "../interaction/use-commit-guard";
 import { columnLabelText } from "../columns/column-format-helpers";
 import { defaultCompareText } from "../sort-filter/default-compare-text";
@@ -120,7 +120,7 @@ export const selectCellType: CellType<unknown, string | null, GridCellTypes["sel
     const key = toSafeText(value);
     return findChoice(options?.choices, key)?.label ?? key;
   },
-  filter: { operators: [...TEXT_FILTER_OPERATORS, "isAnyOf"], valueInput: "choices" },
+  filter: { operators: [...TEXT_FILTER_OPERATORS, ...SET_FILTER_OPERATORS], valueInput: "choices" },
   fromText: (text, options) => {
     const trimmed = text.trim();
     if (trimmed === "") return null;

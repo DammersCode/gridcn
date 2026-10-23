@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- `isAnyOf` and `isNoneOf` are filter operators of the `text`, `number`, `date` and `select` cell types. `SET_FILTER_OPERATORS` (from `data-grid-sdk`) lists them. The toolbar filter menu offers them for those columns. `long-text`, `url` and `checkbox` do not get them.
 - **Breaking:** `FilterOperator` has the new member `isNoneOf`. It takes a `string[]` and matches rows whose cell text equals none of the entries, case-insensitively. An empty list matches every row. The URL codec writes it like `isAnyOf` (`status:isNoneOf:new|open`). An `isNoneOf` list over its bound (1,000 entries, or the column's number of choices) drops the whole filter segment instead of shortening it. An exhaustive `switch` over `FilterOperator` needs a new case.
 - The toolbar `isAnyOf` value input keeps checked values that are not in the column's `choices` when you toggle a choice. Before, a toggle dropped them.
 

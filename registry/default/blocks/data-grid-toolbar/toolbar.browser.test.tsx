@@ -742,13 +742,14 @@ describe("DataGridFilterMenu typed value inputs", () => {
     await expect.element(page.getByRole("combobox", { name: "Filter value" })).toHaveTextContent("Admin");
   });
 
-  it("isAnyOf is offered only for select columns", async () => {
+  it("isAnyOf and isNoneOf are offered for number columns", async () => {
     await renderRichGrid();
     await openFilterMenu();
     await switchFilterColumn("Age");
     await page.getByRole("combobox", { name: "Filter operator" }).click();
     await expect.element(page.getByRole("option", { name: "is between" })).toBeInTheDocument();
-    expect(document.querySelector('[role="option"][data-value="isAnyOf"]')).toBeNull();
+    expect(document.querySelector('[role="option"][data-value="isAnyOf"]')).not.toBeNull();
+    expect(document.querySelector('[role="option"][data-value="isNoneOf"]')).not.toBeNull();
   });
 });
 
