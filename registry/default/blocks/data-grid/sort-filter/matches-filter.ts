@@ -15,6 +15,11 @@ function compareTextTo(text: string, bound: string): number {
   return defaultCompareText(text, bound);
 }
 
+/** The string entries of a list filter; a controlled `filterState` can carry other JSON values. */
+function stringChoices(filter: FilterSpec): string[] {
+  return Array.isArray(filter.value) ? filter.value.filter((choice): choice is string => typeof choice === "string") : [];
+}
+
 /**
  * Evaluates a single {@link FilterSpec} against a cell's text value.
  * `gt`/`gte`/`lt`/`lte` compare numerically when both sides parse as
@@ -28,11 +33,6 @@ function compareTextTo(text: string, bound: string): number {
  * This is the correctness reference (re-parses `filter.value` on every call) — {@link createFilterMatcher}
  * is the same semantics with the bound(s) parsed once, for a hot per-row loop over many rows.
  */
-/** The string entries of a list filter; a controlled `filterState` can carry other JSON values. */
-function stringChoices(filter: FilterSpec): string[] {
-  return Array.isArray(filter.value) ? filter.value.filter((choice): choice is string => typeof choice === "string") : [];
-}
-
 export function matchesFilter(text: string, filter: FilterSpec): boolean {
   const op: FilterOperator = filter.operator;
   if (op === "empty") return text === "";

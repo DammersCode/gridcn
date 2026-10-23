@@ -69,23 +69,35 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const [position, setPosition] = useState<{ top: number; right: number }>({ top: 8, right: 8 });
   const findRef = useRef<HTMLInputElement | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const settleRef = useRef<(() => void) | null>(null);
+  const applyTokenRef = useRef(0);
+  const replacedRef = useRef<Map<string, Set<string>>>(new Map());
+  const [openedFromGrid] = useState(() => {
+    const grid = document.querySelector(`[${GRID_ATTR.instance}="${CSS.escape(instanceId)}"]`);
+    return grid !== null && grid.contains(document.activeElement);
+  });
 
   useEffect(() => {
     findRef.current?.focus();
     findRef.current?.select();
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      settleRef.current?.();
+      applyTokenRef.current++;
     };
   }, []);
+
+  const closePanel = () => {
+    panelStore.close();
+    if (openedFromGrid) api.focus();
+  };
 
   useLayoutEffect(() => {
     const place = () => {
       const grid = document.querySelector(`[${GRID_ATTR.instance}="${CSS.escape(instanceId)}"]`);
       if (!grid) return;
       const rect = grid.getBoundingClientRect();
-      setPosition({ top: Math.max(8, rect.top + 8), right: Math.max(8, window.innerWidth - rect.right + 24) });
+      const top = Math.max(8, rect.top + 8);
+      const right = Math.max(8, window.innerWidth - rect.right + 24);
+      setPosition((current) => (current.top === top && current.right === right ? current : { top, right }));
     };
     place();
     window.addEventListener("resize", place);
@@ -122,6 +134,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const onFindChange = (text: string) => {
     setFind(text);
     setStatus(null);
+    replacedRef.current.clear();
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => runSearch(text, searchOptions), SEARCH_DEBOUNCE_MS);
   };
@@ -130,6 +143,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     const next = { ...searchOptions, [key]: !searchOptions[key] };
     setSearchOptions(next);
     setStatus(null);
+    replacedRef.current.clear();
     runSearch(find, next);
   };
 
@@ -151,35 +165,36 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const apply = (only: { rowId: string; columnId: string } | undefined) => {
     const s = api.store.getState();
     if (s.readOnly || s.editing !== null || find.trim() === "") return;
-    const plan = planReplace(s, find, replacement, { ...panelStore.getOptions(), ...searchOptions, only });
-    const dataBefore = s.data;
+    const replaced = replacedRef.current;
+    const skip = only ? undefined : (ref: { rowId: string; columnId: string }) => replaced.get(ref.rowId)?.has(ref.columnId) === true;
+    const plan = planReplace(s, find, replacement, { ...panelStore.getOptions(), ...searchOptions, only, skip });
+    if (!only) {
+      if (!plan.remaining) replaced.clear();
+      else for (const { rowId, columnId } of plan.patches) replaced.set(rowId, (replaced.get(rowId) ?? new Set()).add(columnId));
+    }
     const verdict = plan.patches.length === 0 ? null : api.actions.updateCells(plan.patches, { source: "replace", reorder: "defer" });
+    const token = ++applyTokenRef.current;
+    const finish = (settled: { applied: number; skipped: readonly unknown[] } | null) => {
+      setStatus({
+        kind: "replaced",
+        replaced: settled?.applied ?? 0,
+        skipped: plan.skipped.length + (settled?.skipped.length ?? 0),
+        more: plan.remaining,
+      });
+      runSearch(find, searchOptions);
+      if (only) {
+        const left = api.store.getState().searchMatches.length;
+        if (left > 0) goTo(Math.min(cursor, left - 1));
+      }
+    };
     if (verdict?.pending) {
       setStatus({ kind: "validating" });
-      settleRef.current?.();
-      const unsubscribe = api.store.subscribe((next) => {
-        if (next.data === dataBefore) return;
-        settleRef.current?.();
-        setStatus(null);
-        runSearch(find, searchOptions);
+      void verdict.settled?.then((settled) => {
+        if (token === applyTokenRef.current) finish(settled);
       });
-      settleRef.current = () => {
-        unsubscribe();
-        settleRef.current = null;
-      };
       return;
     }
-    setStatus({
-      kind: "replaced",
-      replaced: verdict?.applied ?? 0,
-      skipped: plan.skipped.length + (verdict?.skipped.length ?? 0),
-      more: plan.remaining,
-    });
-    runSearch(find, searchOptions);
-    if (only) {
-      const left = api.store.getState().searchMatches.length;
-      if (left > 0) goTo(Math.min(cursor, left - 1));
-    }
+    finish(verdict);
   };
 
   const replaceOne = () => {
@@ -192,8 +207,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     if (isComposingKey(event)) return;
     if (event.key === "Escape") {
       event.preventDefault();
-      panelStore.close();
-      api.focus();
+      closePanel();
     }
   };
 
@@ -247,7 +261,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
         <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.next} disabled={!hasMatches} onClick={() => goTo(cursor + 1)}>
           <ChevronDown />
         </Button>
-        <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.close} onClick={() => { panelStore.close(); api.focus(); }}>
+        <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.close} onClick={closePanel}>
           <X />
         </Button>
       </div>
@@ -256,7 +270,10 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
           <Input
             value={replacement}
             maxLength={MAX_REPLACE_INPUT_LENGTH}
-            onChange={(event) => setReplacement(event.target.value)}
+            onChange={(event) => {
+              setReplacement(event.target.value);
+              replacedRef.current.clear();
+            }}
             onKeyDown={onReplaceKeyDown}
             aria-label={labels.replaceLabel}
             placeholder={labels.replaceLabel}

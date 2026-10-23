@@ -16,9 +16,11 @@ export type ReplaceOptions = SearchOptions & {
   scope?: "view" | "selection";
   /** Most cells one plan targets; default 10,000, clamped to 1..100,000. */
   replaceAllLimit?: number;
+  /** Leaves out the cells it returns `true` for; a continuation passes the cells an earlier plan replaced. */
+  skip?: (ref: CellRef) => boolean;
 };
 
-export type ReplaceSkipReason = "readonly" | "unparseable" | "too-long";
+export type ReplaceSkipReason = "readonly" | "unparseable" | "too-long" | "no-occurrence";
 
 export type ReplacePlan = {
   patches: CellPatch[];
@@ -62,37 +64,51 @@ function isReadOnly(column: AnyColumnDef, row: unknown): boolean {
   return typeof column.readOnly === "function" ? column.readOnly(row) : Boolean(column.readOnly);
 }
 
-/** Replaces every occurrence of `needle` in `text`, or returns `null` when the result would pass the cell cap. */
-function replaceOccurrences(text: string, needle: string, replacement: string, matchCase: boolean): string | null {
-  const haystack = matchCase ? text : text.toLowerCase();
+/** Lowercases `text` for matching; `sourceAt` maps each folded index to its source index when lowercasing changed the length. */
+function foldText(text: string, matchCase: boolean): { folded: string; sourceAt: number[] | null } {
+  const lower = matchCase ? text : text.toLowerCase();
+  if (lower.length === text.length) return { folded: lower, sourceAt: null };
+  const parts: string[] = [];
+  const sourceAt: number[] = [];
+  for (let i = 0; i < text.length; ) {
+    const char = String.fromCodePoint(text.codePointAt(i)!);
+    const lowered = char.toLowerCase();
+    parts.push(lowered);
+    for (let k = 0; k < lowered.length; k++) sourceAt.push(i);
+    i += char.length;
+  }
+  return { folded: parts.join(""), sourceAt };
+}
+
+/** Replaces every occurrence of `needle` in `text`; `null` when the result would pass the cell cap, `found: false` when no whole-character occurrence exists. */
+function replaceOccurrences(text: string, needle: string, replacement: string, matchCase: boolean): { text: string; found: boolean } | null {
   const target = matchCase ? needle : needle.toLowerCase();
-  const sameLength = haystack.length === text.length;
-  const starts: number[] = [];
+  const { folded, sourceAt } = foldText(text, matchCase);
+  const startsOnChar = (at: number) => at === 0 || at === folded.length || sourceAt![at - 1] !== sourceAt![at];
+  const spans: [number, number][] = [];
   let projected = text.length;
-  const step = needle.length;
   for (let from = 0; ; ) {
-    const at = sameLength ? haystack.indexOf(target, from) : indexOfFolded(text, target, step, from);
+    const at = folded.indexOf(target, from);
     if (at === -1) break;
-    starts.push(at);
-    projected += replacement.length - step;
+    const end = at + target.length;
+    if (sourceAt && !(startsOnChar(at) && startsOnChar(end))) {
+      from = at + 1;
+      continue;
+    }
+    const start = sourceAt ? sourceAt[at]! : at;
+    const stop = sourceAt ? (end === folded.length ? text.length : sourceAt[end]!) : end;
+    spans.push([start, stop]);
+    projected += replacement.length - (stop - start);
     if (projected > MAX_REPLACED_CELL_LENGTH) return null;
-    from = at + step;
+    from = end;
   }
   let out = "";
   let cursor = 0;
-  for (const at of starts) {
-    out += text.slice(cursor, at) + replacement;
-    cursor = at + step;
+  for (const [start, stop] of spans) {
+    out += text.slice(cursor, start) + replacement;
+    cursor = stop;
   }
-  return out + text.slice(cursor);
-}
-
-/** Case-insensitive search in text whose lowercase form changes length: compares same-length windows. */
-function indexOfFolded(text: string, foldedNeedle: string, width: number, from: number): number {
-  for (let at = from; at + width <= text.length; at++) {
-    if (text.slice(at, at + width).toLowerCase() === foldedNeedle) return at;
-  }
-  return -1;
+  return { text: out + text.slice(cursor), found: spans.length > 0 };
 }
 
 /**
@@ -112,7 +128,7 @@ export function planReplace(
   const isMatch = createTextMatcher(needle, options);
   if (isMatch === null) return plan;
 
-  const { matchCase = false, wholeCell = false, scope = "view", only } = options;
+  const { matchCase = false, wholeCell = false, scope = "view", only, skip } = options;
   const to = replacement.slice(0, MAX_REPLACE_INPUT_LENGTH);
   const limit = Math.min(Math.max(Math.floor(options.replaceAllLimit ?? DEFAULT_REPLACE_ALL_LIMIT) || 1, 1), MAX_REPLACE_ALL_LIMIT);
   const columns = state.visibleColumns.map((column) => planColumn(column, state.cellTypes));
@@ -123,15 +139,21 @@ export function planReplace(
     const text = entry.readText(entry.readValue(row));
     if (!isMatch(text)) return true;
     const ref = { rowId, columnId: entry.column.id };
+    if (skip?.(ref)) return true;
     if (isReadOnly(entry.column, row)) {
       plan.skipped.push({ ref, reason: "readonly" });
       return true;
     }
-    const next = wholeCell ? to : replaceOccurrences(text, needle, to, matchCase);
-    if (next === null) {
+    const replaced = wholeCell ? { text: to, found: true } : replaceOccurrences(text, needle, to, matchCase);
+    if (replaced === null) {
       plan.skipped.push({ ref, reason: "too-long" });
       return true;
     }
+    if (!replaced.found) {
+      plan.skipped.push({ ref, reason: "no-occurrence" });
+      return true;
+    }
+    const next = replaced.text;
     if (next === text) return true;
     const value = entry.fromText(next);
     if (next.trim() !== "" && entry.isEmpty(value)) {

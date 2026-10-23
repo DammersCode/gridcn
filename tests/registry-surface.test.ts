@@ -28,6 +28,7 @@ it("moves the add-on-only store, attribute, history, and operator names to `data
     "setCellValue",
     "useDataGridColumnFeatureFlags",
     "useDataGridSearchMatches",
+    "useDataGridColumnGroupModel",
     "useDataGridSearchCapped",
     "useDataGridIsColumnFiltered",
     "TEXT_FILTER_OPERATORS",

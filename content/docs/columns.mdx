@@ -271,7 +271,8 @@ The grid checks `columnGroups` and ignores what it cannot use:
 
 In development, the grid logs each dropped entry once. The grid compares an inline
 `columnGroups` array by structure, so a new array with the same groups does not rebuild the
-header. Pass a stable identity for `header` nodes.
+header. A `header` written inline as JSX is a new node on every render and rebuilds the header, so
+memoize `columnGroups` or define the `header` nodes outside the component.
 
 Export and print write the column headers only. Group headers are not part of the output.
 

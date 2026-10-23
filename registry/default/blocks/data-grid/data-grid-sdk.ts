@@ -86,6 +86,7 @@ export { isComposingKey } from "./interaction/is-composing-key";
 export { createTextMatcher } from "./sort-filter";
 export {
   useDataGridColumnFeatureFlags,
+  useDataGridColumnGroupModel,
   useDataGridCommands,
   useDataGridSelectionPointer,
   useDataGridInstanceId,

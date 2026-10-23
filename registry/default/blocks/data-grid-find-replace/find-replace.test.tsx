@@ -24,18 +24,18 @@ const columns: readonly ColumnDef<Row, unknown>[] = [
 
 afterEach(cleanup);
 
-function setup(props: { readOnly?: boolean; onValidationError?: (event: GridValidationErrorEvent) => void } = {}) {
+function setup(props: { readOnly?: boolean; onValidationError?: (event: GridValidationErrorEvent) => void; columns?: readonly ColumnDef<Row, unknown>[]; replaceAllLimit?: number } = {}) {
   let data: readonly Row[] = rows;
   const changes: DataChange<Row>[] = [];
   let history!: ReturnType<typeof useDataGridHistory<Row>>;
   let findReplace!: ReturnType<typeof useDataGridFindReplace>;
   function Harness() {
     history = useDataGridHistory<Row>();
-    findReplace = useDataGridFindReplace();
+    findReplace = useDataGridFindReplace({ replaceAllLimit: props.replaceAllLimit });
     return (
       <DataGridProvider
         data={data}
-        columns={columns}
+        columns={props.columns ?? columns}
         getRowId={(row: Row) => row.id}
         plugins={[history.plugin, findReplace.plugin]}
         readOnly={props.readOnly}
@@ -116,5 +116,27 @@ describe("useDataGridFindReplace", () => {
     act(() => harness.findReplace().open());
     fireEvent.keyDown(screen.getByLabelText("Find"), { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+  it("settles the status when an async validator rejects every cell", async () => {
+    const rejectAll = {
+      "~standard": { version: 1, vendor: "test", validate: async () => ({ issues: [{ message: "no" }] }) },
+    };
+    const asyncColumns = [{ id: "name", header: "Name", accessorKey: "name", validate: rejectAll }] as unknown as readonly ColumnDef<Row, unknown>[];
+    const harness = setup({ columns: asyncColumns });
+    act(() => harness.findReplace().open());
+    await search("foo", "x");
+    fireEvent.click(screen.getByRole("button", { name: "Replace all" }));
+    await waitFor(() => expect(screen.getByRole("status").textContent).not.toBe("Validating…"));
+    expect(harness.changes).toHaveLength(0);
+  });
+
+  it("continues Replace all past the limit when the replacement contains the find text", async () => {
+    const harness = setup({ replaceAllLimit: 1 });
+    act(() => harness.findReplace().open());
+    await search("foo", "foobar");
+    fireEvent.click(screen.getByRole("button", { name: "Replace all" }));
+    expect(harness.data().map((r) => r.name)).toEqual(["foobar one", "two", "Foo three"]);
+    fireEvent.click(screen.getByRole("button", { name: "Replace all" }));
+    expect(harness.data().map((r) => r.name)).toEqual(["foobar one", "two", "foobar three"]);
   });
 });

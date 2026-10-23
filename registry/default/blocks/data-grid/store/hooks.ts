@@ -650,9 +650,11 @@ export function useDataGridSelectionConfig(): {
   enableColumnSelection: boolean;
   enableRangeSelection: boolean;
   enableMultiRange: boolean;
+  keepCheckedRows: boolean;
 } {
   return useDataGridStore(
     useShallow((s) => ({
+      keepCheckedRows: s.keepCheckedRows,
       enableRowSelection: s.enableRowSelection,
       enableColumnSelection: s.enableColumnSelection,
       enableRangeSelection: s.enableRangeSelection,

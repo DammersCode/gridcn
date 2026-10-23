@@ -2219,13 +2219,14 @@ describe("rowMarkers config", () => {
 });
 
 describe("selection config defaults and gating", () => {
-  it("defaults every flag to true", () => {
+  it("defaults every enable flag to true and keepCheckedRows to false", () => {
     const { result } = renderHook(() => useDataGridSelectionConfig(), { wrapper: makeWrapper() });
     expect(result.current).toEqual({
       enableRowSelection: true,
       enableColumnSelection: true,
       enableRangeSelection: true,
       enableMultiRange: true,
+      keepCheckedRows: false,
     });
   });
 
@@ -3369,6 +3370,15 @@ describe("controlled sortState/filterState/searchText (server escape hatch)", ()
       const { result } = renderHook(useSearchProbe, { wrapper });
       act(() => result.current.actions.setSearch("Alice"));
       expect(onSearchTextChange).toHaveBeenCalledWith("Alice");
+    });
+
+    it("an options-only setSearch does not fire onSearchTextChange with unchanged text", () => {
+      const onSearchTextChange = vi.fn();
+      const wrapper = makeConfigWrapper({ onSearchTextChange });
+      const { result } = renderHook(useSearchProbe, { wrapper });
+      act(() => result.current.actions.setSearch("Alice"));
+      act(() => result.current.actions.setSearch("Alice", { matchCase: true }));
+      expect(onSearchTextChange).toHaveBeenCalledTimes(1);
     });
   });
 

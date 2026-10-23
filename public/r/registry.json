@@ -138,6 +138,11 @@
           "target": "components/data-grid/clipboard/use-grid-clipboard.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/columns/column-groups.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/columns/column-groups.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/columns/column-format-helpers.ts",
           "type": "registry:component",
           "target": "components/data-grid/columns/column-format-helpers.ts"
@@ -171,6 +176,11 @@
           "path": "registry/default/blocks/data-grid/columns/column-border.ts",
           "type": "registry:component",
           "target": "components/data-grid/columns/column-border.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/columns/group-header-cell.tsx",
+          "type": "registry:component",
+          "target": "components/data-grid/columns/group-header-cell.tsx"
         },
         {
           "path": "registry/default/blocks/data-grid/columns/pinned-inset-style.ts",
@@ -236,6 +246,11 @@
           "path": "registry/default/blocks/data-grid/interaction/use-async-validate.ts",
           "type": "registry:component",
           "target": "components/data-grid/interaction/use-async-validate.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/interaction/touch-gestures.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/interaction/touch-gestures.ts"
         },
         {
           "path": "registry/default/blocks/data-grid/interaction/safe-set-pointer-capture.ts",
@@ -388,6 +403,11 @@
           "target": "components/data-grid/rows/marker-width.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/rows/plan-row-moves.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/rows/plan-row-moves.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/rows/use-row-reorder.ts",
           "type": "registry:component",
           "target": "components/data-grid/rows/use-row-reorder.ts"
@@ -423,9 +443,9 @@
           "target": "components/data-grid/selection/rects.ts"
         },
         {
-          "path": "registry/default/blocks/data-grid/selection/reorder-selection-for-row.ts",
+          "path": "registry/default/blocks/data-grid/selection/remap-selection-rows.ts",
           "type": "registry:component",
-          "target": "components/data-grid/selection/reorder-selection-for-row.ts"
+          "target": "components/data-grid/selection/remap-selection-rows.ts"
         },
         {
           "path": "registry/default/blocks/data-grid/selection/select-all-progression.ts",
@@ -1895,6 +1915,32 @@
       ],
       "dependencies": [
         "lucide-react@^1.46.0"
+      ]
+    },
+    {
+      "name": "data-grid-column-groups-demo",
+      "type": "registry:example",
+      "title": "Data Grid Column Groups Demo",
+      "description": "Column groups: Contact, Work with a nested History group, and Standing sit above their columns. Click a group header to select its columns, drag a group header to move the block, and use the columns menu to hide members.",
+      "author": "gridcn",
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/data-grid-toolbar"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-column-groups-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-column-groups-demo.tsx"
+        },
+        {
+          "path": "registry/default/examples/demo-data.ts",
+          "type": "registry:example",
+          "target": "components/demo-data.ts"
+        }
+      ],
+      "categories": [
+        "data"
       ]
     },
     {

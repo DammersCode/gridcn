@@ -7,6 +7,7 @@ import {
   mergeCellErrors,
   pruneCellErrors,
   remapRowChannel,
+  selectCellOf,
   sameElements,
   viewSorts,
 } from "./compute";
@@ -483,7 +484,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       // The user clicked away while validation was pending: commit the value but leave the cursor where it is.
       const stale =
         s.activeCell !== null && (s.activeCell.row !== editing.coord.row || s.activeCell.col !== editing.coord.col);
-      const restoreSelection = stale ? {} : { activeCell: nextActiveCell, selection: selectCellPure(nextActiveCell) };
+      const restoreSelection = stale ? {} : { activeCell: nextActiveCell, selection: selectCellOf(s, nextActiveCell) };
       if ("error" in result) {
         set({ editingError: result.error, editingRejectionCount: s.editingRejectionCount + 1 });
         s.onEditEnd?.({ rowId: editing.rowId, columnId: editing.columnId, viewRowIndex: editing.coord.row, viewColumnIndex: editing.coord.col, result: "rejected" });
@@ -648,13 +649,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         };
         if (validated instanceof Promise) {
           const token = ++ctx.streamGeneration;
-          void validated.then((accepted) => {
-            // A newer updateCells, or any path that moved rows, supersedes this batch silently.
-            if (ctx.streamGeneration !== token) return;
-            void apply(accepted);
-          });
-          // the held batch's outcome (accepted, dropped, or superseded) is not reportable here
-          return { applied: 0, skipped: [], pending: true };
+          const dropped: UpdateCellsVerdict = { applied: 0, skipped: [], pending: false };
+          const settled = validated.then((accepted) => (ctx.streamGeneration !== token ? dropped : apply(accepted)));
+          void settled.catch(() => {});
+          return { applied: 0, skipped: [], pending: true, settled };
         }
         return apply(validated);
       }

@@ -105,6 +105,7 @@ const CONFIG_KEYS = [
   "sanitizeClipboardFormulas",
   "rowMarkers",
   "enableRowSelection",
+  "keepCheckedRows",
   "enableColumnSelection",
   "enableRangeSelection",
   "enableMultiRange",

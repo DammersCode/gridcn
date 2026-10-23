@@ -1389,7 +1389,7 @@ describe("updateCells — verdict", () => {
     ];
     const { result } = renderHarness({ columnsOverride: asyncColumns });
     const verdict = result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 12.4 }]);
-    expect(verdict).toEqual({ applied: 0, skipped: [], pending: true });
+    expect(verdict).toEqual({ applied: 0, skipped: [], pending: true, settled: expect.any(Promise) });
     await act(async () => {});
   });
 

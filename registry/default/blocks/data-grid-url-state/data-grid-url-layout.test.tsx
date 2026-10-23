@@ -198,4 +198,13 @@ describe("column layout URL sync", () => {
     await flush();
     expect(h.visibleOrder()).toEqual(["name", "age", "city"]);
   });
+  it("keeps a URL key for a layout part that is added at runtime", async () => {
+    const urlOptions: UseDataGridUrlStateOptions = { layout: ["hidden"] };
+    const h = renderGrid({ searchParams: "?widths=name:240", urlOptions });
+    await flush();
+    urlOptions.layout = ["hidden", "widths"];
+    h.setSearchParams("?widths=name:240");
+    await flush();
+    expect(h.updates.filter((u) => u.searchParams.get("widths") !== "name:240")).toHaveLength(0);
+  });
 });

@@ -5,6 +5,7 @@ import {
   MAX_URL_LAYOUT_PARAM_LENGTH,
   parseLayoutPart,
   serializeLayoutPart,
+  type UrlLayoutPart,
 } from "./layout-param";
 
 const layout: ColumnLayout = {
@@ -105,5 +106,9 @@ describe("layout param performance", () => {
     for (let i = 0; i < runs; i++) parseAll();
     const perRun = (performance.now() - start) / runs;
     expect(perRun).toBeLessThan(BUDGET_MS * CI_FACTOR);
+  });
+
+  it("treats an unknown part as empty instead of throwing", () => {
+    expect(parseLayoutPart("bogus" as UrlLayoutPart, "a,b")).toEqual({});
   });
 });

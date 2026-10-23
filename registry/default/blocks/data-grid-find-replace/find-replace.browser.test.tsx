@@ -20,6 +20,9 @@ function Harness() {
   const findReplace = useDataGridFindReplace();
   return (
     <div style={{ height: 400 }}>
+      <button type="button" onClick={() => findReplace.open()}>
+        Open find
+      </button>
       <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id} plugins={[findReplace.plugin]}>
         <DataGridRoot className="h-[400px]">
           <DataGridHeader />
@@ -50,5 +53,14 @@ describe("find and replace in a browser", () => {
     await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("1 of 3");
     await userEvent.keyboard("{Enter}");
     await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("2 of 3");
+  });
+
+  it("Escape leaves focus alone when the panel was not opened from the grid", async () => {
+    await render(<Harness />);
+    await page.getByRole("button", { name: "Open find" }).click();
+    await expect.element(page.getByRole("textbox", { name: "Find" })).toHaveFocus();
+    await userEvent.keyboard("{Escape}");
+    await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
+    expect(document.activeElement?.closest('[role="grid"]')).toBeNull();
   });
 });

@@ -598,4 +598,36 @@ describe("DataGridContextMenu — menu resolvers", () => {
     await vi.waitFor(() => expect(menuItem("Hide column")).toBeTruthy());
     expect(document.querySelectorAll('[role="menuitem"]').length).toBe(1);
   });
+
+  describe("touch", () => {
+    function touchAt(type: "touchstart" | "touchmove" | "touchend", element: Element, dx = 0, dy = 0): void {
+      const rect = element.getBoundingClientRect();
+      const touch = new Touch({
+        identifier: 1,
+        target: element,
+        clientX: rect.left + rect.width / 2 + dx,
+        clientY: rect.top + rect.height / 2 + dy,
+      });
+      element.dispatchEvent(
+        new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === "touchend" ? [] : [touch], changedTouches: [touch] }),
+      );
+    }
+
+    it("a held touch with a small diagonal wiggle does not open a menu on its own", async () => {
+      await renderGrid();
+      await expect.element(page.getByRole("gridcell").first()).toBeInTheDocument();
+      const first = gridCell("Alice", "name");
+      rightClick(first);
+      await vi.waitFor(() => expect(menuItem("Copy")).toBeTruthy());
+      await userEvent.keyboard("{Escape}");
+      await vi.waitFor(() => expect(document.querySelector('[role="menu"]')).toBeNull());
+
+      const second = gridCell("Bob", "name");
+      touchAt("touchstart", second);
+      touchAt("touchmove", second, 9, 9);
+      await new Promise((resolve) => setTimeout(resolve, 700));
+      touchAt("touchend", second);
+      expect(document.querySelector('[role="menu"]')).toBeNull();
+    });
+  });
 });

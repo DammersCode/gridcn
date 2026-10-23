@@ -2,6 +2,7 @@
 title: Row operations
 description: Insert, duplicate, delete, and reorder rows through props, keyboard shortcuts, the context menu, and a marker drag.
 icon: Rows3
+status: updated
 ---
 
 Inserting, duplicating, deleting, and reordering whole rows. All four act on **view-index**
@@ -42,6 +43,8 @@ removes the edited row cancels the session, drops the draft, and fires `onEditEn
 | Delete row(s) | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Backspace</kbd> | `deleteRows` |
 | Move row(s) up <NewBadge /> | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> | `moveRowsUp` |
 | Move row(s) down <NewBadge /> | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> | `moveRowsDown` |
+
+With `keepCheckedRows` <NewBadge />, Duplicate and Delete act only on the checked rows while any row is checked. See [Checked rows](/docs/selection-keyboard#checked-rows).
 
 Every binding lives in `DEFAULT_KEYMAP`, so it can be remapped or dropped through the `keymap`
 prop like every other binding (see [Keybindings](/docs/addons/keybindings#remapping)).

@@ -77,7 +77,9 @@ pinned rows, and unloaded lazy rows never change. With `scope: "selection"`, it 
 selected cells.
 
 One Replace all changes at most `replaceAllLimit` cells. When more cells match, the status line
-says so. Click Replace all again to continue.
+says so. Click Replace all again to continue. The next click skips the cells the earlier one
+changed, even when the replacement contains the find text. A change to the find text, the
+replacement, or an option starts over.
 
 When the grid is `readOnly`, the Find field works and Replace stays disabled. While a cell editor
 is open, Replace does nothing.
@@ -95,7 +97,7 @@ reconciles on the next sort or filter change. See `reorder` in
 | <kbd>Shift</kbd>+<kbd>Enter</kbd> | Find | Goes to the previous match. |
 | <kbd>Enter</kbd> | Replace | Replaces the current match. |
 | <kbd>Mod</kbd>+<kbd>Enter</kbd> | Replace | Replaces all matches. |
-| <kbd>Escape</kbd> | panel | Closes the panel and returns focus to the grid. |
+| <kbd>Escape</kbd> | panel | Closes the panel. Focus returns to the grid when the panel opened while the grid had focus. |
 
 <kbd>Ctrl</kbd> is the physical Ctrl key on every platform. <kbd>Cmd</kbd>+<kbd>H</kbd> hides the
 app on macOS, and a page cannot take it. To change the key, bind `openFindReplace` in the grid's

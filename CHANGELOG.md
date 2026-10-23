@@ -9,6 +9,12 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- Fix: a click outside the grid, or in the empty space of the grid, no longer clears the checked rows. It clears the cell range and the column selection only. Before, a toolbar button outside the grid, such as Delete, ran after the checks were gone and acted on the active cell. Escape and the checkboxes still clear them. The store action `clearCellSelection` does the same clear.
+- New grid prop `keepCheckedRows`, default `false`. A cell click, an arrow key, and a Shift or Ctrl click keep the checked rows. While any row is checked, Delete rows, Duplicate row, Move rows, and the cell context menu row items act only on the checked rows, not on the union with the range. Copy, cut, fill, and Delete stay on the cell range. `getSelectedViewRows` takes the option `checkedRowsOnly`. `useDataGridSelectionConfig` returns `keepCheckedRows`.
+- New `settled` promise on the `updateCells` and `updateRows` verdict while `pending` is `true`. It resolves with the final verdict, or with nothing applied when a newer write supersedes the held batch.
+
+## 1.2.0 - 2026-10-23
+
 - Touch input. A touch press selects on release, not on press, so a scroll or a pan selects nothing. A tap selects a cell, a column header, or a row marker. A double-tap edits a cell. Pressing and holding for 500 ms opens the context menu of a cell or a header. The grid takes no pointer capture for a touch press and registers no non-passive touch or wheel listener.
 - After a touch selection, two selection handles at the corners of the range extend it. The grid scrolls at the edges while a handle is dragged. Any key press hides the handles.
 - **Breaking:** a touch press no longer selects on `pointerdown`. Code that reads the selection inside its own `pointerdown` handler sees it one event later.

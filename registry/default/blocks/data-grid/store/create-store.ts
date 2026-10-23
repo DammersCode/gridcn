@@ -52,6 +52,7 @@ import {
   reorderColumnIds as reorderColumnIdsBase,
   reorderGroupBlock,
   resolveSelectionConfig,
+  selectCellOf,
   rowIdAtViewRow,
   toggleSortAdditive,
   withFilterIds,
@@ -479,7 +480,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       };
     };
     /**
-     * The one layout write-back point (decision 10): merges `changedParts` over the current
+     * The one layout write-back point: merges `changedParts` over the current
      * layout, normalizes it, and structurally compares the result with the always-current
      * s.columnLayout snapshot - equal: no set, no event; else one set (pins/widths/order/hidden/
      * visible columns/snapshot) plus one onColumnLayoutChange. Live resize frames never run
@@ -565,7 +566,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (opts?.extend && s.enableRangeSelection) {
           // Grow from the anchor's far edge; the anchor stays put for the whole extend gesture.
           const direction: ExtendDirection = d.dy < 0 ? "up" : d.dy > 0 ? "down" : d.dx < 0 ? "left" : "right";
-          const selection = extendSelection(s.selection.current ? s.selection : selectCellPure(active), direction, {
+          const selection = extendSelection(s.selection.current ? s.selection : selectCellOf(s, active), direction, {
             rowCount: s.viewIndex.length,
             colCount: s.visibleColumns.length,
           });
@@ -580,7 +581,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           if (opts?.retain) {
             set({ activeCell: next, lastHighlightedRow: next.row, lastHighlightedCol: next.col });
           } else {
-            set({ activeCell: next, selection: selectCellPure(next), lastHighlightedRow: next.row, lastHighlightedCol: next.col });
+            set({ activeCell: next, selection: selectCellOf(s, next), lastHighlightedRow: next.row, lastHighlightedCol: next.col });
           }
         }
       },
@@ -841,7 +842,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             columnWidths: layoutApply?.columnWidths ?? s.columnWidths,
             columnOrder: layoutApply?.columnOrder ?? (groupsChanged && s.columnOrder ? completeColumnOrder(nextColumns, s.columnOrder) : s.columnOrder),
             columnGroupModel: groupModel,
-            // A `columns` or group swap re-seeds the snapshot even uncontrolled (decision 10).
+            // A `columns` or group swap re-seeds the snapshot even uncontrolled.
             columnLayout:
               layoutApply?.columnLayout ??
               (propsColumnsChanged || groupsChanged ? computeColumnLayout(nextColumns, s.columnOrder, s.columnWidths, nextHiddenColumns) : s.columnLayout),
@@ -993,10 +994,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       selectCell(ref) {
         const coord = resolveRefOrWarn(dataWrite, get(), ref);
-        if (coord) set({ activeCell: coord, selection: selectCellPure(coord) });
+        if (coord) set({ activeCell: coord, selection: selectCellOf(get(), coord) });
       },
       selectCellAt(coord) {
-        set({ activeCell: coord, selection: selectCellPure(coord) });
+        set({ activeCell: coord, selection: selectCellOf(get(), coord) });
       },
       extendTo(ref) {
         const coord = resolveRefOrWarn(dataWrite, get(), ref);
@@ -1005,8 +1006,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       extendToAt(coord) {
         set((s) => {
           // enableRangeSelection: false collapses any drag/shift-extend gesture to single-cell active only.
-          if (!s.enableRangeSelection) return { selection: selectCellPure(coord), activeCell: coord };
-          const selection = extendTo(s.selection, coord);
+          if (!s.enableRangeSelection) return { selection: selectCellOf(s, coord), activeCell: coord };
+          const selection = s.selection.current ? extendTo(s.selection, coord) : selectCellOf(s, coord);
           // extendTo falls back to a fresh anchor at `coord` when there was no prior selection.
           const activeCell = s.selection.current ? s.activeCell : coord;
           return { selection, activeCell };
@@ -1031,7 +1032,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       pushRangeAt(coord) {
         set((s) => {
           // enableMultiRange: false makes ctrl-click behave as a plain click (no stack push).
-          if (!s.enableMultiRange) return { selection: selectCellPure(coord), activeCell: coord };
+          if (!s.enableMultiRange) return { selection: selectCellOf(s, coord), activeCell: coord };
           // pushRange moves the anchor to `coord`; keep activeCell in sync with it.
           return { selection: pushRange(s.selection, coord), activeCell: coord };
         });
@@ -1123,6 +1124,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       clearSelection() {
         if (isSelectionEmpty(get().selection)) return;
         set({ selection: emptySelection() });
+      },
+      clearCellSelection() {
+        const { selection } = get();
+        if (!selection.current && selection.columns.length === 0) return;
+        set({ selection: { ...emptySelection(), rows: selection.rows } });
       },
       setSelection(next) {
         const s = get();
@@ -1311,7 +1317,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       setSearch(text, options) {
         const s = get();
-        s.onSearchTextChange?.(text);
+        if (text !== s.searchText) s.onSearchTextChange?.(text);
         const searchOptions = options ? { ...s.searchOptions, ...options } : s.searchOptions;
         const optionsChanged = searchOptions.matchCase !== s.searchOptions.matchCase || searchOptions.wholeCell !== s.searchOptions.wholeCell;
         if (s.searchControlled && !optionsChanged) return;

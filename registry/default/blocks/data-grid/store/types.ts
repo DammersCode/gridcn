@@ -134,6 +134,12 @@ export type DataGridSyncProps<TData = unknown> = {
   rowMarkers?: RowMarkersMode;
   /** Whole-row selection channel gestures (marker click, Shift+Space); default true. */
   enableRowSelection?: boolean;
+  /**
+   * Keeps the checked rows when a cell is selected (click, arrows, Shift or Ctrl click) and makes
+   * row operations (delete, duplicate, move, the cell menu's row items) act only on the checked
+   * rows while any exist. Escape, the checkboxes, and `clearSelection` still change the checks. Default `false`.
+   */
+  keepCheckedRows?: boolean;
   /** Whole-column selection channel gestures (header click); default true. */
   enableColumnSelection?: boolean;
   /** Multi-cell rectangular range gestures (shift-click/drag, shift+arrow); false collapses to single-cell active only. Default true. */
@@ -547,6 +553,8 @@ export type UpdateCellsVerdict = {
   skipped: UpdateCellsSkip[];
   /** True when the batch is held for async validation. */
   pending: boolean;
+  /** Present when `pending`: resolves with the final verdict, or with nothing applied when a newer write superseded the batch. */
+  settled?: Promise<UpdateCellsVerdict>;
 };
 
 /** Full per-grid interaction + derived state; internally typed over `unknown` rows. */
@@ -558,6 +566,7 @@ export type DataGridStoreState = Omit<
   | "commands"
   | "rowMarkers"
   | "enableRowSelection"
+  | "keepCheckedRows"
   | "enableColumnSelection"
   | "enableRangeSelection"
   | "enableMultiRange"
@@ -588,6 +597,7 @@ export type DataGridStoreState = Omit<
   /** Defaulted (never undefined) — see `resolveSelectionConfig`. */
   rowMarkers: RowMarkersMode;
   enableRowSelection: boolean;
+  keepCheckedRows: boolean;
   enableColumnSelection: boolean;
   enableRangeSelection: boolean;
   enableMultiRange: boolean;
@@ -807,6 +817,8 @@ export type DataGridActions = {
   /** Header marker select-all checkbox: sets every view row's membership in the rows channel at once. No-op when `enableRowSelection` is false. */
   setAllRowsSelected(checked: boolean): void;
   clearSelection(): void;
+  /** Clears the cell range and the column channel and keeps the checked rows. */
+  clearCellSelection(): void;
   /**
    * Applies a whole selection in stable {@link CellRef} terms, emitting like a gesture (`onSelectionChange`
    * fires when the result differs from the grid's current value): corner refs resolve through the

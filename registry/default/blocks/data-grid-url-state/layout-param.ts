@@ -42,6 +42,8 @@ export function serializeLayoutPart(part: UrlLayoutPart, layout: ColumnLayout): 
       const pins = Object.entries(layout.pins);
       return pins.length === 0 ? NONE : pins.map(([id, side]) => serializePair(id, side === "left" ? "l" : "r")).join(",");
     }
+    default:
+      return "";
   }
 }
 
@@ -96,5 +98,7 @@ export function parseLayoutPart(part: UrlLayoutPart, raw: string): Partial<Colum
       return {
         pins: Object.fromEntries(parsePairs(raw, (v) => (v === "l" ? "left" : v === "r" ? "right" : null))) as ColumnLayout["pins"],
       };
+    default:
+      return {};
   }
 }

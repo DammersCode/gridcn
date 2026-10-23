@@ -15,12 +15,11 @@ import {
 import {
   useDataGridActions,
   useDataGridAllColumns,
-  useDataGridColumnGroupModel,
   useDataGridIsColumnHidden,
   useDataGridLabels,
   type AnyColumnDef,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { columnLabelText, groupPathOf, type ColumnGroupModel } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { columnLabelText, groupPathOf, useDataGridColumnGroupModel, type ColumnGroupModel } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Props for {@link DataGridColumnsMenu}. */
 export type DataGridColumnsMenuProps = {

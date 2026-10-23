@@ -232,6 +232,21 @@ describe("DataGridUrlState excluded columns", () => {
     expect(latest!.sort).toEqual([{ columnId: "id", direction: "desc" }]);
   });
 
+  it("drops a URL sort for a column the URL hide part hides", () => {
+    const getState = renderGuarded("?sort=name%3Aasc&hide=name");
+    expect(getState().sort).toEqual([]);
+  });
+
+  it("keeps a URL sort for a def-hidden column the URL hide part shows", () => {
+    const getState = renderGuarded("?sort=id%3Adesc&hide=-");
+    expect(getState().sort).toEqual([{ columnId: "id", direction: "desc" }]);
+  });
+
+  it("drops a URL filter for a column the URL hide part hides", () => {
+    const getState = renderGuarded("?filter=name%3Aequals%3AAlice&hide=name");
+    expect(getState().filter).toEqual([]);
+  });
+
   it("drops URL filter specs for a filterable:false or hidden column", () => {
     const getState = renderGuarded("?filter=id%3Aequals%3Ar0,name%3Aequals%3AAlice");
     expect(getState().filter).toEqual([

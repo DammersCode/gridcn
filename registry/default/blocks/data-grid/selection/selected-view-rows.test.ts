@@ -49,3 +49,24 @@ describe("getSelectedViewRows", () => {
     expect(getSelectedViewRows(sel)).toEqual([]);
   });
 });
+
+describe("getSelectedViewRows with checkedRowsOnly", () => {
+  const rangeAndChecked: GridSelection = {
+    current: { cell: { row: 5, col: 0 }, range: { x: 0, y: 5, width: 1, height: 2 }, rangeStack: [] },
+    rows: CompactSelection.fromArray([1, 2]),
+    columns: CompactSelection.empty(),
+  };
+
+  it("returns only the checked rows when any exist", () => {
+    expect(getSelectedViewRows(rangeAndChecked, { checkedRowsOnly: true })).toEqual([1, 2]);
+  });
+
+  it("falls back to the range rows when no row is checked", () => {
+    const sel: GridSelection = { ...rangeAndChecked, rows: CompactSelection.empty() };
+    expect(getSelectedViewRows(sel, { checkedRowsOnly: true })).toEqual([5, 6]);
+  });
+
+  it("keeps the union by default", () => {
+    expect(getSelectedViewRows(rangeAndChecked)).toEqual([1, 2, 5, 6]);
+  });
+});

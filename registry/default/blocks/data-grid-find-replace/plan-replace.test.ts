@@ -5,6 +5,8 @@ import { emptySelection as emptySelectionOps } from "@/registry/default/blocks/d
 import type { AnyColumnDef, GridSelection } from "@/registry/default/blocks/data-grid/data-grid";
 import { planReplace, type ReplaceState } from "./plan-replace";
 
+const CI_FACTOR = process.env["CI"] ? 2 : 1;
+
 type Row = { id: string; name: string; qty: number | null; tag: string | null };
 
 const columns: AnyColumnDef[] = [
@@ -143,5 +145,36 @@ describe("planReplace", () => {
     const data = [{ id: "a", name: "İstanbul foo", qty: 1, tag: null }];
     const plan = planReplace(makeState(data), "foo", "x", {});
     expect(plan.patches[0]!.value).toBe("İstanbul x");
+  });
+
+  it("skip leaves out cells so a continuation reaches the rest when the replacement contains the find text", () => {
+    const data = Array.from({ length: 3 }, (_, i) => ({ id: String(i), name: "foo", qty: 1, tag: null }));
+    const first = planReplace(makeState(data), "foo", "foobar", { replaceAllLimit: 1 });
+    expect(first.patches.map((p) => p.rowId)).toEqual(["0"]);
+    const replaced = new Set(first.patches.map((p) => p.rowId));
+    const second = planReplace(makeState(data), "foo", "foobar", { replaceAllLimit: 1, skip: (ref) => replaced.has(ref.rowId) });
+    expect(second.patches.map((p) => p.rowId)).toEqual(["1"]);
+    expect(second.remaining).toBe(true);
+  });
+
+  it("replaces a needle with a length-changing character in decomposed text", () => {
+    const data = [{ id: "a", name: "i̇ and İ", qty: 1, tag: null }];
+    const plan = planReplace(makeState(data), "İ", "x", {});
+    expect(plan.patches[0]!.value).toBe("x and x");
+  });
+
+  it("reports a matched cell whose occurrence cannot be replaced cleanly instead of dropping it", () => {
+    const data = [{ id: "a", name: "İ", qty: 1, tag: null }];
+    const plan = planReplace(makeState(data), "i", "x", {});
+    expect(plan.patches).toEqual([]);
+    expect(plan.skipped).toEqual([{ ref: { rowId: "a", columnId: "name" }, reason: "no-occurrence" }]);
+  });
+
+  it("scans a 1M character cell with a length-changing needle within budget", () => {
+    const data = [{ id: "a", name: "İ".repeat(1_000_000) + "a", qty: 1, tag: null }];
+    const needle = "İ".repeat(999) + "a";
+    const start = performance.now();
+    planReplace(makeState(data), needle, "x", {});
+    expect(performance.now() - start).toBeLessThan(500 * CI_FACTOR);
   });
 });

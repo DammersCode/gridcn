@@ -90,6 +90,26 @@ default to `true`:
   highlight. The column selection channel itself is gone.
 </Callout>
 
+## Checked rows
+
+<NewBadge />
+
+A checked row is a row whose marker checkbox is on. A click outside the grid, or in the empty space of the grid, clears the cell range and the column selection. It never clears checked rows. A toolbar button outside the grid reads the checked rows after it is clicked.
+
+Selecting a cell clears the checked rows. Set `keepCheckedRows` to keep them:
+
+```tsx
+<DataGridProvider keepCheckedRows {...grid} columns={columns}>
+```
+
+With `keepCheckedRows`, a cell click, an arrow key, and a Shift or Ctrl click leave the checked rows as they are. Escape, the marker checkboxes, the header checkbox, `clearSelection()`, and deleting a row change them.
+
+While at least one row is checked, row operations act only on the checked rows, never on the range. This covers Delete rows, Duplicate row, Move rows, and the row items of the cell context menu. Cell operations such as copy, cut, fill, and Delete stay on the cell range. With no checked row, row operations use the range.
+
+| Prop | Type | Default |
+|---|---|---|
+| `keepCheckedRows` <NewBadge /> | `boolean` | `false` |
+
 ## Header click behavior
 
 `headerClickBehavior` on `DataGridProvider` picks what a **plain** header click does. Header

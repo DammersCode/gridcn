@@ -12,7 +12,7 @@ import {
   type RefObject,
 } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { ViewCoord, CellType, GridAction, GridCommandCtx } from "../types";
+import type { ViewCoord, GridSelection, CellType, GridAction, GridCommandCtx } from "../types";
 import type { SelectionPointer } from "../store/types";
 import { isMacPlatform, isPrintableKey, matchKeymap, type KeymapEvent } from "../keyboard";
 import type { Keymap } from "../types";
@@ -37,7 +37,7 @@ import {
   type GridDirection,
 } from "../virtualization/direction";
 import { GRID_ATTR, gridAttrSelector } from "../data-attributes";
-import { getSelectedViewRows, isRowChecked, isSelectionEmpty } from "../selection";
+import { getSelectedViewRows, isRowChecked } from "../selection";
 import { offersSetFilter } from "../cell-types/capabilities";
 import { warnDev } from "../store/commit";
 import { allRowsSelectedState } from "../store/hooks";
@@ -511,7 +511,7 @@ export function dispatchGridAction(args: {
       if (!state.readOnly && state.duplicateRow) {
         // the context-menu item this shortcut labels duplicates the WHOLE selection; no
         // selection, just the active row
-        const selected = getSelectedViewRows(state.selection);
+        const selected = getSelectedViewRows(state.selection, { checkedRowsOnly: state.keepCheckedRows });
         if (selected.length > 0) actions.duplicateRows(selected);
         else if (state.activeCell) actions.duplicateRows([state.activeCell.row]);
       }
@@ -535,7 +535,7 @@ export function dispatchGridAction(args: {
     case "deleteRows": {
       preventDefault();
       if (!state.readOnly) {
-        const selected = getSelectedViewRows(state.selection);
+        const selected = getSelectedViewRows(state.selection, { checkedRowsOnly: state.keepCheckedRows });
         if (selected.length > 0) actions.deleteRows(selected);
         else if (state.activeCell) actions.deleteRows([state.activeCell.row]);
       }
@@ -697,6 +697,10 @@ const JUMP_DIRECTION: Record<JumpAction, JumpDirection> = {
   extendJumpLeft: "left",
   extendJumpRight: "right",
 };
+
+function hasCellSelection(selection: GridSelection): boolean {
+  return selection.current !== null || selection.columns.length > 0;
+}
 
 /** The rows a keyboard move acts on: the checked rows, else the rows of the primary range, else the active row. */
 function rowsToMove(state: DataGridStoreState): number[] {
@@ -1426,7 +1430,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       // somehow bubbles here — data-grid-cell-editor is the marker both editors' content carries.
       const target = event.target as HTMLElement;
       if (target.closest(gridAttrSelector("cellEditor"))) return;
-      actions.clearSelection();
+      actions.clearCellSelection();
     },
     [actions, beginSelectionHandleDrag],
   );
@@ -1437,8 +1441,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
 
   useEffect(() => stopAutoScrollLoop, [stopAutoScrollLoop]);
 
-  // Page-area click-outside clear: the listener is attached only while a
-  // non-empty selection exists, so no document-level listener is present at rest.
+  // Click-outside clears the cell range and columns, never the checked rows; attached only while one exists.
   useEffect(() => {
     let attached = false;
     const onPointerDown = (event: PointerEvent) => {
@@ -1447,7 +1450,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       if (!target || !(target instanceof Element)) return;
       if (scrollRef.current?.contains(target)) return;
       if (target.closest(gridAttrSelector("cellEditor"))) return;
-      actions.clearSelection();
+      actions.clearCellSelection();
     };
     const setAttached = (attach: boolean) => {
       if (attach === attached) return;
@@ -1455,10 +1458,10 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       else document.removeEventListener("pointerdown", onPointerDown, true);
       attached = attach;
     };
-    setAttached(!isSelectionEmpty(storeApi.getState().selection));
+    setAttached(hasCellSelection(storeApi.getState().selection));
     const unsubscribe = storeApi.subscribe((state, prevState) => {
       if (state.selection === prevState.selection) return;
-      setAttached(!isSelectionEmpty(state.selection));
+      setAttached(hasCellSelection(state.selection));
     });
     return () => {
       unsubscribe();

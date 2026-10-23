@@ -138,8 +138,22 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   // appliedRef guard below) and is exposed as applyFromUrl so a consumer can re-apply after an
   // external URL change (back/forward, setSearchParams, query-only route change).
   const applyUrl = useCallback((keepMountDefaults: boolean) => {
+    const initialLayout = storeApi.getInitialState().columnLayout;
+    const knownIds = new Set(allColumns.map((c) => c.id));
+    const layoutPatch: Partial<ColumnLayout> = {};
+    let unknownLayoutIds = 0;
+    for (const part of layoutParts ? (layoutParts.split(",") as UrlLayoutPart[]) : []) {
+      const parsed = parseLayoutPart(part, layoutParams[part]);
+      if (parsed[part] !== undefined) {
+        unknownLayoutIds += countUnknownLayoutIds(parsed, knownIds);
+        Object.assign(layoutPatch, parsed);
+      } else if (!keepMountDefaults) {
+        Object.assign(layoutPatch, { [part]: initialLayout[part] });
+      }
+    }
+    if (unknownLayoutIds > 0) warnDev(`dropped ${unknownLayoutIds} URL layout entries for removed columns`);
     // Drop specs a shared link must not apply: a removed column, or one the integrator excluded from sorting/filtering or currently hides. Each drop dev-warns.
-    const hidden = new Set(storeApi.getState().hiddenColumns);
+    const hidden = new Set(layoutPatch.hidden ?? storeApi.getState().hiddenColumns);
     const usable = (c: (typeof allColumns)[number]) => !hidden.has(c.id);
     const sortableIds = new Set(allColumns.filter((c) => usable(c) && c.sortable !== false).map((c) => c.id));
     const filterableIds = new Set(allColumns.filter((c) => usable(c) && c.filterable !== false).map((c) => c.id));
@@ -168,20 +182,6 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     if (join !== "and" || !keepMountDefaults) actions.setJoinOperator(join);
     if (searchParam || !keepMountDefaults) actions.setSearch(searchParam);
 
-    const initialLayout = storeApi.getInitialState().columnLayout;
-    const knownIds = new Set(allColumns.map((c) => c.id));
-    const layoutPatch: Partial<ColumnLayout> = {};
-    let unknownLayoutIds = 0;
-    for (const part of layoutParts ? (layoutParts.split(",") as UrlLayoutPart[]) : []) {
-      const parsed = parseLayoutPart(part, layoutParams[part]);
-      if (parsed[part] !== undefined) {
-        unknownLayoutIds += countUnknownLayoutIds(parsed, knownIds);
-        Object.assign(layoutPatch, parsed);
-      } else if (!keepMountDefaults) {
-        Object.assign(layoutPatch, { [part]: initialLayout[part] });
-      }
-    }
-    if (unknownLayoutIds > 0) warnDev(`dropped ${unknownLayoutIds} URL layout entries for removed columns`);
     if (Object.keys(layoutPatch).length > 0) actions.setColumnLayout(layoutPatch);
   }, [actions, allColumns, storeApi, sortParam, filterParam, joinParam, searchParam, layoutParts, orderParam, hiddenParam, widthsParam, pinsParam]);
   const applyFromUrl = useCallback(() => applyUrl(false), [applyUrl]);
@@ -223,7 +223,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     for (const part of layoutParts ? (layoutParts.split(",") as UrlLayoutPart[]) : []) {
       const value = serializeLayoutPart(part, columnLayout);
       next[part] = value === serializeLayoutPart(part, initialLayout) ? "" : value;
-      if (previous && previous[part] !== next[part]) void layoutSettersRef.current[part](next[part] || null);
+      if (previous && part in previous && previous[part] !== next[part]) void layoutSettersRef.current[part](next[part] || null);
     }
     lastWrittenLayoutRef.current = next;
     // oxlint-disable-next-line react-hooks/exhaustive-deps

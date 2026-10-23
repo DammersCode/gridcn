@@ -35,6 +35,7 @@ import {
   useDataGridLabels,
   useDataGridReadOnly,
   useDataGridSelection,
+  useDataGridSelectionConfig,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridCommands, useDataGridSelectionPointer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -120,6 +121,7 @@ export function useDefaultCellMenuItems(args: {
   const { row, canInsertRow, canDuplicateRow, pasteBlocked, onPasteBlocked, clipboardFailed = false, onClipboardFailed } = args;
   const actions = useDataGridActions();
   const selection = useDataGridSelection();
+  const { keepCheckedRows } = useDataGridSelectionConfig();
   const clipboard = useDataGridClipboard();
   const readOnly = useDataGridReadOnly();
   const labels = useDataGridLabels();
@@ -130,7 +132,7 @@ export function useDefaultCellMenuItems(args: {
 
   // Row-op items act on every view row covered by the current selection, falling back to the
   // right-clicked row (same rule as the keyboard/native-clipboard gating).
-  const targetRows = selectedViewRows(selection);
+  const targetRows = selectedViewRows(selection, { checkedRowsOnly: keepCheckedRows });
   const rows = targetRows.length > 0 ? targetRows : [row];
 
   const onPaste = useCallback(() => {

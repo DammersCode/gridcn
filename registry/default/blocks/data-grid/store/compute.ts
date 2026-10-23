@@ -6,6 +6,7 @@ import type {
   FilterJoinOperator,
   FilterSpec,
   GridRect,
+  GridSelection,
   SearchOptions,
   SortSpec,
   ViewCoord,
@@ -103,6 +104,12 @@ export function clampActiveCell(activeCell: ViewCoord | null, viewLength: number
   const row = Math.min(activeCell.row, viewLength - 1);
   const col = Math.min(activeCell.col, columnCount - 1);
   return row === activeCell.row && col === activeCell.col ? activeCell : { row, col };
+}
+
+/** The selection after the cursor lands on `coord`: a single cell, with the checked rows kept when `keepCheckedRows` is set. */
+export function selectCellOf(s: Pick<DataGridStoreState, "selection" | "keepCheckedRows">, coord: ViewCoord): GridSelection {
+  const next = selectCell(coord);
+  return s.keepCheckedRows ? { ...next, rows: s.selection.rows } : next;
 }
 
 /** The cursor fitted into a rebuilt view: a move collapses the selection onto the clamped cell, a clear drops its current range. */
@@ -818,6 +825,7 @@ export function resolveSelectionConfig(props: InternalSyncProps): Pick<
   DataGridStoreState,
   | "rowMarkers"
   | "enableRowSelection"
+  | "keepCheckedRows"
   | "enableColumnSelection"
   | "enableRangeSelection"
   | "enableMultiRange"
@@ -830,6 +838,7 @@ export function resolveSelectionConfig(props: InternalSyncProps): Pick<
   return {
     rowMarkers: props.rowMarkers ?? "none",
     enableRowSelection: props.enableRowSelection ?? true,
+    keepCheckedRows: props.keepCheckedRows ?? false,
     enableColumnSelection: props.enableColumnSelection ?? true,
     enableRangeSelection: props.enableRangeSelection ?? true,
     enableMultiRange: props.enableMultiRange ?? true,
