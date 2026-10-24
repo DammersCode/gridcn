@@ -6,11 +6,16 @@
 // Options:
 //   --url <url>      page with a sortable grid (default: local sort-bench page, 100k rows)
 //   --column <name>  header text of the column to sort (default Name)
-//   --runs <n>       measure n times, each on a fresh page load; prints a median line (default 5)
+//   --runs <n>       measure n times, each on a fresh page load; prints a median line plus min, max and
+//                    spread (median absolute deviation, MAD) per metric when n > 1 (default 5)
+//   --out <file>     write the median metrics and their "spread" to a JSON file
+//   --baseline <file> print delta (median minus baseline) and significant (|delta| > larger of the
+//                    two spreads, per metric; a baseline without "spread" counts as 0)
 // Examples:
 //   node scripts/perf-sort.mjs
 //   node scripts/perf-sort.mjs --column Score --runs 3
 //   node scripts/perf-sort.mjs --url "http://localhost:3000/dev/sort-bench?rows=20000"
+import { readFile, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 
 const opts = { url: "http://localhost:3000/dev/sort-bench?rows=100000", column: "Name", runs: 5 };
@@ -19,6 +24,8 @@ for (let i = 0; i < argv.length; i++) {
   if (argv[i] === "--url") opts.url = argv[++i];
   else if (argv[i] === "--column") opts.column = argv[++i];
   else if (argv[i] === "--runs") opts.runs = Number(argv[++i]);
+  else if (argv[i] === "--out") opts.out = argv[++i];
+  else if (argv[i] === "--baseline") opts.baseline = argv[++i];
   else throw new Error(`unknown option: ${argv[i]}`);
 }
 if (!Number.isInteger(opts.runs) || opts.runs < 1) throw new Error("--runs must be a positive integer");
@@ -79,4 +86,22 @@ try {
   await browser.close();
 }
 const med = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : null; };
-console.log(JSON.stringify({ median: true, column: opts.column, ms: +med(ms)?.toFixed(1), longestLongTaskMs: +med(longest)?.toFixed(1), n: ms.length }));
+const round = (v) => +v?.toFixed(1);
+const series = { ms, longestLongTaskMs: longest };
+const pick = (fn) => Object.fromEntries(Object.entries(series).map(([k, v]) => [k, round(fn(v))]));
+const mad = (v) => med(v.map((x) => Math.abs(x - med(v))));
+const median = pick(med);
+const spread = pick(mad);
+const summary = opts.runs > 1 ? { min: pick((v) => Math.min(...v)), max: pick((v) => Math.max(...v)), spread } : {};
+console.log(JSON.stringify({ median: true, column: opts.column, ...median, n: ms.length, ...summary }));
+if (opts.out) await writeFile(opts.out, `${JSON.stringify({ ...median, spread }, null, 2)}\n`);
+if (opts.baseline) {
+  const base = JSON.parse(await readFile(opts.baseline, "utf8"));
+  const delta = {}, significant = {};
+  for (const k of Object.keys(series)) {
+    if (typeof base[k] !== "number") continue;
+    delta[k] = round(median[k] - base[k]);
+    significant[k] = Math.abs(delta[k]) > Math.max(spread[k], base.spread?.[k] ?? 0);
+  }
+  console.log(JSON.stringify({ delta, significant }));
+}

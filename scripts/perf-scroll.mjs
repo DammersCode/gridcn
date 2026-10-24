@@ -11,9 +11,11 @@
 //   --frames <n>       measured frames after warm-up (default 240)
 //   --scroll-right     scroll to the last columns first (rich-columns scenario)
 //   --css <rule>       extra CSS rule injected before measuring; repeatable (A/B what-if testing)
-//   --runs <n>         measure n times, each on a fresh page load; prints a median line (default 1)
-//   --out <file>       write the median metrics to a JSON file
-//   --baseline <file>  print a delta line: median minus the metrics in this file
+//   --runs <n>         measure n times, each on a fresh page load; prints a line with the median, min, max
+//                      and spread (median absolute deviation, MAD) per metric (default 1)
+//   --out <file>       write the median metrics (plus "spread" when runs > 1) to a JSON file
+//   --baseline <file>  print delta (median minus baseline) and significant (|delta| > larger of the
+//                      two spreads, per metric; a baseline without "spread" counts as 0)
 // Examples:
 //   node scripts/perf-scroll.mjs
 //   node scripts/perf-scroll.mjs --width 520 --scroll-right
@@ -112,23 +114,34 @@ function stats(frameTimes, longTasks) {
   };
 }
 
-function medianOf(runStats) {
-  const medians = {};
+const medianNum = (values) => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+};
+
+function summarize(runStats) {
+  const summary = { median: {}, min: {}, max: {}, spread: {} };
   for (const key of Object.keys(runStats[0])) {
-    const sorted = runStats.map((s) => s[key]).sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    const value = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-    medians[key] = +value.toFixed(1);
+    const values = runStats.map((s) => s[key]);
+    const median = medianNum(values);
+    summary.median[key] = +median.toFixed(1);
+    summary.min[key] = +Math.min(...values).toFixed(1);
+    summary.max[key] = +Math.max(...values).toFixed(1);
+    summary.spread[key] = +medianNum(values.map((v) => Math.abs(v - median))).toFixed(1);
   }
-  return medians;
+  return summary;
 }
 
-function deltaOf(medians, baseline) {
+function deltaOf(medians, spread, baseline) {
   const delta = {};
+  const significant = {};
   for (const key of Object.keys(medians)) {
-    if (typeof baseline[key] === "number") delta[key] = +(medians[key] - baseline[key]).toFixed(1);
+    if (typeof baseline[key] !== "number") continue;
+    delta[key] = +(medians[key] - baseline[key]).toFixed(1);
+    significant[key] = Math.abs(delta[key]) > Math.max(spread[key], baseline.spread?.[key] ?? 0);
   }
-  return delta;
+  return { delta, significant };
 }
 
 async function measure(browser, opts) {
@@ -171,7 +184,7 @@ try {
   await browser.close();
 }
 
-const medians = medianOf(runStats);
-if (opts.runs > 1) console.log(JSON.stringify({ median: medians }));
-if (opts.out) await writeFile(opts.out, `${JSON.stringify(medians, null, 2)}\n`);
-if (baseline) console.log(JSON.stringify({ delta: deltaOf(medians, baseline) }));
+const { median: medians, min, max, spread } = summarize(runStats);
+if (opts.runs > 1) console.log(JSON.stringify({ median: medians, min, max, spread }));
+if (opts.out) await writeFile(opts.out, `${JSON.stringify(opts.runs > 1 ? { ...medians, spread } : medians, null, 2)}\n`);
+if (baseline) console.log(JSON.stringify(deltaOf(medians, spread, baseline)));
