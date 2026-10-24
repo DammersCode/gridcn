@@ -57,6 +57,7 @@ export {
 } from "./validation/validate-batch";
 export {
   COMPARISON_FILTER_OPERATORS,
+  SET_FILTER_OPERATORS,
   TEXT_FILTER_OPERATORS,
   operatorsForColumnType,
   resolveColumnValidate,
@@ -64,6 +65,9 @@ export {
   resolveFilterValueInput,
 } from "./cell-types/capabilities";
 export { displayText, exportText } from "./cell-types/display-text";
+export { textAccessorFor as rowAccessorFor } from "./store/compute";
+export { makeFilterPredicate } from "./sort-filter/incremental-view-index";
+export { toSafeText } from "./cell-types/safe-text";
 export {
   useBulkGeneration,
   snapshotBulkBatch,
@@ -73,14 +77,20 @@ export {
   type BulkBatchSnapshot,
 } from "./validation/bulk-generation";
 
-export { combineRects, getSelectedViewRows, selectionRects } from "./selection";
+export { combineRects, getSelectedViewRows, selectionContainsCell, selectionRects } from "./selection";
 export { holeRowId, rowIdAtViewRow, viewRowsMoved, visibleColumnsMoved } from "./store/compute";
 export { measureColumnAutosizeWidth } from "./columns/measure-column-text";
+export { groupPathOf, type ColumnGroupModel } from "./columns/column-groups";
 export { isDev } from "./is-dev";
+export { isComposingKey } from "./interaction/is-composing-key";
+export { createTextMatcher } from "./sort-filter";
 export {
   useDataGridColumnFeatureFlags,
+  useDataGridColumnGroupModel,
   useDataGridCommands,
+  useDataGridSelectionPointer,
   useDataGridInstanceId,
+  useDataGridIsColumnFiltered,
   useDataGridSearchCapped,
   useDataGridSearchMatches,
   useDataGridSelector,

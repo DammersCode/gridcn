@@ -3,8 +3,9 @@ import type { KeyboardEvent } from "react";
 import { Input } from "@/components/ui/input";
 import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "../types";
 import { CellSpan } from "./cell-span";
-import { COMPARISON_FILTER_OPERATORS, TEXT_FILTER_OPERATORS } from "./capabilities";
-import { useCellEditorDraft } from "../interaction/use-cell-editor";
+import { COMPARISON_FILTER_OPERATORS, SET_FILTER_OPERATORS, TEXT_FILTER_OPERATORS } from "./capabilities";
+import { CELL_INPUT_CLASS, useCellEditorDraft } from "../interaction/use-cell-editor";
+import { cn } from "@/lib/utils";
 import { isComposingKey } from "../interaction/is-composing-key";
 import { displayText } from "./display-text";
 import { warnDev } from "../store/commit";
@@ -122,7 +123,7 @@ function NumberEditor(props: CellEditorProps<unknown, number | null, GridCellTyp
               : clamped;
         setDraft(String(next));
       }}
-      className="h-full w-full border-none bg-transparent p-0 text-end shadow-none outline-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+      className={cn(CELL_INPUT_CLASS, "text-end [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none")}
     />
   );
 }
@@ -132,7 +133,7 @@ export const numberCellType: CellType<unknown, number | null, GridCellTypes["num
   Cell: NumberCell,
   Editor: NumberEditor,
   numeric: true,
-  filter: { operators: [...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS], valueInput: "number" },
+  filter: { operators: [...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS, ...SET_FILTER_OPERATORS], valueInput: "number" },
   toText: (value, options) => {
     if (value == null) return "";
     return toSafeText(options?.decimals !== undefined ? roundToDecimals(value, options) : value);

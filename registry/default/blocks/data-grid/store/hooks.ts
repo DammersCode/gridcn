@@ -1,5 +1,6 @@
 import { useCallback, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
+import { repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
 import type {
   CellRef,
   ViewCoord,
@@ -21,6 +22,7 @@ import { cellErrorKey, flashCellKey, getRangeValues, holeRowId, rowIdAtViewRow, 
 import { resolveRefOrWarn } from "./data-write";
 import { getInternalActions } from "./internal-actions";
 import { useDataGridStore, useDataGridStoreApi } from "./provider";
+import type { SelectionPointer } from "./types";
 import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridInternalActions, DataGridRowCellState, DataGridStoreState, ResolvedPlugins } from "./types";
 
 /** The stable actions object for the current grid; never changes identity, so this hook never re-renders. */
@@ -93,6 +95,11 @@ export function useDataGridKeymap(): Keymap {
   return useDataGridStore((s) => s.keymap);
 }
 
+/** The input that wrote the current selection. */
+export function useDataGridSelectionPointer(): SelectionPointer {
+  return useDataGridStore((s) => s.selectionPointer);
+}
+
 /** The grid's effective commands — the consumer's `commands` merged over the plugins' commands — `null` when none; backs the keybindings dialog's label/group overrides. */
 export function useDataGridCommands(): Record<string, GridCommand> | null {
   return useDataGridStore((s) => s.commands);
@@ -106,6 +113,11 @@ export function useDataGridCommands(): Record<string, GridCommand> | null {
  */
 export function useDataGridLabels(): DataGridLabels {
   return useDataGridStore((s) => s.labels);
+}
+
+/** The polite live-region text of the latest row move. */
+export function useDataGridRowMoveAnnouncement(): string {
+  return useDataGridStore((s) => s.rowMoveAnnouncement);
 }
 
 /** The currently active (focused) cell, or null when nothing is active. */
@@ -256,11 +268,16 @@ export function useDataGridVisibleColumns<TData = unknown>(): readonly ColumnDef
 export function useDataGridAllColumns<TData = unknown>(): readonly ColumnDefOf<TData>[] {
   return useDataGridStore(
     useShallow((s) => {
-      const orderedIds = s.columnOrder ?? s.columns.map((c) => c.id);
+      const orderedIds = repairGroupOrder(s.columnOrder ?? s.columns.map((c) => c.id), s.columnGroupModel);
       const byId = new Map(s.columns.map((c) => [c.id, c] as const));
       return orderedIds.map((id) => byId.get(id)).filter((c): c is AnyColumnDef => c != null);
     }),
   ) as readonly ColumnDefOf<TData>[];
+}
+
+/** The validated `columnGroups` model; null when the grid has no groups. */
+export function useDataGridColumnGroupModel(): ColumnGroupModel | null {
+  return useDataGridStore((s) => s.columnGroupModel);
 }
 
 /** Whether a column id is currently hidden (def-level `hidden: true` seeds this set; `setColumnHidden` wins until the `columns` prop identity changes). */
@@ -306,6 +323,11 @@ export function useDataGridColumnFeatureFlags(): {
 /** The active per-column filter specs. */
 export function useDataGridFilterState(): FilterSpec[] {
   return useDataGridStore(useShallow((s) => s.filterState));
+}
+
+/** Whether the column has an active filter. Subscribes to the boolean only, so a header re-renders when its own column starts or stops being filtered. */
+export function useDataGridIsColumnFiltered(columnId: string): boolean {
+  return useDataGridStore((s) => s.filterState.some((spec) => spec.columnId === columnId));
 }
 
 /** How `filterState`'s rows combine; default `"and"`. See {@link FilterJoinOperator}. */
@@ -628,15 +650,22 @@ export function useDataGridSelectionConfig(): {
   enableColumnSelection: boolean;
   enableRangeSelection: boolean;
   enableMultiRange: boolean;
+  keepCheckedRows: boolean;
 } {
   return useDataGridStore(
     useShallow((s) => ({
+      keepCheckedRows: s.keepCheckedRows,
       enableRowSelection: s.enableRowSelection,
       enableColumnSelection: s.enableColumnSelection,
       enableRangeSelection: s.enableRangeSelection,
       enableMultiRange: s.enableMultiRange,
     })),
   );
+}
+
+/** The number of checked rows a filter hides, remembered by `keepHiddenCheckedRows`; `0` when the option is off. */
+export function useDataGridHiddenCheckedCount(): number {
+  return useDataGridStore((s) => s.hiddenCheckedRowIds.size);
 }
 
 /** Half-open row range `[start, end)`. */

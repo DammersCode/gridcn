@@ -1,4 +1,5 @@
 ---
+status: updated
 title: Events & state
 description: Every callback the grid fires, what it's for, and how it's shaped.
 icon: Radio
@@ -65,7 +66,7 @@ type DataOp<TData> =
 
 type DataChange<TData> = {
   ops: DataOp<TData>[];
-  source: "edit" | "paste" | "fill" | "delete" | "row-operation" | "import" | "history" | "rollback" | "stream" | "app";
+  source: "edit" | "paste" | "fill" | "delete" | "row-operation" | "import" | "history" | "rollback" | "stream" | "replace" | "app";
   label?: string;
 };
 ```
@@ -73,10 +74,15 @@ type DataChange<TData> = {
 `label` is a human-readable name for the entry, for example `"Add row"`. It is set by
 `record(change, label)` and carried through undo and redo.
 
+A `move` <NewBadge /> operation of a batch (`reorderRows` with a list, `moveRowsBy`) has `from` as the row's
+index before the whole batch and `to` as its index after it. Apply the operations of one change
+together, for example with `applyChange`.
+
 An `update` operation carries `cells` only when the change is cell-level, for example an edit, a paste,
 or a fill. A whole-row update has no `cells` field.
 
 The `"stream"` source tags a batch from `updateCells`. See [Streaming updates](/docs/streaming-updates).
+The `"replace"` <NewBadge /> source tags a batch from the [find & replace](/docs/addons/find-replace) add-on.
 The `"app"` source tags a programmatic change the consumer applied to its own array and
 registered with the `data-grid-history` add-on's `record()`. See
 [Undo & redo](/docs/addons/undo-redo#programmatic-changes-record).
@@ -429,8 +435,8 @@ zero-re-render guarantee as the other callbacks on this page.
 - `onValidationError` fires after a bulk paste, a fill, or an `updateCells` call settles, only
   when at least one cell was rejected by validation. The accepted cells are applied first, so
   their `onDataChange` fires before this event. `GridValidationErrorEvent` is
-  `{ source: "paste" | "fill" | "stream", rejected }`. `updateCells` and `updateRows` report
-  `"stream"`. Each rejected entry is `{ rowId, columnId, viewRowIndex, value, message }`. For a
+  `{ source: "paste" | "fill" | "stream" | "replace", rejected }`. `updateCells` and `updateRows` report
+  `"stream"`, or `"replace"` for a find & replace batch. Each rejected entry is `{ rowId, columnId, viewRowIndex, value, message }`. For a
   row outside the view, `viewRowIndex` is `-1`. Single-cell edits do not use this event.
   `onEditEnd` with `result: "rejected"` covers that surface.
 

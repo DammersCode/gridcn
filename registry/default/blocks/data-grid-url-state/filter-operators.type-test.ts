@@ -26,6 +26,7 @@ const coverage: OperatorCoverage = {
   lte: true,
   isBetween: true,
   isAnyOf: true,
+  isNoneOf: true,
 };
 void coverage;
 void FILTER_OPERATORS;

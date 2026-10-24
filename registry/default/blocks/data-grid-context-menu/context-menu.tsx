@@ -153,6 +153,7 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
 
   const onOpenChange = useCallback((open: boolean, eventDetails: ContextMenuPrimitive.Root.ChangeEventDetails) => {
     if (open && targetRef.current === null) eventDetails.cancel();
+    if (!open) targetRef.current = null;
     if (open) {
       setFailureShown(clipboardFailed);
     } else if (failureShown) {
@@ -164,7 +165,8 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
   return (
     <DataGridHeaderMenuItemsContext.Provider value={getHeaderMenuItems ?? null}>
       <ContextMenu onOpenChange={onOpenChange}>
-        <ContextMenuTrigger className={className} onContextMenu={onContextMenu}>
+        {/* The grid's own long-press dispatches contextmenu; Base UI's touch long-press would open a menu without a target. */}
+        <ContextMenuTrigger className={className} onContextMenu={onContextMenu} onTouchStart={(event) => event.preventBaseUIHandler()}>
           {children}
         </ContextMenuTrigger>
         <ContextMenuContent data-grid-context-menu="">

@@ -50,6 +50,21 @@ export type DataGridToolbarLabels = {
   joinOperatorOr: string;
   columns: string;
   columnsAriaLabel: string;
+  /** aria-label of the header filter button; `filtered` is true while the column has any filter, including a condition filter. */
+  headerFilterAriaLabel: (column: string, filtered: boolean) => string;
+  headerFilterSearchPlaceholder: string;
+  /** Status line under the search; `visible` values match the search out of `total` distinct values. */
+  headerFilterValueCount: (visible: number, total: number) => string;
+  /** Label of the value for empty cells. */
+  headerFilterBlanks: string;
+  /** Status line when the value list stopped collecting at its limit. */
+  headerFilterCapped: string;
+  headerFilterLoadedRowsOnly: string;
+  /** Shown when the selection would store more than `max` entries. */
+  headerFilterTooManySelected: (max: number) => string;
+  headerFilterSelectAll: string;
+  headerFilterApply: string;
+  headerFilterClear: string;
 };
 
 /** Sort-list add-on strings (`data-grid-sort-list`): toolbar sort button + popover of applied sorts. */
@@ -86,6 +101,7 @@ export type DataGridFilterOperatorLabels = {
   lte: string;
   isBetween: string;
   isAnyOf: string;
+  isNoneOf: string;
 };
 
 /** Cell/header right-click context menu + header dropdown menu strings (shared verbatim between the two surfaces). */
@@ -98,6 +114,8 @@ export type DataGridContextMenuLabels = {
   /** Tooltip shown on Cut and Copy after the clipboard write failed (no clipboard-write permission, or no secure context). */
   clipboardFailed: string;
   clearContents: string;
+  fillDown: string;
+  fillRight: string;
   insertRowAbove: string;
   insertRowBelow: string;
   duplicateRow: string;
@@ -149,6 +167,8 @@ export type DataGridMarkerLabels = {
   reorderRow: (rowNumber: number) => string;
   /** Polite live-region announcement after a row move; `rowNumber` is the dragged row's 1-based number BEFORE the move, `position`/`total` are 1-based. */
   reorderAnnouncement: (rowNumber: number, position: number, total: number) => string;
+  /** Polite live-region announcement after several rows move as a block; `position` is the 1-based number of the block's first row after the move. */
+  reorderRowsAnnouncement: (count: number, position: number, total: number) => string;
 };
 
 /** Core grid strings not owned by a specific add-on. */
@@ -241,6 +261,37 @@ export type DataGridStatusBarLabels = {
   max: string;
   /** `title` while the walk stopped at the cell cap; `count` is the cap. */
   approximate: (count: number) => string;
+  /** Item beside the selection stats; `count` is the number of hidden checked rows (`keepHiddenCheckedRows`). */
+  hiddenChecked: (count: number) => string;
+  /** Stand-alone text when fewer than two cells are selected, so the bar has no stats to attach `hiddenChecked` to. */
+  hiddenCheckedOnly: (count: number) => string;
+};
+
+/** Find-and-replace panel strings. */
+export type DataGridFindReplaceLabels = {
+  dialogLabel: string;
+  findLabel: string;
+  replaceLabel: string;
+  matchCase: string;
+  wholeCell: string;
+  previous: string;
+  next: string;
+  /** Tooltip of the previous button; name the key. */
+  previousTitle: string;
+  /** Tooltip of the next button; name the key. */
+  nextTitle: string;
+  replace: string;
+  replaceAll: string;
+  toggleReplace: string;
+  close: string;
+  noMatches: string;
+  /** Status line while the Find field is empty. */
+  typeToSearch: string;
+  /** `capped` is true while the highlight list stopped at its cap, so `total` is a lower bound. */
+  position: (index: number, total: number, capped: boolean) => string;
+  replaced: (replaced: number, skipped: number) => string;
+  moreRemain: string;
+  validating: string;
 };
 
 /** Every user-facing default string across core + every add-on, grouped by owning surface. */
@@ -255,6 +306,7 @@ export interface DataGridLabels {
   io: DataGridIOLabels;
   pagination: DataGridPaginationLabels;
   statusBar: DataGridStatusBarLabels;
+  findReplace: DataGridFindReplaceLabels;
 }
 
 /** English defaults — every string in the shipped UI today, verbatim (so adopting `labels` never changes visible copy without an explicit override). */
@@ -290,6 +342,16 @@ export const DEFAULT_LABELS: DataGridLabels = {
     joinOperatorOr: "Or",
     columns: "Columns",
     columnsAriaLabel: "Columns",
+    headerFilterAriaLabel: (column, filtered) => (filtered ? `Filter ${column}, filtered` : `Filter ${column}`),
+    headerFilterSearchPlaceholder: "Search values…",
+    headerFilterValueCount: (visible, total) => (visible === total ? `${total} values` : `${visible} of ${total} values`),
+    headerFilterBlanks: "(Blanks)",
+    headerFilterCapped: "Too many values. Showing the first values only.",
+    headerFilterLoadedRowsOnly: "From loaded rows",
+    headerFilterTooManySelected: (max) => `Too many values selected. Select at most ${max}.`,
+    headerFilterSelectAll: "Select all",
+    headerFilterApply: "Apply",
+    headerFilterClear: "Clear",
   },
   sort: {
     sort: "Sort",
@@ -320,6 +382,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     lte: "less than or equal",
     isBetween: "is between",
     isAnyOf: "is any of",
+    isNoneOf: "is none of",
   },
   contextMenu: {
     cut: "Cut",
@@ -328,6 +391,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
     pasteBlocked: "requires clipboard permission — use Ctrl+V",
     clipboardFailed: "clipboard access failed — use Ctrl+C or Ctrl+X",
     clearContents: "Clear contents",
+    fillDown: "Fill down",
+    fillRight: "Fill right",
     insertRowAbove: "Insert row above",
     insertRowBelow: "Insert row below",
     duplicateRow: "Duplicate row",
@@ -396,6 +461,9 @@ export const DEFAULT_LABELS: DataGridLabels = {
       toggleRow: "Check or uncheck row",
       toggleAllRows: "Check or uncheck all rows",
       openColumnMenu: "Open column menu",
+      openColumnFilter: "Open column filter",
+      openFind: "Find",
+      openFindReplace: "Find and replace",
 
       edit: "Edit cell",
       typeToReplace: "Type to replace",
@@ -410,6 +478,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
       insertRowAbove: "Insert row above",
       duplicateRow: "Duplicate row",
       deleteRows: "Delete row(s)",
+      moveRowsUp: "Move rows up",
+      moveRowsDown: "Move rows down",
 
       fillDown: "Fill down",
       fillRight: "Fill right",
@@ -426,6 +496,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     selectRow: (rowNumber) => `Select row ${rowNumber}`,
     reorderRow: (rowNumber) => `Reorder row ${rowNumber}`,
     reorderAnnouncement: (rowNumber, position, total) => `Row ${rowNumber} moved to position ${position} of ${total}`,
+    reorderRowsAnnouncement: (count, position, total) => `${count} rows moved to position ${position} of ${total}`,
   },
   grid: {
     emptyState: "No rows",
@@ -489,6 +560,29 @@ export const DEFAULT_LABELS: DataGridLabels = {
     min: "Min",
     max: "Max",
     approximate: (count) => `From the first ${count.toLocaleString("en-US")} cells`,
+    hiddenChecked: (count) => `(+${count.toLocaleString("en-US")} hidden)`,
+    hiddenCheckedOnly: (count) => `${count.toLocaleString("en-US")} hidden checked ${count === 1 ? "row" : "rows"}`,
+  },
+  findReplace: {
+    dialogLabel: "Find and replace",
+    findLabel: "Find",
+    replaceLabel: "Replace with",
+    matchCase: "Match case",
+    wholeCell: "Whole cell",
+    previous: "Previous match",
+    next: "Next match",
+    previousTitle: "Previous match (Shift+Enter)",
+    nextTitle: "Next match (Enter)",
+    replace: "Replace",
+    replaceAll: "Replace all",
+    toggleReplace: "Toggle replace",
+    close: "Close",
+    noMatches: "No results",
+    typeToSearch: "Type to search",
+    position: (index, total, capped) => `${index} of ${total.toLocaleString("en-US")}${capped ? "+" : ""} ${total === 1 && !capped ? "cell" : "cells"}`,
+    replaced: (replaced, skipped) => (skipped > 0 ? `${replaced} replaced, ${skipped} skipped` : `${replaced} replaced`),
+    moreRemain: "More matches remain. Run Replace all again.",
+    validating: "Validating…",
   },
 };
 

@@ -6,6 +6,8 @@ import type {
   FilterJoinOperator,
   FilterSpec,
   GridRect,
+  GridSelection,
+  SearchOptions,
   SortSpec,
   ViewCoord,
 } from "../types";
@@ -24,6 +26,7 @@ import { clampColumnWidth } from "../columns/resolve-column-width";
 import { selectCell } from "../selection/selection-ops";
 import { CompactSelection } from "../selection/compact-selection";
 import { toSafeText } from "../cell-types/safe-text";
+import { moveGroupBlock, moveWithinGroups, repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
 import { isDev } from "../is-dev";
 import type {
   AnyColumnDef,
@@ -101,6 +104,12 @@ export function clampActiveCell(activeCell: ViewCoord | null, viewLength: number
   const row = Math.min(activeCell.row, viewLength - 1);
   const col = Math.min(activeCell.col, columnCount - 1);
   return row === activeCell.row && col === activeCell.col ? activeCell : { row, col };
+}
+
+/** The selection after the cursor lands on `coord`: a single cell, with the checked rows kept when `keepCheckedRows` is set. */
+export function selectCellOf(s: Pick<DataGridStoreState, "selection" | "keepCheckedRows">, coord: ViewCoord): GridSelection {
+  const next = selectCell(coord);
+  return s.keepCheckedRows ? { ...next, rows: s.selection.rows } : next;
 }
 
 /** The cursor fitted into a rebuilt view: a move collapses the selection onto the clamped cell, a clear drops its current range. */
@@ -487,8 +496,12 @@ export function defHiddenColumnIds(columns: readonly AnyColumnDef[]): string[] {
   return columns.filter((c) => c.hidden).map((c) => c.id);
 }
 
-/** `columnOrder` completed for `columns`: unknown ids drop out, and def ids it lacks follow in def order. */
-export function completeColumnOrder(columns: readonly AnyColumnDef[], columnOrder: readonly string[] | null): string[] {
+/** `columnOrder` completed for `columns`: unknown ids drop out, def ids it lacks follow in def order, and `groups` stay contiguous. */
+export function completeColumnOrder(columns: readonly AnyColumnDef[], columnOrder: readonly string[] | null, groups?: ColumnGroupModel | null): string[] {
+  return repairGroupOrder(completeUngroupedOrder(columns, columnOrder), groups ?? null);
+}
+
+function completeUngroupedOrder(columns: readonly AnyColumnDef[], columnOrder: readonly string[] | null): string[] {
   const defIds = columns.map((c) => c.id);
   if (!columnOrder) return defIds;
   const known = new Set(defIds);
@@ -513,10 +526,11 @@ export function computeVisibleColumns(
   columns: readonly AnyColumnDef[],
   columnOrder: string[] | null,
   hiddenColumns: readonly string[],
+  groups?: ColumnGroupModel | null,
 ): readonly AnyColumnDef[] {
   const byId = new Map(columns.map((c) => [c.id, c] as const));
   const hidden = new Set(hiddenColumns);
-  const ordered = completeColumnOrder(columns, columnOrder)
+  const ordered = completeColumnOrder(columns, columnOrder, groups)
     .map((id) => byId.get(id)!)
     .filter((c) => !hidden.has(c.id));
   const left = ordered.filter((c) => c.pin === "left");
@@ -531,6 +545,7 @@ export function computeColumnLayout(
   columnOrder: string[] | null,
   columnWidths: Record<string, number>,
   hiddenColumns: readonly string[],
+  groups?: ColumnGroupModel | null,
 ): ColumnLayout {
   const pins: Record<string, "left" | "right"> = {};
   for (const c of columns) {
@@ -538,7 +553,7 @@ export function computeColumnLayout(
   }
   return {
     widths: { ...columnWidths },
-    order: completeColumnOrder(columns, columnOrder),
+    order: completeColumnOrder(columns, columnOrder, groups),
     pins,
     hidden: [...hiddenColumns],
   };
@@ -566,6 +581,7 @@ export function normalizeColumnLayout(
   columns: readonly AnyColumnDef[],
   parts: ColumnLayoutParts,
   hiddenColumns: string[],
+  groups?: ColumnGroupModel | null,
 ): { columns: readonly AnyColumnDef[]; columnWidths: Record<string, number>; columnOrder: string[] | null; hiddenColumns: string[] } {
   const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
   const stringList = (value: unknown): string[] | null => (Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : null);
@@ -594,7 +610,7 @@ export function normalizeColumnLayout(
   return {
     columns: nextColumns,
     columnWidths,
-    columnOrder: order ? completeColumnOrder(columns, order) : null,
+    columnOrder: order ? completeColumnOrder(columns, order, groups) : null,
     hiddenColumns: nextHidden,
   };
 }
@@ -608,9 +624,10 @@ export function applyDefaultColumnLayout(
   columns: readonly AnyColumnDef[],
   hiddenColumns: string[],
   layout: Partial<ColumnLayout> | undefined,
+  groups?: ColumnGroupModel | null,
 ): { columns: readonly AnyColumnDef[]; columnWidths: Record<string, number>; columnOrder: string[] | null; hiddenColumns: string[] } {
   if (!layout || typeof layout !== "object") return { columns, columnWidths: {}, columnOrder: null, hiddenColumns };
-  return normalizeColumnLayout(columns, layout, hiddenColumns);
+  return normalizeColumnLayout(columns, layout, hiddenColumns, groups);
 }
 
 /** Whether two {@link ColumnLayout} snapshots hold the same widths, order, pins, and hidden ids (structural). */
@@ -715,6 +732,9 @@ export function incrementalViewIndex(
   return result.viewIndex;
 }
 
+/** The search options a store starts with: case-insensitive substring. */
+export const DEFAULT_SEARCH_OPTIONS: Required<SearchOptions> = { matchCase: false, wholeCell: false };
+
 /** Max search hits collected before {@link findSearchMatches} early-exits; bounds worst-case work at 100k+ rows. */
 export const MAX_SEARCH_MATCHES = 1000;
 
@@ -740,7 +760,8 @@ export function computeSearchMatches(
   viewIndex: number[],
   visibleColumns: readonly AnyColumnDef[],
   searchText: string,
-  cellTypes?: Record<string, CellType>,
+  cellTypes: Record<string, CellType> | undefined,
+  searchOptions: Required<SearchOptions>,
 ): Pick<DataGridStoreState, "searchMatches" | "searchMatchSet" | "searchMatchRows" | "searchMatchesCapped"> {
   if (searchText.trim() === "") {
     return { searchMatches: [], searchMatchSet: EMPTY_SEARCH_MATCH_SET, searchMatchRows: EMPTY_SEARCH_MATCH_ROWS, searchMatchesCapped: false };
@@ -760,6 +781,7 @@ export function computeSearchMatches(
     searchText,
     visibleColumns.map((c) => c.id),
     MAX_SEARCH_MATCHES,
+    searchOptions,
   );
   const searchMatchSet = new Set(searchMatches.map((m) => searchMatchKey(m.row, m.columnId)));
   const searchMatchRows = buildSearchMatchRows(searchMatches, visibleColumns);
@@ -803,6 +825,8 @@ export function resolveSelectionConfig(props: InternalSyncProps): Pick<
   DataGridStoreState,
   | "rowMarkers"
   | "enableRowSelection"
+  | "keepCheckedRows"
+  | "keepHiddenCheckedRows"
   | "enableColumnSelection"
   | "enableRangeSelection"
   | "enableMultiRange"
@@ -815,6 +839,8 @@ export function resolveSelectionConfig(props: InternalSyncProps): Pick<
   return {
     rowMarkers: props.rowMarkers ?? "none",
     enableRowSelection: props.enableRowSelection ?? true,
+    keepCheckedRows: props.keepCheckedRows ?? false,
+    keepHiddenCheckedRows: props.keepHiddenCheckedRows ?? false,
     enableColumnSelection: props.enableColumnSelection ?? true,
     enableRangeSelection: props.enableRangeSelection ?? true,
     enableMultiRange: props.enableMultiRange ?? true,
@@ -847,16 +873,38 @@ export function reorderColumnIds(
   id: string,
   targetId: string,
   position: "before" | "after",
+  groups?: ColumnGroupModel | null,
 ): string[] {
   if (id === targetId) return orderedIds as string[];
   const byId = new Map(columns.map((c) => [c.id, c] as const));
   if (pinZone(byId.get(id)) !== pinZone(byId.get(targetId))) return orderedIds as string[];
+  if (groups) return moveWithinGroups(orderedIds, groups, id, targetId, position) ?? (orderedIds as string[]);
 
   const withoutId = orderedIds.filter((c) => c !== id);
   const targetIndex = withoutId.indexOf(targetId);
   if (targetIndex === -1) return orderedIds as string[];
   const insertAt = position === "before" ? targetIndex : targetIndex + 1;
   return [...withoutId.slice(0, insertAt), id, ...withoutId.slice(insertAt)];
+}
+
+/**
+ * Moves group `groupId` as one block next to `targetId`. Returns `orderedIds` unchanged when the
+ * move leaves the group's parent, drops onto the group itself, or its members and the target sit
+ * in different pin zones.
+ */
+export function reorderGroupBlock(
+  orderedIds: readonly string[],
+  columns: readonly AnyColumnDef[],
+  groups: ColumnGroupModel,
+  groupId: string,
+  targetId: string,
+  position: "before" | "after",
+): string[] {
+  const byId = new Map(columns.map((c) => [c.id, c] as const));
+  const zone = pinZone(byId.get(targetId));
+  const members = orderedIds.filter((id) => groups.paths.get(id)?.includes(groupId));
+  if (members.length === 0 || members.some((id) => pinZone(byId.get(id)) !== zone)) return orderedIds as string[];
+  return moveGroupBlock(orderedIds, groups, groupId, targetId, position) ?? (orderedIds as string[]);
 }
 
 /**

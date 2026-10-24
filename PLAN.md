@@ -238,7 +238,7 @@ forward queue was `docs/agent-work/plans/2026-09-03-audit-followups.md` (superse
 - History skips ops whose row ids vanished (external data refresh) — silently, by design.
 - Registry has no semver: keep `CHANGELOG.md` + `meta.version`, stable file layout, and an upgrade-by-re-add docs page.
 - Inline editors are clipped to cell bounds (Base UI popups portal out, so select/date are fine); long-text editors are a v2 popover pattern.
-- Desktop-first: touch selection/fill drag is v2; native touch scrolling works.
+- Touch: tap selects, double-tap edits, selection handles extend a range, long-press opens the context menu; native touch scrolling stays on the compositor.
 - Row cap ~1M (Chromium grid-track limit); comfort target is 100k.
 
 ## 12. Conventions

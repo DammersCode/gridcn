@@ -2,6 +2,7 @@
 title: Fill handle
 description: Drag to tile a selection, with series inference for numeric and text runs.
 icon: PaintBucket
+status: updated
 ---
 
 The fill handle is the small square at the bottom-right corner of a selection. Drag it up, down,
@@ -139,6 +140,14 @@ Both go through the same tiling and series pipeline as a drag. The keys are core
 `preventDefault` runs with or without the add-on (mod+R never reloads the page). Without the
 add-on installed, both keys do nothing. The add-on's `fillDown`/`fillRight` commands give them
 their body. See [Pluggable built-ins](/docs/plugins#pluggable-built-ins).
+
+## Touch
+
+<NewBadge />
+
+After a touch selection the fill handle is hidden, because the selection handle sits on the same
+corner. The cell context menu shows **Fill down** and **Fill right** instead. They run the same
+`fillDown` and `fillRight` commands as the keyboard.
 
 ## Turning fill off
 

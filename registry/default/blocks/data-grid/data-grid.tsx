@@ -83,6 +83,7 @@ export {
   type DataGridRowCellState,
   useDataGridRowMarkers,
   useDataGridSelectionConfig,
+  useDataGridHiddenCheckedCount,
   useDataGridAllRowsSelected,
   useDataGridHeaderClickBehavior,
   type DataGridSyncProps,
@@ -179,6 +180,7 @@ export type {
   FilterValueInputProps,
   ColumnDef,
   SortSpec,
+  SearchOptions,
   FilterOperator,
   FilterSpec,
   FilterJoinOperator,
@@ -199,6 +201,7 @@ export type {
   DensityMode,
   HeaderClickBehavior,
   AutosizeOptions,
+  ColumnGroupDef,
   ColumnLayout,
   GetRowClassName,
   GetCellClassName,
@@ -255,6 +258,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
     loading,
     loadingState,
     renderHeaderMenu,
+    renderHeaderFilter,
     renderMarker,
     renderMarkerHeader,
     getRowClassName,
@@ -275,6 +279,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
         loading={loading}
         loadingState={loadingState}
         renderHeaderMenu={renderHeaderMenu}
+        renderHeaderFilter={renderHeaderFilter}
         renderMarker={renderMarker}
         renderMarkerHeader={renderMarkerHeader}
         getRowClassName={getRowClassName}

@@ -20,6 +20,7 @@ import PaginationDemo from "@/registry/default/examples/data-grid-pagination-dem
 import PinnedRowsDemo from "@/registry/default/examples/data-grid-pinned-rows-demo";
 import PresenceDemo from "@/registry/default/examples/data-grid-presence-demo";
 import RowMarkersDemo from "@/registry/default/examples/data-grid-row-markers-demo";
+import HeaderFilterDemo from "@/registry/default/examples/data-grid-header-filter-demo";
 import SortListDemo from "@/registry/default/examples/data-grid-sort-list-demo";
 import SortingFilteringDemo from "@/registry/default/examples/data-grid-sorting-filtering-demo";
 import StreamingDemo from "@/registry/default/examples/data-grid-streaming-demo";
@@ -52,6 +53,7 @@ const DEMOS = [
   ["pinned-rows", <PinnedRowsDemo key="pinned-rows" />],
   ["presence", <PresenceDemo key="presence" />],
   ["row-markers", <RowMarkersDemo key="row-markers" />],
+  ["header-filter", <HeaderFilterDemo key="header-filter" />],
   ["sort-list", <SortListDemo key="sort-list" />],
   ["sorting-filtering", <SortingFilteringDemo key="sorting-filtering" />],
   ["streaming", <StreamingDemo key="streaming" />],
@@ -66,6 +68,7 @@ const ALLOWED_OVERFLOW = [
   ["large-data", "100k-row demo: the lesson is virtualization at scale, its 7-column, real-world-width table is the point"],
   ["performance", "100k-row FPS demo: shares large-data's column set on purpose, to show the same scale under a live FPS readout"],
   ["pinning", "pin-left/right demo: the lesson is columns pinned across a scrolled middle region, so a scrollable body is required"],
+  ["column-groups", "column-group demo: the lesson is group headers over a pinned column and a scrolled middle region, so a scrollable body is required"],
   ["playground", "kitchen-sink demo: every feature toggle live at once, deliberately more columns than a single preview width"],
   ["cell-types", "kitchen-sink demo: every built-in cell type live in one preview, deliberately more columns than a single preview width; the grid body scrolls"],
   ["url-state", "nuqs's app-router NuqsAdapter needs Next's router context, unavailable in this isolated harness — unrelated to column fit"],

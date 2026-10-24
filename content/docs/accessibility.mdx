@@ -1,6 +1,7 @@
 ---
 title: Accessibility
 description: The WAI-ARIA grid model, roving tabindex, live regions, the honest test matrix, and known gaps.
+status: updated
 icon: Accessibility
 ---
 
@@ -27,12 +28,14 @@ The row index layout accounts for the header and both pinned-row bands, in this 
 
 | Position | `aria-rowindex` |
 |---|---|
-| Header row | 1 |
+| Header rows: one per group level, then the column header row | 1 to the header row count |
 | Pinned-top rows (`data-grid-pinned-rows`, if installed) | 2, 3, ... |
 | Data rows | continue after the pinned-top band |
 | Pinned-bottom rows | last, after every data row |
 
-`aria-rowcount` on the grid root always includes both pinned bands, so a screen reader
+Each header row carries `aria-rowindex`. A grid without column groups has one header row. A column group adds one header row per group level, and the other indices shift down by the same number. A group header cell carries `aria-colindex` for its first column and `aria-colspan` for the columns it covers. A column that spans several header rows carries `aria-rowspan`.
+
+`aria-rowcount` on the grid root always includes the header rows and both pinned bands, so a screen reader
 announces the true total row count, not just the data row count.
 
 The marker column (row numbers or checkboxes) sits outside this index space entirely. It
@@ -138,6 +141,22 @@ What the automated Chromium suite verifies, area by area:
   structural checker: it does not confirm that a screen reader announces the right thing at the
   right moment.
 </Callout>
+
+## Touch targets
+
+<NewBadge />
+
+Under a coarse pointer (`@media (pointer: coarse)`), every control a finger must hit is at least
+24 by 24 CSS px (WCAG 2.2, SC 2.5.8):
+
+- The selection handles.
+- The column resize area.
+- The column drag handle, which appears only when column reorder is on.
+- The checkbox of a checkbox cell.
+- The header menu button and the header filter button. Both stay visible.
+
+Every touch gesture has another way to do the same thing. The context menu offers the clipboard,
+row, and fill items. A hardware keyboard extends a range with <kbd>Shift</kbd>+arrow.
 
 ## Known gaps
 

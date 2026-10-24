@@ -866,3 +866,189 @@ describe("select-drag pointer capture", () => {
     expect(row.flag).toBe(true);
   });
 });
+
+describe("touch input", () => {
+  type Sample = { pointerId?: number; x?: number; y?: number; time?: number };
+
+  function touchEvent(type: string, sample: Sample = {}): Event {
+    const event = new Event(type);
+    Object.defineProperties(event, {
+      pointerId: { value: sample.pointerId ?? 1 },
+      clientX: { value: sample.x ?? 10 },
+      clientY: { value: sample.y ?? 10 },
+      timeStamp: { value: sample.time ?? 0 },
+    });
+    return event;
+  }
+
+  function press(hook: ReturnType<typeof renderInteraction>["hook"], coord: { col: number; row: number }, sample: Sample = {}, target?: Element) {
+    const element = target ?? document.createElement("div");
+    const event = {
+      button: 0,
+      pointerType: "touch",
+      pointerId: sample.pointerId ?? 1,
+      clientX: sample.x ?? 10,
+      clientY: sample.y ?? 10,
+      timeStamp: sample.time ?? 0,
+      target: element,
+      currentTarget: Object.assign(element, { setPointerCapture: vi.fn() }),
+    } as unknown as React.PointerEvent<HTMLElement>;
+    act(() => hook.result.current.interaction.onCellPointerDown(coord, event));
+    return event.currentTarget as HTMLElement & { setPointerCapture: ReturnType<typeof vi.fn> };
+  }
+
+  function release(type: "pointerup" | "pointercancel", sample: Sample = {}) {
+    act(() => {
+      document.dispatchEvent(touchEvent(type, sample));
+    });
+  }
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it("selects nothing and takes no capture when the finger pans", () => {
+    const { hook } = renderInteraction(20);
+    const cell = press(hook, { col: 0, row: 3 });
+    act(() => {
+      document.dispatchEvent(touchEvent("pointermove", { y: 60, time: 40 }));
+    });
+    release("pointercancel", { y: 60, time: 80 });
+    expect(hook.result.current.activeCell).toBeNull();
+    expect(cell.setPointerCapture).not.toHaveBeenCalled();
+  });
+
+  it("selects the cell on a tap and marks the selection as touch", () => {
+    const { hook } = renderInteraction(20);
+    press(hook, { col: 1, row: 3 });
+    expect(hook.result.current.activeCell).toBeNull();
+    release("pointerup", { time: 90 });
+    expect(hook.result.current.activeCell).toEqual({ col: 1, row: 3 });
+    expect(hook.result.current.storeApi.getState().selectionPointer).toBe("touch");
+  });
+
+  it("starts editing on a double tap, and a single tap never edits", () => {
+    const { hook } = renderInteraction(20);
+    press(hook, { col: 0, row: 2 }, { time: 0 });
+    release("pointerup", { time: 60 });
+    expect(hook.result.current.storeApi.getState().editing).toBeNull();
+    press(hook, { col: 0, row: 2 }, { time: 200 });
+    release("pointerup", { time: 260 });
+    expect(hook.result.current.storeApi.getState().editing).not.toBeNull();
+  });
+
+  it("does not edit on a double tap in a read-only grid", () => {
+    const { hook } = renderInteraction(20, { readOnly: true });
+    press(hook, { col: 0, row: 2 }, { time: 0 });
+    release("pointerup", { time: 60 });
+    press(hook, { col: 0, row: 2 }, { time: 200 });
+    release("pointerup", { time: 260 });
+    expect(hook.result.current.storeApi.getState().editing).toBeNull();
+  });
+
+  it("dispatches exactly one contextmenu on a long press and selects nothing on release", () => {
+    vi.useFakeTimers();
+    const { hook } = renderInteraction(20);
+    const target = document.createElement("div");
+    document.body.append(target);
+    const onContextMenu = vi.fn();
+    target.addEventListener("contextmenu", onContextMenu);
+    press(hook, { col: 0, row: 4 }, {}, target);
+    act(() => {
+      vi.advanceTimersByTime(499);
+    });
+    expect(onContextMenu).not.toHaveBeenCalled();
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(onContextMenu).toHaveBeenCalledTimes(1);
+    release("pointerup", { time: 700 });
+    expect(onContextMenu).toHaveBeenCalledTimes(1);
+    expect(hook.result.current.activeCell).toBeNull();
+    target.remove();
+  });
+
+  it("does not open the context menu when the finger pans before the delay", () => {
+    vi.useFakeTimers();
+    const { hook } = renderInteraction(20);
+    const target = document.createElement("div");
+    document.body.append(target);
+    const onContextMenu = vi.fn();
+    target.addEventListener("contextmenu", onContextMenu);
+    press(hook, { col: 0, row: 4 }, {}, target);
+    act(() => {
+      document.dispatchEvent(touchEvent("pointermove", { y: 50, time: 100 }));
+      vi.advanceTimersByTime(2000);
+    });
+    expect(onContextMenu).not.toHaveBeenCalled();
+    target.remove();
+  });
+
+  it("ends the gesture without a tap when a second finger lands", () => {
+    const { hook } = renderInteraction(20);
+    press(hook, { col: 0, row: 1 }, { pointerId: 1 });
+    press(hook, { col: 0, row: 6 }, { pointerId: 2 });
+    release("pointerup", { pointerId: 1, time: 50 });
+    release("pointerup", { pointerId: 2, time: 60 });
+    expect(hook.result.current.activeCell).toBeNull();
+  });
+
+  it("removes every document listener and timer when the grid unmounts mid-gesture", () => {
+    vi.useFakeTimers();
+    const { hook } = renderInteraction(20);
+    const added: string[] = [];
+    const removed: string[] = [];
+    vi.spyOn(document, "addEventListener").mockImplementation((type: string) => void added.push(type));
+    vi.spyOn(document, "removeEventListener").mockImplementation((type: string) => void removed.push(type));
+    const target = document.createElement("div");
+    document.body.append(target);
+    const onContextMenu = vi.fn();
+    target.addEventListener("contextmenu", onContextMenu);
+    press(hook, { col: 0, row: 4 }, {}, target);
+    hook.unmount();
+    vi.advanceTimersByTime(2000);
+    expect(onContextMenu).not.toHaveBeenCalled();
+    expect(added.length).toBeGreaterThan(0);
+    expect([...removed].sort()).toEqual([...added].sort());
+    target.remove();
+  });
+
+  it("registers no touch or wheel listener during a gesture", () => {
+    const { hook } = renderInteraction(20);
+    const added: string[] = [];
+    vi.spyOn(document, "addEventListener").mockImplementation((type: string) => void added.push(type));
+    press(hook, { col: 0, row: 4 });
+    release("pointerup", { time: 50 });
+    expect(added.length).toBeGreaterThan(0);
+    expect(added.filter((type) => /^(touch|wheel|mousewheel)/.test(type))).toEqual([]);
+  });
+
+  it("hides the touch selection when a key moves the selection", () => {
+    const { hook } = renderInteraction(20);
+    press(hook, { col: 0, row: 4 });
+    release("pointerup", { time: 50 });
+    act(() => {
+      hook.result.current.interaction.onKeyDown({
+        key: "ArrowDown",
+        ctrlKey: false,
+        metaKey: false,
+        shiftKey: false,
+        altKey: false,
+        target: document.body,
+        currentTarget: document.body,
+        nativeEvent: new Event("keydown"),
+        preventDefault: () => {},
+      } as unknown as React.KeyboardEvent<HTMLElement>);
+    });
+    expect(hook.result.current.storeApi.getState().selectionPointer).toBe("keyboard");
+  });
+
+  it("selects the cell from a click that had no pointerdown on it", () => {
+    const { hook } = renderInteraction(20);
+    const target = document.createElement("div");
+    const event = { detail: 0, target, currentTarget: target, metaKey: false, ctrlKey: false } as unknown as React.MouseEvent<HTMLElement>;
+    act(() => hook.result.current.interaction.onCellClick({ col: 1, row: 5 }, event));
+    expect(hook.result.current.activeCell).toEqual({ col: 1, row: 5 });
+  });
+});

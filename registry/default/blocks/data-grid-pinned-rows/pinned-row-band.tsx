@@ -15,7 +15,7 @@ export type DataGridPinnedRowBandProps = {
   /** The sticky header track's own height (not including this or any pinned band) — where the top band's `insetBlockStart` lands, directly under the header. */
   headerHeight: number;
   /**
-   * `aria-rowindex` base for this band's rows (root's aria index layout: header=1, pinned-top
+   * `aria-rowindex` base for this band's rows (root's aria index layout: header rows, pinned-top
    * next, then data rows, pinned-bottom last). Top band: 2 (right after the header). Bottom band:
    * `2 + pinnedTopCount + dataRowCount` (right after every data row) — root computes both bases and
    * passes them through `RowBandRenderCtx`.

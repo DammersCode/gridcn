@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { ColumnDef } from "../types";
+import type { CellType, ColumnDef } from "../types";
 import { cellTypes } from "./cell-types";
 import {
   COMPARISON_FILTER_OPERATORS,
+  offersSetFilter,
   resolveColumnValidate,
   resolveFilterOperators,
   resolveFilterValueInput,
+  SET_FILTER_OPERATORS,
   TEXT_FILTER_OPERATORS,
 } from "./capabilities";
 import type { AnyColumnDef } from "../store/types";
@@ -38,26 +40,31 @@ describe("resolveColumnValidate", () => {
 });
 
 describe("built-in capability declarations", () => {
-  it("number declares numeric and the number value input with text+comparison operators", () => {
+  it("number declares numeric and the number value input with text, comparison and set operators", () => {
     expect(cellTypes.number.numeric).toBe(true);
     expect(cellTypes.number.filter?.valueInput).toBe("number");
-    expect(cellTypes.number.filter?.operators).toEqual([...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS]);
+    expect(cellTypes.number.filter?.operators).toEqual([...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS, ...SET_FILTER_OPERATORS]);
   });
 
-  it("date declares numeric and the date value input with text+comparison operators", () => {
+  it("date declares numeric and the date value input with text, comparison and set operators", () => {
     expect(cellTypes.date.numeric).toBe(true);
     expect(cellTypes.date.filter?.valueInput).toBe("date");
-    expect(cellTypes.date.filter?.operators).toEqual([...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS]);
+    expect(cellTypes.date.filter?.operators).toEqual([...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS, ...SET_FILTER_OPERATORS]);
   });
 
-  it("select declares label-based search text and the choices value input with isAnyOf", () => {
+  it("select declares label-based search text and the choices value input with the set operators", () => {
     const options = { choices: [{ value: "v1", label: "Cherry" }] };
     expect(cellTypes.select.toSearchText?.("v1", options)).toBe("Cherry");
     // an unknown stored value searches its raw string, null stays blank
     expect(cellTypes.select.toSearchText?.("v9", options)).toBe("v9");
     expect(cellTypes.select.toSearchText?.(null as unknown as string, options)).toBe("");
     expect(cellTypes.select.filter?.valueInput).toBe("choices");
-    expect(cellTypes.select.filter?.operators).toEqual([...TEXT_FILTER_OPERATORS, "isAnyOf"]);
+    expect(cellTypes.select.filter?.operators).toEqual([...TEXT_FILTER_OPERATORS, ...SET_FILTER_OPERATORS]);
+  });
+
+  it("long-text and url keep the text operators only", () => {
+    expect(cellTypes.longText.filter?.operators).toEqual(TEXT_FILTER_OPERATORS);
+    expect(cellTypes.url.filter?.operators).toEqual(TEXT_FILTER_OPERATORS);
   });
 
   it("checkbox declares an in-place activate (toggle) and the boolean value input", () => {
@@ -98,9 +105,28 @@ describe("resolveFilterOperators", () => {
   it("prefers the column's filterOperators, then the type's, then the type-name default", () => {
     expect(resolveFilterOperators({ ...noopColumn, filterOperators: ["contains"] }, customType)).toEqual(["contains"]);
     expect(resolveFilterOperators({ ...noopColumn, type: "custom" }, customType)).toBe(typeOperators);
-    expect(resolveFilterOperators({ ...noopColumn, type: "number" }, undefined)).toEqual([...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS]);
-    expect(resolveFilterOperators({ ...noopColumn, type: "select" }, undefined)).toEqual([...TEXT_FILTER_OPERATORS, "isAnyOf"]);
-    expect(resolveFilterOperators(noopColumn, undefined)).toEqual(TEXT_FILTER_OPERATORS);
+    expect(resolveFilterOperators({ ...noopColumn, type: "number" }, undefined)).toEqual([...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS, ...SET_FILTER_OPERATORS]);
+    expect(resolveFilterOperators({ ...noopColumn, type: "date" }, undefined)).toEqual([...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS, ...SET_FILTER_OPERATORS]);
+    expect(resolveFilterOperators({ ...noopColumn, type: "select" }, undefined)).toEqual([...TEXT_FILTER_OPERATORS, ...SET_FILTER_OPERATORS]);
+    expect(resolveFilterOperators({ ...noopColumn, type: "text" }, undefined)).toEqual([...TEXT_FILTER_OPERATORS, ...SET_FILTER_OPERATORS]);
+    expect(resolveFilterOperators(noopColumn, undefined)).toEqual([...TEXT_FILTER_OPERATORS, ...SET_FILTER_OPERATORS]);
+    expect(resolveFilterOperators({ ...noopColumn, type: "url" }, undefined)).toEqual(TEXT_FILTER_OPERATORS);
+    expect(resolveFilterOperators({ ...noopColumn, type: "checkbox" }, undefined)).toEqual(TEXT_FILTER_OPERATORS);
+  });
+});
+
+describe("set operators with a custom filterMatch", () => {
+  const filterMatch = () => true;
+
+  it("drops the set operators of the default list", () => {
+    const column = { ...noopColumn, type: "text", filterMatch } as AnyColumnDef;
+    expect(resolveFilterOperators(column, cellTypes.text)).toEqual(TEXT_FILTER_OPERATORS);
+    expect(offersSetFilter(column, cellTypes.text as unknown as CellType)).toBe(false);
+  });
+
+  it("keeps explicitly declared operators", () => {
+    const column = { ...noopColumn, type: "text", filterMatch, filterOperators: ["isAnyOf"] } as AnyColumnDef;
+    expect(offersSetFilter(column, cellTypes.text as unknown as CellType)).toBe(true);
   });
 });
 

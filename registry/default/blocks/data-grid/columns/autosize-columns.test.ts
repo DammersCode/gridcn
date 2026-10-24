@@ -50,6 +50,7 @@ function makeState(overrides: Partial<AutosizeState> = {}): AutosizeState {
     sortState: [],
     enableColumnResize: true,
     hasHeaderMenu: false,
+    hasHeaderFilter: false,
     ...overrides,
   };
 }
@@ -106,6 +107,29 @@ describe("computeAutosizeWidths", () => {
     // a: "Alpha" 35px header + 30px sorted affordance + 18px menu trigger; b: "Beta" 28px header + trigger
     expect(widths["a"]).toBe(35 + 30 + 18 + 20);
     expect(widths["b"]).toBe(28 + 18 + 20);
+  });
+
+  it("adds the header-filter allowance only to columns with a set operator", () => {
+    const state = makeState({
+      hasHeaderFilter: true,
+      columns: [
+        { id: "a", header: "Alpha", accessorKey: "a" },
+        { id: "b", header: "Beta", accessorKey: "b", filterOperators: ["contains"] },
+      ] as AnyColumnDef[],
+    });
+    state.visibleColumns = state.columns;
+    const widths = computeAutosizeWidths(state, { cellFont: "f", headerFont: "f" }, null);
+    expect(widths["a"]).toBe(35 + 18 + 20);
+    expect(widths["b"]).toBe(28 + 20);
+  });
+
+  it("adds no header-filter allowance to a column with filterable false", () => {
+    const state = makeState({
+      hasHeaderFilter: true,
+      columns: [{ id: "a", header: "Alpha", accessorKey: "a", filterable: false }] as AnyColumnDef[],
+    });
+    state.visibleColumns = state.columns;
+    expect(computeAutosizeWidths(state, { cellFont: "f", headerFont: "f" }, null)["a"]).toBe(35 + 20);
   });
 
   it("skips the header text when includeHeader is false", () => {

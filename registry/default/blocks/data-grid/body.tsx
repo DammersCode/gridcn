@@ -6,11 +6,11 @@ import {
   useDataGridActions,
   useDataGridInternalActions,
   useDataGridActiveCell,
-  useDataGridLabels,
   useDataGridReadOnly,
   useDataGridRowCount,
   useDataGridRowIds,
   useDataGridRowMarkers,
+  useDataGridRowMoveAnnouncement,
   useDataGridRowReorderEnabled,
   useDataGridStoreApi,
   type AnyColumnDef,
@@ -20,7 +20,9 @@ import { useCanvasOffset } from "./virtualization/use-scroll-snapshot";
 import { useDataGridRootContext, type RenderedColumn } from "./layout-context";
 import { DataGridRow } from "./row";
 import { DataGridOverlays } from "./overlays";
-import { predictReorderTarget, useRowReorder } from "./rows/use-row-reorder";
+import { predictBlockTarget, useRowReorder } from "./rows/use-row-reorder";
+import { CompactSelection } from "./selection";
+import type { CompactSelectionLike } from "./types";
 import { isReorderMarkerMode } from "./rows/marker-width";
 import { FLASH_KEYFRAMES } from "./cell";
 import { createRowElementRegistry } from "./row-element-registry";
@@ -97,6 +99,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
     renderedColumns,
     rowHeight,
     headerHeight,
+    headerRowCount,
     pinnedTopHeight,
     pinnedBottomHeight,
     pinnedTopCount,
@@ -201,12 +204,11 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   // mirroring how DataGridHeader owns useColumnReorder for its headers.
   const actions = useDataGridActions();
   const internalActions = useDataGridInternalActions();
-  const labels = useDataGridLabels();
   const rowReorderEnabled = useDataGridRowReorderEnabled();
   // the gesture lives on the marker's reorder family only — plain number/checkbox/both markers
   // stay pure row-select surfaces (see RowMarkersMode), so a selection drag never reorders.
   const rowReorderArmed = rowReorderEnabled && isReorderMarkerMode(rowMarkers);
-  const [reorderAnnouncement, setReorderAnnouncement] = useState("");
+  const reorderAnnouncement = useDataGridRowMoveAnnouncement();
   // A `role="status"` region may not live inside role="grid" (only row/rowgroup are allowed
   // children — axe's aria-required-children), so the announcement portals to <body> after mount;
   // the gate keeps SSR output free of the portal node.
@@ -227,18 +229,26 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   }, []);
 
   const onRowReorder = useCallback(
-    (from: number, over: number, position: "before" | "after") => {
-      const to = predictReorderTarget(from, over, position);
-      if (!actions.reorderRows(from, to)) return;
-      setReorderAnnouncement(labels.markers.reorderAnnouncement(from + 1, to + 1, rowCount));
+    (dragged: CompactSelectionLike, over: number, position: "before" | "after") => {
+      const rows = dragged.toArray();
+      actions.reorderRows(rows, predictBlockTarget(rows, over, position));
     },
-    [actions, labels, rowCount],
+    [actions],
+  );
+
+  const getDragRows = useCallback(
+    (pressedRow: number) => {
+      const checked = storeApi.getState().selection.rows;
+      return checked.hasIndex(pressedRow) ? checked : CompactSelection.fromSingleSelection(pressedRow);
+    },
+    [storeApi],
   );
 
   const rowReorder = useRowReorder({
     enabled: rowReorderArmed,
     hitTestRow,
     onReorder: onRowReorder,
+    getDragRows,
     getScrollElement: () => scrollRef.current,
   });
 
@@ -316,10 +326,10 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
               onMarkerCheckboxPointerDown={interaction.onMarkerCheckboxPointerDown}
               onMarkerReorderPointerDown={rowReorder.onMarkerDragPointerDown}
               renderMarker={renderMarker}
-              isRowReorderDragging={rowReorder.dragState?.draggingRow === viewRowIndex}
+              isRowReorderDragging={rowReorder.dragState?.rows.hasIndex(viewRowIndex) ?? false}
               rowRef={rowRegistry.getCallback(key)}
               getGridLine={rowRegistry.gridLine}
-              ariaRowIndexOffset={pinnedTopCount}
+              ariaRowIndexOffset={pinnedTopCount + headerRowCount - 1}
               getRowClassName={getRowClassName}
               getCellClassName={getCellClassName}
             />

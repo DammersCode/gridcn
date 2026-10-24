@@ -12,7 +12,8 @@ import {
   type RefObject,
 } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { ViewCoord, CellType, GridAction, GridCommandCtx } from "../types";
+import type { ViewCoord, GridSelection, CellType, GridAction, GridCommandCtx } from "../types";
+import type { SelectionPointer } from "../store/types";
 import { isMacPlatform, isPrintableKey, matchKeymap, type KeymapEvent } from "../keyboard";
 import type { Keymap } from "../types";
 import { getCellValue } from "../columns/column-helpers";
@@ -36,15 +37,22 @@ import {
   type GridDirection,
 } from "../virtualization/direction";
 import { GRID_ATTR, gridAttrSelector } from "../data-attributes";
-import { getSelectedViewRows, isRowChecked, isSelectionEmpty } from "../selection";
+import { getSelectedViewRows, isRowChecked } from "../selection";
+import { offersSetFilter } from "../cell-types/capabilities";
 import { warnDev } from "../store/commit";
 import { allRowsSelectedState } from "../store/hooks";
 import { apiHandleOf } from "../store/api";
 import { getInternalActions } from "../store/internal-actions";
 import { holeRowId } from "../store/compute";
+import { onlyHiddenRowsChecked } from "../store/hidden-checked-rows";
 import { isComposingKey } from "./is-composing-key";
+import { isReorderMarkerMode } from "../rows/marker-width";
+import { createLongPressTimer, isDoubleTap, isTap, movedBeyondSlop, type TapSample } from "./touch-gestures";
+
+const MODIFIER_KEYS: ReadonlySet<string> = new Set(["Shift", "Control", "Alt", "Meta", "AltGraph"]);
 
 /** Action names already dev-warned as bound-but-unwired (dev-only, process-wide). */
+const KEEP_RANGE_SURFACES = (["cellEditor", "headerFilterPopup", "headerMenuPopup", "findReplacePanel", "contextMenu"] as const).map((name) => gridAttrSelector(name)).join(", ");
 const warnedUnwiredActions = new Set<string>();
 
 /** Column/row layout the interaction hook needs to translate pointer px <-> view coords and to scroll a cell into view. */
@@ -208,6 +216,16 @@ function scrollCellIntoView(scrollElement: HTMLElement, coord: ViewCoord, layout
   }
 }
 
+const warnedMissingTriggers = new WeakMap<object, Set<string>>();
+
+function warnMissingTriggerOnce(storeApi: object, slotProp: string, message: string): void {
+  const warned = warnedMissingTriggers.get(storeApi) ?? new Set<string>();
+  warnedMissingTriggers.set(storeApi, warned);
+  if (warned.has(slotProp)) return;
+  warned.add(slotProp);
+  warnDev(message);
+}
+
 /**
  * Executes one already-resolved keymap action against the store — the dispatch shared by the
  * in-grid keydown handler and the global-shortcut window layer, so a globally registered action
@@ -288,6 +306,37 @@ export function dispatchGridAction(args: {
   const startEditingAndReveal = (coord: ViewCoord, initialText?: string) => {
     actions.startEditingAt(coord, initialText);
     if (storeApi.getState().editing) scrollCellIntoView(coord);
+  };
+
+  const openActiveColumnTrigger = (triggerAttr: "headerMenuTrigger" | "headerFilterTrigger", triggerLabel: string, slotProp: string, offered: (column: (typeof state.visibleColumns)[number]) => boolean = () => true) => {
+    preventDefault();
+    const active = state.activeCell;
+    const column = active && state.visibleColumns[active.col];
+    if (!active || !column || !offered(column)) return;
+    const findTrigger = () => scrollRef.current?.querySelector<HTMLElement>(`[data-column-id="${CSS.escape(column.id)}"] ${gridAttrSelector(triggerAttr)}`);
+    const open = (trigger: HTMLElement) => {
+      trigger.setAttribute(GRID_ATTR.keyboardOpen, "");
+      trigger.click();
+      trigger.removeAttribute(GRID_ATTR.keyboardOpen);
+    };
+    scrollCellIntoView(active);
+    const mounted = findTrigger();
+    if (mounted) {
+      open(mounted);
+      return;
+    }
+    // the header is virtualized out until the scroll lands and a frame renders it
+    const retry = () => {
+      if (!scrollRef.current) return;
+      const trigger = findTrigger();
+      if (trigger) open(trigger);
+      else warnMissingTriggerOnce(storeApi, slotProp, `${action} found no ${triggerLabel} for "${column.id}"; wire ${slotProp} to enable it`);
+    };
+    const frame = requestAnimationFrame(() => {
+      const second = requestAnimationFrame(retry);
+      if (pendingFrameRef) pendingFrameRef.current = second;
+    });
+    if (pendingFrameRef) pendingFrameRef.current = frame;
   };
 
   switch (action) {
@@ -421,37 +470,12 @@ export function dispatchGridAction(args: {
       actions.setAllRowsSelected(allRowsSelectedState(state) !== "checked");
       break;
     }
-    case "openColumnMenu": {
-      preventDefault();
-      const active = state.activeCell;
-      const column = active && state.visibleColumns[active.col];
-      if (!active || !column) break;
-      const findTrigger = () => scrollRef.current?.querySelector<HTMLElement>(`[data-column-id="${CSS.escape(column.id)}"] ${gridAttrSelector("headerMenuTrigger")}`);
-      const open = (trigger: HTMLElement) => {
-        trigger.setAttribute(GRID_ATTR.keyboardOpen, "");
-        trigger.click();
-        trigger.removeAttribute(GRID_ATTR.keyboardOpen);
-      };
-      scrollCellIntoView(active);
-      const mounted = findTrigger();
-      if (mounted) {
-        open(mounted);
-        break;
-      }
-      // the header is virtualized out until the scroll lands and a frame renders it
-      const retry = () => {
-        if (!scrollRef.current) return;
-        const trigger = findTrigger();
-        if (trigger) open(trigger);
-        else warnDev(`openColumnMenu found no column menu trigger for "${column.id}"; wire renderHeaderMenu to enable it`);
-      };
-      const frame = requestAnimationFrame(() => {
-        const second = requestAnimationFrame(retry);
-        if (pendingFrameRef) pendingFrameRef.current = second;
-      });
-      if (pendingFrameRef) pendingFrameRef.current = frame;
+    case "openColumnMenu":
+      openActiveColumnTrigger("headerMenuTrigger", "column menu trigger", "renderHeaderMenu");
       break;
-    }
+    case "openColumnFilter":
+      openActiveColumnTrigger("headerFilterTrigger", "column filter trigger", "renderHeaderFilter", (column) => offersSetFilter(column, state.cellTypes[column.type ?? "text"]));
+      break;
     case "edit": {
       preventDefault();
       if (state.readOnly || !state.activeCell) break;
@@ -482,7 +506,9 @@ export function dispatchGridAction(args: {
     case "fillDown":
     case "fillRight":
     case "undo":
-    case "redo": {
+    case "redo":
+    case "openFindReplace":
+    case "openFind": {
       preventDefault();
       break;
     }
@@ -495,13 +521,23 @@ export function dispatchGridAction(args: {
     }
     case "duplicateRow": {
       preventDefault();
-      if (!state.readOnly && state.duplicateRow) {
+      if (!state.readOnly && state.duplicateRow && !onlyHiddenRowsChecked(state)) {
         // the context-menu item this shortcut labels duplicates the WHOLE selection; no
         // selection, just the active row
-        const selected = getSelectedViewRows(state.selection);
+        const selected = getSelectedViewRows(state.selection, { checkedRowsOnly: state.keepCheckedRows });
         if (selected.length > 0) actions.duplicateRows(selected);
         else if (state.activeCell) actions.duplicateRows([state.activeCell.row]);
       }
+      break;
+    }
+    case "moveRowsUp":
+    case "moveRowsDown": {
+      preventDefault();
+      if (state.readOnly || !state.enableRowReorder || !isReorderMarkerMode(state.rowMarkers)) break;
+      const rows = rowsToMove(state);
+      if (rows.length === 0 || !actions.moveRowsBy(rows, action === "moveRowsUp" ? -1 : 1)) break;
+      const active = storeApi.getState().activeCell;
+      if (active) scrollCellIntoView(active);
       break;
     }
     case "insertRowAbove": {
@@ -511,8 +547,8 @@ export function dispatchGridAction(args: {
     }
     case "deleteRows": {
       preventDefault();
-      if (!state.readOnly) {
-        const selected = getSelectedViewRows(state.selection);
+      if (!state.readOnly && !onlyHiddenRowsChecked(state)) {
+        const selected = getSelectedViewRows(state.selection, { checkedRowsOnly: state.keepCheckedRows });
         if (selected.length > 0) actions.deleteRows(selected);
         else if (state.activeCell) actions.deleteRows([state.activeCell.row]);
       }
@@ -544,9 +580,13 @@ export function dispatchGridAction(args: {
     }
   }
 }
+const TOUCH_CHECKBOX_SLOP_PX = 4;
+
 function pointerHitsCheckboxBox(event: ReactPointerEvent<HTMLElement>): boolean {
   const box = event.currentTarget.querySelector(gridAttrSelector("checkboxBox"))?.getBoundingClientRect();
-  return box !== undefined && event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
+  if (box === undefined) return false;
+  const slop = event.pointerType === "touch" ? TOUCH_CHECKBOX_SLOP_PX : 0;
+  return event.clientX >= box.left - slop && event.clientX <= box.right + slop && event.clientY >= box.top - slop && event.clientY <= box.bottom + slop;
 }
 
 function cellTypeAt(state: DataGridStoreState, coord: ViewCoord): CellType | undefined {
@@ -671,6 +711,19 @@ const JUMP_DIRECTION: Record<JumpAction, JumpDirection> = {
   extendJumpRight: "right",
 };
 
+function hasCellSelection(selection: GridSelection): boolean {
+  return selection.current !== null || selection.columns.length > 0;
+}
+
+/** The rows a keyboard move acts on: the checked rows, else the rows of the primary range, else the active row. */
+function rowsToMove(state: DataGridStoreState): number[] {
+  if (onlyHiddenRowsChecked(state)) return [];
+  if (state.selection.rows.length > 0) return state.selection.rows.toArray();
+  const range = state.selection.current?.range;
+  if (range) return Array.from({ length: range.height }, (_, i) => range.y + i);
+  return state.activeCell ? [state.activeCell.row] : [];
+}
+
 /** Handlers + drag state wiring for keyboard nav, mouse selection, and editing lifecycle. */
 export type GridInteractionHandlers = {
   onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void;
@@ -687,6 +740,11 @@ export type GridInteractionHandlers = {
    * including no drag/capture — when `enableColumnSelection` is false.
    */
   onHeaderPointerDown: (columnIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
+  /**
+   * Attach to a group header cell's pointerdown: selects the visible columns `[start, end)` in the
+   * column channel (shift extends, ctrl/cmd adds). No drag. No-op when `enableColumnSelection` is false.
+   */
+  onGroupHeaderPointerDown: (start: number, end: number, event: ReactPointerEvent<HTMLElement>) => void;
   /**
    * Attach to a marker cell's pointerdown: same plain/shift/ctrl resolution + drag-start as
    * {@link onHeaderPointerDown}, on the rows channel.
@@ -950,10 +1008,18 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
     [scrollRef],
   );
 
+  const markSelectionPointer = useCallback(
+    (pointer: SelectionPointer) => {
+      if (storeApi.getState().selectionPointer !== pointer) storeApi.setState({ selectionPointer: pointer });
+    },
+    [storeApi],
+  );
+
   const lastKeyEvent = useRef<Event | null>(null);
   const onKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLElement>) => {
       if (isComposingKey(event)) return;
+      if (!MODIFIER_KEYS.has(event.key)) markSelectionPointer("keyboard");
       // Base UI mounts its popup container through a React portal, so React dispatches a popup keydown twice.
       if (lastKeyEvent.current === event.nativeEvent) return;
       lastKeyEvent.current = event.nativeEvent;
@@ -1020,7 +1086,123 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
 
       if (action) dispatch(action);
     },
-    [actions, keymap, scrollActiveCellIntoView, scrollRef, storeApi],
+    [actions, keymap, markSelectionPointer, scrollActiveCellIntoView, scrollRef, storeApi],
+  );
+
+  const touchTeardownRef = useRef<(() => void) | null>(null);
+  const lastTapRef = useRef<TapSample | null>(null);
+  const pressedCoordRef = useRef<ViewCoord | null>(null);
+
+  const endTouchPress = useCallback(() => {
+    touchTeardownRef.current?.();
+    touchTeardownRef.current = null;
+  }, []);
+  useEffect(() => endTouchPress, [endTouchPress]);
+
+  // A touch press resolves on release: the document listeners live only for the press, no pointer
+  // capture is taken (native pan stays in charge), and a pan, cancel, second finger, or unmount ends it.
+  const beginTouchPress = useCallback(
+    (event: ReactPointerEvent<HTMLElement>, spec: { tapKey: string; onTap: (doubleTap: boolean) => void; onLongPress?: () => void }) => {
+      if (touchTeardownRef.current) {
+        endTouchPress();
+        lastTapRef.current = null;
+        return;
+      }
+      const { pointerId } = event;
+      const start = { x: event.clientX, y: event.clientY, time: event.timeStamp };
+      const press = { fired: false };
+      const longPress = spec.onLongPress
+        ? createLongPressTimer(() => {
+            press.fired = true;
+            spec.onLongPress?.();
+          })
+        : null;
+      const onMove = (e: PointerEvent) => {
+        if (e.pointerId === pointerId && movedBeyondSlop(start, { x: e.clientX, y: e.clientY })) endTouchPress();
+      };
+      const onLost = (e: PointerEvent) => {
+        if (e.pointerId === pointerId) endTouchPress();
+      };
+      const onEnd = (e: PointerEvent) => {
+        if (e.pointerId !== pointerId) return;
+        endTouchPress();
+        if (press.fired || e.type !== "pointerup") return;
+        const end = { x: e.clientX, y: e.clientY, time: e.timeStamp };
+        if (isTap(start, end)) {
+          const tap: TapSample = { ...end, key: spec.tapKey };
+          const doubleTap = isDoubleTap(lastTapRef.current, tap);
+          lastTapRef.current = doubleTap ? null : tap;
+          spec.onTap(doubleTap);
+        }
+      };
+      const onBlur = () => endTouchPress();
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onEnd);
+      document.addEventListener("pointercancel", onEnd);
+      document.addEventListener("lostpointercapture", onLost);
+      window.addEventListener("blur", onBlur);
+      touchTeardownRef.current = () => {
+        longPress?.cancel();
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", onEnd);
+        document.removeEventListener("pointercancel", onEnd);
+        document.removeEventListener("lostpointercapture", onLost);
+        window.removeEventListener("blur", onBlur);
+      };
+      longPress?.arm();
+    },
+    [endTouchPress],
+  );
+
+  const openContextMenuFromPress = useCallback(
+    (event: ReactPointerEvent<HTMLElement>) => {
+      const target = event.target as Element;
+      const { clientX, clientY } = event;
+      return () => {
+        markSelectionPointer("touch");
+        if (target.isConnected) target.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, button: 2, clientX, clientY }));
+      };
+    },
+    [markSelectionPointer],
+  );
+
+  const editCellAt = useCallback(
+    (coord: ViewCoord) => {
+      const state = storeApi.getState();
+      if (state.readOnly) return;
+      pendingActiveClickRef.current = null;
+      actions.selectCellAt(coord);
+      // this gesture's first click may have already resolved the action via onCellClick.
+      const alreadyResolved = resolvedByClickRef.current?.col === coord.col && resolvedByClickRef.current?.row === coord.row;
+      resolvedByClickRef.current = null;
+      if (alreadyResolved) return;
+      // checkbox has no edit mode; direct-toggle instead of entering edit mode.
+      if (hasActivateCell(state, coord)) activateCell(state, actions, coord);
+      else actions.startEditingAt(coord);
+    },
+    [actions, storeApi],
+  );
+
+  const onCellTouchPress = useCallback(
+    (coord: ViewCoord, event: ReactPointerEvent<HTMLElement>) => {
+      const hitsCheckbox = pointerHitsCheckboxBox(event);
+      beginTouchPress(event, {
+        tapKey: `${coord.row}:${coord.col}`,
+        onTap: (doubleTap) => {
+          markSelectionPointer("touch");
+          if (doubleTap && !hitsCheckbox) {
+            editCellAt(coord);
+            resolvedByClickRef.current = coord;
+            return;
+          }
+          actions.selectCellAt(coord);
+          const state = storeApi.getState();
+          if (hitsCheckbox && !state.readOnly && hasActivateCell(state, coord)) activateCell(state, actions, coord);
+        },
+        onLongPress: openContextMenuFromPress(event),
+      });
+    },
+    [actions, beginTouchPress, editCellAt, markSelectionPointer, openContextMenuFromPress, storeApi],
   );
 
   const onCellPointerDown = useCallback(
@@ -1031,6 +1213,12 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       // rendered via a portal to document.body) still reaches this handler even though the
       // DOM target is nowhere under this cell. Ignore it; the editor's own handlers own it.
       if ((event.target as HTMLElement | null)?.closest(gridAttrSelector("cellEditor"))) return;
+      pressedCoordRef.current = coord;
+      if (event.pointerType === "touch") {
+        onCellTouchPress(coord, event);
+        return;
+      }
+      markSelectionPointer(event.pointerType === "pen" ? "pen" : "mouse");
       const state = storeApi.getState();
       const isMultiKey = isMacRef.current ? event.metaKey : event.ctrlKey;
       linkPressRef.current = isMultiKey && (event.target as HTMLElement | null)?.closest("a") ? coord : null;
@@ -1063,11 +1251,21 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       safeSetPointerCapture(event.currentTarget, event.pointerId);
       beginDrag("range", event.pointerId, event.currentTarget);
     },
-    [actions, beginDrag, storeApi],
+    [actions, beginDrag, markSelectionPointer, onCellTouchPress, storeApi],
   );
 
   const onCellClick = useCallback(
     (coord: ViewCoord, event: ReactMouseEvent<HTMLElement>) => {
+      const pressed = pressedCoordRef.current;
+      pressedCoordRef.current = null;
+      if (
+        (!pressed || pressed.col !== coord.col || pressed.row !== coord.row) &&
+        !storeApi.getState().editing &&
+        event.currentTarget.contains(event.target as Node) &&
+        !(event.target as HTMLElement).closest(gridAttrSelector("cellEditor"))
+      ) {
+        actions.selectCellAt(coord);
+      }
       const linkPress = linkPressRef.current;
       linkPressRef.current = null;
       const pending = pendingActiveClickRef.current;
@@ -1100,27 +1298,28 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
 
   const onCellDoubleClick = useCallback(
     (coord: ViewCoord, event: ReactMouseEvent<HTMLElement>) => {
-      const state = storeApi.getState();
-      if (state.readOnly) return;
       // same portal-bubbling concern as onCellPointerDown above.
       if ((event.target as HTMLElement | null)?.closest(gridAttrSelector("cellEditor"))) return;
-      pendingActiveClickRef.current = null;
-      actions.selectCellAt(coord);
-      // this gesture's first click may have already resolved the action via onCellClick.
-      const alreadyResolved = resolvedByClickRef.current?.col === coord.col && resolvedByClickRef.current?.row === coord.row;
-      resolvedByClickRef.current = null;
-      if (alreadyResolved) return;
-      // checkbox has no edit mode; direct-toggle instead of entering edit mode.
-      if (hasActivateCell(state, coord)) activateCell(state, actions, coord);
-      else actions.startEditingAt(coord);
+      editCellAt(coord);
     },
-    [actions, storeApi],
+    [editCellAt],
   );
 
   const onHeaderPointerDown = useCallback(
     (columnIndex: number, event: ReactPointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
       if (!storeApi.getState().enableColumnSelection) return;
+      if (event.pointerType === "touch") {
+        beginTouchPress(event, {
+          tapKey: `h:${columnIndex}`,
+          onTap: () => {
+            markSelectionPointer("touch");
+            actions.selectColumn(columnIndex);
+          },
+          onLongPress: openContextMenuFromPress(event),
+        });
+        return;
+      }
       const isMultiKey = isMacRef.current ? event.metaKey : event.ctrlKey;
       if (event.shiftKey) {
         actions.selectColumn(columnIndex, { extendFromLast: true });
@@ -1132,13 +1331,53 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       safeSetPointerCapture(event.currentTarget, event.pointerId);
       beginDrag("column", event.pointerId, event.currentTarget);
     },
-    [actions, beginDrag, storeApi],
+    [actions, beginDrag, beginTouchPress, markSelectionPointer, openContextMenuFromPress, storeApi],
+  );
+
+  const onGroupHeaderPointerDown = useCallback(
+    (start: number, end: number, event: ReactPointerEvent<HTMLElement>) => {
+      if (event.button !== 0) return;
+      const state = storeApi.getState();
+      if (!state.enableColumnSelection) return;
+      const last = end - 1;
+      if (event.pointerType === "touch") {
+        beginTouchPress(event, {
+          tapKey: `g:${start}:${end}`,
+          onTap: () => {
+            markSelectionPointer("touch");
+            actions.selectColumn(start);
+            if (last > start) actions.selectColumn(last, { extendFromLast: true });
+          },
+        });
+        return;
+      }
+      const isMultiKey = isMacRef.current ? event.metaKey : event.ctrlKey;
+      const anchor = state.lastHighlightedCol;
+      if (event.shiftKey && anchor !== null) {
+        actions.selectColumn(anchor < start ? last : start, { extendFromLast: true });
+        return;
+      }
+      if (isMultiKey) actions.selectColumn(start, { additive: true });
+      else actions.selectColumn(start);
+      if (last > start) actions.selectColumn(last, { extendFromLast: true });
+    },
+    [actions, beginTouchPress, markSelectionPointer, storeApi],
   );
 
   const onMarkerPointerDown = useCallback(
     (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
       if (!storeApi.getState().enableRowSelection) return;
+      if (event.pointerType === "touch") {
+        beginTouchPress(event, {
+          tapKey: `m:${viewRowIndex}`,
+          onTap: () => {
+            markSelectionPointer("touch");
+            actions.selectRow(viewRowIndex);
+          },
+        });
+        return;
+      }
       const isMultiKey = isMacRef.current ? event.metaKey : event.ctrlKey;
       // Moving-edge drag (replaceFromLast): a plain press anchors at the press row; a shift press
       // anchors at the PREVIOUS last-highlighted row (read before selectRow below overwrites it)
@@ -1155,13 +1394,13 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       safeSetPointerCapture(event.currentTarget, event.pointerId);
       beginDrag("row", event.pointerId, event.currentTarget, anchor);
     },
-    [actions, beginDrag, storeApi],
+    [actions, beginDrag, beginTouchPress, markSelectionPointer, storeApi],
   );
 
   const onMarkerCheckboxPointerDown = useCallback(
     (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
-      if (!storeApi.getState().enableRowSelection) return;
+      if (!storeApi.getState().enableRowSelection || event.pointerType === "touch") return;
       // arms the anchor only (lastHighlightedRow), never `selection.rows` itself — a stationary
       // press+release still resolves purely via the checkbox's own click->toggle. lastPointerRef
       // stays unseeded, so runDragFrame's first tick is a no-op (pointer is null) exactly like the
@@ -1175,17 +1414,39 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
     [actions, beginDrag, storeApi],
   );
 
+  const beginSelectionHandleDrag = useCallback(
+    (corner: "start" | "end", event: ReactPointerEvent<HTMLElement>) => {
+      const range = storeApi.getState().selection.current?.range;
+      const scrollElement = scrollRef.current;
+      if (event.button !== 0 || !range || !scrollElement) return;
+      const opposite =
+        corner === "end"
+          ? { col: range.x, row: range.y }
+          : { col: range.x + range.width - 1, row: range.y + range.height - 1 };
+      markSelectionPointer(event.pointerType === "touch" ? "touch" : event.pointerType === "pen" ? "pen" : "mouse");
+      actions.selectCellAt(opposite);
+      safeSetPointerCapture(scrollElement, event.pointerId);
+      beginDrag("range", event.pointerId, scrollElement);
+    },
+    [actions, beginDrag, markSelectionPointer, scrollRef, storeApi],
+  );
+
   const onRootPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLElement>) => {
+      const handle = (event.target as HTMLElement).closest<HTMLElement>(gridAttrSelector("selectionHandle"));
+      if (handle) {
+        beginSelectionHandleDrag(handle.getAttribute(GRID_ATTR.selectionHandle) === "start" ? "start" : "end", event);
+        return;
+      }
       // only fires when the pointerdown wasn't already handled (and stopped) by a cell/header
       if (event.target !== event.currentTarget) return;
       // a press inside a portaled popover editor (select/date) is not a click-away, even if it
       // somehow bubbles here — data-grid-cell-editor is the marker both editors' content carries.
       const target = event.target as HTMLElement;
       if (target.closest(gridAttrSelector("cellEditor"))) return;
-      actions.clearSelection();
+      actions.clearCellSelection();
     },
-    [actions],
+    [actions, beginSelectionHandleDrag],
   );
 
   const cancelColumnSelectDrag = useCallback(() => {
@@ -1194,8 +1455,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
 
   useEffect(() => stopAutoScrollLoop, [stopAutoScrollLoop]);
 
-  // Page-area click-outside clear: the listener is attached only while a
-  // non-empty selection exists, so no document-level listener is present at rest.
+  // Click-outside clears the cell range and columns, never the checked rows; attached only while one exists.
   useEffect(() => {
     let attached = false;
     const onPointerDown = (event: PointerEvent) => {
@@ -1203,8 +1463,8 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       const target = event.target as Element | null;
       if (!target || !(target instanceof Element)) return;
       if (scrollRef.current?.contains(target)) return;
-      if (target.closest(gridAttrSelector("cellEditor"))) return;
-      actions.clearSelection();
+      if (target.closest(KEEP_RANGE_SURFACES)) return;
+      actions.clearCellSelection();
     };
     const setAttached = (attach: boolean) => {
       if (attach === attached) return;
@@ -1212,10 +1472,10 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       else document.removeEventListener("pointerdown", onPointerDown, true);
       attached = attach;
     };
-    setAttached(!isSelectionEmpty(storeApi.getState().selection));
+    setAttached(hasCellSelection(storeApi.getState().selection));
     const unsubscribe = storeApi.subscribe((state, prevState) => {
       if (state.selection === prevState.selection) return;
-      setAttached(!isSelectionEmpty(state.selection));
+      setAttached(hasCellSelection(state.selection));
     });
     return () => {
       unsubscribe();
@@ -1230,6 +1490,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       onCellClick,
       onCellDoubleClick,
       onHeaderPointerDown,
+      onGroupHeaderPointerDown,
       onMarkerPointerDown,
       onMarkerCheckboxPointerDown,
       onRootPointerDown,
@@ -1242,6 +1503,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       onCellClick,
       onCellDoubleClick,
       onHeaderPointerDown,
+      onGroupHeaderPointerDown,
       onMarkerPointerDown,
       onMarkerCheckboxPointerDown,
       onRootPointerDown,

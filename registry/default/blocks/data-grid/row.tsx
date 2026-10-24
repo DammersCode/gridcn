@@ -31,7 +31,7 @@ export type DataGridRowProps = {
   rowRef: Ref<HTMLDivElement>;
   /** Stable lookup of the grid line a mounting row starts on, so its cells' layout effects already see it placed. */
   getGridLine: (viewRowIndex: number) => number;
-  /** Pinned-top row count (a11y index layout: header=1, pinned-top next, then data, pinned-bottom last) — shifts `aria-rowindex` past the pinned-top band; 0 when there is none. */
+  /** Rows above the data rows beyond the first header row (extra header rows plus the pinned-top band) — shifts `aria-rowindex`; 0 with one header row and no band. */
   ariaRowIndexOffset: number;
   /** Row class hook; stable identity (root's dev guardrail) so this memoized row's props stay shallow-equal across ticks. */
   getRowClassName?: GetRowClassName<unknown>;

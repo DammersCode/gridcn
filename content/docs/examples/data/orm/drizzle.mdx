@@ -1,6 +1,7 @@
 ---
 title: Drizzle
 description: The grid's server fetch contract with Drizzle. A route handler that maps sorts, filters, and page onto a query.
+status: updated
 icon: Database
 ---
 
@@ -26,7 +27,7 @@ export const users = pgTable("users", {
 
 ```ts
 // app/api/grid/route.ts
-import { and, asc, desc, inArray, like, or, sql } from "drizzle-orm/pg-core";
+import { and, asc, desc, inArray, like, notInArray, or, sql } from "drizzle-orm/pg-core";
 import { db, users } from "~/db";
 
 const COLUMN = { name: users.name, email: users.email, role: users.role, score: users.score } as const;
@@ -46,6 +47,7 @@ export async function POST(req: Request) {
       case "lt": return sql`${col} < ${f.value}`;
       case "lte": return sql`${col} <= ${f.value}`;
       case "isAnyOf": return inArray(col, f.value);
+      case "isNoneOf": return f.value.length ? notInArray(col, f.value) : undefined;
       // map the remaining operators the same way
       default: return undefined;
     }

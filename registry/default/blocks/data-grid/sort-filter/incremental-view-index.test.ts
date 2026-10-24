@@ -91,6 +91,24 @@ describe("updateViewIndex: targeted cases", () => {
     expect(result.viewIndex).toEqual(rebuild(next, state));
   });
 
+  it("keeps isAnyOf and isNoneOf views identical to the rebuild after a patch", () => {
+    for (const filter of [
+      { columnId: "score", operator: "isAnyOf", value: ["25", "40"] },
+      { columnId: "score", operator: "isNoneOf", value: ["25", "40"] },
+      { columnId: "city", operator: "isNoneOf", value: ["berlin"] },
+    ] satisfies FilterSpec[]) {
+      const state: State = { sorts: [{ columnId: "name", direction: "asc" }], filters: [filter] };
+      const view = rebuild(base, state);
+      const { next, result } = step(base, view, state, [0, 3], (rows) => {
+        rows[0]!.score = 25;
+        rows[0]!.city = "Paris";
+        rows[3]!.score = 99;
+        rows[3]!.city = "Berlin";
+      });
+      expect(result.viewIndex, JSON.stringify(filter)).toEqual(rebuild(next, state));
+    }
+  });
+
   it("breaks ties on data index, matching the rebuild's position tiebreak", () => {
     // score 25 already appears twice; patching a third row into it forces the tiebreak.
     const state: State = { sorts: [{ columnId: "score", direction: "asc" }], filters: [] };

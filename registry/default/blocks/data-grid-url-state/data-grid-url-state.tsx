@@ -9,6 +9,7 @@ export {
   type UseDataGridUrlStateOptions,
   type UseDataGridUrlStateResult,
 } from "./use-data-grid-url-state";
+export type { UrlLayoutPart } from "./layout-param";
 export {
   useDataGridUrlPagination,
   type UseDataGridUrlPaginationOptions,

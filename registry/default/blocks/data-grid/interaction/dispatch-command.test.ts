@@ -3,6 +3,7 @@ import type { StoreApi } from "zustand/vanilla";
 import { dispatchGridAction } from "./use-grid-interaction";
 import type { DataGridActions, DataGridStoreState } from "../store";
 import type { GridAction } from "../types";
+import { cellTypes } from "../cell-types/cell-types";
 
 const data: readonly unknown[] = [
   { id: "a", name: "Alice" },
@@ -134,5 +135,31 @@ describe("dispatchGridAction pluggable built-ins (undo/redo/fillDown/fillRight)"
     const { actions, preventDefault } = dispatchHollow(action);
     expect(preventDefault).toHaveBeenCalledTimes(1);
     expect(actions.selectAll).not.toHaveBeenCalled();
+  });
+});
+
+describe("dispatchGridAction missing header trigger warning", () => {
+  it("warns once per grid instance when openColumnFilter finds no trigger", () => {
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => (callback(0), 1));
+    vi.stubGlobal("CSS", { escape: (value: string) => value });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const actions = fakeActions();
+    const storeApi = fakeStore({ actions, cellTypes: cellTypes as unknown as DataGridStoreState["cellTypes"], visibleColumns: [{ id: "name", header: "Name" }, { id: "qty", header: "Qty" }] as never });
+    const run = () =>
+      dispatchGridAction({
+        action: "openColumnFilter",
+        actions,
+        storeApi,
+        scrollRef: { current: { querySelector: () => null } as unknown as HTMLElement },
+        scrollCellIntoView: vi.fn(),
+        rowHeight: 36,
+        preventDefault: vi.fn(),
+      });
+    run();
+    run();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]![0]).toContain("renderHeaderFilter");
+    warn.mockRestore();
+    vi.unstubAllGlobals();
   });
 });

@@ -8,6 +8,7 @@
  * `data-grid-presence` add-on with the rest of presence.
  */
 import type { StoreApi } from "zustand/vanilla";
+import type { HeaderFilterRenderer } from "./layout-context";
 import type {
   DataGrid,
   DataGridProviderProps,
@@ -186,6 +187,10 @@ assertEqual<(change: DataChange<unknown>) => void, typeof wActions.commitChange>
 // --- DataGrid wrapper prop surface: one home per prop ------------------------------------------
 // DataGridProps is built as (ExternalStoreProps | OwnedStoreProps) & DataGridRootProps & { ref }, so
 // a prop cannot exist on one home and be forgotten on the wrapper. These guards pin the split itself.
+
+assertEqual<boolean | undefined, DataGridSyncProps<Row>["keepCheckedRows"]>(true);
+assertEqual<boolean | undefined, DataGridSyncProps<Row>["keepHiddenCheckedRows"]>(true);
+assertEqual<((ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean | Promise<boolean>) | undefined, DataGridSyncProps<Row>["onBeforeDeleteRows"]>(true);
 
 // Disjoint: a sync prop that also exists on the root would be ambiguous about which home reads it.
 assertEqual<never, Extract<keyof DataGridSyncProps<Row>, keyof DataGridRootProps<Row>>>(true);
@@ -391,6 +396,8 @@ assertEqual<MarkerCellRenderer | undefined, DataGridProps<Row>["renderMarker"]>(
 assertEqual<MarkerHeaderRenderer | undefined, DataGridProps<Row>["renderMarkerHeader"]>(true);
 assertEqual<HeaderMenuRenderer | undefined, DataGridRootProps["renderHeaderMenu"]>(true);
 assertEqual<HeaderMenuRenderer | undefined, DataGridProps<Row>["renderHeaderMenu"]>(true);
+assertEqual<HeaderFilterRenderer | undefined, DataGridRootProps["renderHeaderFilter"]>(true);
+assertEqual<HeaderFilterRenderer | undefined, DataGridProps<Row>["renderHeaderFilter"]>(true);
 
 const onCellClick: DataGridSyncProps<Row>["onCellClick"] = (ctx: CellClickCtx<Row, unknown>) => {
   const name: string = ctx.row.name; // Row, no cast
@@ -472,6 +479,10 @@ assertEqual<"data-grid-rows-canvas", typeof GRID_ATTR.rowsCanvas>(true);
 assertEqual<"data-grid-header-layer", typeof GRID_ATTR.headerLayer>(true);
 assertEqual<"data-grid-drop-indicator", typeof GRID_ATTR.dropIndicator>(true);
 assertEqual<"data-grid-header-menu-trigger", typeof GRID_ATTR.headerMenuTrigger>(true);
+assertEqual<"data-grid-header-filter-slot", typeof GRID_ATTR.headerFilterSlot>(true);
+assertEqual<"data-grid-header-filter-trigger", typeof GRID_ATTR.headerFilterTrigger>(true);
+assertEqual<"data-grid-header-filter-popup", typeof GRID_ATTR.headerFilterPopup>(true);
+assertEqual<"data-filtered", typeof GRID_ATTR.filtered>(true);
 assertEqual<"data-grid-resize-handle", typeof GRID_ATTR.resizeHandle>(true);
 assertEqual<"data-grid-sort-indicator", typeof GRID_ATTR.sortIndicator>(true);
 assertEqual<"data-grid-marker-cell", typeof GRID_ATTR.markerCell>(true);

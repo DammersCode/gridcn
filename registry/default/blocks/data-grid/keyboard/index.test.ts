@@ -239,6 +239,13 @@ describe("matchKeymap - other actions", () => {
     ).toBe("duplicateRow");
   });
 
+  it("matches moveRowsUp and moveRowsDown on shift+alt+PageUp/PageDown without touching the header chords", () => {
+    expect(matchKeymap(makeEvent({ key: "PageUp", shiftKey: true, altKey: true }), DEFAULT_KEYMAP, false)).toBe("moveRowsUp");
+    expect(matchKeymap(makeEvent({ key: "PageDown", shiftKey: true, altKey: true }), DEFAULT_KEYMAP, false)).toBe("moveRowsDown");
+    expect(matchKeymap(makeEvent({ key: "ArrowDown", shiftKey: true, altKey: true }), DEFAULT_KEYMAP, false)).toBe("openColumnMenu");
+    expect(matchKeymap(makeEvent({ key: "PageDown", ctrlKey: true, altKey: true }), DEFAULT_KEYMAP, false)).not.toBe("moveRowsDown");
+  });
+
   it("matches insertRowAbove and deleteRows", () => {
     expect(
       matchKeymap(makeEvent({ key: "u", ctrlKey: true, shiftKey: true }), DEFAULT_KEYMAP, false),
@@ -361,6 +368,9 @@ describe("GridAction coverage", () => {
   // (even `[]`, which disables the fallback).
   const IMPLICIT_FALLBACK_ACTIONS: readonly GridAction[] = ["typeToReplace"];
 
+  // Bound only through the keymap of the add-on that implements them.
+  const PLUGIN_BOUND_ACTIONS: readonly GridAction[] = ["openFindReplace", "openFind"];
+
   // Record<GridAction, true> makes this exhaustive at compile time: adding a new GridAction member
   // without adding it here is a tsc error, not a silently-passing test.
   const ALL_ACTIONS: Record<GridAction, true> = {
@@ -374,13 +384,16 @@ describe("GridAction coverage", () => {
     extendUp: true, extendDown: true, extendLeft: true, extendRight: true,
     extendJumpUp: true, extendJumpDown: true, extendJumpLeft: true, extendJumpRight: true,
     extendFirstCell: true, extendLastCell: true,
-    selectRow: true, selectColumn: true, selectAll: true, toggleRow: true, toggleAllRows: true, openColumnMenu: true,
+    selectRow: true, selectColumn: true, selectAll: true, toggleRow: true, toggleAllRows: true, openColumnMenu: true, openColumnFilter: true,
     edit: true, typeToReplace: true, commitDown: true, commitUp: true, commitRight: true, commitLeft: true,
     cancel: true, clearContents: true,
     undo: true, redo: true,
     fillDown: true, fillRight: true,
     insertRowBelow: true, insertRowAbove: true, duplicateRow: true, deleteRows: true,
+    moveRowsUp: true, moveRowsDown: true,
     openLink: true,
+    openFindReplace: true,
+    openFind: true,
   };
 
   it("every GridAction is either bound in DEFAULT_KEYMAP, implicit-fallback, or explicitly allowlisted", () => {
@@ -388,8 +401,9 @@ describe("GridAction coverage", () => {
       const isBound = Boolean(DEFAULT_KEYMAP[action]?.length);
       const isAllowlisted = CONSUMER_ONLY_ACTIONS.includes(action);
       const isImplicitFallback = IMPLICIT_FALLBACK_ACTIONS.includes(action);
+      const isPluginBound = PLUGIN_BOUND_ACTIONS.includes(action);
       expect(
-        isBound || isAllowlisted || isImplicitFallback,
+        isBound || isAllowlisted || isImplicitFallback || isPluginBound,
         `"${action}" is neither bound in DEFAULT_KEYMAP, an implicit fallback, nor in CONSUMER_ONLY_ACTIONS`,
       ).toBe(true);
     }

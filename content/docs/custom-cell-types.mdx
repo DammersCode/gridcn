@@ -1,6 +1,7 @@
 ---
 title: Build your own cell type
 description: The CellType contract, a keypoint checklist distilled from every lesson the built-in types learned the hard way, and a full worked currency example.
+status: updated
 icon: Blocks
 ---
 
@@ -100,11 +101,13 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   columns. `filter.match` is a raw-value predicate that replaces the built-in text matcher, with
   the same contract as the column's `filterMatch`. `filter.valueInput` picks the filter row's
   value widget: `"text"`, `"number"`, `"date"`, `"boolean"`, `"choices"`, or your own component.
-  Each member falls back to the type-name default when absent.
+  Each member falls back to the type-name default when absent. A `filter.match` or `filterMatch`
+  predicate sees `isNoneOf` <NewBadge /> only when the column offers that operator. Add it to
+  `filter.operators` or `filterOperators` for a custom type.
 
 A component in `filter.valueInput` renders for every operator that takes a value. It receives
 `FilterValueInputProps`: `{ column, operator, value, onValueChange }`. `value` is a string, a
-`[from, to]` pair for `isBetween`, or a `string[]` for `isAnyOf`:
+`[from, to]` pair for `isBetween`, or a `string[]` for `isAnyOf` and `isNoneOf`:
 
 ```tsx
 function MoneyFilterInput({ operator, value, onValueChange }: FilterValueInputProps) {
@@ -117,7 +120,7 @@ function MoneyFilterInput({ operator, value, onValueChange }: FilterValueInputPr
       </>
     );
   }
-  if (operator === "isAnyOf") {
+  if (operator === "isAnyOf" || operator === "isNoneOf") {
     // A comma-separated list of amounts
     const list = Array.isArray(value) ? value.join(",") : "";
     return <input value={list} onChange={(e) => onValueChange(e.target.value.split(",").map((part) => part.trim()))} />;
@@ -152,7 +155,7 @@ matcher · **fill** = raw value.
   column's `filter.match` when declared, else the built-in text matcher. So a custom `toText`
   changes what copy, export, and search produce, but NOT what filter matches. Consequences:
    - A `select` column searches the displayed LABEL (its `toSearchText`). Its filters match the
-     stored value, so `equals` and `isAnyOf` take choice values, not labels.
+     stored value, so `equals`, `isAnyOf`, and `isNoneOf` take choice values, not labels.
    - A `number` column with `decimals` searches the rounded value.
    - A `date` column with a `displayFormat` matches the ISO string.
 - **`fromText` must never throw.** Paste and import feed it arbitrary text. A thrown error breaks

@@ -2,6 +2,7 @@
 title: Toolbar
 description: "The data-grid-toolbar add-on: a flex frame for search, filter menu, sort list, columns menu, and your own buttons."
 icon: PanelTop
+status: updated
 ---
 
 `data-grid-toolbar` is a flex frame for the grid's toolbar slots: quick search, the filter menu,
@@ -100,8 +101,67 @@ position 2 of 3"). Focus never gets lost. After a reorder, focus stays on the mo
 After deleting a row, focus moves to the next row's drag handle, or to the "Add filter" button once the
 list is empty.
 
+## Header filter
+
+<NewBadge />
+
+A column header can hold its own filter button. The button opens a popover with a searchable list of the column's values, and the user checks the values to keep. `DataGridHeaderFilter` is that button. Pass it to the `renderHeaderFilter` slot of `DataGridRoot`.
+
+<ComponentPreview name="data-grid-header-filter-demo" />
+
+The slot receives `{ column, index }`. Spread it into the component:
+
+```tsx
+import { DataGridHeaderFilter } from "@/components/data-grid-toolbar/data-grid-toolbar";
+
+<DataGridRoot renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}>
+  <DataGridHeader />
+  <DataGridBody />
+</DataGridRoot>
+```
+
+The button shows on each column that offers `isAnyOf` or `isNoneOf` and is not `filterable: false`. By default these are the `text`, `number`, `date`, and `select` columns. The button stays hidden until hover or focus. While the column has a filter, the button stays visible and the header cell carries `data-filtered`.
+
+The popover works like this:
+
+- The list holds one entry per distinct value, with the number of rows that have it. Values that differ only in case form one entry, and Apply writes the first spelling it meets. An empty value shows as "(Blanks)".
+- The search box narrows the list. "Select all" checks or unchecks the values that match the search.
+- The counts include only the rows that pass every other filter. The filter of the column itself never hides its own values. If the join is `or`, the counts include all rows.
+- Apply stores the shorter list. If fewer values are checked than unchecked, it writes `isAnyOf` with the checked values. Otherwise it writes `isNoneOf` with the unchecked values. A value that enters the data later passes `isNoneOf`.
+- Apply keeps every other filter, including condition filters on the same column.
+- Apply is disabled while no value is checked, and while the stored list would hold more than 1,000 entries. A message explains the second case.
+- Clear removes every filter of the column. <kbd>Escape</kbd> or a press outside the popover discards the selection.
+- The list reads at most 100,000 distinct values. Past that limit it shows the first values and a message.
+
+The filter works in a read-only grid, because filtering does not write data.
+
+| Key | Action |
+|---|---|
+| <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowUp</kbd> | Opens the popover of the active cell's column. Focus returns to the grid when the popover closes |
+| <kbd>ArrowUp</kbd> / <kbd>ArrowDown</kbd> / <kbd>Home</kbd> / <kbd>End</kbd> (list) | Moves between values |
+| <kbd>Space</kbd> (list) | Checks or unchecks the value |
+| <kbd>Enter</kbd> (list or search box) | Applies the selection |
+
+The filter menu uses the same list for `isAnyOf` and `isNoneOf` on a column without `choices`.
+
+`DataGridHeaderFilter` takes the two values that the slot passes:
+
+| Prop | Type | Default | Meaning |
+|---|---|---|---|
+| `column` | `AnyColumnDef` | required | The column that the button filters. |
+| `index` | `number` | required | The index of the column in the header. |
+
+<Callout type="warn">
+  With lazy rows or `sortMode="server"`, the list shows only the values of the loaded rows. A value
+  that exists only on the server is missing from the list. Your server decides which rows the
+  grid loads, so it decides which values the list can show. The popover then shows the hint
+  "From loaded rows". Server pagination with client sorting loads whole pages, so the hint stays hidden. Set the text with the `toolbar.headerFilterLoadedRowsOnly` label.
+</Callout>
+
 ## Related
 
 - [Sorting, filtering & search](/docs/sorting-filtering-search): the core behavior the
   toolbar controls
 - [Context menu](/docs/addons/context-menu): the other per-column surface
+- [Columns](/docs/columns): the `renderHeaderFilter` and `renderHeaderMenu` slots
+- [URL state](/docs/addons/url-state): shares the stored filter in the URL

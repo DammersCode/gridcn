@@ -106,7 +106,7 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
 
     function onKeyDown(event: KeyboardEvent) {
       const isFind = (event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === "f";
-      if (!isFind || !isInsideGridScope(event.target, instanceId, inputRef.current)) return;
+      if (!isFind || event.defaultPrevented || !isInsideGridScope(event.target, instanceId, inputRef.current)) return;
       event.preventDefault();
       const input = inputRef.current;
       if (!input) return;

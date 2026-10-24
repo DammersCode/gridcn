@@ -1,0 +1,29 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "data-grid-column-groups-demo",
+  "title": "Data Grid Column Groups Demo",
+  "author": "gridcn",
+  "description": "Column groups: Contact, Work with a nested History group, and Standing sit above their columns. Click a group header to select its columns, drag a group header to move the block, and use the columns menu to hide members.",
+  "registryDependencies": [
+    "DammersCode/gridcn/data-grid",
+    "DammersCode/gridcn/data-grid-toolbar"
+  ],
+  "files": [
+    {
+      "path": "registry/default/examples/data-grid-column-groups-demo.tsx",
+      "content": "\"use client\";\n\nimport { useMemo, type ReactNode } from \"react\";\nimport {\n  DataGridProvider,\n  DataGridRoot,\n  DataGridHeader,\n  DataGridBody,\n  defineColumns,\n  type ColumnGroupDef,\n} from \"@/registry/default/components/data-grid/data-grid\";\nimport { DataGridToolbar, DataGridColumnsMenu } from \"@/registry/default/components/data-grid-toolbar/data-grid-toolbar\";\nimport { generateDemoRows, type DemoRow } from \"./demo-data\";\n\nconst columns = defineColumns<DemoRow>()([\n  { id: \"name\", header: \"Name\", accessorKey: \"name\", type: \"text\", width: 160, pin: \"left\" },\n  { id: \"email\", header: \"Email\", accessorKey: \"email\", type: \"text\", width: 200 },\n  {\n    id: \"role\",\n    header: \"Role\",\n    accessorKey: \"role\",\n    type: \"select\",\n    options: {\n      choices: [\n        { value: \"Admin\", label: \"Admin\" },\n        { value: \"User\", label: \"User\" },\n        { value: \"Editor\", label: \"Editor\" },\n        { value: \"Viewer\", label: \"Viewer\" },\n        { value: \"Manager\", label: \"Manager\" },\n      ],\n    },\n    width: 130,\n  },\n  { id: \"joined\", header: \"Joined\", accessorKey: \"joined\", type: \"date\", width: 140 },\n  { id: \"age\", header: \"Age\", accessorKey: \"age\", type: \"number\", width: 90 },\n  { id: \"score\", header: \"Score\", accessorKey: \"score\", type: \"number\", width: 90 },\n  { id: \"active\", header: \"Active\", accessorKey: \"active\", type: \"checkbox\", width: 90 },\n] as const);\n\nconst columnGroups: readonly ColumnGroupDef[] = [\n  { id: \"contact\", header: \"Contact\", children: [\"name\", \"email\"] },\n  {\n    id: \"work\",\n    header: \"Work\",\n    children: [\"role\", { id: \"history\", header: \"History\", children: [\"joined\", \"age\"] }],\n  },\n  { id: \"standing\", header: \"Standing\", children: [\"score\", \"active\"] },\n];\n\n/**\n * Column groups: Contact, Work (with a nested History group), and Standing sit above their\n * columns. Click a group header to select its columns. Drag a group header to move the block, or\n * drag a column inside its group. Name is pinned left, so the Contact header splits at the pin\n * edge. The columns menu lists each group's members under its heading.\n */\nexport default function DataGridColumnGroupsDemo(): ReactNode {\n  const rows = useMemo(() => generateDemoRows(12), []);\n\n  return (\n    <div className=\"w-full flex flex-col gap-3\">\n      <p className=\"text-sm text-muted-foreground\">\n        Click a group header to select its columns. Drag a group header to move the whole block, or drag a column\n        within its group. Hide every column of a group and its header disappears.\n      </p>\n      <div className=\"flex h-[380px] flex-col overflow-hidden rounded-md border border-border\">\n        <DataGridProvider defaultData={rows} columns={columns} columnGroups={columnGroups} getRowId={(row) => row.id}>\n          <DataGridToolbar>\n            <DataGridColumnsMenu />\n          </DataGridToolbar>\n          <DataGridRoot className=\"min-h-0 flex-1 rounded-none border-none\">\n            <DataGridHeader />\n            <DataGridBody />\n          </DataGridRoot>\n        </DataGridProvider>\n      </div>\n    </div>\n  );\n}\n",
+      "type": "registry:example",
+      "target": "components/data-grid-column-groups-demo.tsx"
+    },
+    {
+      "path": "registry/default/examples/demo-data.ts",
+      "content": "/** Deterministic LCG so SSR/CSR markup match without Math.random(); shared across example rows. */\r\nfunction createSeededLcg(seed: number) {\r\n  let state = seed;\r\n  return () => {\r\n    state = (state * 1103515245 + 12345) & 0x7fffffff;\r\n    return state / 0x7fffffff;\r\n  };\r\n}\r\n\r\nexport type DemoRow = {\r\n  id: string;\r\n  name: string;\r\n  email: string;\r\n  age: number;\r\n  active: boolean;\r\n  role: string;\r\n  joined: string;\r\n  score: number;\r\n};\r\n\r\nconst ROLES = [\"Admin\", \"User\", \"Editor\", \"Viewer\", \"Manager\"] as const;\r\nconst ADJECTIVES = [\"Eager\", \"Quick\", \"Silent\", \"Bold\", \"Swift\"] as const;\r\nconst NOUNS = [\"Eagle\", \"Lion\", \"Tiger\", \"Bear\", \"Wolf\"] as const;\r\n\r\n/** Generates `count` deterministic demo rows for example previews (seed 42, stable across renders). */\r\nexport function generateDemoRows(count: number, seed = 42): DemoRow[] {\r\n  const next = createSeededLcg(seed);\r\n  const rows: DemoRow[] = [];\r\n  for (let i = 0; i < count; i++) {\r\n    rows.push({\r\n      id: `row-${i}`,\r\n      name: `${ADJECTIVES[Math.floor(next() * ADJECTIVES.length)]} ${NOUNS[Math.floor(next() * NOUNS.length)]}`,\r\n      email: `user${i}@example.com`,\r\n      age: Math.floor(next() * 50) + 18,\r\n      active: next() > 0.5,\r\n      role: ROLES[Math.floor(next() * ROLES.length)]!, // ROLES is a fixed non-empty literal array\r\n      joined: `${2020 + Math.floor(next() * 5)}-${String(Math.floor(next() * 12) + 1).padStart(2, \"0\")}-${String(Math.floor(next() * 28) + 1).padStart(2, \"0\")}`,\r\n      score: Math.floor(next() * 100),\r\n    });\r\n  }\r\n  return rows;\r\n}\r\n",
+      "type": "registry:example",
+      "target": "components/demo-data.ts"
+    }
+  ],
+  "categories": [
+    "data"
+  ],
+  "type": "registry:example"
+}

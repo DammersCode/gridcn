@@ -17,6 +17,9 @@ mirror the change there.
 | row id | The stable id from `getRowId`. Selection, editing, undo, and redo address rows by it. | id-keyed (write "by row id") |
 | view index | A row's position in the sorted and filtered list the user sees. | view space, display index |
 | data index | A row's position in your `data` array. | |
+| checked row | A row whose marker checkbox is on, kept in the row channel of the selection. | ticked row |
+| hidden checked row | A checked row that the current filter hides. `keepHiddenCheckedRows` remembers it by row id, outside the row channel. The grid's row operations never act on it. | invisible check, filtered-out selection |
+| block move | Moving several rows so they land next to each other in their current order: `reorderRows(rows, to)`. `moveRowsBy(rows, delta)` shifts each row and keeps the gaps. | bulk move |
 | commit | Check a value with `validate` and write it to the data. | |
 | controlled / uncontrolled | `data` puts the state in your code. `defaultData` seeds the grid once. | |
 | seed | The initial value a `default*` prop gives once, at mount. | |
@@ -50,6 +53,8 @@ mirror the change there.
 | cell type | The kind of value a column holds, for example `text` or `number`. | column type |
 | accessor | The `accessorKey` or `accessorFn` that reads a column's value from a row. | |
 | band | A fixed strip of rows above or below the body, such as pinned rows. | |
+| column group | A named set of columns, or of other groups, that share one header above their own headers. `columnGroups` defines it. | column span, super header |
+| header row | One level of the header block. Group levels come first, and the column headers fill the last row. | |
 
 ## Selection and input
 
@@ -59,6 +64,13 @@ mirror the change there.
 | anchor | The cell where a selection started. | |
 | range | A rectangle of selected cells. | |
 | quick search | The toolbar search that highlights matches and never filters rows. | |
+| find and replace | The add-on panel that finds text through the quick search and replaces it in one match or in all matches. A replace writes one change with the source `"replace"`. | search and replace |
+| set filter | A filter that keeps or drops rows by a list of values. It uses the `isAnyOf` or `isNoneOf` operator. | value filter |
+| header filter | The filter button in a column header. It opens a popover with the set filter of that column. `renderHeaderFilter` places it, and `DataGridHeaderFilter` is the built-in one. | column filter popup |
+| tap | A touch press that lifts within 10 px and under 500 ms. A tap selects; two taps on one cell edit. | click (for touch) |
+| long-press | A touch press held for 500 ms without moving more than 10 px. It opens the context menu. | press and hold, tap and hold |
+| selection handle | One of the two circles at the corners of a touch selection. Dragging one extends the range. | range handle, drag handle |
+| coarse pointer | An input whose `(pointer: coarse)` media query matches, such as a finger. Hit areas grow under it. | touch mode |
 
 ## Writing
 

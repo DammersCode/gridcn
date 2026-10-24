@@ -2,6 +2,7 @@
 title: Selection & keyboard
 description: Range selection, mouse gestures, and the full keyboard shortcut reference.
 icon: MousePointer2
+status: updated
 ---
 
 ## Selection model
@@ -44,6 +45,30 @@ normally text-selectable.
 
 <ComponentPreview name="data-grid-demo" />
 
+## Touch gestures
+
+<NewBadge />
+
+A touch screen scrolls the grid natively. The grid reads the input type of each press, so a laptop
+with a touch screen and a trackpad gets touch gestures from the screen and mouse gestures from the
+trackpad.
+
+| Gesture | Result |
+|---|---|
+| Tap a cell | Selects the cell. A scroll or a pan selects nothing. |
+| Double-tap a cell | Starts editing, or toggles a checkbox cell. A read-only grid does not edit. |
+| Tap a header | Selects the column, or sorts it with `headerClickBehavior="sort"`. |
+| Tap a row marker | Selects the row. |
+| Long-press (hold for 500 ms) | Opens the context menu on the cell or the header. |
+| Drag a selection handle | Extends the range from the opposite corner. The grid scrolls at the edges. |
+
+After a touch selection, two selection handles appear at the top-start and bottom-end corners of
+the range. Any key press hides them. A press must stay within 10 px to count as a tap or a
+long-press.
+
+The grid sets `touch-action: manipulation`. A double-tap does not zoom the page, and pinch zoom
+stays available. Use `density="comfortable"` for rows that are easier to hit with a finger.
+
 ## Configurability
 
 You can disable each selection channel independently through `DataGridProvider` props. All
@@ -64,6 +89,46 @@ default to `true`:
   `enableColumnSelection={false}` makes header clicks do nothing, rather than only hiding a
   highlight. The column selection channel itself is gone.
 </Callout>
+
+## Checked rows
+
+<NewBadge />
+
+A checked row is a row whose marker checkbox is on. A click outside the grid, or in the empty space of the grid, clears the cell range and the column selection. It never clears checked rows. A toolbar button outside the grid reads the checked rows after it is clicked.
+
+Selecting a cell clears the checked rows. Set `keepCheckedRows` to keep them:
+
+```tsx
+<DataGridProvider keepCheckedRows {...grid} columns={columns}>
+```
+
+With `keepCheckedRows`, a cell click, an arrow key, and a Shift or Ctrl click leave the checked rows as they are. Escape, the marker checkboxes, the header checkbox, `clearSelection()`, and deleting a row change them.
+
+While at least one row is checked, row operations act only on the checked rows, never on the range. This covers Delete rows, Duplicate row, Move rows, and the row items of the cell context menu. Cell operations such as copy, cut, fill, and Delete stay on the cell range. With no checked row, row operations use the range.
+
+A filter removes the checked rows it hides. Set `keepHiddenCheckedRows` <NewBadge /> to remember them:
+
+```tsx
+<DataGridProvider keepCheckedRows keepHiddenCheckedRows {...grid} columns={columns}>
+```
+
+A hidden checked row is a checked row that the current filter hides. The grid checks it again when the filter lets it back in. A sort keeps both the visible and the hidden checks.
+
+While every checked row is hidden, Delete rows, Duplicate row, and Move rows do nothing, and their context menu items are disabled. Row operations never touch a hidden checked row. Delete rows, Duplicate row, Move rows, the context menu, the export scope `'selection'`, and the clipboard read only the checked rows you can see. Select all checks the rows of the view and adds no hidden row. Escape, `clearSelection()`, `setSelection(null)`, an empty controlled `selection`, and the header checkbox set to off clear the hidden checks too.
+
+The controlled `selection` prop and `onSelectionChange` carry the visible rows only. `useDataGridHiddenCheckedCount()` returns the number of hidden checked rows. `DataGridStatusBar` shows it as `(+3 hidden)` beside the selection stats. With fewer than two cells selected, it shows `3 hidden checked rows`. The labels are `labels.statusBar.hiddenChecked` and `labels.statusBar.hiddenCheckedOnly`.
+
+The grid remembers at most 100,000 hidden checked rows. A server-sorted grid ignores the option. A grid with unloaded rows (a lazy source) ignores it while its data holds them. Both warn once in development. Switching to `sortMode="server"` clears the hidden checks.
+
+`setSelection` with a non-empty value and a non-empty controlled `selection` change the visible checks and keep the hidden ones.
+
+| Prop | Type | Default |
+|---|---|---|
+| `keepCheckedRows` <NewBadge /> | `boolean` | `false` |
+| `keepHiddenCheckedRows` <NewBadge /> | `boolean` | `false` |
+| `onBeforeDeleteRows` <NewBadge /> | `(ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean \| Promise<boolean>` | none |
+
+`keepHiddenCheckedRows` takes effect only with `keepCheckedRows`. `onBeforeDeleteRows` is described in [Row operations](/docs/row-operations#confirm-a-delete).
 
 ## Header click behavior
 
@@ -126,6 +191,23 @@ The marker checkboxes are not tab stops, so the keyboard has its own actions:
 To check rows that are not next to each other, move with <kbd>Alt</kbd>+<kbd>Arrow</kbd>, which
 keeps the selection, and press `toggleRow` on each row. <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+A
 (`selectAll`) selects cells, not checked rows.
+
+## Moving rows
+
+<NewBadge />
+
+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> (`moveRowsUp`) and
+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> (`moveRowsDown`) move the checked rows one place.
+When no row is checked, they move the rows of the selected range, or the active row. They need a
+`reorder`-family `rowMarkers` mode. See [Row operations](/docs/row-operations#reorder).
+
+## Opening the column filter
+
+<NewBadge />
+
+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowUp</kbd> (`openColumnFilter`) opens the header filter of the
+active cell's column. It does nothing unless the root has a `renderHeaderFilter` slot and the column offers a set filter.
+The <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowDown</kbd> chord opens the column menu.
 
 ## Two-stage Ctrl+A
 

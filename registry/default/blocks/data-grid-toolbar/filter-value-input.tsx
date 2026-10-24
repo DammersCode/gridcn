@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -10,7 +10,10 @@ import {
   type FilterOperator,
   type GridCellTypes,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { resolveFilterValueInput } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { resolveFilterValueInput, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { distinctColumnValues } from "./distinct-values";
+import { SetFilterList, filterSetOptions, useDebouncedSearch, type SetFilterOption } from "./set-filter-list";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -129,12 +132,14 @@ function AnyOfValueInput(props: {
   summary: string;
 }) {
   const { choices, selected, onValueChange, ariaLabel, summary } = props;
+  const selectedLower = new Set(selected.map((value) => value.toLowerCase()));
   const toggle = (choice: string, checked: boolean) => {
-    // rebuild from `choices` so the committed order is the column's own, not click order
-    const next = new Set(selected);
-    if (checked) next.add(choice);
-    else next.delete(choice);
-    onValueChange(choices.map((c) => c.value).filter((v) => next.has(v)));
+    const next = new Set(selectedLower);
+    if (checked) next.add(choice.toLowerCase());
+    else next.delete(choice.toLowerCase());
+    const choiceValues = new Set(choices.map((c) => c.value.toLowerCase()));
+    // committed order is the column's own, not click order; values outside `choices` stay last
+    onValueChange([...choices.map((c) => c.value).filter((v) => next.has(v.toLowerCase())), ...selected.filter((v) => !choiceValues.has(v.toLowerCase()))]);
   };
 
   return (
@@ -150,7 +155,7 @@ function AnyOfValueInput(props: {
         {choices.map((choice) => (
           <DropdownMenuCheckboxItem
             key={choice.value}
-            checked={selected.includes(choice.value)}
+            checked={selectedLower.has(choice.value.toLowerCase())}
             onCheckedChange={(checked) => toggle(choice.value, checked)}
           >
             {choice.label}
@@ -158,6 +163,58 @@ function AnyOfValueInput(props: {
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function SetValueBody(props: { columnId: string; selected: readonly string[]; onValueChange: (value: string[]) => void }): ReactNode {
+  const { columnId, selected, onValueChange } = props;
+  const labels = useDataGridLabels().toolbar;
+  const storeApi = useDataGridStoreApi();
+  const listId = useId();
+  const search = useDebouncedSearch();
+  const [options] = useState<(SetFilterOption & { text: string })[]>(() =>
+    distinctColumnValues(storeApi.getState(), columnId).values.map((value) => (value.key === "" ? { ...value, label: labels.headerFilterBlanks } : value)),
+  );
+  const visible = filterSetOptions(options, search.query);
+  const checked = new Set(selected.map((value) => value.toLowerCase()));
+
+  const toggle = (key: string) => {
+    const known = new Set(options.map((option) => option.key));
+    const next = new Set(checked);
+    if (!next.delete(key)) next.add(key);
+    onValueChange([...options.filter((option) => next.has(option.key)).map((option) => option.text), ...selected.filter((value) => !known.has(value.toLowerCase()))]);
+  };
+
+  return (
+    <>
+      <Input
+        value={search.draft}
+        onChange={(event) => search.onChange(event.target.value)}
+        placeholder={labels.headerFilterSearchPlaceholder}
+        aria-label={labels.headerFilterSearchPlaceholder}
+        className="h-8 w-full"
+      />
+      <SetFilterList key={search.query} options={visible} checked={checked} onToggle={toggle} onEnter={() => {}} idPrefix={listId} ariaLabel={labels.filterValueAriaLabel} />
+    </>
+  );
+}
+
+/** The `isAnyOf`/`isNoneOf` input for a column without `choices`: a popover list of the column's distinct values. Values outside the list stay in the selection. */
+function SetValueInput(props: { columnId: string; selected: readonly string[]; onValueChange: (value: string[]) => void; ariaLabel: string; summary: string }): ReactNode {
+  const { ariaLabel, summary, ...body } = props;
+  return (
+    <Popover>
+      <PopoverTrigger
+        render={
+          <Button type="button" variant="outline" className="h-8 w-full justify-start font-normal" aria-label={ariaLabel}>
+            <span className="truncate">{summary}</span>
+          </Button>
+        }
+      />
+      <PopoverContent align="start" className="w-64">
+        <SetValueBody {...body} />
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -183,6 +240,17 @@ export function DataGridFilterValueInput(props: DataGridFilterValueInputProps): 
   if (operatorIsAnyOf(operator)) {
     const choices = (column?.options as GridCellTypes["select"]["options"] | undefined)?.choices ?? [];
     const selected = Array.isArray(value) ? value : [];
+    if (column && choices.length === 0) {
+      return (
+        <SetValueInput
+          columnId={column.id}
+          selected={selected}
+          onValueChange={onValueChange}
+          ariaLabel={labels.toolbar.filterValueAriaLabel}
+          summary={labels.toolbar.filterValueAnyOfSummary(selected.length)}
+        />
+      );
+    }
     return (
       <AnyOfValueInput
         choices={choices}

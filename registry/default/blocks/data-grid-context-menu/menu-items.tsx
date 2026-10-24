@@ -29,13 +29,17 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import {
   useDataGridActions,
   useDataGridAllColumns,
+  useDataGridApi,
   useDataGridClipboard,
   useDataGridKeymap,
   useDataGridLabels,
   useDataGridReadOnly,
   useDataGridSelection,
+  useDataGridSelectionConfig,
+  useDataGridHiddenCheckedCount,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridCommands, useDataGridSelectionPointer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MenuShortcut } from "./menu-shortcut";
 import { selectedViewRows } from "./selection-queries";
 import { useDataGridColumnFeatureFlags } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -118,14 +122,20 @@ export function useDefaultCellMenuItems(args: {
   const { row, canInsertRow, canDuplicateRow, pasteBlocked, onPasteBlocked, clipboardFailed = false, onClipboardFailed } = args;
   const actions = useDataGridActions();
   const selection = useDataGridSelection();
+  const { keepCheckedRows } = useDataGridSelectionConfig();
+  const hiddenCheckedCount = useDataGridHiddenCheckedCount();
+  const rowActionsBlocked = keepCheckedRows && selection.rows.length === 0 && hiddenCheckedCount > 0;
   const clipboard = useDataGridClipboard();
   const readOnly = useDataGridReadOnly();
   const labels = useDataGridLabels();
   const keymap = useDataGridKeymap();
+  const commands = useDataGridCommands();
+  const selectionPointer = useDataGridSelectionPointer();
+  const api = useDataGridApi();
 
   // Row-op items act on every view row covered by the current selection, falling back to the
   // right-clicked row (same rule as the keyboard/native-clipboard gating).
-  const targetRows = selectedViewRows(selection);
+  const targetRows = selectedViewRows(selection, { checkedRowsOnly: keepCheckedRows });
   const rows = targetRows.length > 0 ? targetRows : [row];
 
   const onPaste = useCallback(() => {
@@ -161,6 +171,19 @@ export function useDefaultCellMenuItems(args: {
     { id: "clear-contents", label: labels.contextMenu.clearContents, icon: <Eraser className="size-4 text-muted-foreground" />, shortcut: keymap.clearContents?.[0], disabled: readOnly, onClick: () => actions.deleteSelection() },
     { id: "sep-rows", separator: true },
   ];
+  const runCommand = (name: "fillDown" | "fillRight") => {
+    const ctx = { api, cell: null, viewRowIndex: null, viewColumnIndex: null, row: undefined, readOnly };
+    const command = commands?.[name];
+    if (command && command.when?.(ctx) !== false) command.run(ctx);
+  };
+  if (selectionPointer === "touch" && commands?.["fillDown"] && commands["fillRight"]) {
+    specs.splice(
+      specs.findIndex((spec) => spec.id === "clear-contents") + 1,
+      0,
+      { id: "fill-down", label: labels.contextMenu.fillDown, disabled: readOnly, onClick: () => runCommand("fillDown") },
+      { id: "fill-right", label: labels.contextMenu.fillRight, disabled: readOnly, onClick: () => runCommand("fillRight") },
+    );
+  }
   if (canInsertRow) {
     specs.push(
       { id: "insert-row-above", label: labels.contextMenu.insertRowAbove, icon: <Plus className="size-4 text-muted-foreground" />, shortcut: keymap.insertRowAbove?.[0], disabled: readOnly, onClick: () => actions.insertRow(row, "above") },
@@ -168,9 +191,9 @@ export function useDefaultCellMenuItems(args: {
     );
   }
   if (canDuplicateRow) {
-    specs.push({ id: "duplicate-rows", label: labels.contextMenu.duplicateRows(rows.length), icon: <CopyPlus className="size-4 text-muted-foreground" />, shortcut: keymap.duplicateRow?.[0], disabled: readOnly, onClick: () => actions.duplicateRows(rows) });
+    specs.push({ id: "duplicate-rows", label: labels.contextMenu.duplicateRows(rows.length), icon: <CopyPlus className="size-4 text-muted-foreground" />, shortcut: keymap.duplicateRow?.[0], disabled: readOnly || rowActionsBlocked, onClick: () => actions.duplicateRows(rows) });
   }
-  specs.push({ id: "delete-rows", label: labels.contextMenu.deleteRows(rows.length), icon: <Trash2 className="size-4" />, shortcut: keymap.deleteRows?.[0], disabled: readOnly, destructive: true, onClick: () => actions.deleteRows(rows) });
+  specs.push({ id: "delete-rows", label: labels.contextMenu.deleteRows(rows.length), icon: <Trash2 className="size-4" />, shortcut: keymap.deleteRows?.[0], disabled: readOnly || rowActionsBlocked, destructive: true, onClick: () => actions.deleteRows(rows) });
   return specs;
 }
 

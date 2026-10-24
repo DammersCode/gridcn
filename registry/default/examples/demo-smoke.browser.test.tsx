@@ -6,6 +6,7 @@ import ActionsDemo from "./data-grid-actions-demo";
 import CellErrorsDemo from "./data-grid-cell-errors-demo";
 import CellTypesDemo from "./data-grid-cell-types-demo";
 import ColumnDragDemo from "./data-grid-column-drag-demo";
+import ColumnGroupsDemo from "./data-grid-column-groups-demo";
 import ColumnLayoutDemo from "./data-grid-column-layout-demo";
 import ConditionalStylingDemo from "./data-grid-conditional-styling-demo";
 import ContextMenuDemo from "./data-grid-context-menu-demo";
@@ -38,6 +39,7 @@ import RowMarkersDemo from "./data-grid-row-markers-demo";
 import RowOpsDemo from "./data-grid-row-ops-demo";
 import RowReorderDemo from "./data-grid-row-reorder-demo";
 import ServerSideDemo from "./data-grid-server-side-demo";
+import HeaderFilterDemo from "./data-grid-header-filter-demo";
 import SortListDemo from "./data-grid-sort-list-demo";
 import SortingFilteringDemo from "./data-grid-sorting-filtering-demo";
 import StreamingDemo from "./data-grid-streaming-demo";
@@ -66,6 +68,7 @@ const DEMOS: readonly [string, ReactNode][] = [
   ["cell-errors", <CellErrorsDemo key="cell-errors" />],
   ["cell-types", <CellTypesDemo key="cell-types" />],
   ["column-drag", <ColumnDragDemo key="column-drag" />],
+  ["column-groups", <ColumnGroupsDemo key="column-groups" />],
   ["column-layout", <ColumnLayoutDemo key="column-layout" />],
   ["conditional-styling", <ConditionalStylingDemo key="conditional-styling" />],
   ["context-menu", <ContextMenuDemo key="context-menu" />],
@@ -98,6 +101,7 @@ const DEMOS: readonly [string, ReactNode][] = [
   ["row-ops", <RowOpsDemo key="row-ops" />],
   ["row-reorder", <RowReorderDemo key="row-reorder" />],
   ["server-side", <ServerSideDemo key="server-side" />],
+  ["header-filter", <HeaderFilterDemo key="header-filter" />],
   ["sort-list", <SortListDemo key="sort-list" />],
   ["sorting-filtering", <SortingFilteringDemo key="sorting-filtering" />],
   ["streaming", <StreamingDemo key="streaming" />],

@@ -1,8 +1,8 @@
 ---
 title: Plugins
 description: The grid's extension seam. One `plugins` prop carries overlays, row bands, change observers, commands, keymap entries, and mount components.
-icon: Puzzle
 status: updated
+icon: Puzzle
 ---
 
 Plugins are how add-ons (and your own code) reach into the grid. The `plugins` prop on
@@ -80,7 +80,7 @@ presence highlight or a fill-drag frame cost zero row or cell renders.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid/overlays.tsx" name="OverlayPluginCtx" />
 
-- **`windowStart`**: <NewBadge /> the grid origin, the row line the rows canvas is positioned from.
+- **`windowStart`**: the grid origin, the row line the rows canvas is positioned from.
   It trails the first rendered row by up to 288 rows. Place a rect with `rect.y - windowStart + 1`.
   Clamp only with `clampRowStart` and `clampRowEnd`.
 - **`clampRowStart` / `clampRowEnd`**: the true contiguous `[start, end)` rendered row span.
@@ -138,10 +138,10 @@ array order. `RowBandRenderCtx` carries the segment's data:
 - **`rows`**: this plugin's rows for this band.
 - **`rowOffset`**: how many rows earlier plugins put in this band before this segment. Top bands
   stack from the header down; bottom bands stack top to bottom.
-- **`ariaRowIndexBase`**: the `aria-rowindex` of this segment's first row. Header is 1, then
+- **`ariaRowIndexBase`**: the `aria-rowindex` of this segment's first row. Header rows come first (one row, or one more per column group level), then
   pinned-top rows, then data rows, then pinned-bottom rows.
 - **`rowHeight`**, **`renderedColumns`**, **`layout`**, **`template`**, **`headerHeight`**: the
-  root's layout values, so a segment lines up pixel-for-pixel with the cell grid.
+  root's layout values (`headerHeight` is the whole header block), so a segment lines up pixel-for-pixel with the cell grid.
 
 The band's row counts feed the root's `aria-rowcount` and its sticky-height arithmetic. Bands
 render during server-side rendering, so an SSR render of a grid with pinned rows carries the band
@@ -193,7 +193,7 @@ The merge order for the command map:
 
 ### Pluggable built-ins
 
-Four built-in actions are pluggable: `undo`, `redo`, `fillDown`, `fillRight`. The core keeps
+Six built-in actions are pluggable: `undo`, `redo`, `fillDown`, `fillRight`, `openFindReplace`, `openFind`. The core keeps
 their keymap bindings and their `preventDefault`, but hollows their bodies. Without a command of
 that name, the keys do nothing but swallow the browser default (mod+R never reloads the page).
 A plugin (or your own `commands`) that defines `undo` gives the key a body. That is how the
@@ -201,7 +201,7 @@ A plugin (or your own `commands`) that defines `undo` gives the key a body. That
 [Fill](/docs/addons/fill) backs mod+D and mod+R.
 
 The default bindings: `undo` is mod+Z; `redo` is mod+Y and mod+Shift+Z; `fillDown` is mod+D;
-`fillRight` is mod+R.
+`fillRight` is mod+R; `openFindReplace` is ctrl+H; `openFind` is mod+F.
 
 ### A plugin's own keymap entries
 

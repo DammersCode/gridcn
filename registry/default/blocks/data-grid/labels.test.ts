@@ -31,9 +31,18 @@ describe("DEFAULT_LABELS", () => {
     expect(DEFAULT_LABELS.contextMenu.deleteRows(3)).toBe("Delete rows");
     expect(DEFAULT_LABELS.contextMenu.columnMenuAriaLabel("Name")).toBe("Name column menu");
     expect(DEFAULT_LABELS.markers.selectRow(4)).toBe("Select row 4");
+    expect(DEFAULT_LABELS.statusBar.hiddenChecked(3)).toBe("(+3 hidden)");
+    expect(DEFAULT_LABELS.statusBar.hiddenCheckedOnly(3)).toBe("3 hidden checked rows");
+    expect(DEFAULT_LABELS.statusBar.hiddenCheckedOnly(1)).toBe("1 hidden checked row");
     expect(DEFAULT_LABELS.toolbar.filterValueAnyOfSummary(0)).toBe("Any value");
     expect(DEFAULT_LABELS.toolbar.filterValueAnyOfSummary(2)).toBe("2 selected");
     expect(DEFAULT_LABELS.toolbar.filterReorderAnnouncement("Name", 2, 3)).toBe("Name filter moved to position 2 of 3");
+    expect(DEFAULT_LABELS.toolbar.headerFilterAriaLabel("Name", false)).toBe("Filter Name");
+    expect(DEFAULT_LABELS.toolbar.headerFilterAriaLabel("Name", true)).toBe("Filter Name, filtered");
+    expect(DEFAULT_LABELS.toolbar.headerFilterLoadedRowsOnly).toBe("From loaded rows");
+    expect(DEFAULT_LABELS.toolbar.headerFilterValueCount(5, 5)).toBe("5 values");
+    expect(DEFAULT_LABELS.toolbar.headerFilterValueCount(2, 5)).toBe("2 of 5 values");
+    expect(DEFAULT_LABELS.toolbar.headerFilterTooManySelected(1000)).toBe("Too many values selected. Select at most 1000.");
     expect(DEFAULT_LABELS.sort.sortReorderAnnouncement("Age", 1, 4)).toBe("Age sort moved to position 1 of 4");
     expect(DEFAULT_LABELS.io.columnFallback(3)).toBe("Column 3");
     expect(DEFAULT_LABELS.io.mapColumnAriaLabel("Email")).toBe('Map "Email" to grid column');
@@ -63,6 +72,35 @@ describe("deepMergeLabels", () => {
     // untouched top-level groups survive untouched (by reference)
     expect(merged.contextMenu).toBe(DEFAULT_LABELS.contextMenu);
     expect(merged.keybindings).toBe(DEFAULT_LABELS.keybindings);
+  });
+
+  it("labels the find actions and keeps them overridable", () => {
+    expect(DEFAULT_LABELS.keybindings.actions.openFind).toBe("Find");
+    expect(DEFAULT_LABELS.keybindings.actions.openFindReplace).toBe("Find and replace");
+    const merged = deepMergeLabels(DEFAULT_LABELS, { keybindings: { actions: { openFind: "Suchen" } } });
+    expect(merged.keybindings.actions.openFind).toBe("Suchen");
+    expect(merged.keybindings.actions.openFindReplace).toBe("Find and replace");
+  });
+
+  it("has an overridable findReplace.toggleReplace label", () => {
+    expect(DEFAULT_LABELS.findReplace.toggleReplace).toBe("Toggle replace");
+    const merged = deepMergeLabels(DEFAULT_LABELS, { findReplace: { toggleReplace: "Ersetzen umschalten" } });
+    expect(merged.findReplace.toggleReplace).toBe("Ersetzen umschalten");
+    expect(merged.findReplace.findLabel).toBe(DEFAULT_LABELS.findReplace.findLabel);
+  });
+
+  it("has overridable findReplace titles and status strings", () => {
+    expect(DEFAULT_LABELS.findReplace.nextTitle).toBe("Next match (Enter)");
+    expect(DEFAULT_LABELS.findReplace.previousTitle).toBe("Previous match (Shift+Enter)");
+    expect(DEFAULT_LABELS.findReplace.typeToSearch).toBe("Type to search");
+    expect(DEFAULT_LABELS.findReplace.noMatches).toBe("No results");
+    expect(DEFAULT_LABELS.findReplace.position(2, 4, false)).toBe("2 of 4 cells");
+    expect(DEFAULT_LABELS.findReplace.position(1, 1, false)).toBe("1 of 1 cell");
+    expect(DEFAULT_LABELS.findReplace.position(1, 1, true)).toBe("1 of 1+ cells");
+    const merged = deepMergeLabels(DEFAULT_LABELS, { findReplace: { nextTitle: "Weiter (Enter)", typeToSearch: "Suchbegriff eingeben" } });
+    expect(merged.findReplace.nextTitle).toBe("Weiter (Enter)");
+    expect(merged.findReplace.typeToSearch).toBe("Suchbegriff eingeben");
+    expect(merged.findReplace.previousTitle).toBe(DEFAULT_LABELS.findReplace.previousTitle);
   });
 
   it("merges nested groups two levels deep (keybindings.categories)", () => {
@@ -99,7 +137,7 @@ describe("deepMergeLabels", () => {
     const customFilterOperators: DataGridLabels["filterOperators"] = {
       contains: "x", notContains: "x", equals: "x", notEquals: "x",
       startsWith: "x", endsWith: "x", empty: "x", notEmpty: "x",
-      gt: "x", gte: "x", lt: "x", lte: "x", isBetween: "x", isAnyOf: "x",
+      gt: "x", gte: "x", lt: "x", lte: "x", isBetween: "x", isAnyOf: "x", isNoneOf: "x",
     };
     const merged = deepMergeLabels(DEFAULT_LABELS, { filterOperators: customFilterOperators });
     expect(merged.filterOperators).toEqual(customFilterOperators);

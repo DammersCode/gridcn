@@ -81,6 +81,24 @@ describe("serializeFilterState / parseFilterState", () => {
     });
   });
 
+  describe("isNoneOf list bound", () => {
+    const list = (length: number) => "status:isNoneOf:" + Array.from({ length }, (_, i) => `v${i}`).join("|");
+
+    it("keeps a list up to the bound", () => {
+      expect(parseFilterState(list(3), { maxChoices: () => 3 })[0]!.value).toHaveLength(3);
+      expect(parseFilterState(list(1000))[0]!.value).toHaveLength(1000);
+    });
+
+    it("drops the whole segment when the list exceeds the bound, because a shorter exclusion list widens the result", () => {
+      expect(parseFilterState(list(1001))).toEqual([]);
+      expect(parseFilterState(list(4), { maxChoices: () => 3 })).toEqual([]);
+    });
+
+    it("keeps the other segments when one isNoneOf list is dropped", () => {
+      expect(parseFilterState(`${list(1001)},age:gt:30`)).toEqual([{ columnId: "age", operator: "gt", value: "30" }]);
+    });
+  });
+
   it("stops reading raw segments after 256, so empty segments cannot exhaust the parse", () => {
     const raw = `${",".repeat(300)}age:gt:30`;
     expect(parseFilterState(raw)).toEqual([]);
@@ -145,8 +163,56 @@ describe("serializeFilterState / parseFilterState", () => {
       expect(parseFilterState(serializeFilterState(filters))).toEqual(filters);
     });
 
+    it.each([
+      { value: [], encoded: "" },
+      { value: [""], encoded: "%" },
+      { value: ["a", ""], encoded: "a|%" },
+      { value: ["", "b"], encoded: "%|b" },
+    ])("round-trips the list $value, with the empty entry as one token", ({ value, encoded }) => {
+      for (const operator of ["isAnyOf", "isNoneOf"] as const) {
+        const filters = [{ columnId: "city", operator, value }];
+        expect(serializeFilterState(filters)).toBe(`city:${operator}:${encoded}`);
+        expect(parseFilterState(serializeFilterState(filters))).toEqual(filters);
+      }
+    });
+
+    it("still reads an empty entry written as an empty part", () => {
+      expect(parseFilterState("city:isAnyOf:a|")[0]!.value).toEqual(["a", ""]);
+      expect(parseFilterState("city:isAnyOf:|b")[0]!.value).toEqual(["", "b"]);
+    });
+
+    it("counts the empty-entry token against the list bound", () => {
+      expect(parseFilterState("city:isAnyOf:%|%|%", { maxChoices: () => 2 })[0]!.value).toEqual(["", ""]);
+      expect(parseFilterState("city:isNoneOf:%|%|%", { maxChoices: () => 2 })).toEqual([]);
+    });
+
+    it("parses a long run of empty-entry tokens in linear time", () => {
+      const started = performance.now();
+      const parsed = parseFilterState(`city:isAnyOf:${"%|".repeat(200_000)}%`);
+      expect(parsed[0]!.value).toHaveLength(1000);
+      expect(performance.now() - started).toBeLessThan(1000);
+    });
+
     it("drops a choice list with malformed percent-encoding", () => {
       expect(parseFilterState("status:isAnyOf:new|%E0%A4%A")).toEqual([]);
+    });
+  });
+
+  describe("isNoneOf (exclusion list)", () => {
+    it("round-trips an exclusion list", () => {
+      const filters = [{ columnId: "status", operator: "isNoneOf" as const, value: ["new", "a|b"] }];
+      expect(serializeFilterState(filters)).toBe("status:isNoneOf:new|a%7Cb");
+      expect(parseFilterState(serializeFilterState(filters))).toEqual(filters);
+    });
+
+    it("round-trips an empty list (matches every row) as an empty value", () => {
+      const filters = [{ columnId: "status", operator: "isNoneOf" as const, value: [] }];
+      expect(serializeFilterState(filters)).toBe("status:isNoneOf:");
+      expect(parseFilterState(serializeFilterState(filters))).toEqual(filters);
+    });
+
+    it("drops a list with malformed percent-encoding", () => {
+      expect(parseFilterState("status:isNoneOf:new|%E0%A4%A")).toEqual([]);
     });
   });
 

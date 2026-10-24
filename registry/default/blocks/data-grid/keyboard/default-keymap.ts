@@ -47,6 +47,8 @@ export const DEFAULT_KEYMAP: Keymap = {
   toggleAllRows: ["mod+shift+e"],
   // alt+ArrowDown is moveDownKeepSelection and Shift+F10 opens the cell context menu
   openColumnMenu: ["shift+alt+ArrowDown"],
+  // mirrors openColumnMenu; Alt+Arrow produces no character on any layout, so it never collides with AltGr
+  openColumnFilter: ["shift+alt+ArrowUp"],
   edit: ["Enter", "F2", " "],
   commitDown: ["Enter"],
   commitUp: ["shift+Enter"],
@@ -65,22 +67,26 @@ export const DEFAULT_KEYMAP: Keymap = {
   // Sheets/Excel chords (Ctrl+Alt+=/-, Ctrl+Shift+=, Ctrl+-) hit AltGr or non-preventable browser zoom; u/Backspace don't.
   insertRowAbove: ["mod+shift+u"],
   deleteRows: ["mod+shift+Backspace"],
+  // shift+alt+Arrow opens the header menu and filter; PageUp/PageDown with shift+alt is unbound in the browsers and OSes, and Alt alone never forms AltGr
+  moveRowsUp: ["shift+alt+PageUp"],
+  moveRowsDown: ["shift+alt+PageDown"],
   // Enter is edit/commitDown; alt+Enter was free
   openLink: ["alt+Enter"],
 };
 
 /**
  * Every built-in action name — the `DEFAULT_KEYMAP` keys plus `typeToReplace`, which has no default
- * binding (the implicit printable-key fallback) but is still shadowable by a `commands` entry.
+ * binding (the implicit printable-key fallback) but is still shadowable by a `commands` entry, and
+ * `openFindReplace` and `openFind`, which only the find-and-replace add-on binds.
  */
-export const BUILTIN_ACTIONS: readonly GridAction[] = [...(Object.keys(DEFAULT_KEYMAP) as GridAction[]), "typeToReplace"];
+export const BUILTIN_ACTIONS: readonly GridAction[] = [...(Object.keys(DEFAULT_KEYMAP) as GridAction[]), "typeToReplace", "openFindReplace", "openFind"];
 
 /**
  * The built-in actions a `commands` entry or a plugin command may implement: their built-in bodies
  * are hollow (the key stays bound and preventDefaults, but nothing runs without a command). The
- * shadow warning exempts these four names.
+ * shadow warning exempts these names.
  */
-export const PLUGGABLE_ACTIONS: readonly string[] = ["undo", "redo", "fillDown", "fillRight"];
+export const PLUGGABLE_ACTIONS: readonly string[] = ["undo", "redo", "fillDown", "fillRight", "openFindReplace", "openFind"];
 
 /**
  * Content equality for `keymap` props: the same action keys and the same binding strings in the

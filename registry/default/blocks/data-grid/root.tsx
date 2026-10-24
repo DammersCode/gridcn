@@ -7,9 +7,11 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
 } from "react";
 import { DirectionProvider } from "@base-ui/react/direction-provider";
+import { computeHeaderRows } from "./columns/column-groups";
 import { cn } from "@/lib/utils";
 import type { DensityMode, GetCellClassName, GetRowClassName } from "./types";
 import {
@@ -29,6 +31,7 @@ import {
   useDataGridStore,
   useDataGridStoreApi,
   useDataGridVisibleColumns,
+  useDataGridColumnGroupModel,
 } from "./store";
 import { useElementDimensions, useViewportElement } from "./virtualization/use-scroll-snapshot";
 import { directionSign, readResolvedDirection, type GridDirection } from "./virtualization/direction";
@@ -39,6 +42,7 @@ import { useGridClipboard } from "./clipboard/use-grid-clipboard";
 import {
   useColumnLayout,
   DataGridRootContext,
+  type HeaderFilterRenderer,
   type HeaderMenuRenderer,
   type MarkerCellRenderer,
   type MarkerHeaderRenderer,
@@ -123,6 +127,12 @@ export type DataGridRootProps<TData = unknown> = {
    */
   renderHeaderMenu?: HeaderMenuRenderer;
   /**
+   * Per-column header filter slot: rendered inline-end in each header cell, only for columns that offer a
+   * set filter (`isAnyOf` or `isNoneOf`) and are not `filterable: false`. The toolbar add-on's
+   * `DataGridHeaderFilter` is the intended renderer.
+   */
+  renderHeaderFilter?: HeaderFilterRenderer;
+  /**
    * Custom row-marker cell renderer: replaces the built-in row number/checkbox content inside the
    * marker column. Requires a non-`'none'` `rowMarkers` mode (the mode still drives the track width,
    * and the cell's own press/drag row-selection gesture stays on the wrapper); an interactive element
@@ -151,6 +161,7 @@ export const DATA_GRID_ROOT_PROP_KEYS = [
   "loading",
   "loadingState",
   "renderHeaderMenu",
+  "renderHeaderFilter",
   "renderMarker",
   "renderMarkerHeader",
   "getRowClassName",
@@ -167,6 +178,12 @@ export const DATA_GRID_ROOT_PROP_KEYS = [
  * layers inside — the compositor can never reveal unrendered rows because rows never move via
  * native scroll.
  */
+function suppressNativeTouchContextMenu(event: ReactMouseEvent<HTMLElement>) {
+  if ((event.nativeEvent as PointerEvent).pointerType !== "touch") return;
+  event.preventDefault();
+  event.stopPropagation();
+}
+
 export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): ReactNode {
   const {
     className,
@@ -179,6 +196,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     loading = false,
     loadingState,
     renderHeaderMenu,
+    renderHeaderFilter,
     renderMarker,
     renderMarkerHeader,
     getRowClassName,
@@ -186,7 +204,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     children,
   } = props;
   const rowHeight = resolveRowHeight(density, rowHeightProp);
-  const headerHeight = headerHeightProp ?? HEADER_HEIGHT;
+  const headerRowHeight = headerHeightProp ?? HEADER_HEIGHT;
   const instanceId = useDataGridInstanceId();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -207,6 +225,10 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const direction = directionProp ?? domDirection;
   const isRtl = direction === "rtl";
   const visibleColumns = useDataGridVisibleColumns();
+  const columnGroupModel = useDataGridColumnGroupModel();
+  const headerRows = useMemo(() => computeHeaderRows(visibleColumns, columnGroupModel), [visibleColumns, columnGroupModel]);
+  const headerRowCount = headerRows.length + 1;
+  const headerHeight = headerRowHeight * headerRowCount;
   const rowCount = useDataGridRowCount();
   const dataLength = useDataGridStore((s) => s.data.length);
   // labels.grid.emptyState is the translatable default; the emptyState prop (node or function) still wins when provided.
@@ -328,10 +350,11 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
             }
           : null,
         hasHeaderMenu: Boolean(renderHeaderMenu),
+        hasHeaderFilter: Boolean(renderHeaderFilter),
       };
     });
     return () => internalActions._registerMeasureFonts(null);
-  }, [internalActions, renderHeaderMenu]);
+  }, [internalActions, renderHeaderMenu, renderHeaderFilter]);
 
   // autosizeOnMount: one autosize pass once the view first has rows (a lazy grid waits for its
   // first page). Runs once per mount. A saved layout wins: columns with a saved width
@@ -485,6 +508,10 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       layout,
       rowHeight,
       headerHeight,
+      headerRowHeight,
+      headerRowCount,
+      headerRows,
+      columnGroupModel,
       pinnedTopHeight,
       pinnedBottomHeight,
       pinnedTopCount: topBandRowCount,
@@ -492,6 +519,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       interaction,
       direction,
       renderHeaderMenu,
+      renderHeaderFilter,
       renderMarker,
       renderMarkerHeader,
       // Erasure boundary: DataGridRootContextValue is one shared non-generic context for every
@@ -508,6 +536,10 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       layout,
       rowHeight,
       headerHeight,
+      headerRowHeight,
+      headerRowCount,
+      headerRows,
+      columnGroupModel,
       pinnedTopHeight,
       pinnedBottomHeight,
       topBandRowCount,
@@ -515,6 +547,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       interaction,
       direction,
       renderHeaderMenu,
+      renderHeaderFilter,
       renderMarker,
       renderMarkerHeader,
       getRowClassName,
@@ -539,15 +572,16 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
         // entry point or a keyboard user can never reach the grid at all. Once a cell becomes
         // active it takes over as the sole tab stop (see cell.tsx), and the root reverts to -1.
         tabIndex={!hasActiveCell && rowCount > 0 ? 0 : -1}
-        aria-rowcount={rowCount + 1 + topBandRowCount + bottomBandRowCount}
+        aria-rowcount={rowCount + headerRowCount + topBandRowCount + bottomBandRowCount}
         aria-colcount={visibleColumns.length}
         aria-multiselectable={ariaMultiselectable || undefined}
         aria-readonly={readOnly || undefined}
         aria-busy={loading || undefined}
-        className={cn("relative select-none overflow-auto rounded-md border border-border bg-background text-sm", className)}
+        className={cn("relative touch-manipulation select-none overflow-auto rounded-md border border-border bg-background text-sm", className)}
         style={rootStyle}
         onKeyDown={interaction.onKeyDown}
         onPointerDown={interaction.onRootPointerDown}
+        onContextMenuCapture={suppressNativeTouchContextMenu}
         onPointerDownCapture={() => {
           pointerInteractionRef.current = true;
         }}
@@ -582,7 +616,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                     rowHeight,
                     template,
                     headerHeight,
-                    ariaRowIndexBase: 2 + offset,
+                    ariaRowIndexBase: 1 + headerRowCount + offset,
                   })}
                 </Fragment>
               ))}
@@ -597,7 +631,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                     rowHeight,
                     template,
                     headerHeight,
-                    ariaRowIndexBase: 2 + topBandRowCount + rowCount + offset,
+                    ariaRowIndexBase: 1 + headerRowCount + topBandRowCount + rowCount + offset,
                   })}
                 </Fragment>
               ))}

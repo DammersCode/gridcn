@@ -33,6 +33,43 @@ position, keeping the typed draft while the row stays in the rendered rows. An o
 removes the edited row cancels the session, drops the draft, and fires `onEditEnd` with
 `result: "cancel"`.
 
+## Confirm a delete
+
+<NewBadge />
+
+`onBeforeDeleteRows` runs before every delete the grid starts: the Delete rows shortcut, the context menu item, `actions.deleteRows`, and `actions.deleteRowsById`. It gets `rowIds`, the ids of the rows that go, and `hiddenCount`, the number of hidden checked rows that stay. Return `false`, or a promise of `false`, to cancel. Without the prop a delete runs at once.
+
+The grid ships no dialog. Build one with your own dialog component and resolve a promise from its buttons:
+
+```tsx
+const [ask, setAsk] = useState<{ count: number; hidden: number; answer: (ok: boolean) => void } | null>(null);
+
+const confirmDelete = ({ rowIds, hiddenCount }: { rowIds: readonly string[]; hiddenCount: number }) =>
+  new Promise<boolean>((resolve) => setAsk({ count: rowIds.length, hidden: hiddenCount, answer: resolve }));
+
+<>
+  <DataGridProvider onBeforeDeleteRows={confirmDelete} {...grid} columns={columns}>
+    {/* the grid parts are omitted */}
+  </DataGridProvider>
+  {ask && (
+    <ConfirmDialog
+      title={ask.count === 1 ? "Delete 1 row?" : `Delete ${ask.count} rows?`}
+      description={ask.hidden > 0 ? `${ask.hidden} hidden checked rows stay.` : undefined}
+      onConfirm={() => { ask.answer(true); setAsk(null); }}
+      onCancel={() => { ask.answer(false); setAsk(null); }}
+    />
+  )}
+</>
+```
+
+While a promise is pending, a second delete does nothing. When the promise resolves, the grid reads its state again. It drops a `true` result if `readOnly` turned on, or if the row set or the checks changed. A callback that throws or rejects cancels the delete and warns in development.
+
+<Callout type="warn">
+  Settle the promise on every path, including a dismissed dialog. A promise that never settles blocks every later delete.
+</Callout>
+
+ Clearing cell contents with Delete is not a row delete and does not call the callback. Undo restores a confirmed delete.
+
 ## Default shortcuts
 
 | Action | Default | Keymap action |
@@ -41,6 +78,10 @@ removes the edited row cancels the session, drops the draft, and fires `onEditEn
 | Insert row below | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> | `insertRowBelow` |
 | Duplicate row(s) | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd> | `duplicateRow` |
 | Delete row(s) | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Backspace</kbd> | `deleteRows` |
+| Move row(s) up <NewBadge /> | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> | `moveRowsUp` |
+| Move row(s) down <NewBadge /> | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> | `moveRowsDown` |
+
+With `keepCheckedRows` <NewBadge />, Duplicate and Delete act only on the checked rows while any row is checked. Hidden checked rows (`keepHiddenCheckedRows` <NewBadge />) are never deleted, duplicated, or moved. See [Checked rows](/docs/selection-keyboard#checked-rows).
 
 Every binding lives in `DEFAULT_KEYMAP`, so it can be remapped or dropped through the `keymap`
 prop like every other binding (see [Keybindings](/docs/addons/keybindings#remapping)).
@@ -59,17 +100,43 @@ and checkbox glyphs stay pure row-select surfaces**: a press on them selects (cl
 row range (drag), never reorders. Plain `number`, `checkbox`, and `both` markers are selection
 surfaces across the cell. A selection drag can never accidentally reorder.
 
+<NewBadge />
+
+A press on the drag handle of a checked row drags every checked row. The rows land together at the
+drop line, in their current order. A press on an unchecked row drags that row alone and leaves the
+checks as they are. Every dragged row dims while the drag runs.
+
+<NewBadge />
+
+`moveRowsUp` and `moveRowsDown` move rows from the keyboard. They act on the checked rows. When no
+row is checked, they act on the rows of the selected range, then on the active row. Each row moves
+one place, and the gaps between the rows stay. The keys do nothing when one of the rows is already
+at the edge. They need `enableRowReorder` and a `reorder`-family `rowMarkers` mode, and they
+stay silent while an editor is open. Each press is one change and one undo step.
+
 | Prop | Role | Default |
 |---|---|---|
 | `rowMarkers` (`reorder` family) | supplies the drag handle zone | `none` has nothing to grab |
 | `enableRowReorder` | grid-wide switch | `true` |
 
-The programmatic form is `reorderRows(from, to)` from `useDataGridActions`, where `to` is the
-**final** landing position (arrayMove semantics: moving row 0 to index 3 shifts rows 1–3 up).
-It emits one row-id-based `move` operation, so undo/redo restores the previous order in a single step.
-Row-channel selection remaps by row id (the moved row keeps its selection state) and the active
-cell follows its row, and the open edit's editor does too. Each completed move is announced
-through the grid's `aria-live` region (`labels.markers.reorderAnnouncement`).
+The programmatic form is `reorderRows(rows, to)` from `useDataGridActions`. `rows` is one view
+index or a list of view indices, and `to` is the **final** landing position of the first row
+(arrayMove semantics: moving row 0 to index 3 shifts rows 1–3 up). A list moves as one block: the
+rows keep their order and land next to each other, and duplicate indices count once.
+`moveRowsBy(rows, delta)` shifts every listed row by `delta` and keeps the gaps.
+Both emit one change with one row-id-based `move` operation per moved row, so undo/redo restores
+the previous order in a single step. Row-channel selection remaps by row id (the moved rows keep
+their selection state) and the active cell follows its row, and the open edit's editor does too.
+A range stays selected when its rows stay next to each other, and collapses onto the active cell
+otherwise. Each completed move is announced through the grid's `aria-live` region
+(`labels.markers.reorderAnnouncement` for one row, `labels.markers.reorderRowsAnnouncement` for
+several).
+
+<NewBadge />
+
+The `move` operations of one change describe a batch: `from` is the row's index before the
+batch, and `to` is its index after the batch. Apply the operations together with `applyChange`.
+A server that applies them one at a time ends with the wrong order.
 
 <Callout type="warn" title="reorderRows is a no-op in these situations">
   It returns `false` (dev-warning where the cause is a misconfiguration) in these situations:
@@ -77,9 +144,9 @@ through the grid's `aria-live` region (`labels.markers.reorderAnnouncement`).
   - `enableRowReorder` is off, or the grid is `readOnly`
   - A sort or filter is active (the view order belongs to the sort/filter, not the data)
   - A lazy grid has unloaded holes (a reorder shifts the lazy add-on's index bookkeeping)
-  - The drop leaves the row where it already is
-
-  There is no keyboard reorder.
+  - The drop leaves the rows where they already are
+  - A list is empty, or holds an index outside the grid
+  - For `moveRowsBy`, a row would leave the grid
 </Callout>
 
 <Callout type="warn" title="Position-based data goes stale">
@@ -194,7 +261,7 @@ Try all four modes alongside every other toggle in the [playground](/docs/playgr
 `DataGridRoot` and `DataGrid` accept two render slots that replace the marker column's content
 while keeping its chrome and gestures:
 
-- `renderMarker` <NewBadge /> replaces the built-in row number/checkbox in every marker cell. It receives the
+- `renderMarker` replaces the built-in row number/checkbox in every marker cell. It receives the
   row's `rowId`, the 0-based `viewRowIndex`, and two independent selection signals:
   `isRowChannelSelected` (the rows channel only, so a cell click never flips it) and
   `isCellSelected` (the cell or column channel covers at least one cell of the row). A renderer

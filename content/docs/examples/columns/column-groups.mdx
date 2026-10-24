@@ -1,0 +1,32 @@
+---
+title: Column groups
+description: Put a shared header over a run of columns, nested up to 8 levels deep.
+status: new
+icon: Group
+---
+
+Three groups sit above the columns: Contact, Work, and Standing. Work holds a nested History
+group, so the header has three rows. Name is pinned left, so the Contact header splits at the pin
+edge. Click a group header to select its columns. Drag a group header to move the block, or drag a
+column inside its group.
+
+<ComponentPreview name="data-grid-column-groups-demo" />
+
+<InstallCommand item="data-grid-column-groups-demo" />
+
+## What's in the demo
+
+- `columnGroups`: a list of `{ id, header, children }` groups. `children` holds column ids and nested groups
+- A group header press selects the group's columns
+- A group header drag moves the block inside its parent group
+- The columns menu lists the members of each group under the group label
+
+## Behavior reference
+
+- [Column groups](/docs/columns#column-groups): ordering, pinning, selection, and limits
+- [Accessibility](/docs/accessibility#the-aria-index-and-count-model): header row indices and spans
+
+## Related
+
+- [Pinning](/docs/examples/columns/pinning): pin columns left or right
+- [Column layout](/docs/examples/columns/column-layout): persist the order of grouped columns

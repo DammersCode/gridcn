@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { AUTO_SCROLL_STEP, AUTO_SCROLL_ZONE } from "../virtualization/direction";
 import { safeSetPointerCapture } from "../interaction/safe-set-pointer-capture";
+import type { CompactSelectionLike } from "../types";
 
 /** px of vertical pointer movement off the origin row before a marker press commits to a reorder drag. */
 const REORDER_THRESHOLD = 5;
@@ -17,9 +18,23 @@ export function predictReorderTarget(from: number, over: number, position: "befo
   return position === "before" ? (from < over ? over - 1 : over) : from < over ? over : over + 1;
 }
 
-/** Live reorder-drag UI state: the dragged row and where the drop indicator should render. */
+/**
+ * Final view index of the first of the dragged `rows` (ascending) when they drop at the boundary half
+ * of view index `over`: the boundary shifts up by the dragged rows above it.
+ */
+export function predictBlockTarget(rows: readonly number[], over: number, position: "before" | "after"): number {
+  const boundary = position === "before" ? over : over + 1;
+  let above = 0;
+  for (const row of rows) if (row < boundary) above++;
+  return boundary - above;
+}
+
+/** Live reorder-drag UI state: the dragged rows and where the drop indicator should render. */
 export type RowReorderState = {
+  /** The pressed row. */
   draggingRow: number;
+  /** Every dragged row: the checked rows when the pressed row is checked, else the pressed row alone. */
+  rows: CompactSelectionLike;
   /** View row index the drop indicator renders next to, or null before the pointer has crossed into another row. */
   overRow: number | null;
   /** Drop indicator renders above/below `overRow`. */
@@ -34,7 +49,7 @@ export type RowReorderHandlers = {
 };
 
 /**
- * Drag-to-reorder rows. The marker cell routes presses to this hook from the drag handle zone only
+ * Drag-to-reorder rows. A press on a checked row drags every checked row. The marker cell routes presses to this hook from the drag handle zone only
  * (see DataGridMarkerCell's zone routing), so the gesture never shares a press with the
  * row-select range-drag — no coexistence disambiguation is needed. The caller passes `enabled`
  * only for the marker's `reorder` family (see RowMarkersMode). Within an armed drag handle press:
@@ -55,7 +70,9 @@ export function useRowReorder(args: {
   enabled: boolean;
   /** Resolves the row element at a client point to a view row index + above/below half, or null off any row. */
   hitTestRow: (clientX: number, clientY: number) => { row: number; position: "before" | "after" } | null;
-  onReorder: (from: number, over: number, position: "before" | "after") => void;
+  onReorder: (rows: CompactSelectionLike, over: number, position: "before" | "after") => void;
+  /** The rows a press on view row `pressedRow` drags, read when the drag arms. */
+  getDragRows: (pressedRow: number) => CompactSelectionLike;
   /** The grid's scroll element, for edge auto-scroll; null before the root mounts. */
   getScrollElement: () => HTMLElement | null;
 }): RowReorderHandlers {
@@ -96,7 +113,7 @@ export function useRowReorder(args: {
         const overRow = hit?.row ?? null;
         const position = hit?.position ?? drag.position;
         if (overRow !== drag.overRow || position !== drag.position) {
-          setDrag({ draggingRow: drag.draggingRow, overRow, position });
+          setDrag({ ...drag, overRow, position });
         }
       }
     }
@@ -154,7 +171,7 @@ export function useRowReorder(args: {
           safeSetPointerCapture(captureEl, pending.pointerId);
           captureRef.current = captureEl ? { el: captureEl, pointerId: pending.pointerId } : null;
           if (captureEl?.style) captureEl.style.cursor = "grabbing";
-          setDrag({ draggingRow: pending.row, overRow: hit.row, position: hit.position });
+          setDrag({ draggingRow: pending.row, rows: argsRef.current.getDragRows(pending.row), overRow: hit.row, position: hit.position });
           if (rafRef.current === null) rafRef.current = requestAnimationFrame(runFrame);
           return;
         }
@@ -169,7 +186,7 @@ export function useRowReorder(args: {
         if (!pending || e.pointerId !== pending.pointerId) return;
         const finalState = dragStateRef.current;
         if (finalState && finalState.overRow !== null) {
-          argsRef.current.onReorder(finalState.draggingRow, finalState.overRow, finalState.position);
+          argsRef.current.onReorder(finalState.rows, finalState.overRow, finalState.position);
         }
         teardown();
       };

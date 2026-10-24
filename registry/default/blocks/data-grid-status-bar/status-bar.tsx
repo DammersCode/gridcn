@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import {
   DEFAULT_LABELS,
   useDataGridCellTypes,
+  useDataGridHiddenCheckedCount,
   useDataGridLabels,
   useDataGridVisibleColumns,
   type DataGridStatusBarLabels,
@@ -39,8 +40,8 @@ const DEFAULT_AGGREGATES: readonly StatusBarAggregate[] = ["count", "sum", "avg"
 /**
  * Aggregate bar for the selected cells: count of non-empty cells plus sum/avg/min/max of numeric
  * cells, computed by {@link useDataGridSelectionStats}. Place it inside `DataGridProvider`, next
- * to `DataGridRoot`, like the pagination bar. Renders nothing while fewer than 2 cells are
- * selected.
+ * to `DataGridRoot`, like the pagination bar. Shows the number of hidden checked rows when `keepHiddenCheckedRows` remembers any. Renders nothing while fewer than 2 cells are
+ * selected and no hidden checked row exists.
  */
 export function DataGridStatusBar({
   aggregates = DEFAULT_AGGREGATES,
@@ -51,6 +52,7 @@ export function DataGridStatusBar({
   children,
 }: DataGridStatusBarProps) {
   const stats = useDataGridSelectionStats();
+  const hiddenChecked = useDataGridHiddenCheckedCount();
   const storeLabels = useDataGridLabels();
   const mergedLabels = { ...DEFAULT_LABELS.statusBar, ...storeLabels.statusBar, ...labels };
   const visibleColumns = useDataGridVisibleColumns();
@@ -66,7 +68,8 @@ export function DataGridStatusBar({
     return (value: number) => toDisplayText(value, column.options);
   }, [stats.numericColumnId, visibleColumns, cellTypes]);
 
-  if (stats.cells < 2) return null;
+  const showStats = stats.cells >= 2;
+  if (!showStats && hiddenChecked === 0) return null;
 
   const format = (value: number, aggregate: StatusBarAggregate) =>
     formatValue ? formatValue(value, aggregate) : aggregate !== "count" && displayText ? displayText(value) : fallbackFormat.format(value);
@@ -79,7 +82,7 @@ export function DataGridStatusBar({
       title={stats.approximate ? mergedLabels.approximate(MAX_STATUS_CELLS) : undefined}
       className={cn("flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border bg-background px-2 py-1.5 text-xs text-muted-foreground", className)}
     >
-      {aggregates.map((aggregate) => {
+      {(showStats ? aggregates : []).map((aggregate) => {
         const value = aggregate === "count" ? stats.count : stats[aggregate];
         if (value === null) return null;
         return (
@@ -92,6 +95,7 @@ export function DataGridStatusBar({
           </span>
         );
       })}
+      {hiddenChecked > 0 && <span>{showStats ? mergedLabels.hiddenChecked(hiddenChecked) : mergedLabels.hiddenCheckedOnly(hiddenChecked)}</span>}
       {children}
     </div>
   );

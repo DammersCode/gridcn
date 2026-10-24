@@ -1,6 +1,7 @@
 ---
 title: Columns
 description: Resize, reorder, pin, and show/hide columns.
+status: updated
 icon: Columns3
 ---
 
@@ -13,7 +14,8 @@ and from `data-grid-toolbar` (a columns menu).
 [Drag & drop](/docs/examples/columns/drag-reorder) ·
 [Filtering](/docs/examples/columns/filtering) ·
 [Custom headers](/docs/examples/columns/custom-headers) ·
-[Column layout](/docs/examples/columns/column-layout)
+[Column layout](/docs/examples/columns/column-layout) ·
+[Column groups](/docs/examples/columns/column-groups) <NewBadge />
 
 <ComponentPreview name="data-grid-pinning-demo" />
 
@@ -73,6 +75,11 @@ The `renderHeaderMenu` slot of `DataGridRoot` renders at the inline-end of each 
 `DataGrid` wrapper forwards it. It shows as a ghost chevron button on hover and opens the same
 menu as a right-click. Per-column
 `pinnable: false`, or grid-wide `enableColumnPinning={false}`, disables pin and unpin.
+
+The `renderHeaderFilter` <NewBadge /> slot of `DataGridRoot` renders a filter button in each header cell
+whose column offers a set filter. It receives `{ column, index }`. The `DataGridHeaderFilter`
+component of the [toolbar add-on](/docs/addons/toolbar#header-filter) fills it. A header cell
+carries `data-filtered` while its column has a filter.
 
 A soft directional shadow marks the pinned boundary: the last left-pinned column casts a shadow
 to the right, and the first right-pinned column casts one to the left, whenever content is
@@ -203,6 +210,78 @@ sort, select, or start a column reorder.
 The slot mounts inside `DataGridRoot`, so it needs the composed parts. `DataGrid` (the
 convenience wrapper) does not forward it.
 
+## Column groups
+
+<NewBadge />
+
+A column group puts one shared header above a run of columns. The `columnGroups` prop of
+`DataGridProvider` defines the groups by column id. The `columns` array stays flat.
+
+```tsx
+import type { ColumnGroupDef } from "@/components/data-grid/data-grid";
+
+const columnGroups: ColumnGroupDef[] = [
+  { id: "contact", header: "Contact", children: ["name", "email"] },
+  {
+    id: "work",
+    header: "Work",
+    children: ["role", { id: "history", header: "History", children: ["joined", "age"] }],
+  },
+];
+
+<DataGridProvider columns={columns} columnGroups={columnGroups} /* other props */ />;
+```
+
+| Field | Meaning |
+|---|---|
+| `id` | The group id. It is unique across all groups and all columns. |
+| `header` | The label: a string or a node. |
+| `headerText` | Plain text for assistive technology and for the columns menu when `header` is a node. |
+| `children` | Column ids and nested groups, in the order you list them. |
+| `headerClassName` | Classes for the group header cell. |
+
+The header has one row for each group level, and one row for the column headers. The
+`headerHeight` prop sets the height of one row. A column that sits outside every group spans all
+header rows. A column in a shallower group spans the rows that remain.
+
+A group keeps its columns next to each other:
+
+- Dragging a column moves it inside its group, or next to a whole sibling group. A drop that
+  would take the column out of its group does nothing.
+- Dragging a group header moves the group as one block inside its parent group. Dragging
+  a group that pinning has split across pin zones does nothing.
+- A saved or URL layout whose `order` splits a group is repaired. All members move to the
+  position of the first member.
+
+Pinning stays per column. A group with columns in two pin zones shows one header cell for each
+zone, and each cell carries the same label. Hiding a column shrinks the group header. Hiding every
+column of a group removes the group header.
+
+A press on a group header selects the group's visible columns. Shift extends the selection.
+Ctrl (Cmd on macOS) adds to it. When `headerClickBehavior` is `"sort"`, the press does nothing.
+Group headers do not sort, resize, or filter. The columns menu of the toolbar add-on lists the
+members of a group under a heading with the group label.
+
+The grid checks `columnGroups` and ignores what it cannot use:
+
+- An id that is not a column is dropped.
+- A column that two groups list stays in the first group.
+- A group whose id repeats, or equals a column id, is dropped.
+- Nesting deeper than 8 levels is dropped, and so is everything after the first 5000 entries.
+
+In development, the grid logs each dropped entry once. The grid compares an inline
+`columnGroups` array by structure, so a new array with the same groups does not rebuild the
+header. A `header` written inline as JSX is a new node on every render and rebuilds the header, so
+memoize `columnGroups` or define the `header` nodes outside the component.
+
+Export and print write the column headers only. Group headers are not part of the output.
+
+<Callout type="warn">
+  `headerHeight` in the root context is the height of the whole header block. Code that
+  positions content under the header reads this value, and it grows when you set `columnGroups`.
+  The `aria-rowindex` of data rows grows by the same number of rows.
+</Callout>
+
 ## Visibility
 
 The `DataGridColumnsMenu` of `data-grid-toolbar` is show and hide only. Pin controls live in the
@@ -263,7 +342,8 @@ onColumnLayoutChange?: (next: ColumnLayout) => void; // fires once per committed
 ignored. Use it when the saved layout is known at the first render, for example when it comes
 from props or a cookie. `localStorage` does not exist on the server, so a layout read from it is
 not known at the first render in Next.js. Use the controlled `columnLayout` prop instead, and
-load the saved value in an effect:
+load the saved value in an effect. (To keep the order and the hidden columns in a shareable link
+instead, use the [URL state add-on](/docs/addons/url-state#column-layout).) Example:
 
 ```tsx
 "use client";

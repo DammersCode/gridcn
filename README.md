@@ -33,6 +33,8 @@ Range selection, spreadsheet clipboard, typed cell editors, validation, and virt
 - **Streaming updates.** `updateCells` applies live value patches without a full re-render. An incremental sort keeps sorted grids correct and fast at 100k rows.
 - **Virtualization.** CSS Grid with virtualized row rendering. A real-browser test suite enforces the no-blank-rows guarantee at 100k rows.
 - **Row operations.** Insert above or below, duplicate, and delete, each with a default key binding. Insert and duplicate need the `createRow` / `duplicateRow` props; the `data-grid-context-menu` add-on adds the menu entries.
+- **Touch.** A tap selects, a double-tap edits, a long-press opens the context menu, and selection handles extend a range. Touch targets grow under a coarse pointer.
+- **Column groups.** The `columnGroups` prop adds header rows that group columns, which reorder and select together.
 - **Global shortcuts.** The opt-in `DataGridGlobalShortcuts` layer (inside `DataGridRoot`) keeps key bindings active while focus is outside the grid. Undo and redo by default; per-action flags enable more.
 - **Controlled or uncontrolled.** Data, sort, and filter are uncontrolled by default. Pass `data`, `sortState`, or `filterState` with the matching `on*Change` callback to control them. Selection and column layout stay store-owned; `onSelectionChange` and `onColumnLayoutChange` observe them.
 - **RTL and i18n.** A `direction` prop (or `dir="rtl"` on the page) mirrors layout, pinning, pointer math, and keyboard semantics. Every user-facing string lives in one typed `labels` object with English defaults.
@@ -102,14 +104,15 @@ Each add-on is a separate registry item that depends only on the core `data-grid
 | --- | --- | --- |
 | `data-grid-fill` | Fill handle: drag-to-tile with series inference, mod+D / mod+R keyboard fill | [Fill](https://gridcn.vercel.app/docs/addons/fill) |
 | `data-grid-history` | Undo and redo | [Undo & redo](https://gridcn.vercel.app/docs/addons/undo-redo) |
-| `data-grid-toolbar` | Search, filter, and column-visibility toolbar | [Toolbar](https://gridcn.vercel.app/docs/addons/toolbar) |
+| `data-grid-toolbar` | Search, filter, header filter, and column-visibility toolbar | [Toolbar](https://gridcn.vercel.app/docs/addons/toolbar) |
 | `data-grid-sort-list` | Sort button plus popover: add, remove, and reorder multi-column sorts | [Sort list](https://gridcn.vercel.app/docs/addons/sort-list) |
 | `data-grid-context-menu` | Cell, header, and row context menus | [Context menu](https://gridcn.vercel.app/docs/addons/context-menu) |
 | `data-grid-keybindings` | Keyboard-shortcuts reference dialog | [Keybindings](https://gridcn.vercel.app/docs/addons/keybindings) |
 | `data-grid-pinned-rows` | Pinned top and bottom row bands, for example a totals row | [Pinned rows](https://gridcn.vercel.app/docs/addons/pinned-rows) |
 | `data-grid-presence` | Multiplayer presence: remote users' live selections as named, colored highlights | [Presence](https://gridcn.vercel.app/docs/addons/presence) |
+| `data-grid-find-replace` | Find and replace panel: Mod+F finds, Ctrl+H replaces, one undo reverts a replace | [Find & replace](https://gridcn.vercel.app/docs/addons/find-replace) |
 | `data-grid-io` | CSV and XLSX import and export, plus print and Save as PDF | [Import & export](https://gridcn.vercel.app/docs/addons/import-export) |
-| `data-grid-url-state` | Sort, filter, search, and pagination state synced to the URL | [URL state](https://gridcn.vercel.app/docs/addons/url-state) |
+| `data-grid-url-state` | Sort, filter, search, pagination, and column layout state synced to the URL | [URL state](https://gridcn.vercel.app/docs/addons/url-state) |
 | `data-grid-lazy` | Lazy row loading: fetch rows on demand as the viewport scrolls | [Lazy loading](https://gridcn.vercel.app/docs/lazy-loading) |
 | `data-grid-pagination` | Composable pagination footer (`DataGridPaginationBar` plus parts) | [Pagination](https://gridcn.vercel.app/docs/pagination) |
 | `data-grid-status-bar` | Status bar: row count, selection summary, and custom segments | [Status bar](https://gridcn.vercel.app/docs/addons/status-bar) |

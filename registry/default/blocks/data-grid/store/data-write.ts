@@ -7,6 +7,7 @@ import {
   mergeCellErrors,
   pruneCellErrors,
   remapRowChannel,
+  selectCellOf,
   sameElements,
   viewSorts,
 } from "./compute";
@@ -24,18 +25,19 @@ import {
   warnDev,
 } from "./commit";
 import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
+import { withoutHiddenCheckedRows } from "./hidden-checked-rows";
 import { applyChange } from "../interaction/history";
+import { planBlockMove, planShiftMove, type RowMovePlan } from "../rows/plan-row-moves";
 import { resolveCellRef, resolveReorder, touchesViewInputs, type RowIndexCache } from "./row-index";
 import {
   emptySelection,
   offsetSelectionForRows,
   rectFromCorners,
-  reorderSelectionForRow,
-  rowReorderMap,
+  remapSelectionRows,
   selectCell as selectCellPure,
   selectionRects,
 } from "../selection";
-import type { CellRef, DataChange, DataGridApi, DataOp, GridBulkValidationError, GridValidationErrorEvent, ViewCoord } from "../types";
+import type { CellRef, CompactSelectionLike, DataChange, DataGridApi, DataOp, GridBulkValidationError, GridValidationErrorEvent, ViewCoord } from "../types";
 import type { AnyColumnDef, CellPatch, DataGridActions, DataGridStoreState, UpdateCellsVerdict } from "./types";
 
 /**
@@ -210,7 +212,7 @@ export function reconcileAfterWrite(s: DataGridStoreState, nextData: readonly un
   if (s.searchText.trim() === "") return viewStale === s.viewStale ? {} : { viewStale };
   return {
     ...(viewStale === s.viewStale ? {} : { viewStale }),
-    ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
+    ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
   };
 }
 
@@ -226,7 +228,7 @@ export function rebuildRowOpView(s: DataGridStoreState, nextData: readonly unkno
   return {
     viewIndex,
     viewStale: false,
-    ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
+    ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
   };
 }
 
@@ -256,6 +258,12 @@ export function followActiveRow(s: DataGridStoreState, nextData: readonly unknow
   return { selection: { ...emptySelection(), rows, current: { cell, range: rectFromCorners(cell, cell), rangeStack: [] } }, activeCell: cell };
 }
 
+/** `remap` with its selection's row channel replaced by `rows`; the remap holds the pre-write channel. */
+function keepRows(remap: Partial<DataGridStoreState>, rows: CompactSelectionLike): Partial<DataGridStoreState> {
+  const selection = remap.selection;
+  return selection && selection.rows !== rows ? { ...remap, selection: { ...selection, rows } } : remap;
+}
+
 type SetState = (partial: Partial<DataGridStoreState>) => void;
 type GetState = () => DataGridStoreState;
 
@@ -278,6 +286,16 @@ export type DataWriteDeps = {
     getRowId?: (row: unknown, index: number) => string,
     sameRecords?: boolean,
   ) => Partial<DataGridStoreState>;
+  /** The row channel and the hidden checked rows carried into a rebuilt view; `visibleOnly` yields the channel when hidden checks are off. */
+  carryRows: (
+    s: DataGridStoreState,
+    rows: CompactSelectionLike,
+    viewIndex: readonly number[],
+    data: readonly unknown[],
+    getRowId: (row: unknown, index: number) => string,
+    sameRecords: boolean,
+    visibleOnly: () => CompactSelectionLike,
+  ) => { rows: CompactSelectionLike; hiddenCheckedRowIds: ReadonlySet<string> };
   /** Re-anchors an open edit to the new view position of its rowId/columnId (or cancels it when the row left the view); `data` must be the array `viewIndex` indexes. */
   remapEditing: (
     s: DataGridStoreState,
@@ -307,6 +325,7 @@ export type DataWriteActions = Pick<
   | "deleteRowsById"
   | "duplicateRows"
   | "reorderRows"
+  | "moveRowsBy"
   | "commitChange"
 > & {
   /** Clears every `rowIds` x `columnIds` cell still in view, as one `delete` batch (the cut-capture seam). */
@@ -314,10 +333,10 @@ export type DataWriteActions = Pick<
 };
 
 export function createDataWriteActions(set: SetState, get: GetState, deps: DataWriteDeps): DataWriteActions {
-  const { ctx, applyRowValidation, pruneRowValidationKeys, followView, remapEditing, endEditSession } = deps;
+  const { ctx, applyRowValidation, pruneRowValidationKeys, followView, carryRows, remapEditing, endEditSession } = deps;
 
   /** Reports the patches a validator refused through `onValidationError`; a row outside the view reports `viewRowIndex: -1`. */
-  const emitStreamRejections = (patches: readonly CellPatch[], rejected: readonly PatchRejection[]): void => {
+  const emitStreamRejections = (patches: readonly CellPatch[], rejected: readonly PatchRejection[], batchSource?: DataChange<unknown>["source"]): void => {
     const s = get();
     const onValidationError = s.onValidationError;
     if (rejected.length === 0 || !onValidationError || s.readOnly) return;
@@ -337,7 +356,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       });
     }
     const event: GridValidationErrorEvent = {
-      source: "stream",
+      source: batchSource === "replace" ? "replace" : "stream",
       rejected: rejected.map(({ patchIndex, message }) => {
         const { rowId, columnId, value } = patches[patchIndex]!;
         const dataRowIndex = rowIndex.get(rowId);
@@ -374,6 +393,12 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     );
   };
 
+  const hiddenAfterDelete = (s: DataGridStoreState, ops: readonly DataOp<unknown>[]): Partial<DataGridStoreState> => {
+    if (s.hiddenCheckedRowIds.size === 0) return {};
+    const hiddenCheckedRowIds = withoutHiddenCheckedRows(s.hiddenCheckedRowIds, ops.flatMap((op) => (op.type === "delete" ? [op.rowId] : [])));
+    return hiddenCheckedRowIds === s.hiddenCheckedRowIds ? {} : { hiddenCheckedRowIds };
+  };
+
   const deleteDataRows = (dataRowIndexes: number[]) => {
     const s = get();
     if (s.readOnly) return;
@@ -397,8 +422,110 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         ...cursor,
         ...view,
         ...editRemap,
+        ...hiddenAfterDelete(s, batch.ops),
       }),
     );
+  };
+
+  let deleteConfirmPending = false;
+  const warnedDeleteConfirm = new Set<string>();
+  const warnDeleteConfirmOnce = (key: string, message: string): void => {
+    if (warnedDeleteConfirm.has(key)) return;
+    warnedDeleteConfirm.add(key);
+    warnDev(message);
+  };
+  const requestDelete = (dataRowIndexes: number[]) => {
+    const s = get();
+    if (s.readOnly) return;
+    const confirm = s.onBeforeDeleteRows;
+    if (!confirm) {
+      deleteDataRows(dataRowIndexes);
+      return;
+    }
+    const rowIds = [...new Set(dataRowIndexes.flatMap((i) => (s.data[i] === undefined ? [] : [s.getRowId(s.data[i], i)])))];
+    if (rowIds.length === 0) return;
+    if (deleteConfirmPending) {
+      warnDeleteConfirmOnce("pending", "a row delete was requested while the promise of onBeforeDeleteRows is still pending, so it is ignored; the promise must settle");
+      return;
+    }
+    const hiddenCount = s.hiddenCheckedRowIds.size - rowIds.filter((id) => s.hiddenCheckedRowIds.has(id)).length;
+    let verdict: boolean | Promise<boolean>;
+    try {
+      verdict = confirm({ rowIds, hiddenCount });
+    } catch (error) {
+      warnDeleteConfirmOnce("threw", `onBeforeDeleteRows threw, so the delete is cancelled: ${String(error)}`);
+      return;
+    }
+    if (typeof verdict === "boolean") {
+      if (verdict) deleteDataRows(dataRowIndexes);
+      return;
+    }
+    deleteConfirmPending = true;
+    const asked = { rowIdentityVersion: s.rowIdentityVersion, checked: s.selection.rows, hidden: s.hiddenCheckedRowIds };
+    Promise.resolve(verdict).then(
+      (confirmed) => {
+        deleteConfirmPending = false;
+        const now = get();
+        const unchanged =
+          !now.readOnly && now.rowIdentityVersion === asked.rowIdentityVersion && now.selection.rows === asked.checked && now.hiddenCheckedRowIds === asked.hidden;
+        if (confirmed === true && unchanged) deleteDataRows(dataRowIndexes);
+      },
+      (error: unknown) => {
+        deleteConfirmPending = false;
+        warnDeleteConfirmOnce("rejected", `onBeforeDeleteRows rejected, so the delete is cancelled: ${String(error)}`);
+      },
+    );
+  };
+
+  const canMoveRows = (s: DataGridStoreState): boolean => {
+    if (!s.enableRowReorder || s.readOnly) return false;
+    if (viewSorts(s.sortMode, s.sortState).length > 0 || s.filterState.length > 0) {
+      warnDev("reorderRows is a no-op while a sort or filter is active (the view order is owned by the sort/filter)");
+      return false;
+    }
+    return true;
+  };
+
+  const announceRowMove = (s: DataGridStoreState, plan: RowMovePlan): string => {
+    const { markers } = s.labels;
+    const total = s.data.length;
+    return plan.sources.length === 1
+      ? markers.reorderAnnouncement(plan.sources[0]! + 1, plan.targets[0]! + 1, total)
+      : markers.reorderRowsAnnouncement(plan.sources.length, plan.targets[0]! + 1, total);
+  };
+
+  /** Applies a plan as one write: one `move` operation per moved row, one emit, one permutation for the selection. Unsorted and unfiltered, view and data indices coincide. */
+  const applyRowMoves = (s: DataGridStoreState, plan: RowMovePlan | null): boolean => {
+    if (!plan) return false;
+    const { data, getRowId } = s;
+    const { newIndexOf } = plan;
+    for (let i = 0; i < data.length; i++) {
+      // Indexed access sees sparse holes; a reorder would shift the lazy add-on's in-flight index bookkeeping.
+      if (data[i] === undefined) {
+        warnDev("reorderRows is a no-op while rows are still unloaded (useDataGridLazyRows): load the range first");
+        return false;
+      }
+    }
+    const nextData = new Array<unknown>(data.length);
+    for (let i = 0; i < data.length; i++) nextData[newIndexOf[i]!] = data[i];
+    const ops = plan.sources.map<DataOp<unknown>>((from, i) => ({ type: "move", rowId: getRowId(data[from]!, from), row: data[from]!, from, to: plan.targets[i]! }));
+    ctx.rowIndexCache.invalidate();
+    forgetDeferredRows(ctx);
+    ctx.lastEmittedData = nextData;
+    const editRemap = remapEditing(s, s.viewIndex, s.visibleColumns, nextData, getRowId);
+    const follow = (row: number) => newIndexOf[row] ?? row;
+    writeThenEmit(ctx, s, nextData, { source: "row-operation", ops }, () =>
+      set({
+        data: nextData,
+        rowIdentityVersion: s.rowIdentityVersion + 1,
+        selection: remapSelectionRows(s.selection, newIndexOf),
+        activeCell: s.activeCell ? { ...s.activeCell, row: follow(s.activeCell.row) } : null,
+        lastHighlightedRow: s.lastHighlightedRow === null ? null : follow(s.lastHighlightedRow),
+        rowMoveAnnouncement: announceRowMove(s, plan),
+        ...editRemap,
+      }),
+    );
+    return true;
   };
 
   return {
@@ -431,7 +558,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       // The user clicked away while validation was pending: commit the value but leave the cursor where it is.
       const stale =
         s.activeCell !== null && (s.activeCell.row !== editing.coord.row || s.activeCell.col !== editing.coord.col);
-      const restoreSelection = stale ? {} : { activeCell: nextActiveCell, selection: selectCellPure(nextActiveCell) };
+      const restoreSelection = stale ? {} : { activeCell: nextActiveCell, selection: selectCellOf(s, nextActiveCell) };
       if ("error" in result) {
         set({ editingError: result.error, editingRejectionCount: s.editingRejectionCount + 1 });
         s.onEditEnd?.({ rowId: editing.rowId, columnId: editing.columnId, viewRowIndex: editing.coord.row, viewColumnIndex: editing.coord.col, result: "rejected" });
@@ -589,20 +716,17 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         const apply = ({ accepted, acceptedIndexes, rejected }: PrevalidatedPatches): UpdateCellsVerdict => {
           const invalid = rejected.map(({ patchIndex }) => ({ patchIndex, reason: "invalid" as const }));
           const verdict = accepted.length === 0 ? null : get().actions.updateCells(accepted, { ...options, skipValidation: true });
-          emitStreamRejections(patches, rejected);
+          emitStreamRejections(patches, rejected, options?.source);
           if (!verdict) return { applied: 0, skipped: invalid, pending: false };
           const remapped = verdict.skipped.map((skip) => ({ ...skip, patchIndex: acceptedIndexes[skip.patchIndex]! }));
           return { ...verdict, skipped: [...invalid, ...remapped].sort((a, b) => a.patchIndex - b.patchIndex) };
         };
         if (validated instanceof Promise) {
           const token = ++ctx.streamGeneration;
-          void validated.then((accepted) => {
-            // A newer updateCells, or any path that moved rows, supersedes this batch silently.
-            if (ctx.streamGeneration !== token) return;
-            void apply(accepted);
-          });
-          // the held batch's outcome (accepted, dropped, or superseded) is not reportable here
-          return { applied: 0, skipped: [], pending: true };
+          const dropped: UpdateCellsVerdict = { applied: 0, skipped: [], pending: false };
+          const settled = validated.then((accepted) => (ctx.streamGeneration !== token ? dropped : apply(accepted)));
+          void settled.catch(() => {});
+          return { applied: 0, skipped: [], pending: true, settled };
         }
         return apply(validated);
       }
@@ -611,7 +735,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const batch = computeCellPatchBatch(s, patches, rowIndex, skipValidation);
       const nextData = batch.nextData;
       if (nextData === null) {
-        emitStreamRejections(patches, batch.rejected);
+        emitStreamRejections(patches, batch.rejected, options?.source);
         return { applied: 0, skipped: batch.skipped, pending: false };
       }
       const applied = batch.ops.reduce((n, op) => (op.type === "update" ? n + (op.cells?.length ?? 0) : n), 0);
@@ -634,7 +758,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
               : { data: nextData, cellErrors },
           ),
         );
-        emitStreamRejections(patches, batch.rejected);
+        emitStreamRejections(patches, batch.rejected, options?.source);
         return { applied, skipped: batch.skipped, pending: false };
       }
       // Re-place only touched and earlier deferred rows; the binary search trusts the rest of the order.
@@ -647,10 +771,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           viewIndex,
           viewStale: false,
           ...followView(s, viewIndex, s.visibleColumns, nextData, s.getRowId, true),
-          ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
+          ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
         }),
       );
-      emitStreamRejections(patches, batch.rejected);
+      emitStreamRejections(patches, batch.rejected, options?.source);
       return { applied, skipped: batch.skipped, pending: false };
     },
     updateRows(updates, options) {
@@ -673,7 +797,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         viewIndex,
         viewStale: false,
         ...followView(s, viewIndex, s.visibleColumns),
-        ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes),
+        ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
       });
     },
     insertRow(viewRowIndex, position) {
@@ -704,9 +828,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const view = rebuildRowOpView(s, batch.nextData);
       const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
       if (viewSorts(s.sortMode, s.sortState).length > 0 || s.filterState.length > 0) {
+        const followed = followActiveRow(s, batch.nextData, view.viewIndex!);
         pruneRowValidationKeys(batch.nextData, s.getRowId);
         writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
-          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view, ...editRemap }),
+          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followed, ...view, ...keepRows(editRemap, followed.selection.rows) }),
         );
         return;
       }
@@ -729,12 +854,12 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     deleteRows(viewRowIndexes) {
       const s = get();
-      deleteDataRows(viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined));
+      requestDelete(viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined));
     },
     deleteRowsById(rowIds) {
       const s = get();
       const dataRowIndexByRowId = ctx.rowIndexCache.resolve(s.data, s.getRowId);
-      deleteDataRows(rowIds.map((rowId) => dataRowIndexByRowId.get(rowId)).filter((i): i is number => i !== undefined));
+      requestDelete(rowIds.map((rowId) => dataRowIndexByRowId.get(rowId)).filter((i): i is number => i !== undefined));
     },
     duplicateRows(viewRowIndexes) {
       const s = get();
@@ -752,9 +877,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const view = rebuildRowOpView(s, batch.nextData);
       const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
       if (viewSorts(s.sortMode, s.sortState).length > 0 || s.filterState.length > 0) {
+        const followed = followActiveRow(s, batch.nextData, view.viewIndex!);
         pruneRowValidationKeys(batch.nextData, s.getRowId);
         writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
-          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view, ...editRemap }),
+          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followed, ...view, ...keepRows(editRemap, followed.selection.rows) }),
         );
         return;
       }
@@ -780,49 +906,15 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         }),
       );
     },
-    reorderRows(from, to) {
+    reorderRows(rows, to) {
       const s = get();
-      if (!s.enableRowReorder) return false;
-      if (s.readOnly) return false;
-      if (viewSorts(s.sortMode, s.sortState).length > 0 || s.filterState.length > 0) {
-        warnDev("reorderRows is a no-op while a sort or filter is active (the view order is owned by the sort/filter)");
-        return false;
-      }
-      const n = s.data.length;
-      if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || from >= n || to < 0 || to >= n || from === to) return false;
-      // viewIndex is the identity permutation here (sort/filter gated above), so view == data indices
-      const fromData = s.viewIndex[from]!;
-      const toData = s.viewIndex[to]!;
-      if (toData === fromData) return false;
-      for (let i = 0; i < n; i++) {
-        // Indexed access sees sparse holes; a reorder would shift the lazy add-on's in-flight index bookkeeping.
-        if (s.data[i] === undefined) {
-          warnDev("reorderRows is a no-op while rows are still unloaded (useDataGridLazyRows): load the range first");
-          return false;
-        }
-      }
-      const moved = s.data[fromData]!;
-      const nextData = s.data.slice();
-      nextData.splice(fromData, 1);
-      nextData.splice(toData, 0, moved);
-      const ops: DataOp<unknown>[] = [{ type: "move", rowId: s.getRowId(moved, fromData), row: moved, from: fromData, to: toData }];
-      ctx.rowIndexCache.invalidate();
-      forgetDeferredRows(ctx);
-      ctx.lastEmittedData = nextData;
-      const f = rowReorderMap(from, to);
-      // no view rebuild: unsorted and unfiltered, the identity `viewIndex` content is unchanged
-      const editRemap = remapEditing(s, s.viewIndex, s.visibleColumns, nextData, s.getRowId);
-      writeThenEmit(ctx, s, nextData, { source: "row-operation", ops }, () =>
-        set({
-          data: nextData,
-          rowIdentityVersion: s.rowIdentityVersion + 1,
-          selection: reorderSelectionForRow(s.selection, from, to),
-          activeCell: s.activeCell ? { ...s.activeCell, row: f(s.activeCell.row) } : null,
-          lastHighlightedRow: s.lastHighlightedRow === null ? null : f(s.lastHighlightedRow),
-          ...editRemap,
-        }),
-      );
-      return true;
+      if (!canMoveRows(s)) return false;
+      return applyRowMoves(s, planBlockMove(s.data.length, typeof rows === "number" ? [rows] : rows, to));
+    },
+    moveRowsBy(rows, delta) {
+      const s = get();
+      if (!canMoveRows(s)) return false;
+      return applyRowMoves(s, planShiftMove(s.data.length, rows, delta));
     },
     commitChange(change) {
       const s = get();
@@ -847,16 +939,26 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       pruneRowValidationKeys(nextData, s.getRowId);
       const cellErrors = pruneCellErrors(clearErrorsForOps(s.cellErrors, change.ops), nextData, s.getRowId);
       const view = rebuildRowOpView(s, nextData);
+      if (!movesRows) {
+        writeThenEmit(ctx, s, nextData, change, () =>
+          set({ data: nextData, cellErrors, ...view, ...followView(s, view.viewIndex!, s.visibleColumns, nextData, s.getRowId, true) }),
+        );
+        return;
+      }
       const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, nextData, s.getRowId);
-      const followed = movesRows ? followActiveRow(s, nextData, view.viewIndex!) : {};
+      const followed = followActiveRow(s, nextData, view.viewIndex!);
+      const carried = carryRows(s, s.selection.rows, view.viewIndex!, nextData, s.getRowId, false, () => followed.selection.rows);
+      const base = editRemap.selection ?? followed.selection;
       writeThenEmit(ctx, s, nextData, change, () =>
         set({
           data: nextData,
-          ...(movesRows ? { rowIdentityVersion: s.rowIdentityVersion + 1 } : {}),
+          rowIdentityVersion: s.rowIdentityVersion + 1,
           cellErrors,
           ...followed,
           ...view,
           ...editRemap,
+          selection: carried.rows === base.rows ? base : { ...base, rows: carried.rows },
+          hiddenCheckedRowIds: carried.hiddenCheckedRowIds,
         }),
       );
     },

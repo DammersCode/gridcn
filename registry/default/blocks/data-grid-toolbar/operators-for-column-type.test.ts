@@ -3,7 +3,7 @@ import { emptyValueFor, operatorHasValue, operatorLabel, operatorsForColumnType 
 import { DEFAULT_LABELS, type FilterOperator } from "@/registry/default/blocks/data-grid/data-grid";
 
 describe("operatorsForColumnType", () => {
-  it("offers only text operators for text-like columns", () => {
+  it("offers text and set operators for text columns, and text operators only for checkbox and url", () => {
     expect(operatorsForColumnType("text")).toEqual([
       "contains",
       "notContains",
@@ -13,10 +13,15 @@ describe("operatorsForColumnType", () => {
       "endsWith",
       "empty",
       "notEmpty",
+      "isAnyOf",
+      "isNoneOf",
     ]);
     expect(operatorsForColumnType(undefined)).not.toContain("gt");
     expect(operatorsForColumnType("select")).not.toContain("gt");
+    expect(operatorsForColumnType("select")).toEqual(expect.arrayContaining(["isAnyOf", "isNoneOf"]));
     expect(operatorsForColumnType("checkbox")).not.toContain("lte");
+    expect(operatorsForColumnType("checkbox")).not.toContain("isAnyOf");
+    expect(operatorsForColumnType("url")).not.toContain("isNoneOf");
   });
 
   it("adds gt/gte/lt/lte only for number and date columns", () => {
@@ -42,6 +47,8 @@ describe("operatorLabel", () => {
       "gte",
       "lt",
       "lte",
+      "isAnyOf",
+      "isNoneOf",
     ];
     for (const op of all) {
       expect(typeof operatorLabel(op, DEFAULT_LABELS.filterOperators)).toBe("string");
@@ -62,6 +69,7 @@ describe("operatorHasValue", () => {
 describe("emptyValueFor", () => {
   it("gives each operator family its empty value shape", () => {
     expect(emptyValueFor("isAnyOf")).toEqual([]);
+    expect(emptyValueFor("isNoneOf")).toEqual([]);
     expect(emptyValueFor("isBetween")).toEqual(["", ""]);
     expect(emptyValueFor("contains")).toBe("");
     expect(emptyValueFor(undefined)).toBe("");

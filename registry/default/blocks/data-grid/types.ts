@@ -96,6 +96,9 @@ export type ViewCellRef = CellRef & {
   viewColumnIndex: number;
 };
 
+/** How the quick search compares text: `matchCase` (default `false`) respects letter case, `wholeCell` (default `false`) matches only cells equal to the search text. */
+export type SearchOptions = { matchCase?: boolean; wholeCell?: boolean };
+
 /** The two opposite corners of a rectangular selection; either diagonal order is accepted on resolve. */
 export type CellRange = { start: CellRef; end: CellRef };
 
@@ -205,11 +208,12 @@ export type DataChange<TData> = {
    * `updateCells`/`updateRows` batch; `useDataGridHistory` drops it by default, because a
    * 100-updates/s feed would evict the user's whole undo stack in seconds. `"app"` tags an
    * imperative `record()` entry (a programmatic change the consumer applied itself).
+   * `"replace"` tags a find-and-replace batch (an `updateCells` call the `data-grid-find-replace` add-on makes); `useDataGridHistory` records it.
    * `"history"` tags an undo or redo; `"rollback"` tags `useDataGridHistory().rollback`, which reverts a
    * change whose save failed. Neither is recorded, so a server-sync handler can skip undo and redo
    * and still send a rollback (or the reverse).
    */
-  source: "edit" | "paste" | "fill" | "delete" | "row-operation" | "import" | "history" | "rollback" | "stream" | "app";
+  source: "edit" | "paste" | "fill" | "delete" | "row-operation" | "import" | "history" | "rollback" | "stream" | "replace" | "app";
   /** Optional human-readable label for this entry (e.g. "Batch save rollback"); carried through the undo/redo stack as-is. */
   label?: string;
 };
@@ -300,12 +304,12 @@ export type GridEditEndEvent = ViewCellRef & { result: "commit" | "cancel" | "re
 export type GridBulkValidationError = { rowId: string; columnId: string; viewRowIndex: number; value: unknown; message: string };
 
 /**
- * Fired by `onValidationError` after a bulk paste, a fill, or an `updateCells` call (`"stream"`)
+ * Fired by `onValidationError` after a bulk paste, a fill, or an `updateCells` call (`"stream"`, or `"replace"` for a find-and-replace batch)
  * settles, ONLY when at least one cell was rejected — the accepted cells are already applied
  * (their `onDataChange`/`onSelectionChange` fire first). `rejected` lists every refused cell with
  * its validator's message.
  */
-export type GridValidationErrorEvent = { source: "paste" | "fill" | "stream"; rejected: GridBulkValidationError[] };
+export type GridValidationErrorEvent = { source: "paste" | "fill" | "stream" | "replace"; rejected: GridBulkValidationError[] };
 
 /** Fired on a double-click on any non-pinned, non-skeleton cell — a pure notification in the {@link OnCellClick} sense (no veto), fired regardless of readOnly. */
 export type OnCellDoubleClick<TData> = (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
@@ -437,7 +441,7 @@ export type CellTypeValueInput = "text" | "number" | "date" | "boolean" | "choic
 
 /**
  * Props of a custom filter value input (a component in `CellTypeFilter.valueInput`). `value` is a
- * string, an `isBetween` pair, or an `isAnyOf` list, depending on `operator`.
+ * string, an `isBetween` pair, or an `isAnyOf` / `isNoneOf` list, depending on `operator`.
  */
 export type FilterValueInputProps = {
   column: AnyColumnDef;
@@ -607,7 +611,8 @@ export type FilterOperator =
   | "lt"
   | "lte"
   | "isBetween"
-  | "isAnyOf";
+  | "isAnyOf"
+  | "isNoneOf";
 
 /** Combines multiple `FilterSpec`s: `"and"` (default) requires every filter to match, `"or"` requires any one. */
 export type FilterJoinOperator = "and" | "or";
@@ -617,7 +622,9 @@ export type FilterJoinOperator = "and" | "or";
  * numbers and dates included (`"30"`, `"2025-01-31"`); the operators `empty` and `notEmpty` take no value.
  * `value` is a single string for most operators. `isBetween` carries an inclusive `[min, max]`
  * tuple (either bound may be `""` for an open-ended range); `isAnyOf` carries a `string[]` of
- * accepted values and matches when the cell text equals any of them. `filterId` is a stable
+ * accepted values and matches when the cell text equals any of them; `isNoneOf` carries a
+ * `string[]` of excluded values and matches when the cell text equals none of them (an empty list
+ * matches every row). `filterId` is a stable
  * identity for list rendering/updates independent of array position (multiple filter rows on the
  * same column are allowed and meaningful under `"or"`/mixed joins); optional at the input boundary
  * for backward compatibility — the store auto-assigns one when absent (see `genFilterId`).
@@ -677,6 +684,7 @@ export interface GridActions {
   toggleRow: true;
   toggleAllRows: true;
   openColumnMenu: true;
+  openColumnFilter: true;
   edit: true;
   typeToReplace: true;
   commitDown: true;
@@ -693,7 +701,11 @@ export interface GridActions {
   insertRowAbove: true;
   duplicateRow: true;
   deleteRows: true;
+  moveRowsUp: true;
+  moveRowsDown: true;
   openLink: true;
+  openFindReplace: true;
+  openFind: true;
 }
 
 /** Every named keyboard action — the built-ins of {@link GridActions} plus any the consumer merged in. */
@@ -946,6 +958,20 @@ export type ColumnLayout = {
   order: string[];
   pins: Record<string, "left" | "right">;
   hidden: string[];
+};
+
+/**
+ * A shared header above a run of columns. `children` lists column ids and nested groups; a group
+ * keeps its columns next to each other under reorder, hide, pin, and restored layouts. A group id
+ * is unique across all groups and columns.
+ */
+export type ColumnGroupDef = {
+  id: string;
+  header: string | ReactNode;
+  /** Plain text for assistive technology and menus when `header` is a node. */
+  headerText?: string;
+  children: readonly (string | ColumnGroupDef)[];
+  headerClassName?: string;
 };
 
 /** Options for `actions.autosizeColumns` and the `autosizeOnMount` prop. */

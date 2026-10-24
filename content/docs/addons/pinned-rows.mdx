@@ -1,6 +1,7 @@
 ---
 title: Pinned rows
 description: Sticky top/bottom row bands (e.g. a totals row) via the same sticky machinery as the header.
+status: updated
 icon: Pin
 ---
 
@@ -199,7 +200,7 @@ compose with everything else that shares that viewport:
 
 ## a11y
 
-The `aria-rowindex` order is: header (1), pinned-top rows, data rows, then pinned-bottom rows.
+The `aria-rowindex` order is: header rows (1 without column groups), pinned-top rows, data rows, then pinned-bottom rows.
 `aria-rowcount` on the grid includes both bands. Pinned cells carry `role="gridcell"` and the
 same `data-type` and `data-readonly` attributes as data cells. They carry no `tabindex`, because
 they are not part of roving-tabindex navigation. They also carry no `aria-selected`, because they

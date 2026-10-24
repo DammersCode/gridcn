@@ -1,4 +1,5 @@
 ---
+status: updated
 title: Undo & redo
 description: Operation-based, row-id-based history that survives sort and filter.
 icon: Undo2
@@ -125,7 +126,7 @@ history.record(
 ## Which changes are recorded
 
 History records the changes a user made on purpose: `edit`, `paste`, `fill`, `delete`, `row-operation`,
-`import`, and `app` (see the `source` field in
+`import`, `replace`, and `app` (see the `source` field in
 [Events & state](/docs/events-state#1-ondatachange--the-flagship-shape)). It never records
 `history` (an undo or redo itself). It does not record `stream` by default, so a live feed of
 `updateCells` batches never fills the stack or gets undone by accident. Pass `recordSources` to

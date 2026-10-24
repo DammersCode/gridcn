@@ -193,6 +193,15 @@ describe("buildExportRows / buildExportHeaders", () => {
     expect(rows.map((r) => r[0])).toEqual(["Alice"]);
   });
 
+  it("scope 'selection' with keepCheckedRows exports only the checked rows while any exist", () => {
+    const selection = {
+      rows: { length: 1, hasIndex: () => false, toArray: () => [2] },
+      current: { range: { x: 0, y: 0, width: 1, height: 2 }, rangeStack: [] },
+    } as never;
+    expect(buildExportRows(makeState({ selection, keepCheckedRows: true }), "selection").map((r) => r[0])).toEqual(["Ünïcödé"]);
+    expect(buildExportRows(makeState({ selection, keepCheckedRows: false }), "selection").map((r) => r[0])).toEqual(["Alice", "Bob", "Ünïcödé"]);
+  });
+
   it("scope 'selection' follows view order under a sort, not data order", () => {
     const state = makeState({
       viewIndex: [2, 1, 0],

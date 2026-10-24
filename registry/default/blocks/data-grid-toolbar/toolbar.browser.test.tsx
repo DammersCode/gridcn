@@ -742,13 +742,14 @@ describe("DataGridFilterMenu typed value inputs", () => {
     await expect.element(page.getByRole("combobox", { name: "Filter value" })).toHaveTextContent("Admin");
   });
 
-  it("isAnyOf is offered only for select columns", async () => {
+  it("isAnyOf and isNoneOf are offered for number columns", async () => {
     await renderRichGrid();
     await openFilterMenu();
     await switchFilterColumn("Age");
     await page.getByRole("combobox", { name: "Filter operator" }).click();
     await expect.element(page.getByRole("option", { name: "is between" })).toBeInTheDocument();
-    expect(document.querySelector('[role="option"][data-value="isAnyOf"]')).toBeNull();
+    await expect.element(page.getByRole("option", { name: "is any of" })).toBeInTheDocument();
+    await expect.element(page.getByRole("option", { name: "is none of" })).toBeInTheDocument();
   });
 });
 
@@ -965,6 +966,34 @@ describe("DataGridColumnsMenu", () => {
     await page.getByRole("button", { name: "Columns" }).click();
     await page.getByRole("menuitemcheckbox", { name: "Email" }).click();
     await expect.element(page.getByRole("columnheader", { name: "Email" })).not.toBeInTheDocument();
+  });
+
+  it("lists the members of a column group under a non-interactive heading", async () => {
+    await render(
+      <div style={{ height: 400, width: 900 }}>
+        <DataGridProvider
+          data={makeRows()}
+          columns={columns}
+          columnGroups={[{ id: "contact", header: "Contact", children: ["email", "age"] }]}
+          getRowId={(r) => r.id}
+        >
+          <DataGridToolbar>
+            <DataGridColumnsMenu />
+          </DataGridToolbar>
+          <DataGridRoot className="h-[300px] w-[900px]">
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      </div>,
+    );
+    await page.getByRole("button", { name: "Columns" }).click();
+    const menu = document.querySelector(gridAttrSelector("columnsMenu"))!;
+    const group = menu.querySelector('[role="group"]')!;
+    expect(group.textContent).toContain("Contact");
+    expect([...group.querySelectorAll('[role="menuitemcheckbox"]')].map((el) => el.textContent)).toEqual(["Email", "Age"]);
+    expect(group.querySelector('[role="menuitemcheckbox"]')?.textContent).not.toContain("Contact");
+    expect(menu.querySelectorAll('[role="menuitemcheckbox"]')).toHaveLength(3);
   });
 
   it("renders show/hide rows only — no pin controls", async () => {

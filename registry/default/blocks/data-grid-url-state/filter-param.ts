@@ -5,8 +5,11 @@ import { safeDecode } from "./sort-param";
 /** In-value separator for `isBetween`'s two-part value. `encodeURIComponent` leaves `~` in its unreserved set untouched, so a literal `~` inside a bound must be escaped separately (see {@link encodeRangePart}) to stay unambiguous against the separator. */
 const RANGE_SEPARATOR = "~";
 
-/** In-value separator for `isAnyOf`'s choice list. `encodeURIComponent` escapes a literal `|` inside a choice to `%7C`, so the raw separator can never collide with a choice's own characters. */
+/** In-value separator for the `isAnyOf` and `isNoneOf` choice lists. `encodeURIComponent` escapes a literal `|` inside a choice to `%7C`, so the raw separator can never collide with a choice's own characters. */
 const ANYOF_SEPARATOR = "|";
+
+/** Token for an empty list entry (the "(Blanks)" value). `encodeURIComponent` never emits a lone `%`, so no encoded value collides with it, and a sole empty entry stays distinct from an empty list. */
+const EMPTY_ENTRY_TOKEN = "%";
 
 /** A hand-edited URL must not express an unbounded view state; filter segments beyond the cap are dropped. */
 const MAX_URL_FILTERS = 64;
@@ -14,12 +17,12 @@ const MAX_URL_FILTERS = 64;
 /** Raw comma-separated segments read before parsing stops; bounds the work a URL of empty segments can cost. */
 const MAX_URL_FILTER_SEGMENTS = MAX_URL_FILTERS * 4;
 
-/** Bound for one `isAnyOf` list parsed from a URL when the caller names no per-column limit. */
+/** Bound for one `isAnyOf` or `isNoneOf` list parsed from a URL when the caller names no per-column limit. */
 const DEFAULT_MAX_ANYOF_CHOICES = 1000;
 
 /** Options for {@link parseFilterState}. */
 export type ParseFilterStateOptions = {
-  /** Most entries an `isAnyOf` list of this column may hold, usually its number of `choices`. Returns `undefined` for the 1000 default. */
+  /** Most entries an `isAnyOf` or `isNoneOf` list of this column may hold, usually its number of `choices`. Returns `undefined` for the 1000 default. */
   maxChoices?: (columnId: string) => number | undefined;
 };
 
@@ -31,17 +34,18 @@ function encodeRangePart(part: string): string {
 function encodeFilterValue(operator: FilterOperator, value: FilterSpec["value"]): string {
   if (value === undefined) return "";
   if (Array.isArray(value) && operator === "isBetween") return `${encodeRangePart(value[0])}${RANGE_SEPARATOR}${encodeRangePart(value[1])}`;
-  if (Array.isArray(value)) return value.map(encodeURIComponent).join(ANYOF_SEPARATOR);
+  if (Array.isArray(value)) return value.map((entry) => (entry === "" ? EMPTY_ENTRY_TOKEN : encodeURIComponent(entry))).join(ANYOF_SEPARATOR);
   return encodeURIComponent(value);
 }
 
 /**
  * Compact URL encoding for {@link FilterSpec}[]: comma-separated `columnId:operator:value` triples
  * (`value` omitted for operators with none, e.g. `empty`/`notEmpty`), column id and value
- * percent-encoded. `isBetween`'s two-value range encodes as `min~max`, `isAnyOf`'s choice list as
+ * percent-encoded. `isBetween`'s two-value range encodes as `min~max`, the `isAnyOf` and `isNoneOf` choice lists as
  * `a|b|c` (each choice percent-encoded, so the raw `|` separator can never collide) — both still
  * one `value` field, so every other operator's format — and any URL generated before those
- * operators existed — round-trips unchanged. `filterId` is never serialized — it's a transient
+ * operators existed — round-trips unchanged. An empty list entry encodes as the lone token `%`
+ * (`a|%`), so `[""]` differs from `[]`; a part left empty by hand-editing still reads as an empty entry. `filterId` is never serialized — it's a transient
  * list-rendering identity the store re-derives on parse, not part of the filter's meaning.
  *
  * @example serializeFilterState([{ columnId: "age", operator: "gt", value: "30" }])
@@ -60,14 +64,18 @@ export function serializeFilterState(filters: readonly FilterSpec[]): string {
 /** Sentinel distinguishing "decode failed, drop the segment" from a legitimately-empty decoded value (`""`). */
 const DECODE_FAILED = Symbol("decode-failed");
 
-/** Decodes a segment's value part per `operator`: `isBetween` splits on {@link RANGE_SEPARATOR} into a tuple, `isAnyOf` splits on {@link ANYOF_SEPARATOR} into a choice list (empty value = empty list), everything else stays a plain string. Malformed input (wrong tuple arity, bad percent-encoding) returns {@link DECODE_FAILED}. */
+/** Decodes a segment's value part per `operator`: `isBetween` splits on {@link RANGE_SEPARATOR} into a tuple, `isAnyOf` and `isNoneOf` split on {@link ANYOF_SEPARATOR} into a choice list (empty value = empty list), everything else stays a plain string. Malformed input (wrong tuple arity, bad percent-encoding) returns {@link DECODE_FAILED}. */
 function decodeFilterValue(operator: string, raw: string, maxChoices: number): FilterSpec["value"] | typeof DECODE_FAILED {
-  if (operator === "isAnyOf") {
+  if (operator === "isAnyOf" || operator === "isNoneOf") {
     if (raw === "") return [];
     const parts: string[] = [];
     for (const rawPart of raw.split(ANYOF_SEPARATOR)) {
-      if (parts.length >= maxChoices) break;
-      const decoded = safeDecode(rawPart);
+      if (parts.length >= maxChoices) {
+        // a truncated exclusion list would match more rows than the link meant
+        if (operator === "isNoneOf") return DECODE_FAILED;
+        break;
+      }
+      const decoded = rawPart === EMPTY_ENTRY_TOKEN ? "" : safeDecode(rawPart);
       if (decoded === null) return DECODE_FAILED;
       parts.push(decoded);
     }
@@ -86,11 +94,12 @@ function decodeFilterValue(operator: string, raw: string, maxChoices: number): F
 
 /**
  * Inverse of {@link serializeFilterState}. Malformed segments (unknown operator, empty/undecodable
- * column id, wrong field count, malformed `isBetween` range or `isAnyOf` list) are dropped silently
+ * column id, wrong field count, malformed `isBetween` range or `isAnyOf` / `isNoneOf` list) are dropped silently
  * rather than throwing — a corrupt/hand-edited URL degrades to fewer filters, never an error.
  * Parsing stops after 256 raw segments. The parsed list is capped at 64 filters, and each `isAnyOf`
  * list at `options.maxChoices(columnId)` entries (1000 by default); the first segments win, so a
- * hand-edited URL cannot express an unbounded filter set.
+ * hand-edited URL cannot express an unbounded filter set. An `isNoneOf` list over its bound drops
+ * the whole segment.
  * Every filter parses without a `filterId`; the store backfills a fresh stable one on the next sync.
  *
  * @example parseFilterState("age:gt:30") // => [{ columnId: "age", operator: "gt", value: "30" }]

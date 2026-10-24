@@ -37,6 +37,7 @@ import {
   DataGridSearch,
   DataGridFilterMenu,
   DataGridColumnsMenu,
+  DataGridHeaderFilter,
 } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
 import {
   DataGridContextMenu,
@@ -348,6 +349,7 @@ function VirtualizedGrid({ controls }: { controls: PlaygroundControls }): ReactN
         <DataGridRoot
           className="h-full rounded-none border-none"
           renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}
+          renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}
           renderMarker={controls.renderMarker}
           renderMarkerHeader={controls.renderMarkerHeader}
           density={controls.density}
@@ -403,6 +405,7 @@ function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNod
           <DataGridRoot
             className="min-h-0 flex-1 rounded-none border-none"
             renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}
+            renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}
             renderMarker={controls.renderMarker}
             renderMarkerHeader={controls.renderMarkerHeader}
             density={controls.density}
@@ -558,6 +561,7 @@ function LazySortedGrid({
         <DataGridRoot
           className="h-full rounded-none border-none"
           renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}
+          renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}
           renderMarker={controls.renderMarker}
           renderMarkerHeader={controls.renderMarkerHeader}
           density={controls.density}

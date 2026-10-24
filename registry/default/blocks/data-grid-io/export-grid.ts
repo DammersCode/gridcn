@@ -73,7 +73,7 @@ export function exportDataIndices(state: DataGridReadState, scope: "view" | "all
     scope === "all"
       ? state.data.map((_, i) => i)
       : scope === "selection"
-        ? getSelectedViewRows(state.selection).map((viewRow) => state.viewIndex[viewRow]!)
+        ? getSelectedViewRows(state.selection, { checkedRowsOnly: state.keepCheckedRows }).map((viewRow) => state.viewIndex[viewRow]!)
         : state.viewIndex;
   // lazy grids keep `data` sparse: skip holes before any accessor runs
   return scoped.filter((dataRowIndex) => state.data[dataRowIndex] !== undefined);

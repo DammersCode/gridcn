@@ -1,6 +1,7 @@
 ---
 title: Prisma
 description: The grid's server fetch contract with Prisma. The same shape as a Prisma query, operator mapping included.
+status: updated
 icon: Boxes
 ---
 
@@ -72,7 +73,7 @@ Notes:
 
 - `mode: "insensitive"` gives the case-insensitive `contains` the grid's quick search
   implies. Drop it for exact semantics.
-- `isAnyOf` maps to `in: f.value`. Add it to the table above when you need it.
+- `isAnyOf` maps to `in: f.value`, and `isNoneOf` maps to `notIn: f.value`. Add them to the table above when you need them.
 - The client is the [server-side example](/docs/examples/data/server-side) unchanged.
   Edits become `prisma.user.update` in the same write-through handler.
 

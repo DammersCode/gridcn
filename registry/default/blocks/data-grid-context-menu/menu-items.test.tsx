@@ -225,3 +225,27 @@ describe("delete-rows after a sort", () => {
     expect(ops.map((op) => op.rowId).sort()).toEqual(["a", "c", "d"]);
   });
 });
+
+describe("row items with only hidden checked rows", () => {
+  it("disables Delete rows and Duplicate rows", async () => {
+    let cell: GridMenuItemSpec[] = [];
+    function Hidden() {
+      const actions = useDataGridActions();
+      useEffect(() => {
+        actions.setRowSelected(0, true);
+        actions.setFilters([{ filterId: "f", columnId: "name", operator: "equals", value: "Bob" }]);
+      }, [actions]);
+      cell = useDefaultCellMenuItems({ row: 0, canInsertRow: false, canDuplicateRow: true, pasteBlocked: false, onPasteBlocked: () => {} });
+      return null;
+    }
+    render(
+      <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id} duplicateRow={(row) => ({ ...row, id: `${row.id}2` })} keepCheckedRows keepHiddenCheckedRows>
+        <DataGridRoot>
+          <Hidden />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await waitFor(() => expect(item(cell, "delete-rows")?.disabled).toBe(true));
+    expect(item(cell, "duplicate-rows")?.disabled).toBe(true);
+  });
+});

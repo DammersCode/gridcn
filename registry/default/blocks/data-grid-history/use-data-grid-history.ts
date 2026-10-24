@@ -42,6 +42,7 @@ const DEFAULT_RECORD_SOURCES: readonly DataChange<unknown>["source"][] = [
   "delete",
   "row-operation",
   "import",
+  "replace",
   "app",
 ];
 

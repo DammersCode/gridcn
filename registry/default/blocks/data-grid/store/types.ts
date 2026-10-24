@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode, Ref } from "react";
 import type { StoreApi } from "zustand/vanilla";
+import type { ColumnGroupModel } from "../columns/column-groups";
 import type {
   CellRef,
   ViewCellRef,
@@ -7,6 +8,7 @@ import type {
   AutosizeOptions,
   CellType,
   ColumnDef,
+  ColumnGroupDef,
   ColumnLayout,
   DataChange,
   DataGridApi,
@@ -25,6 +27,7 @@ import type {
   OnCellDoubleClick,
   RowMarkersMode,
   SelectionState,
+  SearchOptions,
   SortSpec,
 } from "../types";
 import type { RowBandRenderCtx } from "../layout-context";
@@ -34,6 +37,9 @@ import type { SearchMatch } from "../sort-filter";
 import type { ExtendDirection, SelectLineOptions } from "../selection";
 import type { ColRange } from "../selection/selected-col-ranges-for-row";
 import type { DataWriteContext } from "./data-write";
+
+/** The input that wrote the current selection. */
+export type SelectionPointer = "touch" | "mouse" | "pen" | "keyboard";
 
 /** The lazily-read context `DataGridRoot` registers for {@link DataGridActions.autosizeColumns}. */
 export type AutosizeMeasureContext = {
@@ -45,6 +51,8 @@ export type AutosizeMeasureContext = {
   window: { start: number; end: number } | null;
   /** The consumer renders a per-column header-menu trigger (adds its fixed width allowance). */
   hasHeaderMenu: boolean;
+  /** The consumer renders a per-column header-filter button (adds its fixed width allowance to columns with a set filter). */
+  hasHeaderFilter: boolean;
 };
 
 /** Live props synced from the consumer's render into the store on every change, typed over the consumer's row shape. */
@@ -126,6 +134,26 @@ export type DataGridSyncProps<TData = unknown> = {
   rowMarkers?: RowMarkersMode;
   /** Whole-row selection channel gestures (marker click, Shift+Space); default true. */
   enableRowSelection?: boolean;
+  /**
+   * Keeps the checked rows when a cell is selected (click, arrows, Shift or Ctrl click) and makes
+   * row operations (delete, duplicate, move, the cell menu's row items) act only on the checked
+   * rows while any exist. Escape, the checkboxes, and `clearSelection` still change the checks. Default `false`.
+   */
+  keepCheckedRows?: boolean;
+  /**
+   * Remembers a checked row that a filter hides and checks it again when the filter lets it back
+   * in. Hidden checked rows stay out of every row action, the controlled `selection`, and select
+   * all; `useDataGridHiddenCheckedCount` reads their number. Takes effect only with
+   * `keepCheckedRows` and client-side data; a server-sorted grid ignores it, and a grid ignores it while its data holds unloaded (lazy) rows. Default `false`.
+   */
+  keepHiddenCheckedRows?: boolean;
+  /**
+   * Runs before every row delete the grid starts: the Delete rows shortcut, the context-menu
+   * item, and `actions.deleteRows` / `deleteRowsById`. `rowIds` are the rows that go; `hiddenCount`
+   * counts the hidden checked rows that stay. Return `false` (or a promise of `false`) to cancel.
+   * A pending promise blocks a second delete. A throw or a rejection cancels.
+   */
+  onBeforeDeleteRows?: (ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean | Promise<boolean>;
   /** Whole-column selection channel gestures (header click); default true. */
   enableColumnSelection?: boolean;
   /** Multi-cell rectangular range gestures (shift-click/drag, shift+arrow); false collapses to single-cell active only. Default true. */
@@ -238,6 +266,14 @@ export type DataGridSyncProps<TData = unknown> = {
    * (store-owned, with events).
    */
   columnLayout?: Partial<ColumnLayout>;
+  /**
+   * Shared headers above runs of columns, by column id; groups nest. The columns stay flat. A group
+   * keeps its columns next to each other: reorder moves a column inside its group and a group as a
+   * block, and a saved or restored `order` that splits a group is repaired. Unknown ids, a column
+   * listed twice, a repeated group id, and nesting deeper than 8 levels are dropped. Pass a stable
+   * identity for `header` nodes.
+   */
+  columnGroups?: readonly ColumnGroupDef[];
   /**
    * Runs one {@link DataGridActions.autosizeColumns} pass after mount, when the view first has
    * rows (a lazy grid waits for its first page); it runs once per mount. Columns with a saved
@@ -531,6 +567,8 @@ export type UpdateCellsVerdict = {
   skipped: UpdateCellsSkip[];
   /** True when the batch is held for async validation. */
   pending: boolean;
+  /** Present when `pending`: resolves with the final verdict, or with nothing applied when a newer write superseded the batch. */
+  settled?: Promise<UpdateCellsVerdict>;
 };
 
 /** Full per-grid interaction + derived state; internally typed over `unknown` rows. */
@@ -542,6 +580,8 @@ export type DataGridStoreState = Omit<
   | "commands"
   | "rowMarkers"
   | "enableRowSelection"
+  | "keepCheckedRows"
+  | "keepHiddenCheckedRows"
   | "enableColumnSelection"
   | "enableRangeSelection"
   | "enableMultiRange"
@@ -572,6 +612,10 @@ export type DataGridStoreState = Omit<
   /** Defaulted (never undefined) — see `resolveSelectionConfig`. */
   rowMarkers: RowMarkersMode;
   enableRowSelection: boolean;
+  keepCheckedRows: boolean;
+  keepHiddenCheckedRows: boolean;
+  /** Row ids of checked rows a filter hides; empty unless `keepHiddenCheckedRows` is in effect. Actions never read it. */
+  hiddenCheckedRowIds: ReadonlySet<string>;
   enableColumnSelection: boolean;
   enableRangeSelection: boolean;
   enableMultiRange: boolean;
@@ -634,6 +678,8 @@ export type DataGridStoreState = Omit<
    flashingCells: ReadonlySet<string>;
     /** The `plugins` sync prop resolved (see {@link ResolvedPlugins}); always defined — an absent list resolves to empty members, so overlays/bands/mounts/observers never read undefined. */
   plugins: ResolvedPlugins;
+  /** Which input wrote the current selection; touch selections show the selection handles. */
+  selectionPointer: SelectionPointer;
   lastHighlightedRow: number | null;
   lastHighlightedCol: number | null;
   columnWidths: Record<string, number>;
@@ -651,6 +697,8 @@ export type DataGridStoreState = Omit<
    * applies nothing.
    */
   columnLayout: ColumnLayout;
+  /** The validated `columnGroups` prop; null when no group keeps a column. */
+  columnGroupModel: ColumnGroupModel | null;
   sortState: SortSpec[];
   /** Mirrors the `sortMode` sync prop; `"server"` keeps `sortState` out of every view rebuild. */
   sortMode: "client" | "server";
@@ -659,6 +707,8 @@ export type DataGridStoreState = Omit<
   joinOperator: FilterJoinOperator;
   /** Quick-search text; never affects `viewIndex` (search highlights + navigates, it doesn't filter). */
   searchText: string;
+  /** How `searchText` matches; set through `actions.setSearch` and kept across searches. */
+  searchOptions: Required<SearchOptions>;
   /**
    * Whether `sortState`/`filterState`/`joinOperator`/`searchText` are controlled (their sync prop
    * was defined on the last `_syncProps`), set once per sync and read by `toggleSort`/`setSorts`/
@@ -741,6 +791,8 @@ export type DataGridStoreState = Omit<
   commands: Record<string, GridCommand<unknown>> | null;
   /** {@link DEFAULT_LABELS} deep-merged with the `labels` sync prop; see {@link useDataGridLabels}. */
   labels: DataGridLabels;
+  /** The live-region text of the latest row move (drag, keyboard, or `reorderRows`); empty before the first. */
+  rowMoveAnnouncement: string;
   /** The public actions only — the `_`-prefixed internals live in the store-private table ({@link getInternalActions}), never in state. */
   actions: DataGridActions;
 };
@@ -783,6 +835,8 @@ export type DataGridActions = {
   /** Header marker select-all checkbox: sets every view row's membership in the rows channel at once. No-op when `enableRowSelection` is false. */
   setAllRowsSelected(checked: boolean): void;
   clearSelection(): void;
+  /** Clears the cell range and the column channel and keeps the checked rows. */
+  clearCellSelection(): void;
   /**
    * Applies a whole selection in stable {@link CellRef} terms, emitting like a gesture (`onSelectionChange`
    * fires when the result differs from the grid's current value): corner refs resolve through the
@@ -854,8 +908,8 @@ export type DataGridActions = {
   setFilters(filters: FilterSpec[]): void;
   /** Sets how `filterState`'s rows combine ("and" every filter must match, "or" any one does). */
   setJoinOperator(joinOperator: FilterJoinOperator): void;
-  /** Sets quick-search text and recomputes `searchMatches`/`searchMatchSet`/`searchMatchesCapped` once; never touches `viewIndex`. */
-  setSearch(text: string): void;
+  /** Sets quick-search text (and, when given, the search options) and recomputes `searchMatches`/`searchMatchSet`/`searchMatchesCapped` once; never touches `viewIndex`. Omitted options keep the current ones. */
+  setSearch(text: string, options?: SearchOptions): void;
   /** Enters edit mode at the cell named by the stable {@link CellRef}, cancelling an open session first; no-op when the grid or column is readOnly, or its type is unregistered or declares `activate`. */
   startEditing(ref: CellRef, initialText?: string): void;
   /** View-index variant of {@link DataGridActions.startEditing} for callers that hold a {@link ViewCoord}. */
@@ -951,17 +1005,24 @@ export type DataGridActions = {
    */
   duplicateRows(viewRowIndexes: number[]): void;
   /**
-   * Moves the row at view index `from` so it lands at view index `to` (final position — arrayMove
-   * semantics: `from < to` shifts rows `from+1..to` up one, `from > to` shifts rows `to..from-1`
-   * down one). One `{source: 'row-operation'}` DataChange with a single row-id-based `move` operation (one undo
-   * entry). No-ops (silent, dev-warned where the cause is a misconfiguration): `enableRowReorder`
+   * Moves the rows at view indices `rows` (a number or a list) as one block: they keep their
+   * relative order and land contiguous, the first at view index `to` (final position — arrayMove
+   * semantics for one row). Duplicate indices count once. One `{source: 'row-operation'}` DataChange with one
+   * row-id-based `move` operation per moved row, each `from` the index before the batch and each `to` the
+   * final index (one undo entry; apply the operations together, never one by one). No-ops (silent, dev-warned where the cause is a misconfiguration): `enableRowReorder`
    * off, readOnly, an open edit session (the editor pins a view coordinate the move would
    * invalidate), an active sort/filter (the view order is owned by the sort/filter, not the data),
    * unloaded (lazy) rows (a reorder would shift the lazy add-on's index bookkeeping), and a drop
-   * that leaves the row where it already is. Returns `true` when the row moved, `false` for any
-   * no-op — the drag gesture uses the verdict for its a11y announcement.
+   * that leaves the rows where they already are, an empty list, and an out-of-range index or `to`.
+   * Returns `true` when rows moved, `false` for any no-op — the drag gesture uses the verdict for its a11y announcement.
    */
-  reorderRows(from: number, to: number): boolean;
+  reorderRows(rows: number | readonly number[], to: number): boolean;
+  /**
+   * Shifts every row at view indices `rows` by `delta` and keeps the gaps between them (the keyboard
+   * move). Same change shape, guards, and return value as {@link reorderRows}; the whole batch stays put
+   * when any row would leave the grid.
+   */
+  moveRowsBy(rows: readonly number[], delta: number): boolean;
   /**
    * The single generic data-write action: applies a whole {@link DataChange} (a consumer-built operation
    * batch or a history-inverted one) in ONE write and emits `onDataChange` EXACTLY ONCE - one undo
@@ -1060,6 +1121,7 @@ export type SyncInputs = {
   searchText: string;
   columnOrder: string[] | null;
   hiddenColumns: readonly string[];
+  columnGroupModel: ColumnGroupModel | null;
 };
 
 export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
@@ -1072,7 +1134,8 @@ export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
     a.joinOperator === b.joinOperator &&
     a.searchText === b.searchText &&
     a.columnOrder === b.columnOrder &&
-    a.hiddenColumns === b.hiddenColumns
+    a.hiddenColumns === b.hiddenColumns &&
+    a.columnGroupModel === b.columnGroupModel
   );
 }
 

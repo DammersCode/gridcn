@@ -132,6 +132,19 @@ describe("DataGridUrlState isAnyOf bound", () => {
   });
 });
 
+describe("DataGridUrlState isNoneOf", () => {
+  it("applies an isNoneOf list from the URL", () => {
+    const { getState } = renderGrid({ searchParams: "?filter=name%3AisNoneOf%3AAlice%7CBob" });
+    expect(getState().filter).toEqual([{ filterId: expect.any(String), columnId: "name", operator: "isNoneOf", value: ["Alice", "Bob"] }]);
+  });
+
+  it("drops an isNoneOf list over the bound instead of shortening it", () => {
+    const values = Array.from({ length: 1001 }, (_, i) => `v${i}`).join("|");
+    const { getState } = renderGrid({ searchParams: `?filter=name%3AisNoneOf%3A${values}` });
+    expect(getState().filter).toEqual([]);
+  });
+});
+
 describe("DataGridUrlState mount-apply", () => {
   it("applies sort/filter/search from the URL on mount", () => {
     const { getState } = renderGrid({ searchParams: "?sort=name%3Aasc&filter=age%3Agt%3A30&q=alice" });
@@ -217,6 +230,21 @@ describe("DataGridUrlState excluded columns", () => {
     act(() => actions!.setSorts([{ columnId: "id", direction: "desc" }]));
     await act(async () => result!.applyFromUrl());
     expect(latest!.sort).toEqual([{ columnId: "id", direction: "desc" }]);
+  });
+
+  it("drops a URL sort for a column the URL hide part hides", () => {
+    const getState = renderGuarded("?sort=name%3Aasc&hide=name");
+    expect(getState().sort).toEqual([]);
+  });
+
+  it("keeps a URL sort for a def-hidden column the URL hide part shows", () => {
+    const getState = renderGuarded("?sort=id%3Adesc&hide=-");
+    expect(getState().sort).toEqual([{ columnId: "id", direction: "desc" }]);
+  });
+
+  it("drops a URL filter for a column the URL hide part hides", () => {
+    const getState = renderGuarded("?filter=name%3Aequals%3AAlice&hide=name");
+    expect(getState().filter).toEqual([]);
   });
 
   it("drops URL filter specs for a filterable:false or hidden column", () => {

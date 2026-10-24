@@ -1,6 +1,7 @@
 ---
 title: Filtering
-description: Quick search, per-column filters, faceted isAnyOf on select columns, and isBetween ranges.
+description: Quick search, per-column filters, faceted isAnyOf and isNoneOf, the header filter, and isBetween ranges.
+status: updated
 icon: Funnel
 ---
 
@@ -22,7 +23,18 @@ The operator set adapts to the cell type. That's where faceted and range filteri
 
 On `select` columns the filter menu offers `isAnyOf`: pick any number of `options.choices`
 and a row matches if its value is in the list. That is the faceted-filter shape: one filter
-per column, multiple values each.
+per column, multiple values each. `isNoneOf` is the opposite: a row matches if its value is not in
+the list. `text`, `number`, and `date` columns offer both operators too.
+
+## Header filter
+
+<NewBadge />
+
+The header filter puts a searchable list of the column's values in each column header. The user
+checks the values to keep, and the grid stores the shorter of the checked and unchecked lists as
+`isAnyOf` or `isNoneOf`. See [the toolbar add-on](/docs/addons/toolbar#header-filter).
+
+<ComponentPreview name="data-grid-header-filter-demo" />
 
 ## Range filters
 
@@ -51,4 +63,4 @@ const counts = useMemo(() => {
 ## Related
 
 - [Sorting, filtering & search guide](/docs/sorting-filtering-search): the full add-on reference
-- [URL state](/docs/addons/url-state): filters serialize into shareable URLs via `isAnyOf`/`isBetween`
+- [URL state](/docs/addons/url-state): filters serialize into shareable URLs via `isAnyOf`/`isNoneOf`/`isBetween`
