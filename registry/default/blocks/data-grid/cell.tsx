@@ -72,9 +72,9 @@ export type DataGridCellProps = {
   initialText?: string;
   /** The open edit session's id; a new id remounts the editor and drops the old session's draft and pending validation. */
   editSession?: number;
-  /** The open edit's live validation error; wins over `cellError` while `isEditing`. */
+  /** The open edit's live validation error; wins over `cellError` while `isEditing`. A caller that passes `isEditing` forwards it from `useDataGridRowCellState`. */
   editingError?: string | null;
-  /** The commit-guard re-arm nonce forwarded to the editor. */
+  /** The commit-guard re-arm nonce forwarded to the editor. A caller that passes `isEditing` forwards it from `useDataGridRowCellState`. */
   editingRejectionCount?: number;
   isSearchMatch?: boolean;
   /** True when `row` is a hole in `data` (lazy loading) — renders a static shimmer block instead of cell content and skips every pointer/focus handler. */

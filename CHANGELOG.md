@@ -10,8 +10,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 ## Unreleased
 
 - Sorting 100k rows by a text column is about 25% faster in the browser (73 ms to 55 ms) and about 30% faster in the repo benchmark. The row order is unchanged.
-- `DataGridRowCellState` has the new fields `editingError` and `editingRejectionCount`, and `DataGridCellProps` has the new optional props `editingError` and `editingRejectionCount`. Each cell holds fewer store subscriptions.
-- Removed `useDataGridCellRejectionCount` from the internal data-grid store barrel, not the public one. It had no other caller. `useDataGridCellEditingError` stays.
+- **Breaking:** `DataGridRowCellState` has the new fields `editingError` and `editingRejectionCount`, and `DataGridCellProps` has the new optional props `editingError` and `editingRejectionCount`. A caller that passes `isEditing` to `DataGridCell` must forward both from `useDataGridRowCellState`; without them the cell loses the live validation error and the commit-guard re-arm. Each cell holds fewer store subscriptions.
 
 ## 1.2.0 - 2026-10-24
 
