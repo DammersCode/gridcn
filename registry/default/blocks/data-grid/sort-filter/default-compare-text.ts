@@ -4,9 +4,8 @@ const defaultCollator = new Intl.Collator(undefined, { numeric: true, sensitivit
 /**
  * Default text comparator: numeric-aware localeCompare, case-insensitive.
  * Empty strings always sort last, regardless of direction (callers must not
- * negate this result wholesale — see the empty-aware wrapper in buildViewIndex).
- * `collator` lets a hot loop (buildViewIndex) reuse one Intl.Collator instead of
- * this function constructing a fresh one per call.
+ * negate this result wholesale).
+ * `collator` lets a caller reuse one Intl.Collator across many comparisons.
  */
 export function defaultCompareText(a: string, b: string, collator: Intl.Collator = defaultCollator): number {
   const aEmpty = a === "";

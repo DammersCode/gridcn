@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { SortSpec } from "../types";
+import type { FilterSpec, SortSpec } from "../types";
 import { buildViewIndex, isEmptyCell, type CellAccessor } from "./build-view-index";
 import { defaultCompareText } from "./default-compare-text";
 
@@ -95,12 +95,18 @@ describe("buildViewIndex sort equivalence", () => {
   it("matches the reference when a filter narrows the rows first", () => {
     const random = seededRandom(5);
     const table = buildTable(random);
-    const accessor: CellAccessor = { getText: (row, columnId) => table[row]![columnId as "text"] };
-    const sorts: SortSpec[] = [{ columnId: "text", direction: "desc" }];
-    const result = buildViewIndex(ROW_COUNT, accessor, {
-      sorts,
-      filters: [{ columnId: "dup", operator: "equals", value: "y" } as never],
-    });
+    const accessor: CellAccessor = {
+      getText: (row, columnId) => table[row]![columnId as "text"],
+      compare: (columnId) =>
+        columnId === "typed" ? (a, b) => Number(table[a]!.typed) - Number(table[b]!.typed) : undefined,
+      isEmpty: (row, columnId) => table[row]![columnId as "text"] === "",
+    };
+    const sorts: SortSpec[] = [
+      { columnId: "text", direction: "desc" },
+      { columnId: "typed", direction: "asc" },
+    ];
+    const filters: FilterSpec[] = [{ columnId: "dup", operator: "equals", value: "y" }];
+    const result = buildViewIndex(ROW_COUNT, accessor, { sorts, filters });
     const kept = new Set(result);
     const reference = referenceSort(ROW_COUNT, accessor, sorts).filter((row) => kept.has(row));
     expect(result).toEqual(reference);

@@ -16,6 +16,7 @@ const SIMPLE_MEMO_COMPONENT = 15;
 const PERFORMED_WORK = 1;
 
 const counts = new Map<string, number>();
+let commitSeen = false;
 
 function componentName(fiber: Fiber): string | null {
   if (fiber.tag !== FUNCTION_COMPONENT && fiber.tag !== FORWARD_REF && fiber.tag !== SIMPLE_MEMO_COMPONENT) return null;
@@ -42,7 +43,10 @@ const installedHook: DevtoolsHook = {
   onScheduleFiberRoot: () => {},
   onCommitFiberUnmount: () => {},
   onPostCommitFiberRoot: () => {},
-  onCommitFiberRoot: (_id: number, root: FiberRoot) => countCommit(root.current),
+  onCommitFiberRoot: (_id: number, root: FiberRoot) => {
+    commitSeen = true;
+    countCommit(root.current);
+  },
 };
 if (!globalScope.__REACT_DEVTOOLS_GLOBAL_HOOK__) globalScope.__REACT_DEVTOOLS_GLOBAL_HOOK__ = installedHook;
 
@@ -52,15 +56,27 @@ export type RenderTracker = {
   snapshot(): Record<string, number>;
 };
 
-/** Counts renders per component name across commits. Throws when react-dom loaded before this module. */
+function assertObserving(): void {
+  if (!commitSeen) {
+    throw new Error("render-counter: no commit observed; import this helper before react-dom and render before reading counts");
+  }
+}
+
+/** Counts renders per component name across commits. Throws when another devtools hook is installed, and when `count` or `snapshot` runs before any commit was observed. */
 export function trackRenders(): RenderTracker {
   if (globalScope.__REACT_DEVTOOLS_GLOBAL_HOOK__ !== installedHook) {
     throw new Error("render-counter: another devtools hook is installed; import this helper before react-dom");
   }
   counts.clear();
   return {
-    count: (name) => counts.get(name) ?? 0,
+    count: (name) => {
+      assertObserving();
+      return counts.get(name) ?? 0;
+    },
     reset: () => counts.clear(),
-    snapshot: () => Object.fromEntries(counts),
+    snapshot: () => {
+      assertObserving();
+      return Object.fromEntries(counts);
+    },
   };
 }

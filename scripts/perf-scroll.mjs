@@ -125,7 +125,9 @@ function medianOf(runStats) {
 
 function deltaOf(medians, baseline) {
   const delta = {};
-  for (const key of Object.keys(medians)) delta[key] = +(medians[key] - baseline[key]).toFixed(1);
+  for (const key of Object.keys(medians)) {
+    if (typeof baseline[key] === "number") delta[key] = +(medians[key] - baseline[key]).toFixed(1);
+  }
   return delta;
 }
 

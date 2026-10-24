@@ -142,7 +142,7 @@ export function buildViewIndex(
     const keys = new Array<string>(rowCount);
     for (const row of indices) keys[row] = accessor.getText(row, sort.columnId);
 
-    // Empty must sort last for both directions, so only the non-empty ordering flips.
+    // Inlines the empty-last rule of defaultCompareText; only the non-empty ordering flips with direction.
     return (a: number, b: number) => {
       const textA = keys[a]!;
       const textB = keys[b]!;

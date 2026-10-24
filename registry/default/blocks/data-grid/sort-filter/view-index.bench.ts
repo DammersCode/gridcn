@@ -17,12 +17,27 @@ const textAccessor: CellAccessor = {
   getText: (rowIndex, columnId) => String(rows[rowIndex]![columnId as keyof Row]),
 };
 
+const rawCellValue = (row: Row): number => row["score"];
+
 const typedAccessor: CellAccessor = {
   ...textAccessor,
   compare: (columnId) => {
     const compare = numberCellType.compare;
     if (columnId !== "score" || !compare) return undefined;
-    return (a, b) => compare(rows[a]!.score, rows[b]!.score, undefined);
+    return (a, b) => {
+      const rowA = rows[a];
+      const rowB = rows[b];
+      if (rowA === undefined || rowB === undefined) return 0;
+      const valueA = rawCellValue(rowA);
+      const valueB = rawCellValue(rowB);
+      try {
+        const result = compare(valueA, valueB, undefined);
+        if (Number.isFinite(result)) return result;
+      } catch {
+        // fall through to the text compare
+      }
+      return defaultCompareText(String(valueA), String(valueB));
+    };
   },
 };
 

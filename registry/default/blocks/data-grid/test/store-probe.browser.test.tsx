@@ -19,11 +19,20 @@ async function mountAndMeasure(rowCount: number) {
       </DataGridRoot></div>
     </DataGridProvider>,
   );
-  const cells = screen.container.querySelectorAll('[role="gridcell"]').length;
-  const live = probe.liveListeners();
-  probe.restore();
-  await screen.unmount();
-  return { cells, live };
+  const cellCount = () => screen.container.querySelectorAll('[role="gridcell"]').length;
+  try {
+    let previous = -1;
+    await expect.poll(() => {
+      const current = cellCount();
+      const stable = current > 0 && current === previous;
+      previous = current;
+      return stable;
+    }).toBe(true);
+    return { cells: cellCount(), live: probe.liveListeners() };
+  } finally {
+    probe.restore();
+    await screen.unmount();
+  }
 }
 
 describe("store subscriptions per mounted cell", () => {
