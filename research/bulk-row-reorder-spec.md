@@ -1,5 +1,7 @@
 # Spec: bulk row reorder (W6-06, API-01)
 
+Status: implemented in 1.2.0.
+
 ## Goal
 
 Move several rows at once, in three stages: a batch `reorderRows` (one `move` batch, one undo

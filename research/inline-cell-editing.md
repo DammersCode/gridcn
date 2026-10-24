@@ -1,6 +1,6 @@
 # Inline cell editing: edit in place, no visible switch
 
-Status: steps 1 to 5, 7 and 8 are implemented. Step 6 (`contentEditable`) is dropped: the measurement test passes with plain inputs. A review pass with its own research is still open.
+Status: implemented in 1.2.0 (steps 1 to 5, 7 and 8). Step 6 (`contentEditable`) is dropped: the measurement test passes with plain inputs. The review pass is done.
 
 ## Goal
 

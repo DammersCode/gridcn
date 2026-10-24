@@ -1,5 +1,7 @@
 # Spec: column layout in the URL (W6-07, API-03)
 
+Status: implemented in 1.2.0.
+
 ## Goal
 
 `useDataGridUrlState` syncs the column layout to the URL next to sort, filter, join, and search, so

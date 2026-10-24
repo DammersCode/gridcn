@@ -83,11 +83,11 @@ Per-feature shipped detail (incl. user decisions): `docs/agent-work/2026-09-18-p
 ### v2 roadmap (documented, not built)
 
 Row DOM slot-recycling (conflicts with the row-identity invariant §4.2 — needs a design);
-variable/auto row heights; row grouping + aggregation; summary rows; cell merging; more cell
-types (multi-select, url, currency, percent, long-text); column groups; row drag reorder;
-in-grid find panel; formula adapter interface; two-way TanStack Query/DB recipes.
+variable/auto row heights; row grouping + aggregation; summary rows; cell merging; a
+multi-select cell type; formula adapter interface; two-way TanStack Query/DB recipes.
 Struck as shipped: column virtualization (phase 3b), presence/collab highlight regions
-(`data-grid-presence` add-on), RTL (2026-08-01), i18n labels.
+(`data-grid-presence` add-on), RTL (2026-08-01), i18n labels, number format and the url and
+long-text cell types, row drag reorder, column groups (1.2.0), find and replace (1.2.0).
 
 ## 4. Architecture
 

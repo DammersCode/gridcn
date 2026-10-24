@@ -1,5 +1,7 @@
 # Spec: header filter popover and set filter (W6-08, FEAT-4)
 
+Status: implemented in 1.2.0.
+
 ## Goal
 
 Each column header gets a filter button that opens a popover with a distinct-values ("set")
