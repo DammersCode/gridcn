@@ -137,6 +137,7 @@ export default defineConfig({
           browser: {
             enabled: true,
             headless: true,
+            trace: "retain-on-failure",
             // vitest v5 auto-assigns a distinct port per browser project (strictPort off by
             // default bumps past any in-use/Windows-reserved port), so no explicit api port.
             provider: playwright(),
@@ -174,6 +175,7 @@ export default defineConfig({
           browser: {
             enabled: true,
             headless: true,
+            trace: "retain-on-failure",
             provider: playwright(),
             instances: [{ browser: "chromium" }],
           },

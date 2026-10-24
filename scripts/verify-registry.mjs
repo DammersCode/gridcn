@@ -10,7 +10,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const registryPath = join(root, "registry.json");
 const registry = JSON.parse(readFileSync(registryPath, "utf8"));
 
-const isScreenshot = (p) => p.split(/[/\\]/).includes("__screenshots__");
+const isScreenshot = (p) => p.split(/[/\\]/).some((part) => part === "__screenshots__" || part === "__traces__");
 const isShippable = (p) => !isTestFile(p) && !isScreenshot(p);
 
 function walk(dir) {
