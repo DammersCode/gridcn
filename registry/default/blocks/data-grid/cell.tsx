@@ -75,7 +75,7 @@ export type DataGridCellProps = {
   /** The open edit's live validation error; wins over `cellError` while `isEditing`. */
   editingError?: string | null;
   /** The commit-guard re-arm nonce forwarded to the editor. */
-  rejectionCount?: number;
+  editingRejectionCount?: number;
   isSearchMatch?: boolean;
   /** True when `row` is a hole in `data` (lazy loading) — renders a static shimmer block instead of cell content and skips every pointer/focus handler. */
   isSkeleton?: boolean;
@@ -119,7 +119,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     initialText,
     editSession,
     editingError = null,
-    rejectionCount = 0,
+    editingRejectionCount = 0,
     isSearchMatch = false,
     isSkeleton = false,
     isFlashing = false,
@@ -304,7 +304,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         commit={commit}
         cancel={cancel}
         pending={asyncValidate.pending}
-        rejectionCount={rejectionCount}
+        rejectionCount={editingRejectionCount}
       />
     );
   } else if (column.renderCell) {

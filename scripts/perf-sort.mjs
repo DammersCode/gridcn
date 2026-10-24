@@ -21,6 +21,7 @@ for (let i = 0; i < argv.length; i++) {
   else if (argv[i] === "--runs") opts.runs = Number(argv[++i]);
   else throw new Error(`unknown option: ${argv[i]}`);
 }
+if (!Number.isInteger(opts.runs) || opts.runs < 1) throw new Error("--runs must be a positive integer");
 
 async function runOnce(browser) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -72,7 +73,7 @@ try {
   for (let i = 0; i < opts.runs; i++) {
     const r = await runOnce(browser);
     console.log(JSON.stringify({ column: opts.column, run: i + 1, ...r, before: r.before?.slice(0, 30), after: r.after?.slice(0, 30) }));
-    if (r.ms) { ms.push(r.ms); longest.push(r.longest); }
+    if (typeof r.ms === "number") { ms.push(r.ms); longest.push(r.longest); }
   }
 } finally {
   await browser.close();
