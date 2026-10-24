@@ -79,7 +79,6 @@ export {
   useDataGridIsRowChannelSelected,
   useDataGridIsRowCellSelected,
   useDataGridCellEditingError,
-  useDataGridCellRejectionCount,
   useDataGridCellState,
   useDataGridRowCellState,
   useDataGridRowMarkers,

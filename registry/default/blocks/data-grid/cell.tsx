@@ -17,7 +17,7 @@ import { COLUMN_BORDER } from "./columns/column-border";
 import { gridAttrSelector } from "./data-attributes";
 import type { CellType, GetCellClassName } from "./types";
 import { getCellValue } from "./columns/column-helpers";
-import { useDataGridActions, useDataGridCellTypes, useDataGridCellEditingError, useDataGridCellRejectionCount, useDataGridStoreApi, type AnyColumnDef } from "./store";
+import { useDataGridCellTypes, useDataGridStoreApi, type AnyColumnDef } from "./store";
 import { useDataGridRootContext } from "./layout-context";
 import { pinnedInsetStyle } from "./columns/pinned-inset-style";
 import { cellLayer } from "./layers";
@@ -72,6 +72,10 @@ export type DataGridCellProps = {
   initialText?: string;
   /** The open edit session's id; a new id remounts the editor and drops the old session's draft and pending validation. */
   editSession?: number;
+  /** The open edit's live validation error; wins over `cellError` while `isEditing`. */
+  editingError?: string | null;
+  /** The commit-guard re-arm nonce forwarded to the editor. */
+  rejectionCount?: number;
   isSearchMatch?: boolean;
   /** True when `row` is a hole in `data` (lazy loading) — renders a static shimmer block instead of cell content and skips every pointer/focus handler. */
   isSkeleton?: boolean;
@@ -114,6 +118,8 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     isEditing = false,
     initialText,
     editSession,
+    editingError = null,
+    rejectionCount = 0,
     isSearchMatch = false,
     isSkeleton = false,
     isFlashing = false,
@@ -121,17 +127,11 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   } = props;
   const { interaction } = useDataGridRootContext();
   const coord = useMemo(() => ({ col: viewColumnIndex, row: viewRowIndex }), [viewColumnIndex, viewRowIndex]);
-  const actions = useDataGridActions();
+  const storeApi = useDataGridStoreApi();
+  const { actions } = storeApi.getState();
   const cellRef = useRef<HTMLDivElement | null>(null);
-  // Atomic per-cell read — a live sync/async `validate` rejection on THIS cell's in-progress edit
-  // takes priority over its persisted `cellError` (more current: the user is actively looking at
-  // why the fresh value they typed was rejected). Opening the editor on an ALREADY-errored cell
-  // falls back to `cellError` until a rejection of its own supersedes it, so the message stays
-  // visible the instant the editor opens. A non-editing cell's `liveEditingError` is always null,
-  // so `errorMessage` there is exactly `cellError`, unaffected by any OTHER cell's edit session.
-  const liveEditingError = useDataGridCellEditingError(coord);
-  const rejectionCount = useDataGridCellRejectionCount(coord);
-  const errorMessage = isEditing ? (liveEditingError ?? cellError) : cellError;
+  // A live validation rejection on this cell's edit outranks its persisted `cellError`.
+  const errorMessage = isEditing ? (editingError ?? cellError) : cellError;
 
   const pinned = column.pin;
   // no setValue/accessorKey = no write path (accessorFn-only, display computed) → readOnly by construction, matching the store's write-skip rule.
@@ -189,7 +189,6 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   // explicit TData=unknown: row's `undefined`-narrowed type ({} | null) would otherwise drive inference instead of column's own already-unknown TData.
   const value = row === undefined ? undefined : getCellValue<unknown, typeof column>(row, column);
 
-  const storeApi = useDataGridStoreApi();
   const onPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => interaction.onCellPointerDown(coord, event),
     [interaction, coord],

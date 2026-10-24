@@ -452,29 +452,10 @@ export function useDataGridIsRowCellSelected(viewRowIndex: number): boolean {
   return useDataGridStore((s) => s.selection.columns.length > 0 || isRowInRangeChannel(s.selection, viewRowIndex));
 }
 
-/**
- * `editingError` scoped to whether `coord` is the currently-editing cell — null for every other
- * cell. A plain store read of `s.editingError` inside `DataGridCell` would select the same raw
- * string for every mounted cell, so a rejection would re-render the whole visible window instead
- * of only the editing cell.
- */
+/** `editingError` of the cell at `coord` while it is being edited; null for every other cell. */
 export function useDataGridCellEditingError(coord: ViewCoord): string | null {
   return useDataGridStore((s) =>
     s.editing !== null && s.editing.coord.col === coord.col && s.editing.coord.row === coord.row ? s.editingError : null,
-  );
-}
-
-/**
- * `editingRejectionCount` scoped to whether `coord` is the currently-editing cell (0 for every
- * other cell) — the commit-guard re-arm nonce {@link DataGridCell} forwards to its `Editor`. Same
- * atomic-subscription rationale as {@link useDataGridCellEditingError}: a rejection re-renders the
- * editing cell only, never the whole visible window.
- */
-export function useDataGridCellRejectionCount(coord: ViewCoord): number {
-  return useDataGridStore((s) =>
-    s.editing !== null && s.editing.coord.col === coord.col && s.editing.coord.row === coord.row
-      ? s.editingRejectionCount
-      : 0,
   );
 }
 
@@ -569,6 +550,8 @@ function computeRowCellState(s: DataGridStoreState, viewRow: number): DataGridRo
   const editingCol = editingHere ? editing.coord.col : null;
   const editingInitialText = editingHere ? editing.initialText : undefined;
   const editingSession = editingHere ? editing.session : undefined;
+  const editingError = editingHere ? s.editingError : null;
+  const editingRejectionCount = editingHere ? s.editingRejectionCount : 0;
 
   // One map lookup per row instead of a per-column Set scan: 29x faster at 100k rows by 8 columns.
   const searchMatchCols: ReadonlySet<number> | null = s.searchMatchRows.get(viewRow) ?? null;
@@ -582,7 +565,7 @@ function computeRowCellState(s: DataGridStoreState, viewRow: number): DataGridRo
     ? EMPTY_COL_RANGES
     : selectedColRangesForRow(s.selection, viewRow, s.visibleColumns.length);
 
-  return { activeCol, editingCol, editingInitialText, editingSession, searchMatchCols, errorCols, flashingCols, selectedColRanges };
+  return { activeCol, editingCol, editingInitialText, editingSession, editingError, editingRejectionCount, searchMatchCols, errorCols, flashingCols, selectedColRanges };
 }
 
 /** Content equality for two nullable `Set<number>`s — {@link computeRowCellState} allocates a fresh Set per call, so `searchMatchCols` needs content (not reference) comparison to stay referentially stable across unrelated store updates. */
@@ -609,6 +592,8 @@ function rowCellStateEqual(a: DataGridRowCellState, b: DataGridRowCellState): bo
     a.editingCol === b.editingCol &&
     a.editingInitialText === b.editingInitialText &&
     a.editingSession === b.editingSession &&
+    a.editingError === b.editingError &&
+    a.editingRejectionCount === b.editingRejectionCount &&
     searchMatchColsEqual(a.searchMatchCols, b.searchMatchCols) &&
     errorColsEqual(a.errorCols, b.errorCols) &&
     searchMatchColsEqual(a.flashingCols, b.flashingCols) &&

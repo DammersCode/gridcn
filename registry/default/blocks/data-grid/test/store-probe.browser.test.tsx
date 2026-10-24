@@ -5,8 +5,8 @@ import { columns, makeRows } from "./perf-probe.test-helper";
 import { InstrumentedStoreProbe, type StoreProbeReading } from "./store-instrumentation.test-helper";
 import "@/app/global.css";
 
-// Measured marginal: ~4.7 per cell (4 cell subscriptions + one row subscription per 3 cells).
-const MAX_LISTENERS_PER_CELL = 5;
+// Measured marginal: ~1.7 per cell (the cell-types read + one row subscription per 3 cells).
+const MAX_LISTENERS_PER_CELL = 2;
 
 async function mountAndMeasure(rowCount: number) {
   let probe: StoreProbeReading | undefined;

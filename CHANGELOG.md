@@ -9,7 +9,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
-- Sorting 100k rows by a text column is about 30% faster in the repo benchmark (345 ms to 245 ms). The row order is unchanged.
+- Sorting 100k rows by a text column is about 25% faster in the browser (73 ms to 55 ms) and about 30% faster in the repo benchmark. The row order is unchanged.
+- `DataGridRowCellState` has the new fields `editingError` and `editingRejectionCount`. Each cell holds fewer store subscriptions.
+- Removed the unused `useDataGridCellRejectionCount` from the data-grid store barrel. `useDataGridCellEditingError` stays.
 
 ## 1.2.0 - 2026-10-24
 
