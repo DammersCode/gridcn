@@ -1,5 +1,7 @@
 # Spec: find and replace (W6-09, FEAT-5)
 
+Status: implemented in 1.2.0.
+
 ## Goal
 
 Users replace text across the grid without leaving it: one match at a time or every match in the

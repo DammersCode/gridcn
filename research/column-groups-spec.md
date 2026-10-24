@@ -1,5 +1,7 @@
 # Spec: column groups and multi-level headers (W6-10, FEAT-7)
 
+Status: implemented in 1.2.0.
+
 ## Goal
 
 Columns that belong together get a shared header above their own headers ("Address" over
