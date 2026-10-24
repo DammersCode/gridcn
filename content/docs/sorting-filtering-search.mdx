@@ -2,7 +2,6 @@
 title: Sorting, filtering & search
 description: Client-side multi-column sort on header click, per-column filters that hide rows, and quick search that highlights matches.
 icon: ArrowUpDown
-status: updated
 ---
 
 <ComponentPreview name="data-grid-sorting-filtering-demo" />
@@ -45,12 +44,12 @@ list of the column's own `choices` and keeps a row when its value equals any che
 Its `value` is a `string[]`, and an empty list matches no rows. On a column without `choices`,
 the checkbox list holds the distinct values of the column.
 
-The `isNoneOf` <NewBadge /> operator is the complement of `isAnyOf`. It keeps a row when its value equals none of
+The `isNoneOf` operator is the complement of `isAnyOf`. It keeps a row when its value equals none of
 the listed ones. An empty list matches every row. Both operators compare the cell text and ignore
 case. A number or date column compares its stored value as text, for example `42`. The `long-text`, `url`, and
 `checkbox` columns do not offer them, unless the column lists them in `filterOperators`.
 
-The header filter <NewBadge /> puts a set filter in each column header. See
+The header filter puts a set filter in each column header. See
 [the toolbar add-on](/docs/addons/toolbar#header-filter). It writes `isAnyOf` or `isNoneOf`,
 whichever list is shorter.
 
@@ -130,8 +129,6 @@ Its filters match the stored value. Full semantics on
 
 It debounces typing before it writes the store's search text. Pass `debounceMs` to change the
 200 ms default.
-
-<NewBadge />
 
 `actions.setSearch(text, { matchCase, wholeCell })` sets the search options. `matchCase` respects
 letter case and `wholeCell` matches only cells that equal the search text. Both default to

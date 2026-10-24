@@ -2,7 +2,6 @@
 title: Selection & keyboard
 description: Range selection, mouse gestures, and the full keyboard shortcut reference.
 icon: MousePointer2
-status: updated
 ---
 
 ## Selection model
@@ -47,8 +46,6 @@ normally text-selectable.
 
 ## Touch gestures
 
-<NewBadge />
-
 A touch screen scrolls the grid natively. The grid reads the input type of each press, so a laptop
 with a touch screen and a trackpad gets touch gestures from the screen and mouse gestures from the
 trackpad.
@@ -92,8 +89,6 @@ default to `true`:
 
 ## Checked rows
 
-<NewBadge />
-
 A checked row is a row whose marker checkbox is on. A click outside the grid, or in the empty space of the grid, clears the cell range and the column selection. It never clears checked rows. A toolbar button outside the grid reads the checked rows after it is clicked.
 
 Selecting a cell clears the checked rows. Set `keepCheckedRows` to keep them:
@@ -106,7 +101,7 @@ With `keepCheckedRows`, a cell click, an arrow key, and a Shift or Ctrl click le
 
 While at least one row is checked, row operations act only on the checked rows, never on the range. This covers Delete rows, Duplicate row, Move rows, and the row items of the cell context menu. Cell operations such as copy, cut, fill, and Delete stay on the cell range. With no checked row, row operations use the range.
 
-A filter removes the checked rows it hides. Set `keepHiddenCheckedRows` <NewBadge /> to remember them:
+A filter removes the checked rows it hides. Set `keepHiddenCheckedRows` to remember them:
 
 ```tsx
 <DataGridProvider keepCheckedRows keepHiddenCheckedRows {...grid} columns={columns}>
@@ -124,9 +119,9 @@ The grid remembers at most 100,000 hidden checked rows. A server-sorted grid ign
 
 | Prop | Type | Default |
 |---|---|---|
-| `keepCheckedRows` <NewBadge /> | `boolean` | `false` |
-| `keepHiddenCheckedRows` <NewBadge /> | `boolean` | `false` |
-| `onBeforeDeleteRows` <NewBadge /> | `(ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean \| Promise<boolean>` | none |
+| `keepCheckedRows` | `boolean` | `false` |
+| `keepHiddenCheckedRows` | `boolean` | `false` |
+| `onBeforeDeleteRows` | `(ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean \| Promise<boolean>` | none |
 
 `keepHiddenCheckedRows` takes effect only with `keepCheckedRows`. `onBeforeDeleteRows` is described in [Row operations](/docs/row-operations#confirm-a-delete).
 
@@ -194,16 +189,12 @@ keeps the selection, and press `toggleRow` on each row. <kbd>Ctrl</kbd>/<kbd>Cmd
 
 ## Moving rows
 
-<NewBadge />
-
 <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> (`moveRowsUp`) and
 <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> (`moveRowsDown`) move the checked rows one place.
 When no row is checked, they move the rows of the selected range, or the active row. They need a
 `reorder`-family `rowMarkers` mode. See [Row operations](/docs/row-operations#reorder).
 
 ## Opening the column filter
-
-<NewBadge />
 
 <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowUp</kbd> (`openColumnFilter`) opens the header filter of the
 active cell's column. It does nothing unless the root has a `renderHeaderFilter` slot and the column offers a set filter.

@@ -1,7 +1,6 @@
 ---
 title: URL state
 description: Sync sort, filter, search, column layout, and pagination to the URL via nuqs.
-status: updated
 icon: Link2
 ---
 
@@ -101,7 +100,7 @@ toggle existed still parses identically.
 - A URL cannot express an unbounded view state. The `filter` param parses at most 64 filters and
   reads at most 256 segments. Each `isAnyOf` list holds at most `max(number of choices, 64)`
   values for a column with `choices`. A column with missing or empty `choices` allows 1000
-  values. An `isNoneOf` <NewBadge /> list has the same bound, and a longer list drops the whole filter
+  values. An `isNoneOf` list has the same bound, and a longer list drops the whole filter
   segment. An empty list entry (the blank value) is written as a single
   `%`. The `sort` param keeps one direction per column (the first
   segment wins), reads at most 256 segments, and parses at most 64 sorts. A hand-edited URL beyond these limits degrades to
@@ -155,8 +154,6 @@ needed. A framework router that exposes its own navigation event (for example
 </Callout>
 
 ## Column layout
-
-<NewBadge />
 
 The `layout` option picks which parts of the column layout go into the URL. The default is
 `["order", "hidden"]`: a shared link restores the column order and the hidden columns. Widths

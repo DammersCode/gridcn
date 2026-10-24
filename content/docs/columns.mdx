@@ -1,7 +1,6 @@
 ---
 title: Columns
 description: Resize, reorder, pin, and show/hide columns.
-status: updated
 icon: Columns3
 ---
 
@@ -15,7 +14,7 @@ and from `data-grid-toolbar` (a columns menu).
 [Filtering](/docs/examples/columns/filtering) ·
 [Custom headers](/docs/examples/columns/custom-headers) ·
 [Column layout](/docs/examples/columns/column-layout) ·
-[Column groups](/docs/examples/columns/column-groups) <NewBadge />
+[Column groups](/docs/examples/columns/column-groups)
 
 <ComponentPreview name="data-grid-pinning-demo" />
 
@@ -76,7 +75,7 @@ The `renderHeaderMenu` slot of `DataGridRoot` renders at the inline-end of each 
 menu as a right-click. Per-column
 `pinnable: false`, or grid-wide `enableColumnPinning={false}`, disables pin and unpin.
 
-The `renderHeaderFilter` <NewBadge /> slot of `DataGridRoot` renders a filter button in each header cell
+The `renderHeaderFilter` slot of `DataGridRoot` renders a filter button in each header cell
 whose column offers a set filter. It receives `{ column, index }`. The `DataGridHeaderFilter`
 component of the [toolbar add-on](/docs/addons/toolbar#header-filter) fills it. A header cell
 carries `data-filtered` while its column has a filter.
@@ -211,8 +210,6 @@ The slot mounts inside `DataGridRoot`, so it needs the composed parts. `DataGrid
 convenience wrapper) does not forward it.
 
 ## Column groups
-
-<NewBadge />
 
 A column group puts one shared header above a run of columns. The `columnGroups` prop of
 `DataGridProvider` defines the groups by column id. The `columns` array stays flat.
