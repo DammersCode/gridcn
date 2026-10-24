@@ -58,7 +58,7 @@ export type RenderTracker = {
   snapshot(): Record<string, number>;
 };
 
-/** Counts renders per component name across commits. Throws when another devtools hook is installed, or when react-dom never injected into this helper's hook (it loaded first). */
+/** Counts renders per component name across commits. Throws when another devtools hook is installed, or when react-dom never injected into this helper's hook (react-dom loaded before this helper). */
 export function trackRenders(): RenderTracker {
   if (globalScope.__REACT_DEVTOOLS_GLOBAL_HOOK__ !== installedHook) {
     throw new Error("render-counter: another devtools hook is installed; import this helper before react-dom");

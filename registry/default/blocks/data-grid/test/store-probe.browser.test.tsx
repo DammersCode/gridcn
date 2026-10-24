@@ -28,7 +28,8 @@ async function mountAndMeasure(rowCount: number) {
       previous = current;
       return stable;
     }).toBe(true);
-    return { cells: cellCount(), live: probe!.liveListeners() };
+    if (!probe) throw new Error("store probe never reported");
+    return { cells: cellCount(), live: probe.liveListeners() };
   } finally {
     probe?.restore();
     await screen.unmount();

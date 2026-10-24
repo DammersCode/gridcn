@@ -137,7 +137,8 @@ export default defineConfig({
           browser: {
             enabled: true,
             headless: true,
-            trace: "retain-on-failure",
+            // Opt-in: on Windows the trace copy fails with ENOENT on long test names and fails passing tests.
+            trace: process.env["VITEST_TRACE"] === "1" ? "retain-on-failure" : "off",
             // vitest v5 auto-assigns a distinct port per browser project (strictPort off by
             // default bumps past any in-use/Windows-reserved port), so no explicit api port.
             provider: playwright(),
@@ -175,7 +176,8 @@ export default defineConfig({
           browser: {
             enabled: true,
             headless: true,
-            trace: "retain-on-failure",
+            // Opt-in: on Windows the trace copy fails with ENOENT on long test names and fails passing tests.
+            trace: process.env["VITEST_TRACE"] === "1" ? "retain-on-failure" : "off",
             provider: playwright(),
             instances: [{ browser: "chromium" }],
           },
