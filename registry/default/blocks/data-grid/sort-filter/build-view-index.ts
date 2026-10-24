@@ -1,5 +1,4 @@
 import type { FilterJoinOperator, FilterSpec, SortSpec } from "../types";
-import { defaultCompareText } from "./default-compare-text";
 import { createFilterMatcher } from "./matches-filter";
 
 /**
@@ -125,14 +124,13 @@ export function buildViewIndex(
     const dir = sort.direction === "asc" ? 1 : -1;
 
     if (custom) {
-      // Decorate emptiness once per row, same O(n) discipline as the text keys below.
-      const empties = new Map<number, boolean>();
-      for (const row of indices) empties.set(row, isEmptyCell(accessor, row, sort.columnId));
+      const empties = new Uint8Array(rowCount);
+      for (const row of indices) empties[row] = isEmptyCell(accessor, row, sort.columnId) ? 1 : 0;
       // Same empty-last-in-both-directions rule as the default path, so a typed column's blanks
       // don't flip sides on a direction change while a text column's stay put.
       return (a: number, b: number) => {
-        const emptyA = empties.get(a)!;
-        const emptyB = empties.get(b)!;
+        const emptyA = empties[a] === 1;
+        const emptyB = empties[b] === 1;
         if (emptyA && emptyB) return 0;
         if (emptyA) return 1;
         if (emptyB) return -1;
@@ -140,17 +138,17 @@ export function buildViewIndex(
       };
     }
 
-    // Decorate-sort-once: fetch each row's text key for this column exactly once (O(n))
-    // instead of on every pairwise comparison (O(n log n) getText calls).
-    const keys = new Map<number, string>();
-    for (const row of indices) keys.set(row, accessor.getText(row, sort.columnId));
+    // Each row's text key is read once (O(n)) into a dense array, not on every comparison.
+    const keys = new Array<string>(rowCount);
+    for (const row of indices) keys[row] = accessor.getText(row, sort.columnId);
 
     // Empty must sort last for both directions, so only the non-empty ordering flips.
     return (a: number, b: number) => {
-      const textA = keys.get(a)!;
-      const textB = keys.get(b)!;
-      if (textA === "" || textB === "") return defaultCompareText(textA, textB, collator);
-      return dir * defaultCompareText(textA, textB, collator);
+      const textA = keys[a]!;
+      const textB = keys[b]!;
+      if (textA === "") return textB === "" ? 0 : 1;
+      if (textB === "") return -1;
+      return dir * collator.compare(textA, textB);
     };
   });
 

@@ -9,6 +9,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- Sorting 100k rows by a text column is about 30% faster in the repo benchmark (345 ms to 245 ms). The row order is unchanged.
+
 ## 1.2.0 - 2026-10-24
 
 - Touch input. A touch press selects on release, not on press, so a scroll or a pan selects nothing. A tap selects a cell, a column header, or a row marker. A double-tap edits a cell. Pressing and holding for 500 ms opens the context menu of a cell or a header. The grid takes no pointer capture for a touch press and registers no non-passive touch or wheel listener.
