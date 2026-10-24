@@ -543,6 +543,11 @@
                "target": "components/data-grid/store/internal-actions.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/store/hidden-checked-rows.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/hidden-checked-rows.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/store/row-index.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/row-index.ts"

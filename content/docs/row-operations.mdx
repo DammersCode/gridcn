@@ -33,6 +33,43 @@ position, keeping the typed draft while the row stays in the rendered rows. An o
 removes the edited row cancels the session, drops the draft, and fires `onEditEnd` with
 `result: "cancel"`.
 
+## Confirm a delete
+
+<NewBadge />
+
+`onBeforeDeleteRows` runs before every delete the grid starts: the Delete rows shortcut, the context menu item, `actions.deleteRows`, and `actions.deleteRowsById`. It gets `rowIds`, the ids of the rows that go, and `hiddenCount`, the number of hidden checked rows that stay. Return `false`, or a promise of `false`, to cancel. Without the prop a delete runs at once.
+
+The grid ships no dialog. Build one with your own dialog component and resolve a promise from its buttons:
+
+```tsx
+const [ask, setAsk] = useState<{ count: number; hidden: number; answer: (ok: boolean) => void } | null>(null);
+
+const confirmDelete = ({ rowIds, hiddenCount }: { rowIds: readonly string[]; hiddenCount: number }) =>
+  new Promise<boolean>((resolve) => setAsk({ count: rowIds.length, hidden: hiddenCount, answer: resolve }));
+
+<>
+  <DataGridProvider onBeforeDeleteRows={confirmDelete} {...grid} columns={columns}>
+    {/* the grid parts are omitted */}
+  </DataGridProvider>
+  {ask && (
+    <ConfirmDialog
+      title={ask.count === 1 ? "Delete 1 row?" : `Delete ${ask.count} rows?`}
+      description={ask.hidden > 0 ? `${ask.hidden} hidden checked rows stay.` : undefined}
+      onConfirm={() => { ask.answer(true); setAsk(null); }}
+      onCancel={() => { ask.answer(false); setAsk(null); }}
+    />
+  )}
+</>
+```
+
+While a promise is pending, a second delete does nothing. When the promise resolves, the grid reads its state again. It drops a `true` result if `readOnly` turned on, or if the row set or the checks changed. A callback that throws or rejects cancels the delete and warns in development.
+
+<Callout type="warn">
+  Settle the promise on every path, including a dismissed dialog. A promise that never settles blocks every later delete.
+</Callout>
+
+ Clearing cell contents with Delete is not a row delete and does not call the callback. Undo restores a confirmed delete.
+
 ## Default shortcuts
 
 | Action | Default | Keymap action |
@@ -44,7 +81,7 @@ removes the edited row cancels the session, drops the draft, and fires `onEditEn
 | Move row(s) up <NewBadge /> | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> | `moveRowsUp` |
 | Move row(s) down <NewBadge /> | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> | `moveRowsDown` |
 
-With `keepCheckedRows` <NewBadge />, Duplicate and Delete act only on the checked rows while any row is checked. See [Checked rows](/docs/selection-keyboard#checked-rows).
+With `keepCheckedRows` <NewBadge />, Duplicate and Delete act only on the checked rows while any row is checked. Hidden checked rows (`keepHiddenCheckedRows` <NewBadge />) are never deleted, duplicated, or moved. See [Checked rows](/docs/selection-keyboard#checked-rows).
 
 Every binding lives in `DEFAULT_KEYMAP`, so it can be remapped or dropped through the `keymap`
 prop like every other binding (see [Keybindings](/docs/addons/keybindings#remapping)).

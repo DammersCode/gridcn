@@ -36,6 +36,7 @@ import {
   useDataGridReadOnly,
   useDataGridSelection,
   useDataGridSelectionConfig,
+  useDataGridHiddenCheckedCount,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridCommands, useDataGridSelectionPointer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -122,6 +123,8 @@ export function useDefaultCellMenuItems(args: {
   const actions = useDataGridActions();
   const selection = useDataGridSelection();
   const { keepCheckedRows } = useDataGridSelectionConfig();
+  const hiddenCheckedCount = useDataGridHiddenCheckedCount();
+  const rowActionsBlocked = keepCheckedRows && selection.rows.length === 0 && hiddenCheckedCount > 0;
   const clipboard = useDataGridClipboard();
   const readOnly = useDataGridReadOnly();
   const labels = useDataGridLabels();
@@ -188,9 +191,9 @@ export function useDefaultCellMenuItems(args: {
     );
   }
   if (canDuplicateRow) {
-    specs.push({ id: "duplicate-rows", label: labels.contextMenu.duplicateRows(rows.length), icon: <CopyPlus className="size-4 text-muted-foreground" />, shortcut: keymap.duplicateRow?.[0], disabled: readOnly, onClick: () => actions.duplicateRows(rows) });
+    specs.push({ id: "duplicate-rows", label: labels.contextMenu.duplicateRows(rows.length), icon: <CopyPlus className="size-4 text-muted-foreground" />, shortcut: keymap.duplicateRow?.[0], disabled: readOnly || rowActionsBlocked, onClick: () => actions.duplicateRows(rows) });
   }
-  specs.push({ id: "delete-rows", label: labels.contextMenu.deleteRows(rows.length), icon: <Trash2 className="size-4" />, shortcut: keymap.deleteRows?.[0], disabled: readOnly, destructive: true, onClick: () => actions.deleteRows(rows) });
+  specs.push({ id: "delete-rows", label: labels.contextMenu.deleteRows(rows.length), icon: <Trash2 className="size-4" />, shortcut: keymap.deleteRows?.[0], disabled: readOnly || rowActionsBlocked, destructive: true, onClick: () => actions.deleteRows(rows) });
   return specs;
 }
 

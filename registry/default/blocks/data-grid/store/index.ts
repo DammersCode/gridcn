@@ -85,5 +85,6 @@ export {
   useDataGridRowMarkers,
   useDataGridRowReorderEnabled,
   useDataGridSelectionConfig,
+  useDataGridHiddenCheckedCount,
   useDataGridAllRowsSelected,
 } from "./hooks";

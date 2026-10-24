@@ -12,9 +12,10 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, ChevronRight, ChevronUp, X } from "lucide-react";
+import { CaseSensitive, ChevronDown, ChevronRight, ChevronUp, Replace, ReplaceAll, WholeWord, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import {
   useDataGridApi,
   useDataGridLabels,
@@ -245,12 +246,32 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   };
 
   const hasMatches = matches.length > 0;
+  const noResults = status === null && find.trim() !== "" && searchedText === find && !hasMatches;
   const statusText = (() => {
     if (status?.kind === "validating") return labels.validating;
     if (status?.kind === "replaced") return status.more ? `${labels.replaced(status.replaced, status.skipped)}. ${labels.moreRemain}` : labels.replaced(status.replaced, status.skipped);
-    if (find.trim() === "" || searchedText !== find) return "";
+    if (find.trim() === "") return labels.typeToSearch;
+    if (searchedText !== find) return "";
     return hasMatches ? labels.position(Math.min(cursor, matches.length - 1) + 1, matches.length, capped) : labels.noMatches;
   })();
+
+  const optionToggle = (key: "matchCase" | "wholeCell", label: string, icon: ReactNode) => (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      aria-pressed={searchOptions[key]}
+      data-state={searchOptions[key] ? "on" : "off"}
+      onClick={() => toggle(key)}
+      className={cn(
+        "relative inline-flex size-8 shrink-0 items-center justify-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring [&_svg]:size-4",
+        searchOptions[key] ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+      )}
+    >
+      {icon}
+      {searchOptions[key] && <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-primary ring-2 ring-popover" />}
+    </button>
+  );
 
   return (
     <div
@@ -261,8 +282,8 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
       onCopy={(event) => event.stopPropagation()}
       onCut={(event) => event.stopPropagation()}
       onPaste={(event) => event.stopPropagation()}
-      style={{ position: "fixed", top: position.top, right: position.right, zIndex: 50 }}
-      className="flex w-80 flex-col gap-2 rounded-md border border-border bg-popover p-2 text-sm text-popover-foreground shadow-md"
+      style={{ position: "fixed", top: position.top, right: position.right, zIndex: 50, maxWidth: `calc(100vw - ${position.right}px - 8px)` }}
+      className="flex w-80 flex-col gap-1 rounded-md border border-border bg-popover p-2 text-sm text-popover-foreground shadow-md"
     >
       <div className="flex items-center gap-1">
         {!readOnly && (
@@ -270,6 +291,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
             type="button"
             variant="ghost"
             size="icon-sm"
+            className="size-8 shrink-0"
             aria-label={labels.toggleReplace}
             aria-expanded={showReplace}
             aria-controls={replaceRowId}
@@ -278,28 +300,33 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
             <ChevronRight className={showReplace ? "rotate-90" : undefined} />
           </Button>
         )}
-        <Input
-          ref={findRef}
-          value={find}
-          maxLength={MAX_REPLACE_INPUT_LENGTH}
-          onChange={(event) => onFindChange(event.target.value)}
-          onKeyDown={onFindKeyDown}
-          aria-label={labels.findLabel}
-          placeholder={labels.findLabel}
-          className="h-8"
-        />
-        <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.previous} disabled={!hasMatches} onClick={() => goTo(cursor - 1)}>
+        <div data-find-field="" className="flex h-9 min-w-0 flex-1 items-center rounded-md border border-input bg-transparent pr-0.5 focus-within:ring-2 focus-within:ring-ring/50">
+          <Input
+            ref={findRef}
+            value={find}
+            maxLength={MAX_REPLACE_INPUT_LENGTH}
+            onChange={(event) => onFindChange(event.target.value)}
+            onKeyDown={onFindKeyDown}
+            aria-label={labels.findLabel}
+            placeholder={labels.findLabel}
+            className="h-8 min-w-0 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
+          />
+          {optionToggle("matchCase", labels.matchCase, <CaseSensitive />)}
+          {optionToggle("wholeCell", labels.wholeCell, <WholeWord />)}
+        </div>
+        <Button type="button" variant="ghost" size="icon-sm" className="size-8 shrink-0" aria-label={labels.previous} title={labels.previousTitle} disabled={!hasMatches} onClick={() => goTo(cursor - 1)}>
           <ChevronUp />
         </Button>
-        <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.next} disabled={!hasMatches} onClick={() => goTo(cursor + 1)}>
+        <Button type="button" variant="ghost" size="icon-sm" className="size-8 shrink-0" aria-label={labels.next} title={labels.nextTitle} disabled={!hasMatches} onClick={() => goTo(cursor + 1)}>
           <ChevronDown />
         </Button>
-        <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.close} onClick={closePanel}>
+        <Button type="button" variant="ghost" size="icon-sm" className="size-8 shrink-0" aria-label={labels.close} title={labels.close} onClick={closePanel}>
           <X />
         </Button>
       </div>
       {showReplace && (
         <div id={replaceRowId} className="flex items-center gap-1">
+          {!readOnly && <span aria-hidden="true" className="size-8 shrink-0" />}
           <Input
             value={replacement}
             maxLength={MAX_REPLACE_INPUT_LENGTH}
@@ -311,29 +338,17 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
             aria-label={labels.replaceLabel}
             placeholder={labels.replaceLabel}
             disabled={readOnly}
-            className="h-8"
+            className="h-9 min-w-0 flex-1"
           />
+          <Button type="button" variant="ghost" size="icon-sm" className="size-8 shrink-0" aria-label={labels.replace} title={labels.replace} disabled={!canReplace || !hasMatches} onClick={replaceOne}>
+            <Replace />
+          </Button>
+          <Button type="button" variant="ghost" size="icon-sm" className="size-8 shrink-0" aria-label={labels.replaceAll} title={labels.replaceAll} disabled={!canReplace || !hasMatches} onClick={() => apply(undefined)}>
+            <ReplaceAll />
+          </Button>
         </div>
       )}
-      <div className="flex flex-wrap items-center gap-1">
-        <Button type="button" size="sm" variant={searchOptions.matchCase ? "secondary" : "outline"} aria-pressed={searchOptions.matchCase} onClick={() => toggle("matchCase")}>
-          {labels.matchCase}
-        </Button>
-        <Button type="button" size="sm" variant={searchOptions.wholeCell ? "secondary" : "outline"} aria-pressed={searchOptions.wholeCell} onClick={() => toggle("wholeCell")}>
-          {labels.wholeCell}
-        </Button>
-        {showReplace && (
-          <>
-            <Button type="button" size="sm" disabled={!canReplace || !hasMatches} onClick={replaceOne}>
-              {labels.replace}
-            </Button>
-            <Button type="button" size="sm" disabled={!canReplace || !hasMatches} onClick={() => apply(undefined)}>
-              {labels.replaceAll}
-            </Button>
-          </>
-        )}
-      </div>
-      <div role="status" aria-live="polite" className="min-h-4 text-xs text-muted-foreground">
+      <div role="status" aria-live="polite" className={cn("min-h-5 px-1 font-mono text-xs tabular-nums", noResults ? "text-destructive" : "text-muted-foreground")}>
         {statusText}
       </div>
     </div>

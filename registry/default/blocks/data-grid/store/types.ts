@@ -140,6 +140,20 @@ export type DataGridSyncProps<TData = unknown> = {
    * rows while any exist. Escape, the checkboxes, and `clearSelection` still change the checks. Default `false`.
    */
   keepCheckedRows?: boolean;
+  /**
+   * Remembers a checked row that a filter hides and checks it again when the filter lets it back
+   * in. Hidden checked rows stay out of every row action, the controlled `selection`, and select
+   * all; `useDataGridHiddenCheckedCount` reads their number. Takes effect only with
+   * `keepCheckedRows` and client-side data; a server-sorted grid ignores it, and a grid ignores it while its data holds unloaded (lazy) rows. Default `false`.
+   */
+  keepHiddenCheckedRows?: boolean;
+  /**
+   * Runs before every row delete the grid starts: the Delete rows shortcut, the context-menu
+   * item, and `actions.deleteRows` / `deleteRowsById`. `rowIds` are the rows that go; `hiddenCount`
+   * counts the hidden checked rows that stay. Return `false` (or a promise of `false`) to cancel.
+   * A pending promise blocks a second delete. A throw or a rejection cancels.
+   */
+  onBeforeDeleteRows?: (ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean | Promise<boolean>;
   /** Whole-column selection channel gestures (header click); default true. */
   enableColumnSelection?: boolean;
   /** Multi-cell rectangular range gestures (shift-click/drag, shift+arrow); false collapses to single-cell active only. Default true. */
@@ -567,6 +581,7 @@ export type DataGridStoreState = Omit<
   | "rowMarkers"
   | "enableRowSelection"
   | "keepCheckedRows"
+  | "keepHiddenCheckedRows"
   | "enableColumnSelection"
   | "enableRangeSelection"
   | "enableMultiRange"
@@ -598,6 +613,9 @@ export type DataGridStoreState = Omit<
   rowMarkers: RowMarkersMode;
   enableRowSelection: boolean;
   keepCheckedRows: boolean;
+  keepHiddenCheckedRows: boolean;
+  /** Row ids of checked rows a filter hides; empty unless `keepHiddenCheckedRows` is in effect. Actions never read it. */
+  hiddenCheckedRowIds: ReadonlySet<string>;
   enableColumnSelection: boolean;
   enableRangeSelection: boolean;
   enableMultiRange: boolean;

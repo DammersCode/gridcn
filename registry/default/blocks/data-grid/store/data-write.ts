@@ -25,6 +25,7 @@ import {
   warnDev,
 } from "./commit";
 import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
+import { withoutHiddenCheckedRows } from "./hidden-checked-rows";
 import { applyChange } from "../interaction/history";
 import { planBlockMove, planShiftMove, type RowMovePlan } from "../rows/plan-row-moves";
 import { resolveCellRef, resolveReorder, touchesViewInputs, type RowIndexCache } from "./row-index";
@@ -36,7 +37,7 @@ import {
   selectCell as selectCellPure,
   selectionRects,
 } from "../selection";
-import type { CellRef, DataChange, DataGridApi, DataOp, GridBulkValidationError, GridValidationErrorEvent, ViewCoord } from "../types";
+import type { CellRef, CompactSelectionLike, DataChange, DataGridApi, DataOp, GridBulkValidationError, GridValidationErrorEvent, ViewCoord } from "../types";
 import type { AnyColumnDef, CellPatch, DataGridActions, DataGridStoreState, UpdateCellsVerdict } from "./types";
 
 /**
@@ -279,6 +280,16 @@ export type DataWriteDeps = {
     getRowId?: (row: unknown, index: number) => string,
     sameRecords?: boolean,
   ) => Partial<DataGridStoreState>;
+  /** The row channel and the hidden checked rows carried into a rebuilt view; `visibleOnly` yields the channel when hidden checks are off. */
+  carryRows: (
+    s: DataGridStoreState,
+    rows: CompactSelectionLike,
+    viewIndex: readonly number[],
+    data: readonly unknown[],
+    getRowId: (row: unknown, index: number) => string,
+    sameRecords: boolean,
+    visibleOnly: () => CompactSelectionLike,
+  ) => { rows: CompactSelectionLike; hiddenCheckedRowIds: ReadonlySet<string> };
   /** Re-anchors an open edit to the new view position of its rowId/columnId (or cancels it when the row left the view); `data` must be the array `viewIndex` indexes. */
   remapEditing: (
     s: DataGridStoreState,
@@ -316,7 +327,7 @@ export type DataWriteActions = Pick<
 };
 
 export function createDataWriteActions(set: SetState, get: GetState, deps: DataWriteDeps): DataWriteActions {
-  const { ctx, applyRowValidation, pruneRowValidationKeys, followView, remapEditing, endEditSession } = deps;
+  const { ctx, applyRowValidation, pruneRowValidationKeys, followView, carryRows, remapEditing, endEditSession } = deps;
 
   /** Reports the patches a validator refused through `onValidationError`; a row outside the view reports `viewRowIndex: -1`. */
   const emitStreamRejections = (patches: readonly CellPatch[], rejected: readonly PatchRejection[], batchSource?: DataChange<unknown>["source"]): void => {
@@ -376,6 +387,11 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     );
   };
 
+  const hiddenAfterDelete = (s: DataGridStoreState, ops: readonly DataOp<unknown>[]): Partial<DataGridStoreState> => {
+    const hiddenCheckedRowIds = withoutHiddenCheckedRows(s.hiddenCheckedRowIds, ops.flatMap((op) => (op.type === "delete" ? [op.rowId] : [])));
+    return hiddenCheckedRowIds === s.hiddenCheckedRowIds ? {} : { hiddenCheckedRowIds };
+  };
+
   const deleteDataRows = (dataRowIndexes: number[]) => {
     const s = get();
     if (s.readOnly) return;
@@ -399,7 +415,58 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         ...cursor,
         ...view,
         ...editRemap,
+        ...hiddenAfterDelete(s, batch.ops),
       }),
+    );
+  };
+
+  let deleteConfirmPending = false;
+  const warnedDeleteConfirm = new Set<string>();
+  const warnDeleteConfirmOnce = (key: string, message: string): void => {
+    if (warnedDeleteConfirm.has(key)) return;
+    warnedDeleteConfirm.add(key);
+    warnDev(message);
+  };
+  const requestDelete = (dataRowIndexes: number[]) => {
+    const s = get();
+    if (s.readOnly) return;
+    const confirm = s.onBeforeDeleteRows;
+    if (!confirm) {
+      deleteDataRows(dataRowIndexes);
+      return;
+    }
+    const rowIds = [...new Set(dataRowIndexes.flatMap((i) => (s.data[i] === undefined ? [] : [s.getRowId(s.data[i], i)])))];
+    if (rowIds.length === 0) return;
+    if (deleteConfirmPending) {
+      warnDeleteConfirmOnce("pending", "a row delete was requested while the promise of onBeforeDeleteRows is still pending, so it is ignored; the promise must settle");
+      return;
+    }
+    const hiddenCount = s.hiddenCheckedRowIds.size - rowIds.filter((id) => s.hiddenCheckedRowIds.has(id)).length;
+    let verdict: boolean | Promise<boolean>;
+    try {
+      verdict = confirm({ rowIds, hiddenCount });
+    } catch (error) {
+      warnDeleteConfirmOnce("threw", `onBeforeDeleteRows threw, so the delete is cancelled: ${String(error)}`);
+      return;
+    }
+    if (typeof verdict === "boolean") {
+      if (verdict) deleteDataRows(dataRowIndexes);
+      return;
+    }
+    deleteConfirmPending = true;
+    const asked = { rowIdentityVersion: s.rowIdentityVersion, checked: s.selection.rows, hidden: s.hiddenCheckedRowIds };
+    Promise.resolve(verdict).then(
+      (confirmed) => {
+        deleteConfirmPending = false;
+        const now = get();
+        const unchanged =
+          !now.readOnly && now.rowIdentityVersion === asked.rowIdentityVersion && now.selection.rows === asked.checked && now.hiddenCheckedRowIds === asked.hidden;
+        if (confirmed === true && unchanged) deleteDataRows(dataRowIndexes);
+      },
+      (error: unknown) => {
+        deleteConfirmPending = false;
+        warnDeleteConfirmOnce("rejected", `onBeforeDeleteRows rejected, so the delete is cancelled: ${String(error)}`);
+      },
     );
   };
 
@@ -779,12 +846,12 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     deleteRows(viewRowIndexes) {
       const s = get();
-      deleteDataRows(viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined));
+      requestDelete(viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined));
     },
     deleteRowsById(rowIds) {
       const s = get();
       const dataRowIndexByRowId = ctx.rowIndexCache.resolve(s.data, s.getRowId);
-      deleteDataRows(rowIds.map((rowId) => dataRowIndexByRowId.get(rowId)).filter((i): i is number => i !== undefined));
+      requestDelete(rowIds.map((rowId) => dataRowIndexByRowId.get(rowId)).filter((i): i is number => i !== undefined));
     },
     duplicateRows(viewRowIndexes) {
       const s = get();
@@ -863,14 +930,23 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       pruneRowValidationKeys(nextData, s.getRowId);
       const cellErrors = pruneCellErrors(clearErrorsForOps(s.cellErrors, change.ops), nextData, s.getRowId);
       const view = rebuildRowOpView(s, nextData);
+      if (!movesRows) {
+        writeThenEmit(ctx, s, nextData, change, () =>
+          set({ data: nextData, cellErrors, ...view, ...followView(s, view.viewIndex!, s.visibleColumns, nextData, s.getRowId, true) }),
+        );
+        return;
+      }
       const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, nextData, s.getRowId);
-      const followed = movesRows ? followActiveRow(s, nextData, view.viewIndex!) : {};
+      const followed = followActiveRow(s, nextData, view.viewIndex!);
+      const carried = carryRows(s, s.selection.rows, view.viewIndex!, nextData, s.getRowId, false, () => followed.selection.rows);
       writeThenEmit(ctx, s, nextData, change, () =>
         set({
           data: nextData,
-          ...(movesRows ? { rowIdentityVersion: s.rowIdentityVersion + 1 } : {}),
+          rowIdentityVersion: s.rowIdentityVersion + 1,
           cellErrors,
           ...followed,
+          selection: carried.rows === followed.selection.rows ? followed.selection : { ...followed.selection, rows: carried.rows },
+          hiddenCheckedRowIds: carried.hiddenCheckedRowIds,
           ...view,
           ...editRemap,
         }),

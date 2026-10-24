@@ -44,6 +44,7 @@ import { allRowsSelectedState } from "../store/hooks";
 import { apiHandleOf } from "../store/api";
 import { getInternalActions } from "../store/internal-actions";
 import { holeRowId } from "../store/compute";
+import { onlyHiddenRowsChecked } from "../store/hidden-checked-rows";
 import { isComposingKey } from "./is-composing-key";
 import { isReorderMarkerMode } from "../rows/marker-width";
 import { createLongPressTimer, isDoubleTap, isTap, movedBeyondSlop, type TapSample } from "./touch-gestures";
@@ -520,7 +521,7 @@ export function dispatchGridAction(args: {
     }
     case "duplicateRow": {
       preventDefault();
-      if (!state.readOnly && state.duplicateRow) {
+      if (!state.readOnly && state.duplicateRow && !onlyHiddenRowsChecked(state)) {
         // the context-menu item this shortcut labels duplicates the WHOLE selection; no
         // selection, just the active row
         const selected = getSelectedViewRows(state.selection, { checkedRowsOnly: state.keepCheckedRows });
@@ -546,7 +547,7 @@ export function dispatchGridAction(args: {
     }
     case "deleteRows": {
       preventDefault();
-      if (!state.readOnly) {
+      if (!state.readOnly && !onlyHiddenRowsChecked(state)) {
         const selected = getSelectedViewRows(state.selection, { checkedRowsOnly: state.keepCheckedRows });
         if (selected.length > 0) actions.deleteRows(selected);
         else if (state.activeCell) actions.deleteRows([state.activeCell.row]);
@@ -716,6 +717,7 @@ function hasCellSelection(selection: GridSelection): boolean {
 
 /** The rows a keyboard move acts on: the checked rows, else the rows of the primary range, else the active row. */
 function rowsToMove(state: DataGridStoreState): number[] {
+  if (onlyHiddenRowsChecked(state)) return [];
   if (state.selection.rows.length > 0) return state.selection.rows.toArray();
   const range = state.selection.current?.range;
   if (range) return Array.from({ length: range.height }, (_, i) => range.y + i);

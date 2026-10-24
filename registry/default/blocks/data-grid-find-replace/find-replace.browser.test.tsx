@@ -52,9 +52,9 @@ describe("find and replace in a browser", () => {
     await page.getByRole("gridcell").first().click();
     await userEvent.keyboard("{Control>}h{/Control}");
     await userEvent.keyboard("needle");
-    await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("1 of 3");
+    await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("1 of 3 cells");
     await userEvent.keyboard("{Enter}");
-    await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("2 of 3");
+    await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("2 of 3 cells");
   });
 
   it("Escape leaves focus alone when the panel was not opened from the grid", async () => {
@@ -135,7 +135,7 @@ describe("find and replace in a browser", () => {
     const find = page.getByRole("textbox", { name: "Find" });
     await expect.element(find).toHaveValue("needle");
     await expect.element(find).toHaveFocus();
-    await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("1 of 3");
+    await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("1 of 3 cells");
     await toolbar.fill("item 1");
     await expect.element(find).toHaveValue("item 1");
     await find.fill("item 2");
@@ -149,10 +149,102 @@ describe("find and replace in a browser", () => {
     await userEvent.keyboard("{Shift>}{ArrowDown}{ArrowDown}{/Shift}");
     await userEvent.keyboard("{Control>}h{/Control}");
     await userEvent.keyboard("item");
-    await userEvent.keyboard("{Tab}{Tab}");
-    await userEvent.keyboard("x");
+    await page.getByRole("textbox", { name: "Replace with" }).fill("x");
     await page.getByRole("button", { name: "Replace all" }).click();
     const texts = Array.from(document.querySelectorAll('[role="gridcell"]')).map((c) => c.textContent);
     expect(texts.slice(0, 5)).toEqual(["item 0", "x 1", "x 2", "x 3", "item 4"]);
+  });
+
+  describe("panel layout", () => {
+    const panel = () => document.querySelector('[role="dialog"]') as HTMLElement;
+    const statusLine = () => panel().querySelector('[role="status"]') as HTMLElement;
+
+    async function openPanel(chord = "f") {
+      await page.getByRole("gridcell").first().click();
+      await userEvent.keyboard(`{Control>}${chord}{/Control}`);
+      await expect.element(page.getByRole("textbox", { name: "Find" })).toHaveFocus();
+    }
+
+    it("keeps the status line outside the Find field", async () => {
+      await render(<Harness />);
+      await openPanel();
+      await userEvent.keyboard("needle");
+      await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("1 of 3 cells");
+      const field = panel().querySelector("[data-find-field]") as HTMLElement;
+      expect(field.contains(statusLine())).toBe(false);
+      expect(field.contains(page.getByRole("textbox", { name: "Find" }).element())).toBe(true);
+      expect(field.contains(page.getByRole("button", { name: "Match case" }).element())).toBe(true);
+      expect(field.contains(page.getByRole("button", { name: "Whole cell" }).element())).toBe(true);
+    });
+
+    it("shows Type to search, a count, and No results in the status line", async () => {
+      await render(<Harness />);
+      await openPanel();
+      const status = page.getByRole("dialog").getByRole("status");
+      await expect.element(status).toHaveTextContent("Type to search");
+      expect(statusLine().getAttribute("aria-live")).toBe("polite");
+      await userEvent.keyboard("needle");
+      await expect.element(status).toHaveTextContent("1 of 3 cells");
+      await userEvent.keyboard("zzz");
+      await expect.element(status).toHaveTextContent("No results");
+      expect(statusLine().className).toContain("text-destructive");
+    });
+
+    it("titles the previous and next buttons with their keys", async () => {
+      await render(<Harness />);
+      await openPanel();
+      await expect.element(page.getByRole("button", { name: "Next match" })).toHaveAttribute("title", "Next match (Enter)");
+      await expect.element(page.getByRole("button", { name: "Previous match" })).toHaveAttribute("title", "Previous match (Shift+Enter)");
+    });
+
+    it("marks a pressed option toggle with aria-pressed and the on state", async () => {
+      await render(<Harness />);
+      await openPanel();
+      const matchCase = page.getByRole("button", { name: "Match case" });
+      await expect.element(matchCase).toHaveAttribute("aria-pressed", "false");
+      await expect.element(matchCase).toHaveAttribute("data-state", "off");
+      await matchCase.click();
+      await expect.element(matchCase).toHaveAttribute("aria-pressed", "true");
+      await expect.element(matchCase).toHaveAttribute("data-state", "on");
+      expect(matchCase.element().className).toContain("bg-primary");
+      expect(matchCase.element().querySelector("span.rounded-full")).not.toBeNull();
+      await expect.element(page.getByRole("button", { name: "Whole cell" })).toHaveAttribute("data-state", "off");
+    });
+
+    it("keeps the panel height across empty, matching, and no-result states", async () => {
+      await render(<Harness />);
+      await openPanel("h");
+      const empty = panel().getBoundingClientRect().height;
+      await userEvent.keyboard("needle");
+      await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("1 of 3 cells");
+      const matching = panel().getBoundingClientRect().height;
+      await userEvent.keyboard("zzz");
+      await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("No results");
+      const none = panel().getBoundingClientRect().height;
+      expect(matching).toBe(empty);
+      expect(none).toBe(empty);
+    });
+
+    it("sizes its buttons to at least 32px", async () => {
+      await render(<Harness />);
+      await openPanel("h");
+      for (const name of ["Toggle replace", "Match case", "Whole cell", "Next match", "Previous match", "Close", "Replace", "Replace all"]) {
+        expect(page.getByRole("button", { name, exact: true }).element().getBoundingClientRect().height).toBeGreaterThanOrEqual(32);
+      }
+    });
+
+    it("fits a 375px viewport", async () => {
+      await page.viewport(375, 800);
+      try {
+        await render(<Harness />);
+        await openPanel("h");
+        const rect = panel().getBoundingClientRect();
+        expect(rect.left).toBeGreaterThanOrEqual(0);
+        expect(rect.right).toBeLessThanOrEqual(375);
+        expect(panel().scrollWidth).toBeLessThanOrEqual(panel().clientWidth);
+      } finally {
+        await page.viewport(1024, 768);
+      }
+    });
   });
 });

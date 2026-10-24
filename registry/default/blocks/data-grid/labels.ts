@@ -261,6 +261,8 @@ export type DataGridStatusBarLabels = {
   max: string;
   /** `title` while the walk stopped at the cell cap; `count` is the cap. */
   approximate: (count: number) => string;
+  /** Item beside the selection stats; `count` is the number of hidden checked rows (`keepHiddenCheckedRows`). */
+  hiddenChecked: (count: number) => string;
 };
 
 /** Find-and-replace panel strings. */
@@ -272,11 +274,17 @@ export type DataGridFindReplaceLabels = {
   wholeCell: string;
   previous: string;
   next: string;
+  /** Tooltip of the previous button; name the key. */
+  previousTitle: string;
+  /** Tooltip of the next button; name the key. */
+  nextTitle: string;
   replace: string;
   replaceAll: string;
   toggleReplace: string;
   close: string;
   noMatches: string;
+  /** Status line while the Find field is empty. */
+  typeToSearch: string;
   /** `capped` is true while the highlight list stopped at its cap, so `total` is a lower bound. */
   position: (index: number, total: number, capped: boolean) => string;
   replaced: (replaced: number, skipped: number) => string;
@@ -550,6 +558,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     min: "Min",
     max: "Max",
     approximate: (count) => `From the first ${count.toLocaleString("en-US")} cells`,
+    hiddenChecked: (count) => `(+${count.toLocaleString("en-US")} hidden)`,
   },
   findReplace: {
     dialogLabel: "Find and replace",
@@ -559,12 +568,15 @@ export const DEFAULT_LABELS: DataGridLabels = {
     wholeCell: "Whole cell",
     previous: "Previous match",
     next: "Next match",
+    previousTitle: "Previous match (Shift+Enter)",
+    nextTitle: "Next match (Enter)",
     replace: "Replace",
     replaceAll: "Replace all",
     toggleReplace: "Toggle replace",
     close: "Close",
-    noMatches: "No matches",
-    position: (index, total, capped) => `${index} of ${total.toLocaleString("en-US")}${capped ? "+" : ""}`,
+    noMatches: "No results",
+    typeToSearch: "Type to search",
+    position: (index, total, capped) => `${index} of ${total.toLocaleString("en-US")}${capped ? "+" : ""} cells`,
     replaced: (replaced, skipped) => (skipped > 0 ? `${replaced} replaced, ${skipped} skipped` : `${replaced} replaced`),
     moreRemain: "More matches remain. Run Replace all again.",
     validating: "Validating…",

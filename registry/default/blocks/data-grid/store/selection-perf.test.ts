@@ -28,8 +28,8 @@ function makeRows(count: number): WideRow[] {
 
 const EMPTY_SELECTION: SelectionState = { anchor: null, range: null, rangeStack: [], rowIds: [], columnIds: [] };
 
-function makeStore(rows: WideRow[], onSelectionChange?: (next: SelectionState) => void) {
-  const init = { data: rows, columns, getRowId, selection: EMPTY_SELECTION, onSelectionChange } as unknown as InternalSyncProps;
+function makeStore(rows: WideRow[], onSelectionChange?: (next: SelectionState) => void, extra: Partial<InternalSyncProps> = {}) {
+  const init = { data: rows, columns, getRowId, selection: EMPTY_SELECTION, onSelectionChange, ...extra } as unknown as InternalSyncProps;
   return createDataGridStore(init);
 }
 
@@ -112,6 +112,51 @@ describe("controlled selection perf (100k rows)", () => {
     // The batch cost scales with the batch (1 row), not the row count or the channel.
     expect(ms).toBeLessThan(100 * CI_FACTOR);
   }, 30_000);
+});
+
+describe("hidden checked rows perf (100k rows)", () => {
+  it("moves 100,000 checks into the hidden set and back through a filter change within the ceiling", () => {
+    const store = makeStore(makeRows(ROW_COUNT), undefined, { keepCheckedRows: true, keepHiddenCheckedRows: true });
+    store.getState().actions.setAllRowsSelected(true);
+    const filter = [{ filterId: "f", columnId: "v", operator: "equals", value: 1000 }] as never;
+
+    const t0 = performance.now();
+    store.getState().actions.setFilters(filter);
+    const hideMs = performance.now() - t0;
+    expect(store.getState().hiddenCheckedRowIds.size).toBe(ROW_COUNT);
+    expect(store.getState().selection.rows.length).toBe(0);
+
+    const t1 = performance.now();
+    store.getState().actions.setFilters([]);
+    const restoreMs = performance.now() - t1;
+    expect(store.getState().hiddenCheckedRowIds.size).toBe(0);
+    expect(store.getState().selection.rows.length).toBe(ROW_COUNT);
+    console.log(`100k checks through a filter: hide ${hideMs.toFixed(1)}ms, restore ${restoreMs.toFixed(1)}ms`);
+    expect(hideMs).toBeLessThan(200 * CI_FACTOR);
+    expect(restoreMs).toBeLessThan(200 * CI_FACTOR);
+  }, 30_000);
+});
+
+describe("hidden checked rows with streaming (100k rows)", () => {
+  it("keeps an immediate updateCells tick flat with 100,000 checked rows", () => {
+    const tick = (store: ReturnType<typeof makeStore>, n: number) => {
+      const t0 = performance.now();
+      for (let i = 0; i < n; i++) {
+        store.getState().actions.updateCells([{ rowId: String(i), columnId: "v", value: 1_000_000_000 + i }], { reorder: "immediate" });
+      }
+      return (performance.now() - t0) / n;
+    };
+    const plain = makeStore(makeRows(ROW_COUNT), undefined, { keepCheckedRows: true });
+    const hidden = makeStore(makeRows(ROW_COUNT), undefined, { keepCheckedRows: true, keepHiddenCheckedRows: true });
+    for (const store of [plain, hidden]) {
+      store.getState().actions.setSorts([{ columnId: "v", direction: "asc" }]);
+      store.getState().actions.setAllRowsSelected(true);
+    }
+    const plainMs = tick(plain, 20);
+    const hiddenMs = tick(hidden, 20);
+    console.log(`updateCells tick with 100k checks: plain ${plainMs.toFixed(2)}ms, hidden ${hiddenMs.toFixed(2)}ms`);
+    expect(hiddenMs).toBeLessThan(plainMs * 2 + 10 * CI_FACTOR);
+  }, 60_000);
 });
 
 describe("controlled selection perf (1M rows)", () => {

@@ -663,6 +663,11 @@ export function useDataGridSelectionConfig(): {
   );
 }
 
+/** The number of checked rows a filter hides, remembered by `keepHiddenCheckedRows`; `0` when the option is off. */
+export function useDataGridHiddenCheckedCount(): number {
+  return useDataGridStore((s) => s.hiddenCheckedRowIds.size);
+}
+
 /** Half-open row range `[start, end)`. */
 type RowRange = readonly [start: number, end: number];
 

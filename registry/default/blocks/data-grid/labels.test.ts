@@ -31,6 +31,7 @@ describe("DEFAULT_LABELS", () => {
     expect(DEFAULT_LABELS.contextMenu.deleteRows(3)).toBe("Delete rows");
     expect(DEFAULT_LABELS.contextMenu.columnMenuAriaLabel("Name")).toBe("Name column menu");
     expect(DEFAULT_LABELS.markers.selectRow(4)).toBe("Select row 4");
+    expect(DEFAULT_LABELS.statusBar.hiddenChecked(3)).toBe("(+3 hidden)");
     expect(DEFAULT_LABELS.toolbar.filterValueAnyOfSummary(0)).toBe("Any value");
     expect(DEFAULT_LABELS.toolbar.filterValueAnyOfSummary(2)).toBe("2 selected");
     expect(DEFAULT_LABELS.toolbar.filterReorderAnnouncement("Name", 2, 3)).toBe("Name filter moved to position 2 of 3");
@@ -84,6 +85,18 @@ describe("deepMergeLabels", () => {
     const merged = deepMergeLabels(DEFAULT_LABELS, { findReplace: { toggleReplace: "Ersetzen umschalten" } });
     expect(merged.findReplace.toggleReplace).toBe("Ersetzen umschalten");
     expect(merged.findReplace.findLabel).toBe(DEFAULT_LABELS.findReplace.findLabel);
+  });
+
+  it("has overridable findReplace titles and status strings", () => {
+    expect(DEFAULT_LABELS.findReplace.nextTitle).toBe("Next match (Enter)");
+    expect(DEFAULT_LABELS.findReplace.previousTitle).toBe("Previous match (Shift+Enter)");
+    expect(DEFAULT_LABELS.findReplace.typeToSearch).toBe("Type to search");
+    expect(DEFAULT_LABELS.findReplace.noMatches).toBe("No results");
+    expect(DEFAULT_LABELS.findReplace.position(2, 4, false)).toBe("2 of 4 cells");
+    const merged = deepMergeLabels(DEFAULT_LABELS, { findReplace: { nextTitle: "Weiter (Enter)", typeToSearch: "Suchbegriff eingeben" } });
+    expect(merged.findReplace.nextTitle).toBe("Weiter (Enter)");
+    expect(merged.findReplace.typeToSearch).toBe("Suchbegriff eingeben");
+    expect(merged.findReplace.previousTitle).toBe(DEFAULT_LABELS.findReplace.previousTitle);
   });
 
   it("merges nested groups two levels deep (keybindings.categories)", () => {

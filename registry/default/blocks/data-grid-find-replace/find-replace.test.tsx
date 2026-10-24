@@ -56,7 +56,7 @@ function setup(props: { readOnly?: boolean; onValidationError?: (event: GridVali
 async function search(find: string, replacement: string) {
   fireEvent.change(screen.getByLabelText("Find"), { target: { value: find } });
   fireEvent.change(screen.getByLabelText("Replace with"), { target: { value: replacement } });
-  await waitFor(() => expect(screen.getByRole("status").textContent).toMatch(/ of |No matches/));
+  await waitFor(() => expect(screen.getByRole("status").textContent).toMatch(/ of |No results/));
 }
 
 describe("useDataGridFindReplace", () => {
@@ -65,7 +65,7 @@ describe("useDataGridFindReplace", () => {
     act(() => harness.findReplace().open());
     expect(screen.getByRole("dialog", { name: "Find and replace" })).toBeTruthy();
     await search("foo", "x");
-    expect(screen.getByRole("status").textContent).toBe("1 of 2");
+    expect(screen.getByRole("status").textContent).toBe("1 of 2 cells");
   });
 
   it("Replace all writes one change with source replace and one undo entry", async () => {
@@ -128,6 +128,32 @@ describe("useDataGridFindReplace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Replace all" }));
     await waitFor(() => expect(screen.getByRole("status").textContent).not.toBe("Validating…"));
     expect(harness.changes).toHaveLength(0);
+  });
+
+  it("leaves Validating and stays usable when the async validator throws, without an unhandled rejection", async () => {
+    const unhandled = vi.fn();
+    process.on("unhandledRejection", unhandled);
+    const throwing = {
+      "~standard": {
+        version: 1,
+        vendor: "test",
+        validate: async () => {
+          throw new Error("validator exploded");
+        },
+      },
+    };
+    const asyncColumns = [{ id: "name", header: "Name", accessorKey: "name", validate: throwing }] as unknown as readonly ColumnDef<Row, unknown>[];
+    const harness = setup({ columns: asyncColumns });
+    act(() => harness.findReplace().open());
+    await search("foo", "x");
+    fireEvent.click(screen.getByRole("button", { name: "Replace all" }));
+    await waitFor(() => expect(screen.getByRole("status").textContent).not.toBe("Validating…"));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    process.off("unhandledRejection", unhandled);
+    expect(unhandled).not.toHaveBeenCalled();
+    expect(harness.changes).toHaveLength(0);
+    fireEvent.change(screen.getByLabelText("Find"), { target: { value: "two" } });
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("1 of 1 cells"));
   });
 
   it("continues Replace all past the limit when the replacement contains the find text", async () => {

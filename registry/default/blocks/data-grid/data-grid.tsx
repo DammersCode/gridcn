@@ -83,6 +83,7 @@ export {
   type DataGridRowCellState,
   useDataGridRowMarkers,
   useDataGridSelectionConfig,
+  useDataGridHiddenCheckedCount,
   useDataGridAllRowsSelected,
   useDataGridHeaderClickBehavior,
   type DataGridSyncProps,

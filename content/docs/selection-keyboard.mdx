@@ -106,9 +106,29 @@ With `keepCheckedRows`, a cell click, an arrow key, and a Shift or Ctrl click le
 
 While at least one row is checked, row operations act only on the checked rows, never on the range. This covers Delete rows, Duplicate row, Move rows, and the row items of the cell context menu. Cell operations such as copy, cut, fill, and Delete stay on the cell range. With no checked row, row operations use the range.
 
+A filter removes the checked rows it hides. Set `keepHiddenCheckedRows` <NewBadge /> to remember them:
+
+```tsx
+<DataGridProvider keepCheckedRows keepHiddenCheckedRows {...grid} columns={columns}>
+```
+
+A hidden checked row is a checked row that the current filter hides. The grid checks it again when the filter lets it back in. A sort keeps both the visible and the hidden checks.
+
+While every checked row is hidden, Delete rows, Duplicate row, Move rows, and their context menu items do nothing. Row operations never touch a hidden checked row. Delete rows, Duplicate row, Move rows, the context menu, the export scope `'selection'`, and the clipboard read only the checked rows you can see. Select all checks the rows of the view and adds no hidden row. Escape, `clearSelection()`, `setSelection(null)`, an empty controlled `selection`, and the header checkbox set to off clear the hidden checks too.
+
+The controlled `selection` prop and `onSelectionChange` carry the visible rows only. `useDataGridHiddenCheckedCount()` returns the number of hidden checked rows. `DataGridStatusBar` shows it as `(+3 hidden)`; the label is `labels.statusBar.hiddenChecked`.
+
+The grid remembers at most 100,000 hidden checked rows. A server-sorted grid ignores the option. A grid with unloaded rows (a lazy source) ignores it while its data holds them. Both warn once in development. Switching to `sortMode="server"` clears the hidden checks.
+
+`setSelection` with a non-empty value and a non-empty controlled `selection` change the visible checks and keep the hidden ones.
+
 | Prop | Type | Default |
 |---|---|---|
 | `keepCheckedRows` <NewBadge /> | `boolean` | `false` |
+| `keepHiddenCheckedRows` <NewBadge /> | `boolean` | `false` |
+| `onBeforeDeleteRows` <NewBadge /> | `(ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean \| Promise<boolean>` | none |
+
+`keepHiddenCheckedRows` takes effect only with `keepCheckedRows`. `onBeforeDeleteRows` is described in [Row operations](/docs/row-operations#confirm-a-delete).
 
 ## Header click behavior
 

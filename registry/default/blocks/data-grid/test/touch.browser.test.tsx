@@ -140,3 +140,42 @@ describe("touch input in a real browser", () => {
     expect([...live.keys()].filter((entry) => !entry.startsWith("pointerdown"))).toEqual([]);
   });
 });
+
+describe("column grip on touch", () => {
+  const headerIds = () => [...document.querySelectorAll('[role="columnheader"]')].map((h) => h.getAttribute("data-column-id"));
+  const headerEl = (columnId: string) => document.querySelector(`[role="columnheader"][data-column-id="${columnId}"]`)!;
+  const gripOf = (columnId: string) => headerEl(columnId).querySelector<HTMLElement>(gridAttrSelector("columnReorderHandle"))!;
+
+  function renderReorderable() {
+    return render(
+      <div style={{ height: 360, width: 700 }}>
+        <DataGrid data={rows} columns={columns} getRowId={(r) => r.id} className="h-90 w-175" enableColumnReorder />
+      </div>,
+    );
+  }
+
+  async function dragGrip(from: string, to: string, end: "pointerup" | "pointercancel") {
+    touch(gripOf(from), "pointerdown", center(headerEl(from)));
+    const target = center(headerEl(to));
+    for (let i = 0; i < 3; i++) {
+      touch(document, "pointermove", target);
+      await nextFrames();
+    }
+    touch(document, "pointermove", { x: target.x + 2, y: target.y });
+    touch(document, end, target);
+    await nextFrames();
+  }
+
+  // the reorder control is display:none on a fine pointer (pointer-coarse:flex), so synthetic events target it directly
+  it("dragging the grip with a touch pointer onto another header reorders the columns", async () => {
+    await renderReorderable();
+    await dragGrip("id", "email", "pointerup");
+    expect(headerIds().indexOf("id")).toBeGreaterThan(headerIds().indexOf("name"));
+  });
+
+  it("a cancelled grip drag leaves the order unchanged", async () => {
+    await renderReorderable();
+    await dragGrip("id", "email", "pointercancel");
+    expect(headerIds()).toEqual(["id", "name", "email", "age"]);
+  });
+});

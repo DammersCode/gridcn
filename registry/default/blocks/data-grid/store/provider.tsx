@@ -106,6 +106,8 @@ const CONFIG_KEYS = [
   "rowMarkers",
   "enableRowSelection",
   "keepCheckedRows",
+  "keepHiddenCheckedRows",
+  "onBeforeDeleteRows",
   "enableColumnSelection",
   "enableRangeSelection",
   "enableMultiRange",

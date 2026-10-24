@@ -189,6 +189,8 @@ assertEqual<(change: DataChange<unknown>) => void, typeof wActions.commitChange>
 // a prop cannot exist on one home and be forgotten on the wrapper. These guards pin the split itself.
 
 assertEqual<boolean | undefined, DataGridSyncProps<Row>["keepCheckedRows"]>(true);
+assertEqual<boolean | undefined, DataGridSyncProps<Row>["keepHiddenCheckedRows"]>(true);
+assertEqual<((ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean | Promise<boolean>) | undefined, DataGridSyncProps<Row>["onBeforeDeleteRows"]>(true);
 
 // Disjoint: a sync prop that also exists on the root would be ambiguous about which home reads it.
 assertEqual<never, Extract<keyof DataGridSyncProps<Row>, keyof DataGridRootProps<Row>>>(true);

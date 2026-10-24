@@ -60,6 +60,12 @@ import {
   EMPTY_FLASHING_CELLS,
 } from "./compute";
 import { isDev } from "../is-dev";
+import {
+  MAX_HIDDEN_CHECKED_ROWS,
+  NO_HIDDEN_CHECKED_ROWS,
+  carryCheckedRows,
+  hiddenCheckedRowsActive,
+} from "./hidden-checked-rows";
 import { resolveEditTarget, warnBothSelectionPropsOnce, warnDev } from "./commit";
 import { apiHandleOf } from "./api";
 import { createDataWriteActions, createDataWriteContext, forgetDeferredRows, resetDeferredRows, resolveRefOrWarn } from "./data-write";
@@ -216,6 +222,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   let releasePluginClaims: (() => void) | null = null;
   // A getRowId swap on the same data array keeps ids, errors, and the row index of the old function.
   let warnedGetRowIdSwap = false;
+  let warnedHiddenCheckedIgnored = false;
+  let warnedHiddenCheckedCap = false;
+  const warnHiddenCheckedIgnored = (reason: string): void => {
+    if (warnedHiddenCheckedIgnored) return;
+    warnedHiddenCheckedIgnored = true;
+    warnDev(`keepHiddenCheckedRows is ignored ${reason}`);
+  };
   // `rowId -> dataIndex` for updateCells: row moves invalidate it, value patches keep it warm.
   const rowIndexCache = createRowIndexCache();
   /** Per-key auto-clear timers for `flashCells`; a re-flash of a live key clears its old timer so the pulse restarts. */
@@ -297,6 +310,35 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
    * the followed active cell; a clamp that moves the cursor collapses onto it, and a clamp in place
    * drops the range, so a row operation never reaches a record nobody selected.
    */
+  /** The row channel and the hidden set carried into a rebuilt view; `visibleOnly` computes the channel when the hidden set is off. */
+  const carryRows = (
+    s: DataGridStoreState,
+    rows: CompactSelectionLike,
+    viewIndex: readonly number[],
+    data: readonly unknown[],
+    getRowId: (row: unknown, index: number) => string,
+    sameRecords: boolean,
+    visibleOnly: () => CompactSelectionLike,
+  ): { rows: CompactSelectionLike; hiddenCheckedRowIds: ReadonlySet<string> } => {
+    if (!hiddenCheckedRowsActive(s)) return { rows: visibleOnly(), hiddenCheckedRowIds: s.hiddenCheckedRowIds };
+    const carried = carryCheckedRows({
+      rows,
+      hidden: s.hiddenCheckedRowIds,
+      prevData: s.data,
+      prevViewIndex: s.viewIndex,
+      prevGetRowId: s.getRowId,
+      nextData: data,
+      nextViewIndex: viewIndex,
+      resolveNextRowIds: () => rowIndexCache.resolve(data, getRowId),
+      sameRecords,
+    });
+    if (carried.lazy) warnHiddenCheckedIgnored("while the grid holds unloaded rows (a lazy source)");
+    if (carried.capped && !warnedHiddenCheckedCap) {
+      warnedHiddenCheckedCap = true;
+      warnDev(`keepHiddenCheckedRows remembers at most ${MAX_HIDDEN_CHECKED_ROWS} hidden checked rows; the rest are dropped`);
+    }
+    return { rows: carried.lazy ? visibleOnly() : carried.rows, hiddenCheckedRowIds: carried.hidden };
+  };
   const followView = (
     s: DataGridStoreState,
     viewIndex: readonly number[],
@@ -340,10 +382,16 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         base = { ...base, current: { ...current, cell: followed } };
       }
     }
-    const rows = remapRowChannel(base.rows, s.viewIndex, viewIndex, toNextDataRow);
+    const carried = carryRows(s, base.rows, viewIndex, data, getRowId, sameRecords, () => remapRowChannel(base.rows, s.viewIndex, viewIndex, toNextDataRow));
+    const { rows, hiddenCheckedRowIds } = carried;
     const columns = remapColumnChannel(base.columns, s.visibleColumns, visibleColumns);
     const selection = rows === base.rows && columns === base.columns ? base : { ...base, rows, columns };
-    return { ...(clamped ?? { activeCell: followed ?? null }), ...editRemap, ...(selection === s.selection ? {} : { selection }) };
+    return {
+      ...(clamped ?? { activeCell: followed ?? null }),
+      ...editRemap,
+      ...(selection === s.selection ? {} : { selection }),
+      ...(hiddenCheckedRowIds === s.hiddenCheckedRowIds ? {} : { hiddenCheckedRowIds }),
+    };
   };
   // cellErrors keys of each row's last validateRow verdict, so a re-run clears only its own messages.
   const rowValidationKeys = new Map<string, string[]>();
@@ -423,6 +471,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // refs only, and the rowIds/columnIds arrays keep their identity.
   let rowIdsDerivation: { rows: CompactSelectionLike; viewIndex: readonly number[]; data: readonly unknown[]; getRowId: (row: unknown, index: number) => string; rowIds: string[] } | null = null;
   let columnIdsDerivation: { columns: CompactSelectionLike; visibleColumns: readonly AnyColumnDef[]; columnIds: string[] } | null = null;
+  if (init.keepCheckedRows && init.keepHiddenCheckedRows && initSortMode === "server") {
+    warnHiddenCheckedIgnored("with sortMode=\"server\" (the grid does not hold every row)");
+  }
   const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, viewSorts(initSortMode, initSortState), initFilterState, initJoinOperator, undefined, initCellTypes);
   // `selection` wins over `defaultSelection`, and both resolve here (not in the provider), so the
   // server render and the first client paint already show them.
@@ -537,6 +588,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       applyRowValidation,
       pruneRowValidationKeys,
       followView,
+      carryRows,
       remapEditing,
       endEditSession,
     });
@@ -627,38 +679,46 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           lastKeymapProp = props.keymap;
           lastCommandsProp = props.commands;
         }
-        set((s) => ({
-          ...resolveSelectionConfig(props),
-          labels: mergeLabels(props.labels),
-          plugins: nextPlugins ?? s.plugins,
-          commands: commandsUpdated ? nextCommands : s.commands,
-          autosizeOnMount: props.autosizeOnMount,
-          onDataChange: props.onDataChange,
-          validateRow: props.validateRow,
-          processCellForClipboard: props.processCellForClipboard,
-          processCellFromClipboard: props.processCellFromClipboard,
-          processPaste: props.processPaste,
-          sanitizeClipboardFormulas: props.sanitizeClipboardFormulas,
-          createRow: props.createRow,
-          duplicateRow: props.duplicateRow,
-          onSortChange: props.onSortChange,
-          onFilterChange: props.onFilterChange,
-          onJoinOperatorChange: props.onJoinOperatorChange,
-          onSearchTextChange: props.onSearchTextChange,
-          onColumnLayoutChange: props.onColumnLayoutChange,
-          onColumnResizing: props.onColumnResizing,
-          onSelectionChange: props.onSelectionChange,
-          onActiveCellChange: props.onActiveCellChange,
-          onEditStart: props.onEditStart,
-          onEditEnd: props.onEditEnd,
-          onValidationError: props.onValidationError,
-          onCellDoubleClick: props.onCellDoubleClick,
-          onCellContextMenu: props.onCellContextMenu,
-          onCellClick: props.onCellClick,
-          onRenderedRowsChange: props.onRenderedRowsChange,
-          readOnly: Boolean(props.readOnly),
-          keymap: nextKeymap ?? s.keymap,
-        }));
+        set((s) => {
+          const selectionConfig = resolveSelectionConfig(props);
+          if (selectionConfig.keepCheckedRows && selectionConfig.keepHiddenCheckedRows && s.sortMode === "server") {
+            warnHiddenCheckedIgnored("with sortMode=\"server\" (the grid does not hold every row)");
+          }
+          return {
+            ...selectionConfig,
+            ...(s.hiddenCheckedRowIds.size > 0 && !hiddenCheckedRowsActive({ ...selectionConfig, sortMode: s.sortMode }) ? { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS } : {}),
+            onBeforeDeleteRows: props.onBeforeDeleteRows,
+            labels: mergeLabels(props.labels),
+            plugins: nextPlugins ?? s.plugins,
+            commands: commandsUpdated ? nextCommands : s.commands,
+            autosizeOnMount: props.autosizeOnMount,
+            onDataChange: props.onDataChange,
+            validateRow: props.validateRow,
+            processCellForClipboard: props.processCellForClipboard,
+            processCellFromClipboard: props.processCellFromClipboard,
+            processPaste: props.processPaste,
+            sanitizeClipboardFormulas: props.sanitizeClipboardFormulas,
+            createRow: props.createRow,
+            duplicateRow: props.duplicateRow,
+            onSortChange: props.onSortChange,
+            onFilterChange: props.onFilterChange,
+            onJoinOperatorChange: props.onJoinOperatorChange,
+            onSearchTextChange: props.onSearchTextChange,
+            onColumnLayoutChange: props.onColumnLayoutChange,
+            onColumnResizing: props.onColumnResizing,
+            onSelectionChange: props.onSelectionChange,
+            onActiveCellChange: props.onActiveCellChange,
+            onEditStart: props.onEditStart,
+            onEditEnd: props.onEditEnd,
+            onValidationError: props.onValidationError,
+            onCellDoubleClick: props.onCellDoubleClick,
+            onCellContextMenu: props.onCellContextMenu,
+            onCellClick: props.onCellClick,
+            onRenderedRowsChange: props.onRenderedRowsChange,
+            readOnly: Boolean(props.readOnly),
+            keymap: nextKeymap ?? s.keymap,
+          };
+        });
         // A flip to readOnly cancels an open edit session (so onEditEnd fires with `cancel`); an
         // already-closed session has nothing to cancel.
         if (props.readOnly && get().editing) get().actions.cancelEditing();
@@ -674,6 +734,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             props.filterState === undefined || !propsFilterStateChanged ? s.filterState : withFilterIds(props.filterState);
           const nextSortMode = props.sortMode ?? "client";
           const nextViewSorts = viewSorts(nextSortMode, nextSortState);
+          const serverSort = nextSortMode === "server";
+          if (serverSort && s.keepCheckedRows && s.keepHiddenCheckedRows) {
+            warnHiddenCheckedIgnored("with sortMode=\"server\" (the grid does not hold every row)");
+          }
           const nextJoinOperator = props.joinOperator ?? s.joinOperator;
           const nextSearchText = props.searchText ?? s.searchText;
           // Controlled data mirrors the prop; uncontrolled keeps the store's array, and `defaultData` is init-only.
@@ -805,6 +869,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
               if (resolved.grid !== s.selection) {
                 selectionApply = {
                   selection: resolved.grid,
+                  ...(isSelectionEmpty(resolved.grid) ? { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS } : {}),
                   ...(resolved.activeCell !== undefined ? { activeCell: resolved.activeCell } : {}),
                 };
               }
@@ -861,6 +926,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             // Rows move only on a foreign data replacement, never on our own echo.
             rowIdentityVersion: foreignData ? s.rowIdentityVersion + 1 : s.rowIdentityVersion,
             ...followed,
+            ...(serverSort && s.hiddenCheckedRowIds.size > 0 ? { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS } : {}),
             // A layout-only apply moves visible columns, so the search-match row map re-runs with it.
             ...(unchanged && layoutApply === null
               ? { searchMatches: s.searchMatches, searchMatchSet: s.searchMatchSet, searchMatchRows: s.searchMatchRows, searchMatchesCapped: s.searchMatchesCapped }
@@ -941,6 +1007,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     activeCell: initialActiveCell,
     selection: initialSelection,
     selectAllStage: null,
+    hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS,
     editing: null,
     editingError: null,
     editingRejectionCount: 0,
@@ -1119,11 +1186,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const { selection, viewIndex, enableRowSelection } = get();
         if (!enableRowSelection) return;
         const rows = checked ? CompactSelection.fromSingleSelection([0, viewIndex.length]) : CompactSelection.empty();
-        set({ selection: { ...selection, rows } });
+        set({ selection: { ...selection, rows }, ...(checked ? {} : { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS }) });
       },
       clearSelection() {
-        if (isSelectionEmpty(get().selection)) return;
-        set({ selection: emptySelection() });
+        const s = get();
+        if (isSelectionEmpty(s.selection) && s.hiddenCheckedRowIds.size === 0) return;
+        set({ selection: emptySelection(), hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS });
       },
       clearCellSelection() {
         const { selection } = get();
@@ -1133,14 +1201,15 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       setSelection(next) {
         const s = get();
         if (next === null) {
-          if (isSelectionEmpty(s.selection)) return;
-          set({ selection: emptySelection() });
+          if (isSelectionEmpty(s.selection) && s.hiddenCheckedRowIds.size === 0) return;
+          set({ selection: emptySelection(), hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS });
           return;
         }
         const resolved = resolveSelectionState(s, rowIndexCache, next, warnedControlledSelection);
         if (resolved.grid === s.selection) return;
         set({
           selection: resolved.grid,
+          ...(isSelectionEmpty(resolved.grid) ? { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS } : {}),
           ...(resolved.activeCell !== undefined ? { activeCell: resolved.activeCell } : {}),
         });
       },

@@ -1,6 +1,6 @@
 # Keep checked rows across filters
 
-Status: proposed. Not implemented. `keepCheckedRows` (shipped) keeps checked rows across cell clicks and outside clicks; a filter still unchecks the rows it hides.
+Status: implemented in 1.2.0. `keepCheckedRows` keeps checked rows across cell clicks and outside clicks; `keepHiddenCheckedRows` keeps the rows a filter hides.
 
 ## Goal
 
@@ -36,7 +36,7 @@ Deleting rows is the destructive path. The grid ships no dialog; the app owns it
 
 ## Open points
 
-- Cut acts on the cell range today, not on checked rows. Decide whether cut with checked rows removes whole rows (then it needs the same hook) or stays a cell-range operation.
+- Decided: cut stays a cell-range operation. It never removes whole rows, so it needs no hook.
 - Cell-range Delete only clears contents and is covered by undo; it gets no hook.
 
 ## Bounds
