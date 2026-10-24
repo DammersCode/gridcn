@@ -9,7 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
-## 1.2.0 - 2026-10-23
+## 1.2.0 - 2026-10-24
 
 - Touch input. A touch press selects on release, not on press, so a scroll or a pan selects nothing. A tap selects a cell, a column header, or a row marker. A double-tap edits a cell. Pressing and holding for 500 ms opens the context menu of a cell or a header. The grid takes no pointer capture for a touch press and registers no non-passive touch or wheel listener.
 - After a touch selection, two selection handles at the corners of the range extend it. The grid scrolls at the edges while a handle is dragged. Any key press hides the handles.
