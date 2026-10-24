@@ -95,7 +95,7 @@ export function DataGridStatusBar({
           </span>
         );
       })}
-      {hiddenChecked > 0 && <span>{mergedLabels.hiddenChecked(hiddenChecked)}</span>}
+      {hiddenChecked > 0 && <span>{showStats ? mergedLabels.hiddenChecked(hiddenChecked) : mergedLabels.hiddenCheckedOnly(hiddenChecked)}</span>}
       {children}
     </div>
   );

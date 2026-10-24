@@ -301,15 +301,6 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     if (row === -1 || col === -1) return undefined;
     return row === active.row && col === active.col ? active : { row, col };
   };
-  /**
-   * The cursor, the open edit, and the selection carried into a rebuilt view. `sameRecords` keeps
-   * data indices as identity (no `data` swap, or our own echo); otherwise records map by rowId, and
-   * a duplicated rowId resolves to the first row with that id. The active cell follows its record and
-   * column and clamps only when one of them left the view. The row channel follows its records, the
-   * column channel its column ids. A range that now covers other records or columns collapses onto
-   * the followed active cell; a clamp that moves the cursor collapses onto it, and a clamp in place
-   * drops the range, so a row operation never reaches a record nobody selected.
-   */
   /** The row channel and the hidden set carried into a rebuilt view; `visibleOnly` computes the channel when the hidden set is off. */
   const carryRows = (
     s: DataGridStoreState,
@@ -339,6 +330,15 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     }
     return { rows: carried.lazy ? visibleOnly() : carried.rows, hiddenCheckedRowIds: carried.hidden };
   };
+  /**
+   * The cursor, the open edit, and the selection carried into a rebuilt view. `sameRecords` keeps
+   * data indices as identity (no `data` swap, or our own echo); otherwise records map by rowId, and
+   * a duplicated rowId resolves to the first row with that id. The active cell follows its record and
+   * column and clamps only when one of them left the view. The row channel follows its records, the
+   * column channel its column ids. A range that now covers other records or columns collapses onto
+   * the followed active cell; a clamp that moves the cursor collapses onto it, and a clamp in place
+   * drops the range, so a row operation never reaches a record nobody selected.
+   */
   const followView = (
     s: DataGridStoreState,
     viewIndex: readonly number[],

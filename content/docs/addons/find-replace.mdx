@@ -45,10 +45,11 @@ background and a small dot at its corner.
 The Previous and Next buttons follow the field. Their tooltips name the keys: <kbd>Enter</kbd> goes
 to the next match and <kbd>Shift</kbd>+<kbd>Enter</kbd> to the previous one.
 
-The status line is the last row of the panel and has a fixed height, so the panel never changes
-size. It shows `2 of 4 cells` for the current match, `No results` when nothing matches, and
-`Type to search` while the Find field is empty. The number gets a `+` when the highlight list
-stops at its cap.
+The status line is the last row of the panel and keeps one line height. Text that does not fit is
+cut off, and the `title` holds the full text. It shows `2 of 4 cells` for the current match,
+`No results` when nothing matches, and `Type to search` while the Find field is empty. The number
+gets a `+` when the highlight list stops at its cap. The Replace row adds its own row to the panel
+and removes it again.
 
 Find ignores leading and trailing spaces in the Find text. Pass the same options to the store with
 `actions.setSearch(text, { matchCase, wholeCell })`. The options stay set until the next call that

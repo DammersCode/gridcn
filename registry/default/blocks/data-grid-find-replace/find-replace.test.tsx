@@ -68,6 +68,17 @@ describe("useDataGridFindReplace", () => {
     expect(screen.getByRole("status").textContent).toBe("1 of 2 cells");
   });
 
+  it("Ctrl+F inside the panel cancels the browser find bar and selects the Find field", () => {
+    const harness = setup();
+    act(() => harness.findReplace().open());
+    const find = screen.getByLabelText("Find") as HTMLInputElement;
+    const replace = screen.getByLabelText("Replace with");
+    replace.focus();
+    const notCancelled = fireEvent.keyDown(replace, { key: "f", ctrlKey: true });
+    expect(notCancelled).toBe(false);
+    expect(document.activeElement).toBe(find);
+  });
+
   it("Replace all writes one change with source replace and one undo entry", async () => {
     const harness = setup();
     act(() => harness.findReplace().open());
@@ -153,7 +164,7 @@ describe("useDataGridFindReplace", () => {
     expect(unhandled).not.toHaveBeenCalled();
     expect(harness.changes).toHaveLength(0);
     fireEvent.change(screen.getByLabelText("Find"), { target: { value: "two" } });
-    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("1 of 1 cells"));
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("1 of 1 cell"));
   });
 
   it("continues Replace all past the limit when the replacement contains the find text", async () => {

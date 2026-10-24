@@ -82,7 +82,7 @@ describe("keepHiddenCheckedRows in a browser", () => {
     await userEvent.click(page.getByRole("button", { name: "Apply filter" }));
     expect(markerCells()).toHaveLength(1);
     expect(checkedIds()).toEqual([]);
-    expect(hiddenSuffix()).toContain("(+3 hidden)");
+    expect(hiddenSuffix()).toBe("3 hidden checked rows");
 
     await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"]:not(' + gridAttrSelector("markerCell") + ')')!);
     await userEvent.keyboard(deleteRowsChord);

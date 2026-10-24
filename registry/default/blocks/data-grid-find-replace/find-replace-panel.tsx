@@ -225,6 +225,12 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     event.stopPropagation();
     if (isComposingKey(event)) return;
+    if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "f") {
+      event.preventDefault();
+      findRef.current?.focus();
+      findRef.current?.select();
+      return;
+    }
     if (event.key === "Escape") {
       event.preventDefault();
       closePanel();
@@ -264,12 +270,12 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
       data-state={searchOptions[key] ? "on" : "off"}
       onClick={() => toggle(key)}
       className={cn(
-        "relative inline-flex size-8 shrink-0 items-center justify-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring [&_svg]:size-4",
-        searchOptions[key] ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+        "relative inline-flex size-8 shrink-0 items-center justify-center rounded-sm outline-hidden focus-visible:ring-2 focus-visible:ring-ring forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-[Highlight] [&_svg]:size-4",
+        searchOptions[key] ? "bg-primary text-primary-foreground forced-colors:border-2 forced-colors:border-[Highlight] forced-colors:bg-[Highlight] forced-colors:text-[HighlightText]" : "text-muted-foreground hover:bg-muted hover:text-foreground forced-colors:border forced-colors:border-transparent",
       )}
     >
       {icon}
-      {searchOptions[key] && <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-primary ring-2 ring-popover" />}
+      {searchOptions[key] && <span aria-hidden="true" className="absolute -top-0.5 -end-0.5 size-2 rounded-full bg-primary ring-2 ring-popover forced-colors:hidden" />}
     </button>
   );
 
@@ -297,10 +303,10 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
             aria-controls={replaceRowId}
             onClick={() => panelStore.setMode(showReplace ? "find" : "replace")}
           >
-            <ChevronRight className={showReplace ? "rotate-90" : undefined} />
+            <ChevronRight className={showReplace ? "rotate-90" : "rtl:rotate-180"} />
           </Button>
         )}
-        <div data-find-field="" className="flex h-9 min-w-0 flex-1 items-center rounded-md border border-input bg-transparent pr-0.5 focus-within:ring-2 focus-within:ring-ring/50">
+        <div data-find-field="" className="flex h-9 min-w-0 flex-1 items-center rounded-md border border-input bg-transparent pe-0.5 focus-within:ring-2 focus-within:ring-ring/50">
           <Input
             ref={findRef}
             value={find}
@@ -348,7 +354,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
           </Button>
         </div>
       )}
-      <div role="status" aria-live="polite" className={cn("min-h-5 px-1 font-mono text-xs tabular-nums", noResults ? "text-destructive" : "text-muted-foreground")}>
+      <div role="status" aria-live="polite" title={statusText} className={cn("h-5 truncate px-1 font-mono text-xs tabular-nums", noResults ? "text-destructive" : "text-muted-foreground")}>
         {statusText}
       </div>
     </div>

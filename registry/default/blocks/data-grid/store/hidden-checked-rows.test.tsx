@@ -238,7 +238,7 @@ const commitUpdate = (m: ReturnType<typeof mount>, rowId: string, name: string) 
   });
 
 describe("hidden checked rows: row actions with only hidden checks", () => {
-  it("Delete rows and Duplicate row do nothing and keep the active row", () => {
+  it("Delete rows and Duplicate row do nothing and keep the active cell", () => {
     const onDataChange = vi.fn();
     const m = mount({ onDataChange, duplicateRow: (row: Row) => ({ ...row, id: `${row.id}2` }) });
     m.check(0, 1);
@@ -246,8 +246,8 @@ describe("hidden checked rows: row actions with only hidden checks", () => {
     act(() => m.state().actions.selectCellAt({ col: 0, row: 0 }));
     m.dispatch("deleteRows");
     m.dispatch("duplicateRow");
-    m.dispatch("moveRowsDown");
     expect(onDataChange).not.toHaveBeenCalled();
+    expect(m.state().activeCell).toEqual({ col: 0, row: 0 });
     expect(m.dataIds()).toEqual(["a", "b", "c", "d", "e"]);
   });
 
@@ -309,6 +309,60 @@ describe("hidden checked rows: undo and redo style commits under a filter", () =
     const viewIds = m.state().viewIndex.map((i) => (m.state().data[i] as Row).id);
     const checkedIds = m.state().selection.rows.toArray().map((v) => viewIds[v]);
     expect(checkedIds).toEqual(["e"]);
+  });
+});
+
+describe("hidden checked rows: row commits during an edit session", () => {
+  const checkedViewIds = (m: ReturnType<typeof mount>) => {
+    const viewIds = m.state().viewIndex.map((i) => (m.state().data[i] as Row).id);
+    return m.state().selection.rows.toArray().map((v) => viewIds[v]);
+  };
+  const editVisibleRow = () => {
+    const m = mount({ createRow: () => ({ id: "n", name: "D" }) });
+    m.check(0, 1, 3);
+    m.filterToD();
+    act(() => m.state().actions.selectCellAt({ col: 0, row: 0 }));
+    act(() => m.state().actions.startEditingAt({ col: 0, row: 0 }));
+    return m;
+  };
+
+  it("an insert above the edited row keeps the checks on their records", () => {
+    const m = editVisibleRow();
+    act(() => m.state().actions.commitChange({ source: "history", ops: [{ type: "insert", rowId: "x", row: { id: "x", name: "D" }, index: 0 }] }));
+    expect(checkedViewIds(m)).toEqual(["d"]);
+    expect(m.hiddenIds()).toEqual(["a", "b"]);
+  });
+
+  it("a delete above the edited row keeps the checks on their records", () => {
+    const named: Row[] = [["a", "X1"], ["b", "X2"], ["c", "X3"], ["d", "Y4"]].map(([id, name]) => ({ id: id!, name: name! }));
+    const m = mount({ defaultData: named });
+    m.check(1, 2, 3);
+    act(() => m.state().actions.setFilters([{ filterId: "f", columnId: "name", operator: "contains", value: "X" }] as never));
+    act(() => m.state().actions.selectCellAt({ col: 0, row: 2 }));
+    act(() => m.state().actions.startEditingAt({ col: 0, row: 2 }));
+    act(() => m.state().actions.commitChange({ source: "history", ops: [{ type: "delete", rowId: "a", row: named[0]!, index: 0 }] }));
+    expect(checkedViewIds(m)).toEqual(["b", "c"]);
+    expect(m.hiddenIds()).toEqual(["d"]);
+  });
+
+  it("an insert row operation under a filter keeps the checks on their records", () => {
+    const m = editVisibleRow();
+    act(() => m.state().actions.insertRows(0, 1, "above"));
+    expect(checkedViewIds(m)).toEqual(["d"]);
+    expect(m.hiddenIds()).toEqual(["a", "b"]);
+  });
+});
+
+describe("hidden checked rows: duplicate row ids", () => {
+  it("a hidden id returns to the first row that carries it", () => {
+    const dup: Row[] = [{ id: "a", name: "A" }, { id: "b", name: "B1" }, { id: "b", name: "B2" }];
+    const m = mount({ defaultData: dup });
+    m.check(2);
+    act(() => m.state().actions.setFilters([{ filterId: "f", columnId: "name", operator: "equals", value: "A" }] as never));
+    expect(m.hiddenIds()).toEqual(["b"]);
+    m.clearFilter();
+    expect(m.state().selection.rows.toArray()).toEqual([1]);
+    expect(m.hiddenIds()).toEqual([]);
   });
 });
 

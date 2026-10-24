@@ -263,6 +263,8 @@ export type DataGridStatusBarLabels = {
   approximate: (count: number) => string;
   /** Item beside the selection stats; `count` is the number of hidden checked rows (`keepHiddenCheckedRows`). */
   hiddenChecked: (count: number) => string;
+  /** Stand-alone text when fewer than two cells are selected, so the bar has no stats to attach `hiddenChecked` to. */
+  hiddenCheckedOnly: (count: number) => string;
 };
 
 /** Find-and-replace panel strings. */
@@ -559,6 +561,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     max: "Max",
     approximate: (count) => `From the first ${count.toLocaleString("en-US")} cells`,
     hiddenChecked: (count) => `(+${count.toLocaleString("en-US")} hidden)`,
+    hiddenCheckedOnly: (count) => `${count.toLocaleString("en-US")} hidden checked ${count === 1 ? "row" : "rows"}`,
   },
   findReplace: {
     dialogLabel: "Find and replace",
@@ -576,7 +579,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     close: "Close",
     noMatches: "No results",
     typeToSearch: "Type to search",
-    position: (index, total, capped) => `${index} of ${total.toLocaleString("en-US")}${capped ? "+" : ""} cells`,
+    position: (index, total, capped) => `${index} of ${total.toLocaleString("en-US")}${capped ? "+" : ""} ${total === 1 && !capped ? "cell" : "cells"}`,
     replaced: (replaced, skipped) => (skipped > 0 ? `${replaced} replaced, ${skipped} skipped` : `${replaced} replaced`),
     moreRemain: "More matches remain. Run Replace all again.",
     validating: "Validating…",

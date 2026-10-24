@@ -258,6 +258,12 @@ export function followActiveRow(s: DataGridStoreState, nextData: readonly unknow
   return { selection: { ...emptySelection(), rows, current: { cell, range: rectFromCorners(cell, cell), rangeStack: [] } }, activeCell: cell };
 }
 
+/** `remap` with its selection's row channel replaced by `rows`; the remap holds the pre-write channel. */
+function keepRows(remap: Partial<DataGridStoreState>, rows: CompactSelectionLike): Partial<DataGridStoreState> {
+  const selection = remap.selection;
+  return selection && selection.rows !== rows ? { ...remap, selection: { ...selection, rows } } : remap;
+}
+
 type SetState = (partial: Partial<DataGridStoreState>) => void;
 type GetState = () => DataGridStoreState;
 
@@ -388,6 +394,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   };
 
   const hiddenAfterDelete = (s: DataGridStoreState, ops: readonly DataOp<unknown>[]): Partial<DataGridStoreState> => {
+    if (s.hiddenCheckedRowIds.size === 0) return {};
     const hiddenCheckedRowIds = withoutHiddenCheckedRows(s.hiddenCheckedRowIds, ops.flatMap((op) => (op.type === "delete" ? [op.rowId] : [])));
     return hiddenCheckedRowIds === s.hiddenCheckedRowIds ? {} : { hiddenCheckedRowIds };
   };
@@ -821,9 +828,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const view = rebuildRowOpView(s, batch.nextData);
       const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
       if (viewSorts(s.sortMode, s.sortState).length > 0 || s.filterState.length > 0) {
+        const followed = followActiveRow(s, batch.nextData, view.viewIndex!);
         pruneRowValidationKeys(batch.nextData, s.getRowId);
         writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
-          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view, ...editRemap }),
+          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followed, ...view, ...keepRows(editRemap, followed.selection.rows) }),
         );
         return;
       }
@@ -869,9 +877,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const view = rebuildRowOpView(s, batch.nextData);
       const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
       if (viewSorts(s.sortMode, s.sortState).length > 0 || s.filterState.length > 0) {
+        const followed = followActiveRow(s, batch.nextData, view.viewIndex!);
         pruneRowValidationKeys(batch.nextData, s.getRowId);
         writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
-          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followActiveRow(s, batch.nextData, view.viewIndex!), ...view, ...editRemap }),
+          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followed, ...view, ...keepRows(editRemap, followed.selection.rows) }),
         );
         return;
       }
@@ -939,16 +948,17 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, nextData, s.getRowId);
       const followed = followActiveRow(s, nextData, view.viewIndex!);
       const carried = carryRows(s, s.selection.rows, view.viewIndex!, nextData, s.getRowId, false, () => followed.selection.rows);
+      const base = editRemap.selection ?? followed.selection;
       writeThenEmit(ctx, s, nextData, change, () =>
         set({
           data: nextData,
           rowIdentityVersion: s.rowIdentityVersion + 1,
           cellErrors,
           ...followed,
-          selection: carried.rows === followed.selection.rows ? followed.selection : { ...followed.selection, rows: carried.rows },
-          hiddenCheckedRowIds: carried.hiddenCheckedRowIds,
           ...view,
           ...editRemap,
+          selection: carried.rows === base.rows ? base : { ...base, rows: carried.rows },
+          hiddenCheckedRowIds: carried.hiddenCheckedRowIds,
         }),
       );
     },

@@ -114,9 +114,9 @@ A filter removes the checked rows it hides. Set `keepHiddenCheckedRows` <NewBadg
 
 A hidden checked row is a checked row that the current filter hides. The grid checks it again when the filter lets it back in. A sort keeps both the visible and the hidden checks.
 
-While every checked row is hidden, Delete rows, Duplicate row, Move rows, and their context menu items do nothing. Row operations never touch a hidden checked row. Delete rows, Duplicate row, Move rows, the context menu, the export scope `'selection'`, and the clipboard read only the checked rows you can see. Select all checks the rows of the view and adds no hidden row. Escape, `clearSelection()`, `setSelection(null)`, an empty controlled `selection`, and the header checkbox set to off clear the hidden checks too.
+While every checked row is hidden, Delete rows, Duplicate row, and Move rows do nothing, and their context menu items are disabled. Row operations never touch a hidden checked row. Delete rows, Duplicate row, Move rows, the context menu, the export scope `'selection'`, and the clipboard read only the checked rows you can see. Select all checks the rows of the view and adds no hidden row. Escape, `clearSelection()`, `setSelection(null)`, an empty controlled `selection`, and the header checkbox set to off clear the hidden checks too.
 
-The controlled `selection` prop and `onSelectionChange` carry the visible rows only. `useDataGridHiddenCheckedCount()` returns the number of hidden checked rows. `DataGridStatusBar` shows it as `(+3 hidden)`; the label is `labels.statusBar.hiddenChecked`.
+The controlled `selection` prop and `onSelectionChange` carry the visible rows only. `useDataGridHiddenCheckedCount()` returns the number of hidden checked rows. `DataGridStatusBar` shows it as `(+3 hidden)` beside the selection stats. With fewer than two cells selected, it shows `3 hidden checked rows`. The labels are `labels.statusBar.hiddenChecked` and `labels.statusBar.hiddenCheckedOnly`.
 
 The grid remembers at most 100,000 hidden checked rows. A server-sorted grid ignores the option. A grid with unloaded rows (a lazy source) ignores it while its data holds them. Both warn once in development. Switching to `sortMode="server"` clears the hidden checks.
 

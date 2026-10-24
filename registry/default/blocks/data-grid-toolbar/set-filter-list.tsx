@@ -131,7 +131,7 @@ export function SetFilterList(props: SetFilterListProps): ReactNode {
       aria-label={ariaLabel}
       aria-multiselectable="true"
       aria-activedescendant={active >= first && active <= last ? optionId(active) : undefined}
-      className={cn("relative overflow-y-auto rounded-md border border-input outline-none focus-visible:ring-2 focus-visible:ring-ring/50", className)}
+      className={cn("relative overflow-y-auto rounded-md border border-input outline-hidden focus-visible:ring-2 focus-visible:ring-ring/50", className)}
       style={{ height: VIEWPORT_HEIGHT }}
       onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
       onKeyDown={handleKeyDown}

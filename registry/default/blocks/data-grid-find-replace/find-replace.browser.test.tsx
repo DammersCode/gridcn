@@ -17,8 +17,8 @@ type Row = { id: string; name: string };
 const rows: Row[] = Array.from({ length: 30 }, (_, i) => ({ id: `r${i}`, name: i % 10 === 5 ? `needle ${i}` : `item ${i}` }));
 const columns = defineColumns<Row>()([{ id: "name", header: "Name", accessorKey: "name", type: "text", width: 200 }] as const);
 
-function Harness({ readOnly = false, withToolbar = false, scope }: { readOnly?: boolean; withToolbar?: boolean; scope?: "view" | "selection" } = {}) {
-  const findReplace = useDataGridFindReplace({ scope });
+function Harness({ readOnly = false, withToolbar = false, scope, replaceAllLimit }: { readOnly?: boolean; withToolbar?: boolean; scope?: "view" | "selection"; replaceAllLimit?: number } = {}) {
+  const findReplace = useDataGridFindReplace({ scope, replaceAllLimit });
   return (
     <div style={{ height: 400 }}>
       <button type="button" onClick={() => findReplace.open()}>
@@ -223,6 +223,19 @@ describe("find and replace in a browser", () => {
       const none = panel().getBoundingClientRect().height;
       expect(matching).toBe(empty);
       expect(none).toBe(empty);
+    });
+
+    it("keeps the panel height and the full text in the title when a replace leaves more matches", async () => {
+      await render(<Harness replaceAllLimit={1} />);
+      await openPanel("h");
+      const empty = panel().getBoundingClientRect().height;
+      await userEvent.keyboard("needle");
+      await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("1 of 3 cells");
+      await page.getByRole("textbox", { name: "Replace with" }).fill("x");
+      await page.getByRole("button", { name: "Replace all", exact: true }).click();
+      await expect.poll(() => statusLine().textContent).toContain("More matches remain");
+      expect(panel().getBoundingClientRect().height).toBe(empty);
+      expect(statusLine().getAttribute("title")).toContain("More matches remain");
     });
 
     it("sizes its buttons to at least 32px", async () => {

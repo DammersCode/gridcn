@@ -127,7 +127,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void }):
         aria-pressed={selectAllState}
         disabled={visible.length === 0}
         onClick={toggleVisible}
-        className="flex h-7 items-center gap-2 rounded-sm px-1.5 text-start text-sm outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+        className="flex h-7 items-center gap-2 rounded-sm px-1.5 text-start text-sm outline-hidden hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
       >
         <span aria-hidden className={cn("flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-input", selectAllState && "border-primary bg-primary text-primary-foreground")}>
           {selectAllState && <Check className="size-3" />}
@@ -180,7 +180,7 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
             data-grid-header-filter-trigger=""
             tabIndex={-1}
             aria-label={labels.headerFilterAriaLabel(columnLabel, filtered)}
-            className={cn("shrink-0 rounded p-0.5 pointer-coarse:p-[5px] text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50", filtered && "text-primary")}
+            className={cn("shrink-0 rounded p-0.5 pointer-coarse:p-[5px] text-muted-foreground outline-hidden hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50", filtered && "text-primary")}
           >
             <Filter className={cn("size-3.5", filtered && "fill-current")} />
           </button>
