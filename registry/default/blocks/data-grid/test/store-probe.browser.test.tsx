@@ -9,7 +9,7 @@ import "@/app/global.css";
 const MAX_LISTENERS_PER_CELL = 5;
 
 async function mountAndMeasure(rowCount: number) {
-  let probe!: StoreProbeReading;
+  let probe: StoreProbeReading | undefined;
   const screen = await render(
     <DataGridProvider data={makeRows(rowCount)} columns={columns.slice(0, 3)} getRowId={(r) => r.id}>
       <InstrumentedStoreProbe onReady={(p) => { probe = p; }} />
@@ -28,9 +28,9 @@ async function mountAndMeasure(rowCount: number) {
       previous = current;
       return stable;
     }).toBe(true);
-    return { cells: cellCount(), live: probe.liveListeners() };
+    return { cells: cellCount(), live: probe!.liveListeners() };
   } finally {
-    probe.restore();
+    probe?.restore();
     await screen.unmount();
   }
 }

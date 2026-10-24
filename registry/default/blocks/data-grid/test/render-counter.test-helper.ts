@@ -16,7 +16,7 @@ const SIMPLE_MEMO_COMPONENT = 15;
 const PERFORMED_WORK = 1;
 
 const counts = new Map<string, number>();
-let commitSeen = false;
+let injected = false;
 
 function componentName(fiber: Fiber): string | null {
   if (fiber.tag !== FUNCTION_COMPONENT && fiber.tag !== FORWARD_REF && fiber.tag !== SIMPLE_MEMO_COMPONENT) return null;
@@ -38,13 +38,15 @@ const globalScope = globalThis as { __REACT_DEVTOOLS_GLOBAL_HOOK__?: DevtoolsHoo
 const installedHook: DevtoolsHook = {
   supportsFiber: true,
   renderers: new Map(),
-  inject: () => 1,
+  inject: () => {
+    injected = true;
+    return 1;
+  },
   checkDCE: () => {},
   onScheduleFiberRoot: () => {},
   onCommitFiberUnmount: () => {},
   onPostCommitFiberRoot: () => {},
   onCommitFiberRoot: (_id: number, root: FiberRoot) => {
-    commitSeen = true;
     countCommit(root.current);
   },
 };
@@ -56,27 +58,18 @@ export type RenderTracker = {
   snapshot(): Record<string, number>;
 };
 
-function assertObserving(): void {
-  if (!commitSeen) {
-    throw new Error("render-counter: no commit observed; import this helper before react-dom and render before reading counts");
-  }
-}
-
-/** Counts renders per component name across commits. Throws when another devtools hook is installed, and when `count` or `snapshot` runs before any commit was observed. */
+/** Counts renders per component name across commits. Throws when another devtools hook is installed, or when react-dom never injected into this helper's hook (it loaded first). */
 export function trackRenders(): RenderTracker {
   if (globalScope.__REACT_DEVTOOLS_GLOBAL_HOOK__ !== installedHook) {
     throw new Error("render-counter: another devtools hook is installed; import this helper before react-dom");
   }
+  if (!injected) {
+    throw new Error("render-counter: react-dom did not inject into the hook; import this helper before react-dom");
+  }
   counts.clear();
   return {
-    count: (name) => {
-      assertObserving();
-      return counts.get(name) ?? 0;
-    },
+    count: (name) => counts.get(name) ?? 0,
     reset: () => counts.clear(),
-    snapshot: () => {
-      assertObserving();
-      return Object.fromEntries(counts);
-    },
+    snapshot: () => Object.fromEntries(counts),
   };
 }
