@@ -39,7 +39,8 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void }):
     const state = storeApi.getState();
     const distinct = distinctColumnValues(state, column.id);
     const keys = distinct.values.map((value) => value.key);
-    return { ...distinct, partial: distinct.hasHoles || state.sortMode === "server", keys, openFilters: state.filterState, initiallyChecked: checkedKeysFromFilters(state.filterState, column.id, keys) };
+    const texts = new Map(distinct.values.map((value) => [value.key, value.text]));
+    return { ...distinct, partial: distinct.hasHoles || state.sortMode === "server", keys, texts, openFilters: state.filterState, initiallyChecked: checkedKeysFromFilters(state.filterState, column.id, keys) };
   });
   const options = useMemo<SetFilterOption[]>(
     () => loaded.values.map((value) => (value.key === "" ? { ...value, label: labels.headerFilterBlanks } : value)),
@@ -47,24 +48,28 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void }):
   );
 
   const [checked, setChecked] = useState<ReadonlySet<string>>(loaded.initiallyChecked);
+  const [applyBlocked, setApplyBlocked] = useState(false);
   const search = useDebouncedSearch();
   const { query } = search;
   const visible = useMemo(() => filterSetOptions(options, query), [options, query]);
   const checkedVisible = visible.reduce((count, option) => count + (checked.has(option.key) ? 1 : 0), 0);
 
   const allowed = resolveFilterOperators(column, cellTypes[column.type ?? "text"]);
-  const plan = planSetFilter({ filters: loaded.openFilters, columnId: column.id, keys: loaded.keys, checked, allowed });
-  const tooMany = plan.status === "blocked" && plan.reason === "too-many";
+  const plan = planSetFilter({ filters: loaded.openFilters, columnId: column.id, keys: loaded.keys, texts: loaded.texts, checked, allowed });
+  const tooMany = applyBlocked || (plan.status === "blocked" && plan.reason === "too-many");
   const canApply = plan.status !== "blocked";
 
-  const toggle = (key: string) =>
+  const toggle = (key: string) => {
+    setApplyBlocked(false);
     setChecked((current) => {
       const next = new Set(current);
       if (!next.delete(key)) next.add(key);
       return next;
     });
+  };
 
-  const toggleVisible = () =>
+  const toggleVisible = () => {
+    setApplyBlocked(false);
     setChecked((current) => {
       const next = new Set(current);
       const allChecked = visible.length > 0 && visible.every((option) => next.has(option.key));
@@ -74,11 +79,16 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void }):
       }
       return next;
     });
+  };
 
   const apply = () => {
     if (!canApply) return;
     const state = storeApi.getState();
-    const fresh = planSetFilter({ filters: state.filterState, columnId: column.id, keys: loaded.keys, checked, allowed });
+    const fresh = planSetFilter({ filters: state.filterState, columnId: column.id, keys: loaded.keys, texts: loaded.texts, checked, allowed });
+    if (fresh.status === "blocked") {
+      setApplyBlocked(true);
+      return;
+    }
     if (fresh.status === "apply") actions.setFilters(fresh.filters);
     onClose();
   };
@@ -142,7 +152,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void }):
 }
 
 /**
- * The per-column value filter: a header button that opens a popover with a searchable, countable
+ * The per-column set filter: a header button that opens a popover with a searchable, countable
  * list of the column's distinct values. Wire via
  * `<DataGridRoot renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}>`.
  */

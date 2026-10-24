@@ -150,4 +150,19 @@ describe("checkedKeysFromFilters", () => {
     ];
     expect([...checkedKeysFromFilters(filters, "city", keys)]).toEqual(["b", "c"]);
   });
+
+  it("writes the original text of each key into the filter values", () => {
+    const texts = new Map([["a", "Alpha"], ["b", "Beta"], ["f", "Foxtrot"]]);
+    const run = (checked: string[]) => planSetFilter({ filters: [], columnId: "city", keys, texts, checked: new Set(checked), allowed: BOTH });
+    expect(run(["a", "b"])).toEqual({ status: "apply", filters: [{ columnId: "city", operator: "isAnyOf", value: ["Alpha", "Beta"] }] });
+    expect(run(["a", "b", "c", "d", "e"])).toEqual({ status: "apply", filters: [{ columnId: "city", operator: "isNoneOf", value: ["Foxtrot"] }] });
+  });
+
+  it("treats a stored value that differs in case as unchanged", () => {
+    const cityKeys = ["alpha", "beta", "gamma", "delta", "epsilon"];
+    const texts = new Map([["alpha", "Alpha"], ["beta", "Beta"]]);
+    const existing: FilterSpec[] = [{ columnId: "city", operator: "isAnyOf", value: ["alpha", "BETA"] }];
+    expect(planSetFilter({ filters: existing, columnId: "city", keys: cityKeys, texts, checked: new Set(["alpha", "beta"]), allowed: BOTH })).toEqual({ status: "unchanged" });
+    expect(checkedKeysFromFilters(existing, "city", cityKeys)).toEqual(new Set(["alpha", "beta"]));
+  });
 });

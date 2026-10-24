@@ -17,8 +17,8 @@ type Row = { id: string; name: string };
 const rows: Row[] = Array.from({ length: 30 }, (_, i) => ({ id: `r${i}`, name: i % 10 === 5 ? `needle ${i}` : `item ${i}` }));
 const columns = defineColumns<Row>()([{ id: "name", header: "Name", accessorKey: "name", type: "text", width: 200 }] as const);
 
-function Harness({ readOnly = false, withToolbar = false }: { readOnly?: boolean; withToolbar?: boolean } = {}) {
-  const findReplace = useDataGridFindReplace();
+function Harness({ readOnly = false, withToolbar = false, scope }: { readOnly?: boolean; withToolbar?: boolean; scope?: "view" | "selection" } = {}) {
+  const findReplace = useDataGridFindReplace({ scope });
   return (
     <div style={{ height: 400 }}>
       <button type="button" onClick={() => findReplace.open()}>
@@ -140,5 +140,19 @@ describe("find and replace in a browser", () => {
     await expect.element(find).toHaveValue("item 1");
     await find.fill("item 2");
     await expect.element(toolbar).toHaveValue("item 2");
+  });
+
+  it("clicking Replace all keeps the cell range, so scope selection replaces only inside it", async () => {
+    await render(<Harness scope="selection" />);
+    const cells = page.getByRole("gridcell");
+    await cells.nth(1).click();
+    await userEvent.keyboard("{Shift>}{ArrowDown}{ArrowDown}{/Shift}");
+    await userEvent.keyboard("{Control>}h{/Control}");
+    await userEvent.keyboard("item");
+    await userEvent.keyboard("{Tab}{Tab}");
+    await userEvent.keyboard("x");
+    await page.getByRole("button", { name: "Replace all" }).click();
+    const texts = Array.from(document.querySelectorAll('[role="gridcell"]')).map((c) => c.textContent);
+    expect(texts.slice(0, 5)).toEqual(["item 0", "x 1", "x 2", "x 3", "item 4"]);
   });
 });

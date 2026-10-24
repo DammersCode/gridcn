@@ -98,7 +98,7 @@ function LongTextEditor({
         align="start"
         alignOffset={() => -measure().start}
         sideOffset={() => -measure().textBottomToCellTop}
-        className="w-100 rounded-none p-0 data-open:animate-none data-closed:animate-none"
+        className="w-100 max-w-[calc(100vw-1rem)] rounded-none p-0 data-open:animate-none data-closed:animate-none"
         onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
           if (e.key === "Escape" && !isComposingKey(e) && committed.tryCommit()) cancel();
         }}

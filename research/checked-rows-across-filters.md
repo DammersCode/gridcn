@@ -23,6 +23,22 @@ With an opt-in option, a row the user checked stays remembered while a filter hi
 - Select all stays "all rows of the view". It does not add hidden rows.
 - Server and lazy sources: the option is ignored. Ids are not loaded and the total is unknown. Dev warning once per instance.
 
+## Delete confirmation hook (stage 2)
+
+Deleting rows is the destructive path. The grid ships no dialog; the app owns its design.
+
+- New prop `onBeforeDeleteRows?: (ctx: { rowIds: readonly RowId[]; hiddenCount: number }) => boolean | Promise<boolean>`. It runs before every row delete the grid starts: keyboard `deleteRows`, the context-menu row items, and the cut of whole rows if cut ever acts on checked rows. Returning `false` cancels.
+- `rowIds` holds the rows the action will remove (visible checks, or the range when none are checked). `hiddenCount` is the number of hidden checked rows that stay untouched, so the dialog can say "Delete 3 rows (2 hidden stay)".
+- A pending promise blocks a second delete. After the await the grid reads the store again and drops the result if `readOnly`, the row set, or the checks changed.
+- Undo restores a confirmed delete as today.
+- Docs recipe: a confirm dialog built with the app's own dialog component.
+- Without the prop nothing changes: delete runs at once.
+
+## Open points
+
+- Cut acts on the cell range today, not on checked rows. Decide whether cut with checked rows removes whole rows (then it needs the same hook) or stays a cell-range operation.
+- Cell-range Delete only clears contents and is covered by undo; it gets no hook.
+
 ## Bounds
 
 - Cap the set at 100000 ids. Beyond the cap, new hidden checks are dropped and `onHiddenCheckedOverflow` is not added; the dev warning names the cap.

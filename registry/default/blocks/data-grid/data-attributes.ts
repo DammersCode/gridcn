@@ -57,6 +57,8 @@ export const GRID_ATTR = {
   headerFilterTrigger: "data-grid-header-filter-trigger",
   /** Carried by the header-filter add-on's popup portal, so header-cell.tsx's own pointer handlers can ignore events that bubble out of it. */
   headerFilterPopup: "data-grid-header-filter-popup",
+  /** data-grid-find-replace/find-replace-panel.tsx: the find and replace panel root; a press inside it keeps the cell range. */
+  findReplacePanel: "data-grid-find-replace-panel",
   /** header-cell.tsx: present (`""`) on a column header whose column has an active filter. */
   filtered: "data-filtered",
   /** use-grid-interaction.ts: set on a menu trigger while the keyboard action programmatically clicks it. */

@@ -90,7 +90,7 @@ The value and clipboard representation are always ISO `yyyy-mm-dd`, regardless o
 Formatting is for presentation only, and never affects what the grid copies, pastes, or stores.
 `options.displayFormat` (an `Intl.DateTimeFormatOptions` object) and `options.locale` control
 `toDisplayText`. The editor is a popover date-picker built from shadcn's `calendar` and `popover`,
-with typed-input passthrough. The popover opens at the cell's start edge, and the cell text stays in place <NewBadge />. Enter commits the value, and Escape cancels it.
+with typed-input passthrough. The popover <NewBadge /> opens at the cell's start edge, and the cell text stays in place. Enter commits the value, and Escape cancels it.
 
 ```tsx
 {
@@ -138,7 +138,7 @@ value never renders as a link and `openLink` does not open it.
 ### Long text
 
 `longText` stores multi-line text verbatim. The cell is one line and shows the first 500
-characters with line breaks as spaces. The editor is a popover with a multi-line textarea. The popover opens over the cell, with its top-left corner on the cell's corner and its first line on the cell text <NewBadge />:
+characters with line breaks as spaces. The editor is a popover with a multi-line textarea. The popover <NewBadge /> opens over the cell, with its top-left corner on the cell's corner and its first line on the cell text:
 Enter commits and moves down, Shift+Enter and Alt+Enter insert a line break, Escape cancels, and
 an outside press commits the draft. `options.maxLength` (default 100,000) caps the stored text:
 the editor's textarea enforces it while typing, and a type-level `validate` rejects pasted,

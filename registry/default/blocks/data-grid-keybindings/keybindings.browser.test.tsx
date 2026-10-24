@@ -10,6 +10,7 @@ import {
   defineColumns,
   type Keymap,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridFindReplace } from "@/registry/default/blocks/data-grid-find-replace/use-data-grid-find-replace";
 import { DataGridKeybindingsDialog } from "./keybindings-dialog";
 import { DataGridKeybindingsShortcut } from "./keybindings-shortcut";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply
@@ -119,5 +120,52 @@ describe("DataGridKeybindingsShortcut + DataGridKeybindingsDialog", () => {
 
     await userEvent.keyboard("{Escape}");
     await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
+  });
+});
+
+function FindReplaceDialog({ keymap }: { keymap?: Keymap }) {
+  const findReplace = useDataGridFindReplace();
+  return (
+    <DataGridProvider data={ROWS} columns={columns} getRowId={(r) => r.id} plugins={[findReplace.plugin]} keymap={keymap}>
+      <DataGridKeybindingsDialog open />
+      <DataGridRoot className="h-[300px]">
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+
+function chipLabels(action: string): string[] {
+  const row = document.querySelector(`[data-keybindings-action="${action}"]`);
+  return [...(row?.querySelectorAll("kbd") ?? [])].map((k) => k.textContent ?? "");
+}
+
+describe("find-replace plugin bindings in the dialog", () => {
+  it("lists Find and Find and replace with their chips under the selection category", async () => {
+    await render(<FindReplaceDialog />);
+    await expect.element(page.getByRole("dialog")).toBeInTheDocument();
+
+    const find = document.querySelector('[data-keybindings-action="openFind"]');
+    const replace = document.querySelector('[data-keybindings-action="openFindReplace"]');
+    expect(find?.textContent).toContain("Find");
+    expect(find?.textContent).not.toContain("Open find");
+    expect(replace?.textContent).toContain("Find and replace");
+    expect(chipLabels("openFind")).toContain("F");
+    expect(chipLabels("openFindReplace")).toContain("H");
+    expect(find?.closest('[data-keybindings-category="selection"]')).not.toBeNull();
+    expect(replace?.closest('[data-keybindings-category="selection"]')).not.toBeNull();
+    expect(document.querySelector('[data-keybindings-category="other"]')).toBeNull();
+  });
+
+  it("reflects keymap overrides for a core action and a plugin action", async () => {
+    await render(<FindReplaceDialog keymap={{ redo: ["mod+u"], openFind: ["mod+shift+f"] }} />);
+    await expect.element(page.getByRole("dialog")).toBeInTheDocument();
+
+    expect(chipLabels("redo")).toContain("U");
+    expect(chipLabels("redo")).not.toContain("Y");
+    const findChips = chipLabels("openFind");
+    expect(findChips).toContain("F");
+    expect(findChips.length).toBe(3);
   });
 });

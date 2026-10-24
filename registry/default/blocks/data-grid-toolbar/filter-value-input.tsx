@@ -172,7 +172,7 @@ function SetValueBody(props: { columnId: string; selected: readonly string[]; on
   const storeApi = useDataGridStoreApi();
   const listId = useId();
   const search = useDebouncedSearch();
-  const [options] = useState<SetFilterOption[]>(() =>
+  const [options] = useState<(SetFilterOption & { text: string })[]>(() =>
     distinctColumnValues(storeApi.getState(), columnId).values.map((value) => (value.key === "" ? { ...value, label: labels.headerFilterBlanks } : value)),
   );
   const visible = filterSetOptions(options, search.query);
@@ -182,7 +182,7 @@ function SetValueBody(props: { columnId: string; selected: readonly string[]; on
     const known = new Set(options.map((option) => option.key));
     const next = new Set(checked);
     if (!next.delete(key)) next.add(key);
-    onValueChange([...options.filter((option) => next.has(option.key)).map((option) => option.key), ...selected.filter((value) => !known.has(value.toLowerCase()))]);
+    onValueChange([...options.filter((option) => next.has(option.key)).map((option) => option.text), ...selected.filter((value) => !known.has(value.toLowerCase()))]);
   };
 
   return (

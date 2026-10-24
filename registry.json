@@ -841,7 +841,7 @@
          "name": "data-grid-toolbar",
          "type": "registry:block",
          "title": "Data Grid Toolbar",
-         "description": "Toolbar add-on for the gridcn data grid: quick-search with match navigation, a per-column filter menu (aligned rows, join column, drag-to-reorder via @dnd-kit/react), a header value filter (searchable distinct-values list with counts), and a column visibility/pin menu.",
+         "description": "Toolbar add-on for the gridcn data grid: quick-search with match navigation, a per-column filter menu (aligned rows, join column, drag-to-reorder via @dnd-kit/react), a header set filter (searchable distinct-values list with counts), and a column visibility/pin menu.",
          "author": "gridcn",
          "dependencies": [
             "@dnd-kit/dom@~0.5.0",
@@ -1042,7 +1042,7 @@
          "name": "data-grid-url-state",
          "type": "registry:block",
          "title": "Data Grid URL State",
-         "description": "Syncs the gridcn data grid's sort/filter/search state with the URL via nuqs (router-agnostic — requires a NuqsAdapter above it). Mount <DataGridUrlState prefix?> inside the provider; the prefix option namespaces the URL keys for multiple grids on one page.",
+         "description": "Syncs the gridcn data grid's sort/filter/search, pagination and column layout state with the URL via nuqs (router-agnostic — requires a NuqsAdapter above it). Mount <DataGridUrlState prefix?> inside the provider; the prefix option namespaces the URL keys for multiple grids on one page.",
          "author": "gridcn",
          "dependencies": [
             "nuqs@^2.10.1"
@@ -1378,7 +1378,7 @@
          "name": "data-grid-find-replace",
          "type": "registry:block",
          "title": "Data Grid Find and Replace",
-         "description": "Find-and-replace add-on for the gridcn data grid: useDataGridFindReplace returns a plugin that adds a panel (Ctrl+H) sharing the quick search, with match case and whole cell options. Replace and Replace all write through each column's text codec and validation as one undoable change; planReplace is the pure planner behind them. Strings live under labels.findReplace.",
+         "description": "Find-and-replace add-on for the gridcn data grid: useDataGridFindReplace returns a plugin that adds a panel (Mod+F finds, Ctrl+H replaces) sharing the quick search, with match case and whole cell options. Replace and Replace all write through each column's text codec and validation as one undoable change; planReplace is the pure planner behind them. Strings live under labels.findReplace.",
          "author": "gridcn",
          "dependencies": [
             "lucide-react@^1.46.0"

@@ -203,9 +203,14 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     };
     if (verdict?.pending) {
       setStatus({ kind: "validating" });
-      void verdict.settled?.then((settled) => {
-        if (token === applyTokenRef.current) finish(settled);
-      });
+      void verdict.settled?.then(
+        (settled) => {
+          if (token === applyTokenRef.current) finish(settled);
+        },
+        () => {
+          if (token === applyTokenRef.current) finish(null);
+        },
+      );
       return;
     }
     finish(verdict);
@@ -251,6 +256,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     <div
       role="dialog"
       aria-label={labels.dialogLabel}
+      {...{ [GRID_ATTR.findReplacePanel]: "" }}
       onKeyDown={onKeyDown}
       onCopy={(event) => event.stopPropagation()}
       onCut={(event) => event.stopPropagation()}

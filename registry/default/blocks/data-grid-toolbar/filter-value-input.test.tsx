@@ -98,6 +98,6 @@ describe("DataGridFilterValueInput", () => {
     const options = await screen.findAllByRole("option");
     expect(options.map((o) => o.getAttribute("aria-selected"))).toEqual(["true", "false"]);
     fireEvent.click(options[1]!);
-    expect(onValueChange).toHaveBeenCalledWith(["berlin", "bonn", "gone"]);
+    expect(onValueChange).toHaveBeenCalledWith(["Berlin", "Bonn", "gone"]);
   });
 });

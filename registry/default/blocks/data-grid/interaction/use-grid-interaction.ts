@@ -51,6 +51,7 @@ import { createLongPressTimer, isDoubleTap, isTap, movedBeyondSlop, type TapSamp
 const MODIFIER_KEYS: ReadonlySet<string> = new Set(["Shift", "Control", "Alt", "Meta", "AltGraph"]);
 
 /** Action names already dev-warned as bound-but-unwired (dev-only, process-wide). */
+const KEEP_RANGE_SURFACES = (["cellEditor", "headerFilterPopup", "headerMenuPopup", "findReplacePanel", "contextMenu"] as const).map((name) => gridAttrSelector(name)).join(", ");
 const warnedUnwiredActions = new Set<string>();
 
 /** Column/row layout the interaction hook needs to translate pointer px <-> view coords and to scroll a cell into view. */
@@ -1460,7 +1461,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       const target = event.target as Element | null;
       if (!target || !(target instanceof Element)) return;
       if (scrollRef.current?.contains(target)) return;
-      if (target.closest(gridAttrSelector("cellEditor"))) return;
+      if (target.closest(KEEP_RANGE_SURFACES)) return;
       actions.clearCellSelection();
     };
     const setAttached = (attach: boolean) => {

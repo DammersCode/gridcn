@@ -13,6 +13,8 @@ export type SetFilterPlanInput = {
   filters: readonly FilterSpec[];
   columnId: string;
   keys: readonly string[];
+  /** Original text per key, written into the filter values; a key without an entry is written as is. */
+  texts?: ReadonlyMap<string, string>;
   checked: ReadonlySet<string>;
   allowed: readonly FilterOperator[];
 };
@@ -63,6 +65,7 @@ function keepOutsideValues(existing: readonly FilterSpec[], columnId: string, ke
  */
 export function planSetFilter(input: SetFilterPlanInput): SetFilterPlan {
   const { filters, columnId, keys, checked, allowed } = input;
+  const textOf = (key: string) => input.texts?.get(key) ?? key;
   const existing = filters.filter((f) => isSetFilterOf(f, columnId));
   const checkedKeys = keys.filter((key) => checked.has(key));
   const uncheckedKeys = keys.filter((key) => !checked.has(key));
@@ -72,12 +75,12 @@ export function planSetFilter(input: SetFilterPlanInput): SetFilterPlan {
   const known = new Set(keys);
   let entry: FilterSpec | undefined;
   if (uncheckedKeys.length === 0) {
-    entry = keepOutsideValues(existing, columnId, keys, known);
+    entry = keepOutsideValues(existing, columnId, keys.map(textOf), known);
     if (entry && entry.value!.length > MAX_SET_FILTER_ENTRIES) return { status: "blocked", reason: "too-many" };
   } else {
     const operator = chooseOperator(checkedKeys.length, uncheckedKeys.length, allowed, existing[0]?.operator as SetOperator | undefined);
     const outside = existing.length === 1 && existing[0]!.operator === operator ? outsideValues(existing, known) : [];
-    const value = [...(operator === "isAnyOf" ? checkedKeys : uncheckedKeys), ...outside];
+    const value = [...(operator === "isAnyOf" ? checkedKeys : uncheckedKeys).map(textOf), ...outside];
     if (value.length > MAX_SET_FILTER_ENTRIES) return { status: "blocked", reason: "too-many" };
     entry = { columnId, operator, value };
   }

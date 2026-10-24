@@ -66,13 +66,9 @@ export function useDataGridFindReplace(options: UseDataGridFindReplaceOptions = 
       Mount,
       commands: {
         openFindReplace: {
-          label: "Find and replace",
-          group: "other",
           run: (ctx) => panelStore.open(ctx.readOnly ? "find" : "replace"),
         },
         openFind: {
-          label: "Find",
-          group: "other",
           run: () => panelStore.open("find"),
         },
       },

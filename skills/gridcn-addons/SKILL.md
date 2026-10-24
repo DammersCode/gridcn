@@ -1,6 +1,6 @@
 ---
 name: gridcn-addons
-description: "gridcn add-ons (fill, undo/redo, pinned rows, presence, toolbar, context menu, keybindings, sort list, URL state, import/export): install and wiring. Use when adding an add-on, combining several in one grid, or when an installed add-on renders nothing."
+description: "gridcn add-ons (fill, undo/redo, pinned rows, presence, toolbar, header filter, find & replace, context menu, keybindings, sort list, URL state, import/export): install and wiring. Use when adding an add-on, combining several in one grid, or when an installed add-on renders nothing."
 metadata:
   gridcn-version: "1.2.0"
 ---
@@ -54,7 +54,7 @@ must run in the component that renders `<DataGridProvider>`, above it, not insid
 | Fill | `useDataGridFill()` | `{ plugin }` | `plugin` → `plugins` on the provider (the `Mount` member runs the drag engine inside the root) |
 | Presence | `useDataGridPresence()` | `{ plugin, setPresenceHighlights, ... }` | `plugin` → `plugins` on the provider |
 | Pinned rows | `useDataGridPinnedRows({ topRows?, bottomRows? })` | `{ plugin }` | `plugin` → `plugins` on the provider |
-| Find & replace | `useDataGridFindReplace({ scope?, replaceAllLimit? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`Ctrl+H` opens the panel) |
+| Find & replace | `useDataGridFindReplace({ scope?, replaceAllLimit? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`Mod+F` opens the panel with Find only, `Ctrl+H` with Replace; `open("find" \| "replace")` opens it from code) |
 | Undo & redo | `useDataGridState(rows, { getRowId })`, or `useDataGridHistory({ capacity?, datasetKey?, recordSources? })` to compose with your own `data`/`setData` | spreadable `{ data, getRowId, onDataChange, plugins, history }`, or `{ plugin, undo, redo, ... }` | spread the state result onto the provider; put the history `plugin` in `plugins` and keep your own `data` + `onDataChange` echo (the grid's `getRowId` prop addresses the operations) |
 
 Everything else mounts as a plain child component, inside the provider:
@@ -66,7 +66,7 @@ Everything else mounts as a plain child component, inside the provider:
 | Context menu | `DataGridContextMenu` (wraps `DataGridRoot`), `DataGridHeaderDropdown` (passed to `DataGridRoot`'s `renderHeaderMenu`) | inside the provider; `DataGridContextMenu` throws if mounted outside it |
 | Keybindings | `DataGridKeybindingsDialog` (inside provider), `DataGridKeybindingsShortcut` (inside `DataGridRoot`) | see split — the `?` shortcut needs the root's container |
 | Sort list | `DataGridSortList` | inside `DataGridToolbar` |
-| URL state | `DataGridUrlState` | inside the provider, under an app-level `NuqsAdapter` |
+| URL state | `DataGridUrlState` (option `layout` syncs column order, hidden columns, and with `"widths"` and `"pins"` more; `[]` turns it off) | inside the provider, under an app-level `NuqsAdapter` |
 | Import/export | `DataGridImportButton`, `DataGridExportButton` | inside `DataGridToolbar` |
 | Lazy loading | `useDataGridLazyRows` (owns `data`) + `DataGridLazyGuard` | hook above the provider; `DataGridLazyGuard` inside the provider |
 | Pagination | `useDataGridPagination` + `DataGridPaginationBar` | standalone — does not read the store, works inside or outside the provider |
@@ -88,6 +88,7 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 - **Toolbar child order** (the gridcn convention — matters for consistency, not correctness):
   `DataGridSearch` → `DataGridFilterMenu` → `DataGridSortList` → `DataGridColumnsMenu` →
   `DataGridImportButton` → `DataGridExportButton` → your own utility buttons, in that order.
+- **Find & replace + toolbar search**: with both mounted, `Mod+F` in the grid opens the find panel and the toolbar search yields to it; the Find field and the toolbar search show the same text.
 - **URL state**: exactly one `NuqsAdapter` for the whole app — never nest a second one closer to the
   grid. Wrap the grid in `<Suspense>` if the page is statically prerendered (Next.js requirement,
   since the adapter calls `useSearchParams()`). Never mount `DataGridUrlState` on a `data-grid-lazy`

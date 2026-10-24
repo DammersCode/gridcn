@@ -7,7 +7,7 @@ status: new
 
 Users fix the same typo in many cells without editing each cell. `data-grid-find-replace` adds a
 panel with a Find field and a Replace field. `useDataGridFindReplace` returns the `plugin` that
-mounts the panel and binds <kbd>Ctrl</kbd>+<kbd>F</kbd> to open Find and <kbd>Ctrl</kbd>+<kbd>H</kbd> to open Find and Replace.
+mounts the panel and binds <kbd>Mod</kbd>+<kbd>F</kbd> to open Find and <kbd>Ctrl</kbd>+<kbd>H</kbd> to open Find and Replace.
 
 <ComponentPreview name="data-grid-find-replace-demo" />
 
@@ -28,7 +28,7 @@ const findReplace = useDataGridFindReplace();
 </DataGridProvider>;
 ```
 
-`findReplace.open()` opens the panel from your own button. `findReplace.close()` closes it.
+`findReplace.open(mode)` opens the panel from your own button. `mode` is `"replace"` (the default) to show the Replace field, or `"find"` to show Find only. `findReplace.close()` closes it.
 
 ## Find
 
@@ -82,8 +82,8 @@ changed, even when the replacement contains the find text. A change to the find 
 replacement, or an option starts over.
 
 The chevron button at the start of the Find row shows and hides the Replace field. The panel keeps
-the Find text when you toggle it. A new open from a key or from `findReplace.open()` sets the
-field as that key or call defines.
+the Find text when you toggle it. Every open sets the Replace field: <kbd>Mod</kbd>+<kbd>F</kbd> and
+`open("find")` hide it, and <kbd>Ctrl</kbd>+<kbd>H</kbd> and `open("replace")` show it.
 
 When the grid is `readOnly`, the Find field works. The chevron button is not shown, and Replace stays disabled. While a cell editor
 is open, Replace does nothing.
@@ -122,10 +122,13 @@ this panel, not the toolbar search. The panel and the toolbar search show the sa
 ## planReplace
 
 `planReplace(state, find, replacement, options)` is the pure function behind the buttons. Its
-`options` are `scope`, `replaceAllLimit`, `matchCase`, `wholeCell`, and `only`. It
+`options` are `scope`, `replaceAllLimit`, `matchCase`, `wholeCell`, `only`, and `skip`. It
 returns `{ patches, skipped, remaining }` and writes nothing. Pass `patches` to
 `actions.updateCells(patches, { source: "replace" })` to write them. `options.only` limits the plan
-to one `{ rowId, columnId }` cell. Find and replacement text longer than 1,000 characters is cut.
+to one `{ rowId, columnId }` cell. `options.skip` takes a function that receives a `{ rowId, columnId }`
+cell and returns `true` to leave the cell out of the plan. Each entry of `skipped` has a `reason`:
+`"readonly"`, `"unparseable"`, `"too-long"`, or `"no-occurrence"`. `"no-occurrence"` marks a matched
+cell whose text holds no occurrence of the Find text to replace. Find and replacement text longer than 1,000 characters is cut.
 
 ## Labels
 

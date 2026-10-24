@@ -3,7 +3,8 @@ import { displayText, makeFilterPredicate, rowAccessorFor, toSafeText } from "@/
 
 export const DISTINCT_VALUES_CAP = 100_000;
 
-export type DistinctValue = { key: string; label: string; count: number };
+/** `key` is the lowercased text the matcher groups by; `text` is the first-seen original text a filter entry stores. */
+export type DistinctValue = { key: string; text: string; label: string; count: number };
 
 export type DistinctValues = { values: DistinctValue[]; capped: boolean; hasHoles: boolean };
 
@@ -35,7 +36,7 @@ export function distinctColumnValues(state: DistinctValuesInput, columnId: strin
   const others = state.joinOperator === "or" ? [] : state.filterState.filter((f) => !isOwnSetFilter(f, columnId));
   const passes = makeFilterPredicate(accessor, others, state.joinOperator);
 
-  const groups = new Map<string, { row: number; count: number }>();
+  const groups = new Map<string, { row: number; text: string; count: number }>();
   let capped = false;
   let hasHoles = false;
   for (let row = 0; row < data.length; row++) {
@@ -44,19 +45,20 @@ export function distinctColumnValues(state: DistinctValuesInput, columnId: strin
       continue;
     }
     if (!passes(row)) continue;
-    const key = accessor.getText(row, columnId).toLowerCase();
+    const text = accessor.getText(row, columnId);
+    const key = text.toLowerCase();
     const group = groups.get(key);
     if (group) group.count++;
-    else if (groups.size < DISTINCT_VALUES_CAP) groups.set(key, { row, count: 1 });
+    else if (groups.size < DISTINCT_VALUES_CAP) groups.set(key, { row, text, count: 1 });
     else capped = true;
   }
 
   const cellType = column.type ? state.cellTypes[column.type] : undefined;
   const values: (DistinctValue & { row: number })[] = [];
-  for (const [key, { row, count }] of groups) {
-    values.push({ key, label: labelFor(cellType, accessor.getValue?.(row, columnId), column.options), count, row });
+  for (const [key, { row, text, count }] of groups) {
+    values.push({ key, text, label: labelFor(cellType, accessor.getValue?.(row, columnId), column.options), count, row });
   }
   const compare = accessor.compare?.(columnId);
   values.sort(compare ? (a, b) => compare(a.row, b.row) : (a, b) => a.label.localeCompare(b.label));
-  return { values: values.map(({ key, label, count }) => ({ key, label, count })), capped, hasHoles };
+  return { values: values.map(({ key, text, label, count }) => ({ key, text, label, count })), capped, hasHoles };
 }

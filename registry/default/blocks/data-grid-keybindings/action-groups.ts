@@ -61,6 +61,8 @@ export const ACTION_CATEGORY: Partial<Record<GridAction, KeybindingCategory>> = 
   toggleAllRows: "selection",
   openColumnMenu: "selection",
   openColumnFilter: "selection",
+  openFind: "selection",
+  openFindReplace: "selection",
 
   edit: "editing",
   typeToReplace: "editing",

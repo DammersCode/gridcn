@@ -25,6 +25,11 @@ describe("distinctColumnValues", () => {
     expect(result.capped).toBe(false);
   });
 
+  it("keeps the first-seen original text of each key", () => {
+    const data: Row[] = [{ city: "berlin" }, { city: "Berlin" }, { city: "BONN" }];
+    expect(distinctColumnValues(input(data), "city").values.map((v) => [v.key, v.text])).toEqual([["berlin", "berlin"], ["bonn", "BONN"]]);
+  });
+
   it("counts null, undefined and empty text as one blank entry with an empty key", () => {
     const data: Row[] = [{ city: null }, { city: undefined }, { city: "" }, {}, { city: "Bonn" }];
     const result = distinctColumnValues(input(data), "city");

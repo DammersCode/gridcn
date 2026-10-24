@@ -71,6 +71,14 @@ describe("deepMergeLabels", () => {
     expect(merged.keybindings).toBe(DEFAULT_LABELS.keybindings);
   });
 
+  it("labels the find actions and keeps them overridable", () => {
+    expect(DEFAULT_LABELS.keybindings.actions.openFind).toBe("Find");
+    expect(DEFAULT_LABELS.keybindings.actions.openFindReplace).toBe("Find and replace");
+    const merged = deepMergeLabels(DEFAULT_LABELS, { keybindings: { actions: { openFind: "Suchen" } } });
+    expect(merged.keybindings.actions.openFind).toBe("Suchen");
+    expect(merged.keybindings.actions.openFindReplace).toBe("Find and replace");
+  });
+
   it("has an overridable findReplace.toggleReplace label", () => {
     expect(DEFAULT_LABELS.findReplace.toggleReplace).toBe("Toggle replace");
     const merged = deepMergeLabels(DEFAULT_LABELS, { findReplace: { toggleReplace: "Ersetzen umschalten" } });

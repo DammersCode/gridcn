@@ -3,7 +3,7 @@
   "name": "data-grid-url-state",
   "title": "Data Grid URL State",
   "author": "gridcn",
-  "description": "Syncs the gridcn data grid's sort/filter/search state with the URL via nuqs (router-agnostic — requires a NuqsAdapter above it). Mount <DataGridUrlState prefix?> inside the provider; the prefix option namespaces the URL keys for multiple grids on one page.",
+  "description": "Syncs the gridcn data grid's sort/filter/search, pagination and column layout state with the URL via nuqs (router-agnostic — requires a NuqsAdapter above it). Mount <DataGridUrlState prefix?> inside the provider; the prefix option namespaces the URL keys for multiple grids on one page.",
   "dependencies": [
     "nuqs@^2.10.1"
   ],

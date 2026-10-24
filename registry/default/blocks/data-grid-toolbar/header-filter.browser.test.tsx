@@ -118,7 +118,7 @@ describe("DataGridHeaderFilter", () => {
     expect(options().every((o) => o.getAttribute("aria-selected") === "false")).toBe(true);
     await userEvent.click(button("Apply"));
     await vi.waitFor(() => expect(popup()).toBeNull());
-    expect(getApi().getState().filterState).toEqual([expect.objectContaining({ columnId: "city", operator: "isAnyOf", value: ["hamburg"] })]);
+    expect(getApi().getState().filterState).toEqual([expect.objectContaining({ columnId: "city", operator: "isAnyOf", value: ["Hamburg"] })]);
     expect(getApi().getState().viewIndex.length).toBe(4);
     expect(document.querySelector('[data-column-id="city"]')!.hasAttribute(GRID_ATTR.filtered)).toBe(true);
   });
@@ -130,7 +130,7 @@ describe("DataGridHeaderFilter", () => {
     await userEvent.click(options()[1]!);
     await userEvent.click(button("Apply"));
     await vi.waitFor(() => expect(getApi().getState().filterState).toHaveLength(2));
-    expect(getApi().getState().filterState).toEqual([expect.objectContaining(other), expect.objectContaining({ columnId: "city", operator: "isNoneOf", value: ["bonn"] })]);
+    expect(getApi().getState().filterState).toEqual([expect.objectContaining(other), expect.objectContaining({ columnId: "city", operator: "isNoneOf", value: ["Bonn"] })]);
   });
 
   it("pre-checks an existing set entry and Clear removes it", async () => {
@@ -191,7 +191,7 @@ describe("DataGridHeaderFilter", () => {
     expect(options()[1]!.getAttribute("aria-selected")).toBe("false");
     await userEvent.keyboard("{Enter}");
     await vi.waitFor(() => expect(popup()).toBeNull());
-    expect(getApi().getState().filterState).toEqual([expect.objectContaining({ columnId: "city", operator: "isNoneOf", value: ["bonn"] })]);
+    expect(getApi().getState().filterState).toEqual([expect.objectContaining({ columnId: "city", operator: "isNoneOf", value: ["Bonn"] })]);
     await vi.waitFor(() => expect(document.activeElement?.closest('[role="grid"]')).toBeTruthy());
   });
 
@@ -244,6 +244,27 @@ describe("DataGridHeaderFilter", () => {
     expect(getApi().getState().visibleColumns.map((c) => c.id)).toEqual(before);
   });
 
+  it("a press inside the popup keeps the cell range", async () => {
+    const getApi = await renderGrid();
+    await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"]')!);
+    expect(isSelectionEmpty(getApi().getState().selection)).toBe(false);
+    await openFilter("city");
+    expect(isSelectionEmpty(getApi().getState().selection)).toBe(false);
+    await userEvent.click(options()[0]!);
+    expect(isSelectionEmpty(getApi().getState().selection)).toBe(false);
+  });
+
+  it("keeps the popup open with a message when the filters changed into a blocked plan", async () => {
+    const getApi = await renderGrid();
+    await openFilter("city");
+    await userEvent.click(options()[1]!);
+    const outside = Array.from({ length: 1001 }, (_, i) => "gone" + i);
+    getApi().setState({ filterState: [{ columnId: "city", operator: "isNoneOf", value: outside }] });
+    await userEvent.click(button("Apply"));
+    expect(popup()).not.toBeNull();
+    expect(popup()!.querySelector("[aria-live]")!.textContent).toContain("Too many values selected");
+  });
+
   it("offers no button for a column without a set operator", async () => {
     await renderGrid();
     expect(trigger("note")).toBeNull();
@@ -270,7 +291,7 @@ describe("DataGridHeaderFilter", () => {
     await userEvent.click(options()[0]!);
     await userEvent.click(button("Apply"));
     await vi.waitFor(() => expect(onFilterChange).toHaveBeenCalledTimes(1));
-    expect(onFilterChange.mock.calls[0]![0]).toEqual([expect.objectContaining({ columnId: "city", operator: "isNoneOf", value: ["berlin"] })]);
+    expect(onFilterChange.mock.calls[0]![0]).toEqual([expect.objectContaining({ columnId: "city", operator: "isNoneOf", value: ["Berlin"] })]);
     await settle();
   });
 });

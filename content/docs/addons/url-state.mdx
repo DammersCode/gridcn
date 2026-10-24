@@ -101,8 +101,8 @@ toggle existed still parses identically.
 - A URL cannot express an unbounded view state. The `filter` param parses at most 64 filters and
   reads at most 256 segments. Each `isAnyOf` list holds at most `max(number of choices, 64)`
   values for a column with `choices`. A column with missing or empty `choices` allows 1000
-  values. An `isNoneOf` <NewBadge /> list has the same bound, but a longer list drops the whole filter
-  segment instead of shortening it. An empty list entry (the blank value) is written as a single
+  values. An `isNoneOf` <NewBadge /> list has the same bound, and a longer list drops the whole filter
+  segment. An empty list entry (the blank value) is written as a single
   `%`. The `sort` param keeps one direction per column (the first
   segment wins), reads at most 256 segments, and parses at most 64 sorts. A hand-edited URL beyond these limits degrades to
   fewer filters and sorts.
@@ -161,7 +161,7 @@ needed. A framework router that exposes its own navigation event (for example
 The `layout` option picks which parts of the column layout go into the URL. The default is
 `["order", "hidden"]`: a shared link restores the column order and the hidden columns. Widths
 depend on the screen of the viewer, so `widths` and `pins` are opt-in. `layout={[]}` turns layout
-sync off:
+sync off. This sample adds the widths to the default parts:
 
 ```tsx
 <DataGridUrlState layout={["order", "hidden", "widths"]} />

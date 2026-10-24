@@ -38,10 +38,10 @@ import type { ExtendDirection, SelectLineOptions } from "../selection";
 import type { ColRange } from "../selection/selected-col-ranges-for-row";
 import type { DataWriteContext } from "./data-write";
 
-/** The lazily-read context `DataGridRoot` registers for {@link DataGridActions.autosizeColumns}. */
 /** The input that wrote the current selection. */
 export type SelectionPointer = "touch" | "mouse" | "pen" | "keyboard";
 
+/** The lazily-read context `DataGridRoot` registers for {@link DataGridActions.autosizeColumns}. */
 export type AutosizeMeasureContext = {
   /** The computed `font` of one mounted body cell (canvas `measureText` font). */
   cellFont: string;
