@@ -2,6 +2,7 @@
 title: Row operations
 description: Insert, duplicate, delete, and reorder rows through props, keyboard shortcuts, the context menu, and a marker drag.
 icon: Rows3
+status: updated
 ---
 
 Inserting, duplicating, deleting, and reordering whole rows. All four act on **view-index**
@@ -33,6 +34,8 @@ removes the edited row cancels the session, drops the draft, and fires `onEditEn
 `result: "cancel"`.
 
 ## Confirm a delete
+
+<NewBadge />
 
 `onBeforeDeleteRows` runs before every delete the grid starts: the Delete rows shortcut, the context menu item, `actions.deleteRows`, and `actions.deleteRowsById`. It gets `rowIds`, the ids of the rows that go, and `hiddenCount`, the number of hidden checked rows that stay. Return `false`, or a promise of `false`, to cancel. Without the prop a delete runs at once.
 
@@ -75,10 +78,10 @@ While a promise is pending, a second delete does nothing. When the promise resol
 | Insert row below | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> | `insertRowBelow` |
 | Duplicate row(s) | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd> | `duplicateRow` |
 | Delete row(s) | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Backspace</kbd> | `deleteRows` |
-| Move row(s) up | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> | `moveRowsUp` |
-| Move row(s) down | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> | `moveRowsDown` |
+| Move row(s) up <NewBadge /> | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> | `moveRowsUp` |
+| Move row(s) down <NewBadge /> | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> | `moveRowsDown` |
 
-With `keepCheckedRows`, Duplicate and Delete act only on the checked rows while any row is checked. Hidden checked rows (`keepHiddenCheckedRows`) are never deleted, duplicated, or moved. See [Checked rows](/docs/selection-keyboard#checked-rows).
+With `keepCheckedRows` <NewBadge />, Duplicate and Delete act only on the checked rows while any row is checked. Hidden checked rows (`keepHiddenCheckedRows` <NewBadge />) are never deleted, duplicated, or moved. See [Checked rows](/docs/selection-keyboard#checked-rows).
 
 Every binding lives in `DEFAULT_KEYMAP`, so it can be remapped or dropped through the `keymap`
 prop like every other binding (see [Keybindings](/docs/addons/keybindings#remapping)).
@@ -97,9 +100,13 @@ and checkbox glyphs stay pure row-select surfaces**: a press on them selects (cl
 row range (drag), never reorders. Plain `number`, `checkbox`, and `both` markers are selection
 surfaces across the cell. A selection drag can never accidentally reorder.
 
+<NewBadge />
+
 A press on the drag handle of a checked row drags every checked row. The rows land together at the
 drop line, in their current order. A press on an unchecked row drags that row alone and leaves the
 checks as they are. Every dragged row dims while the drag runs.
+
+<NewBadge />
 
 `moveRowsUp` and `moveRowsDown` move rows from the keyboard. They act on the checked rows. When no
 row is checked, they act on the rows of the selected range, then on the active row. Each row moves
@@ -124,6 +131,8 @@ A range stays selected when its rows stay next to each other, and collapses onto
 otherwise. Each completed move is announced through the grid's `aria-live` region
 (`labels.markers.reorderAnnouncement` for one row, `labels.markers.reorderRowsAnnouncement` for
 several).
+
+<NewBadge />
 
 The `move` operations of one change describe a batch: `from` is the row's index before the
 batch, and `to` is its index after the batch. Apply the operations together with `applyChange`.

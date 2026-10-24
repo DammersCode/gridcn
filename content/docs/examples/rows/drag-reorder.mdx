@@ -2,6 +2,7 @@
 title: Drag & drop reorder
 description: Reorder one or many rows with the drag handle, the keyboard, or reorderRows - one change, selection follows the rows, one undo step.
 icon: GripVertical
+status: updated
 ---
 
 Row reorder from three paths: drag a row by its drag handle zone (any `reorder`-family marker mode:
@@ -13,6 +14,8 @@ Each emits **one change with one row-id-based `move` operation per moved row**, 
 undo/redo restores the previous order in a single step. Selection and the active cell remap by
 row id, so the rows that were selected stay selected at their new positions, and the dragged row
 keeps the selected state it had.
+
+<NewBadge />
 
 A drag from a checked row moves every checked row. The rows land together at the drop line.
 
