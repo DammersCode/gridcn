@@ -124,7 +124,7 @@ export function DataGridPaginationFirst(): ReactNode {
 
   return (
     <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.firstPage} disabled={page <= 1} onClick={() => onPageChange(1)}>
-      <ChevronsLeft />
+      <ChevronsLeft className="rtl:rotate-180" />
     </Button>
   );
 }
@@ -136,7 +136,7 @@ export function DataGridPaginationPrev(): ReactNode {
 
   return (
     <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.previousPage} disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
-      <ChevronLeft />
+      <ChevronLeft className="rtl:rotate-180" />
     </Button>
   );
 }
@@ -180,7 +180,7 @@ export function DataGridPaginationNext(): ReactNode {
 
   return (
     <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.nextPage} disabled={page >= pageCount} onClick={() => onPageChange(page + 1)}>
-      <ChevronRight />
+      <ChevronRight className="rtl:rotate-180" />
     </Button>
   );
 }
@@ -192,7 +192,7 @@ export function DataGridPaginationLast(): ReactNode {
 
   return (
     <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.lastPage} disabled={page >= pageCount} onClick={() => onPageChange(pageCount)}>
-      <ChevronsRight />
+      <ChevronsRight className="rtl:rotate-180" />
     </Button>
   );
 }
