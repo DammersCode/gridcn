@@ -10,5 +10,5 @@
 - [ ] `npx vitest run --project browser --bail=1`
 - [ ] `CHANGELOG.md` entry under `## Unreleased` for a user-facing change (**Breaking** marker where it applies)
 - [ ] Registry payloads in sync: `pnpm registry:build`, `node scripts/normalize-payload-eol.mjs`, `git add public/r`, `pnpm registry:verify`
-- [ ] Docs updated, with `status` frontmatter or `<NewBadge />` per AGENTS.md
+- [ ] Docs updated, with `<NewBadge />` on added sections per AGENTS.md
 - [ ] No AI attribution in commits or this text

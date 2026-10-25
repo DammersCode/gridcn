@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import { defineConfig, defineDocs } from 'fumadocs-mdx/config';
 import { metaSchema, pageSchema } from 'fumadocs-core/source/schema';
 
@@ -7,8 +6,7 @@ import { metaSchema, pageSchema } from 'fumadocs-core/source/schema';
 export const docs = defineDocs({
   dir: 'content/docs',
   docs: {
-    // `status` feeds the sidebar badge plugin (lib/source); the base schema strips unknown frontmatter fields.
-    schema: pageSchema.extend({ status: z.string().optional() }),
+    schema: pageSchema,
     postprocess: {
       includeProcessedMarkdown: true,
     },

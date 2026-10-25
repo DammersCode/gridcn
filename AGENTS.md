@@ -68,13 +68,12 @@ Component and addon page structure (match the existing pages):
 
 ### Page status and "New" badges
 
-Docs follow the same discipline as the changelog: every added or substantively changed page and section is marked in the same commit, before a task is called done. Deleted pages and sections are not marked (the sidebar shows only new and updated content); a removal gets a `CHANGELOG.md` entry instead.
+Docs follow the same discipline as the changelog: every added or substantively changed section is marked in the same commit, before a task is called done. Deleted pages and sections are not marked (the sidebar shows only new and updated content); a removal gets a `CHANGELOG.md` entry instead.
 
-The sidebar dot comes from the page's `status` frontmatter. The baseline is the last release tag (`v*`), or `origin/main` while no tag exists; `scripts/verify-doc-status.mjs` (run by `pnpm lint`) enforces it.
+The sidebar dot comes from `content/docs-changes.json`, not from page frontmatter. `pnpm docs:changes` writes it: a page absent at the baseline is `new`, a page changed in substance is `updated`. The baseline is the last tag of the previous minor version (1.2.x compares with the last 1.1.x tag). Patch releases add to the markers of their series. Page dots appear when `pnpm docs:changes --release <version>` runs for the release, not in the commit that adds a page. `pnpm lint` fails when the committed file disagrees with the tagged release (it never reads the working tree) and on any `status:` line in `content/docs`.
 
-- A page added since the baseline gets `status: new`. A page changed in substance gets `status: updated`. A wording-only edit (the script ignores punctuation and link targets) that still alters words gets `status: none`: no dot. A page without changes has no `status`.
-- A section, paragraph, props-table row, or list item added to an existing page gets `<NewBadge />`: on its own line under a heading, after the first inline term of a paragraph or list item, or in the first cell of a table row. A badge inside heading text breaks the table of contents and the anchor. Pages with `status: new` need no section badges.
-- Release procedure: the release itself ships with its dots and badges, so readers see what changed in that version. In the first commit after the tag, remove every `status` line and every `<NewBadge />` from `content/docs`. The baseline is then the new tag, and the next release marks only what changed since it. Until that commit, the script only warns about a marker on a page that the latest release added or changed; any other stale marker fails.
+- A section, paragraph, props-table row, or list item added to an existing page gets `<NewBadge />`: on its own line under a heading, after the first inline term of a paragraph or list item, or in the first cell of a table row. A badge inside heading text breaks the table of contents and the anchor. A page new since the baseline needs no section badges.
+- Release procedure: before the release commit, run `pnpm docs:changes --release <version>` and commit the result with the release. The command also removes every `<NewBadge />` that was not added since the baseline, so a new minor version starts clean and a patch release keeps its series.
 
 ## API design (registry/default/blocks/**)
 

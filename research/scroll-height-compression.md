@@ -32,7 +32,7 @@
 ## 4. API, docs, changelog
 - Public API: none. `MAX_SCROLL_EXTENT_PX`, `toVirtual`, `scrollToVirtual` stay internal to `virtualization/` and off the barrel.
 - `CHANGELOG.md` Unreleased, Fixed: "All rows are reachable in grids taller than the browser's maximum element height (about 930,000 rows at 36 px in Chrome)."
-- Docs: one sentence on the virtualization or performance page (`status: updated`): above 15,000,000 px of rows the scrollbar covers the rows proportionally; wheel, touch, and keyboard still move by pixels and rows. Public copy stays at "smooth at 100k+" until the sort fix lands.
+- Docs: one sentence on the virtualization or performance page (marked by `pnpm docs:changes` at release): above 15,000,000 px of rows the scrollbar covers the rows proportionally; wheel, touch, and keyboard still move by pixels and rows. Public copy stays at "smooth at 100k+" until the sort fix lands.
 
 ## 5. Test plan (no 36 M px element needed except one test)
 - Unit (`virtualization/scroll-extent.test.ts`, pure module): identity below `MAX` including fractional `r`; `base(0) = 0`; `base(Mr) = Mv`; monotonic over every `r` in a sweep; max step `<= ceil(k) < rowHeight`; `base(toReal(v)) + offset === v`; first and last row reachable; edge convergence ends at `Mv` from any offset; resize keeps `v`.

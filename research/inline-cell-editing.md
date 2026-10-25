@@ -38,7 +38,7 @@ Findings from reading its cell variants and cell wrapper. Nothing here is measur
 - No computed background or border color on the editor element other than transparent, in light and dark.
 - The date and long-text popovers open without any visible shift of the cell content, checked in Chromium and Firefox with screenshots before and after.
 - Existing gates stay green: types, lint, unit, browser, compiler, e2e install.
-- A changelog entry for the visual change. Docs for the cell editors get `status: updated`.
+- A changelog entry for the visual change. Docs for the cell editors change, so the release run of `pnpm docs:changes` marks them updated.
 
 ## Open questions for the review
 
