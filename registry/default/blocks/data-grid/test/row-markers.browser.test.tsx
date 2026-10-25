@@ -1082,6 +1082,26 @@ describe("row range checking", () => {
       expect(active?.textContent).toBe("Person 1");
     });
 
+    it("Shift+End, Shift+Home and Shift+PageDown move the checked range edge", async () => {
+      await renderGrid("checkbox");
+      await userEvent.click(gridCells()[2 * 2]!);
+      await userEvent.keyboard("{Shift>} {/Shift}");
+      await userEvent.keyboard("{Shift>}{End}{/Shift}");
+      expect(checkedRows()).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+      await userEvent.keyboard("{Shift>}{Home}{/Shift}");
+      expect(checkedRows()).toEqual([0, 1, 2]);
+      await userEvent.keyboard("{Shift>}{PageDown}{/Shift}");
+      expect(checkedRows().length).toBeGreaterThan(3);
+      expect(checkedRows()[0]).toBe(2);
+    });
+
+    it("Shift+Home does nothing without a checked row gesture", async () => {
+      await renderGrid("checkbox");
+      await userEvent.click(gridCells()[2 * 2]!);
+      await userEvent.keyboard("{Shift>}{Home}{/Shift}");
+      expect(checkedRows()).toEqual([2]);
+    });
+
     it("Shift+Arrow after Ctrl+Shift+Space extends the checked rows from the toggled row", async () => {
       await renderGrid("checkbox");
       await userEvent.click(gridCells()[0]!);

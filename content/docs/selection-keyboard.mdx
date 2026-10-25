@@ -224,6 +224,11 @@ The marker checkboxes are not tab stops, so the keyboard has its own actions:
   <kbd>Shift</kbd>+<kbd>ArrowDown</kbd> (`extendUp`, `extendDown`) <NewBadge /> move the active row
   and check the rows from the anchor to it. They shrink the range when you reverse. After a click
   on a cell, the same keys extend the cell range.
+- In the same state, <kbd>Shift</kbd>+<kbd>Home</kbd> (`extendRowsToStart`),
+  <kbd>Shift</kbd>+<kbd>End</kbd> (`extendRowsToEnd`), <kbd>Shift</kbd>+<kbd>PageUp</kbd>
+  (`extendRowsPageUp`), and <kbd>Shift</kbd>+<kbd>PageDown</kbd> (`extendRowsPageDown`) <NewBadge />
+  move the end of the range to the first row, the last row, or one page away. Without a row check,
+  these keys do nothing, and the browser keeps them.
 
 To check rows that are not next to each other, move with <kbd>Alt</kbd>+<kbd>Arrow</kbd>, which
 keeps the selection, and press `toggleRow` on each row. <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+A

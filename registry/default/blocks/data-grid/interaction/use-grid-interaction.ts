@@ -449,6 +449,20 @@ export function dispatchGridAction(args: {
       if (focus) scrollCellIntoView(focus);
       break;
     }
+    case "extendRowsToStart":
+    case "extendRowsToEnd":
+    case "extendRowsPageUp":
+    case "extendRowsPageDown": {
+      const page = Math.max(1, Math.floor((scrollRef.current?.clientHeight ?? 0) / rowHeight) - 4);
+      const targetOf: Record<typeof action, (active: ViewCoord) => number> = {
+        extendRowsToStart: () => 0,
+        extendRowsToEnd: () => rowCount - 1,
+        extendRowsPageUp: (active) => active.row - page,
+        extendRowsPageDown: (active) => active.row + page,
+      };
+      if (stepCheckedRows(targetOf[action])) preventDefault();
+      break;
+    }
     case "pageUp":
     case "pageDown": {
       preventDefault();

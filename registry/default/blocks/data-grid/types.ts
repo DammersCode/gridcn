@@ -678,6 +678,10 @@ export interface GridActions {
   extendJumpRight: true;
   extendFirstCell: true;
   extendLastCell: true;
+  extendRowsToStart: true;
+  extendRowsToEnd: true;
+  extendRowsPageUp: true;
+  extendRowsPageDown: true;
   selectRow: true;
   selectColumn: true;
   selectAll: true;
