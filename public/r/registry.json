@@ -1737,7 +1737,8 @@
         "DammersCode/gridcn/data-grid",
         "DammersCode/gridcn/data-grid-toolbar",
         "DammersCode/gridcn/data-grid-url-state",
-        "DammersCode/gridcn/data-grid-pagination"
+        "DammersCode/gridcn/data-grid-pagination",
+        "DammersCode/gridcn/data-grid-context-menu"
       ],
       "files": [
         {
@@ -2271,6 +2272,88 @@
           "path": "registry/default/examples/data-grid-find-replace-demo.tsx",
           "type": "registry:example",
           "target": "components/data-grid-find-replace-demo.tsx"
+        },
+        {
+          "path": "registry/default/examples/demo-data.ts",
+          "type": "registry:example",
+          "target": "components/demo-data.ts"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
+      "name": "data-grid-checked-rows-demo",
+      "type": "registry:example",
+      "title": "Data Grid Checked Rows Demo",
+      "description": "Checked rows survive a filter with keepCheckedRows and keepHiddenCheckedRows; the status bar counts the hidden checked rows.",
+      "author": "gridcn",
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/data-grid-toolbar",
+        "DammersCode/gridcn/data-grid-status-bar"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-checked-rows-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-checked-rows-demo.tsx"
+        },
+        {
+          "path": "registry/default/examples/demo-data.ts",
+          "type": "registry:example",
+          "target": "components/demo-data.ts"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
+      "name": "data-grid-delete-confirm-demo",
+      "type": "registry:example",
+      "title": "Data Grid Delete Confirm Demo",
+      "description": "onBeforeDeleteRows returns a promise from a confirm dialog; Cancel keeps the checked rows and Delete removes them.",
+      "author": "gridcn",
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/data-grid-context-menu",
+        "button",
+        "dialog"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-delete-confirm-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-delete-confirm-demo.tsx"
+        },
+        {
+          "path": "registry/default/examples/demo-data.ts",
+          "type": "registry:example",
+          "target": "components/demo-data.ts"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
+      "name": "data-grid-touch-demo",
+      "type": "registry:example",
+      "title": "Data Grid Touch Demo",
+      "description": "Touch gestures: tap selects, double-tap edits, selection handles extend the range, and a long press opens the context menu with Fill down and Fill right.",
+      "author": "gridcn",
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/data-grid-context-menu",
+        "DammersCode/gridcn/data-grid-fill"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-touch-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-touch-demo.tsx"
         },
         {
           "path": "registry/default/examples/demo-data.ts",

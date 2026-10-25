@@ -9,6 +9,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- The docs have live demos for `keepCheckedRows` with `keepHiddenCheckedRows`, the delete confirmation (`onBeforeDeleteRows`), touch gestures, and the URL column layout (`widths` and `pins`). The URL state demo also has the header menu and the columns menu.
+
 ## 1.2.1 - 2026-10-25
 
 - Sorting is faster. In the browser, a text sort at 100k rows takes about 25% less time (68 ms to 51 ms). The row order is unchanged.

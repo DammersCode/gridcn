@@ -13,7 +13,9 @@ import {
   DataGridToolbar,
   DataGridSearch,
   DataGridFilterMenu,
+  DataGridColumnsMenu,
 } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
+import { DataGridHeaderDropdown } from "@/registry/default/blocks/data-grid-context-menu/data-grid-context-menu";
 import { DataGridUrlState, useDataGridUrlPagination } from "@/registry/default/blocks/data-grid-url-state/data-grid-url-state";
 import { useDataGridPagination, DataGridPaginationBar, pageRange } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { generateDemoRows, type DemoRow } from "./demo-data";
@@ -53,18 +55,22 @@ function DataGridUrlStateDemoInner(): ReactNode {
   return (
     <div className="w-full flex flex-col gap-3">
       <p className="text-sm text-muted-foreground">
-        Sort, filter, search, or change page, then reload this page: the URL carries that state and the
-        grid comes back exactly as you left it.
+        Sort, filter, search, change page, resize a column, or pin one from its header menu, then reload this
+        page: the URL carries that state and the grid comes back exactly as you left it.
       </p>
       <div className="flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
         {/* headerClickBehavior="sort" so the URL-synced sortState is actually reachable in this demo */}
         <DataGridProvider data={pageRows} columns={columns} getRowId={(row) => row.id} headerClickBehavior="sort">
-          <DataGridUrlState prefix="demo" />
+          <DataGridUrlState prefix="demo" layout={["order", "hidden", "widths", "pins"]} />
           <DataGridToolbar>
             <DataGridSearch />
             <DataGridFilterMenu />
+            <DataGridColumnsMenu />
           </DataGridToolbar>
-          <DataGridRoot className="min-h-0 flex-1 rounded-none border-none">
+          <DataGridRoot
+            className="min-h-0 flex-1 rounded-none border-none"
+            renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}
+          >
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
