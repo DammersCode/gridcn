@@ -279,6 +279,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     </button>
   );
 
+  // Not the Popover primitive: the panel docks to the grid corner without a trigger and keeps its own focus and Escape rules.
   return (
     <div
       role="dialog"
@@ -289,7 +290,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
       onCut={(event) => event.stopPropagation()}
       onPaste={(event) => event.stopPropagation()}
       style={{ position: "fixed", top: position.top, right: position.right, zIndex: 50, maxWidth: `calc(100vw - ${position.right}px - 8px)` }}
-      className="flex w-80 flex-col gap-1 rounded-md border border-border bg-popover p-2 text-sm text-popover-foreground shadow-md"
+      className="flex w-80 flex-col gap-1 rounded-lg bg-popover p-2 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10"
     >
       <div className="flex items-center gap-1">
         {!readOnly && (
