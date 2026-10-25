@@ -116,7 +116,7 @@ export function SetFilterList(props: SetFilterListProps): ReactNode {
       >
         <Checkbox checked={selected} tabIndex={-1} aria-hidden className="pointer-events-none" />
         <span className="min-w-0 flex-1 truncate">{option.label}</span>
-        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{countFormat.format(option.count)}</span>
+        <span className="w-14 shrink-0 text-right text-xs text-muted-foreground tabular-nums">{countFormat.format(option.count)}</span>
       </div>
     );
   });

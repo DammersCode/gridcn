@@ -15,6 +15,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Breaking:** after `selectRow` (Shift+Space) or `toggleRow` (Ctrl+Shift+Space), Shift+ArrowUp and Shift+ArrowDown check or uncheck rows and move the active row, instead of replacing the row check with a cell range. After a click on a cell, the keys extend the cell range as before.
 - New keymap actions `extendRowsToStart`, `extendRowsToEnd`, `extendRowsPageUp`, and `extendRowsPageDown` on Shift+Home, Shift+End, Shift+PageUp, and Shift+PageDown. After a row check they move the end of the checked range; without one they do nothing and the key is not handled. The keybindings dialog lists them.
 - `actions.checkRowRange(target, { commit })` checks the span from the anchor row to `target`.
+- The header filter lists the counts in a fixed-width, right-aligned column with tabular numerals.
 - The "Select all" control of the header filter shows the indeterminate state when only some of the listed values are checked. `data-grid-toolbar` now lists the `checkbox` registry dependency.
 - The header filter value list draws its checks with the shared `Checkbox`, so they follow the theme radius and colors.
 - The checkbox cell box and the long text popup follow the theme radius. Before, both had square corners. The cell editors inherit the corner of their cell.
