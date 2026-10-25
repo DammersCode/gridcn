@@ -453,7 +453,7 @@ export function dispatchGridAction(args: {
     case "extendRowsToEnd":
     case "extendRowsPageUp":
     case "extendRowsPageDown": {
-      const page = Math.max(1, Math.floor((scrollRef.current?.clientHeight ?? 0) / rowHeight) - 4);
+      const page = visiblePageRows(scrollRef.current, rowHeight);
       const targetOf: Record<typeof action, (active: ViewCoord) => number> = {
         extendRowsToStart: () => 0,
         extendRowsToEnd: () => rowCount - 1,
@@ -466,8 +466,7 @@ export function dispatchGridAction(args: {
     case "pageUp":
     case "pageDown": {
       preventDefault();
-      const scrollElement = scrollRef.current;
-      const visibleRows = scrollElement ? Math.max(1, Math.floor(scrollElement.clientHeight / rowHeight) - 4) : 10;
+      const visibleRows = visiblePageRows(scrollRef.current, rowHeight);
       moveAndScroll({ dx: 0, dy: action === "pageUp" ? -visibleRows : visibleRows });
       break;
     }
@@ -705,6 +704,11 @@ export function jumpToDataBoundary(state: DataGridStoreState, active: ViewCoord,
     coord = after;
   }
   return clampToEdge();
+}
+
+/** Rows a PageUp or PageDown step moves: the visible rows minus four, 10 before the scroll element mounts. */
+function visiblePageRows(scrollElement: HTMLElement | null, rowHeight: number): number {
+  return scrollElement ? Math.max(1, Math.floor(scrollElement.clientHeight / rowHeight) - 4) : 10;
 }
 
 /** Move/extend actions that resolve through {@link MOVE_DELTA} — kept as its own union so the map is total (no `!` needed at the call site). */
