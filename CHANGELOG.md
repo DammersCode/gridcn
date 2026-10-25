@@ -13,6 +13,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Shift+click on a row marker checkbox selects the row range from the last clicked row, like Shift+click beside the checkbox. Before, it checked only the clicked row.
 - The "Select all" control of the header filter shows the indeterminate state when only some of the listed values are checked. `data-grid-toolbar` now lists the `checkbox` registry dependency.
 - The header filter value list draws its checks with the shared `Checkbox`, so they follow the theme radius and colors.
+- The checkbox cell box and the long text popup follow the theme radius. Before, both had square corners. The cell editors inherit the corner of their cell.
 
 ## 1.2.1 - 2026-10-25
 

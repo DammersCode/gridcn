@@ -91,7 +91,7 @@ function SelectEditor({ value, options, onChange, commit, cancel, column, reject
         commit({ dx: 0, dy: 0 });
       }}
     >
-      <SelectTrigger aria-label={columnLabelText(column)} className="size-full justify-start rounded-none border-none p-0 text-sm shadow-none outline-none focus-visible:ring-0 [&_svg]:hidden">
+      <SelectTrigger aria-label={columnLabelText(column)} className="size-full justify-start rounded-[inherit] border-none p-0 text-sm shadow-none outline-none focus-visible:ring-0 [&_svg]:hidden">
         <SelectValue placeholder="" />
       </SelectTrigger>
       <SelectContent data-grid-cell-editor="">

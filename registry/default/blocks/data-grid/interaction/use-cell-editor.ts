@@ -7,7 +7,7 @@ import { isComposingKey } from "./is-composing-key";
 
 /** Class set that makes a text input look like the cell text it replaces: no box, no tint, inherited font size. Other classes merge on top. */
 export const CELL_INPUT_CLASS =
-  "h-full w-full min-w-0 rounded-none border-0 bg-transparent p-0 text-[length:inherit] shadow-none outline-none focus-visible:border-0 focus-visible:ring-0 md:text-[length:inherit] dark:bg-transparent";
+  "h-full w-full min-w-0 rounded-[inherit] border-0 bg-transparent p-0 text-[length:inherit] shadow-none outline-none focus-visible:border-0 focus-visible:ring-0 md:text-[length:inherit] dark:bg-transparent";
 
 /** Distances from the cell box to its display text, in px; `start` follows the writing direction. */
 export type CellTextInsets = { start: number; top: number; textBottomToCellTop: number; textBottomToCellBottom: number };
