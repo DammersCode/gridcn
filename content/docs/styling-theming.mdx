@@ -449,7 +449,7 @@ The header row does not follow `density`. Set the height of one header row with 
 <DataGridRoot rowHeight={40} headerHeight={44} />
 ```
 
-Row and header heights are props, not CSS variables. <NewBadge /> The grid needs the numbers to compute the visible rows, and it writes `--grid-row-height` itself. A CSS rule that sets `--grid-row-height` changes neither the row tracks nor the window of mounted rows. Pass the height as a prop.
+Row and header heights are props, not CSS variables. <NewBadge /> The grid needs the numbers to compute the visible rows, and it writes `--grid-row-height` itself. The inline value wins over a CSS rule. An `!important` override resizes the rows but not the window of mounted rows, so the grid shows gaps. Pass the height as a prop.
 
 ## Scroll shadows
 
