@@ -1161,7 +1161,9 @@
             "dialog",
             "select",
             "dropdown-menu",
-            "button"
+            "button",
+            "checkbox",
+            "label"
          ],
          "files": [
             {

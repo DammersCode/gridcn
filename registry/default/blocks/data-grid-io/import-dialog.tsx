@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Paperclip, X } from "lucide-react";
 import { useDataGridActions, useDataGridAllColumns, useDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid";
 import { columnLabelText, isDev, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -13,6 +13,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { buildImportedRows, type ImportRejectedCell } from "./build-imported-rows";
@@ -73,6 +75,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   const confirmTokenRef = useRef(0);
   /** Aborts the in-flight chunked build (large sync imports and async-schema imports alike) when Cancel is clicked or the dialog closes. */
   const abortControllerRef = useRef<AbortController | null>(null);
+  const headerRowId = useId();
   const { preview, error, isParsing, loadFile, setHasHeaderRow, setDelimiter, setSheetName, setMapping, reset, previewRows, importRows } =
     useDataGridImportPreview({ columnFallback: labels.io.columnFallback, defaults: importDefaults, limits: importLimits });
   // Base UI's SelectValue shows the raw value until the popup mounts its items, unless the root gets `items`
@@ -203,7 +206,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
             </Dropzone>
           )}
 
-          {error && <p className="text-sm text-destructive">{labels.io[error]}</p>}
+          {error && <p role="alert" className="text-sm text-destructive">{labels.io[error]}</p>}
 
           {rejectedCount > 0 && <p role="alert" className="text-sm text-destructive">{labels.io.importRejectedCells(rejectedCount)}</p>}
 
@@ -212,14 +215,10 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
           {preview && (
             <>
               <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 text-sm text-foreground">
-                  <input
-                    type="checkbox"
-                    checked={preview.hasHeaderRow}
-                    onChange={(e) => setHasHeaderRow(e.target.checked)}
-                  />
-                  {labels.io.hasHeaderRow}
-                </label>
+                <div className="flex items-center gap-2">
+                  <Checkbox id={headerRowId} checked={preview.hasHeaderRow} onCheckedChange={(checked) => setHasHeaderRow(checked === true)} />
+                  <Label htmlFor={headerRowId}>{labels.io.hasHeaderRow}</Label>
+                </div>
                 {preview.delimiter !== undefined && (
                   <label className="flex items-center gap-2 text-sm text-foreground">
                     {labels.io.delimiter}
