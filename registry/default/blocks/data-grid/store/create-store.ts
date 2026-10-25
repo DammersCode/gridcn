@@ -1163,7 +1163,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         let gesture = live ? s.rowRangeGesture! : restartRowGesture(s, clamped);
         if (live && opts.commit) gesture = { ...gesture, base: CompactSelection.adopt(selection.rows) };
         const computed = applyRowRange(gesture, clamped);
-        const rows = computed.equals(selection.rows) ? selection.rows : computed;
+        const rows = computed.equals(CompactSelection.adopt(selection.rows)) ? selection.rows : computed;
         if (rows === selection.rows && selection.current === null) {
           if (!live || opts.commit) set({ rowRangeGesture: { ...gesture, rows, current: null } });
           return;
