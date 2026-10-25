@@ -65,7 +65,7 @@
       "rules": { "shadcn/no-restyle": "off" }
     },
     // Stock shadcn/ui files that render their own primitives internally (CalendarDayButton, InputGroupInput
-    // renders <Button>, InputGroupInput renders <Input>, sub-menus render their own Content). Rewriting them would fork the
+    // renders <Button>, InputGroupButton renders <Button>, InputGroupInput renders <Input>, sub-menus render their own Content). Rewriting them would fork the
     // vendor markup and change the design; the linter's setup doc recommends no-restyle off
     // inside the component directory. The other components/ui files stay fully checked.
     {
