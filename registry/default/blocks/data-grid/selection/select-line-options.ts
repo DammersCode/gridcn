@@ -11,13 +11,7 @@ export type SelectLineOptions = {
   /** Shift-click: range from the last-selected index (falls back to `index` when there is none). */
   extendFromLast?: boolean;
   /**
-   * The row-marker drag variant of `extendFromLast`: instead of ADDING the anchor..index span to
-   * the channel (a union that can only grow), the channel becomes EXACTLY that span — the pointer
-   * is the moving edge, so dragging back over already-selected rows shrinks the selection again.
-   */
-  replaceFromLast?: boolean;
-  /**
-   * Explicit last-highlighted index for `extendFromLast`/`replaceFromLast` (insertion order, not
+   * Explicit last-highlighted index for `extendFromLast` (insertion order, not
    * the channel's max member — an RLE set can't represent insertion order, so the caller/reducer
    * must track it). Falls back to the channel's max index, then `index`, when absent.
    */
@@ -32,12 +26,6 @@ export function selectLine(
 ): CompactSelection {
   // only a structural CompactSelectionLike needs the fromArray materialization; a compact channel is used in place
   const channel = channelLike instanceof CompactSelection ? channelLike : CompactSelection.fromArray(channelLike.toArray());
-  if (opts.replaceFromLast) {
-    const last = opts.from ?? channel.last() ?? index;
-    const start = Math.min(last, index);
-    const end = Math.max(last, index) + 1;
-    return CompactSelection.fromSingleSelection([start, end]);
-  }
   if (opts.extendFromLast) {
     const last = opts.from ?? channel.last() ?? index;
     const start = Math.min(last, index);

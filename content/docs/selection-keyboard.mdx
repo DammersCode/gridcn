@@ -37,14 +37,38 @@ selection never re-renders a single cell.
   the pointer from the press row, so dragging back over selected rows de-selects them again. In
   the `reorder`-family marker modes only a drag that starts on the drag handle zone reorders the row, and
   it leaves the selection as it was. Drags from the number or checkbox glyph still select.
-- **Shift+click on a row marker**, on its number or on its checkbox, selects the rows from the last
-  clicked row to this row. <NewBadge />
+- **Shift+click on a row marker**, on its number or on its checkbox, checks the rows from the anchor
+  row to this row. See [Checking a range of rows](#checking-a-range-of-rows). <NewBadge />
 - **Ctrl/Cmd-click** adds a new range to the stack (`enableMultiRange`, on by default).
 
 The grid body suppresses native browser text selection during these gestures. Editors remain
 normally text-selectable.
 
 <ComponentPreview name="data-grid-demo" />
+
+## Checking a range of rows
+
+<NewBadge />
+
+The row that you checked or unchecked last is the **anchor**. A Shift step checks the rows from the
+anchor to the target row. Each Shift step replaces the previous Shift step, so the range grows and
+shrinks. Rows outside the range keep their state, and checked rows that a filter hides stay checked.
+
+| Gesture | Result |
+|---|---|
+| Click a checkbox | Toggles the row. The row becomes the anchor. |
+| Click a number | Checks only this row. The row becomes the anchor. |
+| <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+click | Toggles the row and keeps the other checked rows. The row becomes the anchor. |
+| <kbd>Shift</kbd>+click | Checks the rows from the anchor to the clicked row. If the anchor row is unchecked, the range unchecks its rows. |
+| <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+click | Keeps the current range and adds the rows from the anchor to the clicked row. The next Shift step replaces only the new range. |
+| Press a number or a checkbox and drag | Moves the end of the range with the pointer. A drag that starts on a checked checkbox unchecks the rows. |
+| <kbd>Shift</kbd>+press and drag | Moves the end of the range from the anchor row. |
+| <kbd>Shift</kbd>+click without an anchor | Starts at the active row. Without an active row, it checks only the clicked row. |
+
+A sort, a filter, or the header checkbox ends the range. The next Shift+click then starts from the
+anchor row.
+
+For example, click row 1, Shift+click row 5, and Shift+click row 3. Rows 1 to 3 are checked.
 
 ## Touch gestures
 
@@ -196,6 +220,10 @@ The marker checkboxes are not tab stops, so the keyboard has its own actions:
 - <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> (`toggleAllRows`) checks every row, or unchecks
   them when every row is checked. It does what the header checkbox does.
 - <kbd>Shift</kbd>+<kbd>Space</kbd> (`selectRow`) replaces the selection with the active row.
+- After `selectRow` or `toggleRow`, <kbd>Shift</kbd>+<kbd>ArrowUp</kbd> and
+  <kbd>Shift</kbd>+<kbd>ArrowDown</kbd> (`extendUp`, `extendDown`) <NewBadge /> move the active row
+  and check the rows from the anchor to it. They shrink the range when you reverse. After a click
+  on a cell, the same keys extend the cell range.
 
 To check rows that are not next to each other, move with <kbd>Alt</kbd>+<kbd>Arrow</kbd>, which
 keeps the selection, and press `toggleRow` on each row. <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+A

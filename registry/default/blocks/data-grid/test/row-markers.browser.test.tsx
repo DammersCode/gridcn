@@ -932,3 +932,171 @@ describe("row checking by keyboard", () => {
     await vi.waitFor(() => expect(checked()).toEqual([true, false, false, false, false]));
   });
 });
+
+describe("row range checking", () => {
+  const selectedRows = () => markerCells().flatMap((cell, index) => (cell.getAttribute(GRID_ATTR.selected) === "true" ? [index] : []));
+  const checkboxAt = (index: number) => markerCells()[index]!.querySelector<HTMLElement>('[role="checkbox"]')!;
+  const frames = async () => {
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => requestAnimationFrame(r));
+  };
+
+  async function renderGrid(rowMarkers: "checkbox" | "number") {
+    await render(
+      <div style={{ height: 500 }}>
+        <DataGrid data={makeRows(12)} columns={columns} getRowId={(r) => r.id} className="h-[500px]" rowMarkers={rowMarkers} enableRowReorder={false} />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+  }
+
+  async function withKey(key: "Shift" | "Control", action: () => Promise<void>) {
+    await userEvent.keyboard(`{${key}>}`);
+    await action();
+    await userEvent.keyboard(`{/${key}}`);
+  }
+
+  async function dragThrough(from: HTMLElement, targets: HTMLElement[], opts?: { shiftKey?: boolean; ctrlKey?: boolean; cancel?: boolean }) {
+    from.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1, shiftKey: opts?.shiftKey, ctrlKey: opts?.ctrlKey }));
+    for (const target of targets) {
+      const rect = target.getBoundingClientRect();
+      document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: rect.left + 5, clientY: rect.top + 5 }));
+      await frames();
+    }
+    document.dispatchEvent(new PointerEvent(opts?.cancel ? "pointercancel" : "pointerup", { bubbles: true, button: 0, pointerId: 1 }));
+  }
+
+  it("Shift+click replaces the previous range: grow, then shrink", async () => {
+    await renderGrid("checkbox");
+    await userEvent.click(checkboxAt(1));
+    await withKey("Shift", () => userEvent.click(checkboxAt(5)));
+    expect(selectedRows()).toEqual([1, 2, 3, 4, 5]);
+    await withKey("Shift", () => userEvent.click(checkboxAt(3)));
+    expect(selectedRows()).toEqual([1, 2, 3]);
+  });
+
+  it("Shift+click after a Ctrl+click keeps the rows checked outside the range", async () => {
+    await renderGrid("checkbox");
+    await userEvent.click(checkboxAt(1));
+    await withKey("Control", () => userEvent.click(checkboxAt(8)));
+    await withKey("Shift", () => userEvent.click(checkboxAt(5)));
+    expect(selectedRows()).toEqual([1, 5, 6, 7, 8]);
+  });
+
+  it("Shift+click after an uncheck unchecks the range", async () => {
+    await renderGrid("checkbox");
+    for (const row of [2, 3, 4, 5, 6, 7, 9]) await userEvent.click(checkboxAt(row));
+    await userEvent.click(checkboxAt(4));
+    expect(selectedRows()).toEqual([2, 3, 5, 6, 7, 9]);
+    await withKey("Shift", () => userEvent.click(checkboxAt(7)));
+    expect(selectedRows()).toEqual([2, 3, 9]);
+  });
+
+  it("a checkbox drag keeps the other checked rows and shrinks when dragged back", async () => {
+    await renderGrid("checkbox");
+    await userEvent.click(checkboxAt(9));
+    await dragThrough(checkboxAt(2), [markerCells()[5]!]);
+    expect(selectedRows()).toEqual([2, 3, 4, 5, 9]);
+    await dragThrough(checkboxAt(7), [markerCells()[10]!, markerCells()[8]!]);
+    expect(selectedRows()).toEqual([2, 3, 4, 5, 7, 8, 9]);
+  });
+
+  it("a checkbox drag that starts on a checked row unchecks the dragged span only", async () => {
+    await renderGrid("checkbox");
+    for (const row of [2, 3, 4, 9]) await userEvent.click(checkboxAt(row));
+    await dragThrough(checkboxAt(3), [markerCells()[5]!]);
+    expect(selectedRows()).toEqual([2, 9]);
+  });
+
+  it("Shift+press on the number zone and drag moves the edge and keeps the rows outside", async () => {
+    await renderGrid("number");
+    await userEvent.click(markerCells()[2]!);
+    await withKey("Control", () => userEvent.click(markerCells()[9]!));
+    await dragThrough(markerCells()[4]!, [markerCells()[6]!], { shiftKey: true });
+    expect(selectedRows()).toEqual([2, 6, 7, 8, 9]);
+    await dragThrough(markerCells()[4]!, [markerCells()[6]!, markerCells()[8]!], { shiftKey: true });
+    expect(selectedRows()).toEqual([2, 8, 9]);
+  });
+
+  it("a Ctrl+drag shrinks when dragged back", async () => {
+    await renderGrid("number");
+    await dragThrough(markerCells()[3]!, [markerCells()[6]!, markerCells()[4]!], { ctrlKey: true });
+    expect(selectedRows()).toEqual([3, 4]);
+  });
+
+  it("a cancelled drag keeps the rows written so far and later moves change nothing", async () => {
+    await renderGrid("number");
+    await dragThrough(markerCells()[1]!, [markerCells()[3]!], { cancel: true });
+    expect(selectedRows()).toEqual([1, 2, 3]);
+    document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: 5, clientY: markerCells()[6]!.getBoundingClientRect().top + 5 }));
+    await frames();
+    expect(selectedRows()).toEqual([1, 2, 3]);
+  });
+
+  it("a custom marker takes the same range path as the number marker", async () => {
+    await render(
+      <div style={{ height: 500 }}>
+        <DataGrid
+          data={makeRows(12)}
+          columns={columns}
+          getRowId={(r) => r.id}
+          className="h-[500px]"
+          rowMarkers="number"
+          enableRowReorder={false}
+          renderMarker={({ viewRowIndex }) => <span>#{viewRowIndex}</span>}
+        />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    await userEvent.click(markerCells()[1]!);
+    await withKey("Shift", () => userEvent.click(markerCells()[5]!));
+    expect(selectedRows()).toEqual([1, 2, 3, 4, 5]);
+    await withKey("Shift", () => userEvent.click(markerCells()[3]!));
+    expect(selectedRows()).toEqual([1, 2, 3]);
+  });
+
+  it("cell Shift+click extends the range and Ctrl+click adds a range, unchanged by row checking", async () => {
+    await renderGrid("number");
+    await userEvent.click(gridCells()[0]!);
+    await withKey("Shift", () => userEvent.click(gridCells()[2 * 3 + 1]!));
+    expect(selectedRows()).toEqual([0, 1, 2, 3]);
+    await withKey("Control", () => userEvent.click(gridCells()[2 * 6]!));
+    expect(selectedRows()).toEqual([0, 1, 2, 3, 6]);
+    await withKey("Shift", () => userEvent.click(gridCells()[2 * 8 + 1]!));
+    expect(selectedRows()).toEqual([0, 1, 2, 3, 6, 7, 8]);
+  });
+
+  describe("by keyboard", () => {
+    const checkedRows = () => markerCells().flatMap((cell, index) => (cell.querySelector('[role="checkbox"]')?.getAttribute("aria-checked") === "true" ? [index] : []));
+
+    it("Shift+Arrow after Shift+Space extends and shrinks the checked rows", async () => {
+      await renderGrid("checkbox");
+      await userEvent.click(gridCells()[0]!);
+      await userEvent.keyboard("{Shift>} {/Shift}");
+      expect(checkedRows()).toEqual([0]);
+      await userEvent.keyboard("{Shift>}{ArrowDown}{ArrowDown}{/Shift}");
+      expect(checkedRows()).toEqual([0, 1, 2]);
+      await userEvent.keyboard("{Shift>}{ArrowUp}{/Shift}");
+      expect(checkedRows()).toEqual([0, 1]);
+      const active = document.querySelector(`[${GRID_ATTR.active}]`);
+      expect(active?.textContent).toBe("Person 1");
+    });
+
+    it("Shift+Arrow after Ctrl+Shift+Space extends the checked rows from the toggled row", async () => {
+      await renderGrid("checkbox");
+      await userEvent.click(gridCells()[0]!);
+      await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
+      await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
+      await userEvent.keyboard("{Shift>}{ArrowDown}{/Shift}");
+      expect(checkedRows()).toEqual([0, 1]);
+    });
+
+    it("Shift+Arrow still extends the cell range without a checked row gesture", async () => {
+      await renderGrid("checkbox");
+      await userEvent.click(gridCells()[0]!);
+      await userEvent.keyboard("{Shift>}{ArrowDown}{/Shift}");
+      expect(document.querySelector(`[${GRID_ATTR.active}]`)?.textContent).toBe("Person 0");
+      expect(checkedRows()).toEqual([0, 1]);
+    });
+  });
+});

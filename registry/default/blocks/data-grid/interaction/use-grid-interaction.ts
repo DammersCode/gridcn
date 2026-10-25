@@ -38,6 +38,7 @@ import {
 } from "../virtualization/direction";
 import { GRID_ATTR, gridAttrSelector } from "../data-attributes";
 import { getSelectedViewRows, isRowChecked } from "../selection";
+import { isRowRangeLive, selectionIsCursorOnly } from "../selection/row-range-gesture";
 import { offersSetFilter } from "../cell-types/capabilities";
 import { warnDev } from "../store/commit";
 import { allRowsSelectedState } from "../store/hooks";
@@ -295,6 +296,19 @@ export function dispatchGridAction(args: {
     if (next) scrollCellIntoView(next);
   };
 
+  /** Moves the checked row range edge (and the active cell) to the row `targetOf` names; false when no row range gesture is waiting for a key step. */
+  const stepCheckedRows = (targetOf: (active: ViewCoord) => number): boolean => {
+    const s = storeApi.getState();
+    const active = s.activeCell;
+    const gesture = s.rowRangeGesture;
+    if (!active || !s.enableRowSelection || !s.enableRangeSelection || !isRowRangeLive(gesture, s.selection, s.viewIndex)) return false;
+    if (gesture.current !== s.selection.current || !selectionIsCursorOnly(s.selection)) return false;
+    const target = Math.max(0, Math.min(targetOf(active), s.viewIndex.length - 1));
+    actions.checkRowRange(target);
+    moveAndScroll({ dx: 0, dy: target - active.row }, { retain: true });
+    return true;
+  };
+
   const jumpAndScroll = (direction: JumpDirection, opts?: { extend?: boolean }) => {
     const active = state.activeCell ?? { col: 0, row: 0 };
     const target = jumpToDataBoundary(state, active, direction);
@@ -371,6 +385,7 @@ export function dispatchGridAction(args: {
     case "extendLeft":
     case "extendRight": {
       preventDefault();
+      if (action !== "extendLeft" && action !== "extendRight" && stepCheckedRows((active) => active.row + MOVE_DELTA[action].dy)) break;
       moveAndScroll(MOVE_DELTA[action], { extend: true });
       break;
     }
@@ -797,9 +812,8 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
 
   // drag state lives in a ref, never React state — a drag never re-renders anything but the
   // overlay/active-cell subscribers that selection changes already touch. `anchor` is the
-  // press-row for the row-marker drag: the pointer is the moving edge, so the range is always
-  // exactly anchor..current (it can grow AND shrink as the pointer moves).
-  const dragRef = useRef<{ pointerId: number; mode: "range" | "row" | "column"; anchor?: number; pendingOffAnchor?: boolean; leftAnchor?: boolean } | null>(null);
+  // press row of a plain marker or checkbox drag; it only decides whether the click after the drag is swallowed.
+  const dragRef = useRef<{ pointerId: number; mode: "range" | "row" | "column"; anchor?: number; pendingOffAnchor?: boolean; leftAnchor?: boolean; swallowClick?: boolean } | null>(null);
   const rafRef = useRef<number | null>(null);
   const pendingActionFrameRef = useRef<number | null>(null);
   const lastPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
@@ -882,12 +896,8 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
     }
 
     if (drag.mode === "range") actions.extendToAt(clamped);
-    else if (drag.mode === "row") {
-      // A plain marker drag (anchor set) replaces the row channel with exactly anchor..current, so
-      // dragging back over selected rows shrinks the range; a shift/ctrl press (anchor undefined)
-      // keeps the old union-extend, so an additive multi-selection is never clobbered.
-      actions.selectRow(clamped.row, drag.anchor !== undefined ? { replaceFromLast: true, from: drag.anchor } : { extendFromLast: true });
-    } else actions.selectColumn(clamped.col, { extendFromLast: true });
+    else if (drag.mode === "row") actions.checkRowRange(clamped.row);
+    else actions.selectColumn(clamped.col, { extendFromLast: true });
 
     rafRef.current = requestAnimationFrame(() => dragFrameRef.current?.());
   }, [actions, scrollRef, storeApi]);
@@ -971,7 +981,8 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
             }
           }
           const drag = dragRef.current;
-          if (event.type === "pointerup" && drag.mode === "row" && drag.anchor !== undefined && scrollElement) {
+          if (event.type === "pointerup" && drag.mode === "row" && drag.swallowClick) swallowNextClick();
+          else if (event.type === "pointerup" && drag.mode === "row" && drag.anchor !== undefined && scrollElement) {
             const endRow = pointerToCoord(event.clientX, event.clientY, scrollElement, layoutRef.current, storeApi.getState().viewIndex.length).row;
             if (endRow !== drag.anchor || drag.leftAnchor) swallowNextClick();
           }
@@ -1379,13 +1390,10 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         return;
       }
       const isMultiKey = isMacRef.current ? event.metaKey : event.ctrlKey;
-      // Moving-edge drag (replaceFromLast): a plain press anchors at the press row; a shift press
-      // anchors at the PREVIOUS last-highlighted row (read before selectRow below overwrites it)
-      // so its extension keeps tracking the pointer. A ctrl press holds an additive multi-selection
-      // the replace would clobber, so it keeps the old union-extend drag.
-      const anchor = isMultiKey ? undefined : event.shiftKey ? (storeApi.getState().lastHighlightedRow ?? viewRowIndex) : viewRowIndex;
+      // only a plain press swallows the click that follows a drag; a modified press keeps its own click handling
+      const anchor = isMultiKey || event.shiftKey ? undefined : viewRowIndex;
       if (event.shiftKey) {
-        actions.selectRow(viewRowIndex, { extendFromLast: true });
+        actions.checkRowRange(viewRowIndex, { commit: isMultiKey });
       } else if (isMultiKey) {
         actions.selectRow(viewRowIndex, { additive: true });
       } else {
@@ -1403,16 +1411,15 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       if (!storeApi.getState().enableRowSelection || event.pointerType === "touch") return;
       if (event.shiftKey) {
         onMarkerPointerDown(viewRowIndex, event);
+        // the checkbox would toggle on the click after the press and undo the range step
+        if (dragRef.current) dragRef.current.swallowClick = true;
         return;
       }
-      // arms the anchor only (lastHighlightedRow), never `selection.rows` itself — a stationary
-      // press+release still resolves purely via the checkbox's own click->toggle. lastPointerRef
-      // stays unseeded, so runDragFrame's first tick is a no-op (pointer is null) exactly like the
-      // other drag starts; only a real pointermove commits to extending from this anchor.
+      // arms the range gesture without writing `selection.rows` — a stationary press+release
+      // still resolves purely via the checkbox's own click->toggle. lastPointerRef stays unseeded,
+      // so runDragFrame's first tick is a no-op; only a real pointermove extends from this anchor.
       actions.armRowDragAnchor(viewRowIndex);
       safeSetPointerCapture(event.currentTarget, event.pointerId);
-      // the checkbox press is the range gesture's anchor: dragging makes the row channel exactly
-      // pressRow..current (grow AND shrink), matching the plain marker drag.
       beginDrag("row", event.pointerId, event.currentTarget, viewRowIndex, true);
     },
     [actions, beginDrag, onMarkerPointerDown, storeApi],
