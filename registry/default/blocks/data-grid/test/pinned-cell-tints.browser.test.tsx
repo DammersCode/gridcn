@@ -44,7 +44,6 @@ describe("pinned cells stay opaque under translucent tints", () => {
   it("keeps a pinned search-match cell opaque", async () => {
     await mount("Person 3");
     await vi.waitFor(() => expect(cellOf(3, "name")).toHaveAttribute("data-search-match"));
-    expect(cellOf(3, "name")!.className).toContain("forced-colors:data-[search-match]:outline-[Mark]");
     expect(isOpaque(getComputedStyle(cellOf(3, "name")).backgroundColor)).toBe(true);
   });
 

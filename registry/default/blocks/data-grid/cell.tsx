@@ -370,7 +370,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         // `validate` rejection or a persisted post-commit `cellErrors` entry set the message — same
         // aria-invalid:ring-destructive/20 convention every shadcn form control in this repo already
         // uses (input.tsx/button.tsx/select.tsx), inset + z-1 so it wins over the search-match tint.
-        errorMessage && "z-1 aria-invalid:ring-3 aria-invalid:ring-inset aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 forced-colors:aria-invalid:outline-2 forced-colors:aria-invalid:-outline-offset-2 forced-colors:aria-invalid:outline-solid forced-colors:aria-invalid:outline-[Mark]",
+        errorMessage && "z-1 aria-invalid:ring-3 aria-invalid:ring-inset aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 forced-colors:aria-invalid:outline-2 forced-colors:aria-invalid:-outline-offset-2 forced-colors:aria-invalid:outline-dashed forced-colors:aria-invalid:outline-[CanvasText]",
         errorMessage &&
           (opaque
             ? "aria-invalid:bg-[color-mix(in_oklch,var(--color-destructive)_10%,var(--color-background))] dark:aria-invalid:bg-[color-mix(in_oklch,var(--color-destructive)_15%,var(--color-background))]"

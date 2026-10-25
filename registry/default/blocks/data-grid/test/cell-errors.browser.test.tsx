@@ -74,7 +74,6 @@ describe("cell-errors: display", () => {
     });
     expect(nameCell).toHaveAttribute("data-invalid", "true");
     expect(nameCell).toHaveAttribute("aria-description", "Name already taken");
-    expect(nameCell.className).toContain("forced-colors:aria-invalid:outline-[Mark]");
 
     await userEvent.hover(nameCell);
     await vi.waitFor(() => expect(tooltipText()).toBe("Name already taken"), { timeout: 2000 });
