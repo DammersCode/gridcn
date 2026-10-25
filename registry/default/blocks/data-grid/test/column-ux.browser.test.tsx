@@ -177,6 +177,28 @@ describe("column resize", () => {
     expect(roomy - base).toBeLessThanOrEqual(9);
   });
 
+  it("autosize keeps the cell padding when row markers are on", async () => {
+    const rows = makeRows(3);
+    rows[0]!.name = "A Very Very Long Name That Needs Room";
+    await render(
+      <div style={{ height: 200 }}>
+        <DataGrid data={rows} columns={columns} getRowId={(r) => r.id} className="h-[200px]" rowMarkers="checkbox" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const header = headerCells().find((h) => h.dataset["columnId"] === "name")!;
+    await userEvent.dblClick(header.querySelector<HTMLElement>(gridAttrSelector("resizeHandle"))!);
+    const nameCell = gridCells().find((c) => c.textContent === rows[0]!.name)!;
+    const probe = document.createElement("span");
+    probe.style.cssText = `position:absolute;visibility:hidden;white-space:nowrap;font:${getComputedStyle(nameCell).font}`;
+    probe.textContent = rows[0]!.name;
+    document.body.append(probe);
+    const textWidth = probe.getBoundingClientRect().width;
+    probe.remove();
+    const after = headerCells().find((h) => h.dataset["columnId"] === "name")!.getBoundingClientRect().width;
+    expect(after).toBeGreaterThanOrEqual(textWidth + 16);
+  });
+
   it("double-clicking the handle sizes the column to a long value that sits outside the mounted window", async () => {
     const rows = makeRows(60);
     rows[59]!.name = "A Very Very Long Name That Sits Far Below The Fold And Needs Room";

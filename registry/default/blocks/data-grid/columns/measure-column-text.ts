@@ -2,8 +2,6 @@
 export const DEFAULT_CELL_INLINE_PADDING = 16;
 /** Slack (px) added to the cell's inline padding so measured text never touches the cell edge. */
 export const CELL_PADDING_BUFFER = 4;
-/** Extra horizontal width (px) added around measured text at the default spacing scale. */
-export const CELL_PADDING = DEFAULT_CELL_INLINE_PADDING + CELL_PADDING_BUFFER;
 
 let sharedCanvas: HTMLCanvasElement | null = null;
 

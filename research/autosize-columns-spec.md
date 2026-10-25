@@ -56,7 +56,7 @@ The pure engine `computeAutosizeWidths(state, fonts, options)` lives in
   `column.resizable !== false` (the menu item's gate, `menu-items.tsx:193`). A named column that
   is hidden, unknown, or not resizable is skipped (dev warning for unknown ids). Flex columns
   leave flex, as a manual resize does today.
-- **Width.** `max(header text + header affordances, widest sampled cell) + CELL_PADDING (20)`,
+- **Width.** `max(header text + header affordances, widest sampled cell) + the cell's horizontal padding (read from a mounted data cell, 16 at the default scale) + 4`,
   then `clampColumnWidth` (`columns/resolve-column-width.ts:19-21`). Header affordances add a fixed
   width for the sort indicator (when shown) and the header menu trigger (when `renderHeaderMenu`
   is set).
