@@ -71,7 +71,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const [searchOptions, setSearchOptions] = useState(() => api.store.getState().searchOptions);
   const [cursor, setCursor] = useState(0);
   const [status, setStatus] = useState<Status>(null);
-  const [position, setPosition] = useState<{ top: number; right: number }>({ top: 8, right: 8 });
+  const [position, setPosition] = useState<{ top: number; end: number }>({ top: 8, end: 8 });
   const findRef = useRef<HTMLInputElement | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const applyTokenRef = useRef(0);
@@ -110,8 +110,8 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
       if (!grid) return;
       const rect = grid.getBoundingClientRect();
       const top = Math.max(8, rect.top + 8);
-      const right = Math.max(8, window.innerWidth - rect.right + 24);
-      setPosition((current) => (current.top === top && current.right === right ? current : { top, right }));
+      const end = Math.max(8, (getComputedStyle(grid).direction === "rtl" ? rect.left : window.innerWidth - rect.right) + 24);
+      setPosition((current) => (current.top === top && current.end === end ? current : { top, end }));
     };
     place();
     window.addEventListener("resize", place);
@@ -289,7 +289,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
       onCopy={(event) => event.stopPropagation()}
       onCut={(event) => event.stopPropagation()}
       onPaste={(event) => event.stopPropagation()}
-      style={{ position: "fixed", top: position.top, right: position.right, zIndex: 50, maxWidth: `calc(100vw - ${position.right}px - 8px)` }}
+      style={{ position: "fixed", top: position.top, insetInlineEnd: position.end, zIndex: 50, maxWidth: `calc(100vw - ${position.end}px - 8px)` }}
       className="flex w-80 flex-col gap-1 rounded-lg bg-popover p-2 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10"
     >
       <div className="flex items-center gap-1">

@@ -261,3 +261,22 @@ describe("find and replace in a browser", () => {
     });
   });
 });
+
+describe("find and replace in a right-to-left page", () => {
+  it("docks the panel to the inline-end corner of the grid", async () => {
+    document.documentElement.dir = "rtl";
+    try {
+      await render(<Harness />);
+      await page.getByRole("gridcell").first().click();
+      await userEvent.keyboard("{Control>}f{/Control}");
+      const dialog = page.getByRole("dialog");
+      await expect.element(dialog).toBeInTheDocument();
+      const panel = dialog.element().getBoundingClientRect();
+      const grid = document.querySelector('[role="grid"]')!.getBoundingClientRect();
+      expect(panel.left - grid.left).toBeLessThan(grid.right - panel.right);
+      expect(panel.left).toBeGreaterThanOrEqual(grid.left);
+    } finally {
+      document.documentElement.dir = "";
+    }
+  });
+});
