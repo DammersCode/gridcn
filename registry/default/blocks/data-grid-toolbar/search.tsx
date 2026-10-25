@@ -11,7 +11,7 @@ import {
 } from "react";
 import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Button } from "@/components/ui/button";
 import {
   useDataGridActions,
@@ -175,32 +175,30 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
 
   return (
     <div data-grid-search="" className={cn("flex h-8 items-center gap-1", className)}>
-      <div className="relative">
-        <Search className="pointer-events-none absolute inset-s-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input
+      <InputGroup className="w-72">
+        <InputGroupAddon align="inline-start">
+          <Search />
+        </InputGroupAddon>
+        <InputGroupInput
           ref={inputRef}
           value={inputValue}
           onChange={onChange}
           onKeyDown={onKeyDown}
           placeholder={placeholder ?? labels.toolbar.searchPlaceholder}
           aria-label={labels.toolbar.searchAriaLabel}
-          className="h-8 w-56 ps-7"
         />
-      </div>
-      {searchText.trim() !== "" && (
-        <span
-          data-grid-search-count=""
-          role="status"
-          aria-live="polite"
-          className="min-w-fit shrink-0 text-xs tabular-nums text-muted-foreground"
-        >
-          {hasMatches
-            ? capped
-              ? labels.toolbar.searchMatchesCapped(matchIndex + 1)
-              : labels.toolbar.searchMatches(matchIndex + 1, matches.length)
-            : labels.toolbar.searchNoMatches}
-        </span>
-      )}
+        {searchText.trim() !== "" && (
+          <InputGroupAddon align="inline-end">
+            <span data-grid-search-count="" role="status" aria-live="polite" className="min-w-fit text-xs tabular-nums">
+              {hasMatches
+                ? capped
+                  ? labels.toolbar.searchMatchesCapped(matchIndex + 1)
+                  : labels.toolbar.searchMatches(matchIndex + 1, matches.length)
+                : labels.toolbar.searchNoMatches}
+            </span>
+          </InputGroupAddon>
+        )}
+      </InputGroup>
       <Button
         type="button"
         variant="ghost"

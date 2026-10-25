@@ -1003,3 +1003,23 @@ describe("DataGridColumnsMenu", () => {
     expect(document.querySelector(gridAttrSelector("columnsMenu"))?.textContent).not.toContain("Pin");
   });
 });
+
+describe("DataGridSearch layout", () => {
+  it("groups the icon, the input and the match count in one input group", async () => {
+    await render(
+      <DataGridProvider data={Array.from({ length: 10 }, (_, i) => ({ id: "r" + i, name: i % 2 ? "needle" : "hay" }))} columns={defineColumns<{ id: string; name: string }>()([{ id: "name", header: "Name", accessorKey: "name", type: "text", width: 120 }] as const)} getRowId={(r) => r.id} defaultSearchText="needle">
+        <DataGridSearch />
+        <DataGridRoot className="h-40">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    const input = document.querySelector<HTMLInputElement>("[data-grid-search] input")!;
+    const group = input.closest('[data-slot="input-group"]')!;
+    expect(group).not.toBeNull();
+    const count = document.querySelector<HTMLElement>("[data-grid-search-count]")!;
+    expect(group.contains(count)).toBe(true);
+    expect(count.getBoundingClientRect().left).toBeGreaterThan(input.getBoundingClientRect().left);
+  });
+});
