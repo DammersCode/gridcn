@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import { Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,8 +26,8 @@ export type DataGridHeaderFilterProps = {
   index: number;
 };
 
-function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void }): ReactNode {
-  const { column, onClose } = props;
+function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; searchRef: RefObject<HTMLInputElement | null> }): ReactNode {
+  const { column, onClose, searchRef } = props;
   const labels = useDataGridLabels().toolbar;
   const cellTypes = useDataGridCellTypes();
   const storeApi = useDataGridStoreApi();
@@ -71,10 +71,11 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void }):
 
   const toggleVisible = () => {
     setApplyBlocked(false);
+    const typed = filterSetOptions(options, search.draft);
     setChecked((current) => {
       const next = new Set(current);
-      const allChecked = visible.length > 0 && visible.every((option) => next.has(option.key));
-      for (const option of visible) {
+      const allChecked = typed.length > 0 && typed.every((option) => next.has(option.key));
+      for (const option of typed) {
         if (allChecked) next.delete(option.key);
         else next.add(option.key);
       }
@@ -116,23 +117,23 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void }):
   return (
     <>
       <InputGroup>
+        <InputGroupAddon align="inline-start" onClick={() => searchRef.current?.focus()}>
+          <Checkbox
+            aria-label={labels.headerFilterSelectAll}
+            checked={selectAllState === true}
+            indeterminate={selectAllState === "mixed"}
+            onCheckedChange={toggleVisible}
+            onClick={(event) => event.stopPropagation()}
+          />
+        </InputGroupAddon>
         <InputGroupInput
+          ref={searchRef}
           value={search.draft}
           onChange={(event) => search.onChange(event.target.value)}
           onKeyDown={onSearchKeyDown}
           placeholder={labels.headerFilterSearchPlaceholder}
           aria-label={labels.headerFilterSearchPlaceholder}
         />
-        <InputGroupAddon align="inline-start">
-          <Checkbox
-            aria-label={labels.headerFilterSelectAll}
-            checked={selectAllState === true}
-            indeterminate={selectAllState === "mixed"}
-            disabled={visible.length === 0}
-            onCheckedChange={toggleVisible}
-            onClick={(event) => event.stopPropagation()}
-          />
-        </InputGroupAddon>
       </InputGroup>
       <SetFilterList key={query} options={visible} checked={checked} onToggle={toggle} onEnter={apply} idPrefix={listId} ariaLabel={columnLabelText(column)} listRef={listRef} />
       <div aria-live="polite" className={cn("text-xs text-muted-foreground", tooMany && "text-destructive")}>
@@ -163,6 +164,7 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
   const api = useDataGridApi();
   const [open, setOpen] = useState(false);
   const keyboardOpenedRef = useRef(false);
+  const searchRef = useRef<HTMLInputElement>(null);
   const columnLabel = columnLabelText(column);
 
   return (
@@ -189,6 +191,7 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
       <PopoverContent
         data-grid-header-filter-popup=""
         align="start"
+        initialFocus={searchRef}
         aria-label={labels.headerFilterAriaLabel(columnLabel, false)}
         className="w-64"
         onContextMenu={(event) => event.stopPropagation()}
@@ -200,7 +203,7 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
           return false;
         }}
       >
-        <HeaderFilterBody column={column} onClose={() => setOpen(false)} />
+        <HeaderFilterBody column={column} onClose={() => setOpen(false)} searchRef={searchRef} />
       </PopoverContent>
     </Popover>
   );

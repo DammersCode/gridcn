@@ -113,7 +113,7 @@ describe("DataGridHeaderFilter", () => {
   it("searches, selects the matching subset and applies a filter to the view", async () => {
     const getApi = await renderGrid();
     await openFilter("city");
-    const input = popup()!.querySelector("input")!;
+    const input = searchInput();
     await userEvent.fill(input, "n");
     await vi.waitFor(() => expect(optionLabels()).toEqual(["Berlin", "Bonn", "Essen", "Koeln"]));
     expect(popup()!.querySelector("[aria-live]")!.textContent).toBe("4 of 4 selected");
@@ -187,12 +187,15 @@ describe("DataGridHeaderFilter", () => {
     expect(document.activeElement).not.toBe(searchInput());
   });
 
-  it("puts the search input before the Select all checkbox in the DOM and the Tab order, and Space toggles the box", async () => {
+  it("puts the Select all checkbox before the search input in the DOM, the Tab order and the layout, opens on the input, and Space toggles the box", async () => {
     await renderGrid();
     await openFilter("city");
-    expect(searchInput().compareDocumentPosition(selectAllBox()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    searchInput().focus();
+    expect(document.activeElement).toBe(searchInput());
+    expect(selectAllBox().compareDocumentPosition(searchInput()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    selectAllBox().focus();
     await userEvent.tab();
+    expect(document.activeElement).toBe(searchInput());
+    await userEvent.tab({ shift: true });
     expect(document.activeElement).toBe(selectAllBox());
     await userEvent.keyboard(" ");
     expect(selectAllBox()).toHaveAttribute("aria-checked", "false");
@@ -228,6 +231,28 @@ describe("DataGridHeaderFilter", () => {
     }
   });
 
+  it("keeps the whole search field undimmed when no value matches the query", async () => {
+    await renderGrid();
+    await openFilter("city");
+    await userEvent.fill(searchInput(), "zzz");
+    await vi.waitFor(() => expect(options().length).toBe(0));
+    const group = searchInput().closest<HTMLElement>('[data-slot="input-group"]')!;
+    expect(getComputedStyle(group).opacity).toBe("1");
+    expect(selectAllBox()).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("Select all acts on the typed query even before the search debounce has run", async () => {
+    const getApi = await renderGrid();
+    await openFilter("city");
+    await userEvent.fill(searchInput(), "n");
+    await userEvent.click(selectAllBox());
+    await vi.waitFor(() => expect(optionLabels()).toEqual(["Berlin", "Bonn", "Essen", "Koeln"]));
+    expect(options().every((o) => o.getAttribute("aria-selected") === "false")).toBe(true);
+    await userEvent.click(button("Apply"));
+    await vi.waitFor(() => expect(popup()).toBeNull());
+    expect(getApi().getState().filterState).toEqual([expect.objectContaining({ columnId: "city", operator: "isAnyOf", value: ["Hamburg"] })]);
+  });
+
   it("disables Apply while nothing is checked", async () => {
     await renderGrid();
     await openFilter("city");
@@ -258,8 +283,8 @@ describe("DataGridHeaderFilter", () => {
     await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"][aria-colindex="2"]')!);
     await userEvent.keyboard("{Shift>}{Alt>}{ArrowUp}{/Alt}{/Shift}");
     await vi.waitFor(() => expect(options().length).toBe(5));
-    expect(document.activeElement).toBe(popup()!.querySelector("input"));
-    await userEvent.keyboard("{Tab}{Tab}");
+    expect(document.activeElement).toBe(searchInput());
+    await userEvent.keyboard("{Tab}");
     const list = popup()!.querySelector<HTMLElement>('[role="listbox"]')!;
     expect(document.activeElement).toBe(list);
     expect(list.getAttribute("aria-multiselectable")).toBe("true");
@@ -276,7 +301,7 @@ describe("DataGridHeaderFilter", () => {
   it("moves from the search box into the list with ArrowDown", async () => {
     await renderGrid();
     await openFilter("city");
-    popup()!.querySelector("input")!.focus();
+    searchInput().focus();
     await userEvent.keyboard("{ArrowDown}");
     expect(document.activeElement).toBe(popup()!.querySelector('[role="listbox"]'));
   });
