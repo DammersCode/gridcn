@@ -243,7 +243,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     anchor: number,
     base: CompactSelection,
     checked: boolean,
-  ): RowRangeGesture => ({ anchor, anchorRowId: rowIdAtViewRow(s, anchor), base, checked, rows: selection.rows, current: selection.current, viewIndex: s.viewIndex });
+  ): RowRangeGesture => ({ anchor, edge: anchor, anchorRowId: rowIdAtViewRow(s, anchor), base, checked, rows: selection.rows, current: selection.current, viewIndex: s.viewIndex });
 
   /** Anchor for a Shift step without a live gesture: the former anchor row, else the active row, else the target. */
   const restartRowGesture = (s: DataGridStoreState, target: number): RowRangeGesture => {
@@ -1165,11 +1165,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (live && opts.commit && channel) gesture = { ...gesture, base: channel };
         const computed = applyRowRange(gesture, clamped);
         const rows = channel && computed.equals(channel) ? selection.rows : computed;
+        const rowRangeGesture = { ...gesture, rows, current: null, edge: clamped };
         if (rows === selection.rows && selection.current === null) {
-          if (!live || opts.commit) set({ rowRangeGesture: { ...gesture, rows, current: null } });
+          if (!live || opts.commit || gesture.edge !== clamped) set({ rowRangeGesture });
           return;
         }
-        set({ selection: { ...selection, current: null, rows }, rowRangeGesture: { ...gesture, rows, current: null } });
+        set({ selection: { ...selection, current: null, rows }, rowRangeGesture });
       },
       selectColumn(index, opts = {}) {
         const { lastHighlightedCol, selection, enableColumnSelection, enableMultiRange, enableRangeSelection } = get();
@@ -1229,12 +1230,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const { selection, viewIndex, enableRowSelection } = get();
         if (!enableRowSelection) return;
         const rows = checked ? CompactSelection.fromSingleSelection([0, viewIndex.length]) : CompactSelection.empty();
-        set({ selection: { ...selection, rows }, ...(checked ? {} : { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS }) });
+        set({ selection: { ...selection, rows }, rowRangeGesture: null, ...(checked ? {} : { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS }) });
       },
       clearSelection() {
         const s = get();
         if (isSelectionEmpty(s.selection) && s.hiddenCheckedRowIds.size === 0) return;
-        set({ selection: emptySelection(), hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS });
+        set({ selection: emptySelection(), hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS, rowRangeGesture: null });
       },
       clearCellSelection() {
         const { selection } = get();
@@ -1245,7 +1246,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const s = get();
         if (next === null) {
           if (isSelectionEmpty(s.selection) && s.hiddenCheckedRowIds.size === 0) return;
-          set({ selection: emptySelection(), hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS });
+          set({ selection: emptySelection(), hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS, rowRangeGesture: null });
           return;
         }
         const resolved = resolveSelectionState(s, rowIndexCache, next, warnedControlledSelection);

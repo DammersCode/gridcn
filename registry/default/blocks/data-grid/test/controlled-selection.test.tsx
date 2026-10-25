@@ -139,6 +139,16 @@ describe("the controlled selection prop", () => {
     expect(store().getState()).toBe(stateBefore);
   });
 
+  it("a row range gesture stays live across a controlled round trip", () => {
+    const onSelectionChange = vi.fn();
+    const { store, actions, rerender } = mount({ onSelectionChange, keepCheckedRows: true });
+    act(() => actions().selectRow(0));
+    act(() => actions().checkRowRange(3));
+    rerender({ onSelectionChange, keepCheckedRows: true, selection: onSelectionChange.mock.lastCall![0] });
+    act(() => actions().checkRowRange(1));
+    expect(store().getState().selection.rows.toArray()).toEqual([0, 1]);
+  });
+
   it("a structurally equal inline literal applies nothing", () => {
     const onSelectionChange = vi.fn();
     const { store, rerender } = mount({ onSelectionChange });

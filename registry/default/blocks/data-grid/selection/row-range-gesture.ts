@@ -7,6 +7,8 @@ import type { CompactSelection } from "./compact-selection";
  */
 export type RowRangeGesture = {
   anchor: number;
+  /** The row the last step targeted: the moving end of the range. */
+  edge: number;
   anchorRowId: string | undefined;
   /** The row channel as it was when the anchor was set. */
   base: CompactSelection;

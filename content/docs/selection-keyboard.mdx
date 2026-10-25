@@ -65,8 +65,8 @@ shrinks. Rows outside the range keep their state, and checked rows that a filter
 | <kbd>Shift</kbd>+press and drag | Moves the end of the range from the anchor row. |
 | <kbd>Shift</kbd>+click without an anchor | Starts at the active row. Without an active row, it checks only the clicked row. |
 
-A sort, a filter, or the header checkbox ends the range. The next Shift+click then starts from the
-anchor row.
+A sort or a filter ends the range. The next Shift+click then starts from the anchor row. The
+header checkbox and Escape clear the anchor, so the next Shift+click starts at the active row.
 
 For example, click row 1, Shift+click row 5, and Shift+click row 3. Rows 1 to 3 are checked.
 
@@ -221,8 +221,8 @@ The marker checkboxes are not tab stops, so the keyboard has its own actions:
   them when every row is checked. It does what the header checkbox does.
 - <kbd>Shift</kbd>+<kbd>Space</kbd> (`selectRow`) replaces the selection with the active row.
 - After `selectRow` or `toggleRow`, <kbd>Shift</kbd>+<kbd>ArrowUp</kbd> and
-  <kbd>Shift</kbd>+<kbd>ArrowDown</kbd> (`extendUp`, `extendDown`) <NewBadge /> move the active row
-  and check the rows from the anchor to it. They shrink the range when you reverse. After a click
+  <kbd>Shift</kbd>+<kbd>ArrowDown</kbd> (`extendUp`, `extendDown`) <NewBadge /> move the end of the
+  range and the active row, and check the rows from the anchor to the new end. They shrink the range when you reverse. After a click
   on a cell, the same keys extend the cell range.
 - In the same state, <kbd>Shift</kbd>+<kbd>Home</kbd> (`extendRowsToStart`),
   <kbd>Shift</kbd>+<kbd>End</kbd> (`extendRowsToEnd`), <kbd>Shift</kbd>+<kbd>PageUp</kbd>

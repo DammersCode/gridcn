@@ -4,12 +4,15 @@ import { CompactSelection } from "../selection/compact-selection";
 import { createDataGridStore } from "./create-store";
 import type { InternalSyncProps } from "./types";
 
-type Item = { id: string; v: number };
+type Item = { id: string; v: number; t: string };
 
-const columns: readonly ColumnDef<Item, unknown>[] = [{ id: "v", header: "V", accessorKey: "v", type: "number" }];
+const columns: readonly ColumnDef<Item, unknown>[] = [
+  { id: "v", header: "V", accessorKey: "v", type: "number" },
+  { id: "t", header: "T", accessorKey: "t", type: "text" },
+];
 
 function makeStore(count: number, extra: Partial<InternalSyncProps> = {}) {
-  const data = Array.from({ length: count }, (_, i) => ({ id: String(i), v: i }));
+  const data = Array.from({ length: count }, (_, i) => ({ id: String(i), v: i, t: i < 6 ? "lo" : "hi" }));
   const init = { data, columns, getRowId: (row: Item) => row.id, ...extra } as unknown as InternalSyncProps;
   return createDataGridStore(init);
 }
@@ -96,27 +99,53 @@ describe("row range checking", () => {
     expect(store.getState().rowRangeGesture?.anchor).toBe(0);
   });
 
-  it("starts a new gesture after the header checkbox wrote the row channel", () => {
+  it("starts from the active row after the header checkbox wrote the row channel", () => {
     const store = makeStore(12);
     const { actions } = store.getState();
     actions.selectRow(1);
     actions.checkRowRange(3);
+    actions.selectCellAt({ row: 2, col: 0 });
     actions.setAllRowsSelected(false);
     actions.checkRowRange(5);
-    expect(checked(store)).toEqual(range(1, 5));
-    actions.checkRowRange(2);
-    expect(checked(store)).toEqual(range(1, 2));
+    expect(checked(store)).toEqual(range(2, 5));
+    actions.checkRowRange(3);
+    expect(checked(store)).toEqual(range(2, 3));
+  });
+
+  it("starts from the active row after clearSelection", () => {
+    const store = makeStore(12);
+    const { actions } = store.getState();
+    actions.selectRow(1);
+    actions.checkRowRange(3);
+    actions.clearSelection();
+    expect(store.getState().rowRangeGesture).toBeNull();
+    actions.selectCellAt({ row: 6, col: 0 });
+    actions.checkRowRange(8);
+    expect(checked(store)).toEqual(range(6, 8));
+  });
+
+  it("records the moving edge of the range", () => {
+    const store = makeStore(12);
+    const { actions } = store.getState();
+    actions.selectRow(2);
+    expect(store.getState().rowRangeGesture?.edge).toBe(2);
+    actions.checkRowRange(7);
+    expect(store.getState().rowRangeGesture?.edge).toBe(7);
   });
 
   it("never touches hidden checked rows", () => {
     const store = makeStore(12, { keepCheckedRows: true, keepHiddenCheckedRows: true });
     const { actions } = store.getState();
     actions.setAllRowsSelected(true);
-    actions.setFilters([{ filterId: "f", columnId: "v", operator: "equals", value: "11" }] as never);
+    actions.setFilters([{ filterId: "f", columnId: "t", operator: "equals", value: "hi" }] as never);
     const hidden = store.getState().hiddenCheckedRowIds;
-    expect(hidden.size).toBe(11);
-    actions.setRowSelected(0, false);
-    actions.checkRowRange(0);
+    expect([...hidden].sort()).toEqual(["0", "1", "2", "3", "4", "5"]);
+    expect(store.getState().viewIndex.length).toBe(6);
+    actions.selectRow(1);
+    actions.checkRowRange(4);
+    expect(checked(store)).toEqual([1, 2, 3, 4]);
+    actions.checkRowRange(2);
+    expect(checked(store)).toEqual([1, 2]);
     expect(store.getState().hiddenCheckedRowIds).toBe(hidden);
   });
 
@@ -171,7 +200,7 @@ describe("row range checking", () => {
     const state = store.getState();
     store.setState({
       selection,
-      rowRangeGesture: { anchor: 1, anchorRowId: "1", base: CompactSelection.empty(), checked: true, rows: like, current: null, viewIndex: state.viewIndex },
+      rowRangeGesture: { anchor: 1, edge: 1, anchorRowId: "1", base: CompactSelection.empty(), checked: true, rows: like, current: null, viewIndex: state.viewIndex },
     });
     state.actions.checkRowRange(5, { commit: true });
     expect(toArray).not.toHaveBeenCalled();

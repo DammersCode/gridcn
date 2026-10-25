@@ -55,6 +55,16 @@ Notes on the choices:
 - Row 11 mirrors spreadsheet-style apps (extend from the active cell) and the listbox pattern
   ("from the most recently selected item").
 
+- Drags write the row channel live on every step. A cancelled drag (`pointercancel`, lost pointer
+  capture, window blur) keeps the rows written so far and only tears the gesture down. A checkbox
+  press that wrote no row restores the earlier anchor on cancel.
+- The header checkbox, `clearSelection` (Escape) and `setSelection(null)` drop the gesture, so the
+  next Shift+click starts from the active row (row 11). A sort or filter keeps it stale, and the
+  anchor follows its row id.
+- A keyboard step moves the gesture's moving edge (`edge`), not the active cell, so it continues a
+  mouse range from where the range ends. The active cell moves to the new edge.
+- A controlled `selection` echo writes nothing to the store, so the gesture stays live.
+
 ## Gaps found (ranked by user value, then cost)
 
 | Rank | Gap | Today | Cost |
