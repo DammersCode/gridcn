@@ -11,7 +11,7 @@ const registry = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"));
 const NAMESPACE = "DammersCode/gridcn/";
 const PROVIDED = new Set(["react", "react-dom", "next"]);
 const IMPORT_RE = /^\s*(?:(?:import|export)\b[^;'"]*?\bfrom\s+|import\s+)["']([^"']+)["']|\bimport\(\s*["']([^"']+)["']\s*\)/gm;
-const isShipped = (p) => !isTestFile(p) && !p.includes("__screenshots__");
+const isShipped = (p) => !isTestFile(p) && !p.includes("__screenshots__") && !p.includes("__traces__");
 const norm = (p) => p.split("\\").join("/");
 
 const ownersOfFile = new Map();

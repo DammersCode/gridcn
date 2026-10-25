@@ -1,8 +1,8 @@
 // Shared helpers for the registry verify/check scripts.
 
-/** True when the file name is a test or test-helper source (.test, .browser.test, .type-test, .test-helper + extension). */
+/** True when the file name is a test or test-helper source (.test, .browser.test, .type-test, .test-helper, .bench + extension). */
 export function isTestFile(name) {
-  return /\.(test|browser\.test|type-test|test-helper)\.[^./]+$/.test(name);
+  return /\.(test|browser\.test|type-test|test-helper|bench)\.[^./]+$/.test(name);
 }
 
 /** A registry.json dependency entry without its optional `@version` pin ("hucre@1.1.0" -> "hucre", "@scope/pkg@1.2.3" -> "@scope/pkg"). */

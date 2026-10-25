@@ -1209,6 +1209,10 @@ export type DataGridRowCellState = {
   editingInitialText: string | undefined;
   /** The open edit session's id; only set when `editingCol` is non-null. */
   editingSession: number | undefined;
+  /** The open edit's live validation error; null unless this row holds the editing cell. */
+  editingError: string | null;
+  /** The commit-guard re-arm nonce forwarded to the editor; 0 unless this row holds the editing cell. */
+  editingRejectionCount: number;
   /** Every column index in this row matching the current search, or null when search is inactive/no row match — null (not an empty Set) lets a row with no matches skip allocating one. */
   searchMatchCols: ReadonlySet<number> | null;
   /** This row's errored columns (column index -> message), or null when this row has none — same zero-render contract as `searchMatchCols`. */

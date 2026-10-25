@@ -9,6 +9,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- Sorting is faster. In the browser, a text sort at 100k rows takes about 25% less time (68 ms to 51 ms). The row order is unchanged.
+- **Breaking:** `DataGridRowCellState` has the new fields `editingError` and `editingRejectionCount`, and `DataGridCellProps` has the new optional props `editingError` and `editingRejectionCount`. A caller that passes `isEditing` to `DataGridCell` must forward both from `useDataGridRowCellState`; without them the cell loses the live validation error and the commit-guard re-arm. Each cell holds fewer store subscriptions.
+
 ## 1.2.0 - 2026-10-24
 
 - Touch input. A touch press selects on release, not on press, so a scroll or a pan selects nothing. A tap selects a cell, a column header, or a row marker. A double-tap edits a cell. Pressing and holding for 500 ms opens the context menu of a cell or a header. The grid takes no pointer capture for a touch press and registers no non-passive touch or wheel listener.

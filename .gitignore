@@ -20,8 +20,9 @@ references/
 .vitest/
 .vitest-attachments/
 
-# vitest browser failure screenshots
+# vitest browser failure screenshots and traces
 **/__screenshots__/
+**/__traces__/
 
 # pnpm probe artifact - must never be committed
 .pnpm-store/

@@ -200,6 +200,46 @@ describe("cell-errors: display", () => {
     expect(tooltipText()).toBeNull();
     await expect.element(page.getByRole("alert")).toBeInTheDocument();
   });
+
+  it("a live validate rejection wins over the persisted cellError on the editing cell", async () => {
+    let store: StoreApi<DataGridStoreState> | undefined;
+    const validatedColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "id", header: "ID", accessorKey: "id", type: "text", width: 100 },
+      { id: "name", header: "Name", accessorKey: "name", type: "text", width: 160 },
+      {
+        id: "age",
+        header: "Age",
+        accessorKey: "age",
+        type: "number",
+        width: 100,
+        validate: (v) => (typeof v === "number" && v < 0 ? "must be >= 0" : null),
+      },
+    ];
+    await render(
+      <div style={{ height: 300 }}>
+        <DataGridProvider data={makeRows(5)} columns={validatedColumns} getRowId={(r) => r.id}>
+          <StoreCapture onReady={(s) => (store = s)} />
+          <DataGridRoot className="h-[300px]">
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    store!.getState().actions.setCellErrors([{ rowId: "row-0", columnId: "age", message: "Server says no" }]);
+
+    const liveAgeCell = () => document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="age"]')[0]!;
+    await vi.waitFor(() => expect(liveAgeCell()).toHaveAttribute("aria-invalid", "true"));
+    await userEvent.dblClick(liveAgeCell());
+    await expect.element(page.getByRole("alert")).toHaveTextContent("Server says no");
+
+    const input = document.querySelector<HTMLInputElement>(`[role="gridcell"]${gridAttrSelector("editing", "true")} input`)!;
+    await userEvent.clear(input);
+    await userEvent.type(input, "-5");
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByRole("alert")).toHaveTextContent("must be >= 0");
+  });
 });
 
 describe("cell-errors: zero-render probe", () => {

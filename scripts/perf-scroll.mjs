@@ -1,7 +1,6 @@
 // Scroll-perf evidence harness: drives an rAF-paced fling against a running grid page and prints
 // frame + long-task metrics as one JSON line per run. Before/after measurements of scroll-related
-// changes need a stable harness, not throwaway scripts; the method and 2026-10-14 findings live in
-// research/perf-audit-2026-10-14.md.
+// changes need a stable harness, not throwaway scripts.
 //
 // Usage:
 //   node scripts/perf-scroll.mjs [options]
@@ -12,10 +11,19 @@
 //   --frames <n>       measured frames after warm-up (default 240)
 //   --scroll-right     scroll to the last columns first (rich-columns scenario)
 //   --css <rule>       extra CSS rule injected before measuring; repeatable (A/B what-if testing)
+//   --runs <n>         measure n times, each on a fresh page load; prints a line with the median, min, max
+//                      and spread (median absolute deviation, MAD) per metric (default 1)
+//   --out <file>       write the median metrics (plus "spread" when runs > 1) to a JSON file
+//   --baseline <file>  print delta (median minus baseline) and significant (|delta| > larger of the
+//                      two spreads, per metric; a baseline without "spread" counts as 0)
 // Examples:
 //   node scripts/perf-scroll.mjs
 //   node scripts/perf-scroll.mjs --width 520 --scroll-right
-//   node scripts/perf-scroll.mjs --css '[role="row"]{contain:layout paint}'
+//   node scripts/perf-scroll.mjs --css '[role="gridcell"]{contain:layout style}'
+//   node scripts/perf-scroll.mjs --runs 5 --out before.json
+//   node scripts/perf-scroll.mjs --runs 5 --baseline before.json
+// Never contain or content-visibility [role="row"]: rows are subgrids and containment breaks column alignment.
+import { readFile, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 
 const DEFAULTS = {
@@ -27,6 +35,7 @@ const DEFAULTS = {
   warmup: 60,
   scrollRight: false,
   css: [],
+  runs: 1,
 };
 
 // Burst-then-settle fling (12 frames decaying from the peak, 12 idle frames), repeated: a steady
@@ -44,9 +53,13 @@ function parseArgs(argv) {
       case "--frames": opts.frames = Number(next()); break;
       case "--scroll-right": opts.scrollRight = true; break;
       case "--css": opts.css.push(next()); break;
+      case "--runs": opts.runs = Number(next()); break;
+      case "--out": opts.out = next(); break;
+      case "--baseline": opts.baseline = next(); break;
       default: throw new Error(`unknown option: ${arg}`);
     }
   }
+  if (!Number.isInteger(opts.runs) || opts.runs < 1) throw new Error("--runs must be a positive integer");
   return opts;
 }
 
@@ -101,25 +114,77 @@ function stats(frameTimes, longTasks) {
   };
 }
 
+const medianNum = (values) => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+};
+
+function summarize(runStats) {
+  const summary = { median: {}, min: {}, max: {}, spread: {} };
+  for (const key of Object.keys(runStats[0])) {
+    const values = runStats.map((s) => s[key]);
+    const median = medianNum(values);
+    summary.median[key] = +median.toFixed(1);
+    summary.min[key] = +Math.min(...values).toFixed(1);
+    summary.max[key] = +Math.max(...values).toFixed(1);
+    summary.spread[key] = +medianNum(values.map((v) => Math.abs(v - median))).toFixed(1);
+  }
+  return summary;
+}
+
+function deltaOf(medians, spread, baseline) {
+  const delta = {};
+  const significant = {};
+  for (const key of Object.keys(medians)) {
+    if (typeof baseline[key] !== "number") continue;
+    delta[key] = +(medians[key] - baseline[key]).toFixed(1);
+    significant[key] = Math.abs(delta[key]) > Math.max(spread[key], baseline.spread?.[key] ?? 0);
+  }
+  return { delta, significant };
+}
+
+async function measure(browser, opts) {
+  const context = await browser.newContext({ viewport: { width: opts.width, height: opts.height } });
+  try {
+    const page = await context.newPage();
+    await page.goto(opts.url, { waitUntil: "domcontentloaded", timeout: 120_000 });
+    await page.waitForSelector('[role="grid"]', { timeout: 60_000 });
+    await page.waitForTimeout(2500); // settle: page scripts, hydration, initial render
+    if (opts.scrollRight) {
+      await page.evaluate(() => {
+        const el = document.querySelector('[role="grid"]');
+        el.scrollLeft = el.scrollWidth - el.clientWidth;
+      });
+      await page.waitForTimeout(700);
+    }
+    if (opts.css.length > 0) {
+      await page.addStyleTag({ content: opts.css.join("\n") });
+      await page.waitForTimeout(700);
+    }
+    const result = await page.evaluate(driveScript, { ...opts });
+    return stats(result.frameTimes, result.longTasks);
+  } finally {
+    await context.close();
+  }
+}
+
 const opts = parseArgs(process.argv.slice(2));
+const baseline = opts.baseline ? JSON.parse(await readFile(opts.baseline, "utf8")) : null;
 
 const browser = await chromium.launch();
-const context = await browser.newContext({ viewport: { width: opts.width, height: opts.height } });
-const page = await context.newPage();
-await page.goto(opts.url, { waitUntil: "domcontentloaded", timeout: 120_000 });
-await page.waitForSelector('[role="grid"]', { timeout: 60_000 });
-await page.waitForTimeout(2500); // settle: page scripts, hydration, initial render
-if (opts.scrollRight) {
-  await page.evaluate(() => {
-    const el = document.querySelector('[role="grid"]');
-    el.scrollLeft = el.scrollWidth - el.clientWidth;
-  });
-  await page.waitForTimeout(700);
+const runStats = [];
+try {
+  for (let i = 0; i < opts.runs; i++) {
+    const metrics = await measure(browser, opts);
+    runStats.push(metrics);
+    console.log(JSON.stringify({ url: opts.url, width: opts.width, scrollRight: opts.scrollRight, css: opts.css, ...metrics }));
+  }
+} finally {
+  await browser.close();
 }
-if (opts.css.length > 0) {
-  await page.addStyleTag({ content: opts.css.join("\n") });
-  await page.waitForTimeout(700);
-}
-const result = await page.evaluate(driveScript, { ...opts });
-console.log(JSON.stringify({ url: opts.url, width: opts.width, scrollRight: opts.scrollRight, css: opts.css, ...stats(result.frameTimes, result.longTasks) }));
-await browser.close();
+
+const { median: medians, min, max, spread } = summarize(runStats);
+if (opts.runs > 1) console.log(JSON.stringify({ median: medians, min, max, spread }));
+if (opts.out) await writeFile(opts.out, `${JSON.stringify(opts.runs > 1 ? { ...medians, spread } : medians, null, 2)}\n`);
+if (baseline) console.log(JSON.stringify(deltaOf(medians, spread, baseline)));
