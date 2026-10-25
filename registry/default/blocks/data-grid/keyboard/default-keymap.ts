@@ -38,7 +38,7 @@ export const DEFAULT_KEYMAP: Keymap = {
   extendJumpRight: ["mod+shift+ArrowRight"],
   extendFirstCell: ["mod+shift+Home"],
   extendLastCell: ["mod+shift+End"],
-  // checked-row range edge after a row check; unreserved in the browsers and OSes, and a no-op (key passes through) without a row check
+  // no-op without a row check: the key passes through
   extendRowsToStart: ["shift+Home"],
   extendRowsToEnd: ["shift+End"],
   extendRowsPageUp: ["shift+PageUp"],

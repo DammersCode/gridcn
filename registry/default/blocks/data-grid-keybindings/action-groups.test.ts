@@ -31,6 +31,14 @@ describe("labelForAction", () => {
     }
   });
 
+  it("lists the row range actions in the selection category with their default chords", () => {
+    for (const action of ["extendRowsToStart", "extendRowsToEnd", "extendRowsPageUp", "extendRowsPageDown"] as const) {
+      expect(categoryForAction(action)).toBe("selection");
+      expect(DEFAULT_KEYMAP[action]?.length).toBe(1);
+      expect(labelForAction(action, DEFAULT_LABELS)).not.toBe(action);
+    }
+  });
+
   it("humanizes an unmapped action name as a fallback", () => {
     expect(labelForAction("someConsumerAction" as GridAction, DEFAULT_LABELS)).toBe("Some consumer action");
   });

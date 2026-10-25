@@ -1095,6 +1095,61 @@ describe("row range checking", () => {
       expect(checkedRows()[0]).toBe(2);
     });
 
+    it("Shift+PageDown and Shift+PageUp move the edge by the visible page and the active row with it", async () => {
+      await render(
+        <div style={{ height: 200 }}>
+          <DataGrid data={makeRows(60)} columns={columns} getRowId={(r) => r.id} rowMarkers="checkbox" className="h-[200px]" />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      await userEvent.click(gridCells()[0]!);
+      await userEvent.keyboard("{Shift>} {/Shift}");
+      await userEvent.keyboard("{Shift>}{PageDown}{/Shift}");
+      const downRows = checkedRows();
+      expect(downRows[0]).toBe(0);
+      const last = downRows[downRows.length - 1]!;
+      expect(last).toBeGreaterThan(0);
+      expect(downRows).toEqual(Array.from({ length: last + 1 }, (_, i) => i));
+      expect(document.querySelector(`[${GRID_ATTR.active}]`)?.textContent).toBe(`Person ${last}`);
+      await userEvent.keyboard("{Shift>}{PageUp}{/Shift}");
+      expect(checkedRows()).toEqual([0]);
+      expect(document.querySelector(`[${GRID_ATTR.active}]`)?.textContent).toBe("Person 0");
+    });
+
+    it("Shift+PageDown clamps at the last row", async () => {
+      await renderGrid("checkbox");
+      await userEvent.click(gridCells()[2 * 10]!);
+      await userEvent.keyboard("{Shift>} {/Shift}");
+      await userEvent.keyboard("{Shift>}{PageDown}{PageDown}{/Shift}");
+      expect(checkedRows()).toEqual([10, 11]);
+      expect(document.querySelector(`[${GRID_ATTR.active}]`)?.textContent).toBe("Person 11");
+    });
+
+    it("the row range keys do nothing with enableRangeSelection={false}", async () => {
+      await render(
+        <div style={{ height: 500 }}>
+          <DataGrid data={makeRows(12)} columns={columns} getRowId={(r) => r.id} className="h-[500px]" rowMarkers="checkbox" enableRangeSelection={false} />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      await userEvent.click(gridCells()[0]!);
+      await userEvent.keyboard("{Shift>} {/Shift}");
+      await userEvent.keyboard("{Shift>}{End}{/Shift}");
+      expect(checkedRows()).toEqual([0]);
+    });
+
+    it("leaves the key unhandled without a checked row gesture", async () => {
+      await renderGrid("checkbox");
+      await userEvent.click(gridCells()[0]!);
+      const events: KeyboardEvent[] = [];
+      const record = (event: KeyboardEvent) => events.push(event);
+      document.addEventListener("keydown", record);
+      await userEvent.keyboard("{Shift>}{PageDown}{/Shift}");
+      document.removeEventListener("keydown", record);
+      const pageDown = events.find((event) => event.key === "PageDown")!;
+      expect(pageDown.defaultPrevented).toBe(false);
+    });
+
     it("Shift+Home does nothing without a checked row gesture", async () => {
       await renderGrid("checkbox");
       await userEvent.click(gridCells()[2 * 2]!);
