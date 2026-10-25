@@ -868,7 +868,8 @@
         "button",
         "badge",
         "select",
-        "checkbox"
+        "checkbox",
+        "input-group"
       ],
       "files": [
         {
@@ -1160,7 +1161,9 @@
         "dialog",
         "select",
         "dropdown-menu",
-        "button"
+        "button",
+        "checkbox",
+        "label"
       ],
       "files": [
         {
@@ -2171,7 +2174,8 @@
       "author": "gridcn",
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-lazy"
+        "DammersCode/gridcn/data-grid-lazy",
+        "button"
       ],
       "files": [
         {
@@ -2406,7 +2410,8 @@
       "description": "Show the active row in a non-modal side panel opened from onCellClick or a custom Ctrl+Shift+Enter command.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid"
+        "DammersCode/gridcn/data-grid",
+        "button"
       ],
       "files": [
         {
@@ -2461,7 +2466,8 @@
         "DammersCode/gridcn/data-grid-toolbar",
         "DammersCode/gridcn/data-grid-context-menu",
         "DammersCode/gridcn/data-grid-presence",
-        "DammersCode/gridcn/data-grid-fill"
+        "DammersCode/gridcn/data-grid-fill",
+        "button"
       ],
       "files": [
         {
