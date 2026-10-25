@@ -74,7 +74,7 @@ The sidebar dot comes from the page's `status` frontmatter. The baseline is the 
 
 - A page added since the baseline gets `status: new`. A page changed in substance gets `status: updated`. A wording-only edit (the script ignores punctuation and link targets) that still alters words gets `status: none`: no dot. A page without changes has no `status`.
 - A section, paragraph, props-table row, or list item added to an existing page gets `<NewBadge />`: on its own line under a heading, after the first inline term of a paragraph or list item, or in the first cell of a table row. A badge inside heading text breaks the table of contents and the anchor. Pages with `status: new` need no section badges.
-- Release procedure: the release itself ships with its dots and badges, so readers see what changed in that version. In the first commit after the tag, remove every `status` line and every `<NewBadge />` from `content/docs`. The baseline is then the new tag, and the next release marks only what changed since it.
+- Release procedure: the release itself ships with its dots and badges, so readers see what changed in that version. In the first commit after the tag, remove every `status` line and every `<NewBadge />` from `content/docs`. The baseline is then the new tag, and the next release marks only what changed since it. Until that commit, the script only warns about a marker on a page that the latest release added or changed; any other stale marker fails.
 
 ## API design (registry/default/blocks/**)
 
