@@ -110,7 +110,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void }):
     }
   };
 
-  const status = tooMany ? labels.headerFilterTooManySelected(MAX_SET_FILTER_ENTRIES) : loaded.capped ? labels.headerFilterCapped : labels.headerFilterValueCount(visible.length, options.length);
+  const status = tooMany ? labels.headerFilterTooManySelected(MAX_SET_FILTER_ENTRIES) : loaded.capped ? labels.headerFilterCapped : labels.headerFilterSelectedCount(checkedVisible, visible.length);
   const selectAllState = visible.length > 0 && checkedVisible === visible.length ? true : checkedVisible > 0 ? "mixed" : false;
 
   return (

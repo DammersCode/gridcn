@@ -103,6 +103,7 @@ describe("DataGridHeaderFilter", () => {
     expect(options()[0]!.getAttribute("aria-posinset")).toBe("1");
     expect(options().every((o) => o.getAttribute("aria-selected") === "true")).toBe(true);
     expect(options()[0]!.textContent).toContain("4");
+    expect(popup()!.querySelector("[aria-live]")!.textContent).toBe("5 of 5 selected");
     expect(trigger("city")!.getAttribute("aria-haspopup")).toBe("dialog");
     expect(trigger("city")!.getAttribute("aria-expanded")).toBe("true");
   });
@@ -113,7 +114,10 @@ describe("DataGridHeaderFilter", () => {
     const input = popup()!.querySelector("input")!;
     await userEvent.fill(input, "n");
     await vi.waitFor(() => expect(optionLabels()).toEqual(["Berlin", "Bonn", "Essen", "Koeln"]));
-    expect(popup()!.querySelector("[aria-live]")!.textContent).toBe("4 of 5 values");
+    expect(popup()!.querySelector("[aria-live]")!.textContent).toBe("4 of 4 selected");
+    await userEvent.click(options()[0]!);
+    expect(popup()!.querySelector("[aria-live]")!.textContent).toBe("3 of 4 selected");
+    await userEvent.click(options()[0]!);
     await userEvent.click(button("Select all"));
     expect(options().every((o) => o.getAttribute("aria-selected") === "false")).toBe(true);
     await userEvent.click(button("Apply"));

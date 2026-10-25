@@ -16,6 +16,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - New keymap actions `extendRowsToStart`, `extendRowsToEnd`, `extendRowsPageUp`, and `extendRowsPageDown` on Shift+Home, Shift+End, Shift+PageUp, and Shift+PageDown. After a row check they move the end of the checked range; without one they do nothing and the key is not handled. The keybindings dialog lists them.
 - `actions.checkRowRange(target, { commit })` checks the span from the anchor row to `target`.
 - The header filter lists the counts in a fixed-width, right-aligned column with tabular numerals.
+- The status line of the header filter reads "N of M selected" (checked values of listed values) through the new label `toolbar.headerFilterSelectedCount`. Before, it showed the number of values. `toolbar.headerFilterValueCount` is no longer used by the add-on.
 - The "Select all" control of the header filter shows the indeterminate state when only some of the listed values are checked. `data-grid-toolbar` now lists the `checkbox` registry dependency.
 - The header filter value list draws its checks with the shared `Checkbox`, so they follow the theme radius and colors.
 - The checkbox cell box and the long text popup follow the theme radius. Before, both had square corners. The cell editors inherit the corner of their cell.
