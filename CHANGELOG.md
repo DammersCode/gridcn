@@ -16,6 +16,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - The checkbox cell box and the long text popup follow the theme radius. Before, both had square corners. The cell editors inherit the corner of their cell.
 - The quick-search match tint works without the `search-highlight` theme color: it falls back to a light `primary` tint. The `data-grid` item now declares `--search-highlight` in `cssVars`.
 - The find and replace panel uses the Popover surface: the `rounded-lg` corner and a ring instead of a border.
+- The search match fallback tint is stronger than the selection fill in light and dark. **Breaking:** the documented color variable is `--search-highlight`. Move a color that you set on `--color-search-highlight` to `--search-highlight` (the old name still works as a fallback).
 
 ## 1.2.1 - 2026-10-25
 

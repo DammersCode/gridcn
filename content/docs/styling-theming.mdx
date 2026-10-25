@@ -69,7 +69,8 @@ needs to differ from its token, the overrides are per-surface: data-attribute CS
 - `--search-highlight`: an **optional** theme color for the quick-search tint (60% over the
   background, 25% in dark). The CLI install adds it for light and dark mode. Without it, the grid
   tints matches with a light mix of `--primary`. Define it (for example an amber that does not
-  collide with the `primary` selection tint) to set your own color. The `[data-search-match]`
+  collide with the `primary` selection tint) to set your own color. A color set only on
+  `--color-search-highlight` also works, and `--search-highlight` wins when both exist. The `[data-search-match]`
   attribute is stamped either way.
 - `--presence-color`: internal to the `data-grid-presence` add-on: each remote user's highlight
   overlay and name chip are mixed from that user's color, set through the presence API, not CSS.
@@ -134,8 +135,8 @@ the DOM and what you can beat. Where a surface lists a merge point, the built-in
 **How deep you can go, in order of effort:**
 
 1. **Theme tokens**: re-color a whole semantic group at once. Both light and dark follow.
-2. **CSS variables**: `--grid-row-height` (or `density`/`rowHeight`), `--grid-pin-shadow`,
-   optional `--search-highlight`.
+2. **CSS variables**: `--grid-pin-shadow` and the optional `--search-highlight`. The `rowHeight`
+   and `density` props set the row height. The grid writes `--grid-row-height` itself.
 3. **Data-attribute CSS**: style interaction state (active, pinned, selected, searching,
    invalid) globally, with no React involved.
 4. **Class merges**: `className` on the root, `getRowClassName`/`getCellClassName` on the grid,
@@ -449,7 +450,7 @@ The header row does not follow `density`. Set the height of one header row with 
 <DataGridRoot rowHeight={40} headerHeight={44} />
 ```
 
-Row and header heights are props, not CSS variables. <NewBadge /> The grid needs the numbers to compute the visible rows, and it writes `--grid-row-height` itself. The inline value wins over a CSS rule. An `!important` override resizes the rows but not the window of mounted rows, so the grid shows gaps. Pass the height as a prop.
+Row and header heights <NewBadge /> are props, not CSS variables. The grid needs the numbers to compute the visible rows, and it writes `--grid-row-height` itself. The inline value wins over a CSS rule. An `!important` override resizes the rows but not the window of mounted rows, so the grid shows gaps. Pass the height as a prop.
 
 ## Scroll shadows
 

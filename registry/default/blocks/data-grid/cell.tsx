@@ -96,6 +96,9 @@ export type DataGridCellProps = {
 // True when a cell DOM event originates from the cell's own editor: inline editors' form controls
 // bubble through the DOM, and the portaled popovers (date/select/long-text) bubble up the React
 // tree from outside the cell's div.
+const SEARCH_MATCH_COLOR =
+  "data-[search-match]:[--grid-search-color:var(--search-highlight,var(--color-search-highlight,color-mix(in_oklch,var(--color-primary,var(--primary))_var(--grid-search-fallback),var(--color-background,var(--background)))))] data-[search-match]:[--grid-search-fallback:50%] dark:data-[search-match]:[--grid-search-fallback:100%]";
+
 function isEditorEvent(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
   return el !== null && el.closest(`${gridAttrSelector("cellEditor")}, input, textarea, select, [contenteditable]`) !== null;
@@ -350,10 +353,11 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         // (pre-composited with color-mix). Every other cell stays transparent and shows the row's tint:
         // a hover rule on each cell restyles the whole row on every hover change, which costs a scroll frame.
         opaque && "bg-background [--grid-flash-base:var(--color-background)] group-data-hovered/row:bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
-        // own token, not accent/muted; presets without it fall back to a primary tint.
+        // own token, not accent/muted; presets without it fall back to a primary tint stronger than the selection fill.
+        SEARCH_MATCH_COLOR,
         opaque
-          ? "data-[search-match]:bg-[color-mix(in_oklch,var(--search-highlight,var(--color-search-highlight,color-mix(in_oklch,var(--primary)_30%,var(--background))))_60%,var(--color-background))] dark:data-[search-match]:bg-[color-mix(in_oklch,var(--search-highlight,var(--color-search-highlight,color-mix(in_oklch,var(--primary)_30%,var(--background))))_25%,var(--color-background))]"
-          : "data-[search-match]:bg-[color-mix(in_oklch,var(--search-highlight,var(--color-search-highlight,color-mix(in_oklch,var(--primary)_30%,var(--background))))_60%,transparent)] dark:data-[search-match]:bg-[color-mix(in_oklch,var(--search-highlight,var(--color-search-highlight,color-mix(in_oklch,var(--primary)_30%,var(--background))))_25%,transparent)]",
+          ? "data-[search-match]:bg-[color-mix(in_oklch,var(--grid-search-color)_60%,var(--color-background))] dark:data-[search-match]:bg-[color-mix(in_oklch,var(--grid-search-color)_25%,var(--color-background))]"
+          : "data-[search-match]:bg-[color-mix(in_oklch,var(--grid-search-color)_60%,transparent)] dark:data-[search-match]:bg-[color-mix(in_oklch,var(--grid-search-color)_25%,transparent)]",
         // Pinned-row bands are opaque too; color-mix() keeps their 30% tint opaque.
         isPinnedRow && "bg-[color-mix(in_oklch,var(--color-muted)_30%,var(--color-background))] font-medium",
         align === "left" && "justify-start",
