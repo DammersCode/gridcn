@@ -9,6 +9,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+## 1.2.2 - 2026-10-25
+
 - The status line of the header filter reads "N of M selected" from left to right in a right-to-left page.
 - Autosize reads the horizontal padding of a mounted cell, so a column fits its widest value under a spacing scale or preset that changes the cell padding. Before, the width added a fixed 20 px.
 - The docs have live demos for `keepCheckedRows` with `keepHiddenCheckedRows`, the delete confirmation (`onBeforeDeleteRows`), touch gestures, and the URL column layout (`widths` and `pins`). The URL state demo also has the header menu and the columns menu.
