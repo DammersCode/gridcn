@@ -450,6 +450,11 @@
           "target": "components/data-grid/selection/remap-selection-rows.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/selection/row-range-gesture.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/selection/row-range-gesture.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/selection/select-all-progression.ts",
           "type": "registry:component",
           "target": "components/data-grid/selection/select-all-progression.ts"
