@@ -8,7 +8,7 @@ import { Kbd, KbdGroup } from "@/components/ui/kbd";
 export function MenuShortcut({ binding }: { binding: string | undefined }): ReactNode {
   if (!binding) return null;
   return (
-    <KbdGroup className="ml-auto">
+    <KbdGroup className="ms-auto">
       {formatShortcut(binding).map((token, i) => (
         // tokens within one binding have no other stable identity; index is fine, this list never reorders
         <Kbd key={i}>{token}</Kbd>
