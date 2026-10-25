@@ -1289,7 +1289,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             hasHeaderMenu: context.hasHeaderMenu,
             hasHeaderFilter: context.hasHeaderFilter,
           },
-          { cellFont: context.cellFont, headerFont: context.headerFont },
+          { cellFont: context.cellFont, headerFont: context.headerFont, cellPadding: context.cellPadding },
           context.window,
           options,
         );

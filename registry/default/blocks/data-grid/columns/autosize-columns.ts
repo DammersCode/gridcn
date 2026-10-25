@@ -4,7 +4,7 @@ import { isDev } from "../is-dev";
 import { offersSetFilter } from "../cell-types/capabilities";
 import { displayText } from "../cell-types/display-text";
 import { getCellValue } from "./column-helpers";
-import { CELL_PADDING, measureTextWidths } from "./measure-column-text";
+import { CELL_PADDING_BUFFER, DEFAULT_CELL_INLINE_PADDING, measureTextWidths } from "./measure-column-text";
 import { clampColumnWidth } from "./resolve-column-width";
 
 /** Default view rows sampled by one autosize pass. */
@@ -43,11 +43,16 @@ export type AutosizeState = {
 export type AutosizeWindow = { start: number; end: number } | null;
 
 /** Canvas fonts for `measureText`: the body cell font and the header cell font (headers render `font-medium`, so the two differ). */
-export type AutosizeFonts = { cellFont: string; headerFont: string };
+export type AutosizeFonts = {
+  cellFont: string;
+  headerFont: string;
+  /** Total horizontal padding (px) of a mounted cell; defaults to 16. */
+  cellPadding?: number;
+};
 
 /**
  * Computes an autosize width for every target column: the widest of (header text + header
- * affordances) and (sampled cell display texts) plus `CELL_PADDING`, clamped through
+ * affordances) and (sampled cell display texts) plus the cell's horizontal padding and a small buffer, clamped through
  * `clampColumnWidth`. Views only: `viewIndex` (sort/filter applied) defines what is measured and
  * lazy holes (`data[viewIndex[i]] === undefined`) are skipped. Sample = `sampleRows` view rows
  * evenly strided across the view plus the mounted window's rows; texts are cut to
@@ -112,7 +117,7 @@ export function computeAutosizeWidths(
       ? measureTextWidths([headerText], fonts.headerFont) + (sortedColumnIds.has(column.id) ? SORTED_HEADER_AFFORDANCE : 0) + (hasHeaderMenu ? HEADER_MENU_AFFORDANCE : 0) + (hasHeaderFilter && offersSetFilter(column, cellType) ? HEADER_FILTER_AFFORDANCE : 0)
       : 0;
     const cellWidth = measureTextWidths([...cellTexts], fonts.cellFont);
-    result[column.id] = clampColumnWidth(column, Math.max(headerWidth, cellWidth) + CELL_PADDING);
+    result[column.id] = clampColumnWidth(column, Math.max(headerWidth, cellWidth) + (fonts.cellPadding ?? DEFAULT_CELL_INLINE_PADDING) + CELL_PADDING_BUFFER);
   }
   return result;
 }

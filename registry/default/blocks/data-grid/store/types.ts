@@ -48,6 +48,8 @@ export type AutosizeMeasureContext = {
   cellFont: string;
   /** The computed `font` of one mounted header cell (headers render `font-medium`). */
   headerFont: string;
+  /** Total horizontal padding (px) of one mounted body cell; omitted falls back to 16. */
+  cellPadding?: number;
   /** The currently mounted view-row window `[start, end)`, or `null` when no rows are mounted. */
   window: { start: number; end: number } | null;
   /** The consumer renders a per-column header-menu trigger (adds its fixed width allowance). */

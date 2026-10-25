@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- Autosize reads the horizontal padding of a mounted cell, so a column fits its widest value under a spacing scale or preset that changes the cell padding. Before, the width added a fixed 20 px.
 - The docs have live demos for `keepCheckedRows` with `keepHiddenCheckedRows`, the delete confirmation (`onBeforeDeleteRows`), touch gestures, and the URL column layout (`widths` and `pins`). The URL state demo also has the header menu and the columns menu.
 - Shift+click on a row marker, on its number or its checkbox, checks the rows from the anchor row to the clicked row. Each Shift+click replaces the previous Shift range, so the range grows and shrinks (click 1, Shift+click 5, Shift+click 3 checks rows 1 to 3). Rows outside the range keep their state, and when the anchor row is unchecked the range unchecks its rows. Ctrl/Cmd+Shift+click keeps the current range and adds the next one. Shift+click without an anchor starts at the active row. A sort or a filter ends the range, and the header checkbox and Escape clear the anchor.
 - **Breaking:** a drag that starts on a row marker checkbox no longer unchecks the other checked rows: it checks (or, from a checked checkbox, unchecks) only the rows it crosses. A Ctrl/Cmd+drag on a row marker shrinks when the pointer moves back, and Shift+drag on a marker keeps the rows outside its range, like Shift+click. `SelectLineOptions` loses `replaceFromLast`.

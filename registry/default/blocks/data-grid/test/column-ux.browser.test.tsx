@@ -155,6 +155,28 @@ describe("column resize", () => {
     expect(after).toBeGreaterThan(before);
   });
 
+  it("autosize follows the cell padding of the active spacing scale", async () => {
+    const rows = makeRows(3);
+    rows[0]!.name = "A Very Very Long Name That Needs Room";
+    async function autosizedNameWidth(spacing: string) {
+      const view = await render(
+        <div style={{ height: 200, ["--spacing" as string]: spacing }}>
+          <DataGrid data={rows} columns={columns} getRowId={(r) => r.id} className="h-[200px]" />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      const handle = headerCells()[1]!.querySelector<HTMLElement>(gridAttrSelector("resizeHandle"))!;
+      await userEvent.dblClick(handle);
+      const width = headerCells()[1]!.getBoundingClientRect().width;
+      await view.unmount();
+      return width;
+    }
+    const base = await autosizedNameWidth("0.25rem");
+    const roomy = await autosizedNameWidth("0.375rem");
+    expect(roomy - base).toBeGreaterThanOrEqual(7);
+    expect(roomy - base).toBeLessThanOrEqual(9);
+  });
+
   it("double-clicking the handle sizes the column to a long value that sits outside the mounted window", async () => {
     const rows = makeRows(60);
     rows[59]!.name = "A Very Very Long Name That Sits Far Below The Fold And Needs Room";
