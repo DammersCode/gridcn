@@ -9,6 +9,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+## 1.2.1 - 2026-10-25
+
 - Sorting is faster. In the browser, a text sort at 100k rows takes about 25% less time (68 ms to 51 ms). The row order is unchanged.
 - **Breaking:** `DataGridRowCellState` has the new fields `editingError` and `editingRejectionCount`, and `DataGridCellProps` has the new optional props `editingError` and `editingRejectionCount`. A caller that passes `isEditing` to `DataGridCell` must forward both from `useDataGridRowCellState`; without them the cell loses the live validation error and the commit-guard re-arm. Each cell holds fewer store subscriptions.
 
