@@ -53,8 +53,6 @@ export type DataGridToolbarLabels = {
   /** aria-label of the header filter button; `filtered` is true while the column has any filter, including a condition filter. */
   headerFilterAriaLabel: (column: string, filtered: boolean) => string;
   headerFilterSearchPlaceholder: string;
-  /** Status line under the search; `visible` values match the search out of `total` distinct values. */
-  headerFilterValueCount: (visible: number, total: number) => string;
   /** Status line under the search; `selected` of the `total` listed values are checked. */
   headerFilterSelectedCount: (selected: number, total: number) => string;
   /** Label of the value for empty cells. */
@@ -346,7 +344,6 @@ export const DEFAULT_LABELS: DataGridLabels = {
     columnsAriaLabel: "Columns",
     headerFilterAriaLabel: (column, filtered) => (filtered ? `Filter ${column}, filtered` : `Filter ${column}`),
     headerFilterSearchPlaceholder: "Search values…",
-    headerFilterValueCount: (visible, total) => (visible === total ? `${total} values` : `${visible} of ${total} values`),
     headerFilterSelectedCount: (selected, total) => `${selected} of ${total} selected`,
     headerFilterBlanks: "(Blanks)",
     headerFilterCapped: "Too many values. Showing the first values only.",
