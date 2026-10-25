@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from "react";
-import { Check } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 export const SET_FILTER_ROW_HEIGHT = 28;
@@ -114,9 +114,7 @@ export function SetFilterList(props: SetFilterListProps): ReactNode {
           onToggle(option.key);
         }}
       >
-        <span aria-hidden className={cn("flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-input", selected && "border-primary bg-primary text-primary-foreground")}>
-          {selected && <Check className="size-3" />}
-        </span>
+        <Checkbox checked={selected} tabIndex={-1} aria-hidden className="pointer-events-none" />
         <span className="min-w-0 flex-1 truncate">{option.label}</span>
         <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{countFormat.format(option.count)}</span>
       </div>

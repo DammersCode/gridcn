@@ -34,7 +34,7 @@ const columns = defineColumns<Row>()([
 const trigger = (columnId: string) => document.querySelector<HTMLElement>(`[data-column-id="${columnId}"] ${gridAttrSelector("headerFilterTrigger")}`);
 const popup = () => document.querySelector<HTMLElement>(gridAttrSelector("headerFilterPopup"));
 const options = () => [...document.querySelectorAll<HTMLElement>(`${gridAttrSelector("headerFilterPopup")} [role="option"]`)];
-const optionLabels = () => options().map((o) => o.querySelector("span:nth-child(2)")!.textContent);
+const optionLabels = () => options().map((o) => o.querySelector(".truncate")!.textContent);
 const button = (name: string) => [...popup()!.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === name)!;
 
 type GridOptions = {
