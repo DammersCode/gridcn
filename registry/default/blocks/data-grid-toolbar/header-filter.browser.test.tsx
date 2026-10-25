@@ -35,6 +35,8 @@ const trigger = (columnId: string) => document.querySelector<HTMLElement>(`[data
 const popup = () => document.querySelector<HTMLElement>(gridAttrSelector("headerFilterPopup"));
 const options = () => [...document.querySelectorAll<HTMLElement>(`${gridAttrSelector("headerFilterPopup")} [role="option"]`)];
 const optionLabels = () => options().map((o) => o.querySelector(".truncate")!.textContent);
+const selectAllBox = () => popup()!.querySelector<HTMLElement>('[role="checkbox"][aria-label="Select all"]')!;
+const searchInput = () => popup()!.querySelector<HTMLInputElement>('input[type="text"], input:not([type])')!;
 const button = (name: string) => [...popup()!.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === name)!;
 
 type GridOptions = {
@@ -118,7 +120,7 @@ describe("DataGridHeaderFilter", () => {
     await userEvent.click(options()[0]!);
     expect(popup()!.querySelector("[aria-live]")!.textContent).toBe("3 of 4 selected");
     await userEvent.click(options()[0]!);
-    await userEvent.click(button("Select all"));
+    await userEvent.click(selectAllBox());
     expect(options().every((o) => o.getAttribute("aria-selected") === "false")).toBe(true);
     await userEvent.click(button("Apply"));
     await vi.waitFor(() => expect(popup()).toBeNull());
@@ -154,33 +156,82 @@ describe("DataGridHeaderFilter", () => {
     expect(onFilterChange).not.toHaveBeenCalled();
   });
 
-  it("Select all shows the none, some and all states through aria and the checkbox indicator", async () => {
+  it("Select all is a checkbox that shows the none, some and all states", async () => {
     await renderGrid();
     await openFilter("city");
-    const selectAll = button("Select all");
-    const indicator = () => selectAll.querySelector<HTMLElement>('[data-slot="checkbox"]')!;
-    const state = () => [selectAll.getAttribute("aria-pressed"), indicator().getAttribute("aria-checked")];
-    expect(state()).toEqual(["true", "true"]);
-    expect(indicator()).toHaveAttribute("data-checked");
+    const selectAll = selectAllBox();
+    expect(selectAll.tagName).not.toBe("BUTTON");
+    expect(selectAll).toHaveAttribute("aria-checked", "true");
+    expect(selectAll).toHaveAttribute("data-checked");
 
     await userEvent.click(options()[0]!);
-    expect(state()).toEqual(["mixed", "mixed"]);
-    expect(indicator()).toHaveAttribute("data-indeterminate");
-    expect(indicator()).not.toHaveAttribute("data-checked");
+    expect(selectAll).toHaveAttribute("aria-checked", "mixed");
+    expect(selectAll).toHaveAttribute("data-indeterminate");
+    expect(selectAll).not.toHaveAttribute("data-checked");
 
     await userEvent.click(selectAll);
-    expect(state()).toEqual(["true", "true"]);
+    expect(selectAll).toHaveAttribute("aria-checked", "true");
 
     await userEvent.click(selectAll);
-    expect(state()).toEqual(["false", "false"]);
-    expect(indicator()).not.toHaveAttribute("data-checked");
-    expect(indicator()).not.toHaveAttribute("data-indeterminate");
+    expect(selectAll).toHaveAttribute("aria-checked", "false");
+    expect(selectAll).not.toHaveAttribute("data-checked");
+    expect(selectAll).not.toHaveAttribute("data-indeterminate");
+  });
+
+  it("clicking the Select all checkbox toggles it and keeps the focus on it, not on the search input", async () => {
+    await renderGrid();
+    await openFilter("city");
+    await userEvent.click(selectAllBox());
+    expect(selectAllBox()).toHaveAttribute("aria-checked", "false");
+    expect(document.activeElement).toBe(selectAllBox());
+    expect(document.activeElement).not.toBe(searchInput());
+  });
+
+  it("puts the search input before the Select all checkbox in the DOM and the Tab order, and Space toggles the box", async () => {
+    await renderGrid();
+    await openFilter("city");
+    expect(searchInput().compareDocumentPosition(selectAllBox()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    searchInput().focus();
+    await userEvent.tab();
+    expect(document.activeElement).toBe(selectAllBox());
+    await userEvent.keyboard(" ");
+    expect(selectAllBox()).toHaveAttribute("aria-checked", "false");
+    await userEvent.keyboard(" ");
+    expect(selectAllBox()).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("joins the checkbox and the search input in one group, with the checkbox leading", async () => {
+    await renderGrid();
+    await openFilter("city");
+    const group = searchInput().closest('[data-slot="input-group"]')!;
+    expect(group).not.toBeNull();
+    expect(group.contains(selectAllBox())).toBe(true);
+    const box = selectAllBox().getBoundingClientRect();
+    const input = searchInput().getBoundingClientRect();
+    expect(box.left).toBeLessThan(input.left);
+  });
+
+  it("mirrors the group and right-aligns the counts at the start edge in a right-to-left page", async () => {
+    document.documentElement.dir = "rtl";
+    try {
+      await renderGrid();
+      await openFilter("city");
+      const box = selectAllBox().getBoundingClientRect();
+      const input = searchInput().getBoundingClientRect();
+      expect(box.right).toBeGreaterThan(input.right - 1);
+      const count = options()[0]!.querySelector<HTMLElement>(":scope > span:last-child")!;
+      expect(getComputedStyle(count).textAlign).toBe("end");
+      const row = options()[0]!.getBoundingClientRect();
+      expect(count.getBoundingClientRect().left - row.left).toBeLessThan(row.right - count.getBoundingClientRect().right);
+    } finally {
+      document.documentElement.dir = "";
+    }
   });
 
   it("disables Apply while nothing is checked", async () => {
     await renderGrid();
     await openFilter("city");
-    await userEvent.click(button("Select all"));
+    await userEvent.click(selectAllBox());
     expect(button("Apply").disabled).toBe(true);
   });
 

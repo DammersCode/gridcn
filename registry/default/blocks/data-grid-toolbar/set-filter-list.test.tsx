@@ -27,7 +27,7 @@ describe("SetFilterList", () => {
     expect(counts.map((count) => count.textContent)).toEqual(["3", "123,456"]);
     for (const count of counts) {
       expect(count.classList.contains("min-w-14")).toBe(true);
-      expect(count.classList.contains("text-right")).toBe(true);
+      expect(count.classList.contains("text-end")).toBe(true);
       expect(count.classList.contains("tabular-nums")).toBe(true);
     }
   });

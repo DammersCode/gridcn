@@ -5,7 +5,7 @@ import { Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useDataGridActions, useDataGridApi, useDataGridCellTypes, useDataGridLabels, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import {
@@ -115,30 +115,25 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void }):
 
   return (
     <>
-      <Input
-        value={search.draft}
-        onChange={(event) => search.onChange(event.target.value)}
-        onKeyDown={onSearchKeyDown}
-        placeholder={labels.headerFilterSearchPlaceholder}
-        aria-label={labels.headerFilterSearchPlaceholder}
-        className="h-8 w-full"
-      />
-      <button
-        type="button"
-        aria-pressed={selectAllState}
-        disabled={visible.length === 0}
-        onClick={toggleVisible}
-        className="flex h-7 items-center gap-2 rounded-sm px-1.5 text-start text-sm outline-hidden hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
-      >
-        <Checkbox
-          aria-hidden
-          tabIndex={-1}
-          className="pointer-events-none"
-          checked={selectAllState === true}
-          indeterminate={selectAllState === "mixed"}
+      <InputGroup>
+        <InputGroupInput
+          value={search.draft}
+          onChange={(event) => search.onChange(event.target.value)}
+          onKeyDown={onSearchKeyDown}
+          placeholder={labels.headerFilterSearchPlaceholder}
+          aria-label={labels.headerFilterSearchPlaceholder}
         />
-        {labels.headerFilterSelectAll}
-      </button>
+        <InputGroupAddon align="inline-start">
+          <Checkbox
+            aria-label={labels.headerFilterSelectAll}
+            checked={selectAllState === true}
+            indeterminate={selectAllState === "mixed"}
+            disabled={visible.length === 0}
+            onCheckedChange={toggleVisible}
+            onClick={(event) => event.stopPropagation()}
+          />
+        </InputGroupAddon>
+      </InputGroup>
       <SetFilterList key={query} options={visible} checked={checked} onToggle={toggle} onEnter={apply} idPrefix={listId} ariaLabel={columnLabelText(column)} listRef={listRef} />
       <div aria-live="polite" className={cn("text-xs text-muted-foreground", tooMany && "text-destructive")}>
         {status}
