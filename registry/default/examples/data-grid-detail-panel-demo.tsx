@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import {
   DataGridBody,
@@ -79,21 +80,16 @@ export default function DataGridDetailPanelDemo(): ReactNode {
           onKeyDown={(event) => {
             if (event.key === "Escape") close();
           }}
-          className="absolute inset-y-0 right-0 flex w-64 flex-col gap-3 border-l bg-background p-4 shadow-md transition-transform duration-200 motion-reduce:transition-none data-[open=false]:translate-x-full"
+          className="absolute inset-y-0 end-0 flex w-64 flex-col gap-3 border-s bg-background p-4 shadow-md transition-transform duration-200 motion-reduce:transition-none data-[open=false]:translate-x-full rtl:data-[open=false]:-translate-x-full"
         >
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <h3 className="m-0 truncate text-sm font-semibold">{row?.name ?? "No row"}</h3>
               <p className="m-0 truncate text-xs text-muted-foreground">{row?.email}</p>
             </div>
-            <button
-              type="button"
-              onClick={close}
-              aria-label="Close details"
-              className="rounded px-2 text-sm text-muted-foreground hover:bg-muted"
-            >
+            <Button type="button" variant="ghost" size="icon-xs" onClick={close} aria-label="Close details">
               ×
-            </button>
+            </Button>
           </div>
           {row ? (
             <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
@@ -109,14 +105,9 @@ export default function DataGridDetailPanelDemo(): ReactNode {
           )}
         </aside>
       </div>
-      <button
-        type="button"
-        onClick={() => (open ? close() : setOpen(true))}
-        aria-expanded={open}
-        className="self-start rounded border px-3 py-1 text-sm hover:bg-muted"
-      >
+      <Button type="button" variant="outline" size="sm" onClick={() => (open ? close() : setOpen(true))} aria-expanded={open} className="self-start">
         Details
-      </button>
+      </Button>
     </div>
   );
 }

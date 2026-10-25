@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useMemo, useState, type ReactNode } from "react";
 import {
   DataGridProvider,
@@ -109,19 +110,21 @@ export default function DataGridLazyDemo(): ReactNode {
           {lazy.isLoading && " · fetching…"}
         </span>
         <div className="flex gap-2">
-          <button
+          <Button
             type="button"
-            className="rounded-sm border border-border px-2 py-1 text-xs hover:bg-accent"
+            variant="outline"
+            size="xs"
             onClick={() => {
               setLastError(null);
               api.failNextRange();
             }}
           >
             Simulate a failed fetch
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="rounded-sm border border-border px-2 py-1 text-xs hover:bg-accent"
+            variant="outline"
+            size="xs"
             onClick={() => {
               setLastError(null);
               setPermanentlyBroken(true);
@@ -129,14 +132,15 @@ export default function DataGridLazyDemo(): ReactNode {
             }}
           >
             Simulate a permanent failure
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="rounded-sm border border-border px-2 py-1 text-xs hover:bg-accent"
+            variant="outline"
+            size="xs"
             onClick={() => lazy.evict({ start: 0, end: TOTAL_COUNT })}
           >
             Evict loaded rows
-          </button>
+          </Button>
         </div>
       </div>
       {lastError && failedRange && (
@@ -147,20 +151,22 @@ export default function DataGridLazyDemo(): ReactNode {
           </span>
           <div className="flex shrink-0 gap-2">
             {permanentlyBroken && (
-              <button
+              <Button
                 type="button"
-                className="rounded-sm border border-border px-2 py-0.5 hover:bg-accent"
+                variant="outline"
+                size="xs"
                 onClick={() => {
                   api.setFailPermanently(false);
                   setPermanentlyBroken(false);
                 }}
               >
                 Fix backend
-              </button>
+              </Button>
             )}
-            <button
+            <Button
               type="button"
-              className="rounded-sm border border-border px-2 py-0.5 hover:bg-accent"
+              variant="outline"
+              size="xs"
               onClick={() => {
                 // re-fires onRenderedRowsChange for the failed range — the same path a real scroll
                 // into it would take; there's no separate imperative retry call (see docs).
@@ -170,7 +176,7 @@ export default function DataGridLazyDemo(): ReactNode {
               }}
             >
               Retry
-            </button>
+            </Button>
           </div>
         </div>
       )}
