@@ -68,6 +68,10 @@ long-press.
 The grid sets `touch-action: manipulation`. A double-tap does not zoom the page, and pinch zoom
 stays available. Use `density="comfortable"` for rows that are easier to hit with a finger.
 
+The demo has the fill and context menu add-ons:
+
+<ComponentPreview name="data-grid-touch-demo" />
+
 ## Configurability
 
 You can disable each selection channel independently through `DataGridProvider` props. All
@@ -112,6 +116,10 @@ A filter removes the checked rows it hides. Set `keepHiddenCheckedRows` <NewBadg
 ```
 
 A hidden checked row is a checked row that the current filter hides. The grid checks it again when the filter lets it back in. A sort keeps both the visible and the hidden checks.
+
+The demo sets both props:
+
+<ComponentPreview name="data-grid-checked-rows-demo" />
 
 While every checked row is hidden, Delete rows, Duplicate row, and Move rows do nothing, and their context menu items are disabled. Row operations never touch a hidden checked row. Delete rows, Duplicate row, Move rows, the context menu, the export scope `'selection'`, and the clipboard read only the checked rows you can see. Select all checks the rows of the view and adds no hidden row. Escape, `clearSelection()`, `setSelection(null)`, an empty controlled `selection`, and the header checkbox set to off clear the hidden checks too.
 

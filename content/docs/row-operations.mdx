@@ -38,6 +38,10 @@ removes the edited row cancels the session, drops the draft, and fires `onEditEn
 
 `onBeforeDeleteRows` runs before every delete the grid starts: the Delete rows shortcut, the context menu item, `actions.deleteRows`, and `actions.deleteRowsById`. It gets `rowIds`, the ids of the rows that go, and `hiddenCount`, the number of hidden checked rows that stay. Return `false`, or a promise of `false`, to cancel. Without the prop a delete runs at once.
 
+The demo confirms every delete:
+
+<ComponentPreview name="data-grid-delete-confirm-demo" />
+
 The grid ships no dialog. Build one with your own dialog component and resolve a promise from its buttons:
 
 ```tsx
@@ -53,7 +57,7 @@ const confirmDelete = ({ rowIds, hiddenCount }: { rowIds: readonly string[]; hid
   {ask && (
     <ConfirmDialog
       title={ask.count === 1 ? "Delete 1 row?" : `Delete ${ask.count} rows?`}
-      description={ask.hidden > 0 ? `${ask.hidden} hidden checked rows stay.` : undefined}
+      description={ask.hidden > 0 ? `${ask.hidden} hidden checked ${ask.hidden === 1 ? "row stays" : "rows stay"}.` : undefined}
       onConfirm={() => { ask.answer(true); setAsk(null); }}
       onCancel={() => { ask.answer(false); setAsk(null); }}
     />
