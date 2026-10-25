@@ -150,6 +150,29 @@ describe("DataGridHeaderFilter", () => {
     expect(onFilterChange).not.toHaveBeenCalled();
   });
 
+  it("Select all shows the none, some and all states through aria and the checkbox indicator", async () => {
+    await renderGrid();
+    await openFilter("city");
+    const selectAll = button("Select all");
+    const indicator = () => selectAll.querySelector<HTMLElement>('[data-slot="checkbox"]')!;
+    const state = () => [selectAll.getAttribute("aria-pressed"), indicator().getAttribute("aria-checked")];
+    expect(state()).toEqual(["true", "true"]);
+    expect(indicator()).toHaveAttribute("data-checked");
+
+    await userEvent.click(options()[0]!);
+    expect(state()).toEqual(["mixed", "mixed"]);
+    expect(indicator()).toHaveAttribute("data-indeterminate");
+    expect(indicator()).not.toHaveAttribute("data-checked");
+
+    await userEvent.click(selectAll);
+    expect(state()).toEqual(["true", "true"]);
+
+    await userEvent.click(selectAll);
+    expect(state()).toEqual(["false", "false"]);
+    expect(indicator()).not.toHaveAttribute("data-checked");
+    expect(indicator()).not.toHaveAttribute("data-indeterminate");
+  });
+
   it("disables Apply while nothing is checked", async () => {
     await renderGrid();
     await openFilter("city");

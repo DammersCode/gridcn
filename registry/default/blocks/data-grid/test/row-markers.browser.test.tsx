@@ -285,6 +285,56 @@ describe("row markers", () => {
     expect(after[2]).toHaveAttribute(GRID_ATTR.selected, "true");
   });
 
+  describe("checkbox modifier clicks", () => {
+    async function renderCheckboxGrid() {
+      await render(
+        <div style={{ height: 400 }}>
+          <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="checkbox" />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    }
+    const checkboxAt = (index: number) => markerCells()[index]!.querySelector<HTMLElement>('[role="checkbox"]')!;
+    const selectedRows = () => markerCells().flatMap((cell, index) => (cell.getAttribute(GRID_ATTR.selected) === "true" ? [index] : []));
+    async function clickWithKey(target: HTMLElement, key: "Shift" | "Control") {
+      await userEvent.keyboard(`{${key}>}`);
+      await userEvent.click(target);
+      await userEvent.keyboard(`{/${key}}`);
+    }
+
+    it("shift+click on a checkbox selects the range from the last checked row", async () => {
+      await renderCheckboxGrid();
+      await userEvent.click(checkboxAt(1));
+      await clickWithKey(checkboxAt(5), "Shift");
+      expect(selectedRows()).toEqual([1, 2, 3, 4, 5]);
+      await expect.element(checkboxAt(5)).toHaveAttribute("aria-checked", "true");
+    });
+
+    it("shift+click on the marker cell beside the checkbox selects the same range", async () => {
+      await renderCheckboxGrid();
+      await userEvent.click(checkboxAt(1));
+      await userEvent.keyboard("{Shift>}");
+      await markerCells()[5]!.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, shiftKey: true, pointerId: 1 }));
+      await userEvent.keyboard("{/Shift}");
+      expect(selectedRows()).toEqual([1, 2, 3, 4, 5]);
+    });
+
+    it("a plain click toggles only that row", async () => {
+      await renderCheckboxGrid();
+      await userEvent.click(checkboxAt(2));
+      expect(selectedRows()).toEqual([2]);
+      await userEvent.click(checkboxAt(2));
+      expect(selectedRows()).toEqual([]);
+    });
+
+    it("ctrl+click on a checkbox adds the row to the selection", async () => {
+      await renderCheckboxGrid();
+      await userEvent.click(checkboxAt(1));
+      await clickWithKey(checkboxAt(4), "Control");
+      expect(selectedRows()).toEqual([1, 4]);
+    });
+  });
+
   it("press+drag on 'both' mode markers (checkbox hidden, number visible) extends a row-range selection", async () => {
     // reorder is off: a plain vertical marker drag is the row-reorder gesture when enabled
     await render(

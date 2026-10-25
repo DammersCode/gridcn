@@ -124,7 +124,7 @@ The button shows on each column that offers `isAnyOf` or `isNoneOf` and is not `
 The popover works like this:
 
 - The list holds one entry per distinct value, with the number of rows that have it. Values that differ only in case form one entry, and Apply writes the first spelling it meets. An empty value shows as "(Blanks)".
-- The search box narrows the list. "Select all" checks or unchecks the values that match the search.
+- The search box narrows the list. "Select all" checks or unchecks the values that match the search. Its box is empty when none of those values is checked, shows the indeterminate mark when some are, and shows a check when all are. <NewBadge />
 - The counts include only the rows that pass every other filter. The filter of the column itself never hides its own values. If the join is `or`, the counts include all rows.
 - Apply stores the shorter list. If fewer values are checked than unchecked, it writes `isAnyOf` with the checked values. Otherwise it writes `isNoneOf` with the unchecked values. A value that enters the data later passes `isNoneOf`.
 - Apply keeps every other filter, including condition filters on the same column.

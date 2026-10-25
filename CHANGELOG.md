@@ -9,6 +9,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- Shift+click on a row marker checkbox selects the row range from the last clicked row, like Shift+click beside the checkbox. Before, it checked only the clicked row.
+- The "Select all" control of the header filter shows the indeterminate state when only some of the listed values are checked. `data-grid-toolbar` now lists the `checkbox` registry dependency.
+
 ## 1.2.1 - 2026-10-25
 
 - Sorting is faster. In the browser, a text sort at 100k rows takes about 25% less time (68 ms to 51 ms). The row order is unchanged.

@@ -1401,6 +1401,10 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
     (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
       if (!storeApi.getState().enableRowSelection || event.pointerType === "touch") return;
+      if (event.shiftKey) {
+        onMarkerPointerDown(viewRowIndex, event);
+        return;
+      }
       // arms the anchor only (lastHighlightedRow), never `selection.rows` itself — a stationary
       // press+release still resolves purely via the checkbox's own click->toggle. lastPointerRef
       // stays unseeded, so runDragFrame's first tick is a no-op (pointer is null) exactly like the
@@ -1411,7 +1415,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       // pressRow..current (grow AND shrink), matching the plain marker drag.
       beginDrag("row", event.pointerId, event.currentTarget, viewRowIndex, true);
     },
-    [actions, beginDrag, storeApi],
+    [actions, beginDrag, onMarkerPointerDown, storeApi],
   );
 
   const beginSelectionHandleDrag = useCallback(
