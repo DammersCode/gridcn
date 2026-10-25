@@ -169,3 +169,19 @@ describe("DataGridPaginationBar: context guard", () => {
     await expect.element(page.getByText(/must be used inside a <DataGridPaginationBar>/)).toBeInTheDocument();
   });
 });
+
+describe("pagination icons in a right-to-left page", () => {
+  it("mirrors the chevrons so previous points to the inline start", async () => {
+    document.documentElement.dir = "rtl";
+    try {
+      await render(<PaginatedGrid />);
+      await expect.element(page.getByRole("button", { name: /previous page/i })).toBeInTheDocument();
+      for (const icon of document.querySelectorAll<SVGElement>("button svg.lucide-chevron-left, button svg.lucide-chevrons-left, button svg.lucide-chevron-right, button svg.lucide-chevrons-right")) {
+        expect(getComputedStyle(icon).rotate).toBe("180deg");
+      }
+      expect(document.querySelectorAll("button svg.lucide-chevron-left").length).toBe(1);
+    } finally {
+      document.documentElement.dir = "";
+    }
+  });
+});

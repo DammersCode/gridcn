@@ -10,6 +10,23 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 ## Unreleased
 
 - The docs have live demos for `keepCheckedRows` with `keepHiddenCheckedRows`, the delete confirmation (`onBeforeDeleteRows`), touch gestures, and the URL column layout (`widths` and `pins`). The URL state demo also has the header menu and the columns menu.
+- Shift+click on a row marker, on its number or its checkbox, checks the rows from the anchor row to the clicked row. Each Shift+click replaces the previous Shift range, so the range grows and shrinks (click 1, Shift+click 5, Shift+click 3 checks rows 1 to 3). Rows outside the range keep their state, and when the anchor row is unchecked the range unchecks its rows. Ctrl/Cmd+Shift+click keeps the current range and adds the next one. Shift+click without an anchor starts at the active row. A sort or a filter ends the range, and the header checkbox and Escape clear the anchor.
+- **Breaking:** a drag that starts on a row marker checkbox no longer unchecks the other checked rows: it checks (or, from a checked checkbox, unchecks) only the rows it crosses. A Ctrl/Cmd+drag on a row marker shrinks when the pointer moves back, and Shift+drag on a marker keeps the rows outside its range, like Shift+click. `SelectLineOptions` loses `replaceFromLast`.
+- **Breaking:** after `selectRow` (Shift+Space) or `toggleRow` (Ctrl+Shift+Space), Shift+ArrowUp and Shift+ArrowDown check or uncheck rows and move the active row, instead of replacing the row check with a cell range. After a click on a cell, the keys extend the cell range as before.
+- New keymap actions `extendRowsToStart`, `extendRowsToEnd`, `extendRowsPageUp`, and `extendRowsPageDown` on Shift+Home, Shift+End, Shift+PageUp, and Shift+PageDown. After a row check they move the end of the checked range; without one they do nothing and the key is not handled. The keybindings dialog lists them.
+- `actions.checkRowRange(target, { commit })` checks the span from the anchor row to `target`.
+- Right-to-left pages: the find and replace panel docks to the inline-end corner of the grid, the pagination chevrons mirror, and the context menu shortcut keycaps sit at the inline end. The header filter counts align to the inline end.
+- `DataGridSearch` is an input group: the search icon leads and the match count trails inside the field. The field is `w-72` wide, up from `w-56` for the input alone.
+- The import dialog draws the header row toggle with the shared `Checkbox` and `Label`, and announces a file error with `role="alert"`. `data-grid-io` declares the `checkbox` and `label` registry dependencies.
+- Forced-colors mode: the active cell, a search match, and a cell error keep a visible outline, and a cell error exposes its message through `aria-description`.
+- The header filter puts "Select all" in the search field as a labeled checkbox before the search input, with the indeterminate state when only some of the listed values are checked. The popover opens with focus in the search input, and Select all acts on the text typed so far. Before, "Select all" was a row of its own under the search field. `data-grid-toolbar` now declares the `input-group` and `checkbox` registry dependencies.
+- The header filter lists the counts in a fixed-width, right-aligned column with tabular numerals.
+- The status line of the header filter reads "N of M selected" (checked values of listed values) through the new label `toolbar.headerFilterSelectedCount`. Before, it showed the number of values. **Breaking:** the label `toolbar.headerFilterValueCount` is removed. Move a custom text to `headerFilterSelectedCount`.
+- The header filter value list draws its checks with the shared `Checkbox`, so they follow the theme radius and colors.
+- The checkbox cell box and the long text popup follow the theme radius. Before, both had square corners. The cell editors inherit the corner of their cell.
+- The quick-search match tint works without the `search-highlight` theme color: it falls back to a light `primary` tint. The `data-grid` item now declares `--search-highlight` in `cssVars`.
+- The find and replace panel uses the Popover surface: the `rounded-lg` corner and a ring instead of a border.
+- The search match fallback tint is stronger than the selection fill in light and dark. **Breaking:** the documented color variable is `--search-highlight`. Move a color that you set on `--color-search-highlight` to `--search-highlight` (the old name still works as a fallback).
 
 ## 1.2.1 - 2026-10-25
 

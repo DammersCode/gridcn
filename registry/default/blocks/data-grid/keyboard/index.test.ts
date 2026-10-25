@@ -146,6 +146,13 @@ describe("matchKeymap - shift-exactness", () => {
     expect(matchKeymap(event, DEFAULT_KEYMAP, false)).toBe("jumpRight");
   });
 
+  it("shift+Home/End and shift+PageUp/PageDown map to the row range actions", () => {
+    expect(matchKeymap(makeEvent({ key: "Home", shiftKey: true }), DEFAULT_KEYMAP, false)).toBe("extendRowsToStart");
+    expect(matchKeymap(makeEvent({ key: "End", shiftKey: true }), DEFAULT_KEYMAP, false)).toBe("extendRowsToEnd");
+    expect(matchKeymap(makeEvent({ key: "PageUp", shiftKey: true }), DEFAULT_KEYMAP, false)).toBe("extendRowsPageUp");
+    expect(matchKeymap(makeEvent({ key: "PageDown", shiftKey: true }), DEFAULT_KEYMAP, false)).toBe("extendRowsPageDown");
+  });
+
   it("mod+shift+Home/End map to extendFirstCell/extendLastCell", () => {
     expect(
       matchKeymap(makeEvent({ key: "Home", ctrlKey: true, shiftKey: true }), DEFAULT_KEYMAP, false),
@@ -384,6 +391,7 @@ describe("GridAction coverage", () => {
     extendUp: true, extendDown: true, extendLeft: true, extendRight: true,
     extendJumpUp: true, extendJumpDown: true, extendJumpLeft: true, extendJumpRight: true,
     extendFirstCell: true, extendLastCell: true,
+    extendRowsToStart: true, extendRowsToEnd: true, extendRowsPageUp: true, extendRowsPageDown: true,
     selectRow: true, selectColumn: true, selectAll: true, toggleRow: true, toggleAllRows: true, openColumnMenu: true, openColumnFilter: true,
     edit: true, typeToReplace: true, commitDown: true, commitUp: true, commitRight: true, commitLeft: true,
     cancel: true, clearContents: true,

@@ -162,6 +162,7 @@ describe("pin-aware overlay segmentation", () => {
 
     const ring = document.querySelector<HTMLElement>(gridAttrSelector("activeCellOverlay"))!;
     expect(ring.dataset["pinned"]).toBe("");
+
     const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "right")}`)!;
     const ringRect = ring.getBoundingClientRect();
     const cellRect = pinnedCell.getBoundingClientRect();

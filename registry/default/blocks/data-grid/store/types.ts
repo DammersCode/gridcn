@@ -36,6 +36,7 @@ import type { DataGridLabels, DeepPartialLabels } from "../labels";
 import type { SearchMatch } from "../sort-filter";
 import type { ExtendDirection, SelectLineOptions } from "../selection";
 import type { ColRange } from "../selection/selected-col-ranges-for-row";
+import type { RowRangeGesture } from "../selection/row-range-gesture";
 import type { DataWriteContext } from "./data-write";
 
 /** The input that wrote the current selection. */
@@ -470,9 +471,7 @@ export function toInternalSyncProps<TData>(props: DataGridSyncProps<TData>): Int
 }
 
 /**
- * Options passed to selectRow/selectColumn actions; mirrors lib/selection's SelectLineOptions
- * (including `from` — the row-marker drag passes its press-row anchor so `replaceFromLast` can
- * replace the channel with exactly the anchor..current span).
+ * Options passed to selectRow/selectColumn actions; mirrors lib/selection's SelectLineOptions.
  */
 export type SelectLineActionOptions = SelectLineOptions;
 
@@ -682,6 +681,8 @@ export type DataGridStoreState = Omit<
   selectionPointer: SelectionPointer;
   lastHighlightedRow: number | null;
   lastHighlightedCol: number | null;
+  /** The row range gesture that Shift steps and the marker drag continue; stale once the row channel or the view changes. */
+  rowRangeGesture: RowRangeGesture | null;
   columnWidths: Record<string, number>;
   /** `autosizeOnMount` as passed to the provider; the mounted root consumes it once. */
   autosizeOnMount?: boolean | AutosizeOptions;
@@ -830,8 +831,14 @@ export type DataGridActions = {
   selectAll(): void;
   /** Checkbox marker: sets one row's checked state absolutely — never a toggle — independent of the last-highlighted/range mechanics `selectRow` uses for click gestures. Checking adds the row to the rows channel; unchecking removes it from the rows channel and from every cell range that covers it. No-op when `enableRowSelection` is false. */
   setRowSelected(index: number, checked: boolean): void;
-  /** Sets the row-drag anchor without touching the rows/columns selection channel — lets a checkbox-marker press arm a potential row-range drag while leaving a stationary click's own toggle untouched. No-op when `enableRowSelection` is false. */
+  /** Arms a row range gesture at `index` without writing the rows channel, so a checkbox press can turn into a range drag while a stationary click keeps its own toggle. No-op when `enableRowSelection` is false. */
   armRowDragAnchor(index: number): void;
+  /**
+   * Checks (or unchecks) the span from the gesture's anchor to `target`, replacing the previous span of the same gesture.
+   * Without a live gesture the anchor is the former anchor row, else the active row, else `target`.
+   * `commit` keeps the rows checked so far as the base of the new span. No-op when `enableRowSelection` is false.
+   */
+  checkRowRange(target: number, opts?: { commit?: boolean }): void;
   /** Header marker select-all checkbox: sets every view row's membership in the rows channel at once. No-op when `enableRowSelection` is false. */
   setAllRowsSelected(checked: boolean): void;
   clearSelection(): void;

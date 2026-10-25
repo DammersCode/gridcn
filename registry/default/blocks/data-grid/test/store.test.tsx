@@ -3131,19 +3131,6 @@ describe("onSelectionChange", () => {
     expect(onSelectionChange).not.toHaveBeenCalled();
   });
 
-  it("a selectRow re-fire with the same replaceFromLast span fires nothing", () => {
-    const onSelectionChange = vi.fn();
-    const wrapper = makeConfigWrapper({ onSelectionChange, rowMarkers: "checkbox" });
-    const { result } = renderHook(useSelectionProbe, { wrapper });
-
-    act(() => result.current.actions.selectRow(0));
-    act(() => result.current.actions.selectRow(2, { extendFromLast: true })); // rows 0-2
-    onSelectionChange.mockClear();
-    act(() => result.current.actions.selectRow(2, { replaceFromLast: true, from: 0 })); // same span
-
-    expect(onSelectionChange).not.toHaveBeenCalled();
-  });
-
   it("a selectColumn re-fire with the same span fires nothing", () => {
     const onSelectionChange = vi.fn();
     const wrapper = makeConfigWrapper({ onSelectionChange });

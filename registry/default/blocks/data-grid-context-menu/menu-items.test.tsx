@@ -249,3 +249,13 @@ describe("row items with only hidden checked rows", () => {
     expect(item(cell, "duplicate-rows")?.disabled).toBe(true);
   });
 });
+
+describe("MenuShortcut", () => {
+  it("pushes the keycaps to the inline end with a logical margin", async () => {
+    const { MenuShortcut } = await import("./menu-shortcut");
+    const { container } = render(<MenuShortcut binding="mod+c" />);
+    const group = container.firstElementChild!;
+    expect(group.className).toContain("ms-auto");
+    expect(group.className).not.toContain("ml-auto");
+  });
+});

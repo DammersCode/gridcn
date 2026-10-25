@@ -285,6 +285,56 @@ describe("row markers", () => {
     expect(after[2]).toHaveAttribute(GRID_ATTR.selected, "true");
   });
 
+  describe("checkbox modifier clicks", () => {
+    async function renderCheckboxGrid() {
+      await render(
+        <div style={{ height: 400 }}>
+          <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="checkbox" />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    }
+    const checkboxAt = (index: number) => markerCells()[index]!.querySelector<HTMLElement>('[role="checkbox"]')!;
+    const selectedRows = () => markerCells().flatMap((cell, index) => (cell.getAttribute(GRID_ATTR.selected) === "true" ? [index] : []));
+    async function clickWithKey(target: HTMLElement, key: "Shift" | "Control") {
+      await userEvent.keyboard(`{${key}>}`);
+      await userEvent.click(target);
+      await userEvent.keyboard(`{/${key}}`);
+    }
+
+    it("shift+click on a checkbox selects the range from the last checked row", async () => {
+      await renderCheckboxGrid();
+      await userEvent.click(checkboxAt(1));
+      await clickWithKey(checkboxAt(5), "Shift");
+      expect(selectedRows()).toEqual([1, 2, 3, 4, 5]);
+      await expect.element(checkboxAt(5)).toHaveAttribute("aria-checked", "true");
+    });
+
+    it("shift+click on the marker cell beside the checkbox selects the same range", async () => {
+      await renderCheckboxGrid();
+      await userEvent.click(checkboxAt(1));
+      await userEvent.keyboard("{Shift>}");
+      await markerCells()[5]!.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, shiftKey: true, pointerId: 1 }));
+      await userEvent.keyboard("{/Shift}");
+      expect(selectedRows()).toEqual([1, 2, 3, 4, 5]);
+    });
+
+    it("a plain click toggles only that row", async () => {
+      await renderCheckboxGrid();
+      await userEvent.click(checkboxAt(2));
+      expect(selectedRows()).toEqual([2]);
+      await userEvent.click(checkboxAt(2));
+      expect(selectedRows()).toEqual([]);
+    });
+
+    it("ctrl+click on a checkbox adds the row to the selection", async () => {
+      await renderCheckboxGrid();
+      await userEvent.click(checkboxAt(1));
+      await clickWithKey(checkboxAt(4), "Control");
+      expect(selectedRows()).toEqual([1, 4]);
+    });
+  });
+
   it("press+drag on 'both' mode markers (checkbox hidden, number visible) extends a row-range selection", async () => {
     // reorder is off: a plain vertical marker drag is the row-reorder gesture when enabled
     await render(
@@ -880,5 +930,312 @@ describe("row checking by keyboard", () => {
     await userEvent.keyboard("{Control>}{Shift>}e{/Shift}{/Control}");
     // the clicked cell's own range still reads as row 0 selected, exactly like the header checkbox
     await vi.waitFor(() => expect(checked()).toEqual([true, false, false, false, false]));
+  });
+});
+
+describe("row range checking", () => {
+  const selectedRows = () => markerCells().flatMap((cell, index) => (cell.getAttribute(GRID_ATTR.selected) === "true" ? [index] : []));
+  const checkboxAt = (index: number) => markerCells()[index]!.querySelector<HTMLElement>('[role="checkbox"]')!;
+  const frames = async () => {
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => requestAnimationFrame(r));
+  };
+
+  async function renderGrid(rowMarkers: "checkbox" | "number") {
+    await render(
+      <div style={{ height: 500 }}>
+        <DataGrid data={makeRows(12)} columns={columns} getRowId={(r) => r.id} className="h-[500px]" rowMarkers={rowMarkers} enableRowReorder={false} />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+  }
+
+  async function withKey(key: "Shift" | "Control", action: () => Promise<void>) {
+    await userEvent.keyboard(`{${key}>}`);
+    await action();
+    await userEvent.keyboard(`{/${key}}`);
+  }
+
+  async function dragThrough(from: HTMLElement, targets: HTMLElement[], opts?: { shiftKey?: boolean; ctrlKey?: boolean; cancel?: boolean }) {
+    from.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1, shiftKey: opts?.shiftKey, ctrlKey: opts?.ctrlKey }));
+    for (const target of targets) {
+      const rect = target.getBoundingClientRect();
+      document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: rect.left + 5, clientY: rect.top + 5 }));
+      await frames();
+    }
+    document.dispatchEvent(new PointerEvent(opts?.cancel ? "pointercancel" : "pointerup", { bubbles: true, button: 0, pointerId: 1 }));
+  }
+
+  it("Shift+click replaces the previous range: grow, then shrink", async () => {
+    await renderGrid("checkbox");
+    await userEvent.click(checkboxAt(1));
+    await withKey("Shift", () => userEvent.click(checkboxAt(5)));
+    expect(selectedRows()).toEqual([1, 2, 3, 4, 5]);
+    await withKey("Shift", () => userEvent.click(checkboxAt(3)));
+    expect(selectedRows()).toEqual([1, 2, 3]);
+  });
+
+  it("Shift+click after a Ctrl+click keeps the rows checked outside the range", async () => {
+    await renderGrid("checkbox");
+    await userEvent.click(checkboxAt(1));
+    await withKey("Control", () => userEvent.click(checkboxAt(8)));
+    await withKey("Shift", () => userEvent.click(checkboxAt(5)));
+    expect(selectedRows()).toEqual([1, 5, 6, 7, 8]);
+  });
+
+  it("Shift+click after an uncheck unchecks the range", async () => {
+    await renderGrid("checkbox");
+    for (const row of [2, 3, 4, 5, 6, 7, 9]) await userEvent.click(checkboxAt(row));
+    await userEvent.click(checkboxAt(4));
+    expect(selectedRows()).toEqual([2, 3, 5, 6, 7, 9]);
+    await withKey("Shift", () => userEvent.click(checkboxAt(7)));
+    expect(selectedRows()).toEqual([2, 3, 9]);
+  });
+
+  it("a checkbox drag keeps the other checked rows and shrinks when dragged back", async () => {
+    await renderGrid("checkbox");
+    await userEvent.click(checkboxAt(9));
+    await dragThrough(checkboxAt(2), [markerCells()[5]!]);
+    expect(selectedRows()).toEqual([2, 3, 4, 5, 9]);
+    await dragThrough(checkboxAt(7), [markerCells()[10]!, markerCells()[8]!]);
+    expect(selectedRows()).toEqual([2, 3, 4, 5, 7, 8, 9]);
+  });
+
+  it("a checkbox drag that starts on a checked row unchecks the dragged span only", async () => {
+    await renderGrid("checkbox");
+    for (const row of [2, 3, 4, 9]) await userEvent.click(checkboxAt(row));
+    await dragThrough(checkboxAt(3), [markerCells()[5]!]);
+    expect(selectedRows()).toEqual([2, 9]);
+  });
+
+  it("Shift+press on the number zone and drag moves the edge and keeps the rows outside", async () => {
+    await renderGrid("number");
+    await userEvent.click(markerCells()[2]!);
+    await withKey("Control", () => userEvent.click(markerCells()[9]!));
+    await dragThrough(markerCells()[4]!, [markerCells()[6]!], { shiftKey: true });
+    expect(selectedRows()).toEqual([2, 6, 7, 8, 9]);
+    await dragThrough(markerCells()[4]!, [markerCells()[6]!, markerCells()[8]!], { shiftKey: true });
+    expect(selectedRows()).toEqual([2, 8, 9]);
+  });
+
+  it("a Ctrl+drag shrinks when dragged back", async () => {
+    await renderGrid("number");
+    await dragThrough(markerCells()[3]!, [markerCells()[6]!, markerCells()[4]!], { ctrlKey: true });
+    expect(selectedRows()).toEqual([3, 4]);
+  });
+
+  it("a cancelled drag keeps the rows written so far and later moves change nothing", async () => {
+    await renderGrid("number");
+    await dragThrough(markerCells()[1]!, [markerCells()[3]!], { cancel: true });
+    expect(selectedRows()).toEqual([1, 2, 3]);
+    document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: 5, clientY: markerCells()[6]!.getBoundingClientRect().top + 5 }));
+    await frames();
+    expect(selectedRows()).toEqual([1, 2, 3]);
+  });
+
+  it("a custom marker takes the same range path as the number marker", async () => {
+    await render(
+      <div style={{ height: 500 }}>
+        <DataGrid
+          data={makeRows(12)}
+          columns={columns}
+          getRowId={(r) => r.id}
+          className="h-[500px]"
+          rowMarkers="number"
+          enableRowReorder={false}
+          renderMarker={({ viewRowIndex }) => <span>#{viewRowIndex}</span>}
+        />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    await userEvent.click(markerCells()[1]!);
+    await withKey("Shift", () => userEvent.click(markerCells()[5]!));
+    expect(selectedRows()).toEqual([1, 2, 3, 4, 5]);
+    await withKey("Shift", () => userEvent.click(markerCells()[3]!));
+    expect(selectedRows()).toEqual([1, 2, 3]);
+  });
+
+  it("cell Shift+click extends the range and Ctrl+click adds a range, unchanged by row checking", async () => {
+    await renderGrid("number");
+    await userEvent.click(gridCells()[0]!);
+    await withKey("Shift", () => userEvent.click(gridCells()[2 * 3 + 1]!));
+    expect(selectedRows()).toEqual([0, 1, 2, 3]);
+    await withKey("Control", () => userEvent.click(gridCells()[2 * 6]!));
+    expect(selectedRows()).toEqual([0, 1, 2, 3, 6]);
+    await withKey("Shift", () => userEvent.click(gridCells()[2 * 8 + 1]!));
+    expect(selectedRows()).toEqual([0, 1, 2, 3, 6, 7, 8]);
+  });
+
+  it("a plain number press with jitter inside the row keeps the toggle", async () => {
+    await renderGrid("number");
+    await userEvent.click(markerCells()[2]!);
+    expect(selectedRows()).toEqual([2]);
+    await dragThrough(markerCells()[2]!, [markerCells()[2]!]);
+    expect(selectedRows()).toEqual([]);
+  });
+
+  it("a number drag does nothing more than the press when enableRangeSelection is off", async () => {
+    await render(
+      <div style={{ height: 500 }}>
+        <DataGrid data={makeRows(12)} columns={columns} getRowId={(r) => r.id} className="h-[500px]" rowMarkers="number" enableRowReorder={false} enableRangeSelection={false} />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    await dragThrough(markerCells()[2]!, [markerCells()[4]!, markerCells()[5]!]);
+    expect(selectedRows()).toEqual([2]);
+  });
+
+  it("a checkbox press that ends in pointercancel leaves the previous anchor in place", async () => {
+    await renderGrid("checkbox");
+    await userEvent.click(checkboxAt(2));
+    await dragThrough(checkboxAt(2), [checkboxAt(2)], { cancel: true });
+    await withKey("Shift", () => userEvent.click(checkboxAt(5)));
+    expect(selectedRows()).toEqual([2, 3, 4, 5]);
+  });
+
+  it("losing the pointer capture ends a row drag and keeps the rows written so far", async () => {
+    await renderGrid("number");
+    const from = markerCells()[1]!;
+    from.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1 }));
+    const move = async (target: HTMLElement) => {
+      const rect = target.getBoundingClientRect();
+      document.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: rect.left + 5, clientY: rect.top + 5 }));
+      await frames();
+    };
+    await move(markerCells()[3]!);
+    // the capture sits on the pressed marker or, after an edge auto-scroll, on an ancestor
+    for (let el: Element | null = from; el; el = el.parentElement) el.dispatchEvent(new PointerEvent("lostpointercapture", { bubbles: true, pointerId: 1 }));
+    await move(markerCells()[6]!);
+    document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 1 }));
+    expect(selectedRows()).toEqual([1, 2, 3]);
+  });
+
+  it("Ctrl+Shift+click commits the range and the next Shift+click replaces only the new one", async () => {
+    await renderGrid("number");
+    await userEvent.click(markerCells()[1]!);
+    await withKey("Shift", () => userEvent.click(markerCells()[5]!));
+    await userEvent.keyboard("{Control>}{Shift>}");
+    await userEvent.click(markerCells()[8]!);
+    await userEvent.keyboard("{/Shift}{/Control}");
+    expect(selectedRows()).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    await withKey("Shift", () => userEvent.click(markerCells()[2]!));
+    expect(selectedRows()).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  describe("by keyboard", () => {
+    const checkedRows = () => markerCells().flatMap((cell, index) => (cell.querySelector('[role="checkbox"]')?.getAttribute("aria-checked") === "true" ? [index] : []));
+
+    it("Shift+Arrow after Shift+Space extends and shrinks the checked rows", async () => {
+      await renderGrid("checkbox");
+      await userEvent.click(gridCells()[0]!);
+      await userEvent.keyboard("{Shift>} {/Shift}");
+      expect(checkedRows()).toEqual([0]);
+      await userEvent.keyboard("{Shift>}{ArrowDown}{ArrowDown}{/Shift}");
+      expect(checkedRows()).toEqual([0, 1, 2]);
+      await userEvent.keyboard("{Shift>}{ArrowUp}{/Shift}");
+      expect(checkedRows()).toEqual([0, 1]);
+      const active = document.querySelector(`[${GRID_ATTR.active}]`);
+      expect(active?.textContent).toBe("Person 1");
+    });
+
+    it("Shift+End, Shift+Home and Shift+PageDown move the checked range edge", async () => {
+      await renderGrid("checkbox");
+      await userEvent.click(gridCells()[2 * 2]!);
+      await userEvent.keyboard("{Shift>} {/Shift}");
+      await userEvent.keyboard("{Shift>}{End}{/Shift}");
+      expect(checkedRows()).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+      await userEvent.keyboard("{Shift>}{Home}{/Shift}");
+      expect(checkedRows()).toEqual([0, 1, 2]);
+      await userEvent.keyboard("{Shift>}{PageDown}{/Shift}");
+      expect(checkedRows().length).toBeGreaterThan(3);
+      expect(checkedRows()[0]).toBe(2);
+    });
+
+    it("Shift+PageDown and Shift+PageUp move the edge by the visible page and the active row with it", async () => {
+      await render(
+        <div style={{ height: 200 }}>
+          <DataGrid data={makeRows(60)} columns={columns} getRowId={(r) => r.id} rowMarkers="checkbox" className="h-[200px]" />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      await userEvent.click(gridCells()[0]!);
+      await userEvent.keyboard("{Shift>} {/Shift}");
+      await userEvent.keyboard("{Shift>}{PageDown}{/Shift}");
+      const downRows = checkedRows();
+      expect(downRows[0]).toBe(0);
+      const last = downRows[downRows.length - 1]!;
+      expect(last).toBeGreaterThan(0);
+      expect(downRows).toEqual(Array.from({ length: last + 1 }, (_, i) => i));
+      expect(document.querySelector(`[${GRID_ATTR.active}]`)?.textContent).toBe(`Person ${last}`);
+      await userEvent.keyboard("{Shift>}{PageUp}{/Shift}");
+      expect(checkedRows()).toEqual([0]);
+      expect(document.querySelector(`[${GRID_ATTR.active}]`)?.textContent).toBe("Person 0");
+    });
+
+    it("Shift+PageDown clamps at the last row", async () => {
+      await renderGrid("checkbox");
+      await userEvent.click(gridCells()[2 * 10]!);
+      await userEvent.keyboard("{Shift>} {/Shift}");
+      await userEvent.keyboard("{Shift>}{PageDown}{PageDown}{/Shift}");
+      expect(checkedRows()).toEqual([10, 11]);
+      expect(document.querySelector(`[${GRID_ATTR.active}]`)?.textContent).toBe("Person 11");
+    });
+
+    it("the row range keys do nothing with enableRangeSelection={false}", async () => {
+      await render(
+        <div style={{ height: 500 }}>
+          <DataGrid data={makeRows(12)} columns={columns} getRowId={(r) => r.id} className="h-[500px]" rowMarkers="checkbox" enableRangeSelection={false} />
+        </div>,
+      );
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      await userEvent.click(gridCells()[0]!);
+      await userEvent.keyboard("{Shift>} {/Shift}");
+      await userEvent.keyboard("{Shift>}{End}{/Shift}");
+      expect(checkedRows()).toEqual([0]);
+    });
+
+    it("leaves the key unhandled without a checked row gesture", async () => {
+      await renderGrid("checkbox");
+      await userEvent.click(gridCells()[0]!);
+      const events: KeyboardEvent[] = [];
+      const record = (event: KeyboardEvent) => events.push(event);
+      document.addEventListener("keydown", record);
+      await userEvent.keyboard("{Shift>}{PageDown}{/Shift}");
+      document.removeEventListener("keydown", record);
+      const pageDown = events.find((event) => event.key === "PageDown")!;
+      expect(pageDown.defaultPrevented).toBe(false);
+    });
+
+    it("Shift+Home does nothing without a checked row gesture", async () => {
+      await renderGrid("checkbox");
+      await userEvent.click(gridCells()[2 * 2]!);
+      await userEvent.keyboard("{Shift>}{Home}{/Shift}");
+      expect(checkedRows()).toEqual([2]);
+    });
+
+    it("Shift+Arrow after a marker click steps from the moving edge, not the active cell", async () => {
+      await renderGrid("checkbox");
+      await userEvent.click(gridCells()[2 * 3]!);
+      await userEvent.click(markerCells()[10]!);
+      await userEvent.keyboard("{Shift>}{ArrowDown}{/Shift}");
+      expect(checkedRows()).toEqual([10, 11]);
+    });
+
+    it("Shift+Arrow after Ctrl+Shift+Space extends the checked rows from the toggled row", async () => {
+      await renderGrid("checkbox");
+      await userEvent.click(gridCells()[0]!);
+      await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
+      await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
+      await userEvent.keyboard("{Shift>}{ArrowDown}{/Shift}");
+      expect(checkedRows()).toEqual([0, 1]);
+    });
+
+    it("Shift+Arrow still extends the cell range without a checked row gesture", async () => {
+      await renderGrid("checkbox");
+      await userEvent.click(gridCells()[0]!);
+      await userEvent.keyboard("{Shift>}{ArrowDown}{/Shift}");
+      expect(document.querySelector(`[${GRID_ATTR.active}]`)?.textContent).toBe("Person 0");
+      expect(checkedRows()).toEqual([0, 1]);
+    });
   });
 });

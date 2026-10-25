@@ -53,8 +53,8 @@ export type DataGridToolbarLabels = {
   /** aria-label of the header filter button; `filtered` is true while the column has any filter, including a condition filter. */
   headerFilterAriaLabel: (column: string, filtered: boolean) => string;
   headerFilterSearchPlaceholder: string;
-  /** Status line under the search; `visible` values match the search out of `total` distinct values. */
-  headerFilterValueCount: (visible: number, total: number) => string;
+  /** Status line under the search; `selected` of the `total` listed values are checked. */
+  headerFilterSelectedCount: (selected: number, total: number) => string;
   /** Label of the value for empty cells. */
   headerFilterBlanks: string;
   /** Status line when the value list stopped collecting at its limit. */
@@ -344,7 +344,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     columnsAriaLabel: "Columns",
     headerFilterAriaLabel: (column, filtered) => (filtered ? `Filter ${column}, filtered` : `Filter ${column}`),
     headerFilterSearchPlaceholder: "Search values…",
-    headerFilterValueCount: (visible, total) => (visible === total ? `${total} values` : `${visible} of ${total} values`),
+    headerFilterSelectedCount: (selected, total) => `${selected} of ${total} selected`,
     headerFilterBlanks: "(Blanks)",
     headerFilterCapped: "Too many values. Showing the first values only.",
     headerFilterLoadedRowsOnly: "From loaded rows",
@@ -455,6 +455,10 @@ export const DEFAULT_LABELS: DataGridLabels = {
       extendJumpRight: "Extend selection to edge (right)",
       extendFirstCell: "Extend selection to first cell",
       extendLastCell: "Extend selection to last cell",
+      extendRowsToStart: "Check rows up to the first row",
+      extendRowsToEnd: "Check rows down to the last row",
+      extendRowsPageUp: "Check rows up one page",
+      extendRowsPageDown: "Check rows down one page",
       selectRow: "Select row",
       selectColumn: "Select column",
       selectAll: "Select all",

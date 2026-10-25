@@ -71,7 +71,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const [searchOptions, setSearchOptions] = useState(() => api.store.getState().searchOptions);
   const [cursor, setCursor] = useState(0);
   const [status, setStatus] = useState<Status>(null);
-  const [position, setPosition] = useState<{ top: number; right: number }>({ top: 8, right: 8 });
+  const [position, setPosition] = useState<{ top: number; end: number; rtl: boolean }>({ top: 8, end: 8, rtl: false });
   const findRef = useRef<HTMLInputElement | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const applyTokenRef = useRef(0);
@@ -110,15 +110,21 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
       if (!grid) return;
       const rect = grid.getBoundingClientRect();
       const top = Math.max(8, rect.top + 8);
-      const right = Math.max(8, window.innerWidth - rect.right + 24);
-      setPosition((current) => (current.top === top && current.right === right ? current : { top, right }));
+      const rtl = getComputedStyle(grid).direction === "rtl";
+      const end = Math.max(8, (rtl ? rect.left : window.innerWidth - rect.right) + 24);
+      setPosition((current) => (current.top === top && current.end === end && current.rtl === rtl ? current : { top, end, rtl }));
     };
     place();
     window.addEventListener("resize", place);
     window.addEventListener("scroll", place, true);
+    // the root settles its `dir` after the first paint
+    const grid = document.querySelector(`[${GRID_ATTR.instance}="${CSS.escape(instanceId)}"]`);
+    const observer = new MutationObserver(place);
+    if (grid) observer.observe(grid, { attributes: true, attributeFilter: ["dir"] });
     return () => {
       window.removeEventListener("resize", place);
       window.removeEventListener("scroll", place, true);
+      observer.disconnect();
     };
   }, [instanceId]);
 
@@ -262,23 +268,22 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   })();
 
   const optionToggle = (key: "matchCase" | "wholeCell", label: string, icon: ReactNode) => (
-    <button
+    <Button
       type="button"
+      variant={searchOptions[key] ? "default" : "ghost"}
+      size="icon"
       title={label}
       aria-label={label}
       aria-pressed={searchOptions[key]}
       data-state={searchOptions[key] ? "on" : "off"}
       onClick={() => toggle(key)}
-      className={cn(
-        "relative inline-flex size-8 shrink-0 items-center justify-center rounded-sm outline-hidden focus-visible:ring-2 focus-visible:ring-ring forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-[Highlight] [&_svg]:size-4",
-        searchOptions[key] ? "bg-primary text-primary-foreground forced-colors:border-2 forced-colors:border-[Highlight] forced-colors:bg-[Highlight] forced-colors:text-[HighlightText]" : "text-muted-foreground hover:bg-muted hover:text-foreground forced-colors:border forced-colors:border-transparent",
-      )}
+      className={cn("shrink-0", searchOptions[key] ? "forced-colors:border-2 forced-colors:border-[Highlight] forced-colors:bg-[Highlight] forced-colors:text-[HighlightText]" : "text-muted-foreground")}
     >
       {icon}
-      {searchOptions[key] && <span aria-hidden="true" className="absolute -top-0.5 -end-0.5 size-2 rounded-full bg-primary ring-2 ring-popover forced-colors:hidden" />}
-    </button>
+    </Button>
   );
 
+  // Not the Popover primitive: the panel docks to the grid corner without a trigger and keeps its own focus and Escape rules.
   return (
     <div
       role="dialog"
@@ -288,8 +293,10 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
       onCopy={(event) => event.stopPropagation()}
       onCut={(event) => event.stopPropagation()}
       onPaste={(event) => event.stopPropagation()}
-      style={{ position: "fixed", top: position.top, right: position.right, zIndex: 50, maxWidth: `calc(100vw - ${position.right}px - 8px)` }}
-      className="flex w-80 flex-col gap-1 rounded-md border border-border bg-popover p-2 text-sm text-popover-foreground shadow-md"
+      // body-portaled: physical offsets and `dir` follow the grid, not the page
+      dir={position.rtl ? "rtl" : "ltr"}
+      style={{ position: "fixed", top: position.top, ...(position.rtl ? { left: position.end } : { right: position.end }), zIndex: 50, maxWidth: `calc(100vw - ${position.end}px - 8px)` }}
+      className="flex w-80 flex-col gap-1 rounded-lg bg-popover p-2 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10"
     >
       <div className="flex items-center gap-1">
         {!readOnly && (

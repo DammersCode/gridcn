@@ -146,7 +146,11 @@ export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGr
                   )}
                   checked={isSelected}
                   tabIndex={-1}
-                  onCheckedChange={(checked) => actions.setRowSelected(viewRowIndex, checked === true)}
+                  onCheckedChange={(checked, details) => {
+                    // a pointer Shift press already extended the range in onCheckboxPointerDown
+                    if (details.event instanceof MouseEvent && details.event.shiftKey && details.event.detail > 0) return;
+                    actions.setRowSelected(viewRowIndex, checked === true);
+                  }}
                   // a stationary press toggles via onCheckedChange; a press that drags to another row selects a range and its click is swallowed (see use-grid-interaction.ts).
                   onPointerDown={(event) => onCheckboxPointerDown(viewRowIndex, event)}
                   aria-label={labels.markers.selectRow(viewRowIndex + 1)}

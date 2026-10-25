@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
   DataGridProvider,
@@ -97,9 +98,10 @@ function PresenceReadBackButton({
   onFired: (payload: unknown) => void;
 }): ReactNode {
   return (
-    <button
+    <Button
       type="button"
-      className="rounded-sm border border-border px-2 py-1 text-xs hover:bg-accent"
+      variant="outline"
+      size="xs"
       onClick={() => {
         const highlights = [{ id: "demo-user", color: "#2563eb", range: { x: 0, y: 0, width: 1, height: 1 }, label: "Demo" }];
         setPresenceHighlights(highlights);
@@ -107,7 +109,7 @@ function PresenceReadBackButton({
       }}
     >
       Simulate presence highlight
-    </button>
+    </Button>
   );
 }
 

@@ -15,7 +15,7 @@ function CheckboxCell({ value, column }: CellRenderProps<unknown, boolean>) {
         aria-checked={value ? "true" : "false"}
         aria-label={column.headerText ?? (typeof column.header === "string" ? column.header : column.id)}
         data-checked={value || undefined}
-        className="pointer-events-none flex size-4 shrink-0 items-center justify-center rounded-none border border-input dark:bg-input/30 data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground dark:data-checked:bg-primary"
+        className="pointer-events-none flex size-4 shrink-0 items-center justify-center rounded-sm border border-input dark:bg-input/30 data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground dark:data-checked:bg-primary"
         {...{ [GRID_ATTR.checkboxBox]: "" }}
       >
         {value ? <CheckIcon className="size-3.5" /> : null}

@@ -40,8 +40,7 @@ describe("DEFAULT_LABELS", () => {
     expect(DEFAULT_LABELS.toolbar.headerFilterAriaLabel("Name", false)).toBe("Filter Name");
     expect(DEFAULT_LABELS.toolbar.headerFilterAriaLabel("Name", true)).toBe("Filter Name, filtered");
     expect(DEFAULT_LABELS.toolbar.headerFilterLoadedRowsOnly).toBe("From loaded rows");
-    expect(DEFAULT_LABELS.toolbar.headerFilterValueCount(5, 5)).toBe("5 values");
-    expect(DEFAULT_LABELS.toolbar.headerFilterValueCount(2, 5)).toBe("2 of 5 values");
+    expect(DEFAULT_LABELS.toolbar.headerFilterSelectedCount(2, 5)).toBe("2 of 5 selected");
     expect(DEFAULT_LABELS.toolbar.headerFilterTooManySelected(1000)).toBe("Too many values selected. Select at most 1000.");
     expect(DEFAULT_LABELS.sort.sortReorderAnnouncement("Age", 1, 4)).toBe("Age sort moved to position 1 of 4");
     expect(DEFAULT_LABELS.io.columnFallback(3)).toBe("Column 3");

@@ -1,10 +1,11 @@
 "use client";
 
-import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { Check, Filter } from "lucide-react";
+import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
+import { Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useDataGridActions, useDataGridApi, useDataGridCellTypes, useDataGridLabels, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import {
@@ -25,8 +26,8 @@ export type DataGridHeaderFilterProps = {
   index: number;
 };
 
-function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void }): ReactNode {
-  const { column, onClose } = props;
+function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; searchRef: RefObject<HTMLInputElement | null> }): ReactNode {
+  const { column, onClose, searchRef } = props;
   const labels = useDataGridLabels().toolbar;
   const cellTypes = useDataGridCellTypes();
   const storeApi = useDataGridStoreApi();
@@ -70,10 +71,11 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void }):
 
   const toggleVisible = () => {
     setApplyBlocked(false);
+    const typed = filterSetOptions(options, search.draft);
     setChecked((current) => {
       const next = new Set(current);
-      const allChecked = visible.length > 0 && visible.every((option) => next.has(option.key));
-      for (const option of visible) {
+      const allChecked = typed.length > 0 && typed.every((option) => next.has(option.key));
+      for (const option of typed) {
         if (allChecked) next.delete(option.key);
         else next.add(option.key);
       }
@@ -109,31 +111,30 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void }):
     }
   };
 
-  const status = tooMany ? labels.headerFilterTooManySelected(MAX_SET_FILTER_ENTRIES) : loaded.capped ? labels.headerFilterCapped : labels.headerFilterValueCount(visible.length, options.length);
+  const status = tooMany ? labels.headerFilterTooManySelected(MAX_SET_FILTER_ENTRIES) : loaded.capped ? labels.headerFilterCapped : labels.headerFilterSelectedCount(checkedVisible, visible.length);
   const selectAllState = visible.length > 0 && checkedVisible === visible.length ? true : checkedVisible > 0 ? "mixed" : false;
 
   return (
     <>
-      <Input
-        value={search.draft}
-        onChange={(event) => search.onChange(event.target.value)}
-        onKeyDown={onSearchKeyDown}
-        placeholder={labels.headerFilterSearchPlaceholder}
-        aria-label={labels.headerFilterSearchPlaceholder}
-        className="h-8 w-full"
-      />
-      <button
-        type="button"
-        aria-pressed={selectAllState}
-        disabled={visible.length === 0}
-        onClick={toggleVisible}
-        className="flex h-7 items-center gap-2 rounded-sm px-1.5 text-start text-sm outline-hidden hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
-      >
-        <span aria-hidden className={cn("flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-input", selectAllState && "border-primary bg-primary text-primary-foreground")}>
-          {selectAllState && <Check className="size-3" />}
-        </span>
-        {labels.headerFilterSelectAll}
-      </button>
+      <InputGroup>
+        <InputGroupAddon align="inline-start" onClick={() => searchRef.current?.focus()}>
+          <Checkbox
+            aria-label={labels.headerFilterSelectAll}
+            checked={selectAllState === true}
+            indeterminate={selectAllState === "mixed"}
+            onCheckedChange={toggleVisible}
+            onClick={(event) => event.stopPropagation()}
+          />
+        </InputGroupAddon>
+        <InputGroupInput
+          ref={searchRef}
+          value={search.draft}
+          onChange={(event) => search.onChange(event.target.value)}
+          onKeyDown={onSearchKeyDown}
+          placeholder={labels.headerFilterSearchPlaceholder}
+          aria-label={labels.headerFilterSearchPlaceholder}
+        />
+      </InputGroup>
       <SetFilterList key={query} options={visible} checked={checked} onToggle={toggle} onEnter={apply} idPrefix={listId} ariaLabel={columnLabelText(column)} listRef={listRef} />
       <div aria-live="polite" className={cn("text-xs text-muted-foreground", tooMany && "text-destructive")}>
         {status}
@@ -163,6 +164,7 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
   const api = useDataGridApi();
   const [open, setOpen] = useState(false);
   const keyboardOpenedRef = useRef(false);
+  const searchRef = useRef<HTMLInputElement>(null);
   const columnLabel = columnLabelText(column);
 
   return (
@@ -189,6 +191,7 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
       <PopoverContent
         data-grid-header-filter-popup=""
         align="start"
+        initialFocus={searchRef}
         aria-label={labels.headerFilterAriaLabel(columnLabel, false)}
         className="w-64"
         onContextMenu={(event) => event.stopPropagation()}
@@ -200,7 +203,7 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
           return false;
         }}
       >
-        <HeaderFilterBody column={column} onClose={() => setOpen(false)} />
+        <HeaderFilterBody column={column} onClose={() => setOpen(false)} searchRef={searchRef} />
       </PopoverContent>
     </Popover>
   );

@@ -201,6 +201,33 @@ describe("DataGridImportButton (browser)", () => {
     await expect.element(page.getByRole("combobox", { name: 'Map "Extra" to grid column' })).toHaveTextContent("— Skip —");
   });
 
+  it("the header row toggle is the shared Checkbox with a label", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton createRow={(): Row => ({ id: "imported-0", name: "", age: null })} onImport={() => {}} />
+      </DataGridProvider>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    await userEvent.upload(document.querySelector<HTMLInputElement>('input[type="file"]')!, makeCsvFile("Name,Age\nAlice,30"));
+    const toggle = page.getByRole("checkbox", { name: "First row is a header" });
+    await expect.element(toggle).toBeInTheDocument();
+    expect(toggle.element().getAttribute("data-slot")).toBe("checkbox");
+    await expect.element(toggle).toHaveAttribute("aria-checked", "true");
+    await userEvent.click(toggle);
+    await expect.element(toggle).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("announces a file error with role alert", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportButton createRow={(): Row => ({ id: "imported-0", name: "", age: null })} onImport={() => {}} importLimits={{ maxCells: 3 }} />
+      </DataGridProvider>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    await userEvent.upload(document.querySelector<HTMLInputElement>('input[type="file"]')!, makeCsvFile("Name,Age\nAlice,30"));
+    await expect.element(page.getByRole("alert")).toHaveTextContent("This file has too many rows or columns to import.");
+  });
+
   it("importLimits reaches the parser: a file over maxCells shows the too-many-cells error", async () => {
     await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>

@@ -100,6 +100,23 @@ consumer can import. Keep the surface to the public API.
 - Test: grep `content/docs` for the name. If the docs never tell the reader to call it, do not
   export it. Existing barrel exports are grandfathered; do not add new ones.
 
+## Styling (shadcn compatibility)
+
+gridcn ships through the shadcn registry. Every component, popover, dialog, and demo stays
+compatible with the shadcn style system and its presets, so consumers keep their own radius,
+base color, theme, font, border, padding, margin, spacing density, and text styling. The repo's
+square, colorless site look is its preset, not the library's contract.
+
+- Use semantic tokens only: `bg-background`, `bg-popover`, `bg-muted`, `bg-accent`, `text-foreground`, `text-muted-foreground`, `border`, `border-input`, `ring`, `primary`, `destructive`. Ship no hex, rgb, hsl, or oklch literal and no palette utility (`gray-500`, `zinc-100`).
+- A token the shadcn set lacks (for example `--color-search-highlight`) needs a fallback or a `cssVars` entry in `registry.json`.
+- Radius follows the theme scale: `rounded-md`, `rounded-lg`, `rounded-[inherit]`, or a derivation of `var(--radius)`. Ship no `rounded-none` and no fixed px radius. A demo that squares the grid does it on its own root, not in the component.
+- Spacing and type come from the Tailwind scale and `text-xs`, `text-sm`, `font-medium`. Ship no fixed font family, px font size, px padding, or px margin.
+- A fixed size the grid needs (row height, header height) is a prop or a CSS variable with a fallback, never a literal a preset cannot change. Derived math (`CELL_PADDING` in measure-column-text) reads the same source.
+- Build on `components/ui` primitives (Checkbox, Popover, Dialog, Button, Input, Select, DropdownMenu). Do not hand-draw a checkbox, popover, or dialog. An exception (cell display, for scroll cost) carries a one-line comment with the reason.
+- Accept `className` on every public component root and merge it with `cn`. Do not hard-code the look of the outermost element where a consumer cannot override it.
+- Do not hard-wire a look into the structure: no layout that works only with square corners, tight padding, or a monochrome palette.
+- Test: before a UI change is done, view it with `--radius 0` and `1rem`, a tinted primary, and a larger base font (the `/dev/header-filter-designs` page has a preset switcher to copy). A component that breaks in one of them is not done.
+
 ## Security
 
 Grid data and imported files are untrusted input.

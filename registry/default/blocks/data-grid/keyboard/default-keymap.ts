@@ -38,6 +38,11 @@ export const DEFAULT_KEYMAP: Keymap = {
   extendJumpRight: ["mod+shift+ArrowRight"],
   extendFirstCell: ["mod+shift+Home"],
   extendLastCell: ["mod+shift+End"],
+  // no-op without a row check: the key passes through
+  extendRowsToStart: ["shift+Home"],
+  extendRowsToEnd: ["shift+End"],
+  extendRowsPageUp: ["shift+PageUp"],
+  extendRowsPageDown: ["shift+PageDown"],
   selectRow: ["shift+ "],
   // literal ctrl (not mod): Cmd+Space is Spotlight on macOS, so the physical Ctrl key is bound here
   selectColumn: ["ctrl+ "],

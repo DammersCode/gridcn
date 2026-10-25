@@ -17,16 +17,16 @@ type Row = { id: string; name: string };
 const rows: Row[] = Array.from({ length: 30 }, (_, i) => ({ id: `r${i}`, name: i % 10 === 5 ? `needle ${i}` : `item ${i}` }));
 const columns = defineColumns<Row>()([{ id: "name", header: "Name", accessorKey: "name", type: "text", width: 200 }] as const);
 
-function Harness({ readOnly = false, withToolbar = false, scope, replaceAllLimit }: { readOnly?: boolean; withToolbar?: boolean; scope?: "view" | "selection"; replaceAllLimit?: number } = {}) {
+function Harness({ readOnly = false, withToolbar = false, scope, replaceAllLimit, dir }: { readOnly?: boolean; withToolbar?: boolean; scope?: "view" | "selection"; replaceAllLimit?: number; dir?: "ltr" | "rtl" } = {}) {
   const findReplace = useDataGridFindReplace({ scope, replaceAllLimit });
   return (
-    <div style={{ height: 400 }}>
+    <div style={{ height: 400 }} dir={dir}>
       <button type="button" onClick={() => findReplace.open()}>
         Open find
       </button>
       <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id} plugins={[findReplace.plugin]} readOnly={readOnly}>
         {withToolbar && <DataGridSearch />}
-        <DataGridRoot className="h-[400px]">
+        <DataGridRoot className="h-[400px]" direction={dir}>
           <DataGridHeader />
           <DataGridBody />
         </DataGridRoot>
@@ -207,7 +207,7 @@ describe("find and replace in a browser", () => {
       await expect.element(matchCase).toHaveAttribute("aria-pressed", "true");
       await expect.element(matchCase).toHaveAttribute("data-state", "on");
       expect(matchCase.element().className).toContain("bg-primary");
-      expect(matchCase.element().querySelector("span.rounded-full")).not.toBeNull();
+      expect(matchCase.element().querySelector("span.rounded-full")).toBeNull();
       await expect.element(page.getByRole("button", { name: "Whole cell" })).toHaveAttribute("data-state", "off");
     });
 
@@ -259,5 +259,33 @@ describe("find and replace in a browser", () => {
         await page.viewport(1024, 768);
       }
     });
+  });
+});
+
+describe("find and replace panel follows the grid direction, not the page's", () => {
+  async function dock(pageDir: "ltr" | "rtl", gridDir: "ltr" | "rtl") {
+    document.documentElement.dir = pageDir;
+    try {
+      await render(<Harness dir={gridDir} />);
+      await page.getByRole("gridcell").first().click();
+      await userEvent.keyboard("{Control>}f{/Control}");
+      const dialog = page.getByRole("dialog");
+      await expect.element(dialog).toBeInTheDocument();
+      const panel = dialog.element().getBoundingClientRect();
+      const grid = document.querySelector('[role="grid"]')!.getBoundingClientRect();
+      return { fromLeft: panel.left - grid.left, fromRight: grid.right - panel.right };
+    } finally {
+      document.documentElement.dir = "";
+    }
+  }
+
+  it("docks to the left edge for an rtl grid on an ltr page", async () => {
+    const { fromLeft, fromRight } = await dock("ltr", "rtl");
+    expect(fromLeft).toBeLessThan(fromRight);
+  });
+
+  it("docks to the right edge for an ltr grid on an rtl page", async () => {
+    const { fromLeft, fromRight } = await dock("rtl", "ltr");
+    expect(fromRight).toBeLessThan(fromLeft);
   });
 });

@@ -1,7 +1,8 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
-import type { ColumnLayout, CompactSelectionLike, DataGridPlugin, GridCommand, GridRect, SelectionState, ViewCoord, CellType, DataOp, FilterSpec, Keymap } from "../types";
+import type { ColumnLayout, CompactSelectionLike, DataGridPlugin, GridCommand, GridRect, GridSelection, SelectionState, ViewCoord, CellType, DataOp, FilterSpec, Keymap } from "../types";
 import { BUILTIN_ACTIONS, keymapContentEqual, PLUGGABLE_ACTIONS, validateKeymap, validateSharedBindings } from "../keyboard";
 import { CompactSelection } from "../selection/compact-selection";
+import { applyRowRange, isRowRangeLive, type RowRangeGesture } from "../selection/row-range-gesture";
 import { getCellValue } from "../columns/column-helpers";
 import { buildColumnGroupModel, columnGroupModelsEqual, type ColumnGroupModel } from "../columns/column-groups";
 import { clampColumnWidth, resolveColumnWidth } from "../columns/resolve-column-width";
@@ -235,6 +236,26 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const flashTimers = new Map<string, ReturnType<typeof setTimeout>>();
   // The data-write cluster's streaming bookkeeping (see data-write.ts) — the write actions and _syncProps share it by reference.
   const dataWrite = createDataWriteContext(rowIndexCache);
+
+  const rowGestureAt = (
+    s: DataGridStoreState,
+    selection: GridSelection,
+    anchor: number,
+    base: CompactSelection,
+    checked: boolean,
+  ): RowRangeGesture => ({ anchor, edge: anchor, anchorRowId: rowIdAtViewRow(s, anchor), base, checked, rows: selection.rows, current: selection.current, viewIndex: s.viewIndex });
+
+  /** Anchor for a Shift step without a live gesture: the former anchor row, else the active row, else the target. */
+  const restartRowGesture = (s: DataGridStoreState, target: number): RowRangeGesture => {
+    const previous = s.rowRangeGesture;
+    const base = CompactSelection.adopt(s.selection.rows);
+    if (previous?.anchorRowId !== undefined) {
+      const dataRowIndex = rowIndexCache.resolveOne(s.data, s.getRowId, previous.anchorRowId);
+      const anchor = dataRowIndex === undefined ? -1 : viewRowOfDataIndex(s.viewIndex, dataRowIndex);
+      if (anchor >= 0) return rowGestureAt(s, s.selection, anchor, base, previous.checked);
+    }
+    return rowGestureAt(s, s.selection, Math.min(s.activeCell?.row ?? target, s.viewIndex.length - 1), base, true);
+  };
 
   /**
    * Runs after every viewIndex/visibleColumns rebuild: re-anchor an open edit to the new view
@@ -1015,6 +1036,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     flashingCells: EMPTY_FLASHING_CELLS,
     selectionPointer: "keyboard",
     lastHighlightedRow: null,
+    rowRangeGesture: null,
     lastHighlightedCol: null,
     columnWidths: effectiveLayout.columnWidths,
     columnOrder: effectiveLayout.columnOrder,
@@ -1105,27 +1127,50 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         });
       },
       selectRow(index, opts = {}) {
-        const { lastHighlightedRow, selection, enableRowSelection, enableMultiRange, enableRangeSelection } = get();
+        const s = get();
+        const { lastHighlightedRow, selection, enableRowSelection, enableMultiRange, enableRangeSelection } = s;
         if (!enableRowSelection) return;
         // Without multi-range or range selection, ctrl-click and shift-click toggle only this row.
         const additive = opts.additive && enableMultiRange;
         const extendFromLast = opts.extendFromLast && enableRangeSelection;
-        const replaceFromLast = opts.replaceFromLast && enableRangeSelection;
         const next = selectRowPure(selection, index, {
           additive,
           extendFromLast,
-          replaceFromLast,
           from: opts.from ?? lastHighlightedRow ?? undefined,
         });
-        // A stationary marker drag re-fires the same span; compare content so onSelectionChange stays quiet.
-        if (
-          next.rows.equals(selection.rows) &&
-          next.columns.equals(selection.columns) &&
-          next.current === selection.current &&
-          lastHighlightedRow === index
-        )
+        const unchanged = next.rows.equals(selection.rows);
+        const rows = unchanged ? selection.rows : next.rows;
+        const written = unchanged && next.columns.equals(selection.columns) && next.current === selection.current ? selection : { ...next, rows };
+        set({
+          selection: written,
+          lastHighlightedRow: index,
+          rowRangeGesture: extendFromLast
+            ? null
+            : rowGestureAt(s, written, index, additive ? CompactSelection.adopt(selection.rows) : CompactSelection.empty(), additive ? next.rows.hasIndex(index) : true),
+        });
+      },
+      checkRowRange(target, opts = {}) {
+        const s = get();
+        const { selection, viewIndex, enableRowSelection, enableRangeSelection } = s;
+        if (!enableRowSelection || viewIndex.length === 0) return;
+        const clamped = clampIndex(target, viewIndex.length - 1);
+        // Without range selection a Shift click only selects the row it hits.
+        if (!enableRangeSelection) {
+          get().actions.selectRow(clamped);
           return;
-        set({ selection: next, lastHighlightedRow: index });
+        }
+        const live = isRowRangeLive(s.rowRangeGesture, selection, viewIndex);
+        let gesture = live ? s.rowRangeGesture! : restartRowGesture(s, clamped);
+        const channel = selection.rows instanceof CompactSelection ? selection.rows : null;
+        if (live && opts.commit && channel) gesture = { ...gesture, base: channel };
+        const computed = applyRowRange(gesture, clamped);
+        const rows = channel && computed.equals(channel) ? selection.rows : computed;
+        const rowRangeGesture = { ...gesture, rows, current: null, edge: clamped };
+        if (rows === selection.rows && selection.current === null) {
+          if (!live || opts.commit || gesture.edge !== clamped) set({ rowRangeGesture });
+          return;
+        }
+        set({ selection: { ...selection, current: null, rows }, rowRangeGesture });
       },
       selectColumn(index, opts = {}) {
         const { lastHighlightedCol, selection, enableColumnSelection, enableMultiRange, enableRangeSelection } = get();
@@ -1168,30 +1213,29 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         set({ selection: result.selection, selectAllStage: { stage: result.stage, selection: result.selection, activeCell: active } });
       },
       setRowSelected(index, checked) {
-        const { selection, enableRowSelection, enableMultiRange } = get();
+        const s = get();
+        const { selection, enableRowSelection, enableMultiRange } = s;
         if (!enableRowSelection) return;
-        if (!checked) {
-          const next = removeRowFromSelection(selection, index, { multiRange: enableMultiRange });
-          if (next !== selection) set({ selection: next });
-          return;
-        }
-        const rows = CompactSelection.adopt(selection.rows).add(index);
-        set({ selection: { ...selection, rows } });
+        const base = CompactSelection.adopt(selection.rows);
+        const next = checked ? { ...selection, rows: base.add(index) } : removeRowFromSelection(selection, index, { multiRange: enableMultiRange });
+        set({ selection: next, rowRangeGesture: rowGestureAt(s, next, index, base, checked) });
       },
       armRowDragAnchor(index) {
-        if (!get().enableRowSelection) return;
-        set({ lastHighlightedRow: index });
+        const s = get();
+        if (!s.enableRowSelection) return;
+        const base = CompactSelection.adopt(s.selection.rows);
+        set({ lastHighlightedRow: index, rowRangeGesture: rowGestureAt(s, s.selection, index, base, !base.hasIndex(index)) });
       },
       setAllRowsSelected(checked) {
         const { selection, viewIndex, enableRowSelection } = get();
         if (!enableRowSelection) return;
         const rows = checked ? CompactSelection.fromSingleSelection([0, viewIndex.length]) : CompactSelection.empty();
-        set({ selection: { ...selection, rows }, ...(checked ? {} : { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS }) });
+        set({ selection: { ...selection, rows }, rowRangeGesture: null, ...(checked ? {} : { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS }) });
       },
       clearSelection() {
         const s = get();
         if (isSelectionEmpty(s.selection) && s.hiddenCheckedRowIds.size === 0) return;
-        set({ selection: emptySelection(), hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS });
+        set({ selection: emptySelection(), hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS, rowRangeGesture: null });
       },
       clearCellSelection() {
         const { selection } = get();
@@ -1202,7 +1246,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const s = get();
         if (next === null) {
           if (isSelectionEmpty(s.selection) && s.hiddenCheckedRowIds.size === 0) return;
-          set({ selection: emptySelection(), hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS });
+          set({ selection: emptySelection(), hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS, rowRangeGesture: null });
           return;
         }
         const resolved = resolveSelectionState(s, rowIndexCache, next, warnedControlledSelection);
