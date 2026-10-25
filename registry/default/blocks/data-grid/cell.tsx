@@ -334,6 +334,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       aria-selected={isSelected || undefined}
       aria-busy={isSkeleton || undefined}
       aria-invalid={Boolean(errorMessage) || undefined}
+      aria-description={errorMessage || undefined}
       tabIndex={isPinnedRow || isSkeleton ? undefined : isActive ? 0 : -1}
       data-column-id={column.id}
       data-pinned={pinned || undefined}
@@ -355,6 +356,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         opaque && "bg-background [--grid-flash-base:var(--color-background)] group-data-hovered/row:bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
         // own token, not accent/muted; presets without it fall back to a primary tint stronger than the selection fill.
         SEARCH_MATCH_COLOR,
+        "forced-colors:data-[search-match]:outline-1 forced-colors:data-[search-match]:-outline-offset-1 forced-colors:data-[search-match]:outline-solid forced-colors:data-[search-match]:outline-[Mark]",
         opaque
           ? "data-[search-match]:bg-[color-mix(in_oklch,var(--grid-search-color)_60%,var(--color-background))] dark:data-[search-match]:bg-[color-mix(in_oklch,var(--grid-search-color)_25%,var(--color-background))]"
           : "data-[search-match]:bg-[color-mix(in_oklch,var(--grid-search-color)_60%,transparent)] dark:data-[search-match]:bg-[color-mix(in_oklch,var(--grid-search-color)_25%,transparent)]",
@@ -368,7 +370,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         // `validate` rejection or a persisted post-commit `cellErrors` entry set the message — same
         // aria-invalid:ring-destructive/20 convention every shadcn form control in this repo already
         // uses (input.tsx/button.tsx/select.tsx), inset + z-1 so it wins over the search-match tint.
-        errorMessage && "z-1 aria-invalid:ring-3 aria-invalid:ring-inset aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40",
+        errorMessage && "z-1 aria-invalid:ring-3 aria-invalid:ring-inset aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 forced-colors:aria-invalid:outline-2 forced-colors:aria-invalid:-outline-offset-2 forced-colors:aria-invalid:outline-solid forced-colors:aria-invalid:outline-[Mark]",
         errorMessage &&
           (opaque
             ? "aria-invalid:bg-[color-mix(in_oklch,var(--color-destructive)_10%,var(--color-background))] dark:aria-invalid:bg-[color-mix(in_oklch,var(--color-destructive)_15%,var(--color-background))]"

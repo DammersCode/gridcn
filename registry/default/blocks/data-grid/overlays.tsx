@@ -335,7 +335,7 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
           data-grid-active-cell-overlay=""
           data-pinned={activePinStyle ? "" : undefined}
           aria-hidden="true"
-          className={cn("pointer-events-none ring-2 ring-inset ring-primary")}
+          className={cn("pointer-events-none ring-2 ring-inset ring-primary forced-colors:outline-2 forced-colors:-outline-offset-2 forced-colors:outline-[Highlight]")}
           style={{
             gridColumnStart: activeInWindow.col + colOffset,
             gridColumnEnd: activeInWindow.col + colOffset + 1,
