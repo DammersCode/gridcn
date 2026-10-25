@@ -268,21 +268,19 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   })();
 
   const optionToggle = (key: "matchCase" | "wholeCell", label: string, icon: ReactNode) => (
-    <button
+    <Button
       type="button"
+      variant={searchOptions[key] ? "default" : "ghost"}
+      size="icon"
       title={label}
       aria-label={label}
       aria-pressed={searchOptions[key]}
       data-state={searchOptions[key] ? "on" : "off"}
       onClick={() => toggle(key)}
-      className={cn(
-        "relative inline-flex size-8 shrink-0 items-center justify-center rounded-sm outline-hidden focus-visible:ring-2 focus-visible:ring-ring forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-[Highlight] [&_svg]:size-4",
-        searchOptions[key] ? "bg-primary text-primary-foreground forced-colors:border-2 forced-colors:border-[Highlight] forced-colors:bg-[Highlight] forced-colors:text-[HighlightText]" : "text-muted-foreground hover:bg-muted hover:text-foreground forced-colors:border forced-colors:border-transparent",
-      )}
+      className={cn("shrink-0", searchOptions[key] ? "forced-colors:border-2 forced-colors:border-[Highlight] forced-colors:bg-[Highlight] forced-colors:text-[HighlightText]" : "text-muted-foreground")}
     >
       {icon}
-      {searchOptions[key] && <span aria-hidden="true" className="absolute -top-0.5 -end-0.5 size-2 rounded-full bg-primary ring-2 ring-popover forced-colors:hidden" />}
-    </button>
+    </Button>
   );
 
   // Not the Popover primitive: the panel docks to the grid corner without a trigger and keeps its own focus and Escape rules.

@@ -207,7 +207,7 @@ describe("find and replace in a browser", () => {
       await expect.element(matchCase).toHaveAttribute("aria-pressed", "true");
       await expect.element(matchCase).toHaveAttribute("data-state", "on");
       expect(matchCase.element().className).toContain("bg-primary");
-      expect(matchCase.element().querySelector("span.rounded-full")).not.toBeNull();
+      expect(matchCase.element().querySelector("span.rounded-full")).toBeNull();
       await expect.element(page.getByRole("button", { name: "Whole cell" })).toHaveAttribute("data-state", "off");
     });
 
