@@ -162,6 +162,22 @@ describe("row range checking", () => {
     expect(elapsed).toBeLessThan(50);
   });
 
+  it("never materializes a channel that is not a CompactSelection", () => {
+    const store = makeStore(12);
+    const real = CompactSelection.fromSingleSelection([1, 3]);
+    const toArray = vi.fn(() => real.toArray());
+    const like = { length: real.length, hasIndex: (i: number) => real.hasIndex(i), equals: () => false, hasAll: () => false, toArray };
+    const selection = { ...store.getState().selection, rows: like };
+    const state = store.getState();
+    store.setState({
+      selection,
+      rowRangeGesture: { anchor: 1, anchorRowId: "1", base: CompactSelection.empty(), checked: true, rows: like, current: null, viewIndex: state.viewIndex },
+    });
+    state.actions.checkRowRange(5, { commit: true });
+    expect(toArray).not.toHaveBeenCalled();
+    expect(store.getState().selection.rows.length).toBe(5);
+  });
+
   it("ignores the target when row selection is off", () => {
     const store = makeStore(12, { enableRowSelection: false });
     store.getState().actions.checkRowRange(3);
