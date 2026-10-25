@@ -37,6 +37,8 @@ selection never re-renders a single cell.
   the pointer from the press row, so dragging back over selected rows de-selects them again. In
   the `reorder`-family marker modes only a drag that starts on the drag handle zone reorders the row, and
   it leaves the selection as it was. Drags from the number or checkbox glyph still select.
+- **Shift+click on a row marker**, on its number or on its checkbox, selects the rows from the last
+  clicked row to this row. <NewBadge />
 - **Ctrl/Cmd-click** adds a new range to the stack (`enableMultiRange`, on by default).
 
 The grid body suppresses native browser text selection during these gestures. Editors remain

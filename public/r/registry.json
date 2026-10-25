@@ -860,7 +860,8 @@
         "input",
         "button",
         "badge",
-        "select"
+        "select",
+        "checkbox"
       ],
       "files": [
         {

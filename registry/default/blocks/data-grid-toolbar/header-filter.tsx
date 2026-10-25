@@ -1,9 +1,10 @@
 "use client";
 
 import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { Check, Filter } from "lucide-react";
+import { Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useDataGridActions, useDataGridApi, useDataGridCellTypes, useDataGridLabels, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
@@ -129,9 +130,13 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void }):
         onClick={toggleVisible}
         className="flex h-7 items-center gap-2 rounded-sm px-1.5 text-start text-sm outline-hidden hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
       >
-        <span aria-hidden className={cn("flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-input", selectAllState && "border-primary bg-primary text-primary-foreground")}>
-          {selectAllState && <Check className="size-3" />}
-        </span>
+        <Checkbox
+          aria-hidden
+          tabIndex={-1}
+          className="pointer-events-none"
+          checked={selectAllState === true}
+          indeterminate={selectAllState === "mixed"}
+        />
         {labels.headerFilterSelectAll}
       </button>
       <SetFilterList key={query} options={visible} checked={checked} onToggle={toggle} onEnter={apply} idPrefix={listId} ariaLabel={columnLabelText(column)} listRef={listRef} />
