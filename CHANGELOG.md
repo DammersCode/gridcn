@@ -14,6 +14,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - The "Select all" control of the header filter shows the indeterminate state when only some of the listed values are checked. `data-grid-toolbar` now lists the `checkbox` registry dependency.
 - The header filter value list draws its checks with the shared `Checkbox`, so they follow the theme radius and colors.
 - The checkbox cell box and the long text popup follow the theme radius. Before, both had square corners. The cell editors inherit the corner of their cell.
+- The quick-search match tint works without the `search-highlight` theme color: it falls back to a light `primary` tint. The `data-grid` item now declares `--search-highlight` in `cssVars`.
 
 ## 1.2.1 - 2026-10-25
 

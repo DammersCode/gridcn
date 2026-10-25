@@ -350,10 +350,10 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         // (pre-composited with color-mix). Every other cell stays transparent and shows the row's tint:
         // a hover rule on each cell restyles the whole row on every hover change, which costs a scroll frame.
         opaque && "bg-background [--grid-flash-base:var(--color-background)] group-data-hovered/row:bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
-        // own token, not accent/muted: search-highlight is a distinct convention from selection/active colors.
+        // own token, not accent/muted; presets without it fall back to a primary tint.
         opaque
-          ? "data-[search-match]:bg-[color-mix(in_oklch,var(--color-search-highlight)_60%,var(--color-background))] dark:data-[search-match]:bg-[color-mix(in_oklch,var(--color-search-highlight)_25%,var(--color-background))]"
-          : "data-[search-match]:bg-search-highlight/60 dark:data-[search-match]:bg-search-highlight/25",
+          ? "data-[search-match]:bg-[color-mix(in_oklch,var(--search-highlight,var(--color-search-highlight,color-mix(in_oklch,var(--primary)_30%,var(--background))))_60%,var(--color-background))] dark:data-[search-match]:bg-[color-mix(in_oklch,var(--search-highlight,var(--color-search-highlight,color-mix(in_oklch,var(--primary)_30%,var(--background))))_25%,var(--color-background))]"
+          : "data-[search-match]:bg-[color-mix(in_oklch,var(--search-highlight,var(--color-search-highlight,color-mix(in_oklch,var(--primary)_30%,var(--background))))_60%,transparent)] dark:data-[search-match]:bg-[color-mix(in_oklch,var(--search-highlight,var(--color-search-highlight,color-mix(in_oklch,var(--primary)_30%,var(--background))))_25%,transparent)]",
         // Pinned-row bands are opaque too; color-mix() keeps their 30% tint opaque.
         isPinnedRow && "bg-[color-mix(in_oklch,var(--color-muted)_30%,var(--color-background))] font-medium",
         align === "left" && "justify-start",

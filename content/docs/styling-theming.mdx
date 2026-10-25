@@ -30,7 +30,7 @@ in your `:root` / `.dark` blocks). The map below is the complete token-to-surfac
 | `accent` / `accent-foreground` | The column-menu trigger hover. |
 | `primary` | The selection fill (10%) and border (40%), the active-cell ring, the resize-handle indicator line, the column-reorder drop indicator, the fill preview and handle, the loading bar, and the post-commit flash pulse (24%). |
 | `destructive` | Invalid cells (tint + inset ring) and the validation error tooltip. |
-| `search-highlight` (optional) | The quick-search match tint (60%, 25% in dark). See [CSS variables](#css-variables). |
+| `search-highlight` (optional) | The quick-search match tint (60%, 25% in dark). Without it, the grid tints matches with `primary`. See [CSS variables](#css-variables). |
 
 **Changing the color scheme** means changing the tokens in your theme. The grid follows, in both
 light and dark, with no grid-specific configuration:
@@ -66,10 +66,10 @@ needs to differ from its token, the overrides are per-surface: data-attribute CS
   [Scroll shadows](#scroll-shadows).
 - `--grid-scroll-left`: internal. The grid writes the live horizontal scroll offset so the
   marker column and header layer can counter-translate. Read-only for consumers.
-- `--color-search-highlight`: an **optional** theme color. The built-in quick-search tint is the
-  utility `bg-search-highlight/60`. Tailwind only generates it when the color exists in your
-  theme. Define it (for example an amber that does not collide with the `primary` selection tint)
-  to get the built-in highlight, or skip it and style `[data-search-match]` yourself. The
+- `--search-highlight`: an **optional** theme color for the quick-search tint (60% over the
+  background, 25% in dark). The CLI install adds it for light and dark mode. Without it, the grid
+  tints matches with a light mix of `--primary`. Define it (for example an amber that does not
+  collide with the `primary` selection tint) to set your own color. The `[data-search-match]`
   attribute is stamped either way.
 - `--presence-color`: internal to the `data-grid-presence` add-on: each remote user's highlight
   overlay and name chip are mixed from that user's color, set through the presence API, not CSS.
@@ -109,7 +109,7 @@ the DOM and what you can beat. Where a surface lists a merge point, the built-in
 |---|---|---|
 | Grid root (`[role="grid"]`) | `relative select-none overflow-auto rounded-md border border-border bg-background text-sm` | `className` on `DataGridRoot` / `DataGrid`. |
 | Header cell (`[role="columnheader"]`) | `group relative flex items-center border-b border-border bg-muted px-2 font-medium select-none` plus the column line | Per-column `headerClassName`. |
-| Data cell (`[role="gridcell"]`) | `relative flex items-center overflow-hidden border-b border-border px-2 outline-none` plus the column line and conditionals: an opaque background with an opaque hover tint on pinned cells, `bg-search-highlight/60` on `[data-search-match]`, `tabular-nums` for number/date, the alignment class, the invalid-cell tint + inset ring | `getRowClassName`/`getCellClassName` (grid level) then `cellClassName` (per column), merged after the built-ins. |
+| Data cell (`[role="gridcell"]`) | `relative flex items-center overflow-hidden border-b border-border px-2 outline-none` plus the column line and conditionals: an opaque background with an opaque hover tint on pinned cells, the search tint on `[data-search-match]`, `tabular-nums` for number/date, the alignment class, the invalid-cell tint + inset ring | `getRowClassName`/`getCellClassName` (grid level) then `cellClassName` (per column), merged after the built-ins. |
 | Row (`[role="row"]`) | `group/row data-hovered:bg-muted/50`; the row under the pointer carries `data-hovered`, and the tint waits for the scroll to settle. Pinned and marker cells stay opaque, so they do not show a background set here. | `getRowClassName`. |
 | Marker cell (`[data-grid-marker-cell]`) | `group flex items-center justify-center border-b border-border bg-background`, the column line, `cursor-grab` when row reorder is on, the selected-row tint | `renderMarker` replaces the content. For the cell chrome itself, see [Override recipes](#override-recipes). |
 | Marker header (`[data-grid-marker-header]`) | `flex items-center justify-center border-b border-border bg-muted` plus the column line | Internal. |
@@ -135,7 +135,7 @@ the DOM and what you can beat. Where a surface lists a merge point, the built-in
 
 1. **Theme tokens**: re-color a whole semantic group at once. Both light and dark follow.
 2. **CSS variables**: `--grid-row-height` (or `density`/`rowHeight`), `--grid-pin-shadow`,
-   optional `--color-search-highlight`.
+   optional `--search-highlight`.
 3. **Data-attribute CSS**: style interaction state (active, pinned, selected, searching,
    invalid) globally, with no React involved.
 4. **Class merges**: `className` on the root, `getRowClassName`/`getCellClassName` on the grid,
@@ -209,7 +209,7 @@ The grid also stamps one attribute per structural element, as a selector for the
 ```css
 [data-active] { /* ring styling already applied; extend here if needed */ }
 [data-type="number"] { @apply tabular-nums text-right; }
-[data-search-match] { background-color: var(--color-search-highlight); }
+[data-search-match] { background-color: var(--search-highlight); }
 ```
 
 ## Override recipes
@@ -253,7 +253,7 @@ utility with no `!important` and no specificity fight:
 /* search match: a solid underline instead of a background tint */
 [data-search-match] {
   background-color: transparent;
-  text-decoration: underline solid var(--color-search-highlight, currentColor) 2px;
+  text-decoration: underline solid var(--search-highlight, currentColor) 2px;
 }
 ```
 

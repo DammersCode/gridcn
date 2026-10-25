@@ -12,10 +12,12 @@
          "docs": "Docs & quick start: https://gridcn.vercel.app/docs/quick-start",
          "cssVars": {
             "light": {
-               "grid-pin-shadow": "oklch(0 0 0 / 10%)"
+               "grid-pin-shadow": "oklch(0 0 0 / 10%)",
+               "search-highlight": "oklch(92.4% 0.12 95.746)"
             },
             "dark": {
-               "grid-pin-shadow": "oklch(0 0 0 / 40%)"
+               "grid-pin-shadow": "oklch(0 0 0 / 40%)",
+               "search-highlight": "oklch(82.8% 0.189 84.429)"
             }
          },
          "dependencies": [
