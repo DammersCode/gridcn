@@ -132,6 +132,12 @@ describe("computeAutosizeWidths", () => {
     expect(computeAutosizeWidths(state, { cellFont: "f", headerFont: "f" }, null)["a"]).toBe(35 + 20);
   });
 
+  it("adds the measured cell padding instead of the default when the fonts carry one", () => {
+    const state = makeState({ columns: [{ id: "a", header: "", accessorKey: "a" }] as AnyColumnDef[], viewIndex: [0], data: [{ a: "x".repeat(10) }] });
+    state.visibleColumns = state.columns;
+    expect(computeAutosizeWidths(state, { cellFont: "f", headerFont: "f", cellPadding: 24 }, null)["a"]).toBe(10 * PX + 24 + 4);
+  });
+
   it("skips the header text when includeHeader is false", () => {
     const state = makeState();
     (state.columns[0] as { header: string }).header = "H".repeat(11); // 77px header

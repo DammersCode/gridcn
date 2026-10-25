@@ -1,5 +1,7 @@
-/** Extra horizontal padding (px) added around measured text: cell's own inline padding (px-2 = 8px each side) plus a small buffer. */
-export const CELL_PADDING = 20;
+/** Cell inline padding (px) assumed when the grid reports none: `px-2` at the default spacing scale. */
+export const DEFAULT_CELL_INLINE_PADDING = 16;
+/** Slack (px) added to the cell's inline padding so measured text never touches the cell edge. */
+export const CELL_PADDING_BUFFER = 4;
 
 let sharedCanvas: HTMLCanvasElement | null = null;
 
@@ -38,9 +40,11 @@ export function measureColumnAutosizeWidth(args: {
   font: string;
   minWidth?: number;
   maxWidth?: number;
+  /** Total horizontal padding (px) of one cell; defaults to the default spacing scale's 16. */
+  cellPadding?: number;
 }): number {
-  const { headerText, cellTexts, font, minWidth = 0, maxWidth = Number.POSITIVE_INFINITY } = args;
+  const { headerText, cellTexts, font, minWidth = 0, maxWidth = Number.POSITIVE_INFINITY, cellPadding = DEFAULT_CELL_INLINE_PADDING } = args;
   const widest = measureTextWidths([headerText, ...cellTexts], font);
-  const target = Math.ceil(widest) + CELL_PADDING;
+  const target = Math.ceil(widest) + cellPadding + CELL_PADDING_BUFFER;
   return Math.min(Math.max(target, minWidth), maxWidth);
 }

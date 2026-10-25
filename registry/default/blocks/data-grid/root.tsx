@@ -338,10 +338,12 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       const root = scrollRef.current;
       if (!root) return null;
       const canvas = root.querySelector<HTMLElement>("[data-grid-rows-canvas]");
-      const cell = root.querySelector<HTMLElement>('[role="gridcell"]');
+      const cell = root.querySelector<HTMLElement>('[role="gridcell"][data-column-id]');
       const header = root.querySelector<HTMLElement>('[role="columnheader"]');
+      const cellStyle = cell ? getComputedStyle(cell) : null;
       return {
-        cellFont: cell ? getComputedStyle(cell).font : "",
+        cellFont: cellStyle?.font ?? "",
+        cellPadding: cellStyle ? parseFloat(cellStyle.paddingLeft) + parseFloat(cellStyle.paddingRight) : undefined,
         headerFont: header ? getComputedStyle(header).font : "",
         window: canvas
           ? {

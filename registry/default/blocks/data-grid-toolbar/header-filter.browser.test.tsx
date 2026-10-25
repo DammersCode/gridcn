@@ -231,6 +231,27 @@ describe("DataGridHeaderFilter", () => {
     }
   });
 
+  it("reads the status line left to right and keeps it at the start edge in a right-to-left page", async () => {
+    document.documentElement.dir = "rtl";
+    try {
+      await renderGrid();
+      await openFilter("city");
+      const status = popup()!.querySelector<HTMLElement>("[aria-live]")!;
+      const text = status.firstChild!.nodeType === Node.TEXT_NODE ? status.firstChild! : status.firstElementChild!.firstChild!;
+      const wordLeft = (word: string) => {
+        const at = text.textContent!.indexOf(word);
+        const range = document.createRange();
+        range.setStart(text, at);
+        range.setEnd(text, at + word.length);
+        return range.getBoundingClientRect().left;
+      };
+      expect(wordLeft("5")).toBeLessThan(wordLeft("selected"));
+      expect(status.getBoundingClientRect().right - status.lastElementChild!.getBoundingClientRect().right).toBeLessThan(2);
+    } finally {
+      document.documentElement.dir = "";
+    }
+  });
+
   it("keeps the whole search field undimmed when no value matches the query", async () => {
     await renderGrid();
     await openFilter("city");

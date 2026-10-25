@@ -137,7 +137,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; se
       </InputGroup>
       <SetFilterList key={query} options={visible} checked={checked} onToggle={toggle} onEnter={apply} idPrefix={listId} ariaLabel={columnLabelText(column)} listRef={listRef} />
       <div aria-live="polite" className={cn("text-xs text-muted-foreground", tooMany && "text-destructive")}>
-        {status}
+        <bdi>{status}</bdi>
       </div>
       {loaded.partial && <div className="text-xs text-muted-foreground">{labels.headerFilterLoadedRowsOnly}</div>}
       <div className="flex justify-end gap-2">

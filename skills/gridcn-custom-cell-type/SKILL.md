@@ -2,7 +2,7 @@
 name: gridcn-custom-cell-type
 description: "gridcn custom cell types: the CellType contract, registration, and typing. Use when adding a cell type (currency, rating, tags, color), or when a custom `type` renders as plain text, opens no editor, or breaks on paste, fill, or sort."
 metadata:
-  gridcn-version: "1.2.1"
+  gridcn-version: "1.2.2"
 ---
 
 A cell type is one object: `{ Cell, Editor, toText, fromText, clearValue, isEmpty, compare?, align? }`. Clipboard, fill, quick-clear, search, sort, and import/export all run through this contract, so getting one method wrong breaks every consumer of the type, not just the visible cell.
