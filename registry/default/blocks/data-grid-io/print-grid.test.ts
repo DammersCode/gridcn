@@ -365,10 +365,14 @@ describe("printGrid", () => {
   it("falls back to A4 for a page size outside the fixed set", () => {
     const { restore } = stubIframePrint();
     try {
-      printGrid(makeState(), { pageSize: "A4; } body { display: none" as never });
-      const css = lastIframe().contentDocument!.querySelector("style")!.textContent;
-      expect(css).toContain("@page { size: A4 portrait;");
-      expect(css).not.toContain("display: none");
+      const styleFor = (pageSize: string) => {
+        printGrid(makeState(), { pageSize: pageSize as never });
+        return lastIframe().contentDocument!.querySelector("style")!.textContent;
+      };
+      expect(styleFor("A4; } body { display: none")).toContain("@page { size: A4 portrait;");
+      expect(styleFor("A4; } body { display: none")).not.toContain("display: none");
+      expect(styleFor("toString")).toContain("@page { size: A4 portrait;");
+      expect(styleFor("__proto__")).toContain("@page { size: A4 portrait;");
     } finally {
       restore();
     }

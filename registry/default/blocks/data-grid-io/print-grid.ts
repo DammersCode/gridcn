@@ -84,7 +84,8 @@ export function printGrid(state: DataGridReadState, options: PrintGridOptions = 
   const headers = buildExportHeaders(state);
   const orientation = options.orientation ?? (colCount > 6 ? "landscape" : "portrait");
   // Untyped callers can pass any string; only the fixed map reaches the CSS.
-  const pageSize = PAGE_SIZE_CSS[options.pageSize ?? "A4"] ?? "A4";
+  const requestedSize = options.pageSize ?? "A4";
+  const pageSize = Object.hasOwn(PAGE_SIZE_CSS, requestedSize) ? PAGE_SIZE_CSS[requestedSize] : "A4";
 
   const iframe = document.createElement("iframe");
   // attribute, not the sandbox IDL property: jsdom reflects the IDL property incompletely
