@@ -152,11 +152,14 @@ describe("DataGridHeaderFilter", () => {
     expect(getApi().getState().viewIndex.length).toBeLessThan(before);
   });
 
-  it("names the group rows of the column in one line, and stays silent without them", async () => {
+  it("names the group rows of the column in one line", async () => {
     await renderGrid({ defaultFilterState: [{ join: "or", filters: [{ columnId: "city", operator: "isAnyOf", value: ["bonn"] }] }] });
     await openFilter("city");
     expect(document.body.textContent).toContain("also has filters in a group");
-    await userEvent.keyboard("{Escape}");
+  });
+
+  it("stays silent when the group rows belong to another column", async () => {
+    await renderGrid({ defaultFilterState: [{ join: "or", filters: [{ columnId: "city", operator: "isAnyOf", value: ["bonn"] }] }] });
     await openFilter("age");
     expect(document.body.textContent).not.toContain("also has filters in a group");
   });
