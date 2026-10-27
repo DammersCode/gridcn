@@ -140,6 +140,32 @@ describe("DataGridHeaderFilter", () => {
     expect(getApi().getState().filterState).toEqual([expect.objectContaining(other), expect.objectContaining({ columnId: "city", operator: "isNoneOf", value: ["Bonn"] })]);
   });
 
+  it("narrows the view when the menu holds an or group", async () => {
+    const group: FilterNode = { join: "or", filters: [{ columnId: "age", operator: "gte", value: "0" }, { columnId: "city", operator: "isAnyOf", value: ["bonn"] }] };
+    const getApi = await renderGrid({ defaultFilterState: [group] });
+    await openFilter("city");
+    const before = getApi().getState().viewIndex.length;
+    await userEvent.click(options()[1]!);
+    await userEvent.click(button("Apply"));
+    await vi.waitFor(() => expect(getApi().getState().filterState).toHaveLength(2));
+    expect(getApi().getState().filterState[0]).toEqual(expect.objectContaining({ join: "or" }));
+    expect(getApi().getState().viewIndex.length).toBeLessThan(before);
+  });
+
+  it("Clear removes the column's rows at every level and drops emptied groups", async () => {
+    const getApi = await renderGrid({
+      defaultFilterState: [
+        { columnId: "city", operator: "isAnyOf", value: ["bonn"] },
+        { join: "or", filters: [{ columnId: "city", operator: "isAnyOf", value: ["bonn"] }] },
+        { join: "or", filters: [{ columnId: "city", operator: "isAnyOf", value: ["bonn"] }, { columnId: "age", operator: "gte", value: "0" }] },
+      ],
+    });
+    await openFilter("city");
+    await userEvent.click(button("Clear"));
+    await vi.waitFor(() => expect(getApi().getState().filterState).toHaveLength(1));
+    expect(getApi().getState().filterState[0]).toEqual(expect.objectContaining({ join: "or", filters: [expect.objectContaining({ columnId: "age" })] }));
+  });
+
   it("pre-checks an existing set entry and Clear removes it", async () => {
     const getApi = await renderGrid({ defaultFilterState: [{ columnId: "city", operator: "isAnyOf", value: ["bonn"] }] });
     await openFilter("city");
