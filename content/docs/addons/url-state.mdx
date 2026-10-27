@@ -100,7 +100,7 @@ toggle existed still parses identically.
 - A URL cannot express an unbounded view state. The `filter` param parses at most 64 filters and
   reads at most 256 segments. Each `isAnyOf` list holds at most `max(number of choices, 64)`
   values for a column with `choices`. A column with missing or empty `choices` allows 1000
-  values. An `isNoneOf` <NewBadge /> list has the same bound, and a longer list drops the whole filter
+  values. An `isNoneOf` list has the same bound, and a longer list drops the whole filter
   segment. An empty list entry (the blank value) is written as a single
   `%`. The `sort` param keeps one direction per column (the first
   segment wins), reads at most 256 segments, and parses at most 64 sorts. A hand-edited URL beyond these limits degrades to
@@ -155,8 +155,6 @@ needed. A framework router that exposes its own navigation event (for example
 
 ## Column layout
 
-<NewBadge />
-
 The `layout` option picks which parts of the column layout go into the URL. The default is
 `["order", "hidden"]`: a shared link restores the column order and the hidden columns. Widths
 depend on the screen of the viewer, so `widths` and `pins` are opt-in. `layout={[]}` turns layout
@@ -174,7 +172,7 @@ sync off. This sample adds the widths to the default parts:
 | `widths` | `widths` | `id:px` pairs, whole pixels. |
 | `pins` | `pins` | `id:s` or `id:e` pairs. The codes `l` and `r` read as `s` and `e`. `-` means no pinned column. |
 
-The demo at the top of this page syncs the widths and the pins. Its keys start with `demo_` (the `prefix`), as in `demo_widths`. <NewBadge />
+The demo at the top of this page syncs the widths and the pins. Its keys start with `demo_` (the `prefix`), as in `demo_widths`.
 
 - A part is in the URL only while it differs from the layout the grid started with. The grid
   starts with the column defs and `defaultColumnLayout`. A layout equal to it removes the key.

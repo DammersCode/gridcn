@@ -153,7 +153,7 @@ export type DataGridSyncProps<TData = unknown> = {
   /**
    * Announces the view's row count through the grid's live region after a filter, sort, or
    * join-operator commit. Skipped while `sortMode="server"` (the grid does not hold every row);
-   * with a lazy source the count covers the loaded rows. Default `false`.
+   * a lazy source counts its loaded rows only. Default `false`.
    */
   announceResults?: boolean;
   /**
@@ -804,8 +804,8 @@ export type DataGridStoreState = Omit<
   labels: DataGridLabels;
   /** The live-region text of the latest row move (drag, keyboard, or `reorderRows`); empty before the first. */
   rowMoveAnnouncement: string;
-  /** The live-region text the grid's region shows: the latest of a row move, a row check ("N rows checked"), or a result count (`announceResults`). Each write replaces the text, so a later announcement never accumulates with an earlier one. Empty before the first. */
-  liveAnnouncement: string;
+  /** What the grid's live region announces next; the region formats it from the current labels. `seq` grows with every record, so a repeated text is announced again. `null` before the first. */
+  liveAnnouncement: LiveAnnouncement | null;
   /** The public actions only — the `_`-prefixed internals live in the store-private table ({@link getInternalActions}), never in state. */
   actions: DataGridActions;
 };
@@ -1118,6 +1118,11 @@ export type DataGridInternalActions = {
    */
   _pruneFlashingCells(keptViewRows: readonly number[]): void;
 };
+
+export type LiveAnnouncementKind = "rowMove" | "rowsChecked" | "results";
+
+/** `count` is the moved rows, the checked rows, or the view's loaded rows, by `kind`. */
+export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq: number };
 
 /** Full store shape: interaction state + the stable actions object. */
 export type DataGridStore = DataGridStoreState;

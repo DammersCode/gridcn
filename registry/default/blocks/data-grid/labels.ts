@@ -512,8 +512,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
     emptyState: "No rows",
     loading: "Loading…",
     datePlaceholder: "yyyy-mm-dd",
-    rowsChecked: (count) => `${count} ${count === 1 ? "row" : "rows"} checked`,
-    resultsCount: (count) => `${count} ${count === 1 ? "row" : "rows"}`,
+    rowsChecked: (count) => `${count.toLocaleString("en-US")} ${count === 1 ? "row" : "rows"} checked`,
+    resultsCount: (count) => `${count.toLocaleString("en-US")} ${count === 1 ? "row" : "rows"}`,
   },
   io: {
     exportButtonAriaLabel: "Export",

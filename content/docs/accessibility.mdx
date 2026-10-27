@@ -1,7 +1,6 @@
 ---
 title: Accessibility
 description: The WAI-ARIA grid model, roving tabindex, live regions, the honest test matrix, and known gaps.
-status: updated
 icon: Accessibility
 ---
 
@@ -108,17 +107,9 @@ both popovers: [Toolbar add-on: filter menu keyboard &
 accessibility](/docs/addons/toolbar#filter-menu-keyboard--accessibility) and
 [Sort list: keyboard & accessibility](/docs/addons/sort-list#keyboard--accessibility).
 
-The grid's own live region is a `role="status"` <NewBadge /> element with `aria-live="polite"`,
-portaled to `<body>` because a live region cannot live inside `role="grid"`. It carries the
-row-move text after a reorder and the checked-row total after a row check or uncheck, for example
-"3 rows checked" (`labels.grid.rowsChecked`). Rapid consecutive writes collapse into one
-announcement. After a 500 ms pause, the region shows the latest text, so a marker range drag is
-read once, at its final count.
+The grid has one live region <NewBadge />, a `role="status"` element with `aria-live="polite"`. A live region cannot live inside `role="grid"`, so the grid places it in `<body>`. The region reads a row move and, after a check or uncheck, the number of checked rows, for example "3 rows checked" (`labels.grid.rowsChecked`). It waits 500 ms after the last change. A marker range drag is read once, with its final count. The same text is read again when the same change repeats.
 
-With `announceResults` <NewBadge /> the region also carries the view's row count after a filter,
-sort, or join-operator commit, for example "42 rows" (`labels.grid.resultsCount`). The option
-defaults to `false`. The grid skips the announcement while `sortMode="server"`, because it does
-not hold every row. With a lazy source the count covers the loaded rows.
+With `announceResults` <NewBadge />, the region also reads the number of rows in the view after a filter, sort, or join operator change, for example "42 rows" (`labels.grid.resultsCount`). A server-sorted grid skips it, because the grid does not hold every row. A lazy source counts its loaded rows only.
 
 ## Keyboard coverage
 
@@ -155,8 +146,6 @@ What the automated Chromium suite verifies, area by area:
 </Callout>
 
 ## Touch targets
-
-<NewBadge />
 
 Under a coarse pointer (`@media (pointer: coarse)`), every control a finger must hit is at least
 24 by 24 CSS px (WCAG 2.2, SC 2.5.8):

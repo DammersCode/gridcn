@@ -84,12 +84,17 @@ import {
 } from "./selection-state";
 import type { AnyColumnDef, DataGridInternalActions, DataGridStoreState, InternalSyncProps, ResolvedPlugins, SyncInputs } from "./types";
 import { syncInputsEqual } from "./types";
+import { checkedRowCount, loadedRowCount, nextAnnouncement } from "./announcements";
 
 /**
  * Resolves the `cellTypes` prop against the built-ins: entries merge OVER the built-ins, and a
  * `null` entry removes a built-in (or a previously provided type). Built-ins stay available when
  * the consumer provides only custom types.
  */
+function rowsChecked(s: DataGridStoreState, selection: GridSelection): Pick<DataGridStoreState, "liveAnnouncement"> {
+  return { liveAnnouncement: nextAnnouncement(s.liveAnnouncement, "rowsChecked", checkedRowCount(selection, s.viewIndex.length)) };
+}
+
 function resolveCellTypes(provided: Record<string, CellType | null> | undefined): Record<string, CellType> {
   if (provided === undefined) return defaultCellTypes as unknown as Record<string, CellType>;
   const out: Record<string, CellType> = { ...(defaultCellTypes as unknown as Record<string, CellType>) };
@@ -1070,7 +1075,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     commands: initCommands,
     labels: mergeLabels(init.labels),
     rowMoveAnnouncement: "",
-    liveAnnouncement: "",
+    liveAnnouncement: null,
     announceResults: init.announceResults ?? false,
     actions: {
       setActiveCell(ref) {
@@ -1146,6 +1151,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const written = unchanged && next.columns.equals(selection.columns) && next.current === selection.current ? selection : { ...next, rows };
         set({
           selection: written,
+          ...(written === selection ? {} : rowsChecked(s, written)),
           lastHighlightedRow: index,
           rowRangeGesture: extendFromLast
             ? null
@@ -1173,7 +1179,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           if (!live || opts.commit || gesture.edge !== clamped) set({ rowRangeGesture });
           return;
         }
-        set({ selection: { ...selection, current: null, rows }, rowRangeGesture });
+        const nextSelection = { ...selection, current: null, rows };
+        set({ selection: nextSelection, ...rowsChecked(s, nextSelection), rowRangeGesture });
       },
       selectColumn(index, opts = {}) {
         const { lastHighlightedCol, selection, enableColumnSelection, enableMultiRange, enableRangeSelection } = get();
@@ -1221,7 +1228,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (!enableRowSelection) return;
         const base = CompactSelection.adopt(selection.rows);
         const next = checked ? { ...selection, rows: base.add(index) } : removeRowFromSelection(selection, index, { multiRange: enableMultiRange });
-        set({ selection: next, rowRangeGesture: rowGestureAt(s, next, index, base, checked) });
+        const changed = checkedRowCount(selection, s.viewIndex.length) !== checkedRowCount(next, s.viewIndex.length);
+        set({ selection: next, ...(changed ? rowsChecked(s, next) : {}), rowRangeGesture: rowGestureAt(s, next, index, base, checked) });
       },
       armRowDragAnchor(index) {
         const s = get();
@@ -1230,10 +1238,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         set({ lastHighlightedRow: index, rowRangeGesture: rowGestureAt(s, s.selection, index, base, !base.hasIndex(index)) });
       },
       setAllRowsSelected(checked) {
-        const { selection, viewIndex, enableRowSelection, labels } = get();
+        const s = get();
+        const { selection, viewIndex, enableRowSelection } = s;
         if (!enableRowSelection) return;
         const rows = checked ? CompactSelection.fromSingleSelection([0, viewIndex.length]) : CompactSelection.empty();
-        set({ selection: { ...selection, rows }, rowRangeGesture: null, ...(checked ? {} : { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS }) });
+        const next = { ...selection, rows };
+        const changed = checkedRowCount(selection, viewIndex.length) !== checkedRowCount(next, viewIndex.length);
+        set({ selection: next, ...(changed ? rowsChecked(s, next) : {}), rowRangeGesture: null, ...(checked ? {} : { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS }) });
       },
       clearSelection() {
         const s = get();
@@ -1527,13 +1538,14 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // Handed to the plugin onDataChange observers (writeThenEmit); after creation, so the handle's
   // eager state read resolves.
   dataWrite.pluginApi = apiHandleOf(store);
-  // announceResults: filter, sort, and join each settle the view in the same write as the spec
-  // change, so one identity check catches uncontrolled actions and the controlled _syncProps
-  // recompute alike; quick search never touches the view and stays quiet.
+  // Filter, sort, and join settle the view in the same write as the spec change, so one value check catches the
+  // uncontrolled actions and the controlled _syncProps recompute alike. Quick search never touches the view.
+  const viewSpecKey = (s: DataGridStoreState) => JSON.stringify([s.filterState.map(({ filterId: _id, ...spec }) => spec), s.sortState, s.joinOperator]);
   store.subscribe((state, prev) => {
     if (!state.announceResults || state.sortMode !== "client") return;
     if (state.filterState === prev.filterState && state.sortState === prev.sortState && state.joinOperator === prev.joinOperator) return;
-    store.setState({ liveAnnouncement: state.labels.grid.resultsCount(state.viewIndex.length) });
+    if (viewSpecKey(state) === viewSpecKey(prev)) return;
+    store.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "results", loadedRowCount(state.viewIndex, state.data)) });
   });
   return store;
 }

@@ -1,7 +1,6 @@
 ---
 title: Selection & keyboard
 description: Range selection, mouse gestures, and the full keyboard shortcut reference.
-status: updated
 icon: MousePointer2
 ---
 
@@ -39,7 +38,7 @@ selection never re-renders a single cell.
   the `reorder`-family marker modes only a drag that starts on the drag handle zone reorders the row, and
   it leaves the selection as it was. Drags from the number or checkbox glyph still select.
 - **Shift+click on a row marker**, on its number or on its checkbox, checks the rows from the anchor
-  row to this row. See [Checking a range of rows](#checking-a-range-of-rows). <NewBadge />
+  row to this row. See [Checking a range of rows](#checking-a-range-of-rows).
 - **Ctrl/Cmd-click** adds a new range to the stack (`enableMultiRange`, on by default).
 
 The grid body suppresses native browser text selection during these gestures. Editors remain
@@ -48,8 +47,6 @@ normally text-selectable.
 <ComponentPreview name="data-grid-demo" />
 
 ## Checking a range of rows
-
-<NewBadge />
 
 The row that you checked or unchecked last is the **anchor**. A Shift step checks the rows from the
 anchor to the target row. Each Shift step replaces the previous Shift step, so the range grows and
@@ -72,8 +69,6 @@ header checkbox and Escape clear the anchor, so the next Shift+click starts at t
 For example, click row 1, Shift+click row 5, and Shift+click row 3. Rows 1 to 3 are checked.
 
 ## Touch gestures
-
-<NewBadge />
 
 A touch screen scrolls the grid natively. The grid reads the input type of each press, so a laptop
 with a touch screen and a trackpad gets touch gestures from the screen and mouse gestures from the
@@ -122,8 +117,6 @@ default to `true`:
 
 ## Checked rows
 
-<NewBadge />
-
 A checked row is a row whose marker checkbox is on. A click outside the grid, or in the empty space of the grid, clears the cell range and the column selection. It never clears checked rows. A toolbar button outside the grid reads the checked rows after it is clicked.
 
 Selecting a cell clears the checked rows. Set `keepCheckedRows` to keep them:
@@ -136,7 +129,7 @@ With `keepCheckedRows`, a cell click, an arrow key, and a Shift or Ctrl click le
 
 While at least one row is checked, row operations act only on the checked rows, never on the range. This covers Delete rows, Duplicate row, Move rows, and the row items of the cell context menu. Cell operations such as copy, cut, fill, and Delete stay on the cell range. With no checked row, row operations use the range.
 
-A filter removes the checked rows it hides. Set `keepHiddenCheckedRows` <NewBadge /> to remember them:
+A filter removes the checked rows it hides. Set `keepHiddenCheckedRows` to remember them:
 
 ```tsx
 <DataGridProvider keepCheckedRows keepHiddenCheckedRows {...grid} columns={columns}>
@@ -158,11 +151,12 @@ The grid remembers at most 100,000 hidden checked rows. A server-sorted grid ign
 
 | Prop | Type | Default |
 |---|---|---|
-| `keepCheckedRows` <NewBadge /> | `boolean` | `false` |
-| `keepHiddenCheckedRows` <NewBadge /> | `boolean` | `false` |
-| `onBeforeDeleteRows` <NewBadge /> | `(ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean \| Promise<boolean>` | none |
+| `keepCheckedRows` | `boolean` | `false` |
+| `keepHiddenCheckedRows` | `boolean` | `false` |
+| `announceResults` <NewBadge /> | `boolean` | `false` |
+| `onBeforeDeleteRows` | `(ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean \| Promise<boolean>` | none |
 
-`keepHiddenCheckedRows` takes effect only with `keepCheckedRows`. `onBeforeDeleteRows` is described in [Row operations](/docs/row-operations#confirm-a-delete).
+`keepHiddenCheckedRows` takes effect only with `keepCheckedRows`. `announceResults` reads the row count of the view after a filter, sort, or join operator change; see [Accessibility](/docs/accessibility). `onBeforeDeleteRows` is described in [Row operations](/docs/row-operations#confirm-a-delete).
 
 ## Header click behavior
 
@@ -222,12 +216,12 @@ The marker checkboxes are not tab stops, so the keyboard has its own actions:
   them when every row is checked. It does what the header checkbox does.
 - <kbd>Shift</kbd>+<kbd>Space</kbd> (`selectRow`) replaces the selection with the active row.
 - After `selectRow` or `toggleRow`, <kbd>Shift</kbd>+<kbd>ArrowUp</kbd> and
-  <kbd>Shift</kbd>+<kbd>ArrowDown</kbd> (`extendUp`, `extendDown`) <NewBadge /> move the end of the
+  <kbd>Shift</kbd>+<kbd>ArrowDown</kbd> (`extendUp`, `extendDown`) move the end of the
   range and the active row, and check the rows from the anchor to the new end. They shrink the range when you reverse. After a click
   on a cell, the same keys extend the cell range.
 - In the same state, <kbd>Shift</kbd>+<kbd>Home</kbd> (`extendRowsToStart`),
   <kbd>Shift</kbd>+<kbd>End</kbd> (`extendRowsToEnd`), <kbd>Shift</kbd>+<kbd>PageUp</kbd>
-  (`extendRowsPageUp`), and <kbd>Shift</kbd>+<kbd>PageDown</kbd> (`extendRowsPageDown`) <NewBadge />
+  (`extendRowsPageUp`), and <kbd>Shift</kbd>+<kbd>PageDown</kbd> (`extendRowsPageDown`)
   move the end of the range to the first row, the last row, or one page away. Without a row check,
   these keys do nothing, and the browser keeps them.
 
@@ -235,13 +229,9 @@ To check rows that are not next to each other, move with <kbd>Alt</kbd>+<kbd>Arr
 keeps the selection, and press `toggleRow` on each row. <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+A
 (`selectAll`) selects cells, not checked rows.
 
-Every check and uncheck — `toggleRow` <NewBadge />, the marker checkboxes, and the header
-checkbox — writes the checked total to the grid's live region, for example "3 rows checked"
-(`labels.grid.rowsChecked`).
+A check or uncheck by `toggleRow`, a marker checkbox, or the header checkbox reads the number of checked rows in the grid's live region <NewBadge />, for example "3 rows checked" (`labels.grid.rowsChecked`).
 
 ## Moving rows
-
-<NewBadge />
 
 <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> (`moveRowsUp`) and
 <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> (`moveRowsDown`) move the checked rows one place.
@@ -249,8 +239,6 @@ When no row is checked, they move the rows of the selected range, or the active 
 `reorder`-family `rowMarkers` mode. See [Row operations](/docs/row-operations#reorder).
 
 ## Opening the column filter
-
-<NewBadge />
 
 <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowUp</kbd> (`openColumnFilter`) opens the header filter of the
 active cell's column. It does nothing unless the root has a `renderHeaderFilter` slot and the column offers a set filter.

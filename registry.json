@@ -225,6 +225,11 @@
                 "target": "components/data-grid/data-grid-sdk.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/live-region.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid/live-region.tsx"
+            },
+            {
                "path": "registry/default/blocks/data-grid/header-cell.tsx",
                "type": "registry:component",
                "target": "components/data-grid/header-cell.tsx"
@@ -528,6 +533,11 @@
                 "path": "registry/default/blocks/data-grid/store/create-store.ts",
                 "type": "registry:component",
                 "target": "components/data-grid/store/create-store.ts"
+             },
+             {
+                "path": "registry/default/blocks/data-grid/store/announcements.ts",
+                "type": "registry:component",
+                "target": "components/data-grid/store/announcements.ts"
              },
              {
                 "path": "registry/default/blocks/data-grid/store/data-write.ts",

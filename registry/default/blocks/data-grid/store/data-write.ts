@@ -38,6 +38,7 @@ import {
   selectionRects,
 } from "../selection";
 import type { CellRef, CompactSelectionLike, DataChange, DataGridApi, DataOp, GridBulkValidationError, GridValidationErrorEvent, ViewCoord } from "../types";
+import { nextAnnouncement } from "./announcements";
 import type { AnyColumnDef, CellPatch, DataGridActions, DataGridStoreState, UpdateCellsVerdict } from "./types";
 
 /**
@@ -515,6 +516,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     const editRemap = remapEditing(s, s.viewIndex, s.visibleColumns, nextData, getRowId);
     const follow = (row: number) => newIndexOf[row] ?? row;
     const announcement = announceRowMove(s, plan);
+    const movedCount = plan.sources.length;
     writeThenEmit(ctx, s, nextData, { source: "row-operation", ops }, () =>
       set({
         data: nextData,
@@ -523,7 +525,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         activeCell: s.activeCell ? { ...s.activeCell, row: follow(s.activeCell.row) } : null,
         lastHighlightedRow: s.lastHighlightedRow === null ? null : follow(s.lastHighlightedRow),
         rowMoveAnnouncement: announcement,
-        liveAnnouncement: announcement,
+        liveAnnouncement: nextAnnouncement(s.liveAnnouncement, "rowMove", movedCount),
         ...editRemap,
       }),
     );

@@ -11,9 +11,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 - **Breaking:** `labels.contextMenu` keys `pinLeft` and `pinRight` are renamed to `pinStart` and `pinEnd`, and the defaults now read "Pin to start" and "Pin to end". The start side is the `pin: "left"` zone, the end side the `pin: "right"` zone; in a left-to-right page start is left and end is right, in a right-to-left page the reverse. Overrides and translations move to the new keys. The menu item ids `pin-left` and `pin-right` and the column `pin` values are unchanged.
 - The URL `pins` part of `data-grid-url-state` writes `id:s` and `id:e` pairs (start/end) instead of `id:l` and `id:r`. Links with the old codes `l` and `r` still read. A link written by this version loses its pins on a deployment with an older version.
-- The grid's live region announces the checked-row total after every row check and uncheck, for example "3 rows checked" (`labels.grid.rowsChecked`).
-- The grid's live region debounces with a 500 ms trailing pause: rapid consecutive writes collapse into the last announcement. Row-move announcements carry the same delay as before.
-- New grid prop `announceResults`, default `false`. After a filter, sort, or join-operator commit, the live region announces the view's row count, for example "42 rows" (`labels.grid.resultsCount`). The grid skips the announcement while `sortMode="server"`. With a lazy source the count covers the loaded rows.
+- The grid's live region announces the number of checked rows after a row check or uncheck, for example "3 rows checked" (`labels.grid.rowsChecked`). This covers `toggleRow`, the marker checkboxes, the header checkbox, and Shift+click and marker range drags. The count includes the rows a cell range covers, as the marker checkboxes show them.
+- The live region waits 500 ms after the last change before it reads. A marker range drag is read once, with its final count. Row move announcements arrive 500 ms after the move; before, they arrived at once.
+- New grid prop `announceResults`, default `false`. After a filter, sort, or join operator change, the live region announces the number of rows in the view, for example "42 rows" (`labels.grid.resultsCount`). It stays quiet with `sortMode="server"`, and a lazy source counts its loaded rows only.
 
 ## 1.2.2 - 2026-10-25
 
