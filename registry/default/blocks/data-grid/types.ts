@@ -932,7 +932,14 @@ export interface GridCellTypes {
   date: {
     value: string | null;
     /** `locale` defaults to `"en-US"` — an explicit default keeps SSR and client HTML identical. */
-    options: { min?: string; max?: string; displayFormat?: Intl.DateTimeFormatOptions; locale?: string };
+    options: {
+      min?: string;
+      max?: string;
+      displayFormat?: Intl.DateTimeFormatOptions;
+      locale?: string;
+      /** Shows the editor as a typed input with a calendar button; the calendar opens on the button. Defaults to `false`: the calendar shows at edit start. */
+      calendarTrigger?: boolean;
+    };
   };
   url: {
     value: string | null;

@@ -41,6 +41,7 @@ export function DataGridLoadingSkeleton(props: DataGridLoadingSkeletonProps): Re
       {rows.map((r) => (
         <div key={r} className="flex items-center gap-2 border-b border-border px-2" style={{ height: rowHeight }}>
           {cols.map((c) => (
+            // plain div: the shadcn Skeleton pulses even under prefers-reduced-motion
             <div key={c} className="h-4 flex-1 motion-safe:animate-pulse rounded bg-muted" />
           ))}
         </div>

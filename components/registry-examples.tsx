@@ -13,6 +13,7 @@ const EXAMPLES = {
   "data-grid-streaming-demo": dynamic(() => import("@/registry/default/examples/data-grid-streaming-demo")),
   "data-grid-demo": dynamic(() => import("@/registry/default/examples/data-grid-demo")),
   "data-grid-cell-types-demo": dynamic(() => import("@/registry/default/examples/data-grid-cell-types-demo")),
+  "data-grid-date-picker-demo": dynamic(() => import("@/registry/default/examples/data-grid-date-picker-demo")),
   "data-grid-sorting-filtering-demo": dynamic(() => import("@/registry/default/examples/data-grid-sorting-filtering-demo")),
   "data-grid-filter-operators-demo": dynamic(() => import("@/registry/default/examples/data-grid-filter-operators-demo")),
   "data-grid-history-demo": dynamic(() => import("@/registry/default/examples/data-grid-history-demo")),

@@ -33,6 +33,7 @@
             "checkbox",
             "popover",
             "calendar",
+            "input-group",
             "dropdown-menu",
             "context-menu",
             "separator",
@@ -1160,6 +1161,7 @@
             "DammersCode/gridcn/dropzone",
             "dialog",
             "select",
+            "table",
             "dropdown-menu",
             "button",
             "checkbox",
@@ -1512,6 +1514,31 @@
                "path": "registry/default/examples/data-grid-cell-types-demo.tsx",
                "type": "registry:example",
                "target": "components/data-grid-cell-types-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-date-picker-demo",
+         "type": "registry:example",
+         "title": "Data Grid Date Picker Demo",
+         "description": "A date column that opens its calendar at edit start next to one with a typed input and a calendar button.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-date-picker-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-date-picker-demo.tsx"
             },
             {
                "path": "registry/default/examples/demo-data.ts",

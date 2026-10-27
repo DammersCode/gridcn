@@ -335,7 +335,7 @@ describe("DataGridImportButton (browser)", () => {
 
     const dialog = document.querySelector<HTMLElement>('[data-slot="dialog-content"]');
     expect(dialog).not.toBeNull();
-    const mappingGrid = document.querySelector<HTMLElement>('[role="table"]');
+    const mappingGrid = document.querySelector<HTMLElement>('table[data-slot="table"]');
     expect(mappingGrid).not.toBeNull();
     const scrollContainer = mappingGrid!.parentElement as HTMLElement;
 
@@ -353,8 +353,8 @@ describe("DataGridImportButton (browser)", () => {
     // box (already checked above) needs to stay inside the dialog. Sanity-check the first (visible)
     // column's cells actually render inside the dialog, i.e. nothing is escaping the clip un-clipped.
     const firstColumnCells = [
-      mappingGrid!.querySelector<HTMLElement>('[role="columnheader"]'),
-      mappingGrid!.querySelector<HTMLElement>('[role="cell"]'),
+      mappingGrid!.querySelector<HTMLElement>("th"),
+      mappingGrid!.querySelector<HTMLElement>("td"),
     ];
     for (const cell of firstColumnCells) {
       expect(cell).not.toBeNull();
@@ -363,10 +363,10 @@ describe("DataGridImportButton (browser)", () => {
     }
 
     // a header cell (containing the select) and the preview cell directly below it share the same
-    // grid column track (same left edge) — this is what keeps selects aligned with their preview data.
-    const firstHeaderCell = mappingGrid!.querySelector<HTMLElement>('[role="columnheader"]');
+    // table column (same left edge) — this is what keeps selects aligned with their preview data.
+    const firstHeaderCell = mappingGrid!.querySelector<HTMLElement>("th");
     const firstSelectTrigger = firstHeaderCell!.querySelector<HTMLElement>("button");
-    const firstPreviewCell = mappingGrid!.querySelector<HTMLElement>('[role="cell"]');
+    const firstPreviewCell = mappingGrid!.querySelector<HTMLElement>("td");
     expect(firstSelectTrigger).not.toBeNull();
     expect(firstPreviewCell).not.toBeNull();
     expect(Math.round(firstHeaderCell!.getBoundingClientRect().left)).toBe(
@@ -399,7 +399,7 @@ describe("DataGridImportButton (browser)", () => {
     await userEvent.upload(fileInput!, file);
     await expect.element(page.getByText("Alice")).toBeInTheDocument();
 
-    const triggers = document.querySelectorAll<HTMLElement>('[role="columnheader"] button');
+    const triggers = document.querySelectorAll<HTMLElement>('th button');
     expect(triggers.length).toBe(2);
 
     // map the first source column ("Full Name") to the grid's "Name" column.
@@ -434,10 +434,10 @@ describe("DataGridImportButton (browser)", () => {
     const quickSkipButtons = document.querySelectorAll<HTMLElement>('[aria-label="Skip column"]');
     expect(quickSkipButtons.length).toBe(2);
 
-    await userEvent.click(quickSkipButtons[0]!);
+    await userEvent.click(page.getByRole("button", { name: "Skip column" }).first());
 
     // the Select for the first column now shows the skip label.
-    const firstTrigger = document.querySelectorAll<HTMLElement>('[role="columnheader"] button')[0]!;
+    const firstTrigger = document.querySelectorAll<HTMLElement>('th button')[0]!;
     expect(firstTrigger.textContent).toContain("— Skip —");
 
     // once skipped, its own quick-skip X button disappears (only the still-mapped "Age" column keeps one).
@@ -517,10 +517,9 @@ describe("DataGridImportButton (browser)", () => {
     await userEvent.upload(fileInput!, file);
     await expect.element(page.getByText("Alice")).toBeInTheDocument();
 
-    // scope to the mapping grid's own [role="table"] — the real DataGridHeader behind the dialog
-    // also renders [role="columnheader"] cells, so an unscoped query would double-count them.
-    const mappingGrid = document.querySelector<HTMLElement>('[role="table"]')!;
-    const headers = mappingGrid.querySelectorAll<HTMLElement>('[role="columnheader"]');
+    // scope to the mapping table: the grid header behind the dialog has columnheader cells too
+    const mappingGrid = document.querySelector<HTMLElement>('table[data-slot="table"]')!;
+    const headers = mappingGrid.querySelectorAll<HTMLElement>("th");
     // each columnheader's first button is its Select trigger; a mapped column also has a second
     // (quick-skip X) button, so query per-header rather than flattening all buttons across headers.
     const selectTriggers = Array.from(headers, (header) => header.querySelector<HTMLElement>("button")!);
