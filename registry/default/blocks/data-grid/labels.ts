@@ -181,8 +181,8 @@ export type DataGridGridLabels = {
   loading: string;
   /** Placeholder for the date editor's typed input (default hints the ISO `yyyy-mm-dd` format). */
   datePlaceholder: string;
-  /** aria-label for the date editor's calendar button (`calendarTrigger`). */
-  openCalendar: string;
+  /** aria-label for the date editor's calendar toggle button (`calendarTrigger`). */
+  calendar: string;
 };
 
 /** Import/export add-on strings (`data-grid-io`): export dropdown + import dialog. */
@@ -510,7 +510,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     emptyState: "No rows",
     loading: "Loading…",
     datePlaceholder: "yyyy-mm-dd",
-    openCalendar: "Open calendar",
+    calendar: "Calendar",
   },
   io: {
     exportButtonAriaLabel: "Export",

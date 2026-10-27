@@ -880,7 +880,7 @@ describe("date editor calendar trigger (options.calendarTrigger)", () => {
     startEdit();
     await screen.findByRole("textbox", { name: "When" });
     expect(document.querySelector('[data-slot="calendar"]')).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Open calendar" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Calendar" })).toBeNull();
   });
 
   it("keeps the calendar closed until the trigger button is pressed", async () => {
@@ -888,11 +888,11 @@ describe("date editor calendar trigger (options.calendarTrigger)", () => {
     startEdit();
     await screen.findByRole("textbox", { name: "When" });
     expect(document.querySelector('[data-slot="calendar"]')).toBeNull();
-    const trigger = screen.getByRole("button", { name: "Open calendar" });
+    const trigger = screen.getByRole("button", { name: "Calendar" });
     expect(trigger).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(trigger);
     expect(document.querySelector('[data-slot="calendar"]')).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Open calendar" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "Calendar" })).toHaveAttribute("aria-expanded", "true");
   });
 
   it("a labels override renames the trigger button", async () => {
@@ -901,11 +901,11 @@ describe("date editor calendar trigger (options.calendarTrigger)", () => {
         data={[{ id: "1", when: null }]}
         columns={triggerColumns}
         getRowId={(r) => r.id}
-        labels={{ grid: { openCalendar: "Kalender öffnen" } }}
+        labels={{ grid: { calendar: "Kalender" } }}
       />,
     );
     startEdit();
-    expect(await screen.findByRole("button", { name: "Kalender öffnen" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Kalender" })).toBeInTheDocument();
   });
 });
 

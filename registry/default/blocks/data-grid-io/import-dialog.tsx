@@ -257,21 +257,21 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
 
               <div className="flex min-w-0 flex-col gap-1">
                 <span className="text-sm font-medium text-foreground">{labels.io.mapColumns}</span>
-                <div className="min-w-0 rounded-md border border-border">
+                <div className="min-w-0 overflow-hidden rounded-md border border-border">
                   {/* fixed layout gives every column an identical track — keeps selects and preview cells aligned */}
                   <Table className="table-fixed" style={{ minWidth: `${preview.importHeaders.length * 9}rem` }}>
                     <TableHeader>
-                      <TableRow className="hover:bg-transparent">
+                      <TableRow className="hover:bg-transparent has-aria-expanded:bg-transparent">
                         {preview.importHeaders.map((header, importColumnIndex) => {
                           const currentGridColumnId = preview.mapping[importColumnIndex]?.gridColumnId ?? null;
-                          // a grid column already claimed by another row can't be picked again — one source per grid column (v1 rule)
+                          // one source per grid column: a column mapped elsewhere is disabled
                           const takenElsewhere = new Set(
                             preview.mapping
                               .filter((m) => m.importColumnIndex !== importColumnIndex && m.gridColumnId !== null)
                               .map((m) => m.gridColumnId),
                           );
                           return (
-                            <TableHead key={importColumnIndex} className="h-auto min-w-0 bg-muted/50 p-1.5 align-top whitespace-normal">
+                            <TableHead key={importColumnIndex} className="h-auto bg-muted/50 p-1.5 align-top whitespace-normal">
                               <div className="mb-1 truncate" title={header}>
                                 {header}
                               </div>
@@ -316,7 +316,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
                       {previewRows.map((row, rowIndex) => (
                         <TableRow key={rowIndex} className="hover:bg-transparent">
                           {preview.importHeaders.map((_, columnIndex) => (
-                            <TableCell key={columnIndex} className="min-w-0 truncate p-1.5 text-muted-foreground" title={row[columnIndex] ?? ""}>
+                            <TableCell key={columnIndex} className="truncate p-1.5 text-muted-foreground" title={row[columnIndex] ?? ""}>
                               {row[columnIndex] ?? ""}
                             </TableCell>
                           ))}

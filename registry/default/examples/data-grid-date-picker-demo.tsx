@@ -25,8 +25,8 @@ export default function DataGridDatePickerDemo(): ReactNode {
   return (
     <div className="w-full flex flex-col gap-3">
       <p className="text-sm text-muted-foreground">
-        Press Enter on a date cell. The first column opens the calendar at once. The second shows a typed input
-        with a calendar button, and the calendar opens when you press the button.
+        Press Enter on a date cell. The "Calendar at edit start" column opens the calendar at once. The "Calendar button"
+        column shows a typed input with a calendar button, and the calendar opens when you press the button.
       </p>
       <div className="h-[280px] overflow-hidden rounded-md border border-border">
         <DataGrid defaultData={rows} columns={columns} getRowId={(row) => row.id} className="h-full" />

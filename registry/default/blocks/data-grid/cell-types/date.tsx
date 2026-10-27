@@ -217,7 +217,7 @@ function DateEditor({
               <InputGroupAddon align="inline-end">
                 <InputGroupButton
                   size="icon-xs"
-                  aria-label={labels.grid.openCalendar}
+                  aria-label={labels.grid.calendar}
                   aria-expanded={calendarOpen}
                   onClick={() => setCalendarOpen((next) => !next)}
                 >

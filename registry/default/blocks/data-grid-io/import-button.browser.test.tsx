@@ -363,7 +363,7 @@ describe("DataGridImportButton (browser)", () => {
     }
 
     // a header cell (containing the select) and the preview cell directly below it share the same
-    // grid column track (same left edge) — this is what keeps selects aligned with their preview data.
+    // table column (same left edge) — this is what keeps selects aligned with their preview data.
     const firstHeaderCell = mappingGrid!.querySelector<HTMLElement>("th");
     const firstSelectTrigger = firstHeaderCell!.querySelector<HTMLElement>("button");
     const firstPreviewCell = mappingGrid!.querySelector<HTMLElement>("td");
@@ -517,7 +517,7 @@ describe("DataGridImportButton (browser)", () => {
     await userEvent.upload(fileInput!, file);
     await expect.element(page.getByText("Alice")).toBeInTheDocument();
 
-    // scope to the mapping table — the real DataGridHeader behind the dialog also renders columnheader cells, so an unscoped query would double-count them.
+    // scope to the mapping table: the grid header behind the dialog has columnheader cells too
     const mappingGrid = document.querySelector<HTMLElement>('table[data-slot="table"]')!;
     const headers = mappingGrid.querySelectorAll<HTMLElement>("th");
     // each columnheader's first button is its Select trigger; a mapped column also has a second
