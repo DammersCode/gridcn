@@ -228,8 +228,8 @@ export function useDefaultHeaderMenuItems(args: { columnId: string; scrollRoot: 
     specs.push({ id: "sep-sort", separator: true });
   }
   specs.push(
-    { id: "pin-left", label: labels.contextMenu.pinLeft, icon: <Pin className="size-4 text-muted-foreground" />, disabled: !pinnable, onClick: () => actions.setColumnPin(columnId, "left") },
-    { id: "pin-right", label: labels.contextMenu.pinRight, icon: <Pin className="size-4 text-muted-foreground" />, disabled: !pinnable, onClick: () => actions.setColumnPin(columnId, "right") },
+    { id: "pin-left", label: labels.contextMenu.pinStart, icon: <Pin className="size-4 text-muted-foreground" />, disabled: !pinnable, onClick: () => actions.setColumnPin(columnId, "left") },
+    { id: "pin-right", label: labels.contextMenu.pinEnd, icon: <Pin className="size-4 text-muted-foreground" />, disabled: !pinnable, onClick: () => actions.setColumnPin(columnId, "right") },
   );
   if (column.pin != null) {
     specs.push({ id: "unpin", label: labels.contextMenu.unpin, icon: <PinOff className="size-4 text-muted-foreground" />, disabled: !pinnable, onClick: () => actions.setColumnPin(columnId, null) });

@@ -23,6 +23,11 @@ describe("layout param codec", () => {
     expect(parseLayoutPart("pins", serializeLayoutPart("pins", layout))).toEqual({ pins: layout.pins });
   });
 
+  it("writes start/end pin codes and reads the legacy left/right codes", () => {
+    expect(serializeLayoutPart("pins", layout)).toBe("name:s,age:e");
+    expect(parseLayoutPart("pins", "name:l,age:r")).toEqual({ pins: { name: "left", age: "right" } });
+  });
+
   it("percent-encodes ids that contain separators", () => {
     expect(serializeLayoutPart("order", { ...layout, order: ["a,b", "c:d"] })).toBe("a%2Cb,c%3Ad");
   });
@@ -56,7 +61,7 @@ describe("layout param codec", () => {
   });
 
   it("drops bad pins", () => {
-    expect(parseLayoutPart("pins", "a:x,b:left,c:l,d:r,e")).toEqual({ pins: { c: "left", d: "right" } });
+    expect(parseLayoutPart("pins", "a:x,b:left,c:l,d:r,e:s,f:e")).toEqual({ pins: { c: "left", d: "right", e: "left", f: "right" } });
   });
 
   it("ignores a param over the length cap", () => {

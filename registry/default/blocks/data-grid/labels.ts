@@ -125,8 +125,10 @@ export type DataGridContextMenuLabels = {
   sortAsc: string;
   sortDesc: string;
   clearSort: string;
-  pinLeft: string;
-  pinRight: string;
+  /** Menu item that pins a column to the start side (`pin: "left"`). */
+  pinStart: string;
+  /** Menu item that pins a column to the end side (`pin: "right"`). */
+  pinEnd: string;
   unpin: string;
   hideColumn: string;
   autosize: string;
@@ -402,8 +404,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
     sortAsc: "Sort ascending",
     sortDesc: "Sort descending",
     clearSort: "Clear sort",
-    pinLeft: "Pin left",
-    pinRight: "Pin right",
+    pinStart: "Pin to start",
+    pinEnd: "Pin to end",
     unpin: "Unpin",
     hideColumn: "Hide column",
     autosize: "Autosize column",

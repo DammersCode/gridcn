@@ -9,6 +9,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- **Breaking:** `labels.contextMenu` keys `pinLeft` and `pinRight` are renamed to `pinStart` and `pinEnd`, and the defaults now read "Pin to start" and "Pin to end". The start side is the `pin: "left"` zone, the end side the `pin: "right"` zone; in a left-to-right page start is left and end is right. Overrides and translations move to the new keys. The menu item ids `pin-left` and `pin-right` and the column `pin` values are unchanged.
+- The URL `pins` part of `data-grid-url-state` writes `id:s` and `id:e` pairs (start/end) instead of `id:l` and `id:r`. Links with the old codes `l` and `r` still read. A link written by this version loses its pins on a deployment with an older version.
+
 ## 1.2.2 - 2026-10-25
 
 - The status line of the header filter reads "N of M selected" from left to right in a right-to-left page.

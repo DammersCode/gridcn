@@ -247,7 +247,7 @@ describe("DataGridContextMenu — header surface", () => {
     await expect.element(page.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
     rightClick(document.querySelector('[role="columnheader"][data-column-id="name"]')!);
     await expect.element(page.getByRole("menuitem", { name: "Sort ascending" })).toBeInTheDocument();
-    await expect.element(page.getByRole("menuitem", { name: "Pin left" })).toBeInTheDocument();
+    await expect.element(page.getByRole("menuitem", { name: "Pin to start" })).toBeInTheDocument();
     await expect.element(page.getByRole("menuitem", { name: "Hide column" })).toBeInTheDocument();
   });
 
@@ -581,7 +581,7 @@ describe("DataGridContextMenu — menu resolvers", () => {
     expect(seen.columnId).toBe("name");
     expect(seen.scrollRootRole).toBe("grid");
     expect(seen.defaultIds).toEqual(["sort-asc", "sort-desc", "sep-sort", "pin-left", "pin-right", "hide-column", "sep-autosize", "autosize", "autosize-all"]);
-    await expect.element(page.getByRole("menuitem", { name: "Pin left" })).not.toBeInTheDocument();
+    await expect.element(page.getByRole("menuitem", { name: "Pin to start" })).not.toBeInTheDocument();
   });
 
   it("DataGridHeaderDropdown honors the wrapper's getHeaderMenuItems via context", async () => {

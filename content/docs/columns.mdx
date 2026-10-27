@@ -57,12 +57,15 @@ Drag a header to reorder columns. Per-column `reorderable: false`, or grid-wide
 `enableColumnReorder={false}`, disables reorder. Pinned columns only reorder within their own pin
 zone. Dragging a left-pinned column onto the unpinned band does nothing. It never changes the pin.
 
-## Pin left/right
+## Pin start/end
+
+<NewBadge />
 
 Set `pin: 'left' | 'right'` per column as an initial value, or change it at runtime through the
 header dropdown menu or the right-click header context menu, both installed by the
 [context menu add-on](/docs/addons/context-menu), which owns the menu wiring and its items (sort,
-pin, autosize, hide).
+pin, autosize, hide). The menu items read "Pin to start" and "Pin to end". `pin: "left"` is the
+start side, `pin: "right"` the end side. In a left-to-right page, start is left and end is right.
 
 <Callout type="idea" title="Right-click selects the cell first">
   Right-clicking a cell makes it the active cell with a single-cell selection before the menu

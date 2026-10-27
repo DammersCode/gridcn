@@ -15,9 +15,9 @@ grid state through the store hooks, so it mounts inside `DataGridProvider`.
 ## Header surface
 
 Both the header dropdown and the right-click header menu show the same items:
-**Sort asc/desc/clear**, **Pin left/right/unpin**, **Autosize**, **Hide**. Pin is set with
+**Sort asc/desc/clear**, **Pin start/end/unpin**, **Autosize**, **Hide**. Pin is set with
 `pin: 'left' | 'right'` per column as an initial value and changed at runtime through these
-menus (the pin behavior itself is documented on [Columns](/docs/columns#pin-leftright)).
+menus (the pin behavior itself is documented on [Columns](/docs/columns#pin-startend)).
 
 ```tsx
 import {
@@ -182,6 +182,6 @@ dropdown. See [Internationalization: coverage by group](/docs/i18n#coverage-by-g
 
 ## Related
 
-- [Columns: pin left/right](/docs/columns#pin-leftright): the pin behavior the menus control
+- [Columns: pin start/end](/docs/columns#pin-startend): the pin behavior the menus control
 - [Row operations](/docs/row-operations): the operations behind the cell-surface items
 - [Clipboard](/docs/clipboard): the Cut/Copy/Paste pipeline
