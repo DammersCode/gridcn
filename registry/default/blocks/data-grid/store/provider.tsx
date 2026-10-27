@@ -183,6 +183,10 @@ function useGridStoreCore<TData>(
   // subscribed by their owner's useDataGridStoreProps call — subscribing here too would
   // double-fire onSelectionChange. The selection fire guard (last-known value + echo queue) lives
   // in the store closure, so the wiring is a store action, like _subscribeEditEnd.
+  // Runs after every descendant's mount effect, so a URL or saved-view apply on mount stays quiet.
+  useEffect(() => {
+    getInternalActions(store)._armResultsAnnouncement();
+  }, [store]);
   useEffect(() => {
     if (externalStore) return;
     return getInternalActions(store)._subscribeSelection();

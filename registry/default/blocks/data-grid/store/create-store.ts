@@ -101,8 +101,15 @@ function resolveCellTypes(provided: Record<string, CellType | null> | undefined)
   return out;
 }
 
-function rowsChecked(s: DataGridStoreState, selection: GridSelection): Pick<DataGridStoreState, "liveAnnouncement"> {
-  return { liveAnnouncement: nextAnnouncement(s.liveAnnouncement, "rowsChecked", checkedRowCount(selection, s.viewIndex.length)) };
+/** The announcement for a selection change, or nothing when the checked total (rows plus hidden checked rows) stays equal. */
+function checkedChange(
+  s: DataGridStoreState,
+  next: GridSelection,
+  hiddenAfter = s.hiddenCheckedRowIds.size,
+): Pick<DataGridStoreState, "liveAnnouncement"> | Record<string, never> {
+  const before = checkedRowCount(s.selection, s.viewIndex.length) + s.hiddenCheckedRowIds.size;
+  const after = checkedRowCount(next, s.viewIndex.length) + hiddenAfter;
+  return before === after ? {} : { liveAnnouncement: nextAnnouncement(s.liveAnnouncement, "rowsChecked", after) };
 }
 
 type ProvidedCellTypes = Record<string, CellType | null> | undefined;
@@ -516,6 +523,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     initialActiveCell = resolved.activeCell ?? null;
     lastKnownSelection = resolved.selection;
   }
+  let resultsAnnouncementArmed = false;
   const store = createStore<DataGridStoreState>((set, get, api) => {
     /**
      * Derives the public SelectionState with per-channel caches (decision 4): a range-drag step
@@ -633,6 +641,19 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         }
         if (next.size === s.flashingCells.size) return;
         set({ flashingCells: next });
+      },
+      _armResultsAnnouncement() {
+        resultsAnnouncementArmed = true;
+      },
+      _cancelSelection() {
+        const s = get();
+        if (isSelectionEmpty(s.selection) && s.hiddenCheckedRowIds.size === 0) return;
+        set({
+          selection: emptySelection(),
+          ...checkedChange(s, emptySelection(), 0),
+          hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS,
+          rowRangeGesture: null,
+        });
       },
       _moveActiveCell(d, opts) {
         const s = get();
@@ -1141,7 +1162,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const written = unchanged && next.columns.equals(selection.columns) && next.current === selection.current ? selection : { ...next, rows };
         set({
           selection: written,
-          ...(checkedRowCount(selection, s.viewIndex.length) === checkedRowCount(written, s.viewIndex.length) ? {} : rowsChecked(s, written)),
+          ...checkedChange(s, written),
           lastHighlightedRow: index,
           rowRangeGesture: extendFromLast
             ? null
@@ -1170,7 +1191,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           return;
         }
         const nextSelection = { ...selection, current: null, rows };
-        set({ selection: nextSelection, ...rowsChecked(s, nextSelection), rowRangeGesture });
+        set({ selection: nextSelection, ...checkedChange(s, nextSelection), rowRangeGesture });
       },
       selectColumn(index, opts = {}) {
         const { lastHighlightedCol, selection, enableColumnSelection, enableMultiRange, enableRangeSelection } = get();
@@ -1218,8 +1239,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (!enableRowSelection) return;
         const base = CompactSelection.adopt(selection.rows);
         const next = checked ? { ...selection, rows: base.add(index) } : removeRowFromSelection(selection, index, { multiRange: enableMultiRange });
-        const changed = checkedRowCount(selection, s.viewIndex.length) !== checkedRowCount(next, s.viewIndex.length);
-        set({ selection: next, ...(changed ? rowsChecked(s, next) : {}), rowRangeGesture: rowGestureAt(s, next, index, base, checked) });
+        set({ selection: next, ...checkedChange(s, next), rowRangeGesture: rowGestureAt(s, next, index, base, checked) });
       },
       armRowDragAnchor(index) {
         const s = get();
@@ -1233,8 +1253,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (!enableRowSelection) return;
         const rows = checked ? CompactSelection.fromSingleSelection([0, viewIndex.length]) : CompactSelection.empty();
         const next = { ...selection, rows };
-        const changed = checkedRowCount(selection, viewIndex.length) !== checkedRowCount(next, viewIndex.length);
-        set({ selection: next, ...(changed ? rowsChecked(s, next) : {}), rowRangeGesture: null, ...(checked ? {} : { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS }) });
+        set({
+          selection: next,
+          ...checkedChange(s, next, checked ? s.hiddenCheckedRowIds.size : 0),
+          rowRangeGesture: null,
+          ...(checked ? {} : { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS }),
+        });
       },
       clearSelection() {
         const s = get();
@@ -1512,13 +1536,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // Handed to the plugin onDataChange observers (writeThenEmit); after creation, so the handle's
   // eager state read resolves.
   dataWrite.pluginApi = apiHandleOf(store);
-  // Filter and sort settle the view in the same write as the spec change, so one value check catches the
-  // uncontrolled actions and the controlled _syncProps recompute alike. Quick search never touches the view.
-  const viewSpecKey = (s: DataGridStoreState) => JSON.stringify([s.filterState, s.sortState], (key, value) => (key === "filterId" ? undefined : value));
+  // Filter and sort settle the view in the same write as the spec change. Speak only when the rows or the sort order changed.
+  const sortKey = (s: DataGridStoreState) => JSON.stringify(s.sortState);
+  const sameRows = (a: readonly number[], b: readonly number[]) => a === b || (a.length === b.length && a.every((v, i) => v === b[i]));
   store.subscribe((state, prev) => {
-    if (!state.announceResults || state.sortMode !== "client") return;
+    if (!resultsAnnouncementArmed || !state.announceResults || state.sortMode !== "client") return;
     if (state.filterState === prev.filterState && state.sortState === prev.sortState) return;
-    if (viewSpecKey(state) === viewSpecKey(prev)) return;
+    if (sameRows(state.viewIndex, prev.viewIndex) && sortKey(state) === sortKey(prev)) return;
     store.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "results", loadedRowCount(state.viewIndex, state.data)) });
   });
   return store;

@@ -1,5 +1,9 @@
+import { useEffect } from "react";
 import { act, render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { CompactSelection } from "../selection/compact-selection";
+import { checkedRowCount } from "./announcements";
+import { getInternalActions } from "./internal-actions";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef } from "../types";
 import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
@@ -28,6 +32,7 @@ function mount(props: Partial<DataGridSyncProps<Row>> = {}) {
   const state = () => api!.getState();
   return {
     state,
+    api: () => api,
     // Merge so a re-render keeps the mount props (announceResults) unless next overrides them.
     rerender: (next: Partial<DataGridSyncProps<Row>>) => view.rerender(tree({ ...props, ...next })),
     check: (...viewRows: number[]) => act(() => viewRows.forEach((r) => state().actions.setRowSelected(r, true))),
@@ -238,5 +243,81 @@ describe("liveAnnouncement (announceResults)", () => {
     const m = mount({ announceResults: true, defaultData: sparse });
     m.sorts([{ columnId: "name", direction: "asc" }]);
     expect(m.state().liveAnnouncement).toMatchObject(results(3));
+  });
+});
+
+describe("checkedRowCount", () => {
+  const range = (y: number, height: number) => ({ x: 0, y, width: 1, height });
+  const selectionOf = (rows: CompactSelection, ranges: Array<{ y: number; height: number }>) =>
+    ({
+      rows,
+      columns: CompactSelection.empty(),
+      current: ranges.length ? { cell: [0, ranges[0]!.y], range: range(ranges[0]!.y, ranges[0]!.height), rangeStack: ranges.slice(1).map((r) => range(r.y, r.height)) } : undefined,
+    }) as never;
+
+  it("unites a fragmented rows channel with overlapping ranges", () => {
+    const rows = CompactSelection.fromArray([1, 2, 5, 9]);
+    expect(checkedRowCount(selectionOf(rows, [{ y: 0, height: 4 }, { y: 3, height: 4 }]), 20)).toBe(8);
+  });
+
+  it("walks a huge range over a fragmented channel without per-row lookups", () => {
+    const rows = CompactSelection.fromArray(Array.from({ length: 5000 }, (_, i) => i * 3));
+    const spy = vi.spyOn(rows, "hasIndex");
+    const started = performance.now();
+    const count = checkedRowCount(selectionOf(rows, [{ y: 0, height: 1_000_000 }]), 1_000_000);
+    expect(count).toBe(1_000_000);
+    expect(spy).not.toHaveBeenCalled();
+    expect(performance.now() - started).toBeLessThan(50);
+  });
+});
+
+describe("liveAnnouncement (Escape, hidden rows, quiet results)", () => {
+  it("cancelSelection announces the dropped checked rows; clearSelection stays quiet", () => {
+    const m = mount();
+    m.check(0, 1);
+    act(() => getInternalActions(m.api()!)._cancelSelection());
+    expect(m.state().liveAnnouncement).toMatchObject(checked(0));
+    m.check(2);
+    const before = m.state().liveAnnouncement;
+    m.clear();
+    expect(m.state().liveAnnouncement).toBe(before);
+  });
+
+  it("cancelSelection on nothing checked stays quiet", () => {
+    const m = mount();
+    act(() => getInternalActions(m.api()!)._cancelSelection());
+    expect(m.state().liveAnnouncement).toBeNull();
+  });
+
+  it("filter reorder, an empty filter row, and a mount apply do not speak", () => {
+    const m = mount({ announceResults: true });
+    m.filters([
+      { filterId: "a", columnId: "name", operator: "equals", value: "D" },
+      { filterId: "b", columnId: "name", operator: "equals", value: "D" },
+    ]);
+    const before = m.state().liveAnnouncement;
+    m.filters([
+      { filterId: "b", columnId: "name", operator: "equals", value: "D" },
+      { filterId: "a", columnId: "name", operator: "equals", value: "D" },
+    ]);
+    expect(m.state().liveAnnouncement).toBe(before);
+    m.filters([...m.state().filterState, { join: "and", filters: [] }] as never);
+    expect(m.state().liveAnnouncement).toBe(before);
+  });
+
+  it("an apply before the provider's mount effects stays quiet", () => {
+    let api: StoreApi<DataGridStoreState> | null = null;
+    function Applier() {
+      api = useDataGridStoreApi();
+      useEffect(() => api!.getState().actions.setFilters(onlyD as never), []);
+      return null;
+    }
+    render(
+      <DataGridProvider columns={columns} getRowId={(row: Row) => row.id} defaultData={rows()} announceResults>
+        <Applier />
+      </DataGridProvider>,
+    );
+    expect(api!.getState().viewIndex).toHaveLength(1);
+    expect(api!.getState().liveAnnouncement).toBeNull();
   });
 });

@@ -121,6 +121,21 @@ export class CompactSelection {
     return false;
   }
 
+  /** Members inside the sorted, non-overlapping `[start, end)` spans, in one walk over slices and spans. */
+  countWithin(spans: readonly Slice[]): number {
+    let count = 0;
+    let sliceIndex = 0;
+    for (const [start, end] of spans) {
+      while (sliceIndex < this.slices.length && this.slices[sliceIndex]![1] <= start) sliceIndex++;
+      for (let i = sliceIndex; i < this.slices.length; i++) {
+        const [s, e] = this.slices[i]!;
+        if (s >= end) break;
+        count += Math.min(e, end) - Math.max(s, start);
+      }
+    }
+    return count;
+  }
+
   /** Lowest member index, or undefined when empty. */
   first(): number | undefined {
     return this.slices[0]?.[0];

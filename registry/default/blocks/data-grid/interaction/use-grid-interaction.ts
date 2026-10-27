@@ -520,7 +520,7 @@ export function dispatchGridAction(args: {
     }
     case "cancel": {
       preventDefault();
-      actions.clearSelection();
+      getInternalActions(storeApi)._cancelSelection();
       break;
     }
     case "clearContents": {

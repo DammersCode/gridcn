@@ -1054,6 +1054,10 @@ export type DataGridInternalActions = {
    * cleared cells. Not part of the public hook surface.
    */
   _deleteCellsById(rowIds: readonly string[], columnIds: readonly string[]): void;
+  /** @internal Lets `announceResults` speak; view changes made before the provider's mount effects stay quiet. */
+  _armResultsAnnouncement(): void;
+  /** @internal Escape: `clearSelection` that announces the dropped checked rows. */
+  _cancelSelection(): void;
   /** @internal keyboard nav helper: moves/extends the active cell by a view-index delta, clamped to view bounds. */
   _moveActiveCell(d: { dx: number; dy: number }, opts?: { extend?: boolean; retain?: boolean }): void;
   /** @internal syncs live consumer props and recomputes derived state; not part of the public hook surface. */
