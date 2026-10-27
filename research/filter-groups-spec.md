@@ -30,7 +30,9 @@ every row share one connector, and header-filter value rows under `or` widened t
    every other top-level node. Header "Clear" removes the column's rows at every level and drops
    emptied groups.
 6. **Menu.** The top level shows "Where" then static "and". A group is a bordered, indented box with
-   its own row cell, grip, and remove button; its header holds "Match [any|all] of the following".
+   its own row cell, grip, and remove button, and it has no header. The connector cell of each row after
+   the first is a select "And"/"Or" that sets the one `join` of the whole group; the first row shows
+   "Where". A drag shows a landing line at the target slot; Escape cancels it without closing the popover.
    A new group starts with one new row and the opposite join of its parent. Removing a group's last
    row removes the group. Reorder works among siblings only. The badge counts leaf rows.
 7. **URL.** Legacy `col:op:value` segments stay. A group is an open segment `[or` or `[and`, closed by

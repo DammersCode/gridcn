@@ -87,10 +87,12 @@ export function PeopleGrid() {
 
 | Key | Action |
 |---|---|
-| <kbd>Tab</kbd> | Moves through a row's controls, in order: column select, operator select, value, remove, drag handle. A group adds its "Match" select, its own rows, and its "Add filter" and "Add group" buttons before its remove button and drag handle |
+| <kbd>Tab</kbd> | Moves through a row's controls, in order: column select, operator select, value, remove, drag handle. A group adds its own rows, each later row with its "And"/"Or" select, and its "Add filter" and "Add group" buttons before its remove button and drag handle |
 | <kbd>ArrowUp</kbd> / <kbd>ArrowDown</kbd> (drag handle focused) | Moves that filter row or group one position up/down among its siblings |
 | <kbd>Space</kbd> / <kbd>Enter</kbd> (drag handle focused) | Picks up/drops the row for pointer-equivalent keyboard dragging (`@dnd-kit/react`'s keyboard sensor) |
 | <kbd>Backspace</kbd> / <kbd>Delete</kbd> (drag handle focused) | Removes that filter row or group |
+
+A drag with the pointer <NewBadge /> shows a line at the slot where the row or group lands. The line moves as the pointer moves, and it fades in unless the user prefers reduced motion. <kbd>Escape</kbd> cancels the drag and keeps the popover open.
 
 Plain `ArrowUp` or `ArrowDown` on a focused drag handle always moves the row by exactly one position.
 The keyboard sensor of `@dnd-kit/react` also offers its own gesture for that key, but gridcn
