@@ -1512,12 +1512,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // Handed to the plugin onDataChange observers (writeThenEmit); after creation, so the handle's
   // eager state read resolves.
   dataWrite.pluginApi = apiHandleOf(store);
-  // Filter, sort, and join settle the view in the same write as the spec change, so one value check catches the
+  // Filter and sort settle the view in the same write as the spec change, so one value check catches the
   // uncontrolled actions and the controlled _syncProps recompute alike. Quick search never touches the view.
-  const viewSpecKey = (s: DataGridStoreState) => JSON.stringify([s.filterState.map(({ filterId: _id, ...spec }) => spec), s.sortState, s.joinOperator]);
+  const viewSpecKey = (s: DataGridStoreState) => JSON.stringify([s.filterState, s.sortState], (key, value) => (key === "filterId" ? undefined : value));
   store.subscribe((state, prev) => {
     if (!state.announceResults || state.sortMode !== "client") return;
-    if (state.filterState === prev.filterState && state.sortState === prev.sortState && state.joinOperator === prev.joinOperator) return;
+    if (state.filterState === prev.filterState && state.sortState === prev.sortState) return;
     if (viewSpecKey(state) === viewSpecKey(prev)) return;
     store.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "results", loadedRowCount(state.viewIndex, state.data)) });
   });

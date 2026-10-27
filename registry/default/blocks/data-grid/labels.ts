@@ -193,7 +193,7 @@ export type DataGridGridLabels = {
   calendar: string;
   /** Polite live-region announcement after the checked rows change; `count` is the new number of checked rows. */
   rowsChecked: (count: number) => string;
-  /** Polite live-region announcement after a filter, sort, or join-operator commit (`announceResults`); `count` is the view's row count. */
+  /** Polite live-region announcement after a filter or sort commit (`announceResults`); `count` is the view's row count. */
   resultsCount: (count: number) => string;
 };
 

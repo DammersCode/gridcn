@@ -42,7 +42,7 @@ function mount(props: Partial<DataGridSyncProps<Row>> = {}) {
     selectRow: (index: number, opts?: { additive?: boolean }) => act(() => state().actions.selectRow(index, opts)),
     filters: (filters: unknown) => act(() => state().actions.setFilters(filters as never)),
     sorts: (sorts: unknown) => act(() => state().actions.setSorts(sorts as never)),
-    join: (operator: "and" | "or") => act(() => state().actions.setJoinOperator(operator)),
+    joinIntoOrGroup: () => act(() => state().actions.setFilters([{ join: "or", filters: state().filterState }])),
     search: (text: string) => act(() => state().actions.setSearch(text)),
     clear: () => act(() => state().actions.clearSelection()),
     selection: (rowIds: string[]) =>
@@ -160,11 +160,11 @@ describe("default announcement labels", () => {
 });
 
 describe("liveAnnouncement (announceResults)", () => {
-  it("off by default: filter, sort, and join commits stay quiet", () => {
+  it("off by default: filter and sort commits stay quiet", () => {
     const m = mount();
     m.filters(onlyD);
     m.sorts([{ columnId: "name", direction: "asc" }]);
-    m.join("or");
+    m.joinIntoOrGroup();
     expect(m.state().liveAnnouncement).toBeNull();
   });
 
@@ -180,14 +180,14 @@ describe("liveAnnouncement (announceResults)", () => {
     expect(m.state().liveAnnouncement).toMatchObject(results(5));
   });
 
-  it("records after a join-operator commit", () => {
+  it("records after a filter group change", () => {
     const m = mount({ announceResults: true });
     m.filters([
       { filterId: "f1", columnId: "name", operator: "equals", value: "D" },
       { filterId: "f2", columnId: "name", operator: "equals", value: "E" },
     ]);
     expect(m.state().liveAnnouncement).toMatchObject(results(0));
-    m.join("or");
+    m.joinIntoOrGroup();
     expect(m.state().liveAnnouncement).toMatchObject(results(2));
   });
 
@@ -227,7 +227,7 @@ describe("liveAnnouncement (announceResults)", () => {
     expect(m.state().liveAnnouncement).toBeNull();
   });
 
-  it("a data rebuild does not record (only filter, sort, and join commits do)", () => {
+  it("a data rebuild does not record (only filter and sort commits do)", () => {
     const m = mount({ announceResults: true });
     m.rerender({ data: rows() });
     expect(m.state().liveAnnouncement).toBeNull();

@@ -6,7 +6,7 @@ Issue #87.
 
 - After a row check (keyboard or pointer) the grid's live region announces the checked-row
   total ("N rows checked"). Today a screen reader only gets per-row signals, never the range.
-- Optionally, after a filter, sort, or join-operator commit, the region announces the view's
+- Optionally, after a filter or sort commit, the region announces the view's
   row count ("N rows"). Opt-in prop; skipped while `sortMode="server"` (the grid does not hold
   every row, so the count would mislead).
 - One debounced live region carries everything; rapid consecutive writes collapse into the
@@ -34,7 +34,7 @@ Issue #87.
      and data remaps do not announce: they are not a user's check gesture.
    - Row move: `applyRowMoves` writes `rowMoveAnnouncement` and `liveAnnouncement` together.
    - Result count: one store subscription in `createDataGridStore` on a
-     `filterState`/`sortState`/`joinOperator` identity change writes `liveAnnouncement`
+     `filterState`/`sortState` value change writes `liveAnnouncement`
      (`state.viewIndex.length`). One site catches both the uncontrolled action writes and the
      controlled `_syncProps` recompute; the view is settled in the same write as the spec
      change (`resetDeferredRows`), so the read count is final.
