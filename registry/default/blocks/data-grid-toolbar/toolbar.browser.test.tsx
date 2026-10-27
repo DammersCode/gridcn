@@ -1079,3 +1079,31 @@ describe("DataGridSearch layout", () => {
     expect(count.getBoundingClientRect().left).toBeGreaterThan(input.getBoundingClientRect().left);
   });
 });
+
+describe("DataGridFilterMenu focus after add", () => {
+  async function openMenu() {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridToolbar>
+          <DataGridFilterMenu />
+        </DataGridToolbar>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await page.getByRole("button", { name: "Filters" }).click();
+  }
+  const focusedLabel = () => document.activeElement?.getAttribute("aria-label");
+
+  it("moves focus to the column select of the new row after Add filter and Add group", async () => {
+    await openMenu();
+    await page.getByRole("button", { name: "Add filter" }).click();
+    await expect.poll(focusedLabel).toBe("Filter column");
+    await page.getByRole("button", { name: "Add group" }).first().click();
+    await expect.poll(() => document.querySelectorAll('[data-grid-filter-row]').length).toBe(2);
+    await expect.poll(() => document.activeElement?.closest("[data-grid-filter-group]") !== null).toBe(true);
+    expect(focusedLabel()).toBe("Filter column");
+  });
+});

@@ -17,7 +17,6 @@ export const MAX_RESOLVED_RECTS = 1024;
 
 const FALLBACK_PRESENCE_COLOR = "var(--color-primary)";
 
-
 /** Returns `color` when the browser parses it as a CSS color, else `var(--color-primary)`; passes through where `CSS.supports` is missing (SSR, jsdom). */
 export function safePresenceColor(color: string): string {
   if (typeof CSS === "undefined" || typeof CSS.supports !== "function") return color;

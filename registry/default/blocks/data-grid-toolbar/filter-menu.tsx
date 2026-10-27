@@ -131,8 +131,9 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   const gripRefs = useRef(new Map<string, HTMLButtonElement | null>());
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const pendingFocusFilterIdRef = useRef<string | null>(null);
+  const idsBeforeAddRef = useRef<Set<string> | null>(null);
 
-  // ponytail: lock root scroll during a drag - at drag end the browser re-focuses the drag handle and natively re-centers it in the viewport, jumping the page
+  // At drag end the browser re-focuses the drag handle and re-centers it, which jumps the page.
   const rootScrollLockRef = useRef<(() => void) | null>(null);
   const lockRootScroll = useCallback(() => {
     if (rootScrollLockRef.current) return;
@@ -149,6 +150,18 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   const unlockRootScroll = useCallback(() => rootScrollLockRef.current?.(), []);
 
   useEffect(() => {
+    const before = idsBeforeAddRef.current;
+    if (!before) return;
+    idsBeforeAddRef.current = null;
+    let added: string | undefined;
+    forEachFilterSpec(filters, (f) => {
+      if (added === undefined && f.filterId && !before.has(f.filterId)) added = f.filterId;
+    });
+    const row = added === undefined ? null : gripRefs.current.get(added)?.closest("[data-grid-filter-row]");
+    row?.querySelector<HTMLElement>('[role="combobox"]')?.focus({ preventScroll: true });
+  }, [filters]);
+
+  useEffect(() => {
     const pendingId = pendingFocusFilterIdRef.current;
     if (!pendingId) return;
     pendingFocusFilterIdRef.current = null;
@@ -156,6 +169,12 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   }, [filters]);
 
   useEffect(() => unlockRootScroll, [unlockRootScroll]);
+
+  const rememberFilterIds = () => {
+    const ids = new Set<string>();
+    forEachFilterSpec(latest(), (f) => f.filterId && ids.add(f.filterId));
+    idsBeforeAddRef.current = ids;
+  };
 
   const newRow = (): FilterSpec | undefined => {
     const first = filterableColumns[0];
@@ -201,10 +220,12 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
     },
     onAddFilter: (parent) => {
       const row = newRow();
+      if (row) rememberFilterIds();
       if (row) actions.setFilters(appendChild(latest(), parent?.filterId, row));
     },
     onAddGroup: (parent) => {
       const row = newRow();
+      if (row) rememberFilterIds();
       if (row) actions.setFilters(appendChild(latest(), parent?.filterId, { join: oppositeJoin(parent), filters: [row] }));
     },
     onReorder: (parentId, fromIndex, toIndex, filterId) => {
@@ -282,9 +303,7 @@ function FilterList(props: FilterListProps): ReactNode {
   const parentId = parent?.filterId;
   return (
     <DragDropProvider<FilterRowDragData>
-      // ponytail: drop AutoScroller — the popover portals to body, so the page is a scrollable
-      // ancestor and dragging near a viewport edge scrolls the page; re-add it if the list
-      // (max-h-75) overflows often enough that mid-drag auto-scrolling is needed
+      // The popover portals to body, so AutoScroller would scroll the page near a viewport edge.
       plugins={(defaults) => defaults.filter((p) => p !== AutoScroller)}
       onDragStart={ctx.lockRootScroll}
       onDragEnd={(event) => {
