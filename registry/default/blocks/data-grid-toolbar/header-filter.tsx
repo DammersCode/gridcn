@@ -45,7 +45,9 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; se
     const keys = distinct.values.map((value) => value.key);
     const texts = new Map(distinct.values.map((value) => [value.key, value.text]));
     let inGroup = false;
-    for (const node of state.filterState) if (isFilterGroup(node)) forEachFilterSpec([node], (f) => void (inGroup ||= f.columnId === column.id));
+    for (const node of state.filterState) {
+      if (isFilterGroup(node)) forEachFilterSpec([node], (f) => void (inGroup = inGroup || f.columnId === column.id));
+    }
     return { ...distinct, inGroup, partial: distinct.hasHoles || state.sortMode === "server", keys, texts, openFilters: state.filterState, initiallyChecked: checkedKeysFromFilters(state.filterState, column.id, keys) };
   });
   const options = useMemo<SetFilterOption[]>(
