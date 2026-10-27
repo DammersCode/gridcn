@@ -867,6 +867,48 @@ describe("date editor placeholder (labels.grid.datePlaceholder)", () => {
   });
 });
 
+describe("date editor calendar trigger (options.calendarTrigger)", () => {
+  type DateRow = { id: string; when: string | null };
+  const triggerColumns: readonly ColumnDef<DateRow, unknown>[] = [
+    { id: "when", header: "When", accessorKey: "when", type: "date", options: { calendarTrigger: true } },
+  ];
+  const plainColumns: readonly ColumnDef<DateRow, unknown>[] = [{ id: "when", header: "When", accessorKey: "when", type: "date" }];
+  const startEdit = () => fireEvent.doubleClick(screen.getAllByRole("gridcell")[0]!);
+
+  it("shows the calendar at edit start by default, without a trigger button", async () => {
+    render(<DataGrid data={[{ id: "1", when: "2026-03-04" }]} columns={plainColumns} getRowId={(r) => r.id} />);
+    startEdit();
+    await screen.findByRole("textbox", { name: "When" });
+    expect(document.querySelector('[data-slot="calendar"]')).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Open calendar" })).toBeNull();
+  });
+
+  it("keeps the calendar closed until the trigger button is pressed", async () => {
+    render(<DataGrid data={[{ id: "1", when: "2026-03-04" }]} columns={triggerColumns} getRowId={(r) => r.id} />);
+    startEdit();
+    await screen.findByRole("textbox", { name: "When" });
+    expect(document.querySelector('[data-slot="calendar"]')).toBeNull();
+    const trigger = screen.getByRole("button", { name: "Open calendar" });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(trigger);
+    expect(document.querySelector('[data-slot="calendar"]')).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Open calendar" })).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("a labels override renames the trigger button", async () => {
+    render(
+      <DataGrid
+        data={[{ id: "1", when: null }]}
+        columns={triggerColumns}
+        getRowId={(r) => r.id}
+        labels={{ grid: { openCalendar: "Kalender öffnen" } }}
+      />,
+    );
+    startEdit();
+    expect(await screen.findByRole("button", { name: "Kalender öffnen" })).toBeInTheDocument();
+  });
+});
+
 describe("DataGrid selection changes re-render only overlays + the two affected cells, never rows", () => {
   it("moving the active cell does not re-render the row-level (per-getRowId) subscription", () => {
     // Renders the real engine (DataGridRoot/Header/Body) so the probe observes the actual

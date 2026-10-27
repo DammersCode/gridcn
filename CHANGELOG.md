@@ -9,6 +9,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- The date cell type has the option `calendarTrigger`. It shows the editor as a typed input with a calendar button, and the calendar opens when the button is pressed. The default is unchanged: the calendar shows at edit start. `labels.grid.openCalendar` names the button. `data-grid` now lists `input-group` as a registry dependency.
+- The column mapping preview of the import dialog is a shadcn `Table` instead of a `role="table"` grid. The roles, the Tab order and the column alignment are the same. `data-grid-io` now lists `table` as a registry dependency.
 - **Breaking:** `labels.contextMenu` keys `pinLeft` and `pinRight` are renamed to `pinStart` and `pinEnd`, and the defaults now read "Pin to start" and "Pin to end". The start side is the `pin: "left"` zone, the end side the `pin: "right"` zone; in a left-to-right page start is left and end is right, in a right-to-left page the reverse. Overrides and translations move to the new keys. The menu item ids `pin-left` and `pin-right` and the column `pin` values are unchanged.
 - The URL `pins` part of `data-grid-url-state` writes `id:s` and `id:e` pairs (start/end) instead of `id:l` and `id:r`. Links with the old codes `l` and `r` still read. A link written by this version loses its pins on a deployment with an older version.
 

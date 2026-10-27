@@ -1,6 +1,9 @@
+import { cn } from "@/lib/utils";
 import { toSafeText } from "./safe-text";
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { CalendarIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "../types";
@@ -115,7 +118,7 @@ function DateCell({ value, options }: CellRenderProps<unknown, string | null, Gr
   return <CellSpan text={displayText(dateCellType, value, options)} align="right" />;
 }
 
-/** Popover + Calendar (shadcn date-picker pattern): opens on edit start; picking a date commits and stays; a small typed-input above the calendar accepts ISO or Date.parse-able text with Enter to commit. */
+/** Popover + Calendar (shadcn date-picker pattern): opens on edit start; picking a date commits and stays; a small typed-input above the calendar accepts ISO or Date.parse-able text with Enter to commit. With `calendarTrigger` the calendar stays closed until the input group's calendar button opens it. */
 function DateEditor({
   value,
   options,
@@ -131,6 +134,8 @@ function DateEditor({
   const { triggerRef, measure } = useCellTextInsets();
   const [text, setText] = useState(dateCellType.toText(value));
   const [open, setOpen] = useState(true);
+  const calendarTrigger = options?.calendarTrigger === true;
+  const [calendarOpen, setCalendarOpen] = useState(!calendarTrigger);
   const committed = useCommitGuard();
 
   // Re-arm on each rejection, not on pending->false (that also fires on the cancel right before unmount); see CellEditorProps.rejectionCount.
@@ -152,6 +157,27 @@ function DateEditor({
     if (!committed.tryCommit()) return;
     onChange(nextValue);
     commit(movement);
+  };
+
+  const inputProps = {
+    ref: inputRef,
+    value: text,
+    // readOnly, not disabled: a disabled input swallows Escape while an async validation is pending.
+    readOnly: pending,
+    // ISO date text is direction-neutral, so it must not inherit the grid's layout direction.
+    dir: "auto" as const,
+    placeholder: labels.grid.datePlaceholder,
+    onChange: (e: ChangeEvent<HTMLInputElement>) => setText(e.target.value),
+    onKeyDown: (e: KeyboardEvent<HTMLInputElement>) => {
+      // Enter or Escape during IME composition confirms or cancels the composition, not the edit.
+      if (isComposingKey(e)) return;
+      if (e.key === "Enter") {
+        commitValue(dateCellType.fromText(text, options), { dx: 0, dy: 1 });
+      } else if (e.key === "Escape") {
+        if (committed.tryCommit()) cancel();
+      }
+    },
+    "aria-label": columnLabelText(column),
   };
 
   return (
@@ -184,38 +210,36 @@ function DateEditor({
           }
         }}
       >
-        <div className="p-2 pb-0">
-          <Input
-            ref={inputRef}
-            value={text}
-            // readOnly, not disabled: a disabled input swallows Escape while an async validation is pending.
-            readOnly={pending}
-            // ISO date text is direction-neutral, so it must not inherit the grid's layout direction.
-            dir="auto"
-            placeholder={labels.grid.datePlaceholder}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-              // Enter or Escape during IME composition confirms or cancels the composition, not the edit.
-              if (isComposingKey(e)) return;
-              if (e.key === "Enter") {
-                commitValue(dateCellType.fromText(text, options), { dx: 0, dy: 1 });
-              } else if (e.key === "Escape") {
-                if (committed.tryCommit()) cancel();
-              }
-            }}
-            aria-label={columnLabelText(column)}
-            className="h-8 w-full border-none bg-transparent px-2 shadow-none outline-none focus-visible:ring-0"
-          />
+        <div className={cn("p-2", calendarOpen && "pb-0", calendarTrigger && "min-w-56")}>
+          {calendarTrigger ? (
+            <InputGroup>
+              <InputGroupInput {...inputProps} />
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton
+                  size="icon-xs"
+                  aria-label={labels.grid.openCalendar}
+                  aria-expanded={calendarOpen}
+                  onClick={() => setCalendarOpen((next) => !next)}
+                >
+                  <CalendarIcon aria-hidden="true" />
+                </InputGroupButton>
+              </InputGroupAddon>
+            </InputGroup>
+          ) : (
+            <Input {...inputProps} className="h-8 w-full border-none bg-transparent px-2 shadow-none outline-none focus-visible:ring-0" />
+          )}
         </div>
-        <Calendar
-          mode="single"
-          selected={isoDatePartToLocalDate(value)}
-          defaultMonth={isoDatePartToLocalDate(value)}
-          onSelect={(date) => {
-            if (!date) return;
-            commitValue(localDateToIsoDatePart(date), { dx: 0, dy: 0 });
-          }}
-        />
+        {calendarOpen && (
+          <Calendar
+            mode="single"
+            selected={isoDatePartToLocalDate(value)}
+            defaultMonth={isoDatePartToLocalDate(value)}
+            onSelect={(date) => {
+              if (!date) return;
+              commitValue(localDateToIsoDatePart(date), { dx: 0, dy: 0 });
+            }}
+          />
+        )}
       </PopoverContent>
     </Popover>
   );
