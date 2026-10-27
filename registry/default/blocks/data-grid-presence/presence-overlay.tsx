@@ -17,8 +17,6 @@ export const MAX_RESOLVED_RECTS = 1024;
 
 const FALLBACK_PRESENCE_COLOR = "var(--primary)";
 
-// Lightness below 0.62 clamps to white text, above to black.
-const READABLE_ON_PRESENCE_COLOR = "oklch(from var(--presence-color) clamp(0, (0.62 - l) * 1000, 1) 0 h)";
 
 /** Returns `color` when the browser parses it as a CSS color, else `var(--primary)`; passes through where `CSS.supports` is missing (SSR, jsdom). */
 export function safePresenceColor(color: string): string {
@@ -46,7 +44,7 @@ const PresenceHighlightOverlay = memo(function PresenceHighlightOverlay({
       data-grid-presence-overlay=""
       data-pinned={pinStyle ? "" : undefined}
       aria-hidden="true"
-      className="pointer-events-none border border-[color-mix(in_oklch,var(--presence-color)_100%,transparent)] bg-[color-mix(in_oklch,var(--presence-color)_12%,transparent)]"
+      className="pointer-events-none border border-[color-mix(in_oklch,var(--presence-color,var(--primary))_100%,transparent)] bg-[color-mix(in_oklch,var(--presence-color,var(--primary))_12%,transparent)]"
       style={{
         // positioned: cells are position:relative, so a static overlay would paint below them
         position: "relative",
@@ -95,8 +93,8 @@ const PresenceLabelChip = memo(function PresenceLabelChip({
       } as CSSProperties}
     >
       <span
-        className="-translate-y-1/2 rounded-sm px-1.5 py-0.5 text-xs font-medium whitespace-nowrap shadow-sm"
-        style={{ backgroundColor: "var(--presence-color)", color: `var(--presence-label-foreground, ${READABLE_ON_PRESENCE_COLOR})` }}
+        // Lightness below 0.62 gives white text, above gives black; white stays where relative color syntax is missing.
+        className="-translate-y-1/2 rounded-sm bg-(--presence-color,var(--primary)) px-1.5 py-0.5 text-xs font-medium whitespace-nowrap text-(--presence-label-foreground,white) shadow-sm supports-[color:oklch(from_red_l_c_h)]:text-(--presence-label-foreground,oklch(from_var(--presence-color,var(--primary))_clamp(0,calc((0.62-l)*1000),1)_0_h_/_1))"
       >
         {label}
       </span>
