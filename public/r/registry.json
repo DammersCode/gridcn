@@ -1735,6 +1735,35 @@
          ]
       },
       {
+         "name": "data-grid-print-demo",
+         "type": "registry:example",
+         "title": "Data Grid Print Demo",
+         "description": "Print button with a paper size picker: the chosen A4, A3, Letter, or Legal size is passed to printGrid as options.pageSize.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-history",
+            "DammersCode/gridcn/data-grid-io",
+            "DammersCode/gridcn/data-grid-toolbar",
+            "select"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-print-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-print-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
          "name": "data-grid-url-state-demo",
          "type": "registry:example",
          "title": "Data Grid URL State Demo",
