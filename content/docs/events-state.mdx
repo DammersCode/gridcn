@@ -239,21 +239,18 @@ behavior. The callback still fires on every user-driven change (a header click,
 you pass the new value back in as the prop. See
 [Sorting, filtering & search](/docs/sorting-filtering-search) for the toolbar UI this drives.
 
-## 4. `onFilterChange` + join
+## 4. `onFilterChange`
 
 ```ts
-filterState?: FilterSpec[];
-onFilterChange?: (next: FilterSpec[]) => void;
-joinOperator?: FilterJoinOperator;
-onJoinOperatorChange?: (next: FilterJoinOperator) => void;
+filterState?: FilterNode[];
+onFilterChange?: (next: FilterNode[]) => void;
 ```
 
-This is the same controlled-pair convention as `onSortChange`. Omit `filterState` or
-`joinOperator` for uncontrolled behavior. The `value` of a `FilterSpec` is a single string for
+This is the same controlled-pair convention as `onSortChange`. Omit `filterState` for uncontrolled
+behavior. A `FilterNode` is a filter row or a filter group, so `next` is the whole tree. The `value` of a `FilterSpec` is a single string for
 every operator except `isBetween`, which carries an inclusive `[min, max]` tuple. Try the Score
 column's filter menu with "is between" in the demo above to see that tuple shape in the
-inspector. `onJoinOperatorChange` fires separately from `onFilterChange`, because the join
-operator (`"and"` or `"or"`) and the filter list are independent pieces of state. See
+inspector. See
 [Sorting, filtering & search](/docs/sorting-filtering-search) for the toolbar UI these drive.
 
 ## 5. `onFill`

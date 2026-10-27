@@ -53,24 +53,39 @@ The header filter <NewBadge /> puts a set filter in each column header. See
 [the toolbar add-on](/docs/addons/toolbar#header-filter). It writes `isAnyOf` or `isNoneOf`,
 whichever list is shorter.
 
-`DataGridFilterMenu` is a popover that lists active filters as aligned rows (join cell, column,
-operator, value, trash, drag handle) with add and reset controls. Per-column `filterable: false`
-excludes a column from the menu's column picker. Row order is array order in `FilterSpec[]`. Drag
-the drag handle, or reorder through the keyboard
+`DataGridFilterMenu` is a popover that lists the filter tree. The top level joins its entries with
+"and". A filter group <NewBadge /> is a bordered box with its own rows. Its select reads "Match any of
+the following" (the rows join with "or") or "Match all of the following" (the rows join with "and").
+A group holds one more group at most. Each row shows a column, an operator, a value, a trash button,
+and a drag handle. "Add filter", "Add group", and "Clear all" sit at the foot of the menu, and each
+group has its own "Add filter" and "Add group". Per-column `filterable: false` excludes a column from
+the menu's column picker. Drag the drag handle, or reorder through the keyboard
 ([toolbar add-on: filter menu keyboard & accessibility](/docs/addons/toolbar#filter-menu-keyboard--accessibility)),
-to change it.
+to move a row or group among its siblings.
 
-To set filters from code, pass `FilterSpec` entries to `useDataGridActions().setFilters()`:
+To build "(Name contains A or B) and Country = X" in the menu, add a filter for Country, add a
+group, set the group to "Match any", and give the group two Name rows.
+
+To set filters from code, pass `FilterNode` entries to `useDataGridActions().setFilters()`. A
+`FilterNode` is a `FilterSpec` row or a `FilterGroup`:
 
 ```tsx
 actions.setFilters([
-  { columnId: "age", operator: "gte", value: "30" },
-  { columnId: "age", operator: "isBetween", value: ["20", "40"] },
-  { columnId: "status", operator: "isAnyOf", value: ["active", "paused"] },
-  { columnId: "status", operator: "isNoneOf", value: ["archived"] },
-  { columnId: "email", operator: "notEmpty" },
+  { columnId: "country", operator: "equals", value: "X" },
+  {
+    join: "or",
+    filters: [
+      { columnId: "name", operator: "contains", value: "A" },
+      { columnId: "name", operator: "contains", value: "B" },
+    ],
+  },
 ]);
 ```
+
+A row survives when every top-level node matches. A group with `join: "and"` matches when every
+child matches. A group with `join: "or"` matches when any child matches. A group with any other
+`join` value matches like `"and"`. An empty group matches every row. A flat list of `FilterSpec`
+entries is a valid `filterState`.
 
 A `FilterSpec` has these fields:
 
@@ -80,6 +95,14 @@ A `FilterSpec` has these fields:
 | `operator` | `FilterOperator` | One of the operator names listed above. |
 | `value` | `string`, `[string, string]`, or `string[]` | The text to compare, even for number and date columns. `isBetween` takes `[from, to]`. `isAnyOf` and `isNoneOf` take a list of cell texts. `empty` and `notEmpty` take none. |
 | `filterId` | `string` | Optional. A stable key for the filter row. |
+
+A `FilterGroup` has these fields: <NewBadge />
+
+| Field | Type | Meaning |
+|---|---|---|
+| `join` | `"and"` or `"or"` | How the group combines its children. |
+| `filters` | `FilterNode[]` | The rows and the one level of groups inside. |
+| `filterId` | `string` | Optional. A stable key for the group. |
 
 `DataGridFilterMenu` and `DataGridSortList` offer the grid's visible columns by default. Pass
 `allColumns` to include hidden columns. A filter on a hidden column keeps applying. Without
@@ -184,7 +207,7 @@ and reorder sorts without touching the headers, see the
 
 ## Initial sort, filter, and search
 
-`defaultSortState`, `defaultFilterState`, `defaultJoinOperator`, and `defaultSearchText` seed the
+`defaultSortState`, `defaultFilterState`, and `defaultSearchText` seed the
 store once at creation. The store owns the state afterwards, and later changes to these props are
 ignored:
 

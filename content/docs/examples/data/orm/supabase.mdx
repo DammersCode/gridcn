@@ -20,12 +20,41 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!, // server-side: bypass row-level security
 );
 
+const ALLOWED = new Set(["name", "email", "role", "score"]);
+const OPS = { equals: "eq", notEquals: "neq", gt: "gt", gte: "gte", lt: "lt", lte: "lte" } as const;
+
+// PostgREST filter strings split on commas and parentheses, so quote every value.
+const quote = (value: string) => `"${String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+
+// One "or" group deep: rows join with "or", and a nested "and" group becomes and(...).
+function orClause(group) {
+  return group.filters
+    .map((node) => {
+      if ("filters" in node) return `and(${node.filters.map(leafClause).join(",")})`;
+      return leafClause(node);
+    })
+    .join(",");
+}
+
+function leafClause(f) {
+  if (!ALLOWED.has(f.columnId) || !(f.operator in OPS)) throw new Error("invalid filter");
+  return `${f.columnId}.${OPS[f.operator]}.${quote(f.value)}`;
+}
+
 export async function POST(req: Request) {
-  const { page, pageSize, sorts, search } = await req.json();
+  const { page, pageSize, sorts, filters, search } = await req.json();
 
   let query = supabase.from("users").select("*", { count: "exact" });
   if (search) {
     query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
+  }
+  for (const node of filters) {
+    if ("filters" in node) {
+      if (node.join !== "or") throw new Error("only or groups are supported");
+      query = query.or(orClause(node));
+    } else {
+      query = query.filter(node.columnId, OPS[node.operator], node.value);
+    }
   }
   for (const s of sorts) {
     query = query.order(s.columnId, { ascending: s.direction === "asc" });
@@ -45,7 +74,12 @@ Notes:
 
 - `range(from, to)` is inclusive on both ends, hence the `- 1`.
 - Column filters map to PostgREST operators one-to-one: `eq`, `neq`, `gt`, `gte`, `lt`,
-  `lte`, `like`, `in.(...)` (for example, `query = query.eq("score", f.value)` for `equals`).
+  `lte`, `like`, `in.(...)`. The route above maps the first six.
+- The route covers the top-level rows and one level of `or` groups, with a nested `and` group
+  written as `and(...)`. A deeper tree needs a recursive string builder. The body is untrusted: the
+  route checks every column id against `ALLOWED`, and `quote` escapes each value. Also bound the
+  depth and the number of rows before you build the query, as the [Drizzle](/docs/examples/data/orm/drizzle)
+  recipe does.
 - `SUPABASE_SERVICE_ROLE_KEY` keeps the grid's requests server-side. With the anon key, you
   also need a permissive RLS policy on `users` for reads.
 - The client is the [server-side example](/docs/examples/data/server-side) unchanged. Edits

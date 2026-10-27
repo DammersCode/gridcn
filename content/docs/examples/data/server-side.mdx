@@ -24,18 +24,16 @@ provider) and reports the fetched page up (the provider needs it).
 function RemoteStateBridge({ server, page, pageSize, onLoaded }) {
   const sortState = useDataGridSortState();
   const filterState = useDataGridFilterState();
-  const joinOperator = useDataGridJoinOperator();
   const searchText = useDataGridSearchText();
 
   const query = useQuery({
-    queryKey: ["rows", page, pageSize, sortState, filterState, joinOperator, searchText],
+    queryKey: ["rows", page, pageSize, sortState, filterState, searchText],
     queryFn: () =>
       server.fetchPage({
         page,
         pageSize,
         sorts: sortState,
         filters: filterState,
-        join: joinOperator,
         search: searchText,
       }),
     placeholderData: keepPreviousData,
@@ -51,6 +49,11 @@ function RemoteStateBridge({ server, page, pageSize, onLoaded }) {
 
 Notes:
 
+- `filters` is the filter tree: rows and groups, with no separate join. The top level combines with
+  "and", and a group carries its own `join`. <NewBadge />
+- The request body is untrusted. Before you build a query, check that the tree is at most 2 groups
+  deep, holds at most 64 rows, names only allowed columns, and uses `"and"` or `"or"` as every `join`.
+  The [ORM recipes](/docs/examples/data/orm) show the check.
 - The store hooks return **stable references** while the state is unchanged
   (`useShallow`), so the key only changes when a user actually sorts, filters, or searches
   (no render-time refetch loop).
@@ -78,15 +81,14 @@ whole serialized view state, and the fetcher reads it positionally:
   <CodeBlockTab value="react-query">
     ```tsx
     const query = useQuery({
-      queryKey: ["rows", page, pageSize, sortState, filterState, joinOperator, searchText],
+      queryKey: ["rows", page, pageSize, sortState, filterState, searchText],
       queryFn: () =>
         api.fetchPage({
           page,
           pageSize,
           sorts: sortState,
           filters: filterState,
-          join: joinOperator,
-          search: searchText,
+            search: searchText,
         }),
       placeholderData: keepPreviousData,
     });
@@ -95,15 +97,14 @@ whole serialized view state, and the fetcher reads it positionally:
   <CodeBlockTab value="swr">
     ```tsx
     const { data } = useSWR(
-      ["rows", page, pageSize, sortState, filterState, joinOperator, searchText],
+      ["rows", page, pageSize, sortState, filterState, searchText],
       (key) =>
         api.fetchPage({
           page: key[1],
           pageSize: key[2],
           sorts: key[3],
           filters: key[4],
-          join: key[5],
-          search: key[6],
+          search: key[5],
         }),
     );
     ```
