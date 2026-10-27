@@ -44,9 +44,17 @@ export type DataGridToolbarLabels = {
   noFiltersApplied: string;
   /** Static "Where" label shown in the first filter row's join cell. */
   filterWhere: string;
-  /** aria-label for the AND/OR join-operator select, shown once 2+ filters are active. */
+  addFilterGroup: string;
+  removeFilterGroupAriaLabel: string;
+  /** Option of a group's join select; the group matches when any child matches. */
+  filterGroupMatchAny: string;
+  /** Option of a group's join select; the group matches when every child matches. */
+  filterGroupMatchAll: string;
+  /** aria-label of a group's join select. */
   joinOperatorAriaLabel: string;
+  /** Static connector text between rows joined by "and". */
   joinOperatorAnd: string;
+  /** Static connector text between rows joined by "or". */
   joinOperatorOr: string;
   columns: string;
   columnsAriaLabel: string;
@@ -339,6 +347,10 @@ export const DEFAULT_LABELS: DataGridLabels = {
     clearFilters: "Clear all",
     noFiltersApplied: "No filters applied.",
     filterWhere: "Where",
+    addFilterGroup: "Add group",
+    removeFilterGroupAriaLabel: "Remove group",
+    filterGroupMatchAny: "Match any of the following",
+    filterGroupMatchAll: "Match all of the following",
     joinOperatorAriaLabel: "Match",
     joinOperatorAnd: "And",
     joinOperatorOr: "Or",

@@ -893,6 +893,11 @@
                "target": "components/data-grid-toolbar/search.tsx"
             },
             {
+               "path": "registry/default/blocks/data-grid-toolbar/filter-tree-edit.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-toolbar/filter-tree-edit.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid-toolbar/filter-menu.tsx",
                "type": "registry:component",
                "target": "components/data-grid-toolbar/filter-menu.tsx"

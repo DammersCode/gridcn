@@ -12,6 +12,7 @@ import {
   GRID_ATTR,
   columnLabelText,
   isComposingKey,
+  pruneFilterSpecs,
   resolveFilterOperators,
   useDataGridIsColumnFiltered,
   useDataGridStoreApi,
@@ -96,7 +97,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; se
   };
 
   const clear = () => {
-    actions.setFilters(storeApi.getState().filterState.filter((filter) => filter.columnId !== column.id));
+    actions.setFilters(pruneFilterSpecs(storeApi.getState().filterState, (filter) => filter.columnId !== column.id));
     onClose();
   };
 

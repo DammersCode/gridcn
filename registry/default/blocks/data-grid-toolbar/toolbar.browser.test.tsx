@@ -819,52 +819,108 @@ describe("DataGridFilterMenu multiple filters on one column", () => {
   });
 });
 
-describe("DataGridFilterMenu join operator", () => {
-  it("the join control is hidden with 0 or 1 filters", async () => {
-    await renderRichGrid();
+describe("DataGridFilterMenu groups", () => {
+  const rowCount = () => document.querySelectorAll('[role="row"]').length - 1;
+  const buttons = (name: string) => [...document.querySelectorAll<HTMLElement>("button")].filter((b) => (b.getAttribute("aria-label") ?? b.textContent) === name);
+  const valueInputs = () => [...document.querySelectorAll<HTMLInputElement>('input[aria-label="Filter value"]')];
+  const click = async (el: HTMLElement | undefined) => {
+    el!.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  };
+
+  /** Builds "Age > 26 and (Name contains Ali or Name contains Bo)" by clicking. */
+  async function buildIssueExample() {
+    await renderGrid();
     await page.getByRole("button", { name: "Filters" }).click();
-    expect(page.getByRole("combobox", { name: "Match" }).query()).toBeNull();
-    await page.getByRole("button", { name: "Add filter" }).click();
-    expect(page.getByRole("combobox", { name: "Match" }).query()).toBeNull();
-  });
-
-  it("appears once 2+ filters exist and defaults to And", async () => {
-    await renderRichGrid();
-    await openFilterMenu();
-    await page.getByRole("button", { name: "Add filter" }).click();
-    await expect.element(page.getByRole("combobox", { name: "Match" })).toHaveTextContent("And");
-  });
-
-  it("switching to Or widens the result to the union of both filters", async () => {
-    await renderRichGrid();
-    await openFilterMenu();
-    // first row: name contains "Alice"
-    await page.getByRole("textbox", { name: "Filter value" }).fill("Alice");
-    await expect.poll(() => document.querySelectorAll('[role="row"]').length - 1).toBe(1);
-
-    await page.getByRole("button", { name: "Add filter" }).click();
-    await expect.poll(() => document.querySelectorAll('[aria-label="Filter column"]').length).toBe(2);
-
-    // second row: switch to age, greater than 35 (matches only Bob)
-    const columnTriggers = document.querySelectorAll<HTMLElement>('[aria-label="Filter column"]');
-    columnTriggers[1]!.click();
+    await click(buttons("Add filter")[0]);
+    await page.getByRole("combobox", { name: "Filter column" }).click();
     await page.getByRole("option", { name: "Age" }).click();
-
-    const operatorTriggers = document.querySelectorAll<HTMLElement>('[aria-label="Filter operator"]');
-    operatorTriggers[1]!.click();
+    await page.getByRole("combobox", { name: "Filter operator" }).click();
     await page.getByRole("option", { name: "greater than", exact: true }).click();
+    await userEvent.fill(valueInputs()[0]!, "26");
+    await expect.poll(rowCount).toBe(3);
 
-    const valueInputs = document.querySelectorAll<HTMLInputElement>('input[aria-label="Filter value"]');
-    await userEvent.fill(valueInputs[1]!, "35");
+    await click(buttons("Add group")[0]);
+    await expect.poll(() => document.querySelectorAll("[data-grid-filter-group]").length).toBe(1);
+    await userEvent.fill(valueInputs()[1]!, "Ali");
+    await click(buttons("Add filter")[0]); // the group footer precedes the top-level footer in DOM order
+    await expect.poll(() => valueInputs().length).toBe(3);
+    await userEvent.fill(valueInputs()[2]!, "Bo");
+    await expect.poll(rowCount).toBe(2);
+  }
 
-    // AND: name contains Alice AND age > 35 -> nobody.
-    await expect.poll(() => document.querySelectorAll('[role="row"]').length - 1).toBe(0);
+  it("shows no connector select at the top level and Where on the first row", async () => {
+    await renderGrid();
+    await page.getByRole("button", { name: "Filters" }).click();
+    await click(buttons("Add filter")[0]);
+    await click(buttons("Add filter")[0]);
+    expect(page.getByRole("combobox", { name: "Match" }).query()).toBeNull();
+    const connectors = [...document.querySelectorAll("[data-grid-filter-row] > div:first-child")].map((c) => c.textContent);
+    expect(connectors).toEqual(["Where", "And"]);
+  });
 
+  it("builds the issue example by clicking and counts leaf rows in the badge", async () => {
+    await buildIssueExample();
+    expect(document.querySelector("[data-grid-filter-count]")?.textContent).toBe("3");
+    expect([...document.querySelectorAll("[data-grid-filter-group] [data-grid-filter-row] > div:first-child")].map((c) => c.textContent)).toEqual(["Where", "Or"]);
+  });
+
+  it("the group select changes only its own group", async () => {
+    await buildIssueExample();
+    await expect.element(page.getByRole("combobox", { name: "Match" })).toHaveTextContent("Match any of the following");
     await page.getByRole("combobox", { name: "Match" }).click();
-    await page.getByRole("option", { name: "Or" }).click();
+    await page.getByRole("option", { name: "Match all of the following" }).click();
+    // Age > 26 and (Ali and Bo): no name holds both.
+    await expect.poll(rowCount).toBe(0);
+    expect(valueInputs()[0]!.value).toBe("26");
+  });
 
-    // OR: name contains Alice (Alice) OR age > 35 (Bob) -> 2 rows.
-    await expect.poll(() => document.querySelectorAll('[role="row"]').length - 1).toBe(2);
+  it("reordering inside a group keeps the result and the level", async () => {
+    await buildIssueExample();
+    const grips = [...document.querySelectorAll<HTMLElement>('[aria-label="Reorder filter"]')];
+    grips[2]!.focus();
+    await userEvent.keyboard("{ArrowUp}");
+    await expect.poll(() => valueInputs().map((i) => i.value)).toEqual(["26", "Bo", "Ali"]);
+    expect(rowCount()).toBe(2);
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Reorder filter");
+  });
+
+  it("removing the last row of a group removes the group", async () => {
+    await buildIssueExample();
+    const groupRemove = () => [...document.querySelectorAll<HTMLElement>("[data-grid-filter-group] [data-grid-filter-row] [aria-label='Remove filter']")];
+    await click(groupRemove()[0]);
+    await click(groupRemove()[0]);
+    await expect.poll(() => document.querySelectorAll("[data-grid-filter-group]").length).toBe(0);
+    await expect.poll(rowCount).toBe(3);
+  });
+
+  it("removing a group removes its rows", async () => {
+    await buildIssueExample();
+    await click(buttons("Remove group")[0]);
+    await expect.poll(() => document.querySelectorAll("[data-grid-filter-group]").length).toBe(0);
+    expect(valueInputs()).toHaveLength(1);
+  });
+
+  it("hides Add group inside a subgroup", async () => {
+    await buildIssueExample();
+    expect(buttons("Add group")).toHaveLength(2);
+    await click(buttons("Add group")[0]);
+    await expect.poll(() => document.querySelectorAll("[data-grid-filter-group]").length).toBe(2);
+    expect(buttons("Add group")).toHaveLength(2);
+    const subgroup = document.querySelectorAll<HTMLElement>("[data-grid-filter-group] [data-grid-filter-group]")[0]!;
+    expect([...subgroup.querySelectorAll("button")].some((b) => b.textContent === "Add group")).toBe(false);
+  });
+
+  it("a keyboard user adds a group and removes it from its handle", async () => {
+    await renderGrid();
+    await page.getByRole("button", { name: "Filters" }).click();
+    buttons("Add group")[0]!.focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => document.querySelectorAll("[data-grid-filter-group]").length).toBe(1);
+    const groupGrip = document.querySelector<HTMLElement>("[data-grid-filter-group] > button[aria-label='Reorder filter']:last-child");
+    groupGrip!.focus();
+    await userEvent.keyboard("{Backspace}");
+    await expect.poll(() => document.querySelectorAll("[data-grid-filter-group]").length).toBe(0);
   });
 });
 

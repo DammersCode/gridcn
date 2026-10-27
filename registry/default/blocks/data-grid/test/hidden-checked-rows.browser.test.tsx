@@ -5,7 +5,7 @@ import { render } from "vitest-browser-react";
 import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot, defineColumns, useDataGridApi, type DataGridApi } from "../data-grid";
 import { DataGridStatusBar } from "../../data-grid-status-bar/data-grid-status-bar";
 import { gridAttrSelector } from "../data-grid-sdk";
-import type { DataChange, FilterSpec } from "../types";
+import type { DataChange, FilterNode, FilterSpec } from "../types";
 import "@/app/global.css";
 
 type Row = { id: string; name: string };
@@ -31,7 +31,7 @@ function Harness(props: {
   onBeforeDeleteRows?: Confirm;
   apiRef: { current: DataGridApi<Row> | null };
 }) {
-  const [filters, setFilters] = useState<FilterSpec[]>([]);
+  const [filters, setFilters] = useState<FilterNode[]>([]);
   return (
     <div style={{ height: 460 }}>
       <button type="button" onClick={() => setFilters(onlyPerson5)}>

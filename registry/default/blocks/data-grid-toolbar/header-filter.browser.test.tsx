@@ -8,6 +8,7 @@ import {
   DataGridHeader,
   DataGridBody,
   defineColumns,
+  type FilterNode,
   type FilterSpec,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { GRID_ATTR, gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -42,10 +43,10 @@ const button = (name: string) => [...popup()!.querySelectorAll<HTMLButtonElement
 type GridOptions = {
   rows?: Row[];
   headerClickBehavior?: "select" | "sort";
-  defaultFilterState?: FilterSpec[];
+  defaultFilterState?: FilterNode[];
   cols?: typeof columns;
   width?: number;
-  onFilterChange?: (next: FilterSpec[]) => void;
+  onFilterChange?: (next: FilterNode[]) => void;
   onContextMenu?: () => void;
   sortMode?: "client" | "server";
 };
