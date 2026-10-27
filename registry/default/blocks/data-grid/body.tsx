@@ -10,7 +10,7 @@ import {
   useDataGridRowCount,
   useDataGridRowIds,
   useDataGridRowMarkers,
-  useDataGridRowMoveAnnouncement,
+  useDataGridLiveAnnouncement,
   useDataGridRowReorderEnabled,
   useDataGridStoreApi,
   type AnyColumnDef,
@@ -29,6 +29,9 @@ import { createRowElementRegistry } from "./row-element-registry";
 import { GRID_LAYER } from "./layers";
 import { gridAttrSelector } from "./data-attributes";
 import { isDev } from "./is-dev";
+
+/** Trailing delay before the grid's live region shows the latest announcement; rapid writes (marker range drag, fast filter edits) collapse into the last one. */
+const ANNOUNCEMENT_DEBOUNCE_MS = 500;
 
 /** Real-index `[min, max+1)` bounds of the currently rendered UNPINNED columns.
  * Overlay segmentation clamps its unpinned segment to this, so it never reaches off-screen track
@@ -208,7 +211,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   // the gesture lives on the marker's reorder family only — plain number/checkbox/both markers
   // stay pure row-select surfaces (see RowMarkersMode), so a selection drag never reorders.
   const rowReorderArmed = rowReorderEnabled && isReorderMarkerMode(rowMarkers);
-  const reorderAnnouncement = useDataGridRowMoveAnnouncement();
+  const announcementText = useDataGridLiveAnnouncement();
   // A `role="status"` region may not live inside role="grid" (only row/rowgroup are allowed
   // children — axe's aria-required-children), so the announcement portals to <body> after mount;
   // the gate keeps SSR output free of the portal node.
@@ -216,6 +219,18 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   useEffect(() => {
     setAnnouncementTarget(document.body);
   }, []);
+  // Trailing debounce: each new announcement resets the timer, so a gesture that rewrites the
+  // text frame after frame (marker range drag) is read once, at its final count.
+  const [shownAnnouncement, setShownAnnouncement] = useState("");
+  const announcementTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!announcementText) return;
+    if (announcementTimer.current) clearTimeout(announcementTimer.current);
+    announcementTimer.current = setTimeout(() => setShownAnnouncement(announcementText), ANNOUNCEMENT_DEBOUNCE_MS);
+    return () => {
+      if (announcementTimer.current) clearTimeout(announcementTimer.current);
+    };
+  }, [announcementText]);
 
   /** Resolves the data row (and its above/below half) under a client point, for the reorder drag's live drop target. */
   const hitTestRow = useCallback((clientX: number, clientY: number) => {
@@ -357,7 +372,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
       {announcementTarget &&
         createPortal(
           <div aria-live="polite" role="status" className="sr-only">
-            {reorderAnnouncement}
+            {shownAnnouncement}
           </div>,
           announcementTarget,
         )}

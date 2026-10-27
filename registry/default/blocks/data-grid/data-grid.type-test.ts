@@ -190,6 +190,7 @@ assertEqual<(change: DataChange<unknown>) => void, typeof wActions.commitChange>
 
 assertEqual<boolean | undefined, DataGridSyncProps<Row>["keepCheckedRows"]>(true);
 assertEqual<boolean | undefined, DataGridSyncProps<Row>["keepHiddenCheckedRows"]>(true);
+assertEqual<boolean | undefined, DataGridSyncProps<Row>["announceResults"]>(true);
 assertEqual<((ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean | Promise<boolean>) | undefined, DataGridSyncProps<Row>["onBeforeDeleteRows"]>(true);
 
 // Disjoint: a sync prop that also exists on the root would be ambiguous about which home reads it.

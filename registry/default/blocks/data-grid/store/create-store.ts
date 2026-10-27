@@ -737,6 +737,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             onCellClick: props.onCellClick,
             onRenderedRowsChange: props.onRenderedRowsChange,
             readOnly: Boolean(props.readOnly),
+            announceResults: props.announceResults ?? false,
             keymap: nextKeymap ?? s.keymap,
           };
         });
@@ -1069,6 +1070,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     commands: initCommands,
     labels: mergeLabels(init.labels),
     rowMoveAnnouncement: "",
+    liveAnnouncement: "",
+    announceResults: init.announceResults ?? false,
     actions: {
       setActiveCell(ref) {
         if (ref === null) {
@@ -1227,7 +1230,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         set({ lastHighlightedRow: index, rowRangeGesture: rowGestureAt(s, s.selection, index, base, !base.hasIndex(index)) });
       },
       setAllRowsSelected(checked) {
-        const { selection, viewIndex, enableRowSelection } = get();
+        const { selection, viewIndex, enableRowSelection, labels } = get();
         if (!enableRowSelection) return;
         const rows = checked ? CompactSelection.fromSingleSelection([0, viewIndex.length]) : CompactSelection.empty();
         set({ selection: { ...selection, rows }, rowRangeGesture: null, ...(checked ? {} : { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS }) });
@@ -1524,5 +1527,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // Handed to the plugin onDataChange observers (writeThenEmit); after creation, so the handle's
   // eager state read resolves.
   dataWrite.pluginApi = apiHandleOf(store);
+  // announceResults: filter, sort, and join each settle the view in the same write as the spec
+  // change, so one identity check catches uncontrolled actions and the controlled _syncProps
+  // recompute alike; quick search never touches the view and stays quiet.
+  store.subscribe((state, prev) => {
+    if (!state.announceResults || state.sortMode !== "client") return;
+    if (state.filterState === prev.filterState && state.sortState === prev.sortState && state.joinOperator === prev.joinOperator) return;
+    store.setState({ liveAnnouncement: state.labels.grid.resultsCount(state.viewIndex.length) });
+  });
   return store;
 }

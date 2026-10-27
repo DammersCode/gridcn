@@ -1,6 +1,7 @@
 ---
 title: Selection & keyboard
 description: Range selection, mouse gestures, and the full keyboard shortcut reference.
+status: updated
 icon: MousePointer2
 ---
 
@@ -233,6 +234,10 @@ The marker checkboxes are not tab stops, so the keyboard has its own actions:
 To check rows that are not next to each other, move with <kbd>Alt</kbd>+<kbd>Arrow</kbd>, which
 keeps the selection, and press `toggleRow` on each row. <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+A
 (`selectAll`) selects cells, not checked rows.
+
+Every check and uncheck — `toggleRow` <NewBadge />, the marker checkboxes, and the header
+checkbox — writes the checked total to the grid's live region, for example "3 rows checked"
+(`labels.grid.rowsChecked`).
 
 ## Moving rows
 

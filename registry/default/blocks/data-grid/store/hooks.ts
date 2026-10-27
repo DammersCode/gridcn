@@ -120,6 +120,11 @@ export function useDataGridRowMoveAnnouncement(): string {
   return useDataGridStore((s) => s.rowMoveAnnouncement);
 }
 
+/** The text the grid's live region shows: the latest of a row move, a row check, or a result count. */
+export function useDataGridLiveAnnouncement(): string {
+  return useDataGridStore((s) => s.liveAnnouncement);
+}
+
 /** The currently active (focused) cell, or null when nothing is active. */
 export function useDataGridActiveCell(): ViewCoord | null {
   return useDataGridStore((s) => s.activeCell);

@@ -151,6 +151,12 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   keepHiddenCheckedRows?: boolean;
   /**
+   * Announces the view's row count through the grid's live region after a filter, sort, or
+   * join-operator commit. Skipped while `sortMode="server"` (the grid does not hold every row);
+   * with a lazy source the count covers the loaded rows. Default `false`.
+   */
+  announceResults?: boolean;
+  /**
    * Runs before every row delete the grid starts: the Delete rows shortcut, the context-menu
    * item, and `actions.deleteRows` / `deleteRowsById`. `rowIds` are the rows that go; `hiddenCount`
    * counts the hidden checked rows that stay. Return `false` (or a promise of `false`) to cancel.
@@ -583,6 +589,7 @@ export type DataGridStoreState = Omit<
   | "enableRowSelection"
   | "keepCheckedRows"
   | "keepHiddenCheckedRows"
+  | "announceResults"
   | "enableColumnSelection"
   | "enableRangeSelection"
   | "enableMultiRange"
@@ -615,6 +622,7 @@ export type DataGridStoreState = Omit<
   enableRowSelection: boolean;
   keepCheckedRows: boolean;
   keepHiddenCheckedRows: boolean;
+  announceResults: boolean;
   /** Row ids of checked rows a filter hides; empty unless `keepHiddenCheckedRows` is in effect. Actions never read it. */
   hiddenCheckedRowIds: ReadonlySet<string>;
   enableColumnSelection: boolean;
@@ -796,6 +804,8 @@ export type DataGridStoreState = Omit<
   labels: DataGridLabels;
   /** The live-region text of the latest row move (drag, keyboard, or `reorderRows`); empty before the first. */
   rowMoveAnnouncement: string;
+  /** The live-region text the grid's region shows: the latest of a row move, a row check ("N rows checked"), or a result count (`announceResults`). Each write replaces the text, so a later announcement never accumulates with an earlier one. Empty before the first. */
+  liveAnnouncement: string;
   /** The public actions only — the `_`-prefixed internals live in the store-private table ({@link getInternalActions}), never in state. */
   actions: DataGridActions;
 };

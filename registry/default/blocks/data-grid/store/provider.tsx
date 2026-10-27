@@ -107,6 +107,7 @@ const CONFIG_KEYS = [
   "enableRowSelection",
   "keepCheckedRows",
   "keepHiddenCheckedRows",
+  "announceResults",
   "onBeforeDeleteRows",
   "enableColumnSelection",
   "enableRangeSelection",

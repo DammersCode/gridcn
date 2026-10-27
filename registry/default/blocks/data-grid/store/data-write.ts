@@ -514,6 +514,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     ctx.lastEmittedData = nextData;
     const editRemap = remapEditing(s, s.viewIndex, s.visibleColumns, nextData, getRowId);
     const follow = (row: number) => newIndexOf[row] ?? row;
+    const announcement = announceRowMove(s, plan);
     writeThenEmit(ctx, s, nextData, { source: "row-operation", ops }, () =>
       set({
         data: nextData,
@@ -521,7 +522,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         selection: remapSelectionRows(s.selection, newIndexOf),
         activeCell: s.activeCell ? { ...s.activeCell, row: follow(s.activeCell.row) } : null,
         lastHighlightedRow: s.lastHighlightedRow === null ? null : follow(s.lastHighlightedRow),
-        rowMoveAnnouncement: announceRowMove(s, plan),
+        rowMoveAnnouncement: announcement,
+        liveAnnouncement: announcement,
         ...editRemap,
       }),
     );

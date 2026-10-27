@@ -181,6 +181,10 @@ export type DataGridGridLabels = {
   loading: string;
   /** Placeholder for the date editor's typed input (default hints the ISO `yyyy-mm-dd` format). */
   datePlaceholder: string;
+  /** Polite live-region announcement after the checked rows change; `count` is the new number of checked rows. */
+  rowsChecked: (count: number) => string;
+  /** Polite live-region announcement after a filter, sort, or join-operator commit (`announceResults`); `count` is the view's row count. */
+  resultsCount: (count: number) => string;
 };
 
 /** Import/export add-on strings (`data-grid-io`): export dropdown + import dialog. */
@@ -508,6 +512,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
     emptyState: "No rows",
     loading: "Loading…",
     datePlaceholder: "yyyy-mm-dd",
+    rowsChecked: (count) => `${count} ${count === 1 ? "row" : "rows"} checked`,
+    resultsCount: (count) => `${count} ${count === 1 ? "row" : "rows"}`,
   },
   io: {
     exportButtonAriaLabel: "Export",

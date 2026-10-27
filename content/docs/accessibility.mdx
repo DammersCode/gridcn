@@ -1,6 +1,7 @@
 ---
 title: Accessibility
 description: The WAI-ARIA grid model, roving tabindex, live regions, the honest test matrix, and known gaps.
+status: updated
 icon: Accessibility
 ---
 
@@ -106,6 +107,18 @@ filter"/"Add sort" button once the list is empty) after a delete. See the per-ke
 both popovers: [Toolbar add-on: filter menu keyboard &
 accessibility](/docs/addons/toolbar#filter-menu-keyboard--accessibility) and
 [Sort list: keyboard & accessibility](/docs/addons/sort-list#keyboard--accessibility).
+
+The grid's own live region is a `role="status"` <NewBadge /> element with `aria-live="polite"`,
+portaled to `<body>` because a live region cannot live inside `role="grid"`. It carries the
+row-move text after a reorder and the checked-row total after a row check or uncheck, for example
+"3 rows checked" (`labels.grid.rowsChecked`). Rapid consecutive writes collapse into one
+announcement. After a 500 ms pause, the region shows the latest text, so a marker range drag is
+read once, at its final count.
+
+With `announceResults` <NewBadge /> the region also carries the view's row count after a filter,
+sort, or join-operator commit, for example "42 rows" (`labels.grid.resultsCount`). The option
+defaults to `false`. The grid skips the announcement while `sortMode="server"`, because it does
+not hold every row. With a lazy source the count covers the loaded rows.
 
 ## Keyboard coverage
 
