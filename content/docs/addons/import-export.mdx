@@ -116,6 +116,8 @@ logs a dev-only warning.
 dialog opens, and its "Save as PDF" produces the PDF file. Inside the grid's tree, use
 `useDataGridPrint()`, or place `<DataGridPrintButton />` in the toolbar.
 
+<ComponentPreview name="data-grid-print-demo" />
+
 Print takes the same `scope` as export: `"view"` (the current sort and filter order), `"all"`, or
 `"selection"`. The table holds the visible columns in view order. Hidden columns never print.
 Cell text is the cell type's display text (`toDisplayText ?? toText`), not the export text, so a
