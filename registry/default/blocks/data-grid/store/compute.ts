@@ -4,7 +4,6 @@ import type {
   CompactSelectionLike,
   DataOp,
   FilterNode,
-  FilterSpec,
   GridRect,
   GridSelection,
   SearchOptions,

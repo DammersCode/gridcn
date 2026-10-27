@@ -1,4 +1,4 @@
-import type { CellType, DataGridReadState, FilterNode, FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import type { CellType, DataGridReadState, FilterNode } from "@/registry/default/blocks/data-grid/data-grid";
 import { displayText, isFilterGroup, makeFilterPredicate, rowAccessorFor, toSafeText } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export const DISTINCT_VALUES_CAP = 100_000;

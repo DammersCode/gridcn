@@ -1,5 +1,5 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
-import type { ColumnLayout, CompactSelectionLike, DataGridPlugin, GridCommand, GridRect, GridSelection, SelectionState, ViewCoord, CellType, DataOp, FilterNode, FilterSpec, Keymap } from "../types";
+import type { ColumnLayout, CompactSelectionLike, DataGridPlugin, GridCommand, GridRect, GridSelection, SelectionState, ViewCoord, CellType, DataOp, FilterNode, Keymap } from "../types";
 import { BUILTIN_ACTIONS, keymapContentEqual, PLUGGABLE_ACTIONS, validateKeymap, validateSharedBindings } from "../keyboard";
 import { CompactSelection } from "../selection/compact-selection";
 import { applyRowRange, isRowRangeLive, type RowRangeGesture } from "../selection/row-range-gesture";

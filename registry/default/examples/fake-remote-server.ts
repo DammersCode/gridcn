@@ -26,7 +26,7 @@ function assertFilterTree(nodes: readonly RemoteFilterNode[], allowed: ReadonlyS
   let leaves = 0;
   const walk = (list: readonly RemoteFilterNode[], depth: number) => {
     if (!Array.isArray(list)) throw new Error("invalid filter tree");
-    for (const node of list) {
+    for (const node of list as readonly RemoteFilterNode[]) {
       if (isGroup(node)) {
         if (depth >= MAX_FILTER_DEPTH || (node.join !== "and" && node.join !== "or")) throw new Error("invalid filter group");
         walk(node.filters, depth + 1);
