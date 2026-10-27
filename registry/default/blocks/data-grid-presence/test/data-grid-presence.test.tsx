@@ -12,7 +12,7 @@ import {
   useDataGridRow,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPresence, useDataGridPresenceHighlights, type PresenceHighlightEntry, type PresenceStoreApi } from "../data-grid-presence";
-import { DEFAULT_PRESENCE_COLOR, MAX_RESOLVED_RECTS, resolveHighlights, safePresenceColor } from "../presence-overlay";
+import { MAX_RESOLVED_RECTS, resolveHighlights, safePresenceColor } from "../presence-overlay";
 import type { GridRect } from "@/registry/default/blocks/data-grid/data-grid";
 import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
@@ -1078,9 +1078,9 @@ describe("safePresenceColor", () => {
     vi.unstubAllGlobals();
   });
 
-  it("falls back to the default color when the browser rejects the value", () => {
+  it("falls back to the primary token when the browser rejects the value", () => {
     vi.stubGlobal("CSS", { supports: (_property: string, value: string) => value !== "url(https://example.test/x)" });
-    expect(safePresenceColor("url(https://example.test/x)")).toBe(DEFAULT_PRESENCE_COLOR);
+    expect(safePresenceColor("url(https://example.test/x)")).toBe("var(--color-primary)");
     expect(safePresenceColor("rebeccapurple")).toBe("rebeccapurple");
   });
 

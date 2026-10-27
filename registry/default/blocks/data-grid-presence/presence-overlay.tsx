@@ -15,12 +15,13 @@ import {
 /** Default cap on the rects ONE range entry may paint (per contiguous fragment): a remote selection of scattered rows must not turn the overlay layer into thousands of divs. Override it with `useDataGridPresence({ maxRects })`; excess fragments are dropped and reported via the `onExcessRects` option. */
 export const MAX_RESOLVED_RECTS = 1024;
 
-export const DEFAULT_PRESENCE_COLOR = "oklch(0.6 0.2 260)";
+const FALLBACK_PRESENCE_COLOR = "var(--color-primary)";
 
-/** Returns `color` when the browser parses it as a CSS color, else the default; passes through where `CSS.supports` is missing (SSR, jsdom). */
+
+/** Returns `color` when the browser parses it as a CSS color, else `var(--color-primary)`; passes through where `CSS.supports` is missing (SSR, jsdom). */
 export function safePresenceColor(color: string): string {
   if (typeof CSS === "undefined" || typeof CSS.supports !== "function") return color;
-  return CSS.supports("color", color) ? color : DEFAULT_PRESENCE_COLOR;
+  return CSS.supports("color", color) ? color : FALLBACK_PRESENCE_COLOR;
 }
 
 /** One remote user's selection-range fill + border, grid-line placed like core's own RangeOverlay; color comes from the highlight itself via `--presence-color`, not a shadcn token. Memoized: the resolved rects keep identity across overlay renders (see `makePresencePlugin`'s memo), so an unchanged highlight never re-renders its divs on a local keystroke. */
@@ -43,7 +44,7 @@ const PresenceHighlightOverlay = memo(function PresenceHighlightOverlay({
       data-grid-presence-overlay=""
       data-pinned={pinStyle ? "" : undefined}
       aria-hidden="true"
-      className="pointer-events-none border border-[color-mix(in_oklch,var(--presence-color)_100%,transparent)] bg-[color-mix(in_oklch,var(--presence-color)_12%,transparent)]"
+      className="pointer-events-none border border-[color-mix(in_oklch,var(--presence-color,var(--color-primary))_100%,transparent)] bg-[color-mix(in_oklch,var(--presence-color,var(--color-primary))_12%,transparent)]"
       style={{
         // positioned: cells are position:relative, so a static overlay would paint below them
         position: "relative",
@@ -83,16 +84,17 @@ const PresenceLabelChip = memo(function PresenceLabelChip({
       aria-hidden="true"
       className="pointer-events-none z-20 flex items-start justify-start"
       style={{
+        "--presence-color": safeColor,
         gridColumnStart: rect.x + colOffset,
         gridColumnEnd: rect.x + colOffset + 1,
         gridRowStart: rect.y - windowStart + 1,
         gridRowEnd: rect.y - windowStart + 2,
         ...pinStyle,
-      }}
+      } as CSSProperties}
     >
       <span
-        className="-translate-y-1/2 rounded-sm px-1.5 py-0.5 text-xs font-medium whitespace-nowrap shadow-sm"
-        style={{ backgroundColor: safeColor, color: "var(--presence-label-foreground, white)" }}
+        // Lightness below 0.62 gives white text, above gives black; white stays where relative color syntax is missing.
+        className="-translate-y-1/2 rounded-sm bg-(--presence-color,var(--color-primary)) px-1.5 py-0.5 text-xs font-medium whitespace-nowrap text-(--presence-label-foreground,white) shadow-sm supports-[color:oklch(from_red_l_c_h)]:text-(--presence-label-foreground,oklch(from_var(--presence-color,var(--color-primary))_clamp(0,calc((0.62-l)*1000),1)_0_h_/_1))"
       >
         {label}
       </span>
