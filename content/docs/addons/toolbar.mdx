@@ -129,6 +129,7 @@ The popover works like this:
 - Apply stores the shorter list. If fewer values are checked than unchecked, it writes `isAnyOf` with the checked values. Otherwise it writes `isNoneOf` with the unchecked values. A value that enters the data later passes `isNoneOf`.
 - Apply <NewBadge /> keeps every other filter, including condition filters on the same column. It reads and writes only the top-level set filter of the column, so it always narrows the result. Set filters inside a filter group belong to the filter menu.
 - Apply is disabled while no value is checked, and while the stored list would hold more than 1,000 entries. A message explains the second case.
+- A line <NewBadge /> under the list says when the column also has filter rows inside a group (`labels.headerFilterGroupRows`).
 - Clear removes every filter of the column, at every level, and removes the groups that this leaves empty. <kbd>Escape</kbd> or a press outside the popover discards the selection.
 - The list reads at most 100,000 distinct values. Past that limit it shows the first values and a message.
 

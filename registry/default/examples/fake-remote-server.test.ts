@@ -72,4 +72,17 @@ describe("createRemoteServer filter groups", () => {
     await expect(server.fetchPage({ page: 1, pageSize: 1, filters: [{ join: "xor", filters: [leaf] } as never] })).rejects.toThrow();
     await expect(server.fetchPage({ page: 1, pageSize: 1, filters: [{ ...leaf, columnId: "secret" }] })).rejects.toThrow();
   });
+
+  it("rejects 100k empty groups before it walks them", async () => {
+    const server = createRemoteServer();
+    const groups = Array.from({ length: 100_000 }, () => ({ join: "or" as const, filters: [] }));
+    await expect(server.fetchPage({ page: 1, pageSize: 1, filters: groups })).rejects.toThrow("invalid filter group");
+  });
+
+  it("accepts 16 groups and rejects the 17th", async () => {
+    const server = createRemoteServer();
+    const groups = (n: number) => Array.from({ length: n }, () => ({ join: "or" as const, filters: [] }));
+    await expect(server.fetchPage({ page: 1, pageSize: 1, filters: groups(16) })).resolves.toBeDefined();
+    await expect(server.fetchPage({ page: 1, pageSize: 1, filters: groups(17) })).rejects.toThrow("invalid filter group");
+  });
 });

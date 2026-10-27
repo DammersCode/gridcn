@@ -17,18 +17,20 @@ export type RemoteQuery = {
 const LATENCY_MS = 300;
 const MAX_FILTER_DEPTH = 2;
 const MAX_FILTER_LEAVES = 64;
+const MAX_FILTER_GROUPS = 16;
 const FILTERABLE_COLUMNS: ReadonlySet<string> = new Set(["id", "name", "email", "age", "active", "role", "joined", "score"]);
 
 const isGroup = (node: RemoteFilterNode): node is RemoteFilterGroup => "filters" in node;
 
-/** Checks an untrusted filter tree before it is evaluated: depth, leaf count, and join values. */
+/** Checks an untrusted filter tree before it is evaluated: depth, group count, leaf count, and join values. A real server also caps the request body size. */
 function assertFilterTree(nodes: readonly RemoteFilterNode[], allowed: ReadonlySet<string>): void {
   let leaves = 0;
+  let groups = 0;
   const walk = (list: readonly RemoteFilterNode[], depth: number) => {
     if (!Array.isArray(list)) throw new Error("invalid filter tree");
     for (const node of list as readonly RemoteFilterNode[]) {
       if (isGroup(node)) {
-        if (depth >= MAX_FILTER_DEPTH || (node.join !== "and" && node.join !== "or")) throw new Error("invalid filter group");
+        if (depth >= MAX_FILTER_DEPTH || ++groups > MAX_FILTER_GROUPS || (node.join !== "and" && node.join !== "or")) throw new Error("invalid filter group");
         walk(node.filters, depth + 1);
       } else {
         if (!allowed.has(node.columnId) || ++leaves > MAX_FILTER_LEAVES) throw new Error("invalid filter");

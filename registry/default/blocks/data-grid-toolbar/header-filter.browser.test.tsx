@@ -152,6 +152,15 @@ describe("DataGridHeaderFilter", () => {
     expect(getApi().getState().viewIndex.length).toBeLessThan(before);
   });
 
+  it("names the group rows of the column in one line, and stays silent without them", async () => {
+    await renderGrid({ defaultFilterState: [{ join: "or", filters: [{ columnId: "city", operator: "isAnyOf", value: ["bonn"] }] }] });
+    await openFilter("city");
+    expect(document.body.textContent).toContain("also has filters in a group");
+    await userEvent.keyboard("{Escape}");
+    await openFilter("age");
+    expect(document.body.textContent).not.toContain("also has filters in a group");
+  });
+
   it("Clear removes the column's rows at every level and drops emptied groups", async () => {
     const getApi = await renderGrid({
       defaultFilterState: [

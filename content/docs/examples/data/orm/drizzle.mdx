@@ -31,14 +31,14 @@ import { db, users } from "~/db";
 
 const COLUMN = { name: users.name, email: users.email, role: users.role, score: users.score } as const;
 
-// The body is untrusted: bound the tree before it reaches a query.
-function assertFilterTree(nodes, depth = 0, count = { leaves: 0 }) {
+// The body is untrusted: cap its size at the framework or proxy, and bound the tree before it reaches a query.
+function assertFilterTree(nodes, depth = 0, count = { leaves: 0, groups: 0 }) {
   if (!Array.isArray(nodes)) throw new Error("invalid filters");
   for (const node of nodes) {
-    if ("filters" in node) {
-      if (depth >= 2 || (node.join !== "and" && node.join !== "or")) throw new Error("invalid group");
+    if (Array.isArray(node?.filters)) {
+      if (depth >= 2 || ++count.groups > 16 || (node.join !== "and" && node.join !== "or")) throw new Error("invalid group");
       assertFilterTree(node.filters, depth + 1, count);
-    } else if (!(node.columnId in COLUMN) || ++count.leaves > 64) {
+    } else if (typeof node?.columnId !== "string" || !Object.hasOwn(COLUMN, node.columnId) || ++count.leaves > 64) {
       throw new Error("invalid filter");
     }
   }
@@ -104,9 +104,10 @@ The client is the [server-side example](/docs/examples/data/server-side) unchang
 `INSERT`/`DELETE` handler.
 
 <Callout type="warn" title="Validate the column ids">
-`f.columnId` comes from the client. The `COLUMN` lookup map is the guard: an unknown id
-resolves to `undefined`. It must throw a 400, and never reach the query builder. Same for the
-`sorts` entries.
+`f.columnId` comes from the client. Check it with `Object.hasOwn(COLUMN, id)`: the `in`
+operator also accepts inherited names such as `constructor`. An unknown id must throw a 400
+and never reach the query builder. Same for the `sorts` entries. Cap the request body size too:
+the tree limits (2 levels, 16 groups, 64 rows) do not bound a large JSON text.
 </Callout>
 
 ## Shareable state
