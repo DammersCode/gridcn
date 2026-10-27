@@ -85,6 +85,37 @@ describe("multiplayer presence — paint placement", () => {
     expect(Math.abs(overlayRect.top - cellRect.top)).toBeLessThan(1);
   });
 
+  it("derives a readable chip text color from the user color", async () => {
+    const { setPresenceHighlights } = await renderEngine({ columns: makeColumns(3), rowCount: 20 });
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    setPresenceHighlights([
+      { id: "light", color: "rgb(250, 240, 120)", range: { x: 0, y: 0, width: 1, height: 1 }, label: "Light" },
+      { id: "dark", color: "rgb(20, 30, 90)", range: { x: 1, y: 1, width: 1, height: 1 }, label: "Dark" },
+    ]);
+    await new Promise((r) => setTimeout(r, 50));
+
+    const chipText = (name: string) => {
+      const chip = [...document.querySelectorAll<HTMLElement>(gridAttrSelector("presenceLabel") + " span")].find((el) => el.textContent === name)!;
+      return getComputedStyle(chip).color;
+    };
+    expect(chipText("Light")).toMatch(/^(rgb\(0, 0, 0\)|oklch\(0 )/);
+    expect(chipText("Dark")).toMatch(/^(rgb\(255, 255, 255\)|oklch\(1 )/);
+  });
+
+  it("paints an invalid color with the primary token", async () => {
+    const { setPresenceHighlights } = await renderEngine({ columns: makeColumns(3), rowCount: 20 });
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+
+    setPresenceHighlights([{ id: "u1", color: "not-a-color", range: { x: 0, y: 0, width: 1, height: 1 } }]);
+    await new Promise((r) => setTimeout(r, 50));
+
+    const overlay = document.querySelector<HTMLElement>(gridAttrSelector("presenceOverlay"))!;
+    expect(getComputedStyle(overlay).getPropertyValue("--presence-color").trim()).toBe(
+      getComputedStyle(document.documentElement).getPropertyValue("--primary").trim(),
+    );
+  });
+
   it("splits a highlight spanning a pinned-left column + unpinned columns into 2 segments, pinned segment staying flush with the pinned cell", async () => {
     const { setPresenceHighlights } = await renderEngine({ columns: makeColumns(6, { firstPinnedLeft: true }), rowCount: 20 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();

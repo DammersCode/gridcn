@@ -27,9 +27,9 @@ const COL_COUNT = columns.length;
 
 /** Fixed simulated users — stable id/name/color, matching the real transport's `PresenceHighlight.id` contract. */
 const SIMULATED_USERS: { id: string; name: string; color: string }[] = [
-  { id: "ada", name: "Ada", color: "#e11d48" },
-  { id: "grace", name: "Grace", color: "#2563eb" },
-  { id: "linus", name: "Linus", color: "#16a34a" },
+  { id: "ada", name: "Ada", color: "var(--primary)" },
+  { id: "grace", name: "Grace", color: "var(--destructive)" },
+  { id: "linus", name: "Linus", color: "color-mix(in oklch, var(--primary) 50%, var(--background))" },
 ];
 
 /** Deterministic pseudo-random walk so the demo is reproducible across renders (no Math.random). */

@@ -18,7 +18,7 @@ import { useDataGridPresence } from "@/components/data-grid-presence/data-grid-p
 type PresenceHighlight = {
   /** Must be unique per entry — a multi-range selection sends one entry per range, each with its own id. */
   id: string;
-  /** Any CSS color; painted at fixed alpha for the fill, full opacity for the border/chip. */
+  /** Any CSS color, including `var(--primary)`; painted at fixed alpha for the fill, full opacity for the border/chip. */
   color: string;
   /** View-space rect (same coordinate system as GridSelection.current.range). */
   range: GridRect;
@@ -203,6 +203,12 @@ Building the map yourself (e.g. to resolve a rowId outside the plugin) uses the 
   window, split at pinned columns (pinned segments paint at the pinned cell's fixed screen
   position), and the `color` becomes the overlay node's `--presence-color`: border at full
   opacity, fill translucent enough that two overlapping highlights both stay legible.
+- A `color` the browser rejects paints as `var(--primary)`, so the preset sets the fallback.
+  Pass theme tokens such as `var(--primary)` or `var(--destructive)` to let the preset recolor
+  users. <NewBadge />
+- The name chip text is black or white, whichever has more contrast with the user color (the
+  switch sits at an OKLCH lightness of 0.62). Set `--presence-label-foreground` to use one fixed
+  text color instead. <NewBadge />
 - Presence paints **below** the local active-cell ring and is fully `aria-hidden` and
   `pointer-events-none`: it never touches `aria-selected` and never reaches the row-level path.
   The label chip renders only while the range's top-left corner survives the window clamp.

@@ -15,12 +15,15 @@ import {
 /** Default cap on the rects ONE range entry may paint (per contiguous fragment): a remote selection of scattered rows must not turn the overlay layer into thousands of divs. Override it with `useDataGridPresence({ maxRects })`; excess fragments are dropped and reported via the `onExcessRects` option. */
 export const MAX_RESOLVED_RECTS = 1024;
 
-export const DEFAULT_PRESENCE_COLOR = "oklch(0.6 0.2 260)";
+const FALLBACK_PRESENCE_COLOR = "var(--primary)";
 
-/** Returns `color` when the browser parses it as a CSS color, else the default; passes through where `CSS.supports` is missing (SSR, jsdom). */
+// Lightness below 0.62 clamps to white text, above to black.
+const READABLE_ON_PRESENCE_COLOR = "oklch(from var(--presence-color) clamp(0, (0.62 - l) * 1000, 1) 0 h)";
+
+/** Returns `color` when the browser parses it as a CSS color, else `var(--primary)`; passes through where `CSS.supports` is missing (SSR, jsdom). */
 export function safePresenceColor(color: string): string {
   if (typeof CSS === "undefined" || typeof CSS.supports !== "function") return color;
-  return CSS.supports("color", color) ? color : DEFAULT_PRESENCE_COLOR;
+  return CSS.supports("color", color) ? color : FALLBACK_PRESENCE_COLOR;
 }
 
 /** One remote user's selection-range fill + border, grid-line placed like core's own RangeOverlay; color comes from the highlight itself via `--presence-color`, not a shadcn token. Memoized: the resolved rects keep identity across overlay renders (see `makePresencePlugin`'s memo), so an unchanged highlight never re-renders its divs on a local keystroke. */
@@ -83,16 +86,17 @@ const PresenceLabelChip = memo(function PresenceLabelChip({
       aria-hidden="true"
       className="pointer-events-none z-20 flex items-start justify-start"
       style={{
+        "--presence-color": safeColor,
         gridColumnStart: rect.x + colOffset,
         gridColumnEnd: rect.x + colOffset + 1,
         gridRowStart: rect.y - windowStart + 1,
         gridRowEnd: rect.y - windowStart + 2,
         ...pinStyle,
-      }}
+      } as CSSProperties}
     >
       <span
         className="-translate-y-1/2 rounded-sm px-1.5 py-0.5 text-xs font-medium whitespace-nowrap shadow-sm"
-        style={{ backgroundColor: safeColor, color: "var(--presence-label-foreground, white)" }}
+        style={{ backgroundColor: "var(--presence-color)", color: `var(--presence-label-foreground, ${READABLE_ON_PRESENCE_COLOR})` }}
       >
         {label}
       </span>
