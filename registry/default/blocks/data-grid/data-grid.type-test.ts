@@ -33,7 +33,8 @@ import type {
   UpdateCellsReorder,
   UpdateCellsVerdict,
   DeepPartialLabels,
-  FilterJoinOperator,
+  FilterGroup,
+  FilterNode,
   FilterSpec,
   GetRowClassName,
   GridActions,
@@ -92,18 +93,20 @@ assertEqual<"currency", typeof currencyColumn.type>(true);
 
 const sortState: SortSpec[] = [{ columnId: "name", direction: "asc" }];
 const filterState: FilterSpec[] = [{ filterId: "f1", columnId: "age", operator: "gt", value: "10" }];
-const joinOperator: FilterJoinOperator = "or";
+const filterTree: FilterNode[] = [{ columnId: "age", operator: "gt", value: "10" }, { join: "or", filters: [{ columnId: "name", operator: "equals", value: "a" }] }];
+const group: FilterGroup = { join: "and", filters: [] };
+void group;
 
 declare const controlledProps: DataGridProps<Row>;
 type ControlledSlice = Pick<
   DataGridProps<Row>,
-  "sortState" | "onSortChange" | "filterState" | "onFilterChange" | "joinOperator" | "onJoinOperatorChange" | "searchText" | "onSearchTextChange"
+  "sortState" | "onSortChange" | "filterState" | "onFilterChange" | "searchText" | "onSearchTextChange"
 >;
 const controlledSlice: ControlledSlice = controlledProps;
 void controlledSlice;
 void sortState;
 void filterState;
-void joinOperator;
+void filterTree;
 
 // each controlled prop must be independently optional (uncontrolled-by-omission contract) —
 // an empty object satisfies the whole slice.
@@ -114,9 +117,12 @@ void allOmitted;
 const badSortState: Pick<DataGridProps<Row>, "sortState"> = { sortState: "asc" };
 void badSortState;
 
-// @ts-expect-error - joinOperator is "and" | "or", not an arbitrary string
-const badJoinOperator: Pick<DataGridProps<Row>, "joinOperator"> = { joinOperator: "xor" };
-void badJoinOperator;
+const badJoin: FilterGroup = {
+  // @ts-expect-error - join is "and" | "or", not an arbitrary string
+  join: "xor",
+  filters: [],
+};
+void badJoin;
 
 // --- W5-11: controlled selection and column layout, in stable CellRef terms ---------------------
 // `selection`/`defaultSelection` are mutually exclusive (selection wins), `onSelectionChange`

@@ -1,5 +1,6 @@
 import type { CellPatch, DataGridStoreState, UpdateCellsOptions } from "./types";
-import type { CellRef, FilterSpec, SortSpec, ViewCoord } from "../types";
+import { forEachFilterSpec } from "../sort-filter/filter-tree";
+import type { CellRef, FilterNode, SortSpec, ViewCoord } from "../types";
 
 /**
  * Lazily-built, incrementally-maintained `rowId -> dataIndex` map for {@link DataGridActions.updateCells}.
@@ -120,7 +121,7 @@ export function resolveReorder(
   requested: UpdateCellsOptions["reorder"],
   patches: readonly CellPatch[],
   sortState: readonly SortSpec[],
-  filterState: readonly FilterSpec[],
+  filterState: readonly FilterNode[],
 ): "defer" | "immediate" | "never" {
   const mode = requested ?? "defer";
   if (mode !== "defer") return mode;
@@ -131,12 +132,12 @@ export function resolveReorder(
 export function touchesViewInputs(
   patches: readonly CellPatch[],
   sortState: readonly SortSpec[],
-  filterState: readonly FilterSpec[],
+  filterState: readonly FilterNode[],
 ): boolean {
   if (sortState.length === 0 && filterState.length === 0) return false;
   const viewColumns = new Set<string>();
   for (const sort of sortState) viewColumns.add(sort.columnId);
-  for (const filter of filterState) viewColumns.add(filter.columnId);
+  forEachFilterSpec(filterState, (filter) => viewColumns.add(filter.columnId));
   for (const patch of patches) {
     if (viewColumns.has(patch.columnId)) return true;
   }

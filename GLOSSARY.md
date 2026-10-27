@@ -66,6 +66,8 @@ mirror the change there.
 | quick search | The toolbar search that highlights matches and never filters rows. | |
 | find and replace | The add-on panel that finds text through the quick search and replaces it in one match or in all matches. A replace writes one change with the source `"replace"`. | search and replace |
 | set filter | A filter that keeps or drops rows by a list of values. It uses the `isAnyOf` or `isNoneOf` operator. | value filter |
+| filter node | One entry of `filterState`: a filter row or a filter group. | filter item, filter entry |
+| filter group | A box of filter nodes that match together. Its join is `and` (every child must match) or `or` (any child). A group holds one more group at most. The top level of `filterState` always combines with `and`. | filter bracket, nested filter, join operator |
 | header filter | The filter button in a column header. It opens a popover with the set filter of that column. `renderHeaderFilter` places it, and `DataGridHeaderFilter` is the built-in one. | column filter popup |
 | tap | A touch press that lifts within 10 px and under 500 ms. A tap selects; two taps on one cell edit. | click (for touch) |
 | long-press | A touch press held for 500 ms without moving more than 10 px. It opens the context menu. | press and hold, tap and hold |

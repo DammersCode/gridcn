@@ -65,7 +65,6 @@ export {
   useDataGridColumnFeatureFlags,
   useDataGridFilterState,
   useDataGridIsColumnFiltered,
-  useDataGridJoinOperator,
   useDataGridSearchText,
   useDataGridSearchMatches,
   useDataGridSearchCapped,

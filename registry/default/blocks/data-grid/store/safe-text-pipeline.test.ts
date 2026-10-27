@@ -17,11 +17,11 @@ const columnsFor = (type?: string): readonly AnyColumnDef[] => [{ id: "value", h
 describe("filter and sort over values String() cannot convert", () => {
   it.each([undefined, "text", "longText", "number", "date"])("a contains filter does not throw on a %s column", (type) => {
     expect(() =>
-      computeViewIndex(data, columnsFor(type), [], [{ columnId: "value", operator: "contains", value: "a" }], "and", undefined, cellTypes as never),
+      computeViewIndex(data, columnsFor(type), [], [{ columnId: "value", operator: "contains", value: "a" }], undefined, cellTypes as never),
     ).not.toThrow();
   });
 
   it.each([undefined, "text", "longText", "number", "date"])("an asc sort does not throw on a %s column", (type) => {
-    expect(() => computeViewIndex(data, columnsFor(type), [{ columnId: "value", direction: "asc" }], [], "and", undefined, cellTypes as never)).not.toThrow();
+    expect(() => computeViewIndex(data, columnsFor(type), [{ columnId: "value", direction: "asc" }], [], undefined, cellTypes as never)).not.toThrow();
   });
 });
