@@ -226,6 +226,11 @@
                 "target": "components/data-grid/data-grid-sdk.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/live-region.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid/live-region.tsx"
+            },
+            {
                "path": "registry/default/blocks/data-grid/header-cell.tsx",
                "type": "registry:component",
                "target": "components/data-grid/header-cell.tsx"
@@ -529,6 +534,11 @@
                 "path": "registry/default/blocks/data-grid/store/create-store.ts",
                 "type": "registry:component",
                 "target": "components/data-grid/store/create-store.ts"
+             },
+             {
+                "path": "registry/default/blocks/data-grid/store/announcements.ts",
+                "type": "registry:component",
+                "target": "components/data-grid/store/announcements.ts"
              },
              {
                 "path": "registry/default/blocks/data-grid/store/data-write.ts",
@@ -2339,6 +2349,32 @@
                "path": "registry/default/examples/data-grid-find-replace-demo.tsx",
                "type": "registry:example",
                "target": "components/data-grid-find-replace-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-announcements-demo",
+         "type": "registry:example",
+         "title": "Data Grid Announcements Demo",
+         "description": "The live region announces checked rows and, with announceResults, the result count; a line on the page mirrors the spoken text.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-toolbar"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-announcements-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-announcements-demo.tsx"
             },
             {
                "path": "registry/default/examples/demo-data.ts",

@@ -23,7 +23,7 @@ import { resolveRefOrWarn } from "./data-write";
 import { getInternalActions } from "./internal-actions";
 import { useDataGridStore, useDataGridStoreApi } from "./provider";
 import type { SelectionPointer } from "./types";
-import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridInternalActions, DataGridRowCellState, DataGridStoreState, ResolvedPlugins } from "./types";
+import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridInternalActions, DataGridRowCellState, DataGridStoreState, LiveAnnouncement, ResolvedPlugins } from "./types";
 
 /** The stable actions object for the current grid; never changes identity, so this hook never re-renders. */
 export function useDataGridActions(): DataGridActions {
@@ -118,6 +118,11 @@ export function useDataGridLabels(): DataGridLabels {
 /** The polite live-region text of the latest row move. */
 export function useDataGridRowMoveAnnouncement(): string {
   return useDataGridStore((s) => s.rowMoveAnnouncement);
+}
+
+/** The latest announcement for the grid's live region: a row move, a row check, or a result count. */
+export function useDataGridLiveAnnouncement(): LiveAnnouncement | null {
+  return useDataGridStore((s) => s.liveAnnouncement);
 }
 
 /** The currently active (focused) cell, or null when nothing is active. */

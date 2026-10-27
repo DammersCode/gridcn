@@ -88,7 +88,7 @@ exportGrid(state, { format: "csv", scope: "selection" });
 sees, the active sort and filter, by walking `viewIndex` (quick search never narrows
 `viewIndex`; see [Sorting, filtering & search](/docs/sorting-filtering-search#search)). `'all'`
 ignores view order entirely and exports every row of the raw `data` array as-is.
-`'selection'` walks only the selected rows, counting both the marker checkboxes and any cell range. With `keepCheckedRows` <NewBadge />, it walks only the checked rows while any row is checked.
+`'selection'` walks only the selected rows, counting both the marker checkboxes and any cell range. With `keepCheckedRows`, it walks only the checked rows while any row is checked.
 
 Every scope emits all visible columns, so an exported row always lines up with its header row. A
 cell range that covers part of a row still exports that row in full.

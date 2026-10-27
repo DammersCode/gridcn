@@ -183,6 +183,10 @@ export type DataGridGridLabels = {
   datePlaceholder: string;
   /** aria-label for the date editor's calendar toggle button (`calendarTrigger`). */
   calendar: string;
+  /** Polite live-region announcement after the checked rows change; `count` is the new number of checked rows. */
+  rowsChecked: (count: number) => string;
+  /** Polite live-region announcement after a filter, sort, or join-operator commit (`announceResults`); `count` is the view's row count. */
+  resultsCount: (count: number) => string;
 };
 
 /** Import/export add-on strings (`data-grid-io`): export dropdown + import dialog. */
@@ -511,6 +515,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
     loading: "Loading…",
     datePlaceholder: "yyyy-mm-dd",
     calendar: "Calendar",
+    rowsChecked: (count) => `${count.toLocaleString("en-US")} ${count === 1 ? "row" : "rows"} checked`,
+    resultsCount: (count) => `${count.toLocaleString("en-US")} ${count === 1 ? "row" : "rows"}`,
   },
   io: {
     exportButtonAriaLabel: "Export",

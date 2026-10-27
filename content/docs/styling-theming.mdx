@@ -167,7 +167,7 @@ The attributes do not.
 | `data-invalid` (+ `aria-invalid`) | cell | The cell carries a validation error. |
 | `data-grid-pinned-row` | cell | The cell belongs to a pinned-row band. |
 | `data-dragging` | marker cell, header cell | That element is the reorder-drag source. |
-| <NewBadge /> `data-filtered` | header cell | The column has an active filter. |
+| `data-filtered` | header cell | The column has an active filter. |
 | `data-skeleton` | cell | The cell is a lazy-hole or loading skeleton. |
 | `data-resizing` | header cell | Its column's resize handle is being dragged. |
 | `aria-sort` | header | `ascending`, `descending`, or `none`, when `headerClickBehavior="sort"`. |
@@ -189,8 +189,8 @@ The grid also stamps one attribute per structural element, as a selector for the
 | `data-grid-marker-cell` / `data-grid-marker-number` | The marker column's per-row cell / its row number. |
 | `data-grid-marker-checkbox` / `data-grid-reorder-handle` | The checkbox glyph / drag handle inside a marker cell. |
 | `data-grid-resize-handle` / `data-grid-header-menu-trigger` | A column's resize handle / column-menu trigger. |
-| <NewBadge /> `data-grid-selection-handle="start" \| "end"` / `data-grid-column-reorder-handle` | A touch selection handle (the corner it drags) / the header drag handle that arms a column reorder under a coarse pointer. |
-| <NewBadge /> `data-grid-header-filter-slot` / `data-grid-header-filter-trigger` / `data-grid-header-filter-popup` | The header filter slot's container / its button / its popup portal. |
+| `data-grid-selection-handle="start" \| "end"` / `data-grid-column-reorder-handle` | A touch selection handle (the corner it drags) / the header drag handle that arms a column reorder under a coarse pointer. |
+| `data-grid-header-filter-slot` / `data-grid-header-filter-trigger` / `data-grid-header-filter-popup` | The header filter slot's container / its button / its popup portal. |
 | `data-grid-header-menu-popup` / `data-grid-header-dropdown` / `data-grid-context-menu` | The header-menu portal / dropdown / cell context-menu content. |
 | `data-grid-sort-indicator="asc" \| "desc"` | A header's own sort-direction arrow. |
 | `data-grid-drop-indicator` | The row- and column-reorder drop-position line. |
@@ -450,7 +450,7 @@ The header row does not follow `density`. Set the height of one header row with 
 <DataGridRoot rowHeight={40} headerHeight={44} />
 ```
 
-Row and header heights <NewBadge /> are props, not CSS variables. The grid needs the numbers to compute the visible rows, and it writes `--grid-row-height` itself. The inline value wins over a CSS rule. An `!important` override resizes the rows but not the window of mounted rows, so the grid shows gaps. Pass the height as a prop.
+Row and header heights are props, not CSS variables. The grid needs the numbers to compute the visible rows, and it writes `--grid-row-height` itself. The inline value wins over a CSS rule. An `!important` override resizes the rows but not the window of mounted rows, so the grid shows gaps. Pass the height as a prop.
 
 ## Scroll shadows
 

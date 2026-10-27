@@ -92,6 +92,8 @@ Three separate elements carry `aria-busy` or an equivalent progress role:
   label. The node owns its own accessibility.
 ## Live regions
 
+<ComponentPreview name="data-grid-announcements-demo" />
+
 The `data-grid-toolbar` search box announces its match count through `role="status"` with
 `aria-live="polite"`. The `data-grid-toolbar` filter popover and the `data-grid-sort-list`
 popover each carry a `role="status"` `aria-live="polite"` region that announces every reorder,
@@ -106,6 +108,10 @@ filter"/"Add sort" button once the list is empty) after a delete. See the per-ke
 both popovers: [Toolbar add-on: filter menu keyboard &
 accessibility](/docs/addons/toolbar#filter-menu-keyboard--accessibility) and
 [Sort list: keyboard & accessibility](/docs/addons/sort-list#keyboard--accessibility).
+
+The grid has one live region <NewBadge />, a `role="status"` element with `aria-live="polite"`. A live region cannot live inside `role="grid"`, so the grid places it in `<body>`. The region reads a row move and, after a check or uncheck, the number of checked rows, for example "3 rows checked" (`labels.grid.rowsChecked`). It waits 500 ms after the last change. A marker range drag is read once, with its final count. The same text is read again when the same change repeats.
+
+With `announceResults` <NewBadge />, the region also reads the number of rows in the view after a filter, sort, or join operator change, for example "42 rows" (`labels.grid.resultsCount`). A server-sorted grid skips it, because the grid does not hold every row. A lazy source counts its loaded rows only.
 
 ## Keyboard coverage
 
@@ -142,8 +148,6 @@ What the automated Chromium suite verifies, area by area:
 </Callout>
 
 ## Touch targets
-
-<NewBadge />
 
 Under a coarse pointer (`@media (pointer: coarse)`), every control a finger must hit is at least
 24 by 24 CSS px (WCAG 2.2, SC 2.5.8):

@@ -21,6 +21,7 @@ export type RegistryItemName =
   | "data-grid-cell-errors-demo"
   | "data-grid-cell-types-demo"
   | "data-grid-date-picker-demo"
+  | "data-grid-announcements-demo"
   | "data-grid-checked-rows-demo"
   | "data-grid-conditional-styling-demo"
   | "data-grid-column-drag-demo"
