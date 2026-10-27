@@ -116,6 +116,8 @@ logs a dev-only warning.
 dialog opens, and its "Save as PDF" produces the PDF file. Inside the grid's tree, use
 `useDataGridPrint()`, or place `<DataGridPrintButton />` in the toolbar.
 
+<ComponentPreview name="data-grid-print-demo" />
+
 Print takes the same `scope` as export: `"view"` (the current sort and filter order), `"all"`, or
 `"selection"`. The table holds the visible columns in view order. Hidden columns never print.
 Cell text is the cell type's display text (`toDisplayText ?? toText`), not the export text, so a
@@ -124,7 +126,8 @@ formatted value prints the way it reads on screen.
 <AutoTypeTable path="./registry/default/blocks/data-grid-io/print-grid.ts" name="PrintGridOptions" />
 
 `options.title` prints a heading and sets the document title. `options.orientation` defaults to
-`landscape` above 6 visible columns and `portrait` below. `options.maxRows` caps the printed rows
+`landscape` above 6 visible columns and `portrait` below. `options.pageSize` <NewBadge /> sets the page size:
+`"A4"` (the default), `"A3"`, `"Letter"`, or `"Legal"`. Choose "Save as PDF" as the destination to check the page size. `options.maxRows` caps the printed rows
 at 10,000 by default, further cut to fit a hard ceiling of 500,000 cells. Cell text longer than
 32,767 characters is cut. When the cap reduces the output, the table ends with a "Printed N of M
 rows" note.

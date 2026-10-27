@@ -34,6 +34,7 @@ export type PrintGridOptions = {
   scope?: "view" | "all" | "selection";      // default "view" (sort and filter order)
   title?: string;                            // printed heading and document title
   includeHeaders?: boolean;                  // default true
+  pageSize?: "A3" | "A4" | "Letter" | "Legal"; // default "A4"; CSS keyword from a fixed map
   orientation?: "portrait" | "landscape";    // default: landscape above 6 visible columns
   maxRows?: number;                          // default 10_000
 };
@@ -61,7 +62,7 @@ Labels under `labels.io`: `print`, `printButtonAriaLabel`, `printTruncated(print
 - **Document.** `<h1>` title (when given), `<table>` with `<thead>` of `<th scope="col">` and
   `<tbody>`; cell alignment from `cellType.align`. Print CSS: `thead { display:
   table-header-group }` repeats the header on every page, `tr { break-inside: avoid }`, `@page`
-  size from `orientation`, 10pt system font, thin borders. A CSP `<meta>` of `default-src 'none';
+  size from `pageSize` (default `A4`) and `orientation`, 10pt system font, thin borders. A CSP `<meta>` of `default-src 'none';
   style-src 'unsafe-inline'` blocks any network load.
 - **Cleanup.** The iframe is removed on the iframe window's `afterprint` event, with a 60 s
   fallback timer. A second `printGrid` while one is open replaces the first iframe.
@@ -75,6 +76,7 @@ Labels under `labels.io`: `print`, `printButtonAriaLabel`, `printTruncated(print
 - No HTML string is built from data: every value, header, and the title go through
   `textContent`. Tests feed `<img src=x onerror=…>`, `</table><script>`, and a `"` in a header.
 - `sandbox` without `allow-scripts`; CSP meta as a second layer; no `srcdoc`, no `window.open`.
+- `pageSize` reaches the CSS only through a fixed map; an unknown value falls back to A4.
 - The cap bounds DOM size on a hostile dataset; cell text is cut to 32,767 characters (the XLSX
   cell limit, so print and export agree).
 
