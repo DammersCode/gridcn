@@ -17,6 +17,7 @@ import {
   findSearchMatches,
   groupChildren,
   isFilterGroup,
+  MAX_FILTER_GROUP_DEPTH,
   searchTextReader,
   updateViewIndex,
   type CellAccessor,
@@ -343,15 +344,34 @@ export function genFilterId(): string {
  * input array itself when nothing is missing, so a stable prop reference stays a stable sync input.
  */
 export function withFilterIds(nodes: readonly FilterNode[]): FilterNode[] {
+  return fillFilterIds(nodes, 0);
+}
+
+/** A group nested deeper than `MAX_FILTER_GROUP_DEPTH` drops with its rows, which also bounds every later tree walk on untrusted state. */
+function fillFilterIds(nodes: readonly FilterNode[], depth: number): FilterNode[] {
   let changed = false;
-  const next = nodes.map((node) => {
-    const children = isFilterGroup(node) ? groupChildren(node) : undefined;
-    const filledChildren = children && withFilterIds(children);
-    if (node.filterId && filledChildren === children) return node;
-    changed = true;
-    const filterId = node.filterId || genFilterId();
-    return filledChildren ? { ...node, filterId, filters: filledChildren } : { ...node, filterId };
-  });
+  const next: FilterNode[] = [];
+  for (const node of nodes) {
+    if (!isFilterGroup(node)) {
+      if (node.filterId) next.push(node);
+      else {
+        changed = true;
+        next.push({ ...node, filterId: genFilterId() });
+      }
+      continue;
+    }
+    if (depth >= MAX_FILTER_GROUP_DEPTH) {
+      changed = true;
+      continue;
+    }
+    const children = groupChildren(node);
+    const filled = fillFilterIds(children, depth + 1);
+    if (node.filterId && filled === children) next.push(node);
+    else {
+      changed = true;
+      next.push({ ...node, filterId: node.filterId || genFilterId(), filters: filled });
+    }
+  }
   // the input is never mutated in place by the store (every update builds a new array)
   return changed ? next : (nodes as FilterNode[]);
 }

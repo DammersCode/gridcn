@@ -3552,6 +3552,15 @@ describe("controlled sortState/filterState/searchText (server escape hatch)", ()
       expect(inner.filters[0]!.filterId).toEqual(expect.any(String));
     });
 
+    it("withFilterIds drops groups below the depth cap, also for a cyclic tree", () => {
+      const leaf: FilterNode = { filterId: "l", columnId: "name", operator: "equals", value: "x" };
+      const cyclic: FilterGroup = { filterId: "c", join: "or", filters: [leaf] };
+      cyclic.filters.push(cyclic);
+      const filled = withFilterIds([cyclic]) as FilterGroup[];
+      const inner = filled[0]!.filters.find((n) => "filters" in n) as FilterGroup;
+      expect(inner.filters.some((n) => "filters" in n)).toBe(false);
+    });
+
     it("onFilterChange emits the tree", () => {
       const onFilterChange = vi.fn();
       const { result } = renderHook(useTreeProbe, { wrapper: makeConfigWrapper({ onFilterChange }) });

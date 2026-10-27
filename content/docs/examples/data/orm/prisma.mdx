@@ -49,6 +49,7 @@ function assertFilterTree(nodes, depth = 0, count = { leaves: 0 }) {
 
 function toWhere(node): Prisma.UserWhereInput {
   if ("filters" in node) {
+    if (node.filters.length === 0) return {};
     const children = node.filters.map(toWhere);
     return node.join === "or" ? { OR: children } : { AND: children };
   }

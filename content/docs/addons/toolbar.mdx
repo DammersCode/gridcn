@@ -97,8 +97,9 @@ The keyboard sensor of `@dnd-kit/react` also offers its own gesture for that key
 checks the plain arrow press first, and it wins. Every reorder announces the change through a polite
 `aria-live` region (`labels.toolbar.filterReorderAnnouncement`, for example "Name filter moved to
 position 2 of 3"). Focus never gets lost. After a reorder, focus stays on the moved row's drag handle.
-After deleting a row, focus moves to the next row's drag handle, then to the previous one, then to
-the drag handle of the group. Focus moves to the "Add filter" button when none is left. A group
+After deleting a row, focus moves to the next row's drag handle, then to the previous one. When the
+row was the last of its group, the group goes too, and focus moves to a sibling of that group.
+Focus moves to the "Add filter" button when none is left. A group
 whose last row is removed disappears. <NewBadge />
 
 ## Header filter

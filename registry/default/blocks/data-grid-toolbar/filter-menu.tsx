@@ -191,8 +191,11 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
       const current = latest();
       const at = locateNode(current, filterId);
       actions.setFilters(removeNode(current, filterId));
-      // focus follows deletion: a sibling's drag handle, else the parent group's, else the Add button.
-      const nextFocusId = at && (at.siblings[at.index + 1]?.filterId ?? at.siblings[at.index - 1]?.filterId ?? at.parentId);
+      // focus follows deletion: a sibling's drag handle, else the Add button.
+      // A sole row takes its group with it: walk up to the first level that keeps a sibling.
+      let near = at;
+      while (near && near.siblings.length === 1 && near.parentId) near = locateNode(current, near.parentId);
+      const nextFocusId = near && (near.siblings[near.index + 1]?.filterId ?? near.siblings[near.index - 1]?.filterId);
       if (nextFocusId) pendingFocusFilterIdRef.current = nextFocusId;
       else requestAnimationFrame(() => addButtonRef.current?.focus({ preventScroll: true }));
     },

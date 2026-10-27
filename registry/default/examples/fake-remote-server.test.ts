@@ -58,6 +58,12 @@ describe("createRemoteServer filter groups", () => {
     expect(result.total).toBe(expected);
   });
 
+  it("an empty group matches every row, like the client", async () => {
+    const server = createRemoteServer();
+    const { total } = await server.fetchPage({ page: 1, pageSize: 1, filters: [{ join: "or", filters: [] }] });
+    expect(total).toBe(server.total);
+  });
+
   it("rejects a tree that is too deep, has an unknown join, or names an unknown column", async () => {
     const server = createRemoteServer();
     const leaf = { columnId: "role", operator: "equals", value: "x" };

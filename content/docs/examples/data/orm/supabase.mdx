@@ -26,11 +26,11 @@ const OPS = { equals: "eq", notEquals: "neq", gt: "gt", gte: "gte", lt: "lt", lt
 // PostgREST filter strings split on commas and parentheses, so quote every value.
 const quote = (value: string) => `"${String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 
-// One "or" group deep: rows join with "or", and a nested "and" group becomes and(...).
+// One group deep: rows join with "or", and a nested group becomes and(...) or or(...).
 function orClause(group) {
   return group.filters
     .map((node) => {
-      if ("filters" in node) return `and(${node.filters.map(leafClause).join(",")})`;
+      if ("filters" in node) return `${node.join === "or" ? "or" : "and"}(${node.filters.map(leafClause).join(",")})`;
       return leafClause(node);
     })
     .join(",");
@@ -53,7 +53,9 @@ export async function POST(req: Request) {
       if (node.join !== "or") throw new Error("only or groups are supported");
       query = query.or(orClause(node));
     } else {
-      query = query.filter(node.columnId, OPS[node.operator], node.value);
+      const { columnId, operator, value } = node;
+      if (!ALLOWED.has(columnId) || !(operator in OPS)) throw new Error("invalid filter");
+      query = query.filter(columnId, OPS[operator], value);
     }
   }
   for (const s of sorts) {
@@ -75,8 +77,8 @@ Notes:
 - `range(from, to)` is inclusive on both ends, hence the `- 1`.
 - Column filters map to PostgREST operators one-to-one: `eq`, `neq`, `gt`, `gte`, `lt`,
   `lte`, `like`, `in.(...)`. The route above maps the first six.
-- The route covers the top-level rows and one level of `or` groups, with a nested `and` group
-  written as `and(...)`. A deeper tree needs a recursive string builder. The body is untrusted: the
+- The route covers the top-level rows and one level of `or` groups, with a nested group
+  written as `and(...)` or `or(...)`. A deeper tree needs a recursive string builder. The body is untrusted: the
   route checks every column id against `ALLOWED`, and `quote` escapes each value. Also bound the
   depth and the number of rows before you build the query, as the [Drizzle](/docs/examples/data/orm/drizzle)
   recipe does.
