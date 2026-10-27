@@ -535,7 +535,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    * column and removes it from flex distribution.
    */
   flex?: number;
-  /** Initial pin direction; change it at runtime through `setColumnPin` or the context menu. Pinned columns only reorder within their own pin zone. */
+  /** Initial pin side; `"left"` is the inline start and `"right"` the inline end, so both flip in a right-to-left page; change it at runtime through `setColumnPin` or the context menu. Pinned columns only reorder within their own pin zone. */
   pin?: "left" | "right";
   /** Removes the column from click-to-sort (header clicks no longer sort it); programmatic `setSorts`/`toggleSort` still apply. Default true. */
   sortable?: boolean;

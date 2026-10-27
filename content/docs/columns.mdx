@@ -62,8 +62,8 @@ zone. Dragging a left-pinned column onto the unpinned band does nothing. It neve
 Set `pin: 'left' | 'right'` per column as an initial value, or change it at runtime through the
 header dropdown menu or the right-click header context menu, both installed by the
 [context menu add-on](/docs/addons/context-menu), which owns the menu wiring and its items (sort,
-pin, autosize, hide). The menu items <NewBadge /> read "Pin to start" and "Pin to end". `pin: "left"` is the
-start side, `pin: "right"` the end side. In a left-to-right page, start is left and end is right.
+pin, autosize, hide). The menu items read "Pin to start" <NewBadge /> and "Pin to end". `pin: "left"` is the
+start side, `pin: "right"` the end side. In a left-to-right page, start is left and end is right. In a right-to-left page, start is right and end is left.
 
 <Callout type="idea" title="Right-click selects the cell first">
   Right-clicking a cell makes it the active cell with a single-cell selection before the menu
@@ -81,8 +81,8 @@ whose column offers a set filter. It receives `{ column, index }`. The `DataGrid
 component of the [toolbar add-on](/docs/addons/toolbar#header-filter) fills it. A header cell
 carries `data-filtered` while its column has a filter.
 
-A soft directional shadow marks the pinned boundary: the last left-pinned column casts a shadow
-to the right, and the first right-pinned column casts one to the left, whenever content is
+A soft directional shadow marks the pinned boundary: the last start-pinned column casts a shadow
+toward the end side, and the first end-pinned column casts one toward the start side, whenever content is
 actually scrolled beneath it.
 
 ### Persistent pin indicator
