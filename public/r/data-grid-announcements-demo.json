@@ -1,0 +1,29 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "data-grid-announcements-demo",
+  "title": "Data Grid Announcements Demo",
+  "author": "gridcn",
+  "description": "The live region announces checked rows and, with announceResults, the result count; a line on the page mirrors the spoken text.",
+  "registryDependencies": [
+    "DammersCode/gridcn/data-grid",
+    "DammersCode/gridcn/data-grid-toolbar"
+  ],
+  "files": [
+    {
+      "path": "registry/default/examples/data-grid-announcements-demo.tsx",
+      "content": "\"use client\";\n\nimport { useEffect, useMemo, useState, type ReactNode } from \"react\";\nimport {\n  DataGridBody,\n  DataGridHeader,\n  DataGridProvider,\n  DataGridRoot,\n  defineColumns,\n} from \"@/registry/default/components/data-grid/data-grid\";\nimport { DataGridHeaderFilter } from \"@/registry/default/components/data-grid-toolbar/data-grid-toolbar\";\nimport { generateDemoRows, type DemoRow } from \"./demo-data\";\n\nconst columns = defineColumns<DemoRow>()([\n  { id: \"name\", header: \"Name\", accessorKey: \"name\", type: \"text\", width: 140, flex: 2 },\n  { id: \"role\", header: \"Role\", accessorKey: \"role\", type: \"text\", width: 110, flex: 1 },\n  { id: \"score\", header: \"Score\", accessorKey: \"score\", type: \"number\", width: 90, flex: 1 },\n] as const);\n\nfunction useSpokenText(): string {\n  const [text, setText] = useState(\"\");\n  useEffect(() => {\n    const read = () => {\n      const spoken = [...document.querySelectorAll('[role=\"status\"]')].map((el) => el.textContent?.trim() ?? \"\").filter(Boolean);\n      if (spoken.length > 0) setText(spoken[spoken.length - 1]!);\n    };\n    const observer = new MutationObserver(read);\n    observer.observe(document.body, { childList: true, characterData: true, subtree: true });\n    return () => observer.disconnect();\n  }, []);\n  return text;\n}\n\nexport default function DataGridAnnouncementsDemo(): ReactNode {\n  const rows = useMemo(() => generateDemoRows(50), []);\n  const spoken = useSpokenText();\n\n  return (\n    <div className=\"flex w-full flex-col gap-2\">\n      <p className=\"m-0 text-sm text-muted-foreground\">\n        Check rows with the markers or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd>, or filter and sort a column.\n        The line below shows the text a screen reader hears from the grid&apos;s live region.\n      </p>\n      <p className=\"m-0 min-h-6 rounded-md border px-2 py-1 text-sm\" aria-hidden=\"true\">\n        Last announcement: <span className=\"font-medium\">{spoken || \"none yet\"}</span>\n      </p>\n      <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} rowMarkers=\"checkbox\" announceResults>\n        <DataGridRoot className=\"h-[360px]\" renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}>\n          <DataGridHeader />\n          <DataGridBody />\n        </DataGridRoot>\n      </DataGridProvider>\n    </div>\n  );\n}\n",
+      "type": "registry:example",
+      "target": "components/data-grid-announcements-demo.tsx"
+    },
+    {
+      "path": "registry/default/examples/demo-data.ts",
+      "content": "/** Deterministic LCG so SSR/CSR markup match without Math.random(); shared across example rows. */\r\nfunction createSeededLcg(seed: number) {\r\n  let state = seed;\r\n  return () => {\r\n    state = (state * 1103515245 + 12345) & 0x7fffffff;\r\n    return state / 0x7fffffff;\r\n  };\r\n}\r\n\r\nexport type DemoRow = {\r\n  id: string;\r\n  name: string;\r\n  email: string;\r\n  age: number;\r\n  active: boolean;\r\n  role: string;\r\n  joined: string;\r\n  score: number;\r\n};\r\n\r\nconst ROLES = [\"Admin\", \"User\", \"Editor\", \"Viewer\", \"Manager\"] as const;\r\nconst ADJECTIVES = [\"Eager\", \"Quick\", \"Silent\", \"Bold\", \"Swift\"] as const;\r\nconst NOUNS = [\"Eagle\", \"Lion\", \"Tiger\", \"Bear\", \"Wolf\"] as const;\r\n\r\n/** Generates `count` deterministic demo rows for example previews (seed 42, stable across renders). */\r\nexport function generateDemoRows(count: number, seed = 42): DemoRow[] {\r\n  const next = createSeededLcg(seed);\r\n  const rows: DemoRow[] = [];\r\n  for (let i = 0; i < count; i++) {\r\n    rows.push({\r\n      id: `row-${i}`,\r\n      name: `${ADJECTIVES[Math.floor(next() * ADJECTIVES.length)]} ${NOUNS[Math.floor(next() * NOUNS.length)]}`,\r\n      email: `user${i}@example.com`,\r\n      age: Math.floor(next() * 50) + 18,\r\n      active: next() > 0.5,\r\n      role: ROLES[Math.floor(next() * ROLES.length)]!, // ROLES is a fixed non-empty literal array\r\n      joined: `${2020 + Math.floor(next() * 5)}-${String(Math.floor(next() * 12) + 1).padStart(2, \"0\")}-${String(Math.floor(next() * 28) + 1).padStart(2, \"0\")}`,\r\n      score: Math.floor(next() * 100),\r\n    });\r\n  }\r\n  return rows;\r\n}\r\n",
+      "type": "registry:example",
+      "target": "components/demo-data.ts"
+    }
+  ],
+  "categories": [
+    "data"
+  ],
+  "type": "registry:example"
+}
