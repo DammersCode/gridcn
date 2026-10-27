@@ -46,15 +46,13 @@ export type DataGridToolbarLabels = {
   filterWhere: string;
   addFilterGroup: string;
   removeFilterGroupAriaLabel: string;
-  /** Option of a group's join select; the group matches when any child matches. */
-  filterGroupMatchAny: string;
-  /** Option of a group's join select; the group matches when every child matches. */
-  filterGroupMatchAll: string;
-  /** aria-label of a group's join select. */
+  /** Name of a filter group in the reorder announcement. */
+  filterGroupName: string;
+  /** aria-label of the connector select a group's rows show after the first row; it sets the join of the whole group. */
   filterGroupJoinAriaLabel: string;
-  /** Static connector text between rows joined by "and". */
+  /** "and" option of the connector select; static text at the top level. */
   filterConnectorAnd: string;
-  /** Static connector text between rows joined by "or". */
+  /** "or" option of the connector select. */
   filterConnectorOr: string;
   columns: string;
   columnsAriaLabel: string;
@@ -359,8 +357,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     filterWhere: "Where",
     addFilterGroup: "Add group",
     removeFilterGroupAriaLabel: "Remove group",
-    filterGroupMatchAny: "Match any of the following",
-    filterGroupMatchAll: "Match all of the following",
+    filterGroupName: "Group",
     filterGroupJoinAriaLabel: "Match",
     filterConnectorAnd: "And",
     filterConnectorOr: "Or",

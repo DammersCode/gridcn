@@ -865,14 +865,43 @@ describe("DataGridFilterMenu groups", () => {
     expect([...document.querySelectorAll("[data-grid-filter-group] [data-grid-filter-row] > div:first-child")].map((c) => c.textContent)).toEqual(["Where", "Or"]);
   });
 
-  it("the group select changes only its own group", async () => {
+  it("has no group header select; the connector select of a later row replaces it", async () => {
     await buildIssueExample();
-    await expect.element(page.getByRole("combobox", { name: "Match" })).toHaveTextContent("Match any of the following");
-    await page.getByRole("combobox", { name: "Match" }).click();
-    await page.getByRole("option", { name: "Match all of the following" }).click();
-    // Age > 26 and (Ali and Bo): no name holds both.
+    expect(page.getByText("Match any of the following").query()).toBeNull();
+    expect(page.getByText("Match all of the following").query()).toBeNull();
+    expect(document.querySelectorAll('[data-grid-filter-group] [role="combobox"][aria-label="Match"]')).toHaveLength(1);
+    const group = document.querySelector("[data-grid-filter-group]")!;
+    expect(group.querySelector(":scope > div:nth-child(2) > [role='combobox']")).toBeNull();
+  });
+
+  it("keeps the first row's connector and the top level connector static", async () => {
+    await buildIssueExample();
+    const connector = (row: Element) => row.querySelector(":scope > div:first-child")!;
+    const groupRows = [...document.querySelectorAll("[data-grid-filter-group] [data-grid-filter-row]")];
+    expect(connector(groupRows[0]!).textContent).toBe("Where");
+    expect(connector(groupRows[0]!).querySelector("[role='combobox']")).toBeNull();
+    expect(connector(groupRows[1]!).querySelector("[role='combobox']")).not.toBeNull();
+    const group = document.querySelector("[data-grid-filter-group]")!;
+    expect(connector(group).textContent).toBe("And");
+    expect(connector(group).querySelector("[role='combobox']")).toBeNull();
+  });
+
+  it("changing the connector on one row sets it on every row of that group and re-filters", async () => {
+    await buildIssueExample();
+    await click(buttons("Add filter")[0]); // third row in the group
+    await expect.poll(() => valueInputs().length).toBe(4);
+    const selects = () => [...document.querySelectorAll<HTMLElement>('[data-grid-filter-group] [role="combobox"][aria-label="Match"]')];
+    expect(selects().map((s) => s.textContent)).toEqual(["Or", "Or"]);
+    await page.getByRole("combobox", { name: "Match" }).first().click();
+    await page.getByRole("option", { name: "And", exact: true }).click();
+    await expect.poll(() => selects().map((s) => s.textContent)).toEqual(["And", "And"]);
+    // Age > 26 and (Ali and Bo and ""): no name holds both
     await expect.poll(rowCount).toBe(0);
     expect(valueInputs()[0]!.value).toBe("26");
+    await page.getByRole("combobox", { name: "Match" }).last().click();
+    await page.getByRole("option", { name: "Or", exact: true }).click();
+    await expect.poll(() => selects().map((s) => s.textContent)).toEqual(["Or", "Or"]);
+    await expect.poll(rowCount).toBeGreaterThan(0);
   });
 
   it("reordering inside a group keeps the result and the level", async () => {
@@ -921,6 +950,99 @@ describe("DataGridFilterMenu groups", () => {
     groupGrip!.focus();
     await userEvent.keyboard("{Backspace}");
     await expect.poll(() => document.querySelectorAll("[data-grid-filter-group]").length).toBe(0);
+  });
+});
+
+describe("DataGridFilterMenu drag landing indicator", () => {
+  const rowElements = () => document.querySelectorAll("[data-grid-filter-row]");
+  const indicators = () => [...document.querySelectorAll<HTMLElement>("[data-grid-filter-drop-indicator]")];
+  const columnLabels = () => [...document.querySelectorAll<HTMLElement>('[aria-label="Filter column"]')].map((c) => c.textContent);
+  const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const pointer = (type: string, x: number, y: number, target: EventTarget = document) =>
+    target.dispatchEvent(new PointerEvent(type, { bubbles: true, button: 0, pointerId: 1, pointerType: "mouse", isPrimary: true, clientX: x, clientY: y }));
+  const center = (el: Element) => {
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  };
+  const gripOfRow = (i: number) => rowElements()[i]!.querySelector("[aria-label='Reorder filter']")!;
+
+  async function renderTwoRows() {
+    await renderGrid();
+    await page.getByRole("button", { name: "Filters" }).click();
+    await page.getByRole("button", { name: "Add filter" }).click();
+    await expect.poll(() => rowElements().length).toBe(1);
+    await page.getByRole("button", { name: "Add filter" }).click();
+    await expect.poll(() => rowElements().length).toBe(2);
+    document.querySelectorAll<HTMLElement>('[aria-label="Filter column"]')[1]!.click();
+    await page.getByRole("option", { name: "Age" }).click();
+    await expect.poll(columnLabels).toEqual(["Name", "Age"]);
+  }
+
+  /** Presses the drag handle of row `from` and moves the pointer to `offset` px past the center of row `to`. */
+  async function dragRow(from: number, to: number, offset: number) {
+    const start = center(gripOfRow(from));
+    const end = center(rowElements()[to]!);
+    pointer("pointerdown", start.x, start.y, gripOfRow(from));
+    for (let i = 1; i <= 6; i++) {
+      pointer("pointermove", start.x, start.y + ((end.y + offset - start.y) * i) / 6);
+      await pause(20);
+    }
+    return { x: end.x, y: end.y + offset };
+  }
+
+  it("shows one landing indicator after the target while dragging down, and removes it on drop", async () => {
+    await renderTwoRows();
+    const [, second] = [...rowElements()];
+    const end = await dragRow(0, 1, 4);
+    await expect.poll(() => indicators().length).toBe(1);
+    expect(second!.contains(indicators()[0]!)).toBe(true);
+    expect(indicators()[0]!.getBoundingClientRect().top).toBeGreaterThan(second!.getBoundingClientRect().top + second!.getBoundingClientRect().height / 2);
+    pointer("pointerup", end.x, end.y);
+    await expect.poll(columnLabels).toEqual(["Age", "Name"]);
+    await expect.poll(() => indicators().length).toBe(0);
+  });
+
+  it("puts the indicator before the target while dragging up", async () => {
+    await renderTwoRows();
+    const [first] = [...rowElements()];
+    const end = await dragRow(1, 0, -4);
+    await expect.poll(() => indicators().length).toBe(1);
+    expect(first!.contains(indicators()[0]!)).toBe(true);
+    expect(indicators()[0]!.getBoundingClientRect().top).toBeLessThan(first!.getBoundingClientRect().top + first!.getBoundingClientRect().height / 2);
+    pointer("pointerup", end.x, end.y);
+    await expect.poll(columnLabels).toEqual(["Age", "Name"]);
+  });
+
+  it("Escape removes the indicator and leaves the order unchanged", async () => {
+    await renderTwoRows();
+    const end = await dragRow(0, 1, 4);
+    await expect.poll(() => indicators().length).toBe(1);
+    gripOfRow(0).dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await expect.poll(() => indicators().length).toBe(0);
+    pointer("pointerup", end.x, end.y);
+    await expect.poll(columnLabels).toEqual(["Name", "Age"]);
+    await pause(100);
+    expect(columnLabels()).toEqual(["Name", "Age"]);
+    expect(page.getByRole("button", { name: "Add filter" }).query()).not.toBeNull();
+  });
+
+  it("pointercancel removes the indicator and leaves the order unchanged", async () => {
+    await renderTwoRows();
+    const end = await dragRow(0, 1, 4);
+    await expect.poll(() => indicators().length).toBe(1);
+    pointer("pointercancel", end.x, end.y);
+    await expect.poll(() => indicators().length).toBe(0);
+    await expect.poll(columnLabels).toEqual(["Name", "Age"]);
+  });
+
+  it("shows no indicator while the pointer is still over the dragged row", async () => {
+    await renderTwoRows();
+    const start = center(gripOfRow(0));
+    pointer("pointerdown", start.x, start.y, gripOfRow(0));
+    pointer("pointermove", start.x, start.y + 2);
+    await pause(60);
+    expect(indicators()).toHaveLength(0);
+    pointer("pointerup", start.x, start.y + 2);
   });
 });
 
