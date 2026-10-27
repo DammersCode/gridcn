@@ -13,10 +13,13 @@ export function checkedRowCount(selection: GridSelection, rowCount: number): num
   const spans = [current.range, ...current.rangeStack]
     .map((r) => [Math.max(0, r.y), Math.min(rowCount, r.y + r.height)] as const)
     .sort((a, b) => a[0] - b[0]);
+  const rowsChannelEmpty = selection.rows.length === 0;
   let count = selection.rows.length;
   let cursor = 0;
   for (const [start, end] of spans) {
-    for (let row = Math.max(start, cursor); row < end; row++) if (!selection.rows.hasIndex(row)) count++;
+    const from = Math.max(start, cursor);
+    if (rowsChannelEmpty) count += Math.max(0, end - from);
+    else for (let row = from; row < end; row++) if (!selection.rows.hasIndex(row)) count++;
     cursor = Math.max(cursor, end);
   }
   return count;

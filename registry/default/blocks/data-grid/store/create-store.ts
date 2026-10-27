@@ -91,10 +91,6 @@ import { checkedRowCount, loadedRowCount, nextAnnouncement } from "./announcemen
  * `null` entry removes a built-in (or a previously provided type). Built-ins stay available when
  * the consumer provides only custom types.
  */
-function rowsChecked(s: DataGridStoreState, selection: GridSelection): Pick<DataGridStoreState, "liveAnnouncement"> {
-  return { liveAnnouncement: nextAnnouncement(s.liveAnnouncement, "rowsChecked", checkedRowCount(selection, s.viewIndex.length)) };
-}
-
 function resolveCellTypes(provided: Record<string, CellType | null> | undefined): Record<string, CellType> {
   if (provided === undefined) return defaultCellTypes as unknown as Record<string, CellType>;
   const out: Record<string, CellType> = { ...(defaultCellTypes as unknown as Record<string, CellType>) };
@@ -103,6 +99,10 @@ function resolveCellTypes(provided: Record<string, CellType | null> | undefined)
     else out[key] = value;
   }
   return out;
+}
+
+function rowsChecked(s: DataGridStoreState, selection: GridSelection): Pick<DataGridStoreState, "liveAnnouncement"> {
+  return { liveAnnouncement: nextAnnouncement(s.liveAnnouncement, "rowsChecked", checkedRowCount(selection, s.viewIndex.length)) };
 }
 
 type ProvidedCellTypes = Record<string, CellType | null> | undefined;
@@ -1151,7 +1151,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const written = unchanged && next.columns.equals(selection.columns) && next.current === selection.current ? selection : { ...next, rows };
         set({
           selection: written,
-          ...(written === selection ? {} : rowsChecked(s, written)),
+          ...(checkedRowCount(selection, s.viewIndex.length) === checkedRowCount(written, s.viewIndex.length) ? {} : rowsChecked(s, written)),
           lastHighlightedRow: index,
           rowRangeGesture: extendFromLast
             ? null

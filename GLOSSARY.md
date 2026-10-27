@@ -71,8 +71,8 @@ mirror the change there.
 | long-press | A touch press held for 500 ms without moving more than 10 px. It opens the context menu. | press and hold, tap and hold |
 | selection handle | One of the two circles at the corners of a touch selection. Dragging one extends the range. | range handle, drag handle |
 | coarse pointer | An input whose `(pointer: coarse)` media query matches, such as a finger. Hit areas grow under it. | touch mode |
-| live region announcement | The text the grid's one `role="status"` region reads to a screen reader: a row move, the number of checked rows, or the result count. The region waits 500 ms after the last change. | toast, aria message |
-| result count | The number of rows in the view after a filter, sort, or join operator change. `announceResults` turns its announcement on. | match count (that is the quick search) |
+| live region announcement | The text the grid's live region reads to a screen reader: a row move, the number of checked rows, or the result count. The region waits 500 ms after the last change. | |
+| result count | The number of rows in the view after a filter, sort, or join operator change. `announceResults` turns its announcement on. | |
 
 ## Writing
 
