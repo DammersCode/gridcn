@@ -13,6 +13,7 @@ import {
   DataGridSearch,
   DataGridFilterMenu,
 } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
+import type { FilterNode } from "@/registry/default/blocks/data-grid/data-grid";
 import { generateDemoRows, type DemoRow } from "./demo-data";
 
 const columns = defineColumns<DemoRow>()([
@@ -40,6 +41,18 @@ const columns = defineColumns<DemoRow>()([
   { id: "score", header: "Score", accessorKey: "score", type: "number", width: 55, flex: 1 },
 ] as const);
 
+/** "(Role is Admin or Editor) and Age > 30": the top level combines with "and", the group holds the "or". */
+const presetFilters: FilterNode[] = [
+  { columnId: "age", operator: "gt", value: "30" },
+  {
+    join: "or",
+    filters: [
+      { columnId: "role", operator: "equals", value: "Admin" },
+      { columnId: "role", operator: "equals", value: "Editor" },
+    ],
+  },
+];
+
 /**
  * Quick-search (with match navigation) plus a per-column filter menu and click-to-sort headers
  * (click cycles asc -> desc -> clear; shift-click appends to a multi-column sort).
@@ -51,10 +64,10 @@ export default function DataGridSortingFilteringDemo(): ReactNode {
     <div className="w-full flex flex-col gap-3">
       <p className="text-sm text-muted-foreground">
         Click a header to sort (click again to reverse, a third click clears it); shift-click another
-        header to add it as a secondary sort. Use Filter in the toolbar for per-column filters.
+        header to add it as a secondary sort. Use Filter in the toolbar for per-column filters; the preset shows a group that matches Admin or Editor.
       </p>
       <div className="flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
-        <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} headerClickBehavior="sort">
+        <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} headerClickBehavior="sort" defaultFilterState={presetFilters}>
           <DataGridToolbar>
             <DataGridSearch />
             <DataGridFilterMenu />

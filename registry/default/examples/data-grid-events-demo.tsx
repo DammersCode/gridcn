@@ -12,8 +12,7 @@ import {
   type ViewCellRef,
   type ColumnLayout,
   type DataChange,
-  type FilterJoinOperator,
-  type FilterSpec,
+  type FilterNode,
   type GridEditEndEvent,
   type GridValidationErrorEvent,
   type SelectionState,
@@ -117,7 +116,7 @@ function PresenceReadBackButton({
  * Events & state showcase (docs/events-state): grid on the left, live inspector on the right
  * pretty-printing the latest payload per event source, most recent first. Wires every event source
  * from the page's numbered sections — onDataChange, onSelectionChange (with details.getValues()),
- * onSortChange, onFilterChange + join, onCellClick, onFill (the `data-grid-fill`
+ * onSortChange, onFilterChange, onCellClick, onFill (the `data-grid-fill`
  * add-on's hook option), onRenderedRowsChange, onColumnLayoutChange + onColumnResizing,
  * onEditStart/onEditEnd, onActiveCellChange, onValidationError, onCellDoubleClick/onCellContextMenu,
  * and presence read-back as the two-sided contrast.
@@ -154,12 +153,8 @@ export default function DataGridEventsDemo(): ReactNode {
     setLog((prev) => pushLog(prev, { source: "onSortChange", at: Date.now(), payload: next }));
   }, []);
 
-  const onFilterChange = useCallback((next: FilterSpec[]) => {
+  const onFilterChange = useCallback((next: FilterNode[]) => {
     setLog((prev) => pushLog(prev, { source: "onFilterChange", at: Date.now(), payload: next }));
-  }, []);
-
-  const onJoinOperatorChange = useCallback((next: FilterJoinOperator) => {
-    setLog((prev) => pushLog(prev, { source: "onJoinOperatorChange", at: Date.now(), payload: next }));
   }, []);
 
   const onFill = useCallback((args: FillArgs) => {
@@ -254,7 +249,6 @@ export default function DataGridEventsDemo(): ReactNode {
             onSelectionChange={onSelectionChange}
             onSortChange={onSortChange}
             onFilterChange={onFilterChange}
-            onJoinOperatorChange={onJoinOperatorChange}
             onColumnLayoutChange={onColumnLayoutChange}
             onColumnResizing={onColumnResizing}
             onActiveCellChange={onActiveCellChange}

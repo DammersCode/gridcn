@@ -10,7 +10,6 @@ import {
   defineColumns,
   useDataGridSortState,
   useDataGridFilterState,
-  useDataGridJoinOperator,
   useDataGridSearchText,
   type DataChange,
 } from "@/registry/default/blocks/data-grid/data-grid";
@@ -67,13 +66,12 @@ function RemoteStateBridge({
 }): ReactNode {
   const sortState = useDataGridSortState();
   const filterState = useDataGridFilterState();
-  const joinOperator = useDataGridJoinOperator();
   const searchText = useDataGridSearchText();
 
   const query = useQuery({
-    queryKey: ["rows", page, pageSize, sortState, filterState, joinOperator, searchText],
+    queryKey: ["rows", page, pageSize, sortState, filterState, searchText],
     queryFn: () =>
-      server.fetchPage({ page, pageSize, sorts: sortState, filters: filterState, join: joinOperator, search: searchText }),
+      server.fetchPage({ page, pageSize, sorts: sortState, filters: filterState, search: searchText }),
     placeholderData: keepPreviousData,
   });
 
