@@ -8,10 +8,10 @@ const PRINT_CELL_CEILING = 500_000;
 /** Fallback removal (ms) for the print iframe when the window's `afterprint` never fires. */
 const PRINT_FALLBACK_MS = 60_000;
 
-/** Paper sizes for {@link PrintGridOptions.pageSize}. */
+/** Page sizes for {@link PrintGridOptions.pageSize}. */
 export type PrintPageSize = "A3" | "A4" | "Letter" | "Legal";
 
-/** CSS `@page` size keyword per paper size. */
+/** CSS `@page` size keyword per page size. */
 const PAGE_SIZE_CSS: Record<PrintPageSize, string> = { A3: "A3", A4: "A4", Letter: "letter", Legal: "legal" };
 
 /** Options for {@link printGrid}. */
@@ -22,7 +22,7 @@ export type PrintGridOptions = {
   title?: string;
   /** Emit a `<thead>` header row; default `true`. */
   includeHeaders?: boolean;
-  /** Paper size; default `"A4"`. */
+  /** Page size of the printed PDF; default `"A4"`. */
   pageSize?: PrintPageSize;
   /** Page orientation; default: `landscape` above 6 visible columns, else `portrait`. */
   orientation?: "portrait" | "landscape";

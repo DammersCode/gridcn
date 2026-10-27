@@ -33,7 +33,7 @@ const columns = defineColumns<DemoRow>()([
   { id: "score", header: "Score", accessorKey: "score", type: "number", width: 80, flex: 1 },
 ] as const);
 
-/** Print button with a paper size picker: the chosen size is passed as `options.pageSize`. */
+/** Print button with a page size picker: the chosen size is passed as `options.pageSize`. */
 export default function DataGridPrintDemo(): ReactNode {
   const grid = useDataGridState(generateDemoRows(10), { getRowId: (row) => row.id });
   const [pageSize, setPageSize] = useState<PageSize>("A4");
@@ -41,14 +41,15 @@ export default function DataGridPrintDemo(): ReactNode {
   return (
     <div className="w-full flex flex-col gap-3">
       <p className="text-sm text-muted-foreground">
-        Print opens the browser print dialog with the current view. Pick a paper size, then print
-        or choose "Save as PDF" in the dialog.
+        Print opens the browser print dialog with the current view, and the dialog uses the picked
+        page size. Choose "Save as PDF" as the destination to check the page size.
       </p>
       <div className="flex h-[360px] flex-col overflow-hidden rounded-md border border-border">
         <DataGridProvider {...grid} columns={columns}>
           <DataGridToolbar>
+            <span className="text-sm text-muted-foreground">Page size</span>
             <Select value={pageSize} onValueChange={(value) => setPageSize(value as PageSize)}>
-              <SelectTrigger aria-label="Paper size" className="w-28">
+              <SelectTrigger aria-label="Page size" className="w-28">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
