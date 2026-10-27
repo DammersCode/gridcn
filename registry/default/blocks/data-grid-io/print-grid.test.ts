@@ -345,6 +345,35 @@ describe("printGrid", () => {
     }
   });
 
+  it("sets the page size from the pageSize option, A4 by default", () => {
+    const { restore } = stubIframePrint();
+    try {
+      const styleText = () => lastIframe().contentDocument!.querySelector("style")!.textContent;
+      printGrid(makeState());
+      expect(styleText()).toContain("@page { size: A4 portrait;");
+      printGrid(makeState(), { pageSize: "Letter" });
+      expect(styleText()).toContain("@page { size: letter portrait;");
+      printGrid(makeState(), { pageSize: "Legal", orientation: "landscape" });
+      expect(styleText()).toContain("@page { size: legal landscape;");
+      printGrid(makeState(), { pageSize: "A3" });
+      expect(styleText()).toContain("@page { size: A3 portrait;");
+    } finally {
+      restore();
+    }
+  });
+
+  it("falls back to A4 for a page size outside the fixed set", () => {
+    const { restore } = stubIframePrint();
+    try {
+      printGrid(makeState(), { pageSize: "A4; } body { display: none" as never });
+      const css = lastIframe().contentDocument!.querySelector("style")!.textContent;
+      expect(css).toContain("@page { size: A4 portrait;");
+      expect(css).not.toContain("display: none");
+    } finally {
+      restore();
+    }
+  });
+
   it("applies the cell type's alignment to the cells", () => {
     const { restore } = stubIframePrint();
     try {

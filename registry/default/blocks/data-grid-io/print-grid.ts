@@ -8,6 +8,12 @@ const PRINT_CELL_CEILING = 500_000;
 /** Fallback removal (ms) for the print iframe when the window's `afterprint` never fires. */
 const PRINT_FALLBACK_MS = 60_000;
 
+/** Paper sizes for {@link PrintGridOptions.pageSize}. */
+export type PrintPageSize = "A3" | "A4" | "Letter" | "Legal";
+
+/** CSS `@page` size keyword per paper size. */
+const PAGE_SIZE_CSS: Record<PrintPageSize, string> = { A3: "A3", A4: "A4", Letter: "letter", Legal: "legal" };
+
 /** Options for {@link printGrid}. */
 export type PrintGridOptions = {
   /** Which rows to print; default `"view"` (the current sort and filter order). */
@@ -16,6 +22,8 @@ export type PrintGridOptions = {
   title?: string;
   /** Emit a `<thead>` header row; default `true`. */
   includeHeaders?: boolean;
+  /** Paper size; default `"A4"`. */
+  pageSize?: PrintPageSize;
   /** Page orientation; default: `landscape` above 6 visible columns, else `portrait`. */
   orientation?: "portrait" | "landscape";
   /** Cap on the rows printed (the header row is not counted); default 10,000, further cut by the 500,000-cell ceiling. */
@@ -39,9 +47,9 @@ function cutText(text: string): string {
   return text.length > MAX_CELL_TEXT ? text.slice(0, MAX_CELL_TEXT) : text;
 }
 
-function printCss(orientation: "portrait" | "landscape"): string {
+function printCss(pageSize: string, orientation: "portrait" | "landscape"): string {
   return [
-    `@page { size: A4 ${orientation}; margin: 12mm; }`,
+    `@page { size: ${pageSize} ${orientation}; margin: 12mm; }`,
     "body { font: 10pt/1.4 system-ui, sans-serif; color: #000; }",
     "h1 { font-size: 14pt; margin: 0 0 8px; }",
     "table { border-collapse: collapse; width: 100%; }",
@@ -75,6 +83,8 @@ export function printGrid(state: DataGridReadState, options: PrintGridOptions = 
   const rows = buildExportRows(state, scope, { text: "display", maxRows });
   const headers = buildExportHeaders(state);
   const orientation = options.orientation ?? (colCount > 6 ? "landscape" : "portrait");
+  // Untyped callers can pass any string; only the fixed map reaches the CSS.
+  const pageSize = PAGE_SIZE_CSS[options.pageSize ?? "A4"] ?? "A4";
 
   const iframe = document.createElement("iframe");
   // attribute, not the sandbox IDL property: jsdom reflects the IDL property incompletely
@@ -99,7 +109,7 @@ export function printGrid(state: DataGridReadState, options: PrintGridOptions = 
   meta.httpEquiv = "Content-Security-Policy";
   meta.content = "default-src 'none'; style-src 'unsafe-inline'";
   const style = doc.createElement("style");
-  style.textContent = printCss(orientation);
+  style.textContent = printCss(pageSize, orientation);
   doc.head.append(meta, style);
   if (options.title) {
     const heading = doc.createElement("h1");
