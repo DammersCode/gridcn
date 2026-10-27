@@ -58,6 +58,7 @@ const EXAMPLES = {
   "data-grid-server-side-demo": dynamic(() => import("@/registry/default/examples/data-grid-server-side-demo")),
   "data-grid-row-reorder-demo": dynamic(() => import("@/registry/default/examples/data-grid-row-reorder-demo")),
   "data-grid-find-replace-demo": dynamic(() => import("@/registry/default/examples/data-grid-find-replace-demo")),
+  "data-grid-announcements-demo": dynamic(() => import("@/registry/default/examples/data-grid-announcements-demo")),
   "data-grid-checked-rows-demo": dynamic(() => import("@/registry/default/examples/data-grid-checked-rows-demo")),
   "data-grid-delete-confirm-demo": dynamic(() => import("@/registry/default/examples/data-grid-delete-confirm-demo")),
   "data-grid-touch-demo": dynamic(() => import("@/registry/default/examples/data-grid-touch-demo")),

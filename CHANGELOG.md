@@ -14,6 +14,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - The grid's live region announces the number of checked rows after a row check or uncheck, for example "3 rows checked" (`labels.grid.rowsChecked`). This covers `toggleRow`, the marker checkboxes, the header checkbox, and Shift+click and marker range drags. The count includes the rows a cell range covers, as the marker checkboxes show them.
 - The live region waits 500 ms after the last change before it reads. A marker range drag is read once, with its final count. Row move announcements arrive 500 ms after the move; before, they arrived at once.
 - New grid prop `announceResults`, default `false`. After a filter, sort, or join operator change, the live region announces the number of rows in the view, for example "42 rows" (`labels.grid.resultsCount`). It stays quiet with `sortMode="server"`, and a lazy source counts its loaded rows only.
+- New docs demo `data-grid-announcements-demo` on the Accessibility page. A line on the page mirrors the text the live region speaks.
 
 ## 1.2.2 - 2026-10-25
 
