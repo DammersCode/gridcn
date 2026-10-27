@@ -1786,7 +1786,7 @@
       "name": "data-grid-print-demo",
       "type": "registry:example",
       "title": "Data Grid Print Demo",
-      "description": "Print button with a paper size picker: the chosen A4, A3, Letter, or Legal size is passed to printGrid as options.pageSize.",
+      "description": "Print button with a page size picker for the PDF: the chosen A4, A3, Letter, or Legal size is passed to printGrid as options.pageSize.",
       "author": "gridcn",
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
