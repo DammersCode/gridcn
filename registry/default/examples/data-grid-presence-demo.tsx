@@ -25,11 +25,12 @@ const columns = defineColumns<DemoRow>()([
 const ROW_COUNT = 24;
 const COL_COUNT = columns.length;
 
-/** Fixed simulated users — stable id/name/color, matching the real transport's `PresenceHighlight.id` contract. */
+/** Fixed simulated users — stable id/name/color; the last has no valid color and paints with the primary fallback, matching the real transport's `PresenceHighlight.id` contract. */
 const SIMULATED_USERS: { id: string; name: string; color: string }[] = [
-  { id: "ada", name: "Ada", color: "var(--primary)" },
-  { id: "grace", name: "Grace", color: "var(--destructive)" },
-  { id: "linus", name: "Linus", color: "color-mix(in oklch, var(--primary) 50%, var(--background))" },
+  { id: "ada", name: "Ada", color: "oklch(0.7 0.17 60)" },
+  { id: "grace", name: "Grace", color: "oklch(0.55 0.2 260)" },
+  { id: "linus", name: "Linus", color: "oklch(0.6 0.17 150)" },
+  { id: "guest", name: "No valid color", color: "not-a-color" },
 ];
 
 /** Deterministic pseudo-random walk so the demo is reproducible across renders (no Math.random). */
@@ -39,7 +40,7 @@ function nextWalkStep(current: number, max: number, seed: number): number {
 }
 
 /**
- * Drives the 3 simulated users' selections on a timer, calling the real (imperative) mechanism
+ * Drives the 4 simulated users' selections on a timer, calling the real (imperative) mechanism
  * `setPresenceHighlights` directly — exactly what a websocket/CRDT handler would do on each remote
  * update. Ada and Grace use the view-index `range` form; Linus uses the rowId-native RANGE form
  * `{ rowIds, columnIds }` (a real peer would send this after a local sort or filter), so his
@@ -73,13 +74,13 @@ function useSimulatedPresenceDriver(rows: readonly DemoRow[], setPresenceHighlig
 
         const range =
           i === 0 && overlapTick
-            ? { x: positions[1]!.col, y: positions[1]!.row, width: 1, height: 2 } // SIMULATED_USERS has 3 fixed entries
+            ? { x: positions[1]!.col, y: positions[1]!.row, width: 1, height: 2 } // SIMULATED_USERS has 4 fixed entries
             : { x: pos.col, y: pos.row, width: 1, height: 1 };
 
         return { id: user.id, color: user.color, range, label: user.name };
       });
 
-      const linus = SIMULATED_USERS[2]!; // SIMULATED_USERS has 3 fixed entries
+      const linus = SIMULATED_USERS[2]!; // SIMULATED_USERS has 4 fixed entries
       const linusHighlight: PresenceHighlightEntry = {
         id: linus.id,
         color: linus.color,
@@ -88,7 +89,16 @@ function useSimulatedPresenceDriver(rows: readonly DemoRow[], setPresenceHighlig
         label: linus.name,
       };
 
-      setPresenceHighlights([...rangeHighlights, linusHighlight]);
+      const guest = SIMULATED_USERS[3]!;
+      const guestHighlight: PresenceHighlightEntry = {
+        id: guest.id,
+        color: guest.color,
+        rowId: rows[ROW_COUNT - 2]!.id,
+        columnId: columns[0]!.id,
+        label: guest.name,
+      };
+
+      setPresenceHighlights([...rangeHighlights, linusHighlight, guestHighlight]);
     }, 900);
 
     return () => clearInterval(interval);
@@ -96,7 +106,7 @@ function useSimulatedPresenceDriver(rows: readonly DemoRow[], setPresenceHighlig
 }
 
 /**
- * Multiplayer presence highlights (docs/multiplayer-presence): 3 simulated users move their
+ * Multiplayer presence highlights (docs/multiplayer-presence): 4 simulated users move their
  * cell/range selections on a timer via `setPresenceHighlights` — the same imperative mechanism a
  * real websocket/CRDT handler would call. Zero core re-renders: only the plugin's own overlay
  * subscribes to this state (see the render-count probe in data-grid-presence.test.tsx). Click a

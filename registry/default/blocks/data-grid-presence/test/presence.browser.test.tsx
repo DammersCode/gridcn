@@ -112,7 +112,7 @@ describe("multiplayer presence — paint placement", () => {
 
     const overlay = document.querySelector<HTMLElement>(gridAttrSelector("presenceOverlay"))!;
     expect(getComputedStyle(overlay).getPropertyValue("--presence-color").trim()).toBe(
-      getComputedStyle(document.documentElement).getPropertyValue("--primary").trim(),
+      getComputedStyle(document.documentElement).getPropertyValue("--color-primary").trim(),
     );
   });
 

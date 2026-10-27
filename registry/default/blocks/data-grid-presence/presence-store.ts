@@ -20,7 +20,7 @@ export type PresenceHighlight = {
    * clear-on-leave filtering).
    */
   id: string;
-  /** Any CSS color, including `var(--primary)`; painted at fixed alpha for the fill, full opacity for the border/chip. An invalid color or an undefined token paints as `var(--primary)`. The chip text is black on light colors and white on dark ones. */
+  /** Any CSS color, including `var(--color-primary)`; painted at fixed alpha for the fill, full opacity for the border/chip. An invalid color or an undefined token paints as `var(--color-primary)`. The chip text is black on light colors and white on dark ones. */
   color: string;
   range: GridRect;
   /** Optional name chip anchored at the range's top-left corner, only rendered while that corner is on-window. */
@@ -36,7 +36,7 @@ export type PresenceHighlight = {
 export type RowIdPresenceHighlight = {
   /** Unique id PER ENTRY — must be unique per entry (a multi-range selection sends one entry per cell/range, each with its own id). */
   id: string;
-  /** Any CSS color, including `var(--primary)`; painted at fixed alpha for the fill, full opacity for the border/chip. An invalid color or an undefined token paints as `var(--primary)`. The chip text is black on light colors and white on dark ones. */
+  /** Any CSS color, including `var(--color-primary)`; painted at fixed alpha for the fill, full opacity for the border/chip. An invalid color or an undefined token paints as `var(--color-primary)`. The chip text is black on light colors and white on dark ones. */
   color: string;
   rowId: string;
   columnId: string;
@@ -53,7 +53,7 @@ export type RowIdPresenceHighlight = {
 export type RowIdRangePresenceHighlight = {
   /** Unique id PER ENTRY — must be unique per entry (a multi-range selection sends one entry per range, each with its own id). */
   id: string;
-  /** Any CSS color, including `var(--primary)`; painted at fixed alpha for the fill, full opacity for the border/chip. An invalid color or an undefined token paints as `var(--primary)`. The chip text is black on light colors and white on dark ones. */
+  /** Any CSS color, including `var(--color-primary)`; painted at fixed alpha for the fill, full opacity for the border/chip. An invalid color or an undefined token paints as `var(--color-primary)`. The chip text is black on light colors and white on dark ones. */
   color: string;
   /** Stable row ids of the selected rows; any order, duplicates allowed. */
   rowIds: string[];

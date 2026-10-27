@@ -1080,7 +1080,7 @@ describe("safePresenceColor", () => {
 
   it("falls back to the primary token when the browser rejects the value", () => {
     vi.stubGlobal("CSS", { supports: (_property: string, value: string) => value !== "url(https://example.test/x)" });
-    expect(safePresenceColor("url(https://example.test/x)")).toBe("var(--primary)");
+    expect(safePresenceColor("url(https://example.test/x)")).toBe("var(--color-primary)");
     expect(safePresenceColor("rebeccapurple")).toBe("rebeccapurple");
   });
 
