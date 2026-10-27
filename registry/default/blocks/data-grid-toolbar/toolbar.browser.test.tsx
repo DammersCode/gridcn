@@ -1040,6 +1040,7 @@ describe("DataGridFilterMenu drag landing indicator", () => {
     const start = center(gripOfRow(0));
     pointer("pointerdown", start.x, start.y, gripOfRow(0));
     pointer("pointermove", start.x, start.y + 2);
+    await expect.poll(() => document.querySelectorAll("[data-grid-filter-row]").length).toBe(3); // the lifted clone proves the drag started
     await pause(60);
     expect(indicators()).toHaveLength(0);
     pointer("pointerup", start.x, start.y + 2);

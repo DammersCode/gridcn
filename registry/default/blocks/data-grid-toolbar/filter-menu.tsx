@@ -78,13 +78,14 @@ type FilterMenuContext = {
 
 /**
  * Popover listing the filter tree. The top level is a list of rows and groups joined by "and"; a
- * group is a bordered box with its own rows; each row after the first shows an "And"/"Or" select that sets the join of the whole group. Every row and group has
- * a drag handle and a trash icon-button; a row adds a field select, an operator select, and a typed
- * value input. Footers hold "Add filter" and "Add group" (a group nests one more group at most).
- * Built from this repo's own Base UI components. Reordering uses `@dnd-kit/react`'s sortable
- * primitives (handle-initiated pointer drag with a lifted-row overlay feel via `isDragSource`), plus
- * a landing indicator at the target slot, plus a plain ArrowUp/ArrowDown-on-drag handle fallback that always wins over the library's own keyboard
- * sensor (see `useNodeSortable`). Nodes are keyed by `filterId` (stable identity independent of
+ * group is a bordered box with its own rows; each row after the first shows an "And"/"Or" select
+ * that sets the join of the whole group. Every row and group has a drag handle and a trash
+ * icon-button; a row adds a field select, an operator select, and a typed value input. Footers hold
+ * "Add filter" and "Add group" (a group nests one more group at most). Built from this repo's own
+ * Base UI components. Reordering uses `@dnd-kit/react`'s sortable primitives (handle-initiated
+ * pointer drag with a lifted-row overlay feel via `isDragSource` and a landing line at the target
+ * slot), plus a plain ArrowUp/ArrowDown-on-drag handle fallback that always wins over the library's
+ * own keyboard sensor (see `useNodeSortable`). Nodes are keyed by `filterId` (stable identity independent of
  * array position) since multiple rows on the same column are allowed and meaningful; a reorder moves
  * a node among its siblings only and persists through `setFilters`.
  */
@@ -169,7 +170,14 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
     (gripRefs.current.get(pendingId) ?? addButtonRef.current)?.focus({ preventScroll: true });
   }, [filters]);
 
-  useEffect(() => unlockRootScroll, [unlockRootScroll]);
+  const releaseDragRafRef = useRef(0);
+  useEffect(
+    () => () => {
+      unlockRootScroll();
+      cancelAnimationFrame(releaseDragRafRef.current);
+    },
+    [unlockRootScroll],
+  );
 
   const rememberFilterIds = () => {
     const ids = new Set<string>();
@@ -245,7 +253,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
     },
     unlockRootScroll: () => {
       // Escape cancels the drag; the popover must see it as still dragging, or it closes with the cancel.
-      requestAnimationFrame(() => (draggingRef.current = false));
+      releaseDragRafRef.current = requestAnimationFrame(() => (draggingRef.current = false));
       unlockRootScroll();
     },
   };
@@ -254,7 +262,8 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
 
   return (
     <Popover
-      onOpenChange={(_open, details) => {
+      onOpenChange={(open, details) => {
+        if (open) draggingRef.current = false;
         if (details.reason === "escape-key" && draggingRef.current) details.cancel();
       }}
     >
@@ -476,7 +485,7 @@ function GripButton(props: GripButtonProps): ReactNode {
 
 type FilterGroupBoxProps = NodePosition & { group: FilterGroup; depth: number };
 
-/** A bordered group with its own rows and footer; the remove and drag buttons sit beside its first row. */
+/** A bordered group with its own rows and footer. The 9px margin of the buttons is the box padding plus its border, so they line up with the first row. */
 function FilterGroupBox(props: FilterGroupBoxProps): ReactNode {
   const { group, index, join, parentId, dropEdge, depth, ctx } = props;
   const { labels } = ctx;

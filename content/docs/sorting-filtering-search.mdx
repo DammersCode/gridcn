@@ -56,8 +56,9 @@ whichever list is shorter.
 `DataGridFilterMenu` is a popover that lists the filter tree. The top level joins its entries with
 "and". A filter group <NewBadge /> is a bordered box with its own rows. The first row of a group reads
 "Where". Every later row shows a select with "And" and "Or". The select sets the join of the whole
-group, so all its rows show the same word. A group holds one more group at most. Each row shows a column, an operator, a value, a trash button,
-and a drag handle. "Add filter", "Add group", and "Clear all" sit at the foot of the menu, and each
+group, so all its rows show the same word. A group with one row has no select yet. A group holds
+one more group at most. Each row shows a column, an operator, a value, a trash button, and a drag
+handle. "Add filter", "Add group", and "Clear all" sit at the foot of the menu, and each
 group has its own "Add filter" and "Add group". Per-column `filterable: false` excludes a column from
 the menu's column picker. Drag the drag handle, or reorder through the keyboard
 ([toolbar add-on: filter menu keyboard & accessibility](/docs/addons/toolbar#filter-menu-keyboard--accessibility)),
