@@ -32,6 +32,12 @@ describe("layout param codec", () => {
     expect(serializeLayoutPart("order", { ...layout, order: ["a,b", "c:d"] })).toBe("a%2Cb,c%3Ad");
   });
 
+  it("round-trips pin ids that contain a colon or a pin code", () => {
+    const pins: ColumnLayout["pins"] = { "a:s": "left", "x:l": "right", "b:e": "left", "c:r": "right" };
+    const raw = serializeLayoutPart("pins", { ...layout, pins });
+    expect(parseLayoutPart("pins", raw)).toEqual({ pins });
+  });
+
   it("writes and reads the none value for empty hidden and pins", () => {
     expect(serializeLayoutPart("hidden", { ...layout, hidden: [] })).toBe("-");
     expect(serializeLayoutPart("pins", { ...layout, pins: {} })).toBe("-");
