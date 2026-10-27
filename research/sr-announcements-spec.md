@@ -49,8 +49,8 @@ Issue #87.
 - `toggleRow` (Ctrl+Shift+Space), `toggleAllRows` (Mod+Shift+E), the marker checkbox, and the
   marker range drag all announce "N rows checked"; the drag's per-frame writes collapse to the
   final count via the debounce.
-- Filter/sort/join commits announce "N rows" only with `announceResults`; a lazy source's count
-  covers the loaded rows (docs note).
+- Filter and sort commits announce "N rows" only with `announceResults`, and only when the rows or
+  their order changed. A lazy source announces "N loaded rows".
 - Quick search (`setSearch`) never touches the region; the toolbar search box owns its own
   match-count region and quick-search filters nothing.
 - The debounce is one trailing timer owned by the region component; it clears on unmount.

@@ -242,7 +242,7 @@ describe("liveAnnouncement (announceResults)", () => {
     const sparse = [{ id: "a", name: "A" }, undefined, { id: "c", name: "C" }, undefined, { id: "e", name: "E" }] as unknown as Row[];
     const m = mount({ announceResults: true, defaultData: sparse });
     m.sorts([{ columnId: "name", direction: "asc" }]);
-    expect(m.state().liveAnnouncement).toMatchObject(results(3));
+    expect(m.state().liveAnnouncement).toMatchObject({ ...results(3), partial: true });
   });
 });
 
@@ -287,6 +287,15 @@ describe("liveAnnouncement (Escape, hidden rows, quiet results)", () => {
     const m = mount();
     act(() => getInternalActions(m.api()!)._cancelSelection());
     expect(m.state().liveAnnouncement).toBeNull();
+  });
+
+  it("hidden checked rows count in the announced total", () => {
+    const m = mount({ keepCheckedRows: true, keepHiddenCheckedRows: true });
+    m.check(0, 1);
+    m.filters(onlyD);
+    expect(m.state().hiddenCheckedRowIds.size).toBeGreaterThan(0);
+    m.check(0);
+    expect(m.state().liveAnnouncement).toMatchObject(checked(m.state().hiddenCheckedRowIds.size + m.state().selection.rows.length));
   });
 
   it("filter reorder, an empty filter row, and a mount apply do not speak", () => {

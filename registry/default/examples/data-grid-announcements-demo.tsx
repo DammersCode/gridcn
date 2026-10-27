@@ -20,13 +20,24 @@ const columns = defineColumns<DemoRow>()([
 function useSpokenText(): string {
   const [text, setText] = useState("");
   useEffect(() => {
-    const read = () => {
-      const spoken = [...document.querySelectorAll('[role="status"]')].map((el) => el.textContent?.trim() ?? "").filter(Boolean);
-      if (spoken.length > 0) setText(spoken[spoken.length - 1]!);
+    let regionObserver: MutationObserver | undefined;
+    const read = (region: Element) => {
+      const spoken = region.textContent?.trim();
+      if (spoken) setText(spoken);
     };
-    const observer = new MutationObserver(read);
-    observer.observe(document.body, { childList: true, characterData: true, subtree: true });
-    return () => observer.disconnect();
+    const attach = (): boolean => {
+      const region = document.querySelector("[data-grid-live-region]");
+      if (!region) return false;
+      regionObserver = new MutationObserver(() => read(region));
+      regionObserver.observe(region, { childList: true, characterData: true, subtree: true });
+      return true;
+    };
+    const bodyObserver = new MutationObserver(() => attach() && bodyObserver.disconnect());
+    if (!attach()) bodyObserver.observe(document.body, { childList: true });
+    return () => {
+      bodyObserver.disconnect();
+      regionObserver?.disconnect();
+    };
   }, []);
   return text;
 }

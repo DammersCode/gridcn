@@ -151,7 +151,7 @@ export type DataGridSyncProps<TData = unknown> = {
   keepHiddenCheckedRows?: boolean;
   /**
    * Announces the view's row count through the grid's live region after a filter, sort, or
-   * join-operator commit. Skipped while `sortMode="server"` (the grid does not hold every row);
+   * filter-group change. Skipped while `sortMode="server"` (the grid does not hold every row);
    * a lazy source counts its loaded rows only. Default `false`.
    */
   announceResults?: boolean;
@@ -1112,8 +1112,8 @@ export type DataGridInternalActions = {
 
 export type LiveAnnouncementKind = "rowMove" | "rowsChecked" | "results";
 
-/** `count` is the moved rows, the checked rows, or the view's loaded rows, by `kind`. */
-export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq: number };
+/** `count` is the moved rows, the checked rows, or the view's loaded rows, by `kind`; `partial` marks a result count that leaves out unloaded rows. */
+export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq: number; partial?: true };
 
 /** Full store shape: interaction state + the stable actions object. */
 export type DataGridStore = DataGridStoreState;

@@ -54,10 +54,10 @@ function OrdersGrid() {
 }
 ```
 
-A saved view from an older version can hold a `joinOperator`. The filter tree has no separate join, so convert the saved value once when you read it: <NewBadge />
+A saved view from an older version <NewBadge /> can hold a `joinOperator`. The filter tree has no separate join, so convert the saved value once when you read it:
 
 ```ts
-const filters = join === "or" ? [{ join: "or", filters: oldFilters }] : oldFilters;
+const filters = saved.joinOperator === "or" ? [{ join: "or", filters: saved.filters }] : saved.filters;
 ```
 
 An `undefined` default leaves that part at its normal start state. The grid reads each default once at mount and ignores later changes.

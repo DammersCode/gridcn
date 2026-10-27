@@ -51,11 +51,11 @@ export type DataGridToolbarLabels = {
   /** Option of a group's join select; the group matches when every child matches. */
   filterGroupMatchAll: string;
   /** aria-label of a group's join select. */
-  joinOperatorAriaLabel: string;
+  filterGroupJoinAriaLabel: string;
   /** Static connector text between rows joined by "and". */
-  joinOperatorAnd: string;
+  filterConnectorAnd: string;
   /** Static connector text between rows joined by "or". */
-  joinOperatorOr: string;
+  filterConnectorOr: string;
   columns: string;
   columnsAriaLabel: string;
   /** aria-label of the header filter button; `filtered` is true while the column has any filter, including a condition filter. */
@@ -190,11 +190,13 @@ export type DataGridGridLabels = {
   /** Placeholder for the date editor's typed input (default hints the ISO `yyyy-mm-dd` format). */
   datePlaceholder: string;
   /** aria-label for the date editor's calendar toggle button (`calendarTrigger`). */
-  calendar: string;
+  dateCalendarAriaLabel: string;
   /** Polite live-region announcement after the checked rows change; `count` is the new number of checked rows. */
   rowsChecked: (count: number) => string;
   /** Polite live-region announcement after a filter or sort commit (`announceResults`); `count` is the view's row count. */
   resultsCount: (count: number) => string;
+  /** Result announcement when the source is lazy: `count` is the loaded rows in the view, so the text says so. */
+  resultsCountLoaded: (count: number) => string;
 };
 
 /** Import/export add-on strings (`data-grid-io`): export dropdown + import dialog. */
@@ -357,9 +359,9 @@ export const DEFAULT_LABELS: DataGridLabels = {
     removeFilterGroupAriaLabel: "Remove group",
     filterGroupMatchAny: "Match any of the following",
     filterGroupMatchAll: "Match all of the following",
-    joinOperatorAriaLabel: "Match",
-    joinOperatorAnd: "And",
-    joinOperatorOr: "Or",
+    filterGroupJoinAriaLabel: "Match",
+    filterConnectorAnd: "And",
+    filterConnectorOr: "Or",
     columns: "Columns",
     columnsAriaLabel: "Columns",
     headerFilterAriaLabel: (column, filtered) => (filtered ? `Filter ${column}, filtered` : `Filter ${column}`),
@@ -526,9 +528,10 @@ export const DEFAULT_LABELS: DataGridLabels = {
     emptyState: "No rows",
     loading: "Loading…",
     datePlaceholder: "yyyy-mm-dd",
-    calendar: "Calendar",
+    dateCalendarAriaLabel: "Calendar",
     rowsChecked: (count) => `${count.toLocaleString("en-US")} ${count === 1 ? "row" : "rows"} checked`,
     resultsCount: (count) => `${count.toLocaleString("en-US")} ${count === 1 ? "row" : "rows"}`,
+    resultsCountLoaded: (count) => `${count.toLocaleString("en-US")} loaded ${count === 1 ? "row" : "rows"}`,
   },
   io: {
     exportButtonAriaLabel: "Export",

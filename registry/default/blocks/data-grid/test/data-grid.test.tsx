@@ -901,7 +901,7 @@ describe("date editor calendar trigger (options.calendarTrigger)", () => {
         data={[{ id: "1", when: null }]}
         columns={triggerColumns}
         getRowId={(r) => r.id}
-        labels={{ grid: { calendar: "Kalender" } }}
+        labels={{ grid: { dateCalendarAriaLabel: "Kalender" } }}
       />,
     );
     startEdit();

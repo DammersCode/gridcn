@@ -64,7 +64,7 @@ the menu's column picker. Drag the drag handle, or reorder through the keyboard
 to move a row or group among its siblings.
 
 To build "(Name contains A or B) and Country = X" in the menu, add a filter for Country, add a
-group, set the group to "Match any", and give the group two Name rows.
+group, and give the group two Name rows.
 
 To set filters from code, pass `FilterNode` entries to `useDataGridActions().setFilters()`. A
 `FilterNode` is a `FilterSpec` row or a `FilterGroup`:
@@ -85,7 +85,7 @@ actions.setFilters([
 A row survives when every top-level node matches. A group with `join: "and"` matches when every
 child matches. A group with `join: "or"` matches when any child matches. A group with any other
 `join` value matches like `"and"`. An empty group matches every row. A flat list of `FilterSpec`
-entries is a valid `filterState`.
+entries is a valid `filterState`. `setFilters` <NewBadge /> drops a group nested deeper than 2 levels, with its rows.
 
 A `FilterSpec` has these fields:
 
@@ -96,7 +96,7 @@ A `FilterSpec` has these fields:
 | `value` | `string`, `[string, string]`, or `string[]` | The text to compare, even for number and date columns. `isBetween` takes `[from, to]`. `isAnyOf` and `isNoneOf` take a list of cell texts. `empty` and `notEmpty` take none. |
 | `filterId` | `string` | Optional. A stable key for the filter row. |
 
-A `FilterGroup` has these fields: <NewBadge />
+A `FilterGroup` <NewBadge /> has these fields:
 
 | Field | Type | Meaning |
 |---|---|---|

@@ -53,7 +53,7 @@ export type UseDataGridUrlStateOptions = {
 export type UseDataGridUrlStateResult = {
   /**
    * Re-applies the current URL params to the store, including the dropped-column warning. Unlike
-   * the mount apply, a param missing from the URL clears its sort, filter, join, or search. Call
+   * the mount apply, a param missing from the URL clears its sort, filter, or search. Call
    * it when the URL changed outside the grid's own writes —
    * back/forward, a framework `setSearchParams`, or a query-only route change — since mount
    * applies exactly once and the store is the source of truth afterwards.

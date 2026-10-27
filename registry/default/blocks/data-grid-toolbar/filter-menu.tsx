@@ -316,7 +316,7 @@ function FilterList(props: FilterListProps): ReactNode {
 /** The first cell of a row or group: "Where" on the first, the list's connector after it. */
 function ConnectorCell(props: { index: number; join: FilterGroup["join"]; labels: DataGridLabels }): ReactNode {
   const { index, join, labels } = props;
-  const text = index === 0 ? labels.toolbar.filterWhere : join === "or" ? labels.toolbar.joinOperatorOr : labels.toolbar.joinOperatorAnd;
+  const text = index === 0 ? labels.toolbar.filterWhere : join === "or" ? labels.toolbar.filterConnectorOr : labels.toolbar.filterConnectorAnd;
   return (
     <div className="flex h-8 min-w-18 items-center justify-center text-center">
       <span className="text-sm text-muted-foreground">{text}</span>
@@ -415,7 +415,7 @@ function FilterGroupBox(props: FilterGroupBoxProps): ReactNode {
             ctx.onJoinChange(filterId, value as FilterGroup["join"]);
           }}
         >
-          <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.joinOperatorAriaLabel}>
+          <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.filterGroupJoinAriaLabel}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

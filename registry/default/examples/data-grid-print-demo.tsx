@@ -12,7 +12,7 @@ import { useDataGridState } from "@/registry/default/blocks/data-grid-history/da
 import { DataGridToolbar } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
 import {
   DataGridPrintButton,
-  type PrintGridOptions,
+  type PrintPageSize,
 } from "@/registry/default/blocks/data-grid-io/data-grid-io";
 import {
   Select,
@@ -23,9 +23,7 @@ import {
 } from "@/components/ui/select";
 import { generateDemoRows, type DemoRow } from "./demo-data";
 
-type PageSize = NonNullable<PrintGridOptions["pageSize"]>;
-
-const PAGE_SIZES: PageSize[] = ["A4", "A3", "Letter", "Legal"];
+const PAGE_SIZES: PrintPageSize[] = ["A4", "A3", "Letter", "Legal"];
 
 const columns = defineColumns<DemoRow>()([
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 120, flex: 1 },
@@ -36,7 +34,7 @@ const columns = defineColumns<DemoRow>()([
 /** Print button with a page size picker: the chosen size is passed as `options.pageSize`. */
 export default function DataGridPrintDemo(): ReactNode {
   const grid = useDataGridState(generateDemoRows(10), { getRowId: (row) => row.id });
-  const [pageSize, setPageSize] = useState<PageSize>("A4");
+  const [pageSize, setPageSize] = useState<PrintPageSize>("A4");
 
   return (
     <div className="w-full flex flex-col gap-3">
@@ -47,9 +45,11 @@ export default function DataGridPrintDemo(): ReactNode {
       <div className="flex h-[360px] flex-col overflow-hidden rounded-md border border-border">
         <DataGridProvider {...grid} columns={columns}>
           <DataGridToolbar>
-            <span className="text-sm text-muted-foreground">Page size</span>
-            <Select value={pageSize} onValueChange={(value) => setPageSize(value as PageSize)}>
-              <SelectTrigger aria-label="Page size" className="w-28">
+            <label htmlFor="print-page-size" className="text-sm text-muted-foreground">
+              Page size
+            </label>
+            <Select value={pageSize} onValueChange={(value) => value && setPageSize(value as PrintPageSize)}>
+              <SelectTrigger id="print-page-size" className="w-28">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

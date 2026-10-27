@@ -75,7 +75,7 @@ group entirely, and it stays fully English.
 | `contextMenu` | Cut, copy, paste, row insert, duplicate, delete, sort, pin, hide, autosize, shared verbatim between the right-click menu and the header dropdown | `data-grid-context-menu` |
 | `keybindings` | Shortcuts dialog title and description, category headings, native-clipboard rows, and a per-`GridAction` label map | `data-grid-keybindings` |
 | `markers` | Select-all header checkbox and per-row checkbox aria-labels, the reorder-handle aria-label, and the reorder announcement | core (`rowMarkers`) |
-| `grid` | Core strings not owned by an add-on: the empty-state message and the loading-skeleton and progress-bar aria-label | core |
+| `grid` | Core strings not owned by an add-on: the empty-state message, the loading-skeleton and progress-bar aria-label, the date editor placeholder and calendar button aria-label, and the live-region announcements for checked rows and result counts | core |
 | `io` | Export dropdown, import dialog (file picker, delimiter, column mapping, preview, errors) | `data-grid-io` |
 | `pagination` | Footer first, prev, next, last, page-number aria-labels, page-size select, "x-y of z" range label | `data-grid-pagination` |
 | `statusBar` | Aggregate labels (count, sum, avg, min, max) and the capped-walk title | `data-grid-status-bar` |
@@ -107,9 +107,9 @@ const de: DeepPartialLabels = {
     removeFilterGroupAriaLabel: "Gruppe entfernen",
     filterGroupMatchAny: "Mindestens eine Bedingung erfüllen",
     filterGroupMatchAll: "Alle Bedingungen erfüllen",
-    joinOperatorAriaLabel: "Verknüpfung",
-    joinOperatorAnd: "Und",
-    joinOperatorOr: "Oder",
+    filterGroupJoinAriaLabel: "Verknüpfung",
+    filterConnectorAnd: "Und",
+    filterConnectorOr: "Oder",
     columns: "Spalten",
   },
   contextMenu: {
@@ -120,11 +120,17 @@ const de: DeepPartialLabels = {
     duplicateRows: (count) => (count > 1 ? "Zeilen duplizieren" : "Zeile duplizieren"),
     deleteRow: "Zeile löschen",
     pinStart: "Am Anfang anheften",
+    pinEnd: "Am Ende anheften",
+    pinEnd: "Am Ende anheften",
     autosize: "Spaltenbreite anpassen",
   },
   grid: {
     emptyState: "Keine Zeilen",
     loading: "Wird geladen…",
+    dateCalendarAriaLabel: "Kalender",
+    rowsChecked: (count) => `${count} ${count === 1 ? "Zeile" : "Zeilen"} ausgewählt`,
+    resultsCount: (count) => `${count} ${count === 1 ? "Zeile" : "Zeilen"}`,
+    resultsCountLoaded: (count) => `${count} geladene ${count === 1 ? "Zeile" : "Zeilen"}`,
   },
   // sort, filterOperators, keybindings, markers, and io follow the same pattern.
 };

@@ -3,8 +3,8 @@ import type { GridSelection } from "../types";
 import type { LiveAnnouncement, LiveAnnouncementKind } from "./types";
 
 /** The record after `prev`: a new `seq` makes the live region re-announce a repeated text. */
-export function nextAnnouncement(prev: LiveAnnouncement | null, kind: LiveAnnouncementKind, count: number): LiveAnnouncement {
-  return { kind, count, seq: (prev?.seq ?? 0) + 1 };
+export function nextAnnouncement(prev: LiveAnnouncement | null, kind: LiveAnnouncementKind, count: number, partial = false): LiveAnnouncement {
+  return { kind, count, seq: (prev?.seq ?? 0) + 1, ...(partial ? { partial: true as const } : {}) };
 }
 
 /** Rows a marker checkbox shows as checked: the rows channel united with every cell range. */

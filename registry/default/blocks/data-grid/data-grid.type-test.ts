@@ -1,6 +1,6 @@
 /**
  * Compile-time-only assertions for the public barrel's surface: GridCellTypes consumer
- * augmentation, controlled-props shapes (sort/filter/search/joinOperator), DeepPartialLabels,
+ * augmentation, controlled-props shapes (sort/filter/search), DeepPartialLabels,
  * useDataGridVisibleColumns/useDataGridAllColumns consumer callability, and a spot-check that the
  * barrel exports no accidental `any`. No runtime assertions live here; the tsc gate typechecks this
  * file (named so vitest's *.test.ts glob does not pick it up, matching
@@ -85,7 +85,7 @@ declare const currencyColumn: CurrencyColumn<Row & { price: number | null }>;
 assertEqual<number | null, typeof currencyColumn.options extends { currency: string } | undefined ? number | null : never>(true);
 assertEqual<"currency", typeof currencyColumn.type>(true);
 
-// --- controlled-props shapes: sort/filter/search/joinOperator ----------
+// --- controlled-props shapes: sort/filter/search ----------
 // Each is independently optional (uncontrolled by omission) per store.tsx's DataGridSyncProps
 // doc comments — assert the prop object shapes accepted by DataGridProps<TData> directly, so a
 // future accidental narrowing (e.g. making one non-optional, or dropping the paired onXChange)

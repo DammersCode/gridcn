@@ -55,6 +55,7 @@ mirror the change there.
 | band | A fixed strip of rows above or below the body, such as pinned rows. | |
 | column group | A named set of columns, or of other groups, that share one header above their own headers. `columnGroups` defines it. | column span, super header |
 | header row | One level of the header block. Group levels come first, and the column headers fill the last row. | |
+| start side, end side | The two ends of the inline axis. The start side is the `pin: "left"` zone, the end side the `pin: "right"` zone; in a left-to-right page start is left and end is right, in a right-to-left page the reverse. | left side, right side (for pin sides) |
 
 ## Selection and input
 
@@ -74,7 +75,7 @@ mirror the change there.
 | selection handle | One of the two circles at the corners of a touch selection. Dragging one extends the range. | range handle, drag handle |
 | coarse pointer | An input whose `(pointer: coarse)` media query matches, such as a finger. Hit areas grow under it. | touch mode |
 | live region announcement | The text the grid's live region reads to a screen reader: a row move, the number of checked rows, or the result count. The region waits 500 ms after the last change. | |
-| result count | The number of rows in the view after a filter, sort, or join operator change. `announceResults` turns its announcement on. | |
+| result count | The number of rows in the view after a filter or sort change. `announceResults` turns its announcement on. | |
 
 ## Writing
 

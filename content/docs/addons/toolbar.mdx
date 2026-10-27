@@ -98,9 +98,8 @@ checks the plain arrow press first, and it wins. Every reorder announces the cha
 `aria-live` region (`labels.toolbar.filterReorderAnnouncement`, for example "Name filter moved to
 position 2 of 3"). Focus never gets lost. After a reorder, focus stays on the moved row's drag handle.
 After deleting a row, focus moves to the next row's drag handle, then to the previous one. When the
-row was the last of its group, the group goes too, and focus moves to a sibling of that group.
-Focus moves to the "Add filter" button when none is left. A group
-whose last row is removed disappears. <NewBadge />
+row was the last of its group <NewBadge />, the group goes too, and focus moves to a sibling of that group.
+Focus moves to the "Add filter" button when none is left.
 
 ## Header filter
 
@@ -128,7 +127,7 @@ The popover works like this:
 - The status line under the search reads "N of M selected". N is the number of checked values and M is the number of values in the list. Set the text with the `toolbar.headerFilterSelectedCount` label. The counts of the entries sit in a right-aligned column.
 - The counts include only the rows that pass every other top-level node. The top-level set filter of the column itself never hides its own values. A set filter of the column inside a filter group counts like any other filter.
 - Apply stores the shorter list. If fewer values are checked than unchecked, it writes `isAnyOf` with the checked values. Otherwise it writes `isNoneOf` with the unchecked values. A value that enters the data later passes `isNoneOf`.
-- Apply keeps every other filter, including condition filters on the same column. It reads and writes only the top-level set filter of the column, so it always narrows the result. Set filters inside a filter group belong to the filter menu. <NewBadge />
+- Apply <NewBadge /> keeps every other filter, including condition filters on the same column. It reads and writes only the top-level set filter of the column, so it always narrows the result. Set filters inside a filter group belong to the filter menu.
 - Apply is disabled while no value is checked, and while the stored list would hold more than 1,000 entries. A message explains the second case.
 - Clear removes every filter of the column, at every level, and removes the groups that this leaves empty. <kbd>Escape</kbd> or a press outside the popover discards the selection.
 - The list reads at most 100,000 distinct values. Past that limit it shows the first values and a message.

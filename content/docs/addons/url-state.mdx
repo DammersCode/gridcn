@@ -90,7 +90,7 @@ ignored, a group left open closes at the end, and an empty group is dropped. A f
 without groups is written exactly as before.
 
 An older link can carry a `join=or` param. The grid reads it once: when the `filter` param has no
-group, the rows wrap in one `or` group. The grid never writes `join`, and every filter write removes it.
+group, the rows wrap in one `or` group. The grid never writes `join`, and every filter write removes it. A grid with a `prefix` reads `<prefix>_join` the same way.
 
 ## Behavior
 

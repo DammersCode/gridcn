@@ -49,8 +49,8 @@ function RemoteStateBridge({ server, page, pageSize, onLoaded }) {
 
 Notes:
 
-- `filters` is the filter tree: rows and groups, with no separate join. The top level combines with
-  "and", and a group carries its own `join`. <NewBadge />
+- `filters` <NewBadge /> is the filter tree: rows and groups, with no separate join. The top level combines with
+  "and", and a group carries its own `join`.
 - The request body is untrusted. Before you build a query, check that the tree is at most 2 groups
   deep, holds at most 64 rows, names only allowed columns, and uses `"and"` or `"or"` as every `join`.
   The [ORM recipes](/docs/examples/data/orm) show the check.

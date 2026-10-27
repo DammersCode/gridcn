@@ -25,10 +25,10 @@ export function LiveRegion(): ReactNode {
     return () => clearTimeout(t);
   }, [record]);
 
-  const text = shown && (shown.kind === "rowMove" ? rowMoveText : shown.kind === "rowsChecked" ? grid.rowsChecked(shown.count) : grid.resultsCount(shown.count));
+  const text = shown && (shown.kind === "rowMove" ? rowMoveText : shown.kind === "rowsChecked" ? grid.rowsChecked(shown.count) : shown.partial ? grid.resultsCountLoaded(shown.count) : grid.resultsCount(shown.count));
   if (!target) return null;
   return createPortal(
-    <div aria-live="polite" role="status" className="sr-only">
+    <div aria-live="polite" role="status" data-grid-live-region="" className="sr-only">
       {text}
     </div>,
     target,

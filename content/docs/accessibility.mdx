@@ -109,9 +109,15 @@ both popovers: [Toolbar add-on: filter menu keyboard &
 accessibility](/docs/addons/toolbar#filter-menu-keyboard--accessibility) and
 [Sort list: keyboard & accessibility](/docs/addons/sort-list#keyboard--accessibility).
 
-The grid has one live region <NewBadge />, a `role="status"` element with `aria-live="polite"`. A live region cannot live inside `role="grid"`, so the grid places it in `<body>`. The region reads a row move and, after a check or uncheck, the number of checked rows, for example "3 rows checked" (`labels.grid.rowsChecked`). It waits 500 ms after the last change. A marker range drag is read once, with its final count. The same text is read again when the same change repeats.
+The grid core has one live region <NewBadge />, a `role="status"` element with `aria-live="polite"`. A live region cannot live inside `role="grid"`, so the grid places it in `<body>`. The region reads a row move and, after a check or uncheck, the number of checked rows, for example "3 rows checked" (`labels.grid.rowsChecked`). It waits 500 ms after the last change. A marker range drag is read once, with its final count. The same text is read again when the same change repeats.
 
-With `announceResults` <NewBadge />, the region also reads the number of rows in the view after a filter or sort change, for example "42 rows" (`labels.grid.resultsCount`). A server-sorted grid skips it, because the grid does not hold every row. A lazy source counts its loaded rows only.
+With `announceResults` <NewBadge />, the region also reads the number of rows in the view after a filter or sort change, for example "42 rows" (`labels.grid.resultsCount`). A server-sorted grid skips it, because the grid does not hold every row. A lazy source reads its loaded rows only, for example "42 loaded rows" (`labels.grid.resultsCountLoaded`). A change that leaves the rows and their order as they were, such as moving a filter row, stays quiet, and so does a filter applied on mount.
+
+| Prop | Type | Default |
+|---|---|---|
+| `announceResults` | `boolean` | `false` |
+
+For the checked-row announcement, see [Selection & keyboard](/docs/selection-keyboard#checked-rows).
 
 ## Keyboard coverage
 
