@@ -5,8 +5,7 @@ import type {
   CellRef,
   ViewCoord,
   CellType,
-  FilterJoinOperator,
-  FilterSpec,
+  FilterNode,
   GridCommand,
   GridSelection,
   HeaderClickBehavior,
@@ -15,7 +14,7 @@ import type {
   SortSpec,
 } from "../types";
 import type { DataGridLabels } from "../labels";
-import type { SearchMatch } from "../sort-filter";
+import { hasFilterOnColumn, type SearchMatch } from "../sort-filter";
 import { isSelectionEmpty, selectionContainsCell } from "../selection";
 import { colRangesEqual, selectedColRangesForRow, type ColRange } from "../selection/selected-col-ranges-for-row";
 import { cellErrorKey, flashCellKey, getRangeValues, holeRowId, rowIdAtViewRow, searchMatchKey } from "./compute";
@@ -325,19 +324,14 @@ export function useDataGridColumnFeatureFlags(): {
   );
 }
 
-/** The active per-column filter specs. */
-export function useDataGridFilterState(): FilterSpec[] {
+/** The active filter tree: top-level rows and groups. */
+export function useDataGridFilterState(): FilterNode[] {
   return useDataGridStore(useShallow((s) => s.filterState));
 }
 
 /** Whether the column has an active filter. Subscribes to the boolean only, so a header re-renders when its own column starts or stops being filtered. */
 export function useDataGridIsColumnFiltered(columnId: string): boolean {
-  return useDataGridStore((s) => s.filterState.some((spec) => spec.columnId === columnId));
-}
-
-/** How `filterState`'s rows combine; default `"and"`. See {@link FilterJoinOperator}. */
-export function useDataGridJoinOperator(): FilterJoinOperator {
-  return useDataGridStore((s) => s.joinOperator);
+  return useDataGridStore((s) => hasFilterOnColumn(s.filterState, columnId));
 }
 
 /** The current quick-search text. */

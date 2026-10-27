@@ -1178,6 +1178,11 @@ describe("row-index helpers", () => {
     expect(touchesViewInputs(patches, [], [{ columnId: "price", operator: "contains", value: "1" }])).toBe(true);
   });
 
+  it("touchesViewInputs is true for a patched column used only inside a group", () => {
+    const tree = [{ join: "or" as const, filters: [{ columnId: "name", operator: "contains" as const, value: "a" }, { join: "and" as const, filters: [{ columnId: "price", operator: "gt" as const, value: "1" }] }] }];
+    expect(touchesViewInputs(patches, [], tree)).toBe(true);
+  });
+
   it("touchesViewInputs is false for a sort on another column", () => {
     expect(touchesViewInputs(patches, [{ columnId: "name", direction: "asc" }], [])).toBe(false);
   });

@@ -506,6 +506,11 @@
                "target": "components/data-grid/sort-filter/find-search-matches.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/sort-filter/filter-tree.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/sort-filter/filter-tree.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/sort-filter/index.ts",
                "type": "registry:component",
                "target": "components/data-grid/sort-filter/index.ts"
@@ -897,6 +902,11 @@
                "path": "registry/default/blocks/data-grid-toolbar/search.tsx",
                "type": "registry:component",
                "target": "components/data-grid-toolbar/search.tsx"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-toolbar/filter-tree-edit.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-toolbar/filter-tree-edit.ts"
             },
             {
                "path": "registry/default/blocks/data-grid-toolbar/filter-menu.tsx",

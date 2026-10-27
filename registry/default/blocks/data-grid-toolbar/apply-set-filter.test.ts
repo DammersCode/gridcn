@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { FilterOperator, FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import type { FilterNode, FilterOperator, FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { MAX_SET_FILTER_ENTRIES, checkedKeysFromFilters, planSetFilter } from "./apply-set-filter";
 
 const BOTH: FilterOperator[] = ["contains", "isAnyOf", "isNoneOf"];
 const keys = ["a", "b", "c", "d", "e", "f"];
 
-const plan = (checked: string[], filters: FilterSpec[] = [], allowed: readonly FilterOperator[] = BOTH, allKeys = keys) =>
+const plan = (checked: string[], filters: FilterNode[] = [], allowed: readonly FilterOperator[] = BOTH, allKeys = keys) =>
   planSetFilter({ filters, columnId: "city", keys: allKeys, checked: new Set(checked), allowed });
 
 describe("planSetFilter", () => {
@@ -164,5 +164,24 @@ describe("checkedKeysFromFilters", () => {
     const existing: FilterSpec[] = [{ columnId: "city", operator: "isAnyOf", value: ["alpha", "BETA"] }];
     expect(planSetFilter({ filters: existing, columnId: "city", keys: cityKeys, texts, checked: new Set(["alpha", "beta"]), allowed: BOTH })).toEqual({ status: "unchanged" });
     expect(checkedKeysFromFilters(existing, "city", cityKeys)).toEqual(new Set(["alpha", "beta"]));
+  });
+});
+
+describe("set filter rows inside a group", () => {
+  const inGroup: FilterNode = { filterId: "g", join: "or", filters: [{ columnId: "city", operator: "isAnyOf", value: ["a"] }, { columnId: "age", operator: "gt", value: "1" }] };
+
+  it("checkedKeysFromFilters ignores them", () => {
+    expect([...checkedKeysFromFilters([inGroup], "city", keys)]).toEqual(keys);
+  });
+
+  it("planSetFilter keeps the group untouched and appends its own top-level entry", () => {
+    expect(plan(["a", "b"], [inGroup])).toEqual({
+      status: "apply",
+      filters: [inGroup, { columnId: "city", operator: "isAnyOf", value: ["a", "b"] }],
+    });
+  });
+
+  it("planSetFilter reports unchanged when only a group holds the column and every value is checked", () => {
+    expect(plan(keys, [inGroup])).toEqual({ status: "unchanged" });
   });
 });

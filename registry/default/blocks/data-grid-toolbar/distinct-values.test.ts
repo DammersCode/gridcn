@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cellTypes, type AnyColumnDef, type FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { cellTypes, type AnyColumnDef, type FilterNode, type FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { DISTINCT_VALUES_CAP, distinctColumnValues, type DistinctValuesInput } from "./distinct-values";
 
 type Row = { city?: unknown; age?: unknown; status?: unknown; day?: unknown };
@@ -11,8 +11,8 @@ const columns: AnyColumnDef[] = [
   { id: "day", accessorKey: "day", header: "Day", type: "date", options: { displayFormat: { year: "numeric", month: "long", day: "numeric" }, locale: "en-US" } },
 ] as AnyColumnDef[];
 
-function input(data: readonly unknown[], filterState: FilterSpec[] = [], joinOperator: "and" | "or" = "and"): DistinctValuesInput {
-  return { data, columns, cellTypes: cellTypes as DistinctValuesInput["cellTypes"], filterState, joinOperator };
+function input(data: readonly unknown[], filterState: FilterNode[] = []): DistinctValuesInput {
+  return { data, columns, cellTypes: cellTypes as DistinctValuesInput["cellTypes"], filterState };
 }
 
 const summary = (r: ReturnType<typeof distinctColumnValues>) => r.values.map((v) => [v.key, v.label, v.count]);
@@ -60,11 +60,16 @@ describe("distinctColumnValues", () => {
     expect(distinctColumnValues(input(data, filters), "city").values.map((v) => v.key)).toEqual(["berlin", "bonn"]);
   });
 
-  it("counts every row under the or join", () => {
-    const data: Row[] = [{ city: "Berlin", age: 10 }, { city: "Bonn", age: 99 }];
-    const filters: FilterSpec[] = [{ columnId: "age", operator: "gt", value: "50" }];
-    expect(distinctColumnValues(input(data, filters, "or"), "city").values).toHaveLength(2);
-    expect(distinctColumnValues(input(data, filters, "and"), "city").values).toHaveLength(1);
+  it("counts only rows that pass an or group, with no or-bypass", () => {
+    const data: Row[] = [{ city: "Berlin", age: 10 }, { city: "Bonn", age: 99 }, { city: "Koeln", age: 5 }];
+    const group: FilterNode = { join: "or", filters: [{ columnId: "age", operator: "gt", value: "50" }, { columnId: "city", operator: "equals", value: "Koeln" }] };
+    expect(distinctColumnValues(input(data, [group]), "city").values.map((v) => v.key)).toEqual(["bonn", "koeln"]);
+  });
+
+  it("counts a set row of the column inside a group as an other filter", () => {
+    const data: Row[] = [{ city: "Berlin" }, { city: "Bonn" }, { city: "Koeln" }];
+    const group: FilterNode = { join: "or", filters: [{ columnId: "city", operator: "isAnyOf", value: ["koeln"] }, { columnId: "city", operator: "isAnyOf", value: ["bonn"] }] };
+    expect(distinctColumnValues(input(data, [group]), "city").values.map((v) => v.key)).toEqual(["bonn", "koeln"]);
   });
 
   it("stops adding keys at the cap and reports it", () => {

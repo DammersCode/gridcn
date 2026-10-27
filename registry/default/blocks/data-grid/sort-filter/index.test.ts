@@ -9,7 +9,7 @@ import {
   matchesFilter,
   type CellAccessor,
 } from ".";
-import type { FilterSpec, SortSpec } from "../types";
+import type { FilterGroup, FilterNode, FilterSpec, SortSpec } from "../types";
 
 /** Builds a CellAccessor over a row-major table of column-id -> text. */
 function tableAccessor(rows: Record<string, string>[]): CellAccessor {
@@ -390,54 +390,58 @@ describe("buildViewIndex", () => {
     expect(result).toEqual([0]);
   });
 
-  it("AND is the default when joinOperator is omitted (same result with and without it)", () => {
-    const rows = [{ a: "10", b: "x" }, { a: "10", b: "y" }, { a: "0", b: "x" }];
-    const filters: FilterSpec[] = [
-      { columnId: "a", operator: "gt", value: "1" },
-      { columnId: "b", operator: "equals", value: "x" },
+  describe("filter groups", () => {
+    const rows = [
+      { name: "A1", country: "X" },
+      { name: "B1", country: "X" },
+      { name: "C1", country: "X" },
+      { name: "A2", country: "Y" },
+      { name: "B2", country: "Y" },
     ];
-    const withoutJoin = buildViewIndex(rows.length, tableAccessor(rows), { sorts: [], filters });
-    const withAnd = buildViewIndex(rows.length, tableAccessor(rows), { sorts: [], filters, joinOperator: "and" });
-    expect(withoutJoin).toEqual([0]);
-    expect(withAnd).toEqual([0]);
-  });
+    const run = (filters: FilterNode[]) => buildViewIndex(rows.length, tableAccessor(rows), { sorts: [], filters });
+    const nameStarts = (letter: string): FilterSpec => ({ columnId: "name", operator: "startsWith", value: letter });
+    const country = (value: string): FilterSpec => ({ columnId: "country", operator: "equals", value });
 
-  describe("joinOperator: 'or'", () => {
-    it("a row passes if ANY filter matches", () => {
-      const rows = [
-        { a: "10", b: "x" }, // a>1 matches, b!=x fails -> passes (OR)
-        { a: "0", b: "y" }, // a>1 fails, b!=x matches -> passes (OR)
-        { a: "0", b: "x" }, // neither matches -> excluded
-      ];
-      const filters: FilterSpec[] = [
-        { columnId: "a", operator: "gt", value: "1" },
-        { columnId: "b", operator: "notEquals", value: "x" },
-      ];
-      const result = buildViewIndex(rows.length, tableAccessor(rows), { sorts: [], filters, joinOperator: "or" });
-      expect(result).toEqual([0, 1]);
+    it("evaluates (name starts with A or B) and country = X", () => {
+      const group: FilterGroup = { join: "or", filters: [nameStarts("A"), nameStarts("B")] };
+      expect(run([country("X"), group])).toEqual([0, 1]);
     });
 
-    it("OR with a single filter behaves the same as AND with a single filter", () => {
-      const rows = [{ a: "10" }, { a: "0" }];
-      const filters: FilterSpec[] = [{ columnId: "a", operator: "gt", value: "1" }];
-      const or = buildViewIndex(rows.length, tableAccessor(rows), { sorts: [], filters, joinOperator: "or" });
-      const and = buildViewIndex(rows.length, tableAccessor(rows), { sorts: [], filters, joinOperator: "and" });
-      expect(or).toEqual([0]);
-      expect(and).toEqual([0]);
+    it("evaluates (A and B) or (C and D) with an or group of and groups", () => {
+      const table = [{ a: "1", b: "1", c: "0", d: "0" }, { a: "0", b: "0", c: "1", d: "1" }, { a: "1", b: "0", c: "1", d: "0" }];
+      const eq = (columnId: string): FilterSpec => ({ columnId, operator: "equals", value: "1" });
+      const tree: FilterGroup = {
+        join: "or",
+        filters: [{ join: "and", filters: [eq("a"), eq("b")] }, { join: "and", filters: [eq("c"), eq("d")] }],
+      };
+      expect(buildViewIndex(table.length, tableAccessor(table), { sorts: [], filters: [tree] })).toEqual([0, 1]);
     });
 
-    it("OR combined with isBetween across two columns", () => {
-      const rows = [
-        { a: "5", b: "100" }, // a isBetween [1,10] matches
-        { a: "50", b: "5" }, // b isBetween [1,10] matches
-        { a: "50", b: "100" }, // neither matches
-      ];
-      const filters: FilterSpec[] = [
-        { columnId: "a", operator: "isBetween", value: ["1", "10"] },
-        { columnId: "b", operator: "isBetween", value: ["1", "10"] },
-      ];
-      const result = buildViewIndex(rows.length, tableAccessor(rows), { sorts: [], filters, joinOperator: "or" });
-      expect(result).toEqual([0, 1]);
+    it("a flat list combines with and", () => {
+      expect(run([country("X"), nameStarts("A")])).toEqual([0]);
+    });
+
+    it("a group of the old or list equals the old or result", () => {
+      expect(run([{ join: "or", filters: [nameStarts("A"), country("Y")] }])).toEqual([0, 3, 4]);
+    });
+
+    it("an empty group matches every row", () => {
+      expect(run([{ join: "or", filters: [] }])).toEqual([0, 1, 2, 3, 4]);
+      expect(run([{ join: "and", filters: [] }, country("Y")])).toEqual([3, 4]);
+    });
+
+    it("a one-child group equals its child", () => {
+      expect(run([{ join: "or", filters: [country("Y")] }])).toEqual(run([country("Y")]));
+    });
+
+    it("any join other than or evaluates as and", () => {
+      const group = { join: "xor", filters: [nameStarts("A"), country("Y")] } as unknown as FilterGroup;
+      expect(run([group])).toEqual([3]);
+    });
+
+    it("makeFilterPredicate takes the top level as and", () => {
+      const test = makeFilterPredicate(tableAccessor(rows), [country("X"), { join: "or", filters: [nameStarts("A"), nameStarts("B")] }]);
+      expect(rows.map((_, row) => test(row))).toEqual([true, true, false, false, false]);
     });
   });
 
@@ -679,7 +683,7 @@ describe("custom filterMatch (raw-value predicate)", () => {
 
   it("makeFilterPredicate (incremental path) agrees with buildViewIndex on filterMatch", () => {
     const filter: FilterSpec = { columnId: "n", operator: "gte", value: "100" };
-    const predicate = makeFilterPredicate(rawAccessor, [filter], "and");
+    const predicate = makeFilterPredicate(rawAccessor, [filter]);
     const surviving = values.map((_, row) => row).filter(predicate);
     expect(surviving).toEqual([2]);
   });

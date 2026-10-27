@@ -927,7 +927,7 @@ describe("stale view-space entry warning (plugin Mount)", () => {
       ]),
     );
     act(() => setPresenceHighlights!([viewEntry]));
-    act(() => actions!.setJoinOperator("or"));
+    act(() => actions!.setFilters([{ join: "or", filters: [{ columnId: "name", operator: "equals", value: "Row 1" }, { columnId: "qty", operator: "gt", value: "0" }] }]));
     expect(warn).toHaveBeenCalledTimes(3);
     warn.mockRestore();
   });

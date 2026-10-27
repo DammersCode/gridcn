@@ -614,7 +614,7 @@ export type FilterOperator =
   | "isAnyOf"
   | "isNoneOf";
 
-/** Combines multiple `FilterSpec`s: `"and"` (default) requires every filter to match, `"or"` requires any one. */
+/** How a {@link FilterGroup} combines its children: `"and"` requires every child to match, `"or"` requires any one. */
 export type FilterJoinOperator = "and" | "or";
 
 /**
@@ -630,6 +630,16 @@ export type FilterJoinOperator = "and" | "or";
  * for backward compatibility — the store auto-assigns one when absent (see `genFilterId`).
  */
 export type FilterSpec = { filterId?: string; columnId: string; operator: FilterOperator; value?: string | [string, string] | string[] };
+
+/**
+ * A box of filters that match together: with `join: "and"` every child must match, with `"or"` any one.
+ * A group nests one more group at most (see `MAX_FILTER_GROUP_DEPTH`). An empty group matches every row.
+ * `filterId` is assigned by the store when absent.
+ */
+export type FilterGroup = { filterId?: string; join: FilterJoinOperator; filters: FilterNode[] };
+
+/** One entry of `filterState`: a {@link FilterSpec} row or a {@link FilterGroup}. Narrow with `"filters" in node`. The top level always combines with `"and"`. */
+export type FilterNode = FilterSpec | FilterGroup;
 
 /**
  * Named keyboard actions, as an interface so consumers can ADD actions by declaration-merging
@@ -760,7 +770,6 @@ export type DataGridReadState = Omit<
   | "onEditEnd"
   | "onSortChange"
   | "onFilterChange"
-  | "onJoinOperatorChange"
   | "onSearchTextChange"
   | "onColumnLayoutChange"
   | "onColumnResizing"

@@ -69,7 +69,7 @@ group entirely, and it stays fully English.
 
 | Group | Covers | Owning surface |
 |---|---|---|
-| `toolbar` | Search placeholder and aria-labels, match counter, filter menu strings including the And/Or join operator and the per-row reorder announcement, columns menu | `data-grid-toolbar` |
+| `toolbar` | Search placeholder and aria-labels, match counter, filter menu strings including the filter group labels, the And/Or connector text, and the reorder announcement, columns menu | `data-grid-toolbar` |
 | `sort` | Sort button and aria-label, add and clear sort, ascending and descending, per-row remove and reorder arias, and the reorder announcement | `data-grid-sort-list` |
 | `filterOperators` | Per-operator display names (`contains`, `equals`, `gt`, and more) shown in the operator select of the filter menu | `data-grid-toolbar` |
 | `contextMenu` | Cut, copy, paste, row insert, duplicate, delete, sort, pin, hide, autosize, shared verbatim between the right-click menu and the header dropdown | `data-grid-context-menu` |
@@ -103,6 +103,11 @@ const de: DeepPartialLabels = {
     addFilter: "Filter hinzufügen",
     clearFilters: "Alle löschen",
     noFiltersApplied: "Keine Filter angewendet.",
+    addFilterGroup: "Gruppe hinzufügen",
+    removeFilterGroupAriaLabel: "Gruppe entfernen",
+    filterGroupMatchAny: "Mindestens eine Bedingung erfüllen",
+    filterGroupMatchAll: "Alle Bedingungen erfüllen",
+    joinOperatorAriaLabel: "Verknüpfung",
     joinOperatorAnd: "Und",
     joinOperatorOr: "Oder",
     columns: "Spalten",

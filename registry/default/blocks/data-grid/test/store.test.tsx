@@ -2,6 +2,7 @@ import { act, render, renderHook, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { memo, type ReactNode } from "react";
 import type { ColumnDef, DataChange } from "../types";
+import { withFilterIds } from "../store/compute";
 import { CompactSelection } from "../selection/compact-selection";
 import { cellTypes } from "../cell-types/cell-types";
 import {
@@ -17,8 +18,8 @@ import {
   useDataGridColumnFeatureFlags,
   useDataGridEditing,
   useDataGridFilterState,
+  useDataGridIsColumnFiltered,
   useDataGridIsRowSelected,
-  useDataGridJoinOperator,
   useDataGridColumnWidth,
   useDataGridRow,
   useDataGridRowCellState,
@@ -38,7 +39,7 @@ import {
   type DataGridStoreState,
   useDataGridSelector,
 } from "../store";
-import type { FilterSpec, SortSpec } from "../types";
+import type { FilterGroup, FilterNode, FilterSpec, SortSpec } from "../types";
 
 type Row = { id: string; name: string; age: number };
 
@@ -3505,67 +3506,73 @@ describe("controlled sortState/filterState/searchText (server escape hatch)", ()
     });
   });
 
-  describe("joinOperator (same pattern as sort/filter)", () => {
-    function useJoinProbe() {
-      return { actions: useDataGridInternalActions(), joinOperator: useDataGridJoinOperator(), viewIndex: useDataGridViewIndex() };
+  describe("filter groups", () => {
+    function useTreeProbe() {
+      return { actions: useDataGridInternalActions(), filterState: useDataGridFilterState(), viewIndex: useDataGridViewIndex() };
     }
-
-    it("defaults to 'and'", () => {
-      const wrapper = makeWrapper();
-      const { result } = renderHook(useJoinProbe, { wrapper });
-      expect(result.current.joinOperator).toBe("and");
+    const orGroup = (): FilterNode => ({
+      join: "or",
+      filters: [
+        { columnId: "name", operator: "contains", value: "z" }, // matches nobody
+        { columnId: "age", operator: "gt", value: "35" }, // matches Bob (40)
+      ],
     });
 
-    it("uncontrolled: setJoinOperator mutates joinOperator/viewIndex directly, no callback required", () => {
-      const wrapper = makeWrapper();
-      const { result, rerender } = renderHook(
-        () => ({ ...useJoinProbe(), filter: useFilterProbe() }),
-        { wrapper },
+    it("setFilters keeps a group and fills ids at every level", () => {
+      const { result } = renderHook(useTreeProbe, { wrapper: makeWrapper() });
+      act(() => result.current.actions.setFilters([orGroup()]));
+      const [group] = result.current.filterState as FilterGroup[];
+      expect(group!.filterId).toEqual(expect.any(String));
+      expect(group!.join).toBe("or");
+      expect(group!.filters.every((child) => child.filterId)).toBe(true);
+      expect(result.current.viewIndex).toEqual([2]);
+    });
+
+    it("useDataGridIsColumnFiltered sees a column used only inside a group", () => {
+      const { result } = renderHook(
+        () => ({ ...useTreeProbe(), age: useDataGridIsColumnFiltered("age"), city: useDataGridIsColumnFiltered("city") }),
+        { wrapper: makeWrapper() },
       );
-      act(() =>
-        result.current.filter.actions.setFilters([
-          { columnId: "name", operator: "contains", value: "z" }, // matches nobody
-          { columnId: "age", operator: "gt", value: "35" }, // matches Bob (40)
-        ]),
-      );
-      act(() => result.current.actions.setJoinOperator("or"));
-      rerender();
-      expect(result.current.joinOperator).toBe("or");
-      expect(result.current.viewIndex).toEqual([2]); // Bob survives under OR, nobody would under AND
+      act(() => result.current.actions.setFilters([orGroup()]));
+      expect(result.current.age).toBe(true);
+      expect(result.current.city).toBe(false);
     });
 
-    it("onJoinOperatorChange fires from setJoinOperator even though the joinOperator prop is absent", () => {
-      const onJoinOperatorChange = vi.fn();
-      const wrapper = makeConfigWrapper({ onJoinOperatorChange });
-      const { result } = renderHook(useJoinProbe, { wrapper });
-      act(() => result.current.actions.setJoinOperator("or"));
-      expect(onJoinOperatorChange).toHaveBeenCalledWith("or");
+    it("withFilterIds keeps the reference when no id is missing", () => {
+      const tree: FilterNode[] = [{ filterId: "g", join: "or", filters: [{ filterId: "a", columnId: "name", operator: "equals", value: "x" }] }];
+      expect(withFilterIds(tree)).toBe(tree);
     });
 
-    it("controlled: setJoinOperator fires the callback without touching store joinOperator", () => {
-      const onJoinOperatorChange = vi.fn();
-      const wrapper = makeConfigWrapper({ joinOperator: "and", onJoinOperatorChange });
-      const { result, rerender } = renderHook(useJoinProbe, { wrapper });
-
-      act(() => result.current.actions.setJoinOperator("or"));
-      rerender();
-
-      expect(onJoinOperatorChange).toHaveBeenCalledWith("or");
-      // controlled: the store's joinOperator does NOT move just because the user changed it —
-      // only the prop itself (via _syncProps) can move it (standard controlled-input semantics).
-      expect(result.current.joinOperator).toBe("and");
+    it("withFilterIds fills a nested group and leaves existing ids", () => {
+      const tree: FilterNode[] = [{ filterId: "g", join: "and", filters: [{ join: "or", filters: [{ columnId: "name", operator: "equals", value: "x" }] }] }];
+      const filled = withFilterIds(tree) as FilterGroup[];
+      expect(filled[0]!.filterId).toBe("g");
+      const inner = filled[0]!.filters[0] as FilterGroup;
+      expect(inner.filterId).toEqual(expect.any(String));
+      expect(inner.filters[0]!.filterId).toEqual(expect.any(String));
     });
 
-    it("viewIndex updates once the joinOperator prop itself changes", () => {
-      const wrapper = makeConfigWrapper({
-        joinOperator: "or",
-        filterState: [
-          { columnId: "name", operator: "contains", value: "z" },
-          { columnId: "age", operator: "gt", value: "35" },
-        ],
-      });
-      const { result } = renderHook(useJoinProbe, { wrapper });
-      expect(result.current.viewIndex).toEqual([2]); // Bob (age 40) survives under OR
+    it("withFilterIds drops groups below the depth cap, also for a cyclic tree", () => {
+      const leaf: FilterNode = { filterId: "l", columnId: "name", operator: "equals", value: "x" };
+      const cyclic: FilterGroup = { filterId: "c", join: "or", filters: [leaf] };
+      cyclic.filters.push(cyclic);
+      const filled = withFilterIds([cyclic]) as FilterGroup[];
+      const inner = filled[0]!.filters.find((n) => "filters" in n) as FilterGroup;
+      expect(inner.filters.some((n) => "filters" in n)).toBe(false);
+    });
+
+    it("onFilterChange emits the tree", () => {
+      const onFilterChange = vi.fn();
+      const { result } = renderHook(useTreeProbe, { wrapper: makeConfigWrapper({ onFilterChange }) });
+      act(() => result.current.actions.setFilters([orGroup()]));
+      expect(onFilterChange).toHaveBeenCalledWith([expect.objectContaining({ join: "or", filters: expect.any(Array) })]);
+    });
+
+    it("a controlled tree narrows the view and backfills ids", () => {
+      const wrapper = makeConfigWrapper({ filterState: [orGroup()] });
+      const { result } = renderHook(useTreeProbe, { wrapper });
+      expect(result.current.viewIndex).toEqual([2]);
+      expect(result.current.filterState[0]!.filterId).toEqual(expect.any(String));
     });
   });
 

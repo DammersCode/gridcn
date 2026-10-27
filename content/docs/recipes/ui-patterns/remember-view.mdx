@@ -13,8 +13,7 @@ Read `localStorage` after mount, so the server and the first client render match
 
 type SavedView = {
   sort: SortSpec[];
-  filters: FilterSpec[];
-  joinOperator: FilterJoinOperator;
+  filters: FilterNode[];
   search: string;
   layout: ColumnLayout;
 };
@@ -44,17 +43,21 @@ function OrdersGrid() {
       columns={columns}
       defaultSortState={view.sort}
       defaultFilterState={view.filters}
-      defaultJoinOperator={view.joinOperator}
       defaultSearchText={view.search}
       defaultColumnLayout={view.layout}
       onSortChange={(sort) => saveView({ sort })}
       onFilterChange={(filters) => saveView({ filters })}
-      onJoinOperatorChange={(joinOperator) => saveView({ joinOperator })}
       onSearchTextChange={(search) => saveView({ search })}
       onColumnLayoutChange={(layout) => saveView({ layout })}
     />
   );
 }
+```
+
+A saved view from an older version can hold a `joinOperator`. The filter tree has no separate join, so convert the saved value once when you read it: <NewBadge />
+
+```ts
+const filters = join === "or" ? [{ join: "or", filters: oldFilters }] : oldFilters;
 ```
 
 An `undefined` default leaves that part at its normal start state. The grid reads each default once at mount and ignores later changes.

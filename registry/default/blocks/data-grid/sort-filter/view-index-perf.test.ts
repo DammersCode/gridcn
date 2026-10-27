@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { FilterSpec, SortSpec } from "../types";
+import type { FilterNode, FilterSpec, SortSpec } from "../types";
 import { buildViewIndex, type CellAccessor } from "./build-view-index";
 
 /**
@@ -83,16 +83,36 @@ describe("view-index pipeline perf (100k rows)", () => {
     expect(ms).toBeLessThan(400);
   });
 
-  it("(c) 3 filters with OR", () => {
-    const filters: FilterSpec[] = [
-      { columnId: "name", operator: "contains", value: "needle" },
-      { columnId: "age", operator: "lt", value: "20" },
-      { columnId: "score", operator: "gte", value: "98" },
+  it("(c) 3 filters in an or group", () => {
+    const filters: FilterNode[] = [
+      {
+        join: "or",
+        filters: [
+          { columnId: "name", operator: "contains", value: "needle" },
+          { columnId: "age", operator: "lt", value: "20" },
+          { columnId: "score", operator: "gte", value: "98" },
+        ],
+      },
     ];
-    const ms = measure(() => buildViewIndex(ROW_COUNT, accessor, { sorts: [], filters, joinOperator: "or" }), 10);
-    console.log(`view-index (c) 3 filters OR: ${ms.toFixed(2)}ms`);
-    // OR is a single O(n) pass with `.some` short-circuiting per row — should be comparable to (a),
-    // not 3x like AND's re-scan chain; ceiling still generous for CI load.
+    const ms = measure(() => buildViewIndex(ROW_COUNT, accessor, { sorts: [], filters }), 10);
+    console.log(`view-index (c) 3 filters or group: ${ms.toFixed(2)}ms`);
+    // One O(n) pass with `.some` short-circuiting per row; ceiling generous for CI load.
+    expect(ms).toBeLessThan(300);
+  });
+
+  it("(c2) a set row plus an or group of 2", () => {
+    const filters: FilterNode[] = [
+      { columnId: "name", operator: "isAnyOf", value: ["needle", "pin", "hay"] },
+      {
+        join: "or",
+        filters: [
+          { columnId: "age", operator: "lt", value: "20" },
+          { columnId: "score", operator: "gte", value: "98" },
+        ],
+      },
+    ];
+    const ms = measure(() => buildViewIndex(ROW_COUNT, accessor, { sorts: [], filters }), 10);
+    console.log(`view-index (c2) set row + or group of 2: ${ms.toFixed(2)}ms`);
     expect(ms).toBeLessThan(300);
   });
 
