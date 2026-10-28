@@ -330,7 +330,6 @@ function dropEdgeAt(index: number, slot: DragSlot | null): DropEdge | undefined 
 /** One sibling list with its own drag context, so a drag never leaves its level. */
 function FilterList(props: FilterListProps): ReactNode {
   const { nodes, parent, depth, path, ctx, className } = props;
-  let groupCount = 0;
   const join: FilterGroup["join"] = parent?.join === "or" ? "or" : "and";
   const parentId = parent?.filterId;
   const [slot, setSlot] = useState<DragSlot | null>(null);
@@ -365,8 +364,8 @@ function FilterList(props: FilterListProps): ReactNode {
         {nodes.map((node, index) => {
           const position = { index, total: nodes.length, parentId, join, path, dropEdge: dropEdgeAt(index, slot), ctx };
           if (isFilterGroup(node)) {
-            groupCount += 1;
-            const groupPath = path ? `${path}.${groupCount}` : String(groupCount);
+            const ordinal = nodes.slice(0, index + 1).filter(isFilterGroup).length;
+            const groupPath = path ? `${path}.${ordinal}` : String(ordinal);
             return <FilterGroupBox key={node.filterId} group={node} depth={depth + 1} groupPath={groupPath} {...position} />;
           }
           return (
