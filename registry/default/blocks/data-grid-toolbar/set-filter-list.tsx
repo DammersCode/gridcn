@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from "react";
+import { memo, useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
@@ -93,31 +93,31 @@ export function SetFilterList(props: SetFilterListProps): ReactNode {
     }
   };
 
+  const toggleRef = useRef(onToggle);
+  useEffect(() => {
+    toggleRef.current = onToggle;
+  });
+  const select = useCallback((index: number, key: string) => {
+    setActiveIndex(index);
+    toggleRef.current(key);
+  }, []);
+
   const rows = Array.from({ length: Math.max(0, last - first + 1) }, (_, offset) => {
     const index = first + offset;
     const option = options[index]!;
-    const selected = checked.has(option.key);
     return (
-      <div
+      <SetFilterRow
         key={option.key}
         id={optionId(index)}
-        role="option"
-        aria-selected={selected}
-        aria-setsize={options.length}
-        aria-posinset={index + 1}
-        data-active={index === active || undefined}
-        className="absolute inset-x-0 flex cursor-default items-center gap-2 rounded-sm px-1.5 text-sm data-[active]:bg-accent data-[active]:text-accent-foreground"
-        style={{ top: index * SET_FILTER_ROW_HEIGHT, height: SET_FILTER_ROW_HEIGHT }}
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={() => {
-          setActiveIndex(index);
-          onToggle(option.key);
-        }}
-      >
-        <Checkbox checked={selected} tabIndex={-1} aria-hidden className="pointer-events-none" />
-        <span className="min-w-0 flex-1 truncate">{option.label}</span>
-        <span className="min-w-14 shrink-0 text-end text-xs text-muted-foreground tabular-nums">{countFormat.format(option.count)}</span>
-      </div>
+        optionKey={option.key}
+        label={option.label}
+        count={option.count}
+        index={index}
+        setSize={options.length}
+        selected={checked.has(option.key)}
+        isActive={index === active}
+        onSelect={select}
+      />
     );
   });
 
@@ -140,3 +140,36 @@ export function SetFilterList(props: SetFilterListProps): ReactNode {
     </div>
   );
 }
+
+type SetFilterRowProps = {
+  id: string;
+  optionKey: string;
+  label: string;
+  count: number;
+  index: number;
+  setSize: number;
+  selected: boolean;
+  isActive: boolean;
+  onSelect: (index: number, key: string) => void;
+};
+
+const SetFilterRow = memo(function SetFilterRow({ id, optionKey, label, count, index, setSize, selected, isActive, onSelect }: SetFilterRowProps) {
+  return (
+    <div
+      id={id}
+      role="option"
+      aria-selected={selected}
+      aria-setsize={setSize}
+      aria-posinset={index + 1}
+      data-active={isActive || undefined}
+      className="absolute inset-x-0 flex cursor-default items-center gap-2 rounded-sm px-1.5 text-sm data-[active]:bg-accent data-[active]:text-accent-foreground"
+      style={{ top: index * SET_FILTER_ROW_HEIGHT, height: SET_FILTER_ROW_HEIGHT }}
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={() => onSelect(index, optionKey)}
+    >
+      <Checkbox checked={selected} tabIndex={-1} aria-hidden className="pointer-events-none" />
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      <span className="min-w-14 shrink-0 text-end text-xs text-muted-foreground tabular-nums">{countFormat.format(count)}</span>
+    </div>
+  );
+});
