@@ -42,6 +42,8 @@ const results = await pipeline(
 - Pure `lib/` modules are implemented test-first and in parallel; components that share the reducer/context are sequenced.
 - Parallel agents never write the same file. If they must, the task split is wrong — re-split.
 
+- Every task names the client-side and the server-side modes it touches (see AGENTS.md, "Client and server modes"). A task that covers one side only is split or sent back.
+
 ## Review rules (for reviewers)
 
 - Review against the spec, not taste: PLAN.md decisions are settled; don't re-litigate architecture.

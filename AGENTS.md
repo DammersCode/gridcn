@@ -225,6 +225,22 @@ Before pushing, additionally mirror the remaining `.github/workflows/ci.yml` ste
 
 A user-facing change to the registry (component behavior, props, API, new item, or a removal or rename) or to the docs examples gets an entry under `## Unreleased` in `CHANGELOG.md` (Keep a Changelog style, `**Breaking:**` marker where applicable) in the same commit. Docs prose edits and internal/test-only changes: no entry.
 
+### Client and server modes
+
+Every feature, fix, and spec covers both sides. The grid runs on a local client-side source and
+on the consumer's own server: pagination mode, lazy source, controlled `filterState` and
+`sortState`, and `sortMode="server"`.
+
+- Before you start, list which modes the change touches. The spec in `research/` and the PR
+  checklist name each one and say how it behaves there.
+- A change to filters, sorts, selection, row ids, counts, or the data source states what the
+  server sends and receives: the request shape, the response, who evaluates it, and the bounds on
+  untrusted input.
+- A feature that works on the client only, or on the server only, is not done. If a mode stays out
+  of scope, the issue says so and links a follow-up issue.
+- Tests cover the client path and the server path. A demo shows both when the feature has a server
+  contract.
+
 ### Specs and plans
 
 A non-trivial behavior change (cross-file interaction, new gesture or API semantics) gets a short spec in `research/` before implementation; simple fixes skip it. Keep specs short — they are the decision record, not a novel.
