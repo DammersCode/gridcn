@@ -5,8 +5,7 @@ import type {
   CellRef,
   ViewCoord,
   CellType,
-  FilterJoinOperator,
-  FilterSpec,
+  FilterNode,
   GridCommand,
   GridSelection,
   HeaderClickBehavior,
@@ -15,7 +14,7 @@ import type {
   SortSpec,
 } from "../types";
 import type { DataGridLabels } from "../labels";
-import type { SearchMatch } from "../sort-filter";
+import { hasFilterOnColumn, type SearchMatch } from "../sort-filter";
 import { isSelectionEmpty, selectionContainsCell } from "../selection";
 import { colRangesEqual, selectedColRangesForRow, type ColRange } from "../selection/selected-col-ranges-for-row";
 import { cellErrorKey, flashCellKey, getRangeValues, holeRowId, rowIdAtViewRow, searchMatchKey } from "./compute";
@@ -23,7 +22,7 @@ import { resolveRefOrWarn } from "./data-write";
 import { getInternalActions } from "./internal-actions";
 import { useDataGridStore, useDataGridStoreApi } from "./provider";
 import type { SelectionPointer } from "./types";
-import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridInternalActions, DataGridRowCellState, DataGridStoreState, ResolvedPlugins } from "./types";
+import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridInternalActions, DataGridRowCellState, DataGridStoreState, LiveAnnouncement, ResolvedPlugins } from "./types";
 
 /** The stable actions object for the current grid; never changes identity, so this hook never re-renders. */
 export function useDataGridActions(): DataGridActions {
@@ -118,6 +117,11 @@ export function useDataGridLabels(): DataGridLabels {
 /** The polite live-region text of the latest row move. */
 export function useDataGridRowMoveAnnouncement(): string {
   return useDataGridStore((s) => s.rowMoveAnnouncement);
+}
+
+/** The latest announcement for the grid's live region: a row move, a row check, or a result count. */
+export function useDataGridLiveAnnouncement(): LiveAnnouncement | null {
+  return useDataGridStore((s) => s.liveAnnouncement);
 }
 
 /** The currently active (focused) cell, or null when nothing is active. */
@@ -320,19 +324,14 @@ export function useDataGridColumnFeatureFlags(): {
   );
 }
 
-/** The active per-column filter specs. */
-export function useDataGridFilterState(): FilterSpec[] {
+/** The active filter tree: top-level rows and groups. */
+export function useDataGridFilterState(): FilterNode[] {
   return useDataGridStore(useShallow((s) => s.filterState));
 }
 
 /** Whether the column has an active filter. Subscribes to the boolean only, so a header re-renders when its own column starts or stops being filtered. */
 export function useDataGridIsColumnFiltered(columnId: string): boolean {
-  return useDataGridStore((s) => s.filterState.some((spec) => spec.columnId === columnId));
-}
-
-/** How `filterState`'s rows combine; default `"and"`. See {@link FilterJoinOperator}. */
-export function useDataGridJoinOperator(): FilterJoinOperator {
-  return useDataGridStore((s) => s.joinOperator);
+  return useDataGridStore((s) => hasFilterOnColumn(s.filterState, columnId));
 }
 
 /** The current quick-search text. */

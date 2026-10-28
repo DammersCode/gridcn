@@ -89,7 +89,7 @@ describe("DataGridHeaderDropdown", () => {
     const trigger = document.querySelector<HTMLElement>(`[data-column-id="name"] ${gridAttrSelector("headerMenuTrigger")}`)!;
 
     await userEvent.click(trigger);
-    for (const name of ["Sort ascending", "Pin left", "Hide column", "Autosize column"]) {
+    for (const name of ["Sort ascending", "Pin to start", "Hide column", "Autosize column"]) {
       await vi.waitFor(() => expect(menuItem(name)).toBeTruthy());
     }
   });
@@ -107,10 +107,10 @@ describe("DataGridHeaderDropdown", () => {
     const trigger = document.querySelector<HTMLElement>(`[data-column-id="name"] ${gridAttrSelector("headerMenuTrigger")}`)!;
 
     await userEvent.click(trigger);
-    await vi.waitFor(() => expect(menuItem("Pin left")).toBeTruthy());
-    menuItem("Pin left")!.click();
+    await vi.waitFor(() => expect(menuItem("Pin to start")).toBeTruthy());
+    menuItem("Pin to start")!.click();
 
-    // the click landed on "Pin left" only — it must not have also cycled the header's own click-to-sort
+    // the click landed on "Pin to start" only — it must not have also cycled the header's own click-to-sort
     // gesture (which a bubbled-through-React click would otherwise trigger on the same pointerdown).
     const header = document.querySelector('[data-column-id="name"]')!;
     await expect.poll(() => header.getAttribute(GRID_ATTR.pinned)).toBe("left");

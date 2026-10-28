@@ -15,8 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 import { buildImportedRows, type ImportRejectedCell } from "./build-imported-rows";
 import { useDataGridImportPreview, type ImportTargetColumn, type ImportDefaults } from "./use-data-grid-import";
 import { DEFAULT_IMPORT_LIMITS, type CsvDelimiter, type ImportLimits } from "./parse-import-file";
@@ -257,81 +257,73 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
 
               <div className="flex min-w-0 flex-col gap-1">
                 <span className="text-sm font-medium text-foreground">{labels.io.mapColumns}</span>
-                <div className="min-w-0 overflow-x-auto rounded-md border border-border">
-                  {/* one grid for header+selects+preview so every column shares an identical track — keeps selects and preview cells aligned */}
-                  <div
-                    role="table"
-                    className="grid text-sm"
-                    style={{ gridTemplateColumns: `repeat(${preview.importHeaders.length}, minmax(9rem, 1fr))` }}
-                  >
-                    {preview.importHeaders.map((header, importColumnIndex) => {
-                      const currentGridColumnId = preview.mapping[importColumnIndex]?.gridColumnId ?? null;
-                      // a grid column already claimed by another row can't be picked again — one source per grid column (v1 rule)
-                      const takenElsewhere = new Set(
-                        preview.mapping
-                          .filter((m) => m.importColumnIndex !== importColumnIndex && m.gridColumnId !== null)
-                          .map((m) => m.gridColumnId),
-                      );
-                      return (
-                        <div
-                          key={importColumnIndex}
-                          role="columnheader"
-                          className="min-w-0 border-b border-border bg-muted/50 p-1.5 text-start font-medium text-foreground"
-                        >
-                          <div className="mb-1 truncate" title={header}>
-                            {header}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Select
-                              items={mappingItems}
-                              value={currentGridColumnId ?? SKIP_VALUE}
-                              onValueChange={(value) =>
-                                setMapping(importColumnIndex, value === SKIP_VALUE || value === null ? null : value)
-                              }
-                            >
-                              <SelectTrigger className="w-full" size="sm" aria-label={labels.io.mapColumnAriaLabel(header)}>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {mappingItems.map((item) => (
-                                  <SelectItem key={item.value} value={item.value} disabled={takenElsewhere.has(item.value)}>
-                                    {item.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {currentGridColumnId !== null && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="size-7 shrink-0"
-                                aria-label={labels.io.skipColumnQuick}
-                                onClick={() => setMapping(importColumnIndex, null)}
-                              >
-                                <X className="size-3.5" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {previewRows.map((row, rowIndex) =>
-                      preview.importHeaders.map((_, columnIndex) => (
-                        <div
-                          key={`${rowIndex}-${columnIndex}`}
-                          role="cell"
-                          className={cn(
-                            "min-w-0 truncate p-1.5 text-muted-foreground",
-                            rowIndex < previewRows.length - 1 && "border-b border-border",
-                          )}
-                          title={row[columnIndex] ?? ""}
-                        >
-                          {row[columnIndex] ?? ""}
-                        </div>
-                      )),
-                    )}
-                  </div>
+                <div className="min-w-0 overflow-hidden rounded-md border border-border">
+                  {/* fixed layout gives every column an identical track — keeps selects and preview cells aligned */}
+                  <Table className="table-fixed" style={{ minWidth: `${preview.importHeaders.length * 9}rem` }}>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent has-aria-expanded:bg-transparent">
+                        {preview.importHeaders.map((header, importColumnIndex) => {
+                          const currentGridColumnId = preview.mapping[importColumnIndex]?.gridColumnId ?? null;
+                          // one source per grid column: a column mapped elsewhere is disabled
+                          const takenElsewhere = new Set(
+                            preview.mapping
+                              .filter((m) => m.importColumnIndex !== importColumnIndex && m.gridColumnId !== null)
+                              .map((m) => m.gridColumnId),
+                          );
+                          return (
+                            <TableHead key={importColumnIndex} className="h-auto bg-muted/50 p-1.5 align-top whitespace-normal">
+                              <div className="mb-1 truncate" title={header}>
+                                {header}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Select
+                                  items={mappingItems}
+                                  value={currentGridColumnId ?? SKIP_VALUE}
+                                  onValueChange={(value) =>
+                                    setMapping(importColumnIndex, value === SKIP_VALUE || value === null ? null : value)
+                                  }
+                                >
+                                  <SelectTrigger className="w-full" size="sm" aria-label={labels.io.mapColumnAriaLabel(header)}>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {mappingItems.map((item) => (
+                                      <SelectItem key={item.value} value={item.value} disabled={takenElsewhere.has(item.value)}>
+                                        {item.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                {currentGridColumnId !== null && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-7 shrink-0"
+                                    aria-label={labels.io.skipColumnQuick}
+                                    onClick={() => setMapping(importColumnIndex, null)}
+                                  >
+                                    <X className="size-3.5" />
+                                  </Button>
+                                )}
+                              </div>
+                            </TableHead>
+                          );
+                        })}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {previewRows.map((row, rowIndex) => (
+                        <TableRow key={rowIndex} className="hover:bg-transparent">
+                          {preview.importHeaders.map((_, columnIndex) => (
+                            <TableCell key={columnIndex} className="truncate p-1.5 text-muted-foreground" title={row[columnIndex] ?? ""}>
+                              {row[columnIndex] ?? ""}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
                 {preview.importHeaders.length > 1 && (
                   <span className="text-xs text-muted-foreground">{labels.io.mapColumnsHint}</span>

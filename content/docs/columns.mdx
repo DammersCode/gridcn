@@ -14,7 +14,7 @@ and from `data-grid-toolbar` (a columns menu).
 [Filtering](/docs/examples/columns/filtering) ·
 [Custom headers](/docs/examples/columns/custom-headers) ·
 [Column layout](/docs/examples/columns/column-layout) ·
-[Column groups](/docs/examples/columns/column-groups) <NewBadge />
+[Column groups](/docs/examples/columns/column-groups)
 
 <ComponentPreview name="data-grid-pinning-demo" />
 
@@ -57,12 +57,13 @@ Drag a header to reorder columns. Per-column `reorderable: false`, or grid-wide
 `enableColumnReorder={false}`, disables reorder. Pinned columns only reorder within their own pin
 zone. Dragging a left-pinned column onto the unpinned band does nothing. It never changes the pin.
 
-## Pin left/right
+## Pin start/end
 
 Set `pin: 'left' | 'right'` per column as an initial value, or change it at runtime through the
 header dropdown menu or the right-click header context menu, both installed by the
 [context menu add-on](/docs/addons/context-menu), which owns the menu wiring and its items (sort,
-pin, autosize, hide).
+pin, autosize, hide). The menu items read "Pin to start" <NewBadge /> and "Pin to end". `pin: "left"` is the
+start side, `pin: "right"` the end side. In a left-to-right page, start is left and end is right. In a right-to-left page, start is right and end is left.
 
 <Callout type="idea" title="Right-click selects the cell first">
   Right-clicking a cell makes it the active cell with a single-cell selection before the menu
@@ -75,13 +76,13 @@ The `renderHeaderMenu` slot of `DataGridRoot` renders at the inline-end of each 
 menu as a right-click. Per-column
 `pinnable: false`, or grid-wide `enableColumnPinning={false}`, disables pin and unpin.
 
-The `renderHeaderFilter` <NewBadge /> slot of `DataGridRoot` renders a filter button in each header cell
+The `renderHeaderFilter` slot of `DataGridRoot` renders a filter button in each header cell
 whose column offers a set filter. It receives `{ column, index }`. The `DataGridHeaderFilter`
 component of the [toolbar add-on](/docs/addons/toolbar#header-filter) fills it. A header cell
 carries `data-filtered` while its column has a filter.
 
-A soft directional shadow marks the pinned boundary: the last left-pinned column casts a shadow
-to the right, and the first right-pinned column casts one to the left, whenever content is
+A soft directional shadow marks the pinned boundary: the last start-pinned column casts a shadow
+toward the end side, and the first end-pinned column casts one toward the start side, whenever content is
 actually scrolled beneath it.
 
 ### Persistent pin indicator
@@ -210,8 +211,6 @@ The slot mounts inside `DataGridRoot`, so it needs the composed parts. `DataGrid
 convenience wrapper) does not forward it.
 
 ## Column groups
-
-<NewBadge />
 
 A column group puts one shared header above a run of columns. The `columnGroups` prop of
 `DataGridProvider` defines the groups by column id. The `columns` array stays flat.

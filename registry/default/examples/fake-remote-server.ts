@@ -3,17 +3,42 @@ import { generateDemoRows, type DemoRow } from "./demo-data";
 
 export type RemoteSort = { columnId: string; direction: "asc" | "desc" };
 export type RemoteFilter = { columnId: string; operator: string; value?: string | [string, string] | string[] };
+export type RemoteFilterGroup = { join: "and" | "or"; filters: readonly RemoteFilterNode[] };
+export type RemoteFilterNode = RemoteFilter | RemoteFilterGroup;
 export type RemoteQuery = {
   page: number;
   pageSize: number;
   search?: string;
   sorts?: readonly RemoteSort[];
-  filters?: readonly RemoteFilter[];
-  join?: "and" | "or";
+  filters?: readonly RemoteFilterNode[];
   signal?: AbortSignal;
 };
 
 const LATENCY_MS = 300;
+const MAX_FILTER_DEPTH = 2;
+const MAX_FILTER_LEAVES = 64;
+const MAX_FILTER_GROUPS = 16;
+const FILTERABLE_COLUMNS: ReadonlySet<string> = new Set(["id", "name", "email", "age", "active", "role", "joined", "score"]);
+
+const isGroup = (node: RemoteFilterNode): node is RemoteFilterGroup => "filters" in node;
+
+/** Checks an untrusted filter tree before it is evaluated: depth, group count, leaf count, and join values. A real server also caps the request body size. */
+function assertFilterTree(nodes: readonly RemoteFilterNode[], allowed: ReadonlySet<string>): void {
+  let leaves = 0;
+  let groups = 0;
+  const walk = (list: readonly RemoteFilterNode[], depth: number) => {
+    if (!Array.isArray(list)) throw new Error("invalid filter tree");
+    for (const node of list as readonly RemoteFilterNode[]) {
+      if (isGroup(node)) {
+        if (depth >= MAX_FILTER_DEPTH || ++groups > MAX_FILTER_GROUPS || (node.join !== "and" && node.join !== "or")) throw new Error("invalid filter group");
+        walk(node.filters, depth + 1);
+      } else {
+        if (!allowed.has(node.columnId) || ++leaves > MAX_FILTER_LEAVES) throw new Error("invalid filter");
+      }
+    }
+  };
+  walk(nodes, 0);
+}
 
 function delay(signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -92,11 +117,13 @@ export function createRemoteServer() {
     }
     const filters = query.filters ?? [];
     if (filters.length > 0) {
-      list = list.filter((row) =>
-        (query.join ?? "and") === "or"
-          ? filters.some((f) => matchFilter(row, f))
-          : filters.every((f) => matchFilter(row, f)),
-      );
+      assertFilterTree(filters, FILTERABLE_COLUMNS);
+      const matchNode = (row: DemoRow, node: RemoteFilterNode): boolean => {
+        if (!isGroup(node)) return matchFilter(row, node);
+        if (node.filters.length === 0) return true;
+        return node.join === "or" ? node.filters.some((f) => matchNode(row, f)) : node.filters.every((f) => matchNode(row, f));
+      };
+      list = list.filter((row) => filters.every((f) => matchNode(row, f)));
     }
     const sorts = query.sorts ?? [];
     if (sorts.length > 0) {

@@ -20,7 +20,7 @@ sort or filter a column, drag-fill, scroll, resize, pin, or hide a column) to se
 | React to a data edit, paste, fill, or row change | `onDataChange` | [1. `onDataChange`](#1-ondatachange--the-flagship-shape) |
 | Read the active cell or a range selection | `onSelectionChange` | [2. `onSelectionChange`](#2-onselectionchange) |
 | React to a sort change | `onSortChange` | [3. `onSortChange`](#3-onsortchange) |
-| React to a filter or join-operator change | `onFilterChange` + join | [4. `onFilterChange` + join](#4-onfilterchange--join) |
+| React to a filter change | `onFilterChange` | [4. `onFilterChange`](#4-onfilterchange) |
 | Control or observe the quick-search text | `searchText` / `onSearchTextChange` | Same controlled-pair convention as [3. `onSortChange`](#3-onsortchange) |
 | Intercept or veto a fill-handle drag | `onFill` | [5. `onFill`](#5-onfill) |
 | React to a plain click on a cell or its row | `onCellClick` | [6. `onCellClick`](#6-oncellclick) |
@@ -73,7 +73,7 @@ type DataChange<TData> = {
 `label` is a human-readable name for the entry, for example `"Add row"`. It is set by
 `record(change, label)` and carried through undo and redo.
 
-A `move` <NewBadge /> operation of a batch (`reorderRows` with a list, `moveRowsBy`) has `from` as the row's
+A `move` operation of a batch (`reorderRows` with a list, `moveRowsBy`) has `from` as the row's
 index before the whole batch and `to` as its index after it. Apply the operations of one change
 together, for example with `applyChange`.
 
@@ -81,7 +81,7 @@ An `update` operation carries `cells` only when the change is cell-level, for ex
 or a fill. A whole-row update has no `cells` field.
 
 The `"stream"` source tags a batch from `updateCells`. See [Streaming updates](/docs/streaming-updates).
-The `"replace"` <NewBadge /> source tags a batch from the [find & replace](/docs/addons/find-replace) add-on.
+The `"replace"` source tags a batch from the [find & replace](/docs/addons/find-replace) add-on.
 The `"app"` source tags a programmatic change the consumer applied to its own array and
 registered with the `data-grid-history` add-on's `record()`. See
 [Undo & redo](/docs/addons/undo-redo#programmatic-changes-record).
@@ -239,21 +239,18 @@ behavior. The callback still fires on every user-driven change (a header click,
 you pass the new value back in as the prop. See
 [Sorting, filtering & search](/docs/sorting-filtering-search) for the toolbar UI this drives.
 
-## 4. `onFilterChange` + join
+## 4. `onFilterChange`
 
 ```ts
-filterState?: FilterSpec[];
-onFilterChange?: (next: FilterSpec[]) => void;
-joinOperator?: FilterJoinOperator;
-onJoinOperatorChange?: (next: FilterJoinOperator) => void;
+filterState?: FilterNode[];
+onFilterChange?: (next: FilterNode[]) => void;
 ```
 
-This is the same controlled-pair convention as `onSortChange`. Omit `filterState` or
-`joinOperator` for uncontrolled behavior. The `value` of a `FilterSpec` is a single string for
+This is the same controlled-pair convention as `onSortChange`. Omit `filterState` for uncontrolled
+behavior. A `FilterNode` is a filter row or a filter group, so `next` is the whole tree. The `value` of a `FilterSpec` is a single string for
 every operator except `isBetween`, which carries an inclusive `[min, max]` tuple. Try the Score
 column's filter menu with "is between" in the demo above to see that tuple shape in the
-inspector. `onJoinOperatorChange` fires separately from `onFilterChange`, because the join
-operator (`"and"` or `"or"`) and the filter list are independent pieces of state. See
+inspector. See
 [Sorting, filtering & search](/docs/sorting-filtering-search) for the toolbar UI these drive.
 
 ## 5. `onFill`

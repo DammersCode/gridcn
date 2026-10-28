@@ -54,7 +54,7 @@ URL keys (with `prefixedKey`, `prefixed-key.ts:2-4`):
 | `order` | `cols` | `id,id,id` (each `encodeURIComponent`) | — |
 | `hidden` | `hide` | `id,id` | `-` (defs hide some, the user shows all) |
 | `widths` | `widths` | `id:240,id:80` (integer px) | absent = no resized column |
-| `pins` | `pins` | `id:l,id:r` | `-` (defs pin some, the user unpinned all) |
+| `pins` | `pins` | `id:s,id:e` (start/end; the legacy `l`/`r` codes are read, not written) | `-` (defs pin some, the user unpinned all) |
 
 A given `pins` part replaces all pins (the W5-11 omitted-part rule), so a column absent from it is
 unpinned. This makes an unpinned def-pinned column round-trip, which `applyDefaultColumnLayout`
@@ -88,7 +88,8 @@ cannot do today (`store/compute.ts:497-498` keeps the def pin).
   unknown ids are dropped by the normalizer with one dev warning (the sort/filter rule,
   `use-data-grid-url-state.ts:116-120`).
 - Widths accept `^\d{1,5}$` only, then `clampColumnWidth` (`columns/resolve-column-width.ts:18-21`).
-  Pins accept `l` and `r` only. Parsing never throws.
+  Pins accept `s` and `e` (start/end) plus the legacy `l` and `r`, which are read but never written.
+  Parsing never throws.
 - Ids are written with `encodeURIComponent`, so a column id cannot inject another param.
 
 ## Performance

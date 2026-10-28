@@ -69,17 +69,17 @@ group entirely, and it stays fully English.
 
 | Group | Covers | Owning surface |
 |---|---|---|
-| `toolbar` | Search placeholder and aria-labels, match counter, filter menu strings including the And/Or join operator and the per-row reorder announcement, columns menu | `data-grid-toolbar` |
+| `toolbar` | Search placeholder and aria-labels, match counter, filter menu strings including the filter group labels, the And/Or connector text, and the reorder announcement, columns menu | `data-grid-toolbar` |
 | `sort` | Sort button and aria-label, add and clear sort, ascending and descending, per-row remove and reorder arias, and the reorder announcement | `data-grid-sort-list` |
 | `filterOperators` | Per-operator display names (`contains`, `equals`, `gt`, and more) shown in the operator select of the filter menu | `data-grid-toolbar` |
 | `contextMenu` | Cut, copy, paste, row insert, duplicate, delete, sort, pin, hide, autosize, shared verbatim between the right-click menu and the header dropdown | `data-grid-context-menu` |
 | `keybindings` | Shortcuts dialog title and description, category headings, native-clipboard rows, and a per-`GridAction` label map | `data-grid-keybindings` |
 | `markers` | Select-all header checkbox and per-row checkbox aria-labels, the reorder-handle aria-label, and the reorder announcement | core (`rowMarkers`) |
-| `grid` | Core strings not owned by an add-on: the empty-state message and the loading-skeleton and progress-bar aria-label | core |
+| `grid` | Core strings not owned by an add-on: the empty-state message, the loading-skeleton and progress-bar aria-label, the date editor placeholder and calendar button aria-label, and the live-region announcements for checked rows and result counts | core |
 | `io` | Export dropdown, import dialog (file picker, delimiter, column mapping, preview, errors) | `data-grid-io` |
 | `pagination` | Footer first, prev, next, last, page-number aria-labels, page-size select, "x-y of z" range label | `data-grid-pagination` |
 | `statusBar` | Aggregate labels (count, sum, avg, min, max) and the capped-walk title | `data-grid-status-bar` |
-| `findReplace` <NewBadge /> | Panel field names, toggles, buttons, and the match and result status lines | `data-grid-find-replace` |
+| `findReplace` | Panel field names, toggles, buttons, and the match and result status lines | `data-grid-find-replace` |
 
 <Callout title="Full shape lives in API reference">
   The exact type of every field of every group is generated from source in
@@ -103,8 +103,13 @@ const de: DeepPartialLabels = {
     addFilter: "Filter hinzufügen",
     clearFilters: "Alle löschen",
     noFiltersApplied: "Keine Filter angewendet.",
-    joinOperatorAnd: "Und",
-    joinOperatorOr: "Oder",
+    addFilterGroup: "Gruppe hinzufügen",
+    removeFilterGroupAriaLabel: "Gruppe entfernen",
+    filterGroupName: "Gruppe",
+    filterGroupJoinAriaLabel: (position, group) => `Verknüpfung von Filter ${position} in Gruppe ${group}`,
+    filterConnectorAnd: "Und",
+    filterConnectorOr: "Oder",
+    headerFilterGroupRows: "Diese Spalte hat auch Filter in einer Gruppe. Zurücksetzen entfernt sie ebenfalls.",
     columns: "Spalten",
   },
   contextMenu: {
@@ -114,12 +119,18 @@ const de: DeepPartialLabels = {
     insertRowAbove: "Zeile oberhalb einfügen",
     duplicateRows: (count) => (count > 1 ? "Zeilen duplizieren" : "Zeile duplizieren"),
     deleteRow: "Zeile löschen",
-    pinLeft: "Links anheften",
+    pinStart: "Am Anfang anheften",
+    pinEnd: "Am Ende anheften",
+    pinEnd: "Am Ende anheften",
     autosize: "Spaltenbreite anpassen",
   },
   grid: {
     emptyState: "Keine Zeilen",
     loading: "Wird geladen…",
+    dateCalendarAriaLabel: "Kalender",
+    rowsChecked: (count) => `${count} ${count === 1 ? "Zeile" : "Zeilen"} ausgewählt`,
+    resultsCount: (count) => `${count} ${count === 1 ? "Zeile" : "Zeilen"}`,
+    resultsCountLoaded: (count) => `${count} geladene ${count === 1 ? "Zeile" : "Zeilen"}`,
   },
   // sort, filterOperators, keybindings, markers, and io follow the same pattern.
 };

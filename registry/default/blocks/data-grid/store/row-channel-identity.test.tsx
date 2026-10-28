@@ -108,7 +108,7 @@ describe("row channel follows record identity", () => {
     expect(checkedIds(store())).toEqual(["c"]);
   });
 
-  it("setJoinOperator keeps the checked records", () => {
+  it("moving filters into an or group keeps the checked records", () => {
     const { store } = mount({ defaultData: rows() });
     act(() =>
       store().getState().actions.setFilters([
@@ -119,7 +119,11 @@ describe("row channel follows record identity", () => {
     expect(store().getState().viewIndex).toEqual([2, 3]);
     check(store(), ["d"]);
 
-    act(() => store().getState().actions.setJoinOperator("or"));
+    act(() =>
+      store().getState().actions.setFilters([
+        { join: "or", filters: [{ columnId: "age", operator: "gt", value: "25" }, { columnId: "name", operator: "contains", value: "a" }] },
+      ]),
+    );
 
     expect(checkedIds(store())).toEqual(["d"]);
   });

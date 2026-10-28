@@ -1,6 +1,6 @@
 /**
  * Compile-time-only assertions for the public barrel's surface: GridCellTypes consumer
- * augmentation, controlled-props shapes (sort/filter/search/joinOperator), DeepPartialLabels,
+ * augmentation, controlled-props shapes (sort/filter/search), DeepPartialLabels,
  * useDataGridVisibleColumns/useDataGridAllColumns consumer callability, and a spot-check that the
  * barrel exports no accidental `any`. No runtime assertions live here; the tsc gate typechecks this
  * file (named so vitest's *.test.ts glob does not pick it up, matching
@@ -33,7 +33,8 @@ import type {
   UpdateCellsReorder,
   UpdateCellsVerdict,
   DeepPartialLabels,
-  FilterJoinOperator,
+  FilterGroup,
+  FilterNode,
   FilterSpec,
   GetRowClassName,
   GridActions,
@@ -84,7 +85,7 @@ declare const currencyColumn: CurrencyColumn<Row & { price: number | null }>;
 assertEqual<number | null, typeof currencyColumn.options extends { currency: string } | undefined ? number | null : never>(true);
 assertEqual<"currency", typeof currencyColumn.type>(true);
 
-// --- controlled-props shapes: sort/filter/search/joinOperator ----------
+// --- controlled-props shapes: sort/filter/search ----------
 // Each is independently optional (uncontrolled by omission) per store.tsx's DataGridSyncProps
 // doc comments — assert the prop object shapes accepted by DataGridProps<TData> directly, so a
 // future accidental narrowing (e.g. making one non-optional, or dropping the paired onXChange)
@@ -92,18 +93,20 @@ assertEqual<"currency", typeof currencyColumn.type>(true);
 
 const sortState: SortSpec[] = [{ columnId: "name", direction: "asc" }];
 const filterState: FilterSpec[] = [{ filterId: "f1", columnId: "age", operator: "gt", value: "10" }];
-const joinOperator: FilterJoinOperator = "or";
+const filterTree: FilterNode[] = [{ columnId: "age", operator: "gt", value: "10" }, { join: "or", filters: [{ columnId: "name", operator: "equals", value: "a" }] }];
+const group: FilterGroup = { join: "and", filters: [] };
+void group;
 
 declare const controlledProps: DataGridProps<Row>;
 type ControlledSlice = Pick<
   DataGridProps<Row>,
-  "sortState" | "onSortChange" | "filterState" | "onFilterChange" | "joinOperator" | "onJoinOperatorChange" | "searchText" | "onSearchTextChange"
+  "sortState" | "onSortChange" | "filterState" | "onFilterChange" | "searchText" | "onSearchTextChange"
 >;
 const controlledSlice: ControlledSlice = controlledProps;
 void controlledSlice;
 void sortState;
 void filterState;
-void joinOperator;
+void filterTree;
 
 // each controlled prop must be independently optional (uncontrolled-by-omission contract) —
 // an empty object satisfies the whole slice.
@@ -114,9 +117,12 @@ void allOmitted;
 const badSortState: Pick<DataGridProps<Row>, "sortState"> = { sortState: "asc" };
 void badSortState;
 
-// @ts-expect-error - joinOperator is "and" | "or", not an arbitrary string
-const badJoinOperator: Pick<DataGridProps<Row>, "joinOperator"> = { joinOperator: "xor" };
-void badJoinOperator;
+const badJoin: FilterGroup = {
+  // @ts-expect-error - join is "and" | "or", not an arbitrary string
+  join: "xor",
+  filters: [],
+};
+void badJoin;
 
 // --- W5-11: controlled selection and column layout, in stable CellRef terms ---------------------
 // `selection`/`defaultSelection` are mutually exclusive (selection wins), `onSelectionChange`
@@ -190,6 +196,7 @@ assertEqual<(change: DataChange<unknown>) => void, typeof wActions.commitChange>
 
 assertEqual<boolean | undefined, DataGridSyncProps<Row>["keepCheckedRows"]>(true);
 assertEqual<boolean | undefined, DataGridSyncProps<Row>["keepHiddenCheckedRows"]>(true);
+assertEqual<boolean | undefined, DataGridSyncProps<Row>["announceResults"]>(true);
 assertEqual<((ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean | Promise<boolean>) | undefined, DataGridSyncProps<Row>["onBeforeDeleteRows"]>(true);
 
 // Disjoint: a sync prop that also exists on the root would be ambiguous about which home reads it.

@@ -38,6 +38,7 @@ import {
   selectionRects,
 } from "../selection";
 import type { CellRef, CompactSelectionLike, DataChange, DataGridApi, DataOp, GridBulkValidationError, GridValidationErrorEvent, ViewCoord } from "../types";
+import { nextAnnouncement } from "./announcements";
 import type { AnyColumnDef, CellPatch, DataGridActions, DataGridStoreState, UpdateCellsVerdict } from "./types";
 
 /**
@@ -189,10 +190,10 @@ export function pendingRows(ctx: DataWriteContext, touchedRows: readonly number[
  */
 export function resolveViewIndex(s: DataGridStoreState, data: readonly unknown[], pending: readonly number[] | null): number[] {
   const incremental = pending
-    ? incrementalViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), s.filterState, s.joinOperator, s.viewIndex, pending, s.cellTypes)
+    ? incrementalViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), s.filterState, s.viewIndex, pending, s.cellTypes)
     : null;
   if (incremental) return sameElements(incremental, s.viewIndex) ? s.viewIndex : incremental;
-  return computeViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), s.filterState, s.joinOperator, s.viewIndex, s.cellTypes);
+  return computeViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), s.filterState, s.viewIndex, s.cellTypes);
 }
 
 /**
@@ -224,7 +225,7 @@ export function reconcileAfterWrite(s: DataGridStoreState, nextData: readonly un
  * `setColumnHidden`. The caller owns `activeCell` (it follows or clears the cursor itself).
  */
 export function rebuildRowOpView(s: DataGridStoreState, nextData: readonly unknown[]): Partial<DataGridStoreState> {
-  const viewIndex = computeViewIndex(nextData, s.columns, viewSorts(s.sortMode, s.sortState), s.filterState, s.joinOperator, s.viewIndex, s.cellTypes);
+  const viewIndex = computeViewIndex(nextData, s.columns, viewSorts(s.sortMode, s.sortState), s.filterState, s.viewIndex, s.cellTypes);
   return {
     viewIndex,
     viewStale: false,
@@ -514,6 +515,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     ctx.lastEmittedData = nextData;
     const editRemap = remapEditing(s, s.viewIndex, s.visibleColumns, nextData, getRowId);
     const follow = (row: number) => newIndexOf[row] ?? row;
+    const announcement = announceRowMove(s, plan);
+    const movedCount = plan.sources.length;
     writeThenEmit(ctx, s, nextData, { source: "row-operation", ops }, () =>
       set({
         data: nextData,
@@ -521,7 +524,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         selection: remapSelectionRows(s.selection, newIndexOf),
         activeCell: s.activeCell ? { ...s.activeCell, row: follow(s.activeCell.row) } : null,
         lastHighlightedRow: s.lastHighlightedRow === null ? null : follow(s.lastHighlightedRow),
-        rowMoveAnnouncement: announceRowMove(s, plan),
+        rowMoveAnnouncement: announcement,
+        liveAnnouncement: nextAnnouncement(s.liveAnnouncement, "rowMove", movedCount),
         ...editRemap,
       }),
     );

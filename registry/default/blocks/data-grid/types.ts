@@ -535,7 +535,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    * column and removes it from flex distribution.
    */
   flex?: number;
-  /** Initial pin direction; change it at runtime through `setColumnPin` or the context menu. Pinned columns only reorder within their own pin zone. */
+  /** Initial pin side; `"left"` is the inline start and `"right"` the inline end, so both flip in a right-to-left page; change it at runtime through `setColumnPin` or the context menu. Pinned columns only reorder within their own pin zone. */
   pin?: "left" | "right";
   /** Removes the column from click-to-sort (header clicks no longer sort it); programmatic `setSorts`/`toggleSort` still apply. Default true. */
   sortable?: boolean;
@@ -614,7 +614,7 @@ export type FilterOperator =
   | "isAnyOf"
   | "isNoneOf";
 
-/** Combines multiple `FilterSpec`s: `"and"` (default) requires every filter to match, `"or"` requires any one. */
+/** How a {@link FilterGroup} combines its children: `"and"` requires every child to match, `"or"` requires any one. */
 export type FilterJoinOperator = "and" | "or";
 
 /**
@@ -630,6 +630,16 @@ export type FilterJoinOperator = "and" | "or";
  * for backward compatibility — the store auto-assigns one when absent (see `genFilterId`).
  */
 export type FilterSpec = { filterId?: string; columnId: string; operator: FilterOperator; value?: string | [string, string] | string[] };
+
+/**
+ * A box of filters that match together: with `join: "and"` every child must match, with `"or"` any one.
+ * A group nests one more group at most (see `MAX_FILTER_GROUP_DEPTH`). An empty group matches every row.
+ * `filterId` is assigned by the store when absent.
+ */
+export type FilterGroup = { filterId?: string; join: FilterJoinOperator; filters: FilterNode[] };
+
+/** One entry of `filterState`: a {@link FilterSpec} row or a {@link FilterGroup}. Narrow with `"filters" in node`. The top level always combines with `"and"`. */
+export type FilterNode = FilterSpec | FilterGroup;
 
 /**
  * Named keyboard actions, as an interface so consumers can ADD actions by declaration-merging
@@ -760,7 +770,6 @@ export type DataGridReadState = Omit<
   | "onEditEnd"
   | "onSortChange"
   | "onFilterChange"
-  | "onJoinOperatorChange"
   | "onSearchTextChange"
   | "onColumnLayoutChange"
   | "onColumnResizing"
@@ -932,7 +941,14 @@ export interface GridCellTypes {
   date: {
     value: string | null;
     /** `locale` defaults to `"en-US"` — an explicit default keeps SSR and client HTML identical. */
-    options: { min?: string; max?: string; displayFormat?: Intl.DateTimeFormatOptions; locale?: string };
+    options: {
+      min?: string;
+      max?: string;
+      displayFormat?: Intl.DateTimeFormatOptions;
+      locale?: string;
+      /** Shows the editor as a typed input with a calendar button; the calendar opens on the button. Defaults to `false`: the calendar shows at edit start. */
+      calendarTrigger?: boolean;
+    };
   };
   url: {
     value: string | null;

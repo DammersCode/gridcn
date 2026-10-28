@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { FilterJoinOperator, FilterSpec, SortSpec } from "../types";
+import type { FilterGroup, FilterNode, FilterSpec, SortSpec } from "../types";
 import { buildViewIndex, type CellAccessor } from "./build-view-index";
 import { INCREMENTAL_PATCH_LIMIT, lowerBound, makeViewComparator, updateViewIndex } from "./incremental-view-index";
 
@@ -45,7 +45,7 @@ function typedAccessorFor(rows: readonly Row[]): CellAccessor {
   };
 }
 
-type State = { sorts: SortSpec[]; filters: FilterSpec[]; joinOperator?: FilterJoinOperator };
+type State = { sorts: SortSpec[]; filters: FilterNode[] };
 
 /** The two comparator sources the sort path can resolve; both must reach the identical view index. */
 const ACCESSOR_KINDS = [
@@ -57,7 +57,6 @@ function rebuild(rows: readonly Row[], state: State): number[] {
   return buildViewIndex(rows.length, accessorFor(rows), {
     sorts: state.sorts,
     filters: state.filters,
-    joinOperator: state.joinOperator,
   });
 }
 
@@ -68,7 +67,6 @@ function step(rows: Row[], view: readonly number[], state: State, touched: numbe
   const result = updateViewIndex(view, touched, accessorFor(next), {
     sorts: state.sorts,
     filters: state.filters,
-    joinOperator: state.joinOperator,
   });
   return { next, result };
 }
@@ -197,14 +195,18 @@ describe("updateViewIndex: targeted cases", () => {
     expect(result.viewIndex).toEqual(rebuild(next, state));
   });
 
-  it("matches the rebuild with an OR join across two filters", () => {
+  it("matches the rebuild with an or group across two filters", () => {
     const state: State = {
       sorts: [{ columnId: "score", direction: "asc" }],
       filters: [
-        { columnId: "city", operator: "equals", value: "Berlin" },
-        { columnId: "score", operator: "gte", value: "30" },
+        {
+          join: "or",
+          filters: [
+            { columnId: "city", operator: "equals", value: "Berlin" },
+            { columnId: "score", operator: "gte", value: "30" },
+          ],
+        },
       ],
-      joinOperator: "or",
     };
     const view = rebuild(base, state);
     const { next, result } = step(base, view, state, [1], (rows) => {
@@ -311,7 +313,7 @@ function randomState(random: () => number): State {
     used.add(columnId);
     sorts.push({ columnId, direction: random() < 0.5 ? "asc" : "desc" });
   }
-  const filters: FilterSpec[] = [];
+  const filters: FilterNode[] = [];
   if (random() < 0.6) {
     filters.push(
       random() < 0.5
@@ -320,7 +322,23 @@ function randomState(random: () => number): State {
     );
   }
   if (random() < 0.3) filters.push({ columnId: "name", operator: "notEmpty", value: "" });
-  return { sorts, filters, joinOperator: filters.length > 1 && random() < 0.5 ? "or" : "and" };
+  if (random() < 0.6) filters.push(randomGroup(random, 1));
+  return { sorts, filters };
+}
+
+function randomLeaf(random: () => number): FilterSpec {
+  const pick = random();
+  if (pick < 0.4) return { columnId: "city", operator: "contains", value: CITIES[Math.floor(random() * CITIES.length)]! };
+  if (pick < 0.7) return { columnId: "score", operator: "gte", value: String(Math.floor(random() * 5)) };
+  return { columnId: "note", operator: "equals", value: String(Math.floor(random() * 3)) };
+}
+
+/** A random group tree of depth <= 2, empty groups included. */
+function randomGroup(random: () => number, depth: number): FilterGroup {
+  const children: FilterNode[] = [];
+  const count = Math.floor(random() * 4);
+  for (let i = 0; i < count; i++) children.push(depth < 2 && random() < 0.3 ? randomGroup(random, depth + 1) : randomLeaf(random));
+  return { join: random() < 0.5 ? "or" : "and", filters: children };
 }
 
 describe.each(ACCESSOR_KINDS)("updateViewIndex — equivalence fuzz (%s)", (_label, makeAccessor) => {
@@ -329,7 +347,6 @@ describe.each(ACCESSOR_KINDS)("updateViewIndex — equivalence fuzz (%s)", (_lab
     buildViewIndex(rows.length, makeAccessor(rows), {
       sorts: state.sorts,
       filters: state.filters,
-      joinOperator: state.joinOperator,
     });
 
   it("stays element-identical to the full rebuild across 400 randomized patch sequences", () => {
@@ -361,7 +378,6 @@ describe.each(ACCESSOR_KINDS)("updateViewIndex — equivalence fuzz (%s)", (_lab
         const result = updateViewIndex(view, touched, makeAccessor(nextRows), {
           sorts: state.sorts,
           filters: state.filters,
-          joinOperator: state.joinOperator,
         });
         expect(result.bail, `seed ${seed} step ${s}`).toBeNull();
         const reference = rebuildWith(nextRows, state);
@@ -399,7 +415,6 @@ describe.each(ACCESSOR_KINDS)("updateViewIndex — equivalence fuzz (%s)", (_lab
           const result = updateViewIndex(view, touched, makeAccessor(nextRows), {
             sorts: state.sorts,
             filters: state.filters,
-            joinOperator: state.joinOperator,
           });
           expect(result.viewIndex, `k=${touchedCount} seed ${seed} step ${s}`).toEqual(rebuildWith(nextRows, state));
           rows = nextRows;

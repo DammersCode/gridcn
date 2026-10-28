@@ -27,7 +27,7 @@ function makeInput(cardinality: number): DistinctValuesInput {
     age: i % 100,
     status: i % 5 === 0 ? "closed" : "open",
   }));
-  return { data, columns, cellTypes: cellTypes as DistinctValuesInput["cellTypes"], filterState: filters, joinOperator: "and" };
+  return { data, columns, cellTypes: cellTypes as DistinctValuesInput["cellTypes"], filterState: filters };
 }
 
 function medianMs(input: DistinctValuesInput): number {

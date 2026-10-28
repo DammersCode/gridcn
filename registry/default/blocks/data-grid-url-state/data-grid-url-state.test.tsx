@@ -205,6 +205,16 @@ describe("DataGridUrlState excluded columns", () => {
     return () => latest!;
   }
 
+  it("drops a row for a hidden column inside a group and removes the emptied group", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const getState = renderGuarded("?filter=name%3Aequals%3AAlice,[or,id%3Aequals%3Ar0,],[or,id%3Aequals%3Ar1,name%3Acontains%3Ab,]");
+    expect(getState().filter).toEqual([
+      { filterId: expect.any(String), columnId: "name", operator: "equals", value: "Alice" },
+      { filterId: expect.any(String), join: "or", filters: [{ filterId: expect.any(String), columnId: "name", operator: "contains", value: "b" }] },
+    ]);
+    warn.mockRestore();
+  });
+
   it("drops URL sort specs for a sortable:false or hidden column and dev-warns", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const getState = renderGuarded("?sort=age%3Aasc,id%3Adesc,name%3Aasc");
@@ -252,6 +262,46 @@ describe("DataGridUrlState excluded columns", () => {
     expect(getState().filter).toEqual([
       { filterId: expect.any(String), columnId: "name", operator: "equals", value: "Alice" },
     ]);
+  });
+});
+
+describe("DataGridUrlState filter groups", () => {
+  const nameId = (columnId: string, operator: string, value: string) => ({ filterId: expect.any(String), columnId, operator, value });
+
+  it("applies a group from the URL on mount", () => {
+    const { getState } = renderGrid({ searchParams: "?filter=age%3Agt%3A26,[or,name%3Acontains%3AAli,name%3Acontains%3ABo,]" });
+    expect(getState().filter).toEqual([
+      nameId("age", "gt", "26"),
+      { filterId: expect.any(String), join: "or", filters: [nameId("name", "contains", "Ali"), nameId("name", "contains", "Bo")] },
+    ]);
+  });
+
+  it("wraps a flat list in one or group for a legacy join=or", () => {
+    const { getState } = renderGrid({ searchParams: "?filter=name%3Acontains%3AAli,age%3Agt%3A35&join=or" });
+    expect(getState().filter).toEqual([
+      { filterId: expect.any(String), join: "or", filters: [nameId("name", "contains", "Ali"), nameId("age", "gt", "35")] },
+    ]);
+  });
+
+  it("ignores join=or when the filter already holds a group", () => {
+    const { getState } = renderGrid({ searchParams: "?filter=age%3Agt%3A26,[and,name%3Acontains%3AAli,]&join=or" });
+    expect(getState().filter).toEqual([
+      nameId("age", "gt", "26"),
+      { filterId: expect.any(String), join: "and", filters: [nameId("name", "contains", "Ali")] },
+    ]);
+  });
+
+  it("writes the tree to the URL and clears a legacy join param", async () => {
+    const onUrlUpdate = vi.fn();
+    const { getActions } = renderGrid({ searchParams: "?join=or", onUrlUpdate });
+    await act(async () => {
+      getActions().setFilters([{ columnId: "age", operator: "gt", value: "30" }, { join: "or", filters: [{ columnId: "name", operator: "equals", value: "A" }] }]);
+    });
+    await vi.waitFor(() => {
+      const last = onUrlUpdate.mock.calls.at(-1)?.[0] as UrlUpdateEvent | undefined;
+      expect(last?.searchParams.get("filter")).toBe("age:gt:30,[or,name:equals:A,]");
+      expect(last?.searchParams.has("join")).toBe(false);
+    });
   });
 });
 

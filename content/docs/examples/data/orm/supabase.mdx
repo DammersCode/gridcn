@@ -20,13 +20,54 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!, // server-side: bypass row-level security
 );
 
+const ALLOWED = new Set(["name", "email", "role", "score"]);
+const OPS = { equals: "eq", notEquals: "neq", gt: "gt", gte: "gte", lt: "lt", lte: "lte" } as const;
+
+// PostgREST filter strings split on commas and parentheses, so quote every value.
+const quote = (value: string) => `"${String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+
+// The body is untrusted: cap its size at the framework or proxy, and bound the tree before you build a query.
+function assertFilterTree(nodes, depth = 0, count = { leaves: 0, groups: 0 }) {
+  if (!Array.isArray(nodes)) throw new Error("invalid filters");
+  for (const node of nodes) {
+    if (Array.isArray(node?.filters)) {
+      if (depth >= 2 || ++count.groups > 16 || (node.join !== "and" && node.join !== "or")) throw new Error("invalid group");
+      assertFilterTree(node.filters, depth + 1, count);
+    } else if (typeof node?.columnId !== "string" || !ALLOWED.has(node.columnId) || !Object.hasOwn(OPS, node.operator) || ++count.leaves > 64) {
+      throw new Error("invalid filter");
+    }
+  }
+}
+
+// An "or" group is one or(...) string; a nested group inside it becomes and(...) or or(...). Empty groups drop out.
+function orClause(group) {
+  return group.filters
+    .filter((node) => !Array.isArray(node.filters) || node.filters.length > 0)
+    .map((node) => (Array.isArray(node.filters) ? `${node.join}(${node.filters.map(leafClause).join(",")})` : leafClause(node)))
+    .join(",");
+}
+
+function leafClause(f) {
+  return `${f.columnId}.${OPS[f.operator]}.${quote(f.value)}`;
+}
+
+// The top level combines with "and": an "and" group flattens into it, an "or" group becomes one or(...) filter.
+function applyNode(query, node) {
+  if (!Array.isArray(node.filters)) return query.filter(node.columnId, OPS[node.operator], node.value);
+  if (node.join === "and") return node.filters.reduce(applyNode, query);
+  const clause = orClause(node);
+  return clause ? query.or(clause) : query;
+}
+
 export async function POST(req: Request) {
-  const { page, pageSize, sorts, search } = await req.json();
+  const { page, pageSize, sorts, filters, search } = await req.json();
+  assertFilterTree(filters);
 
   let query = supabase.from("users").select("*", { count: "exact" });
   if (search) {
     query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
   }
+  query = filters.reduce(applyNode, query);
   for (const s of sorts) {
     query = query.order(s.columnId, { ascending: s.direction === "asc" });
   }
@@ -45,7 +86,12 @@ Notes:
 
 - `range(from, to)` is inclusive on both ends, hence the `- 1`.
 - Column filters map to PostgREST operators one-to-one: `eq`, `neq`, `gt`, `gte`, `lt`,
-  `lte`, `like`, `in.(...)` (for example, `query = query.eq("score", f.value)` for `equals`).
+  `lte`, `like`, `in.(...)`. The route above maps the first six.
+- The route covers the top-level rows and one level of `or` groups, with a nested group
+  written as `and(...)` or `or(...)`. A deeper tree needs a recursive string builder. The body is untrusted:
+  `assertFilterTree` checks every column id against `ALLOWED`, every operator with `Object.hasOwn`, and
+  bounds the tree to 2 levels, 16 groups, and 64 rows. `quote` escapes each value. Cap the request
+  body size too, because the tree limits do not bound a large JSON text.
 - `SUPABASE_SERVICE_ROLE_KEY` keeps the grid's requests server-side. With the anon key, you
   also need a permissive RLS policy on `users` for reads.
 - The client is the [server-side example](/docs/examples/data/server-side) unchanged. Edits

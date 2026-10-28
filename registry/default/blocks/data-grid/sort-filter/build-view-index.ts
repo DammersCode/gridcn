@@ -1,4 +1,5 @@
-import type { FilterJoinOperator, FilterSpec, SortSpec } from "../types";
+import type { FilterNode, FilterSpec, SortSpec } from "../types";
+import { groupChildren, isFilterGroup } from "./filter-tree";
 import { createFilterMatcher } from "./matches-filter";
 
 /**
@@ -48,6 +49,19 @@ export function makeFilterTest(accessor: CellAccessor, filter: FilterSpec): (row
   return (row: number) => test(accessor.getText(row, filter.columnId));
 }
 
+/**
+ * One node's per-row test. A group compiles to one closure over its children's tests: `every` for
+ * `"and"`, `some` for `"or"`; any join other than `"or"` evaluates as `"and"`, and an empty group
+ * matches every row.
+ */
+export function makeFilterNodeTest(accessor: CellAccessor, node: FilterNode): (row: number) => boolean {
+  if (!isFilterGroup(node)) return makeFilterTest(accessor, node);
+  const tests = groupChildren(node).map((child) => makeFilterNodeTest(accessor, child));
+  if (tests.length === 0) return () => true;
+  if (tests.length === 1) return tests[0]!;
+  return node.join === "or" ? (row) => tests.some((test) => test(row)) : (row) => tests.every((test) => test(row));
+}
+
 /** The accessor's quick-search reader: `getSearchText` when present, else `getText`. */
 export function searchTextReader(accessor: CellAccessor): (rowIndex: number, columnId: string) => string {
   return accessor.getSearchText ?? ((rowIndex, columnId) => accessor.getText(rowIndex, columnId));
@@ -65,9 +79,8 @@ export function isEmptyCell(accessor: CellAccessor, rowIndex: number, columnId: 
  */
 export type ViewIndexOptions = {
   sorts: SortSpec[];
-  filters: FilterSpec[];
-  /** How `filters` combine; default `"and"` (every filter must match). */
-  joinOperator?: FilterJoinOperator;
+  /** The top level always combines with `"and"`; `"or"` lives inside a {@link FilterGroup}. */
+  filters: readonly FilterNode[];
   search?: string;
   searchColumnIds?: string[];
 };
@@ -87,20 +100,11 @@ export function buildViewIndex(
   for (let i = 0; i < rowCount; i++) indices.push(i);
 
   if (opts.filters.length > 0) {
-    // One matcher per filter, built once outside the per-row loop: any numeric bound in
-    // gt/gte/lt/lte/isBetween is the same string for every row, so parsing it here instead of on
-    // every `matchesFilter` call turns an O(n) redundant re-parse into O(1) setup per filter.
-    const matchers = opts.filters.map((filter) => makeFilterTest(accessor, filter));
-
-    if (opts.joinOperator === "or") {
-      // OR: a row survives if ANY filter matches — one pass, no per-filter re-scan of `indices`.
-      indices = indices.filter((row) => matchers.some((test) => test(row)));
-    } else {
-      // AND (default): short-circuits per row via the existing filter-per-filter narrowing, same
-      // hot path as before this feature — untouched perf for the common (and only, pre-OR) case.
-      for (const test of matchers) {
-        indices = indices.filter((row) => test(row));
-      }
+    // One test per top-level node, built once outside the per-row loop: a numeric bound is parsed here, not per row.
+    // Narrowing node by node keeps a flat list on the short-circuiting path it always had.
+    for (const node of opts.filters) {
+      const test = makeFilterNodeTest(accessor, node);
+      indices = indices.filter((row) => test(row));
     }
   }
 

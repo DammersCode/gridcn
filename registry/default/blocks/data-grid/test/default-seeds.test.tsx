@@ -48,14 +48,12 @@ describe("default seeds", () => {
     expect(viewIds(state())).toEqual(["2", "1", "3"]);
   });
 
-  it("defaultFilterState, defaultJoinOperator and defaultSearchText seed the store", () => {
+  it("defaultFilterState and defaultSearchText seed the store", () => {
     const { state } = mount({
       defaultFilterState: [{ columnId: "name", operator: "equals", value: "Alice" }],
-      defaultJoinOperator: "or",
       defaultSearchText: "bo",
     });
     expect(viewIds(state())).toEqual(["2"]);
-    expect(state().joinOperator).toBe("or");
     expect(state().searchText).toBe("bo");
     expect(state().filterControlled).toBe(false);
   });

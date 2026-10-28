@@ -1,4 +1,5 @@
-import type { FilterOperator, FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import type { FilterNode, FilterOperator, FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { isFilterGroup } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export const MAX_SET_FILTER_ENTRIES = 1000;
 
@@ -7,10 +8,11 @@ type SetOperator = "isAnyOf" | "isNoneOf";
 export type SetFilterPlan =
   | { status: "unchanged" }
   | { status: "blocked"; reason: "none-checked" | "too-many" }
-  | { status: "apply"; filters: FilterSpec[] };
+  | { status: "apply"; filters: FilterNode[] };
 
 export type SetFilterPlanInput = {
-  filters: readonly FilterSpec[];
+  /** Only the top-level set rows of `columnId` are the header filter's; set rows inside a group belong to the filter menu. */
+  filters: readonly FilterNode[];
   columnId: string;
   keys: readonly string[];
   /** Original text per key, written into the filter values; a key without an entry is written as is. */
@@ -19,13 +21,13 @@ export type SetFilterPlanInput = {
   allowed: readonly FilterOperator[];
 };
 
-const isSetFilterOf = (filter: FilterSpec, columnId: string): boolean =>
-  filter.columnId === columnId && (filter.operator === "isAnyOf" || filter.operator === "isNoneOf");
+const isSetFilterOf = (node: FilterNode, columnId: string): node is FilterSpec =>
+  !isFilterGroup(node) && node.columnId === columnId && (node.operator === "isAnyOf" || node.operator === "isNoneOf");
 
 const listOf = (filter: FilterSpec): string[] => (Array.isArray(filter.value) ? (filter.value as string[]) : []);
 
-export function checkedKeysFromFilters(filters: readonly FilterSpec[], columnId: string, keys: readonly string[]): Set<string> {
-  const entries = filters.filter((f) => isSetFilterOf(f, columnId)).map((f) => ({ operator: f.operator, values: new Set(listOf(f).map((v) => v.toLowerCase())) }));
+export function checkedKeysFromFilters(filters: readonly FilterNode[], columnId: string, keys: readonly string[]): Set<string> {
+  const entries = filters.filter((f): f is FilterSpec => isSetFilterOf(f, columnId)).map((f) => ({ operator: f.operator, values: new Set(listOf(f).map((v) => v.toLowerCase())) }));
   const checked = new Set<string>();
   for (const key of keys) {
     if (entries.every((e) => (e.operator === "isAnyOf") === e.values.has(key))) checked.add(key);
@@ -66,13 +68,14 @@ function keepOutsideValues(existing: readonly FilterSpec[], columnId: string, ke
 export function planSetFilter(input: SetFilterPlanInput): SetFilterPlan {
   const { filters, columnId, keys, checked, allowed } = input;
   const textOf = (key: string) => input.texts?.get(key) ?? key;
-  const existing = filters.filter((f) => isSetFilterOf(f, columnId));
+  const existing = filters.filter((f): f is FilterSpec => isSetFilterOf(f, columnId));
   const checkedKeys = keys.filter((key) => checked.has(key));
   const uncheckedKeys = keys.filter((key) => !checked.has(key));
 
   if (checkedKeys.length === 0) return { status: "blocked", reason: "none-checked" };
 
   const known = new Set(keys);
+  const isSetEntry = (node: FilterNode) => existing.includes(node as FilterSpec);
   let entry: FilterSpec | undefined;
   if (uncheckedKeys.length === 0) {
     entry = keepOutsideValues(existing, columnId, keys.map(textOf), known);
@@ -85,13 +88,13 @@ export function planSetFilter(input: SetFilterPlanInput): SetFilterPlan {
     entry = { columnId, operator, value };
   }
 
-  if (!entry) return existing.length === 0 ? { status: "unchanged" } : { status: "apply", filters: filters.filter((f) => !existing.includes(f)) };
+  if (!entry) return existing.length === 0 ? { status: "unchanged" } : { status: "apply", filters: filters.filter((f) => !isSetEntry(f)) };
   if (existing.length === 1 && existing[0]!.operator === entry.operator && sameList(listOf(existing[0]!), entry.value as string[])) return { status: "unchanged" };
 
-  const next: FilterSpec[] = [];
+  const next: FilterNode[] = [];
   let placed = false;
   for (const filter of filters) {
-    if (!existing.includes(filter)) next.push(filter);
+    if (!isSetEntry(filter)) next.push(filter);
     else if (!placed) {
       next.push(entry);
       placed = true;

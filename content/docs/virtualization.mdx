@@ -30,7 +30,6 @@ the regression suite that enforces them.
 
 ## Row limit
 
-
 Browsers cap or ignore tall elements: Firefox at about 17.9 million pixels, Chromium at about 33.5 million. To work in every browser, keep the row count times the row height below 17.8 million pixels. This limits one grid to about 490,000 rows at the default row height of 36 px. A smaller row height allows more rows. A larger row height allows fewer. If the row count times the row height passes 17.8 million pixels, Firefox shows no scroll range at all. If it passes 33.5 million pixels, Chromium cannot reach the rows past about 930,000 at 36 px. A development build logs a warning when the grid crosses the limit.
 
 ## How it works
@@ -53,7 +52,6 @@ A small fixed overscan, rows and columns rendered past the visible edge, absorbs
 gap between one scroll tick and the next window recompute. During a fast fling or a scrollbar drag,
 the grid tracks recent scroll velocity. It grows the overscan on the leading edge only.
 
-
 A jump is a scroll farther than the viewport plus the largest velocity buffer. After a jump, the
 grid mounts only the base overscan. The velocity buffer applies to fling and drag deltas below that
 distance. A jump from the top to the middle of 100,000 rows therefore mounts one set of rendered rows,
@@ -72,7 +70,7 @@ not that set plus a large buffer.
 ### Interaction with pinned rows and columns
 
 Pinned-left and pinned-right columns, and pinned-top and pinned-bottom row bands (see
-[Columns](/docs/columns#pin-leftright) and [Pinned rows](/docs/addons/pinned-rows)), always render,
+[Columns](/docs/columns#pin-startend) and [Pinned rows](/docs/addons/pinned-rows)), always render,
 regardless of scroll position. They sit outside the virtualized range by construction, not merely
 overscanned, so they never blank, flicker, or lose focus while scrolling. The unpinned window's
 viewport bounds shrink by the space the pinned bands and columns occupy.

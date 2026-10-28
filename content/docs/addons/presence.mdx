@@ -18,7 +18,7 @@ import { useDataGridPresence } from "@/components/data-grid-presence/data-grid-p
 type PresenceHighlight = {
   /** Must be unique per entry — a multi-range selection sends one entry per range, each with its own id. */
   id: string;
-  /** Any CSS color; painted at fixed alpha for the fill, full opacity for the border/chip. */
+  /** Any CSS color, including `var(--color-primary)`; painted at fixed alpha for the fill, full opacity for the border/chip. */
   color: string;
   /** View-space rect (same coordinate system as GridSelection.current.range). */
   range: GridRect;
@@ -173,7 +173,7 @@ forms whenever sender and receiver views can diverge, or when the receiver's own
 rows while entries are active. The stable `onSelectionChange` payload (`SelectionState`) is
 rowId-native, so the rowId entries build straight from it. In development, the grid warns once
 when a row move, sort, filter,
-join operator change, or data replacement moves rows while a view-index entry is active.
+filter change, or data replacement moves rows while a view-index entry is active.
 
 The two entry shapes:
 
@@ -203,6 +203,12 @@ Building the map yourself (e.g. to resolve a rowId outside the plugin) uses the 
   window, split at pinned columns (pinned segments paint at the pinned cell's fixed screen
   position), and the `color` becomes the overlay node's `--presence-color`: border at full
   opacity, fill translucent enough that two overlapping highlights both stay legible.
+- A `color` <NewBadge /> that is invalid, or a theme token that is not defined, paints as
+  `var(--color-primary)`, so the preset sets the fallback. Pass theme tokens such as `var(--color-primary)`
+  or `var(--color-destructive)` to let the preset recolor users.
+- The name chip text <NewBadge /> is black on light colors and white on dark ones. The switch
+  sits at an OKLCH lightness of 0.62. Set `--presence-label-foreground` to use one fixed text
+  color instead.
 - Presence paints **below** the local active-cell ring and is fully `aria-hidden` and
   `pointer-events-none`: it never touches `aria-selected` and never reaches the row-level path.
   The label chip renders only while the range's top-left corner survives the window clamp.

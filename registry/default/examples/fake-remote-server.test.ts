@@ -40,3 +40,49 @@ describe("createRemoteServer applyOps", () => {
     expect(await ids(server, 6)).toEqual(["row-2", "row-3", "row-4", "row-0", "row-1", "row-5"]);
   });
 });
+
+describe("createRemoteServer filter groups", () => {
+  it("evaluates a tree like the client: (role A or role B) and age > 30", async () => {
+    const server = createRemoteServer();
+    const all = await server.fetchPage({ page: 1, pageSize: 1000 });
+    const [a, b] = [all.rows[0]!.role, all.rows.find((r) => r.role !== all.rows[0]!.role)!.role];
+    const expected = all.rows.filter((r) => (r.role === a || r.role === b) && r.age > 30).length;
+    const result = await server.fetchPage({
+      page: 1,
+      pageSize: 1,
+      filters: [
+        { columnId: "age", operator: "gt", value: "30" },
+        { join: "or", filters: [{ columnId: "role", operator: "equals", value: a }, { columnId: "role", operator: "equals", value: b }] },
+      ],
+    });
+    expect(result.total).toBe(expected);
+  });
+
+  it("an empty group matches every row, like the client", async () => {
+    const server = createRemoteServer();
+    const { total } = await server.fetchPage({ page: 1, pageSize: 1, filters: [{ join: "or", filters: [] }] });
+    expect(total).toBe(server.total);
+  });
+
+  it("rejects a tree that is too deep, has an unknown join, or names an unknown column", async () => {
+    const server = createRemoteServer();
+    const leaf = { columnId: "role", operator: "equals", value: "x" };
+    const deep = { join: "or" as const, filters: [{ join: "and" as const, filters: [{ join: "or" as const, filters: [leaf] }] }] };
+    await expect(server.fetchPage({ page: 1, pageSize: 1, filters: [deep] })).rejects.toThrow();
+    await expect(server.fetchPage({ page: 1, pageSize: 1, filters: [{ join: "xor", filters: [leaf] } as never] })).rejects.toThrow();
+    await expect(server.fetchPage({ page: 1, pageSize: 1, filters: [{ ...leaf, columnId: "secret" }] })).rejects.toThrow();
+  });
+
+  it("rejects 100k empty groups before it walks them", async () => {
+    const server = createRemoteServer();
+    const groups = Array.from({ length: 100_000 }, () => ({ join: "or" as const, filters: [] }));
+    await expect(server.fetchPage({ page: 1, pageSize: 1, filters: groups })).rejects.toThrow("invalid filter group");
+  });
+
+  it("accepts 16 groups and rejects the 17th", async () => {
+    const server = createRemoteServer();
+    const groups = (n: number) => Array.from({ length: n }, () => ({ join: "or" as const, filters: [] }));
+    await expect(server.fetchPage({ page: 1, pageSize: 1, filters: groups(16) })).resolves.toBeDefined();
+    await expect(server.fetchPage({ page: 1, pageSize: 1, filters: groups(17) })).rejects.toThrow("invalid filter group");
+  });
+});

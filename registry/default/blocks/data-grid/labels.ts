@@ -44,10 +44,16 @@ export type DataGridToolbarLabels = {
   noFiltersApplied: string;
   /** Static "Where" label shown in the first filter row's join cell. */
   filterWhere: string;
-  /** aria-label for the AND/OR join-operator select, shown once 2+ filters are active. */
-  joinOperatorAriaLabel: string;
-  joinOperatorAnd: string;
-  joinOperatorOr: string;
+  addFilterGroup: string;
+  removeFilterGroupAriaLabel: string;
+  /** Name of a filter group in the reorder announcement. */
+  filterGroupName: string;
+  /** aria-label of the connector select of a node after the first in a group; it sets the join of the whole group. `position` is the 1-based node position, `group` the dotted 1-based group path such as "1.2". */
+  filterGroupJoinAriaLabel: (position: number, group: string) => string;
+  /** "and" option of the connector select; static text at the top level. */
+  filterConnectorAnd: string;
+  /** "or" option of the connector select. */
+  filterConnectorOr: string;
   columns: string;
   columnsAriaLabel: string;
   /** aria-label of the header filter button; `filtered` is true while the column has any filter, including a condition filter. */
@@ -60,6 +66,8 @@ export type DataGridToolbarLabels = {
   /** Status line when the value list stopped collecting at its limit. */
   headerFilterCapped: string;
   headerFilterLoadedRowsOnly: string;
+  /** Shown when the column also has filter rows inside a group; Clear removes those too. */
+  headerFilterGroupRows: string;
   /** Shown when the selection would store more than `max` entries. */
   headerFilterTooManySelected: (max: number) => string;
   headerFilterSelectAll: string;
@@ -125,8 +133,10 @@ export type DataGridContextMenuLabels = {
   sortAsc: string;
   sortDesc: string;
   clearSort: string;
-  pinLeft: string;
-  pinRight: string;
+  /** Menu item that pins a column to the start side (`pin: "left"`). */
+  pinStart: string;
+  /** Menu item that pins a column to the end side (`pin: "right"`). */
+  pinEnd: string;
   unpin: string;
   hideColumn: string;
   autosize: string;
@@ -179,6 +189,14 @@ export type DataGridGridLabels = {
   loading: string;
   /** Placeholder for the date editor's typed input (default hints the ISO `yyyy-mm-dd` format). */
   datePlaceholder: string;
+  /** aria-label for the date editor's calendar toggle button (`calendarTrigger`). */
+  dateCalendarAriaLabel: string;
+  /** Polite live-region announcement after the checked rows change; `count` is the new number of checked rows. */
+  rowsChecked: (count: number) => string;
+  /** Polite live-region announcement after a filter or sort commit (`announceResults`); `count` is the view's row count. */
+  resultsCount: (count: number) => string;
+  /** Result announcement when the source is lazy: `count` is the loaded rows in the view, so the text says so. */
+  resultsCountLoaded: (count: number) => string;
 };
 
 /** Import/export add-on strings (`data-grid-io`): export dropdown + import dialog. */
@@ -337,9 +355,12 @@ export const DEFAULT_LABELS: DataGridLabels = {
     clearFilters: "Clear all",
     noFiltersApplied: "No filters applied.",
     filterWhere: "Where",
-    joinOperatorAriaLabel: "Match",
-    joinOperatorAnd: "And",
-    joinOperatorOr: "Or",
+    addFilterGroup: "Add group",
+    removeFilterGroupAriaLabel: "Remove group",
+    filterGroupName: "Group",
+    filterGroupJoinAriaLabel: (position, group) => `Connector of filter ${position} in group ${group}`,
+    filterConnectorAnd: "And",
+    filterConnectorOr: "Or",
     columns: "Columns",
     columnsAriaLabel: "Columns",
     headerFilterAriaLabel: (column, filtered) => (filtered ? `Filter ${column}, filtered` : `Filter ${column}`),
@@ -348,6 +369,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     headerFilterBlanks: "(Blanks)",
     headerFilterCapped: "Too many values. Showing the first values only.",
     headerFilterLoadedRowsOnly: "From loaded rows",
+    headerFilterGroupRows: "This column also has filters in a group. Clear removes them too.",
     headerFilterTooManySelected: (max) => `Too many values selected. Select at most ${max}.`,
     headerFilterSelectAll: "Select all",
     headerFilterApply: "Apply",
@@ -402,8 +424,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
     sortAsc: "Sort ascending",
     sortDesc: "Sort descending",
     clearSort: "Clear sort",
-    pinLeft: "Pin left",
-    pinRight: "Pin right",
+    pinStart: "Pin to start",
+    pinEnd: "Pin to end",
     unpin: "Unpin",
     hideColumn: "Hide column",
     autosize: "Autosize column",
@@ -506,6 +528,10 @@ export const DEFAULT_LABELS: DataGridLabels = {
     emptyState: "No rows",
     loading: "Loading…",
     datePlaceholder: "yyyy-mm-dd",
+    dateCalendarAriaLabel: "Calendar",
+    rowsChecked: (count) => `${count.toLocaleString("en-US")} ${count === 1 ? "row" : "rows"} checked`,
+    resultsCount: (count) => `${count.toLocaleString("en-US")} ${count === 1 ? "row" : "rows"}`,
+    resultsCountLoaded: (count) => `${count.toLocaleString("en-US")} loaded ${count === 1 ? "row" : "rows"}`,
   },
   io: {
     exportButtonAriaLabel: "Export",

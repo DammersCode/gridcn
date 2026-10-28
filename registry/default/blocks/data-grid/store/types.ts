@@ -13,8 +13,7 @@ import type {
   DataChange,
   DataGridApi,
   DataGridPlugin,
-  FilterJoinOperator,
-  FilterSpec,
+  FilterNode,
   GridCommand,
   GridEditEndEvent,
   GridSelection,
@@ -151,6 +150,12 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   keepHiddenCheckedRows?: boolean;
   /**
+   * Announces the view's row count through the grid's live region after a filter, sort, or
+   * filter-group change. Skipped while `sortMode="server"` (the grid does not hold every row);
+   * a lazy source counts its loaded rows only. Default `false`.
+   */
+  announceResults?: boolean;
+  /**
    * Runs before every row delete the grid starts: the Delete rows shortcut, the context-menu
    * item, and `actions.deleteRows` / `deleteRowsById`. `rowIds` are the rows that go; `hiddenCount`
    * counts the hidden checked rows that stay. Return `false` (or a promise of `false`) to cancel.
@@ -216,18 +221,12 @@ export type DataGridSyncProps<TData = unknown> = {
   defaultSortState?: SortSpec[];
   /** Fires whenever the user (or `actions.toggleSort`/`setSorts`) would change the sort, controlled or not; see `sortState`. */
   onSortChange?: (next: SortSpec[]) => void;
-  /** Controlled filter spec; same controlled/uncontrolled semantics as `sortState`. */
-  filterState?: FilterSpec[];
+  /** Controlled filter tree; same controlled/uncontrolled semantics as `sortState`. The top level combines with "and"; a {@link FilterGroup} holds an "or". */
+  filterState?: FilterNode[];
   /** Seeds the filters ONCE at store creation; see `defaultSortState`. */
-  defaultFilterState?: FilterSpec[];
+  defaultFilterState?: FilterNode[];
   /** Fires whenever the user (or `actions.setFilters`) would change the filters, controlled or not; see `filterState`. */
-  onFilterChange?: (next: FilterSpec[]) => void;
-  /** Controlled join operator combining `filterState`'s rows; same controlled/uncontrolled semantics as `sortState`. Default `"and"`. */
-  joinOperator?: FilterJoinOperator;
-  /** Seeds the join operator ONCE at store creation; see `defaultSortState`. */
-  defaultJoinOperator?: FilterJoinOperator;
-  /** Fires whenever the user (or `actions.setJoinOperator`) would change the join operator, controlled or not; see `joinOperator`. */
-  onJoinOperatorChange?: (next: FilterJoinOperator) => void;
+  onFilterChange?: (next: FilterNode[]) => void;
   /** Controlled quick-search text; same controlled/uncontrolled semantics as `sortState`. */
   searchText?: string;
   /** Seeds the quick-search text ONCE at store creation; see `defaultSortState`. */
@@ -583,6 +582,7 @@ export type DataGridStoreState = Omit<
   | "enableRowSelection"
   | "keepCheckedRows"
   | "keepHiddenCheckedRows"
+  | "announceResults"
   | "enableColumnSelection"
   | "enableRangeSelection"
   | "enableMultiRange"
@@ -597,7 +597,6 @@ export type DataGridStoreState = Omit<
   | "defaultSelection"
   | "defaultSortState"
   | "defaultFilterState"
-  | "defaultJoinOperator"
   | "defaultSearchText"
   | "selection"
   | "columnLayout"
@@ -615,6 +614,7 @@ export type DataGridStoreState = Omit<
   enableRowSelection: boolean;
   keepCheckedRows: boolean;
   keepHiddenCheckedRows: boolean;
+  announceResults: boolean;
   /** Row ids of checked rows a filter hides; empty unless `keepHiddenCheckedRows` is in effect. Actions never read it. */
   hiddenCheckedRowIds: ReadonlySet<string>;
   enableColumnSelection: boolean;
@@ -705,17 +705,15 @@ export type DataGridStoreState = Omit<
   sortState: SortSpec[];
   /** Mirrors the `sortMode` sync prop; `"server"` keeps `sortState` out of every view rebuild. */
   sortMode: "client" | "server";
-  filterState: FilterSpec[];
-  /** How `filterState`'s rows combine; default `"and"`. See `FilterJoinOperator`. */
-  joinOperator: FilterJoinOperator;
+  filterState: FilterNode[];
   /** Quick-search text; never affects `viewIndex` (search highlights + navigates, it doesn't filter). */
   searchText: string;
   /** How `searchText` matches; set through `actions.setSearch` and kept across searches. */
   searchOptions: Required<SearchOptions>;
   /**
-   * Whether `sortState`/`filterState`/`joinOperator`/`searchText` are controlled (their sync prop
+   * Whether `sortState`/`filterState`/`searchText` are controlled (their sync prop
    * was defined on the last `_syncProps`), set once per sync and read by `toggleSort`/`setSorts`/
-   * `setFilters`/`setJoinOperator`/`setSearch` (server override). Controlled mode:
+   * `setFilters`/`setSearch` (server override). Controlled mode:
    * the action still fires its `onXChange` callback but does NOT write the corresponding state
    * field itself — `_syncProps` is the only writer once the consumer's prop (and thus the store)
    * actually changes, standard controlled-input semantics (a callback-ignoring consumer's grid
@@ -723,7 +721,6 @@ export type DataGridStoreState = Omit<
    */
   sortControlled: boolean;
   filterControlled: boolean;
-  joinOperatorControlled: boolean;
   searchControlled: boolean;
   /** Every cell matching `searchText`, view-index row-major order; computed once per `setSearch`/`_syncProps`/`setSorts`/`setFilters`, capped at 1000 hits with early exit. */
   searchMatches: SearchMatch[];
@@ -796,6 +793,8 @@ export type DataGridStoreState = Omit<
   labels: DataGridLabels;
   /** The live-region text of the latest row move (drag, keyboard, or `reorderRows`); empty before the first. */
   rowMoveAnnouncement: string;
+  /** What the grid's live region announces next; the region formats it from the current labels. `seq` grows with every record, so a repeated text is announced again. `null` before the first. */
+  liveAnnouncement: LiveAnnouncement | null;
   /** The public actions only — the `_`-prefixed internals live in the store-private table ({@link getInternalActions}), never in state. */
   actions: DataGridActions;
 };
@@ -914,9 +913,7 @@ export type DataGridActions = {
   setColumnLayout(parts: Partial<ColumnLayout>): void;
   toggleSort(columnId: string, additive: boolean): void;
   setSorts(sorts: SortSpec[]): void;
-  setFilters(filters: FilterSpec[]): void;
-  /** Sets how `filterState`'s rows combine ("and" every filter must match, "or" any one does). */
-  setJoinOperator(joinOperator: FilterJoinOperator): void;
+  setFilters(filters: FilterNode[]): void;
   /** Sets quick-search text (and, when given, the search options) and recomputes `searchMatches`/`searchMatchSet`/`searchMatchesCapped` once; never touches `viewIndex`. Omitted options keep the current ones. */
   setSearch(text: string, options?: SearchOptions): void;
   /** Enters edit mode at the cell named by the stable {@link CellRef}, cancelling an open session first; no-op when the grid or column is readOnly, or its type is unregistered or declares `activate`. */
@@ -1057,6 +1054,10 @@ export type DataGridInternalActions = {
    * cleared cells. Not part of the public hook surface.
    */
   _deleteCellsById(rowIds: readonly string[], columnIds: readonly string[]): void;
+  /** @internal Lets `announceResults` speak; view changes made before the provider's mount effects stay quiet. */
+  _armResultsAnnouncement(): void;
+  /** @internal Escape: `clearSelection` that announces the dropped checked rows. */
+  _cancelSelection(): void;
   /** @internal keyboard nav helper: moves/extends the active cell by a view-index delta, clamped to view bounds. */
   _moveActiveCell(d: { dx: number; dy: number }, opts?: { extend?: boolean; retain?: boolean }): void;
   /** @internal syncs live consumer props and recomputes derived state; not part of the public hook surface. */
@@ -1109,6 +1110,11 @@ export type DataGridInternalActions = {
   _pruneFlashingCells(keptViewRows: readonly number[]): void;
 };
 
+export type LiveAnnouncementKind = "rowMove" | "rowsChecked" | "results";
+
+/** `count` is the moved rows, the checked rows, or the view's loaded rows, by `kind`; `partial` marks a result count that leaves out unloaded rows. */
+export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq: number; partial?: true };
+
 /** Full store shape: interaction state + the stable actions object. */
 export type DataGridStore = DataGridStoreState;
 
@@ -1125,8 +1131,7 @@ export type SyncInputs = {
   /** Sort reads each column's cell-type `compare`, so a swapped registry changes `viewIndex`. */
   cellTypes: Record<string, CellType>;
   sortState: SortSpec[];
-  filterState: FilterSpec[];
-  joinOperator: FilterJoinOperator;
+  filterState: FilterNode[];
   searchText: string;
   columnOrder: string[] | null;
   hiddenColumns: readonly string[];
@@ -1140,7 +1145,6 @@ export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
     a.cellTypes === b.cellTypes &&
     a.sortState === b.sortState &&
     a.filterState === b.filterState &&
-    a.joinOperator === b.joinOperator &&
     a.searchText === b.searchText &&
     a.columnOrder === b.columnOrder &&
     a.hiddenColumns === b.hiddenColumns &&

@@ -1,4 +1,5 @@
-import type { FilterOperator, FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import type { FilterGroup, FilterNode, FilterOperator, FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { MAX_FILTER_GROUP_DEPTH, groupChildren, isFilterGroup } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { isFilterOperator } from "./filter-operators";
 import { safeDecode } from "./sort-param";
 
@@ -14,8 +15,13 @@ const EMPTY_ENTRY_TOKEN = "%";
 /** A hand-edited URL must not express an unbounded view state; filter segments beyond the cap are dropped. */
 const MAX_URL_FILTERS = 64;
 
+/** Groups kept from a URL; the `[` and `]` segments are bounded separately from the leaf rows. */
+const MAX_URL_FILTER_GROUPS = 16;
+
 /** Raw comma-separated segments read before parsing stops; bounds the work a URL of empty segments can cost. */
 const MAX_URL_FILTER_SEGMENTS = MAX_URL_FILTERS * 4;
+
+const GROUP_CLOSE = "]";
 
 /** Bound for one `isAnyOf` or `isNoneOf` list parsed from a URL when the caller names no per-column limit. */
 const DEFAULT_MAX_ANYOF_CHOICES = 1000;
@@ -39,7 +45,7 @@ function encodeFilterValue(operator: FilterOperator, value: FilterSpec["value"])
 }
 
 /**
- * Compact URL encoding for {@link FilterSpec}[]: comma-separated `columnId:operator:value` triples
+ * Compact URL encoding for a {@link FilterNode}[]: comma-separated `columnId:operator:value` triples
  * (`value` omitted for operators with none, e.g. `empty`/`notEmpty`), column id and value
  * percent-encoded. `isBetween`'s two-value range encodes as `min~max`, the `isAnyOf` and `isNoneOf` choice lists as
  * `a|b|c` (each choice percent-encoded, so the raw `|` separator can never collide) — both still
@@ -47,6 +53,9 @@ function encodeFilterValue(operator: FilterOperator, value: FilterSpec["value"])
  * operators existed — round-trips unchanged. An empty list entry encodes as the lone token `%`
  * (`a|%`), so `[""]` differs from `[]`; a part left empty by hand-editing still reads as an empty entry. `filterId` is never serialized — it's a transient
  * list-rendering identity the store re-derives on parse, not part of the filter's meaning.
+ * A {@link FilterGroup} is an open segment `[or` or `[and`, its children, and a closing `]` segment;
+ * `encodeURIComponent` escapes `[` and `]`, so no id or value can imitate one. A group nests one more
+ * group at most; deeper and empty groups are not written.
  *
  * @example serializeFilterState([{ columnId: "age", operator: "gt", value: "30" }])
  * // => "age:gt:30"
@@ -56,9 +65,29 @@ function encodeFilterValue(operator: FilterOperator, value: FilterSpec["value"])
  * // => "age:isBetween:10~30"
  * @example serializeFilterState([{ columnId: "status", operator: "isAnyOf", value: ["new", "open"] }])
  * // => "status:isAnyOf:new|open"
+ * @example serializeFilterState([{ join: "or", filters: [{ columnId: "a", operator: "equals", value: "1" }] }])
+ * // => "[or,a:equals:1,]"
  */
-export function serializeFilterState(filters: readonly FilterSpec[]): string {
-  return filters.map((f) => `${encodeURIComponent(f.columnId)}:${f.operator}:${encodeFilterValue(f.operator, f.value)}`).join(",");
+export function serializeFilterState(filters: readonly FilterNode[]): string {
+  const segments: string[] = [];
+  writeNodes(filters, 0, segments);
+  return segments.join(",");
+}
+
+function writeNodes(nodes: readonly FilterNode[], depth: number, segments: string[]): void {
+  for (const node of nodes) {
+    if (!isFilterGroup(node)) {
+      segments.push(`${encodeURIComponent(node.columnId)}:${node.operator}:${encodeFilterValue(node.operator, node.value)}`);
+      continue;
+    }
+    const children = groupChildren(node);
+    if (depth >= MAX_FILTER_GROUP_DEPTH || children.length === 0) continue;
+    const start = segments.length;
+    segments.push(`[${node.join === "or" ? "or" : "and"}`);
+    writeNodes(children, depth + 1, segments);
+    if (segments.length === start + 1) segments.pop();
+    else segments.push(GROUP_CLOSE);
+  }
 }
 
 /** Sentinel distinguishing "decode failed, drop the segment" from a legitimately-empty decoded value (`""`). */
@@ -96,9 +125,11 @@ function decodeFilterValue(operator: string, raw: string, maxChoices: number): F
  * Inverse of {@link serializeFilterState}. Malformed segments (unknown operator, empty/undecodable
  * column id, wrong field count, malformed `isBetween` range or `isAnyOf` / `isNoneOf` list) are dropped silently
  * rather than throwing — a corrupt/hand-edited URL degrades to fewer filters, never an error.
- * Parsing stops after 256 raw segments. The parsed list is capped at 64 filters, and each `isAnyOf`
+ * Parsing stops after 256 raw segments. The parsed tree is capped at 64 filter rows and 16 groups, and each `isAnyOf`
  * list at `options.maxChoices(columnId)` entries (1000 by default); the first segments win, so a
- * hand-edited URL cannot express an unbounded filter set. An `isNoneOf` list over its bound drops
+ * hand-edited URL cannot express an unbounded filter set. A group opener deeper than the nesting cap,
+ * with an unknown join, or over the group cap drops its whole subtree; a stray `]` is ignored, an
+ * unclosed group closes at the end, and an empty group is dropped. An `isNoneOf` list over its bound drops
  * the whole segment.
  * Every filter parses without a `filterId`; the store backfills a fresh stable one on the next sync.
  *
@@ -108,15 +139,36 @@ function decodeFilterValue(operator: string, raw: string, maxChoices: number): F
  * @example parseFilterState("status:isAnyOf:new|open") // => [{ columnId: "status", operator: "isAnyOf", value: ["new", "open"] }]
  * @example parseFilterState("garbage") // => []
  */
-export function parseFilterState(raw: string, options: ParseFilterStateOptions = {}): FilterSpec[] {
+export function parseFilterState(raw: string, options: ParseFilterStateOptions = {}): FilterNode[] {
   if (!raw) return [];
-  const filters: FilterSpec[] = [];
+  type Frame = { join: FilterGroup["join"]; filters: FilterNode[]; dropped: boolean };
+  const root: Frame = { join: "and", filters: [], dropped: false };
+  const stack: Frame[] = [root];
+  let leaves = 0;
+  let groups = 0;
+  const closeTop = () => {
+    const frame = stack.pop()!;
+    if (frame.dropped || frame.filters.length === 0) return;
+    stack[stack.length - 1]!.filters.push({ join: frame.join, filters: frame.filters });
+  };
   let start = 0;
-  for (let read = 0; read < MAX_URL_FILTER_SEGMENTS && start <= raw.length && filters.length < MAX_URL_FILTERS; read++) {
+  for (let read = 0; read < MAX_URL_FILTER_SEGMENTS && start <= raw.length && leaves < MAX_URL_FILTERS; read++) {
     const comma = raw.indexOf(",", start);
     const end = comma === -1 ? raw.length : comma;
     const segment = raw.slice(start, end);
     start = end + 1;
+    if (segment === GROUP_CLOSE) {
+      if (stack.length > 1) closeTop();
+      continue;
+    }
+    if (segment.startsWith("[")) {
+      const join = segment === "[or" ? "or" : segment === "[and" ? "and" : undefined;
+      const parent = stack[stack.length - 1]!;
+      const dropped = parent.dropped || join === undefined || stack.length > MAX_FILTER_GROUP_DEPTH || groups >= MAX_URL_FILTER_GROUPS;
+      if (!dropped) groups++;
+      stack.push({ join: join ?? "and", filters: [], dropped });
+      continue;
+    }
     const parts = segment.split(":");
     if (parts.length !== 3) continue;
     const [columnId, operator, rawValue] = parts;
@@ -125,7 +177,11 @@ export function parseFilterState(raw: string, options: ParseFilterStateOptions =
     if (decodedId === null || decodedId === "") continue;
     const value = decodeFilterValue(operator, rawValue, options.maxChoices?.(decodedId) ?? DEFAULT_MAX_ANYOF_CHOICES);
     if (value === DECODE_FAILED) continue;
-    filters.push({ columnId: decodedId, operator, value });
+    const frame = stack[stack.length - 1]!;
+    if (frame.dropped) continue;
+    frame.filters.push({ columnId: decodedId, operator, value });
+    leaves++;
   }
-  return filters;
+  while (stack.length > 1) closeTop();
+  return root.filters;
 }

@@ -286,7 +286,7 @@ function SortRow(props: SortRowProps): ReactNode {
         <SelectTrigger className="h-8 w-full" aria-label={labels.sort.columnAriaLabel}>
           {/* explicit label lookup: SelectValue only resolves a mounted SelectItem's label, which
               the popup content isn't until first opened — this control's own trigger text must be
-              correct on first render (no open required), same rationale as the filter menu's join-operator select. */}
+              correct on first render (no open required), same rationale as the filter menu's group select. */}
           <SelectValue className="truncate">{(value: string) => { const c = availableColumns.find((col) => col.id === value); return c ? columnLabelText(c) : value; }}</SelectValue>
         </SelectTrigger>
         <SelectContent>

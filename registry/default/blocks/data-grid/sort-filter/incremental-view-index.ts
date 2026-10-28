@@ -1,5 +1,5 @@
-import type { FilterJoinOperator, FilterSpec, SortSpec } from "../types";
-import { isEmptyCell, makeFilterTest, type CellAccessor, type ViewIndexOptions } from "./build-view-index";
+import type { FilterNode, SortSpec } from "../types";
+import { isEmptyCell, makeFilterNodeTest, type CellAccessor, type ViewIndexOptions } from "./build-view-index";
 import { defaultCompareText } from "./default-compare-text";
 
 /**
@@ -81,16 +81,11 @@ export function makeViewComparator(accessor: CellAccessor, sorts: readonly SortS
   };
 }
 
-/** Whether `row` survives the active filters — the same matchers, join semantics, and text source the rebuild uses. */
-export function makeFilterPredicate(
-  accessor: CellAccessor,
-  filters: readonly FilterSpec[],
-  joinOperator: FilterJoinOperator | undefined,
-): (row: number) => boolean {
+/** Whether `row` survives the active filters — the same tests, group semantics, and text source the rebuild uses. */
+export function makeFilterPredicate(accessor: CellAccessor, filters: readonly FilterNode[]): (row: number) => boolean {
   if (filters.length === 0) return () => true;
-  const matchers = filters.map((filter) => makeFilterTest(accessor, filter));
-  if (joinOperator === "or") return (row) => matchers.some((test) => test(row));
-  return (row) => matchers.every((test) => test(row));
+  const tests = filters.map((node) => makeFilterNodeTest(accessor, node));
+  return (row) => tests.every((test) => test(row));
 }
 
 /** Index in `view` where `row` belongs under `compare`; `view` must already be sorted by it. */
@@ -135,7 +130,7 @@ export function updateViewIndex(
   // buildViewIndex narrows by `search` before sorting; this path only knows sort + filter membership.
   if (opts.search?.trim() && opts.searchColumnIds) return { viewIndex: null, bail: "search-active" };
   const touched = new Set(touchedRows);
-  const survives = makeFilterPredicate(accessor, opts.filters, opts.joinOperator);
+  const survives = makeFilterPredicate(accessor, opts.filters);
   // With no sort columns the comparator degenerates to the data-index tiebreak alone, which is
   // exactly the order the rebuild leaves an unsorted filtered view in.
   const compare = makeViewComparator(accessor, opts.sorts);

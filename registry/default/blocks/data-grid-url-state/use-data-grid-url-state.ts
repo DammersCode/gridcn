@@ -6,16 +6,15 @@ import {
   useDataGridActions,
   useDataGridAllColumns,
   useDataGridFilterState,
-  useDataGridJoinOperator,
   useDataGridSearchText,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isDev, isFilterGroup, pruneFilterSpecs, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { ColumnLayout } from "@/registry/default/blocks/data-grid/data-grid";
 import { serializeSortState, parseSortState } from "./sort-param";
 import { parseLayoutPart, serializeLayoutPart, type UrlLayoutPart } from "./layout-param";
 import { serializeFilterState, parseFilterState } from "./filter-param";
-import { serializeJoinOperator, parseJoinOperator } from "./join-param";
+import { parseLegacyJoin } from "./join-param";
 import { prefixedKey } from "./prefixed-key";
 
 /** Smallest `isAnyOf` / `isNoneOf` list bound for a column with choices, so a link written before a choice was removed still parses. */
@@ -54,7 +53,7 @@ export type UseDataGridUrlStateOptions = {
 export type UseDataGridUrlStateResult = {
   /**
    * Re-applies the current URL params to the store, including the dropped-column warning. Unlike
-   * the mount apply, a param missing from the URL clears its sort, filter, join, or search. Call
+   * the mount apply, a param missing from the URL clears its sort, filter, or search. Call
    * it when the URL changed outside the grid's own writes —
    * back/forward, a framework `setSearchParams`, or a query-only route change — since mount
    * applies exactly once and the store is the source of truth afterwards.
@@ -63,13 +62,14 @@ export type UseDataGridUrlStateResult = {
 };
 
 /**
- * Syncs the grid store's `sortState`/`filterState`/`joinOperator`/`searchText` with the URL via
+ * Syncs the grid store's `sortState`/`filterState`/`searchText` with the URL via
  * nuqs: applies any URL params to the store once on mount, then writes store changes back to the
  * URL (replacing, never pushing, history entries). Requires a `NuqsAdapter` (or the testing
  * adapter) above it in the tree — nuqs itself is router-agnostic. Search writes are debounced so
- * typing doesn't spam `history.replaceState`; sort/filter/join writes (menu-driven, not
- * keystroke-driven) are immediate. `joinOperator` gets its own `join` param rather than folding
- * into `filter` so a URL generated before this feature existed keeps parsing identically.
+ * typing doesn't spam `history.replaceState`; sort/filter writes (menu-driven, not
+ * keystroke-driven) are immediate. A filter group lives inside the `filter` param. A legacy
+ * `join=or` param is read once (it wraps a flat filter list in one `or` group) and every filter
+ * write removes it.
  *
  * The URL→store direction runs once on mount; after that the store wins. `applyFromUrl()`
  * re-runs the mount apply when the URL changed outside the grid's own writes.
@@ -82,7 +82,6 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   const storeApi = useDataGridStoreApi();
   const sortState = useDataGridSortState();
   const filterState = useDataGridFilterState();
-  const joinOperator = useDataGridJoinOperator();
   const searchText = useDataGridSearchText();
   const columnLayout = useDataGridSelector((s) => s.columnLayout);
 
@@ -170,16 +169,15 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
       }),
     );
     const parsedFilters = parseFilterState(filterParam, { maxChoices: (columnId) => choiceBounds.get(columnId) });
-    const filters = parsedFilters.filter((spec) => {
+    const legacyOr = parsedFilters.length > 0 && parseLegacyJoin(joinParam) === "or" && !parsedFilters.some(isFilterGroup);
+    const filters = pruneFilterSpecs(legacyOr ? [{ join: "or", filters: parsedFilters }] : parsedFilters, (spec) => {
       if (filterableIds.has(spec.columnId)) return true;
       warnDev(`dropped URL filter spec for removed, hidden, or unfilterable column "${spec.columnId}"`);
       return false;
     });
-    const join = parseJoinOperator(joinParam);
     // On mount an absent param keeps the grid's initial state; a re-apply mirrors the URL, so a removed param clears its state.
     if (sorts.length > 0 || !keepMountDefaults) actions.setSorts(sorts);
     if (filters.length > 0 || !keepMountDefaults) actions.setFilters(filters);
-    if (join !== "and" || !keepMountDefaults) actions.setJoinOperator(join);
     if (searchParam || !keepMountDefaults) actions.setSearch(searchParam);
 
     if (Object.keys(layoutPatch).length > 0) actions.setColumnLayout(layoutPatch);
@@ -205,14 +203,9 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   useEffect(() => {
     if (!appliedRef.current) return;
     void setFilterParamRef.current(serializeFilterState(filterState) || null);
+    void setJoinParamRef.current(null);
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [filterState]);
-
-  useEffect(() => {
-    if (!appliedRef.current) return;
-    void setJoinParamRef.current(serializeJoinOperator(joinOperator) || null);
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [joinOperator]);
 
   const lastWrittenLayoutRef = useRef<Partial<Record<UrlLayoutPart, string>> | null>(null);
   useEffect(() => {

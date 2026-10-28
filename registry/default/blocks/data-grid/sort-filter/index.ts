@@ -1,7 +1,7 @@
 /** Domain barrel — sort/filter/search: compare fns, filter matching, view-index, search matches. */
 export { defaultCompareText } from "./default-compare-text";
 export { matchesFilter, createFilterMatcher } from "./matches-filter";
-export { buildViewIndex, isEmptyCell, makeFilterTest, searchTextReader, type CellAccessor, type ViewIndexOptions } from "./build-view-index";
+export { buildViewIndex, isEmptyCell, makeFilterNodeTest, makeFilterTest, searchTextReader, type CellAccessor, type ViewIndexOptions } from "./build-view-index";
 export { createTextMatcher, findSearchMatches, type SearchMatch } from "./find-search-matches";
 export {
   updateViewIndex,
@@ -12,3 +12,12 @@ export {
   type IncrementalBailReason,
   type IncrementalViewIndexResult,
 } from "./incremental-view-index";
+export {
+  MAX_FILTER_GROUP_DEPTH,
+  countFilterSpecs,
+  forEachFilterSpec,
+  groupChildren,
+  hasFilterOnColumn,
+  isFilterGroup,
+  pruneFilterSpecs,
+} from "./filter-tree";

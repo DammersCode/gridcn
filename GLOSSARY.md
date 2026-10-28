@@ -55,6 +55,7 @@ mirror the change there.
 | band | A fixed strip of rows above or below the body, such as pinned rows. | |
 | column group | A named set of columns, or of other groups, that share one header above their own headers. `columnGroups` defines it. | column span, super header |
 | header row | One level of the header block. Group levels come first, and the column headers fill the last row. | |
+| start side, end side | The two ends of the inline axis. The start side is the `pin: "left"` zone, the end side the `pin: "right"` zone; in a left-to-right page start is left and end is right, in a right-to-left page the reverse. | left side, right side (for pin sides) |
 
 ## Selection and input
 
@@ -66,11 +67,15 @@ mirror the change there.
 | quick search | The toolbar search that highlights matches and never filters rows. | |
 | find and replace | The add-on panel that finds text through the quick search and replaces it in one match or in all matches. A replace writes one change with the source `"replace"`. | search and replace |
 | set filter | A filter that keeps or drops rows by a list of values. It uses the `isAnyOf` or `isNoneOf` operator. | value filter |
+| filter node | One entry of `filterState`: a filter row or a filter group. | filter item, filter entry |
+| filter group | A box of filter nodes that match together. Its join is `and` (every child must match) or `or` (any child). A group holds one more group at most. The top level of `filterState` always combines with `and`. | filter bracket, nested filter, join operator |
 | header filter | The filter button in a column header. It opens a popover with the set filter of that column. `renderHeaderFilter` places it, and `DataGridHeaderFilter` is the built-in one. | column filter popup |
 | tap | A touch press that lifts within 10 px and under 500 ms. A tap selects; two taps on one cell edit. | click (for touch) |
 | long-press | A touch press held for 500 ms without moving more than 10 px. It opens the context menu. | press and hold, tap and hold |
 | selection handle | One of the two circles at the corners of a touch selection. Dragging one extends the range. | range handle, drag handle |
 | coarse pointer | An input whose `(pointer: coarse)` media query matches, such as a finger. Hit areas grow under it. | touch mode |
+| live region announcement | The text the grid's live region reads to a screen reader: a row move, the number of checked rows, or the result count. The region waits 500 ms after the last change. | |
+| result count | The number of rows in the view after a filter or sort change. `announceResults` turns its announcement on. | |
 
 ## Writing
 

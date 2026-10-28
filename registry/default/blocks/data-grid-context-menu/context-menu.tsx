@@ -82,7 +82,7 @@ export type DataGridContextMenuProps = {
    */
   getCellMenuItems?: CellMenuItemsResolver;
   /**
-   * Resolves the header-surface item set (Sort asc/desc/clear, Pin left/right/unpin, Hide column,
+   * Resolves the header-surface item set (Sort asc/desc/clear, Pin to start/end/unpin, Hide column,
    * Autosize column). `defaults` is the built-in set as {@link GridMenuItemSpec} entries for the
    * current state; the return value is the complete item set. Applies to the right-click header
    * menu AND every `DataGridHeaderDropdown` rendered inside this wrapper (it flows through

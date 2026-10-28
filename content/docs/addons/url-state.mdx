@@ -70,17 +70,27 @@ The [nuqs adapter docs](https://nuqs.dev/docs/adapters) list every adapter and i
 
 ## `prefix`
 
-This namespaces the `sort`, `filter`, `join`, `q`, `cols`, `hide`, `widths`, and `pins` URL keys, so multiple grids can coexist on
+This namespaces the `sort`, `filter`, `q`, `cols`, `hide`, `widths`, and `pins` URL keys, so multiple grids can coexist on
 one page without colliding:
 
 ```tsx
 <DataGridUrlState prefix="orders" />
-// -> ?orders_sort=...&orders_filter=...&orders_join=...&orders_q=...
+// -> ?orders_sort=...&orders_filter=...&orders_q=...
 ```
 
-The filter menu's And/Or toggle writes the `join` param (omitted while the operator is the
-default). It has its own key instead of folding into `filter`, so a URL generated before the
-toggle existed still parses identically.
+A filter group <NewBadge /> is a segment `[or` or `[and`, followed by its rows, closed by a `]` segment:
+
+```txt
+?filter=country:equals:X,[or,name:contains:A,name:contains:B,]
+```
+
+The characters `[` and `]` are always percent-encoded inside ids and values, so a value cannot imitate
+a group. A group holds one more group at most. A deeper group drops with its rows, a stray `]` is
+ignored, a group left open closes at the end, and an empty group is dropped. A flat list of rows
+without groups is written exactly as before.
+
+An older link can carry a `join=or` param. The grid reads it once: when the `filter` param has no
+group, the rows wrap in one `or` group. The grid never writes `join`, and every filter write removes it. A grid with a `prefix` reads `<prefix>_join` the same way.
 
 ## Behavior
 
@@ -89,18 +99,18 @@ toggle existed still parses identically.
   truth and drives the URL, not the other way around. Call `applyFromUrl()` from
   `useDataGridUrlState()` when the URL changed outside the grid's own writes: back/forward
   navigation, a framework `setSearchParams`, or a query-only route change. The grid then mirrors
-  the URL: a param the URL no longer has clears its sort, filter, join, or search. On mount, a
+  the URL: a param the URL no longer has clears its sort, filter, or search. On mount, a
   missing param keeps the grid's initial state.
-- Sort, filter, and join writes are immediate, since they are menu-driven, not keystroke-driven.
+- Sort and filter writes are immediate, since they are menu-driven, not keystroke-driven.
   Search writes are debounced (300ms), so typing does not spam `history.replaceState`.
 - Every URL write uses `history: "replace"`, never `push`, so typing in search or changing a
   filter does not pollute the browser's back and forward history.
 - The core stays router-agnostic. `data-grid-url-state` is the only piece that knows about a
   router, and it is entirely optional.
-- A URL cannot express an unbounded view state. The `filter` param parses at most 64 filters and
-  reads at most 256 segments. Each `isAnyOf` list holds at most `max(number of choices, 64)`
+- A URL cannot express an unbounded view state. The `filter` param parses at most 64 filter rows and 16 groups, and
+  reads at most 256 segments. A row for a removed, hidden, or unfilterable column is dropped at every level, and a group it empties is dropped. Each `isAnyOf` list holds at most `max(number of choices, 64)`
   values for a column with `choices`. A column with missing or empty `choices` allows 1000
-  values. An `isNoneOf` <NewBadge /> list has the same bound, and a longer list drops the whole filter
+  values. An `isNoneOf` list has the same bound, and a longer list drops the whole filter
   segment. An empty list entry (the blank value) is written as a single
   `%`. The `sort` param keeps one direction per column (the first
   segment wins), reads at most 256 segments, and parses at most 64 sorts. A hand-edited URL beyond these limits degrades to
@@ -155,8 +165,6 @@ needed. A framework router that exposes its own navigation event (for example
 
 ## Column layout
 
-<NewBadge />
-
 The `layout` option picks which parts of the column layout go into the URL. The default is
 `["order", "hidden"]`: a shared link restores the column order and the hidden columns. Widths
 depend on the screen of the viewer, so `widths` and `pins` are opt-in. `layout={[]}` turns layout
@@ -172,9 +180,9 @@ sync off. This sample adds the widths to the default parts:
 | `order` | `cols` | Column ids, comma-separated. |
 | `hidden` | `hide` | Column ids, comma-separated. `-` means no hidden column. |
 | `widths` | `widths` | `id:px` pairs, whole pixels. |
-| `pins` | `pins` | `id:l` or `id:r` pairs. `-` means no pinned column. |
+| `pins` | `pins` | `id:s` or `id:e` pairs. The codes `l` and `r` read as `s` and `e`. `-` means no pinned column. |
 
-The demo at the top of this page syncs the widths and the pins. Its keys start with `demo_` (the `prefix`), as in `demo_widths`. <NewBadge />
+The demo at the top of this page syncs the widths and the pins. Its keys start with `demo_` (the `prefix`), as in `demo_widths`.
 
 - A part is in the URL only while it differs from the layout the grid started with. The grid
   starts with the column defs and `defaultColumnLayout`. A layout equal to it removes the key.

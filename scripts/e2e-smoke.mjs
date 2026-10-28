@@ -247,7 +247,7 @@ const SCENARIOS = [
       await page.getByRole("columnheader", { name: "Age" }).click();
       await eventually(async () => {
         const values = await ages();
-        return values.every((v, i) => i === 0 || values[i - 1] <= v) && values[0] < 25;
+        return values.every((v, i) => i === 0 || values[i - 1] <= v) && values[0] <= 35;
       }, "first rows are not ascending by Age");
       await page.getByRole("columnheader", { name: "Age" }).click();
       await eventually(async () => {
@@ -261,6 +261,7 @@ const SCENARIOS = [
     page: "data-grid-sorting-filtering-demo",
     run: async (page) => {
       await page.getByRole("button", { name: "Filters" }).click();
+      await page.getByRole("button", { name: "Clear all" }).click();
       await page.getByRole("button", { name: "Add filter" }).click();
       await page.getByLabel("Filter value").fill("Tiger");
       await eventually(async () => {

@@ -1176,7 +1176,7 @@ describe("DataGrid in a real browser", () => {
         await userEvent.click(cells[0]!, BESIDE_BOX); // an active cell arms the second-click toggle too
         await userEvent.dragAndDrop(cells[0]!, cells[2]!); // starts on the centered box
 
-        await expect.poll(() => document.querySelectorAll('[aria-selected="true"]').length).toBe(3);
+        await expect.poll(() => document.querySelectorAll('[role="gridcell"][aria-selected="true"]').length).toBe(3);
         expect(onDataChange).not.toHaveBeenCalled();
       });
 

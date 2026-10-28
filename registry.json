@@ -33,6 +33,7 @@
             "checkbox",
             "popover",
             "calendar",
+            "input-group",
             "dropdown-menu",
             "context-menu",
             "separator",
@@ -223,6 +224,11 @@
                 "path": "registry/default/blocks/data-grid/data-grid-sdk.ts",
                 "type": "registry:component",
                 "target": "components/data-grid/data-grid-sdk.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/live-region.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid/live-region.tsx"
             },
             {
                "path": "registry/default/blocks/data-grid/header-cell.tsx",
@@ -500,6 +506,11 @@
                "target": "components/data-grid/sort-filter/find-search-matches.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/sort-filter/filter-tree.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/sort-filter/filter-tree.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/sort-filter/index.ts",
                "type": "registry:component",
                "target": "components/data-grid/sort-filter/index.ts"
@@ -528,6 +539,11 @@
                 "path": "registry/default/blocks/data-grid/store/create-store.ts",
                 "type": "registry:component",
                 "target": "components/data-grid/store/create-store.ts"
+             },
+             {
+                "path": "registry/default/blocks/data-grid/store/announcements.ts",
+                "type": "registry:component",
+                "target": "components/data-grid/store/announcements.ts"
              },
              {
                 "path": "registry/default/blocks/data-grid/store/data-write.ts",
@@ -888,6 +904,11 @@
                "target": "components/data-grid-toolbar/search.tsx"
             },
             {
+               "path": "registry/default/blocks/data-grid-toolbar/filter-tree-edit.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-toolbar/filter-tree-edit.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid-toolbar/filter-menu.tsx",
                "type": "registry:component",
                "target": "components/data-grid-toolbar/filter-menu.tsx"
@@ -1160,6 +1181,7 @@
             "DammersCode/gridcn/dropzone",
             "dialog",
             "select",
+            "table",
             "dropdown-menu",
             "button",
             "checkbox",
@@ -1524,6 +1546,31 @@
          ]
       },
       {
+         "name": "data-grid-date-picker-demo",
+         "type": "registry:example",
+         "title": "Data Grid Date Picker Demo",
+         "description": "A date column that opens its calendar at edit start next to one with a typed input and a calendar button.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-date-picker-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-date-picker-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
          "name": "data-grid-custom-cell-demo",
          "type": "registry:example",
          "title": "Data Grid Custom Cell Demo",
@@ -1723,6 +1770,35 @@
                "path": "registry/default/examples/data-grid-io-demo.tsx",
                "type": "registry:example",
                "target": "components/data-grid-io-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-print-demo",
+         "type": "registry:example",
+         "title": "Data Grid Print Demo",
+         "description": "Print button with a page size picker for the PDF: the chosen A4, A3, Letter, or Legal size is passed to printGrid as options.pageSize.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-history",
+            "DammersCode/gridcn/data-grid-io",
+            "DammersCode/gridcn/data-grid-toolbar",
+            "select"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-print-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-print-demo.tsx"
             },
             {
                "path": "registry/default/examples/demo-data.ts",
@@ -2283,6 +2359,32 @@
                "path": "registry/default/examples/data-grid-find-replace-demo.tsx",
                "type": "registry:example",
                "target": "components/data-grid-find-replace-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-announcements-demo",
+         "type": "registry:example",
+         "title": "Data Grid Announcements Demo",
+         "description": "The live region announces checked rows and, with announceResults, the result count; a line on the page mirrors the spoken text.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-toolbar"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-announcements-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-announcements-demo.tsx"
             },
             {
                "path": "registry/default/examples/demo-data.ts",

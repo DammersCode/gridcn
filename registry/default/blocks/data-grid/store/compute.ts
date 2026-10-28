@@ -3,8 +3,7 @@ import type {
   ColumnLayout,
   CompactSelectionLike,
   DataOp,
-  FilterJoinOperator,
-  FilterSpec,
+  FilterNode,
   GridRect,
   GridSelection,
   SearchOptions,
@@ -16,6 +15,9 @@ import {
   buildViewIndex,
   defaultCompareText,
   findSearchMatches,
+  groupChildren,
+  isFilterGroup,
+  MAX_FILTER_GROUP_DEPTH,
   searchTextReader,
   updateViewIndex,
   type CellAccessor,
@@ -335,19 +337,43 @@ export function genFilterId(): string {
 }
 
 /**
- * Backfills a missing `filterId` on any {@link FilterSpec} that lacks one (backward-compat: consumers
- * may still pass plain `{columnId, operator, value}` via the controlled `filterState` prop) while
- * preserving the id of every filter that already has one — so identity stays stable across recomputes
- * for filters the consumer/store already assigned one to, and list rendering keyed on `filterId` never
- * jitters just because `_syncProps` ran again with the same logical filters. Returns the input array
- * itself when every filter already has an id, so a stable prop reference stays a stable sync input.
+ * Backfills a missing `filterId` on any {@link FilterNode} that lacks one, at every level
+ * (backward-compat: consumers may still pass plain `{columnId, operator, value}` via the controlled
+ * `filterState` prop) while preserving every id that already exists, so list rendering keyed on
+ * `filterId` never jitters when `_syncProps` runs again with the same logical filters. Returns the
+ * input array itself when nothing is missing, so a stable prop reference stays a stable sync input.
  */
-export function withFilterIds(filters: readonly FilterSpec[]): FilterSpec[] {
-  for (const f of filters) {
-    if (!f.filterId) return filters.map((f) => (f.filterId ? f : { ...f, filterId: genFilterId() }));
+export function withFilterIds(nodes: readonly FilterNode[]): FilterNode[] {
+  return fillFilterIds(nodes, 0);
+}
+
+/** A group nested deeper than `MAX_FILTER_GROUP_DEPTH` drops with its rows, which also bounds every later tree walk on untrusted state. */
+function fillFilterIds(nodes: readonly FilterNode[], depth: number): FilterNode[] {
+  let changed = false;
+  const next: FilterNode[] = [];
+  for (const node of nodes) {
+    if (!isFilterGroup(node)) {
+      if (node.filterId) next.push(node);
+      else {
+        changed = true;
+        next.push({ ...node, filterId: genFilterId() });
+      }
+      continue;
+    }
+    if (depth >= MAX_FILTER_GROUP_DEPTH) {
+      changed = true;
+      continue;
+    }
+    const children = groupChildren(node);
+    const filled = fillFilterIds(children, depth + 1);
+    if (node.filterId && filled === children) next.push(node);
+    else {
+      changed = true;
+      next.push({ ...node, filterId: node.filterId || genFilterId(), filters: filled });
+    }
   }
   // the input is never mutated in place by the store (every update builds a new array)
-  return filters as FilterSpec[];
+  return changed ? next : (nodes as FilterNode[]);
 }
 
 /**
@@ -671,14 +697,13 @@ export function computeViewIndex(
   data: readonly unknown[],
   allColumns: readonly AnyColumnDef[],
   sortState: SortSpec[],
-  filterState: FilterSpec[],
-  joinOperator: FilterJoinOperator,
+  filterState: readonly FilterNode[],
   prevViewIndex?: readonly number[],
   cellTypes?: Record<string, CellType>,
 ): number[] {
   const accessor = textAccessorFor(allColumns, data, cellTypes);
   // Quick-search never narrows viewIndex — it only highlights/navigates.
-  const next = buildViewIndex(data.length, accessor, { sorts: sortState, filters: filterState, joinOperator });
+  const next = buildViewIndex(data.length, accessor, { sorts: sortState, filters: filterState });
   if (prevViewIndex && sameElements(next, prevViewIndex)) return prevViewIndex as number[];
   return next;
 }
@@ -708,8 +733,7 @@ export function incrementalViewIndex(
   data: readonly unknown[],
   allColumns: readonly AnyColumnDef[],
   sortState: SortSpec[],
-  filterState: FilterSpec[],
-  joinOperator: FilterJoinOperator,
+  filterState: readonly FilterNode[],
   prevViewIndex: readonly number[],
   touchedRows: readonly number[],
   cellTypes?: Record<string, CellType>,
@@ -717,7 +741,7 @@ export function incrementalViewIndex(
   // A view longer than the data can only come from a row removal the caller failed to declare.
   if (prevViewIndex.length > data.length) return null;
   const accessor = textAccessorFor(allColumns, data, cellTypes);
-  const opts = { sorts: sortState, filters: filterState, joinOperator };
+  const opts = { sorts: sortState, filters: filterState };
   const result = updateViewIndex(prevViewIndex, touchedRows, accessor, opts);
   if (result.viewIndex === null) return null;
   if (isDev() && Math.random() < incrementalAssertRate) {

@@ -27,7 +27,6 @@ attribute stays on its row while the grid scrolls, so scrolling causes no style 
 hover. The grid reads the row under the pointer again when the scroll settles and after the view
 changes. Marker cells re-render only when their own props or the selection state of their row change.
 
-
 In our headless test on 100,000 rows, a sequence of jumps had a median longest frame of 16.8 ms,
 down from 91.7 ms. The number of frames over 33 ms fell from 4 to 0. These numbers come from the
 regression suite in this repository. Your hardware and cells change them.

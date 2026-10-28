@@ -87,22 +87,23 @@ export function PeopleGrid() {
 
 | Key | Action |
 |---|---|
-| <kbd>Tab</kbd> | Moves through a row's controls, in order: column select, operator select, value, remove, drag handle |
-| <kbd>ArrowUp</kbd> / <kbd>ArrowDown</kbd> (drag handle focused) | Moves that filter row one position up/down |
-| <kbd>Space</kbd> / <kbd>Enter</kbd> (drag handle focused) | Picks up/drops the row for pointer-equivalent keyboard dragging (`@dnd-kit/react`'s keyboard sensor) |
-| <kbd>Backspace</kbd> / <kbd>Delete</kbd> (drag handle focused) | Removes that filter row |
+| <kbd>Tab</kbd> | Moves through a row's controls, in order: column select, operator select, value, remove, drag handle. A group adds its own rows, each later row with its "And"/"Or" select, and its "Add filter" and "Add group" buttons before its remove button and drag handle |
+| <kbd>ArrowUp</kbd> / <kbd>ArrowDown</kbd> (drag handle focused) | Moves that filter row or group one position up/down among its siblings |
+| <kbd>Space</kbd> / <kbd>Enter</kbd> (drag handle focused) | Starts and ends a keyboard drag. The arrow keys move the row at once, so no landing line shows |
+| <kbd>Backspace</kbd> / <kbd>Delete</kbd> (drag handle focused) | Removes that filter row or group |
+
+A drag <NewBadge /> shows a line at the slot where the row or group lands. The line moves as the pointer moves, and it fades in unless the user prefers reduced motion. <kbd>Escape</kbd> cancels the drag and keeps the popover open.
 
 Plain `ArrowUp` or `ArrowDown` on a focused drag handle always moves the row by exactly one position.
 The keyboard sensor of `@dnd-kit/react` also offers its own gesture for that key, but gridcn
 checks the plain arrow press first, and it wins. Every reorder announces the change through a polite
 `aria-live` region (`labels.toolbar.filterReorderAnnouncement`, for example "Name filter moved to
 position 2 of 3"). Focus never gets lost. After a reorder, focus stays on the moved row's drag handle.
-After deleting a row, focus moves to the next row's drag handle, or to the "Add filter" button once the
-list is empty.
+After deleting a row, focus moves to the next row's drag handle, then to the previous one. When the
+row was the last of its group <NewBadge />, the group goes too, and focus moves to a sibling of that group.
+Focus moves to the "Add filter" button when none is left.
 
 ## Header filter
-
-<NewBadge />
 
 A column header can hold its own filter button. The button opens a popover with a searchable list of the column's values, and the user checks the values to keep. `DataGridHeaderFilter` is that button. Pass it to the `renderHeaderFilter` slot of `DataGridRoot`.
 
@@ -124,13 +125,14 @@ The button shows on each column that offers `isAnyOf` or `isNoneOf` and is not `
 The popover works like this:
 
 - The list holds one entry per distinct value, with the number of rows that have it. Values that differ only in case form one entry, and Apply writes the first spelling it meets. An empty value shows as "(Blanks)".
-- The search box <NewBadge /> narrows the list. The popover opens with focus in it. "Select all" is a checkbox at the start of the search field. It checks or unchecks the values that match the typed text. It comes before the search input in the Tab order, and <kbd>Space</kbd> toggles it. Its box is empty when none of those values is checked, shows the indeterminate mark when some are, and shows a check when all are.
-- The status line <NewBadge /> under the search reads "N of M selected". N is the number of checked values and M is the number of values in the list. Set the text with the `toolbar.headerFilterSelectedCount` label. The counts of the entries sit in a right-aligned column.
-- The counts include only the rows that pass every other filter. The filter of the column itself never hides its own values. If the join is `or`, the counts include all rows.
+- The search box narrows the list. The popover opens with focus in it. "Select all" is a checkbox at the start of the search field. It checks or unchecks the values that match the typed text. It comes before the search input in the Tab order, and <kbd>Space</kbd> toggles it. Its box is empty when none of those values is checked, shows the indeterminate mark when some are, and shows a check when all are.
+- The status line under the search reads "N of M selected". N is the number of checked values and M is the number of values in the list. Set the text with the `toolbar.headerFilterSelectedCount` label. The counts of the entries sit in a right-aligned column.
+- The counts include only the rows that pass every other top-level node. The top-level set filter of the column itself never hides its own values. A set filter of the column inside a filter group counts like any other filter.
 - Apply stores the shorter list. If fewer values are checked than unchecked, it writes `isAnyOf` with the checked values. Otherwise it writes `isNoneOf` with the unchecked values. A value that enters the data later passes `isNoneOf`.
-- Apply keeps every other filter, including condition filters on the same column.
+- Apply <NewBadge /> keeps every other filter, including condition filters on the same column. It reads and writes only the top-level set filter of the column, so it always narrows the result. Set filters inside a filter group belong to the filter menu.
 - Apply is disabled while no value is checked, and while the stored list would hold more than 1,000 entries. A message explains the second case.
-- Clear removes every filter of the column. <kbd>Escape</kbd> or a press outside the popover discards the selection.
+- A line <NewBadge /> under the list says when the column also has filter rows inside a group (`labels.headerFilterGroupRows`).
+- Clear removes every filter of the column, at every level, and removes the groups that this leaves empty. <kbd>Escape</kbd> or a press outside the popover discards the selection.
 - The list reads at most 100,000 distinct values. Past that limit it shows the first values and a message.
 
 The filter works in a read-only grid, because filtering does not write data.

@@ -23,7 +23,8 @@ function serializePair(id: string, value: string | number): string {
 
 /**
  * Compact URL encoding of one {@link ColumnLayout} part: `order` and `hidden` are comma-separated
- * column ids, `widths` is `id:px` pairs, `pins` is `id:l` / `id:r` pairs. Ids are percent-encoded.
+ * column ids, `widths` is `id:px` pairs, `pins` is `id:s` / `id:e` pairs (start / end; the legacy
+ * `l` / `r` codes are read, not written). Ids are percent-encoded.
  * An empty `hidden` or `pins` part is written as `-`.
  *
  * @example serializeLayoutPart("widths", { ...layout, widths: { name: 240 } }) // => "name:240"
@@ -40,7 +41,7 @@ export function serializeLayoutPart(part: UrlLayoutPart, layout: ColumnLayout): 
         .join(",");
     case "pins": {
       const pins = Object.entries(layout.pins);
-      return pins.length === 0 ? NONE : pins.map(([id, side]) => serializePair(id, side === "left" ? "l" : "r")).join(",");
+      return pins.length === 0 ? NONE : pins.map(([id, side]) => serializePair(id, side === "left" ? "s" : "e")).join(",");
     }
     default:
       return "";
@@ -83,7 +84,7 @@ function parsePairs<V>(raw: string, parseValue: (value: string) => V | null): [s
  * {@link MAX_URL_LAYOUT_COLUMNS} segments; undecodable, empty, and repeated ids and malformed values
  * are dropped (the first segment of an id wins). Never throws.
  *
- * @example parseLayoutPart("pins", "name:l,age:r") // => { pins: { name: "left", age: "right" } }
+ * @example parseLayoutPart("pins", "name:s,age:e") // => { pins: { name: "left", age: "right" } }
  */
 export function parseLayoutPart(part: UrlLayoutPart, raw: string): Partial<ColumnLayout> {
   if (raw === "" || raw.length > MAX_URL_LAYOUT_PARAM_LENGTH) return {};
@@ -96,7 +97,7 @@ export function parseLayoutPart(part: UrlLayoutPart, raw: string): Partial<Colum
       return { widths: Object.fromEntries(parsePairs(raw, (v) => (WIDTH_PATTERN.test(v) ? Number(v) : null))) };
     case "pins":
       return {
-        pins: Object.fromEntries(parsePairs(raw, (v) => (v === "l" ? "left" : v === "r" ? "right" : null))) as ColumnLayout["pins"],
+        pins: Object.fromEntries(parsePairs(raw, (v) => (v === "l" || v === "s" ? "left" : v === "r" || v === "e" ? "right" : null))) as ColumnLayout["pins"],
       };
     default:
       return {};

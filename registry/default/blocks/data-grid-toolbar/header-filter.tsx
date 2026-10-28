@@ -11,7 +11,10 @@ import { useDataGridActions, useDataGridApi, useDataGridCellTypes, useDataGridLa
 import {
   GRID_ATTR,
   columnLabelText,
+  forEachFilterSpec,
   isComposingKey,
+  isFilterGroup,
+  pruneFilterSpecs,
   resolveFilterOperators,
   useDataGridIsColumnFiltered,
   useDataGridStoreApi,
@@ -41,7 +44,11 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; se
     const distinct = distinctColumnValues(state, column.id);
     const keys = distinct.values.map((value) => value.key);
     const texts = new Map(distinct.values.map((value) => [value.key, value.text]));
-    return { ...distinct, partial: distinct.hasHoles || state.sortMode === "server", keys, texts, openFilters: state.filterState, initiallyChecked: checkedKeysFromFilters(state.filterState, column.id, keys) };
+    let inGroup = false;
+    for (const node of state.filterState) {
+      if (isFilterGroup(node)) forEachFilterSpec([node], (f) => void (inGroup = inGroup || f.columnId === column.id));
+    }
+    return { ...distinct, inGroup, partial: distinct.hasHoles || state.sortMode === "server", keys, texts, openFilters: state.filterState, initiallyChecked: checkedKeysFromFilters(state.filterState, column.id, keys) };
   });
   const options = useMemo<SetFilterOption[]>(
     () => loaded.values.map((value) => (value.key === "" ? { ...value, label: labels.headerFilterBlanks } : value)),
@@ -96,7 +103,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; se
   };
 
   const clear = () => {
-    actions.setFilters(storeApi.getState().filterState.filter((filter) => filter.columnId !== column.id));
+    actions.setFilters(pruneFilterSpecs(storeApi.getState().filterState, (filter) => filter.columnId !== column.id));
     onClose();
   };
 
@@ -140,6 +147,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; se
         <bdi>{status}</bdi>
       </div>
       {loaded.partial && <div className="text-xs text-muted-foreground">{labels.headerFilterLoadedRowsOnly}</div>}
+      {loaded.inGroup && <div className="text-xs text-muted-foreground">{labels.headerFilterGroupRows}</div>}
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" size="sm" disabled={!filtered} onClick={clear}>
           {labels.headerFilterClear}
