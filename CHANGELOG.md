@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- Every data row carries `aria-selected`: `true` when the row is selected, and `false` when it is not and the grid has a checkbox row marker. A screen reader reads the checked state from the row, not only from the marker checkbox. Without a checkbox marker, an unselected row has no attribute.
 - Presence: a highlight `color` that is invalid or an undefined token paints as `var(--color-primary)` instead of a fixed blue, so a preset sets the fallback. The name chip text is black on light colors and white on dark ones, instead of always white. `--presence-label-foreground` still overrides it. The presence demo shows four users with distinct colors, one of them with no valid color so it paints the fallback.
 - `printGrid` and `DataGridPrintButton` take a `pageSize` option (`"A4"` default, `"A3"`, `"Letter"`, `"Legal"`) for the PDF page size.
 - Docs: a print demo with a page size picker on the import/export page, a date picker demo for `calendarTrigger`, and a preset filter group in the sorting and filtering demo.

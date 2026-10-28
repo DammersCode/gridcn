@@ -2,7 +2,8 @@
 
 import { memo, useState, type PointerEvent as ReactPointerEvent, type Ref } from "react";
 import { cn } from "@/lib/utils";
-import { useDataGridRow, useDataGridRowCellState } from "./store";
+import { useDataGridIsRowSelected, useDataGridRow, useDataGridRowCellState } from "./store";
+import { markerContent } from "./rows/marker-width";
 import { colRangesContain } from "./selection/selected-col-ranges-for-row";
 import { DataGridCell } from "./cell";
 import { DataGridMarkerCell } from "./rows/marker-cell";
@@ -78,6 +79,7 @@ export const DataGridRow = memo(function DataGridRow({
   // stable across ticks that don't touch this row (see useDataGridRowCellState's comparator), so
   // this memoized row only re-renders when its own active/editing/search/selection state changed.
   const cellState = useDataGridRowCellState(viewRowIndex);
+  const isChecked = useDataGridIsRowSelected(viewRowIndex);
   // marker column occupies grid track 1 when present, so every data column shifts one track right
   const markerColOffset = layout.markerWidth > 0 ? 2 : 1;
   // A hole in `data` (lazy loading): row.tsx renders skeleton cells instead of empty ones.
@@ -85,6 +87,8 @@ export const DataGridRow = memo(function DataGridRow({
   // existing memo/subscription contract (useDataGridRow re-renders on that identity change like
   // any other row edit) — no extra state or subscription needed for the transition itself.
   const isSkeleton = row === undefined;
+  const markerKind = markerContent(rowMarkers);
+  const hasCheckboxMarker = markerKind === "checkbox" || markerKind === "both";
   // Only a view index past the end has no id; a lazy hole has a placeholder id.
   if (rowId === undefined) return null;
   return (
@@ -94,6 +98,7 @@ export const DataGridRow = memo(function DataGridRow({
       aria-rowindex={viewRowIndex + 2 + ariaRowIndexOffset}
       data-grid-row-index={viewRowIndex}
       aria-busy={isSkeleton || undefined}
+      aria-selected={isChecked ? true : hasCheckboxMarker ? false : undefined}
       // Named group: pinned and marker cells follow the row hover via CSS only, never React state.
       className={cn("group/row data-hovered:bg-muted/50", row === undefined ? undefined : getRowClassName?.(row, viewRowIndex))}
       style={{

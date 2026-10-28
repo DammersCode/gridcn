@@ -72,6 +72,8 @@ affected cells (a bounded, guarded re-render. See [Performance](/docs/performanc
 invariant wording). The `aria-selected` attribute is the accessibility-tree signal a screen
 reader reads. The overlay is the visual signal for sighted users. The two agree on the same state.
 
+Each data row carries `aria-selected` too <NewBadge />. A selected row reads `aria-selected="true"`. With a checkbox row marker (`rowMarkers="checkbox"` or `"both"`), an unselected row reads `aria-selected="false"`. Without one, an unselected row has no `aria-selected`. A screen reader then learns the state of a row from the row itself, not only from the marker checkbox.
+
 ### Editor focus behavior
 
 Opening a cell editor renders a real `<input>` (or other native control) inside the `gridcell`,
@@ -141,7 +143,7 @@ What the automated Chromium suite verifies, area by area:
 | Grid semantics (roles, aria counts/indices) | Verified: `a11y.browser.test.tsx`, zero axe violations on the base fixture (toolbar + markers + pinned row + checkbox column + sorted column) |
 | Keyboard navigation & roving tabindex | Verified: `data-grid.browser.test.tsx`: arrow keys move the active cell and scroll at the viewport edge. A real Tab enters the grid. The next Tab leaves it. Shift+Tab leaves backward |
 | Editor open/close focus flow | Verified: `a11y.browser.test.tsx` (zero violations with an editor open). `data-grid.browser.test.tsx` (caret lands at the end of existing content, never select-all) |
-| Multi-cell selection (`aria-selected`, `aria-multiselectable`) | Verified: `a11y.browser.test.tsx` (aria-selected on every range member) |
+| Multi-cell selection (`aria-selected`, `aria-multiselectable`) | Verified: `a11y.browser.test.tsx` (aria-selected on every range member). `row-aria-selected.browser.test.tsx` (aria-selected on checked and unchecked rows) |
 | Toolbar popovers + keyboard reorder | Verified: `toolbar.browser.test.tsx`, `sort-list.browser.test.tsx`: drag handle keeps focus on the moved row, announces the new position, full remove/refocus paths |
 | Live regions (search count, reorder announcements) | Verified structurally. The `aria-live` regions are in the fixture's axe tree and the reorder tests assert the announcement text. Whether a screen reader speaks it aloud is out of scope |
 
