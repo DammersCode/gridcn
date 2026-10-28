@@ -854,7 +854,7 @@ describe("DataGridFilterMenu groups", () => {
     await page.getByRole("button", { name: "Filters" }).click();
     await click(buttons("Add filter")[0]);
     await click(buttons("Add filter")[0]);
-    expect(page.getByRole("combobox", { name: "Match" }).query()).toBeNull();
+    expect(document.querySelector('[role="combobox"][aria-label^="Connector of filter"]')).toBeNull();
     const connectors = [...document.querySelectorAll("[data-grid-filter-row] > div:first-child")].map((c) => c.textContent);
     expect(connectors).toEqual(["Where", "And"]);
   });
@@ -869,7 +869,7 @@ describe("DataGridFilterMenu groups", () => {
     await buildIssueExample();
     expect(page.getByText("Match any of the following").query()).toBeNull();
     expect(page.getByText("Match all of the following").query()).toBeNull();
-    expect(document.querySelectorAll('[data-grid-filter-group] [role="combobox"][aria-label="Match"]')).toHaveLength(1);
+    expect(document.querySelectorAll('[data-grid-filter-group] [role="combobox"][aria-label^="Connector of filter"]')).toHaveLength(1);
     const group = document.querySelector("[data-grid-filter-group]")!;
     expect(group.querySelector(":scope > div:nth-child(2) > [role='combobox']")).toBeNull();
   });
@@ -890,15 +890,15 @@ describe("DataGridFilterMenu groups", () => {
     await buildIssueExample();
     await click(buttons("Add filter")[0]); // third row in the group
     await expect.poll(() => valueInputs().length).toBe(4);
-    const selects = () => [...document.querySelectorAll<HTMLElement>('[data-grid-filter-group] [role="combobox"][aria-label="Match"]')];
+    const selects = () => [...document.querySelectorAll<HTMLElement>('[data-grid-filter-group] [role="combobox"][aria-label^="Connector of filter"]')];
     expect(selects().map((s) => s.textContent)).toEqual(["Or", "Or"]);
-    await page.getByRole("combobox", { name: "Match" }).first().click();
+    await page.getByRole("combobox", { name: "Connector of filter 2 in group 1" }).click();
     await page.getByRole("option", { name: "And", exact: true }).click();
     await expect.poll(() => selects().map((s) => s.textContent)).toEqual(["And", "And"]);
     // Age > 26 and (Ali and Bo and ""): no name holds both
     await expect.poll(rowCount).toBe(0);
     expect(valueInputs()[0]!.value).toBe("26");
-    await page.getByRole("combobox", { name: "Match" }).last().click();
+    await page.getByRole("combobox", { name: "Connector of filter 3 in group 1" }).click();
     await page.getByRole("option", { name: "Or", exact: true }).click();
     await expect.poll(() => selects().map((s) => s.textContent)).toEqual(["Or", "Or"]);
     await expect.poll(rowCount).toBeGreaterThan(0);
@@ -1033,6 +1033,26 @@ describe("DataGridFilterMenu drag landing indicator", () => {
     pointer("pointercancel", end.x, end.y);
     await expect.poll(() => indicators().length).toBe(0);
     await expect.poll(columnLabels).toEqual(["Name", "Age"]);
+  });
+
+  it("shows the landing indicator inside the group of a nested drag, hidden from assistive tech", async () => {
+    await renderGrid();
+    await page.getByRole("button", { name: "Filters" }).click();
+    await page.getByRole("button", { name: "Add group" }).first().click();
+    await expect.poll(() => rowElements().length).toBe(1);
+    await page.getByRole("button", { name: "Add filter" }).first().click();
+    await expect.poll(() => rowElements().length).toBe(2);
+    const group = document.querySelector("[data-grid-filter-group]")!;
+    const [, second] = [...rowElements()];
+    const end = await dragRow(0, 1, 4);
+    await expect.poll(() => indicators().length).toBe(1);
+    const indicator = indicators()[0]!;
+    expect(group.contains(indicator)).toBe(true);
+    expect(second!.contains(indicator)).toBe(true);
+    expect(indicator).toHaveAttribute("aria-hidden", "true");
+    expect(indicator.className).toContain("motion-safe:animate-in");
+    pointer("pointerup", end.x, end.y);
+    await expect.poll(() => indicators().length).toBe(0);
   });
 
   it("shows no indicator while the pointer is still over the dragged row", async () => {

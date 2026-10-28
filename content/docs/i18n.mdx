@@ -106,9 +106,10 @@ const de: DeepPartialLabels = {
     addFilterGroup: "Gruppe hinzufügen",
     removeFilterGroupAriaLabel: "Gruppe entfernen",
     filterGroupName: "Gruppe",
-    filterGroupJoinAriaLabel: "Verknüpfung",
+    filterGroupJoinAriaLabel: (position, group) => `Verknüpfung von Filter ${position} in Gruppe ${group}`,
     filterConnectorAnd: "Und",
     filterConnectorOr: "Oder",
+    headerFilterGroupRows: "Diese Spalte hat auch Filter in einer Gruppe. Zurücksetzen entfernt sie ebenfalls.",
     columns: "Spalten",
   },
   contextMenu: {

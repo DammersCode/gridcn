@@ -48,8 +48,8 @@ export type DataGridToolbarLabels = {
   removeFilterGroupAriaLabel: string;
   /** Name of a filter group in the reorder announcement. */
   filterGroupName: string;
-  /** aria-label of the connector select a group's rows show after the first row; it sets the join of the whole group. */
-  filterGroupJoinAriaLabel: string;
+  /** aria-label of the connector select of a node after the first in a group; it sets the join of the whole group. `position` is the 1-based node position, `group` the dotted 1-based group path such as "1.2". */
+  filterGroupJoinAriaLabel: (position: number, group: string) => string;
   /** "and" option of the connector select; static text at the top level. */
   filterConnectorAnd: string;
   /** "or" option of the connector select. */
@@ -358,7 +358,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     addFilterGroup: "Add group",
     removeFilterGroupAriaLabel: "Remove group",
     filterGroupName: "Group",
-    filterGroupJoinAriaLabel: "Match",
+    filterGroupJoinAriaLabel: (position, group) => `Connector of filter ${position} in group ${group}`,
     filterConnectorAnd: "And",
     filterConnectorOr: "Or",
     columns: "Columns",

@@ -118,7 +118,7 @@ const GERMAN_LABELS: DeepPartialLabels = {
     filterValueTrue: "wahr",
     filterValueFalse: "falsch",
     filterWhere: "Wobei",
-    filterGroupJoinAriaLabel: "Verknüpfung",
+    filterGroupJoinAriaLabel: (position, group) => `Verknüpfung von Filter ${position} in Gruppe ${group}`,
     filterConnectorAnd: "Und",
     filterConnectorOr: "Oder",
     reorderFilterAriaLabel: "Filter verschieben",

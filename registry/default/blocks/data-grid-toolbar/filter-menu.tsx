@@ -280,14 +280,14 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
           </Button>
         }
       />
-      <PopoverContent align="start" className="flex w-full min-w-105 flex-col gap-3.5 p-4">
+      <PopoverContent align="start" className="flex w-full min-w-[min(26.25rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] flex-col gap-3.5 p-4">
         <div data-grid-filter-menu="" className="flex flex-col gap-3.5">
           <h4 className="font-medium leading-none text-muted-foreground">{labels.toolbar.filter}</h4>
           {filters.length === 0 && <p className="text-sm text-muted-foreground">{labels.toolbar.noFiltersApplied}</p>}
           <div aria-live="polite" role="status" className="sr-only">
             {announcement}
           </div>
-          {filters.length > 0 && <FilterList nodes={filters} parent={undefined} depth={0} ctx={context} className="max-h-75 overflow-y-auto" />}
+          {filters.length > 0 && <FilterList nodes={filters} parent={undefined} depth={0} path="" ctx={context} className="max-h-75 overflow-y-auto" />}
           <div className="flex w-full items-center gap-2">
             <Button type="button" ref={addButtonRef} onClick={() => context.onAddFilter(undefined)} disabled={noColumns}>
               {labels.toolbar.addFilter}
@@ -313,6 +313,8 @@ type FilterListProps = {
   parent: FilterGroup | undefined;
   /** Group levels above this list: 0 for the top level. */
   depth: number;
+  /** Dotted 1-based group numbers from the top level to this list; "" for the top level. */
+  path: string;
   ctx: FilterMenuContext;
   className?: string;
 };
@@ -327,7 +329,8 @@ function dropEdgeAt(index: number, slot: DragSlot | null): DropEdge | undefined 
 
 /** One sibling list with its own drag context, so a drag never leaves its level. */
 function FilterList(props: FilterListProps): ReactNode {
-  const { nodes, parent, depth, ctx, className } = props;
+  const { nodes, parent, depth, path, ctx, className } = props;
+  let groupCount = 0;
   const join: FilterGroup["join"] = parent?.join === "or" ? "or" : "and";
   const parentId = parent?.filterId;
   const [slot, setSlot] = useState<DragSlot | null>(null);
@@ -360,10 +363,13 @@ function FilterList(props: FilterListProps): ReactNode {
     >
       <div role="list" className={cn("flex flex-col gap-2 p-1", className)}>
         {nodes.map((node, index) => {
-          const position = { index, total: nodes.length, parentId, join, dropEdge: dropEdgeAt(index, slot), ctx };
-          return isFilterGroup(node) ? (
-            <FilterGroupBox key={node.filterId} group={node} depth={depth + 1} {...position} />
-          ) : (
+          const position = { index, total: nodes.length, parentId, join, path, dropEdge: dropEdgeAt(index, slot), ctx };
+          if (isFilterGroup(node)) {
+            groupCount += 1;
+            const groupPath = path ? `${path}.${groupCount}` : String(groupCount);
+            return <FilterGroupBox key={node.filterId} group={node} depth={depth + 1} groupPath={groupPath} {...position} />;
+          }
+          return (
             <FilterRow key={node.filterId} filter={node} {...position} />
           );
         })}
@@ -373,8 +379,8 @@ function FilterList(props: FilterListProps): ReactNode {
 }
 
 /** The first cell of a row or group: "Where" on the first, a select that sets the group's join after it; the top level is always "and". */
-function ConnectorCell(props: { index: number; join: FilterGroup["join"]; parentId: string | undefined; ctx: FilterMenuContext }): ReactNode {
-  const { index, join, parentId, ctx } = props;
+function ConnectorCell(props: { index: number; join: FilterGroup["join"]; parentId: string | undefined; path: string; ctx: FilterMenuContext }): ReactNode {
+  const { index, join, parentId, path, ctx } = props;
   const { labels } = ctx;
   const items = [
     { value: "and", label: labels.toolbar.filterConnectorAnd },
@@ -390,7 +396,7 @@ function ConnectorCell(props: { index: number; join: FilterGroup["join"]; parent
           ctx.onJoinChange(parentId, value as FilterGroup["join"]);
         }}
       >
-        <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.filterGroupJoinAriaLabel}>
+        <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.filterGroupJoinAriaLabel(index + 1, path)}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -419,14 +425,14 @@ function DropIndicator(props: { edge: DropEdge }): ReactNode {
       data-grid-filter-drop-indicator=""
       data-edge={props.edge}
       className={cn(
-        "pointer-events-none absolute inset-x-0 z-10 h-0.5 rounded-full bg-primary motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-150",
-        props.edge === "before" ? "-top-[5px]" : "-bottom-[5px]",
+        "pointer-events-none absolute inset-x-0 z-20 h-1 rounded-full bg-primary ring-2 ring-background motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-150",
+        props.edge === "before" ? "-top-1.5" : "-bottom-1.5",
       )}
     />
   );
 }
 
-type NodePosition = { index: number; total: number; parentId: string | undefined; join: FilterGroup["join"]; dropEdge: DropEdge | undefined; ctx: FilterMenuContext };
+type NodePosition = { index: number; total: number; parentId: string | undefined; join: FilterGroup["join"]; path: string; dropEdge: DropEdge | undefined; ctx: FilterMenuContext };
 
 /** Pointer drag through `useSortable`; ArrowUp/ArrowDown and Backspace/Delete on the handle win over dnd-kit's own keyboard sensor. */
 function useNodeSortable(filterId: string, position: NodePosition) {
@@ -483,11 +489,11 @@ function GripButton(props: GripButtonProps): ReactNode {
   );
 }
 
-type FilterGroupBoxProps = NodePosition & { group: FilterGroup; depth: number };
+type FilterGroupBoxProps = NodePosition & { group: FilterGroup; depth: number; groupPath: string };
 
-/** A bordered group with its own rows and footer. The 9px margin of the buttons is the box padding plus its border, so they line up with the first row. */
+/** A bordered group with its own rows and footer. The top margin of the buttons is the box border, its padding and the list padding, so they line up with the first row. */
 function FilterGroupBox(props: FilterGroupBoxProps): ReactNode {
-  const { group, index, join, parentId, dropEdge, depth, ctx } = props;
+  const { group, index, join, parentId, path, groupPath, dropEdge, depth, ctx } = props;
   const { labels } = ctx;
   const filterId = group.filterId!; // always assigned by the store; see FilterGroup
   const { ref, handleRef, isDragSource, onGripKeyDown } = useNodeSortable(filterId, props);
@@ -501,13 +507,13 @@ function FilterGroupBox(props: FilterGroupBoxProps): ReactNode {
       role="listitem"
       className={cn(
         "relative grid grid-cols-[minmax(4.5rem,auto)_minmax(0,1fr)_auto_auto] items-start gap-1.5 transition-transform",
-        isDragSource && "z-10 scale-[1.01] opacity-90 shadow-lg",
+        isDragSource && "z-10 scale-[1.01] opacity-60 shadow-lg",
       )}
     >
       {dropEdge && <DropIndicator edge={dropEdge} />}
-      <ConnectorCell index={index} join={join} parentId={parentId} ctx={ctx} />
+      <ConnectorCell index={index} join={join} parentId={parentId} path={path} ctx={ctx} />
       <div className="flex min-w-0 flex-col gap-2 rounded-md border p-2">
-        <FilterList nodes={children} parent={group} depth={depth} ctx={ctx} />
+        <FilterList nodes={children} parent={group} depth={depth} path={groupPath} ctx={ctx} />
         <div className="flex items-center gap-2">
           <Button type="button" variant="outline" size="sm" onClick={() => ctx.onAddFilter(group)} disabled={noColumns}>
             {labels.toolbar.addFilter}
@@ -519,10 +525,10 @@ function FilterGroupBox(props: FilterGroupBoxProps): ReactNode {
           )}
         </div>
       </div>
-      <Button type="button" variant="outline" size="icon" className="mt-[9px] size-8 shrink-0" aria-label={labels.toolbar.removeFilterGroupAriaLabel} onClick={() => ctx.onRemove(filterId)}>
+      <Button type="button" variant="outline" size="icon" className="mt-[calc(--spacing(3)+1px)] size-8 shrink-0" aria-label={labels.toolbar.removeFilterGroupAriaLabel} onClick={() => ctx.onRemove(filterId)}>
         <Trash2 />
       </Button>
-      <GripButton label={labels.toolbar.reorderFilterAriaLabel} isDragSource={isDragSource} handleRef={handleRef} gripRef={(el) => ctx.gripRef(filterId, el)} onKeyDown={onGripKeyDown} className="mt-[9px]" />
+      <GripButton label={labels.toolbar.reorderFilterAriaLabel} isDragSource={isDragSource} handleRef={handleRef} gripRef={(el) => ctx.gripRef(filterId, el)} onKeyDown={onGripKeyDown} className="mt-[calc(--spacing(3)+1px)]" />
     </div>
   );
 }
@@ -531,7 +537,7 @@ type FilterRowProps = NodePosition & { filter: FilterSpec };
 
 /** One filter row: a field select, an operator select, a typed value input, a trash button, and a drag handle. */
 function FilterRow(props: FilterRowProps): ReactNode {
-  const { filter, index, join, parentId, dropEdge, ctx } = props;
+  const { filter, index, join, parentId, path, dropEdge, ctx } = props;
   const { labels, columns, filterableColumns, operatorsFor } = ctx;
   const filterId = filter.filterId!; // always assigned by the store; see FilterSpec
   const column = columns.find((c) => c.id === filter.columnId);
@@ -546,12 +552,12 @@ function FilterRow(props: FilterRowProps): ReactNode {
       data-grid-filter-row=""
       role="listitem"
       className={cn(
-        "relative grid grid-cols-[minmax(4.5rem,auto)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)_auto_auto] items-center gap-1.5 transition-transform",
-        isDragSource && "z-10 scale-[1.01] opacity-90 shadow-lg",
+        "relative grid grid-cols-[minmax(4.5rem,auto)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)_auto_auto] max-sm:grid-cols-[minmax(4.5rem,auto)_minmax(0,1fr)_auto_auto] items-center gap-1.5 transition-transform",
+        isDragSource && "z-10 scale-[1.01] opacity-60 shadow-lg",
       )}
     >
       {dropEdge && <DropIndicator edge={dropEdge} />}
-      <ConnectorCell index={index} join={join} parentId={parentId} ctx={ctx} />
+      <ConnectorCell index={index} join={join} parentId={parentId} path={path} ctx={ctx} />
       <Select
         items={columnItems}
         value={filter.columnId}
@@ -584,7 +590,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
           ctx.onUpdate(filterId, { operator: nextOperator, value: emptyValueFor(nextOperator) });
         }}
       >
-        <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.filterOperatorAriaLabel}>
+        <SelectTrigger className="h-8 w-full max-sm:col-span-3 max-sm:col-start-2" aria-label={labels.toolbar.filterOperatorAriaLabel}>
           <SelectValue className="truncate" />
         </SelectTrigger>
         <SelectContent>
@@ -595,17 +601,17 @@ function FilterRow(props: FilterRowProps): ReactNode {
           ))}
         </SelectContent>
       </Select>
-      <div className="min-w-0">
+      <div className="min-w-0 max-sm:col-span-3 max-sm:col-start-2">
         {operatorHasValue(filter.operator) ? (
           <DataGridFilterValueInput column={column} operator={filter.operator} value={filter.value} onValueChange={(value) => ctx.onUpdate(filterId, { value })} />
         ) : (
           <div className="h-8 w-full rounded border bg-transparent" />
         )}
       </div>
-      <Button type="button" variant="outline" size="icon" className="size-8 shrink-0" aria-label={labels.toolbar.removeFilterAriaLabel} onClick={() => ctx.onRemove(filterId)}>
+      <Button type="button" variant="outline" size="icon" className="size-8 shrink-0 max-sm:col-start-3 max-sm:row-start-1" aria-label={labels.toolbar.removeFilterAriaLabel} onClick={() => ctx.onRemove(filterId)}>
         <Trash2 />
       </Button>
-      <GripButton label={labels.toolbar.reorderFilterAriaLabel} isDragSource={isDragSource} handleRef={handleRef} gripRef={(el) => ctx.gripRef(filterId, el)} onKeyDown={onGripKeyDown} />
+      <GripButton label={labels.toolbar.reorderFilterAriaLabel} isDragSource={isDragSource} handleRef={handleRef} gripRef={(el) => ctx.gripRef(filterId, el)} onKeyDown={onGripKeyDown} className="max-sm:col-start-4 max-sm:row-start-1" />
     </div>
   );
 }
