@@ -1,6 +1,6 @@
 ---
 name: gridcn-data-source
-description: "gridcn data sources: pick plain data, pagination, lazy loading, or streaming, and wire it. Use when connecting a grid to a backend or to a dataset too large for one payload, or when sort, filter, or search must run on the server."
+description: "gridcn data sources: pick plain data, pagination, lazy loading, or streaming, and wire it. Use when connecting a grid to a backend or to a dataset too large for one payload, or when sort, filter, or search must run on the server. Triggers: server-side filtering or sorting, `filterMode`, `sortMode`, `fetchFilterValues`, nested filter groups sent to an API, async gates with a server check."
 metadata:
   gridcn-version: "1.3.0"
 ---
@@ -38,7 +38,7 @@ A lazy or paged grid's uncontrolled sort/filter/search only ever sees the rows c
 
 Decide per gesture, for the chosen strategy:
 
-- **Full dataset must be searchable/sortable/filterable** → move that gesture server-side: hold the spec in your own state, send it to your fetch call, set `sortMode="server"` plus `onSortChange`, in lazy and paged server mode alike, and set `headerClickBehavior="sort"` so header clicks reach `onSortChange`. Full wiring, including the exact controlled-prop rules and reset-on-spec-change requirement, is in `references/server-mode.md` — read it before writing this code.
+- **Full dataset must be searchable/sortable/filterable** → move that gesture server-side: hold the spec in your own state, send it to your fetch call, set `sortMode="server"` plus `onSortChange` and `filterMode="server"` plus `onFilterChange`, in lazy and paged server mode alike, and set `headerClickBehavior="sort"` so header clicks reach `onSortChange`. Full wiring, including the exact controlled-prop rules and reset-on-spec-change requirement, is in `references/server-mode.md` — read it before writing this code.
 - **Page-local or range-local result is acceptable and disclosed to the user** → leave it uncontrolled, but say so in the completion record (step 5) rather than leaving it undecided.
 
 For `data-grid-lazy` specifically, mount `<DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />` inside `<DataGridProvider>` regardless of which path is chosen. It only dev-warns (`[data-grid-lazy] sort/filter/search changed while rows are still unloaded...`) when an uncontrolled gesture fires over holes — it does not block the gesture or fix production behavior, so step 3's server-side decision still has to be made by hand for the paths that need full coverage.
@@ -68,13 +68,13 @@ Applies to streaming on top of either:
 ## 5. Done when
 
 - The picked strategy (plus streaming, if used) is written down with its one-sentence reason, and lazy+pagination are not both mounted on the same grid.
-- Every sort/filter/search path either runs server-side against the full dataset (spec held outside the store, `sortMode="server"` and controlled `filterState` per `references/server-mode.md`) or is a deliberate, disclosed page/range-local result — never an accidental partial one.
+- Every sort/filter/search path either runs server-side against the full dataset (spec sent to the fetch, `sortMode="server"` and `filterMode="server"` per `references/server-mode.md`) or is a deliberate, disclosed page/range-local result — never an accidental partial one.
 - `DataGridLazyGuard` is mounted on every `data-grid-lazy` grid.
 - Pagination's stale-response race, `onPageChange(1)` on filter/search change, and row-id-based edit merge are all handled if pagination is in play; `lazy.reset()` on spec change is handled if lazy loading is in play.
 
 ## Reference
 
-- `references/server-mode.md` — server-mode wiring for lazy loading and pagination, side by side.
+- `references/server-mode.md` — server-mode wiring for lazy loading and pagination, side by side, and how to send a filter tree to an API.
 - Full docs: `https://gridcn.vercel.app/docs/lazy-loading.md`, `/docs/lazy-loading-advanced.md`, `/docs/pagination.md`, `/docs/streaming-updates.md`, `/docs/events-state.md`.
 
 ## Do not

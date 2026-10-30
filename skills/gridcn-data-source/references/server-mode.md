@@ -125,3 +125,20 @@ Rules:
 - A sort, filter, or search change must call `onPageChange(1)` by hand — the pagination hook has no visibility into filter/search wiring, uncontrolled or through `useDataGridUrlPagination`.
 - Merge edits back into the full dataset by row id in `onDataChange`; do not replace the whole dataset with the page-sliced array.
 - `useDataGridUrlPagination` (from `data-grid-url-state`) composes only with this server mode, spreading `{ page, pageSize, onPageChange, onPageSizeChange }` from `url` in place of local state above — client mode's `pageSize` seeds once and cannot take a pushed URL value.
+
+## Send filters to the API
+
+`filterState` is a `FilterNode[]`: each node is a `FilterSpec` (`{ columnId, operator, value }`) or a `FilterGroup` (`{ join: "and" | "or", filters: FilterNode[] }`). Map it like this:
+
+```text
+top-level nodes       -> combined with AND (the top level has no join of its own)
+FilterSpec            -> one predicate: column, operator, value
+FilterGroup           -> a parenthesized predicate list joined by its own join
+nested FilterGroup    -> one more level of parentheses; depth is capped at 2
+empty group           -> matches every row (emit no predicate)
+```
+
+- `value` is one string, an inclusive `[min, max]` tuple for `isBetween`, or a `string[]` for `isAnyOf` and `isNoneOf`.
+- Treat the whole tree as untrusted input. On the server, check depth (at most 2), group count (at most 16), row count (at most 64), that `columnId` names an allowed column, that `operator` is a known operator, and that every `join` is `"and"` or `"or"`. Cap the request body size.
+- Never build SQL by string concatenation. Bind `value` as a parameter, or escape it with the ORM or driver.
+- Send the tree to the same request as the sort spec and the page or window. Return the filtered `total`.
