@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { act, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef, DataChange } from "../types";
-import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
+import { DataGridProvider, useDataGridRowWriteStatus, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
 import type { WriteAck, WriteRejection } from "./write-ack";
 
 type Row = { id: string; name: string; note: string };
@@ -354,5 +355,98 @@ describe("write acknowledgement: refusals in sequence", () => {
     await flush();
     expect(state().data.find((r) => (r as Row).id === "a")).toMatchObject({ name: "X" });
     expect(onWriteRejected).not.toHaveBeenCalled();
+  });
+});
+
+describe("write acknowledgement over controlled and server data", () => {
+  function mountControlled(handler: (change: DataChange<Row>) => Promise<WriteAck> | undefined, props: Partial<DataGridSyncProps<Row>> = {}) {
+    let api: StoreApi<DataGridStoreState> | null = null;
+    let setData!: (rows: Row[]) => void;
+    let latest: Row[] = initial();
+    let statusOf!: (rowId: string) => string | undefined;
+    function Probe() {
+      const status = useDataGridRowWriteStatus("a");
+      statusOf = () => status;
+      return null;
+    }
+    function Wrapper() {
+      const [data, set] = useState<Row[]>(initial);
+      setData = set;
+      latest = data;
+      return (
+        <DataGridProvider
+          columns={columns}
+          getRowId={(row: Row) => row.id}
+          data={data}
+          onDataChange={((next: readonly Row[], change: DataChange<Row>) => {
+            set(next as Row[]);
+            return handler(change);
+          }) as never}
+          {...props}
+        >
+          <Capture />
+          <Probe />
+        </DataGridProvider>
+      );
+    }
+    function Capture() {
+      api = useDataGridStoreApi();
+      return null;
+    }
+    render(<Wrapper />);
+    return {
+      state: () => api!.getState(),
+      data: () => latest,
+      swap: (rows: Row[]) => act(() => setData(rows)),
+      status: () => statusOf("a"),
+    };
+  }
+
+  it("controlled data: the consumer stores the rollback and the ack drives the status hook", async () => {
+    const d = deferred<WriteAck>();
+    const m = mountControlled((change) => (change.source === "rollback" ? undefined : d.promise));
+    act(() => m.state().actions.commitCellValue({ rowId: "a", columnId: "name" }, "X"));
+    expect(m.data()[0]!.name).toBe("X");
+    expect(m.status()).toBe("saving");
+    d.resolve({ rejected: [{ rowId: "a" }] });
+    await flush();
+    expect(m.data()[0]!.name).toBe("A");
+    expect(m.status()).toBe("failed");
+  });
+
+  it("a page change before settle: a refused row that left the data has nothing to revert", async () => {
+    const d = deferred<WriteAck>();
+    const onWriteRejected = vi.fn();
+    const m = mountControlled((change) => (change.source === "rollback" ? undefined : d.promise), { onWriteRejected });
+    act(() => m.state().actions.commitCellValue({ rowId: "a", columnId: "name" }, "X"));
+    const page2: Row[] = [{ id: "d", name: "D", note: "d" }];
+    m.swap(page2);
+    d.resolve({ rejected: [{ rowId: "a" }] });
+    await flush();
+    expect(m.data()).toEqual(page2);
+    expect(onWriteRejected).toHaveBeenCalledTimes(1);
+  });
+
+  it("an evicted lazy row (a hole) has nothing to revert", async () => {
+    const d = deferred<WriteAck>();
+    const m = mountControlled((change) => (change.source === "rollback" ? undefined : d.promise));
+    act(() => m.state().actions.commitCellValue({ rowId: "a", columnId: "name" }, "X"));
+    const sparse = new Array<Row>(3);
+    sparse[1] = { id: "b", name: "B", note: "b" };
+    m.swap(sparse);
+    d.resolve({ rejected: [{ rowId: "a" }] });
+    await flush();
+    expect(m.data()[1]).toMatchObject({ id: "b" });
+    expect(m.data()[0]).toBeUndefined();
+  });
+
+  it("sortMode and filterMode server: a refusal reverts without re-sorting", async () => {
+    const d = deferred<WriteAck>();
+    const m = mountControlled((change) => (change.source === "rollback" ? undefined : d.promise), { sortMode: "server", filterMode: "server" });
+    act(() => m.state().actions.commitCellValue({ rowId: "b", columnId: "name" }, "Z"));
+    d.resolve({ rejected: [{ rowId: "b" }] });
+    await flush();
+    expect(m.data().map((r) => r.id)).toEqual(["a", "b", "c"]);
+    expect(m.data()[1]!.name).toBe("B");
   });
 });
